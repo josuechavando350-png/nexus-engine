@@ -18,19 +18,15 @@ use nexus_event::{NexusError, Result};
 /// Default database name when a Neo4j/Memgraph endpoint is selected without one.
 pub const DEFAULT_DATABASE: &str = "neo4j";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub enum GraphBackend {
     /// Process-local store. Not durable. The default for CI, the offline
     /// end-to-end demo and the examples.
+    #[default]
     InMemory,
+
     /// Neo4j or Memgraph over the Bolt protocol. Requires `--features neo4j`.
     Neo4j { uri: String, database: String },
-}
-
-impl Default for GraphBackend {
-    fn default() -> Self {
-        GraphBackend::InMemory
-    }
 }
 
 impl GraphBackend {
@@ -66,6 +62,7 @@ impl GraphBackend {
         database: Option<&str>,
     ) -> Self {
         let selector = selector.unwrap_or("").trim().to_ascii_lowercase();
+
         match selector.as_str() {
             "neo4j" | "memgraph" | "bolt" => GraphBackend::Neo4j {
                 uri: uri.unwrap_or("").trim().to_string(),
@@ -75,6 +72,7 @@ impl GraphBackend {
                     .unwrap_or(DEFAULT_DATABASE)
                     .to_string(),
             },
+
             _ => GraphBackend::InMemory,
         }
     }
@@ -93,6 +91,7 @@ impl GraphBackend {
                     "NEXUS_GRAPH_BACKEND selects a graph database but NEXUS_GRAPH_URI is not set",
                 ));
             }
+
             if !uri.starts_with("bolt://")
                 && !uri.starts_with("bolt+s://")
                 && !uri.starts_with("neo4j://")
@@ -125,10 +124,12 @@ mod tests {
             GraphBackend::from_env_value(None, None, None),
             GraphBackend::InMemory
         );
+
         assert_eq!(
             GraphBackend::from_env_value(Some(""), None, None),
             GraphBackend::InMemory
         );
+
         assert!(!GraphBackend::InMemory.is_durable());
     }
 
@@ -145,7 +146,9 @@ mod tests {
         for selector in ["neo4j", "NEO4J", " Neo4j ", "memgraph", "bolt"] {
             let backend =
                 GraphBackend::from_env_value(Some(selector), Some("bolt://host:7687"), None);
+
             assert_eq!(backend.name(), "neo4j", "selector {selector}");
+
             assert!(backend.is_durable());
         }
     }
@@ -154,8 +157,12 @@ mod tests {
     fn database_falls_back_to_the_documented_default() {
         let backend =
             GraphBackend::from_env_value(Some("neo4j"), Some("bolt://host:7687"), Some("  "));
+
         match backend {
-            GraphBackend::Neo4j { database, .. } => assert_eq!(database, DEFAULT_DATABASE),
+            GraphBackend::Neo4j { database, .. } => {
+                assert_eq!(database, DEFAULT_DATABASE)
+            }
+
             other => panic!("unexpected backend {other:?}"),
         }
     }
@@ -163,6 +170,7 @@ mod tests {
     #[test]
     fn strict_resolution_rejects_a_missing_endpoint() {
         let error = GraphBackend::resolve(Some("neo4j"), None, None).unwrap_err();
+
         assert_eq!(error.kind(), "invalid");
     }
 
@@ -170,16 +178,20 @@ mod tests {
     fn strict_resolution_rejects_a_wrong_scheme() {
         let error =
             GraphBackend::resolve(Some("neo4j"), Some("http://host:7474"), None).unwrap_err();
+
         assert_eq!(error.kind(), "invalid");
     }
 
     #[test]
     fn strict_resolution_refuses_a_backend_this_build_cannot_reach() {
-        let outcome = GraphBackend::resolve(Some("neo4j"), Some("bolt://host:7687"), None);
+        let outcome =
+            GraphBackend::resolve(Some("neo4j"), Some("bolt://host:7687"), None);
+
         if cfg!(feature = "neo4j") {
             assert!(outcome.is_ok());
         } else {
             let error = outcome.unwrap_err();
+
             assert_eq!(error.kind(), "unsupported");
         }
     }
