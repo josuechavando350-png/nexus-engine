@@ -665,7 +665,7 @@ mod tests {
             },
             Timestamp::from_millis(NOW),
             60_000,
-                        TraceId::from_external("trc_3"),
+            TraceId::from_external("trc_3"),
             ExecutionMode::Simulation,
         )
         .unwrap();

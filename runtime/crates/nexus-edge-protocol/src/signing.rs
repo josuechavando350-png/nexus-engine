@@ -545,10 +545,7 @@ mod tests {
         let ledger = NonceLedger::new(4);
 
         for index in 0..10 {
-            ledger.accept(
-                &format!("n{index}"),
-                Timestamp::from_millis(10_000),
-            );
+            ledger.accept(&format!("n{index}"), Timestamp::from_millis(10_000));
         }
 
         assert_eq!(ledger.len(), 4);
@@ -582,4 +579,4 @@ mod tests {
 
         assert_eq!(first.len(), 32);
     }
-           }
+}

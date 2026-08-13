@@ -184,8 +184,7 @@ mod tests {
 
     #[test]
     fn strict_resolution_refuses_a_backend_this_build_cannot_reach() {
-        let outcome =
-            GraphBackend::resolve(Some("neo4j"), Some("bolt://host:7687"), None);
+        let outcome = GraphBackend::resolve(Some("neo4j"), Some("bolt://host:7687"), None);
 
         if cfg!(feature = "neo4j") {
             assert!(outcome.is_ok());
