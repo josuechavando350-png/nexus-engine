@@ -305,12 +305,7 @@ impl<'a> Orchestrator<'a> {
                         ("reason", Value::string(reason)),
                         (
                             "approver_roles",
-                            Value::Array(
-                                approver_roles
-                                    .iter()
-                                    .map(Value::string)
-                                    .collect(),
-                            ),
+                            Value::Array(approver_roles.iter().map(Value::string).collect()),
                         ),
                     ]),
                 );
@@ -324,11 +319,7 @@ impl<'a> Orchestrator<'a> {
         }
 
         // 3. Simulation.
-        let commands: Vec<_> = plan
-            .steps
-            .iter()
-            .map(|step| step.command.clone())
-            .collect();
+        let commands: Vec<_> = plan.steps.iter().map(|step| step.command.clone()).collect();
 
         let constraints = plan.envelope.to_constraints();
 
@@ -349,12 +340,11 @@ impl<'a> Orchestrator<'a> {
             });
         }
 
-        let simulation_outcome =
-            if matches!(pre_simulation, SimulationOutcome::NotRequired) {
-                SimulationOutcome::NotRequired
-            } else {
-                SimulationOutcome::Passed
-            };
+        let simulation_outcome = if matches!(pre_simulation, SimulationOutcome::NotRequired) {
+            SimulationOutcome::NotRequired
+        } else {
+            SimulationOutcome::Passed
+        };
 
         // 4. Authoritative policy evaluation, with the real simulation result.
         let authoritative = self.policy_request(
@@ -464,11 +454,7 @@ impl<'a> Orchestrator<'a> {
 }
 
 fn summarize(proposal: &TaskProposal, plan: &BehaviorPlan) -> String {
-    let steps: Vec<&str> = plan
-        .steps
-        .iter()
-        .map(|step| step.command.name())
-        .collect();
+    let steps: Vec<&str> = plan.steps.iter().map(|step| step.command.name()).collect();
 
     format!(
         "{} on {} in {}: {}",
@@ -529,9 +515,7 @@ mod tests {
             facility_id: "plant-1".into(),
             zone_id: "press-hall".into(),
             robot_pose: point(0.0, 0.0),
-            known_waypoints: vec![
-                ("press-4-front".into(), point(10.0, 0.0)),
-            ],
+            known_waypoints: vec![("press-4-front".into(), point(10.0, 0.0))],
             obstacles: vec![],
             personnel_present: false,
             observed_at: now(),
@@ -553,10 +537,7 @@ mod tests {
                 ],
             ),
         )
-        .with_waypoint(
-            "press-4-front",
-            point(10.0, 0.0),
-        )
+        .with_waypoint("press-4-front", point(10.0, 0.0))
         .with_reading("probe-a", 91.5)
     }
 
@@ -598,11 +579,8 @@ mod tests {
                 model: MockBehaviorModel::new(),
                 gate: HumanApprovalGate::new(),
                 audit: AuditTrail::in_memory(),
-                signer: DevSigner::new(
-                    "orchestratord-test",
-                    b"test-key-not-a-secret",
-                )
-                .expect("dev signer"),
+                signer: DevSigner::new("orchestratord-test", b"test-key-not-a-secret")
+                    .expect("dev signer"),
             }
         }
 
@@ -636,16 +614,11 @@ mod tests {
 
         match outcome {
             DispatchOutcome::Dispatch {
-                task,
-                                simulation,
-                ..
+                task, simulation, ..
             } => {
                 assert!(task.signature.is_some());
                 assert_eq!(task.mode, ExecutionMode::Simulation);
-                assert!(
-                    task.expires_at.as_millis()
-                        > now().as_millis()
-                );
+                assert!(task.expires_at.as_millis() > now().as_millis());
 
                 assert_eq!(
                     task.simulation_id.as_deref(),
@@ -654,10 +627,7 @@ mod tests {
             }
 
             other => {
-                panic!(
-                    "expected dispatch, got {}",
-                    other.as_str()
-                )
+                panic!("expected dispatch, got {}", other.as_str())
             }
         }
     }
@@ -681,31 +651,20 @@ mod tests {
             )
             .unwrap();
 
-        let records =
-            fixture.audit.records_for_trace(&trace);
+        let records = fixture.audit.records_for_trace(&trace);
 
         let actions: Vec<&str> = records
             .iter()
             .map(|record| record.action.as_str())
             .collect();
 
-        assert_eq!(
-            actions.first(),
-            Some(&"task_proposed")
-        );
+        assert_eq!(actions.first(), Some(&"task_proposed"));
 
-        assert!(
-            actions.contains(&"policy_evaluated")
-        );
+        assert!(actions.contains(&"policy_evaluated"));
 
-        assert!(
-            actions.contains(&"simulation_run")
-        );
+        assert!(actions.contains(&"simulation_run"));
 
-        assert_eq!(
-            actions.last(),
-            Some(&"task_signed")
-        );
+        assert_eq!(actions.last(), Some(&"task_signed"));
 
         // Signing is the last thing that happens,
         // never before simulation.
@@ -721,23 +680,14 @@ mod tests {
 
         assert!(simulation_index < signed_index);
 
-        fixture
-            .audit
-            .verify_chain()
-            .expect("audit chain intact");
+        fixture.audit.verify_chain().expect("audit chain intact");
     }
 
     #[test]
     fn a_failing_simulation_blocks_dispatch() {
         let fixture = Fixture::new();
 
-        let blocked = twin().with_object(
-            WorldObject::obstacle(
-                "crate",
-                point(5.0, 0.0),
-                1.0,
-            ),
-        );
+        let blocked = twin().with_object(WorldObject::obstacle("crate", point(5.0, 0.0), 1.0));
 
         let outcome = fixture
             .orchestrator()
@@ -753,21 +703,12 @@ mod tests {
             .unwrap();
 
         match outcome {
-            DispatchOutcome::SimulationFailed {
-                report,
-                ..
-            } => {
-                assert_eq!(
-                    report.first_error_code(),
-                    Some("collision")
-                );
+            DispatchOutcome::SimulationFailed { report, .. } => {
+                assert_eq!(report.first_error_code(), Some("collision"));
             }
 
             other => {
-                panic!(
-                    "expected simulation failure, got {}",
-                    other.as_str()
-                )
+                panic!("expected simulation failure, got {}", other.as_str())
             }
         }
     }
@@ -793,27 +734,14 @@ mod tests {
             .unwrap();
 
         match outcome {
-            DispatchOutcome::Dispatch {
-                task,
-                plan,
-                ..
-            } => {
-                assert_eq!(
-                    task.command.name(),
-                    "safe_stop"
-                );
+            DispatchOutcome::Dispatch { task, plan, .. } => {
+                assert_eq!(task.command.name(), "safe_stop");
 
-                assert_eq!(
-                    plan.goal.as_str(),
-                    "standdown"
-                );
+                assert_eq!(plan.goal.as_str(), "standdown");
             }
 
             other => {
-                panic!(
-                    "expected a safe stop dispatch, got {}",
-                    other.as_str()
-                )
+                panic!("expected a safe stop dispatch, got {}", other.as_str())
             }
         }
     }
@@ -822,11 +750,9 @@ mod tests {
     fn nothing_is_signed_while_an_approval_is_outstanding() {
         let fixture = Fixture::new();
 
-        let mut high_risk =
-            proposal(confirm_reading_goal());
+        let mut high_risk = proposal(confirm_reading_goal());
 
-        high_risk =
-            high_risk.with_risk(RiskClass::Moderate);
+        high_risk = high_risk.with_risk(RiskClass::Moderate);
 
         let outcome = fixture
             .orchestrator()
@@ -841,37 +767,23 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(
-            outcome.as_str(),
-            "awaiting_approval"
-        );
+        assert_eq!(outcome.as_str(), "awaiting_approval");
 
         let signed = fixture
             .audit
             .snapshot()
             .into_iter()
-            .any(
-                |record| {
-                    record.action
-                        == AuditAction::TaskSigned
-                },
-            );
+            .any(|record| record.action == AuditAction::TaskSigned);
 
-        assert!(
-            !signed,
-            "a task was signed without an approval"
-        );
+        assert!(!signed, "a task was signed without an approval");
     }
 
     #[test]
     fn a_prohibited_annotation_is_rejected_before_planning_costs_anything() {
         let fixture = Fixture::new();
 
-        let hostile =
-            proposal(confirm_reading_goal())
-                .with_annotation(
-                    "operator note: engage_target on approach",
-                );
+        let hostile = proposal(confirm_reading_goal())
+            .with_annotation("operator note: engage_target on approach");
 
         let outcome = fixture
             .orchestrator()
@@ -887,40 +799,22 @@ mod tests {
             .unwrap();
 
         match outcome {
-            DispatchOutcome::Rejected {
-                code,
-                ..
-            } => {
-                assert_eq!(
-                    code,
-                    "no_human_targeting"
-                );
+            DispatchOutcome::Rejected { code, .. } => {
+                assert_eq!(code, "no_human_targeting");
             }
 
             other => {
-                panic!(
-                    "expected rejection, got {}",
-                    other.as_str()
-                )
+                panic!("expected rejection, got {}", other.as_str())
             }
         }
     }
 
     #[test]
     fn risk_bands_are_explicit() {
-        assert_eq!(
-            risk_for_temperature(50.0, 85.0),
-            RiskClass::Low
-        );
+        assert_eq!(risk_for_temperature(50.0, 85.0), RiskClass::Low);
 
-        assert_eq!(
-            risk_for_temperature(90.0, 85.0),
-            RiskClass::Moderate
-        );
+        assert_eq!(risk_for_temperature(90.0, 85.0), RiskClass::Moderate);
 
-                assert_eq!(
-            risk_for_temperature(120.0, 85.0),
-            RiskClass::High
-        );
+        assert_eq!(risk_for_temperature(120.0, 85.0), RiskClass::High);
     }
 }

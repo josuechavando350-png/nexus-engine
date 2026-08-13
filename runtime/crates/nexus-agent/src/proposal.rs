@@ -215,10 +215,7 @@ mod tests {
         let proposal = TaskProposal::new(
             TaskGoal::Standdown,
             ProposalTrigger::CorrelatedEvidence {
-                signals: vec![
-                    "telemetry.temperature".into(),
-                    "detection.smoke".into(),
-                ],
+                signals: vec!["telemetry.temperature".into(), "detection.smoke".into()],
                 asset_key: "press-4".into(),
             },
             "press-4",

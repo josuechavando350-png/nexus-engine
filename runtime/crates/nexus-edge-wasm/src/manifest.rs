@@ -185,27 +185,16 @@ mod tests {
     }
 
     fn signed_manifest(bytes: &[u8]) -> (ModuleManifest, DevSigner) {
-        let signer = DevSigner::new(
-            "build-server",
-            b"0123456789abcdef-module-key",
-        )
-        .unwrap();
+        let signer = DevSigner::new("build-server", b"0123456789abcdef-module-key").unwrap();
 
         let mut manifest = ModuleManifest::new(
             "collect-temperature",
             "1.0.0",
             bytes,
-            vec![
-                "nexus_read_sensor".into(),
-                "nexus_emit_observation".into(),
-            ],
+            vec!["nexus_read_sensor".into(), "nexus_emit_observation".into()],
         );
 
-        manifest.signature = Some(
-            signer
-                .sign(&manifest.signing_bytes())
-                .unwrap(),
-        );
+        manifest.signature = Some(signer.sign(&manifest.signing_bytes()).unwrap());
 
         (manifest, signer)
     }
@@ -215,9 +204,7 @@ mod tests {
         let bytes = b"\0asm-fake-module-bytes";
         let (manifest, signer) = signed_manifest(bytes);
 
-        manifest
-            .verify(bytes, &registry(&signer))
-            .unwrap();
+        manifest.verify(bytes, &registry(&signer)).unwrap();
     }
 
     #[test]
@@ -226,10 +213,7 @@ mod tests {
         let (manifest, signer) = signed_manifest(bytes);
 
         let error = manifest
-            .verify(
-                b"\0asm-different-bytes",
-                &registry(&signer),
-            )
+            .verify(b"\0asm-different-bytes", &registry(&signer))
             .unwrap_err();
 
         assert_eq!(error.kind(), "integrity");
@@ -239,16 +223,11 @@ mod tests {
     fn an_unsigned_manifest_is_rejected() {
         let bytes = b"module";
 
-        let mut manifest =
-            ModuleManifest::new("m", "1", bytes, vec![]);
+        let mut manifest = ModuleManifest::new("m", "1", bytes, vec![]);
 
         manifest.signature = None;
 
-        let signer = DevSigner::new(
-            "build-server",
-            b"0123456789abcdef-module-key",
-        )
-        .unwrap();
+        let signer = DevSigner::new("build-server", b"0123456789abcdef-module-key").unwrap();
 
         assert_eq!(
             manifest
@@ -263,28 +242,13 @@ mod tests {
     fn a_manifest_cannot_grant_a_host_function_outside_the_allowlist() {
         let bytes = b"module";
 
-        let signer = DevSigner::new(
-            "build-server",
-            b"0123456789abcdef-module-key",
-        )
-        .unwrap();
+        let signer = DevSigner::new("build-server", b"0123456789abcdef-module-key").unwrap();
 
-        let mut manifest = ModuleManifest::new(
-            "m",
-            "1",
-            bytes,
-            vec!["nexus_open_socket".into()],
-        );
+        let mut manifest = ModuleManifest::new("m", "1", bytes, vec!["nexus_open_socket".into()]);
 
-        manifest.signature = Some(
-            signer
-                .sign(&manifest.signing_bytes())
-                .unwrap(),
-        );
+        manifest.signature = Some(signer.sign(&manifest.signing_bytes()).unwrap());
 
-        let error = manifest
-            .verify(bytes, &registry(&signer))
-            .unwrap_err();
+        let error = manifest.verify(bytes, &registry(&signer)).unwrap_err();
 
         assert_eq!(error.kind(), "denied");
     }
@@ -296,11 +260,7 @@ mod tests {
 
         manifest.limits.fuel = u64::MAX;
 
-        assert!(
-            manifest
-                .verify(bytes, &registry(&signer))
-                .is_err()
-        );
+        assert!(manifest.verify(bytes, &registry(&signer)).is_err());
     }
 
     #[test]
@@ -320,13 +280,10 @@ mod tests {
 
     #[test]
     fn capability_tokens_expire() {
-        let token = CapabilityToken::new(
-            "sensor.temperature",
-            "tsk_1",
-            Timestamp::from_millis(1_000),
-        );
+        let token =
+            CapabilityToken::new("sensor.temperature", "tsk_1", Timestamp::from_millis(1_000));
 
-                assert!(token.is_valid_at(Timestamp::from_millis(999)));
+        assert!(token.is_valid_at(Timestamp::from_millis(999)));
         assert!(!token.is_valid_at(Timestamp::from_millis(1_000)));
     }
 }
