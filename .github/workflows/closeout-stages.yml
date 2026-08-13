@@ -21,14 +21,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - run: |
-          node scripts/v3-architecture-gates.mjs
-          node scripts/v4-architecture-gates.mjs
-          node scripts/v5-architecture-gates.mjs
-          node scripts/v6-architecture-gates.mjs
+
+      - name: Run static architecture gates only
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          NODE_BIN_DIR="$(dirname "$(command -v node)")"
+
+          env PATH="$NODE_BIN_DIR" node scripts/v3-architecture-gates.mjs
+          env PATH="$NODE_BIN_DIR" node scripts/v4-architecture-gates.mjs
+          env PATH="$NODE_BIN_DIR" node scripts/v5-architecture-gates.mjs
+          env PATH="$NODE_BIN_DIR" node scripts/v6-architecture-gates.mjs
 
   v3-core:
     name: 01 · V3 core compile
@@ -37,11 +45,14 @@ jobs:
     defaults:
       run:
         working-directory: runtime
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
       - uses: actions/cache@v4
         with:
           path: |
@@ -49,6 +60,7 @@ jobs:
             ~/.cargo/git
             runtime/target
           key: ${{ runner.os }}-cargo-closeout-${{ hashFiles('runtime/**/Cargo.toml') }}
+
       - name: Check V3 core and services
         run: |
           cargo check \
@@ -78,13 +90,17 @@ jobs:
     defaults:
       run:
         working-directory: runtime
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy
+
       - name: Install Kafka adapter build prerequisites
         run: sudo apt-get update && sudo apt-get install -y libsasl2-dev
+
       - name: Compile each external adapter separately
         run: |
           cargo check -p nexus-edge-protocol --features ed25519
@@ -99,9 +115,12 @@ jobs:
     defaults:
       run:
         working-directory: runtime
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+
       - name: Check V4 layer
         run: |
           cargo check \
@@ -125,9 +144,12 @@ jobs:
     defaults:
       run:
         working-directory: runtime
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+
       - name: Check V5 layer
         run: |
           cargo check \
@@ -151,9 +173,12 @@ jobs:
     defaults:
       run:
         working-directory: runtime
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
+
       - name: Check V6 layer
         run: |
           cargo check \
@@ -178,16 +203,22 @@ jobs:
     defaults:
       run:
         working-directory: runtime
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
+
       - name: Format
         run: cargo fmt --all --check
+
       - name: Clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
+
       - name: Tests
         run: cargo test --workspace
+
       - name: Release build
         run: cargo build --workspace --release
