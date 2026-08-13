@@ -151,6 +151,7 @@ pub struct EventEnvelope {
 }
 
 /// Builder so callers cannot forget to compute the integrity hash.
+#[derive(Debug)]
 pub struct EnvelopeBuilder {
     event_id: Option<EventId>,
     source_id: SourceId,
@@ -495,7 +496,6 @@ mod tests {
     fn idempotency_key_is_stable_and_content_derived() {
         let first = sample();
         let second = sample();
-        // Different event ids, identical content and sequence.
         assert_ne!(first.event_id, second.event_id);
         assert_ne!(first.idempotency_key(), second.idempotency_key());
 
@@ -542,4 +542,4 @@ mod tests {
         let later = Timestamp::from_millis(1_700_000_005_000);
         assert_eq!(envelope.clock_skew_millis(later), -5_000);
     }
-}
+        }
