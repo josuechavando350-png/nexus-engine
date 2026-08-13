@@ -665,4 +665,56 @@ mod tests {
             },
             Timestamp::from_millis(NOW),
             60_000,
-            TraceId::from_external("trc_
+                        TraceId::from_external("trc_3"),
+            ExecutionMode::Simulation,
+        )
+        .unwrap();
+
+        task.sign_with(&signer()).unwrap();
+
+        let mut scoped = SignerRegistry::new();
+
+        scoped.register(TrustedSigner {
+            signer_id: "orchestratord".into(),
+            verifier: Box::new(signer()),
+            permitted_capabilities: vec!["sensor.temperature".into()],
+        });
+
+        let ledger = NonceLedger::new(64);
+
+        assert_eq!(
+            task.verify(
+                "robot-inspect-01",
+                &["manipulator.fixture".to_string()],
+                &scoped,
+                &ledger,
+                Timestamp::from_millis(NOW + 1_000)
+            )
+            .unwrap_err()
+            .code(),
+            "capability_not_permitted_for_signer"
+        );
+    }
+
+    #[test]
+    fn nonces_differ_between_tasks() {
+        let first = task();
+        let second = task();
+
+        assert_ne!(first.nonce, second.nonce);
+        assert_ne!(first.task_id, second.task_id);
+    }
+
+    #[test]
+    fn json_form_includes_the_signature_and_round_trips_the_body() {
+        let task = task();
+        let json = task.to_json();
+
+        assert_eq!(
+            json.get("device_id").and_then(Value::as_str),
+            Some("robot-inspect-01")
+        );
+
+        assert!(json.get("signature").is_some());
+    }
+}
