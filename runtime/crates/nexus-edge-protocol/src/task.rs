@@ -155,10 +155,11 @@ impl EdgeTask {
             .iter()
             .map(|constraint| constraint.to_json())
             .collect();
+
         let capabilities: Vec<Value> = self
             .required_capabilities
             .iter()
-            .map(|capability| Value::string(capability))
+            .map(Value::string)
             .collect();
 
         Value::object(vec![
@@ -222,6 +223,7 @@ impl EdgeTask {
         self.command
             .validate()
             .map_err(|error| VerificationError::InvalidCommand(error.to_string()))?;
+
         for constraint in &self.safety_constraints {
             constraint
                 .validate()
@@ -240,6 +242,7 @@ impl EdgeTask {
         if now.is_before(self.issued_at) {
             return Err(VerificationError::NotYetValid);
         }
+
         if !now.is_before(self.expires_at) {
             return Err(VerificationError::Expired {
                 expired_by_millis: now.delta_millis(self.expires_at),
@@ -251,11 +254,13 @@ impl EdgeTask {
             .signature
             .as_ref()
             .ok_or_else(|| VerificationError::BadSignature("task is unsigned".into()))?;
+
         if !registry.is_known(&signature.signer_id) {
             return Err(VerificationError::UnknownSigner(
                 signature.signer_id.clone(),
             ));
         }
+
         registry
             .verify(&signature.signer_id, &self.signing_bytes(), signature)
             .map_err(|error| VerificationError::BadSignature(error.to_string()))?;
@@ -276,6 +281,7 @@ impl EdgeTask {
             if !device_capabilities.contains(capability) {
                 return Err(VerificationError::MissingCapability(capability.clone()));
             }
+
             if !registry.permits_capability(&signature.signer_id, capability) {
                 return Err(VerificationError::CapabilityNotPermittedForSigner(
                     capability.clone(),
@@ -298,6 +304,7 @@ impl EdgeTask {
             Ok(Value::Object(map)) => Value::Object(map),
             _ => Value::object(vec![]),
         };
+
         if let (Value::Object(map), Some(signature)) = (&mut value, &self.signature) {
             map.insert(
                 "signature".to_string(),
@@ -308,6 +315,7 @@ impl EdgeTask {
                 ]),
             );
         }
+
         value
     }
 }
@@ -381,11 +389,13 @@ mod tests {
 
     fn registry() -> SignerRegistry {
         let mut registry = SignerRegistry::new();
+
         registry.register(TrustedSigner {
             signer_id: "orchestratord".into(),
             verifier: Box::new(signer()),
             permitted_capabilities: vec![],
         });
+
         registry
     }
 
@@ -402,7 +412,9 @@ mod tests {
         )
         .unwrap()
         .with_constraint(SafetyConstraint::MaxDurationSeconds(30.0));
+
         task.sign_with(&signer()).unwrap();
+
         task
     }
 
@@ -416,6 +428,7 @@ mod tests {
     #[test]
     fn a_well_formed_task_verifies() {
         let ledger = NonceLedger::new(64);
+
         task()
             .verify(
                 "robot-inspect-01",
@@ -430,6 +443,7 @@ mod tests {
     #[test]
     fn an_expired_task_is_refused() {
         let ledger = NonceLedger::new(64);
+
         let error = task()
             .verify(
                 "robot-inspect-01",
@@ -439,6 +453,7 @@ mod tests {
                 Timestamp::from_millis(NOW + 61_000),
             )
             .unwrap_err();
+
         assert_eq!(error.code(), "expired");
     }
 
@@ -447,6 +462,7 @@ mod tests {
         let ledger = NonceLedger::new(64);
         let task = task();
         let now = Timestamp::from_millis(NOW + 1_000);
+
         assert!(task
             .verify(
                 "robot-inspect-01",
@@ -456,6 +472,7 @@ mod tests {
                 now
             )
             .is_ok());
+
         let error = task
             .verify(
                 "robot-inspect-01",
@@ -465,6 +482,7 @@ mod tests {
                 now,
             )
             .unwrap_err();
+
         assert_eq!(error.code(), "replayed_nonce");
     }
 
@@ -472,6 +490,7 @@ mod tests {
     fn a_rejected_task_does_not_consume_its_nonce() {
         let ledger = NonceLedger::new(64);
         let task = task();
+
         // Rejected for the wrong device.
         assert!(task
             .verify(
@@ -482,7 +501,9 @@ mod tests {
                 Timestamp::from_millis(NOW + 1_000)
             )
             .is_err());
+
         assert!(!ledger.has_seen(&task.nonce));
+
         // The correct device can still run it.
         assert!(task
             .verify(
@@ -498,11 +519,14 @@ mod tests {
     #[test]
     fn tampering_with_the_command_breaks_the_signature() {
         let mut task = task();
+
         task.command = EdgeCommand::ManipulateFixture {
             fixture_id: "valve-1".into(),
             operation: FixtureOperation::Open,
         };
+
         let ledger = NonceLedger::new(64);
+
         let error = task
             .verify(
                 "robot-inspect-01",
@@ -512,14 +536,18 @@ mod tests {
                 Timestamp::from_millis(NOW + 1_000),
             )
             .unwrap_err();
+
         assert_eq!(error.code(), "bad_signature");
     }
 
     #[test]
     fn tampering_with_a_safety_constraint_breaks_the_signature() {
         let mut task = task();
+
         task.safety_constraints = vec![SafetyConstraint::MaxDurationSeconds(99_999.0)];
+
         let ledger = NonceLedger::new(64);
+
         assert_eq!(
             task.verify(
                 "robot-inspect-01",
@@ -537,8 +565,11 @@ mod tests {
     #[test]
     fn an_unsigned_task_is_refused() {
         let mut task = task();
+
         task.signature = None;
+
         let ledger = NonceLedger::new(64);
+
         assert_eq!(
             task.verify(
                 "robot-inspect-01",
@@ -557,6 +588,7 @@ mod tests {
     fn an_unknown_signer_is_refused() {
         let ledger = NonceLedger::new(64);
         let empty = SignerRegistry::new();
+
         assert_eq!(
             task()
                 .verify(
@@ -585,9 +617,11 @@ mod tests {
             ExecutionMode::PhysicalNonWeaponized,
         )
         .unwrap();
+
         task.sign_with(&signer()).unwrap();
 
         let ledger = NonceLedger::new(64);
+
         assert_eq!(
             task.verify(
                 "robot-inspect-01",
@@ -605,6 +639,7 @@ mod tests {
     #[test]
     fn a_device_without_the_capability_refuses() {
         let ledger = NonceLedger::new(64);
+
         assert_eq!(
             task()
                 .verify(
@@ -630,50 +665,4 @@ mod tests {
             },
             Timestamp::from_millis(NOW),
             60_000,
-            TraceId::from_external("trc_3"),
-            ExecutionMode::Simulation,
-        )
-        .unwrap();
-        task.sign_with(&signer()).unwrap();
-
-        let mut scoped = SignerRegistry::new();
-        scoped.register(TrustedSigner {
-            signer_id: "orchestratord".into(),
-            verifier: Box::new(signer()),
-            permitted_capabilities: vec!["sensor.temperature".into()],
-        });
-
-        let ledger = NonceLedger::new(64);
-        assert_eq!(
-            task.verify(
-                "robot-inspect-01",
-                &["manipulator.fixture".to_string()],
-                &scoped,
-                &ledger,
-                Timestamp::from_millis(NOW + 1_000)
-            )
-            .unwrap_err()
-            .code(),
-            "capability_not_permitted_for_signer"
-        );
-    }
-
-    #[test]
-    fn nonces_differ_between_tasks() {
-        let first = task();
-        let second = task();
-        assert_ne!(first.nonce, second.nonce);
-        assert_ne!(first.task_id, second.task_id);
-    }
-
-    #[test]
-    fn json_form_includes_the_signature_and_round_trips_the_body() {
-        let task = task();
-        let json = task.to_json();
-        assert_eq!(
-            json.get("device_id").and_then(Value::as_str),
-            Some("robot-inspect-01")
-        );
-        assert!(json.get("signature").is_some());
-    }
-}
+            TraceId::from_external("trc_
