@@ -918,9 +918,9 @@ mod tests {
             RiskClass::Moderate
         );
 
-        assert_eq!(
+                assert_eq!(
             risk_for_temperature(120.0, 85.0),
             RiskClass::High
         );
     }
-        }
+}
