@@ -8,24 +8,18 @@
 //! process spawning, clock setting, and anything that could actuate a device
 //! beyond the typed command already authorised by the task.
 
+use crate::manifest::CapabilityToken;
 use nexus_event::json::Value;
 use nexus_event::{NexusError, Result, Timestamp};
-use crate::manifest::CapabilityToken;
 use std::sync::Mutex;
 
 /// The complete set of host functions a module may import.
 pub const HOST_ALLOWLIST: &[&str] = &[
-    // Reads a value from a sensor already fitted to the device.
     "nexus_read_sensor",
-    // Reads the device's own pose, within its declared frame.
     "nexus_read_pose",
-    // Emits an observation back to the runtime.
     "nexus_emit_observation",
-    // Emits a structured log line.
     "nexus_log",
-    // Reads the current time as milliseconds since epoch.
     "nexus_now_millis",
-    // Reports progress so a long task can be monitored.
     "nexus_report_progress",
 ];
 
@@ -34,10 +28,10 @@ pub fn required_capability(function: &str) -> Option<&'static str> {
     match function {
         "nexus_read_sensor" => Some("sensor.generic"),
         "nexus_read_pose" => Some("navigate.waypoint"),
-        // Emitting, logging, time and progress need no device capability.
-        "nexus_emit_observation" | "nexus_log" | "nexus_now_millis" | "nexus_report_progress" => {
-            None
-        }
+        "nexus_emit_observation"
+        | "nexus_log"
+        | "nexus_now_millis"
+        | "nexus_report_progress" => None,
         _ => None,
     }
 }
@@ -57,13 +51,16 @@ pub trait HostFunction: Send + Sync + std::fmt::Debug {
 }
 
 /// Deterministic mock host used in `SIMULATION`.
-///
-/// Values come from a fixture table, not from a random generator, so a
-/// simulated run is reproducible and a test can assert on the exact reading.
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct MockHost {
     readings: Mutex<Vec<(String, f64)>>,
     now: Mutex<Timestamp>,
+}
+
+impl Default for MockHost {
+    fn default() -> Self {
+        Self::new(Timestamp::from_millis(0))
+    }
 }
 
 impl MockHost {
@@ -99,9 +96,6 @@ impl MockHost {
 }
 
 /// Registry of the host functions available to one module instance.
-///
-/// Enforces the allowlist, the module's own narrower permission list, the
-/// capability tokens, and the per-instance call budget.
 #[derive(Debug)]
 pub struct HostRegistry {
     permitted: Vec<String>,
@@ -128,7 +122,10 @@ impl HostRegistry {
     }
 
     pub fn calls(&self) -> Vec<HostCall> {
-        self.calls.lock().map(|calls| calls.clone()).unwrap_or_default()
+        self.calls
+            .lock()
+            .map(|calls| calls.clone())
+            .unwrap_or_default()
     }
 
     pub fn call_count(&self) -> usize {
@@ -141,13 +138,13 @@ impl HostRegistry {
             .any(|token| token.capability == capability && token.is_valid_at(now))
     }
 
-    /// Invokes a host function on behalf of a module.
     pub fn invoke(&self, function: &str, argument: &Value) -> Result<Value> {
         if !HOST_ALLOWLIST.contains(&function) {
             return Err(NexusError::denied(format!(
                 "host function '{function}' is not in the allowlist"
             )));
         }
+
         if !self.permitted.iter().any(|name| name == function) {
             return Err(NexusError::denied(format!(
                 "module manifest does not permit host function '{function}'"
@@ -155,6 +152,7 @@ impl HostRegistry {
         }
 
         let now = self.host.now();
+
         if let Some(capability) = required_capability(function) {
             if !self.has_capability(capability, now) {
                 return Err(NexusError::denied(format!(
@@ -168,6 +166,7 @@ impl HostRegistry {
                 .calls
                 .lock()
                 .map_err(|_| NexusError::adapter("host registry poisoned"))?;
+
             if calls.len() as u32 >= self.max_calls {
                 return Err(NexusError::exhausted(format!(
                     "host call budget of {} exhausted",
@@ -181,6 +180,7 @@ impl HostRegistry {
                 let sensor = argument
                     .as_str()
                     .ok_or_else(|| NexusError::schema("nexus_read_sensor expects a string"))?;
+
                 match self.host.reading_for(sensor) {
                     Some(value) => Value::number(value),
                     None => {
@@ -190,16 +190,21 @@ impl HostRegistry {
                     }
                 }
             }
+
             "nexus_read_pose" => Value::object(vec![
                 ("x", Value::number(0.0)),
                 ("y", Value::number(0.0)),
                 ("z", Value::number(0.0)),
             ]),
+
             "nexus_emit_observation" => Value::Bool(true),
             "nexus_log" => Value::Bool(true),
             "nexus_now_millis" => Value::number(now.as_millis() as f64),
             "nexus_report_progress" => Value::Bool(true),
-            _ => return Err(NexusError::unsupported(function.to_string())),
+
+            _ => {
+                return Err(NexusError::unsupported(function.to_string()));
+            }
         };
 
         if let Ok(mut calls) = self.calls.lock() {
@@ -227,16 +232,22 @@ mod tests {
                 Timestamp::from_millis(10_000),
             )],
             max_calls,
-            MockHost::new(Timestamp::from_millis(1_000)).with_reading("probe-a", 91.5),
+            MockHost::new(Timestamp::from_millis(1_000))
+                .with_reading("probe-a", 91.5),
         )
     }
 
     #[test]
     fn allowlisted_and_permitted_functions_work() {
         let registry = registry(10);
+
         let value = registry
-            .invoke("nexus_read_sensor", &Value::string("probe-a"))
+            .invoke(
+                "nexus_read_sensor",
+                &Value::string("probe-a"),
+            )
             .unwrap();
+
         assert_eq!(value, Value::number(91.5));
         assert_eq!(registry.call_count(), 1);
     }
@@ -244,13 +255,17 @@ mod tests {
     #[test]
     fn functions_outside_the_allowlist_are_refused() {
         let registry = registry(10);
+
         for hostile in [
             "nexus_open_socket",
             "fs_read",
             "spawn_process",
             "nexus_fire_actuator",
         ] {
-            let error = registry.invoke(hostile, &Value::Null).unwrap_err();
+            let error = registry
+                .invoke(hostile, &Value::Null)
+                .unwrap_err();
+
             assert_eq!(error.kind(), "denied", "must refuse {hostile}");
         }
     }
@@ -258,8 +273,11 @@ mod tests {
     #[test]
     fn allowlisted_but_not_manifested_functions_are_refused() {
         let registry = registry(10);
-        // In the allowlist, but this module's manifest did not ask for it.
-        let error = registry.invoke("nexus_read_pose", &Value::Null).unwrap_err();
+
+        let error = registry
+            .invoke("nexus_read_pose", &Value::Null)
+            .unwrap_err();
+
         assert_eq!(error.kind(), "denied");
     }
 
@@ -269,11 +287,17 @@ mod tests {
             vec!["nexus_read_sensor".into()],
             vec![],
             10,
-            MockHost::new(Timestamp::from_millis(1_000)).with_reading("probe-a", 1.0),
+            MockHost::new(Timestamp::from_millis(1_000))
+                .with_reading("probe-a", 1.0),
         );
+
         let error = registry
-            .invoke("nexus_read_sensor", &Value::string("probe-a"))
+            .invoke(
+                "nexus_read_sensor",
+                &Value::string("probe-a"),
+            )
             .unwrap_err();
+
         assert!(error.to_string().contains("capability token"));
     }
 
@@ -287,19 +311,40 @@ mod tests {
                 Timestamp::from_millis(500),
             )],
             10,
-            MockHost::new(Timestamp::from_millis(1_000)).with_reading("probe-a", 1.0),
+            MockHost::new(Timestamp::from_millis(1_000))
+                .with_reading("probe-a", 1.0),
         );
-        assert!(registry
-            .invoke("nexus_read_sensor", &Value::string("probe-a"))
-            .is_err());
+
+        assert!(
+            registry
+                .invoke(
+                    "nexus_read_sensor",
+                    &Value::string("probe-a"),
+                )
+                .is_err()
+        );
     }
 
     #[test]
     fn the_call_budget_is_enforced() {
         let registry = registry(2);
-        assert!(registry.invoke("nexus_log", &Value::string("a")).is_ok());
-        assert!(registry.invoke("nexus_log", &Value::string("b")).is_ok());
-        let error = registry.invoke("nexus_log", &Value::string("c")).unwrap_err();
+
+        assert!(
+            registry
+                .invoke("nexus_log", &Value::string("a"))
+                .is_ok()
+        );
+
+        assert!(
+            registry
+                .invoke("nexus_log", &Value::string("b"))
+                .is_ok()
+        );
+
+        let error = registry
+            .invoke("nexus_log", &Value::string("c"))
+            .unwrap_err();
+
         assert_eq!(error.kind(), "exhausted");
     }
 
@@ -307,9 +352,20 @@ mod tests {
     fn the_allowlist_contains_no_io_or_actuation_primitive() {
         for name in HOST_ALLOWLIST {
             let lowered = name.to_ascii_lowercase();
+
             for forbidden in [
-                "socket", "http", "file", "fs_", "open", "exec", "spawn", "write_disk", "actuate",
-                "fire", "weapon", "target",
+                "socket",
+                "http",
+                "file",
+                "fs_",
+                "open",
+                "exec",
+                "spawn",
+                "write_disk",
+                "actuate",
+                "fire",
+                "weapon",
+                "target",
             ] {
                 assert!(
                     !lowered.contains(forbidden),
@@ -322,13 +378,28 @@ mod tests {
     #[test]
     fn every_host_call_is_recorded_for_the_audit_trail() {
         let registry = registry(10);
+
         registry
-            .invoke("nexus_read_sensor", &Value::string("probe-a"))
+            .invoke(
+                "nexus_read_sensor",
+                &Value::string("probe-a"),
+            )
             .unwrap();
-        registry.invoke("nexus_log", &Value::string("hello")).unwrap();
+
+        registry
+            .invoke(
+                "nexus_log",
+                &Value::string("hello"),
+            )
+            .unwrap();
+
         let calls = registry.calls();
+
         assert_eq!(calls.len(), 2);
         assert_eq!(calls[0].function, "nexus_read_sensor");
-        assert_eq!(calls[1].argument, Value::string("hello"));
+        assert_eq!(
+            calls[1].argument,
+            Value::string("hello")
+        );
     }
-}
+        }
