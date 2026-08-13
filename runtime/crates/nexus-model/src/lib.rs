@@ -1,12 +1,15 @@
 //! Provider-independent inference contracts and policy-neutral routing.
 #![forbid(unsafe_code)]
+
 use nexus_event::{NexusError, Result};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Modality {
     Text,
     Vision,
     Audio,
 }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ModelCapabilities {
     pub structured_output: bool,
@@ -15,6 +18,7 @@ pub struct ModelCapabilities {
     pub modalities: Vec<Modality>,
     pub max_context_tokens: u32,
 }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InferenceRequest {
     pub task_code: String,
@@ -23,6 +27,7 @@ pub struct InferenceRequest {
     pub privacy_scope: String,
     pub max_output_tokens: u32,
 }
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InferenceResponse {
     pub provider_id: String,
@@ -31,20 +36,24 @@ pub struct InferenceResponse {
     pub input_tokens: Option<u64>,
     pub output_tokens: Option<u64>,
 }
+
 pub trait ModelProvider: Send + Sync {
     fn provider_id(&self) -> &str;
     fn capabilities(&self) -> ModelCapabilities;
     fn infer(&self, req: &InferenceRequest) -> Result<InferenceResponse>;
 }
+
 #[derive(Debug, Clone)]
 pub struct DeterministicProvider {
     pub id: String,
     pub output: String,
 }
+
 impl ModelProvider for DeterministicProvider {
     fn provider_id(&self) -> &str {
         &self.id
     }
+
     fn capabilities(&self) -> ModelCapabilities {
         ModelCapabilities {
             structured_output: true,
@@ -54,6 +63,7 @@ impl ModelProvider for DeterministicProvider {
             max_context_tokens: 4096,
         }
     }
+
     fn infer(&self, _: &InferenceRequest) -> Result<InferenceResponse> {
         Ok(InferenceResponse {
             provider_id: self.id.clone(),
@@ -64,18 +74,17 @@ impl ModelProvider for DeterministicProvider {
         })
     }
 }
+
+#[derive(Default)]
 pub struct ModelRouter {
     providers: Vec<Box<dyn ModelProvider>>,
 }
-impl Default for ModelRouter {
-    fn default() -> Self {
-        Self { providers: vec![] }
-    }
-}
+
 impl ModelRouter {
     pub fn register(&mut self, p: Box<dyn ModelProvider>) {
         self.providers.push(p)
     }
+
     pub fn select(
         &self,
         require_local: bool,
@@ -91,16 +100,20 @@ impl ModelRouter {
             .ok_or_else(|| NexusError::not_found("no model provider matches requirements"))
     }
 }
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
     #[test]
     fn routing_is_capability_based() {
         let mut r = ModelRouter::default();
+
         r.register(Box::new(DeterministicProvider {
             id: "fixture".into(),
             output: "{}".into(),
         }));
+
         assert_eq!(r.select(true, true).unwrap().provider_id(), "fixture");
     }
 }
