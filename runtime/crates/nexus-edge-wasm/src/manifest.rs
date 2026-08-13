@@ -111,11 +111,13 @@ impl ModuleManifest {
 
     pub fn signing_bytes(&self) -> Vec<u8> {
         use nexus_event::json::Value;
+
         let functions: Vec<Value> = self
             .allowed_host_functions
             .iter()
-            .map(|name| Value::string(name))
+            .map(Value::string)
             .collect();
+
         Value::object(vec![
             ("module_id", Value::string(&self.module_id)),
             ("version", Value::string(&self.version)),
@@ -160,6 +162,7 @@ impl ModuleManifest {
             .signature
             .as_ref()
             .ok_or_else(|| NexusError::denied("module manifest is unsigned"))?;
+
         registry.verify(&signature.signer_id, &self.signing_bytes(), signature)
     }
 }
@@ -171,23 +174,39 @@ mod tests {
 
     fn registry(signer: &DevSigner) -> SignerRegistry {
         let mut registry = SignerRegistry::new();
+
         registry.register(TrustedSigner {
             signer_id: signer.signer_id().to_string(),
             verifier: Box::new(signer.clone()),
             permitted_capabilities: vec![],
         });
+
         registry
     }
 
     fn signed_manifest(bytes: &[u8]) -> (ModuleManifest, DevSigner) {
-        let signer = DevSigner::new("build-server", b"0123456789abcdef-module-key").unwrap();
+        let signer = DevSigner::new(
+            "build-server",
+            b"0123456789abcdef-module-key",
+        )
+        .unwrap();
+
         let mut manifest = ModuleManifest::new(
             "collect-temperature",
             "1.0.0",
             bytes,
-            vec!["nexus_read_sensor".into(), "nexus_emit_observation".into()],
+            vec![
+                "nexus_read_sensor".into(),
+                "nexus_emit_observation".into(),
+            ],
         );
-        manifest.signature = Some(signer.sign(&manifest.signing_bytes()).unwrap());
+
+        manifest.signature = Some(
+            signer
+                .sign(&manifest.signing_bytes())
+                .unwrap(),
+        );
+
         (manifest, signer)
     }
 
@@ -195,25 +214,42 @@ mod tests {
     fn a_matching_signed_module_verifies() {
         let bytes = b"\0asm-fake-module-bytes";
         let (manifest, signer) = signed_manifest(bytes);
-        manifest.verify(bytes, &registry(&signer)).unwrap();
+
+        manifest
+            .verify(bytes, &registry(&signer))
+            .unwrap();
     }
 
     #[test]
     fn a_swapped_module_is_rejected_on_hash() {
         let bytes = b"\0asm-fake-module-bytes";
         let (manifest, signer) = signed_manifest(bytes);
+
         let error = manifest
-            .verify(b"\0asm-different-bytes", &registry(&signer))
+            .verify(
+                b"\0asm-different-bytes",
+                &registry(&signer),
+            )
             .unwrap_err();
+
         assert_eq!(error.kind(), "integrity");
     }
 
     #[test]
     fn an_unsigned_manifest_is_rejected() {
         let bytes = b"module";
-        let mut manifest = ModuleManifest::new("m", "1", bytes, vec![]);
+
+        let mut manifest =
+            ModuleManifest::new("m", "1", bytes, vec![]);
+
         manifest.signature = None;
-        let signer = DevSigner::new("build-server", b"0123456789abcdef-module-key").unwrap();
+
+        let signer = DevSigner::new(
+            "build-server",
+            b"0123456789abcdef-module-key",
+        )
+        .unwrap();
+
         assert_eq!(
             manifest
                 .verify(bytes, &registry(&signer))
@@ -226,10 +262,30 @@ mod tests {
     #[test]
     fn a_manifest_cannot_grant_a_host_function_outside_the_allowlist() {
         let bytes = b"module";
-        let signer = DevSigner::new("build-server", b"0123456789abcdef-module-key").unwrap();
-        let mut manifest = ModuleManifest::new("m", "1", bytes, vec!["nexus_open_socket".into()]);
-        manifest.signature = Some(signer.sign(&manifest.signing_bytes()).unwrap());
-        let error = manifest.verify(bytes, &registry(&signer)).unwrap_err();
+
+        let signer = DevSigner::new(
+            "build-server",
+            b"0123456789abcdef-module-key",
+        )
+        .unwrap();
+
+        let mut manifest = ModuleManifest::new(
+            "m",
+            "1",
+            bytes,
+            vec!["nexus_open_socket".into()],
+        );
+
+        manifest.signature = Some(
+            signer
+                .sign(&manifest.signing_bytes())
+                .unwrap(),
+        );
+
+        let error = manifest
+            .verify(bytes, &registry(&signer))
+            .unwrap_err();
+
         assert_eq!(error.kind(), "denied");
     }
 
@@ -237,26 +293,40 @@ mod tests {
     fn tampering_with_the_limits_breaks_the_manifest_signature() {
         let bytes = b"module";
         let (mut manifest, signer) = signed_manifest(bytes);
+
         manifest.limits.fuel = u64::MAX;
-        assert!(manifest.verify(bytes, &registry(&signer)).is_err());
+
+        assert!(
+            manifest
+                .verify(bytes, &registry(&signer))
+                .is_err()
+        );
     }
 
     #[test]
     fn absurd_limits_are_rejected() {
         let mut limits = ResourceLimits::default();
+
         limits.max_memory_bytes = 2 * 1024 * 1024 * 1024;
+
         assert!(limits.validate().is_err());
+
         limits = ResourceLimits::default();
         limits.timeout_millis = 0;
+
         assert!(limits.validate().is_err());
         assert!(ResourceLimits::default().validate().is_ok());
     }
 
     #[test]
     fn capability_tokens_expire() {
-        let token =
-            CapabilityToken::new("sensor.temperature", "tsk_1", Timestamp::from_millis(1_000));
+        let token = CapabilityToken::new(
+            "sensor.temperature",
+            "tsk_1",
+            Timestamp::from_millis(1_000),
+        );
+
         assert!(token.is_valid_at(Timestamp::from_millis(999)));
         assert!(!token.is_valid_at(Timestamp::from_millis(1_000)));
     }
-}
+            }
