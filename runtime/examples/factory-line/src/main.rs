@@ -477,7 +477,7 @@ fn run() -> Result<String> {
     let (_, confirm_resolution, confirm_mutations) =
         pipeline_for_telemetry(&confirmation, &candidates, Some(&zone))?;
     graph.apply(&confirm_mutations)?;
-    println!("  confirmation   : {:.1} C", observed_celsius);
+    println!("  confirmation   : {observed_celsius:.1} C");
     println!(
         "  resolution     : {} (existing asset)",
         confirm_resolution.as_str()
