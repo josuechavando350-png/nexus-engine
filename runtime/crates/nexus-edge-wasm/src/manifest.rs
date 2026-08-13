@@ -265,14 +265,17 @@ mod tests {
 
     #[test]
     fn absurd_limits_are_rejected() {
-        let mut limits = ResourceLimits::default();
-
-        limits.max_memory_bytes = 2 * 1024 * 1024 * 1024;
+        let limits = ResourceLimits {
+            max_memory_bytes: 2 * 1024 * 1024 * 1024,
+            ..ResourceLimits::default()
+        };
 
         assert!(limits.validate().is_err());
 
-        limits = ResourceLimits::default();
-        limits.timeout_millis = 0;
+        let limits = ResourceLimits {
+            timeout_millis: 0,
+            ..ResourceLimits::default()
+        };
 
         assert!(limits.validate().is_err());
         assert!(ResourceLimits::default().validate().is_ok());
@@ -286,4 +289,4 @@ mod tests {
         assert!(token.is_valid_at(Timestamp::from_millis(999)));
         assert!(!token.is_valid_at(Timestamp::from_millis(1_000)));
     }
-}
+        }
