@@ -25,7 +25,7 @@ const IV: [u32; 8] = [
 ];
 
 /// Streaming SHA-256 state.
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Sha256 {
     state: [u32; 8],
     buffer: [u8; 64],
@@ -95,8 +95,6 @@ impl Sha256 {
         out
     }
 
-    /// Padding bytes must not change the declared message length, so the
-    /// finalizer uses this instead of `update`.
     fn update_raw(&mut self, data: &[u8]) {
         for byte in data {
             self.buffer[self.buffered] = *byte;
@@ -120,6 +118,7 @@ fn compress(state: &mut [u32; 8], block: &[u8; 64]) {
             block[i * 4 + 3],
         ]);
     }
+
     for i in 16..64 {
         let s0 = w[i - 15].rotate_right(7) ^ w[i - 15].rotate_right(18) ^ (w[i - 15] >> 3);
         let s1 = w[i - 2].rotate_right(17) ^ w[i - 2].rotate_right(19) ^ (w[i - 2] >> 10);
@@ -276,6 +275,7 @@ mod tests {
     fn streaming_matches_one_shot_across_chunk_boundaries() {
         let data: Vec<u8> = (0..500u32).map(|i| (i % 251) as u8).collect();
         let one_shot = sha256(&data);
+
         for chunk in [1usize, 7, 31, 63, 64, 65, 127, 200] {
             let mut hasher = Sha256::new();
             for part in data.chunks(chunk) {
@@ -300,4 +300,4 @@ mod tests {
         assert!(!constant_time_eq(b"abc", b"abd"));
         assert!(!constant_time_eq(b"abc", b"ab"));
     }
-}
+        }
