@@ -289,4 +289,4 @@ mod tests {
         assert!(token.is_valid_at(Timestamp::from_millis(999)));
         assert!(!token.is_valid_at(Timestamp::from_millis(1_000)));
     }
-        }
+}
