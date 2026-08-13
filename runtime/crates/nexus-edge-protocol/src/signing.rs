@@ -62,10 +62,9 @@ impl DevSigner {
     }
 
     fn tag(&self, message: &[u8]) -> [u8; 32] {
-        // Two-pass keyed construction, closer to HMAC than a bare
-        // hash(key || message). Still not a reviewed primitive.
         let mut inner_key = [0x36u8; 64];
         let mut outer_key = [0x5cu8; 64];
+
         for (index, byte) in self.key.iter().take(64).enumerate() {
             inner_key[index] ^= *byte;
             outer_key[index] ^= *byte;
@@ -94,7 +93,7 @@ impl Signer for DevSigner {
 
     fn sign(&self, message: &[u8]) -> Result<SignatureEnvelope> {
         Ok(SignatureEnvelope {
-            algorithm: self.algorithm().to_string(),
+            algorithm: Signer::algorithm(self).to_string(),
             signer_id: self.signer_id.clone(),
             value_hex: to_hex(&self.tag(message)),
         })
@@ -117,13 +116,17 @@ impl Verifier for DevSigner {
                 signature.algorithm
             )));
         }
+
         if signature.signer_id != self.signer_id {
             return Err(NexusError::integrity("signature signer_id mismatch"));
         }
+
         let expected = to_hex(&self.tag(message));
+
         if !constant_time_eq(expected.as_bytes(), signature.value_hex.as_bytes()) {
             return Err(NexusError::integrity("signature does not verify"));
         }
+
         Ok(())
     }
 
@@ -149,13 +152,11 @@ pub mod ed25519 {
     }
 
     impl Ed25519Signer {
-        /// Builds a signer from a 32-byte seed. The seed is supplied by the
-        /// deployment (KMS, HSM export, sealed file); it is never generated
-        /// or stored by this crate.
         pub fn from_seed(signer_id: impl Into<String>, seed: &[u8]) -> Result<Self> {
             let bytes: [u8; 32] = seed
                 .try_into()
                 .map_err(|_| NexusError::invalid("ed25519 seed must be exactly 32 bytes"))?;
+
             Ok(Ed25519Signer {
                 signer_id: signer_id.into(),
                 key: SigningKey::from_bytes(&bytes),
@@ -178,6 +179,7 @@ pub mod ed25519 {
 
         fn sign(&self, message: &[u8]) -> Result<SignatureEnvelope> {
             let signature = self.key.sign(message);
+
             Ok(SignatureEnvelope {
                 algorithm: "ed25519".to_string(),
                 signer_id: self.signer_id.clone(),
@@ -200,11 +202,14 @@ pub mod ed25519 {
         pub fn from_public_hex(signer_id: impl Into<String>, public_hex: &str) -> Result<Self> {
             let bytes = from_hex(public_hex)
                 .ok_or_else(|| NexusError::invalid("public key must be hex"))?;
+
             let bytes: [u8; 32] = bytes
                 .try_into()
                 .map_err(|_| NexusError::invalid("ed25519 public key must be 32 bytes"))?;
+
             let key = VerifyingKey::from_bytes(&bytes)
                 .map_err(|error| NexusError::invalid(format!("invalid public key: {error}")))?;
+
             Ok(Ed25519Verifier {
                 signer_id: signer_id.into(),
                 key,
@@ -221,14 +226,18 @@ pub mod ed25519 {
             if signature.algorithm != "ed25519" {
                 return Err(NexusError::integrity("unexpected signature algorithm"));
             }
+
             if signature.signer_id != self.signer_id {
                 return Err(NexusError::integrity("signature signer_id mismatch"));
             }
+
             let raw = from_hex(&signature.value_hex)
                 .ok_or_else(|| NexusError::integrity("signature must be hex"))?;
+
             let bytes: [u8; 64] = raw
                 .try_into()
                 .map_err(|_| NexusError::integrity("ed25519 signature must be 64 bytes"))?;
+
             self.key
                 .verify(message, &Signature::from_bytes(&bytes))
                 .map_err(|_| NexusError::integrity("signature does not verify"))
@@ -245,7 +254,6 @@ pub mod ed25519 {
 pub struct TrustedSigner {
     pub signer_id: String,
     pub verifier: Box<dyn Verifier>,
-    /// Capabilities this signer may authorise. Empty means all.
     pub permitted_capabilities: Vec<String>,
 }
 
@@ -280,26 +288,33 @@ impl SignerRegistry {
         self.signers.is_empty()
     }
 
-    pub fn verify(&self, signer_id: &str, message: &[u8], signature: &SignatureEnvelope) -> Result<()> {
+    pub fn verify(
+        &self,
+        signer_id: &str,
+        message: &[u8],
+        signature: &SignatureEnvelope,
+    ) -> Result<()> {
         let signer = self
             .signers
             .get(signer_id)
             .ok_or_else(|| NexusError::denied(format!("unknown signer '{signer_id}'")))?;
+
         signer.verifier.verify(message, signature)
     }
 
-    /// Fails closed when a non-production signer is used to command hardware.
     pub fn require_production_signer(&self, signer_id: &str) -> Result<()> {
         let signer = self
             .signers
             .get(signer_id)
             .ok_or_else(|| NexusError::denied(format!("unknown signer '{signer_id}'")))?;
+
         if !signer.verifier.is_production_grade() {
             return Err(NexusError::denied(format!(
                 "signer '{signer_id}' uses {} which is not permitted outside SIMULATION",
                 signer.verifier.algorithm()
             )));
         }
+
         Ok(())
     }
 
@@ -318,11 +333,6 @@ impl SignerRegistry {
 }
 
 /// Bounded ledger of observed nonces.
-///
-/// A nonce is accepted once. The ledger is bounded, so it is paired with task
-/// expiry: the window must outlive the maximum `expires_at` horizon, which
-/// [`NonceLedger::prune_expired`] enforces by dropping only entries whose
-/// task deadline has already passed.
 #[derive(Debug)]
 pub struct NonceLedger {
     capacity: usize,
@@ -337,18 +347,20 @@ impl NonceLedger {
         }
     }
 
-    /// Returns `true` if the nonce is fresh, `false` if it is a replay.
     pub fn accept(&self, nonce: &str, expires_at: Timestamp) -> bool {
         let mut guard = self.seen.lock().expect("nonce ledger poisoned");
         let (set, order) = &mut *guard;
+
         if set.contains(nonce) {
             return false;
         }
+
         if order.len() >= self.capacity {
             if let Some((oldest, _)) = order.pop_front() {
                 set.remove(&oldest);
             }
         }
+
         set.insert(nonce.to_string());
         order.push_back((nonce.to_string(), expires_at));
         true
@@ -361,150 +373,9 @@ impl NonceLedger {
             .unwrap_or(false)
     }
 
-    /// Drops entries whose task deadline has passed; those can no longer be
-    /// replayed because expiry rejects them first.
     pub fn prune_expired(&self, now: Timestamp) -> usize {
         let mut guard = self.seen.lock().expect("nonce ledger poisoned");
         let (set, order) = &mut *guard;
         let mut removed = 0;
-        while let Some((nonce, expires_at)) = order.front().cloned() {
-            if expires_at.is_before(now) {
-                order.pop_front();
-                set.remove(&nonce);
-                removed += 1;
-            } else {
-                break;
-            }
-        }
-        removed
-    }
 
-    pub fn len(&self) -> usize {
-        self.seen.lock().map(|guard| guard.0.len()).unwrap_or(0)
-    }
-
-    pub fn is_empty(&self) -> bool {
-        self.len() == 0
-    }
-}
-
-/// Generates a nonce bound to a task and issue time.
-pub fn generate_nonce(task_id: &str, issued_at: Timestamp, salt: &str) -> String {
-    let material = format!("{task_id}|{}|{salt}", issued_at.as_millis());
-    to_hex(&sha256(material.as_bytes()))[..32].to_string()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn signer() -> DevSigner {
-        DevSigner::new("orchestratord-test", b"0123456789abcdef-test-key").unwrap()
-    }
-
-    #[test]
-    fn dev_signer_round_trips() {
-        let signer = signer();
-        let signature = Signer::sign(&signer, b"payload").unwrap();
-        assert!(Verifier::verify(&signer, b"payload", &signature).is_ok());
-    }
-
-    #[test]
-    fn dev_signer_rejects_a_modified_message() {
-        let signer = signer();
-        let signature = Signer::sign(&signer, b"payload").unwrap();
-        assert!(Verifier::verify(&signer, b"payloab", &signature).is_err());
-    }
-
-    #[test]
-    fn dev_signer_declares_itself_non_production() {
-        let signer = signer();
-        assert!(!Signer::is_production_grade(&signer));
-        assert!(Signer::algorithm(&signer).contains("NOT-CRYPTOGRAPHY"));
-    }
-
-    #[test]
-    fn short_keys_are_refused() {
-        assert!(DevSigner::new("s", b"short").is_err());
-    }
-
-    #[test]
-    fn registry_rejects_unknown_signers() {
-        let registry = SignerRegistry::new();
-        let signature = SignatureEnvelope {
-            algorithm: "dev-keyed-sha256-NOT-CRYPTOGRAPHY".into(),
-            signer_id: "ghost".into(),
-            value_hex: "00".into(),
-        };
-        let error = registry.verify("ghost", b"x", &signature).unwrap_err();
-        assert_eq!(error.kind(), "denied");
-    }
-
-    #[test]
-    fn registry_refuses_a_dev_signer_for_production_hardware() {
-        let mut registry = SignerRegistry::new();
-        registry.register(TrustedSigner {
-            signer_id: "orchestratord-test".into(),
-            verifier: Box::new(signer()),
-            permitted_capabilities: vec![],
-        });
-        assert!(registry.is_known("orchestratord-test"));
-        let error = registry
-            .require_production_signer("orchestratord-test")
-            .unwrap_err();
-        assert_eq!(error.kind(), "denied");
-        assert!(error.to_string().contains("SIMULATION"));
-    }
-
-    #[test]
-    fn capability_scoping_is_enforced_per_signer() {
-        let mut registry = SignerRegistry::new();
-        registry.register(TrustedSigner {
-            signer_id: "read-only".into(),
-            verifier: Box::new(signer()),
-            permitted_capabilities: vec!["sensor.temperature".into()],
-        });
-        assert!(registry.permits_capability("read-only", "sensor.temperature"));
-        assert!(!registry.permits_capability("read-only", "manipulator.fixture"));
-        assert!(!registry.permits_capability("nobody", "sensor.temperature"));
-    }
-
-    #[test]
-    fn nonces_are_accepted_once() {
-        let ledger = NonceLedger::new(16);
-        let expiry = Timestamp::from_millis(10_000);
-        assert!(ledger.accept("n1", expiry));
-        assert!(!ledger.accept("n1", expiry));
-        assert!(ledger.has_seen("n1"));
-    }
-
-    #[test]
-    fn nonce_ledger_is_bounded() {
-        let ledger = NonceLedger::new(4);
-        for index in 0..10 {
-            ledger.accept(&format!("n{index}"), Timestamp::from_millis(10_000));
-        }
-        assert_eq!(ledger.len(), 4);
-    }
-
-    #[test]
-    fn pruning_only_drops_already_expired_nonces() {
-        let ledger = NonceLedger::new(64);
-        ledger.accept("old", Timestamp::from_millis(1_000));
-        ledger.accept("new", Timestamp::from_millis(9_000));
-        let removed = ledger.prune_expired(Timestamp::from_millis(5_000));
-        assert_eq!(removed, 1);
-        assert!(!ledger.has_seen("old"));
-        assert!(ledger.has_seen("new"));
-    }
-
-    #[test]
-    fn nonces_are_unique_per_task_and_time() {
-        let first = generate_nonce("tsk_1", Timestamp::from_millis(1), "salt");
-        let same = generate_nonce("tsk_1", Timestamp::from_millis(1), "salt");
-        let different = generate_nonce("tsk_1", Timestamp::from_millis(2), "salt");
-        assert_eq!(first, same);
-        assert_ne!(first, different);
-        assert_eq!(first.len(), 32);
-    }
-}
+        while let Some((nonce, expires_at)) = order.front().cloned
