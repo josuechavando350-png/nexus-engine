@@ -1,0 +1,33 @@
+{
+  "name": "@nexus/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./foundation/tokens": "./foundation/tokens/index.ts",
+    "./foundation/typography": "./foundation/typography/index.ts",
+    "./foundation/config": "./foundation/config/index.ts",
+    "./foundation/theme": "./foundation/theme/index.ts",
+    "./foundation/reset": "./foundation/reset/index.ts",
+    "./motion/roles": "./motion/roles/index.ts",
+    "./motion/css": "./motion/css/index.ts",
+    "./motion/hooks/useScrollReveal": "./motion/hooks/useScrollReveal.ts",
+    "./a11y": "./a11y/index.ts",
+    "./a11y.css": "./a11y/a11y.css",
+    "./composition": "./composition/index.ts",
+    "./components": "./components/index.ts"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.10",
+    "react": "^19.1.1"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  }
+}

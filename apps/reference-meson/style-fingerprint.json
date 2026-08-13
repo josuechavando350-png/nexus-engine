@@ -1,0 +1,49 @@
+{
+  "subject": "reference-meson",
+  "observedAt": "2026-08-11",
+  "hero": {
+    "arrangement": { "kind": "custom", "label": "layered-asymmetric-media-overlap", "notes": "Text block and a negative-margin-offset media block overlap; not a clean stack, not fullbleed, not a clean 50/50 split." },
+    "mediaPresence": { "kind": "known", "value": "adjacent" },
+    "textDensity": { "kind": "known", "value": "moderate" },
+    "entryAction": { "kind": "known", "value": "dual-cta" }
+  },
+  "navigation": {
+    "persistence": { "kind": "known", "value": "static" },
+    "density": { "kind": "known", "value": "minimal" },
+    "ctaPresence": { "kind": "known", "value": "none" }
+  },
+  "typography": {
+    "scaleContrast": { "kind": "known", "value": "extreme" },
+    "caseTreatment": { "kind": "custom", "label": "small-caps-tag", "notes": "Hero tag uses font-variant: small-caps, not text-transform uppercase, not sentence case." },
+    "voice": { "kind": "known", "value": "editorial" }
+  },
+  "cta": {
+    "cornerProfile": { "kind": "known", "value": "sharp" },
+    "aspectTendency": { "kind": "known", "value": "compact" },
+    "borderTreatment": { "kind": "known", "value": "none" },
+    "fillTreatment": { "kind": "known", "value": "solid" },
+    "iconRelationship": { "kind": "known", "value": "none" },
+    "textTreatment": { "kind": "known", "value": "sentence-case" }
+  },
+  "radius": { "distribution": { "kind": "known", "value": "sharp-accents" } },
+  "cardDependence": {
+    "relianceLevel": { "kind": "known", "value": "low" },
+    "alternativeStructures": { "kind": "known", "value": "editorial-blocks" }
+  },
+  "sectionRhythm": {
+    "pacing": { "kind": "known", "value": "asymmetric" },
+    "verticalDensity": { "kind": "known", "value": "balanced" }
+  },
+  "alignment": { "tendency": { "kind": "known", "value": "left-aligned" } },
+  "media": {
+    "dominantType": { "kind": "unknown" },
+    "treatment": { "kind": "unknown" }
+  },
+  "motion": {
+    "presence": { "kind": "known", "value": "subtle" },
+    "character": { "kind": "custom", "label": "press-and-lift", "notes": "Hover lifts with an offset hard shadow; active state presses down. Physical/stamp metaphor, not fade-rise/scale/parallax/stagger/instant." }
+  },
+  "surface": { "depth": { "kind": "custom", "label": "flat-with-hard-offset-accent", "notes": "Mostly flat; the one hard-edged offset shadow on the CTA is a deliberate accent, not a general layered-shadow surface treatment." } },
+  "density": { "overall": { "kind": "known", "value": "balanced" } },
+  "freeformNotes": "Media placeholder is a CSS gradient texture, explicitly labeled 'Foto de muestra' — no real photography exists, so media.dominantType/treatment are honestly 'unknown' rather than 'photography'."
+}

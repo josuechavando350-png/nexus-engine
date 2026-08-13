@@ -1,0 +1,21 @@
+[package]
+name = "nexus-bench"
+description = "Load generator and measurement harness. Reports measured numbers only; ships no performance claims."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "nexus-bench"
+path = "src/main.rs"
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-observability = { workspace = true }
+nexus-ontology = { workspace = true }
+nexus-graph = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

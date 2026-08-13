@@ -1,0 +1,29 @@
+/*
+ * Fourth occurrence of the same Core gap (seed + 2 other probes already
+ * had to write this by hand). See docs/architecture/VISUAL_ARCHITECTURE.md,
+ * "Core API candidates" #2 — strong candidate for promotion now that 4
+ * independent consumers needed the identical ~15 lines.
+ */
+
+.nexus-skip-link {
+  position: fixed;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: 9999;
+
+  padding: var(--space-sm) var(--space-md);
+
+  background: var(--surface-inverse);
+  color: var(--content-inverse);
+
+  transform: translateY(-200%);
+}
+
+.nexus-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

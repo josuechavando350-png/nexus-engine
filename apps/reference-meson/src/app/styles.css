@@ -1,0 +1,282 @@
+/*
+ * Mesón del 5 — reference probe composition.
+ * "rm-" prefix = this Experience's own vocabulary. Never "nexus-" for
+ * anything here — that prefix is reserved for shared infra (see a11y.css).
+ *
+ * No text-transform: uppercase eyebrow, no pill buttons, no uniform
+ * rounded cards, no clamp()-uniform section rhythm. Deliberately irregular
+ * on purpose — see EXPRESSIVENESS.md.
+ */
+
+.rm-topline {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-md);
+
+  padding: var(--space-md) clamp(1.25rem, 5vw, 3.5rem);
+
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rm-wordmark {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.rm-topline nav a {
+  margin-inline-start: var(--space-md);
+  font-size: 0.92rem;
+  text-decoration: none;
+  color: var(--content-secondary);
+}
+
+.rm-topline nav a:hover {
+  color: var(--content-primary);
+}
+
+/* -------------------------------------------------------------------
+ * HERO — layered, asymmetric, no eyebrow-title-cta stack
+ * ------------------------------------------------------------------ */
+
+.rm-hero {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  align-items: start;
+  gap: 0;
+
+  padding: clamp(2.5rem, 7vw, 5.5rem) clamp(1.25rem, 5vw, 3.5rem) clamp(4rem, 9vw, 7rem);
+}
+
+.rm-hero-tag {
+  display: inline-block;
+  margin: 0 0 1.25rem;
+  padding: 0.3rem 0.7rem;
+
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+
+  font-variant-caps: small-caps;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  color: var(--content-secondary);
+}
+
+.rm-hero-title {
+  max-width: 16ch;
+  margin: 0;
+
+  font-size: clamp(2.75rem, 6.5vw, 5.5rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+}
+
+.rm-hero-title em {
+  font-style: italic;
+  color: var(--accent-emphasis);
+}
+
+.rm-hero-copy {
+  max-width: 34rem;
+  margin: 1.5rem 0 2rem;
+
+  font-size: 1.08rem;
+  line-height: 1.65;
+  color: var(--content-secondary);
+}
+
+.rm-hero-media {
+  position: relative;
+  align-self: end;
+
+  margin-top: clamp(2rem, 6vw, 4rem);
+  margin-inline-start: -3rem;
+
+  aspect-ratio: 4 / 5;
+
+  background: repeating-linear-gradient(
+      135deg,
+      rgba(217, 112, 47, 0.16) 0px,
+      rgba(217, 112, 47, 0.16) 2px,
+      transparent 2px,
+      transparent 10px
+    ),
+    linear-gradient(160deg, #3a2a1f, #1a1310 70%);
+
+  border: 1px solid var(--border-subtle);
+}
+
+.rm-media-caption {
+  position: absolute;
+  bottom: var(--space-sm);
+  left: var(--space-sm);
+
+  padding: 0.2rem 0.5rem;
+
+  background: rgba(15, 10, 7, 0.65);
+  color: var(--content-secondary);
+
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+}
+
+/* -------------------------------------------------------------------
+ * ACTIONS — stamped rectangle, not a pill
+ * ------------------------------------------------------------------ */
+
+.rm-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+
+  padding: 0.85rem 1.4rem;
+
+  background: var(--accent-default);
+  color: var(--content-primary);
+
+  border-radius: var(--radius-md);
+  box-shadow: 4px 4px 0 0 rgba(0, 0, 0, 0.35);
+
+  font-weight: 700;
+  text-decoration: none;
+
+  transition:
+    transform var(--motion-duration-fast) var(--motion-easing-standard),
+    box-shadow var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.rm-action:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0 0 rgba(0, 0, 0, 0.35);
+}
+
+.rm-action:active {
+  transform: translate(1px, 1px);
+  box-shadow: 2px 2px 0 0 rgba(0, 0, 0, 0.35);
+}
+
+.rm-action-ghost {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.85rem 0.25rem;
+  color: var(--content-primary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--border-strong);
+}
+
+/* -------------------------------------------------------------------
+ * MENU — editorial list, irregular rhythm, NOT a card grid
+ * ------------------------------------------------------------------ */
+
+.rm-menu {
+  padding: clamp(1.5rem, 5vw, 3rem) clamp(1.25rem, 5vw, 3.5rem) clamp(4rem, 8vw, 6rem);
+}
+
+.rm-menu-heading {
+  max-width: 20ch;
+  margin: 0 0 clamp(2rem, 5vw, 3.5rem);
+
+  font-size: clamp(1.9rem, 4vw, 3rem);
+  font-weight: 800;
+  line-height: 1.02;
+}
+
+.rm-menu-row {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr auto;
+  align-items: baseline;
+  gap: var(--space-md);
+
+  padding-block: 1.4rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* irregular rhythm on purpose: every third row gets extra breathing room */
+.rm-menu-row:nth-child(3n) {
+  padding-block: 2.1rem;
+}
+
+.rm-menu-index {
+  font-size: 0.85rem;
+  color: var(--content-secondary);
+}
+
+.rm-menu-name {
+  margin: 0 0 0.35rem;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.rm-menu-desc {
+  margin: 0;
+  max-width: 40ch;
+  color: var(--content-secondary);
+  font-size: 0.98rem;
+}
+
+.rm-menu-swatch {
+  width: 3.25rem;
+  height: 3.25rem;
+  align-self: center;
+
+  background: linear-gradient(150deg, var(--accent-muted), var(--accent-default));
+  border: 1px solid var(--border-subtle);
+}
+
+/* -------------------------------------------------------------------
+ * STATEMENT / FOOTER
+ * ------------------------------------------------------------------ */
+
+.rm-statement {
+  padding: clamp(3.5rem, 8vw, 6.5rem) clamp(1.25rem, 5vw, 3.5rem);
+  background: var(--surface-elevated);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.rm-statement p {
+  max-width: 26ch;
+  margin: 0;
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.rm-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-md);
+
+  padding: var(--space-lg) clamp(1.25rem, 5vw, 3.5rem);
+
+  color: var(--content-secondary);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 48rem) {
+  .rm-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .rm-hero-media {
+    margin-inline-start: 0;
+    margin-top: clamp(2rem, 8vw, 3rem);
+  }
+
+  .rm-menu-row {
+    grid-template-columns: 2rem 1fr;
+  }
+
+  .rm-menu-swatch {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rm-action {
+    transition: none;
+  }
+}

@@ -1,0 +1,28 @@
+/*
+ * Fills the same Core gap as _experience-seed/a11y-gap.css and
+ * reference-meson/a11y.css — third occurrence of this exact pattern.
+ * See docs/architecture/VISUAL_ARCHITECTURE.md, "Core API candidates" #2.
+ */
+
+.nexus-skip-link {
+  position: fixed;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: 9999;
+
+  padding: var(--space-sm) var(--space-md);
+
+  background: var(--surface-inverse);
+  color: var(--content-inverse);
+
+  transform: translateY(-200%);
+}
+
+.nexus-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

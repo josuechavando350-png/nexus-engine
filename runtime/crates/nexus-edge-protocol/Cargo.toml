@@ -1,0 +1,22 @@
+[package]
+name = "nexus-edge-protocol"
+description = "Typed, signed, expiring edge task protocol. No arbitrary payload execution by construction."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+# Production Ed25519 signatures. Off by default; the default build ships a
+# clearly-labelled non-cryptographic dev signer restricted to SIMULATION.
+ed25519 = ["dep:ed25519-dalek"]
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-policy = { workspace = true }
+ed25519-dalek = { workspace = true, optional = true }
+
+[lints.rust]
+unsafe_code = "forbid"

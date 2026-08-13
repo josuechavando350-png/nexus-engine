@@ -1,0 +1,13 @@
+[package]
+name = "nexus-policy"
+description = "Safety and authorization engine: non-configurable hard invariants plus configurable rules."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"

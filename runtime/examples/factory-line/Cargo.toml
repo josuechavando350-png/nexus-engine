@@ -1,0 +1,27 @@
+[package]
+name = "factory-line"
+description = "Mandatory NEXUS V3 end-to-end demo: sensor to audit, entirely offline."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "factory-line"
+path = "src/main.rs"
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-observability = { workspace = true }
+nexus-ontology = { workspace = true }
+nexus-graph = { workspace = true }
+nexus-policy = { workspace = true }
+nexus-agent = { workspace = true }
+nexus-edge-protocol = { workspace = true }
+nexus-edge-wasm = { workspace = true }
+nexus-oneway = { workspace = true }
+nexus-sim = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

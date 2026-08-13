@@ -1,0 +1,19 @@
+[package]
+name = "nexus-agent"
+description = "Task proposal, behaviour-model abstraction, human approval gate and the orchestration pipeline."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-ontology = { workspace = true }
+nexus-policy = { workspace = true }
+nexus-edge-protocol = { workspace = true }
+nexus-observability = { workspace = true }
+nexus-sim = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

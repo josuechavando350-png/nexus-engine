@@ -1,0 +1,156 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/nexus-event",
+    "crates/nexus-observability",
+    "crates/nexus-policy",
+    "crates/nexus-ontology",
+    "crates/nexus-graph",
+    "crates/nexus-ingest",
+    "crates/nexus-edge-protocol",
+    "crates/nexus-edge-wasm",
+    "crates/nexus-agent",
+    "crates/nexus-sim",
+    "crates/nexus-oneway",
+    "crates/nexus-memory",
+    "crates/nexus-goal",
+    "crates/nexus-planner",
+    "crates/nexus-reasoning",
+    "crates/nexus-model",
+    "crates/nexus-world-model",
+    "crates/nexus-durable",
+    "crates/nexus-evaluator",
+    "crates/nexus-recovery",
+    "crates/nexus-agents-v4",
+    "crates/nexus-intelligence",
+    "crates/nexus-control-model",
+    "crates/nexus-identity",
+    "crates/nexus-authz",
+    "crates/nexus-registry",
+    "crates/nexus-secrets-v5",
+    "crates/nexus-cost",
+    "crates/nexus-alerts",
+    "crates/nexus-audit-v5",
+    "crates/nexus-api-contracts",
+    "crates/nexus-control-plane",
+    "crates/nexus-sdk",
+    "examples/autonomous-factory",
+    "crates/nexus-cluster",
+    "crates/nexus-consensus",
+    "crates/nexus-replication",
+    "crates/nexus-placement",
+    "crates/nexus-discovery",
+    "crates/nexus-federation",
+    "crates/nexus-offline",
+    "crates/nexus-mesh",
+    "crates/nexus-fleet",
+    "crates/nexus-update",
+    "crates/nexus-distributed",
+    "services/clusterd",
+    "examples/distributed-factory",
+    "services/controld",
+    "services/ingestd",
+    "services/graphd",
+    "services/orchestratord",
+    "services/gatewayd",
+    "examples/factory-line",
+    "examples/warehouse-robot",
+    "examples/inspection-drone-sim",
+    "bench",
+]
+
+[workspace.package]
+version = "6.0.0"
+edition = "2021"
+rust-version = "1.75"
+license = "UNLICENSED"
+publish = false
+repository = "https://github.com/josuechavando349-cmd/nexus-engine"
+
+# ---------------------------------------------------------------------------
+# Dependency policy (see docs/security/V3_THREAT_MODEL.md, section "Supply chain")
+#
+# The DEFAULT feature set of every crate in this workspace has ZERO external
+# dependencies. Everything needed to run the full end-to-end pipeline
+# (event model, ontology, entity resolution, policy, orchestration,
+# simulation, edge sandbox in SIMULATION mode, one-way gateway, audit)
+# is implemented against the standard library only.
+#
+# Real infrastructure adapters are opt-in Cargo features. They are the only
+# place where third-party code enters the build:
+#
+#   kafka     -> rdkafka  (Kafka / Redpanda data highway)
+#   neo4j     -> neo4rs   (property graph backend)
+#   wasmtime  -> wasmtime (production WASM edge sandbox)
+#   ed25519   -> ed25519-dalek, rand_core (production signatures)
+#
+# Rationale: the ports are traits, so the adapters are swappable, the default
+# CI build is hermetic and reproducible offline, and the audited attack
+# surface of the default artifact is the workspace itself.
+# ---------------------------------------------------------------------------
+
+[workspace.dependencies]
+nexus-event = { path = "crates/nexus-event" }
+nexus-observability = { path = "crates/nexus-observability" }
+nexus-policy = { path = "crates/nexus-policy" }
+nexus-ontology = { path = "crates/nexus-ontology" }
+nexus-graph = { path = "crates/nexus-graph" }
+nexus-ingest = { path = "crates/nexus-ingest" }
+nexus-edge-protocol = { path = "crates/nexus-edge-protocol" }
+nexus-edge-wasm = { path = "crates/nexus-edge-wasm" }
+nexus-agent = { path = "crates/nexus-agent" }
+nexus-sim = { path = "crates/nexus-sim" }
+nexus-oneway = { path = "crates/nexus-oneway" }
+nexus-memory = { path = "crates/nexus-memory" }
+nexus-goal = { path = "crates/nexus-goal" }
+nexus-planner = { path = "crates/nexus-planner" }
+nexus-reasoning = { path = "crates/nexus-reasoning" }
+nexus-model = { path = "crates/nexus-model" }
+nexus-world-model = { path = "crates/nexus-world-model" }
+nexus-durable = { path = "crates/nexus-durable" }
+nexus-evaluator = { path = "crates/nexus-evaluator" }
+nexus-recovery = { path = "crates/nexus-recovery" }
+nexus-agents-v4 = { path = "crates/nexus-agents-v4" }
+nexus-intelligence = { path = "crates/nexus-intelligence" }
+nexus-control-model = { path = "crates/nexus-control-model" }
+nexus-identity = { path = "crates/nexus-identity" }
+nexus-authz = { path = "crates/nexus-authz" }
+nexus-registry = { path = "crates/nexus-registry" }
+nexus-secrets-v5 = { path = "crates/nexus-secrets-v5" }
+nexus-cost = { path = "crates/nexus-cost" }
+nexus-alerts = { path = "crates/nexus-alerts" }
+nexus-audit-v5 = { path = "crates/nexus-audit-v5" }
+nexus-api-contracts = { path = "crates/nexus-api-contracts" }
+nexus-control-plane = { path = "crates/nexus-control-plane" }
+nexus-sdk = { path = "crates/nexus-sdk" }
+nexus-cluster = { path = "crates/nexus-cluster" }
+nexus-consensus = { path = "crates/nexus-consensus" }
+nexus-replication = { path = "crates/nexus-replication" }
+nexus-placement = { path = "crates/nexus-placement" }
+nexus-discovery = { path = "crates/nexus-discovery" }
+nexus-federation = { path = "crates/nexus-federation" }
+nexus-offline = { path = "crates/nexus-offline" }
+nexus-mesh = { path = "crates/nexus-mesh" }
+nexus-fleet = { path = "crates/nexus-fleet" }
+nexus-update = { path = "crates/nexus-update" }
+nexus-distributed = { path = "crates/nexus-distributed" }
+
+# Optional adapter dependencies. Versions are pinned to a minor range and are
+# NOT part of the default build.
+rdkafka = { version = "0.36", default-features = false, features = ["tokio", "libz"] }
+neo4rs = { version = "0.8" }
+wasmtime = { version = "27", default-features = false, features = ["cranelift", "runtime"] }
+ed25519-dalek = { version = "2", default-features = false, features = ["std"] }
+tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "signal", "time", "sync"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+
+[profile.bench]
+opt-level = 3
+lto = "thin"
+debug = true

@@ -1,0 +1,56 @@
+/*
+ * NEXUS Experience Seed — reset only.
+ *
+ * No composition rules belong in this file. No hero, no card, no CTA,
+ * no navigation, no footer, no eyebrow labels, no font-size scale, no
+ * radius. If a rule here starts describing what a page looks like
+ * instead of how the box model behaves, it does not belong in the seed.
+ *
+ * No hardcoded color fallbacks. surface.base and content.primary are
+ * experience-specific and unset by default — this should look unfinished
+ * until an Experience themes it, not quietly presentable.
+ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+
+  background: var(--surface-base);
+  color: var(--content-primary);
+
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+}
+
+img,
+picture,
+svg,
+video {
+  display: block;
+  max-width: 100%;
+}

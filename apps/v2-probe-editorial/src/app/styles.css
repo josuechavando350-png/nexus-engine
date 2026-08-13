@@ -1,0 +1,30 @@
+:root { font-family: Georgia, "Times New Roman", serif; }
+html { scroll-behavior: smooth; }
+body { background: var(--surface-base); }
+.ed-shell { width: min(100%, 100rem); margin: 0 auto; border-inline: 1px solid var(--border-subtle); }
+.ed-masthead { min-height: 5rem; display: grid; grid-template-columns: 1fr 2fr auto; align-items: center; gap: 2rem; padding: 0 2.2vw; border-bottom: 1px solid var(--border-strong); font-family: ui-sans-serif, system-ui, sans-serif; font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+.ed-wordmark, .ed-index a { text-decoration: none; }
+.ed-index { display: flex; justify-content: center; gap: clamp(1rem,3vw,3rem); }
+.ed-issue { justify-self: end; }
+.ed-opening { display: grid; grid-template-columns: minmax(9rem, 1fr) minmax(0, 4.5fr) minmax(12rem,1.4fr); column-gap: 2rem; padding: clamp(5rem,11vw,11rem) 2.2vw clamp(3rem,7vw,7rem); border-bottom: 1px solid var(--border-strong); }
+.ed-kicker { font: 700 .68rem/1.4 ui-sans-serif,system-ui,sans-serif; letter-spacing:.14em; writing-mode: vertical-rl; transform: rotate(180deg); justify-self: start; }
+.ed-opening h1 { margin:0; max-width: 15ch; font-size: clamp(3.4rem,8vw,9rem); line-height:.88; font-weight:400; letter-spacing:-.065em; }
+.ed-deck { grid-column:2; max-width:36rem; margin:3rem 0 0; font: 400 clamp(1.05rem,1.5vw,1.35rem)/1.55 ui-sans-serif,system-ui,sans-serif; color:var(--content-secondary); }
+.ed-marginalia { grid-column:3; grid-row:1 / span 2; align-self:end; padding-top:1rem; border-top:1px solid var(--border-strong); font: .72rem/1.6 ui-monospace,SFMono-Regular,monospace; text-transform:uppercase; }
+.ed-essays { padding: 0 2.2vw; }
+.ed-section-title { margin:0; padding:1rem 0; border-bottom:1px solid var(--border-strong); font: 700 .72rem ui-sans-serif,system-ui,sans-serif; text-transform:uppercase; letter-spacing:.13em; }
+.ed-entry { display:grid; grid-template-columns: .45fr 2fr 2.3fr .8fr; gap:2rem; align-items:baseline; padding:clamp(2rem,4vw,4.5rem) 0; border-bottom:1px solid var(--border-subtle); }
+.ed-number { font: .75rem ui-monospace,monospace; color:var(--content-secondary); }
+.ed-entry h3 { margin:0; font-size:clamp(1.8rem,3vw,3.6rem); font-weight:400; line-height:1; }
+.ed-entry p { margin:0; max-width:34rem; font:1rem/1.7 ui-sans-serif,system-ui,sans-serif; color:var(--content-secondary); }
+.ed-read { font:.72rem ui-sans-serif,system-ui,sans-serif; text-transform:uppercase; letter-spacing:.1em; }
+.ed-figure { display:grid; grid-template-columns: 3fr 1fr; gap:1.5rem; margin:clamp(4rem,9vw,9rem) 2.2vw; }
+.ed-image-field { min-height:55vw; max-height:58rem; position:relative; background:linear-gradient(145deg,#9a9080 0 18%,#d5c9b9 18% 48%,#5d5a53 48% 70%,#b34d2f 70%); filter:saturate(.72); }
+.ed-image-field span { position:absolute; inset:auto 1rem 1rem auto; padding:.45rem .6rem; background:var(--surface-base); font:.65rem ui-monospace,monospace; }
+.ed-figure figcaption { align-self:end; padding-top:1rem; border-top:1px solid var(--border-strong); font:.78rem/1.5 ui-sans-serif,system-ui,sans-serif; }
+.ed-contact { display:grid; grid-template-columns:.45fr 3fr 1.4fr; gap:2rem; align-items:end; padding:clamp(4rem,8vw,8rem) 2.2vw; border-top:1px solid var(--border-strong); }
+.ed-contact h2 { margin:0; font-size:clamp(2.5rem,5vw,6rem); font-weight:400; line-height:.95; }
+.ed-contact p { font-family:ui-sans-serif,system-ui,sans-serif; color:var(--content-secondary); }
+.ed-contact-link { justify-self:end; padding-bottom:.35rem; border-bottom:1px solid currentColor; text-decoration:none; font: .85rem ui-sans-serif,system-ui,sans-serif; }
+.ed-footer { display:flex; justify-content:space-between; gap:1rem; padding:1rem 2.2vw; border-top:1px solid var(--border-strong); font:.65rem ui-monospace,monospace; }
+@media (max-width: 48rem) { .ed-masthead{grid-template-columns:1fr auto}.ed-index{display:none}.ed-opening{grid-template-columns:1fr;padding-inline:1.2rem}.ed-kicker{writing-mode:horizontal-tb;transform:none;margin-bottom:2rem}.ed-deck,.ed-marginalia{grid-column:1;grid-row:auto}.ed-marginalia{margin-top:3rem}.ed-entry{grid-template-columns:3rem 1fr}.ed-entry p,.ed-read{grid-column:2}.ed-figure{grid-template-columns:1fr;margin-inline:1.2rem}.ed-contact{grid-template-columns:3rem 1fr;padding-inline:1.2rem}.ed-contact-link{grid-column:2;justify-self:start}.ed-footer{flex-direction:column;padding-inline:1.2rem} }

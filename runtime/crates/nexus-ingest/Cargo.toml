@@ -1,0 +1,22 @@
+[package]
+name = "nexus-ingest"
+description = "Data-highway ingestion: bounded queues, backpressure, retry with backoff, dead-letter routing, idempotency and graceful shutdown. In-memory bus by default, Kafka/Redpanda behind a feature."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+# Enables the rdkafka-backed consumer/producer for Kafka and Redpanda.
+kafka = ["dep:rdkafka", "dep:tokio"]
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-observability = { workspace = true }
+rdkafka = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
+
+[lints.rust]
+unsafe_code = "forbid"

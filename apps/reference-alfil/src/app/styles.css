@@ -1,0 +1,255 @@
+/*
+ * Alfil — reference probe composition.
+ * "ra-" prefix = this Experience's own vocabulary.
+ *
+ * No card grid for services (low card dependence, by design). No gold.
+ * No rounded corners anywhere. Motion is slow and delicate, not snappy.
+ */
+
+.ra-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: var(--space-lg) clamp(1.5rem, 6vw, 4.5rem) var(--space-md);
+}
+
+.ra-wordmark {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+}
+
+.ra-topline nav a {
+  margin-inline-start: var(--space-md);
+  font-size: 0.88rem;
+  text-decoration: none;
+  color: var(--content-secondary);
+}
+
+/* -------------------------------------------------------------------
+ * HERO — asymmetric editorial split, not eyebrow-title-cta stack
+ * ------------------------------------------------------------------ */
+
+.ra-hero {
+  display: grid;
+  grid-template-columns: 7fr 5fr;
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: end;
+
+  padding: clamp(2rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4.5rem) clamp(5rem, 10vw, 8rem);
+}
+
+.ra-hero-title {
+  margin: 0;
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.5rem, 6vw, 4.75rem);
+  font-weight: 400;
+  line-height: 1.04;
+  letter-spacing: -0.01em;
+}
+
+.ra-hero-title .ra-accent-word {
+  color: var(--accent-emphasis);
+  font-style: italic;
+}
+
+.ra-hero-aside {
+  align-self: end;
+  padding-bottom: 0.4rem;
+  border-inline-start: 1px solid var(--border-strong);
+  padding-inline-start: var(--space-md);
+}
+
+.ra-hero-aside p {
+  margin: 0;
+  max-width: 26ch;
+  color: var(--content-secondary);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
+/* -------------------------------------------------------------------
+ * MEDIA — small, offset, architectural. Never dominant/fullbleed.
+ * ------------------------------------------------------------------ */
+
+.ra-media {
+  width: min(28rem, 60vw);
+  aspect-ratio: 3 / 4;
+  margin-inline: auto 0;
+
+  background: linear-gradient(165deg, #efe8e1, #d9cdc3);
+  border: 1px solid var(--border-subtle);
+}
+
+.ra-media-caption {
+  display: block;
+  margin-top: 0.6rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  color: var(--content-secondary);
+}
+
+/* -------------------------------------------------------------------
+ * ACTIONS — underline link primary, sharp outline secondary. No pill.
+ * ------------------------------------------------------------------ */
+
+.ra-action-link {
+  position: relative;
+  display: inline-block;
+
+  padding-bottom: 0.3rem;
+  color: var(--content-primary);
+  text-decoration: none;
+  font-size: 1rem;
+}
+
+.ra-action-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+
+  background: var(--content-primary);
+  transform: scaleX(0.3);
+  transform-origin: left;
+
+  transition: transform var(--motion-duration-slow) var(--motion-easing-decelerate);
+}
+
+.ra-action-link:hover::after,
+.ra-action-link:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.ra-action-outline {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 0.85rem 1.5rem;
+  border: 1px solid var(--content-primary);
+  color: var(--content-primary);
+  text-decoration: none;
+  font-size: 0.92rem;
+  letter-spacing: 0.02em;
+
+  transition: background var(--motion-duration-base) var(--motion-easing-standard),
+    color var(--motion-duration-base) var(--motion-easing-standard);
+}
+
+.ra-action-outline:hover {
+  background: var(--content-primary);
+  color: var(--surface-base);
+}
+
+/* -------------------------------------------------------------------
+ * SERVICES — numbered editorial list. NOT a card grid.
+ * ------------------------------------------------------------------ */
+
+.ra-services {
+  padding: clamp(2rem, 6vw, 4rem) clamp(1.5rem, 6vw, 4.5rem) clamp(5rem, 10vw, 8rem);
+}
+
+.ra-services-heading {
+  max-width: 22ch;
+  margin: 0 0 clamp(2.5rem, 6vw, 4rem);
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.8rem, 3.5vw, 2.6rem);
+  font-weight: 400;
+  line-height: 1.15;
+}
+
+.ra-service-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: var(--space-md);
+
+  padding-block: clamp(1.5rem, 3vw, 2rem);
+  border-top: 1px solid var(--border-subtle);
+
+  transition: padding-inline-start var(--motion-duration-slow) var(--motion-easing-decelerate);
+}
+
+.ra-service-row:hover {
+  padding-inline-start: 0.75rem;
+}
+
+.ra-service-index {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.1rem;
+  color: var(--content-secondary);
+}
+
+.ra-service-name {
+  margin: 0 0 0.3rem;
+  font-size: 1.3rem;
+  font-weight: 500;
+}
+
+.ra-service-desc {
+  margin: 0;
+  max-width: 42ch;
+  color: var(--content-secondary);
+  font-size: 0.96rem;
+}
+
+/* -------------------------------------------------------------------
+ * STATEMENT / FOOTER
+ * ------------------------------------------------------------------ */
+
+.ra-statement {
+  padding: clamp(4rem, 9vw, 7rem) clamp(1.5rem, 6vw, 4.5rem);
+  background: var(--surface-inverse);
+  color: var(--content-inverse);
+  text-align: center;
+}
+
+.ra-statement p {
+  max-width: 30ch;
+  margin: 0 auto;
+
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.6rem, 3.5vw, 2.4rem);
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.ra-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-md);
+
+  padding: var(--space-lg) clamp(1.5rem, 6vw, 4.5rem);
+
+  color: var(--content-secondary);
+  font-size: 0.82rem;
+}
+
+@media (max-width: 48rem) {
+  .ra-hero {
+    grid-template-columns: 1fr;
+  }
+
+  .ra-media {
+    width: 100%;
+    margin-inline: 0;
+  }
+
+  .ra-service-row {
+    grid-template-columns: 2rem 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ra-action-link::after,
+  .ra-action-outline,
+  .ra-service-row {
+    transition: none;
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "subject": "reference-nexus-bot",
+  "observedAt": "2026-08-11",
+  "hero": {
+    "arrangement": { "kind": "custom", "label": "left-aligned-text-plus-diagram", "notes": "Text intro paired with a bordered technical diagram block (status rows), not eyebrow-title-cta-stack/fullbleed-media/split-media-text/typographic-only." },
+    "mediaPresence": { "kind": "known", "value": "adjacent" },
+    "textDensity": { "kind": "known", "value": "minimal" },
+    "entryAction": { "kind": "known", "value": "dual-cta" }
+  },
+  "navigation": {
+    "persistence": { "kind": "known", "value": "static" },
+    "density": { "kind": "known", "value": "minimal" },
+    "ctaPresence": { "kind": "known", "value": "none" }
+  },
+  "typography": {
+    "scaleContrast": { "kind": "known", "value": "moderate" },
+    "caseTreatment": { "kind": "known", "value": "uppercase-labels" },
+    "voice": { "kind": "known", "value": "technical" }
+  },
+  "cta": {
+    "cornerProfile": { "kind": "known", "value": "sharp" },
+    "aspectTendency": { "kind": "known", "value": "compact" },
+    "borderTreatment": { "kind": "known", "value": "hairline" },
+    "fillTreatment": { "kind": "known", "value": "solid" },
+    "iconRelationship": { "kind": "known", "value": "none" },
+    "textTreatment": { "kind": "custom", "label": "bracketed-monospace", "notes": "Labels wrapped in literal brackets, e.g. '[ Ver módulos ]', set in monospace. Not plain uppercase/sentence/mixed-emphasis. Also has two coexisting CTA fill treatments (solid + outline) — same schema limitation noted in reference-alfil." }
+  },
+  "radius": { "distribution": { "kind": "known", "value": "none" } },
+  "cardDependence": {
+    "relianceLevel": { "kind": "known", "value": "none" },
+    "alternativeStructures": { "kind": "custom", "label": "bordered-grid-table", "notes": "Modules render in a continuous CSS grid with shared borders and zero gap — reads as one spec-sheet-like structure, not editorial-blocks/timeline/list/collage/discrete cards." }
+  },
+  "sectionRhythm": {
+    "pacing": { "kind": "known", "value": "uniform" },
+    "verticalDensity": { "kind": "known", "value": "balanced" }
+  },
+  "alignment": { "tendency": { "kind": "known", "value": "left-aligned" } },
+  "media": {
+    "dominantType": { "kind": "known", "value": "none" },
+    "treatment": { "kind": "known", "value": "abstract" }
+  },
+  "motion": {
+    "presence": { "kind": "known", "value": "subtle" },
+    "character": { "kind": "known", "value": "instant" }
+  },
+  "surface": { "depth": { "kind": "known", "value": "flat" } },
+  "density": { "overall": { "kind": "known", "value": "balanced" } },
+  "freeformNotes": "This is the one probe where 'no photography' is a confident, deliberate 'known: none' rather than an 'unknown' gap — the brand intent explicitly excludes photography in favor of information-as-material."
+}

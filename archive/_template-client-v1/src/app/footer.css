@@ -1,0 +1,114 @@
+.nexus-site-footer {
+  position: relative;
+  padding-block: clamp(4rem, 8vw, 7rem) 2rem;
+
+  background: var(--content-primary, #0f172a);
+  color: var(--surface-base, #ffffff);
+
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.nexus-site-footer > div {
+  padding-inline: clamp(1.25rem, 5vw, 4rem) !important;
+}
+
+.nexus-footer-inner {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 3rem;
+}
+
+.nexus-footer-brand {
+  display: inline-flex;
+
+  color: var(--surface-base, #ffffff);
+
+  font-size: clamp(2rem, 5vw, 4rem);
+  font-weight: 800;
+  line-height: 1;
+
+  letter-spacing: -0.055em;
+  text-decoration: none;
+}
+
+.nexus-footer-copy {
+  max-width: 30rem;
+  margin: 1.5rem 0 0;
+
+  color: rgba(255, 255, 255, 0.62);
+
+  font-size: 1rem;
+  line-height: 1.65;
+}
+
+.nexus-footer-links a {
+  color: rgba(255, 255, 255, 0.72);
+
+  font-size: 0.9rem;
+  font-weight: 650;
+
+  text-decoration: none;
+
+  transition:
+    color var(--motion-duration-fast, 120ms)
+      var(--motion-easing-standard, ease),
+    transform var(--motion-duration-fast, 120ms)
+      var(--motion-easing-standard, ease);
+}
+
+.nexus-footer-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+
+  margin-top: clamp(4rem, 8vw, 7rem);
+  padding-top: 1.5rem;
+
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+
+  color: rgba(255, 255, 255, 0.42);
+
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.4;
+
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .nexus-footer-links a:hover {
+    color: #ffffff;
+    transform: translateY(-2px);
+  }
+
+  .nexus-footer-brand:hover {
+    opacity: 0.72;
+  }
+}
+
+@media (max-width: 48rem) {
+  .nexus-site-footer {
+    padding-top: 4rem;
+  }
+
+  .nexus-footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .nexus-footer-links {
+    align-items: flex-start !important;
+  }
+
+  .nexus-footer-meta {
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-footer-links a {
+    transition: none;
+  }
+}

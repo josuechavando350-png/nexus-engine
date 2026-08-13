@@ -1,0 +1,15 @@
+[package]
+name = "nexus-sim"
+description = "Minimal deterministic digital twin for dry-running behaviour plans and injecting failures in CI."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-edge-protocol = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

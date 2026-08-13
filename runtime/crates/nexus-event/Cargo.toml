@@ -1,0 +1,16 @@
+[package]
+name = "nexus-event"
+description = "Canonical, versioned, self-verifying event envelope for the NEXUS Industrial Agentic Runtime."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+
+[dependencies]
+
+[lints.rust]
+unsafe_code = "forbid"

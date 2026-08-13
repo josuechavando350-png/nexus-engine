@@ -1,0 +1,57 @@
+# cargo-deny configuration.
+#
+# The default feature set of this workspace has zero external dependencies, so
+# in the default build these checks have almost nothing to inspect — which is
+# the point. They matter when the optional adapter features are enabled.
+
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+yanked = "deny"
+# No advisory is ignored. If one appears, it is triaged in
+# docs/security/V3_THREAT_MODEL.md and either fixed or given a dated,
+# justified entry here — never a silent blanket ignore.
+ignore = []
+
+[licenses]
+version = 2
+# Permissive licences only. Anything copyleft entering the runtime would
+# change the licensing position of a product that ships to customer sites.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-2-Clause",
+    "BSD-3-Clause",
+    "ISC",
+    "Unicode-3.0",
+    "Zlib",
+]
+confidence-threshold = 0.93
+
+[[licenses.exceptions]]
+# Workspace crates are proprietary and unpublished.
+name = "nexus-event"
+allow = ["UNLICENSED"]
+
+[bans]
+multiple-versions = "warn"
+wildcards = "deny"
+highlight = "all"
+# Dependencies that must never enter the runtime.
+deny = [
+    # Unmaintained or superseded time handling.
+    { name = "time", version = "<0.3" },
+    # Pulls a second async runtime into a process that already has one.
+    { name = "async-std" },
+    # Native TLS stacks are excluded in favour of rustls where TLS is needed.
+    { name = "openssl-sys" },
+]
+skip = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

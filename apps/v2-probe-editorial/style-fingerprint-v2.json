@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "subject": "v2-probe-editorial",
+  "observedAt": "2026-08-11",
+  "openingSignature": "margin-indexed editorial thesis with vertical kicker",
+  "navigationSignature": "static top margin index",
+  "sectionSequence": ["thesis", "field-notes", "inline-figure", "contact-column"],
+  "structure": { "cardReliance": 0, "gridRegularity": 0.62, "symmetry": 0.42, "overlap": 0.03, "whitespace": 0.9, "continuity": 0.82 },
+  "ctaGrammar": ["underlined editorial text action"],
+  "geometryGrammar": ["rules", "margins", "long columns", "sharp boundaries"],
+  "mediaGrammar": ["inline documentary evidence"],
+  "motionGrammar": ["near-static"],
+  "typographyHierarchy": ["serif display", "small sans metadata", "extreme scale contrast"]
+}

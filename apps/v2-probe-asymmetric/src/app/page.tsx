@@ -1,0 +1,9 @@
+import { plan } from "./experience";
+export default function Page(){return <main id="main-content" className="as-shell" data-recipe={plan.recipeId}>
+<header className="as-head"><a href="#field" className="as-mark">S—4</a><span>OBJECTS / LIMITED SERIES</span><nav aria-label="Primary"><a href="#objects">Objects</a><a href="#inquiry">Inquiry</a></nav></header>
+<section id="field" className="as-field"><div className="as-sideword">ATELIER / 2026</div><div className="as-title"><p>COLLECTIBLE INTERIORS / STUDY 04</p><h1>Objects that leave the room unfinished.</h1></div><div className="as-object" aria-hidden="true"><span>04</span></div><p className="as-note">An asymmetric V2 probe. The image field is an anchor, not a hero background.</p></section>
+<section id="objects" className="as-objects"><article className="as-object-copy"><span>01 / MONOLITH</span><h2>A surface with one decision too many removed.</h2><p>Composition behaves like a gallery wall: object, annotation, silence, interruption.</p></article><div className="as-study as-study-a" aria-hidden="true"/><div className="as-study as-study-b" aria-hidden="true"/><aside className="as-spec"><span>HEIGHT</span><b>720</b><span>MATERIAL</span><b>CAST / STUDY</b></aside></section>
+<section className="as-break"><span>THE ROOM IS PART OF THE OBJECT.</span><span>02 / NEGATIVE SPACE</span></section>
+<section id="inquiry" className="as-inquiry"><div className="as-inquiry-copy"><p>PRIVATE EDITIONS / MEXICO CITY</p><h2>Ask about one object.</h2></div><a href="mailto:atelier@example.com" className="as-disc" aria-label="Start private inquiry">INQUIRE<br/>↗</a><p className="as-small">One action. No repeated conversion strip.</p></section>
+<footer className="as-footer"><span>ATELIER S—4</span><span>NEXUS V2 / ASYMMETRIC FIELD</span></footer>
+</main>}

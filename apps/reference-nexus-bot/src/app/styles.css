@@ -1,0 +1,237 @@
+/*
+ * Nexus Bot Studio — reference probe composition.
+ * "rnb-" prefix = this Experience's own vocabulary.
+ *
+ * No dark-mode gradient hero, no floating feature cards with shadow+gap,
+ * no pill buttons, no "AI-powered" hero cliché. Content lives inside a
+ * continuous bordered grid (shared borders, like a spec sheet/table) —
+ * that reads as ONE structure, not a set of discrete card objects. See
+ * EXPRESSIVENESS.md "DESIGN INTENT" and the diversity report's card
+ * dependency definition.
+ */
+
+.rnb-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: var(--space-sm) clamp(1.25rem, 5vw, 3.5rem);
+  border-bottom: 1px solid var(--border-strong);
+
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.85rem;
+}
+
+.rnb-wordmark {
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.rnb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--content-secondary);
+}
+
+.rnb-status-dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  background: var(--accent-default);
+}
+
+/* -------------------------------------------------------------------
+ * HERO — left-aligned technical intro + line diagram, no giant centered
+ * eyebrow/title/CTA stack.
+ * ------------------------------------------------------------------ */
+
+.rnb-hero {
+  display: grid;
+  grid-template-columns: 6fr 6fr;
+  gap: clamp(1.5rem, 4vw, 3rem);
+
+  padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1.25rem, 5vw, 3.5rem);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rnb-hero-tag {
+  display: inline-block;
+  margin: 0 0 1rem;
+
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--accent-emphasis);
+}
+
+.rnb-hero-title {
+  max-width: 22ch;
+  margin: 0;
+
+  font-size: clamp(2rem, 4.5vw, 3.25rem);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.01em;
+}
+
+.rnb-hero-copy {
+  max-width: 38ch;
+  margin: 1.25rem 0 0;
+
+  color: var(--content-secondary);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.rnb-diagram {
+  position: relative;
+  border: 1px solid var(--border-strong);
+  padding: var(--space-md);
+
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.78rem;
+  color: var(--content-secondary);
+}
+
+.rnb-diagram-row {
+  display: flex;
+  justify-content: space-between;
+  padding-block: 0.5rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.rnb-diagram-row:first-child {
+  border-top: none;
+}
+
+.rnb-diagram-row span:last-child {
+  color: var(--accent-default);
+}
+
+/* -------------------------------------------------------------------
+ * ACTIONS — sharp rectangle, monospace bracket label. No pill.
+ * ------------------------------------------------------------------ */
+
+.rnb-action {
+  display: inline-flex;
+  align-items: center;
+
+  padding: 0.75rem 1.1rem;
+  background: var(--content-primary);
+  color: var(--surface-base);
+
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.88rem;
+  text-decoration: none;
+
+  transition: opacity var(--motion-duration-fast) var(--motion-easing-standard);
+}
+
+.rnb-action:hover {
+  opacity: 0.82;
+}
+
+.rnb-action-outline {
+  display: inline-flex;
+  align-items: center;
+  margin-inline-start: var(--space-sm);
+
+  padding: 0.75rem 1.1rem;
+  border: 1px solid var(--border-strong);
+  color: var(--content-primary);
+
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.88rem;
+  text-decoration: none;
+}
+
+/* -------------------------------------------------------------------
+ * MODULES — continuous bordered grid (shared borders). Not cards.
+ * ------------------------------------------------------------------ */
+
+.rnb-modules {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.rnb-module {
+  padding: clamp(1.5rem, 3vw, 2.25rem) clamp(1.25rem, 5vw, 3.5rem);
+  border-right: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rnb-module:nth-child(2n) {
+  border-right: none;
+}
+
+.rnb-module-label {
+  display: inline-block;
+  margin: 0 0 0.75rem;
+
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+  color: var(--accent-emphasis);
+}
+
+.rnb-module-name {
+  margin: 0 0 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.rnb-module-desc {
+  margin: 0;
+  max-width: 34ch;
+  color: var(--content-secondary);
+  font-size: 0.94rem;
+  line-height: 1.55;
+}
+
+/* -------------------------------------------------------------------
+ * STATEMENT / FOOTER
+ * ------------------------------------------------------------------ */
+
+.rnb-statement {
+  padding: clamp(3rem, 7vw, 5rem) clamp(1.25rem, 5vw, 3.5rem);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.rnb-statement p {
+  max-width: 34ch;
+  margin: 0;
+
+  font-size: clamp(1.4rem, 3vw, 2.1rem);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.rnb-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-md);
+
+  padding: var(--space-md) clamp(1.25rem, 5vw, 3.5rem);
+
+  font-family: ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color: var(--content-secondary);
+  font-size: 0.78rem;
+}
+
+@media (max-width: 48rem) {
+  .rnb-hero,
+  .rnb-modules {
+    grid-template-columns: 1fr;
+  }
+
+  .rnb-module {
+    border-right: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rnb-action {
+    transition: none;
+  }
+}

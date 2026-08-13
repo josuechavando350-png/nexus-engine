@@ -1,0 +1,15 @@
+[package]
+name = "nexus-control-plane"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nexus-control-model.workspace = true
+nexus-identity.workspace = true
+nexus-authz.workspace = true
+nexus-registry.workspace = true
+nexus-api-contracts.workspace = true
+nexus-audit-v5.workspace = true

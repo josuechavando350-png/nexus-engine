@@ -1,0 +1,20 @@
+[package]
+name = "nexus-intelligence"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nexus-event.workspace = true
+nexus-memory.workspace = true
+nexus-goal.workspace = true
+nexus-planner.workspace = true
+nexus-reasoning.workspace = true
+nexus-model.workspace = true
+nexus-world-model.workspace = true
+nexus-durable.workspace = true
+nexus-evaluator.workspace = true
+nexus-recovery.workspace = true
+nexus-agents-v4.workspace = true

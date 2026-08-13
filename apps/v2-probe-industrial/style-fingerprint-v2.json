@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "subject": "v2-probe-industrial",
+  "observedAt": "2026-08-11",
+  "openingSignature": "status bar plus indexed operational premise",
+  "navigationSignature": "persistent utility header",
+  "sectionSequence": ["system-premise", "service-matrix", "continuous-bands", "rfq-form"],
+  "structure": { "cardReliance": 0, "gridRegularity": 0.98, "symmetry": 0.82, "overlap": 0, "whitespace": 0.16, "continuity": 0.96 },
+  "ctaGrammar": ["utility command", "form submission"],
+  "geometryGrammar": ["shared rules", "table fields", "zero radius", "continuous bands"],
+  "mediaGrammar": ["data-first", "no decorative media"],
+  "motionGrammar": ["instant state"],
+  "typographyHierarchy": ["monospace index", "compressed sans display", "rigid labels"]
+}

@@ -1,0 +1,49 @@
+{
+  "subject": "reference-alfil",
+  "observedAt": "2026-08-11",
+  "hero": {
+    "arrangement": { "kind": "custom", "label": "typographic-with-marginal-aside", "notes": "Large serif headline plus a bordered marginal note; no image in the hero itself. Closest known value would be typographic-only, but the bordered aside column makes it not purely typographic." },
+    "mediaPresence": { "kind": "known", "value": "none" },
+    "textDensity": { "kind": "known", "value": "minimal" },
+    "entryAction": { "kind": "known", "value": "single-cta" }
+  },
+  "navigation": {
+    "persistence": { "kind": "known", "value": "static" },
+    "density": { "kind": "known", "value": "minimal" },
+    "ctaPresence": { "kind": "known", "value": "none" }
+  },
+  "typography": {
+    "scaleContrast": { "kind": "known", "value": "moderate" },
+    "caseTreatment": { "kind": "known", "value": "sentence" },
+    "voice": { "kind": "known", "value": "editorial" }
+  },
+  "cta": {
+    "cornerProfile": { "kind": "known", "value": "sharp" },
+    "aspectTendency": { "kind": "custom", "label": "text-only-no-box", "notes": "Primary action is an underlined text link with no button chrome at all. A separate secondary action IS a sharp outline rectangle. This dimension assumes one dominant CTA language per page — Alfil deliberately has two (see freeformNotes)." },
+    "borderTreatment": { "kind": "known", "value": "none" },
+    "fillTreatment": { "kind": "known", "value": "ghost" },
+    "iconRelationship": { "kind": "known", "value": "none" },
+    "textTreatment": { "kind": "known", "value": "sentence-case" }
+  },
+  "radius": { "distribution": { "kind": "known", "value": "none" } },
+  "cardDependence": {
+    "relianceLevel": { "kind": "known", "value": "none" },
+    "alternativeStructures": { "kind": "known", "value": "list" }
+  },
+  "sectionRhythm": {
+    "pacing": { "kind": "known", "value": "alternating" },
+    "verticalDensity": { "kind": "known", "value": "airy" }
+  },
+  "alignment": { "tendency": { "kind": "known", "value": "mixed-editorial" } },
+  "media": {
+    "dominantType": { "kind": "unknown" },
+    "treatment": { "kind": "unknown" }
+  },
+  "motion": {
+    "presence": { "kind": "known", "value": "subtle" },
+    "character": { "kind": "custom", "label": "underline-grow-and-indent", "notes": "Animated underline reveal on the text-link CTA; list rows indent slightly on hover. No entrance fade, scale, parallax, or stagger." }
+  },
+  "surface": { "depth": { "kind": "known", "value": "flat" } },
+  "density": { "overall": { "kind": "known", "value": "airy" } },
+  "freeformNotes": "Two coexisting CTA languages (text-link primary, outline-rectangle secondary) don't fit cleanly into a single 'cta' descriptor — flagged as a StyleFingerprintV0 limitation, not resolved here. Media placeholder is a flat gradient block, explicitly labeled 'Foto de muestra' — media.dominantType/treatment left 'unknown', not 'photography'."
+}

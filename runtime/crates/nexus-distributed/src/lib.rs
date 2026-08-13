@@ -1,0 +1,7 @@
+//! V6 composition root. Distribution may place work, never bypass V3/V4/V5 authority.
+#![forbid(unsafe_code)]
+use nexus_cluster::MemberState;use nexus_consensus::ConsensusEngine;use nexus_placement::{PlacementDecision,PlacementPolicy,WorkloadSpec};
+#[derive(Debug,Clone,PartialEq,Eq)]pub struct DistributionIntent{pub request_id:String,pub workload:WorkloadSpec,pub policy_evidence_id:String,pub artifact_digest:String}
+#[derive(Debug,Clone,PartialEq,Eq)]pub struct DistributionDecision{pub request_id:String,pub placement:PlacementDecision,pub commit_index:u64,pub policy_evidence_id:String,pub artifact_digest:String}
+pub struct DistributedRuntime<'a>{pub consensus:&'a dyn ConsensusEngine,pub placement:&'a dyn PlacementPolicy}
+impl DistributedRuntime<'_>{pub fn schedule(&self,intent:DistributionIntent,nodes:&[MemberState])->Result<DistributionDecision,String>{if intent.request_id.trim().is_empty(){return Err("distribution request id required".into())}if intent.policy_evidence_id.is_empty(){return Err("policy evidence required before placement".into())}if intent.artifact_digest.is_empty(){return Err("artifact digest required before placement".into())}let placement=self.placement.place(&intent.workload,nodes)?;let proof=self.consensus.propose(&intent.request_id,&intent.artifact_digest)?;if !proof.valid(){return Err("consensus proof lacks majority".into())}Ok(DistributionDecision{request_id:intent.request_id,placement,commit_index:proof.index,policy_evidence_id:intent.policy_evidence_id,artifact_digest:intent.artifact_digest})}}

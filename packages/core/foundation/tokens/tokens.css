@@ -1,0 +1,81 @@
+/*
+ * NEXUS CORE TOKEN CONTRACT
+ *
+ * Values are intentionally supplied by Client Experience.
+ * Core defines role names, not visual identity.
+ *
+ * The "opacity.*" category is intentionally absent.
+ * Specification v0.3 marks it DEFERRED.
+ */
+
+:root {
+  --surface-base: initial;
+  --surface-elevated: initial;
+  --surface-inverse: initial;
+  --surface-overlay: initial;
+
+  --content-primary: initial;
+  --content-secondary: initial;
+  --content-inverse: initial;
+  --content-disabled: initial;
+
+  --accent-default: initial;
+  --accent-emphasis: initial;
+  --accent-muted: initial;
+
+  --border-subtle: initial;
+  --border-strong: initial;
+
+  --feedback-success: initial;
+  --feedback-warning: initial;
+  --feedback-danger: initial;
+  --feedback-info: initial;
+
+  --focus-ring: initial;
+  --focus-offset: initial;
+
+  --space-xs: initial;
+  --space-sm: initial;
+  --space-md: initial;
+  --space-lg: initial;
+  --space-xl: initial;
+
+  --container-sm: initial;
+  --container-md: initial;
+  --container-lg: initial;
+  --container-xl: initial;
+
+  --radius-sm: initial;
+  --radius-md: initial;
+  --radius-lg: initial;
+  --radius-full: initial;
+
+  --shadow-sm: initial;
+  --shadow-md: initial;
+  --shadow-lg: initial;
+
+  --z-index-base: initial;
+  --z-index-dropdown: initial;
+  --z-index-sticky: initial;
+  --z-index-overlay: initial;
+  --z-index-modal: initial;
+  --z-index-toast: initial;
+
+  --motion-duration-fast: initial;
+  --motion-duration-base: initial;
+  --motion-duration-slow: initial;
+  --motion-duration-instant: 0ms;
+
+  --motion-easing-standard: initial;
+  --motion-easing-decelerate: initial;
+  --motion-easing-accelerate: initial;
+  --motion-easing-linear: initial;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --motion-duration-fast: var(--motion-duration-instant);
+    --motion-duration-base: var(--motion-duration-instant);
+    --motion-duration-slow: var(--motion-duration-instant);
+  }
+}

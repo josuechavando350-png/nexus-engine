@@ -1,0 +1,38 @@
+/*
+ * This file exists ONLY because Core exports SR_ONLY_CSS and
+ * REDUCED_MOTION_CSS as reusable string constants (rendered directly in
+ * layout.tsx, not duplicated here) but has no equivalent exported string
+ * for skip-link visual behavior or a global :focus-visible rule — it only
+ * exports the classname (SKIP_LINK_CLASS) and a per-element style object
+ * (focusRingDeclaration()). See docs/architecture/VISUAL_ARCHITECTURE.md,
+ * "Core API candidates" for the proposal to close this gap in Core itself.
+ * Not modified here: Core was left untouched per instruction.
+ *
+ * Deliberately uses `var()` with NO hardcoded color fallback. surface.base
+ * and content.primary are experience-specific and unset in this seed's
+ * theme, so this will render structurally correct but visually inert
+ * until an Experience themes it. That is intentional.
+ */
+
+.nexus-skip-link {
+  position: fixed;
+  top: var(--space-md);
+  left: var(--space-md);
+  z-index: 9999;
+
+  padding: var(--space-sm) var(--space-md);
+
+  background: var(--surface-base);
+  color: var(--content-primary);
+
+  transform: translateY(-200%);
+}
+
+.nexus-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}

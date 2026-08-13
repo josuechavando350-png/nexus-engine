@@ -1,0 +1,15 @@
+[package]
+name = "nexus-oneway"
+description = "Zone separation: an egress-only observation profile and a separate authenticated control channel. Software architecture, not a hardware data diode."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-observability = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"

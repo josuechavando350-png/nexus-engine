@@ -1,0 +1,41 @@
+.nexus-reveal {
+  opacity: 0;
+  transform: translateY(2rem);
+  transition:
+    opacity var(--motion-duration-slow, 420ms)
+      var(--motion-easing-decelerate, ease-out),
+    transform var(--motion-duration-slow, 420ms)
+      var(--motion-easing-decelerate, ease-out);
+  will-change: opacity, transform;
+}
+
+.nexus-reveal-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.nexus-reveal-delay-none {
+  transition-delay: 0ms;
+}
+
+.nexus-reveal-delay-short {
+  transition-delay: 80ms;
+}
+
+.nexus-reveal-delay-medium {
+  transition-delay: 160ms;
+}
+
+.nexus-reveal-delay-long {
+  transition-delay: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nexus-reveal,
+  .nexus-reveal-visible {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+    will-change: auto;
+  }
+}

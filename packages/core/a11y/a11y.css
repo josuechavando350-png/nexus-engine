@@ -1,0 +1,57 @@
+/*
+ * This file must mirror SR_ONLY_CSS + SKIP_LINK_CSS + FOCUS_VISIBLE_CSS +
+ * REDUCED_MOTION_CSS exported from ./index.ts, in that order. There is no
+ * build step that generates this file from those exports, so it is kept
+ * in sync by hand — guarded by packages/core/__tests__/a11y.test.ts,
+ * which fails if this file drifts from the exported strings.
+ *
+ * Fixed in NEXUS V1.2: this file was previously named "a11y . css" (with
+ * literal spaces), which did not match the package.json export path
+ * ("./a11y.css"), so any consumer importing "@nexus/core/a11y.css" would
+ * have failed to resolve. It also referenced var(--space-3), which does
+ * not correspond to any token in foundation/tokens/roles.ts — replaced
+ * with var(--space-md).
+ */
+
+.nexus-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.nexus-skip-link {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  padding: var(--space-md);
+  background: var(--surface-base);
+  color: var(--content-primary);
+  transform: translateY(-120%);
+}
+
+.nexus-skip-link:focus-visible {
+  transform: translateY(0);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: var(--focus-offset);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "name": "@nexus/v2-probe-editorial",
+  "version": "0.1.0",
+  "private": true,
+  "description": "V2 expressiveness probe: editorial restraint and reading-led composition.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@nexus/core": "workspace:*",
+    "@nexus/experience": "workspace:*",
+    "next": "^15.5.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "typescript": "^6.0.3"
+  }
+}

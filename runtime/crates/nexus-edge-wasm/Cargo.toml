@@ -1,0 +1,22 @@
+[package]
+name = "nexus-edge-wasm"
+description = "Sandboxed edge task execution: resource limits, signed module manifests, allowlisted host functions and capability tokens."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[features]
+default = []
+# Production Wasmtime backend with real fuel metering and epoch interruption.
+wasmtime = ["dep:wasmtime"]
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-edge-protocol = { workspace = true }
+nexus-observability = { workspace = true }
+wasmtime = { workspace = true, optional = true }
+
+[lints.rust]
+unsafe_code = "forbid"

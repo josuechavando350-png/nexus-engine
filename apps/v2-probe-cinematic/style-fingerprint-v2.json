@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "subject": "v2-probe-cinematic",
+  "observedAt": "2026-08-11",
+  "openingSignature": "full-viewport media field with edge rail and bottom-anchored title",
+  "navigationSignature": "persistent vertical chapter rail",
+  "sectionSequence": ["arrival-field", "full-height-chapter", "full-height-chapter", "full-height-chapter", "reservation-resolution"],
+  "structure": { "cardReliance": 0, "gridRegularity": 0.18, "symmetry": 0.28, "overlap": 0.78, "whitespace": 0.46, "continuity": 0.95 },
+  "ctaGrammar": ["edge reservation cue", "single underlined final action"],
+  "geometryGrammar": ["fullbleed", "edge rail", "layered frame", "circular orbit"],
+  "mediaGrammar": ["continuous atmospheric field", "chapter-scale media"],
+  "motionGrammar": ["chapter continuity", "reduced-motion fallback required"],
+  "typographyHierarchy": ["overscale overlay title", "edge captions", "low-density copy"]
+}

@@ -1,0 +1,7 @@
+# Pinned so CI, developers and the release build agree byte for byte.
+# 1.83 is the floor that satisfies `rust-version = "1.75"` in every manifest
+# while giving current clippy lints. Raise deliberately, never implicitly.
+[toolchain]
+channel = "1.83.0"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

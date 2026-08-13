@@ -1,0 +1,23 @@
+[package]
+name = "warehouse-robot"
+description = "Shows the approval gate: a fixture manipulation cannot dispatch without a recorded human decision."
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+publish.workspace = true
+
+[[bin]]
+name = "warehouse-robot"
+path = "src/main.rs"
+
+[dependencies]
+nexus-event = { workspace = true }
+nexus-observability = { workspace = true }
+nexus-policy = { workspace = true }
+nexus-agent = { workspace = true }
+nexus-edge-protocol = { workspace = true }
+nexus-sim = { workspace = true }
+
+[lints.rust]
+unsafe_code = "forbid"
