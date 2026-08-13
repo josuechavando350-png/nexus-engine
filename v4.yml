@@ -1,0 +1,52 @@
+name: Validacion NEXUS V4 Autonomous Intelligence
+on:
+  push:
+    branches: [main, nexus-v4]
+    paths: ["runtime/**","scripts/v4-architecture-gates.mjs","tests/v4-boundaries.test.ts",".github/workflows/v4.yml"]
+  pull_request:
+    branches: [main]
+    paths: ["runtime/**","scripts/v4-architecture-gates.mjs","tests/v4-boundaries.test.ts",".github/workflows/v4.yml"]
+env: { CARGO_TERM_COLOR: always, RUSTFLAGS: "-D warnings" }
+jobs:
+  architecture:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 24 }
+      - run: node scripts/v3-architecture-gates.mjs
+      - run: node scripts/v4-architecture-gates.mjs
+  rust:
+    runs-on: ubuntu-latest
+    needs: architecture
+    defaults: { run: { working-directory: runtime } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with: { components: "rustfmt, clippy" }
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            runtime/target
+          key: ${{ runner.os }}-cargo-v4-${{ hashFiles('runtime/**/Cargo.toml') }}
+      - run: cargo fmt --all --check
+      - run: cargo clippy --workspace --all-targets -- -D warnings
+      - run: cargo test --workspace
+      - run: cargo build --workspace --release
+      - run: cargo run -p factory-line --release
+      - run: cargo run -p autonomous-factory --release
+  supply-chain:
+    runs-on: ubuntu-latest
+    needs: architecture
+    defaults: { run: { working-directory: runtime } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo install cargo-audit cargo-deny cargo-cyclonedx --locked
+      - run: cargo audit
+      - run: cargo deny check
+      - run: cargo cyclonedx --all --format json
+      - uses: actions/upload-artifact@v4
+        with: { name: nexus-v4-sbom, path: "runtime/**/*.cdx.json", if-no-files-found: warn }

@@ -1,0 +1,152 @@
+name: Validation NEXUS V3-V6 Runtime
+
+on:
+  push:
+    branches: [main, nexus-v3, nexus-v4, nexus-v5, nexus-v6]
+    paths:
+      - "runtime/**"
+      - "scripts/v3-architecture-gates.mjs"
+      - "scripts/v4-architecture-gates.mjs"
+      - "scripts/v5-architecture-gates.mjs"
+      - "scripts/v6-architecture-gates.mjs"
+      - ".github/workflows/rust.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "runtime/**"
+      - "scripts/v3-architecture-gates.mjs"
+      - "scripts/v4-architecture-gates.mjs"
+      - "scripts/v5-architecture-gates.mjs"
+      - "scripts/v6-architecture-gates.mjs"
+      - ".github/workflows/rust.yml"
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  # Runs with no toolchain and no network. Catches architectural regressions
+  # before spending time on a compile.
+  architecture:
+    name: Architecture gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: V3-V6 architecture gates
+        run: |
+          node scripts/v3-architecture-gates.mjs
+          node scripts/v4-architecture-gates.mjs
+          node scripts/v5-architecture-gates.mjs
+          node scripts/v6-architecture-gates.mjs
+
+  rust:
+    name: Rust gates (default features)
+    runs-on: ubuntu-latest
+    needs: architecture
+    defaults:
+      run:
+        working-directory: runtime
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            runtime/target
+          key: ${{ runner.os }}-cargo-v6-${{ hashFiles('runtime/**/Cargo.toml') }}
+
+      - name: Formatting
+        run: cargo fmt --all --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        run: cargo test --workspace
+
+      - name: Release build
+        run: cargo build --workspace --release
+
+      # The end-to-end demo is a gate, not a sample. It exercises
+      # sensor -> ingest -> ontology -> proposal -> policy -> simulation
+      # -> signed task -> WASM sandbox -> result -> audit and fails on any
+      # broken link.
+      - name: End-to-end demo
+        run: cargo run -p factory-line --release
+
+      - name: V4 autonomous factory demo
+        run: cargo run -p autonomous-factory --release
+
+      - name: V6 distributed factory demo
+        run: cargo run -p distributed-factory --release
+
+      - name: Warehouse robot example
+        run: cargo run -p warehouse-robot --release
+
+      - name: Inspection drone simulation
+        run: cargo run -p inspection-drone-sim --release
+
+  features:
+    name: Optional adapter features
+    runs-on: ubuntu-latest
+    needs: architecture
+    defaults:
+      run:
+        working-directory: runtime
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - name: Install librdkafka build dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsasl2-dev
+      - name: Check each optional adapter compiles
+        run: |
+          cargo check -p nexus-edge-protocol --features ed25519
+          cargo check -p nexus-graph --features neo4j
+          cargo check -p nexus-ingest --features kafka
+          cargo check -p nexus-edge-wasm --features wasmtime
+      - name: Clippy with all features
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
+
+  supply-chain:
+    name: Supply chain
+    runs-on: ubuntu-latest
+    needs: architecture
+    defaults:
+      run:
+        working-directory: runtime
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install cargo-audit and cargo-deny
+        run: cargo install cargo-audit cargo-deny --locked
+
+      - name: Advisory scan
+        run: cargo audit
+
+      - name: Licence, ban and source policy
+        run: cargo deny check
+
+      - name: SBOM
+        run: |
+          cargo install cargo-cyclonedx --locked
+          cargo cyclonedx --all --format json
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-v6-sbom
+          path: runtime/**/*.cdx.json
+          if-no-files-found: warn
