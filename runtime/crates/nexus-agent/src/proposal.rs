@@ -434,3 +434,22 @@ mod tests {
     fn proposals_get_distinct_task_ids() {
         let make = || {
             TaskProposal::new
+            (
+                TaskGoal::Standdown,
+                ProposalTrigger::Scheduled {
+                    schedule_id: "s1".into(),
+                },
+                "a",
+                "z",
+                "d",
+                Timestamp::from_millis(1),
+                TraceId::from_external("t"),
+            )
+        };
+
+        assert_ne!(
+            make().task_id,
+            make().task_id
+        );
+    }
+}
