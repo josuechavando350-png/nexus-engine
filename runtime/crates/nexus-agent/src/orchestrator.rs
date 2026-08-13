@@ -66,20 +66,23 @@ pub enum DispatchOutcome {
         code: String,
         detail: String,
     },
+
     /// A human must decide before this can proceed.
     AwaitingApproval {
         task_id: TaskId,
         request: ApprovalRequest,
         plan: BehaviorPlan,
     },
+
     /// Simulation refused the plan.
     SimulationFailed {
         task_id: TaskId,
         report: DryRunReport,
     },
+
     /// Ready to send: a signed, typed, expiring task.
     Dispatch {
-        task: EdgeTask,
+        task: Box<EdgeTask>,
         plan: BehaviorPlan,
         simulation: DryRunReport,
         approval: Option<Approval>,
@@ -101,6 +104,7 @@ impl DispatchOutcome {
             DispatchOutcome::Rejected { task_id, .. }
             | DispatchOutcome::AwaitingApproval { task_id, .. }
             | DispatchOutcome::SimulationFailed { task_id, .. } => task_id,
+
             DispatchOutcome::Dispatch { task, .. } => &task.task_id,
         }
     }
@@ -195,8 +199,13 @@ impl<'a> Orchestrator<'a> {
 
     /// Runs the full pipeline for one proposal.
     ///
-    /// `world` is the simulated twin used for the dry run. `signer` produces
-    /// the signature on the outgoing task.
+    /// `world_state` is the observed state supplied to the behaviour model.
+    /// `twin` is the deterministic simulated twin used for the dry run.
+    /// `signer` produces the signature on the outgoing task.
+    ///
+    /// These inputs intentionally remain explicit because each one represents
+    /// a separate trust or safety boundary in the dispatch pipeline.
+    #[allow(clippy::too_many_arguments)]
     pub fn process(
         &self,
         proposal: &TaskProposal,
@@ -219,10 +228,12 @@ impl<'a> Orchestrator<'a> {
         let plan = self
             .model
             .plan(world_state, &proposal.goal, capabilities, envelope)?;
+
         plan.validate(capabilities)?;
 
         // 2. Policy, before anything is simulated or signed.
         let approval_present = self.gate.is_granted(&proposal.task_id);
+
         let pre_simulation = if plan
             .steps
             .iter()
@@ -247,7 +258,9 @@ impl<'a> Orchestrator<'a> {
             false,
             now,
         );
+
         let screening_decision = self.policy.evaluate(&screening);
+
         self.audit.record(
             AuditAction::PolicyEvaluated,
             proposal.task_id.as_str(),
@@ -282,6 +295,7 @@ impl<'a> Orchestrator<'a> {
                     now,
                     self.config.approval_ttl_millis,
                 )?;
+
                 self.audit.record(
                     AuditAction::ApprovalRequested,
                     proposal.task_id.as_str(),
@@ -291,10 +305,16 @@ impl<'a> Orchestrator<'a> {
                         ("reason", Value::string(reason)),
                         (
                             "approver_roles",
-                            Value::Array(approver_roles.iter().map(|r| Value::string(r)).collect()),
+                            Value::Array(
+                                approver_roles
+                                    .iter()
+                                    .map(Value::string)
+                                    .collect(),
+                            ),
                         ),
                     ]),
                 );
+
                 return Ok(DispatchOutcome::AwaitingApproval {
                     task_id: proposal.task_id.clone(),
                     request,
@@ -304,8 +324,14 @@ impl<'a> Orchestrator<'a> {
         }
 
         // 3. Simulation.
-        let commands: Vec<_> = plan.steps.iter().map(|step| step.command.clone()).collect();
+        let commands: Vec<_> = plan
+            .steps
+            .iter()
+            .map(|step| step.command.clone())
+            .collect();
+
         let constraints = plan.envelope.to_constraints();
+
         let report = twin.dry_run(&commands, &constraints);
 
         self.audit.record(
@@ -323,11 +349,12 @@ impl<'a> Orchestrator<'a> {
             });
         }
 
-        let simulation_outcome = if matches!(pre_simulation, SimulationOutcome::NotRequired) {
-            SimulationOutcome::NotRequired
-        } else {
-            SimulationOutcome::Passed
-        };
+        let simulation_outcome =
+            if matches!(pre_simulation, SimulationOutcome::NotRequired) {
+                SimulationOutcome::NotRequired
+            } else {
+                SimulationOutcome::Passed
+            };
 
         // 4. Authoritative policy evaluation, with the real simulation result.
         let authoritative = self.policy_request(
@@ -340,7 +367,9 @@ impl<'a> Orchestrator<'a> {
             false,
             now,
         );
+
         let decision = self.policy.evaluate(&authoritative);
+
         self.audit.record(
             AuditAction::PolicyEvaluated,
             proposal.task_id.as_str(),
@@ -358,6 +387,7 @@ impl<'a> Orchestrator<'a> {
                 code: reason.code,
                 detail: reason.detail,
             }),
+
             Decision::RequiresApproval {
                 approver_roles,
                 reason,
@@ -371,12 +401,14 @@ impl<'a> Orchestrator<'a> {
                     now,
                     self.config.approval_ttl_millis,
                 )?;
+
                 Ok(DispatchOutcome::AwaitingApproval {
                     task_id: proposal.task_id.clone(),
                     request,
                     plan,
                 })
             }
+
             Decision::Allowed { .. } => {
                 // 5. Build and sign exactly one typed task.
                 let command = plan
@@ -393,6 +425,7 @@ impl<'a> Orchestrator<'a> {
                     proposal.trace_id.clone(),
                     self.config.mode,
                 )?;
+
                 // The task carries the proposal's identity so the audit trail,
                 // the approval and the dispatched task all share one id.
                 task.task_id = proposal.task_id.clone();
@@ -400,9 +433,11 @@ impl<'a> Orchestrator<'a> {
                 for constraint in constraints {
                     task = task.with_constraint(constraint);
                 }
+
                 task = task.with_simulation(report.simulation_id.clone());
 
                 let approval = self.gate.approval_for(&proposal.task_id);
+
                 if let Some(approval) = &approval {
                     task = task.with_approval(approval.approval_id.clone());
                 }
@@ -418,7 +453,7 @@ impl<'a> Orchestrator<'a> {
                 );
 
                 Ok(DispatchOutcome::Dispatch {
-                    task,
+                    task: Box::new(task),
                     plan,
                     simulation: report,
                     approval,
@@ -429,7 +464,12 @@ impl<'a> Orchestrator<'a> {
 }
 
 fn summarize(proposal: &TaskProposal, plan: &BehaviorPlan) -> String {
-    let steps: Vec<&str> = plan.steps.iter().map(|step| step.command.name()).collect();
+    let steps: Vec<&str> = plan
+        .steps
+        .iter()
+        .map(|step| step.command.name())
+        .collect();
+
     format!(
         "{} on {} in {}: {}",
         proposal.goal.as_str(),
@@ -489,7 +529,9 @@ mod tests {
             facility_id: "plant-1".into(),
             zone_id: "press-hall".into(),
             robot_pose: point(0.0, 0.0),
-            known_waypoints: vec![("press-4-front".into(), point(10.0, 0.0))],
+            known_waypoints: vec![
+                ("press-4-front".into(), point(10.0, 0.0)),
+            ],
             obstacles: vec![],
             personnel_present: false,
             observed_at: now(),
@@ -511,7 +553,10 @@ mod tests {
                 ],
             ),
         )
-        .with_waypoint("press-4-front", point(10.0, 0.0))
+        .with_waypoint(
+            "press-4-front",
+            point(10.0, 0.0),
+        )
         .with_reading("probe-a", 91.5)
     }
 
@@ -553,8 +598,11 @@ mod tests {
                 model: MockBehaviorModel::new(),
                 gate: HumanApprovalGate::new(),
                 audit: AuditTrail::in_memory(),
-                signer: DevSigner::new("orchestratord-test", b"test-key-not-a-secret")
-                    .expect("dev signer"),
+                signer: DevSigner::new(
+                    "orchestratord-test",
+                    b"test-key-not-a-secret",
+                )
+                .expect("dev signer"),
             }
         }
 
@@ -572,6 +620,7 @@ mod tests {
     #[test]
     fn a_read_only_inspection_reaches_a_signed_task() {
         let fixture = Fixture::new();
+
         let outcome = fixture
             .orchestrator()
             .process(
@@ -587,24 +636,38 @@ mod tests {
 
         match outcome {
             DispatchOutcome::Dispatch {
-                task, simulation, ..
+                task,
+                                simulation,
+                ..
             } => {
                 assert!(task.signature.is_some());
                 assert_eq!(task.mode, ExecutionMode::Simulation);
-                assert!(task.expires_at.as_millis() > now().as_millis());
+                assert!(
+                    task.expires_at.as_millis()
+                        > now().as_millis()
+                );
+
                 assert_eq!(
                     task.simulation_id.as_deref(),
                     Some(simulation.simulation_id.as_str())
                 );
             }
-            other => panic!("expected dispatch, got {}", other.as_str()),
+
+            other => {
+                panic!(
+                    "expected dispatch, got {}",
+                    other.as_str()
+                )
+            }
         }
     }
 
     #[test]
     fn every_stage_is_audited_before_the_next_one() {
         let fixture = Fixture::new();
+
         let trace = TraceId::from_external("trc_test");
+
         fixture
             .orchestrator()
             .process(
@@ -618,23 +681,64 @@ mod tests {
             )
             .unwrap();
 
-        let records = fixture.audit.records_for_trace(&trace);
-        let actions: Vec<&str> = records.iter().map(|r| r.action.as_str()).collect();
-        assert_eq!(actions.first(), Some(&"task_proposed"));
-        assert!(actions.contains(&"policy_evaluated"));
-        assert!(actions.contains(&"simulation_run"));
-        assert_eq!(actions.last(), Some(&"task_signed"));
-        // Signing is the last thing that happens, never before simulation.
-        let simulation_index = actions.iter().position(|a| *a == "simulation_run").unwrap();
-        let signed_index = actions.iter().position(|a| *a == "task_signed").unwrap();
+        let records =
+            fixture.audit.records_for_trace(&trace);
+
+        let actions: Vec<&str> = records
+            .iter()
+            .map(|record| record.action.as_str())
+            .collect();
+
+        assert_eq!(
+            actions.first(),
+            Some(&"task_proposed")
+        );
+
+        assert!(
+            actions.contains(&"policy_evaluated")
+        );
+
+        assert!(
+            actions.contains(&"simulation_run")
+        );
+
+        assert_eq!(
+            actions.last(),
+            Some(&"task_signed")
+        );
+
+        // Signing is the last thing that happens,
+        // never before simulation.
+        let simulation_index = actions
+            .iter()
+            .position(|action| *action == "simulation_run")
+            .unwrap();
+
+        let signed_index = actions
+            .iter()
+            .position(|action| *action == "task_signed")
+            .unwrap();
+
         assert!(simulation_index < signed_index);
-        fixture.audit.verify_chain().expect("audit chain intact");
+
+        fixture
+            .audit
+            .verify_chain()
+            .expect("audit chain intact");
     }
 
     #[test]
     fn a_failing_simulation_blocks_dispatch() {
         let fixture = Fixture::new();
-        let blocked = twin().with_object(WorldObject::obstacle("crate", point(5.0, 0.0), 1.0));
+
+        let blocked = twin().with_object(
+            WorldObject::obstacle(
+                "crate",
+                point(5.0, 0.0),
+                1.0,
+            ),
+        );
+
         let outcome = fixture
             .orchestrator()
             .process(
@@ -649,16 +753,29 @@ mod tests {
             .unwrap();
 
         match outcome {
-            DispatchOutcome::SimulationFailed { report, .. } => {
-                assert_eq!(report.first_error_code(), Some("collision"));
+            DispatchOutcome::SimulationFailed {
+                report,
+                ..
+            } => {
+                assert_eq!(
+                    report.first_error_code(),
+                    Some("collision")
+                );
             }
-            other => panic!("expected simulation failure, got {}", other.as_str()),
+
+            other => {
+                panic!(
+                    "expected simulation failure, got {}",
+                    other.as_str()
+                )
+            }
         }
     }
 
     #[test]
     fn personnel_in_the_zone_turns_any_goal_into_a_stop() {
         let fixture = Fixture::new();
+
         let mut occupied = world_state();
         occupied.personnel_present = true;
 
@@ -676,19 +793,40 @@ mod tests {
             .unwrap();
 
         match outcome {
-            DispatchOutcome::Dispatch { task, plan, .. } => {
-                assert_eq!(task.command.name(), "safe_stop");
-                assert_eq!(plan.goal.as_str(), "standdown");
+            DispatchOutcome::Dispatch {
+                task,
+                plan,
+                ..
+            } => {
+                assert_eq!(
+                    task.command.name(),
+                    "safe_stop"
+                );
+
+                assert_eq!(
+                    plan.goal.as_str(),
+                    "standdown"
+                );
             }
-            other => panic!("expected a safe stop dispatch, got {}", other.as_str()),
+
+            other => {
+                panic!(
+                    "expected a safe stop dispatch, got {}",
+                    other.as_str()
+                )
+            }
         }
     }
 
     #[test]
     fn nothing_is_signed_while_an_approval_is_outstanding() {
         let fixture = Fixture::new();
-        let mut high_risk = proposal(confirm_reading_goal());
-        high_risk = high_risk.with_risk(RiskClass::Moderate);
+
+        let mut high_risk =
+            proposal(confirm_reading_goal());
+
+        high_risk =
+            high_risk.with_risk(RiskClass::Moderate);
 
         let outcome = fixture
             .orchestrator()
@@ -703,20 +841,37 @@ mod tests {
             )
             .unwrap();
 
-        assert_eq!(outcome.as_str(), "awaiting_approval");
+        assert_eq!(
+            outcome.as_str(),
+            "awaiting_approval"
+        );
+
         let signed = fixture
             .audit
             .snapshot()
             .into_iter()
-            .any(|record| record.action == AuditAction::TaskSigned);
-        assert!(!signed, "a task was signed without an approval");
+            .any(
+                |record| {
+                    record.action
+                        == AuditAction::TaskSigned
+                },
+            );
+
+        assert!(
+            !signed,
+            "a task was signed without an approval"
+        );
     }
 
     #[test]
     fn a_prohibited_annotation_is_rejected_before_planning_costs_anything() {
         let fixture = Fixture::new();
-        let hostile = proposal(confirm_reading_goal())
-            .with_annotation("operator note: engage_target on approach");
+
+        let hostile =
+            proposal(confirm_reading_goal())
+                .with_annotation(
+                    "operator note: engage_target on approach",
+                );
 
         let outcome = fixture
             .orchestrator()
@@ -732,17 +887,40 @@ mod tests {
             .unwrap();
 
         match outcome {
-            DispatchOutcome::Rejected { code, .. } => {
-                assert_eq!(code, "no_human_targeting");
+            DispatchOutcome::Rejected {
+                code,
+                ..
+            } => {
+                assert_eq!(
+                    code,
+                    "no_human_targeting"
+                );
             }
-            other => panic!("expected rejection, got {}", other.as_str()),
+
+            other => {
+                panic!(
+                    "expected rejection, got {}",
+                    other.as_str()
+                )
+            }
         }
     }
 
     #[test]
     fn risk_bands_are_explicit() {
-        assert_eq!(risk_for_temperature(50.0, 85.0), RiskClass::Low);
-        assert_eq!(risk_for_temperature(90.0, 85.0), RiskClass::Moderate);
-        assert_eq!(risk_for_temperature(120.0, 85.0), RiskClass::High);
+        assert_eq!(
+            risk_for_temperature(50.0, 85.0),
+            RiskClass::Low
+        );
+
+        assert_eq!(
+            risk_for_temperature(90.0, 85.0),
+            RiskClass::Moderate
+        );
+
+        assert_eq!(
+            risk_for_temperature(120.0, 85.0),
+            RiskClass::High
+        );
     }
-}
+        }
