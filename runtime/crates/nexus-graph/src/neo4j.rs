@@ -122,11 +122,26 @@ fn build_query(statement: &CypherStatement) -> neo4rs::Query {
 }
 
 /// Neo4j-backed graph store.
-#[derive(Debug)]
 pub struct Neo4jGraph {
     graph: neo4rs::Graph,
     runtime: tokio::runtime::Runtime,
     database: String,
+}
+
+/// `Debug` is implemented by hand because `neo4rs::Graph` is an opaque
+/// connection pool that does not implement it, matching what `Neo4jConfig`
+/// does above.
+///
+/// The database name is the part worth seeing in a diagnostic; the pool
+/// handle and the tokio runtime are not, and neither is reachable from here
+/// without leaking connection detail into a log line.
+impl std::fmt::Debug for Neo4jGraph {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Neo4jGraph")
+            .field("backend", &"neo4j")
+            .field("database", &self.database)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Neo4jGraph {
@@ -426,4 +441,4 @@ mod tests {
         assert!(!source.contains("bolt://localhost:7687\""));
         assert!(!source.to_lowercase().contains("password: \"neo4j\""));
     }
-}
+        }
