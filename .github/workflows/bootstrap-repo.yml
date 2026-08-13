@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - ".github/workflows/bootstrap-repo.yml"
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -41,6 +42,11 @@ jobs:
           rm -f rust.yml
           rm -f tests.yml
           rm -f v4.yml
+
+          # Do not let the bot try to create extra workflow files
+          rm -f .github/workflows/rust.yml
+          rm -f .github/workflows/tests.yml
+          rm -f .github/workflows/v4.yml
 
       - name: Commit complete repository tree
         shell: bash
