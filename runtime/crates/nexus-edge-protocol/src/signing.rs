@@ -343,6 +343,10 @@ impl SignerRegistry {
     }
 }
 
+/// The nonce window: a set for O(1) membership, plus the insertion-ordered
+/// queue that bounds it and carries each nonce's task deadline.
+type NonceWindow = (HashSet<String>, VecDeque<(String, Timestamp)>);
+
 /// Bounded ledger of observed nonces.
 ///
 /// A nonce is accepted once. The ledger is bounded, so it is paired with task
@@ -352,7 +356,7 @@ impl SignerRegistry {
 #[derive(Debug)]
 pub struct NonceLedger {
     capacity: usize,
-    seen: Mutex<(HashSet<String>, VecDeque<(String, Timestamp)>)>,
+    seen: Mutex<NonceWindow>,
 }
 
 impl NonceLedger {
@@ -444,7 +448,7 @@ mod tests {
 
         let signature = Signer::sign(&signer, b"payload").unwrap();
 
-        assert!(Verifier::verify(&signer, b"payload", &signature,).is_ok());
+        assert!(Verifier::verify(&signer, b"payload", &signature).is_ok());
     }
 
     #[test]
@@ -453,7 +457,7 @@ mod tests {
 
         let signature = Signer::sign(&signer, b"payload").unwrap();
 
-        assert!(Verifier::verify(&signer, b"payloab", &signature,).is_err());
+        assert!(Verifier::verify(&signer, b"payloab", &signature).is_err());
     }
 
     #[test]
@@ -512,17 +516,15 @@ mod tests {
 
         registry.register(TrustedSigner {
             signer_id: "read-only".into(),
-
             verifier: Box::new(signer()),
-
             permitted_capabilities: vec!["sensor.temperature".into()],
         });
 
-        assert!(registry.permits_capability("read-only", "sensor.temperature",));
+        assert!(registry.permits_capability("read-only", "sensor.temperature"));
 
-        assert!(!registry.permits_capability("read-only", "manipulator.fixture",));
+        assert!(!registry.permits_capability("read-only", "manipulator.fixture"));
 
-        assert!(!registry.permits_capability("nobody", "sensor.temperature",));
+        assert!(!registry.permits_capability("nobody", "sensor.temperature"));
     }
 
     #[test]
@@ -531,9 +533,9 @@ mod tests {
 
         let expiry = Timestamp::from_millis(10_000);
 
-        assert!(ledger.accept("n1", expiry,));
+        assert!(ledger.accept("n1", expiry));
 
-        assert!(!ledger.accept("n1", expiry,));
+        assert!(!ledger.accept("n1", expiry));
 
         assert!(ledger.has_seen("n1"));
     }
@@ -543,9 +545,41 @@ mod tests {
         let ledger = NonceLedger::new(4);
 
         for index in 0..10 {
-            ledger.accept(&format!("n{index}"), Timestamp::from_millis(10_000));
+            ledger.accept(
+                &format!("n{index}"),
+                Timestamp::from_millis(10_000),
+            );
         }
+
+        assert_eq!(ledger.len(), 4);
+    }
+
+    #[test]
+    fn pruning_only_drops_already_expired_nonces() {
+        let ledger = NonceLedger::new(64);
+
+        ledger.accept("old", Timestamp::from_millis(1_000));
+        ledger.accept("new", Timestamp::from_millis(9_000));
+
+        let removed = ledger.prune_expired(Timestamp::from_millis(5_000));
+
+        assert_eq!(removed, 1);
+
+        assert!(!ledger.has_seen("old"));
+
+        assert!(ledger.has_seen("new"));
+    }
+
+    #[test]
+    fn nonces_are_unique_per_task_and_time() {
+        let first = generate_nonce("tsk_1", Timestamp::from_millis(1), "salt");
+        let same = generate_nonce("tsk_1", Timestamp::from_millis(1), "salt");
+        let different = generate_nonce("tsk_1", Timestamp::from_millis(2), "salt");
+
+        assert_eq!(first, same);
+
+        assert_ne!(first, different);
 
         assert_eq!(first.len(), 32);
     }
-}
+           }
