@@ -57,12 +57,26 @@ impl WasmtimeRuntime {
         let mut config = Config::new();
         config.consume_fuel(true);
         config.epoch_interruption(true);
-        // No filesystem, no network, no threads. WASI is deliberately not
-        // linked: the only imports a module can resolve are the allowlist.
-        config.wasm_threads(false);
         config.wasm_simd(true);
         config.wasm_bulk_memory(true);
-        config.wasm_reference_types(false);
+
+        // No filesystem, no network, no threads. WASI is deliberately not
+        // linked: the only imports a module can resolve are the allowlist.
+        //
+        // Threads and Wasmtime GC support are disabled at the Cargo feature
+        // level. This workspace uses:
+        //
+        // default-features = false
+        // features = ["cranelift", "runtime"]
+        //
+        // Therefore the `threads` and `gc` crate features are absent, and the
+        // corresponding Config setters are not compiled into this build.
+        //
+        // The sandbox boundary remains the host import allowlist, memory
+        // limits, fuel metering and epoch interruption enforced below.
+        //
+        // `feature_gates_stay_closed` guards this invariant so these features
+        // cannot silently return through a dependency configuration change.
 
         let engine = Engine::new(&config)
             .map_err(|error| NexusError::adapter(format!("wasmtime engine: {error}")))?;
@@ -123,14 +137,18 @@ impl WasmtimeRuntime {
                     ("kind", Value::string("reading")),
                     ("value", Value::number(value)),
                 ]);
+
                 let state = caller.data_mut();
+
                 let accepted = state
                     .registry
                     .invoke("nexus_emit_observation", &observation)
                     .is_ok();
+
                 if accepted {
                     state.emitted.push(observation);
                 }
+
                 i32::from(accepted)
             },
         )?;
@@ -140,6 +158,7 @@ impl WasmtimeRuntime {
             "nexus_report_progress",
             |mut caller: wasmtime::Caller<'_, HostState>, percent: i32| -> i32 {
                 let state = caller.data_mut();
+
                 i32::from(
                     state
                         .registry
@@ -217,13 +236,16 @@ impl EdgeRuntime for WasmtimeRuntime {
                 emitted: Vec::new(),
             },
         );
+
         store
             .set_fuel(manifest.limits.fuel)
             .map_err(|error| NexusError::adapter(format!("set fuel: {error}")))?;
+
         store.set_epoch_deadline(1);
 
         let engine = self.engine.clone();
         let timeout = Duration::from_millis(manifest.limits.timeout_millis);
+
         // Watchdog thread trips the epoch, which interrupts the guest even if
         // it is in a tight loop that never yields.
         std::thread::spawn(move || {
@@ -232,10 +254,12 @@ impl EdgeRuntime for WasmtimeRuntime {
         });
 
         let mut linker: Linker<HostState> = Linker::new(&self.engine);
+
         WasmtimeRuntime::link_host_functions(&mut linker)
             .map_err(|error| NexusError::adapter(format!("link host functions: {error}")))?;
 
         let started = std::time::Instant::now();
+
         let instance = linker
             .instantiate(&mut store, &module)
             .map_err(|error| NexusError::invalid(format!("instantiate: {error}")))?;
@@ -243,23 +267,48 @@ impl EdgeRuntime for WasmtimeRuntime {
         let entry = instance
             .get_typed_func::<(), i32>(&mut store, "nexus_handle_task")
             .map_err(|error| {
-                NexusError::invalid(format!("module has no nexus_handle_task export: {error}"))
+                NexusError::invalid(format!(
+                    "module has no nexus_handle_task export: {error}"
+                ))
             })?;
 
         let outcome = entry.call(&mut store, ());
+
         let elapsed = started.elapsed().as_millis() as u64;
+
         let fuel_remaining = store.get_fuel().unwrap_or(0);
-        let fuel_consumed = manifest.limits.fuel.saturating_sub(fuel_remaining);
+
+        let fuel_consumed =
+            manifest.limits.fuel.saturating_sub(fuel_remaining);
 
         let (status, detail) = match outcome {
-            Ok(0) => (TaskStatus::Completed, String::new()),
-            Ok(code) => (TaskStatus::Failed, format!("module returned {code}")),
+            Ok(0) => (
+                TaskStatus::Completed,
+                String::new(),
+            ),
+
+            Ok(code) => (
+                TaskStatus::Failed,
+                format!("module returned {code}"),
+            ),
+
             Err(error) => {
                 let message = error.to_string();
-                if message.contains("fuel") || message.contains("epoch") {
-                    (TaskStatus::Aborted, format!("resource limit hit: {message}"))
+
+                if message.contains("fuel")
+                    || message.contains("epoch")
+                {
+                    (
+                        TaskStatus::Aborted,
+                        format!(
+                            "resource limit hit: {message}"
+                        ),
+                    )
                 } else {
-                    (TaskStatus::Failed, message)
+                    (
+                        TaskStatus::Failed,
+                        message,
+                    )
                 }
             }
         };
@@ -277,11 +326,18 @@ impl EdgeRuntime for WasmtimeRuntime {
                 detail,
                 trace_id: task.trace_id.clone(),
             },
+
             host_calls: registry.calls(),
+
             fuel_consumed,
-            peak_memory_bytes: manifest.limits.max_memory_bytes,
+
+            peak_memory_bytes:
+                manifest.limits.max_memory_bytes,
+
             mode: self.mode,
-            module_id: manifest.module_id.clone(),
+
+            module_id:
+                manifest.module_id.clone(),
         })
     }
 }
@@ -290,15 +346,91 @@ impl EdgeRuntime for WasmtimeRuntime {
 mod tests {
     #[test]
     fn wasi_is_never_linked() {
-        let source = include_str!("wasmtime_host.rs");
-        assert!(!source.contains("wasmtime_wasi"));
-        assert!(!source.contains("add_to_linker"));
+        let source =
+            include_str!("wasmtime_host.rs");
+
+        assert!(
+            !source.contains("wasmtime_wasi")
+        );
+
+        assert!(
+            !source.contains("add_to_linker")
+        );
     }
 
     #[test]
     fn fuel_and_epoch_interruption_are_both_enabled() {
-        let source = include_str!("wasmtime_host.rs");
-        assert!(source.contains("config.consume_fuel(true)"));
-        assert!(source.contains("config.epoch_interruption(true)"));
+        let source =
+            include_str!("wasmtime_host.rs");
+
+        assert!(
+            source.contains(
+                "config.consume_fuel(true)"
+            )
+        );
+
+        assert!(
+            source.contains(
+                "config.epoch_interruption(true)"
+            )
+        );
     }
-}
+
+    #[test]
+    fn feature_gates_stay_closed() {
+        let manifest =
+            include_str!("../../../Cargo.toml");
+
+        let declaration = manifest
+            .lines()
+            .find(|line| {
+                line
+                    .trim_start()
+                    .starts_with("wasmtime =")
+            })
+            .expect(
+                "workspace manifest must declare the wasmtime dependency",
+            );
+
+        assert!(
+            declaration.contains(
+                "default-features = false"
+            ),
+            "wasmtime must be declared with default-features = false, found: {declaration}"
+        );
+
+        assert!(
+            !declaration.contains("\"threads\""),
+            "the wasmtime threads feature must stay off: {declaration}"
+        );
+
+        assert!(
+            !declaration.contains("\"gc\""),
+            "the wasmtime gc feature must stay off: {declaration}"
+        );
+    }
+
+    #[test]
+    fn threads_and_reference_types_are_never_switched_on() {
+        let source =
+            include_str!("wasmtime_host.rs");
+
+        assert!(
+            !source.contains(
+                "wasm_threads(true)"
+            )
+        );
+
+        assert!(
+            !source.contains(
+                "wasm_reference_types(true)"
+            )
+        );
+
+        assert!(
+            !source.contains(
+                "wasm_shared_everything_threads(true)"
+            )
+        );
+    }
+            }
