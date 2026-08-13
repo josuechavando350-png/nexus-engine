@@ -9,7 +9,7 @@
 //! host allowlist are identical, so a task that runs here behaves the same as
 //! in `SIMULATION` apart from the host functions being real.
 
-use crate::host::{HostRegistry, MockHost, HOST_ALLOWLIST};
+use crate::host::{HostRegistry, HOST_ALLOWLIST};
 use crate::manifest::ModuleManifest;
 use crate::runtime::{EdgeRuntime, ExecutionReport, MockHostFactory};
 use nexus_edge_protocol::{
@@ -63,20 +63,25 @@ impl WasmtimeRuntime {
         // No filesystem, no network, no threads. WASI is deliberately not
         // linked: the only imports a module can resolve are the allowlist.
         //
-        // Threads and Wasmtime GC support are disabled at the Cargo feature
-        // level. This workspace uses:
+        // The threads and reference-types proposals are switched off at the
+        // Cargo level rather than here. This crate depends on wasmtime with
+        // `default-features = false, features = ["cranelift", "runtime"]`, so
+        // the `threads` and `gc` crate features are absent, and both proposals
+        // default to whether those features are enabled. Their setters
+        // (`Config::wasm_threads`, `Config::wasm_reference_types`) are
+        // themselves gated on those same features and do not exist in this
+        // build, which is why calling them does not compile.
         //
-        // default-features = false
-        // features = ["cranelift", "runtime"]
+        // Compiling the support out is strictly stronger than disabling it at
+        // runtime: shared memories and the GC types (`externref`, `anyref`)
+        // are not in the engine at all. What remains reachable from the
+        // reference-types proposal is `funcref` and multiple tables, neither
+        // of which crosses the sandbox boundary — that boundary is the import
+        // allowlist, the memory cap, fuel and the epoch deadline, all of which
+        // are still enforced below.
         //
-        // Therefore the `threads` and `gc` crate features are absent, and the
-        // corresponding Config setters are not compiled into this build.
-        //
-        // The sandbox boundary remains the host import allowlist, memory
-        // limits, fuel metering and epoch interruption enforced below.
-        //
-        // `feature_gates_stay_closed` guards this invariant so these features
-        // cannot silently return through a dependency configuration change.
+        // `feature_gates_stay_closed` guards this invariant so the dependency
+        // cannot silently regain those features.
 
         let engine = Engine::new(&config)
             .map_err(|error| NexusError::adapter(format!("wasmtime engine: {error}")))?;
@@ -102,6 +107,7 @@ impl WasmtimeRuntime {
             "nexus_now_millis",
             |mut caller: wasmtime::Caller<'_, HostState>| -> i64 {
                 let state = caller.data_mut();
+
                 state
                     .registry
                     .invoke("nexus_now_millis", &Value::Null)
@@ -120,6 +126,7 @@ impl WasmtimeRuntime {
                 // module cannot name a device it was not authorised for.
                 let name = format!("probe-{sensor_id}");
                 let state = caller.data_mut();
+
                 state
                     .registry
                     .invoke("nexus_read_sensor", &Value::string(name))
@@ -226,7 +233,11 @@ impl EdgeRuntime for WasmtimeRuntime {
             manifest.allowed_host_functions.clone(),
             crate::runtime::SimulationExecutor::capability_tokens(task),
             manifest.limits.max_host_calls,
-            MockHost::new(now),
+            // The injected factory, not a bare MockHost: the sensor readings
+            // configured on this runtime must reach the guest, and the
+            // SIMULATION executor builds its registry the same way. Ignoring
+            // it here is what made the two backends diverge.
+            self.host.build(now),
         ));
 
         let mut store = Store::new(
@@ -278,8 +289,10 @@ impl EdgeRuntime for WasmtimeRuntime {
 
         let fuel_remaining = store.get_fuel().unwrap_or(0);
 
-        let fuel_consumed =
-            manifest.limits.fuel.saturating_sub(fuel_remaining);
+        let fuel_consumed = manifest
+            .limits
+            .fuel
+            .saturating_sub(fuel_remaining);
 
         let (status, detail) = match outcome {
             Ok(0) => (
@@ -295,14 +308,10 @@ impl EdgeRuntime for WasmtimeRuntime {
             Err(error) => {
                 let message = error.to_string();
 
-                if message.contains("fuel")
-                    || message.contains("epoch")
-                {
+                if message.contains("fuel") || message.contains("epoch") {
                     (
                         TaskStatus::Aborted,
-                        format!(
-                            "resource limit hit: {message}"
-                        ),
+                        format!("resource limit hit: {message}"),
                     )
                 } else {
                     (
@@ -328,16 +337,10 @@ impl EdgeRuntime for WasmtimeRuntime {
             },
 
             host_calls: registry.calls(),
-
             fuel_consumed,
-
-            peak_memory_bytes:
-                manifest.limits.max_memory_bytes,
-
+            peak_memory_bytes: manifest.limits.max_memory_bytes,
             mode: self.mode,
-
-            module_id:
-                manifest.module_id.clone(),
+            module_id: manifest.module_id.clone(),
         })
     }
 }
@@ -346,56 +349,36 @@ impl EdgeRuntime for WasmtimeRuntime {
 mod tests {
     #[test]
     fn wasi_is_never_linked() {
-        let source =
-            include_str!("wasmtime_host.rs");
+        let source = include_str!("wasmtime_host.rs");
 
-        assert!(
-            !source.contains("wasmtime_wasi")
-        );
-
-        assert!(
-            !source.contains("add_to_linker")
-        );
+        assert!(!source.contains("wasmtime_wasi"));
+        assert!(!source.contains("add_to_linker"));
     }
 
     #[test]
     fn fuel_and_epoch_interruption_are_both_enabled() {
-        let source =
-            include_str!("wasmtime_host.rs");
+        let source = include_str!("wasmtime_host.rs");
 
-        assert!(
-            source.contains(
-                "config.consume_fuel(true)"
-            )
-        );
-
-        assert!(
-            source.contains(
-                "config.epoch_interruption(true)"
-            )
-        );
+        assert!(source.contains("config.consume_fuel(true)"));
+        assert!(source.contains("config.epoch_interruption(true)"));
     }
 
+    /// The threads and GC proposals are disabled by *not compiling them in*.
+    /// If the wasmtime dependency ever regains its default features, shared
+    /// memories and GC types would come back silently and this engine would
+    /// no longer match what the sandbox documentation claims. Fail the build
+    /// instead.
     #[test]
     fn feature_gates_stay_closed() {
-        let manifest =
-            include_str!("../../../Cargo.toml");
+        let manifest = include_str!("../../../Cargo.toml");
 
         let declaration = manifest
             .lines()
-            .find(|line| {
-                line
-                    .trim_start()
-                    .starts_with("wasmtime =")
-            })
-            .expect(
-                "workspace manifest must declare the wasmtime dependency",
-            );
+            .find(|line| line.trim_start().starts_with("wasmtime ="))
+            .expect("workspace manifest must declare the wasmtime dependency");
 
         assert!(
-            declaration.contains(
-                "default-features = false"
-            ),
+            declaration.contains("default-features = false"),
             "wasmtime must be declared with default-features = false, found: {declaration}"
         );
 
@@ -410,27 +393,25 @@ mod tests {
         );
     }
 
+    /// The Wasmtime backend must build its host from the injected factory,
+    /// exactly like the SIMULATION executor. Constructing a bare `MockHost`
+    /// here silently drops the configured sensor readings and makes the two
+    /// backends behave differently for the same task.
+    #[test]
+    fn host_registry_is_built_from_the_injected_factory() {
+        let source = include_str!("wasmtime_host.rs");
+
+        assert!(source.contains("self.host.build(now)"));
+        assert!(!source.contains("MockHost::new("));
+    }
+
+    /// Neither proposal may be re-enabled from inside this file either.
     #[test]
     fn threads_and_reference_types_are_never_switched_on() {
-        let source =
-            include_str!("wasmtime_host.rs");
+        let source = include_str!("wasmtime_host.rs");
 
-        assert!(
-            !source.contains(
-                "wasm_threads(true)"
-            )
-        );
-
-        assert!(
-            !source.contains(
-                "wasm_reference_types(true)"
-            )
-        );
-
-        assert!(
-            !source.contains(
-                "wasm_shared_everything_threads(true)"
-            )
-        );
+        assert!(!source.contains("wasm_threads(true)"));
+        assert!(!source.contains("wasm_reference_types(true)"));
+        assert!(!source.contains("wasm_shared_everything_threads(true)"));
     }
             }
