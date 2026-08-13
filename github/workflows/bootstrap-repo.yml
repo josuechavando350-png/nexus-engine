@@ -1,0 +1,61 @@
+name: Bootstrap NEXUS Repository
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/bootstrap-repo.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Expand NEXUS V6 consolidated repository
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f NEXUS_V6_CONSOLIDATED_REPO_R1.zip
+
+          rm -rf .nexus-bootstrap
+          mkdir .nexus-bootstrap
+
+          unzip -q NEXUS_V6_CONSOLIDATED_REPO_R1.zip -d .nexus-bootstrap
+
+          cp -a .nexus-bootstrap/. ./
+
+          rm -rf .nexus-bootstrap
+          rm -f NEXUS_V6_CONSOLIDATED_REPO_R1.zip
+
+          # Remove accidental workflow copies from repository root
+          rm -f closeout-stages.yml
+          rm -f rust.yml
+          rm -f tests.yml
+          rm -f v4.yml
+
+      - name: Commit complete repository tree
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit."
+            exit 0
+          fi
+
+          git commit -m "Expand full NEXUS V6 consolidated repository"
+          git push origin HEAD:main
