@@ -183,8 +183,6 @@ fn run(
             InMemoryBus::new(4),
         );
 
-    // The signing key is read from the environment. There is no default and
-    // no embedded key; a missing key stops the service.
     let signing_key =
         std::env::var(
             "NEXUS_SIGNING_KEY",
@@ -268,7 +266,6 @@ fn run(
         ],
     );
 
-    // A worked proposal so the service demonstrates the full path on start.
     let now =
         Timestamp::now();
 
@@ -471,16 +468,13 @@ fn run(
                     vec![
                         (
                             "task_id",
-
                             Value::string(
                                 task.task_id
                                     .as_str(),
                             ),
                         ),
-
                         (
                             "command",
-
                             Value::string(
                                 task.command
                                     .name(),
@@ -525,22 +519,6 @@ fn run(
         }
 
         DispatchOutcome::AwaitingApproval {
-            request,
-            ..
-        } => {
-            metrics
-                .counter(
-                    names::POLICY_APPROVAL_REQUIRED,
-                )
-                .incr();
-
-            logger
-                .with_trace(
-                    &trace,
-                )
-                .info(
-                    "awaiting human approval
-                            DispatchOutcome::AwaitingApproval {
             request,
             ..
         } => {
