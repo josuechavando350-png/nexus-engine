@@ -24,11 +24,14 @@ fn process_seed() -> u64 {
 fn fresh(prefix: &str) -> String {
     let count = COUNTER.fetch_add(1, Ordering::Relaxed);
     let seed = process_seed();
+
     let mut material = Vec::with_capacity(prefix.len() + 16);
     material.extend_from_slice(prefix.as_bytes());
     material.extend_from_slice(&count.to_be_bytes());
     material.extend_from_slice(&seed.to_be_bytes());
+
     let digest = sha256(&material);
+
     format!("{prefix}_{}", &to_hex(&digest)[..24])
 }
 
@@ -39,6 +42,7 @@ macro_rules! id_type {
         pub struct $name(String);
 
         impl $name {
+            /// Mints a fresh, unique identifier.
             pub fn new() -> Self {
                 $name(fresh($prefix))
             }
@@ -53,11 +57,14 @@ macro_rules! id_type {
             /// replay of the same input produces the same id.
             pub fn derive_from(parts: &[&str]) -> Self {
                 let mut material = Vec::new();
+
                 for part in parts {
                     material.extend_from_slice(part.as_bytes());
                     material.push(0x1f);
                 }
+
                 let digest = sha256(&material);
+
                 $name(format!("{}_{}", $prefix, &to_hex(&digest)[..24]))
             }
 
@@ -67,6 +74,20 @@ macro_rules! id_type {
 
             pub fn into_string(self) -> String {
                 self.0
+            }
+        }
+
+        /// `Default` mints a fresh identifier, exactly like
+        /// [`Self::new`]. That is the contract every id type in this module
+        /// already had: `EnvelopeBuilder` relies on `unwrap_or_default()`
+        /// producing a *new* id rather than a placeholder, and a shared
+        /// "empty" id would silently collapse distinct records onto one key.
+        ///
+        /// Generated here rather than written per type so all five stay
+        /// consistent and none can drift.
+        impl Default for $name {
+            fn default() -> Self {
+                Self::new()
             }
         }
 
@@ -89,40 +110,26 @@ id_type!(
     "evt",
     "Unique identifier of a single event envelope."
 );
+
 id_type!(
     TraceId,
     "trc",
     "Correlates every record produced by one causal chain."
 );
+
 id_type!(
     SourceId,
     "src",
     "Identifies the emitting sensor, camera, robot or service."
 );
+
 id_type!(EntityId, "ent", "Identifies a resolved ontology entity.");
+
 id_type!(
     TaskId,
     "tsk",
     "Identifies an orchestration task or edge task."
 );
-
-impl Default for EventId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Default for TraceId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Default for TaskId {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -131,8 +138,10 @@ mod tests {
     #[test]
     fn generated_ids_are_unique_and_prefixed() {
         let mut seen = std::collections::HashSet::new();
+
         for _ in 0..10_000 {
             let id = EventId::new();
+
             assert!(id.as_str().starts_with("evt_"));
             assert!(seen.insert(id.into_string()), "id collision");
         }
@@ -143,6 +152,7 @@ mod tests {
         let left = EntityId::derive_from(&["Asset", "press-04"]);
         let right = EntityId::derive_from(&["Asset", "press-04"]);
         let other = EntityId::derive_from(&["Asset", "press-05"]);
+
         assert_eq!(left, right);
         assert_ne!(left, other);
     }
@@ -151,12 +161,14 @@ mod tests {
     fn derived_ids_resist_separator_confusion() {
         let left = EntityId::derive_from(&["ab", "c"]);
         let right = EntityId::derive_from(&["a", "bc"]);
+
         assert_ne!(left, right);
     }
 
     #[test]
     fn external_ids_are_preserved_verbatim() {
         let id = SourceId::from_external("plc-line-3");
+
         assert_eq!(id.as_str(), "plc-line-3");
     }
 }
