@@ -50,15 +50,10 @@ impl ProposalTrigger {
     pub fn as_str(&self) -> &'static str {
         match self {
             ProposalTrigger::TelemetryThreshold { .. } => "telemetry_threshold",
-
             ProposalTrigger::Detection { .. } => "detection",
-
             ProposalTrigger::CorrelatedEvidence { .. } => "correlated_evidence",
-
             ProposalTrigger::CorrelatedHazard { .. } => "correlated_hazard",
-
             ProposalTrigger::OperatorRequest { .. } => "operator_request",
-
             ProposalTrigger::Scheduled { .. } => "scheduled",
         }
     }
@@ -88,7 +83,7 @@ impl ProposalTrigger {
             ProposalTrigger::CorrelatedEvidence { signals, asset_key } => Value::object(vec![
                 (
                     "signals",
-                    Value::Array(signals.iter().map(|signal| Value::string(signal)).collect()),
+                    Value::Array(signals.iter().map(Value::string).collect()),
                 ),
                 ("asset_key", Value::string(asset_key)),
             ]),
@@ -178,7 +173,6 @@ impl TaskProposal {
 
     pub fn with_annotation(mut self, annotation: impl Into<String>) -> Self {
         self.intent_annotations.push(annotation.into());
-
         self
     }
 
@@ -205,7 +199,6 @@ impl TaskProposal {
                 "plan",
                 match &self.plan {
                     Some(plan) => plan.to_json(),
-
                     None => Value::Null,
                 },
             ),
@@ -222,7 +215,10 @@ mod tests {
         let proposal = TaskProposal::new(
             TaskGoal::Standdown,
             ProposalTrigger::CorrelatedEvidence {
-                signals: vec!["telemetry.temperature".into(), "detection.smoke".into()],
+                signals: vec![
+                    "telemetry.temperature".into(),
+                    "detection.smoke".into(),
+                ],
                 asset_key: "press-4".into(),
             },
             "press-4",
@@ -240,8 +236,8 @@ mod tests {
 
         assert_eq!(
             json.get("evidence")
-                .and_then(Value::as_array,)
-                .map(|array| { array.len() }),
+                .and_then(Value::as_array)
+                .map(|array| array.len()),
             Some(2)
         );
 
@@ -261,8 +257,8 @@ mod tests {
 
         assert_eq!(
             json.get("detail")
-                .and_then(|detail| { detail.get("detection_class",) })
-                .and_then(Value::as_str,),
+                .and_then(|detail| detail.get("detection_class"))
+                .and_then(Value::as_str),
             Some("smoke")
         );
     }
