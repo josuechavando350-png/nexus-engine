@@ -154,8 +154,7 @@ impl GraphWriter for InMemoryGraph {
                         .insert(relationship.edge_key(), relationship.clone());
                 }
                 GraphMutation::CloseRelationship { from, kind, to, at } => {
-                    let edge_key =
-                        format!("{}|{}|{}", from.as_str(), kind.as_str(), to.as_str());
+                    let edge_key = format!("{}|{}|{}", from.as_str(), kind.as_str(), to.as_str());
                     if let Some(relationship) = state.relationships.get_mut(&edge_key) {
                         relationship.valid_to = Some(*at);
                     }
@@ -165,18 +164,16 @@ impl GraphWriter for InMemoryGraph {
                     duplicate,
                     ..
                 } => {
-                    state
-                        .merges
-                        .insert(duplicate.as_str().to_string(), canonical.as_str().to_string());
+                    state.merges.insert(
+                        duplicate.as_str().to_string(),
+                        canonical.as_str().to_string(),
+                    );
                     // Fold the duplicate's properties into the survivor
                     // rather than dropping them.
                     if let Some(losing) = state.entities.remove(duplicate.as_str()) {
                         if let Some(surviving) = state.entities.get_mut(canonical.as_str()) {
                             for (property_key, value) in losing.properties {
-                                surviving
-                                    .properties
-                                    .entry(property_key)
-                                    .or_insert(value);
+                                surviving.properties.entry(property_key).or_insert(value);
                             }
                         }
                     }
@@ -200,11 +197,7 @@ impl GraphReader for InMemoryGraph {
         Ok(InMemoryGraph::read_entity(&state, id.as_str()))
     }
 
-    fn find_by_natural_key(
-        &self,
-        kind: EntityKind,
-        natural_key: &str,
-    ) -> Result<Option<Entity>> {
+    fn find_by_natural_key(&self, kind: EntityKind, natural_key: &str) -> Result<Option<Entity>> {
         let state = self
             .state
             .read()
@@ -592,10 +585,9 @@ mod tests {
         let graph = InMemoryGraph::new();
         let canonical = entity(EntityKind::Asset, "press-4");
         let mut duplicate = entity(EntityKind::Asset, "press-04");
-        duplicate.properties.insert(
-            "serial_number".into(),
-            Value::string("SN-9"),
-        );
+        duplicate
+            .properties
+            .insert("serial_number".into(), Value::string("SN-9"));
 
         graph.seed_entity(canonical.clone()).unwrap();
         graph.seed_entity(duplicate.clone()).unwrap();

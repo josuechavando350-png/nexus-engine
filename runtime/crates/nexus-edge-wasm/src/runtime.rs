@@ -141,8 +141,9 @@ impl SimulationExecutor {
             EdgeCommand::SafeStop => 1_000,
             EdgeCommand::RunDiagnostic { .. } => 250_000,
 
-            EdgeCommand::CollectTemperature { .. }
-            | EdgeCommand::CollectThermalReading { .. } => 50_000,
+            EdgeCommand::CollectTemperature { .. } | EdgeCommand::CollectThermalReading { .. } => {
+                50_000
+            }
 
             EdgeCommand::CollectSensorSample { samples, .. } => 20_000 * (*samples as u64),
 
@@ -184,8 +185,7 @@ impl SimulationExecutor {
                 let mut observations = Vec::new();
 
                 for index in 0..*samples {
-                    let reading =
-                        registry.invoke("nexus_read_sensor", &Value::string(sensor))?;
+                    let reading = registry.invoke("nexus_read_sensor", &Value::string(sensor))?;
 
                     observations.push(Value::object(vec![
                         ("kind", Value::string("sensor_sample")),
@@ -214,10 +214,7 @@ impl SimulationExecutor {
             ])]),
 
             other => {
-                registry.invoke(
-                    "nexus_report_progress",
-                    &Value::string(other.name()),
-                )?;
+                registry.invoke("nexus_report_progress", &Value::string(other.name()))?;
 
                 Ok(vec![Value::object(vec![
                     ("kind", Value::string("acknowledged")),
@@ -284,8 +281,7 @@ impl EdgeRuntime for SimulationExecutor {
 
         let started = std::time::Instant::now();
 
-        let outcome =
-            SimulationExecutor::run_command(&task.command, &registry, now);
+        let outcome = SimulationExecutor::run_command(&task.command, &registry, now);
 
         let elapsed = started.elapsed().as_millis() as u64;
 
@@ -298,10 +294,7 @@ impl EdgeRuntime for SimulationExecutor {
                     completed_at: now,
                     duration_millis: elapsed,
                     observations: Vec::new(),
-                    detail: format!(
-                        "exceeded {} ms timeout",
-                        manifest.limits.timeout_millis
-                    ),
+                    detail: format!("exceeded {} ms timeout", manifest.limits.timeout_millis),
                     trace_id: task.trace_id.clone(),
                 },
 
@@ -314,24 +307,14 @@ impl EdgeRuntime for SimulationExecutor {
         }
 
         let (status, observations, detail) = match outcome {
-            Ok(observations) => (
-                TaskStatus::Completed,
-                observations,
-                String::new(),
-            ),
+            Ok(observations) => (TaskStatus::Completed, observations, String::new()),
 
-            Err(error) => (
-                TaskStatus::Failed,
-                Vec::new(),
-                error.to_string(),
-            ),
+            Err(error) => (TaskStatus::Failed, Vec::new(), error.to_string()),
         };
 
         let serialized: usize = observations
             .iter()
-            .map(|observation| {
-                observation.to_canonical_string().len()
-            })
+            .map(|observation| observation.to_canonical_string().len())
             .sum();
 
         if serialized > manifest.limits.max_output_bytes {
@@ -365,64 +348,45 @@ impl EdgeRuntime for SimulationExecutor {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use nexus_edge_protocol::{
-        DevSigner, Signer, TrustedSigner,
-    };
+    use nexus_edge_protocol::{DevSigner, Signer, TrustedSigner};
     use nexus_event::TraceId;
 
     const NOW: i64 = 1_700_000_000_000;
 
-    const MODULE: &[u8] =
-        b"\0asm-collect-temperature-module";
+    const MODULE: &[u8] = b"\0asm-collect-temperature-module";
 
     fn signer() -> DevSigner {
-        DevSigner::new(
-            "orchestratord",
-            b"0123456789abcdef-test-key",
-        )
-        .unwrap()
+        DevSigner::new("orchestratord", b"0123456789abcdef-test-key").unwrap()
     }
 
     fn signers() -> SignerRegistry {
-        let mut registry =
-            SignerRegistry::new();
+        let mut registry = SignerRegistry::new();
 
         registry.register(TrustedSigner {
-            signer_id:
-                "orchestratord".into(),
+            signer_id: "orchestratord".into(),
 
-            verifier:
-                Box::new(signer()),
+            verifier: Box::new(signer()),
 
-            permitted_capabilities:
-                vec![],
+            permitted_capabilities: vec![],
         });
 
         registry
     }
 
     fn manifest() -> ModuleManifest {
-        let mut manifest =
-            ModuleManifest::new(
-                "collect-temperature",
-                "1.0.0",
-                MODULE,
-                vec![
-                    "nexus_read_sensor".into(),
-                    "nexus_emit_observation".into(),
-                    "nexus_log".into(),
-                    "nexus_report_progress".into(),
-                ],
-            );
+        let mut manifest = ModuleManifest::new(
+            "collect-temperature",
+            "1.0.0",
+            MODULE,
+            vec![
+                "nexus_read_sensor".into(),
+                "nexus_emit_observation".into(),
+                "nexus_log".into(),
+                "nexus_report_progress".into(),
+            ],
+        );
 
-        manifest.signature =
-            Some(
-                signer()
-                    .sign(
-                        &manifest.signing_bytes()
-                    )
-                    .unwrap(),
-            );
+        manifest.signature = Some(signer().sign(&manifest.signing_bytes()).unwrap());
 
         manifest
     }
@@ -430,43 +394,29 @@ mod tests {
     fn executor() -> SimulationExecutor {
         SimulationExecutor::new(
             "robot-inspect-01",
-
             vec![
                 "sensor.temperature".to_string(),
                 "sensor.generic".to_string(),
                 "navigate.waypoint".to_string(),
                 "diagnostic.run".to_string(),
             ],
-
             signers(),
-
-            MockHostFactory::new()
-                .with_reading(
-                    "probe-a",
-                    94.2,
-                ),
+            MockHostFactory::new().with_reading("probe-a", 94.2),
         )
     }
 
-    fn task(
-        command: EdgeCommand,
-        mode: ExecutionMode,
-    ) -> EdgeTask {
-        let mut task =
-            EdgeTask::new(
-                "robot-inspect-01",
-                command,
-                Timestamp::from_millis(NOW),
-                60_000,
-                TraceId::from_external(
-                    "trc_1"
-                ),
-                mode,
-            )
-            .unwrap();
+    fn task(command: EdgeCommand, mode: ExecutionMode) -> EdgeTask {
+        let mut task = EdgeTask::new(
+            "robot-inspect-01",
+            command,
+            Timestamp::from_millis(NOW),
+            60_000,
+            TraceId::from_external("trc_1"),
+            mode,
+        )
+        .unwrap();
 
-        task.sign_with(&signer())
-            .unwrap();
+        task.sign_with(&signer()).unwrap();
 
         task
     }
@@ -487,39 +437,24 @@ mod tests {
                 &task,
                 MODULE,
                 &manifest(),
-                Timestamp::from_millis(
-                    NOW + 100,
-                ),
+                Timestamp::from_millis(NOW + 100),
             )
             .unwrap();
 
-        assert_eq!(
-            report.result.status,
-            TaskStatus::Completed
-        );
+        assert_eq!(report.result.status, TaskStatus::Completed);
 
-        assert_eq!(
-            report.result.observations.len(),
-            1
-        );
+        assert_eq!(report.result.observations.len(), 1);
 
         assert_eq!(
             report.result.observations[0]
                 .get("celsius")
                 .and_then(Value::as_f64),
-
             Some(94.2)
         );
 
-        assert_eq!(
-            report.mode,
-            ExecutionMode::Simulation
-        );
+        assert_eq!(report.mode, ExecutionMode::Simulation);
 
-        assert_eq!(
-            report.host_calls.len(),
-            2
-        );
+        assert_eq!(report.host_calls.len(), 2);
     }
 
     #[test]
@@ -540,16 +475,11 @@ mod tests {
                 &task,
                 MODULE,
                 &manifest(),
-                Timestamp::from_millis(
-                    NOW + 100,
-                ),
+                Timestamp::from_millis(NOW + 100),
             )
             .unwrap_err();
 
-        assert_eq!(
-            error.kind(),
-            "denied"
-        );
+        assert_eq!(error.kind(), "denied");
     }
 
     #[test]
@@ -568,16 +498,11 @@ mod tests {
                 &task,
                 b"\0asm-malicious-replacement",
                 &manifest(),
-                Timestamp::from_millis(
-                    NOW + 100,
-                ),
+                Timestamp::from_millis(NOW + 100),
             )
             .unwrap_err();
 
-        assert_eq!(
-            error.kind(),
-            "integrity"
-        );
+        assert_eq!(error.kind(), "integrity");
     }
 
     #[test]
@@ -596,16 +521,11 @@ mod tests {
                 &task,
                 MODULE,
                 &manifest(),
-                Timestamp::from_millis(
-                    NOW + 100,
-                ),
+                Timestamp::from_millis(NOW + 100),
             )
             .unwrap_err();
 
-        assert_eq!(
-            error.kind(),
-            "denied"
-        );
+        assert_eq!(error.kind(), "denied");
     }
 
     #[test]
@@ -619,51 +539,22 @@ mod tests {
             ExecutionMode::Simulation,
         );
 
-        let now =
-            Timestamp::from_millis(
-                NOW + 100,
-            );
+        let now = Timestamp::from_millis(NOW + 100);
 
-        assert!(
-            executor
-                .execute(
-                    &task,
-                    MODULE,
-                    &manifest(),
-                    now,
-                )
-                .is_ok()
-        );
+        assert!(executor.execute(&task, MODULE, &manifest(), now,).is_ok());
 
-        assert!(
-            executor
-                .execute(
-                    &task,
-                    MODULE,
-                    &manifest(),
-                    now,
-                )
-                .is_err()
-        );
+        assert!(executor.execute(&task, MODULE, &manifest(), now,).is_err());
     }
 
     #[test]
     fn a_command_over_its_fuel_budget_is_refused_before_running() {
         let executor = executor();
 
-        let mut manifest =
-            manifest();
+        let mut manifest = manifest();
 
         manifest.limits.fuel = 10;
 
-        manifest.signature =
-            Some(
-                signer()
-                    .sign(
-                        &manifest.signing_bytes()
-                    )
-                    .unwrap(),
-            );
+        manifest.signature = Some(signer().sign(&manifest.signing_bytes()).unwrap());
 
         let task = task(
             EdgeCommand::CollectImage {
@@ -673,20 +564,10 @@ mod tests {
         );
 
         let error = executor
-            .execute(
-                &task,
-                MODULE,
-                &manifest,
-                Timestamp::from_millis(
-                    NOW + 100,
-                ),
-            )
+            .execute(&task, MODULE, &manifest, Timestamp::from_millis(NOW + 100))
             .unwrap_err();
 
-        assert_eq!(
-            error.kind(),
-            "exhausted"
-        );
+        assert_eq!(error.kind(), "exhausted");
     }
 
     #[test]
@@ -694,23 +575,9 @@ mod tests {
         let executor = executor();
 
         let mut manifest =
-            ModuleManifest::new(
-                "restricted",
-                "1.0.0",
-                MODULE,
-                vec![
-                    "nexus_log".into()
-                ],
-            );
+            ModuleManifest::new("restricted", "1.0.0", MODULE, vec!["nexus_log".into()]);
 
-        manifest.signature =
-            Some(
-                signer()
-                    .sign(
-                        &manifest.signing_bytes()
-                    )
-                    .unwrap(),
-            );
+        manifest.signature = Some(signer().sign(&manifest.signing_bytes()).unwrap());
 
         let task = task(
             EdgeCommand::CollectTemperature {
@@ -720,46 +587,22 @@ mod tests {
         );
 
         let report = executor
-            .execute(
-                &task,
-                MODULE,
-                &manifest,
-                Timestamp::from_millis(
-                    NOW + 100,
-                ),
-            )
+            .execute(&task, MODULE, &manifest, Timestamp::from_millis(NOW + 100))
             .unwrap();
 
-        assert_eq!(
-            report.result.status,
-            TaskStatus::Failed
-        );
+        assert_eq!(report.result.status, TaskStatus::Failed);
 
-        assert!(
-            report
-                .result
-                .detail
-                .contains(
-                                        "nexus_read_sensor"
-                )
-        );
+        assert!(report.result.detail.contains("nexus_read_sensor"));
     }
 
     #[test]
     fn a_missing_sensor_fixture_fails_loudly_instead_of_inventing_a_reading() {
-        let executor =
-            SimulationExecutor::new(
-                "robot-inspect-01",
-
-                vec![
-                    "sensor.temperature"
-                        .to_string(),
-                ],
-
-                signers(),
-
-                MockHostFactory::new(),
-            );
+        let executor = SimulationExecutor::new(
+            "robot-inspect-01",
+            vec!["sensor.temperature".to_string()],
+            signers(),
+            MockHostFactory::new(),
+        );
 
         let task = task(
             EdgeCommand::CollectTemperature {
@@ -773,51 +616,30 @@ mod tests {
                 &task,
                 MODULE,
                 &manifest(),
-                Timestamp::from_millis(
-                    NOW + 100,
-                ),
+                Timestamp::from_millis(NOW + 100),
             )
             .unwrap();
 
-        assert_eq!(
-            report.result.status,
-            TaskStatus::Failed
-        );
+        assert_eq!(report.result.status, TaskStatus::Failed);
 
-        assert!(
-            report
-                .result
-                .detail
-                .contains(
-                    "no simulated reading"
-                )
-        );
+        assert!(report.result.detail.contains("no simulated reading"));
     }
 
     #[test]
     fn safe_stop_always_executes() {
         let executor = executor();
 
-        let task = task(
-            EdgeCommand::SafeStop,
-            ExecutionMode::Simulation,
-        );
+        let task = task(EdgeCommand::SafeStop, ExecutionMode::Simulation);
 
         let report = executor
             .execute(
                 &task,
                 MODULE,
                 &manifest(),
-                Timestamp::from_millis(
-                    NOW + 100,
-                ),
+                Timestamp::from_millis(NOW + 100),
             )
             .unwrap();
 
-        assert_eq!(
-            report.result.status,
-            TaskStatus::Completed
-        );
+        assert_eq!(report.result.status, TaskStatus::Completed);
     }
 }
- 

@@ -58,7 +58,11 @@ impl GraphMutation {
     pub fn idempotency_key(&self) -> String {
         match self {
             GraphMutation::UpsertEntity(entity) => {
-                format!("upsert_entity|{}|{}", entity.id, entity.updated_at.as_millis())
+                format!(
+                    "upsert_entity|{}|{}",
+                    entity.id,
+                    entity.updated_at.as_millis()
+                )
             }
             GraphMutation::UpsertRelationship(relationship) => {
                 format!("upsert_rel|{}", relationship.edge_key())
@@ -114,8 +118,7 @@ pub trait GraphWriter: Send + Sync {
 pub trait GraphReader: Send + Sync {
     fn get_entity(&self, id: &EntityId) -> Result<Option<Entity>>;
 
-    fn find_by_natural_key(&self, kind: EntityKind, natural_key: &str)
-        -> Result<Option<Entity>>;
+    fn find_by_natural_key(&self, kind: EntityKind, natural_key: &str) -> Result<Option<Entity>>;
 
     /// Entities within `depth` hops, optionally filtered by relation kind.
     fn neighborhood(

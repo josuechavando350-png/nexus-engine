@@ -287,7 +287,10 @@ impl Rule {
             return false;
         }
         if !self.devices.is_empty()
-            && !self.devices.iter().any(|device| device == &request.device_id)
+            && !self
+                .devices
+                .iter()
+                .any(|device| device == &request.device_id)
         {
             return false;
         }
@@ -350,9 +353,10 @@ impl PolicyEngine {
     /// needs a human; anything else falls through to the default deny.
     pub fn industrial_baseline() -> Self {
         PolicyEngine::new()
-            .with_rule(Rule::new("safe-stop-always-allowed", RuleOutcome::Allow).for_kinds(&[
-                ActionKind::SafeStop,
-            ]))
+            .with_rule(
+                Rule::new("safe-stop-always-allowed", RuleOutcome::Allow)
+                    .for_kinds(&[ActionKind::SafeStop]),
+            )
             .with_rule(
                 Rule::new("read-only-inspection", RuleOutcome::Allow)
                     .for_kinds(&[

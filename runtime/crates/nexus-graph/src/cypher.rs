@@ -47,9 +47,7 @@ impl CypherStatement {
 pub fn safe_label(label: &str) -> Result<&str> {
     let acceptable = !label.is_empty()
         && label.len() <= 64
-        && label
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_');
+        && label.chars().all(|c| c.is_ascii_alphanumeric() || c == '_');
     if acceptable {
         Ok(label)
     } else {
@@ -373,7 +371,9 @@ mod tests {
     fn upsert_preserves_created_at_on_update() {
         let statement = upsert_entity(&asset()).unwrap();
         assert!(statement.query.contains("ON CREATE SET n.created_at"));
-        assert!(!statement.query.contains("SET n.created_at = $created_at,\n    n.updated_at"));
+        assert!(!statement
+            .query
+            .contains("SET n.created_at = $created_at,\n    n.updated_at"));
     }
 
     #[test]
@@ -388,13 +388,7 @@ mod tests {
 
     #[test]
     fn hostile_labels_are_rejected() {
-        for hostile in [
-            "Asset) DETACH DELETE (n",
-            "Asset`",
-            "",
-            "with space",
-            "a-b",
-        ] {
+        for hostile in ["Asset) DETACH DELETE (n", "Asset`", "", "with space", "a-b"] {
             assert!(safe_label(hostile).is_err(), "must reject {hostile:?}");
         }
     }
@@ -423,7 +417,9 @@ mod tests {
     #[test]
     fn merges_are_recorded_not_destructive() {
         let statement = merge_entities("ent_a", "ent_b", 0.95, "same serial");
-        assert!(statement.query.contains("MERGE (duplicate)-[r:SAME_AS]->(canonical)"));
+        assert!(statement
+            .query
+            .contains("MERGE (duplicate)-[r:SAME_AS]->(canonical)"));
         assert!(!statement.query.to_uppercase().contains("DELETE"));
     }
 
@@ -439,8 +435,16 @@ mod tests {
 
         for statement in statements {
             let upper = statement.query.to_uppercase();
-            assert!(!upper.contains("DELETE"), "found DELETE in: {}", statement.query);
-            assert!(!upper.contains("DROP"), "found DROP in: {}", statement.query);
+            assert!(
+                !upper.contains("DELETE"),
+                "found DELETE in: {}",
+                statement.query
+            );
+            assert!(
+                !upper.contains("DROP"),
+                "found DROP in: {}",
+                statement.query
+            );
         }
     }
 

@@ -156,8 +156,7 @@ impl AuditSink for JsonLinesAuditSink {
     }
 }
 
-pub const GENESIS_HASH: &str =
-    "0000000000000000000000000000000000000000000000000000000000000000";
+pub const GENESIS_HASH: &str = "0000000000000000000000000000000000000000000000000000000000000000";
 
 #[derive(Debug)]
 pub struct AuditTrail {
@@ -296,8 +295,20 @@ mod tests {
     #[test]
     fn records_are_sequenced_and_chained() {
         let trail = AuditTrail::in_memory();
-        trail.record(AuditAction::TaskProposed, "tsk_1", "orchestratord", None, detail());
-        trail.record(AuditAction::PolicyEvaluated, "tsk_1", "policy", None, detail());
+        trail.record(
+            AuditAction::TaskProposed,
+            "tsk_1",
+            "orchestratord",
+            None,
+            detail(),
+        );
+        trail.record(
+            AuditAction::PolicyEvaluated,
+            "tsk_1",
+            "policy",
+            None,
+            detail(),
+        );
         let records = trail.snapshot();
         assert_eq!(records.len(), 2);
         assert_eq!(records[0].sequence, 0);

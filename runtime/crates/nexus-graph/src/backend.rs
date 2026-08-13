@@ -121,7 +121,10 @@ mod tests {
 
     #[test]
     fn defaults_to_the_non_durable_store() {
-        assert_eq!(GraphBackend::from_env_value(None, None, None), GraphBackend::InMemory);
+        assert_eq!(
+            GraphBackend::from_env_value(None, None, None),
+            GraphBackend::InMemory
+        );
         assert_eq!(
             GraphBackend::from_env_value(Some(""), None, None),
             GraphBackend::InMemory

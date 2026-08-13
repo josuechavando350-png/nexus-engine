@@ -31,8 +31,7 @@ fn client_config(config: &IngestConfig) -> ClientConfig {
         client.set("sasl.mechanism", mechanism);
         client.set(
             "security.protocol",
-            std::env::var("NEXUS_SECURITY_PROTOCOL")
-                .unwrap_or_else(|_| "SASL_SSL".to_string()),
+            std::env::var("NEXUS_SECURITY_PROTOCOL").unwrap_or_else(|_| "SASL_SSL".to_string()),
         );
         if let Ok(username) = std::env::var("NEXUS_SASL_USERNAME") {
             client.set("sasl.username", username);
@@ -83,11 +82,7 @@ impl KafkaBus {
             .create()
             .map_err(|error| NexusError::adapter(format!("kafka consumer: {error}")))?;
 
-        let topics: Vec<&str> = config
-            .input_topics
-            .iter()
-            .map(String::as_str)
-            .collect();
+        let topics: Vec<&str> = config.input_topics.iter().map(String::as_str).collect();
         consumer
             .subscribe(&topics)
             .map_err(|error| NexusError::adapter(format!("kafka subscribe: {error}")))?;
@@ -138,8 +133,7 @@ impl MessageBus for KafkaBus {
         self.runtime.block_on(async {
             let mut fetched = Vec::new();
             while fetched.len() < max {
-                let received =
-                    tokio::time::timeout(self.poll_timeout, self.consumer.recv()).await;
+                let received = tokio::time::timeout(self.poll_timeout, self.consumer.recv()).await;
                 let message = match received {
                     // Timeout: no more data right now, return what we have.
                     Err(_) => break,

@@ -80,7 +80,10 @@ impl CollectingHandler {
     }
 
     pub fn collected(&self) -> Vec<EventEnvelope> {
-        self.collected.lock().map(|guard| guard.clone()).unwrap_or_default()
+        self.collected
+            .lock()
+            .map(|guard| guard.clone())
+            .unwrap_or_default()
     }
 
     pub fn attempts(&self) -> u32 {
@@ -101,7 +104,11 @@ impl EventHandler for CollectingHandler {
             }
         }
 
-        if attempt <= self.fail_until_attempt.load(std::sync::atomic::Ordering::SeqCst) {
+        if attempt
+            <= self
+                .fail_until_attempt
+                .load(std::sync::atomic::Ordering::SeqCst)
+        {
             return Err(NexusError::adapter("transient downstream failure"));
         }
 
@@ -222,7 +229,10 @@ impl IngestPipeline {
     }
 
     pub fn recorded_delays(&self) -> Vec<u64> {
-        self.recorded_delays.lock().map(|d| d.clone()).unwrap_or_default()
+        self.recorded_delays
+            .lock()
+            .map(|d| d.clone())
+            .unwrap_or_default()
     }
 
     /// Signals graceful shutdown. In-flight work is finished; nothing new is polled.

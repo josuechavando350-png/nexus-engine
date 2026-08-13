@@ -69,7 +69,10 @@ impl BufferSink {
     }
 
     pub fn lines(&self) -> Vec<String> {
-        self.lines.lock().map(|guard| guard.clone()).unwrap_or_default()
+        self.lines
+            .lock()
+            .map(|guard| guard.clone())
+            .unwrap_or_default()
     }
 }
 
@@ -127,7 +130,8 @@ impl Logger {
             entries.push(("trace_id", Value::string(trace_id)));
         }
         entries.extend(fields);
-        self.sink.write_line(&Value::object(entries).to_canonical_string());
+        self.sink
+            .write_line(&Value::object(entries).to_canonical_string());
     }
 
     pub fn debug(&self, message: &str, fields: Vec<(&str, Value)>) {

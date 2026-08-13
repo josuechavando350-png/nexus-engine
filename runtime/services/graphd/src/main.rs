@@ -9,7 +9,9 @@ use std::sync::Arc;
 use nexus_event::json::Value;
 use nexus_event::{EventEnvelope, Result};
 use nexus_graph::{GraphBackend, InMemoryGraph};
-use nexus_ingest::{EventHandler, HandlerOutcome, IngestConfig, InMemoryBus, IngestPipeline, MessageBus};
+use nexus_ingest::{
+    EventHandler, HandlerOutcome, InMemoryBus, IngestConfig, IngestPipeline, MessageBus,
+};
 use nexus_observability::{
     names, AuditAction, AuditTrail, ComponentState, HealthRegistry, JsonLinesAuditSink, Level,
     Logger, Metrics,

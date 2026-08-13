@@ -39,10 +39,7 @@ pub enum TaskGoal {
         probe: String,
     },
     /// Sweep a zone and report.
-    InspectZone {
-        zone_id: String,
-        dwell_seconds: u32,
-    },
+    InspectZone { zone_id: String, dwell_seconds: u32 },
     /// Run an on-device diagnostic.
     Diagnose { suite: String },
     /// Bring the robot to a safe state.

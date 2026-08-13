@@ -188,7 +188,10 @@ mod tests {
         let later = backoff.delay_millis(10);
         assert!(first <= 100);
         assert!(later <= 5_000);
-        assert!(later >= 2_500, "full jitter keeps at least half the ceiling");
+        assert!(
+            later >= 2_500,
+            "full jitter keeps at least half the ceiling"
+        );
     }
 
     #[test]

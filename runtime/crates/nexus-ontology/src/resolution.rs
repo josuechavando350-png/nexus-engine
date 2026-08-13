@@ -200,10 +200,7 @@ pub fn normalize_telemetry(envelope: &EventEnvelope) -> Result<NormalizedRecord>
             properties.push((key.clone(), value.clone()));
         }
     }
-    properties.push((
-        "last_stream".to_string(),
-        Value::string(&envelope.stream),
-    ));
+    properties.push(("last_stream".to_string(), Value::string(&envelope.stream)));
 
     let provenance = Provenance::asserted(
         envelope.event_id.as_str(),
@@ -284,7 +281,13 @@ pub fn normalize_key(raw: &str) -> String {
     let lowered = raw.trim().to_ascii_lowercase();
     let unified: String = lowered
         .chars()
-        .map(|c| if c == '_' || c == ' ' || c == '.' { '-' } else { c })
+        .map(|c| {
+            if c == '_' || c == ' ' || c == '.' {
+                '-'
+            } else {
+                c
+            }
+        })
         .collect();
 
     unified
@@ -350,7 +353,11 @@ pub fn score_candidate(record: &NormalizedRecord, candidate: &Entity) -> MatchSc
     for rule in &fired {
         complement *= 1.0 - rule.weight();
     }
-    let confidence = if fired.is_empty() { 0.0 } else { 1.0 - complement };
+    let confidence = if fired.is_empty() {
+        0.0
+    } else {
+        1.0 - complement
+    };
 
     MatchScore {
         candidate: candidate.id.clone(),
@@ -385,8 +392,7 @@ pub fn resolve(record: &NormalizedRecord, candidates: &[Entity]) -> ResolutionOu
 
     // Refuse to guess between equally good candidates.
     if let Some(second) = scores.get(1) {
-        if (best.confidence - second.confidence).abs() < 1e-9
-            && best.confidence >= REVIEW_THRESHOLD
+        if (best.confidence - second.confidence).abs() < 1e-9 && best.confidence >= REVIEW_THRESHOLD
         {
             return ResolutionOutcome::Ambiguous {
                 candidates: scores.into_iter().take(4).collect(),
@@ -716,7 +722,10 @@ mod tests {
             .properties
             .push(("serial_number".into(), Value::string("SN-1")));
         let strong = stored("press-4", vec![("serial_number", Value::string("SN-1"))]);
-        let weak = stored("other-asset", vec![("zone", Value::string("zone-press-hall"))]);
+        let weak = stored(
+            "other-asset",
+            vec![("zone", Value::string("zone-press-hall"))],
+        );
 
         let forward = resolve(&record, &[strong.clone(), weak.clone()]);
         let backward = resolve(&record, &[weak, strong]);

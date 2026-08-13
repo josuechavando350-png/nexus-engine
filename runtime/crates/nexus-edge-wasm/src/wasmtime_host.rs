@@ -278,9 +278,7 @@ impl EdgeRuntime for WasmtimeRuntime {
         let entry = instance
             .get_typed_func::<(), i32>(&mut store, "nexus_handle_task")
             .map_err(|error| {
-                NexusError::invalid(format!(
-                    "module has no nexus_handle_task export: {error}"
-                ))
+                NexusError::invalid(format!("module has no nexus_handle_task export: {error}"))
             })?;
 
         let outcome = entry.call(&mut store, ());
@@ -289,21 +287,12 @@ impl EdgeRuntime for WasmtimeRuntime {
 
         let fuel_remaining = store.get_fuel().unwrap_or(0);
 
-        let fuel_consumed = manifest
-            .limits
-            .fuel
-            .saturating_sub(fuel_remaining);
+        let fuel_consumed = manifest.limits.fuel.saturating_sub(fuel_remaining);
 
         let (status, detail) = match outcome {
-            Ok(0) => (
-                TaskStatus::Completed,
-                String::new(),
-            ),
+            Ok(0) => (TaskStatus::Completed, String::new()),
 
-            Ok(code) => (
-                TaskStatus::Failed,
-                format!("module returned {code}"),
-            ),
+            Ok(code) => (TaskStatus::Failed, format!("module returned {code}")),
 
             Err(error) => {
                 let message = error.to_string();
@@ -314,10 +303,7 @@ impl EdgeRuntime for WasmtimeRuntime {
                         format!("resource limit hit: {message}"),
                     )
                 } else {
-                    (
-                        TaskStatus::Failed,
-                        message,
-                    )
+                    (TaskStatus::Failed, message)
                 }
             }
         };
@@ -414,4 +400,4 @@ mod tests {
         assert!(!source.contains("wasm_reference_types(true)"));
         assert!(!source.contains("wasm_shared_everything_threads(true)"));
     }
-            }
+}

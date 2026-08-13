@@ -1,12 +1,99 @@
 //! V6 replication semantics: immutable operations, watermarks, repair, and anti-entropy contracts.
 #![forbid(unsafe_code)]
 use std::collections::BTreeMap;
-#[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Hash)]pub struct ReplicaId(pub String);
-#[derive(Debug,Clone,PartialEq,Eq)]pub struct ReplicatedOp{pub stream:String,pub sequence:u64,pub idempotency_key:String,pub content_hash:String,pub source:ReplicaId,pub created_at_ms:u64}
-#[derive(Debug,Default)]pub struct ReplicaState{watermarks:BTreeMap<(ReplicaId,String),u64>,seen:BTreeMap<String,String>}
-#[derive(Debug,Clone,Copy,PartialEq,Eq)]pub enum ApplyResult{Applied,Duplicate,GapDetected}
-impl ReplicaState{pub fn apply(&mut self,op:&ReplicatedOp)->Result<ApplyResult,String>{if op.idempotency_key.is_empty()||op.content_hash.is_empty(){return Err("replication op identity/hash required".into())}if let Some(existing_hash)=self.seen.get(&op.idempotency_key){if existing_hash==&op.content_hash{return Ok(ApplyResult::Duplicate)}return Err("idempotency key reused with different content hash".into())}let k=(op.source.clone(),op.stream.clone());let prev=self.watermarks.get(&k).copied().unwrap_or(0);if op.sequence>prev.saturating_add(1){return Ok(ApplyResult::GapDetected)}if op.sequence<=prev{return Ok(ApplyResult::Duplicate)}self.seen.insert(op.idempotency_key.clone(),op.content_hash.clone());self.watermarks.insert(k,op.sequence);Ok(ApplyResult::Applied)}pub fn watermark(&self,replica:&ReplicaId,stream:&str)->u64{self.watermarks.get(&(replica.clone(),stream.into())).copied().unwrap_or(0)}}
-pub trait AntiEntropy:Send+Sync{fn missing_ranges(&self,peer:&ReplicaId)->Result<Vec<(String,u64,u64)>,String>;}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ReplicaId(pub String);
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ReplicatedOp {
+    pub stream: String,
+    pub sequence: u64,
+    pub idempotency_key: String,
+    pub content_hash: String,
+    pub source: ReplicaId,
+    pub created_at_ms: u64,
+}
+#[derive(Debug, Default)]
+pub struct ReplicaState {
+    watermarks: BTreeMap<(ReplicaId, String), u64>,
+    seen: BTreeMap<String, String>,
+}
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApplyResult {
+    Applied,
+    Duplicate,
+    GapDetected,
+}
+impl ReplicaState {
+    pub fn apply(&mut self, op: &ReplicatedOp) -> Result<ApplyResult, String> {
+        if op.idempotency_key.is_empty() || op.content_hash.is_empty() {
+            return Err("replication op identity/hash required".into());
+        }
+        if let Some(existing_hash) = self.seen.get(&op.idempotency_key) {
+            if existing_hash == &op.content_hash {
+                return Ok(ApplyResult::Duplicate);
+            }
+            return Err("idempotency key reused with different content hash".into());
+        }
+        let k = (op.source.clone(), op.stream.clone());
+        let prev = self.watermarks.get(&k).copied().unwrap_or(0);
+        if op.sequence > prev.saturating_add(1) {
+            return Ok(ApplyResult::GapDetected);
+        }
+        if op.sequence <= prev {
+            return Ok(ApplyResult::Duplicate);
+        }
+        self.seen
+            .insert(op.idempotency_key.clone(), op.content_hash.clone());
+        self.watermarks.insert(k, op.sequence);
+        Ok(ApplyResult::Applied)
+    }
+    pub fn watermark(&self, replica: &ReplicaId, stream: &str) -> u64 {
+        self.watermarks
+            .get(&(replica.clone(), stream.into()))
+            .copied()
+            .unwrap_or(0)
+    }
+}
+pub trait AntiEntropy: Send + Sync {
+    fn missing_ranges(&self, peer: &ReplicaId) -> Result<Vec<(String, u64, u64)>, String>;
+}
 
-#[cfg(test)]mod repair_tests{use super::*;#[test]fn gap_is_not_poisoned_as_seen(){let mut s=ReplicaState::default();let source=ReplicaId("r".into());let op=|seq,key:&str|ReplicatedOp{stream:"x".into(),sequence:seq,idempotency_key:key.into(),content_hash:format!("h{seq}"),source:source.clone(),created_at_ms:0};assert_eq!(s.apply(&op(2,"two")).unwrap(),ApplyResult::GapDetected);assert_eq!(s.apply(&op(1,"one")).unwrap(),ApplyResult::Applied);assert_eq!(s.apply(&op(2,"two")).unwrap(),ApplyResult::Applied);assert_eq!(s.watermark(&source,"x"),2);}
-#[test]fn idempotency_collision_is_rejected(){let mut s=ReplicaState::default();let source=ReplicaId("r".into());let a=ReplicatedOp{stream:"x".into(),sequence:1,idempotency_key:"same".into(),content_hash:"a".into(),source:source.clone(),created_at_ms:0};let mut b=a.clone();b.sequence=2;b.content_hash="b".into();assert_eq!(s.apply(&a).unwrap(),ApplyResult::Applied);assert!(s.apply(&b).is_err());}}
+#[cfg(test)]
+mod repair_tests {
+    use super::*;
+    #[test]
+    fn gap_is_not_poisoned_as_seen() {
+        let mut s = ReplicaState::default();
+        let source = ReplicaId("r".into());
+        let op = |seq, key: &str| ReplicatedOp {
+            stream: "x".into(),
+            sequence: seq,
+            idempotency_key: key.into(),
+            content_hash: format!("h{seq}"),
+            source: source.clone(),
+            created_at_ms: 0,
+        };
+        assert_eq!(s.apply(&op(2, "two")).unwrap(), ApplyResult::GapDetected);
+        assert_eq!(s.apply(&op(1, "one")).unwrap(), ApplyResult::Applied);
+        assert_eq!(s.apply(&op(2, "two")).unwrap(), ApplyResult::Applied);
+        assert_eq!(s.watermark(&source, "x"), 2);
+    }
+    #[test]
+    fn idempotency_collision_is_rejected() {
+        let mut s = ReplicaState::default();
+        let source = ReplicaId("r".into());
+        let a = ReplicatedOp {
+            stream: "x".into(),
+            sequence: 1,
+            idempotency_key: "same".into(),
+            content_hash: "a".into(),
+            source: source.clone(),
+            created_at_ms: 0,
+        };
+        let mut b = a.clone();
+        b.sequence = 2;
+        b.content_hash = "b".into();
+        assert_eq!(s.apply(&a).unwrap(), ApplyResult::Applied);
+        assert!(s.apply(&b).is_err());
+    }
+}

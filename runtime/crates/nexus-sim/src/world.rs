@@ -96,15 +96,42 @@ pub enum FailureInjection {
 /// Why a dry run rejected a plan.
 #[derive(Debug, Clone, PartialEq)]
 pub enum SimulationError {
-    Collision { with: String, at_step: usize },
-    KeepOutViolation { zone: String, at_step: usize },
-    GeofenceExceeded { distance_meters: f64, at_step: usize },
-    SpeedExceeded { requested_mps: f64, limit_mps: f64 },
-    DurationExceeded { estimated_s: f64, limit_s: f64 },
-    HumanClearanceViolated { clearance_meters: f64, at_step: usize },
-    MissingCapability { capability: String, at_step: usize },
-    BatteryInsufficient { required: f64, available: f64 },
-    InjectedFailure { detail: String, at_step: usize },
+    Collision {
+        with: String,
+        at_step: usize,
+    },
+    KeepOutViolation {
+        zone: String,
+        at_step: usize,
+    },
+    GeofenceExceeded {
+        distance_meters: f64,
+        at_step: usize,
+    },
+    SpeedExceeded {
+        requested_mps: f64,
+        limit_mps: f64,
+    },
+    DurationExceeded {
+        estimated_s: f64,
+        limit_s: f64,
+    },
+    HumanClearanceViolated {
+        clearance_meters: f64,
+        at_step: usize,
+    },
+    MissingCapability {
+        capability: String,
+        at_step: usize,
+    },
+    BatteryInsufficient {
+        required: f64,
+        available: f64,
+    },
+    InjectedFailure {
+        detail: String,
+        at_step: usize,
+    },
 }
 
 impl SimulationError {
@@ -255,7 +282,11 @@ pub struct WorldModel {
 }
 
 impl WorldModel {
-    pub fn new(facility_id: impl Into<String>, zone_id: impl Into<String>, robot: SimulatedRobot) -> Self {
+    pub fn new(
+        facility_id: impl Into<String>,
+        zone_id: impl Into<String>,
+        robot: SimulatedRobot,
+    ) -> Self {
         WorldModel {
             facility_id: facility_id.into(),
             zone_id: zone_id.into(),
@@ -447,7 +478,10 @@ impl WorldModel {
             {
                 if distance > 0.0 {
                     errors.push(SimulationError::InjectedFailure {
-                        detail: format!("locomotion stalled at {:.0}% of the leg", after_fraction * 100.0),
+                        detail: format!(
+                            "locomotion stalled at {:.0}% of the leg",
+                            after_fraction * 100.0
+                        ),
                         at_step: index,
                     });
                 }
@@ -580,7 +614,11 @@ impl WorldModel {
     ///
     /// Only used by the examples to show state advancing; the orchestrator
     /// never mutates a world model.
-    pub fn apply(&self, commands: &[EdgeCommand], constraints: &[SafetyConstraint]) -> Result<WorldModel> {
+    pub fn apply(
+        &self,
+        commands: &[EdgeCommand],
+        constraints: &[SafetyConstraint],
+    ) -> Result<WorldModel> {
         let report = self.dry_run(commands, constraints);
         if !report.passed {
             return Err(NexusError::denied(format!(
@@ -684,10 +722,7 @@ mod tests {
 
     #[test]
     fn simulation_id_changes_with_the_plan() {
-        let a = world().dry_run(
-            &[EdgeCommand::SafeStop],
-            &constraints(),
-        );
+        let a = world().dry_run(&[EdgeCommand::SafeStop], &constraints());
         let b = world().dry_run(
             &[EdgeCommand::RunDiagnostic {
                 suite: "self".into(),
@@ -699,7 +734,8 @@ mod tests {
 
     #[test]
     fn a_plan_through_an_obstacle_is_rejected() {
-        let blocked = world().with_object(WorldObject::obstacle("pallet-stack", point(5.0, 0.0), 1.0));
+        let blocked =
+            world().with_object(WorldObject::obstacle("pallet-stack", point(5.0, 0.0), 1.0));
         let plan = vec![EdgeCommand::NavigateToWaypoint {
             waypoint: point(10.0, 0.0),
         }];
@@ -710,7 +746,8 @@ mod tests {
 
     #[test]
     fn a_plan_that_passes_beside_an_obstacle_is_allowed() {
-        let beside = world().with_object(WorldObject::obstacle("pallet-stack", point(5.0, 4.0), 1.0));
+        let beside =
+            world().with_object(WorldObject::obstacle("pallet-stack", point(5.0, 4.0), 1.0));
         let plan = vec![EdgeCommand::NavigateToWaypoint {
             waypoint: point(10.0, 0.0),
         }];
@@ -799,9 +836,8 @@ mod tests {
         ];
         assert!(world().dry_run(&plan, &constraints()).passed);
 
-        let interrupted = world().with_injection(FailureInjection::PersonnelEntersZone {
-            before_step: 1,
-        });
+        let interrupted =
+            world().with_injection(FailureInjection::PersonnelEntersZone { before_step: 1 });
         assert!(!interrupted.dry_run(&plan, &constraints()).passed);
     }
 
@@ -857,6 +893,9 @@ mod tests {
         assert!((segment_distance(point(0.0, 0.0), point(0.0, 0.0), p) - 5.0).abs() < 1e-9);
         assert!((segment_distance(point(0.0, 0.0), point(10.0, 0.0), p) - 4.0).abs() < 1e-9);
         // Projection clamps to the endpoints.
-        assert!((segment_distance(point(0.0, 0.0), point(1.0, 0.0), point(5.0, 0.0)) - 4.0).abs() < 1e-9);
+        assert!(
+            (segment_distance(point(0.0, 0.0), point(1.0, 0.0), point(5.0, 0.0)) - 4.0).abs()
+                < 1e-9
+        );
     }
 }

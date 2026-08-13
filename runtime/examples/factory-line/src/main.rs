@@ -29,17 +29,18 @@ use nexus_agent::{
     ProposalTrigger, TaskProposal,
 };
 use nexus_edge_protocol::{DevSigner, ExecutionMode, Signer, SignerRegistry, Waypoint};
-use nexus_edge_wasm::{
-    EdgeRuntime, ModuleManifest, MockHostFactory, SimulationExecutor,
-};
+use nexus_edge_wasm::{EdgeRuntime, MockHostFactory, ModuleManifest, SimulationExecutor};
 use nexus_event::json::Value;
 use nexus_event::{
     topics, Classification, Detection, DetectionClass, EventEnvelope, NexusError, Result, SourceId,
     SourceType, Timestamp, TraceId,
 };
 use nexus_graph::{zone_entity, InMemoryGraph};
-use nexus_observability::{AuditAction, AuditTrail, Logger, Level, Metrics};
-use nexus_oneway::{BufferedEgress, DiodeConfig, EgressRecord, EgressTransport, ObservationDiodeSender, AnalyticsReceiver};
+use nexus_observability::{AuditAction, AuditTrail, Level, Logger, Metrics};
+use nexus_oneway::{
+    AnalyticsReceiver, BufferedEgress, DiodeConfig, EgressRecord, EgressTransport,
+    ObservationDiodeSender,
+};
 use nexus_ontology::model::{EntityKind, Provenance, RelationKind, Relationship};
 use nexus_ontology::store::{GraphMutation, GraphReader, GraphWriter};
 use nexus_ontology::{normalize_detection, pipeline_for_telemetry, Entity};
@@ -142,7 +143,10 @@ fn run() -> Result<String> {
     );
 
     // -- 03. Ingest normalizes and resolves the asset. ----------------------
-    step(3, "Ingest: normalize -> entity resolution -> graph mutations");
+    step(
+        3,
+        "Ingest: normalize -> entity resolution -> graph mutations",
+    );
     let provenance = Provenance::asserted(
         crossed.event_id.as_str(),
         crossed.source_id.clone(),
@@ -159,7 +163,10 @@ fn run() -> Result<String> {
     let (normalized, resolution, mutations) =
         pipeline_for_telemetry(&crossed, &candidates, Some(&zone))?;
     let applied = graph.apply(&mutations)?;
-    println!("  natural key    : {} (from \"Press_04\")", normalized.natural_key);
+    println!(
+        "  natural key    : {} (from \"Press_04\")",
+        normalized.natural_key
+    );
     println!("  resolution     : {}", resolution.as_str());
     println!("  mutations      : {applied} applied");
 
@@ -177,7 +184,10 @@ fn run() -> Result<String> {
         .ok_or_else(|| NexusError::invalid("resolution was ambiguous"))?;
 
     // -- 04. An external vision model reports smoke on the same asset. ------
-    step(4, "External camera model reports a synthetic smoke detection");
+    step(
+        4,
+        "External camera model reports a synthetic smoke detection",
+    );
     let detection = Detection {
         model_id: "external-industrial-vision-v7".into(),
         frame_id: "frame-000123".into(),
@@ -223,7 +233,10 @@ fn run() -> Result<String> {
         detection.timestamp,
     )
     .with_property("status", Value::string("open"))
-    .with_property("cause", Value::string("overheating with corroborating smoke"));
+    .with_property(
+        "cause",
+        Value::string("overheating with corroborating smoke"),
+    );
 
     graph.apply(&[
         GraphMutation::UpsertEntity(detection_entity.clone()),
@@ -268,10 +281,7 @@ fn run() -> Result<String> {
     let policy = PolicyEngine::industrial_baseline();
     let model = MockBehaviorModel::new();
     let gate = HumanApprovalGate::new();
-    let signer = DevSigner::new(
-        "orchestratord-demo",
-        b"demo-key-not-a-production-secret",
-    )?;
+    let signer = DevSigner::new("orchestratord-demo", b"demo-key-not-a-production-secret")?;
 
     let proposal = TaskProposal::new(
         TaskGoal::ConfirmReading {
@@ -293,8 +303,14 @@ fn run() -> Result<String> {
     .with_risk(RiskClass::Low);
 
     println!("  goal           : {}", proposal.goal.as_str());
-    println!("  device         : {} (inspection, unarmed)", proposal.device_id);
-    println!("  evidence       : {} graph entities", proposal.evidence.len());
+    println!(
+        "  device         : {} (inspection, unarmed)",
+        proposal.device_id
+    );
+    println!(
+        "  evidence       : {} graph entities",
+        proposal.evidence.len()
+    );
 
     let capabilities = RobotCapabilities {
         device_id: "robot-inspect-01".into(),
@@ -373,7 +389,10 @@ fn run() -> Result<String> {
         simulation.detail.total_duration_seconds,
         simulation.simulation_id
     );
-    println!("  command        : {} (typed, from a closed set)", task.command.name());
+    println!(
+        "  command        : {} (typed, from a closed set)",
+        task.command.name()
+    );
     println!("  signer         : {}", task.signer_id().unwrap_or("none"));
     println!(
         "  expires        : {} ms after issue",
@@ -382,7 +401,10 @@ fn run() -> Result<String> {
     println!("  constraints    : {}", task.safety_constraints.len());
 
     // -- 09. The WASM sandbox executes it. ----------------------------------
-    step(8, "WASM edge sandbox executes collect_temperature (SIMULATION)");
+    step(
+        8,
+        "WASM edge sandbox executes collect_temperature (SIMULATION)",
+    );
     let mut signers = SignerRegistry::new();
     signers.register(nexus_edge_protocol::TrustedSigner {
         signer_id: signer.signer_id().to_string(),
@@ -456,7 +478,10 @@ fn run() -> Result<String> {
         pipeline_for_telemetry(&confirmation, &candidates, Some(&zone))?;
     graph.apply(&confirm_mutations)?;
     println!("  confirmation   : {:.1} C", observed_celsius);
-    println!("  resolution     : {} (existing asset)", confirm_resolution.as_str());
+    println!(
+        "  resolution     : {} (existing asset)",
+        confirm_resolution.as_str()
+    );
 
     let final_state = graph
         .latest_asset_state(&normalized.natural_key)?
@@ -477,9 +502,7 @@ fn run() -> Result<String> {
 
     // -- 11. The whole thing is traceable and the audit chain verifies. -----
     step(10, "Audit: end-to-end traceability");
-    audit
-        .verify_chain()
-        .map_err(NexusError::integrity)?;
+    audit.verify_chain().map_err(NexusError::integrity)?;
     let trail = audit.records_for_trace(&trace);
     for record in &trail {
         println!(

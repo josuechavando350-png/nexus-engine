@@ -35,7 +35,12 @@ fn base_world() -> WorldModel {
         SimulatedRobot::new(
             "drone-inspect-07",
             point(0.0, 0.0),
-            &["navigate.waypoint", "sensor.thermal", "sensor.camera", "sensor.generic"],
+            &[
+                "navigate.waypoint",
+                "sensor.thermal",
+                "sensor.camera",
+                "sensor.generic",
+            ],
         ),
     )
     .with_waypoint("transformer-3", point(24.0, 0.0))
@@ -69,8 +74,14 @@ fn run() -> Result<()> {
     println!("[1] Nominal dry run");
     let nominal = base_world().dry_run(&plan(), &constraints());
     println!("    passed        : {}", nominal.passed);
-    println!("    distance      : {:.1} m", nominal.detail.total_distance_meters);
-    println!("    duration      : {:.1} s", nominal.detail.total_duration_seconds);
+    println!(
+        "    distance      : {:.1} m",
+        nominal.detail.total_distance_meters
+    );
+    println!(
+        "    duration      : {:.1} s",
+        nominal.detail.total_duration_seconds
+    );
     println!("    simulation id : {}", nominal.simulation_id);
     if !nominal.passed {
         return Err(NexusError::invalid("the nominal plan should pass"));
@@ -123,7 +134,8 @@ fn run() -> Result<()> {
     println!("\n[4] Hard invariants: prohibited intent is refused");
     // A deliberately permissive policy, to show the invariants are not part
     // of the configurable layer.
-    let permissive = PolicyEngine::new().with_rule(Rule::new("allow-everything", RuleOutcome::Allow));
+    let permissive =
+        PolicyEngine::new().with_rule(Rule::new("allow-everything", RuleOutcome::Allow));
 
     let prohibited = [
         ("track_person", "person tracking"),

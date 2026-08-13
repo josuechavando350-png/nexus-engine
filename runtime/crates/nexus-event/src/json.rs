@@ -239,7 +239,10 @@ impl Parser {
     }
 
     fn skip_whitespace(&mut self) {
-        while matches!(self.peek(), Some(' ') | Some('\t') | Some('\n') | Some('\r')) {
+        while matches!(
+            self.peek(),
+            Some(' ') | Some('\t') | Some('\n') | Some('\r')
+        ) {
             self.index += 1;
         }
     }
@@ -522,7 +525,10 @@ mod tests {
 
     #[test]
     fn decodes_surrogate_pairs() {
-        assert_eq!(parse(r#""\ud83d\ude80""#).unwrap().as_str(), Some("\u{1f680}"));
+        assert_eq!(
+            parse(r#""\ud83d\ude80""#).unwrap().as_str(),
+            Some("\u{1f680}")
+        );
         assert_eq!(parse(r#""\u00f1""#).unwrap().as_str(), Some("ñ"));
     }
 

@@ -28,7 +28,9 @@ impl Waypoint {
     pub fn validate(&self) -> Result<()> {
         for (name, value) in [("x", self.x), ("y", self.y), ("z", self.z)] {
             if !value.is_finite() {
-                return Err(NexusError::schema(format!("waypoint.{name} must be finite")));
+                return Err(NexusError::schema(format!(
+                    "waypoint.{name} must be finite"
+                )));
             }
             if value.abs() > 10_000.0 {
                 return Err(NexusError::invalid(format!(

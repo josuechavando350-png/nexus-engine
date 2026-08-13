@@ -28,10 +28,9 @@ pub fn required_capability(function: &str) -> Option<&'static str> {
     match function {
         "nexus_read_sensor" => Some("sensor.generic"),
         "nexus_read_pose" => Some("navigate.waypoint"),
-        "nexus_emit_observation"
-        | "nexus_log"
-        | "nexus_now_millis"
-        | "nexus_report_progress" => None,
+        "nexus_emit_observation" | "nexus_log" | "nexus_now_millis" | "nexus_report_progress" => {
+            None
+        }
         _ => None,
     }
 }
@@ -232,8 +231,7 @@ mod tests {
                 Timestamp::from_millis(10_000),
             )],
             max_calls,
-            MockHost::new(Timestamp::from_millis(1_000))
-                .with_reading("probe-a", 91.5),
+            MockHost::new(Timestamp::from_millis(1_000)).with_reading("probe-a", 91.5),
         )
     }
 
@@ -242,10 +240,7 @@ mod tests {
         let registry = registry(10);
 
         let value = registry
-            .invoke(
-                "nexus_read_sensor",
-                &Value::string("probe-a"),
-            )
+            .invoke("nexus_read_sensor", &Value::string("probe-a"))
             .unwrap();
 
         assert_eq!(value, Value::number(91.5));
@@ -262,9 +257,7 @@ mod tests {
             "spawn_process",
             "nexus_fire_actuator",
         ] {
-            let error = registry
-                .invoke(hostile, &Value::Null)
-                .unwrap_err();
+            let error = registry.invoke(hostile, &Value::Null).unwrap_err();
 
             assert_eq!(error.kind(), "denied", "must refuse {hostile}");
         }
@@ -287,15 +280,11 @@ mod tests {
             vec!["nexus_read_sensor".into()],
             vec![],
             10,
-            MockHost::new(Timestamp::from_millis(1_000))
-                .with_reading("probe-a", 1.0),
+            MockHost::new(Timestamp::from_millis(1_000)).with_reading("probe-a", 1.0),
         );
 
         let error = registry
-            .invoke(
-                "nexus_read_sensor",
-                &Value::string("probe-a"),
-            )
+            .invoke("nexus_read_sensor", &Value::string("probe-a"))
             .unwrap_err();
 
         assert!(error.to_string().contains("capability token"));
@@ -311,35 +300,21 @@ mod tests {
                 Timestamp::from_millis(500),
             )],
             10,
-            MockHost::new(Timestamp::from_millis(1_000))
-                .with_reading("probe-a", 1.0),
+            MockHost::new(Timestamp::from_millis(1_000)).with_reading("probe-a", 1.0),
         );
 
-        assert!(
-            registry
-                .invoke(
-                    "nexus_read_sensor",
-                    &Value::string("probe-a"),
-                )
-                .is_err()
-        );
+        assert!(registry
+            .invoke("nexus_read_sensor", &Value::string("probe-a"),)
+            .is_err());
     }
 
     #[test]
     fn the_call_budget_is_enforced() {
         let registry = registry(2);
 
-        assert!(
-            registry
-                .invoke("nexus_log", &Value::string("a"))
-                .is_ok()
-        );
+        assert!(registry.invoke("nexus_log", &Value::string("a")).is_ok());
 
-        assert!(
-            registry
-                .invoke("nexus_log", &Value::string("b"))
-                .is_ok()
-        );
+        assert!(registry.invoke("nexus_log", &Value::string("b")).is_ok());
 
         let error = registry
             .invoke("nexus_log", &Value::string("c"))
@@ -380,26 +355,17 @@ mod tests {
         let registry = registry(10);
 
         registry
-            .invoke(
-                "nexus_read_sensor",
-                &Value::string("probe-a"),
-            )
+            .invoke("nexus_read_sensor", &Value::string("probe-a"))
             .unwrap();
 
         registry
-            .invoke(
-                "nexus_log",
-                &Value::string("hello"),
-            )
+            .invoke("nexus_log", &Value::string("hello"))
             .unwrap();
 
         let calls = registry.calls();
 
         assert_eq!(calls.len(), 2);
         assert_eq!(calls[0].function, "nexus_read_sensor");
-        assert_eq!(
-            calls[1].argument,
-            Value::string("hello")
-        );
+        assert_eq!(calls[1].argument, Value::string("hello"));
     }
-        }
+}

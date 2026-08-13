@@ -31,24 +31,18 @@ pub struct Plan {
 impl Plan {
     pub fn validate(&self) -> Result<()> {
         if self.schema_version != 1 {
-            return Err(NexusError::schema(
-                "unsupported plan schema version",
-            ));
+            return Err(NexusError::schema("unsupported plan schema version"));
         }
 
         if self.nodes.is_empty() {
-            return Err(NexusError::invalid(
-                "plan requires at least one node",
-            ));
+            return Err(NexusError::invalid("plan requires at least one node"));
         }
 
         let mut ids = BTreeSet::new();
 
         for n in &self.nodes {
             if n.id.trim().is_empty() || !ids.insert(n.id.clone()) {
-                return Err(NexusError::invalid(
-                    "empty/duplicate plan node id",
-                ));
+                return Err(NexusError::invalid("empty/duplicate plan node id"));
             }
 
             if n.action.trim().is_empty()
@@ -61,40 +55,28 @@ impl Plan {
             }
 
             if n.timeout_millis == 0 {
-                return Err(NexusError::invalid(
-                    "plan node timeout must be positive",
-                ));
+                return Err(NexusError::invalid("plan node timeout must be positive"));
             }
 
-            if !(0.0..=1.0).contains(&n.confidence)
-                || !n.confidence.is_finite()
-            {
-                return Err(NexusError::invalid(
-                    "plan confidence outside [0,1]",
-                ));
+            if !(0.0..=1.0).contains(&n.confidence) || !n.confidence.is_finite() {
+                return Err(NexusError::invalid("plan confidence outside [0,1]"));
             }
 
             if n.evidence_refs.is_empty() {
-                return Err(NexusError::invalid(
-                    "plan node lacks evidence",
-                ));
+                return Err(NexusError::invalid("plan node lacks evidence"));
             }
         }
 
         for n in &self.nodes {
             for d in &n.prerequisites {
                 if !ids.contains(d) {
-                    return Err(NexusError::invalid(
-                        "plan dependency missing",
-                    ));
+                    return Err(NexusError::invalid("plan dependency missing"));
                 }
             }
         }
 
         if has_cycle(&self.nodes) {
-            return Err(NexusError::invalid(
-                "plan contains dependency cycle",
-            ));
+            return Err(NexusError::invalid("plan contains dependency cycle"));
         }
 
         Ok(())
@@ -102,10 +84,7 @@ impl Plan {
 }
 
 fn has_cycle(nodes: &[PlanNode]) -> bool {
-    let map: BTreeMap<_, _> = nodes
-        .iter()
-        .map(|n| (n.id.as_str(), n))
-        .collect();
+    let map: BTreeMap<_, _> = nodes.iter().map(|n| (n.id.as_str(), n)).collect();
 
     fn visit<'a>(
         id: &'a str,
@@ -161,9 +140,7 @@ pub struct CandidateScore {
 
 impl CandidateScore {
     pub fn total(self) -> f64 {
-        2.0 * self.success
-            + 1.5 * self.policy_compatibility
-            + self.reversibility
+        2.0 * self.success + 1.5 * self.policy_compatibility + self.reversibility
             - self.risk
             - self.resource_cost * 0.5
             - self.time_cost * 0.25
@@ -172,26 +149,16 @@ impl CandidateScore {
 }
 
 pub trait Planner: Send + Sync {
-    fn propose(
-        &self,
-        goal: &Goal,
-        evidence: &[String],
-    ) -> Result<Vec<Plan>>;
+    fn propose(&self, goal: &Goal, evidence: &[String]) -> Result<Vec<Plan>>;
 }
 
 #[derive(Debug, Default)]
 pub struct DeterministicPlanner;
 
 impl Planner for DeterministicPlanner {
-    fn propose(
-        &self,
-        goal: &Goal,
-        evidence: &[String],
-    ) -> Result<Vec<Plan>> {
+    fn propose(&self, goal: &Goal, evidence: &[String]) -> Result<Vec<Plan>> {
         if evidence.is_empty() {
-            return Err(NexusError::invalid(
-                "planner requires evidence",
-            ));
+            return Err(NexusError::invalid("planner requires evidence"));
         }
 
         let node = PlanNode {
@@ -244,10 +211,7 @@ mod tests {
             id: "p".into(),
             goal_id: "g".into(),
             schema_version: 1,
-            nodes: vec![
-                n("a", "b"),
-                n("b", "a"),
-            ],
+            nodes: vec![n("a", "b"), n("b", "a")],
         };
 
         assert!(p.validate().is_err());
@@ -270,4 +234,4 @@ mod tests {
 
         assert!(a.total() > b.total());
     }
-              }
+}

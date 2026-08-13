@@ -291,9 +291,7 @@ impl<'a> Orchestrator<'a> {
                         ("reason", Value::string(reason)),
                         (
                             "approver_roles",
-                            Value::Array(
-                                approver_roles.iter().map(|r| Value::string(r)).collect(),
-                            ),
+                            Value::Array(approver_roles.iter().map(|r| Value::string(r)).collect()),
                         ),
                     ]),
                 );
@@ -588,11 +586,16 @@ mod tests {
             .expect("pipeline runs");
 
         match outcome {
-            DispatchOutcome::Dispatch { task, simulation, .. } => {
+            DispatchOutcome::Dispatch {
+                task, simulation, ..
+            } => {
                 assert!(task.signature.is_some());
                 assert_eq!(task.mode, ExecutionMode::Simulation);
                 assert!(task.expires_at.as_millis() > now().as_millis());
-                assert_eq!(task.simulation_id.as_deref(), Some(simulation.simulation_id.as_str()));
+                assert_eq!(
+                    task.simulation_id.as_deref(),
+                    Some(simulation.simulation_id.as_str())
+                );
             }
             other => panic!("expected dispatch, got {}", other.as_str()),
         }
@@ -713,7 +716,7 @@ mod tests {
     fn a_prohibited_annotation_is_rejected_before_planning_costs_anything() {
         let fixture = Fixture::new();
         let hostile = proposal(confirm_reading_goal())
-        .with_annotation("operator note: engage_target on approach");
+            .with_annotation("operator note: engage_target on approach");
 
         let outcome = fixture
             .orchestrator()

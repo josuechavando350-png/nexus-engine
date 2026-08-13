@@ -84,11 +84,27 @@ macro_rules! id_type {
     };
 }
 
-id_type!(EventId, "evt", "Unique identifier of a single event envelope.");
-id_type!(TraceId, "trc", "Correlates every record produced by one causal chain.");
-id_type!(SourceId, "src", "Identifies the emitting sensor, camera, robot or service.");
+id_type!(
+    EventId,
+    "evt",
+    "Unique identifier of a single event envelope."
+);
+id_type!(
+    TraceId,
+    "trc",
+    "Correlates every record produced by one causal chain."
+);
+id_type!(
+    SourceId,
+    "src",
+    "Identifies the emitting sensor, camera, robot or service."
+);
 id_type!(EntityId, "ent", "Identifies a resolved ontology entity.");
-id_type!(TaskId, "tsk", "Identifies an orchestration task or edge task.");
+id_type!(
+    TaskId,
+    "tsk",
+    "Identifies an orchestration task or edge task."
+);
 
 impl Default for EventId {
     fn default() -> Self {

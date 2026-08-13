@@ -312,9 +312,7 @@ impl EventEnvelope {
             .chars()
             .all(|c| c.is_ascii_alphanumeric() || c == '.' || c == '_' || c == '-')
         {
-            return Err(NexusError::schema(
-                "stream may only contain [A-Za-z0-9._-]",
-            ));
+            return Err(NexusError::schema("stream may only contain [A-Za-z0-9._-]"));
         }
         if !matches!(self.payload, Value::Object(_)) {
             return Err(NexusError::schema("payload must be a JSON object"));
@@ -358,10 +356,7 @@ impl EventEnvelope {
 
     pub fn to_json(&self) -> Value {
         let mut map: BTreeMap<String, Value> = BTreeMap::new();
-        map.insert(
-            "event_id".into(),
-            Value::string(self.event_id.as_str()),
-        );
+        map.insert("event_id".into(), Value::string(self.event_id.as_str()));
         map.insert(
             "schema_version".into(),
             Value::number(self.schema_version as f64),
@@ -387,10 +382,7 @@ impl EventEnvelope {
         map.insert("trace_id".into(), Value::string(self.trace_id.as_str()));
         map.insert("stream".into(), Value::string(&self.stream));
         map.insert("payload".into(), self.payload.clone());
-        map.insert(
-            "integrity_hash".into(),
-            Value::string(&self.integrity_hash),
-        );
+        map.insert("integrity_hash".into(), Value::string(&self.integrity_hash));
         map.insert(
             "signature".into(),
             match &self.signature {
@@ -542,4 +534,4 @@ mod tests {
         let later = Timestamp::from_millis(1_700_000_005_000);
         assert_eq!(envelope.clock_skew_millis(later), -5_000);
     }
-        }
+}

@@ -34,6 +34,6 @@ pub use invariants::{
     check_hard_invariants, HardInvariant, FORBIDDEN_CAPABILITY_SUBSTRINGS, HARD_INVARIANTS,
 };
 pub use rules::{
-    ActionKind, Decision, DenyReason, PolicyEngine, PolicyRequest, Rule, RuleOutcome, RiskClass,
+    ActionKind, Decision, DenyReason, PolicyEngine, PolicyRequest, RiskClass, Rule, RuleOutcome,
     SimulationOutcome, TimeWindow,
 };

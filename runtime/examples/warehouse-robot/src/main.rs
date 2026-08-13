@@ -177,7 +177,10 @@ fn run() -> Result<()> {
         Timestamp::from_millis(now.as_millis() + 30_000),
     )?;
     println!("    -> approval id: {}", approval.approval_id);
-    println!("    -> operator   : {} ({})", approval.operator_id, approval.operator_role);
+    println!(
+        "    -> operator   : {} ({})",
+        approval.operator_id, approval.operator_role
+    );
 
     println!("\n[6] The same proposal now reaches a signed task");
     let outcome = orchestrator.process(
@@ -193,7 +196,10 @@ fn run() -> Result<()> {
     match outcome {
         DispatchOutcome::Dispatch { task, .. } => {
             println!("    -> command  : {}", task.command.name());
-            println!("    -> approval : {}", task.approval_id.as_deref().unwrap_or("none"));
+            println!(
+                "    -> approval : {}",
+                task.approval_id.as_deref().unwrap_or("none")
+            );
             if task.approval_id.is_none() {
                 return Err(NexusError::denied("dispatched task lost its approval link"));
             }

@@ -33,9 +33,7 @@
 #![forbid(unsafe_code)]
 
 use nexus_event::json::Value;
-use nexus_event::{
-    topics, Classification, EventEnvelope, NexusError, Result, Timestamp,
-};
+use nexus_event::{topics, Classification, EventEnvelope, NexusError, Result, Timestamp};
 use nexus_observability::{AuditAction, AuditTrail};
 use std::collections::HashSet;
 use std::sync::Mutex;
@@ -176,7 +174,10 @@ impl BufferedEgress {
     }
 
     pub fn records(&self) -> Vec<EgressRecord> {
-        self.records.lock().map(|guard| guard.clone()).unwrap_or_default()
+        self.records
+            .lock()
+            .map(|guard| guard.clone())
+            .unwrap_or_default()
     }
 
     pub fn len(&self) -> usize {
@@ -239,7 +240,12 @@ impl ObservationDiodeSender {
         envelope: &EventEnvelope,
         now: Timestamp,
     ) -> std::result::Result<EgressRecord, EgressRejection> {
-        if !self.config.allowed_topics.iter().any(|allowed| allowed == topic) {
+        if !self
+            .config
+            .allowed_topics
+            .iter()
+            .any(|allowed| allowed == topic)
+        {
             self.count_rejected();
             return Err(EgressRejection::TopicNotAllowed(topic.to_string()));
         }
@@ -563,7 +569,11 @@ mod tests {
     fn telemetry_from_a_field_device_is_emitted() {
         let (sender, buffer) = sender();
         let record = sender
-            .send(topics::TELEMETRY_RAW, &envelope(Classification::Internal, true), now())
+            .send(
+                topics::TELEMETRY_RAW,
+                &envelope(Classification::Internal, true),
+                now(),
+            )
             .expect("accepted");
         assert_eq!(buffer.len(), 1);
         assert_eq!(record.topic, topics::TELEMETRY_RAW);
@@ -647,8 +657,7 @@ mod tests {
             max_messages_per_window: 2,
             ..DiodeConfig::default()
         };
-        let sender =
-            ObservationDiodeSender::new(config, Box::new(SharedBuffer(buffer.clone())));
+        let sender = ObservationDiodeSender::new(config, Box::new(SharedBuffer(buffer.clone())));
         let event = envelope(Classification::Internal, true);
         assert!(sender.send(topics::TELEMETRY_RAW, &event, now()).is_ok());
         assert!(sender.send(topics::TELEMETRY_RAW, &event, now()).is_ok());
@@ -685,7 +694,11 @@ mod tests {
         let audit = AuditTrail::in_memory();
         let receiver = AnalyticsReceiver::new(&["some-other-gateway"], true);
         let record = sender
-            .send(topics::TELEMETRY_RAW, &envelope(Classification::Internal, true), now())
+            .send(
+                topics::TELEMETRY_RAW,
+                &envelope(Classification::Internal, true),
+                now(),
+            )
             .unwrap();
         assert!(receiver.accept(&record, &audit).is_err());
     }
@@ -726,9 +739,13 @@ mod tests {
 
     #[test]
     fn configuration_carries_paths_not_secret_values() {
-        let config =
-            ControlledEdgeConfig::new("control-plane", "/etc/nexus/cert.pem", "/etc/nexus/key.pem", "/etc/nexus/ca.pem")
-                .unwrap();
+        let config = ControlledEdgeConfig::new(
+            "control-plane",
+            "/etc/nexus/cert.pem",
+            "/etc/nexus/key.pem",
+            "/etc/nexus/ca.pem",
+        )
+        .unwrap();
         let rendered = format!("{config:?}");
         assert!(rendered.contains("/etc/nexus/key.pem"));
         assert!(!rendered.contains("BEGIN PRIVATE KEY"));

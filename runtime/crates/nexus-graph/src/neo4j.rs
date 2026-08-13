@@ -12,12 +12,12 @@
 //! source and no default password.
 
 use nexus_event::json::Value;
+use nexus_event::SourceId;
 use nexus_event::{EntityId, NexusError, Result, Timestamp};
 use nexus_ontology::model::{Entity, EntityKind, Provenance, RelationKind};
 use nexus_ontology::store::{
     GraphMutation, GraphReader, GraphStore, GraphWriter, LineageStep, Neighbor,
 };
-use nexus_event::SourceId;
 use std::collections::BTreeMap;
 
 use crate::cypher::{self, CypherStatement};
@@ -76,8 +76,7 @@ impl Neo4jConfig {
             uri,
             user: required("NEXUS_GRAPH_USER")?,
             password: required("NEXUS_GRAPH_PASSWORD")?,
-            database: std::env::var("NEXUS_GRAPH_DATABASE")
-                .unwrap_or_else(|_| "neo4j".to_string()),
+            database: std::env::var("NEXUS_GRAPH_DATABASE").unwrap_or_else(|_| "neo4j".to_string()),
             max_connections: std::env::var("NEXUS_GRAPH_MAX_CONNECTIONS")
                 .ok()
                 .and_then(|value| value.parse().ok())
@@ -392,8 +391,7 @@ RETURN n.id AS id, n.kind AS kind, n.natural_key AS natural_key,
         from: Timestamp,
         to: Timestamp,
     ) -> Result<Vec<Entity>> {
-        let statement =
-            cypher::events_in_zone(zone_natural_key, from.as_millis(), to.as_millis());
+        let statement = cypher::events_in_zone(zone_natural_key, from.as_millis(), to.as_millis());
         Ok(self
             .fetch(&statement)?
             .iter()
@@ -441,4 +439,4 @@ mod tests {
         assert!(!source.contains("bolt://localhost:7687\""));
         assert!(!source.to_lowercase().contains("password: \"neo4j\""));
     }
-        }
+}

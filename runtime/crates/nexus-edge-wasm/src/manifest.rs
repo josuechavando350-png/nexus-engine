@@ -1,8 +1,8 @@
 //! Module manifests, resource limits and capability tokens.
 
+use nexus_edge_protocol::{SignatureEnvelope, SignerRegistry};
 use nexus_event::hash::{sha256, to_hex};
 use nexus_event::{NexusError, Result, Timestamp};
-use nexus_edge_protocol::{SignatureEnvelope, SignerRegistry};
 
 /// Hard resource ceilings applied to every module instance.
 ///
@@ -62,7 +62,11 @@ pub struct CapabilityToken {
 }
 
 impl CapabilityToken {
-    pub fn new(capability: impl Into<String>, task_id: impl Into<String>, expires_at: Timestamp) -> Self {
+    pub fn new(
+        capability: impl Into<String>,
+        task_id: impl Into<String>,
+        expires_at: Timestamp,
+    ) -> Self {
         CapabilityToken {
             capability: capability.into(),
             task_id: task_id.into(),
@@ -211,7 +215,10 @@ mod tests {
         manifest.signature = None;
         let signer = DevSigner::new("build-server", b"0123456789abcdef-module-key").unwrap();
         assert_eq!(
-            manifest.verify(bytes, &registry(&signer)).unwrap_err().kind(),
+            manifest
+                .verify(bytes, &registry(&signer))
+                .unwrap_err()
+                .kind(),
             "denied"
         );
     }
@@ -220,8 +227,7 @@ mod tests {
     fn a_manifest_cannot_grant_a_host_function_outside_the_allowlist() {
         let bytes = b"module";
         let signer = DevSigner::new("build-server", b"0123456789abcdef-module-key").unwrap();
-        let mut manifest =
-            ModuleManifest::new("m", "1", bytes, vec!["nexus_open_socket".into()]);
+        let mut manifest = ModuleManifest::new("m", "1", bytes, vec!["nexus_open_socket".into()]);
         manifest.signature = Some(signer.sign(&manifest.signing_bytes()).unwrap());
         let error = manifest.verify(bytes, &registry(&signer)).unwrap_err();
         assert_eq!(error.kind(), "denied");
@@ -248,11 +254,8 @@ mod tests {
 
     #[test]
     fn capability_tokens_expire() {
-        let token = CapabilityToken::new(
-            "sensor.temperature",
-            "tsk_1",
-            Timestamp::from_millis(1_000),
-        );
+        let token =
+            CapabilityToken::new("sensor.temperature", "tsk_1", Timestamp::from_millis(1_000));
         assert!(token.is_valid_at(Timestamp::from_millis(999)));
         assert!(!token.is_valid_at(Timestamp::from_millis(1_000)));
     }

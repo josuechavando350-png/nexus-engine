@@ -65,7 +65,8 @@ fn run(logger: &Logger) -> Result<()> {
     // ---- Profile B: controlled edge. Separate identity and channel. -------
     let control = ControlledEdgeConfig::new(
         control_identity,
-        std::env::var("NEXUS_MTLS_CERT_PATH").unwrap_or_else(|_| "/etc/nexus/tls/client.pem".into()),
+        std::env::var("NEXUS_MTLS_CERT_PATH")
+            .unwrap_or_else(|_| "/etc/nexus/tls/client.pem".into()),
         std::env::var("NEXUS_MTLS_KEY_PATH").unwrap_or_else(|_| "/etc/nexus/tls/client.key".into()),
         std::env::var("NEXUS_MTLS_CA_PATH").unwrap_or_else(|_| "/etc/nexus/tls/ca.pem".into()),
     )?;
@@ -104,9 +105,7 @@ fn run(logger: &Logger) -> Result<()> {
             ),
             (
                 "diode_note",
-                Value::string(
-                    "software zone separation; not a hardware data diode",
-                ),
+                Value::string("software zone separation; not a hardware data diode"),
             ),
         ],
     );

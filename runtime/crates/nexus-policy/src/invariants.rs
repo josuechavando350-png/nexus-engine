@@ -187,10 +187,7 @@ pub fn check_hard_invariants(request: &PolicyRequest) -> Option<(HardInvariant, 
                 HardInvariant::NoExpiredCommand,
                 DenyReason::new(
                     HardInvariant::NoExpiredCommand.as_str(),
-                    format!(
-                        "command expired {} ms ago",
-                        request.now_millis - expires_at
-                    ),
+                    format!("command expired {} ms ago", request.now_millis - expires_at),
                 ),
             ));
         }
@@ -220,7 +217,11 @@ pub fn check_hard_invariants(request: &PolicyRequest) -> Option<(HardInvariant, 
 
     // 6 — device capability envelope.
     for capability in &request.requested_capabilities {
-        if !request.device_capabilities.iter().any(|owned| owned == capability) {
+        if !request
+            .device_capabilities
+            .iter()
+            .any(|owned| owned == capability)
+        {
             return Some((
                 HardInvariant::NoUnsupportedCapability,
                 DenyReason::new(

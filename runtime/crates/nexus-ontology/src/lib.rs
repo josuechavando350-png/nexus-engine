@@ -20,9 +20,7 @@ pub mod model;
 pub mod resolution;
 pub mod store;
 
-pub use model::{
-    Entity, EntityKind, Provenance, RelationKind, Relationship, TemporalFact,
-};
+pub use model::{Entity, EntityKind, Provenance, RelationKind, Relationship, TemporalFact};
 pub use resolution::{
     merge_audit, normalize_detection, normalize_key, normalize_telemetry, pipeline_for_telemetry,
     provenance_from, resolve, resolve_conflict, score_candidate, to_mutations, ConflictWinner,

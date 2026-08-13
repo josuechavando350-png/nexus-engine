@@ -184,7 +184,10 @@ impl HumanApprovalGate {
     }
 
     pub fn pending_count(&self) -> usize {
-        self.pending.lock().map(|pending| pending.len()).unwrap_or(0)
+        self.pending
+            .lock()
+            .map(|pending| pending.len())
+            .unwrap_or(0)
     }
 
     /// Drops expired requests. They are never auto-approved.

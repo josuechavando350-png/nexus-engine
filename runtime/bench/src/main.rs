@@ -27,9 +27,7 @@
 use std::time::Instant;
 
 use nexus_event::json::Value;
-use nexus_event::{
-    DedupIndex, EventEnvelope, SourceId, SourceType, Timestamp,
-};
+use nexus_event::{DedupIndex, EventEnvelope, SourceId, SourceType, Timestamp};
 use nexus_graph::InMemoryGraph;
 use nexus_observability::Histogram;
 use nexus_ontology::store::{GraphMutation, GraphWriter};
@@ -189,7 +187,9 @@ fn main() {
 
     // 4. Deduplication at a 100k window.
     let mut dedup = DedupIndex::new(100_000);
-    let keys: Vec<String> = (0..count).map(|index| envelope(index).idempotency_key()).collect();
+    let keys: Vec<String> = (0..count)
+        .map(|index| envelope(index).idempotency_key())
+        .collect();
     results.push(measure("dedup_check_insert", count, |index| {
         std::hint::black_box(dedup.check_and_insert(&keys[index]));
     }));

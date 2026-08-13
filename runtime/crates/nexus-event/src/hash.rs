@@ -300,4 +300,4 @@ mod tests {
         assert!(!constant_time_eq(b"abc", b"abd"));
         assert!(!constant_time_eq(b"abc", b"ab"));
     }
-        }
+}

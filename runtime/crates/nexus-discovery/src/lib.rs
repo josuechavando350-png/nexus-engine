@@ -1,8 +1,66 @@
 //! Service discovery model with health and leases independent of DNS/Consul/etcd.
 #![forbid(unsafe_code)]
 use std::collections::BTreeMap;
-#[derive(Debug,Clone,PartialEq,Eq,PartialOrd,Ord,Hash)]pub struct ServiceKey{pub namespace:String,pub name:String}
-#[derive(Debug,Clone,PartialEq,Eq)]pub struct Endpoint{pub node_id:String,pub authority:String,pub protocol:String,pub healthy:bool,pub expires_at_ms:u64,pub metadata:BTreeMap<String,String>}
-pub trait Discovery:Send+Sync{fn register(&self,key:&ServiceKey,endpoint:Endpoint)->Result<(),String>;fn resolve(&self,key:&ServiceKey,now_ms:u64)->Result<Vec<Endpoint>,String>;fn revoke_node(&self,node_id:&str)->Result<(),String>;}
-#[derive(Debug,Default)]pub struct InMemoryDiscovery{inner:std::sync::RwLock<BTreeMap<ServiceKey,Vec<Endpoint>>>}
-impl Discovery for InMemoryDiscovery{fn register(&self,k:&ServiceKey,e:Endpoint)->Result<(),String>{if k.namespace.trim().is_empty()||k.name.trim().is_empty(){return Err("service namespace/name required".into())}if e.node_id.trim().is_empty()||e.protocol.trim().is_empty(){return Err("endpoint node/protocol required".into())}if e.expires_at_ms==0{return Err("endpoint lease expiry required".into())}if e.authority.is_empty(){return Err("endpoint authority required".into())}let mut g=self.inner.write().map_err(|_|"discovery lock poisoned")?;let v=g.entry(k.clone()).or_default();v.retain(|x|!(x.node_id==e.node_id&&x.protocol==e.protocol));v.push(e);Ok(())}fn resolve(&self,k:&ServiceKey,now:u64)->Result<Vec<Endpoint>,String>{Ok(self.inner.read().map_err(|_|"discovery lock poisoned")?.get(k).cloned().unwrap_or_default().into_iter().filter(|e|e.healthy&&e.expires_at_ms>now).collect())}fn revoke_node(&self,node:&str)->Result<(),String>{let mut g=self.inner.write().map_err(|_|"discovery lock poisoned")?;for v in g.values_mut(){v.retain(|e|e.node_id!=node)}Ok(())}}
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct ServiceKey {
+    pub namespace: String,
+    pub name: String,
+}
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Endpoint {
+    pub node_id: String,
+    pub authority: String,
+    pub protocol: String,
+    pub healthy: bool,
+    pub expires_at_ms: u64,
+    pub metadata: BTreeMap<String, String>,
+}
+pub trait Discovery: Send + Sync {
+    fn register(&self, key: &ServiceKey, endpoint: Endpoint) -> Result<(), String>;
+    fn resolve(&self, key: &ServiceKey, now_ms: u64) -> Result<Vec<Endpoint>, String>;
+    fn revoke_node(&self, node_id: &str) -> Result<(), String>;
+}
+#[derive(Debug, Default)]
+pub struct InMemoryDiscovery {
+    inner: std::sync::RwLock<BTreeMap<ServiceKey, Vec<Endpoint>>>,
+}
+impl Discovery for InMemoryDiscovery {
+    fn register(&self, k: &ServiceKey, e: Endpoint) -> Result<(), String> {
+        if k.namespace.trim().is_empty() || k.name.trim().is_empty() {
+            return Err("service namespace/name required".into());
+        }
+        if e.node_id.trim().is_empty() || e.protocol.trim().is_empty() {
+            return Err("endpoint node/protocol required".into());
+        }
+        if e.expires_at_ms == 0 {
+            return Err("endpoint lease expiry required".into());
+        }
+        if e.authority.is_empty() {
+            return Err("endpoint authority required".into());
+        }
+        let mut g = self.inner.write().map_err(|_| "discovery lock poisoned")?;
+        let v = g.entry(k.clone()).or_default();
+        v.retain(|x| !(x.node_id == e.node_id && x.protocol == e.protocol));
+        v.push(e);
+        Ok(())
+    }
+    fn resolve(&self, k: &ServiceKey, now: u64) -> Result<Vec<Endpoint>, String> {
+        Ok(self
+            .inner
+            .read()
+            .map_err(|_| "discovery lock poisoned")?
+            .get(k)
+            .cloned()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|e| e.healthy && e.expires_at_ms > now)
+            .collect())
+    }
+    fn revoke_node(&self, node: &str) -> Result<(), String> {
+        let mut g = self.inner.write().map_err(|_| "discovery lock poisoned")?;
+        for v in g.values_mut() {
+            v.retain(|e| e.node_id != node)
+        }
+        Ok(())
+    }
+}

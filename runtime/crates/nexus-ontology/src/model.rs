@@ -70,11 +70,7 @@ impl EntityKind {
             "Policy" => EntityKind::Policy,
             "Model" => EntityKind::Model,
             "TelemetryStream" => EntityKind::TelemetryStream,
-            other => {
-                return Err(NexusError::schema(format!(
-                    "unknown entity kind '{other}'"
-                )))
-            }
+            other => return Err(NexusError::schema(format!("unknown entity kind '{other}'"))),
         })
     }
 
@@ -407,20 +403,16 @@ impl Entity {
     }
 
     /// Records a new value, closing the previous fact rather than discarding it.
-    pub fn set_property(
-        &mut self,
-        key: &str,
-        value: Value,
-        at: Timestamp,
-        provenance: Provenance,
-    ) {
+    pub fn set_property(&mut self, key: &str, value: Value, at: Timestamp, provenance: Provenance) {
         for (existing_key, fact) in self.history.iter_mut() {
             if existing_key == key && fact.is_current() {
                 fact.close(at);
             }
         }
-        self.history
-            .push((key.to_string(), TemporalFact::new(value.clone(), at, provenance)));
+        self.history.push((
+            key.to_string(),
+            TemporalFact::new(value.clone(), at, provenance),
+        ));
         self.properties.insert(key.to_string(), value);
         self.updated_at = at;
     }
@@ -565,8 +557,17 @@ mod tests {
         for kind in EntityKind::all() {
             assert_eq!(EntityKind::parse(kind.as_str()).unwrap(), *kind);
         }
-        for rejected in ["Target", "Threat", "Combatant", "Weapon", "PersonOfInterest"] {
-            assert!(EntityKind::parse(rejected).is_err(), "must reject {rejected}");
+        for rejected in [
+            "Target",
+            "Threat",
+            "Combatant",
+            "Weapon",
+            "PersonOfInterest",
+        ] {
+            assert!(
+                EntityKind::parse(rejected).is_err(),
+                "must reject {rejected}"
+            );
         }
     }
 
@@ -620,7 +621,10 @@ mod tests {
             provenance(),
         );
 
-        assert_eq!(asset.properties.get("state"), Some(&Value::string("stopped")));
+        assert_eq!(
+            asset.properties.get("state"),
+            Some(&Value::string("stopped"))
+        );
         assert_eq!(
             asset.property_at("state", Timestamp::from_millis(2_000)),
             Some(&Value::string("running"))
@@ -634,7 +638,12 @@ mod tests {
 
     #[test]
     fn relationships_enforce_endpoint_kinds() {
-        let zone = Entity::new(EntityKind::Zone, "z1", provenance(), Timestamp::from_millis(1));
+        let zone = Entity::new(
+            EntityKind::Zone,
+            "z1",
+            provenance(),
+            Timestamp::from_millis(1),
+        );
         let asset = Entity::new(
             EntityKind::Asset,
             "a1",

@@ -203,7 +203,9 @@ impl EdgeTask {
     }
 
     pub fn signer_id(&self) -> Option<&str> {
-        self.signature.as_ref().map(|signature| signature.signer_id.as_str())
+        self.signature
+            .as_ref()
+            .map(|signature| signature.signer_id.as_str())
     }
 
     /// Full device-side verification. Every check is mandatory and the order
@@ -250,7 +252,9 @@ impl EdgeTask {
             .as_ref()
             .ok_or_else(|| VerificationError::BadSignature("task is unsigned".into()))?;
         if !registry.is_known(&signature.signer_id) {
-            return Err(VerificationError::UnknownSigner(signature.signer_id.clone()));
+            return Err(VerificationError::UnknownSigner(
+                signature.signer_id.clone(),
+            ));
         }
         registry
             .verify(&signature.signer_id, &self.signing_bytes(), signature)
@@ -444,10 +448,22 @@ mod tests {
         let task = task();
         let now = Timestamp::from_millis(NOW + 1_000);
         assert!(task
-            .verify("robot-inspect-01", &capabilities(), &registry(), &ledger, now)
+            .verify(
+                "robot-inspect-01",
+                &capabilities(),
+                &registry(),
+                &ledger,
+                now
+            )
             .is_ok());
         let error = task
-            .verify("robot-inspect-01", &capabilities(), &registry(), &ledger, now)
+            .verify(
+                "robot-inspect-01",
+                &capabilities(),
+                &registry(),
+                &ledger,
+                now,
+            )
             .unwrap_err();
         assert_eq!(error.code(), "replayed_nonce");
     }

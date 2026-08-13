@@ -178,7 +178,9 @@ impl InMemoryBus {
 impl MessageBus for InMemoryBus {
     fn produce(&self, messages: &[OutboundMessage]) -> Result<usize> {
         if self.produce_failing.load(Ordering::SeqCst) {
-            return Err(NexusError::adapter("in-memory bus: injected produce failure"));
+            return Err(NexusError::adapter(
+                "in-memory bus: injected produce failure",
+            ));
         }
 
         let mut state = self
@@ -246,11 +248,8 @@ impl MessageBus for InMemoryBus {
                 let advance = cursor + available.len() as u64;
                 state.cursors.insert(key, advance);
                 for mut message in available {
-                    let committed_key = (
-                        group.to_string(),
-                        message.topic.clone(),
-                        message.partition,
-                    );
+                    let committed_key =
+                        (group.to_string(), message.topic.clone(), message.partition);
                     let committed = state.committed.get(&committed_key).copied().unwrap_or(0);
                     // A message below the commit point being delivered again
                     // means this is a redelivery after a restart.
@@ -300,7 +299,8 @@ mod tests {
     #[test]
     fn produced_messages_are_readable() {
         let bus = InMemoryBus::new(3);
-        bus.produce(&[message("a", "1"), message("b", "2")]).unwrap();
+        bus.produce(&[message("a", "1"), message("b", "2")])
+            .unwrap();
         assert_eq!(bus.message_count(nexus_event::topics::TELEMETRY_RAW), 2);
     }
 
@@ -308,14 +308,11 @@ mod tests {
     fn ordering_is_preserved_per_key() {
         let bus = InMemoryBus::new(4);
         for index in 0..20 {
-            bus.produce(&[message("sensor-1", &index.to_string())]).unwrap();
+            bus.produce(&[message("sensor-1", &index.to_string())])
+                .unwrap();
         }
         let polled = bus
-            .poll(
-                "g1",
-                &[nexus_event::topics::TELEMETRY_RAW.to_string()],
-                100,
-            )
+            .poll("g1", &[nexus_event::topics::TELEMETRY_RAW.to_string()], 100)
             .unwrap();
         let bodies: Vec<String> = polled
             .iter()
@@ -339,7 +336,8 @@ mod tests {
     fn polling_does_not_commit() {
         let bus = InMemoryBus::new(1);
         let topics = vec![nexus_event::topics::TELEMETRY_RAW.to_string()];
-        bus.produce(&[message("a", "1"), message("a", "2")]).unwrap();
+        bus.produce(&[message("a", "1"), message("a", "2")])
+            .unwrap();
 
         let first = bus.poll("g1", &topics, 10).unwrap();
         assert_eq!(first.len(), 2);
@@ -348,14 +346,17 @@ mod tests {
         bus.reset_to_committed("g1");
         let redelivered = bus.poll("g1", &topics, 10).unwrap();
         assert_eq!(redelivered.len(), 2);
-        assert!(redelivered.iter().all(|message| message.delivery_attempt >= 1));
+        assert!(redelivered
+            .iter()
+            .all(|message| message.delivery_attempt >= 1));
     }
 
     #[test]
     fn committed_messages_are_not_redelivered() {
         let bus = InMemoryBus::new(1);
         let topics = vec![nexus_event::topics::TELEMETRY_RAW.to_string()];
-        bus.produce(&[message("a", "1"), message("a", "2")]).unwrap();
+        bus.produce(&[message("a", "1"), message("a", "2")])
+            .unwrap();
 
         let batch = bus.poll("g1", &topics, 10).unwrap();
         bus.commit("g1", &batch).unwrap();
