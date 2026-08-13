@@ -1,0 +1,15 @@
+node_modules/
+.pnpm-store/
+.next/
+dist/
+coverage/
+.turbo/
+*.log
+.env
+.env.local
+.DS_Store
+
+# NEXUS V3 Rust runtime
+runtime/target/
+runtime/.env
+**/*.cdx.json

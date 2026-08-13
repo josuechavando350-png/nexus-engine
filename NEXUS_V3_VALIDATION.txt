@@ -1,0 +1,170 @@
+NEXUS V3 — INDUSTRIAL AGENTIC RUNTIME — VALIDATION RECORD
+Branch: nexus-v3    Baseline: NEXUS_V2_FULL_REPO.zip    Date: 2026-08-13
+
+This file records what was actually executed. Nothing is reported as passing
+that was not run. Where a gate could not run, the exact blocking reason is
+given rather than a status.
+
+=========================================================================
+ENVIRONMENT
+=========================================================================
+OS                  Ubuntu 24.04 (container)
+Node.js             v22.22.2                       AVAILABLE
+Rust toolchain      cargo/rustc/rustup             NOT AVAILABLE
+Network egress      blocked by proxy               NOT AVAILABLE
+Docker              not present                    NOT AVAILABLE
+
+Evidence for the blockers:
+  $ cargo --version
+    /bin/sh: 1: cargo: not found
+  $ curl -I https://static.rust-lang.org/rustup/dist/x86_64-unknown-linux-gnu/rustup-init
+    HTTP/2 403 ; x-deny-reason: host_not_allowed
+  $ curl -o /dev/null -w "%{http_code}" https://crates.io
+    403
+  $ curl -o /dev/null -w "%{http_code}" https://registry.npmjs.org
+    403
+  $ apt-get install -y rustc cargo
+    E: Failed to fetch .../rustc_1.75.0...deb  403 Forbidden
+    E: Failed to fetch .../cargo_1.75.0...deb  403 Forbidden
+    (7 packages, all 403)
+
+Consequence: no Rust in this repository has ever been compiled, and no test in
+it has ever been run. Every cargo gate below is NOT TESTED for this reason and
+for no other.
+
+=========================================================================
+EXECUTED — PASS
+=========================================================================
+[PASS] SHA-256 algorithm validation
+       4 published FIPS 180-4 vectors (empty, "abc", 56-byte two-block,
+       one-million-'a') + 3000 differential inputs against node:crypto.
+       Mismatches: 0. Streaming vs one-shot verified across 8 chunk sizes.
+
+[PASS] JSON codec validation
+       4000 random documents round-tripped against JSON.parse: 0 mismatches.
+       2000 serializer outputs re-parsed by JSON.parse: all valid.
+       19/19 malformed inputs rejected (trailing comma, duplicate key, lone
+       surrogate, unescaped control char, leading zero, bare literals...).
+       Canonical form proven independent of key order.
+       Depth limit enforced at 128, accepted at 16.
+
+[PASS] V3 architecture gates — node scripts/v3-architecture-gates.mjs — exit 0
+       V3 Rust/Frontend separation ...... PASS (58 files, no React/Next/TS)
+       V3 plane independence ............ PASS
+       V3 ontology decoupling ........... PASS (4 files, no DB/driver/Cypher)
+       V3 edge execution safety ......... PASS (11 crate roots forbid unsafe)
+       V3 safety invariants ............. PASS (7 invariants, 36 terms, set closed)
+       V3 secret hygiene ................ PASS
+       V3 honest security claims ........ PASS (37 docs, 58 sources)
+       V3 workspace integrity ........... PASS (19 members)
+       V3 Rust source hygiene ........... PASS (modules, delimiters, imports)
+       V3 cross-crate symbols ........... PASS (11 crates)
+       V3 required artifacts ............ PASS (17 files)
+
+[PASS] V3 boundary assertions — logic of tests/v3-boundaries.test.ts executed
+       directly with node, 14/14 PASS. (Vitest itself could not be installed.)
+
+[PASS] Script syntax — node --check on scripts/v3-architecture-gates.mjs and
+       scripts/quality-gates.mjs.
+
+[PASS] Quality Gates V2/V3 — node scripts/quality-gates.mjs
+       Architecture ..................... PASS
+       Security baseline ................ PASS (8 apps)
+       Originality structure ............ PASS (4 probes distinct)
+       Industrial plane (new) ........... PASS
+       Accessibility baseline ........... WARNING (static only, by design)
+
+=========================================================================
+DEFECTS FOUND BY THESE CHECKS AND FIXED
+=========================================================================
+1. nexus-graph::GraphBackend was used by services/graphd but never
+   implemented. Found by the cross-crate symbol gate. Implemented with
+   strict resolution and 7 unit tests.
+2. Unused import DEFAULT_LATENCY_BUCKETS_MS in runtime/bench — would fail
+   clippy -D warnings. Removed.
+3. Unused import EdgeTask in examples/factory-line. Removed.
+4. Non-ASCII identifier accidentally introduced in nexus-event/dedup.rs.
+   Renamed.
+5. tests/v3-boundaries.test.ts checked for the exactly-once disclaimer after
+   the phrase, but it precedes it. Rewritten to inspect the surrounding
+   window; verified passing.
+6. Gate false positive: trait imports reported as unused. Gate made
+   trait-aware.
+7. Gate false positive: unbraced `use` paths treated the item as a module.
+   Prefix handling corrected.
+
+=========================================================================
+NOT TESTED — with exact reason
+=========================================================================
+[NOT TESTED] cargo fmt --all --check
+             Reason: no Rust toolchain; installation blocked (403 on
+             static.rust-lang.org and on every apt .deb).
+
+[NOT TESTED] cargo clippy --all-targets --all-features -- -D warnings
+             Reason: as above.
+
+[NOT TESTED] cargo test --workspace
+             Reason: as above.
+             Scope of what is unverified: 287 test functions in 41 modules.
+
+[NOT TESTED] cargo build --workspace --release
+             Reason: as above.
+             Scope: 18,716 lines of Rust across 58 files have never been
+             compiled. Expect first-compile errors.
+
+[NOT TESTED] cargo audit
+             Reason: no toolchain; crates.io and the advisory DB unreachable.
+
+[NOT TESTED] cargo deny check
+             Reason: as above. deny.toml is written and unexercised.
+
+[NOT TESTED] End-to-end demo (examples/factory-line)
+             Reason: requires a compiled binary. Implemented and wired as a
+             CI gate in .github/workflows/rust.yml.
+             Chain covered by the code: factory sensor -> observation diode
+             -> ingest -> normalize -> ontology -> graph -> synthetic smoke
+             detection -> correlation -> incident -> TaskProposal -> policy
+             -> simulation -> signed EdgeTask -> WASM sandbox (SIMULATION)
+             -> result as telemetry -> audit -> graph update.
+
+[NOT TESTED] Benchmarks (runtime/bench)
+             Reason: requires a compiled binary.
+             Consequence: every row in docs/research/V3_PERFORMANCE_TARGETS.md
+             is NOT MEASURED. No throughput or latency figure is claimed.
+
+[NOT TESTED] Feature-gated adapters: kafka (rdkafka), neo4j (neo4rs),
+             wasmtime, ed25519 (ed25519-dalek)
+             Reason: never compiled; crate versions could not be checked
+             against crates.io. Treat as reviewed source, not verified
+             behaviour. Highest expected defect density in the delivery.
+
+[NOT TESTED] pnpm install / lint / typecheck / test / build
+             Reason: registry.npmjs.org returns 403. Unchanged from the V2
+             validation record; the repository CI runs these on push.
+
+[NOT TESTED] Vitest suite, including the new tests/v3-boundaries.test.ts
+             Reason: vitest cannot be installed. Assertion logic was executed
+             manually instead (14/14 PASS) — this validates the logic, not
+             the vitest integration.
+
+[NOT TESTED] docker compose (Redpanda + Neo4j)
+             Reason: Docker not present, no network.
+
+[NOT TESTED] Cargo.lock generation
+             Reason: dependency resolution requires crates.io. Not committed.
+
+=========================================================================
+SUMMARY
+=========================================================================
+Executed and passing        6 check groups (SHA-256, JSON, 11 architecture
+                            gates, 14 boundary assertions, script syntax,
+                            5 quality gates)
+Defects found and fixed     7
+Not tested                  13 gates, all for the same two blockers:
+                            no Rust toolchain, no network egress.
+
+The architecture gates run without cargo and without network, so they are
+reproducible anywhere. The Rust gates require GitHub Actions
+(.github/workflows/rust.yml, job "rust") or a developer machine with a
+toolchain. Until that runs, V3 is NOT complete by its own definition: its
+gates are not all green.

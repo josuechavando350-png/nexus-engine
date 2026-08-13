@@ -1,0 +1,38 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/core/tsconfig.json"
+    },
+    {
+      "path": "./packages/experimental/tsconfig.json"
+    },
+    {
+      "path": "./apps/_experience-seed/tsconfig.json"
+    },
+    {
+      "path": "./apps/reference-meson/tsconfig.json"
+    },
+    {
+      "path": "./apps/reference-alfil/tsconfig.json"
+    },
+    {
+      "path": "./apps/reference-nexus-bot/tsconfig.json"
+    },
+    {
+      "path": "./packages/experience/tsconfig.json"
+    },
+    {
+      "path": "./apps/v2-probe-editorial/tsconfig.json"
+    },
+    {
+      "path": "./apps/v2-probe-cinematic/tsconfig.json"
+    },
+    {
+      "path": "./apps/v2-probe-industrial/tsconfig.json"
+    },
+    {
+      "path": "./apps/v2-probe-asymmetric/tsconfig.json"
+    }
+  ]
+}

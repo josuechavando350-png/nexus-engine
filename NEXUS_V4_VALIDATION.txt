@@ -1,0 +1,57 @@
+NEXUS V4 — AUTONOMOUS INTELLIGENCE ENGINE — BUILD CANDIDATE VALIDATION
+Date: 2026-08-13
+Baseline: user-supplied NEXUS_V3_FULL_REPO.zip
+Status: NOT CLOSED
+
+ENVIRONMENT
+Node.js: available
+Rust cargo/rustc: NOT AVAILABLE
+pnpm dependencies/network: unavailable for executable TS package gates
+
+EXECUTED — PASS
+[PASS] node scripts/v4-architecture-gates.mjs
+       V4 crates present
+       cognitive plane cannot import edge dispatch
+       memory core vendor-neutral
+       model core provider-neutral
+       replay forbids physical dispatch
+       delegation checks capability subsets
+       speculative world cannot manufacture observations
+       planner DAG cycle validation present
+       reasoning budgets bounded
+       all V4 workspace members present
+       required V4 architecture/security/research artifacts present
+       unsafe keyword scan clean in V4 crates
+
+[PASS] node scripts/v3-architecture-gates.mjs
+       11 executable architecture gates PASS
+       Rust toolchain gate remains NOT TESTED
+       V3 boundaries remain intact after V4 additions
+
+[PASS] node scripts/quality-gates.mjs — executable static portions
+       Architecture PASS
+       Security baseline PASS
+       Originality structure PASS
+       Industrial plane PASS
+       Accessibility WARNING (static only)
+       Type safety/tests/build/dependency health NOT TESTED due unavailable pnpm install/network
+       Rust toolchain NOT TESTED
+
+[PASS] node --check scripts/v4-architecture-gates.mjs
+
+NOT TESTED
+[NOT TESTED] cargo fmt --all --check — cargo not installed
+[NOT TESTED] cargo clippy --workspace --all-targets -- -D warnings — cargo not installed
+[NOT TESTED] cargo test --workspace — cargo not installed
+[NOT TESTED] cargo build --workspace --release — cargo not installed
+[NOT TESTED] V3 feature-gated adapters — cargo/network unavailable
+[NOT TESTED] V4 end-to-end Rust demo — cargo not installed
+[NOT TESTED] cargo audit / cargo deny / SBOM — cargo/network unavailable
+[NOT TESTED] pnpm lint/typecheck/test/build — dependencies/network unavailable
+[NOT TESTED] performance benchmarks — no compiled V4 binary
+[NOT TESTED] memory backend comparative benchmark — no external adapters selected or installed
+[NOT TESTED] durable execution Temporal vs Restate benchmark — adapters intentionally not selected without workload benchmark
+[NOT TESTED] real model-provider benchmark — provider adapters intentionally not selected in this candidate
+
+HONEST STATUS
+This is a V4 BUILD CANDIDATE, not a closed release. It adds substantive V4-owned cognitive contracts and static architecture evidence, but Rust compilation, tests, benchmarks, supply-chain gates and end-to-end execution remain required before V4 can be declared complete.

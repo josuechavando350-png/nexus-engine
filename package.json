@@ -1,0 +1,45 @@
+{
+  "name": "nexus-web-engine",
+  "private": true,
+  "version": "6.0.0",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "build": "pnpm -r --if-present build",
+    "quality-gates": "node scripts/quality-gates.mjs",
+    "v3-gates": "node scripts/v3-architecture-gates.mjs",
+    "rust:test": "cargo test --workspace --manifest-path runtime/Cargo.toml",
+    "rust:lint": "cargo clippy --all-targets --manifest-path runtime/Cargo.toml -- -D warnings",
+    "rust:build": "cargo build --workspace --release --manifest-path runtime/Cargo.toml",
+    "demo:e2e": "cargo run -p factory-line --manifest-path runtime/Cargo.toml",
+    "v4-gates": "node scripts/v4-architecture-gates.mjs",
+    "v5-gates": "node scripts/v5-architecture-gates.mjs",
+    "demo:v4": "cargo run -p autonomous-factory --manifest-path runtime/Cargo.toml",
+    "v6-gates": "node scripts/v6-architecture-gates.mjs",
+    "demo:v6": "cargo run -p distributed-factory --manifest-path runtime/Cargo.toml"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.0",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "eslint": "^10.0.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "globals": "^16.3.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.42.0",
+    "vitest": "^4.0.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "postcss": "8.5.18",
+      "sharp": "0.35.3"
+    }
+  }
+}
