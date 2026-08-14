@@ -556,9 +556,9 @@ mod tests {
 
         manifest.signature = Some(signer().sign(&manifest.signing_bytes()).unwrap());
 
-        let task = task(
-            EdgeCommand::CollectImage {
-                camera: "cam-1".into(),
+                let task = task(
+            EdgeCommand::CollectTemperature {
+                probe: "probe-a".into(),
             },
             ExecutionMode::Simulation,
         );
@@ -567,7 +567,10 @@ mod tests {
             .execute(&task, MODULE, &manifest, Timestamp::from_millis(NOW + 100))
             .unwrap_err();
 
-        assert_eq!(error.kind(), "exhausted");
+                assert!(
+            error.to_string().contains("fuel"),
+            "must be refused by the fuel budget, not by an earlier check: {error}"
+        );
     }
 
     #[test]
