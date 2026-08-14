@@ -184,16 +184,22 @@ impl MessageBus for KafkaBus {
 
 #[cfg(test)]
 mod tests {
+        fn production_source() -> &'static str {
+        include_str!("kafka.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("kafka.rs must contain the test module marker")
+        }
     #[test]
     fn no_credentials_are_hardcoded() {
-        let source = include_str!("kafka.rs");
+        let source = production_source();
         assert!(!source.contains("sasl.password\", \""));
         assert!(!source.contains("localhost:9092"));
     }
 
     #[test]
     fn auto_commit_is_disabled() {
-        let source = include_str!("kafka.rs");
+        let source = production_source();
         assert!(source.contains("\"enable.auto.commit\", \"false\""));
     }
 }
