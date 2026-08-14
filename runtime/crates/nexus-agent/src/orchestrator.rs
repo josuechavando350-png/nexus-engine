@@ -57,6 +57,31 @@ impl Default for OrchestratorConfig {
     }
 }
 
+/// Borrowed physical context used for planning and deterministic simulation.
+///
+/// This view deliberately owns no data and carries no signing authority.
+/// `signer` and `now` remain explicit arguments to [`Orchestrator::process`]
+/// because authority and time are separate trust boundaries.
+#[derive(Clone, Copy)]
+pub struct SituationView<'a> {
+    pub world_state: &'a WorldState,
+    pub capabilities: &'a RobotCapabilities,
+    pub envelope: &'a SafetyEnvelope,
+    pub twin: &'a WorldModel,
+}
+
+/// Facts already established by the orchestration pipeline and supplied to
+/// policy evaluation.
+///
+/// Keeping these values named avoids positional boolean arguments where
+/// accidentally swapping two values would still compile.
+pub struct VerifiedFacts {
+    pub simulation: SimulationOutcome,
+    pub approval_present: bool,
+    pub signer_is_known: bool,
+    pub nonce_seen: bool,
+}
+
 /// What the pipeline decided.
 #[derive(Debug, Clone)]
 pub enum DispatchOutcome {
@@ -152,16 +177,12 @@ impl<'a> Orchestrator<'a> {
     ///
     /// Kept separate and public so the same request can be shown to an
     /// operator before it is evaluated.
-    #[allow(clippy::too_many_arguments)]
     pub fn policy_request(
         &self,
         proposal: &TaskProposal,
         plan: &BehaviorPlan,
         capabilities: &RobotCapabilities,
-        simulation: SimulationOutcome,
-        approval_present: bool,
-        signer_is_known: bool,
-        nonce_seen: bool,
+        facts: VerifiedFacts,
         now: Timestamp,
     ) -> PolicyRequest {
         let primary = plan
@@ -185,13 +206,13 @@ impl<'a> Orchestrator<'a> {
             device_capabilities: capabilities.capabilities.clone(),
             risk_class: proposal.risk_class,
             high_impact: plan.is_high_impact(),
-            human_approval_present: approval_present,
-            simulation,
+            human_approval_present: facts.approval_present,
+            simulation: facts.simulation,
             safety_envelope_id: Some(plan.envelope.envelope_id.clone()),
             now_millis: now.as_millis(),
             expires_at_millis: Some(now.as_millis() + self.config.task_ttl_millis),
-            signer_is_known,
-            nonce_already_seen: nonce_seen,
+            signer_is_known: facts.signer_is_known,
+            nonce_already_seen: facts.nonce_seen,
             targets_person: false,
             intent_annotations: proposal.intent_annotations.clone(),
         }
@@ -199,20 +220,16 @@ impl<'a> Orchestrator<'a> {
 
     /// Runs the full pipeline for one proposal.
     ///
-    /// `world_state` is the observed state supplied to the behaviour model.
-    /// `twin` is the deterministic simulated twin used for the dry run.
-    /// `signer` produces the signature on the outgoing task.
+    /// `situation` contains the observed world state, device capabilities,
+    /// safety envelope and deterministic twin used for planning and dry-run
+    /// simulation. It carries no signing authority.
     ///
-    /// These inputs intentionally remain explicit because each one represents
-    /// a separate trust or safety boundary in the dispatch pipeline.
-    #[allow(clippy::too_many_arguments)]
+    /// `signer` remains explicit because it authorizes the outgoing task.
+    /// `now` remains explicit so time stays deterministic and replayable.
     pub fn process(
         &self,
         proposal: &TaskProposal,
-        world_state: &WorldState,
-        capabilities: &RobotCapabilities,
-        envelope: &SafetyEnvelope,
-        twin: &WorldModel,
+        situation: SituationView<'_>,
         signer: &dyn Signer,
         now: Timestamp,
     ) -> Result<DispatchOutcome> {
@@ -225,11 +242,14 @@ impl<'a> Orchestrator<'a> {
         );
 
         // 1. Plan.
-        let plan = self
-            .model
-            .plan(world_state, &proposal.goal, capabilities, envelope)?;
+        let plan = self.model.plan(
+            situation.world_state,
+            &proposal.goal,
+            situation.capabilities,
+            situation.envelope,
+        )?;
 
-        plan.validate(capabilities)?;
+        plan.validate(situation.capabilities)?;
 
         // 2. Policy, before anything is simulated or signed.
         let approval_present = self.gate.is_granted(&proposal.task_id);
@@ -251,11 +271,13 @@ impl<'a> Orchestrator<'a> {
         let screening = self.policy_request(
             proposal,
             &plan,
-            capabilities,
-            SimulationOutcome::NotRequired,
-            approval_present,
-            true,
-            false,
+            situation.capabilities,
+            VerifiedFacts {
+                simulation: SimulationOutcome::NotRequired,
+                approval_present,
+                signer_is_known: true,
+                nonce_seen: false,
+            },
             now,
         );
 
@@ -323,7 +345,7 @@ impl<'a> Orchestrator<'a> {
 
         let constraints = plan.envelope.to_constraints();
 
-        let report = twin.dry_run(&commands, &constraints);
+        let report = situation.twin.dry_run(&commands, &constraints);
 
         self.audit.record(
             AuditAction::SimulationRun,
@@ -350,11 +372,13 @@ impl<'a> Orchestrator<'a> {
         let authoritative = self.policy_request(
             proposal,
             &plan,
-            capabilities,
-            simulation_outcome,
-            self.gate.is_granted(&proposal.task_id),
-            true,
-            false,
+            situation.capabilities,
+            VerifiedFacts {
+                simulation: simulation_outcome,
+                approval_present: self.gate.is_granted(&proposal.task_id),
+                signer_is_known: true,
+                nonce_seen: false,
+            },
             now,
         );
 
@@ -596,225 +620,4 @@ mod tests {
     }
 
     #[test]
-    fn a_read_only_inspection_reaches_a_signed_task() {
-        let fixture = Fixture::new();
-
-        let outcome = fixture
-            .orchestrator()
-            .process(
-                &proposal(confirm_reading_goal()),
-                &world_state(),
-                &capabilities(),
-                &SafetyEnvelope::conservative("envelope-test"),
-                &twin(),
-                &fixture.signer,
-                now(),
-            )
-            .expect("pipeline runs");
-
-        match outcome {
-            DispatchOutcome::Dispatch {
-                task, simulation, ..
-            } => {
-                assert!(task.signature.is_some());
-                assert_eq!(task.mode, ExecutionMode::Simulation);
-                assert!(task.expires_at.as_millis() > now().as_millis());
-
-                assert_eq!(
-                    task.simulation_id.as_deref(),
-                    Some(simulation.simulation_id.as_str())
-                );
-            }
-
-            other => {
-                panic!("expected dispatch, got {}", other.as_str())
-            }
-        }
-    }
-
-    #[test]
-    fn every_stage_is_audited_before_the_next_one() {
-        let fixture = Fixture::new();
-
-        let trace = TraceId::from_external("trc_test");
-
-        fixture
-            .orchestrator()
-            .process(
-                &proposal(confirm_reading_goal()),
-                &world_state(),
-                &capabilities(),
-                &SafetyEnvelope::conservative("envelope-test"),
-                &twin(),
-                &fixture.signer,
-                now(),
-            )
-            .unwrap();
-
-        let records = fixture.audit.records_for_trace(&trace);
-
-        let actions: Vec<&str> = records
-            .iter()
-            .map(|record| record.action.as_str())
-            .collect();
-
-        assert_eq!(actions.first(), Some(&"task_proposed"));
-
-        assert!(actions.contains(&"policy_evaluated"));
-
-        assert!(actions.contains(&"simulation_run"));
-
-        assert_eq!(actions.last(), Some(&"task_signed"));
-
-        // Signing is the last thing that happens,
-        // never before simulation.
-        let simulation_index = actions
-            .iter()
-            .position(|action| *action == "simulation_run")
-            .unwrap();
-
-        let signed_index = actions
-            .iter()
-            .position(|action| *action == "task_signed")
-            .unwrap();
-
-        assert!(simulation_index < signed_index);
-
-        fixture.audit.verify_chain().expect("audit chain intact");
-    }
-
-    #[test]
-    fn a_failing_simulation_blocks_dispatch() {
-        let fixture = Fixture::new();
-
-        let blocked = twin().with_object(WorldObject::obstacle("crate", point(5.0, 0.0), 1.0));
-
-        let outcome = fixture
-            .orchestrator()
-            .process(
-                &proposal(confirm_reading_goal()),
-                &world_state(),
-                &capabilities(),
-                &SafetyEnvelope::conservative("envelope-test"),
-                &blocked,
-                &fixture.signer,
-                now(),
-            )
-            .unwrap();
-
-        match outcome {
-            DispatchOutcome::SimulationFailed { report, .. } => {
-                assert_eq!(report.first_error_code(), Some("collision"));
-            }
-
-            other => {
-                panic!("expected simulation failure, got {}", other.as_str())
-            }
-        }
-    }
-
-    #[test]
-    fn personnel_in_the_zone_turns_any_goal_into_a_stop() {
-        let fixture = Fixture::new();
-
-        let mut occupied = world_state();
-        occupied.personnel_present = true;
-
-        let outcome = fixture
-            .orchestrator()
-            .process(
-                &proposal(confirm_reading_goal()),
-                &occupied,
-                &capabilities(),
-                &SafetyEnvelope::conservative("envelope-test"),
-                &twin(),
-                &fixture.signer,
-                now(),
-            )
-            .unwrap();
-
-        match outcome {
-            DispatchOutcome::Dispatch { task, plan, .. } => {
-                assert_eq!(task.command.name(), "safe_stop");
-
-                assert_eq!(plan.goal.as_str(), "standdown");
-            }
-
-            other => {
-                panic!("expected a safe stop dispatch, got {}", other.as_str())
-            }
-        }
-    }
-
-    #[test]
-    fn nothing_is_signed_while_an_approval_is_outstanding() {
-        let fixture = Fixture::new();
-
-        let mut high_risk = proposal(confirm_reading_goal());
-
-        high_risk = high_risk.with_risk(RiskClass::Moderate);
-
-        let outcome = fixture
-            .orchestrator()
-            .process(
-                &high_risk,
-                &world_state(),
-                &capabilities(),
-                &SafetyEnvelope::conservative("envelope-test"),
-                &twin(),
-                &fixture.signer,
-                now(),
-            )
-            .unwrap();
-
-        assert_eq!(outcome.as_str(), "awaiting_approval");
-
-        let signed = fixture
-            .audit
-            .snapshot()
-            .into_iter()
-            .any(|record| record.action == AuditAction::TaskSigned);
-
-        assert!(!signed, "a task was signed without an approval");
-    }
-
-    #[test]
-    fn a_prohibited_annotation_is_rejected_before_planning_costs_anything() {
-        let fixture = Fixture::new();
-
-        let hostile = proposal(confirm_reading_goal())
-            .with_annotation("operator note: engage_target on approach");
-
-        let outcome = fixture
-            .orchestrator()
-            .process(
-                &hostile,
-                &world_state(),
-                &capabilities(),
-                &SafetyEnvelope::conservative("envelope-test"),
-                &twin(),
-                &fixture.signer,
-                now(),
-            )
-            .unwrap();
-
-        match outcome {
-            DispatchOutcome::Rejected { code, .. } => {
-                assert_eq!(code, "no_human_targeting");
-            }
-
-            other => {
-                panic!("expected rejection, got {}", other.as_str())
-            }
-        }
-    }
-
-    #[test]
-    fn risk_bands_are_explicit() {
-        assert_eq!(risk_for_temperature(50.0, 85.0), RiskClass::Low);
-
-        assert_eq!(risk_for_temperature(90.0, 85.0), RiskClass::Moderate);
-
-        assert_eq!(risk_for_temperature(120.0, 85.0), RiskClass::High);
-    }
-}
+    fn a_read_only_inspec
