@@ -333,9 +333,15 @@ impl EdgeRuntime for WasmtimeRuntime {
 
 #[cfg(test)]
 mod tests {
+        fn production_source() -> &'static str {
+        include_str!("wasmtime_host.rs")
+            .split_once("#[cfg(test)]")
+            .map(|(production, _)| production)
+            .expect("wasmtime_host.rs must contain the test module marker")
+        }
     #[test]
     fn wasi_is_never_linked() {
-        let source = include_str!("wasmtime_host.rs");
+        let source = production_source();
 
         assert!(!source.contains("wasmtime_wasi"));
         assert!(!source.contains("add_to_linker"));
@@ -343,7 +349,7 @@ mod tests {
 
     #[test]
     fn fuel_and_epoch_interruption_are_both_enabled() {
-        let source = include_str!("wasmtime_host.rs");
+        let source = production_source();
 
         assert!(source.contains("config.consume_fuel(true)"));
         assert!(source.contains("config.epoch_interruption(true)"));
@@ -385,7 +391,7 @@ mod tests {
     /// backends behave differently for the same task.
     #[test]
     fn host_registry_is_built_from_the_injected_factory() {
-        let source = include_str!("wasmtime_host.rs");
+        let source = production_source();
 
         assert!(source.contains("self.host.build(now)"));
         assert!(!source.contains("MockHost::new("));
@@ -394,7 +400,7 @@ mod tests {
     /// Neither proposal may be re-enabled from inside this file either.
     #[test]
     fn threads_and_reference_types_are_never_switched_on() {
-        let source = include_str!("wasmtime_host.rs");
+        let source = production_source();
 
         assert!(!source.contains("wasm_threads(true)"));
         assert!(!source.contains("wasm_reference_types(true)"));
