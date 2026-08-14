@@ -333,12 +333,12 @@ impl EdgeRuntime for WasmtimeRuntime {
 
 #[cfg(test)]
 mod tests {
-        fn production_source() -> &'static str {
+    fn production_source() -> &'static str {
         include_str!("wasmtime_host.rs")
             .split_once("#[cfg(test)]")
             .map(|(production, _)| production)
             .expect("wasmtime_host.rs must contain the test module marker")
-        }
+    }
     #[test]
     fn wasi_is_never_linked() {
         let source = production_source();
