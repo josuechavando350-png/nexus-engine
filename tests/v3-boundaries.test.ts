@@ -114,6 +114,14 @@ describe("NEXUS V3 honesty gates", () => {
       for (const match of source.matchAll(/exactly[- ]once/gi)) {
         const index = match.index ?? 0;
         const window = source.slice(Math.max(0, index - 160), index + 160).toLowerCase();
+
+        // Only evaluate exactly-once statements about message/event delivery semantics.
+        // Unrelated invariants such as "a resource version must advance exactly once"
+        // are not delivery guarantees and must not be treated as honesty-gate violations.
+        const deliveryContext =
+          /\b(delivery|processing|message|event|broker|transaction|end[- ]to[- ]end)\b/.test(window);
+        if (!deliveryContext) continue;
+
         if (!/\bnot\b|\bnever\b|\bcannot\b|\bnothing\b|\bno\b|\bwithout\b/.test(window)) {
           offenders.push(`${file}: ${window.trim().slice(0, 80)}`);
         }
