@@ -14,7 +14,7 @@ use nexus_agent::behavior::{RobotCapabilities, SafetyEnvelope, TaskGoal, WorldSt
 
 use nexus_agent::{
     DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator, OrchestratorConfig,
-    ProposalTrigger, TaskProposal,
+    ProposalTrigger, SituationView, TaskProposal,
 };
 
 use nexus_edge_protocol::{DevSigner, ExecutionMode, Waypoint};
@@ -176,6 +176,8 @@ fn run(logger: &Logger) -> Result<()> {
         observed_at: now,
     };
 
+    let envelope = SafetyEnvelope::conservative("envelope-inspection");
+
     let twin = WorldModel::new(
         "plant-1",
         "press-hall",
@@ -192,10 +194,12 @@ fn run(logger: &Logger) -> Result<()> {
 
     let outcome = orchestrator.process(
         &proposal,
-        &world_state,
-        &capabilities,
-        &SafetyEnvelope::conservative("envelope-inspection"),
-        &twin,
+        SituationView {
+            world_state: &world_state,
+            capabilities: &capabilities,
+            envelope: &envelope,
+            twin: &twin,
+        },
         &signer,
         now,
     )?;
@@ -260,4 +264,4 @@ fn run(logger: &Logger) -> Result<()> {
     print!("{}", metrics.render_text());
 
     Ok(())
-}
+        }
