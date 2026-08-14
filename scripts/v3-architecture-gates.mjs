@@ -836,6 +836,14 @@ const rustCode = new Map([...rustSources].map(([p, s]) => [p, stripCommentsAndSt
 /* Gate 12 — Rust toolchain gates (cannot run without cargo)           */
 /* ------------------------------------------------------------------ */
 (function rustToolchainGates() {
+    if (process.env.NEXUS_STATIC_ONLY === "1") {
+    report(
+      "Rust toolchain gates",
+      "NOT TESTED",
+      "static-only mode: Rust fmt/clippy/test/build are validated by dedicated CI jobs",
+    );
+    return;
+    }
   const probe = spawnSync("cargo", ["--version"], { encoding: "utf8" });
 
   if (probe.error || probe.status !== 0) {
