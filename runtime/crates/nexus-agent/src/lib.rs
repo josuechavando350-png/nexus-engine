@@ -36,5 +36,7 @@ pub use behavior::{
     BehaviorModel, BehaviorPlan, MockBehaviorModel, PlanStep, RobotCapabilities, SafetyEnvelope,
     TaskGoal, WorldState,
 };
-pub use orchestrator::{DispatchOutcome, Orchestrator, OrchestratorConfig};
+pub use orchestrator::{
+    DispatchOutcome, Orchestrator, OrchestratorConfig, SituationView, VerifiedFacts,
+};
 pub use proposal::{ProposalTrigger, TaskProposal};
