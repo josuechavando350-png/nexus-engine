@@ -1,0 +1,378 @@
+name: Restore + migrate orchestrator safely
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up Rust 1.88
+        uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Repair and migrate
+        shell: bash
+        run: |
+          cat > /tmp/nexus_repair.py <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          BAD = "2db8e236e49409f64e55707b9360b17a9f413bf2"
+          ORCH = Path("runtime/crates/nexus-agent/src/orchestrator.rs")
+
+          def fail(msg: str):
+              print(f"::error::{msg}")
+              raise SystemExit(1)
+
+          def git_show(spec: str) -> str:
+              return subprocess.run(
+                  ["git", "show", spec],
+                  check=True,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+              ).stdout
+
+          current = ORCH.read_text()
+          healthy = git_show(f"{BAD}^:{ORCH.as_posix()}")
+
+          if "pub struct SituationView" not in current or "pub struct VerifiedFacts" not in current:
+              fail("Current orchestrator.rs does not contain the intended refactor.")
+
+          cut_marker = "    #[test]\n    fn a_read_only_inspec"
+          cut = current.find(cut_marker)
+          if cut < 0:
+              fail("Expected truncation marker was not found; refusing to guess.")
+
+          healthy_marker = "    #[test]\n    fn a_read_only_inspection_reaches_a_signed_task() {"
+          healthy_cut = healthy.find(healthy_marker)
+          if healthy_cut < 0:
+              fail("Healthy test tail was not found in parent revision.")
+
+          tail = healthy[healthy_cut:]
+
+          replacements = [
+          (
+          '''            .process(
+                          &proposal(confirm_reading_goal()),
+                          &world_state(),
+                          &capabilities(),
+                          &SafetyEnvelope::conservative("envelope-test"),
+                          &twin(),
+                          &fixture.signer,
+                          now(),
+                      )''',
+          '''            .process(
+                          &proposal(confirm_reading_goal()),
+                          SituationView {
+                              world_state: &world_state(),
+                              capabilities: &capabilities(),
+                              envelope: &SafetyEnvelope::conservative("envelope-test"),
+                              twin: &twin(),
+                          },
+                          &fixture.signer,
+                          now(),
+                      )''',
+          2
+          ),
+          (
+          '''            .process(
+                          &proposal(confirm_reading_goal()),
+                          &world_state(),
+                          &capabilities(),
+                          &SafetyEnvelope::conservative("envelope-test"),
+                          &blocked,
+                          &fixture.signer,
+                          now(),
+                      )''',
+          '''            .process(
+                          &proposal(confirm_reading_goal()),
+                          SituationView {
+                              world_state: &world_state(),
+                              capabilities: &capabilities(),
+                              envelope: &SafetyEnvelope::conservative("envelope-test"),
+                              twin: &blocked,
+                          },
+                          &fixture.signer,
+                          now(),
+                      )''',
+          1
+          ),
+          (
+          '''            .process(
+                          &proposal(confirm_reading_goal()),
+                          &occupied,
+                          &capabilities(),
+                          &SafetyEnvelope::conservative("envelope-test"),
+                          &twin(),
+                          &fixture.signer,
+                          now(),
+                      )''',
+          '''            .process(
+                          &proposal(confirm_reading_goal()),
+                          SituationView {
+                              world_state: &occupied,
+                              capabilities: &capabilities(),
+                              envelope: &SafetyEnvelope::conservative("envelope-test"),
+                              twin: &twin(),
+                          },
+                          &fixture.signer,
+                          now(),
+                      )''',
+          1
+          ),
+          (
+          '''            .process(
+                          &high_risk,
+                          &world_state(),
+                          &capabilities(),
+                          &SafetyEnvelope::conservative("envelope-test"),
+                          &twin(),
+                          &fixture.signer,
+                          now(),
+                      )''',
+          '''            .process(
+                          &high_risk,
+                          SituationView {
+                              world_state: &world_state(),
+                              capabilities: &capabilities(),
+                              envelope: &SafetyEnvelope::conservative("envelope-test"),
+                              twin: &twin(),
+                          },
+                          &fixture.signer,
+                          now(),
+                      )''',
+          1
+          ),
+          (
+          '''            .process(
+                          &hostile,
+                          &world_state(),
+                          &capabilities(),
+                          &SafetyEnvelope::conservative("envelope-test"),
+                          &twin(),
+                          &fixture.signer,
+                          now(),
+                      )''',
+          '''            .process(
+                          &hostile,
+                          SituationView {
+                              world_state: &world_state(),
+                              capabilities: &capabilities(),
+                              envelope: &SafetyEnvelope::conservative("envelope-test"),
+                              twin: &twin(),
+                          },
+                          &fixture.signer,
+                          now(),
+                      )''',
+          1
+          ),
+          ]
+
+          for old, new, expected in replacements:
+              found = tail.count(old)
+              if found != expected:
+                  fail(f"Recovered test migration mismatch: expected {expected}, found {found}.")
+              tail = tail.replace(old, new)
+
+          rebuilt = current[:cut] + tail
+          if rebuilt.count("{") != rebuilt.count("}"):
+              fail("Rebuilt orchestrator.rs still has unbalanced braces.")
+          if "#[allow(clippy::too_many_arguments)]" in rebuilt:
+              fail("Lint suppression reappeared.")
+          if "fn risk_bands_are_explicit()" not in rebuilt:
+              fail("Recovered test tail is incomplete.")
+
+          ORCH.write_text(rebuilt)
+
+          factory_path = Path("runtime/examples/factory-line/src/main.rs")
+          factory = factory_path.read_text()
+          factory = factory.replace(
+          '''use nexus_agent::{
+              DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator, OrchestratorConfig,
+              ProposalTrigger, TaskProposal,
+          };''',
+          '''use nexus_agent::{
+              DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator, OrchestratorConfig,
+              ProposalTrigger, SituationView, TaskProposal,
+          };'''
+          )
+          factory = factory.replace(
+          '''    let outcome = orchestrator.process(
+                  &proposal,
+                  &world_state,
+                  &capabilities,
+                  &SafetyEnvelope::conservative("envelope-inspection"),
+                  &twin,
+                  &signer,
+                  now,
+              )?;''',
+          '''    let envelope = SafetyEnvelope::conservative("envelope-inspection");
+
+              let outcome = orchestrator.process(
+                  &proposal,
+                  SituationView {
+                      world_state: &world_state,
+                      capabilities: &capabilities,
+                      envelope: &envelope,
+                      twin: &twin,
+                  },
+                  &signer,
+                  now,
+              )?;'''
+          )
+          if "SituationView {" not in factory:
+              fail("factory-line was not migrated.")
+          factory_path.write_text(factory)
+
+          warehouse_path = Path("runtime/examples/warehouse-robot/src/main.rs")
+          warehouse = warehouse_path.read_text()
+          warehouse = warehouse.replace(
+          '''use nexus_agent::{
+              ApprovalDecision, DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator,
+              OrchestratorConfig, ProposalTrigger, TaskProposal,
+          };''',
+          '''use nexus_agent::{
+              ApprovalDecision, DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator,
+              OrchestratorConfig, ProposalTrigger, SituationView, TaskProposal,
+          };'''
+          )
+          warehouse = warehouse.replace(
+          '''    println!("NEXUS V3 — warehouse-robot: the human approval gate\\n");
+
+              println!("[1] Proposal submitted at moderate risk");''',
+          '''    println!("NEXUS V3 — warehouse-robot: the human approval gate\\n");
+
+              let envelope = SafetyEnvelope::conservative("envelope-warehouse");
+
+              println!("[1] Proposal submitted at moderate risk");'''
+          )
+          warehouse = warehouse.replace(
+          '''    let outcome = orchestrator.process(
+                  &proposal,
+                  &world_state,
+                  &capabilities,
+                  &SafetyEnvelope::conservative("envelope-warehouse"),
+                  &twin,
+                  &signer,
+                  now,
+              )?;''',
+          '''    let outcome = orchestrator.process(
+                  &proposal,
+                  SituationView {
+                      world_state: &world_state,
+                      capabilities: &capabilities,
+                      envelope: &envelope,
+                      twin: &twin,
+                  },
+                  &signer,
+                  now,
+              )?;'''
+          )
+          warehouse = warehouse.replace(
+          '''    let outcome = orchestrator.process(
+                  &proposal,
+                  &world_state,
+                  &capabilities,
+                  &SafetyEnvelope::conservative("envelope-warehouse"),
+                  &twin,
+                  &signer,
+                  Timestamp::from_millis(now.as_millis() + 31_000),
+              )?;''',
+          '''    let outcome = orchestrator.process(
+                  &proposal,
+                  SituationView {
+                      world_state: &world_state,
+                      capabilities: &capabilities,
+                      envelope: &envelope,
+                      twin: &twin,
+                  },
+                  &signer,
+                  Timestamp::from_millis(now.as_millis() + 31_000),
+              )?;'''
+          )
+          if warehouse.count("SituationView {") != 2:
+              fail("warehouse-robot was not fully migrated.")
+          warehouse_path.write_text(warehouse)
+
+          service = Path("runtime/services/orchestratord/src/main.rs").read_text()
+          if "SituationView" not in service:
+              fail("orchestratord is not migrated.")
+
+          lib = Path("runtime/crates/nexus-agent/src/lib.rs").read_text()
+          if "SituationView" not in lib or "VerifiedFacts" not in lib:
+              fail("nexus-agent exports are incomplete.")
+
+          print("Repair prepared successfully.")
+          subprocess.run(["git", "diff", "--name-only"], check=True)
+          PY
+          python3 /tmp/nexus_repair.py
+
+      - name: Format workspace
+        working-directory: runtime
+        run: cargo fmt --all
+
+      - name: Architecture gates
+        run: |
+          node scripts/v3-architecture-gates.mjs
+          node scripts/v4-architecture-gates.mjs
+          node scripts/v5-architecture-gates.mjs
+          node scripts/v6-architecture-gates.mjs
+
+      - name: Format check
+        working-directory: runtime
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        working-directory: runtime
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests
+        working-directory: runtime
+        run: cargo test --workspace
+
+      - name: Release build
+        working-directory: runtime
+        run: cargo build --workspace --release
+
+      - name: Validate diff
+        run: |
+          git diff --check
+          git diff --stat
+
+      - name: Commit validated repair
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add             runtime/crates/nexus-agent/src/orchestrator.rs             runtime/services/orchestratord/src/main.rs             runtime/examples/factory-line/src/main.rs             runtime/examples/warehouse-robot/src/main.rs
+
+          git commit -m "Restore orchestrator tests and migrate SituationView call sites"
+          git push origin HEAD:main
