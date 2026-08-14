@@ -16,7 +16,7 @@
 use nexus_agent::behavior::{RobotCapabilities, SafetyEnvelope, TaskGoal, WorldState};
 use nexus_agent::{
     ApprovalDecision, DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator,
-    OrchestratorConfig, ProposalTrigger, TaskProposal,
+    OrchestratorConfig, ProposalTrigger, SituationView, TaskProposal,
 };
 use nexus_edge_protocol::{DevSigner, ExecutionMode, Waypoint};
 use nexus_event::{NexusError, Result, Timestamp, TraceId};
@@ -102,13 +102,17 @@ fn run() -> Result<()> {
 
     println!("NEXUS V3 — warehouse-robot: the human approval gate\n");
 
+    let envelope = SafetyEnvelope::conservative("envelope-warehouse");
+
     println!("[1] Proposal submitted at moderate risk");
     let outcome = orchestrator.process(
         &proposal,
-        &world_state,
-        &capabilities,
-        &SafetyEnvelope::conservative("envelope-warehouse"),
-        &twin,
+        SituationView {
+            world_state: &world_state,
+            capabilities: &capabilities,
+            envelope: &envelope,
+            twin: &twin,
+        },
         &signer,
         now,
     )?;
@@ -185,10 +189,12 @@ fn run() -> Result<()> {
     println!("\n[6] The same proposal now reaches a signed task");
     let outcome = orchestrator.process(
         &proposal,
-        &world_state,
-        &capabilities,
-        &SafetyEnvelope::conservative("envelope-warehouse"),
-        &twin,
+        SituationView {
+            world_state: &world_state,
+            capabilities: &capabilities,
+            envelope: &envelope,
+            twin: &twin,
+        },
         &signer,
         Timestamp::from_millis(now.as_millis() + 31_000),
     )?;

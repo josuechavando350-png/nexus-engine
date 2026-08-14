@@ -259,7 +259,7 @@ fn run(logger: &Logger) -> Result<()> {
         }
     }
 
-        audit.verify_chain().map_err(NexusError::integrity)?;
+    audit.verify_chain().map_err(NexusError::integrity)?;
 
     print!("{}", metrics.render_text());
 

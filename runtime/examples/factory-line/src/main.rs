@@ -26,7 +26,7 @@ use std::sync::Arc;
 use nexus_agent::behavior::{RobotCapabilities, SafetyEnvelope, TaskGoal, WorldState};
 use nexus_agent::{
     DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator, OrchestratorConfig,
-    ProposalTrigger, TaskProposal,
+    ProposalTrigger, SituationView, TaskProposal,
 };
 use nexus_edge_protocol::{DevSigner, ExecutionMode, Signer, SignerRegistry, Waypoint};
 use nexus_edge_wasm::{EdgeRuntime, MockHostFactory, ModuleManifest, SimulationExecutor};
@@ -359,12 +359,16 @@ fn run() -> Result<String> {
         &audit,
     );
 
+    let envelope = SafetyEnvelope::conservative("envelope-inspection");
+
     let outcome = orchestrator.process(
         &proposal,
-        &world_state,
-        &capabilities,
-        &SafetyEnvelope::conservative("envelope-inspection"),
-        &twin,
+        SituationView {
+            world_state: &world_state,
+            capabilities: &capabilities,
+            envelope: &envelope,
+            twin: &twin,
+        },
         &signer,
         now,
     )?;

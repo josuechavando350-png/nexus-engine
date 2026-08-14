@@ -620,4 +620,237 @@ mod tests {
     }
 
     #[test]
-    fn a_read_only_inspec
+    fn a_read_only_inspection_reaches_a_signed_task() {
+        let fixture = Fixture::new();
+
+        let outcome = fixture
+            .orchestrator()
+            .process(
+                &proposal(confirm_reading_goal()),
+                SituationView {
+                    world_state: &world_state(),
+                    capabilities: &capabilities(),
+                    envelope: &SafetyEnvelope::conservative("envelope-test"),
+                    twin: &twin(),
+                },
+                &fixture.signer,
+                now(),
+            )
+            .expect("pipeline runs");
+
+        match outcome {
+            DispatchOutcome::Dispatch {
+                task, simulation, ..
+            } => {
+                assert!(task.signature.is_some());
+                assert_eq!(task.mode, ExecutionMode::Simulation);
+                assert!(task.expires_at.as_millis() > now().as_millis());
+
+                assert_eq!(
+                    task.simulation_id.as_deref(),
+                    Some(simulation.simulation_id.as_str())
+                );
+            }
+
+            other => {
+                panic!("expected dispatch, got {}", other.as_str())
+            }
+        }
+    }
+
+    #[test]
+    fn every_stage_is_audited_before_the_next_one() {
+        let fixture = Fixture::new();
+
+        let trace = TraceId::from_external("trc_test");
+
+        fixture
+            .orchestrator()
+            .process(
+                &proposal(confirm_reading_goal()),
+                SituationView {
+                    world_state: &world_state(),
+                    capabilities: &capabilities(),
+                    envelope: &SafetyEnvelope::conservative("envelope-test"),
+                    twin: &twin(),
+                },
+                &fixture.signer,
+                now(),
+            )
+            .unwrap();
+
+        let records = fixture.audit.records_for_trace(&trace);
+
+        let actions: Vec<&str> = records
+            .iter()
+            .map(|record| record.action.as_str())
+            .collect();
+
+        assert_eq!(actions.first(), Some(&"task_proposed"));
+
+        assert!(actions.contains(&"policy_evaluated"));
+
+        assert!(actions.contains(&"simulation_run"));
+
+        assert_eq!(actions.last(), Some(&"task_signed"));
+
+        // Signing is the last thing that happens,
+        // never before simulation.
+        let simulation_index = actions
+            .iter()
+            .position(|action| *action == "simulation_run")
+            .unwrap();
+
+        let signed_index = actions
+            .iter()
+            .position(|action| *action == "task_signed")
+            .unwrap();
+
+        assert!(simulation_index < signed_index);
+
+        fixture.audit.verify_chain().expect("audit chain intact");
+    }
+
+    #[test]
+    fn a_failing_simulation_blocks_dispatch() {
+        let fixture = Fixture::new();
+
+        let blocked = twin().with_object(WorldObject::obstacle("crate", point(5.0, 0.0), 1.0));
+
+        let outcome = fixture
+            .orchestrator()
+            .process(
+                &proposal(confirm_reading_goal()),
+                SituationView {
+                    world_state: &world_state(),
+                    capabilities: &capabilities(),
+                    envelope: &SafetyEnvelope::conservative("envelope-test"),
+                    twin: &blocked,
+                },
+                &fixture.signer,
+                now(),
+            )
+            .unwrap();
+
+        match outcome {
+            DispatchOutcome::SimulationFailed { report, .. } => {
+                assert_eq!(report.first_error_code(), Some("collision"));
+            }
+
+            other => {
+                panic!("expected simulation failure, got {}", other.as_str())
+            }
+        }
+    }
+
+    #[test]
+    fn personnel_in_the_zone_turns_any_goal_into_a_stop() {
+        let fixture = Fixture::new();
+
+        let mut occupied = world_state();
+        occupied.personnel_present = true;
+
+        let outcome = fixture
+            .orchestrator()
+            .process(
+                &proposal(confirm_reading_goal()),
+                SituationView {
+                    world_state: &occupied,
+                    capabilities: &capabilities(),
+                    envelope: &SafetyEnvelope::conservative("envelope-test"),
+                    twin: &twin(),
+                },
+                &fixture.signer,
+                now(),
+            )
+            .unwrap();
+
+        match outcome {
+            DispatchOutcome::Dispatch { task, plan, .. } => {
+                assert_eq!(task.command.name(), "safe_stop");
+
+                assert_eq!(plan.goal.as_str(), "standdown");
+            }
+
+            other => {
+                panic!("expected a safe stop dispatch, got {}", other.as_str())
+            }
+        }
+    }
+
+    #[test]
+    fn nothing_is_signed_while_an_approval_is_outstanding() {
+        let fixture = Fixture::new();
+
+        let mut high_risk = proposal(confirm_reading_goal());
+
+        high_risk = high_risk.with_risk(RiskClass::Moderate);
+
+        let outcome = fixture
+            .orchestrator()
+            .process(
+                &high_risk,
+                SituationView {
+                    world_state: &world_state(),
+                    capabilities: &capabilities(),
+                    envelope: &SafetyEnvelope::conservative("envelope-test"),
+                    twin: &twin(),
+                },
+                &fixture.signer,
+                now(),
+            )
+            .unwrap();
+
+        assert_eq!(outcome.as_str(), "awaiting_approval");
+
+        let signed = fixture
+            .audit
+            .snapshot()
+            .into_iter()
+            .any(|record| record.action == AuditAction::TaskSigned);
+
+        assert!(!signed, "a task was signed without an approval");
+    }
+
+    #[test]
+    fn a_prohibited_annotation_is_rejected_before_planning_costs_anything() {
+        let fixture = Fixture::new();
+
+        let hostile = proposal(confirm_reading_goal())
+            .with_annotation("operator note: engage_target on approach");
+
+        let outcome = fixture
+            .orchestrator()
+            .process(
+                &hostile,
+                SituationView {
+                    world_state: &world_state(),
+                    capabilities: &capabilities(),
+                    envelope: &SafetyEnvelope::conservative("envelope-test"),
+                    twin: &twin(),
+                },
+                &fixture.signer,
+                now(),
+            )
+            .unwrap();
+
+        match outcome {
+            DispatchOutcome::Rejected { code, .. } => {
+                assert_eq!(code, "no_human_targeting");
+            }
+
+            other => {
+                panic!("expected rejection, got {}", other.as_str())
+            }
+        }
+    }
+
+    #[test]
+    fn risk_bands_are_explicit() {
+        assert_eq!(risk_for_temperature(50.0, 85.0), RiskClass::Low);
+
+        assert_eq!(risk_for_temperature(90.0, 85.0), RiskClass::Moderate);
+
+        assert_eq!(risk_for_temperature(120.0, 85.0), RiskClass::High);
+    }
+}
