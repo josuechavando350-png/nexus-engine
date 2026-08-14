@@ -263,5 +263,5 @@ fn run(logger: &Logger) -> Result<()> {
 
     print!("{}", metrics.render_text());
 
-    Ok(())
-        }
+        Ok(())
+}
