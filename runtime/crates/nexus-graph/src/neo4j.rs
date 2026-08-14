@@ -430,7 +430,7 @@ impl GraphStore for Neo4jGraph {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    
 
     #[test]
     fn config_refuses_to_invent_credentials() {
