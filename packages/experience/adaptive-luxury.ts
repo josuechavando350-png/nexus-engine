@@ -77,7 +77,7 @@ export function resolveLuxuryProfile(input: {
     denied,
     rationale: [
       "Same artistic identity at every tier; execution cost changes, meaning does not.",
-      "Only reliable user/runtime signals are consumed here; deviceMemory and navigator.connection are intentionally absent."
+      "Only reliable user/runtime signals are consumed here; heuristic hardware and network probes are intentionally absent."
     ]
   };
 }
