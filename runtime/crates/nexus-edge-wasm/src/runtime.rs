@@ -646,4 +646,4 @@ mod tests {
 
         assert_eq!(report.result.status, TaskStatus::Completed);
     }
-    }
+}
