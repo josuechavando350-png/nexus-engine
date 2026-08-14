@@ -412,7 +412,7 @@ const rustCode = new Map([...rustSources].map(([p, s]) => [p, stripCommentsAndSt
     /(password|passwd|secret|api_key|apikey|access_token|private_key|credential)\s*[:=]\s*"([^"]{3,})"/gi;
 
   for (const [file, source] of rustSources) {
-    if (file.includes(join("src", "main.rs")) === false && false) continue;
+    
     let match;
     const pattern = new RegExp(assignment.source, "gi");
     while ((match = pattern.exec(source)) !== null) {
