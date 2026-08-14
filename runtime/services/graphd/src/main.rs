@@ -119,7 +119,7 @@ fn run(logger: &Logger) -> Result<()> {
             #[cfg(feature = "neo4j")]
             {
                 let config = nexus_graph::neo4j::Neo4jConfig::from_env()?;
-                let graph = nexus_graph::neo4j::Neo4jGraph::connect(config)?;
+                let graph = nexus_graph::neo4j::Neo4jGraph::connect(&config)?;
                 graph.ensure_schema()?;
                 health.set("graph", ComponentState::Up, uri.clone());
                 Arc::new(graph)
