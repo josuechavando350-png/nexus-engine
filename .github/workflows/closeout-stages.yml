@@ -64,8 +64,13 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
 
+      - name: Require committed dependency lockfiles
+        run: |
+          test -f pnpm-lock.yaml
+          test -f runtime/Cargo.lock
+
       - name: Install workspace dependencies
-        run: pnpm install --no-frozen-lockfile
+        run: pnpm install --frozen-lockfile
 
       - name: Security hygiene
         run: pnpm security-hygiene
@@ -110,7 +115,7 @@ jobs:
 
       - name: Check V3 core and services
         run: |
-          cargo check \
+          cargo check --locked \
             -p nexus-event \
             -p nexus-observability \
             -p nexus-policy \
@@ -150,10 +155,10 @@ jobs:
 
       - name: Compile each external adapter separately
         run: |
-          cargo check -p nexus-edge-protocol --features ed25519
-          cargo check -p nexus-graph --features neo4j
-          cargo check -p nexus-ingest --features kafka
-          cargo check -p nexus-edge-wasm --features wasmtime
+          cargo check --locked -p nexus-edge-protocol --features ed25519
+          cargo check --locked -p nexus-graph --features neo4j
+          cargo check --locked -p nexus-ingest --features kafka
+          cargo check --locked -p nexus-edge-wasm --features wasmtime
 
   v4:
     name: 03 · V4 intelligence compile
@@ -170,7 +175,7 @@ jobs:
 
       - name: Check V4 layer
         run: |
-          cargo check \
+          cargo check --locked \
             -p nexus-memory \
             -p nexus-goal \
             -p nexus-planner \
@@ -199,7 +204,7 @@ jobs:
 
       - name: Check V5 layer
         run: |
-          cargo check \
+          cargo check --locked \
             -p nexus-control-model \
             -p nexus-identity \
             -p nexus-authz \
@@ -228,7 +233,7 @@ jobs:
 
       - name: Check V6 layer
         run: |
-          cargo check \
+          cargo check --locked \
             -p nexus-cluster \
             -p nexus-consensus \
             -p nexus-replication \
@@ -262,10 +267,10 @@ jobs:
         run: cargo fmt --all --check
 
       - name: Clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
+        run: cargo clippy --locked --workspace --all-targets -- -D warnings
 
       - name: Tests
-        run: cargo test --workspace
+        run: cargo test --locked --workspace
 
       - name: Release build
-        run: cargo build --workspace --release
+        run: cargo build --locked --workspace --release
