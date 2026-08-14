@@ -68,7 +68,7 @@ export function assertUiAgnostic(value: unknown, path = "root"): void {
 
   for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
     if (FORBIDDEN_UI_KEYS.has(key)) {
-      throw new Error(`UI-specific key \"${key}\" is forbidden in Experience Engine contracts (${path}.${key}).`);
+      throw new Error(`UI-specific key "${key}" is forbidden in Experience Engine contracts (${path}.${key}).`);
     }
     assertUiAgnostic(child, `${path}.${key}`);
   }
