@@ -6,6 +6,7 @@
   "exports": {
     ".": "./index.ts",
     "./foundation/tokens": "./foundation/tokens/index.ts",
+    "./foundation/tokens/tokens.css": "./foundation/tokens/tokens.css",
     "./foundation/typography": "./foundation/typography/index.ts",
     "./foundation/config": "./foundation/config/index.ts",
     "./foundation/theme": "./foundation/theme/index.ts",
