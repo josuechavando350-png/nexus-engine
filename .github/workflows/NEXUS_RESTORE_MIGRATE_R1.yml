@@ -1,0 +1,433 @@
+name: Restore + migrate orchestrator safely
+
+on:
+  workflow_dispatch:
+    inputs:
+      bad_commit:
+        description: "Commit that introduced SituationView but truncated orchestrator.rs"
+        required: true
+        default: "2db8e236e49409f64e55707b9360b17a9f413bf2"
+      file_path:
+        description: "Damaged orchestrator file"
+        required: true
+        default: "runtime/crates/nexus-agent/src/orchestrator.rs"
+      dry_run:
+        description: "Reconstruct and validate, but do not commit/push"
+        required: true
+        default: "false"
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  restore-migrate-validate:
+    runs-on: ubuntu-latest
+
+    env:
+      CARGO_TERM_COLOR: always
+      RUSTFLAGS: -D warnings
+
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Set up Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Reconstruct orchestrator tests and migrate call sites
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python3 <<'PY'
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          bad_commit = "${{ inputs.bad_commit }}"
+          orchestrator_path = Path("${{ inputs.file_path }}")
+
+          def git_show(spec: str) -> str:
+              result = subprocess.run(
+                  ["git", "show", spec],
+                  check=True,
+                  text=True,
+                  stdout=subprocess.PIPE,
+                  stderr=subprocess.PIPE,
+              )
+              return result.stdout
+
+          def require(condition: bool, message: str) -> None:
+              if not condition:
+                  print(f"::error::{message}")
+                  sys.exit(1)
+
+          current = orchestrator_path.read_text()
+          healthy = git_show(f"{bad_commit}^:{orchestrator_path.as_posix()}")
+
+          require(
+              "pub struct SituationView" in current,
+              "Current orchestrator.rs does not contain SituationView; refusing to guess.",
+          )
+          require(
+              "pub struct VerifiedFacts" in current,
+              "Current orchestrator.rs does not contain VerifiedFacts; refusing to guess.",
+          )
+
+          truncated_marker = "    #[test]\n    fn a_read_only_inspec"
+          current_cut = current.find(truncated_marker)
+          require(
+              current_cut >= 0,
+              "Expected truncation marker was not found. Refusing to overwrite a changed file.",
+          )
+
+          healthy_test_marker = (
+              "    #[test]\n"
+              "    fn a_read_only_inspection_reaches_a_signed_task() {"
+          )
+          healthy_cut = healthy.find(healthy_test_marker)
+          require(
+              healthy_cut >= 0,
+              "Could not locate the healthy test tail in the parent revision.",
+          )
+
+          prefix = current[:current_cut]
+          tail = healthy[healthy_cut:]
+
+          def migrate_test_call(
+              text: str,
+              proposal_expr: str,
+              world_expr: str,
+              twin_expr: str,
+              expected_count: int,
+          ) -> str:
+              old = f'''            .process(
+                {proposal_expr},
+                {world_expr},
+                &capabilities(),
+                &SafetyEnvelope::conservative("envelope-test"),
+                {twin_expr},
+                &fixture.signer,
+                now(),
+            )'''
+              new = f'''            .process(
+                {proposal_expr},
+                SituationView {{
+                    world_state: {world_expr},
+                    capabilities: &capabilities(),
+                    envelope: &SafetyEnvelope::conservative("envelope-test"),
+                    twin: {twin_expr},
+                }},
+                &fixture.signer,
+                now(),
+            )'''
+              count = text.count(old)
+              require(
+                  count == expected_count,
+                  f"Expected {expected_count} matching test call(s) for "
+                  f"{proposal_expr} / {world_expr} / {twin_expr}, found {count}.",
+              )
+              return text.replace(old, new)
+
+          tail = migrate_test_call(
+              tail,
+              "&proposal(confirm_reading_goal())",
+              "&world_state()",
+              "&twin()",
+              2,
+          )
+          tail = migrate_test_call(
+              tail,
+              "&proposal(confirm_reading_goal())",
+              "&world_state()",
+              "&blocked",
+              1,
+          )
+          tail = migrate_test_call(
+              tail,
+              "&proposal(confirm_reading_goal())",
+              "&occupied",
+              "&twin()",
+              1,
+          )
+          tail = migrate_test_call(
+              tail,
+              "&high_risk",
+              "&world_state()",
+              "&twin()",
+              1,
+          )
+          tail = migrate_test_call(
+              tail,
+              "&hostile",
+              "&world_state()",
+              "&twin()",
+              1,
+          )
+
+          rebuilt = prefix + tail
+
+          require(
+              rebuilt.count("{") == rebuilt.count("}"),
+              "Reconstructed orchestrator.rs still has unbalanced braces.",
+          )
+          require(
+              "#[allow(clippy::too_many_arguments)]" not in rebuilt,
+              "A too_many_arguments suppression reappeared during recovery.",
+          )
+          require(
+              "pub struct SituationView" in rebuilt
+              and "pub struct VerifiedFacts" in rebuilt,
+              "The structural refactor was lost during recovery.",
+          )
+          require(
+              "fn risk_bands_are_explicit()" in rebuilt,
+              "Recovered test tail is incomplete.",
+          )
+
+          orchestrator_path.write_text(rebuilt)
+
+          def read(path: str):
+              p = Path(path)
+              return p, p.read_text()
+
+          # orchestratord is already migrated on current main.
+          orch_service, service = read("runtime/services/orchestratord/src/main.rs")
+          require(
+              "SituationView" in service,
+              "orchestratord is not migrated to SituationView.",
+          )
+
+          # factory-line
+          factory_path, factory = read("runtime/examples/factory-line/src/main.rs")
+          if "SituationView" not in factory:
+              old_import = '''use nexus_agent::{
+    DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator, OrchestratorConfig,
+    ProposalTrigger, TaskProposal,
+};'''
+              new_import = '''use nexus_agent::{
+    DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator, OrchestratorConfig,
+    ProposalTrigger, SituationView, TaskProposal,
+};'''
+              require(old_import in factory, "factory-line import block changed unexpectedly.")
+              factory = factory.replace(old_import, new_import, 1)
+
+          factory_old_call = '''    let outcome = orchestrator.process(
+        &proposal,
+        &world_state,
+        &capabilities,
+        &SafetyEnvelope::conservative("envelope-inspection"),
+        &twin,
+        &signer,
+        now,
+    )?;'''
+          factory_new_call = '''    let envelope = SafetyEnvelope::conservative("envelope-inspection");
+
+    let outcome = orchestrator.process(
+        &proposal,
+        SituationView {
+            world_state: &world_state,
+            capabilities: &capabilities,
+            envelope: &envelope,
+            twin: &twin,
+        },
+        &signer,
+        now,
+    )?;'''
+          if factory_old_call in factory:
+              factory = factory.replace(factory_old_call, factory_new_call, 1)
+
+          require("SituationView {" in factory, "factory-line call site was not migrated.")
+          factory_path.write_text(factory)
+
+          # warehouse-robot
+          warehouse_path, warehouse = read("runtime/examples/warehouse-robot/src/main.rs")
+          if "SituationView" not in warehouse:
+              old_import = '''use nexus_agent::{
+    ApprovalDecision, DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator,
+    OrchestratorConfig, ProposalTrigger, TaskProposal,
+};'''
+              new_import = '''use nexus_agent::{
+    ApprovalDecision, DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator,
+    OrchestratorConfig, ProposalTrigger, SituationView, TaskProposal,
+};'''
+              require(old_import in warehouse, "warehouse-robot import block changed unexpectedly.")
+              warehouse = warehouse.replace(old_import, new_import, 1)
+
+          anchor = '''    println!("NEXUS V3 — warehouse-robot: the human approval gate\\n");
+
+    println!("[1] Proposal submitted at moderate risk");'''
+          if 'let envelope = SafetyEnvelope::conservative("envelope-warehouse");' not in warehouse:
+              require(anchor in warehouse, "warehouse-robot insertion anchor changed unexpectedly.")
+              warehouse = warehouse.replace(
+                  anchor,
+                  '''    println!("NEXUS V3 — warehouse-robot: the human approval gate\\n");
+
+    let envelope = SafetyEnvelope::conservative("envelope-warehouse");
+
+    println!("[1] Proposal submitted at moderate risk");''',
+                  1,
+              )
+
+          old_first = '''    let outcome = orchestrator.process(
+        &proposal,
+        &world_state,
+        &capabilities,
+        &SafetyEnvelope::conservative("envelope-warehouse"),
+        &twin,
+        &signer,
+        now,
+    )?;'''
+          new_first = '''    let outcome = orchestrator.process(
+        &proposal,
+        SituationView {
+            world_state: &world_state,
+            capabilities: &capabilities,
+            envelope: &envelope,
+            twin: &twin,
+        },
+        &signer,
+        now,
+    )?;'''
+          if old_first in warehouse:
+              warehouse = warehouse.replace(old_first, new_first, 1)
+
+          old_second = '''    let outcome = orchestrator.process(
+        &proposal,
+        &world_state,
+        &capabilities,
+        &SafetyEnvelope::conservative("envelope-warehouse"),
+        &twin,
+        &signer,
+        Timestamp::from_millis(now.as_millis() + 31_000),
+    )?;'''
+          new_second = '''    let outcome = orchestrator.process(
+        &proposal,
+        SituationView {
+            world_state: &world_state,
+            capabilities: &capabilities,
+            envelope: &envelope,
+            twin: &twin,
+        },
+        &signer,
+        Timestamp::from_millis(now.as_millis() + 31_000),
+    )?;'''
+          if old_second in warehouse:
+              warehouse = warehouse.replace(old_second, new_second, 1)
+
+          require(
+              warehouse.count("SituationView {") >= 2,
+              "warehouse-robot call sites were not both migrated.",
+          )
+          warehouse_path.write_text(warehouse)
+
+          lib = Path("runtime/crates/nexus-agent/src/lib.rs").read_text()
+          require(
+              "SituationView" in lib and "VerifiedFacts" in lib,
+              "nexus-agent lib.rs does not export the new context types.",
+          )
+
+          print("Reconstruction and migration completed.")
+          subprocess.run(["git", "diff", "--name-only"], check=True)
+          PY
+
+      - name: Format workspace
+        working-directory: runtime
+        run: cargo fmt --all
+
+      - name: Reject unexpected modified files
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ALLOWED='^(runtime/crates/nexus-agent/src/orchestrator\.rs|runtime/services/orchestratord/src/main\.rs|runtime/examples/factory-line/src/main\.rs|runtime/examples/warehouse-robot/src/main\.rs)$'
+
+          UNEXPECTED="$(git diff --name-only | grep -Ev "$ALLOWED" || true)"
+
+          if [ -n "$UNEXPECTED" ]; then
+            echo "::error::Unexpected files were modified:"
+            echo "$UNEXPECTED"
+            exit 1
+          fi
+
+          echo "Only expected files changed:"
+          git diff --name-only
+
+      - name: Architecture gates V3 to V6
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/v3-architecture-gates.mjs
+          node scripts/v4-architecture-gates.mjs
+          node scripts/v5-architecture-gates.mjs
+          node scripts/v6-architecture-gates.mjs
+
+      - name: Format check
+        working-directory: runtime
+        run: cargo fmt --all -- --check
+
+      - name: Clippy full workspace
+        working-directory: runtime
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Tests full workspace
+        working-directory: runtime
+        run: cargo test --workspace
+
+      - name: Release build full workspace
+        working-directory: runtime
+        run: cargo build --workspace --release
+
+      - name: Show final diff
+        shell: bash
+        run: |
+          git diff --check
+          git diff --stat
+
+      - name: Stop after validation in dry-run mode
+        if: ${{ inputs.dry_run == 'true' }}
+        run: echo "dry_run=true — validation passed; nothing committed or pushed."
+
+      - name: Commit and push validated repair
+        if: ${{ inputs.dry_run != 'true' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet; then
+            echo "Nothing changed; repository is already in the desired state."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add \
+            runtime/crates/nexus-agent/src/orchestrator.rs \
+            runtime/services/orchestratord/src/main.rs \
+            runtime/examples/factory-line/src/main.rs \
+            runtime/examples/warehouse-robot/src/main.rs
+
+          git commit -m "Restore orchestrator tests and migrate SituationView call sites"
+          git push origin HEAD:main
+
+      - name: Dispatch normal closeout
+        if: ${{ inputs.dry_run != 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run closeout-stages.yml --ref main
+          echo "Normal NEXUS closeout dispatched on main."
