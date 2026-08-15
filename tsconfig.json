@@ -26,6 +26,9 @@
       "path": "./packages/experience/tsconfig.json"
     },
     {
+      "path": "./packages/creative/tsconfig.json"
+    },
+    {
       "path": "./apps/v2-probe-editorial/tsconfig.json"
     },
     {
