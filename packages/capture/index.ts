@@ -48,6 +48,14 @@ function nonEmpty(value: string, field: string): void {
   if (!value.trim()) throw new CaptureValidationError("INVALID_REQUEST", `${field} must be non-empty`);
 }
 
+function assertCanonicalUtcTimestamp(value: string, field: string): void {
+  nonEmpty(value, field);
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) {
+    throw new CaptureValidationError("INVALID_REQUEST", `${field} must be a canonical ISO-8601 UTC timestamp`);
+  }
+}
+
 function assertScope(scope: MeasurementScope): void {
   if (!scope.tenantId.trim() || !scope.brandId.trim()) throw new CaptureValidationError("INVALID_SCOPE", "tenantId and brandId are required");
 }
@@ -78,7 +86,7 @@ export function createCaptureArtifact(input: Omit<CaptureArtifact, "artifactId">
   nonEmpty(input.runId, "runId");
   nonEmpty(input.mediaType, "mediaType");
   nonEmpty(input.digest, "digest");
-  nonEmpty(input.capturedAt, "capturedAt");
+  assertCanonicalUtcTimestamp(input.capturedAt, "capturedAt");
   if (!Number.isInteger(input.byteLength) || input.byteLength < 0) throw new CaptureValidationError("NON_FINITE_VALUE", "byteLength must be a non-negative integer");
   return {
     artifactId: deterministicId("artifact", input),

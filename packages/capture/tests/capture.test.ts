@@ -42,6 +42,7 @@ describe("BrowserDeviceCapturePort contracts", () => {
     const a = request();
     const b = { ...request(), capabilities: ["PERFORMANCE", "SCREENSHOT"] as const };
     expect(captureRequestId(a)).toBe(captureRequestId(b));
+    expect(captureRequestId(a)).toMatch(/^capreq_[a-f0-9]{64}$/);
   });
 
   it("rejects cross-scope requests", () => {
@@ -58,7 +59,21 @@ describe("BrowserDeviceCapturePort contracts", () => {
       byteLength: 128,
       capturedAt: "2026-08-15T00:00:01.000Z"
     };
-    expect(createCaptureArtifact(input).artifactId).toBe(createCaptureArtifact(input).artifactId);
+    const artifact = createCaptureArtifact(input);
+    expect(artifact.artifactId).toBe(createCaptureArtifact(input).artifactId);
+    expect(artifact.artifactId).toMatch(/^artifact_[a-f0-9]{64}$/);
+  });
+
+  it("rejects non-canonical artifact timestamps", () => {
+    expect(() => createCaptureArtifact({
+      runId: run.runId,
+      scope: workload.scope,
+      capability: "SCREENSHOT",
+      mediaType: "image/png",
+      digest: "sha256:abc",
+      byteLength: 128,
+      capturedAt: "2026-08-15 00:00:01"
+    })).toThrowError(CaptureValidationError);
   });
 
   it("rejects evidence from another scope", () => {
