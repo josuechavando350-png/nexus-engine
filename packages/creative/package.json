@@ -9,6 +9,8 @@
     "./evidence": "./evidence/index.ts",
     "./vault": "./vault/index.ts",
     "./memory": "./memory/index.ts",
+    "./direction": "./direction/index.ts",
+    "./gallery": "./gallery/index.ts",
     "./testing": "./testing.ts"
   },
   "scripts": {
