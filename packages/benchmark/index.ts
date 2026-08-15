@@ -43,6 +43,12 @@ function assertPositiveInteger(value: number, field: string, allowZero = false):
 export function validateBenchmarkPolicy(policy: BenchmarkPolicy): void {
   assertPositiveInteger(policy.warmupRuns, "warmupRuns", true);
   assertPositiveInteger(policy.sampleRuns, "sampleRuns");
+  if (policy.aggregation !== "MEAN" && policy.aggregation !== "MEDIAN" && policy.aggregation !== "P95") {
+    throw new BenchmarkValidationError("INVALID_POLICY", "aggregation must be MEAN, MEDIAN, or P95");
+  }
+  if (typeof policy.rejectNonFinite !== "boolean") {
+    throw new BenchmarkValidationError("INVALID_POLICY", "rejectNonFinite must be boolean");
+  }
 }
 
 function assertFiniteSample(sample: MetricSample): void {
