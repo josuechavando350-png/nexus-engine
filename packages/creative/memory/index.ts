@@ -92,6 +92,28 @@ function timestamp(value: string, field: string): number {
   }
 }
 
+function freezeRecord(record: ArtDirectionMemoryRecord): ArtDirectionMemoryRecord {
+  const payload = Object.freeze({ ...record.payload }) as MemoryPayload;
+  return Object.freeze({
+    ...record,
+    scope: Object.freeze({ ...record.scope }),
+    keywords: Object.freeze([...record.keywords]),
+    provenance: Object.freeze({ ...record.provenance, evidenceIds: Object.freeze([...record.provenance.evidenceIds]) }),
+    payload
+  });
+}
+
+function stableJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map((item) => stableJson(item)).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value as Record<string, unknown>)
+      .filter(([, item]) => item !== undefined)
+      .sort(([left], [right]) => lexicalCompare(left, right));
+    return `{${entries.map(([key, item]) => `${JSON.stringify(key)}:${stableJson(item)}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
 export function validateMemoryRecord(record: ArtDirectionMemoryRecord): ArtDirectionMemoryRecord {
   if (!record || record.schemaVersion !== 1 || !record.scope || !record.provenance || !record.payload || !Array.isArray(record.keywords) || !Array.isArray(record.provenance.evidenceIds)) {
     throw new MemoryError("INVALID_RECORD", "record structure is invalid");
@@ -130,8 +152,7 @@ export function validateMemoryRecord(record: ArtDirectionMemoryRecord): ArtDirec
   if (!Number.isFinite(record.confidence) || record.confidence < 0 || record.confidence > 1) throw new MemoryError("INVALID_RECORD", "confidence must be in [0,1]");
   if (!record.provenance.evidenceIds.length) throw new MemoryError("INVALID_RECORD", "provenance evidence is required");
   for (const evidenceId of record.provenance.evidenceIds) {
-    if (typeof evidenceId !== "string") throw new MemoryError("INVALID_RECORD", "provenance evidence IDs must be strings");
-    assertNonEmpty(evidenceId, "provenance.evidenceIds[]");
+    if (typeof evidenceId !== "string" || !evidenceId.trim()) throw new MemoryError("INVALID_RECORD", "provenance evidence IDs must be non-empty strings");
   }
 
   if (record.keywords.some((keyword) => typeof keyword !== "string")) throw new MemoryError("INVALID_RECORD", "keywords must be strings");
@@ -161,7 +182,7 @@ export function validateMemoryRecord(record: ArtDirectionMemoryRecord): ArtDirec
     if (error instanceof CreativeValidationError) throw new MemoryError("INVALID_RECORD", error.message);
     throw error;
   }
-  return Object.freeze(record);
+  return freezeRecord(record);
 }
 
 export class AppendOnlyMemoryService {
@@ -170,39 +191,43 @@ export class AppendOnlyMemoryService {
   }
 
   async append(record: ArtDirectionMemoryRecord): Promise<void> {
-    validateMemoryRecord(record);
-    if (!record.validUntil || timestamp(record.validUntil, "validUntil") - timestamp(record.createdAt, "createdAt") > this.retentionMs) {
+    const immutable = validateMemoryRecord(record);
+    if (!immutable.validUntil || timestamp(immutable.validUntil, "validUntil") - timestamp(immutable.createdAt, "createdAt") > this.retentionMs) {
       throw new MemoryError("RETENTION_VIOLATION", "record validity exceeds retention policy");
     }
 
     let existing: ArtDirectionMemoryRecord | undefined;
     try {
-      existing = await this.store.get(record.scope, record.recordId);
-    } catch {
+      const rawExisting = await this.store.get(immutable.scope, immutable.recordId);
+      existing = rawExisting ? validateMemoryRecord(rawExisting) : undefined;
+    } catch (error) {
+      if (error instanceof MemoryError && error.code === "INVALID_RECORD") throw error;
       throw new MemoryError("BACKEND_OUTAGE", "memory backend unavailable");
     }
     if (existing) {
-      if (JSON.stringify(existing) === JSON.stringify(record)) throw new MemoryError("DUPLICATE_ID", `record ${record.recordId} already exists`);
-      throw new MemoryError("IDENTITY_COLLISION", `record ${record.recordId} collides with different content`);
+      if (stableJson(existing) === stableJson(immutable)) throw new MemoryError("DUPLICATE_ID", `record ${immutable.recordId} already exists`);
+      throw new MemoryError("IDENTITY_COLLISION", `record ${immutable.recordId} collides with different content`);
     }
 
-    if (record.supersedes) {
-      if (record.supersedes === record.recordId) throw new MemoryError("SUPERSESSION_INCONSISTENT", "record cannot supersede itself");
-      const visited = new Set([record.recordId]);
-      let priorId: string | undefined = record.supersedes;
+    if (immutable.supersedes) {
+      if (immutable.supersedes === immutable.recordId) throw new MemoryError("SUPERSESSION_INCONSISTENT", "record cannot supersede itself");
+      const visited = new Set([immutable.recordId]);
+      let priorId: string | undefined = immutable.supersedes;
       while (priorId) {
         if (visited.has(priorId)) throw new MemoryError("SUPERSESSION_INCONSISTENT", "supersession cycle detected");
         visited.add(priorId);
         let prior: ArtDirectionMemoryRecord | undefined;
         try {
-          prior = await this.store.get(record.scope, priorId);
-        } catch {
+          const rawPrior = await this.store.get(immutable.scope, priorId);
+          prior = rawPrior ? validateMemoryRecord(rawPrior) : undefined;
+        } catch (error) {
+          if (error instanceof MemoryError && error.code === "INVALID_RECORD") throw error;
           throw new MemoryError("BACKEND_OUTAGE", "memory backend unavailable");
         }
-        if (!prior || prior.subjectId !== record.subjectId || prior.scope.tenantId !== record.scope.tenantId || prior.scope.brandId !== record.scope.brandId) {
+        if (!prior || prior.subjectId !== immutable.subjectId || prior.scope.tenantId !== immutable.scope.tenantId || prior.scope.brandId !== immutable.scope.brandId) {
           throw new MemoryError("SUPERSESSION_INCONSISTENT", "supersession chain is absent or outside the same subject/scope");
         }
-        if (timestamp(prior.createdAt, "createdAt") >= timestamp(record.createdAt, "createdAt")) {
+        if (timestamp(prior.createdAt, "createdAt") >= timestamp(immutable.createdAt, "createdAt")) {
           throw new MemoryError("SUPERSESSION_INCONSISTENT", "supersession must point to an older record");
         }
         priorId = prior.supersedes;
@@ -210,16 +235,17 @@ export class AppendOnlyMemoryService {
 
       let records: readonly ArtDirectionMemoryRecord[];
       try {
-        records = await this.store.list(record.scope);
-      } catch {
+        records = (await this.store.list(immutable.scope)).map((candidate) => validateMemoryRecord(candidate));
+      } catch (error) {
+        if (error instanceof MemoryError && error.code === "INVALID_RECORD") throw error;
         throw new MemoryError("BACKEND_OUTAGE", "memory backend unavailable");
       }
-      const competing = records.find((candidate) => candidate.supersedes === record.supersedes && candidate.recordId !== record.recordId);
+      const competing = records.find((candidate) => candidate.supersedes === immutable.supersedes && candidate.recordId !== immutable.recordId);
       if (competing) throw new MemoryError("SUPERSESSION_INCONSISTENT", `supersession fork already exists at ${competing.recordId}`);
     }
 
     try {
-      await this.store.append(record);
+      await this.store.append(immutable);
     } catch (error) {
       if (error instanceof MemoryError) throw error;
       throw new MemoryError("BACKEND_OUTAGE", "memory backend unavailable");
@@ -260,8 +286,9 @@ export class DeterministicMemoryRetriever implements MemoryRetriever {
     const at = timestamp(query.at, "query.at");
     let records: readonly ArtDirectionMemoryRecord[];
     try {
-      records = await this.store.list(query.scope);
-    } catch {
+      records = (await this.store.list(query.scope)).map((record) => validateMemoryRecord(record));
+    } catch (error) {
+      if (error instanceof MemoryError && error.code === "INVALID_RECORD") throw error;
       const failure = await this.emit(query, "BACKEND_FAILURE", "memory-store", { operation: "list" });
       throw Object.assign(new MemoryError("BACKEND_OUTAGE", "memory backend unavailable"), { evidence: failure });
     }
@@ -276,7 +303,6 @@ export class DeterministicMemoryRetriever implements MemoryRetriever {
         record.scope.brandId === query.scope.brandId &&
         (!query.subjectId || record.subjectId === query.subjectId)
     );
-    for (const record of scoped) validateMemoryRecord(record);
 
     const supersededIds = new Set(scoped.map((record) => record.supersedes).filter((id): id is string => !!id));
     const outcomeGroups = new Map<string, ArtDirectionMemoryRecord[]>();
@@ -324,7 +350,7 @@ export class DeterministicMemoryRetriever implements MemoryRetriever {
         timestamp(b.record.validFrom, "validFrom") - timestamp(a.record.validFrom, "validFrom") ||
         lexicalCompare(a.record.recordId, b.record.recordId)
     );
-    const results = ranked.slice(0, query.limit);
+    const results = ranked.slice(0, query.limit).map((entry) => Object.freeze({ ...entry, record: freezeRecord(entry.record) }));
     events.push(await this.emit(query, "MEMORY_RETRIEVAL", query.subjectId ?? "all", { resultCount: results.length, lowConfidenceCount: low.length, authority: "EVIDENCE_ONLY" }));
     events.push(await this.emit(query, "DETERMINISTIC_INPUTS", query.subjectId ?? "all", { keywordOrder: [...query.keywords].sort(lexicalCompare).join(","), minimumConfidence: query.minimumConfidence, limit: query.limit }));
 
