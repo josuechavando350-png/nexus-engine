@@ -42,6 +42,18 @@ export const FABRIC_DOMAINS = [
 
 export type FabricDomain = (typeof FABRIC_DOMAINS)[number];
 
+export function fabricDomainSlug(domain: FabricDomain): string {
+  return domain.toLowerCase().replaceAll("_", "-");
+}
+
+export function contractIdFor(domain: FabricDomain): string {
+  return `nexus.v7.${fabricDomainSlug(domain)}`;
+}
+
+export function contractEvidenceIdFor(domain: FabricDomain): string {
+  return `ev.v7.${fabricDomainSlug(domain)}.contract`;
+}
+
 export interface KernelContractRef {
   readonly id: string;
   readonly version: typeof NEXUS_KERNEL_CONTRACT_VERSION;
@@ -83,14 +95,14 @@ export interface FabricContractDescriptor {
 export const V7_FABRIC_CONTRACTS: readonly FabricContractDescriptor[] =
   FABRIC_DOMAINS.map((domain) => ({
     contract: {
-      id: `nexus.v7.${domain.toLowerCase().replaceAll("_", "-")}`,
+      id: contractIdFor(domain),
       version: NEXUS_KERNEL_CONTRACT_VERSION,
       domain
     },
     maturity: "IMPLEMENTED",
     evidence: [
       {
-        evidenceId: `ev.v7.${domain.toLowerCase()}.contract`,
+        evidenceId: contractEvidenceIdFor(domain),
         level: "SOURCE_INSPECTION",
         source: "packages/kernel/index.ts",
         collectedAt: "2026-08-15T00:00:00.000Z"
@@ -114,6 +126,10 @@ export function assertKernelRef(ref: KernelContractRef): KernelContractRef {
 
   if (!FABRIC_DOMAINS.includes(ref.domain)) {
     throw new Error("Kernel contract domain is not part of the V7 Fabric domain set.");
+  }
+
+  if (ref.id !== contractIdFor(ref.domain)) {
+    throw new Error("Kernel contract id does not match its domain.");
   }
 
   return ref;

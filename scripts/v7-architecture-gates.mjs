@@ -49,12 +49,15 @@ if (packageJson.name === "@nexus/kernel" && packageJson.version === "7.0.0") {
 
 const kernelSource = read("packages/kernel/index.ts");
 const forbiddenTs = ["react", "next", "@nexus/core", "@nexus/experience", "@nexus/experimental"];
+const tsBoundaryFailures = failures;
 for (const forbidden of forbiddenTs) {
   if (kernelSource.includes(`from "${forbidden}`) || kernelSource.includes(`from '${forbidden}`)) {
     fail(`TypeScript Kernel imports forbidden dependency ${forbidden}`);
   }
 }
-pass("TypeScript Kernel has no forbidden Experience/Core imports");
+if (failures === tsBoundaryFailures) {
+  pass("TypeScript Kernel has no forbidden Experience/Core imports");
+}
 
 const requiredDomains = [
   "ENTERPRISE_ONTOLOGY",
@@ -94,12 +97,15 @@ if (dependencySection === "") {
 
 const rustKernel = read("runtime/crates/nexus-kernel/src/lib.rs");
 const forbiddenRust = ["EdgeTask", "nexus_policy", "nexus_agent", "nexus_edge_protocol", "tokio", "serde", "wasmtime"];
+const rustBoundaryFailures = failures;
 for (const forbidden of forbiddenRust) {
   if (rustKernel.includes(forbidden)) {
     fail(`Rust Kernel contains forbidden coupling ${forbidden}`);
   }
 }
-pass("Rust Kernel avoids edge/policy/adapter coupling");
+if (failures === rustBoundaryFailures) {
+  pass("Rust Kernel avoids edge/policy/adapter coupling");
+}
 
 const plan = read("NEXUS_V7_ARCHITECTURE_PLAN.md");
 if (plan.includes("NEXUS V7 is **not closed**") && plan.includes("PRODUCTION_PROVEN") && plan.includes("NEXUS Enterprise Fabric")) {

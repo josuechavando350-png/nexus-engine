@@ -113,6 +113,22 @@ pub const FABRIC_DOMAINS: [FabricDomain; 11] = [
     FabricDomain::MultiTenancy,
 ];
 
+pub fn domain_slug(domain: FabricDomain) -> &'static str {
+    match domain {
+        FabricDomain::EnterpriseOntology => "enterprise-ontology",
+        FabricDomain::ConnectorFabric => "connector-fabric",
+        FabricDomain::DecisionMemory => "decision-memory",
+        FabricDomain::PolicyGraph => "policy-graph",
+        FabricDomain::DurableWorkflows => "durable-workflows",
+        FabricDomain::AgentGovernance => "agent-governance",
+        FabricDomain::ExecutionFabric => "execution-fabric",
+        FabricDomain::EvidencePlane => "evidence-plane",
+        FabricDomain::OutcomeIntelligence => "outcome-intelligence",
+        FabricDomain::Identity => "identity",
+        FabricDomain::MultiTenancy => "multi-tenancy",
+    }
+}
+
 pub fn contract_id_for(domain: FabricDomain) -> &'static str {
     match domain {
         FabricDomain::EnterpriseOntology => "nexus.v7.enterprise-ontology",
@@ -129,6 +145,10 @@ pub fn contract_id_for(domain: FabricDomain) -> &'static str {
     }
 }
 
+pub fn contract_evidence_id_for(domain: FabricDomain) -> String {
+    format!("ev.v7.{}.contract", domain_slug(domain))
+}
+
 pub fn fabric_contract_descriptor(domain: FabricDomain) -> FabricContractDescriptor {
     FabricContractDescriptor {
         contract: KernelContractRef {
@@ -138,7 +158,7 @@ pub fn fabric_contract_descriptor(domain: FabricDomain) -> FabricContractDescrip
         },
         maturity: MaturityState::Implemented,
         evidence: vec![EvidenceRef {
-            evidence_id: format!("ev.v7.{:?}.contract", domain),
+            evidence_id: contract_evidence_id_for(domain),
             level: EvidenceLevel::SourceInspection,
             source: "runtime/crates/nexus-kernel/src/lib.rs".to_string(),
             collected_at: "2026-08-15T00:00:00.000Z".to_string(),
@@ -187,6 +207,28 @@ mod tests {
         };
 
         assert!(assert_kernel_ref(&bad).is_err());
+
+        let mismatched = KernelContractRef {
+            id: "nexus.v7.identity".to_string(),
+            version: NEXUS_KERNEL_CONTRACT_VERSION,
+            domain: FabricDomain::EnterpriseOntology,
+        };
+        assert!(assert_kernel_ref(&mismatched).is_err());
+    }
+
+    #[test]
+    fn contract_and_evidence_ids_use_the_canonical_domain_slug() {
+        for domain in FABRIC_DOMAINS {
+            let descriptor = fabric_contract_descriptor(domain);
+            assert_eq!(
+                descriptor.contract.id,
+                format!("nexus.v7.{}", domain_slug(domain))
+            );
+            assert_eq!(
+                descriptor.evidence[0].evidence_id,
+                format!("ev.v7.{}.contract", domain_slug(domain))
+            );
+        }
     }
 
     #[test]

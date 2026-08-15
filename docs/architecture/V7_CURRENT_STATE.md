@@ -17,7 +17,7 @@ Status: **V7 OPEN**. This document is the canonical current-state companion to `
 | V7 Kernel Rust contracts | TESTED | `runtime/crates/nexus-kernel/src/lib.rs` unit tests and Cargo workspace tests. |
 | Enterprise Fabric domain descriptors | TESTED | All 11 domains represented as SPEC_ONLY descriptors; no feature implementation is claimed. |
 | V7 architecture gates | TESTED | `pnpm v7-gates` validates artifacts and boundaries. |
-| V7 benchmark baseline | BENCHMARKED | Baseline report records the existing runtime benchmark harness scope; no performance target is promoted to production SLO. |
+| V7 benchmark baseline | TESTED | The harness builds and participates in workspace tests, but no measurements, thresholds or stored results exist, so it is not `BENCHMARKED`. |
 | V7 operational evidence | PLANNED | No live deployment, incident record or production audit exists in this repository. |
 | V7 release | PLANNED | Root workspace remains V6-versioned for existing planes; V7 contracts are additive. |
 
