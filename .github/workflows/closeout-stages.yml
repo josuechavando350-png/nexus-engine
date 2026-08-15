@@ -1,4 +1,4 @@
-name: NEXUS V7 Validation — staged compile
+name: NEXUS V8 Baseline Validation — staged compile
 
 on:
   workflow_dispatch:
@@ -26,7 +26,7 @@ env:
 
 jobs:
   architecture:
-    name: 00 · Architecture gates V3→V7
+    name: 00 · Architecture gates V3→V8
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,6 +47,7 @@ jobs:
           env PATH="$NODE_BIN_DIR" node scripts/v5-architecture-gates.mjs
           env PATH="$NODE_BIN_DIR" node scripts/v6-architecture-gates.mjs
           env PATH="$NODE_BIN_DIR" node scripts/v7-architecture-gates.mjs
+          env PATH="$NODE_BIN_DIR" node scripts/v8-architecture-gates.mjs
 
   web-quality:
     name: 00.5 · Node/TypeScript quality
@@ -90,6 +91,9 @@ jobs:
 
       - name: V7 gates
         run: pnpm v7-gates
+
+      - name: V8 baseline gates
+        run: pnpm v8-gates
 
       - name: Build
         run: pnpm build
