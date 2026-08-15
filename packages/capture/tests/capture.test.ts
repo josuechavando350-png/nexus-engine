@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createRun, type EnvironmentDescriptor, type WorkloadDefinition } from "@nexus/measurement";
+import { createRun, type EnvironmentDescriptor, type WorkloadDefinition } from "../../measurement/index";
 import { CaptureValidationError, captureRequestId, captureResultToEvidence, createCaptureArtifact, validateCaptureResult, type CaptureRequest } from "../index";
 
 const workload: WorkloadDefinition = {
