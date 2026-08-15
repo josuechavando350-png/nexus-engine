@@ -3,17 +3,21 @@ export type CreativeScope = Readonly<{ tenantId: string; brandId: string }>;
 const CANONICAL_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const CANONICAL_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;
 
-export function assertNonEmpty(value: string, field: string): void {
-  if (!value.trim()) throw new CreativeValidationError(field, `${field} is required`);
+export function assertNonEmpty(value: unknown, field: string): asserts value is string {
+  if (typeof value !== "string" || !value.trim()) throw new CreativeValidationError(field, `${field} is required`);
 }
 
-export function assertScope(scope: CreativeScope): void {
-  assertCanonicalId(scope.tenantId, "scope.tenantId");
-  assertCanonicalId(scope.brandId, "scope.brandId");
+export function assertScope(scope: unknown): asserts scope is CreativeScope {
+  if (!scope || typeof scope !== "object") throw new CreativeValidationError("scope", "scope is required");
+  const candidate = scope as Partial<CreativeScope>;
+  assertCanonicalId(candidate.tenantId, "scope.tenantId");
+  assertCanonicalId(candidate.brandId, "scope.brandId");
 }
 
-export function assertCanonicalId(value: string, field: string): void {
-  if (!CANONICAL_ID.test(value)) throw new CreativeValidationError(field, `${field} must be a canonical identifier`);
+export function assertCanonicalId(value: unknown, field: string): asserts value is string {
+  if (typeof value !== "string" || !CANONICAL_ID.test(value)) {
+    throw new CreativeValidationError(field, `${field} must be a canonical identifier`);
+  }
 }
 
 export function canonicalTimestamp(value: string, field: string): number {
