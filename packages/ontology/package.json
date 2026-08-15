@@ -3,7 +3,10 @@
   "version": "10.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./index.ts" },
+  "exports": {
+    ".": "./index.ts",
+    "./registry": "./registry.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit"
