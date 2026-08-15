@@ -6,6 +6,8 @@ V10 evolves NEXUS from a measurable creative/runtime engine into a unified Opera
 
 V10 must not split NEXUS back into two products. Operational, creative, measurement and evidence concepts share one ontology kernel and remain isolated by domain modules, ports and policy.
 
+V10 must also be transferable and operable without undocumented knowledge from its original architect. Business continuity, failure isolation and clean-room recovery are first-class acceptance criteria, not post-launch documentation tasks.
+
 ## Core architecture
 
 ### 1. Ontology Kernel
@@ -53,6 +55,25 @@ AI is a caller of typed NEXUS capabilities, not an authority bypass. Agents rece
 
 The existing Creative Gallery/Vault evolves into a private reusable library of NEXUS-owned recipes and patterns. Entries may link to implementations, compatibility, performance evidence, device evidence, provenance and licensing metadata. External references remain references; third-party protected code is not copied into NEXUS.
 
+### 9. Continuity, Operability and Transferability
+
+NEXUS must remain operable when the original architect is unavailable. A qualified senior team must be able to bootstrap, deploy, observe, diagnose, back up, restore, roll back and update the engine using repository artifacts and approved credentials alone.
+
+The authoritative continuity requirements are defined in `docs/operations/V10_CONTINUITY_OPERABILITY_PLAN.md`.
+
+Required properties include:
+
+- clean-room bootstrap and rollback;
+- documented deployment, backup, restore and disaster recovery;
+- failure isolation between Operational, Creative, AI and Evidence domains;
+- degraded/manual paths for critical business operations when AI is unavailable;
+- replaceable critical backends with export/import paths;
+- data portability and tenant offboarding;
+- SBOM, dependency and supply-chain controls;
+- secrets separation;
+- IP/core, SDK/API, customer configuration and customer-data separation;
+- transfer/knowledge checklist that does not rely on undocumented oral knowledge.
+
 ## Unified semantic path
 
 A valid V10 graph may connect:
@@ -67,9 +88,12 @@ This is intentionally one graph/kernel with multiple domains, not two engines gl
 - Authorization applies to schema discovery, reads, traversals, actions and subscriptions.
 - Actions cannot mutate undeclared object/property types.
 - AI callers never receive implicit superuser authority.
+- High-risk AI mutations pass typed action, policy, authorization, precondition and audit boundaries.
 - Provenance and audit identities are immutable.
 - Secrets and credentials are adapter concerns and never ontology properties by default.
 - Missing evidence is never equivalent to successful evidence.
+- Creative or AI-domain failure must not take down critical Operational flows.
+- Any undocumented critical recovery or deployment step is a V10 defect.
 
 ## Technology-selection rule
 
@@ -94,9 +118,12 @@ No major V10 backend technology is selected by popularity alone. For each critic
 8. Creative ontology bridge + private library metadata.
 9. Query/subscription adapters and benchmark harness.
 10. AI orchestration/tool contracts with fail-closed policy.
-11. Integrated operational + creative reference application.
-12. V10 closure audit, benchmark evidence and claim reconciliation.
+11. Continuity/operability implementation: observability, backup/restore, disaster recovery, data portability and transfer artifacts.
+12. Integrated operational + creative reference application with failure-isolation tests.
+13. Clean-room bootstrap/restore/rollback exercise by a non-authoring operator.
+14. Codex V1->V10 audit covering code, architecture, production readiness, bus factor, disaster recovery, AI safety, tenant isolation, supply chain, IP/data separation and transferability.
+15. V10 closure audit, benchmark evidence, fix pass and claim reconciliation.
 
 ## Acceptance
 
-V10 closes only when the unified kernel is implemented and tested; operational and creative domains both consume it; actions are authorization- and audit-aware; storage remains replaceable; V3->V10 CI is green; and any performance, maturity or production claim is backed by stored evidence rather than architecture prose.
+V10 closes only when the unified kernel is implemented and tested; operational and creative domains both consume it; actions are authorization- and audit-aware; storage remains replaceable; critical operational flows survive creative/AI failure boundaries; another qualified operator can complete the documented clean-room bootstrap, backup, restore and rollback path without undocumented creator knowledge; the final Codex V1->V10 audit has no unresolved critical/high findings; V3->V10 CI is green; and any performance, maturity or production claim is backed by stored evidence rather than architecture prose.
