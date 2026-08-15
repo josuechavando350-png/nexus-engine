@@ -5,3 +5,4 @@ export * from "./memory";
 export * from "./direction";
 export * from "./gallery";
 export * from "./motion";
+export * from "./gpu";
