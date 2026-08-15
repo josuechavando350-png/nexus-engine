@@ -1,5 +1,5 @@
 import type { RankedMemory } from "../memory";
-import { assertCanonicalId, assertNonEmpty, assertScope, CreativeValidationError, lexicalCompare, type CreativeScope } from "../shared";
+import { assertCanonicalId, assertNonEmpty, assertScope, lexicalCompare, type CreativeScope } from "../shared";
 
 export type DirectionAuthority = "PROPOSED_DIRECTION";
 export type DirectionFactor = "BRIEF" | "BRAND" | "MEMORY" | "CONSTRAINTS";
