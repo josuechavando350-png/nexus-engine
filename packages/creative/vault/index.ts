@@ -125,6 +125,7 @@ export type ResolvedAsset = Readonly<{
 }>;
 
 const DIGEST = /^sha256:[a-f0-9]{64}$/;
+const PURPOSES = new Set<AssetPurpose>(["hero", "editorial", "product", "thumbnail", "fallback", "archive"]);
 
 function time(value: string, field: string): number {
   try {
@@ -135,51 +136,124 @@ function time(value: string, field: string): number {
   }
 }
 
+function freezeManifest(manifest: CreativeAssetManifest): CreativeAssetManifest {
+  return Object.freeze({
+    ...manifest,
+    scope: Object.freeze({ ...manifest.scope }),
+    provenance: Object.freeze({ ...manifest.provenance }),
+    usage: Object.freeze(
+      manifest.usage.map((constraint) =>
+        Object.freeze({
+          ...constraint,
+          allowedPurposes: Object.freeze([...constraint.allowedPurposes]),
+          allowedRegions: constraint.allowedRegions ? Object.freeze([...constraint.allowedRegions]) : undefined
+        })
+      )
+    ),
+    variants: Object.freeze(
+      manifest.variants.map((variant) =>
+        Object.freeze({
+          ...variant,
+          purposes: Object.freeze([...variant.purposes]),
+          lineage: Object.freeze(variant.lineage.map((lineage) => Object.freeze({ ...lineage })))
+        })
+      )
+    )
+  });
+}
+
 export function assetIdentity(manifest: CreativeAssetManifest, variant: AssetVariant): AssetIdentity {
   return Object.freeze({ assetId: manifest.assetId, version: manifest.version, digest: variant.digest, variantId: variant.variantId });
 }
 
 export function validateManifest(manifest: CreativeAssetManifest): CreativeAssetManifest {
+  if (
+    !manifest ||
+    typeof manifest !== "object" ||
+    manifest.schemaVersion !== 2 ||
+    !manifest.provenance ||
+    typeof manifest.provenance !== "object" ||
+    !Array.isArray(manifest.usage) ||
+    !Array.isArray(manifest.variants)
+  ) {
+    throw new VaultError("INVALID_METADATA", "manifest structure is invalid");
+  }
   try {
     assertScope(manifest.scope);
-    assertNonEmpty(manifest.assetId, "assetId");
     assertCanonicalId(manifest.assetId, "assetId");
-    assertNonEmpty(manifest.version, "version");
+    assertCanonicalId(manifest.version, "version");
     assertNonEmpty(manifest.provenance.source, "provenance.source");
   } catch (error) {
     if (error instanceof CreativeValidationError) throw new VaultError("INVALID_METADATA", error.message);
     throw error;
   }
   if (manifest.version.trim().toLowerCase() === "latest") throw new VaultError("INVALID_METADATA", 'version "latest" is forbidden');
-  if (!DIGEST.test(manifest.digest)) throw new VaultError("INVALID_METADATA", "manifest digest must be canonical sha256");
+  if (typeof manifest.digest !== "string" || !DIGEST.test(manifest.digest)) throw new VaultError("INVALID_METADATA", "manifest digest must be canonical sha256");
+  if (typeof manifest.provenance.capturedAt !== "string") throw new VaultError("INVALID_METADATA", "provenance.capturedAt must be a string");
   time(manifest.provenance.capturedAt, "provenance.capturedAt");
   if (!manifest.usage.length) throw new VaultError("INVALID_METADATA", "at least one usage constraint is required");
   if (!manifest.variants.length) throw new VaultError("INVALID_METADATA", "at least one variant is required");
 
   for (const constraint of manifest.usage) {
-    assertNonEmpty(constraint.licenseId, "usage.licenseId");
+    if (!constraint || typeof constraint !== "object" || !Array.isArray(constraint.allowedPurposes)) throw new VaultError("INVALID_METADATA", "usage constraint structure is invalid");
+    try {
+      assertNonEmpty(constraint.licenseId, "usage.licenseId");
+    } catch (error) {
+      if (error instanceof CreativeValidationError) throw new VaultError("INVALID_METADATA", error.message);
+      throw error;
+    }
+    if (typeof constraint.validFrom !== "string" || (constraint.validUntil !== undefined && typeof constraint.validUntil !== "string")) {
+      throw new VaultError("INVALID_METADATA", "usage validity timestamps must be strings");
+    }
     const start = time(constraint.validFrom, "usage.validFrom");
     const end = constraint.validUntil ? time(constraint.validUntil, "usage.validUntil") : Infinity;
     if (start > end) throw new VaultError("INVALID_METADATA", "usage validity interval is invalid");
-    if (!constraint.allowedPurposes.length) throw new VaultError("INVALID_METADATA", "usage allowedPurposes must not be empty");
+    if (!constraint.allowedPurposes.length || constraint.allowedPurposes.some((purpose) => !PURPOSES.has(purpose))) {
+      throw new VaultError("INVALID_METADATA", "usage allowedPurposes must contain supported purposes");
+    }
+    if (constraint.allowedRegions && (!Array.isArray(constraint.allowedRegions) || constraint.allowedRegions.some((region) => typeof region !== "string" || !region.trim()))) {
+      throw new VaultError("INVALID_METADATA", "usage allowedRegions must contain non-empty strings");
+    }
   }
 
   const ids = new Set<string>();
   for (const variant of manifest.variants) {
+    if (!variant || typeof variant !== "object" || !Array.isArray(variant.purposes) || !Array.isArray(variant.lineage)) {
+      throw new VaultError("INVALID_METADATA", "variant structure is invalid");
+    }
     try {
       assertCanonicalId(variant.variantId, "variant.variantId");
+      if (variant.fallbackVariantId !== undefined) assertCanonicalId(variant.fallbackVariantId, "variant.fallbackVariantId");
     } catch (error) {
       if (error instanceof CreativeValidationError) throw new VaultError("INVALID_METADATA", error.message);
       throw error;
     }
     if (ids.has(variant.variantId)) throw new VaultError("INVALID_METADATA", "variant ids must be unique");
     ids.add(variant.variantId);
-    if (!DIGEST.test(variant.digest) || !Number.isInteger(variant.byteLength) || variant.byteLength < 0 || !Number.isFinite(variant.priority) || !variant.lineage.length) {
+    if (typeof variant.digest !== "string" || !DIGEST.test(variant.digest) || !Number.isInteger(variant.byteLength) || variant.byteLength < 0 || !Number.isFinite(variant.priority) || !variant.lineage.length) {
       throw new VaultError("INVALID_METADATA", `variant ${variant.variantId} has invalid digest, size, priority, or provenance lineage`);
     }
-    if (!variant.codec.trim() || !variant.mediaType.trim() || !variant.purposes.length) throw new VaultError("INVALID_METADATA", `variant ${variant.variantId} has incomplete compatibility metadata`);
+    if (typeof variant.codec !== "string" || typeof variant.mediaType !== "string" || !variant.codec.trim() || !variant.mediaType.trim() || !variant.purposes.length || variant.purposes.some((purpose) => !PURPOSES.has(purpose))) {
+      throw new VaultError("INVALID_METADATA", `variant ${variant.variantId} has incomplete compatibility metadata`);
+    }
+    if ((variant.width !== undefined && (!Number.isInteger(variant.width) || variant.width <= 0)) || (variant.height !== undefined && (!Number.isInteger(variant.height) || variant.height <= 0))) {
+      throw new VaultError("INVALID_METADATA", `variant ${variant.variantId} has invalid dimensions`);
+    }
     for (const lineage of variant.lineage) {
-      if (!DIGEST.test(lineage.sourceDigest) || !DIGEST.test(lineage.parametersDigest) || !lineage.operation || !lineage.tool || !lineage.toolVersion) {
+      if (
+        !lineage ||
+        typeof lineage !== "object" ||
+        typeof lineage.sourceDigest !== "string" ||
+        typeof lineage.parametersDigest !== "string" ||
+        !DIGEST.test(lineage.sourceDigest) ||
+        !DIGEST.test(lineage.parametersDigest) ||
+        typeof lineage.operation !== "string" ||
+        typeof lineage.tool !== "string" ||
+        typeof lineage.toolVersion !== "string" ||
+        !lineage.operation.trim() ||
+        !lineage.tool.trim() ||
+        !lineage.toolVersion.trim()
+      ) {
         throw new VaultError("INVALID_METADATA", `variant ${variant.variantId} has invalid transformation lineage`);
       }
       if (lineage.sourceDigest !== manifest.digest) throw new VaultError("INVALID_METADATA", `variant ${variant.variantId} lineage must anchor to manifest digest`);
@@ -188,11 +262,13 @@ export function validateManifest(manifest: CreativeAssetManifest): CreativeAsset
   for (const variant of manifest.variants) {
     if (variant.fallbackVariantId && !ids.has(variant.fallbackVariantId)) throw new VaultError("INVALID_METADATA", `missing fallback ${variant.fallbackVariantId}`);
   }
-  return Object.freeze(manifest);
+  return freezeManifest(manifest);
 }
 
 export function migrateManifest(input: CreativeAssetManifest | CreativeAssetManifestV1): CreativeAssetManifest {
+  if (!input || typeof input !== "object") throw new VaultError("INVALID_METADATA", "manifest structure is invalid");
   if (input.schemaVersion === 2) return validateManifest(input);
+  if (input.schemaVersion !== 1) throw new VaultError("INVALID_METADATA", "unsupported manifest schema version");
   return validateManifest({
     schemaVersion: 2,
     assetId: input.assetId,
@@ -236,18 +312,26 @@ export class CreativeVault {
   ) {}
 
   async resolve(request: AssetResolutionRequest): Promise<ResolvedAsset> {
+    if (!request || typeof request !== "object") throw new VaultError("INVALID_METADATA", "request structure is invalid");
     try {
       assertScope(request.scope);
       assertCanonicalId(request.assetId, "request.assetId");
+      assertCanonicalId(request.version, "request.version");
+      if (request.variantId !== undefined) assertCanonicalId(request.variantId, "request.variantId");
       assertCanonicalId(request.correlationId, "request.correlationId");
       assertNonEmpty(request.inputsDigest, "request.inputsDigest");
       time(request.at, "request.at");
     } catch (error) {
       if (error instanceof CreativeValidationError) throw new VaultError("INVALID_METADATA", error.message);
-      throw error;
+      if (error instanceof VaultError) throw error;
+      throw new VaultError("INVALID_METADATA", error instanceof Error ? error.message : "invalid request");
     }
     if (request.version.trim().toLowerCase() === "latest") throw new VaultError("INVALID_METADATA", 'version "latest" is forbidden');
-    if (!request.supportedCodecs.length || request.supportedCodecs.some((codec) => !codec.trim())) throw new VaultError("INVALID_METADATA", "supportedCodecs must contain canonical non-empty values");
+    if (!PURPOSES.has(request.purpose)) throw new VaultError("INVALID_METADATA", "purpose is invalid");
+    if (!Array.isArray(request.supportedCodecs) || !request.supportedCodecs.length || request.supportedCodecs.some((codec) => typeof codec !== "string" || !codec.trim())) {
+      throw new VaultError("INVALID_METADATA", "supportedCodecs must contain canonical non-empty values");
+    }
+    if (request.region !== undefined && (typeof request.region !== "string" || !request.region.trim())) throw new VaultError("INVALID_METADATA", "region must be a non-empty string");
 
     let manifest: CreativeAssetManifest | undefined;
     try {
@@ -266,7 +350,7 @@ export class CreativeVault {
       }
       throw new VaultError(versions.length ? "VERSION_NOT_FOUND" : "ASSET_NOT_FOUND", versions.length ? `version ${request.version} not found` : `asset ${request.assetId} not found`);
     }
-    validateManifest(manifest);
+    manifest = validateManifest(manifest);
     if (manifest.version !== request.version) throw new VaultError("VERSION_NOT_FOUND", `version ${request.version} not found`);
     if (manifest.assetId !== request.assetId) throw new VaultError("ASSET_NOT_FOUND", `asset ${request.assetId} not found`);
     if (manifest.scope.tenantId !== request.scope.tenantId || manifest.scope.brandId !== request.scope.brandId) {
@@ -309,18 +393,34 @@ export class CreativeVault {
       await this.emit(request, "BACKEND_FAILURE", current.variantId, { operation: "readVariant" });
       throw new VaultError("STORAGE_OUTAGE", "vault bytes backend unavailable");
     }
-    if (!bytes) throw new VaultError("ASSET_NOT_FOUND", `variant ${current.variantId} bytes not found`);
+    if (!(bytes instanceof Uint8Array)) {
+      if (bytes === undefined) throw new VaultError("ASSET_NOT_FOUND", `variant ${current.variantId} bytes not found`);
+      throw new VaultError("INVALID_METADATA", "vault backend returned invalid bytes");
+    }
     if (bytes.byteLength !== current.byteLength) throw new VaultError("DIGEST_MISMATCH", "asset byte length does not match manifest", { expected: String(current.byteLength), actual: String(bytes.byteLength) });
-    const actual = await this.verifier.digest(bytes);
-    if (actual !== current.digest) {
-      await this.emit(request, "DIGEST_FAILURE", current.variantId, { expected: current.digest, actual });
-      throw new VaultError("DIGEST_MISMATCH", "asset digest verification failed", { expected: current.digest, actual });
+    let actual: AssetDigest;
+    try {
+      actual = await this.verifier.digest(bytes);
+    } catch {
+      await this.emit(request, "BACKEND_FAILURE", current.variantId, { operation: "digest" });
+      throw new VaultError("STORAGE_OUTAGE", "digest verifier unavailable");
+    }
+    if (typeof actual !== "string" || !DIGEST.test(actual) || actual !== current.digest) {
+      await this.emit(request, "DIGEST_FAILURE", current.variantId, { expected: current.digest, actual: typeof actual === "string" ? actual : "invalid-digest" });
+      throw new VaultError("DIGEST_MISMATCH", "asset digest verification failed", { expected: current.digest, actual: typeof actual === "string" ? actual : "invalid-digest" });
     }
 
     const evidence: CreativeEvidence[] = [];
     if (fallbackPath.length > 1) evidence.push(await this.emit(request, "FALLBACK_SELECTION", current.variantId, { path: fallbackPath.join("->") }));
     evidence.push(await this.emit(request, "ASSET_RESOLUTION", current.variantId, { identity: `${identity.assetId}@${identity.version}:${identity.digest}:${identity.variantId}` }));
-    return Object.freeze({ identity, manifest, variant: current, bytes, fallbackPath: Object.freeze([...fallbackPath]), evidence: Object.freeze(evidence) });
+    return Object.freeze({
+      identity,
+      manifest,
+      variant: current,
+      bytes: bytes.slice(),
+      fallbackPath: Object.freeze([...fallbackPath]),
+      evidence: Object.freeze(evidence)
+    });
   }
 
   private async emit(request: AssetResolutionRequest, kind: CreativeEvidence["kind"], subjectId: string, details: CreativeEvidence["details"]): Promise<CreativeEvidence> {
