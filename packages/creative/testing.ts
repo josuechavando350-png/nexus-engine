@@ -1,4 +1,5 @@
 import type { CreativeEvidence, CreativeEvidenceSink } from "./evidence";
+import type { GalleryEntry, GalleryStore } from "./gallery";
 import type { ArtDirectionMemoryRecord, MemoryStore } from "./memory";
 import type { AssetDigest, AssetIdentity, CreativeAssetManifest, DigestVerifier, VaultReader, VaultWriter } from "./vault";
 import type { CreativeScope } from "./shared";
@@ -88,5 +89,33 @@ export class InMemoryMemoryStore implements MemoryStore {
 
   unsafeInject(record: ArtDirectionMemoryRecord): void {
     this.records.set(`${scopeKey(record.scope)}/${record.recordId}`, record);
+  }
+}
+
+export class InMemoryGalleryStore implements GalleryStore {
+  private readonly entries = new Map<string, GalleryEntry>();
+  failReads = false;
+  failWrites = false;
+
+  async append(entry: GalleryEntry): Promise<void> {
+    if (this.failWrites) throw new Error("gallery unavailable");
+    const key = `${scopeKey(entry.scope)}/${entry.entryId}`;
+    if (this.entries.has(key)) throw new Error("append-only collision");
+    this.entries.set(key, entry);
+  }
+
+  async get(scope: CreativeScope, entryId: string): Promise<GalleryEntry | undefined> {
+    if (this.failReads) throw new Error("gallery unavailable");
+    return this.entries.get(`${scopeKey(scope)}/${entryId}`);
+  }
+
+  async list(scope: CreativeScope): Promise<readonly GalleryEntry[]> {
+    if (this.failReads) throw new Error("gallery unavailable");
+    const prefix = `${scopeKey(scope)}/`;
+    return [...this.entries.entries()].filter(([key]) => key.startsWith(prefix)).map(([, entry]) => entry);
+  }
+
+  unsafeInject(entry: GalleryEntry): void {
+    this.entries.set(`${scopeKey(entry.scope)}/${entry.entryId}`, entry);
   }
 }
