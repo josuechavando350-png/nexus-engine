@@ -1,4 +1,4 @@
-name: NEXUS V9 Pull Request Validation
+name: NEXUS V10 Pull Request Validation
 
 on:
   pull_request:
@@ -11,6 +11,7 @@ on:
       - "tests/**"
       - "docs/**"
       - "NEXUS_V9_ARCHITECTURE_PLAN.md"
+      - "NEXUS_V10_ARCHITECTURE_PLAN.md"
       - "package.json"
       - "pnpm-lock.yaml"
       - "pnpm-workspace.yaml"
@@ -28,7 +29,7 @@ env:
 
 jobs:
   validate:
-    name: V3→V9 full pull-request validation
+    name: V3→V10 full pull-request validation
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +67,7 @@ jobs:
       - name: Security hygiene
         run: pnpm security-hygiene
 
-      - name: Architecture gates V3→V9
+      - name: Architecture gates V3→V10
         run: |
           pnpm v3-gates
           pnpm v4-gates
@@ -75,6 +76,7 @@ jobs:
           pnpm v7-gates
           pnpm v8-gates
           pnpm v9-gates
+          pnpm v10-gates
 
       - name: Rust tests
         run: pnpm rust:test
