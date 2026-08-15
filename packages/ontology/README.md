@@ -28,9 +28,9 @@ The package defines ObjectType, PropertyType, InterfaceType, RelationshipType, A
 - Event publication does not bypass Action authorization or transaction boundaries.
 - Recovery/replay logic must preserve event ordering and scope isolation.
 
-## CI trigger note
+## Validation requirement
 
-Any material change to ontology events/workflows must re-run the V3→V10 pull-request validation before merge.
+Any material change to ontology events/workflows must pass the full V3→V10 pull-request validation before merge. If GitHub does not enqueue validation after a synchronize event, the PR must be explicitly re-opened to force a fresh pull_request validation event rather than merged without evidence.
 
 ## Operator note
 
