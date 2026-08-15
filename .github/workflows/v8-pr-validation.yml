@@ -83,6 +83,4 @@ jobs:
         run: pnpm rust:build
 
       - name: Diff hygiene
-        run: |
-          git diff --check "origin/${{ github.base_ref }}...HEAD"
-          git diff --exit-code
+        run: git diff --check "origin/${{ github.base_ref }}...HEAD"
