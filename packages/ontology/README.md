@@ -16,6 +16,10 @@ The package defines ObjectType, PropertyType, InterfaceType, RelationshipType, A
 - Schema identities are deterministic and independent of declaration order.
 - Operational and Creative domains consume this kernel; they do not fork it.
 
+## Event and workflow runtime
+
+V10 domain events are append-only, scoped, canonically timestamped in UTC and assigned deterministic SHA-256 identities. Correlation and causation metadata preserve traceability across multi-step operations. Workflow definitions use explicit states and deterministic transitions; terminal states cannot be mutated further, optimistic concurrency rejects stale revisions, and cross-scope event/workflow execution is denied.
+
 ## Operator note
 
 This package must remain understandable without oral knowledge from the original author. Any new primitive, invariant or migration behavior must be documented alongside tests and the V10 architecture plan.
