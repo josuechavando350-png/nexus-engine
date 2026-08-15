@@ -6,6 +6,8 @@ import {
   NEXUS_KERNEL_CONTRACT_VERSION,
   V7_FABRIC_CONTRACTS,
   assertKernelRef,
+  contractEvidenceIdFor,
+  contractIdFor,
   isProductionProven
 } from "../index";
 
@@ -45,5 +47,21 @@ describe("NEXUS V7 Kernel contracts", () => {
         domain: "ENTERPRISE_ONTOLOGY"
       })
     ).toThrow(/nexus\.v7/);
+    expect(() =>
+      assertKernelRef({
+        id: "nexus.v7.identity",
+        version: NEXUS_KERNEL_CONTRACT_VERSION,
+        domain: "ENTERPRISE_ONTOLOGY"
+      })
+    ).toThrow(/does not match/);
+  });
+
+  it("derives deterministic contract and evidence ids from the same canonical slug", () => {
+    for (const domain of FABRIC_DOMAINS) {
+      const descriptor = V7_FABRIC_CONTRACTS.find((item) => item.contract.domain === domain);
+      expect(descriptor?.contract.id).toBe(contractIdFor(domain));
+      expect(descriptor?.evidence[0]?.evidenceId).toBe(contractEvidenceIdFor(domain));
+      expect(descriptor?.evidence[0]?.evidenceId).toMatch(/^ev\.v7\.[a-z0-9]+(?:-[a-z0-9]+)*\.contract$/);
+    }
   });
 });

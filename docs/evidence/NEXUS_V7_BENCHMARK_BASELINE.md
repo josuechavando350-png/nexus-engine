@@ -16,4 +16,4 @@ The repository contains `runtime/bench`, a Rust benchmark harness wired into the
 
 ## V7 interpretation
 
-This baseline satisfies a minimal benchmark inventory requirement, not a production performance claim. Future V7 closure work should add repeatable benchmark commands, representative datasets, thresholds and stored outputs before raising any capability to `BENCHMARKED` beyond harness-level evidence.
+This baseline satisfies a minimal benchmark inventory requirement, not a production performance claim. Later performance-maturity work must add repeatable benchmark commands, representative datasets, declared thresholds and stored measurement results before raising any capability to `BENCHMARKED`. Their absence does not block the separately scoped V7 foundation/architecture closure, but it strictly blocks a benchmark maturity claim.
