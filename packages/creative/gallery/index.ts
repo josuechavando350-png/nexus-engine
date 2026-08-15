@@ -1,4 +1,4 @@
-import { assertCanonicalId, assertNonEmpty, assertScope, canonicalTimestamp, CreativeValidationError, lexicalCompare, type CreativeScope } from "../shared";
+import { assertCanonicalId, assertNonEmpty, assertScope, canonicalTimestamp, lexicalCompare, type CreativeScope } from "../shared";
 import type { AssetIdentity } from "../vault";
 
 export type GalleryKind = "IMAGE" | "VIDEO" | "MOTION" | "SHADER" | "INTERACTION" | "TYPOGRAPHY" | "PALETTE" | "LAYOUT" | "SITE" | "RECIPE" | "OTHER";
@@ -116,7 +116,7 @@ export function validateGalleryEntry(entry: GalleryEntry): GalleryEntry {
     throw new GalleryError("INVALID_ENTRY", error instanceof Error ? error.message : "invalid gallery entry");
   }
   if (!KINDS.has(entry.kind)) throw new GalleryError("INVALID_ENTRY", "gallery kind is invalid");
-  if (!( ["OWNED", "LICENSED", "REFERENCE", "RESEARCH"] as const).includes(entry.source.sourceType)) throw new GalleryError("INVALID_ENTRY", "source type is invalid");
+  if (!(["OWNED", "LICENSED", "REFERENCE", "RESEARCH"] as const).includes(entry.source.sourceType)) throw new GalleryError("INVALID_ENTRY", "source type is invalid");
   validateStringList(entry.tags, "tags");
   validateStringList(entry.intents, "intents");
   validateStringList(entry.techniques, "techniques");
