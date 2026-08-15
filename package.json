@@ -25,7 +25,8 @@
     "v6-gates": "node scripts/v6-architecture-gates.mjs",
     "demo:v6": "cargo run -p distributed-factory --manifest-path runtime/Cargo.toml",
     "v7-gates": "node scripts/v7-architecture-gates.mjs",
-    "v8-gates": "node scripts/v8-architecture-gates.mjs"
+    "v8-gates": "node scripts/v8-architecture-gates.mjs",
+    "v9-gates": "node scripts/v9-architecture-gates.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
