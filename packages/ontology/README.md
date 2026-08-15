@@ -16,9 +16,21 @@ The package defines ObjectType, PropertyType, InterfaceType, RelationshipType, A
 - Schema identities are deterministic and independent of declaration order.
 - Operational and Creative domains consume this kernel; they do not fork it.
 
-## Event and workflow runtime
+## Event/workflow invariants
 
-V10 domain events are append-only, scoped, canonically timestamped in UTC and assigned deterministic SHA-256 identities. Correlation and causation metadata preserve traceability across multi-step operations. Workflow definitions use explicit states and deterministic transitions; terminal states cannot be mutated further, optimistic concurrency rejects stale revisions, and cross-scope event/workflow execution is denied.
+- Domain events are append-only and scoped.
+- Event identities are deterministic SHA-256 values over canonical event data.
+- correlationId and causationId preserve causal lineage without granting execution authority.
+- Workflow transitions are deterministic and validated against the active definition.
+- Terminal workflow states cannot transition further.
+- Optimistic concurrency rejects stale workflow revisions.
+- Cross-scope workflow execution is denied.
+- Event publication does not bypass Action authorization or transaction boundaries.
+- Recovery/replay logic must preserve event ordering and scope isolation.
+
+## CI trigger note
+
+Any material change to ontology events/workflows must re-run the V3→V10 pull-request validation before merge.
 
 ## Operator note
 
