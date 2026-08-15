@@ -6,3 +6,4 @@ export * from "./direction";
 export * from "./gallery";
 export * from "./motion";
 export * from "./gpu";
+export * from "./visual-qa";
