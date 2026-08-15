@@ -1,0 +1,84 @@
+name: NEXUS V8 Pull Request Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "runtime/**"
+      - "apps/**"
+      - "packages/**"
+      - "scripts/**"
+      - "tests/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "vitest.config.ts"
+      - "eslint.config.mjs"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: "-D warnings"
+
+jobs:
+  validate:
+    name: V3→V8 full pull-request validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Tests
+        run: pnpm test
+
+      - name: Build
+        run: pnpm build
+
+      - name: Security hygiene
+        run: pnpm security-hygiene
+
+      - name: Architecture gates V3→V8
+        run: |
+          pnpm v3-gates
+          pnpm v4-gates
+          pnpm v5-gates
+          pnpm v6-gates
+          pnpm v7-gates
+          pnpm v8-gates
+
+      - name: Rust tests
+        run: pnpm rust:test
+
+      - name: Rust lint
+        run: pnpm rust:lint
+
+      - name: Rust release build
+        run: pnpm rust:build
+
+      - name: Diff hygiene
+        run: git diff --check origin/${{ github.base_ref }}...HEAD
