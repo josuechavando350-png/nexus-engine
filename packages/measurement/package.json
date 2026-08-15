@@ -1,0 +1,13 @@
+{
+  "name": "@nexus/measurement",
+  "version": "9.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  }
+}
