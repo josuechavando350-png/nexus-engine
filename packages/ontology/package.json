@@ -1,0 +1,11 @@
+{
+  "name": "@nexus/ontology",
+  "version": "10.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./index.ts" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  }
+}
