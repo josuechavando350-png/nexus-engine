@@ -208,10 +208,10 @@ export function validateManifest(manifest: CreativeAssetManifest): CreativeAsset
     const start = time(constraint.validFrom, "usage.validFrom");
     const end = constraint.validUntil ? time(constraint.validUntil, "usage.validUntil") : Infinity;
     if (start > end) throw new VaultError("INVALID_METADATA", "usage validity interval is invalid");
-    if (!constraint.allowedPurposes.length || constraint.allowedPurposes.some((purpose) => !PURPOSES.has(purpose))) {
+    if (!constraint.allowedPurposes.length || constraint.allowedPurposes.some((purpose: AssetPurpose) => !PURPOSES.has(purpose))) {
       throw new VaultError("INVALID_METADATA", "usage allowedPurposes must contain supported purposes");
     }
-    if (constraint.allowedRegions && (!Array.isArray(constraint.allowedRegions) || constraint.allowedRegions.some((region) => typeof region !== "string" || !region.trim()))) {
+    if (constraint.allowedRegions && (!Array.isArray(constraint.allowedRegions) || constraint.allowedRegions.some((region: string) => typeof region !== "string" || !region.trim()))) {
       throw new VaultError("INVALID_METADATA", "usage allowedRegions must contain non-empty strings");
     }
   }
@@ -233,7 +233,7 @@ export function validateManifest(manifest: CreativeAssetManifest): CreativeAsset
     if (typeof variant.digest !== "string" || !DIGEST.test(variant.digest) || !Number.isInteger(variant.byteLength) || variant.byteLength < 0 || !Number.isFinite(variant.priority) || !variant.lineage.length) {
       throw new VaultError("INVALID_METADATA", `variant ${variant.variantId} has invalid digest, size, priority, or provenance lineage`);
     }
-    if (typeof variant.codec !== "string" || typeof variant.mediaType !== "string" || !variant.codec.trim() || !variant.mediaType.trim() || !variant.purposes.length || variant.purposes.some((purpose) => !PURPOSES.has(purpose))) {
+    if (typeof variant.codec !== "string" || typeof variant.mediaType !== "string" || !variant.codec.trim() || !variant.mediaType.trim() || !variant.purposes.length || variant.purposes.some((purpose: AssetPurpose) => !PURPOSES.has(purpose))) {
       throw new VaultError("INVALID_METADATA", `variant ${variant.variantId} has incomplete compatibility metadata`);
     }
     if ((variant.width !== undefined && (!Number.isInteger(variant.width) || variant.width <= 0)) || (variant.height !== undefined && (!Number.isInteger(variant.height) || variant.height <= 0))) {
