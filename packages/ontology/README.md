@@ -30,7 +30,7 @@ The package defines ObjectType, PropertyType, InterfaceType, RelationshipType, A
 
 ## Validation requirement
 
-Any material change to ontology events/workflows must pass the full V3→V10 pull-request validation before merge. Missing CI evidence is a release blocker for this module.
+Any material change to ontology events/workflows must pass the full V3→V10 validation before merge. The workflow supports both pull-request validation and a v10-* branch-push fallback so missing PR event delivery cannot silently block release evidence.
 
 ## Operator note
 
