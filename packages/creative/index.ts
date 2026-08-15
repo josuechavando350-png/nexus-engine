@@ -4,3 +4,4 @@ export * from "./vault";
 export * from "./memory";
 export * from "./direction";
 export * from "./gallery";
+export * from "./motion";
