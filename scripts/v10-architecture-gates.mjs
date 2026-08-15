@@ -10,7 +10,8 @@ const read = (path) => readFileSync(join(root, path), "utf8");
 const architecturePath = "NEXUS_V10_ARCHITECTURE_PLAN.md";
 const technologyPath = "docs/architecture/V10_TECHNOLOGY_EVALUATION.md";
 const continuityPath = "docs/operations/V10_CONTINUITY_OPERABILITY_PLAN.md";
-for (const path of [architecturePath, technologyPath, continuityPath]) {
+const transferPath = "docs/operations/V10_TRANSFERABILITY_CHECKLIST.md";
+for (const path of [architecturePath, technologyPath, continuityPath, transferPath]) {
   if (existsSync(join(root, path))) pass(`artifact ${path}`);
   else fail(`missing artifact ${path}`);
 }
@@ -19,6 +20,7 @@ if (failures === 0) {
   const architecture = read(architecturePath);
   const technology = read(technologyPath);
   const continuity = read(continuityPath);
+  const transfer = read(transferPath);
 
   const requiredArchitecture = [
     "Ontology Kernel",
@@ -73,6 +75,23 @@ if (failures === 0) {
     else fail(`missing V10 continuity invariant: ${phrase}`);
   }
 
+  const requiredTransfer = [
+    "Product boundaries",
+    "Clean-room acceptance exercise",
+    "Failure-isolation acceptance",
+    "AI action acceptance",
+    "Commercial handoff modes",
+    "licensed SDK/API usage",
+    "managed/runtime service",
+    "source-code/IP transfer",
+    "customer offboarding",
+    "Any undocumented critical step is a release-blocking V10 defect"
+  ];
+  for (const phrase of requiredTransfer) {
+    if (transfer.includes(phrase)) pass(`V10 transferability invariant: ${phrase}`);
+    else fail(`missing V10 transferability invariant: ${phrase}`);
+  }
+
   if (/default backend only after benchmark artifacts/.test(technology)) pass("V10 backend adoption requires benchmark evidence");
   else fail("V10 backend adoption must require benchmark evidence");
 
@@ -81,6 +100,9 @@ if (failures === 0) {
 
   if (architecture.includes("final Codex V1->V10 audit has no unresolved critical/high findings")) pass("V10 closure requires clean Codex V1->V10 audit");
   else fail("V10 closure must require Codex V1->V10 audit with no unresolved critical/high findings");
+
+  if (architecture.includes("transferability checklist has recorded evidence")) pass("V10 closure requires transferability evidence");
+  else fail("V10 closure must require transferability evidence");
 }
 
 if (failures > 0) {
