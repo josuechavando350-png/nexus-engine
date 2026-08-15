@@ -24,6 +24,22 @@ State-changing work follows one controlled path:
 
 The authorization layer requires an explicit permission, exact ontology scope matching, and human approval when the action is HIGH or CRITICAL risk. The action executor validates the action against the active schema before it reaches the transaction port, uses a non-empty requestId for idempotency, and records COMMITTED, DENIED or FAILED outcomes in the audit trail. No AI provider or caller is allowed to bypass this boundary and mutate ontology state directly.
 
+## Event/workflow invariants
+
+- Domain events are append-only and scoped.
+- Event identities are deterministic SHA-256 values over canonical event data.
+- correlationId and causationId preserve causal lineage without granting execution authority.
+- Workflow transitions are deterministic and validated against the active definition.
+- Terminal workflow states cannot transition further.
+- Optimistic concurrency rejects stale workflow revisions.
+- Cross-scope workflow execution is denied.
+- Event publication does not bypass Action authorization or transaction boundaries.
+- Recovery/replay logic must preserve event ordering and scope isolation.
+
+## Validation requirement
+
+Any material change to ontology events/workflows must pass the full V3→V10 validation before merge. Missing CI evidence is a release blocker for this module.
+
 ## Operator note
 
 This package must remain understandable without oral knowledge from the original author. Any new primitive, invariant, authorization rule or migration behavior must be documented alongside tests and the V10 architecture plan.
