@@ -10,7 +10,8 @@
     "./auth-audit": "./auth-audit.ts",
     "./action-executor": "./action-executor.ts",
     "./events-workflows": "./events-workflows.ts",
-    "./ai-boundary": "./ai-boundary.ts"
+    "./ai-boundary": "./ai-boundary.ts",
+    "./persistence-query": "./persistence-query.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
