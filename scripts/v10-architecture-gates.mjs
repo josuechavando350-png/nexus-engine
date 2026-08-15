@@ -11,7 +11,9 @@ const architecturePath = "NEXUS_V10_ARCHITECTURE_PLAN.md";
 const technologyPath = "docs/architecture/V10_TECHNOLOGY_EVALUATION.md";
 const continuityPath = "docs/operations/V10_CONTINUITY_OPERABILITY_PLAN.md";
 const transferPath = "docs/operations/V10_TRANSFERABILITY_CHECKLIST.md";
-for (const path of [architecturePath, technologyPath, continuityPath, transferPath]) {
+const cleanRoomPath = "docs/operations/V10_CLEAN_ROOM_RUNBOOK.md";
+const handoffPath = "docs/operations/V10_HANDOFF_PACKAGE.md";
+for (const path of [architecturePath, technologyPath, continuityPath, transferPath, cleanRoomPath, handoffPath]) {
   if (existsSync(join(root, path))) pass(`artifact ${path}`);
   else fail(`missing artifact ${path}`);
 }
@@ -21,6 +23,8 @@ if (failures === 0) {
   const technology = read(technologyPath);
   const continuity = read(continuityPath);
   const transfer = read(transferPath);
+  const cleanRoom = read(cleanRoomPath);
+  const handoff = read(handoffPath);
 
   const requiredArchitecture = [
     "Ontology Kernel",
@@ -90,6 +94,35 @@ if (failures === 0) {
   for (const phrase of requiredTransfer) {
     if (transfer.includes(phrase)) pass(`V10 transferability invariant: ${phrase}`);
     else fail(`missing V10 transferability invariant: ${phrase}`);
+  }
+
+  const requiredCleanRoom = [
+    "clone -> install -> build -> test -> deploy -> seed -> execute -> observe -> backup -> restore -> rollback",
+    "qualified operator who did not build NEXUS",
+    "undocumented oral knowledge",
+    "authorized and denied Action evidence",
+    "Cross-scope restore must fail closed",
+    "Bus-factor acceptance"
+  ];
+  for (const phrase of requiredCleanRoom) {
+    if (cleanRoom.includes(phrase)) pass(`V10 clean-room invariant: ${phrase}`);
+    else fail(`missing V10 clean-room invariant: ${phrase}`);
+  }
+
+  const requiredHandoff = [
+    "NEXUS Core private IP",
+    "Customer Data",
+    "Licensed SDK/API usage",
+    "Managed/runtime service",
+    "Source-code/IP transfer",
+    "Customer offboarding",
+    "ownership manifest",
+    "creator memory",
+    "unresolved Critical/High audit findings (must be zero for V10 closure)"
+  ];
+  for (const phrase of requiredHandoff) {
+    if (handoff.includes(phrase)) pass(`V10 handoff invariant: ${phrase}`);
+    else fail(`missing V10 handoff invariant: ${phrase}`);
   }
 
   if (/default backend only after benchmark artifacts/.test(technology)) pass("V10 backend adoption requires benchmark evidence");
