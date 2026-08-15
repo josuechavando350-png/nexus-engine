@@ -1,5 +1,5 @@
-import type { EvidenceEnvelope, MeasurementRun, MeasurementScope, MetricSample } from "@nexus/measurement";
-import { createEvidence, deterministicId } from "@nexus/measurement";
+import type { EvidenceEnvelope, MeasurementRun, MeasurementScope, MetricSample } from "../measurement/index";
+import { createEvidence, deterministicId } from "../measurement/index";
 
 export type CaptureCapability = "SCREENSHOT" | "PERFORMANCE" | "RUNTIME_TELEMETRY";
 export type CaptureOutcome = "CAPTURED" | "UNSUPPORTED" | "FAILED";
