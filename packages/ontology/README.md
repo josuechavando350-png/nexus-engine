@@ -16,6 +16,14 @@ The package defines ObjectType, PropertyType, InterfaceType, RelationshipType, A
 - Schema identities are deterministic and independent of declaration order.
 - Operational and Creative domains consume this kernel; they do not fork it.
 
+## Authorization and action execution
+
+State-changing work follows one controlled path:
+
+`principal/AI -> action request -> contextual authorization -> transaction -> audit`
+
+The authorization layer requires an explicit permission, exact ontology scope matching, and human approval when the action is HIGH or CRITICAL risk. The action executor validates the action against the active schema before it reaches the transaction port, uses a non-empty requestId for idempotency, and records COMMITTED, DENIED or FAILED outcomes in the audit trail. No AI provider or caller is allowed to bypass this boundary and mutate ontology state directly.
+
 ## Operator note
 
-This package must remain understandable without oral knowledge from the original author. Any new primitive, invariant or migration behavior must be documented alongside tests and the V10 architecture plan.
+This package must remain understandable without oral knowledge from the original author. Any new primitive, invariant, authorization rule or migration behavior must be documented alongside tests and the V10 architecture plan.
