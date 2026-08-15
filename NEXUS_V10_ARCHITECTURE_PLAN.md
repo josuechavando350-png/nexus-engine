@@ -59,7 +59,7 @@ The existing Creative Gallery/Vault evolves into a private reusable library of N
 
 NEXUS must remain operable when the original architect is unavailable. A qualified senior team must be able to bootstrap, deploy, observe, diagnose, back up, restore, roll back and update the engine using repository artifacts and approved credentials alone.
 
-The authoritative continuity requirements are defined in `docs/operations/V10_CONTINUITY_OPERABILITY_PLAN.md`.
+The authoritative continuity requirements are defined in `docs/operations/V10_CONTINUITY_OPERABILITY_PLAN.md`. Commercial/operator handoff requirements are defined in `docs/operations/V10_TRANSFERABILITY_CHECKLIST.md` and are release-blocking for V10 closure.
 
 Required properties include:
 
@@ -126,4 +126,4 @@ No major V10 backend technology is selected by popularity alone. For each critic
 
 ## Acceptance
 
-V10 closes only when the unified kernel is implemented and tested; operational and creative domains both consume it; actions are authorization- and audit-aware; storage remains replaceable; critical operational flows survive creative/AI failure boundaries; another qualified operator can complete the documented clean-room bootstrap, backup, restore and rollback path without undocumented creator knowledge; the final Codex V1->V10 audit has no unresolved critical/high findings; V3->V10 CI is green; and any performance, maturity or production claim is backed by stored evidence rather than architecture prose.
+V10 closes only when the unified kernel is implemented and tested; operational and creative domains both consume it; actions are authorization- and audit-aware; storage remains replaceable; critical operational flows survive creative/AI failure boundaries; another qualified operator can complete the documented clean-room bootstrap, backup, restore and rollback path without undocumented creator knowledge; the transferability checklist has recorded evidence for operator handoff, tenant-isolated export/offboarding and commercial packaging boundaries; the final Codex V1->V10 audit has no unresolved critical/high findings; V3->V10 CI is green; and any performance, maturity or production claim is backed by stored evidence rather than architecture prose.
