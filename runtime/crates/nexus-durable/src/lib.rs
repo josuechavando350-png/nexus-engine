@@ -40,7 +40,7 @@ impl DurableStore for InMemoryDurableStore {
             .items
             .write()
             .map_err(|_| NexusError::adapter("durable lock poisoned"))?;
-        if let Some((_, last)) = g.iter().filter(|((id, _), _)| id == &c.goal_id).next_back() {
+        if let Some((_, last)) = g.iter().rfind(|((id, _), _)| id == &c.goal_id) {
             if c.sequence <= last.sequence {
                 return Err(NexusError::invalid("checkpoint sequence must increase"));
             }
