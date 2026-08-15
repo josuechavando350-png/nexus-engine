@@ -30,7 +30,7 @@ The package defines ObjectType, PropertyType, InterfaceType, RelationshipType, A
 
 ## Validation requirement
 
-Any material change to ontology events/workflows must pass the full V3→V10 pull-request validation before merge. If GitHub does not enqueue validation after a synchronize event, the PR must be explicitly re-opened to force a fresh pull_request validation event rather than merged without evidence.
+Any material change to ontology events/workflows must pass the full V3→V10 pull-request validation before merge. Missing CI evidence is a release blocker for this module.
 
 ## Operator note
 
