@@ -1,0 +1,18 @@
+{
+  "name": "@nexus/creative",
+  "version": "8.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./shared": "./shared.ts",
+    "./evidence": "./evidence/index.ts",
+    "./vault": "./vault/index.ts",
+    "./memory": "./memory/index.ts",
+    "./testing": "./testing.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  }
+}
