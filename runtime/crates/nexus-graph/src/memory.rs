@@ -475,7 +475,7 @@ mod tests {
         let graph = InMemoryGraph::new();
         let asset = entity(EntityKind::Asset, "press-4");
         let mutation = GraphMutation::UpsertEntity(asset.clone());
-        assert_eq!(graph.apply(&[mutation.clone()]).unwrap(), 1);
+        assert_eq!(graph.apply(std::slice::from_ref(&mutation)).unwrap(), 1);
         assert_eq!(graph.apply(&[mutation]).unwrap(), 0);
         assert_eq!(graph.entity_count().unwrap(), 1);
     }

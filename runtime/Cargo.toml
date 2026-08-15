@@ -1,6 +1,7 @@
 [workspace]
 resolver = "2"
 members = [
+    "crates/nexus-kernel",
     "crates/nexus-event",
     "crates/nexus-observability",
     "crates/nexus-policy",
@@ -90,6 +91,7 @@ repository = "https://github.com/josuechavando349-cmd/nexus-engine"
 # ---------------------------------------------------------------------------
 
 [workspace.dependencies]
+nexus-kernel = { path = "crates/nexus-kernel" }
 nexus-event = { path = "crates/nexus-event" }
 nexus-observability = { path = "crates/nexus-observability" }
 nexus-policy = { path = "crates/nexus-policy" }

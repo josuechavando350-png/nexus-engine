@@ -2,6 +2,9 @@
   "files": [],
   "references": [
     {
+      "path": "./packages/kernel/tsconfig.json"
+    },
+    {
       "path": "./packages/core/tsconfig.json"
     },
     {

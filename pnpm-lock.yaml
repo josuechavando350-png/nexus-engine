@@ -306,6 +306,8 @@ importers:
 
   packages/experimental: {}
 
+  packages/kernel: {}
+
 packages:
 
   '@emnapi/core@1.10.0':
