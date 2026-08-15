@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./index.ts",
-    "./registry": "./registry.ts"
+    "./registry": "./registry.ts",
+    "./transaction": "./transaction.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
