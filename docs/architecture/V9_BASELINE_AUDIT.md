@@ -30,7 +30,7 @@ V9 starts from the merged V8 closure on `main`. V8 provides Creative Vault, Art 
 | Runtime Telemetry Evidence | metric contracts | run-linked captured measurements |
 | Regression Governor | local evaluator | evidence-completeness-aware decisions |
 | Operational Evidence Port | absent | replaceable evidence ingestion boundary |
-| Evidence Gates | claim safety partial | measured-artifact-backed maturity gates |
+| V9 Evidence Gates | claim safety partial | measured-artifact-backed maturity gates |
 
 ## Non-goals
 
