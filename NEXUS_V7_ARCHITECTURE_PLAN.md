@@ -1,6 +1,6 @@
 # NEXUS V7 Architecture Plan
 
-Status: **V7 OPEN / not closed**. This plan is an evidence-backed reconciliation and migration plan for completing V7 before any V8 work. It does not claim production status and does not implement fictional components.
+Status: **V7 CLOSED — foundation/architecture scope**. This closure records the implemented and tested V7 Kernel foundation and SPEC_ONLY Enterprise Fabric descriptors. It is not a production-readiness, benchmark, operational-evidence or audit claim, and it does not begin V8 work.
 
 ## 1. Inspection baseline
 
@@ -11,7 +11,7 @@ Inspection was performed against the repository contents, not historical claims.
 - Active source trees: `apps/`, `packages/`, `runtime/`, `services` under `runtime/services/`, `runtime/examples/`, `scripts/`, `.github/workflows/`, `docs/`, `tests/`.
 - Historical source tree: `archive/` and version closeout artifacts at repository root.
 
-The repository currently exposes a V6-versioned root package and Rust workspace. Therefore V7 is a planning and evidence-hardening stage until the V7 Definition of Done below is satisfied.
+The repository continues to expose V6-versioned pre-existing planes while the additive `@nexus/kernel` contract package is versioned for V7. V7 closure is an architecture/foundation milestone governed by the scoped Definition of Done below; it does not re-label V3–V6 implementations or imply a production release of those planes.
 
 ## 2. Repository inventory and classification
 
@@ -69,7 +69,7 @@ The repository currently exposes a V6-versioned root package and Rust workspace.
 | Vitest | `vitest.config.ts`, `tests`, package tests | TESTED when passing locally/CI | Root `pnpm test`. |
 | Rust | `runtime/Cargo.toml`, `runtime/Cargo.lock` | IMPLEMENTED | Workspace rust-version `1.75`; current environment may use newer rustc. |
 | Cargo clippy/test/build | root scripts | TESTED when passing locally/CI | Required for runtime confidence. |
-| Architecture gates | `scripts/v3-architecture-gates.mjs` through `v6-architecture-gates.mjs` | TESTED when passing | Enforce non-negotiable Industrial boundaries. |
+| Architecture gates | `scripts/v3-architecture-gates.mjs` through `v7-architecture-gates.mjs` | TESTED when passing | Enforce non-negotiable Industrial and V7 Kernel boundaries. |
 | CI | `.github/workflows/closeout-stages.yml` | INTEGRATED when workflow succeeds | Local green is not the same as GitHub green or production proof. |
 
 ## 4. Real dependency map
@@ -92,12 +92,13 @@ The repository currently exposes a V6-versioned root package and Rust workspace.
 | `@nexus/core` | none |
 | `@nexus/experience` | none |
 | `@nexus/experimental` | none |
+| `@nexus/kernel` | none |
 
 ### Rust workspace internal edges
 
 | Crate/service/example | Internal dependencies |
 | --- | --- |
-| `nexus-event`, `nexus-policy`, `nexus-control-model`, `nexus-cluster`, `nexus-consensus`, `nexus-discovery`, `nexus-federation`, `nexus-mesh`, `nexus-offline`, `nexus-replication`, `nexus-update`, `nexus-fleet` | none |
+| `nexus-event`, `nexus-policy`, `nexus-control-model`, `nexus-cluster`, `nexus-consensus`, `nexus-discovery`, `nexus-federation`, `nexus-mesh`, `nexus-offline`, `nexus-replication`, `nexus-update`, `nexus-fleet`, `nexus-kernel` | none |
 | `nexus-observability` | `nexus-event` |
 | `nexus-ontology` | `nexus-event` |
 | `nexus-graph` | `nexus-event`, `nexus-ontology` |
@@ -150,8 +151,8 @@ Allowed states: PLANNED, EXPERIMENTAL, IMPLEMENTED, TESTED, BENCHMARKED, INTEGRA
 | Docker/local service composition | IMPLEMENTED | Compose file exists; operational evidence requires reproducible run logs. |
 | Security/trust-boundary documentation | IMPLEMENTED | Docs exist; claims require ongoing validation gates and review. |
 | GitHub workflow | IMPLEMENTED | Workflow exists; INTEGRATED only when remote CI run is green. |
-| NEXUS Enterprise Fabric | PLANNED | Formal contracts are defined below; no fake implementation claimed. |
-| V7 as a release | PLANNED | Root versions remain V6 and V7 DoD is incomplete. |
+| NEXUS Enterprise Fabric descriptors | TESTED | All 11 domains have dependency-free SPEC_ONLY descriptors and boundary tests; no domain implementation is claimed. |
+| V7 foundation/architecture milestone | TESTED | Scoped DoD is satisfied by the additive Kernel contracts, SPEC_ONLY Fabric descriptors, tests, gates and reconciled evidence documents. |
 | Production operation of any plane | PLANNED | No incident history, SLO evidence, customer deployment, certification, or operational audit in repo. |
 
 ## 6. Historical V6 reconciliation
@@ -166,7 +167,7 @@ V6 documents and closeout artifacts remain valuable historical evidence. V7 will
 
 ## 7. V7 Kernel design
 
-V7 should introduce a small Kernel only where cross-plane contracts are truly shared. It must not become a generic `shared` dumping ground.
+V7 introduces a small Kernel only where cross-plane contracts are truly shared. It must not become a generic `shared` dumping ground.
 
 ### Kernel purpose
 
@@ -182,19 +183,19 @@ V7 should introduce a small Kernel only where cross-plane contracts are truly sh
 - No arbitrary utility collection.
 - No historical code relocation without dependency and compatibility proof.
 
-### Candidate Kernel contracts
+### Implemented Kernel foundation contracts
 
 | Contract | V7 status | Boundary |
 | --- | --- | --- |
-| Contract identity and semantic version envelope | PLANNED | Shared spec only until consumers exist. |
-| Evidence descriptor | PLANNED | Describes evidence class and provenance; does not assert production. |
-| Tenant and principal references | PLANNED | References only; authorization remains in Industrial control/authz contracts. |
-| Policy decision envelope | PLANNED | Can carry allow/deny/reason; hard invariants stay in `nexus-policy`. |
-| Outcome and metric reference | PLANNED | References metrics/outcomes without choosing backend. |
+| Contract identity and semantic version envelope | TESTED | Equivalent TypeScript/Rust references with deterministic IDs. |
+| Evidence descriptor | TESTED | Equivalent deterministic evidence IDs and evidence-level vocabulary; does not assert production. |
+| Tenant and principal references | IMPLEMENTED | References only; authorization remains in Industrial control/authz contracts. |
+| Policy decision envelope | TESTED | Carries allow/deny/reason/evidence; hard invariants stay in `nexus-policy`. |
+| Outcome and metric reference | PLANNED / OUT OF SCOPE | No contract was required for the scoped V7 foundation closure and none is claimed. |
 
-## 8. NEXUS Enterprise Fabric future architecture
+## 8. NEXUS Enterprise Fabric descriptor architecture
 
-Enterprise Fabric is formally part of the V7 plan, but remains PLANNED until implemented with tests and evidence.
+Enterprise Fabric is formally represented in V7 by 11 tested, dependency-free `SPEC_ONLY` contract descriptors. These descriptors name domains and boundaries only: every concrete Fabric capability remains unimplemented unless separately evidenced.
 
 | Fabric domain | Required contract | Current mapped assets | V7 next step |
 | --- | --- | --- | --- |
@@ -223,20 +224,19 @@ Enterprise Fabric is formally part of the V7 plan, but remains PLANNED until imp
 
 | Risk/blocker | Impact on V7 closure | Mitigation |
 | --- | --- | --- |
-| V7 scope is broader than current implemented repo | V7 cannot be closed by documentation alone | Implement contracts incrementally with tests and evidence. |
-| No recorded operational evidence | Prevents OPERATIONALLY_EVIDENCED/PRODUCTION_PROVEN claims | Create reproducible deployment/evidence plan and collect artifacts. |
-| Benchmark harness lacks committed benchmark reports | Prevents BENCHMARKED maturity claims | Add benchmark procedure, thresholds and captured outputs. |
-| Enterprise Fabric not implemented | Fabric remains PLANNED | Start with language-neutral specs and compatibility tests. |
+| Concrete Enterprise Fabric capabilities are outside the implemented foundation | Does not block the scoped foundation/architecture closure; descriptors must remain SPEC_ONLY | Implement capabilities only in separately scoped work with tests and evidence. |
+| No recorded operational evidence | Prevents OPERATIONALLY_EVIDENCED/PRODUCTION_PROVEN claims; does not retroactively block architecture closure | Create a separately scoped deployment/evidence plan before making either claim. |
+| Benchmark harness lacks measurements, thresholds and stored results | Prevents BENCHMARKED maturity claims; does not block architecture closure | Add a repeatable procedure, thresholds and captured outputs before changing maturity. |
 | Kernel could become a dumping ground | Architecture erosion | Require admission checklist and ownership per contract. |
 | Historical docs may overstate maturity if read casually | Misleading release claims | Keep this V7 reconciliation visible and link future release notes to evidence. |
 
-## 11. Migration strategy
+## 11. Reconciliation and evolution strategy
 
 1. Keep V3–V6 runtime intact and additive-only unless a focused defect requires change.
-2. Define Kernel contracts as specs/schemas with tests before code consumers.
+2. Keep Kernel contracts specification-oriented and tested before adding consumers.
 3. Introduce compatibility shims only when moving an existing public contract is proven safe.
-4. Add V7 architecture gates after the first concrete V7 contracts exist.
-5. Add Enterprise Fabric domains incrementally in separate PRs: identity/tenant references first, evidence plane second, workflow/governance next, connectors last.
+4. Preserve the implemented V7 architecture gates as the Kernel evolves.
+5. Implement concrete Enterprise Fabric capabilities only in separately scoped work; the V7 descriptors remain SPEC_ONLY until then.
 6. Record benchmark and operational evidence as artifacts, never as unsupported prose.
 
 ## 12. Test and validation strategy
@@ -248,54 +248,65 @@ Required local validation for any V7-impacting PR:
 - `pnpm test`
 - `pnpm build`
 - `pnpm security-hygiene`
-- `pnpm quality-gates`
 - `pnpm v3-gates`
 - `pnpm v4-gates`
 - `pnpm v5-gates`
 - `pnpm v6-gates`
+- `pnpm v7-gates`
 - `pnpm rust:test`
 - `pnpm rust:lint`
 - `pnpm rust:build`
 
-Additional validation before V7 closure:
+Additional validation for later maturity or release claims (not foundation/architecture closure criteria):
 
 - Run runtime examples and document outputs.
-- Run benchmarks with thresholds and store reports.
+- Run benchmarks with defined thresholds and store measurement results before any `BENCHMARKED` claim.
 - Validate Docker/local service composition with reproducible logs.
-- Add V7-specific boundary tests for Kernel and Enterprise Fabric contracts once they exist.
+- Extend the existing V7-specific boundary tests when Kernel or Enterprise Fabric descriptor contracts change.
 - Confirm GitHub Actions workflow result on the PR branch.
 
 ## 13. Release strategy
 
-V7 release must be evidence-gated:
+Any distributable or production-oriented V7 release remains separately evidence-gated:
 
-1. Keep current V6 package/workspace version until V7 contracts are implemented and tested.
-2. Publish a V7 release candidate only after Kernel/Fabric contracts and migration notes exist.
-3. Require green local validation and green remote CI.
-4. Require signed or checksumed release artifacts where applicable.
-5. Explicitly label maturity per component; do not globally claim production readiness.
-6. Do not start V8 work until every V7 closure criterion is satisfied or explicitly deferred in a human-approved scope change.
+1. Do not reinterpret the foundation/architecture closure as a release of the V6-versioned planes.
+2. Require green local validation and green remote CI for any release candidate.
+3. Require signed or checksummed release artifacts where applicable.
+4. Explicitly label maturity per component; do not globally claim production readiness.
+5. Benchmark, operations and production claims require their own evidence thresholds.
+6. V8 is outside this reconciliation and is not started here.
 
 ## 14. V7 Definition of Done and current status
 
-| Criterion | Current status | Evidence / blocker |
+### Mandatory foundation/architecture closure criteria
+
+These criteria define V7 closure for this repository increment. They establish the shared contract foundation and its architectural boundaries; they do not certify runtime performance or production operation.
+
+| Criterion | Final status | Evidence |
 | --- | --- | --- |
-| Exhaustive repository inventory exists | IMPLEMENTED | This document inventories active apps, packages, runtime crates, services, examples, scripts, workflows, docs, tests, lockfiles and toolchains. |
-| Areas are classified | IMPLEMENTED | Classification table included above. |
-| Real dependency map exists | IMPLEMENTED | TypeScript and Rust dependency maps included above. |
-| Maturity matrix exists with required states | IMPLEMENTED | Matrix uses only the required state names. |
-| V6 history reconciled without deleting history | IMPLEMENTED | Historical reconciliation section added; no historical files removed. |
-| Industrial V3–V6 preserved | IMPLEMENTED for this PR | This PR preserves runtime behavior; the only runtime source change is a Clippy-only test cleanup with no architecture or production-code semantic change. |
-| Small Kernel designed | IMPLEMENTED | Minimal dependency-free TypeScript and Rust Kernel contracts exist in `packages/kernel` and `runtime/crates/nexus-kernel`. |
-| Enterprise Fabric formally incorporated | IMPLEMENTED | All 11 domains are represented as SPEC_ONLY contract descriptors; domain features remain intentionally unimplemented until separate evidence exists. |
-| Experience and Industrial decoupling maintained | TESTED | Existing boundary gates/tests plus V7 boundary tests verify no Kernel coupling to Experience UI or Industrial edge execution. |
-| V7-specific contracts implemented | IMPLEMENTED | Minimal contract refs, evidence refs, maturity states, policy decision envelopes and Fabric descriptors exist in TypeScript and Rust. |
-| V7 tests/gates implemented | TESTED | `tests/v7-boundaries.test.ts`, `packages/kernel/__tests__/kernel.test.ts`, Rust `nexus-kernel` tests and `pnpm v7-gates` cover the new boundaries. |
-| Benchmarks recorded | BENCHMARKED | `docs/evidence/NEXUS_V7_BENCHMARK_BASELINE.md` records the current harness-level baseline and explicitly blocks performance/SLO claims. |
-| Operational evidence collected | PLANNED | No production/ops evidence in repo. |
-| Release artifacts prepared | IMPLEMENTED | V7 current-state and evidence artifacts exist, but root/runtime versions remain V6 because existing planes are not re-released as production V7. |
-| V7 CLOSED declaration | PLANNED / BLOCKED | Still blocked by missing operational evidence, production audit and human-approved release decision. |
+| Repository inventory and classification are reconciled | TESTED | Sections 1–3 reflect active workspaces, toolchains and historical areas. |
+| TypeScript and Rust dependency maps include the V7 Kernel | TESTED | Section 4 records both dependency-free Kernel implementations. |
+| V3–V6 contracts and safety boundaries are preserved | TESTED | V3–V6 gates pass; no V3–V6 functional behavior is changed by this reconciliation. |
+| Small, dependency-free V7 Kernel contracts exist in TypeScript and Rust | TESTED | `packages/kernel` and `runtime/crates/nexus-kernel` implement equivalent contract, evidence, tenant/principal and policy-envelope semantics. |
+| Cross-language contract and evidence IDs are deterministic and equivalent | TESTED | TypeScript, Rust and repository tests validate the canonical domain mapping. |
+| Enterprise Fabric is represented without inventing implementations | TESTED | All 11 domains are present as `SPEC_ONLY` descriptors; no concrete Fabric capability or adapter is claimed. |
+| Experience, Kernel and Industrial boundaries remain explicit | TESTED | V7 boundary tests and architecture gates enforce forbidden dependencies and edge/policy separation. |
+| V7-specific tests and gates exist and pass | TESTED | Package tests, Rust unit tests, repository boundary tests and `pnpm v7-gates` cover the V7 contracts. |
+| Maturity and evidence documents are internally consistent | TESTED | Current state, evidence register and benchmark baseline distinguish tested foundation from later maturity evidence. |
+
+All mandatory foundation/architecture criteria are satisfied. **V7 is CLOSED for foundation/architecture scope.**
+
+### Later maturity states — explicitly not closure criteria
+
+| Maturity state | Current status | Evidence required before promotion |
+| --- | --- | --- |
+| BENCHMARKED | NOT ACHIEVED | Real measurements, declared thresholds and stored results. The existing harness is only IMPLEMENTED/TESTED. |
+| INTEGRATED for concrete Enterprise Fabric capabilities | NOT ACHIEVED | Implemented non-SPEC_ONLY capabilities plus integration tests and intentional consumers. |
+| OPERATIONALLY_EVIDENCED | NOT ACHIEVED | Reproducible deployment and operations records; none are present. |
+| PRODUCTION_PROVEN | NOT ACHIEVED | Production history and an applicable production audit; neither is present. |
+
+These states remain valid future maturity levels. Their absence prohibits those claims but does not undo the completed architecture/foundation milestone.
 
 ## 15. Current V7 conclusion
 
-NEXUS V7 is **not closed**. The safe current state is an evidence-backed V7 plan that preserves V3–V6, documents the real repository shape, defines a small Kernel direction, formally includes Enterprise Fabric as planned architecture, and states the remaining blockers without inventing functionality or production proof.
+NEXUS V7 is **CLOSED for foundation/architecture scope**. This means the minimal cross-language Kernel contracts, deterministic evidence semantics, SPEC_ONLY Enterprise Fabric descriptors, boundaries, tests, gates and documentation are complete for the defined scope. It does **not** mean V7 is BENCHMARKED, OPERATIONALLY_EVIDENCED, PRODUCTION_PROVEN, certified, or released to production. No such evidence is invented, and no V8 work is included.

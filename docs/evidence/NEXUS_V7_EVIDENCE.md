@@ -15,4 +15,6 @@ Status: **evidence register, not a production certification**.
 
 ## V7 closure evidence status
 
-V7 has real Kernel/Fabric contract artifacts and gates. V7 does **not** have operational evidence or production proof. Any release note must preserve that distinction.
+The evidence above satisfies the scoped V7 foundation/architecture Definition of Done: real Kernel contracts, SPEC_ONLY Fabric descriptors, deterministic tests and static gates exist. V7 is therefore closed for that scope.
+
+`BENCHMARK_REPORT`, `OPERATIONS_RECORD` and `PRODUCTION_AUDIT` remain absent. They are required only before making the corresponding `BENCHMARKED`, `OPERATIONALLY_EVIDENCED` or `PRODUCTION_PROVEN` claim; architecture closure must not be presented as any of those claims.

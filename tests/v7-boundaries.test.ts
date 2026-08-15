@@ -57,6 +57,7 @@ describe("NEXUS V7 boundaries", () => {
   });
 
   it("does not promote a benchmark without measurements, thresholds and stored results", () => {
+    const plan = readFileSync(join(root, "NEXUS_V7_ARCHITECTURE_PLAN.md"), "utf8");
     const currentState = readFileSync(join(root, "docs/architecture/V7_CURRENT_STATE.md"), "utf8");
     const baseline = readFileSync(join(root, "docs/evidence/NEXUS_V7_BENCHMARK_BASELINE.md"), "utf8");
     const evidence = readFileSync(join(root, "docs/evidence/NEXUS_V7_EVIDENCE.md"), "utf8");
@@ -65,6 +66,21 @@ describe("NEXUS V7 boundaries", () => {
     expect(currentState).not.toMatch(/\| V7 benchmark baseline \| BENCHMARKED \|/);
     expect(baseline).toContain("Performance measurements with thresholds | PLANNED");
     expect(evidence).toContain("Not present;");
+    expect(plan).toContain("BENCHMARKED | NOT ACHIEVED");
+    expect(plan).not.toMatch(/\| Benchmarks recorded \| BENCHMARKED \|/);
+  });
+
+  it("closes only the foundation and architecture scope while preserving later maturity gaps", () => {
+    const plan = readFileSync(join(root, "NEXUS_V7_ARCHITECTURE_PLAN.md"), "utf8");
+    const currentState = readFileSync(join(root, "docs/architecture/V7_CURRENT_STATE.md"), "utf8");
+    const evidence = readFileSync(join(root, "docs/evidence/NEXUS_V7_EVIDENCE.md"), "utf8");
+
+    expect(plan).toContain("All mandatory foundation/architecture criteria are satisfied");
+    expect(plan).toContain("OPERATIONALLY_EVIDENCED | NOT ACHIEVED");
+    expect(plan).toContain("PRODUCTION_PROVEN | NOT ACHIEVED");
+    expect(currentState).toContain("V7 CLOSED — foundation/architecture scope");
+    expect(evidence).toContain("closed for that scope");
+    expect(plan).not.toContain("V8 Architecture");
   });
 
   it("does not print a group PASS after that group records a failure", () => {

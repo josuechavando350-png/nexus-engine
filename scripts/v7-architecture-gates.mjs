@@ -108,10 +108,16 @@ if (failures === rustBoundaryFailures) {
 }
 
 const plan = read("NEXUS_V7_ARCHITECTURE_PLAN.md");
-if (plan.includes("NEXUS V7 is **not closed**") && plan.includes("PRODUCTION_PROVEN") && plan.includes("NEXUS Enterprise Fabric")) {
-  pass("V7 plan remains explicit about open status, maturity vocabulary and Enterprise Fabric");
+if (
+  plan.includes("NEXUS V7 is **CLOSED for foundation/architecture scope**") &&
+  plan.includes("BENCHMARKED | NOT ACHIEVED") &&
+  plan.includes("OPERATIONALLY_EVIDENCED | NOT ACHIEVED") &&
+  plan.includes("PRODUCTION_PROVEN | NOT ACHIEVED") &&
+  plan.includes("SPEC_ONLY")
+) {
+  pass("V7 plan separates architecture closure from unachieved later maturity states");
 } else {
-  fail("V7 plan must keep open status, maturity vocabulary and Enterprise Fabric scope explicit");
+  fail("V7 plan must scope architecture closure and keep later maturity claims explicitly unachieved");
 }
 
 if (failures > 0) {
