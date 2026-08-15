@@ -9,7 +9,8 @@ const read = (path) => readFileSync(join(root, path), "utf8");
 
 const architecturePath = "NEXUS_V10_ARCHITECTURE_PLAN.md";
 const technologyPath = "docs/architecture/V10_TECHNOLOGY_EVALUATION.md";
-for (const path of [architecturePath, technologyPath]) {
+const continuityPath = "docs/operations/V10_CONTINUITY_OPERABILITY_PLAN.md";
+for (const path of [architecturePath, technologyPath, continuityPath]) {
   if (existsSync(join(root, path))) pass(`artifact ${path}`);
   else fail(`missing artifact ${path}`);
 }
@@ -17,6 +18,7 @@ for (const path of [architecturePath, technologyPath]) {
 if (failures === 0) {
   const architecture = read(architecturePath);
   const technology = read(technologyPath);
+  const continuity = read(continuityPath);
 
   const requiredArchitecture = [
     "Ontology Kernel",
@@ -26,8 +28,10 @@ if (failures === 0) {
     "Query and Persistence Ports",
     "AI Orchestration Boundary",
     "Private Creative Library",
+    "Continuity, Operability and Transferability",
     "Cross-tenant and cross-organization access is denied by default",
-    "Missing evidence is never equivalent to successful evidence"
+    "Missing evidence is never equivalent to successful evidence",
+    "Any undocumented critical recovery or deployment step is a V10 defect"
   ];
   for (const phrase of requiredArchitecture) {
     if (architecture.includes(phrase)) pass(`V10 architecture invariant: ${phrase}`);
@@ -53,11 +57,30 @@ if (failures === 0) {
     else fail(`missing V10 technology evaluation requirement: ${phrase}`);
   }
 
+  const requiredContinuity = [
+    "Bus-factor requirement",
+    "clean-room operator",
+    "backup and restore runbook",
+    "disaster-recovery plan",
+    "SBOM generation path",
+    "AI is never a superuser",
+    "IP and customer separation",
+    "another qualified team can operate the engine without undocumented oral knowledge",
+    "clean-room bootstrap and rollback evidence"
+  ];
+  for (const phrase of requiredContinuity) {
+    if (continuity.includes(phrase)) pass(`V10 continuity invariant: ${phrase}`);
+    else fail(`missing V10 continuity invariant: ${phrase}`);
+  }
+
   if (/default backend only after benchmark artifacts/.test(technology)) pass("V10 backend adoption requires benchmark evidence");
   else fail("V10 backend adoption must require benchmark evidence");
 
   if (/vendor-neutral/.test(architecture) && /storage-neutral/.test(architecture)) pass("V10 Ontology Kernel remains vendor/storage neutral");
   else fail("V10 Ontology Kernel must remain vendor/storage neutral");
+
+  if (architecture.includes("final Codex V1->V10 audit has no unresolved critical/high findings")) pass("V10 closure requires clean Codex V1->V10 audit");
+  else fail("V10 closure must require Codex V1->V10 audit with no unresolved critical/high findings");
 }
 
 if (failures > 0) {
