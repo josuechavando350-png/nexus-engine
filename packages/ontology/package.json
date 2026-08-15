@@ -6,7 +6,8 @@
   "exports": {
     ".": "./index.ts",
     "./registry": "./registry.ts",
-    "./transaction": "./transaction.ts"
+    "./transaction": "./transaction.ts",
+    "./auth-audit": "./auth-audit.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
