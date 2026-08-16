@@ -99,7 +99,7 @@ await phase("execute-real-end-to-end-action-path", async () => {
 });
 
 await phase("backup-restore-offboard-real-state-api", async () => {
-  const output = run("pnpm", ["exec", "vitest", "run", "packages/ontology/h07-operability-state.test.ts", "--reporter=basic"]);
+  const output = run("pnpm", ["exec", "vitest", "run", "packages/ontology/h07-operability-state.test.ts", "--reporter=default"]);
   if (!/1 passed|passed/i.test(output)) throw new Error("ontology state lifecycle test did not report success");
   return { test: "packages/ontology/h07-operability-state.test.ts" };
 });
