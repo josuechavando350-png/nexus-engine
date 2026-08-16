@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   normalize:
-    if: github.event.head_commit.message != 'chore(lockfile): normalize workspace importers'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
