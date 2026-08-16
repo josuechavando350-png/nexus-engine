@@ -20,14 +20,15 @@
     "rust:build": "cargo build --workspace --release --manifest-path runtime/Cargo.toml",
     "demo:e2e": "cargo run -p factory-line --manifest-path runtime/Cargo.toml",
     "v4-gates": "node scripts/v4-architecture-gates.mjs",
-    "v5-gates": "node scripts/v5-architecture-gates.mjs",
     "demo:v4": "cargo run -p autonomous-factory --manifest-path runtime/Cargo.toml",
+    "v5-gates": "node scripts/v5-architecture-gates.mjs",
     "v6-gates": "node scripts/v6-architecture-gates.mjs",
     "demo:v6": "cargo run -p distributed-factory --manifest-path runtime/Cargo.toml",
     "v7-gates": "node scripts/v7-architecture-gates.mjs",
     "v8-gates": "node scripts/v8-architecture-gates.mjs",
     "v9-gates": "node scripts/v9-architecture-gates.mjs",
-    "v10-gates": "node scripts/v10-architecture-gates.mjs"
+    "v10-gates": "node scripts/v10-architecture-gates.mjs",
+    "operability:h07": "node scripts/h07-operability-proof.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.0",
