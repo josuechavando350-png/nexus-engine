@@ -66,7 +66,7 @@ edition = "2021"
 rust-version = "1.75"
 license = "UNLICENSED"
 publish = false
-repository = "https://github.com/josuechavando349-cmd/nexus-engine"
+repository = "https://github.com/josuechavando350-png/nexus-engine"
 
 # ---------------------------------------------------------------------------
 # Dependency policy (see docs/security/V3_THREAT_MODEL.md, section "Supply chain")
@@ -91,51 +91,54 @@ repository = "https://github.com/josuechavando349-cmd/nexus-engine"
 # ---------------------------------------------------------------------------
 
 [workspace.dependencies]
-nexus-kernel = { path = "crates/nexus-kernel" }
-nexus-event = { path = "crates/nexus-event" }
-nexus-observability = { path = "crates/nexus-observability" }
-nexus-policy = { path = "crates/nexus-policy" }
-nexus-ontology = { path = "crates/nexus-ontology" }
-nexus-graph = { path = "crates/nexus-graph" }
-nexus-ingest = { path = "crates/nexus-ingest" }
-nexus-edge-protocol = { path = "crates/nexus-edge-protocol" }
-nexus-edge-wasm = { path = "crates/nexus-edge-wasm" }
-nexus-agent = { path = "crates/nexus-agent" }
-nexus-sim = { path = "crates/nexus-sim" }
-nexus-oneway = { path = "crates/nexus-oneway" }
-nexus-memory = { path = "crates/nexus-memory" }
-nexus-goal = { path = "crates/nexus-goal" }
-nexus-planner = { path = "crates/nexus-planner" }
-nexus-reasoning = { path = "crates/nexus-reasoning" }
-nexus-model = { path = "crates/nexus-model" }
-nexus-world-model = { path = "crates/nexus-world-model" }
-nexus-durable = { path = "crates/nexus-durable" }
-nexus-evaluator = { path = "crates/nexus-evaluator" }
-nexus-recovery = { path = "crates/nexus-recovery" }
-nexus-agents-v4 = { path = "crates/nexus-agents-v4" }
-nexus-intelligence = { path = "crates/nexus-intelligence" }
-nexus-control-model = { path = "crates/nexus-control-model" }
-nexus-identity = { path = "crates/nexus-identity" }
-nexus-authz = { path = "crates/nexus-authz" }
-nexus-registry = { path = "crates/nexus-registry" }
-nexus-secrets-v5 = { path = "crates/nexus-secrets-v5" }
-nexus-cost = { path = "crates/nexus-cost" }
-nexus-alerts = { path = "crates/nexus-alerts" }
-nexus-audit-v5 = { path = "crates/nexus-audit-v5" }
-nexus-api-contracts = { path = "crates/nexus-api-contracts" }
-nexus-control-plane = { path = "crates/nexus-control-plane" }
-nexus-sdk = { path = "crates/nexus-sdk" }
-nexus-cluster = { path = "crates/nexus-cluster" }
-nexus-consensus = { path = "crates/nexus-consensus" }
-nexus-replication = { path = "crates/nexus-replication" }
-nexus-placement = { path = "crates/nexus-placement" }
-nexus-discovery = { path = "crates/nexus-discovery" }
-nexus-federation = { path = "crates/nexus-federation" }
-nexus-offline = { path = "crates/nexus-offline" }
-nexus-mesh = { path = "crates/nexus-mesh" }
-nexus-fleet = { path = "crates/nexus-fleet" }
-nexus-update = { path = "crates/nexus-update" }
-nexus-distributed = { path = "crates/nexus-distributed" }
+# Internal path dependencies carry the exact workspace version as well as the
+# path. This prevents inherited `workspace = true` requirements from degrading
+# into wildcard requirements under cargo-deny while retaining local resolution.
+nexus-kernel = { path = "crates/nexus-kernel", version = "6.0.0" }
+nexus-event = { path = "crates/nexus-event", version = "6.0.0" }
+nexus-observability = { path = "crates/nexus-observability", version = "6.0.0" }
+nexus-policy = { path = "crates/nexus-policy", version = "6.0.0" }
+nexus-ontology = { path = "crates/nexus-ontology", version = "6.0.0" }
+nexus-graph = { path = "crates/nexus-graph", version = "6.0.0" }
+nexus-ingest = { path = "crates/nexus-ingest", version = "6.0.0" }
+nexus-edge-protocol = { path = "crates/nexus-edge-protocol", version = "6.0.0" }
+nexus-edge-wasm = { path = "crates/nexus-edge-wasm", version = "6.0.0" }
+nexus-agent = { path = "crates/nexus-agent", version = "6.0.0" }
+nexus-sim = { path = "crates/nexus-sim", version = "6.0.0" }
+nexus-oneway = { path = "crates/nexus-oneway", version = "6.0.0" }
+nexus-memory = { path = "crates/nexus-memory", version = "6.0.0" }
+nexus-goal = { path = "crates/nexus-goal", version = "6.0.0" }
+nexus-planner = { path = "crates/nexus-planner", version = "6.0.0" }
+nexus-reasoning = { path = "crates/nexus-reasoning", version = "6.0.0" }
+nexus-model = { path = "crates/nexus-model", version = "6.0.0" }
+nexus-world-model = { path = "crates/nexus-world-model", version = "6.0.0" }
+nexus-durable = { path = "crates/nexus-durable", version = "6.0.0" }
+nexus-evaluator = { path = "crates/nexus-evaluator", version = "6.0.0" }
+nexus-recovery = { path = "crates/nexus-recovery", version = "6.0.0" }
+nexus-agents-v4 = { path = "crates/nexus-agents-v4", version = "6.0.0" }
+nexus-intelligence = { path = "crates/nexus-intelligence", version = "6.0.0" }
+nexus-control-model = { path = "crates/nexus-control-model", version = "6.0.0" }
+nexus-identity = { path = "crates/nexus-identity", version = "6.0.0" }
+nexus-authz = { path = "crates/nexus-authz", version = "6.0.0" }
+nexus-registry = { path = "crates/nexus-registry", version = "6.0.0" }
+nexus-secrets-v5 = { path = "crates/nexus-secrets-v5", version = "6.0.0" }
+nexus-cost = { path = "crates/nexus-cost", version = "6.0.0" }
+nexus-alerts = { path = "crates/nexus-alerts", version = "6.0.0" }
+nexus-audit-v5 = { path = "crates/nexus-audit-v5", version = "6.0.0" }
+nexus-api-contracts = { path = "crates/nexus-api-contracts", version = "6.0.0" }
+nexus-control-plane = { path = "crates/nexus-control-plane", version = "6.0.0" }
+nexus-sdk = { path = "crates/nexus-sdk", version = "6.0.0" }
+nexus-cluster = { path = "crates/nexus-cluster", version = "6.0.0" }
+nexus-consensus = { path = "crates/nexus-consensus", version = "6.0.0" }
+nexus-replication = { path = "crates/nexus-replication", version = "6.0.0" }
+nexus-placement = { path = "crates/nexus-placement", version = "6.0.0" }
+nexus-discovery = { path = "crates/nexus-discovery", version = "6.0.0" }
+nexus-federation = { path = "crates/nexus-federation", version = "6.0.0" }
+nexus-offline = { path = "crates/nexus-offline", version = "6.0.0" }
+nexus-mesh = { path = "crates/nexus-mesh", version = "6.0.0" }
+nexus-fleet = { path = "crates/nexus-fleet", version = "6.0.0" }
+nexus-update = { path = "crates/nexus-update", version = "6.0.0" }
+nexus-distributed = { path = "crates/nexus-distributed", version = "6.0.0" }
 
 # Optional adapter dependencies. Versions are pinned to a minor range and are
 # NOT part of the default build.
