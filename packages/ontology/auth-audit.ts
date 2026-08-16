@@ -115,6 +115,27 @@ export interface RecoverableAuditTrailPort extends AuditTrailPort {
   restore(checkpoint: AuditTrailCheckpoint): void;
 }
 
+/** A trust-domain-independent commitment to an audit history head. */
+export interface AuditAnchor {
+  readonly anchorId: string;
+  readonly scope: OntologyScope;
+  readonly recordCount: number;
+  readonly headAuditId?: string;
+  readonly historyDigest: string;
+  readonly anchoredAt: string;
+}
+
+/**
+ * Production implementations MUST be outside the audit-ledger trust domain
+ * (for example an immutable object store / transparency service / remote WORM
+ * ledger with separately administered credentials). A second Map, local file,
+ * or HMAC key held by the same process does not satisfy this port's trust model.
+ */
+export interface IndependentAuditAnchorPort {
+  publish(anchor: AuditAnchor): void;
+  latest(scope: OntologyScope): AuditAnchor | undefined;
+}
+
 function sameScope(a: OntologyScope, b: OntologyScope): boolean {
   return a.tenantId === b.tenantId && a.organizationId === b.organizationId && a.brandId === b.brandId;
 }
@@ -144,6 +165,10 @@ function safeSignatureEqual(expected: string, actual: string): boolean {
 
 function cloneAuditRecord(record: AuditRecord): AuditRecord {
   return { ...record, scope: { ...record.scope } };
+}
+
+function auditHistoryDigest(records: readonly AuditRecord[]): string {
+  return ontologyId("audit-history", records.map((record) => ({ ...record, scope: { ...record.scope } })));
 }
 
 export class InMemoryApprovalRegistry implements ApprovalPort {
@@ -259,9 +284,7 @@ export class InMemoryAuditTrail implements RecoverableAuditTrailPort {
     for (const [, history] of checkpoint.histories) {
       if (history.length > this.maxRecordsPerScope) throw new Error("audit checkpoint exceeds configured retention capacity");
     }
-    this.histories = new Map(
-      checkpoint.histories.map(([name, history]) => [name, history.map(cloneAuditRecord)]),
-    );
+    this.histories = new Map(checkpoint.histories.map(([name, history]) => [name, history.map(cloneAuditRecord)]));
   }
 
   append(input: AuditInput): AuditRecord {
@@ -292,5 +315,85 @@ export class InMemoryAuditTrail implements RecoverableAuditTrailPort {
       previousAuditId = auditId;
     }
     return true;
+  }
+}
+
+/**
+ * Audit trail whose integrity verdict is bound to an independently administered
+ * anchor. Re-hashing a rewritten local history is insufficient: verify() also
+ * requires the history count, head and full-history digest to equal the latest
+ * external commitment.
+ *
+ * The anchor is published after append. If publishing fails, append fails closed
+ * and the recoverable ledger is restored to its pre-append checkpoint.
+ */
+export class AnchoredAuditTrail implements RecoverableAuditTrailPort {
+  constructor(
+    private readonly ledger: RecoverableAuditTrailPort,
+    private readonly anchors: IndependentAuditAnchorPort,
+    private readonly now: () => string = () => new Date().toISOString(),
+  ) {}
+
+  checkpoint(): AuditTrailCheckpoint {
+    return this.ledger.checkpoint();
+  }
+
+  restore(checkpoint: AuditTrailCheckpoint): void {
+    this.ledger.restore(checkpoint);
+  }
+
+  append(input: AuditInput): AuditRecord {
+    const checkpoint = this.ledger.checkpoint();
+    const record = this.ledger.append(input);
+    const history = this.ledger.list(input.scope);
+    const anchoredAt = this.now();
+    assertCanonicalUtcTimestamp(anchoredAt, "anchoredAt");
+    const anchorBody = {
+      scope: { ...input.scope },
+      recordCount: history.length,
+      headAuditId: history.at(-1)?.auditId,
+      historyDigest: auditHistoryDigest(history),
+      anchoredAt,
+    };
+    const anchor: AuditAnchor = { ...anchorBody, anchorId: ontologyId("audit-anchor", anchorBody) };
+    try {
+      this.anchors.publish(anchor);
+    } catch (error) {
+      this.ledger.restore(checkpoint);
+      throw new Error(`audit anchor publication failed; local append rolled back: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    return record;
+  }
+
+  list(scope: OntologyScope): readonly AuditRecord[] {
+    return this.ledger.list(scope);
+  }
+
+  verify(scope: OntologyScope): boolean {
+    if (!this.ledger.verify(scope)) return false;
+    const history = this.ledger.list(scope);
+    const anchor = this.anchors.latest(scope);
+    if (!anchor || !sameScope(anchor.scope, scope)) return false;
+    if (anchor.recordCount !== history.length) return false;
+    if (anchor.headAuditId !== history.at(-1)?.auditId) return false;
+    if (anchor.historyDigest !== auditHistoryDigest(history)) return false;
+    const { anchorId, ...body } = anchor;
+    return ontologyId("audit-anchor", body) === anchorId;
+  }
+}
+
+/** Test/reference anchor only. It deliberately does NOT claim an external trust domain. */
+export class InMemoryAuditAnchor implements IndependentAuditAnchorPort {
+  private readonly anchors = new Map<string, AuditAnchor>();
+
+  publish(anchor: AuditAnchor): void {
+    const current = this.anchors.get(scopeKey(anchor.scope));
+    if (current && anchor.recordCount <= current.recordCount) throw new Error("audit anchors must advance monotonically");
+    this.anchors.set(scopeKey(anchor.scope), { ...anchor, scope: { ...anchor.scope } });
+  }
+
+  latest(scope: OntologyScope): AuditAnchor | undefined {
+    const anchor = this.anchors.get(scopeKey(scope));
+    return anchor ? { ...anchor, scope: { ...anchor.scope } } : undefined;
   }
 }
