@@ -37,6 +37,16 @@ export interface OntologyTransactionPort {
   getRelationship(scope: OntologyScope, id: string): RelationshipRecord | undefined;
 }
 
+export interface OntologyTransactionCheckpoint {
+  readonly objects: readonly ObjectRecord[];
+  readonly relationships: readonly RelationshipRecord[];
+}
+
+export interface RecoverableOntologyTransactionPort extends OntologyTransactionPort {
+  checkpoint(): OntologyTransactionCheckpoint;
+  restore(checkpoint: OntologyTransactionCheckpoint): void;
+}
+
 export class OntologyTransactionError extends Error {
   constructor(public readonly code: "INVALID_SCOPE" | "INVALID_SCHEMA" | "NOT_FOUND" | "CONFLICT" | "INVALID_OPERATION" | "IMMUTABLE_PROPERTY", message: string) {
     super(message);
@@ -53,16 +63,28 @@ function key(scope: OntologyScope, id: string): string {
 }
 
 function cloneObject(record: ObjectRecord): ObjectRecord {
-  return { ...record, properties: { ...record.properties } };
+  return { ...record, scope: { ...record.scope }, properties: { ...record.properties } };
 }
 
 function cloneRelationship(record: RelationshipRecord): RelationshipRecord {
-  return { ...record, endpoints: { ...record.endpoints } };
+  return { ...record, scope: { ...record.scope }, endpoints: { ...record.endpoints } };
 }
 
-export class InMemoryOntologyTransactionStore implements OntologyTransactionPort {
+export class InMemoryOntologyTransactionStore implements RecoverableOntologyTransactionPort {
   private objects = new Map<string, ObjectRecord>();
   private relationships = new Map<string, RelationshipRecord>();
+
+  checkpoint(): OntologyTransactionCheckpoint {
+    return {
+      objects: [...this.objects.values()].map(cloneObject),
+      relationships: [...this.relationships.values()].map(cloneRelationship),
+    };
+  }
+
+  restore(checkpoint: OntologyTransactionCheckpoint): void {
+    this.objects = new Map(checkpoint.objects.map((record) => [key(record.scope, record.id), cloneObject(record)]));
+    this.relationships = new Map(checkpoint.relationships.map((record) => [key(record.scope, record.id), cloneRelationship(record)]));
+  }
 
   getObject(scope: OntologyScope, id: string): ObjectRecord | undefined {
     const value = this.objects.get(key(scope, id));
