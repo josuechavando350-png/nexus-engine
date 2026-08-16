@@ -24,6 +24,10 @@ State-changing work follows one controlled path:
 
 The authorization layer requires an explicit permission, exact ontology scope matching, and human approval when the action is HIGH or CRITICAL risk. The action executor validates the action against the active schema before it reaches the transaction port, uses a non-empty requestId for idempotency, and records COMMITTED, DENIED or FAILED outcomes in the audit trail. No AI provider or caller is allowed to bypass this boundary and mutate ontology state directly.
 
+## Controlled AI boundary
+
+AI providers are adapters, never execution authorities. The AI layer may inspect only explicitly exposed ontology Action metadata and may produce proposals for allowlisted Actions, but it cannot mutate ontology state directly. Proposals must preserve the caller scope, obey configured input budgets, fail closed if the provider fails or returns an invalid result, and escalate HIGH/CRITICAL risk work to explicit human approval. Execution remains behind contextual authorization, the Action Execution Orchestrator and the transaction boundary.
+
 ## Event/workflow invariants
 
 - Domain events are append-only and scoped.
@@ -38,8 +42,8 @@ The authorization layer requires an explicit permission, exact ontology scope ma
 
 ## Validation requirement
 
-Any material change to ontology events/workflows must pass the full V3→V10 validation before merge. Missing CI evidence is a release blocker for this module.
+Any material change to ontology events/workflows or AI execution boundaries must pass the full V3→V10 validation before merge. Missing CI evidence is a release blocker for this module.
 
 ## Operator note
 
-This package must remain understandable without oral knowledge from the original author. Any new primitive, invariant, authorization rule or migration behavior must be documented alongside tests and the V10 architecture plan.
+This package must remain understandable without oral knowledge from the original author. Any new primitive, invariant, authorization rule, migration behavior or AI execution boundary must be documented alongside tests and the V10 architecture plan.
