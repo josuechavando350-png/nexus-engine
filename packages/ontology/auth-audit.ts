@@ -245,6 +245,10 @@ export function authorize(request: AuthorizationRequest, approvals?: ApprovalPor
 export class InMemoryAuditTrail implements RecoverableAuditTrailPort {
   private histories = new Map<string, AuditRecord[]>();
 
+  constructor(private readonly maxRecordsPerScope = 100_000) {
+    if (!Number.isInteger(maxRecordsPerScope) || maxRecordsPerScope <= 0) throw new Error("maxRecordsPerScope must be a positive integer");
+  }
+
   checkpoint(): AuditTrailCheckpoint {
     return {
       histories: [...this.histories.entries()].map(([name, history]) => [name, history.map(cloneAuditRecord)] as const),
@@ -252,6 +256,9 @@ export class InMemoryAuditTrail implements RecoverableAuditTrailPort {
   }
 
   restore(checkpoint: AuditTrailCheckpoint): void {
+    for (const [, history] of checkpoint.histories) {
+      if (history.length > this.maxRecordsPerScope) throw new Error("audit checkpoint exceeds configured retention capacity");
+    }
     this.histories = new Map(
       checkpoint.histories.map(([name, history]) => [name, history.map(cloneAuditRecord)]),
     );
@@ -263,6 +270,7 @@ export class InMemoryAuditTrail implements RecoverableAuditTrailPort {
     if (!input.actionId.trim()) throw new Error("actionId must be non-empty");
     const key = scopeKey(input.scope);
     const history = this.histories.get(key) ?? [];
+    if (history.length >= this.maxRecordsPerScope) throw new Error("audit retention capacity exceeded for scope");
     const previousAuditId = history.at(-1)?.auditId;
     const body = { ...input, previousAuditId };
     const record: AuditRecord = { ...body, auditId: ontologyId("audit", body) };
