@@ -1,34 +1,32 @@
 import { createHash } from "node:crypto";
-import { cp, mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { chmod, copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { performance } from "node:perf_hooks";
 
 const root = resolve(process.cwd());
 const work = join(root, ".artifacts", "h07-clean-room");
 const evidencePath = join(root, ".artifacts", "h07-operability-proof.json");
-const tenantId = "tenant-clean-room";
-const currentVersion = "v10-current";
-const previousVersion = "v10-previous";
+const releaseDir = join(root, "runtime", "target", "release");
+const deployDir = join(work, "deployment");
+const backupDir = join(work, "known-good-artifacts");
+const gatewaySource = join(releaseDir, process.platform === "win32" ? "gatewayd.exe" : "gatewayd");
+const factorySource = join(releaseDir, process.platform === "win32" ? "factory-line.exe" : "factory-line");
+const gatewayDeployed = join(deployDir, process.platform === "win32" ? "gatewayd.exe" : "gatewayd");
+const factoryDeployed = join(deployDir, process.platform === "win32" ? "factory-line.exe" : "factory-line");
+const gatewayBackup = join(backupDir, process.platform === "win32" ? "gatewayd.exe" : "gatewayd");
+
+function run(command, args, options = {}) {
+  return execFileSync(command, args, {
+    cwd: root,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    ...options,
+  });
+}
 
 async function sha256(path) {
   return createHash("sha256").update(await readFile(path)).digest("hex");
-}
-
-async function exists(path) {
-  try {
-    await stat(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function assert(condition, message) {
-  if (!condition) throw new Error(message);
-}
-
-async function json(path) {
-  return JSON.parse(await readFile(path, "utf8"));
 }
 
 async function writeJson(path, value) {
@@ -36,129 +34,126 @@ async function writeJson(path, value) {
 }
 
 await rm(work, { recursive: true, force: true });
-await mkdir(work, { recursive: true });
+await mkdir(deployDir, { recursive: true });
+await mkdir(backupDir, { recursive: true });
 await mkdir(join(root, ".artifacts"), { recursive: true });
 
 const phases = [];
 async function phase(name, fn) {
   const started = performance.now();
-  await fn();
-  phases.push({ name, elapsedMs: Number((performance.now() - started).toFixed(3)), status: "PASS" });
+  try {
+    const detail = await fn();
+    phases.push({ name, elapsedMs: Number((performance.now() - started).toFixed(3)), status: "PASS", ...(detail ?? {}) });
+  } catch (error) {
+    phases.push({ name, elapsedMs: Number((performance.now() - started).toFixed(3)), status: "FAIL", error: error instanceof Error ? error.message : String(error) });
+    throw error;
+  }
 }
 
-const envDir = join(work, "environment");
-const deployDir = join(envDir, "deployments");
-const dataDir = join(envDir, "data");
-const backupDir = join(work, "backups");
-const restoreDir = join(work, "restore-target");
-const exportDir = join(work, "exports");
+let gatewayDigest = "";
+let factoryDigest = "";
+let gatewayHealthOutput = "";
+let factoryOutputDigest = "";
 
-await phase("bootstrap", async () => {
-  assert(await exists(join(root, "pnpm-lock.yaml")), "pnpm lockfile is required");
-  assert(await exists(join(root, "runtime", "Cargo.lock")), "Rust Cargo.lock is required");
-  await mkdir(deployDir, { recursive: true });
-  await mkdir(dataDir, { recursive: true });
-  await mkdir(backupDir, { recursive: true });
-  await mkdir(exportDir, { recursive: true });
+await phase("build-real-release-artifacts", async () => {
+  run("cargo", ["build", "--release", "-p", "gatewayd", "-p", "factory-line", "--manifest-path", "runtime/Cargo.toml"]);
+  gatewayDigest = await sha256(gatewaySource);
+  factoryDigest = await sha256(factorySource);
+  return { gatewayDigest, factoryDigest };
 });
 
-await phase("deploy", async () => {
-  await writeJson(join(deployDir, `${previousVersion}.json`), { version: previousVersion, healthy: true });
-  await writeJson(join(deployDir, `${currentVersion}.json`), { version: currentVersion, healthy: true });
-  await writeJson(join(envDir, "active-deployment.json"), { version: currentVersion });
-  const active = await json(join(envDir, "active-deployment.json"));
-  assert(active.version === currentVersion, "current deployment was not activated");
+await phase("deploy-real-binaries", async () => {
+  await copyFile(gatewaySource, gatewayDeployed);
+  await copyFile(factorySource, factoryDeployed);
+  if (process.platform !== "win32") {
+    await chmod(gatewayDeployed, 0o755);
+    await chmod(factoryDeployed, 0o755);
+  }
+  if (await sha256(gatewayDeployed) !== gatewayDigest || await sha256(factoryDeployed) !== factoryDigest) {
+    throw new Error("deployed binary digest differs from built release artifact");
+  }
 });
 
-await phase("health", async () => {
-  const active = await json(join(envDir, "active-deployment.json"));
-  const deployment = await json(join(deployDir, `${active.version}.json`));
-  assert(deployment.healthy === true, "reference deployment health check failed");
+await phase("execute-real-health-path", async () => {
+  gatewayHealthOutput = run(gatewayDeployed, [], {
+    env: {
+      ...process.env,
+      NEXUS_LOG_LEVEL: "info",
+      NEXUS_TELEMETRY_IDENTITY: "h07-telemetry",
+      NEXUS_CONTROL_IDENTITY: "h07-control",
+    },
+  });
+  // gatewayd logs structured health to stderr; execFileSync only returns stdout.
+  // A successful exit is itself a startup invariant: run() validates distinct
+  // identities, constructs health/metrics/audit and exits non-zero on failure.
+  return { exitCode: 0, stdoutDigest: createHash("sha256").update(gatewayHealthOutput).digest("hex") };
 });
 
-const sourceData = {
-  tenantId,
-  objects: [
-    { id: "customer-1", typeId: "obj.customer", name: "Ada" },
-    { id: "customer-2", typeId: "obj.customer", name: "Grace" },
-  ],
-  relationships: [{ id: "rel-1", typeId: "rel.customer-peer", from: "customer-1", to: "customer-2" }],
-  audit: [{ id: "audit-1", decision: "ALLOW", action: "seed.synthetic" }],
-};
-const tenantPath = join(dataDir, `${tenantId}.json`);
-
-await phase("seed", async () => {
-  await writeJson(tenantPath, sourceData);
-  const seeded = await json(tenantPath);
-  assert(seeded.tenantId === tenantId && seeded.objects.length === 2, "synthetic tenant seed failed");
+await phase("execute-real-end-to-end-action-path", async () => {
+  const output = run(factoryDeployed, []);
+  if (!output.includes("NEXUS V3") || !output.includes("factory-line")) {
+    throw new Error("factory-line did not emit the expected NEXUS end-to-end execution transcript");
+  }
+  factoryOutputDigest = createHash("sha256").update(output).digest("hex");
+  return { transcriptDigest: factoryOutputDigest };
 });
 
-let backupDigest = "";
-let backupCreatedAt = "";
-await phase("backup", async () => {
-  const backupPath = join(backupDir, `${tenantId}.json`);
-  await cp(tenantPath, backupPath);
-  backupDigest = await sha256(backupPath);
-  backupCreatedAt = new Date().toISOString();
-  assert(backupDigest === await sha256(tenantPath), "backup digest does not match source");
+await phase("backup-restore-offboard-real-state-api", async () => {
+  const output = run("pnpm", ["exec", "vitest", "run", "packages/ontology/h07-operability-state.test.ts", "--reporter=basic"]);
+  if (!/1 passed|passed/i.test(output)) throw new Error("ontology state lifecycle test did not report success");
+  return { test: "packages/ontology/h07-operability-state.test.ts" };
 });
 
-let restoreElapsedMs = 0;
-await phase("restore", async () => {
-  const started = performance.now();
-  await rm(restoreDir, { recursive: true, force: true });
-  await mkdir(restoreDir, { recursive: true });
-  const restoredPath = join(restoreDir, `${tenantId}.json`);
-  await cp(join(backupDir, `${tenantId}.json`), restoredPath);
-  restoreElapsedMs = Number((performance.now() - started).toFixed(3));
-  assert(await sha256(restoredPath) === backupDigest, "restore digest verification failed");
-  const restored = await json(restoredPath);
-  assert(restored.tenantId === tenantId, "restore scope mismatch");
-  assert(restored.objects.length === sourceData.objects.length, "restore object count mismatch");
+await phase("capture-known-good-release", async () => {
+  await copyFile(gatewayDeployed, gatewayBackup);
+  if (await sha256(gatewayBackup) !== gatewayDigest) throw new Error("known-good artifact backup digest mismatch");
 });
 
-await phase("cross-tenant-restore-deny", async () => {
-  const restored = await json(join(restoreDir, `${tenantId}.json`));
-  const requestedTargetTenant = "tenant-other";
-  assert(restored.tenantId !== requestedTargetTenant, "cross-tenant restore must not be accepted");
-});
-
-await phase("export", async () => {
-  const exportPath = join(exportDir, `${tenantId}.json`);
-  await cp(tenantPath, exportPath);
-  assert(await sha256(exportPath) === await sha256(tenantPath), "tenant export is not lossless");
-});
-
-await phase("offboard", async () => {
-  const exportPath = join(exportDir, `${tenantId}.json`);
-  assert(await exists(exportPath), "offboarding requires a verified tenant export first");
-  await rm(tenantPath);
-  assert(!(await exists(tenantPath)), "tenant data still exists after offboarding");
-  assert(await exists(exportPath), "tenant export was lost during offboarding");
-});
-
-await phase("rollback", async () => {
-  await writeJson(join(envDir, "active-deployment.json"), { version: previousVersion });
-  const active = await json(join(envDir, "active-deployment.json"));
-  const deployment = await json(join(deployDir, `${active.version}.json`));
-  assert(active.version === previousVersion && deployment.healthy === true, "rollback did not restore a healthy previous deployment");
+await phase("rollback-deployed-artifact", async () => {
+  // Deliberately corrupt the deployed artifact, then restore the exact known-good
+  // release bytes and prove the restored binary starts successfully.
+  await writeFile(gatewayDeployed, "corrupted deployment\n", "utf8");
+  if (await sha256(gatewayDeployed) === gatewayDigest) throw new Error("rollback fault injection did not alter the deployment");
+  await copyFile(gatewayBackup, gatewayDeployed);
+  if (process.platform !== "win32") await chmod(gatewayDeployed, 0o755);
+  if (await sha256(gatewayDeployed) !== gatewayDigest) throw new Error("rollback did not restore exact known-good artifact bytes");
+  run(gatewayDeployed, [], {
+    env: {
+      ...process.env,
+      NEXUS_LOG_LEVEL: "info",
+      NEXUS_TELEMETRY_IDENTITY: "h07-telemetry",
+      NEXUS_CONTROL_IDENTITY: "h07-control",
+    },
+  });
+  return { restoredDigest: gatewayDigest, postRollbackExitCode: 0 };
 });
 
 const evidence = {
-  proof: "H-07 reference clean-room operability lifecycle",
+  proof: "H-07 executable clean-room reference lifecycle over real NEXUS code and release artifacts",
   generatedAt: new Date().toISOString(),
+  commit: run("git", ["rev-parse", "HEAD"]).trim(),
   node: process.version,
   platform: `${process.platform}-${process.arch}`,
-  tenantId,
-  backup: { digest: backupDigest, createdAt: backupCreatedAt },
-  measured: {
-    referenceRestoreMs: restoreElapsedMs,
-    referenceRpoRecordsLost: 0,
+  artifacts: {
+    gatewayd: { sha256: gatewayDigest },
+    factoryLine: { sha256: factoryDigest, executionTranscriptSha256: factoryOutputDigest },
   },
   phases,
+  claims: {
+    releaseArtifactBuild: "VERIFIED",
+    releaseArtifactDeployment: "VERIFIED_IN_CLEAN_ROOM_REFERENCE_ENVIRONMENT",
+    executableStartupHealthInvariant: "VERIFIED",
+    endToEndNexusExecution: "VERIFIED",
+    ontologyBackupRestoreOffboardingApi: "VERIFIED_IN_REFERENCE_ADAPTER",
+    byteExactKnownGoodArtifactRollback: "VERIFIED",
+    productionInfrastructureDeployment: "NOT VERIFIED",
+    productionRtoRpo: "NOT VERIFIED",
+    independentHumanOperatorRun: "NOT VERIFIED",
+  },
   limitations: [
-    "This is executable reference-environment evidence, not a claim of production infrastructure RTO/RPO.",
-    "Independent-operator acceptance still requires a separate human/operator run using the clean-room runbook.",
+    "This proof executes real NEXUS release binaries and real ontology persistence APIs; it no longer models deploy/health/backup/restore/offboarding as JSON file copies.",
+    "The repository does not contain credentials or a customer production environment, so production infrastructure deployment and production RTO/RPO remain explicitly NOT VERIFIED rather than being simulated.",
+    "Independent-human-operator acceptance remains a separate evidence item.",
   ],
 };
 
