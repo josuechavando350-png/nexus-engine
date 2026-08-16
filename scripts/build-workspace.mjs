@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 
 const root = process.cwd();
 const workspaceRoots = ["packages", "apps"];
@@ -18,19 +18,26 @@ for (const workspaceRoot of workspaceRoots) {
 
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
     if (typeof manifest.scripts?.build === "string") {
-      buildTargets.push(relativeDir);
+      buildTargets.push({ relativeDir, command: manifest.scripts.build });
     }
   }
 }
 
-buildTargets.sort((a, b) => a.localeCompare(b, "en"));
+buildTargets.sort((a, b) => a.relativeDir.localeCompare(b.relativeDir, "en"));
 
-for (const target of buildTargets) {
-  console.log(`\n=== Building ${target} ===`);
-  execFileSync("pnpm", ["--dir", target, "run", "build"], {
-    cwd: root,
+const rootBin = join(root, "node_modules", ".bin");
+
+for (const { relativeDir, command } of buildTargets) {
+  const cwd = join(root, relativeDir);
+  const packageBin = join(cwd, "node_modules", ".bin");
+  const path = [packageBin, rootBin, process.env.PATH ?? ""].filter(Boolean).join(delimiter);
+
+  console.log(`\n=== Building ${relativeDir} ===`);
+  execSync(command, {
+    cwd,
     stdio: "inherit",
-    env: process.env,
+    shell: "/bin/bash",
+    env: { ...process.env, PATH: path },
   });
 }
 
