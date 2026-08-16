@@ -52,18 +52,26 @@ function compareVersions(a: string, b: string): number {
   return a.localeCompare(b, "en");
 }
 
+function cloneSchema<T extends SchemaVersion | ValidatedSchema>(schema: T): T {
+  return structuredClone(schema);
+}
+
+function cloneMigrationPlan(plan: SchemaMigrationPlan): SchemaMigrationPlan {
+  return structuredClone(plan);
+}
+
 export class InMemorySchemaRegistry implements SchemaRegistryPort {
   private readonly schemas = new Map<string, ValidatedSchema>();
   private readonly histories = new Map<string, string[]>();
 
   register(schema: SchemaVersion, previousSchemaId?: string): ValidatedSchema {
     parseCore(schema.version);
-    const validated = validateSchema(schema);
+    const validated = validateSchema(cloneSchema(schema));
     const key = scopeKey(validated.scope);
     const history = this.histories.get(key) ?? [];
     const latestId = history.at(-1);
 
-    if (this.schemas.has(validated.schemaId)) return this.schemas.get(validated.schemaId)!;
+    if (this.schemas.has(validated.schemaId)) return cloneSchema(this.schemas.get(validated.schemaId)!);
 
     if (latestId !== undefined) {
       if (previousSchemaId !== latestId) throw new Error("schema registration must extend the latest schema for its scope");
@@ -73,23 +81,26 @@ export class InMemorySchemaRegistry implements SchemaRegistryPort {
       throw new Error("initial schema registration cannot declare a previous schema");
     }
 
-    this.schemas.set(validated.schemaId, validated);
-    this.histories.set(key, [...history, validated.schemaId]);
-    return validated;
+    const stored = cloneSchema(validated);
+    this.schemas.set(stored.schemaId, stored);
+    this.histories.set(key, [...history, stored.schemaId]);
+    return cloneSchema(stored);
   }
 
   get(schemaId: string): ValidatedSchema | undefined {
-    return this.schemas.get(schemaId);
+    const schema = this.schemas.get(schemaId);
+    return schema ? cloneSchema(schema) : undefined;
   }
 
   getLatest(scope: OntologyScope): ValidatedSchema | undefined {
     const ids = this.histories.get(scopeKey(scope));
     const schemaId = ids?.at(-1);
-    return schemaId ? this.schemas.get(schemaId) : undefined;
+    const schema = schemaId ? this.schemas.get(schemaId) : undefined;
+    return schema ? cloneSchema(schema) : undefined;
   }
 
   list(scope: OntologyScope): readonly ValidatedSchema[] {
-    return (this.histories.get(scopeKey(scope)) ?? []).map((schemaId) => this.schemas.get(schemaId)!);
+    return (this.histories.get(scopeKey(scope)) ?? []).map((schemaId) => cloneSchema(this.schemas.get(schemaId)!));
   }
 
   planMigration(fromSchemaId: string, toSchemaId: string, steps: readonly Omit<SchemaMigrationStep, "id">[]): SchemaMigrationPlan {
@@ -105,14 +116,14 @@ export class InMemorySchemaRegistry implements SchemaRegistryPort {
       return { ...step, id: ontologyId("migration-step", { fromSchemaId, toSchemaId, index, ...step }) };
     });
 
-    return {
+    return cloneMigrationPlan({
       migrationId: ontologyId("migration", { fromSchemaId, toSchemaId, steps: normalizedSteps }),
-      scope: from.scope,
+      scope: { ...from.scope },
       fromSchemaId,
       toSchemaId,
       fromVersion: from.version,
       toVersion: to.version,
       steps: normalizedSteps
-    };
+    });
   }
 }
