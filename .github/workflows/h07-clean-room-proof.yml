@@ -2,11 +2,23 @@ name: NEXUS H07 Clean-Room Operability Proof
 
 on:
   pull_request:
+    branches: [main]
     paths:
       - "scripts/h07-operability-proof.mjs"
       - "package.json"
       - ".github/workflows/h07-clean-room-proof.yml"
       - "docs/operations/**"
+      - "runtime/**"
+      - "packages/ontology/**"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/h07-operability-proof.mjs"
+      - "package.json"
+      - ".github/workflows/h07-clean-room-proof.yml"
+      - "docs/operations/**"
+      - "runtime/**"
+      - "packages/ontology/**"
   workflow_dispatch:
 
 permissions:
@@ -15,15 +27,15 @@ permissions:
 jobs:
   clean-room-proof:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - name: Checkout exact revision
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
 
       - name: Setup Node 24
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
 
@@ -33,9 +45,11 @@ jobs:
           corepack prepare pnpm@10.15.0 --activate
 
       - name: Setup pinned Rust 1.88.0
-        uses: dtolnay/rust-toolchain@1.88.0
-        with:
-          components: rustfmt, clippy
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.88.0 --profile minimal --component rustfmt,clippy
+          rustup default 1.88.0
 
       - name: Record clean-room identity
         run: |
@@ -60,6 +74,13 @@ jobs:
           pnpm build
           pnpm security-hygiene
           pnpm v3-gates
+          pnpm v4-gates
+          pnpm v5-gates
+          pnpm v6-gates
+          pnpm v7-gates
+          pnpm v8-gates
+          pnpm v9-gates
+          pnpm v10-gates
           pnpm rust:test
           pnpm rust:lint
           pnpm rust:build
@@ -69,11 +90,11 @@ jobs:
 
       - name: Upload evidence packet
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: h07-clean-room-evidence-${{ github.run_id }}
+          name: h07-clean-room-evidence-${{ github.sha }}-${{ github.run_id }}
           path: |
             .artifacts/h07-environment.txt
             .artifacts/h07-operability-proof.json
           if-no-files-found: error
-          retention-days: 30
+          retention-days: 90
