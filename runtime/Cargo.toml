@@ -141,7 +141,7 @@ nexus-distributed = { path = "crates/nexus-distributed" }
 # NOT part of the default build.
 rdkafka = { version = "0.36", default-features = false, features = ["tokio", "libz"] }
 neo4rs = { version = "0.8" }
-wasmtime = { version = "27", default-features = false, features = ["cranelift", "runtime"] }
+wasmtime = { version = "36.0.13", default-features = false, features = ["cranelift", "runtime"] }
 ed25519-dalek = { version = "2", default-features = false, features = ["std"] }
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "signal", "time", "sync"] }
 
