@@ -1,0 +1,79 @@
+name: NEXUS H07 Clean-Room Operability Proof
+
+on:
+  pull_request:
+    paths:
+      - "scripts/h07-operability-proof.mjs"
+      - "package.json"
+      - ".github/workflows/h07-clean-room-proof.yml"
+      - "docs/operations/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  clean-room-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - name: Setup pinned Rust 1.88.0
+        uses: dtolnay/rust-toolchain@1.88.0
+        with:
+          components: rustfmt, clippy
+
+      - name: Record clean-room identity
+        run: |
+          mkdir -p .artifacts
+          {
+            echo "commit=$(git rev-parse HEAD)"
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "runner=${RUNNER_OS}-${RUNNER_ARCH}"
+          } | tee .artifacts/h07-environment.txt
+
+      - name: Install from lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Build and validate independently
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm test
+          pnpm build
+          pnpm security-hygiene
+          pnpm v3-gates
+          pnpm rust:test
+          pnpm rust:lint
+          pnpm rust:build
+
+      - name: Execute deploy backup restore rollback offboarding proof
+        run: pnpm operability:h07
+
+      - name: Upload evidence packet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: h07-clean-room-evidence-${{ github.run_id }}
+          path: |
+            .artifacts/h07-environment.txt
+            .artifacts/h07-operability-proof.json
+          if-no-files-found: error
+          retention-days: 30
