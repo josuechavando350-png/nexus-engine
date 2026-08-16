@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateSchema, type SchemaVersion } from "./index";
-import { InMemoryOntologyTransactionStore, OntologyTransactionError } from "./transaction";
+import { InMemoryOntologyTransactionStore, OntologyTransactionError, type PropertyValue } from "./transaction";
 
 function schema() {
   const input: SchemaVersion = {
@@ -25,7 +25,7 @@ function schema() {
   return validateSchema(input);
 }
 
-function create(store: InMemoryOntologyTransactionStore, active: ReturnType<typeof schema>, id: string, properties: Record<string, any>) {
+function create(store: InMemoryOntologyTransactionStore, active: ReturnType<typeof schema>, id: string, properties: Record<string, PropertyValue>) {
   return store.transact(active.scope, active, [{
     kind: "CREATE_OBJECT",
     record: { id, typeId: "obj.customer", scope: active.scope, properties },
