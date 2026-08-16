@@ -11,7 +11,7 @@
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "vitest run --passWithNoTests",
     "test:watch": "vitest",
-    "build": "pnpm -r --if-present build && node scripts/assert-clean-build.mjs",
+    "build": "pnpm --lockfile=false -r --if-present build && node scripts/assert-clean-build.mjs",
     "quality-gates": "node scripts/quality-gates.mjs",
     "security-hygiene": "node scripts/security-hygiene.mjs",
     "v3-gates": "node scripts/v3-architecture-gates.mjs",
