@@ -107,7 +107,7 @@ export class InMemoryDisasterRecovery implements DisasterRecoveryPort {
   restore(backupId: string): void {
     const record = this.backups.get(backupId);
     if (!record) throw new Error(`backup ${backupId} not found`);
-    this.persistence.restoreSnapshot(record.snapshot);
+    this.persistence.restoreSnapshot(record.snapshot, record.scope);
   }
 
   listBackups(scope: OntologyScope): readonly Omit<BackupRecord, "snapshot">[] {
