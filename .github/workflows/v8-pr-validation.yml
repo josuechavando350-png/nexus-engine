@@ -153,10 +153,23 @@ jobs:
         run: pnpm build
 
       - name: Security hygiene
-        run: pnpm security-hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm security-hygiene
+          status="$(git status --porcelain --untracked-files=no)"
+          if [ -n "$status" ]; then
+            echo "Tracked mutation detected after Security hygiene:" >&2
+            printf '%s\n' "$status" >&2
+            git diff --name-status >&2 || true
+            git diff >&2 || true
+            exit 1
+          fi
 
       - name: Architecture gates V3→V10
+        shell: bash
         run: |
+          set -euo pipefail
           pnpm v3-gates
           pnpm v4-gates
           pnpm v5-gates
@@ -165,6 +178,14 @@ jobs:
           pnpm v8-gates
           pnpm v9-gates
           pnpm v10-gates
+          status="$(git status --porcelain --untracked-files=no)"
+          if [ -n "$status" ]; then
+            echo "Tracked mutation detected after Architecture gates V3→V10:" >&2
+            printf '%s\n' "$status" >&2
+            git diff --name-status >&2 || true
+            git diff >&2 || true
+            exit 1
+          fi
 
       - name: Rust tests
         shell: bash
@@ -196,7 +217,14 @@ jobs:
             git worktree remove --force "$NEXUS_LOCK_WORKTREE" >/dev/null 2>&1 || true
             git worktree prune
           fi
-          test -z "$(git status --porcelain --untracked-files=no)"
+          status="$(git status --porcelain --untracked-files=no)"
+          if [ -n "$status" ]; then
+            echo "Tracked mutation detected before final diff hygiene:" >&2
+            printf '%s\n' "$status" >&2
+            git diff --name-status >&2 || true
+            git diff >&2 || true
+            exit 1
+          fi
 
       - name: Diff hygiene
         shell: bash
