@@ -16,6 +16,10 @@ The package defines ObjectType, PropertyType, InterfaceType, RelationshipType, A
 - Schema identities are deterministic and independent of declaration order.
 - Operational and Creative domains consume this kernel; they do not fork it.
 
+## Controlled AI boundary
+
+AI providers are adapters, never execution authorities. The AI layer may inspect only explicitly exposed ontology Action metadata and may produce proposals for allowlisted Actions, but it cannot mutate ontology state directly. Proposals must preserve the caller scope, obey configured input budgets, fail closed if the provider fails or returns an invalid result, and escalate HIGH/CRITICAL risk work to explicit human approval. Execution remains behind contextual authorization, the Action Execution Orchestrator and the transaction boundary.
+
 ## Operator note
 
-This package must remain understandable without oral knowledge from the original author. Any new primitive, invariant or migration behavior must be documented alongside tests and the V10 architecture plan.
+This package must remain understandable without oral knowledge from the original author. Any new primitive, invariant, migration behavior or AI execution boundary must be documented alongside tests and the V10 architecture plan.
