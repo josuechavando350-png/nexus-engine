@@ -209,7 +209,7 @@ export class InMemoryOntologyPersistence implements OntologyPersistencePort {
       .filter((record) => query.typeId === undefined || record.typeId === query.typeId)
       .filter((record) => Object.entries(query.propertyEquals ?? {}).every(([key, value]) => record.properties[key] === value))
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map(cloneObject);
+      .map((record) => cloneObject(record));
     return page(matches, query.limit, query.cursor);
   }
 
@@ -219,7 +219,7 @@ export class InMemoryOntologyPersistence implements OntologyPersistencePort {
       .filter((record) => query.typeId === undefined || record.typeId === query.typeId)
       .filter((record) => query.endpointId === undefined || Object.values(record.endpoints).includes(query.endpointId))
       .sort((a, b) => a.id.localeCompare(b.id))
-      .map(cloneRelationship);
+      .map((record) => cloneRelationship(record));
     return page(matches, query.limit, query.cursor);
   }
 
