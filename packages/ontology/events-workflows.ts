@@ -41,6 +41,15 @@ export interface WorkflowInstance {
   readonly revision: number;
 }
 
+export interface EventRetentionLimits {
+  readonly maxEventsPerScope: number;
+}
+
+export interface WorkflowRetentionLimits {
+  readonly maxDefinitions: number;
+  readonly maxInstances: number;
+}
+
 function sameScope(a: OntologyScope, b: OntologyScope): boolean {
   return a.tenantId === b.tenantId && a.organizationId === b.organizationId && a.brandId === b.brandId;
 }
@@ -54,8 +63,16 @@ function assertUtc(value: string): void {
   if (!Number.isFinite(d.getTime()) || d.toISOString() !== value) throw new Error("occurredAt must be canonical UTC");
 }
 
+function positiveInteger(value: number, name: string): void {
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`);
+}
+
 export class InMemoryEventStream implements EventStreamPort {
   private readonly histories = new Map<string, DomainEvent[]>();
+
+  constructor(private readonly limits: EventRetentionLimits = { maxEventsPerScope: 100_000 }) {
+    positiveInteger(limits.maxEventsPerScope, "maxEventsPerScope");
+  }
 
   append(input: Omit<DomainEvent, "eventId" | "sequence">): DomainEvent {
     assertUtc(input.occurredAt);
@@ -63,6 +80,7 @@ export class InMemoryEventStream implements EventStreamPort {
     if (!input.correlationId.trim()) throw new Error("correlationId must be non-empty");
     const key = scopeKey(input.scope);
     const history = this.histories.get(key) ?? [];
+    if (history.length >= this.limits.maxEventsPerScope) throw new Error("event stream capacity exceeded for scope");
     const sequence = history.length + 1;
     const body = { ...input, sequence };
     const event: DomainEvent = { ...body, eventId: ontologyId("event-record", body) };
@@ -80,9 +98,15 @@ export class InMemoryWorkflowEngine {
   private readonly definitions = new Map<string, WorkflowDefinition>();
   private readonly instances = new Map<string, WorkflowInstance>();
 
+  constructor(private readonly limits: WorkflowRetentionLimits = { maxDefinitions: 1_000, maxInstances: 100_000 }) {
+    positiveInteger(limits.maxDefinitions, "maxDefinitions");
+    positiveInteger(limits.maxInstances, "maxInstances");
+  }
+
   register(definition: WorkflowDefinition): void {
     if (!definition.workflowId.trim() || !definition.initialState.trim()) throw new Error("workflow definition is invalid");
     if (definition.transitions.length === 0) throw new Error("workflow requires transitions");
+    if (!this.definitions.has(definition.workflowId) && this.definitions.size >= this.limits.maxDefinitions) throw new Error("workflow definition capacity exceeded");
     this.definitions.set(definition.workflowId, definition);
   }
 
@@ -92,6 +116,7 @@ export class InMemoryWorkflowEngine {
     const instanceId = ontologyId("workflow-instance", { scope, workflowId, correlationId });
     const existing = this.instances.get(instanceId);
     if (existing) return existing;
+    if (this.instances.size >= this.limits.maxInstances) throw new Error("workflow instance capacity exceeded");
     const instance: WorkflowInstance = { instanceId, workflowId, scope, correlationId, state: def.initialState, status: def.terminalStates.includes(def.initialState) ? "COMPLETED" : "RUNNING", revision: 1 };
     this.instances.set(instanceId, instance);
     return instance;

@@ -27,6 +27,12 @@ export interface SchemaRegistryPort {
   planMigration(fromSchemaId: string, toSchemaId: string, steps: readonly Omit<SchemaMigrationStep, "id">[]): SchemaMigrationPlan;
 }
 
+export interface SchemaRegistryLimits {
+  readonly maxSchemas: number;
+  readonly maxVersionsPerScope: number;
+}
+
+const DEFAULT_LIMITS: SchemaRegistryLimits = { maxSchemas: 10_000, maxVersionsPerScope: 128 };
 const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 
 function scopeKey(scope: OntologyScope): string {
@@ -35,6 +41,11 @@ function scopeKey(scope: OntologyScope): string {
 
 function sameScope(a: OntologyScope, b: OntologyScope): boolean {
   return a.tenantId === b.tenantId && a.organizationId === b.organizationId && a.brandId === b.brandId;
+}
+
+function assertLimits(limits: SchemaRegistryLimits): void {
+  if (!Number.isInteger(limits.maxSchemas) || limits.maxSchemas <= 0) throw new Error("maxSchemas must be a positive integer");
+  if (!Number.isInteger(limits.maxVersionsPerScope) || limits.maxVersionsPerScope <= 0) throw new Error("maxVersionsPerScope must be a positive integer");
 }
 
 function parseCore(version: string): readonly [number, number, number] {
@@ -64,6 +75,10 @@ export class InMemorySchemaRegistry implements SchemaRegistryPort {
   private readonly schemas = new Map<string, ValidatedSchema>();
   private readonly histories = new Map<string, string[]>();
 
+  constructor(private readonly limits: SchemaRegistryLimits = DEFAULT_LIMITS) {
+    assertLimits(limits);
+  }
+
   register(schema: SchemaVersion, previousSchemaId?: string): ValidatedSchema {
     parseCore(schema.version);
     const validated = validateSchema(cloneSchema(schema));
@@ -72,6 +87,8 @@ export class InMemorySchemaRegistry implements SchemaRegistryPort {
     const latestId = history.at(-1);
 
     if (this.schemas.has(validated.schemaId)) return cloneSchema(this.schemas.get(validated.schemaId)!);
+    if (this.schemas.size >= this.limits.maxSchemas) throw new Error("schema registry capacity exceeded");
+    if (history.length >= this.limits.maxVersionsPerScope) throw new Error("schema history capacity exceeded for scope");
 
     if (latestId !== undefined) {
       if (previousSchemaId !== latestId) throw new Error("schema registration must extend the latest schema for its scope");

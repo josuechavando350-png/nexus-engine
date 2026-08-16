@@ -48,6 +48,11 @@ export interface RecoverableOntologyTransactionPort extends OntologyTransactionP
   restore(checkpoint: OntologyTransactionCheckpoint): void;
 }
 
+export interface TransactionStoreLimits {
+  readonly maxObjectsPerScope: number;
+  readonly maxRelationshipsPerScope: number;
+}
+
 export class OntologyTransactionError extends Error {
   constructor(
     public readonly code:
@@ -60,7 +65,8 @@ export class OntologyTransactionError extends Error {
       | "INVALID_PROPERTY_VALUE"
       | "REQUIRED_PROPERTY"
       | "UNIQUE_CONSTRAINT"
-      | "DERIVED_PROPERTY",
+      | "DERIVED_PROPERTY"
+      | "CAPACITY_EXCEEDED",
     message: string,
   ) {
     super(message);
@@ -72,8 +78,12 @@ function sameScope(a: OntologyScope, b: OntologyScope): boolean {
   return a.tenantId === b.tenantId && a.organizationId === b.organizationId && a.brandId === b.brandId;
 }
 
+function scopeIdentity(scope: OntologyScope): string {
+  return `${scope.tenantId}\u0000${scope.organizationId}\u0000${scope.brandId ?? ""}`;
+}
+
 function key(scope: OntologyScope, id: string): string {
-  return `${scope.tenantId}\u0000${scope.organizationId}\u0000${scope.brandId ?? ""}\u0000${id}`;
+  return `${scopeIdentity(scope)}\u0000${id}`;
 }
 
 function cloneJson(value: JsonValue): JsonValue {
@@ -143,9 +153,36 @@ function propertyEquals(a: PropertyValue, b: PropertyValue): boolean {
   return canonicalJson(a) === canonicalJson(b);
 }
 
+function assertPositiveLimit(value: number, name: string): void {
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`);
+}
+
+function countByScope<T extends { readonly scope: OntologyScope }>(values: Iterable<T>): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    const identity = scopeIdentity(value.scope);
+    counts.set(identity, (counts.get(identity) ?? 0) + 1);
+  }
+  return counts;
+}
+
 export class InMemoryOntologyTransactionStore implements RecoverableOntologyTransactionPort {
   private objects = new Map<string, ObjectRecord>();
   private relationships = new Map<string, RelationshipRecord>();
+
+  constructor(private readonly limits: TransactionStoreLimits = { maxObjectsPerScope: 100_000, maxRelationshipsPerScope: 100_000 }) {
+    assertPositiveLimit(limits.maxObjectsPerScope, "maxObjectsPerScope");
+    assertPositiveLimit(limits.maxRelationshipsPerScope, "maxRelationshipsPerScope");
+  }
+
+  private assertCapacity(objects: Map<string, ObjectRecord>, relationships: Map<string, RelationshipRecord>): void {
+    for (const count of countByScope(objects.values()).values()) {
+      if (count > this.limits.maxObjectsPerScope) throw new OntologyTransactionError("CAPACITY_EXCEEDED", "object capacity exceeded for scope");
+    }
+    for (const count of countByScope(relationships.values()).values()) {
+      if (count > this.limits.maxRelationshipsPerScope) throw new OntologyTransactionError("CAPACITY_EXCEEDED", "relationship capacity exceeded for scope");
+    }
+  }
 
   checkpoint(): OntologyTransactionCheckpoint {
     return {
@@ -155,8 +192,11 @@ export class InMemoryOntologyTransactionStore implements RecoverableOntologyTran
   }
 
   restore(checkpoint: OntologyTransactionCheckpoint): void {
-    this.objects = new Map(checkpoint.objects.map((record) => [key(record.scope, record.id), cloneObject(record)]));
-    this.relationships = new Map(checkpoint.relationships.map((record) => [key(record.scope, record.id), cloneRelationship(record)]));
+    const objects = new Map(checkpoint.objects.map((record) => [key(record.scope, record.id), cloneObject(record)]));
+    const relationships = new Map(checkpoint.relationships.map((record) => [key(record.scope, record.id), cloneRelationship(record)]));
+    this.assertCapacity(objects, relationships);
+    this.objects = objects;
+    this.relationships = relationships;
   }
 
   getObject(scope: OntologyScope, id: string): ObjectRecord | undefined {
@@ -314,6 +354,7 @@ export class InMemoryOntologyTransactionStore implements RecoverableOntologyTran
       }
     }
 
+    this.assertCapacity(objects, relationships);
     this.objects = objects;
     this.relationships = relationships;
     return { committed: true, objectIds: [...touchedObjects], relationshipIds: [...touchedRelationships] };
