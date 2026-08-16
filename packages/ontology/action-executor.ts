@@ -1,6 +1,23 @@
-import type { ActionType, OntologyScope, ValidatedSchema } from "./index";
-import { authorize, type ActionAuthorizationPolicy, type ApprovalPort, type AuditTrailPort, type PrincipalContext, type RiskLevel } from "./auth-audit";
-import type { ObjectRecord, OntologyTransactionPort, PropertyValue, TransactionOperation, TransactionResult } from "./transaction";
+import { canonicalJson, type ActionType, type OntologyScope, type ValidatedSchema } from "./index";
+import {
+  authorize,
+  InMemoryAuditTrail,
+  type ActionAuthorizationPolicy,
+  type ApprovalPort,
+  type AuditInput,
+  type AuditRecord,
+  type AuditTrailPort,
+  type PrincipalContext,
+  type RiskLevel,
+} from "./auth-audit";
+import {
+  InMemoryOntologyTransactionStore,
+  type ObjectRecord,
+  type OntologyTransactionPort,
+  type PropertyValue,
+  type TransactionOperation,
+  type TransactionResult,
+} from "./transaction";
 
 export interface ActionPolicyPort {
   resolve(actionId: string, scope: OntologyScope): ActionAuthorizationPolicy | undefined;
@@ -65,6 +82,59 @@ export interface ActionExecutionResult {
   readonly auditId: string;
 }
 
+interface CompletedExecution {
+  readonly fingerprint: string;
+  readonly result: ActionExecutionResult;
+}
+
+export interface AtomicActionCommitRequest {
+  readonly scope: OntologyScope;
+  readonly schema: ValidatedSchema;
+  readonly operations: readonly TransactionOperation[];
+  readonly audit: AuditInput;
+}
+
+export interface AtomicActionCommitResult {
+  readonly transaction: TransactionResult;
+  readonly audit: AuditRecord;
+}
+
+export interface AtomicActionCommitPort {
+  commit(request: AtomicActionCommitRequest): AtomicActionCommitResult;
+}
+
+export class InMemoryAtomicActionCommitter implements AtomicActionCommitPort {
+  private failAfterMutationOnce = false;
+
+  constructor(
+    private readonly transactions: InMemoryOntologyTransactionStore,
+    private readonly audit: InMemoryAuditTrail,
+  ) {}
+
+  injectFailureAfterMutationOnce(): void {
+    this.failAfterMutationOnce = true;
+  }
+
+  commit(request: AtomicActionCommitRequest): AtomicActionCommitResult {
+    const transactionCheckpoint = this.transactions.checkpoint();
+    const auditCheckpoint = this.audit.checkpoint();
+
+    try {
+      const transaction = this.transactions.transact(request.scope, request.schema, request.operations);
+      if (this.failAfterMutationOnce) {
+        this.failAfterMutationOnce = false;
+        throw new Error("injected failure after mutation before audit persistence");
+      }
+      const audit = this.audit.append(request.audit);
+      return { transaction, audit };
+    } catch (error) {
+      this.transactions.restore(transactionCheckpoint);
+      this.audit.restore(auditCheckpoint);
+      throw error;
+    }
+  }
+}
+
 export class ActionExecutionError extends Error {
   constructor(public readonly code: "INVALID_REQUEST" | "ACTION_MISMATCH" | "EXECUTION_FAILED", message: string) {
     super(message);
@@ -79,6 +149,28 @@ function sameScope(a: OntologyScope, b: OntologyScope): boolean {
 function canonicalUtc(value: string): void {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new ActionExecutionError("INVALID_REQUEST", "occurredAt must be canonical ISO-8601 UTC");
+}
+
+function scopeKey(scope: OntologyScope): string {
+  return `${scope.tenantId}\u0000${scope.organizationId}\u0000${scope.brandId ?? ""}`;
+}
+
+function idempotencyKey(request: ActionExecutionRequest): string {
+  return `${scopeKey(request.scope)}\u0000${request.principal.principalId}\u0000${request.actionId}\u0000${request.requestId}`;
+}
+
+function requestFingerprint(request: ActionExecutionRequest): string {
+  return canonicalJson({
+    occurredAt: request.occurredAt,
+    scope: request.scope,
+    principalId: request.principal.principalId,
+    actionId: request.actionId,
+    targetId: request.targetId,
+    inputs: request.inputs,
+    expectedRevision: request.expectedRevision,
+    approvalId: request.approvalId,
+    schemaVersion: request.schema.version,
+  });
 }
 
 function assertInputs(action: ActionType, inputs: Readonly<Record<string, PropertyValue>>): void {
@@ -100,7 +192,7 @@ function compileClosedMutationPlan(
   transactions: OntologyTransactionPort,
   effects: ActionEffectPort,
   request: ActionExecutionRequest,
-  action: ActionType
+  action: ActionType,
 ): readonly TransactionOperation[] {
   if (action.effectRefs.length !== 1) throw new ActionExecutionError("ACTION_MISMATCH", `action ${action.id} must declare exactly one registered mutation effect`);
   const effectRef = action.effectRefs[0]!;
@@ -111,15 +203,7 @@ function compileClosedMutationPlan(
   switch (descriptor.kind) {
     case "CREATE_TARGET": {
       if (!action.targetTypeId) throw new ActionExecutionError("ACTION_MISMATCH", "CREATE_TARGET requires a concrete targetTypeId");
-      return [{
-        kind: "CREATE_OBJECT",
-        record: {
-          id: request.targetId,
-          typeId: action.targetTypeId,
-          scope: request.scope,
-          properties: { ...request.inputs }
-        }
-      }];
+      return [{ kind: "CREATE_OBJECT", record: { id: request.targetId, typeId: action.targetTypeId, scope: request.scope, properties: { ...request.inputs } } }];
     }
     case "UPDATE_TARGET": {
       const current = transactions.getObject(request.scope, request.targetId);
@@ -140,15 +224,22 @@ function compileClosedMutationPlan(
 }
 
 export class OntologyActionExecutor {
-  private readonly completed = new Map<string, ActionExecutionResult>();
+  private readonly completed = new Map<string, CompletedExecution>();
+  private readonly atomicCommit?: AtomicActionCommitPort;
 
   constructor(
     private readonly transactions: OntologyTransactionPort,
     private readonly audit: AuditTrailPort,
     private readonly policies: ActionPolicyPort,
     private readonly effects: ActionEffectPort,
-    private readonly approvals?: ApprovalPort
-  ) {}
+    private readonly approvals?: ApprovalPort,
+    atomicCommit?: AtomicActionCommitPort,
+  ) {
+    this.atomicCommit = atomicCommit
+      ?? (transactions instanceof InMemoryOntologyTransactionStore && audit instanceof InMemoryAuditTrail
+        ? new InMemoryAtomicActionCommitter(transactions, audit)
+        : undefined);
+  }
 
   execute(request: ActionExecutionRequest): ActionExecutionResult {
     if (!request.requestId.trim()) throw new ActionExecutionError("INVALID_REQUEST", "requestId must be non-empty");
@@ -156,13 +247,18 @@ export class OntologyActionExecutor {
     canonicalUtc(request.occurredAt);
     if (!sameScope(request.scope, request.schema.scope)) throw new ActionExecutionError("INVALID_REQUEST", "execution scope must match schema scope");
 
-    const previous = this.completed.get(request.requestId);
-    if (previous) return previous;
+    const replayKey = idempotencyKey(request);
+    const fingerprint = requestFingerprint(request);
+    const previous = this.completed.get(replayKey);
+    if (previous) {
+      if (previous.fingerprint !== fingerprint) throw new ActionExecutionError("INVALID_REQUEST", "idempotency key was reused with a different request payload");
+      return previous.result;
+    }
 
     const declaredAction = request.schema.actions.find((item) => item.id === request.actionId);
     if (!declaredAction) throw new ActionExecutionError("ACTION_MISMATCH", `action ${request.actionId} is not declared in active schema`);
     const policy = this.policies.resolve(declaredAction.id, request.scope);
-    if (!policy) return this.deny(request, declaredAction, "no active action policy is available", "CRITICAL", "unavailable");
+    if (!policy) return this.deny(request, declaredAction, "no active action policy is available", "CRITICAL", "unavailable", undefined, replayKey, fingerprint);
 
     const authorization = authorize({
       requestId: request.requestId,
@@ -172,30 +268,42 @@ export class OntologyActionExecutor {
       targetScope: request.scope,
       targetId: request.targetId,
       policy,
-      approvalId: request.approvalId
+      approvalId: request.approvalId,
     }, this.approvals);
 
     if (authorization.decision === "DENY") {
-      return this.deny(request, declaredAction, authorization.reason, authorization.risk, authorization.policyVersion, authorization.approvalId);
+      return this.deny(request, declaredAction, authorization.reason, authorization.risk, authorization.policyVersion, authorization.approvalId, replayKey, fingerprint);
     }
 
     try {
       const operations = compileClosedMutationPlan(this.transactions, this.effects, request, declaredAction);
-      const transaction = this.transactions.transact(request.scope, request.schema, operations);
-      const record = this.audit.append({
-        occurredAt: request.occurredAt,
-        principalId: request.principal.principalId,
+      if (!this.atomicCommit) {
+        throw new ActionExecutionError("EXECUTION_FAILED", "atomic action commit backend is unavailable");
+      }
+      const committed = this.atomicCommit.commit({
         scope: request.scope,
-        actionId: declaredAction.id,
-        targetId: request.targetId,
-        decision: "ALLOW",
-        reason: "authorized action committed from registered declared effect",
-        risk: policy.risk,
-        policyVersion: policy.policyVersion,
-        humanApprovalId: request.approvalId
+        schema: request.schema,
+        operations,
+        audit: {
+          occurredAt: request.occurredAt,
+          principalId: request.principal.principalId,
+          scope: request.scope,
+          actionId: declaredAction.id,
+          targetId: request.targetId,
+          decision: "ALLOW",
+          reason: "authorized action committed atomically with audit evidence",
+          risk: policy.risk,
+          policyVersion: policy.policyVersion,
+          humanApprovalId: request.approvalId,
+        },
       });
-      const result: ActionExecutionResult = { status: "COMMITTED", requestId: request.requestId, transaction, auditId: record.auditId };
-      this.completed.set(request.requestId, result);
+      const result: ActionExecutionResult = {
+        status: "COMMITTED",
+        requestId: request.requestId,
+        transaction: committed.transaction,
+        auditId: committed.audit.auditId,
+      };
+      this.completed.set(replayKey, { fingerprint, result });
       return result;
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown execution failure";
@@ -209,11 +317,9 @@ export class OntologyActionExecutor {
         reason: `execution failed: ${reason}`,
         risk: policy.risk,
         policyVersion: policy.policyVersion,
-        humanApprovalId: request.approvalId
+        humanApprovalId: request.approvalId,
       });
-      const result: ActionExecutionResult = { status: "FAILED", requestId: request.requestId, reason, auditId: record.auditId };
-      this.completed.set(request.requestId, result);
-      return result;
+      return { status: "FAILED", requestId: request.requestId, reason, auditId: record.auditId };
     }
   }
 
@@ -223,7 +329,9 @@ export class OntologyActionExecutor {
     reason: string,
     risk: RiskLevel,
     policyVersion: string,
-    approvalId?: string
+    approvalId: string | undefined,
+    replayKey: string,
+    fingerprint: string,
   ): ActionExecutionResult {
     const record = this.audit.append({
       occurredAt: request.occurredAt,
@@ -235,10 +343,10 @@ export class OntologyActionExecutor {
       reason,
       risk,
       policyVersion,
-      humanApprovalId: approvalId
+      humanApprovalId: approvalId,
     });
     const result: ActionExecutionResult = { status: "DENIED", requestId: request.requestId, reason, auditId: record.auditId };
-    this.completed.set(request.requestId, result);
+    this.completed.set(replayKey, { fingerprint, result });
     return result;
   }
 }
