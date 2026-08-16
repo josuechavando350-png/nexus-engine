@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ActionType, OntologyScope } from "./index";
-import { InMemoryApprovalRegistry, InMemoryAuditTrail, authorize, type ActionAuthorizationPolicy, type ApprovalArtifact } from "./auth-audit";
+import { actionDefinitionId, InMemoryApprovalRegistry, InMemoryAuditTrail, authorize, type ActionAuthorizationPolicy, type ApprovalArtifact } from "./auth-audit";
 
 const scope: OntologyScope = { tenantId: "tenant-a", organizationId: "org-a", brandId: "brand-a" };
 const action: ActionType = {
@@ -13,8 +13,8 @@ const action: ActionType = {
   effectRefs: ["effect.customer.delete"],
   emittedEventTypeIds: []
 };
-const lowPolicy: ActionAuthorizationPolicy = { actionId: action.id, risk: "LOW", requiresHumanApproval: false, separationOfDuties: false, policyVersion: "policy-v1" };
-const highPolicy: ActionAuthorizationPolicy = { actionId: action.id, risk: "HIGH", requiresHumanApproval: true, separationOfDuties: true, policyVersion: "policy-v1" };
+const lowPolicy: ActionAuthorizationPolicy = { actionId: action.id, actionDefinitionId: actionDefinitionId(action), risk: "LOW", requiresHumanApproval: false, separationOfDuties: false, policyVersion: "policy-v1" };
+const highPolicy: ActionAuthorizationPolicy = { actionId: action.id, actionDefinitionId: actionDefinitionId(action), risk: "HIGH", requiresHumanApproval: true, separationOfDuties: true, policyVersion: "policy-v1" };
 const occurredAt = "2026-08-15T22:30:00.000Z";
 
 function principal(overrides: Partial<{ principalId: string; permissions: readonly string[]; scope: OntologyScope }> = {}) {
@@ -59,6 +59,16 @@ describe("contextual authorization", () => {
     expect(authorize(request()).decision).toBe("ALLOW");
     expect(authorize(request(lowPolicy, { principal: principal({ permissions: [] }) })).decision).toBe("DENY");
     expect(authorize(request(lowPolicy, { principal: principal({ scope: { ...scope, tenantId: "tenant-b" } }) })).decision).toBe("DENY");
+  });
+
+  it("fails closed when a policy reuses the same action id for a changed definition", () => {
+    const changed: ActionType = { ...action, permission: "customer.delete.admin" };
+    const result = authorize(request(lowPolicy, {
+      action: changed,
+      principal: principal({ permissions: ["customer.delete", "customer.delete.admin"] }),
+    }));
+    expect(result.decision).toBe("DENY");
+    expect(result.reason).toContain("not bound to the declared action definition");
   });
 
   it("fails closed when high-risk approval backend or artifact is absent", () => {

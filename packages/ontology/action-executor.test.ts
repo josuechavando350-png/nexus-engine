@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateSchema, type SchemaVersion } from "./index";
-import { InMemoryApprovalRegistry, InMemoryAuditTrail } from "./auth-audit";
+import { actionDefinitionId, InMemoryApprovalRegistry, InMemoryAuditTrail } from "./auth-audit";
 import {
   ActionExecutionError,
   InMemoryActionEffectRegistry,
@@ -36,7 +36,8 @@ function runtime(risk: "LOW" | "HIGH" | "CRITICAL" = "LOW") {
   const transactions = new InMemoryOntologyTransactionStore();
   const audit = new InMemoryAuditTrail();
   const policies = new InMemoryActionPolicyRegistry();
-  policies.register({ actionId: "action.customer.create", risk, requiresHumanApproval: risk === "HIGH" || risk === "CRITICAL", separationOfDuties: true, policyVersion: "policy-v1" });
+  const declared = active.actions[0]!;
+  policies.register({ actionId: declared.id, actionDefinitionId: actionDefinitionId(declared), risk, requiresHumanApproval: risk === "HIGH" || risk === "CRITICAL", separationOfDuties: true, policyVersion: "policy-v1" });
   const effects = new InMemoryActionEffectRegistry();
   effects.register("effect.customer.create", { kind: "CREATE_TARGET" });
   return { active, transactions, audit, policies, effects };
@@ -66,6 +67,33 @@ describe("ontology action executor", () => {
     expect(transactions.getObject(active.scope, "customer-1")?.properties["prop.name"]).toBe("Ada");
     expect(transactions.getObject(active.scope, "victim")?.properties["prop.name"]).toBe("Keep");
     expect(audit.verify(active.scope)).toBe(true);
+  });
+
+  it("rejects a stale policy when the active action keeps its id but changes definition", () => {
+    const original = schema();
+    const changedInput: SchemaVersion = {
+      version: "10.1.0",
+      scope: original.scope,
+      properties: [...original.properties],
+      interfaces: [...original.interfaces],
+      objects: [...original.objects],
+      relationships: [...original.relationships],
+      actions: [{ ...original.actions[0]!, permission: "customer:create:admin" }],
+      functions: [...original.functions],
+      events: [...original.events],
+    };
+    const changed = validateSchema(changedInput);
+    const transactions = new InMemoryOntologyTransactionStore();
+    const audit = new InMemoryAuditTrail();
+    const policies = new InMemoryActionPolicyRegistry();
+    policies.register({ actionId: original.actions[0]!.id, actionDefinitionId: actionDefinitionId(original.actions[0]!), risk: "LOW", requiresHumanApproval: false, separationOfDuties: false, policyVersion: "policy-v1" });
+    const effects = new InMemoryActionEffectRegistry();
+    effects.register("effect.customer.create", { kind: "CREATE_TARGET" });
+    const executor = new OntologyActionExecutor(transactions, audit, policies, effects);
+    const result = executor.execute(request(changed, { principal: { principalId: "user-1", scope: changed.scope, permissions: ["customer:create", "customer:create:admin"] } }));
+    expect(result.status).toBe("DENIED");
+    expect(result.reason).toContain("not bound to the declared action definition");
+    expect(transactions.getObject(changed.scope, "customer-1")).toBeUndefined();
   });
 
   it("rejects undeclared input properties instead of allowing foreign writes", () => {
@@ -129,7 +157,8 @@ describe("ontology action executor", () => {
     const transactions = new InMemoryOntologyTransactionStore();
     const audit = new InMemoryAuditTrail();
     const policies = new InMemoryActionPolicyRegistry();
-    policies.register({ actionId: "action.customer.create", risk: "LOW", requiresHumanApproval: false, separationOfDuties: false, policyVersion: "policy-v1" });
+    const definition = activeA.actions[0]!;
+    policies.register({ actionId: definition.id, actionDefinitionId: actionDefinitionId(definition), risk: "LOW", requiresHumanApproval: false, separationOfDuties: false, policyVersion: "policy-v1" });
     const effects = new InMemoryActionEffectRegistry();
     effects.register("effect.customer.create", { kind: "CREATE_TARGET" });
     const executor = new OntologyActionExecutor(transactions, audit, policies, effects);
