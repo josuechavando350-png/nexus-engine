@@ -14,6 +14,7 @@
     "build": "node scripts/build-workspace.mjs && node scripts/assert-clean-build.mjs",
     "quality-gates": "node scripts/quality-gates.mjs",
     "security-hygiene": "node scripts/security-hygiene.mjs",
+    "sbom": "node scripts/generate-sbom.mjs",
     "v3-gates": "node scripts/v3-architecture-gates.mjs",
     "rust:test": "cargo test --workspace --manifest-path runtime/Cargo.toml",
     "rust:lint": "cargo clippy --all-targets --manifest-path runtime/Cargo.toml -- -D warnings",
