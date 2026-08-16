@@ -14,10 +14,15 @@ export interface PrincipalContext {
 
 export interface ActionAuthorizationPolicy {
   readonly actionId: string;
+  readonly actionDefinitionId?: string;
   readonly risk: RiskLevel;
   readonly requiresHumanApproval: boolean;
   readonly separationOfDuties: boolean;
   readonly policyVersion: string;
+}
+
+export function actionDefinitionId(action: ActionType): string {
+  return ontologyId("action-definition", action);
 }
 
 export interface ApprovalArtifact {
@@ -205,6 +210,7 @@ export function authorize(request: AuthorizationRequest, approvals?: ApprovalPor
 
   if (!sameScope(request.principal.scope, request.targetScope)) return deny("principal scope does not match target scope");
   if (request.policy.actionId !== request.action.id || !request.policy.policyVersion.trim()) return deny("active action policy does not match the declared action");
+  if (request.policy.actionDefinitionId !== actionDefinitionId(request.action)) return deny("active action policy is not bound to the declared action definition");
   if (!request.action.permission.trim()) return deny("action has no explicit permission");
   if (!request.principal.permissions.includes(request.action.permission)) return deny("required permission is missing");
 
