@@ -1,4 +1,4 @@
-import type { ActionType, OntologyScope, ValidatedSchema } from "./index";
+import { canonicalJson, type ActionType, type OntologyScope, type ValidatedSchema } from "./index";
 import { authorize, type ActionAuthorizationPolicy, type ApprovalPort, type AuditTrailPort, type PrincipalContext, type RiskLevel } from "./auth-audit";
 import type { ObjectRecord, OntologyTransactionPort, PropertyValue, TransactionOperation, TransactionResult } from "./transaction";
 
@@ -65,6 +65,11 @@ export interface ActionExecutionResult {
   readonly auditId: string;
 }
 
+interface CompletedExecution {
+  readonly fingerprint: string;
+  readonly result: ActionExecutionResult;
+}
+
 export class ActionExecutionError extends Error {
   constructor(public readonly code: "INVALID_REQUEST" | "ACTION_MISMATCH" | "EXECUTION_FAILED", message: string) {
     super(message);
@@ -79,6 +84,28 @@ function sameScope(a: OntologyScope, b: OntologyScope): boolean {
 function canonicalUtc(value: string): void {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new ActionExecutionError("INVALID_REQUEST", "occurredAt must be canonical ISO-8601 UTC");
+}
+
+function scopeKey(scope: OntologyScope): string {
+  return `${scope.tenantId}\u0000${scope.organizationId}\u0000${scope.brandId ?? ""}`;
+}
+
+function idempotencyKey(request: ActionExecutionRequest): string {
+  return `${scopeKey(request.scope)}\u0000${request.principal.principalId}\u0000${request.actionId}\u0000${request.requestId}`;
+}
+
+function requestFingerprint(request: ActionExecutionRequest): string {
+  return canonicalJson({
+    occurredAt: request.occurredAt,
+    scope: request.scope,
+    principalId: request.principal.principalId,
+    actionId: request.actionId,
+    targetId: request.targetId,
+    inputs: request.inputs,
+    expectedRevision: request.expectedRevision,
+    approvalId: request.approvalId,
+    schemaVersion: request.schema.version
+  });
 }
 
 function assertInputs(action: ActionType, inputs: Readonly<Record<string, PropertyValue>>): void {
@@ -111,15 +138,7 @@ function compileClosedMutationPlan(
   switch (descriptor.kind) {
     case "CREATE_TARGET": {
       if (!action.targetTypeId) throw new ActionExecutionError("ACTION_MISMATCH", "CREATE_TARGET requires a concrete targetTypeId");
-      return [{
-        kind: "CREATE_OBJECT",
-        record: {
-          id: request.targetId,
-          typeId: action.targetTypeId,
-          scope: request.scope,
-          properties: { ...request.inputs }
-        }
-      }];
+      return [{ kind: "CREATE_OBJECT", record: { id: request.targetId, typeId: action.targetTypeId, scope: request.scope, properties: { ...request.inputs } } }];
     }
     case "UPDATE_TARGET": {
       const current = transactions.getObject(request.scope, request.targetId);
@@ -140,7 +159,7 @@ function compileClosedMutationPlan(
 }
 
 export class OntologyActionExecutor {
-  private readonly completed = new Map<string, ActionExecutionResult>();
+  private readonly completed = new Map<string, CompletedExecution>();
 
   constructor(
     private readonly transactions: OntologyTransactionPort,
@@ -156,13 +175,18 @@ export class OntologyActionExecutor {
     canonicalUtc(request.occurredAt);
     if (!sameScope(request.scope, request.schema.scope)) throw new ActionExecutionError("INVALID_REQUEST", "execution scope must match schema scope");
 
-    const previous = this.completed.get(request.requestId);
-    if (previous) return previous;
+    const replayKey = idempotencyKey(request);
+    const fingerprint = requestFingerprint(request);
+    const previous = this.completed.get(replayKey);
+    if (previous) {
+      if (previous.fingerprint !== fingerprint) throw new ActionExecutionError("INVALID_REQUEST", "idempotency key was reused with a different request payload");
+      return previous.result;
+    }
 
     const declaredAction = request.schema.actions.find((item) => item.id === request.actionId);
     if (!declaredAction) throw new ActionExecutionError("ACTION_MISMATCH", `action ${request.actionId} is not declared in active schema`);
     const policy = this.policies.resolve(declaredAction.id, request.scope);
-    if (!policy) return this.deny(request, declaredAction, "no active action policy is available", "CRITICAL", "unavailable");
+    if (!policy) return this.deny(request, declaredAction, "no active action policy is available", "CRITICAL", "unavailable", undefined, replayKey, fingerprint);
 
     const authorization = authorize({
       requestId: request.requestId,
@@ -176,7 +200,7 @@ export class OntologyActionExecutor {
     }, this.approvals);
 
     if (authorization.decision === "DENY") {
-      return this.deny(request, declaredAction, authorization.reason, authorization.risk, authorization.policyVersion, authorization.approvalId);
+      return this.deny(request, declaredAction, authorization.reason, authorization.risk, authorization.policyVersion, authorization.approvalId, replayKey, fingerprint);
     }
 
     try {
@@ -195,7 +219,7 @@ export class OntologyActionExecutor {
         humanApprovalId: request.approvalId
       });
       const result: ActionExecutionResult = { status: "COMMITTED", requestId: request.requestId, transaction, auditId: record.auditId };
-      this.completed.set(request.requestId, result);
+      this.completed.set(replayKey, { fingerprint, result });
       return result;
     } catch (error) {
       const reason = error instanceof Error ? error.message : "unknown execution failure";
@@ -212,7 +236,7 @@ export class OntologyActionExecutor {
         humanApprovalId: request.approvalId
       });
       const result: ActionExecutionResult = { status: "FAILED", requestId: request.requestId, reason, auditId: record.auditId };
-      this.completed.set(request.requestId, result);
+      this.completed.set(replayKey, { fingerprint, result });
       return result;
     }
   }
@@ -223,22 +247,13 @@ export class OntologyActionExecutor {
     reason: string,
     risk: RiskLevel,
     policyVersion: string,
-    approvalId?: string
+    approvalId: string | undefined,
+    replayKey: string,
+    fingerprint: string
   ): ActionExecutionResult {
-    const record = this.audit.append({
-      occurredAt: request.occurredAt,
-      principalId: request.principal.principalId,
-      scope: request.scope,
-      actionId: action.id,
-      targetId: request.targetId,
-      decision: "DENY",
-      reason,
-      risk,
-      policyVersion,
-      humanApprovalId: approvalId
-    });
+    const record = this.audit.append({ occurredAt: request.occurredAt, principalId: request.principal.principalId, scope: request.scope, actionId: action.id, targetId: request.targetId, decision: "DENY", reason, risk, policyVersion, humanApprovalId: approvalId });
     const result: ActionExecutionResult = { status: "DENIED", requestId: request.requestId, reason, auditId: record.auditId };
-    this.completed.set(request.requestId, result);
+    this.completed.set(replayKey, { fingerprint, result });
     return result;
   }
 }
