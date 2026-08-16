@@ -8,6 +8,6 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/benchmark/index.js && test -f dist/benchmark/index.d.ts"
   }
 }
