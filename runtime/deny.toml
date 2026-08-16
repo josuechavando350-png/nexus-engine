@@ -10,10 +10,17 @@ all-features = true
 [advisories]
 version = 2
 yanked = "deny"
-# No advisory is ignored. If one appears, it is triaged in
-# docs/security/V3_THREAT_MODEL.md and either fixed or given a dated,
-# justified entry here — never a silent blanket ignore.
-ignore = []
+# Narrow, reviewed exceptions for unmaintained crates that are currently
+# transitive only through the optional neo4rs 0.8 adapter. There is no patched
+# stable neo4rs release that removes this chain as of the audit closeout. The
+# adapter boundary is replaceable; remove these entries as soon as upstream
+# ships a maintained dependency chain.
+ignore = [
+    { id = "RUSTSEC-2025-0012", reason = "backoff 0.4.0 is transitive through optional neo4rs 0.8; no patched stable upstream chain is available" },
+    { id = "RUSTSEC-2024-0384", reason = "instant 0.1.13 is transitive through backoff/optional neo4rs 0.8; no patched stable upstream chain is available" },
+    { id = "RUSTSEC-2024-0436", reason = "paste 1.0.15 is transitive through optional neo4rs 0.8; no patched stable upstream chain is available" },
+    { id = "RUSTSEC-2025-0134", reason = "rustls-pemfile 2.2.0 is transitive through optional neo4rs 0.8; no patched stable upstream chain is available" },
+]
 
 [licenses]
 version = 2
@@ -30,11 +37,18 @@ allow = [
     "Zlib",
 ]
 confidence-threshold = 0.93
+# CDLA-Permissive-2.0 is accepted only for the webpki root-certificate data
+# crates pulled by the optional Neo4j adapter; it is not globally allowlisted.
+exceptions = [
+    { crate = "webpki-roots@0.26.11", allow = ["CDLA-Permissive-2.0"] },
+    { crate = "webpki-roots@1.0.9", allow = ["CDLA-Permissive-2.0"] },
+]
 
-[[licenses.exceptions]]
-# Workspace crates are proprietary and unpublished.
-name = "nexus-event"
-allow = ["UNLICENSED"]
+[licenses.private]
+# Workspace members are publish=false proprietary crates. cargo-deny should
+# police third-party dependency licences, not require an SPDX public licence
+# expression for private unpublished NEXUS crates.
+ignore = true
 
 [bans]
 multiple-versions = "warn"

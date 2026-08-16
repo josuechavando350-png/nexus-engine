@@ -109,22 +109,6 @@ function page<T extends { readonly id: string }>(items: readonly T[], limit = 10
   return hasMore && lastId ? { items: slice, nextCursor: encodeCursor(lastId) } : { items: slice };
 }
 
-function collectAll<T>(load: (cursor?: string) => QueryPage<T>): T[] {
-  const items: T[] = [];
-  const seenCursors = new Set<string>();
-  let cursor: string | undefined;
-  do {
-    const result = load(cursor);
-    items.push(...result.items);
-    if (result.nextCursor !== undefined) {
-      if (seenCursors.has(result.nextCursor)) throw new Error("snapshot pagination cursor repeated");
-      seenCursors.add(result.nextCursor);
-    }
-    cursor = result.nextCursor;
-  } while (cursor !== undefined);
-  return items;
-}
-
 function stableRecordPayload(snapshot: Pick<OntologySnapshot, "formatVersion" | "scope" | "createdAt" | "sourceWatermark" | "objectCount" | "relationshipCount" | "complete" | "objects" | "relationships">): string {
   const objects = [...snapshot.objects]
     .sort((a, b) => a.id.localeCompare(b.id))
@@ -193,6 +177,18 @@ const sameScopeRestoreAuthorization: RestoreAuthorizationPort = {
   authorizeRestore: (sourceScope, targetScope) => sameScope(sourceScope, targetScope),
 };
 
+/**
+ * In-memory reference persistence.
+ *
+ * JavaScript execution is single-threaded between synchronous statements. Snapshot
+ * export therefore clones both maps into one immutable read-view before doing any
+ * filtering, sorting, watermarking or digest work. No later query is made against
+ * live maps, so a mutation performed after the capture cannot create a torn export
+ * where objects and relationships come from different logical instants.
+ *
+ * Durable adapters must provide the equivalent guarantee with a database snapshot /
+ * repeatable-read transaction or an explicit snapshot token.
+ */
 export class InMemoryOntologyPersistence implements OntologyPersistencePort {
   private objects = new Map<string, ObjectRecord>();
   private relationships = new Map<string, RelationshipRecord>();
@@ -250,8 +246,21 @@ export class InMemoryOntologyPersistence implements OntologyPersistencePort {
 
   exportSnapshot(scope: OntologyScope, createdAt: string): OntologySnapshot {
     assertCanonicalUtc(createdAt);
-    const objects = collectAll((cursor) => this.queryObjects(scope, { limit: 1000, cursor }));
-    const relationships = collectAll((cursor) => this.queryRelationships(scope, { limit: 1000, cursor }));
+
+    // Capture both collections synchronously, before filtering or any pagination.
+    // These clones are the immutable point-in-time read view used for the whole
+    // snapshot. This intentionally does not call queryObjects/queryRelationships,
+    // because those are independent live reads and can tear in durable adapters.
+    const capturedObjects = [...this.objects.values()].map((record) => cloneObject(record));
+    const capturedRelationships = [...this.relationships.values()].map((record) => cloneRelationship(record));
+
+    const objects = capturedObjects
+      .filter((record) => sameScope(record.scope, scope))
+      .sort((a, b) => a.id.localeCompare(b.id));
+    const relationships = capturedRelationships
+      .filter((record) => sameScope(record.scope, scope))
+      .sort((a, b) => a.id.localeCompare(b.id));
+
     const unsigned = {
       formatVersion: "nexus-ontology-snapshot-v2" as const,
       scope: { ...scope },
