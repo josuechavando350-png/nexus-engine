@@ -83,9 +83,6 @@ await phase("execute-real-health-path", async () => {
       NEXUS_CONTROL_IDENTITY: "h07-control",
     },
   });
-  // gatewayd logs structured health to stderr; execFileSync only returns stdout.
-  // A successful exit is itself a startup invariant: run() validates distinct
-  // identities, constructs health/metrics/audit and exits non-zero on failure.
   return { exitCode: 0, stdoutDigest: createHash("sha256").update(gatewayHealthOutput).digest("hex") };
 });
 
@@ -99,9 +96,10 @@ await phase("execute-real-end-to-end-action-path", async () => {
 });
 
 await phase("backup-restore-offboard-real-state-api", async () => {
-  const output = run("pnpm", ["exec", "vitest", "run", "packages/ontology/h07-operability-state.test.ts", "--reporter=default"]);
+  const testPath = "packages/ontology/__tests__/h07-operability-state.test.ts";
+  const output = run("pnpm", ["exec", "vitest", "run", testPath, "--reporter=default"]);
   if (!/1 passed|passed/i.test(output)) throw new Error("ontology state lifecycle test did not report success");
-  return { test: "packages/ontology/h07-operability-state.test.ts" };
+  return { test: testPath };
 });
 
 await phase("capture-known-good-release", async () => {
@@ -110,8 +108,6 @@ await phase("capture-known-good-release", async () => {
 });
 
 await phase("rollback-deployed-artifact", async () => {
-  // Deliberately corrupt the deployed artifact, then restore the exact known-good
-  // release bytes and prove the restored binary starts successfully.
   await writeFile(gatewayDeployed, "corrupted deployment\n", "utf8");
   if (await sha256(gatewayDeployed) === gatewayDigest) throw new Error("rollback fault injection did not alter the deployment");
   await copyFile(gatewayBackup, gatewayDeployed);
