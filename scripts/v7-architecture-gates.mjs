@@ -81,7 +81,9 @@ for (const domain of requiredDomains) {
 }
 
 const cargoToml = read("runtime/Cargo.toml");
-if (cargoToml.includes('"crates/nexus-kernel"') && cargoToml.includes('nexus-kernel = { path = "crates/nexus-kernel" }')) {
+const kernelWorkspaceMember = cargoToml.includes('"crates/nexus-kernel"');
+const kernelDependencyAlias = /^nexus-kernel\s*=\s*\{[^\n}]*path\s*=\s*"crates\/nexus-kernel"[^\n}]*\}/m.test(cargoToml);
+if (kernelWorkspaceMember && kernelDependencyAlias) {
   pass("Rust Kernel crate is a workspace member and dependency alias");
 } else {
   fail("Rust Kernel crate must be registered in the runtime workspace");

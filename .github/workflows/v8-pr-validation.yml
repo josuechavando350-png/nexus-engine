@@ -1,4 +1,4 @@
-name: NEXUS V10 Pull Request Validation
+name: NEXUS V10 Full Validation
 
 on:
   pull_request:
@@ -21,8 +21,7 @@ on:
       - "eslint.config.mjs"
       - ".github/workflows/**"
   push:
-    branches:
-      - "v10-*"
+    branches: [main, "v10-*"]
     paths:
       - "runtime/**"
       - "apps/**"
@@ -51,14 +50,17 @@ env:
 
 jobs:
   validate:
-    name: V3→V10 full pull-request validation
-    runs-on: ubuntu-latest
+    name: V3→V10 full validation on exact SHA
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout exact revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
 
@@ -67,12 +69,61 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
 
-      - uses: dtolnay/rust-toolchain@1.88.0
-        with:
-          components: rustfmt, clippy
+      - name: Setup pinned Rust 1.88.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.88.0 --profile minimal --component rustfmt,clippy
+          rustup default 1.88.0
+          rustc --version
+          cargo --version
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Refresh patched Wasmtime lock resolution
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd runtime
+          cargo update -p wasmtime --precise 36.0.13
+          mkdir -p ../artifacts/security
+          cp Cargo.lock ../artifacts/security/Cargo.lock.generated
+
+      - name: Install pinned Rust supply-chain tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo install cargo-audit --version 0.22.2 --locked
+          cargo install cargo-deny --version 0.20.2 --locked
+
+      - name: Dependency and policy gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/security
+          pnpm audit --audit-level high 2>&1 | tee artifacts/security/pnpm-audit.txt
+          (
+            cd runtime
+            cargo audit 2>&1 | tee ../artifacts/security/cargo-audit.txt
+            cargo deny check 2>&1 | tee ../artifacts/security/cargo-deny.txt
+          )
+
+      - name: Generate SHA-bound CycloneDX SBOM
+        run: pnpm sbom
+
+      - name: Record supply-chain identity
+        shell: bash
+        run: |
+          {
+            echo "sha=$(git rev-parse HEAD)"
+            echo "node=$(node --version)"
+            echo "pnpm=$(pnpm --version)"
+            echo "rustc=$(rustc --version)"
+            echo "cargo=$(cargo --version)"
+            echo "cargo-audit=$(cargo audit --version)"
+            echo "cargo-deny=$(cargo deny --version)"
+          } | tee artifacts/security/toolchain.txt
 
       - name: Lint
         run: pnpm lint
@@ -112,8 +163,18 @@ jobs:
       - name: Diff hygiene
         shell: bash
         run: |
+          set -euo pipefail
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git diff --check "origin/${{ github.base_ref }}...HEAD"
           else
             git diff --check HEAD^...HEAD
           fi
+
+      - name: Upload supply-chain evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-supply-chain-${{ github.sha }}
+          path: artifacts/security
+          if-no-files-found: error
+          retention-days: 90
