@@ -65,7 +65,7 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.88.0
         with:
           components: rustfmt, clippy
 
