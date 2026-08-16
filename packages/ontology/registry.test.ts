@@ -65,4 +65,31 @@ describe("schema registry", () => {
     const second = registry.register(schema("10.1.0", "tenant-a"), a.schemaId);
     expect(() => registry.planMigration(a.schemaId, second.schemaId, [])).toThrow("at least one explicit step");
   });
+
+  it("does not expose mutable references to registered schema state", () => {
+    const registry = new InMemorySchemaRegistry();
+    const input = schema("10.0.0");
+    const registered = registry.register(input);
+    const schemaId = registered.schemaId;
+
+    input.scope.tenantId = "attacker-tenant";
+    input.objects[0]!.propertyIds = [];
+    registered.scope.organizationId = "attacker-org";
+    registered.properties[0]!.name = "tampered";
+
+    const fetched = registry.get(schemaId)!;
+    expect(fetched.scope).toEqual({ tenantId: "tenant-a", organizationId: "org-a" });
+    expect(fetched.objects[0]!.propertyIds).toEqual(["prop.name"]);
+    expect(fetched.properties[0]!.name).toBe("name");
+
+    fetched.scope.tenantId = "mutated-after-read";
+    fetched.objects[0]!.propertyIds = [];
+    const fetchedAgain = registry.get(schemaId)!;
+    expect(fetchedAgain.scope.tenantId).toBe("tenant-a");
+    expect(fetchedAgain.objects[0]!.propertyIds).toEqual(["prop.name"]);
+
+    const listed = registry.list(fetchedAgain.scope);
+    listed[0]!.properties[0]!.name = "mutated-from-list";
+    expect(registry.getLatest(fetchedAgain.scope)?.properties[0]!.name).toBe("name");
+  });
 });
