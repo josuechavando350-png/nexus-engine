@@ -358,7 +358,9 @@ mod tests {
         let mut no_approval = request(Action::Approve);
         assert!(!authz.decide(&no_approval).allowed);
 
-        no_approval.context.insert("sod-approved-by=reader-1".into());
+        no_approval
+            .context
+            .insert("sod-approved-by=reader-1".into());
         assert!(!authz.decide(&no_approval).allowed);
 
         no_approval.context.remove("sod-approved-by=reader-1");
