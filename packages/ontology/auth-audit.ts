@@ -1,7 +1,9 @@
-import { ontologyId, type ActionType, type OntologyScope } from "./index";
+import { createHmac, timingSafeEqual } from "node:crypto";
+import { canonicalJson, ontologyId, type ActionType, type OntologyScope } from "./index";
 
 export type AuthorizationDecision = "ALLOW" | "DENY";
 export type RiskLevel = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
+export type ApprovalDecision = "GRANTED" | "DENIED";
 
 export interface PrincipalContext {
   readonly principalId: string;
@@ -10,20 +12,70 @@ export interface PrincipalContext {
   readonly attributes?: Readonly<Record<string, string | number | boolean>>;
 }
 
+export interface ActionAuthorizationPolicy {
+  readonly actionId: string;
+  readonly risk: RiskLevel;
+  readonly requiresHumanApproval: boolean;
+  readonly separationOfDuties: boolean;
+  readonly policyVersion: string;
+}
+
+export interface ApprovalArtifact {
+  readonly approvalId: string;
+  readonly requestId: string;
+  readonly scope: OntologyScope;
+  readonly actionId: string;
+  readonly targetId?: string;
+  readonly requesterPrincipalId: string;
+  readonly approverPrincipalId: string;
+  readonly decision: ApprovalDecision;
+  readonly issuedAt: string;
+  readonly expiresAt: string;
+  readonly nonce: string;
+  readonly policyVersion: string;
+  readonly signature: string;
+}
+
+export interface ApprovalVerificationRequest {
+  readonly approvalId: string;
+  readonly requestId: string;
+  readonly occurredAt: string;
+  readonly scope: OntologyScope;
+  readonly actionId: string;
+  readonly targetId?: string;
+  readonly requesterPrincipalId: string;
+  readonly policyVersion: string;
+  readonly requireSeparationOfDuties: boolean;
+}
+
+export interface ApprovalVerificationResult {
+  readonly valid: boolean;
+  readonly reason: string;
+  readonly artifact?: ApprovalArtifact;
+}
+
+export interface ApprovalPort {
+  verify(request: ApprovalVerificationRequest): ApprovalVerificationResult;
+}
+
 export interface AuthorizationRequest {
+  readonly requestId: string;
+  readonly occurredAt: string;
   readonly principal: PrincipalContext;
   readonly action: ActionType;
   readonly targetScope: OntologyScope;
   readonly targetId?: string;
-  readonly risk: RiskLevel;
-  readonly requiresHumanApproval?: boolean;
-  readonly humanApprovalId?: string;
+  readonly policy: ActionAuthorizationPolicy;
+  readonly approvalId?: string;
 }
 
 export interface AuthorizationResult {
   readonly decision: AuthorizationDecision;
   readonly reason: string;
   readonly evaluatedPermission: string;
+  readonly risk: RiskLevel;
+  readonly policyVersion: string;
+  readonly approvalId?: string;
 }
 
 export interface AuditRecord {
@@ -36,6 +88,7 @@ export interface AuditRecord {
   readonly decision: AuthorizationDecision;
   readonly reason: string;
   readonly risk: RiskLevel;
+  readonly policyVersion?: string;
   readonly humanApprovalId?: string;
   readonly previousAuditId?: string;
 }
@@ -54,25 +107,118 @@ function scopeKey(scope: OntologyScope): string {
   return `${scope.tenantId}\u0000${scope.organizationId}\u0000${scope.brandId ?? ""}`;
 }
 
-function assertCanonicalUtcTimestamp(value: string): void {
+function assertCanonicalUtcTimestamp(value: string, field = "occurredAt"): void {
   const parsed = new Date(value);
-  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new Error("occurredAt must be a canonical ISO-8601 UTC timestamp");
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new Error(`${field} must be a canonical ISO-8601 UTC timestamp`);
 }
 
-export function authorize(request: AuthorizationRequest): AuthorizationResult {
-  if (!sameScope(request.principal.scope, request.targetScope)) {
-    return { decision: "DENY", reason: "principal scope does not match target scope", evaluatedPermission: request.action.permission };
+function approvalPayload(artifact: Omit<ApprovalArtifact, "signature">): string {
+  return canonicalJson(artifact);
+}
+
+function approvalSignature(secret: string, artifact: Omit<ApprovalArtifact, "signature">): string {
+  return `hmac-sha256:${createHmac("sha256", secret).update(approvalPayload(artifact), "utf8").digest("hex")}`;
+}
+
+function safeSignatureEqual(expected: string, actual: string): boolean {
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(actual, "utf8");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+export class InMemoryApprovalRegistry implements ApprovalPort {
+  private readonly artifacts = new Map<string, ApprovalArtifact>();
+  private readonly revoked = new Set<string>();
+
+  constructor(private readonly signingSecret: string) {
+    if (signingSecret.length < 16) throw new Error("approval signing secret must be at least 16 characters");
   }
-  if (!request.action.permission.trim()) {
-    return { decision: "DENY", reason: "action has no explicit permission", evaluatedPermission: request.action.permission };
+
+  issue(input: Omit<ApprovalArtifact, "approvalId" | "signature">): ApprovalArtifact {
+    assertCanonicalUtcTimestamp(input.issuedAt, "approval issuedAt");
+    assertCanonicalUtcTimestamp(input.expiresAt, "approval expiresAt");
+    if (new Date(input.expiresAt).getTime() <= new Date(input.issuedAt).getTime()) throw new Error("approval expiresAt must be after issuedAt");
+    if (!input.requestId.trim() || !input.actionId.trim() || !input.requesterPrincipalId.trim() || !input.approverPrincipalId.trim() || !input.nonce.trim() || !input.policyVersion.trim()) {
+      throw new Error("approval binding fields must be non-empty");
+    }
+    const approvalId = ontologyId("approval", input);
+    if (this.artifacts.has(approvalId)) throw new Error(`approval ${approvalId} already exists`);
+    const unsigned = { ...input, scope: { ...input.scope }, approvalId };
+    const artifact: ApprovalArtifact = { ...unsigned, signature: approvalSignature(this.signingSecret, unsigned) };
+    this.artifacts.set(approvalId, artifact);
+    return { ...artifact, scope: { ...artifact.scope } };
   }
-  if (!request.principal.permissions.includes(request.action.permission)) {
-    return { decision: "DENY", reason: "required permission is missing", evaluatedPermission: request.action.permission };
+
+  revoke(approvalId: string): void {
+    if (!this.artifacts.has(approvalId)) throw new Error(`approval ${approvalId} not found`);
+    this.revoked.add(approvalId);
   }
-  if ((request.risk === "HIGH" || request.risk === "CRITICAL" || request.requiresHumanApproval === true) && !request.humanApprovalId?.trim()) {
-    return { decision: "DENY", reason: "human approval is required for this action", evaluatedPermission: request.action.permission };
+
+  verify(request: ApprovalVerificationRequest): ApprovalVerificationResult {
+    const artifact = this.artifacts.get(request.approvalId);
+    if (!artifact) return { valid: false, reason: "approval artifact does not exist" };
+    if (this.revoked.has(request.approvalId)) return { valid: false, reason: "approval artifact is revoked" };
+
+    const { signature, ...unsigned } = artifact;
+    if (!safeSignatureEqual(approvalSignature(this.signingSecret, unsigned), signature)) return { valid: false, reason: "approval signature is invalid" };
+    if (artifact.decision !== "GRANTED") return { valid: false, reason: "approval decision is not GRANTED" };
+    if (!sameScope(artifact.scope, request.scope)) return { valid: false, reason: "approval scope does not match request scope" };
+    if (artifact.actionId !== request.actionId) return { valid: false, reason: "approval action does not match request action" };
+    if (artifact.targetId !== request.targetId) return { valid: false, reason: "approval target does not match request target" };
+    if (artifact.requestId !== request.requestId) return { valid: false, reason: "approval requestId does not match request" };
+    if (artifact.requesterPrincipalId !== request.requesterPrincipalId) return { valid: false, reason: "approval requester does not match principal" };
+    if (artifact.policyVersion !== request.policyVersion) return { valid: false, reason: "approval policy version does not match active policy" };
+    if (request.requireSeparationOfDuties && artifact.approverPrincipalId === artifact.requesterPrincipalId) return { valid: false, reason: "self-approval violates separation of duties" };
+
+    assertCanonicalUtcTimestamp(request.occurredAt);
+    const now = new Date(request.occurredAt).getTime();
+    if (new Date(artifact.issuedAt).getTime() > now) return { valid: false, reason: "approval is not active yet" };
+    if (new Date(artifact.expiresAt).getTime() <= now) return { valid: false, reason: "approval artifact is expired" };
+    return { valid: true, reason: "verified signed approval artifact", artifact: { ...artifact, scope: { ...artifact.scope } } };
   }
-  return { decision: "ALLOW", reason: "explicit permission and contextual checks satisfied", evaluatedPermission: request.action.permission };
+}
+
+export function authorize(request: AuthorizationRequest, approvals?: ApprovalPort): AuthorizationResult {
+  const deny = (reason: string): AuthorizationResult => ({
+    decision: "DENY",
+    reason,
+    evaluatedPermission: request.action.permission,
+    risk: request.policy.risk,
+    policyVersion: request.policy.policyVersion,
+    approvalId: request.approvalId
+  });
+
+  if (!sameScope(request.principal.scope, request.targetScope)) return deny("principal scope does not match target scope");
+  if (request.policy.actionId !== request.action.id || !request.policy.policyVersion.trim()) return deny("active action policy does not match the declared action");
+  if (!request.action.permission.trim()) return deny("action has no explicit permission");
+  if (!request.principal.permissions.includes(request.action.permission)) return deny("required permission is missing");
+
+  const approvalRequired = request.policy.risk === "HIGH" || request.policy.risk === "CRITICAL" || request.policy.requiresHumanApproval;
+  if (approvalRequired) {
+    if (!request.approvalId?.trim()) return deny("verified human approval is required for this action");
+    if (!approvals) return deny("approval backend is unavailable");
+    const verification = approvals.verify({
+      approvalId: request.approvalId,
+      requestId: request.requestId,
+      occurredAt: request.occurredAt,
+      scope: request.targetScope,
+      actionId: request.action.id,
+      targetId: request.targetId,
+      requesterPrincipalId: request.principal.principalId,
+      policyVersion: request.policy.policyVersion,
+      requireSeparationOfDuties: request.policy.separationOfDuties
+    });
+    if (!verification.valid) return deny(verification.reason);
+  }
+
+  return {
+    decision: "ALLOW",
+    reason: "explicit permission, policy and contextual checks satisfied",
+    evaluatedPermission: request.action.permission,
+    risk: request.policy.risk,
+    policyVersion: request.policy.policyVersion,
+    approvalId: request.approvalId
+  };
 }
 
 export class InMemoryAuditTrail implements AuditTrailPort {

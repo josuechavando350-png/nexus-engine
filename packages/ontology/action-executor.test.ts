@@ -1,102 +1,142 @@
 import { describe, expect, it } from "vitest";
 import { validateSchema, type SchemaVersion } from "./index";
-import { InMemoryAuditTrail } from "./auth-audit";
-import { OntologyActionExecutor } from "./action-executor";
+import { InMemoryApprovalRegistry, InMemoryAuditTrail } from "./auth-audit";
+import { InMemoryActionEffectRegistry, InMemoryActionPolicyRegistry, OntologyActionExecutor } from "./action-executor";
 import { InMemoryOntologyTransactionStore } from "./transaction";
 
 function schema(): ReturnType<typeof validateSchema> {
   const input: SchemaVersion = {
     version: "10.0.0",
     scope: { tenantId: "tenant-a", organizationId: "org-a" },
-    properties: [{ id: "prop.name", name: "name", valueKind: "STRING", cardinality: "REQUIRED", unique: false, immutable: false }],
+    properties: [
+      { id: "prop.name", name: "name", valueKind: "STRING", cardinality: "REQUIRED", unique: false, immutable: false },
+      { id: "prop.secret", name: "secret", valueKind: "STRING", cardinality: "OPTIONAL", unique: false, immutable: false }
+    ],
     interfaces: [],
-    objects: [{ id: "obj.customer", name: "Customer", propertyIds: ["prop.name"], interfaceIds: [] }],
+    objects: [
+      { id: "obj.customer", name: "Customer", propertyIds: ["prop.name", "prop.secret"], interfaceIds: [] },
+      { id: "obj.admin", name: "Admin", propertyIds: ["prop.name"], interfaceIds: [] }
+    ],
     relationships: [],
-    actions: [{ id: "action.customer.create", name: "CreateCustomer", targetTypeId: "obj.customer", inputPropertyIds: ["prop.name"], permission: "customer:create", preconditionRefs: [], effectRefs: [], emittedEventTypeIds: [] }],
+    actions: [{ id: "action.customer.create", name: "CreateCustomer", targetTypeId: "obj.customer", inputPropertyIds: ["prop.name"], permission: "customer:create", preconditionRefs: [], effectRefs: ["effect.customer.create"], emittedEventTypeIds: [] }],
     functions: [],
     events: []
   };
   return validateSchema(input);
 }
 
+function runtime(risk: "LOW" | "HIGH" | "CRITICAL" = "LOW") {
+  const active = schema();
+  const transactions = new InMemoryOntologyTransactionStore();
+  const audit = new InMemoryAuditTrail();
+  const policies = new InMemoryActionPolicyRegistry();
+  policies.register({ actionId: "action.customer.create", risk, requiresHumanApproval: risk === "HIGH" || risk === "CRITICAL", separationOfDuties: true, policyVersion: "policy-v1" });
+  const effects = new InMemoryActionEffectRegistry();
+  effects.register("effect.customer.create", { kind: "CREATE_TARGET" });
+  return { active, transactions, audit, policies, effects };
+}
+
+function request(active: ReturnType<typeof schema>, overrides: Record<string, unknown> = {}) {
+  return {
+    requestId: "req-1",
+    occurredAt: "2026-08-15T22:30:00.000Z",
+    principal: { principalId: "user-1", scope: active.scope, permissions: ["customer:create"] },
+    scope: active.scope,
+    schema: active,
+    actionId: "action.customer.create",
+    targetId: "customer-1",
+    inputs: { "prop.name": "Ada" },
+    ...overrides
+  };
+}
+
 describe("ontology action executor", () => {
-  it("commits an authorized action and records audit evidence", () => {
-    const active = schema();
-    const transactions = new InMemoryOntologyTransactionStore();
-    const audit = new InMemoryAuditTrail();
-    const executor = new OntologyActionExecutor(transactions, audit);
-    const action = active.actions[0]!;
-    const result = executor.execute({
-      requestId: "req-1",
-      occurredAt: "2026-08-15T22:30:00.000Z",
-      principal: { principalId: "user-1", scope: active.scope, permissions: ["customer:create"] },
-      scope: active.scope,
-      schema: active,
-      action,
-      risk: "LOW",
-      operations: [{ kind: "CREATE_OBJECT", record: { id: "customer-1", typeId: "obj.customer", scope: active.scope, properties: { "prop.name": "Ada" } } }]
-    });
+  it("commits only the mutation derived from the registered declared effect", () => {
+    const { active, transactions, audit, policies, effects } = runtime();
+    transactions.transact(active.scope, active, [{ kind: "CREATE_OBJECT", record: { id: "victim", typeId: "obj.admin", scope: active.scope, properties: { "prop.name": "Keep" } } }]);
+    const executor = new OntologyActionExecutor(transactions, audit, policies, effects);
+
+    const result = executor.execute(request(active));
     expect(result.status).toBe("COMMITTED");
     expect(transactions.getObject(active.scope, "customer-1")?.properties["prop.name"]).toBe("Ada");
+    expect(transactions.getObject(active.scope, "customer-1")?.typeId).toBe("obj.customer");
+    expect(transactions.getObject(active.scope, "victim")?.properties["prop.name"]).toBe("Keep");
     expect(audit.verify(active.scope)).toBe(true);
   });
 
-  it("denies missing permission without mutating state", () => {
-    const active = schema();
-    const transactions = new InMemoryOntologyTransactionStore();
-    const audit = new InMemoryAuditTrail();
-    const executor = new OntologyActionExecutor(transactions, audit);
-    const result = executor.execute({
-      requestId: "req-2",
-      occurredAt: "2026-08-15T22:31:00.000Z",
-      principal: { principalId: "user-2", scope: active.scope, permissions: [] },
-      scope: active.scope,
-      schema: active,
-      action: active.actions[0]!,
-      risk: "LOW",
-      operations: [{ kind: "CREATE_OBJECT", record: { id: "customer-2", typeId: "obj.customer", scope: active.scope, properties: { "prop.name": "Grace" } } }]
-    });
+  it("rejects undeclared input properties instead of allowing foreign writes", () => {
+    const { active, transactions, audit, policies, effects } = runtime();
+    const executor = new OntologyActionExecutor(transactions, audit, policies, effects);
+    const result = executor.execute(request(active, { inputs: { "prop.name": "Ada", "prop.secret": "smuggle" } }));
+    expect(result.status).toBe("FAILED");
+    expect(result.reason).toContain("not declared by action");
+    expect(transactions.getObject(active.scope, "customer-1")).toBeUndefined();
+  });
+
+  it("fails closed when an action effect is not registered", () => {
+    const { active, transactions, audit, policies } = runtime();
+    const executor = new OntologyActionExecutor(transactions, audit, policies, new InMemoryActionEffectRegistry());
+    const result = executor.execute(request(active));
+    expect(result.status).toBe("FAILED");
+    expect(result.reason).toContain("not registered");
+    expect(transactions.getObject(active.scope, "customer-1")).toBeUndefined();
+  });
+
+  it("denies missing permission without compiling or mutating", () => {
+    const { active, transactions, audit, policies, effects } = runtime();
+    const executor = new OntologyActionExecutor(transactions, audit, policies, effects);
+    const result = executor.execute(request(active, { principal: { principalId: "user-2", scope: active.scope, permissions: [] } }));
     expect(result.status).toBe("DENIED");
-    expect(transactions.getObject(active.scope, "customer-2")).toBeUndefined();
+    expect(transactions.getObject(active.scope, "customer-1")).toBeUndefined();
+  });
+
+  it("ignores caller attempts to downgrade risk because risk comes only from policy", () => {
+    const { active, transactions, audit, policies, effects } = runtime("HIGH");
+    const executor = new OntologyActionExecutor(transactions, audit, policies, effects);
+    const forged = { ...request(active), risk: "LOW" } as Parameters<typeof executor.execute>[0] & { risk: string };
+    const result = executor.execute(forged);
+    expect(result.status).toBe("DENIED");
+    expect(result.reason).toContain("approval");
+    expect(audit.list(active.scope)[0]?.risk).toBe("HIGH");
+  });
+
+  it("requires a verified approval artifact for policy-owned high risk", () => {
+    const { active, transactions, audit, policies, effects } = runtime("HIGH");
+    const approvals = new InMemoryApprovalRegistry("approval-secret-123456789");
+    const artifact = approvals.issue({
+      requestId: "req-1",
+      scope: active.scope,
+      actionId: "action.customer.create",
+      targetId: "customer-1",
+      requesterPrincipalId: "user-1",
+      approverPrincipalId: "approver-1",
+      decision: "GRANTED",
+      issuedAt: "2026-08-15T22:00:00.000Z",
+      expiresAt: "2026-08-15T23:00:00.000Z",
+      nonce: "nonce-1",
+      policyVersion: "policy-v1"
+    });
+    const executor = new OntologyActionExecutor(transactions, audit, policies, effects, approvals);
+    const result = executor.execute(request(active, { approvalId: artifact.approvalId }));
+    expect(result.status).toBe("COMMITTED");
+    expect(audit.list(active.scope)[0]?.humanApprovalId).toBe(artifact.approvalId);
   });
 
   it("is idempotent by requestId and does not execute twice", () => {
-    const active = schema();
-    const transactions = new InMemoryOntologyTransactionStore();
-    const audit = new InMemoryAuditTrail();
-    const executor = new OntologyActionExecutor(transactions, audit);
-    const request = {
-      requestId: "req-3",
-      occurredAt: "2026-08-15T22:32:00.000Z",
-      principal: { principalId: "user-3", scope: active.scope, permissions: ["customer:create"] },
-      scope: active.scope,
-      schema: active,
-      action: active.actions[0]!,
-      risk: "LOW" as const,
-      operations: [{ kind: "CREATE_OBJECT" as const, record: { id: "customer-3", typeId: "obj.customer", scope: active.scope, properties: { "prop.name": "Lin" } } }]
-    };
-    const first = executor.execute(request);
-    const second = executor.execute(request);
+    const { active, transactions, audit, policies, effects } = runtime();
+    const executor = new OntologyActionExecutor(transactions, audit, policies, effects);
+    const value = request(active);
+    const first = executor.execute(value);
+    const second = executor.execute(value);
     expect(second).toEqual(first);
     expect(audit.list(active.scope)).toHaveLength(1);
   });
 
-  it("requires human approval for critical actions", () => {
-    const active = schema();
-    const transactions = new InMemoryOntologyTransactionStore();
-    const audit = new InMemoryAuditTrail();
-    const executor = new OntologyActionExecutor(transactions, audit);
-    const result = executor.execute({
-      requestId: "req-4",
-      occurredAt: "2026-08-15T22:33:00.000Z",
-      principal: { principalId: "user-4", scope: active.scope, permissions: ["customer:create"] },
-      scope: active.scope,
-      schema: active,
-      action: active.actions[0]!,
-      risk: "CRITICAL",
-      operations: [{ kind: "CREATE_OBJECT", record: { id: "customer-4", typeId: "obj.customer", scope: active.scope, properties: { "prop.name": "Nope" } } }]
-    });
+  it("fails closed when action policy is missing", () => {
+    const { active, transactions, audit, effects } = runtime();
+    const executor = new OntologyActionExecutor(transactions, audit, new InMemoryActionPolicyRegistry(), effects);
+    const result = executor.execute(request(active));
     expect(result.status).toBe("DENIED");
-    expect(result.reason).toContain("human approval");
+    expect(result.reason).toContain("no active action policy");
   });
 });
