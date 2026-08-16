@@ -79,13 +79,34 @@ function cloneRelationship(record: RelationshipRecord, scope: OntologyScope = re
   return { ...record, scope: { ...scope }, endpoints: { ...record.endpoints } };
 }
 
-function page<T>(items: readonly T[], limit = 100, cursor?: string): QueryPage<T> {
+interface StableCursorPayload {
+  readonly v: 1;
+  readonly afterId: string;
+}
+
+function encodeCursor(afterId: string): string {
+  return Buffer.from(JSON.stringify({ v: 1, afterId } satisfies StableCursorPayload), "utf8").toString("base64url");
+}
+
+function decodeCursor(cursor: string): StableCursorPayload {
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as Partial<StableCursorPayload>;
+    if (parsed.v !== 1 || typeof parsed.afterId !== "string" || !parsed.afterId) throw new Error("invalid");
+    return { v: 1, afterId: parsed.afterId };
+  } catch {
+    throw new Error("invalid query cursor");
+  }
+}
+
+function page<T extends { readonly id: string }>(items: readonly T[], limit = 100, cursor?: string): QueryPage<T> {
   if (!Number.isInteger(limit) || limit <= 0 || limit > 1000) throw new Error("query limit must be an integer from 1 to 1000");
-  const offset = cursor ? Number.parseInt(cursor, 10) : 0;
-  if (!Number.isInteger(offset) || offset < 0) throw new Error("invalid query cursor");
-  const slice = items.slice(offset, offset + limit);
-  const next = offset + limit < items.length ? String(offset + limit) : undefined;
-  return next ? { items: slice, nextCursor: next } : { items: slice };
+  const afterId = cursor ? decodeCursor(cursor).afterId : undefined;
+  const start = afterId === undefined ? 0 : items.findIndex((item) => item.id.localeCompare(afterId) > 0);
+  if (afterId !== undefined && start < 0) return { items: [] };
+  const slice = items.slice(start, start + limit);
+  const hasMore = start + slice.length < items.length;
+  const lastId = slice.at(-1)?.id;
+  return hasMore && lastId ? { items: slice, nextCursor: encodeCursor(lastId) } : { items: slice };
 }
 
 function collectAll<T>(load: (cursor?: string) => QueryPage<T>): T[] {
@@ -168,12 +189,16 @@ function validateSnapshot(snapshot: OntologySnapshot): void {
   if (snapshot.digest !== snapshotDigest(snapshot)) throw new Error("snapshot digest mismatch");
 }
 
+const sameScopeRestoreAuthorization: RestoreAuthorizationPort = {
+  authorizeRestore: (sourceScope, targetScope) => sameScope(sourceScope, targetScope),
+};
+
 export class InMemoryOntologyPersistence implements OntologyPersistencePort {
   private objects = new Map<string, ObjectRecord>();
   private relationships = new Map<string, RelationshipRecord>();
 
   constructor(
-    private readonly restoreAuthorization?: RestoreAuthorizationPort,
+    private readonly restoreAuthorization: RestoreAuthorizationPort = sameScopeRestoreAuthorization,
     private readonly beforeRestoreCommit?: (snapshot: OntologySnapshot, targetScope: OntologyScope) => void
   ) {}
 
@@ -243,14 +268,10 @@ export class InMemoryOntologyPersistence implements OntologyPersistencePort {
 
   restoreSnapshot(snapshot: OntologySnapshot, targetScope: OntologyScope): void {
     validateSnapshot(snapshot);
-    if (!sameScope(snapshot.scope, targetScope)) {
-      if (!this.restoreAuthorization?.authorizeRestore(snapshot.scope, targetScope)) {
-        throw new Error("cross-scope restore is not explicitly authorized");
-      }
+    if (!this.restoreAuthorization.authorizeRestore(snapshot.scope, targetScope)) {
+      throw new Error("restore target scope is not explicitly authorized");
     }
 
-    // Build and verify a complete replacement in staging. Nothing in the live maps changes
-    // until every validation and failure-injection hook has succeeded.
     const stagedObjects = new Map(this.objects);
     const stagedRelationships = new Map(this.relationships);
     const prefix = `${scopeKey(targetScope)}\u0000`;

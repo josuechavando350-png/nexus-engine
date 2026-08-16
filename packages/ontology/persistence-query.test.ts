@@ -26,7 +26,7 @@ describe("persistence/query ports", () => {
     expect(store.queryRelationships(scopeA).items.map((item) => item.id)).toEqual(["r-a"]);
   });
 
-  it("supports deterministic filtering and cursor pagination", () => {
+  it("supports deterministic opaque keyset cursor pagination", () => {
     const store = new InMemoryOntologyPersistence();
     store.upsertObject(object("c", scopeA));
     store.upsertObject(object("a", scopeA));
@@ -34,9 +34,21 @@ describe("persistence/query ports", () => {
 
     const first = store.queryObjects(scopeA, { limit: 2 });
     expect(first.items.map((item) => item.id)).toEqual(["a", "b"]);
-    expect(first.nextCursor).toBe("2");
+    expect(first.nextCursor).toBeDefined();
+    expect(first.nextCursor).not.toBe("2");
     const second = store.queryObjects(scopeA, { limit: 2, cursor: first.nextCursor });
     expect(second.items.map((item) => item.id)).toEqual(["c"]);
+  });
+
+  it("does not duplicate or skip the continuation when writes occur before the cursor", () => {
+    const store = new InMemoryOntologyPersistence();
+    for (const id of ["b", "d", "f"]) store.upsertObject(object(id, scopeA));
+    const first = store.queryObjects(scopeA, { limit: 2 });
+    expect(first.items.map((item) => item.id)).toEqual(["b", "d"]);
+    store.upsertObject(object("a", scopeA));
+    store.upsertObject(object("e", scopeA));
+    const second = store.queryObjects(scopeA, { limit: 10, cursor: first.nextCursor });
+    expect(second.items.map((item) => item.id)).toEqual(["e", "f"]);
   });
 
   it("exports and restores an isolated snapshot", () => {
@@ -97,7 +109,7 @@ describe("persistence/query ports", () => {
     expect(store.getObject(scopeA, "from-backup")).toBeUndefined();
   });
 
-  it("denies cross-scope restore by default and allows only explicit authorization", () => {
+  it("authorizes every restore target and allows cross-scope only through an explicit authorizer", () => {
     const source = new InMemoryOntologyPersistence();
     source.upsertObject(object("a-1", scopeA));
     const snapshot = source.exportSnapshot(scopeA, "2026-08-15T22:40:00.000Z");
@@ -108,8 +120,13 @@ describe("persistence/query ports", () => {
     expect(denied.getObject(scopeB, "b-live")?.id).toBe("b-live");
     expect(denied.getObject(scopeB, "a-1")).toBeUndefined();
 
-    const allowed = new InMemoryOntologyPersistence({ authorizeRestore: (sourceScope, targetScope) => sourceScope.tenantId === "tenant-a" && targetScope.tenantId === "tenant-b" });
+    let checkedTarget: OntologyScope | undefined;
+    const allowed = new InMemoryOntologyPersistence({ authorizeRestore: (sourceScope, targetScope) => {
+      checkedTarget = { ...targetScope };
+      return sourceScope.tenantId === "tenant-a" && targetScope.tenantId === "tenant-b";
+    } });
     allowed.restoreSnapshot(snapshot, scopeB);
+    expect(checkedTarget).toEqual(scopeB);
     expect(allowed.getObject(scopeB, "a-1")?.scope).toEqual(scopeB);
   });
 
