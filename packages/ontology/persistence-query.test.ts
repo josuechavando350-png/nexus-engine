@@ -47,16 +47,78 @@ describe("persistence/query ports", () => {
 
     store.deleteObject(scopeA, "a-1");
     expect(store.getObject(scopeA, "a-1")).toBeUndefined();
-    store.restoreSnapshot(snapshot);
+    store.restoreSnapshot(snapshot, scopeA);
 
     expect(store.getObject(scopeA, "a-1")?.id).toBe("a-1");
     expect(store.getObject(scopeB, "b-1")?.id).toBe("b-1");
   });
 
+  it("exports every page beyond the 1000-record query ceiling", () => {
+    const store = new InMemoryOntologyPersistence();
+    for (let i = 0; i < 1001; i += 1) {
+      const id = `o-${String(i).padStart(4, "0")}`;
+      store.upsertObject(object(id, scopeA, "obj.customer", i + 1));
+      store.upsertRelationship(relation(`r-${String(i).padStart(4, "0")}`, scopeA, id, `target-${i}`));
+    }
+
+    const snapshot = store.exportSnapshot(scopeA, "2026-08-15T22:40:00.000Z");
+    expect(snapshot.complete).toBe(true);
+    expect(snapshot.objectCount).toBe(1001);
+    expect(snapshot.relationshipCount).toBe(1001);
+    expect(snapshot.objects).toHaveLength(1001);
+    expect(snapshot.relationships).toHaveLength(1001);
+    expect(snapshot.objects[1000]?.id).toBe("o-1000");
+    expect(snapshot.relationships[1000]?.id).toBe("r-1000");
+    expect(snapshot.digest).toMatch(/^sha256:[0-9a-f]{64}$/);
+  });
+
+  it("rejects corrupt or incomplete snapshot metadata before touching the destination", () => {
+    const store = new InMemoryOntologyPersistence();
+    store.upsertObject(object("original", scopeA));
+    const snapshot = store.exportSnapshot(scopeA, "2026-08-15T22:40:00.000Z");
+    const corrupt = { ...snapshot, objectCount: snapshot.objectCount + 1 };
+
+    expect(() => store.restoreSnapshot(corrupt, scopeA)).toThrow("count mismatch");
+    expect(store.getObject(scopeA, "original")?.id).toBe("original");
+  });
+
+  it("preserves the live destination when a restore fails after staging", () => {
+    const source = new InMemoryOntologyPersistence();
+    source.upsertObject(object("from-backup", scopeA));
+    const snapshot = source.exportSnapshot(scopeA, "2026-08-15T22:40:00.000Z");
+
+    const store = new InMemoryOntologyPersistence(undefined, () => {
+      throw new Error("injected pre-commit failure");
+    });
+    store.upsertObject(object("live", scopeA));
+
+    expect(() => store.restoreSnapshot(snapshot, scopeA)).toThrow("injected pre-commit failure");
+    expect(store.getObject(scopeA, "live")?.id).toBe("live");
+    expect(store.getObject(scopeA, "from-backup")).toBeUndefined();
+  });
+
+  it("denies cross-scope restore by default and allows only explicit authorization", () => {
+    const source = new InMemoryOntologyPersistence();
+    source.upsertObject(object("a-1", scopeA));
+    const snapshot = source.exportSnapshot(scopeA, "2026-08-15T22:40:00.000Z");
+
+    const denied = new InMemoryOntologyPersistence();
+    denied.upsertObject(object("b-live", scopeB));
+    expect(() => denied.restoreSnapshot(snapshot, scopeB)).toThrow("not explicitly authorized");
+    expect(denied.getObject(scopeB, "b-live")?.id).toBe("b-live");
+    expect(denied.getObject(scopeB, "a-1")).toBeUndefined();
+
+    const allowed = new InMemoryOntologyPersistence({ authorizeRestore: (sourceScope, targetScope) => sourceScope.tenantId === "tenant-a" && targetScope.tenantId === "tenant-b" });
+    allowed.restoreSnapshot(snapshot, scopeB);
+    expect(allowed.getObject(scopeB, "a-1")?.scope).toEqual(scopeB);
+  });
+
   it("rejects malformed cursors and cross-scope snapshot data", () => {
     const store = new InMemoryOntologyPersistence();
     expect(() => store.queryObjects(scopeA, { cursor: "nope" })).toThrow("invalid query cursor");
-    expect(() => store.restoreSnapshot({ scope: scopeA, createdAt: "2026-08-15T22:40:00.000Z", objects: [object("bad", scopeB)], relationships: [] })).toThrow("cross-scope object");
+    const snapshot = store.exportSnapshot(scopeA, "2026-08-15T22:40:00.000Z");
+    const forged = { ...snapshot, objects: [object("bad", scopeB)] };
+    expect(() => store.restoreSnapshot(forged, scopeA)).toThrow();
   });
 
   it("returns defensive copies", () => {
