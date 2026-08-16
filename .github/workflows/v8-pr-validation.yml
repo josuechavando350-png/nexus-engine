@@ -87,17 +87,15 @@ jobs:
           set -euo pipefail
           lock_worktree="${RUNNER_TEMP}/nexus-lock-refresh"
           rm -rf "$lock_worktree"
+          git worktree prune
           git worktree add --detach "$lock_worktree" HEAD
-          cleanup() {
-            git worktree remove --force "$lock_worktree" >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
           (
             cd "$lock_worktree/runtime"
             cargo update -p wasmtime --precise 36.0.13
           )
           mkdir -p artifacts/security
           cp "$lock_worktree/runtime/Cargo.lock" artifacts/security/Cargo.lock.generated
+          echo "NEXUS_LOCK_WORKTREE=$lock_worktree" >> "$GITHUB_ENV"
           test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Install pinned Rust supply-chain tools
@@ -111,13 +109,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          cleanup() {
+            git worktree remove --force "$NEXUS_LOCK_WORKTREE" >/dev/null 2>&1 || true
+            git worktree prune >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
           mkdir -p artifacts/security
           pnpm audit --audit-level high 2>&1 | tee artifacts/security/pnpm-audit.txt
           (
-            cd runtime
-            cargo audit 2>&1 | tee ../artifacts/security/cargo-audit.txt
-            cargo deny check 2>&1 | tee ../artifacts/security/cargo-deny.txt
+            cd "$NEXUS_LOCK_WORKTREE/runtime"
+            cargo audit 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/security/cargo-audit.txt"
+            cargo deny check 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/security/cargo-deny.txt"
           )
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Generate SHA-bound CycloneDX SBOM
         run: pnpm sbom
