@@ -1,6 +1,7 @@
-import type { OntologyScope, ValidatedSchema } from "./index";
+import { canonicalJson, type OntologyScope, type PropertyType, type ValidatedSchema } from "./index";
 
-export type PropertyValue = string | number | boolean | null;
+export type JsonValue = string | number | boolean | null | readonly JsonValue[] | { readonly [key: string]: JsonValue };
+export type PropertyValue = JsonValue;
 
 export interface ObjectRecord {
   readonly id: string;
@@ -38,7 +39,20 @@ export interface OntologyTransactionPort {
 }
 
 export class OntologyTransactionError extends Error {
-  constructor(public readonly code: "INVALID_SCOPE" | "INVALID_SCHEMA" | "NOT_FOUND" | "CONFLICT" | "INVALID_OPERATION" | "IMMUTABLE_PROPERTY", message: string) {
+  constructor(
+    public readonly code:
+      | "INVALID_SCOPE"
+      | "INVALID_SCHEMA"
+      | "NOT_FOUND"
+      | "CONFLICT"
+      | "INVALID_OPERATION"
+      | "IMMUTABLE_PROPERTY"
+      | "INVALID_PROPERTY_VALUE"
+      | "REQUIRED_PROPERTY"
+      | "UNIQUE_CONSTRAINT"
+      | "DERIVED_PROPERTY",
+    message: string,
+  ) {
     super(message);
     this.name = "OntologyTransactionError";
   }
@@ -52,12 +66,70 @@ function key(scope: OntologyScope, id: string): string {
   return `${scope.tenantId}\u0000${scope.organizationId}\u0000${scope.brandId ?? ""}\u0000${id}`;
 }
 
+function cloneJson<T extends JsonValue>(value: T): T {
+  if (Array.isArray(value)) return value.map((item) => cloneJson(item)) as T;
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, cloneJson(item as JsonValue)])) as T;
+  }
+  return value;
+}
+
 function cloneObject(record: ObjectRecord): ObjectRecord {
-  return { ...record, properties: { ...record.properties } };
+  return {
+    ...record,
+    properties: Object.fromEntries(Object.entries(record.properties).map(([name, value]) => [name, cloneJson(value)])),
+  };
 }
 
 function cloneRelationship(record: RelationshipRecord): RelationshipRecord {
   return { ...record, endpoints: { ...record.endpoints } };
+}
+
+function canonicalUtc(value: string): boolean {
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
+}
+
+function validJson(value: JsonValue): boolean {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return true;
+  if (typeof value === "number") return Number.isFinite(value);
+  if (Array.isArray(value)) return value.every(validJson);
+  return Object.values(value).every(validJson);
+}
+
+function assertPropertyValue(property: PropertyType, value: PropertyValue): void {
+  if (value === null) {
+    if (property.cardinality === "REQUIRED") {
+      throw new OntologyTransactionError("REQUIRED_PROPERTY", `required property ${property.id} cannot be null`);
+    }
+    return;
+  }
+
+  const valid = (() => {
+    switch (property.valueKind) {
+      case "STRING":
+        return typeof value === "string";
+      case "NUMBER":
+        return typeof value === "number" && Number.isFinite(value);
+      case "BOOLEAN":
+        return typeof value === "boolean";
+      case "DATETIME":
+        return typeof value === "string" && canonicalUtc(value);
+      case "JSON":
+        return validJson(value);
+    }
+  })();
+
+  if (!valid) {
+    throw new OntologyTransactionError(
+      "INVALID_PROPERTY_VALUE",
+      `property ${property.id} requires ${property.valueKind}`,
+    );
+  }
+}
+
+function propertyEquals(a: PropertyValue, b: PropertyValue): boolean {
+  return canonicalJson(a) === canonicalJson(b);
 }
 
 export class InMemoryOntologyTransactionStore implements OntologyTransactionPort {
@@ -92,6 +164,67 @@ export class InMemoryOntologyTransactionStore implements OntologyTransactionPort
       return value;
     };
 
+    const materializeAndValidate = (
+      objectId: string,
+      typeId: string,
+      incoming: Readonly<Record<string, PropertyValue>>,
+      current?: ObjectRecord,
+    ): Readonly<Record<string, PropertyValue>> => {
+      const type = objectTypes.get(typeId);
+      if (!type) throw new OntologyTransactionError("INVALID_SCHEMA", `unknown object type ${typeId}`);
+
+      const next: Record<string, PropertyValue> = current
+        ? { ...current.properties }
+        : {};
+
+      if (!current) {
+        for (const propertyId of type.propertyIds) {
+          const property = propertyTypes.get(propertyId);
+          if (!property) throw new OntologyTransactionError("INVALID_SCHEMA", `unknown property ${propertyId}`);
+          if (property.defaultValue !== undefined) next[propertyId] = property.defaultValue;
+        }
+      }
+
+      for (const [propertyId, value] of Object.entries(incoming)) {
+        if (!type.propertyIds.includes(propertyId)) {
+          throw new OntologyTransactionError("INVALID_OPERATION", `property ${propertyId} is not declared on ${type.id}`);
+        }
+        const property = propertyTypes.get(propertyId);
+        if (!property) throw new OntologyTransactionError("INVALID_SCHEMA", `unknown property ${propertyId}`);
+        if (property.derived) {
+          throw new OntologyTransactionError("DERIVED_PROPERTY", `property ${propertyId} is derived and cannot be written directly`);
+        }
+        if (current && property.immutable && propertyId in current.properties && !propertyEquals(current.properties[propertyId]!, value)) {
+          throw new OntologyTransactionError("IMMUTABLE_PROPERTY", `property ${propertyId} is immutable`);
+        }
+        assertPropertyValue(property, value);
+        next[propertyId] = cloneJson(value);
+      }
+
+      for (const propertyId of type.propertyIds) {
+        const property = propertyTypes.get(propertyId);
+        if (!property) throw new OntologyTransactionError("INVALID_SCHEMA", `unknown property ${propertyId}`);
+        if (property.cardinality === "REQUIRED" && (!(propertyId in next) || next[propertyId] === null)) {
+          throw new OntologyTransactionError("REQUIRED_PROPERTY", `required property ${propertyId} is missing`);
+        }
+        if (propertyId in next) assertPropertyValue(property, next[propertyId]!);
+        if (!property.unique || !(propertyId in next) || next[propertyId] === null) continue;
+
+        for (const existing of objects.values()) {
+          if (existing.id === objectId) continue;
+          if (!(propertyId in existing.properties)) continue;
+          if (propertyEquals(existing.properties[propertyId]!, next[propertyId]!)) {
+            throw new OntologyTransactionError(
+              "UNIQUE_CONSTRAINT",
+              `property ${propertyId} must be unique within scope`,
+            );
+          }
+        }
+      }
+
+      return next;
+    };
+
     for (const operation of operations) {
       switch (operation.kind) {
         case "CREATE_OBJECT": {
@@ -100,23 +233,25 @@ export class InMemoryOntologyTransactionStore implements OntologyTransactionPort
           if (!type) throw new OntologyTransactionError("INVALID_SCHEMA", `unknown object type ${operation.record.typeId}`);
           const objectKey = key(scope, operation.record.id);
           if (objects.has(objectKey)) throw new OntologyTransactionError("CONFLICT", `object ${operation.record.id} already exists`);
-          for (const propertyId of Object.keys(operation.record.properties)) if (!type.propertyIds.includes(propertyId)) throw new OntologyTransactionError("INVALID_OPERATION", `property ${propertyId} is not declared on ${type.id}`);
-          objects.set(objectKey, { ...operation.record, properties: { ...operation.record.properties }, revision: 1 });
+          const properties = materializeAndValidate(
+            operation.record.id,
+            operation.record.typeId,
+            operation.record.properties,
+          );
+          objects.set(objectKey, { ...operation.record, properties, revision: 1 });
           touchedObjects.add(operation.record.id);
           break;
         }
         case "UPDATE_OBJECT": {
           const current = requireObject(operation.id);
           if (current.revision !== operation.expectedRevision) throw new OntologyTransactionError("CONFLICT", `object ${operation.id} revision conflict`);
-          const type = objectTypes.get(current.typeId);
-          if (!type) throw new OntologyTransactionError("INVALID_SCHEMA", `unknown object type ${current.typeId}`);
-          for (const [propertyId, value] of Object.entries(operation.properties)) {
-            if (!type.propertyIds.includes(propertyId)) throw new OntologyTransactionError("INVALID_OPERATION", `property ${propertyId} is not declared on ${type.id}`);
-            const property = propertyTypes.get(propertyId);
-            if (!property) throw new OntologyTransactionError("INVALID_SCHEMA", `unknown property ${propertyId}`);
-            if (property.immutable && propertyId in current.properties && current.properties[propertyId] !== value) throw new OntologyTransactionError("IMMUTABLE_PROPERTY", `property ${propertyId} is immutable`);
-          }
-          objects.set(key(scope, operation.id), { ...current, properties: { ...current.properties, ...operation.properties }, revision: current.revision + 1 });
+          const properties = materializeAndValidate(
+            operation.id,
+            current.typeId,
+            operation.properties,
+            current,
+          );
+          objects.set(key(scope, operation.id), { ...current, properties, revision: current.revision + 1 });
           touchedObjects.add(operation.id);
           break;
         }
@@ -140,7 +275,12 @@ export class InMemoryOntologyTransactionStore implements OntologyTransactionPort
             const role = declaredRoles.get(roleName);
             if (!role) throw new OntologyTransactionError("INVALID_OPERATION", `unknown relationship role ${roleName}`);
             const endpoint = requireObject(objectId);
-            if (!role.endpointTypeIds.includes(endpoint.typeId)) throw new OntologyTransactionError("INVALID_OPERATION", `object ${objectId} is invalid for role ${roleName}`);
+            const endpointType = objectTypes.get(endpoint.typeId);
+            const satisfiesType = role.endpointTypeIds.includes(endpoint.typeId);
+            const satisfiesInterface = (role.endpointInterfaceIds ?? []).some((interfaceId) => endpointType?.interfaceIds.includes(interfaceId));
+            if (!satisfiesType && !satisfiesInterface) {
+              throw new OntologyTransactionError("INVALID_OPERATION", `object ${objectId} is invalid for role ${roleName}`);
+            }
           }
           relationships.set(relationshipKey, { ...operation.record, endpoints: { ...operation.record.endpoints }, revision: 1 });
           touchedRelationships.add(operation.record.id);
