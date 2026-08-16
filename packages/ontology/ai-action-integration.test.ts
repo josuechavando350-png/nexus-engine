@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateSchema, type SchemaVersion } from "./index";
-import { InMemoryAuditTrail } from "./auth-audit";
+import { actionDefinitionId, InMemoryAuditTrail } from "./auth-audit";
 import { ControlledAIBoundary, type AIProviderPort } from "./ai-boundary";
 import { InMemoryActionEffectRegistry, InMemoryActionPolicyRegistry, OntologyActionExecutor } from "./action-executor";
 import { InMemoryOntologyTransactionStore } from "./transaction";
@@ -30,7 +30,7 @@ describe("AI proposal to Action execution boundary", () => {
     const transactions = new InMemoryOntologyTransactionStore();
     const audit = new InMemoryAuditTrail();
     const policies = new InMemoryActionPolicyRegistry();
-    policies.register({ actionId: proposal.action.id, risk: "HIGH", requiresHumanApproval: true, separationOfDuties: true, policyVersion: "policy-v1" });
+    policies.register(active.scope, { actionId: proposal.action.id, actionDefinitionId: actionDefinitionId(proposal.action), risk: "HIGH", requiresHumanApproval: true, separationOfDuties: true, policyVersion: "policy-v1" });
     const effects = new InMemoryActionEffectRegistry(); effects.register("effect.customer.create", { kind: "CREATE_TARGET" });
     const executor = new OntologyActionExecutor(transactions, audit, policies, effects);
     const result = executor.execute({ requestId: proposal.requestId, occurredAt: "2026-08-16T07:00:00.000Z", principal, scope: active.scope, schema: active, actionId: proposal.action.id, targetId: proposal.targetId!, inputs: { "prop.name": "Ada" } });

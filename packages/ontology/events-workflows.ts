@@ -16,6 +16,15 @@ export interface EventStreamPort {
   list(scope: OntologyScope, correlationId?: string): readonly DomainEvent[];
 }
 
+export interface EventStreamCheckpoint {
+  readonly histories: readonly (readonly [string, readonly DomainEvent[]])[];
+}
+
+export interface RecoverableEventStreamPort extends EventStreamPort {
+  checkpoint(): EventStreamCheckpoint;
+  restore(checkpoint: EventStreamCheckpoint): void;
+}
+
 export type WorkflowStatus = "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
 
 export interface WorkflowTransition {
@@ -67,11 +76,26 @@ function positiveInteger(value: number, name: string): void {
   if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`);
 }
 
-export class InMemoryEventStream implements EventStreamPort {
-  private readonly histories = new Map<string, DomainEvent[]>();
+function cloneEvent(event: DomainEvent): DomainEvent {
+  return { ...event, scope: { ...event.scope }, payload: { ...event.payload } };
+}
+
+export class InMemoryEventStream implements RecoverableEventStreamPort {
+  private histories = new Map<string, DomainEvent[]>();
 
   constructor(private readonly limits: EventRetentionLimits = { maxEventsPerScope: 100_000 }) {
     positiveInteger(limits.maxEventsPerScope, "maxEventsPerScope");
+  }
+
+  checkpoint(): EventStreamCheckpoint {
+    return { histories: [...this.histories.entries()].map(([key, events]) => [key, events.map(cloneEvent)] as const) };
+  }
+
+  restore(checkpoint: EventStreamCheckpoint): void {
+    for (const [, events] of checkpoint.histories) {
+      if (events.length > this.limits.maxEventsPerScope) throw new Error("event checkpoint exceeds configured retention capacity");
+    }
+    this.histories = new Map(checkpoint.histories.map(([key, events]) => [key, events.map(cloneEvent)]));
   }
 
   append(input: Omit<DomainEvent, "eventId" | "sequence">): DomainEvent {
@@ -85,12 +109,12 @@ export class InMemoryEventStream implements EventStreamPort {
     const body = { ...input, sequence };
     const event: DomainEvent = { ...body, eventId: ontologyId("event-record", body) };
     this.histories.set(key, [...history, event]);
-    return event;
+    return cloneEvent(event);
   }
 
   list(scope: OntologyScope, correlationId?: string): readonly DomainEvent[] {
     const values = this.histories.get(scopeKey(scope)) ?? [];
-    return correlationId ? values.filter((event) => event.correlationId === correlationId) : [...values];
+    return (correlationId ? values.filter((event) => event.correlationId === correlationId) : values).map(cloneEvent);
   }
 }
 
