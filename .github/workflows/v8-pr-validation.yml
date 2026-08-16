@@ -87,6 +87,11 @@ jobs:
       - name: Security hygiene
         run: pnpm security-hygiene
 
+      - name: Rust format diagnostic
+        run: |
+          cd runtime
+          cargo fmt --all --check
+
       - name: Architecture gates V3→V10
         run: |
           pnpm v3-gates
