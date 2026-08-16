@@ -19,6 +19,26 @@ on:
       - "vitest.config.ts"
       - "eslint.config.mjs"
       - ".github/workflows/**"
+  push:
+    branches:
+      - "v10-*"
+    paths:
+      - "runtime/**"
+      - "apps/**"
+      - "packages/**"
+      - "scripts/**"
+      - "tests/**"
+      - "docs/**"
+      - "NEXUS_V9_ARCHITECTURE_PLAN.md"
+      - "NEXUS_V10_ARCHITECTURE_PLAN.md"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "pnpm-workspace.yaml"
+      - "tsconfig.json"
+      - "vitest.config.ts"
+      - "eslint.config.mjs"
+      - ".github/workflows/**"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -88,4 +108,10 @@ jobs:
         run: pnpm rust:build
 
       - name: Diff hygiene
-        run: git diff --check "origin/${{ github.base_ref }}...HEAD"
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            git diff --check "origin/${{ github.base_ref }}...HEAD"
+          else
+            git diff --check HEAD^...HEAD
+          fi
