@@ -93,10 +93,21 @@ export interface AuditRecord {
   readonly previousAuditId?: string;
 }
 
+export type AuditInput = Omit<AuditRecord, "auditId" | "previousAuditId">;
+
 export interface AuditTrailPort {
-  append(input: Omit<AuditRecord, "auditId" | "previousAuditId">): AuditRecord;
+  append(input: AuditInput): AuditRecord;
   list(scope: OntologyScope): readonly AuditRecord[];
   verify(scope: OntologyScope): boolean;
+}
+
+export interface AuditTrailCheckpoint {
+  readonly histories: readonly (readonly [string, readonly AuditRecord[]])[];
+}
+
+export interface RecoverableAuditTrailPort extends AuditTrailPort {
+  checkpoint(): AuditTrailCheckpoint;
+  restore(checkpoint: AuditTrailCheckpoint): void;
 }
 
 function sameScope(a: OntologyScope, b: OntologyScope): boolean {
@@ -124,6 +135,10 @@ function safeSignatureEqual(expected: string, actual: string): boolean {
   const a = Buffer.from(expected, "utf8");
   const b = Buffer.from(actual, "utf8");
   return a.length === b.length && timingSafeEqual(a, b);
+}
+
+function cloneAuditRecord(record: AuditRecord): AuditRecord {
+  return { ...record, scope: { ...record.scope } };
 }
 
 export class InMemoryApprovalRegistry implements ApprovalPort {
@@ -185,7 +200,7 @@ export function authorize(request: AuthorizationRequest, approvals?: ApprovalPor
     evaluatedPermission: request.action.permission,
     risk: request.policy.risk,
     policyVersion: request.policy.policyVersion,
-    approvalId: request.approvalId
+    approvalId: request.approvalId,
   });
 
   if (!sameScope(request.principal.scope, request.targetScope)) return deny("principal scope does not match target scope");
@@ -206,7 +221,7 @@ export function authorize(request: AuthorizationRequest, approvals?: ApprovalPor
       targetId: request.targetId,
       requesterPrincipalId: request.principal.principalId,
       policyVersion: request.policy.policyVersion,
-      requireSeparationOfDuties: request.policy.separationOfDuties
+      requireSeparationOfDuties: request.policy.separationOfDuties,
     });
     if (!verification.valid) return deny(verification.reason);
   }
@@ -217,14 +232,26 @@ export function authorize(request: AuthorizationRequest, approvals?: ApprovalPor
     evaluatedPermission: request.action.permission,
     risk: request.policy.risk,
     policyVersion: request.policy.policyVersion,
-    approvalId: request.approvalId
+    approvalId: request.approvalId,
   };
 }
 
-export class InMemoryAuditTrail implements AuditTrailPort {
-  private readonly histories = new Map<string, AuditRecord[]>();
+export class InMemoryAuditTrail implements RecoverableAuditTrailPort {
+  private histories = new Map<string, AuditRecord[]>();
 
-  append(input: Omit<AuditRecord, "auditId" | "previousAuditId">): AuditRecord {
+  checkpoint(): AuditTrailCheckpoint {
+    return {
+      histories: [...this.histories.entries()].map(([name, history]) => [name, history.map(cloneAuditRecord)] as const),
+    };
+  }
+
+  restore(checkpoint: AuditTrailCheckpoint): void {
+    this.histories = new Map(
+      checkpoint.histories.map(([name, history]) => [name, history.map(cloneAuditRecord)]),
+    );
+  }
+
+  append(input: AuditInput): AuditRecord {
     assertCanonicalUtcTimestamp(input.occurredAt);
     if (!input.principalId.trim()) throw new Error("principalId must be non-empty");
     if (!input.actionId.trim()) throw new Error("actionId must be non-empty");
@@ -234,11 +261,11 @@ export class InMemoryAuditTrail implements AuditTrailPort {
     const body = { ...input, previousAuditId };
     const record: AuditRecord = { ...body, auditId: ontologyId("audit", body) };
     this.histories.set(key, [...history, record]);
-    return record;
+    return cloneAuditRecord(record);
   }
 
   list(scope: OntologyScope): readonly AuditRecord[] {
-    return [...(this.histories.get(scopeKey(scope)) ?? [])];
+    return (this.histories.get(scopeKey(scope)) ?? []).map(cloneAuditRecord);
   }
 
   verify(scope: OntologyScope): boolean {
