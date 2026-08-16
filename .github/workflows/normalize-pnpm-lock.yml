@@ -1,0 +1,39 @@
+name: Normalize pnpm lockfile once
+
+on:
+  push:
+    branches:
+      - audit-fix-codex-m03-build-hygiene
+
+permissions:
+  contents: write
+
+jobs:
+  normalize:
+    if: github.event.head_commit.message != 'chore(lockfile): normalize workspace importers'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: audit-fix-codex-m03-build-hygiene
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Normalize lockfile metadata
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Commit normalized lockfile
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo 'pnpm-lock.yaml already normalized'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pnpm-lock.yaml
+          git commit -m 'chore(lockfile): normalize workspace importers'
+          git push origin HEAD:audit-fix-codex-m03-build-hygiene
