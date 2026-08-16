@@ -31,10 +31,11 @@ allow = [
 ]
 confidence-threshold = 0.93
 
-[[licenses.exceptions]]
-# Workspace crates are proprietary and unpublished.
-name = "nexus-event"
-allow = ["UNLICENSED"]
+[licenses.private]
+# Workspace members are publish=false proprietary crates. cargo-deny should
+# police third-party dependency licences, not require an SPDX public licence
+# expression for private unpublished NEXUS crates.
+ignore = true
 
 [bans]
 multiple-versions = "warn"
