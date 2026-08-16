@@ -27,7 +27,7 @@
     "v7-gates": "node scripts/v7-architecture-gates.mjs",
     "v8-gates": "node scripts/v8-architecture-gates.mjs",
     "v9-gates": "node scripts/v9-architecture-gates.mjs",
-    "v10-gates": "node scripts/v10-architecture-gates.mjs",
+    "v10-gates": "node scripts/v10-architecture-gates.mjs && node scripts/v10-final-readiness-gates.mjs",
     "operability:h07": "node scripts/h07-operability-proof.mjs"
   },
   "devDependencies": {
