@@ -9,7 +9,8 @@
     "./transaction": "./transaction.ts",
     "./auth-audit": "./auth-audit.ts",
     "./action-executor": "./action-executor.ts",
-    "./events-workflows": "./events-workflows.ts"
+    "./events-workflows": "./events-workflows.ts",
+    "./ai-boundary": "./ai-boundary.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
