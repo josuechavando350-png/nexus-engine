@@ -234,7 +234,9 @@ export class OntologyActionExecutor {
     private readonly effects: ActionEffectPort,
     private readonly approvals?: ApprovalPort,
     atomicCommit?: AtomicActionCommitPort,
+    private readonly maxCompletedExecutions = 100_000,
   ) {
+    if (!Number.isInteger(maxCompletedExecutions) || maxCompletedExecutions <= 0) throw new Error("maxCompletedExecutions must be a positive integer");
     this.atomicCommit = atomicCommit
       ?? (transactions instanceof InMemoryOntologyTransactionStore && audit instanceof InMemoryAuditTrail
         ? new InMemoryAtomicActionCommitter(transactions, audit)
@@ -253,6 +255,9 @@ export class OntologyActionExecutor {
     if (previous) {
       if (previous.fingerprint !== fingerprint) throw new ActionExecutionError("INVALID_REQUEST", "idempotency key was reused with a different request payload");
       return previous.result;
+    }
+    if (this.completed.size >= this.maxCompletedExecutions) {
+      throw new ActionExecutionError("EXECUTION_FAILED", "completed execution retention capacity exceeded");
     }
 
     const declaredAction = request.schema.actions.find((item) => item.id === request.actionId);
