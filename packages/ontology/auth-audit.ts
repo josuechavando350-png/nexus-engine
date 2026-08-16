@@ -360,7 +360,7 @@ export class AnchoredAuditTrail implements RecoverableAuditTrailPort {
       this.anchors.publish(anchor);
     } catch (error) {
       this.ledger.restore(checkpoint);
-      throw new Error(`audit anchor publication failed; local append rolled back: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`audit anchor publication failed; local append rolled back: ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
     return record;
   }
