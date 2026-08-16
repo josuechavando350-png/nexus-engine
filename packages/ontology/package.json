@@ -15,7 +15,7 @@
     "./observability-dr": "./observability-dr.ts"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
   }
 }
