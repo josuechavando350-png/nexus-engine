@@ -3,7 +3,13 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
 const root = process.cwd();
-const runJson = (command, args, cwd = root) => JSON.parse(execFileSync(command, args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] }));
+const JSON_COMMAND_MAX_BUFFER = 32 * 1024 * 1024;
+const runJson = (command, args, cwd = root) => JSON.parse(execFileSync(command, args, {
+  cwd,
+  encoding: "utf8",
+  stdio: ["ignore", "pipe", "inherit"],
+  maxBuffer: JSON_COMMAND_MAX_BUFFER,
+}));
 const revision = process.env.GITHUB_SHA || execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
 
 const components = new Map();
