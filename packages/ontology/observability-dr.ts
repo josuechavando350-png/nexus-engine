@@ -114,6 +114,6 @@ export class InMemoryDisasterRecovery implements DisasterRecoveryPort {
     return [...this.backups.values()]
       .filter((record) => sameScope(record.scope, scope))
       .sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      .map(({ snapshot: _snapshot, ...record }) => ({ ...record, scope: { ...record.scope } }));
+      .map((record) => ({ backupId: record.backupId, scope: { ...record.scope }, createdAt: record.createdAt }));
   }
 }
