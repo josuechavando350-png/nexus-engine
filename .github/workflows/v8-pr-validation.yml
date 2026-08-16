@@ -109,11 +109,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cleanup() {
-            git worktree remove --force "$NEXUS_LOCK_WORKTREE" >/dev/null 2>&1 || true
-            git worktree prune >/dev/null 2>&1 || true
-          }
-          trap cleanup EXIT
+          test -d "$NEXUS_LOCK_WORKTREE/runtime"
           mkdir -p artifacts/security
           pnpm audit --audit-level high 2>&1 | tee artifacts/security/pnpm-audit.txt
           (
@@ -124,7 +120,12 @@ jobs:
           test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Generate SHA-bound CycloneDX SBOM
-        run: pnpm sbom
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$NEXUS_LOCK_WORKTREE/runtime"
+          pnpm sbom
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Record supply-chain identity
         shell: bash
@@ -166,13 +167,36 @@ jobs:
           pnpm v10-gates
 
       - name: Rust tests
-        run: pnpm rust:test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$NEXUS_LOCK_WORKTREE/runtime"
+          cargo test --workspace --locked
 
       - name: Rust lint
-        run: pnpm rust:lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$NEXUS_LOCK_WORKTREE/runtime"
+          cargo clippy --all-targets --locked -- -D warnings
 
       - name: Rust release build
-        run: pnpm rust:build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$NEXUS_LOCK_WORKTREE/runtime"
+          cargo build --workspace --release --locked
+
+      - name: Clean isolated Rust worktree
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${NEXUS_LOCK_WORKTREE:-}" ]; then
+            git worktree remove --force "$NEXUS_LOCK_WORKTREE" >/dev/null 2>&1 || true
+            git worktree prune
+          fi
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Diff hygiene
         shell: bash
