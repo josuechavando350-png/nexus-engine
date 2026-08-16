@@ -78,6 +78,10 @@ function assertHealthPolicy(policy: HealthPolicy): void {
   if (!Number.isFinite(policy.maxComponentAgeMs) || policy.maxComponentAgeMs <= 0) throw new Error("health policy maxComponentAgeMs must be positive");
 }
 
+function positiveInteger(value: number, name: string): void {
+  if (!Number.isInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`);
+}
+
 function secureBackupId(scope: OntologyScope): string {
   return `backup:${scope.tenantId}:${randomUUID()}`;
 }
@@ -85,8 +89,12 @@ function secureBackupId(scope: OntologyScope): string {
 export class InMemoryObservability implements ObservabilityPort {
   private readonly signals = new Map<string, OperationalSignal[]>();
 
-  constructor(private readonly healthPolicy: HealthPolicy = { requiredComponents: ["ontology", "storage"], maxComponentAgeMs: 30_000 }) {
+  constructor(
+    private readonly healthPolicy: HealthPolicy = { requiredComponents: ["ontology", "storage"], maxComponentAgeMs: 30_000 },
+    private readonly maxSignalsPerScope = 100_000,
+  ) {
     assertHealthPolicy(healthPolicy);
+    positiveInteger(maxSignalsPerScope, "maxSignalsPerScope");
   }
 
   emit(signal: OperationalSignal): void {
@@ -95,6 +103,7 @@ export class InMemoryObservability implements ObservabilityPort {
     if (signal.value !== undefined && !Number.isFinite(signal.value)) throw new Error("signal value must be finite");
     const key = scopeKey(signal.scope);
     const history = this.signals.get(key) ?? [];
+    if (history.length >= this.maxSignalsPerScope) throw new Error("observability signal capacity exceeded for scope");
     this.signals.set(key, [...history, { ...signal, scope: { ...signal.scope } }]);
   }
 
@@ -126,10 +135,17 @@ export class InMemoryObservability implements ObservabilityPort {
 export class InMemoryDisasterRecovery implements DisasterRecoveryPort {
   private readonly backups = new Map<string, BackupRecord>();
 
-  constructor(private readonly persistence: OntologyPersistencePort) {}
+  constructor(
+    private readonly persistence: OntologyPersistencePort,
+    private readonly maxBackupsPerScope = 1_000,
+  ) {
+    positiveInteger(maxBackupsPerScope, "maxBackupsPerScope");
+  }
 
   backup(scope: OntologyScope, createdAt: string): BackupRecord {
     canonicalUtc(createdAt);
+    const scopedBackups = [...this.backups.values()].filter((record) => sameScope(record.scope, scope)).length;
+    if (scopedBackups >= this.maxBackupsPerScope) throw new Error("backup retention capacity exceeded for scope");
     const snapshot = this.persistence.exportSnapshot(scope, createdAt);
     let backupId = secureBackupId(scope);
     while (this.backups.has(backupId)) backupId = secureBackupId(scope);
