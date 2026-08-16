@@ -9,11 +9,31 @@ function schema() {
     scope: { tenantId: "tenant-a", organizationId: "org-a" },
     properties: [],
     interfaces: [],
-    objects: [],
+    objects: [
+      { id: "object.order", name: "Order", propertyIds: [], interfaceIds: [] }
+    ],
     relationships: [],
     actions: [
-      { id: "action.order.cancel", name: "Cancel order", inputPropertyIds: [], permission: "orders.cancel", preconditionRefs: [], effects: [], eventTypeIds: [] },
-      { id: "action.order.refund", name: "Refund order", inputPropertyIds: [], permission: "orders.refund", preconditionRefs: [], effects: [], eventTypeIds: [] }
+      {
+        id: "action.order.cancel",
+        name: "CancelOrder",
+        targetTypeId: "object.order",
+        inputPropertyIds: [],
+        permission: "orders.cancel",
+        preconditionRefs: [],
+        effectRefs: [],
+        emittedEventTypeIds: []
+      },
+      {
+        id: "action.order.refund",
+        name: "RefundOrder",
+        targetTypeId: "object.order",
+        inputPropertyIds: [],
+        permission: "orders.refund",
+        preconditionRefs: [],
+        effectRefs: [],
+        emittedEventTypeIds: []
+      }
     ],
     functions: [],
     events: []
