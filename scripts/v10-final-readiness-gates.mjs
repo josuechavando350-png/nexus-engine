@@ -9,7 +9,7 @@ const read = (path) => readFileSync(join(root, path), "utf8");
 
 const requiredFiles = [
   "docs/audit/V10_FINAL_AUDIT_PLAN.md",
-  "docs/operations/V10_CLEAN_ROOM_BOOTSTRAP.md",
+  "docs/operations/V10_CLEAN_ROOM_RUNBOOK.md",
   "docs/operations/V10_HANDOFF_PACKAGE.md",
   "docs/operations/V10_CONTINUITY_OPERABILITY_PLAN.md",
   "docs/operations/V10_TRANSFERABILITY_CHECKLIST.md"
