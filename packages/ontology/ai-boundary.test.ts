@@ -12,8 +12,8 @@ function schema() {
     objects: [],
     relationships: [],
     actions: [
-      { id: "action.order.cancel", name: "Cancel order", inputPropertyIds: [], permission: "orders.cancel", preconditions: [], effects: [], eventTypeIds: [] },
-      { id: "action.order.refund", name: "Refund order", inputPropertyIds: [], permission: "orders.refund", preconditions: [], effects: [], eventTypeIds: [] }
+      { id: "action.order.cancel", name: "Cancel order", inputPropertyIds: [], permission: "orders.cancel", preconditionRefs: [], effects: [], eventTypeIds: [] },
+      { id: "action.order.refund", name: "Refund order", inputPropertyIds: [], permission: "orders.refund", preconditionRefs: [], effects: [], eventTypeIds: [] }
     ],
     functions: [],
     events: []
