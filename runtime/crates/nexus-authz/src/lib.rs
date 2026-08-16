@@ -81,7 +81,10 @@ impl Grant {
         if self.resource_id.0.trim().is_empty() {
             return Err("grant resource id required".into());
         }
-        if self.tenant.trim().is_empty() || self.brand.trim().is_empty() || self.environment.trim().is_empty() {
+        if self.tenant.trim().is_empty()
+            || self.brand.trim().is_empty()
+            || self.environment.trim().is_empty()
+        {
             return Err("grant tenant/brand/environment bindings required".into());
         }
         Ok(())
@@ -102,8 +105,14 @@ impl Grant {
             && self.organization == request.resource.organization
             && self.resource_kind == request.resource.kind
             && self.resource_id == request.resource.id
-            && self.scope_claims().iter().all(|claim| request.context.contains(claim))
-            && self.required_context.iter().all(|claim| request.context.contains(claim))
+            && self
+                .scope_claims()
+                .iter()
+                .all(|claim| request.context.contains(claim))
+            && self
+                .required_context
+                .iter()
+                .all(|claim| request.context.contains(claim))
     }
 }
 
@@ -124,18 +133,30 @@ impl GrantAuthorizer {
         for grant in &grants {
             grant.validate()?;
         }
-        Ok(Self { grants, policy_version, policy_available: true })
+        Ok(Self {
+            grants,
+            policy_version,
+            policy_available: true,
+        })
     }
 
     pub fn unavailable(policy_version: impl Into<String>) -> Self {
-        Self { grants: Vec::new(), policy_version: policy_version.into(), policy_available: false }
+        Self {
+            grants: Vec::new(),
+            policy_version: policy_version.into(),
+            policy_available: false,
+        }
     }
 }
 
 fn sensitive(action: Action) -> bool {
     matches!(
         action,
-        Action::Approve | Action::Delegate | Action::ManageSecrets | Action::ManagePolicy | Action::Audit
+        Action::Approve
+            | Action::Delegate
+            | Action::ManageSecrets
+            | Action::ManagePolicy
+            | Action::Audit
     )
 }
 
@@ -144,7 +165,8 @@ fn separation_of_duties_satisfied(request: &AuthorizationRequest) -> bool {
         return true;
     }
     request.context.iter().any(|claim| {
-        claim.strip_prefix("sod-approved-by=")
+        claim
+            .strip_prefix("sod-approved-by=")
             .is_some_and(|approver| !approver.trim().is_empty() && approver != request.principal.id)
     })
 }
@@ -160,7 +182,9 @@ impl AuthorizationEngine for GrantAuthorizer {
         if !self.policy_available {
             return deny("policy backend unavailable");
         }
-        if request.principal.id.trim().is_empty() || request.principal.organization.0.trim().is_empty() {
+        if request.principal.id.trim().is_empty()
+            || request.principal.organization.0.trim().is_empty()
+        {
             return deny("invalid principal");
         }
         if request.resource.validate().is_err() {
@@ -261,7 +285,10 @@ mod tests {
             Action::ManagePolicy,
             Action::Audit,
         ] {
-            assert!(!authz.decide(&request(action)).allowed, "{action:?} unexpectedly allowed");
+            assert!(
+                !authz.decide(&request(action)).allowed,
+                "{action:?} unexpectedly allowed"
+            );
         }
     }
 
@@ -279,7 +306,10 @@ mod tests {
             Action::ManagePolicy,
             Action::Audit,
         ] {
-            assert!(!authz.decide(&request(action)).allowed, "{action:?} unexpectedly allowed");
+            assert!(
+                !authz.decide(&request(action)).allowed,
+                "{action:?} unexpectedly allowed"
+            );
         }
     }
 
@@ -332,7 +362,9 @@ mod tests {
         assert!(!authz.decide(&no_approval).allowed);
 
         no_approval.context.remove("sod-approved-by=reader-1");
-        no_approval.context.insert("sod-approved-by=approver-2".into());
+        no_approval
+            .context
+            .insert("sod-approved-by=approver-2".into());
         assert!(authz.decide(&no_approval).allowed);
     }
 }
