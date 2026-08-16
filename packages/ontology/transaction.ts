@@ -66,10 +66,12 @@ function key(scope: OntologyScope, id: string): string {
   return `${scope.tenantId}\u0000${scope.organizationId}\u0000${scope.brandId ?? ""}\u0000${id}`;
 }
 
-function cloneJson<T extends JsonValue>(value: T): T {
-  if (Array.isArray(value)) return value.map((item) => cloneJson(item)) as T;
+function cloneJson(value: JsonValue): JsonValue {
+  if (Array.isArray(value)) return value.map((item) => cloneJson(item));
   if (value && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, cloneJson(item as JsonValue)])) as T;
+    return Object.fromEntries(
+      Object.entries(value).map(([name, item]) => [name, cloneJson(item as JsonValue)]),
+    );
   }
   return value;
 }
@@ -173,9 +175,7 @@ export class InMemoryOntologyTransactionStore implements OntologyTransactionPort
       const type = objectTypes.get(typeId);
       if (!type) throw new OntologyTransactionError("INVALID_SCHEMA", `unknown object type ${typeId}`);
 
-      const next: Record<string, PropertyValue> = current
-        ? { ...current.properties }
-        : {};
+      const next: Record<string, PropertyValue> = current ? { ...current.properties } : {};
 
       if (!current) {
         for (const propertyId of type.propertyIds) {
