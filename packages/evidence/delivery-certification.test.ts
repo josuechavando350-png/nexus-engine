@@ -63,6 +63,30 @@ describe("delivery certification", () => {
     expect(result.findings.join(" ")).toMatch(/gate.visual/);
   });
 
+  it("rejects custom policies that remove a baseline mandatory gate", () => {
+    const { signed, publicKey } = signedEvidence();
+    expect(() => certifyDelivery({
+      signedEvidence: signed,
+      publicKey,
+      sourceRevision: revision,
+      tenantId: "tenant-a",
+      projectId: "project-a",
+      policy: { requiredSources: ["CAPTURE", "QUALITY"], requiredGates: ["build"] },
+    })).toThrow(/cannot remove baseline required gate creative/);
+  });
+
+  it("rejects custom policies that remove a baseline evidence source", () => {
+    const { signed, publicKey } = signedEvidence();
+    expect(() => certifyDelivery({
+      signedEvidence: signed,
+      publicKey,
+      sourceRevision: revision,
+      tenantId: "tenant-a",
+      projectId: "project-a",
+      policy: { requiredSources: ["QUALITY"], requiredGates: gates },
+    })).toThrow(/cannot remove baseline required source CAPTURE/);
+  });
+
   it("does not accept quality evidence from another source revision", () => {
     const { signed, publicKey } = signedEvidence({ sourceRevision: "abcdefabcdefabcdefabcdefabcdefabcdefabcd" });
     const result = certifyDelivery({ signedEvidence: signed, publicKey, sourceRevision: revision, tenantId: "tenant-a", projectId: "project-a" });
