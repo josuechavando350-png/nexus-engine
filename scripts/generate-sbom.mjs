@@ -35,7 +35,8 @@ const visitNode = (node) => {
 };
 for (const workspace of Array.isArray(pnpm) ? pnpm : [pnpm]) visitNode(workspace);
 
-const cargo = runJson("cargo", ["metadata", "--locked", "--format-version", "1", "--manifest-path", "runtime/Cargo.toml"]);
+const cargoRoot = process.env.NEXUS_LOCK_WORKTREE || root;
+const cargo = runJson("cargo", ["metadata", "--locked", "--format-version", "1", "--manifest-path", "runtime/Cargo.toml"], cargoRoot);
 for (const pkg of cargo.packages ?? []) {
   add({
     type: "library",

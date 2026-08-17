@@ -81,14 +81,22 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Refresh patched Wasmtime lock resolution
+      - name: Refresh patched Wasmtime lock resolution in isolated worktree
         shell: bash
         run: |
           set -euo pipefail
-          cd runtime
-          cargo update -p wasmtime --precise 36.0.13
-          mkdir -p ../artifacts/security
-          cp Cargo.lock ../artifacts/security/Cargo.lock.generated
+          lock_worktree="${RUNNER_TEMP}/nexus-lock-refresh"
+          rm -rf "$lock_worktree"
+          git worktree prune
+          git worktree add --detach "$lock_worktree" HEAD
+          (
+            cd "$lock_worktree/runtime"
+            cargo update -p wasmtime --precise 36.0.13
+          )
+          mkdir -p artifacts/security
+          cp "$lock_worktree/runtime/Cargo.lock" artifacts/security/Cargo.lock.generated
+          echo "NEXUS_LOCK_WORKTREE=$lock_worktree" >> "$GITHUB_ENV"
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Install pinned Rust supply-chain tools
         shell: bash
@@ -101,16 +109,23 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test -d "$NEXUS_LOCK_WORKTREE/runtime"
           mkdir -p artifacts/security
           pnpm audit --audit-level high 2>&1 | tee artifacts/security/pnpm-audit.txt
           (
-            cd runtime
-            cargo audit 2>&1 | tee ../artifacts/security/cargo-audit.txt
-            cargo deny check 2>&1 | tee ../artifacts/security/cargo-deny.txt
+            cd "$NEXUS_LOCK_WORKTREE/runtime"
+            cargo audit 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/security/cargo-audit.txt"
+            cargo deny check 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/security/cargo-deny.txt"
           )
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Generate SHA-bound CycloneDX SBOM
-        run: pnpm sbom
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -d "$NEXUS_LOCK_WORKTREE/runtime"
+          pnpm sbom
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Record supply-chain identity
         shell: bash
@@ -138,27 +153,90 @@ jobs:
         run: pnpm build
 
       - name: Security hygiene
-        run: pnpm security-hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm security-hygiene
+          status="$(git status --porcelain --untracked-files=no)"
+          if [ -n "$status" ]; then
+            echo "Tracked mutation detected after Security hygiene:" >&2
+            printf '%s\n' "$status" >&2
+            git diff --name-status >&2 || true
+            git diff >&2 || true
+            exit 1
+          fi
 
       - name: Architecture gates V3→V10
+        shell: bash
         run: |
+          set -euo pipefail
+          assert_clean() {
+            label="$1"
+            status="$(git status --porcelain --untracked-files=no)"
+            if [ -n "$status" ]; then
+              mkdir -p artifacts/security
+              printf '%s\n' "$status" | tee "artifacts/security/tracked-mutation-${label}.txt" >&2
+              git diff --name-status | tee "artifacts/security/tracked-mutation-${label}-names.txt" >&2 || true
+              git diff | tee "artifacts/security/tracked-mutation-${label}.patch" >&2 || true
+              echo "Tracked mutation detected after ${label}" >&2
+              exit 1
+            fi
+          }
           pnpm v3-gates
+          assert_clean v3
           pnpm v4-gates
+          assert_clean v4
           pnpm v5-gates
+          assert_clean v5
           pnpm v6-gates
+          assert_clean v6
           pnpm v7-gates
+          assert_clean v7
           pnpm v8-gates
+          assert_clean v8
           pnpm v9-gates
+          assert_clean v9
           pnpm v10-gates
+          assert_clean v10
 
       - name: Rust tests
-        run: pnpm rust:test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$NEXUS_LOCK_WORKTREE/runtime"
+          cargo test --workspace --locked
 
       - name: Rust lint
-        run: pnpm rust:lint
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$NEXUS_LOCK_WORKTREE/runtime"
+          cargo clippy --all-targets --locked -- -D warnings
 
       - name: Rust release build
-        run: pnpm rust:build
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$NEXUS_LOCK_WORKTREE/runtime"
+          cargo build --workspace --release --locked
+
+      - name: Clean isolated Rust worktree
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -n "${NEXUS_LOCK_WORKTREE:-}" ]; then
+            git worktree remove --force "$NEXUS_LOCK_WORKTREE" >/dev/null 2>&1 || true
+            git worktree prune
+          fi
+          status="$(git status --porcelain --untracked-files=no)"
+          if [ -n "$status" ]; then
+            echo "Tracked mutation detected before final diff hygiene:" >&2
+            printf '%s\n' "$status" >&2
+            git diff --name-status >&2 || true
+            git diff >&2 || true
+            exit 1
+          fi
 
       - name: Diff hygiene
         shell: bash

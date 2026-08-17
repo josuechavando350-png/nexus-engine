@@ -279,6 +279,10 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  packages/benchmark: {}
+
+  packages/capture: {}
+
   packages/config: {}
 
   packages/control-sdk: {}
@@ -295,6 +299,10 @@ importers:
         specifier: ^19.1.1
         version: 19.2.8
 
+  packages/creative: {}
+
+  packages/evidence: {}
+
   packages/experience:
     devDependencies:
       '@types/node':
@@ -307,6 +315,10 @@ importers:
   packages/experimental: {}
 
   packages/kernel: {}
+
+  packages/measurement: {}
+
+  packages/ontology: {}
 
 packages:
 
