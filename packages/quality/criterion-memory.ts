@@ -90,7 +90,7 @@ function assertRevision(value: string): void {
 }
 
 function stable(value: unknown): string {
-  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (value === null || typeof value !== "object") return JSON.stringify(value) ?? "null";
   if (Array.isArray(value)) return `[${value.map(stable).join(",")}]`;
   const record = value as Record<string, unknown>;
   return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stable(record[key])}`).join(",")}}`;
@@ -104,6 +104,16 @@ function assertBusinessOutcome(outcome: BusinessOutcome): void {
   if (!outcome.metric.trim() || !outcome.source.trim()) throw new Error("business outcomes require metric and source");
   if (!Number.isFinite(outcome.value)) throw new Error("business outcome value must be finite");
   if (!canonicalTimestamp(outcome.observedAt)) throw new Error("business outcome observedAt must be a canonical ISO timestamp");
+}
+
+function assertObservation(observation: PriorObservation): void {
+  if (!observation.tenantId.trim() || !observation.projectId.trim()) throw new Error("prior observation tenantId and projectId are required");
+  assertRevision(observation.revision);
+  for (const [feature, value] of Object.entries(observation.dnaFeatures)) {
+    if (!feature.trim()) throw new Error("DNA feature names must be non-empty");
+    if (!Number.isFinite(value)) throw new Error(`DNA feature ${feature} must be finite`);
+  }
+  observation.businessOutcomes.forEach(assertBusinessOutcome);
 }
 
 export function recordCriterionMemory(input: CriterionMemoryEntry): VersionedCriterionMemoryEntry {
@@ -138,7 +148,8 @@ export function assertCriterionHistory(entries: readonly VersionedCriterionMemor
   for (const entry of entries) {
     if (ids.has(entry.entryId)) throw new Error(`duplicate criterion entry ${entry.entryId}`);
     ids.add(entry.entryId);
-    const expected = digest((({ entryId: _ignored, ...rest }) => rest)(entry));
+    const { entryId: _entryId, ...unsignedEntry } = entry;
+    const expected = digest(unsignedEntry);
     if (expected !== entry.entryId) throw new Error(`criterion entry ${entry.entryId} failed integrity verification`);
     const revisionKey = `${entry.tenantId}::${entry.projectId}::${entry.revision}`;
     if (revisions.has(revisionKey)) throw new Error(`duplicate project revision in criterion history: ${revisionKey}`);
@@ -186,6 +197,7 @@ export function learnEmitterPriors(input: {
   const minimumProjects = input.minimumProjects ?? 20;
   if (!Number.isInteger(minimumProjects) || minimumProjects < 1) throw new Error("minimumProjects must be a positive integer");
   if (!input.tenantId.trim()) throw new Error("tenantId is required");
+  input.observations.forEach(assertObservation);
   const scoped = input.observations.filter((observation) => observation.tenantId === input.tenantId);
   const projectIds = new Set(scoped.map((observation) => observation.projectId));
   const approvedProjects = new Set(scoped.filter((observation) => observation.approvedWithoutCorrection).map((observation) => observation.projectId));
@@ -207,13 +219,11 @@ export function learnEmitterPriors(input: {
   const metricBuckets = new Map<string, number[]>();
   for (const observation of eligible) {
     for (const [feature, value] of Object.entries(observation.dnaFeatures)) {
-      if (!Number.isFinite(value)) throw new Error(`DNA feature ${feature} must be finite`);
       const bucket = featureBuckets.get(feature) ?? [];
       bucket.push(value);
       featureBuckets.set(feature, bucket);
     }
     for (const outcome of observation.businessOutcomes) {
-      assertBusinessOutcome(outcome);
       const bucket = metricBuckets.get(outcome.metric) ?? [];
       bucket.push(outcome.value);
       metricBuckets.set(outcome.metric, bucket);
