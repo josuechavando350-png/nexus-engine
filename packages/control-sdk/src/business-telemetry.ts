@@ -149,6 +149,9 @@ export function aggregateBusinessTelemetry(events: readonly BusinessEvent[]): Bu
   const counts = Object.fromEntries(EVENT_NAMES.map((name) => [name, 0])) as Record<BusinessEventName, number>;
   const totalObservedValue: Record<string, number> = {};
   for (const event of events) {
+    if (!event || typeof event !== "object" || event.schemaVersion !== 1) {
+      throw new Error("business event schemaVersion must be exactly 1");
+    }
     const payload: BusinessEventInput = {
       tenantId: event.tenantId,
       projectId: event.projectId,
