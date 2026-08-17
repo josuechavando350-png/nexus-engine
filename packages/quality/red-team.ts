@@ -6,6 +6,7 @@ import {
   type SimilarityReport,
   type StyleFingerprintV2,
 } from "@nexus/experience";
+import type { StructuralFingerprintReport } from "./structural-fingerprint";
 
 export type MutationAttackId =
   | "BRAND_SWAP"
@@ -19,6 +20,8 @@ export type MutationAttackId =
 export type RedTeamAttackId =
   | "CREATIVE_CRITIC"
   | "CORPUS_ORIGINALITY"
+  | "TEMPLATE_FINGERPRINT"
+  | "AI_FINGERPRINT"
   | "BROWSER_COVERAGE"
   | "ACCESSIBILITY_EVIDENCE"
   | MutationAttackId;
@@ -42,6 +45,7 @@ export interface RedTeamArenaInput {
   corpus: readonly StyleFingerprintV2[];
   artifacts: readonly CaptureArtifact[];
   mutationVerdicts: Readonly<Record<MutationAttackId, VerdictState>>;
+  structuralFingerprint?: StructuralFingerprintReport;
   originalityPolicy?: OriginalityPolicy;
   browserEvidencePolicy?: BrowserEvidencePolicy;
 }
@@ -79,7 +83,7 @@ function artifactMatrix(artifacts: readonly CaptureArtifact[], capability: Captu
     if (artifact.capability !== capability) continue;
     const browser = artifact.metadata?.browser;
     const viewport = artifact.metadata?.viewport;
-    if (browser && viewport && artifact.uri && artifact.digest.startsWith("sha256:") && artifact.byteLength > 0) {
+    if (browser && viewport && artifact.uri && /^sha256:[a-f0-9]{64}$/.test(artifact.digest) && artifact.byteLength > 0) {
       matrix.add(matrixKey(browser, viewport));
     }
   }
@@ -151,6 +155,30 @@ function originalityAttack(
   };
 }
 
+function structuralAttacks(report: StructuralFingerprintReport | undefined): readonly RedTeamAttackResult[] {
+  if (!report) {
+    return Object.freeze([
+      attack("TEMPLATE_FINGERPRINT", "NOT_TESTED", "structural template fingerprint attack has not been executed"),
+      attack("AI_FINGERPRINT", "NOT_TESTED", "structural AI fingerprint attack has not been executed"),
+    ]);
+  }
+  if (report.authority !== "NEXUS_STRUCTURAL_FINGERPRINT") throw new Error("invalid structural fingerprint authority");
+  return Object.freeze([
+    attack(
+      "TEMPLATE_FINGERPRINT",
+      report.templateFingerprint.verdict,
+      report.templateFingerprint.verdict === "PASS" ? "historical template regression passed" : report.templateFingerprint.findings.join("; ") || "template fingerprint did not pass",
+      report.templateFingerprint.evidence,
+    ),
+    attack(
+      "AI_FINGERPRINT",
+      report.aiFingerprint.verdict,
+      report.aiFingerprint.verdict === "PASS" ? "measured structural anti-template rules passed" : report.aiFingerprint.findings.join("; ") || "structural AI fingerprint did not pass",
+      report.aiFingerprint.evidence,
+    ),
+  ]);
+}
+
 function aggregateVerdict(attacks: readonly RedTeamAttackResult[]): VerdictState {
   if (attacks.some((item) => item.verdict === "FAIL")) return "FAIL";
   if (attacks.some((item) => item.verdict === "NOT_TESTED")) return "NOT_TESTED";
@@ -173,6 +201,7 @@ export function runRedTeamArena(input: RedTeamArenaInput): RedTeamArenaReport {
 
   const originality = originalityAttack(input.fingerprint, input.corpus, input.originalityPolicy);
   attacks.push(originality.result);
+  attacks.push(...structuralAttacks(input.structuralFingerprint));
   attacks.push(coverageAttack("BROWSER_COVERAGE", input.artifacts, "SCREENSHOT", browserPolicy));
   attacks.push(coverageAttack("ACCESSIBILITY_EVIDENCE", input.artifacts, "ACCESSIBILITY", browserPolicy));
 
