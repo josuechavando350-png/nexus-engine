@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { CaptureArtifact } from "@nexus/capture";
-import { calibrateVisualReviewer, judgeVisualEvidence, type VisualReview } from "../visual-judge";
+import { calibrateVisualReviewer, executeMultimodalVisualReview, judgeVisualEvidence, type MultimodalVisualJudgePort, type VisualReview } from "../visual-judge";
 
 const tempDirs: string[] = [];
 const digest = (bytes: Uint8Array) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -84,7 +84,32 @@ describe("NEXUS visual judge", () => {
     expect(result.approved).toBe(true);
   });
 
-  it("fails closed if persisted bytes do not match the declared SHA-256", async () => {
+  it("executes a multimodal port over verified PNG bytes and seals provider provenance", async () => {
+    const artifacts = await evidenceArtifacts();
+    let observedImageCount = 0;
+    const port: MultimodalVisualJudgePort = {
+      providerId: "fixture-provider",
+      modelId: "ui-specialist-fixture",
+      configurationDigest: `sha256:${"c".repeat(64)}`,
+      review: async ({ rubricVersion, images }) => {
+        expect(rubricVersion).toBe("nexus-visual-rubric-v2");
+        expect(images.every((image) => image.bytes.subarray(0, 8).toString() !== "")).toBe(true);
+        expect(images.every((image) => image.digest.startsWith("sha256:"))).toBe(true);
+        observedImageCount = images.length;
+        return { verdict: "PASS", findings: ["synthetic port fixture reviewed persisted PNG bytes"], reviewedAt: "2026-08-17T00:01:00.000Z", requestId: "fixture-request-1" };
+      },
+    };
+    const review = await executeMultimodalVisualReview({ artifacts, reviewerId: "visual-review-service", rubricVersion: "nexus-visual-rubric-v2", port });
+    expect(observedImageCount).toBe(6);
+    expect(review.providerId).toBe("fixture-provider");
+    expect(review.modelId).toBe("ui-specialist-fixture");
+    expect(review.providerRequestId).toBe("fixture-request-1");
+    expect(review.modelIdentity).toContain("fixture-provider/ui-specialist-fixture");
+    const result = await judgeVisualEvidence({ artifacts, review });
+    expect(result.verdict).toBe("PASS");
+  });
+
+  it("fails closed if persisted bytes do not match the declared SHA-256 before multimodal execution", async () => {
     const artifacts = await evidenceArtifacts();
     const first = artifacts[0]!;
     await writeFile(first.uri!, Buffer.from("tampered"));
@@ -92,9 +117,16 @@ describe("NEXUS visual judge", () => {
     expect(result.integrityVerdict).toBe("FAIL");
     expect(result.verdict).toBe("FAIL");
     expect(result.findings.some((finding) => finding.includes(first.artifactId))).toBe(true);
+    const port: MultimodalVisualJudgePort = {
+      providerId: "fixture-provider",
+      modelId: "ui-specialist-fixture",
+      configurationDigest: `sha256:${"d".repeat(64)}`,
+      review: async () => ({ verdict: "PASS", findings: [], reviewedAt: "2026-08-17T00:01:00.000Z", requestId: "must-not-run" }),
+    };
+    await expect(executeMultimodalVisualReview({ artifacts, reviewerId: "visual-review-service", rubricVersion: "rubric-v1", port })).rejects.toThrow(/refused unverified screenshot/);
   });
 
-  it("refuses multimodal reviews that hide the model identity", async () => {
+  it("refuses multimodal reviews that hide execution provenance", async () => {
     const artifacts = await evidenceArtifacts();
     const result = await judgeVisualEvidence({
       artifacts,
@@ -106,10 +138,11 @@ describe("NEXUS visual judge", () => {
         findings: [],
         evidenceArtifactIds: [artifacts[0]!.artifactId],
         reviewedAt: "2026-08-17T00:01:00.000Z",
+        modelIdentity: "opaque-string-only",
       },
     });
     expect(result.verdict).toBe("FAIL");
-    expect(result.findings).toContain("multimodal visual review must identify the model/provider configuration");
+    expect(result.findings).toContain("multimodal visual review must identify provider, model, configuration digest and provider request");
   });
 });
 
