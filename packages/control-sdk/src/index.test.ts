@@ -21,6 +21,21 @@ describe("fleet control plane", () => {
     expect(Object.isFrozen(first)).toBe(true);
   });
 
+  it("keeps idempotency tenant-wide across authorized principals", () => {
+    const control = new InMemoryFleetControlPlane();
+    const request = { tenantId: "tenant-a", projectId: "project-a", sourceRevision: revision, targetIds: ["edge-a"], idempotencyKey: "deploy-1" };
+    const first = control.createDeployment(operator, request, now);
+    const secondOperator: ControlPrincipal = {
+      principalId: "operator-b",
+      tenantId: "tenant-a",
+      permissions: ["fleet:deploy", "fleet:read"],
+    };
+    const retry = control.createDeployment(secondOperator, request, "2026-08-17T07:21:00.000Z");
+    expect(retry).toBe(first);
+    const audit = control.listAuditEvents(operator, "tenant-a");
+    expect(audit.filter((event) => event.action === "DEPLOYMENT_CREATED")).toHaveLength(1);
+  });
+
   it("rejects reuse of an idempotency key for a different payload", () => {
     const control = new InMemoryFleetControlPlane();
     control.createDeployment(operator, { tenantId: "tenant-a", projectId: "project-a", sourceRevision: revision, targetIds: ["edge-a"], idempotencyKey: "deploy-1" }, now);
