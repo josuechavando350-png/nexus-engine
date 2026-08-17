@@ -8,3 +8,4 @@ export * from "./originality";
 export * from "./premium-capabilities";
 export * from "./adaptive-luxury";
 export * from "./compiler";
+export * from "./content-readiness";
