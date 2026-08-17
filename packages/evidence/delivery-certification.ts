@@ -103,8 +103,13 @@ export function certifyDelivery(input: {
     }
   }
 
-  const capturePresent = bundle.records.some((record) => record.source === "CAPTURE" && record.integrity === "VERIFIED" && record.status === "MEASURED");
-  if (policy.requiredSources.includes("CAPTURE") && !capturePresent) findings.push("no verified measured CAPTURE evidence is present");
+  if (policy.requiredSources.includes("CAPTURE")) {
+    const capturePrefix = `capture:${input.sourceRevision}:`;
+    const revisionCaptures = bundle.records.filter((record) => record.source === "CAPTURE" && record.sourceId.startsWith(capturePrefix));
+    const verifiedRevisionCaptures = revisionCaptures.filter((record) => record.integrity === "VERIFIED" && record.status === "MEASURED");
+    if (!verifiedRevisionCaptures.length) findings.push(`no verified measured CAPTURE evidence is bound to ${input.sourceRevision}`);
+    if (revisionCaptures.some((record) => record.integrity !== "VERIFIED" || record.status !== "MEASURED")) findings.push("revision-bound CAPTURE evidence contains unverified or non-measured records");
+  }
 
   return Object.freeze({
     authority: "NEXUS_DELIVERY_CERTIFICATION",
