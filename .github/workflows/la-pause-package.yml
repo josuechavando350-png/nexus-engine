@@ -1,0 +1,53 @@
+name: LA PAUSE Vercel bundle
+
+on:
+  push:
+    branches: ["client/la-pause-experience"]
+    paths:
+      - ".github/workflows/la-pause-package.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Prepare deployable monorepo bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p bundle/apps bundle/packages
+          cp package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json eslint.config.mjs vitest.config.ts bundle/
+          cp -R apps/la-pause bundle/apps/la-pause
+          cp -R packages/core bundle/packages/core
+          cp -R packages/experience bundle/packages/experience
+          cp -R packages/config bundle/packages/config
+          cat > bundle/vercel.json <<'JSON'
+          {
+            "$schema": "https://openapi.vercel.sh/vercel.json",
+            "framework": "nextjs",
+            "installCommand": "pnpm install --frozen-lockfile",
+            "buildCommand": "pnpm --filter @nexus/la-pause build"
+          }
+          JSON
+          cat > bundle/VERCEL-README.txt <<'TXT'
+          LA PAUSE — Vercel bundle
+
+          Recommended Vercel project settings:
+          Root Directory: apps/la-pause
+          Framework Preset: Next.js
+          Install Command: pnpm install --frozen-lockfile
+          Build Command: pnpm build
+
+          If uploading this bundle as a repository/archive, keep the monorepo structure intact because apps/la-pause uses workspace packages @nexus/core and @nexus/experience.
+          TXT
+      - name: Upload LA PAUSE source bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: la-pause-vercel-source
+          path: bundle
+          if-no-files-found: error
+          retention-days: 30
