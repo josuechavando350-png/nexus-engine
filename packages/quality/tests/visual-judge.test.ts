@@ -84,6 +84,38 @@ describe("NEXUS visual judge", () => {
     expect(result.approved).toBe(true);
   });
 
+  it("fails a PASS review that omits any required screenshot from its evidence lineage", async () => {
+    const artifacts = await evidenceArtifacts();
+    const screenshots = artifacts.filter((artifact) => artifact.capability === "SCREENSHOT");
+    const review: VisualReview = {
+      reviewerType: "HUMAN",
+      reviewerId: "creative-director-1",
+      rubricVersion: "nexus-visual-rubric-v1",
+      verdict: "PASS",
+      findings: [],
+      evidenceArtifactIds: screenshots.slice(0, -1).map((artifact) => artifact.artifactId),
+      reviewedAt: "2026-08-17T00:01:00.000Z",
+    };
+    const result = await judgeVisualEvidence({ artifacts, review });
+    expect(result.integrityVerdict).toBe("PASS");
+    expect(result.reviewVerdict).toBe("FAIL");
+    expect(result.approved).toBe(false);
+    expect(result.findings.join(" ")).toMatch(/omitted required screenshots/);
+  });
+
+  it("rejects a custom visual policy that weakens the baseline capture matrix", async () => {
+    const artifacts = await evidenceArtifacts();
+    await expect(judgeVisualEvidence({
+      artifacts,
+      policy: {
+        requiredBrowsers: ["chromium"],
+        requiredViewports: ["mobile-390"],
+        requireDesignGenome: false,
+        allowedReviewerTypes: ["HUMAN"],
+      },
+    })).rejects.toThrow(/cannot remove baseline browser webkit|cannot remove baseline viewport|cannot disable baseline Design Genome/);
+  });
+
   it("executes a multimodal port over verified PNG bytes and seals provider provenance", async () => {
     const artifacts = await evidenceArtifacts();
     let observedImageCount = 0;
