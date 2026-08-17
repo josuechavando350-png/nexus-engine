@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { extname, resolve } from "node:path";
+import { resolve } from "node:path";
 
 export type ReadinessVerdict = "PASS" | "FAIL" | "NOT_TESTED";
 export type PhotoRights = "OWNED" | "LICENSED" | "CLIENT_SUPPLIED" | "PUBLIC_DOMAIN";
