@@ -110,6 +110,8 @@ export class InMemoryFleetControlPlane {
   private readonly idempotency = new Map<string, { requestDigest: string; deploymentId: string }>();
   private readonly auditEvents: FleetAuditEvent[] = [];
 
+  constructor(private readonly clock: () => string = () => new Date().toISOString()) {}
+
   createDeployment(principal: ControlPrincipal, request: FleetDeploymentRequest, now: string): FleetDeployment {
     const tenantId = nonEmpty(request.tenantId, "tenantId");
     const projectId = nonEmpty(request.projectId, "projectId");
@@ -152,7 +154,12 @@ export class InMemoryFleetControlPlane {
 
   getDeployment(principal: ControlPrincipal, tenantId: string, deploymentId: string): FleetDeployment {
     const scopedTenant = nonEmpty(tenantId, "tenantId");
-    requirePermission(principal, scopedTenant, "fleet:read");
+    try {
+      requirePermission(principal, scopedTenant, "fleet:read");
+    } catch (error) {
+      this.auditDeniedAtClock(principal, scopedTenant, error instanceof Error ? error.message : "authorization denied");
+      throw error;
+    }
     const deployment = this.requireDeployment(deploymentId);
     if (deployment.tenantId !== scopedTenant) throw new FleetControlError("NOT_FOUND", "deployment not found");
     return deployment;
@@ -178,7 +185,12 @@ export class InMemoryFleetControlPlane {
 
   listAuditEvents(principal: ControlPrincipal, tenantId: string): readonly FleetAuditEvent[] {
     const scopedTenant = nonEmpty(tenantId, "tenantId");
-    requirePermission(principal, scopedTenant, "fleet:read");
+    try {
+      requirePermission(principal, scopedTenant, "fleet:read");
+    } catch (error) {
+      this.auditDeniedAtClock(principal, scopedTenant, error instanceof Error ? error.message : "authorization denied");
+      throw error;
+    }
     return Object.freeze(this.auditEvents.filter((event) => event.tenantId === scopedTenant).map((event) => Object.freeze({ ...event })));
   }
 
@@ -204,6 +216,12 @@ export class InMemoryFleetControlPlane {
       detail,
     });
     this.auditEvents.push(event);
+  }
+
+  private auditDeniedAtClock(principal: ControlPrincipal, tenantId: string, detail: string): void {
+    const now = this.clock();
+    this.assertNow(now);
+    this.auditDenied(principal, tenantId, now, detail);
   }
 
   private auditDenied(principal: ControlPrincipal, tenantId: string, now: string, detail: string): void {
