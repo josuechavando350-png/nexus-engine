@@ -5,6 +5,7 @@ export * from "./memory";
 export * from "./direction";
 export * from "./gallery";
 export * from "./gallery/sources";
+export * from "./gallery/corpus";
 export * from "./reference-direction";
 export * from "./critic";
 export * from "./motion";
