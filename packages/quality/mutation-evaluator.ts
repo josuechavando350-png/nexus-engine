@@ -7,6 +7,22 @@ export interface MutationEvidencePolicy {
   minimumVisibleElements: number;
 }
 
+export type VisualMutationAttackId = "BRAND_SWAP" | "INDUSTRY_TRANSPLANT" | "GRAYSCALE";
+
+export interface MutationVisualReview {
+  attackId: VisualMutationAttackId;
+  verdict: Exclude<VerdictState, "NOT_TESTED">;
+  reviewerType: "HUMAN" | "MULTIMODAL_MODEL";
+  reviewerId: string;
+  rubricVersion: string;
+  reviewedAt: string;
+  evidenceDigests: readonly string[];
+  providerId?: string;
+  modelId?: string;
+  modelConfigurationDigest?: `sha256:${string}`;
+  providerRequestId?: string;
+}
+
 export interface MutationEvidenceEvaluation {
   authority: "NEXUS_MUTATION_EVIDENCE_EVALUATOR";
   verdicts: Readonly<Record<MutationAttackId, VerdictState>>;
@@ -19,9 +35,18 @@ const DEFAULT_POLICY: MutationEvidencePolicy = Object.freeze({
   minimumVisibleElements: 1,
 });
 
+function canonicalSha256(value: string): boolean {
+  return /^sha256:[a-f0-9]{64}$/.test(value);
+}
+
+function canonicalUtc(value: string): boolean {
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
+}
+
 function validateArtifact(artifact: BrowserMutationArtifact): string | undefined {
   if (!artifact.screenshotUri.trim() || !artifact.diagnosticsUri.trim()) return `${artifact.mutationId} evidence paths are missing`;
-  if (!artifact.screenshotDigest.startsWith("sha256:") || !artifact.diagnosticsDigest.startsWith("sha256:")) return `${artifact.mutationId} evidence digests are not SHA-256`;
+  if (!canonicalSha256(artifact.screenshotDigest) || !canonicalSha256(artifact.diagnosticsDigest)) return `${artifact.mutationId} evidence digests are not canonical SHA-256`;
   if (!Number.isInteger(artifact.screenshotByteLength) || artifact.screenshotByteLength <= 0) return `${artifact.mutationId} screenshot byte length is invalid`;
   const diagnostics = artifact.diagnostics;
   for (const [key, value] of Object.entries(diagnostics)) {
@@ -54,27 +79,70 @@ function resilienceVerdict(
   };
 }
 
+function validateVisualReview(
+  review: MutationVisualReview,
+  artifact: BrowserMutationArtifact,
+): string | undefined {
+  if (!review.reviewerId.trim() || !review.rubricVersion.trim()) return "visual review reviewerId and rubricVersion are required";
+  if (!canonicalUtc(review.reviewedAt)) return "visual review reviewedAt must be canonical UTC";
+  if (!["PASS", "FAIL", "WARNING"].includes(review.verdict)) return "visual review verdict is invalid";
+  if (!review.evidenceDigests.length || new Set(review.evidenceDigests).size !== review.evidenceDigests.length) return "visual review evidence digests must be non-empty and unique";
+  if (review.evidenceDigests.some((value) => !canonicalSha256(value))) return "visual review evidence contains a non-canonical digest";
+  const required = [artifact.screenshotDigest, artifact.diagnosticsDigest];
+  const supplied = new Set(review.evidenceDigests);
+  const missing = required.filter((digest) => !supplied.has(digest));
+  if (missing.length) return `visual review is not bound to current mutation evidence: missing ${missing.join(", ")}`;
+  if (review.reviewerType === "MULTIMODAL_MODEL") {
+    if (!review.providerId?.trim() || !review.modelId?.trim() || !review.providerRequestId?.trim() || !review.modelConfigurationDigest || !canonicalSha256(review.modelConfigurationDigest)) {
+      return "multimodal mutation review requires provider, model, configuration digest and provider request";
+    }
+  }
+  return undefined;
+}
+
 function identityMutationEvidence(
   artifact: BrowserMutationArtifact | undefined,
-  attackId: "BRAND_SWAP" | "INDUSTRY_TRANSPLANT",
+  attackId: VisualMutationAttackId,
   policy: MutationEvidencePolicy,
+  review?: MutationVisualReview,
+  requireReplacement = false,
 ): { verdict: VerdictState; findings: string[]; evidence: string[] } {
   if (!artifact) return { verdict: "NOT_TESTED", findings: [`${attackId} browser mutation evidence is missing`], evidence: [] };
-  const objective = resilienceVerdict(artifact, policy, (item) => item.diagnostics.replacementCount > 0 ? undefined : "explicit text replacement matched no rendered content");
+  const objective = resilienceVerdict(
+    artifact,
+    policy,
+    requireReplacement ? (item) => item.diagnostics.replacementCount > 0 ? undefined : "explicit text replacement matched no rendered content" : undefined,
+  );
   if (objective.verdict === "FAIL") return objective;
+  if (!review) {
+    return {
+      verdict: "NOT_TESTED",
+      findings: [requireReplacement
+        ? `${attackId} executed ${artifact.diagnostics.replacementCount} explicit rendered-text replacement(s); identity survival still requires a traceable visual review`
+        : `${attackId} browser evidence exists, but identity survival requires a traceable visual review`],
+      evidence: objective.evidence,
+    };
+  }
+  if (review.attackId !== attackId) {
+    return { verdict: "FAIL", findings: [`visual review attackId ${review.attackId} does not match ${attackId}`], evidence: objective.evidence };
+  }
+  const reviewProblem = validateVisualReview(review, artifact);
+  if (reviewProblem) return { verdict: "FAIL", findings: [reviewProblem], evidence: objective.evidence };
   return {
-    verdict: "NOT_TESTED",
-    findings: [`${attackId} executed ${artifact.diagnostics.replacementCount} explicit rendered-text replacement(s); identity survival still requires a traceable visual review`],
-    evidence: objective.evidence,
+    verdict: review.verdict,
+    findings: review.verdict === "PASS" ? [] : [`traceable visual review returned ${review.verdict}`],
+    evidence: [...objective.evidence, ...review.evidenceDigests],
   };
 }
 
 export function evaluateBrowserMutationEvidence(
   artifacts: readonly BrowserMutationArtifact[],
   policy: MutationEvidencePolicy = DEFAULT_POLICY,
+  visualReviews: readonly MutationVisualReview[] = [],
 ): MutationEvidenceEvaluation {
   if (!Number.isFinite(policy.maxHorizontalOverflowPx) || policy.maxHorizontalOverflowPx < 0) throw new Error("maxHorizontalOverflowPx must be finite and non-negative");
   if (!Number.isInteger(policy.minimumVisibleElements) || policy.minimumVisibleElements < 1) throw new Error("minimumVisibleElements must be a positive integer");
+  if (new Set(visualReviews.map((review) => review.attackId)).size !== visualReviews.length) throw new Error("only one visual review per mutation attack is allowed");
 
   const findings: string[] = [];
   const evidence: Partial<Record<MutationAttackId, readonly string[]>> = {};
@@ -88,12 +156,14 @@ export function evaluateBrowserMutationEvidence(
     GRAYSCALE: "NOT_TESTED",
   };
 
-  const brandSwap = identityMutationEvidence(byId(artifacts, "BRAND_SWAP"), "BRAND_SWAP", policy);
+  const reviewFor = (attackId: VisualMutationAttackId) => visualReviews.find((review) => review.attackId === attackId);
+
+  const brandSwap = identityMutationEvidence(byId(artifacts, "BRAND_SWAP"), "BRAND_SWAP", policy, reviewFor("BRAND_SWAP"), true);
   verdicts.BRAND_SWAP = brandSwap.verdict;
   evidence.BRAND_SWAP = brandSwap.evidence;
   findings.push(...brandSwap.findings.map((finding) => `BRAND_SWAP:${finding}`));
 
-  const industryTransplant = identityMutationEvidence(byId(artifacts, "INDUSTRY_TRANSPLANT"), "INDUSTRY_TRANSPLANT", policy);
+  const industryTransplant = identityMutationEvidence(byId(artifacts, "INDUSTRY_TRANSPLANT"), "INDUSTRY_TRANSPLANT", policy, reviewFor("INDUSTRY_TRANSPLANT"), true);
   verdicts.INDUSTRY_TRANSPLANT = industryTransplant.verdict;
   evidence.INDUSTRY_TRANSPLANT = industryTransplant.evidence;
   findings.push(...industryTransplant.findings.map((finding) => `INDUSTRY_TRANSPLANT:${finding}`));
@@ -123,19 +193,10 @@ export function evaluateBrowserMutationEvidence(
   evidence.MOTION_REMOVAL = motion.evidence;
   findings.push(...motion.findings.map((finding) => `MOTION_REMOVAL:${finding}`));
 
-  const grayscale = byId(artifacts, "GRAYSCALE");
-  if (grayscale) {
-    const malformed = validateArtifact(grayscale);
-    if (malformed) {
-      verdicts.GRAYSCALE = "FAIL";
-      findings.push(`GRAYSCALE:${malformed}`);
-    } else {
-      evidence.GRAYSCALE = [grayscale.screenshotDigest, grayscale.diagnosticsDigest];
-      findings.push("GRAYSCALE:browser evidence exists, but identity survival requires a traceable visual review");
-    }
-  } else {
-    findings.push("GRAYSCALE:browser evidence is missing");
-  }
+  const grayscale = identityMutationEvidence(byId(artifacts, "GRAYSCALE"), "GRAYSCALE", policy, reviewFor("GRAYSCALE"));
+  verdicts.GRAYSCALE = grayscale.verdict;
+  evidence.GRAYSCALE = grayscale.evidence;
+  findings.push(...grayscale.findings.map((finding) => `GRAYSCALE:${finding}`));
 
   return Object.freeze({
     authority: "NEXUS_MUTATION_EVIDENCE_EVALUATOR",
