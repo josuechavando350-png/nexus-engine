@@ -1,17 +1,18 @@
 import { describe, expect, it } from "vitest";
 import type { BrowserMutationArtifact, BrowserMutationId } from "@nexus/capture/mutation-runner";
-import { evaluateBrowserMutationEvidence } from "../mutation-evaluator";
+import { evaluateBrowserMutationEvidence, type MutationVisualReview } from "../mutation-evaluator";
 
 function artifact(id: BrowserMutationId, overrides: Partial<BrowserMutationArtifact["diagnostics"]> = {}): BrowserMutationArtifact {
+  const suffix = id.toLowerCase();
   return {
     mutationId: id,
     browser: "chromium",
     viewport: { width: id === "VIEWPORT_TORTURE_NARROW" ? 320 : id === "VIEWPORT_TORTURE_WIDE" ? 1920 : 390, height: 844 },
     screenshotUri: `/tmp/${id}.png`,
-    screenshotDigest: `sha256:${"a".repeat(64)}`,
+    screenshotDigest: `sha256:${suffix.padEnd(64, "a").slice(0, 64).replace(/[^a-f0-9]/g, "a")}`,
     screenshotByteLength: 128,
     diagnosticsUri: `/tmp/${id}.json`,
-    diagnosticsDigest: `sha256:${"b".repeat(64)}`,
+    diagnosticsDigest: `sha256:${suffix.padEnd(64, "b").slice(0, 64).replace(/[^a-f0-9]/g, "b")}`,
     diagnostics: {
       horizontalOverflowPx: 0,
       scrollHeightPx: 1200,
@@ -34,8 +35,20 @@ const objectiveArtifacts = (): BrowserMutationArtifact[] => [
   artifact("ASSET_DEGRADATION"),
 ];
 
+function review(attackId: MutationVisualReview["attackId"], target: BrowserMutationArtifact): MutationVisualReview {
+  return {
+    attackId,
+    verdict: "PASS",
+    reviewerType: "HUMAN",
+    reviewerId: "designer-a",
+    rubricVersion: "mutation-rubric-v1",
+    reviewedAt: "2026-08-17T08:00:00.000Z",
+    evidenceDigests: [target.screenshotDigest, target.diagnosticsDigest],
+  };
+}
+
 describe("browser mutation evidence evaluator", () => {
-  it("passes objective layout-resilience attacks but keeps visual identity attacks NOT_TESTED", () => {
+  it("passes objective layout-resilience attacks but keeps visual identity attacks NOT_TESTED without review", () => {
     const report = evaluateBrowserMutationEvidence(objectiveArtifacts());
     expect(report.verdicts.CONTENT_STRESS).toBe("PASS");
     expect(report.verdicts.ASSET_DEGRADATION).toBe("PASS");
@@ -47,13 +60,36 @@ describe("browser mutation evidence evaluator", () => {
     expect(report.findings.some((finding) => finding.includes("identity survival requires"))).toBe(true);
   });
 
-  it("binds explicit brand and industry mutation artifacts without pretending they visually passed", () => {
-    const report = evaluateBrowserMutationEvidence([...objectiveArtifacts(), artifact("BRAND_SWAP"), artifact("INDUSTRY_TRANSPLANT")]);
-    expect(report.verdicts.BRAND_SWAP).toBe("NOT_TESTED");
-    expect(report.verdicts.INDUSTRY_TRANSPLANT).toBe("NOT_TESTED");
-    expect(report.evidence.BRAND_SWAP).toHaveLength(2);
-    expect(report.evidence.INDUSTRY_TRANSPLANT).toHaveLength(2);
-    expect(report.findings.some((finding) => finding.includes("executed 2 explicit"))).toBe(true);
+  it("can PASS brand swap, industry transplant and grayscale only with reviews bound to exact mutation digests", () => {
+    const brand = artifact("BRAND_SWAP");
+    const industry = artifact("INDUSTRY_TRANSPLANT");
+    const grayscale = artifact("GRAYSCALE");
+    const artifacts = [...objectiveArtifacts().filter((item) => item.mutationId !== "GRAYSCALE"), grayscale, brand, industry];
+    const report = evaluateBrowserMutationEvidence(artifacts, { maxHorizontalOverflowPx: 1, minimumVisibleElements: 1 }, [
+      review("BRAND_SWAP", brand),
+      review("INDUSTRY_TRANSPLANT", industry),
+      review("GRAYSCALE", grayscale),
+    ]);
+    expect(report.verdicts.BRAND_SWAP).toBe("PASS");
+    expect(report.verdicts.INDUSTRY_TRANSPLANT).toBe("PASS");
+    expect(report.verdicts.GRAYSCALE).toBe("PASS");
+    expect(report.evidence.BRAND_SWAP).toContain(brand.screenshotDigest);
+  });
+
+  it("rejects stale visual review evidence instead of approving a newer mutation", () => {
+    const brand = artifact("BRAND_SWAP");
+    const staleReview = { ...review("BRAND_SWAP", brand), evidenceDigests: [`sha256:${"c".repeat(64)}`, brand.diagnosticsDigest] };
+    const report = evaluateBrowserMutationEvidence([...objectiveArtifacts(), brand], { maxHorizontalOverflowPx: 1, minimumVisibleElements: 1 }, [staleReview]);
+    expect(report.verdicts.BRAND_SWAP).toBe("FAIL");
+    expect(report.findings.some((finding) => finding.includes("not bound to current mutation evidence"))).toBe(true);
+  });
+
+  it("requires multimodal provenance for model-based mutation reviews", () => {
+    const brand = artifact("BRAND_SWAP");
+    const modelReview: MutationVisualReview = { ...review("BRAND_SWAP", brand), reviewerType: "MULTIMODAL_MODEL" };
+    const report = evaluateBrowserMutationEvidence([...objectiveArtifacts(), brand], { maxHorizontalOverflowPx: 1, minimumVisibleElements: 1 }, [modelReview]);
+    expect(report.verdicts.BRAND_SWAP).toBe("FAIL");
+    expect(report.findings.some((finding) => finding.includes("requires provider, model"))).toBe(true);
   });
 
   it("fails an identity mutation artifact that claims no replacement happened", () => {
