@@ -119,9 +119,10 @@ export async function runQualityCycle(
       const triggeringEvidenceIds = [...evaluation.evidenceIds];
       assertUniqueIds(triggeringEvidenceIds, "repair triggering");
       if (!triggeringEvidenceIds.length) throw new Error("repair requires evidence from the triggering evaluation");
-      for (const evidenceId of triggeringEvidenceIds) {
-        if (!beforeSnapshot.evidence.some((item) => item.evidenceId === evidenceId)) {
-          throw new Error(`repair trigger references evidence outside the current snapshot: ${evidenceId}`);
+      const triggeringSet = new Set(triggeringEvidenceIds);
+      for (const item of beforeSnapshot.evidence) {
+        if (!triggeringSet.has(item.evidenceId)) {
+          throw new Error(`repair trigger omitted current snapshot evidence: ${item.evidenceId}`);
         }
       }
 
