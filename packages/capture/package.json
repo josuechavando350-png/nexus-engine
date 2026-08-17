@@ -1,17 +1,18 @@
 {
   "name": "@nexus/capture",
-  "version": "9.2.0",
+  "version": "9.3.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./index.ts",
     "./playwright": "./playwright-adapter.ts",
-    "./design-genome": "./design-genome.ts"
+    "./design-genome": "./design-genome.ts",
+    "./mutation-runner": "./mutation-runner.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test:browser": "vitest run tests/playwright-adapter.test.ts --testTimeout=120000",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/capture/index.js && test -f dist/capture/index.d.ts && test -f dist/capture/playwright-adapter.js && test -f dist/capture/playwright-adapter.d.ts && test -f dist/capture/design-genome.js && test -f dist/capture/design-genome.d.ts"
+    "test:browser": "vitest run tests/playwright-adapter.test.ts tests/mutation-runner.test.ts --testTimeout=120000",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/capture/index.js && test -f dist/capture/index.d.ts && test -f dist/capture/playwright-adapter.js && test -f dist/capture/playwright-adapter.d.ts && test -f dist/capture/design-genome.js && test -f dist/capture/design-genome.d.ts && test -f dist/capture/mutation-runner.js && test -f dist/capture/mutation-runner.d.ts"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.2",
