@@ -131,7 +131,7 @@ function identityMutationEvidence(
   return {
     verdict: review.verdict,
     findings: review.verdict === "PASS" ? [] : [`traceable visual review returned ${review.verdict}`],
-    evidence: [...objective.evidence, ...review.evidenceDigests],
+    evidence: [...new Set([...objective.evidence, ...review.evidenceDigests])],
   };
 }
 
@@ -185,7 +185,7 @@ export function evaluateBrowserMutationEvidence(
     : narrow.verdict === "NOT_TESTED" || wide.verdict === "NOT_TESTED"
       ? "NOT_TESTED"
       : "PASS";
-  evidence.VIEWPORT_TORTURE = [...narrow.evidence, ...wide.evidence];
+  evidence.VIEWPORT_TORTURE = [...new Set([...narrow.evidence, ...wide.evidence])];
   findings.push(...narrow.findings.map((finding) => `VIEWPORT_TORTURE_NARROW:${finding}`), ...wide.findings.map((finding) => `VIEWPORT_TORTURE_WIDE:${finding}`));
 
   const motion = resilienceVerdict(byId(artifacts, "MOTION_REMOVAL"), policy, (artifact) => artifact.diagnostics.animatedElementCount === 0 ? undefined : `animated element count remained ${artifact.diagnostics.animatedElementCount}`);
