@@ -22,6 +22,21 @@ describe("business telemetry", () => {
     expect(() => createBusinessEvent({ ...base, eventName: "EXPERIENCE_VIEW", consent: { analyticsAllowed: false, basis: "CONSENT" } })).toThrow(/analytics permission/);
   });
 
+  it("rejects malformed runtime consent instead of trusting TypeScript-only shapes", () => {
+    const truthyString = {
+      ...base,
+      eventName: "EXPERIENCE_VIEW",
+      consent: { analyticsAllowed: "yes", basis: "CONSENT" },
+    } as unknown as Parameters<typeof createBusinessEvent>[0];
+    const invalidBasis = {
+      ...base,
+      eventName: "EXPERIENCE_VIEW",
+      consent: { analyticsAllowed: true, basis: "UNKNOWN" },
+    } as unknown as Parameters<typeof createBusinessEvent>[0];
+    expect(() => createBusinessEvent(truthyString)).toThrow(/analytics permission/);
+    expect(() => createBusinessEvent(invalidBasis)).toThrow(/consent basis is invalid/);
+  });
+
   it("rejects common PII dimensions", () => {
     expect(() => createBusinessEvent({ ...base, eventName: "LEAD_SUBMITTED", dimensions: { email: "person@example.com" } })).toThrow(/prohibited PII/);
   });
