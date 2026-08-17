@@ -73,6 +73,16 @@ function evaluateTemplateFingerprint(
       exact.flatMap((report) => report.dimensions.filter((dimension) => dimension.score === 1).map((dimension) => `${report.right}:${dimension.dimension}:exact`)),
     );
   }
+
+  const warnings = reports.flatMap((report) => report.warnings.map((warning) => `${report.right}:${warning}`));
+  if (warnings.length) {
+    return frozenAttack(
+      "WARNING",
+      warnings.map((warning) => `historical structural similarity warning: ${warning}`),
+      reports.map((report) => `${report.right}:compared:${report.dimensions.length}-dimensions`),
+    );
+  }
+
   return frozenAttack(
     "PASS",
     [],
