@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { runQualityCycle, type CycleEvidence, type QualityCycleExecutor } from "../quality-cycle";
 
-function evidence(stage: CycleEvidence["stage"], revision: string): CycleEvidence {
-  return { evidenceId: `${stage.toLowerCase()}:${revision}`, stage, subjectRevision: revision, producedAt: "2026-08-17T04:00:00.000Z" };
+function evidence(stage: CycleEvidence["stage"], revision: string, evidenceId = `${stage.toLowerCase()}:${revision}`): CycleEvidence {
+  return { evidenceId, stage, subjectRevision: revision, producedAt: "2026-08-17T04:00:00.000Z" };
 }
 
 describe("runQualityCycle", () => {
-  it("forces build -> capture -> judge again after every revision-changing repair", async () => {
+  it("forces build -> capture -> judge again after every revision-changing repair and records lineage", async () => {
     let revision = "r1";
     const calls: string[] = [];
     const executor: QualityCycleExecutor = {
@@ -37,6 +37,14 @@ describe("runQualityCycle", () => {
     expect(result.snapshots.map((snapshot) => snapshot.revision)).toEqual(["r1", "r2"]);
     expect(calls).toEqual(["build:r1", "capture:r1", "judge:r1", "repair:1", "build:r2", "capture:r2", "judge:r2"]);
     expect(result.snapshots.every((snapshot) => new Set(snapshot.evidence.map((item) => item.stage)).size === 3)).toBe(true);
+    expect(result.repairLineage).toEqual([{
+      attempt: 1,
+      fromRevision: "r1",
+      toRevision: "r2",
+      triggeringEvidenceIds: ["build:r1", "capture:r1", "judge:r1"],
+      repairEvidenceIds: ["patch:r2"],
+      changedFiles: ["src/page.tsx"],
+    }]);
   });
 
   it("rejects stale capture evidence instead of judging the repaired revision with old artifacts", async () => {
@@ -76,5 +84,68 @@ describe("runQualityCycle", () => {
       async repair() { return { summary: "No-op", changedFiles: ["src/page.tsx"], evidenceIds: ["patch:no-op"] }; },
     };
     await expect(runQualityCycle(executor)).rejects.toThrow(/repair must advance the subject revision/);
+  });
+
+  it("rejects a repair with no change evidence instead of allowing an unauditable self-correction", async () => {
+    let revision = "r1";
+    const executor: QualityCycleExecutor = {
+      async currentRevision() { return revision; },
+      async build(current) { return evidence("BUILD", current); },
+      async capture(current) { return evidence("CAPTURE", current); },
+      async judge(current, fresh) {
+        const judge = evidence("JUDGE", current);
+        return { evidence: judge, evaluation: { verdict: "FAIL", findings: ["hierarchy"], evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId] } };
+      },
+      async repair() {
+        revision = "r2";
+        return { summary: "Unproven change", changedFiles: ["src/page.tsx"], evidenceIds: [] };
+      },
+    };
+    await expect(runQualityCycle(executor)).rejects.toThrow(/repair must emit evidence/);
+  });
+
+  it("rejects reused evidence identifiers across rebuilt revisions", async () => {
+    let revision = "r1";
+    const executor: QualityCycleExecutor = {
+      async currentRevision() { return revision; },
+      async build(current) { return evidence("BUILD", current, "build:constant"); },
+      async capture(current) { return evidence("CAPTURE", current, `capture:${current}`); },
+      async judge(current, fresh) {
+        const judge = evidence("JUDGE", current, `judge:${current}`);
+        return {
+          evidence: judge,
+          evaluation: {
+            verdict: current === "r2" ? "PASS" : "FAIL",
+            findings: current === "r2" ? [] : ["hierarchy"],
+            evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId],
+          },
+        };
+      },
+      async repair() {
+        revision = "r2";
+        return { summary: "Fix hierarchy", changedFiles: ["src/page.tsx"], evidenceIds: ["patch:r2"] };
+      },
+    };
+    await expect(runQualityCycle(executor)).rejects.toThrow(/refused reused evidenceId build:constant/);
+  });
+
+  it("rejects rollback to a revision that has already been judged", async () => {
+    let revision = "r1";
+    let repairCount = 0;
+    const executor: QualityCycleExecutor = {
+      async currentRevision() { return revision; },
+      async build(current) { return evidence("BUILD", current); },
+      async capture(current) { return evidence("CAPTURE", current); },
+      async judge(current, fresh) {
+        const judge = evidence("JUDGE", current);
+        return { evidence: judge, evaluation: { verdict: "FAIL", findings: ["still weak"], evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId] } };
+      },
+      async repair() {
+        repairCount += 1;
+        revision = repairCount === 1 ? "r2" : "r1";
+        return { summary: "Change", changedFiles: ["src/page.tsx"], evidenceIds: [`patch:${repairCount}`] };
+      },
+    };
+    await expect(runQualityCycle(executor)).rejects.toThrow(/cannot roll back to previously evaluated revision r1/);
   });
 });
