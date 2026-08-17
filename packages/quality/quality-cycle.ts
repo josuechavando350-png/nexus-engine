@@ -8,10 +8,16 @@ export interface CycleEvidence {
   producedAt: string;
 }
 
+export interface JudgeCriterionIdentity {
+  rubricVersion: string;
+  rubricDigest: string;
+}
+
 export interface CycleSnapshot {
   revision: string;
   evaluation: QualityEvaluation;
   evidence: readonly CycleEvidence[];
+  judgeCriterion: JudgeCriterionIdentity;
 }
 
 export interface CycleRepairLineage {
@@ -26,6 +32,8 @@ export interface CycleRepairLineage {
 export interface JudgeCycleResult {
   evaluation: QualityEvaluation;
   evidence: CycleEvidence;
+  rubricVersion: string;
+  rubricDigest: string;
 }
 
 export interface QualityCycleExecutor {
@@ -41,6 +49,8 @@ export interface QualityCycleResult extends RepairLoopResult {
   repairLineage: readonly CycleRepairLineage[];
 }
 
+const SHA256_HEX = /^[a-f0-9]{64}$/;
+
 function canonicalUtc(value: string): boolean {
   const parsed = new Date(value);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
@@ -53,6 +63,12 @@ function validateEvidence(evidence: CycleEvidence, stage: CycleEvidence["stage"]
   if (!canonicalUtc(evidence.producedAt)) throw new Error(`${stage} producedAt must be a canonical UTC timestamp`);
 }
 
+function validateJudgeCriterion(judged: JudgeCycleResult): JudgeCriterionIdentity {
+  if (!judged.rubricVersion.trim()) throw new Error("judge rubricVersion is required");
+  if (!SHA256_HEX.test(judged.rubricDigest)) throw new Error("judge rubricDigest must be a lowercase SHA-256 hex digest");
+  return Object.freeze({ rubricVersion: judged.rubricVersion, rubricDigest: judged.rubricDigest });
+}
+
 function assertUniqueIds(ids: readonly string[], label: string): void {
   if (new Set(ids).size !== ids.length) throw new Error(`${label} evidenceIds must be unique`);
 }
@@ -61,6 +77,7 @@ async function evaluateFresh(
   executor: QualityCycleExecutor,
   snapshots: CycleSnapshot[],
   usedEvidenceIds: Set<string>,
+  expectedCriterion: { current?: JudgeCriterionIdentity },
 ): Promise<QualityEvaluation> {
   const revision = await executor.currentRevision();
   if (!revision.trim()) throw new Error("quality cycle revision is required");
@@ -72,6 +89,17 @@ async function evaluateFresh(
   const preJudgeEvidence = Object.freeze([build, capture]);
   const judged = await executor.judge(revision, preJudgeEvidence);
   validateEvidence(judged.evidence, "JUDGE", revision);
+  const judgeCriterion = validateJudgeCriterion(judged);
+
+  if (expectedCriterion.current) {
+    if (expectedCriterion.current.rubricVersion !== judgeCriterion.rubricVersion || expectedCriterion.current.rubricDigest !== judgeCriterion.rubricDigest) {
+      throw new Error(
+        `quality cycle refused judge rubric drift: expected ${expectedCriterion.current.rubricVersion}/${expectedCriterion.current.rubricDigest}, received ${judgeCriterion.rubricVersion}/${judgeCriterion.rubricDigest}`,
+      );
+    }
+  } else {
+    expectedCriterion.current = judgeCriterion;
+  }
 
   const snapshotEvidence = [build, capture, judged.evidence] as const;
   assertUniqueIds(snapshotEvidence.map((item) => item.evidenceId), "build/capture/judge");
@@ -92,7 +120,12 @@ async function evaluateFresh(
     ...judged.evaluation,
     evidenceIds: Object.freeze([...judged.evaluation.evidenceIds]),
   });
-  snapshots.push(Object.freeze({ revision, evaluation: finalEvaluation, evidence: Object.freeze([...snapshotEvidence]) }));
+  snapshots.push(Object.freeze({
+    revision,
+    evaluation: finalEvaluation,
+    evidence: Object.freeze([...snapshotEvidence]),
+    judgeCriterion,
+  }));
   return finalEvaluation;
 }
 
@@ -104,10 +137,11 @@ export async function runQualityCycle(
   const repairLineage: CycleRepairLineage[] = [];
   const usedEvidenceIds = new Set<string>();
   const seenRevisions = new Set<string>();
+  const expectedCriterion: { current?: JudgeCriterionIdentity } = {};
 
   const driver: RepairDriver = {
     evaluate: async () => {
-      const evaluation = await evaluateFresh(executor, snapshots, usedEvidenceIds);
+      const evaluation = await evaluateFresh(executor, snapshots, usedEvidenceIds, expectedCriterion);
       const revision = snapshots.at(-1)!.revision;
       if (seenRevisions.has(revision)) throw new Error(`quality cycle refused previously evaluated revision ${revision}`);
       seenRevisions.add(revision);
