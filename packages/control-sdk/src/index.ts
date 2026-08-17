@@ -128,7 +128,7 @@ export class InMemoryFleetControlPlane {
 
     const canonicalRequest = { tenantId, projectId, sourceRevision, targetIds };
     const requestDigest = hash("request", canonicalRequest);
-    const idempotencyScope = `${tenantId}\u0000${principal.principalId}\u0000${idempotencyKey}`;
+    const idempotencyScope = `${tenantId}\u0000${idempotencyKey}`;
     const existing = this.idempotency.get(idempotencyScope);
     if (existing) {
       if (existing.requestDigest !== requestDigest) throw new FleetControlError("IDEMPOTENCY_CONFLICT", "idempotency key was already used for a different deployment request");
