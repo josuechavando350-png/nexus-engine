@@ -59,11 +59,16 @@ export interface VisualJudgeResult {
   verifiedArtifactIds: readonly string[];
 }
 
+const BASELINE_REQUIRED_BROWSERS = Object.freeze(["chromium", "webkit"] as const);
+const BASELINE_REQUIRED_VIEWPORTS = Object.freeze(["mobile-390", "tablet-768", "desktop-1440"] as const);
+const VALID_REVIEWER_TYPES = Object.freeze(["HUMAN", "MULTIMODAL_MODEL"] as const);
+const VALID_REVIEW_VERDICTS = Object.freeze(["PASS", "FAIL", "WARNING"] as const);
+
 const DEFAULT_POLICY: VisualJudgePolicy = Object.freeze({
-  requiredBrowsers: Object.freeze(["chromium", "webkit"]),
-  requiredViewports: Object.freeze(["mobile-390", "tablet-768", "desktop-1440"]),
+  requiredBrowsers: BASELINE_REQUIRED_BROWSERS,
+  requiredViewports: BASELINE_REQUIRED_VIEWPORTS,
   requireDesignGenome: true,
-  allowedReviewerTypes: Object.freeze(["HUMAN", "MULTIMODAL_MODEL"] as const),
+  allowedReviewerTypes: VALID_REVIEWER_TYPES,
 });
 
 function key(browser: string, viewport: string): string {
@@ -81,6 +86,30 @@ function canonicalSha256(value: string): value is `sha256:${string}` {
 
 function sha256(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+}
+
+function assertVisualPolicy(policy: VisualJudgePolicy): void {
+  if (!policy.requiredBrowsers.length || !policy.requiredViewports.length) throw new Error("visual judge browser/viewport policy cannot be empty");
+  if (!policy.allowedReviewerTypes.length) throw new Error("visual judge reviewer policy cannot be empty");
+  if (policy.requiredBrowsers.some((browser) => !browser.trim()) || new Set(policy.requiredBrowsers.map((browser) => browser.trim().toLowerCase())).size !== policy.requiredBrowsers.length) {
+    throw new Error("visual judge requiredBrowsers must be unique non-empty values");
+  }
+  if (policy.requiredViewports.some((viewport) => !viewport.trim()) || new Set(policy.requiredViewports.map((viewport) => viewport.trim().toLowerCase())).size !== policy.requiredViewports.length) {
+    throw new Error("visual judge requiredViewports must be unique non-empty values");
+  }
+  if (new Set(policy.allowedReviewerTypes).size !== policy.allowedReviewerTypes.length || policy.allowedReviewerTypes.some((type) => !VALID_REVIEWER_TYPES.includes(type))) {
+    throw new Error("visual judge allowedReviewerTypes contains invalid or duplicate values");
+  }
+
+  const browsers = new Set(policy.requiredBrowsers.map((browser) => browser.trim().toLowerCase()));
+  for (const browser of BASELINE_REQUIRED_BROWSERS) {
+    if (!browsers.has(browser)) throw new Error(`visual judge policy cannot remove baseline browser ${browser}`);
+  }
+  const viewports = new Set(policy.requiredViewports.map((viewport) => viewport.trim().toLowerCase()));
+  for (const viewport of BASELINE_REQUIRED_VIEWPORTS) {
+    if (!viewports.has(viewport)) throw new Error(`visual judge policy cannot remove baseline viewport ${viewport}`);
+  }
+  if (!policy.requireDesignGenome) throw new Error("visual judge policy cannot disable baseline Design Genome evidence");
 }
 
 async function verifyArtifact(artifact: CaptureArtifact): Promise<string | undefined> {
@@ -126,7 +155,7 @@ export async function executeMultimodalVisualReview(input: {
   }
 
   const outcome = await input.port.review({ rubricVersion: input.rubricVersion, images: Object.freeze(images) });
-  if (!(["PASS", "FAIL", "WARNING"] as const).includes(outcome.verdict)) throw new Error("multimodal provider returned an invalid verdict");
+  if (!VALID_REVIEW_VERDICTS.includes(outcome.verdict)) throw new Error("multimodal provider returned an invalid verdict");
   if (!canonicalTimestamp(outcome.reviewedAt)) throw new Error("multimodal provider reviewedAt must be canonical UTC");
   if (!outcome.requestId.trim()) throw new Error("multimodal provider requestId is required");
   if (outcome.findings.some((finding) => !finding.trim())) throw new Error("multimodal provider findings cannot be empty strings");
@@ -153,13 +182,13 @@ export async function judgeVisualEvidence(input: {
   policy?: VisualJudgePolicy;
 }): Promise<VisualJudgeResult> {
   const policy = input.policy ?? DEFAULT_POLICY;
-  if (!policy.requiredBrowsers.length || !policy.requiredViewports.length) throw new Error("visual judge browser/viewport policy cannot be empty");
-  if (!policy.allowedReviewerTypes.length) throw new Error("visual judge reviewer policy cannot be empty");
+  assertVisualPolicy(policy);
 
   const findings: string[] = [];
   const verifiedArtifactIds: string[] = [];
   const screenshotMatrix = new Set<string>();
   const genomeMatrix = new Set<string>();
+  const screenshotIdsByMatrix = new Map<string, string[]>();
   const relevant = input.artifacts.filter((artifact) => artifact.capability === "SCREENSHOT" || artifact.capability === "DESIGN_GENOME");
 
   for (const artifact of relevant) {
@@ -175,8 +204,14 @@ export async function judgeVisualEvidence(input: {
       findings.push(`artifact ${artifact.artifactId} is missing browser/viewport metadata`);
       continue;
     }
-    if (artifact.capability === "SCREENSHOT") screenshotMatrix.add(key(browser, viewport));
-    if (artifact.capability === "DESIGN_GENOME") genomeMatrix.add(key(browser, viewport));
+    const matrixKey = key(browser, viewport);
+    if (artifact.capability === "SCREENSHOT") {
+      screenshotMatrix.add(matrixKey);
+      const ids = screenshotIdsByMatrix.get(matrixKey) ?? [];
+      ids.push(artifact.artifactId);
+      screenshotIdsByMatrix.set(matrixKey, ids);
+    }
+    if (artifact.capability === "DESIGN_GENOME") genomeMatrix.add(matrixKey);
   }
 
   const required = policy.requiredBrowsers.flatMap((browser) => policy.requiredViewports.map((viewport) => key(browser, viewport)));
@@ -193,6 +228,12 @@ export async function judgeVisualEvidence(input: {
     if (!review.reviewerId.trim() || !review.rubricVersion.trim() || !canonicalTimestamp(review.reviewedAt)) {
       findings.push("visual review metadata is invalid or incomplete");
       reviewVerdict = "FAIL";
+    } else if (!VALID_REVIEWER_TYPES.includes(review.reviewerType)) {
+      findings.push(`visual reviewer type ${String(review.reviewerType)} is invalid`);
+      reviewVerdict = "FAIL";
+    } else if (!VALID_REVIEW_VERDICTS.includes(review.verdict)) {
+      findings.push(`visual review verdict ${String(review.verdict)} is invalid`);
+      reviewVerdict = "FAIL";
     } else if (!policy.allowedReviewerTypes.includes(review.reviewerType)) {
       findings.push(`visual reviewer type ${review.reviewerType} is not allowed by policy`);
       reviewVerdict = "FAIL";
@@ -208,9 +249,16 @@ export async function judgeVisualEvidence(input: {
       reviewVerdict = "FAIL";
     } else {
       const verified = new Set(verifiedArtifactIds);
-      const missingEvidence = review.evidenceArtifactIds.filter((artifactId) => !verified.has(artifactId));
-      if (!review.evidenceArtifactIds.length || missingEvidence.length) {
-        findings.push(missingEvidence.length ? `visual review references unverified evidence: ${missingEvidence.join(", ")}` : "visual review must reference persisted screenshot/genome evidence");
+      const reviewIds = review.evidenceArtifactIds;
+      const uniqueReviewIds = new Set(reviewIds);
+      const missingEvidence = reviewIds.filter((artifactId) => !verified.has(artifactId));
+      const requiredScreenshotIds = required.flatMap((requiredKey) => screenshotIdsByMatrix.get(requiredKey) ?? []);
+      const omittedRequiredScreenshots = requiredScreenshotIds.filter((artifactId) => !uniqueReviewIds.has(artifactId));
+      if (!reviewIds.length || missingEvidence.length || uniqueReviewIds.size !== reviewIds.length || omittedRequiredScreenshots.length) {
+        if (!reviewIds.length) findings.push("visual review must reference persisted screenshot evidence");
+        if (missingEvidence.length) findings.push(`visual review references unverified evidence: ${missingEvidence.join(", ")}`);
+        if (uniqueReviewIds.size !== reviewIds.length) findings.push("visual review evidenceArtifactIds cannot contain duplicates");
+        if (omittedRequiredScreenshots.length) findings.push(`visual review omitted required screenshots: ${omittedRequiredScreenshots.join(", ")}`);
         reviewVerdict = "FAIL";
       } else {
         reviewVerdict = review.verdict;
