@@ -64,7 +64,23 @@ describe("criterion memory", () => {
     expect(report.featureMeans).toEqual({});
   });
 
-  it("derives priors only from approved observations after the threshold", () => {
+  it("does not declare learned priors ready when observed history has too few clean approvals", () => {
+    const observations = Array.from({ length: 20 }, (_, index) => ({
+      tenantId: "tenant-a",
+      projectId: `project-${index}`,
+      revision: SHA,
+      dnaFeatures: { asymmetry: 0.6 },
+      approvedWithoutCorrection: index < 3,
+      businessOutcomes: [],
+    }));
+    const report = learnEmitterPriors({ observations, tenantId: "tenant-a", minimumProjects: 20, minimumApprovedProjects: 10 });
+    expect(report.status).toBe("NOT_ENOUGH_HISTORY");
+    expect(report.observedProjects).toBe(20);
+    expect(report.approvedWithoutCorrectionProjects).toBe(3);
+    expect(report.featureMeans).toEqual({});
+  });
+
+  it("derives priors only from approved observations after both thresholds", () => {
     const observations = Array.from({ length: 20 }, (_, index) => ({
       tenantId: "tenant-a",
       projectId: `project-${index}`,
@@ -73,8 +89,9 @@ describe("criterion memory", () => {
       approvedWithoutCorrection: index !== 0,
       businessOutcomes: [{ metric: "conversion_rate", value: index / 100, observedAt: "2026-08-17T07:00:00.000Z", source: "production-import" }],
     }));
-    const report = learnEmitterPriors({ observations, tenantId: "tenant-a", minimumProjects: 20 });
+    const report = learnEmitterPriors({ observations, tenantId: "tenant-a", minimumProjects: 20, minimumApprovedProjects: 10 });
     expect(report.status).toBe("READY");
+    expect(report.minimumApprovedProjects).toBe(10);
     expect(report.observedProjects).toBe(20);
     expect(report.approvedWithoutCorrectionProjects).toBe(19);
     expect(report.featureMeans.asymmetry).toBeGreaterThan(0.5);
