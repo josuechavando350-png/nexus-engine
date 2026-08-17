@@ -22,7 +22,7 @@ const environment: EnvironmentDescriptor = {
 const run = createRun({ scope: workload.scope, startedAt: "2026-08-17T07:10:00.000Z", workload, environment });
 const gates = ["creative", "visual", "red-team", "repair", "accessibility", "browser", "build"] as const;
 
-function signedEvidence(options: { omittedGate?: typeof gates[number]; sourceRevision?: string } = {}) {
+function signedEvidence(options: { omittedGate?: typeof gates[number]; sourceRevision?: string; captureRevision?: string } = {}) {
   const quality = createEvidenceRecord({
     runId: run.runId,
     scope: run.scope,
@@ -37,7 +37,7 @@ function signedEvidence(options: { omittedGate?: typeof gates[number]; sourceRev
     runId: run.runId,
     scope: run.scope,
     source: "CAPTURE",
-    sourceId: "browser-matrix",
+    sourceId: `capture:${options.captureRevision ?? revision}:browser-matrix`,
     status: "MEASURED",
     samples: [{ name: "capture_artifacts", unit: "count", value: 12 }],
     capturedAt: "2026-08-17T07:11:00.000Z",
@@ -68,6 +68,13 @@ describe("delivery certification", () => {
     const result = certifyDelivery({ signedEvidence: signed, publicKey, sourceRevision: revision, tenantId: "tenant-a", projectId: "project-a" });
     expect(result.certified).toBe(false);
     expect(result.findings.join(" ")).toMatch(/exactly one verified QUALITY record/);
+  });
+
+  it("does not accept stale capture evidence from another source revision", () => {
+    const { signed, publicKey } = signedEvidence({ captureRevision: "abcdefabcdefabcdefabcdefabcdefabcdefabcd" });
+    const result = certifyDelivery({ signedEvidence: signed, publicKey, sourceRevision: revision, tenantId: "tenant-a", projectId: "project-a" });
+    expect(result.certified).toBe(false);
+    expect(result.findings.join(" ")).toMatch(/CAPTURE evidence is bound/);
   });
 
   it("rejects cross-project certification even with a valid signature", () => {
