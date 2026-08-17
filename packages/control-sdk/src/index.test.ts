@@ -42,17 +42,39 @@ describe("fleet control plane", () => {
     expect(() => control.createDeployment(operator, { tenantId: "tenant-a", projectId: "project-b", sourceRevision: revision, targetIds: ["edge-a"], idempotencyKey: "deploy-1" }, now)).toThrowError(FleetControlError);
   });
 
-  it("fails closed across tenant boundaries without revealing deployment existence", () => {
+  it("fails closed across tenant boundaries without revealing deployment existence and audits the probe", () => {
     const control = new InMemoryFleetControlPlane(() => "2026-08-17T07:20:30.000Z");
     const deployment = control.createDeployment(operator, { tenantId: "tenant-a", projectId: "project-a", sourceRevision: revision, targetIds: ["edge-a"], idempotencyKey: "deploy-1" }, now);
     const otherTenant: ControlPrincipal = { principalId: "operator-b", tenantId: "tenant-b", permissions: ["fleet:read", "fleet:rollout"] };
     expect(() => control.getDeployment(otherTenant, "tenant-a", deployment.deploymentId)).toThrow(/not authorized/);
     expect(() => control.getDeployment(otherTenant, "tenant-b", deployment.deploymentId)).toThrow(/not found/);
-    const audit = control.listAuditEvents(operator, "tenant-a");
-    expect(audit.at(-1)).toMatchObject({
+
+    const tenantAAudit = control.listAuditEvents(operator, "tenant-a");
+    expect(tenantAAudit.at(-1)).toMatchObject({
       action: "AUTHORIZATION_DENIED",
       principalId: "operator-b",
       occurredAt: "2026-08-17T07:20:30.000Z",
+    });
+    const tenantBAudit = control.listAuditEvents(otherTenant, "tenant-b");
+    expect(tenantBAudit.at(-1)).toMatchObject({
+      action: "AUTHORIZATION_DENIED",
+      principalId: "operator-b",
+      detail: "cross-tenant deployment read denied",
+      occurredAt: "2026-08-17T07:20:30.000Z",
+    });
+  });
+
+  it("audits cross-tenant rollout mutation probes while preserving NOT_FOUND", () => {
+    const control = new InMemoryFleetControlPlane();
+    const deployment = control.createDeployment(operator, { tenantId: "tenant-a", projectId: "project-a", sourceRevision: revision, targetIds: ["edge-a"], idempotencyKey: "deploy-1" }, now);
+    const otherTenant: ControlPrincipal = { principalId: "operator-b", tenantId: "tenant-b", permissions: ["fleet:read", "fleet:rollout"] };
+    expect(() => control.transitionRollout(otherTenant, "tenant-b", deployment.deploymentId, "DEPLOYING", "2026-08-17T07:21:30.000Z")).toThrow(/not found/);
+    const audit = control.listAuditEvents(otherTenant, "tenant-b");
+    expect(audit.at(-1)).toMatchObject({
+      action: "AUTHORIZATION_DENIED",
+      principalId: "operator-b",
+      detail: "cross-tenant rollout mutation denied",
+      occurredAt: "2026-08-17T07:21:30.000Z",
     });
   });
 
