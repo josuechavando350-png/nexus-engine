@@ -36,7 +36,30 @@ export interface BusinessTelemetryAggregate {
   totalObservedValue: Readonly<Record<string, number>>;
 }
 
-const PII_KEYS = new Set(["email", "e-mail", "phone", "telephone", "name", "full_name", "first_name", "last_name", "ip", "ip_address", "address", "postal_address", "user_agent"]);
+const PII_KEYS = new Set([
+  "email",
+  "email_address",
+  "customer_email",
+  "user_email",
+  "contact_email",
+  "phone",
+  "phone_number",
+  "customer_phone",
+  "mobile",
+  "mobile_number",
+  "telephone",
+  "name",
+  "full_name",
+  "first_name",
+  "last_name",
+  "ip",
+  "ip_address",
+  "client_ip",
+  "address",
+  "street_address",
+  "postal_address",
+  "user_agent",
+]);
 const EVENT_NAMES: readonly BusinessEventName[] = ["EXPERIENCE_VIEW", "CTA_CLICK", "LEAD_SUBMITTED", "BOOKING_COMPLETED", "PURCHASE_COMPLETED", "QUALIFIED_CONTACT"];
 const CONSENT_BASES: readonly BusinessTelemetryConsent["basis"][] = ["CONSENT", "CONTRACT", "LEGITIMATE_INTEREST"];
 const CONVERSION_EVENTS = new Set<BusinessEventName>(["LEAD_SUBMITTED", "BOOKING_COMPLETED", "PURCHASE_COMPLETED", "QUALIFIED_CONTACT"]);
@@ -46,6 +69,13 @@ function nonEmpty(value: string, field: string): string {
   const normalized = value.trim();
   if (!normalized) throw new Error(`${field} is required`);
   return normalized;
+}
+
+function canonicalDimensionKey(value: string): string {
+  return nonEmpty(value, "dimension key")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
 }
 
 function canonicalTimestamp(value: string): boolean {
@@ -73,7 +103,7 @@ function validateDimensions(dimensions: Readonly<Record<string, string>> | undef
   if (!dimensions) return undefined;
   if (typeof dimensions !== "object" || Array.isArray(dimensions)) throw new Error("business telemetry dimensions must be an object");
   const entries = Object.entries(dimensions).map(([key, value]) => {
-    const normalizedKey = nonEmpty(key, "dimension key").toLowerCase();
+    const normalizedKey = canonicalDimensionKey(key);
     if (PII_KEYS.has(normalizedKey)) throw new Error(`business telemetry dimension ${key} is prohibited PII`);
     const normalizedValue = nonEmpty(value, `dimension ${key}`);
     if (normalizedValue.length > 160) throw new Error(`dimension ${key} exceeds 160 characters`);
