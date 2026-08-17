@@ -1,0 +1,43 @@
+import { describe, expect, it } from "vitest";
+import { aggregateBusinessTelemetry, createBusinessEvent } from "./business-telemetry";
+
+const revision = "0123456789abcdef0123456789abcdef01234567";
+const base = {
+  tenantId: "tenant-a",
+  projectId: "project-a",
+  deploymentId: "deployment-a",
+  sourceRevision: revision,
+  occurredAt: "2026-08-17T07:30:00.000Z",
+  consent: { analyticsAllowed: true, basis: "CONSENT" as const },
+};
+
+describe("business telemetry", () => {
+  it("records deterministic business events without performance metrics", () => {
+    const event = createBusinessEvent({ ...base, eventName: "CTA_CLICK", dimensions: { placement: "hero" } });
+    expect(event.eventId).toMatch(/^business_[a-f0-9]{64}$/);
+    expect(createBusinessEvent({ ...base, eventName: "CTA_CLICK", dimensions: { placement: "hero" } }).eventId).toBe(event.eventId);
+  });
+
+  it("fails closed when analytics permission is absent", () => {
+    expect(() => createBusinessEvent({ ...base, eventName: "EXPERIENCE_VIEW", consent: { analyticsAllowed: false, basis: "CONSENT" } })).toThrow(/analytics permission/);
+  });
+
+  it("rejects common PII dimensions", () => {
+    expect(() => createBusinessEvent({ ...base, eventName: "LEAD_SUBMITTED", dimensions: { email: "person@example.com" } })).toThrow(/prohibited PII/);
+  });
+
+  it("aggregates only one tenant/project/deployment/revision scope", () => {
+    const view = createBusinessEvent({ ...base, eventName: "EXPERIENCE_VIEW" });
+    const lead = createBusinessEvent({ ...base, eventName: "LEAD_SUBMITTED", occurredAt: "2026-08-17T07:31:00.000Z" });
+    const aggregate = aggregateBusinessTelemetry([view, lead]);
+    expect(aggregate.eventCount).toBe(2);
+    expect(aggregate.conversionRate).toBe(1);
+    const other = createBusinessEvent({ ...base, projectId: "project-b", eventName: "CTA_CLICK", occurredAt: "2026-08-17T07:32:00.000Z" });
+    expect(() => aggregateBusinessTelemetry([view, other])).toThrow(/cannot cross/);
+  });
+
+  it("rejects tampered event lineage", () => {
+    const event = createBusinessEvent({ ...base, eventName: "PURCHASE_COMPLETED", value: { amount: 99, currency: "mxn" } });
+    expect(() => aggregateBusinessTelemetry([{ ...event, sourceRevision: "abcdefabcdefabcdefabcdefabcdefabcdefabcd" }])).toThrow(/integrity verification/);
+  });
+});
