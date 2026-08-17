@@ -1,6 +1,6 @@
 {
   "name": "@nexus/creative",
-  "version": "8.0.0",
+  "version": "8.1.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -11,10 +11,11 @@
     "./memory": "./memory/index.ts",
     "./direction": "./direction/index.ts",
     "./gallery": "./gallery/index.ts",
-    "./testing": "./testing.ts"
+    "./testing": "./testing.ts",
+    "./craft-provenance": "./craft-provenance.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/creative/index.js && test -f dist/creative/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/creative/index.js && test -f dist/creative/index.d.ts && test -f dist/creative/craft-provenance.js && test -f dist/creative/craft-provenance.d.ts"
   }
 }
