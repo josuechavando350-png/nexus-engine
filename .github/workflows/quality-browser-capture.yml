@@ -59,6 +59,7 @@ jobs:
           test "$(find "$root" -maxdepth 1 -type f -name '*-axe.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$root" -maxdepth 1 -type f -name '*-design-genome.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$root" -maxdepth 1 -type f -name '*-apca.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*-performance.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "6"
           node - <<'NODE'
@@ -82,6 +83,20 @@ jobs:
             for (const observation of data.observations) {
               if (!Number.isFinite(observation.lc) || !Number.isFinite(observation.fontSizePx) || !Number.isFinite(observation.fontWeight)) process.exit(1);
               if (!/^sha256:[a-f0-9]{64}$/.test(observation.textDigest)) process.exit(1);
+            }
+          }
+          const vitalsFiles = fs.readdirSync(root).filter((name) => name.endsWith('-performance.json'));
+          if (vitalsFiles.length !== 6) process.exit(1);
+          const validStates = new Set(['MEASURED','NOT_OBSERVED','UNSUPPORTED']);
+          for (const name of vitalsFiles) {
+            const data = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+            if (data.schemaVersion !== 1 || !Number.isInteger(data.resourceCount) || data.resourceCount < 0 || !Number.isFinite(data.scriptTransferBytes)) process.exit(1);
+            for (const metric of ['lcp','cls','inp','fcp','navigationDuration']) {
+              const vital = data[metric];
+              if (!vital || !validStates.has(vital.state)) process.exit(1);
+              if (vital.state === 'MEASURED') {
+                if (!Number.isFinite(vital.value)) process.exit(1);
+              } else if (Object.prototype.hasOwnProperty.call(vital, 'value')) process.exit(1);
             }
           }
           const mutationsRoot = path.join(root, 'mutations');
