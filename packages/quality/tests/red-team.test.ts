@@ -3,6 +3,7 @@ import type { CaptureArtifact } from "@nexus/capture";
 import type { CreativeCriticReport, VerdictState } from "@nexus/creative";
 import type { StyleFingerprintV2 } from "@nexus/experience";
 import { runRedTeamArena, type MutationAttackId } from "../red-team";
+import type { StructuralFingerprintReport } from "../structural-fingerprint";
 
 const fingerprint: StyleFingerprintV2 = {
   version: 2,
@@ -26,6 +27,12 @@ const creativeReport: CreativeCriticReport = {
   findings: [],
   referenceEntryIds: ["ref-a", "ref-b"],
 };
+
+const structuralPass: StructuralFingerprintReport = Object.freeze({
+  authority: "NEXUS_STRUCTURAL_FINGERPRINT",
+  templateFingerprint: Object.freeze({ verdict: "PASS", findings: Object.freeze([]), evidence: Object.freeze(["history:checked"]) }),
+  aiFingerprint: Object.freeze({ verdict: "PASS", findings: Object.freeze([]), evidence: Object.freeze(["genome:measured"]) }),
+});
 
 const mutationPass = Object.freeze(Object.fromEntries([
   "BRAND_SWAP",
@@ -62,7 +69,7 @@ function completeArtifacts(): CaptureArtifact[] {
 }
 
 describe("NEXUS Red Team Arena", () => {
-  it("passes only when creative, corpus, browser evidence and every mutation attack have executed cleanly", () => {
+  it("passes only when creative, corpus, structural fingerprints, browser evidence and every mutation attack have executed cleanly", () => {
     const corpus = [{ ...fingerprint, subject: "subject-b", openingSignature: "typographic sequence", navigationSignature: "inline editorial navigation" }];
     const report = runRedTeamArena({
       experienceId: "experience-a",
@@ -71,10 +78,25 @@ describe("NEXUS Red Team Arena", () => {
       corpus,
       artifacts: completeArtifacts(),
       mutationVerdicts: mutationPass,
+      structuralFingerprint: structuralPass,
     });
     expect(report.verdict).toBe("PASS");
     expect(report.approved).toBe(true);
     expect(report.attacks.every((item) => item.verdict === "PASS")).toBe(true);
+  });
+
+  it("returns NOT_TESTED when structural fingerprint attacks were omitted", () => {
+    const report = runRedTeamArena({
+      experienceId: "experience-a",
+      creativeReport,
+      fingerprint,
+      corpus: [{ ...fingerprint, subject: "subject-b", openingSignature: "different" }],
+      artifacts: completeArtifacts(),
+      mutationVerdicts: mutationPass,
+    });
+    expect(report.verdict).toBe("NOT_TESTED");
+    expect(report.attacks.find((item) => item.attackId === "TEMPLATE_FINGERPRINT")?.verdict).toBe("NOT_TESTED");
+    expect(report.attacks.find((item) => item.attackId === "AI_FINGERPRINT")?.verdict).toBe("NOT_TESTED");
   });
 
   it("returns NOT_TESTED when there is no originality corpus instead of inventing originality", () => {
@@ -85,6 +107,7 @@ describe("NEXUS Red Team Arena", () => {
       corpus: [],
       artifacts: completeArtifacts(),
       mutationVerdicts: mutationPass,
+      structuralFingerprint: structuralPass,
     });
     expect(report.verdict).toBe("NOT_TESTED");
     expect(report.approved).toBe(false);
@@ -100,6 +123,7 @@ describe("NEXUS Red Team Arena", () => {
       corpus: [{ ...fingerprint, subject: "subject-b", openingSignature: "different opening" }],
       artifacts,
       mutationVerdicts: mutationPass,
+      structuralFingerprint: structuralPass,
     });
     expect(report.verdict).toBe("FAIL");
     expect(report.attacks.filter((item) => ["BROWSER_COVERAGE", "ACCESSIBILITY_EVIDENCE"].includes(item.attackId)).every((item) => item.verdict === "FAIL")).toBe(true);
@@ -113,9 +137,28 @@ describe("NEXUS Red Team Arena", () => {
       corpus: [{ ...fingerprint, subject: "copied-subject" }],
       artifacts: completeArtifacts(),
       mutationVerdicts: mutationPass,
+      structuralFingerprint: structuralPass,
     });
     expect(report.verdict).toBe("FAIL");
     expect(report.attacks.find((item) => item.attackId === "CORPUS_ORIGINALITY")?.verdict).toBe("FAIL");
+  });
+
+  it("fails when the measured structural AI fingerprint exposes a banned pattern", () => {
+    const structuralFail: StructuralFingerprintReport = {
+      ...structuralPass,
+      aiFingerprint: { verdict: "FAIL", findings: ["generic card-grid"], evidence: ["gridRegularity:0.9"] },
+    };
+    const report = runRedTeamArena({
+      experienceId: "experience-a",
+      creativeReport,
+      fingerprint,
+      corpus: [{ ...fingerprint, subject: "subject-b", openingSignature: "different opening" }],
+      artifacts: completeArtifacts(),
+      mutationVerdicts: mutationPass,
+      structuralFingerprint: structuralFail,
+    });
+    expect(report.verdict).toBe("FAIL");
+    expect(report.attacks.find((item) => item.attackId === "AI_FINGERPRINT")?.verdict).toBe("FAIL");
   });
 
   it("cannot approve when any required mutation attack was not executed", () => {
@@ -127,6 +170,7 @@ describe("NEXUS Red Team Arena", () => {
       corpus: [{ ...fingerprint, subject: "subject-b", openingSignature: "different opening" }],
       artifacts: completeArtifacts(),
       mutationVerdicts: mutations,
+      structuralFingerprint: structuralPass,
     });
     expect(report.verdict).toBe("NOT_TESTED");
     expect(report.approved).toBe(false);
