@@ -8,6 +8,7 @@ import { calibrateVisualReviewer, executeMultimodalVisualReview, judgeVisualEvid
 
 const tempDirs: string[] = [];
 const digest = (bytes: Uint8Array) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+const RUBRIC_DIGEST = `sha256:${"e".repeat(64)}` as const;
 
 async function evidenceArtifacts(): Promise<CaptureArtifact[]> {
   const dir = await mkdtemp(join(tmpdir(), "nexus-visual-judge-"));
@@ -66,12 +67,13 @@ describe("NEXUS visual judge", () => {
     expect(result.verifiedArtifactIds).toHaveLength(12);
   });
 
-  it("approves only when a traceable review references persisted evidence", async () => {
+  it("approves only when a traceable review references persisted evidence and immutable rubric identity", async () => {
     const artifacts = await evidenceArtifacts();
     const review: VisualReview = {
       reviewerType: "HUMAN",
       reviewerId: "creative-director-1",
       rubricVersion: "nexus-visual-rubric-v1",
+      rubricDigest: RUBRIC_DIGEST,
       verdict: "PASS",
       findings: ["hierarchy and responsive composition survived review"],
       evidenceArtifactIds: artifacts.filter((artifact) => artifact.capability === "SCREENSHOT").map((artifact) => artifact.artifactId),
@@ -91,6 +93,7 @@ describe("NEXUS visual judge", () => {
       reviewerType: "HUMAN",
       reviewerId: "creative-director-1",
       rubricVersion: "nexus-visual-rubric-v1",
+      rubricDigest: RUBRIC_DIGEST,
       verdict: "PASS",
       findings: [],
       evidenceArtifactIds: screenshots.slice(0, -1).map((artifact) => artifact.artifactId),
@@ -101,6 +104,23 @@ describe("NEXUS visual judge", () => {
     expect(result.reviewVerdict).toBe("FAIL");
     expect(result.approved).toBe(false);
     expect(result.findings.join(" ")).toMatch(/omitted required screenshots/);
+  });
+
+  it("rejects a review whose rubric identity is only a mutable label", async () => {
+    const artifacts = await evidenceArtifacts();
+    const review = {
+      reviewerType: "HUMAN",
+      reviewerId: "creative-director-1",
+      rubricVersion: "nexus-visual-rubric-v1",
+      rubricDigest: "rubric-v1",
+      verdict: "PASS",
+      findings: [],
+      evidenceArtifactIds: artifacts.filter((artifact) => artifact.capability === "SCREENSHOT").map((artifact) => artifact.artifactId),
+      reviewedAt: "2026-08-17T00:01:00.000Z",
+    } as unknown as VisualReview;
+    const result = await judgeVisualEvidence({ artifacts, review });
+    expect(result.verdict).toBe("FAIL");
+    expect(result.findings.join(" ")).toMatch(/immutable rubricDigest is required/);
   });
 
   it("rejects a custom visual policy that weakens the baseline capture matrix", async () => {
@@ -116,23 +136,25 @@ describe("NEXUS visual judge", () => {
     })).rejects.toThrow(/cannot remove baseline browser webkit|cannot remove baseline viewport|cannot disable baseline Design Genome/);
   });
 
-  it("executes a multimodal port over verified PNG bytes and seals provider provenance", async () => {
+  it("executes a multimodal port over verified PNG bytes and seals provider plus rubric provenance", async () => {
     const artifacts = await evidenceArtifacts();
     let observedImageCount = 0;
     const port: MultimodalVisualJudgePort = {
       providerId: "fixture-provider",
       modelId: "ui-specialist-fixture",
       configurationDigest: `sha256:${"c".repeat(64)}`,
-      review: async ({ rubricVersion, images }) => {
+      review: async ({ rubricVersion, rubricDigest, images }) => {
         expect(rubricVersion).toBe("nexus-visual-rubric-v2");
+        expect(rubricDigest).toBe(RUBRIC_DIGEST);
         expect(images.every((image) => image.bytes.subarray(0, 8).toString() !== "")).toBe(true);
         expect(images.every((image) => image.digest.startsWith("sha256:"))).toBe(true);
         observedImageCount = images.length;
         return { verdict: "PASS", findings: ["synthetic port fixture reviewed persisted PNG bytes"], reviewedAt: "2026-08-17T00:01:00.000Z", requestId: "fixture-request-1" };
       },
     };
-    const review = await executeMultimodalVisualReview({ artifacts, reviewerId: "visual-review-service", rubricVersion: "nexus-visual-rubric-v2", port });
+    const review = await executeMultimodalVisualReview({ artifacts, reviewerId: "visual-review-service", rubricVersion: "nexus-visual-rubric-v2", rubricDigest: RUBRIC_DIGEST, port });
     expect(observedImageCount).toBe(6);
+    expect(review.rubricDigest).toBe(RUBRIC_DIGEST);
     expect(review.providerId).toBe("fixture-provider");
     expect(review.modelId).toBe("ui-specialist-fixture");
     expect(review.providerRequestId).toBe("fixture-request-1");
@@ -155,7 +177,7 @@ describe("NEXUS visual judge", () => {
       configurationDigest: `sha256:${"d".repeat(64)}`,
       review: async () => ({ verdict: "PASS", findings: [], reviewedAt: "2026-08-17T00:01:00.000Z", requestId: "must-not-run" }),
     };
-    await expect(executeMultimodalVisualReview({ artifacts, reviewerId: "visual-review-service", rubricVersion: "rubric-v1", port })).rejects.toThrow(/refused unverified screenshot/);
+    await expect(executeMultimodalVisualReview({ artifacts, reviewerId: "visual-review-service", rubricVersion: "rubric-v1", rubricDigest: RUBRIC_DIGEST, port })).rejects.toThrow(/refused unverified screenshot/);
   });
 
   it("refuses multimodal reviews that hide execution provenance", async () => {
@@ -166,6 +188,7 @@ describe("NEXUS visual judge", () => {
         reviewerType: "MULTIMODAL_MODEL",
         reviewerId: "visual-review-service",
         rubricVersion: "nexus-visual-rubric-v1",
+        rubricDigest: RUBRIC_DIGEST,
         verdict: "PASS",
         findings: [],
         evidenceArtifactIds: [artifacts[0]!.artifactId],
