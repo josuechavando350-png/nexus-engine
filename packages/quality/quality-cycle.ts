@@ -14,11 +14,16 @@ export interface CycleSnapshot {
   evidence: readonly CycleEvidence[];
 }
 
+export interface JudgeCycleResult {
+  evaluation: QualityEvaluation;
+  evidence: CycleEvidence;
+}
+
 export interface QualityCycleExecutor {
   currentRevision(): Promise<string>;
   build(revision: string): Promise<CycleEvidence>;
   capture(revision: string): Promise<CycleEvidence>;
-  judge(revision: string, evidence: readonly CycleEvidence[]): Promise<QualityEvaluation>;
+  judge(revision: string, evidence: readonly CycleEvidence[]): Promise<JudgeCycleResult>;
   repair(evaluation: QualityEvaluation, attempt: number): Promise<RepairAction>;
 }
 
@@ -46,25 +51,20 @@ async function evaluateFresh(executor: QualityCycleExecutor, snapshots: CycleSna
   validateEvidence(build, "BUILD", revision);
   const capture = await executor.capture(revision);
   validateEvidence(capture, "CAPTURE", revision);
-  const evidence = Object.freeze([build, capture]);
-  const evaluation = await executor.judge(revision, evidence);
+  const preJudgeEvidence = Object.freeze([build, capture]);
+  const judged = await executor.judge(revision, preJudgeEvidence);
+  validateEvidence(judged.evidence, "JUDGE", revision);
 
-  const referenced = new Set(evaluation.evidenceIds);
-  for (const item of evidence) {
+  const referenced = new Set(judged.evaluation.evidenceIds);
+  for (const item of [...preJudgeEvidence, judged.evidence]) {
     if (!referenced.has(item.evidenceId)) throw new Error(`judge evaluation omitted fresh ${item.stage} evidence ${item.evidenceId}`);
   }
 
-  const judgeEvidence: CycleEvidence = Object.freeze({
-    evidenceId: `judge:${revision}:${snapshots.length}`,
-    stage: "JUDGE",
-    subjectRevision: revision,
-    producedAt: new Date().toISOString(),
-  });
   const finalEvaluation: QualityEvaluation = Object.freeze({
-    ...evaluation,
-    evidenceIds: Object.freeze([...evaluation.evidenceIds, judgeEvidence.evidenceId]),
+    ...judged.evaluation,
+    evidenceIds: Object.freeze([...judged.evaluation.evidenceIds]),
   });
-  snapshots.push(Object.freeze({ revision, evaluation: finalEvaluation, evidence: Object.freeze([...evidence, judgeEvidence]) }));
+  snapshots.push(Object.freeze({ revision, evaluation: finalEvaluation, evidence: Object.freeze([...preJudgeEvidence, judged.evidence]) }));
   return finalEvaluation;
 }
 
