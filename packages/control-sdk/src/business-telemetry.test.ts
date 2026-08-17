@@ -37,8 +37,11 @@ describe("business telemetry", () => {
     expect(() => createBusinessEvent(invalidBasis)).toThrow(/consent basis is invalid/);
   });
 
-  it("rejects common PII dimensions", () => {
-    expect(() => createBusinessEvent({ ...base, eventName: "LEAD_SUBMITTED", dimensions: { email: "person@example.com" } })).toThrow(/prohibited PII/);
+  it("rejects common and normalized PII dimension aliases without blocking legitimate names", () => {
+    for (const key of ["email", "customer_email", "email-address", "phone_number", "client-ip", "user-agent"] as const) {
+      expect(() => createBusinessEvent({ ...base, eventName: "LEAD_SUBMITTED", dimensions: { [key]: "sensitive" } })).toThrow(/prohibited PII/);
+    }
+    expect(() => createBusinessEvent({ ...base, eventName: "CTA_CLICK", dimensions: { campaign_name: "summer-launch" } })).not.toThrow();
   });
 
   it("aggregates only one tenant/project/deployment/revision scope", () => {
