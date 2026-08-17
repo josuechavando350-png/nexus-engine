@@ -1,7 +1,7 @@
 import type { EvidenceEnvelope, MeasurementRun, MeasurementScope, MetricSample } from "../measurement/index";
 import { createEvidence, deterministicId } from "../measurement/index";
 
-export type CaptureCapability = "SCREENSHOT" | "ACCESSIBILITY" | "DESIGN_GENOME" | "PERFORMANCE" | "RUNTIME_TELEMETRY";
+export type CaptureCapability = "SCREENSHOT" | "ACCESSIBILITY" | "DESIGN_GENOME" | "CONTRAST" | "PERFORMANCE" | "RUNTIME_TELEMETRY";
 export type CaptureOutcome = "CAPTURED" | "UNSUPPORTED" | "FAILED";
 
 export interface CaptureRequest {
