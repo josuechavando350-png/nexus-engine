@@ -77,6 +77,16 @@ export interface PriorLearningReport {
   businessMetricMeans: Readonly<Record<string, number>>;
 }
 
+const VERDICTS: readonly CriterionVerdict[] = Object.freeze(["PASS", "FAIL", "WARNING", "NOT_TESTED"]);
+const HUMAN_DECISIONS: readonly HumanDecision[] = Object.freeze(["APPROVE", "VETO", "NO_DECISION"]);
+const ARTIFACT_KINDS: readonly CriterionArtifactRef["kind"][] = Object.freeze([
+  "DNA",
+  "EMITTED_CSS",
+  "CAPTURE",
+  "JUDGE_REPORT",
+  "DELIVERY_EVIDENCE",
+]);
+
 function canonicalTimestamp(value: string): boolean {
   const date = new Date(value);
   return Number.isFinite(date.getTime()) && date.toISOString() === value;
@@ -110,11 +120,35 @@ function assertBusinessOutcome(outcome: BusinessOutcome): void {
 function assertObservation(observation: PriorObservation): void {
   if (!observation.tenantId.trim() || !observation.projectId.trim()) throw new Error("prior observation tenantId and projectId are required");
   assertRevision(observation.revision);
-  for (const [feature, value] of Object.entries(observation.dnaFeatures)) {
+  const features = Object.entries(observation.dnaFeatures);
+  if (!features.length) throw new Error("prior observation requires at least one DNA feature");
+  for (const [feature, value] of features) {
     if (!feature.trim()) throw new Error("DNA feature names must be non-empty");
     if (!Number.isFinite(value)) throw new Error(`DNA feature ${feature} must be finite`);
   }
   observation.businessOutcomes.forEach(assertBusinessOutcome);
+}
+
+function assertCompleteArtifacts(input: CriterionMemoryEntry): void {
+  if (new Set(input.artifacts.map((artifact) => artifact.artifactId)).size !== input.artifacts.length) throw new Error("criterion artifact IDs must be unique");
+  const counts = new Map<CriterionArtifactRef["kind"], number>();
+  for (const artifact of input.artifacts) {
+    if (!artifact.artifactId.trim()) throw new Error("criterion artifactId is required");
+    if (!ARTIFACT_KINDS.includes(artifact.kind)) throw new Error(`unsupported criterion artifact kind ${String(artifact.kind)}`);
+    assertSha256(artifact.digest, `artifact ${artifact.artifactId} digest`);
+    counts.set(artifact.kind, (counts.get(artifact.kind) ?? 0) + 1);
+  }
+  for (const kind of ARTIFACT_KINDS) {
+    if (!counts.get(kind)) throw new Error(`criterion memory requires ${kind} evidence`);
+  }
+  const dnaArtifacts = input.artifacts.filter((artifact) => artifact.kind === "DNA");
+  if (!dnaArtifacts.some((artifact) => artifact.digest === input.dnaDigest)) throw new Error("DNA artifact digest must match dnaDigest");
+  const cssArtifacts = input.artifacts.filter((artifact) => artifact.kind === "EMITTED_CSS");
+  if (!cssArtifacts.some((artifact) => artifact.digest === input.emittedCssDigest)) throw new Error("EMITTED_CSS artifact digest must match emittedCssDigest");
+}
+
+function assertCriterionVerdict(value: CriterionVerdict, label: string): void {
+  if (!VERDICTS.includes(value)) throw new Error(`${label} is invalid`);
 }
 
 export function recordCriterionMemory(input: CriterionMemoryEntry): VersionedCriterionMemoryEntry {
@@ -124,13 +158,14 @@ export function recordCriterionMemory(input: CriterionMemoryEntry): VersionedCri
   if (!canonicalTimestamp(input.recordedAt)) throw new Error("recordedAt must be a canonical ISO timestamp");
   assertSha256(input.dnaDigest, "dnaDigest");
   assertSha256(input.emittedCssDigest, "emittedCssDigest");
+  assertCriterionVerdict(input.judgeVerdict, "judgeVerdict");
+  assertCriterionVerdict(input.deliveryVerdict, "deliveryVerdict");
+  if (!HUMAN_DECISIONS.includes(input.humanDecision)) throw new Error("humanDecision is invalid");
+  if (input.judgeFindings.some((finding) => !finding.trim())) throw new Error("judge findings must be non-empty strings");
   if (input.humanDecision === "VETO" && !input.humanRationale?.trim()) throw new Error("human veto requires rationale");
+  if (input.humanDecision === "APPROVE" && !input.humanRationale?.trim()) throw new Error("human approval requires rationale");
   if (input.humanDecision === "NO_DECISION" && input.humanRationale?.trim()) throw new Error("NO_DECISION cannot carry a human rationale");
-  if (new Set(input.artifacts.map((artifact) => artifact.artifactId)).size !== input.artifacts.length) throw new Error("criterion artifact IDs must be unique");
-  for (const artifact of input.artifacts) {
-    if (!artifact.artifactId.trim()) throw new Error("criterion artifactId is required");
-    assertSha256(artifact.digest, `artifact ${artifact.artifactId} digest`);
-  }
+  assertCompleteArtifacts(input);
   input.businessOutcomes.forEach(assertBusinessOutcome);
 
   const entryId = digest(input);
@@ -152,6 +187,8 @@ export function assertCriterionHistory(entries: readonly VersionedCriterionMemor
     const { entryId, ...unsignedEntry } = entry;
     const expected = digest(unsignedEntry);
     if (expected !== entryId) throw new Error(`criterion entry ${entryId} failed integrity verification`);
+    // Revalidate runtime shape as well as the content hash. A correctly re-hashed malformed object is still invalid evidence.
+    recordCriterionMemory(unsignedEntry);
     const revisionKey = `${entry.tenantId}::${entry.projectId}::${entry.revision}`;
     if (revisions.has(revisionKey)) throw new Error(`duplicate project revision in criterion history: ${revisionKey}`);
     revisions.add(revisionKey);
@@ -170,6 +207,7 @@ export function replayRubricRegression(input: {
 
   for (const entry of input.history) {
     const candidateVerdict = input.evaluate(entry);
+    assertCriterionVerdict(candidateVerdict, "candidate rubric verdict");
     cases.push({ entryId: entry.entryId, projectId: entry.projectId, historicalVerdict: entry.judgeVerdict, humanDecision: entry.humanDecision, candidateVerdict });
     if (entry.humanDecision === "VETO" && candidateVerdict === "PASS") {
       violations.push(`${entry.entryId}: candidate rubric approves a historically vetoed artifact`);
@@ -202,6 +240,18 @@ export function learnEmitterPriors(input: {
   if (!Number.isInteger(minimumApprovedProjects) || minimumApprovedProjects < 1 || minimumApprovedProjects > minimumProjects) throw new Error("minimumApprovedProjects must be a positive integer no greater than minimumProjects");
   if (!input.tenantId.trim()) throw new Error("tenantId is required");
   input.observations.forEach(assertObservation);
+
+  const observationKeys = new Set<string>();
+  const projectKeys = new Set<string>();
+  for (const observation of input.observations) {
+    const observationKey = `${observation.tenantId}::${observation.projectId}::${observation.revision}`;
+    if (observationKeys.has(observationKey)) throw new Error(`duplicate prior observation ${observationKey}`);
+    observationKeys.add(observationKey);
+    const projectKey = `${observation.tenantId}::${observation.projectId}`;
+    if (projectKeys.has(projectKey)) throw new Error(`multiple prior observations for one project are not allowed: ${projectKey}`);
+    projectKeys.add(projectKey);
+  }
+
   const scoped = input.observations.filter((observation) => observation.tenantId === input.tenantId);
   const projectIds = new Set(scoped.map((observation) => observation.projectId));
   const approvedProjects = new Set(scoped.filter((observation) => observation.approvedWithoutCorrection).map((observation) => observation.projectId));
