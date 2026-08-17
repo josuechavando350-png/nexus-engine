@@ -38,21 +38,24 @@ export interface BusinessTelemetryAggregate {
 
 const PII_KEYS = new Set(["email", "e-mail", "phone", "telephone", "name", "full_name", "first_name", "last_name", "ip", "ip_address", "address", "postal_address", "user_agent"]);
 const EVENT_NAMES: readonly BusinessEventName[] = ["EXPERIENCE_VIEW", "CTA_CLICK", "LEAD_SUBMITTED", "BOOKING_COMPLETED", "PURCHASE_COMPLETED", "QUALIFIED_CONTACT"];
+const CONSENT_BASES: readonly BusinessTelemetryConsent["basis"][] = ["CONSENT", "CONTRACT", "LEGITIMATE_INTEREST"];
 const CONVERSION_EVENTS = new Set<BusinessEventName>(["LEAD_SUBMITTED", "BOOKING_COMPLETED", "PURCHASE_COMPLETED", "QUALIFIED_CONTACT"]);
 
 function nonEmpty(value: string, field: string): string {
+  if (typeof value !== "string") throw new Error(`${field} must be a string`);
   const normalized = value.trim();
   if (!normalized) throw new Error(`${field} is required`);
   return normalized;
 }
 
 function canonicalTimestamp(value: string): boolean {
+  if (typeof value !== "string") return false;
   const parsed = new Date(value);
   return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
 }
 
 function assertRevision(value: string): void {
-  if (!/^[a-f0-9]{40}$/.test(value)) throw new Error("sourceRevision must be a full lowercase git SHA-1");
+  if (typeof value !== "string" || !/^[a-f0-9]{40}$/.test(value)) throw new Error("sourceRevision must be a full lowercase git SHA-1");
 }
 
 function stable(value: unknown): string {
@@ -68,6 +71,7 @@ function eventId(value: unknown): `business_${string}` {
 
 function validateDimensions(dimensions: Readonly<Record<string, string>> | undefined): Readonly<Record<string, string>> | undefined {
   if (!dimensions) return undefined;
+  if (typeof dimensions !== "object" || Array.isArray(dimensions)) throw new Error("business telemetry dimensions must be an object");
   const entries = Object.entries(dimensions).map(([key, value]) => {
     const normalizedKey = nonEmpty(key, "dimension key").toLowerCase();
     if (PII_KEYS.has(normalizedKey)) throw new Error(`business telemetry dimension ${key} is prohibited PII`);
@@ -79,6 +83,13 @@ function validateDimensions(dimensions: Readonly<Record<string, string>> | undef
   return Object.freeze(Object.fromEntries(entries.sort(([a], [b]) => a.localeCompare(b))));
 }
 
+function validateConsent(consent: BusinessTelemetryConsent): Readonly<BusinessTelemetryConsent> {
+  if (!consent || typeof consent !== "object" || Array.isArray(consent)) throw new Error("business telemetry consent is required");
+  if (consent.analyticsAllowed !== true) throw new Error("business telemetry requires analytics permission");
+  if (!CONSENT_BASES.includes(consent.basis)) throw new Error("business telemetry consent basis is invalid");
+  return Object.freeze({ analyticsAllowed: true, basis: consent.basis });
+}
+
 function canonicalInput(input: BusinessEventInput): BusinessEventInput {
   const tenantId = nonEmpty(input.tenantId, "tenantId");
   const projectId = nonEmpty(input.projectId, "projectId");
@@ -86,14 +97,14 @@ function canonicalInput(input: BusinessEventInput): BusinessEventInput {
   assertRevision(input.sourceRevision);
   if (!EVENT_NAMES.includes(input.eventName)) throw new Error("unsupported business event name");
   if (!canonicalTimestamp(input.occurredAt)) throw new Error("occurredAt must be canonical ISO-8601 UTC");
-  if (!input.consent.analyticsAllowed) throw new Error("business telemetry requires analytics permission");
+  const consent = validateConsent(input.consent);
   const dimensions = validateDimensions(input.dimensions);
   let value = input.value;
   if (value) {
     if (!Number.isFinite(value.amount) || value.amount < 0) throw new Error("business event value amount must be finite and non-negative");
     value = Object.freeze({ amount: value.amount, currency: nonEmpty(value.currency, "value.currency").toUpperCase() });
   }
-  return { tenantId, projectId, deploymentId, sourceRevision: input.sourceRevision, eventName: input.eventName, occurredAt: input.occurredAt, consent: Object.freeze({ ...input.consent }), dimensions, value };
+  return { tenantId, projectId, deploymentId, sourceRevision: input.sourceRevision, eventName: input.eventName, occurredAt: input.occurredAt, consent, dimensions, value };
 }
 
 export function createBusinessEvent(input: BusinessEventInput): BusinessEvent {
