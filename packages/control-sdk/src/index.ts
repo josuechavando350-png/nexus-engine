@@ -161,7 +161,10 @@ export class InMemoryFleetControlPlane {
       throw error;
     }
     const deployment = this.requireDeployment(deploymentId);
-    if (deployment.tenantId !== scopedTenant) throw new FleetControlError("NOT_FOUND", "deployment not found");
+    if (deployment.tenantId !== scopedTenant) {
+      this.auditDeniedAtClock(principal, scopedTenant, "cross-tenant deployment read denied");
+      throw new FleetControlError("NOT_FOUND", "deployment not found");
+    }
     return deployment;
   }
 
@@ -175,7 +178,10 @@ export class InMemoryFleetControlPlane {
       throw error;
     }
     const current = this.requireDeployment(deploymentId);
-    if (current.tenantId !== scopedTenant) throw new FleetControlError("NOT_FOUND", "deployment not found");
+    if (current.tenantId !== scopedTenant) {
+      this.auditDenied(principal, scopedTenant, now, "cross-tenant rollout mutation denied");
+      throw new FleetControlError("NOT_FOUND", "deployment not found");
+    }
     if (!TRANSITIONS[current.state].includes(nextState)) throw new FleetControlError("INVALID_TRANSITION", `cannot transition rollout from ${current.state} to ${nextState}`);
     const updated = Object.freeze({ ...current, state: nextState, updatedAt: now });
     this.deployments.set(deploymentId, updated);
