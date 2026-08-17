@@ -148,9 +148,9 @@ export function assertCriterionHistory(entries: readonly VersionedCriterionMemor
   for (const entry of entries) {
     if (ids.has(entry.entryId)) throw new Error(`duplicate criterion entry ${entry.entryId}`);
     ids.add(entry.entryId);
-    const { entryId: _entryId, ...unsignedEntry } = entry;
+    const { entryId, ...unsignedEntry } = entry;
     const expected = digest(unsignedEntry);
-    if (expected !== entry.entryId) throw new Error(`criterion entry ${entry.entryId} failed integrity verification`);
+    if (expected !== entryId) throw new Error(`criterion entry ${entryId} failed integrity verification`);
     const revisionKey = `${entry.tenantId}::${entry.projectId}::${entry.revision}`;
     if (revisions.has(revisionKey)) throw new Error(`duplicate project revision in criterion history: ${revisionKey}`);
     revisions.add(revisionKey);
