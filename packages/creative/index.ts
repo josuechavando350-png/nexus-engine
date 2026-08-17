@@ -8,6 +8,7 @@ export * from "./gallery/sources";
 export * from "./gallery/corpus";
 export * from "./reference-direction";
 export * from "./critic";
+export * from "./critic/artifact-fingerprint";
 export * from "./motion";
 export * from "./gpu";
 export * from "./visual-qa";
