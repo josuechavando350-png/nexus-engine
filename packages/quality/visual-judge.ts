@@ -9,6 +9,7 @@ export interface VisualReview {
   reviewerType: VisualReviewerType;
   reviewerId: string;
   rubricVersion: string;
+  rubricDigest: `sha256:${string}`;
   verdict: Exclude<VerdictState, "NOT_TESTED">;
   findings: readonly string[];
   evidenceArtifactIds: readonly string[];
@@ -33,6 +34,7 @@ export interface MultimodalVisualJudgePort {
   configurationDigest: `sha256:${string}`;
   review(input: {
     rubricVersion: string;
+    rubricDigest: `sha256:${string}`;
     images: readonly MultimodalVisualJudgeImage[];
   }): Promise<{
     verdict: Exclude<VerdictState, "NOT_TESTED">;
@@ -138,9 +140,11 @@ export async function executeMultimodalVisualReview(input: {
   artifacts: readonly CaptureArtifact[];
   reviewerId: string;
   rubricVersion: string;
+  rubricDigest: `sha256:${string}`;
   port: MultimodalVisualJudgePort;
 }): Promise<VisualReview> {
   if (!input.reviewerId.trim() || !input.rubricVersion.trim()) throw new Error("multimodal review requires reviewerId and rubricVersion");
+  if (!canonicalSha256(input.rubricDigest)) throw new Error("multimodal review requires canonical rubricDigest bound to the exact rubric definition");
   if (!input.port.providerId.trim() || !input.port.modelId.trim()) throw new Error("multimodal judge port requires providerId and modelId");
   if (!canonicalSha256(input.port.configurationDigest)) throw new Error("multimodal judge port requires canonical configurationDigest");
   const screenshots = input.artifacts.filter((artifact) => artifact.capability === "SCREENSHOT");
@@ -154,7 +158,7 @@ export async function executeMultimodalVisualReview(input: {
     images.push(Object.freeze({ artifactId: artifact.artifactId, digest: artifact.digest, mediaType: "image/png", bytes }));
   }
 
-  const outcome = await input.port.review({ rubricVersion: input.rubricVersion, images: Object.freeze(images) });
+  const outcome = await input.port.review({ rubricVersion: input.rubricVersion, rubricDigest: input.rubricDigest, images: Object.freeze(images) });
   if (!VALID_REVIEW_VERDICTS.includes(outcome.verdict)) throw new Error("multimodal provider returned an invalid verdict");
   if (!canonicalTimestamp(outcome.reviewedAt)) throw new Error("multimodal provider reviewedAt must be canonical UTC");
   if (!outcome.requestId.trim()) throw new Error("multimodal provider requestId is required");
@@ -164,6 +168,7 @@ export async function executeMultimodalVisualReview(input: {
     reviewerType: "MULTIMODAL_MODEL",
     reviewerId: input.reviewerId.trim(),
     rubricVersion: input.rubricVersion.trim(),
+    rubricDigest: input.rubricDigest,
     verdict: outcome.verdict,
     findings: Object.freeze([...outcome.findings]),
     evidenceArtifactIds: Object.freeze(images.map((image) => image.artifactId)),
@@ -225,8 +230,8 @@ export async function judgeVisualEvidence(input: {
 
   if (input.review) {
     const review = input.review;
-    if (!review.reviewerId.trim() || !review.rubricVersion.trim() || !canonicalTimestamp(review.reviewedAt)) {
-      findings.push("visual review metadata is invalid or incomplete");
+    if (!review.reviewerId.trim() || !review.rubricVersion.trim() || !canonicalSha256(review.rubricDigest) || !canonicalTimestamp(review.reviewedAt)) {
+      findings.push("visual review metadata is invalid or incomplete; immutable rubricDigest is required");
       reviewVerdict = "FAIL";
     } else if (!VALID_REVIEWER_TYPES.includes(review.reviewerType)) {
       findings.push(`visual reviewer type ${String(review.reviewerType)} is invalid`);
