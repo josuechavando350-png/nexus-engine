@@ -1,6 +1,8 @@
 import type { GalleryEntry } from "../gallery";
 import { assertCanonicalId, assertNonEmpty, assertScope, lexicalCompare, type CreativeScope } from "../shared";
 
+export type VerdictState = "PASS" | "FAIL" | "WARNING" | "NOT_TESTED";
+
 export type ConventionalPattern =
   | "NAV"
   | "HERO_SPLIT"
@@ -37,7 +39,7 @@ export type CreativeExecutionContract = Readonly<{
   motionPurpose: readonly string[];
   signatureMechanicPlacements: readonly string[];
   adversarial: Readonly<{
-    brandSwapSurvivalScore: number;
+    brandSwapVerdict: "PASS" | "FAIL" | "NOT_TESTED";
     crossIndustryReuseReasons: readonly string[];
   }>;
 }>;
@@ -55,6 +57,7 @@ export type CreativeCriticFindingCode =
   | "CONVENTIONAL_STACK"
   | "MOBILE_ART_DIRECTION_WEAK"
   | "MOTION_PURPOSE_WEAK"
+  | "BRAND_SWAP_NOT_TESTED"
   | "BRAND_SWAP_PORTABILITY_HIGH";
 
 export type CreativeCriticFinding = Readonly<{
@@ -65,8 +68,8 @@ export type CreativeCriticFinding = Readonly<{
 
 export type CreativeCriticReport = Readonly<{
   authority: "NEXUS_CREATIVE_CRITIC";
+  verdict: VerdictState;
   approved: boolean;
-  score: number;
   findings: readonly CreativeCriticFinding[];
   referenceEntryIds: readonly string[];
 }>;
@@ -114,8 +117,8 @@ function validateContract(contract: CreativeExecutionContract): void {
     throw new Error("creative execution contract contains malformed string lists");
   }
   if (!Array.isArray(contract.conventionalPatterns)) throw new Error("conventionalPatterns must be an array");
-  if (!Number.isFinite(contract.adversarial.brandSwapSurvivalScore) || contract.adversarial.brandSwapSurvivalScore < 0 || contract.adversarial.brandSwapSurvivalScore > 1) {
-    throw new Error("brandSwapSurvivalScore must be in [0,1]");
+  if (!["PASS", "FAIL", "NOT_TESTED"].includes(contract.adversarial.brandSwapVerdict)) {
+    throw new Error("brandSwapVerdict must be PASS, FAIL, or NOT_TESTED");
   }
 }
 
@@ -131,8 +134,8 @@ export class NexusCreativeCritic {
     } catch (error) {
       return Object.freeze({
         authority: "NEXUS_CREATIVE_CRITIC",
+        verdict: "FAIL",
         approved: false,
-        score: 0,
         findings: Object.freeze([finding("INVALID_CONTRACT", error instanceof Error ? error.message : "invalid contract")]),
         referenceEntryIds: Object.freeze([]),
       });
@@ -147,6 +150,7 @@ export class NexusCreativeCritic {
         ? `missing declared gallery references: ${missing.join(", ")}`
         : "at least two traceable Creative Gallery/Vault references are required"));
     }
+
     const wrongScope = resolved.filter((entry) => entry.scope.tenantId !== contract.scope.tenantId || entry.scope.brandId !== contract.scope.brandId);
     if (wrongScope.length) findings.push(finding("REFERENCE_SCOPE_MISMATCH", `out-of-scope references: ${wrongScope.map((entry) => entry.entryId).sort(lexicalCompare).join(", ")}`));
     if (unique(contract.referencePrinciples).length < 2) findings.push(finding("REFERENCE_PRINCIPLES_INSUFFICIENT", "references must be translated into at least two reusable principles; copying surface styling does not count"));
@@ -174,16 +178,21 @@ export class NexusCreativeCritic {
     if (unique(contract.motionPurpose).length < 2) findings.push(finding("MOTION_PURPOSE_WEAK", "motion needs at least two explicit communicative purposes"));
 
     const reuseReasons = unique(contract.adversarial.crossIndustryReuseReasons);
-    if (contract.adversarial.brandSwapSurvivalScore > 0.55 || reuseReasons.length >= 2) {
-      findings.push(finding("BRAND_SWAP_PORTABILITY_HIGH", `brand-swap portability is too high (${contract.adversarial.brandSwapSurvivalScore.toFixed(2)})${reuseReasons.length ? `: ${reuseReasons.join("; ")}` : ""}`));
+    if (contract.adversarial.brandSwapVerdict === "NOT_TESTED") {
+      findings.push(finding("BRAND_SWAP_NOT_TESTED", "brand-swap adversarial test must run before approval"));
+    } else if (contract.adversarial.brandSwapVerdict === "FAIL" || reuseReasons.length >= 2) {
+      findings.push(finding("BRAND_SWAP_PORTABILITY_HIGH", reuseReasons.length
+        ? `brand-swap adversarial test failed: ${reuseReasons.join("; ")}`
+        : "brand-swap adversarial test failed"));
     }
 
-    const blockers = findings.filter((item) => item.severity === "BLOCK").length;
-    const score = Math.max(0, Math.round((1 - blockers / 12) * 100));
+    const blockers = findings.filter((item) => item.severity === "BLOCK");
+    const warnings = findings.filter((item) => item.severity === "WARN");
+    const verdict: VerdictState = blockers.length ? "FAIL" : warnings.length ? "WARNING" : "PASS";
     return Object.freeze({
       authority: "NEXUS_CREATIVE_CRITIC",
-      approved: blockers === 0,
-      score,
+      verdict,
+      approved: verdict === "PASS",
       findings: Object.freeze(findings.sort((a, b) => lexicalCompare(a.code, b.code))),
       referenceEntryIds: Object.freeze(resolved.map((entry) => entry.entryId).sort(lexicalCompare)),
     });
