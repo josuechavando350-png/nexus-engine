@@ -27,14 +27,30 @@ function dna(scaleContrast: number, cinematicity: number, angularity: number): E
 const accent = { lightness: 0.62, chroma: 0.19, hue: 28 } as const;
 
 describe("DNA to CSS emitter", () => {
-  it("emits byte-identical CSS for the same DNA and accent", async () => {
+  it("emits byte-identical, complete CSS for the same DNA and accent", async () => {
     const input = { dna: dna(0.85, 0.8, 0.7), accent };
     const first = await emitExperienceCss(input);
     const second = await emitExperienceCss(input);
+
     expect(second.css).toBe(first.css);
     expect(second.tokenManifest).toEqual(first.tokenManifest);
-    expect(first.css).toContain("--nexus-type-step-5");
+    expect(Object.keys(first.tokenManifest)).toHaveLength(39);
+    expect(first.css).toContain(":root");
     expect(first.css).toContain("oklch(");
+    expect(first.css).not.toMatch(/20\d{2}-\d{2}-\d{2}T\d{2}:/);
+    expect(first.css).not.toMatch(/generated\s+(at|on)/i);
+
+    for (const [token, value] of Object.entries(first.tokenManifest)) {
+      expect(first.css, `missing CSS variable for ${token}`).toContain(`--nexus-${token}`);
+      expect(first.css, `missing emitted value for ${token}`).toContain(value);
+    }
+  });
+
+  it("emits strictly increasing type and spacing scales", async () => {
+    const output = await emitExperienceCss({ dna: dna(0.75, 0.5, 0.5), accent });
+    const numeric = (key: string): number => Number.parseFloat(output.tokenManifest[key] ?? "NaN");
+    for (let i = 1; i < 6; i += 1) expect(numeric(`type-step-${i}`)).toBeGreaterThan(numeric(`type-step-${i - 1}`));
+    for (let i = 1; i < 8; i += 1) expect(numeric(`space-${i}`)).toBeGreaterThan(numeric(`space-${i - 1}`));
   });
 
   it("produces materially different scales for different DNA", async () => {
@@ -49,5 +65,7 @@ describe("DNA to CSS emitter", () => {
 
   it("rejects invalid accent input instead of silently normalizing it", async () => {
     await expect(emitExperienceCss({ dna: dna(0.5, 0.5, 0.5), accent: { lightness: 1.2, chroma: 0.2, hue: 20 } })).rejects.toThrow(/lightness/);
+    await expect(emitExperienceCss({ dna: dna(0.5, 0.5, 0.5), accent: { lightness: 0.5, chroma: -0.01, hue: 20 } })).rejects.toThrow(/chroma/);
+    await expect(emitExperienceCss({ dna: dna(0.5, 0.5, 0.5), accent: { lightness: 0.5, chroma: 0.1, hue: 360 } })).rejects.toThrow(/hue/);
   });
 });
