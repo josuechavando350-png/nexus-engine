@@ -26,11 +26,13 @@ export interface DnaContentConstraints {
   constraints: readonly DerivedContentConstraint[];
 }
 
+const BUSINESS_GOALS = new Set<BusinessGoal>(["BOOK", "BUY", "VISIT", "INQUIRE", "TRUST", "SUBSCRIBE"]);
 const uniqueSorted = (values: readonly string[]): readonly string[] => Object.freeze([...new Set(values)].sort((a, b) => a.localeCompare(b, "en")));
 
 function assertProfile(profile: BusinessContentProfile): void {
   if (!profile.businessType.trim()) throw new Error("businessType is required");
   if (!profile.goals.length) throw new Error("at least one business goal is required");
+  if (profile.goals.some((goal) => !BUSINESS_GOALS.has(goal))) throw new Error("business goals contain an unsupported value");
   if (new Set(profile.goals).size !== profile.goals.length) throw new Error("business goals cannot contain duplicates");
   if (profile.differentiators.some((value) => !value.trim())) throw new Error("differentiators cannot contain empty values");
 }
