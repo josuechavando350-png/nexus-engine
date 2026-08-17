@@ -1,0 +1,75 @@
+name: NEXUS Real Browser Capture Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/capture/**"
+      - "packages/experience/**"
+      - "packages/emitter/**"
+      - ".github/workflows/quality-browser-capture.yml"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/capture/**"
+      - "packages/experience/**"
+      - "packages/emitter/**"
+      - ".github/workflows/quality-browser-capture.yml"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  real-browser-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install real browser engines
+        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
+
+      - name: Capture Chromium and WebKit evidence
+        env:
+          NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
+        run: pnpm --filter @nexus/capture test:browser
+
+      - name: Verify persisted evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/browser-capture"
+          test -f "$root/capture-manifest.json"
+          png_count="$(find "$root" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
+          axe_count="$(find "$root" -maxdepth 1 -type f -name '*-axe.json' | wc -l | tr -d ' ')"
+          test "$png_count" = "6"
+          test "$axe_count" = "6"
+          find "$root" -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
+          test -s "$root/artifact-checksums.sha256"
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Upload real browser evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-real-browser-evidence-${{ github.sha }}
+          path: artifacts/browser-capture
+          if-no-files-found: error
+          retention-days: 90
