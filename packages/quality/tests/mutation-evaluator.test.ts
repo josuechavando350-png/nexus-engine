@@ -42,6 +42,7 @@ function review(attackId: MutationVisualReview["attackId"], target: BrowserMutat
     reviewerType: "HUMAN",
     reviewerId: "designer-a",
     rubricVersion: "mutation-rubric-v1",
+    rubricDigest: `sha256:${"e".repeat(64)}`,
     reviewedAt: "2026-08-17T08:00:00.000Z",
     evidenceDigests: [target.screenshotDigest, target.diagnosticsDigest],
   };
@@ -60,7 +61,7 @@ describe("browser mutation evidence evaluator", () => {
     expect(report.findings.some((finding) => finding.includes("identity survival requires"))).toBe(true);
   });
 
-  it("can PASS brand swap, industry transplant and grayscale only with reviews bound to exact mutation digests", () => {
+  it("can PASS brand swap, industry transplant and grayscale only with reviews bound to exact mutation and rubric digests", () => {
     const brand = artifact("BRAND_SWAP");
     const industry = artifact("INDUSTRY_TRANSPLANT");
     const grayscale = artifact("GRAYSCALE");
@@ -74,6 +75,7 @@ describe("browser mutation evidence evaluator", () => {
     expect(report.verdicts.INDUSTRY_TRANSPLANT).toBe("PASS");
     expect(report.verdicts.GRAYSCALE).toBe("PASS");
     expect(report.evidence.BRAND_SWAP).toContain(brand.screenshotDigest);
+    expect(report.evidence.BRAND_SWAP).toContain(`sha256:${"e".repeat(64)}`);
   });
 
   it("rejects stale visual review evidence instead of approving a newer mutation", () => {
@@ -82,6 +84,14 @@ describe("browser mutation evidence evaluator", () => {
     const report = evaluateBrowserMutationEvidence([...objectiveArtifacts(), brand], { maxHorizontalOverflowPx: 1, minimumVisibleElements: 1 }, [staleReview]);
     expect(report.verdicts.BRAND_SWAP).toBe("FAIL");
     expect(report.findings.some((finding) => finding.includes("not bound to current mutation evidence"))).toBe(true);
+  });
+
+  it("rejects a visual review whose rubric identity is only a mutable label", () => {
+    const brand = artifact("BRAND_SWAP");
+    const mutableRubricReview = { ...review("BRAND_SWAP", brand), rubricDigest: "rubric-v1" as MutationVisualReview["rubricDigest"] };
+    const report = evaluateBrowserMutationEvidence([...objectiveArtifacts(), brand], { maxHorizontalOverflowPx: 1, minimumVisibleElements: 1 }, [mutableRubricReview]);
+    expect(report.verdicts.BRAND_SWAP).toBe("FAIL");
+    expect(report.findings.some((finding) => finding.includes("rubricDigest must be a canonical SHA-256"))).toBe(true);
   });
 
   it("requires multimodal provenance for model-based mutation reviews", () => {
