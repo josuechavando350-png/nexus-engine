@@ -23,15 +23,30 @@ on:
 permissions:
   contents: read
 
+env:
+  NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   real-browser-evidence:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Checkout exact revision
+      - name: Checkout exact source revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+      - name: Assert exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$NEXUS_VALIDATED_SHA" || {
+            echo "Source SHA mismatch: expected $NEXUS_VALIDATED_SHA, checkout is $actual" >&2
+            exit 1
+          }
+          mkdir -p artifacts/browser-capture
+          printf '%s\n' "$actual" > artifacts/browser-capture/validated-source-sha.txt
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -54,6 +69,9 @@ jobs:
           set -euo pipefail
           root="artifacts/browser-capture"
           mutations="$root/mutations"
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test -f "$root/validated-source-sha.txt"
+          test "$(tr -d '\n\r' < "$root/validated-source-sha.txt")" = "$NEXUS_VALIDATED_SHA"
           test -f "$root/capture-manifest.json"
           test "$(find "$root" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
           test "$(find "$root" -maxdepth 1 -type f -name '*-axe.json' | wc -l | tr -d ' ')" = "6"
@@ -114,7 +132,7 @@ jobs:
       - name: Upload real browser evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nexus-real-browser-evidence-${{ github.sha }}
+          name: nexus-real-browser-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/browser-capture
           if-no-files-found: error
           retention-days: 90
