@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { chromium, webkit, type BrowserType, type Page } from "playwright";
 import type { MetricSample } from "../measurement/index";
+import { measureApca } from "./apca-audit";
 import { extractDesignGenome } from "./design-genome";
 import {
   captureRequestId,
@@ -85,7 +86,7 @@ async function performanceSamples(page: Page, prefix: string): Promise<MetricSam
 
 export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCapturePort {
   readonly adapterId = "nexus.playwright-browser-capture";
-  readonly adapterVersion = "1.1.0";
+  readonly adapterVersion = "1.2.0";
 
   private readonly outputDir: string;
   private readonly browsers: readonly SupportedBrowser[];
@@ -200,6 +201,33 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
                 samples.push({ name: `${prefix}.genome_visible_elements`, unit: "count", value: genome.visibleElementCount });
                 samples.push({ name: `${prefix}.genome_font_families`, unit: "count", value: genome.typography.familyCount });
                 samples.push({ name: `${prefix}.genome_media_area_ratio`, unit: "ratio", value: genome.media.mediaAreaRatio });
+              }
+
+              if (request.capabilities.includes("CONTRAST")) {
+                const contrast = await measureApca(page);
+                const bytes = Buffer.from(`${JSON.stringify(contrast, null, 2)}\n`, "utf8");
+                const path = resolve(this.outputDir, `${safeSegment(requestId)}-${prefix}-apca.json`);
+                await writeFile(path, bytes);
+                artifacts.push(createCaptureArtifact({
+                  runId: request.run.runId,
+                  scope: request.scope,
+                  capability: "CONTRAST",
+                  mediaType: "application/vnd.nexus.apca+json",
+                  digest: sha256(bytes),
+                  byteLength: bytes.byteLength,
+                  capturedAt: this.clock(),
+                  uri: path,
+                  metadata: Object.freeze({
+                    browser: browserName,
+                    viewport: viewport.name,
+                    algorithm: contrast.algorithm,
+                    library: `${contrast.library}@${contrast.libraryVersion}`,
+                    observationCount: String(contrast.observations.length),
+                    unsupportedCount: String(contrast.unsupportedCount),
+                  }),
+                }));
+                samples.push({ name: `${prefix}.apca_observations`, unit: "count", value: contrast.observations.length });
+                samples.push({ name: `${prefix}.apca_unsupported`, unit: "count", value: contrast.unsupportedCount });
               }
 
               if (request.capabilities.includes("PERFORMANCE")) {
