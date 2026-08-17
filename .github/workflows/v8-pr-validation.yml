@@ -170,22 +170,34 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          assert_clean() {
+            label="$1"
+            status="$(git status --porcelain --untracked-files=no)"
+            if [ -n "$status" ]; then
+              mkdir -p artifacts/security
+              printf '%s\n' "$status" | tee "artifacts/security/tracked-mutation-${label}.txt" >&2
+              git diff --name-status | tee "artifacts/security/tracked-mutation-${label}-names.txt" >&2 || true
+              git diff | tee "artifacts/security/tracked-mutation-${label}.patch" >&2 || true
+              echo "Tracked mutation detected after ${label}" >&2
+              exit 1
+            fi
+          }
           pnpm v3-gates
+          assert_clean v3
           pnpm v4-gates
+          assert_clean v4
           pnpm v5-gates
+          assert_clean v5
           pnpm v6-gates
+          assert_clean v6
           pnpm v7-gates
+          assert_clean v7
           pnpm v8-gates
+          assert_clean v8
           pnpm v9-gates
+          assert_clean v9
           pnpm v10-gates
-          status="$(git status --porcelain --untracked-files=no)"
-          if [ -n "$status" ]; then
-            echo "Tracked mutation detected after Architecture gates V3→V10:" >&2
-            printf '%s\n' "$status" >&2
-            git diff --name-status >&2 || true
-            git diff >&2 || true
-            exit 1
-          fi
+          assert_clean v10
 
       - name: Rust tests
         shell: bash
