@@ -37,7 +37,7 @@ const DEFAULT_POLICY: VisualJudgePolicy = Object.freeze({
   requiredBrowsers: Object.freeze(["chromium", "webkit"]),
   requiredViewports: Object.freeze(["mobile-390", "tablet-768", "desktop-1440"]),
   requireDesignGenome: true,
-  allowedReviewerTypes: Object.freeze(["HUMAN", "MULTIMODAL_MODEL"]),
+  allowedReviewerTypes: Object.freeze(["HUMAN", "MULTIMODAL_MODEL"] as const),
 });
 
 function key(browser: string, viewport: string): string {
