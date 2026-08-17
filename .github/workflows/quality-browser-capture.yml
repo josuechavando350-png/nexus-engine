@@ -32,40 +32,34 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           fetch-depth: 0
-
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
-
       - name: Enable pinned pnpm
         run: |
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
-
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
-
       - name: Install real browser engines
         run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
-
       - name: Capture Chromium and WebKit evidence
         env:
           NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
         run: pnpm --filter @nexus/capture test:browser
-
       - name: Verify persisted evidence
         shell: bash
         run: |
           set -euo pipefail
           root="artifacts/browser-capture"
+          mutations="$root/mutations"
           test -f "$root/capture-manifest.json"
-          png_count="$(find "$root" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
-          axe_count="$(find "$root" -maxdepth 1 -type f -name '*-axe.json' | wc -l | tr -d ' ')"
-          genome_count="$(find "$root" -maxdepth 1 -type f -name '*-design-genome.json' | wc -l | tr -d ' ')"
-          test "$png_count" = "6"
-          test "$axe_count" = "6"
-          test "$genome_count" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*-axe.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*-design-genome.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "6"
           node - <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
@@ -78,11 +72,18 @@ jobs:
             if (!Array.isArray(data.typography?.fontSizePx) || !data.typography.fontSizePx.length) process.exit(1);
             if (!data.layout || !data.motion || !data.geometry || !data.media || !data.rhythm) process.exit(1);
           }
+          const mutationsRoot = path.join(root, 'mutations');
+          const expected = new Set(['GRAYSCALE','MOTION_REMOVAL','VIEWPORT_TORTURE_NARROW','VIEWPORT_TORTURE_WIDE','CONTENT_STRESS','ASSET_DEGRADATION']);
+          for (const name of fs.readdirSync(mutationsRoot).filter((name) => name.endsWith('.json'))) {
+            const data = JSON.parse(fs.readFileSync(path.join(mutationsRoot, name), 'utf8'));
+            if (data.schemaVersion !== 1 || !expected.delete(data.mutationId)) process.exit(1);
+            if (!data.diagnostics || !Number.isFinite(data.diagnostics.horizontalOverflowPx) || !Number.isFinite(data.diagnostics.visibleElementCount) || data.diagnostics.visibleElementCount <= 0) process.exit(1);
+          }
+          if (expected.size) process.exit(1);
           NODE
-          find "$root" -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
+          find "$root" -type f -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
           test -s "$root/artifact-checksums.sha256"
           test -z "$(git status --porcelain --untracked-files=no)"
-
       - name: Upload real browser evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
