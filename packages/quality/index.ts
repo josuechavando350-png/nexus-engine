@@ -4,3 +4,4 @@ export * from "./visual-judge";
 export * from "./opening-tournament";
 export * from "./mutation-evaluator";
 export * from "./quality-cycle";
+export * from "./excess-removal";
