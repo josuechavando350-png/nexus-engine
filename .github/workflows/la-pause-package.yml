@@ -12,42 +12,83 @@ permissions:
 jobs:
   package:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - name: Prepare deployable monorepo bundle
+
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+
+      - name: Activate pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - name: Prepare Vercel-ready root app
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p bundle/apps bundle/packages
-          cp package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json eslint.config.mjs vitest.config.ts bundle/
-          cp -R apps/la-pause bundle/apps/la-pause
+          rm -rf bundle
+          mkdir -p bundle/packages
+
+          # Put the actual Next.js app at the archive root so Vercel detects Next.js.
+          cp -R apps/la-pause/. bundle/
           cp -R packages/core bundle/packages/core
           cp -R packages/experience bundle/packages/experience
           cp -R packages/config bundle/packages/config
+
+          # The app moved from apps/la-pause to bundle root, so fix its shared TS config path.
+          sed -i 's#../../packages/config/tsconfig.base.json#./packages/config/tsconfig.base.json#' bundle/tsconfig.json
+
+          cat > bundle/pnpm-workspace.yaml <<'YAML'
+          packages:
+            - 'packages/*'
+          YAML
+
           cat > bundle/vercel.json <<'JSON'
           {
             "$schema": "https://openapi.vercel.sh/vercel.json",
             "framework": "nextjs",
             "installCommand": "pnpm install --frozen-lockfile",
-            "buildCommand": "pnpm --filter @nexus/la-pause build"
+            "buildCommand": "pnpm build"
           }
           JSON
-          cat > bundle/VERCEL-README.txt <<'TXT'
-          LA PAUSE — Vercel bundle
 
-          Recommended Vercel project settings:
-          Root Directory: apps/la-pause
-          Framework Preset: Next.js
+          cat > bundle/VERCEL-README.txt <<'TXT'
+          LA PAUSE — Vercel-ready upload
+
+          Upload THIS ZIP directly. Do not set a Root Directory.
+          Framework Preset: Next.js (auto-detected)
           Install Command: pnpm install --frozen-lockfile
           Build Command: pnpm build
 
-          If uploading this bundle as a repository/archive, keep the monorepo structure intact because apps/la-pause uses workspace packages @nexus/core and @nexus/experience.
+          This package places the Next.js app at the archive root while retaining
+          @nexus/core and @nexus/experience as local workspace packages.
           TXT
-      - name: Upload LA PAUSE source bundle
+
+      - name: Generate bundle lockfile
+        working-directory: bundle
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Verify frozen install
+        working-directory: bundle
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify production build
+        working-directory: bundle
+        run: pnpm build
+
+      - name: Remove generated build/install directories
+        shell: bash
+        run: rm -rf bundle/node_modules bundle/.next bundle/packages/*/node_modules
+
+      - name: Upload LA PAUSE Vercel bundle
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: la-pause-vercel-source
+          name: la-pause-vercel-ready
           path: bundle
           if-no-files-found: error
           retention-days: 30
