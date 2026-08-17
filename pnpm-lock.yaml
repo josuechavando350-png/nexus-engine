@@ -350,6 +350,25 @@ importers:
 
   packages/ontology: {}
 
+  packages/quality:
+    dependencies:
+      '@nexus/capture':
+        specifier: workspace:*
+        version: link:../capture
+      '@nexus/creative':
+        specifier: workspace:*
+        version: link:../creative
+      '@nexus/experience':
+        specifier: workspace:*
+        version: link:../experience
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.3
+      vitest:
+        specifier: ^4.0.0
+        version: 4.1.10(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3))
+
 packages:
 
   '@axe-core/playwright@4.13.0':
