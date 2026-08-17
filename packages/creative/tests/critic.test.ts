@@ -47,7 +47,7 @@ function base(overrides: Partial<CreativeExecutionContract> = {}): CreativeExecu
     mobileTransformationSignals: ["sequence changes", "signature object changes scale"],
     motionPurpose: ["show progression", "connect spatial states"],
     signatureMechanicPlacements: ["entry", "decision", "conversion"],
-    adversarial: { brandSwapSurvivalScore: 0.18, crossIndustryReuseReasons: [] },
+    adversarial: { brandSwapVerdict: "PASS", crossIndustryReuseReasons: [] },
     ...overrides,
   };
 }
@@ -56,7 +56,8 @@ describe("NEXUS Creative Critic", () => {
   it("approves a reference-grounded, business-specific execution contract", () => {
     const report = new NexusCreativeCritic().evaluate(base(), refs);
     expect(report.approved).toBe(true);
-    expect(report.score).toBe(100);
+    expect(report.verdict).toBe("PASS");
+    expect(report).not.toHaveProperty("score");
     expect(report.referenceEntryIds).toEqual(["ref-a", "ref-b"]);
   });
 
@@ -69,11 +70,12 @@ describe("NEXUS Creative Critic", () => {
       conventionalPatterns: ["NAV", "HERO_OVERLAY", "TEXT_IMAGE_SPLIT", "FEATURE_CARDS", "CONTACT_FOOTER"],
       signatureMechanicPlacements: ["hero"],
       adversarial: {
-        brandSwapSurvivalScore: 0.88,
+        brandSwapVerdict: "FAIL",
         crossIndustryReuseReasons: ["replace food photography and copy", "same editorial grid works for fashion or hospitality"],
       },
     }), refs);
     expect(report.approved).toBe(false);
+    expect(report.verdict).toBe("FAIL");
     expect(report.findings.map((item) => item.code)).toEqual(expect.arrayContaining([
       "BUSINESS_SPECIFICITY_LOW",
       "SIGNATURE_MECHANIC_WEAK",
@@ -91,13 +93,22 @@ describe("NEXUS Creative Critic", () => {
       conventionalPatterns: ["PILL_NAV", "HERO_OVERLAY", "TEXT_IMAGE_SPLIT", "CTA_BAND"],
       signatureMechanicPlacements: ["hero"],
       adversarial: {
-        brandSwapSurvivalScore: 0.91,
+        brandSwapVerdict: "FAIL",
         crossIndustryReuseReasons: ["replace cafe photos with hotel photos", "same split layout works for restaurant or real estate"],
       },
     }), refs);
     expect(report.approved).toBe(false);
+    expect(report.verdict).toBe("FAIL");
     expect(report.findings.map((item) => item.code)).toContain("CONVENTIONAL_STACK");
     expect(report.findings.map((item) => item.code)).toContain("BRAND_SWAP_PORTABILITY_HIGH");
+  });
+
+  it("blocks approval when brand-swap testing was not executed", () => {
+    const report = new NexusCreativeCritic().evaluate(base({
+      adversarial: { brandSwapVerdict: "NOT_TESTED", crossIndustryReuseReasons: [] },
+    }), refs);
+    expect(report.verdict).toBe("FAIL");
+    expect(report.findings.map((item) => item.code)).toContain("BRAND_SWAP_NOT_TESTED");
   });
 
   it("rejects creative approval when the private Gallery/Vault evidence is missing", () => {
