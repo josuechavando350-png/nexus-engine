@@ -1,0 +1,22 @@
+{
+  "engine": "NEXUS",
+  "schemaVersion": 1,
+  "project": "la-pause-demo",
+  "brand": {
+    "name": "LA PAUSE",
+    "contact": "55 4532 9255",
+    "phoneHref": "tel:+525545329255",
+    "whatsappHref": "https://wa.me/525545329255",
+    "menuHref": "https://lapause.mx/menu/",
+    "identity": ["rojo profundo", "crema cálido", "pausa", "sobremesa", "cocina mexicana", "fotografía real"]
+  },
+  "experienceDNA": {
+    "visualThesis": "La web hace una pausa antes de vender: silencio tipográfico al inicio, comida real después y una sobremesa visual que conduce a reservar.",
+    "hero": {"photo": false, "wordmarkDominance": true, "prompt": "TÓMATE 10 SEGUNDOS"},
+    "mediaRole": "documentary",
+    "composition": ["large negative space", "asymmetric editorial crops", "continuous dining rhythm", "no card grid"],
+    "motion": ["slow reveal", "subtle drift only when motion is allowed"],
+    "mobile": "single-column editorial sequence preserving identity, not stacked desktop cards"
+  },
+  "forbiddenPatterns": ["decorative 01/02/03 numbering", "gratuitous arrows", "eyebrow-label repetition", "feature cards", "generic hero with food photo background", "generic restaurant section stack", "gradient decoration", "glassmorphism", "pill navigation", "repeated split text-image sections"]
+}
