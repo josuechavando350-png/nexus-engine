@@ -13,11 +13,12 @@
     "./mutation-evaluator": "./mutation-evaluator.ts",
     "./quality-cycle": "./quality-cycle.ts",
     "./excess-removal": "./excess-removal.ts",
-    "./criterion-memory": "./criterion-memory.ts"
+    "./criterion-memory": "./criterion-memory.ts",
+    "./structural-fingerprint": "./structural-fingerprint.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/quality/index.js && test -f dist/quality/index.d.ts && test -f dist/quality/red-team.js && test -f dist/quality/red-team.d.ts && test -f dist/quality/repair-loop.js && test -f dist/quality/repair-loop.d.ts && test -f dist/quality/visual-judge.js && test -f dist/quality/visual-judge.d.ts && test -f dist/quality/opening-generator.js && test -f dist/quality/opening-generator.d.ts && test -f dist/quality/opening-tournament.js && test -f dist/quality/opening-tournament.d.ts && test -f dist/quality/mutation-evaluator.js && test -f dist/quality/mutation-evaluator.d.ts && test -f dist/quality/quality-cycle.js && test -f dist/quality/quality-cycle.d.ts && test -f dist/quality/excess-removal.js && test -f dist/quality/excess-removal.d.ts && test -f dist/quality/criterion-memory.js && test -f dist/quality/criterion-memory.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/quality/index.js && test -f dist/quality/index.d.ts && test -f dist/quality/red-team.js && test -f dist/quality/red-team.d.ts && test -f dist/quality/repair-loop.js && test -f dist/quality/repair-loop.d.ts && test -f dist/quality/visual-judge.js && test -f dist/quality/visual-judge.d.ts && test -f dist/quality/opening-generator.js && test -f dist/quality/opening-generator.d.ts && test -f dist/quality/opening-tournament.js && test -f dist/quality/opening-tournament.d.ts && test -f dist/quality/mutation-evaluator.js && test -f dist/quality/mutation-evaluator.d.ts && test -f dist/quality/quality-cycle.js && test -f dist/quality/quality-cycle.d.ts && test -f dist/quality/excess-removal.js && test -f dist/quality/excess-removal.d.ts && test -f dist/quality/criterion-memory.js && test -f dist/quality/criterion-memory.d.ts && test -f dist/quality/structural-fingerprint.js && test -f dist/quality/structural-fingerprint.d.ts"
   },
   "dependencies": {
     "@nexus/capture": "workspace:*",
