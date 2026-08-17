@@ -26,9 +26,20 @@ export interface DeliveryCertificationResult {
   verifiedGates: readonly DeliveryGateName[];
 }
 
+const BASELINE_REQUIRED_SOURCES = Object.freeze(["CAPTURE", "QUALITY"] as const satisfies readonly EvidenceSource[]);
+const BASELINE_REQUIRED_GATES = Object.freeze([
+  "creative",
+  "visual",
+  "red-team",
+  "repair",
+  "accessibility",
+  "browser",
+  "build",
+] as const satisfies readonly DeliveryGateName[]);
+
 const DEFAULT_POLICY: DeliveryCertificationPolicy = Object.freeze({
-  requiredSources: Object.freeze(["CAPTURE", "QUALITY"] as const),
-  requiredGates: Object.freeze(["creative", "visual", "red-team", "repair", "accessibility", "browser", "build"] as const),
+  requiredSources: BASELINE_REQUIRED_SOURCES,
+  requiredGates: BASELINE_REQUIRED_GATES,
 });
 
 function assertSourceRevision(value: string): void {
@@ -38,6 +49,21 @@ function assertSourceRevision(value: string): void {
 function unique<T extends string>(values: readonly T[], label: string): void {
   if (!values.length) throw new Error(`${label} cannot be empty`);
   if (new Set(values).size !== values.length) throw new Error(`${label} cannot contain duplicates`);
+}
+
+function assertPolicyCannotDowngrade(policy: DeliveryCertificationPolicy): void {
+  unique(policy.requiredSources, "delivery requiredSources");
+  unique(policy.requiredGates, "delivery requiredGates");
+
+  const sources = new Set<EvidenceSource>(policy.requiredSources);
+  for (const source of BASELINE_REQUIRED_SOURCES) {
+    if (!sources.has(source)) throw new Error(`delivery policy cannot remove baseline required source ${source}`);
+  }
+
+  const gates = new Set<DeliveryGateName>(policy.requiredGates);
+  for (const gate of BASELINE_REQUIRED_GATES) {
+    if (!gates.has(gate)) throw new Error(`delivery policy cannot remove baseline required gate ${gate}`);
+  }
 }
 
 export function certifyDelivery(input: {
@@ -51,8 +77,7 @@ export function certifyDelivery(input: {
   const policy = input.policy ?? DEFAULT_POLICY;
   assertSourceRevision(input.sourceRevision);
   if (!input.tenantId.trim() || !input.projectId.trim()) throw new Error("delivery tenantId and projectId are required");
-  unique(policy.requiredSources, "delivery requiredSources");
-  unique(policy.requiredGates, "delivery requiredGates");
+  assertPolicyCannotDowngrade(policy);
 
   verifySignedEvidenceBundle(input.signedEvidence, input.publicKey);
   const bundle = input.signedEvidence.bundle;
