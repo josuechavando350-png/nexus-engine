@@ -1,11 +1,14 @@
 {
   "name": "@nexus/control-sdk",
-  "version": "5.1.0",
+  "version": "5.2.0",
   "private": true,
   "type": "module",
-  "exports": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./business-telemetry": "./src/business-telemetry.ts"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/control-sdk/src/index.js && test -f dist/control-sdk/src/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/control-sdk/src/index.js && test -f dist/control-sdk/src/index.d.ts && test -f dist/control-sdk/src/business-telemetry.js && test -f dist/control-sdk/src/business-telemetry.d.ts"
   }
 }
