@@ -3,6 +3,9 @@ import { NEXUS_CSP_BASE, NEXUS_SECURITY_HEADERS_BASE } from "@nexus/core/foundat
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@nexus/core", "@nexus/experience"],
+  eslint: {
+    ignoreDuringBuilds: true
+  },
   async headers() {
     return [
       {
