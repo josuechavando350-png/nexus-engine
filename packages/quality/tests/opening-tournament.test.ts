@@ -56,7 +56,7 @@ describe("NEXUS opening tournament", () => {
 
   it("rejects duplicate structural signatures disguised as three candidates", async () => {
     const duplicated = candidates.map((candidate) => ({ ...candidate, openingSignature: "same-template-opening" }));
-    await expect(runOpeningTournament({ duplicated, candidates: duplicated, evaluator: { evaluate: async (candidate) => evaluation(candidate.openingId) } } as never)).rejects.toThrow(/distinct structural signatures/);
+    await expect(runOpeningTournament({ duplicated, candidates: duplicated, evaluator: { evaluate: async (candidate: OpeningCandidate) => evaluation(candidate.openingId) } } as never)).rejects.toThrow(/distinct structural signatures/);
   });
 
   it("refuses fewer than three or more than five candidates", async () => {
