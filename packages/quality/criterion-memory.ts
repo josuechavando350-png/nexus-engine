@@ -70,6 +70,7 @@ export interface PriorLearningReport {
   authority: "NEXUS_EMITTER_PRIOR_LEARNING";
   status: PriorLearningStatus;
   minimumProjects: number;
+  minimumApprovedProjects: number;
   observedProjects: number;
   approvedWithoutCorrectionProjects: number;
   featureMeans: Readonly<Record<string, number>>;
@@ -193,20 +194,24 @@ export function learnEmitterPriors(input: {
   observations: readonly PriorObservation[];
   tenantId: string;
   minimumProjects?: number;
+  minimumApprovedProjects?: number;
 }): PriorLearningReport {
   const minimumProjects = input.minimumProjects ?? 20;
+  const minimumApprovedProjects = input.minimumApprovedProjects ?? Math.max(1, Math.ceil(minimumProjects / 2));
   if (!Number.isInteger(minimumProjects) || minimumProjects < 1) throw new Error("minimumProjects must be a positive integer");
+  if (!Number.isInteger(minimumApprovedProjects) || minimumApprovedProjects < 1 || minimumApprovedProjects > minimumProjects) throw new Error("minimumApprovedProjects must be a positive integer no greater than minimumProjects");
   if (!input.tenantId.trim()) throw new Error("tenantId is required");
   input.observations.forEach(assertObservation);
   const scoped = input.observations.filter((observation) => observation.tenantId === input.tenantId);
   const projectIds = new Set(scoped.map((observation) => observation.projectId));
   const approvedProjects = new Set(scoped.filter((observation) => observation.approvedWithoutCorrection).map((observation) => observation.projectId));
 
-  if (projectIds.size < minimumProjects) {
+  if (projectIds.size < minimumProjects || approvedProjects.size < minimumApprovedProjects) {
     return Object.freeze({
       authority: "NEXUS_EMITTER_PRIOR_LEARNING",
       status: "NOT_ENOUGH_HISTORY",
       minimumProjects,
+      minimumApprovedProjects,
       observedProjects: projectIds.size,
       approvedWithoutCorrectionProjects: approvedProjects.size,
       featureMeans: Object.freeze({}),
@@ -235,6 +240,7 @@ export function learnEmitterPriors(input: {
     authority: "NEXUS_EMITTER_PRIOR_LEARNING",
     status: "READY",
     minimumProjects,
+    minimumApprovedProjects,
     observedProjects: projectIds.size,
     approvedWithoutCorrectionProjects: approvedProjects.size,
     featureMeans: means(featureBuckets),
