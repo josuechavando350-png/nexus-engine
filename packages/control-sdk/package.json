@@ -1,1 +1,15 @@
-{"name":"@nexus/control-sdk","version":"5.0.0","private":true,"type":"module","exports":"./src/index.ts"}
+{
+  "name": "@nexus/control-sdk",
+  "version": "5.1.0",
+  "private": true,
+  "type": "module",
+  "exports": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/control-sdk/src/index.js && test -f dist/control-sdk/src/index.d.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^4.0.0"
+  }
+}
