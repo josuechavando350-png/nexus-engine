@@ -1,0 +1,114 @@
+name: LA PAUSE Vercel bundle
+
+on:
+  push:
+    branches: ["client/la-pause-experience"]
+    paths:
+      - ".github/workflows/la-pause-package.yml"
+      - "apps/la-pause/**"
+      - "packages/core/**"
+      - "packages/experience/**"
+      - "packages/config/**"
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+
+      - name: Activate pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - name: Prepare Vercel-ready root app
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf bundle
+          mkdir -p bundle/packages
+          cp -R apps/la-pause/. bundle/
+          cp -R packages/core bundle/packages/core
+          cp -R packages/experience bundle/packages/experience
+          cp -R packages/config bundle/packages/config
+          sed -i 's#../../packages/config/tsconfig.base.json#./packages/config/tsconfig.base.json#' bundle/tsconfig.json
+
+          cat > bundle/pnpm-workspace.yaml <<'YAML'
+          packages:
+            - 'packages/*'
+          YAML
+
+          cat > bundle/vercel.json <<'JSON'
+          {
+            "$schema": "https://openapi.vercel.sh/vercel.json",
+            "framework": "nextjs",
+            "installCommand": "pnpm install --frozen-lockfile",
+            "buildCommand": "pnpm build"
+          }
+          JSON
+
+          cat > bundle/VERCEL-README.txt <<'TXT'
+          LA PAUSE — Vercel-ready upload
+
+          Upload THIS ZIP directly. Do not set a Root Directory.
+          Framework Preset: Next.js (auto-detected)
+          Install Command: pnpm install --frozen-lockfile
+          Build Command: pnpm build
+
+          This package places the Next.js app at the archive root while retaining
+          @nexus/core and @nexus/experience as local workspace packages.
+          TXT
+
+      - name: Generate bundle lockfile
+        working-directory: bundle
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+
+      - name: Verify frozen install
+        working-directory: bundle
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify production build
+        working-directory: bundle
+        run: pnpm build
+
+      - name: Smoke-test rendered page and CSP
+        working-directory: bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm start --hostname 127.0.0.1 --port 4173 > /tmp/la-pause-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ -o /tmp/la-pause.html; then
+              break
+            fi
+            sleep 1
+          done
+          curl --fail --silent --show-error -D /tmp/la-pause.headers http://127.0.0.1:4173/ -o /tmp/la-pause.html
+          grep -q 'LA PAUSE' /tmp/la-pause.html
+          grep -qi "content-security-policy:.*script-src.*'unsafe-inline'" /tmp/la-pause.headers
+          grep -qi "content-security-policy:.*style-src.*'unsafe-inline'" /tmp/la-pause.headers
+          test "$(wc -c < /tmp/la-pause.html)" -gt 10000
+
+      - name: Remove generated build/install directories
+        shell: bash
+        run: rm -rf bundle/node_modules bundle/.next bundle/packages/*/node_modules
+
+      - name: Upload LA PAUSE Vercel bundle
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: la-pause-vercel-ready
+          path: bundle
+          if-no-files-found: error
+          retention-days: 30
