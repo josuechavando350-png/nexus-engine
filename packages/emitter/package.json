@@ -8,7 +8,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/emitter/index.js && test -f dist/emitter/index.d.ts"
   },
   "dependencies": {
     "@nexus/experience": "workspace:*",
