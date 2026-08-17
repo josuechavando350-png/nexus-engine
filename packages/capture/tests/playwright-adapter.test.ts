@@ -6,8 +6,9 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createRun } from "../../measurement/index";
-import { validateCaptureResult, type CaptureRequest } from "../index";
+import { evaluateApcaPolicy, type ApcaAuditReport } from "../apca-audit";
 import type { DesignGenomeObservation } from "../design-genome";
+import { validateCaptureResult, type CaptureRequest } from "../index";
 import { PlaywrightBrowserDeviceCaptureAdapter } from "../playwright-adapter";
 
 function digest(bytes: Uint8Array): string {
@@ -31,9 +32,9 @@ const HTML = `<!doctype html>
 <body>
   <main>
     <article>
-      <p>Measured by a real browser, not a fixture payload.</p>
-      <h1>Evidence must exist on disk.</h1>
-      <button type="button" aria-label="Run evidence check">Run evidence check</button>
+      <p data-nexus-contrast-role="body">Measured by a real browser, not a fixture payload.</p>
+      <h1 data-nexus-contrast-role="headline">Evidence must exist on disk.</h1>
+      <button data-nexus-contrast-role="action" type="button" aria-label="Run evidence check">Run evidence check</button>
     </article>
   </main>
 </body>
@@ -68,24 +69,11 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     if (!preserveEvidence) await rm(outputDir, { recursive: true, force: true });
   });
 
-  it("opens Chromium and WebKit at 390/768/1440, persists PNG + axe + Design Genome evidence and hashes the real bytes", async () => {
+  it("opens Chromium and WebKit at 390/768/1440 and persists PNG + axe + Design Genome + APCA evidence with real-byte hashes", async () => {
     const scope = { tenantId: "tenant-real-capture", brandId: "brand-real-capture" };
     const run = createRun({
-      workload: {
-        id: "browser-capture-fixture",
-        version: "1",
-        scope,
-        name: "Real browser evidence capture",
-        parameters: { target: "local-http-fixture" },
-      },
-      environment: {
-        os: process.platform,
-        architecture: process.arch,
-        runtime: "node",
-        runtimeVersion: process.version,
-        deviceClass: "github-actions-or-local",
-        browser: "chromium+webkit",
-      },
+      workload: { id: "browser-capture-fixture", version: "1", scope, name: "Real browser evidence capture", parameters: { target: "local-http-fixture" } },
+      environment: { os: process.platform, architecture: process.arch, runtime: "node", runtimeVersion: process.version, deviceClass: "github-actions-or-local", browser: "chromium+webkit" },
       scope,
       startedAt: "2026-08-17T00:00:00.000Z",
     });
@@ -93,7 +81,7 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
       run,
       scope,
       targetId: targetUrl,
-      capabilities: ["SCREENSHOT", "ACCESSIBILITY", "DESIGN_GENOME", "PERFORMANCE"],
+      capabilities: ["SCREENSHOT", "ACCESSIBILITY", "DESIGN_GENOME", "CONTRAST", "PERFORMANCE"],
       metadata: { evidenceKind: "real-browser-ci" },
     };
     const adapter = new PlaywrightBrowserDeviceCaptureAdapter({
@@ -114,13 +102,16 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     const screenshots = result.artifacts.filter((artifact) => artifact.capability === "SCREENSHOT");
     const accessibility = result.artifacts.filter((artifact) => artifact.capability === "ACCESSIBILITY");
     const genomes = result.artifacts.filter((artifact) => artifact.capability === "DESIGN_GENOME");
+    const contrast = result.artifacts.filter((artifact) => artifact.capability === "CONTRAST");
     expect(screenshots).toHaveLength(6);
     expect(accessibility).toHaveLength(6);
     expect(genomes).toHaveLength(6);
+    expect(contrast).toHaveLength(6);
     expect(new Set(screenshots.map((artifact) => artifact.metadata?.browser))).toEqual(new Set(["chromium", "webkit"]));
     expect(new Set(screenshots.map((artifact) => artifact.metadata?.viewport))).toEqual(new Set(["mobile-390", "tablet-768", "desktop-1440"]));
 
     const observedGenomes: DesignGenomeObservation[] = [];
+    const observedContrast: ApcaAuditReport[] = [];
     for (const artifact of result.artifacts) {
       expect(artifact.uri).toBeTruthy();
       const bytes = await readFile(artifact.uri!);
@@ -141,6 +132,15 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
         expect(genome.geometry.borderRadiusPx.some((radius) => radius >= 18)).toBe(true);
         expect(genome.motion.animatedElementCount).toBeGreaterThan(0);
         expect(genome.motion.transitionDurationMs).toContain(180);
+      } else if (artifact.capability === "CONTRAST") {
+        const report = JSON.parse(bytes.toString("utf8")) as ApcaAuditReport;
+        observedContrast.push(report);
+        expect(report.algorithm).toBe("APCA");
+        expect(report.library).toBe("apca-w3");
+        expect(report.libraryVersion).toBe("0.1.9");
+        expect(report.observations.length).toBeGreaterThanOrEqual(3);
+        expect(report.observations.every((observation) => Number.isFinite(observation.lc))).toBe(true);
+        expect(report.observations.every((observation) => /^sha256:[a-f0-9]{64}$/.test(observation.textDigest))).toBe(true);
       }
     }
 
@@ -150,22 +150,19 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     expect(desktopGenome).toBeTruthy();
     expect(JSON.stringify(mobileGenome)).not.toBe(JSON.stringify(desktopGenome));
 
+    expect(observedContrast).toHaveLength(6);
+    const policyPass = evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { headline: 10, body: 10, action: 10 } });
+    expect(policyPass.verdict).toBe("PASS");
+    expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: {} }).verdict).toBe("NOT_TESTED");
+    expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { missing: 10 } }).verdict).toBe("FAIL");
+
     expect(result.samples.some((sample) => sample.name.endsWith("script_transfer_bytes") && sample.unit === "bytes")).toBe(true);
     expect(result.samples.some((sample) => sample.name.endsWith("axe_violations") && sample.unit === "count")).toBe(true);
     expect(result.samples.some((sample) => sample.name.endsWith("genome_visible_elements") && sample.unit === "count")).toBe(true);
+    expect(result.samples.some((sample) => sample.name.endsWith("apca_observations") && sample.unit === "count")).toBe(true);
     expect(result.samples.every((sample) => Number.isFinite(sample.value))).toBe(true);
 
-    const manifest = {
-      schemaVersion: 1,
-      adapterId: adapter.adapterId,
-      adapterVersion: adapter.adapterVersion,
-      requestId: result.requestId,
-      outcome: result.outcome,
-      browsers: ["chromium", "webkit"],
-      viewports: [390, 768, 1440],
-      artifacts: result.artifacts,
-      samples: result.samples,
-    };
+    const manifest = { schemaVersion: 1, adapterId: adapter.adapterId, adapterVersion: adapter.adapterVersion, requestId: result.requestId, outcome: result.outcome, browsers: ["chromium", "webkit"], viewports: [390, 768, 1440], artifacts: result.artifacts, samples: result.samples };
     await writeFile(join(outputDir, "capture-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   });
 
