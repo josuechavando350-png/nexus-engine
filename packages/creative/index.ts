@@ -4,6 +4,7 @@ export * from "./vault";
 export * from "./memory";
 export * from "./direction";
 export * from "./gallery";
+export * from "./reference-direction";
 export * from "./critic";
 export * from "./motion";
 export * from "./gpu";
