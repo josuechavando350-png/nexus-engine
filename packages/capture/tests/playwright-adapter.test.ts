@@ -7,6 +7,7 @@ import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createRun } from "../../measurement/index";
 import { validateCaptureResult, type CaptureRequest } from "../index";
+import type { DesignGenomeObservation } from "../design-genome";
 import { PlaywrightBrowserDeviceCaptureAdapter } from "../playwright-adapter";
 
 function digest(bytes: Uint8Array): string {
@@ -22,9 +23,9 @@ const HTML = `<!doctype html>
   <style>
     body { margin: 0; font-family: system-ui, sans-serif; background: #f7f5ef; color: #151515; }
     main { min-height: 120vh; display: grid; place-items: center; padding: 4rem 1.5rem; }
-    article { width: min(68rem, 100%); display: grid; gap: 2rem; }
+    article { width: min(68rem, 100%); display: grid; gap: 2rem; border-radius: 18px; }
     h1 { font-size: clamp(2.5rem, 9vw, 8rem); line-height: .9; margin: 0; max-width: 10ch; }
-    button { width: fit-content; padding: .8rem 1.2rem; font: inherit; }
+    button { width: fit-content; padding: .8rem 1.2rem; font: inherit; transition: transform 180ms ease; }
   </style>
 </head>
 <body>
@@ -67,7 +68,7 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     if (!preserveEvidence) await rm(outputDir, { recursive: true, force: true });
   });
 
-  it("opens Chromium and WebKit at 390/768/1440, persists PNG + axe evidence and hashes the real bytes", async () => {
+  it("opens Chromium and WebKit at 390/768/1440, persists PNG + axe + Design Genome evidence and hashes the real bytes", async () => {
     const scope = { tenantId: "tenant-real-capture", brandId: "brand-real-capture" };
     const run = createRun({
       workload: {
@@ -92,7 +93,7 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
       run,
       scope,
       targetId: targetUrl,
-      capabilities: ["SCREENSHOT", "ACCESSIBILITY", "PERFORMANCE"],
+      capabilities: ["SCREENSHOT", "ACCESSIBILITY", "DESIGN_GENOME", "PERFORMANCE"],
       metadata: { evidenceKind: "real-browser-ci" },
     };
     const adapter = new PlaywrightBrowserDeviceCaptureAdapter({
@@ -112,11 +113,14 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
 
     const screenshots = result.artifacts.filter((artifact) => artifact.capability === "SCREENSHOT");
     const accessibility = result.artifacts.filter((artifact) => artifact.capability === "ACCESSIBILITY");
+    const genomes = result.artifacts.filter((artifact) => artifact.capability === "DESIGN_GENOME");
     expect(screenshots).toHaveLength(6);
     expect(accessibility).toHaveLength(6);
+    expect(genomes).toHaveLength(6);
     expect(new Set(screenshots.map((artifact) => artifact.metadata?.browser))).toEqual(new Set(["chromium", "webkit"]));
     expect(new Set(screenshots.map((artifact) => artifact.metadata?.viewport))).toEqual(new Set(["mobile-390", "tablet-768", "desktop-1440"]));
 
+    const observedGenomes: DesignGenomeObservation[] = [];
     for (const artifact of result.artifacts) {
       expect(artifact.uri).toBeTruthy();
       const bytes = await readFile(artifact.uri!);
@@ -127,11 +131,28 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
       } else if (artifact.capability === "ACCESSIBILITY") {
         const parsed = JSON.parse(bytes.toString("utf8")) as { violations?: unknown[] };
         expect(Array.isArray(parsed.violations)).toBe(true);
+      } else if (artifact.capability === "DESIGN_GENOME") {
+        const genome = JSON.parse(bytes.toString("utf8")) as DesignGenomeObservation;
+        observedGenomes.push(genome);
+        expect(genome.schemaVersion).toBe(1);
+        expect(genome.visibleElementCount).toBeGreaterThan(3);
+        expect(genome.typography.fontSizePx.length).toBeGreaterThan(0);
+        expect(genome.typography.familyCount).toBeGreaterThan(0);
+        expect(genome.geometry.borderRadiusPx.some((radius) => radius >= 18)).toBe(true);
+        expect(genome.motion.animatedElementCount).toBeGreaterThan(0);
+        expect(genome.motion.transitionDurationMs).toContain(180);
       }
     }
 
+    const mobileGenome = observedGenomes.find((genome) => genome.viewport.width === 390);
+    const desktopGenome = observedGenomes.find((genome) => genome.viewport.width === 1440);
+    expect(mobileGenome).toBeTruthy();
+    expect(desktopGenome).toBeTruthy();
+    expect(JSON.stringify(mobileGenome)).not.toBe(JSON.stringify(desktopGenome));
+
     expect(result.samples.some((sample) => sample.name.endsWith("script_transfer_bytes") && sample.unit === "bytes")).toBe(true);
     expect(result.samples.some((sample) => sample.name.endsWith("axe_violations") && sample.unit === "count")).toBe(true);
+    expect(result.samples.some((sample) => sample.name.endsWith("genome_visible_elements") && sample.unit === "count")).toBe(true);
     expect(result.samples.every((sample) => Number.isFinite(sample.value))).toBe(true);
 
     const manifest = {
