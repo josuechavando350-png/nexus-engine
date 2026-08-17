@@ -1,6 +1,6 @@
 {
   "name": "@nexus/experience",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -13,11 +13,12 @@
     "./originality": "./originality.ts",
     "./adaptive-luxury": "./adaptive-luxury.ts",
     "./premium-capabilities": "./premium-capabilities.ts",
-    "./compiler": "./compiler.ts"
+    "./compiler": "./compiler.ts",
+    "./content-readiness": "./content-readiness.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/experience/index.js && test -f dist/experience/index.d.ts && test -f dist/experience/content-readiness.js && test -f dist/experience/content-readiness.d.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
