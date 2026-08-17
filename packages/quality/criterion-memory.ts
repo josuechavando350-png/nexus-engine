@@ -27,6 +27,7 @@ export interface CriterionMemoryEntry {
   emittedCssDigest: `sha256:${string}`;
   artifacts: readonly CriterionArtifactRef[];
   rubricVersion: string;
+  rubricDigest: `sha256:${string}`;
   judgeVerdict: CriterionVerdict;
   judgeFindings: readonly string[];
   humanDecision: HumanDecision;
@@ -50,6 +51,7 @@ export interface RubricRegressionCase {
 export interface RubricRegressionReport {
   authority: "NEXUS_CRITERION_REGRESSION";
   candidateRubricVersion: string;
+  candidateRubricDigest: `sha256:${string}`;
   historicalEntryCount: number;
   replayedEntryCount: number;
   promotable: boolean;
@@ -158,6 +160,7 @@ export function recordCriterionMemory(input: CriterionMemoryEntry): VersionedCri
   if (!canonicalTimestamp(input.recordedAt)) throw new Error("recordedAt must be a canonical ISO timestamp");
   assertSha256(input.dnaDigest, "dnaDigest");
   assertSha256(input.emittedCssDigest, "emittedCssDigest");
+  assertSha256(input.rubricDigest, "rubricDigest");
   assertCriterionVerdict(input.judgeVerdict, "judgeVerdict");
   assertCriterionVerdict(input.deliveryVerdict, "deliveryVerdict");
   if (!HUMAN_DECISIONS.includes(input.humanDecision)) throw new Error("humanDecision is invalid");
@@ -181,26 +184,33 @@ export function recordCriterionMemory(input: CriterionMemoryEntry): VersionedCri
 export function assertCriterionHistory(entries: readonly VersionedCriterionMemoryEntry[]): void {
   const ids = new Set<string>();
   const revisions = new Set<string>();
+  const rubricDigests = new Map<string, string>();
   for (const entry of entries) {
     if (ids.has(entry.entryId)) throw new Error(`duplicate criterion entry ${entry.entryId}`);
     ids.add(entry.entryId);
     const { entryId, ...unsignedEntry } = entry;
     const expected = digest(unsignedEntry);
     if (expected !== entryId) throw new Error(`criterion entry ${entryId} failed integrity verification`);
-    // Revalidate runtime shape as well as the content hash. A correctly re-hashed malformed object is still invalid evidence.
     recordCriterionMemory(unsignedEntry);
     const revisionKey = `${entry.tenantId}::${entry.projectId}::${entry.revision}`;
     if (revisions.has(revisionKey)) throw new Error(`duplicate project revision in criterion history: ${revisionKey}`);
     revisions.add(revisionKey);
+    const knownRubricDigest = rubricDigests.get(entry.rubricVersion);
+    if (knownRubricDigest && knownRubricDigest !== entry.rubricDigest) {
+      throw new Error(`rubric version ${entry.rubricVersion} is not immutable across criterion history`);
+    }
+    rubricDigests.set(entry.rubricVersion, entry.rubricDigest);
   }
 }
 
 export function replayRubricRegression(input: {
   candidateRubricVersion: string;
+  candidateRubricDigest: `sha256:${string}`;
   history: readonly VersionedCriterionMemoryEntry[];
   evaluate: (entry: VersionedCriterionMemoryEntry) => CriterionVerdict;
 }): RubricRegressionReport {
   if (!input.candidateRubricVersion.trim()) throw new Error("candidateRubricVersion is required");
+  assertSha256(input.candidateRubricDigest, "candidateRubricDigest");
   assertCriterionHistory(input.history);
   const violations: string[] = [];
   const cases: RubricRegressionCase[] = [];
@@ -220,6 +230,7 @@ export function replayRubricRegression(input: {
   return Object.freeze({
     authority: "NEXUS_CRITERION_REGRESSION",
     candidateRubricVersion: input.candidateRubricVersion,
+    candidateRubricDigest: input.candidateRubricDigest,
     historicalEntryCount: input.history.length,
     replayedEntryCount: cases.length,
     promotable: violations.length === 0,
