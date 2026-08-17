@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:watch": "vitest",
     "build": "node scripts/build-workspace.mjs && node scripts/assert-clean-build.mjs",
     "quality-gates": "node scripts/quality-gates.mjs",
