@@ -5,6 +5,10 @@ on:
     branches: ["client/la-pause-experience"]
     paths:
       - ".github/workflows/la-pause-package.yml"
+      - "apps/la-pause/**"
+      - "packages/core/**"
+      - "packages/experience/**"
+      - "packages/config/**"
 
 permissions:
   contents: read
