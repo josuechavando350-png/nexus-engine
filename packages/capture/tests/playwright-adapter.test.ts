@@ -10,6 +10,7 @@ import { evaluateApcaPolicy, type ApcaAuditReport } from "../apca-audit";
 import type { DesignGenomeObservation } from "../design-genome";
 import { validateCaptureResult, type CaptureRequest } from "../index";
 import { PlaywrightBrowserDeviceCaptureAdapter } from "../playwright-adapter";
+import { evaluateWebVitalsPolicy, type WebVitalsEvidence } from "../web-vitals";
 
 function digest(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -69,7 +70,7 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     if (!preserveEvidence) await rm(outputDir, { recursive: true, force: true });
   });
 
-  it("opens Chromium and WebKit at 390/768/1440 and persists PNG + axe + Design Genome + APCA evidence with real-byte hashes", async () => {
+  it("opens Chromium and WebKit at 390/768/1440 and persists PNG + axe + Design Genome + APCA + Web Vitals evidence with real-byte hashes", async () => {
     const scope = { tenantId: "tenant-real-capture", brandId: "brand-real-capture" };
     const run = createRun({
       workload: { id: "browser-capture-fixture", version: "1", scope, name: "Real browser evidence capture", parameters: { target: "local-http-fixture" } },
@@ -103,15 +104,18 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     const accessibility = result.artifacts.filter((artifact) => artifact.capability === "ACCESSIBILITY");
     const genomes = result.artifacts.filter((artifact) => artifact.capability === "DESIGN_GENOME");
     const contrast = result.artifacts.filter((artifact) => artifact.capability === "CONTRAST");
+    const performance = result.artifacts.filter((artifact) => artifact.capability === "PERFORMANCE");
     expect(screenshots).toHaveLength(6);
     expect(accessibility).toHaveLength(6);
     expect(genomes).toHaveLength(6);
     expect(contrast).toHaveLength(6);
+    expect(performance).toHaveLength(6);
     expect(new Set(screenshots.map((artifact) => artifact.metadata?.browser))).toEqual(new Set(["chromium", "webkit"]));
     expect(new Set(screenshots.map((artifact) => artifact.metadata?.viewport))).toEqual(new Set(["mobile-390", "tablet-768", "desktop-1440"]));
 
     const observedGenomes: DesignGenomeObservation[] = [];
     const observedContrast: ApcaAuditReport[] = [];
+    const observedVitals: WebVitalsEvidence[] = [];
     for (const artifact of result.artifacts) {
       expect(artifact.uri).toBeTruthy();
       const bytes = await readFile(artifact.uri!);
@@ -141,6 +145,18 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
         expect(report.observations.length).toBeGreaterThanOrEqual(3);
         expect(report.observations.every((observation) => Number.isFinite(observation.lc))).toBe(true);
         expect(report.observations.every((observation) => /^sha256:[a-f0-9]{64}$/.test(observation.textDigest))).toBe(true);
+      } else if (artifact.capability === "PERFORMANCE") {
+        const vitals = JSON.parse(bytes.toString("utf8")) as WebVitalsEvidence;
+        observedVitals.push(vitals);
+        expect(vitals.schemaVersion).toBe(1);
+        for (const vital of [vitals.lcp, vitals.cls, vitals.inp, vitals.fcp, vitals.navigationDuration]) {
+          expect(["MEASURED", "NOT_OBSERVED", "UNSUPPORTED"]).toContain(vital.state);
+          if (vital.state === "MEASURED") expect(Number.isFinite(vital.value)).toBe(true);
+          else expect(vital.value).toBeUndefined();
+        }
+        expect(Number.isInteger(vitals.resourceCount)).toBe(true);
+        expect(vitals.resourceCount).toBeGreaterThanOrEqual(0);
+        expect(Number.isFinite(vitals.scriptTransferBytes)).toBe(true);
       }
     }
 
@@ -151,10 +167,16 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     expect(JSON.stringify(mobileGenome)).not.toBe(JSON.stringify(desktopGenome));
 
     expect(observedContrast).toHaveLength(6);
-    const policyPass = evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { headline: 10, body: 10, action: 10 } });
-    expect(policyPass.verdict).toBe("PASS");
+    expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { headline: 10, body: 10, action: 10 } }).verdict).toBe("PASS");
     expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: {} }).verdict).toBe("NOT_TESTED");
     expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { missing: 10 } }).verdict).toBe("FAIL");
+
+    expect(observedVitals).toHaveLength(6);
+    expect(evaluateWebVitalsPolicy(observedVitals[0]!, {}).verdict).toBe("NOT_TESTED");
+    const inpState = observedVitals[0]!.inp.state;
+    const inpRequired = evaluateWebVitalsPolicy(observedVitals[0]!, { requireMeasured: ["inp"] });
+    expect(inpState === "MEASURED" ? inpRequired.verdict : "FAIL").toBe(inpRequired.verdict);
+    if (inpState !== "MEASURED") expect(inpRequired.findings.some((finding) => finding.includes("INP"))).toBe(true);
 
     expect(result.samples.some((sample) => sample.name.endsWith("script_transfer_bytes") && sample.unit === "bytes")).toBe(true);
     expect(result.samples.some((sample) => sample.name.endsWith("axe_violations") && sample.unit === "count")).toBe(true);
