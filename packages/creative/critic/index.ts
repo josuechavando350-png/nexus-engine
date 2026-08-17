@@ -1,0 +1,191 @@
+import type { GalleryEntry } from "../gallery";
+import { assertCanonicalId, assertNonEmpty, assertScope, lexicalCompare, type CreativeScope } from "../shared";
+
+export type ConventionalPattern =
+  | "NAV"
+  | "HERO_SPLIT"
+  | "HERO_OVERLAY"
+  | "FEATURE_CARDS"
+  | "NUMBERED_SECTIONS"
+  | "TEXT_IMAGE_SPLIT"
+  | "ICON_GRID"
+  | "LOGO_CLOUD"
+  | "TESTIMONIALS"
+  | "GALLERY_GRID"
+  | "CTA_BAND"
+  | "CONTACT_FOOTER"
+  | "PILL_NAV"
+  | "DECORATIVE_ARROWS"
+  | "GENERIC_GRADIENT"
+  | "GENERIC_GLASS";
+
+export type CreativeExecutionContract = Readonly<{
+  schemaVersion: 1;
+  projectId: string;
+  scope: CreativeScope;
+  visualThesis: string;
+  signatureMechanic: string;
+  compositionGrammar: readonly string[];
+  businessSpecificSignals: readonly string[];
+  referenceEntryIds: readonly string[];
+  referencePrinciples: readonly string[];
+  conventionalPatterns: readonly ConventionalPattern[];
+  genericPatternsRejected: readonly string[];
+  desktopArtDirection: string;
+  mobileArtDirection: string;
+  mobileTransformationSignals: readonly string[];
+  motionPurpose: readonly string[];
+  signatureMechanicPlacements: readonly string[];
+  adversarial: Readonly<{
+    brandSwapSurvivalScore: number;
+    crossIndustryReuseReasons: readonly string[];
+  }>;
+}>;
+
+export type CreativeCriticFindingCode =
+  | "INVALID_CONTRACT"
+  | "REFERENCE_EVIDENCE_MISSING"
+  | "REFERENCE_SCOPE_MISMATCH"
+  | "REFERENCE_PRINCIPLES_INSUFFICIENT"
+  | "VISUAL_THESIS_WEAK"
+  | "SIGNATURE_MECHANIC_WEAK"
+  | "BUSINESS_SPECIFICITY_LOW"
+  | "COMPOSITION_GRAMMAR_WEAK"
+  | "GENERIC_PATTERN_DOMINANCE"
+  | "CONVENTIONAL_STACK"
+  | "MOBILE_ART_DIRECTION_WEAK"
+  | "MOTION_PURPOSE_WEAK"
+  | "BRAND_SWAP_PORTABILITY_HIGH";
+
+export type CreativeCriticFinding = Readonly<{
+  code: CreativeCriticFindingCode;
+  severity: "BLOCK" | "WARN";
+  detail: string;
+}>;
+
+export type CreativeCriticReport = Readonly<{
+  authority: "NEXUS_CREATIVE_CRITIC";
+  approved: boolean;
+  score: number;
+  findings: readonly CreativeCriticFinding[];
+  referenceEntryIds: readonly string[];
+}>;
+
+const CONVENTIONAL_STACKS: readonly (readonly ConventionalPattern[])[] = Object.freeze([
+  Object.freeze(["NAV", "HERO_SPLIT", "FEATURE_CARDS", "GALLERY_GRID", "CONTACT_FOOTER"]),
+  Object.freeze(["PILL_NAV", "HERO_OVERLAY", "TEXT_IMAGE_SPLIT", "CTA_BAND"]),
+  Object.freeze(["NAV", "HERO_OVERLAY", "TEXT_IMAGE_SPLIT", "FEATURE_CARDS", "CONTACT_FOOTER"]),
+]);
+
+const normalize = (value: string): string => value.trim().toLowerCase();
+const unique = (values: readonly string[]): string[] => [...new Set(values.map(normalize).filter(Boolean))].sort(lexicalCompare);
+
+function hasOrderedSubsequence<T>(values: readonly T[], expected: readonly T[]): boolean {
+  let cursor = 0;
+  for (const value of values) {
+    if (value === expected[cursor]) cursor += 1;
+    if (cursor === expected.length) return true;
+  }
+  return false;
+}
+
+function validateContract(contract: CreativeExecutionContract): void {
+  if (!contract || contract.schemaVersion !== 1 || !contract.scope || !contract.adversarial) {
+    throw new Error("creative execution contract structure is invalid");
+  }
+  assertScope(contract.scope);
+  assertCanonicalId(contract.projectId, "contract.projectId");
+  assertNonEmpty(contract.visualThesis, "contract.visualThesis");
+  assertNonEmpty(contract.signatureMechanic, "contract.signatureMechanic");
+  assertNonEmpty(contract.desktopArtDirection, "contract.desktopArtDirection");
+  assertNonEmpty(contract.mobileArtDirection, "contract.mobileArtDirection");
+  const lists = [
+    contract.compositionGrammar,
+    contract.businessSpecificSignals,
+    contract.referenceEntryIds,
+    contract.referencePrinciples,
+    contract.genericPatternsRejected,
+    contract.mobileTransformationSignals,
+    contract.motionPurpose,
+    contract.signatureMechanicPlacements,
+    contract.adversarial.crossIndustryReuseReasons,
+  ];
+  if (lists.some((values) => !Array.isArray(values) || values.some((value) => typeof value !== "string" || !value.trim()))) {
+    throw new Error("creative execution contract contains malformed string lists");
+  }
+  if (!Array.isArray(contract.conventionalPatterns)) throw new Error("conventionalPatterns must be an array");
+  if (!Number.isFinite(contract.adversarial.brandSwapSurvivalScore) || contract.adversarial.brandSwapSurvivalScore < 0 || contract.adversarial.brandSwapSurvivalScore > 1) {
+    throw new Error("brandSwapSurvivalScore must be in [0,1]");
+  }
+}
+
+function finding(code: CreativeCriticFindingCode, detail: string, severity: "BLOCK" | "WARN" = "BLOCK"): CreativeCriticFinding {
+  return Object.freeze({ code, severity, detail });
+}
+
+export class NexusCreativeCritic {
+  evaluate(contract: CreativeExecutionContract, references: readonly GalleryEntry[]): CreativeCriticReport {
+    const findings: CreativeCriticFinding[] = [];
+    try {
+      validateContract(contract);
+    } catch (error) {
+      return Object.freeze({
+        authority: "NEXUS_CREATIVE_CRITIC",
+        approved: false,
+        score: 0,
+        findings: Object.freeze([finding("INVALID_CONTRACT", error instanceof Error ? error.message : "invalid contract")]),
+        referenceEntryIds: Object.freeze([]),
+      });
+    }
+
+    const referenceMap = new Map(references.map((entry) => [entry.entryId, entry]));
+    const requestedReferences = unique(contract.referenceEntryIds);
+    const resolved = requestedReferences.map((id) => referenceMap.get(id)).filter((entry): entry is GalleryEntry => Boolean(entry));
+    const missing = requestedReferences.filter((id) => !referenceMap.has(id));
+    if (requestedReferences.length < 2 || missing.length) {
+      findings.push(finding("REFERENCE_EVIDENCE_MISSING", missing.length
+        ? `missing declared gallery references: ${missing.join(", ")}`
+        : "at least two traceable Creative Gallery/Vault references are required"));
+    }
+    const wrongScope = resolved.filter((entry) => entry.scope.tenantId !== contract.scope.tenantId || entry.scope.brandId !== contract.scope.brandId);
+    if (wrongScope.length) findings.push(finding("REFERENCE_SCOPE_MISMATCH", `out-of-scope references: ${wrongScope.map((entry) => entry.entryId).sort(lexicalCompare).join(", ")}`));
+    if (unique(contract.referencePrinciples).length < 2) findings.push(finding("REFERENCE_PRINCIPLES_INSUFFICIENT", "references must be translated into at least two reusable principles; copying surface styling does not count"));
+
+    if (contract.visualThesis.trim().length < 32) findings.push(finding("VISUAL_THESIS_WEAK", "visual thesis is too weak to govern a project-specific experience"));
+    if (contract.signatureMechanic.trim().length < 28 || unique(contract.signatureMechanicPlacements).length < 2) {
+      findings.push(finding("SIGNATURE_MECHANIC_WEAK", "signature mechanic must be substantive and shape at least two moments of the experience"));
+    }
+    if (unique(contract.businessSpecificSignals).length < 3) findings.push(finding("BUSINESS_SPECIFICITY_LOW", "at least three business-specific signals are required"));
+    if (unique(contract.compositionGrammar).length < 3) findings.push(finding("COMPOSITION_GRAMMAR_WEAK", "composition grammar needs at least three explicit project-specific rules"));
+
+    const patterns = contract.conventionalPatterns;
+    const conventionalRatio = patterns.length / Math.max(1, unique(contract.compositionGrammar).length + patterns.length);
+    if (patterns.length >= 5 && conventionalRatio >= 0.55) {
+      findings.push(finding("GENERIC_PATTERN_DOMINANCE", `conventional primitives dominate the declared grammar (${patterns.length} conventional patterns)`));
+    }
+    const matchedStack = CONVENTIONAL_STACKS.find((stack) => hasOrderedSubsequence(patterns, stack));
+    if (matchedStack && unique(contract.signatureMechanicPlacements).length < 3) {
+      findings.push(finding("CONVENTIONAL_STACK", `conventional page stack detected: ${matchedStack.join(" -> ")}`));
+    }
+
+    if (contract.mobileArtDirection.trim().length < 28 || unique(contract.mobileTransformationSignals).length < 2 || normalize(contract.mobileArtDirection) === normalize(contract.desktopArtDirection)) {
+      findings.push(finding("MOBILE_ART_DIRECTION_WEAK", "mobile must be art-directed as a transformation, not a stacked or copied desktop composition"));
+    }
+    if (unique(contract.motionPurpose).length < 2) findings.push(finding("MOTION_PURPOSE_WEAK", "motion needs at least two explicit communicative purposes"));
+
+    const reuseReasons = unique(contract.adversarial.crossIndustryReuseReasons);
+    if (contract.adversarial.brandSwapSurvivalScore > 0.55 || reuseReasons.length >= 2) {
+      findings.push(finding("BRAND_SWAP_PORTABILITY_HIGH", `brand-swap portability is too high (${contract.adversarial.brandSwapSurvivalScore.toFixed(2)})${reuseReasons.length ? `: ${reuseReasons.join("; ")}` : ""}`));
+    }
+
+    const blockers = findings.filter((item) => item.severity === "BLOCK").length;
+    const score = Math.max(0, Math.round((1 - blockers / 12) * 100));
+    return Object.freeze({
+      authority: "NEXUS_CREATIVE_CRITIC",
+      approved: blockers === 0,
+      score,
+      findings: Object.freeze(findings.sort((a, b) => lexicalCompare(a.code, b.code))),
+      referenceEntryIds: Object.freeze(resolved.map((entry) => entry.entryId).sort(lexicalCompare)),
+    });
+  }
+}
