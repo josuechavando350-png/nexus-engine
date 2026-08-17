@@ -13,12 +13,19 @@ export interface ApcaTextObservation {
   lc: number;
 }
 
+export interface ApcaUnsupportedObservation {
+  textDigest: string;
+  role?: string;
+  reason: "COMPLEX_BACKGROUND" | "UNSUPPORTED_COLOR";
+}
+
 export interface ApcaAuditReport {
   schemaVersion: 1;
   algorithm: "APCA";
   library: "apca-w3";
   libraryVersion: "0.1.9";
   observations: readonly ApcaTextObservation[];
+  unsupported: readonly ApcaUnsupportedObservation[];
   unsupportedCount: number;
 }
 
@@ -44,18 +51,32 @@ function numericLc(value: number | string): number | undefined {
 export async function measureApca(page: Page): Promise<ApcaAuditReport> {
   const candidates = await page.evaluate(() => {
     function alpha(color: string): number {
-      const match = color.match(/rgba?\([^)]*?(?:,\s*([\d.]+))?\)$/i);
-      if (!match) return 1;
-      return match[1] === undefined ? 1 : Number.parseFloat(match[1]);
+      const commaMatch = color.match(/rgba?\([^)]*?(?:,\s*([\d.]+))?\)$/i);
+      if (commaMatch?.[1] !== undefined) return Number.parseFloat(commaMatch[1]);
+      const slashMatch = color.match(/\/\s*([\d.]+)%?\s*\)$/i);
+      if (!slashMatch?.[1]) return 1;
+      const parsed = Number.parseFloat(slashMatch[1]);
+      return slashMatch[0].includes("%") ? parsed / 100 : parsed;
     }
-    function backgroundFor(element: Element): { color: string; source: "ELEMENT_OR_ANCESTOR" | "UA_CANVAS_DEFAULT" } {
+    function complexStyle(style: CSSStyleDeclaration): boolean {
+      return style.backgroundImage !== "none"
+        || style.backgroundBlendMode !== "normal"
+        || style.mixBlendMode !== "normal"
+        || style.backdropFilter !== "none"
+        || Number.parseFloat(style.opacity || "1") < 0.999;
+    }
+    function backgroundFor(element: Element): { color?: string; source?: "ELEMENT_OR_ANCESTOR" | "UA_CANVAS_DEFAULT"; complex: boolean } {
       let current: Element | null = element;
       while (current) {
-        const color = getComputedStyle(current).backgroundColor;
-        if (color && alpha(color) > 0.001) return { color, source: "ELEMENT_OR_ANCESTOR" };
+        const style = getComputedStyle(current);
+        if (complexStyle(style)) return { complex: true };
+        const color = style.backgroundColor;
+        const colorAlpha = color ? alpha(color) : 0;
+        if (color && colorAlpha > 0.001 && colorAlpha < 0.999) return { complex: true };
+        if (color && colorAlpha >= 0.999) return { color, source: "ELEMENT_OR_ANCESTOR", complex: false };
         current = current.parentElement;
       }
-      return { color: "rgb(255, 255, 255)", source: "UA_CANVAS_DEFAULT" };
+      return { color: "rgb(255, 255, 255)", source: "UA_CANVAS_DEFAULT", complex: false };
     }
     return Array.from(document.querySelectorAll("body *")).flatMap((element) => {
       const ownText = Array.from(element.childNodes)
@@ -76,6 +97,7 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
         textColor: style.color,
         backgroundColor: background.color,
         backgroundSource: background.source,
+        complexBackground: background.complex,
         fontSizePx: Number.parseFloat(style.fontSize),
         fontWeight: Number.isFinite(weight) ? weight : 400,
       }];
@@ -83,15 +105,20 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
   });
 
   const observations: ApcaTextObservation[] = [];
-  let unsupportedCount = 0;
+  const unsupported: ApcaUnsupportedObservation[] = [];
   for (const candidate of candidates) {
+    const textDigest = digestText(candidate.text);
+    if (candidate.complexBackground || !candidate.backgroundColor || !candidate.backgroundSource) {
+      unsupported.push(Object.freeze({ textDigest, role: candidate.role, reason: "COMPLEX_BACKGROUND" }));
+      continue;
+    }
     const lc = numericLc(calcAPCA(candidate.textColor, candidate.backgroundColor));
     if (lc === undefined) {
-      unsupportedCount += 1;
+      unsupported.push(Object.freeze({ textDigest, role: candidate.role, reason: "UNSUPPORTED_COLOR" }));
       continue;
     }
     observations.push(Object.freeze({
-      textDigest: digestText(candidate.text),
+      textDigest,
       role: candidate.role,
       textColor: candidate.textColor,
       backgroundColor: candidate.backgroundColor,
@@ -108,7 +135,8 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
     library: "apca-w3",
     libraryVersion: "0.1.9",
     observations: Object.freeze(observations),
-    unsupportedCount,
+    unsupported: Object.freeze(unsupported),
+    unsupportedCount: unsupported.length,
   });
 }
 
@@ -121,8 +149,12 @@ export function evaluateApcaPolicy(report: ApcaAuditReport, policy: ApcaPolicy):
 
   const failures: { role: string; actualAbsLc: number; minimumAbsLc: number; textDigest: string }[] = [];
   for (const [role, minimum] of entries) {
+    const unsupportedForRole = report.unsupported.filter((observation) => observation.role === role);
+    for (const unsupported of unsupportedForRole) {
+      failures.push({ role, actualAbsLc: 0, minimumAbsLc: minimum, textDigest: `${unsupported.reason}:${unsupported.textDigest}` });
+    }
     const matching = report.observations.filter((observation) => observation.role === role);
-    if (!matching.length) {
+    if (!matching.length && !unsupportedForRole.length) {
       failures.push({ role, actualAbsLc: 0, minimumAbsLc: minimum, textDigest: "MISSING_ROLE_EVIDENCE" });
       continue;
     }
