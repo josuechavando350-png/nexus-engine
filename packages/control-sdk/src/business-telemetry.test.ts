@@ -58,4 +58,10 @@ describe("business telemetry", () => {
     const event = createBusinessEvent({ ...base, eventName: "PURCHASE_COMPLETED", value: { amount: 99, currency: "mxn" } });
     expect(() => aggregateBusinessTelemetry([{ ...event, sourceRevision: "abcdefabcdefabcdefabcdefabcdefabcdefabcd" }])).toThrow(/integrity verification/);
   });
+
+  it("rejects tampered schema versions even when the payload hash still matches", () => {
+    const event = createBusinessEvent({ ...base, eventName: "CTA_CLICK" });
+    const tampered = { ...event, schemaVersion: 999 } as unknown as typeof event;
+    expect(() => aggregateBusinessTelemetry([tampered])).toThrow(/schemaVersion must be exactly 1/);
+  });
 });
