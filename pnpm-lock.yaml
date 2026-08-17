@@ -71,6 +71,37 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  apps/la-pause:
+    dependencies:
+      '@nexus/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@nexus/experience':
+        specifier: workspace:*
+        version: link:../../packages/experience
+      next:
+        specifier: ^15.5.2
+        version: 15.5.23(@types/node@24.13.3)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      react:
+        specifier: ^19.1.1
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.2.8(react@19.2.8)
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.13.3
+      '@types/react':
+        specifier: ^19.1.10
+        version: 19.2.18
+      '@types/react-dom':
+        specifier: ^19.1.7
+        version: 19.2.4(@types/react@19.2.18)
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
   apps/reference-alfil:
     dependencies:
       '@nexus/core':
@@ -279,6 +310,10 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  packages/benchmark: {}
+
+  packages/capture: {}
+
   packages/config: {}
 
   packages/control-sdk: {}
@@ -295,6 +330,10 @@ importers:
         specifier: ^19.1.1
         version: 19.2.8
 
+  packages/creative: {}
+
+  packages/evidence: {}
+
   packages/experience:
     devDependencies:
       '@types/node':
@@ -307,6 +346,10 @@ importers:
   packages/experimental: {}
 
   packages/kernel: {}
+
+  packages/measurement: {}
+
+  packages/ontology: {}
 
 packages:
 
