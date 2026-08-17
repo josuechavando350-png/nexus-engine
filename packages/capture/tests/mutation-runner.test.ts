@@ -11,7 +11,7 @@ const sha256 = (bytes: Uint8Array) => `sha256:${createHash("sha256").update(byte
 
 const HTML = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>
 body{margin:0;font:16px system-ui;overflow-x:hidden}main{padding:24px;display:grid;gap:24px}.hero{min-height:70vh;display:grid;align-content:center}.moving{transition:transform 180ms ease}.media{width:min(700px,100%);height:260px;object-fit:cover}
-</style></head><body><main><section class="hero"><h1>A deliberate business-specific opening</h1><p>Short copy that can be stressed by the mutation runner.</p><button class="moving">Primary action</button><img class="media" alt="fixture" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='260'%3E%3Crect width='700' height='260' fill='%23999'/%3E%3C/svg%3E"></section></main></body></html>`;
+</style></head><body><main><section class="hero"><p>Northstar Coffee</p><h1>Specialty coffee for deliberate mornings</h1><p>Short coffee copy that can be stressed by the mutation runner.</p><button class="moving">Primary action</button><img class="media" alt="fixture" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='700' height='260'%3E%3Crect width='700' height='260' fill='%23999'/%3E%3C/svg%3E"></section></main></body></html>`;
 
 describe("browser mutation runner", () => {
   let server: Server;
@@ -35,10 +35,21 @@ describe("browser mutation runner", () => {
     if (!preserve) await rm(outputDir, { recursive: true, force: true });
   });
 
-  it("executes grayscale, motion, viewport, content and asset mutations and persists real evidence", async () => {
-    const result = await runBrowserMutationSuite({ targetUrl, outputDir, browser: "chromium" });
+  it("executes identity, grayscale, motion, viewport, content and asset mutations and persists real evidence", async () => {
+    const result = await runBrowserMutationSuite({
+      targetUrl,
+      outputDir,
+      browser: "chromium",
+      brandSwap: { from: "Northstar Coffee", to: "Meridian Legal" },
+      industryTransplant: [
+        { from: "Specialty coffee", to: "Legal counsel" },
+        { from: "coffee copy", to: "advisory copy" },
+      ],
+    });
     expect(result.authority).toBe("NEXUS_BROWSER_MUTATION_RUNNER");
     expect(result.artifacts.map((artifact) => artifact.mutationId)).toEqual([
+      "BRAND_SWAP",
+      "INDUSTRY_TRANSPLANT",
       "GRAYSCALE",
       "MOTION_REMOVAL",
       "VIEWPORT_TORTURE_NARROW",
@@ -46,7 +57,7 @@ describe("browser mutation runner", () => {
       "CONTENT_STRESS",
       "ASSET_DEGRADATION",
     ]);
-    expect(result.artifacts).toHaveLength(6);
+    expect(result.artifacts).toHaveLength(8);
 
     for (const artifact of result.artifacts) {
       const screenshot = await readFile(artifact.screenshotUri);
@@ -59,6 +70,8 @@ describe("browser mutation runner", () => {
       expect(artifact.diagnostics.visibleElementCount).toBeGreaterThan(0);
     }
 
+    expect(result.artifacts.find((artifact) => artifact.mutationId === "BRAND_SWAP")?.diagnostics.replacementCount).toBe(1);
+    expect(result.artifacts.find((artifact) => artifact.mutationId === "INDUSTRY_TRANSPLANT")?.diagnostics.replacementCount).toBe(2);
     const motion = result.artifacts.find((artifact) => artifact.mutationId === "MOTION_REMOVAL")!;
     expect(motion.diagnostics.animatedElementCount).toBe(0);
     const narrow = result.artifacts.find((artifact) => artifact.mutationId === "VIEWPORT_TORTURE_NARROW")!;
@@ -68,6 +81,15 @@ describe("browser mutation runner", () => {
     const content = result.artifacts.find((artifact) => artifact.mutationId === "CONTENT_STRESS")!;
     const grayscale = result.artifacts.find((artifact) => artifact.mutationId === "GRAYSCALE")!;
     expect(content.diagnostics.textCharacterCount).toBeGreaterThan(grayscale.diagnostics.textCharacterCount);
+  });
+
+  it("fails closed when explicit identity replacement inputs do not match rendered text", async () => {
+    await expect(runBrowserMutationSuite({ targetUrl, outputDir, brandSwap: { from: "Unknown Brand", to: "Replacement" } })).rejects.toThrow(/did not match any rendered text/);
+  });
+
+  it("rejects invalid identity mutation inputs before producing evidence", async () => {
+    await expect(runBrowserMutationSuite({ targetUrl, outputDir, brandSwap: { from: "Same", to: "Same" } })).rejects.toThrow(/must change/);
+    await expect(runBrowserMutationSuite({ targetUrl, outputDir, industryTransplant: [] })).rejects.toThrow(/at least one explicit/);
   });
 
   it("refuses non-http targets instead of manufacturing mutation evidence", async () => {
