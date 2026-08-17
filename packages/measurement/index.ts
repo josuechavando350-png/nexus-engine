@@ -1,3 +1,5 @@
+export * from "./bundle-size";
+
 import { createHash } from "node:crypto";
 
 export type EvidenceStatus = "MEASURED" | "MISSING" | "UNSUPPORTED" | "FAILED";
