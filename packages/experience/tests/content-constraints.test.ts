@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defineExperienceDNA, direction, intent, type ExperienceDNA } from "../dna";
-import { deriveDnaContentConstraints, toContentReadinessPolicy } from "../content-constraints";
+import { deriveDnaContentConstraints, toContentReadinessPolicy, type BusinessContentProfile } from "../content-constraints";
 
 function dna(overrides: { mediaDominance?: number; documentary?: number; cinematicity?: number; ctaRepetition?: number; editoriality?: number } = {}): ExperienceDNA {
   const because = "Project-specific evidence requires this intent.";
@@ -65,9 +65,11 @@ describe("DNA-derived content constraints", () => {
     expect(policy.minimumPhotoHeightPx).toBe(1000);
   });
 
-  it("fails closed on ambiguous business profiles and invalid readiness thresholds", () => {
+  it("fails closed on ambiguous business profiles, unsupported runtime goals and invalid readiness thresholds", () => {
     expect(() => deriveDnaContentConstraints(dna(), { businessType: "", goals: ["BUY"], differentiators: [] })).toThrow(/businessType/);
     expect(() => deriveDnaContentConstraints(dna(), { businessType: "shop", goals: [], differentiators: [] })).toThrow(/business goal/);
+    const untrusted = { businessType: "shop", goals: ["HACK"], differentiators: [] } as unknown as BusinessContentProfile;
+    expect(() => deriveDnaContentConstraints(dna(), untrusted)).toThrow(/unsupported/);
     const constraints = deriveDnaContentConstraints(dna(), { businessType: "shop", goals: ["BUY"], differentiators: [] });
     expect(() => toContentReadinessPolicy(constraints, { widthPx: 0 })).toThrow(/widthPx/);
   });
