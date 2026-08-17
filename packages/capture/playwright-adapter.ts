@@ -6,6 +6,7 @@ import { chromium, webkit, type BrowserType, type Page } from "playwright";
 import type { MetricSample } from "../measurement/index";
 import { measureApca } from "./apca-audit";
 import { extractDesignGenome } from "./design-genome";
+import { collectWebVitals, installWebVitalsObservers } from "./web-vitals";
 import {
   captureRequestId,
   createCaptureArtifact,
@@ -52,9 +53,7 @@ function validateUrl(targetId: string): URL {
   } catch {
     throw new Error("Playwright capture targetId must be an absolute HTTP(S) URL");
   }
-  if (target.protocol !== "http:" && target.protocol !== "https:") {
-    throw new Error("Playwright capture targetId must use HTTP(S)");
-  }
+  if (target.protocol !== "http:" && target.protocol !== "https:") throw new Error("Playwright capture targetId must use HTTP(S)");
   return target;
 }
 
@@ -73,7 +72,6 @@ async function performanceSamples(page: Page, prefix: string): Promise<MetricSam
       scriptTransferBytes: scriptResources.reduce((sum, entry) => sum + (entry.transferSize || 0), 0),
     };
   });
-
   return [
     { name: `${prefix}.navigation_duration`, unit: "ms", value: observed.navigationDurationMs },
     { name: `${prefix}.dom_content_loaded`, unit: "ms", value: observed.domContentLoadedMs },
@@ -86,8 +84,7 @@ async function performanceSamples(page: Page, prefix: string): Promise<MetricSam
 
 export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCapturePort {
   readonly adapterId = "nexus.playwright-browser-capture";
-  readonly adapterVersion = "1.2.0";
-
+  readonly adapterVersion = "1.3.0";
   private readonly outputDir: string;
   private readonly browsers: readonly SupportedBrowser[];
   private readonly viewports: readonly CaptureViewport[];
@@ -104,9 +101,7 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
     if (!this.browsers.length) throw new Error("at least one browser is required");
     if (!this.viewports.length) throw new Error("at least one viewport is required");
     for (const viewport of this.viewports) {
-      if (!viewport.name.trim() || !Number.isInteger(viewport.width) || !Number.isInteger(viewport.height) || viewport.width < 240 || viewport.height < 240) {
-        throw new Error("capture viewports require a name and integer dimensions >= 240px");
-      }
+      if (!viewport.name.trim() || !Number.isInteger(viewport.width) || !Number.isInteger(viewport.height) || viewport.width < 240 || viewport.height < 240) throw new Error("capture viewports require a name and integer dimensions >= 240px");
     }
   }
 
@@ -123,14 +118,10 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
         const browser = await browserType(browserName).launch({ headless: true });
         try {
           for (const viewport of this.viewports) {
-            const context = await browser.newContext({
-              viewport: { width: viewport.width, height: viewport.height },
-              reducedMotion: "reduce",
-              locale: "en-US",
-              timezoneId: "UTC",
-            });
+            const context = await browser.newContext({ viewport: { width: viewport.width, height: viewport.height }, reducedMotion: "reduce", locale: "en-US", timezoneId: "UTC" });
             try {
               const page = await context.newPage();
+              if (request.capabilities.includes("PERFORMANCE")) await installWebVitalsObservers(page);
               await page.goto(request.targetId, { waitUntil: "networkidle", timeout: this.navigationTimeoutMs });
               const prefix = `${browserName}-${safeSegment(viewport.name)}`;
 
@@ -138,41 +129,15 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
                 const png = await page.screenshot({ fullPage: true, animations: "disabled", type: "png" });
                 const path = resolve(this.outputDir, `${safeSegment(requestId)}-${prefix}.png`);
                 await writeFile(path, png);
-                artifacts.push(createCaptureArtifact({
-                  runId: request.run.runId,
-                  scope: request.scope,
-                  capability: "SCREENSHOT",
-                  mediaType: "image/png",
-                  digest: sha256(png),
-                  byteLength: png.byteLength,
-                  capturedAt: this.clock(),
-                  uri: path,
-                  metadata: Object.freeze({ browser: browserName, viewport: viewport.name, width: String(viewport.width), height: String(viewport.height) }),
-                }));
+                artifacts.push(createCaptureArtifact({ runId: request.run.runId, scope: request.scope, capability: "SCREENSHOT", mediaType: "image/png", digest: sha256(png), byteLength: png.byteLength, capturedAt: this.clock(), uri: path, metadata: Object.freeze({ browser: browserName, viewport: viewport.name, width: String(viewport.width), height: String(viewport.height) }) }));
               }
 
               if (request.capabilities.includes("ACCESSIBILITY")) {
                 const axe = await new AxeBuilder({ page }).analyze();
-                const normalized = JSON.stringify({
-                  url: axe.url,
-                  violations: axe.violations,
-                  incomplete: axe.incomplete,
-                  passes: axe.passes,
-                }, null, 2);
-                const bytes = Buffer.from(`${normalized}\n`, "utf8");
+                const bytes = Buffer.from(`${JSON.stringify({ url: axe.url, violations: axe.violations, incomplete: axe.incomplete, passes: axe.passes }, null, 2)}\n`, "utf8");
                 const path = resolve(this.outputDir, `${safeSegment(requestId)}-${prefix}-axe.json`);
                 await writeFile(path, bytes);
-                artifacts.push(createCaptureArtifact({
-                  runId: request.run.runId,
-                  scope: request.scope,
-                  capability: "ACCESSIBILITY",
-                  mediaType: "application/json",
-                  digest: sha256(bytes),
-                  byteLength: bytes.byteLength,
-                  capturedAt: this.clock(),
-                  uri: path,
-                  metadata: Object.freeze({ browser: browserName, viewport: viewport.name, violationCount: String(axe.violations.length) }),
-                }));
+                artifacts.push(createCaptureArtifact({ runId: request.run.runId, scope: request.scope, capability: "ACCESSIBILITY", mediaType: "application/json", digest: sha256(bytes), byteLength: bytes.byteLength, capturedAt: this.clock(), uri: path, metadata: Object.freeze({ browser: browserName, viewport: viewport.name, violationCount: String(axe.violations.length) }) }));
                 samples.push({ name: `${prefix}.axe_violations`, unit: "count", value: axe.violations.length });
               }
 
@@ -181,23 +146,7 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
                 const bytes = Buffer.from(`${JSON.stringify(genome, null, 2)}\n`, "utf8");
                 const path = resolve(this.outputDir, `${safeSegment(requestId)}-${prefix}-design-genome.json`);
                 await writeFile(path, bytes);
-                artifacts.push(createCaptureArtifact({
-                  runId: request.run.runId,
-                  scope: request.scope,
-                  capability: "DESIGN_GENOME",
-                  mediaType: "application/vnd.nexus.design-genome+json",
-                  digest: sha256(bytes),
-                  byteLength: bytes.byteLength,
-                  capturedAt: this.clock(),
-                  uri: path,
-                  metadata: Object.freeze({
-                    browser: browserName,
-                    viewport: viewport.name,
-                    visibleElementCount: String(genome.visibleElementCount),
-                    fontFamilyCount: String(genome.typography.familyCount),
-                    animatedElementCount: String(genome.motion.animatedElementCount),
-                  }),
-                }));
+                artifacts.push(createCaptureArtifact({ runId: request.run.runId, scope: request.scope, capability: "DESIGN_GENOME", mediaType: "application/vnd.nexus.design-genome+json", digest: sha256(bytes), byteLength: bytes.byteLength, capturedAt: this.clock(), uri: path, metadata: Object.freeze({ browser: browserName, viewport: viewport.name, visibleElementCount: String(genome.visibleElementCount), fontFamilyCount: String(genome.typography.familyCount), animatedElementCount: String(genome.motion.animatedElementCount) }) }));
                 samples.push({ name: `${prefix}.genome_visible_elements`, unit: "count", value: genome.visibleElementCount });
                 samples.push({ name: `${prefix}.genome_font_families`, unit: "count", value: genome.typography.familyCount });
                 samples.push({ name: `${prefix}.genome_media_area_ratio`, unit: "ratio", value: genome.media.mediaAreaRatio });
@@ -208,30 +157,21 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
                 const bytes = Buffer.from(`${JSON.stringify(contrast, null, 2)}\n`, "utf8");
                 const path = resolve(this.outputDir, `${safeSegment(requestId)}-${prefix}-apca.json`);
                 await writeFile(path, bytes);
-                artifacts.push(createCaptureArtifact({
-                  runId: request.run.runId,
-                  scope: request.scope,
-                  capability: "CONTRAST",
-                  mediaType: "application/vnd.nexus.apca+json",
-                  digest: sha256(bytes),
-                  byteLength: bytes.byteLength,
-                  capturedAt: this.clock(),
-                  uri: path,
-                  metadata: Object.freeze({
-                    browser: browserName,
-                    viewport: viewport.name,
-                    algorithm: contrast.algorithm,
-                    library: `${contrast.library}@${contrast.libraryVersion}`,
-                    observationCount: String(contrast.observations.length),
-                    unsupportedCount: String(contrast.unsupportedCount),
-                  }),
-                }));
+                artifacts.push(createCaptureArtifact({ runId: request.run.runId, scope: request.scope, capability: "CONTRAST", mediaType: "application/vnd.nexus.apca+json", digest: sha256(bytes), byteLength: bytes.byteLength, capturedAt: this.clock(), uri: path, metadata: Object.freeze({ browser: browserName, viewport: viewport.name, algorithm: contrast.algorithm, library: `${contrast.library}@${contrast.libraryVersion}`, observationCount: String(contrast.observations.length), unsupportedCount: String(contrast.unsupportedCount) }) }));
                 samples.push({ name: `${prefix}.apca_observations`, unit: "count", value: contrast.observations.length });
                 samples.push({ name: `${prefix}.apca_unsupported`, unit: "count", value: contrast.unsupportedCount });
               }
 
               if (request.capabilities.includes("PERFORMANCE")) {
+                const vitals = await collectWebVitals(page);
+                const bytes = Buffer.from(`${JSON.stringify(vitals, null, 2)}\n`, "utf8");
+                const path = resolve(this.outputDir, `${safeSegment(requestId)}-${prefix}-performance.json`);
+                await writeFile(path, bytes);
+                artifacts.push(createCaptureArtifact({ runId: request.run.runId, scope: request.scope, capability: "PERFORMANCE", mediaType: "application/vnd.nexus.web-vitals+json", digest: sha256(bytes), byteLength: bytes.byteLength, capturedAt: this.clock(), uri: path, metadata: Object.freeze({ browser: browserName, viewport: viewport.name, lcpState: vitals.lcp.state, clsState: vitals.cls.state, inpState: vitals.inp.state }) }));
                 samples.push(...await performanceSamples(page, prefix));
+                if (vitals.lcp.state === "MEASURED") samples.push({ name: `${prefix}.lcp`, unit: "ms", value: vitals.lcp.value! });
+                if (vitals.cls.state === "MEASURED") samples.push({ name: `${prefix}.cls`, unit: "score", value: vitals.cls.value! });
+                if (vitals.inp.state === "MEASURED") samples.push({ name: `${prefix}.inp`, unit: "ms", value: vitals.inp.value! });
               }
             } finally {
               await context.close();
@@ -241,16 +181,9 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
           await browser.close();
         }
       }
-
       return { requestId, outcome: "CAPTURED", artifacts, samples };
     } catch (error) {
-      return {
-        requestId,
-        outcome: "FAILED",
-        artifacts: [],
-        samples: [],
-        reason: error instanceof Error ? error.message : "unknown Playwright capture failure",
-      };
+      return { requestId, outcome: "FAILED", artifacts: [], samples: [], reason: error instanceof Error ? error.message : "unknown Playwright capture failure" };
     }
   }
 }
