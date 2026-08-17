@@ -1,6 +1,6 @@
 {
   "name": "@nexus/quality",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -10,11 +10,12 @@
     "./visual-judge": "./visual-judge.ts",
     "./opening-tournament": "./opening-tournament.ts",
     "./mutation-evaluator": "./mutation-evaluator.ts",
-    "./quality-cycle": "./quality-cycle.ts"
+    "./quality-cycle": "./quality-cycle.ts",
+    "./excess-removal": "./excess-removal.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/quality/index.js && test -f dist/quality/index.d.ts && test -f dist/quality/red-team.js && test -f dist/quality/red-team.d.ts && test -f dist/quality/repair-loop.js && test -f dist/quality/repair-loop.d.ts && test -f dist/quality/visual-judge.js && test -f dist/quality/visual-judge.d.ts && test -f dist/quality/opening-tournament.js && test -f dist/quality/opening-tournament.d.ts && test -f dist/quality/mutation-evaluator.js && test -f dist/quality/mutation-evaluator.d.ts && test -f dist/quality/quality-cycle.js && test -f dist/quality/quality-cycle.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/quality/index.js && test -f dist/quality/index.d.ts && test -f dist/quality/red-team.js && test -f dist/quality/red-team.d.ts && test -f dist/quality/repair-loop.js && test -f dist/quality/repair-loop.d.ts && test -f dist/quality/visual-judge.js && test -f dist/quality/visual-judge.d.ts && test -f dist/quality/opening-tournament.js && test -f dist/quality/opening-tournament.d.ts && test -f dist/quality/mutation-evaluator.js && test -f dist/quality/mutation-evaluator.d.ts && test -f dist/quality/quality-cycle.js && test -f dist/quality/quality-cycle.d.ts && test -f dist/quality/excess-removal.js && test -f dist/quality/excess-removal.d.ts"
   },
   "dependencies": {
     "@nexus/capture": "workspace:*",
