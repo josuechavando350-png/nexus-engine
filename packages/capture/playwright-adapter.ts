@@ -4,6 +4,7 @@ import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { chromium, webkit, type BrowserType, type Page } from "playwright";
 import type { MetricSample } from "../measurement/index";
+import { extractDesignGenome } from "./design-genome";
 import {
   captureRequestId,
   createCaptureArtifact,
@@ -84,7 +85,7 @@ async function performanceSamples(page: Page, prefix: string): Promise<MetricSam
 
 export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCapturePort {
   readonly adapterId = "nexus.playwright-browser-capture";
-  readonly adapterVersion = "1.0.0";
+  readonly adapterVersion = "1.1.0";
 
   private readonly outputDir: string;
   private readonly browsers: readonly SupportedBrowser[];
@@ -174,6 +175,33 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
                 samples.push({ name: `${prefix}.axe_violations`, unit: "count", value: axe.violations.length });
               }
 
+              if (request.capabilities.includes("DESIGN_GENOME")) {
+                const genome = await extractDesignGenome(page);
+                const bytes = Buffer.from(`${JSON.stringify(genome, null, 2)}\n`, "utf8");
+                const path = resolve(this.outputDir, `${safeSegment(requestId)}-${prefix}-design-genome.json`);
+                await writeFile(path, bytes);
+                artifacts.push(createCaptureArtifact({
+                  runId: request.run.runId,
+                  scope: request.scope,
+                  capability: "DESIGN_GENOME",
+                  mediaType: "application/vnd.nexus.design-genome+json",
+                  digest: sha256(bytes),
+                  byteLength: bytes.byteLength,
+                  capturedAt: this.clock(),
+                  uri: path,
+                  metadata: Object.freeze({
+                    browser: browserName,
+                    viewport: viewport.name,
+                    visibleElementCount: String(genome.visibleElementCount),
+                    fontFamilyCount: String(genome.typography.familyCount),
+                    animatedElementCount: String(genome.motion.animatedElementCount),
+                  }),
+                }));
+                samples.push({ name: `${prefix}.genome_visible_elements`, unit: "count", value: genome.visibleElementCount });
+                samples.push({ name: `${prefix}.genome_font_families`, unit: "count", value: genome.typography.familyCount });
+                samples.push({ name: `${prefix}.genome_media_area_ratio`, unit: "ratio", value: genome.media.mediaAreaRatio });
+              }
+
               if (request.capabilities.includes("PERFORMANCE")) {
                 samples.push(...await performanceSamples(page, prefix));
               }
@@ -186,8 +214,7 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
         }
       }
 
-      const result: CaptureResult = { requestId, outcome: "CAPTURED", artifacts, samples };
-      return result;
+      return { requestId, outcome: "CAPTURED", artifacts, samples };
     } catch (error) {
       return {
         requestId,
