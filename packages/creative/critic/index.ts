@@ -1,7 +1,7 @@
 import type { GalleryEntry } from "../gallery";
-import { assertCanonicalId, assertNonEmpty, assertScope, lexicalCompare, type CreativeScope } from "../shared";
+import { assertCanonicalId, assertNonEmpty, assertScope, lexicalCompare, type CreativeScope, type VerdictState } from "../shared";
 
-export type VerdictState = "PASS" | "FAIL" | "WARNING" | "NOT_TESTED";
+export type { VerdictState } from "../shared";
 
 export type ConventionalPattern =
   | "NAV"
