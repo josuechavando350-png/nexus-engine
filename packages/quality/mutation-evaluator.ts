@@ -15,6 +15,7 @@ export interface MutationVisualReview {
   reviewerType: "HUMAN" | "MULTIMODAL_MODEL";
   reviewerId: string;
   rubricVersion: string;
+  rubricDigest: `sha256:${string}`;
   reviewedAt: string;
   evidenceDigests: readonly string[];
   providerId?: string;
@@ -84,6 +85,7 @@ function validateVisualReview(
   artifact: BrowserMutationArtifact,
 ): string | undefined {
   if (!review.reviewerId.trim() || !review.rubricVersion.trim()) return "visual review reviewerId and rubricVersion are required";
+  if (!canonicalSha256(review.rubricDigest)) return "visual review rubricDigest must be a canonical SHA-256 bound to the exact rubric definition";
   if (!canonicalUtc(review.reviewedAt)) return "visual review reviewedAt must be canonical UTC";
   if (!["PASS", "FAIL", "WARNING"].includes(review.verdict)) return "visual review verdict is invalid";
   if (!review.evidenceDigests.length || new Set(review.evidenceDigests).size !== review.evidenceDigests.length) return "visual review evidence digests must be non-empty and unique";
@@ -131,7 +133,7 @@ function identityMutationEvidence(
   return {
     verdict: review.verdict,
     findings: review.verdict === "PASS" ? [] : [`traceable visual review returned ${review.verdict}`],
-    evidence: [...new Set([...objective.evidence, ...review.evidenceDigests])],
+    evidence: [...new Set([...objective.evidence, ...review.evidenceDigests, review.rubricDigest])],
   };
 }
 
