@@ -49,8 +49,6 @@ describe("measurement harness", () => {
     const input = {
       workload,
       environment,
-      workloadId: workload.id,
-      workloadVersion: workload.version,
       scope: workload.scope,
       startedAt: "2026-08-15T18:30:00.000Z"
     };
@@ -61,7 +59,7 @@ describe("measurement harness", () => {
 
   it("rejects non-canonical or non-UTC run timestamps", () => {
     for (const startedAt of ["2026-08-15 18:30:00", "2026-08-15T18:30:00Z", "2026-08-15T12:30:00.000-06:00", "not-a-date"]) {
-      expect(() => createRun({ workload, environment, workloadId: workload.id, workloadVersion: workload.version, scope: workload.scope, startedAt })).toThrowError(MeasurementValidationError);
+      expect(() => createRun({ workload, environment, scope: workload.scope, startedAt })).toThrowError(MeasurementValidationError);
     }
   });
 
@@ -69,8 +67,6 @@ describe("measurement harness", () => {
     expect(() => createRun({
       workload,
       environment,
-      workloadId: workload.id,
-      workloadVersion: workload.version,
       scope: { tenantId: "tenant-b", brandId: "brand-a" },
       startedAt: "2026-08-15T18:30:00.000Z"
     })).toThrowError(MeasurementValidationError);
@@ -100,7 +96,7 @@ describe("measurement harness", () => {
   });
 
   it("requires evidence to match both run identity and tenant/brand scope", () => {
-    const run = createRun({ workload, environment, workloadId: workload.id, workloadVersion: workload.version, scope: workload.scope, startedAt: "2026-08-15T18:30:00.000Z" });
+    const run = createRun({ workload, environment, scope: workload.scope, startedAt: "2026-08-15T18:30:00.000Z" });
     const evidence = createEvidence({ runId: run.runId, scope: workload.scope, status: "MEASURED", samples: [{ name: "frameTime", unit: "ms", value: 7.9 }], capturedAt: "2026-08-15T18:31:00.000Z" });
     expect(() => assertEvidenceBelongsToRun(evidence, run)).not.toThrow();
     expect(() => assertEvidenceBelongsToRun({ ...evidence, scope: { tenantId: "tenant-a", brandId: "brand-b" } }, run)).toThrow("same run and scope");
