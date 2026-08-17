@@ -58,6 +58,7 @@ jobs:
           test "$(find "$root" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
           test "$(find "$root" -maxdepth 1 -type f -name '*-axe.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$root" -maxdepth 1 -type f -name '*-design-genome.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*-apca.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "6"
           node - <<'NODE'
@@ -71,6 +72,17 @@ jobs:
             if (data.schemaVersion !== 1 || !Number.isFinite(data.visibleElementCount) || data.visibleElementCount <= 0) process.exit(1);
             if (!Array.isArray(data.typography?.fontSizePx) || !data.typography.fontSizePx.length) process.exit(1);
             if (!data.layout || !data.motion || !data.geometry || !data.media || !data.rhythm) process.exit(1);
+          }
+          const apca = fs.readdirSync(root).filter((name) => name.endsWith('-apca.json'));
+          if (apca.length !== 6) process.exit(1);
+          for (const name of apca) {
+            const data = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+            if (data.schemaVersion !== 1 || data.algorithm !== 'APCA' || data.library !== 'apca-w3' || data.libraryVersion !== '0.1.9') process.exit(1);
+            if (!Array.isArray(data.observations) || data.observations.length < 3 || !Number.isInteger(data.unsupportedCount) || data.unsupportedCount < 0) process.exit(1);
+            for (const observation of data.observations) {
+              if (!Number.isFinite(observation.lc) || !Number.isFinite(observation.fontSizePx) || !Number.isFinite(observation.fontWeight)) process.exit(1);
+              if (!/^sha256:[a-f0-9]{64}$/.test(observation.textDigest)) process.exit(1);
+            }
           }
           const mutationsRoot = path.join(root, 'mutations');
           const expected = new Set(['GRAYSCALE','MOTION_REMOVAL','VIEWPORT_TORTURE_NARROW','VIEWPORT_TORTURE_WIDE','CONTENT_STRESS','ASSET_DEGRADATION']);
