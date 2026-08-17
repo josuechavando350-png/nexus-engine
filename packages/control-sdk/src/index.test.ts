@@ -28,11 +28,17 @@ describe("fleet control plane", () => {
   });
 
   it("fails closed across tenant boundaries without revealing deployment existence", () => {
-    const control = new InMemoryFleetControlPlane();
+    const control = new InMemoryFleetControlPlane(() => "2026-08-17T07:20:30.000Z");
     const deployment = control.createDeployment(operator, { tenantId: "tenant-a", projectId: "project-a", sourceRevision: revision, targetIds: ["edge-a"], idempotencyKey: "deploy-1" }, now);
     const otherTenant: ControlPrincipal = { principalId: "operator-b", tenantId: "tenant-b", permissions: ["fleet:read", "fleet:rollout"] };
     expect(() => control.getDeployment(otherTenant, "tenant-a", deployment.deploymentId)).toThrow(/not authorized/);
     expect(() => control.getDeployment(otherTenant, "tenant-b", deployment.deploymentId)).toThrow(/not found/);
+    const audit = control.listAuditEvents(operator, "tenant-a");
+    expect(audit.at(-1)).toMatchObject({
+      action: "AUTHORIZATION_DENIED",
+      principalId: "operator-b",
+      occurredAt: "2026-08-17T07:20:30.000Z",
+    });
   });
 
   it("enforces monotonic rollout transitions and records audit history", () => {
@@ -53,5 +59,18 @@ describe("fleet control plane", () => {
     expect(() => control.createDeployment(reader, { tenantId: "tenant-a", projectId: "project-a", sourceRevision: revision, targetIds: ["edge-a"], idempotencyKey: "deploy-1" }, now)).toThrow(/not authorized/);
     const audit = control.listAuditEvents(reader, "tenant-a");
     expect(audit.at(-1)?.action).toBe("AUTHORIZATION_DENIED");
+  });
+
+  it("audits denied audit-log reads with an injected deterministic clock", () => {
+    const control = new InMemoryFleetControlPlane(() => "2026-08-17T07:25:00.000Z");
+    control.createDeployment(operator, { tenantId: "tenant-a", projectId: "project-a", sourceRevision: revision, targetIds: ["edge-a"], idempotencyKey: "deploy-1" }, now);
+    const noRead: ControlPrincipal = { principalId: "deployer-a", tenantId: "tenant-a", permissions: ["fleet:deploy"] };
+    expect(() => control.listAuditEvents(noRead, "tenant-a")).toThrow(/not authorized/);
+    const audit = control.listAuditEvents(operator, "tenant-a");
+    expect(audit.at(-1)).toMatchObject({
+      action: "AUTHORIZATION_DENIED",
+      principalId: "deployer-a",
+      occurredAt: "2026-08-17T07:25:00.000Z",
+    });
   });
 });
