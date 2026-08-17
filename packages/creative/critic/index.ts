@@ -71,11 +71,11 @@ export type CreativeCriticReport = Readonly<{
   referenceEntryIds: readonly string[];
 }>;
 
-const CONVENTIONAL_STACKS: readonly (readonly ConventionalPattern[])[] = Object.freeze([
-  Object.freeze(["NAV", "HERO_SPLIT", "FEATURE_CARDS", "GALLERY_GRID", "CONTACT_FOOTER"]),
-  Object.freeze(["PILL_NAV", "HERO_OVERLAY", "TEXT_IMAGE_SPLIT", "CTA_BAND"]),
-  Object.freeze(["NAV", "HERO_OVERLAY", "TEXT_IMAGE_SPLIT", "FEATURE_CARDS", "CONTACT_FOOTER"]),
-]);
+const CONVENTIONAL_STACKS = [
+  ["NAV", "HERO_SPLIT", "FEATURE_CARDS", "GALLERY_GRID", "CONTACT_FOOTER"],
+  ["PILL_NAV", "HERO_OVERLAY", "TEXT_IMAGE_SPLIT", "CTA_BAND"],
+  ["NAV", "HERO_OVERLAY", "TEXT_IMAGE_SPLIT", "FEATURE_CARDS", "CONTACT_FOOTER"],
+] as const satisfies readonly (readonly ConventionalPattern[])[];
 
 const normalize = (value: string): string => value.trim().toLowerCase();
 const unique = (values: readonly string[]): string[] => [...new Set(values.map(normalize).filter(Boolean))].sort(lexicalCompare);
