@@ -7,3 +7,4 @@ export * from "./mutation-evaluator";
 export * from "./quality-cycle";
 export * from "./excess-removal";
 export * from "./criterion-memory";
+export * from "./structural-fingerprint";
