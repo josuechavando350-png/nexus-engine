@@ -79,7 +79,7 @@ function validateDimensions(dimensions: Readonly<Record<string, string>> | undef
   return Object.freeze(Object.fromEntries(entries.sort(([a], [b]) => a.localeCompare(b))));
 }
 
-export function createBusinessEvent(input: BusinessEventInput): BusinessEvent {
+function canonicalInput(input: BusinessEventInput): BusinessEventInput {
   const tenantId = nonEmpty(input.tenantId, "tenantId");
   const projectId = nonEmpty(input.projectId, "projectId");
   const deploymentId = nonEmpty(input.deploymentId, "deploymentId");
@@ -93,7 +93,11 @@ export function createBusinessEvent(input: BusinessEventInput): BusinessEvent {
     if (!Number.isFinite(value.amount) || value.amount < 0) throw new Error("business event value amount must be finite and non-negative");
     value = Object.freeze({ amount: value.amount, currency: nonEmpty(value.currency, "value.currency").toUpperCase() });
   }
-  const canonical: BusinessEventInput = { ...input, tenantId, projectId, deploymentId, dimensions, value };
+  return { tenantId, projectId, deploymentId, sourceRevision: input.sourceRevision, eventName: input.eventName, occurredAt: input.occurredAt, consent: Object.freeze({ ...input.consent }), dimensions, value };
+}
+
+export function createBusinessEvent(input: BusinessEventInput): BusinessEvent {
+  const canonical = canonicalInput(input);
   return Object.freeze({ schemaVersion: 1, eventId: eventId(canonical), ...canonical });
 }
 
@@ -104,7 +108,18 @@ export function aggregateBusinessTelemetry(events: readonly BusinessEvent[]): Bu
   const counts = Object.fromEntries(EVENT_NAMES.map((name) => [name, 0])) as Record<BusinessEventName, number>;
   const totalObservedValue: Record<string, number> = {};
   for (const event of events) {
-    const rebuilt = createBusinessEvent(event);
+    const payload: BusinessEventInput = {
+      tenantId: event.tenantId,
+      projectId: event.projectId,
+      deploymentId: event.deploymentId,
+      sourceRevision: event.sourceRevision,
+      eventName: event.eventName,
+      occurredAt: event.occurredAt,
+      consent: event.consent,
+      dimensions: event.dimensions,
+      value: event.value,
+    };
+    const rebuilt = createBusinessEvent(payload);
     if (rebuilt.eventId !== event.eventId) throw new Error(`business event ${event.eventId} failed deterministic integrity verification`);
     if (ids.has(event.eventId)) throw new Error(`duplicate business event ${event.eventId}`);
     ids.add(event.eventId);
