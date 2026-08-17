@@ -29,6 +29,6 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "tsc --noEmit"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/core/index.js && test -f dist/core/index.d.ts && test -f dist/core/components/index.js && test -f dist/core/components/index.d.ts && test -f dist/core/a11y/index.js && test -f dist/core/a11y/index.d.ts"
   }
 }
