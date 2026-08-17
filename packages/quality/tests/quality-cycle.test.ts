@@ -47,6 +47,34 @@ describe("runQualityCycle", () => {
     }]);
   });
 
+  it("preserves legitimate judge sub-evidence in repair lineage without confusing it for stale cycle evidence", async () => {
+    let revision = "r1";
+    const executor: QualityCycleExecutor = {
+      async currentRevision() { return revision; },
+      async build(current) { return evidence("BUILD", current); },
+      async capture(current) { return evidence("CAPTURE", current); },
+      async judge(current, fresh) {
+        const judge = evidence("JUDGE", current);
+        return {
+          evidence: judge,
+          evaluation: {
+            verdict: current === "r2" ? "PASS" : "FAIL",
+            findings: current === "r2" ? [] : ["visual hierarchy failed"],
+            evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId, `multimodal-detail:${current}`],
+          },
+        };
+      },
+      async repair() {
+        revision = "r2";
+        return { summary: "Fix hierarchy", changedFiles: ["src/page.tsx"], evidenceIds: ["patch:r2"] };
+      },
+    };
+
+    const result = await runQualityCycle(executor);
+    expect(result.status).toBe("SHIPPABLE");
+    expect(result.repairLineage[0]?.triggeringEvidenceIds).toContain("multimodal-detail:r1");
+  });
+
   it("rejects stale capture evidence instead of judging the repaired revision with old artifacts", async () => {
     const executor: QualityCycleExecutor = {
       async currentRevision() { return "r2"; },
