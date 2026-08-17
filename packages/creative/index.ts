@@ -11,3 +11,4 @@ export * from "./critic";
 export * from "./motion";
 export * from "./gpu";
 export * from "./visual-qa";
+export * from "./craft-provenance";
