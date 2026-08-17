@@ -1,3 +1,5 @@
+export * from "./webgpu-effects";
+
 import StyleDictionary from "style-dictionary";
 import { formats, transformGroups } from "style-dictionary/enums";
 import type { ExperienceDNA } from "@nexus/experience/dna";
