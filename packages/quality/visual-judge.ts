@@ -14,6 +14,32 @@ export interface VisualReview {
   evidenceArtifactIds: readonly string[];
   reviewedAt: string;
   modelIdentity?: string;
+  providerId?: string;
+  modelId?: string;
+  modelConfigurationDigest?: `sha256:${string}`;
+  providerRequestId?: string;
+}
+
+export interface MultimodalVisualJudgeImage {
+  artifactId: string;
+  digest: string;
+  mediaType: "image/png";
+  bytes: Uint8Array;
+}
+
+export interface MultimodalVisualJudgePort {
+  providerId: string;
+  modelId: string;
+  configurationDigest: `sha256:${string}`;
+  review(input: {
+    rubricVersion: string;
+    images: readonly MultimodalVisualJudgeImage[];
+  }): Promise<{
+    verdict: Exclude<VerdictState, "NOT_TESTED">;
+    findings: readonly string[];
+    reviewedAt: string;
+    requestId: string;
+  }>;
 }
 
 export interface VisualJudgePolicy {
@@ -49,6 +75,10 @@ function canonicalTimestamp(value: string): boolean {
   return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
 }
 
+function canonicalSha256(value: string): value is `sha256:${string}` {
+  return /^sha256:[a-f0-9]{64}$/.test(value);
+}
+
 function sha256(bytes: Uint8Array): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 }
@@ -73,6 +103,48 @@ async function verifyArtifact(artifact: CaptureArtifact): Promise<string | undef
     }
   }
   return undefined;
+}
+
+export async function executeMultimodalVisualReview(input: {
+  artifacts: readonly CaptureArtifact[];
+  reviewerId: string;
+  rubricVersion: string;
+  port: MultimodalVisualJudgePort;
+}): Promise<VisualReview> {
+  if (!input.reviewerId.trim() || !input.rubricVersion.trim()) throw new Error("multimodal review requires reviewerId and rubricVersion");
+  if (!input.port.providerId.trim() || !input.port.modelId.trim()) throw new Error("multimodal judge port requires providerId and modelId");
+  if (!canonicalSha256(input.port.configurationDigest)) throw new Error("multimodal judge port requires canonical configurationDigest");
+  const screenshots = input.artifacts.filter((artifact) => artifact.capability === "SCREENSHOT");
+  if (!screenshots.length) throw new Error("multimodal review requires persisted screenshot evidence");
+
+  const images: MultimodalVisualJudgeImage[] = [];
+  for (const artifact of screenshots) {
+    const problem = await verifyArtifact(artifact);
+    if (problem) throw new Error(`multimodal review refused unverified screenshot: ${problem}`);
+    const bytes = await readFile(artifact.uri!);
+    images.push(Object.freeze({ artifactId: artifact.artifactId, digest: artifact.digest, mediaType: "image/png", bytes }));
+  }
+
+  const outcome = await input.port.review({ rubricVersion: input.rubricVersion, images: Object.freeze(images) });
+  if (!(["PASS", "FAIL", "WARNING"] as const).includes(outcome.verdict)) throw new Error("multimodal provider returned an invalid verdict");
+  if (!canonicalTimestamp(outcome.reviewedAt)) throw new Error("multimodal provider reviewedAt must be canonical UTC");
+  if (!outcome.requestId.trim()) throw new Error("multimodal provider requestId is required");
+  if (outcome.findings.some((finding) => !finding.trim())) throw new Error("multimodal provider findings cannot be empty strings");
+
+  return Object.freeze({
+    reviewerType: "MULTIMODAL_MODEL",
+    reviewerId: input.reviewerId.trim(),
+    rubricVersion: input.rubricVersion.trim(),
+    verdict: outcome.verdict,
+    findings: Object.freeze([...outcome.findings]),
+    evidenceArtifactIds: Object.freeze(images.map((image) => image.artifactId)),
+    reviewedAt: outcome.reviewedAt,
+    providerId: input.port.providerId.trim(),
+    modelId: input.port.modelId.trim(),
+    modelConfigurationDigest: input.port.configurationDigest,
+    providerRequestId: outcome.requestId.trim(),
+    modelIdentity: `${input.port.providerId.trim()}/${input.port.modelId.trim()}#${input.port.configurationDigest}`,
+  });
 }
 
 export async function judgeVisualEvidence(input: {
@@ -124,8 +196,15 @@ export async function judgeVisualEvidence(input: {
     } else if (!policy.allowedReviewerTypes.includes(review.reviewerType)) {
       findings.push(`visual reviewer type ${review.reviewerType} is not allowed by policy`);
       reviewVerdict = "FAIL";
-    } else if (review.reviewerType === "MULTIMODAL_MODEL" && !review.modelIdentity?.trim()) {
-      findings.push("multimodal visual review must identify the model/provider configuration");
+    } else if (review.reviewerType === "MULTIMODAL_MODEL" && (
+      !review.modelIdentity?.trim()
+      || !review.providerId?.trim()
+      || !review.modelId?.trim()
+      || !review.providerRequestId?.trim()
+      || !review.modelConfigurationDigest
+      || !canonicalSha256(review.modelConfigurationDigest)
+    )) {
+      findings.push("multimodal visual review must identify provider, model, configuration digest and provider request");
       reviewVerdict = "FAIL";
     } else {
       const verified = new Set(verifiedArtifactIds);
