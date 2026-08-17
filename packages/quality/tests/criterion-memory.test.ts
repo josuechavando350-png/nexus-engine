@@ -3,6 +3,7 @@ import { assertCriterionHistory, learnEmitterPriors, recordCriterionMemory, repl
 
 const SHA = "0123456789abcdef0123456789abcdef01234567";
 const DIGEST = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" as const;
+const OTHER_DIGEST = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb" as const;
 
 const completeArtifacts = () => [
   { artifactId: "dna-a", digest: DIGEST, kind: "DNA" as const },
@@ -23,6 +24,7 @@ function entry(overrides: Partial<Parameters<typeof recordCriterionMemory>[0]> =
     emittedCssDigest: DIGEST,
     artifacts: completeArtifacts(),
     rubricVersion: "rubric-v1",
+    rubricDigest: DIGEST,
     judgeVerdict: "FAIL",
     judgeFindings: ["generic composition"],
     humanDecision: "VETO",
@@ -48,9 +50,18 @@ describe("criterion memory", () => {
   });
 
   it("binds DNA and emitted CSS artifact digests to the top-level record", () => {
-    const other = `sha256:${"b".repeat(64)}` as const;
-    expect(() => entry({ dnaDigest: other })).toThrow(/DNA artifact digest must match dnaDigest/);
-    expect(() => entry({ emittedCssDigest: other })).toThrow(/EMITTED_CSS artifact digest must match emittedCssDigest/);
+    expect(() => entry({ dnaDigest: OTHER_DIGEST })).toThrow(/DNA artifact digest must match dnaDigest/);
+    expect(() => entry({ emittedCssDigest: OTHER_DIGEST })).toThrow(/EMITTED_CSS artifact digest must match emittedCssDigest/);
+  });
+
+  it("rejects reuse of one rubric version with different rubric content", () => {
+    const first = entry();
+    const second = entry({
+      projectId: "project-b",
+      revision: "1123456789abcdef0123456789abcdef01234567",
+      rubricDigest: OTHER_DIGEST,
+    });
+    expect(() => assertCriterionHistory([first, second])).toThrow(/rubric version rubric-v1 is not immutable/);
   });
 
   it("requires rationale for explicit human decisions", () => {
@@ -68,10 +79,12 @@ describe("criterion memory", () => {
     const historical = entry();
     const report = replayRubricRegression({
       candidateRubricVersion: "rubric-v2",
+      candidateRubricDigest: OTHER_DIGEST,
       history: [historical],
       evaluate: () => "PASS",
     });
     expect(report.promotable).toBe(false);
+    expect(report.candidateRubricDigest).toBe(OTHER_DIGEST);
     expect(report.replayedEntryCount).toBe(1);
     expect(report.violations.join(" ")).toMatch(/historically vetoed/);
   });
@@ -79,6 +92,7 @@ describe("criterion memory", () => {
   it("rejects a malformed candidate rubric verdict at runtime", () => {
     expect(() => replayRubricRegression({
       candidateRubricVersion: "rubric-v2",
+      candidateRubricDigest: OTHER_DIGEST,
       history: [entry()],
       evaluate: () => "APPROVE" as never,
     })).toThrow(/candidate rubric verdict is invalid/);
