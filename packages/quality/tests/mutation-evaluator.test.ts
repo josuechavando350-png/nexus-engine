@@ -19,6 +19,7 @@ function artifact(id: BrowserMutationId, overrides: Partial<BrowserMutationArtif
       textCharacterCount: 200,
       mediaElementCount: 2,
       animatedElementCount: id === "MOTION_REMOVAL" ? 0 : 1,
+      replacementCount: id === "BRAND_SWAP" || id === "INDUSTRY_TRANSPLANT" ? 2 : 0,
       ...overrides,
     },
   };
@@ -34,7 +35,7 @@ const objectiveArtifacts = (): BrowserMutationArtifact[] => [
 ];
 
 describe("browser mutation evidence evaluator", () => {
-  it("passes objective layout-resilience attacks but keeps identity attacks NOT_TESTED", () => {
+  it("passes objective layout-resilience attacks but keeps visual identity attacks NOT_TESTED", () => {
     const report = evaluateBrowserMutationEvidence(objectiveArtifacts());
     expect(report.verdicts.CONTENT_STRESS).toBe("PASS");
     expect(report.verdicts.ASSET_DEGRADATION).toBe("PASS");
@@ -44,6 +45,21 @@ describe("browser mutation evidence evaluator", () => {
     expect(report.verdicts.BRAND_SWAP).toBe("NOT_TESTED");
     expect(report.verdicts.INDUSTRY_TRANSPLANT).toBe("NOT_TESTED");
     expect(report.findings.some((finding) => finding.includes("identity survival requires"))).toBe(true);
+  });
+
+  it("binds explicit brand and industry mutation artifacts without pretending they visually passed", () => {
+    const report = evaluateBrowserMutationEvidence([...objectiveArtifacts(), artifact("BRAND_SWAP"), artifact("INDUSTRY_TRANSPLANT")]);
+    expect(report.verdicts.BRAND_SWAP).toBe("NOT_TESTED");
+    expect(report.verdicts.INDUSTRY_TRANSPLANT).toBe("NOT_TESTED");
+    expect(report.evidence.BRAND_SWAP).toHaveLength(2);
+    expect(report.evidence.INDUSTRY_TRANSPLANT).toHaveLength(2);
+    expect(report.findings.some((finding) => finding.includes("executed 2 explicit"))).toBe(true);
+  });
+
+  it("fails an identity mutation artifact that claims no replacement happened", () => {
+    const report = evaluateBrowserMutationEvidence([...objectiveArtifacts(), artifact("BRAND_SWAP", { replacementCount: 0 })]);
+    expect(report.verdicts.BRAND_SWAP).toBe("FAIL");
+    expect(report.findings.some((finding) => finding.includes("matched no rendered content"))).toBe(true);
   });
 
   it("fails content stress on measured horizontal overflow", () => {
