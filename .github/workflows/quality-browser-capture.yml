@@ -7,6 +7,7 @@ on:
       - "packages/capture/**"
       - "packages/experience/**"
       - "packages/emitter/**"
+      - "packages/quality/**"
       - ".github/workflows/quality-browser-capture.yml"
       - "pnpm-lock.yaml"
   push:
@@ -15,6 +16,7 @@ on:
       - "packages/capture/**"
       - "packages/experience/**"
       - "packages/emitter/**"
+      - "packages/quality/**"
       - ".github/workflows/quality-browser-capture.yml"
       - "pnpm-lock.yaml"
 
@@ -60,8 +62,23 @@ jobs:
           test -f "$root/capture-manifest.json"
           png_count="$(find "$root" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')"
           axe_count="$(find "$root" -maxdepth 1 -type f -name '*-axe.json' | wc -l | tr -d ' ')"
+          genome_count="$(find "$root" -maxdepth 1 -type f -name '*-design-genome.json' | wc -l | tr -d ' ')"
           test "$png_count" = "6"
           test "$axe_count" = "6"
+          test "$genome_count" = "6"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = 'artifacts/browser-capture';
+          const genomes = fs.readdirSync(root).filter((name) => name.endsWith('-design-genome.json'));
+          if (genomes.length !== 6) process.exit(1);
+          for (const name of genomes) {
+            const data = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+            if (data.schemaVersion !== 1 || !Number.isFinite(data.visibleElementCount) || data.visibleElementCount <= 0) process.exit(1);
+            if (!Array.isArray(data.typography?.fontSizePx) || !data.typography.fontSizePx.length) process.exit(1);
+            if (!data.layout || !data.motion || !data.geometry || !data.media || !data.rhythm) process.exit(1);
+          }
+          NODE
           find "$root" -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
           test -s "$root/artifact-checksums.sha256"
           test -z "$(git status --porcelain --untracked-files=no)"
