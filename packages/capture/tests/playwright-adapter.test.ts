@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { type AddressInfo } from "node:net";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createRun } from "../../measurement/index";
 import { validateCaptureResult, type CaptureRequest } from "../index";
@@ -42,25 +42,29 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
   let server: Server;
   let targetUrl: string;
   let outputDir: string;
+  let preserveEvidence = false;
 
   beforeAll(async () => {
-    outputDir = await mkdtemp(join(tmpdir(), "nexus-real-capture-"));
+    const configuredEvidenceDir = process.env.NEXUS_CAPTURE_EVIDENCE_DIR?.trim();
+    preserveEvidence = Boolean(configuredEvidenceDir);
+    outputDir = configuredEvidenceDir ? resolve(configuredEvidenceDir) : await mkdtemp(join(tmpdir(), "nexus-real-capture-"));
+    await mkdir(outputDir, { recursive: true });
     server = createServer((_request, response) => {
       response.statusCode = 200;
       response.setHeader("content-type", "text/html; charset=utf-8");
       response.end(HTML);
     });
-    await new Promise<void>((resolve, reject) => {
+    await new Promise<void>((resolveListen, reject) => {
       server.once("error", reject);
-      server.listen(0, "127.0.0.1", () => resolve());
+      server.listen(0, "127.0.0.1", () => resolveListen());
     });
     const address = server.address() as AddressInfo;
     targetUrl = `http://127.0.0.1:${address.port}/`;
   });
 
   afterAll(async () => {
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
-    await rm(outputDir, { recursive: true, force: true });
+    await new Promise<void>((resolveClose, reject) => server.close((error) => error ? reject(error) : resolveClose()));
+    if (!preserveEvidence) await rm(outputDir, { recursive: true, force: true });
   });
 
   it("opens Chromium and WebKit at 390/768/1440, persists PNG + axe evidence and hashes the real bytes", async () => {
@@ -129,6 +133,19 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     expect(result.samples.some((sample) => sample.name.endsWith("script_transfer_bytes") && sample.unit === "bytes")).toBe(true);
     expect(result.samples.some((sample) => sample.name.endsWith("axe_violations") && sample.unit === "count")).toBe(true);
     expect(result.samples.every((sample) => Number.isFinite(sample.value))).toBe(true);
+
+    const manifest = {
+      schemaVersion: 1,
+      adapterId: adapter.adapterId,
+      adapterVersion: adapter.adapterVersion,
+      requestId: result.requestId,
+      outcome: result.outcome,
+      browsers: ["chromium", "webkit"],
+      viewports: [390, 768, 1440],
+      artifacts: result.artifacts,
+      samples: result.samples,
+    };
+    await writeFile(join(outputDir, "capture-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   });
 
   it("refuses non-HTTP targets instead of pretending they were captured", async () => {
