@@ -1,0 +1,20 @@
+{
+  "engine": "NEXUS",
+  "schemaVersion": 1,
+  "status": "PASS",
+  "checks": {
+    "decorativeNumbering": "PASS",
+    "gratuitousArrows": "PASS",
+    "genericGradient": "PASS",
+    "glassmorphism": "PASS",
+    "featureCards": "PASS",
+    "heroPhotoBackground": "PASS",
+    "reducedMotionFallback": "PASS",
+    "realClientPhotographyOnly": "PASS"
+  },
+  "externalEvidence": {
+    "multimodalProvider": "NOT_TESTED",
+    "physicalAndroid": "NOT_TESTED",
+    "githubActions": "NOT_TESTED_QUOTA_BLOCKED"
+  }
+}
