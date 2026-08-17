@@ -1,17 +1,18 @@
 {
   "name": "@nexus/quality",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./index.ts",
     "./red-team": "./red-team.ts",
     "./repair-loop": "./repair-loop.ts",
-    "./visual-judge": "./visual-judge.ts"
+    "./visual-judge": "./visual-judge.ts",
+    "./opening-tournament": "./opening-tournament.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/quality/index.js && test -f dist/quality/index.d.ts && test -f dist/quality/red-team.js && test -f dist/quality/red-team.d.ts && test -f dist/quality/repair-loop.js && test -f dist/quality/repair-loop.d.ts && test -f dist/quality/visual-judge.js && test -f dist/quality/visual-judge.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/quality/index.js && test -f dist/quality/index.d.ts && test -f dist/quality/red-team.js && test -f dist/quality/red-team.d.ts && test -f dist/quality/repair-loop.js && test -f dist/quality/repair-loop.d.ts && test -f dist/quality/visual-judge.js && test -f dist/quality/visual-judge.d.ts && test -f dist/quality/opening-tournament.js && test -f dist/quality/opening-tournament.d.ts"
   },
   "dependencies": {
     "@nexus/capture": "workspace:*",
