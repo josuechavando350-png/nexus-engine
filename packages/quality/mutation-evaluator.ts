@@ -54,6 +54,21 @@ function resilienceVerdict(
   };
 }
 
+function identityMutationEvidence(
+  artifact: BrowserMutationArtifact | undefined,
+  attackId: "BRAND_SWAP" | "INDUSTRY_TRANSPLANT",
+  policy: MutationEvidencePolicy,
+): { verdict: VerdictState; findings: string[]; evidence: string[] } {
+  if (!artifact) return { verdict: "NOT_TESTED", findings: [`${attackId} browser mutation evidence is missing`], evidence: [] };
+  const objective = resilienceVerdict(artifact, policy, (item) => item.diagnostics.replacementCount > 0 ? undefined : "explicit text replacement matched no rendered content");
+  if (objective.verdict === "FAIL") return objective;
+  return {
+    verdict: "NOT_TESTED",
+    findings: [`${attackId} executed ${artifact.diagnostics.replacementCount} explicit rendered-text replacement(s); identity survival still requires a traceable visual review`],
+    evidence: objective.evidence,
+  };
+}
+
 export function evaluateBrowserMutationEvidence(
   artifacts: readonly BrowserMutationArtifact[],
   policy: MutationEvidencePolicy = DEFAULT_POLICY,
@@ -72,6 +87,16 @@ export function evaluateBrowserMutationEvidence(
     MOTION_REMOVAL: "NOT_TESTED",
     GRAYSCALE: "NOT_TESTED",
   };
+
+  const brandSwap = identityMutationEvidence(byId(artifacts, "BRAND_SWAP"), "BRAND_SWAP", policy);
+  verdicts.BRAND_SWAP = brandSwap.verdict;
+  evidence.BRAND_SWAP = brandSwap.evidence;
+  findings.push(...brandSwap.findings.map((finding) => `BRAND_SWAP:${finding}`));
+
+  const industryTransplant = identityMutationEvidence(byId(artifacts, "INDUSTRY_TRANSPLANT"), "INDUSTRY_TRANSPLANT", policy);
+  verdicts.INDUSTRY_TRANSPLANT = industryTransplant.verdict;
+  evidence.INDUSTRY_TRANSPLANT = industryTransplant.evidence;
+  findings.push(...industryTransplant.findings.map((finding) => `INDUSTRY_TRANSPLANT:${finding}`));
 
   const content = resilienceVerdict(byId(artifacts, "CONTENT_STRESS"), policy);
   verdicts.CONTENT_STRESS = content.verdict;
@@ -111,9 +136,6 @@ export function evaluateBrowserMutationEvidence(
   } else {
     findings.push("GRAYSCALE:browser evidence is missing");
   }
-
-  findings.push("BRAND_SWAP:requires explicit brand replacement inputs and has not been inferred");
-  findings.push("INDUSTRY_TRANSPLANT:requires explicit alternate-industry content inputs and has not been inferred");
 
   return Object.freeze({
     authority: "NEXUS_MUTATION_EVIDENCE_EVALUATOR",
