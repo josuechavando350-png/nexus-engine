@@ -1,5 +1,16 @@
 import type { NextConfig } from "next";
-import { NEXUS_CSP_BASE, NEXUS_SECURITY_HEADERS_BASE } from "@nexus/core/foundation/config";
+import {
+  NEXUS_SECURITY_HEADERS_BASE,
+  buildCsp
+} from "@nexus/core/foundation/config";
+
+const laPauseCsp = buildCsp({
+  "script-src": ["'self'", "'unsafe-inline'"],
+  "style-src": ["'self'", "'unsafe-inline'"],
+  "img-src": ["'self'", "data:", "blob:"],
+  "font-src": ["'self'", "data:"],
+  "connect-src": ["'self'"]
+});
 
 const nextConfig: NextConfig = {
   transpilePackages: ["@nexus/core", "@nexus/experience"],
@@ -12,7 +23,7 @@ const nextConfig: NextConfig = {
         source: "/(.*)",
         headers: [
           ...NEXUS_SECURITY_HEADERS_BASE.map(({ key, value }) => ({ key, value })),
-          { key: "Content-Security-Policy", value: NEXUS_CSP_BASE }
+          { key: "Content-Security-Policy", value: laPauseCsp }
         ]
       }
     ];
