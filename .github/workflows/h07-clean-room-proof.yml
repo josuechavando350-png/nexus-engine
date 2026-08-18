@@ -3,28 +3,8 @@ name: NEXUS H07 Clean-Room Operability Proof
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "scripts/h07-operability-proof.mjs"
-      - "package.json"
-      - ".github/workflows/h07-clean-room-proof.yml"
-      - "docs/operations/**"
-      - "runtime/**"
-      - "packages/ontology/**"
-      - "packages/capture/**"
-      - "packages/emitter/**"
-      - "packages/quality/**"
   push:
     branches: [main]
-    paths:
-      - "scripts/h07-operability-proof.mjs"
-      - "package.json"
-      - ".github/workflows/h07-clean-room-proof.yml"
-      - "docs/operations/**"
-      - "runtime/**"
-      - "packages/ontology/**"
-      - "packages/capture/**"
-      - "packages/emitter/**"
-      - "packages/quality/**"
   workflow_dispatch:
 
 permissions:
@@ -62,12 +42,14 @@ jobs:
           mkdir -p .artifacts
           {
             echo "commit=$(git rev-parse HEAD)"
+            echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
             echo "node=$(node --version)"
             echo "pnpm=$(pnpm --version)"
             echo "rustc=$(rustc --version)"
             echo "cargo=$(cargo --version)"
             echo "runner=${RUNNER_OS}-${RUNNER_ARCH}"
           } | tee .artifacts/h07-environment.txt
+          test -z "$(git status --porcelain)"
 
       - name: Install from lockfile
         run: pnpm install --frozen-lockfile
@@ -96,6 +78,7 @@ jobs:
           pnpm lint
           pnpm typecheck
           pnpm test
+          pnpm test:browser
           pnpm build
           pnpm security-hygiene
           pnpm v3-gates
@@ -105,13 +88,21 @@ jobs:
           pnpm v7-gates
           pnpm v8-gates
           pnpm v9-gates
-          pnpm v10-gates
           pnpm rust:test
           pnpm rust:lint
           pnpm rust:build
 
       - name: Execute deploy backup restore rollback offboarding proof
         run: pnpm operability:h07
+
+      - name: Assert clean build and evidence identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain --untracked-files=no)"
+          test -f .artifacts/h07-operability-proof.json
+          node scripts/v10-architecture-gates.mjs
+          node scripts/v10-final-readiness-gates.mjs
 
       - name: Upload evidence packet
         if: always()
