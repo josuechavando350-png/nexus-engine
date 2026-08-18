@@ -112,7 +112,7 @@ function toStyleDictionaryTokens(manifest: Readonly<Record<string, string>>) {
 export async function emitExperienceCss(input: EmitterInput): Promise<EmitterOutput> {
   const tokenManifest = deriveManifest(input);
   const sd = new StyleDictionary({
-    tokens: { nexus: toStyleDictionaryTokens(tokenManifest) },
+    tokens: toStyleDictionaryTokens(tokenManifest),
     platforms: {
       css: {
         transformGroup: transformGroups.css,
