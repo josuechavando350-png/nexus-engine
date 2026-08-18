@@ -73,7 +73,23 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Install pinned Playwright browser dependencies
-        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          for attempt in 1 2 3; do
+            echo "Playwright browser/dependency install attempt ${attempt}/3"
+            if pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit; then
+              exit 0
+            fi
+            if [ "$attempt" -eq 3 ]; then
+              echo "Playwright installation failed after 3 attempts" >&2
+              exit 1
+            fi
+            sleep $((attempt * 15))
+          done
 
       - name: Build and validate independently
         run: |
