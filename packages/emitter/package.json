@@ -4,11 +4,13 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./color-constraints": "./color-constraints.ts",
+    "./webgpu-effects": "./webgpu-effects.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/emitter/index.js && test -f dist/emitter/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/emitter/index.js && test -f dist/emitter/index.d.ts && test -f dist/emitter/color-constraints.js && test -f dist/emitter/color-constraints.d.ts"
   },
   "dependencies": {
     "@nexus/experience": "workspace:*",
