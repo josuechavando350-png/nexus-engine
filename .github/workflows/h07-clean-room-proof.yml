@@ -10,6 +10,9 @@ on:
       - "docs/operations/**"
       - "runtime/**"
       - "packages/ontology/**"
+      - "packages/capture/**"
+      - "packages/emitter/**"
+      - "packages/quality/**"
   push:
     branches: [main]
     paths:
@@ -19,6 +22,9 @@ on:
       - "docs/operations/**"
       - "runtime/**"
       - "packages/ontology/**"
+      - "packages/capture/**"
+      - "packages/emitter/**"
+      - "packages/quality/**"
   workflow_dispatch:
 
 permissions:
@@ -65,6 +71,9 @@ jobs:
 
       - name: Install from lockfile
         run: pnpm install --frozen-lockfile
+
+      - name: Install pinned Playwright browser dependencies
+        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
 
       - name: Build and validate independently
         run: |

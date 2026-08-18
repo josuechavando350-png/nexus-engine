@@ -1,7 +1,7 @@
 import type { EvidenceEnvelope, MeasurementRun, MeasurementScope, MetricSample } from "../measurement/index";
 import { createEvidence, deterministicId } from "../measurement/index";
 
-export type CaptureCapability = "SCREENSHOT" | "PERFORMANCE" | "RUNTIME_TELEMETRY";
+export type CaptureCapability = "SCREENSHOT" | "ACCESSIBILITY" | "DESIGN_GENOME" | "CONTRAST" | "PERFORMANCE" | "RUNTIME_TELEMETRY";
 export type CaptureOutcome = "CAPTURED" | "UNSUPPORTED" | "FAILED";
 
 export interface CaptureRequest {
@@ -21,6 +21,8 @@ export interface CaptureArtifact {
   digest: string;
   byteLength: number;
   capturedAt: string;
+  uri?: string;
+  metadata?: Readonly<Record<string, string>>;
 }
 
 export interface CaptureResult {
@@ -87,6 +89,7 @@ export function createCaptureArtifact(input: Omit<CaptureArtifact, "artifactId">
   nonEmpty(input.mediaType, "mediaType");
   nonEmpty(input.digest, "digest");
   assertCanonicalUtcTimestamp(input.capturedAt, "capturedAt");
+  if (input.uri !== undefined) nonEmpty(input.uri, "uri");
   if (!Number.isInteger(input.byteLength) || input.byteLength < 0) throw new CaptureValidationError("NON_FINITE_VALUE", "byteLength must be a non-negative integer");
   return {
     artifactId: deterministicId("artifact", input),

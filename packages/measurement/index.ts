@@ -1,3 +1,5 @@
+export * from "./bundle-size";
+
 import { createHash } from "node:crypto";
 
 export type EvidenceStatus = "MEASURED" | "MISSING" | "UNSUPPORTED" | "FAILED";
@@ -31,7 +33,12 @@ export function deterministicId(prefix: string, value: unknown): string { return
 export function workloadDigest(workload: WorkloadDefinition): string { validateWorkload(workload); return deterministicId("wrk", workload); }
 export function environmentDigest(environment: EnvironmentDescriptor): string { validateEnvironment(environment); return deterministicId("env", environment); }
 
-export function createRun(input: Omit<MeasurementRun, "runId" | "workloadDigest" | "environmentDigest"> & { workload: WorkloadDefinition; environment: EnvironmentDescriptor }): MeasurementRun {
+export type CreateMeasurementRunInput = Omit<MeasurementRun, "runId" | "workloadId" | "workloadVersion" | "workloadDigest" | "environmentDigest"> & {
+  workload: WorkloadDefinition;
+  environment: EnvironmentDescriptor;
+};
+
+export function createRun(input: CreateMeasurementRunInput): MeasurementRun {
   validateWorkload(input.workload); validateEnvironment(input.environment); assertScope(input.scope);
   if (input.scope.tenantId !== input.workload.scope.tenantId || input.scope.brandId !== input.workload.scope.brandId) throw new MeasurementValidationError("SCOPE_MISMATCH", "run scope must match workload scope");
   assertCanonicalUtcTimestamp(input.startedAt, "startedAt");

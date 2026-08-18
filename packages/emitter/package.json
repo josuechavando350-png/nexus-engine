@@ -1,0 +1,25 @@
+{
+  "name": "@nexus/emitter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./color-constraints": "./color-constraints.ts",
+    "./multipage": "./multipage.ts",
+    "./experience-features": "./experience-features.ts",
+    "./webgpu-effects": "./webgpu-effects.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/emitter/index.js && test -f dist/emitter/index.d.ts && test -f dist/emitter/color-constraints.js && test -f dist/emitter/color-constraints.d.ts && test -f dist/emitter/multipage.js && test -f dist/emitter/multipage.d.ts && test -f dist/emitter/experience-features.js && test -f dist/emitter/experience-features.d.ts"
+  },
+  "dependencies": {
+    "@nexus/experience": "workspace:*",
+    "style-dictionary": "5.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^4.0.0"
+  }
+}

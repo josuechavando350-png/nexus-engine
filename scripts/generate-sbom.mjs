@@ -10,7 +10,12 @@ const runJson = (command, args, cwd = root) => JSON.parse(execFileSync(command, 
   stdio: ["ignore", "pipe", "inherit"],
   maxBuffer: JSON_COMMAND_MAX_BUFFER,
 }));
-const revision = process.env.GITHUB_SHA || execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+const checkoutRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+const revision = process.env.NEXUS_VALIDATED_SHA || checkoutRevision;
+if (revision !== checkoutRevision) {
+  throw new Error(`SBOM source SHA mismatch: NEXUS_VALIDATED_SHA=${revision} but checkout HEAD=${checkoutRevision}`);
+}
+if (!/^[a-f0-9]{40}$/i.test(revision)) throw new Error(`Invalid validated Git SHA: ${revision}`);
 
 const components = new Map();
 const add = (component) => {
@@ -58,7 +63,10 @@ const bom = {
   metadata: {
     timestamp: new Date().toISOString(),
     component: { type: "application", name: "nexus-engine", version: revision },
-    properties: [{ name: "nexus:git-sha", value: revision }],
+    properties: [
+      { name: "nexus:git-sha", value: revision },
+      { name: "nexus:identity-source", value: "validated-checkout-head" },
+    ],
   },
   components: [...components.values()].sort((a, b) => `${a.name}@${a.version}`.localeCompare(`${b.name}@${b.version}`, "en")),
 };
@@ -67,4 +75,4 @@ const outDir = join(root, "artifacts", "security");
 mkdirSync(outDir, { recursive: true });
 const out = join(outDir, `nexus-${revision}.cdx.json`);
 writeFileSync(out, `${JSON.stringify(bom, null, 2)}\n`, "utf8");
-console.log(`CycloneDX SBOM written to ${out} with ${bom.components.length} components for ${revision}`);
+console.log(`CycloneDX SBOM written to ${out} with ${bom.components.length} components for validated source ${revision}`);

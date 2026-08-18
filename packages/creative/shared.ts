@@ -1,4 +1,5 @@
 export type CreativeScope = Readonly<{ tenantId: string; brandId: string }>;
+export type VerdictState = "PASS" | "FAIL" | "WARNING" | "NOT_TESTED";
 
 const CANONICAL_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const CANONICAL_TIMESTAMP = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/;

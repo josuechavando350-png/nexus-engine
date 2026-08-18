@@ -1,13 +1,14 @@
 {
   "name": "@nexus/evidence",
-  "version": "9.0.0",
+  "version": "9.1.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./delivery-certification": "./delivery-certification.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/evidence/index.js && test -f dist/evidence/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/evidence/index.js && test -f dist/evidence/index.d.ts && test -f dist/evidence/delivery-certification.js && test -f dist/evidence/delivery-certification.d.ts"
   }
 }

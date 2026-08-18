@@ -19,8 +19,6 @@ const environment: EnvironmentDescriptor = {
 };
 
 const run = createRun({
-  workloadId: workload.id,
-  workloadVersion: workload.version,
   scope: workload.scope,
   startedAt: "2026-08-15T00:00:00.000Z",
   workload,

@@ -122,6 +122,7 @@ export class ControlledAIBoundary {
     const controller = new AbortController();
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
     let removeExternalAbort: (() => void) | undefined;
+    let timeoutTriggered = false;
 
     const cancellation = new Promise<never>((_, reject) => {
       const rejectCancelled = () => {
@@ -136,8 +137,9 @@ export class ControlledAIBoundary {
 
     const timeout = new Promise<never>((_, reject) => {
       timeoutHandle = setTimeout(() => {
-        controller.abort();
+        timeoutTriggered = true;
         reject(new AIBoundaryError("PROVIDER_TIMEOUT", `AI provider exceeded ${this.runtimePolicy.timeoutMs}ms timeout`));
+        controller.abort();
       }, this.runtimePolicy.timeoutMs);
     });
 
@@ -161,6 +163,9 @@ export class ControlledAIBoundary {
       this.consecutiveFailures += 1;
       if (this.consecutiveFailures >= this.runtimePolicy.maxConsecutiveFailures) {
         this.circuitOpenUntil = this.now() + this.runtimePolicy.circuitCooldownMs;
+      }
+      if (timeoutTriggered) {
+        throw new AIBoundaryError("PROVIDER_TIMEOUT", `AI provider exceeded ${this.runtimePolicy.timeoutMs}ms timeout`);
       }
       if (error instanceof AIBoundaryError) throw error;
       const reason = error instanceof Error ? error.message : "unknown provider failure";

@@ -47,17 +47,30 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
+  NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   validate:
-    name: V3→V10 full validation on exact SHA
+    name: V3→V10 full validation on exact source SHA
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
-      - name: Checkout exact revision
+      - name: Checkout exact source revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+
+      - name: Assert exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$NEXUS_VALIDATED_SHA" || {
+            echo "Source SHA mismatch: expected $NEXUS_VALIDATED_SHA, checkout is $actual" >&2
+            exit 1
+          }
+          printf 'validated_source_sha=%s\n' "$actual"
 
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -80,6 +93,9 @@ jobs:
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install pinned Playwright browser dependencies
+        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
 
       - name: Refresh patched Wasmtime lock resolution in isolated worktree
         shell: bash
@@ -119,12 +135,14 @@ jobs:
           )
           test -z "$(git status --porcelain --untracked-files=no)"
 
-      - name: Generate SHA-bound CycloneDX SBOM
+      - name: Generate source-SHA-bound CycloneDX SBOM
         shell: bash
         run: |
           set -euo pipefail
           test -d "$NEXUS_LOCK_WORKTREE/runtime"
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           pnpm sbom
+          test -f "artifacts/security/nexus-${NEXUS_VALIDATED_SHA}.cdx.json"
           test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Record supply-chain identity
@@ -132,6 +150,7 @@ jobs:
         run: |
           {
             echo "sha=$(git rev-parse HEAD)"
+            echo "validated_sha=$NEXUS_VALIDATED_SHA"
             echo "node=$(node --version)"
             echo "pnpm=$(pnpm --version)"
             echo "rustc=$(rustc --version)"
@@ -139,6 +158,7 @@ jobs:
             echo "cargo-audit=$(cargo audit --version)"
             echo "cargo-deny=$(cargo deny --version)"
           } | tee artifacts/security/toolchain.txt
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
 
       - name: Lint
         run: pnpm lint
@@ -237,11 +257,13 @@ jobs:
             git diff >&2 || true
             exit 1
           fi
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
 
       - name: Diff hygiene
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git diff --check "origin/${{ github.base_ref }}...HEAD"
           else
@@ -252,7 +274,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nexus-supply-chain-${{ github.sha }}
+          name: nexus-supply-chain-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/security
           if-no-files-found: error
           retention-days: 90

@@ -1,0 +1,138 @@
+name: NEXUS Real Browser Capture Validation
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "packages/capture/**"
+      - "packages/experience/**"
+      - "packages/emitter/**"
+      - "packages/quality/**"
+      - ".github/workflows/quality-browser-capture.yml"
+      - "pnpm-lock.yaml"
+  push:
+    branches: [main]
+    paths:
+      - "packages/capture/**"
+      - "packages/experience/**"
+      - "packages/emitter/**"
+      - "packages/quality/**"
+      - ".github/workflows/quality-browser-capture.yml"
+      - "pnpm-lock.yaml"
+
+permissions:
+  contents: read
+
+env:
+  NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
+jobs:
+  real-browser-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Assert exact source SHA
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$NEXUS_VALIDATED_SHA" || {
+            echo "Source SHA mismatch: expected $NEXUS_VALIDATED_SHA, checkout is $actual" >&2
+            exit 1
+          }
+          mkdir -p artifacts/browser-capture
+          printf '%s\n' "$actual" > artifacts/browser-capture/validated-source-sha.txt
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install real browser engines
+        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
+      - name: Capture Chromium and WebKit evidence
+        env:
+          NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
+        run: pnpm --filter @nexus/capture test:browser
+      - name: Verify persisted evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          root="artifacts/browser-capture"
+          mutations="$root/mutations"
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test -f "$root/validated-source-sha.txt"
+          test "$(tr -d '\n\r' < "$root/validated-source-sha.txt")" = "$NEXUS_VALIDATED_SHA"
+          test -f "$root/capture-manifest.json"
+          test "$(find "$root" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*-axe.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*-design-genome.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*-apca.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$root" -maxdepth 1 -type f -name '*-performance.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "8"
+          test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "8"
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = 'artifacts/browser-capture';
+          const genomes = fs.readdirSync(root).filter((name) => name.endsWith('-design-genome.json'));
+          if (genomes.length !== 6) process.exit(1);
+          for (const name of genomes) {
+            const data = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+            if (data.schemaVersion !== 1 || !Number.isFinite(data.visibleElementCount) || data.visibleElementCount <= 0) process.exit(1);
+            if (!Array.isArray(data.typography?.fontSizePx) || !data.typography.fontSizePx.length) process.exit(1);
+            if (!data.layout || !data.motion || !data.geometry || !data.media || !data.rhythm) process.exit(1);
+          }
+          const apca = fs.readdirSync(root).filter((name) => name.endsWith('-apca.json'));
+          if (apca.length !== 6) process.exit(1);
+          for (const name of apca) {
+            const data = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+            if (data.schemaVersion !== 1 || data.algorithm !== 'APCA' || data.library !== 'apca-w3' || data.libraryVersion !== '0.1.9') process.exit(1);
+            if (!Array.isArray(data.observations) || data.observations.length < 3 || !Number.isInteger(data.unsupportedCount) || data.unsupportedCount < 0) process.exit(1);
+            for (const observation of data.observations) {
+              if (!Number.isFinite(observation.lc) || !Number.isFinite(observation.fontSizePx) || !Number.isFinite(observation.fontWeight)) process.exit(1);
+              if (!/^sha256:[a-f0-9]{64}$/.test(observation.textDigest)) process.exit(1);
+            }
+          }
+          const vitalsFiles = fs.readdirSync(root).filter((name) => name.endsWith('-performance.json'));
+          if (vitalsFiles.length !== 6) process.exit(1);
+          const validStates = new Set(['MEASURED','NOT_OBSERVED','UNSUPPORTED']);
+          for (const name of vitalsFiles) {
+            const data = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'));
+            if (data.schemaVersion !== 1 || !Number.isInteger(data.resourceCount) || data.resourceCount < 0 || !Number.isFinite(data.scriptTransferBytes)) process.exit(1);
+            for (const metric of ['lcp','cls','inp','fcp','navigationDuration']) {
+              const vital = data[metric];
+              if (!vital || !validStates.has(vital.state)) process.exit(1);
+              if (vital.state === 'MEASURED') {
+                if (!Number.isFinite(vital.value)) process.exit(1);
+              } else if (Object.prototype.hasOwnProperty.call(vital, 'value')) process.exit(1);
+            }
+          }
+          const mutationsRoot = path.join(root, 'mutations');
+          const expected = new Set(['BRAND_SWAP','INDUSTRY_TRANSPLANT','GRAYSCALE','MOTION_REMOVAL','VIEWPORT_TORTURE_NARROW','VIEWPORT_TORTURE_WIDE','CONTENT_STRESS','ASSET_DEGRADATION']);
+          for (const name of fs.readdirSync(mutationsRoot).filter((name) => name.endsWith('.json'))) {
+            const data = JSON.parse(fs.readFileSync(path.join(mutationsRoot, name), 'utf8'));
+            if (data.schemaVersion !== 1 || !expected.delete(data.mutationId)) process.exit(1);
+            if (!data.diagnostics || !Number.isFinite(data.diagnostics.horizontalOverflowPx) || !Number.isFinite(data.diagnostics.visibleElementCount) || data.diagnostics.visibleElementCount <= 0) process.exit(1);
+          }
+          if (expected.size) process.exit(1);
+          NODE
+          find "$root" -type f -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
+          test -s "$root/artifact-checksums.sha256"
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Upload real browser evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-real-browser-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: artifacts/browser-capture
+          if-no-files-found: error
+          retention-days: 90
