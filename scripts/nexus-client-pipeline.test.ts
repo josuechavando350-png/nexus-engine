@@ -51,7 +51,11 @@ const passGate = (gateId: string) => ({ gate: { gateId, verdict: "PASS", detail:
 function syntheticAdapters() {
   const visualReport = { authority: "NEXUS_VISUAL_JUDGE", verdict: "PASS", approved: true, integrityVerdict: "PASS", reviewVerdict: "PASS", findings: [], verifiedArtifactIds: ["synthetic:capture"] };
   const redReport = { authority: "NEXUS_RED_TEAM_ARENA", experienceId: "pipeline-fixture", verdict: "PASS", approved: true, attacks: requiredRedTeamAttackIds().map((attackId) => ({ attackId, verdict: "PASS", detail: "synthetic test", evidence: [`synthetic:${attackId}`] })), similarityReports: [] };
-  const excessRemoval = { authority: "NEXUS_EXCESS_REMOVAL_ATTACK", baselineEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:excess:baseline"] }, scenarios: [{ scenarioId: "REMOVE_DECORATION", verdict: "PASS", why: "synthetic fixture", evaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:excess:scenario"] } }], finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:excess:final"] } };
+  const excessRemoval = {
+    authority: "NEXUS_EXCESS_REMOVAL_GATE",
+    verdict: "PASS",
+    findings: [{ elementId: "synthetic-purposeful-element", verdict: "PASS", code: "PURPOSE_SUPPORTED", message: "synthetic removal showed meaningful loss", evidenceIds: ["synthetic:excess:element"] }],
+  };
   const cycleReport = { authority: "NEXUS_BOUNDED_REPAIR_LOOP", status: "SHIPPABLE", finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:judge"] }, iterations: [], snapshots: [], repairLineage: [] };
   return {
     render: async () => passGate("RENDER"),
