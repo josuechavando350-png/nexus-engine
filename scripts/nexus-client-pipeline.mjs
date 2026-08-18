@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 import { defineExperienceBrief } from "../packages/experience/brief.ts";
 import { synthesizeAutonomousExperience, autonomousExperienceDigest } from "../packages/experience/autonomy.ts";
 import { evaluateContentReadiness } from "../packages/experience/content-readiness.ts";
+import { synthesizeGroundedCopy } from "../packages/experience/grounded-copy.ts";
+import { assignMediaRoles } from "../packages/experience/media-assignment.ts";
 import { ingestProjectFiles } from "../packages/experience/project-ingestion.ts";
 import { deriveConstrainedEmitterInput } from "../packages/emitter/color-constraints.ts";
 import { emitExperienceCss } from "../packages/emitter/index.ts";
@@ -40,15 +42,37 @@ function normalizeQualityGate(result, gateId) {
   return result.gate;
 }
 
-function assertGeneratedProvenance(spec, ingestion) {
+function assertGeneratedProvenance({ generatedMedia, generatedCopy, copyAssets, ingestion }) {
   const authorizedAssetDigests = new Set(ingestion.files.filter((file) => file.kind === "ASSET").map((file) => file.digest));
-  for (const media of spec.generatedMedia ?? []) {
+  for (const media of generatedMedia) {
     if (!authorizedAssetDigests.has(media.sourceDigest)) throw new Error(`generated media ${media.assetId} is not bound to an ingested authorized asset digest`);
   }
-  const copySources = new Set((spec.copyAssets ?? []).map((item) => item.source));
-  for (const copy of spec.generatedCopy ?? []) {
+  const copySources = new Set(copyAssets.map((item) => item.source));
+  for (const copy of generatedCopy) {
     if (!copySources.has(copy.sourceId)) throw new Error(`generated copy role ${copy.role} is not bound to a verified copy source`);
   }
+}
+
+function resolveContentInputs(spec, contentConstraints) {
+  let copySynthesis;
+  let generatedCopy = spec.generatedCopy ?? [];
+  let copyAssets = spec.copyAssets ?? [];
+  if (spec.groundedFacts) {
+    copySynthesis = synthesizeGroundedCopy({ constraints: contentConstraints, facts: spec.groundedFacts, locale: spec.locale });
+    generatedCopy = copySynthesis.items.map((item) => ({ role: item.role, text: item.text, sourceId: item.sourceId }));
+    copyAssets = copySynthesis.copyAssets;
+  }
+
+  let mediaAssignment;
+  let generatedMedia = spec.generatedMedia ?? [];
+  let photos = spec.photos ?? [];
+  if (spec.mediaCandidates) {
+    mediaAssignment = assignMediaRoles({ requiredRoles: contentConstraints.requiredPhotoRoles, candidates: spec.mediaCandidates });
+    generatedMedia = mediaAssignment.assignments.map((item) => ({ assetId: item.assetId, role: item.role, publicPath: item.publicPath, sourceDigest: item.sourceDigest, alt: item.observedContent }));
+    photos = mediaAssignment.assignments.map((item) => ({ role: item.role, filePath: item.filePath, rights: item.rights, source: item.source }));
+  }
+
+  return { copySynthesis, generatedCopy, copyAssets, mediaAssignment, generatedMedia, photos };
 }
 
 export async function runNexusClientPipeline(spec, adapters = {}) {
@@ -73,13 +97,14 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
 
   record("CONTENT_CONSTRAINTS", "deriving copy/media constraints from ExperienceDNA and business specificity");
   const contentConstraints = experience.contentConstraints;
+  const contentInputs = resolveContentInputs(spec, contentConstraints);
 
-  record("CONTENT_READINESS", "checking supplied copy/media provenance and required roles");
-  const readiness = await evaluateContentReadiness({ policy: experience.readinessPolicy, photos: spec.photos ?? [], copy: spec.copyAssets ?? [] });
+  record("CONTENT_READINESS", "checking NEXUS-assigned copy/media provenance and required roles");
+  const readiness = await evaluateContentReadiness({ policy: experience.readinessPolicy, photos: contentInputs.photos, copy: contentInputs.copyAssets });
   if (readiness.verdict !== "PASS") {
-    return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, readiness, blocker: "content readiness did not PASS", certification: undefined });
+    return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, blocker: "content readiness did not PASS", certification: undefined });
   }
-  assertGeneratedProvenance(spec, ingestion);
+  assertGeneratedProvenance({ generatedMedia: contentInputs.generatedMedia, generatedCopy: contentInputs.generatedCopy, copyAssets: contentInputs.copyAssets, ingestion });
 
   record("GENERATION", "generating multipage source constrained by ExperienceDNA");
   const emitterInput = deriveConstrainedEmitterInput({ dna: experience.dna, constraints: brief.constraints, projectSeed: spec.projectId });
@@ -94,18 +119,26 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
     plan: experience.plan,
     contentConstraints,
     tokenCss: emitted.css,
-    copy: spec.generatedCopy,
-    media: spec.generatedMedia,
+    copy: contentInputs.generatedCopy,
+    media: contentInputs.generatedMedia,
     actions: spec.actions ?? [],
+    location: spec.location,
+    reviews: spec.reviews ?? [],
+    minimumReviewItems: spec.minimumReviewItems ?? 0,
   });
   if (spec.outputDir) await writeGeneratedFiles(spec.outputDir, generation);
 
   const readinessEvidence = [...readiness.copy.map((item) => item.digest), ...readiness.photos.map((item) => item.digest)];
+  const provenanceEvidence = [
+    ingestion.provenanceDigest,
+    ...(contentInputs.copySynthesis ? [contentInputs.copySynthesis.synthesisDigest] : []),
+    ...(contentInputs.mediaAssignment ? [contentInputs.mediaAssignment.assignmentDigest] : []),
+  ];
   const gates = [
     passed("CONTENT_READINESS", "content readiness passed against DNA-derived policy", readinessEvidence),
     passed("GENERATION", "NEXUS multipage generator emitted provenance-bound sources", [generation.generationDigest]),
     passed("EMITTER", "NEXUS emitter produced deterministic token CSS", [experienceDigest]),
-    passed("PROVENANCE", "source shell and authorized assets matched expected digests", [ingestion.provenanceDigest]),
+    passed("PROVENANCE", "source shell, authorized assets, grounded copy and media assignments are provenance-bound", provenanceEvidence),
   ];
 
   let renderResult;
@@ -151,16 +184,9 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   gates.push(normalizeQualityGate(repairResult, "REPAIR_REJUDGE"));
 
   record("DELIVERY_CERTIFICATION", "evaluating fail-closed delivery certification");
-  const certification = certifyDelivery({
-    projectId: spec.projectId,
-    sourceRevision: spec.sourceRevision,
-    gates,
-    visualJudge: visualResult?.report,
-    redTeam: redTeamResult?.report,
-    qualityCycle: repairResult?.report,
-  });
+  const certification = certifyDelivery({ projectId: spec.projectId, sourceRevision: spec.sourceRevision, gates, visualJudge: visualResult?.report, redTeam: redTeamResult?.report, qualityCycle: repairResult?.report });
 
-  return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, readiness, emitted, generation, certification });
+  return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, emitted, generation, certification });
 }
 
 async function main() {
