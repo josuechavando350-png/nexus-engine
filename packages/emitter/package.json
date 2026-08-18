@@ -7,11 +7,12 @@
     ".": "./index.ts",
     "./color-constraints": "./color-constraints.ts",
     "./multipage": "./multipage.ts",
+    "./experience-features": "./experience-features.ts",
     "./webgpu-effects": "./webgpu-effects.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/emitter/index.js && test -f dist/emitter/index.d.ts && test -f dist/emitter/color-constraints.js && test -f dist/emitter/color-constraints.d.ts && test -f dist/emitter/multipage.js && test -f dist/emitter/multipage.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/emitter/index.js && test -f dist/emitter/index.d.ts && test -f dist/emitter/color-constraints.js && test -f dist/emitter/color-constraints.d.ts && test -f dist/emitter/multipage.js && test -f dist/emitter/multipage.d.ts && test -f dist/emitter/experience-features.js && test -f dist/emitter/experience-features.d.ts"
   },
   "dependencies": {
     "@nexus/experience": "workspace:*",
