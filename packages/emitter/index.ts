@@ -1,5 +1,6 @@
 export * from "./webgpu-effects";
 export * from "./color-constraints";
+export * from "./multipage";
 
 import StyleDictionary from "style-dictionary";
 import { formats, transformGroups } from "style-dictionary/enums";
