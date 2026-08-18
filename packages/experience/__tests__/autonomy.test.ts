@@ -68,7 +68,7 @@ const operationalBrief = defineExperienceBrief({
   constraints: [{ id: "access", statement: "Information must remain directly accessible.", source: "accessibility", severity: "required" }],
 });
 
-function rationaleEvidence(dna: ExperienceDNA): readonly string[][] {
+function rationaleEvidence(dna: ExperienceDNA): readonly (readonly string[])[] {
   return [
     dna.composition.asymmetry.rationale.evidence ?? [],
     dna.composition.gridDiscipline.rationale.evidence ?? [],
