@@ -31,10 +31,15 @@ const redTeam: RedTeamArenaReport = {
 };
 
 const excessRemoval: ExcessRemovalReport = {
-  authority: "NEXUS_EXCESS_REMOVAL_ATTACK",
-  baselineEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["excess:baseline"] },
-  scenarios: [{ scenarioId: "REMOVE_DECORATION", verdict: "PASS", why: "essential hierarchy survives", evaluation: { verdict: "PASS", findings: [], evidenceIds: ["excess:scenario"] } }],
-  finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["excess:final"] },
+  authority: "NEXUS_EXCESS_REMOVAL_GATE",
+  verdict: "PASS",
+  findings: [{
+    elementId: "fixture-purposeful-element",
+    verdict: "PASS",
+    code: "PURPOSE_SUPPORTED",
+    message: "Removal caused meaningful loss; evidence supports the declared purpose.",
+    evidenceIds: ["excess:remove:fixture-purposeful-element"],
+  }],
 };
 
 const qualityCycle: QualityCycleResult = {
@@ -74,11 +79,18 @@ describe("delivery certification", () => {
     const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), visualJudge, redTeam: incomplete, excessRemoval, qualityCycle });
     expect(report.verdict).toBe("FAIL");
     expect(report.certified).toBe(false);
-    expect(report.blockers).toContain("RED_TEAM claimed PASS without the complete mandatory hostile attack set plus a passing Excess Removal attack");
+    expect(report.blockers).toContain("RED_TEAM claimed PASS without the complete mandatory hostile attack set plus a passing evidence-backed Excess Removal gate");
   });
 
   it("rejects Red Team PASS when Excess Removal evidence is absent", () => {
     const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), visualJudge, redTeam, qualityCycle });
+    expect(report.verdict).toBe("FAIL");
+    expect(report.certified).toBe(false);
+  });
+
+  it("rejects empty or untested excess-removal reports", () => {
+    const empty: ExcessRemovalReport = { authority: "NEXUS_EXCESS_REMOVAL_GATE", verdict: "NOT_TESTED", findings: [] };
+    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), visualJudge, redTeam, excessRemoval: empty, qualityCycle });
     expect(report.verdict).toBe("FAIL");
     expect(report.certified).toBe(false);
   });
