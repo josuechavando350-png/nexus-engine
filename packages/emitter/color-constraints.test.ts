@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { defineExperienceDNA, direction, intent } from "@nexus/experience/dna";
-import { deriveColorConstrainedEmitterInput, resolveColorConstraints } from "./color-constraints";
+import { deriveConstrainedEmitterInput, resolveColorConstraints } from "./color-constraints";
 import { deriveExperienceTokenManifest } from "./index";
 
 const because = "fixture evidence";
@@ -32,7 +32,7 @@ describe("color constraint resolver", () => {
     expect(resolved.forbiddenHueRanges.some((range) => range.min === 60 && range.max === 105)).toBe(true);
     expect(resolved.accent.hue >= 60 && resolved.accent.hue <= 105).toBe(false);
 
-    const manifest = deriveExperienceTokenManifest(deriveColorConstrainedEmitterInput({ dna, constraints, projectSeed: "zona-dental-polanco" }));
+    const manifest = deriveExperienceTokenManifest(deriveConstrainedEmitterInput({ dna, constraints, projectSeed: "zona-dental-polanco" }));
     expect(manifest["surface-0"]).toContain("98.5%");
     expect(manifest["surface-1"]).toContain("94.5%");
   });
