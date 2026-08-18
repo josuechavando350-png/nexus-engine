@@ -3,6 +3,7 @@ export * from "./color-constraints";
 export * from "./multipage";
 export * from "./experience-features";
 export * from "./reference-presentation";
+export * from "./viewport-containment";
 
 import StyleDictionary from "style-dictionary";
 import { formats, transformGroups } from "style-dictionary/enums";
