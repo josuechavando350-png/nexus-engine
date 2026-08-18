@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
+import type { EngineConstraint } from "@nexus/experience";
 import type { ExperienceDNA } from "@nexus/experience/dna";
-import type { EngineConstraint } from "@nexus/experience/shared";
 import type { EmitterInput, OklchAccent, SurfaceTone } from "./index";
 
 export type ForbiddenHueRange = Readonly<{ name: string; min: number; max: number; evidence: string }>;
