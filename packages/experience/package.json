@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./index.ts",
+    "./shared": "./shared.ts",
     "./brief": "./brief.ts",
     "./dna": "./dna.ts",
     "./capabilities": "./capabilities.ts",
