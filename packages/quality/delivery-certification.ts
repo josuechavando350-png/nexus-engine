@@ -88,12 +88,9 @@ export function certifyDelivery(input: DeliveryCertificationInput): DeliveryCert
   const normalized: DeliveryGateEvidence[] = [];
   for (const gateId of REQUIRED_GATES) {
     const supplied = byId.get(gateId);
-    normalized.push(supplied ?? Object.freeze({
-      gateId,
-      verdict: "NOT_TESTED" as const,
-      detail: `${gateId} evidence was not supplied`,
-      evidenceIds: Object.freeze([]),
-    }));
+    normalized.push(supplied
+      ? { ...supplied, evidenceIds: [...supplied.evidenceIds] }
+      : { gateId, verdict: "NOT_TESTED", detail: `${gateId} evidence was not supplied`, evidenceIds: [] });
   }
 
   const blockers: string[] = [];
