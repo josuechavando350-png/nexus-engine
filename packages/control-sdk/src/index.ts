@@ -99,10 +99,10 @@ function requirePermission(principal: ControlPrincipal, tenantId: string, permis
 }
 
 const TRANSITIONS: Readonly<Record<FleetRolloutState, readonly FleetRolloutState[]>> = Object.freeze({
-  PLANNED: Object.freeze(["DEPLOYING"]),
-  DEPLOYING: Object.freeze(["SUCCEEDED", "FAILED"]),
-  SUCCEEDED: Object.freeze([]),
-  FAILED: Object.freeze([]),
+  PLANNED: Object.freeze(["DEPLOYING"] as FleetRolloutState[]),
+  DEPLOYING: Object.freeze(["SUCCEEDED", "FAILED"] as FleetRolloutState[]),
+  SUCCEEDED: Object.freeze([] as FleetRolloutState[]),
+  FAILED: Object.freeze([] as FleetRolloutState[]),
 });
 
 export class InMemoryFleetControlPlane {
