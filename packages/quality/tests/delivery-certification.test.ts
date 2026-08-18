@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { certifyDelivery, requiredDeliveryGateIds, type DeliveryGateEvidence } from "../delivery-certification";
+import { certifyDelivery, requiredDeliveryGateIds, requiredRedTeamAttackIds, type DeliveryGateEvidence } from "../delivery-certification";
+import type { ExcessRemovalReport } from "../excess-removal";
 import type { QualityCycleResult } from "../quality-cycle";
 import type { RedTeamArenaReport } from "../red-team";
 import type { VisualJudgeResult } from "../visual-judge";
@@ -25,8 +26,15 @@ const redTeam: RedTeamArenaReport = {
   experienceId: "fixture",
   verdict: "PASS",
   approved: true,
-  attacks: [{ attackId: "CREATIVE_CRITIC", verdict: "PASS", detail: "passed", evidence: ["critic:1"] }],
+  attacks: requiredRedTeamAttackIds().map((attackId) => ({ attackId, verdict: "PASS", detail: `${attackId} passed`, evidence: [`attack:${attackId}`] })),
   similarityReports: [],
+};
+
+const excessRemoval: ExcessRemovalReport = {
+  authority: "NEXUS_EXCESS_REMOVAL_ATTACK",
+  baselineEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["excess:baseline"] },
+  scenarios: [{ scenarioId: "REMOVE_DECORATION", verdict: "PASS", why: "essential hierarchy survives", evaluation: { verdict: "PASS", findings: [], evidenceIds: ["excess:scenario"] } }],
+  finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["excess:final"] },
 };
 
 const qualityCycle: QualityCycleResult = {
@@ -39,8 +47,8 @@ const qualityCycle: QualityCycleResult = {
 };
 
 describe("delivery certification", () => {
-  it("certifies only when every required gate and bound quality authority passes", () => {
-    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), visualJudge, redTeam, qualityCycle });
+  it("certifies only when every required gate and hostile quality authority passes", () => {
+    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), visualJudge, redTeam, excessRemoval, qualityCycle });
     expect(report.verdict).toBe("PASS");
     expect(report.certified).toBe(true);
     expect(report.blockers).toEqual([]);
@@ -48,24 +56,38 @@ describe("delivery certification", () => {
 
   it("treats any missing required gate as NOT_TESTED rather than pretending a build is deliverable", () => {
     const gates = passingGates().filter((gate) => gate.gateId !== "CAPTURE");
-    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates, visualJudge, redTeam, qualityCycle });
+    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates, visualJudge, redTeam, excessRemoval, qualityCycle });
     expect(report.verdict).toBe("NOT_TESTED");
     expect(report.certified).toBe(false);
     expect(report.blockers.some((blocker) => blocker.startsWith("CAPTURE:NOT_TESTED"))).toBe(true);
   });
 
   it("rejects a claimed visual PASS without a real bound Visual Judge report", () => {
-    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), redTeam, qualityCycle });
+    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), redTeam, excessRemoval, qualityCycle });
     expect(report.verdict).toBe("FAIL");
     expect(report.certified).toBe(false);
     expect(report.blockers).toContain("VISUAL_JUDGE claimed PASS without an approved NEXUS Visual Judge report");
+  });
+
+  it("rejects an incomplete Red Team even when the supplied subset all PASS", () => {
+    const incomplete = { ...redTeam, attacks: redTeam.attacks.slice(0, 2) };
+    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), visualJudge, redTeam: incomplete, excessRemoval, qualityCycle });
+    expect(report.verdict).toBe("FAIL");
+    expect(report.certified).toBe(false);
+    expect(report.blockers).toContain("RED_TEAM claimed PASS without the complete mandatory hostile attack set plus a passing Excess Removal attack");
+  });
+
+  it("rejects Red Team PASS when Excess Removal evidence is absent", () => {
+    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), visualJudge, redTeam, qualityCycle });
+    expect(report.verdict).toBe("FAIL");
+    expect(report.certified).toBe(false);
   });
 
   it("does not certify WARNING or NOT_TESTED states", () => {
     const gates = passingGates();
     const generation = gates.find((gate) => gate.gateId === "GENERATION")!;
     generation.verdict = "WARNING";
-    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates, visualJudge, redTeam, qualityCycle });
+    const report = certifyDelivery({ projectId: "fixture", sourceRevision: SHA, gates, visualJudge, redTeam, excessRemoval, qualityCycle });
     expect(report.verdict).toBe("WARNING");
     expect(report.certified).toBe(false);
   });
