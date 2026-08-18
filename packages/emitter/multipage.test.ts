@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { defineExperienceBrief } from "@nexus/experience/brief";
 import { synthesizeAutonomousExperience } from "@nexus/experience/autonomy";
-import { deriveColorConstrainedEmitterInput } from "./color-constraints";
+import { deriveConstrainedEmitterInput } from "./color-constraints";
 import { emitExperienceCss } from "./index";
 import { emitMultipageNextApp } from "./multipage";
 
@@ -33,7 +33,7 @@ async function generate() {
     brief,
     businessProfile: { businessType: "professional service", goals: ["INQUIRE", "TRUST"], differentiators: ["documentary proof"] },
   });
-  const emitted = await emitExperienceCss(deriveColorConstrainedEmitterInput({ dna: experience.dna, constraints: brief.constraints, projectSeed: brief.id }));
+  const emitted = await emitExperienceCss(deriveConstrainedEmitterInput({ dna: experience.dna, constraints: brief.constraints, projectSeed: brief.id }));
   const copy = experience.contentConstraints.requiredCopyRoles.map((role) => ({
     role,
     text: role === "headline" ? "Fixture Studio" : role === "value-proposition" ? "Professional service supported by supplied project evidence." : `Verified ${role.replaceAll("-", " ")} information from the client.`,
@@ -84,7 +84,7 @@ describe("DNA-constrained multipage generator", () => {
 
   it("fails closed when required content is missing", async () => {
     const experience = synthesizeAutonomousExperience({ brief, businessProfile: { businessType: "professional service", goals: ["INQUIRE"], differentiators: [] } });
-    const emitted = await emitExperienceCss(deriveColorConstrainedEmitterInput({ dna: experience.dna, constraints: brief.constraints, projectSeed: brief.id }));
+    const emitted = await emitExperienceCss(deriveConstrainedEmitterInput({ dna: experience.dna, constraints: brief.constraints, projectSeed: brief.id }));
     expect(() => emitMultipageNextApp({ projectId: brief.id, locale: "en-US", brief, dna: experience.dna, plan: experience.plan, contentConstraints: experience.contentConstraints, tokenCss: emitted.css, copy: [], media: [], actions: [] })).toThrow(/missing required copy role/);
   });
 });
