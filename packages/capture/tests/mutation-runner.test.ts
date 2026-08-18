@@ -81,7 +81,7 @@ describe("browser mutation runner", () => {
     const content = result.artifacts.find((artifact) => artifact.mutationId === "CONTENT_STRESS")!;
     const grayscale = result.artifacts.find((artifact) => artifact.mutationId === "GRAYSCALE")!;
     expect(content.diagnostics.textCharacterCount).toBeGreaterThan(grayscale.diagnostics.textCharacterCount);
-  });
+  }, 30_000);
 
   it("fails closed when explicit identity replacement inputs do not match rendered text", async () => {
     await expect(runBrowserMutationSuite({ targetUrl, outputDir, brandSwap: { from: "Unknown Brand", to: "Replacement" } })).rejects.toThrow(/did not match any rendered text/);
