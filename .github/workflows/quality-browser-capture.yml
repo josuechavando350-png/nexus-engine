@@ -78,8 +78,8 @@ jobs:
           test "$(find "$root" -maxdepth 1 -type f -name '*-design-genome.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$root" -maxdepth 1 -type f -name '*-apca.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$root" -maxdepth 1 -type f -name '*-performance.json' | wc -l | tr -d ' ')" = "6"
-          test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
-          test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "6"
+          test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "8"
+          test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "8"
           node - <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
@@ -118,7 +118,7 @@ jobs:
             }
           }
           const mutationsRoot = path.join(root, 'mutations');
-          const expected = new Set(['GRAYSCALE','MOTION_REMOVAL','VIEWPORT_TORTURE_NARROW','VIEWPORT_TORTURE_WIDE','CONTENT_STRESS','ASSET_DEGRADATION']);
+          const expected = new Set(['BRAND_SWAP','INDUSTRY_TRANSPLANT','GRAYSCALE','MOTION_REMOVAL','VIEWPORT_TORTURE_NARROW','VIEWPORT_TORTURE_WIDE','CONTENT_STRESS','ASSET_DEGRADATION']);
           for (const name of fs.readdirSync(mutationsRoot).filter((name) => name.endsWith('.json'))) {
             const data = JSON.parse(fs.readFileSync(path.join(mutationsRoot, name), 'utf8'));
             if (data.schemaVersion !== 1 || !expected.delete(data.mutationId)) process.exit(1);
