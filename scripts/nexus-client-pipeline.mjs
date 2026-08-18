@@ -8,6 +8,7 @@ import { synthesizeGroundedCopy } from "../packages/experience/grounded-copy.ts"
 import { assignMediaRoles } from "../packages/experience/media-assignment.ts";
 import { ingestProjectFiles } from "../packages/experience/project-ingestion.ts";
 import { deriveConstrainedEmitterInput } from "../packages/emitter/color-constraints.ts";
+import { augmentExperienceFeatures } from "../packages/emitter/experience-features.ts";
 import { emitExperienceCss } from "../packages/emitter/index.ts";
 import { emitMultipageNextApp } from "../packages/emitter/multipage.ts";
 import { certifyDelivery } from "../packages/quality/delivery-certification.ts";
@@ -111,7 +112,7 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
 
   record("EMITTER", "emitting identity tokens/CSS from ExperienceDNA and explicit color constraints");
   const emitted = await emitExperienceCss(emitterInput);
-  const generation = emitMultipageNextApp({
+  const baseGeneration = emitMultipageNextApp({
     projectId: spec.projectId,
     locale: spec.locale,
     brief,
@@ -122,6 +123,11 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
     copy: contentInputs.generatedCopy,
     media: contentInputs.generatedMedia,
     actions: spec.actions ?? [],
+  });
+  const generation = augmentExperienceFeatures({
+    generation: baseGeneration,
+    locale: spec.locale,
+    constraints: brief.constraints,
     location: spec.location,
     reviews: spec.reviews ?? [],
     minimumReviewItems: spec.minimumReviewItems ?? 0,
@@ -136,9 +142,9 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   ];
   const gates = [
     passed("CONTENT_READINESS", "content readiness passed against DNA-derived policy", readinessEvidence),
-    passed("GENERATION", "NEXUS multipage generator emitted provenance-bound sources", [generation.generationDigest]),
+    passed("GENERATION", "NEXUS multipage generator emitted provenance-bound sources and evidence-bound project features", [generation.generationDigest]),
     passed("EMITTER", "NEXUS emitter produced deterministic token CSS", [experienceDigest]),
-    passed("PROVENANCE", "source shell, authorized assets, grounded copy and media assignments are provenance-bound", provenanceEvidence),
+    passed("PROVENANCE", "source shell, authorized assets, grounded copy, media assignments and project features are provenance-bound", [...provenanceEvidence, ...generation.provenanceIds]),
   ];
 
   let renderResult;
