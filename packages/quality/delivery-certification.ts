@@ -1,5 +1,6 @@
 import type { VerdictState } from "@nexus/creative";
-import type { RedTeamArenaReport } from "./red-team";
+import type { ExcessRemovalReport } from "./excess-removal";
+import type { RedTeamArenaReport, RedTeamAttackId } from "./red-team";
 import type { QualityCycleResult } from "./quality-cycle";
 import type { VisualJudgeResult } from "./visual-judge";
 
@@ -28,6 +29,7 @@ export interface DeliveryCertificationInput {
   gates: readonly DeliveryGateEvidence[];
   visualJudge?: VisualJudgeResult;
   redTeam?: RedTeamArenaReport;
+  excessRemoval?: ExcessRemovalReport;
   qualityCycle?: QualityCycleResult;
 }
 
@@ -55,6 +57,19 @@ const REQUIRED_GATES: readonly DeliveryGateId[] = Object.freeze([
   "PROVENANCE",
 ]);
 
+const REQUIRED_RED_TEAM_ATTACKS: readonly RedTeamAttackId[] = Object.freeze([
+  "BRAND_SWAP",
+  "INDUSTRY_TRANSPLANT",
+  "CONTENT_STRESS",
+  "ASSET_DEGRADATION",
+  "VIEWPORT_TORTURE",
+  "MOTION_REMOVAL",
+  "GRAYSCALE",
+  "TEMPLATE_FINGERPRINT",
+  "AI_FINGERPRINT",
+  "CREATIVE_CRITIC",
+]);
+
 const VALID_VERDICTS = new Set<VerdictState>(["PASS", "FAIL", "WARNING", "NOT_TESTED"]);
 
 function validateGate(gate: DeliveryGateEvidence): void {
@@ -71,6 +86,14 @@ function aggregateVerdict(gates: readonly DeliveryGateEvidence[]): VerdictState 
   if (gates.some((gate) => gate.verdict === "NOT_TESTED")) return "NOT_TESTED";
   if (gates.some((gate) => gate.verdict === "WARNING")) return "WARNING";
   return "PASS";
+}
+
+function redTeamComplete(report: RedTeamArenaReport | undefined, excessRemoval: ExcessRemovalReport | undefined): boolean {
+  if (!report || report.authority !== "NEXUS_RED_TEAM_ARENA" || !report.approved || report.verdict !== "PASS") return false;
+  const attacks = new Map(report.attacks.map((attack) => [attack.attackId, attack.verdict] as const));
+  if (REQUIRED_RED_TEAM_ATTACKS.some((attackId) => attacks.get(attackId) !== "PASS")) return false;
+  if (!excessRemoval || excessRemoval.authority !== "NEXUS_EXCESS_REMOVAL_ATTACK" || excessRemoval.finalEvaluation.verdict !== "PASS") return false;
+  return excessRemoval.scenarios.every((scenario) => scenario.verdict === "PASS");
 }
 
 export function certifyDelivery(input: DeliveryCertificationInput): DeliveryCertificationReport {
@@ -103,11 +126,9 @@ export function certifyDelivery(input: DeliveryCertificationInput): DeliveryCert
   }
 
   const redTeamGate = normalized.find((gate) => gate.gateId === "RED_TEAM")!;
-  if (redTeamGate.verdict === "PASS") {
-    if (!input.redTeam || input.redTeam.authority !== "NEXUS_RED_TEAM_ARENA" || !input.redTeam.approved || input.redTeam.verdict !== "PASS" || input.redTeam.attacks.some((attack) => attack.verdict !== "PASS")) {
-      blockers.push("RED_TEAM claimed PASS without an all-attacks-PASS NEXUS Red Team report");
-      redTeamGate.verdict = "FAIL";
-    }
+  if (redTeamGate.verdict === "PASS" && !redTeamComplete(input.redTeam, input.excessRemoval)) {
+    blockers.push("RED_TEAM claimed PASS without the complete mandatory hostile attack set plus a passing Excess Removal attack");
+    redTeamGate.verdict = "FAIL";
   }
 
   const repairGate = normalized.find((gate) => gate.gateId === "REPAIR_REJUDGE")!;
@@ -138,4 +159,8 @@ export function certifyDelivery(input: DeliveryCertificationInput): DeliveryCert
 
 export function requiredDeliveryGateIds(): readonly DeliveryGateId[] {
   return REQUIRED_GATES;
+}
+
+export function requiredRedTeamAttackIds(): readonly RedTeamAttackId[] {
+  return REQUIRED_RED_TEAM_ATTACKS;
 }
