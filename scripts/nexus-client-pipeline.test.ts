@@ -3,6 +3,7 @@ import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { requiredRedTeamAttackIds } from "../packages/quality/delivery-certification.ts";
 import { runNexusClientPipeline } from "./nexus-client-pipeline.mjs";
 
 const dirs: string[] = [];
@@ -49,14 +50,15 @@ const passGate = (gateId: string) => ({ gate: { gateId, verdict: "PASS", detail:
 
 function syntheticAdapters() {
   const visualReport = { authority: "NEXUS_VISUAL_JUDGE", verdict: "PASS", approved: true, integrityVerdict: "PASS", reviewVerdict: "PASS", findings: [], verifiedArtifactIds: ["synthetic:capture"] };
-  const redReport = { authority: "NEXUS_RED_TEAM_ARENA", experienceId: "pipeline-fixture", verdict: "PASS", approved: true, attacks: [{ attackId: "CREATIVE_CRITIC", verdict: "PASS", detail: "synthetic test", evidence: ["synthetic:red"] }], similarityReports: [] };
+  const redReport = { authority: "NEXUS_RED_TEAM_ARENA", experienceId: "pipeline-fixture", verdict: "PASS", approved: true, attacks: requiredRedTeamAttackIds().map((attackId) => ({ attackId, verdict: "PASS", detail: "synthetic test", evidence: [`synthetic:${attackId}`] })), similarityReports: [] };
+  const excessRemoval = { authority: "NEXUS_EXCESS_REMOVAL_ATTACK", baselineEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:excess:baseline"] }, scenarios: [{ scenarioId: "REMOVE_DECORATION", verdict: "PASS", why: "synthetic fixture", evaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:excess:scenario"] } }], finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:excess:final"] } };
   const cycleReport = { authority: "NEXUS_BOUNDED_REPAIR_LOOP", status: "SHIPPABLE", finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:judge"] }, iterations: [], snapshots: [], repairLineage: [] };
   return {
     render: async () => passGate("RENDER"),
     capture: async () => passGate("CAPTURE"),
     designGenome: async () => passGate("DESIGN_GENOME"),
     visualJudge: async () => ({ ...passGate("VISUAL_JUDGE"), report: visualReport }),
-    redTeam: async () => ({ ...passGate("RED_TEAM"), report: redReport }),
+    redTeam: async () => ({ ...passGate("RED_TEAM"), report: redReport, excessRemoval }),
     repairRejudge: async () => ({ ...passGate("REPAIR_REJUDGE"), report: cycleReport }),
   };
 }
