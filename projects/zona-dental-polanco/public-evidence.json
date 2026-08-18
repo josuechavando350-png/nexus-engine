@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "projectId": "zona-dental-polanco",
+  "capturedAt": "2026-08-18T05:15:00Z",
+  "policy": {
+    "purpose": "Public factual evidence only; never use as permission to fabricate review text, outcomes, credentials or unsupported claims.",
+    "reviewTextStatus": "NOT_AVAILABLE",
+    "reviewTextRule": "Do not render individual testimonials until exact item-level text and provenance are ingested."
+  },
+  "businessProfile": {
+    "name": "Zona Dental Polanco",
+    "address": "Av. Ejército Nacional Mexicano 826a, Polanco, Polanco II Secc, Miguel Hidalgo, 11550 Ciudad de México, CDMX, Mexico",
+    "phone": "+52 55 4343 2221",
+    "rating": 5.0,
+    "reviewCount": 51,
+    "hours": {
+      "monday": "09:30-20:00",
+      "tuesday": "09:30-20:00",
+      "wednesday": "09:30-20:00",
+      "thursday": "09:30-20:00",
+      "friday": "09:30-20:00",
+      "saturday": "09:30-14:00",
+      "sunday": null
+    },
+    "source": {
+      "provider": "local-business-index",
+      "providerPlaceId": "ChIJx-_PORsC0oURGmplLIvf0Ec",
+      "capturedFacts": ["address", "phone", "rating", "reviewCount", "hours"]
+    }
+  },
+  "publishedServices": [
+    "Ortodoncia",
+    "Ortodoncia Invisible",
+    "Ortodoncia Estética",
+    "Brackets",
+    "Invisalign",
+    "Estética Dental"
+  ],
+  "serviceSources": [
+    {
+      "provider": "Top Doctors México",
+      "url": "https://www.topdoctors.mx/centro/zona-dental-polanco/",
+      "note": "Lists clinic location and published specialties/services including Ortodoncia, Brackets, Ortodoncia Invisible, Estética Dental and Invisalign."
+    },
+    {
+      "provider": "Diana Laura Ortiz Gómez",
+      "url": "https://odontdianalauraortiz.com/",
+      "note": "Lists Zona Dental Polanco at Ejército Nacional 826 interior 401 and publishes orthodontic service categories."
+    }
+  ],
+  "forbiddenInference": [
+    "Do not convert rating/review count into invented review text.",
+    "Do not infer clinical outcomes or success rates.",
+    "Do not infer credentials from photography.",
+    "Do not infer pricing unless separately verified and explicitly approved for publication."
+  ]
+}
