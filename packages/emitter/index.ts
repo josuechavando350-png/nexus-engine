@@ -1,4 +1,5 @@
 export * from "./webgpu-effects";
+export * from "./color-constraints";
 
 import StyleDictionary from "style-dictionary";
 import { formats, transformGroups } from "style-dictionary/enums";
@@ -10,9 +11,12 @@ export type OklchAccent = Readonly<{
   hue: number;
 }>;
 
+export type SurfaceTone = "dna" | "light" | "dark";
+
 export type EmitterInput = Readonly<{
   dna: ExperienceDNA;
   accent: OklchAccent;
+  surfaceTone?: SurfaceTone;
 }>;
 
 export type EmitterOutput = Readonly<{
@@ -34,7 +38,7 @@ function oklch(lightness: number, chroma: number, hue: number): string {
   return `oklch(${round(clamp(lightness, 0, 1) * 100, 2)}% ${round(Math.max(0, chroma), 4)} ${round(hue, 2)})`;
 }
 
-function deriveManifest({ dna, accent }: EmitterInput): Record<string, string> {
+function deriveManifest({ dna, accent, surfaceTone = "dna" }: EmitterInput): Record<string, string> {
   assertAccent(accent);
 
   const typeRatio = mix(1.2, 1.5, dna.typography.scaleContrast.value);
@@ -79,10 +83,22 @@ function deriveManifest({ dna, accent }: EmitterInput): Record<string, string> {
     put(`accent-${index + 1}00`, oklch(accent.lightness + offset, accent.chroma * (1 - distance * 0.38), accent.hue));
   });
 
-  put("surface-0", oklch(mix(0.08, 0.98, 1 - dna.cinematicity.value), accent.chroma * 0.025, accent.hue));
-  put("surface-1", oklch(mix(0.12, 0.94, 1 - dna.cinematicity.value), accent.chroma * 0.035, accent.hue));
-  put("text-strong", oklch(dna.cinematicity.value > 0.5 ? 0.97 : 0.13, 0.01, accent.hue));
-  put("text-muted", oklch(dna.cinematicity.value > 0.5 ? 0.74 : 0.42, 0.015, accent.hue));
+  if (surfaceTone === "light") {
+    put("surface-0", oklch(0.985, accent.chroma * 0.02, accent.hue));
+    put("surface-1", oklch(0.945, accent.chroma * 0.03, accent.hue));
+    put("text-strong", oklch(0.13, 0.01, accent.hue));
+    put("text-muted", oklch(0.42, 0.015, accent.hue));
+  } else if (surfaceTone === "dark") {
+    put("surface-0", oklch(0.08, accent.chroma * 0.025, accent.hue));
+    put("surface-1", oklch(0.12, accent.chroma * 0.035, accent.hue));
+    put("text-strong", oklch(0.97, 0.01, accent.hue));
+    put("text-muted", oklch(0.74, 0.015, accent.hue));
+  } else {
+    put("surface-0", oklch(mix(0.08, 0.98, 1 - dna.cinematicity.value), accent.chroma * 0.025, accent.hue));
+    put("surface-1", oklch(mix(0.12, 0.94, 1 - dna.cinematicity.value), accent.chroma * 0.035, accent.hue));
+    put("text-strong", oklch(dna.cinematicity.value > 0.5 ? 0.97 : 0.13, 0.01, accent.hue));
+    put("text-muted", oklch(dna.cinematicity.value > 0.5 ? 0.74 : 0.42, 0.015, accent.hue));
+  }
 
   return Object.fromEntries(Object.entries(manifest).sort(([a], [b]) => a.localeCompare(b, "en")));
 }
