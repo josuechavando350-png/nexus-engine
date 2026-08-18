@@ -1,8 +1,20 @@
 import { describe, expect, it } from "vitest";
-import { runQualityCycle, type CycleEvidence, type QualityCycleExecutor } from "../quality-cycle";
+import { runQualityCycle, type CycleEvidence, type JudgeCycleResult, type QualityCycleExecutor } from "../quality-cycle";
+
+const RUBRIC_VERSION = "quality-cycle-test-v1";
+const RUBRIC_DIGEST = "a".repeat(64);
 
 function evidence(stage: CycleEvidence["stage"], revision: string, evidenceId = `${stage.toLowerCase()}:${revision}`): CycleEvidence {
   return { evidenceId, stage, subjectRevision: revision, producedAt: "2026-08-17T04:00:00.000Z" };
+}
+
+function judged(evidenceArtifact: CycleEvidence, evaluation: JudgeCycleResult["evaluation"]): JudgeCycleResult {
+  return {
+    evidence: evidenceArtifact,
+    evaluation,
+    rubricVersion: RUBRIC_VERSION,
+    rubricDigest: RUBRIC_DIGEST,
+  };
 }
 
 describe("runQualityCycle", () => {
@@ -16,14 +28,11 @@ describe("runQualityCycle", () => {
       async judge(current, fresh) {
         calls.push(`judge:${current}`);
         const judge = evidence("JUDGE", current);
-        return {
-          evidence: judge,
-          evaluation: {
-            verdict: current === "r2" ? "PASS" : "FAIL",
-            findings: current === "r2" ? [] : ["visual hierarchy failed"],
-            evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId],
-          },
-        };
+        return judged(judge, {
+          verdict: current === "r2" ? "PASS" : "FAIL",
+          findings: current === "r2" ? [] : ["visual hierarchy failed"],
+          evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId],
+        });
       },
       async repair(_evaluation, attempt) {
         calls.push(`repair:${attempt}`);
@@ -55,14 +64,11 @@ describe("runQualityCycle", () => {
       async capture(current) { return evidence("CAPTURE", current); },
       async judge(current, fresh) {
         const judge = evidence("JUDGE", current);
-        return {
-          evidence: judge,
-          evaluation: {
-            verdict: current === "r2" ? "PASS" : "FAIL",
-            findings: current === "r2" ? [] : ["visual hierarchy failed"],
-            evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId, `multimodal-detail:${current}`],
-          },
-        };
+        return judged(judge, {
+          verdict: current === "r2" ? "PASS" : "FAIL",
+          findings: current === "r2" ? [] : ["visual hierarchy failed"],
+          evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId, `multimodal-detail:${current}`],
+        });
       },
       async repair() {
         revision = "r2";
@@ -93,7 +99,7 @@ describe("runQualityCycle", () => {
       async capture(current) { return evidence("CAPTURE", current); },
       async judge(current) {
         const judge = evidence("JUDGE", current);
-        return { evidence: judge, evaluation: { verdict: "PASS", findings: [], evidenceIds: [judge.evidenceId] } };
+        return judged(judge, { verdict: "PASS", findings: [], evidenceIds: [judge.evidenceId] });
       },
       async repair() { throw new Error("not reached"); },
     };
@@ -107,7 +113,7 @@ describe("runQualityCycle", () => {
       async capture(current) { return evidence("CAPTURE", current); },
       async judge(current, fresh) {
         const judge = evidence("JUDGE", current);
-        return { evidence: judge, evaluation: { verdict: "FAIL", findings: ["still broken"], evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId] } };
+        return judged(judge, { verdict: "FAIL", findings: ["still broken"], evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId] });
       },
       async repair() { return { summary: "No-op", changedFiles: ["src/page.tsx"], evidenceIds: ["patch:no-op"] }; },
     };
@@ -122,7 +128,7 @@ describe("runQualityCycle", () => {
       async capture(current) { return evidence("CAPTURE", current); },
       async judge(current, fresh) {
         const judge = evidence("JUDGE", current);
-        return { evidence: judge, evaluation: { verdict: "FAIL", findings: ["hierarchy"], evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId] } };
+        return judged(judge, { verdict: "FAIL", findings: ["hierarchy"], evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId] });
       },
       async repair() {
         revision = "r2";
@@ -140,14 +146,11 @@ describe("runQualityCycle", () => {
       async capture(current) { return evidence("CAPTURE", current, `capture:${current}`); },
       async judge(current, fresh) {
         const judge = evidence("JUDGE", current, `judge:${current}`);
-        return {
-          evidence: judge,
-          evaluation: {
-            verdict: current === "r2" ? "PASS" : "FAIL",
-            findings: current === "r2" ? [] : ["hierarchy"],
-            evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId],
-          },
-        };
+        return judged(judge, {
+          verdict: current === "r2" ? "PASS" : "FAIL",
+          findings: current === "r2" ? [] : ["hierarchy"],
+          evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId],
+        });
       },
       async repair() {
         revision = "r2";
@@ -166,7 +169,7 @@ describe("runQualityCycle", () => {
       async capture(current) { return evidence("CAPTURE", current); },
       async judge(current, fresh) {
         const judge = evidence("JUDGE", current);
-        return { evidence: judge, evaluation: { verdict: "FAIL", findings: ["still weak"], evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId] } };
+        return judged(judge, { verdict: "FAIL", findings: ["still weak"], evidenceIds: [...fresh.map((item) => item.evidenceId), judge.evidenceId] });
       },
       async repair() {
         repairCount += 1;
