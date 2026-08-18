@@ -68,32 +68,7 @@ license = "UNLICENSED"
 publish = false
 repository = "https://github.com/josuechavando350-png/nexus-engine"
 
-# ---------------------------------------------------------------------------
-# Dependency policy (see docs/security/V3_THREAT_MODEL.md, section "Supply chain")
-#
-# The DEFAULT feature set of every crate in this workspace has ZERO external
-# dependencies. Everything needed to run the full end-to-end pipeline
-# (event model, ontology, entity resolution, policy, orchestration,
-# simulation, edge sandbox in SIMULATION mode, one-way gateway, audit)
-# is implemented against the standard library only.
-#
-# Real infrastructure adapters are opt-in Cargo features. They are the only
-# place where third-party code enters the build:
-#
-#   kafka     -> rdkafka  (Kafka / Redpanda data highway)
-#   neo4j     -> neo4rs   (property graph backend)
-#   wasmtime  -> wasmtime (production WASM edge sandbox)
-#   ed25519   -> ed25519-dalek, rand_core (production signatures)
-#
-# Rationale: the ports are traits, so the adapters are swappable, the default
-# CI build is hermetic and reproducible offline, and the audited attack
-# surface of the default artifact is the workspace itself.
-# ---------------------------------------------------------------------------
-
 [workspace.dependencies]
-# Internal path dependencies carry the exact workspace version as well as the
-# path. This prevents inherited `workspace = true` requirements from degrading
-# into wildcard requirements under cargo-deny while retaining local resolution.
 nexus-kernel = { path = "crates/nexus-kernel", version = "6.0.0" }
 nexus-event = { path = "crates/nexus-event", version = "6.0.0" }
 nexus-observability = { path = "crates/nexus-observability", version = "6.0.0" }
@@ -140,11 +115,9 @@ nexus-fleet = { path = "crates/nexus-fleet", version = "6.0.0" }
 nexus-update = { path = "crates/nexus-update", version = "6.0.0" }
 nexus-distributed = { path = "crates/nexus-distributed", version = "6.0.0" }
 
-# Optional adapter dependencies. Versions are pinned to a minor range and are
-# NOT part of the default build.
 rdkafka = { version = "0.36", default-features = false, features = ["tokio", "libz"] }
 neo4rs = { version = "0.8" }
-wasmtime = { version = "36.0.13", default-features = false, features = ["cranelift", "runtime"] }
+wasmtime = { version = "=27.0.0", default-features = false, features = ["cranelift", "runtime"] }
 ed25519-dalek = { version = "2", default-features = false, features = ["std"] }
 tokio = { version = "1", default-features = false, features = ["rt-multi-thread", "macros", "signal", "time", "sync"] }
 
