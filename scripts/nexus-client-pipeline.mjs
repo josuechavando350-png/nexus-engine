@@ -177,7 +177,7 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
 
   let redTeamResult;
   if (adapters.redTeam && visualResult?.gate?.verdict === "PASS") {
-    record("RED_TEAM", "executing adversarial NEXUS attack arena");
+    record("RED_TEAM", "executing complete adversarial NEXUS attack arena including Excess Removal evidence");
     redTeamResult = await adapters.redTeam({ spec, brief, experience, generation, capture: captureResult, visualJudge: visualResult });
   } else record("RED_TEAM", "Red Team adapter unavailable or Visual Judge did not PASS", "NOT_TESTED");
   gates.push(normalizeQualityGate(redTeamResult, "RED_TEAM"));
@@ -190,7 +190,7 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   gates.push(normalizeQualityGate(repairResult, "REPAIR_REJUDGE"));
 
   record("DELIVERY_CERTIFICATION", "evaluating fail-closed delivery certification");
-  const certification = certifyDelivery({ projectId: spec.projectId, sourceRevision: spec.sourceRevision, gates, visualJudge: visualResult?.report, redTeam: redTeamResult?.report, qualityCycle: repairResult?.report });
+  const certification = certifyDelivery({ projectId: spec.projectId, sourceRevision: spec.sourceRevision, gates, visualJudge: visualResult?.report, redTeam: redTeamResult?.report, excessRemoval: redTeamResult?.excessRemoval, qualityCycle: repairResult?.report });
 
   return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, emitted, generation, certification });
 }
