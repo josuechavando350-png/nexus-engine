@@ -11,11 +11,12 @@
     "./webgpu-effects": "./webgpu-effects.ts",
     "./reference-presentation": "./reference-presentation.ts",
     "./presentation-sequencing": "./presentation-sequencing.ts",
-    "./viewport-containment": "./viewport-containment.ts"
+    "./viewport-containment": "./viewport-containment.ts",
+    "./frozen-source-repair": "./frozen-source-repair.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/emitter/index.js && test -f dist/emitter/index.d.ts && test -f dist/emitter/color-constraints.js && test -f dist/emitter/color-constraints.d.ts && test -f dist/emitter/multipage.js && test -f dist/emitter/multipage.d.ts && test -f dist/emitter/experience-features.js && test -f dist/emitter/experience-features.d.ts && test -f dist/emitter/reference-presentation.js && test -f dist/emitter/reference-presentation.d.ts && test -f dist/emitter/presentation-sequencing.js && test -f dist/emitter/presentation-sequencing.d.ts && test -f dist/emitter/viewport-containment.js && test -f dist/emitter/viewport-containment.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/emitter/index.js && test -f dist/emitter/index.d.ts && test -f dist/emitter/color-constraints.js && test -f dist/emitter/color-constraints.d.ts && test -f dist/emitter/multipage.js && test -f dist/emitter/multipage.d.ts && test -f dist/emitter/experience-features.js && test -f dist/emitter/experience-features.d.ts && test -f dist/emitter/reference-presentation.js && test -f dist/emitter/reference-presentation.d.ts && test -f dist/emitter/presentation-sequencing.js && test -f dist/emitter/presentation-sequencing.d.ts && test -f dist/emitter/viewport-containment.js && test -f dist/emitter/viewport-containment.d.ts && test -f dist/emitter/frozen-source-repair.js && test -f dist/emitter/frozen-source-repair.d.ts"
   },
   "dependencies": {
     "@nexus/experience": "workspace:*",
