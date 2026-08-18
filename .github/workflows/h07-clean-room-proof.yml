@@ -66,6 +66,9 @@ jobs:
       - name: Install from lockfile
         run: pnpm install --frozen-lockfile
 
+      - name: Install pinned Playwright browser dependencies
+        run: pnpm exec playwright install --with-deps chromium webkit
+
       - name: Build and validate independently
         run: |
           pnpm lint
