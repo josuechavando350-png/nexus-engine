@@ -1,0 +1,346 @@
+{
+  "schemaVersion": 1,
+  "projectId": "zona-dental-polanco",
+  "locale": "es-MX",
+  "sourceRevision": "441c88c1a6613e8b0b277f59dc3b6338cb33294d",
+  "brief": {
+    "version": 2,
+    "id": "zona-dental-polanco",
+    "brand": {
+      "name": "Zona Dental Polanco",
+      "industry": "Clínica dental",
+      "positioning": "Clínica dental en Polanco cuya presencia digital debe comunicar un carácter boutique y profesional usando únicamente evidencia verificable.",
+      "personality": [
+        "boutique",
+        "professional"
+      ],
+      "audiences": [
+        "Personas que evalúan información de Zona Dental Polanco"
+      ]
+    },
+    "commercialGoal": "Permitir que una persona conozca la clínica, ubique el consultorio y pueda iniciar contacto por WhatsApp.",
+    "priorities": [
+      "Presentar evidencia fotográfica real de la clínica",
+      "Hacer directa la ubicación del consultorio",
+      "Hacer directo el contacto por WhatsApp",
+      "Mantener una presentación boutique y profesional sin inventar hechos"
+    ],
+    "requiredCapabilityIds": [
+      "media",
+      "contact",
+      "whatsapp",
+      "location",
+      "map",
+      "forms"
+    ],
+    "assets": [
+      {
+        "id": "base-shell",
+        "kind": "other",
+        "status": "available",
+        "notes": "Engineering shell supplied by the user; its prior visual identity must not be carried into this project."
+      },
+      {
+        "id": "zd-photo-01",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Client-supplied clinic photography."
+      },
+      {
+        "id": "zd-photo-02",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Client-supplied clinic photography."
+      },
+      {
+        "id": "zd-photo-03",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Client-supplied clinic photography."
+      },
+      {
+        "id": "zd-photo-04",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Client-supplied clinic photography."
+      },
+      {
+        "id": "zd-photo-05",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Client-supplied clinic photography."
+      },
+      {
+        "id": "zd-photo-06",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Client-supplied clinic photography."
+      }
+    ],
+    "references": [],
+    "forbiddenPatterns": [
+      "fabricated testimonials or reviews",
+      "fabricated credentials or treatment claims",
+      "fabricated statistics, outcomes, prices or hours",
+      "generic stock imagery presented as clinic evidence",
+      "operator-authored visual design patches"
+    ],
+    "forbiddenWords": [
+      "gold",
+      "golden",
+      "dorado",
+      "dorada"
+    ],
+    "constraints": [
+      {
+        "id": "zd-neutral-family",
+        "statement": "The requested visual family is white and elegant gray.",
+        "source": "brand",
+        "severity": "required"
+      },
+      {
+        "id": "zd-no-gold",
+        "statement": "No gold anywhere in the generated site.",
+        "source": "brand",
+        "severity": "required"
+      },
+      {
+        "id": "zd-whatsapp-green",
+        "statement": "The WhatsApp action must be visibly green.",
+        "source": "business",
+        "severity": "required"
+      },
+      {
+        "id": "zd-authorized-assets-only",
+        "statement": "Use only client-supplied or explicitly rights-known assets.",
+        "source": "legal",
+        "severity": "required"
+      },
+      {
+        "id": "zd-grounded-content-only",
+        "statement": "Do not invent treatments, doctor identity or credentials, awards, statistics, testimonials, reviews, prices, hours, outcomes or before-after claims.",
+        "source": "legal",
+        "severity": "required"
+      },
+      {
+        "id": "zd-nexus-only-design",
+        "statement": "All creative and visual decisions must be produced by NEXUS; the operator may only integrate, execute and supervise.",
+        "source": "technical",
+        "severity": "required"
+      }
+    ]
+  },
+  "businessProfile": {
+    "businessType": "Clínica dental",
+    "goals": [
+      "INQUIRE",
+      "TRUST"
+    ],
+    "differentiators": []
+  },
+  "projectFiles": [
+    {
+      "id": "base-shell",
+      "kind": "BASE_SHELL",
+      "filePath": "projects/zona-dental-polanco/source/BTS TERMINADO 2026 VERCEL FIX 2.zip",
+      "expectedDigest": "sha256:22e7a02fad8425202d4b4a38707be8f1d9b76f5ab82199aaa0999c85f60eafdb",
+      "source": "user-supplied archive"
+    },
+    {
+      "id": "zd-photo-01",
+      "kind": "ASSET",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-01.jpg",
+      "expectedDigest": "sha256:b8dbbda32f6bb8d8fe8b0e3f2f196c00a8b91dbad1a817ab6698ad2f8a08b192",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Dental professional using a microscope while treating a patient; clinic interior and diagnostic screens visible."
+    },
+    {
+      "id": "zd-photo-02",
+      "kind": "ASSET",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-02.jpg",
+      "expectedDigest": "sha256:67221ba744a0b5e4f048247cca4fb1900b11f2ca4431503fbe3311ca1d2cdbcb",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Portrait of a dental professional in black clinical scrubs inside the clinic."
+    },
+    {
+      "id": "zd-photo-03",
+      "kind": "ASSET",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-03.jpg",
+      "expectedDigest": "sha256:cb543399d9f0cf3460af99ec2a37ad78b9acf36c9fe9891c692b9fe93c215a81",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Dental treatment process using a microscope in a bright clinic treatment room."
+    },
+    {
+      "id": "zd-photo-04",
+      "kind": "ASSET",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-04.jpg",
+      "expectedDigest": "sha256:b672d7a49089d766d30a7747787adfb6dc476c8307143472891914c5ed5bfcff",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Clinic entrance door numbered 401 with Zona Dental Polanco signage; entrance and location context."
+    },
+    {
+      "id": "zd-photo-05",
+      "kind": "ASSET",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-05.jpg",
+      "expectedDigest": "sha256:eb436b5d07403cf60d7cd4479b678062acdaddc8ed15889562903129a754694b",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Reception area and clinic interior with Zona Dental Polanco identity and floral arrangement."
+    },
+    {
+      "id": "zd-photo-06",
+      "kind": "ASSET",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-06.jpg",
+      "expectedDigest": "sha256:c5a7c49535a00501b88e3c7e7214e4e0cf5cb358ba5bb1f2e85442e902e05e79",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Clinic treatment room with dental equipment, display showing a 3D scan, and city context."
+    }
+  ],
+  "groundedFacts": [
+    {
+      "id": "fact-brand-name",
+      "kind": "BRAND_NAME",
+      "value": "Zona Dental Polanco",
+      "sourceId": "user:client-name"
+    },
+    {
+      "id": "fact-business-type",
+      "kind": "BUSINESS_TYPE",
+      "value": "Clínica dental",
+      "sourceId": "user:industry"
+    },
+    {
+      "id": "fact-location",
+      "kind": "LOCATION",
+      "value": "Polanco, Ciudad de México",
+      "sourceId": "user:address"
+    },
+    {
+      "id": "fact-address",
+      "kind": "ADDRESS",
+      "value": "Av. Ejército Nacional Mexicano 826a, Polanco, Polanco II Secc, Miguel Hidalgo, 11550 Ciudad de México, CDMX",
+      "sourceId": "user:address"
+    },
+    {
+      "id": "fact-phone",
+      "kind": "PHONE",
+      "value": "55 4343 2221",
+      "sourceId": "user:phone"
+    },
+    {
+      "id": "fact-primary-action",
+      "kind": "PRIMARY_ACTION_LABEL",
+      "value": "Contactar por WhatsApp",
+      "sourceId": "user:whatsapp-requirement"
+    },
+    {
+      "id": "fact-photo-proof-01",
+      "kind": "PROOF",
+      "value": "Las fotografías proporcionadas por el cliente documentan espacios reales de la clínica.",
+      "sourceId": "user:clinic-photography"
+    },
+    {
+      "id": "fact-photo-proof-02",
+      "kind": "PROOF",
+      "value": "Las fotografías proporcionadas documentan áreas de recepción, tratamiento y equipo clínico.",
+      "sourceId": "user:clinic-photography"
+    }
+  ],
+  "mediaCandidates": [
+    {
+      "assetId": "zd-photo-01",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-01.jpg",
+      "publicPath": "/media/zd-photo-01.jpg",
+      "sourceDigest": "sha256:b8dbbda32f6bb8d8fe8b0e3f2f196c00a8b91dbad1a817ab6698ad2f8a08b192",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "process working equipment procedure service clinic interior wide landscape",
+      "width": 1536,
+      "height": 864
+    },
+    {
+      "assetId": "zd-photo-02",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-02.jpg",
+      "publicPath": "/media/zd-photo-02.jpg",
+      "sourceDigest": "sha256:67221ba744a0b5e4f048247cca4fb1900b11f2ca4431503fbe3311ca1d2cdbcb",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "portrait subject clinic interior professional",
+      "width": 1536,
+      "height": 864
+    },
+    {
+      "assetId": "zd-photo-03",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-03.jpg",
+      "publicPath": "/media/zd-photo-03.jpg",
+      "sourceDigest": "sha256:cb543399d9f0cf3460af99ec2a37ad78b9acf36c9fe9891c692b9fe93c215a81",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "process working equipment treatment service clinic interior",
+      "width": 1536,
+      "height": 1152
+    },
+    {
+      "assetId": "zd-photo-04",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-04.jpg",
+      "publicPath": "/media/zd-photo-04.jpg",
+      "sourceDigest": "sha256:b672d7a49089d766d30a7747787adfb6dc476c8307143472891914c5ed5bfcff",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "entrance location signage exterior documentary context",
+      "width": 1152,
+      "height": 1536
+    },
+    {
+      "assetId": "zd-photo-05",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-05.jpg",
+      "publicPath": "/media/zd-photo-05.jpg",
+      "sourceDigest": "sha256:eb436b5d07403cf60d7cd4479b678062acdaddc8ed15889562903129a754694b",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "reception clinic interior environment space documentary context",
+      "width": 1536,
+      "height": 1152
+    },
+    {
+      "assetId": "zd-photo-06",
+      "filePath": "projects/zona-dental-polanco/source/zd-photo-06.jpg",
+      "publicPath": "/media/zd-photo-06.jpg",
+      "sourceDigest": "sha256:c5a7c49535a00501b88e3c7e7214e4e0cf5cb358ba5bb1f2e85442e902e05e79",
+      "source": "user-supplied photography",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "equipment technology treatment room interior city context service",
+      "width": 1229,
+      "height": 1536
+    }
+  ],
+  "actions": [
+    {
+      "capabilityId": "whatsapp",
+      "label": "Contactar por WhatsApp",
+      "href": "https://wa.me/525543432221?text=Hola%2C%20me%20gustar%C3%ADa%20solicitar%20informaci%C3%B3n%20en%20Zona%20Dental%20Polanco.",
+      "sourceId": "user:phone",
+      "emphasis": "primary"
+    }
+  ],
+  "location": {
+    "address": "Av. Ejército Nacional Mexicano 826a, Polanco, Polanco II Secc, Miguel Hidalgo, 11550 Ciudad de México, CDMX",
+    "sourceId": "user:address"
+  },
+  "reviews": [],
+  "minimumReviewItems": 0,
+  "deliveryEvidenceRequirements": {
+    "googleMapsReviews": {
+      "requestedMinimum": 10,
+      "requestedMaximum": 15,
+      "status": "NOT_TESTED",
+      "reason": "Exact Google Maps review text has not yet been ingested with item-level provenance; NEXUS must not fabricate it."
+    }
+  },
+  "outputDir": "projects/zona-dental-polanco/generated"
+}
