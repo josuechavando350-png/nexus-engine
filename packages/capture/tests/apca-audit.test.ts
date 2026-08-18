@@ -3,17 +3,18 @@ import { chromium, type Browser } from "playwright";
 import { evaluateApcaPolicy, measureApca } from "../apca-audit";
 
 describe("APCA complex-background handling", () => {
-  let browser: Browser;
+  let browser: Browser | undefined;
 
   beforeAll(async () => {
     browser = await chromium.launch({ headless: true });
   });
 
   afterAll(async () => {
-    await browser.close();
+    if (browser) await browser.close();
   });
 
   it("measures solid backgrounds but refuses to invent contrast over gradients", async () => {
+    if (!browser) throw new Error("Chromium did not initialize");
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     try {
       await page.setContent(`<!doctype html><html><body style="margin:0;background:#fff;color:#111">
@@ -31,6 +32,7 @@ describe("APCA complex-background handling", () => {
   });
 
   it("refuses semi-transparent backgrounds that require compositing instead of assuming an opaque color", async () => {
+    if (!browser) throw new Error("Chromium did not initialize");
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
     try {
       await page.setContent(`<!doctype html><html><body style="margin:0;background:#000"><p data-nexus-contrast-role="translucent" style="background:rgba(255,255,255,.5);color:#111">Composite me</p></body></html>`);
