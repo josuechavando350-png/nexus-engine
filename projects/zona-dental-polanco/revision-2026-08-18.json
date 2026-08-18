@@ -3,15 +3,15 @@
   "projectId": "zona-dental-polanco",
   "authority": "USER_SUPPLIED_REVISION",
   "supersedes": [
-    "zd-neutral-family",
-    "zd-no-gold"
+    "zd-neutral-family"
   ],
   "explicitVisualConstraints": {
     "primary": "#121212",
     "alabaster": "#EDEAE0",
-    "metallicGold": "#D4AF37",
     "splashBackground": "#000000",
-    "whatsappRetainsPlatformGreen": true
+    "whatsappRetainsPlatformGreen": true,
+    "forbiddenColorFamilies": ["gold", "metallic-gold", "warm-gold", "bronze-gold"],
+    "noGoldAnywhere": true
   },
   "freezePolicy": {
     "preserveExistingArtifact": true,
@@ -63,7 +63,8 @@
       "motionCopy": "Odontología avanzada restauradora",
       "motionCharacter": ["smooth", "refined", "premium"],
       "reducedMotionFallbackRequired": true,
-      "operatorMayChooseMotionPrimitive": false
+      "operatorMayChooseMotionPrimitive": false,
+      "sourceChromaPolicy": "FORBID_GOLD_RENDER_MONOCHROME"
     },
     "objectiveSection": {
       "copy": "Nuestro objetivo es brindar atención dental y estética de primer nivel mediante técnicas avanzadas, tratamientos personalizados y un nivel de servicio a medida que haga que cada paciente se sienta valorado.",
@@ -117,7 +118,7 @@
     {"id":"zd-tech-03","sourceSha256":"a997a6b1b8122679d0f90873cab8a57244fb18b10abd42d658d1ae58f5647927","dimensions":"1152x1536","source":"user-supplied","observedContent":"Dental restoration/crown object on black background"},
     {"id":"zd-tech-04","sourceSha256":"b0cecd44ee50a9ee553fac2e8958f92d5e2bac3239dc8d82c115f54065beaa93","dimensions":"1152x1536","source":"user-supplied","observedContent":"Dental tomography imaging unit on black background"},
     {"id":"zd-tech-05","sourceSha256":"404c99d7dc7e3a772a5e8934d6861811fea443ffaa387b8310bf0eb9985394c0","dimensions":"1152x1536","source":"user-supplied","observedContent":"Digital intraoral scanning system on black background"},
-    {"id":"zd-logo-reference","sourceSha256":"75c8abea8dc17d0c27ed3bdaa96f4f21ddc709ffbfe3a1bc76db93deeb968114","dimensions":"1536x1152","source":"user-supplied","observedContent":"Zona Dental Polanco black/white/gold logo reference"}
+    {"id":"zd-logo-reference","sourceSha256":"75c8abea8dc17d0c27ed3bdaa96f4f21ddc709ffbfe3a1bc76db93deeb968114","dimensions":"1536x1152","source":"user-supplied","observedContent":"Zona Dental Polanco black/white/gold logo reference","renderPolicy":"monochrome-only because generated site forbids gold"}
   ],
   "contentIntegrity": {
     "factsAboveAreUserSupplied": true,
