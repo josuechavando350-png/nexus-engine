@@ -10,6 +10,9 @@ on:
 permissions:
   contents: read
 
+env:
+  NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+
 jobs:
   clean-room-proof:
     runs-on: ubuntu-24.04
@@ -18,7 +21,20 @@ jobs:
       - name: Checkout exact revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
+
+      - name: Assert exact source and pristine checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual="$(git rev-parse HEAD)"
+          test "$actual" = "$NEXUS_VALIDATED_SHA" || {
+            echo "Source SHA mismatch: expected $NEXUS_VALIDATED_SHA, checkout is $actual" >&2
+            exit 1
+          }
+          test -z "$(git status --porcelain)"
+          git show-ref --verify --quiet refs/remotes/origin/main
 
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -41,11 +57,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -z "$(git status --porcelain)"
           mkdir -p .artifacts
           {
             echo "commit=$(git rev-parse HEAD)"
-            echo "branch=${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+            echo "validated_sha=$NEXUS_VALIDATED_SHA"
             echo "node=$(node --version)"
             echo "pnpm=$(pnpm --version)"
             echo "rustc=$(rustc --version)"
@@ -76,11 +91,13 @@ jobs:
           done
 
       - name: Build and validate independently
+        shell: bash
         run: |
+          set -euo pipefail
           pnpm lint
           pnpm typecheck
           pnpm test
-          pnpm test:browser
+          pnpm --filter @nexus/capture test:browser
           pnpm build
           pnpm security-hygiene
           pnpm v3-gates
@@ -101,6 +118,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
           test -f .artifacts/h07-operability-proof.json
           node scripts/v10-architecture-gates.mjs
@@ -110,7 +128,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: h07-clean-room-evidence-${{ github.sha }}-${{ github.run_id }}
+          name: h07-clean-room-evidence-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: |
             .artifacts/h07-environment.txt
             .artifacts/h07-operability-proof.json
