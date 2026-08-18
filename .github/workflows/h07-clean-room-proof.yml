@@ -38,7 +38,10 @@ jobs:
           rustup default 1.88.0
 
       - name: Record clean-room identity
+        shell: bash
         run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
           mkdir -p .artifacts
           {
             echo "commit=$(git rev-parse HEAD)"
@@ -49,7 +52,6 @@ jobs:
             echo "cargo=$(cargo --version)"
             echo "runner=${RUNNER_OS}-${RUNNER_ARCH}"
           } | tee .artifacts/h07-environment.txt
-          test -z "$(git status --porcelain)"
 
       - name: Install from lockfile
         run: pnpm install --frozen-lockfile
