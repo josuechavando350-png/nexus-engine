@@ -1,5 +1,5 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "projectId": "zona-dental-polanco",
   "authority": "USER_SUPPLIED_REVISION",
   "supersedes": [
@@ -13,6 +13,42 @@
     "splashBackground": "#000000",
     "whatsappRetainsPlatformGreen": true
   },
+  "freezePolicy": {
+    "preserveExistingArtifact": true,
+    "preserveUnlistedSurfaces": true,
+    "authorizedMutationSlots": [
+      "technology-presentation",
+      "hero-logo-motion",
+      "service-ordinal-visibility"
+    ],
+    "operatorMayChooseVisualTreatment": false
+  },
+  "approvedReferences": [
+    {
+      "id": "aventura-dental-arts-technology",
+      "sourceLabel": "Aventura Dental Arts technology section",
+      "url": "https://aventuradentalarts.com/",
+      "adaptationRule": "inspire-not-copy",
+      "userScreenshot": {
+        "sha256": "fe0cd09162779cf504805e795dd652006428aa1e0e9a5980487f03d2f73af8a7",
+        "dimensions": "691x1536",
+        "source": "user-supplied screenshot"
+      },
+      "observations": {
+        "architecture": "Technology is experienced as a horizontal sequential surface rather than a simultaneous card grid.",
+        "imageRelationship": "The active technology image is centered while neighboring technology media remains partially visible at the viewport edges.",
+        "hierarchy": "The technology label belongs below the focused media and is the primary textual identity of the active item.",
+        "interaction": "The sequence is traversed horizontally; the user explicitly forbids left/right arrow controls in the Zona Dental adaptation.",
+        "proportion": "The supplied mobile screenshot measures the centered active media at approximately 0.607 of the viewport width.",
+        "responsiveBehavior": "Mobile preserves a centered focus item with adjacent peeks instead of collapsing all technology media into one vertical stack."
+      },
+      "userOverrides": {
+        "arrowControls": "FORBID",
+        "ordinalLabels": "FORBID",
+        "copySourceAssets": false
+      }
+    }
+  ],
   "explicitExperienceDirectives": {
     "splash": {
       "durationSeconds": {"min": 0.8, "max": 1.5},
@@ -22,13 +58,16 @@
       "transition": "fade into page"
     },
     "hero": {
+      "logoAssetId": "zd-logo-reference",
+      "logoMotionRequired": true,
       "motionCopy": "Odontología avanzada restauradora",
       "motionCharacter": ["smooth", "refined", "premium"],
-      "reducedMotionFallbackRequired": true
+      "reducedMotionFallbackRequired": true,
+      "operatorMayChooseMotionPrimitive": false
     },
     "objectiveSection": {
       "copy": "Nuestro objetivo es brindar atención dental y estética de primer nivel mediante técnicas avanzadas, tratamientos personalizados y un nivel de servicio a medida que haga que cada paciente se sienta valorado.",
-      "presentationIntent": "editorial display typography distinct from supplied reference image"
+      "presentationIntent": "retain current approved project surface; no operator redesign"
     },
     "services": [
       {
@@ -44,8 +83,13 @@
         "copy": "Exámenes, limpiezas y revisiones rutinarias, diseñadas para mantener la salud bucal y prevenir problemas antes de que surjan."
       }
     ],
+    "servicesPresentation": {
+      "preserveCurrentSurface": true,
+      "decorativeOrdinals": "FORBID"
+    },
     "technologySection": {
       "headline": "Odontología impulsada por la tecnología para obtener resultados excepcionales.",
+      "presentationSource": "aventura-dental-arts-technology",
       "items": [
         {"label": "Cámara intraoral", "assetId": "zd-tech-01"},
         {"label": "Imágenes digitales", "assetId": "zd-tech-02"},
@@ -58,11 +102,13 @@
       "headline": "Conoce a tu experta",
       "name": "Dra. Diana Ortiz",
       "role": "Socio principal",
-      "assetIds": ["zd-photo-02", "zd-photo-05"]
+      "assetIds": ["zd-photo-02", "zd-photo-05"],
+      "preserveCurrentSurface": true
     },
     "gallery": {
       "includeAssetIds": ["zd-photo-01", "zd-photo-02", "zd-photo-03", "zd-photo-04", "zd-photo-05", "zd-photo-06"],
-      "singleSection": true
+      "singleSection": true,
+      "preserveCurrentSurface": true
     }
   },
   "newAssets": [
