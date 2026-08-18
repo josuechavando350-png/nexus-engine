@@ -15,6 +15,7 @@
     "quality-gates": "node scripts/quality-gates.mjs",
     "security-hygiene": "node scripts/security-hygiene.mjs",
     "sbom": "node scripts/generate-sbom.mjs",
+    "client:run": "node scripts/nexus-client-pipeline.mjs",
     "v3-gates": "node scripts/run-v3-gates.mjs",
     "rust:test": "cargo test --workspace --manifest-path runtime/Cargo.toml",
     "rust:lint": "cargo clippy --all-targets --manifest-path runtime/Cargo.toml -- -D warnings",
