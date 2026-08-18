@@ -40,6 +40,17 @@ function normalizeQualityGate(result, gateId) {
   return result.gate;
 }
 
+function assertGeneratedProvenance(spec, ingestion) {
+  const authorizedAssetDigests = new Set(ingestion.files.filter((file) => file.kind === "ASSET").map((file) => file.digest));
+  for (const media of spec.generatedMedia ?? []) {
+    if (!authorizedAssetDigests.has(media.sourceDigest)) throw new Error(`generated media ${media.assetId} is not bound to an ingested authorized asset digest`);
+  }
+  const copySources = new Set((spec.copyAssets ?? []).map((item) => item.source));
+  for (const copy of spec.generatedCopy ?? []) {
+    if (!copySources.has(copy.sourceId)) throw new Error(`generated copy role ${copy.role} is not bound to a verified copy source`);
+  }
+}
+
 export async function runNexusClientPipeline(spec, adapters = {}) {
   const stageLog = [];
   const record = (stage, detail, verdict = "PASS") => {
@@ -64,10 +75,11 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   const contentConstraints = experience.contentConstraints;
 
   record("CONTENT_READINESS", "checking supplied copy/media provenance and required roles");
-  const readiness = await evaluateContentReadiness(experience.readinessPolicy, spec.photos ?? [], spec.copyAssets ?? []);
+  const readiness = await evaluateContentReadiness({ policy: experience.readinessPolicy, photos: spec.photos ?? [], copy: spec.copyAssets ?? [] });
   if (readiness.verdict !== "PASS") {
     return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, readiness, blocker: "content readiness did not PASS", certification: undefined });
   }
+  assertGeneratedProvenance(spec, ingestion);
 
   record("GENERATION", "generating multipage source constrained by ExperienceDNA");
   const emitterInput = deriveConstrainedEmitterInput({ dna: experience.dna, constraints: brief.constraints, projectSeed: spec.projectId });
@@ -88,8 +100,9 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   });
   if (spec.outputDir) await writeGeneratedFiles(spec.outputDir, generation);
 
+  const readinessEvidence = [...readiness.copy.map((item) => item.digest), ...readiness.photos.map((item) => item.digest)];
   const gates = [
-    passed("CONTENT_READINESS", "content readiness passed against DNA-derived policy", [readiness.policyDigest]),
+    passed("CONTENT_READINESS", "content readiness passed against DNA-derived policy", readinessEvidence),
     passed("GENERATION", "NEXUS multipage generator emitted provenance-bound sources", [generation.generationDigest]),
     passed("EMITTER", "NEXUS emitter produced deterministic token CSS", [experienceDigest]),
     passed("PROVENANCE", "source shell and authorized assets matched expected digests", [ingestion.provenanceDigest]),
@@ -138,28 +151,16 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   gates.push(normalizeQualityGate(repairResult, "REPAIR_REJUDGE"));
 
   record("DELIVERY_CERTIFICATION", "evaluating fail-closed delivery certification");
-  const sourceRevision = spec.sourceRevision;
   const certification = certifyDelivery({
     projectId: spec.projectId,
-    sourceRevision,
+    sourceRevision: spec.sourceRevision,
     gates,
     visualJudge: visualResult?.report,
     redTeam: redTeamResult?.report,
     qualityCycle: repairResult?.report,
   });
 
-  return Object.freeze({
-    authority: "NEXUS_CLIENT_PIPELINE_V1",
-    status: certification.certified ? "CERTIFIED" : "BLOCKED",
-    stageLog: Object.freeze(stageLog),
-    ingestion,
-    experience,
-    experienceDigest,
-    readiness,
-    emitted,
-    generation,
-    certification,
-  });
+  return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, readiness, emitted, generation, certification });
 }
 
 async function main() {
