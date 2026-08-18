@@ -11,3 +11,4 @@ export * from "./compiler";
 export * from "./content-readiness";
 export * from "./content-constraints";
 export * from "./autonomy";
+export * from "./project-ingestion";
