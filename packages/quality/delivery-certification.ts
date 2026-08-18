@@ -92,8 +92,9 @@ function redTeamComplete(report: RedTeamArenaReport | undefined, excessRemoval: 
   if (!report || report.authority !== "NEXUS_RED_TEAM_ARENA" || !report.approved || report.verdict !== "PASS") return false;
   const attacks = new Map(report.attacks.map((attack) => [attack.attackId, attack.verdict] as const));
   if (REQUIRED_RED_TEAM_ATTACKS.some((attackId) => attacks.get(attackId) !== "PASS")) return false;
-  if (!excessRemoval || excessRemoval.authority !== "NEXUS_EXCESS_REMOVAL_ATTACK" || excessRemoval.finalEvaluation.verdict !== "PASS") return false;
-  return excessRemoval.scenarios.every((scenario) => scenario.verdict === "PASS");
+  if (!excessRemoval || excessRemoval.authority !== "NEXUS_EXCESS_REMOVAL_GATE" || excessRemoval.verdict !== "PASS") return false;
+  if (!excessRemoval.findings.length) return false;
+  return excessRemoval.findings.every((finding) => finding.verdict === "PASS" && finding.code === "PURPOSE_SUPPORTED" && finding.evidenceIds.length > 0);
 }
 
 export function certifyDelivery(input: DeliveryCertificationInput): DeliveryCertificationReport {
@@ -127,7 +128,7 @@ export function certifyDelivery(input: DeliveryCertificationInput): DeliveryCert
 
   const redTeamGate = normalized.find((gate) => gate.gateId === "RED_TEAM")!;
   if (redTeamGate.verdict === "PASS" && !redTeamComplete(input.redTeam, input.excessRemoval)) {
-    blockers.push("RED_TEAM claimed PASS without the complete mandatory hostile attack set plus a passing Excess Removal attack");
+    blockers.push("RED_TEAM claimed PASS without the complete mandatory hostile attack set plus a passing evidence-backed Excess Removal gate");
     redTeamGate.verdict = "FAIL";
   }
 
