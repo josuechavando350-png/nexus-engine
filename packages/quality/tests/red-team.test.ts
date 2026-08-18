@@ -44,6 +44,15 @@ const mutationPass = Object.freeze(Object.fromEntries([
   "GRAYSCALE",
 ].map((attackId) => [attackId, "PASS"])) as Record<MutationAttackId, VerdictState>);
 
+const distinctFingerprint = (subject = "subject-b"): StyleFingerprintV2 => ({
+  ...fingerprint,
+  subject,
+  openingSignature: "typographic sequence",
+  navigationSignature: "inline editorial navigation",
+  sectionSequence: ["intro", "evidence", "decision"],
+  ctaGrammar: ["direct booking"],
+});
+
 function artifact(capability: "SCREENSHOT" | "ACCESSIBILITY", browser: string, viewport: string): CaptureArtifact {
   return {
     artifactId: `artifact-${capability}-${browser}-${viewport}`,
@@ -70,12 +79,11 @@ function completeArtifacts(): CaptureArtifact[] {
 
 describe("NEXUS Red Team Arena", () => {
   it("passes only when creative, corpus, structural fingerprints, browser evidence and every mutation attack have executed cleanly", () => {
-    const corpus = [{ ...fingerprint, subject: "subject-b", openingSignature: "typographic sequence", navigationSignature: "inline editorial navigation" }];
     const report = runRedTeamArena({
       experienceId: "experience-a",
       creativeReport,
       fingerprint,
-      corpus,
+      corpus: [distinctFingerprint()],
       artifacts: completeArtifacts(),
       mutationVerdicts: mutationPass,
       structuralFingerprint: structuralPass,
@@ -90,7 +98,7 @@ describe("NEXUS Red Team Arena", () => {
       experienceId: "experience-a",
       creativeReport,
       fingerprint,
-      corpus: [{ ...fingerprint, subject: "subject-b", openingSignature: "different" }],
+      corpus: [distinctFingerprint()],
       artifacts: completeArtifacts(),
       mutationVerdicts: mutationPass,
     });
@@ -120,7 +128,7 @@ describe("NEXUS Red Team Arena", () => {
       experienceId: "experience-a",
       creativeReport,
       fingerprint,
-      corpus: [{ ...fingerprint, subject: "subject-b", openingSignature: "different opening" }],
+      corpus: [distinctFingerprint()],
       artifacts,
       mutationVerdicts: mutationPass,
       structuralFingerprint: structuralPass,
@@ -152,7 +160,7 @@ describe("NEXUS Red Team Arena", () => {
       experienceId: "experience-a",
       creativeReport,
       fingerprint,
-      corpus: [{ ...fingerprint, subject: "subject-b", openingSignature: "different opening" }],
+      corpus: [distinctFingerprint()],
       artifacts: completeArtifacts(),
       mutationVerdicts: mutationPass,
       structuralFingerprint: structuralFail,
@@ -167,7 +175,7 @@ describe("NEXUS Red Team Arena", () => {
       experienceId: "experience-a",
       creativeReport,
       fingerprint,
-      corpus: [{ ...fingerprint, subject: "subject-b", openingSignature: "different opening" }],
+      corpus: [distinctFingerprint()],
       artifacts: completeArtifacts(),
       mutationVerdicts: mutations,
       structuralFingerprint: structuralPass,
