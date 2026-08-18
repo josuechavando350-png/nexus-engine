@@ -14,11 +14,13 @@
     "./adaptive-luxury": "./adaptive-luxury.ts",
     "./premium-capabilities": "./premium-capabilities.ts",
     "./compiler": "./compiler.ts",
-    "./content-readiness": "./content-readiness.ts"
+    "./content-readiness": "./content-readiness.ts",
+    "./content-constraints": "./content-constraints.ts",
+    "./autonomy": "./autonomy.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/experience/index.js && test -f dist/experience/index.d.ts && test -f dist/experience/content-readiness.js && test -f dist/experience/content-readiness.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/experience/index.js && test -f dist/experience/index.d.ts && test -f dist/experience/content-readiness.js && test -f dist/experience/content-readiness.d.ts && test -f dist/experience/content-constraints.js && test -f dist/experience/content-constraints.d.ts && test -f dist/experience/autonomy.js && test -f dist/experience/autonomy.d.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
