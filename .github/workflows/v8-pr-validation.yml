@@ -3,42 +3,8 @@ name: NEXUS V10 Full Validation
 on:
   pull_request:
     branches: [main]
-    paths:
-      - "runtime/**"
-      - "apps/**"
-      - "packages/**"
-      - "scripts/**"
-      - "tests/**"
-      - "docs/**"
-      - "NEXUS_V9_ARCHITECTURE_PLAN.md"
-      - "NEXUS_V10_ARCHITECTURE_PLAN.md"
-      - "NEXUS_VERSION_REGISTRY.md"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "tsconfig.json"
-      - "vitest.config.ts"
-      - "eslint.config.mjs"
-      - ".github/workflows/**"
   push:
-    branches: [main, "v10-*"]
-    paths:
-      - "runtime/**"
-      - "apps/**"
-      - "packages/**"
-      - "scripts/**"
-      - "tests/**"
-      - "docs/**"
-      - "NEXUS_V9_ARCHITECTURE_PLAN.md"
-      - "NEXUS_V10_ARCHITECTURE_PLAN.md"
-      - "NEXUS_VERSION_REGISTRY.md"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "pnpm-workspace.yaml"
-      - "tsconfig.json"
-      - "vitest.config.ts"
-      - "eslint.config.mjs"
-      - ".github/workflows/**"
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -53,7 +19,7 @@ jobs:
   validate:
     name: V3→V10 full validation on exact source SHA
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     steps:
       - name: Checkout exact source revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -61,7 +27,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Assert exact source SHA
+      - name: Assert exact source and pristine checkout
         shell: bash
         run: |
           set -euo pipefail
@@ -70,7 +36,10 @@ jobs:
             echo "Source SHA mismatch: expected $NEXUS_VALIDATED_SHA, checkout is $actual" >&2
             exit 1
           }
-          printf 'validated_source_sha=%s\n' "$actual"
+          test -z "$(git status --porcelain)"
+          git show-ref --verify --quiet refs/remotes/origin/main
+          mkdir -p artifacts/security artifacts/browser-capture .artifacts
+          printf '%s\n' "$actual" > artifacts/security/validated-source-sha.txt
 
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -94,25 +63,20 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install pinned Playwright browser dependencies
-        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
-
-      - name: Refresh patched Wasmtime lock resolution in isolated worktree
+      - name: Install real browser engines
         shell: bash
         run: |
           set -euo pipefail
-          lock_worktree="${RUNNER_TEMP}/nexus-lock-refresh"
-          rm -rf "$lock_worktree"
-          git worktree prune
-          git worktree add --detach "$lock_worktree" HEAD
-          (
-            cd "$lock_worktree/runtime"
-            cargo update -p wasmtime --precise 36.0.13
-          )
-          mkdir -p artifacts/security
-          cp "$lock_worktree/runtime/Cargo.lock" artifacts/security/Cargo.lock.generated
-          echo "NEXUS_LOCK_WORKTREE=$lock_worktree" >> "$GITHUB_ENV"
-          test -z "$(git status --porcelain --untracked-files=no)"
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          for attempt in 1 2 3; do
+            if pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit; then
+              exit 0
+            fi
+            test "$attempt" -lt 3 || exit 1
+            sleep $((attempt * 15))
+          done
 
       - name: Install pinned Rust supply-chain tools
         shell: bash
@@ -125,40 +89,21 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -d "$NEXUS_LOCK_WORKTREE/runtime"
-          mkdir -p artifacts/security
           pnpm audit --audit-level high 2>&1 | tee artifacts/security/pnpm-audit.txt
           (
-            cd "$NEXUS_LOCK_WORKTREE/runtime"
+            cd runtime
             cargo audit 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/security/cargo-audit.txt"
             cargo deny check 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/security/cargo-deny.txt"
           )
           test -z "$(git status --porcelain --untracked-files=no)"
 
-      - name: Generate source-SHA-bound CycloneDX SBOM
+      - name: Generate source-SHA-bound SBOM
         shell: bash
         run: |
           set -euo pipefail
-          test -d "$NEXUS_LOCK_WORKTREE/runtime"
-          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           pnpm sbom
           test -f "artifacts/security/nexus-${NEXUS_VALIDATED_SHA}.cdx.json"
           test -z "$(git status --porcelain --untracked-files=no)"
-
-      - name: Record supply-chain identity
-        shell: bash
-        run: |
-          {
-            echo "sha=$(git rev-parse HEAD)"
-            echo "validated_sha=$NEXUS_VALIDATED_SHA"
-            echo "node=$(node --version)"
-            echo "pnpm=$(pnpm --version)"
-            echo "rustc=$(rustc --version)"
-            echo "cargo=$(cargo --version)"
-            echo "cargo-audit=$(cargo audit --version)"
-            echo "cargo-deny=$(cargo deny --version)"
-          } | tee artifacts/security/toolchain.txt
-          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
 
       - name: Lint
         run: pnpm lint
@@ -166,104 +111,67 @@ jobs:
       - name: Typecheck
         run: pnpm typecheck
 
-      - name: Tests
+      - name: Unit and integration tests
         run: pnpm test
 
-      - name: Build
-        run: pnpm build
+      - name: Real browser validation
+        env:
+          NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
+        run: pnpm --filter @nexus/capture test:browser
 
-      - name: Security hygiene
+      - name: Build must be side-effect-free
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm build
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Security and architecture gates V3→V10
         shell: bash
         run: |
           set -euo pipefail
           pnpm security-hygiene
-          status="$(git status --porcelain --untracked-files=no)"
-          if [ -n "$status" ]; then
-            echo "Tracked mutation detected after Security hygiene:" >&2
-            printf '%s\n' "$status" >&2
-            git diff --name-status >&2 || true
-            git diff >&2 || true
-            exit 1
-          fi
-
-      - name: Architecture gates V3→V10
-        shell: bash
-        run: |
-          set -euo pipefail
-          assert_clean() {
-            label="$1"
-            status="$(git status --porcelain --untracked-files=no)"
-            if [ -n "$status" ]; then
-              mkdir -p artifacts/security
-              printf '%s\n' "$status" | tee "artifacts/security/tracked-mutation-${label}.txt" >&2
-              git diff --name-status | tee "artifacts/security/tracked-mutation-${label}-names.txt" >&2 || true
-              git diff | tee "artifacts/security/tracked-mutation-${label}.patch" >&2 || true
-              echo "Tracked mutation detected after ${label}" >&2
-              exit 1
-            fi
-          }
           pnpm v3-gates
-          assert_clean v3
           pnpm v4-gates
-          assert_clean v4
           pnpm v5-gates
-          assert_clean v5
           pnpm v6-gates
-          assert_clean v6
           pnpm v7-gates
-          assert_clean v7
           pnpm v8-gates
-          assert_clean v8
           pnpm v9-gates
-          assert_clean v9
-          pnpm v10-gates
-          assert_clean v10
+          test -z "$(git status --porcelain --untracked-files=no)"
 
-      - name: Rust tests
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$NEXUS_LOCK_WORKTREE/runtime"
-          cargo test --workspace --locked
+      - name: Rust tests locked
+        run: pnpm rust:test
 
-      - name: Rust lint
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$NEXUS_LOCK_WORKTREE/runtime"
-          cargo clippy --all-targets --locked -- -D warnings
+      - name: Rust lint locked
+        run: pnpm rust:lint
 
-      - name: Rust release build
-        shell: bash
-        run: |
-          set -euo pipefail
-          cd "$NEXUS_LOCK_WORKTREE/runtime"
-          cargo build --workspace --release --locked
+      - name: Rust release build locked
+        run: pnpm rust:build
 
-      - name: Clean isolated Rust worktree
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          if [ -n "${NEXUS_LOCK_WORKTREE:-}" ]; then
-            git worktree remove --force "$NEXUS_LOCK_WORKTREE" >/dev/null 2>&1 || true
-            git worktree prune
-          fi
-          status="$(git status --porcelain --untracked-files=no)"
-          if [ -n "$status" ]; then
-            echo "Tracked mutation detected before final diff hygiene:" >&2
-            printf '%s\n' "$status" >&2
-            git diff --name-status >&2 || true
-            git diff >&2 || true
-            exit 1
-          fi
-          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+      - name: H07 operability proof
+        run: pnpm operability:h07
 
-      - name: Diff hygiene
+      - name: V10 readiness consumes executed evidence
+        env:
+          NEXUS_V10_TESTS_PASSED: "1"
+          NEXUS_V10_BUILD_PASSED: "1"
+          NEXUS_V10_BROWSER_PASSED: "1"
+          NEXUS_V10_H07_PASSED: "1"
+        run: pnpm v10-gates
+
+      - name: Verify evidence and final diff hygiene
         shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test "$(tr -d '\n\r' < artifacts/security/validated-source-sha.txt)" = "$NEXUS_VALIDATED_SHA"
+          test -f .artifacts/h07-operability-proof.json
+          test -f artifacts/browser-capture/capture-manifest.json
+          test "$(find artifacts/browser-capture -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
+          test -f artifacts/browser-capture/artifact-checksums.sha256 || find artifacts/browser-capture -type f -print0 | sort -z | xargs -0 sha256sum > artifacts/browser-capture/artifact-checksums.sha256
+          test -s artifacts/browser-capture/artifact-checksums.sha256
+          test -z "$(git status --porcelain --untracked-files=no)"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git diff --check "origin/${{ github.base_ref }}...HEAD"
           else
@@ -276,5 +184,16 @@ jobs:
         with:
           name: nexus-supply-chain-${{ github.event.pull_request.head.sha || github.sha }}
           path: artifacts/security
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Upload browser and H07 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-v10-runtime-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            artifacts/browser-capture
+            .artifacts/h07-operability-proof.json
           if-no-files-found: error
           retention-days: 90

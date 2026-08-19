@@ -56,7 +56,7 @@ let gatewayHealthOutput = "";
 let factoryOutputDigest = "";
 
 await phase("build-real-release-artifacts", async () => {
-  run("cargo", ["build", "--release", "-p", "gatewayd", "-p", "factory-line", "--manifest-path", "runtime/Cargo.toml"]);
+  run("cargo", ["build", "--locked", "--release", "-p", "gatewayd", "-p", "factory-line", "--manifest-path", "runtime/Cargo.toml"]);
   gatewayDigest = await sha256(gatewaySource);
   factoryDigest = await sha256(factorySource);
   return { gatewayDigest, factoryDigest };
