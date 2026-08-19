@@ -1,0 +1,40 @@
+name: Temporary Wasmtime lockfile refresh
+
+on:
+  push:
+    branches: [fix/codex-audit-closeout]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  refresh:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact branch revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+
+      - name: Setup Rust 1.88.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.88.0 --profile minimal
+          rustup default 1.88.0
+
+      - name: Regenerate Wasmtime dependency graph
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd runtime
+          cargo update -p wasmtime --precise 36.0.13
+          cargo check --workspace --locked
+          grep -A2 'name = "wasmtime"' Cargo.lock
+
+      - name: Upload regenerated lockfile
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wasmtime-36-lockfile
+          path: runtime/Cargo.lock
+          if-no-files-found: error
+          retention-days: 1
