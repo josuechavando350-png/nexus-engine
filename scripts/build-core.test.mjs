@@ -34,7 +34,7 @@ describe("deterministic build core", () => {
     expect(normalizedPath(["a", "b", "c"].join(sep))).toBe("a/b/c");
   });
 
-  it("round-trips output bytes through the content cache", () => {
+  it("round-trips output bytes through a verified content cache", () => {
     const root = tempRoot();
     const targetDir = join(root, "packages", "demo");
     mkdirSync(join(targetDir, "dist"), { recursive: true });
@@ -44,5 +44,19 @@ describe("deterministic build core", () => {
     rmSync(join(targetDir, "dist"), { recursive: true, force: true });
     expect(restoreFromCache(target, "abc123", root)).toBe(true);
     expect(readFileSync(join(targetDir, "dist", "index.js"), "utf8")).toBe("export const x = 1;\n");
+  });
+
+  it("rejects and removes a corrupted cache entry", () => {
+    const root = tempRoot();
+    const targetDir = join(root, "packages", "demo");
+    mkdirSync(join(targetDir, "dist"), { recursive: true });
+    writeFileSync(join(targetDir, "dist", "index.js"), "trusted\n");
+    const target = { dir: targetDir, relativeDir: "packages/demo", command: "noop" };
+    storeInCache(target, "corrupt-me", root);
+    const cached = join(root, ".nexus-cache", "builds", "corrupt-me", "packages__demo", "dist", "index.js");
+    writeFileSync(cached, "tampered\n");
+    rmSync(join(targetDir, "dist"), { recursive: true, force: true });
+    expect(restoreFromCache(target, "corrupt-me", root)).toBe(false);
+    expect(() => readFileSync(join(targetDir, "dist", "index.js"), "utf8")).toThrow();
   });
 });
