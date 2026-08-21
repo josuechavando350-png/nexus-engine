@@ -21,7 +21,7 @@ describe("fleet anomaly analysis", () => {
     expect(report.reason).toBe("AT_LEAST_5_CLIENT_PROJECTS_REQUIRED");
   });
 
-  it("detects a fleet-relative outlier using median absolute deviation", () => {
+  it("compares each project only against peers and detects a robust outlier", () => {
     const report = analyzeFleetAnomalies([
       { projectId: "a", metric: "LCP_P75", value: 1000 },
       { projectId: "b", metric: "LCP_P75", value: 1010 },
@@ -30,7 +30,17 @@ describe("fleet anomaly analysis", () => {
       { projectId: "e", metric: "LCP_P75", value: 3000 },
     ]);
     expect(report.status).toBe("MEASURED");
-    expect(report.anomalies.find((item) => item.projectId === "e")?.status).toBe("ANOMALOUS");
+    const outlier = report.anomalies.find((item) => item.projectId === "e")!;
+    expect(outlier.status).toBe("ANOMALOUS");
+    expect(outlier.peerCount).toBe(4);
+    expect(outlier.fleetMedian).toBe(1015);
     expect(report.anomalies.find((item) => item.projectId === "c")?.status).toBe("NORMAL");
+  });
+
+  it("rejects duplicate project/metric observations", () => {
+    expect(() => analyzeFleetAnomalies([
+      { projectId: "a", metric: "LCP_P75", value: 1000 },
+      { projectId: "a", metric: "LCP_P75", value: 1001 },
+    ])).toThrow(/duplicate fleet metric point/);
   });
 });
