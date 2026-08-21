@@ -13,24 +13,26 @@ import {
 import { delimiter, join, relative, resolve, sep } from "node:path";
 
 export const OUTPUT_DIR_NAMES = ["dist", "build", "out", ".next"];
+export const DEFAULT_SOURCE_DATE_EPOCH = "315532800";
 const IGNORED_NAMES = new Set(["node_modules", ".git", ".nexus-cache", ".turbo", ".cache", "coverage", ...OUTPUT_DIR_NAMES]);
 
 export function normalizedPath(path) {
   return path.split(sep).join("/");
 }
 
-export function sourceDateEpoch(root = process.cwd()) {
-  if (process.env.SOURCE_DATE_EPOCH) return process.env.SOURCE_DATE_EPOCH;
-  return execFileSync("git", ["log", "-1", "--format=%ct"], { cwd: root, encoding: "utf8" }).trim();
+export function sourceDateEpoch() {
+  const value = process.env.SOURCE_DATE_EPOCH || DEFAULT_SOURCE_DATE_EPOCH;
+  if (!/^\d+$/.test(value)) throw new Error(`invalid SOURCE_DATE_EPOCH: ${value}`);
+  return value;
 }
 
-export function deterministicEnv(root = process.cwd()) {
+export function deterministicEnv() {
   return {
     ...process.env,
     TZ: "UTC",
     LANG: "C",
     LC_ALL: "C",
-    SOURCE_DATE_EPOCH: sourceDateEpoch(root),
+    SOURCE_DATE_EPOCH: sourceDateEpoch(),
     NEXUS_DETERMINISTIC_BUILD: "1",
   };
 }
@@ -147,7 +149,7 @@ export function targetBuildKey(target, root = process.cwd()) {
     platform: process.platform,
     arch: process.arch,
     packageManager: rootManifest.packageManager ?? "UNPINNED",
-    sourceDateEpoch: sourceDateEpoch(root),
+    sourceDateEpoch: sourceDateEpoch(),
   };
   return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
 }
@@ -221,7 +223,7 @@ export function runTargetBuild(target, root = process.cwd()) {
   const rootBin = join(root, "node_modules", ".bin");
   const packageBin = join(target.dir, "node_modules", ".bin");
   const path = [packageBin, rootBin, process.env.PATH ?? ""].filter(Boolean).join(delimiter);
-  const env = { ...deterministicEnv(root), PATH: path };
+  const env = { ...deterministicEnv(), PATH: path };
 
   if (process.env.NEXUS_ENFORCE_NETWORK_ISOLATION === "1") {
     if (process.platform !== "linux" || typeof process.getuid !== "function" || typeof process.getgid !== "function") {
