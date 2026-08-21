@@ -14,7 +14,7 @@ import { delimiter, join, relative, resolve, sep } from "node:path";
 
 export const OUTPUT_DIR_NAMES = ["dist", "build", "out", ".next"];
 export const DEFAULT_SOURCE_DATE_EPOCH = "315532800";
-const IGNORED_NAMES = new Set(["node_modules", ".git", ".nexus-cache", ".turbo", ".cache", "coverage", ...OUTPUT_DIR_NAMES]);
+const IGNORED_NAMES = new Set(["node_modules", ".git", ".nexus-cache", ".turbo", ".cache", "coverage", "next-env.d.ts", ...OUTPUT_DIR_NAMES]);
 
 export function normalizedPath(path) {
   return path.split(sep).join("/");
@@ -163,11 +163,13 @@ export function clearOutputs(targetDir) {
 }
 
 function sanitizeBuildOutputs(targetDir) {
-  // Next.js writes build timing/diagnostic metadata here. It is not runtime
-  // application output and contains process-local measurements that vary
-  // between otherwise byte-identical builds, so never persist it as part of
-  // the production artifact or content-addressed cache.
+  // Next.js emits process-local build metadata and compiler caches that are
+  // neither runtime application output nor reproducible artifacts. Remove
+  // them before snapshots/cache storage so the certified artifact is the
+  // deployable output, not diagnostics from the machine that built it.
   rmSync(join(targetDir, ".next", "diagnostics"), { recursive: true, force: true });
+  rmSync(join(targetDir, ".next", "cache"), { recursive: true, force: true });
+  rmSync(join(targetDir, ".next", "trace"), { force: true });
 }
 
 function cacheRootFor(hash, relativeDir, root) {
@@ -178,7 +180,7 @@ export function snapshotTargetOutputs(target, root = process.cwd()) {
   const files = outputDirs(target.dir).flatMap((dir) => walkFiles(dir, { ignore: new Set(["node_modules", ".git"]) }));
   return {
     digest: digestFiles(files, root),
-    files: files.map((path) => normalizedPath(relative(root, path))).sort((a, b) => a.localeCompare(b, "en")),
+    files: files.map((path) => normalizedPath(relative(root, path))).sort((a, b) => a.localeCompare(b.localeCompare ? b : b, "en")),
   };
 }
 
