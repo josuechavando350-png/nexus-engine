@@ -114,5 +114,5 @@ console.log(JSON.stringify({
   engineVersion: rootManifest.version,
   outputDigest: first.workspace.digest,
   outputFileCount: first.workspace.files.length,
-  targets: first.perTarget.map(({ entries: _entries, ...target }) => target),
+  targets: first.perTarget.map((snapshot) => Object.fromEntries(Object.entries(snapshot).filter(([key]) => key !== "entries"))),
 }, null, 2));
