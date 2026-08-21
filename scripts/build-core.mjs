@@ -113,11 +113,15 @@ export function transitiveWorkspaceFiles(targetDir, root = process.cwd()) {
 
   const files = [];
   for (const dir of [...dirs].sort()) files.push(...walkFiles(dir));
+
+  const sharedConfigDir = join(root, "packages", "config");
+  if (existsSync(sharedConfigDir) && statSync(sharedConfigDir).isDirectory()) files.push(...walkFiles(sharedConfigDir));
+
   for (const shared of ["package.json", "pnpm-lock.yaml", "pnpm-workspace.yaml", "tsconfig.json", "vitest.config.ts", "eslint.config.mjs"]) {
     const absolute = join(root, shared);
     if (existsSync(absolute) && statSync(absolute).isFile()) files.push(absolute);
   }
-  return files;
+  return [...new Set(files)].sort((a, b) => normalizedPath(a).localeCompare(normalizedPath(b), "en"));
 }
 
 export function targetContentHash(targetDir, root = process.cwd()) {
