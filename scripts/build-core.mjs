@@ -221,11 +221,36 @@ export function runTargetBuild(target, root = process.cwd()) {
   const rootBin = join(root, "node_modules", ".bin");
   const packageBin = join(target.dir, "node_modules", ".bin");
   const path = [packageBin, rootBin, process.env.PATH ?? ""].filter(Boolean).join(delimiter);
+  const env = { ...deterministicEnv(root), PATH: path };
+
+  if (process.env.NEXUS_ENFORCE_NETWORK_ISOLATION === "1") {
+    if (process.platform !== "linux" || typeof process.getuid !== "function" || typeof process.getgid !== "function") {
+      throw new Error("network-isolated hermetic builds require Linux uid/gid support");
+    }
+    execFileSync("sudo", [
+      "unshare",
+      "--net",
+      "--setuid", String(process.getuid()),
+      "--setgid", String(process.getgid()),
+      "/usr/bin/env",
+      `PATH=${path}`,
+      `SOURCE_DATE_EPOCH=${env.SOURCE_DATE_EPOCH}`,
+      "TZ=UTC",
+      "LANG=C",
+      "LC_ALL=C",
+      "NEXUS_DETERMINISTIC_BUILD=1",
+      "/bin/bash",
+      "-lc",
+      target.command,
+    ], { cwd: target.dir, stdio: "inherit", env: process.env });
+    return;
+  }
+
   execSync(target.command, {
     cwd: target.dir,
     stdio: "inherit",
     shell: "/bin/bash",
-    env: { ...deterministicEnv(root), PATH: path },
+    env,
   });
 }
 
