@@ -2,11 +2,13 @@ import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, relative, sep } from "node:path";
+import { verifyDecisionTrace } from "../packages/quality/decision-trace.ts";
 
 const root = process.env.NEXUS_CAPTURE_EVIDENCE_DIR || "artifacts/browser-capture";
 const baselineRoot = process.env.NEXUS_VISUAL_BASELINE_DIR || "quality-baselines/browser-capture";
 const maxChangedRatio = Number(process.env.NEXUS_VISUAL_MAX_CHANGED_RATIO || "0.001");
 const sourceRevision = process.env.NEXUS_VALIDATED_SHA || process.env.GITHUB_SHA || "UNKNOWN";
+const decisionTracePath = process.env.NEXUS_DECISION_TRACE_PATH?.trim();
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
 
 if (!existsSync(root)) throw new Error(`capture evidence directory does not exist: ${root}`);
@@ -28,6 +30,19 @@ const listFilesRecursively = (directory) => {
   }
   return files;
 };
+
+let decisionProvenance = { status: "NOT_TESTED", reason: "NEXUS_DECISION_TRACE_PATH_NOT_SET" };
+if (decisionTracePath) {
+  if (!existsSync(decisionTracePath) || !statSync(decisionTracePath).isFile()) throw new Error(`decision trace does not exist: ${decisionTracePath}`);
+  const trace = JSON.parse(readFileSync(decisionTracePath, "utf8"));
+  if (!verifyDecisionTrace(trace)) throw new Error(`decision trace failed integrity verification: ${decisionTracePath}`);
+  decisionProvenance = {
+    status: "PASS",
+    trace,
+    path: normalizePath(relative(process.cwd(), decisionTracePath)),
+    sha256: sha256File(decisionTracePath),
+  };
+}
 
 const pngs = readdirSync(root).filter((name) => name.endsWith(".png")).sort((a, b) => a.localeCompare(b, "en"));
 if (!pngs.length) throw new Error("no browser capture PNG files were produced");
@@ -97,6 +112,7 @@ const payload = {
     baselineDirectory: normalizePath(baselineRoot),
     comparisons,
   },
+  decisionProvenance,
   evidence: evidenceFiles,
 };
 const canonical = JSON.stringify(payload);
@@ -105,6 +121,7 @@ mkdirSync(root, { recursive: true });
 writeFileSync(join(root, "quality-passport-ci.json"), `${JSON.stringify(passport, null, 2)}\n`);
 
 console.log(`NEXUS visual regression: ${visualVerdict}`);
+console.log(`NEXUS decision provenance: ${decisionProvenance.status}`);
 for (const item of comparisons) console.log(`${item.verdict}\t${item.capture}${item.changedRatio !== undefined ? `\tchanged=${item.changedRatio}` : ""}`);
 console.log(`Quality Passport: ${join(root, "quality-passport-ci.json")}`);
 

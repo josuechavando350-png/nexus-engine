@@ -38,7 +38,7 @@ jobs:
           }
           test -z "$(git status --porcelain)"
           git show-ref --verify --quiet refs/remotes/origin/main
-          mkdir -p artifacts/security artifacts/browser-capture .artifacts
+          mkdir -p artifacts/security artifacts/browser-capture artifacts/decision-trace artifacts/shadow-mode artifacts/fleet .artifacts
           printf '%s\n' "$actual" > artifacts/security/validated-source-sha.txt
 
       - name: Setup Node 24
@@ -114,7 +114,7 @@ jobs:
       - name: Unit and integration tests
         run: pnpm test
 
-      - name: Real browser validation
+      - name: Real browser and adversarial validation
         env:
           NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
         run: pnpm --filter @nexus/capture test:browser
@@ -125,6 +125,15 @@ jobs:
           set -euo pipefail
           pnpm build
           test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Materialize decision provenance for real client apps
+        run: pnpm decisions:trace
+
+      - name: Shadow rebuild all real client apps without deploy
+        run: pnpm shadow:run
+
+      - name: Fleet anomaly report from real client RUM only
+        run: pnpm fleet:anomalies
 
       - name: Security and architecture gates V3→V10
         shell: bash
@@ -168,7 +177,11 @@ jobs:
           test "$(tr -d '\n\r' < artifacts/security/validated-source-sha.txt)" = "$NEXUS_VALIDATED_SHA"
           test -f .artifacts/h07-operability-proof.json
           test -f artifacts/browser-capture/capture-manifest.json
+          test -f artifacts/decision-trace/index.json
+          test -f artifacts/shadow-mode/shadow-report.json
+          test -f artifacts/fleet/fleet-anomaly-report.json
           test "$(find artifacts/browser-capture -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
+          test "$(find artifacts/browser-capture/adversarial -type f -name '*.png' | wc -l | tr -d ' ')" = "9"
           test -f artifacts/browser-capture/artifact-checksums.sha256 || find artifacts/browser-capture -type f -print0 | sort -z | xargs -0 sha256sum > artifacts/browser-capture/artifact-checksums.sha256
           test -s artifacts/browser-capture/artifact-checksums.sha256
           test -z "$(git status --porcelain --untracked-files=no)"
@@ -187,13 +200,16 @@ jobs:
           if-no-files-found: error
           retention-days: 90
 
-      - name: Upload browser and H07 evidence
+      - name: Upload browser, decisions, shadow, fleet and H07 evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: nexus-v10-runtime-evidence-${{ github.event.pull_request.head.sha || github.sha }}
           path: |
             artifacts/browser-capture
+            artifacts/decision-trace
+            artifacts/shadow-mode
+            artifacts/fleet
             .artifacts/h07-operability-proof.json
           if-no-files-found: error
           retention-days: 90

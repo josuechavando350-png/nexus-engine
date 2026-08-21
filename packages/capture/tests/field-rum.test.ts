@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { aggregateFieldRum, type FieldVitalSample } from "../field-rum";
+import { aggregateFieldRum, createFieldRumFleetSummary, type FieldVitalSample } from "../field-rum";
 
 const SHA = "a".repeat(40);
 const sample = (metric: "LCP" | "INP" | "CLS", value: number, rating: "GOOD" | "NEEDS_IMPROVEMENT" | "POOR", observedAt = "2026-08-20T12:00:00.000Z"): FieldVitalSample => ({
@@ -19,6 +19,7 @@ describe("field RUM", () => {
     const evidence = aggregateFieldRum({ projectId: "fixture", buildRevision: SHA, windowStart: "2026-08-01T00:00:00.000Z", windowEnd: "2026-08-31T23:59:59.999Z", samples: [] });
     expect(evidence.status).toBe("NOT_TESTED");
     expect(evidence.aggregates).toEqual([]);
+    expect(() => createFieldRumFleetSummary(evidence)).toThrow(/measured field RUM/);
   });
 
   it("computes deterministic p75 aggregates for measured samples", () => {
@@ -31,6 +32,34 @@ describe("field RUM", () => {
     });
     expect(evidence.status).toBe("MEASURED");
     expect(evidence.aggregates[0]).toMatchObject({ metric: "LCP", sampleCount: 4, p75: 2400, goodRatio: 0.5, needsImprovementRatio: 0.25, poorRatio: 0.25 });
+    expect(() => createFieldRumFleetSummary(evidence)).toThrow(/LCP, INP and CLS/);
+  });
+
+  it("derives a fleet summary only from complete measured LCP, INP and CLS evidence", () => {
+    const evidence = aggregateFieldRum({
+      projectId: "fixture",
+      buildRevision: SHA,
+      windowStart: "2026-08-01T00:00:00.000Z",
+      windowEnd: "2026-08-31T23:59:59.999Z",
+      samples: [
+        sample("LCP", 1200, "GOOD"), sample("LCP", 2000, "GOOD"),
+        sample("INP", 90, "GOOD"), sample("INP", 140, "GOOD"),
+        sample("CLS", 0.01, "GOOD"), sample("CLS", 0.03, "GOOD"),
+      ],
+    });
+    expect(createFieldRumFleetSummary(evidence)).toEqual({
+      schemaVersion: 1,
+      authority: "NEXUS_FIELD_RUM_SUMMARY_V1",
+      projectId: "fixture",
+      buildRevision: SHA,
+      windowStart: "2026-08-01T00:00:00.000Z",
+      windowEnd: "2026-08-31T23:59:59.999Z",
+      sampleCount: 2,
+      metricSampleCounts: { LCP: 2, INP: 2, CLS: 2 },
+      lcpP75Ms: 2000,
+      inpP75Ms: 140,
+      clsP75: 0.03,
+    });
   });
 
   it("rejects samples from another build", () => {
