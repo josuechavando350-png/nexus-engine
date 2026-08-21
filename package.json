@@ -17,6 +17,7 @@
     "security-hygiene": "node scripts/security-hygiene.mjs",
     "sbom": "node scripts/generate-sbom.mjs",
     "client:run": "node scripts/nexus-client-pipeline.mjs",
+    "decisions:trace": "node scripts/client-decision-trace.mjs",
     "shadow:run": "node scripts/shadow-mode.mjs",
     "fleet:anomalies": "node scripts/fleet-anomaly-report.mjs",
     "v3-gates": "node scripts/run-v3-gates.mjs",
