@@ -2,7 +2,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { discoverClientApps, loadSceneManifest, loadShadowBaseline, snapshotScenes } from "./client-fleet.mjs";
+import { diffArtifacts, discoverClientApps, loadSceneManifest, loadShadowBaseline, snapshotScenes } from "./client-fleet.mjs";
 
 const roots = [];
 afterEach(() => { while (roots.length) rmSync(roots.pop(), { recursive: true, force: true }); });
@@ -44,6 +44,28 @@ describe("client fleet", () => {
     const second = snapshotScenes(appDir, loadSceneManifest(appDir));
     expect(first).toEqual(second);
     expect(first[0].artifactPaths).toEqual(["out/a.html", "out/b.html"]);
+    expect(first[0].artifacts.map((artifact) => artifact.path)).toEqual(["out/a.html", "out/b.html"]);
+  });
+
+  it("reports added, removed and modified artifacts but omits unchanged files", () => {
+    const a = "a".repeat(64);
+    const b = "b".repeat(64);
+    const c = "c".repeat(64);
+    const before = [
+      { path: "out/unchanged.html", digest: a, byteLength: 10 },
+      { path: "out/modified.html", digest: a, byteLength: 20 },
+      { path: "out/removed.html", digest: b, byteLength: 30 },
+    ];
+    const after = [
+      { path: "out/unchanged.html", digest: a, byteLength: 10 },
+      { path: "out/modified.html", digest: c, byteLength: 22 },
+      { path: "out/added.html", digest: b, byteLength: 40 },
+    ];
+    expect(diffArtifacts(before, after)).toEqual([
+      { path: "out/added.html", change: "ADDED", beforeDigest: null, afterDigest: b, beforeByteLength: null, afterByteLength: 40 },
+      { path: "out/modified.html", change: "MODIFIED", beforeDigest: a, afterDigest: c, beforeByteLength: 20, afterByteLength: 22 },
+      { path: "out/removed.html", change: "REMOVED", beforeDigest: b, afterDigest: null, beforeByteLength: 30, afterByteLength: null },
+    ]);
   });
 
   it("fails closed when a declared scene artifact is missing or escapes the client app", () => {
