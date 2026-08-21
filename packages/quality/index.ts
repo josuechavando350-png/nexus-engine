@@ -9,3 +9,5 @@ export * from "./excess-removal";
 export * from "./criterion-memory";
 export * from "./structural-fingerprint";
 export * from "./delivery-certification";
+export * from "./quality-passport";
+export * from "./decision-trace";
