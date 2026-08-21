@@ -1,6 +1,6 @@
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { digestFiles, normalizedPath, restoreFromCache, storeInCache, walkFiles } from "./build-core.mjs";
 
@@ -31,7 +31,7 @@ describe("deterministic build core", () => {
   });
 
   it("normalizes platform separators for manifests", () => {
-    expect(normalizedPath("a\\b\\c")).toBe("a/b/c");
+    expect(normalizedPath(["a", "b", "c"].join(sep))).toBe("a/b/c");
   });
 
   it("round-trips output bytes through the content cache", () => {
