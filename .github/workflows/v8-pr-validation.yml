@@ -128,7 +128,9 @@ jobs:
           NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
         run: pnpm --filter @nexus/capture test:browser
 
-      - name: Hermetic byte-identical double build
+      - name: Hermetic network-isolated byte-identical double build
+        env:
+          NEXUS_ENFORCE_NETWORK_ISOLATION: "1"
         shell: bash
         run: |
           set -euo pipefail
@@ -183,6 +185,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test "$(tr -d '\n\r' < artifacts/security/validated-source-sha.txt)" = "$NEXUS_VALIDATED_SHA"
           test -s artifacts/security/hermetic-build.txt
+          grep -q '"authority": "NEXUS_HERMETIC_BUILD_V1"' artifacts/security/hermetic-build.txt
+          grep -q '"verdict": "PASS"' artifacts/security/hermetic-build.txt
           test -f .artifacts/h07-operability-proof.json
           test -f artifacts/browser-capture/capture-manifest.json
           test "$(find artifacts/browser-capture -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
