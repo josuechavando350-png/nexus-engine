@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { discoverClientApps, loadSceneManifest, loadShadowBaseline, snapshotScenes } from "./client-fleet.mjs";
+import { diffArtifacts, discoverClientApps, loadSceneManifest, loadShadowBaseline, snapshotScenes } from "./client-fleet.mjs";
 
 const root = process.cwd();
 const outputDir = join(root, "artifacts", "shadow-mode");
@@ -31,25 +31,6 @@ execFileSync("pnpm", ["build"], {
   },
 });
 
-function artifactDiff(beforeArtifacts = [], afterArtifacts = []) {
-  const before = new Map(beforeArtifacts.map((artifact) => [artifact.path, artifact]));
-  const after = new Map(afterArtifacts.map((artifact) => [artifact.path, artifact]));
-  const paths = [...new Set([...before.keys(), ...after.keys()])].sort((a, b) => a.localeCompare(b, "en"));
-  return paths.flatMap((path) => {
-    const previous = before.get(path);
-    const current = after.get(path);
-    if (previous?.digest === current?.digest && previous?.byteLength === current?.byteLength) return [];
-    return [{
-      path,
-      change: !previous ? "ADDED" : !current ? "REMOVED" : "MODIFIED",
-      beforeDigest: previous?.digest ?? null,
-      afterDigest: current?.digest ?? null,
-      beforeByteLength: previous?.byteLength ?? null,
-      afterByteLength: current?.byteLength ?? null,
-    }];
-  });
-}
-
 const results = [];
 for (const client of clients) {
   const appDir = join(root, "apps", client);
@@ -70,7 +51,7 @@ for (const client of clients) {
       change: before ? "MODIFIED" : "ADDED",
       beforeDigest: before?.digest ?? null,
       afterDigest: scene.digest,
-      changedArtifacts: artifactDiff(before?.artifacts, scene.artifacts),
+      changedArtifacts: diffArtifacts(before?.artifacts ?? [], scene.artifacts),
     }];
   });
   const removedScenes = baseline.scenes
@@ -80,7 +61,7 @@ for (const client of clients) {
       change: "REMOVED",
       beforeDigest: scene.digest,
       afterDigest: null,
-      changedArtifacts: artifactDiff(scene.artifacts, []),
+      changedArtifacts: diffArtifacts(scene.artifacts, []),
     }));
   changedScenes.push(...removedScenes);
   changedScenes.sort((a, b) => a.sceneId.localeCompare(b.sceneId, "en"));
