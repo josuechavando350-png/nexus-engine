@@ -17,6 +17,15 @@ export type DecisionTrace = Readonly<{
   traceHash: string;
 }>;
 
+export type DecisionCoverage = Readonly<{
+  authority: "NEXUS_DECISION_COVERAGE_V1";
+  status: "PASS" | "FAIL";
+  requiredElementIds: readonly string[];
+  tracedElementIds: readonly string[];
+  missingElementIds: readonly string[];
+  unknownElementIds: readonly string[];
+}>;
+
 const AUTHORITIES = new Set<DecisionAuthority>(["HUMAN_ART_DIRECTOR", "PROJECT_DESIGN_DNA", "ENGINE_RULE"]);
 const SHA256 = /^[a-f0-9]{64}$/;
 
@@ -59,4 +68,28 @@ export function verifyDecisionTrace(trace: DecisionTrace): boolean {
   } catch {
     return false;
   }
+}
+
+export function auditDecisionCoverage(requiredElementIds: readonly string[], trace: DecisionTrace): DecisionCoverage {
+  if (!verifyDecisionTrace(trace)) throw new Error("decision coverage requires a valid decision trace");
+  if (!Array.isArray(requiredElementIds) || requiredElementIds.length === 0) throw new Error("decision coverage requires at least one auditable element");
+  const required = requiredElementIds.map((value) => {
+    if (typeof value !== "string" || !value.trim()) throw new Error("decision coverage element ids must be non-empty strings");
+    return value.trim();
+  }).sort((a, b) => a.localeCompare(b, "en"));
+  if (new Set(required).size !== required.length) throw new Error("decision coverage required element ids must be unique");
+
+  const traced = [...new Set(trace.entries.map((entry) => entry.elementId))].sort((a, b) => a.localeCompare(b, "en"));
+  const requiredSet = new Set(required);
+  const tracedSet = new Set(traced);
+  const missingElementIds = required.filter((elementId) => !tracedSet.has(elementId));
+  const unknownElementIds = traced.filter((elementId) => !requiredSet.has(elementId));
+  return Object.freeze({
+    authority: "NEXUS_DECISION_COVERAGE_V1",
+    status: missingElementIds.length === 0 && unknownElementIds.length === 0 ? "PASS" : "FAIL",
+    requiredElementIds: Object.freeze(required),
+    tracedElementIds: Object.freeze(traced),
+    missingElementIds: Object.freeze(missingElementIds),
+    unknownElementIds: Object.freeze(unknownElementIds),
+  });
 }
