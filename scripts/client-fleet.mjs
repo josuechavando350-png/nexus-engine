@@ -1,11 +1,21 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join, relative, sep } from "node:path";
+import { join, relative, resolve, sep } from "node:path";
 
 const NON_CLIENT_PREFIXES = ["_", "reference-", "v2-probe-", "probe-", "test-"];
+const SHA1 = /^[a-f0-9]{40}$/;
+const SHA256 = /^[a-f0-9]{64}$/;
 
 function normalized(path) {
   return path.split(sep).join("/");
+}
+
+function confinedPath(appDir, artifactPath) {
+  if (typeof artifactPath !== "string" || !artifactPath.trim()) throw new Error("scene artifact path must be a non-empty string");
+  const root = resolve(appDir);
+  const absolute = resolve(root, artifactPath);
+  if (absolute === root || !absolute.startsWith(`${root}${sep}`)) throw new Error(`scene artifact escapes client app: ${artifactPath}`);
+  return absolute;
 }
 
 export function discoverClientApps(root = process.cwd()) {
@@ -32,29 +42,26 @@ export function loadSceneManifest(appDir) {
   const path = join(appDir, "nexus-scenes.json");
   if (!existsSync(path)) return null;
   const manifest = JSON.parse(readFileSync(path, "utf8"));
-  if (!manifest || manifest.schemaVersion !== 1 || !Array.isArray(manifest.scenes) || manifest.scenes.length === 0) {
-    throw new Error(`invalid scene manifest: ${path}`);
-  }
+  if (!manifest || manifest.schemaVersion !== 1 || !Array.isArray(manifest.scenes) || manifest.scenes.length === 0) throw new Error(`invalid scene manifest: ${path}`);
   const ids = new Set();
   for (const scene of manifest.scenes) {
     if (typeof scene.id !== "string" || !scene.id.trim()) throw new Error(`scene id is required: ${path}`);
-    if (ids.has(scene.id.trim())) throw new Error(`duplicate scene id ${scene.id}: ${path}`);
-    ids.add(scene.id.trim());
-    if (!Array.isArray(scene.artifactPaths) || scene.artifactPaths.length === 0 || scene.artifactPaths.some((value) => typeof value !== "string" || !value.trim())) {
-      throw new Error(`scene ${scene.id} requires artifactPaths: ${path}`);
-    }
+    const id = scene.id.trim();
+    if (ids.has(id)) throw new Error(`duplicate scene id ${scene.id}: ${path}`);
+    ids.add(id);
+    if (!Array.isArray(scene.artifactPaths) || scene.artifactPaths.length === 0) throw new Error(`scene ${scene.id} requires artifactPaths: ${path}`);
+    const normalizedPaths = scene.artifactPaths.map((artifactPath) => normalized(relative(resolve(appDir), confinedPath(appDir, artifactPath))));
+    if (new Set(normalizedPaths).size !== normalizedPaths.length) throw new Error(`scene ${scene.id} contains duplicate artifact paths: ${path}`);
   }
   return manifest;
 }
 
 export function snapshotScenes(appDir, manifest) {
   return manifest.scenes.map((scene) => {
-    const files = [...scene.artifactPaths]
-      .map((artifactPath) => join(appDir, artifactPath))
+    const files = scene.artifactPaths
+      .map((artifactPath) => confinedPath(appDir, artifactPath))
       .sort((a, b) => normalized(relative(appDir, a)).localeCompare(normalized(relative(appDir, b)), "en"));
-    for (const file of files) {
-      if (!existsSync(file) || !statSync(file).isFile()) throw new Error(`scene build artifact missing: ${file}`);
-    }
+    for (const file of files) if (!existsSync(file) || !statSync(file).isFile()) throw new Error(`scene build artifact missing: ${file}`);
     const hash = createHash("sha256");
     const artifactPaths = [];
     for (const file of files) {
@@ -70,4 +77,22 @@ export function snapshotScenes(appDir, manifest) {
     }
     return Object.freeze({ sceneId: scene.id.trim(), digest: hash.digest("hex"), artifactPaths: Object.freeze(artifactPaths) });
   }).sort((a, b) => a.sceneId.localeCompare(b.sceneId, "en"));
+}
+
+export function loadShadowBaseline(appDir, projectId) {
+  const path = join(appDir, "nexus-shadow-baseline.json");
+  if (!existsSync(path)) return null;
+  const baseline = JSON.parse(readFileSync(path, "utf8"));
+  if (baseline?.schemaVersion !== 1 || baseline.authority !== "NEXUS_SHADOW_BASELINE_V1" || baseline.projectId !== projectId || !SHA1.test(baseline.sourceRevision) || typeof baseline.engineVersion !== "string" || !baseline.engineVersion.trim() || !Array.isArray(baseline.scenes) || baseline.scenes.length === 0) {
+    throw new Error(`invalid shadow baseline: ${path}`);
+  }
+  const ids = new Set();
+  for (const scene of baseline.scenes) {
+    if (typeof scene.sceneId !== "string" || !scene.sceneId.trim() || ids.has(scene.sceneId.trim())) throw new Error(`invalid or duplicate baseline scene id: ${path}`);
+    ids.add(scene.sceneId.trim());
+    if (!SHA256.test(scene.digest) || !Array.isArray(scene.artifactPaths) || scene.artifactPaths.length === 0) throw new Error(`invalid baseline scene evidence: ${path}`);
+    const paths = scene.artifactPaths.map((artifactPath) => normalized(relative(resolve(appDir), confinedPath(appDir, artifactPath))));
+    if (new Set(paths).size !== paths.length) throw new Error(`duplicate baseline artifact paths: ${path}`);
+  }
+  return baseline;
 }
