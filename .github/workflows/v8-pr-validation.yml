@@ -134,7 +134,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          pnpm build:deterministic | tee artifacts/security/hermetic-build.txt
+          pnpm build:deterministic 2>&1 | tee artifacts/security/hermetic-build.txt
           test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Cached production build must be side-effect-free
