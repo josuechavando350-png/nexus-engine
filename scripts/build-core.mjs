@@ -8,6 +8,7 @@ import {
   readdirSync,
   rmSync,
   statSync,
+  writeFileSync,
 } from "node:fs";
 import { delimiter, join, relative, resolve, sep } from "node:path";
 
@@ -66,8 +67,7 @@ export function digestFiles(files, root = process.cwd()) {
 
 export function workspacePackages(root = process.cwd()) {
   const byName = new Map();
-  const roots = ["packages", "apps"];
-  for (const workspaceRoot of roots) {
+  for (const workspaceRoot of ["packages", "apps"]) {
     const absoluteRoot = join(root, workspaceRoot);
     if (!existsSync(absoluteRoot)) continue;
     for (const entry of readdirSync(absoluteRoot, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name, "en"))) {
@@ -133,6 +133,21 @@ export function buildTargets(root = process.cwd()) {
   return targets.sort((a, b) => a.relativeDir.localeCompare(b.relativeDir, "en"));
 }
 
+export function targetBuildKey(target, root = process.cwd()) {
+  const rootManifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
+  const payload = {
+    schemaVersion: 1,
+    contentHash: targetContentHash(target.dir, root),
+    command: target.command,
+    nodeVersion: process.version,
+    platform: process.platform,
+    arch: process.arch,
+    packageManager: rootManifest.packageManager ?? "UNPINNED",
+    sourceDateEpoch: sourceDateEpoch(root),
+  };
+  return createHash("sha256").update(JSON.stringify(payload)).digest("hex");
+}
+
 export function outputDirs(targetDir) {
   return OUTPUT_DIR_NAMES.map((name) => join(targetDir, name)).filter((path) => existsSync(path) && statSync(path).isDirectory());
 }
@@ -145,13 +160,39 @@ function cacheRootFor(hash, relativeDir, root) {
   return join(root, ".nexus-cache", "builds", hash, relativeDir.replaceAll("/", "__"));
 }
 
+export function snapshotTargetOutputs(target, root = process.cwd()) {
+  const files = outputDirs(target.dir).flatMap((dir) => walkFiles(dir, { ignore: new Set(["node_modules", ".git"]) }));
+  return {
+    digest: digestFiles(files, root),
+    files: files.map((path) => normalizedPath(relative(root, path))).sort((a, b) => a.localeCompare(b, "en")),
+  };
+}
+
 export function restoreFromCache(target, hash, root = process.cwd()) {
   const cacheRoot = cacheRootFor(hash, target.relativeDir, root);
-  if (!existsSync(cacheRoot)) return false;
+  const manifestPath = join(cacheRoot, "cache-manifest.json");
+  if (!existsSync(cacheRoot) || !existsSync(manifestPath)) return false;
+  let manifest;
+  try {
+    manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+  } catch {
+    rmSync(cacheRoot, { recursive: true, force: true });
+    return false;
+  }
+  if (manifest.schemaVersion !== 1 || manifest.buildKey !== hash || typeof manifest.outputDigest !== "string" || !Array.isArray(manifest.files)) {
+    rmSync(cacheRoot, { recursive: true, force: true });
+    return false;
+  }
   clearOutputs(target.dir);
   for (const name of OUTPUT_DIR_NAMES) {
     const cached = join(cacheRoot, name);
     if (existsSync(cached)) cpSync(cached, join(target.dir, name), { recursive: true, preserveTimestamps: false });
+  }
+  const restored = snapshotTargetOutputs(target, root);
+  if (restored.digest !== manifest.outputDigest || JSON.stringify(restored.files) !== JSON.stringify(manifest.files)) {
+    clearOutputs(target.dir);
+    rmSync(cacheRoot, { recursive: true, force: true });
+    return false;
   }
   return true;
 }
@@ -163,6 +204,13 @@ export function storeInCache(target, hash, root = process.cwd()) {
   for (const output of outputDirs(target.dir)) {
     cpSync(output, join(cacheRoot, output.split(sep).at(-1)), { recursive: true, preserveTimestamps: false });
   }
+  const snapshot = snapshotTargetOutputs(target, root);
+  if (!snapshot.files.length) {
+    rmSync(cacheRoot, { recursive: true, force: true });
+    return;
+  }
+  const manifest = { schemaVersion: 1, buildKey: hash, outputDigest: snapshot.digest, files: snapshot.files };
+  writeFileSync(join(cacheRoot, "cache-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 
 export function runTargetBuild(target, root = process.cwd()) {
@@ -180,5 +228,5 @@ export function runTargetBuild(target, root = process.cwd()) {
 export function snapshotOutputs(targets, root = process.cwd()) {
   const files = [];
   for (const target of targets) for (const dir of outputDirs(target.dir)) files.push(...walkFiles(dir, { ignore: new Set(["node_modules", ".git"]) }));
-  return { digest: digestFiles(files, root), files: files.map((path) => normalizedPath(relative(root, path))).sort() };
+  return { digest: digestFiles(files, root), files: files.map((path) => normalizedPath(relative(root, path))).sort((a, b) => a.localeCompare(b, "en")) };
 }
