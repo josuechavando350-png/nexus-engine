@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 
 const root = process.env.NEXUS_CAPTURE_EVIDENCE_DIR || "artifacts/browser-capture";
 const baselineRoot = process.env.NEXUS_VISUAL_BASELINE_DIR || "quality-baselines/browser-capture";
@@ -15,7 +15,21 @@ if (!Number.isFinite(maxChangedRatio) || maxChangedRatio < 0 || maxChangedRatio 
 }
 
 const sha256File = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
-const pngs = readdirSync(root).filter((name) => name.endsWith(".png")).sort();
+const normalizePath = (path) => path.split(sep).join("/");
+
+const listFilesRecursively = (directory) => {
+  const entries = readdirSync(directory).sort((a, b) => a.localeCompare(b, "en"));
+  const files = [];
+  for (const name of entries) {
+    const path = join(directory, name);
+    const stats = statSync(path);
+    if (stats.isDirectory()) files.push(...listFilesRecursively(path));
+    else if (stats.isFile()) files.push(path);
+  }
+  return files;
+};
+
+const pngs = readdirSync(root).filter((name) => name.endsWith(".png")).sort((a, b) => a.localeCompare(b, "en"));
 if (!pngs.length) throw new Error("no browser capture PNG files were produced");
 
 const comparisons = [];
@@ -61,12 +75,13 @@ for (const name of pngs) {
   });
 }
 
-const evidenceFiles = readdirSync(root)
-  .filter((name) => !name.startsWith("quality-passport-ci"))
-  .sort()
-  .map((name) => join(root, name))
-  .filter((path) => statSync(path).isFile())
-  .map((path) => ({ path: relative(process.cwd(), path), sha256: sha256File(path) }));
+const evidenceFiles = listFilesRecursively(root)
+  .filter((path) => !normalizePath(relative(root, path)).startsWith("quality-passport-ci"))
+  .map((path) => ({
+    path: normalizePath(relative(process.cwd(), path)),
+    sha256: sha256File(path),
+  }))
+  .sort((a, b) => a.path.localeCompare(b.path, "en"));
 
 const statuses = comparisons.map((item) => item.verdict);
 const visualVerdict = statuses.includes("FAIL") ? "FAIL" : statuses.every((status) => status === "PASS") ? "PASS" : "NOT_TESTED";
@@ -79,7 +94,7 @@ const payload = {
   runner: process.env.GITHUB_ACTIONS === "true" ? "github-actions" : "local",
   visualRegression: {
     verdict: visualVerdict,
-    baselineDirectory: baselineRoot,
+    baselineDirectory: normalizePath(baselineRoot),
     comparisons,
   },
   evidence: evidenceFiles,
