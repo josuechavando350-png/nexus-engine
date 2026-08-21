@@ -1,6 +1,6 @@
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { createDecisionTrace } from "../packages/quality/decision-trace.ts";
+import { auditDecisionCoverage, createDecisionTrace } from "../packages/quality/decision-trace.ts";
 import { discoverClientApps } from "./client-fleet.mjs";
 
 const root = process.cwd();
@@ -16,14 +16,24 @@ for (const projectId of clients) {
     continue;
   }
   const source = JSON.parse(readFileSync(sourcePath, "utf8"));
-  if (source.schemaVersion !== 1 || !Array.isArray(source.entries) || source.entries.length === 0) {
+  if (source.schemaVersion !== 1 || !Array.isArray(source.elementIds) || source.elementIds.length === 0 || !Array.isArray(source.entries) || source.entries.length === 0) {
     results.push({ projectId, status: "FAIL", reason: "INVALID_DECISION_MANIFEST" });
     continue;
   }
-  const trace = createDecisionTrace(source.entries);
-  const tracePath = join(outputDir, `${projectId}.json`);
-  writeFileSync(tracePath, `${JSON.stringify(trace, null, 2)}\n`);
-  results.push({ projectId, status: "PASS", traceHash: trace.traceHash, tracePath: `artifacts/decision-trace/${projectId}.json`, entryCount: trace.entries.length });
+  try {
+    const trace = createDecisionTrace(source.entries);
+    const coverage = auditDecisionCoverage(source.elementIds, trace);
+    if (coverage.status !== "PASS") {
+      results.push({ projectId, status: "FAIL", reason: "INCOMPLETE_DECISION_COVERAGE", coverage });
+      continue;
+    }
+    const tracePath = join(outputDir, `${projectId}.json`);
+    const payload = { schemaVersion: 1, projectId, trace, coverage };
+    writeFileSync(tracePath, `${JSON.stringify(payload, null, 2)}\n`);
+    results.push({ projectId, status: "PASS", traceHash: trace.traceHash, tracePath: `artifacts/decision-trace/${projectId}.json`, entryCount: trace.entries.length, elementCount: coverage.requiredElementIds.length });
+  } catch (error) {
+    results.push({ projectId, status: "FAIL", reason: "INVALID_DECISION_TRACE", detail: error instanceof Error ? error.message : String(error) });
+  }
 }
 
 const verdict = clients.length === 0 ? "NOT_TESTED" : results.every((result) => result.status === "PASS") ? "PASS" : "FAIL";
