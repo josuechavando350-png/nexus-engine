@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { basename, join, relative } from "node:path";
+import { existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from "node:fs";
+import { join, relative } from "node:path";
 
 const root = process.env.NEXUS_CAPTURE_EVIDENCE_DIR || "artifacts/browser-capture";
 const baselineRoot = process.env.NEXUS_VISUAL_BASELINE_DIR || "quality-baselines/browser-capture";
@@ -34,7 +34,7 @@ for (const name of pngs) {
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) throw new Error("invalid dimensions");
     dimensions = { width, height };
   } catch (error) {
-    throw new Error(`cannot inspect capture dimensions for ${name}: ${error instanceof Error ? error.message : String(error)}`);
+    throw new Error(`cannot inspect capture dimensions for ${name}`, { cause: error });
   }
 
   let changedPixels = 0;
@@ -43,7 +43,7 @@ for (const name of pngs) {
   } catch (error) {
     const stderr = String(error?.stderr || "").trim();
     const parsed = Number(stderr.match(/[0-9]+(?:\.[0-9]+)?/)?.[0]);
-    if (!Number.isFinite(parsed)) throw new Error(`visual comparison failed for ${name}: ${stderr || error.message}`);
+    if (!Number.isFinite(parsed)) throw new Error(`visual comparison failed for ${name}`, { cause: error });
     changedPixels = parsed;
   }
 
@@ -64,10 +64,9 @@ for (const name of pngs) {
 const evidenceFiles = readdirSync(root)
   .filter((name) => !name.startsWith("quality-passport-ci"))
   .sort()
-  .map((name) => {
-    const path = join(root, name);
-    return { path: relative(process.cwd(), path), sha256: sha256File(path) };
-  });
+  .map((name) => join(root, name))
+  .filter((path) => statSync(path).isFile())
+  .map((path) => ({ path: relative(process.cwd(), path), sha256: sha256File(path) }));
 
 const statuses = comparisons.map((item) => item.verdict);
 const visualVerdict = statuses.includes("FAIL") ? "FAIL" : statuses.every((status) => status === "PASS") ? "PASS" : "NOT_TESTED";
