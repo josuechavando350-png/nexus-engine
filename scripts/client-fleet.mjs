@@ -84,6 +84,30 @@ export function snapshotScenes(appDir, manifest) {
   }).sort((a, b) => a.sceneId.localeCompare(b.sceneId, "en"));
 }
 
+export function diffArtifacts(beforeArtifacts = [], afterArtifacts = []) {
+  const validate = (artifact, label) => {
+    if (!artifact || typeof artifact.path !== "string" || !artifact.path.trim() || !SHA256.test(artifact.digest) || !Number.isInteger(artifact.byteLength) || artifact.byteLength < 0) throw new Error(`invalid ${label} artifact`);
+    return { path: artifact.path.trim(), digest: artifact.digest, byteLength: artifact.byteLength };
+  };
+  const before = new Map(beforeArtifacts.map((artifact) => { const item = validate(artifact, "before"); return [item.path, item]; }));
+  const after = new Map(afterArtifacts.map((artifact) => { const item = validate(artifact, "after"); return [item.path, item]; }));
+  if (before.size !== beforeArtifacts.length || after.size !== afterArtifacts.length) throw new Error("artifact diff paths must be unique");
+  const paths = [...new Set([...before.keys(), ...after.keys()])].sort((a, b) => a.localeCompare(b, "en"));
+  return Object.freeze(paths.flatMap((path) => {
+    const previous = before.get(path);
+    const current = after.get(path);
+    if (previous?.digest === current?.digest && previous?.byteLength === current?.byteLength) return [];
+    return [Object.freeze({
+      path,
+      change: !previous ? "ADDED" : !current ? "REMOVED" : "MODIFIED",
+      beforeDigest: previous?.digest ?? null,
+      afterDigest: current?.digest ?? null,
+      beforeByteLength: previous?.byteLength ?? null,
+      afterByteLength: current?.byteLength ?? null,
+    })];
+  }));
+}
+
 export function loadShadowBaseline(appDir, projectId) {
   const path = join(appDir, "nexus-shadow-baseline.json");
   if (!existsSync(path)) return null;
