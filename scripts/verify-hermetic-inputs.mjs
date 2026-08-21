@@ -12,7 +12,7 @@ const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: root })
   .split("\0")
   .filter(Boolean)
   .sort((a, b) => a.localeCompare(b, "en"));
-const trackedSet = new Set(tracked.map((path) => normalize(path));
+const trackedSet = new Set(tracked.map((path) => normalize(path)));
 const sourceExtensions = new Set([".css", ".scss", ".sass", ".less", ".html", ".tsx", ".jsx", ".ts", ".js", ".mjs"]);
 const cssExtensions = new Set([".css", ".scss", ".sass", ".less"]);
 const remoteFontHosts = /fonts\.googleapis\.com|fonts\.gstatic\.com|use\.typekit\.net|fonts\.adobe\.com/i;
