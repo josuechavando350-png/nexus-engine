@@ -13,6 +13,7 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
+  SOURCE_DATE_EPOCH: "315532800"
   NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
@@ -40,7 +41,6 @@ jobs:
           git show-ref --verify --quiet refs/remotes/origin/main
           mkdir -p artifacts/security artifacts/browser-capture .artifacts
           printf '%s\n' "$actual" > artifacts/security/validated-source-sha.txt
-          printf 'SOURCE_DATE_EPOCH=%s\n' "$(git log -1 --format=%ct)" >> "$GITHUB_ENV"
 
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
