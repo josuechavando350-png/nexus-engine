@@ -62,20 +62,25 @@ export function snapshotScenes(appDir, manifest) {
       .map((artifactPath) => confinedPath(appDir, artifactPath))
       .sort((a, b) => normalized(relative(appDir, a)).localeCompare(normalized(relative(appDir, b)), "en"));
     for (const file of files) if (!existsSync(file) || !statSync(file).isFile()) throw new Error(`scene build artifact missing: ${file}`);
-    const hash = createHash("sha256");
-    const artifactPaths = [];
-    for (const file of files) {
+    const sceneHash = createHash("sha256");
+    const artifacts = files.map((file) => {
       const path = normalized(relative(appDir, file));
       const bytes = readFileSync(file);
-      artifactPaths.push(path);
-      hash.update(path);
-      hash.update("\0");
-      hash.update(String(bytes.length));
-      hash.update("\0");
-      hash.update(bytes);
-      hash.update("\0");
-    }
-    return Object.freeze({ sceneId: scene.id.trim(), digest: hash.digest("hex"), artifactPaths: Object.freeze(artifactPaths) });
+      const digest = createHash("sha256").update(bytes).digest("hex");
+      sceneHash.update(path);
+      sceneHash.update("\0");
+      sceneHash.update(String(bytes.length));
+      sceneHash.update("\0");
+      sceneHash.update(bytes);
+      sceneHash.update("\0");
+      return Object.freeze({ path, digest, byteLength: bytes.length });
+    });
+    return Object.freeze({
+      sceneId: scene.id.trim(),
+      digest: sceneHash.digest("hex"),
+      artifactPaths: Object.freeze(artifacts.map((artifact) => artifact.path)),
+      artifacts: Object.freeze(artifacts),
+    });
   }).sort((a, b) => a.sceneId.localeCompare(b.sceneId, "en"));
 }
 
@@ -90,9 +95,15 @@ export function loadShadowBaseline(appDir, projectId) {
   for (const scene of baseline.scenes) {
     if (typeof scene.sceneId !== "string" || !scene.sceneId.trim() || ids.has(scene.sceneId.trim())) throw new Error(`invalid or duplicate baseline scene id: ${path}`);
     ids.add(scene.sceneId.trim());
-    if (!SHA256.test(scene.digest) || !Array.isArray(scene.artifactPaths) || scene.artifactPaths.length === 0) throw new Error(`invalid baseline scene evidence: ${path}`);
-    const paths = scene.artifactPaths.map((artifactPath) => normalized(relative(resolve(appDir), confinedPath(appDir, artifactPath))));
-    if (new Set(paths).size !== paths.length) throw new Error(`duplicate baseline artifact paths: ${path}`);
+    if (!SHA256.test(scene.digest) || !Array.isArray(scene.artifacts) || scene.artifacts.length === 0) throw new Error(`invalid baseline scene evidence: ${path}`);
+    const artifactPaths = [];
+    for (const artifact of scene.artifacts) {
+      if (!artifact || typeof artifact.path !== "string" || !SHA256.test(artifact.digest) || !Number.isInteger(artifact.byteLength) || artifact.byteLength < 0) throw new Error(`invalid baseline artifact evidence: ${path}`);
+      const normalizedPath = normalized(relative(resolve(appDir), confinedPath(appDir, artifact.path)));
+      artifactPaths.push(normalizedPath);
+    }
+    if (new Set(artifactPaths).size !== artifactPaths.length) throw new Error(`duplicate baseline artifact paths: ${path}`);
+    if (JSON.stringify([...artifactPaths].sort((a, b) => a.localeCompare(b, "en"))) !== JSON.stringify([...scene.artifacts].map((artifact) => artifact.path).sort((a, b) => a.localeCompare(b, "en")))) throw new Error(`non-canonical baseline artifact paths: ${path}`);
   }
   return baseline;
 }
