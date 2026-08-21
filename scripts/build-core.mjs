@@ -162,6 +162,14 @@ export function clearOutputs(targetDir) {
   for (const name of OUTPUT_DIR_NAMES) rmSync(join(targetDir, name), { recursive: true, force: true });
 }
 
+function sanitizeBuildOutputs(targetDir) {
+  // Next.js writes build timing/diagnostic metadata here. It is not runtime
+  // application output and contains process-local measurements that vary
+  // between otherwise byte-identical builds, so never persist it as part of
+  // the production artifact or content-addressed cache.
+  rmSync(join(targetDir, ".next", "diagnostics"), { recursive: true, force: true });
+}
+
 function cacheRootFor(hash, relativeDir, root) {
   return join(root, ".nexus-cache", "builds", hash, relativeDir.replaceAll("/", "__"));
 }
@@ -194,6 +202,7 @@ export function restoreFromCache(target, hash, root = process.cwd()) {
     const cached = join(cacheRoot, name);
     if (existsSync(cached)) cpSync(cached, join(target.dir, name), { recursive: true, preserveTimestamps: false });
   }
+  sanitizeBuildOutputs(target.dir);
   const restored = snapshotTargetOutputs(target, root);
   if (restored.digest !== manifest.outputDigest || JSON.stringify(restored.files) !== JSON.stringify(manifest.files)) {
     clearOutputs(target.dir);
@@ -204,6 +213,7 @@ export function restoreFromCache(target, hash, root = process.cwd()) {
 }
 
 export function storeInCache(target, hash, root = process.cwd()) {
+  sanitizeBuildOutputs(target.dir);
   const cacheRoot = cacheRootFor(hash, target.relativeDir, root);
   rmSync(cacheRoot, { recursive: true, force: true });
   mkdirSync(cacheRoot, { recursive: true });
@@ -251,6 +261,7 @@ export function runTargetBuild(target, root = process.cwd()) {
       "-c",
       target.command,
     ], { cwd: target.dir, stdio: "inherit", env: process.env });
+    sanitizeBuildOutputs(target.dir);
     return;
   }
 
@@ -260,6 +271,7 @@ export function runTargetBuild(target, root = process.cwd()) {
     shell: "/bin/bash",
     env,
   });
+  sanitizeBuildOutputs(target.dir);
 }
 
 export function snapshotOutputs(targets, root = process.cwd()) {
