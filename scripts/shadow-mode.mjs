@@ -31,6 +31,25 @@ execFileSync("pnpm", ["build"], {
   },
 });
 
+function artifactDiff(beforeArtifacts = [], afterArtifacts = []) {
+  const before = new Map(beforeArtifacts.map((artifact) => [artifact.path, artifact]));
+  const after = new Map(afterArtifacts.map((artifact) => [artifact.path, artifact]));
+  const paths = [...new Set([...before.keys(), ...after.keys()])].sort((a, b) => a.localeCompare(b, "en"));
+  return paths.flatMap((path) => {
+    const previous = before.get(path);
+    const current = after.get(path);
+    if (previous?.digest === current?.digest && previous?.byteLength === current?.byteLength) return [];
+    return [{
+      path,
+      change: !previous ? "ADDED" : !current ? "REMOVED" : "MODIFIED",
+      beforeDigest: previous?.digest ?? null,
+      afterDigest: current?.digest ?? null,
+      beforeByteLength: previous?.byteLength ?? null,
+      afterByteLength: current?.byteLength ?? null,
+    }];
+  });
+}
+
 const results = [];
 for (const client of clients) {
   const appDir = join(root, "apps", client);
@@ -46,11 +65,23 @@ for (const client of clients) {
   const changedScenes = currentScenes.flatMap((scene) => {
     const before = baselineById.get(scene.sceneId);
     if (before?.digest === scene.digest) return [];
-    return [{ sceneId: scene.sceneId, beforeDigest: before?.digest ?? null, afterDigest: scene.digest, artifactPaths: scene.artifactPaths }];
+    return [{
+      sceneId: scene.sceneId,
+      change: before ? "MODIFIED" : "ADDED",
+      beforeDigest: before?.digest ?? null,
+      afterDigest: scene.digest,
+      changedArtifacts: artifactDiff(before?.artifacts, scene.artifacts),
+    }];
   });
   const removedScenes = baseline.scenes
     .filter((scene) => !currentScenes.some((current) => current.sceneId === scene.sceneId))
-    .map((scene) => ({ sceneId: scene.sceneId, beforeDigest: scene.digest, afterDigest: null, artifactPaths: scene.artifactPaths }));
+    .map((scene) => ({
+      sceneId: scene.sceneId,
+      change: "REMOVED",
+      beforeDigest: scene.digest,
+      afterDigest: null,
+      changedArtifacts: artifactDiff(scene.artifacts, []),
+    }));
   changedScenes.push(...removedScenes);
   changedScenes.sort((a, b) => a.sceneId.localeCompare(b.sceneId, "en"));
   results.push({ projectId: client, baselineRevision: baseline.sourceRevision, baselineEngineVersion: baseline.engineVersion, verdict: changedScenes.length ? "WOULD_CHANGE" : "NO_CHANGE", changedScenes });
