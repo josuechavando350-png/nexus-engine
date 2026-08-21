@@ -1,33 +1,56 @@
-import { mkdtempSync, mkdirSync, rmSync } from "node:fs";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { discoverClientApps, robustFleetAnomalies } from "./client-fleet.mjs";
+import { discoverClientApps, loadSceneManifest, snapshotScenes } from "./client-fleet.mjs";
 
 const roots = [];
 afterEach(() => { while (roots.length) rmSync(roots.pop(), { recursive: true, force: true }); });
 
+function tempRoot() {
+  const root = mkdtempSync(join(tmpdir(), "nexus-fleet-"));
+  roots.push(root);
+  return root;
+}
+
+function writePackage(root, name, clientProject) {
+  const dir = join(root, "apps", name);
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "package.json"), `${JSON.stringify({ name, nexus: { clientProject } }, null, 2)}\n`);
+  return dir;
+}
+
 describe("client fleet", () => {
-  it("never classifies seed, reference or probe apps as clients", () => {
-    const root = mkdtempSync(join(tmpdir(), "nexus-fleet-")); roots.push(root);
-    for (const name of ["_experience-seed", "reference-alfil", "v2-probe-editorial", "cano-legal", "zona-dental"]) mkdirSync(join(root, "apps", name), { recursive: true });
+  it("counts only explicitly declared real clients and never seeds/references/probes", () => {
+    const root = tempRoot();
+    writePackage(root, "_experience-seed", true);
+    writePackage(root, "reference-alfil", true);
+    writePackage(root, "v2-probe-editorial", true);
+    writePackage(root, "unmarked-app", false);
+    writePackage(root, "cano-legal", true);
+    writePackage(root, "zona-dental", true);
     expect(discoverClientApps(root)).toEqual(["cano-legal", "zona-dental"]);
   });
 
-  it("requires fleet evidence instead of inventing an anomaly verdict", () => {
-    expect(robustFleetAnomalies([{ projectId: "a", lcpP75Ms: 1000, inpP75Ms: 80, clsP75: 0.01 }])).toMatchObject({ verdict: "INSUFFICIENT_EVIDENCE", sampleCount: 1 });
+  it("hashes declared build artifacts per scene in stable path order", () => {
+    const root = tempRoot();
+    const appDir = writePackage(root, "client-one", true);
+    mkdirSync(join(appDir, "out"), { recursive: true });
+    writeFileSync(join(appDir, "out", "b.html"), "B");
+    writeFileSync(join(appDir, "out", "a.html"), "A");
+    writeFileSync(join(appDir, "nexus-scenes.json"), `${JSON.stringify({ schemaVersion: 1, scenes: [{ id: "hero", artifactPaths: ["out/b.html", "out/a.html"] }] }, null, 2)}\n`);
+    const manifest = loadSceneManifest(appDir);
+    const first = snapshotScenes(appDir, manifest);
+    writeFileSync(join(appDir, "nexus-scenes.json"), `${JSON.stringify({ schemaVersion: 1, scenes: [{ id: "hero", artifactPaths: ["out/a.html", "out/b.html"] }] }, null, 2)}\n`);
+    const second = snapshotScenes(appDir, loadSceneManifest(appDir));
+    expect(first).toEqual(second);
+    expect(first[0].artifactPaths).toEqual(["out/a.html", "out/b.html"]);
   });
 
-  it("detects a robust outlier against peer behavior", () => {
-    const samples = [
-      { projectId: "a", lcpP75Ms: 1000, inpP75Ms: 80, clsP75: 0.01 },
-      { projectId: "b", lcpP75Ms: 1050, inpP75Ms: 82, clsP75: 0.011 },
-      { projectId: "c", lcpP75Ms: 980, inpP75Ms: 79, clsP75: 0.009 },
-      { projectId: "d", lcpP75Ms: 1010, inpP75Ms: 81, clsP75: 0.012 },
-      { projectId: "outlier", lcpP75Ms: 4000, inpP75Ms: 600, clsP75: 0.2 },
-    ];
-    const result = robustFleetAnomalies(samples);
-    expect(result.verdict).toBe("ANOMALY_DETECTED");
-    expect(result.anomalies.some((anomaly) => anomaly.projectId === "outlier" && anomaly.metric === "lcpP75Ms")).toBe(true);
+  it("fails closed when a declared scene build artifact is missing", () => {
+    const root = tempRoot();
+    const appDir = writePackage(root, "client-one", true);
+    writeFileSync(join(appDir, "nexus-scenes.json"), `${JSON.stringify({ schemaVersion: 1, scenes: [{ id: "hero", artifactPaths: ["out/missing.html"] }] }, null, 2)}\n`);
+    expect(() => snapshotScenes(appDir, loadSceneManifest(appDir))).toThrow(/artifact missing/);
   });
 });
