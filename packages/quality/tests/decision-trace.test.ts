@@ -13,7 +13,15 @@ describe("decision trace", () => {
     const a = createDecisionTrace(entries);
     const b = createDecisionTrace([...entries].reverse());
     expect(a.traceHash).toBe(b.traceHash);
+    expect(a.entries).toEqual(b.entries);
     expect(verifyDecisionTrace(a)).toBe(true);
+  });
+
+  it("rejects duplicate decisions and forged authorities", () => {
+    expect(() => createDecisionTrace([entries[0]!, { ...entries[0]!, value: "Other" }])).toThrow(/duplicate/);
+    expect(() => createDecisionTrace([{ ...entries[0]!, authority: "AUTONOMOUS_AI" as never }])).toThrow(/invalid decision authority/);
+    const trace = createDecisionTrace(entries);
+    expect(verifyDecisionTrace({ ...trace, authority: "FORGED" as never })).toBe(false);
   });
 
   it("is cryptographically bound into the quality passport", () => {
