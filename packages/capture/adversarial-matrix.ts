@@ -77,8 +77,7 @@ async function diagnostics(page: Page, focusedCount = 0): Promise<AdversarialPro
   return Object.freeze({ ...base, focusedCount });
 }
 
-async function configureContext(probeId: AdversarialProbeId): Promise<{ browser: Browser; context: BrowserContext; page: Page }> {
-  const browser = await chromium.launch({ headless: true });
+async function configureContext(browser: Browser, probeId: AdversarialProbeId): Promise<{ context: BrowserContext; page: Page }> {
   const lowEnd = probeId === "LOW_END_ANDROID";
   const context = await browser.newContext({
     viewport: lowEnd ? { width: 360, height: 740 } : { width: 390, height: 844 },
@@ -106,7 +105,7 @@ async function configureContext(probeId: AdversarialProbeId): Promise<{ browser:
       await session.send("Emulation.setCPUThrottlingRate", { rate: 6 });
     }
   }
-  return { browser, context, page };
+  return { context, page };
 }
 
 async function applyPostNavigationProbe(page: Page, probeId: AdversarialProbeId): Promise<number> {
@@ -162,26 +161,31 @@ export async function runAdversarialMatrix(input: { targetUrl: string; outputDir
   const outputDir = resolve(input.outputDir);
   await mkdir(outputDir, { recursive: true });
   const artifacts: AdversarialProbeArtifact[] = [];
+  const browser = await chromium.launch({ headless: true });
 
-  for (const probeId of ADVERSARIAL_PROBES) {
-    const { browser, context, page } = await configureContext(probeId);
-    try {
-      await page.goto(input.targetUrl, { waitUntil: "networkidle", timeout: input.navigationTimeoutMs ?? 30_000 });
-      const focusedCount = await applyPostNavigationProbe(page, probeId);
-      await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
-      const observed = await diagnostics(page, focusedCount);
-      const png = await page.screenshot({ fullPage: true, animations: "disabled", type: "png" });
-      const stem = `adversarial-${probeId.toLowerCase().replaceAll("_", "-")}`;
-      const screenshotUri = resolve(outputDir, `${stem}.png`);
-      const diagnosticsUri = resolve(outputDir, `${stem}.json`);
-      const diagnosticsBytes = Buffer.from(`${JSON.stringify({ schemaVersion: 1, probeId, diagnostics: observed }, null, 2)}\n`);
-      await writeFile(screenshotUri, png);
-      await writeFile(diagnosticsUri, diagnosticsBytes);
-      artifacts.push(Object.freeze({ probeId, screenshotUri, screenshotDigest: sha256(png), diagnosticsUri, diagnosticsDigest: sha256(diagnosticsBytes), diagnostics: observed }));
-    } finally {
-      await context.close();
-      await browser.close();
+  try {
+    for (const probeId of ADVERSARIAL_PROBES) {
+      const { context, page } = await configureContext(browser, probeId);
+      try {
+        await page.goto(input.targetUrl, { waitUntil: "networkidle", timeout: input.navigationTimeoutMs ?? 30_000 });
+        const focusedCount = await applyPostNavigationProbe(page, probeId);
+        await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+        const observed = await diagnostics(page, focusedCount);
+        const png = await page.screenshot({ fullPage: true, animations: "disabled", type: "png" });
+        const stem = `adversarial-${probeId.toLowerCase().replaceAll("_", "-")}`;
+        const screenshotUri = resolve(outputDir, `${stem}.png`);
+        const diagnosticsUri = resolve(outputDir, `${stem}.json`);
+        const diagnosticsBytes = Buffer.from(`${JSON.stringify({ schemaVersion: 1, probeId, diagnostics: observed }, null, 2)}\n`);
+        await writeFile(screenshotUri, png);
+        await writeFile(diagnosticsUri, diagnosticsBytes);
+        artifacts.push(Object.freeze({ probeId, screenshotUri, screenshotDigest: sha256(png), diagnosticsUri, diagnosticsDigest: sha256(diagnosticsBytes), diagnostics: observed }));
+      } finally {
+        await context.close();
+      }
     }
+  } finally {
+    await browser.close();
   }
+
   return Object.freeze({ authority: "NEXUS_ADVERSARIAL_MATRIX_V1", targetUrl: input.targetUrl, artifacts: Object.freeze(artifacts) });
 }
