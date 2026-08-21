@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createDecisionTrace, verifyDecisionTrace } from "../decision-trace";
+import { auditDecisionCoverage, createDecisionTrace, verifyDecisionTrace } from "../decision-trace";
 import { createQualityPassport, verifyQualityPassport } from "../quality-passport";
 
 describe("decision trace", () => {
@@ -22,6 +22,13 @@ describe("decision trace", () => {
     expect(() => createDecisionTrace([{ ...entries[0]!, authority: "AUTONOMOUS_AI" as never }])).toThrow(/invalid decision authority/);
     const trace = createDecisionTrace(entries);
     expect(verifyDecisionTrace({ ...trace, authority: "FORGED" as never })).toBe(false);
+  });
+
+  it("requires every auditable element to have provenance and rejects unknown trace elements", () => {
+    const trace = createDecisionTrace(entries);
+    expect(auditDecisionCoverage(["hero.media", "hero.title", "hero.cta"], trace)).toMatchObject({ status: "PASS", missingElementIds: [], unknownElementIds: [] });
+    expect(auditDecisionCoverage(["hero.title", "hero.cta"], trace)).toMatchObject({ status: "FAIL", unknownElementIds: ["hero.media"] });
+    expect(auditDecisionCoverage(["hero.title", "hero.cta", "hero.media", "footer.cta"], trace)).toMatchObject({ status: "FAIL", missingElementIds: ["footer.cta"] });
   });
 
   it("is cryptographically bound into the quality passport", () => {
