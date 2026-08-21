@@ -12,10 +12,11 @@ const tracked = execFileSync("git", ["ls-files", "-z"], { cwd: root })
   .split("\0")
   .filter(Boolean)
   .sort((a, b) => a.localeCompare(b, "en"));
-const trackedSet = new Set(tracked.map((path) => normalize(path)));
+const trackedSet = new Set(tracked.map((path) => normalize(path));
 const sourceExtensions = new Set([".css", ".scss", ".sass", ".less", ".html", ".tsx", ".jsx", ".ts", ".js", ".mjs"]);
 const cssExtensions = new Set([".css", ".scss", ".sass", ".less"]);
 const remoteFontHosts = /fonts\.googleapis\.com|fonts\.gstatic\.com|use\.typekit\.net|fonts\.adobe\.com/i;
+const nextGoogleFontImport = ["next", "font", "google"].join("/");
 const cssUrl = /url\((['"]?)([^)'"\s]+)\1\)/g;
 const fontExtensions = new Set([".woff", ".woff2", ".ttf", ".otf"]);
 
@@ -24,7 +25,7 @@ for (const relativePath of tracked) {
   if (!sourceExtensions.has(extension)) continue;
   const absolute = join(root, relativePath);
   const text = readFileSync(absolute, "utf8");
-  if (remoteFontHosts.test(text) || text.includes("next/font/google")) throw new Error(`remote font provider forbidden in hermetic build: ${relativePath}`);
+  if (remoteFontHosts.test(text) || text.includes(nextGoogleFontImport)) throw new Error(`remote font provider forbidden in hermetic build: ${relativePath}`);
 
   if (!cssExtensions.has(extension)) continue;
   const containsFontFace = text.toLowerCase().includes("@font-face");
