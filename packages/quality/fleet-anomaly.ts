@@ -10,6 +10,7 @@ export type FleetAnomaly = Readonly<{
   projectId: string;
   metric: FleetMetricName;
   value: number;
+  peerCount: number;
   fleetMedian: number;
   medianAbsoluteDeviation: number;
   robustZ: number;
@@ -47,9 +48,14 @@ export function analyzeFleetAnomalies(points: readonly FleetMetricPoint[]): Flee
     });
   }
 
+  const keys = new Set<string>();
   for (const point of points) {
-    if (!point.projectId.trim()) throw new Error("fleet metric projectId is required");
+    const projectId = point.projectId.trim();
+    if (!projectId) throw new Error("fleet metric projectId is required");
     if (!Number.isFinite(point.value) || point.value < 0) throw new Error("fleet metric value must be finite and non-negative");
+    const key = `${projectId}\0${point.metric}`;
+    if (keys.has(key)) throw new Error(`duplicate fleet metric point: ${projectId}/${point.metric}`);
+    keys.add(key);
   }
 
   const projectIds = [...new Set(points.map((point) => point.projectId.trim()))].sort((a, b) => a.localeCompare(b, "en"));
@@ -65,24 +71,38 @@ export function analyzeFleetAnomalies(points: readonly FleetMetricPoint[]): Flee
 
   const anomalies: FleetAnomaly[] = [];
   const metrics: readonly FleetMetricName[] = ["LCP_P75", "INP_P75", "CLS_P75", "ERROR_RATE", "VISUAL_DIFF_RATIO"];
+  let measurableMetricCount = 0;
   for (const metric of metrics) {
     const group = points.filter((point) => point.metric === metric);
     if (group.length < 5) continue;
-    const values = group.map((point) => point.value);
-    const center = median(values);
-    const mad = median(values.map((value) => Math.abs(value - center)));
+    measurableMetricCount += 1;
     for (const point of group) {
+      const peers = group.filter((candidate) => candidate.projectId.trim() !== point.projectId.trim());
+      const peerValues = peers.map((candidate) => candidate.value);
+      const center = median(peerValues);
+      const mad = median(peerValues.map((value) => Math.abs(value - center)));
       const robustZ = mad === 0 ? (point.value === center ? 0 : Number.POSITIVE_INFINITY) : 0.6745 * (point.value - center) / mad;
       anomalies.push(Object.freeze({
         projectId: point.projectId.trim(),
         metric,
         value: point.value,
+        peerCount: peers.length,
         fleetMedian: round(center),
         medianAbsoluteDeviation: round(mad),
         robustZ: Number.isFinite(robustZ) ? round(robustZ) : robustZ,
         status: Math.abs(robustZ) > 3.5 ? "ANOMALOUS" : "NORMAL",
       }));
     }
+  }
+
+  if (measurableMetricCount === 0) {
+    return Object.freeze({
+      authority: "NEXUS_FLEET_ANOMALY_V1",
+      status: "INSUFFICIENT_EVIDENCE",
+      projectCount: projectIds.length,
+      anomalies: Object.freeze([]),
+      reason: "AT_LEAST_5_MEASURED_PROJECTS_PER_METRIC_REQUIRED",
+    });
   }
 
   return Object.freeze({
