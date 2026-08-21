@@ -4,8 +4,10 @@ import { join } from "node:path";
 import {
   buildTargets,
   clearOutputs,
+  outputDirs,
   runTargetBuild,
   snapshotOutputs,
+  snapshotTargetOutputs,
   sourceDateEpoch,
 } from "./build-core.mjs";
 
@@ -21,20 +23,34 @@ process.env.SOURCE_DATE_EPOCH = epoch;
 const targets = buildTargets(root);
 if (!targets.length) throw new Error("no build targets discovered");
 
-for (const target of targets) clearOutputs(target.dir);
-for (const target of targets) runTargetBuild(target, root);
-const first = snapshotOutputs(targets, root);
+const buildCleanSnapshot = () => {
+  for (const target of targets) clearOutputs(target.dir);
+  for (const target of targets) runTargetBuild(target, root);
+  const perTarget = targets.map((target) => {
+    const dirs = outputDirs(target.dir);
+    if (!dirs.length) throw new Error(`build target produced no recognized output directory: ${target.relativeDir}`);
+    const snapshot = snapshotTargetOutputs(target, root);
+    if (!snapshot.files.length) throw new Error(`build target produced no output files: ${target.relativeDir}`);
+    return { target: target.relativeDir, ...snapshot };
+  });
+  return { workspace: snapshotOutputs(targets, root), perTarget };
+};
 
-for (const target of targets) clearOutputs(target.dir);
-for (const target of targets) runTargetBuild(target, root);
-const second = snapshotOutputs(targets, root);
+const first = buildCleanSnapshot();
+const second = buildCleanSnapshot();
 
-if (first.files.length === 0 || second.files.length === 0) throw new Error("determinism check produced no build output files");
-if (JSON.stringify(first.files) !== JSON.stringify(second.files)) {
+if (JSON.stringify(first.workspace.files) !== JSON.stringify(second.workspace.files)) {
   throw new Error("build output file set is not deterministic");
 }
-if (first.digest !== second.digest) {
-  throw new Error(`build bytes are not deterministic: ${first.digest} != ${second.digest}`);
+if (first.workspace.digest !== second.workspace.digest) {
+  throw new Error(`build bytes are not deterministic: ${first.workspace.digest} != ${second.workspace.digest}`);
+}
+for (let index = 0; index < first.perTarget.length; index += 1) {
+  const a = first.perTarget[index];
+  const b = second.perTarget[index];
+  if (a.target !== b.target || a.digest !== b.digest || JSON.stringify(a.files) !== JSON.stringify(b.files)) {
+    throw new Error(`build target is not byte-deterministic: ${a.target}`);
+  }
 }
 
 const currentCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
@@ -45,6 +61,7 @@ console.log(JSON.stringify({
   sourceRevision: currentCommit,
   sourceDateEpoch: epoch,
   engineVersion: rootManifest.version,
-  outputDigest: first.digest,
-  outputFileCount: first.files.length,
+  outputDigest: first.workspace.digest,
+  outputFileCount: first.workspace.files.length,
+  targets: first.perTarget,
 }, null, 2));
