@@ -29,7 +29,14 @@ export type AdversarialProbeArtifact = Readonly<{
     focusableCount: number;
     focusedCount: number;
     mediaElementCount: number;
+    verticalMediaCount: number;
+    animatedElementCount: number;
     textCharacterCount: number;
+    maximumHeadingLength: number;
+    reducedMotionMatches: boolean;
+    cssZoom: number;
+    viewportWidth: number;
+    viewportHeight: number;
   }>;
 }>;
 
@@ -42,12 +49,29 @@ async function diagnostics(page: Page, focusedCount = 0): Promise<AdversarialPro
       const style = getComputedStyle(element);
       return rect.width > 0 && rect.height > 0 && style.display !== "none" && style.visibility !== "hidden";
     });
+    const media = [...document.querySelectorAll<HTMLElement>("img,picture,video,canvas,svg")];
+    const animatedElementCount = visible.filter((element) => {
+      const style = getComputedStyle(element);
+      const positive = (value: string) => value.split(",").some((part) => Number.parseFloat(part) > 0);
+      return positive(style.animationDuration) || positive(style.transitionDuration);
+    }).length;
+    const headingLengths = [...document.querySelectorAll<HTMLElement>("h1,h2,h3,h4,h5,h6")].map((heading) => (heading.innerText ?? "").length);
     return {
       horizontalOverflowPx: Math.max(0, document.documentElement.scrollWidth - window.innerWidth),
       visibleElementCount: visible.length,
       focusableCount: document.querySelectorAll("a[href],button,input,select,textarea,[tabindex]:not([tabindex='-1'])").length,
-      mediaElementCount: document.querySelectorAll("img,picture,video,canvas,svg").length,
+      mediaElementCount: media.length,
+      verticalMediaCount: media.filter((element) => {
+        const rect = element.getBoundingClientRect();
+        return rect.height > rect.width && rect.width > 0;
+      }).length,
+      animatedElementCount,
       textCharacterCount: (document.body.innerText ?? "").replace(/\s+/g, " ").trim().length,
+      maximumHeadingLength: Math.max(0, ...headingLengths),
+      reducedMotionMatches: window.matchMedia("(prefers-reduced-motion: reduce)").matches,
+      cssZoom: Number.parseFloat(getComputedStyle(document.documentElement).zoom || "1") || 1,
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
     };
   });
   return Object.freeze({ ...base, focusedCount });
@@ -64,13 +88,20 @@ async function configureContext(probeId: AdversarialProbeId): Promise<{ browser:
     reducedMotion: probeId === "REDUCED_MOTION" ? "reduce" : "no-preference",
     locale: "es-MX",
     timezoneId: "America/Mexico_City",
+    userAgent: lowEnd ? "Mozilla/5.0 (Linux; Android 10; Nexus-Low-End) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36" : undefined,
   });
   const page = await context.newPage();
   if (probeId === "THROTTLED_3G" || probeId === "LOW_END_ANDROID") {
     const session = await context.newCDPSession(page);
     if (probeId === "THROTTLED_3G") {
       await session.send("Network.enable");
-      await session.send("Network.emulateNetworkConditions", { offline: false, latency: 300, downloadThroughput: 187500, uploadThroughput: 93750, connectionType: "cellular3g" });
+      await session.send("Network.emulateNetworkConditions", {
+        offline: false,
+        latency: 400,
+        downloadThroughput: 50 * 1024,
+        uploadThroughput: 20 * 1024,
+        connectionType: "cellular3g",
+      });
     } else {
       await session.send("Emulation.setCPUThrottlingRate", { rate: 6 });
     }
@@ -86,21 +117,32 @@ async function applyPostNavigationProbe(page: Page, probeId: AdversarialProbeId)
         const node = walker.currentNode as Text;
         const parent = node.parentElement;
         const text = node.nodeValue?.trim() ?? "";
-        if (text.length >= 4 && parent && !["SCRIPT", "STYLE", "NOSCRIPT"].includes(parent.tagName)) node.nodeValue = `${text} ${text}`;
+        if (text.length >= 4 && parent && !["SCRIPT", "STYLE", "NOSCRIPT", "TEXTAREA"].includes(parent.tagName)) node.nodeValue = `${text} ${text}`;
       }
     });
   } else if (probeId === "TITLE_40") {
     await page.evaluate(() => {
-      for (const heading of document.querySelectorAll<HTMLElement>("h1,h2,h3")) heading.innerText = "Título editorial de cuarenta caracteres".slice(0, 40);
+      const exactForty = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890ABCD";
+      for (const heading of document.querySelectorAll<HTMLElement>("h1,h2,h3")) heading.innerText = exactForty;
     });
   } else if (probeId === "NO_MEDIA") {
-    await page.addStyleTag({ content: "img,picture,video,canvas,svg{visibility:hidden!important}" });
+    await page.evaluate(() => document.querySelectorAll("img,picture,video,canvas,svg").forEach((node) => node.remove()));
   } else if (probeId === "VERTICAL_MEDIA") {
-    await page.addStyleTag({ content: "img,video,picture{aspect-ratio:3/4!important;width:min(100%,480px)!important;height:auto!important;object-fit:cover!important}" });
+    await page.evaluate(() => {
+      const verticalSvg = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='540' height='960'%3E%3Crect width='540' height='960' fill='%23999'/%3E%3C/svg%3E";
+      for (const image of document.querySelectorAll<HTMLImageElement>("img")) {
+        image.removeAttribute("srcset");
+        image.src = verticalSvg;
+        image.style.width = "min(100%, 360px)";
+        image.style.height = "640px";
+        image.style.objectFit = "cover";
+      }
+      for (const source of document.querySelectorAll("picture source")) source.remove();
+    });
   } else if (probeId === "ZOOM_200") {
     await page.addStyleTag({ content: "html{zoom:2!important}" });
   } else if (probeId === "REDUCED_MOTION") {
-    await page.addStyleTag({ content: "@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.001ms!important;animation-iteration-count:1!important;transition-duration:0.001ms!important;scroll-behavior:auto!important}}" });
+    await page.addStyleTag({ content: "*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}" });
   }
 
   if (probeId !== "KEYBOARD_ONLY") return 0;
@@ -116,6 +158,7 @@ async function applyPostNavigationProbe(page: Page, probeId: AdversarialProbeId)
 export async function runAdversarialMatrix(input: { targetUrl: string; outputDir: string; navigationTimeoutMs?: number }): Promise<Readonly<{ authority: "NEXUS_ADVERSARIAL_MATRIX_V1"; targetUrl: string; artifacts: readonly AdversarialProbeArtifact[] }>> {
   const parsed = new URL(input.targetUrl);
   if (!["http:", "https:"].includes(parsed.protocol)) throw new Error("adversarial target must use HTTP(S)");
+  if (!input.outputDir.trim()) throw new Error("adversarial outputDir is required");
   const outputDir = resolve(input.outputDir);
   await mkdir(outputDir, { recursive: true });
   const artifacts: AdversarialProbeArtifact[] = [];
