@@ -2,11 +2,14 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { join, sep } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { digestFiles, normalizedPath, restoreFromCache, storeInCache, walkFiles } from "./build-core.mjs";
+import { digestFiles, normalizedPath, restoreFromCache, storeInCache, targetBuildKey, walkFiles } from "./build-core.mjs";
 
 const roots = [];
+const previousEpoch = process.env.SOURCE_DATE_EPOCH;
 afterEach(() => {
   while (roots.length) rmSync(roots.pop(), { recursive: true, force: true });
+  if (previousEpoch === undefined) delete process.env.SOURCE_DATE_EPOCH;
+  else process.env.SOURCE_DATE_EPOCH = previousEpoch;
 });
 
 function tempRoot() {
@@ -32,6 +35,22 @@ describe("deterministic build core", () => {
 
   it("normalizes platform separators for manifests", () => {
     expect(normalizedPath(["a", "b", "c"].join(sep))).toBe("a/b/c");
+  });
+
+  it("binds a build cache key to source bytes and the build command", () => {
+    process.env.SOURCE_DATE_EPOCH = "1700000000";
+    const root = tempRoot();
+    const targetDir = join(root, "packages", "demo");
+    mkdirSync(targetDir, { recursive: true });
+    writeFileSync(join(root, "package.json"), `${JSON.stringify({ packageManager: "pnpm@10.15.0" })}\n`);
+    writeFileSync(join(root, "pnpm-lock.yaml"), "lockfileVersion: '9.0'\n");
+    writeFileSync(join(targetDir, "package.json"), `${JSON.stringify({ name: "@fixture/demo", scripts: { build: "echo build" } })}\n`);
+    writeFileSync(join(targetDir, "source.ts"), "export const value = 1;\n");
+    const base = { dir: targetDir, relativeDir: "packages/demo", command: "echo build" };
+    const original = targetBuildKey(base, root);
+    expect(targetBuildKey({ ...base, command: "echo other" }, root)).not.toBe(original);
+    writeFileSync(join(targetDir, "source.ts"), "export const value = 2;\n");
+    expect(targetBuildKey(base, root)).not.toBe(original);
   });
 
   it("round-trips output bytes through a verified content cache", () => {
