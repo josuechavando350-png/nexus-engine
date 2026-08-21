@@ -1,8 +1,12 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, relative, sep } from "node:path";
 
 const NON_CLIENT_PREFIXES = ["_", "reference-", "v2-probe-", "probe-", "test-"];
+
+function normalized(path) {
+  return path.split(sep).join("/");
+}
 
 export function discoverClientApps(root = process.cwd()) {
   const appsRoot = join(root, "apps");
@@ -11,6 +15,12 @@ export function discoverClientApps(root = process.cwd()) {
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name)
     .filter((name) => !NON_CLIENT_PREFIXES.some((prefix) => name.startsWith(prefix)))
+    .filter((name) => {
+      const manifestPath = join(appsRoot, name, "package.json");
+      if (!existsSync(manifestPath)) return false;
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      return manifest?.nexus?.clientProject === true;
+    })
     .sort((a, b) => a.localeCompare(b, "en"));
 }
 
@@ -22,50 +32,42 @@ export function loadSceneManifest(appDir) {
   const path = join(appDir, "nexus-scenes.json");
   if (!existsSync(path)) return null;
   const manifest = JSON.parse(readFileSync(path, "utf8"));
-  if (!manifest || manifest.schemaVersion !== 1 || !Array.isArray(manifest.scenes)) throw new Error(`invalid scene manifest: ${path}`);
+  if (!manifest || manifest.schemaVersion !== 1 || !Array.isArray(manifest.scenes) || manifest.scenes.length === 0) {
+    throw new Error(`invalid scene manifest: ${path}`);
+  }
+  const ids = new Set();
+  for (const scene of manifest.scenes) {
+    if (typeof scene.id !== "string" || !scene.id.trim()) throw new Error(`scene id is required: ${path}`);
+    if (ids.has(scene.id.trim())) throw new Error(`duplicate scene id ${scene.id}: ${path}`);
+    ids.add(scene.id.trim());
+    if (!Array.isArray(scene.artifactPaths) || scene.artifactPaths.length === 0 || scene.artifactPaths.some((value) => typeof value !== "string" || !value.trim())) {
+      throw new Error(`scene ${scene.id} requires artifactPaths: ${path}`);
+    }
+  }
   return manifest;
 }
 
 export function snapshotScenes(appDir, manifest) {
   return manifest.scenes.map((scene) => {
-    if (!scene.id?.trim() || !Array.isArray(scene.paths) || scene.paths.length === 0) throw new Error("scene manifest entries require id and paths");
-    const files = scene.paths.map((relativePath) => join(appDir, relativePath)).sort();
-    for (const file of files) if (!existsSync(file) || !statSync(file).isFile()) throw new Error(`scene source missing: ${file}`);
-    const hash = createHash("sha256");
+    const files = [...scene.artifactPaths]
+      .map((artifactPath) => join(appDir, artifactPath))
+      .sort((a, b) => normalized(relative(appDir, a)).localeCompare(normalized(relative(appDir, b)), "en"));
     for (const file of files) {
-      hash.update(file.slice(appDir.length));
+      if (!existsSync(file) || !statSync(file).isFile()) throw new Error(`scene build artifact missing: ${file}`);
+    }
+    const hash = createHash("sha256");
+    const artifactPaths = [];
+    for (const file of files) {
+      const path = normalized(relative(appDir, file));
+      const bytes = readFileSync(file);
+      artifactPaths.push(path);
+      hash.update(path);
       hash.update("\0");
-      hash.update(readFileSync(file));
+      hash.update(String(bytes.length));
+      hash.update("\0");
+      hash.update(bytes);
       hash.update("\0");
     }
-    return { sceneId: scene.id.trim(), digest: hash.digest("hex"), paths: [...scene.paths].sort() };
+    return Object.freeze({ sceneId: scene.id.trim(), digest: hash.digest("hex"), artifactPaths: Object.freeze(artifactPaths) });
   }).sort((a, b) => a.sceneId.localeCompare(b.sceneId, "en"));
-}
-
-export function median(values) {
-  if (!values.length) throw new Error("median requires values");
-  const sorted = [...values].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-}
-
-export function robustFleetAnomalies(samples, { minimumPeers = 5, zThreshold = 3.5 } = {}) {
-  if (samples.length < minimumPeers) return { verdict: "INSUFFICIENT_EVIDENCE", minimumPeers, sampleCount: samples.length, anomalies: [] };
-  const metrics = ["lcpP75Ms", "inpP75Ms", "clsP75"];
-  const anomalies = [];
-  for (const metric of metrics) {
-    const values = samples.map((sample) => sample[metric]).filter(Number.isFinite);
-    if (values.length < minimumPeers) continue;
-    const center = median(values);
-    const deviations = values.map((value) => Math.abs(value - center));
-    const mad = median(deviations);
-    if (mad === 0) continue;
-    for (const sample of samples) {
-      const value = sample[metric];
-      if (!Number.isFinite(value)) continue;
-      const robustZ = 0.6745 * (value - center) / mad;
-      if (Math.abs(robustZ) >= zThreshold) anomalies.push({ projectId: sample.projectId, metric, value, fleetMedian: center, medianAbsoluteDeviation: mad, robustZ: Number(robustZ.toFixed(4)) });
-    }
-  }
-  return { verdict: anomalies.length ? "ANOMALY_DETECTED" : "NO_ANOMALY_DETECTED", minimumPeers, sampleCount: samples.length, anomalies };
 }
