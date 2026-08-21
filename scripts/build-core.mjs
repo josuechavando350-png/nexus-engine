@@ -223,7 +223,8 @@ export function runTargetBuild(target, root = process.cwd()) {
   const rootBin = join(root, "node_modules", ".bin");
   const packageBin = join(target.dir, "node_modules", ".bin");
   const path = [packageBin, rootBin, process.env.PATH ?? ""].filter(Boolean).join(delimiter);
-  const env = { ...deterministicEnv(), PATH: path };
+  const buildId = targetContentHash(target.dir, root).slice(0, 20);
+  const env = { ...deterministicEnv(), PATH: path, NEXUS_BUILD_ID: buildId };
 
   if (process.env.NEXUS_ENFORCE_NETWORK_ISOLATION === "1") {
     if (process.platform !== "linux" || typeof process.getuid !== "function" || typeof process.getgid !== "function") {
@@ -238,6 +239,7 @@ export function runTargetBuild(target, root = process.cwd()) {
       "-i",
       `PATH=${path}`,
       `SOURCE_DATE_EPOCH=${env.SOURCE_DATE_EPOCH}`,
+      `NEXUS_BUILD_ID=${buildId}`,
       "TZ=UTC",
       "LANG=C",
       "LC_ALL=C",
