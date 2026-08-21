@@ -13,6 +13,7 @@
     "test:browser": "vitest run packages/capture/tests/apca-audit.test.ts packages/capture/tests/playwright-adapter.test.ts packages/capture/tests/mutation-runner.test.ts",
     "test:watch": "vitest",
     "build": "node scripts/build-workspace.mjs && node scripts/assert-clean-build.mjs",
+    "build:deterministic": "node scripts/verify-deterministic-build.mjs",
     "quality-gates": "node scripts/quality-gates.mjs",
     "security-hygiene": "node scripts/security-hygiene.mjs",
     "sbom": "node scripts/generate-sbom.mjs",
