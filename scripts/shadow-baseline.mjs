@@ -11,6 +11,20 @@ if (clients.length === 0) {
   process.exit(0);
 }
 
+execFileSync("pnpm", ["build"], {
+  cwd: root,
+  stdio: "inherit",
+  env: {
+    ...process.env,
+    NEXUS_SHADOW_MODE: "1",
+    NEXUS_DEPLOY_DISABLED: "1",
+    NEXUS_ENFORCE_NETWORK_ISOLATION: process.env.CI === "true" ? "1" : process.env.NEXUS_ENFORCE_NETWORK_ISOLATION,
+    TZ: "UTC",
+    LANG: "C",
+    LC_ALL: "C",
+  },
+});
+
 const sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
 const rootPackage = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
 const written = [];
@@ -19,21 +33,6 @@ for (const projectId of clients) {
   const appDir = join(root, "apps", projectId);
   const manifest = loadSceneManifest(appDir);
   if (!manifest) throw new Error(`shadow baseline requires nexus-scenes.json: ${projectId}`);
-  const packageJson = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"));
-  if (typeof packageJson.scripts?.build !== "string") throw new Error(`shadow baseline requires build script: ${projectId}`);
-
-  execFileSync("pnpm", ["--dir", appDir, "run", "build"], {
-    cwd: root,
-    stdio: "inherit",
-    env: {
-      ...process.env,
-      NEXUS_SHADOW_MODE: "1",
-      NEXUS_DEPLOY_DISABLED: "1",
-      TZ: "UTC",
-      LANG: "C",
-      LC_ALL: "C",
-    },
-  });
   const scenes = snapshotScenes(appDir, manifest);
   const baseline = {
     schemaVersion: 1,
@@ -49,6 +48,6 @@ for (const projectId of clients) {
 }
 
 mkdirSync(join(root, "artifacts", "shadow-mode"), { recursive: true });
-const report = { authority: "NEXUS_SHADOW_BASELINE_V1", verdict: "WRITTEN", sourceRevision, clients: written };
+const report = { authority: "NEXUS_SHADOW_BASELINE_V1", verdict: "WRITTEN", sourceRevision, deploymentPerformed: false, clients: written };
 writeFileSync(join(root, "artifacts", "shadow-mode", "baseline-write-report.json"), `${JSON.stringify(report, null, 2)}\n`);
 console.log(JSON.stringify(report, null, 2));
