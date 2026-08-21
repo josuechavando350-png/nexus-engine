@@ -3,7 +3,7 @@ import {
   restoreFromCache,
   runTargetBuild,
   storeInCache,
-  targetContentHash,
+  targetBuildKey,
 } from "./build-core.mjs";
 
 const root = process.cwd();
@@ -12,17 +12,17 @@ let hits = 0;
 let misses = 0;
 
 for (const target of targets) {
-  const contentHash = targetContentHash(target.dir, root);
-  if (restoreFromCache(target, contentHash, root)) {
+  const buildKey = targetBuildKey(target, root);
+  if (restoreFromCache(target, buildKey, root)) {
     hits += 1;
-    console.log(`\n=== Cache hit ${target.relativeDir} ${contentHash.slice(0, 12)} ===`);
+    console.log(`\n=== Cache hit ${target.relativeDir} ${buildKey.slice(0, 12)} ===`);
     continue;
   }
 
   misses += 1;
-  console.log(`\n=== Building ${target.relativeDir} ${contentHash.slice(0, 12)} ===`);
+  console.log(`\n=== Building ${target.relativeDir} ${buildKey.slice(0, 12)} ===`);
   runTargetBuild(target, root);
-  storeInCache(target, contentHash, root);
+  storeInCache(target, buildKey, root);
 }
 
-console.log(`\nWorkspace build completed for ${targets.length} package(s): ${hits} cache hit(s), ${misses} rebuild(s).`);
+console.log(`\nWorkspace build completed for ${targets.length} package(s): ${hits} verified cache hit(s), ${misses} rebuild(s).`);
