@@ -5,6 +5,7 @@ import { join, relative, sep } from "node:path";
 
 const root = process.env.NEXUS_CAPTURE_EVIDENCE_DIR || "artifacts/browser-capture";
 const baselineRoot = process.env.NEXUS_VISUAL_BASELINE_DIR || "quality-baselines/browser-capture";
+const decodedBaselineRoot = ".artifacts/visual-baselines";
 const maxChangedRatio = Number(process.env.NEXUS_VISUAL_MAX_CHANGED_RATIO || "0.001");
 const sourceRevision = process.env.NEXUS_VALIDATED_SHA || process.env.GITHUB_SHA || "UNKNOWN";
 const packageJson = JSON.parse(readFileSync("package.json", "utf8"));
@@ -16,6 +17,22 @@ if (!Number.isFinite(maxChangedRatio) || maxChangedRatio < 0 || maxChangedRatio 
 
 const sha256File = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
 const normalizePath = (path) => path.split(sep).join("/");
+
+const resolveBaseline = (name) => {
+  const binary = join(baselineRoot, name);
+  if (existsSync(binary)) return binary;
+
+  const encoded = `${binary}.b64`;
+  if (!existsSync(encoded)) return null;
+
+  mkdirSync(decodedBaselineRoot, { recursive: true });
+  const decoded = join(decodedBaselineRoot, name);
+  const base64 = readFileSync(encoded, "utf8").replace(/\s+/g, "");
+  const bytes = Buffer.from(base64, "base64");
+  if (!bytes.length) throw new Error(`encoded visual baseline is empty: ${encoded}`);
+  writeFileSync(decoded, bytes);
+  return decoded;
+};
 
 const listFilesRecursively = (directory) => {
   const entries = readdirSync(directory).sort((a, b) => a.localeCompare(b, "en"));
@@ -35,8 +52,8 @@ if (!pngs.length) throw new Error("no browser capture PNG files were produced");
 const comparisons = [];
 for (const name of pngs) {
   const current = join(root, name);
-  const baseline = join(baselineRoot, name);
-  if (!existsSync(baseline)) {
+  const baseline = resolveBaseline(name);
+  if (!baseline) {
     comparisons.push({ capture: name, verdict: "NOT_TESTED", reason: "baseline-not-present", currentSha256: sha256File(current) });
     continue;
   }
