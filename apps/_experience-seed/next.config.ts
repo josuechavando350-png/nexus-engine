@@ -9,6 +9,11 @@ import { NEXUS_CSP_BASE, NEXUS_SECURITY_HEADERS_BASE } from "@nexus/core/foundat
 // hand-writing a parallel CSP string.
 const nextConfig: NextConfig = {
   transpilePackages: ["@nexus/core"],
+  generateBuildId: async () =>
+    process.env.NEXUS_BUILD_ID ??
+    process.env.GITHUB_SHA ??
+    process.env.VERCEL_GIT_COMMIT_SHA ??
+    "nexus-local",
   async headers() {
     return [
       {
