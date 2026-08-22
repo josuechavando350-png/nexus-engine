@@ -1,6 +1,0 @@
-{
-  "extends": "../config/tsconfig.base.json",
-  "compilerOptions": { "types": ["node"], "ignoreDeprecations": "6.0" },
-  "include": ["**/*.ts"],
-  "exclude": ["node_modules", "dist"]
-}
