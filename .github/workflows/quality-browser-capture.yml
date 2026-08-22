@@ -122,7 +122,17 @@ jobs:
           set -euo pipefail
           node scripts/ci-browser-quality.mjs
           test -s "$NEXUS_CAPTURE_EVIDENCE_DIR/quality-passport-ci.json"
-          node -e 'const fs=require("node:fs"); const p=JSON.parse(fs.readFileSync(process.env.NEXUS_CAPTURE_EVIDENCE_DIR+"/quality-passport-ci.json","utf8")); if(p.authority!=="NEXUS_CI_QUALITY_PASSPORT_V1"||!p.passportSha256) process.exit(1); console.log("Passport visual verdict:",p.visualRegression.verdict)'
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = process.env.NEXUS_CAPTURE_EVIDENCE_DIR + '/quality-passport-ci.json';
+          const p = JSON.parse(fs.readFileSync(path, 'utf8'));
+          if (p.authority !== 'NEXUS_CI_QUALITY_PASSPORT_V1' || !p.passportSha256) process.exit(1);
+          if (p.visualRegression?.verdict !== 'PASS') {
+            console.error(`Visual evidence must PASS for V10 closure; got ${p.visualRegression?.verdict || 'MISSING'}`);
+            process.exit(1);
+          }
+          console.log('Passport visual verdict: PASS');
+          NODE
 
       - name: Upload real browser evidence and Quality Passport
         if: always()
