@@ -92,10 +92,12 @@ export function storeInCache(target,hash,root=process.cwd()){
 }
 export function runTargetBuild(target,root=process.cwd()){
   const rootBin=join(root,"node_modules",".bin"),packageBin=join(target.dir,"node_modules",".bin"),path=[packageBin,rootBin,process.env.PATH??""].filter(Boolean).join(delimiter);
-  const buildId=targetContentHash(target.dir,root).slice(0,20); const env={...deterministicEnv(),PATH:path,NEXUS_BUILD_ID:buildId};
+  const buildId=targetContentHash(target.dir,root).slice(0,20);
+  const serverActionsEncryptionKey=createHash("sha256").update(`nexus-server-actions:${buildId}`).digest("base64");
+  const env={...deterministicEnv(),PATH:path,NEXUS_BUILD_ID:buildId,NEXT_SERVER_ACTIONS_ENCRYPTION_KEY:serverActionsEncryptionKey};
   if(process.env.NEXUS_ENFORCE_NETWORK_ISOLATION==="1"){
     if(process.platform!=="linux"||typeof process.getuid!=="function"||typeof process.getgid!=="function") throw new Error("network-isolated hermetic builds require Linux uid/gid support");
-    execFileSync("sudo",["unshare","--net","--setuid",String(process.getuid()),"--setgid",String(process.getgid()),"/usr/bin/env","-i",`PATH=${path}`,`SOURCE_DATE_EPOCH=${env.SOURCE_DATE_EPOCH}`,`NEXUS_BUILD_ID=${buildId}`,"TZ=UTC","LANG=C","LC_ALL=C","HOME=/tmp","TMPDIR=/tmp","CI=true","NEXUS_DETERMINISTIC_BUILD=1","/bin/bash","-c",target.command],{cwd:target.dir,stdio:"inherit",env:process.env});
+    execFileSync("sudo",["unshare","--net","--setuid",String(process.getuid()),"--setgid",String(process.getgid()),"/usr/bin/env","-i",`PATH=${path}`,`SOURCE_DATE_EPOCH=${env.SOURCE_DATE_EPOCH}`,`NEXUS_BUILD_ID=${buildId}`,`NEXT_SERVER_ACTIONS_ENCRYPTION_KEY=${serverActionsEncryptionKey}`,"TZ=UTC","LANG=C","LC_ALL=C","HOME=/tmp","TMPDIR=/tmp","CI=true","NEXUS_DETERMINISTIC_BUILD=1","/bin/bash","-c",target.command],{cwd:target.dir,stdio:"inherit",env:process.env});
     sanitizeBuildOutputs(target.dir); return;
   }
   execSync(target.command,{cwd:target.dir,stdio:"inherit",shell:"/bin/bash",env}); sanitizeBuildOutputs(target.dir);
