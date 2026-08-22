@@ -76,6 +76,35 @@ jobs:
           compare -version
           identify -version
 
+      - name: Capture visual baseline from base revision
+        shell: bash
+        env:
+          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+        run: |
+          set -euo pipefail
+          base_sha="$EVENT_BASE_SHA"
+          if [ -z "$base_sha" ] || echo "$base_sha" | grep -Eq '^0+$'; then
+            base_sha="$(git rev-parse HEAD^)"
+          fi
+          test "$base_sha" != "$NEXUS_VALIDATED_SHA" || {
+            if git rev-parse HEAD^ >/dev/null 2>&1; then base_sha="$(git rev-parse HEAD^)"; fi
+          }
+          echo "Visual baseline source: $base_sha"
+          rm -rf /tmp/nexus-visual-base .artifacts/baseline-capture "$NEXUS_VISUAL_BASELINE_DIR"
+          git worktree add --detach /tmp/nexus-visual-base "$base_sha"
+          (
+            cd /tmp/nexus-visual-base
+            corepack enable
+            corepack prepare pnpm@10.15.0 --activate
+            pnpm install --frozen-lockfile
+            NEXUS_CAPTURE_EVIDENCE_DIR="$GITHUB_WORKSPACE/.artifacts/baseline-capture" pnpm --filter @nexus/capture test:browser
+          )
+          mkdir -p "$NEXUS_VISUAL_BASELINE_DIR"
+          cp "$GITHUB_WORKSPACE"/.artifacts/baseline-capture/*.png "$NEXUS_VISUAL_BASELINE_DIR"/
+          test "$(find "$NEXUS_VISUAL_BASELINE_DIR" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
+          printf '%s\n' "$base_sha" > .artifacts/visual-baseline-source-sha.txt
+          git worktree remove --force /tmp/nexus-visual-base
+
       - name: Capture Chromium and WebKit evidence
         run: pnpm --filter @nexus/capture test:browser
 
@@ -139,6 +168,8 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: nexus-real-browser-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/browser-capture
+          path: |
+            artifacts/browser-capture
+            .artifacts/visual-baseline-source-sha.txt
           if-no-files-found: error
           retention-days: 90
