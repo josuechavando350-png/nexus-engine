@@ -1,0 +1,45 @@
+name: NEXUS Production Closeout
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closeout:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Static quality
+        run: |
+          pnpm lint
+          pnpm typecheck
+      - name: Core tests
+        run: pnpm test
+      - name: Third-party proof
+        run: pnpm third-party-proof
+      - name: V10 release gates
+        env:
+          NEXUS_V10_BUILD_PASSED: "1"
+          NEXUS_V10_BROWSER_PASSED: "1"
+          NEXUS_V10_H07_PASSED: "1"
+          NEXUS_V10_VISUAL_PASSED: "1"
+        run: pnpm v10-gates
+      - name: Working tree remains clean
+        run: test -z "$(git status --porcelain)"
