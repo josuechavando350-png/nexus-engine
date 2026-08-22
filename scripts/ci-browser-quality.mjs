@@ -17,10 +17,20 @@ if (!Number.isFinite(maxChangedRatio) || maxChangedRatio < 0 || maxChangedRatio 
 
 const sha256File = (path) => createHash("sha256").update(readFileSync(path)).digest("hex");
 const normalizePath = (path) => path.split(sep).join("/");
+const captureSuffix = (name) => name.replace(/^capreq_[^-]+-/, "");
 
 const resolveBaseline = (name) => {
   const binary = join(baselineRoot, name);
   if (existsSync(binary)) return binary;
+
+  if (existsSync(baselineRoot)) {
+    const suffix = captureSuffix(name);
+    const candidates = readdirSync(baselineRoot)
+      .filter((candidate) => candidate.endsWith(".png") && captureSuffix(candidate) === suffix)
+      .sort((a, b) => a.localeCompare(b, "en"));
+    if (candidates.length === 1) return join(baselineRoot, candidates[0]);
+    if (candidates.length > 1) throw new Error(`ambiguous visual baseline for ${name}`);
+  }
 
   const encoded = `${binary}.b64`;
   if (!existsSync(encoded)) return null;
