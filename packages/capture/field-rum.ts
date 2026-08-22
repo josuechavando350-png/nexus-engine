@@ -39,6 +39,20 @@ export type FieldRumEvidence = Readonly<{
   aggregates: readonly FieldVitalAggregate[];
 }>;
 
+export type FieldRumFleetSummary = Readonly<{
+  schemaVersion: 1;
+  authority: "NEXUS_FIELD_RUM_SUMMARY_V1";
+  projectId: string;
+  buildRevision: string;
+  windowStart: string;
+  windowEnd: string;
+  sampleCount: number;
+  metricSampleCounts: Readonly<{ LCP: number; INP: number; CLS: number }>;
+  lcpP75Ms: number;
+  inpP75Ms: number;
+  clsP75: number;
+}>;
+
 const SHA = /^[a-f0-9]{40}$/;
 const allowedAttributionKeys = new Set(["navigationType", "loadState", "targetSelectorHash", "resourceUrlOrigin"]);
 
@@ -98,4 +112,37 @@ export function aggregateFieldRum(input: Readonly<{
   });
 
   return Object.freeze({ authority: "NEXUS_FIELD_RUM_V1", projectId, buildRevision: input.buildRevision, windowStart: start.toISOString(), windowEnd: end.toISOString(), status: samples.length ? "MEASURED" : "NOT_TESTED", aggregates: Object.freeze(aggregates) });
+}
+
+export function createFieldRumFleetSummary(evidence: FieldRumEvidence): FieldRumFleetSummary {
+  if (evidence.authority !== "NEXUS_FIELD_RUM_V1" || evidence.status !== "MEASURED") throw new Error("fleet summary requires measured field RUM evidence");
+  if (!evidence.projectId.trim() || !SHA.test(evidence.buildRevision)) throw new Error("fleet summary field RUM identity is invalid");
+  const start = new Date(evidence.windowStart);
+  const end = new Date(evidence.windowEnd);
+  if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || start >= end) throw new Error("fleet summary field RUM window is invalid");
+
+  const byMetric = new Map(evidence.aggregates.map((aggregate) => [aggregate.metric, aggregate] as const));
+  if (byMetric.size !== evidence.aggregates.length) throw new Error("fleet summary field RUM contains duplicate aggregates");
+  const lcp = byMetric.get("LCP");
+  const inp = byMetric.get("INP");
+  const cls = byMetric.get("CLS");
+  if (!lcp || !inp || !cls) throw new Error("fleet summary requires measured LCP, INP and CLS aggregates");
+  for (const aggregate of [lcp, inp, cls]) {
+    if (!Number.isInteger(aggregate.sampleCount) || aggregate.sampleCount <= 0 || !Number.isFinite(aggregate.p75) || aggregate.p75 < 0) throw new Error("fleet summary aggregate is invalid");
+  }
+
+  const metricSampleCounts = Object.freeze({ LCP: lcp.sampleCount, INP: inp.sampleCount, CLS: cls.sampleCount });
+  return Object.freeze({
+    schemaVersion: 1,
+    authority: "NEXUS_FIELD_RUM_SUMMARY_V1",
+    projectId: evidence.projectId.trim(),
+    buildRevision: evidence.buildRevision,
+    windowStart: start.toISOString(),
+    windowEnd: end.toISOString(),
+    sampleCount: Math.min(lcp.sampleCount, inp.sampleCount, cls.sampleCount),
+    metricSampleCounts,
+    lcpP75Ms: lcp.p75,
+    inpP75Ms: inp.p75,
+    clsP75: cls.p75,
+  });
 }
