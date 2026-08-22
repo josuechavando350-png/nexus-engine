@@ -1,6 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { readFileSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { createMemoryCms, defineCmsSchema, parseCmsDocument } from '../lib/cms-lite.mjs';
