@@ -1,4 +1,4 @@
-name: NEXUS V8 Baseline Validation — reproducible compile
+name: NEXUS V10 Baseline Validation — reproducible compile
 
 on:
   workflow_dispatch:
@@ -16,7 +16,7 @@ env:
 
 jobs:
   architecture:
-    name: Architecture gates V3→V8
+    name: Architecture gates V3→V10
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -34,6 +34,9 @@ jobs:
           node scripts/v6-architecture-gates.mjs
           node scripts/v7-architecture-gates.mjs
           node scripts/v8-architecture-gates.mjs
+          node scripts/v9-architecture-gates.mjs
+          node scripts/v10-architecture-gates.mjs
+          node scripts/v10-final-readiness-gates.mjs
 
   web-quality:
     name: Node and TypeScript quality
@@ -64,6 +67,8 @@ jobs:
           pnpm quality-gates
           pnpm v7-gates
           pnpm v8-gates
+          pnpm v9-gates
+          pnpm v10-gates
           pnpm build
           test -z "$(git status --porcelain --untracked-files=no)"
 
