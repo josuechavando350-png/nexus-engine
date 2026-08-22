@@ -13,6 +13,7 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
+  SOURCE_DATE_EPOCH: "315532800"
   NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
@@ -59,6 +60,14 @@ jobs:
           rustup default 1.88.0
           rustc --version
           cargo --version
+
+      - name: Restore NEXUS content-addressed build cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: .nexus-cache
+          key: nexus-build-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'package.json', 'packages/**', 'apps/**', 'scripts/build-core.mjs', 'scripts/build-workspace.mjs') }}
+          restore-keys: |
+            nexus-build-${{ runner.os }}-
 
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
@@ -119,7 +128,16 @@ jobs:
           NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
         run: pnpm --filter @nexus/capture test:browser
 
-      - name: Build must be side-effect-free
+      - name: Hermetic network-isolated byte-identical double build
+        env:
+          NEXUS_ENFORCE_NETWORK_ISOLATION: "1"
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm build:deterministic 2>&1 | tee artifacts/security/hermetic-build.txt
+          test -z "$(git status --porcelain --untracked-files=no)"
+
+      - name: Cached production build must be side-effect-free
         shell: bash
         run: |
           set -euo pipefail
@@ -166,6 +184,9 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test "$(tr -d '\n\r' < artifacts/security/validated-source-sha.txt)" = "$NEXUS_VALIDATED_SHA"
+          test -s artifacts/security/hermetic-build.txt
+          grep -q '"authority": "NEXUS_HERMETIC_BUILD_V1"' artifacts/security/hermetic-build.txt
+          grep -q '"verdict": "PASS"' artifacts/security/hermetic-build.txt
           test -f .artifacts/h07-operability-proof.json
           test -f artifacts/browser-capture/capture-manifest.json
           test "$(find artifacts/browser-capture -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
@@ -178,7 +199,7 @@ jobs:
             git diff --check HEAD^...HEAD
           fi
 
-      - name: Upload supply-chain evidence
+      - name: Upload supply-chain and hermetic evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
