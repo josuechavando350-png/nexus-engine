@@ -4,6 +4,7 @@ import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createMemoryCms, defineCmsSchema, parseCmsDocument } from '../lib/cms-lite.mjs';
 
 const run = (command, args, options = {}) => {
   const result = spawnSync(command, args, { cwd: process.cwd(), encoding: 'utf8', stdio: 'pipe', ...options });
@@ -30,6 +31,14 @@ try {
     cwd: process.cwd(), encoding: 'utf8', env: { ...process.env, NEXUS_PASSPORT_PUBLIC_KEY_PEM: publicPem }
   });
   if (rejected.status === 0) throw new Error('tampered passport was accepted');
+
+  const schema = defineCmsSchema((input) => {
+    if (!input || typeof input !== 'object' || typeof input.title !== 'string') throw new Error('title required');
+    return { title: input.title };
+  });
+  const document = parseCmsDocument({ slug: 'home', locale: 'es-MX', data: { title: 'NEXUS' } }, schema);
+  const cms = createMemoryCms([document]);
+  if (cms.get('home')?.data.title !== 'NEXUS' || cms.list().length !== 1) throw new Error('cms-lite public surface failed');
 
   const probeName = 'third-party-proof';
   const probePath = join(process.cwd(), 'apps', probeName);
