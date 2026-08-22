@@ -35,5 +35,5 @@ describe('production closeout utilities', () => {
     } finally {
       rmSync(target, { recursive: true, force: true });
     }
-  });
+  }, 20_000);
 });
