@@ -7,15 +7,16 @@ import { evaluateContentReadiness } from "../packages/experience/content-readine
 import { synthesizeGroundedCopy } from "../packages/experience/grounded-copy.ts";
 import { assignMediaRoles } from "../packages/experience/media-assignment.ts";
 import { ingestProjectFiles } from "../packages/experience/project-ingestion.ts";
+import { deriveVisualSceneModel, assertSceneHasNoSilentOverlap } from "../packages/experience/visual-scene-model.ts";
 import { deriveConstrainedEmitterInput } from "../packages/emitter/color-constraints.ts";
 import { augmentExperienceFeatures } from "../packages/emitter/experience-features.ts";
 import { emitExperienceCss } from "../packages/emitter/index.ts";
 import { emitMultipageNextApp } from "../packages/emitter/multipage.ts";
-import { certifyDelivery } from "../packages/quality/delivery-certification.ts";
+import { certifyQualityGatesForDelivery } from "../packages/quality/quality-gate-certification.ts";
 
 const PIPELINE = Object.freeze([
   "BRIEF", "EVIDENCE", "EXPERIENCE_DNA", "CONTENT_CONSTRAINTS", "CONTENT_READINESS",
-  "GENERATION", "EMITTER", "RENDER", "CAPTURE", "DESIGN_GENOME", "VISUAL_JUDGE",
+  "VISUAL_SCENE_MODEL", "GENERATION", "EMITTER", "RENDER", "CAPTURE", "DESIGN_GENOME", "VISUAL_JUDGE",
   "RED_TEAM", "REPAIR_RECAPTURE_REJUDGE", "DELIVERY_CERTIFICATION",
 ]);
 
@@ -107,6 +108,25 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   }
   assertGeneratedProvenance({ generatedMedia: contentInputs.generatedMedia, generatedCopy: contentInputs.generatedCopy, copyAssets: contentInputs.copyAssets, ingestion });
 
+  record("VISUAL_SCENE_MODEL", "deriving intrinsic layout from ExperienceDNA, generated content and authorized assets");
+  const sceneStages = experience.plan.narrativeSequence.map((stage) => stage.stageId);
+  const primaryStage = sceneStages[0];
+  const evidenceStage = sceneStages[1] ?? primaryStage;
+  if (!primaryStage || !evidenceStage) throw new Error("ExperiencePlan requires at least one narrative stage for scene derivation");
+  const mediaCandidates = new Map((spec.mediaCandidates ?? []).map((candidate) => [candidate.assetId, candidate]));
+  const sceneModel = deriveVisualSceneModel({
+    projectId: spec.projectId,
+    dna: experience.dna,
+    plan: experience.plan,
+    content: contentInputs.generatedCopy.map((copy, index) => ({ id: `${copy.role}:${index}`, stageId: primaryStage, kind: index === 0 ? "HEADING" : "BODY", text: copy.text })),
+    assets: contentInputs.generatedMedia.map((media) => {
+      const candidate = mediaCandidates.get(media.assetId);
+      return { id: media.assetId, stageId: evidenceStage, sourceDigest: media.sourceDigest, width: candidate?.width ?? 1, height: candidate?.height ?? 1, available: true };
+    }),
+    environment: spec.sceneEnvironment ?? { viewportWidth: 1440, zoom: 1, reducedMotion: false }
+  });
+  assertSceneHasNoSilentOverlap(sceneModel);
+
   record("GENERATION", "generating multipage source constrained by ExperienceDNA");
   const emitterInput = deriveConstrainedEmitterInput({ dna: experience.dna, constraints: brief.constraints, projectSeed: spec.projectId });
 
@@ -142,7 +162,7 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   ];
   const gates = [
     passed("CONTENT_READINESS", "content readiness passed against DNA-derived policy", readinessEvidence),
-    passed("GENERATION", "NEXUS multipage generator emitted provenance-bound sources and evidence-bound project features", [generation.generationDigest]),
+    passed("GENERATION", "NEXUS multipage generator emitted provenance-bound sources and an intrinsic scene model", [generation.generationDigest, sceneModel.provenance.inputDigest]),
     passed("EMITTER", "NEXUS emitter produced deterministic token CSS", [experienceDigest]),
     passed("PROVENANCE", "source shell, authorized assets, grounded copy, media assignments and project features are provenance-bound", [...provenanceEvidence, ...generation.provenanceIds]),
   ];
@@ -190,9 +210,9 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   gates.push(normalizeQualityGate(repairResult, "REPAIR_REJUDGE"));
 
   record("DELIVERY_CERTIFICATION", "evaluating fail-closed delivery certification");
-  const certification = certifyDelivery({ projectId: spec.projectId, sourceRevision: spec.sourceRevision, gates, visualJudge: visualResult?.report, redTeam: redTeamResult?.report, excessRemoval: redTeamResult?.excessRemoval, qualityCycle: repairResult?.report });
+  const certification = certifyQualityGatesForDelivery({ projectId: spec.projectId, sourceRevision: spec.sourceRevision, gates, visualJudge: visualResult?.report, redTeam: redTeamResult?.report, excessRemoval: redTeamResult?.excessRemoval, qualityCycle: repairResult?.report });
 
-  return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, emitted, generation, certification });
+  return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, sceneModel, emitted, generation, certification });
 }
 
 async function main() {

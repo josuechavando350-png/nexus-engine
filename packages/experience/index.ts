@@ -14,3 +14,4 @@ export * from "./autonomy";
 export * from "./project-ingestion";
 export * from "./media-assignment";
 export * from "./grounded-copy";
+export * from "./visual-scene-model";

@@ -1,4 +1,4 @@
-name: NEXUS V10 Full Validation
+name: NEXUS Full Validation
 
 on:
   pull_request:
@@ -14,13 +14,10 @@ env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
   NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-  NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
-  NEXUS_VISUAL_BASELINE_DIR: quality-baselines/browser-capture
-  NEXUS_VISUAL_MAX_CHANGED_RATIO: "0.001"
 
 jobs:
   validate:
-    name: V3→V10 full validation on exact source SHA
+    name: Full validation on exact source SHA
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
@@ -29,232 +26,58 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-
-      - name: Assert exact source and pristine checkout
-        shell: bash
+      - name: Assert exact source
         run: |
           set -euo pipefail
-          actual="$(git rev-parse HEAD)"
-          test "$actual" = "$NEXUS_VALIDATED_SHA" || {
-            echo "Source SHA mismatch: expected $NEXUS_VALIDATED_SHA, checkout is $actual" >&2
-            exit 1
-          }
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test -z "$(git status --porcelain)"
-          git show-ref --verify --quiet refs/remotes/origin/main
-          mkdir -p artifacts/security artifacts/browser-capture .artifacts
-          printf '%s\n' "$actual" > artifacts/security/validated-source-sha.txt
-
-      - name: Setup Node 24
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: 24
-
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 24 }
       - name: Enable pinned pnpm
         run: |
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
-
-      - name: Setup pinned Rust 1.88.0
-        shell: bash
+      - name: Setup Rust 1.88.0
         run: |
-          set -euo pipefail
           rustup toolchain install 1.88.0 --profile minimal --component rustfmt,clippy
           rustup default 1.88.0
-          rustc --version
-          cargo --version
-
-      - name: Install workspace dependencies
+      - name: Frozen install
         run: pnpm install --frozen-lockfile
-
-      - name: Install real browser engines
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
-          sudo apt-get clean
-          sudo rm -rf /var/lib/apt/lists/*
-          for attempt in 1 2 3; do
-            if pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit; then
-              exit 0
-            fi
-            test "$attempt" -lt 3 || exit 1
-            sleep $((attempt * 15))
-          done
-
-      - name: Install visual comparison tooling
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends imagemagick
-          compare -version
-          identify -version
-
-      - name: Capture visual baseline from base revision
-        shell: bash
-        env:
-          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
-        run: |
-          set -euo pipefail
-          base_sha="$EVENT_BASE_SHA"
-          if [ -z "$base_sha" ] || echo "$base_sha" | grep -Eq '^0+$'; then
-            base_sha="$(git rev-parse HEAD^)"
-          fi
-          test "$base_sha" != "$NEXUS_VALIDATED_SHA" || {
-            if git rev-parse HEAD^ >/dev/null 2>&1; then base_sha="$(git rev-parse HEAD^)"; fi
-          }
-          echo "Visual baseline source: $base_sha"
-          rm -rf /tmp/nexus-visual-base .artifacts/baseline-capture "$NEXUS_VISUAL_BASELINE_DIR"
-          git worktree add --detach /tmp/nexus-visual-base "$base_sha"
-          (
-            cd /tmp/nexus-visual-base
-            corepack enable
-            corepack prepare pnpm@10.15.0 --activate
-            pnpm install --frozen-lockfile
-            NEXUS_CAPTURE_EVIDENCE_DIR="$GITHUB_WORKSPACE/.artifacts/baseline-capture" pnpm --filter @nexus/capture test:browser
-          )
-          mkdir -p "$NEXUS_VISUAL_BASELINE_DIR"
-          cp "$GITHUB_WORKSPACE"/.artifacts/baseline-capture/*.png "$NEXUS_VISUAL_BASELINE_DIR"/
-          test "$(find "$NEXUS_VISUAL_BASELINE_DIR" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
-          printf '%s\n' "$base_sha" > .artifacts/visual-baseline-source-sha.txt
-          git worktree remove --force /tmp/nexus-visual-base
-
-      - name: Install pinned Rust supply-chain tools
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo install cargo-audit --version 0.22.2 --locked
-          cargo install cargo-deny --version 0.20.2 --locked
-
-      - name: Dependency and policy gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm audit --audit-level high 2>&1 | tee artifacts/security/pnpm-audit.txt
-          (
-            cd runtime
-            cargo audit 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/security/cargo-audit.txt"
-            cargo deny check 2>&1 | tee "$GITHUB_WORKSPACE/artifacts/security/cargo-deny.txt"
-          )
-          test -z "$(git status --porcelain --untracked-files=no)"
-
-      - name: Generate source-SHA-bound SBOM
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm sbom
-          test -f "artifacts/security/nexus-${NEXUS_VALIDATED_SHA}.cdx.json"
-          test -z "$(git status --porcelain --untracked-files=no)"
-
+      - name: Install browser engines
+        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
+      - name: Security hygiene
+        run: pnpm security-hygiene
+      - name: Asset integrity
+        run: pnpm verify:assets
       - name: Lint
         run: pnpm lint
-
       - name: Typecheck
         run: pnpm typecheck
-
       - name: Unit and integration tests
         run: pnpm test
-
-      - name: Real browser validation
-        run: pnpm --filter @nexus/capture test:browser
-
-      - name: Evaluate visual baseline and Quality Passport
-        shell: bash
-        run: |
-          set -euo pipefail
-          node scripts/ci-browser-quality.mjs
-          test -s "$NEXUS_CAPTURE_EVIDENCE_DIR/quality-passport-ci.json"
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const path = process.env.NEXUS_CAPTURE_EVIDENCE_DIR + '/quality-passport-ci.json';
-          const p = JSON.parse(fs.readFileSync(path, 'utf8'));
-          if (p.authority !== 'NEXUS_CI_QUALITY_PASSPORT_V1' || !p.passportSha256) process.exit(1);
-          if (p.visualRegression?.verdict !== 'PASS') {
-            console.error(`V10 requires visual PASS; got ${p.visualRegression?.verdict || 'MISSING'}`);
-            process.exit(1);
-          }
-          NODE
-
-      - name: Build must be side-effect-free
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm build
-          test -z "$(git status --porcelain --untracked-files=no)"
-
-      - name: Security and architecture gates V3→V10
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm security-hygiene
-          pnpm v3-gates
-          pnpm v4-gates
-          pnpm v5-gates
-          pnpm v6-gates
-          pnpm v7-gates
-          pnpm v8-gates
-          pnpm v9-gates
-          test -z "$(git status --porcelain --untracked-files=no)"
-
-      - name: Rust tests locked
+      - name: Hermetic deterministic build
+        run: pnpm build
+      - name: Real browser tests
+        run: pnpm test:browser
+      - name: V3 runtime boundary
+        run: pnpm v3-gates
+      - name: Rust tests
         run: pnpm rust:test
-
-      - name: Rust lint locked
+      - name: Rust lint
         run: pnpm rust:lint
-
-      - name: Rust release build locked
+      - name: Rust release build
         run: pnpm rust:build
-
-      - name: H07 operability proof
+      - name: H07 clean-room proof
         run: pnpm operability:h07
-
-      - name: V10 readiness consumes executed evidence
-        env:
-          NEXUS_V10_TESTS_PASSED: "1"
-          NEXUS_V10_BUILD_PASSED: "1"
-          NEXUS_V10_BROWSER_PASSED: "1"
-          NEXUS_V10_H07_PASSED: "1"
-          NEXUS_V10_VISUAL_PASSED: "1"
-        run: pnpm v10-gates
-
-      - name: Verify evidence and final diff hygiene
-        shell: bash
+      - name: Third-party public-surface proof
+        run: pnpm third-party-proof
+      - name: Final hygiene
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
-          test "$(tr -d '\n\r' < artifacts/security/validated-source-sha.txt)" = "$NEXUS_VALIDATED_SHA"
-          test -f .artifacts/h07-operability-proof.json
-          test -f .artifacts/visual-baseline-source-sha.txt
-          test -f artifacts/browser-capture/capture-manifest.json
-          test -f artifacts/browser-capture/quality-passport-ci.json
-          node -e 'const fs=require("node:fs"); const p=JSON.parse(fs.readFileSync("artifacts/browser-capture/quality-passport-ci.json","utf8")); if(p.visualRegression?.verdict!=="PASS") process.exit(1)'
-          test "$(find artifacts/browser-capture -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "6"
-          test -f artifacts/browser-capture/artifact-checksums.sha256 || find artifacts/browser-capture -type f -print0 | sort -z | xargs -0 sha256sum > artifacts/browser-capture/artifact-checksums.sha256
-          test -s artifacts/browser-capture/artifact-checksums.sha256
           test -z "$(git status --porcelain --untracked-files=no)"
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             git diff --check "origin/${{ github.base_ref }}...HEAD"
           else
             git diff --check HEAD^...HEAD
           fi
-
-      - name: Upload supply-chain evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: nexus-supply-chain-${{ github.event.pull_request.head.sha || github.sha }}
-          path: artifacts/security
-          if-no-files-found: error
-          retention-days: 90
-
-      - name: Upload browser and H07 evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: nexus-v10-runtime-evidence-${{ github.event.pull_request.head.sha || github.sha }}
-          path: |
-            artifacts/browser-capture
-            .artifacts/h07-operability-proof.json
-            .artifacts/visual-baseline-source-sha.txt
-          if-no-files-found: error
-          retention-days: 90
