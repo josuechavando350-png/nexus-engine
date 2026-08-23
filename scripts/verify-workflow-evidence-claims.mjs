@@ -12,7 +12,7 @@ function jobRanges(lines) {
   if (jobsLine < 0) return [];
   const starts = [];
   for (let i = jobsLine + 1; i < lines.length; i += 1) {
-    const match = lines[i].match(/^  ([A-Za-z0-9_-]+):\s*(?:#.*)?$/);
+    const match = lines[i].match(/^ {2}([A-Za-z0-9_-]+):\s*(?:#.*)?$/);
     if (match) starts.push({ name: match[1], start: i });
   }
   return starts.map((entry, index) => ({
