@@ -6,11 +6,12 @@
   "bin": { "nexus": "./scripts/nexus.mjs" },
   "engines": { "node": ">=24.0.0" },
   "scripts": {
-    "lint": "pnpm verify:assets && eslint .",
+    "lint": "pnpm verify:workflow-evidence && pnpm verify:assets && eslint .",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "vitest run --exclude packages/capture/tests/apca-audit.test.ts --exclude packages/capture/tests/playwright-adapter.test.ts --exclude packages/capture/tests/mutation-runner.test.ts --exclude packages/capture/tests/adversarial-matrix.test.ts",
     "test:browser": "vitest run packages/capture/tests/apca-audit.test.ts packages/capture/tests/playwright-adapter.test.ts packages/capture/tests/mutation-runner.test.ts packages/capture/tests/adversarial-matrix.test.ts",
     "test:watch": "vitest",
+    "verify:workflow-evidence": "node scripts/verify-workflow-evidence-claims.mjs",
     "verify:assets": "node scripts/verify-declared-assets.mjs",
     "build:hermetic-inputs": "node scripts/verify-hermetic-inputs.mjs",
     "build:deterministic": "node scripts/verify-deterministic-build.mjs",
