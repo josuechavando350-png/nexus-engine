@@ -1,44 +1,28 @@
-import { execSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync } from "node:fs";
-import { delimiter, join } from "node:path";
+import {
+  buildTargets,
+  restoreFromCache,
+  runTargetBuild,
+  storeInCache,
+  targetBuildKey,
+} from "./build-core.mjs";
 
 const root = process.cwd();
-const workspaceRoots = ["packages", "apps"];
-const buildTargets = [];
+const targets = buildTargets(root);
+let hits = 0;
+let misses = 0;
 
-for (const workspaceRoot of workspaceRoots) {
-  const absoluteRoot = join(root, workspaceRoot);
-  if (!existsSync(absoluteRoot)) continue;
-
-  for (const entry of readdirSync(absoluteRoot, { withFileTypes: true })) {
-    if (!entry.isDirectory()) continue;
-    const relativeDir = join(workspaceRoot, entry.name);
-    const manifestPath = join(root, relativeDir, "package.json");
-    if (!existsSync(manifestPath)) continue;
-
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
-    if (typeof manifest.scripts?.build === "string") {
-      buildTargets.push({ relativeDir, command: manifest.scripts.build });
-    }
+for (const target of targets) {
+  const buildKey = targetBuildKey(target, root);
+  if (restoreFromCache(target, buildKey, root)) {
+    hits += 1;
+    console.log(`\n=== Cache hit ${target.relativeDir} ${buildKey.slice(0, 12)} ===`);
+    continue;
   }
+
+  misses += 1;
+  console.log(`\n=== Building ${target.relativeDir} ${buildKey.slice(0, 12)} ===`);
+  runTargetBuild(target, root);
+  storeInCache(target, buildKey, root);
 }
 
-buildTargets.sort((a, b) => a.relativeDir.localeCompare(b.relativeDir, "en"));
-
-const rootBin = join(root, "node_modules", ".bin");
-
-for (const { relativeDir, command } of buildTargets) {
-  const cwd = join(root, relativeDir);
-  const packageBin = join(cwd, "node_modules", ".bin");
-  const path = [packageBin, rootBin, process.env.PATH ?? ""].filter(Boolean).join(delimiter);
-
-  console.log(`\n=== Building ${relativeDir} ===`);
-  execSync(command, {
-    cwd,
-    stdio: "inherit",
-    shell: "/bin/bash",
-    env: { ...process.env, PATH: path },
-  });
-}
-
-console.log(`\nWorkspace build completed for ${buildTargets.length} package(s).`);
+console.log(`\nWorkspace build completed for ${targets.length} package(s): ${hits} verified cache hit(s), ${misses} rebuild(s).`);
