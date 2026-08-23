@@ -9,6 +9,13 @@ import { NEXUS_CSP_BASE, NEXUS_SECURITY_HEADERS_BASE } from "@nexus/core/foundat
 // hand-writing a parallel CSP string.
 const nextConfig: NextConfig = {
   transpilePackages: ["@nexus/core"],
+  generateBuildId: async () => {
+    const deterministicBuildId = process.env.NEXUS_BUILD_ID?.trim();
+    if (process.env.NEXUS_DETERMINISTIC_BUILD === "1" && !deterministicBuildId) {
+      throw new Error("NEXUS_BUILD_ID is required for deterministic builds");
+    }
+    return deterministicBuildId || process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "nexus-local-build";
+  },
   async headers() {
     return [
       {

@@ -20,11 +20,12 @@
     "./autonomy": "./autonomy.ts",
     "./project-ingestion": "./project-ingestion.ts",
     "./media-assignment": "./media-assignment.ts",
-    "./grounded-copy": "./grounded-copy.ts"
+    "./grounded-copy": "./grounded-copy.ts",
+    "./visual-scene-model": "./visual-scene-model.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/experience/index.js && test -f dist/experience/index.d.ts && test -f dist/experience/content-readiness.js && test -f dist/experience/content-readiness.d.ts && test -f dist/experience/content-constraints.js && test -f dist/experience/content-constraints.d.ts && test -f dist/experience/autonomy.js && test -f dist/experience/autonomy.d.ts && test -f dist/experience/project-ingestion.js && test -f dist/experience/project-ingestion.d.ts && test -f dist/experience/media-assignment.js && test -f dist/experience/media-assignment.d.ts && test -f dist/experience/grounded-copy.js && test -f dist/experience/grounded-copy.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/experience/index.js && test -f dist/experience/index.d.ts && test -f dist/experience/content-readiness.js && test -f dist/experience/content-readiness.d.ts && test -f dist/experience/content-constraints.js && test -f dist/experience/content-constraints.d.ts && test -f dist/experience/autonomy.js && test -f dist/experience/autonomy.d.ts && test -f dist/experience/project-ingestion.js && test -f dist/experience/project-ingestion.d.ts && test -f dist/experience/media-assignment.js && test -f dist/experience/media-assignment.d.ts && test -f dist/experience/grounded-copy.js && test -f dist/experience/grounded-copy.d.ts && test -f dist/experience/visual-scene-model.js && test -f dist/experience/visual-scene-model.d.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
