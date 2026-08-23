@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { verifyDecisionTrace, type DecisionTrace } from "./decision-trace.js";
 
 export type PassportStatus = "PASS" | "FAIL" | "WARNING" | "NOT_TESTED" | "UNSUPPORTED";
 
@@ -17,6 +18,7 @@ export type QualityPassportInput = Readonly<{
   viewport: Readonly<{ width: number; height: number }>;
   artifactHashes: Readonly<Record<string, string>>;
   checks: readonly PassportCheck[];
+  decisionTrace?: DecisionTrace;
 }>;
 
 export type QualityPassport = Readonly<{
@@ -28,6 +30,7 @@ export type QualityPassport = Readonly<{
   viewport: Readonly<{ width: number; height: number }>;
   artifactHashes: Readonly<Record<string, string>>;
   checks: readonly PassportCheck[];
+  decisionTrace?: DecisionTrace;
   verdict: "PASS" | "FAIL" | "INCOMPLETE";
   passportHash: string;
 }>;
@@ -63,6 +66,7 @@ export function createQualityPassport(input: QualityPassportInput): QualityPassp
   const generatedAt = new Date(input.generatedAt);
   if (!Number.isFinite(generatedAt.getTime())) throw new Error("quality passport generatedAt must be a valid timestamp");
   if (!Number.isInteger(input.viewport.width) || !Number.isInteger(input.viewport.height) || input.viewport.width <= 0 || input.viewport.height <= 0) throw new Error("quality passport viewport must contain positive integer dimensions");
+  if (input.decisionTrace && !verifyDecisionTrace(input.decisionTrace)) throw new Error("quality passport decisionTrace failed integrity verification");
 
   const artifactHashes = Object.fromEntries(Object.entries(input.artifactHashes).sort(([a], [b]) => a.localeCompare(b, "en")).map(([path, hash]) => {
     const normalizedPath = path.trim();
@@ -87,6 +91,7 @@ export function createQualityPassport(input: QualityPassportInput): QualityPassp
     viewport: Object.freeze({ ...input.viewport }),
     artifactHashes: Object.freeze(artifactHashes),
     checks: Object.freeze(checks),
+    ...(input.decisionTrace ? { decisionTrace: input.decisionTrace } : {}),
     verdict,
   };
   const passportHash = createHash("sha256").update(canonical(payload)).digest("hex");
@@ -96,6 +101,7 @@ export function createQualityPassport(input: QualityPassportInput): QualityPassp
 export function verifyQualityPassport(passport: QualityPassport): boolean {
   const { passportHash, ...payload } = passport;
   if (!SHA256.test(passportHash)) return false;
+  if (passport.decisionTrace && !verifyDecisionTrace(passport.decisionTrace)) return false;
   const expected = createHash("sha256").update(canonical(payload)).digest("hex");
   return expected === passportHash;
 }

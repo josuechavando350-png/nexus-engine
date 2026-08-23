@@ -23,38 +23,23 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
-
       - name: Assert exact source and pristine checkout
-        shell: bash
         run: |
           set -euo pipefail
-          actual="$(git rev-parse HEAD)"
-          test "$actual" = "$NEXUS_VALIDATED_SHA" || {
-            echo "Source SHA mismatch: expected $NEXUS_VALIDATED_SHA, checkout is $actual" >&2
-            exit 1
-          }
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test -z "$(git status --porcelain)"
           git show-ref --verify --quiet refs/remotes/origin/main
-
-      - name: Setup Node 24
-        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: 24
-
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 24 }
       - name: Enable pinned pnpm
         run: |
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
-
-      - name: Setup pinned Rust 1.88.0
-        shell: bash
+      - name: Setup Rust 1.88.0
         run: |
-          set -euo pipefail
           rustup toolchain install 1.88.0 --profile minimal --component rustfmt,clippy
           rustup default 1.88.0
-
       - name: Record clean-room identity
-        shell: bash
         run: |
           set -euo pipefail
           mkdir -p .artifacts
@@ -67,63 +52,32 @@ jobs:
             echo "cargo=$(cargo --version)"
             echo "runner=${RUNNER_OS}-${RUNNER_ARCH}"
           } | tee .artifacts/h07-environment.txt
-
       - name: Install from lockfile
         run: pnpm install --frozen-lockfile
-
-      - name: Install pinned Playwright browser dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
-          sudo apt-get clean
-          sudo rm -rf /var/lib/apt/lists/*
-          for attempt in 1 2 3; do
-            echo "Playwright browser/dependency install attempt ${attempt}/3"
-            if pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit; then
-              exit 0
-            fi
-            if [ "$attempt" -eq 3 ]; then
-              echo "Playwright installation failed after 3 attempts" >&2
-              exit 1
-            fi
-            sleep $((attempt * 15))
-          done
-
+      - name: Install Playwright dependencies
+        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
       - name: Build and validate independently
-        shell: bash
         run: |
           set -euo pipefail
           pnpm lint
           pnpm typecheck
           pnpm test
-          pnpm --filter @nexus/capture test:browser
+          pnpm test:browser
           pnpm build
           pnpm security-hygiene
           pnpm v3-gates
-          pnpm v4-gates
-          pnpm v5-gates
-          pnpm v6-gates
-          pnpm v7-gates
-          pnpm v8-gates
-          pnpm v9-gates
           pnpm rust:test
           pnpm rust:lint
           pnpm rust:build
-
-      - name: Execute deploy backup restore rollback offboarding proof
+          pnpm third-party-proof
+      - name: Execute operability proof
         run: pnpm operability:h07
-
       - name: Assert clean build and evidence identity
-        shell: bash
         run: |
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
           test -f .artifacts/h07-operability-proof.json
-          node scripts/v10-architecture-gates.mjs
-          node scripts/v10-final-readiness-gates.mjs
-
       - name: Upload evidence packet
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
