@@ -5,10 +5,10 @@
   "type": "module",
   "exports": {
     ".": "./index.ts",
-    "./delivery-certification": "./delivery-certification.ts"
+    "./signed-evidence-certification": "./signed-evidence-certification.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/evidence/index.js && test -f dist/evidence/index.d.ts && test -f dist/evidence/delivery-certification.js && test -f dist/evidence/delivery-certification.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/evidence/index.js && test -f dist/evidence/index.d.ts && test -f dist/evidence/signed-evidence-certification.js && test -f dist/evidence/signed-evidence-certification.d.ts"
   }
 }
