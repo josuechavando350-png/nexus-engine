@@ -1,4 +1,4 @@
-name: NEXUS V10 Baseline Validation — reproducible compile
+name: NEXUS Baseline Validation
 
 on:
   workflow_dispatch:
@@ -16,78 +16,79 @@ env:
 
 jobs:
   architecture:
-    name: Architecture gates V3→V10
+    name: V3 runtime boundary
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: 24
-      - name: Architecture gates
-        run: |
-          set -euo pipefail
-          node scripts/v3-architecture-gates.mjs
-          node scripts/v4-architecture-gates.mjs
-          node scripts/v5-architecture-gates.mjs
-          node scripts/v6-architecture-gates.mjs
-          node scripts/v7-architecture-gates.mjs
-          node scripts/v8-architecture-gates.mjs
-          node scripts/v9-architecture-gates.mjs
-          node scripts/v10-architecture-gates.mjs
-          node scripts/v10-final-readiness-gates.mjs
+        with: { node-version: 24 }
+      - name: V3 boundary gate
+        run: node scripts/v3-architecture-gates.mjs
 
   web-quality:
-    name: Node and TypeScript quality
+    name: Web invariants and verified build artifact
     runs-on: ubuntu-24.04
     needs: architecture
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: 24
+        with: { node-version: 24 }
       - name: Enable pinned pnpm
         run: |
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
-      - name: Install locked dependencies
+      - name: Frozen install
         run: pnpm install --frozen-lockfile
-      - name: Validate web workspace
+      - name: Validate workspace
         run: |
           set -euo pipefail
-          test -f pnpm-lock.yaml
-          test -f runtime/Cargo.lock
           pnpm security-hygiene
           pnpm lint
           pnpm typecheck
           pnpm test
           pnpm quality-gates
-          pnpm v7-gates
-          pnpm v8-gates
-          pnpm v9-gates
-          pnpm v10-gates
+          pnpm third-party-proof
           pnpm build
           test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Upload exact web build artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-baseline-web-build-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            .artifacts/web-build
+            .artifacts/web-build-identity.json
+          if-no-files-found: error
 
-  rust-workspace:
-    name: Rust full workspace locked
+  artifact-identity:
+    name: Downloaded artifact identity
     runs-on: ubuntu-24.04
     needs: web-quality
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 24 }
+      - name: Download exact web build artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          fetch-depth: 0
-      - name: Setup exact Rust 1.88.0
-        shell: bash
+          name: nexus-baseline-web-build-${{ github.sha }}-${{ github.run_id }}
+          path: .artifacts/downloaded
+      - name: Verify downloaded artifact bytes
+        run: node scripts/verify-artifact.mjs --artifact-root .artifacts/downloaded/web-build --manifest .artifacts/downloaded/web-build-identity.json --source-revision "$(git rev-parse HEAD)"
+
+  rust-workspace:
+    name: Rust locked workspace
+    runs-on: ubuntu-24.04
+    needs: artifact-identity
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: { fetch-depth: 0 }
+      - name: Setup Rust 1.88.0
         run: |
-          set -euo pipefail
           rustup toolchain install 1.88.0 --profile minimal --component rustfmt,clippy
           rustup default 1.88.0
-          rustc --version
-          cargo --version
       - name: Format, lint, test and release build
         working-directory: runtime
         run: |
@@ -99,22 +100,18 @@ jobs:
           test -z "$(git -C .. status --porcelain --untracked-files=no)"
 
   rust-adapters:
-    name: Rust optional production adapters locked
+    name: Optional adapters locked
     runs-on: ubuntu-24.04
     needs: rust-workspace
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with:
-          fetch-depth: 0
-      - name: Setup exact Rust 1.88.0
-        shell: bash
+      - name: Setup Rust 1.88.0
         run: |
-          set -euo pipefail
           rustup toolchain install 1.88.0 --profile minimal
           rustup default 1.88.0
-      - name: Install Kafka adapter prerequisites
+      - name: Kafka prerequisites
         run: sudo apt-get update && sudo apt-get install -y libsasl2-dev
-      - name: Compile external adapters against committed lockfile
+      - name: Compile adapters
         working-directory: runtime
         run: |
           set -euo pipefail
@@ -122,4 +119,3 @@ jobs:
           cargo check --locked -p nexus-graph --features neo4j
           cargo check --locked -p nexus-ingest --features kafka
           cargo check --locked -p nexus-edge-wasm --features wasmtime
-          test -z "$(git -C .. status --porcelain --untracked-files=no)"

@@ -1,53 +1,54 @@
 # NEXUS Production Runbook
 
-## Quality Passport signing policy
+## Release rule
 
-NEXUS uses **Ed25519** detached signatures. The private signing key is never committed. Production signing reads `NEXUS_PASSPORT_PRIVATE_KEY_PEM`; verification reads `NEXUS_PASSPORT_PUBLIC_KEY_PEM`. The signature envelope contains the SHA-256 of the exact passport bytes and a key ID derived from the public SPKI bytes.
+A release is valid only when the exact candidate SHA passes the real workflows. Environment variables or manually asserted flags are not evidence. Missing evidence is a failure.
 
-Key policy:
-- Generate a dedicated Ed25519 keypair for Quality Passport signing.
-- Store the private PKCS#8 PEM only in the CI secret store used by the protected production environment.
-- Distribute/pin the public SPKI PEM to verifiers. Public keys are not secrets.
-- Rotate by introducing the new public key before switching the signer. Keep old public keys only for the retention period of passports they signed.
-- Never reuse SSH, TLS, developer, cloud-account, or repository deploy keys.
-- Verification is fail-closed on missing key, unknown algorithm, key-ID mismatch, payload hash mismatch, malformed JSON, or invalid signature.
+## Quality Passport signing
 
-Commands:
+Production signing is intentionally **disabled pending the owner decision** recorded in `docs/SIGNING_DECISION.md`. The accidental file-secret Ed25519 implementation from PR #84 is not authoritative and must not be used.
 
-```bash
-NEXUS_PASSPORT_PRIVATE_KEY_PEM="$(cat private.pem)" pnpm passport:sign -- artifacts/browser-capture/quality-passport-ci.json
-NEXUS_PASSPORT_PUBLIC_KEY_PEM="$(cat public.pem)" pnpm passport:verify -- artifacts/browser-capture/quality-passport-ci.json
-```
+Whichever model is selected must satisfy all of these invariants:
+- the private signing capability is never committed to the repository;
+- ordinary test/build jobs cannot sign;
+- signing identity is bound to the exact candidate SHA and Quality Passport bytes;
+- a third party can verify without trusting NEXUS servers;
+- tampering, identity mismatch, missing evidence and malformed bundles fail closed;
+- historical verification remains possible after rotation or provider changes.
 
 ## CMS-lite
 
-`@nexus/cms-lite` is deliberately adapter-free. It validates a small document envelope (`slug`, `locale`, optional `updatedAt`, `data`) and delegates domain validation to a caller-owned schema parser. This keeps Sanity/Contentful/Notion/filesystem adapters outside the engine core and prevents vendor lock-in.
+`lib/cms-lite.mjs` provides a deliberately small vendor-neutral content envelope: `slug`, `locale`, optional `updatedAt`, and caller-validated `data`. It contains no vendor SDK and no remote write path. Domain validation stays with the client application.
 
 ## Client scaffold
-
-Create a client from the approved experience seed:
 
 ```bash
 pnpm scaffold -- cliente-ejemplo
 ```
 
-The command refuses non-kebab-case names and existing targets, copies `apps/_experience-seed`, performs only the explicit `__NEXUS_CLIENT_SLUG__` token substitution, and writes `.nexus/scaffold-manifest.json` with deterministic SHA-256 entries.
+The command requires a kebab-case name, refuses an existing target, copies `apps/_experience-seed`, performs only the explicit client-slug token substitution, and writes `.nexus/scaffold-manifest.json` containing deterministic SHA-256 entries.
+
+Every real client enters `apps/` from the start of delivery.
 
 ## Release / operator sequence
 
 1. Start from a clean checkout of the exact candidate SHA.
-2. `corepack enable && corepack prepare pnpm@10.15.0 --activate`.
-3. `pnpm install --frozen-lockfile`.
-4. `pnpm lint && pnpm typecheck && pnpm test && pnpm build`.
-5. Run browser evidence and the existing V10 gates.
-6. Produce `quality-passport-ci.json`.
-7. Sign it with the protected Ed25519 private key.
-8. Verify the detached signature with the pinned public key.
-9. Run `pnpm third-party-proof` from a clean clone or CI runner.
-10. Require a clean Git working tree after validation.
+2. Enable pinned pnpm and run `pnpm install --frozen-lockfile`.
+3. Run `pnpm security-hygiene` and the retained V3 runtime-boundary gate.
+4. Run `pnpm verify:assets`, `pnpm lint`, `pnpm typecheck`, and `pnpm test`.
+5. Run `pnpm build` once. Preserve `.artifacts/web-build` together with `.artifacts/web-build-identity.json`; do not rebuild per environment.
+6. Upload and download that artifact pair, then run `pnpm verify:artifact -- --artifact-root <downloaded-web-build> --manifest <downloaded-identity.json> --source-revision <candidate-sha>`. Any added, removed, or byte-modified file is a release failure.
+7. Run real Chromium/WebKit evidence with `pnpm test:browser` and the browser-quality workflow.
+8. Run locked Rust tests, lint, release build and optional adapter compilation.
+9. Run `pnpm operability:h07` from the clean-room workflow.
+10. Run `pnpm third-party-proof` through public surfaces only.
+11. Require a clean working tree and exact source SHA before merge/release.
+12. After a signing model is approved, add the signature verification step as an additional required proof; it never replaces the checks above.
 
-## Third-party acceptance test
+## Third-party acceptance proof
 
-The third-party proof intentionally acts only through public CLI/package surfaces. It generates an independent ephemeral Ed25519 keypair, signs and verifies a passport, proves tampering is rejected, scaffolds a client, checks the scaffold manifest, removes the probe, and exits only on full success.
+`pnpm third-party-proof` validates CMS-lite, creates a temporary client only through the public scaffold CLI, verifies the generated manifest, runs the declared-asset guard, removes its probe and exits only on success.
 
-Acceptance marker: `THIRD_PARTY_PROOF_PASS`.
+Until the signing model is selected it prints `PASSPORT_SIGNATURE_PROOF_PENDING_KEY_MODEL_DECISION`; this is deliberately not a PASS for passport signing.
+
+Acceptance marker for the currently implemented public surfaces: `THIRD_PARTY_PROOF_PASS`.

@@ -1,5 +1,7 @@
 node_modules/
 .pnpm-store/
+.nexus-cache/
+.artifacts/
 .next/
 dist/
 coverage/
