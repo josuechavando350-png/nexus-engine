@@ -1,29 +1,35 @@
 # NEXUS — MASTER STATE
 
-Última actualización: 2026-08-13
+Última actualización: 2026-08-22
 
-## Definición corta
-**NEXUS convierte infraestructura en inteligencia.**
+## Estado operativo
 
-## Versionado
-Ruta oficial: **V1 → V2 → V3 → V4 → V5 → V6**. No crear releases intermedios tipo Vx.y.
+NEXUS mantiene una sola línea activa de ingeniería. V2–V10 quedan como historia de evolución, no como una cadena de architecture-gates que defina la calidad actual.
 
-## Estado real
-- **V1 — Foundation:** cerrada como línea histórica; fuente canónica Git `nexus-v1.2` / NEXUS V1 FINAL conceptual.
-- **V2 — Experience Engine:** implementada; baseline de las líneas posteriores.
-- **V3 — Industrial Agentic Runtime:** implementación fuente presente, pero NO cerrada por gates: Rust/adapters/E2E/benchmarks requieren ejecución real.
-- **V4 — Autonomous Intelligence Engine:** BUILD CANDIDATE; arquitectura/código/gates estáticos presentes; compilación/benchmarks pendientes.
-- **V5 — Control Plane:** BUILD CANDIDATE; arquitectura/código/gates estáticos presentes; adapters/API servidor/durable infrastructure/benchmarks pendientes.
-- **V6 — Distributed Runtime:** BUILD CANDIDATE actual; cluster, consensus contracts, replication, placement, discovery, federation, offline operation, mesh contracts, fleet, signed updates y composition root implementados a nivel fuente; gates estáticos pasan; compilación y pruebas distribuidas reales pendientes.
+Protecciones activas del motor:
+- frontera técnica V3 del runtime;
+- tests normales de invariantes extraídos de V4–V6 y V8–V10;
+- asset guard fail-closed para referencias declaradas;
+- inputs herméticos y build determinista;
+- Quality Passport y evidencia real de navegador;
+- H07 clean-room operability proof;
+- supply-chain/SBOM y workspace Rust bloqueado;
+- adversarial matrix, field RUM, decision trace, fleet anomaly y Shadow Mode recuperados del trabajo de #80/#81;
+- `nexus modify` medido y reversible;
+- CMS-lite y scaffold de clientes con pruebas.
 
-## Regla Technology Freshness
-Cada versión mayor investiga fuentes primarias actuales, compara alternativas, benchmarkea el workload NEXUS y mantiene adapters. Nuevo no significa mejor.
+## Regla de evidencia
 
-## Regla de IP
-Cada versión debe responder qué construye que un equipo competente NO obtiene instalando cinco proyectos open-source y conectándolos un fin de semana.
+Nada se considera implementado o listo por flags, documentación o nombres de versión. La evidencia debe provenir de ejecución real sobre el SHA candidato. Missing/NOT_TESTED no equivale a PASS.
 
-## V6 Value Gate
-US$1M+ es una meta de ingeniería/valor estratégico, nunca una valuación automática. V6 no puede declararse listo para esa tesis sin evidencia de replacement difficulty, performance medida, seguridad, documentación, operabilidad, integración, clean deployment, recovery, SBOM, audit trail, API/SDK y due diligence reproducible.
+## Firma del Quality Passport
 
-## Visual
-NEXUS comparte ingeniería, nunca dirección artística. Toda Experience humana sigue Reference → Visual Dissection → Art Direction DNA → One Screen → Human Approval → Implementation → Screenshot Comparison → Correction → Responsive → Performance/A11y.
+La firma de producción está pendiente de una decisión explícita entre Sigstore/cosign keyless y KMS/HSM no exportable. La comparación y recomendación vigentes viven en `docs/SIGNING_DECISION.md`. No existe un signer de producción autorizado hasta esa decisión.
+
+## Clientes
+
+Los siguientes clientes reales deben entrar en `apps/` desde el inicio de su entrega, para que scaffold, assets, build, browser evidence y Quality Passport midan el trabajo real y no una importación posterior.
+
+## Historia
+
+Planes, reportes y registros de las versiones V2–V10 con valor histórico viven bajo `archive/history/`. Snapshots SHA y validaciones temporales no forman parte de la superficie operativa.

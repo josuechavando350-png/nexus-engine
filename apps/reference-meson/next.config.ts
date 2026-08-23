@@ -1,14 +1,15 @@
 import type { NextConfig } from "next";
 import { NEXUS_CSP_BASE, NEXUS_SECURITY_HEADERS_BASE } from "@nexus/core/foundation/config";
 
-// This app currently references no external domain (fonts, scripts,
-// images, analytics, maps, etc. — verified by grep during NEXUS V1.2
-// hardening). The unextended Core CSP baseline is safe to apply as-is.
-// The moment this app needs an external source, extend it with
-// buildCsp({...}) from "@nexus/core/foundation/config" instead of
-// hand-writing a parallel CSP string.
+const deterministicBuildId = () => {
+  const value = process.env.NEXUS_BUILD_ID?.trim();
+  if (process.env.NEXUS_DETERMINISTIC_BUILD === "1" && !value) throw new Error("NEXUS_BUILD_ID is required for deterministic builds");
+  return value || process.env.GITHUB_SHA || process.env.VERCEL_GIT_COMMIT_SHA || "nexus-local-build";
+};
+
 const nextConfig: NextConfig = {
   transpilePackages: ["@nexus/core"],
+  generateBuildId: async () => deterministicBuildId(),
   async headers() {
     return [
       {
