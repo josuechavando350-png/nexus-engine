@@ -1,0 +1,47 @@
+# Local secrets and machine-specific configuration
+.env*
+**/.env*
+
+# Installed dependencies and generated application/package outputs
+node_modules
+**/node_modules
+.next
+**/.next
+dist
+**/dist
+build
+**/build
+out
+**/out
+coverage
+**/coverage
+runtime/target
+
+# NEXUS execution artifacts and local caches
+.artifacts
+**/.artifacts
+.nexus-cache
+**/.nexus-cache
+.pnpm-store
+**/.pnpm-store
+.turbo
+**/.turbo
+.cache
+**/.cache
+*.tsbuildinfo
+**/*.tsbuildinfo
+
+# Logs, temporary files, and editor/OS metadata
+*.log
+**/*.log
+tmp
+**/tmp
+temp
+**/temp
+.DS_Store
+**/.DS_Store
+.idea
+.vscode
+
+# Git metadata is intentionally retained: nexus_status and isolated worktrees
+# require a real repository checkout in the image.

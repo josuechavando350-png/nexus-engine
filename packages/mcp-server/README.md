@@ -11,6 +11,11 @@ Remote, deterministic MCP control surface for NEXUS. It exposes the approved blo
 - `NEXUS_GITHUB_TOKEN` (optional): read-only GitHub token used for PR/check state. Without it, `nexus_status` returns `NOT_TESTED` for the GitHub portion rather than claiming there are no PRs.
 - `NEXUS_MCP_ALLOWED_HOSTS` (optional locally, required for deployment): comma-separated HTTP Host allowlist. Defaults to `localhost,127.0.0.1`; set it to the public service hostname when hosted.
 - `NEXUS_MCP_ARTIFACT_ROOT` (optional): private capture storage; defaults to `.artifacts/mcp` in the checkout.
+- `NEXUS_MCP_ENABLED_TOOLS` (optional): comma-separated capability allowlist. It defaults to `nexus_status,nexus_projects`; no execution or mutation tool is remotely exposed by default.
+- `NEXUS_MCP_MAX_CONCURRENCY` (optional, default `2`): maximum simultaneous MCP tool calls. Excess work fails with HTTP 429; it is not queued silently.
+- `NEXUS_MCP_EXECUTION_TIMEOUT_MS` (optional, default `900000`): execution timeout used by gates, builds and project validation commands.
+- `NEXUS_MCP_MAX_ARTIFACT_BYTES` (optional, default `26214400`): maximum size of one stored artifact.
+- `NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES` (optional, default `8388608`): maximum captured stdout/stderr for a gate or build.
 - `PORT` (optional): HTTP port, default `3000`.
 
 Generate a token and its stored digest without putting either in git:
@@ -26,7 +31,17 @@ After `pnpm --filter @nexus/mcp-server build`, run from the repository root:
 NEXUS_MCP_TOKEN_SHA256='<sha256>' node packages/mcp-server/dist/mcp-server/src/server.js
 ```
 
-The unauthenticated `GET /healthz` response contains only service health/version. Every MCP request requires `Authorization: Bearer <token>`. The server registers no prompts, sampling, model calls, mutation tools, merge, deploy, or production access.
+The unauthenticated `GET /healthz` response contains only service health/version. Every MCP request requires `Authorization: Bearer <token>`. The server registers no prompts, sampling, model calls, merge, deploy, push, force-push, branch deletion, or production access. `nexus_project_new` is the sole mutation tool: it is branch-scoped, requires the distinct write token, and is disabled by the default remote capability policy.
+
+The read and write token hashes must be different. Server startup fails closed when both variables contain the same digest.
+
+## Remote Readiness Phase 1.1
+
+- The initial exposure policy registers only `nexus_status` and `nexus_projects`. Existing execution tools remain implemented but require an explicit `NEXUS_MCP_ENABLED_TOOLS` allowlist entry. `nexus_project_new` additionally requires the write token.
+- Every enabled tool call is concurrency-limited. Gates, builds, captures and project creation execute in a detached ephemeral Git worktree at the request's source SHA. Dependencies are linked into that worktree by a frozen offline pnpm install, existing derived outputs are copied rather than shared, and the worktree is forcibly removed and pruned after the response.
+- Gates, builds and captures publish request-scoped artifact records through `ArtifactStore`. The default `LocalArtifactStore` writes `.artifacts/mcp/<requestId>/manifest.json`; every record contains media type, byte length, SHA-256, metadata and an authenticated download URL.
+- Local storage is an explicit first adapter, not a cloud fallback. A future remote deployment may provide another `ArtifactStore` without changing tool contracts.
+- The repository includes `packages/mcp-server/Dockerfile` as a reproducible Node 24 / pnpm 10.15.0 execution definition. It is not deployment or hosting configuration.
 
 
 ## Block 2 evidence behavior
