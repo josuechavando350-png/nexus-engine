@@ -55,7 +55,7 @@ jobs:
         run: pnpm typecheck
       - name: Unit and integration tests
         run: pnpm test
-      - name: Hermetic deterministic build
+      - name: Hermetic SHA-bound build
         run: pnpm build
       - name: Real browser tests
         run: pnpm test:browser

@@ -27,7 +27,7 @@ jobs:
         run: node scripts/v3-architecture-gates.mjs
 
   web-quality:
-    name: Web invariants and reproducible build
+    name: Web invariants and SHA-bound build
     runs-on: ubuntu-24.04
     needs: architecture
     steps:

@@ -229,6 +229,8 @@ Sólo `exitCode === 0`, SHA estable, checkout sin cambios inesperados y manifies
 
 ### `nexus_gates`
 
+El gate `build` exige `target` y usa exactamente la ruta de `nexus_build`: una construcción, seguida por la generación y validación de `NEXUS_MCP_BUILD_MANIFEST_V1` contra el SHA fuente y los bytes enumerados. No compara dos construcciones.
+
 Entrada:
 
 ```ts
@@ -393,7 +395,7 @@ No existe allí ninguna de las ocho herramientas MCP, servidor HTTP/MCP, esquema
 - `@nexus/quality` crea y verifica Quality Passports que vinculan SHA, checks y hashes; CI también produce un Passport de navegador con un esquema distinto.
 - CI consulta el SHA exacto y publica artefactos. `scripts/ci-browser-quality.mjs` hace comparación de píxeles con ImageMagick y devuelve `NOT_TESTED` sin baseline.
 - no existe el comparator **geométrico** solicitado. El propio audit del repositorio lo declara una capacidad faltante.
-- no existe manifiesto de identidad de build con el contrato propuesto, aunque hay piezas de hashing, build determinista y manifiesto de scaffold.
+- `NEXUS_MCP_BUILD_MANIFEST_V1` es el manifiesto de identidad de build ligado al SHA fuente; `nexus_build` y el gate `build` comparten su ruta de construcción y validación.
 
 Antes de implementar habrá que decidir si unificar los dos formatos actuales de Passport o exponerlos como variantes discriminadas. La propuesta v1 acepta ambos mediante adaptadores, preserva el JSON original y reporta qué verificador se aplicó; no reescribe evidencia histórica.
 

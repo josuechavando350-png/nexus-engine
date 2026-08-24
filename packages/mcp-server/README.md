@@ -46,7 +46,7 @@ The read and write token hashes must be different. Server startup fails closed w
 
 ## Block 2 evidence behavior
 
-- `nexus_gates` runs only fixed pnpm script names, records one log per executed gate, and requires an exact clean source SHA.
+- `nexus_gates` runs fixed pnpm scripts for non-build checks; its target `build` gate shares the single-build, SHA-bound manifest path used by `nexus_build`. It records one log per executed gate and requires an exact clean source SHA.
 - `nexus_passport` reads only `.artifacts/quality-passports/<target>.json` (or an explicitly supplied path inside that directory) and delegates integrity verification to `@nexus/quality/quality-passport`. It never creates a Passport.
 - `nexus_capture` starts a selected workspace app locally and delegates screenshots to `@nexus/capture/playwright`. Captures are downloadable through the authenticated `/artifacts/:requestId/:name` endpoint.
 - Arbitrary public URL capture intentionally returns `NOT_TESTED` in this block. The existing capture adapter validates the initial HTTP(S) URL but does not yet enforce the approved SSRF policy across redirects and subresources; the MCP layer will not claim that unsafe gap is tested.

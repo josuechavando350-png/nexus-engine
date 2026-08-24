@@ -7,7 +7,7 @@ import { nexusBuild, nexusComparator } from "../src/tools.js";
 const sha = "a".repeat(40);
 const git: GitState = { branch: "work", headSha: sha, detached: false, clean: true, changedPaths: [], remoteUrl: null };
 const project: ProjectState = { slug: "reference-alfil", path: "apps/reference-alfil", packageName: "@nexus/reference-alfil", workspaceMember: true, kind: "REFERENCE", clientProject: false, evidence: { packageJsonPath: "apps/reference-alfil/package.json", clientProjectDeclaration: null, classificationRule: "reference" } };
-const base = { root: "/repo", git: async () => git, projects: async () => [project], requestId: () => "block-three" };
+const base = { root: "/repo", git: async () => git, projects: async () => [project], requestId: () => "block-three", buildValidator: async () => true };
 
 function manifest(): BuildManifest {
   const payload = { authority: "NEXUS_MCP_BUILD_MANIFEST_V1" as const, sourceSha: sha, target: project.path, nodeVersion: "v24.0.0", pnpmVersion: "10.15.0", packageManager: "pnpm@10.15.0", lockfileSha256: "b".repeat(64), buildKey: "c".repeat(64), cacheHit: false, outputDigest: "d".repeat(64), files: [{ path: "apps/reference-alfil/.next/BUILD_ID", byteLength: 20, sha256: "e".repeat(64) }] };
