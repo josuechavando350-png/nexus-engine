@@ -30,7 +30,9 @@ async function command(root: string, executable: string, args: readonly string[]
   return result.stdout.trim();
 }
 
-export async function createProject(root: string, spec: ProjectSpec, executionTimeoutMs = 900_000, maxOutputBytes = 8 * 1024 * 1024): Promise<ProjectCreation> {
+export const DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS = 300_000;
+
+export async function createProject(root: string, spec: ProjectSpec, executionTimeoutMs = DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS, maxOutputBytes = 8 * 1024 * 1024): Promise<ProjectCreation> {
   const branchName = spec.branchName ?? `nexus-mcp/${spec.slug}`;
   const commitMessage = spec.commitMessage ?? `feat(client): initialize ${spec.slug}`;
   const temporary = await mkdtemp(join(tmpdir(), "nexus-project-spec-"));

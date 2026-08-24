@@ -10,7 +10,11 @@ const COMMANDS: Record<GateId, readonly string[]> = {
   lint: ["lint"], typecheck: ["typecheck"], test: ["test"], build: ["build"], "quality-gates": ["quality-gates"], browser: ["test:browser"],
 };
 
-export async function runGate(root: string, gate: GateId, requestId: string, timeoutMs = gate === "build" || gate === "browser" || gate === "quality-gates" ? 900_000 : 300_000, maxOutputBytes = 8 * 1024 * 1024): Promise<GateResult> {
+export function defaultGateTimeoutMs(gate: GateId): number {
+  return gate === "build" || gate === "browser" || gate === "quality-gates" ? 900_000 : 300_000;
+}
+
+export async function runGate(root: string, gate: GateId, requestId: string, timeoutMs = defaultGateTimeoutMs(gate), maxOutputBytes = 8 * 1024 * 1024): Promise<GateResult> {
   const started = Date.now();
   const logDir = join(tmpdir(), "nexus-mcp-gates", requestId);
   const logPath = join(logDir, `${gate}.log`);

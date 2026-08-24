@@ -7,7 +7,7 @@ import { createNexusMcpServer } from "./mcp.js";
 import type { ToolDependencies } from "./tools.js";
 import { LocalArtifactStore, type ArtifactStore } from "./artifacts.js";
 import { ConcurrencyLimitError, ExecutionCoordinator, type ExecutionRunner } from "./execution.js";
-import { DEFAULT_EXECUTION_TIMEOUT_MS, DEFAULT_MAX_ARTIFACT_BYTES, DEFAULT_MAX_CONCURRENCY, DEFAULT_MAX_PROCESS_OUTPUT_BYTES, REMOTE_READINESS_DEFAULT_TOOLS, type NexusToolName, type RuntimeLimits } from "./policy.js";
+import { DEFAULT_MAX_ARTIFACT_BYTES, DEFAULT_MAX_CONCURRENCY, DEFAULT_MAX_PROCESS_OUTPUT_BYTES, REMOTE_READINESS_DEFAULT_TOOLS, type NexusToolName, type RuntimeLimits } from "./policy.js";
 import { readGitState } from "./git.js";
 
 export interface HttpServerOptions extends ToolDependencies {
@@ -31,7 +31,7 @@ export function createNexusHttpApp(options: HttpServerOptions) {
   if (!/^[a-f0-9]{64}$/.test(options.tokenSha256)) throw new Error("NEXUS_MCP_TOKEN_SHA256 must be a lowercase SHA-256 digest");
   if (options.writeTokenSha256 !== undefined && !/^[a-f0-9]{64}$/.test(options.writeTokenSha256)) throw new Error("NEXUS_MCP_WRITE_TOKEN_SHA256 must be a lowercase SHA-256 digest");
   if (options.writeTokenSha256 === options.tokenSha256) throw new Error("read and write token hashes must be different");
-  const limits = options.limits ?? { maxConcurrency: DEFAULT_MAX_CONCURRENCY, executionTimeoutMs: DEFAULT_EXECUTION_TIMEOUT_MS, maxArtifactBytes: DEFAULT_MAX_ARTIFACT_BYTES, maxProcessOutputBytes: DEFAULT_MAX_PROCESS_OUTPUT_BYTES };
+  const limits = options.limits ?? { maxConcurrency: DEFAULT_MAX_CONCURRENCY, executionTimeoutMs: undefined, maxArtifactBytes: DEFAULT_MAX_ARTIFACT_BYTES, maxProcessOutputBytes: DEFAULT_MAX_PROCESS_OUTPUT_BYTES };
   const enabledTools = options.enabledTools ?? new Set<NexusToolName>(REMOTE_READINESS_DEFAULT_TOOLS);
   const localArtifactRoot = options.artifactRoot ?? join(options.root, ".artifacts", "mcp");
   const artifactStore = options.artifactStore ?? new LocalArtifactStore(localArtifactRoot, limits.maxArtifactBytes);

@@ -5,8 +5,11 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { LocalArtifactStore } from "../src/artifacts.js";
+import { DEFAULT_BUILD_TIMEOUT_MS } from "../src/build.js";
 import { ConcurrencyLimitError, ExecutionCoordinator } from "../src/execution.js";
+import { defaultGateTimeoutMs } from "../src/gates.js";
 import { enabledToolsFromEnv, runtimeLimitsFromEnv } from "../src/policy.js";
+import { DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS } from "../src/project-new.js";
 
 const exec = promisify(execFile); const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
@@ -34,6 +37,23 @@ describe("remote readiness isolation", () => {
 });
 
 describe("remote readiness artifacts and policy", () => {
+  it("preserves historical operation timeouts unless an explicit override is configured", () => {
+    expect(runtimeLimitsFromEnv({}).executionTimeoutMs).toBeUndefined();
+    expect(defaultGateTimeoutMs("lint")).toBe(300_000);
+    expect(defaultGateTimeoutMs("typecheck")).toBe(300_000);
+    expect(defaultGateTimeoutMs("test")).toBe(300_000);
+    expect(defaultGateTimeoutMs("build")).toBe(900_000);
+    expect(defaultGateTimeoutMs("browser")).toBe(900_000);
+    expect(defaultGateTimeoutMs("quality-gates")).toBe(900_000);
+    expect(DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS).toBe(300_000);
+    expect(DEFAULT_BUILD_TIMEOUT_MS).toBe(900_000);
+    expect(runtimeLimitsFromEnv({ NEXUS_MCP_EXECUTION_TIMEOUT_MS: "450000" }).executionTimeoutMs).toBe(450_000);
+  });
+
+  it.each(["", "0", "-1", "1.5", "not-a-number", "9007199254740992"])("rejects invalid execution timeout %j", (value) => {
+    expect(() => runtimeLimitsFromEnv({ NEXUS_MCP_EXECUTION_TIMEOUT_MS: value })).toThrow(/positive integer/);
+  });
+
   it("stores request-scoped artifacts with digest, manifest and confined retrieval", async () => {
     const root = await mkdtemp(join(tmpdir(), "nexus-readiness-artifacts-")); roots.push(root); const source = join(root, "source.log"); await writeFile(source, "evidence\n");
     const store = new LocalArtifactStore(join(root, "store"), 1024); const record = await store.putFile("request-1", "gate.log", source, "text/plain", { gate: "lint" });
