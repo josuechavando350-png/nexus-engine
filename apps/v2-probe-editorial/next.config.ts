@@ -8,6 +8,11 @@ const deterministicBuildId = () => {
 };
 
 const nextConfig: NextConfig = {
+  // Next 15 webpack workers can assign different module IDs under Node 24.
+  // Serialize only hermetic verification builds; normal app builds keep Next defaults.
+  experimental: process.env.NEXUS_DETERMINISTIC_BUILD === "1"
+    ? { cpus: 1, webpackBuildWorker: false }
+    : {},
   transpilePackages: ["@nexus/core", "@nexus/experience"],
   generateBuildId: async () => deterministicBuildId(),
   async headers() {
