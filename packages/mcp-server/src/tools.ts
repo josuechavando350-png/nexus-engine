@@ -20,6 +20,8 @@ export interface ToolDependencies {
   artifactRoot?: string;
   buildRunner?: typeof import("./build.js").buildTarget;
   projectCreator?: typeof import("./project-new.js").createProject;
+  artifactStore?: import("./artifacts.js").ArtifactStore;
+  limits?: import("./policy.js").RuntimeLimits;
 }
 
 function error(code: string, value: unknown, retryable = false): ToolError {
@@ -98,7 +100,7 @@ export async function nexusProjectNew(input: import("./project-new.js").ProjectS
   const projects = await (dependencies.projects ?? readProjects)(dependencies.root);
   if (projects.some((project) => project.slug === input.slug)) return base<import("./project-new.js").ProjectCreation>("nexus_project_new", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_EXISTS", `apps/${input.slug} already exists`)]);
   try {
-    const data = await (dependencies.projectCreator ?? createProject)(dependencies.root, input);
+    const data = await (dependencies.projectCreator ?? createProject)(dependencies.root, input, dependencies.limits?.executionTimeoutMs, dependencies.limits?.maxProcessOutputBytes);
     return base<import("./project-new.js").ProjectCreation>("nexus_project_new", startedAt, now().toISOString(), requestId, repository, { ...git, branch: data.branch.name, headSha: data.branch.headSha, clean: true, changedPaths: [] }, "PASS", data, [
       { kind: "git", locator: `git:${data.branch.baseSha}` }, { kind: "git", locator: `git:${data.branch.headSha}` },
       ...data.files.map((locator) => ({ kind: "file" as const, locator })), ...data.validation.map((item) => ({ kind: "command" as const, locator: item.command, exitCode: item.exitCode })),
@@ -126,10 +128,19 @@ export async function nexusGates(input: { target?: string; sourceSha: string; ga
   }
   const requested = input.gates ?? ["lint", "typecheck", "test", "build", "quality-gates"];
   const results = [];
-  for (const gate of requested) results.push(await (dependencies.gateRunner ?? runGate)(dependencies.root, gate, requestId));
+  for (const gate of requested) results.push(await (dependencies.gateRunner ?? runGate)(dependencies.root, gate, requestId, dependencies.limits?.executionTimeoutMs, dependencies.limits?.maxProcessOutputBytes));
+  if (dependencies.artifactStore) for (const item of results) if (item.logPath) {
+    const artifact = await dependencies.artifactStore.putFile(requestId, `gate-${item.id}.log`, item.logPath, "text/plain", { tool: "nexus_gates", gate: item.id, status: item.status, exitCode: item.exitCode });
+    item.artifact = artifact;
+  }
   const counts = { pass: results.filter((item) => item.status === "PASS").length, fail: results.filter((item) => item.status === "FAIL").length, notTested: results.filter((item) => item.status === "NOT_TESTED").length };
   const status = counts.fail ? "FAIL" : counts.notTested ? "NOT_TESTED" : "PASS";
-  return base<GatesData>("nexus_gates", startedAt, now().toISOString(), requestId, repository, git, status, { gates: results, counts }, [{ kind: "git", locator: `git:${git.headSha}` }, ...results.flatMap((item) => item.evidencePaths.map((locator) => ({ kind: "command" as const, locator, exitCode: item.exitCode ?? undefined })))], []);
+  const gateEvidence: ToolEvidence[] = [];
+  for (const item of results) {
+    if (item.artifact) gateEvidence.push({ kind: "artifact", locator: `${item.artifact.url}#sha256=${item.artifact.sha256}` });
+    else gateEvidence.push(...item.evidencePaths.map((locator) => ({ kind: "command" as const, locator, exitCode: item.exitCode ?? undefined })));
+  }
+  return base<GatesData>("nexus_gates", startedAt, now().toISOString(), requestId, repository, git, status, { gates: results, counts }, [{ kind: "git", locator: `git:${git.headSha}` }, ...gateEvidence], []);
 }
 
 export async function nexusPassport(input: { target: string; sourceSha: string; passportPath?: string }, dependencies: ToolDependencies): Promise<ToolResult<PassportData>> {
@@ -160,7 +171,11 @@ export async function nexusCapture(input: import("./capture.js").CaptureInput, d
   const projects = await (dependencies.projects ?? readProjects)(dependencies.root); const project = projects.find((item) => item.slug === target);
   if (!project) return base<import("./capture.js").CaptureOutput>("nexus_capture", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_NOT_FOUND", `unknown target ${target}`)]);
   try {
-    const data = await (dependencies.captureRunner ?? captureTarget)(dependencies.root, project, git.headSha, requestId, dependencies.artifactRoot ?? join(dependencies.root, ".artifacts", "mcp"), input.viewports);
+    let data = await (dependencies.captureRunner ?? captureTarget)(dependencies.root, project, git.headSha, requestId, dependencies.artifactRoot ?? join(dependencies.root, ".artifacts", "mcp"), input.viewports);
+    if (dependencies.artifactStore) data = { captures: await Promise.all(data.captures.map(async (capture) => {
+      const artifact = await dependencies.artifactStore!.putFile(requestId, capture.artifact.url.split("/").at(-1) ?? `${capture.viewport}.png`, capture.artifact.path.startsWith("/") ? capture.artifact.path : join(dependencies.root, capture.artifact.path), capture.artifact.mediaType, { tool: "nexus_capture", viewport: capture.viewport, width: capture.width, height: capture.height, sourceSha: git.headSha });
+      return { ...capture, artifact: { ...capture.artifact, path: artifact.path, url: artifact.url, byteLength: artifact.byteLength, sha256: artifact.sha256 } };
+    })) };
     return base<import("./capture.js").CaptureOutput>("nexus_capture", startedAt, now().toISOString(), requestId, repository, git, "PASS", data, [{ kind: "git", locator: `git:${git.headSha}` }, ...data.captures.map((capture) => ({ kind: "capture" as const, locator: capture.artifact.url }))], []);
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : String(cause); const unavailable = /browser.*(not found|executable)|pnpm is unavailable/i.test(message);
@@ -197,8 +212,13 @@ export async function nexusBuild(input: { target: string; sourceSha: string; cle
   if (!git.clean) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("DIRTY_WORKTREE", "build requires a clean checkout")]);
   const projects = await (dependencies.projects ?? readProjects)(dependencies.root); const project = projects.find((item) => item.slug === input.target);
   if (!project) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_NOT_FOUND", `unknown target ${input.target}`)]);
-  const execution = await (dependencies.buildRunner ?? buildTarget)(dependencies.root, project, git.headSha, requestId);
-  const evidence: ToolEvidence[] = [{ kind: "git", locator: `git:${git.headSha}` }, { kind: "command", locator: execution.logPath, ...(execution.exitCode === null ? {} : { exitCode: execution.exitCode }) }];
+  const execution = await (dependencies.buildRunner ?? buildTarget)(dependencies.root, project, git.headSha, requestId, dependencies.limits?.executionTimeoutMs, dependencies.limits?.maxProcessOutputBytes);
+  if (dependencies.artifactStore) {
+    execution.logArtifact = await dependencies.artifactStore.putFile(requestId, "build.log", execution.logPath, "text/plain", { tool: "nexus_build", target: project.slug, exitCode: execution.exitCode, sourceSha: git.headSha });
+    if (execution.manifestPath) execution.manifestArtifact = await dependencies.artifactStore.putFile(requestId, "build-manifest.json", execution.manifestPath, "application/json", { tool: "nexus_build", target: project.slug, sourceSha: git.headSha });
+  }
+  const evidence: ToolEvidence[] = [{ kind: "git", locator: `git:${git.headSha}` }, execution.logArtifact ? { kind: "artifact", locator: `${execution.logArtifact.url}#sha256=${execution.logArtifact.sha256}` } : { kind: "command", locator: execution.logPath, ...(execution.exitCode === null ? {} : { exitCode: execution.exitCode }) }];
+  if (execution.manifestArtifact) evidence.push({ kind: "artifact", locator: `${execution.manifestArtifact.url}#sha256=${execution.manifestArtifact.sha256}` });
   if (execution.unavailableReason) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "NOT_TESTED", execution, evidence, [error(execution.unavailableReason.includes("exceeded") ? "BUILD_TIMEOUT" : "DEPENDENCIES_UNAVAILABLE", execution.unavailableReason, true)]);
   if (execution.exitCode !== 0) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "FAIL", execution, evidence, [error("BUILD_FAILED", `build exited ${execution.exitCode}`)]);
   if (!execution.manifest || !validBuildManifest(execution.manifest, project, git.headSha)) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "FAIL", execution, evidence, [error("ARTIFACT_ENUMERATION_FAILED", "build manifest is missing or invalid")]);

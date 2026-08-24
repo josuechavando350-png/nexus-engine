@@ -7,3 +7,6 @@ export * from "./capture.js";
 export * from "./gates.js";
 export * from "./passport.js";
 export * from "./build.js";
+export * from "./artifacts.js";
+export * from "./execution.js";
+export * from "./policy.js";

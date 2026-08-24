@@ -25,12 +25,12 @@ export interface ProjectCreation {
   validation: readonly { command: string; exitCode: number; status: "PASS" }[];
 }
 
-async function command(root: string, executable: string, args: readonly string[], timeout = 120_000): Promise<string> {
-  const result = await exec(executable, [...args], { cwd: root, encoding: "utf8", timeout, maxBuffer: 8 * 1024 * 1024 });
+async function command(root: string, executable: string, args: readonly string[], timeout = 120_000, maxOutputBytes = 8 * 1024 * 1024): Promise<string> {
+  const result = await exec(executable, [...args], { cwd: root, encoding: "utf8", timeout, maxBuffer: maxOutputBytes });
   return result.stdout.trim();
 }
 
-export async function createProject(root: string, spec: ProjectSpec): Promise<ProjectCreation> {
+export async function createProject(root: string, spec: ProjectSpec, executionTimeoutMs = 900_000, maxOutputBytes = 8 * 1024 * 1024): Promise<ProjectCreation> {
   const branchName = spec.branchName ?? `nexus-mcp/${spec.slug}`;
   const commitMessage = spec.commitMessage ?? `feat(client): initialize ${spec.slug}`;
   const temporary = await mkdtemp(join(tmpdir(), "nexus-project-spec-"));
@@ -46,7 +46,7 @@ export async function createProject(root: string, spec: ProjectSpec): Promise<Pr
     const validation = [];
     for (const task of validations) {
       const args = ["--filter", `@nexus/${spec.slug}`, task];
-      await command(root, "pnpm", args, 300_000);
+      await command(root, "pnpm", args, executionTimeoutMs, maxOutputBytes);
       validation.push({ command: `pnpm ${args.join(" ")}`, exitCode: 0 as const, status: "PASS" as const });
     }
     await rm(projectModules, { recursive: true, force: true });
