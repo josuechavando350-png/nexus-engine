@@ -27,7 +27,7 @@ jobs:
         run: node scripts/v3-architecture-gates.mjs
 
   web-quality:
-    name: Web invariants and reproducible build
+    name: Web invariants and verified build artifact
     runs-on: ubuntu-24.04
     needs: architecture
     steps:
@@ -52,11 +52,36 @@ jobs:
           pnpm third-party-proof
           pnpm build
           test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Upload exact web build artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-baseline-web-build-${{ github.sha }}-${{ github.run_id }}
+          path: |
+            .artifacts/web-build
+            .artifacts/web-build-identity.json
+          if-no-files-found: error
+
+  artifact-identity:
+    name: Downloaded artifact identity
+    runs-on: ubuntu-24.04
+    needs: web-quality
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: 24 }
+      - name: Download exact web build artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: nexus-baseline-web-build-${{ github.sha }}-${{ github.run_id }}
+          path: .artifacts/downloaded
+      - name: Verify downloaded artifact bytes
+        run: node scripts/verify-artifact.mjs --artifact-root .artifacts/downloaded/web-build --manifest .artifacts/downloaded/web-build-identity.json --source-revision "$(git rev-parse HEAD)"
 
   rust-workspace:
     name: Rust locked workspace
     runs-on: ubuntu-24.04
-    needs: web-quality
+    needs: artifact-identity
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with: { fetch-depth: 0 }

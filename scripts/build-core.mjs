@@ -5,7 +5,7 @@ import { delimiter, join, relative, resolve, sep } from "node:path";
 
 export const OUTPUT_DIR_NAMES = ["dist", "build", "out", ".next"];
 export const DEFAULT_SOURCE_DATE_EPOCH = "315532800";
-const IGNORED_NAMES = new Set(["node_modules", ".git", ".nexus-cache", ".turbo", ".cache", "coverage", "next-env.d.ts", ...OUTPUT_DIR_NAMES]);
+const IGNORED_NAMES = new Set(["node_modules", ".git", ".nexus-cache", ".artifacts", ".turbo", ".cache", "coverage", "next-env.d.ts", ...OUTPUT_DIR_NAMES]);
 
 export function normalizedPath(path) { return path.split(sep).join("/"); }
 export function sourceDateEpoch() {

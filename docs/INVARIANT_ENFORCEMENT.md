@@ -6,6 +6,8 @@ repository currently has no executable observation that proves the claim.
 
 | Invariant | Status | Executable evidence or reason |
 | --- | --- | --- |
+| Two independent Next.js 15.5.23 builds produce byte-for-byte identical output | INVARIANT_NOT_ENFORCEABLE | Next.js does not document this guarantee. Reproducible-build issue [vercel/next.js#63201](https://github.com/vercel/next.js/issues/63201) remains open; Next.js 15.5.23 generates Preview Mode credentials with `crypto.randomBytes()` in [`preview-key-utils.ts`](https://github.com/vercel/next.js/blob/v15.5.23/packages/next/src/build/preview-key-utils.ts#L33-L38); and the supported deployment guidance is to use [`generateBuildId`](https://nextjs.org/docs/app/api-reference/config/next-config-js/generateBuildId) so the same build is used in every container. NEXUS therefore does not claim that two independent builds are byte-identical. Review if Next.js publishes and implements a reproducible-build contract. |
+| Built web artifact is distributed without byte changes | ENFORCED | `scripts/build-artifact.mjs` builds once and records every file's raw size and SHA-256 plus an aggregate digest. `scripts/verify-artifact.mjs` fails closed unless downloaded bytes, file set, digest and source revision match that manifest. `tests/artifact-identity.test.ts` proves an altered downloaded artifact makes the verifier exit non-zero. |
 | V4 replay cannot dispatch physical work | ENFORCED | `nexus-durable` Rust unit tests exercise replay mode; the Rust workspace test job runs them. |
 | V4 planner cycles and reasoning budgets remain bounded | ENFORCED | `nexus-planner` and `nexus-reasoning` Rust unit tests exercise cycle and budget rejection. |
 | V4 model and memory providers remain replaceable | INVARIANT_NOT_ENFORCEABLE | Trait-name/source presence is architecture inspection, not behavior. No provider conformance suite exists yet. |
@@ -23,6 +25,39 @@ repository currently has no executable observation that proves the claim.
 | V8 framework/vendor/browser/Rust neutrality | INVARIANT_NOT_ENFORCEABLE | Import/source scanning is a useful architecture lint, but it is not behavioral proof. Dependency policy needs a dedicated graph boundary tool and must not be described as runtime certification. |
 | V8 planned maturity wording, optional-technology wording and version-scope prose | INVARIANT_NOT_ENFORCEABLE | These are documentation assertions, not executable product invariants. They are intentionally not gates. |
 | V8 accessible degradation for every adapter | INVARIANT_NOT_ENFORCEABLE | Individual motion/accessibility tests exist, but there is no conformance suite covering every optional adapter. |
+
+## Build-once artifact identity
+
+NEXUS enforces **build once, hash once, distribute the exact same artifact**.
+`pnpm build` performs one build, stages its exact bytes under
+`.artifacts/web-build`, and writes `.artifacts/web-build-identity.json`. CI
+uploads that pair, downloads it again, and runs `pnpm verify:artifact` against
+the exact source revision. Added, removed, or byte-modified files fail the
+verification. This proves artifact identity across the distribution boundary;
+it does not represent a second independent Next.js build as reproducibility
+evidence.
+
+The enforceable inputs remain fail-closed: frozen lockfiles and pinned tool
+versions, hermetic build inputs, fixed build ID, fixed Server Actions encryption
+key, semantic manifest identity, and a clean tracked worktree after NEXUS-owned
+outputs are produced.
+
+## Generated JSON normalization
+
+The artifact manifest records an additional semantic identity for generated
+`.json` files by recursively sorting object keys before hashing. JSON object key
+order and formatting carry no semantic information, so this is normalization
+rather than an invariant exception.
+Array order, property names, property presence, value types and values remain
+significant: adding, removing or changing any of them still fails the gate.
+
+The Preview Mode exception remains narrowly scoped to
+`preview.previewModeId`, `preview.previewModeSigningKey`, and
+`preview.previewModeEncryptionKey` in `.next/prerender-manifest.json`. Next.js
+15.5.23 creates only those credential values with `crypto.randomBytes()` and
+does not expose a supported API to fix them. The semantic identity records every
+application of that declared exception. Raw artifact identity is never
+canonicalized: the bytes built once must be the bytes distributed.
 
 The removed `tests/runtime-invariants.test.ts`, `tests/v4-boundaries.test.ts` and
 `tests/v5-boundaries.test.ts` only searched source strings. Their green result

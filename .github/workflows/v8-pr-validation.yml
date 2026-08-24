@@ -55,8 +55,23 @@ jobs:
         run: pnpm typecheck
       - name: Unit and integration tests
         run: pnpm test
-      - name: Hermetic deterministic build
+      - name: Build once and record artifact identity
         run: pnpm build
+      - name: Upload exact web build artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-web-build-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: |
+            .artifacts/web-build
+            .artifacts/web-build-identity.json
+          if-no-files-found: error
+      - name: Download exact web build artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: nexus-web-build-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: .artifacts/downloaded
+      - name: Verify downloaded artifact bytes
+        run: node scripts/verify-artifact.mjs --artifact-root .artifacts/downloaded/web-build --manifest .artifacts/downloaded/web-build-identity.json --source-revision "$NEXUS_VALIDATED_SHA"
       - name: Real browser tests
         run: pnpm test:browser
       - name: V3 runtime boundary

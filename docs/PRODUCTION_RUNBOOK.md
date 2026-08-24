@@ -36,13 +36,14 @@ Every real client enters `apps/` from the start of delivery.
 2. Enable pinned pnpm and run `pnpm install --frozen-lockfile`.
 3. Run `pnpm security-hygiene` and the retained V3 runtime-boundary gate.
 4. Run `pnpm verify:assets`, `pnpm lint`, `pnpm typecheck`, and `pnpm test`.
-5. Run the hermetic deterministic build with `pnpm build`.
-6. Run real Chromium/WebKit evidence with `pnpm test:browser` and the browser-quality workflow.
-7. Run locked Rust tests, lint, release build and optional adapter compilation.
-8. Run `pnpm operability:h07` from the clean-room workflow.
-9. Run `pnpm third-party-proof` through public surfaces only.
-10. Require a clean working tree and exact source SHA before merge/release.
-11. After a signing model is approved, add the signature verification step as an additional required proof; it never replaces the checks above.
+5. Run `pnpm build` once. Preserve `.artifacts/web-build` together with `.artifacts/web-build-identity.json`; do not rebuild per environment.
+6. Upload and download that artifact pair, then run `pnpm verify:artifact -- --artifact-root <downloaded-web-build> --manifest <downloaded-identity.json> --source-revision <candidate-sha>`. Any added, removed, or byte-modified file is a release failure.
+7. Run real Chromium/WebKit evidence with `pnpm test:browser` and the browser-quality workflow.
+8. Run locked Rust tests, lint, release build and optional adapter compilation.
+9. Run `pnpm operability:h07` from the clean-room workflow.
+10. Run `pnpm third-party-proof` through public surfaces only.
+11. Require a clean working tree and exact source SHA before merge/release.
+12. After a signing model is approved, add the signature verification step as an additional required proof; it never replaces the checks above.
 
 ## Third-party acceptance proof
 
