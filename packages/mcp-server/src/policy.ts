@@ -3,9 +3,17 @@ export type NexusToolName = typeof TOOL_NAMES[number];
 
 export const REMOTE_READINESS_DEFAULT_TOOLS = Object.freeze(["nexus_status", "nexus_projects"] as const);
 export const DEFAULT_MAX_CONCURRENCY = 2;
-export const DEFAULT_EXECUTION_TIMEOUT_MS = 900_000;
+export const MIN_MAX_CONCURRENCY = 1;
+export const MAX_MAX_CONCURRENCY = 16;
+export const DEFAULT_EXECUTION_TIMEOUT_MS = 300_000;
+export const MIN_EXECUTION_TIMEOUT_MS = 1_000;
+export const MAX_EXECUTION_TIMEOUT_MS = 900_000;
 export const DEFAULT_MAX_ARTIFACT_BYTES = 25 * 1024 * 1024;
+export const MIN_MAX_ARTIFACT_BYTES = 1_024;
+export const MAX_MAX_ARTIFACT_BYTES = 100 * 1024 * 1024;
 export const DEFAULT_MAX_PROCESS_OUTPUT_BYTES = 8 * 1024 * 1024;
+export const MIN_MAX_PROCESS_OUTPUT_BYTES = 1_024;
+export const MAX_MAX_PROCESS_OUTPUT_BYTES = 16 * 1024 * 1024;
 
 export interface RuntimeLimits {
   maxConcurrency: number;
@@ -14,19 +22,19 @@ export interface RuntimeLimits {
   maxProcessOutputBytes: number;
 }
 
-function positiveInteger(value: string | undefined, fallback: number, name: string): number {
+function boundedInteger(value: string | undefined, fallback: number, minimum: number, maximum: number, name: string): number {
   if (value === undefined) return fallback;
   const parsed = Number(value);
-  if (!Number.isSafeInteger(parsed) || parsed < 1) throw new Error(`${name} must be a positive integer`);
+  if (!Number.isSafeInteger(parsed) || parsed < minimum || parsed > maximum) throw new Error(`${name} must be an integer in ${minimum}..${maximum}`);
   return parsed;
 }
 
 export function runtimeLimitsFromEnv(environment: NodeJS.ProcessEnv = process.env): RuntimeLimits {
   return Object.freeze({
-    maxConcurrency: positiveInteger(environment.NEXUS_MCP_MAX_CONCURRENCY, DEFAULT_MAX_CONCURRENCY, "NEXUS_MCP_MAX_CONCURRENCY"),
-    executionTimeoutMs: positiveInteger(environment.NEXUS_MCP_EXECUTION_TIMEOUT_MS, DEFAULT_EXECUTION_TIMEOUT_MS, "NEXUS_MCP_EXECUTION_TIMEOUT_MS"),
-    maxArtifactBytes: positiveInteger(environment.NEXUS_MCP_MAX_ARTIFACT_BYTES, DEFAULT_MAX_ARTIFACT_BYTES, "NEXUS_MCP_MAX_ARTIFACT_BYTES"),
-    maxProcessOutputBytes: positiveInteger(environment.NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES, DEFAULT_MAX_PROCESS_OUTPUT_BYTES, "NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES"),
+    maxConcurrency: boundedInteger(environment.NEXUS_MCP_MAX_CONCURRENCY, DEFAULT_MAX_CONCURRENCY, MIN_MAX_CONCURRENCY, MAX_MAX_CONCURRENCY, "NEXUS_MCP_MAX_CONCURRENCY"),
+    executionTimeoutMs: boundedInteger(environment.NEXUS_MCP_EXECUTION_TIMEOUT_MS, DEFAULT_EXECUTION_TIMEOUT_MS, MIN_EXECUTION_TIMEOUT_MS, MAX_EXECUTION_TIMEOUT_MS, "NEXUS_MCP_EXECUTION_TIMEOUT_MS"),
+    maxArtifactBytes: boundedInteger(environment.NEXUS_MCP_MAX_ARTIFACT_BYTES, DEFAULT_MAX_ARTIFACT_BYTES, MIN_MAX_ARTIFACT_BYTES, MAX_MAX_ARTIFACT_BYTES, "NEXUS_MCP_MAX_ARTIFACT_BYTES"),
+    maxProcessOutputBytes: boundedInteger(environment.NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES, DEFAULT_MAX_PROCESS_OUTPUT_BYTES, MIN_MAX_PROCESS_OUTPUT_BYTES, MAX_MAX_PROCESS_OUTPUT_BYTES, "NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES"),
   });
 }
 

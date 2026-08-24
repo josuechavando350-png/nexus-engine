@@ -6,7 +6,7 @@ import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
 import { LocalArtifactStore } from "../src/artifacts.js";
 import { ConcurrencyLimitError, ExecutionCoordinator } from "../src/execution.js";
-import { enabledToolsFromEnv, runtimeLimitsFromEnv } from "../src/policy.js";
+import { DEFAULT_EXECUTION_TIMEOUT_MS, DEFAULT_MAX_ARTIFACT_BYTES, DEFAULT_MAX_CONCURRENCY, DEFAULT_MAX_PROCESS_OUTPUT_BYTES, enabledToolsFromEnv, MAX_EXECUTION_TIMEOUT_MS, MAX_MAX_ARTIFACT_BYTES, MAX_MAX_CONCURRENCY, MAX_MAX_PROCESS_OUTPUT_BYTES, MIN_EXECUTION_TIMEOUT_MS, MIN_MAX_ARTIFACT_BYTES, MIN_MAX_CONCURRENCY, MIN_MAX_PROCESS_OUTPUT_BYTES, runtimeLimitsFromEnv } from "../src/policy.js";
 
 const exec = promisify(execFile); const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
@@ -60,9 +60,25 @@ describe("remote readiness artifacts and policy", () => {
     expect(await store.resolve("request-tampered", "gate.log")).toBeNull();
   });
 
-  it("rejects oversized artifacts and invalid policy values", async () => {
+  it("rejects oversized artifacts and invalid capability policy values", async () => {
     const root = await mkdtemp(join(tmpdir(), "nexus-readiness-limits-")); roots.push(root); const source = join(root, "large.log"); await writeFile(source, "too large");
     await expect(new LocalArtifactStore(join(root, "store"), 3).putFile("request-1", "large.log", source, "text/plain")).rejects.toThrow(/exceeds configured/);
-    expect(() => runtimeLimitsFromEnv({ NEXUS_MCP_MAX_CONCURRENCY: "0" })).toThrow(/positive integer/); expect(() => enabledToolsFromEnv("nexus_status,unknown")).toThrow(/unknown/);
+    expect(() => enabledToolsFromEnv("nexus_status,unknown")).toThrow(/unknown/);
+  });
+
+  const boundaries = [
+    { variable: "NEXUS_MCP_MAX_CONCURRENCY", property: "maxConcurrency", minimum: MIN_MAX_CONCURRENCY, defaultValue: DEFAULT_MAX_CONCURRENCY, maximum: MAX_MAX_CONCURRENCY },
+    { variable: "NEXUS_MCP_EXECUTION_TIMEOUT_MS", property: "executionTimeoutMs", minimum: MIN_EXECUTION_TIMEOUT_MS, defaultValue: DEFAULT_EXECUTION_TIMEOUT_MS, maximum: MAX_EXECUTION_TIMEOUT_MS },
+    { variable: "NEXUS_MCP_MAX_ARTIFACT_BYTES", property: "maxArtifactBytes", minimum: MIN_MAX_ARTIFACT_BYTES, defaultValue: DEFAULT_MAX_ARTIFACT_BYTES, maximum: MAX_MAX_ARTIFACT_BYTES },
+    { variable: "NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES", property: "maxProcessOutputBytes", minimum: MIN_MAX_PROCESS_OUTPUT_BYTES, defaultValue: DEFAULT_MAX_PROCESS_OUTPUT_BYTES, maximum: MAX_MAX_PROCESS_OUTPUT_BYTES },
+  ] as const;
+
+  it.each(boundaries)("bounds $variable and rejects configurations that could disable its guard", ({ variable, property, minimum, defaultValue, maximum }) => {
+    expect(runtimeLimitsFromEnv({})[property]).toBe(defaultValue);
+    expect(runtimeLimitsFromEnv({ [variable]: String(minimum) })[property]).toBe(minimum);
+    expect(runtimeLimitsFromEnv({ [variable]: String(maximum) })[property]).toBe(maximum);
+    for (const invalid of [String(maximum + 1), "0", "-1", "", "NaN", "1.5", String(Number.MAX_SAFE_INTEGER)]) {
+      expect(() => runtimeLimitsFromEnv({ [variable]: invalid })).toThrow(new RegExp(`${variable} must be an integer`));
+    }
   });
 });
