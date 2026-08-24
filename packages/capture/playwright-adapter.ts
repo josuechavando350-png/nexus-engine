@@ -3,10 +3,10 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { chromium, webkit, type BrowserType, type Page } from "playwright";
-import type { MetricSample } from "../measurement/index";
-import { measureApca } from "./apca-audit";
-import { extractDesignGenome } from "./design-genome";
-import { collectWebVitals, installWebVitalsObservers } from "./web-vitals";
+import type { MetricSample } from "../measurement/index.js";
+import { measureApca } from "./apca-audit.js";
+import { extractDesignGenome } from "./design-genome.js";
+import { collectWebVitals, installWebVitalsObservers } from "./web-vitals.js";
 import {
   captureRequestId,
   createCaptureArtifact,
@@ -15,7 +15,7 @@ import {
   type CaptureArtifact,
   type CaptureRequest,
   type CaptureResult,
-} from "./index";
+} from "./index.js";
 
 export type SupportedBrowser = "chromium" | "webkit";
 export type CaptureViewport = Readonly<{ name: string; width: number; height: number }>;

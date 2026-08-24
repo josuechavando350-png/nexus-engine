@@ -1,0 +1,28 @@
+{
+  "name": "@nexus/mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "nexus-mcp-server": "./dist/mcp-server/src/server.js"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run tests",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/mcp-server/src/server.js && test -f dist/mcp-server/src/index.d.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.30.0",
+    "@nexus/capture": "workspace:*",
+    "@nexus/measurement": "workspace:*",
+    "@nexus/quality": "workspace:*",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^24.0.0"
+  }
+}
