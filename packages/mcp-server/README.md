@@ -12,10 +12,10 @@ Remote, deterministic MCP control surface for NEXUS. It exposes the approved blo
 - `NEXUS_MCP_ALLOWED_HOSTS` (optional locally, required for deployment): comma-separated HTTP Host allowlist. Defaults to `localhost,127.0.0.1`; set it to the public service hostname when hosted.
 - `NEXUS_MCP_ARTIFACT_ROOT` (optional): private capture storage; defaults to `.artifacts/mcp` in the checkout.
 - `NEXUS_MCP_ENABLED_TOOLS` (optional): comma-separated capability allowlist. It defaults to `nexus_status,nexus_projects`; no execution or mutation tool is remotely exposed by default.
-- `NEXUS_MCP_MAX_CONCURRENCY` (optional, default `2`): maximum simultaneous MCP tool calls. Excess work fails with HTTP 429; it is not queued silently.
-- `NEXUS_MCP_EXECUTION_TIMEOUT_MS` (optional, default `900000`): execution timeout used by gates, builds and project validation commands.
-- `NEXUS_MCP_MAX_ARTIFACT_BYTES` (optional, default `26214400`): maximum size of one stored artifact.
-- `NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES` (optional, default `8388608`): maximum captured stdout/stderr for a gate or build.
+- `NEXUS_MCP_MAX_CONCURRENCY` (optional, default `2`, range `1..16`): maximum simultaneous MCP tool calls. The cap bounds CPU/process pressure; excess work fails with HTTP 429 and is never queued silently.
+- `NEXUS_MCP_EXECUTION_TIMEOUT_MS` (optional, default `300000`, range `1000..900000`): execution timeout used by gates, builds and project validation commands. The default preserves the pre-readiness project-validation limit; 15 minutes is the hard ceiling for known long builds.
+- `NEXUS_MCP_MAX_ARTIFACT_BYTES` (optional, default `26214400`, range `1024..104857600`): maximum size of one stored artifact. The 100 MiB ceiling prevents configuration from removing the disk/memory guard.
+- `NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES` (optional, default `8388608`, range `1024..16777216`): maximum captured stdout/stderr for a gate or build. The 16 MiB ceiling bounds child-process and log memory even when misconfigured.
 - `PORT` (optional): HTTP port, default `3000`.
 
 Generate a token and its stored digest without putting either in git:
