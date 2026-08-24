@@ -90,3 +90,22 @@ describe("client fleet", () => {
     expect(() => loadShadowBaseline(appDir, "other-client")).toThrow(/invalid shadow baseline/);
   });
 });
+
+describe("workspace project discovery", () => {
+  it("uses the existing client admission rule and classifies every workspace app", async () => {
+    const { discoverWorkspaceApps } = await import("./client-fleet.mjs");
+    const root = tempRoot();
+    writePackage(root, "_experience-seed", true);
+    writePackage(root, "reference-alfil", true);
+    writePackage(root, "v2-probe-editorial", true);
+    writePackage(root, "unmarked-app", false);
+    writePackage(root, "real-client", true);
+    expect(discoverWorkspaceApps(root).map(({ slug, kind, clientProject }) => ({ slug, kind, clientProject }))).toEqual([
+      { slug: "_experience-seed", kind: "SEED", clientProject: false },
+      { slug: "real-client", kind: "CLIENT", clientProject: true },
+      { slug: "reference-alfil", kind: "REFERENCE", clientProject: false },
+      { slug: "unmarked-app", kind: "UNKNOWN", clientProject: false },
+      { slug: "v2-probe-editorial", kind: "PROBE", clientProject: false },
+    ]);
+  });
+});

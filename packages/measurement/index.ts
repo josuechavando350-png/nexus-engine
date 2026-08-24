@@ -1,4 +1,4 @@
-export * from "./bundle-size";
+export * from "./bundle-size.js";
 
 import { createHash } from "node:crypto";
 

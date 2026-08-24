@@ -34,6 +34,48 @@ export function discoverClientApps(root = process.cwd()) {
     .sort((a, b) => a.localeCompare(b, "en"));
 }
 
+export function discoverWorkspaceApps(root = process.cwd()) {
+  const appsRoot = join(root, "apps");
+  if (!existsSync(appsRoot)) throw new Error(`apps directory is missing: ${appsRoot}`);
+  const clients = new Set(discoverClientApps(root));
+  return readdirSync(appsRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => {
+      const manifestPath = join(appsRoot, entry.name, "package.json");
+      if (!existsSync(manifestPath)) throw new Error(`project manifest is missing: ${manifestPath}`);
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
+      if (typeof manifest?.name !== "string" || !manifest.name.trim()) throw new Error(`project package name is missing: ${manifestPath}`);
+      const declared = manifest?.nexus?.clientProject;
+      const kind = entry.name === "_experience-seed"
+        ? "SEED"
+        : entry.name.startsWith("reference-")
+          ? "REFERENCE"
+          : entry.name.startsWith("v2-probe-") || entry.name.startsWith("probe-")
+            ? "PROBE"
+            : clients.has(entry.name)
+              ? "CLIENT"
+              : "UNKNOWN";
+      return Object.freeze({
+        slug: entry.name,
+        path: normalized(relative(root, join(appsRoot, entry.name))),
+        packageName: manifest.name.trim(),
+        workspaceMember: true,
+        kind,
+        clientProject: kind === "CLIENT",
+        evidence: Object.freeze({
+          packageJsonPath: normalized(relative(root, manifestPath)),
+          clientProjectDeclaration: typeof declared === "boolean" ? declared : null,
+          classificationRule: kind === "CLIENT"
+            ? "discoverClientApps: explicit nexus.clientProject=true and no reserved non-client prefix"
+            : kind === "UNKNOWN"
+              ? "not explicitly admitted by discoverClientApps"
+              : `reserved ${kind.toLowerCase()} path prefix`,
+        }),
+      });
+    })
+    .sort((left, right) => left.slug.localeCompare(right.slug, "en"));
+}
+
 export function sha256File(path) {
   return createHash("sha256").update(readFileSync(path)).digest("hex");
 }

@@ -8,6 +8,11 @@ import { NEXUS_CSP_BASE, NEXUS_SECURITY_HEADERS_BASE } from "@nexus/core/foundat
 // buildCsp({...}) from "@nexus/core/foundation/config" instead of
 // hand-writing a parallel CSP string.
 const nextConfig: NextConfig = {
+  // Next 15 webpack workers can assign different module IDs under Node 24.
+  // Serialize only hermetic verification builds; normal app builds keep Next defaults.
+  experimental: process.env.NEXUS_DETERMINISTIC_BUILD === "1"
+    ? { cpus: 1, webpackBuildWorker: false }
+    : {},
   transpilePackages: ["@nexus/core"],
   generateBuildId: async () => {
     const deterministicBuildId = process.env.NEXUS_BUILD_ID?.trim();

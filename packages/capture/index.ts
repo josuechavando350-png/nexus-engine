@@ -1,5 +1,5 @@
-import type { EvidenceEnvelope, MeasurementRun, MeasurementScope, MetricSample } from "../measurement/index";
-import { createEvidence, deterministicId } from "../measurement/index";
+import type { EvidenceEnvelope, MeasurementRun, MeasurementScope, MetricSample } from "../measurement/index.js";
+import { createEvidence, deterministicId } from "../measurement/index.js";
 
 export type CaptureCapability = "SCREENSHOT" | "ACCESSIBILITY" | "DESIGN_GENOME" | "CONTRAST" | "PERFORMANCE" | "RUNTIME_TELEMETRY";
 export type CaptureOutcome = "CAPTURED" | "UNSUPPORTED" | "FAILED";
