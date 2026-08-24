@@ -3,13 +3,12 @@ export type NexusToolName = typeof TOOL_NAMES[number];
 
 export const REMOTE_READINESS_DEFAULT_TOOLS = Object.freeze(["nexus_status", "nexus_projects"] as const);
 export const DEFAULT_MAX_CONCURRENCY = 2;
-export const DEFAULT_EXECUTION_TIMEOUT_MS = 900_000;
 export const DEFAULT_MAX_ARTIFACT_BYTES = 25 * 1024 * 1024;
 export const DEFAULT_MAX_PROCESS_OUTPUT_BYTES = 8 * 1024 * 1024;
 
 export interface RuntimeLimits {
   maxConcurrency: number;
-  executionTimeoutMs: number;
+  executionTimeoutMs: number | undefined;
   maxArtifactBytes: number;
   maxProcessOutputBytes: number;
 }
@@ -24,7 +23,7 @@ function positiveInteger(value: string | undefined, fallback: number, name: stri
 export function runtimeLimitsFromEnv(environment: NodeJS.ProcessEnv = process.env): RuntimeLimits {
   return Object.freeze({
     maxConcurrency: positiveInteger(environment.NEXUS_MCP_MAX_CONCURRENCY, DEFAULT_MAX_CONCURRENCY, "NEXUS_MCP_MAX_CONCURRENCY"),
-    executionTimeoutMs: positiveInteger(environment.NEXUS_MCP_EXECUTION_TIMEOUT_MS, DEFAULT_EXECUTION_TIMEOUT_MS, "NEXUS_MCP_EXECUTION_TIMEOUT_MS"),
+    executionTimeoutMs: environment.NEXUS_MCP_EXECUTION_TIMEOUT_MS === undefined ? undefined : positiveInteger(environment.NEXUS_MCP_EXECUTION_TIMEOUT_MS, 1, "NEXUS_MCP_EXECUTION_TIMEOUT_MS"),
     maxArtifactBytes: positiveInteger(environment.NEXUS_MCP_MAX_ARTIFACT_BYTES, DEFAULT_MAX_ARTIFACT_BYTES, "NEXUS_MCP_MAX_ARTIFACT_BYTES"),
     maxProcessOutputBytes: positiveInteger(environment.NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES, DEFAULT_MAX_PROCESS_OUTPUT_BYTES, "NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES"),
   });

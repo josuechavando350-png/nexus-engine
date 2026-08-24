@@ -8,7 +8,9 @@ export interface BuildArtifactFile { path: string; byteLength: number; sha256: s
 export interface BuildManifest { authority: "NEXUS_MCP_BUILD_MANIFEST_V1"; sourceSha: string; target: string; nodeVersion: string; pnpmVersion: string; packageManager: string; lockfileSha256: string; buildKey: string; cacheHit: boolean; outputDigest: string; files: readonly BuildArtifactFile[]; manifestSha256: string }
 export interface BuildExecution { target: { slug: string; path: string; packageName: string }; command: string; exitCode: number | null; durationMs: number; logPath: string; manifestPath?: string; manifest: BuildManifest | null; unavailableReason?: string; logArtifact?: import("./artifacts.js").ArtifactRecord; manifestArtifact?: import("./artifacts.js").ArtifactRecord }
 
-export async function buildTarget(root: string, project: ProjectState, sourceSha: string, requestId: string, timeoutMs = 900_000, maxOutputBytes = 8 * 1024 * 1024): Promise<BuildExecution> {
+export const DEFAULT_BUILD_TIMEOUT_MS = 900_000;
+
+export async function buildTarget(root: string, project: ProjectState, sourceSha: string, requestId: string, timeoutMs = DEFAULT_BUILD_TIMEOUT_MS, maxOutputBytes = 8 * 1024 * 1024): Promise<BuildExecution> {
   const started = Date.now();
   const evidenceDir = join(tmpdir(), "nexus-mcp-builds", requestId);
   const logPath = join(evidenceDir, "build.log");
