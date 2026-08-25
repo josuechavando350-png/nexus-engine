@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 import type { ProjectState } from "./contracts.js";
 import { readProjects } from "./projects.js";
+import { childProcessEnvironment } from "./child-env.js";
 
 const exec = promisify(execFile);
 
@@ -26,7 +27,7 @@ export interface ProjectCreation {
 }
 
 async function command(root: string, executable: string, args: readonly string[], timeout = 120_000, maxOutputBytes = 8 * 1024 * 1024): Promise<string> {
-  const result = await exec(executable, [...args], { cwd: root, encoding: "utf8", timeout, maxBuffer: maxOutputBytes });
+  const result = await exec(executable, [...args], { cwd: root, env: childProcessEnvironment(), encoding: "utf8", timeout, maxBuffer: maxOutputBytes });
   return result.stdout.trim();
 }
 

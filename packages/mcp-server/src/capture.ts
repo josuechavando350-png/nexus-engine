@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import type { CaptureRequest } from "@nexus/capture";
 import { pathToFileURL } from "node:url";
 import type { ProjectState } from "./contracts.js";
+import { childProcessEnvironment } from "./child-env.js";
 
 export interface CaptureInput { source: { target: string } | { url: string }; sourceSha?: string; viewports?: { mobile?: { width: number; height: number }; desktop?: { width: number; height: number } }; fullPage?: boolean }
 export interface CaptureOutput { captures: readonly { viewport: "mobile" | "desktop"; width: number; height: number; browser: string; finalUrl: string; artifact: { path: string; mediaType: "image/png"; byteLength: number; sha256: string; url: string } }[] }
@@ -39,7 +40,7 @@ export async function captureTarget(root: string, project: ProjectState, sourceS
   const { createRun } = measurementModule;
   const port = await freePort();
   const url = `http://127.0.0.1:${port}`;
-  const server = spawn("pnpm", ["--filter", project.packageName, "start", "-p", String(port), "-H", "127.0.0.1"], { cwd: root, shell: false, stdio: "ignore" });
+  const server = spawn("pnpm", ["--filter", project.packageName, "start", "-p", String(port), "-H", "127.0.0.1"], { cwd: root, env: childProcessEnvironment(), shell: false, stdio: "ignore" });
   try {
     await waitFor(url, server);
     const mobile = { name: "mobile", width: viewports?.mobile?.width ?? 390, height: viewports?.mobile?.height ?? 844 };
