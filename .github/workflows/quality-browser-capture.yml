@@ -112,7 +112,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p artifacts/browser-capture/cano-penal
+          cano_capture_dir="$GITHUB_WORKSPACE/artifacts/browser-capture/cano-penal"
+          mkdir -p "$cano_capture_dir"
           pnpm --filter @nexus/cano-penal build
           pnpm --filter @nexus/cano-penal exec next start -p 3102 >/tmp/cano-penal-next.log 2>&1 &
           server_pid=$!
@@ -128,10 +129,10 @@ jobs:
           for asset in logo-cano.png eduardo-cano-escritorio.jpg audiencia-01.jpg audiencia-02.jpg audiencia-03.jpg audiencia-04.jpg audiencia-05.jpg; do
             curl --fail --silent --show-error --output /dev/null "http://127.0.0.1:3102/media/$asset"
           done
-          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="390,844" --full-page http://127.0.0.1:3102/ artifacts/browser-capture/cano-penal/mobile-390.png
-          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="768,1024" --full-page http://127.0.0.1:3102/ artifacts/browser-capture/cano-penal/tablet-768.png
-          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="1440,1200" --full-page http://127.0.0.1:3102/ artifacts/browser-capture/cano-penal/desktop-1440.png
-          test "$(find artifacts/browser-capture/cano-penal -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
+          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="390,844" --full-page http://127.0.0.1:3102/ "$cano_capture_dir/mobile-390.png"
+          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="768,1024" --full-page http://127.0.0.1:3102/ "$cano_capture_dir/tablet-768.png"
+          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="1440,1200" --full-page http://127.0.0.1:3102/ "$cano_capture_dir/desktop-1440.png"
+          test "$(find "$cano_capture_dir" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
 
       - name: Verify persisted evidence
         shell: bash
