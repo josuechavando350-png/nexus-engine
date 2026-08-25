@@ -1,0 +1,47 @@
+{
+  "subject": "cano-penal",
+  "observedAt": "2026-08-24",
+  "hero": {
+    "arrangement": { "kind": "custom", "label": "editorial-split", "notes": "Texto a la izquierda y fotografía horizontal real del abogado a la derecha." },
+    "mediaPresence": { "kind": "known", "value": "single" },
+    "textDensity": { "kind": "known", "value": "moderate" },
+    "entryAction": { "kind": "custom", "label": "dual-cta", "notes": "Consulta del caso y diagnóstico presencial." }
+  },
+  "navigation": {
+    "persistence": { "kind": "known", "value": "sticky" },
+    "density": { "kind": "known", "value": "minimal" },
+    "ctaPresence": { "kind": "known", "value": "single" }
+  },
+  "typography": {
+    "scaleContrast": { "kind": "known", "value": "high" },
+    "caseTreatment": { "kind": "known", "value": "uppercase" },
+    "voice": { "kind": "known", "value": "editorial" }
+  },
+  "cta": {
+    "cornerProfile": { "kind": "known", "value": "sharp" },
+    "borderTreatment": { "kind": "known", "value": "outline" },
+    "fillTreatment": { "kind": "custom", "label": "outline-and-silver-solid", "notes": "Jerarquía mediante contorno y relleno plata." },
+    "iconRelationship": { "kind": "known", "value": "none" },
+    "textTreatment": { "kind": "known", "value": "uppercase" }
+  },
+  "radius": { "distribution": { "kind": "known", "value": "none" } },
+  "cardDependence": {
+    "relianceLevel": { "kind": "known", "value": "low" },
+    "alternativeStructures": { "kind": "known", "value": "list" }
+  },
+  "sectionRhythm": {
+    "pacing": { "kind": "known", "value": "alternating" },
+    "verticalDensity": { "kind": "known", "value": "airy" }
+  },
+  "alignment": { "tendency": { "kind": "known", "value": "mixed-editorial" } },
+  "media": {
+    "dominantType": { "kind": "known", "value": "photography" },
+    "treatment": { "kind": "custom", "label": "client-owned-originals", "notes": "Archivos del cliente sin regeneración ni retoque; audiencias conservan difuminado legal existente." }
+  },
+  "motion": {
+    "presence": { "kind": "known", "value": "subtle" },
+    "character": { "kind": "custom", "label": "focus-hover-only", "notes": "Sin animaciones decorativas de entrada." }
+  },
+  "surface": { "depth": { "kind": "known", "value": "flat" } },
+  "density": { "overall": { "kind": "known", "value": "airy" } }
+}
