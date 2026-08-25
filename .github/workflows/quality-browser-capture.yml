@@ -114,7 +114,7 @@ jobs:
           set -euo pipefail
           mkdir -p artifacts/browser-capture/cano-penal
           pnpm --filter @nexus/cano-penal build
-          pnpm --filter @nexus/cano-penal start -- -p 3102 >/tmp/cano-penal-next.log 2>&1 &
+          pnpm --filter @nexus/cano-penal exec next start -p 3102 >/tmp/cano-penal-next.log 2>&1 &
           server_pid=$!
           trap 'kill "$server_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 60); do
