@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { NEXUS_SECURITY_HEADERS_BASE, buildCsp } from "@nexus/core/foundation/config";
+import { redirects } from "./redirects";
 
 const csp = buildCsp({
   "script-src": ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
@@ -16,7 +17,7 @@ const nextConfig: NextConfig = {
     return deterministicBuildId || process.env.VERCEL_GIT_COMMIT_SHA || process.env.GITHUB_SHA || "nexus-local-build";
   },
   async redirects() {
-    return [{ source: "/acerca-de", destination: "/acerca-de-mi", permanent: true }];
+    return redirects;
   },
   async headers() {
     return [{
