@@ -16,8 +16,10 @@ Remote, deterministic MCP control surface for NEXUS. It exposes the approved blo
 - `NEXUS_MCP_EXECUTION_TIMEOUT_MS` (optional, range `1000..900000`): explicit execution-timeout override used by gates, builds and project validation commands. When unset, historical per-operation defaults apply: `300000` ms for lint, typecheck, test and project validation; `900000` ms for build, browser and quality gates. The explicit override is capped at 15 minutes.
 - `NEXUS_MCP_MAX_ARTIFACT_BYTES` (optional, default `26214400`, range `1024..104857600`): maximum size of one stored artifact. The 100 MiB ceiling prevents configuration from removing the disk/memory guard.
 - `NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES` (optional, default `8388608`, range `1024..16777216`): maximum captured stdout/stderr for a gate or build. The 16 MiB ceiling bounds child-process and log memory even when misconfigured.
-- `NEXUS_MCP_CHILD_ENV_ALLOW` (optional): comma-separated names to add to the child-process environment allowlist. Names containing `TOKEN`, `SECRET`, `KEY`, or `PASSWORD` are always rejected, including configured additions.
+- `NEXUS_MCP_CHILD_ENV_ALLOW` (optional): comma-separated names selected from the reviewed extension allowlist exported by `child-env.ts`. Arbitrary names are rejected; names containing `TOKEN`, `SECRET`, `KEY`, or `PASSWORD` are also rejected defensively. This is an administrator choice among code-reviewed operational settings, not a way to forward arbitrary server configuration.
 - `PORT` (optional): HTTP port, default `3000`.
+
+Every MCP child process receives a private temporary `HOME`, private XDG config/cache directories, an empty npm user-config path, and `GIT_TERMINAL_PROMPT=0`; the server's real `HOME` and user credential/config files are not inherited.
 
 Generate a fresh random token and its stored SHA-256 locally, without putting either in git or a chat:
 
