@@ -31,7 +31,7 @@ export function SiteFooter() {
     <footer className="cp-footer">
       <div className="cp-wrap">
         <div className="cp-footer-grid">
-          <div><Wordmark /><div className="cp-media-pending">logo-cano.png — pendiente de transferencia al repositorio</div></div>
+          <div><Wordmark /><div><img className="cp-logo" src="/media/logo-cano.png" alt="CANO Estrategia Penal" /></div></div>
           <div className="cp-footer-links">
             {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
           </div>
