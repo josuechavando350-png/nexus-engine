@@ -2,6 +2,8 @@ import { Link } from "@nexus/core";
 import { PageShell } from "./SiteChrome";
 import { areas, cases, site, trajectory } from "./content";
 
+const audienceFiles = ["audiencia-01.jpg", "audiencia-02.jpg", "audiencia-03.jpg", "audiencia-04.jpg", "audiencia-05.jpg"] as const;
+
 export default function HomePage() {
   return (
     <PageShell>
@@ -16,7 +18,7 @@ export default function HomePage() {
               <Link className="cp-btn" href="#asesoria">Diagnóstico y estrategia — $2,500</Link>
             </div>
           </div>
-          <div className="cp-hero-media"><img src="/media/eduardo-cano-escritorio.jpg" alt="Eduardo Cano sentado en su escritorio" /></div>
+          <div className="cp-hero-media cp-media-pending" role="img" aria-label="eduardo-cano-escritorio.jpg pendiente de transferencia al repositorio">eduardo-cano-escritorio.jpg — pendiente de transferencia al repositorio</div>
         </div>
       </section>
 
@@ -48,9 +50,9 @@ export default function HomePage() {
 
       <section className="cp-section" id="areas"><div className="cp-wrap"><div className="cp-section-head"><div><div className="cp-eyebrow">Áreas de práctica</div><h2>Defensa penal<br />con enfoque estratégico.</h2></div><p>Atención en asuntos del fuero común y federal en Ciudad de México.</p></div><div className="cp-areas">{areas.map(([name, href]) => <Link className="cp-area" key={href} href={href}>{name}</Link>)}</div></div></section>
 
-      <section className="cp-section" id="casos"><div className="cp-wrap"><div className="cp-section-head"><div><div className="cp-eyebrow">Casos</div><h2>Experiencia aplicada<br />a situaciones reales.</h2></div><Link className="cp-text-link" href="/casos">Ver todos los casos →</Link></div><div className="cp-cases">{[cases[1],cases[4],cases[2]].map(([title, body]) => <article className="cp-case" key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
+      <section className="cp-section" id="casos"><div className="cp-wrap"><div className="cp-section-head"><div><div className="cp-eyebrow">Casos</div><h2>Experiencia aplicada<br />a situaciones reales.</h2></div><Link className="cp-text-link" href="/casos">Ver todos los casos →</Link></div><div className="cp-cases">{[cases[1], cases[4], cases[2]].map(([title, body]) => <article className="cp-case" key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
 
-      <section className="cp-section"><div className="cp-wrap"><div className="cp-section-head"><div><div className="cp-eyebrow">Audiencias</div><h2>En sala, en cada audiencia.</h2></div></div><div className="cp-audiences">{[1,2,3,4,5].map(n => <img key={n} src={`/media/audiencia-0${n}.jpg`} alt="Audiencia" />)}</div></div></section>
+      <section className="cp-section"><div className="cp-wrap"><div className="cp-section-head"><div><div className="cp-eyebrow">Audiencias</div><h2>En sala, en cada audiencia.</h2></div></div><div className="cp-audiences">{audienceFiles.map(file => <div className="cp-audience-pending cp-media-pending" key={file} role="img" aria-label={`${file} pendiente de transferencia al repositorio`}>{file} — pendiente de transferencia al repositorio</div>)}</div></div></section>
 
       <section className="cp-section" id="asesoria"><div className="cp-wrap cp-advisory"><div><div className="cp-eyebrow">Asesoría legal penal presencial</div><h2>Primero entender.<br />Después actuar.</h2><p>Valoración y estudio inicial de tu situación. Resolvemos todas tus dudas y defines la estrategia de tu caso. Sin tiempo límite, porque los problemas penales son complejos.</p><Link className="cp-btn cp-btn-solid" href="#contacto">Agendar diagnóstico</Link></div><div className="cp-price"><span>Diagnóstico y estrategia</span><strong>$2,500</strong></div></div></section>
 
