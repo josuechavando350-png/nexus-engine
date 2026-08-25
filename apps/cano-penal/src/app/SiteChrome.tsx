@@ -1,17 +1,26 @@
 import { Link } from "@nexus/core";
 import { nav, site } from "./content";
 
+function Wordmark() {
+  return <span className="cp-wordmark">CANO <span>|</span> ESTRATEGIA PENAL</span>;
+}
+
 export function SiteHeader() {
   return (
     <header className="cp-header">
       <div className="cp-wrap cp-nav">
-        <Link href="/" aria-label="CANO Estrategia Penal">
-          <img className="cp-logo" src="/media/logo-cano.png" alt="CANO | Estrategia Penal" />
-        </Link>
+        <Link href="/" aria-label="CANO Estrategia Penal"><Wordmark /></Link>
         <nav className="cp-navlinks" aria-label="Navegación principal">
           {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
         </nav>
-        <Link className="cp-btn" href="/#contacto">Hablemos →</Link>
+        <Link className="cp-btn cp-header-cta" href="/#contacto">Hablemos →</Link>
+        <details className="cp-mobile-nav">
+          <summary aria-label="Abrir menú"><span aria-hidden="true">☰</span></summary>
+          <nav aria-label="Navegación móvil">
+            {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
+            <Link className="cp-btn" href="/#contacto">Hablemos →</Link>
+          </nav>
+        </details>
       </div>
     </header>
   );
@@ -22,7 +31,7 @@ export function SiteFooter() {
     <footer className="cp-footer">
       <div className="cp-wrap">
         <div className="cp-footer-grid">
-          <div><img className="cp-logo" src="/media/logo-cano.png" alt="CANO | Estrategia Penal" /></div>
+          <div><Wordmark /><div className="cp-media-pending">logo-cano.png — pendiente de transferencia al repositorio</div></div>
           <div className="cp-footer-links">
             {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
           </div>
