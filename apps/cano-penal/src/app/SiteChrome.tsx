@@ -1,15 +1,15 @@
 import { Link } from "@nexus/core";
 import { nav, site } from "./content";
 
-function Wordmark() {
-  return <span className="cp-wordmark">CANO <span>|</span> ESTRATEGIA PENAL</span>;
+function Logo() {
+  return <img className="cp-logo" src="/media/logo-cano.png" alt="CANO Estrategia Penal" />;
 }
 
 export function SiteHeader() {
   return (
     <header className="cp-header">
       <div className="cp-wrap cp-nav">
-        <Link href="/" aria-label="CANO Estrategia Penal"><Wordmark /></Link>
+        <Link href="/" aria-label="CANO Estrategia Penal"><Logo /></Link>
         <nav className="cp-navlinks" aria-label="Navegación principal">
           {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
         </nav>
@@ -31,7 +31,7 @@ export function SiteFooter() {
     <footer className="cp-footer">
       <div className="cp-wrap">
         <div className="cp-footer-grid">
-          <div><Wordmark /><div className="cp-media-pending">logo-cano.png — pendiente de transferencia al repositorio</div></div>
+          <div><Logo /></div>
           <div className="cp-footer-links">
             {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
           </div>
@@ -42,7 +42,7 @@ export function SiteFooter() {
             <Link href="/aviso-de-privacidad">Aviso de privacidad</Link>
           </div>
         </div>
-        <div className="cp-footer-bottom"><span>© 2026 CANO Estrategia Penal.</span><span>Defensa penal estratégica · CDMX</span></div>
+        <div className="cp-footer-bottom"><span>© 2026 CANO Estrategia Penal.</span></div>
       </div>
       <a className="cp-wa" href={site.whatsapp} target="_blank" rel="noopener noreferrer" aria-label="WhatsApp">WA</a>
     </footer>
