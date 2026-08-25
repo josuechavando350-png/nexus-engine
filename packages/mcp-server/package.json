@@ -10,6 +10,7 @@
     "nexus-mcp-server": "./dist/mcp-server/src/server.js"
   },
   "scripts": {
+    "token:generate": "node scripts/generate-token.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run tests",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/mcp-server/src/server.js && test -f dist/mcp-server/src/index.d.ts"

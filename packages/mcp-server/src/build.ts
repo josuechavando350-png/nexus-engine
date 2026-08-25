@@ -4,6 +4,7 @@ import { readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { tmpdir } from "node:os";
 import type { ProjectState } from "./contracts.js";
+import { childProcessEnvironment } from "./child-env.js";
 
 export interface BuildArtifactFile { path: string; byteLength: number; sha256: string }
 export interface BuildManifest { authority: "NEXUS_MCP_BUILD_MANIFEST_V1"; sourceSha: string; target: string; nodeVersion: string; pnpmVersion: string; packageManager: string; lockfileSha256: string; buildKey: string; cacheHit: boolean; outputDigest: string; files: readonly BuildArtifactFile[]; manifestSha256: string }
@@ -66,7 +67,7 @@ export async function buildTarget(root: string, project: ProjectState, sourceSha
   await mkdir(evidenceDir, { recursive: true });
   return await new Promise((resolve) => {
     const args = ["scripts/build-target-manifest.mjs", project.path, sourceSha, manifestPath];
-    const child = spawn(process.execPath, args, { cwd: root, shell: false, env: process.env, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn(process.execPath, args, { cwd: root, shell: false, env: childProcessEnvironment(), stdio: ["ignore", "pipe", "pipe"] });
     const chunks: Buffer[] = []; let outputBytes = 0; let outputExceeded = false;
     const collect = (chunk: Buffer) => { outputBytes += chunk.length; if (outputBytes <= maxOutputBytes) chunks.push(chunk); else { outputExceeded = true; child.kill("SIGTERM"); } };
     child.stdout.on("data", collect); child.stderr.on("data", collect);

@@ -16,13 +16,13 @@ Remote, deterministic MCP control surface for NEXUS. It exposes the approved blo
 - `NEXUS_MCP_EXECUTION_TIMEOUT_MS` (optional, range `1000..900000`): explicit execution-timeout override used by gates, builds and project validation commands. When unset, historical per-operation defaults apply: `300000` ms for lint, typecheck, test and project validation; `900000` ms for build, browser and quality gates. The explicit override is capped at 15 minutes.
 - `NEXUS_MCP_MAX_ARTIFACT_BYTES` (optional, default `26214400`, range `1024..104857600`): maximum size of one stored artifact. The 100 MiB ceiling prevents configuration from removing the disk/memory guard.
 - `NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES` (optional, default `8388608`, range `1024..16777216`): maximum captured stdout/stderr for a gate or build. The 16 MiB ceiling bounds child-process and log memory even when misconfigured.
+- `NEXUS_MCP_CHILD_ENV_ALLOW` (optional): comma-separated names to add to the child-process environment allowlist. Names containing `TOKEN`, `SECRET`, `KEY`, or `PASSWORD` are always rejected, including configured additions.
 - `PORT` (optional): HTTP port, default `3000`.
 
-Generate a token and its stored digest without putting either in git:
+Generate a fresh random token and its stored SHA-256 locally, without putting either in git or a chat:
 
 ```sh
-TOKEN="$(openssl rand -hex 32)"
-printf '%s' "$TOKEN" | sha256sum
+pnpm --filter @nexus/mcp-server token:generate
 ```
 
 After `pnpm --filter @nexus/mcp-server build`, run from the repository root:

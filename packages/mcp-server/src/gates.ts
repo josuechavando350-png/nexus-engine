@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { tmpdir } from "node:os";
 import type { ProjectState } from "./contracts.js";
 import { buildTarget, validateBuildManifest } from "./build.js";
+import { childProcessEnvironment } from "./child-env.js";
 
 export type GateId = "lint" | "typecheck" | "test" | "build" | "quality-gates" | "browser";
 export interface GateResult { id: GateId; status: "PASS" | "FAIL" | "NOT_TESTED"; command: string; exitCode: number | null; durationMs: number; logPath: string | null; reason: string | null; evidencePaths: readonly string[]; artifact?: import("./artifacts.js").ArtifactRecord }
@@ -22,7 +23,7 @@ export async function runGate(root: string, gate: GateId, requestId: string, tim
   const logPath = join(logDir, `${gate}.log`);
   await mkdir(logDir, { recursive: true });
   return await new Promise((resolve) => {
-    const child = spawn("pnpm", [...COMMANDS[gate]], { cwd: root, env: process.env, shell: false, stdio: ["ignore", "pipe", "pipe"] });
+    const child = spawn("pnpm", [...COMMANDS[gate]], { cwd: root, env: childProcessEnvironment(), shell: false, stdio: ["ignore", "pipe", "pipe"] });
     const chunks: Buffer[] = []; let outputBytes = 0; let outputExceeded = false;
     const collect = (chunk: Buffer) => { outputBytes += chunk.length; if (outputBytes <= maxOutputBytes) chunks.push(chunk); else { outputExceeded = true; child.kill("SIGTERM"); } };
     child.stdout.on("data", collect); child.stderr.on("data", collect);
