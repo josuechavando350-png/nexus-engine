@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+// Optional diagnostic for build nondeterminism; this is not a validation gate.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { extname, join } from "node:path";

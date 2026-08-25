@@ -36,7 +36,7 @@ Every real client enters `apps/` from the start of delivery.
 2. Enable pinned pnpm and run `pnpm install --frozen-lockfile`.
 3. Run `pnpm security-hygiene` and the retained V3 runtime-boundary gate.
 4. Run `pnpm verify:assets`, `pnpm lint`, `pnpm typecheck`, and `pnpm test`.
-5. Run the hermetic deterministic build with `pnpm build`.
+5. Run the hermetic-input build once with `pnpm build`; distribute that validated output rather than rebuilding it.
 6. Run real Chromium/WebKit evidence with `pnpm test:browser` and the browser-quality workflow.
 7. Run locked Rust tests, lint, release build and optional adapter compilation.
 8. Run `pnpm operability:h07` from the clean-room workflow.

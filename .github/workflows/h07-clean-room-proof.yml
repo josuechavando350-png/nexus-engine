@@ -56,7 +56,7 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright dependencies
         run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
-      - name: Build and validate independently
+      - name: Build once and validate independently
         run: |
           set -euo pipefail
           pnpm lint

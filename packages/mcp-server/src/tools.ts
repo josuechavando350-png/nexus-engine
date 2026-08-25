@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { join } from "node:path";
 import type { GitState, ProjectState, PullRequestState, ToolError, ToolEvidence, ToolResult } from "./contracts.js";
 import { readGitState } from "./git.js";
@@ -19,6 +19,7 @@ export interface ToolDependencies {
   captureRunner?: typeof import("./capture.js").captureTarget;
   artifactRoot?: string;
   buildRunner?: typeof import("./build.js").buildTarget;
+  buildValidator?: typeof import("./build.js").validateBuildManifest;
   projectCreator?: typeof import("./project-new.js").createProject;
   artifactStore?: import("./artifacts.js").ArtifactStore;
   limits?: import("./policy.js").RuntimeLimits;
@@ -116,19 +117,22 @@ export interface GatesData { gates: readonly import("./gates.js").GateResult[]; 
 export interface PassportData { found: boolean; path: string | null; passport: import("@nexus/quality/quality-passport").QualityPassport | null; integrity: { status: import("./contracts.js").ExecutionStatus; algorithm: "sha256"; declaredHash: string | null; computedHash: string | null; sourceShaMatches: boolean | null }; checks: readonly { id: string; status: import("./contracts.js").ExecutionStatus; detail: string; evidenceIds: readonly string[] }[] }
 
 export async function nexusGates(input: { target?: string; sourceSha: string; gates?: readonly import("./gates.js").GateId[] }, dependencies: ToolDependencies): Promise<ToolResult<GatesData>> {
-  const { runGate } = await import("./gates.js");
+  const { runGate, runBuildGate } = await import("./gates.js");
   const now = dependencies.clock ?? (() => new Date()); const startedAt = now().toISOString(); const requestId = (dependencies.requestId ?? randomUUID)(); const repository = dependencies.repository ?? "josuechavando350-png/nexus-engine";
   let git: GitState;
   try { git = await (dependencies.git ?? readGitState)(dependencies.root); } catch (cause) { return base<GatesData>("nexus_gates", startedAt, now().toISOString(), requestId, repository, null, "FAIL", null, [], [error("NOT_A_GIT_REPOSITORY", cause)]); }
   if (git.headSha !== input.sourceSha) return base<GatesData>("nexus_gates", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("SOURCE_SHA_MISMATCH", `requested ${input.sourceSha}, current HEAD is ${git.headSha}`)]);
   if (!git.clean) return base<GatesData>("nexus_gates", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("DIRTY_WORKTREE", "quality gates require a clean checkout")]);
-  if (input.target) {
-    const projects = await (dependencies.projects ?? readProjects)(dependencies.root);
-    if (!projects.some((project) => project.slug === input.target)) return base<GatesData>("nexus_gates", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_NOT_FOUND", `unknown target ${input.target}`)]);
-  }
   const requested = input.gates ?? ["lint", "typecheck", "test", "build", "quality-gates"];
+  const projects = await (dependencies.projects ?? readProjects)(dependencies.root);
+  const project = input.target ? projects.find((candidate) => candidate.slug === input.target) : undefined;
+  if (input.target && !project) return base<GatesData>("nexus_gates", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_NOT_FOUND", `unknown target ${input.target}`)]);
+  if (requested.includes("build") && !project) return base<GatesData>("nexus_gates", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_REQUIRED", "the SHA-bound build gate requires a target")]);
   const results = [];
-  for (const gate of requested) results.push(await (dependencies.gateRunner ?? runGate)(dependencies.root, gate, requestId, dependencies.limits?.executionTimeoutMs, dependencies.limits?.maxProcessOutputBytes));
+  for (const gate of requested) {
+    if (gate === "build") results.push(await runBuildGate(dependencies.root, project!, git.headSha, requestId, dependencies.limits?.executionTimeoutMs, dependencies.limits?.maxProcessOutputBytes, dependencies.buildRunner, dependencies.buildValidator));
+    else results.push(await (dependencies.gateRunner ?? runGate)(dependencies.root, gate, requestId, dependencies.limits?.executionTimeoutMs, dependencies.limits?.maxProcessOutputBytes));
+  }
   if (dependencies.artifactStore) for (const item of results) if (item.logPath) {
     const artifact = await dependencies.artifactStore.putFile(requestId, `gate-${item.id}.log`, item.logPath, "text/plain", { tool: "nexus_gates", gate: item.id, status: item.status, exitCode: item.exitCode });
     item.artifact = artifact;
@@ -184,27 +188,8 @@ export async function nexusCapture(input: import("./capture.js").CaptureInput, d
 }
 
 
-function canonicalBuildPayload(manifest: import("./build.js").BuildManifest): string {
-  const { manifestSha256: _manifestSha256, ...payload } = manifest;
-  void _manifestSha256;
-  return JSON.stringify(payload);
-}
-
-function validBuildManifest(manifest: import("./build.js").BuildManifest, project: ProjectState, sourceSha: string): boolean {
-  return manifest.authority === "NEXUS_MCP_BUILD_MANIFEST_V1"
-    && manifest.sourceSha === sourceSha
-    && manifest.target === project.path
-    && /^\d+\.\d+\.\d+/.test(manifest.pnpmVersion)
-    && /^[a-f0-9]{64}$/.test(manifest.lockfileSha256)
-    && /^[a-f0-9]{64}$/.test(manifest.buildKey)
-    && /^[a-f0-9]{64}$/.test(manifest.outputDigest)
-    && manifest.files.length > 0
-    && manifest.files.every((file) => file.path.trim() && Number.isInteger(file.byteLength) && file.byteLength >= 0 && /^[a-f0-9]{64}$/.test(file.sha256))
-    && createHash("sha256").update(canonicalBuildPayload(manifest)).digest("hex") === manifest.manifestSha256;
-}
-
 export async function nexusBuild(input: { target: string; sourceSha: string; clean?: boolean }, dependencies: ToolDependencies): Promise<ToolResult<import("./build.js").BuildExecution>> {
-  const { buildTarget } = await import("./build.js");
+  const { buildTarget, validateBuildManifest } = await import("./build.js");
   const now = dependencies.clock ?? (() => new Date()); const startedAt = now().toISOString(); const requestId = (dependencies.requestId ?? randomUUID)(); const repository = dependencies.repository ?? "josuechavando350-png/nexus-engine";
   let git: GitState;
   try { git = await (dependencies.git ?? readGitState)(dependencies.root); } catch (cause) { return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, null, "FAIL", null, [], [error("NOT_A_GIT_REPOSITORY", cause)]); }
@@ -221,7 +206,7 @@ export async function nexusBuild(input: { target: string; sourceSha: string; cle
   if (execution.manifestArtifact) evidence.push({ kind: "artifact", locator: `${execution.manifestArtifact.url}#sha256=${execution.manifestArtifact.sha256}` });
   if (execution.unavailableReason) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "NOT_TESTED", execution, evidence, [error(execution.unavailableReason.includes("exceeded") ? "BUILD_TIMEOUT" : "DEPENDENCIES_UNAVAILABLE", execution.unavailableReason, true)]);
   if (execution.exitCode !== 0) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "FAIL", execution, evidence, [error("BUILD_FAILED", `build exited ${execution.exitCode}`)]);
-  if (!execution.manifest || !validBuildManifest(execution.manifest, project, git.headSha)) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "FAIL", execution, evidence, [error("ARTIFACT_ENUMERATION_FAILED", "build manifest is missing or invalid")]);
+  if (!execution.manifest || !await (dependencies.buildValidator ?? validateBuildManifest)(dependencies.root, project, git.headSha, execution.manifest)) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "FAIL", execution, evidence, [error("ARTIFACT_ENUMERATION_FAILED", "build manifest is missing or invalid")]);
   evidence.push({ kind: "artifact", locator: `sha256:${execution.manifest.manifestSha256}` }, ...execution.manifest.files.map((file) => ({ kind: "artifact" as const, locator: `${file.path}#sha256=${file.sha256}` })));
   return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "PASS", execution, evidence, []);
 }

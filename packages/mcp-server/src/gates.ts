@@ -2,6 +2,8 @@ import { spawn } from "node:child_process";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
+import type { ProjectState } from "./contracts.js";
+import { buildTarget, validateBuildManifest } from "./build.js";
 
 export type GateId = "lint" | "typecheck" | "test" | "build" | "quality-gates" | "browser";
 export interface GateResult { id: GateId; status: "PASS" | "FAIL" | "NOT_TESTED"; command: string; exitCode: number | null; durationMs: number; logPath: string | null; reason: string | null; evidencePaths: readonly string[]; artifact?: import("./artifacts.js").ArtifactRecord }
@@ -41,4 +43,16 @@ export async function runGate(root: string, gate: GateId, requestId: string, tim
       else resolve({ id: gate, status: code === 0 ? "PASS" : "FAIL", command: `pnpm ${COMMANDS[gate].join(" ")}`, exitCode: code, durationMs: Date.now() - started, logPath, reason: code === 0 ? null : `command exited ${code}`, evidencePaths: [logPath] });
     });
   });
+}
+
+export async function runBuildGate(root: string, project: ProjectState, sourceSha: string, requestId: string, timeoutMs = defaultGateTimeoutMs("build"), maxOutputBytes = 8 * 1024 * 1024, runner: typeof buildTarget = buildTarget, validator: typeof validateBuildManifest = validateBuildManifest): Promise<GateResult> {
+  const execution = await runner(root, project, sourceSha, requestId, timeoutMs, maxOutputBytes);
+  const valid = execution.exitCode === 0 && execution.manifest !== null && await validator(root, project, sourceSha, execution.manifest);
+  const unavailable = execution.unavailableReason !== undefined;
+  return {
+    id: "build", status: unavailable ? "NOT_TESTED" : valid ? "PASS" : "FAIL", command: execution.command,
+    exitCode: execution.exitCode, durationMs: execution.durationMs, logPath: execution.logPath,
+    reason: unavailable ? execution.unavailableReason! : valid ? null : execution.exitCode === 0 ? "build manifest or output is invalid" : `command exited ${execution.exitCode}`,
+    evidencePaths: [execution.logPath, ...(execution.manifestPath ? [execution.manifestPath] : [])],
+  };
 }
