@@ -108,6 +108,31 @@ jobs:
       - name: Capture Chromium and WebKit evidence
         run: pnpm --filter @nexus/capture test:browser
 
+      - name: Capture CANO client at mobile tablet and desktop
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/browser-capture/cano-penal
+          pnpm --filter @nexus/cano-penal build
+          pnpm --filter @nexus/cano-penal start -- -p 3102 >/tmp/cano-penal-next.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --show-error http://127.0.0.1:3102/ >/tmp/cano-home.html; then
+              break
+            fi
+            test "$attempt" -lt 60 || { cat /tmp/cano-penal-next.log; exit 1; }
+            sleep 1
+          done
+          grep -Fq 'Conozco cómo investiga la autoridad.' /tmp/cano-home.html
+          for asset in logo-cano.png eduardo-cano-escritorio.jpg audiencia-01.jpg audiencia-02.jpg audiencia-03.jpg audiencia-04.jpg audiencia-05.jpg; do
+            curl --fail --silent --show-error --output /dev/null "http://127.0.0.1:3102/media/$asset"
+          done
+          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="390,844" --full-page http://127.0.0.1:3102/ artifacts/browser-capture/cano-penal/mobile-390.png
+          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="768,1024" --full-page http://127.0.0.1:3102/ artifacts/browser-capture/cano-penal/tablet-768.png
+          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="1440,1200" --full-page http://127.0.0.1:3102/ artifacts/browser-capture/cano-penal/desktop-1440.png
+          test "$(find artifacts/browser-capture/cano-penal -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
+
       - name: Verify persisted evidence
         shell: bash
         run: |
@@ -124,6 +149,7 @@ jobs:
           test "$(find "$root" -maxdepth 1 -type f -name '*-performance.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "8"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "8"
+          test "$(find "$root/cano-penal" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
           node - <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
