@@ -1,9 +1,7 @@
-import type { Redirect } from "next/dist/lib/load-custom-routes";
-
-export const redirects: Redirect[] = [
+export const redirects = [
   {
     source: "/acerca-de",
     destination: "/acerca-de-mi",
     permanent: true
   }
-];
+] as const;
