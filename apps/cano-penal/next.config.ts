@@ -4,8 +4,23 @@ import { redirects } from "./redirects";
 
 const csp = buildCsp({
   "script-src": ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
-  "connect-src": ["'self'", "https://www.google-analytics.com", "https://www.googletagmanager.com"],
-  "img-src": ["'self'", "data:", "https://www.google-analytics.com", "https://www.googletagmanager.com"]
+  "connect-src": [
+    "'self'",
+    "https://www.google-analytics.com",
+    "https://www.googletagmanager.com",
+    "https://www.googleadservices.com",
+    "https://googleads.g.doubleclick.net",
+    "https://www.google.com"
+  ],
+  "img-src": [
+    "'self'",
+    "data:",
+    "https://www.google-analytics.com",
+    "https://www.googletagmanager.com",
+    "https://www.googleadservices.com",
+    "https://googleads.g.doubleclick.net",
+    "https://www.google.com"
+  ]
 });
 
 const nextConfig: NextConfig = {
