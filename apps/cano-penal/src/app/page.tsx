@@ -4,6 +4,7 @@ import { areas, cases, site, trajectory } from "./content";
 
 const audienceFiles = ["audiencia-01.jpg", "audiencia-02.jpg", "audiencia-03.jpg", "audiencia-04.jpg", "audiencia-05.jpg"] as const;
 
+// PageShell renders <main id="main-content"> for the global skip-link target.
 export default function HomePage() {
   return (
     <PageShell>
