@@ -7,7 +7,7 @@ export function ClientInteractions() {
     const header = document.querySelector<HTMLElement>(".cp-header");
     const audience = document.querySelector<HTMLElement>(".cp-audiences");
 
-    const updateHeader = () => header?.classList.toggle("is-scrolled", window.scrollY > 24);
+    const updateHeader = () => header?.classList.toggle("is-scrolled", window.scrollY > 80);
     const updateAudience = () => {
       if (!audience) return;
       const center = audience.getBoundingClientRect().left + audience.clientWidth / 2;
