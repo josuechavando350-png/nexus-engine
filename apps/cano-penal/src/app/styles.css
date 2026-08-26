@@ -86,4 +86,13 @@ body{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,
 .cp-nav>a:first-child,.cp-footer-grid>div:first-child{line-height:0;background:transparent;border:0;box-shadow:none}.cp-logo{display:block;width:auto;max-width:100%;padding:0;background:transparent;border:0;box-shadow:none;object-fit:contain}.cp-logo-header{height:clamp(3rem,5vw,4rem);max-height:none}.cp-logo-footer{height:clamp(3.75rem,6vw,5rem);max-height:none}
 @media(max-width:980px){.cp-metrics-layout,.cp-areas-layout{grid-template-columns:1fr}.cp-areas-intro{position:static}.cp-areas{grid-template-columns:repeat(2,1fr)}.cp-area:nth-child(3n){border-right:1px solid var(--border-subtle)}.cp-area:nth-child(2n){border-right:0}.cp-contact-section{grid-template-columns:1fr}.cp-contact-image{min-height:60vw}.cp-footer-grid{grid-template-columns:1fr}.cp-footer-links{flex-wrap:wrap}.cp-footer-social{justify-content:center}.cp-footer-grid>div:first-child{grid-column:auto;text-align:center}}
 @media(max-width:640px){.cp-hero-image{object-position:74% center}.cp-hero-shade{background:linear-gradient(180deg,rgba(15,16,18,.72) 0%,rgba(15,16,18,.3) 34%,rgba(15,16,18,.68) 58%,rgba(15,16,18,.98) 100%)}.cp-hero h1{max-width:9ch;font-size:clamp(2.45rem,11vw,3.4rem)}.cp-metrics-layout{gap:2.5rem}.cp-metric{padding:1.6rem 0}.cp-areas{grid-template-columns:1fr}.cp-area,.cp-area:nth-child(odd),.cp-area:nth-child(even),.cp-area:nth-child(3n){min-height:0;border-right:0}.cp-contact-image{min-height:80vw}.cp-contact{padding:4rem 1.25rem}.cp-footer-links{flex-direction:column;align-items:center}.cp-footer-bottom{align-items:center;gap:.75rem;text-align:center}}
-
+/* Ajustes finales: sin marcos exteriores e iluminación solo al tocar */
+.cp-areas{border:0}
+.cp-path,.cp-advisory{border:0}
+.cp-path+.cp-path{border-top:1px solid var(--border-subtle)}
+.cp-path,.cp-why article,.cp-area,.cp-case{transition:background-color 180ms ease,border-color 180ms ease}
+@media (hover:hover){.cp-path:hover,.cp-why article:hover,.cp-area:hover,.cp-case:hover{background:var(--surface-elevated)}}
+.cp-path:active,.cp-why article:active,.cp-area:active,.cp-case:active{background:var(--surface-elevated)}
+.cp-path:focus-visible,.cp-why article:focus-visible,.cp-area:focus-visible,.cp-case:focus-visible{background:var(--surface-elevated)}
+@media (min-width:768px){.cp-path+.cp-path{border-top:0;border-left:1px solid var(--border-subtle)}}
+@media (prefers-reduced-motion:reduce){.cp-path,.cp-why article,.cp-area,.cp-case{transition:none}}
