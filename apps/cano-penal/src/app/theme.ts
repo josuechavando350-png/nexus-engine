@@ -12,7 +12,7 @@ export const canoTheme: NexusTheme = {
   "container.lg": "77.5rem",
   "container.xl": "88rem",
 
-  "focus.ring": "#c6c8cc",
+  "focus.ring": "#E8EDF3",
   "focus.offset": "3px",
 
   "motion.duration.instant": "0ms",
@@ -25,22 +25,22 @@ export const canoTheme: NexusTheme = {
   "motion.easing.accelerate": "cubic-bezier(0.7, 0, 0.84, 0)",
   "motion.easing.linear": "linear",
 
-  "surface.base": "#070707",
-  "surface.elevated": "#111214",
-  "surface.inverse": "#f1f1f1",
-  "surface.overlay": "rgba(7, 7, 7, 0.78)",
+  "surface.base": "#0B0F14",
+  "surface.elevated": "#10151C",
+  "surface.inverse": "#151C25",
+  "surface.overlay": "rgba(11, 15, 20, 0.86)",
 
-  "content.primary": "#f1f1f1",
-  "content.secondary": "#a7a7a7",
-  "content.inverse": "#070707",
-  "content.disabled": "#777777",
+  "content.primary": "#E8EDF3",
+  "content.secondary": "#9BA8B8",
+  "content.inverse": "#0B0F14",
+  "content.disabled": "#6F7C8C",
 
-  "accent.default": "#c6c8cc",
-  "accent.emphasis": "#ffffff",
-  "accent.muted": "#8e9298",
+  "accent.default": "#E8EDF3",
+  "accent.emphasis": "#E8EDF3",
+  "accent.muted": "#6F7C8C",
 
-  "border.subtle": "#2b2d30",
-  "border.strong": "#4b4e52",
+  "border.subtle": "rgba(200, 215, 235, 0.12)",
+  "border.strong": "rgba(232, 237, 243, 0.35)",
 
   "radius.sm": "0px",
   "radius.md": "0px",
