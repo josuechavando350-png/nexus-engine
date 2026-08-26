@@ -1,15 +1,16 @@
 import { Link } from "@nexus/core";
 import { nav, site } from "./content";
+import { ClientInteractions } from "./ClientInteractions";
 
-function Logo() {
-  return <img className="cp-logo" src="/media/logo-cano.png" alt="CANO Estrategia Penal" />;
+function Logo({ placement }: { placement: "header" | "footer" }) {
+  return <img className={`cp-logo cp-logo-${placement}`} src="/media/logo-cano.png" alt="CANO Estrategia Penal" />;
 }
 
 export function SiteHeader() {
   return (
     <header className="cp-header">
       <div className="cp-wrap cp-nav">
-        <Link href="/" aria-label="CANO Estrategia Penal"><Logo /></Link>
+        <Link href="/" aria-label="CANO Estrategia Penal"><Logo placement="header" /></Link>
         <nav className="cp-navlinks" aria-label="Navegación principal">
           {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
         </nav>
@@ -31,7 +32,7 @@ export function SiteFooter() {
     <footer className="cp-footer">
       <div className="cp-wrap">
         <div className="cp-footer-grid">
-          <div><Logo /></div>
+          <div><Logo placement="footer" /></div>
           <div className="cp-footer-links">
             {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
           </div>
@@ -50,5 +51,5 @@ export function SiteFooter() {
 }
 
 export function PageShell({ children }: { children: React.ReactNode }) {
-  return <><SiteHeader /><main id="main-content" className="cp-main">{children}</main><SiteFooter /></>;
+  return <><ClientInteractions /><SiteHeader /><main id="main-content" className="cp-main">{children}</main><SiteFooter /></>;
 }

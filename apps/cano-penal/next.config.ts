@@ -4,6 +4,7 @@ import { redirects } from "./redirects";
 
 const csp = buildCsp({
   "script-src": ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
+  "style-src": ["'self'", "'unsafe-inline'"],
   "connect-src": [
     "'self'",
     "https://www.google-analytics.com",
