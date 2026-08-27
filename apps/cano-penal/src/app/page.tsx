@@ -13,6 +13,7 @@ export default function HomePage() {
         <div className="cp-hero-shade" aria-hidden="true" />
         <div className="cp-wrap cp-hero-content">
           <div className="cp-hero-copy">
+            <div className="cp-eyebrow">Lic. Eduardo Cano · Defensa penal en CDMX</div>
             <h1>Conozco cómo investiga la autoridad.<br />Trabajé dentro de ella.</h1>
             <p className="cp-lead">20 años defendiendo exclusivamente en materia penal. Dirigí investigaciones en la Procuraduría Fiscal de la Federación. Hoy uso esa experiencia para defenderte.</p>
             <div className="cp-actions">
