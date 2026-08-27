@@ -2,15 +2,12 @@
 
 import { useEffect } from "react";
 
-const ACTIVE_CARD_SELECTOR = ".cp-path, .cp-why article, .cp-area, .cp-case";
-
 export function ClientInteractions() {
   useEffect(() => {
     const header = document.querySelector<HTMLElement>(".cp-header");
-    const cards = Array.from(document.querySelectorAll<HTMLElement>(ACTIVE_CARD_SELECTOR));
     const audience = document.querySelector<HTMLElement>(".cp-audiences");
 
-    const updateHeader = () => header?.classList.toggle("is-scrolled", window.scrollY > 24);
+    const updateHeader = () => header?.classList.toggle("is-scrolled", window.scrollY > 80);
     const updateAudience = () => {
       if (!audience) return;
       const center = audience.getBoundingClientRect().left + audience.clientWidth / 2;
@@ -32,16 +29,9 @@ export function ClientInteractions() {
     window.addEventListener("scroll", updateHeader, { passive: true });
     audience?.addEventListener("scroll", updateAudience, { passive: true });
 
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => entry.target.classList.toggle("is-visible", entry.isIntersecting)),
-      { threshold: 0.65 }
-    );
-    cards.forEach((card) => observer.observe(card));
-
     return () => {
       window.removeEventListener("scroll", updateHeader);
       audience?.removeEventListener("scroll", updateAudience);
-      observer.disconnect();
     };
   }, []);
 
