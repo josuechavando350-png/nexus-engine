@@ -33,7 +33,7 @@ export function SiteFooter() {
       <div className="cp-wrap">
         <div className="cp-footer-grid">
           <div><Logo placement="footer" /><div className="cp-footer-name">LIC. EDUARDO CANO</div></div>
-          <div className="cp-footer-links">
+          <nav className="cp-footer-links" aria-label="Navegación del pie de página">
             {nav.map(([label, href]) => <Link key={href} href={href}>{label}</Link>)}
           </nav>
           <div className="cp-footer-social">
