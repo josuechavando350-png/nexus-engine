@@ -131,3 +131,11 @@ a,button,article,.cp-path,.cp-area,.cp-case,.cp-why article{-webkit-tap-highligh
 .cp-area:last-child{border-right:0}
 #contacto h2,.cp-contact-section h2{font-size:clamp(1.9rem,3.4vw,2.6rem);font-weight:300;line-height:1.05;letter-spacing:-.01em}
 #contacto h2 strong,.cp-contact-section h2 strong{font-weight:700}
+/* Hero en tablets y ventanas medianas: texto abajo, no al lado */
+@media(min-width:641px) and (max-width:1023px){
+ .cp-hero{min-height:88vh;align-items:flex-end}
+ .cp-hero-image{object-position:78% center}
+ .cp-hero-shade{background:linear-gradient(180deg,rgba(11,15,20,.5) 0%,rgba(11,15,20,.15) 28%,rgba(11,15,20,.7) 60%,rgba(11,15,20,.97) 100%)}
+ .cp-hero-content{padding-top:8rem;padding-bottom:3rem}
+ .cp-hero-copy{max-width:100%}
+}
