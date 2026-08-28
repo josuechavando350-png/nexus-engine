@@ -8,6 +8,16 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const normalizePath = (path) => path.split(sep).join("/");
 const available = (value) => value === undefined || value === null || value === "" ? "no disponible" : String(value);
+const CHECK_TRANSLATIONS = Object.freeze({
+  build: Object.freeze({ label: "Compilación del sitio", details: Object.freeze({ "build command exited successfully": "El sitio compila sin errores" }) }),
+  lint: Object.freeze({ label: "Análisis estático de código", details: Object.freeze({ "lint command exited successfully": "El análisis estático de código finalizó sin errores" }) }),
+  typecheck: Object.freeze({ label: "Verificación de tipos", details: Object.freeze({ "typecheck command exited successfully": "La verificación de tipos finalizó sin errores" }) }),
+  tests: Object.freeze({ label: "Pruebas automatizadas", details: Object.freeze({ "tests command exited successfully": "Las pruebas automatizadas finalizaron sin errores" }) }),
+  "declared-assets": Object.freeze({ label: "Integridad de imágenes y recursos", details: Object.freeze({ "declared-assets command exited successfully": "La integridad de imágenes y recursos fue verificada" }) }),
+  "security-headers": Object.freeze({ label: "Cabeceras de seguridad", details: Object.freeze({ "app config wires the NEXUS security header baseline and CSP": "El sitio integra las cabeceras de seguridad y la política de contenido requeridas" }) }),
+  "browser-capture": Object.freeze({ label: "Captura real en navegador (390, 768 y 1440 px)", details: Object.freeze({ "verified CANO browser captures at widths 390, 768 and 1440": "Se verificaron capturas reales en navegador a 390, 768 y 1440 px" }) }),
+  "operability-h07": Object.freeze({ label: "Prueba de operabilidad en entorno limpio", details: Object.freeze({ "H-07 evidence is bound to this revision and every recorded phase passed": "La prueba de operabilidad está vinculada a esta revisión y todas sus fases finalizaron correctamente" }) }),
+});
 const escapeHtml = (value) => available(value)
   .replaceAll("&", "&amp;")
   .replaceAll("<", "&lt;")
@@ -21,7 +31,15 @@ function displayDate(value) {
   return new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeStyle: "short", timeZone: "UTC" }).format(parsed);
 }
 
-export function buildPassportHtml(passport) {
+function translatedCheck(check) {
+  const translation = CHECK_TRANSLATIONS[check.id];
+  return {
+    label: translation?.label ?? check.id,
+    detail: translation?.details[check.detail] ?? check.detail,
+  };
+}
+
+export function buildPassportHtml(passport, presentation = {}) {
   const checks = Array.isArray(passport.checks) ? passport.checks : [];
   const artifactCount = passport.artifactHashes && typeof passport.artifactHashes === "object"
     ? Object.keys(passport.artifactHashes).length
@@ -30,8 +48,15 @@ export function buildPassportHtml(passport) {
     ? `${available(passport.viewport.width)} × ${available(passport.viewport.height)}`
     : "no disponible";
   const rows = checks.length
-    ? checks.map((check) => `<tr><td>${escapeHtml(check.id)}</td><td><span class="status status-${escapeHtml(check.status).toLowerCase()}">${escapeHtml(check.status)}</span></td><td>${escapeHtml(check.detail)}</td></tr>`).join("")
+    ? checks.map((check) => {
+      const translated = translatedCheck(check);
+      return `<tr><td>${escapeHtml(translated.label)}</td><td><span class="status status-${escapeHtml(check.status).toLowerCase()}">${escapeHtml(check.status)}</span></td><td>${escapeHtml(translated.detail)}</td></tr>`;
+    }).join("")
     : '<tr><td colspan="3">no disponible</td></tr>';
+  const clientHeader = presentation.clientName ? `<div class="client">${escapeHtml(presentation.clientName)}</div>` : "";
+  const siteHeader = presentation.siteUrl ? `<div class="site">${escapeHtml(presentation.siteUrl)}</div>` : "";
+  const clientIdentity = presentation.clientName ? `<div><dt>Cliente</dt><dd>${escapeHtml(presentation.clientName)}</dd></div>` : "";
+  const siteIdentity = presentation.siteUrl ? `<div><dt>Sitio</dt><dd>${escapeHtml(presentation.siteUrl)}</dd></div>` : "";
 
   return `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><style>
@@ -41,13 +66,12 @@ export function buildPassportHtml(passport) {
   header { border-bottom: 3px solid #172033; padding-bottom: 12px; margin-bottom: 18px; }
   .eyebrow { color: #566176; font-size: 9pt; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
   h1 { font-size: 27pt; margin: 4px 0 2px; }
-  .project { font-size: 15pt; font-weight: 700; }
+  .client { font-size: 15pt; font-weight: 700; }
+  .site { color: #566176; margin-top: 2px; }
   .date { color: #566176; margin-top: 3px; }
   h2 { font-size: 12pt; margin: 17px 0 8px; text-transform: uppercase; letter-spacing: .06em; }
   .identity { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #d6dbe4; }
-  .identity div { padding: 8px 10px; border-bottom: 1px solid #d6dbe4; }
-  .identity div:nth-child(odd) { border-right: 1px solid #d6dbe4; }
-  .identity div:nth-last-child(-n+2) { border-bottom: 0; }
+  .identity div { padding: 8px 10px; border: 1px solid #d6dbe4; margin: -1px 0 0 -1px; }
   dt { color: #566176; font-size: 8pt; font-weight: 700; text-transform: uppercase; }
   dd { margin: 2px 0 0; overflow-wrap: anywhere; }
   table { border-collapse: collapse; width: 100%; table-layout: fixed; }
@@ -62,17 +86,18 @@ export function buildPassportHtml(passport) {
   .hash { font-family: monospace; font-size: 8.5pt; overflow-wrap: anywhere; }
   footer { border-top: 1px solid #aeb6c4; color: #566176; font-size: 8.5pt; margin-top: 18px; padding-top: 9px; }
 </style></head><body>
-  <header><div class="eyebrow">Certificado de entrega</div><h1>${escapeHtml(passport.projectId)}</h1><div class="project">${escapeHtml(passport.projectId)}</div><div class="date">Generado: ${escapeHtml(displayDate(passport.generatedAt))} UTC</div></header>
+  <header><div class="eyebrow">Certificado de entrega</div><h1>${escapeHtml(passport.projectId)}</h1>${clientHeader}${siteHeader}<div class="date">Generado: ${escapeHtml(displayDate(passport.generatedAt))} UTC</div></header>
   <h2>Identidad</h2><dl class="identity">
     <div><dt>Proyecto</dt><dd>${escapeHtml(passport.projectId)}</dd></div>
     <div><dt>Versión del motor</dt><dd>${escapeHtml(passport.engineVersion)}</dd></div>
     <div><dt>Commit</dt><dd class="hash">${escapeHtml(passport.sourceRevision)}</dd></div>
     <div><dt>Viewport</dt><dd>${escapeHtml(viewport)}</dd></div>
+    ${clientIdentity}${siteIdentity}
   </dl>
   <h2>Comprobaciones de entrega</h2><table><thead><tr><th>Identificador</th><th>Estado</th><th>Detalle</th></tr></thead><tbody>${rows}</tbody></table>
   <section class="verdict"><span>Veredicto de entrega</span><strong>${escapeHtml(passport.verdict)}</strong></section>
   <h2>Resumen de artefactos</h2><section class="summary"><div><strong>Archivos:</strong> ${artifactCount}</div><div><strong>Hash del Passport:</strong></div><div class="hash">${escapeHtml(passport.passportHash)}</div></section>
-  <footer>El hash del Passport permite verificar que la información certificada de esta entrega no fue alterada.</footer>
+  <footer>El hash del Passport permite verificar que la información certificada de esta entrega no fue alterada. Emitido por Nexus Bot Studio.</footer>
 </body></html>`;
 }
 
@@ -98,7 +123,10 @@ async function main() {
   const { chromium } = requireFromCapture("playwright");
   const browser = await chromium.launch({ headless: true });
   const page = await browser.newPage();
-  await page.setContent(buildPassportHtml(passport), { waitUntil: "load" });
+  await page.setContent(buildPassportHtml(passport, {
+    clientName: process.env.NEXUS_CLIENT_NAME?.trim(),
+    siteUrl: process.env.NEXUS_SITE_URL?.trim(),
+  }), { waitUntil: "load" });
   await mkdir(dirname(outputPath), { recursive: true });
   await page.pdf({ path: outputPath, format: "A4", printBackground: true, preferCSSPageSize: true });
   await browser.close();
