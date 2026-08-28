@@ -2,15 +2,13 @@
 
 import { useEffect } from "react";
 
-const ACTIVE_CARD_SELECTOR = ".cp-path, .cp-why article, .cp-area, .cp-case";
-
 export function ClientInteractions() {
   useEffect(() => {
     const header = document.querySelector<HTMLElement>(".cp-header");
-    const cards = Array.from(document.querySelectorAll<HTMLElement>(ACTIVE_CARD_SELECTOR));
     const audience = document.querySelector<HTMLElement>(".cp-audiences");
+    const tactileCards = Array.from(document.querySelectorAll<HTMLElement>(".cp-path, .cp-why article, .cp-area, .cp-case"));
 
-    const updateHeader = () => header?.classList.toggle("is-scrolled", window.scrollY > 24);
+    const updateHeader = () => header?.classList.toggle("is-scrolled", window.scrollY > 80);
     const updateAudience = () => {
       if (!audience) return;
       const center = audience.getBoundingClientRect().left + audience.clientWidth / 2;
@@ -27,21 +25,39 @@ export function ClientInteractions() {
       audience.querySelectorAll("img").forEach((image) => image.classList.toggle("is-active", image === closest));
     };
 
+    const pressHandlers = tactileCards.map((card) => {
+      let releaseTimer: number | undefined;
+      const press = () => {
+        if (releaseTimer) window.clearTimeout(releaseTimer);
+        card.classList.add("is-pressed");
+      };
+      const release = () => {
+        if (releaseTimer) window.clearTimeout(releaseTimer);
+        releaseTimer = window.setTimeout(() => card.classList.remove("is-pressed"), 720);
+      };
+      card.addEventListener("pointerdown", press);
+      card.addEventListener("pointerup", release);
+      card.addEventListener("pointercancel", release);
+      card.addEventListener("pointerleave", release);
+      return () => {
+        if (releaseTimer) window.clearTimeout(releaseTimer);
+        card.classList.remove("is-pressed");
+        card.removeEventListener("pointerdown", press);
+        card.removeEventListener("pointerup", release);
+        card.removeEventListener("pointercancel", release);
+        card.removeEventListener("pointerleave", release);
+      };
+    });
+
     updateHeader();
     updateAudience();
     window.addEventListener("scroll", updateHeader, { passive: true });
     audience?.addEventListener("scroll", updateAudience, { passive: true });
 
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => entry.target.classList.toggle("is-visible", entry.isIntersecting)),
-      { threshold: 0.65 }
-    );
-    cards.forEach((card) => observer.observe(card));
-
     return () => {
       window.removeEventListener("scroll", updateHeader);
       audience?.removeEventListener("scroll", updateAudience);
-      observer.disconnect();
+      pressHandlers.forEach((cleanup) => cleanup());
     };
   }, []);
 
