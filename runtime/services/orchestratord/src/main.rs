@@ -13,8 +13,8 @@ use std::sync::Arc;
 use nexus_agent::behavior::{RobotCapabilities, SafetyEnvelope, TaskGoal, WorldState};
 
 use nexus_agent::{
-    DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator, OrchestratorConfig,
-    ProposalTrigger, SituationView, TaskProposal,
+    BehaviorModel, DispatchOutcome, HumanApprovalGate, MockBehaviorModel, Orchestrator,
+    OrchestratorConfig, ProposalTrigger, SituationView, TaskProposal,
 };
 
 use nexus_edge_protocol::{DevSigner, ExecutionMode, Waypoint};
@@ -27,6 +27,7 @@ use nexus_ingest::{InMemoryBus, MessageBus, OutboundMessage};
 
 use nexus_observability::{
     names, AuditTrail, ComponentState, HealthRegistry, JsonLinesAuditSink, Level, Logger, Metrics,
+    RuntimeProfile,
 };
 
 use nexus_policy::{PolicyEngine, RiskClass};
@@ -73,6 +74,8 @@ fn execution_mode_from_env() -> Result<ExecutionMode> {
 }
 
 fn run(logger: &Logger) -> Result<()> {
+    let profile = RuntimeProfile::from_env()?;
+    validate_runtime(profile)?;
     let mode = execution_mode_from_env()?;
 
     let metrics = Arc::new(Metrics::new());
@@ -101,7 +104,13 @@ fn run(logger: &Logger) -> Result<()> {
 
     health.set("signer", ComponentState::Up, signer_id.clone());
 
-    health.set("simulator", ComponentState::Up, "deterministic twin");
+    health.set("behavior-model", ComponentState::Degraded, model.model_id());
+    health.set(
+        "bus",
+        ComponentState::Degraded,
+        "non-production in-memory transport",
+    );
+    health.set("simulator", ComponentState::Degraded, "deterministic twin");
 
     let config = OrchestratorConfig {
         mode,
@@ -111,8 +120,9 @@ fn run(logger: &Logger) -> Result<()> {
     let orchestrator = Orchestrator::new(config, &policy, &model, &gate, &audit);
 
     logger.info(
-        "orchestratord ready",
+        "orchestratord non-production runtime started",
         vec![
+            ("runtime_profile", Value::string(profile.as_str())),
             ("mode", Value::string(mode.as_str())),
             ("policy_rules", Value::number(policy.rule_count() as f64)),
             ("health", health.report()),
@@ -264,4 +274,40 @@ fn run(logger: &Logger) -> Result<()> {
     print!("{}", metrics.render_text());
 
     Ok(())
+}
+
+fn validate_runtime(profile: RuntimeProfile) -> Result<()> {
+    profile.require_non_production("mock-behavior-model")?;
+    profile.require_non_production("in-memory-bus")?;
+    profile.require_non_production("development-signer")?;
+    profile.require_non_production("simulated-world-model")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn production_rejects_mock_orchestration_wiring() {
+        assert!(validate_runtime(RuntimeProfile::Production).is_err());
+        assert!(validate_runtime(RuntimeProfile::Development).is_ok());
+        assert!(validate_runtime(RuntimeProfile::Test).is_ok());
+    }
+
+    #[test]
+    fn mock_orchestration_wiring_is_live_but_never_ready() {
+        let health = HealthRegistry::new();
+        health.set(
+            "behavior-model",
+            ComponentState::Degraded,
+            "mock-rule-based-v1",
+        );
+        health.set(
+            "bus",
+            ComponentState::Degraded,
+            "non-production in-memory transport",
+        );
+        assert!(health.is_live());
+        assert!(!health.is_ready());
+    }
 }

@@ -14,7 +14,7 @@ use nexus_ingest::{
 };
 use nexus_observability::{
     names, AuditAction, AuditTrail, ComponentState, HealthRegistry, JsonLinesAuditSink, Level,
-    Logger, Metrics,
+    Logger, Metrics, RuntimeProfile,
 };
 use nexus_ontology::store::{GraphMutation, GraphWriter};
 use nexus_ontology::{Entity, EntityKind, Provenance};
@@ -97,11 +97,13 @@ fn main() {
 }
 
 fn run(logger: &Logger) -> Result<()> {
-    let backend = GraphBackend::from_env_value(
+    let profile = RuntimeProfile::from_env()?;
+    let backend = GraphBackend::resolve(
         std::env::var("NEXUS_GRAPH_BACKEND").ok().as_deref(),
         std::env::var("NEXUS_GRAPH_URI").ok().as_deref(),
         std::env::var("NEXUS_GRAPH_DATABASE").ok().as_deref(),
-    );
+    )?;
+    validate_runtime(profile, &backend)?;
 
     let health = HealthRegistry::new();
     let metrics = Arc::new(Metrics::new());
@@ -112,7 +114,11 @@ fn run(logger: &Logger) -> Result<()> {
     // downgrade to a non-durable store.
     let writer: Arc<dyn GraphWriter> = match &backend {
         GraphBackend::InMemory => {
-            health.set("graph", ComponentState::Up, "in-memory");
+            health.set(
+                "graph",
+                ComponentState::Degraded,
+                "non-production in-memory",
+            );
             Arc::new(InMemoryGraph::new())
         }
         GraphBackend::Neo4j { uri, .. } => {
@@ -134,8 +140,13 @@ fn run(logger: &Logger) -> Result<()> {
         }
     };
 
-    let config = IngestConfig::from_env().unwrap_or_else(|_| IngestConfig::for_testing());
+    let config = IngestConfig::from_env()?;
     let bus: Arc<dyn MessageBus> = Arc::new(InMemoryBus::new(4));
+    health.set(
+        "bus",
+        ComponentState::Degraded,
+        "non-production in-memory transport",
+    );
 
     let handler = Arc::new(CommitHandler {
         writer,
@@ -154,8 +165,9 @@ fn run(logger: &Logger) -> Result<()> {
     )?;
 
     logger.info(
-        "graphd ready",
+        "graphd non-production runtime started",
         vec![
+            ("runtime_profile", Value::string(profile.as_str())),
             ("backend", Value::string(backend.name())),
             ("health", health.report()),
         ],
@@ -168,4 +180,46 @@ fn run(logger: &Logger) -> Result<()> {
     );
     print!("{}", metrics.render_text());
     Ok(())
+}
+
+fn validate_runtime(profile: RuntimeProfile, backend: &GraphBackend) -> Result<()> {
+    if matches!(backend, GraphBackend::InMemory) {
+        profile.require_non_production("in-memory-graph")?;
+    }
+    // graphd has no real broker wiring yet, even when a durable graph adapter
+    // is compiled. Production must not claim readiness on a process-local bus.
+    profile.require_non_production("in-memory-bus")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn production_rejects_every_current_graphd_wiring() {
+        assert!(validate_runtime(RuntimeProfile::Production, &GraphBackend::InMemory).is_err());
+        assert!(validate_runtime(
+            RuntimeProfile::Production,
+            &GraphBackend::Neo4j {
+                uri: "bolt://graph:7687".into(),
+                database: "neo4j".into()
+            }
+        )
+        .is_err());
+        assert!(validate_runtime(RuntimeProfile::Development, &GraphBackend::InMemory).is_ok());
+    }
+
+    #[test]
+    fn missing_or_invalid_graph_configuration_does_not_select_a_durable_backend() {
+        assert!(GraphBackend::resolve(Some("neo4j"), None, None).is_err());
+        assert_eq!(
+            GraphBackend::resolve(None, None, None).unwrap(),
+            GraphBackend::InMemory
+        );
+        assert!(validate_runtime(
+            RuntimeProfile::Production,
+            &GraphBackend::resolve(None, None, None).unwrap()
+        )
+        .is_err());
+    }
 }

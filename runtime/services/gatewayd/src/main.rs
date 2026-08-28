@@ -19,6 +19,7 @@ use nexus_event::json::Value;
 use nexus_event::{NexusError, Result};
 use nexus_observability::{
     AuditTrail, ComponentState, HealthRegistry, JsonLinesAuditSink, Level, Logger, Metrics,
+    RuntimeProfile,
 };
 use nexus_oneway::{
     AnalyticsReceiver, BufferedEgress, ControlledEdgeConfig, DiodeConfig, ObservationDiodeSender,
@@ -40,6 +41,8 @@ fn main() {
 }
 
 fn run(logger: &Logger) -> Result<()> {
+    let profile = RuntimeProfile::from_env()?;
+    validate_runtime(profile)?;
     let metrics = Arc::new(Metrics::new());
     let audit = Arc::new(AuditTrail::new(Box::new(JsonLinesAuditSink), 20_000));
     let health = HealthRegistry::new();
@@ -58,8 +61,8 @@ fn run(logger: &Logger) -> Result<()> {
     let receiver = AnalyticsReceiver::new(&[telemetry_identity.as_str()], true);
     health.set(
         "observation-diode",
-        ComponentState::Up,
-        Profile::ObservationDiode.as_str(),
+        ComponentState::Degraded,
+        "non-production buffered egress",
     );
 
     // ---- Profile B: controlled edge. Separate identity and channel. -------
@@ -73,8 +76,8 @@ fn run(logger: &Logger) -> Result<()> {
     control.assert_distinct_from(&telemetry_identity)?;
     health.set(
         "controlled-edge",
-        ComponentState::Up,
-        Profile::ControlledEdge.as_str(),
+        ComponentState::Degraded,
+        "configuration parsed; channel not connected",
     );
 
     let signers = SignerRegistry::new();
@@ -90,11 +93,16 @@ fn run(logger: &Logger) -> Result<()> {
         MockHostFactory::new().with_reading("probe-a", 96.5),
     );
 
-    health.set("edge-sandbox", ComponentState::Up, "wasm simulation mode");
+    health.set(
+        "edge-sandbox",
+        ComponentState::Degraded,
+        "mock-host simulation mode",
+    );
 
     logger.info(
-        "gatewayd ready",
+        "gatewayd non-production runtime started",
         vec![
+            ("runtime_profile", Value::string(profile.as_str())),
             ("health", health.report()),
             (
                 "profiles",
@@ -120,6 +128,41 @@ fn run(logger: &Logger) -> Result<()> {
 
     print!("{}", metrics.render_text());
     Ok(())
+}
+
+fn validate_runtime(profile: RuntimeProfile) -> Result<()> {
+    profile.require_non_production("buffered-egress")?;
+    profile.require_non_production("unconnected-controlled-edge")?;
+    profile.require_non_production("mock-host-simulation-executor")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn production_rejects_simulated_gateway_wiring() {
+        assert!(validate_runtime(RuntimeProfile::Production).is_err());
+        assert!(validate_runtime(RuntimeProfile::Development).is_ok());
+        assert!(validate_runtime(RuntimeProfile::Test).is_ok());
+    }
+
+    #[test]
+    fn simulated_gateway_is_live_but_never_ready() {
+        let health = HealthRegistry::new();
+        health.set(
+            "controlled-edge",
+            ComponentState::Degraded,
+            "channel not connected",
+        );
+        health.set(
+            "edge-sandbox",
+            ComponentState::Degraded,
+            "mock-host simulation mode",
+        );
+        assert!(health.is_live());
+        assert!(!health.is_ready());
+    }
 }
 
 #[derive(Debug)]

@@ -1,10 +1,11 @@
-import { execFile } from "node:child_process";
 import { cp, mkdir, readdir, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { promisify } from "node:util";
-import { childProcessEnvironment } from "./child-env.js";
+import { runProcess } from "./process.js";
 
-const exec = promisify(execFile);
+async function exec(command: string, args: readonly string[], options: { cwd: string; timeout: number; maxBuffer?: number }): Promise<{ stdout: string }> {
+  const result = await runProcess(command, args, { cwd: options.cwd, timeoutMs: options.timeout, maxOutputBytes: options.maxBuffer ?? 8 * 1024 * 1024 });
+  return { stdout: result.stdout.toString("utf8") };
+}
 
 export class ConcurrencyLimitError extends Error { readonly code = "CONCURRENCY_LIMIT_REACHED"; }
 
@@ -34,14 +35,14 @@ export class ExecutionCoordinator implements ExecutionRunner {
       if (!isolated) return await operation(this.sourceRoot);
       worktree = join(this.worktreeRoot, requestId);
       await mkdir(this.worktreeRoot, { recursive: true });
-      await exec("git", ["worktree", "add", "--detach", worktree, sourceSha], { cwd: this.sourceRoot, env: childProcessEnvironment(), timeout: 60_000 });
+      await exec("git", ["worktree", "add", "--detach", worktree, sourceSha], { cwd: this.sourceRoot, timeout: 60_000 });
       await this.installDependencies(worktree);
       await this.copyInstalledOutputs(worktree);
       return await operation(worktree);
     } finally {
       if (worktree) {
-        await exec("git", ["worktree", "remove", "--force", worktree], { cwd: this.sourceRoot, env: childProcessEnvironment(), timeout: 60_000 }).catch(() => rm(worktree!, { recursive: true, force: true }));
-        await exec("git", ["worktree", "prune"], { cwd: this.sourceRoot, env: childProcessEnvironment(), timeout: 60_000 }).catch(() => undefined);
+        await exec("git", ["worktree", "remove", "--force", worktree], { cwd: this.sourceRoot, timeout: 60_000 }).catch(() => rm(worktree!, { recursive: true, force: true }));
+        await exec("git", ["worktree", "prune"], { cwd: this.sourceRoot, timeout: 60_000 }).catch(() => undefined);
       }
       this.#active -= 1;
     }
@@ -49,7 +50,7 @@ export class ExecutionCoordinator implements ExecutionRunner {
 
   private async installDependencies(worktree: string): Promise<void> {
     try { if (!(await stat(join(worktree, "pnpm-lock.yaml"))).isFile()) return; } catch { return; }
-    await exec("pnpm", ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"], { cwd: worktree, env: childProcessEnvironment(), timeout: this.executionTimeoutMs, maxBuffer: this.maxProcessOutputBytes });
+    await exec("pnpm", ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"], { cwd: worktree, timeout: this.executionTimeoutMs, maxBuffer: this.maxProcessOutputBytes });
   }
 
   private async copyInstalledOutputs(worktree: string): Promise<void> {
