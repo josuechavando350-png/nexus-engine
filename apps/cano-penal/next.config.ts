@@ -25,6 +25,7 @@ const csp = buildCsp({
 });
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   experimental: process.env.NEXUS_DETERMINISTIC_BUILD === "1" ? { cpus: 1, webpackBuildWorker: false } : {},
   transpilePackages: ["@nexus/core"],
   generateBuildId: async () => {
@@ -40,6 +41,10 @@ const nextConfig: NextConfig = {
       source: "/(.*)",
       headers: [
         ...NEXUS_SECURITY_HEADERS_BASE.map(({ key, value }) => ({ key, value })),
+        { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+        { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+        { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+        { key: "X-DNS-Prefetch-Control", value: "on" },
         { key: "Content-Security-Policy", value: csp }
       ]
     }];
