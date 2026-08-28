@@ -21,7 +21,8 @@ const csp = buildCsp({
     "https://www.googleadservices.com",
     "https://googleads.g.doubleclick.net",
     "https://www.google.com"
-  ]
+  ],
+  "frame-src": ["'self'", "https://www.google.com"]
 });
 
 const nextConfig: NextConfig = {
