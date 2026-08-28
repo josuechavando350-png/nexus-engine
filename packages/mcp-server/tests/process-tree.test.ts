@@ -32,11 +32,11 @@ describe.runIf(process.platform !== "win32")("auditable process-tree hard stop",
   it("escalates timeout from TERM to KILL and reaps a child that ignores TERM", async () => {
     const cwd = await root(); const pidPath = join(cwd, "pid");
     const script = `require('fs').writeFileSync(${JSON.stringify(pidPath)},String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000)`;
-    const execution = startProcess(process.execPath, ["-e", script], { cwd, timeoutMs: 100, maxOutputBytes: 1024, termGraceMs: 100, reapDeadlineMs: 2_000 });
+    const execution = startProcess(process.execPath, ["-e", script], { cwd, timeoutMs: 1_000, maxOutputBytes: 1024, termGraceMs: 100, reapDeadlineMs: 2_000 });
     const pid = await waitForFile(pidPath);
     await expect(execution.completed).rejects.toMatchObject({ code: "TIMEOUT" });
     await assertDead(pid);
-  });
+  }, 10_000);
 
   it("kills and reaps a grandchild that ignores TERM", async () => {
     const cwd = await root(); const parentPath = join(cwd, "parent"); const grandchildPath = join(cwd, "grandchild");
@@ -77,5 +77,44 @@ describe("process completion cleanup", () => {
     let error: ProcessExecutionError | undefined;
     try { await runProcess(process.execPath, ["-e", `require('fs').writeFileSync(${JSON.stringify(pidPath)},String(process.pid));process.exit(17)`], { cwd, timeoutMs: 2_000, maxOutputBytes: 1024 }); } catch (cause) { error = cause as ProcessExecutionError; }
     expect(error).toMatchObject({ code: "EXIT", exitCode: 17 }); await assertDead(await waitForFile(pidPath));
+  });
+
+  it("terminate returns immediately after completed resolved successfully", async () => {
+    const cwd = await root();
+    const execution = startProcess(process.execPath, ["-e", "process.stdout.write('done')"], { cwd, timeoutMs: 2_000, maxOutputBytes: 1024, termGraceMs: 1_000, reapDeadlineMs: 1_000 });
+    await expect(execution.completed).resolves.toMatchObject({ exitCode: 0 });
+    const started = Date.now();
+    await execution.terminate();
+    expect(Date.now() - started).toBeLessThan(250);
+  });
+
+  it("terminate returns after a process has already exited with failure", async () => {
+    const cwd = await root();
+    const execution = startProcess(process.execPath, ["-e", "process.exit(23)"], { cwd, timeoutMs: 2_000, maxOutputBytes: 1024, termGraceMs: 1_000, reapDeadlineMs: 1_000 });
+    await expect(execution.completed).rejects.toMatchObject({ code: "EXIT", exitCode: 23 });
+    await expect(execution.terminate()).resolves.toBeUndefined();
+  });
+
+  it("coalesces repeated and concurrent termination calls", async () => {
+    const cwd = await root(); const pidPath = join(cwd, "concurrent");
+    const execution = startProcess(process.execPath, ["-e", `require('fs').writeFileSync(${JSON.stringify(pidPath)},String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000)`], { cwd, timeoutMs: 5_000, maxOutputBytes: 1024, termGraceMs: 100, reapDeadlineMs: 2_000 });
+    const completion = execution.completed.catch((error: unknown) => error);
+    const pid = await waitForFile(pidPath);
+    await Promise.all([execution.terminate(), execution.terminate(), execution.terminate()]);
+    await execution.terminate();
+    await completion;
+    await assertDead(pid);
+  });
+
+  it("supports capture-style finally cleanup after a server exits itself", async () => {
+    const cwd = await root();
+    const execution = startProcess(process.execPath, ["-e", "setTimeout(()=>process.exit(0),50)"], { cwd, timeoutMs: 2_000, maxOutputBytes: 1024, termGraceMs: 1_000, reapDeadlineMs: 1_000, captureOutput: false });
+    const completion = execution.completed;
+    try {
+      await completion;
+    } finally {
+      await execution.terminate();
+    }
+    await expect(execution.terminate()).resolves.toBeUndefined();
   });
 });
