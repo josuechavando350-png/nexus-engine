@@ -1,13 +1,9 @@
-import { execFile } from "node:child_process";
 import { mkdtemp, rm, stat, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { promisify } from "node:util";
 import type { ProjectState } from "./contracts.js";
 import { readProjects } from "./projects.js";
-import { childProcessEnvironment } from "./child-env.js";
-
-const exec = promisify(execFile);
+import { runProcess } from "./process.js";
 
 export interface ProjectSpec {
   slug: string;
@@ -27,8 +23,8 @@ export interface ProjectCreation {
 }
 
 async function command(root: string, executable: string, args: readonly string[], timeout = 120_000, maxOutputBytes = 8 * 1024 * 1024): Promise<string> {
-  const result = await exec(executable, [...args], { cwd: root, env: childProcessEnvironment(), encoding: "utf8", timeout, maxBuffer: maxOutputBytes });
-  return result.stdout.trim();
+  const result = await runProcess(executable, args, { cwd: root, timeoutMs: timeout, maxOutputBytes });
+  return result.stdout.toString("utf8").trim();
 }
 
 export const DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS = 300_000;
