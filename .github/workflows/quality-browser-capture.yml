@@ -15,6 +15,7 @@ env:
   NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
   NEXUS_VISUAL_BASELINE_DIR: quality-baselines/browser-capture
   NEXUS_VISUAL_MAX_CHANGED_RATIO: "0.001"
+  NEXUS_PASSPORT_PROJECT_ID: cano-penal
 
 jobs:
   real-browser-evidence:
@@ -189,6 +190,23 @@ jobs:
           }
           console.log('Passport visual verdict: PASS');
           NODE
+
+      - name: Generate operability evidence for the Quality Passport
+        run: pnpm operability:h07
+
+      - name: Generate formal Quality Passport
+        run: NEXUS_PROJECT_ID="$NEXUS_PASSPORT_PROJECT_ID" pnpm passport:generate
+
+      - name: Render Quality Passport PDF
+        run: NEXUS_PROJECT_ID="$NEXUS_PASSPORT_PROJECT_ID" pnpm passport:pdf
+
+      - name: Upload formal Quality Passport
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-quality-passport-${{ env.NEXUS_VALIDATED_SHA }}
+          path: .artifacts/quality-passports/
+          if-no-files-found: error
+          retention-days: 90
 
       - name: Upload real browser evidence and Quality Passport
         if: always()

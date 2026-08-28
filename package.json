@@ -18,6 +18,7 @@
     "build": "pnpm verify:assets && pnpm build:hermetic-inputs && node scripts/build-workspace.mjs && node scripts/assert-clean-build.mjs",
     "quality-gates": "node scripts/quality-gates.mjs",
     "passport:generate": "node scripts/quality-passport.mjs",
+    "passport:pdf": "node scripts/quality-passport-pdf.mjs",
     "security-hygiene": "node scripts/security-hygiene.mjs",
     "sbom": "node scripts/generate-sbom.mjs",
     "client:run": "node scripts/nexus-client-pipeline.mjs",
