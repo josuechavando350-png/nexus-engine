@@ -7,6 +7,7 @@ import "./a11y.css";
 import "./styles.css";
 import "./chrome.css";
 import "./enhancements.css";
+import "./client-feedback.css";
 import { canoTheme } from "./theme";
 import { site } from "./content";
 
