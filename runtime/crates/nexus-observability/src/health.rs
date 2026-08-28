@@ -8,6 +8,55 @@ use nexus_event::json::Value;
 use std::collections::BTreeMap;
 use std::sync::Mutex;
 
+/// Deployment intent. Omission is always production; a non-production
+/// adapter can therefore never be selected merely because configuration is
+/// incomplete.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RuntimeProfile {
+    Production,
+    Development,
+    Test,
+}
+
+impl RuntimeProfile {
+    pub fn from_value(value: Option<&str>) -> nexus_event::Result<Self> {
+        match value
+            .unwrap_or("production")
+            .trim()
+            .to_ascii_lowercase()
+            .as_str()
+        {
+            "production" => Ok(Self::Production),
+            "development" => Ok(Self::Development),
+            "test" => Ok(Self::Test),
+            other => Err(nexus_event::NexusError::invalid(format!(
+                "unknown NEXUS_RUNTIME_PROFILE '{other}'"
+            ))),
+        }
+    }
+
+    pub fn from_env() -> nexus_event::Result<Self> {
+        Self::from_value(std::env::var("NEXUS_RUNTIME_PROFILE").ok().as_deref())
+    }
+
+    pub fn require_non_production(self, adapter: &str) -> nexus_event::Result<()> {
+        if self == Self::Production {
+            return Err(nexus_event::NexusError::unsupported(format!(
+                "production runtime refuses non-production adapter '{adapter}'"
+            )));
+        }
+        Ok(())
+    }
+
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Production => "production",
+            Self::Development => "development",
+            Self::Test => "test",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ComponentState {
     Up,
@@ -138,5 +187,21 @@ mod tests {
         let text = health.report().to_canonical_string();
         let parsed = nexus_event::json::parse(&text).unwrap();
         assert_eq!(parsed.get("ready").and_then(|v| v.as_bool()), Some(true));
+    }
+
+    #[test]
+    fn production_is_the_default_and_refuses_non_production_adapters() {
+        let profile = RuntimeProfile::from_value(None).unwrap();
+        assert_eq!(profile, RuntimeProfile::Production);
+        assert!(profile.require_non_production("mock-model").is_err());
+        assert!(RuntimeProfile::from_value(Some("development"))
+            .unwrap()
+            .require_non_production("mock-model")
+            .is_ok());
+        assert!(RuntimeProfile::from_value(Some("test"))
+            .unwrap()
+            .require_non_production("in-memory-bus")
+            .is_ok());
+        assert!(RuntimeProfile::from_value(Some("dev")).is_err());
     }
 }

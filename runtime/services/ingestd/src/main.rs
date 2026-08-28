@@ -19,6 +19,7 @@ use nexus_ingest::{
 };
 use nexus_observability::{
     names, AuditTrail, ComponentState, HealthRegistry, JsonLinesAuditSink, Level, Logger, Metrics,
+    RuntimeProfile,
 };
 use nexus_ontology::pipeline_for_telemetry;
 use nexus_ontology::store::GraphMutation;
@@ -99,6 +100,8 @@ fn main() {
 }
 
 fn run(logger: &Logger) -> Result<()> {
+    let profile = RuntimeProfile::from_env()?;
+    validate_runtime(profile)?;
     let config = match IngestConfig::from_env() {
         Ok(config) => config,
 
@@ -122,11 +125,19 @@ fn run(logger: &Logger) -> Result<()> {
 
     let bus: Arc<dyn MessageBus> = Arc::new(InMemoryBus::new(4));
 
-    health.set("bus", ComponentState::Up, "in-memory transport");
+    health.set(
+        "bus",
+        ComponentState::Degraded,
+        "non-production in-memory transport",
+    );
 
     let graph = Arc::new(InMemoryGraph::new());
 
-    health.set("graph-cache", ComponentState::Up, "in-memory candidates");
+    health.set(
+        "graph-cache",
+        ComponentState::Degraded,
+        "non-production in-memory candidates",
+    );
 
     let handler = Arc::new(NormalizeHandler {
         bus: Arc::clone(&bus),
@@ -145,8 +156,9 @@ fn run(logger: &Logger) -> Result<()> {
     )?;
 
     logger.info(
-        "ingestd ready",
+        "ingestd non-production runtime started",
         vec![
+            ("runtime_profile", Value::string(profile.as_str())),
             ("health", health.report()),
             ("topics", Value::string(topics::TELEMETRY_RAW)),
         ],
@@ -166,4 +178,33 @@ fn run(logger: &Logger) -> Result<()> {
     print!("{}", metrics.render_text());
 
     Ok(())
+}
+
+fn validate_runtime(profile: RuntimeProfile) -> Result<()> {
+    profile.require_non_production("in-memory-bus")?;
+    profile.require_non_production("in-memory-graph-cache")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn production_cannot_start_with_in_memory_ingest_dependencies() {
+        assert!(validate_runtime(RuntimeProfile::Production).is_err());
+        assert!(validate_runtime(RuntimeProfile::Development).is_ok());
+        assert!(validate_runtime(RuntimeProfile::Test).is_ok());
+    }
+
+    #[test]
+    fn non_production_ingest_dependencies_never_report_ready() {
+        let health = HealthRegistry::new();
+        health.set(
+            "bus",
+            ComponentState::Degraded,
+            "non-production in-memory transport",
+        );
+        assert!(!health.is_ready());
+        assert!(health.is_live());
+    }
 }

@@ -18,6 +18,6 @@ pub use audit::{
     verify_chain_slice, AuditAction, AuditRecord, AuditSink, AuditTrail, JsonLinesAuditSink,
     NullAuditSink, GENESIS_HASH,
 };
-pub use health::{ComponentState, HealthRegistry};
+pub use health::{ComponentState, HealthRegistry, RuntimeProfile};
 pub use log::{BufferSink, Level, LogSink, Logger, StderrSink};
 pub use metrics::{names, Counter, Gauge, Histogram, Metrics, DEFAULT_LATENCY_BUCKETS_MS};
