@@ -11,7 +11,9 @@ import type { Bounds, GeometricMetrics, GeometricPrimitive } from "./types.js";
 const EPSILON = 1e-12;
 
 function clamp01(value: number): number {
-  if (!Number.isFinite(value)) return 0;
+  if (!Number.isFinite(value)) {
+    throw new Error("Metric calculation produced a non-finite value");
+  }
   return Math.min(1, Math.max(0, value));
 }
 
@@ -153,7 +155,8 @@ export function overlap(primitives: readonly GeometricPrimitive[], canvasBounds?
   return clamp01(1 - rectangleUnionArea(bounds) / summedArea);
 }
 
-export function packingDensity(primitives: readonly GeometricPrimitive[], _canvasBounds?: Bounds): number {
+export function packingDensity(primitives: readonly GeometricPrimitive[], canvasBounds?: Bounds): number {
+  void canvasBounds;
   const leaves = leafPrimitives(primitives).filter(
     (primitive) => primitive.bounds.width > 0 && primitive.bounds.height > 0,
   );
@@ -219,7 +222,8 @@ function entropy(values: readonly string[]): number {
   return maxH <= EPSILON ? 0 : clamp01(h / maxH);
 }
 
-export function structuralEntropy(primitives: readonly GeometricPrimitive[], _canvasBounds?: Bounds): number {
+export function structuralEntropy(primitives: readonly GeometricPrimitive[], canvasBounds?: Bounds): number {
+  void canvasBounds;
   const leaves = leafPrimitives(primitives);
   if (leaves.length <= 1) return 0;
 
@@ -242,7 +246,8 @@ export function structuralEntropy(primitives: readonly GeometricPrimitive[], _ca
   return entropy(signatures);
 }
 
-export function aspectConsistency(primitives: readonly GeometricPrimitive[], _canvasBounds?: Bounds): number {
+export function aspectConsistency(primitives: readonly GeometricPrimitive[], canvasBounds?: Bounds): number {
+  void canvasBounds;
   const ratios = leafPrimitives(primitives)
     .filter((primitive) => primitive.bounds.width > EPSILON && primitive.bounds.height > EPSILON)
     .map((primitive) => Math.log(primitive.bounds.width / primitive.bounds.height));
