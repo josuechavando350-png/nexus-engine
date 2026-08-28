@@ -50,7 +50,9 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body style={themeStyle}>
         <div className="cp-splash" aria-hidden="true">
           <div className="cp-splash-inner">
-            <div className="cp-splash-brand"><strong>CANO</strong><span>ESTRATEGIA PENAL</span></div>
+            <div className="cp-splash-logo-wrap">
+              <img className="cp-splash-logo" src="/media/logo-cano.png" alt="" />
+            </div>
             <div className="cp-splash-line" />
             <p>EXPERIENCIA DESDE DENTRO. DEFENSA DE FRENTE.</p>
           </div>
