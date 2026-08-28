@@ -102,6 +102,9 @@ export function definePrimitive(input: PrimitiveInput | GeometricPrimitive): Geo
     case "container": {
       const children = Object.freeze(input.children.map((child) => definePrimitive(child)));
       assertUniquePrimitiveIds(children);
+      if (flattenPrimitives(children).some((child) => child.id === input.id)) {
+        throw new Error(`Duplicate primitive id: ${input.id}`);
+      }
       const inferred = unionBounds(children.map((child) => child.bounds));
       const bounds = input.bounds ? Object.freeze({ ...input.bounds }) : inferred;
       validateBounds(bounds, `${input.id}.bounds`);
