@@ -33,7 +33,7 @@ export function ClientInteractions() {
       };
       const release = () => {
         if (releaseTimer) window.clearTimeout(releaseTimer);
-        releaseTimer = window.setTimeout(() => card.classList.remove("is-pressed"), 140);
+        releaseTimer = window.setTimeout(() => card.classList.remove("is-pressed"), 720);
       };
       card.addEventListener("pointerdown", press);
       card.addEventListener("pointerup", release);
