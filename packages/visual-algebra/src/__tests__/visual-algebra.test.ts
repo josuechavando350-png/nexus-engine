@@ -97,6 +97,14 @@ describe("primitives", () => {
     })).toThrow(/Duplicate primitive id/);
   });
 
+  test("rejects a container id duplicated by one of its descendants", () => {
+    expect(() => definePrimitive({
+      id: "same",
+      kind: "container",
+      children: [{ id: "same", kind: "rectangle", bounds: { x: 0, y: 0, width: 10, height: 10 } }],
+    })).toThrow(/Duplicate primitive id: same/);
+  });
+
   test("accepts extreme but finite geometry", () => {
     const term = createTerm({
       subject: "extreme",
@@ -290,6 +298,6 @@ describe("distance and fingerprint bridges", () => {
     expect(legacy.metrics.structuralEntropy).toBeUndefined();
     expect(legacy.unavailableMetrics).toContain("packingDensity");
     expect(legacy.warnings.join(" ")).toMatch(/No geometric primitives/);
-    expect(() => fromLegacyStructure({ symmetry: 1.1 })).toThrow(/\[0, 1\]/);
+    expect(() => fromLegacyStructure({ symmetry: 1.1 })).toThrow(/\[0,\s*1\]/);
   });
 });
