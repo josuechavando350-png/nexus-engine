@@ -30,7 +30,7 @@ const METRIC_NAMES: readonly GeometricMetricName[] = Object.freeze([
   "packingDensity",
 ]);
 
-function canonicalize(value: unknown, path = "$" ): unknown {
+function canonicalize(value: unknown, path = "$"): unknown {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
 
   if (typeof value === "number") {
@@ -91,18 +91,22 @@ function resolveCanvas(primitives: readonly GeometricPrimitive[], requested?: Bo
   });
 }
 
+function validateConstraintBound(value: number | undefined, label: string): void {
+  if (value === undefined) return;
+  if (!Number.isFinite(value)) throw new Error(`${label} must be finite`);
+  if (value < 0 || value > 1) throw new Error(`${label} must be in [0,1]`);
+}
+
 export function validateConstraint(constraint: MetricConstraint): void {
   if (constraint.id.trim() === "") throw new Error("Constraint id cannot be empty");
   if (!METRIC_NAMES.includes(constraint.metric)) throw new Error(`Unknown metric: ${constraint.metric}`);
   if (constraint.min === undefined && constraint.max === undefined) {
     throw new Error(`Constraint ${constraint.id} requires min and/or max`);
   }
-  if (constraint.min !== undefined && !Number.isFinite(constraint.min)) {
-    throw new Error(`Constraint ${constraint.id}.min must be finite`);
-  }
-  if (constraint.max !== undefined && !Number.isFinite(constraint.max)) {
-    throw new Error(`Constraint ${constraint.id}.max must be finite`);
-  }
+
+  validateConstraintBound(constraint.min, `Constraint ${constraint.id}.min`);
+  validateConstraintBound(constraint.max, `Constraint ${constraint.id}.max`);
+
   if (constraint.min !== undefined && constraint.max !== undefined && constraint.min > constraint.max) {
     throw new Error(`Constraint ${constraint.id} min cannot exceed max`);
   }
