@@ -1,11 +1,10 @@
-import { spawn, type ChildProcess } from "node:child_process";
 import { createServer } from "node:net";
 import { basename, join, relative, sep } from "node:path";
 import { tmpdir } from "node:os";
 import type { CaptureRequest } from "@nexus/capture";
 import { pathToFileURL } from "node:url";
 import type { ProjectState } from "./contracts.js";
-import { childProcessEnvironment } from "./child-env.js";
+import { startProcess, type ManagedProcess } from "./process.js";
 
 export interface CaptureInput { source: { target: string } | { url: string }; sourceSha?: string; viewports?: { mobile?: { width: number; height: number }; desktop?: { width: number; height: number } }; fullPage?: boolean }
 export interface CaptureOutput { captures: readonly { viewport: "mobile" | "desktop"; width: number; height: number; browser: string; finalUrl: string; artifact: { path: string; mediaType: "image/png"; byteLength: number; sha256: string; url: string } }[] }
@@ -14,21 +13,14 @@ async function freePort(): Promise<number> {
   return await new Promise((resolvePort, reject) => { const server = createServer(); server.once("error", reject); server.listen(0, "127.0.0.1", () => { const address = server.address(); if (!address || typeof address === "string") return reject(new Error("cannot allocate target port")); server.close((error) => error ? reject(error) : resolvePort(address.port)); }); });
 }
 
-async function waitFor(url: string, process: ChildProcess): Promise<void> {
+async function waitFor(url: string, process: ManagedProcess): Promise<void> {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
-    if (process.exitCode !== null) throw new Error(`target server exited ${process.exitCode}`);
+    if (process.child.exitCode !== null) throw new Error(`target server exited ${process.child.exitCode}`);
     try { const response = await fetch(url); if (response.ok) return; } catch { /* server is still starting */ }
     await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }
   throw new Error("target server did not become ready within 30000ms");
-}
-
-async function stop(process: ChildProcess): Promise<void> {
-  if (process.exitCode !== null) return;
-  process.kill("SIGTERM");
-  await Promise.race([new Promise<void>((resolveStop) => process.once("close", () => resolveStop())), new Promise<void>((resolveStop) => setTimeout(resolveStop, 5_000))]);
-  if (process.exitCode === null) process.kill("SIGKILL");
 }
 
 export async function captureTarget(root: string, project: ProjectState, sourceSha: string, requestId: string, artifactRoot = join(tmpdir(), "nexus-mcp-artifacts"), viewports?: CaptureInput["viewports"]): Promise<CaptureOutput> {
@@ -40,7 +32,7 @@ export async function captureTarget(root: string, project: ProjectState, sourceS
   const { createRun } = measurementModule;
   const port = await freePort();
   const url = `http://127.0.0.1:${port}`;
-  const server = spawn("pnpm", ["--filter", project.packageName, "start", "-p", String(port), "-H", "127.0.0.1"], { cwd: root, env: childProcessEnvironment(), shell: false, stdio: "ignore" });
+  const server = startProcess("pnpm", ["--filter", project.packageName, "start", "-p", String(port), "-H", "127.0.0.1"], { cwd: root, timeoutMs: 15 * 60_000, maxOutputBytes: 8 * 1024 * 1024, captureOutput: false });
   try {
     await waitFor(url, server);
     const mobile = { name: "mobile", width: viewports?.mobile?.width ?? 390, height: viewports?.mobile?.height ?? 844 };
@@ -63,5 +55,5 @@ export async function captureTarget(root: string, project: ProjectState, sourceS
     });
     if (captures.length !== 2) throw new Error(`expected 2 screenshots, captured ${captures.length}`);
     return { captures: Object.freeze(captures) };
-  } finally { await stop(server); }
+  } finally { await server.terminate(); await server.completed.catch(() => undefined); }
 }
