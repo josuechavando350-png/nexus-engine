@@ -24,6 +24,10 @@ export default function HomePage() {
         <div className="cp-hero-shade" aria-hidden="true" />
         <div className="cp-wrap cp-hero-content">
           <div className="cp-hero-copy">
+            <div className="cp-hero-identification" aria-label="Eduardo Cano, abogado penalista">
+              <span className="cp-hero-name">Eduardo Cano</span>
+              <span className="cp-hero-role">Abogado penalista</span>
+            </div>
             <h1><span>Conozco cómo investiga la autoridad.</span><br /><strong>Trabajé dentro de ella.</strong></h1>
             <p className="cp-lead">20 años defendiendo exclusivamente en materia penal. Dirigí investigaciones en la Procuraduría Fiscal de la Federación. Hoy uso esa experiencia para defenderte.</p>
             <div className="cp-actions">
