@@ -40,6 +40,7 @@ export default function HomePage() {
           <div className="cp-paths">
             <article className="cp-path" tabIndex={0}><h3>Me llegó un citatorio</h3><p>De la Fiscalía o de un Juez. Lo que se hace antes de la primera audiencia define el resto del caso.</p><a className="cp-btn" target="_blank" rel="noopener noreferrer" href="https://wa.me/5215560501901?text=Hola%20licenciado%2C%20me%20lleg%C3%B3%20un%20citatorio%20y%20necesito%20asesor%C3%ADa">Quiero asesoría</a></article>
             <article className="cp-path" tabIndex={0}><h3>Detuvieron a alguien</h3><p>Atención inmediata, a cualquier hora. Las primeras horas son las que más pesan.</p><a className="cp-btn cp-btn-solid" target="_blank" rel="noopener noreferrer" href="https://wa.me/5215560501901?text=Hola%20licenciado%2C%20detuvieron%20a%20un%20familiar%20y%20necesito%20ayuda%20urgente">Necesito ayuda ahora</a></article>
+            <article className="cp-path cp-path-victim" tabIndex={0}><h3>Fui víctima de un delito</h3><p>Asesoría, representación y protección a tus derechos</p><a className="cp-btn" target="_blank" rel="noopener noreferrer" href={site.whatsapp}>Quiero asesoría</a></article>
           </div>
         </div>
       </section>
@@ -66,7 +67,17 @@ export default function HomePage() {
 
       <section className="cp-section" id="asesoria"><div className="cp-wrap cp-advisory"><div><h2><span className="cp-title-line">Asesoría legal</span><span className="cp-title-line">penal presencial</span></h2><p>Valoración y estudio inicial de tu situación. Resolvemos todas tus dudas y defines la estrategia de tu caso. Sin tiempo límite, porque los problemas penales son complejos.</p></div><div className="cp-price"><span>Diagnóstico y estrategia</span><strong>$2,500</strong></div></div></section>
 
-      <section className="cp-contact-section" id="contacto"><div className="cp-contact-image" role="img" aria-label="Eduardo Cano en su escritorio" /><div className="cp-contact"><div><h2>En derecho penal cada minuto cuenta</h2><div className="cp-contact-details"><strong>World Trade Center Ciudad de México</strong><span>Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX</span><a className="cp-text-link cp-map-link" href="https://maps.app.goo.gl/zMjF2TQZvfMchowx8" target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a><a href={site.phoneHref}>{site.phoneDisplay}</a><a href={`mailto:${site.email}`}>{site.email}</a></div></div><div><form className="cp-form"><input aria-label="Nombre" name="nombre" placeholder="Nombre" /><input aria-label="Teléfono" name="telefono" placeholder="Teléfono" /><input className="full" aria-label="Correo" name="correo" type="email" placeholder="Correo" /><textarea className="full" aria-label="Mensaje" name="mensaje" placeholder="Mensaje" /></form><a className="cp-btn cp-btn-solid cp-contact-action" href="https://wa.me/5215560501901" target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a></div></div></section>
+      <section className="cp-contact-section" id="contacto">
+        <div className="cp-contact-image" role="img" aria-label="Eduardo Cano en su escritorio" />
+        <div className="cp-contact">
+          <div><h2>En derecho penal cada minuto cuenta</h2><div className="cp-contact-details"><strong>World Trade Center Ciudad de México</strong><span>Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX</span><a className="cp-text-link cp-map-link" href="https://maps.app.goo.gl/zMjF2TQZvfMchowx8" target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a><a href={site.phoneHref}>{site.phoneDisplay}</a><a href={`mailto:${site.email}`}>{site.email}</a></div></div>
+          <div><form className="cp-form"><input aria-label="Nombre" name="nombre" placeholder="Nombre" /><input aria-label="Teléfono" name="telefono" placeholder="Teléfono" /><input className="full" aria-label="Correo" name="correo" type="email" placeholder="Correo" /><textarea className="full" aria-label="Mensaje" name="mensaje" placeholder="Mensaje" /></form><a className="cp-btn cp-btn-solid cp-contact-action" href="https://wa.me/5215560501901" target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a></div>
+        </div>
+        <div className="cp-map-panel">
+          <iframe title="Ubicación de CANO Estrategia Penal en World Trade Center Ciudad de México" loading="lazy" referrerPolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Montecito%2038%2C%20N%C3%A1poles%2C%20Benito%20Ju%C3%A1rez%2C%20Ciudad%20de%20M%C3%A9xico&output=embed" />
+          <a className="cp-map-open" href="https://maps.app.goo.gl/zMjF2TQZvfMchowx8" target="_blank" rel="noopener noreferrer" aria-label="Abrir la ubicación de CANO Estrategia Penal en Google Maps"><span>Abrir en Google Maps →</span></a>
+        </div>
+      </section>
     </PageShell>
   );
 }

@@ -6,6 +6,7 @@ import "./reset.css";
 import "./a11y.css";
 import "./styles.css";
 import "./chrome.css";
+import "./enhancements.css";
 import { canoTheme } from "./theme";
 import { site } from "./content";
 
@@ -47,6 +48,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(attorneySchema) }} />
       </head>
       <body style={themeStyle}>
+        <div className="cp-splash" aria-hidden="true">
+          <div className="cp-splash-inner">
+            <div className="cp-splash-brand"><strong>CANO</strong><span>ESTRATEGIA PENAL</span></div>
+            <div className="cp-splash-line" />
+            <p>EXPERIENCIA DESDE DENTRO. DEFENSA DE FRENTE.</p>
+          </div>
+        </div>
         <a {...skipLink}>Saltar al contenido principal</a>
         {children}
       </body>
