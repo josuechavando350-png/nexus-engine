@@ -1,7 +1,7 @@
 /* Client-requested hero identification and photo color refinement. */
-.cp-hero-image{filter:saturate(1.12) contrast(1.04)}
+.cp-hero-image{filter:saturate(1.18) contrast(1.04) brightness(1.08)}
 .cp-hero-identification{display:grid;gap:.22rem;margin:0 0 1.35rem;text-transform:uppercase;letter-spacing:.18em;line-height:1.2}
 .cp-hero-identification span{display:block}
-.cp-hero-name{font-size:14px;color:var(--text-primary,var(--content-primary));font-weight:600}
-.cp-hero-role{font-size:11px;color:var(--text-secondary,var(--content-secondary));font-weight:500}
+.cp-hero-name{font-size:16px;color:var(--text-primary,var(--content-primary));font-weight:600}
+.cp-hero-role{font-size:12px;color:var(--text-secondary,var(--content-secondary));font-weight:500}
 @media(max-width:640px){.cp-hero-identification{margin-bottom:1.15rem}.cp-hero-content{padding-top:6.35rem;padding-bottom:2.15rem}}
