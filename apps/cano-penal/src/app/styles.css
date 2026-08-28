@@ -140,3 +140,10 @@ a,button,article,.cp-path,.cp-area,.cp-case,.cp-why article{-webkit-tap-highligh
  .cp-hero-content{padding-top:8rem;padding-bottom:3rem}
  .cp-hero-copy{max-width:100%}
 }
+/* Punto 4: burbuja de WhatsApp visible y llamativa en todos los anchos */
+.cp-wa{display:flex!important;position:fixed!important;right:1.5rem;bottom:1.5rem;z-index:60;width:60px;height:60px;border-radius:50%;background:#25D366!important;color:#fff!important;border:0;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.5);transition:transform 180ms ease,background-color 180ms ease;-webkit-tap-highlight-color:transparent}
+.cp-wa svg{width:30px;height:30px;fill:#fff!important}
+@media(hover:hover){.cp-wa:hover{background:#1FBE5A!important;transform:scale(1.06)}}
+.cp-wa:active{background:#1FBE5A!important}
+@media(max-width:640px){.cp-wa{right:1.1rem;bottom:1.1rem}}
+@media(prefers-reduced-motion:reduce){.cp-wa{transition:none}}
