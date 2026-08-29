@@ -1,0 +1,24 @@
+{
+  "name": "@nexus/originality-geodesics",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./policy": "./src/policy.ts",
+    "./point": "./src/point.ts",
+    "./manifold": "./src/manifold.ts",
+    "./dijkstra": "./src/dijkstra.ts",
+    "./assessment": "./src/assessment.ts",
+    "./counterfactual": "./src/counterfactual.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. packages/originality-geodesics/src/__tests__/originality-geodesics.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+  },
+  "dependencies": {
+    "@nexus/visual-algebra": "workspace:*"
+  }
+}
