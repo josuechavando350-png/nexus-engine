@@ -23,14 +23,17 @@ export function createEvidenceTrustAnchor(input: {
   readonly keyId: string;
   readonly payloadDigest: string;
   readonly artifactDigest: string;
+  readonly artifactDescriptorDigest: string;
   readonly artifactRecordId: string;
   readonly artifactProvenanceDigest: string;
   readonly verifiedGates: readonly string[];
 }): EvidenceTrustAnchor {
-  for (const [label, value] of Object.entries({ subject: input.subject, tenantId: input.tenantId, projectId: input.projectId, bundleId: input.bundleId, keyId: input.keyId })) nonEmpty(value, label);
+  for (const [label, value] of Object.entries({ subject: input.subject, tenantId: input.tenantId, projectId: input.projectId, keyId: input.keyId })) nonEmpty(value, label);
   assertSourceRevision(input.sourceRevision);
+  if (!/^bundle_[a-f0-9]{64}$/.test(input.bundleId)) throw new Error("bundleId is invalid");
   if (!/^sha256:[a-f0-9]{64}$/.test(input.payloadDigest)) throw new Error("Evidence payloadDigest must be SHA-256");
   if (!/^sha256:[a-f0-9]{64}$/.test(input.artifactDigest)) throw new Error("Evidence artifactDigest must be SHA-256");
+  if (!/^[a-f0-9]{64}$/.test(input.artifactDescriptorDigest)) throw new Error("Evidence artifactDescriptorDigest must be SHA-256 hex");
   if (!/^record_[a-f0-9]{64}$/.test(input.artifactRecordId)) throw new Error("artifactRecordId is invalid");
   if (!/^prov_[a-f0-9]{64}$/.test(input.artifactProvenanceDigest)) throw new Error("artifactProvenanceDigest is invalid");
   const base = Object.freeze({
@@ -42,9 +45,10 @@ export function createEvidenceTrustAnchor(input: {
     tenantId: input.tenantId,
     projectId: input.projectId,
     bundleId: input.bundleId,
-    keyId: input.keyId,
+    keyId: input.keyId.trim(),
     payloadDigest: input.payloadDigest,
     artifactDigest: input.artifactDigest,
+    artifactDescriptorDigest: input.artifactDescriptorDigest,
     artifactRecordId: input.artifactRecordId,
     artifactProvenanceDigest: input.artifactProvenanceDigest,
     verifiedGates: canonicalGates(input.verifiedGates),
@@ -63,6 +67,7 @@ export function validateEvidenceTrustAnchor(anchor: EvidenceTrustAnchor): void {
     keyId: anchor.keyId,
     payloadDigest: anchor.payloadDigest,
     artifactDigest: anchor.artifactDigest,
+    artifactDescriptorDigest: anchor.artifactDescriptorDigest,
     artifactRecordId: anchor.artifactRecordId,
     artifactProvenanceDigest: anchor.artifactProvenanceDigest,
     verifiedGates: anchor.verifiedGates,
