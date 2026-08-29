@@ -1,0 +1,23 @@
+{
+  "name": "@nexus/topology",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./complex": "./src/complex.ts",
+    "./homology": "./src/homology.ts",
+    "./distance": "./src/distance.ts",
+    "./fingerprint": "./src/fingerprint.ts",
+    "./synthesis": "./src/synthesis.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. packages/topology/src/__tests__/topology.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+  },
+  "dependencies": {
+    "@nexus/visual-algebra": "workspace:*"
+  }
+}

@@ -404,6 +404,9 @@ importers:
 
   packages/measurement:
     dependencies:
+      '@nexus/topology':
+        specifier: workspace:*
+        version: link:../topology
       '@nexus/visual-algebra':
         specifier: workspace:*
         version: link:../visual-algebra
@@ -428,6 +431,12 @@ importers:
       vitest:
         specifier: ^4.0.0
         version: 4.1.10(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3))
+
+  packages/topology:
+    dependencies:
+      '@nexus/visual-algebra':
+        specifier: workspace:*
+        version: link:../visual-algebra
 
   packages/visual-algebra: {}
 
