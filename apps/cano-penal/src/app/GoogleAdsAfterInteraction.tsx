@@ -2,57 +2,91 @@
 
 import { useEffect } from "react";
 
+const GOOGLE_ADS_ID = "AW-11458109085";
 const WHATSAPP_CONVERSION = "AW-11458109085/qaC9CPLhg7obEJZ909cq";
 const PHONE_CONVERSION = "AW-11458109085/AtYkCOir1-ocEJZ909cq";
-const NAVIGATION_FALLBACK_MS = 900;
 
 type DataLayer = unknown[];
 type Gtag = (...args: unknown[]) => void;
 
-function getGtag(): Gtag {
-  const runtime = window as typeof window & {
-    dataLayer?: DataLayer;
-    gtag?: Gtag;
-  };
+type RuntimeWindow = typeof window & {
+  dataLayer?: DataLayer;
+  gtag?: Gtag;
+};
 
-  const dataLayer = (runtime.dataLayer ||= []);
-  const gtag: Gtag = runtime.gtag || ((...args: unknown[]) => dataLayer.push(args));
-  runtime.gtag = gtag;
-  return gtag;
+let loaderPromise: Promise<void> | null = null;
+
+function ensureGoogleAdsReady(): Promise<void> {
+  if (loaderPromise) return loaderPromise;
+
+  loaderPromise = new Promise<void>((resolve) => {
+    const runtime = window as RuntimeWindow;
+    const dataLayer = (runtime.dataLayer ||= []);
+    const gtag: Gtag = runtime.gtag || ((...args: unknown[]) => dataLayer.push(args));
+    runtime.gtag = gtag;
+
+    const existing = document.querySelector<HTMLScriptElement>("script[data-cano-google-ads='true']");
+    if (existing) {
+      if (existing.dataset.loaded === "true") {
+        resolve();
+        return;
+      }
+      existing.addEventListener("load", () => resolve(), { once: true });
+      existing.addEventListener("error", () => resolve(), { once: true });
+      return;
+    }
+
+    gtag("js", new Date());
+    gtag("config", GOOGLE_ADS_ID);
+
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GOOGLE_ADS_ID}`;
+    script.dataset.canoGoogleAds = "true";
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "true";
+      resolve();
+    }, { once: true });
+    script.addEventListener("error", () => resolve(), { once: true });
+    document.head.appendChild(script);
+  });
+
+  return loaderPromise;
 }
 
-function trackConversionAndNavigate(
-  sendTo: string,
-  destination: string,
-  target: string | null,
-  extras?: Record<string, unknown>,
-) {
-  const gtag = getGtag();
+function trackOutboundConversion(sendTo: string, destination: string, extras?: Record<string, unknown>) {
+  const runtime = window as RuntimeWindow;
+  const gtag = runtime.gtag;
   let navigated = false;
 
   const navigate = () => {
     if (navigated) return;
     navigated = true;
-    if (target === "_blank") {
-      window.open(destination, "_blank", "noopener,noreferrer");
-    } else {
-      window.location.href = destination;
-    }
+    window.location.href = destination;
   };
 
-  window.setTimeout(navigate, NAVIGATION_FALLBACK_MS);
+  if (!gtag) {
+    navigate();
+    return;
+  }
 
   gtag("event", "conversion", {
     send_to: sendTo,
-    event_callback: navigate,
-    event_timeout: NAVIGATION_FALLBACK_MS,
     ...extras,
+    event_callback: navigate,
+    event_timeout: 900,
   });
+
+  window.setTimeout(navigate, 900);
 }
 
 export function GoogleAdsAfterInteraction() {
   useEffect(() => {
-    const handleClick = (event: MouseEvent) => {
+    const activate = () => {
+      void ensureGoogleAdsReady();
+    };
+
+    const handleClick = async (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
 
@@ -60,30 +94,34 @@ export function GoogleAdsAfterInteraction() {
       if (!link) return;
 
       const href = link.getAttribute("href") || "";
+      const destination = link.href;
 
       if (href.startsWith("tel:")) {
         event.preventDefault();
-        trackConversionAndNavigate(PHONE_CONVERSION, link.href, link.target || null, {
-          value: 1.0,
-          currency: "MXN",
-        });
+        await ensureGoogleAdsReady();
+        trackOutboundConversion(PHONE_CONVERSION, destination, { value: 1.0, currency: "MXN" });
         return;
       }
 
       try {
-        const url = new URL(link.href, window.location.href);
+        const url = new URL(destination, window.location.href);
         if (url.hostname === "wa.me" || url.hostname.endsWith("whatsapp.com")) {
           event.preventDefault();
-          trackConversionAndNavigate(WHATSAPP_CONVERSION, link.href, link.target || null);
+          await ensureGoogleAdsReady();
+          trackOutboundConversion(WHATSAPP_CONVERSION, destination);
         }
       } catch {
         // Ignore malformed/non-URL href values.
       }
     };
 
+    window.addEventListener("pointerdown", activate, { passive: true, once: true });
+    window.addEventListener("keydown", activate, { once: true });
     document.addEventListener("click", handleClick, true);
 
     return () => {
+      window.removeEventListener("pointerdown", activate);
+      window.removeEventListener("keydown", activate);
       document.removeEventListener("click", handleClick, true);
     };
   }, []);
