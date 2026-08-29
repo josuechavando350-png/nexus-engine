@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import base64, tarfile
+          import base64, json, tarfile
           from pathlib import Path
           text = Path('.github/workflows/topology-bootstrap.yml').read_text()
           prefix = "printf '%s' '"
@@ -38,11 +38,14 @@ jobs:
           end = text.find(suffix, start)
           if end < 0:
               raise SystemExit('Topology payload suffix not found')
-          payload = text[start:end]
           archive = Path('/tmp/topology-payload.tgz')
-          archive.write_bytes(base64.b64decode(payload, validate=True))
+          archive.write_bytes(base64.b64decode(text[start:end], validate=True))
           with tarfile.open(archive, 'r:gz') as tar:
               tar.extractall('.')
+          package_path = Path('packages/topology/package.json')
+          package = json.loads(package_path.read_text())
+          package['scripts']['test'] = 'vitest run --root ../.. packages/topology/src/__tests__/topology.test.ts'
+          package_path.write_text(json.dumps(package, indent=2) + '\n')
           PY
       - name: Regenerate lockfile
         run: pnpm install --lockfile-only
