@@ -20,7 +20,7 @@ export default function HomePage() {
   return (
     <PageShell>
       <section className="cp-hero">
-        <img className="cp-hero-image" src="/media/hero-eduardo.jpg" alt="Eduardo Cano de pie con los brazos cruzados" />
+        <img className="cp-hero-image" src="/media/hero-eduardo.jpg" alt="Eduardo Cano de pie con los brazos cruzados" fetchPriority="high" decoding="async" />
         <div className="cp-hero-shade" aria-hidden="true" />
         <div className="cp-wrap cp-hero-content">
           <div className="cp-hero-copy">
@@ -67,7 +67,7 @@ export default function HomePage() {
 
       <section className="cp-section" id="casos"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Experiencia aplicada</p><h2><strong>Casos</strong></h2></div><Link className="cp-text-link" href="/casos">Ver todos los casos</Link></div><div className="cp-cases">{[cases[1], cases[4], cases[2]].map(([title, body]) => <article className="cp-case" tabIndex={0} key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
 
-      <section className="cp-section"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Defensa presente</p><h2>En sala, en cada <strong>audiencia.</strong></h2></div></div><div className="cp-audiences">{audienceFiles.map(file => <img src={`/media/${file}`} alt="" tabIndex={0} key={file} />)}</div></div></section>
+      <section className="cp-section"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Defensa presente</p><h2>En sala, en cada <strong>audiencia.</strong></h2></div></div><div className="cp-audiences">{audienceFiles.map(file => <img src={`/media/${file}`} alt="" tabIndex={0} key={file} loading="lazy" decoding="async" />)}</div></div></section>
 
       <section className="cp-section" id="asesoria"><div className="cp-wrap cp-advisory"><div><h2><span className="cp-title-line">Asesoría legal</span><span className="cp-title-line">penal presencial</span></h2><p>Valoración y estudio inicial de tu situación. Resolvemos todas tus dudas y defines la estrategia de tu caso. Sin tiempo límite, porque los problemas penales son complejos.</p></div><div className="cp-price"><span>Diagnóstico y estrategia</span><strong>$2,500</strong></div></div></section>
 
