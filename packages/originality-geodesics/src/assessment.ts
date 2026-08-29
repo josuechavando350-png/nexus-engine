@@ -37,11 +37,13 @@ export function assessOriginality(input: AssessOriginalityInput): OriginalityAss
 
   const nearestGeodesic = paths[0];
   const protectedGeodesicDistance = nearestGeodesic?.path.distance ?? null;
-  const status = protectedGeodesicDistance === null
-    ? "UNASSESSED" as const
-    : direct.distance >= input.manifold.policy.minimumProtectedDirect && protectedGeodesicDistance >= input.manifold.policy.minimumProtectedGeodesic
-      ? "CLEAR" as const
-      : "TOO_CLOSE" as const;
+  const status = direct.distance === 0
+    ? "TOO_CLOSE" as const
+    : protectedGeodesicDistance === null
+      ? "UNASSESSED" as const
+      : direct.distance >= input.manifold.policy.minimumProtectedDirect && protectedGeodesicDistance >= input.manifold.policy.minimumProtectedGeodesic
+        ? "CLEAR" as const
+        : "TOO_CLOSE" as const;
 
   const base = Object.freeze({
     authority: "NEXUS_ORIGINALITY_ASSESSMENT_V1" as const,
