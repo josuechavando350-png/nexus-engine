@@ -27,8 +27,14 @@ const metrics = (value: number): GeometricMetrics => ({
   aspectConsistency: value,
   packingDensity: value,
 });
-const point = (pointId: string, role: OriginalityPointRole, value: number, char = "a"): OriginalityPoint =>
-  createOriginalityPoint({ pointId, role, subject: pointId, termDigest: digest(char), metrics: metrics(value) });
+const point = (
+  pointId: string,
+  role: OriginalityPointRole,
+  value: number,
+  char = "a",
+  subject = pointId,
+): OriginalityPoint =>
+  createOriginalityPoint({ pointId, role, subject, termDigest: digest(char), metrics: metrics(value) });
 
 function chainPolicy() {
   return createOriginalityPolicy({
@@ -136,9 +142,10 @@ describe("originality geodesics", () => {
 
   test("counterfactual search chooses smallest caller-provided clear displacement", () => {
     const manifold = chainManifold();
-    const source = point("source", "CANDIDATE", 0.6, "e");
-    const farther = point("farther", "CANDIDATE", 0.7, "f");
-    const closer = point("closer", "CANDIDATE", 0.65, "1");
+    const subject = "client/home";
+    const source = point("source", "CANDIDATE", 0.6, "e", subject);
+    const farther = point("farther", "CANDIDATE", 0.7, "f", subject);
+    const closer = point("closer", "CANDIDATE", 0.65, "1", subject);
     const result = searchOriginalityCounterfactual({ source, alternatives: [farther, closer], manifold });
     expect(result.sourceAssessment.status).toBe("TOO_CLOSE");
     expect(result.status).toBe("FOUND");
@@ -150,9 +157,13 @@ describe("originality geodesics", () => {
 
   test("counterfactual search does not invent a solution", () => {
     const manifold = chainManifold();
+    const subject = "client/home";
     const result = searchOriginalityCounterfactual({
-      source: point("source", "CANDIDATE", 0.6, "e"),
-      alternatives: [point("near-a", "CANDIDATE", 0.58, "f"), point("near-b", "CANDIDATE", 0.62, "1")],
+      source: point("source", "CANDIDATE", 0.6, "e", subject),
+      alternatives: [
+        point("near-a", "CANDIDATE", 0.58, "f", subject),
+        point("near-b", "CANDIDATE", 0.62, "1", subject),
+      ],
       manifold,
     });
     expect(result.status).toBe("NOT_FOUND");
@@ -161,9 +172,10 @@ describe("originality geodesics", () => {
 
   test("returns ALREADY_CLEAR without fabricating a counterfactual", () => {
     const manifold = chainManifold();
+    const subject = "client/home";
     const result = searchOriginalityCounterfactual({
-      source: point("source", "CANDIDATE", 0.65, "e"),
-      alternatives: [point("other", "CANDIDATE", 0.7, "f")],
+      source: point("source", "CANDIDATE", 0.65, "e", subject),
+      alternatives: [point("other", "CANDIDATE", 0.7, "f", subject)],
       manifold,
     });
     expect(result.status).toBe("ALREADY_CLEAR");
