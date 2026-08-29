@@ -1,6 +1,6 @@
 {
   "name": "@nexus/evidence",
-  "version": "9.1.0",
+  "version": "9.2.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -17,6 +17,7 @@
   },
   "devDependencies": {
     "@nexus/compositional-semantics": "workspace:*",
+    "@nexus/originality-geodesics": "workspace:*",
     "@nexus/topology": "workspace:*",
     "@nexus/visual-algebra": "workspace:*"
   }

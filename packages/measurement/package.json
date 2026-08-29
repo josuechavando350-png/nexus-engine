@@ -1,13 +1,14 @@
 {
   "name": "@nexus/measurement",
-  "version": "9.0.0",
+  "version": "9.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./index.ts",
     "./visual-algebra": "./visual-algebra.ts",
     "./topology": "./topology.ts",
-    "./compositional-semantics": "./compositional-semantics.ts"
+    "./compositional-semantics": "./compositional-semantics.ts",
+    "./originality-geodesics": "./originality-geodesics.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
@@ -15,6 +16,7 @@
   },
   "dependencies": {
     "@nexus/compositional-semantics": "workspace:*",
+    "@nexus/originality-geodesics": "workspace:*",
     "@nexus/topology": "workspace:*",
     "@nexus/visual-algebra": "workspace:*"
   }

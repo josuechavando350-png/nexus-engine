@@ -380,6 +380,9 @@ importers:
       '@nexus/compositional-semantics':
         specifier: workspace:*
         version: link:../compositional-semantics
+      '@nexus/originality-geodesics':
+        specifier: workspace:*
+        version: link:../originality-geodesics
       '@nexus/topology':
         specifier: workspace:*
         version: link:../topology
@@ -430,6 +433,9 @@ importers:
       '@nexus/compositional-semantics':
         specifier: workspace:*
         version: link:../compositional-semantics
+      '@nexus/originality-geodesics':
+        specifier: workspace:*
+        version: link:../originality-geodesics
       '@nexus/topology':
         specifier: workspace:*
         version: link:../topology
@@ -439,11 +445,20 @@ importers:
 
   packages/ontology: {}
 
+  packages/originality-geodesics:
+    dependencies:
+      '@nexus/visual-algebra':
+        specifier: workspace:*
+        version: link:../visual-algebra
+
   packages/proof-carrying-experience:
     dependencies:
       '@nexus/compositional-semantics':
         specifier: workspace:*
         version: link:../compositional-semantics
+      '@nexus/originality-geodesics':
+        specifier: workspace:*
+        version: link:../originality-geodesics
       '@nexus/topology':
         specifier: workspace:*
         version: link:../topology

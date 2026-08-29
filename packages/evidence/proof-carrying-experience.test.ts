@@ -1,9 +1,17 @@
 import { generateKeyPairSync } from "node:crypto";
 import { describe, expect, test } from "vitest";
 import { semanticStateFromEngines, verifyComposition } from "@nexus/compositional-semantics";
+import {
+  assessOriginality,
+  buildOriginalityManifold,
+  createOriginalityPoint,
+  createOriginalityPolicy,
+  originalityPointFromTerm,
+} from "@nexus/originality-geodesics";
 import { createExperienceArtifact, formalExperienceProofDigest } from "@nexus/proof-carrying-experience";
 import { synthesizeTermCertified } from "@nexus/topology";
 import { createTerm, definePrimitive } from "@nexus/visual-algebra";
+import type { GeometricMetrics } from "@nexus/visual-algebra";
 import { createRun, type EnvironmentDescriptor, type WorkloadDefinition } from "../measurement/index";
 import { createEvidenceBundle, createEvidenceRecord, signEvidenceBundle } from "./index";
 import {
@@ -35,11 +43,38 @@ function engines(offset = 0) {
   return { visual, topology, semantics };
 }
 
-function formalFixture(sourceRevision = revision, artifactContent = content, offset = 0) {
+function oppositeMetrics(metrics: GeometricMetrics, variant = false): GeometricMetrics {
+  const pick = (value: number) => variant ? (value < 0.5 ? 0.9 : 0.1) : (value < 0.5 ? 1 : 0);
+  return Object.freeze({
+    gridRegularity: pick(metrics.gridRegularity), axialSymmetry: pick(metrics.axialSymmetry), whitespace: pick(metrics.whitespace), continuity: pick(metrics.continuity),
+    overlap: pick(metrics.overlap), structuralEntropy: pick(metrics.structuralEntropy), aspectConsistency: pick(metrics.aspectConsistency), packingDensity: pick(metrics.packingDensity),
+  });
+}
+
+function originalityFor(visual: ReturnType<typeof engines>["visual"], variant = false) {
+  const candidate = originalityPointFromTerm({ pointId: "candidate", role: "CANDIDATE", term: visual });
+  const protectedPoint = createOriginalityPoint({
+    pointId: variant ? "protected-variant" : "protected-reference",
+    role: "PROTECTED",
+    subject: "protected/reference",
+    termDigest: variant ? "b".repeat(64) : "a".repeat(64),
+    metrics: oppositeMetrics(visual.metrics, variant),
+  });
+  const manifold = buildOriginalityManifold({
+    points: [protectedPoint],
+    policy: createOriginalityPolicy({ kNeighbors: 1, minimumProtectedDirect: 0.05, minimumProtectedGeodesic: 0.05 }),
+  });
+  const assessment = assessOriginality({ candidate, manifold });
+  if (assessment.status !== "CLEAR") throw new Error("test originality fixture must be CLEAR");
+  return assessment;
+}
+
+function formalFixture(sourceRevision = revision, artifactContent = content, offset = 0, originalityVariant = false) {
   const artifact = createExperienceArtifact({ subject, mediaType: "text/html", sourceRevision, content: artifactContent });
   const engineEvidence = engines(offset);
-  const formalDigest = formalExperienceProofDigest({ artifact, ...engineEvidence });
-  return { artifact, formalDigest, ...engineEvidence };
+  const originality = originalityFor(engineEvidence.visual, originalityVariant);
+  const formalDigest = formalExperienceProofDigest({ artifact, ...engineEvidence, originality });
+  return { artifact, formalDigest, originality, ...engineEvidence };
 }
 
 function evidence(input: {
@@ -66,47 +101,75 @@ function evidence(input: {
   return { signedEvidence: signEvidenceBundle(bundle, "proof-key", keys.privateKey), publicKey: keys.publicKey };
 }
 
-describe("signed proof-carrying experience integration", () => {
-  test("cryptographically binds exact artifact bytes, Motors 1-3 and signed delivery evidence", () => {
+function createEnvelope(fixture: ReturnType<typeof formalFixture>, signedEvidence: ReturnType<typeof evidence>["signedEvidence"], publicKey: ReturnType<typeof evidence>["publicKey"], artifactContent = content) {
+  return createSignedProofCarryingExperience({
+    subject,
+    mediaType: "text/html",
+    sourceRevision: revision,
+    content: artifactContent,
+    tenantId: "tenant-a",
+    projectId: "project-a",
+    visual: fixture.visual,
+    topology: fixture.topology,
+    semantics: fixture.semantics,
+    originality: fixture.originality,
+    signedEvidence,
+    publicKey,
+  });
+}
+
+describe("signed proof-carrying experience integration with originality", () => {
+  test("cryptographically binds exact artifact bytes, Motors 1-5 and signed delivery evidence", () => {
     const fixture = formalFixture();
     const { signedEvidence, publicKey } = evidence(fixture);
-    const envelope = createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual: fixture.visual, topology: fixture.topology, semantics: fixture.semantics, signedEvidence, publicKey });
+    const envelope = createEnvelope(fixture, signedEvidence, publicKey);
     expect(envelope.proof.status).toBe("VERIFIED");
     expect(envelope.proof.formalDigest).toBe(fixture.formalDigest);
+    expect(envelope.proof.originality.assessmentDigest).toBe(fixture.originality.assessmentDigest);
     expect(verifySignedProofCarryingExperience(envelope, publicKey, content)).toBe(true);
   });
 
   test("fails closed when signed proof-binding evidence is absent", () => {
     const fixture = formalFixture();
     const { signedEvidence, publicKey } = evidence({ ...fixture, includeProof: false });
-    expect(() => createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual: fixture.visual, topology: fixture.topology, semantics: fixture.semantics, signedEvidence, publicKey })).toThrow(/delivery-certified|proof-binding/);
+    expect(() => createEnvelope(fixture, signedEvidence, publicKey)).toThrow(/delivery-certified|proof-binding/);
   });
 
   test("requires RUNTIME as a signed bundle source even if a proof record is present", () => {
     const fixture = formalFixture();
     const { signedEvidence, publicKey } = evidence({ ...fixture, requireRuntime: false });
-    expect(() => createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual: fixture.visual, topology: fixture.topology, semantics: fixture.semantics, signedEvidence, publicKey })).toThrow(/require RUNTIME/);
+    expect(() => createEnvelope(fixture, signedEvidence, publicKey)).toThrow(/require RUNTIME/);
   });
 
   test("does not allow different artifact bytes to reuse a valid signed evidence bundle", () => {
     const fixture = formalFixture();
     const { signedEvidence, publicKey } = evidence(fixture);
-    expect(() => createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content: "different bytes", tenantId: "tenant-a", projectId: "project-a", visual: fixture.visual, topology: fixture.topology, semantics: fixture.semantics, signedEvidence, publicKey })).toThrow(/proof-binding RUNTIME record/);
+    expect(() => createEnvelope(fixture, signedEvidence, publicKey, "different bytes")).toThrow(/proof-binding RUNTIME record/);
   });
 
-  test("does not allow a different valid Motor 1-3 chain to reuse the signed artifact bundle", () => {
+  test("does not allow a different valid Motor 1-3 chain to reuse the signed bundle", () => {
     const original = formalFixture();
     const alternate = formalFixture(revision, content, 7);
     expect(alternate.artifact.descriptorDigest).toBe(original.artifact.descriptorDigest);
     expect(alternate.formalDigest).not.toBe(original.formalDigest);
     const { signedEvidence, publicKey } = evidence(original);
-    expect(() => createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual: alternate.visual, topology: alternate.topology, semantics: alternate.semantics, signedEvidence, publicKey })).toThrow(/proof-binding RUNTIME record/);
+    expect(() => createEnvelope(alternate, signedEvidence, publicKey)).toThrow(/proof-binding RUNTIME record/);
+  });
+
+  test("does not allow a different valid originality manifold to reuse the signed bundle", () => {
+    const original = formalFixture();
+    const alternate = formalFixture(revision, content, 0, true);
+    expect(alternate.visual.digest).toBe(original.visual.digest);
+    expect(alternate.originality.assessmentDigest).not.toBe(original.originality.assessmentDigest);
+    expect(alternate.formalDigest).not.toBe(original.formalDigest);
+    const { signedEvidence, publicKey } = evidence(original);
+    expect(() => createEnvelope(alternate, signedEvidence, publicKey)).toThrow(/proof-binding RUNTIME record/);
   });
 
   test("final verification re-hashes the actual delivered bytes", () => {
     const fixture = formalFixture();
     const { signedEvidence, publicKey } = evidence(fixture);
-    const envelope = createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual: fixture.visual, topology: fixture.topology, semantics: fixture.semantics, signedEvidence, publicKey });
+    const envelope = createEnvelope(fixture, signedEvidence, publicKey);
     expect(() => verifySignedProofCarryingExperience(envelope, publicKey, "modified after signing")).toThrow(/Actual delivered artifact content/);
   });
 
@@ -114,7 +177,7 @@ describe("signed proof-carrying experience integration", () => {
     const fixture = formalFixture();
     const { signedEvidence } = evidence(fixture);
     const attacker = generateKeyPairSync("ed25519");
-    expect(() => createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual: fixture.visual, topology: fixture.topology, semantics: fixture.semantics, signedEvidence, publicKey: attacker.publicKey })).toThrow(/signature verification failed/);
+    expect(() => createEnvelope(fixture, signedEvidence, attacker.publicKey)).toThrow(/signature verification failed/);
   });
 
   test("rejects source revision replay even when artifact payload text matches", () => {
@@ -122,6 +185,6 @@ describe("signed proof-carrying experience integration", () => {
     const fixture = formalFixture(otherRevision);
     const { signedEvidence, publicKey } = evidence(fixture);
     const original = formalFixture();
-    expect(() => createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual: original.visual, topology: original.topology, semantics: original.semantics, signedEvidence, publicKey })).toThrow(/delivery-certified|QUALITY record/);
+    expect(() => createEnvelope(original, signedEvidence, publicKey)).toThrow(/delivery-certified|QUALITY record/);
   });
 });

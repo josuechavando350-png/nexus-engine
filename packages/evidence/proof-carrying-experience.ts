@@ -1,5 +1,6 @@
 import type { KeyLike } from "node:crypto";
 import type { VerificationResult } from "@nexus/compositional-semantics";
+import type { OriginalityAssessment } from "@nexus/originality-geodesics";
 import {
   createEvidenceTrustAnchor,
   createExperienceArtifact,
@@ -21,8 +22,8 @@ import {
 import { certifySignedEvidenceForDelivery } from "./signed-evidence-certification";
 
 export interface SignedProofCarryingExperienceEnvelope {
-  readonly authority: "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V1";
-  readonly version: 1;
+  readonly authority: "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V2";
+  readonly version: 2;
   readonly proof: ExperienceProofBundle;
   readonly signedEvidence: SignedEvidenceBundle;
 }
@@ -114,11 +115,12 @@ export function createSignedProofCarryingExperience(input: {
   readonly visual: VisualAlgebraTerm;
   readonly topology: CertifiedSynthesisResult;
   readonly semantics: VerificationResult;
+  readonly originality: OriginalityAssessment;
   readonly signedEvidence: SignedEvidenceBundle;
   readonly publicKey: KeyLike;
 }): SignedProofCarryingExperienceEnvelope {
   const artifact = createExperienceArtifact({ subject: input.subject, mediaType: input.mediaType, sourceRevision: input.sourceRevision, content: input.content });
-  const formalDigest = formalExperienceProofDigest({ artifact, visual: input.visual, topology: input.topology, semantics: input.semantics });
+  const formalDigest = formalExperienceProofDigest({ artifact, visual: input.visual, topology: input.topology, semantics: input.semantics, originality: input.originality });
   const evidenceAnchor = trustAnchor({
     subject: input.subject,
     sourceRevision: input.sourceRevision,
@@ -129,13 +131,13 @@ export function createSignedProofCarryingExperience(input: {
     signedEvidence: input.signedEvidence,
     publicKey: input.publicKey,
   });
-  const proof = createExperienceProof({ artifact, visual: input.visual, topology: input.topology, semantics: input.semantics, evidenceAnchor });
+  const proof = createExperienceProof({ artifact, visual: input.visual, topology: input.topology, semantics: input.semantics, originality: input.originality, evidenceAnchor });
   if (proof.status !== "VERIFIED") throw new Error("Proof-carrying experience is REJECTED by upstream claims");
-  return Object.freeze({ authority: "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V1", version: 1, proof, signedEvidence: input.signedEvidence });
+  return Object.freeze({ authority: "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V2", version: 2, proof, signedEvidence: input.signedEvidence });
 }
 
 export function verifySignedProofCarryingExperience(envelope: SignedProofCarryingExperienceEnvelope, publicKey: KeyLike, content: string | Uint8Array): true {
-  if (envelope.authority !== "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V1" || envelope.version !== 1) throw new Error("Unsupported signed proof-carrying experience envelope");
+  if (envelope.authority !== "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V2" || envelope.version !== 2) throw new Error("Unsupported signed proof-carrying experience envelope");
   verifySignedEvidenceBundle(envelope.signedEvidence, publicKey);
   const actualArtifact = createExperienceArtifact({
     subject: envelope.proof.artifact.subject,
@@ -146,7 +148,7 @@ export function verifySignedProofCarryingExperience(envelope: SignedProofCarryin
   if (actualArtifact.artifactDigest !== envelope.proof.artifact.artifactDigest || actualArtifact.descriptorDigest !== envelope.proof.artifact.descriptorDigest) {
     throw new Error("Actual delivered artifact content does not match the proof descriptor");
   }
-  const formalDigest = formalExperienceProofDigest({ artifact: envelope.proof.artifact, visual: envelope.proof.visual, topology: envelope.proof.topology, semantics: envelope.proof.semantics });
+  const formalDigest = formalExperienceProofDigest({ artifact: envelope.proof.artifact, visual: envelope.proof.visual, topology: envelope.proof.topology, semantics: envelope.proof.semantics, originality: envelope.proof.originality });
   const anchor = trustAnchor({
     subject: envelope.proof.subject,
     sourceRevision: envelope.proof.sourceRevision,

@@ -1,4 +1,5 @@
 import type { VerificationResult } from "@nexus/compositional-semantics";
+import type { OriginalityAssessment } from "@nexus/originality-geodesics";
 import type { CertifiedSynthesisResult } from "@nexus/topology";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 
@@ -8,6 +9,7 @@ export type ExperienceProofClaimKind =
   | "VISUAL_ALGEBRA"
   | "TOPOLOGY"
   | "COMPOSITIONAL_SEMANTICS"
+  | "ORIGINALITY"
   | "SIGNED_EVIDENCE";
 
 export interface ExperienceArtifact {
@@ -50,8 +52,8 @@ export interface ExperienceProofClaim {
 }
 
 export interface ExperienceProofBundle {
-  readonly authority: "NEXUS_PROOF_CARRYING_EXPERIENCE_V1";
-  readonly version: 1;
+  readonly authority: "NEXUS_PROOF_CARRYING_EXPERIENCE_V2";
+  readonly version: 2;
   readonly proofId: string;
   readonly subject: string;
   readonly sourceRevision: string;
@@ -60,6 +62,7 @@ export interface ExperienceProofBundle {
   readonly visual: VisualAlgebraTerm;
   readonly topology: CertifiedSynthesisResult;
   readonly semantics: VerificationResult;
+  readonly originality: OriginalityAssessment;
   readonly evidenceAnchor: EvidenceTrustAnchor;
   readonly claims: readonly ExperienceProofClaim[];
   readonly status: ExperienceProofStatus;
@@ -71,6 +74,7 @@ export interface CreateExperienceProofInput {
   readonly visual: VisualAlgebraTerm;
   readonly topology: CertifiedSynthesisResult;
   readonly semantics: VerificationResult;
+  readonly originality: OriginalityAssessment;
   readonly evidenceAnchor: EvidenceTrustAnchor;
 }
 
@@ -79,4 +83,5 @@ export interface CreateFormalExperienceProofInput {
   readonly visual: VisualAlgebraTerm;
   readonly topology: CertifiedSynthesisResult;
   readonly semantics: VerificationResult;
+  readonly originality: OriginalityAssessment;
 }
