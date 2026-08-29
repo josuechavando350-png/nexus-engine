@@ -14,5 +14,10 @@
   },
   "dependencies": {
     "@nexus/proof-carrying-experience": "workspace:*"
+  },
+  "devDependencies": {
+    "@nexus/compositional-semantics": "workspace:*",
+    "@nexus/topology": "workspace:*",
+    "@nexus/visual-algebra": "workspace:*"
   }
 }
