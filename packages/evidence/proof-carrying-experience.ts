@@ -19,12 +19,14 @@ export interface SignedProofCarryingExperienceEnvelope {
   readonly signedEvidence: SignedEvidenceBundle;
 }
 
-export function artifactEvidenceSourceId(sourceRevision: string, artifactDigest: string): string {
-  return `artifact:${sourceRevision}:${artifactDigest}`;
+export function artifactEvidenceSourceId(sourceRevision: string, artifactDescriptorDigest: string): string {
+  if (!/^[a-f0-9]{40}$/.test(sourceRevision)) throw new Error("artifact evidence sourceRevision must be a full lowercase git SHA-1");
+  if (!/^[a-f0-9]{64}$/.test(artifactDescriptorDigest)) throw new Error("artifact evidence descriptor digest must be SHA-256 hex");
+  return `artifact:${sourceRevision}:${artifactDescriptorDigest}`;
 }
 
-function exactArtifactRecord(signedEvidence: SignedEvidenceBundle, sourceRevision: string, artifactDigest: string): EvidenceRecord {
-  const sourceId = artifactEvidenceSourceId(sourceRevision, artifactDigest);
+function exactArtifactRecord(signedEvidence: SignedEvidenceBundle, sourceRevision: string, artifactDescriptorDigest: string): EvidenceRecord {
+  const sourceId = artifactEvidenceSourceId(sourceRevision, artifactDescriptorDigest);
   const records = signedEvidence.bundle.records.filter((record) => record.source === "RUNTIME" && record.sourceId === sourceId);
   if (records.length !== 1) throw new Error(`expected exactly one signed artifact-binding RUNTIME record ${sourceId}`);
   const record = records[0]!;
@@ -38,6 +40,7 @@ function trustAnchor(input: {
   readonly tenantId: string;
   readonly projectId: string;
   readonly artifactDigest: string;
+  readonly artifactDescriptorDigest: string;
   readonly signedEvidence: SignedEvidenceBundle;
   readonly publicKey: KeyLike;
 }) {
@@ -49,7 +52,7 @@ function trustAnchor(input: {
     projectId: input.projectId,
   });
   if (!certification.certified) throw new Error(`signed evidence is not delivery-certified: ${certification.findings.join("; ")}`);
-  const artifactRecord = exactArtifactRecord(input.signedEvidence, input.sourceRevision, input.artifactDigest);
+  const artifactRecord = exactArtifactRecord(input.signedEvidence, input.sourceRevision, input.artifactDescriptorDigest);
   return createEvidenceTrustAnchor({
     subject: input.subject,
     sourceRevision: input.sourceRevision,
@@ -59,6 +62,7 @@ function trustAnchor(input: {
     keyId: input.signedEvidence.keyId,
     payloadDigest: input.signedEvidence.payloadDigest,
     artifactDigest: input.artifactDigest,
+    artifactDescriptorDigest: input.artifactDescriptorDigest,
     artifactRecordId: artifactRecord.recordId,
     artifactProvenanceDigest: artifactRecord.provenanceDigest,
     verifiedGates: certification.verifiedGates,
@@ -85,6 +89,7 @@ export function createSignedProofCarryingExperience(input: {
     tenantId: input.tenantId,
     projectId: input.projectId,
     artifactDigest: artifact.artifactDigest,
+    artifactDescriptorDigest: artifact.descriptorDigest,
     signedEvidence: input.signedEvidence,
     publicKey: input.publicKey,
   });
@@ -102,6 +107,7 @@ export function verifySignedProofCarryingExperience(envelope: SignedProofCarryin
     tenantId: envelope.proof.evidenceAnchor.tenantId,
     projectId: envelope.proof.evidenceAnchor.projectId,
     artifactDigest: envelope.proof.artifact.artifactDigest,
+    artifactDescriptorDigest: envelope.proof.artifact.descriptorDigest,
     signedEvidence: envelope.signedEvidence,
     publicKey,
   });
