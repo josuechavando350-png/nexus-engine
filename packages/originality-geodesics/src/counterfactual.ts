@@ -16,6 +16,7 @@ export function searchOriginalityCounterfactual(input: SearchOriginalityCounterf
   const evaluations = alternatives.map((candidate) => {
     validateOriginalityPoint(candidate);
     if (candidate.role !== "CANDIDATE") throw new Error("Counterfactual alternatives must be CANDIDATE points");
+    if (candidate.subject !== input.source.subject) throw new Error("Counterfactual alternatives must share the source subject");
     if (seen.has(candidate.pointId)) throw new Error(`Duplicate counterfactual candidate pointId ${candidate.pointId}`);
     seen.add(candidate.pointId);
     const assessment = assessOriginality({ candidate, manifold: input.manifold });
