@@ -10,11 +10,11 @@ A standalone proof validates structural and engine-level integrity. Cryptographi
 
 ## Artifact binding
 
-Artifacts are SHA-256 digested from exact bytes. The signed evidence adapter requires exactly one verified measured record with identity:
+Artifacts are SHA-256 digested from exact bytes. That byte digest is then included in a deterministic artifact descriptor together with `subject`, `mediaType` and `sourceRevision`. The signed evidence adapter requires exactly one verified measured record with identity:
 
-`artifact:<sourceRevision>:<sha256 artifact digest>`
+`artifact:<sourceRevision>:<artifact descriptor digest>`
 
-This prevents a proof for one artifact from being replayed against different bytes while keeping the existing evidence source model unchanged.
+The descriptor digest therefore binds the signed evidence to the exact bytes **and** their declared subject, media type and revision. A proof cannot reuse valid signed evidence for different bytes, another media type, another subject or another source revision while keeping the existing evidence source model unchanged.
 
 ## Provenance chain
 
@@ -24,7 +24,7 @@ A proof verifies all of the following:
 - Topology certified result is fully revalidated and must reference the Visual Algebra term digest.
 - Compositional Semantics result is fully revalidated and its initial state must contain the Visual Algebra term digest and Topology certificate digest.
 - All engine subjects must equal the artifact subject.
-- Evidence trust anchor must bind the same subject, source revision and artifact digest.
+- Evidence trust anchor must bind the same subject, source revision, exact byte digest and full artifact descriptor digest.
 - Claims and root proof ID are deterministic digests of the verified chain.
 
 ## Status
