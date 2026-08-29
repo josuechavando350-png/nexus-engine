@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Script from "next/script";
 import type { CSSProperties } from "react";
 import { REDUCED_MOTION_CSS, SR_ONLY_CSS, skipLinkProps, themeToCssVariables } from "@nexus/core";
 import "@nexus/core/foundation/tokens/tokens.css";
@@ -11,6 +10,7 @@ import "./enhancements.css";
 import "./client-feedback.css";
 import { canoTheme } from "./theme";
 import { site } from "./content";
+import { GoogleAdsAfterInteraction } from "./GoogleAdsAfterInteraction";
 
 export const metadata: Metadata = {
   title: {
@@ -59,14 +59,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </div>
         <a {...skipLink}>Saltar al contenido principal</a>
         {children}
-        <Script
-          id="cano-google-ads"
-          src="https://www.googletagmanager.com/gtag/js?id=AW-11458109085"
-          strategy="lazyOnload"
-        />
-        <Script id="cano-google-ads-init" strategy="lazyOnload">
-          {"window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-11458109085');"}
-        </Script>
+        <GoogleAdsAfterInteraction />
       </body>
     </html>
   );
