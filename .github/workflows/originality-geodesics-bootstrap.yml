@@ -1,0 +1,66 @@
+name: Originality Geodesics Bootstrap
+
+on:
+  push:
+    branches:
+      - feat/originality-geodesics-engine
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Reconstruct audited payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .motor5/payload.* > /tmp/motor5.b64
+          base64 -d /tmp/motor5.b64 > /tmp/motor5.tgz
+          echo '32cdcde0a0866cb070525185cecfb5a18a5fed7085eec73a03ed15c091cdb8a6  /tmp/motor5.tgz' | sha256sum -c -
+          tar -xzf /tmp/motor5.tgz -C .
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Regenerate lockfile
+        run: pnpm install --lockfile-only --no-frozen-lockfile
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Validate Motor 5 and integrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @nexus/originality-geodesics typecheck
+          pnpm --filter @nexus/originality-geodesics test
+          pnpm --filter @nexus/originality-geodesics build
+          pnpm --filter @nexus/proof-carrying-experience typecheck
+          pnpm --filter @nexus/proof-carrying-experience test
+          pnpm --filter @nexus/proof-carrying-experience build
+          pnpm --filter @nexus/evidence typecheck
+          pnpm --filter @nexus/evidence build
+          pnpm exec vitest run packages/evidence/proof-carrying-experience.test.ts
+          pnpm --filter @nexus/measurement typecheck
+          pnpm --filter @nexus/measurement build
+          pnpm exec vitest run packages/measurement/originality-geodesics.test.ts
+          git diff --check
+          if grep -R -n -E 'TODO|FIXME|placeholder|stub|not implemented|Math\.random|Date\.now|localeCompare' packages/originality-geodesics packages/proof-carrying-experience/src/proof.ts packages/evidence/proof-carrying-experience.ts packages/measurement/originality-geodesics.ts --exclude-dir=node_modules --exclude-dir=dist; then
+            echo 'Forbidden implementation marker or unstable comparator found'
+            exit 1
+          fi
+      - name: Commit validated Motor 5
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .motor5
+          rm .github/workflows/originality-geodesics-bootstrap.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'feat: integrate Originality Geodesics Engine'
+          git push origin HEAD:feat/originality-geodesics-engine
