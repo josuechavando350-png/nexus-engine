@@ -28,20 +28,21 @@ function engines() {
   return { visual, topology, semantics };
 }
 
-function evidence(options: { includeArtifact?: boolean; artifactContent?: string; sourceRevision?: string } = {}) {
+function evidence(options: { includeArtifact?: boolean; artifactContent?: string; sourceRevision?: string; mediaType?: string } = {}) {
   const sourceRevision = options.sourceRevision ?? revision;
-  const artifact = createExperienceArtifact({ subject, mediaType: "text/html", sourceRevision, content: options.artifactContent ?? content });
+  const mediaType = options.mediaType ?? "text/html";
+  const artifact = createExperienceArtifact({ subject, mediaType, sourceRevision, content: options.artifactContent ?? content });
   const quality = createEvidenceRecord({ runId: run.runId, scope: run.scope, source: "QUALITY", sourceId: `quality:${sourceRevision}`, status: "MEASURED", samples: gates.map((gate) => ({ name: `gate.${gate}`, unit: "boolean", value: 1 })), capturedAt: "2026-08-29T00:01:00.000Z", integrity: "VERIFIED" });
   const capture = createEvidenceRecord({ runId: run.runId, scope: run.scope, source: "CAPTURE", sourceId: `capture:${sourceRevision}:browser-matrix`, status: "MEASURED", samples: [{ name: "capture_artifacts", unit: "count", value: 3 }], capturedAt: "2026-08-29T00:01:00.000Z", integrity: "VERIFIED" });
   const records = [quality, capture];
-  if (options.includeArtifact !== false) records.push(createEvidenceRecord({ runId: run.runId, scope: run.scope, source: "RUNTIME", sourceId: artifactEvidenceSourceId(sourceRevision, artifact.artifactDigest), status: "MEASURED", samples: [{ name: "artifact_bytes", unit: "bytes", value: Buffer.byteLength(options.artifactContent ?? content) }], capturedAt: "2026-08-29T00:01:00.000Z", integrity: "VERIFIED" }));
+  if (options.includeArtifact !== false) records.push(createEvidenceRecord({ runId: run.runId, scope: run.scope, source: "RUNTIME", sourceId: artifactEvidenceSourceId(sourceRevision, artifact.descriptorDigest), status: "MEASURED", samples: [{ name: "artifact_bytes", unit: "bytes", value: Buffer.byteLength(options.artifactContent ?? content) }], capturedAt: "2026-08-29T00:01:00.000Z", integrity: "VERIFIED" }));
   const bundle = createEvidenceBundle(run, records, "2026-08-29T00:02:00.000Z", ["CAPTURE", "QUALITY"]);
   const keys = generateKeyPairSync("ed25519");
   return { signedEvidence: signEvidenceBundle(bundle, "proof-key", keys.privateKey), publicKey: keys.publicKey };
 }
 
 describe("signed proof-carrying experience integration", () => {
-  test("cryptographically binds exact artifact bytes to Motors 1-3 and signed delivery evidence", () => {
+  test("cryptographically binds exact artifact descriptor to Motors 1-3 and signed delivery evidence", () => {
     const { visual, topology, semantics } = engines();
     const { signedEvidence, publicKey } = evidence();
     const envelope = createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual, topology, semantics, signedEvidence, publicKey });
@@ -59,6 +60,12 @@ describe("signed proof-carrying experience integration", () => {
     const { visual, topology, semantics } = engines();
     const { signedEvidence, publicKey } = evidence();
     expect(() => createSignedProofCarryingExperience({ subject, mediaType: "text/html", sourceRevision: revision, content: "different bytes", tenantId: "tenant-a", projectId: "project-a", visual, topology, semantics, signedEvidence, publicKey })).toThrow(/artifact-binding RUNTIME record/);
+  });
+
+  test("does not allow another media type to reuse signed evidence for identical bytes", () => {
+    const { visual, topology, semantics } = engines();
+    const { signedEvidence, publicKey } = evidence({ mediaType: "text/html" });
+    expect(() => createSignedProofCarryingExperience({ subject, mediaType: "application/xhtml+xml", sourceRevision: revision, content, tenantId: "tenant-a", projectId: "project-a", visual, topology, semantics, signedEvidence, publicKey })).toThrow(/artifact-binding RUNTIME record/);
   });
 
   test("rejects an untrusted Ed25519 key", () => {
