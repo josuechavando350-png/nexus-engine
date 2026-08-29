@@ -55,6 +55,13 @@ export function GoogleAdsAfterInteraction() {
       window.removeEventListener("keydown", activate);
     };
 
+    // Tag Assistant appends `_dbg` to the inspected URL. In that explicit
+    // diagnostic mode we load the Google tag immediately so the debugger can
+    // discover it. Normal visitors keep the interaction-gated loader that
+    // protects the site's initial performance profile.
+    const isTagAssistantDebug = new URLSearchParams(window.location.search).has("_dbg");
+    if (isTagAssistantDebug) activate();
+
     const handleClick = (event: MouseEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
@@ -79,8 +86,10 @@ export function GoogleAdsAfterInteraction() {
       }
     };
 
-    window.addEventListener("pointerdown", activate, { passive: true, once: true });
-    window.addEventListener("keydown", activate, { once: true });
+    if (!activated) {
+      window.addEventListener("pointerdown", activate, { passive: true, once: true });
+      window.addEventListener("keydown", activate, { once: true });
+    }
     document.addEventListener("click", handleClick, true);
 
     return () => {
