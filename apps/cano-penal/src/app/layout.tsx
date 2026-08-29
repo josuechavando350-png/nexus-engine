@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import type { CSSProperties } from "react";
 import { REDUCED_MOTION_CSS, SR_ONLY_CSS, skipLinkProps, themeToCssVariables } from "@nexus/core";
 import "@nexus/core/foundation/tokens/tokens.css";
@@ -44,15 +45,13 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <style dangerouslySetInnerHTML={{ __html: SR_ONLY_CSS }} />
         <style dangerouslySetInnerHTML={{ __html: REDUCED_MOTION_CSS }} />
-        <script async src="https://www.googletagmanager.com/gtag/js?id=AW-11458109085" />
-        <script dangerouslySetInnerHTML={{ __html: "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-11458109085');" }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(attorneySchema) }} />
       </head>
       <body style={themeStyle}>
         <div className="cp-splash" aria-hidden="true">
           <div className="cp-splash-inner">
             <div className="cp-splash-logo-wrap">
-              <img className="cp-splash-logo" src="/media/logo-cano.png" alt="" />
+              <img className="cp-splash-logo" src="/media/logo-cano.png" alt="" decoding="async" />
             </div>
             <div className="cp-splash-line" />
             <p>EXPERIENCIA DESDE DENTRO. DEFENSA DE FRENTE.</p>
@@ -60,6 +59,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         </div>
         <a {...skipLink}>Saltar al contenido principal</a>
         {children}
+        <Script
+          id="cano-google-ads"
+          src="https://www.googletagmanager.com/gtag/js?id=AW-11458109085"
+          strategy="lazyOnload"
+        />
+        <Script id="cano-google-ads-init" strategy="lazyOnload">
+          {"window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','AW-11458109085');"}
+        </Script>
       </body>
     </html>
   );
