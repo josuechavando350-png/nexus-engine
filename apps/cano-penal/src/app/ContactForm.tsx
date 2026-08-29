@@ -60,10 +60,32 @@ export function ContactForm() {
       <input aria-label="Teléfono" name="telefono" placeholder="Teléfono" required />
       <input className="full" aria-label="Correo" name="correo" type="email" placeholder="Correo" required />
       <textarea className="full" aria-label="Mensaje" name="mensaje" placeholder="Mensaje" required />
-      <button className="cp-btn cp-btn-solid cp-contact-action full" type="submit" disabled={status === "sending"}>
+      <button
+        type="submit"
+        disabled={status === "sending"}
+        aria-busy={status === "sending"}
+        style={{
+          gridColumn: "1 / -1",
+          width: "100%",
+          minHeight: "52px",
+          marginTop: "8px",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          border: "1px solid var(--accent-default)",
+          background: "var(--accent-default)",
+          color: "var(--content-inverse)",
+          textTransform: "uppercase",
+          letterSpacing: ".12em",
+          fontSize: "12px",
+          fontWeight: 700,
+          cursor: status === "sending" ? "wait" : "pointer",
+          opacity: status === "sending" ? 0.7 : 1,
+        }}
+      >
         {status === "sending" ? "Enviando…" : "Enviar consulta"}
       </button>
-      <p className="full" role="status" aria-live="polite">
+      <p className="full" role="status" aria-live="polite" style={{ margin: 0 }}>
         {status === "success" ? "Gracias. Tu mensaje fue enviado correctamente." : ""}
         {status === "error" ? "No pudimos enviar tu mensaje. Inténtalo de nuevo o contáctanos por WhatsApp." : ""}
       </p>
