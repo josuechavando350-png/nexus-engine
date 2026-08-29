@@ -32,6 +32,7 @@ export interface EvidenceTrustAnchor {
   readonly keyId: string;
   readonly payloadDigest: string;
   readonly artifactDigest: string;
+  readonly artifactDescriptorDigest: string;
   readonly artifactRecordId: string;
   readonly artifactProvenanceDigest: string;
   readonly verifiedGates: readonly string[];
