@@ -43,6 +43,7 @@ function assertLinkage(input: CreateExperienceProofInput): void {
   }
   if (input.evidenceAnchor.sourceRevision !== input.artifact.sourceRevision) throw new Error("Proof source revision linkage mismatch");
   if (input.evidenceAnchor.artifactDigest !== input.artifact.artifactDigest) throw new Error("Proof artifact/evidence digest linkage mismatch");
+  if (input.evidenceAnchor.artifactDescriptorDigest !== input.artifact.descriptorDigest) throw new Error("Proof artifact descriptor/evidence linkage mismatch");
   if (input.topology.certificate.sourceTermDigest !== input.visual.digest) throw new Error("Proof Visual Algebra / Topology provenance mismatch");
   if (input.semantics.initialState.facts["visual.termDigest"] !== input.visual.digest) throw new Error("Proof semantic state is not bound to Visual Algebra evidence");
   if (input.semantics.initialState.facts["topology.certificateDigest"] !== input.topology.certificate.certificateDigest) throw new Error("Proof semantic state is not bound to Topology evidence");
