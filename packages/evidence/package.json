@@ -5,10 +5,14 @@
   "type": "module",
   "exports": {
     ".": "./index.ts",
-    "./signed-evidence-certification": "./signed-evidence-certification.ts"
+    "./signed-evidence-certification": "./signed-evidence-certification.ts",
+    "./proof-carrying-experience": "./proof-carrying-experience.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/evidence/index.js && test -f dist/evidence/index.d.ts && test -f dist/evidence/signed-evidence-certification.js && test -f dist/evidence/signed-evidence-certification.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/evidence/index.js && test -f dist/evidence/index.d.ts && test -f dist/evidence/signed-evidence-certification.js && test -f dist/evidence/signed-evidence-certification.d.ts && test -f dist/evidence/proof-carrying-experience.js && test -f dist/evidence/proof-carrying-experience.d.ts"
+  },
+  "dependencies": {
+    "@nexus/proof-carrying-experience": "workspace:*"
   }
 }

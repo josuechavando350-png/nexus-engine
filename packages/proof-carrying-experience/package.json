@@ -1,0 +1,23 @@
+{
+  "name": "@nexus/proof-carrying-experience",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./artifact": "./src/artifact.ts",
+    "./anchor": "./src/anchor.ts",
+    "./proof": "./src/proof.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. packages/proof-carrying-experience/src/__tests__/proof-carrying-experience.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+  },
+  "dependencies": {
+    "@nexus/compositional-semantics": "workspace:*",
+    "@nexus/topology": "workspace:*",
+    "@nexus/visual-algebra": "workspace:*"
+  }
+}
