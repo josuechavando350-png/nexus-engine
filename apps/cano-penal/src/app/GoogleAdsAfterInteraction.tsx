@@ -54,6 +54,14 @@ function ensureGoogleAdsReady(): Promise<void> {
   return loaderPromise;
 }
 
+function trackConversion(sendTo: string, extras?: Record<string, unknown>) {
+  const runtime = window as RuntimeWindow;
+  runtime.gtag?.("event", "conversion", {
+    send_to: sendTo,
+    ...extras,
+  });
+}
+
 function trackOutboundConversion(sendTo: string, destination: string, extras?: Record<string, unknown>) {
   const runtime = window as RuntimeWindow;
   const gtag = runtime.gtag;
@@ -106,9 +114,12 @@ export function GoogleAdsAfterInteraction() {
       try {
         const url = new URL(destination, window.location.href);
         if (url.hostname === "wa.me" || url.hostname.endsWith("whatsapp.com")) {
-          event.preventDefault();
-          await ensureGoogleAdsReady();
-          trackOutboundConversion(WHATSAPP_CONVERSION, destination);
+          // WhatsApp links already open in a new tab. Keep the current page alive so
+          // the deferred Google Ads tag has time to finish loading and send the hit.
+          // Do not preventDefault() and do not redirect this tab.
+          void ensureGoogleAdsReady().then(() => {
+            trackConversion(WHATSAPP_CONVERSION);
+          });
         }
       } catch {
         // Ignore malformed/non-URL href values.
