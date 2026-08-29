@@ -15,6 +15,7 @@ const csp = buildCsp({
   "style-src": ["'self'", "'unsafe-inline'"],
   "connect-src": [
     "'self'",
+    "https://formspree.io",
     "https://www.google-analytics.com",
     "https://www.googletagmanager.com",
     "https://www.googleadservices.com",
