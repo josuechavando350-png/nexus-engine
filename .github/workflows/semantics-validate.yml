@@ -34,7 +34,7 @@ jobs:
           pnpm --filter @nexus/measurement build
           pnpm exec vitest run packages/measurement/compositional-semantics.test.ts
           git diff --check
-          if grep -R -n -E 'TODO|FIXME|placeholder|stub|not implemented|Math\.random|Date\.now' packages/compositional-semantics packages/measurement/compositional-semantics.ts packages/measurement/compositional-semantics.test.ts; then
+          if grep -R -n --exclude-dir=node_modules --exclude-dir=dist -E 'TODO|FIXME|placeholder|stub|not implemented|Math\.random|Date\.now' packages/compositional-semantics packages/measurement/compositional-semantics.ts packages/measurement/compositional-semantics.test.ts; then
             echo 'Forbidden implementation marker found'
             exit 1
           fi
