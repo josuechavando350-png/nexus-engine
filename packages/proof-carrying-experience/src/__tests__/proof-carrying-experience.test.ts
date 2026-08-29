@@ -46,6 +46,7 @@ function fixture(rejected = false) {
     keyId: "fixture-key",
     payloadDigest: `sha256:${"2".repeat(64)}`,
     artifactDigest: artifact.artifactDigest,
+    artifactDescriptorDigest: artifact.descriptorDigest,
     artifactRecordId: `record_${"3".repeat(64)}`,
     artifactProvenanceDigest: `prov_${"4".repeat(64)}`,
     verifiedGates: ["visual", "build", "browser"],
@@ -87,9 +88,17 @@ describe("proof-carrying experience", () => {
   });
 
   test("rejects artifact/evidence substitution", () => {
-    const { artifact, anchor, visual, topology, semantics } = fixture();
+    const { anchor, visual, topology, semantics } = fixture();
     const otherArtifact = createExperienceArtifact({ subject, mediaType: "text/html", sourceRevision: revision, content: "different" });
     expect(() => createExperienceProof({ artifact: otherArtifact, evidenceAnchor: anchor, visual, topology, semantics })).toThrow(/artifact\/evidence digest linkage mismatch/);
+  });
+
+  test("rejects descriptor replay even when artifact bytes are identical", () => {
+    const { anchor, visual, topology, semantics } = fixture();
+    const otherDescriptor = createExperienceArtifact({ subject, mediaType: "application/xhtml+xml", sourceRevision: revision, content: artifactContent });
+    expect(otherDescriptor.artifactDigest).toBe(anchor.artifactDigest);
+    expect(otherDescriptor.descriptorDigest).not.toBe(anchor.artifactDescriptorDigest);
+    expect(() => createExperienceProof({ artifact: otherDescriptor, evidenceAnchor: anchor, visual, topology, semantics })).toThrow(/artifact descriptor\/evidence linkage mismatch/);
   });
 
   test("rejects semantic evidence that did not consume topology", () => {
@@ -111,6 +120,7 @@ describe("proof-carrying experience", () => {
     const wrongAnchor = createEvidenceTrustAnchor({
       subject: "other/home", sourceRevision: revision, tenantId: anchor.tenantId, projectId: anchor.projectId,
       bundleId: anchor.bundleId, keyId: anchor.keyId, payloadDigest: anchor.payloadDigest, artifactDigest: anchor.artifactDigest,
+      artifactDescriptorDigest: anchor.artifactDescriptorDigest,
       artifactRecordId: anchor.artifactRecordId, artifactProvenanceDigest: anchor.artifactProvenanceDigest, verifiedGates: anchor.verifiedGates,
     });
     expect(() => createExperienceProof({ artifact, evidenceAnchor: wrongAnchor, visual, topology, semantics })).toThrow(/subject linkage mismatch/);
