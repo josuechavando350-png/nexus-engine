@@ -13,6 +13,12 @@ function assertSha256(value: string, label: string): void {
   if (!/^[a-f0-9]{64}$/.test(value)) throw new Error(`${label} must be SHA-256 hex`);
 }
 
+function assertVerificationStatus(value: unknown): asserts value is VerificationStatus {
+  if (value !== "VERIFIED" && value !== "REJECTED") {
+    throw new Error(`Unsupported semantic verification status: ${String(value)}`);
+  }
+}
+
 export function createSemanticVerificationCertificate(input: {
   readonly planId: string;
   readonly subject: string;
@@ -29,6 +35,7 @@ export function createSemanticVerificationCertificate(input: {
   assertSha256(input.compositionDigest, "compositionDigest");
   assertSha256(input.initialStateDigest, "initialStateDigest");
   assertSha256(input.finalStateDigest, "finalStateDigest");
+  assertVerificationStatus(input.status);
   if (!Number.isInteger(input.policy.maxDepth) || input.policy.maxDepth < 1 || input.policy.maxDepth > 128) throw new Error("Invalid semantic verification maxDepth");
   if (typeof input.policy.failFast !== "boolean") throw new Error("Invalid semantic verification failFast policy");
   const policyDigest = digestValue(input.policy);
@@ -54,6 +61,7 @@ export function validateVerificationResult(result: VerificationResult): void {
   validateSemanticState(result.initialState);
   validateSemanticState(result.finalState);
   assertSha256(result.compositionDigest, "compositionDigest");
+  assertVerificationStatus(result.status);
   if (!Number.isInteger(result.policy.maxDepth) || result.policy.maxDepth < 1 || result.policy.maxDepth > 128 || typeof result.policy.failFast !== "boolean") {
     throw new Error("Invalid semantic verification policy");
   }
@@ -64,6 +72,7 @@ export function validateVerificationResult(result: VerificationResult): void {
   if (certificate.authority !== "NEXUS_COMPOSITIONAL_SEMANTICS_V1" || certificate.version !== 1) {
     throw new Error("Unsupported compositional-semantics certificate");
   }
+  assertVerificationStatus(certificate.status);
   if (certificate.compositionDigest !== result.compositionDigest ||
       certificate.initialStateDigest !== result.initialState.digest ||
       certificate.finalStateDigest !== result.finalState.digest ||
