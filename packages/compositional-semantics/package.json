@@ -15,7 +15,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/compositional-semantics/src/__tests__/compositional-semantics.test.ts",
+    "test": "vitest run --root ../.. packages/compositional-semantics/src/__tests__/compositional-semantics.test.ts packages/compositional-semantics/src/__tests__/runtime-hardening.test.ts",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
   },
   "dependencies": {
