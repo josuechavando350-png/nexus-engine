@@ -1,0 +1,25 @@
+{
+  "name": "@nexus/compositional-semantics",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./formula": "./src/formula.ts",
+    "./state": "./src/state.ts",
+    "./composition": "./src/composition.ts",
+    "./verifier": "./src/verifier.ts",
+    "./certificate": "./src/certificate.ts",
+    "./adapters": "./src/adapters.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. packages/compositional-semantics/src/__tests__/compositional-semantics.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+  },
+  "dependencies": {
+    "@nexus/topology": "workspace:*",
+    "@nexus/visual-algebra": "workspace:*"
+  }
+}
