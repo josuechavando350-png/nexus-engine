@@ -1,5 +1,6 @@
 import { Link } from "@nexus/core";
 import { PageShell } from "./SiteChrome";
+import { ContactForm } from "./ContactForm";
 import { areas, cases, site, trajectory } from "./content";
 
 const audienceFiles = ["audiencia-01.jpg", "audiencia-02.jpg", "audiencia-03.jpg", "audiencia-04.jpg", "audiencia-05.jpg"] as const;
@@ -75,7 +76,7 @@ export default function HomePage() {
         <div className="cp-contact-image" role="img" aria-label="Eduardo Cano en su escritorio" />
         <div className="cp-contact">
           <div><h2>En derecho penal cada minuto cuenta</h2><div className="cp-contact-details"><strong>World Trade Center Ciudad de México</strong><span>Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX</span><a className="cp-text-link cp-map-link" href="https://maps.app.goo.gl/zMjF2TQZvfMchowx8" target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a><a href={site.phoneHref}>{site.phoneDisplay}</a><a href={`mailto:${site.email}`}>{site.email}</a></div></div>
-          <div><form className="cp-form"><input aria-label="Nombre" name="nombre" placeholder="Nombre" /><input aria-label="Teléfono" name="telefono" placeholder="Teléfono" /><input className="full" aria-label="Correo" name="correo" type="email" placeholder="Correo" /><textarea className="full" aria-label="Mensaje" name="mensaje" placeholder="Mensaje" /></form><a className="cp-btn cp-btn-solid cp-contact-action" href="https://wa.me/5215560501901" target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a></div>
+          <div><ContactForm /><a className="cp-btn cp-contact-action" href="https://wa.me/5215560501901" target="_blank" rel="noopener noreferrer">Prefiero WhatsApp</a></div>
         </div>
         <div className="cp-map-panel">
           <iframe title="Ubicación de CANO Estrategia Penal en World Trade Center Ciudad de México" loading="lazy" referrerPolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Montecito%2038%2C%20N%C3%A1poles%2C%20Benito%20Ju%C3%A1rez%2C%20Ciudad%20de%20M%C3%A9xico&output=embed" />
