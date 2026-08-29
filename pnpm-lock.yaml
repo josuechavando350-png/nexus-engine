@@ -328,6 +328,15 @@ importers:
         specifier: ^4.0.0
         version: 4.1.10(@types/node@24.13.3)(vite@8.2.1(@types/node@24.13.3))
 
+  packages/compositional-semantics:
+    dependencies:
+      '@nexus/topology':
+        specifier: workspace:*
+        version: link:../topology
+      '@nexus/visual-algebra':
+        specifier: workspace:*
+        version: link:../visual-algebra
+
   packages/config: {}
 
   packages/control-sdk: {}
@@ -404,6 +413,9 @@ importers:
 
   packages/measurement:
     dependencies:
+      '@nexus/compositional-semantics':
+        specifier: workspace:*
+        version: link:../compositional-semantics
       '@nexus/topology':
         specifier: workspace:*
         version: link:../topology
