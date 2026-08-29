@@ -26,14 +26,21 @@ jobs:
         shell: bash
         run: |
           python3 - <<'PY'
-          import base64, re, tarfile
+          import base64, tarfile
           from pathlib import Path
           text = Path('.github/workflows/topology-bootstrap.yml').read_text()
-          match = re.search(r"printf '%s' '([^']+)' \\| base64 -d", text)
-          if not match:
-              raise SystemExit('Topology payload not found in bootstrap workflow')
+          prefix = "printf '%s' '"
+          suffix = "' | base64 -d > /tmp/topology-payload.tgz"
+          start = text.find(prefix)
+          if start < 0:
+              raise SystemExit('Topology payload prefix not found')
+          start += len(prefix)
+          end = text.find(suffix, start)
+          if end < 0:
+              raise SystemExit('Topology payload suffix not found')
+          payload = text[start:end]
           archive = Path('/tmp/topology-payload.tgz')
-          archive.write_bytes(base64.b64decode(match.group(1)))
+          archive.write_bytes(base64.b64decode(payload, validate=True))
           with tarfile.open(archive, 'r:gz') as tar:
               tar.extractall('.')
           PY
