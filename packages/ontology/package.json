@@ -12,7 +12,8 @@
     "./events-workflows": "./events-workflows.ts",
     "./ai-boundary": "./ai-boundary.ts",
     "./persistence-query": "./persistence-query.ts",
-    "./observability-dr": "./observability-dr.ts"
+    "./observability-dr": "./observability-dr.ts",
+    "./chatbot-knowledge": "./chatbot-knowledge.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
