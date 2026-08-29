@@ -1,4 +1,4 @@
-import { digestValue } from "@nexus/visual-algebra";
+import { digestValue, validateBounds } from "@nexus/visual-algebra";
 import { simplexId } from "./complex.js";
 import type { FiltrationComplex, FilteredSimplex, PersistenceDiagram, PersistenceInterval } from "./types.js";
 
@@ -20,20 +20,36 @@ function xorSortedColumns(left: readonly number[], right: readonly number[]): nu
   }
   return output;
 }
-function validateComplex(complex: FiltrationComplex): void {
+export function validateFiltrationComplex(complex: FiltrationComplex): void {
+  if (complex.authority !== "NEXUS_FILTERED_FLAG_COMPLEX_V1") throw new Error("Unsupported filtration complex authority");
+  validateBounds(complex.canvasBounds, "complex.canvasBounds");
+  if (complex.canvasBounds.width <= 0 || complex.canvasBounds.height <= 0) throw new Error("Complex canvas must have positive width and height");
+  if (complex.maxHomologyDimension !== 0 && complex.maxHomologyDimension !== 1) throw new Error("Complex maxHomologyDimension must be 0 or 1");
+  if (complex.maxSimplexDimension !== complex.maxHomologyDimension + 1) throw new Error("Complex simplex/homology dimensions are inconsistent");
+  if (complex.sourceTermDigest !== undefined && !/^[a-f0-9]{64}$/.test(complex.sourceTermDigest)) throw new Error("Complex sourceTermDigest must be SHA-256 hex");
+  const vertexIds = new Set<string>();
+  for (const vertex of complex.vertices) {
+    if (!vertex.id.trim() || !vertex.sourcePrimitiveId.trim()) throw new Error("Complex vertex ids cannot be empty");
+    if (vertexIds.has(vertex.id)) throw new Error(`Duplicate complex vertex id: ${vertex.id}`);
+    if (!Number.isFinite(vertex.point.x) || !Number.isFinite(vertex.point.y)) throw new Error(`Complex vertex ${vertex.id} has non-finite coordinates`);
+    vertexIds.add(vertex.id);
+  }
   const { digest, ...digestPayload } = complex;
   if (digestValue(digestPayload) !== digest) throw new Error("Filtration complex digest mismatch");
   if (!Number.isFinite(complex.maxFiltration) || complex.maxFiltration < 0 || complex.maxFiltration > 1) throw new Error("Complex maxFiltration must be in [0,1]");
   const simplexById = new Map<string, FilteredSimplex>();
   for (const simplex of complex.simplices) {
     if (simplexById.has(simplex.id)) throw new Error(`Duplicate simplex id: ${simplex.id}`);
-    if (simplex.vertices.length !== simplex.dimension + 1) throw new Error(`Simplex ${simplex.id} has invalid dimension`);
+    if (simplex.vertices.length !== simplex.dimension + 1 || simplex.dimension > complex.maxSimplexDimension) throw new Error(`Simplex ${simplex.id} has invalid dimension`);
+    if (new Set(simplex.vertices).size !== simplex.vertices.length) throw new Error(`Simplex ${simplex.id} repeats a vertex`);
+    if (simplex.vertices.some((vertexId) => !vertexIds.has(vertexId))) throw new Error(`Simplex ${simplex.id} references an unknown vertex`);
     if (!Number.isFinite(simplex.filtration) || simplex.filtration < 0 || simplex.filtration > complex.maxFiltration + EPSILON) {
       throw new Error(`Simplex ${simplex.id} has invalid filtration`);
     }
     if (simplex.id !== simplexId(simplex.vertices)) throw new Error(`Simplex ${simplex.id} has non-canonical id`);
     simplexById.set(simplex.id, simplex);
   }
+  for (const vertexId of vertexIds) if (!simplexById.has(simplexId([vertexId]))) throw new Error(`Complex is missing vertex simplex ${vertexId}`);
   for (const simplex of complex.simplices) {
     for (const faceId of boundaryIds(simplex)) {
       const face = simplexById.get(faceId);
@@ -68,6 +84,8 @@ function compareIntervals(left: PersistenceInterval, right: PersistenceInterval)
 }
 export function validatePersistenceDiagram(diagram: PersistenceDiagram): void {
   if (diagram.authority !== "NEXUS_PERSISTENCE_DIAGRAM_V1") throw new Error("Unsupported persistence diagram authority");
+  if (diagram.maxDimension !== 0 && diagram.maxDimension !== 1) throw new Error("Persistence diagram maxDimension must be 0 or 1");
+  if (!/^[a-f0-9]{64}$/.test(diagram.sourceComplexDigest)) throw new Error("Persistence diagram sourceComplexDigest must be SHA-256 hex");
   if (!Number.isFinite(diagram.filtrationLimit) || diagram.filtrationLimit < 0 || diagram.filtrationLimit > 1) {
     throw new Error("Persistence diagram filtrationLimit must be in [0,1]");
   }
@@ -87,7 +105,7 @@ export function validatePersistenceDiagram(diagram: PersistenceDiagram): void {
 }
 
 export function computePersistentHomology(complex: FiltrationComplex): PersistenceDiagram {
-  validateComplex(complex);
+  validateFiltrationComplex(complex);
   const simplices = [...complex.simplices].sort(compareSimplex);
   const indexBySimplexId = new Map<string, number>();
   simplices.forEach((simplex, index) => indexBySimplexId.set(simplex.id, index));

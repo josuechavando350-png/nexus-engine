@@ -10,6 +10,7 @@ import {
   synthesizeCertified,
   synthesizeTermCertified,
   validatePersistenceDiagram,
+  validateCertifiedSynthesisResult,
 } from "../index.js";
 import type { PersistenceDiagram } from "../index.js";
 
@@ -52,6 +53,10 @@ describe("filtered complex", () => {
     expect(() => buildFiltrationComplex({ primitives: [point("a", 0, 0)], canvasBounds: { x: 0, y: 0, width: 0, height: 100 } })).toThrow(/positive width and height/);
     expect(() => buildFiltrationComplex({ primitives: [point("a", 0, 0)], canvasBounds: canvas, relations: [{ sourceId: "a", targetId: "missing", filtration: 0.1 }] })).toThrow(/unknown primitive/);
     expect(() => buildFiltrationComplex({ primitives: [point("a", 0, 0)], canvasBounds: canvas, relations: [{ sourceId: "a", targetId: "a", filtration: 0.1 }] })).toThrow(/self-relations/);
+  });
+
+  test("rejects unsupported runtime homology dimensions", () => {
+    expect(() => buildFiltrationComplex({ primitives: [point("a", 0, 0)], canvasBounds: canvas, maxHomologyDimension: 2 as never })).toThrow(/H0 and H1/);
   });
 
   test("retains Visual Algebra provenance", () => {
@@ -167,6 +172,20 @@ describe("fingerprint and certified synthesis", () => {
     expect(result.complex.sourceTermDigest).toBe(term.digest);
     expect(result.certificate.sourceTermDigest).toBe(term.digest);
     expect(result.status).toBe("CERTIFIED");
+  });
+
+  test("rejects unsupported runtime bottleneck dimensions", () => {
+    const diagram = computePersistentHomology(buildVietorisRipsComplex({ primitives: [point("a", 0, 0)], canvasBounds: canvas }));
+    expect(() => bottleneckDistance(diagram, diagram, 2 as never)).toThrow(/dimension must be 0 or 1/);
+    expect(() => synthesizeCertified({ planId: "bad-dimension", subject: "candidate", primitives: [point("a", 0, 0)], canvasBounds: canvas, referenceDiagrams: [{ id: "ref", diagram }],
+      constraints: [{ id: "distance", kind: "min_bottleneck_distance", value: 0, severity: "required", dimension: 2 as never }] })).toThrow(/dimension must be 0 or 1/);
+  });
+
+  test("validates full certificate linkage and rejects detached evidence", () => {
+    const result = synthesizeCertified({ planId: "linked", subject: "candidate", primitives: [point("a", 0, 0), point("b", 20, 0)], canvasBounds: canvas });
+    expect(() => validateCertifiedSynthesisResult(result)).not.toThrow();
+    const tampered = Object.freeze({ ...result, certificate: Object.freeze({ ...result.certificate, complexDigest: "0".repeat(64) }) });
+    expect(() => validateCertifiedSynthesisResult(tampered)).toThrow(/digest linkage mismatch/);
   });
 
   test("requires integer count constraints", () => {

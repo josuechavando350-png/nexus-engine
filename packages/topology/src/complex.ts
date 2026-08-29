@@ -1,10 +1,13 @@
-import { digestValue, leafPrimitives, primitiveCenter, validateBounds } from "@nexus/visual-algebra";
+import { digestValue, leafPrimitives, primitiveCenter, validateBounds, validatePrimitive } from "@nexus/visual-algebra";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { BuildComplexInput, FiltrationComplex, FiltrationVertex, FilteredSimplex, TopologicalRelation } from "./types.js";
 
 const EPSILON = 1e-12;
 function assertUnit(value: number, label: string): void {
   if (!Number.isFinite(value) || value < 0 || value > 1) throw new Error(`${label} must be a finite value in [0,1]`);
+}
+function assertSha256(value: string, label: string): void {
+  if (!/^[a-f0-9]{64}$/.test(value)) throw new Error(`${label} must be SHA-256 hex`);
 }
 export function simplexId(vertices: readonly string[]): string { return `simplex:${JSON.stringify([...vertices].sort())}`; }
 function pairKey(left: string, right: string): string { return JSON.stringify(left < right ? [left, right] : [right, left]); }
@@ -35,6 +38,9 @@ export function buildFiltrationComplex(input: BuildComplexInput): FiltrationComp
   const maxFiltration = input.maxFiltration ?? 1;
   assertUnit(maxFiltration, "maxFiltration");
   const maxHomologyDimension = input.maxHomologyDimension ?? 1;
+  if (maxHomologyDimension !== 0 && maxHomologyDimension !== 1) throw new Error("Only H0 and H1 persistent homology are supported");
+  if (input.sourceTermDigest !== undefined) assertSha256(input.sourceTermDigest, "sourceTermDigest");
+  for (const primitive of input.primitives) validatePrimitive(primitive);
   const maxSimplexDimension = (maxHomologyDimension + 1) as 1 | 2;
   const leaves = leafPrimitives(input.primitives);
   const sourceIds = new Set<string>();
@@ -84,7 +90,7 @@ export function buildFiltrationComplex(input: BuildComplexInput): FiltrationComp
   simplices.sort(simplexComparator);
   const base = {
     authority: "NEXUS_FILTERED_FLAG_COMPLEX_V1" as const,
-    ...(input.sourceTermDigest ? { sourceTermDigest: input.sourceTermDigest } : {}),
+    ...(input.sourceTermDigest !== undefined ? { sourceTermDigest: input.sourceTermDigest } : {}),
     canvasBounds: Object.freeze({ ...input.canvasBounds }), maxFiltration, maxHomologyDimension, maxSimplexDimension,
     vertices: Object.freeze(vertices), simplices: Object.freeze(simplices),
   };

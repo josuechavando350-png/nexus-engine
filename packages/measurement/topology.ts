@@ -1,3 +1,4 @@
+import { validateCertifiedSynthesisResult } from "@nexus/topology";
 import type { CertifiedSynthesisResult } from "@nexus/topology";
 import type { MetricSample } from "./index.js";
 
@@ -17,6 +18,7 @@ function assertSha256(value: string, label: string): void {
 }
 
 export function projectTopologyMeasurement(result: CertifiedSynthesisResult): TopologyMeasurementProjection {
+  validateCertifiedSynthesisResult(result);
   assertSha256(result.complex.digest, "complex digest");
   assertSha256(result.diagram.digest, "diagram digest");
   assertSha256(result.fingerprint.digest, "fingerprint digest");

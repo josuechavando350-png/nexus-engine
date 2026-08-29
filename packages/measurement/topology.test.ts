@@ -25,5 +25,8 @@ describe("topology measurement integration", () => {
     expect(projection.certificateDigest).toBe(result.certificate.certificateDigest);
     expect(projection.samples).toHaveLength(7);
     expect(projection.samples.every((sample) => Number.isFinite(sample.value))).toBe(true);
+
+    const tampered = Object.freeze({ ...result, certificate: Object.freeze({ ...result.certificate, diagramDigest: "0".repeat(64) }) });
+    expect(() => projectTopologyMeasurement(tampered)).toThrow(/digest linkage mismatch/);
   });
 });

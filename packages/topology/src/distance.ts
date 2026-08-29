@@ -58,6 +58,7 @@ function dimensionDistance(left: PersistenceDiagram, right: PersistenceDiagram, 
   return Object.freeze({ dimension, finiteDistance, essentialDistance, distance: Math.max(finiteDistance, essentialDistance) });
 }
 export function bottleneckDistance(left: PersistenceDiagram, right: PersistenceDiagram, dimension?: 0 | 1): BottleneckDistanceResult {
+  if (dimension !== undefined && dimension !== 0 && dimension !== 1) throw new Error("Bottleneck dimension must be 0 or 1");
   validatePersistenceDiagram(left); validatePersistenceDiagram(right);
   const dimensions: readonly (0 | 1)[] = dimension === undefined ? DIMENSIONS : [dimension];
   const results = dimensions.map((target) => dimensionDistance(left, right, target));
