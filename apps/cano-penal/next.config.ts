@@ -3,7 +3,12 @@ import { NEXUS_SECURITY_HEADERS_BASE, buildCsp } from "@nexus/core/foundation/co
 import { redirects } from "./redirects";
 
 const csp = buildCsp({
-  "script-src": ["'self'", "'unsafe-inline'", "https://www.googletagmanager.com"],
+  "script-src": [
+    "'self'",
+    "'unsafe-inline'",
+    "https://www.googletagmanager.com",
+    "https://googleads.g.doubleclick.net"
+  ],
   "style-src": ["'self'", "'unsafe-inline'"],
   "connect-src": [
     "'self'",
@@ -11,6 +16,7 @@ const csp = buildCsp({
     "https://www.googletagmanager.com",
     "https://www.googleadservices.com",
     "https://googleads.g.doubleclick.net",
+    "https://ad.doubleclick.net",
     "https://www.google.com"
   ],
   "img-src": [
