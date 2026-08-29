@@ -4,10 +4,14 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./visual-algebra": "./visual-algebra.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/measurement/index.js && test -f dist/measurement/index.d.ts"
+  },
+  "dependencies": {
+    "@nexus/visual-algebra": "workspace:*"
   }
 }

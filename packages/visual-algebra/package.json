@@ -1,0 +1,21 @@
+{
+  "name": "@nexus/visual-algebra",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./primitives": "./src/primitives.ts",
+    "./metrics": "./src/metrics.ts",
+    "./algebra": "./src/algebra.ts",
+    "./distance": "./src/distance.ts",
+    "./fingerprint": "./src/fingerprint.ts",
+    "./from-fingerprint": "./src/from-fingerprint.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run src/__tests__",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+  }
+}
