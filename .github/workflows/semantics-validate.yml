@@ -1,0 +1,49 @@
+name: Semantics Validate
+
+on:
+  push:
+    branches:
+      - feat/compositional-semantics-engine
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Regenerate lockfile
+        run: pnpm install --lockfile-only
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Validate Motor 3
+        shell: bash
+        run: |
+          pnpm --filter @nexus/compositional-semantics typecheck
+          pnpm --filter @nexus/compositional-semantics test
+          pnpm --filter @nexus/compositional-semantics build
+          pnpm --filter @nexus/measurement typecheck
+          pnpm --filter @nexus/measurement build
+          pnpm exec vitest run packages/measurement/compositional-semantics.test.ts
+          git diff --check
+          if grep -R -n -E 'TODO|FIXME|placeholder|stub|not implemented|Math\.random|Date\.now' packages/compositional-semantics packages/measurement/compositional-semantics.ts packages/measurement/compositional-semantics.test.ts; then
+            echo 'Forbidden implementation marker found'
+            exit 1
+          fi
+      - name: Commit lockfile and remove validation helper
+        shell: bash
+        run: |
+          rm .github/workflows/semantics-validate.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pnpm-lock.yaml .github/workflows/semantics-validate.yml
+          git commit -m 'chore(semantics): lock validated workspace integration'
+          git push origin HEAD:feat/compositional-semantics-engine
