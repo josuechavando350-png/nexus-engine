@@ -2,8 +2,9 @@ import { createHash } from "node:crypto";
 // Optional diagnostic for build nondeterminism; this is not a validation gate.
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { extname, join } from "node:path";
+import { join } from "node:path";
 import { buildTargets, clearOutputs, outputDirs, runTargetBuild, snapshotOutputs, snapshotTargetOutputs, sourceDateEpoch } from "./build-core.mjs";
+import { canonicalizeDeterministicBuildFile, NEXT_PREVIEW_MODE_EXCEPTION } from "./deterministic-build-canonicalization.mjs";
 
 const root = process.cwd();
 for (const required of ["pnpm-lock.yaml", "runtime/Cargo.lock"]) {
@@ -15,112 +16,18 @@ process.env.SOURCE_DATE_EPOCH = epoch;
 const targets = buildTargets(root);
 if (!targets.length) throw new Error("no build targets discovered");
 
-const EPHEMERAL_KEYS = new Set([
-  "previewModeId",
-  "previewModeSigningKey",
-  "previewModeEncryptionKey",
-  "encryptionKey",
-  "deploymentId",
-  "buildId",
-]);
-const TEXT_EXTENSIONS = new Set([
-  ".js", ".mjs", ".cjs", ".json", ".html", ".txt", ".map", ".css",
-  ".rsc", ".body", ".meta", ".xml", ".svg", ".d.ts",
-]);
-const markerForKey = (key) => `<NEXUS_EPHEMERAL_${key}>`;
-const stableJson = (value) => Array.isArray(value)
-  ? value.map(stableJson)
-  : value && typeof value === "object"
-    ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b, "en")).map(([key, child]) => [key, stableJson(child)]))
-    : value;
-
-const buildIdForPath = (path) => {
-  if (!path.includes("/.next/")) return null;
-  const appRoot = path.slice(0, path.indexOf("/.next/"));
-  const buildIdPath = join(root, appRoot, ".next", "BUILD_ID");
-  return existsSync(buildIdPath) ? readFileSync(buildIdPath, "utf8").trim() : null;
-};
-
-const collectEphemeralValues = (value, found) => {
-  if (Array.isArray(value)) {
-    for (const child of value) collectEphemeralValues(child, found);
-    return;
-  }
-  if (!value || typeof value !== "object") return;
-  for (const [key, child] of Object.entries(value)) {
-    if (EPHEMERAL_KEYS.has(key) && typeof child === "string" && child.length >= 8) {
-      found.set(child, markerForKey(key));
-    }
-    collectEphemeralValues(child, found);
-  }
-};
-
-const ephemeralValuesForFiles = (paths) => {
-  const found = new Map();
-  for (const rawPath of paths) {
-    if (!rawPath.includes("/.next/") || extname(rawPath) !== ".json") continue;
-    try {
-      collectEphemeralValues(JSON.parse(readFileSync(join(root, rawPath), "utf8")), found);
-    } catch {
-      // Non-JSON or partially generated files remain byte-compared below.
-    }
-  }
-  return found;
-};
-
-const replaceEphemeralText = (text, buildId, ephemeralValues) => {
-  let output = text;
-  if (buildId) output = output.replaceAll(buildId, "<NEXUS_EPHEMERAL_NEXT_BUILD_ID>");
-  for (const [value, marker] of ephemeralValues) output = output.replaceAll(value, marker);
-  return output;
-};
-
-const canonicalJson = (value, buildId, ephemeralValues, key = null) => {
-  if (key && EPHEMERAL_KEYS.has(key) && typeof value === "string") return markerForKey(key);
-  if (typeof value === "string") return replaceEphemeralText(value, buildId, ephemeralValues);
-  if (Array.isArray(value)) return value.map((child) => canonicalJson(child, buildId, ephemeralValues));
-  if (value && typeof value === "object") {
-    return Object.fromEntries(
-      Object.entries(value)
-        .sort(([a], [b]) => a.localeCompare(b, "en"))
-        .map(([childKey, child]) => [childKey, canonicalJson(child, buildId, ephemeralValues, childKey)]),
-    );
-  }
-  return value;
-};
-
-const canonicalPath = (path, buildId, ephemeralValues) => replaceEphemeralText(path, buildId, ephemeralValues);
-const isTextGeneratedFile = (path) => TEXT_EXTENSIONS.has(extname(path)) || path.endsWith(".d.ts");
-const canonicalNextBytes = (path, bytes, buildId, ephemeralValues) => {
-  if (!path.includes("/.next/")) return bytes;
-  const basename = path.split("/").at(-1);
-  if (basename === "BUILD_ID") return Buffer.from("<NEXUS_EPHEMERAL_NEXT_BUILD_ID>\n", "utf8");
-  if (extname(path) === ".json") {
-    try {
-      const parsed = JSON.parse(bytes.toString("utf8"));
-      return Buffer.from(`${JSON.stringify(stableJson(canonicalJson(parsed, buildId, ephemeralValues)))}\n`, "utf8");
-    } catch {
-      // Fall through to text canonicalization only for known textual output.
-    }
-  }
-  if (!isTextGeneratedFile(path)) return bytes;
-  return Buffer.from(replaceEphemeralText(bytes.toString("utf8"), buildId, ephemeralValues), "utf8");
-};
-
 const fileEntries = (paths) => {
-  const ephemeralValues = ephemeralValuesForFiles(paths);
   return paths.map((rawPath) => {
     const bytes = readFileSync(join(root, rawPath));
-    const buildId = buildIdForPath(rawPath);
-    const path = canonicalPath(rawPath, buildId, ephemeralValues);
-    const canonicalBytes = canonicalNextBytes(rawPath, bytes, buildId, ephemeralValues);
+    const canonical = canonicalizeDeterministicBuildFile(rawPath, bytes);
     return {
-      path,
-      size: canonicalBytes.length,
-      sha256: createHash("sha256").update(canonicalBytes).digest("hex"),
+      path: rawPath,
+      size: canonical.bytes.length,
+      sha256: createHash("sha256").update(canonical.bytes).digest("hex"),
       rawPath,
       rawSize: bytes.length,
       rawSha256: createHash("sha256").update(bytes).digest("hex"),
+      declaredExceptions: canonical.exceptions,
     };
   });
 };
@@ -182,4 +89,4 @@ for (let i = 0; i < first.perTarget.length; i += 1) {
 }
 const currentCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
 const rootManifest = JSON.parse(readFileSync(join(root, "package.json"), "utf8"));
-console.log(JSON.stringify({ verdict: "PASS", authority: "NEXUS_HERMETIC_BUILD_V2", sourceRevision: currentCommit, sourceDateEpoch: epoch, engineVersion: rootManifest.version, outputDigest: first.workspace.canonicalDigest, rawFrameworkEphemeralDifferences: workspaceDiff.rawOnlyDifferences.map((entry) => entry.path), outputFileCount: first.workspace.canonicalFiles.length, targets: first.perTarget.map((snapshot) => ({ target: snapshot.target, digest: snapshot.canonicalDigest, files: snapshot.canonicalFiles })) }, null, 2));
+console.log(JSON.stringify({ verdict: "PASS", authority: "NEXUS_HERMETIC_BUILD_V2", sourceRevision: currentCommit, sourceDateEpoch: epoch, engineVersion: rootManifest.version, outputDigest: first.workspace.canonicalDigest, declaredDeterminismException: NEXT_PREVIEW_MODE_EXCEPTION, exceptionObservedIn: workspaceDiff.rawOnlyDifferences.filter((entry) => entry.path.endsWith("/.next/prerender-manifest.json")).map((entry) => entry.path), outputFileCount: first.workspace.canonicalFiles.length, targets: first.perTarget.map((snapshot) => ({ target: snapshot.target, digest: snapshot.canonicalDigest, files: snapshot.canonicalFiles })) }, null, 2));

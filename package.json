@@ -8,8 +8,8 @@
   "scripts": {
     "lint": "pnpm verify:workflow-evidence && pnpm verify:assets && eslint .",
     "typecheck": "pnpm -r --if-present typecheck",
-    "test": "vitest run --exclude packages/capture/tests/apca-audit.test.ts --exclude packages/capture/tests/playwright-adapter.test.ts --exclude packages/capture/tests/mutation-runner.test.ts --exclude packages/capture/tests/adversarial-matrix.test.ts",
-    "test:browser": "vitest run packages/capture/tests/apca-audit.test.ts packages/capture/tests/playwright-adapter.test.ts packages/capture/tests/mutation-runner.test.ts packages/capture/tests/adversarial-matrix.test.ts",
+    "test": "vitest run --exclude packages/capture/tests/apca-audit.test.ts --exclude packages/capture/tests/playwright-adapter.test.ts --exclude packages/capture/tests/mutation-runner.test.ts --exclude packages/capture/tests/adversarial-matrix.test.ts --exclude packages/capture/tests/geometric-comparator.test.ts",
+    "test:browser": "vitest run packages/capture/tests/apca-audit.test.ts packages/capture/tests/playwright-adapter.test.ts packages/capture/tests/mutation-runner.test.ts packages/capture/tests/adversarial-matrix.test.ts packages/capture/tests/geometric-comparator.test.ts",
     "test:watch": "vitest",
     "verify:workflow-evidence": "node scripts/verify-workflow-evidence-claims.mjs",
     "verify:assets": "node scripts/verify-declared-assets.mjs",
