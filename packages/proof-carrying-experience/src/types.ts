@@ -33,8 +33,9 @@ export interface EvidenceTrustAnchor {
   readonly payloadDigest: string;
   readonly artifactDigest: string;
   readonly artifactDescriptorDigest: string;
-  readonly artifactRecordId: string;
-  readonly artifactProvenanceDigest: string;
+  readonly formalDigest: string;
+  readonly proofRecordId: string;
+  readonly proofProvenanceDigest: string;
   readonly verifiedGates: readonly string[];
   readonly anchorDigest: string;
 }
@@ -54,6 +55,7 @@ export interface ExperienceProofBundle {
   readonly proofId: string;
   readonly subject: string;
   readonly sourceRevision: string;
+  readonly formalDigest: string;
   readonly artifact: ExperienceArtifact;
   readonly visual: VisualAlgebraTerm;
   readonly topology: CertifiedSynthesisResult;
@@ -70,4 +72,11 @@ export interface CreateExperienceProofInput {
   readonly topology: CertifiedSynthesisResult;
   readonly semantics: VerificationResult;
   readonly evidenceAnchor: EvidenceTrustAnchor;
+}
+
+export interface CreateFormalExperienceProofInput {
+  readonly artifact: ExperienceArtifact;
+  readonly visual: VisualAlgebraTerm;
+  readonly topology: CertifiedSynthesisResult;
+  readonly semantics: VerificationResult;
 }

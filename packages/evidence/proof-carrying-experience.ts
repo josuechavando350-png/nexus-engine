@@ -4,12 +4,20 @@ import {
   createEvidenceTrustAnchor,
   createExperienceArtifact,
   createExperienceProof,
+  formalExperienceProofDigest,
   validateExperienceProof,
+  type ExperienceArtifact,
   type ExperienceProofBundle,
 } from "@nexus/proof-carrying-experience";
 import type { CertifiedSynthesisResult } from "@nexus/topology";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
-import { verifySignedEvidenceBundle, type EvidenceRecord, type SignedEvidenceBundle } from "./index";
+import type { MeasurementScope } from "../measurement/index";
+import {
+  createEvidenceRecord,
+  verifySignedEvidenceBundle,
+  type EvidenceRecord,
+  type SignedEvidenceBundle,
+} from "./index";
 import { certifySignedEvidenceForDelivery } from "./signed-evidence-certification";
 
 export interface SignedProofCarryingExperienceEnvelope {
@@ -19,18 +27,44 @@ export interface SignedProofCarryingExperienceEnvelope {
   readonly signedEvidence: SignedEvidenceBundle;
 }
 
-export function artifactEvidenceSourceId(sourceRevision: string, artifactDescriptorDigest: string): string {
-  if (!/^[a-f0-9]{40}$/.test(sourceRevision)) throw new Error("artifact evidence sourceRevision must be a full lowercase git SHA-1");
-  if (!/^[a-f0-9]{64}$/.test(artifactDescriptorDigest)) throw new Error("artifact evidence descriptor digest must be SHA-256 hex");
-  return `artifact:${sourceRevision}:${artifactDescriptorDigest}`;
+export function proofEvidenceSourceId(sourceRevision: string, artifactDescriptorDigest: string, formalDigest: string): string {
+  if (!/^[a-f0-9]{40}$/.test(sourceRevision)) throw new Error("proof evidence sourceRevision must be a full lowercase git SHA-1");
+  if (!/^[a-f0-9]{64}$/.test(artifactDescriptorDigest)) throw new Error("proof evidence descriptor digest must be SHA-256 hex");
+  if (!/^[a-f0-9]{64}$/.test(formalDigest)) throw new Error("proof evidence formal digest must be SHA-256 hex");
+  return `proof:${sourceRevision}:${artifactDescriptorDigest}:${formalDigest}`;
 }
 
-function exactArtifactRecord(signedEvidence: SignedEvidenceBundle, sourceRevision: string, artifactDescriptorDigest: string): EvidenceRecord {
-  const sourceId = artifactEvidenceSourceId(sourceRevision, artifactDescriptorDigest);
+export function createProofBindingEvidenceRecord(input: {
+  readonly runId: string;
+  readonly scope: MeasurementScope;
+  readonly sourceRevision: string;
+  readonly artifact: ExperienceArtifact;
+  readonly formalDigest: string;
+  readonly capturedAt: string;
+}): EvidenceRecord {
+  if (input.artifact.sourceRevision !== input.sourceRevision) throw new Error("proof-binding artifact sourceRevision mismatch");
+  return createEvidenceRecord({
+    runId: input.runId,
+    scope: input.scope,
+    source: "RUNTIME",
+    sourceId: proofEvidenceSourceId(input.sourceRevision, input.artifact.descriptorDigest, input.formalDigest),
+    status: "MEASURED",
+    samples: Object.freeze([{ name: "proof.binding", unit: "boolean", value: 1 }]),
+    capturedAt: input.capturedAt,
+    integrity: "VERIFIED",
+  });
+}
+
+function exactProofRecord(signedEvidence: SignedEvidenceBundle, sourceRevision: string, artifactDescriptorDigest: string, formalDigest: string): EvidenceRecord {
+  if (!signedEvidence.bundle.requiredSources.includes("RUNTIME")) throw new Error("signed proof evidence must require RUNTIME source");
+  const sourceId = proofEvidenceSourceId(sourceRevision, artifactDescriptorDigest, formalDigest);
   const records = signedEvidence.bundle.records.filter((record) => record.source === "RUNTIME" && record.sourceId === sourceId);
-  if (records.length !== 1) throw new Error(`expected exactly one signed artifact-binding RUNTIME record ${sourceId}`);
+  if (records.length !== 1) throw new Error(`expected exactly one signed proof-binding RUNTIME record ${sourceId}`);
   const record = records[0]!;
-  if (record.integrity !== "VERIFIED" || record.status !== "MEASURED") throw new Error("artifact-binding evidence must be verified measured evidence");
+  if (record.integrity !== "VERIFIED" || record.status !== "MEASURED") throw new Error("proof-binding evidence must be verified measured evidence");
+  if (record.samples.length !== 1 || record.samples[0]?.name !== "proof.binding" || record.samples[0].unit !== "boolean" || record.samples[0].value !== 1) {
+    throw new Error("proof-binding evidence samples are not canonical");
+  }
   return record;
 }
 
@@ -39,8 +73,8 @@ function trustAnchor(input: {
   readonly sourceRevision: string;
   readonly tenantId: string;
   readonly projectId: string;
-  readonly artifactDigest: string;
-  readonly artifactDescriptorDigest: string;
+  readonly artifact: ExperienceArtifact;
+  readonly formalDigest: string;
   readonly signedEvidence: SignedEvidenceBundle;
   readonly publicKey: KeyLike;
 }) {
@@ -52,7 +86,7 @@ function trustAnchor(input: {
     projectId: input.projectId,
   });
   if (!certification.certified) throw new Error(`signed evidence is not delivery-certified: ${certification.findings.join("; ")}`);
-  const artifactRecord = exactArtifactRecord(input.signedEvidence, input.sourceRevision, input.artifactDescriptorDigest);
+  const proofRecord = exactProofRecord(input.signedEvidence, input.sourceRevision, input.artifact.descriptorDigest, input.formalDigest);
   return createEvidenceTrustAnchor({
     subject: input.subject,
     sourceRevision: input.sourceRevision,
@@ -61,10 +95,11 @@ function trustAnchor(input: {
     bundleId: input.signedEvidence.bundle.bundleId,
     keyId: input.signedEvidence.keyId,
     payloadDigest: input.signedEvidence.payloadDigest,
-    artifactDigest: input.artifactDigest,
-    artifactDescriptorDigest: input.artifactDescriptorDigest,
-    artifactRecordId: artifactRecord.recordId,
-    artifactProvenanceDigest: artifactRecord.provenanceDigest,
+    artifactDigest: input.artifact.artifactDigest,
+    artifactDescriptorDigest: input.artifact.descriptorDigest,
+    formalDigest: input.formalDigest,
+    proofRecordId: proofRecord.recordId,
+    proofProvenanceDigest: proofRecord.provenanceDigest,
     verifiedGates: certification.verifiedGates,
   });
 }
@@ -83,13 +118,14 @@ export function createSignedProofCarryingExperience(input: {
   readonly publicKey: KeyLike;
 }): SignedProofCarryingExperienceEnvelope {
   const artifact = createExperienceArtifact({ subject: input.subject, mediaType: input.mediaType, sourceRevision: input.sourceRevision, content: input.content });
+  const formalDigest = formalExperienceProofDigest({ artifact, visual: input.visual, topology: input.topology, semantics: input.semantics });
   const evidenceAnchor = trustAnchor({
     subject: input.subject,
     sourceRevision: input.sourceRevision,
     tenantId: input.tenantId,
     projectId: input.projectId,
-    artifactDigest: artifact.artifactDigest,
-    artifactDescriptorDigest: artifact.descriptorDigest,
+    artifact,
+    formalDigest,
     signedEvidence: input.signedEvidence,
     publicKey: input.publicKey,
   });
@@ -98,16 +134,26 @@ export function createSignedProofCarryingExperience(input: {
   return Object.freeze({ authority: "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V1", version: 1, proof, signedEvidence: input.signedEvidence });
 }
 
-export function verifySignedProofCarryingExperience(envelope: SignedProofCarryingExperienceEnvelope, publicKey: KeyLike): true {
+export function verifySignedProofCarryingExperience(envelope: SignedProofCarryingExperienceEnvelope, publicKey: KeyLike, content: string | Uint8Array): true {
   if (envelope.authority !== "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V1" || envelope.version !== 1) throw new Error("Unsupported signed proof-carrying experience envelope");
   verifySignedEvidenceBundle(envelope.signedEvidence, publicKey);
+  const actualArtifact = createExperienceArtifact({
+    subject: envelope.proof.artifact.subject,
+    mediaType: envelope.proof.artifact.mediaType,
+    sourceRevision: envelope.proof.artifact.sourceRevision,
+    content,
+  });
+  if (actualArtifact.artifactDigest !== envelope.proof.artifact.artifactDigest || actualArtifact.descriptorDigest !== envelope.proof.artifact.descriptorDigest) {
+    throw new Error("Actual delivered artifact content does not match the proof descriptor");
+  }
+  const formalDigest = formalExperienceProofDigest({ artifact: envelope.proof.artifact, visual: envelope.proof.visual, topology: envelope.proof.topology, semantics: envelope.proof.semantics });
   const anchor = trustAnchor({
     subject: envelope.proof.subject,
     sourceRevision: envelope.proof.sourceRevision,
     tenantId: envelope.proof.evidenceAnchor.tenantId,
     projectId: envelope.proof.evidenceAnchor.projectId,
-    artifactDigest: envelope.proof.artifact.artifactDigest,
-    artifactDescriptorDigest: envelope.proof.artifact.descriptorDigest,
+    artifact: envelope.proof.artifact,
+    formalDigest,
     signedEvidence: envelope.signedEvidence,
     publicKey,
   });
