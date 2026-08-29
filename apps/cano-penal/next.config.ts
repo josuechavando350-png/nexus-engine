@@ -7,6 +7,9 @@ const csp = buildCsp({
     "'self'",
     "'unsafe-inline'",
     "https://www.googletagmanager.com",
+    "https://www.googleadservices.com",
+    "https://www.google.com",
+    "https://pagead2.googlesyndication.com",
     "https://googleads.g.doubleclick.net"
   ],
   "style-src": ["'self'", "'unsafe-inline'"],
@@ -17,7 +20,9 @@ const csp = buildCsp({
     "https://www.googleadservices.com",
     "https://googleads.g.doubleclick.net",
     "https://ad.doubleclick.net",
-    "https://www.google.com"
+    "https://pagead2.googlesyndication.com",
+    "https://www.google.com",
+    "https://google.com"
   ],
   "img-src": [
     "'self'",
@@ -26,9 +31,16 @@ const csp = buildCsp({
     "https://www.googletagmanager.com",
     "https://www.googleadservices.com",
     "https://googleads.g.doubleclick.net",
-    "https://www.google.com"
+    "https://pagead2.googlesyndication.com",
+    "https://ad.doubleclick.net",
+    "https://www.google.com",
+    "https://google.com"
   ],
-  "frame-src": ["'self'", "https://www.google.com"]
+  "frame-src": [
+    "'self'",
+    "https://www.googletagmanager.com",
+    "https://www.google.com"
+  ]
 });
 
 const nextConfig: NextConfig = {
