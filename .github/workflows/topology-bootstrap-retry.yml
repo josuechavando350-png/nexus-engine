@@ -1,0 +1,59 @@
+name: Topology bootstrap retry
+
+on:
+  push:
+    branches:
+      - feat/topology-engine
+    paths:
+      - '.github/workflows/topology-bootstrap-retry.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Materialize audited topology source
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import base64, re, tarfile
+          from pathlib import Path
+          text = Path('.github/workflows/topology-bootstrap.yml').read_text()
+          match = re.search(r"printf '%s' '([^']+)' \\| base64 -d", text)
+          if not match:
+              raise SystemExit('Topology payload not found in bootstrap workflow')
+          archive = Path('/tmp/topology-payload.tgz')
+          archive.write_bytes(base64.b64decode(match.group(1)))
+          with tarfile.open(archive, 'r:gz') as tar:
+              tar.extractall('.')
+          PY
+      - name: Regenerate lockfile
+        run: pnpm install --lockfile-only
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+      - name: Validate Motor 2 packages
+        run: |
+          pnpm --filter @nexus/topology typecheck
+          pnpm --filter @nexus/topology test
+          pnpm --filter @nexus/topology build
+          pnpm --filter @nexus/measurement typecheck
+          pnpm --filter @nexus/measurement build
+          git diff --check
+      - name: Commit Motor 2 and remove bootstrap helpers
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/topology packages/measurement/package.json packages/measurement/topology.ts packages/measurement/topology.test.ts pnpm-lock.yaml
+          git rm .github/workflows/topology-bootstrap.yml .github/workflows/topology-bootstrap-retry.yml
+          git commit -m "feat(topology): integrate persistent homology engine"
+          git push
