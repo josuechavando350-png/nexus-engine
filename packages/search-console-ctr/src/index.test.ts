@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   analyzeCtrOpportunities,
   buildMonotonicCtrCurve,
-  createDataset,
+  createControlledDataset,
   fetchSearchAnalytics,
   validateCtrAnalysis,
+  validateDataset,
 } from "./index.js";
 
 const request = {
@@ -15,12 +16,12 @@ const request = {
 };
 
 function dataset() {
-  return createDataset(request, [
+  return createControlledDataset(request, [
     { keys: ["alpha"], clicks: 40, impressions: 100, ctr: 0.4, position: 1.2 },
     { keys: ["beta"], clicks: 20, impressions: 100, ctr: 0.2, position: 2.1 },
     { keys: ["gamma"], clicks: 25, impressions: 100, ctr: 0.25, position: 3.1 },
     { keys: ["delta"], clicks: 0, impressions: 100, ctr: 0, position: 4.2 },
-  ], "CONTROLLED_TEST");
+  ]);
 }
 
 describe("Search Console CTR engineering", () => {
@@ -50,22 +51,28 @@ describe("Search Console CTR engineering", () => {
     expect(analyzeCtrOpportunities(dataset()).nonClaim).toBe("OBSERVATIONAL_NOT_CAUSAL");
   });
 
-  it("replays analysis and rejects tampering", () => {
+  it("replays dataset and analysis and rejects tampering", () => {
     const source = dataset();
     const analysis = analyzeCtrOpportunities(source);
+    expect(() => validateDataset(source)).not.toThrow();
     expect(() => validateCtrAnalysis(source, analysis)).not.toThrow();
+    expect(() => validateDataset({ ...source, datasetDigest: "f".repeat(64) })).toThrow(/replay mismatch/);
     expect(() => validateCtrAnalysis(source, { ...analysis, datasetDigest: "f".repeat(64) })).toThrow(/dataset mismatch/);
   });
 
   it("rejects malformed or internally inconsistent API rows", () => {
-    expect(() => createDataset(request, [{ keys: ["x"], clicks: 11, impressions: 10, ctr: 1.1, position: 1 }], "CONTROLLED_TEST")).toThrow();
-    expect(() => createDataset(request, [{ keys: ["x"], clicks: 5, impressions: 10, ctr: 0.1, position: 1 }], "CONTROLLED_TEST")).toThrow(/inconsistent/);
-    expect(() => createDataset(request, [{ keys: [], clicks: 0, impressions: 0, ctr: 0, position: 1 }], "CONTROLLED_TEST")).toThrow(/dimensions/);
+    expect(() => createControlledDataset(request, [{ keys: ["x"], clicks: 11, impressions: 10, ctr: 1.1, position: 1 }])).toThrow();
+    expect(() => createControlledDataset(request, [{ keys: ["x"], clicks: 5, impressions: 10, ctr: 0.1, position: 1 }])).toThrow(/inconsistent/);
+    expect(() => createControlledDataset(request, [{ keys: [], clicks: 0, impressions: 0, ctr: 0, position: 1 }])).toThrow(/dimensions/);
   });
 
   it("enforces documented Search Analytics rowLimit bounds", () => {
-    expect(() => createDataset({ ...request, rowLimit: 25_001 }, [], "CONTROLLED_TEST")).toThrow(/25000/);
-    expect(() => createDataset({ ...request, startRow: -1 }, [], "CONTROLLED_TEST")).toThrow(/non-negative/);
+    expect(() => createControlledDataset({ ...request, rowLimit: 25_001 }, [])).toThrow(/25000/);
+    expect(() => createControlledDataset({ ...request, startRow: -1 }, [])).toThrow(/non-negative/);
+    expect(() => createControlledDataset({ ...request, rowLimit: 1 }, [
+      { keys: ["x"], clicks: 1, impressions: 10, ctr: 0.1, position: 1 },
+      { keys: ["y"], clicks: 1, impressions: 10, ctr: 0.1, position: 2 },
+    ])).toThrow(/more rows/);
   });
 
   it("returns UNAVAILABLE when live OAuth credentials are absent", async () => {
@@ -85,10 +92,22 @@ describe("Search Console CTR engineering", () => {
     expect(result.dataset?.coverage).toBe("TOP_ROWS_NOT_GUARANTEED_COMPLETE");
   });
 
-  it("fails closed on provider errors and invalid provider payloads", async () => {
+  it("fails closed on provider errors, malformed JSON, and invalid provider payloads", async () => {
     const denied = await fetchSearchAnalytics(request, "token", (async () => new Response("denied", { status: 403 })) as typeof fetch);
     expect(denied.status).toBe("FAIL");
+    const invalidJson = await fetchSearchAnalytics(request, "token", (async () => new Response("not-json", { status: 200 })) as typeof fetch);
+    expect(invalidJson.status).toBe("FAIL");
     const malformed = await fetchSearchAnalytics(request, "token", (async () => new Response(JSON.stringify({ rows: [{ keys: ["x"], clicks: 2, impressions: 1, ctr: 2, position: 1 }] }), { status: 200 })) as typeof fetch);
     expect(malformed.status).toBe("FAIL");
+  });
+
+  it("passes AbortSignal through to the provider boundary", async () => {
+    const controller = new AbortController();
+    const fakeFetch = async (_url: string | URL | Request, init?: RequestInit) => {
+      expect(init?.signal).toBe(controller.signal);
+      return new Response(JSON.stringify({ rows: [] }), { status: 200 });
+    };
+    const result = await fetchSearchAnalytics(request, "token", fakeFetch as typeof fetch, controller.signal);
+    expect(result.status).toBe("PASS");
   });
 });
