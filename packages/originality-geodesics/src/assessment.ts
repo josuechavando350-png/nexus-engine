@@ -1,5 +1,5 @@
 import { digestValue, geometricDistance } from "@nexus/visual-algebra";
-import { shortestGeodesicPath } from "./dijkstra.js";
+import { shortestGeodesicPaths } from "./dijkstra.js";
 import { createOriginalityEdge } from "./edge.js";
 import { compareStableStrings } from "./order.js";
 import { validateOriginalityManifold } from "./manifold.js";
@@ -30,8 +30,15 @@ export function assessOriginality(input: AssessOriginalityInput): OriginalityAss
   const candidateEdges = attachCandidate(input.candidate, input.manifold);
   const nodeIds = [input.candidate.pointId, ...input.manifold.points.map((point) => point.pointId)];
   const edges = [...input.manifold.edges, ...candidateEdges];
+  const pathResults = shortestGeodesicPaths({
+    nodeIds,
+    edges,
+    source: input.candidate.pointId,
+    targets: protectedPoints.map((point) => point.pointId),
+  });
+  const pathByTarget = new Map(pathResults.map((entry) => [entry.target, entry.path] as const));
   const paths = protectedPoints
-    .map((point) => ({ point, path: shortestGeodesicPath({ nodeIds, edges, source: input.candidate.pointId, target: point.pointId }) }))
+    .map((point) => ({ point, path: pathByTarget.get(point.pointId)! }))
     .filter((entry) => entry.path.reachable)
     .sort((left, right) => left.path.distance! - right.path.distance! || compareStableStrings(left.point.pointId, right.point.pointId));
 
@@ -79,6 +86,7 @@ export function assessOriginality(input: AssessOriginalityInput): OriginalityAss
 }
 
 export function validateOriginalityAssessment(assessment: OriginalityAssessment): void {
+  if (!assessment || typeof assessment !== "object") throw new Error("Originality assessment must be an object");
   if (assessment.authority !== "NEXUS_ORIGINALITY_ASSESSMENT_V1" || assessment.version !== 1) {
     throw new Error("Unsupported originality assessment authority/version");
   }
