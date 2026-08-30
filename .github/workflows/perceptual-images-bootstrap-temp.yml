@@ -1,0 +1,88 @@
+name: TEMP Perceptual Images Bootstrap
+
+on:
+  push:
+    branches:
+      - feat/capability-09-perceptual-images
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/capability-09-perceptual-images
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Install workspace and sync lockfile
+        run: pnpm install --no-frozen-lockfile
+      - name: Package validation
+        run: |
+          pnpm --filter @nexus/perceptual-images typecheck
+          pnpm --filter @nexus/perceptual-images test
+          pnpm --filter @nexus/perceptual-images build
+          pnpm lint
+      - name: Install native codec tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libavif-bin libjxl-tools
+          command -v avifenc
+          command -v avifdec
+          command -v cjxl
+          command -v djxl
+          command -v ssimulacra2
+          avifenc --version
+          cjxl --version
+          ssimulacra2 --version || ssimulacra2 -h | head
+      - name: Native end-to-end smoke
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp-perceptual/out
+          node --import tsx - <<'NODE'
+          import sharp from 'sharp';
+          await sharp({create:{width:96,height:96,channels:3,background:{r:45,g:90,b:140}}}).png().toFile('.tmp-perceptual/source.png');
+          NODE
+          cat > .tmp-perceptual/spec.json <<JSON
+          {
+            "sourcePath": ".tmp-perceptual/source.png",
+            "outputDir": ".tmp-perceptual/out",
+            "tools": {
+              "avifenc": "$(command -v avifenc)",
+              "avifdec": "$(command -v avifdec)",
+              "cjxl": "$(command -v cjxl)",
+              "djxl": "$(command -v djxl)",
+              "ssimulacra2": "$(command -v ssimulacra2)"
+            },
+            "policy": {
+              "tier": "HIGH",
+              "minimumSavingsRatio": 0,
+              "avif": [{"quality": 70, "speed": 6, "chroma": "444"}],
+              "jxl": [{"distance": 1, "effort": 7}]
+            }
+          }
+          JSON
+          node --import tsx scripts/audit-perceptual-images.mjs --spec .tmp-perceptual/spec.json | tee .tmp-perceptual/report.json
+          grep -q '"status": "READY"' .tmp-perceptual/report.json
+          grep -q '"AVIF"' .tmp-perceptual/report.json
+          grep -q '"JXL"' .tmp-perceptual/report.json
+      - name: Verify bounded tree changes
+        run: |
+          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml'
+          grep -Fq '  packages/perceptual-images:' pnpm-lock.yaml
+      - name: Commit synchronized lockfile
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pnpm-lock.yaml
+          git commit -m 'fix(images): synchronize workspace lockfile'
+          git push origin HEAD:feat/capability-09-perceptual-images
