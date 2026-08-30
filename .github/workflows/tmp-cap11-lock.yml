@@ -37,7 +37,7 @@ jobs:
       - name: Print APCA evidence on failure
         if: failure()
         run: |
-          find .artifacts/cap11 -name '*-apca.json' -type f -print -exec cat {} \; || true
+          find . -path '*/.artifacts/cap11/*-apca.json' -type f -print -exec cat {} \; || true
       - name: Lint touched APCA files
         if: success()
         run: pnpm exec eslint packages/capture/apca-audit.ts packages/capture/tests/apca-audit.test.ts packages/capture/playwright-adapter.ts packages/capture/tests/playwright-adapter.test.ts
