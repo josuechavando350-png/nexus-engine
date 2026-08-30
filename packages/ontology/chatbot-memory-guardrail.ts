@@ -1,4 +1,4 @@
-import { hash, type GroundingRequest } from "./chatbot-knowledge-types.js";
+import { hash, normalizeIdentifier, type GroundingRequest } from "./chatbot-knowledge-types.js";
 import { FormalGuardrailEngine } from "./chatbot-guardrails-engine.js";
 import type { GuardedGenerationContext, GuardrailResponsePlan, RenderedGuardrailResponse } from "./chatbot-guardrails-types.js";
 import { LongTermMemoryReader } from "./chatbot-memory-reader.js";
@@ -30,12 +30,10 @@ export class MemoryAwareGuardrailCoordinator {
   ) {}
 
   async prepare(request: MemoryAwareGuardrailRequest): Promise<PreparedMemoryAwareGuardrailContext> {
-    const businessEntityId = request.businessEntityId.trim();
-    const customerEntityId = request.customerEntityId.trim();
+    const businessEntityId = normalizeIdentifier(request.businessEntityId, "businessEntityId");
+    const customerEntityId = normalizeIdentifier(request.customerEntityId, "customerEntityId");
     const userMessage = request.userMessage.trim();
-    if (!businessEntityId || !customerEntityId || !userMessage) {
-      throw new LongTermMemoryError("INVALID_INPUT", "businessEntityId, customerEntityId, and userMessage must be non-empty");
-    }
+    if (!userMessage) throw new LongTermMemoryError("INVALID_INPUT", "userMessage must be non-empty");
 
     const groundingRequest: GroundingRequest = {
       businessEntityId,
@@ -49,6 +47,9 @@ export class MemoryAwareGuardrailCoordinator {
       this.guardrails.prepare(groundingRequest),
       Promise.resolve(this.memory.recall({ subjectId: customerEntityId, userMessage, ...(request.maxMemories === undefined ? {} : { maxItems: request.maxMemories }) })),
     ]);
+    if (recalled.authority !== "PERSONALIZATION_ONLY") {
+      throw new LongTermMemoryError("INTEGRITY_FAILURE", "memory recall authority boundary is invalid");
+    }
 
     const core = {
       guardrails: guarded,
@@ -70,6 +71,7 @@ export class MemoryAwareGuardrailCoordinator {
 
   private verifyContext(context: PreparedMemoryAwareGuardrailContext): void {
     if (!this.issuedContexts.has(context)) throw new LongTermMemoryError("INTEGRITY_FAILURE", "memory-aware guardrail context was not issued by this coordinator");
+    if (context.memory.authority !== "PERSONALIZATION_ONLY") throw new LongTermMemoryError("INTEGRITY_FAILURE", "memory recall authority boundary is invalid");
     if (context.memory.subjectId !== context.customerEntityId) throw new LongTermMemoryError("INTEGRITY_FAILURE", "memory subject does not match customer entity");
     const expected = hash("ltmguardctx", {
       guardrailsDigest: context.guardrails.digest,
