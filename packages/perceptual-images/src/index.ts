@@ -12,6 +12,7 @@ const MAX_INPUT_BYTES = 100 * 1024 * 1024;
 const MAX_TIMEOUT_MS = 120_000;
 const MAX_STDIO = 1_000_000;
 const RESERVED_KEYS = new Set(["__proto__", "prototype", "constructor"]);
+const VERSION_PROBE_UNSUPPORTED = "VERSION_PROBE_UNSUPPORTED";
 
 export const NON_CLAIM = "SEARCH_SPACE_MINIMUM_ONLY_NOT_GLOBAL_IMAGE_OPTIMUM_OR_BROWSER_SUPPORT_PROOF" as const;
 export type Codec = "AVIF" | "JXL";
@@ -138,7 +139,7 @@ export const defaultRunner: CommandRunner = async (file, args, options) => {
     return { stdout: String(result.stdout), stderr: String(result.stderr) };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`command failed: ${basename(file)} ${args.join(" ")} :: ${message}`);
+    throw new Error(`command failed: ${basename(file)} ${args.join(" ")} :: ${message}`, { cause: error });
   }
 };
 
@@ -147,6 +148,19 @@ function safeToolPath(path: string): string {
   const resolved = resolve(path);
   if (!resolved.trim()) throw new Error("empty tool path");
   return resolved;
+}
+
+async function probeVersion(path: string, runner: CommandRunner): Promise<string> {
+  for (const args of [["--version"], ["-version"]] as const) {
+    try {
+      const result = await runner(path, args, { timeoutMs: 10_000 });
+      const version = `${result.stdout}\n${result.stderr}`.trim().slice(0, 500);
+      if (version) return version;
+    } catch {
+      // Some valid native tools (including ssimulacra2 builds) do not expose a version flag.
+    }
+  }
+  return VERSION_PROBE_UNSUPPORTED;
 }
 
 export async function inspectToolchain(paths: ToolPaths, runner: CommandRunner = defaultRunner): Promise<ToolchainEvidence> {
@@ -158,9 +172,7 @@ export async function inspectToolchain(paths: ToolPaths, runner: CommandRunner =
     try {
       const info = await stat(path);
       if (!info.isFile()) throw new Error("not a file");
-      const versionResult = await runner(path, ["--version"], { timeoutMs: 10_000 }).catch(async () => runner(path, ["-version"], { timeoutMs: 10_000 }));
-      const version = `${versionResult.stdout}\n${versionResult.stderr}`.trim().slice(0, 500);
-      binaries.push({ name, path, version, sha256: await hashFile(path) });
+      binaries.push({ name, path, version: await probeVersion(path, runner), sha256: await hashFile(path) });
     } catch {
       missing.push(name);
     }
