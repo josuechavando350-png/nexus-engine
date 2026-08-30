@@ -6,6 +6,7 @@ repository currently has no executable observation that proves the claim.
 
 | Invariant | Status | Executable evidence or reason |
 | --- | --- | --- |
+| Byte-for-byte deterministic build of `prerender-manifest.json` | INVARIANT_NOT_ENFORCEABLE | Scope is exclusively `preview.previewModeId`, `preview.previewModeSigningKey`, and `preview.previewModeEncryptionKey`. Next.js 15.5.23 generates these Preview Mode credentials with `crypto.randomBytes()` and exposes no supported API to fix them. They do not affect client-delivered HTML, CSS, JavaScript, or assets. Review if Next.js exposes an API to fix them. The deterministic-build report declares every application of this narrowly scoped exception. |
 | V4 replay cannot dispatch physical work | ENFORCED | `nexus-durable` Rust unit tests exercise replay mode; the Rust workspace test job runs them. |
 | V4 planner cycles and reasoning budgets remain bounded | ENFORCED | `nexus-planner` and `nexus-reasoning` Rust unit tests exercise cycle and budget rejection. |
 | V4 model and memory providers remain replaceable | INVARIANT_NOT_ENFORCEABLE | Trait-name/source presence is architecture inspection, not behavior. No provider conformance suite exists yet. |
