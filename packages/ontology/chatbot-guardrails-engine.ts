@@ -34,7 +34,7 @@ export function inferGuardrailSensitiveClaimClasses(message: string): Exclude<Gr
   const inferred = (Object.keys(SENSITIVE_INTENT_TERMS) as Exclude<GroundedFact["claimClass"], "GENERAL">[]).filter((claimClass) =>
     SENSITIVE_INTENT_TERMS[claimClass].some((term) => tokenSet.has(term)),
   );
-  if ((tokenSet.has("$") || tokenSet.has("mxn") || tokenSet.has("usd") || tokenSet.has("pesos") || tokenSet.has("dolares")) && !inferred.includes("PRICE")) inferred.push("PRICE");
+  if ((/\$\s*\d|\b(?:mxn|usd|pesos?|dolares?)\b/.test(normalized)) && !inferred.includes("PRICE")) inferred.push("PRICE");
   if ((normalized.includes("%") || tokenSet.has("porciento")) && !inferred.includes("PROMOTION")) inferred.push("PROMOTION");
   return inferred.sort((a, b) => a.localeCompare(b, "en"));
 }
@@ -81,7 +81,8 @@ function factDecision(fact: GroundedFact, grounding: GroundingContext, policy: F
   if (evidence.length !== fact.evidenceIds.length) reasons.push("INTEGRITY_FAILURE");
   if (evidence.length < rule.minimumEvidenceCount) reasons.push("INSUFFICIENT_EVIDENCE");
   if (evidence.some((item) => !rule.allowedEvidenceKinds.includes(item.kind))) reasons.push("UNAPPROVED_EVIDENCE_KIND");
-  if (rule.requiredEvidenceKinds?.length && !evidence.some((item) => rule.requiredEvidenceKinds!.includes(item.kind))) reasons.push("MISSING_REQUIRED_EVIDENCE_KIND");
+  if (rule.requiredAnyEvidenceKinds?.length && !evidence.some((item) => rule.requiredAnyEvidenceKinds!.includes(item.kind))) reasons.push("MISSING_REQUIRED_ANY_EVIDENCE_KIND");
+  if (rule.requiredAllEvidenceKinds?.length && !rule.requiredAllEvidenceKinds.every((kind) => evidence.some((item) => item.kind === kind))) reasons.push("MISSING_REQUIRED_ALL_EVIDENCE_KIND");
   if (rule.requireSourceDigest && evidence.some((item) => !item.sourceDigest?.trim())) reasons.push("MISSING_SOURCE_DIGEST");
   if (evidence.some((item) => Date.parse(item.observedAt) > nowMs)) reasons.push("FUTURE_EVIDENCE");
   if (rule.maxEvidenceAgeMs !== undefined && evidence.some((item) => nowMs - Date.parse(item.observedAt) > rule.maxEvidenceAgeMs!)) reasons.push("STALE_EVIDENCE");
@@ -122,6 +123,7 @@ export class FormalGuardrailEngine {
     const { nowMs, nowIso: createdAt } = this.currentTime();
     if (request.at !== undefined && !this.policy.allowHistoricalGrounding) throw new GuardrailError("INVALID_INPUT", "historical grounding is disabled by guardrail policy");
     const grounding = await this.reader.grounding(request);
+    verifyGuardrailPolicy(this.policy);
     verifyGrounding(grounding);
     const requestDigest = hash("kgrequest", request);
     const requestedClaimClasses = inferGuardrailSensitiveClaimClasses(request.userMessage);
