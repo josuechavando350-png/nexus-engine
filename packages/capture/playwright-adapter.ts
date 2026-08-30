@@ -111,7 +111,7 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
     try {
       validateUrl(request.targetId);
     } catch (error) {
-      return { requestId, outcome: "UNAVAILABLE", artifacts: [], samples: [], reason: error instanceof Error ? error.message : "invalid Playwright capture target" };
+      return { requestId, outcome: "UNSUPPORTED", artifacts: [], samples: [], reason: error instanceof Error ? error.message : "invalid Playwright capture target" };
     }
 
     const artifacts: CaptureArtifact[] = [];
