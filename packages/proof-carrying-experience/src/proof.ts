@@ -4,7 +4,7 @@ import { validateCertifiedSynthesisAgainstTerm } from "@nexus/topology";
 import { digestValue, verifyVisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 import { validateEvidenceTrustAnchor } from "./anchor.js";
-import { validateExperienceArtifact } from "./artifact.js";
+import { artifactDigest, validateExperienceArtifact } from "./artifact.js";
 import type {
   CreateExperienceProofInput,
   CreateFormalExperienceProofInput,
@@ -143,9 +143,11 @@ export function createExperienceProof(input: CreateExperienceProofInput): Experi
   const claims = makeClaims(input);
   validateClaimGraph(claims);
   const status: ExperienceProofStatus = claims.every((item) => item.status === "VERIFIED") ? "VERIFIED" : "REJECTED";
+  const authentication = "STRUCTURAL_ONLY" as const;
   const rootBase = Object.freeze({
     authority: "NEXUS_PROOF_CARRYING_EXPERIENCE_V2" as const,
     version: 2 as const,
+    authentication,
     subject: input.artifact.subject,
     sourceRevision: input.artifact.sourceRevision,
     formalDigest,
@@ -157,6 +159,7 @@ export function createExperienceProof(input: CreateExperienceProofInput): Experi
   return Object.freeze({
     authority: "NEXUS_PROOF_CARRYING_EXPERIENCE_V2",
     version: 2,
+    authentication,
     proofId: `proof_${rootDigest}`,
     subject: input.artifact.subject,
     sourceRevision: input.artifact.sourceRevision,
@@ -174,8 +177,12 @@ export function createExperienceProof(input: CreateExperienceProofInput): Experi
 }
 
 export function validateExperienceProof(proof: ExperienceProofBundle): true {
+  if (!proof || typeof proof !== "object") throw new Error("Proof-carrying experience must be an object");
   if (proof.authority !== "NEXUS_PROOF_CARRYING_EXPERIENCE_V2" || proof.version !== 2) {
     throw new Error("Unsupported proof-carrying experience authority/version");
+  }
+  if (proof.authentication !== "STRUCTURAL_ONLY") {
+    throw new Error("Proof-carrying experience authentication marker is invalid");
   }
   const rebuilt = createExperienceProof({
     artifact: proof.artifact,
@@ -196,6 +203,17 @@ export function validateExperienceProof(proof: ExperienceProofBundle): true {
   }
   if (proof.subject !== rebuilt.subject || proof.sourceRevision !== rebuilt.sourceRevision) {
     throw new Error("Proof-carrying experience subject/revision mismatch");
+  }
+  return true;
+}
+
+export function validateExperienceProofAgainstContent(
+  proof: ExperienceProofBundle,
+  content: string | Uint8Array,
+): true {
+  validateExperienceProof(proof);
+  if (artifactDigest(content) !== proof.artifact.artifactDigest) {
+    throw new Error("Actual delivered artifact content does not match the proof artifact digest");
   }
   return true;
 }
