@@ -1,12 +1,9 @@
 import type { SemanticFormula, SemanticOperand, SemanticState, SemanticValue } from "./types.js";
-import { validateSemanticState } from "./state.js";
+import { assertSafeSemanticName, validateSemanticState } from "./state.js";
 
-const MAX_FORMULA_DEPTH = 128;
+export const MAX_SEMANTIC_FORMULA_DEPTH = 128;
+export const MAX_SEMANTIC_FORMULA_NODES = 4_096;
 const COMPARATORS = new Set(["eq", "neq", "lt", "lte", "gt", "gte"]);
-
-function assertName(name: unknown, label: string): asserts name is string {
-  if (typeof name !== "string" || !name.trim()) throw new Error(`${label} must be a non-empty string`);
-}
 
 function validateOperand(operand: SemanticOperand): void {
   if (!operand || typeof operand !== "object" || typeof (operand as { kind?: unknown }).kind !== "string") {
@@ -20,43 +17,58 @@ function validateOperand(operand: SemanticOperand): void {
     return;
   }
   if (operand.kind !== "fact" && operand.kind !== "metric") throw new Error("Unsupported semantic operand");
-  assertName(operand.name, `${operand.kind} operand name`);
+  assertSafeSemanticName(operand.name, `${operand.kind} operand name`);
 }
 
 export function validateSemanticFormula(formula: SemanticFormula, depth = 0): void {
-  if (depth > MAX_FORMULA_DEPTH) throw new Error(`Semantic formula exceeds maximum depth ${MAX_FORMULA_DEPTH}`);
-  switch (formula.op) {
-    case "true":
-    case "false":
-      return;
-    case "exists": {
-      const operand = formula.operand as SemanticOperand;
-      validateOperand(operand);
-      if (operand.kind === "literal") throw new Error("exists cannot target a literal");
-      return;
+  const counter = { nodes: 0 };
+  const visit = (current: SemanticFormula, currentDepth: number): void => {
+    if (!current || typeof current !== "object" || typeof (current as { op?: unknown }).op !== "string") {
+      throw new Error("Unsupported semantic formula");
     }
-    case "compare":
-      validateOperand(formula.left);
-      validateOperand(formula.right);
-      if (!COMPARATORS.has(formula.comparator)) throw new Error(`Unsupported comparator ${String(formula.comparator)}`);
-      return;
-    case "not":
-      validateSemanticFormula(formula.formula, depth + 1);
-      return;
-    case "and":
-    case "or":
-      if (formula.formulas.length === 0) throw new Error(`${formula.op} requires at least one child formula`);
-      for (const child of formula.formulas) validateSemanticFormula(child, depth + 1);
-      return;
-    case "implies":
-      validateSemanticFormula(formula.antecedent, depth + 1);
-      validateSemanticFormula(formula.consequent, depth + 1);
-      return;
-    default: {
-      const exhaustive: never = formula;
-      throw new Error(`Unsupported semantic formula: ${String(exhaustive)}`);
+    if (currentDepth > MAX_SEMANTIC_FORMULA_DEPTH) {
+      throw new Error(`Semantic formula exceeds maximum depth ${MAX_SEMANTIC_FORMULA_DEPTH}`);
     }
-  }
+    counter.nodes += 1;
+    if (counter.nodes > MAX_SEMANTIC_FORMULA_NODES) {
+      throw new Error(`Semantic formula exceeds maximum node count ${MAX_SEMANTIC_FORMULA_NODES}`);
+    }
+
+    switch (current.op) {
+      case "true":
+      case "false":
+        return;
+      case "exists": {
+        const operand = current.operand as SemanticOperand;
+        validateOperand(operand);
+        if (operand.kind === "literal") throw new Error("exists cannot target a literal");
+        return;
+      }
+      case "compare":
+        validateOperand(current.left);
+        validateOperand(current.right);
+        if (!COMPARATORS.has(current.comparator)) throw new Error(`Unsupported comparator ${String(current.comparator)}`);
+        return;
+      case "not":
+        visit(current.formula, currentDepth + 1);
+        return;
+      case "and":
+      case "or":
+        if (!Array.isArray(current.formulas) || current.formulas.length === 0) throw new Error(`${current.op} requires at least one child formula`);
+        for (const child of current.formulas) visit(child, currentDepth + 1);
+        return;
+      case "implies":
+        visit(current.antecedent, currentDepth + 1);
+        visit(current.consequent, currentDepth + 1);
+        return;
+      default: {
+        const exhaustive: never = current;
+        throw new Error(`Unsupported semantic formula: ${String((exhaustive as { op?: unknown }).op)}`);
+      }
+    }
+  };
+
+  visit(formula, depth);
 }
 
 interface ResolvedOperand {

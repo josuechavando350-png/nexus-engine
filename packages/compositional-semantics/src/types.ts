@@ -131,6 +131,7 @@ export interface SemanticVerificationCertificate {
 export interface VerificationResult {
   readonly status: VerificationStatus;
   readonly policy: VerificationPolicy;
+  readonly composition: SemanticComposition;
   readonly compositionDigest: string;
   readonly initialState: SemanticState;
   readonly finalState: SemanticState;

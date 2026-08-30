@@ -1,6 +1,9 @@
 import { digestValue } from "@nexus/visual-algebra";
 import type { SemanticEffect, SemanticState, SemanticValue } from "./types.js";
 
+export const MAX_SEMANTIC_STATE_ENTRIES = 16_384;
+const RESERVED_SEMANTIC_NAMES = new Set(["__proto__", "prototype", "constructor"]);
+
 export class SemanticStateError extends Error {
   constructor(
     public readonly code: "INVALID_STATE" | "MISSING_METRIC" | "INVALID_EFFECT",
@@ -11,8 +14,13 @@ export class SemanticStateError extends Error {
   }
 }
 
-function assertName(name: string, label: string): void {
-  if (typeof name !== "string" || !name.trim()) throw new SemanticStateError("INVALID_STATE", `${label} must be a non-empty string`);
+export function assertSafeSemanticName(name: unknown, label: string): asserts name is string {
+  if (typeof name !== "string" || !name.trim()) {
+    throw new SemanticStateError("INVALID_STATE", `${label} must be a non-empty string`);
+  }
+  if (RESERVED_SEMANTIC_NAMES.has(name)) {
+    throw new SemanticStateError("INVALID_STATE", `${label} uses a reserved object key`);
+  }
 }
 
 function assertSemanticValue(value: SemanticValue, label: string): void {
@@ -25,19 +33,29 @@ function sortedRecord<T>(input: Readonly<Record<string, T>>): Readonly<Record<st
   return Object.freeze(Object.fromEntries(Object.entries(input).sort(([a], [b]) => a.localeCompare(b))));
 }
 
+function assertStateBudget(facts: Readonly<Record<string, unknown>>, metrics: Readonly<Record<string, unknown>>): void {
+  if (Object.keys(facts).length + Object.keys(metrics).length > MAX_SEMANTIC_STATE_ENTRIES) {
+    throw new SemanticStateError("INVALID_STATE", `Semantic state exceeds ${MAX_SEMANTIC_STATE_ENTRIES} entries`);
+  }
+}
+
 export function createSemanticState(input: {
   readonly facts?: Readonly<Record<string, SemanticValue>>;
   readonly metrics?: Readonly<Record<string, number>>;
 } = {}): SemanticState {
-  const facts: Record<string, SemanticValue> = {};
-  for (const [name, value] of Object.entries(input.facts ?? {})) {
-    assertName(name, "fact name");
+  const sourceFacts = input.facts ?? {};
+  const sourceMetrics = input.metrics ?? {};
+  assertStateBudget(sourceFacts, sourceMetrics);
+
+  const facts = Object.create(null) as Record<string, SemanticValue>;
+  for (const [name, value] of Object.entries(sourceFacts)) {
+    assertSafeSemanticName(name, "fact name");
     assertSemanticValue(value, `fact ${name}`);
     facts[name] = value;
   }
-  const metrics: Record<string, number> = {};
-  for (const [name, value] of Object.entries(input.metrics ?? {})) {
-    assertName(name, "metric name");
+  const metrics = Object.create(null) as Record<string, number>;
+  for (const [name, value] of Object.entries(sourceMetrics)) {
+    assertSafeSemanticName(name, "metric name");
     if (!Number.isFinite(value)) throw new SemanticStateError("INVALID_STATE", `metric ${name} must be finite`);
     metrics[name] = value;
   }
@@ -50,18 +68,20 @@ export function createSemanticState(input: {
 }
 
 export function validateSemanticState(state: SemanticState): void {
-  if (state.authority !== "NEXUS_SEMANTIC_STATE_V1") throw new SemanticStateError("INVALID_STATE", "Unsupported semantic-state authority");
+  if (!state || typeof state !== "object" || state.authority !== "NEXUS_SEMANTIC_STATE_V1") {
+    throw new SemanticStateError("INVALID_STATE", "Unsupported semantic-state authority");
+  }
   const rebuilt = createSemanticState({ facts: state.facts, metrics: state.metrics });
   if (rebuilt.digest !== state.digest) throw new SemanticStateError("INVALID_STATE", "Semantic state digest mismatch");
 }
 
 export function applySemanticEffects(state: SemanticState, effects: readonly SemanticEffect[]): SemanticState {
   validateSemanticState(state);
-  const facts: Record<string, SemanticValue> = { ...state.facts };
-  const metrics: Record<string, number> = { ...state.metrics };
+  const facts = Object.assign(Object.create(null), state.facts) as Record<string, SemanticValue>;
+  const metrics = Object.assign(Object.create(null), state.metrics) as Record<string, number>;
 
   for (const effect of effects) {
-    assertName(effect.name, "effect name");
+    assertSafeSemanticName(effect.name, "effect name");
     switch (effect.kind) {
       case "set_fact":
         assertSemanticValue(effect.value, `effect ${effect.name}`);
@@ -98,8 +118,8 @@ export function applySemanticEffects(state: SemanticState, effects: readonly Sem
 }
 
 export function mergeSemanticStates(states: readonly SemanticState[]): SemanticState {
-  const facts: Record<string, SemanticValue> = {};
-  const metrics: Record<string, number> = {};
+  const facts = Object.create(null) as Record<string, SemanticValue>;
+  const metrics = Object.create(null) as Record<string, number>;
   for (const state of states) {
     validateSemanticState(state);
     for (const [name, value] of Object.entries(state.facts)) {
