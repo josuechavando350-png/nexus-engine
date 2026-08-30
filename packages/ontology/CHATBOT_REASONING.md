@@ -22,6 +22,8 @@ The default reasoning engine ships with three deterministic specialists:
 
 Additional agents can implement `ReasoningAgentPort`. That port intentionally accepts and returns structured data. Provider-specific adapters for models such as ChatGPT or Claude may implement it later without gaining permission to author customer-facing text or execute NEXUS actions directly.
 
+Every agent call receives an `AbortSignal` and is bounded by policy. The default timeout is 3,000 ms per agent. Timeout, malformed output and provider failure consume the configured agent-failure budget; if the budget is exceeded, deliberation fails closed rather than silently accepting the remaining output.
+
 ## Self-healing search
 
 `DeliberativeBanditCoordinator` asks capability 4 for a selected registered arm, then submits that exact plan to the specialist quorum.
@@ -35,7 +37,7 @@ If any specialist rejects the candidate or quorum/confidence requirements are no
 
 No rejected candidate exposure plan is returned to the caller. The final accepted capability-4 exposure plan is the only one available for durable execution.
 
-The default reasoning policy allows three repair attempts after the initial branch, requires at least two acceptance votes, requires mean confidence of at least 0.6, permits at most one agent failure per branch and caps reasoning input at 4,000 characters.
+The default reasoning policy allows three repair attempts after the initial branch, requires at least two acceptance votes, requires mean confidence of at least 0.6, permits at most one agent failure per branch, caps each agent at 3,000 ms and caps reasoning input at 4,000 characters.
 
 ## Fail-closed boundaries
 
@@ -46,10 +48,16 @@ The reasoning layer cannot:
 - promote long-term memory from `PERSONALIZATION_ONLY` to business truth;
 - select an arm outside the capability-4 eligible set;
 - accept forged agent identity, role, candidate identity, verdict, confidence or issue codes;
+- continue indefinitely when an agent hangs;
 - return a response that was rendered under another deliberation;
-- wire reasoning and bandit engines across ontology scopes.
+- wire reasoning and bandit engines across ontology scopes;
+- reason over a user message that does not match the exact guarded-context message digest.
 
 If the agent failure budget is exceeded or the bounded search cannot find a verified candidate, the module fails closed with a typed `ChatbotReasoningError`.
+
+## Privacy boundary
+
+Reasoning agents do not receive raw long-term-memory values or memory keys from the coordinator. The reasoning snapshot exposes only the minimum memory metadata needed for verification: memory status, memory categories and the `PERSONALIZATION_ONLY` authority marker. Customer memory remains governed by capability 3 and cannot become commercial truth through this layer.
 
 ## Chain-of-thought boundary
 
@@ -69,7 +77,7 @@ Unexpected fields such as arbitrary rationale or chain-of-thought text are disca
 
 Every verified assessment, branch attempt, final deliberation and combined deliberative context carries a deterministic digest. Weak-reference issuance tracking binds the exact in-memory final context and response object to the coordinator that created them. A copied or forged context cannot be used to render or verify outbound text.
 
-Capability 4 now exposes its scope digest so capability 5 can verify exact ontology-scope binding before any deliberation occurs.
+Capability 4 exposes its scope digest so capability 5 can verify exact ontology-scope binding before any deliberation occurs. Capability 5 also recomputes the capability-3 user-message digest before sending a message into a reasoning agent, rejecting stale or cross-request message lineage.
 
 ## Non-claims
 
