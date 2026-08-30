@@ -27,7 +27,7 @@ const HTML = `<!doctype html>
     main { min-height: 120vh; display: grid; place-items: center; padding: 4rem 1.5rem; }
     article { width: min(68rem, 100%); display: grid; gap: 2rem; border-radius: 18px; }
     h1 { font-size: clamp(2.5rem, 9vw, 8rem); line-height: .9; margin: 0; max-width: 10ch; }
-    button { width: fit-content; padding: .8rem 1.2rem; font: inherit; color: #151515; background: #f7f5ef; border: 1px solid currentColor; transition: transform 180ms ease; }
+    button { width: fit-content; padding: .8rem 1.2rem; font: inherit; transition: transform 180ms ease; }
   </style>
 </head>
 <body>
