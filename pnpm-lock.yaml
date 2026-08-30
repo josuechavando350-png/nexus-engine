@@ -401,6 +401,8 @@ importers:
 
   packages/experimental: {}
 
+  packages/generative-readiness: {}
+
   packages/kernel: {}
 
   packages/local-presence: {}
