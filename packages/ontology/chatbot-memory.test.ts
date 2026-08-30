@@ -112,11 +112,13 @@ describe("chatbot long-term memory", () => {
   it("suppresses expired and revoked memories", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = memoryPlanner(read);
-    applyPlan(read, planner.planUpsert(memoryInput(customer, { memoryKey: "old-goal", category: "GOAL", value: "Cotizar", expiresAt: "2026-08-30T00:30:00.000Z" })));
+    const policy = createDefaultLongTermMemoryPolicy();
+    const beforeExpiryPlanner = new LongTermMemoryPlanner(read, SCOPE, policy, () => Date.parse("2026-08-30T00:10:00.000Z"));
+    applyPlan(read, beforeExpiryPlanner.planUpsert(memoryInput(customer, { memoryKey: "old-goal", category: "GOAL", value: "Cotizar", expiresAt: "2026-08-30T00:30:00.000Z" })));
+    const planner = new LongTermMemoryPlanner(read, SCOPE, policy, () => NOW_MS);
     applyPlan(read, planner.planUpsert(memoryInput(customer, { memoryKey: "favorite-channel", value: "WhatsApp" })));
     applyPlan(read, planner.planRevoke({ subjectId: customer, memoryKey: "favorite-channel", observedAt: NOW }));
-    const reader = new LongTermMemoryReader(read, SCOPE, createDefaultLongTermMemoryPolicy(), () => NOW_MS);
+    const reader = new LongTermMemoryReader(read, SCOPE, policy, () => NOW_MS);
     const context = reader.recall({ subjectId: customer, userMessage: "Recuérdame mis preferencias" });
     expect(context.status).toBe("EMPTY");
     expect(context.items).toHaveLength(0);
