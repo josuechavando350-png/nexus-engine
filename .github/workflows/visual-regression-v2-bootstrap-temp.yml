@@ -1,0 +1,135 @@
+name: TEMP Visual Regression V2 Bootstrap
+
+on:
+  push:
+    branches:
+      - feat/capability-10-visual-regression-v2
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/capability-10-visual-regression-v2
+          fetch-depth: 0
+
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - name: Install workspace and synchronize lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Package validation
+        run: |
+          pnpm --filter @nexus/capture-visual-regression-v2 typecheck
+          pnpm --filter @nexus/capture-visual-regression-v2 test
+          pnpm --filter @nexus/capture-visual-regression-v2 build
+          pnpm lint
+
+      - name: Install real Chromium
+        run: pnpm --filter @nexus/capture-visual-regression-v2 exec playwright install --with-deps chromium
+
+      - name: Build pinned SSIMULACRA2 tool with PNG/JPEG decode
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends cmake ninja-build pkg-config git libpng-dev libjpeg-dev
+          git clone --filter=blob:none https://github.com/libjxl/libjxl.git .tmp-libjxl
+          git -C .tmp-libjxl checkout --detach a7a9c787341cf703dede03c2009fa460cae5e5df
+          test "$(git -C .tmp-libjxl rev-parse HEAD)" = "a7a9c787341cf703dede03c2009fa460cae5e5df"
+          git -C .tmp-libjxl submodule update --init --recursive --depth 1
+          cmake -S .tmp-libjxl -B .tmp-libjxl/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTING=OFF -DJPEGXL_ENABLE_DEVTOOLS=ON -DJPEGXL_ENABLE_EXAMPLES=OFF -DJPEGXL_ENABLE_BENCHMARK=OFF
+          cmake --build .tmp-libjxl/build --target ssimulacra2 -j2
+          test -x .tmp-libjxl/build/tools/ssimulacra2
+
+      - name: Real Chromium and SSIMULACRA2 integration test
+        env:
+          NEXUS_SSIMULACRA2_PATH: ${{ github.workspace }}/.tmp-libjxl/build/tools/ssimulacra2
+        run: pnpm --filter @nexus/capture-visual-regression-v2 test:native
+
+      - name: Exercise operational consumer without auto-promoting baseline
+        shell: bash
+        env:
+          NEXUS_SSIMULACRA2_PATH: ${{ github.workspace }}/.tmp-libjxl/build/tools/ssimulacra2
+        run: |
+          set -euo pipefail
+          mkdir -p .tmp-vr-site .tmp-vr-out
+          cat > .tmp-vr-site/index.html <<'HTML'
+          <!doctype html><html><head><style>body{margin:0;background:#111;color:#fff;font-family:Arial,sans-serif}main{padding:80px}h1{font-size:48px}</style></head><body><main><h1>NEXUS VISUAL V2</h1></main></body></html>
+          HTML
+          python3 -m http.server 3910 --bind 127.0.0.1 --directory .tmp-vr-site >/tmp/nexus-vr-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:3910/ >/dev/null; then break; fi
+            test "$attempt" -lt 30 || { cat /tmp/nexus-vr-http.log; exit 1; }
+            sleep 1
+          done
+          cat > .tmp-vr-capture.json <<JSON
+          {
+            "scene":{"id":"consumer-smoke","url":"http://127.0.0.1:3910/"},
+            "browserName":"chromium",
+            "viewport":{"name":"desktop","width":900,"height":700},
+            "revision":"consumer-baseline",
+            "buildDigest":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "outDir":".tmp-vr-out/baseline"
+          }
+          JSON
+          node scripts/audit-visual-regression-v2.mjs --spec .tmp-vr-capture.json | tee .tmp-vr-capture-output.json
+          grep -q '"status": "CAPTURED_ONLY"' .tmp-vr-capture-output.json
+          node --input-type=module - <<'NODE'
+          import { readFile, writeFile } from 'node:fs/promises';
+          import { approveBaseline } from './packages/capture-visual-regression-v2/src/index.ts';
+          const capture = JSON.parse(await readFile('.tmp-vr-out/baseline/consumer-smoke.chromium.desktop.capture.json','utf8'));
+          const baseline = approveBaseline(capture, 'synthetic-ci-smoke:explicit-test-fixture');
+          await writeFile('.tmp-vr-out/baseline/approved-baseline.json', JSON.stringify(baseline, null, 2));
+          NODE
+          cat > .tmp-vr-compare.json <<JSON
+          {
+            "scene":{"id":"consumer-smoke","url":"http://127.0.0.1:3910/"},
+            "browserName":"chromium",
+            "viewport":{"name":"desktop","width":900,"height":700},
+            "revision":"consumer-current",
+            "buildDigest":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "outDir":".tmp-vr-out/current",
+            "ssimulacra2Path":"${NEXUS_SSIMULACRA2_PATH}",
+            "baseline":{"manifestPath":".tmp-vr-out/baseline/approved-baseline.json","screenshotPath":".tmp-vr-out/baseline/consumer-smoke.chromium.desktop.png"}
+          }
+          JSON
+          node scripts/audit-visual-regression-v2.mjs --spec .tmp-vr-compare.json | tee .tmp-vr-compare-output.json
+          grep -q '"status": "PASS"' .tmp-vr-compare-output.json
+
+      - name: Verify bounded working-tree changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml'
+          grep -Fq '  packages/capture-visual-regression-v2:' pnpm-lock.yaml
+
+      - name: Commit synchronized lockfile
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo 'Lockfile already synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pnpm-lock.yaml
+          git commit -m 'chore(visual-regression): synchronize workspace lockfile'
+          git push origin HEAD:feat/capability-10-visual-regression-v2
