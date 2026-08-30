@@ -1,0 +1,63 @@
+name: TEMP Topical Authority Bootstrap
+
+on:
+  push:
+    branches:
+      - feat/capability-06-topical-authority-graph
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap-and-verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/capability-06-topical-authority-graph
+          fetch-depth: 0
+
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - name: Install and regenerate workspace lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck capability
+        run: pnpm --filter @nexus/topical-authority-graph typecheck
+
+      - name: Test capability
+        run: pnpm --filter @nexus/topical-authority-graph test
+
+      - name: Build capability
+        run: pnpm --filter @nexus/topical-authority-graph build
+
+      - name: Repository lint
+        run: pnpm lint
+
+      - name: Verify only lockfile changed outside committed source
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml'
+          grep -Fq '  packages/topical-authority-graph: {}' pnpm-lock.yaml
+
+      - name: Commit lockfile when changed
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo 'Lockfile already synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pnpm-lock.yaml
+          git commit -m 'fix(topical): synchronize workspace lockfile'
+          git push origin HEAD:feat/capability-06-topical-authority-graph
