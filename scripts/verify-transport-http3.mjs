@@ -1,7 +1,13 @@
 import { spawnSync } from "node:child_process";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import { createTransportPolicy, curlHttp3OnlyCommand, verifyTransportObservation } from "../packages/transport-http3/src/index.ts";
+import {
+  createTransportPolicy,
+  curlHttp3OnlyCommand,
+  isCurlHttp3Unavailable,
+  validateLiveTransportVerification,
+  verifyTransportObservation,
+} from "../packages/transport-http3/src/index.ts";
 
 function parseHeaderDump(text) {
   const blocks = text.replaceAll("\r\n", "\n").split(/\n\n+/).map((block) => block.trim()).filter(Boolean);
@@ -30,12 +36,6 @@ function parseHeaderDump(text) {
   return { observedProtocol, observedInterimStatuses: interim, earlyHintLinks, finalStatus, finalLinks };
 }
 
-function curlHttp3Unavailable(execution) {
-  if (execution.error?.code === "ENOENT") return true;
-  const stderr = execution.stderr ?? "";
-  return /(?:curl.*does not support.*http3|http3.*not supported|built.*without.*http3)/i.test(stderr);
-}
-
 async function main() {
   const args = process.argv.slice(2);
   const policyIndex = args.indexOf("--policy");
@@ -51,15 +51,19 @@ async function main() {
   const command = curlHttp3OnlyCommand(targetUrl);
   const execution = spawnSync(command[0], command.slice(1), { encoding: "utf8", timeout: 30_000, maxBuffer: 2 * 1024 * 1024 });
   const parsed = parseHeaderDump(execution.stdout ?? "");
-  const probeAvailable = !curlHttp3Unavailable(execution);
+  const errorCode = typeof execution.error?.code === "string" ? execution.error.code : null;
+  const probeAvailable = !isCurlHttp3Unavailable({ errorCode, stderr: execution.stderr ?? "" });
   const observation = {
     targetUrl,
     ...parsed,
     probeAvailable,
     probeAuthority: "LIVE_NETWORK",
+    probeExitCode: execution.status,
+    probeErrorCode: errorCode,
   };
 
   const verification = verifyTransportObservation(policy, observation);
+  validateLiveTransportVerification(policy, verification);
   process.stdout.write(`${JSON.stringify(verification, null, 2)}\n`);
   process.exitCode = verification.status === "PASS" ? 0 : verification.status === "UNAVAILABLE" ? 2 : 1;
 }
