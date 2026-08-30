@@ -66,10 +66,13 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p .tmp-perceptual/out
-          node --import tsx - <<'NODE'
+          (
+            cd packages/perceptual-images
+            node --input-type=module - <<'NODE'
           import sharp from 'sharp';
-          await sharp({create:{width:96,height:96,channels:3,background:{r:45,g:90,b:140}}}).png().toFile('.tmp-perceptual/source.png');
+          await sharp({create:{width:96,height:96,channels:3,background:{r:45,g:90,b:140}}}).png().toFile('../../.tmp-perceptual/source.png');
           NODE
+          )
           cat > .tmp-perceptual/spec.json <<JSON
           {
             "sourcePath": ".tmp-perceptual/source.png",
@@ -89,7 +92,7 @@ jobs:
             }
           }
           JSON
-          node --import tsx scripts/audit-perceptual-images.mjs --spec .tmp-perceptual/spec.json | tee .tmp-perceptual/report.json
+          node scripts/audit-perceptual-images.mjs --spec .tmp-perceptual/spec.json | tee .tmp-perceptual/report.json
           grep -q '"status": "READY"' .tmp-perceptual/report.json
           grep -q '"AVIF"' .tmp-perceptual/report.json
           grep -q '"JXL"' .tmp-perceptual/report.json
