@@ -55,7 +55,9 @@ function reissueCertificate(
   original: TopologyCertificate,
   changes: Partial<Omit<TopologyCertificate, "certificateDigest">>,
 ): TopologyCertificate {
-  const { certificateDigest: _ignored, ...payload } = original;
+  const payload = Object.fromEntries(
+    Object.entries(original).filter(([key]) => key !== "certificateDigest"),
+  ) as Omit<TopologyCertificate, "certificateDigest">;
   const next = { ...payload, ...changes };
   return Object.freeze({ ...next, certificateDigest: digestValue(next) });
 }
@@ -71,7 +73,9 @@ describe("Topology integrity boundary", () => {
     const forgedSimplices = result.complex.simplices.map((simplex) => (
       simplex.dimension === 1 ? Object.freeze({ ...simplex, filtration: 0.01 }) : simplex
     ));
-    const { digest: _ignored, ...complexPayload } = result.complex;
+    const complexPayload = Object.fromEntries(
+      Object.entries(result.complex).filter(([key]) => key !== "digest"),
+    ) as Omit<FiltrationComplex, "digest">;
     const forgedBase = { ...complexPayload, simplices: Object.freeze(forgedSimplices) };
     const forged: FiltrationComplex = Object.freeze({ ...forgedBase, digest: digestValue(forgedBase) });
 
