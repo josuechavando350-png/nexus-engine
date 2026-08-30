@@ -10,7 +10,8 @@ export interface ClaimGuardrailPolicy {
   readonly minimumConfidence: number;
   readonly minimumEvidenceCount: number;
   readonly allowedEvidenceKinds: readonly KnowledgeEvidenceKind[];
-  readonly requiredEvidenceKinds?: readonly KnowledgeEvidenceKind[];
+  readonly requiredAnyEvidenceKinds?: readonly KnowledgeEvidenceKind[];
+  readonly requiredAllEvidenceKinds?: readonly KnowledgeEvidenceKind[];
   readonly allowPartialSupport: boolean;
   readonly requireSourceDigest: boolean;
   readonly maxEvidenceAgeMs?: number;
@@ -52,7 +53,8 @@ export type GuardrailFactRejectionReason =
   | "LOW_CONFIDENCE"
   | "INSUFFICIENT_EVIDENCE"
   | "UNAPPROVED_EVIDENCE_KIND"
-  | "MISSING_REQUIRED_EVIDENCE_KIND"
+  | "MISSING_REQUIRED_ANY_EVIDENCE_KIND"
+  | "MISSING_REQUIRED_ALL_EVIDENCE_KIND"
   | "MISSING_SOURCE_DIGEST"
   | "STALE_EVIDENCE"
   | "FUTURE_EVIDENCE"
