@@ -48,8 +48,8 @@ export interface AuthorityGraphInput {
   edges: readonly AuthorityEdgeInput[];
 }
 
-export interface AuthorityNode extends AuthorityNodeInput {}
-export interface AuthorityEdge extends AuthorityEdgeInput {}
+export type AuthorityNode = AuthorityNodeInput;
+export type AuthorityEdge = AuthorityEdgeInput;
 
 export interface AuthorityGraph {
   nodes: readonly AuthorityNode[];
@@ -341,7 +341,7 @@ function normalizeGraph(input: unknown): AuthorityGraph {
   return { ...core, digest: digest(core) };
 }
 
-export function createGraph(input: AuthorityGraphInput | unknown): AuthorityGraph {
+export function createGraph(input: unknown): AuthorityGraph {
   return normalizeGraph(input);
 }
 
@@ -434,7 +434,7 @@ function indexGraph(graph: AuthorityGraph): GraphIndexes {
   const servingPagesByIntent = new Map<string, string[]>();
   const strongServingPagesByIntent = new Map<string, string[]>();
   const citedEvidenceByPage = new Map<string, string[]>();
-  const inboundLinks = new Map(pages.map((page) => [page.id, 0] as const));
+  const inboundLinks = new Map<string, number>(pages.map((page) => [page.id, 0]));
   const internalLinks: AuthorityEdge[] = [];
 
   for (const edge of graph.edges) {
