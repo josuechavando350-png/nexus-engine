@@ -1,10 +1,14 @@
 import { digestValue } from "@nexus/visual-algebra";
 import { ORIGINALITY_METRICS } from "./constants.js";
+import { MAX_ORIGINALITY_K_NEIGHBORS } from "./limits.js";
 import type { CreateOriginalityPolicyInput, OriginalityPolicy, ResolvedMetricWeights } from "./types.js";
 
 export function createOriginalityPolicy(input: CreateOriginalityPolicyInput): OriginalityPolicy {
   if (!Number.isInteger(input.kNeighbors) || input.kNeighbors < 1) {
     throw new Error("kNeighbors must be a positive integer");
+  }
+  if (input.kNeighbors > MAX_ORIGINALITY_K_NEIGHBORS) {
+    throw new Error(`kNeighbors cannot exceed ${MAX_ORIGINALITY_K_NEIGHBORS}`);
   }
   if (!Number.isFinite(input.minimumProtectedDirect) || input.minimumProtectedDirect < 0 || input.minimumProtectedDirect > 1) {
     throw new Error("minimumProtectedDirect must be finite and normalized to [0,1]");
@@ -40,6 +44,7 @@ export function createOriginalityPolicy(input: CreateOriginalityPolicyInput): Or
 }
 
 export function validateOriginalityPolicy(policy: OriginalityPolicy): void {
+  if (!policy || typeof policy !== "object") throw new Error("Originality policy must be an object");
   if (policy.authority !== "NEXUS_ORIGINALITY_POLICY_V1" || policy.version !== 1) {
     throw new Error("Unsupported originality policy authority/version");
   }
