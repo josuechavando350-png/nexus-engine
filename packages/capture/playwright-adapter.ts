@@ -107,8 +107,13 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
 
   async capture(request: CaptureRequest): Promise<CaptureResult> {
     validateCaptureRequest(request);
-    validateUrl(request.targetId);
     const requestId = captureRequestId(request);
+    try {
+      validateUrl(request.targetId);
+    } catch (error) {
+      return { requestId, outcome: "UNAVAILABLE", artifacts: [], samples: [], reason: error instanceof Error ? error.message : "invalid Playwright capture target" };
+    }
+
     const artifacts: CaptureArtifact[] = [];
     const samples: MetricSample[] = [];
     await mkdir(this.outputDir, { recursive: true });
