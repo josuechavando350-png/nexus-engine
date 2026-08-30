@@ -22,6 +22,7 @@ export interface TransportPolicy {
 }
 
 export interface TransportObservation {
+  targetUrl: string;
   observedProtocol: string | null;
   observedInterimStatuses: readonly number[];
   earlyHintLinks: readonly string[];
@@ -155,23 +156,66 @@ function normalizedProtocol(protocol: string | null): string | null {
   return protocol.trim().toLowerCase().replace(/^http\//, "");
 }
 
-function linkContainsHref(links: readonly string[], href: string): boolean {
-  return links.some((link) => link.split(",").some((part) => part.trim().startsWith(`<${href}>`)));
+function splitLinkValues(links: readonly string[]): readonly string[] {
+  return links.flatMap((line) => line.split(",").map((part) => part.trim()).filter(Boolean));
+}
+
+function normalizeParameterValue(value: string): string {
+  const trimmed = value.trim();
+  if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown;
+      return typeof parsed === "string" ? parsed : trimmed;
+    } catch {
+      return trimmed;
+    }
+  }
+  return trimmed;
+}
+
+function linkValueMatchesHint(value: string, hint: EarlyHint): boolean {
+  const parts = value.split(";").map((part) => part.trim()).filter(Boolean);
+  if (parts[0] !== `<${hint.href}>`) return false;
+  const parameters = new Map<string, string>();
+  for (const part of parts.slice(1)) {
+    const separator = part.indexOf("=");
+    if (separator <= 0) continue;
+    parameters.set(part.slice(0, separator).trim().toLowerCase(), normalizeParameterValue(part.slice(separator + 1)));
+  }
+  if (parameters.get("rel")?.toLowerCase() !== hint.rel) return false;
+  if (hint.as !== undefined && parameters.get("as")?.toLowerCase() !== hint.as) return false;
+  if (hint.type !== undefined && parameters.get("type") !== hint.type) return false;
+  if (hint.crossorigin !== undefined && parameters.get("crossorigin")?.toLowerCase() !== hint.crossorigin) return false;
+  return true;
+}
+
+function linksContainHint(links: readonly string[], hint: EarlyHint): boolean {
+  return splitLinkValues(links).some((value) => linkValueMatchesHint(value, hint));
+}
+
+function targetMatchesPolicy(targetUrl: string, host: string): boolean {
+  try {
+    const parsed = new URL(targetUrl);
+    return parsed.protocol === "https:" && parsed.hostname.toLowerCase() === host;
+  } catch {
+    return false;
+  }
 }
 
 export function verifyTransportObservation(policy: TransportPolicy, observation: TransportObservation): TransportVerification {
   const reasons: string[] = [];
+  if (!targetMatchesPolicy(observation.targetUrl, policy.host)) reasons.push("probe target does not match policy host");
   if (!observation.probeAvailable) reasons.push("probe unavailable");
   if (observation.probeAvailable && normalizedProtocol(observation.observedProtocol) !== "3") reasons.push("HTTP/3 not observed");
   if (observation.probeAvailable && !observation.observedInterimStatuses.includes(103)) reasons.push("103 Early Hints not observed");
   if (observation.probeAvailable && (observation.finalStatus === null || observation.finalStatus < 200 || observation.finalStatus >= 400)) reasons.push("successful final response not observed");
   if (observation.probeAvailable) {
     for (const hint of policy.hints) {
-      if (!linkContainsHref(observation.earlyHintLinks, hint.href)) reasons.push(`early hint missing ${hint.href}`);
-      if (policy.requireFinalLinkParity && !linkContainsHref(observation.finalLinks, hint.href)) reasons.push(`final response Link missing ${hint.href}`);
+      if (!linksContainHint(observation.earlyHintLinks, hint)) reasons.push(`early hint missing or mismatched ${hint.href}`);
+      if (policy.requireFinalLinkParity && !linksContainHint(observation.finalLinks, hint)) reasons.push(`final response Link missing or mismatched ${hint.href}`);
     }
   }
-  const status: TransportVerificationStatus = !observation.probeAvailable ? "UNAVAILABLE" : reasons.length === 0 ? "PASS" : "FAIL";
+  const status: TransportVerificationStatus = !observation.probeAvailable && reasons.every((reason) => reason === "probe unavailable") ? "UNAVAILABLE" : reasons.length === 0 ? "PASS" : "FAIL";
   const core = { status, reasons, policyDigest: policy.policyDigest, observation };
   return Object.freeze({ ...core, reasons: Object.freeze(reasons), evidenceDigest: digestValue(core) });
 }
