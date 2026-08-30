@@ -11,7 +11,7 @@ import { BanditAwareGuardrailCoordinator } from "./chatbot-bandit-guardrail.js";
 import { BoundedMultiAgentReasoningEngine } from "./chatbot-reasoning-engine.js";
 import { createDefaultReasoningPolicy, finalizeReasoningPolicy } from "./chatbot-reasoning-policy.js";
 import { DeliberativeBanditCoordinator } from "./chatbot-reasoning-coordinator.js";
-import type { ReasoningAgentInput, ReasoningAgentPort, ReasoningEvidenceSnapshot } from "./chatbot-reasoning-types.js";
+import type { ReasoningAgentInput, ReasoningAgentPort, ReasoningEvidenceSnapshot, ReasoningPolicy } from "./chatbot-reasoning-types.js";
 
 const SCOPE: OntologyScope = { tenantId: "tenant:audit5", organizationId: "org:audit5", brandId: "brand:audit5" };
 const NOW_MS = Date.parse("2026-08-30T05:00:00.000Z");
@@ -216,6 +216,17 @@ describe("chatbot reasoning adversarial audit", () => {
       remainingArmIds: ["safe-a"],
       evidence: snapshot(),
     })).rejects.toThrow(/failure budget exceeded/i);
+  });
+
+  it("rejects a reasoning policy whose fields do not match its digest", () => {
+    const valid = createDefaultReasoningPolicy();
+    const forged = { ...valid, maxInputChars: valid.maxInputChars - 1 } as ReasoningPolicy;
+    expect(() => new BoundedMultiAgentReasoningEngine(SCOPE, forged)).toThrow(/policy digest mismatch/i);
+  });
+
+  it("rejects unbounded multi-agent fanout above the hard cap", () => {
+    const agents = Array.from({ length: 17 }, (_, index) => new SafeAgent(`safe:agent-${index}`, "VERIFIER"));
+    expect(() => new BoundedMultiAgentReasoningEngine(SCOPE, createDefaultReasoningPolicy(), [], agents)).toThrow(/hard cap 16/i);
   });
 
   it("rejects cross-scope reasoning and bandit wiring", () => {
