@@ -23,19 +23,6 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
-      - name: Apply audited source correction
-        run: |
-          python3 - <<'PY'
-          from pathlib import Path
-          path = Path('packages/perceptual-images/src/index.ts')
-          text = path.read_text()
-          old = 'throw new Error(`command failed: ${basename(file)} ${args.join(" ")} :: ${message}`);'
-          new = 'throw new Error(`command failed: ${basename(file)} ${args.join(" ")} :: ${message}`, { cause: error });'
-          if old in text:
-              path.write_text(text.replace(old, new, 1))
-          elif new not in text:
-              raise SystemExit('expected lint correction target not found')
-          PY
       - name: Install workspace and sync lockfile
         run: pnpm install --no-frozen-lockfile
       - name: Package validation
@@ -70,7 +57,18 @@ jobs:
             cd packages/perceptual-images
             node --input-type=module - <<'NODE'
           import sharp from 'sharp';
-          await sharp({create:{width:96,height:96,channels:3,background:{r:45,g:90,b:140}}}).png().toFile('../../.tmp-perceptual/source.png');
+          const width = 512;
+          const height = 512;
+          const data = Buffer.alloc(width * height * 3);
+          for (let y = 0; y < height; y += 1) {
+            for (let x = 0; x < width; x += 1) {
+              const i = (y * width + x) * 3;
+              data[i] = (x * 17 + y * 13 + ((x * y) % 251)) % 256;
+              data[i + 1] = (x * 7 + y * 29 + ((x ^ y) % 241)) % 256;
+              data[i + 2] = (x * 31 + y * 5 + ((x + y) % 239)) % 256;
+            }
+          }
+          await sharp(data, { raw: { width, height, channels: 3 } }).png({ compressionLevel: 9 }).toFile('../../.tmp-perceptual/source.png');
           NODE
           )
           cat > .tmp-perceptual/spec.json <<JSON
@@ -98,13 +96,13 @@ jobs:
           grep -q '"JXL"' .tmp-perceptual/report.json
       - name: Verify bounded tree changes
         run: |
-          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml' ':(exclude)packages/perceptual-images/src/index.ts'
+          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml'
           grep -Fq '  packages/perceptual-images:' pnpm-lock.yaml
-      - name: Commit synchronized source and lockfile
+      - name: Commit synchronized lockfile
         run: |
-          if git diff --quiet -- packages/perceptual-images/src/index.ts pnpm-lock.yaml; then exit 0; fi
+          if git diff --quiet -- pnpm-lock.yaml; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add packages/perceptual-images/src/index.ts pnpm-lock.yaml
-          git commit -m 'fix(images): preserve command error cause and sync lockfile'
+          git add pnpm-lock.yaml
+          git commit -m 'chore(images): sync workspace lockfile'
           git push origin HEAD:feat/capability-09-perceptual-images
