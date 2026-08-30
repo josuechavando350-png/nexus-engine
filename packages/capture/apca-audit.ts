@@ -68,6 +68,7 @@ export interface DynamicApcaPolicyResult {
 
 interface Candidate {
   marker: string;
+  previousMarker: string | null;
   text: string;
   role?: string;
   use: ApcaUse;
@@ -83,6 +84,7 @@ interface Candidate {
 const MAX_CANDIDATES = 512;
 const MAX_RECTS_PER_TEXT = 32;
 const MAX_SAMPLES_PER_TEXT = 96;
+const MAX_SCREENSHOT_PIXELS = 100_000_000;
 
 function canonical(value: unknown): unknown {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
@@ -183,10 +185,29 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
       if (values.length < 3 || values.slice(0, 3).some((value) => !Number.isFinite(value))) return { alpha: 0 };
       return { rgb: [values[0]!, values[1]!, values[2]!], alpha: values[3] ?? 1 };
     };
+    const effectReason = (element: Element): string | undefined => {
+      let current: Element | null = element;
+      while (current) {
+        const style = getComputedStyle(current);
+        if (style.mixBlendMode !== "normal") return "MIX_BLEND_MODE";
+        if (style.filter !== "none" || style.backdropFilter !== "none") return "FILTER_EFFECT";
+        if (Number.parseFloat(style.opacity || "1") < 0.999) return "GROUP_OPACITY";
+        if (current === document.body) break;
+        current = current.parentElement;
+      }
+      return undefined;
+    };
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const output: Array<Record<string, unknown>> = [];
+    const markers = new Map<Element, { marker: string; previousMarker: string | null }>();
     let node: Node | null;
     let index = 0;
+    const restoreMarkers = () => {
+      for (const [element, state] of markers) {
+        if (state.previousMarker === null) element.removeAttribute("data-nexus-apca-sample");
+        else element.setAttribute("data-nexus-apca-sample", state.previousMarker);
+      }
+    };
     while ((node = walker.nextNode())) {
       const text = node.textContent?.replace(/\s+/g, " ").trim();
       const element = node.parentElement;
@@ -194,7 +215,10 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
       const style = getComputedStyle(element);
       const elementRect = element.getBoundingClientRect();
       if (style.display === "none" || style.visibility === "hidden" || elementRect.width <= 0 || elementRect.height <= 0) continue;
-      if (output.length >= maximumCandidates) throw new Error(`APCA candidate bound exceeded (${maximumCandidates})`);
+      if (output.length >= maximumCandidates) {
+        restoreMarkers();
+        throw new Error(`APCA candidate bound exceeded (${maximumCandidates})`);
+      }
       const range = document.createRange();
       range.selectNodeContents(node);
       const rects = Array.from(range.getClientRects()).slice(0, 32).map((rect) => ({
@@ -204,23 +228,28 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
         height: rect.height,
       })).filter((rect) => rect.width > 0 && rect.height > 0);
       if (!rects.length) continue;
-      const marker = `nexus-apca-${index++}`;
-      element.setAttribute("data-nexus-apca-sample", marker);
+      let markerState = markers.get(element);
+      if (!markerState) {
+        let marker = `nexus-apca-${index++}`;
+        while (document.querySelector(`[data-nexus-apca-sample="${marker}"]`)) marker = `nexus-apca-${index++}`;
+        markerState = { marker, previousMarker: element.getAttribute("data-nexus-apca-sample") };
+        markers.set(element, markerState);
+        element.setAttribute("data-nexus-apca-sample", marker);
+      }
       const parsedColor = colorTuple(style.color);
       const role = element.getAttribute("data-nexus-contrast-role") ?? (element.closest("h1,h2,h3,h4,h5,h6") ? "HEADING" : element.closest("button,a,input,textarea,select") ? "CONTROL" : element.closest("label") ? "LABEL" : "BODY");
       const webkitTextStrokeWidth = Number.parseFloat(style.getPropertyValue("-webkit-text-stroke-width") || "0");
       const backgroundClip = `${style.backgroundClip} ${style.getPropertyValue("-webkit-background-clip")}`;
       let unsupported: string | undefined;
       if (element.closest("svg")) unsupported = "SVG_TEXT";
-      else if (style.mixBlendMode !== "normal") unsupported = "MIX_BLEND_MODE";
-      else if (style.filter !== "none" || style.backdropFilter !== "none") unsupported = "FILTER_EFFECT";
-      else if (Number.parseFloat(style.opacity || "1") < 0.999) unsupported = "GROUP_OPACITY";
-      else if (Number.isFinite(webkitTextStrokeWidth) && webkitTextStrokeWidth > 0.01) unsupported = "TEXT_STROKE";
-      else if (/text/i.test(backgroundClip) || style.getPropertyValue("-webkit-text-fill-color").includes("gradient")) unsupported = "GRADIENT_TEXT";
-      else if (!parsedColor.rgb) unsupported = "UNSUPPORTED_COLOR";
-      else if (parsedColor.alpha < 0.999) unsupported = "TRANSLUCENT_TEXT";
+      else unsupported = effectReason(element);
+      if (!unsupported && Number.isFinite(webkitTextStrokeWidth) && webkitTextStrokeWidth > 0.01) unsupported = "TEXT_STROKE";
+      else if (!unsupported && /text/i.test(backgroundClip)) unsupported = "GRADIENT_TEXT";
+      else if (!unsupported && !parsedColor.rgb) unsupported = "UNSUPPORTED_COLOR";
+      else if (!unsupported && parsedColor.alpha < 0.999) unsupported = "TRANSLUCENT_TEXT";
       output.push({
-        marker,
+        marker: markerState.marker,
+        previousMarker: markerState.previousMarker,
         text,
         role,
         use: role === "BODY" ? "BODY" : role === "HEADING" ? "FLUENT" : role === "CONTROL" || role === "LABEL" ? "SUBFLUENT" : "BODY",
@@ -237,22 +266,28 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
   }, MAX_CANDIDATES) as unknown as Candidate[];
 
   const supported = candidates.filter((candidate) => !candidate.unsupported);
+  const markerStates = [...new Map(candidates.map((candidate) => [candidate.marker, candidate.previousMarker])).entries()];
   let styleHandle: Awaited<ReturnType<Page["addStyleTag"]>> | undefined;
   let screenshot: Buffer;
   try {
     if (supported.length) {
-      const selectors = supported.map((candidate) => `[data-nexus-apca-sample="${candidate.marker}"]`).join(",");
+      const selectors = [...new Set(supported.map((candidate) => candidate.marker))].map((marker) => `[data-nexus-apca-sample="${marker}"]`).join(",");
       styleHandle = await page.addStyleTag({ content: `${selectors}{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important}` });
     }
     screenshot = await page.screenshot({ type: "png", fullPage: true, animations: "disabled", caret: "hide", scale: "css" });
   } finally {
-    if (styleHandle) await styleHandle.evaluate((element) => element.remove()).catch(() => undefined);
-    await page.evaluate(() => {
-      document.querySelectorAll("[data-nexus-apca-sample]").forEach((element) => element.removeAttribute("data-nexus-apca-sample"));
-    }).catch(() => undefined);
+    if (styleHandle) await styleHandle.evaluate((node) => node.parentNode?.removeChild(node)).catch(() => undefined);
+    await page.evaluate((states) => {
+      for (const [marker, previousMarker] of states) {
+        const element = document.querySelector(`[data-nexus-apca-sample="${marker}"]`);
+        if (!element) continue;
+        if (previousMarker === null) element.removeAttribute("data-nexus-apca-sample");
+        else element.setAttribute("data-nexus-apca-sample", previousMarker);
+      }
+    }, markerStates).catch(() => undefined);
   }
 
-  const decoded = await sharp(screenshot).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const decoded = await sharp(screenshot, { limitInputPixels: MAX_SCREENSHOT_PIXELS }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const observations: ApcaTextObservation[] = [];
   const unsupported: ApcaUnsupportedObservation[] = candidates.filter((candidate) => candidate.unsupported).map((candidate) => Object.freeze({
     textDigest: digestText(candidate.text), role: candidate.role, reason: candidate.unsupported!,
