@@ -22,7 +22,7 @@ The default reasoning engine ships with three deterministic specialists:
 
 Additional agents can implement `ReasoningAgentPort`. That port intentionally accepts and returns structured data. Provider-specific adapters for models such as ChatGPT or Claude may implement it later without gaining permission to author customer-facing text or execute NEXUS actions directly.
 
-Every agent call receives an `AbortSignal` and is bounded by policy. The default timeout is 3,000 ms per agent. Timeout, malformed output and provider failure consume the configured agent-failure budget; if the budget is exceeded, deliberation fails closed rather than silently accepting the remaining output.
+Every agent call receives an `AbortSignal` and is bounded by policy. The default timeout is 3,000 ms per agent. Timeout, malformed output and provider failure consume the configured agent-failure budget; if the budget is exceeded, deliberation fails closed rather than silently accepting the remaining output. Agent fanout also has a hard cap of 16 registered specialists per engine instance.
 
 ## Self-healing search
 
@@ -49,6 +49,8 @@ The reasoning layer cannot:
 - select an arm outside the capability-4 eligible set;
 - accept forged agent identity, role, candidate identity, verdict, confidence or issue codes;
 - continue indefinitely when an agent hangs;
+- exceed the 16-agent fanout cap;
+- use a reasoning policy whose fields do not match its deterministic policy digest;
 - return a response that was rendered under another deliberation;
 - wire reasoning and bandit engines across ontology scopes;
 - reason over a user message that does not match the exact guarded-context message digest.
@@ -77,7 +79,7 @@ Unexpected fields such as arbitrary rationale or chain-of-thought text are disca
 
 Every verified assessment, branch attempt, final deliberation and combined deliberative context carries a deterministic digest. Weak-reference issuance tracking binds the exact in-memory final context and response object to the coordinator that created them. A copied or forged context cannot be used to render or verify outbound text.
 
-Capability 4 exposes its scope digest so capability 5 can verify exact ontology-scope binding before any deliberation occurs. Capability 5 also recomputes the capability-3 user-message digest before sending a message into a reasoning agent, rejecting stale or cross-request message lineage.
+The reasoning policy is validated against its deterministic digest before the engine snapshots it, and the snapshot is frozen before use. Capability 4 exposes its scope digest so capability 5 can verify exact ontology-scope binding before any deliberation occurs. Capability 5 also recomputes the capability-3 user-message digest before sending a message into a reasoning agent, rejecting stale or cross-request message lineage.
 
 ## Non-claims
 
