@@ -3,9 +3,11 @@ import {
   analyzeCtrOpportunities,
   buildMonotonicCtrCurve,
   createControlledDataset,
+  digestValue,
   fetchSearchAnalytics,
   validateCtrAnalysis,
   validateDataset,
+  validateLiveDataset,
 } from "./index.js";
 
 const request = {
@@ -60,6 +62,19 @@ describe("Search Console CTR engineering", () => {
     expect(() => validateCtrAnalysis(source, { ...analysis, datasetDigest: "f".repeat(64) })).toThrow(/dataset mismatch/);
   });
 
+  it("does not treat a structurally forged SEARCH_CONSOLE_API dataset as live provider evidence", () => {
+    const source = dataset();
+    const forgedCore = {
+      request: source.request,
+      rows: source.rows,
+      coverage: source.coverage,
+      sourceAuthority: "SEARCH_CONSOLE_API" as const,
+    };
+    const forged = { ...forgedCore, datasetDigest: digestValue(forgedCore) };
+    expect(() => validateDataset(forged)).not.toThrow();
+    expect(() => validateLiveDataset(forged)).toThrow(/not attested/);
+  });
+
   it("rejects malformed or internally inconsistent API rows", () => {
     expect(() => createControlledDataset(request, [{ keys: ["x"], clicks: 11, impressions: 10, ctr: 1.1, position: 1 }])).toThrow();
     expect(() => createControlledDataset(request, [{ keys: ["x"], clicks: 5, impressions: 10, ctr: 0.1, position: 1 }])).toThrow(/inconsistent/);
@@ -79,7 +94,7 @@ describe("Search Console CTR engineering", () => {
     await expect(fetchSearchAnalytics(request, undefined)).resolves.toEqual({ status: "UNAVAILABLE", reason: "Search Console OAuth access token unavailable" });
   });
 
-  it("uses the official Search Analytics endpoint and accepts validated first-party rows", async () => {
+  it("uses the official Search Analytics endpoint and attests validated first-party rows", async () => {
     const fakeFetch = async (url: string | URL | Request, init?: RequestInit) => {
       expect(String(url)).toContain("www.googleapis.com/webmasters/v3/sites/sc-domain%3Aexample.com/searchAnalytics/query");
       expect(init?.method).toBe("POST");
@@ -90,13 +105,16 @@ describe("Search Console CTR engineering", () => {
     expect(result.status).toBe("PASS");
     expect(result.dataset?.sourceAuthority).toBe("SEARCH_CONSOLE_API");
     expect(result.dataset?.coverage).toBe("TOP_ROWS_NOT_GUARANTEED_COMPLETE");
+    expect(() => validateLiveDataset(result.dataset!)).not.toThrow();
   });
 
-  it("fails closed on provider errors, malformed JSON, and invalid provider payloads", async () => {
+  it("fails closed on provider errors, malformed JSON, non-object JSON, and invalid provider payloads", async () => {
     const denied = await fetchSearchAnalytics(request, "token", (async () => new Response("denied", { status: 403 })) as typeof fetch);
     expect(denied.status).toBe("FAIL");
     const invalidJson = await fetchSearchAnalytics(request, "token", (async () => new Response("not-json", { status: 200 })) as typeof fetch);
     expect(invalidJson.status).toBe("FAIL");
+    const nonObject = await fetchSearchAnalytics(request, "token", (async () => new Response(JSON.stringify([]), { status: 200 })) as typeof fetch);
+    expect(nonObject.status).toBe("FAIL");
     const malformed = await fetchSearchAnalytics(request, "token", (async () => new Response(JSON.stringify({ rows: [{ keys: ["x"], clicks: 2, impressions: 1, ctr: 2, position: 1 }] }), { status: 200 })) as typeof fetch);
     expect(malformed.status).toBe("FAIL");
   });
@@ -109,5 +127,6 @@ describe("Search Console CTR engineering", () => {
     };
     const result = await fetchSearchAnalytics(request, "token", fakeFetch as typeof fetch, controller.signal);
     expect(result.status).toBe("PASS");
+    expect(() => validateLiveDataset(result.dataset!)).not.toThrow();
   });
 });
