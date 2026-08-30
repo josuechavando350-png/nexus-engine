@@ -52,6 +52,14 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Export generated lockfile for workspace-drift repair
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-generated-lockfile-${{ env.NEXUS_VALIDATED_SHA }}
+          path: pnpm-lock.yaml
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Install real browser engines
         shell: bash
         run: |
