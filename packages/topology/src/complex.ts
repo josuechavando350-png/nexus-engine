@@ -1,4 +1,4 @@
-import { digestValue, leafPrimitives, primitiveCenter, validateBounds, validatePrimitive } from "@nexus/visual-algebra";
+import { digestValue, leafPrimitives, primitiveCenter, validateBounds, validatePrimitive, verifyVisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { BuildComplexInput, FiltrationComplex, FiltrationVertex, FilteredSimplex, TopologicalRelation } from "./types.js";
 
@@ -99,6 +99,7 @@ export function buildFiltrationComplex(input: BuildComplexInput): FiltrationComp
 export function buildComplexFromTerm(term: VisualAlgebraTerm, options: {
   readonly relations?: readonly TopologicalRelation[]; readonly maxFiltration?: number; readonly maxHomologyDimension?: 0 | 1;
 } = {}): FiltrationComplex {
+  verifyVisualAlgebraTerm(term);
   return buildFiltrationComplex({
     primitives: term.primitives, canvasBounds: term.canvasBounds, sourceTermDigest: term.digest,
     ...(options.relations ? { relations: options.relations } : {}),
