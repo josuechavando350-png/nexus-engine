@@ -1,3 +1,4 @@
+import { canonicalJson } from "./index.js";
 import type { ObjectRecord, PropertyValue } from "./transaction.js";
 
 import {
@@ -29,9 +30,18 @@ import {
 } from "./chatbot-knowledge-types.js";
 
 const FORBIDDEN_MEMORY_KEY_TERMS = [
-  "password", "passwd", "contrasena", "contraseña", "secret", "api-key", "apikey", "private-key", "privatekey",
+  "password", "passwd", "contrasena", "secret", "api-key", "apikey", "private-key", "privatekey",
   "access-token", "refresh-token", "auth-token", "cvv", "pin", "otp", "one-time-password",
 ] as const;
+
+const SECRET_VALUE_PATTERN = /\b(?:password|passwd|contrasena|cvv|otp|one[ -]?time[ -]?password|api[ -]?key|access[ -]?token|refresh[ -]?token|auth[ -]?token|private[ -]?key)\b/i;
+const PRIVATE_KEY_PATTERN = /-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----/i;
+const PAYMENT_CARD_PATTERN = /(?:\d[ -]*?){13,19}/;
+const SENSITIVE_TOPIC_PATTERN = /\b(?:salud|medic[oa]|diagnostic[oa]|health|medical|diagnosis|religion|religious|politic[oa]|partido politico|political|sexual|biometric[oa]|biometric|raza|race|etnia|ethnicity|antecedentes penales|criminal history)\b/i;
+
+function violation(stored: boolean, message: string): never {
+  throw new LongTermMemoryError(stored ? "INTEGRITY_FAILURE" : "POLICY_VIOLATION", message);
+}
 
 function storedEnum<T extends string>(value: string, values: readonly T[], field: string): T {
   if (!values.includes(value as T)) throw new LongTermMemoryError("INTEGRITY_FAILURE", `${field} contains unsupported value ${value}`);
@@ -56,10 +66,37 @@ function jsonProperty(record: ObjectRecord, id: string): PropertyValue {
   return value;
 }
 
-function assertAllowedMemoryKey(memoryKey: string): void {
-  const normalized = memoryKey.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-  if (FORBIDDEN_MEMORY_KEY_TERMS.some((term) => normalized.includes(term))) {
-    throw new LongTermMemoryError("POLICY_VIOLATION", "credential, authentication, payment-secret, or private-key material must not be stored in long-term memory");
+function normalizedSearchText(value: string): string {
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function assertAllowedMemoryKey(memoryKey: string, stored = false): void {
+  const normalized = normalizedSearchText(memoryKey);
+  if (FORBIDDEN_MEMORY_KEY_TERMS.some((term) => normalized.includes(normalizedSearchText(term)))) {
+    violation(stored, "credential, authentication, payment-secret, or private-key material must not be stored in long-term memory");
+  }
+}
+
+function assertSafeMemoryValue(value: PropertyValue, sensitivity: MemorySensitivity, stored = false): void {
+  if (value === null) {
+    if (stored) throw new LongTermMemoryError("INTEGRITY_FAILURE", "stored long-term memory value must not be null");
+    throw new LongTermMemoryError("INVALID_INPUT", "long-term memory value must not be null");
+  }
+  const text = normalizedSearchText(canonicalJson(value));
+  if (SECRET_VALUE_PATTERN.test(text) || PRIVATE_KEY_PATTERN.test(text) || PAYMENT_CARD_PATTERN.test(text)) {
+    violation(stored, "credential, authentication, payment-card, or private-key material must not be stored in long-term memory");
+  }
+  if (SENSITIVE_TOPIC_PATTERN.test(text) && sensitivity !== "SENSITIVE") {
+    violation(stored, "memory containing sensitive-topic data must be explicitly classified as SENSITIVE");
+  }
+}
+
+function assertSourceCategory(sourceKind: MemorySourceKind, category: MemoryCategory, stored = false): void {
+  if (sourceKind === "CUSTOMER_IMPLICIT" && (category === "PROFILE" || category === "COMMITMENT")) {
+    violation(stored, "implicit customer inference cannot create PROFILE or COMMITMENT long-term memory");
+  }
+  if (sourceKind === "SYSTEM_SUMMARY" && category !== "CONTEXT" && category !== "INTERACTION_SUMMARY") {
+    violation(stored, "system summaries may only create CONTEXT or INTERACTION_SUMMARY long-term memory");
   }
 }
 
@@ -70,23 +107,27 @@ function assertPolicyForMemory(
   sourceKind: MemorySourceKind,
   observedAt: string,
   expiresAt: string,
+  stored = false,
 ): void {
   if (sensitivity === "SENSITIVE") {
-    if (!policy.allowSensitive) throw new LongTermMemoryError("POLICY_VIOLATION", "sensitive long-term memory is disabled by policy");
+    if (!policy.allowSensitive) violation(stored, "sensitive long-term memory is disabled by policy");
     if (retentionBasis !== "USER_REQUEST" && retentionBasis !== "OPERATOR_APPROVED") {
-      throw new LongTermMemoryError("POLICY_VIOLATION", "sensitive memory requires USER_REQUEST or OPERATOR_APPROVED retention basis");
+      violation(stored, "sensitive memory requires USER_REQUEST or OPERATOR_APPROVED retention basis");
     }
     if (sourceKind === "CUSTOMER_IMPLICIT" || sourceKind === "SYSTEM_SUMMARY") {
-      throw new LongTermMemoryError("POLICY_VIOLATION", "sensitive memory cannot be created from implicit inference or a system summary");
+      violation(stored, "sensitive memory cannot be created from implicit inference or a system summary");
     }
   }
   if (sensitivity === "PERSONAL" && policy.requireUserRequestForPersonal && retentionBasis === "SERVICE_CONTEXT") {
-    throw new LongTermMemoryError("POLICY_VIOLATION", "personal memory requires USER_REQUEST or OPERATOR_APPROVED retention basis under the active policy");
+    violation(stored, "personal memory requires USER_REQUEST or OPERATOR_APPROVED retention basis under the active policy");
   }
   const ttl = Date.parse(expiresAt) - Date.parse(observedAt);
-  if (ttl <= 0) throw new LongTermMemoryError("INVALID_INPUT", "expiresAt must be later than observedAt");
+  if (ttl <= 0) {
+    if (stored) throw new LongTermMemoryError("INTEGRITY_FAILURE", "stored expiresAt must be later than observedAt");
+    throw new LongTermMemoryError("INVALID_INPUT", "expiresAt must be later than observedAt");
+  }
   if (ttl > maximumMemoryAge(policy, sensitivity)) {
-    throw new LongTermMemoryError("POLICY_VIOLATION", `memory retention exceeds the configured maximum for ${sensitivity}`);
+    violation(stored, `memory retention exceeds the configured maximum for ${sensitivity}`);
   }
 }
 
@@ -128,6 +169,8 @@ export function memoryPayload(
   const sourceRef = nonEmpty(input.sourceRef, "sourceRef");
   const sourceDigest = nonEmpty(input.sourceDigest, "sourceDigest");
   const confidence = effectiveConfidence(input.sourceKind, input.confidence);
+  assertSourceCategory(input.sourceKind, input.category);
+  assertSafeMemoryValue(value, sensitivity);
   assertPolicyForMemory(policy, sensitivity, input.retentionBasis, input.sourceKind, observedAt, expiresAt);
   const core = {
     subjectId: identity.subjectId,
@@ -210,7 +253,7 @@ export function projectLongTermMemory(record: ObjectRecord, policy: LongTermMemo
   if (record.typeId !== MEMORY_TYPE) throw new LongTermMemoryError("TYPE_MISMATCH", `${record.id} is not a long-term memory record`);
   const subjectId = normalizeIdentifier(stringProperty(record, MP.subjectId), MP.subjectId);
   const memoryKey = normalizeIdentifier(stringProperty(record, MP.memoryKey), MP.memoryKey);
-  assertAllowedMemoryKey(memoryKey);
+  assertAllowedMemoryKey(memoryKey, true);
   const category = storedEnum(stringProperty(record, MP.category), MEMORY_CATEGORIES, MP.category) as MemoryCategory;
   const sourceKind = storedEnum(stringProperty(record, MP.sourceKind), MEMORY_SOURCE_KINDS, MP.sourceKind) as MemorySourceKind;
   const retentionBasis = storedEnum(stringProperty(record, MP.retentionBasis), MEMORY_RETENTION_BASES, MP.retentionBasis) as MemoryRetentionBasis;
@@ -225,7 +268,9 @@ export function projectLongTermMemory(record: ObjectRecord, policy: LongTermMemo
   assertJsonValue(value, MP.value);
   const sourceRef = stringProperty(record, MP.sourceRef);
   const sourceDigest = stringProperty(record, MP.sourceDigest);
-  assertPolicyForMemory(policy, sensitivity, retentionBasis, sourceKind, observedAt, expiresAt);
+  assertSourceCategory(sourceKind, category, true);
+  assertSafeMemoryValue(value, sensitivity, true);
+  assertPolicyForMemory(policy, sensitivity, retentionBasis, sourceKind, observedAt, expiresAt, true);
   if (sourceKind === "CUSTOMER_IMPLICIT" && confidence > 0.85) throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${record.id} has impossible implicit confidence`);
   if (sourceKind === "SYSTEM_SUMMARY" && confidence > 0.9) throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${record.id} has impossible summary confidence`);
   const expectedId = hash("ltm", { subjectId, memoryKey });
