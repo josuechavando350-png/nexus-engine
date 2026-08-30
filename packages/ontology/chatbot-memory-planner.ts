@@ -11,6 +11,7 @@ import {
   type LongTermMemoryPolicy,
   type MemoryMutationPlan,
   type PurgeLongTermMemoryInput,
+  type PurgeSubjectLongTermMemoryInput,
   type RevokeLongTermMemoryInput,
   type SweepLongTermMemoryInput,
   type UpsertLongTermMemoryInput,
@@ -36,6 +37,14 @@ function collectObjects(read: OntologyReadPort, scope: OntologyScope, query: Obj
     }
   } while (cursor);
   return output;
+}
+
+function deleteLimit(value: number | undefined, fallback: number): number {
+  const resolved = value ?? fallback;
+  if (!Number.isInteger(resolved) || resolved <= 0 || resolved > MAX_SWEEP_DELETE) {
+    throw new LongTermMemoryError("INVALID_INPUT", `maxDeletes must be an integer from 1 to ${MAX_SWEEP_DELETE}`);
+  }
+  return resolved;
 }
 
 export class LongTermMemoryPlanner {
@@ -92,7 +101,7 @@ export class LongTermMemoryPlanner {
       throw new LongTermMemoryError("TYPE_MISMATCH", `object ${identity.id} already exists with type ${current.typeId}`);
     }
 
-    const existing = current ? projectLongTermMemory(current, this.policy) : undefined;
+    const existing = current ? projectLongTermMemory(current, this.policy, false) : undefined;
     if (existing && existing.category !== input.category) {
       throw new LongTermMemoryError("CONFLICT", `memory ${identity.memoryKey} category is immutable; use a different memory key`);
     }
@@ -147,13 +156,25 @@ export class LongTermMemoryPlanner {
     return memoryPlan(this.scope, this.schema, [{ kind: "DELETE_OBJECT", id: current.id, expectedRevision: current.revision }]);
   }
 
+  planPurgeSubject(input: PurgeSubjectLongTermMemoryInput): MemoryMutationPlan {
+    verifyLongTermMemoryPolicy(this.policy);
+    const subjectId = normalizeIdentifier(input.subjectId, "subjectId");
+    const maxDeletes = deleteLimit(input.maxDeletes, MAX_SWEEP_DELETE);
+    const records = collectObjects(this.read, this.scope, {
+      typeId: MEMORY_TYPE,
+      propertyEquals: { [MP.subjectId]: subjectId },
+    }, MAX_SWEEP_SCAN);
+    const deletions = records
+      .sort((a, b) => a.id.localeCompare(b.id, "en"))
+      .slice(0, maxDeletes)
+      .map((record): TransactionOperation => ({ kind: "DELETE_OBJECT", id: record.id, expectedRevision: record.revision }));
+    return memoryPlan(this.scope, this.schema, deletions);
+  }
+
   planRetentionSweep(input: SweepLongTermMemoryInput): MemoryMutationPlan {
     verifyLongTermMemoryPolicy(this.policy);
     const subjectId = normalizeIdentifier(input.subjectId, "subjectId");
-    const maxDeletes = input.maxDeletes ?? 100;
-    if (!Number.isInteger(maxDeletes) || maxDeletes <= 0 || maxDeletes > MAX_SWEEP_DELETE) {
-      throw new LongTermMemoryError("INVALID_INPUT", `maxDeletes must be an integer from 1 to ${MAX_SWEEP_DELETE}`);
-    }
+    const maxDeletes = deleteLimit(input.maxDeletes, 100);
     const nowMs = this.currentTime();
     const records = collectObjects(this.read, this.scope, {
       typeId: MEMORY_TYPE,
