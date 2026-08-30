@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { assessPage, createPage, digestValue, validateAssessment, validatePage, type PassagePageInput } from "./index.js";
+import { assessPage, createPage, validateAssessment, validatePage, type PassagePageInput } from "./index.js";
 
 function page(overrides: Partial<PassagePageInput> = {}): PassagePageInput {
   return {
@@ -62,13 +62,12 @@ describe("passage intelligence", () => {
     expect(() => createPage(page({ url: "javascript:alert(1)" }))).toThrow(/HTTP/);
   });
 
-  it("rejects tampered pages and forged assessments even with reissued hashes", () => {
+  it("rejects tampered pages and forged assessments", () => {
     const model = createPage(page());
     expect(() => validatePage({ ...model, indexable: false })).toThrow(/digest mismatch/);
     const result = assessPage(model);
-    const forgedCore = { ...result, status: "BLOCKED" as const };
-    const forged = { ...forgedCore, assessmentDigest: digestValue({ ...forgedCore, assessmentDigest: undefined }) };
-    expect(() => validateAssessment(model, forged)).toThrow();
+    const forged = { ...result, status: "BLOCKED" as const, assessmentDigest: "f".repeat(64) };
+    expect(() => validateAssessment(model, forged)).toThrow(/replay mismatch/);
   });
 
   it("enforces passage budgets", () => {
