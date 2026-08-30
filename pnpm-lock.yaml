@@ -493,6 +493,8 @@ importers:
 
   packages/search-console-ctr: {}
 
+  packages/topical-authority-graph: {}
+
   packages/topology:
     dependencies:
       '@nexus/visual-algebra':
