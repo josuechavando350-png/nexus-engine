@@ -1,6 +1,6 @@
 import type { OntologyScope, ValidatedSchema } from "./index.js";
-import type { OntologyReadPort } from "./persistence-query.js";
-import type { TransactionOperation } from "./transaction.js";
+import type { ObjectQuery, OntologyReadPort } from "./persistence-query.js";
+import type { ObjectRecord, TransactionOperation } from "./transaction.js";
 
 import { ENTITY_TYPE } from "./chatbot-knowledge-types.js";
 import { projectEntity } from "./chatbot-knowledge-codec.js";
@@ -12,11 +12,31 @@ import {
   type MemoryMutationPlan,
   type PurgeLongTermMemoryInput,
   type RevokeLongTermMemoryInput,
+  type SweepLongTermMemoryInput,
   type UpsertLongTermMemoryInput,
 } from "./chatbot-memory-types.js";
 import { createDefaultLongTermMemoryPolicy, verifyLongTermMemoryPolicy } from "./chatbot-memory-policy.js";
 import { memoryIdentity, memoryPayload, memoryStatusPayload, projectLongTermMemory } from "./chatbot-memory-codec.js";
 import { chatbotLongTermMemorySchema, memoryPlan } from "./chatbot-memory-schema.js";
+
+const MAX_SWEEP_SCAN = 10_000;
+const MAX_SWEEP_DELETE = 1_000;
+
+function collectObjects(read: OntologyReadPort, scope: OntologyScope, query: ObjectQuery, maximum: number): ObjectRecord[] {
+  const output: ObjectRecord[] = [];
+  let cursor: string | undefined;
+  do {
+    const remaining = maximum + 1 - output.length;
+    if (remaining <= 0) throw new LongTermMemoryError("CAPACITY_EXCEEDED", `memory scan exceeded ${maximum} records`);
+    const page = read.queryObjects(scope, { ...query, limit: Math.min(1000, remaining), ...(cursor ? { cursor } : {}) });
+    output.push(...page.items);
+    cursor = page.nextCursor;
+    if (output.length > maximum || (output.length === maximum && cursor)) {
+      throw new LongTermMemoryError("CAPACITY_EXCEEDED", `memory scan exceeded ${maximum} records`);
+    }
+  } while (cursor);
+  return output;
+}
 
 export class LongTermMemoryPlanner {
   readonly schema: ValidatedSchema;
@@ -25,9 +45,16 @@ export class LongTermMemoryPlanner {
     private readonly read: OntologyReadPort,
     readonly scope: OntologyScope,
     readonly policy: LongTermMemoryPolicy = createDefaultLongTermMemoryPolicy(),
+    private readonly now: () => number = Date.now,
   ) {
     verifyLongTermMemoryPolicy(policy);
     this.schema = chatbotLongTermMemorySchema(scope);
+  }
+
+  private currentTime(): number {
+    const nowMs = this.now();
+    if (!Number.isFinite(nowMs) || nowMs < 0) throw new LongTermMemoryError("INTEGRITY_FAILURE", "long-term memory planner clock returned an invalid timestamp");
+    return nowMs;
   }
 
   private assertMemorySubject(subjectId: string): void {
@@ -41,15 +68,18 @@ export class LongTermMemoryPlanner {
   }
 
   private assertActiveCapacity(subjectId: string, excludingId?: string): void {
-    const page = this.read.queryObjects(this.scope, {
+    const nowMs = this.currentTime();
+    const records = collectObjects(this.read, this.scope, {
       typeId: MEMORY_TYPE,
       propertyEquals: { [MP.subjectId]: subjectId, [MP.status]: "ACTIVE" },
-      limit: Math.min(1000, this.policy.maxRecordsPerSubject + 1),
-    });
-    if (page.nextCursor) throw new LongTermMemoryError("CAPACITY_EXCEEDED", `memory subject ${subjectId} exceeds the configured scan capacity`);
-    const count = page.items.filter((item) => item.id !== excludingId).length;
-    if (count >= this.policy.maxRecordsPerSubject) {
-      throw new LongTermMemoryError("CAPACITY_EXCEEDED", `memory subject ${subjectId} already has ${count} active memories`);
+    }, MAX_SWEEP_SCAN);
+    const active = records
+      .filter((item) => item.id !== excludingId)
+      .map((item) => projectLongTermMemory(item, this.policy))
+      .filter((memory) => Date.parse(memory.expiresAt) > nowMs)
+      .length;
+    if (active >= this.policy.maxRecordsPerSubject) {
+      throw new LongTermMemoryError("CAPACITY_EXCEEDED", `memory subject ${subjectId} already has ${active} active memories`);
     }
   }
 
@@ -78,7 +108,9 @@ export class LongTermMemoryPlanner {
       throw new LongTermMemoryError("CONFLICT", `memory ${identity.memoryKey} has a different value at the same observation time`);
     }
 
-    if (!existing || existing.status !== "ACTIVE") this.assertActiveCapacity(identity.subjectId, existing?.id);
+    if (!existing || existing.status !== "ACTIVE" || Date.parse(existing.expiresAt) <= this.currentTime()) {
+      this.assertActiveCapacity(identity.subjectId, existing?.id);
+    }
     const operation: TransactionOperation = existing
       ? { kind: "UPDATE_OBJECT", id: existing.id, expectedRevision: existing.revision, properties }
       : { kind: "CREATE_OBJECT", record: { id: identity.id, typeId: MEMORY_TYPE, scope: this.scope, properties } };
@@ -116,5 +148,26 @@ export class LongTermMemoryPlanner {
       throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${identity.id} identity mismatch`);
     }
     return memoryPlan(this.scope, this.schema, [{ kind: "DELETE_OBJECT", id: existing.id, expectedRevision: existing.revision }]);
+  }
+
+  planRetentionSweep(input: SweepLongTermMemoryInput): MemoryMutationPlan {
+    verifyLongTermMemoryPolicy(this.policy);
+    const subjectId = memoryIdentity({ subjectId: input.subjectId, memoryKey: "retention-sweep-sentinel" }).subjectId;
+    const maxDeletes = input.maxDeletes ?? 100;
+    if (!Number.isInteger(maxDeletes) || maxDeletes <= 0 || maxDeletes > MAX_SWEEP_DELETE) {
+      throw new LongTermMemoryError("INVALID_INPUT", `maxDeletes must be an integer from 1 to ${MAX_SWEEP_DELETE}`);
+    }
+    const nowMs = this.currentTime();
+    const records = collectObjects(this.read, this.scope, {
+      typeId: MEMORY_TYPE,
+      propertyEquals: { [MP.subjectId]: subjectId },
+    }, MAX_SWEEP_SCAN);
+    const deletions = records
+      .map((record) => projectLongTermMemory(record, this.policy))
+      .filter((memory) => memory.status === "REVOKED" || Date.parse(memory.expiresAt) <= nowMs)
+      .sort((a, b) => a.id.localeCompare(b.id, "en"))
+      .slice(0, maxDeletes)
+      .map((memory): TransactionOperation => ({ kind: "DELETE_OBJECT", id: memory.id, expectedRevision: memory.revision }));
+    return memoryPlan(this.scope, this.schema, deletions);
   }
 }
