@@ -1,5 +1,6 @@
 import { digestValue, geometricDistance } from "@nexus/visual-algebra";
 import { assessOriginality, validateOriginalityAssessment } from "./assessment.js";
+import { MAX_ORIGINALITY_COUNTERFACTUAL_ALTERNATIVES } from "./limits.js";
 import { validateOriginalityManifold } from "./manifold.js";
 import { compareStableStrings } from "./order.js";
 import { validateOriginalityPoint } from "./point.js";
@@ -9,6 +10,9 @@ export function searchOriginalityCounterfactual(input: SearchOriginalityCounterf
   validateOriginalityManifold(input.manifold);
   validateOriginalityPoint(input.source);
   if (input.source.role !== "CANDIDATE") throw new Error("Counterfactual source must be CANDIDATE");
+  if (input.alternatives.length > MAX_ORIGINALITY_COUNTERFACTUAL_ALTERNATIVES) {
+    throw new Error(`Counterfactual alternative budget exceeded (${MAX_ORIGINALITY_COUNTERFACTUAL_ALTERNATIVES})`);
+  }
 
   const sourceAssessment = assessOriginality({ candidate: input.source, manifold: input.manifold });
   const seen = new Set<string>([input.source.pointId]);
@@ -68,6 +72,7 @@ export function searchOriginalityCounterfactual(input: SearchOriginalityCounterf
 }
 
 export function validateOriginalityCounterfactual(result: CounterfactualSearchResult): void {
+  if (!result || typeof result !== "object") throw new Error("Originality counterfactual result must be an object");
   if (result.authority !== "NEXUS_ORIGINALITY_COUNTERFACTUAL_V1" || result.version !== 1) {
     throw new Error("Unsupported originality counterfactual authority/version");
   }
