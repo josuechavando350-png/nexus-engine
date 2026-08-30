@@ -26,6 +26,8 @@ function groundedFact(input: {
   predicate: string;
   displayValue: string;
   evidenceId: string;
+  validFrom?: string | null;
+  validUntil?: string | null;
 }): GroundedFact {
   const core = {
     factId: input.factId,
@@ -37,8 +39,8 @@ function groundedFact(input: {
     evidenceIds: [input.evidenceId],
     confidence: 1,
     claimClass: input.claimClass,
-    validFrom: null,
-    validUntil: null,
+    validFrom: input.validFrom ?? null,
+    validUntil: input.validUntil ?? null,
   };
   return { ...core, digest: hash("kground", core) };
 }
@@ -76,75 +78,76 @@ describe("formal guardrail audit cases", () => {
   it("does not escalate an unrelated stale price when a safe requested fact is usable", async () => {
     const generalEvidence = evidence("evidence:general");
     const stalePriceEvidence = evidence("evidence:price", "2025-01-01T00:00:00.000Z");
-    const general = groundedFact({
-      factId: "fact:general",
-      claimClass: "GENERAL",
-      predicate: "service-description",
-      displayValue: "Atención por chat",
-      evidenceId: generalEvidence.id,
-    });
-    const stalePrice = groundedFact({
-      factId: "fact:price",
-      claimClass: "PRICE",
-      predicate: "base-price-mxn",
-      displayValue: "3500",
-      evidenceId: stalePriceEvidence.id,
-    });
-    const guardrails = new FormalGuardrailEngine(
-      reader(context([general, stalePrice], [generalEvidence, stalePriceEvidence])),
-      createDefaultGuardrailPolicy(),
-      () => NOW_MS,
-    );
+    const general = groundedFact({ factId: "fact:general", claimClass: "GENERAL", predicate: "service-description", displayValue: "Atención por chat", evidenceId: generalEvidence.id });
+    const stalePrice = groundedFact({ factId: "fact:price", claimClass: "PRICE", predicate: "base-price-mxn", displayValue: "3500", evidenceId: stalePriceEvidence.id });
+    const guardrails = new FormalGuardrailEngine(reader(context([general, stalePrice], [generalEvidence, stalePriceEvidence])), createDefaultGuardrailPolicy(), () => NOW_MS);
 
-    const prepared = await guardrails.prepare({
-      businessEntityId: "business:client",
-      userMessage: "¿Qué servicio ofrecen?",
-    });
-
+    const prepared = await guardrails.prepare({ businessEntityId: "business:client", userMessage: "¿Qué servicio ofrecen?" });
     expect(prepared.envelope.rejectedFacts.find((item) => item.factId === "fact:price")?.reasons).toContain("STALE_EVIDENCE");
     expect(prepared.envelope.requiredEscalation).toBe(false);
     expect(prepared.envelope.disposition).toBe("ALLOW");
 
-    const response = guardrails.render({
-      planId: "plan:general",
-      segments: [{ kind: "FACT", factId: "fact:general", templateId: "es.general" }],
-    }, prepared);
+    const response = guardrails.render({ planId: "plan:general", segments: [{ kind: "FACT", factId: "fact:general", templateId: "es.general" }] }, prepared);
     expect(response.text).toContain("Atención por chat");
   });
 
   it("still escalates the same stale price when the prospect asks about price", async () => {
     const generalEvidence = evidence("evidence:general");
     const stalePriceEvidence = evidence("evidence:price", "2025-01-01T00:00:00.000Z");
-    const general = groundedFact({
-      factId: "fact:general",
-      claimClass: "GENERAL",
-      predicate: "service-description",
-      displayValue: "Atención por chat",
-      evidenceId: generalEvidence.id,
-    });
-    const stalePrice = groundedFact({
-      factId: "fact:price",
-      claimClass: "PRICE",
-      predicate: "base-price-mxn",
-      displayValue: "3500",
-      evidenceId: stalePriceEvidence.id,
-    });
-    const guardrails = new FormalGuardrailEngine(
-      reader(context([general, stalePrice], [generalEvidence, stalePriceEvidence])),
-      createDefaultGuardrailPolicy(),
-      () => NOW_MS,
-    );
+    const general = groundedFact({ factId: "fact:general", claimClass: "GENERAL", predicate: "service-description", displayValue: "Atención por chat", evidenceId: generalEvidence.id });
+    const stalePrice = groundedFact({ factId: "fact:price", claimClass: "PRICE", predicate: "base-price-mxn", displayValue: "3500", evidenceId: stalePriceEvidence.id });
+    const guardrails = new FormalGuardrailEngine(reader(context([general, stalePrice], [generalEvidence, stalePriceEvidence])), createDefaultGuardrailPolicy(), () => NOW_MS);
 
-    const prepared = await guardrails.prepare({
-      businessEntityId: "business:client",
-      userMessage: "¿Cuál es la tarifa?",
-    });
-
+    const prepared = await guardrails.prepare({ businessEntityId: "business:client", userMessage: "¿Cuál es la tarifa?" });
     expect(prepared.envelope.requiredEscalation).toBe(true);
     expect(prepared.envelope.disposition).toBe("ESCALATE");
-    expect(() => guardrails.render({
-      planId: "plan:wrong",
-      segments: [{ kind: "FACT", factId: "fact:general", templateId: "es.general" }],
-    }, prepared)).toThrow(/escalation|omitted/i);
+    expect(() => guardrails.render({ planId: "plan:wrong", segments: [{ kind: "FACT", factId: "fact:general", templateId: "es.general" }] }, prepared)).toThrow(/escalation|omitted/i);
+  });
+
+  it("rejects an expired fact even if a reader incorrectly returns it as supported", async () => {
+    const approved = evidence("evidence:promo");
+    const expired = groundedFact({
+      factId: "fact:promo",
+      claimClass: "PROMOTION",
+      predicate: "promotion",
+      displayValue: "20% de descuento",
+      evidenceId: approved.id,
+      validUntil: "2026-08-29T23:59:59.000Z",
+    });
+    const guardrails = new FormalGuardrailEngine(reader(context([expired], [approved])), createDefaultGuardrailPolicy(), () => NOW_MS);
+    const prepared = await guardrails.prepare({ businessEntityId: "business:client", userMessage: "¿Qué promoción tienen?" });
+    expect(prepared.envelope.rejectedFacts[0]?.reasons).toContain("FACT_EXPIRED");
+    expect(prepared.envelope.requiredEscalation).toBe(true);
+  });
+
+  it("rejects a fact whose validity window has not started", async () => {
+    const approved = evidence("evidence:future-price");
+    const futurePrice = groundedFact({
+      factId: "fact:future-price",
+      claimClass: "PRICE",
+      predicate: "base-price-mxn",
+      displayValue: "4000",
+      evidenceId: approved.id,
+      validFrom: "2026-08-31T00:00:00.000Z",
+    });
+    const guardrails = new FormalGuardrailEngine(reader(context([futurePrice], [approved])), createDefaultGuardrailPolicy(), () => NOW_MS);
+    const prepared = await guardrails.prepare({ businessEntityId: "business:client", userMessage: "¿Cuál es el precio?" });
+    expect(prepared.envelope.rejectedFacts[0]?.reasons).toContain("FACT_NOT_YET_VALID");
+    expect(prepared.envelope.requiredEscalation).toBe(true);
+  });
+
+  it("fails closed on malformed or inverted fact validity intervals", async () => {
+    const approved = evidence("evidence:bad-window");
+    const inverted = groundedFact({
+      factId: "fact:bad-window",
+      claimClass: "PRICE",
+      predicate: "base-price-mxn",
+      displayValue: "4000",
+      evidenceId: approved.id,
+      validFrom: "2026-09-02T00:00:00.000Z",
+      validUntil: "2026-09-01T00:00:00.000Z",
+    });
+    const guardrails = new FormalGuardrailEngine(reader(context([inverted], [approved])), createDefaultGuardrailPolicy(), () => NOW_MS);
+    await expect(guardrails.prepare({ businessEntityId: "business:client", userMessage: "precio" })).rejects.toThrow(/inverted validity interval/i);
   });
 });
