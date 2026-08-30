@@ -56,7 +56,7 @@ function prepared(disposition: "ALLOW" | "QUALIFY" | "ESCALATE" = "ALLOW"): Prep
     customerEntityId: "customer:audit",
     userMessageDigest: "message_digest",
     scopeDigest: hash("ltmscope", SCOPE),
-    digest: `base_${disposition}`,
+    digest: `base_${disposition.toLowerCase()}`,
   };
 }
 
