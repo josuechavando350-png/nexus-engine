@@ -65,6 +65,7 @@ export {
   sequence,
   termSatisfiesConstraints,
   validateConstraint,
+  verifyVisualAlgebraTerm,
 } from "./algebra.js";
 
 export { geometricDistance, geometricSimilarity } from "./distance.js";
