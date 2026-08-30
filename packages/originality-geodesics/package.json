@@ -8,14 +8,17 @@
     "./types": "./src/types.ts",
     "./policy": "./src/policy.ts",
     "./point": "./src/point.ts",
+    "./edge": "./src/edge.ts",
+    "./limits": "./src/limits.ts",
     "./manifold": "./src/manifold.ts",
     "./dijkstra": "./src/dijkstra.ts",
     "./assessment": "./src/assessment.ts",
-    "./counterfactual": "./src/counterfactual.ts"
+    "./counterfactual": "./src/counterfactual.ts",
+    "./verified-counterfactual": "./src/verified-counterfactual.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/originality-geodesics/src/__tests__/originality-geodesics.test.ts packages/originality-geodesics/src/__tests__/hardening.test.ts",
+    "test": "vitest run --root ../.. packages/originality-geodesics/src/__tests__/originality-geodesics.test.ts packages/originality-geodesics/src/__tests__/hardening.test.ts packages/originality-geodesics/src/__tests__/integrity.audit.test.ts",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
   },
   "dependencies": {

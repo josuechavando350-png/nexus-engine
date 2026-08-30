@@ -3,6 +3,7 @@ import { createGeometricFingerprint, createTerm, definePrimitive, digestValue } 
 import {
   assessOriginality,
   buildOriginalityManifold,
+  createOriginalityEdge,
   createOriginalityPoint,
   createOriginalityPolicy,
   originalityPointFromFingerprint,
@@ -85,9 +86,9 @@ describe("originality geodesics", () => {
     const path = shortestGeodesicPath({
       nodeIds: ["c", "a", "b"],
       edges: [
-        { a: "a", b: "b", weight: 0.3, edgeDigest: digest("a") },
-        { a: "b", b: "c", weight: 0.2, edgeDigest: digest("b") },
-        { a: "a", b: "c", weight: 0.8, edgeDigest: digest("c") },
+        createOriginalityEdge("a", "b", 0.3),
+        createOriginalityEdge("b", "c", 0.2),
+        createOriginalityEdge("a", "c", 0.8),
       ],
       source: "a",
       target: "c",

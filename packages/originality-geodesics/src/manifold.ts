@@ -1,5 +1,6 @@
 import { digestValue, geometricDistance } from "@nexus/visual-algebra";
 import { createOriginalityEdge } from "./edge.js";
+import { MAX_ORIGINALITY_MANIFOLD_POINTS } from "./limits.js";
 import { compareStableStrings } from "./order.js";
 import { validateOriginalityPoint } from "./point.js";
 import { validateOriginalityPolicy } from "./policy.js";
@@ -7,6 +8,9 @@ import type { BuildOriginalityManifoldInput, OriginalityEdge, OriginalityManifol
 
 function canonicalPoints(points: readonly OriginalityPoint[]): readonly OriginalityPoint[] {
   if (!points.length) throw new Error("Originality manifold requires at least one reference/context point");
+  if (points.length > MAX_ORIGINALITY_MANIFOLD_POINTS) {
+    throw new Error(`Originality manifold point budget exceeded (${MAX_ORIGINALITY_MANIFOLD_POINTS})`);
+  }
   const sorted = [...points].sort((a, b) => compareStableStrings(a.pointId, b.pointId));
   const ids = new Set<string>();
   let protectedCount = 0;
@@ -71,6 +75,7 @@ export function buildOriginalityManifold(input: BuildOriginalityManifoldInput): 
 }
 
 export function validateOriginalityManifold(manifold: OriginalityManifold): void {
+  if (!manifold || typeof manifold !== "object") throw new Error("Originality manifold must be an object");
   if (manifold.authority !== "NEXUS_ORIGINALITY_MANIFOLD_V1" || manifold.version !== 1) {
     throw new Error("Unsupported originality manifold authority/version");
   }

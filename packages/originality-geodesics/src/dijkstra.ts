@@ -1,3 +1,5 @@
+import { validateOriginalityEdge } from "./edge.js";
+import { MAX_ORIGINALITY_GEODESIC_EDGES, MAX_ORIGINALITY_GEODESIC_NODES } from "./limits.js";
 import { compareStableStrings } from "./order.js";
 import type { GeodesicPath, OriginalityEdge } from "./types.js";
 
@@ -5,25 +7,43 @@ function pathKey(path: readonly string[]): string {
   return path.join("\u0000");
 }
 
-export function shortestGeodesicPath(input: {
-  readonly nodeIds: readonly string[];
-  readonly edges: readonly OriginalityEdge[];
-  readonly source: string;
-  readonly target: string;
-}): GeodesicPath {
-  const unique = new Set(input.nodeIds);
-  if (unique.size !== input.nodeIds.length) throw new Error("Geodesic node IDs must be unique");
-  if (!unique.has(input.source) || !unique.has(input.target)) throw new Error("Geodesic source and target must exist in graph");
+function edgeKey(edge: OriginalityEdge): string {
+  return `${edge.a}\u0000${edge.b}`;
+}
+
+function prepareGraph(nodeIds: readonly string[], edges: readonly OriginalityEdge[]) {
+  if (nodeIds.length > MAX_ORIGINALITY_GEODESIC_NODES) {
+    throw new Error(`Geodesic node budget exceeded (${MAX_ORIGINALITY_GEODESIC_NODES})`);
+  }
+  if (edges.length > MAX_ORIGINALITY_GEODESIC_EDGES) {
+    throw new Error(`Geodesic edge budget exceeded (${MAX_ORIGINALITY_GEODESIC_EDGES})`);
+  }
+  const unique = new Set(nodeIds);
+  if (unique.size !== nodeIds.length) throw new Error("Geodesic node IDs must be unique");
 
   const adjacency = new Map<string, Array<{ id: string; weight: number }>>();
-  for (const id of input.nodeIds) adjacency.set(id, []);
-  for (const edge of input.edges) {
+  for (const id of nodeIds) adjacency.set(id, []);
+  const seenEdges = new Set<string>();
+  for (const edge of edges) {
+    validateOriginalityEdge(edge);
     if (!unique.has(edge.a) || !unique.has(edge.b)) throw new Error("Geodesic edge endpoint does not exist in graph");
-    if (!Number.isFinite(edge.weight) || edge.weight < 0) throw new Error("Geodesic edge weight must be finite and non-negative");
+    const key = edgeKey(edge);
+    if (seenEdges.has(key)) throw new Error(`Duplicate geodesic edge ${edge.a}<->${edge.b}`);
+    seenEdges.add(key);
     adjacency.get(edge.a)!.push({ id: edge.b, weight: edge.weight });
     adjacency.get(edge.b)!.push({ id: edge.a, weight: edge.weight });
   }
   for (const neighbors of adjacency.values()) neighbors.sort((a, b) => compareStableStrings(a.id, b.id));
+  return { unique, adjacency };
+}
+
+function runSingleSource(input: {
+  readonly nodeIds: readonly string[];
+  readonly edges: readonly OriginalityEdge[];
+  readonly source: string;
+}) {
+  const { unique, adjacency } = prepareGraph(input.nodeIds, input.edges);
+  if (!unique.has(input.source)) throw new Error("Geodesic source must exist in graph");
 
   const distance = new Map<string, number>();
   const paths = new Map<string, readonly string[]>();
@@ -47,8 +67,6 @@ export function shortestGeodesicPath(input: {
     const currentDistance = distance.get(current)!;
     if (!Number.isFinite(currentDistance)) break;
     unsettled.delete(current);
-    if (current === input.target) break;
-
     const currentPath = paths.get(current)!;
     for (const neighbor of adjacency.get(current)!) {
       if (!unsettled.has(neighbor.id)) continue;
@@ -63,7 +81,34 @@ export function shortestGeodesicPath(input: {
     }
   }
 
-  const result = distance.get(input.target)!;
-  if (!Number.isFinite(result)) return Object.freeze({ reachable: false, distance: null, nodes: Object.freeze([]) });
-  return Object.freeze({ reachable: true, distance: result, nodes: Object.freeze([...(paths.get(input.target) ?? [input.source])]) });
+  return { unique, distance, paths };
+}
+
+export function shortestGeodesicPaths(input: {
+  readonly nodeIds: readonly string[];
+  readonly edges: readonly OriginalityEdge[];
+  readonly source: string;
+  readonly targets: readonly string[];
+}): readonly Readonly<{ target: string; path: GeodesicPath }>[] {
+  const { unique, distance, paths } = runSingleSource(input);
+  const seenTargets = new Set<string>();
+  return Object.freeze(input.targets.map((target) => {
+    if (!unique.has(target)) throw new Error("Geodesic target must exist in graph");
+    if (seenTargets.has(target)) throw new Error(`Duplicate geodesic target ${target}`);
+    seenTargets.add(target);
+    const result = distance.get(target)!;
+    const path: GeodesicPath = Number.isFinite(result)
+      ? Object.freeze({ reachable: true, distance: result, nodes: Object.freeze([...(paths.get(target) ?? [input.source])]) })
+      : Object.freeze({ reachable: false, distance: null, nodes: Object.freeze([]) });
+    return Object.freeze({ target, path });
+  }));
+}
+
+export function shortestGeodesicPath(input: {
+  readonly nodeIds: readonly string[];
+  readonly edges: readonly OriginalityEdge[];
+  readonly source: string;
+  readonly target: string;
+}): GeodesicPath {
+  return shortestGeodesicPaths({ ...input, targets: [input.target] })[0]!.path;
 }
