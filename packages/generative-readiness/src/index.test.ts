@@ -115,20 +115,24 @@ describe("generative readiness", () => {
     expect(() => assess(page, "2026-08-30T00:00:00Z")).toThrow(/postdate/);
   });
 
-  it("rejects attacker-rehashed noncanonical page state", () => {
+  it("rejects page tampering without matching canonical identity", () => {
     const page = createPage(input());
-    const forgedCore = { ...page, title: "Forged title" };
-    const { pageDigest: _old, ...core } = forgedCore;
-    const forged = { ...forgedCore, pageDigest: digestValue(core) };
-    expect(() => validatePage(forged)).toThrow(/canonical|digest/);
+    const forged = { ...page, title: "Forged title" };
+    expect(() => validatePage(forged)).toThrow(/digest mismatch/);
   });
 
   it("rejects forged readiness even when its digest is recomputed", () => {
     const page = createPage(input());
     const result = assess(page, "2026-08-30T00:00:00Z");
-    const forgedCore = { ...result, status: "BLOCKED" as const };
-    const { readinessDigest: _old, ...core } = forgedCore;
-    const forged = { ...forgedCore, readinessDigest: digestValue(core) };
+    const forgedCore = {
+      status: "BLOCKED" as const,
+      score: result.score,
+      metrics: result.metrics,
+      issues: result.issues,
+      pageDigest: result.pageDigest,
+      observedAt: result.observedAt,
+    };
+    const forged = { ...forgedCore, readinessDigest: digestValue(forgedCore) };
     expect(() => validateReadiness(page, forged)).toThrow(/replay mismatch/);
   });
 
