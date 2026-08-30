@@ -1,6 +1,6 @@
 import { validateVerificationResult } from "@nexus/compositional-semantics";
 import { validateOriginalityAssessment } from "@nexus/originality-geodesics";
-import { validateCertifiedSynthesisResult } from "@nexus/topology";
+import { validateCertifiedSynthesisAgainstTerm } from "@nexus/topology";
 import { digestValue, verifyVisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 import { validateEvidenceTrustAnchor } from "./anchor.js";
@@ -34,20 +34,34 @@ function validateVisualTerm(term: VisualAlgebraTerm): void {
 function assertFormalLinkage(input: CreateFormalExperienceProofInput): void {
   validateExperienceArtifact(input.artifact);
   validateVisualTerm(input.visual);
-  validateCertifiedSynthesisResult(input.topology);
+  validateCertifiedSynthesisAgainstTerm(input.topology, input.visual);
   validateVerificationResult(input.semantics);
   validateOriginalityAssessment(input.originality);
 
   const subject = input.artifact.subject;
-  if (input.visual.subject !== subject || input.topology.certificate.subject !== subject || input.semantics.certificate.subject !== subject || input.originality.candidate.subject !== subject) {
+  if (
+    input.visual.subject !== subject
+    || input.topology.certificate.subject !== subject
+    || input.semantics.certificate.subject !== subject
+    || input.originality.candidate.subject !== subject
+  ) {
     throw new Error("Formal proof subject linkage mismatch");
   }
-  if (input.topology.certificate.sourceTermDigest !== input.visual.digest) throw new Error("Proof Visual Algebra / Topology provenance mismatch");
-  if (input.semantics.initialState.facts["visual.termDigest"] !== input.visual.digest) throw new Error("Proof semantic state is not bound to Visual Algebra evidence");
-  if (input.semantics.initialState.facts["topology.certificateDigest"] !== input.topology.certificate.certificateDigest) throw new Error("Proof semantic state is not bound to Topology evidence");
-  if (input.semantics.initialState.facts["topology.sourceTermDigest"] !== input.visual.digest) throw new Error("Proof semantic state carries a mismatched Topology source term");
-  if (input.originality.candidate.termDigest !== input.visual.digest) throw new Error("Proof originality candidate is not bound to Visual Algebra term");
-  if (digestValue(input.originality.candidate.metrics) !== digestValue(input.visual.metrics)) throw new Error("Proof originality candidate metrics do not match Visual Algebra metrics");
+  if (input.semantics.initialState.facts["visual.termDigest"] !== input.visual.digest) {
+    throw new Error("Proof semantic state is not bound to Visual Algebra evidence");
+  }
+  if (input.semantics.initialState.facts["topology.certificateDigest"] !== input.topology.certificate.certificateDigest) {
+    throw new Error("Proof semantic state is not bound to Topology evidence");
+  }
+  if (input.semantics.initialState.facts["topology.sourceTermDigest"] !== input.visual.digest) {
+    throw new Error("Proof semantic state carries a mismatched Topology source term");
+  }
+  if (input.originality.candidate.termDigest !== input.visual.digest) {
+    throw new Error("Proof originality candidate is not bound to Visual Algebra term");
+  }
+  if (digestValue(input.originality.candidate.metrics) !== digestValue(input.visual.metrics)) {
+    throw new Error("Proof originality candidate metrics do not match Visual Algebra metrics");
+  }
 }
 
 export function formalExperienceProofDigest(input: CreateFormalExperienceProofInput): string {
@@ -95,7 +109,12 @@ function makeClaims(input: CreateExperienceProofInput): readonly ExperienceProof
   const originality = claim({ kind: "ORIGINALITY", subject: input.artifact.subject, status: originalityStatus, evidenceDigest: input.originality.assessmentDigest, dependencies: [visual.claimId] });
   const evidence = claim({ kind: "SIGNED_EVIDENCE", subject: input.artifact.subject, status: "VERIFIED", evidenceDigest: input.evidenceAnchor.anchorDigest, dependencies: [artifact.claimId, visual.claimId, topology.claimId, semantics.claimId, originality.claimId] });
   const byKind = new Map<ExperienceProofClaimKind, ExperienceProofClaim>([
-    [artifact.kind, artifact], [visual.kind, visual], [topology.kind, topology], [semantics.kind, semantics], [originality.kind, originality], [evidence.kind, evidence],
+    [artifact.kind, artifact],
+    [visual.kind, visual],
+    [topology.kind, topology],
+    [semantics.kind, semantics],
+    [originality.kind, originality],
+    [evidence.kind, evidence],
   ]);
   return Object.freeze(CLAIM_ORDER.map((kind) => byKind.get(kind)!));
 }
@@ -108,10 +127,15 @@ function validateClaimGraph(claims: readonly ExperienceProofClaim[]): void {
     if (!/^claim_[a-f0-9]{64}$/.test(item.claimId)) throw new Error("Invalid proof claim id");
     if (ids.has(item.claimId)) throw new Error("Duplicate proof claim id");
     if (kinds.has(item.kind)) throw new Error(`Duplicate proof claim kind ${item.kind}`);
-    ids.add(item.claimId); kinds.add(item.kind);
+    ids.add(item.claimId);
+    kinds.add(item.kind);
   }
   for (const kind of CLAIM_ORDER) if (!kinds.has(kind)) throw new Error(`Missing proof claim kind ${kind}`);
-  for (const item of claims) for (const dependency of item.dependencies) if (!ids.has(dependency)) throw new Error(`Unknown proof claim dependency ${dependency}`);
+  for (const item of claims) {
+    for (const dependency of item.dependencies) {
+      if (!ids.has(dependency)) throw new Error(`Unknown proof claim dependency ${dependency}`);
+    }
+  }
 }
 
 export function createExperienceProof(input: CreateExperienceProofInput): ExperienceProofBundle {
@@ -150,11 +174,28 @@ export function createExperienceProof(input: CreateExperienceProofInput): Experi
 }
 
 export function validateExperienceProof(proof: ExperienceProofBundle): true {
-  if (proof.authority !== "NEXUS_PROOF_CARRYING_EXPERIENCE_V2" || proof.version !== 2) throw new Error("Unsupported proof-carrying experience authority/version");
-  const rebuilt = createExperienceProof({ artifact: proof.artifact, visual: proof.visual, topology: proof.topology, semantics: proof.semantics, originality: proof.originality, evidenceAnchor: proof.evidenceAnchor });
-  if (rebuilt.proofId !== proof.proofId || rebuilt.rootDigest !== proof.rootDigest || rebuilt.formalDigest !== proof.formalDigest || rebuilt.status !== proof.status || digestValue(rebuilt.claims) !== digestValue(proof.claims)) {
+  if (proof.authority !== "NEXUS_PROOF_CARRYING_EXPERIENCE_V2" || proof.version !== 2) {
+    throw new Error("Unsupported proof-carrying experience authority/version");
+  }
+  const rebuilt = createExperienceProof({
+    artifact: proof.artifact,
+    visual: proof.visual,
+    topology: proof.topology,
+    semantics: proof.semantics,
+    originality: proof.originality,
+    evidenceAnchor: proof.evidenceAnchor,
+  });
+  if (
+    rebuilt.proofId !== proof.proofId
+    || rebuilt.rootDigest !== proof.rootDigest
+    || rebuilt.formalDigest !== proof.formalDigest
+    || rebuilt.status !== proof.status
+    || digestValue(rebuilt.claims) !== digestValue(proof.claims)
+  ) {
     throw new Error("Proof-carrying experience digest or claim linkage mismatch");
   }
-  if (proof.subject !== rebuilt.subject || proof.sourceRevision !== rebuilt.sourceRevision) throw new Error("Proof-carrying experience subject/revision mismatch");
+  if (proof.subject !== rebuilt.subject || proof.sourceRevision !== rebuilt.sourceRevision) {
+    throw new Error("Proof-carrying experience subject/revision mismatch");
+  }
   return true;
 }
