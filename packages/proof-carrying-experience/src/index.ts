@@ -12,8 +12,8 @@ export type {
 export { artifactDigest, assertSourceRevision, createExperienceArtifact, validateExperienceArtifact } from "./artifact.js";
 export {
   createEvidenceTrustAnchor,
-  validateAuthenticatedEvidenceTrustAnchor,
   validateEvidenceTrustAnchor,
+  validateEvidenceTrustAnchorAuthenticationBinding,
 } from "./anchor.js";
 export {
   createExperienceProof,
