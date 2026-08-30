@@ -22,6 +22,7 @@ function policy(requireFinalLinkParity = false) {
 function passingObservation() {
   const link = serializeLinkHeader(policy());
   return {
+    targetUrl: "https://example.com/",
     observedProtocol: "HTTP/3",
     observedInterimStatuses: [103],
     earlyHintLinks: [link],
@@ -40,6 +41,12 @@ describe("transport HTTP/3 + Early Hints", () => {
     expect(() => validateTransportVerification(p, verification)).not.toThrow();
   });
 
+  it("binds transport evidence to the policy host", () => {
+    const result = verifyTransportObservation(policy(), { ...passingObservation(), targetUrl: "https://attacker.example/" });
+    expect(result.status).toBe("FAIL");
+    expect(result.reasons).toContain("probe target does not match policy host");
+  });
+
   it("does not accept HTTP/2 fallback as HTTP/3", () => {
     const result = verifyTransportObservation(policy(), { ...passingObservation(), observedProtocol: "2" });
     expect(result.status).toBe("FAIL");
@@ -50,6 +57,25 @@ describe("transport HTTP/3 + Early Hints", () => {
     const result = verifyTransportObservation(policy(), { ...passingObservation(), observedInterimStatuses: [] });
     expect(result.status).toBe("FAIL");
     expect(result.reasons).toContain("103 Early Hints not observed");
+  });
+
+  it("rejects a matching href with mismatched Link semantics", () => {
+    const observation = passingObservation();
+    const result = verifyTransportObservation(policy(), {
+      ...observation,
+      earlyHintLinks: ["</app.css>; rel=preload; as=script, <https://fonts.example.com>; rel=preconnect"],
+    });
+    expect(result.status).toBe("FAIL");
+    expect(result.reasons).toContain("early hint missing or mismatched /app.css");
+  });
+
+  it("accepts equivalent quoted Link parameter values", () => {
+    const observation = passingObservation();
+    const result = verifyTransportObservation(policy(), {
+      ...observation,
+      earlyHintLinks: ["</app.css>; rel=\"preload\"; as=\"style\", <https://fonts.example.com>; rel=\"preconnect\""],
+    });
+    expect(result.status).toBe("PASS");
   });
 
   it("does not require final Link duplication unless policy explicitly requests parity", () => {
@@ -64,6 +90,17 @@ describe("transport HTTP/3 + Early Hints", () => {
     const result = verifyTransportObservation(policy(), { ...passingObservation(), probeAvailable: false, observedProtocol: null, finalStatus: null });
     expect(result.status).toBe("UNAVAILABLE");
     expect(result.reasons).toEqual(["probe unavailable"]);
+  });
+
+  it("does not downgrade a mismatched target to UNAVAILABLE", () => {
+    const result = verifyTransportObservation(policy(), {
+      ...passingObservation(),
+      targetUrl: "https://attacker.example/",
+      probeAvailable: false,
+      observedProtocol: null,
+      finalStatus: null,
+    });
+    expect(result.status).toBe("FAIL");
   });
 
   it("rejects control-character/header-injection inputs and malformed hint semantics", () => {
