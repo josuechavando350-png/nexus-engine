@@ -112,15 +112,17 @@ describe("long-term memory adversarial audit", () => {
   it("plans bounded physical cleanup for expired and revoked records while preserving active memory", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, SCOPE_A, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE_A, createDefaultLongTermMemoryPolicy(), () => NOW_MS);
-    apply(read, planner.planUpsert(input(customer, { memoryKey: "expired", category: "CONTEXT", value: "old", expiresAt: "2026-08-30T00:30:00.000Z" })));
+    const policy = createDefaultLongTermMemoryPolicy();
+    const beforeExpiryPlanner = new LongTermMemoryPlanner(read, SCOPE_A, policy, () => Date.parse("2026-08-30T00:10:00.000Z"));
+    apply(read, beforeExpiryPlanner.planUpsert(input(customer, { memoryKey: "expired", category: "CONTEXT", value: "old", expiresAt: "2026-08-30T00:30:00.000Z" })));
+    const planner = new LongTermMemoryPlanner(read, SCOPE_A, policy, () => NOW_MS);
     apply(read, planner.planUpsert(input(customer, { memoryKey: "revoked", category: "CONTEXT", value: "old2" })));
     apply(read, planner.planRevoke({ subjectId: customer, memoryKey: "revoked", observedAt: NOW }));
     apply(read, planner.planUpsert(input(customer, { memoryKey: "active", category: "CONTEXT", value: "current" })));
     const sweep = planner.planRetentionSweep({ subjectId: customer, maxDeletes: 10 });
     expect(sweep.operations.filter((operation) => operation.kind === "DELETE_OBJECT")).toHaveLength(2);
     apply(read, sweep);
-    const reader = new LongTermMemoryReader(read, SCOPE_A, createDefaultLongTermMemoryPolicy(), () => NOW_MS);
+    const reader = new LongTermMemoryReader(read, SCOPE_A, policy, () => NOW_MS);
     const recalled = reader.recall({ subjectId: customer, userMessage: "current" });
     expect(recalled.items.map((item) => item.memory.memoryKey)).toEqual(["active"]);
   });
