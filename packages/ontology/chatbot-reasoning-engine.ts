@@ -18,6 +18,13 @@ import {
   type VerifiedReasoningAssessment,
 } from "./chatbot-reasoning-types.js";
 
+class ReasoningAgentTimeoutError extends Error {
+  constructor() {
+    super("reasoning agent timed out");
+    this.name = "ReasoningAgentTimeoutError";
+  }
+}
+
 function normalizeText(value: string): string {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
@@ -60,6 +67,28 @@ function validateAssessment(raw: ReasoningAgentAssessment, agent: ReasoningAgent
   }
   const normalizedIssues = issues.length > 1 ? issues.filter((code) => code !== "NONE") : issues;
   return freezeAssessment({ ...raw, agentId, candidateArmId: input.candidateArmId, issueCodes: normalizedIssues.length ? normalizedIssues : ["NONE"] });
+}
+
+async function invokeAgent(
+  agent: ReasoningAgentPort,
+  baseInput: Omit<ReasoningAgentInput, "signal">,
+  timeoutMs: number,
+): Promise<VerifiedReasoningAssessment> {
+  const controller = new AbortController();
+  const input: ReasoningAgentInput = Object.freeze({ ...baseInput, signal: controller.signal });
+  let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+  try {
+    const timeout = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(() => {
+        controller.abort();
+        reject(new ReasoningAgentTimeoutError());
+      }, timeoutMs);
+    });
+    const raw = await Promise.race([Promise.resolve(agent.assess(input)), timeout]);
+    return validateAssessment(raw, agent, input);
+  } finally {
+    if (timeoutHandle !== undefined) clearTimeout(timeoutHandle);
+  }
 }
 
 export class IntentPlannerReasoningAgent implements ReasoningAgentPort {
@@ -148,6 +177,7 @@ export class BoundedMultiAgentReasoningEngine {
     const agentIds = new Set<string>();
     for (const agent of agents) {
       const agentId = normalizeIdentifier(agent.agentId, "agentId");
+      if (agent.agentId !== agentId) throw new ChatbotReasoningError("INVALID_INPUT", `reasoning agent ${agent.agentId} must use a canonical agentId`);
       if (agentIds.has(agentId)) throw new ChatbotReasoningError("INVALID_INPUT", `duplicate reasoning agent ${agentId}`);
       agentIds.add(agentId);
       if (!REASONING_AGENT_ROLES.includes(agent.role)) throw new ChatbotReasoningError("INVALID_INPUT", `reasoning agent ${agentId} has invalid role`);
@@ -182,7 +212,7 @@ export class BoundedMultiAgentReasoningEngine {
     }
     const remainingArmIds = Object.freeze([...new Set(raw.remainingArmIds.map((id) => normalizeIdentifier(id, "remainingArmId")))].sort());
     if (!remainingArmIds.includes(candidateArmId)) throw new ChatbotReasoningError("INTEGRITY_FAILURE", "selected reasoning candidate is absent from remaining arms");
-    const input: ReasoningAgentInput = Object.freeze({
+    const baseInput: Omit<ReasoningAgentInput, "signal"> = Object.freeze({
       reasoningId,
       interactionId,
       attempt: raw.attempt,
@@ -195,25 +225,30 @@ export class BoundedMultiAgentReasoningEngine {
       evidence: raw.evidence,
     });
 
-    let failures = 0;
-    const assessments: VerifiedReasoningAssessment[] = [];
-    for (const agent of this.agents) {
+    const results = await Promise.all(this.agents.map(async (agent) => {
       try {
-        const result = await agent.assess(input);
-        assessments.push(validateAssessment(result, agent, input));
+        return { assessment: await invokeAgent(agent, baseInput, this.policy.agentTimeoutMs), failed: false } as const;
       } catch (error) {
-        failures += 1;
-        const issue: ReasoningIssueCode = error instanceof ChatbotReasoningError && error.code === "INTEGRITY_FAILURE" ? "INVALID_AGENT_OUTPUT" : "AGENT_FAILURE";
-        assessments.push(freezeAssessment({
-          agentId: normalizeIdentifier(agent.agentId, "agentId"),
-          role: agent.role,
-          candidateArmId,
-          verdict: "UNCERTAIN",
-          confidence: 0,
-          issueCodes: [issue],
-        }));
+        const issue: ReasoningIssueCode = error instanceof ReasoningAgentTimeoutError
+          ? "AGENT_TIMEOUT"
+          : error instanceof ChatbotReasoningError && error.code === "INTEGRITY_FAILURE"
+            ? "INVALID_AGENT_OUTPUT"
+            : "AGENT_FAILURE";
+        return {
+          assessment: freezeAssessment({
+            agentId: agent.agentId,
+            role: agent.role,
+            candidateArmId,
+            verdict: "UNCERTAIN",
+            confidence: 0,
+            issueCodes: [issue],
+          }),
+          failed: true,
+        } as const;
       }
-    }
+    }));
+    const failures = results.filter((item) => item.failed).length;
+    const assessments = results.map((item) => item.assessment);
     if (failures > this.policy.maxAgentFailures) {
       throw new ChatbotReasoningError("AGENT_FAILURE_BUDGET_EXCEEDED", "reasoning agent failure budget exceeded");
     }
