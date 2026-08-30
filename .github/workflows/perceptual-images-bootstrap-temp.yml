@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libavif-bin cmake ninja-build pkg-config git
+          sudo apt-get install -y libavif-bin libpng-dev libjpeg-dev cmake ninja-build pkg-config git
           git clone --filter=blob:none https://github.com/libjxl/libjxl.git .tmp-libjxl
           git -C .tmp-libjxl checkout --detach a7a9c787341cf703dede03c2009fa460cae5e5df
           test "$(git -C .tmp-libjxl rev-parse HEAD)" = "a7a9c787341cf703dede03c2009fa460cae5e5df"
