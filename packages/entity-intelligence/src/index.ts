@@ -628,7 +628,7 @@ async function fetchJson(
     if (!response.ok) throw new Error(`${label} ${response.status}`);
     return await response.json() as unknown;
   } catch (error) {
-    if (controller.signal.aborted) throw new Error(`${label} timeout`);
+    if (controller.signal.aborted) throw new Error(`${label} timeout`, { cause: error });
     throw error;
   } finally {
     clearTimeout(timer);
@@ -636,11 +636,19 @@ async function fetchJson(
 }
 
 export class CloudNaturalLanguageClient {
+  private readonly token: () => Promise<string>;
+  private readonly fetchImpl: FetchLike;
+  private readonly timeoutMs: number;
+
   constructor(
-    private readonly token: () => Promise<string>,
-    private readonly fetchImpl: FetchLike = fetch,
-    private readonly timeoutMs = DEFAULT_TIMEOUT_MS,
-  ) {}
+    token: () => Promise<string>,
+    fetchImpl: FetchLike = fetch,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
+  ) {
+    this.token = token;
+    this.fetchImpl = fetchImpl;
+    this.timeoutMs = timeoutMs;
+  }
 
   async analyze(document: EntityDocument): Promise<AnalysisSnapshot> {
     validateEntityDocument(document);
@@ -675,14 +683,20 @@ function safeProjectId(value: string): string {
 
 export class KnowledgeGraphClient {
   private readonly projectId: string;
+  private readonly token: () => Promise<string>;
+  private readonly fetchImpl: FetchLike;
+  private readonly timeoutMs: number;
 
   constructor(
     projectId: string,
-    private readonly token: () => Promise<string>,
-    private readonly fetchImpl: FetchLike = fetch,
-    private readonly timeoutMs = DEFAULT_TIMEOUT_MS,
+    token: () => Promise<string>,
+    fetchImpl: FetchLike = fetch,
+    timeoutMs = DEFAULT_TIMEOUT_MS,
   ) {
     this.projectId = safeProjectId(projectId);
+    this.token = token;
+    this.fetchImpl = fetchImpl;
+    this.timeoutMs = timeoutMs;
   }
 
   private async request(op: "Search" | "Lookup", params: URLSearchParams): Promise<unknown> {
