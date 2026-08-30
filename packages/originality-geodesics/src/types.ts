@@ -125,3 +125,23 @@ export interface SearchOriginalityCounterfactualInput {
   readonly alternatives: readonly OriginalityPoint[];
   readonly manifold: OriginalityManifold;
 }
+
+export interface VerifiedCounterfactualTermInput {
+  readonly pointId: string;
+  readonly term: VisualAlgebraTerm;
+}
+
+export interface SearchVerifiedOriginalityCounterfactualInput {
+  readonly source: VerifiedCounterfactualTermInput;
+  readonly alternatives: readonly VerifiedCounterfactualTermInput[];
+  readonly manifold: OriginalityManifold;
+}
+
+export interface VerifiedOriginalityCounterfactualResult {
+  readonly authority: "NEXUS_ORIGINALITY_VERIFIED_COUNTERFACTUAL_V1";
+  readonly version: 1;
+  readonly source: VerifiedCounterfactualTermInput;
+  readonly alternatives: readonly VerifiedCounterfactualTermInput[];
+  readonly pointSearch: CounterfactualSearchResult;
+  readonly verifiedSearchDigest: string;
+}
