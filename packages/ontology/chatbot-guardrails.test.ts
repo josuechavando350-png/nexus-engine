@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { hash, type GroundedFact, type GroundingContext, type KnowledgeEvidence } from "./chatbot-knowledge-types.js";
 import type { KnowledgeGraphReader } from "./chatbot-knowledge-reader.js";
 import { FormalGuardrailEngine, inferGuardrailSensitiveClaimClasses } from "./chatbot-guardrails-engine.js";
-import { createDefaultGuardrailPolicy } from "./chatbot-guardrails-policy.js";
+import { createDefaultGuardrailPolicy, finalizeGuardrailPolicy } from "./chatbot-guardrails-policy.js";
 
 const NOW = "2026-08-30T00:00:00.000Z";
 const NOW_MS = Date.parse(NOW);
@@ -58,6 +58,32 @@ describe("formal chatbot guardrails", () => {
   it("recognizes sensitive commercial intents independently of the model", () => {
     expect(inferGuardrailSensitiveClaimClasses("¿Cuánto cuesta y tienen descuento?"))
       .toEqual(["PRICE", "PROMOTION"]);
+    expect(inferGuardrailSensitiveClaimClasses("¿Son $3500?"))).toEqual(["PRICE"]);
+  });
+
+  it("deep-freezes policy internals so async evaluation cannot observe policy mutation", () => {
+    const policy = createDefaultGuardrailPolicy();
+    expect(Object.isFrozen(policy)).toBe(true);
+    expect(Object.isFrozen(policy.claimPolicies)).toBe(true);
+    expect(Object.isFrozen(policy.claimPolicies.PRICE)).toBe(true);
+    expect(Object.isFrozen(policy.claimPolicies.PRICE.allowedEvidenceKinds)).toBe(true);
+    expect(Object.isFrozen(policy.copy)).toBe(true);
+    expect(Object.isFrozen(policy.templates)).toBe(true);
+    expect(() => (policy.claimPolicies.PRICE.allowedEvidenceKinds as string[]).push("CUSTOMER_PROVIDED")).toThrow(TypeError);
+  });
+
+  it("canonicalizes set-like policy arrays before hashing", () => {
+    const policy = createDefaultGuardrailPolicy();
+    const { digest: _digest, ...core } = policy;
+    const price = core.claimPolicies.PRICE;
+    const equivalent = finalizeGuardrailPolicy({
+      ...core,
+      claimPolicies: {
+        ...core.claimPolicies,
+        PRICE: { ...price, allowedEvidenceKinds: [...price.allowedEvidenceKinds].reverse() },
+      },
+    });
+    expect(equivalent.digest).toBe(policy.digest);
   });
 
   it("allows a supported price only through an approved fact template", async () => {
@@ -93,7 +119,29 @@ describe("formal chatbot guardrails", () => {
     const credential = fact({ claimClass: "CREDENTIAL", predicate: "professional-license", displayValue: "ABC123" });
     const context = grounding([credential], [evidence({ kind: "WEBSITE" })]);
     const prepared = await engine(context).prepare({ businessEntityId: "business:client", userMessage: "¿Cuál es su cédula?" });
-    expect(prepared.envelope.rejectedFacts[0]?.reasons).toContain("MISSING_REQUIRED_EVIDENCE_KIND");
+    expect(prepared.envelope.rejectedFacts[0]?.reasons).toContain("MISSING_REQUIRED_ANY_EVIDENCE_KIND");
+  });
+
+  it("can require all configured provenance kinds, not only one of them", async () => {
+    const base = createDefaultGuardrailPolicy();
+    const { digest: _digest, ...core } = base;
+    const credentialRule = core.claimPolicies.CREDENTIAL;
+    const policy = finalizeGuardrailPolicy({
+      ...core,
+      claimPolicies: {
+        ...core.claimPolicies,
+        CREDENTIAL: {
+          ...credentialRule,
+          requiredAnyEvidenceKinds: undefined,
+          requiredAllEvidenceKinds: ["FIRST_PARTY", "OPERATOR_APPROVED"],
+        },
+      },
+    });
+    const credential = fact({ claimClass: "CREDENTIAL", predicate: "professional-license", displayValue: "ABC123" });
+    const context = grounding([credential], [evidence({ kind: "FIRST_PARTY" })]);
+    const guardrails = new FormalGuardrailEngine(reader(context), policy, () => NOW_MS);
+    const prepared = await guardrails.prepare({ businessEntityId: "business:client", userMessage: "¿Cuál es su cédula?" });
+    expect(prepared.envelope.rejectedFacts[0]?.reasons).toContain("MISSING_REQUIRED_ALL_EVIDENCE_KIND");
   });
 
   it("does not turn partial support into a high-risk price commitment", async () => {
