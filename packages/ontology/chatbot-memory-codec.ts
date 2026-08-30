@@ -30,7 +30,7 @@ import {
 } from "./chatbot-knowledge-types.js";
 
 const FORBIDDEN_MEMORY_KEY_TERMS = [
-  "password", "passwd", "contrasena", "secret", "api-key", "apikey", "private-key", "privatekey",
+  "password", "passwd", "contrasena", "contraseña", "secret", "api-key", "apikey", "private-key", "privatekey",
   "access-token", "refresh-token", "auth-token", "cvv", "pin", "otp", "one-time-password",
 ] as const;
 
@@ -142,11 +142,19 @@ function effectiveConfidence(sourceKind: MemorySourceKind, value: number | undef
   return confidence;
 }
 
-export function memoryIdentity(input: Pick<UpsertLongTermMemoryInput, "subjectId" | "memoryKey">): { id: string; subjectId: string; memoryKey: string } {
+function normalizedIdentity(input: { readonly subjectId: string; readonly memoryKey: string }, enforceKeyPolicy: boolean): { id: string; subjectId: string; memoryKey: string } {
   const subjectId = normalizeIdentifier(input.subjectId, "subjectId");
   const memoryKey = normalizeIdentifier(input.memoryKey, "memoryKey");
-  assertAllowedMemoryKey(memoryKey);
+  if (enforceKeyPolicy) assertAllowedMemoryKey(memoryKey);
   return { id: hash("ltm", { subjectId, memoryKey }), subjectId, memoryKey };
+}
+
+export function memoryIdentity(input: Pick<UpsertLongTermMemoryInput, "subjectId" | "memoryKey">): { id: string; subjectId: string; memoryKey: string } {
+  return normalizedIdentity(input, true);
+}
+
+export function memoryDeletionIdentity(input: { readonly subjectId: string; readonly memoryKey: string }): { id: string; subjectId: string; memoryKey: string } {
+  return normalizedIdentity(input, false);
 }
 
 export function memoryPayload(
@@ -249,11 +257,10 @@ export function memoryStatusPayload(record: LongTermMemoryRecord, status: Memory
   };
 }
 
-export function projectLongTermMemory(record: ObjectRecord, policy: LongTermMemoryPolicy): LongTermMemoryRecord {
+export function projectLongTermMemory(record: ObjectRecord, policy: LongTermMemoryPolicy, enforceAdmission = true): LongTermMemoryRecord {
   if (record.typeId !== MEMORY_TYPE) throw new LongTermMemoryError("TYPE_MISMATCH", `${record.id} is not a long-term memory record`);
   const subjectId = normalizeIdentifier(stringProperty(record, MP.subjectId), MP.subjectId);
   const memoryKey = normalizeIdentifier(stringProperty(record, MP.memoryKey), MP.memoryKey);
-  assertAllowedMemoryKey(memoryKey, true);
   const category = storedEnum(stringProperty(record, MP.category), MEMORY_CATEGORIES, MP.category) as MemoryCategory;
   const sourceKind = storedEnum(stringProperty(record, MP.sourceKind), MEMORY_SOURCE_KINDS, MP.sourceKind) as MemorySourceKind;
   const retentionBasis = storedEnum(stringProperty(record, MP.retentionBasis), MEMORY_RETENTION_BASES, MP.retentionBasis) as MemoryRetentionBasis;
@@ -268,15 +275,18 @@ export function projectLongTermMemory(record: ObjectRecord, policy: LongTermMemo
   assertJsonValue(value, MP.value);
   const sourceRef = stringProperty(record, MP.sourceRef);
   const sourceDigest = stringProperty(record, MP.sourceDigest);
-  assertSourceCategory(sourceKind, category, true);
-  assertSafeMemoryValue(value, sensitivity, true);
-  assertPolicyForMemory(policy, sensitivity, retentionBasis, sourceKind, observedAt, expiresAt, true);
-  if (sourceKind === "CUSTOMER_IMPLICIT" && confidence > 0.85) throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${record.id} has impossible implicit confidence`);
-  if (sourceKind === "SYSTEM_SUMMARY" && confidence > 0.9) throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${record.id} has impossible summary confidence`);
   const expectedId = hash("ltm", { subjectId, memoryKey });
   if (record.id !== expectedId) throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${record.id} identity digest mismatch`);
   const core = { subjectId, memoryKey, category, value, sourceKind, sourceRef, sourceDigest, retentionBasis, sensitivity, confidence, observedAt, expiresAt, status, createdAt, updatedAt };
   const digest = hash("ltmrecord", core);
   if (stringProperty(record, MP.recordDigest) !== digest) throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${record.id} record digest mismatch`);
+  if (enforceAdmission) {
+    assertAllowedMemoryKey(memoryKey, true);
+    assertSourceCategory(sourceKind, category, true);
+    assertSafeMemoryValue(value, sensitivity, true);
+    assertPolicyForMemory(policy, sensitivity, retentionBasis, sourceKind, observedAt, expiresAt, true);
+    if (sourceKind === "CUSTOMER_IMPLICIT" && confidence > 0.85) throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${record.id} has impossible implicit confidence`);
+    if (sourceKind === "SYSTEM_SUMMARY" && confidence > 0.9) throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${record.id} has impossible summary confidence`);
+  }
   return { id: record.id, ...core, digest, revision: record.revision };
 }
