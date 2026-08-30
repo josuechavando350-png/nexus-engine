@@ -24,14 +24,16 @@ const SENSITIVE_INTENT_TERMS = Object.freeze({
   PROMOTION: ["descuento", "descuentos", "promocion", "promociones", "promo", "oferta", "porcentaje", "discount", "promotion", "deal"],
 } as const);
 
+type SensitiveClaimClass = Exclude<GroundedFact["claimClass"], "GENERAL">;
+
 function normalizeIntentText(value: string): string {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9$%]+/g, " ").trim();
 }
 
-export function inferGuardrailSensitiveClaimClasses(message: string): Exclude<GroundedFact["claimClass"], "GENERAL">[] {
+export function inferGuardrailSensitiveClaimClasses(message: string): SensitiveClaimClass[] {
   const normalized = normalizeIntentText(message);
   const tokenSet = new Set(normalized.split(/\s+/).filter(Boolean));
-  const inferred = (Object.keys(SENSITIVE_INTENT_TERMS) as Exclude<GroundedFact["claimClass"], "GENERAL">[]).filter((claimClass) =>
+  const inferred = (Object.keys(SENSITIVE_INTENT_TERMS) as SensitiveClaimClass[]).filter((claimClass) =>
     SENSITIVE_INTENT_TERMS[claimClass].some((term) => tokenSet.has(term)),
   );
   if ((/\$\s*\d|\b(?:mxn|usd|pesos?|dolares?)\b/.test(normalized)) && !inferred.includes("PRICE")) inferred.push("PRICE");
@@ -43,6 +45,13 @@ function canonicalUtc(value: string, field: string): string {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new GuardrailError("INVALID_INPUT", `${field} must be canonical ISO-8601 UTC`);
   return value;
+}
+
+function groundedUtcMillis(value: string | null, field: string): number | null {
+  if (value === null) return null;
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new GuardrailError("INTEGRITY_FAILURE", `${field} must be canonical ISO-8601 UTC`);
+  return parsed.getTime();
 }
 
 function groundingCore(grounding: GroundingContext): Omit<GroundingContext, "digest"> {
@@ -59,6 +68,9 @@ function verifyFact(fact: GroundedFact): void {
   const core = { factId: fact.factId, subjectId: fact.subjectId, subjectName: fact.subjectName, predicate: fact.predicate, object: fact.object, displayValue: fact.displayValue, evidenceIds: fact.evidenceIds, confidence: fact.confidence, claimClass: fact.claimClass, validFrom: fact.validFrom, validUntil: fact.validUntil };
   if (hash("kground", core) !== fact.digest) throw new GuardrailError("INTEGRITY_FAILURE", `grounded fact ${fact.factId} digest mismatch`);
   if (!Number.isFinite(fact.confidence) || fact.confidence < 0 || fact.confidence > 1) throw new GuardrailError("INTEGRITY_FAILURE", `fact ${fact.factId} has invalid confidence`);
+  const validFrom = groundedUtcMillis(fact.validFrom, `fact ${fact.factId}.validFrom`);
+  const validUntil = groundedUtcMillis(fact.validUntil, `fact ${fact.factId}.validUntil`);
+  if (validFrom !== null && validUntil !== null && validFrom > validUntil) throw new GuardrailError("INTEGRITY_FAILURE", `fact ${fact.factId} has an inverted validity interval`);
 }
 
 function verifyGrounding(grounding: GroundingContext): void {
@@ -76,6 +88,11 @@ function factDecision(fact: GroundedFact, grounding: GroundingContext, policy: F
   if (grounding.status === "UNSUPPORTED") reasons.push("GROUNDING_UNSUPPORTED");
   if (fact.confidence < rule.minimumConfidence) reasons.push("LOW_CONFIDENCE");
   if (grounding.status === "PARTIALLY_SUPPORTED" && !rule.allowPartialSupport) reasons.push("PARTIAL_SUPPORT_NOT_ALLOWED");
+
+  const validFrom = groundedUtcMillis(fact.validFrom, `fact ${fact.factId}.validFrom`);
+  const validUntil = groundedUtcMillis(fact.validUntil, `fact ${fact.factId}.validUntil`);
+  if (validFrom !== null && nowMs < validFrom) reasons.push("FACT_NOT_YET_VALID");
+  if (validUntil !== null && nowMs > validUntil) reasons.push("FACT_EXPIRED");
 
   const evidence = fact.evidenceIds.map((id) => evidenceMap.get(id)).filter((item): item is KnowledgeEvidence => item !== undefined);
   if (evidence.length !== fact.evidenceIds.length) reasons.push("INTEGRITY_FAILURE");
@@ -136,7 +153,7 @@ export class FormalGuardrailEngine {
     const usableIds = new Set([...allowedFactIds, ...qualifiedFactIds]);
     const missingRequestedClass = requestedClaimClasses.some((claimClass) => !grounding.facts.some((fact) => fact.claimClass === claimClass && usableIds.has(fact.factId)));
     const rejectedRequestedHighRisk = rejectedFacts.some((item) =>
-      (item.risk === "HIGH" || item.risk === "CRITICAL") && requestedClaimClasses.includes(item.claimClass as Exclude<GroundedFact["claimClass"], "GENERAL">),
+      (item.risk === "HIGH" || item.risk === "CRITICAL") && item.claimClass !== "GENERAL" && requestedClaimClasses.includes(item.claimClass),
     );
     const suppressFacts = grounding.status === "UNSUPPORTED" || grounding.status === "CONFLICTED";
     const requiredEscalation = suppressFacts || usableCount === 0 || missingRequestedClass || rejectedRequestedHighRisk;
