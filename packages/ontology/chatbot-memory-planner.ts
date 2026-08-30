@@ -160,13 +160,13 @@ export class LongTermMemoryPlanner {
     verifyLongTermMemoryPolicy(this.policy);
     const subjectId = normalizeIdentifier(input.subjectId, "subjectId");
     const maxDeletes = deleteLimit(input.maxDeletes, MAX_SWEEP_DELETE);
-    const records = collectObjects(this.read, this.scope, {
+    const page = this.read.queryObjects(this.scope, {
       typeId: MEMORY_TYPE,
       propertyEquals: { [MP.subjectId]: subjectId },
-    }, MAX_SWEEP_SCAN);
-    const deletions = records
+      limit: maxDeletes,
+    });
+    const deletions = [...page.items]
       .sort((a, b) => a.id.localeCompare(b.id, "en"))
-      .slice(0, maxDeletes)
       .map((record): TransactionOperation => ({ kind: "DELETE_OBJECT", id: record.id, expectedRevision: record.revision }));
     return memoryPlan(this.scope, this.schema, deletions);
   }
