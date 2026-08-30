@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
   MANIFEST_AUTHORITY,
@@ -5,6 +6,7 @@ import {
   STATE_AUTHORITY,
   createManifest,
   createState,
+  digest,
   renderPayload,
   resumeDocument,
   validateManifest,
@@ -34,6 +36,7 @@ describe("resumability", () => {
     expect(() => validateState(state)).not.toThrow();
     expect(() => validateManifest(manifest)).not.toThrow();
     expect(createState({ b: 2, a: 1 }).digest).toBe(createState({ a: 1, b: 2 }).digest);
+    expect(digest({ a: 1 })).toBe(createHash("sha256").update("{\"a\":1}").digest("hex"));
   });
 
   it("rejects non-JSON, cyclic, prototype-sensitive and non-finite state", () => {
