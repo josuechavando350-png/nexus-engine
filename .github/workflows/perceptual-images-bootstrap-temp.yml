@@ -31,9 +31,10 @@ jobs:
           text = path.read_text()
           old = 'throw new Error(`command failed: ${basename(file)} ${args.join(" ")} :: ${message}`);'
           new = 'throw new Error(`command failed: ${basename(file)} ${args.join(" ")} :: ${message}`, { cause: error });'
-          if old not in text:
+          if old in text:
+              path.write_text(text.replace(old, new, 1))
+          elif new not in text:
               raise SystemExit('expected lint correction target not found')
-          path.write_text(text.replace(old, new, 1))
           PY
       - name: Install workspace and sync lockfile
         run: pnpm install --no-frozen-lockfile
@@ -46,7 +47,7 @@ jobs:
       - name: Install native codec tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y libavif-bin libjxl-tools
+          sudo apt-get install -y libavif-bin libjxl-tools libjxl-devtools
           command -v avifenc
           command -v avifdec
           command -v cjxl
