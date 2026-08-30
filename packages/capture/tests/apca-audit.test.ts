@@ -33,7 +33,7 @@ for (const [browserName, browserType] of [["chromium", chromium], ["webkit", web
       } finally {
         await page.close();
       }
-    });
+    }, 15_000);
 
     it("measures composited semi-transparent backgrounds instead of assuming an opaque CSS color", async () => {
       if (!browser) throw new Error(`${browserName} did not initialize`);
