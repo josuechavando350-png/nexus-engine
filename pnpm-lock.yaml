@@ -491,6 +491,8 @@ importers:
         specifier: workspace:*
         version: link:../visual-algebra
 
+  packages/transport-http3: {}
+
   packages/visual-algebra: {}
 
 packages:
