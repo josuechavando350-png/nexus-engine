@@ -34,6 +34,24 @@ export function finalizeReasoningPolicy(input: Omit<ReasoningPolicy, "digest">):
   return Object.freeze({ ...core, digest: hash("reasoning-policy", core) });
 }
 
+export function verifyReasoningPolicy(policy: ReasoningPolicy): void {
+  const canonical = finalizeReasoningPolicy({
+    policyId: policy.policyId,
+    version: policy.version,
+    maxInputChars: policy.maxInputChars,
+    agentTimeoutMs: policy.agentTimeoutMs,
+    maxRepairAttempts: policy.maxRepairAttempts,
+    minAcceptVotes: policy.minAcceptVotes,
+    minMeanConfidence: policy.minMeanConfidence,
+    maxAgentFailures: policy.maxAgentFailures,
+    maxIntentTagsPerCandidate: policy.maxIntentTagsPerCandidate,
+    maxIntentTagChars: policy.maxIntentTagChars,
+  });
+  if (canonical.digest !== policy.digest) {
+    throw new ChatbotReasoningError("INTEGRITY_FAILURE", "reasoning policy digest mismatch");
+  }
+}
+
 export function createDefaultReasoningPolicy(): ReasoningPolicy {
   return finalizeReasoningPolicy({
     policyId: "nexus.chatbot.deliberative-reasoning.default",
