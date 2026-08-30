@@ -33,7 +33,6 @@ function evidence(overrides: Partial<ReasoningEvidenceSnapshot> = {}): Reasoning
     requestedClaimClasses: [],
     memoryStatus: "EMPTY",
     memoryCategories: [],
-    memoryKeys: [],
     memoryAuthority: "PERSONALIZATION_ONLY",
     ...overrides,
   };
@@ -197,7 +196,18 @@ describe("chatbot deliberative reasoning", () => {
       new ConditionalAgent("agent:critic", "CRITIC", "close-b"),
       new ConditionalAgent("agent:verifier", "VERIFIER", "close-a"),
     ];
-    const policy = finalizeReasoningPolicy({ ...createDefaultReasoningPolicy(), maxRepairAttempts: 3 });
+    const defaults = createDefaultReasoningPolicy();
+    const policy = finalizeReasoningPolicy({
+      policyId: defaults.policyId,
+      version: defaults.version,
+      maxInputChars: defaults.maxInputChars,
+      maxRepairAttempts: 3,
+      minAcceptVotes: defaults.minAcceptVotes,
+      minMeanConfidence: defaults.minMeanConfidence,
+      maxAgentFailures: defaults.maxAgentFailures,
+      maxIntentTagsPerCandidate: defaults.maxIntentTagsPerCandidate,
+      maxIntentTagChars: defaults.maxIntentTagChars,
+    });
     const reasoning = new BoundedMultiAgentReasoningEngine(SCOPE, policy, [], agents);
     const coordinator = new DeliberativeBanditCoordinator(new BanditAwareGuardrailCoordinator(fakeBase(), bandit()), reasoning, () => NOW_MS);
     await expect(coordinator.prepare({
