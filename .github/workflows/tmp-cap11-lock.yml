@@ -1,4 +1,4 @@
-name: Temporary Capability 11 Lockfile Sync
+name: Temporary Capability 11 Validation
 
 on:
   push:
@@ -6,11 +6,10 @@ on:
       - feat/capability-11-apca-v2
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  sync-lockfile:
-    if: github.actor != 'github-actions[bot]'
+  validate-apca-v2:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -23,17 +22,15 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
-      - name: Synchronize lockfile only
-        run: pnpm install --lockfile-only
-      - name: Commit synchronized lockfile
-        run: |
-          set -euo pipefail
-          if git diff --quiet -- pnpm-lock.yaml; then
-            echo "Lockfile already synchronized."
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml
-          git commit -m "chore(apca): synchronize lockfile"
-          git push origin HEAD:feat/capability-11-apca-v2
+      - name: Install frozen workspace
+        run: pnpm install --frozen-lockfile
+      - name: Install Chromium and WebKit
+        run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
+      - name: Typecheck APCA integration
+        run: pnpm --filter @nexus/capture typecheck
+      - name: Build APCA integration
+        run: pnpm --filter @nexus/capture build
+      - name: Run capture browser suite
+        run: pnpm --filter @nexus/capture test:browser
+      - name: Lint touched APCA files
+        run: pnpm exec eslint packages/capture/apca-audit.ts packages/capture/tests/apca-audit.test.ts
