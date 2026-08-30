@@ -12,4 +12,3 @@ export * from "./quality-gate-certification";
 export * from "./quality-passport";
 export * from "./decision-trace";
 export * from "./fleet-anomaly";
-export * from "./transport-http3";
