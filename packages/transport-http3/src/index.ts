@@ -30,6 +30,8 @@ export interface TransportObservation {
   finalLinks: readonly string[];
   probeAvailable: boolean;
   probeAuthority: "LIVE_NETWORK" | "CONTROLLED_TEST";
+  probeExitCode: number | null;
+  probeErrorCode: string | null;
 }
 
 export interface TransportVerification {
@@ -88,10 +90,24 @@ function assertSafeToken(value: string, label: string): string {
   return trimmed;
 }
 
+function normalizeHref(rawHref: string, rel: EarlyHint["rel"]): string {
+  const href = assertSafeToken(rawHref, "hint href");
+  if (/[\s<>"\\]/.test(href)) throw new Error("hint href contains unsafe URI characters");
+  if (href.startsWith("//")) throw new Error("protocol-relative hint href is forbidden");
+
+  if (/^https:\/\//i.test(href)) {
+    const parsed = new URL(href);
+    if (parsed.protocol !== "https:" || parsed.username || parsed.password) throw new Error("absolute hint href must be credential-free https URL");
+    return parsed.toString();
+  }
+
+  if (rel === "preconnect") throw new Error("preconnect href must be absolute https URL");
+  if (!href.startsWith("/")) throw new Error("preload href must be root-relative or absolute https URL");
+  return href;
+}
+
 function normalizeHint(hint: EarlyHint): EarlyHint {
-  const href = assertSafeToken(hint.href, "hint href");
-  if (hint.rel === "preconnect" && !/^https:\/\//i.test(href)) throw new Error("preconnect href must be absolute https URL");
-  if (hint.rel === "preload" && !(href.startsWith("/") || /^https:\/\//i.test(href))) throw new Error("preload href must be root-relative or absolute https URL");
+  const href = normalizeHref(hint.href, hint.rel);
   if (hint.rel === "preconnect" && hint.as !== undefined) throw new Error("preconnect must not declare as");
   if (hint.rel === "preload" && hint.as === undefined) throw new Error("preload requires as");
   if (hint.crossorigin !== undefined && hint.crossorigin !== "anonymous") throw new Error("unsupported crossorigin mode");
@@ -116,8 +132,12 @@ export function createTransportPolicy(input: {
   if (!/^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)*[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(host)) throw new Error("invalid DNS host");
   if (input.hints.length > 16) throw new Error("too many early hints");
   const hints = [...input.hints].map(normalizeHint).sort((a, b) => canonicalJson(a).localeCompare(canonicalJson(b)));
-  const deduped = new Set(hints.map(canonicalJson));
-  if (deduped.size !== hints.length) throw new Error("duplicate early hint");
+  const identities = new Set<string>();
+  for (const hint of hints) {
+    const identity = `${hint.rel}\u0000${hint.href}`;
+    if (identities.has(identity)) throw new Error("duplicate or conflicting early hint");
+    identities.add(identity);
+  }
   const core = {
     host,
     hints,
@@ -151,13 +171,52 @@ export function curlHttp3OnlyCommand(url: string): readonly string[] {
   return Object.freeze(["curl", "--http3-only", "--silent", "--show-error", "--dump-header", "-", "--output", "/dev/null", parsed.toString()]);
 }
 
+export function isCurlHttp3Unavailable(input: { errorCode: string | null; stderr: string }): boolean {
+  if (input.errorCode === "ENOENT") return true;
+  return /(?:--http3(?:-only)?.*(?:does not support|not supported)|(?:does not support|not supported).*http3|built.*without.*http3)/i.test(input.stderr);
+}
+
 function normalizedProtocol(protocol: string | null): string | null {
   if (protocol === null) return null;
   return protocol.trim().toLowerCase().replace(/^http\//, "");
 }
 
+function splitDelimited(value: string, delimiter: "," | ";"): readonly string[] {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+  let inAngles = false;
+  let escaped = false;
+
+  for (const character of value) {
+    if (escaped) {
+      current += character;
+      escaped = false;
+      continue;
+    }
+    if (inQuotes && character === "\\") {
+      current += character;
+      escaped = true;
+      continue;
+    }
+    if (character === '"' && !inAngles) inQuotes = !inQuotes;
+    else if (character === "<" && !inQuotes) inAngles = true;
+    else if (character === ">" && !inQuotes) inAngles = false;
+
+    if (character === delimiter && !inQuotes && !inAngles) {
+      if (current.trim()) values.push(current.trim());
+      current = "";
+    } else {
+      current += character;
+    }
+  }
+  if (inQuotes || inAngles || escaped) return Object.freeze([]);
+  if (current.trim()) values.push(current.trim());
+  return Object.freeze(values);
+}
+
 function splitLinkValues(links: readonly string[]): readonly string[] {
-  return links.flatMap((line) => line.split(",").map((part) => part.trim()).filter(Boolean));
+  return links.flatMap((line) => splitDelimited(line, ","));
 }
 
 function normalizeParameterValue(value: string): string {
@@ -174,18 +233,20 @@ function normalizeParameterValue(value: string): string {
 }
 
 function linkValueMatchesHint(value: string, hint: EarlyHint): boolean {
-  const parts = value.split(";").map((part) => part.trim()).filter(Boolean);
+  const parts = splitDelimited(value, ";");
   if (parts[0] !== `<${hint.href}>`) return false;
   const parameters = new Map<string, string>();
   for (const part of parts.slice(1)) {
     const separator = part.indexOf("=");
-    if (separator <= 0) continue;
-    parameters.set(part.slice(0, separator).trim().toLowerCase(), normalizeParameterValue(part.slice(separator + 1)));
+    if (separator <= 0) return false;
+    const key = part.slice(0, separator).trim().toLowerCase();
+    if (!key || parameters.has(key)) return false;
+    parameters.set(key, normalizeParameterValue(part.slice(separator + 1)));
   }
   if (parameters.get("rel")?.toLowerCase() !== hint.rel) return false;
-  if (hint.as !== undefined && parameters.get("as")?.toLowerCase() !== hint.as) return false;
-  if (hint.type !== undefined && parameters.get("type") !== hint.type) return false;
-  if (hint.crossorigin !== undefined && parameters.get("crossorigin")?.toLowerCase() !== hint.crossorigin) return false;
+  if ((parameters.get("as")?.toLowerCase() ?? undefined) !== hint.as) return false;
+  if ((parameters.get("type") ?? undefined) !== hint.type) return false;
+  if ((parameters.get("crossorigin")?.toLowerCase() ?? undefined) !== hint.crossorigin) return false;
   return true;
 }
 
@@ -206,6 +267,7 @@ export function verifyTransportObservation(policy: TransportPolicy, observation:
   const reasons: string[] = [];
   if (!targetMatchesPolicy(observation.targetUrl, policy.host)) reasons.push("probe target does not match policy host");
   if (!observation.probeAvailable) reasons.push("probe unavailable");
+  if (observation.probeAvailable && observation.probeExitCode !== 0) reasons.push("probe process did not complete successfully");
   if (observation.probeAvailable && normalizedProtocol(observation.observedProtocol) !== "3") reasons.push("HTTP/3 not observed");
   if (observation.probeAvailable && !observation.observedInterimStatuses.includes(103)) reasons.push("103 Early Hints not observed");
   if (observation.probeAvailable && (observation.finalStatus === null || observation.finalStatus < 200 || observation.finalStatus >= 400)) reasons.push("successful final response not observed");
@@ -224,4 +286,11 @@ export function validateTransportVerification(policy: TransportPolicy, verificat
   if (verification.policyDigest !== policy.policyDigest) throw new Error("transport verification policy mismatch");
   const replay = verifyTransportObservation(policy, verification.observation);
   if (canonicalJson(replay) !== canonicalJson(verification)) throw new Error("transport verification replay mismatch");
+}
+
+export function validateLiveTransportVerification(policy: TransportPolicy, verification: TransportVerification): void {
+  validateTransportVerification(policy, verification);
+  if (verification.status === "PASS" && verification.observation.probeAuthority !== "LIVE_NETWORK") {
+    throw new Error("transport PASS is not backed by live network authority");
+  }
 }
