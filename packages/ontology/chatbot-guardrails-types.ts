@@ -58,6 +58,8 @@ export type GuardrailFactRejectionReason =
   | "MISSING_SOURCE_DIGEST"
   | "STALE_EVIDENCE"
   | "FUTURE_EVIDENCE"
+  | "FACT_NOT_YET_VALID"
+  | "FACT_EXPIRED"
   | "PARTIAL_SUPPORT_NOT_ALLOWED"
   | "INTEGRITY_FAILURE";
 
