@@ -455,6 +455,8 @@ importers:
         specifier: workspace:*
         version: link:../visual-algebra
 
+  packages/passage-intelligence: {}
+
   packages/proof-carrying-experience:
     dependencies:
       '@nexus/compositional-semantics':
