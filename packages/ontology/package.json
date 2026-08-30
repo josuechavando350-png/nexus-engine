@@ -14,7 +14,8 @@
     "./persistence-query": "./persistence-query.ts",
     "./observability-dr": "./observability-dr.ts",
     "./chatbot-knowledge": "./chatbot-knowledge.ts",
-    "./chatbot-guardrails": "./chatbot-guardrails.ts"
+    "./chatbot-guardrails": "./chatbot-guardrails.ts",
+    "./chatbot-memory": "./chatbot-memory.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
