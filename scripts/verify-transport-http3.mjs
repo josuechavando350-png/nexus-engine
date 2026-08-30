@@ -46,11 +46,14 @@ async function main() {
 
   const rawPolicy = JSON.parse(await readFile(resolve(args[policyIndex + 1]), "utf8"));
   const policy = createTransportPolicy(rawPolicy);
-  const command = curlHttp3OnlyCommand(args[urlIndex + 1]);
+  const targetUrl = new URL(args[urlIndex + 1]).toString();
+  if (new URL(targetUrl).hostname.toLowerCase() !== policy.host) throw new Error("probe URL host does not match transport policy host");
+  const command = curlHttp3OnlyCommand(targetUrl);
   const execution = spawnSync(command[0], command.slice(1), { encoding: "utf8", timeout: 30_000, maxBuffer: 2 * 1024 * 1024 });
   const parsed = parseHeaderDump(execution.stdout ?? "");
   const probeAvailable = !curlHttp3Unavailable(execution);
   const observation = {
+    targetUrl,
     ...parsed,
     probeAvailable,
     probeAuthority: "LIVE_NETWORK",
