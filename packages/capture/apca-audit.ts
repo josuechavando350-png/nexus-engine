@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { calcAPCA, fontLookupAPCA } from "apca-w3";
+import { APCAcontrast, fontLookupAPCA, sRGBtoY } from "apca-w3";
 import sharp from "sharp";
 import type { Page } from "playwright";
 
@@ -366,7 +366,7 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
     for (const [x, y] of points) {
       const offset = (y * decoded.info.width + x) * decoded.info.channels;
       const background: [number, number, number] = [decoded.data[offset]!, decoded.data[offset + 1]!, decoded.data[offset + 2]!];
-      const lc = numericLc(calcAPCA(candidate.textRgb, background));
+      const lc = numericLc(APCAcontrast(sRGBtoY([...candidate.textRgb, 1]), sRGBtoY([...background, 1])));
       if (lc === undefined) continue;
       if (worstLc === undefined || Math.abs(lc) < Math.abs(worstLc)) {
         worstLc = lc;
