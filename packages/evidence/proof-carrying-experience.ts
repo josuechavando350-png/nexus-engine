@@ -1,4 +1,4 @@
-import type { KeyLike } from "node:crypto";
+import { createHash, createPublicKey, type KeyLike } from "node:crypto";
 import type { VerificationResult } from "@nexus/compositional-semantics";
 import type { OriginalityAssessment } from "@nexus/originality-geodesics";
 import {
@@ -6,7 +6,8 @@ import {
   createExperienceArtifact,
   createExperienceProof,
   formalExperienceProofDigest,
-  validateExperienceProof,
+  validateAuthenticatedEvidenceTrustAnchor,
+  validateExperienceProofAgainstContent,
   type ExperienceArtifact,
   type ExperienceProofBundle,
 } from "@nexus/proof-carrying-experience";
@@ -24,6 +25,8 @@ import { certifySignedEvidenceForDelivery } from "./signed-evidence-certificatio
 export interface SignedProofCarryingExperienceEnvelope {
   readonly authority: "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V2";
   readonly version: 2;
+  readonly authentication: "ED25519_VERIFIED";
+  readonly signingKeyFingerprint: string;
   readonly proof: ExperienceProofBundle;
   readonly signedEvidence: SignedEvidenceBundle;
 }
@@ -69,6 +72,17 @@ function exactProofRecord(signedEvidence: SignedEvidenceBundle, sourceRevision: 
   return record;
 }
 
+function fingerprintPublicKey(publicKey: KeyLike): string {
+  const key = createPublicKey(publicKey);
+  const der = key.export({ type: "spki", format: "der" });
+  return `sha256:${createHash("sha256").update(der).digest("hex")}`;
+}
+
+function digestSignature(signature: string): string {
+  if (!signature.trim()) throw new Error("signed evidence signature cannot be empty");
+  return `sha256:${createHash("sha256").update(signature, "utf8").digest("hex")}`;
+}
+
 function trustAnchor(input: {
   readonly subject: string;
   readonly sourceRevision: string;
@@ -88,7 +102,7 @@ function trustAnchor(input: {
   });
   if (!certification.certified) throw new Error(`signed evidence is not delivery-certified: ${certification.findings.join("; ")}`);
   const proofRecord = exactProofRecord(input.signedEvidence, input.sourceRevision, input.artifact.descriptorDigest, input.formalDigest);
-  return createEvidenceTrustAnchor({
+  const anchor = createEvidenceTrustAnchor({
     subject: input.subject,
     sourceRevision: input.sourceRevision,
     tenantId: input.tenantId,
@@ -102,7 +116,11 @@ function trustAnchor(input: {
     proofRecordId: proofRecord.recordId,
     proofProvenanceDigest: proofRecord.provenanceDigest,
     verifiedGates: certification.verifiedGates,
+    signingKeyFingerprint: fingerprintPublicKey(input.publicKey),
+    signatureDigest: digestSignature(input.signedEvidence.signature),
   });
+  validateAuthenticatedEvidenceTrustAnchor(anchor);
+  return anchor;
 }
 
 export function createSignedProofCarryingExperience(input: {
@@ -133,21 +151,32 @@ export function createSignedProofCarryingExperience(input: {
   });
   const proof = createExperienceProof({ artifact, visual: input.visual, topology: input.topology, semantics: input.semantics, originality: input.originality, evidenceAnchor });
   if (proof.status !== "VERIFIED") throw new Error("Proof-carrying experience is REJECTED by upstream claims");
-  return Object.freeze({ authority: "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V2", version: 2, proof, signedEvidence: input.signedEvidence });
+  const signingKeyFingerprint = evidenceAnchor.signingKeyFingerprint!;
+  return Object.freeze({
+    authority: "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V2",
+    version: 2,
+    authentication: "ED25519_VERIFIED",
+    signingKeyFingerprint,
+    proof,
+    signedEvidence: input.signedEvidence,
+  });
 }
 
 export function verifySignedProofCarryingExperience(envelope: SignedProofCarryingExperienceEnvelope, publicKey: KeyLike, content: string | Uint8Array): true {
-  if (envelope.authority !== "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V2" || envelope.version !== 2) throw new Error("Unsupported signed proof-carrying experience envelope");
-  verifySignedEvidenceBundle(envelope.signedEvidence, publicKey);
-  const actualArtifact = createExperienceArtifact({
-    subject: envelope.proof.artifact.subject,
-    mediaType: envelope.proof.artifact.mediaType,
-    sourceRevision: envelope.proof.artifact.sourceRevision,
-    content,
-  });
-  if (actualArtifact.artifactDigest !== envelope.proof.artifact.artifactDigest || actualArtifact.descriptorDigest !== envelope.proof.artifact.descriptorDigest) {
-    throw new Error("Actual delivered artifact content does not match the proof descriptor");
+  if (!envelope || typeof envelope !== "object") throw new Error("Signed proof-carrying experience envelope must be an object");
+  if (
+    envelope.authority !== "NEXUS_SIGNED_PROOF_CARRYING_EXPERIENCE_V2"
+    || envelope.version !== 2
+    || envelope.authentication !== "ED25519_VERIFIED"
+  ) {
+    throw new Error("Unsupported signed proof-carrying experience envelope");
   }
+  const signingKeyFingerprint = fingerprintPublicKey(publicKey);
+  if (envelope.signingKeyFingerprint !== signingKeyFingerprint) {
+    throw new Error("Signed proof-carrying experience signing-key fingerprint mismatch");
+  }
+  verifySignedEvidenceBundle(envelope.signedEvidence, publicKey);
+  validateExperienceProofAgainstContent(envelope.proof, content);
   const formalDigest = formalExperienceProofDigest({ artifact: envelope.proof.artifact, visual: envelope.proof.visual, topology: envelope.proof.topology, semantics: envelope.proof.semantics, originality: envelope.proof.originality });
   const anchor = trustAnchor({
     subject: envelope.proof.subject,
@@ -160,7 +189,9 @@ export function verifySignedProofCarryingExperience(envelope: SignedProofCarryin
     publicKey,
   });
   if (anchor.anchorDigest !== envelope.proof.evidenceAnchor.anchorDigest) throw new Error("Signed evidence trust anchor does not match proof");
-  validateExperienceProof(envelope.proof);
+  if (anchor.signingKeyFingerprint !== signingKeyFingerprint || envelope.proof.evidenceAnchor.signingKeyFingerprint !== signingKeyFingerprint) {
+    throw new Error("Signed evidence trust anchor signing-key identity mismatch");
+  }
   if (envelope.proof.status !== "VERIFIED") throw new Error("Signed proof-carrying experience is not VERIFIED");
   return true;
 }
