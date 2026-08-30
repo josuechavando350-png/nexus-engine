@@ -24,7 +24,10 @@ for (const [browserName, browserType] of [["chromium", chromium], ["webkit", web
         expect(observation).toBeDefined();
         expect(observation?.backgroundSource).toBe("RENDERED_PIXEL_SAMPLE");
         expect(observation?.sampleCount).toBeGreaterThan(3);
-        expect(observation?.absoluteLc).toBeLessThan(25);
+        expect(observation?.absoluteLc).toBeGreaterThan(0);
+        expect(observation?.requiredAbsLc).not.toBeNull();
+        expect(observation!.absoluteLc).toBeLessThan(observation!.requiredAbsLc!);
+        expect(evaluateDynamicApcaPolicy(report, ["hero"]).verdict).toBe("FAIL");
         expect(report.unsupported.some((item) => item.role === "hero")).toBe(false);
         expect(report.digest).toMatch(/^sha256:[a-f0-9]{64}$/);
       } finally {
