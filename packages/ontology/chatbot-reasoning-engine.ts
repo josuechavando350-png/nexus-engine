@@ -20,6 +20,7 @@ import {
 } from "./chatbot-reasoning-types.js";
 
 const MAX_REASONING_AGENTS = 16;
+const MAX_REASONING_CANDIDATES = 16;
 
 class ReasoningAgentTimeoutError extends Error {
   constructor() {
@@ -34,6 +35,29 @@ function normalizeText(value: string): string {
 
 function tokens(value: string): ReadonlySet<string> {
   return new Set(normalizeText(value).split(/\s+/).filter(Boolean));
+}
+
+function freezeEvidenceSnapshot(raw: ReasoningEvidenceSnapshot, maxInputChars: number): ReasoningEvidenceSnapshot {
+  const userMessage = raw.userMessage.trim();
+  if (!userMessage || userMessage.length > maxInputChars) {
+    throw new ChatbotReasoningError("POLICY_VIOLATION", "reasoning input exceeds configured message budget");
+  }
+  const expectedMessageDigest = hash("ltmmessage", userMessage);
+  if (raw.userMessageDigest !== expectedMessageDigest) {
+    throw new ChatbotReasoningError("INTEGRITY_FAILURE", "reasoning evidence user-message digest mismatch");
+  }
+  if (raw.memoryAuthority !== "PERSONALIZATION_ONLY") {
+    throw new ChatbotReasoningError("INTEGRITY_FAILURE", "reasoning memory authority boundary is invalid");
+  }
+  return Object.freeze({
+    ...raw,
+    userMessage,
+    userMessageDigest: expectedMessageDigest,
+    allowedFactIds: Object.freeze([...raw.allowedFactIds]),
+    qualifiedFactIds: Object.freeze([...raw.qualifiedFactIds]),
+    requestedClaimClasses: Object.freeze([...raw.requestedClaimClasses]),
+    memoryCategories: Object.freeze([...raw.memoryCategories]),
+  });
 }
 
 function freezeAssessment(input: ReasoningAgentAssessment): VerifiedReasoningAssessment {
@@ -161,13 +185,14 @@ export interface ReasoningEvaluationInput {
 }
 
 export class BoundedMultiAgentReasoningEngine {
+  readonly scope: OntologyScope;
   readonly scopeDigest: string;
   readonly policy: ReasoningPolicy;
   private readonly profiles = new Map<string, ReasoningCandidateProfile>();
   private readonly agents: readonly ReasoningAgentPort[];
 
   constructor(
-    readonly scope: OntologyScope,
+    scope: OntologyScope,
     policy: ReasoningPolicy,
     candidateProfiles: readonly ReasoningCandidateProfile[] = [],
     agents: readonly ReasoningAgentPort[] = [
@@ -178,9 +203,11 @@ export class BoundedMultiAgentReasoningEngine {
   ) {
     verifyReasoningPolicy(policy);
     this.policy = Object.freeze({ ...policy });
-    this.scopeDigest = hash("ltmscope", scope);
+    this.scope = Object.freeze({ ...scope });
+    this.scopeDigest = hash("ltmscope", this.scope);
     if (agents.length > MAX_REASONING_AGENTS) throw new ChatbotReasoningError("POLICY_VIOLATION", `reasoning agent count exceeds hard cap ${MAX_REASONING_AGENTS}`);
     if (agents.length < this.policy.minAcceptVotes) throw new ChatbotReasoningError("INVALID_INPUT", "reasoning agent count is below minAcceptVotes");
+    if (candidateProfiles.length > MAX_REASONING_CANDIDATES) throw new ChatbotReasoningError("POLICY_VIOLATION", `reasoning candidate profile count exceeds hard cap ${MAX_REASONING_CANDIDATES}`);
     const agentIds = new Set<string>();
     for (const agent of agents) {
       const agentId = normalizeIdentifier(agent.agentId, "agentId");
@@ -212,12 +239,7 @@ export class BoundedMultiAgentReasoningEngine {
     if (!Number.isInteger(raw.attempt) || raw.attempt < 1 || raw.attempt > this.policy.maxRepairAttempts + 1) {
       throw new ChatbotReasoningError("INVALID_INPUT", "reasoning attempt is outside policy bounds");
     }
-    if (!raw.evidence.userMessage.trim() || raw.evidence.userMessage.length > this.policy.maxInputChars) {
-      throw new ChatbotReasoningError("POLICY_VIOLATION", "reasoning input exceeds configured message budget");
-    }
-    if (raw.evidence.memoryAuthority !== "PERSONALIZATION_ONLY") {
-      throw new ChatbotReasoningError("INTEGRITY_FAILURE", "reasoning memory authority boundary is invalid");
-    }
+    const evidence = freezeEvidenceSnapshot(raw.evidence, this.policy.maxInputChars);
     const remainingArmIds = Object.freeze([...new Set(raw.remainingArmIds.map((id) => normalizeIdentifier(id, "remainingArmId")))].sort());
     if (!remainingArmIds.includes(candidateArmId)) throw new ChatbotReasoningError("INTEGRITY_FAILURE", "selected reasoning candidate is absent from remaining arms");
     const baseInput: Omit<ReasoningAgentInput, "signal"> = Object.freeze({
@@ -230,7 +252,7 @@ export class BoundedMultiAgentReasoningEngine {
       candidatePlan: raw.candidatePlan,
       candidateProfile: this.profiles.get(candidateArmId),
       remainingArmIds,
-      evidence: raw.evidence,
+      evidence,
     });
 
     const results = await Promise.all(this.agents.map(async (agent) => {
