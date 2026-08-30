@@ -28,17 +28,31 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
 
-      - name: Apply audited lint correction
+      - name: Apply audited runtime corrections
         run: |
           python3 - <<'PY'
           from pathlib import Path
           path = Path('packages/entity-intelligence/src/index.ts')
           text = path.read_text()
-          old = 'if (controller.signal.aborted) throw new Error(`${label} timeout`);'
-          new = 'if (controller.signal.aborted) throw new Error(`${label} timeout`, { cause: error });'
-          if old not in text:
-              raise SystemExit('expected timeout error line not found')
-          path.write_text(text.replace(old, new, 1))
+          replacements = [
+            (
+              'if (controller.signal.aborted) throw new Error(`${label} timeout`);',
+              'if (controller.signal.aborted) throw new Error(`${label} timeout`, { cause: error });'
+            ),
+            (
+              '''export class CloudNaturalLanguageClient {\n  constructor(\n    private readonly token: () => Promise<string>,\n    private readonly fetchImpl: FetchLike = fetch,\n    private readonly timeoutMs = DEFAULT_TIMEOUT_MS,\n  ) {}''',
+              '''export class CloudNaturalLanguageClient {\n  private readonly token: () => Promise<string>;\n  private readonly fetchImpl: FetchLike;\n  private readonly timeoutMs: number;\n\n  constructor(\n    token: () => Promise<string>,\n    fetchImpl: FetchLike = fetch,\n    timeoutMs = DEFAULT_TIMEOUT_MS,\n  ) {\n    this.token = token;\n    this.fetchImpl = fetchImpl;\n    this.timeoutMs = timeoutMs;\n  }'''
+            ),
+            (
+              '''export class KnowledgeGraphClient {\n  private readonly projectId: string;\n\n  constructor(\n    projectId: string,\n    private readonly token: () => Promise<string>,\n    private readonly fetchImpl: FetchLike = fetch,\n    private readonly timeoutMs = DEFAULT_TIMEOUT_MS,\n  ) {\n    this.projectId = safeProjectId(projectId);\n  }''',
+              '''export class KnowledgeGraphClient {\n  private readonly projectId: string;\n  private readonly token: () => Promise<string>;\n  private readonly fetchImpl: FetchLike;\n  private readonly timeoutMs: number;\n\n  constructor(\n    projectId: string,\n    token: () => Promise<string>,\n    fetchImpl: FetchLike = fetch,\n    timeoutMs = DEFAULT_TIMEOUT_MS,\n  ) {\n    this.projectId = safeProjectId(projectId);\n    this.token = token;\n    this.fetchImpl = fetchImpl;\n    this.timeoutMs = timeoutMs;\n  }'''
+            ),
+          ]
+          for old, new in replacements:
+              if old not in text:
+                  raise SystemExit(f'expected source block not found: {old[:80]}')
+              text = text.replace(old, new, 1)
+          path.write_text(text)
           PY
 
       - name: Install and regenerate workspace lockfile
@@ -91,5 +105,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add packages/entity-intelligence/src/index.ts pnpm-lock.yaml
-          git commit -m 'fix(entity): preserve timeout cause and synchronize lockfile'
+          git commit -m 'fix(entity): make source runtime-compatible and synchronize lockfile'
           git push origin HEAD:feat/capability-07-entity-intelligence
