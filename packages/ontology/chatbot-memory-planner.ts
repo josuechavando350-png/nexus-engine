@@ -85,7 +85,7 @@ export class LongTermMemoryPlanner {
     const active = records
       .filter((item) => item.id !== excludingId)
       .map((item) => projectLongTermMemory(item, this.policy, false))
-      .filter((memory) => Date.parse(memory.expiresAt) > nowMs)
+      .filter((memory) => Date.parse(memory.observedAt) <= nowMs && Date.parse(memory.expiresAt) > nowMs)
       .length;
     if (active >= this.policy.maxRecordsPerSubject) {
       throw new LongTermMemoryError("CAPACITY_EXCEEDED", `memory subject ${subjectId} already has ${active} active memories`);
@@ -96,6 +96,7 @@ export class LongTermMemoryPlanner {
     verifyLongTermMemoryPolicy(this.policy);
     const identity = memoryIdentity(input);
     this.assertMemorySubject(identity.subjectId);
+    const nowMs = this.currentTime();
     const current = this.read.getObject(this.scope, identity.id);
     if (current && current.typeId !== MEMORY_TYPE) {
       throw new LongTermMemoryError("TYPE_MISMATCH", `object ${identity.id} already exists with type ${current.typeId}`);
@@ -111,13 +112,17 @@ export class LongTermMemoryPlanner {
 
     const createdAt = existing?.createdAt ?? input.observedAt;
     const properties = memoryPayload(input, this.policy, createdAt, "ACTIVE");
+    const observedAtMs = Date.parse(input.observedAt);
+    const expiresAtMs = Date.parse(input.expiresAt);
+    if (observedAtMs > nowMs) throw new LongTermMemoryError("POLICY_VIOLATION", "long-term memory cannot be written with a future observation timestamp");
+    if (expiresAtMs <= nowMs) throw new LongTermMemoryError("POLICY_VIOLATION", "long-term memory cannot be activated after its expiry time");
     const incomingDigest = properties[MP.recordDigest];
     if (existing && existing.digest === incomingDigest) return memoryPlan(this.scope, this.schema, []);
-    if (existing && Date.parse(input.observedAt) === Date.parse(existing.updatedAt)) {
+    if (existing && observedAtMs === Date.parse(existing.updatedAt)) {
       throw new LongTermMemoryError("CONFLICT", `memory ${identity.memoryKey} has a different value at the same observation time`);
     }
 
-    if (!existing || existing.status !== "ACTIVE" || Date.parse(existing.expiresAt) <= this.currentTime()) {
+    if (!existing || existing.status !== "ACTIVE" || Date.parse(existing.expiresAt) <= nowMs) {
       this.assertActiveCapacity(identity.subjectId, existing?.id);
     }
     const operation: TransactionOperation = existing
@@ -139,6 +144,9 @@ export class LongTermMemoryPlanner {
     const observedAt = new Date(input.observedAt);
     if (!Number.isFinite(observedAt.getTime()) || observedAt.toISOString() !== input.observedAt) {
       throw new LongTermMemoryError("INVALID_INPUT", "observedAt must be canonical ISO-8601 UTC");
+    }
+    if (observedAt.getTime() > this.currentTime()) {
+      throw new LongTermMemoryError("POLICY_VIOLATION", "long-term memory cannot be revoked with a future observation timestamp");
     }
     if (observedAt.getTime() < Date.parse(existing.updatedAt)) {
       throw new LongTermMemoryError("CONFLICT", `memory ${identity.memoryKey} rejects an older revocation over a newer revision`);
