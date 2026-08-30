@@ -98,7 +98,9 @@ export type TopologyConstraintStatus = "PASS" | "FAIL" | "NOT_TESTED";
 export interface TopologyConstraintEvaluation {
   readonly constraint: TopologyConstraint;
   readonly status: TopologyConstraintStatus;
+  /** Finite actual value. Null is reserved for untested or explicitly infinite evidence. */
   readonly actual: number | null;
+  readonly actualInfinite?: boolean;
   readonly expected: number;
   readonly reason: string;
 }
@@ -126,7 +128,10 @@ export interface CertifiedSynthesisResult {
   /** Canonical reference diagrams used for every reference-based constraint. */
   readonly references: readonly TopologyReference[];
   readonly nearestReferenceId?: string;
+  /** Present only when the nearest bottleneck distance is finite. */
   readonly nearestBottleneckDistance?: number;
+  /** Explicit representation for an infinite nearest distance; avoids non-canonical Infinity in evidence. */
+  readonly nearestBottleneckInfinite?: boolean;
   readonly evaluations: readonly TopologyConstraintEvaluation[];
   readonly certificate: TopologyCertificate;
 }
