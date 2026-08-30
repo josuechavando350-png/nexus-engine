@@ -4,6 +4,7 @@ import type { CertifiedSynthesisResult } from "@nexus/topology";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 
 export type ExperienceProofStatus = "VERIFIED" | "REJECTED";
+export type ExperienceProofAuthentication = "STRUCTURAL_ONLY";
 export type ExperienceProofClaimKind =
   | "ARTIFACT"
   | "VISUAL_ALGEBRA"
@@ -39,6 +40,8 @@ export interface EvidenceTrustAnchor {
   readonly proofRecordId: string;
   readonly proofProvenanceDigest: string;
   readonly verifiedGates: readonly string[];
+  readonly signingKeyFingerprint?: string;
+  readonly signatureDigest?: string;
   readonly anchorDigest: string;
 }
 
@@ -54,6 +57,7 @@ export interface ExperienceProofClaim {
 export interface ExperienceProofBundle {
   readonly authority: "NEXUS_PROOF_CARRYING_EXPERIENCE_V2";
   readonly version: 2;
+  readonly authentication: ExperienceProofAuthentication;
   readonly proofId: string;
   readonly subject: string;
   readonly sourceRevision: string;
