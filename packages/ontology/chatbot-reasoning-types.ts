@@ -52,7 +52,6 @@ export interface ReasoningEvidenceSnapshot {
   readonly requestedClaimClasses: readonly string[];
   readonly memoryStatus: MemoryRecallContext["status"];
   readonly memoryCategories: readonly string[];
-  readonly memoryKeys: readonly string[];
   readonly memoryAuthority: MemoryRecallContext["authority"];
 }
 
