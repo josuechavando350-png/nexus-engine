@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   createTransportPolicy,
   curlHttp3OnlyCommand,
+  isCurlHttp3Unavailable,
   serializeLinkHeader,
+  validateLiveTransportVerification,
   validateTransportVerification,
   verifyTransportObservation,
   writeNodeEarlyHints,
@@ -30,6 +32,8 @@ function passingObservation() {
     finalLinks: [link],
     probeAvailable: true,
     probeAuthority: "CONTROLLED_TEST" as const,
+    probeExitCode: 0,
+    probeErrorCode: null,
   };
 }
 
@@ -59,11 +63,17 @@ describe("transport HTTP/3 + Early Hints", () => {
     expect(result.reasons).toContain("103 Early Hints not observed");
   });
 
+  it("fails closed when curl parses headers but exits unsuccessfully", () => {
+    const result = verifyTransportObservation(policy(), { ...passingObservation(), probeExitCode: 28, probeErrorCode: "ETIMEDOUT" });
+    expect(result.status).toBe("FAIL");
+    expect(result.reasons).toContain("probe process did not complete successfully");
+  });
+
   it("rejects a matching href with mismatched Link semantics", () => {
     const observation = passingObservation();
     const result = verifyTransportObservation(policy(), {
       ...observation,
-      earlyHintLinks: ["</app.css>; rel=preload; as=script, <https://fonts.example.com>; rel=preconnect"],
+      earlyHintLinks: ["</app.css>; rel=preload; as=script, <https://fonts.example.com/>; rel=preconnect"],
     });
     expect(result.status).toBe("FAIL");
     expect(result.reasons).toContain("early hint missing or mismatched /app.css");
@@ -73,7 +83,21 @@ describe("transport HTTP/3 + Early Hints", () => {
     const observation = passingObservation();
     const result = verifyTransportObservation(policy(), {
       ...observation,
-      earlyHintLinks: ["</app.css>; rel=\"preload\"; as=\"style\", <https://fonts.example.com>; rel=\"preconnect\""],
+      earlyHintLinks: ["</app.css>; rel=\"preload\"; as=\"style\", <https://fonts.example.com/>; rel=\"preconnect\""],
+    });
+    expect(result.status).toBe("PASS");
+  });
+
+  it("parses commas in URI references and semicolons in quoted parameter values", () => {
+    const p = createTransportPolicy({
+      host: "example.com",
+      hints: [{ href: "/asset,a.css", rel: "preload", as: "style", type: "text/css; charset=utf-8" }],
+    });
+    const link = serializeLinkHeader(p);
+    const result = verifyTransportObservation(p, {
+      ...passingObservation(),
+      earlyHintLinks: [link],
+      finalLinks: [link],
     });
     expect(result.status).toBe("PASS");
   });
@@ -86,10 +110,26 @@ describe("transport HTTP/3 + Early Hints", () => {
     expect(result.reasons.some((reason) => reason.startsWith("final response Link missing"))).toBe(true);
   });
 
-  it("reports unavailable rather than fabricating PASS without a live probe", () => {
-    const result = verifyTransportObservation(policy(), { ...passingObservation(), probeAvailable: false, observedProtocol: null, finalStatus: null });
+  it("reports unavailable rather than fabricating PASS without usable HTTP/3 tooling", () => {
+    const result = verifyTransportObservation(policy(), {
+      ...passingObservation(),
+      probeAvailable: false,
+      observedProtocol: null,
+      finalStatus: null,
+      probeExitCode: null,
+      probeErrorCode: "ENOENT",
+    });
     expect(result.status).toBe("UNAVAILABLE");
     expect(result.reasons).toEqual(["probe unavailable"]);
+  });
+
+  it("recognizes unsupported curl HTTP/3 tooling without hiding ordinary transport failures", () => {
+    expect(isCurlHttp3Unavailable({
+      errorCode: null,
+      stderr: "curl: option --http3-only: the installed libcurl version does not support this",
+    })).toBe(true);
+    expect(isCurlHttp3Unavailable({ errorCode: "ENOENT", stderr: "" })).toBe(true);
+    expect(isCurlHttp3Unavailable({ errorCode: null, stderr: "curl: (7) Failed to connect" })).toBe(false);
   });
 
   it("does not downgrade a mismatched target to UNAVAILABLE", () => {
@@ -99,22 +139,27 @@ describe("transport HTTP/3 + Early Hints", () => {
       probeAvailable: false,
       observedProtocol: null,
       finalStatus: null,
+      probeExitCode: null,
+      probeErrorCode: "ENOENT",
     });
     expect(result.status).toBe("FAIL");
   });
 
-  it("rejects control-character/header-injection inputs and malformed hint semantics", () => {
+  it("rejects control/header injection and ambiguous or credential-bearing hint URIs", () => {
     expect(() => createTransportPolicy({ host: "example.com", hints: [{ href: "/x\r\nX-Bad: 1", rel: "preload", as: "script" }] })).toThrow(/control/);
+    expect(() => createTransportPolicy({ host: "example.com", hints: [{ href: "//attacker.example/x.js", rel: "preload", as: "script" }] })).toThrow(/protocol-relative/);
+    expect(() => createTransportPolicy({ host: "example.com", hints: [{ href: "https://user:pass@example.net/x", rel: "preload", as: "script" }] })).toThrow(/credential-free/);
+    expect(() => createTransportPolicy({ host: "example.com", hints: [{ href: "/x>y.js", rel: "preload", as: "script" }] })).toThrow(/unsafe URI/);
     expect(() => createTransportPolicy({ host: "example.com", hints: [{ href: "http://example.net", rel: "preconnect" }] })).toThrow(/https/);
     expect(() => createTransportPolicy({ host: "example.com", hints: [{ href: "/x.js", rel: "preload" }] })).toThrow(/requires as/);
   });
 
-  it("rejects duplicated hints and invalid host names", () => {
+  it("rejects duplicated or conflicting hints and invalid host names", () => {
     expect(() => createTransportPolicy({ host: "bad host", hints: [] })).toThrow(/invalid DNS host/);
     expect(() => createTransportPolicy({ host: "example.com", hints: [
       { href: "/x.css", rel: "preload", as: "style" },
-      { href: "/x.css", rel: "preload", as: "style" },
-    ] })).toThrow(/duplicate/);
+      { href: "/x.css", rel: "preload", as: "script" },
+    ] })).toThrow(/conflicting/);
   });
 
   it("emits Node early hints as Link header values", () => {
@@ -127,6 +172,17 @@ describe("transport HTTP/3 + Early Hints", () => {
   it("uses curl HTTP/3-only so a transport probe cannot silently fallback", () => {
     expect(curlHttp3OnlyCommand("https://example.com/")).toContain("--http3-only");
     expect(() => curlHttp3OnlyCommand("http://example.com/")).toThrow(/https/);
+  });
+
+  it("separates controlled-test verification from live network authority", () => {
+    const p = policy();
+    const controlled = verifyTransportObservation(p, passingObservation());
+    expect(controlled.status).toBe("PASS");
+    expect(() => validateLiveTransportVerification(p, controlled)).toThrow(/live network authority/);
+
+    const live = verifyTransportObservation(p, { ...passingObservation(), probeAuthority: "LIVE_NETWORK" });
+    expect(live.status).toBe("PASS");
+    expect(() => validateLiveTransportVerification(p, live)).not.toThrow();
   });
 
   it("detects evidence tampering by replay", () => {
