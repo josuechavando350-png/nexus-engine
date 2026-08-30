@@ -69,6 +69,22 @@ describe("perceptual images", () => {
     });
   });
 
+  it("does not misclassify an existing tool when its version flag is unsupported", async () => {
+    await withTemp(async (dir) => {
+      const tools: ToolPaths = {
+        avifenc: join(dir, "avifenc"), avifdec: join(dir, "avifdec"), cjxl: join(dir, "cjxl"), djxl: join(dir, "djxl"), ssimulacra2: join(dir, "ssimulacra2"),
+      };
+      for (const path of Object.values(tools)) await writeFile(path, "tool-v1");
+      const evidence = await inspectToolchain(tools, async (file) => {
+        if (file.endsWith("ssimulacra2")) throw new Error("no version flag");
+        return { stdout: "tool 1.0", stderr: "" };
+      });
+      expect(evidence.status).toBe("AVAILABLE");
+      expect(evidence.missing).toEqual([]);
+      expect(evidence.binaries.find((binary) => binary.name === "ssimulacra2")?.version).toBe("VERSION_PROBE_UNSUPPORTED");
+    });
+  });
+
   it("runs a real filesystem integration around an injected deterministic native runner", async () => {
     await withTemp(async (dir) => {
       const tools: ToolPaths = {
