@@ -23,7 +23,7 @@ const ARMS = [
 function snapshot(): ReasoningEvidenceSnapshot {
   return {
     userMessage: "quiero ayuda",
-    userMessageDigest: "message_digest",
+    userMessageDigest: hash("ltmmessage", "quiero ayuda"),
     guardedContextDigest: "guarded_digest",
     groundingStatus: "SUPPORTED",
     disposition: "ALLOW",
@@ -37,6 +37,7 @@ function snapshot(): ReasoningEvidenceSnapshot {
 }
 
 function prepared(disposition: "ALLOW" | "ESCALATE" = "ALLOW"): PreparedMemoryAwareGuardrailContext {
+  const userMessage = disposition === "ESCALATE" ? "garantizame un resultado no soportado" : "quiero ayuda";
   return {
     guardrails: {
       grounding: { status: "SUPPORTED", facts: [], evidence: [], conflicts: [], matchedEntityIds: [], instructions: [], digest: "grounding_digest" },
@@ -73,7 +74,7 @@ function prepared(disposition: "ALLOW" | "ESCALATE" = "ALLOW"): PreparedMemoryAw
     },
     businessEntityId: "business:audit5",
     customerEntityId: "customer:audit5",
-    userMessageDigest: "message_digest",
+    userMessageDigest: hash("ltmmessage", userMessage),
     scopeDigest: hash("ltmscope", SCOPE),
     digest: `base_${disposition.toLowerCase()}`,
   };
@@ -125,6 +126,16 @@ class SafeAgent implements ReasoningAgentPort {
   }
 }
 
+class HangingAgent implements ReasoningAgentPort {
+  readonly agentId = "hang:planner";
+  readonly role = "PLANNER" as const;
+  assess(input: ReasoningAgentInput) {
+    return new Promise<never>((_resolve, reject) => {
+      input.signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    });
+  }
+}
+
 describe("chatbot reasoning adversarial audit", () => {
   it("fails closed when invalid agent outputs exceed the configured failure budget", async () => {
     const base = createDefaultReasoningPolicy();
@@ -132,6 +143,7 @@ describe("chatbot reasoning adversarial audit", () => {
       policyId: base.policyId,
       version: base.version,
       maxInputChars: base.maxInputChars,
+      agentTimeoutMs: base.agentTimeoutMs,
       maxRepairAttempts: base.maxRepairAttempts,
       minAcceptVotes: 1,
       minMeanConfidence: base.minMeanConfidence,
@@ -157,6 +169,7 @@ describe("chatbot reasoning adversarial audit", () => {
       policyId: base.policyId,
       version: base.version,
       maxInputChars: base.maxInputChars,
+      agentTimeoutMs: base.agentTimeoutMs,
       maxRepairAttempts: base.maxRepairAttempts,
       minAcceptVotes: 1,
       minMeanConfidence: 0,
@@ -177,6 +190,32 @@ describe("chatbot reasoning adversarial audit", () => {
     });
     expect(JSON.stringify(result)).not.toContain("hidden chain of thought");
     expect(JSON.stringify(result)).not.toContain("rationale");
+  });
+
+  it("aborts a hanging agent and fails closed when timeout exceeds the failure budget", async () => {
+    const base = createDefaultReasoningPolicy();
+    const policy = finalizeReasoningPolicy({
+      policyId: base.policyId,
+      version: base.version,
+      maxInputChars: base.maxInputChars,
+      agentTimeoutMs: 10,
+      maxRepairAttempts: base.maxRepairAttempts,
+      minAcceptVotes: 1,
+      minMeanConfidence: 0,
+      maxAgentFailures: 0,
+      maxIntentTagsPerCandidate: base.maxIntentTagsPerCandidate,
+      maxIntentTagChars: base.maxIntentTagChars,
+    });
+    const engine = new BoundedMultiAgentReasoningEngine(SCOPE, policy, [], [new HangingAgent()]);
+    await expect(engine.evaluate({
+      reasoningId: "audit:timeout",
+      interactionId: "audit:timeout-interaction",
+      attempt: 1,
+      candidateArmId: "safe-a",
+      candidatePlan: ARMS[0].plan,
+      remainingArmIds: ["safe-a"],
+      evidence: snapshot(),
+    })).rejects.toThrow(/failure budget exceeded/i);
   });
 
   it("rejects cross-scope reasoning and bandit wiring", () => {
@@ -208,6 +247,7 @@ describe("chatbot reasoning adversarial audit", () => {
       policyId: base.policyId,
       version: base.version,
       maxInputChars: 8,
+      agentTimeoutMs: base.agentTimeoutMs,
       maxRepairAttempts: base.maxRepairAttempts,
       minAcceptVotes: base.minAcceptVotes,
       minMeanConfidence: base.minMeanConfidence,
