@@ -8,13 +8,14 @@ import {
   writeNodeEarlyHints,
 } from "./index.js";
 
-function policy() {
+function policy(requireFinalLinkParity = false) {
   return createTransportPolicy({
     host: "example.com",
     hints: [
       { href: "/app.css", rel: "preload", as: "style" },
       { href: "https://fonts.example.com", rel: "preconnect" },
     ],
+    requireFinalLinkParity,
   });
 }
 
@@ -51,8 +52,10 @@ describe("transport HTTP/3 + Early Hints", () => {
     expect(result.reasons).toContain("103 Early Hints not observed");
   });
 
-  it("requires hinted Link values in both 103 and final response", () => {
-    const result = verifyTransportObservation(policy(), { ...passingObservation(), finalLinks: [] });
+  it("does not require final Link duplication unless policy explicitly requests parity", () => {
+    expect(verifyTransportObservation(policy(), { ...passingObservation(), finalLinks: [] }).status).toBe("PASS");
+    const strict = policy(true);
+    const result = verifyTransportObservation(strict, { ...passingObservation(), finalLinks: [] });
     expect(result.status).toBe("FAIL");
     expect(result.reasons.some((reason) => reason.startsWith("final response Link missing"))).toBe(true);
   });
@@ -60,6 +63,7 @@ describe("transport HTTP/3 + Early Hints", () => {
   it("reports unavailable rather than fabricating PASS without a live probe", () => {
     const result = verifyTransportObservation(policy(), { ...passingObservation(), probeAvailable: false, observedProtocol: null, finalStatus: null });
     expect(result.status).toBe("UNAVAILABLE");
+    expect(result.reasons).toEqual(["probe unavailable"]);
   });
 
   it("rejects control-character/header-injection inputs and malformed hint semantics", () => {
