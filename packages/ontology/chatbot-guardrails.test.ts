@@ -180,7 +180,7 @@ describe("formal chatbot guardrails", () => {
     const guardrails = engine(grounding([], [], "UNSUPPORTED"));
     const prepared = await guardrails.prepare({ businessEntityId: "business:client", userMessage: "¿Cuál es el precio?" });
     expect(prepared.envelope.suppressFacts).toBe(true);
-    expect(() => guardrails.render({ planId: "plan:no-escalation", segments: [{ kind: "COPY", copyId: "es.ask-clarify" }] }, prepared)).toThrow(/requires an approved escalation/i);
+    expect(() => guardrails.render({ planId: "plan:no-escalation", segments: [{ kind: "COPY", copyId: "es.ask-clarify" }] }, prepared)).toThrow(/omitted a requested sensitive claim without escalating/i);
     const response = guardrails.render({ planId: "plan:escalate", segments: [{ kind: "COPY", copyId: "es.escalate-verify" }] }, prepared);
     expect(response.text).toContain("confirmarlo");
   });
