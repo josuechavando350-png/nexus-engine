@@ -30,6 +30,12 @@ function parseHeaderDump(text) {
   return { observedProtocol, observedInterimStatuses: interim, earlyHintLinks, finalStatus, finalLinks };
 }
 
+function curlHttp3Unavailable(execution) {
+  if (execution.error?.code === "ENOENT") return true;
+  const stderr = execution.stderr ?? "";
+  return /(?:curl.*does not support.*http3|http3.*not supported|built.*without.*http3)/i.test(stderr);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const policyIndex = args.indexOf("--policy");
@@ -42,21 +48,13 @@ async function main() {
   const policy = createTransportPolicy(rawPolicy);
   const command = curlHttp3OnlyCommand(args[urlIndex + 1]);
   const execution = spawnSync(command[0], command.slice(1), { encoding: "utf8", timeout: 30_000, maxBuffer: 2 * 1024 * 1024 });
-
-  let observation;
-  if (execution.error || execution.status !== 0) {
-    observation = {
-      observedProtocol: null,
-      observedInterimStatuses: [],
-      earlyHintLinks: [],
-      finalStatus: null,
-      finalLinks: [],
-      probeAvailable: false,
-      probeAuthority: "LIVE_NETWORK",
-    };
-  } else {
-    observation = { ...parseHeaderDump(execution.stdout), probeAvailable: true, probeAuthority: "LIVE_NETWORK" };
-  }
+  const parsed = parseHeaderDump(execution.stdout ?? "");
+  const probeAvailable = !curlHttp3Unavailable(execution);
+  const observation = {
+    ...parsed,
+    probeAvailable,
+    probeAuthority: "LIVE_NETWORK",
+  };
 
   const verification = verifyTransportObservation(policy, observation);
   process.stdout.write(`${JSON.stringify(verification, null, 2)}\n`);
