@@ -88,6 +88,11 @@ export interface PurgeLongTermMemoryInput {
   readonly memoryKey: string;
 }
 
+export interface SweepLongTermMemoryInput {
+  readonly subjectId: string;
+  readonly maxDeletes?: number;
+}
+
 export interface MemoryMutationPlan {
   readonly scope: OntologyScope;
   readonly schemaId: string;
@@ -110,6 +115,7 @@ export interface RecalledMemory {
 
 export interface MemoryRecallContext {
   readonly status: "FOUND" | "EMPTY";
+  readonly authority: "PERSONALIZATION_ONLY";
   readonly subjectId: string;
   readonly recalledAt: string;
   readonly policyDigest: string;
@@ -127,15 +133,6 @@ export interface MemoryAwareGuardrailRequest {
   readonly maxFacts?: number;
   readonly maxMatchedEntities?: number;
   readonly maxMemories?: number;
-}
-
-export interface MemoryAwareGuardrailContext {
-  readonly guardrailsDigest: string;
-  readonly memoryDigest: string;
-  readonly businessEntityId: string;
-  readonly customerEntityId: string;
-  readonly userMessageDigest: string;
-  readonly digest: string;
 }
 
 export class LongTermMemoryError extends Error {
