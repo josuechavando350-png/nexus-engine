@@ -52,14 +52,6 @@ jobs:
       - name: Install workspace dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Export generated lockfile for workspace-drift repair
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: nexus-generated-lockfile-${{ env.NEXUS_VALIDATED_SHA }}
-          path: pnpm-lock.yaml
-          if-no-files-found: error
-          retention-days: 1
-
       - name: Install real browser engines
         shell: bash
         run: |
@@ -179,14 +171,7 @@ jobs:
           find "$root" -type f ! -name 'artifact-checksums.sha256' -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
           test -s "$root/artifact-checksums.sha256"
           sha256sum -c "$root/artifact-checksums.sha256"
-          dirty="$(git status --porcelain --untracked-files=no)"
-          if [ -n "$dirty" ]; then
-            echo "::error::Browser validation modified tracked repository files"
-            printf '%s\n' "$dirty"
-            git diff --stat
-            git diff --name-only
-            exit 1
-          fi
+          test -z "$(git status --porcelain --untracked-files=no)"
 
       - name: Evaluate visual baseline and generate CI Quality Passport
         shell: bash
