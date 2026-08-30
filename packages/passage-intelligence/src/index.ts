@@ -111,6 +111,7 @@ export interface PassageIssue {
 }
 
 export interface PassageAssessment {
+  passageId: string;
   passageDigest: string;
   score: number;
   metrics: Readonly<{
@@ -236,7 +237,7 @@ export function assessPassage(passage: Passage): PassageAssessment {
   if (wordCount < 35) issues.push({ code: "TOO_SHORT", detail: `Passage has ${wordCount} words and may be a fragment rather than a useful section.` });
   if (wordCount > 650) issues.push({ code: "TOO_LONG", detail: `Passage has ${wordCount} words and should be reviewed for useful subdivision.` });
   const score = headingAlignment * 0.2 + answerability * 0.25 + contextSufficiency * 0.2 + evidenceLocality * 0.2 + segmentationFitness * 0.15;
-  const core = { passageDigest: passage.passageDigest, score, metrics, issues: Object.freeze(issues) };
+  const core = { passageId: passage.id, passageDigest: passage.passageDigest, score, metrics, issues: Object.freeze(issues) };
   return Object.freeze({ ...core, assessmentDigest: digestValue(core) });
 }
 
@@ -257,7 +258,7 @@ function recommendationsFor(passages: readonly PassageAssessment[], duplicates: 
   const recommendations: PassageRecommendation[] = [];
   for (const assessment of passages) {
     const issueCodes = new Set(assessment.issues.map((issue) => issue.code));
-    const id = assessment.passageDigest;
+    const id = assessment.passageId;
     if (issueCodes.has("HEADING_CONTENT_MISMATCH")) recommendations.push({ kind: "REHEADING", passageIds: [id], reason: "Align the heading with the section's actual user need and content." });
     if (issueCodes.has("AMBIGUOUS_LOCAL_REFERENCE") || issueCodes.has("INSUFFICIENT_LOCAL_CONTEXT")) recommendations.push({ kind: "ADD_CONTEXT", passageIds: [id], reason: "Make entities and referents explicit inside the section." });
     if (issueCodes.has("CLAIM_WITHOUT_LOCAL_EVIDENCE")) recommendations.push({ kind: "ADD_EVIDENCE", passageIds: [id], reason: "Bind important claims to evidence available within the section context." });
