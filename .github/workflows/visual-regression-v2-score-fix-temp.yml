@@ -1,0 +1,49 @@
+name: TEMP Visual Regression V2 Score Contract Fix
+
+on:
+  push:
+    branches:
+      - feat/capability-10-visual-regression-v2
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/capability-10-visual-regression-v2
+          fetch-depth: 0
+
+      - name: Correct SSIMULACRA2 score contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('packages/capture-visual-regression-v2/src/index.ts')
+          text = path.read_text()
+          old = '  finiteRange("perceptual score", perceptual, 0, 100);'
+          new = '''  if (!Number.isFinite(perceptual) || perceptual > 100) {\n    throw new Error("perceptual score must be finite and <= 100");\n  }'''
+          if old not in text:
+            print('Score contract already corrected or source moved; no change needed.')
+          else:
+            path.write_text(text.replace(old, new))
+          PY
+
+      - name: Commit contract correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- packages/capture-visual-regression-v2/src/index.ts; then
+            echo 'No source correction required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/capture-visual-regression-v2/src/index.ts
+          git commit -m 'fix(visual-regression): accept negative SSIMULACRA2 scores'
+          git push origin HEAD:feat/capability-10-visual-regression-v2
