@@ -23,6 +23,8 @@ export interface FiltrationComplex {
   readonly maxHomologyDimension: 0 | 1;
   readonly maxSimplexDimension: 1 | 2;
   readonly vertices: readonly FiltrationVertex[];
+  /** Canonical, de-duplicated relation set actually used to build the flag complex. */
+  readonly relations: readonly TopologicalRelation[];
   readonly simplices: readonly FilteredSimplex[];
   readonly digest: string;
 }
@@ -121,6 +123,8 @@ export interface CertifiedSynthesisResult {
   readonly complex: FiltrationComplex;
   readonly diagram: PersistenceDiagram;
   readonly fingerprint: TopologicalFingerprint;
+  /** Canonical reference diagrams used for every reference-based constraint. */
+  readonly references: readonly TopologyReference[];
   readonly nearestReferenceId?: string;
   readonly nearestBottleneckDistance?: number;
   readonly evaluations: readonly TopologyConstraintEvaluation[];
@@ -131,7 +135,6 @@ export interface CertifiedSynthesisInput {
   readonly subject: string;
   readonly primitives: readonly GeometricPrimitive[];
   readonly canvasBounds: Bounds;
-  readonly sourceTermDigest?: string;
   readonly relations?: readonly TopologicalRelation[];
   readonly referenceDiagrams?: readonly TopologyReference[];
   readonly constraints?: readonly TopologyConstraint[];
