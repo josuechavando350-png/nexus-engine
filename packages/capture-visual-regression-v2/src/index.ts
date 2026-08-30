@@ -319,8 +319,17 @@ function validateEnvironment(environment: RenderingEnvironment): void {
 }
 
 function captureCore(record: CaptureRecord): Omit<CaptureRecord, "digest"> {
-  const { digest: _recordDigest, ...core } = record;
-  return core;
+  return {
+    sceneDigest: record.sceneDigest,
+    revision: record.revision,
+    buildDigest: record.buildDigest,
+    environment: record.environment,
+    viewport: record.viewport,
+    width: record.width,
+    height: record.height,
+    screenshotSha256: record.screenshotSha256,
+    masks: record.masks,
+  };
 }
 
 export function validateCaptureRecord(record: CaptureRecord): void {
@@ -482,7 +491,7 @@ export function validateBaseline(baseline: ApprovedBaseline): void {
     positiveInteger("baseline.mask.count", mask.count, MAX_MASK_MATCHES);
     finiteRange("baseline.mask.areaRatio", mask.areaRatio, 0, 1);
   }
-  const { digest: _baselineDigest, ...core } = baseline;
+  const core = Object.fromEntries(Object.entries(baseline).filter(([key]) => key !== "digest"));
   if (digest(core) !== baseline.digest) throw new Error("baseline digest mismatch");
 }
 
@@ -621,7 +630,7 @@ export function validateComparison(report: ComparisonReport): void {
   sha256Hex("comparison.baselineDigest", report.baselineDigest);
   sha256Hex("comparison.captureDigest", report.captureDigest);
   if (report.nonClaim !== NON_CLAIM) throw new Error("comparison non-claim marker mismatch");
-  const { digest: _reportDigest, diffPath: _diffPath, ...core } = report;
+  const core = Object.fromEntries(Object.entries(report).filter(([key]) => key !== "digest" && key !== "diffPath"));
   if (digest(core) !== report.digest) throw new Error("comparison digest mismatch");
 }
 
