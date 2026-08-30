@@ -27,6 +27,7 @@ export interface PreparedBanditAwareGuardrailContext {
 export class BanditAwareGuardrailCoordinator {
   private readonly issuedContexts = new WeakSet<object>();
   private readonly issuedResponses = new WeakMap<object, string>();
+  readonly scopeDigest: string;
 
   constructor(
     private readonly base: MemoryAwareGuardrailCoordinator,
@@ -36,6 +37,7 @@ export class BanditAwareGuardrailCoordinator {
     if (base.scopeDigest !== expected) {
       throw new ContextualBanditError("POLICY_VIOLATION", "bandit and guarded memory coordinator must use the same ontology scope");
     }
+    this.scopeDigest = expected;
   }
 
   async prepare(request: BanditAwareGuardrailRequest): Promise<PreparedBanditAwareGuardrailContext> {
