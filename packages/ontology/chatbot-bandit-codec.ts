@@ -40,6 +40,14 @@ function optionalStringProperty(record: ObjectRecord, id: string): string | unde
   return value;
 }
 
+function utc(value: string, field: string, stored = false): string {
+  try {
+    return canonicalUtc(value, field);
+  } catch {
+    throw new ContextualBanditError(stored ? "INTEGRITY_FAILURE" : "INVALID_INPUT", `${field} must be canonical ISO-8601 UTC`);
+  }
+}
+
 function assertNonNegativeInteger(value: number, name: string): void {
   if (!Number.isInteger(value) || value < 0) throw new ContextualBanditError("INTEGRITY_FAILURE", `${name} must be a non-negative integer`);
 }
@@ -106,8 +114,8 @@ export function statePayload(input: {
   const banditId = normalizeIdentifier(input.banditId, "banditId");
   const armId = normalizeIdentifier(input.armId, "armId");
   const contextKey = normalizeIdentifier(input.contextKey, "contextKey");
-  const createdAt = canonicalUtc(input.createdAt);
-  const updatedAt = canonicalUtc(input.updatedAt);
+  const createdAt = utc(input.createdAt, "createdAt");
+  const updatedAt = utc(input.updatedAt, "updatedAt");
   if (Date.parse(updatedAt) < Date.parse(createdAt)) throw new ContextualBanditError("INVALID_INPUT", "updatedAt cannot precede createdAt");
   const core = { banditId, armId, contextKey, pulls: input.pulls, rewardSum: input.rewardSum, rewardSquareSum: input.rewardSquareSum, createdAt, updatedAt };
   return {
@@ -140,7 +148,7 @@ export function decisionPayload(input: {
   const interactionId = normalizeIdentifier(input.interactionId, "interactionId");
   const armId = normalizeIdentifier(input.armId, "armId");
   const contextKey = normalizeIdentifier(input.contextKey, "contextKey");
-  const issuedAt = canonicalUtc(input.issuedAt);
+  const issuedAt = utc(input.issuedAt, "issuedAt");
   const contextDigest = normalizeIdentifier(input.contextDigest, "contextDigest");
   const policyDigest = normalizeIdentifier(input.policyDigest, "policyDigest");
   const guardrailContextDigest = normalizeIdentifier(input.guardrailContextDigest, "guardrailContextDigest");
@@ -150,7 +158,7 @@ export function decisionPayload(input: {
     if (input.reward === undefined || input.outcomeAt === undefined) throw new ContextualBanditError("INVALID_INPUT", "rewarded decision requires reward and outcomeAt");
     assertReward(input.reward, "INVALID_INPUT");
     reward = input.reward;
-    outcomeAt = canonicalUtc(input.outcomeAt);
+    outcomeAt = utc(input.outcomeAt, "outcomeAt");
     if (Date.parse(outcomeAt) < Date.parse(issuedAt)) throw new ContextualBanditError("INVALID_INPUT", "outcomeAt cannot precede issuedAt");
   } else if (input.reward !== undefined || input.outcomeAt !== undefined) {
     throw new ContextualBanditError("INVALID_INPUT", "pending decision cannot carry outcome data");
@@ -185,8 +193,8 @@ export function projectBanditState(record: ObjectRecord): BanditStateRecord {
     updatedAt: stringProperty(record, BSP.updatedAt),
   };
   assertNonNegativeInteger(core.pulls, "stored pulls");
-  canonicalUtc(core.createdAt);
-  canonicalUtc(core.updatedAt);
+  utc(core.createdAt, "stored createdAt", true);
+  utc(core.updatedAt, "stored updatedAt", true);
   if (record.id !== banditStateId(core.banditId, core.armId, core.contextKey)) throw new ContextualBanditError("INTEGRITY_FAILURE", "bandit state identity mismatch");
   if (core.rewardSum < 0 || core.rewardSum > core.pulls || core.rewardSquareSum < 0 || core.rewardSquareSum > core.pulls) throw new ContextualBanditError("INTEGRITY_FAILURE", "bandit state reward aggregates are invalid");
   const digest = stringProperty(record, BSP.recordDigest);
@@ -213,12 +221,12 @@ export function projectBanditDecision(record: ObjectRecord): BanditDecisionRecor
     ...(reward === undefined ? {} : { reward }),
     ...(outcomeAt === undefined ? {} : { outcomeAt }),
   };
-  canonicalUtc(core.issuedAt);
+  utc(core.issuedAt, "stored issuedAt", true);
   if (status === "PENDING" && (reward !== undefined || outcomeAt !== undefined)) throw new ContextualBanditError("INTEGRITY_FAILURE", "pending decision carries outcome data");
   if (status === "REWARDED") {
     if (reward === undefined || outcomeAt === undefined) throw new ContextualBanditError("INTEGRITY_FAILURE", "rewarded decision is missing outcome data");
     assertReward(reward, "INTEGRITY_FAILURE");
-    canonicalUtc(outcomeAt);
+    utc(outcomeAt, "stored outcomeAt", true);
     if (Date.parse(outcomeAt) < Date.parse(core.issuedAt)) throw new ContextualBanditError("INTEGRITY_FAILURE", "stored outcome precedes decision issuance");
   }
   if (record.id !== banditDecisionId(core.banditId, core.interactionId)) throw new ContextualBanditError("INTEGRITY_FAILURE", "bandit decision identity mismatch");
