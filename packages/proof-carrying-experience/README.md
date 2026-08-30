@@ -16,7 +16,7 @@ This package does not create a second signing system.
 
 A structurally verified proof establishes that the exact artifact descriptor, Visual Algebra term, Topology certificate, Semantic verification result, Originality assessment and evidence trust anchor are mutually linked by deterministic digests and provenance rules.
 
-An evidence trust anchor may be structurally represented without signing metadata for formal/unit use. Authenticated signed envelopes require both `signingKeyFingerprint` and `signatureDigest`; `validateAuthenticatedEvidenceTrustAnchor()` fails closed when either is absent.
+An evidence trust anchor may be structurally represented without signing metadata for formal/unit use. Signed-envelope construction requires both `signingKeyFingerprint` and `signatureDigest`; `validateEvidenceTrustAnchorAuthenticationBinding()` checks that this binding metadata is complete and canonical. It does **not** perform signature verification by itself; the Ed25519 check remains in `@nexus/evidence`.
 
 ## Formal proof binding
 
