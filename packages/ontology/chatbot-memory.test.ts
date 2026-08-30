@@ -12,7 +12,7 @@ import { LongTermMemoryPlanner } from "./chatbot-memory-planner.js";
 import { LongTermMemoryReader } from "./chatbot-memory-reader.js";
 import { MemoryAwareGuardrailCoordinator } from "./chatbot-memory-guardrail.js";
 import { createDefaultLongTermMemoryPolicy, finalizeLongTermMemoryPolicy } from "./chatbot-memory-policy.js";
-import { MEMORY_TYPE, MP, type MemoryMutationPlan, type UpsertLongTermMemoryInput } from "./chatbot-memory-types.js";
+import { MEMORY_TYPE, MP, type LongTermMemoryPolicy, type MemoryMutationPlan, type UpsertLongTermMemoryInput } from "./chatbot-memory-types.js";
 
 const SCOPE: OntologyScope = { tenantId: "tenant:test", organizationId: "org:test", brandId: "brand:test" };
 const NOW = "2026-08-30T01:00:00.000Z";
@@ -23,6 +23,10 @@ function addEntity(read: InMemoryOntologyPersistence, id: string, kind: "PERSON"
   const normalizedId = entityId(input);
   read.upsertObject({ id: normalizedId, typeId: ENTITY_TYPE, scope: SCOPE, properties: entityPayload(input, input.observedAt), revision: 1 });
   return normalizedId;
+}
+
+function memoryPlanner(read: InMemoryOntologyPersistence, policy: LongTermMemoryPolicy = createDefaultLongTermMemoryPolicy()): LongTermMemoryPlanner {
+  return new LongTermMemoryPlanner(read, SCOPE, policy, () => NOW_MS);
 }
 
 function applyPlan(read: InMemoryOntologyPersistence, plan: MemoryMutationPlan): void {
@@ -76,8 +80,7 @@ describe("chatbot long-term memory", () => {
   it("creates a scoped, provenance-bound memory plan with its own permission", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
-    const plan = planner.planUpsert(memoryInput(customer));
+    const plan = memoryPlanner(read).planUpsert(memoryInput(customer));
     expect(plan.requiredPermission).toBe("chatbot.memory.write");
     expect(plan.noop).toBe(false);
     expect(plan.operations).toHaveLength(1);
@@ -94,12 +97,13 @@ describe("chatbot long-term memory", () => {
     const read = new InMemoryOntologyPersistence();
     const ana = addEntity(read, "customer:ana");
     const beto = addEntity(read, "customer:beto");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     applyPlan(read, planner.planUpsert(memoryInput(ana, { value: "WhatsApp" })));
     applyPlan(read, planner.planUpsert(memoryInput(beto, { value: "Email" })));
     const reader = new LongTermMemoryReader(read, SCOPE, createDefaultLongTermMemoryPolicy(), () => NOW_MS);
     const context = reader.recall({ subjectId: ana, userMessage: "¿Me contactan por WhatsApp?" });
     expect(context.status).toBe("FOUND");
+    expect(context.authority).toBe("PERSONALIZATION_ONLY");
     expect(context.items).toHaveLength(1);
     expect(context.items[0]?.memory.subjectId).toBe(ana);
     expect(context.items[0]?.memory.value).toBe("WhatsApp");
@@ -109,7 +113,7 @@ describe("chatbot long-term memory", () => {
   it("suppresses expired and revoked memories", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     applyPlan(read, planner.planUpsert(memoryInput(customer, { memoryKey: "old-goal", category: "GOAL", value: "Cotizar", expiresAt: "2026-08-30T00:30:00.000Z" })));
     applyPlan(read, planner.planUpsert(memoryInput(customer, { memoryKey: "favorite-channel", value: "WhatsApp" })));
     applyPlan(read, planner.planRevoke({ subjectId: customer, memoryKey: "favorite-channel", observedAt: NOW }));
@@ -122,7 +126,7 @@ describe("chatbot long-term memory", () => {
   it("rejects stale overwrites and same-time conflicting rewrites", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     applyPlan(read, planner.planUpsert(memoryInput(customer, { observedAt: "2026-08-30T00:20:00.000Z" })));
     expect(() => planner.planUpsert(memoryInput(customer, { value: "Email", observedAt: "2026-08-30T00:10:00.000Z" }))).toThrow(/older observation/i);
     expect(() => planner.planUpsert(memoryInput(customer, { value: "Email", observedAt: "2026-08-30T00:20:00.000Z" }))).toThrow(/same observation time/i);
@@ -131,7 +135,7 @@ describe("chatbot long-term memory", () => {
   it("fails closed on personal/sensitive retention that violates the default policy", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     expect(() => planner.planUpsert(memoryInput(customer, { sensitivity: "PERSONAL", retentionBasis: "SERVICE_CONTEXT" }))).toThrow(/personal memory requires/i);
     expect(() => planner.planUpsert(memoryInput(customer, { sensitivity: "SENSITIVE", retentionBasis: "USER_REQUEST" }))).toThrow(/sensitive long-term memory is disabled/i);
   });
@@ -139,7 +143,7 @@ describe("chatbot long-term memory", () => {
   it("refuses credential, authentication, and secret-shaped memory keys", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     expect(() => planner.planUpsert(memoryInput(customer, { memoryKey: "customer-password" }))).toThrow(/must not be stored/i);
     expect(() => planner.planUpsert(memoryInput(customer, { memoryKey: "api-key" }))).toThrow(/must not be stored/i);
   });
@@ -147,15 +151,15 @@ describe("chatbot long-term memory", () => {
   it("caps certainty for inferred and summarized memories", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     expect(() => planner.planUpsert(memoryInput(customer, { sourceKind: "CUSTOMER_IMPLICIT", confidence: 0.99 }))).toThrow(/cannot exceed 0.85/i);
-    expect(() => planner.planUpsert(memoryInput(customer, { sourceKind: "SYSTEM_SUMMARY", confidence: 0.95 }))).toThrow(/cannot exceed 0.9/i);
+    expect(() => planner.planUpsert(memoryInput(customer, { sourceKind: "SYSTEM_SUMMARY", category: "CONTEXT", confidence: 0.95 }))).toThrow(/cannot exceed 0.9/i);
   });
 
   it("supports idempotent purge for deletion requests", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     applyPlan(read, planner.planUpsert(memoryInput(customer)));
     const purge = planner.planPurge({ subjectId: customer, memoryKey: "preferred-contact-channel" });
     expect(purge.operations[0]?.kind).toBe("DELETE_OBJECT");
@@ -166,7 +170,7 @@ describe("chatbot long-term memory", () => {
   it("detects tampering in persisted memory before recall", () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     const plan = planner.planUpsert(memoryInput(customer));
     applyPlan(read, plan);
     const create = plan.operations[0];
@@ -181,7 +185,7 @@ describe("chatbot long-term memory", () => {
   it("keeps memory as personalization only while outbound text remains guardrail-controlled", async () => {
     const read = new InMemoryOntologyPersistence();
     const customer = addEntity(read, "customer:ana");
-    const planner = new LongTermMemoryPlanner(read, SCOPE);
+    const planner = memoryPlanner(read);
     applyPlan(read, planner.planUpsert(memoryInput(customer, {
       memoryKey: "conversation-note",
       category: "CONTEXT",
@@ -193,16 +197,37 @@ describe("chatbot long-term memory", () => {
     const coordinator = new MemoryAwareGuardrailCoordinator(guardrails, memoryReader);
     const prepared = await coordinator.prepare({ businessEntityId: "business:client", customerEntityId: customer, userMessage: "¿Cuál es el precio?" });
     expect(prepared.memory.status).toBe("FOUND");
+    expect(prepared.memory.authority).toBe("PERSONALIZATION_ONLY");
     expect(prepared.guardrails.envelope.disposition).toBe("ESCALATE");
     const response = coordinator.render({ planId: "plan:escalate", segments: [{ kind: "COPY", copyId: "es.escalate-verify" }] }, prepared);
     expect(response.text).not.toMatch(/90%|descuento/i);
     expect(() => coordinator.verifyOutbound(response, prepared)).not.toThrow();
+    expect(() => coordinator.render({ planId: "plan:forged", segments: [{ kind: "COPY", copyId: "es.escalate-verify" }] }, { ...prepared })).toThrow(/not issued by this coordinator/i);
   });
 
   it("can explicitly enable bounded sensitive memory without making it indefinite", () => {
     const base = createDefaultLongTermMemoryPolicy();
-    const policy = finalizeLongTermMemoryPolicy({ ...base, allowSensitive: true, digest: undefined as never });
-    expect(policy.allowSensitive).toBe(true);
+    const policy = finalizeLongTermMemoryPolicy({
+      policyId: base.policyId,
+      version: base.version,
+      maxRecordsPerSubject: base.maxRecordsPerSubject,
+      maxStandardAgeMs: base.maxStandardAgeMs,
+      maxPersonalAgeMs: base.maxPersonalAgeMs,
+      maxSensitiveAgeMs: base.maxSensitiveAgeMs,
+      allowSensitive: true,
+      requireUserRequestForPersonal: base.requireUserRequestForPersonal,
+    });
+    const read = new InMemoryOntologyPersistence();
+    const customer = addEntity(read, "customer:ana");
+    const planner = memoryPlanner(read, policy);
+    const plan = planner.planUpsert(memoryInput(customer, {
+      memoryKey: "medical-context",
+      category: "CONTEXT",
+      value: "medical diagnosis",
+      sensitivity: "SENSITIVE",
+      expiresAt: "2026-09-09T00:00:00.000Z",
+    }));
+    expect(plan.noop).toBe(false);
     expect(policy.maxSensitiveAgeMs).toBeLessThan(policy.maxPersonalAgeMs);
   });
 });
