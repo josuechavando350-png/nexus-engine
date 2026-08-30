@@ -13,7 +13,7 @@ import {
 import { verifyGuardrailPolicy } from "./chatbot-guardrails-policy.js";
 
 const SENSITIVE_INTENT_TERMS = Object.freeze({
-  PRICE: ["precio", "precios", "costo", "costos", "cuesta", "cuestan", "cuanto", "vale", "cobran", "cotizacion", "price", "prices", "cost"],
+  PRICE: ["precio", "precios", "costo", "costos", "cuesta", "cuestan", "cuanto", "vale", "cobran", "cotizacion", "tarifa", "tarifas", "honorario", "honorarios", "mensualidad", "mensualidades", "inversion", "importe", "presupuesto", "presupuestos", "price", "prices", "cost"],
   AVAILABILITY: ["disponible", "disponibilidad", "cupo", "stock", "availability", "available"],
   POLICY: ["politica", "politicas", "terminos", "condiciones", "cancelacion", "reembolso", "privacidad", "policy", "policies", "terms", "refund"],
   GUARANTEE: ["garantia", "garantias", "garantiza", "garantizado", "asegura", "aseguran", "guarantee", "guarantees", "guaranteed"],
@@ -135,9 +135,11 @@ export class FormalGuardrailEngine {
     const usableCount = allowedFactIds.length + qualifiedFactIds.length;
     const usableIds = new Set([...allowedFactIds, ...qualifiedFactIds]);
     const missingRequestedClass = requestedClaimClasses.some((claimClass) => !grounding.facts.some((fact) => fact.claimClass === claimClass && usableIds.has(fact.factId)));
-    const rejectedHighRisk = rejectedFacts.some((item) => item.risk === "HIGH" || item.risk === "CRITICAL");
+    const rejectedRequestedHighRisk = rejectedFacts.some((item) =>
+      (item.risk === "HIGH" || item.risk === "CRITICAL") && requestedClaimClasses.includes(item.claimClass as Exclude<GroundedFact["claimClass"], "GENERAL">),
+    );
     const suppressFacts = grounding.status === "UNSUPPORTED" || grounding.status === "CONFLICTED";
-    const requiredEscalation = suppressFacts || usableCount === 0 || missingRequestedClass || rejectedHighRisk;
+    const requiredEscalation = suppressFacts || usableCount === 0 || missingRequestedClass || rejectedRequestedHighRisk;
     const disposition: GuardrailEnvelope["disposition"] = requiredEscalation ? "ESCALATE" : qualifiedFactIds.length ? "QUALIFY" : "ALLOW";
     const envelopeCore = { policyId: this.policy.policyId, policyVersion: this.policy.version, policyDigest: this.policy.digest, groundingDigest: grounding.digest, requestDigest, requestedClaimClasses, groundingStatus: grounding.status, disposition, allowedFactIds, qualifiedFactIds, rejectedFacts, facts: grounding.facts, requiredEscalation, suppressFacts, createdAt };
     const envelope: GuardrailEnvelope = Object.freeze({ ...envelopeCore, digest: hash("kgenvelope", envelopeCore) });
