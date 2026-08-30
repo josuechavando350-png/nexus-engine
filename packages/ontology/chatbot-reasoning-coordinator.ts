@@ -27,7 +27,6 @@ function evidenceSnapshot(userMessage: string, context: PreparedBanditAwareGuard
   const envelope = context.base.guardrails.envelope;
   const memory = context.base.memory;
   const memoryCategories = [...new Set(memory.items.map((item) => item.memory.category))].sort();
-  const memoryKeys = [...new Set(memory.items.map((item) => item.memory.memoryKey))].sort();
   return Object.freeze({
     userMessage,
     userMessageDigest: context.base.userMessageDigest,
@@ -39,7 +38,6 @@ function evidenceSnapshot(userMessage: string, context: PreparedBanditAwareGuard
     requestedClaimClasses: Object.freeze([...envelope.requestedClaimClasses]),
     memoryStatus: memory.status,
     memoryCategories: Object.freeze(memoryCategories),
-    memoryKeys: Object.freeze(memoryKeys),
     memoryAuthority: memory.authority,
   });
 }
