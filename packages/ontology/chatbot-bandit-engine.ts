@@ -196,7 +196,12 @@ export class ContextualBanditEngine {
   planReward(input: BanditRewardInput) {
     const decisionId = normalizeIdentifier(input.decisionId, "decisionId");
     if (!Number.isFinite(input.reward) || input.reward < 0 || input.reward > 1) throw new ContextualBanditError("INVALID_INPUT", "reward must be a finite number from 0 to 1");
-    const outcomeAt = canonicalUtc(input.outcomeAt);
+    let outcomeAt: string;
+    try {
+      outcomeAt = canonicalUtc(input.outcomeAt, "outcomeAt");
+    } catch {
+      throw new ContextualBanditError("INVALID_INPUT", "outcomeAt must be canonical ISO-8601 UTC");
+    }
     const now = this.currentTime();
     if (Date.parse(outcomeAt) > now.ms) throw new ContextualBanditError("INVALID_INPUT", "outcomeAt cannot be in the future");
     const raw = this.read.getObject(this.scope, decisionId);
