@@ -24,12 +24,16 @@ export interface PreparedDeliberativeBanditContext {
 }
 
 function evidenceSnapshot(userMessage: string, context: PreparedBanditAwareGuardrailContext): ReasoningEvidenceSnapshot {
+  const expectedMessageDigest = hash("ltmmessage", userMessage);
+  if (context.base.userMessageDigest !== expectedMessageDigest) {
+    throw new ChatbotReasoningError("INTEGRITY_FAILURE", "reasoning user message does not match guarded context lineage");
+  }
   const envelope = context.base.guardrails.envelope;
   const memory = context.base.memory;
   const memoryCategories = [...new Set(memory.items.map((item) => item.memory.category))].sort();
   return Object.freeze({
     userMessage,
-    userMessageDigest: context.base.userMessageDigest,
+    userMessageDigest: expectedMessageDigest,
     guardedContextDigest: context.base.digest,
     groundingStatus: context.base.guardrails.grounding.status,
     disposition: envelope.disposition,
