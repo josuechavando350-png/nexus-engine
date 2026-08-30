@@ -241,6 +241,22 @@ describe("chatbot reasoning adversarial audit", () => {
     })).rejects.toThrow(/disabled on escalation/i);
   });
 
+  it("rejects stale or mismatched user-message lineage before any reasoning assessment", async () => {
+    const guarded = new BanditAwareGuardrailCoordinator(fakeBase(), bandit());
+    const reasoning = new BoundedMultiAgentReasoningEngine(SCOPE, createDefaultReasoningPolicy());
+    const coordinator = new DeliberativeBanditCoordinator(guarded, reasoning, () => NOW_MS);
+    await expect(coordinator.prepare({
+      reasoningId: "audit:message-lineage",
+      businessEntityId: "business:audit5",
+      customerEntityId: "customer:audit5",
+      userMessage: "otro mensaje",
+      banditId: "sales-close",
+      interactionId: "audit:message-lineage-interaction",
+      banditContext: { intent: "support" },
+      eligibleArmIds: ["safe-a", "safe-b"],
+    })).rejects.toThrow(/does not match guarded context lineage/i);
+  });
+
   it("enforces the reasoning input budget before invoking the candidate search", async () => {
     const base = createDefaultReasoningPolicy();
     const policy = finalizeReasoningPolicy({
