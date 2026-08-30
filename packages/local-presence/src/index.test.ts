@@ -3,6 +3,7 @@ import {
   compareLocation,
   createCanonicalLocation,
   createControlledProviderLocation,
+  digestValue,
   executeGoogleBusinessProfileSync,
   fetchGoogleBusinessProfileLocation,
   fetchGoogleBusinessProfileReviews,
@@ -47,7 +48,16 @@ describe("local presence", () => {
 
   it("does not treat caller-fabricated GBP authority as live evidence", () => {
     const base = controlled();
-    const forged = { ...base, sourceAuthority: "GOOGLE_BUSINESS_PROFILE_API" as const };
+    const forgedCore = {
+      providerId: base.providerId,
+      externalId: base.externalId,
+      name: base.name,
+      phone: base.phone,
+      website: base.website,
+      address: base.address,
+      sourceAuthority: "GOOGLE_BUSINESS_PROFILE_API" as const,
+    };
+    const forged = { ...forgedCore, snapshotDigest: digestValue(forgedCore) };
     expect(() => validateLiveProviderLocation(forged)).toThrow(/not live-attested/);
   });
 
