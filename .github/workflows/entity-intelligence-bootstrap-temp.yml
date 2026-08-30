@@ -1,0 +1,82 @@
+name: TEMP Entity Intelligence Bootstrap
+
+on:
+  push:
+    branches:
+      - feat/capability-07-entity-intelligence
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap-and-verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/capability-07-entity-intelligence
+          fetch-depth: 0
+
+      - name: Set up Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - name: Install and regenerate workspace lockfile
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Typecheck capability
+        run: pnpm --filter @nexus/entity-intelligence typecheck
+
+      - name: Test capability
+        run: pnpm --filter @nexus/entity-intelligence test
+
+      - name: Build capability
+        run: pnpm --filter @nexus/entity-intelligence build
+
+      - name: Repository lint
+        run: pnpm lint
+
+      - name: Exercise operational consumer
+        run: |
+          node --input-type=module <<'NODE'
+          import { writeFile } from 'node:fs/promises';
+          import { Buffer } from 'node:buffer';
+          import { createEntityDocument, parseCloudNaturalLanguageSnapshot, resolveFromKnowledgeGraphPayload, assessEntities } from './packages/entity-intelligence/src/index.ts';
+          const document = createEntityDocument('https://example.com/entity', 'es-MX', [
+            { id: 'a', heading: 'México', text: 'El SAT participa en la defensa fiscal.' },
+            { id: 'b', heading: 'Prueba', text: 'La evidencia sobre SAT se conserva.' },
+          ], [{ id: 'sat', name: 'SAT', schemaTypes: ['Organization'], minimumDistinctSections: 2, requireKnowledgeGraph: true }]);
+          const first = Buffer.byteLength('México\nEl ', 'utf8');
+          const second = document.sections[1].byteStart + Buffer.byteLength('Prueba\nLa evidencia sobre ', 'utf8');
+          const snapshot = parseCloudNaturalLanguageSnapshot(document, { entities: [{ name: 'SAT', type: 'ORGANIZATION', salience: 0.8, metadata: { mid: '/m/sat' }, mentions: [{ text: { content: 'SAT', beginOffset: first } }, { text: { content: 'SAT', beginOffset: second } }] }] });
+          const resolution = resolveFromKnowledgeGraphPayload(document, snapshot.entities[0], 'NLP_MID_LOOKUP', { itemListElement: [{ result: { '@id': '/g/sat', '@type': ['Organization'], name: 'SAT', identifier: [{ propertyID: 'googleKgMID', value: '/m/sat' }], url: 'https://example.com/sat' } }] });
+          const assessment = assessEntities(document, snapshot, [resolution]);
+          await writeFile('/tmp/entity-evidence.json', JSON.stringify({ document, snapshot, resolutions: [resolution], assessment }));
+          NODE
+          node scripts/audit-entity-intelligence.mjs --spec /tmp/entity-evidence.json
+
+      - name: Verify only lockfile changed outside committed source
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml'
+          grep -Fq '  packages/entity-intelligence: {}' pnpm-lock.yaml
+
+      - name: Commit lockfile when changed
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo 'Lockfile already synchronized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pnpm-lock.yaml
+          git commit -m 'fix(entity): synchronize workspace lockfile'
+          git push origin HEAD:feat/capability-07-entity-intelligence
