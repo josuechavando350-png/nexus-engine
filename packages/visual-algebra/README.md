@@ -17,6 +17,7 @@ Deterministic geometric analysis for NEXUS experiences.
 - geometry-backed fingerprint projection
 - conservative legacy structure adapter
 - deterministic canonical JSON + SHA-256 term digests
+- fail-closed term verification that recomputes canonical geometry, metrics, constraint evaluations and digest before downstream use
 
 ## Metrics
 
@@ -56,6 +57,10 @@ Metrics operate on explicit layout geometry. For ellipses, polygons, text and im
 
 Every term carries its source geometry, eight metrics, constraint evaluations and a deterministic SHA-256 digest.
 
+`verifyVisualAlgebraTerm()` is the trust boundary for externally supplied or cross-package terms. It does not merely check that a digest has the right shape: it normalizes every primitive again, recomputes all eight metrics from the supplied geometry/canvas, recomputes every constraint evaluation, and finally recomputes the canonical term digest. A caller therefore cannot change metrics/evaluations and manufacture a matching outer digest to smuggle false geometric evidence into Measurement, Topology, Compositional Semantics, Originality or Proof-Carrying Experience.
+
+`sequence()`, `nest()`, geometric fingerprint creation and the live downstream adapters call this verifier before consuming a term. Canonical hashing also rejects cyclic structures instead of recursing indefinitely.
+
 ## Constraints
 
 Constraints support a minimum, maximum or closed range on any known metric. Evaluation returns the original constraint, actual value, expected bounds, pass/fail and reason; it never collapses evidence to an unexplained boolean.
@@ -90,15 +95,17 @@ The current NEXUS repository does **not** contain a canonical `StyleFingerprintV
 
 ## Measurement integration
 
-The live repository integration is owned by `@nexus/measurement`, which consumes a `VisualAlgebraTerm` and converts all eight metrics plus constraint status into deterministic `MetricSample` evidence. Dependency direction remains:
+The live repository integration is owned by `@nexus/measurement`, which consumes a verified `VisualAlgebraTerm` and converts all eight metrics plus constraint status into deterministic `MetricSample` evidence. Dependency direction remains:
 
 `measurement -> visual-algebra`
 
 not the reverse.
 
+Topology and the higher formal engines also verify a supplied Visual Algebra term before carrying its digest/provenance forward.
+
 ## Determinism
 
-Engine outputs do not depend on random UUIDs, `Math.random()`, wall-clock time, network state or unstable object-key ordering. Canonical hashing rejects undefined values, non-finite numbers and unsupported/non-plain objects instead of silently omitting them.
+Engine outputs do not depend on random UUIDs, `Math.random()`, wall-clock time, network state or unstable object-key ordering. Canonical hashing rejects undefined values, non-finite numbers, cyclic values and unsupported/non-plain objects instead of silently omitting them.
 
 ## Complexity
 

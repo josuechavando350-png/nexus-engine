@@ -1,3 +1,4 @@
+import { verifyVisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { ConstraintEvaluation, GeometricMetricName } from "@nexus/visual-algebra";
 import type { MetricSample } from "./index.js";
@@ -29,14 +30,10 @@ export interface VisualAlgebraMeasurementProjection {
 export function projectVisualAlgebraMeasurement(
   term: VisualAlgebraTerm,
 ): VisualAlgebraMeasurementProjection {
-  if (!term.subject.trim()) throw new Error("Visual Algebra term subject cannot be empty");
-  if (!/^[a-f0-9]{64}$/.test(term.digest)) throw new Error("Visual Algebra term digest must be SHA-256 hex");
+  verifyVisualAlgebraTerm(term);
 
   const samples = METRICS.map((metric): MetricSample => {
     const value = term.metrics[metric];
-    if (!Number.isFinite(value) || value < 0 || value > 1) {
-      throw new Error(`Visual Algebra metric ${metric} must be finite and normalized to [0,1]`);
-    }
     return Object.freeze({
       name: `visual_algebra.${metric}`,
       unit: "ratio",

@@ -1,6 +1,6 @@
-import { digestValue } from "@nexus/visual-algebra";
+import { digestValue, verifyVisualAlgebraTerm } from "@nexus/visual-algebra";
 import { projectToStructureFields } from "@nexus/visual-algebra";
-import type { GeometricFingerprint, GeometricMetrics, VisualAlgebraTerm } from "@nexus/visual-algebra";
+import type { GeometricFingerprint, GeometricMetrics } from "@nexus/visual-algebra";
 import { ORIGINALITY_METRICS } from "./constants.js";
 import type { CreateOriginalityPointInput, OriginalityPoint, OriginalityPointFromFingerprintInput, OriginalityPointFromTermInput } from "./types.js";
 
@@ -25,19 +25,6 @@ export function validateGeometricMetrics(metrics: GeometricMetrics): void {
       throw new Error(`Originality metric ${metric} must be finite and normalized to [0,1]`);
     }
   }
-}
-
-function recomputeVisualTermDigest(term: VisualAlgebraTerm): string {
-  return digestValue({
-    authority: "NEXUS_VISUAL_ALGEBRA_TERM_V1",
-    subject: term.subject,
-    operation: term.operation,
-    canvasBounds: term.canvasBounds,
-    primitives: term.primitives,
-    metrics: term.metrics,
-    constraints: term.constraints,
-    evaluations: term.evaluations,
-  });
 }
 
 export function createOriginalityPoint(input: CreateOriginalityPointInput): OriginalityPoint {
@@ -77,8 +64,7 @@ export function originalityPointFromFingerprint(input: OriginalityPointFromFinge
 }
 
 export function originalityPointFromTerm(input: OriginalityPointFromTermInput): OriginalityPoint {
-  const expectedDigest = recomputeVisualTermDigest(input.term);
-  if (expectedDigest !== input.term.digest) throw new Error("Visual Algebra term digest mismatch");
+  verifyVisualAlgebraTerm(input.term);
   return createOriginalityPoint({
     pointId: input.pointId,
     role: input.role,

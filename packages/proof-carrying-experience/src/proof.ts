@@ -1,7 +1,7 @@
 import { validateVerificationResult } from "@nexus/compositional-semantics";
 import { validateOriginalityAssessment } from "@nexus/originality-geodesics";
 import { validateCertifiedSynthesisResult } from "@nexus/topology";
-import { digestValue } from "@nexus/visual-algebra";
+import { digestValue, verifyVisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 import { validateEvidenceTrustAnchor } from "./anchor.js";
 import { validateExperienceArtifact } from "./artifact.js";
@@ -28,19 +28,7 @@ const CLAIM_ORDER: readonly ExperienceProofClaimKind[] = Object.freeze([
 ]);
 
 function validateVisualTerm(term: VisualAlgebraTerm): void {
-  if (!term.subject.trim()) throw new Error("Visual Algebra term subject cannot be empty");
-  for (const evaluation of term.evaluations) if (typeof evaluation.pass !== "boolean") throw new Error("Visual Algebra constraint evaluation pass must be boolean");
-  const expectedDigest = digestValue({
-    authority: "NEXUS_VISUAL_ALGEBRA_TERM_V1",
-    subject: term.subject,
-    operation: term.operation,
-    canvasBounds: term.canvasBounds,
-    primitives: term.primitives,
-    metrics: term.metrics,
-    constraints: term.constraints,
-    evaluations: term.evaluations,
-  });
-  if (expectedDigest !== term.digest) throw new Error("Visual Algebra term digest mismatch");
+  verifyVisualAlgebraTerm(term);
 }
 
 function assertFormalLinkage(input: CreateFormalExperienceProofInput): void {

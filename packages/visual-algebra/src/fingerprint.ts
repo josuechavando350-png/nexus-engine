@@ -1,3 +1,4 @@
+import { verifyVisualAlgebraTerm } from "./algebra.js";
 import { geometricSimilarity } from "./distance.js";
 import type {
   GeometricFingerprint,
@@ -28,6 +29,7 @@ export function enrichStructure<T extends Readonly<Record<string, unknown>>>(
 }
 
 export function createGeometricFingerprint(term: VisualAlgebraTerm): GeometricFingerprint {
+  verifyVisualAlgebraTerm(term);
   return Object.freeze({
     authority: "NEXUS_VISUAL_ALGEBRA_V1",
     subject: term.subject,

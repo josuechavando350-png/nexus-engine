@@ -1,27 +1,12 @@
-import { digestValue } from "@nexus/visual-algebra";
+import { verifyVisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { VisualAlgebraTerm } from "@nexus/visual-algebra";
 import type { CertifiedSynthesisResult } from "@nexus/topology";
 import { validateCertifiedSynthesisResult } from "@nexus/topology";
 import { createSemanticState, mergeSemanticStates } from "./state.js";
 import type { SemanticState, SemanticValue } from "./types.js";
 
-function validateVisualAlgebraTerm(term: VisualAlgebraTerm): void {
-  if (!term.subject.trim()) throw new Error("Visual Algebra term subject cannot be empty");
-  const expectedDigest = digestValue({
-    authority: "NEXUS_VISUAL_ALGEBRA_TERM_V1",
-    subject: term.subject,
-    operation: term.operation,
-    canvasBounds: term.canvasBounds,
-    primitives: term.primitives,
-    metrics: term.metrics,
-    constraints: term.constraints,
-    evaluations: term.evaluations,
-  });
-  if (expectedDigest !== term.digest) throw new Error("Visual Algebra term digest mismatch");
-}
-
 export function semanticStateFromVisualAlgebra(term: VisualAlgebraTerm): SemanticState {
-  validateVisualAlgebraTerm(term);
+  verifyVisualAlgebraTerm(term);
   const metrics = Object.fromEntries(Object.entries(term.metrics).map(([name, value]) => [`visual.${name}`, value]));
   return createSemanticState({
     facts: {

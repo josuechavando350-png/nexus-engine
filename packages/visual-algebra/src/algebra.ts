@@ -30,7 +30,7 @@ const METRIC_NAMES: readonly GeometricMetricName[] = Object.freeze([
   "packingDensity",
 ]);
 
-function canonicalize(value: unknown, path = "$"): unknown {
+function canonicalize(value: unknown, path = "$", stack = new WeakSet<object>()): unknown {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
 
   if (typeof value === "number") {
@@ -39,22 +39,35 @@ function canonicalize(value: unknown, path = "$"): unknown {
   }
 
   if (Array.isArray(value)) {
-    return value.map((item, index) => canonicalize(item, `${path}[${index}]`));
+    if (stack.has(value)) throw new Error(`Cannot canonicalize cyclic value at ${path}`);
+    stack.add(value);
+    try {
+      return value.map((item, index) => canonicalize(item, `${path}[${index}]`, stack));
+    } finally {
+      stack.delete(value);
+    }
   }
 
   if (typeof value === "object") {
+    const objectValue = value as object;
+    if (stack.has(objectValue)) throw new Error(`Cannot canonicalize cyclic value at ${path}`);
     const prototype = Object.getPrototypeOf(value);
     if (prototype !== Object.prototype && prototype !== null) {
       throw new Error(`Cannot canonicalize non-plain object at ${path}`);
     }
 
-    const input = value as Record<string, unknown>;
-    const output: Record<string, unknown> = {};
-    for (const key of Object.keys(input).sort()) {
-      if (input[key] === undefined) throw new Error(`Cannot canonicalize undefined at ${path}.${key}`);
-      output[key] = canonicalize(input[key], `${path}.${key}`);
+    stack.add(objectValue);
+    try {
+      const input = value as Record<string, unknown>;
+      const output: Record<string, unknown> = {};
+      for (const key of Object.keys(input).sort()) {
+        if (input[key] === undefined) throw new Error(`Cannot canonicalize undefined at ${path}.${key}`);
+        output[key] = canonicalize(input[key], `${path}.${key}`, stack);
+      }
+      return output;
+    } finally {
+      stack.delete(objectValue);
     }
-    return output;
   }
 
   throw new Error(`Cannot canonicalize ${typeof value} at ${path}`);
@@ -135,6 +148,63 @@ export function evaluateConstraints(
   }));
 }
 
+function termDigestPayload(term: Omit<VisualAlgebraTerm, "digest">): Readonly<Record<string, unknown>> {
+  return {
+    authority: "NEXUS_VISUAL_ALGEBRA_TERM_V1",
+    subject: term.subject,
+    operation: term.operation,
+    canvasBounds: term.canvasBounds,
+    primitives: term.primitives,
+    metrics: term.metrics,
+    constraints: term.constraints,
+    evaluations: term.evaluations,
+  };
+}
+
+export function verifyVisualAlgebraTerm(term: VisualAlgebraTerm): void {
+  if (!term || typeof term !== "object") throw new Error("Visual Algebra term must be an object");
+  if (typeof term.subject !== "string" || term.subject.trim() === "") throw new Error("Term subject cannot be empty");
+  if (term.operation !== "atomic" && term.operation !== "sequence" && term.operation !== "nest") {
+    throw new Error("Unsupported Visual Algebra operation");
+  }
+  if (!/^[a-f0-9]{64}$/.test(term.digest)) throw new Error("Visual Algebra term digest must be SHA-256 hex");
+
+  validateBounds(term.canvasBounds, "canvasBounds");
+  if (term.canvasBounds.width <= 0 || term.canvasBounds.height <= 0) {
+    throw new Error("canvasBounds must have positive width and height");
+  }
+  if (!Array.isArray(term.primitives)) throw new Error("Visual Algebra term primitives must be an array");
+  if (!Array.isArray(term.constraints)) throw new Error("Visual Algebra term constraints must be an array");
+  if (!Array.isArray(term.evaluations)) throw new Error("Visual Algebra term evaluations must be an array");
+
+  const normalizedPrimitives = term.primitives.map((primitive) => definePrimitive(primitive));
+  assertUniquePrimitiveIds(normalizedPrimitives);
+  if (digestValue(normalizedPrimitives) !== digestValue(term.primitives)) {
+    throw new Error("Visual Algebra primitive normalization mismatch");
+  }
+
+  const recomputedMetrics = computeGeometricMetrics(normalizedPrimitives, term.canvasBounds);
+  if (digestValue(recomputedMetrics) !== digestValue(term.metrics)) {
+    throw new Error("Visual Algebra term metrics do not match source geometry");
+  }
+
+  const recomputedEvaluations = evaluateConstraints(recomputedMetrics, term.constraints);
+  if (digestValue(recomputedEvaluations) !== digestValue(term.evaluations)) {
+    throw new Error("Visual Algebra term constraint evaluations do not match metrics");
+  }
+
+  const expectedDigest = digestValue(termDigestPayload({
+    subject: term.subject,
+    operation: term.operation,
+    canvasBounds: term.canvasBounds,
+    primitives: normalizedPrimitives,
+    metrics: recomputedMetrics,
+    constraints: term.constraints,
+    evaluations: recomputedEvaluations,
+  }));
+  if (expectedDigest !== term.digest) throw new Error("Visual Algebra term digest mismatch");
+}
+
 function createResolvedTerm(input: {
   readonly subject: string;
   readonly operation: VisualAlgebraTerm["operation"];
@@ -149,18 +219,7 @@ function createResolvedTerm(input: {
   const metrics = computeGeometricMetrics(input.primitives, canvasBounds);
   const constraints = Object.freeze([...(input.constraints ?? [])]);
   const evaluations = evaluateConstraints(metrics, constraints);
-  const digestPayload = {
-    authority: "NEXUS_VISUAL_ALGEBRA_TERM_V1",
-    subject: input.subject,
-    operation: input.operation,
-    canvasBounds,
-    primitives: input.primitives,
-    metrics,
-    constraints,
-    evaluations,
-  };
-
-  return Object.freeze({
+  const base = {
     subject: input.subject,
     operation: input.operation,
     canvasBounds,
@@ -168,7 +227,11 @@ function createResolvedTerm(input: {
     metrics,
     constraints,
     evaluations,
-    digest: digestValue(digestPayload),
+  };
+
+  return Object.freeze({
+    ...base,
+    digest: digestValue(termDigestPayload(base)),
   });
 }
 
@@ -184,6 +247,7 @@ export function createTerm(input: CreateTermInput): VisualAlgebraTerm {
 }
 
 export function sequence(input: SequenceInput): VisualAlgebraTerm {
+  for (const term of input.terms) verifyVisualAlgebraTerm(term);
   const primitives = Object.freeze(input.terms.flatMap((term) => term.primitives));
   return createResolvedTerm({
     subject: input.subject,
@@ -195,6 +259,7 @@ export function sequence(input: SequenceInput): VisualAlgebraTerm {
 }
 
 export function nest(input: NestInput): VisualAlgebraTerm {
+  for (const term of input.terms) verifyVisualAlgebraTerm(term);
   const container = definePrimitive(input.container);
   if (container.kind !== "container") throw new Error("nest() requires a container primitive");
 
@@ -219,5 +284,6 @@ export function nest(input: NestInput): VisualAlgebraTerm {
 }
 
 export function termSatisfiesConstraints(term: VisualAlgebraTerm): boolean {
+  verifyVisualAlgebraTerm(term);
   return term.evaluations.every((evaluation) => evaluation.pass);
 }
