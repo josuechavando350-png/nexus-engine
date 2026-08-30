@@ -171,7 +171,14 @@ jobs:
           find "$root" -type f ! -name 'artifact-checksums.sha256' -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
           test -s "$root/artifact-checksums.sha256"
           sha256sum -c "$root/artifact-checksums.sha256"
-          test -z "$(git status --porcelain --untracked-files=no)"
+          dirty="$(git status --porcelain --untracked-files=no)"
+          if [ -n "$dirty" ]; then
+            echo "::error::Browser validation modified tracked repository files"
+            printf '%s\n' "$dirty"
+            git diff --stat
+            git diff --name-only
+            exit 1
+          fi
 
       - name: Evaluate visual baseline and generate CI Quality Passport
         shell: bash
