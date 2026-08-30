@@ -32,7 +32,6 @@ function snapshot(): ReasoningEvidenceSnapshot {
     requestedClaimClasses: [],
     memoryStatus: "EMPTY",
     memoryCategories: [],
-    memoryKeys: [],
     memoryAuthority: "PERSONALIZATION_ONLY",
   };
 }
