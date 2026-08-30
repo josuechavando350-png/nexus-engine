@@ -1,6 +1,7 @@
 import type { OntologyScope } from "./index.js";
 import { hash, normalizeIdentifier } from "./chatbot-knowledge-types.js";
 import type { GuardrailResponsePlan } from "./chatbot-guardrails-types.js";
+import { verifyReasoningPolicy } from "./chatbot-reasoning-policy.js";
 import {
   ChatbotReasoningError,
   REASONING_AGENT_ROLES,
@@ -17,6 +18,8 @@ import {
   type ReasoningEvidenceSnapshot,
   type VerifiedReasoningAssessment,
 } from "./chatbot-reasoning-types.js";
+
+const MAX_REASONING_AGENTS = 16;
 
 class ReasoningAgentTimeoutError extends Error {
   constructor() {
@@ -159,12 +162,13 @@ export interface ReasoningEvaluationInput {
 
 export class BoundedMultiAgentReasoningEngine {
   readonly scopeDigest: string;
+  readonly policy: ReasoningPolicy;
   private readonly profiles = new Map<string, ReasoningCandidateProfile>();
   private readonly agents: readonly ReasoningAgentPort[];
 
   constructor(
     readonly scope: OntologyScope,
-    readonly policy: ReasoningPolicy,
+    policy: ReasoningPolicy,
     candidateProfiles: readonly ReasoningCandidateProfile[] = [],
     agents: readonly ReasoningAgentPort[] = [
       new IntentPlannerReasoningAgent(),
@@ -172,8 +176,11 @@ export class BoundedMultiAgentReasoningEngine {
       new BoundaryVerifierReasoningAgent(),
     ],
   ) {
+    verifyReasoningPolicy(policy);
+    this.policy = Object.freeze({ ...policy });
     this.scopeDigest = hash("ltmscope", scope);
-    if (agents.length < policy.minAcceptVotes) throw new ChatbotReasoningError("INVALID_INPUT", "reasoning agent count is below minAcceptVotes");
+    if (agents.length > MAX_REASONING_AGENTS) throw new ChatbotReasoningError("POLICY_VIOLATION", `reasoning agent count exceeds hard cap ${MAX_REASONING_AGENTS}`);
+    if (agents.length < this.policy.minAcceptVotes) throw new ChatbotReasoningError("INVALID_INPUT", "reasoning agent count is below minAcceptVotes");
     const agentIds = new Set<string>();
     for (const agent of agents) {
       const agentId = normalizeIdentifier(agent.agentId, "agentId");
@@ -187,17 +194,18 @@ export class BoundedMultiAgentReasoningEngine {
       const armId = normalizeIdentifier(raw.armId, "armId");
       if (this.profiles.has(armId)) throw new ChatbotReasoningError("INVALID_INPUT", `duplicate reasoning candidate profile ${armId}`);
       const tags = raw.intentTags ?? [];
-      if (tags.length > policy.maxIntentTagsPerCandidate) throw new ChatbotReasoningError("POLICY_VIOLATION", `candidate ${armId} exceeds intent tag limit`);
+      if (tags.length > this.policy.maxIntentTagsPerCandidate) throw new ChatbotReasoningError("POLICY_VIOLATION", `candidate ${armId} exceeds intent tag limit`);
       const normalizedTags = tags.map((tag) => {
         const normalized = normalizeText(tag);
-        if (!normalized || normalized.length > policy.maxIntentTagChars) throw new ChatbotReasoningError("INVALID_INPUT", `candidate ${armId} has invalid intent tag`);
+        if (!normalized || normalized.length > this.policy.maxIntentTagChars) throw new ChatbotReasoningError("INVALID_INPUT", `candidate ${armId} has invalid intent tag`);
         return normalized;
       });
-      this.profiles.set(armId, Object.freeze({ armId, intentTags: Object.freeze([...new Set(normalizedTags)]), fallback: raw.fallback === true }));
+      this.profiles.set(armId, Object.freeze({ armId, intentTags: Object.freeze([...new Set(normalizedTags)]) }));
     }
   }
 
   async evaluate(raw: ReasoningEvaluationInput): Promise<ReasoningEvaluationResult> {
+    verifyReasoningPolicy(this.policy);
     const reasoningId = normalizeIdentifier(raw.reasoningId, "reasoningId");
     const interactionId = normalizeIdentifier(raw.interactionId, "interactionId");
     const candidateArmId = normalizeIdentifier(raw.candidateArmId, "candidateArmId");
