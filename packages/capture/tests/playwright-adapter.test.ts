@@ -190,7 +190,7 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     expect(result.samples.every((sample) => Number.isFinite(sample.value))).toBe(true);
 
     const manifest = { schemaVersion: 1, adapterId: adapter.adapterId, adapterVersion: adapter.adapterVersion, requestId: result.requestId, outcome: result.outcome, browsers: ["chromium", "webkit"], viewports: [390, 768, 1440], artifacts: result.artifacts, samples: result.samples };
-    await writeFile(join(outputDir, "real-capture-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    await writeFile(join(outputDir, "capture-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
   }, 180_000);
 
   it("refuses non-HTTP targets instead of pretending they were captured", async () => {
