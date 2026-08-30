@@ -75,6 +75,8 @@ export interface LiveSearchConsoleResult {
   reason?: string;
 }
 
+const liveSearchConsoleDatasets = new WeakSet<object>();
+
 function canonicalize(value: unknown, seen = new WeakSet<object>()): unknown {
   if (value === null || typeof value === "string" || typeof value === "boolean") return value;
   if (typeof value === "number") {
@@ -161,6 +163,18 @@ export function createControlledDataset(input: SearchAnalyticsRequest, rows: rea
 export function validateDataset(dataset: SearchAnalyticsDataset): void {
   const replay = createDatasetWithAuthority(dataset.request, dataset.rows, dataset.sourceAuthority);
   if (canonicalJson(replay) !== canonicalJson(dataset)) throw new Error("Search Analytics dataset replay mismatch");
+}
+
+/**
+ * Validates that a live-authority dataset was created by this process's real
+ * Search Console provider adapter. Serialized/reconstructed objects deliberately
+ * lose this attestation and must be re-fetched before being treated as live.
+ */
+export function validateLiveDataset(dataset: SearchAnalyticsDataset): void {
+  validateDataset(dataset);
+  if (dataset.sourceAuthority !== "SEARCH_CONSOLE_API" || !liveSearchConsoleDatasets.has(dataset)) {
+    throw new Error("Search Console live dataset is not attested by the provider adapter in this process");
+  }
 }
 
 interface PavaBlock {
@@ -278,11 +292,15 @@ export async function fetchSearchAnalytics(input: SearchAnalyticsRequest, access
   if (!response.ok) return Object.freeze({ status: "FAIL", reason: `Search Console API returned HTTP ${response.status}` });
 
   try {
-    const body = await response.json() as { rows?: unknown };
+    const decoded = await response.json() as unknown;
+    if (decoded === null || typeof decoded !== "object" || Array.isArray(decoded)) throw new Error("response body must be a JSON object");
+    const body = decoded as Record<string, unknown>;
     const rows = body.rows ?? [];
     if (!Array.isArray(rows)) throw new Error("rows must be an array");
     const dataset = createDatasetWithAuthority(input, rows as SearchAnalyticsRow[], "SEARCH_CONSOLE_API");
     validateDataset(dataset);
+    liveSearchConsoleDatasets.add(dataset);
+    validateLiveDataset(dataset);
     return Object.freeze({ status: "PASS", dataset });
   } catch (error) {
     return Object.freeze({ status: "FAIL", reason: `Search Console response rejected: ${error instanceof Error ? error.message : String(error)}` });
