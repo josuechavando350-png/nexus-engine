@@ -42,6 +42,14 @@ describe("passage intelligence", () => {
     expect(passage.issues.map((issue) => issue.code)).toContain("CLAIM_WITHOUT_LOCAL_EVIDENCE");
   });
 
+  it("binds recommendations to stable passage ids instead of digests", () => {
+    const model = createPage(page({ passages: [{ id: "stable-passage", heading: "Defensa fiscal", intent: "explicar defensa fiscal", text: "Esto es breve y depende de contexto externo.", claimIds: ["c"], evidenceIds: [] }] }));
+    const result = assessPage(model);
+    expect(result.recommendations.length).toBeGreaterThan(0);
+    expect(result.recommendations.every((item) => item.passageIds.includes("stable-passage"))).toBe(true);
+    expect(result.recommendations.some((item) => item.passageIds.includes(model.passages[0]!.passageDigest))).toBe(false);
+  });
+
   it("detects semantic duplication without creating doorway recommendations", () => {
     const text = "Una sección suficientemente extensa explica el proceso, sus límites, el contexto local y la evidencia relevante para que una persona pueda entender la respuesta sin depender de otra sección del documento.";
     const model = createPage(page({ passages: [
