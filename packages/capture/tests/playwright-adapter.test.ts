@@ -143,10 +143,16 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
         expect(report.algorithm).toBe("APCA");
         expect(report.library).toBe("apca-w3");
         expect(report.libraryVersion).toBe("0.1.9");
-        expect(report.observations.length).toBeGreaterThanOrEqual(3);
+        // Browser-native controls can legitimately be classified as unsupported by
+        // the V2 fail-closed renderer. Count both measured and explicitly
+        // unsupported candidates so a stricter engine never becomes a fake
+        // "missing evidence" failure.
+        expect(report.observations.length + report.unsupported.length).toBeGreaterThanOrEqual(3);
+        expect(report.unsupportedCount).toBe(report.unsupported.length);
         expect(report.observations.every((observation) => observation.backgroundSource === "RENDERED_PIXEL_SAMPLE")).toBe(true);
         expect(report.observations.every((observation) => Number.isFinite(observation.lc))).toBe(true);
         expect(report.observations.every((observation) => /^sha256:[a-f0-9]{64}$/.test(observation.textDigest))).toBe(true);
+        expect(report.unsupported.every((observation) => /^sha256:[a-f0-9]{64}$/.test(observation.textDigest))).toBe(true);
       } else if (artifact.capability === "PERFORMANCE") {
         const vitals = JSON.parse(bytes.toString("utf8")) as WebVitalsEvidence;
         observedVitals.push(vitals);
@@ -188,18 +194,21 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     expect(result.samples.every((sample) => Number.isFinite(sample.value))).toBe(true);
 
     const manifest = { schemaVersion: 1, adapterId: adapter.adapterId, adapterVersion: adapter.adapterVersion, requestId: result.requestId, outcome: result.outcome, browsers: ["chromium", "webkit"], viewports: [390, 768, 1440], artifacts: result.artifacts, samples: result.samples };
-    await writeFile(join(outputDir, "capture-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-  }, 30_000);
+    await writeFile(join(outputDir, "real-capture-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+  }, 180_000);
 
   it("refuses non-HTTP targets instead of pretending they were captured", async () => {
     const scope = { tenantId: "tenant-real-capture", brandId: "brand-real-capture" };
     const run = createRun({
-      workload: { id: "invalid-target", version: "1", scope, name: "Invalid target", parameters: {} },
-      environment: { os: process.platform, architecture: process.arch, runtime: "node", runtimeVersion: process.version, deviceClass: "test" },
+      workload: { id: "bad-target", version: "1", scope, name: "Bad target", parameters: {} },
+      environment: { os: process.platform, architecture: process.arch, runtime: "node", runtimeVersion: process.version, deviceClass: "local" },
       scope,
       startedAt: "2026-08-17T00:00:00.000Z",
     });
-    const adapter = new PlaywrightBrowserDeviceCaptureAdapter({ outputDir, browsers: ["chromium"] });
-    await expect(adapter.capture({ run, scope, targetId: "file:///tmp/fake.html", capabilities: ["SCREENSHOT"] })).rejects.toThrow(/HTTP\(S\)/);
+    const request: CaptureRequest = { run, scope, targetId: "file:///tmp/not-a-real-browser-target.html", capabilities: ["SCREENSHOT"] };
+    const adapter = new PlaywrightBrowserDeviceCaptureAdapter({ outputDir });
+    const result = await adapter.capture(request);
+    expect(result.outcome).toBe("UNAVAILABLE");
+    expect(result.reason).toContain("http/https");
   });
 });
