@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createRun } from "../../measurement/index";
-import { evaluateApcaPolicy, type ApcaAuditReport } from "../apca-audit";
+import { evaluateApcaPolicy, evaluateDynamicApcaPolicy, type ApcaAuditReport } from "../apca-audit";
 import type { DesignGenomeObservation } from "../design-genome";
 import { validateCaptureResult, type CaptureRequest } from "../index";
 import { PlaywrightBrowserDeviceCaptureAdapter } from "../playwright-adapter";
@@ -139,10 +139,12 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
       } else if (artifact.capability === "CONTRAST") {
         const report = JSON.parse(bytes.toString("utf8")) as ApcaAuditReport;
         observedContrast.push(report);
+        expect(report.schemaVersion).toBe(2);
         expect(report.algorithm).toBe("APCA");
         expect(report.library).toBe("apca-w3");
         expect(report.libraryVersion).toBe("0.1.9");
         expect(report.observations.length).toBeGreaterThanOrEqual(3);
+        expect(report.observations.every((observation) => observation.backgroundSource === "RENDERED_PIXEL_SAMPLE")).toBe(true);
         expect(report.observations.every((observation) => Number.isFinite(observation.lc))).toBe(true);
         expect(report.observations.every((observation) => /^sha256:[a-f0-9]{64}$/.test(observation.textDigest))).toBe(true);
       } else if (artifact.capability === "PERFORMANCE") {
@@ -170,6 +172,7 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { headline: 10, body: 10, action: 10 } }).verdict).toBe("PASS");
     expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: {} }).verdict).toBe("NOT_TESTED");
     expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { missing: 10 } }).verdict).toBe("FAIL");
+    expect(evaluateDynamicApcaPolicy(observedContrast[0]!, ["headline", "body", "action"]).verdict).toBe("PASS");
 
     expect(observedVitals).toHaveLength(6);
     expect(evaluateWebVitalsPolicy(observedVitals[0]!, {}).verdict).toBe("NOT_TESTED");
