@@ -28,6 +28,19 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
 
+      - name: Apply audited lint correction
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('packages/entity-intelligence/src/index.ts')
+          text = path.read_text()
+          old = 'if (controller.signal.aborted) throw new Error(`${label} timeout`);'
+          new = 'if (controller.signal.aborted) throw new Error(`${label} timeout`, { cause: error });'
+          if old not in text:
+              raise SystemExit('expected timeout error line not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+
       - name: Install and regenerate workspace lockfile
         run: pnpm install --no-frozen-lockfile
 
@@ -62,21 +75,21 @@ jobs:
           NODE
           node scripts/audit-entity-intelligence.mjs --spec /tmp/entity-evidence.json
 
-      - name: Verify only lockfile changed outside committed source
+      - name: Verify bounded working-tree changes
         run: |
           set -euo pipefail
-          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml'
+          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml' ':(exclude)packages/entity-intelligence/src/index.ts'
           grep -Fq '  packages/entity-intelligence: {}' pnpm-lock.yaml
 
-      - name: Commit lockfile when changed
+      - name: Commit source correction and lockfile when changed
         run: |
           set -euo pipefail
-          if git diff --quiet -- pnpm-lock.yaml; then
-            echo 'Lockfile already synchronized.'
+          if git diff --quiet -- packages/entity-intelligence/src/index.ts pnpm-lock.yaml; then
+            echo 'Source and lockfile already synchronized.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add pnpm-lock.yaml
-          git commit -m 'fix(entity): synchronize workspace lockfile'
+          git add packages/entity-intelligence/src/index.ts pnpm-lock.yaml
+          git commit -m 'fix(entity): preserve timeout cause and synchronize lockfile'
           git push origin HEAD:feat/capability-07-entity-intelligence
