@@ -83,9 +83,12 @@ describe("topical authority graph", () => {
 
   it("detects orphan, weak-anchor, crawl and cannibalization candidates without external ranking claims", () => {
     const nodes = graphInput().nodes.map((node) => node.id === "amparo" ? { ...node, crawlable: false } : node);
-    const edges = graphInput().edges.filter((edge) => !(edge.type === "INTERNAL_LINK" && edge.to === "home"));
-    edges.push({ from: "home", to: "fiscal", type: "SERVES_INTENT", weight: 0.8 });
-    edges.push({ from: "fiscal", to: "amparo", type: "INTERNAL_LINK", weight: 0.5, anchor: "more" });
+    const edges = graphInput().edges
+      .filter((edge) => !(edge.type === "INTERNAL_LINK" && edge.to === "home"))
+      .map((edge) => edge.type === "INTERNAL_LINK" && edge.from === "fiscal" && edge.to === "amparo"
+        ? { ...edge, weight: 0.5, anchor: "more" }
+        : edge);
+    edges.push({ from: "home", to: "intent-tax", type: "SERVES_INTENT", weight: 0.8 });
     const graph = createGraph({ nodes, edges });
     const result = diagnostics(graph);
     expect(result.orphans).toContain("home");
