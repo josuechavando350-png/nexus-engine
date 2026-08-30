@@ -1,0 +1,19 @@
+{
+  "name": "@nexus/capture-visual-regression-v2",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. packages/capture-visual-regression-v2/src/index.test.ts",
+    "test:native": "NEXUS_NATIVE_VISUAL_PROOF=1 vitest run --root ../.. packages/capture-visual-regression-v2/src/native-browser.test.ts --testTimeout=180000",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+  },
+  "dependencies": {
+    "@nexus/perceptual-images": "workspace:*",
+    "pixelmatch": "7.2.0",
+    "playwright": "^1.55.0",
+    "sharp": "0.35.3"
+  }
+}
