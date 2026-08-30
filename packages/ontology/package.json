@@ -16,7 +16,8 @@
     "./chatbot-knowledge": "./chatbot-knowledge.ts",
     "./chatbot-guardrails": "./chatbot-guardrails.ts",
     "./chatbot-memory": "./chatbot-memory.ts",
-    "./chatbot-bandit": "./chatbot-bandit.ts"
+    "./chatbot-bandit": "./chatbot-bandit.ts",
+    "./chatbot-reasoning": "./chatbot-reasoning.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
