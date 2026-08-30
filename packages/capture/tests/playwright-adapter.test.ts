@@ -204,7 +204,7 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     const request: CaptureRequest = { run, scope, targetId: "file:///tmp/not-a-real-browser-target.html", capabilities: ["SCREENSHOT"] };
     const adapter = new PlaywrightBrowserDeviceCaptureAdapter({ outputDir });
     const result = await adapter.capture(request);
-    expect(result.outcome).toBe("UNAVAILABLE");
+    expect(result.outcome).toBe("UNSUPPORTED");
     expect(result.reason).toContain("HTTP(S)");
   });
 });
