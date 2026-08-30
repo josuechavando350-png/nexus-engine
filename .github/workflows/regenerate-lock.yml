@@ -1,4 +1,4 @@
-name: Regenerate workspace lockfile
+name: Regenerate Rust lockfile
 
 on:
   push:
@@ -14,20 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Activate pinned pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.15.0 --activate
-      - name: Regenerate pnpm lockfile
-        run: pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Regenerate Cargo.lock
+        working-directory: runtime
+        run: cargo generate-lockfile
       - name: Commit lockfile if changed
         run: |
-          if git diff --quiet -- pnpm-lock.yaml; then
-            echo "pnpm-lock.yaml already current"
+          if git diff --quiet -- runtime/Cargo.lock; then
+            echo "Cargo.lock already current"
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add pnpm-lock.yaml
-          git commit -m "fix(ctr): canonicalize workspace lockfile"
+          git add runtime/Cargo.lock
+          git commit -m "fix(runtime): regenerate lockfile for Wasmtime 36.0.13"
           git push
