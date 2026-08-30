@@ -24,7 +24,7 @@ const ARMS = [
 function evidence(overrides: Partial<ReasoningEvidenceSnapshot> = {}): ReasoningEvidenceSnapshot {
   return {
     userMessage: "quiero cotizar",
-    userMessageDigest: "message_digest",
+    userMessageDigest: hash("ltmmessage", "quiero cotizar"),
     guardedContextDigest: "guarded_digest",
     groundingStatus: "SUPPORTED",
     disposition: "ALLOW",
@@ -75,7 +75,7 @@ function prepared(disposition: "ALLOW" | "QUALIFY" | "ESCALATE" = "ALLOW"): Prep
     },
     businessEntityId: "business:reasoning",
     customerEntityId: "customer:reasoning",
-    userMessageDigest: "message_digest",
+    userMessageDigest: hash("ltmmessage", "quiero cotizar"),
     scopeDigest: hash("ltmscope", SCOPE),
     digest: `base_${disposition.toLowerCase()}`,
   };
@@ -201,6 +201,7 @@ describe("chatbot deliberative reasoning", () => {
       policyId: defaults.policyId,
       version: defaults.version,
       maxInputChars: defaults.maxInputChars,
+      agentTimeoutMs: defaults.agentTimeoutMs,
       maxRepairAttempts: 3,
       minAcceptVotes: defaults.minAcceptVotes,
       minMeanConfidence: defaults.minMeanConfidence,
