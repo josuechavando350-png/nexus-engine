@@ -287,7 +287,7 @@ export class BoundedMultiAgentReasoningEngine {
     const uncertainVotes = assessments.length - acceptVotes - rejectVotes;
     const meanConfidence = assessments.reduce((sum, item) => sum + item.confidence, 0) / assessments.length;
     const accepted = rejectVotes === 0 && acceptVotes >= this.policy.minAcceptVotes && meanConfidence >= this.policy.minMeanConfidence;
-    const verdict = accepted ? "ACCEPT" : rejectVotes > 0 ? "REJECT" : "UNCERTAIN";
+    const verdict: ReasoningAttemptRecord["verdict"] = accepted ? "ACCEPT" : rejectVotes > 0 ? "REJECT" : "UNCERTAIN";
     const issueCodes = [...new Set(assessments.flatMap((item) => item.issueCodes).filter((code) => code !== "NONE"))];
     const normalizedIssues: ReasoningIssueCode[] = issueCodes.length ? issueCodes : ["NONE"];
     const core = {
