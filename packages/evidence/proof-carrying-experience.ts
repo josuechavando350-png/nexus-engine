@@ -6,7 +6,7 @@ import {
   createExperienceArtifact,
   createExperienceProof,
   formalExperienceProofDigest,
-  validateAuthenticatedEvidenceTrustAnchor,
+  validateEvidenceTrustAnchorAuthenticationBinding,
   validateExperienceProofAgainstContent,
   type ExperienceArtifact,
   type ExperienceProofBundle,
@@ -119,7 +119,7 @@ function trustAnchor(input: {
     signingKeyFingerprint: fingerprintPublicKey(input.publicKey),
     signatureDigest: digestSignature(input.signedEvidence.signature),
   });
-  validateAuthenticatedEvidenceTrustAnchor(anchor);
+  validateEvidenceTrustAnchorAuthenticationBinding(anchor);
   return anchor;
 }
 
