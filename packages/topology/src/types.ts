@@ -23,6 +23,8 @@ export interface FiltrationComplex {
   readonly maxHomologyDimension: 0 | 1;
   readonly maxSimplexDimension: 1 | 2;
   readonly vertices: readonly FiltrationVertex[];
+  /** Canonical, de-duplicated relation set actually used to build the flag complex. */
+  readonly relations: readonly TopologicalRelation[];
   readonly simplices: readonly FilteredSimplex[];
   readonly digest: string;
 }
@@ -96,7 +98,9 @@ export type TopologyConstraintStatus = "PASS" | "FAIL" | "NOT_TESTED";
 export interface TopologyConstraintEvaluation {
   readonly constraint: TopologyConstraint;
   readonly status: TopologyConstraintStatus;
+  /** Finite actual value. Null is reserved for untested or explicitly infinite evidence. */
   readonly actual: number | null;
+  readonly actualInfinite?: boolean;
   readonly expected: number;
   readonly reason: string;
 }
@@ -121,8 +125,13 @@ export interface CertifiedSynthesisResult {
   readonly complex: FiltrationComplex;
   readonly diagram: PersistenceDiagram;
   readonly fingerprint: TopologicalFingerprint;
+  /** Canonical reference diagrams used for every reference-based constraint. */
+  readonly references: readonly TopologyReference[];
   readonly nearestReferenceId?: string;
+  /** Present only when the nearest bottleneck distance is finite. */
   readonly nearestBottleneckDistance?: number;
+  /** Explicit representation for an infinite nearest distance; avoids non-canonical Infinity in evidence. */
+  readonly nearestBottleneckInfinite?: boolean;
   readonly evaluations: readonly TopologyConstraintEvaluation[];
   readonly certificate: TopologyCertificate;
 }
@@ -131,7 +140,6 @@ export interface CertifiedSynthesisInput {
   readonly subject: string;
   readonly primitives: readonly GeometricPrimitive[];
   readonly canvasBounds: Bounds;
-  readonly sourceTermDigest?: string;
   readonly relations?: readonly TopologicalRelation[];
   readonly referenceDiagrams?: readonly TopologyReference[];
   readonly constraints?: readonly TopologyConstraint[];
