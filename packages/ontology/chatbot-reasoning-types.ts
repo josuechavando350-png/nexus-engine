@@ -19,14 +19,12 @@ export const REASONING_ISSUE_CODES = [
   "AGENT_FAILURE",
   "AGENT_TIMEOUT",
   "INVALID_AGENT_OUTPUT",
-  "NO_SAFE_CANDIDATE",
 ] as const;
 export type ReasoningIssueCode = (typeof REASONING_ISSUE_CODES)[number];
 
 export interface ReasoningCandidateProfile {
   readonly armId: string;
   readonly intentTags?: readonly string[];
-  readonly fallback?: boolean;
 }
 
 export interface ReasoningPolicy {
