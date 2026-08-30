@@ -9,36 +9,50 @@ import type {
   SemanticState,
   SemanticValue,
 } from "./types.js";
-import { createSemanticState, validateSemanticState } from "./state.js";
+import { assertSafeSemanticName, createSemanticState, validateSemanticState } from "./state.js";
 import { validateSemanticFormula } from "./formula.js";
 
 export const MAX_SEMANTIC_COMPOSITION_DEPTH = 128;
+export const MAX_SEMANTIC_COMPOSITION_NODES = 4_096;
+export const MAX_SEMANTIC_COMPOSITION_RULES = 8_192;
+export const MAX_SEMANTIC_COMPOSITION_EFFECTS = 16_384;
 
 function assertNonEmpty(value: unknown, label: string): asserts value is string {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string`);
 }
 
-function validateRules(rules: readonly SemanticRule[] | undefined, label: string): void {
+interface CompositionBudget {
+  nodes: number;
+  rules: number;
+  effects: number;
+}
+
+function validateRules(rules: readonly SemanticRule[] | undefined, label: string, budget: CompositionBudget): void {
   const ids = new Set<string>();
   for (const rule of rules ?? []) {
+    budget.rules += 1;
+    if (budget.rules > MAX_SEMANTIC_COMPOSITION_RULES) {
+      throw new Error(`Semantic composition exceeds ${MAX_SEMANTIC_COMPOSITION_RULES} rules`);
+    }
     assertNonEmpty(rule.id, `${label} rule id`);
     if (ids.has(rule.id)) throw new Error(`Duplicate ${label} rule id: ${rule.id}`);
     ids.add(rule.id);
+    if (rule.message !== undefined && typeof rule.message !== "string") throw new Error(`${label} rule message must be a string`);
     validateSemanticFormula(rule.formula);
   }
 }
 
-function validateContract(contract: SemanticContract | undefined): void {
+function validateContract(contract: SemanticContract | undefined, budget: CompositionBudget): void {
   if (!contract) return;
   assertNonEmpty(contract.id, "contract id");
-  validateRules(contract.requires, "requires");
-  validateRules(contract.ensures, "ensures");
-  validateRules(contract.invariants, "invariants");
+  validateRules(contract.requires, "requires", budget);
+  validateRules(contract.ensures, "ensures", budget);
+  validateRules(contract.invariants, "invariants", budget);
 }
 
 function validateEffect(effect: SemanticEffect): void {
   if (!effect || typeof effect !== "object") throw new Error("Semantic effect must be an object");
-  assertNonEmpty(effect.name, "effect name");
+  assertSafeSemanticName(effect.name, "effect name");
   switch (effect.kind) {
     case "set_fact": {
       const value = effect.value;
@@ -73,25 +87,36 @@ export function validateSemanticComposition(
     throw new Error(`maxDepth must be an integer in [1, ${MAX_SEMANTIC_COMPOSITION_DEPTH}]`);
   }
   const ids = new Set<string>();
+  const budget: CompositionBudget = { nodes: 0, rules: 0, effects: 0 };
   const visit = (node: SemanticComposition, depth: number): void => {
+    if (!node || typeof node !== "object") throw new Error("Semantic composition node must be an object");
     if (depth > maxDepth) throw new Error(`Semantic composition exceeds maximum depth ${maxDepth}`);
+    budget.nodes += 1;
+    if (budget.nodes > MAX_SEMANTIC_COMPOSITION_NODES) {
+      throw new Error(`Semantic composition exceeds ${MAX_SEMANTIC_COMPOSITION_NODES} nodes`);
+    }
     assertNonEmpty(node.id, "composition node id");
     if (ids.has(node.id)) throw new Error(`Duplicate composition node id: ${node.id}`);
     ids.add(node.id);
-    validateContract(node.contract);
+    validateContract(node.contract, budget);
     switch (node.kind) {
       case "step":
+        if (!Array.isArray(node.effects)) throw new Error(`step node ${node.id} requires an effects array`);
+        budget.effects += node.effects.length;
+        if (budget.effects > MAX_SEMANTIC_COMPOSITION_EFFECTS) {
+          throw new Error(`Semantic composition exceeds ${MAX_SEMANTIC_COMPOSITION_EFFECTS} effects`);
+        }
         for (const effect of node.effects) validateEffect(effect);
         return;
       case "sequence":
       case "parallel":
       case "nest":
-        if (node.children.length === 0) throw new Error(`${node.kind} node ${node.id} requires at least one child`);
+        if (!Array.isArray(node.children) || node.children.length === 0) throw new Error(`${node.kind} node ${node.id} requires at least one child`);
         for (const child of node.children) visit(child, depth + 1);
         return;
       default: {
         const exhaustive: never = node;
-        throw new Error(`Unsupported composition node: ${String(exhaustive)}`);
+        throw new Error(`Unsupported composition node: ${String((exhaustive as { kind?: unknown }).kind)}`);
       }
     }
   };
@@ -148,7 +173,8 @@ interface StatePatch {
 }
 
 function diffState(base: SemanticState, next: SemanticState): StatePatch {
-  validateSemanticState(base); validateSemanticState(next);
+  validateSemanticState(base);
+  validateSemanticState(next);
   const facts = new Map<string, FactPatchValue>();
   const factKeys = new Set([...Object.keys(base.facts), ...Object.keys(next.facts)]);
   for (const key of [...factKeys].sort()) {
@@ -196,8 +222,8 @@ export function mergeParallelStates(base: SemanticState, branches: readonly Sema
     }
   }
 
-  const facts: Record<string, SemanticValue> = { ...base.facts };
-  const metrics: Record<string, number> = { ...base.metrics };
+  const facts = Object.assign(Object.create(null), base.facts) as Record<string, SemanticValue>;
+  const metrics = Object.assign(Object.create(null), base.metrics) as Record<string, number>;
   for (const [key, change] of [...factWrites.entries()].sort(([a], [b]) => a.localeCompare(b))) {
     if (change.present) facts[key] = change.value; else delete facts[key];
   }
