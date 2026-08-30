@@ -6,7 +6,6 @@ import type { ObjectRecord } from "./transaction.js";
 import { entityId, entityPayload } from "./chatbot-knowledge-codec.js";
 import { ENTITY_TYPE, hash, type GroundingContext, type UpsertKnowledgeEntityInput } from "./chatbot-knowledge-types.js";
 import type { KnowledgeGraphReader } from "./chatbot-knowledge-reader.js";
-import { FormalGuardrailEngine } from "./chatbot-guardrails-engine.js";
 import { createDefaultGuardrailPolicy } from "./chatbot-guardrails-policy.js";
 import { LongTermMemoryPlanner } from "./chatbot-memory-planner.js";
 import { LongTermMemoryReader } from "./chatbot-memory-reader.js";
@@ -72,8 +71,8 @@ function unsupportedGrounding(): GroundingContext {
   return { ...core, digest: hash("kgcontext", core) };
 }
 
-function fakeKnowledgeReader(context: GroundingContext): KnowledgeGraphReader {
-  return { grounding: async () => context } as unknown as KnowledgeGraphReader;
+function fakeKnowledgeReader(context: GroundingContext, scope: OntologyScope = SCOPE): KnowledgeGraphReader {
+  return { scope, grounding: async () => context } as unknown as KnowledgeGraphReader;
 }
 
 describe("chatbot long-term memory", () => {
@@ -193,8 +192,8 @@ describe("chatbot long-term memory", () => {
       sourceKind: "CUSTOMER_EXPLICIT",
     })));
     const memoryReader = new LongTermMemoryReader(read, SCOPE, createDefaultLongTermMemoryPolicy(), () => NOW_MS);
-    const guardrails = new FormalGuardrailEngine(fakeKnowledgeReader(unsupportedGrounding()), createDefaultGuardrailPolicy(), () => NOW_MS);
-    const coordinator = new MemoryAwareGuardrailCoordinator(guardrails, memoryReader);
+    const knowledge = fakeKnowledgeReader(unsupportedGrounding());
+    const coordinator = new MemoryAwareGuardrailCoordinator(knowledge, createDefaultGuardrailPolicy(), memoryReader, () => NOW_MS);
     const prepared = await coordinator.prepare({ businessEntityId: "business:client", customerEntityId: customer, userMessage: "¿Cuál es el precio?" });
     expect(prepared.memory.status).toBe("FOUND");
     expect(prepared.memory.authority).toBe("PERSONALIZATION_ONLY");
@@ -203,6 +202,15 @@ describe("chatbot long-term memory", () => {
     expect(response.text).not.toMatch(/90%|descuento/i);
     expect(() => coordinator.verifyOutbound(response, prepared)).not.toThrow();
     expect(() => coordinator.render({ planId: "plan:forged", segments: [{ kind: "COPY", copyId: "es.escalate-verify" }] }, { ...prepared })).toThrow(/not issued by this coordinator/i);
+  });
+
+  it("rejects coordinator wiring across different ontology scopes", () => {
+    const read = new InMemoryOntologyPersistence();
+    addEntity(read, "customer:ana");
+    const memoryReader = new LongTermMemoryReader(read, SCOPE, createDefaultLongTermMemoryPolicy(), () => NOW_MS);
+    const otherScope: OntologyScope = { tenantId: "tenant:other", organizationId: "org:other" };
+    const knowledge = fakeKnowledgeReader(unsupportedGrounding(), otherScope);
+    expect(() => new MemoryAwareGuardrailCoordinator(knowledge, createDefaultGuardrailPolicy(), memoryReader, () => NOW_MS)).toThrow(/same ontology scope/i);
   });
 
   it("can explicitly enable bounded sensitive memory without making it indefinite", () => {
