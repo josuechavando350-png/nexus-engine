@@ -1,8 +1,14 @@
+import { validateOriginalityEdge } from "./edge.js";
+import { MAX_ORIGINALITY_GEODESIC_EDGES, MAX_ORIGINALITY_GEODESIC_NODES } from "./limits.js";
 import { compareStableStrings } from "./order.js";
 import type { GeodesicPath, OriginalityEdge } from "./types.js";
 
 function pathKey(path: readonly string[]): string {
   return path.join("\u0000");
+}
+
+function edgeKey(edge: OriginalityEdge): string {
+  return `${edge.a}\u0000${edge.b}`;
 }
 
 export function shortestGeodesicPath(input: {
@@ -11,15 +17,25 @@ export function shortestGeodesicPath(input: {
   readonly source: string;
   readonly target: string;
 }): GeodesicPath {
+  if (input.nodeIds.length > MAX_ORIGINALITY_GEODESIC_NODES) {
+    throw new Error(`Geodesic node budget exceeded (${MAX_ORIGINALITY_GEODESIC_NODES})`);
+  }
+  if (input.edges.length > MAX_ORIGINALITY_GEODESIC_EDGES) {
+    throw new Error(`Geodesic edge budget exceeded (${MAX_ORIGINALITY_GEODESIC_EDGES})`);
+  }
   const unique = new Set(input.nodeIds);
   if (unique.size !== input.nodeIds.length) throw new Error("Geodesic node IDs must be unique");
   if (!unique.has(input.source) || !unique.has(input.target)) throw new Error("Geodesic source and target must exist in graph");
 
   const adjacency = new Map<string, Array<{ id: string; weight: number }>>();
   for (const id of input.nodeIds) adjacency.set(id, []);
+  const seenEdges = new Set<string>();
   for (const edge of input.edges) {
+    validateOriginalityEdge(edge);
     if (!unique.has(edge.a) || !unique.has(edge.b)) throw new Error("Geodesic edge endpoint does not exist in graph");
-    if (!Number.isFinite(edge.weight) || edge.weight < 0) throw new Error("Geodesic edge weight must be finite and non-negative");
+    const key = edgeKey(edge);
+    if (seenEdges.has(key)) throw new Error(`Duplicate geodesic edge ${edge.a}<->${edge.b}`);
+    seenEdges.add(key);
     adjacency.get(edge.a)!.push({ id: edge.b, weight: edge.weight });
     adjacency.get(edge.b)!.push({ id: edge.a, weight: edge.weight });
   }
