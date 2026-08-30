@@ -17,6 +17,7 @@ export const REASONING_ISSUE_CODES = [
   "ESCALATION_REQUIRED",
   "LOW_CONFIDENCE",
   "AGENT_FAILURE",
+  "AGENT_TIMEOUT",
   "INVALID_AGENT_OUTPUT",
   "NO_SAFE_CANDIDATE",
 ] as const;
@@ -32,6 +33,7 @@ export interface ReasoningPolicy {
   readonly policyId: string;
   readonly version: string;
   readonly maxInputChars: number;
+  readonly agentTimeoutMs: number;
   readonly maxRepairAttempts: number;
   readonly minAcceptVotes: number;
   readonly minMeanConfidence: number;
@@ -66,6 +68,7 @@ export interface ReasoningAgentInput {
   readonly candidateProfile?: ReasoningCandidateProfile;
   readonly remainingArmIds: readonly string[];
   readonly evidence: ReasoningEvidenceSnapshot;
+  readonly signal: AbortSignal;
 }
 
 export interface ReasoningAgentAssessment {
