@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { OntologyScope } from "./index.js";
 import { hash } from "./chatbot-knowledge-types.js";
-import type { RenderedGuardrailResponse } from "./chatbot-guardrails-types.js";
+import type { GuardrailResponsePlan, RenderedGuardrailResponse } from "./chatbot-guardrails-types.js";
 import type { MemoryAwareGuardrailCoordinator, PreparedMemoryAwareGuardrailContext } from "./chatbot-memory-guardrail.js";
 import { InMemoryOntologyPersistence } from "./persistence-query.js";
 import { BanditAwareGuardrailCoordinator } from "./chatbot-bandit-guardrail.js";
@@ -65,7 +65,7 @@ function fakeBase(disposition: "ALLOW" | "QUALIFY" | "ESCALATE" = "ALLOW"): Memo
   return {
     scopeDigest: hash("ltmscope", SCOPE),
     prepare: async () => exact,
-    render: (plan) => ({
+    render: (plan: GuardrailResponsePlan) => ({
       planId: plan.planId,
       policyDigest: "policy_digest",
       groundingDigest: "grounding_digest",
