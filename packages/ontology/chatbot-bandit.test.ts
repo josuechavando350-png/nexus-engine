@@ -51,7 +51,11 @@ function apply(read: InMemoryOntologyPersistence, plan: BanditMutationPlan): voi
   }
 }
 
-function select(e: ContextualBanditEngine, interactionId: string, context = { intent: "quote", channel: "whatsapp" }) {
+function select(
+  e: ContextualBanditEngine,
+  interactionId: string,
+  context: Readonly<Record<string, string | number | boolean>> = { intent: "quote", channel: "whatsapp" },
+) {
   return e.select({
     banditId: "sales-close",
     interactionId,
