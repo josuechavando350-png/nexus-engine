@@ -403,6 +403,8 @@ importers:
 
   packages/kernel: {}
 
+  packages/local-presence: {}
+
   packages/mcp-server:
     dependencies:
       '@modelcontextprotocol/sdk':
