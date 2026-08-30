@@ -4,6 +4,7 @@ import {
   analyzeCtrOpportunities,
   fetchSearchAnalytics,
   validateCtrAnalysis,
+  validateLiveDataset,
 } from "../packages/search-console-ctr/src/index.ts";
 
 async function main() {
@@ -23,6 +24,7 @@ async function main() {
     process.exitCode = result.status === "UNAVAILABLE" ? 2 : 1;
     return;
   }
+  validateLiveDataset(result.dataset);
   const analysis = analyzeCtrOpportunities(result.dataset, minimumImpressions);
   validateCtrAnalysis(result.dataset, analysis, minimumImpressions);
   process.stdout.write(`${JSON.stringify({ status: "PASS", dataset: result.dataset, analysis }, null, 2)}\n`);
