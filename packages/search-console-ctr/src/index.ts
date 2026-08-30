@@ -121,7 +121,8 @@ function normalizeRequest(input: SearchAnalyticsRequest): SearchAnalyticsDataset
 }
 
 function normalizeRow(row: SearchAnalyticsRow, dimensions: number): SearchAnalyticsRow {
-  if (row.keys.length !== dimensions) throw new Error("row keys do not match requested dimensions");
+  if (!row || typeof row !== "object") throw new Error("row must be an object");
+  if (!Array.isArray(row.keys) || row.keys.length !== dimensions) throw new Error("row keys do not match requested dimensions");
   for (const key of row.keys) if (typeof key !== "string") throw new Error("row keys must be strings");
   for (const [label, value] of [["clicks", row.clicks], ["impressions", row.impressions], ["ctr", row.ctr], ["position", row.position]] as const) {
     if (!Number.isFinite(value) || value < 0) throw new Error(`${label} must be finite and non-negative`);
@@ -136,11 +137,22 @@ function normalizeRow(row: SearchAnalyticsRow, dimensions: number): SearchAnalyt
   return Object.freeze({ keys: Object.freeze([...row.keys]), clicks: row.clicks, impressions: row.impressions, ctr: row.ctr, position: row.position });
 }
 
-export function createDataset(input: SearchAnalyticsRequest, rows: readonly SearchAnalyticsRow[], sourceAuthority: SearchAnalyticsDataset["sourceAuthority"]): SearchAnalyticsDataset {
+function createDatasetWithAuthority(input: SearchAnalyticsRequest, rows: readonly SearchAnalyticsRow[], sourceAuthority: SearchAnalyticsDataset["sourceAuthority"]): SearchAnalyticsDataset {
   const request = normalizeRequest(input);
+  if (!Array.isArray(rows)) throw new Error("rows must be an array");
+  if (rows.length > request.rowLimit) throw new Error("provider returned more rows than requested rowLimit");
   const normalizedRows = rows.map((row) => normalizeRow(row, request.dimensions.length));
   const core = { request, rows: normalizedRows, coverage: "TOP_ROWS_NOT_GUARANTEED_COMPLETE" as const, sourceAuthority };
   return Object.freeze({ ...core, rows: Object.freeze(normalizedRows), datasetDigest: digestValue(core) });
+}
+
+export function createControlledDataset(input: SearchAnalyticsRequest, rows: readonly SearchAnalyticsRow[]): SearchAnalyticsDataset {
+  return createDatasetWithAuthority(input, rows, "CONTROLLED_TEST");
+}
+
+export function validateDataset(dataset: SearchAnalyticsDataset): void {
+  const replay = createDatasetWithAuthority(dataset.request, dataset.rows, dataset.sourceAuthority);
+  if (canonicalJson(replay) !== canonicalJson(dataset)) throw new Error("Search Analytics dataset replay mismatch");
 }
 
 interface PavaBlock {
@@ -155,6 +167,7 @@ function weightedMean(block: PavaBlock): number {
 }
 
 export function buildMonotonicCtrCurve(dataset: SearchAnalyticsDataset): CtrCurve {
+  validateDataset(dataset);
   const grouped = new Map<number, { weightedCtrSum: number; impressions: number }>();
   for (const row of dataset.rows) {
     if (row.impressions <= 0) continue;
@@ -233,12 +246,13 @@ export function analyzeCtrOpportunities(dataset: SearchAnalyticsDataset, minimum
 }
 
 export function validateCtrAnalysis(dataset: SearchAnalyticsDataset, analysis: CtrAnalysis, minimumImpressions = 50): void {
+  validateDataset(dataset);
   if (analysis.datasetDigest !== dataset.datasetDigest) throw new Error("analysis dataset mismatch");
   const replay = analyzeCtrOpportunities(dataset, minimumImpressions);
   if (canonicalJson(replay) !== canonicalJson(analysis)) throw new Error("CTR analysis replay mismatch");
 }
 
-export async function fetchSearchAnalytics(input: SearchAnalyticsRequest, accessToken: string | undefined, fetchImpl: typeof fetch = fetch): Promise<LiveSearchConsoleResult> {
+export async function fetchSearchAnalytics(input: SearchAnalyticsRequest, accessToken: string | undefined, fetchImpl: typeof fetch = fetch, signal?: AbortSignal): Promise<LiveSearchConsoleResult> {
   if (!accessToken?.trim()) return Object.freeze({ status: "UNAVAILABLE", reason: "Search Console OAuth access token unavailable" });
   const request = normalizeRequest(input);
   const endpoint = `https://www.googleapis.com/webmasters/v3/sites/${encodeURIComponent(request.siteUrl)}/searchAnalytics/query`;
@@ -248,14 +262,20 @@ export async function fetchSearchAnalytics(input: SearchAnalyticsRequest, access
       method: "POST",
       headers: { authorization: `Bearer ${accessToken.trim()}`, "content-type": "application/json" },
       body: JSON.stringify({ startDate: request.startDate, endDate: request.endDate, dimensions: request.dimensions, rowLimit: request.rowLimit, startRow: request.startRow, ...(request.type ? { type: request.type } : {}) }),
+      signal,
     });
   } catch (error) {
     return Object.freeze({ status: "FAIL", reason: `Search Console request failed: ${error instanceof Error ? error.message : String(error)}` });
   }
   if (!response.ok) return Object.freeze({ status: "FAIL", reason: `Search Console API returned HTTP ${response.status}` });
-  const body = await response.json() as { rows?: SearchAnalyticsRow[] };
+
   try {
-    return Object.freeze({ status: "PASS", dataset: createDataset(input, body.rows ?? [], "SEARCH_CONSOLE_API") });
+    const body = await response.json() as { rows?: unknown };
+    const rows = body.rows ?? [];
+    if (!Array.isArray(rows)) throw new Error("rows must be an array");
+    const dataset = createDatasetWithAuthority(input, rows as SearchAnalyticsRow[], "SEARCH_CONSOLE_API");
+    validateDataset(dataset);
+    return Object.freeze({ status: "PASS", dataset });
   } catch (error) {
     return Object.freeze({ status: "FAIL", reason: `Search Console response rejected: ${error instanceof Error ? error.message : String(error)}` });
   }
