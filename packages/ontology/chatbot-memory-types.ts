@@ -88,6 +88,11 @@ export interface PurgeLongTermMemoryInput {
   readonly memoryKey: string;
 }
 
+export interface PurgeSubjectLongTermMemoryInput {
+  readonly subjectId: string;
+  readonly maxDeletes?: number;
+}
+
 export interface SweepLongTermMemoryInput {
   readonly subjectId: string;
   readonly maxDeletes?: number;
