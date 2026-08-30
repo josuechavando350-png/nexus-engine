@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 
 export type CtrDataStatus = "PASS" | "UNAVAILABLE" | "FAIL";
-export type SearchDimension = "query" | "page" | "country" | "device" | "date";
+export type SearchDimension = "query" | "page" | "country" | "device" | "searchAppearance" | "date" | "hour";
 
 export interface SearchAnalyticsRow {
   keys: readonly string[];
@@ -15,14 +15,22 @@ export interface SearchAnalyticsRequest {
   siteUrl: string;
   startDate: string;
   endDate: string;
-  dimensions: readonly SearchDimension[];
+  dimensions?: readonly SearchDimension[];
   rowLimit?: number;
   startRow?: number;
   type?: "web" | "image" | "video" | "news" | "discover" | "googleNews";
 }
 
 export interface SearchAnalyticsDataset {
-  request: Required<Pick<SearchAnalyticsRequest, "siteUrl" | "startDate" | "endDate" | "dimensions" | "rowLimit" | "startRow">> & Pick<SearchAnalyticsRequest, "type">;
+  request: {
+    siteUrl: string;
+    startDate: string;
+    endDate: string;
+    dimensions: readonly SearchDimension[];
+    rowLimit: number;
+    startRow: number;
+    type?: SearchAnalyticsRequest["type"];
+  };
   rows: readonly SearchAnalyticsRow[];
   coverage: "TOP_ROWS_NOT_GUARANTEED_COMPLETE";
   sourceAuthority: "SEARCH_CONSOLE_API" | "CONTROLLED_TEST";
@@ -111,13 +119,13 @@ function normalizeRequest(input: SearchAnalyticsRequest): SearchAnalyticsDataset
   assertDate(input.endDate, "endDate");
   if (input.startDate > input.endDate) throw new Error("startDate must be <= endDate");
   if (!input.siteUrl.trim()) throw new Error("siteUrl required");
-  if (input.dimensions.length === 0) throw new Error("at least one dimension required");
-  if (new Set(input.dimensions).size !== input.dimensions.length) throw new Error("duplicate dimensions are forbidden");
-  const rowLimit = input.rowLimit ?? 25_000;
+  const dimensions = input.dimensions ?? [];
+  if (new Set(dimensions).size !== dimensions.length) throw new Error("duplicate dimensions are forbidden");
+  const rowLimit = input.rowLimit ?? 1_000;
   const startRow = input.startRow ?? 0;
   if (!Number.isInteger(rowLimit) || rowLimit < 1 || rowLimit > 25_000) throw new Error("rowLimit must be an integer from 1 to 25000");
   if (!Number.isInteger(startRow) || startRow < 0) throw new Error("startRow must be a non-negative integer");
-  return Object.freeze({ siteUrl: input.siteUrl.trim(), startDate: input.startDate, endDate: input.endDate, dimensions: Object.freeze([...input.dimensions]), rowLimit, startRow, ...(input.type ? { type: input.type } : {}) });
+  return Object.freeze({ siteUrl: input.siteUrl.trim(), startDate: input.startDate, endDate: input.endDate, dimensions: Object.freeze([...dimensions]), rowLimit, startRow, ...(input.type ? { type: input.type } : {}) });
 }
 
 function normalizeRow(row: SearchAnalyticsRow, dimensions: number): SearchAnalyticsRow {
