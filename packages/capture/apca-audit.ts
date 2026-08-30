@@ -4,10 +4,12 @@ import sharp from "sharp";
 import type { Page } from "playwright";
 
 export type ApcaUse = "BODY" | "FLUENT" | "SUBFLUENT" | "SPOT";
+export type ApcaTarget = "TEXT" | "PLACEHOLDER";
 
 export interface ApcaTextObservation {
   textDigest: string;
   role?: string;
+  target: ApcaTarget;
   use: ApcaUse;
   textColor: string;
   backgroundColor: string;
@@ -25,6 +27,7 @@ export interface ApcaTextObservation {
 export interface ApcaUnsupportedObservation {
   textDigest: string;
   role?: string;
+  target: ApcaTarget;
   reason:
     | "MIX_BLEND_MODE"
     | "FILTER_EFFECT"
@@ -69,6 +72,7 @@ export interface DynamicApcaPolicyResult {
 interface Candidate {
   marker: string;
   previousMarker: string | null;
+  target: ApcaTarget;
   text: string;
   role?: string;
   use: ApcaUse;
@@ -174,6 +178,7 @@ function useFromRole(role: string): ApcaUse {
   if (role === "BODY") return "BODY";
   if (role === "HEADING") return "FLUENT";
   if (role === "CONTROL" || role === "LABEL") return "SUBFLUENT";
+  if (role === "PLACEHOLDER") return "SPOT";
   return "BODY";
 }
 
@@ -181,7 +186,9 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
   await page.evaluate(async () => { await document.fonts?.ready; });
   const candidates = await page.evaluate((maximumCandidates) => {
     const colorTuple = (color: string): { rgb?: [number, number, number]; alpha: number } => {
-      const values = color.match(/[\d.]+/g)?.map(Number) ?? [];
+      const normalized = color.trim();
+      if (!/^rgba?\(/i.test(normalized)) return { alpha: 0 };
+      const values = normalized.match(/[\d.]+/g)?.map(Number) ?? [];
       if (values.length < 3 || values.slice(0, 3).some((value) => !Number.isFinite(value))) return { alpha: 0 };
       return { rgb: [values[0]!, values[1]!, values[2]!], alpha: values[3] ?? 1 };
     };
@@ -197,17 +204,70 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
       }
       return undefined;
     };
-    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     const output: Array<Record<string, unknown>> = [];
     const markers = new Map<Element, { marker: string; previousMarker: string | null }>();
-    let node: Node | null;
-    let index = 0;
+    let markerIndex = 0;
     const restoreMarkers = () => {
       for (const [element, state] of markers) {
         if (state.previousMarker === null) element.removeAttribute("data-nexus-apca-sample");
         else element.setAttribute("data-nexus-apca-sample", state.previousMarker);
       }
     };
+    const markerFor = (element: Element) => {
+      const existing = markers.get(element);
+      if (existing) return existing;
+      let marker = `nexus-apca-${markerIndex++}`;
+      while (document.querySelector(`[data-nexus-apca-sample="${marker}"]`)) marker = `nexus-apca-${markerIndex++}`;
+      const state = { marker, previousMarker: element.getAttribute("data-nexus-apca-sample") };
+      markers.set(element, state);
+      element.setAttribute("data-nexus-apca-sample", marker);
+      return state;
+    };
+    const ensureCapacity = () => {
+      if (output.length < maximumCandidates) return;
+      restoreMarkers();
+      throw new Error(`APCA candidate bound exceeded (${maximumCandidates})`);
+    };
+    const pushCandidate = (input: {
+      element: Element;
+      target: "TEXT" | "PLACEHOLDER";
+      text: string;
+      role: string;
+      use: "BODY" | "FLUENT" | "SUBFLUENT" | "SPOT";
+      style: CSSStyleDeclaration;
+      rects: readonly { x: number; y: number; width: number; height: number }[];
+    }) => {
+      ensureCapacity();
+      const markerState = markerFor(input.element);
+      const parsedColor = colorTuple(input.style.color);
+      const webkitTextStrokeWidth = Number.parseFloat(input.style.getPropertyValue("-webkit-text-stroke-width") || "0");
+      const backgroundClip = `${input.style.backgroundClip} ${input.style.getPropertyValue("-webkit-background-clip")}`;
+      let unsupported: string | undefined;
+      if (input.element.closest("svg")) unsupported = "SVG_TEXT";
+      else unsupported = effectReason(input.element);
+      if (!unsupported && Number.isFinite(webkitTextStrokeWidth) && webkitTextStrokeWidth > 0.01) unsupported = "TEXT_STROKE";
+      else if (!unsupported && /text/i.test(backgroundClip)) unsupported = "GRADIENT_TEXT";
+      else if (!unsupported && !parsedColor.rgb) unsupported = "UNSUPPORTED_COLOR";
+      else if (!unsupported && parsedColor.alpha < 0.999) unsupported = "TRANSLUCENT_TEXT";
+      output.push({
+        marker: markerState.marker,
+        previousMarker: markerState.previousMarker,
+        target: input.target,
+        text: input.text,
+        role: input.role,
+        use: input.use,
+        textColor: input.style.color,
+        textRgb: parsedColor.rgb ?? [0, 0, 0],
+        fontSizePx: Number.parseFloat(input.style.fontSize),
+        fontWeight: Number.parseFloat(input.style.fontWeight) || 400,
+        textShadow: input.style.textShadow !== "none",
+        rects: input.rects,
+        unsupported,
+      });
+    };
+
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let node: Node | null;
     while ((node = walker.nextNode())) {
       const text = node.textContent?.replace(/\s+/g, " ").trim();
       const element = node.parentElement;
@@ -215,10 +275,6 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
       const style = getComputedStyle(element);
       const elementRect = element.getBoundingClientRect();
       if (style.display === "none" || style.visibility === "hidden" || elementRect.width <= 0 || elementRect.height <= 0) continue;
-      if (output.length >= maximumCandidates) {
-        restoreMarkers();
-        throw new Error(`APCA candidate bound exceeded (${maximumCandidates})`);
-      }
       const range = document.createRange();
       range.selectNodeContents(node);
       const rects = Array.from(range.getClientRects()).slice(0, 32).map((rect) => ({
@@ -228,38 +284,40 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
         height: rect.height,
       })).filter((rect) => rect.width > 0 && rect.height > 0);
       if (!rects.length) continue;
-      let markerState = markers.get(element);
-      if (!markerState) {
-        let marker = `nexus-apca-${index++}`;
-        while (document.querySelector(`[data-nexus-apca-sample="${marker}"]`)) marker = `nexus-apca-${index++}`;
-        markerState = { marker, previousMarker: element.getAttribute("data-nexus-apca-sample") };
-        markers.set(element, markerState);
-        element.setAttribute("data-nexus-apca-sample", marker);
-      }
-      const parsedColor = colorTuple(style.color);
       const role = element.getAttribute("data-nexus-contrast-role") ?? (element.closest("h1,h2,h3,h4,h5,h6") ? "HEADING" : element.closest("button,a,input,textarea,select") ? "CONTROL" : element.closest("label") ? "LABEL" : "BODY");
-      const webkitTextStrokeWidth = Number.parseFloat(style.getPropertyValue("-webkit-text-stroke-width") || "0");
-      const backgroundClip = `${style.backgroundClip} ${style.getPropertyValue("-webkit-background-clip")}`;
-      let unsupported: string | undefined;
-      if (element.closest("svg")) unsupported = "SVG_TEXT";
-      else unsupported = effectReason(element);
-      if (!unsupported && Number.isFinite(webkitTextStrokeWidth) && webkitTextStrokeWidth > 0.01) unsupported = "TEXT_STROKE";
-      else if (!unsupported && /text/i.test(backgroundClip)) unsupported = "GRADIENT_TEXT";
-      else if (!unsupported && !parsedColor.rgb) unsupported = "UNSUPPORTED_COLOR";
-      else if (!unsupported && parsedColor.alpha < 0.999) unsupported = "TRANSLUCENT_TEXT";
-      output.push({
-        marker: markerState.marker,
-        previousMarker: markerState.previousMarker,
+      pushCandidate({
+        element,
+        target: "TEXT",
         text,
         role,
         use: role === "BODY" ? "BODY" : role === "HEADING" ? "FLUENT" : role === "CONTROL" || role === "LABEL" ? "SUBFLUENT" : "BODY",
-        textColor: style.color,
-        textRgb: parsedColor.rgb ?? [0, 0, 0],
-        fontSizePx: Number.parseFloat(style.fontSize),
-        fontWeight: Number.parseFloat(style.fontWeight) || 400,
-        textShadow: style.textShadow !== "none",
+        style,
         rects,
-        unsupported,
+      });
+    }
+
+    for (const field of Array.from(document.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>("input[placeholder],textarea[placeholder]"))) {
+      const placeholder = field.getAttribute("placeholder")?.replace(/\s+/g, " ").trim();
+      if (!placeholder) continue;
+      const style = getComputedStyle(field);
+      const placeholderStyle = getComputedStyle(field, "::placeholder");
+      const rect = field.getBoundingClientRect();
+      if (style.display === "none" || style.visibility === "hidden" || rect.width <= 0 || rect.height <= 0) continue;
+      const left = rect.left + window.scrollX + (Number.parseFloat(style.paddingLeft) || 0);
+      const top = rect.top + window.scrollY + (Number.parseFloat(style.paddingTop) || 0);
+      const width = Math.max(1, rect.width - (Number.parseFloat(style.paddingLeft) || 0) - (Number.parseFloat(style.paddingRight) || 0));
+      const lineHeight = Number.parseFloat(placeholderStyle.lineHeight);
+      const fontSize = Number.parseFloat(placeholderStyle.fontSize) || Number.parseFloat(style.fontSize);
+      const height = Math.max(1, Math.min(rect.height, Number.isFinite(lineHeight) ? lineHeight : fontSize * 1.3));
+      const role = field.getAttribute("data-nexus-contrast-role") ?? "PLACEHOLDER";
+      pushCandidate({
+        element: field,
+        target: "PLACEHOLDER",
+        text: placeholder,
+        role,
+        use: "SPOT",
+        style: placeholderStyle,
+        rects: [{ x: left, y: top, width, height }],
       });
     }
     return output;
@@ -271,8 +329,12 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
   let screenshot: Buffer;
   try {
     if (supported.length) {
-      const selectors = [...new Set(supported.map((candidate) => candidate.marker))].map((marker) => `[data-nexus-apca-sample="${marker}"]`).join(",");
-      styleHandle = await page.addStyleTag({ content: `${selectors}{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important}` });
+      const textMarkers = [...new Set(supported.filter((candidate) => candidate.target === "TEXT").map((candidate) => candidate.marker))];
+      const placeholderMarkers = [...new Set(supported.filter((candidate) => candidate.target === "PLACEHOLDER").map((candidate) => candidate.marker))];
+      const rules: string[] = [];
+      if (textMarkers.length) rules.push(`${textMarkers.map((marker) => `[data-nexus-apca-sample="${marker}"]`).join(",")}{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;caret-color:transparent!important}`);
+      if (placeholderMarkers.length) rules.push(`${placeholderMarkers.map((marker) => `[data-nexus-apca-sample="${marker}"]::placeholder`).join(",")}{color:transparent!important;-webkit-text-fill-color:transparent!important;text-shadow:none!important;opacity:0!important}`);
+      styleHandle = await page.addStyleTag({ content: rules.join("\n") });
     }
     screenshot = await page.screenshot({ type: "png", fullPage: true, animations: "disabled", caret: "hide", scale: "css" });
   } finally {
@@ -290,13 +352,13 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
   const decoded = await sharp(screenshot, { limitInputPixels: MAX_SCREENSHOT_PIXELS }).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
   const observations: ApcaTextObservation[] = [];
   const unsupported: ApcaUnsupportedObservation[] = candidates.filter((candidate) => candidate.unsupported).map((candidate) => Object.freeze({
-    textDigest: digestText(candidate.text), role: candidate.role, reason: candidate.unsupported!,
+    textDigest: digestText(candidate.text), role: candidate.role, target: candidate.target, reason: candidate.unsupported!,
   }));
 
   for (const candidate of supported) {
     const points = samplePoints(candidate.rects, decoded.info.width, decoded.info.height);
     if (!points.length) {
-      unsupported.push(Object.freeze({ textDigest: digestText(candidate.text), role: candidate.role, reason: "NO_SAMPLE_POINTS" }));
+      unsupported.push(Object.freeze({ textDigest: digestText(candidate.text), role: candidate.role, target: candidate.target, reason: "NO_SAMPLE_POINTS" }));
       continue;
     }
     let worstLc: number | undefined;
@@ -312,12 +374,12 @@ export async function measureApca(page: Page): Promise<ApcaAuditReport> {
       }
     }
     if (worstLc === undefined) {
-      unsupported.push(Object.freeze({ textDigest: digestText(candidate.text), role: candidate.role, reason: "UNSUPPORTED_COLOR" }));
+      unsupported.push(Object.freeze({ textDigest: digestText(candidate.text), role: candidate.role, target: candidate.target, reason: "UNSUPPORTED_COLOR" }));
       continue;
     }
     const requiredAbsLc = minimumApcaLc(candidate.fontSizePx, candidate.fontWeight, candidate.use ?? useFromRole(candidate.role ?? "BODY"));
     const core = {
-      textDigest: digestText(candidate.text), role: candidate.role, use: candidate.use,
+      textDigest: digestText(candidate.text), role: candidate.role, target: candidate.target, use: candidate.use,
       textColor: candidate.textColor, backgroundColor: worstBackground, backgroundSource: "RENDERED_PIXEL_SAMPLE" as const,
       fontSizePx: candidate.fontSizePx, fontWeight: candidate.fontWeight, lc: worstLc, absoluteLc: Math.abs(worstLc), requiredAbsLc,
       sampleCount: points.length, textShadow: candidate.textShadow,
