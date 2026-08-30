@@ -190,7 +190,7 @@ function normalizePolicy(input: Omit<FormalGuardrailPolicy, "digest">): Omit<For
     const stripped = template.text.replace(/\{(?:subject|predicate|value|confidence)\}/g, "");
     if (stripped.includes("{") || stripped.includes("}")) throw new GuardrailError("INVALID_POLICY", `template ${template.id} contains malformed placeholder syntax`);
     if (!template.text.includes("{value}")) throw new GuardrailError("INVALID_POLICY", `template ${template.id} must render the grounded value`);
-    if (template.predicates !== undefined && (!Array.isArray(template.predicates) || template.predicates.some((predicate) => !predicate.trim()))) throw new GuardrailError("INVALID_POLICY", `template ${template.id} predicates must be non-empty strings`);
+    if (template.predicates !== undefined && (!Array.isArray(template.predicates) || template.predicates.some((predicate: string) => !predicate.trim()))) throw new GuardrailError("INVALID_POLICY", `template ${template.id} predicates must be non-empty strings`);
     return { ...template, ...(template.predicates ? { predicates: sortedUnique(template.predicates) } : {}) };
   }).sort((a, b) => a.id.localeCompare(b.id, "en"));
 
