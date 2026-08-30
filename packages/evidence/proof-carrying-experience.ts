@@ -1,4 +1,4 @@
-import { createHash, createPublicKey, type KeyLike } from "node:crypto";
+import { createHash, createPublicKey, KeyObject, type KeyLike } from "node:crypto";
 import type { VerificationResult } from "@nexus/compositional-semantics";
 import type { OriginalityAssessment } from "@nexus/originality-geodesics";
 import {
@@ -72,9 +72,17 @@ function exactProofRecord(signedEvidence: SignedEvidenceBundle, sourceRevision: 
   return record;
 }
 
+function publicKeyObject(publicKey: KeyLike): KeyObject {
+  if (publicKey instanceof KeyObject) {
+    if (publicKey.type === "public") return publicKey;
+    if (publicKey.type === "private") return createPublicKey(publicKey);
+    throw new Error("signed evidence key must be an asymmetric public or private key");
+  }
+  return createPublicKey(publicKey);
+}
+
 function fingerprintPublicKey(publicKey: KeyLike): string {
-  const key = createPublicKey(publicKey);
-  const der = key.export({ type: "spki", format: "der" });
+  const der = publicKeyObject(publicKey).export({ type: "spki", format: "der" });
   return `sha256:${createHash("sha256").update(der).digest("hex")}`;
 }
 
