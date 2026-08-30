@@ -11,6 +11,8 @@ permissions:
 jobs:
   validate-apca-v2:
     runs-on: ubuntu-24.04
+    env:
+      NEXUS_CAPTURE_EVIDENCE_DIR: .artifacts/cap11
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
@@ -32,5 +34,10 @@ jobs:
         run: pnpm --filter @nexus/capture build
       - name: Run capture browser suite
         run: pnpm --filter @nexus/capture test:browser
+      - name: Print APCA evidence on failure
+        if: failure()
+        run: |
+          find .artifacts/cap11 -name '*-apca.json' -type f -print -exec cat {} \; || true
       - name: Lint touched APCA files
-        run: pnpm exec eslint packages/capture/apca-audit.ts packages/capture/tests/apca-audit.test.ts
+        if: success()
+        run: pnpm exec eslint packages/capture/apca-audit.ts packages/capture/tests/apca-audit.test.ts packages/capture/playwright-adapter.ts packages/capture/tests/playwright-adapter.test.ts
