@@ -23,6 +23,18 @@ jobs:
         run: |
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
+      - name: Apply audited source correction
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('packages/perceptual-images/src/index.ts')
+          text = path.read_text()
+          old = 'throw new Error(`command failed: ${basename(file)} ${args.join(" ")} :: ${message}`);'
+          new = 'throw new Error(`command failed: ${basename(file)} ${args.join(" ")} :: ${message}`, { cause: error });'
+          if old not in text:
+              raise SystemExit('expected lint correction target not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
       - name: Install workspace and sync lockfile
         run: pnpm install --no-frozen-lockfile
       - name: Package validation
@@ -76,13 +88,13 @@ jobs:
           grep -q '"JXL"' .tmp-perceptual/report.json
       - name: Verify bounded tree changes
         run: |
-          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml'
+          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml' ':(exclude)packages/perceptual-images/src/index.ts'
           grep -Fq '  packages/perceptual-images:' pnpm-lock.yaml
-      - name: Commit synchronized lockfile
+      - name: Commit synchronized source and lockfile
         run: |
-          if git diff --quiet -- pnpm-lock.yaml; then exit 0; fi
+          if git diff --quiet -- packages/perceptual-images/src/index.ts pnpm-lock.yaml; then exit 0; fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add pnpm-lock.yaml
-          git commit -m 'fix(images): synchronize workspace lockfile'
+          git add packages/perceptual-images/src/index.ts pnpm-lock.yaml
+          git commit -m 'fix(images): preserve command error cause and sync lockfile'
           git push origin HEAD:feat/capability-09-perceptual-images
