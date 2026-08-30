@@ -265,8 +265,8 @@ export function createPage(input: GenerativePageInput): GenerativePage {
 export function validatePage(page: GenerativePage): void {
   const rebuilt = createPage(page);
   if (page.pageDigest !== rebuilt.pageDigest) throw new Error("generative page digest mismatch");
-  const { pageDigest: _leftDigest, ...left } = page;
-  const { pageDigest: _rightDigest, ...right } = rebuilt;
+  const left = Object.fromEntries(Object.entries(page).filter(([key]) => key !== "pageDigest"));
+  const right = Object.fromEntries(Object.entries(rebuilt).filter(([key]) => key !== "pageDigest"));
   if (canonicalJson(left) !== canonicalJson(right)) throw new Error("generative page is not canonical");
 }
 
