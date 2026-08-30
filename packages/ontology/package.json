@@ -15,7 +15,8 @@
     "./observability-dr": "./observability-dr.ts",
     "./chatbot-knowledge": "./chatbot-knowledge.ts",
     "./chatbot-guardrails": "./chatbot-guardrails.ts",
-    "./chatbot-memory": "./chatbot-memory.ts"
+    "./chatbot-memory": "./chatbot-memory.ts",
+    "./chatbot-bandit": "./chatbot-bandit.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
