@@ -115,9 +115,9 @@ export function validateEvidenceTrustAnchor(anchor: EvidenceTrustAnchor): void {
   if (rebuilt.anchorDigest !== anchor.anchorDigest || rebuilt.verifiedGates.some((gate, index) => gate !== anchor.verifiedGates[index])) throw new Error("Evidence trust anchor digest/canonicalization mismatch");
 }
 
-export function validateAuthenticatedEvidenceTrustAnchor(anchor: EvidenceTrustAnchor): void {
+export function validateEvidenceTrustAnchorAuthenticationBinding(anchor: EvidenceTrustAnchor): void {
   validateEvidenceTrustAnchor(anchor);
   if (!anchor.signingKeyFingerprint || !anchor.signatureDigest) {
-    throw new Error("Evidence trust anchor lacks authenticated signing-key/signature evidence");
+    throw new Error("Evidence trust anchor lacks signing-key/signature binding metadata");
   }
 }
