@@ -2,7 +2,7 @@ import type { OntologyScope, ValidatedSchema } from "./index.js";
 import type { ObjectQuery, OntologyReadPort } from "./persistence-query.js";
 import type { ObjectRecord, TransactionOperation } from "./transaction.js";
 
-import { ENTITY_TYPE } from "./chatbot-knowledge-types.js";
+import { ENTITY_TYPE, normalizeIdentifier } from "./chatbot-knowledge-types.js";
 import { projectEntity } from "./chatbot-knowledge-codec.js";
 import {
   MEMORY_TYPE,
@@ -16,7 +16,7 @@ import {
   type UpsertLongTermMemoryInput,
 } from "./chatbot-memory-types.js";
 import { createDefaultLongTermMemoryPolicy, verifyLongTermMemoryPolicy } from "./chatbot-memory-policy.js";
-import { memoryIdentity, memoryPayload, memoryStatusPayload, projectLongTermMemory } from "./chatbot-memory-codec.js";
+import { memoryDeletionIdentity, memoryIdentity, memoryPayload, memoryStatusPayload, projectLongTermMemory } from "./chatbot-memory-codec.js";
 import { chatbotLongTermMemorySchema, memoryPlan } from "./chatbot-memory-schema.js";
 
 const MAX_SWEEP_SCAN = 10_000;
@@ -75,7 +75,7 @@ export class LongTermMemoryPlanner {
     }, MAX_SWEEP_SCAN);
     const active = records
       .filter((item) => item.id !== excludingId)
-      .map((item) => projectLongTermMemory(item, this.policy))
+      .map((item) => projectLongTermMemory(item, this.policy, false))
       .filter((memory) => Date.parse(memory.expiresAt) > nowMs)
       .length;
     if (active >= this.policy.maxRecordsPerSubject) {
@@ -119,10 +119,10 @@ export class LongTermMemoryPlanner {
 
   planRevoke(input: RevokeLongTermMemoryInput): MemoryMutationPlan {
     verifyLongTermMemoryPolicy(this.policy);
-    const identity = memoryIdentity(input);
+    const identity = memoryDeletionIdentity(input);
     const current = this.read.getObject(this.scope, identity.id);
     if (!current) throw new LongTermMemoryError("NOT_FOUND", `memory ${identity.memoryKey} does not exist`);
-    const existing = projectLongTermMemory(current, this.policy);
+    const existing = projectLongTermMemory(current, this.policy, false);
     if (existing.subjectId !== identity.subjectId || existing.memoryKey !== identity.memoryKey) {
       throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${identity.id} identity mismatch`);
     }
@@ -140,19 +140,16 @@ export class LongTermMemoryPlanner {
 
   planPurge(input: PurgeLongTermMemoryInput): MemoryMutationPlan {
     verifyLongTermMemoryPolicy(this.policy);
-    const identity = memoryIdentity(input);
+    const identity = memoryDeletionIdentity(input);
     const current = this.read.getObject(this.scope, identity.id);
     if (!current) return memoryPlan(this.scope, this.schema, []);
-    const existing = projectLongTermMemory(current, this.policy);
-    if (existing.subjectId !== identity.subjectId || existing.memoryKey !== identity.memoryKey) {
-      throw new LongTermMemoryError("INTEGRITY_FAILURE", `memory ${identity.id} identity mismatch`);
-    }
-    return memoryPlan(this.scope, this.schema, [{ kind: "DELETE_OBJECT", id: existing.id, expectedRevision: existing.revision }]);
+    if (current.typeId !== MEMORY_TYPE) throw new LongTermMemoryError("TYPE_MISMATCH", `object ${identity.id} is not a long-term memory record`);
+    return memoryPlan(this.scope, this.schema, [{ kind: "DELETE_OBJECT", id: current.id, expectedRevision: current.revision }]);
   }
 
   planRetentionSweep(input: SweepLongTermMemoryInput): MemoryMutationPlan {
     verifyLongTermMemoryPolicy(this.policy);
-    const subjectId = memoryIdentity({ subjectId: input.subjectId, memoryKey: "retention-sweep-sentinel" }).subjectId;
+    const subjectId = normalizeIdentifier(input.subjectId, "subjectId");
     const maxDeletes = input.maxDeletes ?? 100;
     if (!Number.isInteger(maxDeletes) || maxDeletes <= 0 || maxDeletes > MAX_SWEEP_DELETE) {
       throw new LongTermMemoryError("INVALID_INPUT", `maxDeletes must be an integer from 1 to ${MAX_SWEEP_DELETE}`);
@@ -163,7 +160,7 @@ export class LongTermMemoryPlanner {
       propertyEquals: { [MP.subjectId]: subjectId },
     }, MAX_SWEEP_SCAN);
     const deletions = records
-      .map((record) => projectLongTermMemory(record, this.policy))
+      .map((record) => projectLongTermMemory(record, this.policy, false))
       .filter((memory) => memory.status === "REVOKED" || Date.parse(memory.expiresAt) <= nowMs)
       .sort((a, b) => a.id.localeCompare(b.id, "en"))
       .slice(0, maxDeletes)
