@@ -28,6 +28,22 @@ jobs:
           corepack enable
           corepack prepare pnpm@10.15.0 --activate
 
+      - name: Apply audited source corrections
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('packages/topical-authority-graph/src/index.ts')
+          text = path.read_text()
+          replacements = {
+              'export interface AuthorityNode extends AuthorityNodeInput {}\nexport interface AuthorityEdge extends AuthorityEdgeInput {}': 'export type AuthorityNode = AuthorityNodeInput;\nexport type AuthorityEdge = AuthorityEdgeInput;',
+              'export function createGraph(input: AuthorityGraphInput | unknown): AuthorityGraph {': 'export function createGraph(input: unknown): AuthorityGraph {',
+              'const inboundLinks = new Map(pages.map((page) => [page.id, 0] as const));': 'const inboundLinks = new Map<string, number>(pages.map((page) => [page.id, 0]));',
+          }
+          for old, new in replacements.items():
+              text = text.replace(old, new)
+          path.write_text(text)
+          PY
+
       - name: Install and regenerate workspace lockfile
         run: pnpm install --no-frozen-lockfile
 
@@ -43,21 +59,21 @@ jobs:
       - name: Repository lint
         run: pnpm lint
 
-      - name: Verify only lockfile changed outside committed source
+      - name: Verify bounded working-tree changes
         run: |
           set -euo pipefail
-          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml'
+          git diff --exit-code -- . ':(exclude)pnpm-lock.yaml' ':(exclude)packages/topical-authority-graph/src/index.ts'
           grep -Fq '  packages/topical-authority-graph: {}' pnpm-lock.yaml
 
-      - name: Commit lockfile when changed
+      - name: Commit source correction and lockfile when changed
         run: |
           set -euo pipefail
-          if git diff --quiet -- pnpm-lock.yaml; then
-            echo 'Lockfile already synchronized.'
+          if git diff --quiet -- packages/topical-authority-graph/src/index.ts pnpm-lock.yaml; then
+            echo 'Source and lockfile already synchronized.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add pnpm-lock.yaml
-          git commit -m 'fix(topical): synchronize workspace lockfile'
+          git add packages/topical-authority-graph/src/index.ts pnpm-lock.yaml
+          git commit -m 'fix(topical): harden types and synchronize lockfile'
           git push origin HEAD:feat/capability-06-topical-authority-graph
