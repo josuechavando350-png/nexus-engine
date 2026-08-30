@@ -592,7 +592,9 @@ export async function compareCapture(input: {
   );
   const ratio = changedPixels / totalPixels;
   const perceptual = await input.perceptual(input.baselinePath, input.current.path);
-  finiteRange("perceptual score", perceptual, 0, 100);
+  if (!Number.isFinite(perceptual) || perceptual > 100) {
+    throw new Error("perceptual score must be finite and <= 100");
+  }
   const reasons: string[] = [];
   if (ratio > policy.maximumChangedPixelRatio) reasons.push("PIXEL_REGRESSION");
   if (perceptual < policy.minimumPerceptual) reasons.push("PERCEPTUAL_REGRESSION");
