@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { hash, type GroundedFact, type GroundingContext, type GroundingRequest, type KnowledgeEvidence } from "./chatbot-knowledge-types.js";
+import { hash, type GroundedFact, type GroundingContext, type KnowledgeEvidence } from "./chatbot-knowledge-types.js";
 import type { KnowledgeGraphReader } from "./chatbot-knowledge-reader.js";
 import { FormalGuardrailEngine, inferGuardrailSensitiveClaimClasses } from "./chatbot-guardrails-engine.js";
 import { createDefaultGuardrailPolicy } from "./chatbot-guardrails-policy.js";
@@ -47,7 +47,7 @@ function grounding(
 }
 
 function reader(context: GroundingContext): KnowledgeGraphReader {
-  return { grounding: async (_request: GroundingRequest) => context } as unknown as KnowledgeGraphReader;
+  return { grounding: async () => context } as unknown as KnowledgeGraphReader;
 }
 
 function engine(context: GroundingContext): FormalGuardrailEngine {
