@@ -1,4 +1,4 @@
-import { analyzeCompetitiveIntelligence, capturePublicPage, type CompetitiveIntelligenceReport, type CompetitiveScope } from "./competitive-intelligence";
+import { analyzeCompetitiveIntelligence, capturePublicPage, validateCompetitiveScope, type CompetitiveIntelligenceReport, type CompetitiveScope } from "./competitive-intelligence";
 
 const MAX_COMPETITORS = 20;
 const MAX_ID = 200;
@@ -27,6 +27,7 @@ function cleanString(label: string, value: string, max: number): string {
 }
 
 function normalizeSubject(subject: CompetitiveRuntimeSubject, label: string): CompetitiveRuntimeSubject {
+  if (!subject || typeof subject !== "object") throw new Error(`${label} must be an object`);
   return Object.freeze({
     id: cleanString(`${label}.id`, subject.id, MAX_ID),
     label: cleanString(`${label}.label`, subject.label, MAX_LABEL),
@@ -38,6 +39,8 @@ export async function runCompetitiveIntelligence(
   request: CompetitiveRuntimeRequest,
   signal?: AbortSignal,
 ): Promise<CompetitiveIntelligenceReport> {
+  if (!request || typeof request !== "object") throw new Error("competitive runtime request must be an object");
+  const scope = validateCompetitiveScope(request.scope);
   if (!Array.isArray(request.competitors) || request.competitors.length < 1 || request.competitors.length > MAX_COMPETITORS) {
     throw new Error(`competitors must contain 1 to ${MAX_COMPETITORS} subjects`);
   }
@@ -58,7 +61,7 @@ export async function runCompetitiveIntelligence(
   }
 
   return analyzeCompetitiveIntelligence(
-    request.scope,
+    scope,
     { id: target.id, label: target.label, observation: targetObservation },
     competitorObservations,
   );
