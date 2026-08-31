@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import AxeBuilder from "@axe-core/playwright";
 import { chromium, webkit, type BrowserType, type Page } from "playwright";
 import type { MetricSample } from "../measurement/index.js";
-import { measureApca } from "./apca-audit.js";
+import { evaluateDynamicApcaPolicy, measureApca } from "./apca-audit.js";
 import { extractDesignGenome } from "./design-genome.js";
 import { collectWebVitals, installWebVitalsObservers } from "./web-vitals.js";
 import {
@@ -84,7 +84,7 @@ async function performanceSamples(page: Page, prefix: string): Promise<MetricSam
 
 export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCapturePort {
   readonly adapterId = "nexus.playwright-browser-capture";
-  readonly adapterVersion = "1.3.0";
+  readonly adapterVersion = "1.4.0";
   private readonly outputDir: string;
   private readonly browsers: readonly SupportedBrowser[];
   private readonly viewports: readonly CaptureViewport[];
@@ -107,8 +107,13 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
 
   async capture(request: CaptureRequest): Promise<CaptureResult> {
     validateCaptureRequest(request);
-    validateUrl(request.targetId);
     const requestId = captureRequestId(request);
+    try {
+      validateUrl(request.targetId);
+    } catch (error) {
+      return { requestId, outcome: "UNSUPPORTED", artifacts: [], samples: [], reason: error instanceof Error ? error.message : "invalid Playwright capture target" };
+    }
+
     const artifacts: CaptureArtifact[] = [];
     const samples: MetricSample[] = [];
     await mkdir(this.outputDir, { recursive: true });
@@ -154,12 +159,14 @@ export class PlaywrightBrowserDeviceCaptureAdapter implements BrowserDeviceCaptu
 
               if (request.capabilities.includes("CONTRAST")) {
                 const contrast = await measureApca(page);
+                const guidance = evaluateDynamicApcaPolicy(contrast);
                 const bytes = Buffer.from(`${JSON.stringify(contrast, null, 2)}\n`, "utf8");
                 const path = resolve(this.outputDir, `${safeSegment(requestId)}-${prefix}-apca.json`);
                 await writeFile(path, bytes);
-                artifacts.push(createCaptureArtifact({ runId: request.run.runId, scope: request.scope, capability: "CONTRAST", mediaType: "application/vnd.nexus.apca+json", digest: sha256(bytes), byteLength: bytes.byteLength, capturedAt: this.clock(), uri: path, metadata: Object.freeze({ browser: browserName, viewport: viewport.name, algorithm: contrast.algorithm, library: `${contrast.library}@${contrast.libraryVersion}`, observationCount: String(contrast.observations.length), unsupportedCount: String(contrast.unsupportedCount) }) }));
+                artifacts.push(createCaptureArtifact({ runId: request.run.runId, scope: request.scope, capability: "CONTRAST", mediaType: "application/vnd.nexus.apca+json", digest: sha256(bytes), byteLength: bytes.byteLength, capturedAt: this.clock(), uri: path, metadata: Object.freeze({ browser: browserName, viewport: viewport.name, algorithm: contrast.algorithm, library: `${contrast.library}@${contrast.libraryVersion}`, observationCount: String(contrast.observations.length), unsupportedCount: String(contrast.unsupportedCount), guidanceVerdict: guidance.verdict, guidanceFailureCount: String(guidance.failures.length) }) }));
                 samples.push({ name: `${prefix}.apca_observations`, unit: "count", value: contrast.observations.length });
                 samples.push({ name: `${prefix}.apca_unsupported`, unit: "count", value: contrast.unsupportedCount });
+                samples.push({ name: `${prefix}.apca_dynamic_failures`, unit: "count", value: guidance.failures.length + guidance.unsupported.length });
               }
 
               if (request.capabilities.includes("PERFORMANCE")) {

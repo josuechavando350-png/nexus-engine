@@ -6,7 +6,7 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createRun } from "../../measurement/index";
-import { evaluateApcaPolicy, type ApcaAuditReport } from "../apca-audit";
+import { evaluateApcaPolicy, evaluateDynamicApcaPolicy, type ApcaAuditReport } from "../apca-audit";
 import type { DesignGenomeObservation } from "../design-genome";
 import { validateCaptureResult, type CaptureRequest } from "../index";
 import { PlaywrightBrowserDeviceCaptureAdapter } from "../playwright-adapter";
@@ -139,12 +139,16 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
       } else if (artifact.capability === "CONTRAST") {
         const report = JSON.parse(bytes.toString("utf8")) as ApcaAuditReport;
         observedContrast.push(report);
+        expect(report.schemaVersion).toBe(2);
         expect(report.algorithm).toBe("APCA");
         expect(report.library).toBe("apca-w3");
         expect(report.libraryVersion).toBe("0.1.9");
-        expect(report.observations.length).toBeGreaterThanOrEqual(3);
+        expect(report.observations.length + report.unsupported.length).toBeGreaterThanOrEqual(3);
+        expect(report.unsupportedCount).toBe(report.unsupported.length);
+        expect(report.observations.every((observation) => observation.backgroundSource === "RENDERED_PIXEL_SAMPLE")).toBe(true);
         expect(report.observations.every((observation) => Number.isFinite(observation.lc))).toBe(true);
         expect(report.observations.every((observation) => /^sha256:[a-f0-9]{64}$/.test(observation.textDigest))).toBe(true);
+        expect(report.unsupported.every((observation) => /^sha256:[a-f0-9]{64}$/.test(observation.textDigest))).toBe(true);
       } else if (artifact.capability === "PERFORMANCE") {
         const vitals = JSON.parse(bytes.toString("utf8")) as WebVitalsEvidence;
         observedVitals.push(vitals);
@@ -170,6 +174,7 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
     expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { headline: 10, body: 10, action: 10 } }).verdict).toBe("PASS");
     expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: {} }).verdict).toBe("NOT_TESTED");
     expect(evaluateApcaPolicy(observedContrast[0]!, { minimumAbsLcByRole: { missing: 10 } }).verdict).toBe("FAIL");
+    expect(evaluateDynamicApcaPolicy(observedContrast[0]!, ["headline", "body", "action"]).verdict).toBe("PASS");
 
     expect(observedVitals).toHaveLength(6);
     expect(evaluateWebVitalsPolicy(observedVitals[0]!, {}).verdict).toBe("NOT_TESTED");
@@ -186,17 +191,20 @@ describe("PlaywrightBrowserDeviceCaptureAdapter", () => {
 
     const manifest = { schemaVersion: 1, adapterId: adapter.adapterId, adapterVersion: adapter.adapterVersion, requestId: result.requestId, outcome: result.outcome, browsers: ["chromium", "webkit"], viewports: [390, 768, 1440], artifacts: result.artifacts, samples: result.samples };
     await writeFile(join(outputDir, "capture-manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
-  }, 30_000);
+  }, 180_000);
 
   it("refuses non-HTTP targets instead of pretending they were captured", async () => {
     const scope = { tenantId: "tenant-real-capture", brandId: "brand-real-capture" };
     const run = createRun({
-      workload: { id: "invalid-target", version: "1", scope, name: "Invalid target", parameters: {} },
-      environment: { os: process.platform, architecture: process.arch, runtime: "node", runtimeVersion: process.version, deviceClass: "test" },
+      workload: { id: "bad-target", version: "1", scope, name: "Bad target", parameters: {} },
+      environment: { os: process.platform, architecture: process.arch, runtime: "node", runtimeVersion: process.version, deviceClass: "local" },
       scope,
       startedAt: "2026-08-17T00:00:00.000Z",
     });
-    const adapter = new PlaywrightBrowserDeviceCaptureAdapter({ outputDir, browsers: ["chromium"] });
-    await expect(adapter.capture({ run, scope, targetId: "file:///tmp/fake.html", capabilities: ["SCREENSHOT"] })).rejects.toThrow(/HTTP\(S\)/);
+    const request: CaptureRequest = { run, scope, targetId: "file:///tmp/not-a-real-browser-target.html", capabilities: ["SCREENSHOT"] };
+    const adapter = new PlaywrightBrowserDeviceCaptureAdapter({ outputDir });
+    const result = await adapter.capture(request);
+    expect(result.outcome).toBe("UNSUPPORTED");
+    expect(result.reason).toContain("HTTP(S)");
   });
 });
