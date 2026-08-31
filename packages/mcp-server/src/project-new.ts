@@ -34,7 +34,8 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
   const commitMessage = spec.commitMessage ?? `feat(client): initialize ${spec.slug}`;
   const temporary = await mkdtemp(join(tmpdir(), "nexus-project-spec-"));
   const specPath = join(temporary, "project-spec.json");
-  const projectModules = join(root, "apps", spec.slug, "node_modules");
+  const projectPath = `apps/${spec.slug}`;
+  const projectModules = join(root, projectPath, "node_modules");
   try {
     await writeFile(specPath, `${JSON.stringify({ schemaVersion: 1, slug: spec.slug, business: spec.business, artDirection: spec.artDirection }, null, 2)}\n`);
     await command(root, "git", ["switch", "-c", branchName, spec.baseSha]);
@@ -51,10 +52,17 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
     await rm(projectModules, { recursive: true, force: true });
     const project = (await readProjects(root)).find((candidate) => candidate.slug === spec.slug);
     if (!project || project.kind !== "CLIENT" || !project.clientProject) throw new Error("created project was not admitted by NEXUS client discovery");
-    await command(root, "git", ["add", "--", `apps/${spec.slug}`]);
-    const files = (await command(root, "git", ["diff", "--cached", "--name-only", "--", `apps/${spec.slug}`])).split("\n").filter(Boolean);
-    if (files.length === 0 || files.some((path) => !path.startsWith(`apps/${spec.slug}/`))) throw new Error("scaffold produced no confined project files");
-    await command(root, "git", ["commit", "-m", commitMessage, "--", `apps/${spec.slug}`]);
+
+    await command(root, "git", ["add", "--", projectPath, "pnpm-lock.yaml"]);
+    const files = (await command(root, "git", ["diff", "--cached", "--name-only", "--", projectPath, "pnpm-lock.yaml"])).split("\n").filter(Boolean);
+    const projectFiles = files.filter((path) => path.startsWith(`${projectPath}/`));
+    const unexpected = files.filter((path) => path !== "pnpm-lock.yaml" && !path.startsWith(`${projectPath}/`));
+    if (!projectFiles.length || !files.includes("pnpm-lock.yaml") || unexpected.length) {
+      throw new Error("scaffold must stage confined client files plus the workspace lockfile importer");
+    }
+    await command(root, "git", ["commit", "-m", commitMessage, "--", projectPath, "pnpm-lock.yaml"]);
+    const residual = await command(root, "git", ["status", "--porcelain"]);
+    if (residual) throw new Error(`project creation left uncommitted changes: ${residual.split("\n")[0]}`);
     const headSha = await command(root, "git", ["rev-parse", "HEAD"]);
     const remoteUrl = await command(root, "git", ["remote", "get-url", "origin"]).catch(() => "");
     return { project, branch: { name: branchName, baseSha: spec.baseSha, headSha, remoteUrl: remoteUrl || null }, commit: { sha: headSha, message: commitMessage }, files, validation };
