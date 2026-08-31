@@ -59,7 +59,10 @@ const EAGERNESS_VALUES = new Set<SpeculationEagerness>(["immediate", "eager", "m
 const EFFECTIVE_TYPES = new Set(["slow-2g", "2g", "3g", "4g"] as const);
 const AUTHORITIES = new Set<BrowserCapabilityObservation["authority"]>(["BROWSER_RUNTIME", "SYNTHETIC_TEST"]);
 const EVENT_OUTCOMES = new Set<BrowserCapabilityObservation["events"][number]["outcome"]>(["STARTED", "COMPLETED", "FAILED"]);
+const CROSS_ORIGIN_MODES = new Set(["NONE", "ANONYMOUS"] as const);
 const FORBIDDEN_KEYS = new Set(["__proto__", "prototype", "constructor"]);
+const MAX_RUNTIME_CANDIDATES = 128;
+const MAX_RUNTIME_EVENTS = 64;
 
 function record(value: unknown, label: string): Record<string, unknown> {
   if (value === null || typeof value !== "object" || Array.isArray(value)) throw new Error(`${label} must be an object`);
@@ -132,7 +135,7 @@ function parseCandidate(value: unknown, index: number): SpeculationCandidate {
   const cacheSafety = enumValue(input.cacheSafety, CACHE_VALUES, `${label}.cacheSafety`);
   const crossOriginMode = input.crossOriginMode === undefined
     ? undefined
-    : enumValue(input.crossOriginMode, new Set(["NONE", "ANONYMOUS"] as const), `${label}.crossOriginMode`);
+    : enumValue(input.crossOriginMode, CROSS_ORIGIN_MODES, `${label}.crossOriginMode`);
   const eagerness = input.eagerness === undefined ? undefined : enumValue(input.eagerness, EAGERNESS_VALUES, `${label}.eagerness`);
 
   if (action === "preload" && kind !== "subresource") throw new Error(`${label} preload must target a subresource`);
@@ -192,6 +195,7 @@ function parseBrowserObservation(value: unknown): BrowserCapabilityObservation {
   exactKeys(supports, "browserObservation.supports", ["speculationRules", "preload", "prefetch"]);
   const events = input.events;
   if (!Array.isArray(events)) throw new Error("browserObservation.events must be an array");
+  if (events.length > MAX_RUNTIME_EVENTS) throw new Error(`browserObservation.events exceeds ${MAX_RUNTIME_EVENTS} entries`);
 
   return {
     authority: enumValue(input.authority, AUTHORITIES, "browserObservation.authority"),
@@ -221,6 +225,7 @@ export function parseSpeculativeDeliveryRequest(value: unknown): SpeculativeDeli
   const input = record(value, "speculative delivery request");
   exactKeys(input, "speculative delivery request", ["tenantId", "scope", "documentUrl", "candidates", "context", "policy", "browserObservation"]);
   if (!Array.isArray(input.candidates)) throw new Error("candidates must be an array");
+  if (input.candidates.length > MAX_RUNTIME_CANDIDATES) throw new Error(`candidate input exceeds ${MAX_RUNTIME_CANDIDATES} entries`);
 
   const request: SpeculativeDeliveryRequest = {
     tenantId: requiredString(input, "tenantId", "speculative delivery request"),
