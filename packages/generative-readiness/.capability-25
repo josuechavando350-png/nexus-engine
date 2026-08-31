@@ -1,4 +1,0 @@
-capability=25
-canonical-package=@nexus/generative-readiness
-execution-model=single-writer-nexus
-external-provider-authority=advisory-only
