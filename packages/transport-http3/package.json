@@ -5,12 +5,13 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./speculative-delivery": "./src/speculative-delivery.ts",
-    "./bbrv3": "./src/bbrv3.ts"
+    "./speculative-delivery": "./src/speculative-runtime.ts",
+    "./bbrv3": "./src/bbrv3.ts",
+    "./bbrv3-runtime": "./src/bbrv3-runtime.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --root ../.. packages/transport-http3/src/*.test.ts",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/speculative-delivery.js && test -f dist/speculative-delivery.d.ts && test -f dist/bbrv3.js && test -f dist/bbrv3.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/speculative-delivery.js && test -f dist/speculative-delivery.d.ts && test -f dist/speculative-runtime.js && test -f dist/speculative-runtime.d.ts && test -f dist/bbrv3.js && test -f dist/bbrv3.d.ts && test -f dist/bbrv3-runtime.js && test -f dist/bbrv3-runtime.d.ts"
   }
 }
