@@ -182,18 +182,19 @@ export class ProcessSolverAdapter implements SolverAdapter {
     if (!request.input || Buffer.byteLength(request.input) > 256_000) throw new Error("Solver input is empty or too large");
     const requestDigest = digest({ tenantId: request.tenantId, scopeId: request.scopeId, kind: request.kind, input: request.input });
     return await new Promise<SolverResult>((resolve) => {
-      let stdout = ""; let stderr = ""; let settled = false; let child: ChildProcessWithoutNullStreams | null = null; let timer: NodeJS.Timeout | undefined;
+      let stdout = ""; let stderr = ""; let settled = false; let child: ChildProcessWithoutNullStreams | null = null;
       const finish = (status: SolverStatus): void => {
-        if (settled) return; settled = true; if (timer) clearTimeout(timer); signal?.removeEventListener("abort", onAbort);
+        if (settled) return; settled = true; clearTimeout(timer); signal?.removeEventListener("abort", onAbort);
         const clippedOut = stdout.slice(0, 256_000); const clippedErr = stderr.slice(0, 32_000);
         const payload = { kind: this.kind, status, stdout: clippedOut, stderr: clippedErr, solver: this.executable, requestDigest };
         resolve(Object.freeze({ ...payload, resultDigest: digest(payload) }));
       };
       const onAbort = (): void => { child?.kill("SIGKILL"); finish("CANCELLED") };
+      const timer = setTimeout(() => { child?.kill("SIGKILL"); finish("TIMEOUT"); }, request.timeoutMs);
       if (signal?.aborted) { finish("CANCELLED"); return; }
       try { child = spawn(this.executable, [...this.args], { stdio: ["pipe", "pipe", "pipe"], shell: false }); }
       catch (error) { stderr = error instanceof Error ? error.message : "spawn failed"; finish("UNAVAILABLE"); return; }
-      timer = setTimeout(() => { child?.kill("SIGKILL"); finish("TIMEOUT"); }, request.timeoutMs); signal?.addEventListener("abort", onAbort, { once: true });
+      signal?.addEventListener("abort", onAbort, { once: true });
       child.on("error", (error: NodeJS.ErrnoException) => { stderr += error.message; finish(error.code === "ENOENT" ? "UNAVAILABLE" : "ERROR"); });
       child.stdout.on("data", (chunk: Buffer) => { if (stdout.length < 256_000) stdout += chunk.toString("utf8"); });
       child.stderr.on("data", (chunk: Buffer) => { if (stderr.length < 32_000) stderr += chunk.toString("utf8"); });
