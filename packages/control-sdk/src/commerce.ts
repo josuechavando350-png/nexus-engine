@@ -13,6 +13,8 @@ export interface CommerceScope {
 export interface CommercePrincipal {
   readonly principalId: string;
   readonly tenantId: string;
+  readonly organizationId: string;
+  readonly brandId: string;
   readonly permissions: readonly CommercePermission[];
 }
 
@@ -140,17 +142,28 @@ function validateScope(input: CommerceScope): CommerceScope {
 
 const PERMISSIONS = new Set<CommercePermission>(["commerce:prepare", "commerce:approve", "commerce:execute", "commerce:read"]);
 
-function validatePrincipal(principal: CommercePrincipal, tenantId: string, permission: CommercePermission): CommercePrincipal {
+function validatePrincipalIdentity(principal: CommercePrincipal, tenantId: string, permission: CommercePermission): CommercePrincipal {
   if (!principal || typeof principal !== "object" || Array.isArray(principal)) throw new CommerceControlError("INVALID_INPUT", "principal must be an object");
-  const allowed = new Set(["principalId", "tenantId", "permissions"]);
+  const allowed = new Set(["principalId", "tenantId", "organizationId", "brandId", "permissions"]);
   for (const key of Object.keys(principal as object)) if (!allowed.has(key)) throw new CommerceControlError("INVALID_INPUT", `unknown commerce principal field: ${key}`);
   if (!Array.isArray(principal.permissions) || principal.permissions.length > 16 || new Set(principal.permissions).size !== principal.permissions.length || principal.permissions.some((entry) => !PERMISSIONS.has(entry))) {
     throw new CommerceControlError("INVALID_INPUT", "principal permissions are invalid or exceed the supported bound");
   }
-  const principalId = identifier(principal.principalId, "principalId");
-  const principalTenant = identifier(principal.tenantId, "principal.tenantId");
-  if (principalTenant !== tenantId || !principal.permissions.includes(permission)) throw new CommerceControlError("FORBIDDEN", `principal is not authorized for ${permission} in tenant ${tenantId}`);
-  return Object.freeze({ principalId, tenantId: principalTenant, permissions: Object.freeze([...principal.permissions]) });
+  const normalized = Object.freeze({
+    principalId: identifier(principal.principalId, "principalId"),
+    tenantId: identifier(principal.tenantId, "principal.tenantId"),
+    organizationId: identifier(principal.organizationId, "principal.organizationId"),
+    brandId: identifier(principal.brandId, "principal.brandId"),
+    permissions: Object.freeze([...principal.permissions]),
+  });
+  if (normalized.tenantId !== tenantId || !normalized.permissions.includes(permission)) throw new CommerceControlError("FORBIDDEN", `principal is not authorized for ${permission} in tenant ${tenantId}`);
+  return normalized;
+}
+
+function requirePrincipalScope(principal: CommercePrincipal, scope: CommerceScope, permission: CommercePermission): CommercePrincipal {
+  const normalized = validatePrincipalIdentity(principal, scope.tenantId, permission);
+  if (normalized.organizationId !== scope.organizationId || normalized.brandId !== scope.brandId) throw new CommerceControlError("FORBIDDEN", "principal is outside the commerce organization/brand scope");
+  return normalized;
 }
 
 function validateRequest(input: CommerceActionRequest): Omit<CommerceActionRequest, "scope"> & { scope: CommerceScope } {
@@ -196,18 +209,18 @@ export class GovernedCommerceEngine {
     const request = validateRequest(requestInput);
     const now = canonicalTimestamp(nowInput, "now");
     try {
-      validatePrincipal(principal, request.scope.tenantId, "commerce:prepare");
+      requirePrincipalScope(principal, request.scope, "commerce:prepare");
     } catch (error) {
       this.auditDenied(principal, request.scope.tenantId, now, error instanceof Error ? error.message : "authorization denied");
       throw error;
     }
     const actionCore = { scope: request.scope, action: request.action, orderRef: request.orderRef, currency: request.currency, amountMinor: request.amountMinor, payloadDigest: request.payloadDigest };
     const actionDigest = digest(actionCore);
-    const idempotencyScope = `${request.scope.tenantId}\u0000${request.idempotencyKey}`;
+    const idempotencyScope = `${request.scope.tenantId}\u0000${request.scope.organizationId}\u0000${request.scope.brandId}\u0000${request.idempotencyKey}`;
     const existing = this.#idempotency.get(idempotencyScope);
     if (existing) {
       if (existing.actionDigest !== actionDigest) throw new CommerceControlError("IDEMPOTENCY_CONFLICT", "idempotency key was already used for a different commerce action");
-      return this.requireTransaction(request.scope.tenantId, existing.transactionId);
+      return this.requireScopedTransaction(principal, request.scope.tenantId, existing.transactionId, "commerce:prepare");
     }
     const transactionId = `commerce_tx_${digest({ actionDigest, idempotencyKey: request.idempotencyKey })}` as const;
     const transaction = Object.freeze({ transactionId, scope: request.scope, action: request.action, actionDigest, idempotencyKey: request.idempotencyKey, orderRef: request.orderRef, currency: request.currency, amountMinor: request.amountMinor, payloadDigest: request.payloadDigest, state: "AWAITING_APPROVAL" as const, createdAt: now, updatedAt: now });
@@ -221,13 +234,13 @@ export class GovernedCommerceEngine {
     const tenantId = identifier(tenantIdInput, "tenantId");
     const now = canonicalTimestamp(nowInput, "now");
     const expiresAt = canonicalTimestamp(expiresAtInput, "expiresAt");
+    let current: CommerceTransaction;
     try {
-      validatePrincipal(principal, tenantId, "commerce:approve");
+      current = this.requireScopedTransaction(principal, tenantId, transactionId, "commerce:approve");
     } catch (error) {
       this.auditDenied(principal, tenantId, now, error instanceof Error ? error.message : "authorization denied", transactionId);
       throw error;
     }
-    const current = this.requireTransaction(tenantId, transactionId);
     if (current.state !== "AWAITING_APPROVAL") throw new CommerceControlError("INVALID_TRANSITION", `cannot decide approval from ${current.state}`);
     if (decision !== "GRANTED" && decision !== "DENIED") throw new CommerceControlError("INVALID_INPUT", "invalid approval decision");
     if (new Date(expiresAt).getTime() <= new Date(now).getTime()) throw new CommerceControlError("INVALID_INPUT", "approval expiry must be in the future");
@@ -242,13 +255,13 @@ export class GovernedCommerceEngine {
   execute(principal: CommercePrincipal, tenantIdInput: string, transactionId: string, signal?: AbortSignal): Promise<CommerceTransaction> {
     const tenantId = identifier(tenantIdInput, "tenantId");
     const now = this.trustedNow();
+    let current: CommerceTransaction;
     try {
-      validatePrincipal(principal, tenantId, "commerce:execute");
+      current = this.requireScopedTransaction(principal, tenantId, transactionId, "commerce:execute");
     } catch (error) {
       this.auditDenied(principal, tenantId, now, error instanceof Error ? error.message : "authorization denied", transactionId);
       return Promise.reject(error);
     }
-    const current = this.requireTransaction(tenantId, transactionId);
     if (current.state === "COMMITTED" || current.state === "REJECTED" || current.state === "UNAVAILABLE") return Promise.resolve(current);
     if (current.state === "OUTCOME_UNKNOWN") return Promise.reject(new CommerceControlError("OUTCOME_UNKNOWN", "transaction outcome is unknown and must be reconciled before retry"));
     const existing = this.#inFlight.get(transactionId);
@@ -259,15 +272,13 @@ export class GovernedCommerceEngine {
   }
 
   getTransaction(principal: CommercePrincipal, tenantIdInput: string, transactionId: string): CommerceTransaction {
-    const tenantId = identifier(tenantIdInput, "tenantId");
-    validatePrincipal(principal, tenantId, "commerce:read");
-    return this.requireTransaction(tenantId, transactionId);
+    return this.requireScopedTransaction(principal, identifier(tenantIdInput, "tenantId"), transactionId, "commerce:read");
   }
 
   listAuditEvents(principal: CommercePrincipal, tenantIdInput: string): readonly CommerceAuditEvent[] {
     const tenantId = identifier(tenantIdInput, "tenantId");
-    validatePrincipal(principal, tenantId, "commerce:read");
-    return Object.freeze(this.#auditEvents.filter((event) => event.tenantId === tenantId).map((event) => Object.freeze({ ...event })));
+    const normalized = validatePrincipalIdentity(principal, tenantId, "commerce:read");
+    return Object.freeze(this.#auditEvents.filter((event) => event.tenantId === tenantId && event.principalId === normalized.principalId || false).map((event) => Object.freeze({ ...event })));
   }
 
   verifyAuditChain(tenantIdInput: string): boolean {
@@ -350,10 +361,11 @@ export class GovernedCommerceEngine {
     }
   }
 
-  private requireTransaction(tenantId: string, transactionIdInput: string): CommerceTransaction {
+  private requireScopedTransaction(principal: CommercePrincipal, tenantId: string, transactionIdInput: string, permission: CommercePermission): CommerceTransaction {
+    const normalized = validatePrincipalIdentity(principal, tenantId, permission);
     const transactionId = identifier(transactionIdInput, "transactionId", 200);
     const transaction = this.#transactions.get(transactionId);
-    if (!transaction || transaction.scope.tenantId !== tenantId) throw new CommerceControlError("NOT_FOUND", "commerce transaction not found");
+    if (!transaction || transaction.scope.tenantId !== tenantId || transaction.scope.organizationId !== normalized.organizationId || transaction.scope.brandId !== normalized.brandId) throw new CommerceControlError("NOT_FOUND", "commerce transaction not found");
     return transaction;
   }
 
