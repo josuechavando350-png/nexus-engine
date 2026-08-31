@@ -371,6 +371,8 @@ importers:
         specifier: ^19.1.1
         version: 19.2.8
 
+  packages/crawl-observability: {}
+
   packages/creative: {}
 
   packages/emitter:
