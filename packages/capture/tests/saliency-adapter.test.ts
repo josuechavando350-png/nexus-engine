@@ -89,7 +89,7 @@ describe("SaliencyAugmentedCaptureAdapter", () => {
     expect(artifact.capability).toBe("SALIENCY");
     expect(artifact.metadata?.evidenceType).toBe("MODEL_PREDICTION");
     expect(artifact.metadata?.sourceScreenshotDigest).toBe(digest(png));
-    expect(artifact.metadata?.visualAlgebraTermDigest).toMatch(/^sha256:/u);
+    expect(artifact.metadata?.visualAlgebraTermDigest).toMatch(/^[a-f0-9]{64}$/u);
     expect(artifact.uri).toBeTruthy();
     const report = JSON.parse((await readFile(artifact.uri!, "utf8"))) as SaliencyReport;
     expect(report.evidenceType).toBe("MODEL_PREDICTION");
