@@ -479,6 +479,8 @@ importers:
 
   packages/passage-intelligence: {}
 
+  packages/passive-bot-defense: {}
+
   packages/perceptual-images:
     dependencies:
       sharp:
