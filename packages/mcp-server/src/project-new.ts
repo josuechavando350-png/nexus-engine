@@ -5,6 +5,9 @@ import type { ProjectState } from "./contracts.js";
 import { readProjects } from "./projects.js";
 import { runProcess } from "./process.js";
 
+const CLIENT_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/u;
+const RESERVED_CLIENT_PREFIXES = ["_", "reference-", "v2-probe-", "probe-", "test-"] as const;
+
 export interface ProjectSpec {
   slug: string;
   business: { name: string; industry: string; location: string; contact: { phone?: string; email?: string; website?: string; address?: string }; confirmedServices: readonly { name: string; description?: string }[] };
@@ -27,11 +30,19 @@ async function command(root: string, executable: string, args: readonly string[]
   return result.stdout.toString("utf8").trim();
 }
 
+function assertSafeClientSlug(value: string): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > 80 || !CLIENT_SLUG_RE.test(value) || value.includes("--") || RESERVED_CLIENT_PREFIXES.some((prefix) => value.startsWith(prefix))) {
+    throw new Error("slug uses a reserved or invalid client-project name");
+  }
+  return value;
+}
+
 export const DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS = 300_000;
 
 export async function createProject(root: string, spec: ProjectSpec, executionTimeoutMs = DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS, maxOutputBytes = 8 * 1024 * 1024): Promise<ProjectCreation> {
-  const branchName = spec.branchName ?? `nexus-mcp/${spec.slug}`;
-  const commitMessage = spec.commitMessage ?? `feat(client): initialize ${spec.slug}`;
+  const slug = assertSafeClientSlug(spec.slug);
+  const branchName = spec.branchName ?? `nexus-mcp/${slug}`;
+  const commitMessage = spec.commitMessage ?? `feat(client): initialize ${slug}`;
   if (!/^[a-f0-9]{40}$/u.test(spec.baseSha)) throw new Error("baseSha must be an exact 40-character lowercase Git commit SHA");
   if (!branchName.startsWith("nexus-mcp/")) throw new Error("branchName must start with nexus-mcp/");
   await command(root, "git", ["check-ref-format", "--branch", branchName]);
@@ -43,28 +54,28 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
 
   const temporary = await mkdtemp(join(tmpdir(), "nexus-project-spec-"));
   const specPath = join(temporary, "project-spec.json");
-  const projectPath = `apps/${spec.slug}`;
+  const projectPath = `apps/${slug}`;
   const projectModules = join(root, projectPath, "node_modules");
   let branchCreated = false;
   let scaffoldCreated = false;
   let completed = false;
   try {
-    await writeFile(specPath, `${JSON.stringify({ schemaVersion: 1, slug: spec.slug, business: spec.business, artDirection: spec.artDirection }, null, 2)}\n`);
+    await writeFile(specPath, `${JSON.stringify({ schemaVersion: 1, slug, business: spec.business, artDirection: spec.artDirection }, null, 2)}\n`);
     await command(root, "git", ["switch", "-c", branchName, spec.baseSha]);
     branchCreated = true;
-    await command(root, process.execPath, ["scripts/scaffold-client.mjs", spec.slug, "--project-spec", specPath]);
+    await command(root, process.execPath, ["scripts/scaffold-client.mjs", slug, "--project-spec", specPath]);
     scaffoldCreated = true;
     try { await stat(join(root, "apps", "_experience-seed", "node_modules")); } catch { throw new Error("DEPENDENCY_UNAVAILABLE: workspace dependencies are not installed"); }
     await symlink(join("..", "_experience-seed", "node_modules"), projectModules, "dir");
     const validations = ["lint", "typecheck", "build"] as const;
     const validation = [];
     for (const task of validations) {
-      const args = ["--filter", `@nexus/${spec.slug}`, task];
+      const args = ["--filter", `@nexus/${slug}`, task];
       await command(root, "pnpm", args, executionTimeoutMs, maxOutputBytes);
       validation.push({ command: `pnpm ${args.join(" ")}`, exitCode: 0 as const, status: "PASS" as const });
     }
     await rm(projectModules, { recursive: true, force: true });
-    const project = (await readProjects(root)).find((candidate) => candidate.slug === spec.slug);
+    const project = (await readProjects(root)).find((candidate) => candidate.slug === slug);
     if (!project || project.kind !== "CLIENT" || !project.clientProject) throw new Error("created project was not admitted by NEXUS client discovery");
 
     await command(root, "git", ["add", "--", projectPath, "pnpm-lock.yaml"]);
