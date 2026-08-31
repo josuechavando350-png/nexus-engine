@@ -64,11 +64,13 @@ describe("competitive intelligence", () => {
 
   it("rejects a forged live observation even when an attacker recomputes its public digest", () => {
     const source = controlled("https://self.example/", ["legal"]);
-    const { observationDigest: _discarded, ...controlledCore } = source;
+    const { observationDigest: discardedDigest, ...controlledCore } = source;
+    expect(discardedDigest).toMatch(/^[a-f0-9]{64}$/u);
     const forgedCore = { ...controlledCore, authority: "PUBLIC_HTTP_CAPTURE" as const };
     const forgedLive = { ...forgedCore, observationDigest: digest(forgedCore) };
     const competitorSource = controlled("https://competitor.example/", ["strategy"]);
-    const { observationDigest: _discardedCompetitor, ...competitorControlledCore } = competitorSource;
+    const { observationDigest: discardedCompetitorDigest, ...competitorControlledCore } = competitorSource;
+    expect(discardedCompetitorDigest).toMatch(/^[a-f0-9]{64}$/u);
     const competitorForgedCore = { ...competitorControlledCore, authority: "PUBLIC_HTTP_CAPTURE" as const };
     const competitorForgedLive = { ...competitorForgedCore, observationDigest: digest(competitorForgedCore) };
     expect(() => analyzeCompetitiveIntelligence(scope, { id: "self", label: "Self", observation: forgedLive }, [{ id: "c", label: "C", observation: competitorForgedLive }])).toThrow(/attest|authority|live/i);
