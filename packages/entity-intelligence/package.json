@@ -3,13 +3,17 @@
   "version": "1.1.0",
   "private": true,
   "type": "module",
+  "bin": {
+    "nexus-competitive-intelligence": "./dist/competitive-intelligence-cli.js"
+  },
   "exports": {
     ".": "./src/index.ts",
-    "./competitive-intelligence": "./src/competitive-intelligence.ts"
+    "./competitive-intelligence": "./src/competitive-intelligence.ts",
+    "./competitive-intelligence-runtime": "./src/competitive-intelligence-runtime.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --root ../.. packages/entity-intelligence/src/index.test.ts packages/entity-intelligence/src/competitive-intelligence.test.ts",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/competitive-intelligence.js && test -f dist/competitive-intelligence.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/competitive-intelligence.js && test -f dist/competitive-intelligence.d.ts && test -f dist/competitive-intelligence-runtime.js && test -f dist/competitive-intelligence-cli.js"
   }
 }
