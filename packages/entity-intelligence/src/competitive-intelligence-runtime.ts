@@ -49,14 +49,14 @@ export async function runCompetitiveIntelligence(
   const ids = [target.id, ...competitors.map((subject) => subject.id)];
   if (new Set(ids).size !== ids.length) throw new Error("runtime subject ids must be unique");
 
-  const targetObservation = await capturePublicPage(target.url, request.observedAt, { timeoutMs: request.timeoutMs, signal });
+  const targetObservation = await capturePublicPage(target.url, request.observedAt, { scope, timeoutMs: request.timeoutMs, signal });
   const competitorObservations = [];
   for (const competitor of competitors) {
     if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error("competitive intelligence cancelled");
     competitorObservations.push({
       id: competitor.id,
       label: competitor.label,
-      observation: await capturePublicPage(competitor.url, request.observedAt, { timeoutMs: request.timeoutMs, signal }),
+      observation: await capturePublicPage(competitor.url, request.observedAt, { scope, timeoutMs: request.timeoutMs, signal }),
     });
   }
 
