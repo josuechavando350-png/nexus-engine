@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
-import { resolve } from "node:path";
+import { isAbsolute, relative, resolve } from "node:path";
 import {
   captureRequestId,
   createCaptureArtifact,
@@ -105,7 +105,8 @@ export class ScreenReaderCaptureAdapter implements BrowserDeviceCapturePort {
       await mkdir(outputDir, { recursive: true });
       const bytes = evidenceBytes(evidence);
       const outputPath = resolve(outputDir, `${requestId}-${reader.toLowerCase()}.screen-reader.json`);
-      if (!outputPath.startsWith(`${outputDir}/`) && outputPath !== outputDir) throw new Error("screen reader evidence path escaped outputDir");
+      const relativePath = relative(outputDir, outputPath);
+      if (!relativePath || relativePath.startsWith("..") || isAbsolute(relativePath)) throw new Error("screen reader evidence path escaped outputDir");
       await writeFile(outputPath, bytes, { flag: "wx" });
       const artifact = createCaptureArtifact({
         runId: request.run.runId,
