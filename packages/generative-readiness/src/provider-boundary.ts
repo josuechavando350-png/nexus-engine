@@ -301,8 +301,10 @@ export class GovernedAdvisoryRuntime {
           this.#record("COMPLETED", input.proposal.proposalDigest, request.requestDigest, outcome.status);
           this.#terminal.set(input.idempotencyKey, outcome);
           return outcome;
-        } catch (error) {
-          const status: AdvisoryExecutionStatus = error instanceof BoundaryStop && error.reason === "TIMEOUT" ? "TIMEOUT" : error instanceof BoundaryStop && error.reason === "CANCELLED" ? "CANCELLED" : "OUTCOME_UNKNOWN";
+        } catch {
+          // Once the executor has been dispatched, transport failure, timeout, or cancellation
+          // cannot prove that the underlying mutation did not commit. Preserve that uncertainty.
+          const status: AdvisoryExecutionStatus = "OUTCOME_UNKNOWN";
           const outcome = Object.freeze({ status, requestDigest: request.requestDigest, evidenceDigest: digestValue({ stage: "EXECUTION", status, requestDigest: request.requestDigest }) });
           this.#record("BOUNDED_STOP", input.proposal.proposalDigest, request.requestDigest, status);
           this.#terminal.set(input.idempotencyKey, outcome);
