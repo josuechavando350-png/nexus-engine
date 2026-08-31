@@ -7,10 +7,10 @@ const bodyDigest = "a".repeat(64);
 const lookup = async () => [{ address:"93.184.216.34", family:4 }];
 
 describe("pricing intelligence", () => {
-  it("captures bounded public-price evidence through controlled transport and marks it synthetic", async () => {
+  it("captures bounded explicit-currency evidence and leaves ambiguous symbols unclaimed", async () => {
     const observation = await capturePublicPricing("https://example.com/pricing", now, { scope, lookup, fetchImpl: async () => new Response("<main>Plan USD 12.50 and $9</main>",{status:200}) });
     expect(observation.authority).toBe("CONTROLLED_TEST");
-    expect(observation.quotes.map((q)=>[q.currency,q.amountMinor])).toEqual([["USD",900],["USD",1250]]);
+    expect(observation.quotes.map((q)=>[q.currency,q.amountMinor])).toEqual([["USD",1250]]);
     const report = analyzePricingIntelligence(scope,"subject",observation);
     expect(report.evidenceState).toBe("SYNTHETIC");
     expect(report.nonClaim).toBe("PUBLIC_PRICE_OBSERVATION_NOT_TRANSACTION_MARKET_PRICE_OR_BUSINESS_OUTCOME");
@@ -31,10 +31,16 @@ describe("pricing intelligence", () => {
     expect(()=>analyzePricingIntelligence(scope,"subject",forgedCore)).toThrow();
   });
 
-  it("enforces timeout/body/quote bounds and cancellation", async () => {
+  it("enforces timeout and quote bounds", async () => {
     await expect(capturePublicPricing("https://example.com/",now,{scope,lookup,timeoutMs:99,fetchImpl:async()=>new Response("ok")})).rejects.toThrow(/timeoutMs/u);
-    const controller = new AbortController(); controller.abort(new Error("cancelled"));
-    await expect(capturePublicPricing("https://example.com/",now,{scope,lookup,signal:controller.signal,fetchImpl:async()=>new Response("ok")})).rejects.toThrow(/cancelled/u);
     expect(()=>createControlledPricingObservation({scope,url:"https://example.com/",finalUrl:"https://example.com/",observedAt:now,quotes:[{amountMinor:-1,currency:"USD",evidence:"bad"}],bodyDigest})).toThrow(/amountMinor/u);
+  });
+
+  it("cancels a stalled streaming body", async () => {
+    const controller = new AbortController();
+    const body = new ReadableStream<Uint8Array>({ start() {} });
+    const pending = capturePublicPricing("https://example.com/",now,{scope,lookup,signal:controller.signal,fetchImpl:async()=>new Response(body,{status:200})});
+    setTimeout(()=>controller.abort(new Error("cancelled")),10);
+    await expect(pending).rejects.toThrow(/cancelled/u);
   });
 });
