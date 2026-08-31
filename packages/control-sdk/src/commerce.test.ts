@@ -8,7 +8,9 @@ import {
   type CommercePrincipal,
 } from "./commerce.js";
 
-const now = "2026-08-31T15:10:00.000Z";
+const preparedAt = "2026-08-31T15:10:00.000Z";
+const approvedAt = "2026-08-31T15:11:00.000Z";
+const executionAt = "2026-08-31T15:12:00.000Z";
 const expiresAt = "2026-08-31T15:20:00.000Z";
 const payloadDigest = "a".repeat(64);
 const scope = { tenantId: "tenant-a", organizationId: "org-a", brandId: "brand-a" } as const;
@@ -25,10 +27,14 @@ function request(overrides: Record<string, unknown> = {}) {
     idempotencyKey: "checkout-1",
     orderRef: "order-1",
     currency: "MXN",
-    amountMinor: 125_00,
+    amountMinor: 12_500,
     payloadDigest,
     ...overrides,
   };
+}
+
+function engine(executor: CommerceExecutor, timeout = 15_000, clock = executionAt) {
+  return new GovernedCommerceEngine(executor, timeout, () => clock);
 }
 
 class RecordingExecutor implements CommerceExecutor {
@@ -48,73 +54,69 @@ class RecordingExecutor implements CommerceExecutor {
 describe("governed agentic commerce", () => {
   it("requires exact human approval before an executor can receive the action", async () => {
     const executor = new RecordingExecutor();
-    const engine = new GovernedCommerceEngine(executor);
-    const tx = engine.prepare(operator, request(), now);
-    await expect(engine.execute(operator, "tenant-a", tx.transactionId, now)).rejects.toMatchObject({ code: "APPROVAL_REQUIRED" });
+    const control = engine(executor);
+    const tx = control.prepare(operator, request(), preparedAt);
+    await expect(control.execute(operator, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "APPROVAL_REQUIRED" });
     expect(executor.requests).toHaveLength(0);
-
-    const approved = engine.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", "2026-08-31T15:11:00.000Z", expiresAt);
-    expect(approved.approval?.actionDigest).toBe(tx.actionDigest);
-    const committed = await engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z");
+    const approved = control.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", approvedAt, expiresAt);
+    const committed = await control.execute(operator, "tenant-a", tx.transactionId);
     expect(committed.state).toBe("COMMITTED");
     expect(executor.requests).toHaveLength(1);
     expect(executor.requests[0]?.approvalDigest).toBe(approved.approval?.approvalDigest);
-    expect(engine.verifyAuditChain("tenant-a")).toBe(true);
+    expect(control.verifyAuditChain("tenant-a")).toBe(true);
   });
 
   it("is idempotent for retries and never executes the same committed action twice", async () => {
     const executor = new RecordingExecutor();
-    const engine = new GovernedCommerceEngine(executor);
-    const first = engine.prepare(operator, request(), now);
-    const retry = engine.prepare(operator, request(), "2026-08-31T15:10:30.000Z");
-    expect(retry).toBe(first);
-    engine.decideApproval(operator, "tenant-a", first.transactionId, "GRANTED", "2026-08-31T15:11:00.000Z", expiresAt);
-    const committed = await engine.execute(operator, "tenant-a", first.transactionId, "2026-08-31T15:12:00.000Z");
-    const secondExecution = await engine.execute(operator, "tenant-a", first.transactionId, "2026-08-31T15:13:00.000Z");
-    expect(secondExecution).toBe(committed);
+    const control = engine(executor);
+    const first = control.prepare(operator, request(), preparedAt);
+    expect(control.prepare(operator, request(), "2026-08-31T15:10:30.000Z")).toBe(first);
+    control.decideApproval(operator, "tenant-a", first.transactionId, "GRANTED", approvedAt, expiresAt);
+    const committed = await control.execute(operator, "tenant-a", first.transactionId);
+    expect(await control.execute(operator, "tenant-a", first.transactionId)).toBe(committed);
     expect(executor.requests).toHaveLength(1);
   });
 
   it("rejects idempotency-key reuse with a different exact action", () => {
-    const engine = new GovernedCommerceEngine(new RecordingExecutor());
-    engine.prepare(operator, request(), now);
-    expect(() => engine.prepare(operator, request({ amountMinor: 200_00 }), now)).toThrowError(CommerceControlError);
+    const control = engine(new RecordingExecutor());
+    control.prepare(operator, request(), preparedAt);
+    expect(() => control.prepare(operator, request({ amountMinor: 20_000 }), preparedAt)).toThrowError(CommerceControlError);
   });
 
   it("fails closed across tenant boundaries without revealing transaction existence", async () => {
     const executor = new RecordingExecutor();
-    const engine = new GovernedCommerceEngine(executor);
-    const tx = engine.prepare(operator, request(), now);
+    const control = engine(executor);
+    const tx = control.prepare(operator, request(), preparedAt);
     const other: CommercePrincipal = { principalId: "operator-b", tenantId: "tenant-b", permissions: ["commerce:prepare", "commerce:approve", "commerce:execute", "commerce:read"] };
-    expect(() => engine.getTransaction(other, "tenant-b", tx.transactionId)).toThrow(/not found/u);
-    await expect(engine.execute(other, "tenant-b", tx.transactionId, now)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(() => control.getTransaction(other, "tenant-b", tx.transactionId)).toThrow(/not found/u);
+    await expect(control.execute(other, "tenant-b", tx.transactionId)).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(executor.requests).toHaveLength(0);
   });
 
-  it("denial is terminal and cannot be bypassed by the execution permission", async () => {
+  it("denial is terminal and cannot be bypassed by execution permission", async () => {
     const executor = new RecordingExecutor();
-    const engine = new GovernedCommerceEngine(executor);
-    const tx = engine.prepare(operator, request(), now);
-    engine.decideApproval(operator, "tenant-a", tx.transactionId, "DENIED", "2026-08-31T15:11:00.000Z", expiresAt);
-    await expect(engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z")).rejects.toMatchObject({ code: "APPROVAL_REQUIRED" });
+    const control = engine(executor);
+    const tx = control.prepare(operator, request(), preparedAt);
+    control.decideApproval(operator, "tenant-a", tx.transactionId, "DENIED", approvedAt, expiresAt);
+    await expect(control.execute(operator, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "APPROVAL_REQUIRED" });
     expect(executor.requests).toHaveLength(0);
   });
 
-  it("rejects expired approval without calling the executor", async () => {
+  it("uses trusted runtime time for approval expiry and cannot be backdated by a caller", async () => {
     const executor = new RecordingExecutor();
-    const engine = new GovernedCommerceEngine(executor);
-    const tx = engine.prepare(operator, request(), now);
-    engine.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", "2026-08-31T15:11:00.000Z", "2026-08-31T15:11:30.000Z");
-    await expect(engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z")).rejects.toMatchObject({ code: "APPROVAL_EXPIRED" });
+    const control = engine(executor, 15_000, executionAt);
+    const tx = control.prepare(operator, request(), preparedAt);
+    control.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", approvedAt, "2026-08-31T15:11:30.000Z");
+    await expect(control.execute(operator, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "APPROVAL_EXPIRED" });
     expect(executor.requests).toHaveLength(0);
   });
 
   it("reports unavailable executor honestly without fabricating provider execution", async () => {
     const executor = new RecordingExecutor({ outcome: "COMMITTED" }, "UNAVAILABLE");
-    const engine = new GovernedCommerceEngine(executor);
-    const tx = engine.prepare(operator, request(), now);
-    engine.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", "2026-08-31T15:11:00.000Z", expiresAt);
-    const result = await engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z");
+    const control = engine(executor);
+    const tx = control.prepare(operator, request(), preparedAt);
+    control.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", approvedAt, expiresAt);
+    const result = await control.execute(operator, "tenant-a", tx.transactionId);
     expect(result.state).toBe("UNAVAILABLE");
     expect(result.failureCode).toBe("EXECUTOR_UNAVAILABLE");
     expect(executor.requests).toHaveLength(0);
@@ -126,11 +128,11 @@ describe("governed agentic commerce", () => {
       availability: () => "AVAILABLE",
       execute: async () => { calls += 1; throw new Error("transport dropped"); },
     };
-    const engine = new GovernedCommerceEngine(executor);
-    const tx = engine.prepare(operator, request(), now);
-    engine.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", "2026-08-31T15:11:00.000Z", expiresAt);
-    await expect(engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z")).rejects.toMatchObject({ code: "OUTCOME_UNKNOWN" });
-    await expect(engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:13:00.000Z")).rejects.toMatchObject({ code: "OUTCOME_UNKNOWN" });
+    const control = engine(executor);
+    const tx = control.prepare(operator, request(), preparedAt);
+    control.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", approvedAt, expiresAt);
+    await expect(control.execute(operator, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "OUTCOME_UNKNOWN" });
+    await expect(control.execute(operator, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "OUTCOME_UNKNOWN" });
     expect(calls).toBe(1);
   });
 
@@ -142,11 +144,11 @@ describe("governed agentic commerce", () => {
       availability: () => "AVAILABLE",
       execute: async () => { calls += 1; await wait; return { outcome: "COMMITTED", externalReference: "provider-order-1" }; },
     };
-    const engine = new GovernedCommerceEngine(executor);
-    const tx = engine.prepare(operator, request(), now);
-    engine.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", "2026-08-31T15:11:00.000Z", expiresAt);
-    const first = engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z");
-    const second = engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z");
+    const control = engine(executor);
+    const tx = control.prepare(operator, request(), preparedAt);
+    control.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", approvedAt, expiresAt);
+    const first = control.execute(operator, "tenant-a", tx.transactionId);
+    const second = control.execute(operator, "tenant-a", tx.transactionId);
     release();
     const [a, b] = await Promise.all([first, second]);
     expect(a.state).toBe("COMMITTED");
@@ -154,30 +156,51 @@ describe("governed agentic commerce", () => {
     expect(calls).toBe(1);
   });
 
-  it("turns timeout/cancellation after dispatch into OUTCOME_UNKNOWN instead of retrying", async () => {
+  it("enforces a hard timeout even when an executor ignores AbortSignal", async () => {
+    let calls = 0;
     const executor: CommerceExecutor = {
       availability: () => "AVAILABLE",
-      execute: (_input, signal) => new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true })),
+      execute: async () => { calls += 1; return await new Promise(() => {}); },
     };
-    const engine = new GovernedCommerceEngine(executor, 5);
-    const tx = engine.prepare(operator, request(), now);
-    engine.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", "2026-08-31T15:11:00.000Z", expiresAt);
-    await expect(engine.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z")).rejects.toMatchObject({ code: "OUTCOME_UNKNOWN" });
+    const control = engine(executor, 5);
+    const tx = control.prepare(operator, request(), preparedAt);
+    control.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", approvedAt, expiresAt);
+    await expect(control.execute(operator, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "OUTCOME_UNKNOWN" });
+    expect(calls).toBe(1);
   });
 
-  it("runtime consumer routes preparation, approval and execution through the same governed engine", async () => {
+  it("treats cancellation after dispatch as OUTCOME_UNKNOWN and blocks replay", async () => {
+    let calls = 0;
+    const executor: CommerceExecutor = {
+      availability: () => "AVAILABLE",
+      execute: async () => { calls += 1; return await new Promise(() => {}); },
+    };
+    const control = engine(executor, 5_000);
+    const tx = control.prepare(operator, request(), preparedAt);
+    control.decideApproval(operator, "tenant-a", tx.transactionId, "GRANTED", approvedAt, expiresAt);
+    const controller = new AbortController();
+    const execution = control.execute(operator, "tenant-a", tx.transactionId, controller.signal);
+    await Promise.resolve();
+    controller.abort(new Error("operator cancelled"));
+    await expect(execution).rejects.toMatchObject({ code: "OUTCOME_UNKNOWN" });
+    await expect(control.execute(operator, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "OUTCOME_UNKNOWN" });
+    expect(calls).toBe(1);
+  });
+
+  it("runtime consumer routes preparation, approval and execution through one governed engine", async () => {
     const executor = new RecordingExecutor();
-    const runtime = new GovernedCommerceRuntime(new GovernedCommerceEngine(executor));
-    const tx = runtime.prepare(operator, request(), now);
-    runtime.approve(operator, "tenant-a", tx.transactionId, "2026-08-31T15:11:00.000Z", expiresAt);
-    const committed = await runtime.execute(operator, "tenant-a", tx.transactionId, "2026-08-31T15:12:00.000Z");
-    expect(committed.state).toBe("COMMITTED");
+    const runtime = new GovernedCommerceRuntime(engine(executor));
+    const tx = runtime.prepare(operator, request(), preparedAt);
+    runtime.approve(operator, "tenant-a", tx.transactionId, approvedAt, expiresAt);
+    expect((await runtime.execute(operator, "tenant-a", tx.transactionId)).state).toBe("COMMITTED");
     expect(executor.requests).toHaveLength(1);
   });
 
-  it("rejects unknown request fields and invalid bounded monetary input", () => {
-    const engine = new GovernedCommerceEngine(new RecordingExecutor());
-    expect(() => engine.prepare(operator, request({ execute: true }) as never, now)).toThrow(/unknown commerce request field/u);
-    expect(() => engine.prepare(operator, request({ amountMinor: Number.MAX_SAFE_INTEGER }) as never, now)).toThrow(/amountMinor/u);
+  it("rejects request and principal field smuggling plus unbounded monetary input", () => {
+    const control = engine(new RecordingExecutor());
+    expect(() => control.prepare(operator, request({ execute: true }) as never, preparedAt)).toThrow(/unknown commerce request field/u);
+    expect(() => control.prepare(operator, request({ amountMinor: Number.MAX_SAFE_INTEGER }) as never, preparedAt)).toThrow(/amountMinor/u);
+    const smuggled = { ...operator, admin: true } as never;
+    expect(() => control.prepare(smuggled, request(), preparedAt)).toThrow(/unknown commerce principal field/u);
   });
 });
