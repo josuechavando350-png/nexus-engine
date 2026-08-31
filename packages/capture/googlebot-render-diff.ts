@@ -23,6 +23,7 @@ export interface GooglebotRenderSnapshot {
   htmlDigest: string | null;
   textDigest: string | null;
   screenshotDigest: string | null;
+  apiPayloadDigest: string | null;
   metadata?: Readonly<Record<string, string>>;
   reason?: string;
 }
@@ -34,17 +35,23 @@ export interface GooglebotRenderDiffRequest {
   candidate: GooglebotRenderSnapshot;
 }
 
+export type GooglebotDigestComparison = "MATCH" | "DIFFERENT" | "UNASSESSED";
+
 export interface GooglebotRenderDiffResult {
   scope: MeasurementScope;
   expectedUrl: string;
   baseline: GooglebotRenderSnapshot;
   candidate: GooglebotRenderSnapshot;
   comparisons: Readonly<{
-    html: "MATCH" | "DIFFERENT" | "UNASSESSED";
-    text: "MATCH" | "DIFFERENT" | "UNASSESSED";
-    screenshot: "MATCH" | "DIFFERENT" | "UNASSESSED";
+    html: GooglebotDigestComparison;
+    text: GooglebotDigestComparison;
+    screenshot: GooglebotDigestComparison;
+    apiPayload: GooglebotDigestComparison;
   }>;
-  externallyVerified: boolean;
+  verification: Readonly<{
+    googleApiObserved: boolean;
+    googleLiveRenderVerified: false;
+  }>;
   resultDigest: string;
 }
 
@@ -79,8 +86,12 @@ function canonicalize(value: unknown, seen = new WeakSet<object>()): unknown {
   throw new Error(`canonical JSON rejects ${typeof value}`);
 }
 
-function digest(value: unknown): string {
-  return `sha256:${createHash("sha256").update(JSON.stringify(canonicalize(value))).digest("hex")}`;
+export function canonicalGooglebotJson(value: unknown): string {
+  return JSON.stringify(canonicalize(value));
+}
+
+export function googlebotEvidenceDigest(value: unknown): string {
+  return `sha256:${createHash("sha256").update(canonicalGooglebotJson(value)).digest("hex")}`;
 }
 
 function safeText(value: string, field: string, max = MAX_TEXT): string {
@@ -95,7 +106,7 @@ function safeText(value: string, field: string, max = MAX_TEXT): string {
   return trimmed;
 }
 
-function canonicalUrl(value: string): string {
+export function canonicalGooglebotUrl(value: string): string {
   const safe = safeText(value, "url", MAX_URL);
   let parsed: URL;
   try {
@@ -106,10 +117,11 @@ function canonicalUrl(value: string): string {
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("url must use HTTP(S)");
   if (parsed.username || parsed.password) throw new Error("credential-bearing URLs are forbidden");
   parsed.hash = "";
+  if (parsed.toString().length > MAX_URL) throw new Error(`normalized url exceeds ${MAX_URL} characters`);
   return parsed.toString();
 }
 
-function canonicalTimestamp(value: string): string {
+export function canonicalGooglebotTimestamp(value: string): string {
   const safe = safeText(value, "observedAt", 64);
   const parsed = new Date(safe);
   if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== safe) throw new Error("observedAt must be canonical ISO-8601 UTC");
@@ -136,31 +148,50 @@ function normalizeMetadata(metadata: Readonly<Record<string, string>> | undefine
 }
 
 function assertStatusSourceBinding(source: GooglebotEvidenceSource, status: GooglebotEvidenceStatus): void {
-  if (status === "SIMULATED_RENDER" && source !== "SIMULATED_BROWSER") throw new Error("SIMULATED_RENDER requires SIMULATED_BROWSER evidence");
-  if (status === "OBSERVED_FETCH" && source !== "OBSERVED_HTTP_FETCH") throw new Error("OBSERVED_FETCH requires OBSERVED_HTTP_FETCH evidence");
-  if (status === "GOOGLE_API_OBSERVED" && source !== "GOOGLE_SEARCH_CONSOLE_API") throw new Error("GOOGLE_API_OBSERVED requires GOOGLE_SEARCH_CONSOLE_API evidence");
-  if (source === "SIMULATED_BROWSER" && status === "GOOGLE_API_OBSERVED") throw new Error("simulated evidence cannot claim Google API observation");
+  const allowed = source === "SIMULATED_BROWSER"
+    ? new Set<GooglebotEvidenceStatus>(["SIMULATED_RENDER", "UNAVAILABLE", "NOT_VERIFIED"])
+    : source === "OBSERVED_HTTP_FETCH"
+      ? new Set<GooglebotEvidenceStatus>(["OBSERVED_FETCH", "UNAVAILABLE", "NOT_VERIFIED"])
+      : new Set<GooglebotEvidenceStatus>(["GOOGLE_API_OBSERVED", "UNAVAILABLE", "NOT_VERIFIED"]);
+  if (!allowed.has(status)) throw new Error(`${status} cannot be emitted by ${source}`);
 }
 
 export function normalizeGooglebotRenderSnapshot(input: GooglebotRenderSnapshot): GooglebotRenderSnapshot {
   assertStatusSourceBinding(input.source, input.status);
-  const url = canonicalUrl(input.url);
-  const observedAt = canonicalTimestamp(input.observedAt);
+  const url = canonicalGooglebotUrl(input.url);
+  const observedAt = canonicalGooglebotTimestamp(input.observedAt);
   const userAgent = safeText(input.userAgent, "userAgent", 1_024);
   const toolVersion = safeText(input.toolVersion, "toolVersion", 256);
   const htmlDigest = normalizedDigest(input.htmlDigest, "htmlDigest");
   const textDigest = normalizedDigest(input.textDigest, "textDigest");
   const screenshotDigest = normalizedDigest(input.screenshotDigest, "screenshotDigest");
+  const apiPayloadDigest = normalizedDigest(input.apiPayloadDigest, "apiPayloadDigest");
   const reason = input.reason === undefined ? undefined : safeText(input.reason, "reason", 1_024);
   const metadata = normalizeMetadata(input.metadata);
 
   const unavailable = input.status === "UNAVAILABLE" || input.status === "NOT_VERIFIED";
-  if (unavailable && (htmlDigest !== null || textDigest !== null || screenshotDigest !== null)) {
-    throw new Error(`${input.status} evidence cannot contain observed artifact digests`);
+  if (unavailable) {
+    if (htmlDigest !== null || textDigest !== null || screenshotDigest !== null || apiPayloadDigest !== null) {
+      throw new Error(`${input.status} evidence cannot contain observed artifact digests`);
+    }
+    if (reason === undefined) throw new Error(`${input.status} evidence requires a reason`);
   }
-  if (unavailable && reason === undefined) throw new Error(`${input.status} evidence requires a reason`);
-  if (!unavailable && htmlDigest === null && textDigest === null && screenshotDigest === null) {
-    throw new Error(`${input.status} evidence requires at least one artifact digest`);
+
+  if (input.status === "SIMULATED_RENDER") {
+    if (apiPayloadDigest !== null) throw new Error("SIMULATED_RENDER cannot contain Google API payload evidence");
+    if (htmlDigest === null && textDigest === null && screenshotDigest === null) throw new Error("SIMULATED_RENDER requires render artifact evidence");
+  }
+
+  if (input.status === "OBSERVED_FETCH") {
+    if (htmlDigest === null) throw new Error("OBSERVED_FETCH requires an HTTP response body digest");
+    if (screenshotDigest !== null || apiPayloadDigest !== null) throw new Error("OBSERVED_FETCH cannot contain screenshot or Google API payload evidence");
+  }
+
+  if (input.status === "GOOGLE_API_OBSERVED") {
+    if (apiPayloadDigest === null) throw new Error("GOOGLE_API_OBSERVED requires the Search Console API payload digest");
+    if (htmlDigest !== null || textDigest !== null || screenshotDigest !== null) {
+      throw new Error("GOOGLE_API_OBSERVED cannot be represented as rendered HTML, text, or screenshot evidence");
+    }
   }
 
   return Object.freeze({
@@ -173,6 +204,7 @@ export function normalizeGooglebotRenderSnapshot(input: GooglebotRenderSnapshot)
     htmlDigest,
     textDigest,
     screenshotDigest,
+    apiPayloadDigest,
     ...(metadata === undefined ? {} : { metadata }),
     ...(reason === undefined ? {} : { reason }),
   });
@@ -184,14 +216,14 @@ function assertScope(scope: MeasurementScope): MeasurementScope {
   return Object.freeze({ tenantId, brandId });
 }
 
-function compareDigest(left: string | null, right: string | null): "MATCH" | "DIFFERENT" | "UNASSESSED" {
+function compareDigest(left: string | null, right: string | null): GooglebotDigestComparison {
   if (left === null || right === null) return "UNASSESSED";
   return left === right ? "MATCH" : "DIFFERENT";
 }
 
 export function diffGooglebotRenderEvidence(request: GooglebotRenderDiffRequest): GooglebotRenderDiffResult {
   const scope = assertScope(request.scope);
-  const expectedUrl = canonicalUrl(request.expectedUrl);
+  const expectedUrl = canonicalGooglebotUrl(request.expectedUrl);
   const baseline = normalizeGooglebotRenderSnapshot(request.baseline);
   const candidate = normalizeGooglebotRenderSnapshot(request.candidate);
   if (baseline.url !== expectedUrl || candidate.url !== expectedUrl) throw new Error("render evidence URL does not match expectedUrl");
@@ -200,10 +232,16 @@ export function diffGooglebotRenderEvidence(request: GooglebotRenderDiffRequest)
     html: compareDigest(baseline.htmlDigest, candidate.htmlDigest),
     text: compareDigest(baseline.textDigest, candidate.textDigest),
     screenshot: compareDigest(baseline.screenshotDigest, candidate.screenshotDigest),
+    apiPayload: compareDigest(baseline.apiPayloadDigest, candidate.apiPayloadDigest),
   });
-  const externallyVerified = baseline.status === "GOOGLE_API_OBSERVED" || candidate.status === "GOOGLE_API_OBSERVED";
-  const core = Object.freeze({ scope, expectedUrl, baseline, candidate, comparisons, externallyVerified });
-  return Object.freeze({ ...core, resultDigest: digest(core) });
+  const verification = Object.freeze({
+    googleApiObserved: baseline.status === "GOOGLE_API_OBSERVED" || candidate.status === "GOOGLE_API_OBSERVED",
+    // The public URL Inspection API reports the indexed version's inspection status. It does not provide
+    // a live rendered DOM or screenshot, so this model must never upgrade render parity to Google-verified.
+    googleLiveRenderVerified: false as const,
+  });
+  const core = Object.freeze({ scope, expectedUrl, baseline, candidate, comparisons, verification });
+  return Object.freeze({ ...core, resultDigest: googlebotEvidenceDigest(core) });
 }
 
 export function validateGooglebotRenderDiffResult(result: GooglebotRenderDiffResult): void {
@@ -214,6 +252,6 @@ export function validateGooglebotRenderDiffResult(result: GooglebotRenderDiffRes
     candidate: result.candidate,
   });
   if (replay.resultDigest !== result.resultDigest) throw new Error("googlebot render diff replay mismatch");
-  if (digest(replay.comparisons) !== digest(result.comparisons)) throw new Error("googlebot render comparison replay mismatch");
-  if (replay.externallyVerified !== result.externallyVerified) throw new Error("googlebot external verification replay mismatch");
+  if (googlebotEvidenceDigest(replay.comparisons) !== googlebotEvidenceDigest(result.comparisons)) throw new Error("googlebot render comparison replay mismatch");
+  if (googlebotEvidenceDigest(replay.verification) !== googlebotEvidenceDigest(result.verification)) throw new Error("googlebot verification replay mismatch");
 }
