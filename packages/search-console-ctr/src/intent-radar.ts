@@ -1,4 +1,4 @@
-import { canonicalJson, digestValue, type SearchAnalyticsDataset } from "./index";
+import { canonicalJson, digestValue, validateDataset, validateLiveDataset, type SearchAnalyticsDataset } from "./index";
 
 export interface IntentRadarScope {
   readonly tenantId: string;
@@ -25,10 +25,7 @@ export interface IntentRadarLimits {
   readonly maxQueryLength: number;
 }
 
-export type IntentRadarEvidenceState =
-  | "OBSERVED_SEARCH_CONSOLE"
-  | "SYNTHETIC"
-  | "NOT_ENOUGH_EVIDENCE";
+export type IntentRadarEvidenceState = "OBSERVED_SEARCH_CONSOLE" | "SYNTHETIC" | "NOT_ENOUGH_EVIDENCE";
 
 export interface IntentSignal {
   readonly query: string;
@@ -58,62 +55,41 @@ export interface IntentRadarReport {
   readonly reportDigest: string;
 }
 
-const DEFAULT_LIMITS: IntentRadarLimits = Object.freeze({
-  maxRowsPerDataset: 25_000,
-  maxRules: 128,
-  maxSignals: 500,
-  maxQueryLength: 500,
-});
+const DEFAULT_LIMITS: IntentRadarLimits = Object.freeze({ maxRowsPerDataset: 25_000, maxRules: 128, maxSignals: 500, maxQueryLength: 500 });
 
 function clean(value: string): string {
   return value.normalize("NFKC").replace(/\s+/g, " ").trim();
 }
 
 function tokens(value: string): Set<string> {
-  return new Set(
-    clean(value)
-      .toLocaleLowerCase("en-US")
-      .normalize("NFKD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-z0-9]+/g, " ")
-      .split(/\s+/)
-      .filter(Boolean),
-  );
+  return new Set(clean(value).toLocaleLowerCase("en-US").normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").split(/\s+/).filter(Boolean));
 }
 
 function sameScope(left: IntentRadarScope, right: IntentRadarScope): boolean {
-  return left.tenantId === right.tenantId
-    && left.organizationId === right.organizationId
-    && left.brandId === right.brandId;
+  return left.tenantId === right.tenantId && left.organizationId === right.organizationId && left.brandId === right.brandId;
 }
 
 function validateScope(scope: IntentRadarScope): void {
   for (const [label, value] of Object.entries(scope)) {
-    if (typeof value !== "string" || clean(value).length < 1 || clean(value).length > 128) {
-      throw new Error(`scope.${label} must be a non-empty string up to 128 characters`);
-    }
+    if (typeof value !== "string" || clean(value).length < 1 || clean(value).length > 128) throw new Error(`scope.${label} must be a non-empty string up to 128 characters`);
   }
 }
 
 function validateLimits(limits: IntentRadarLimits): void {
-  const ceilings: Record<keyof IntentRadarLimits, number> = {
-    maxRowsPerDataset: 25_000,
-    maxRules: 512,
-    maxSignals: 5_000,
-    maxQueryLength: 2_000,
-  };
+  const ceilings: Record<keyof IntentRadarLimits, number> = { maxRowsPerDataset: 25_000, maxRules: 512, maxSignals: 5_000, maxQueryLength: 2_000 };
   for (const key of Object.keys(ceilings) as Array<keyof IntentRadarLimits>) {
     const value = limits[key];
-    if (!Number.isInteger(value) || value < 1 || value > ceilings[key]) {
-      throw new Error(`${key} must be an integer from 1 to ${ceilings[key]}`);
-    }
+    if (!Number.isInteger(value) || value < 1 || value > ceilings[key]) throw new Error(`${key} must be an integer from 1 to ${ceilings[key]}`);
   }
 }
 
+function validateEvidence(dataset: SearchAnalyticsDataset): void {
+  validateDataset(dataset);
+  if (dataset.sourceAuthority === "SEARCH_CONSOLE_API") validateLiveDataset(dataset);
+}
+
 function queryDimensionIndex(dataset: SearchAnalyticsDataset): number {
-  const indices = dataset.request.dimensions
-    .map((dimension, index) => dimension === "query" ? index : -1)
-    .filter((index) => index >= 0);
+  const indices = dataset.request.dimensions.map((dimension, index) => dimension === "query" ? index : -1).filter((index) => index >= 0);
   if (indices.length !== 1) throw new Error("Intent Radar requires exactly one query dimension");
   return indices[0]!;
 }
@@ -135,10 +111,7 @@ function validateRules(rules: readonly IntentRule[], limits: IntentRadarLimits):
   }).sort((a, b) => a.id.localeCompare(b.id, "en")));
 }
 
-interface AggregatedQuery {
-  impressions: number;
-  clicks: number;
-}
+interface AggregatedQuery { impressions: number; clicks: number }
 
 function aggregate(dataset: SearchAnalyticsDataset, limits: IntentRadarLimits): ReadonlyMap<string, AggregatedQuery> {
   if (dataset.rows.length > limits.maxRowsPerDataset) throw new Error("Intent Radar dataset row budget exceeded");
@@ -151,19 +124,22 @@ function aggregate(dataset: SearchAnalyticsDataset, limits: IntentRadarLimits): 
     const previous = output.get(query) ?? { impressions: 0, clicks: 0 };
     previous.impressions += row.impressions;
     previous.clicks += row.clicks;
-    if (!Number.isSafeInteger(previous.impressions) || !Number.isSafeInteger(previous.clicks)) {
-      throw new Error("aggregated search metrics exceed safe integer range");
-    }
+    if (!Number.isSafeInteger(previous.impressions) || !Number.isSafeInteger(previous.clicks)) throw new Error("aggregated search metrics exceed safe integer range");
     output.set(query, previous);
   }
   return output;
 }
 
+function phraseMatches(queryTokens: Set<string>, phrase: string): boolean {
+  const parts = [...tokens(phrase)];
+  return parts.length > 0 && parts.every((part) => queryTokens.has(part));
+}
+
 function classify(query: string, rules: readonly IntentRule[]): readonly string[] {
   const queryTokens = tokens(query);
   return Object.freeze(rules.filter((rule) => {
-    const any = rule.anyTokens.length === 0 || rule.anyTokens.some((token) => queryTokens.has(tokens(token).values().next().value ?? ""));
-    const all = (rule.allTokens ?? []).every((token) => [...tokens(token)].every((part) => queryTokens.has(part)));
+    const any = rule.anyTokens.length === 0 || rule.anyTokens.some((phrase) => phraseMatches(queryTokens, phrase));
+    const all = (rule.allTokens ?? []).every((phrase) => phraseMatches(queryTokens, phrase));
     return any && all;
   }).map((rule) => rule.id));
 }
@@ -178,16 +154,13 @@ function signalDigest(value: Omit<IntentSignal, "digest">): string {
   return `intent-signal:sha256:${digestValue(value)}`;
 }
 
-export function analyzeIntentRadar(
-  current: ScopedSearchDataset,
-  baseline: ScopedSearchDataset,
-  rules: readonly IntentRule[],
-  limits: IntentRadarLimits = DEFAULT_LIMITS,
-): IntentRadarReport {
+export function analyzeIntentRadar(current: ScopedSearchDataset, baseline: ScopedSearchDataset, rules: readonly IntentRule[], limits: IntentRadarLimits = DEFAULT_LIMITS): IntentRadarReport {
   validateScope(current.scope);
   validateScope(baseline.scope);
   if (!sameScope(current.scope, baseline.scope)) throw new Error("cross-tenant/scope Intent Radar analysis is forbidden");
   validateLimits(limits);
+  validateEvidence(current.dataset);
+  validateEvidence(baseline.dataset);
   if (current.dataset.request.siteUrl !== baseline.dataset.request.siteUrl) throw new Error("Intent Radar datasets must target the same Search Console property");
   if (baseline.dataset.request.endDate >= current.dataset.request.startDate) throw new Error("baseline window must end before current window starts");
   const normalizedRules = validateRules(rules, limits);
@@ -210,24 +183,11 @@ export function analyzeIntentRadar(
     const clickGrowth = clickDelta > 0 ? Math.log1p(clickDelta) * 0.5 : 0;
     const score = growth + clickGrowth + noveltyBoost;
     if (score <= 0) continue;
-    const unsigned = {
-      query,
-      intentIds,
-      currentImpressions: currentMetrics.impressions,
-      baselineImpressions: baselineMetrics.impressions,
-      currentClicks: currentMetrics.clicks,
-      baselineClicks: baselineMetrics.clicks,
-      impressionDelta,
-      clickDelta,
-      relativeImpressionDelta,
-      score,
-    };
+    const unsigned = { query, intentIds, currentImpressions: currentMetrics.impressions, baselineImpressions: baselineMetrics.impressions, currentClicks: currentMetrics.clicks, baselineClicks: baselineMetrics.clicks, impressionDelta, clickDelta, relativeImpressionDelta, score };
     built.push(Object.freeze({ ...unsigned, digest: signalDigest(unsigned) }));
   }
 
-  const signals = Object.freeze(built
-    .sort((a, b) => b.score - a.score || b.currentImpressions - a.currentImpressions || a.query.localeCompare(b.query, "en"))
-    .slice(0, limits.maxSignals));
+  const signals = Object.freeze(built.sort((a, b) => b.score - a.score || b.currentImpressions - a.currentImpressions || a.query.localeCompare(b.query, "en")).slice(0, limits.maxSignals));
   const core = {
     formatVersion: "nexus-intent-radar-v1" as const,
     scope: Object.freeze({ ...current.scope }),
@@ -243,16 +203,9 @@ export function analyzeIntentRadar(
   return Object.freeze({ ...core, reportDigest: `intent-radar:sha256:${digestValue(core)}` });
 }
 
-export function verifyIntentRadar(
-  current: ScopedSearchDataset,
-  baseline: ScopedSearchDataset,
-  rules: readonly IntentRule[],
-  report: IntentRadarReport,
-  limits: IntentRadarLimits = DEFAULT_LIMITS,
-): boolean {
+export function verifyIntentRadar(current: ScopedSearchDataset, baseline: ScopedSearchDataset, rules: readonly IntentRule[], report: IntentRadarReport, limits: IntentRadarLimits = DEFAULT_LIMITS): boolean {
   try {
-    const replay = analyzeIntentRadar(current, baseline, rules, limits);
-    return canonicalJson(replay) === canonicalJson(report);
+    return canonicalJson(analyzeIntentRadar(current, baseline, rules, limits)) === canonicalJson(report);
   } catch {
     return false;
   }
