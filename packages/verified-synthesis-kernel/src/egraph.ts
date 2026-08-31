@@ -43,7 +43,6 @@ function validateExpression(expression: IrExpression, variables: ReadonlySet<str
     if (!variables.has(expression.name)) throw new Error(`unknown synthesis variable: ${expression.name}`);
     return;
   }
-  if (!["add", "sub", "mul", "min", "max"].includes(expression.kind)) throw new Error("unsupported IR expression kind");
   if (keys.length !== 3 || !keys.includes("kind") || !keys.includes("left") || !keys.includes("right")) throw new Error("binary expression contains unknown fields");
   validateExpression(expression.left, variables, depth + 1, counter);
   validateExpression(expression.right, variables, depth + 1, counter);
@@ -113,20 +112,23 @@ export function evaluateExpression(expression: IrExpression, candidate: Candidat
       if (!Number.isSafeInteger(value)) throw new Error(`candidate is missing safe integer ${expression.name}`);
       return value;
     }
-    default: {
-      const left = evaluateExpression(expression.left, candidate);
-      const right = evaluateExpression(expression.right, candidate);
-      let value: number;
-      switch (expression.kind) {
-        case "add": value = left + right; break;
-        case "sub": value = left - right; break;
-        case "mul": value = left * right; break;
-        case "min": value = Math.min(left, right); break;
-        case "max": value = Math.max(left, right); break;
-      }
+    case "add": {
+      const value = evaluateExpression(expression.left, candidate) + evaluateExpression(expression.right, candidate);
       if (!Number.isSafeInteger(value)) throw new Error("IR evaluation exceeded safe integer range");
       return value;
     }
+    case "sub": {
+      const value = evaluateExpression(expression.left, candidate) - evaluateExpression(expression.right, candidate);
+      if (!Number.isSafeInteger(value)) throw new Error("IR evaluation exceeded safe integer range");
+      return value;
+    }
+    case "mul": {
+      const value = evaluateExpression(expression.left, candidate) * evaluateExpression(expression.right, candidate);
+      if (!Number.isSafeInteger(value)) throw new Error("IR evaluation exceeded safe integer range");
+      return value;
+    }
+    case "min": return Math.min(evaluateExpression(expression.left, candidate), evaluateExpression(expression.right, candidate));
+    case "max": return Math.max(evaluateExpression(expression.left, candidate), evaluateExpression(expression.right, candidate));
   }
 }
 
@@ -163,16 +165,9 @@ function immediateRewrites(expression: IrExpression): readonly IrExpression[] {
   if (kind === "mul" && key(left) === key(one())) output.push(right);
   if (kind === "mul" && (key(left) === key(zero()) || key(right) === key(zero()))) output.push(zero());
   if ((kind === "min" || kind === "max") && key(left) === key(right)) output.push(left);
-  if (left.kind === "const" && right.kind === "const") {
-    const folded = evaluateExpression(expression, {});
-    output.push({ kind: "const", value: folded });
-  }
-  if ((kind === "add" || kind === "mul") && left.kind === kind) {
-    output.push(binary(kind, left.left, binary(kind, left.right, right)));
-  }
-  if ((kind === "add" || kind === "mul") && right.kind === kind) {
-    output.push(binary(kind, binary(kind, left, right.left), right.right));
-  }
+  if (left.kind === "const" && right.kind === "const") output.push({ kind: "const", value: evaluateExpression(expression, {}) });
+  if ((kind === "add" || kind === "mul") && left.kind === kind) output.push(binary(kind, left.left, binary(kind, left.right, right)));
+  if ((kind === "add" || kind === "mul") && right.kind === kind) output.push(binary(kind, binary(kind, left, right.left), right.right));
   return output;
 }
 
@@ -192,25 +187,17 @@ export function saturateExpression(expression: IrExpression, budgets: Pick<Synth
   for (; iterations < budgets.maxEGraphIterations && frontier.length > 0; iterations += 1) {
     const next: IrExpression[] = [];
     for (const current of frontier) {
-      const children = current.kind === "const" || current.kind === "var" ? [] : [current.left, current.right];
-      const childVariants = children.flatMap((child) => immediateRewrites(child));
       const variants = [...immediateRewrites(current)];
       if (current.kind !== "const" && current.kind !== "var") {
-        for (const replacement of childVariants) {
-          if (key(replacement) !== key(current.left)) variants.push(binary(current.kind, replacement, current.right));
-          if (key(replacement) !== key(current.right)) variants.push(binary(current.kind, current.left, replacement));
-        }
+        for (const replacement of immediateRewrites(current.left)) variants.push(binary(current.kind, replacement, current.right));
+        for (const replacement of immediateRewrites(current.right)) variants.push(binary(current.kind, current.left, replacement));
       }
       for (const variant of variants) {
         const variantKey = key(variant);
-        if (!seen.has(variantKey)) {
-          if (seen.size >= budgets.maxEGraphNodes) {
-            frontier = [];
-            break;
-          }
-          seen.set(variantKey, variant);
-          next.push(variant);
-        }
+        if (seen.has(variantKey)) continue;
+        if (seen.size >= budgets.maxEGraphNodes) { frontier = []; break; }
+        seen.set(variantKey, variant);
+        next.push(variant);
       }
       if (seen.size >= budgets.maxEGraphNodes) break;
     }
@@ -223,9 +210,10 @@ export function saturateExpression(expression: IrExpression, budgets: Pick<Synth
 
 export function normalizeConstraints(problem: SynthesisProblem, constraints: readonly IrConstraint[]): readonly IrConstraint[] {
   validateProblem(problem);
-  if (constraints.length > 512) throw new Error("combined constraint set exceeds supported bound");
+  if (!Array.isArray(constraints) || constraints.length > 512) throw new Error("combined constraint set exceeds supported bound");
   const ids = new Set<string>();
   const normalized = constraints.map((constraint) => {
+    validateProblem({ ...problem, constraints: [constraint] });
     if (ids.has(constraint.id)) throw new Error(`duplicate combined constraint id: ${constraint.id}`);
     ids.add(constraint.id);
     return Object.freeze({
