@@ -21,3 +21,5 @@ node scripts/audit-passive-bot-defense.mjs --input /path/to/trusted-edge-signal.
 ```
 
 For signed edge evidence, provide `--envelope`, `--secret-env`, `--method`, and `--path`. Missing runtime input or secrets return `UNAVAILABLE`; absence of edge infrastructure is never converted into PASS.
+
+The workspace lockfile intentionally carries this package importer so hermetic builds remain side-effect-free and exact-SHA validation can fail closed on any tracked mutation.
