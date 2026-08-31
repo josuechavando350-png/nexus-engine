@@ -548,16 +548,16 @@ function htmlAttribute(value: string): string {
 
 export function serializeResourceHintTags(result: Pick<SpeculativeDeliveryResult, "resourceHints">): string {
   return result.resourceHints.map((hint) => {
-    const attributes = [`rel=\"${hint.rel}\"`, `href=\"${htmlAttribute(hint.href)}\"`];
-    if (hint.as) attributes.push(`as=\"${hint.as}\"`);
-    if (hint.crossorigin) attributes.push(`crossorigin=\"${hint.crossorigin}\"`);
+    const attributes = [`rel="${hint.rel}"`, `href="${htmlAttribute(hint.href)}"`];
+    if (hint.as) attributes.push(`as="${hint.as}"`);
+    if (hint.crossorigin) attributes.push(`crossorigin="${hint.crossorigin}"`);
     return `<link ${attributes.join(" ")}>`;
   }).join("\n");
 }
 
 export function serializeSpeculationRulesScript(result: Pick<SpeculativeDeliveryResult, "speculationRules">): string {
   const json = canonicalSpeculationJson(result.speculationRules).replaceAll("<", "\\u003c").replaceAll(">", "\\u003e");
-  return `<script type=\"speculationrules\">${json}</script>`;
+  return `<script type="speculationrules">${json}</script>`;
 }
 
 export function browserCapabilityDetectionSnippet(): string {
