@@ -104,7 +104,7 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
       } catch (rollbackCause) {
         const primary = cause instanceof Error ? cause.message : String(cause);
         const rollback = rollbackCause instanceof Error ? rollbackCause.message : String(rollbackCause);
-        throw new Error(`PROJECT_CREATION_ROLLBACK_FAILED: ${primary}; rollback: ${rollback}`, { cause: new AggregateError([cause, rollbackCause]) });
+        throw new Error(`PROJECT_CREATION_ROLLBACK_FAILED: ${primary}; rollback: ${rollback}`, { cause: rollbackCause });
       }
     }
     throw cause;
