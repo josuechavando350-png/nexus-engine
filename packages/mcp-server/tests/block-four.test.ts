@@ -1,10 +1,11 @@
 import { execFile } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
+import { createProject } from "../src/project-new.js";
 import { nexusProjectNew, type ToolDependencies } from "../src/tools.js";
 
 const exec = promisify(execFile);
@@ -52,6 +53,31 @@ describe("block four project creation", () => {
     expect(lockfile).toContain(`  apps/${spec.slug}:\n`);
     await expect(exec(process.execPath, ["scripts/scaffold-client.mjs", spec.slug, "--project-spec", input], { cwd: root })).rejects.toThrow(/target already exists/);
   });
+
+  it("rolls back branch, files and lockfile when creation fails after scaffold publication", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nexus-project-rollback-")); roots.push(root);
+    await cp(join(repositoryRoot, "apps/_experience-seed"), join(root, "apps/_experience-seed"), { recursive: true, filter: (source) => !source.includes("/.next/") && !source.includes("/node_modules/") });
+    await mkdir(join(root, "scripts"), { recursive: true });
+    await cp(join(repositoryRoot, "scripts/scaffold-client.mjs"), join(root, "scripts/scaffold-client.mjs"));
+    await cp(join(repositoryRoot, "scripts/project-spec-contract.mjs"), join(root, "scripts/project-spec-contract.mjs"));
+    await cp(join(repositoryRoot, "pnpm-lock.yaml"), join(root, "pnpm-lock.yaml"));
+    await exec("git", ["init", "-b", "work"], { cwd: root });
+    await exec("git", ["config", "user.email", "nexus-test@example.com"], { cwd: root });
+    await exec("git", ["config", "user.name", "NEXUS Test"], { cwd: root });
+    await exec("git", ["add", "."], { cwd: root });
+    await exec("git", ["commit", "-m", "fixture"], { cwd: root });
+    const baseSha = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+    const originalLockfile = await readFile(join(root, "pnpm-lock.yaml"), "utf8");
+
+    await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/DEPENDENCY_UNAVAILABLE/);
+
+    expect((await exec("git", ["branch", "--show-current"], { cwd: root })).stdout.trim()).toBe("work");
+    expect((await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim()).toBe(baseSha);
+    expect((await exec("git", ["status", "--porcelain"], { cwd: root })).stdout.trim()).toBe("");
+    expect((await exec("git", ["branch", "--list", `nexus-mcp/${spec.slug}`], { cwd: root })).stdout.trim()).toBe("");
+    await expect(stat(join(root, `apps/${spec.slug}`))).rejects.toThrow();
+    expect(await readFile(join(root, "pnpm-lock.yaml"), "utf8")).toBe(originalLockfile);
+  }, 20_000);
 
   it("rejects collisions before invoking creation and leaves existing projects untouched", async () => {
     let invoked = false;
