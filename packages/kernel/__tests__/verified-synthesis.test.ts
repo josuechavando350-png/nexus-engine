@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   SmtLibAdapter,
+  SyGuSAdapter,
   digest,
   equalitySaturate,
   evaluate,
@@ -25,16 +26,17 @@ const addZero: TypedProgram = {
 };
 
 describe("Motor #6 verified synthesis kernel", () => {
-  it("validates typed IR, evaluates deterministically, and saturates equalities", () => {
+  it("validates typed IR, evaluates deterministically, and saturates an equality class", () => {
     validateProgram(addZero);
     expect(evaluate(addZero, { x: 7 })).toBe(7);
     const saturation = equalitySaturate(addZero.expression);
     expect(saturation.status).toBe("SATURATED");
     expect(saturation.canonical).toEqual({ kind: "var", name: "x", valueType: "NUMBER" });
+    expect(saturation.explored).toBeGreaterThan(0);
     expect(saturation.digest).toMatch(/^[a-f0-9]{64}$/u);
   });
 
-  it("runs bounded CEGIS with browser/runtime counterexamples and emits tamper-verifiable proof", async () => {
+  it("runs bounded CEGIS with browser counterexamples and emits tamper-verifiable proof", async () => {
     let calls = 0;
     const oracle: CounterexampleOracle = {
       kind: "BROWSER",
@@ -53,34 +55,39 @@ describe("Motor #6 verified synthesis kernel", () => {
     expect(result.program?.programId).toBe("candidate.good");
     expect(result.counterexamples).toHaveLength(1);
     expect(calls).toBe(2);
+    expect(result.proof.tenantId).toBe("tenant-a");
+    expect(result.proof.scopeId).toBe("scope-a");
     verifySynthesisProof(result);
     expect(() => verifySynthesisProof({ ...result, examples: [{ inputs: { x: 999 }, expected: 999 }] })).toThrow(/linkage/u);
     expect(result.events.every((event) => Object.keys(event).sort().join(",") === "index,type")).toBe(true);
   });
 
-  it("fails closed on cross-tenant candidates and invalid/unbounded IR", async () => {
+  it("fails closed on cross-tenant candidates, forged oracle authority, and invalid bounds", async () => {
     await expect(synthesizeVerified({ tenantId: "tenant-b", scopeId: "scope-a", candidates: [addZero], examples: [] })).rejects.toThrow(/Cross-tenant/u);
-    const deep = { ...addZero, expression: addZero.expression };
-    expect(() => validateProgram({ ...deep, outputType: "BOOLEAN" })).toThrow(/output type/u);
+    expect(() => validateProgram({ ...addZero, outputType: "BOOLEAN" })).toThrow(/output type/u);
     await expect(synthesizeVerified({ tenantId: "tenant-a", scopeId: "scope-a", candidates: Array.from({ length: 129 }, () => addZero), examples: [] })).rejects.toThrow(/Candidate count/u);
+    const forged: CounterexampleOracle = { kind: "RUNTIME", async findCounterexample() { return { inputs: { x: 1 }, expected: 1, source: "BROWSER", sourceDigest: digest("forged") }; } };
+    await expect(synthesizeVerified({ tenantId: "tenant-a", scopeId: "scope-a", candidates: [addZero], examples: [], oracles: [forged] })).rejects.toThrow(/source/u);
   });
 
-  it("reports absent native SMT tooling honestly instead of fabricating solver success", async () => {
-    const solver = new SmtLibAdapter("nexus-definitely-missing-z3");
-    const result = await synthesizeVerified({
-      tenantId: "tenant-a",
-      scopeId: "scope-a",
-      candidates: [addZero],
-      examples: [{ inputs: { x: 1 }, expected: 1 }],
-      solvers: [{ adapter: solver, input: "(set-logic QF_LIA)\n(check-sat)\n" }],
-      budget: { timeoutMs: 500 },
-    });
-    expect(result.status).toBe("UNAVAILABLE");
-    expect(result.solverResults[0]?.status).toBe("UNAVAILABLE");
-    verifySynthesisProof(result);
+  it("reports absent SMT and SyGuS tooling honestly instead of fabricating solver success", async () => {
+    for (const adapter of [new SmtLibAdapter("nexus-definitely-missing-z3"), new SyGuSAdapter("nexus-definitely-missing-cvc5")]) {
+      const result = await synthesizeVerified({
+        tenantId: "tenant-a",
+        scopeId: "scope-a",
+        candidates: [addZero],
+        examples: [{ inputs: { x: 1 }, expected: 1 }],
+        solvers: [{ adapter, input: adapter.kind === "SMT" ? "(set-logic QF_LIA)\n(check-sat)\n" : "(set-logic LIA)\n(check-synth)\n" }],
+        budget: { timeoutMs: 500 },
+      });
+      expect(result.status).toBe("UNAVAILABLE");
+      expect(result.solverResults[0]?.status).toBe("UNAVAILABLE");
+      expect(result.proof.stopReason).toBe("SOLVER_UNAVAILABLE");
+      verifySynthesisProof(result);
+    }
   });
 
-  it("honors cancellation without treating a bounded stop as verified", async () => {
+  it("honors cancellation and never upgrades an aborted oracle run to VERIFIED", async () => {
     const controller = new AbortController();
     const oracle: CounterexampleOracle = {
       kind: "RUNTIME",
@@ -91,7 +98,9 @@ describe("Motor #6 verified synthesis kernel", () => {
       },
     };
     const result = await synthesizeVerified({ tenantId: "tenant-a", scopeId: "scope-a", candidates: [addZero], examples: [], oracles: [oracle], signal: controller.signal });
-    expect(["NOT_VERIFIED", "VERIFIED"]).toContain(result.status);
-    if (controller.signal.aborted) expect(result.events.some((event) => event.type === "BOUNDED_STOP") || result.status === "VERIFIED").toBe(true);
+    expect(result.status).toBe("NOT_VERIFIED");
+    expect(result.proof.stopReason).toBe("CANCELLED");
+    expect(result.program).toBeNull();
+    verifySynthesisProof(result);
   });
 });
