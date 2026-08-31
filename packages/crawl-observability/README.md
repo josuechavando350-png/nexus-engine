@@ -20,4 +20,4 @@ node scripts/audit-crawl-observability.mjs \
 
 Each NDJSON line must contain only the normalized observation fields accepted by `parseObservationJsonLine()`. The package validates bounds, same-origin scope, observation windows, HTTP status semantics, optional redirect semantics, replay digests and the final assessment digest.
 
-The analyzer surfaces observed search-bot 4xx/5xx responses, long redirect paths/loops, slow responses, robots-attribution conflicts and insufficient search-bot evidence. It fails closed on malformed or tampered evidence.
+The analyzer surfaces observed search-bot 4xx/5xx responses, long redirect paths/loops, slow responses, robots-attribution conflicts and insufficient search-bot evidence. It fails closed on malformed or tampered evidence. Observed error-severity conditions take precedence over low sample volume, and detected redirect loops are classified as blocking errors rather than being downgraded to chain-length warnings.
