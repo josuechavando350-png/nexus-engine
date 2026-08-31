@@ -119,15 +119,16 @@ describe("provider-neutral advisory boundary", () => {
     await expect(rt.execute({ proposal: changed, approval: approval(changed), idempotencyKey: "idem", now })).rejects.toThrow(/idempotency key conflict/u);
   });
 
-  it("reports post-dispatch transport/partial failures honestly and supports cancellation", async () => {
+  it("reports post-dispatch transport/partial/timeout/cancellation failures as outcome unknown", async () => {
     const item = proposal();
     expect((await runtime(governance(), executor(async () => { throw new Error("transport after dispatch"); })).execute({ proposal: item, approval: approval(item), idempotencyKey: "transport", now })).status).toBe("OUTCOME_UNKNOWN");
     expect((await runtime(governance(), executor(async (request) => ({ status: "COMMITTED", requestDigest: digestValue(request.requestDigest), evidenceDigest: digestValue("bad") }))).execute({ proposal: item, approval: approval(item), idempotencyKey: "partial", now })).status).toBe("OUTCOME_UNKNOWN");
+    expect((await runtime(governance(), executor(async (request, signal) => { await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })); return { status: "CANCELLED", requestDigest: request.requestDigest, evidenceDigest: digestValue("late") }; })).execute({ proposal: item, approval: approval(item), idempotencyKey: "timeout-after-dispatch", now })).status).toBe("OUTCOME_UNKNOWN");
     const controller = new AbortController();
     const rt = runtime(governance(), executor(async (request, signal) => { await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })); return { status: "CANCELLED", requestDigest: request.requestDigest, evidenceDigest: digestValue("cancel") }; }));
     const pending = rt.execute({ proposal: item, approval: approval(item), idempotencyKey: "cancel", now, signal: controller.signal });
     setTimeout(() => controller.abort(), 0);
-    expect((await pending).status).toBe("CANCELLED");
+    expect((await pending).status).toBe("OUTCOME_UNKNOWN");
   });
 
   it("keeps source adapters read-only and rejects provider impersonation", async () => {
