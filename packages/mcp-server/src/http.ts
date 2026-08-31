@@ -95,7 +95,7 @@ export function createNexusHttpApp(options: HttpServerOptions) {
     } catch (cause) {
       if (!response.headersSent) {
         if (cause instanceof ConcurrencyLimitError) response.status(429).json({ jsonrpc: "2.0", error: { code: -32002, message: cause.message }, id: request.body?.id ?? null });
-        else response.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: cause instanceof Error ? cause.message : "Internal server error" }, id: request.body?.id ?? null });
+        else response.status(500).json({ jsonrpc: "2.0", error: { code: -32603, message: "Internal server error" }, id: request.body?.id ?? null });
       }
     }
   });
