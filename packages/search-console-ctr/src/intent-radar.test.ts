@@ -52,9 +52,15 @@ describe("Intent Radar", () => {
     const tamperedReport = structuredClone(report);
     (tamperedReport.signals[0] as { score: number }).score = 999;
     expect(verifyIntentRadar({ scope, dataset: current }, { scope, dataset: baseline }, rules, tamperedReport)).toBe(false);
-    const tamperedDataset = structuredClone(current);
-    (tamperedDataset.rows[0] as { impressions: number }).impressions = 500;
-    expect(() => analyzeIntentRadar({ scope, dataset: tamperedDataset }, { scope, dataset: baseline }, rules)).toThrow(/replay mismatch/);
+
+    const internallyInvalidDataset = structuredClone(current);
+    (internallyInvalidDataset.rows[0] as { impressions: number }).impressions = 500;
+    expect(() => analyzeIntentRadar({ scope, dataset: internallyInvalidDataset }, { scope, dataset: baseline }, rules)).toThrow(/ctr is inconsistent/);
+
+    const staleProvenanceDataset = structuredClone(current);
+    (staleProvenanceDataset.rows[0] as { impressions: number; ctr: number }).impressions = 500;
+    (staleProvenanceDataset.rows[0] as { impressions: number; ctr: number }).ctr = 0.01;
+    expect(() => analyzeIntentRadar({ scope, dataset: staleProvenanceDataset }, { scope, dataset: baseline }, rules)).toThrow(/replay mismatch/);
   });
 
   it("reports NOT_ENOUGH_EVIDENCE when no query demand grows", () => {
