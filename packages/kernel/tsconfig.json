@@ -4,5 +4,5 @@
     "composite": true,
     "types": ["node", "vitest"]
   },
-  "include": ["index.ts", "__tests__/**/*.ts"]
+  "include": ["index.ts", "verified-synthesis.ts", "__tests__/**/*.ts"]
 }

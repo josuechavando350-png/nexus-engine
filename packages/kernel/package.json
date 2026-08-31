@@ -1,13 +1,14 @@
 {
   "name": "@nexus/kernel",
-  "version": "7.0.0",
+  "version": "7.1.0",
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./index.ts"
+    ".": "./index.ts",
+    "./verified-synthesis": "./verified-synthesis.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/kernel/index.js && test -f dist/kernel/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/kernel/index.js && test -f dist/kernel/index.d.ts && test -f dist/kernel/verified-synthesis.js && test -f dist/kernel/verified-synthesis.d.ts"
   }
 }
