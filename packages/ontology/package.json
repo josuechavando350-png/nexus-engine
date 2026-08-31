@@ -13,6 +13,8 @@
     "./ai-boundary": "./ai-boundary.ts",
     "./persistence-query": "./persistence-query.ts",
     "./observability-dr": "./observability-dr.ts",
+    "./semantic-graph": "./semantic-graph.ts",
+    "./semantic-graph-runtime": "./semantic-graph-runtime.ts",
     "./chatbot-knowledge": "./chatbot-knowledge.ts",
     "./chatbot-guardrails": "./chatbot-guardrails.ts",
     "./chatbot-memory": "./chatbot-memory.ts",
@@ -21,6 +23,6 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/semantic-graph.js && test -f dist/semantic-graph-runtime.js"
   }
 }
