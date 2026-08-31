@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-import { readFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { createMemoryCms, defineCmsSchema, parseCmsDocument } from '../lib/cms-lite.mjs';
 
 const run = (command, args) => {
@@ -20,15 +21,41 @@ if (cms.get('home')?.data.title !== 'NEXUS' || cms.list().length !== 1) throw ne
 
 const probeName = `third-party-proof-${process.pid}`;
 const probePath = join(process.cwd(), 'apps', probeName);
+const temporary = mkdtempSync(join(tmpdir(), 'nexus-third-party-proof-'));
+const specPath = join(temporary, 'project-spec.json');
+const lockfilePath = join(process.cwd(), 'pnpm-lock.yaml');
+const originalLockfile = readFileSync(lockfilePath, 'utf8');
+const spec = {
+  schemaVersion: 1,
+  slug: probeName,
+  business: { name: 'NEXUS Third-Party Proof', industry: 'Verification fixture', location: 'Local clean room', contact: { email: 'proof@example.com' }, confirmedServices: [{ name: 'Verification' }] },
+  artDirection: {
+    palette: [{ hex: '#111111', role: 'surface', rationale: 'Neutral proof surface' }, { hex: '#F4EFE4', role: 'accent', rationale: 'Readable proof accent' }],
+    typography: { display: 'Editorial serif', body: 'Humanist sans', rationale: 'Exercise bounded typography mapping' },
+    heroComposition: { direction: 'Asymmetric split', rationale: 'Exercise compiled composition' },
+    sectionRhythm: { direction: 'Measured', rationale: 'Exercise compiled rhythm' },
+    motion: { direction: 'Short reveals', reducedMotionBehavior: 'No transforms', rationale: 'Exercise reduced-motion contract' },
+    prohibitions: ['No invented claims'],
+  },
+};
+writeFileSync(specPath, `${JSON.stringify(spec, null, 2)}\n`);
 rmSync(probePath, { recursive: true, force: true });
 try {
-  run(process.execPath, ['scripts/scaffold-client.mjs', probeName]);
+  run(process.execPath, ['scripts/scaffold-client.mjs', probeName, '--project-spec', specPath]);
   const manifest = JSON.parse(readFileSync(join(probePath, '.nexus/scaffold-manifest.json'), 'utf8'));
-  if (manifest.authority !== 'NEXUS_SCAFFOLD_V1' || manifest.client !== probeName || !manifest.files.length) throw new Error('scaffold manifest invalid');
+  const compiled = JSON.parse(readFileSync(join(probePath, '.nexus/compiled-project.json'), 'utf8'));
+  const page = readFileSync(join(probePath, 'src/app/page.tsx'), 'utf8');
+  const updatedLockfile = readFileSync(lockfilePath, 'utf8');
+  if (manifest.authority !== 'NEXUS_SCAFFOLD_V2' || manifest.client !== probeName || !manifest.files.length) throw new Error('scaffold manifest invalid');
+  if (compiled.authority !== 'NEXUS_PROJECT_SPEC_COMPILER_V1' || compiled.specDigest !== manifest.projectSpecDigest) throw new Error('compiled project evidence invalid');
+  if (/\[\s*(?:Marca|Título|Acción|Contenido|Pie|Enlace)/u.test(page)) throw new Error('compiled client still contains seed placeholders');
+  if (!updatedLockfile.includes(`  apps/${probeName}:\n`)) throw new Error('scaffold did not bind the client into the workspace lockfile');
 } finally {
   rmSync(probePath, { recursive: true, force: true });
+  writeFileSync(lockfilePath, originalLockfile);
+  rmSync(temporary, { recursive: true, force: true });
 }
 
 run(process.execPath, ['scripts/verify-declared-assets.mjs']);
 console.log('THIRD_PARTY_PROOF_PASS');
-console.log('PASSPORT_SIGNATURE_PROOF_PENDING_KEY_MODEL_DECISION');
+console.log('PASSPORT_SIGNATURE_STATE_NOT_VERIFIED');
