@@ -8,11 +8,12 @@
     "./types": "./src/types.ts",
     "./artifact": "./src/artifact.ts",
     "./anchor": "./src/anchor.ts",
-    "./proof": "./src/proof.ts"
+    "./proof": "./src/proof.ts",
+    "./zk-consent": "./src/zk-consent.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/proof-carrying-experience/src/__tests__/proof-carrying-experience.test.ts packages/proof-carrying-experience/src/__tests__/proof-carrying-experience.audit.test.ts",
+    "test": "vitest run --root ../.. packages/proof-carrying-experience/src/__tests__/proof-carrying-experience.test.ts packages/proof-carrying-experience/src/__tests__/proof-carrying-experience.audit.test.ts packages/proof-carrying-experience/src/__tests__/zk-consent.test.ts",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
   },
   "dependencies": {
