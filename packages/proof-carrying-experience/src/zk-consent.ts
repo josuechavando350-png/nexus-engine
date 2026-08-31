@@ -77,8 +77,16 @@ function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+function containsControlCharacter(value: string): boolean {
+  for (const character of value) {
+    const code = character.codePointAt(0);
+    if (code !== undefined && (code < 32 || code === 127)) return true;
+  }
+  return false;
+}
+
 function assertIdentifier(label: string, value: string, max = 256): void {
-  if (value.length < 1 || value.length > max || /[\u0000-\u001f\u007f]/u.test(value)) throw new Error(`${label} is invalid`);
+  if (value.length < 1 || value.length > max || containsControlCharacter(value)) throw new Error(`${label} is invalid`);
 }
 
 function assertDigest(label: string, value: string): void {
