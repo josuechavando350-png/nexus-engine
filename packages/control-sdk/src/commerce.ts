@@ -138,7 +138,11 @@ function identifier(value: string, field: string, max = 200): string {
 
 function boundedAuditText(value: unknown, fallback: string, max = 500): string {
   if (typeof value !== "string") return fallback;
-  return value.normalize("NFKC").replace(/[\u0000-\u001f\u007f]/gu, " ").trim().slice(0, max) || fallback;
+  const sanitized = [...value.normalize("NFKC")].map((character) => {
+    const code = character.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f ? " " : character;
+  }).join("");
+  return sanitized.trim().slice(0, max) || fallback;
 }
 
 function boundedAuditIdentifier(value: unknown, fallback: string): string {
@@ -146,6 +150,14 @@ function boundedAuditIdentifier(value: unknown, fallback: string): string {
     return identifier(typeof value === "string" ? value : fallback, "audit identifier");
   } catch {
     return fallback;
+  }
+}
+
+function boundedAuditTenant(value: unknown): string | undefined {
+  try {
+    return identifier(typeof value === "string" ? value : "", "audit tenant");
+  } catch {
+    return undefined;
   }
 }
 
@@ -272,7 +284,7 @@ export class GovernedCommerceEngine {
     }
     const actionCore = { scope: request.scope, action: request.action, orderRef: request.orderRef, currency: request.currency, amountMinor: request.amountMinor, payloadDigest: request.payloadDigest };
     const actionDigest = digest(actionCore);
-    const idempotencyScope = `${request.scope.tenantId}\u0000${request.scope.organizationId}\u0000${request.scope.brandId}\u0000${request.idempotencyKey}`;
+    const idempotencyScope = `${request.scope.tenantId}\u0000${request.idempotencyKey}`;
     const existing = this.#idempotency.get(idempotencyScope);
     if (existing) {
       if (existing.actionDigest !== actionDigest) throw new CommerceControlError("IDEMPOTENCY_CONFLICT", "idempotency key was already used for a different commerce action");
@@ -374,8 +386,8 @@ export class GovernedCommerceEngine {
     if (new Date(current.approval.expiresAt).getTime() <= new Date(now).getTime()) throw new CommerceControlError("APPROVAL_EXPIRED", "commerce approval expired before execution");
     if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error("commerce execution cancelled");
 
-    let availability: "AVAILABLE" | "UNAVAILABLE" = "UNAVAILABLE";
-    let replaySafety: CommerceExecutorReplaySafety = "NOT_VERIFIED";
+    let availability: "AVAILABLE" | "UNAVAILABLE";
+    let replaySafety: CommerceExecutorReplaySafety;
     try {
       availability = this.executor.availability();
       replaySafety = this.executor.replaySafety();
@@ -451,8 +463,10 @@ export class GovernedCommerceEngine {
     return transaction;
   }
 
-  private auditDenied(principal: CommercePrincipal, tenantId: string, now: string, detail: string, transactionId?: string): void {
-    this.audit(boundedAuditIdentifier(principal?.principalId, "UNKNOWN"), tenantId, now, "AUTHORIZATION_DENIED", boundedAuditText(detail, "authorization denied"), transactionId);
+  private auditDenied(principal: CommercePrincipal, _targetTenantId: string, now: string, detail: string, transactionId?: string): void {
+    const auditTenantId = boundedAuditTenant(principal?.tenantId);
+    if (!auditTenantId) return;
+    this.audit(boundedAuditIdentifier(principal?.principalId, "UNKNOWN"), auditTenantId, now, "AUTHORIZATION_DENIED", boundedAuditText(detail, "authorization denied"), transactionId);
   }
 
   private audit(principalId: string, tenantId: string, occurredAt: string, action: CommerceAuditEvent["action"], detail: string, transactionId?: string): void {
