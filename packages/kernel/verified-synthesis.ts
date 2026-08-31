@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 
 export type Scalar = number | boolean;
 export type ValueType = "NUMBER" | "BOOLEAN";
@@ -90,6 +90,7 @@ export interface SynthesisProof {
   readonly equalityDigest: string;
   readonly solverDigests: readonly string[];
   readonly outcome: "VERIFIED" | "NOT_VERIFIED" | "UNAVAILABLE";
+  readonly stopReason: "VERIFIED" | "EXHAUSTED" | "CANCELLED" | "TIMEOUT" | "SOLVER_UNAVAILABLE";
   readonly proofDigest: string;
 }
 
@@ -104,13 +105,7 @@ export interface SynthesisResult {
   readonly events: readonly ({ readonly type: "CANDIDATE_TESTED" | "COUNTEREXAMPLE_ADDED" | "SOLVER_INVOKED" | "VERIFIED" | "BOUNDED_STOP"; readonly index: number })[];
 }
 
-const DEFAULT_BUDGET: SynthesisBudget = Object.freeze({
-  maxCandidates: 128,
-  maxIterations: 32,
-  maxExpressionNodes: 256,
-  maxExamples: 128,
-  timeoutMs: 5_000,
-});
+const DEFAULT_BUDGET: SynthesisBudget = Object.freeze({ maxCandidates: 128, maxIterations: 32, maxExpressionNodes: 256, maxExamples: 128, timeoutMs: 5_000 });
 
 function stable(value: unknown): string {
   if (value === null || typeof value !== "object") return JSON.stringify(value);
@@ -127,18 +122,19 @@ function assertId(name: string, value: string): void {
   if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(value)) throw new Error(`${name} is invalid`);
 }
 
-function typeOfExpr(expr: Expr, seen = { count: 0 }, maxNodes = DEFAULT_BUDGET.maxExpressionNodes): ValueType {
+function typeOfExpr(expr: Expr, seen: { count: number }, maxNodes: number): ValueType {
   seen.count += 1;
   if (seen.count > maxNodes) throw new Error("Expression node budget exceeded");
   switch (expr.kind) {
-    case "const": return typeof expr.value === "number" ? "NUMBER" : "BOOLEAN";
+    case "const":
+      if (typeof expr.value === "number" && !Number.isFinite(expr.value)) throw new Error("Numeric constants must be finite");
+      return typeof expr.value === "number" ? "NUMBER" : "BOOLEAN";
     case "var": assertId("variable name", expr.name); return expr.valueType;
     case "add": case "sub": case "mul":
       if (typeOfExpr(expr.left, seen, maxNodes) !== "NUMBER" || typeOfExpr(expr.right, seen, maxNodes) !== "NUMBER") throw new Error(`${expr.kind} requires NUMBER operands`);
       return "NUMBER";
     case "eq": {
-      const left = typeOfExpr(expr.left, seen, maxNodes);
-      const right = typeOfExpr(expr.right, seen, maxNodes);
+      const left = typeOfExpr(expr.left, seen, maxNodes); const right = typeOfExpr(expr.right, seen, maxNodes);
       if (left !== right) throw new Error("eq operands must have the same type");
       return "BOOLEAN";
     }
@@ -153,19 +149,16 @@ function typeOfExpr(expr: Expr, seen = { count: 0 }, maxNodes = DEFAULT_BUDGET.m
       return "BOOLEAN";
     case "ite": {
       if (typeOfExpr(expr.condition, seen, maxNodes) !== "BOOLEAN") throw new Error("ite condition must be BOOLEAN");
-      const a = typeOfExpr(expr.whenTrue, seen, maxNodes);
-      const b = typeOfExpr(expr.whenFalse, seen, maxNodes);
-      if (a !== b) throw new Error("ite branches must have same type");
-      return a;
+      const whenTrue = typeOfExpr(expr.whenTrue, seen, maxNodes); const whenFalse = typeOfExpr(expr.whenFalse, seen, maxNodes);
+      if (whenTrue !== whenFalse) throw new Error("ite branches must have same type");
+      return whenTrue;
     }
   }
 }
 
 export function validateProgram(program: TypedProgram, maxNodes = DEFAULT_BUDGET.maxExpressionNodes): void {
   if (program.version !== 1) throw new Error("Unsupported program version");
-  assertId("programId", program.programId);
-  assertId("tenantId", program.tenantId);
-  assertId("scopeId", program.scopeId);
+  assertId("programId", program.programId); assertId("tenantId", program.tenantId); assertId("scopeId", program.scopeId);
   if (typeOfExpr(program.expression, { count: 0 }, maxNodes) !== program.outputType) throw new Error("Program output type mismatch");
 }
 
@@ -173,8 +166,7 @@ export function evaluate(program: TypedProgram, inputs: Readonly<Record<string, 
   validateProgram(program, maxNodes);
   let count = 0;
   const visit = (expr: Expr): Scalar => {
-    count += 1;
-    if (count > maxNodes) throw new Error("Evaluation node budget exceeded");
+    count += 1; if (count > maxNodes) throw new Error("Evaluation node budget exceeded");
     switch (expr.kind) {
       case "const": return expr.value;
       case "var": {
@@ -210,46 +202,40 @@ function normalize(expr: Expr): Expr {
       return { kind: "not", value };
     }
     case "ite": {
-      const condition = normalize(expr.condition);
-      const whenTrue = normalize(expr.whenTrue);
-      const whenFalse = normalize(expr.whenFalse);
+      const condition = normalize(expr.condition); const whenTrue = normalize(expr.whenTrue); const whenFalse = normalize(expr.whenFalse);
       if (condition.kind === "const" && typeof condition.value === "boolean") return condition.value ? whenTrue : whenFalse;
       if (digest(whenTrue) === digest(whenFalse)) return whenTrue;
       return { kind: "ite", condition, whenTrue, whenFalse };
     }
     default: {
-      let left = normalize(expr.left);
-      let right = normalize(expr.right);
+      let left = normalize(expr.left); let right = normalize(expr.right);
       if (["add", "mul", "eq", "and", "or"].includes(expr.kind) && digest(left) > digest(right)) [left, right] = [right, left];
       if (expr.kind === "add" && right.kind === "const" && right.value === 0) return left;
       if (expr.kind === "mul" && right.kind === "const" && right.value === 1) return left;
       if (expr.kind === "mul" && right.kind === "const" && right.value === 0) return right;
       if (left.kind === "const" && right.kind === "const") {
-        const p: TypedProgram = { version: 1, programId: "fold", tenantId: "fold", scopeId: "fold", outputType: ["add", "sub", "mul"].includes(expr.kind) ? "NUMBER" : "BOOLEAN", expression: { ...expr, left, right } as Expr };
-        return { kind: "const", value: evaluate(p, {}) };
+        const outputType: ValueType = ["add", "sub", "mul"].includes(expr.kind) ? "NUMBER" : "BOOLEAN";
+        const folded: TypedProgram = { version: 1, programId: "fold", tenantId: "fold", scopeId: "fold", outputType, expression: { ...expr, left, right } as Expr };
+        return { kind: "const", value: evaluate(folded, {}) };
       }
       return { ...expr, left, right } as Expr;
     }
   }
 }
 
-export function equalitySaturate(expression: Expr, budget: Pick<SynthesisBudget, "maxIterations" | "maxExpressionNodes"> = DEFAULT_BUDGET): EqualitySaturationResult {
-  let current = expression;
-  let previous = "";
-  let iterations = 0;
-  const explored = new Set<string>();
-  while (iterations < budget.maxIterations) {
-    typeOfExpr(current, { count: 0 }, budget.maxExpressionNodes);
-    const currentDigest = digest(current);
-    explored.add(currentDigest);
-    if (currentDigest === previous) break;
-    previous = currentDigest;
-    current = normalize(current);
+export function equalitySaturate(expression: Expr, limits: Pick<SynthesisBudget, "maxIterations" | "maxExpressionNodes"> = DEFAULT_BUDGET): EqualitySaturationResult {
+  const eclass = new Map<string, Expr>();
+  let current = expression; let iterations = 0; let saturated = false;
+  while (iterations < limits.maxIterations) {
+    typeOfExpr(current, { count: 0 }, limits.maxExpressionNodes);
+    const before = digest(current); eclass.set(before, current);
+    const rewritten = normalize(current); const after = digest(rewritten); eclass.set(after, rewritten);
     iterations += 1;
+    current = rewritten;
+    if (before === after) { saturated = true; break; }
   }
-  const finalDigest = digest(current);
-  explored.add(finalDigest);
-  return Object.freeze({ canonical: current, explored: explored.size, iterations, status: iterations >= budget.maxIterations && finalDigest !== previous ? "BOUNDED" : "SATURATED", digest: digest({ finalDigest, explored: [...explored].sort(), iterations }) });
+  const canonical = [...eclass.values()].sort((a, b) => stable(a).localeCompare(stable(b)))[0] ?? current;
+  return Object.freeze({ canonical, explored: eclass.size, iterations, status: saturated ? "SATURATED" : "BOUNDED", digest: digest({ canonical, members: [...eclass.keys()].sort(), iterations, saturated }) });
 }
 
 export class ProcessSolverAdapter implements SolverAdapter {
@@ -264,23 +250,25 @@ export class ProcessSolverAdapter implements SolverAdapter {
     if (!request.input || Buffer.byteLength(request.input) > 256_000) throw new Error("Solver input is empty or too large");
     const requestDigest = digest({ tenantId: request.tenantId, scopeId: request.scopeId, kind: request.kind, input: request.input });
     return await new Promise<SolverResult>((resolve) => {
-      let stdout = ""; let stderr = ""; let settled = false; let status: SolverStatus = "ERROR";
-      const finish = (solverStatus: SolverStatus): void => {
-        if (settled) return; settled = true; status = solverStatus; clearTimeout(timer); signal?.removeEventListener("abort", onAbort);
+      let stdout = ""; let stderr = ""; let settled = false; let child: ChildProcessWithoutNullStreams | null = null; let timer: NodeJS.Timeout | undefined;
+      const onAbort = (): void => { child?.kill("SIGKILL"); finish("CANCELLED"); };
+      const finish = (status: SolverStatus): void => {
+        if (settled) return; settled = true;
+        if (timer) clearTimeout(timer); signal?.removeEventListener("abort", onAbort);
         const clippedOut = stdout.slice(0, 256_000); const clippedErr = stderr.slice(0, 32_000);
         resolve(Object.freeze({ kind: this.kind, status, stdout: clippedOut, stderr: clippedErr, solver: this.executable, requestDigest, resultDigest: digest({ kind: this.kind, status, stdout: clippedOut, stderr: clippedErr, solver: this.executable, requestDigest }) }));
       };
-      let child;
-      try { child = spawn(this.executable, [...this.args], { stdio: ["pipe", "pipe", "pipe"], shell: false }); } catch { finish("UNAVAILABLE"); return; }
-      const timer = setTimeout(() => { child.kill("SIGKILL"); finish("TIMEOUT"); }, request.timeoutMs);
-      const onAbort = (): void => { child.kill("SIGKILL"); finish("CANCELLED"); };
+      if (signal?.aborted) { finish("CANCELLED"); return; }
+      try { child = spawn(this.executable, [...this.args], { stdio: ["pipe", "pipe", "pipe"], shell: false }); }
+      catch (error) { stderr = error instanceof Error ? error.message : "spawn failed"; finish("UNAVAILABLE"); return; }
+      timer = setTimeout(() => { child?.kill("SIGKILL"); finish("TIMEOUT"); }, request.timeoutMs);
       signal?.addEventListener("abort", onAbort, { once: true });
       child.on("error", (error: NodeJS.ErrnoException) => { stderr += error.message; finish(error.code === "ENOENT" ? "UNAVAILABLE" : "ERROR"); });
       child.stdout.on("data", (chunk: Buffer) => { if (stdout.length < 256_000) stdout += chunk.toString("utf8"); });
       child.stderr.on("data", (chunk: Buffer) => { if (stderr.length < 32_000) stderr += chunk.toString("utf8"); });
       child.on("close", (code) => {
         if (settled) return;
-        if (code !== 0) return finish("ERROR");
+        if (code !== 0) { finish("ERROR"); return; }
         const first = stdout.trim().split(/\s+/u)[0]?.toLowerCase();
         finish(first === "sat" ? "SAT" : first === "unsat" ? "UNSAT" : "UNKNOWN");
       });
@@ -292,7 +280,7 @@ export class ProcessSolverAdapter implements SolverAdapter {
 export class SmtLibAdapter extends ProcessSolverAdapter { public constructor(executable = "z3") { super("SMT", executable, ["-in", "-smt2"]); } }
 export class SyGuSAdapter extends ProcessSolverAdapter { public constructor(executable = "cvc5") { super("SYGUS", executable, ["--lang=sygus2"]); } }
 
-function budget(input?: Partial<SynthesisBudget>): SynthesisBudget {
+function resolveBudget(input?: Partial<SynthesisBudget>): SynthesisBudget {
   const value = { ...DEFAULT_BUDGET, ...input };
   for (const [key, raw] of Object.entries(value)) if (!Number.isInteger(raw) || raw <= 0) throw new Error(`Invalid budget ${key}`);
   if (value.maxCandidates > 10_000 || value.maxIterations > 1_000 || value.maxExpressionNodes > 10_000 || value.maxExamples > 10_000 || value.timeoutMs > 60_000) throw new Error("Synthesis budget exceeds hard limit");
@@ -306,19 +294,20 @@ function validateExample(example: Example, outputType: ValueType): void {
   for (const [name, value] of Object.entries(example.inputs)) { assertId("input name", name); if (typeof value === "number" && !Number.isFinite(value)) throw new Error(`Input ${name} must be finite`); }
 }
 
-export async function synthesizeVerified(input: {
-  readonly tenantId: string; readonly scopeId: string; readonly candidates: readonly TypedProgram[]; readonly examples: readonly Example[];
-  readonly oracles?: readonly CounterexampleOracle[]; readonly solvers?: readonly { readonly adapter: SolverAdapter; readonly input: string }[];
-  readonly budget?: Partial<SynthesisBudget>; readonly signal?: AbortSignal;
-}): Promise<SynthesisResult> {
+function finalize(input: { readonly tenantId: string; readonly scopeId: string; readonly status: SynthesisResult["status"]; readonly stopReason: SynthesisProof["stopReason"]; readonly program: TypedProgram | null; readonly examples: readonly Example[]; readonly counterexamples: readonly Counterexample[]; readonly solverResults: readonly SolverResult[]; readonly equality: EqualitySaturationResult | null; readonly events: SynthesisResult["events"] }): SynthesisResult {
+  const base = { authority: "NEXUS_VERIFIED_SYNTHESIS_V1" as const, tenantId: input.tenantId, scopeId: input.scopeId, programDigest: digest(input.program), examplesDigest: digest(input.examples), counterexamplesDigest: digest(input.counterexamples), equalityDigest: input.equality?.digest ?? digest(null), solverDigests: input.solverResults.map((result) => result.resultDigest), outcome: input.status, stopReason: input.stopReason };
+  const proof = Object.freeze({ ...base, proofDigest: digest(base) });
+  return Object.freeze({ status: input.status, program: input.program, examples: Object.freeze([...input.examples]), counterexamples: Object.freeze([...input.counterexamples]), solverResults: Object.freeze([...input.solverResults]), equality: input.equality, proof, events: Object.freeze([...input.events]) });
+}
+
+export async function synthesizeVerified(input: { readonly tenantId: string; readonly scopeId: string; readonly candidates: readonly TypedProgram[]; readonly examples: readonly Example[]; readonly oracles?: readonly CounterexampleOracle[]; readonly solvers?: readonly { readonly adapter: SolverAdapter; readonly input: string }[]; readonly budget?: Partial<SynthesisBudget>; readonly signal?: AbortSignal }): Promise<SynthesisResult> {
   assertId("tenantId", input.tenantId); assertId("scopeId", input.scopeId);
-  const limits = budget(input.budget);
+  const limits = resolveBudget(input.budget);
   if (input.candidates.length === 0 || input.candidates.length > limits.maxCandidates) throw new Error("Candidate count is out of bounds");
   if (input.examples.length > limits.maxExamples) throw new Error("Example count is out of bounds");
-  const examples = [...input.examples];
-  const counterexamples: Counterexample[] = []; const solverResults: SolverResult[] = []; const events: SynthesisResult["events"][number][] = [];
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), limits.timeoutMs);
+  const examples = [...input.examples]; const counterexamples: Counterexample[] = []; const solverResults: SolverResult[] = []; const events: SynthesisResult["events"][number][] = [];
+  const controller = new AbortController(); let timedOut = false;
+  const timeout = setTimeout(() => { timedOut = true; controller.abort(); }, limits.timeoutMs);
   const abort = (): void => controller.abort(); input.signal?.addEventListener("abort", abort, { once: true });
   try {
     for (const candidate of input.candidates) {
@@ -327,45 +316,45 @@ export async function synthesizeVerified(input: {
       if (candidate.tenantId !== input.tenantId || candidate.scopeId !== input.scopeId) throw new Error("Cross-tenant/scope candidate rejected");
       for (const example of examples) validateExample(example, candidate.outputType);
       events.push({ type: "CANDIDATE_TESTED", index: events.length });
-      let pass = examples.every((example) => evaluate(candidate, example.inputs, limits.maxExpressionNodes) === example.expected);
-      if (!pass) continue;
+      if (!examples.every((example) => evaluate(candidate, example.inputs, limits.maxExpressionNodes) === example.expected)) continue;
+      let counterexampleFound = false;
       for (const oracle of input.oracles ?? []) {
         const found = await oracle.findCounterexample(candidate, controller.signal);
-        if (found) {
-          validateExample(found, candidate.outputType);
-          if (!/^[a-f0-9]{64}$/.test(found.sourceDigest)) throw new Error("Counterexample source digest is invalid");
-          counterexamples.push(found); examples.push({ inputs: found.inputs, expected: found.expected }); events.push({ type: "COUNTEREXAMPLE_ADDED", index: events.length }); pass = false; break;
-        }
+        if (controller.signal.aborted) break;
+        if (!found) continue;
+        if (found.source !== oracle.kind) throw new Error("Counterexample source does not match oracle kind");
+        validateExample(found, candidate.outputType);
+        if (!/^[a-f0-9]{64}$/.test(found.sourceDigest)) throw new Error("Counterexample source digest is invalid");
+        if (examples.length >= limits.maxExamples) throw new Error("Counterexample would exceed example budget");
+        counterexamples.push(found); examples.push({ inputs: found.inputs, expected: found.expected }); events.push({ type: "COUNTEREXAMPLE_ADDED", index: events.length }); counterexampleFound = true; break;
       }
-      if (!pass) continue;
-      const equality = equalitySaturate(candidate.expression, limits);
-      const verifiedProgram = Object.freeze({ ...candidate, expression: equality.canonical });
+      if (controller.signal.aborted) break;
+      if (counterexampleFound) continue;
+      const equality = equalitySaturate(candidate.expression, limits); const verifiedProgram = Object.freeze({ ...candidate, expression: equality.canonical });
       for (const solver of input.solvers ?? []) {
+        if (controller.signal.aborted) break;
         events.push({ type: "SOLVER_INVOKED", index: events.length });
         solverResults.push(await solver.adapter.solve({ tenantId: input.tenantId, scopeId: input.scopeId, kind: solver.adapter.kind, input: solver.input, timeoutMs: Math.min(limits.timeoutMs, 60_000) }, controller.signal));
       }
-      const solverUnavailable = solverResults.some((result) => ["UNAVAILABLE", "ERROR", "TIMEOUT", "CANCELLED"].includes(result.status));
-      const outcome = solverUnavailable ? "UNAVAILABLE" : "VERIFIED";
-      events.push({ type: outcome === "VERIFIED" ? "VERIFIED" : "BOUNDED_STOP", index: events.length });
-      return finalize(outcome, verifiedProgram, examples, counterexamples, solverResults, equality, events);
+      if (controller.signal.aborted) break;
+      if (solverResults.some((result) => ["UNAVAILABLE", "ERROR", "TIMEOUT", "CANCELLED"].includes(result.status))) {
+        events.push({ type: "BOUNDED_STOP", index: events.length });
+        return finalize({ tenantId: input.tenantId, scopeId: input.scopeId, status: "UNAVAILABLE", stopReason: "SOLVER_UNAVAILABLE", program: verifiedProgram, examples, counterexamples, solverResults, equality, events });
+      }
+      events.push({ type: "VERIFIED", index: events.length });
+      return finalize({ tenantId: input.tenantId, scopeId: input.scopeId, status: "VERIFIED", stopReason: "VERIFIED", program: verifiedProgram, examples, counterexamples, solverResults, equality, events });
     }
     events.push({ type: "BOUNDED_STOP", index: events.length });
-    return finalize("NOT_VERIFIED", null, examples, counterexamples, solverResults, null, events);
+    return finalize({ tenantId: input.tenantId, scopeId: input.scopeId, status: "NOT_VERIFIED", stopReason: timedOut ? "TIMEOUT" : controller.signal.aborted ? "CANCELLED" : "EXHAUSTED", program: null, examples, counterexamples, solverResults, equality: null, events });
   } finally { clearTimeout(timeout); input.signal?.removeEventListener("abort", abort); }
-}
-
-function finalize(status: SynthesisResult["status"], program: TypedProgram | null, examples: readonly Example[], counterexamples: readonly Counterexample[], solverResults: readonly SolverResult[], equality: EqualitySaturationResult | null, events: SynthesisResult["events"]): SynthesisResult {
-  const base = { authority: "NEXUS_VERIFIED_SYNTHESIS_V1" as const, tenantId: program?.tenantId ?? "unbound", scopeId: program?.scopeId ?? "unbound", programDigest: program ? digest(program) : digest(null), examplesDigest: digest(examples), counterexamplesDigest: digest(counterexamples), equalityDigest: equality?.digest ?? digest(null), solverDigests: solverResults.map((result) => result.resultDigest), outcome: status };
-  const proof = Object.freeze({ ...base, proofDigest: digest(base) });
-  return Object.freeze({ status, program, examples: Object.freeze([...examples]), counterexamples: Object.freeze([...counterexamples]), solverResults: Object.freeze([...solverResults]), equality, proof, events: Object.freeze([...events]) });
 }
 
 export function verifySynthesisProof(result: SynthesisResult): void {
   const { proof } = result;
   if (proof.authority !== "NEXUS_VERIFIED_SYNTHESIS_V1") throw new Error("Unsupported synthesis proof authority");
   if (proof.outcome !== result.status || proof.programDigest !== digest(result.program) || proof.examplesDigest !== digest(result.examples) || proof.counterexamplesDigest !== digest(result.counterexamples) || proof.equalityDigest !== (result.equality?.digest ?? digest(null)) || digest(result.solverResults.map((item) => item.resultDigest)) !== digest(proof.solverDigests)) throw new Error("Synthesis proof linkage mismatch");
-  const { proofDigest, ...base } = proof;
-  if (digest(base) !== proofDigest) throw new Error("Synthesis proof digest mismatch");
+  if (result.program && (proof.tenantId !== result.program.tenantId || proof.scopeId !== result.program.scopeId)) throw new Error("Synthesis proof scope mismatch");
+  const { proofDigest, ...base } = proof; if (digest(base) !== proofDigest) throw new Error("Synthesis proof digest mismatch");
   if (result.program) validateProgram(result.program);
-  for (const event of result.events) if (!Number.isInteger(event.index) || event.index < 0) throw new Error("Invalid synthesis event index");
+  result.events.forEach((event, index) => { if (event.index !== index) throw new Error("Synthesis event sequence mismatch"); });
 }
