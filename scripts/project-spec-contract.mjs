@@ -26,7 +26,7 @@ function text(value, field, maxLength) {
   const normalized = value.trim();
   if (!normalized) throw new Error(`${field} is required`);
   if (normalized.length > maxLength) throw new Error(`${field} exceeds ${maxLength} characters`);
-  if (/\u0000/u.test(normalized)) throw new Error(`${field} contains a NUL byte`);
+  if (normalized.includes(String.fromCharCode(0))) throw new Error(`${field} contains a NUL byte`);
   return normalized;
 }
 
@@ -310,7 +310,7 @@ export function addWorkspaceImporterFromSeed(lockfileText, slug) {
   const seedIndex = lines.indexOf("  apps/_experience-seed:");
   if (seedIndex < 0) throw new Error("workspace lockfile does not contain apps/_experience-seed importer");
   let end = seedIndex + 1;
-  while (end < lines.length && !/^  \S.*:\s*$/u.test(lines[end])) end += 1;
+  while (end < lines.length && !/^ {2}\S.*:\s*$/u.test(lines[end])) end += 1;
   const seedBlock = lines.slice(seedIndex, end);
   if (seedBlock.length < 3) throw new Error("experience-seed lockfile importer is malformed");
   const clientBlock = [...seedBlock];
