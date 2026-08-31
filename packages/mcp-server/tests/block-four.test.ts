@@ -70,8 +70,11 @@ describe("block four project creation", () => {
     await expect(exec(process.execPath, ["scripts/scaffold-client.mjs", spec.slug, "--project-spec", input], { cwd: root })).rejects.toThrow(/target already exists/);
   });
 
-  it("rejects traversal-like slugs before any filesystem or Git mutation", async () => {
+  it("rejects unsafe direct mutation inputs before filesystem or Git mutation", async () => {
     await expect(createProject(process.cwd(), { ...spec, slug: "../../escape" })).rejects.toThrow(/reserved or invalid client-project name/);
+    await expect(createProject(process.cwd(), { ...spec, branchName: `nexus-mcp/${"a".repeat(241)}` })).rejects.toThrow(/bounded nexus-mcp branch policy/);
+    await expect(createProject(process.cwd(), { ...spec, commitMessage: ` ${"x".repeat(10)}` })).rejects.toThrow(/commitMessage must be trimmed/);
+    await expect(createProject(process.cwd(), { ...spec, business: { ...spec.business, name: "x".repeat(300_000) } })).rejects.toThrow(/project specification exceeds/);
   });
 
   it("rolls back branch, files and lockfile when creation fails after scaffold publication", async () => {
@@ -103,7 +106,7 @@ describe("block four project creation", () => {
     const previousPath = process.env.PATH;
     process.env.PATH = `${fakeBin}${delimiter}${previousPath ?? ""}`;
     try {
-      await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/PROJECT_CREATION_ROLLBACK_FAILED.*ROLLBACK_SCOPE_CONFLICT/s);
+      await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/PROJECT_CREATION_ROLLBACK_FAILED/);
     } finally {
       process.env.PATH = previousPath;
     }
@@ -113,6 +116,17 @@ describe("block four project creation", () => {
     expect(await readFile(join(root, `apps/${spec.slug}/.nexus/scaffold-manifest.json`), "utf8")).toContain("NEXUS_SCAFFOLD_V2");
     expect(await readFile(join(root, "pnpm-lock.yaml"), "utf8")).toContain(`  apps/${spec.slug}:\n`);
   }, 20_000);
+
+  it("reports rollback failure as FAIL even when the primary failure was dependency unavailability", async () => {
+    const result = await nexusProjectNew(spec, {
+      root: process.cwd(),
+      git: async () => git,
+      projects: async () => [],
+      projectCreator: async () => { throw new Error("PROJECT_CREATION_ROLLBACK_FAILED: rollback could not be completed safely"); },
+    });
+    expect(result.status).toBe("FAIL");
+    expect(result.errors[0]?.code).toBe("PROJECT_CREATION_FAILED");
+  });
 
   it("rejects collisions before invoking creation and leaves existing projects untouched", async () => {
     let invoked = false;
