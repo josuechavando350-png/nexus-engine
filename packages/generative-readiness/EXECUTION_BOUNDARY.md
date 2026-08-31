@@ -1,9 +1,15 @@
 # NEXUS Provider Execution Boundary
 
-NEXUS uses a single-writer model for repository and motor mutations.
+NEXUS uses a single-writer model for repository, motor, semantic-graph, deployment, approval, transaction, and other governed mutations.
 
-External model providers such as Anthropic Claude are advisory sources only unless they are explicitly elevated by a future governed executor boundary. Their outputs enter NEXUS as bounded, tenant-scoped, digest-bound proposals. A proposal is data, not authority: it cannot write GitHub state, mutate the semantic graph, approve transactions, deploy, or bypass policy.
+External model providers such as Anthropic Claude, and any other advisory model including OpenAI models used as proposal sources, are advisory-only. They are never elevated into writers or symmetric executors. Their outputs enter NEXUS only as bounded, tenant-scoped, digest-bound `AdvisoryProposal` data. An advisory proposal has no GitHub credentials, motor access, semantic-graph mutation path, deployment authority, approval authority, transaction authority, or write capability.
 
-The NEXUS executor remains the only component authorized to validate a proposal, apply capability checks, enforce budgets and approvals, perform the mutation through the governed GitHub/motor path, and record audit evidence. This keeps provider credentials and repository write authority out of advisory providers.
+Provider neutrality applies only to advisory proposal ingestion. Write authority is not provider-neutral: the sole writer is the NEXUS executor operated by the OpenAI/ChatGPT control plane.
 
-The same rule applies to any future provider: provider output -> structured proposal -> validation -> tenant/scope -> authorization/capability/budget/approval -> NEXUS executor -> audit/evidence -> output verification. There is no direct provider-to-GitHub or provider-to-graph write path.
+The enforced flow is:
+
+`advisor -> AdvisoryProposal -> NEXUS validation -> tenant/scope -> authorization/capability/budget/approval -> NEXUS_OPENAI_OPERATOR executor -> motor/GitHub/governed state -> audit/evidence -> output verification`
+
+The NEXUS governance port must fail closed unless authorization, the required capability, execution budget, and authoritative approval are all verified. The proposal-side approval envelope is integrity data only and is not itself proof of approval authority. Provider transport failures, policy failures, timeout/cancellation, cross-tenant attempts, stale/replayed proposals, idempotency conflicts, or malformed evidence cannot fall through to execution.
+
+There is no direct advisor-to-GitHub, advisor-to-motor, advisor-to-deployment, advisor-to-transaction, or advisor-to-graph write path.
