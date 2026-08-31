@@ -14,12 +14,13 @@ import {
   validateSignal,
   verifyEnvelope,
   type EdgeEnvelopePayload,
+  type PassiveSignalInput,
 } from "./index.js";
 
 const JA3 = "0123456789abcdef0123456789abcdef";
 const JA4 = "t13d1516h2_8daaf6152771_02713d6af862";
 
-function signal(overrides: Record<string, unknown> = {}) {
+function signal(overrides: Partial<PassiveSignalInput> = {}) {
   return createSignal({
     provider: "CLOUDFLARE",
     trust: "RUNTIME_BOUNDARY",
