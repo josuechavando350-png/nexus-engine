@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  GovernedSynthesisRuntime,
   SmtLibAdapter,
   SyGuSAdapter,
   digest,
@@ -26,7 +27,7 @@ const addZero: TypedProgram = {
 };
 
 describe("Motor #6 verified synthesis kernel", () => {
-  it("validates typed IR, evaluates deterministically, and saturates an equality class", () => {
+  it("validates typed IR, evaluates deterministically, and extracts the lowest-cost e-class member", () => {
     validateProgram(addZero);
     expect(evaluate(addZero, { x: 7 })).toBe(7);
     const saturation = equalitySaturate(addZero.expression);
@@ -57,7 +58,7 @@ describe("Motor #6 verified synthesis kernel", () => {
     expect(calls).toBe(2);
     expect(result.proof.tenantId).toBe("tenant-a");
     expect(result.proof.scopeId).toBe("scope-a");
-    verifySynthesisProof(result);
+    verifySynthesisProof(result, { tenantId: "tenant-a", scopeId: "scope-a" });
     expect(() => verifySynthesisProof({ ...result, examples: [{ inputs: { x: 999 }, expected: 999 }] })).toThrow(/linkage/u);
     expect(result.events.every((event) => Object.keys(event).sort().join(",") === "index,type")).toBe(true);
   });
@@ -83,7 +84,10 @@ describe("Motor #6 verified synthesis kernel", () => {
       expect(result.status).toBe("UNAVAILABLE");
       expect(result.solverResults[0]?.status).toBe("UNAVAILABLE");
       expect(result.proof.stopReason).toBe("SOLVER_UNAVAILABLE");
-      verifySynthesisProof(result);
+      verifySynthesisProof(result, { tenantId: "tenant-a", scopeId: "scope-a" });
+      const solver = result.solverResults[0];
+      if (!solver) throw new Error("missing solver result");
+      expect(() => verifySynthesisProof({ ...result, solverResults: [{ ...solver, status: "SAT" }] })).toThrow(/Solver result digest/u);
     }
   });
 
@@ -101,6 +105,14 @@ describe("Motor #6 verified synthesis kernel", () => {
     expect(result.status).toBe("NOT_VERIFIED");
     expect(result.proof.stopReason).toBe("CANCELLED");
     expect(result.program).toBeNull();
-    verifySynthesisProof(result);
+    verifySynthesisProof(result, { tenantId: "tenant-a", scopeId: "scope-a" });
+  });
+
+  it("binds the operational runtime to one tenant/scope and rejects replay across boundaries", async () => {
+    const runtime = new GovernedSynthesisRuntime("tenant-a", "scope-a");
+    const result = await runtime.execute({ candidates: [addZero], examples: [{ inputs: { x: 3 }, expected: 3 }] });
+    runtime.verify(result);
+    const other = new GovernedSynthesisRuntime("tenant-b", "scope-a");
+    expect(() => other.verify(result)).toThrow(/expected scope/u);
   });
 });
