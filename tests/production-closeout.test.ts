@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, test } from 'vitest';
@@ -45,6 +45,8 @@ describe('production closeout utilities', () => {
       cpSync(join(repositoryRoot, 'scripts/scaffold-client.mjs'), join(root, 'scripts/scaffold-client.mjs'));
       cpSync(join(repositoryRoot, 'scripts/project-spec-contract.mjs'), join(root, 'scripts/project-spec-contract.mjs'));
       cpSync(join(repositoryRoot, 'pnpm-lock.yaml'), join(root, 'pnpm-lock.yaml'));
+      writeFileSync(join(root, 'apps/_experience-seed/next-env.d.ts'), '/// <reference path="./.next/types/routes.d.ts" />\n');
+      writeFileSync(join(root, 'apps/_experience-seed/.env.local'), 'NEXUS_SHOULD_NEVER_COPY=this-is-not-a-source-file\n');
       const specPath = join(root, 'project-spec.json');
       writeFileSync(specPath, JSON.stringify(scaffoldSpec(name)));
 
@@ -61,6 +63,9 @@ describe('production closeout utilities', () => {
       expect(compiled.authority).toBe('NEXUS_PROJECT_SPEC_COMPILER_V1');
       expect(page).not.toMatch(/\[\s*(?:Marca|Título|Acción|Contenido|Pie|Enlace)/u);
       expect(lock).toContain(`  apps/${name}:\n`);
+      expect(existsSync(join(target, 'next-env.d.ts'))).toBe(false);
+      expect(existsSync(join(target, '.env.local'))).toBe(false);
+      expect(manifest.files.some((entry: { path: string }) => entry.path === 'next-env.d.ts' || entry.path.startsWith('.env'))).toBe(false);
       const second = spawnSync(process.execPath, ['scripts/scaffold-client.mjs', name, '--project-spec', specPath], { cwd: root, encoding: 'utf8' });
       expect(second.status).not.toBe(0);
     } finally {
