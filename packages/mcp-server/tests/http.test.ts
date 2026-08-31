@@ -59,6 +59,31 @@ describe("remote MCP HTTP surface", () => {
     await client.close();
   });
 
+  it("does not leak internal exception details to authenticated clients", async () => {
+    const token = "error-redaction-token";
+    const tokenSha256 = createHash("sha256").update(token).digest("hex");
+    const app = createNexusHttpApp({
+      root: process.cwd(),
+      tokenSha256,
+      git: async () => ({ branch: "work", headSha: "d".repeat(40), detached: false, clean: true, changedPaths: [], remoteUrl: null }),
+      coordinator: { run: async () => { throw new Error("secret=/srv/private/repo TOKEN=super-sensitive"); } },
+    });
+    const server = await new Promise<Server>((resolve) => { const value = app.listen(0, "127.0.0.1", () => resolve(value)); });
+    servers.push(server);
+    const address = server.address();
+    if (!address || typeof address === "string") throw new Error("test server has no TCP address");
+    const response = await fetch(`http://127.0.0.1:${address.port}/mcp`, {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${token}` },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 17, method: "initialize", params: {} }),
+    });
+    expect(response.status).toBe(500);
+    const body = await response.text();
+    expect(body).toContain("Internal server error");
+    expect(body).not.toContain("/srv/private/repo");
+    expect(body).not.toContain("super-sensitive");
+  });
+
   it("refuses to expose nexus_operator without a server-owned operator scope or runtime", () => {
     const tokenSha256 = createHash("sha256").update("operator-read-token").digest("hex");
     const enabledTools = new Set<NexusToolName>(["nexus_operator"]);
