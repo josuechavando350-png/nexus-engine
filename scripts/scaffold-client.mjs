@@ -6,16 +6,11 @@ import { addWorkspaceImporterFromSeed, assertClientSlug, compileProjectSources, 
 
 const MAX_PROJECT_SPEC_BYTES = 256 * 1024;
 const SEED_SOURCE_FILES = Object.freeze([
-  "README.md",
   "next.config.ts",
   "package.json",
   "src/app/a11y-gap.css",
   "src/app/css.d.ts",
-  "src/app/layout.tsx",
-  "src/app/page.tsx",
   "src/app/reset.css",
-  "src/app/theme-contract.ts",
-  "src/app/theme.ts",
   "tsconfig.json",
 ]);
 
