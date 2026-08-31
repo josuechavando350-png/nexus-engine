@@ -1,0 +1,15 @@
+{
+  "name": "@nexus/query-fanout",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Deterministic, auditable simulation of plausible query fan-out and corpus coverage.",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run src/index.test.ts",
+    "build": "tsc -p tsconfig.build.json"
+  }
+}
