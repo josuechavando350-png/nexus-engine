@@ -16,31 +16,18 @@ const scope = { tenantId: "tenant-a", organizationId: "org-a", brandId: "brand-a
 const now = "2026-08-31T14:35:30.000Z";
 
 function proposal(provider: AdvisoryProvider = "ANTHROPIC_CLAUDE") {
-  return createAdvisoryProposal({
-    scope,
-    provider,
-    instruction: "Recommend a structured content improvement for this page.",
-    createdAt: "2026-08-31T14:35:00.000Z",
-  });
+  return createAdvisoryProposal({ scope, provider, instruction: "Recommend a structured content improvement for this page.", createdAt: "2026-08-31T14:35:00.000Z" });
 }
 
 function approval(forProposal = proposal()) {
-  return createAdvisoryApproval({
-    status: "APPROVED",
-    proposalDigest: forProposal.proposalDigest,
-    scope,
-    approvedAt: "2026-08-31T14:35:10.000Z",
-    expiresAt: "2026-08-31T14:40:00.000Z",
-  });
+  return createAdvisoryApproval({ status: "APPROVED", proposalDigest: forProposal.proposalDigest, scope, approvedAt: "2026-08-31T14:35:10.000Z", expiresAt: "2026-08-31T14:40:00.000Z" });
 }
 
 function executor(fn?: (request: AdvisoryExecutionRequest, signal: AbortSignal) => Promise<AdvisoryExecutionOutcome>): NexusAdvisoryExecutor {
-  return {
-    async execute(request, signal) {
-      if (fn) return await fn(request, signal);
-      return { status: "COMMITTED", requestDigest: request.requestDigest, evidenceDigest: digestValue({ committed: request.requestDigest }) };
-    },
-  };
+  return { async execute(request, signal) {
+    if (fn) return await fn(request, signal);
+    return { status: "COMMITTED", requestDigest: request.requestDigest, evidenceDigest: digestValue({ committed: request.requestDigest }) };
+  } };
 }
 
 function runtime(exec = executor(), providers: readonly AdvisoryProvider[] = ["ANTHROPIC_CLAUDE", "OPENAI_CHATGPT", "OTHER"]) {
@@ -77,8 +64,7 @@ describe("advisory provider boundary", () => {
     }));
     for (const provider of ["ANTHROPIC_CLAUDE", "OPENAI_CHATGPT", "OTHER"] as const) {
       const item = proposal(provider);
-      const result = await rt.execute({ proposal: item, approval: approval(item), idempotencyKey: `same-flow-${provider}`, now });
-      expect(result.status).toBe("COMMITTED");
+      expect((await rt.execute({ proposal: item, approval: approval(item), idempotencyKey: `same-flow-${provider}`, now })).status).toBe("COMMITTED");
     }
     expect(authorities).toEqual(["NEXUS_OPENAI_OPERATOR", "NEXUS_OPENAI_OPERATOR", "NEXUS_OPENAI_OPERATOR"]);
     rt.verifyAuditTrail();
@@ -88,12 +74,8 @@ describe("advisory provider boundary", () => {
     let calls = 0;
     const item = proposal();
     const denied = createAdvisoryApproval({ status: "DENIED", proposalDigest: item.proposalDigest, scope, approvedAt: "2026-08-31T14:35:10.000Z", expiresAt: "2026-08-31T14:40:00.000Z" });
-    const rt = runtime(executor(async (request) => {
-      calls += 1;
-      return { status: "COMMITTED", requestDigest: request.requestDigest, evidenceDigest: digestValue("unexpected") };
-    }));
-    const result = await rt.execute({ proposal: item, approval: denied, idempotencyKey: "denied", now });
-    expect(result.status).toBe("REJECTED");
+    const rt = runtime(executor(async (request) => { calls += 1; return { status: "COMMITTED", requestDigest: request.requestDigest, evidenceDigest: digestValue("unexpected") }; }));
+    expect((await rt.execute({ proposal: item, approval: denied, idempotencyKey: "denied", now })).status).toBe("REJECTED");
     expect(calls).toBe(0);
   });
 
@@ -113,11 +95,7 @@ describe("advisory provider boundary", () => {
   it("coalesces concurrent duplicates and rejects idempotency-key conflicts", async () => {
     let calls = 0;
     const item = proposal();
-    const rt = runtime(executor(async (request) => {
-      calls += 1;
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      return { status: "COMMITTED", requestDigest: request.requestDigest, evidenceDigest: digestValue("one-call") };
-    }));
+    const rt = runtime(executor(async (request) => { calls += 1; await new Promise((resolve) => setTimeout(resolve, 5)); return { status: "COMMITTED", requestDigest: request.requestDigest, evidenceDigest: digestValue("one-call") }; }));
     const input = { proposal: item, approval: approval(item), idempotencyKey: "idem-1", now } as const;
     const [a, b] = await Promise.all([rt.execute(input), rt.execute(input)]);
     expect(a).toEqual(b);
@@ -128,24 +106,15 @@ describe("advisory provider boundary", () => {
 
   it("fails closed on timeout, cancellation, transport failure and partial executor failure", async () => {
     const item = proposal();
-    const timeoutRt = runtime(executor(async (request, signal) => {
-      await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
-      return { status: "CANCELLED", requestDigest: request.requestDigest, evidenceDigest: digestValue("late") };
-    }));
+    const timeoutRt = runtime(executor(async (request, signal) => { await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })); return { status: "CANCELLED", requestDigest: request.requestDigest, evidenceDigest: digestValue("late") }; }));
     expect((await timeoutRt.execute({ proposal: item, approval: approval(item), idempotencyKey: "timeout", now })).status).toBe("TIMEOUT");
-
     const controller = new AbortController();
-    const cancelRt = runtime(executor(async (request, signal) => {
-      await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true }));
-      return { status: "CANCELLED", requestDigest: request.requestDigest, evidenceDigest: digestValue("cancelled") };
-    }));
+    const cancelRt = runtime(executor(async (request, signal) => { await new Promise<void>((resolve) => signal.addEventListener("abort", () => resolve(), { once: true })); return { status: "CANCELLED", requestDigest: request.requestDigest, evidenceDigest: digestValue("cancelled") }; }));
     const pending = cancelRt.execute({ proposal: item, approval: approval(item), idempotencyKey: "cancel", now, signal: controller.signal });
     controller.abort();
     expect((await pending).status).toBe("CANCELLED");
-
     const failedRt = runtime(executor(async () => { throw new Error("transport failed after dispatch"); }));
     expect((await failedRt.execute({ proposal: item, approval: approval(item), idempotencyKey: "transport", now })).status).toBe("OUTCOME_UNKNOWN");
-
     const malformedRt = runtime(executor(async (request) => ({ status: "COMMITTED", requestDigest: `${request.requestDigest.slice(0, 63)}0`, evidenceDigest: digestValue("bad") })));
     expect((await malformedRt.execute({ proposal: item, approval: approval(item), idempotencyKey: "partial", now })).status).toBe("OUTCOME_UNKNOWN");
   });
@@ -164,8 +133,8 @@ describe("advisory provider boundary", () => {
     const rt = runtime();
     await rt.execute({ proposal: item, approval: approval(item), idempotencyKey: "audit", now });
     rt.verifyAuditTrail();
-    const trail = [...rt.auditTrail] as Array<Record<string, unknown>>;
-    trail[0] = { ...trail[0], status: "COMMITTED" };
+    const trail = [...rt.auditTrail];
+    trail[0] = Object.freeze({ ...trail[0]!, status: "COMMITTED" });
     expect(() => rt.verifyAuditTrail()).not.toThrow();
   });
 });
