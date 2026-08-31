@@ -1,4 +1,4 @@
-export const TOOL_NAMES = ["nexus_status", "nexus_projects", "nexus_gates", "nexus_passport", "nexus_capture", "nexus_build", "nexus_comparator", "nexus_project_new"] as const;
+export const TOOL_NAMES = ["nexus_status", "nexus_projects", "nexus_gates", "nexus_passport", "nexus_capture", "nexus_build", "nexus_comparator", "nexus_project_new", "nexus_operator"] as const;
 export type NexusToolName = typeof TOOL_NAMES[number];
 
 export const REMOTE_READINESS_DEFAULT_TOOLS = Object.freeze(["nexus_status", "nexus_projects"] as const);
