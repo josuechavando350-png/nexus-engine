@@ -94,16 +94,21 @@ function queryDimensionIndex(dataset: SearchAnalyticsDataset): number {
   return indices[0]!;
 }
 
+function normalizeRuleTokens(values: readonly string[]): string[] {
+  const normalized = values.map((value) => clean(value)).filter((value) => value.length > 0);
+  return [...new Set<string>(normalized)].sort((a, b) => a.localeCompare(b, "en"));
+}
+
 function validateRules(rules: readonly IntentRule[], limits: IntentRadarLimits): readonly IntentRule[] {
   if (!Array.isArray(rules) || rules.length > limits.maxRules) throw new Error("intent rule budget exceeded");
   const ids = new Set<string>();
-  return Object.freeze(rules.map((rule) => {
+  return Object.freeze(rules.map((rule): IntentRule => {
     const id = clean(rule.id);
     const label = clean(rule.label);
     if (!id || !label || ids.has(id)) throw new Error("intent rule ids and labels must be non-empty and ids unique");
     ids.add(id);
-    const anyTokens = [...new Set(rule.anyTokens.map(clean).filter(Boolean))].sort();
-    const allTokens = [...new Set((rule.allTokens ?? []).map(clean).filter(Boolean))].sort();
+    const anyTokens = normalizeRuleTokens(rule.anyTokens);
+    const allTokens = normalizeRuleTokens(rule.allTokens ?? []);
     if (anyTokens.length === 0 && allTokens.length === 0) throw new Error(`intent rule ${id} must contain tokens`);
     if (anyTokens.length + allTokens.length > 64) throw new Error(`intent rule ${id} token budget exceeded`);
     if ([...anyTokens, ...allTokens].some((token) => token.length > 80)) throw new Error(`intent rule ${id} token too long`);
