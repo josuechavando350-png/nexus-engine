@@ -86,6 +86,10 @@ export function validatePublicPageObservation(observation: PublicPageObservation
   if (observation.authority === "PUBLIC_HTTP_CAPTURE" && !liveObservations.has(observation)) throw new Error("public HTTP observation is not live-attested in this process");
 }
 
+function abortError(signal: AbortSignal): Error {
+  return signal.reason instanceof Error ? signal.reason : new Error("competitive capture cancelled");
+}
+
 async function readBoundedBody(response: Response, controller: AbortController): Promise<string> {
   const contentLength = Number(response.headers.get("content-length") ?? "0");
   if (Number.isFinite(contentLength) && contentLength > MAX_BODY_BYTES) throw new Error("competitive capture body exceeds byte budget");
@@ -94,11 +98,32 @@ async function readBoundedBody(response: Response, controller: AbortController):
   const chunks: Uint8Array[] = [];
   let bytes = 0;
   while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    bytes += value.byteLength;
-    if (bytes > MAX_BODY_BYTES) { controller.abort(new Error("body budget exceeded")); throw new Error("competitive capture body exceeds byte budget"); }
-    chunks.push(value);
+    if (controller.signal.aborted) {
+      await reader.cancel(controller.signal.reason).catch(() => undefined);
+      throw abortError(controller.signal);
+    }
+    let onAbort: (() => void) | undefined;
+    const aborted = new Promise<never>((_resolve, reject) => {
+      onAbort = () => {
+        void reader.cancel(controller.signal.reason).catch(() => undefined);
+        reject(abortError(controller.signal));
+      };
+      controller.signal.addEventListener("abort", onAbort, { once: true });
+    });
+    let chunk: ReadableStreamReadResult<Uint8Array>;
+    try {
+      chunk = await Promise.race([reader.read(), aborted]);
+    } finally {
+      if (onAbort) controller.signal.removeEventListener("abort", onAbort);
+    }
+    if (chunk.done) break;
+    bytes += chunk.value.byteLength;
+    if (bytes > MAX_BODY_BYTES) {
+      controller.abort(new Error("body budget exceeded"));
+      await reader.cancel(controller.signal.reason).catch(() => undefined);
+      throw new Error("competitive capture body exceeds byte budget");
+    }
+    chunks.push(chunk.value);
   }
   return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8");
 }
@@ -121,7 +146,7 @@ export async function capturePublicPage(
   let current = initialUrl;
   try {
     for (let redirect = 0; redirect <= MAX_REDIRECTS; redirect += 1) {
-      if (controller.signal.aborted) throw controller.signal.reason instanceof Error ? controller.signal.reason : new Error("competitive capture cancelled");
+      if (controller.signal.aborted) throw abortError(controller.signal);
       let response: Response;
       if (controlledTransport) {
         await resolvePublicAddress(current, options.lookup);
