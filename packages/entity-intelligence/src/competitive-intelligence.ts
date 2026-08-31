@@ -36,8 +36,10 @@ function clean(label: string, value: string, max = 500): string {
 }
 function cleanNullable(label: string, value: string | null, max: number): string | null { return value === null ? null : clean(label, value, max); }
 function normalizedScope(value: CompetitiveScope): CompetitiveScope {
+  if (!value || typeof value !== "object") throw new Error("scope must be an object");
   return Object.freeze({ tenantId: clean("scope.tenantId", value.tenantId, 128), organizationId: clean("scope.organizationId", value.organizationId, 128), brandId: clean("scope.brandId", value.brandId, 128) });
 }
+export function validateCompetitiveScope(value: CompetitiveScope): CompetitiveScope { return normalizedScope(value); }
 function normalizeUrl(value: string): string {
   const parsed = new URL(clean("URL", value, MAX_URL));
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") throw new Error("URL must use HTTP(S)");
