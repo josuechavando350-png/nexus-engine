@@ -1,4 +1,4 @@
-import { readFile, stat } from "node:fs/promises";
+import { lstat, readFile } from "node:fs/promises";
 import { pathToFileURL } from "node:url";
 import { validateSchema, type SchemaVersion } from "./index";
 import { InMemoryOntologyPersistence, type OntologySnapshot } from "./persistence-query";
@@ -7,7 +7,8 @@ import { buildUnifiedSemanticGraph, projectSchemaOrg, queryUnifiedSemanticGraph,
 const MAX_INPUT_BYTES = 5 * 1024 * 1024;
 
 async function readBoundedJson(path: string): Promise<unknown> {
-  const metadata = await stat(path);
+  const metadata = await lstat(path);
+  if (metadata.isSymbolicLink()) throw new Error(`${path} must not be a symbolic link`);
   if (!metadata.isFile()) throw new Error(`${path} is not a regular file`);
   if (metadata.size <= 0 || metadata.size > MAX_INPUT_BYTES) throw new Error(`${path} exceeds the semantic graph input budget`);
   const raw = await readFile(path, "utf8");
@@ -54,7 +55,7 @@ export async function runSemanticGraphAudit(input: SemanticGraphRuntimeInput): P
   }
 
   return {
-    status: "VERIFIED",
+    status: graph.evidenceState === "OBSERVED_ONTOLOGY_STATE" ? "VERIFIED" : "NOT_ENOUGH_EVIDENCE",
     claim: "ONTOLOGY_DERIVED_SEMANTIC_GRAPH",
     scope: graph.scope,
     graphVersion: graph.graphVersion,
