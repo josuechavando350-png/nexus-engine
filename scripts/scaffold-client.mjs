@@ -1,10 +1,23 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { basename, dirname, join, relative } from "node:path";
-import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, relative } from "node:path";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { addWorkspaceImporterFromSeed, assertClientSlug, compileProjectSources, parseProjectSpecification } from "./project-spec-contract.mjs";
 
 const MAX_PROJECT_SPEC_BYTES = 256 * 1024;
+const SEED_SOURCE_FILES = Object.freeze([
+  "README.md",
+  "next.config.ts",
+  "package.json",
+  "src/app/a11y-gap.css",
+  "src/app/css.d.ts",
+  "src/app/layout.tsx",
+  "src/app/page.tsx",
+  "src/app/reset.css",
+  "src/app/theme-contract.ts",
+  "src/app/theme.ts",
+  "tsconfig.json",
+]);
 
 function usage() {
   throw new Error("usage: node scripts/scaffold-client.mjs <kebab-case-name> --project-spec <json-path>");
@@ -15,6 +28,22 @@ function regularFile(path, label, maxBytes) {
   const stats = lstatSync(path);
   if (stats.isSymbolicLink() || !stats.isFile()) throw new Error(`${label} must be a regular file`);
   if (maxBytes !== undefined && stats.size > maxBytes) throw new Error(`${label} exceeds ${maxBytes} bytes`);
+}
+
+function copySeedFile(sourceRoot, targetRoot, relativePath) {
+  const segments = relativePath.split("/");
+  let current = sourceRoot;
+  for (let index = 0; index < segments.length; index += 1) {
+    current = join(current, segments[index]);
+    if (!existsSync(current)) throw new Error(`required seed source is missing: ${relativePath}`);
+    const stats = lstatSync(current);
+    if (stats.isSymbolicLink()) throw new Error(`symbolic links are forbidden in seed source paths: ${relativePath}`);
+    if (index < segments.length - 1 && !stats.isDirectory()) throw new Error(`seed source parent is not a directory: ${relativePath}`);
+    if (index === segments.length - 1 && !stats.isFile()) throw new Error(`seed source is not a regular file: ${relativePath}`);
+  }
+  const destination = join(targetRoot, relativePath);
+  mkdirSync(dirname(destination), { recursive: true });
+  writeFileSync(destination, readFileSync(current));
 }
 
 const [rawName, specFlag, specPath, ...extra] = process.argv.slice(2);
@@ -40,7 +69,6 @@ const nextLockfile = addWorkspaceImporterFromSeed(originalLockfile, name);
 const staging = mkdtempSync(join(root, "apps", `.nexus-scaffold-${name}-`));
 const lockfileStaging = join(root, `.pnpm-lock.nexus-${name}-${process.pid}.yaml`);
 let published = false;
-const excluded = new Set([".next", "node_modules", "dist", "coverage", "tsconfig.tsbuildinfo"]);
 
 const replaceTokens = (directory) => {
   for (const entry of readdirSync(directory).sort((a, b) => a.localeCompare(b, "en"))) {
@@ -67,12 +95,7 @@ const walkFiles = (directory, output = []) => {
 };
 
 try {
-  cpSync(source, staging, {
-    recursive: true,
-    preserveTimestamps: false,
-    dereference: false,
-    filter: (path) => path === source || !excluded.has(basename(path)),
-  });
+  for (const relativePath of SEED_SOURCE_FILES) copySeedFile(source, staging, relativePath);
   replaceTokens(staging);
 
   const packagePath = join(staging, "package.json");
