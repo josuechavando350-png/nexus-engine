@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createMemoryCms, defineCmsSchema, parseCmsDocument } from '../lib/cms-lite.mjs';
@@ -21,6 +21,7 @@ if (cms.get('home')?.data.title !== 'NEXUS' || cms.list().length !== 1) throw ne
 
 const probeName = `third-party-proof-${process.pid}`;
 const probePath = join(process.cwd(), 'apps', probeName);
+const probeModules = join(probePath, 'node_modules');
 const temporary = mkdtempSync(join(tmpdir(), 'nexus-third-party-proof-'));
 const specPath = join(temporary, 'project-spec.json');
 const lockfilePath = join(process.cwd(), 'pnpm-lock.yaml');
@@ -50,7 +51,14 @@ try {
   if (compiled.authority !== 'NEXUS_PROJECT_SPEC_COMPILER_V1' || compiled.specDigest !== manifest.projectSpecDigest) throw new Error('compiled project evidence invalid');
   if (/\[\s*(?:Marca|Título|Acción|Contenido|Pie|Enlace)/u.test(page)) throw new Error('compiled client still contains seed placeholders');
   if (!updatedLockfile.includes(`  apps/${probeName}:\n`)) throw new Error('scaffold did not bind the client into the workspace lockfile');
+
+  symlinkSync(join('..', '_experience-seed', 'node_modules'), probeModules, 'dir');
+  run('pnpm', ['--filter', `@nexus/${probeName}`, 'lint']);
+  run('pnpm', ['--filter', `@nexus/${probeName}`, 'typecheck']);
+  run('pnpm', ['--filter', `@nexus/${probeName}`, 'build']);
+  rmSync(probeModules, { recursive: true, force: true });
 } finally {
+  rmSync(probeModules, { recursive: true, force: true });
   rmSync(probePath, { recursive: true, force: true });
   writeFileSync(lockfilePath, originalLockfile);
   rmSync(temporary, { recursive: true, force: true });
