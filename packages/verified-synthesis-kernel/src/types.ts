@@ -118,6 +118,7 @@ export interface VerifiedSynthesisProof {
   readonly version: 1;
   readonly problemDigest: string;
   readonly normalizedConstraintDigest: string;
+  readonly counterexampleDigest: string;
   readonly candidateDigest?: string;
   readonly evaluationsDigest?: string;
   readonly iterationDigest: string;
@@ -131,6 +132,7 @@ export interface VerifiedSynthesisResult {
   readonly problem: SynthesisProblem;
   readonly candidate?: CandidateAssignment;
   readonly evaluations?: readonly ConstraintEvaluation[];
+  readonly counterexamples: readonly Counterexample[];
   readonly iterations: readonly SynthesisIterationRecord[];
   readonly proof: VerifiedSynthesisProof;
 }
