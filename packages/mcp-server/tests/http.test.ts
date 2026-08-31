@@ -9,6 +9,14 @@ import { TOOL_NAMES, type NexusToolName } from "../src/policy.js";
 const servers: Server[] = [];
 afterEach(async () => { await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())))); });
 
+async function start(app: ReturnType<typeof createNexusHttpApp>) {
+  const server = await new Promise<Server>((resolve) => { const value = app.listen(0, "127.0.0.1", () => resolve(value)); });
+  servers.push(server);
+  const address = server.address();
+  if (!address || typeof address === "string") throw new Error("test server has no TCP address");
+  return `http://127.0.0.1:${address.port}`;
+}
+
 async function listen(enabledTools?: ReadonlySet<NexusToolName>) {
   const token = "mobile-safe-test-token";
   const writeToken = "mobile-safe-write-token";
@@ -19,11 +27,7 @@ async function listen(enabledTools?: ReadonlySet<NexusToolName>) {
     enabledTools,
     coordinator: { run: async (_requestId, _sourceSha, _isolated, operation) => await operation(process.cwd()) },
   });
-  const server = await new Promise<Server>((resolve) => { const value = app.listen(0, "127.0.0.1", () => resolve(value)); });
-  servers.push(server);
-  const address = server.address();
-  if (!address || typeof address === "string") throw new Error("test server has no TCP address");
-  return { token, writeToken, base: `http://127.0.0.1:${address.port}` };
+  return { token, writeToken, base: await start(app) };
 }
 
 describe("remote MCP HTTP surface", () => {
@@ -68,5 +72,46 @@ describe("remote MCP HTTP surface", () => {
   it("fails closed when read and write credential hashes are equal", () => {
     const digest = createHash("sha256").update("same-token").digest("hex");
     expect(() => createNexusHttpApp({ root: process.cwd(), tokenSha256: digest, writeTokenSha256: digest })).toThrow(/must be different/);
+  });
+
+  it("does not disclose internal MCP exception messages", async () => {
+    const token = "error-containment-token";
+    const app = createNexusHttpApp({
+      root: process.cwd(),
+      tokenSha256: createHash("sha256").update(token).digest("hex"),
+      git: async () => ({ branch: "work", headSha: "d".repeat(40), detached: false, clean: true, changedPaths: [], remoteUrl: null }),
+      coordinator: { run: async () => { throw new Error("DATABASE_PASSWORD=super-secret"); } },
+    });
+    const base = await start(app);
+    const response = await fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 7, method: "tools/list", params: {} }),
+    });
+    const body = await response.text();
+    expect(response.status).toBe(500);
+    expect(body).toContain("Internal server error");
+    expect(body).not.toContain("DATABASE_PASSWORD");
+    expect(body).not.toContain("super-secret");
+  });
+
+  it("does not disclose artifact-store exception messages", async () => {
+    const token = "artifact-error-token";
+    const app = createNexusHttpApp({
+      root: process.cwd(),
+      tokenSha256: createHash("sha256").update(token).digest("hex"),
+      artifactStore: {
+        putFile: async () => { throw new Error("not used"); },
+        manifest: async () => [],
+        resolve: async () => { throw new Error("AWS_SECRET_ACCESS_KEY=super-secret"); },
+      },
+    });
+    const base = await start(app);
+    const response = await fetch(`${base}/artifacts/request-1/result.json`, { headers: { authorization: `Bearer ${token}` } });
+    const body = await response.text();
+    expect(response.status).toBe(500);
+    expect(body).toContain("Internal server error");
+    expect(body).not.toContain("AWS_SECRET_ACCESS_KEY");
+    expect(body).not.toContain("super-secret");
   });
 });
