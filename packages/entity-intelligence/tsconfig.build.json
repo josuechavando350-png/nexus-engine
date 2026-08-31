@@ -13,6 +13,9 @@
     "src/competitive-intelligence.ts",
     "src/competitive-public-http.ts",
     "src/competitive-intelligence-runtime.ts",
-    "src/competitive-intelligence-cli.ts"
+    "src/competitive-intelligence-cli.ts",
+    "src/reputation-shield.ts",
+    "src/reputation-shield-runtime.ts",
+    "src/reputation-shield-cli.ts"
   ]
 }
