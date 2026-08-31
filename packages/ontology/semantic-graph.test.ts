@@ -17,12 +17,12 @@ function schema() {
     scope,
     properties: [
       { id: "name", name: "name", valueKind: "STRING", cardinality: "REQUIRED", unique: false, immutable: false },
-      { id: "validFrom", name: "validFrom", valueKind: "DATETIME", cardinality: "OPTIONAL", unique: false, immutable: false },
-      { id: "validUntil", name: "validUntil", valueKind: "DATETIME", cardinality: "OPTIONAL", unique: false, immutable: false },
+      { id: "valid_from", name: "validFrom", valueKind: "DATETIME", cardinality: "OPTIONAL", unique: false, immutable: false },
+      { id: "valid_until", name: "validUntil", valueKind: "DATETIME", cardinality: "OPTIONAL", unique: false, immutable: false },
     ],
     interfaces: [],
     objects: [
-      { id: "entity.person", name: "Person", propertyIds: ["name", "validFrom", "validUntil"], interfaceIds: [] },
+      { id: "entity.person", name: "Person", propertyIds: ["name", "valid_from", "valid_until"], interfaceIds: [] },
       { id: "entity.org", name: "Organization", propertyIds: ["name"], interfaceIds: [] },
     ],
     relationships: [{
