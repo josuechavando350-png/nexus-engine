@@ -8,6 +8,7 @@ import { runProcess } from "./process.js";
 
 const CLIENT_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/u;
 const RESERVED_CLIENT_PREFIXES = ["_", "reference-", "v2-probe-", "probe-", "test-"] as const;
+const MAX_MANIFEST_PATH_LENGTH = 512;
 
 export interface ProjectSpec {
   slug: string;
@@ -57,19 +58,55 @@ function assertSafeClientSlug(value: string): string {
   return value;
 }
 
-async function assertScaffoldSourcesUnchanged(root: string, projectPath: string): Promise<void> {
-  const manifestPath = join(root, projectPath, ".nexus", "scaffold-manifest.json");
-  const manifest = JSON.parse(await readFile(manifestPath, "utf8")) as ScaffoldManifest;
+function assertSafeManifestPath(value: string): readonly string[] {
+  if (typeof value !== "string" || value.length < 1 || value.length > MAX_MANIFEST_PATH_LENGTH || value.startsWith("/") || value.includes("\\") || value.includes("\0")) {
+    throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest contains an unsafe path");
+  }
+  const segments = value.split("/");
+  if (segments.some((segment) => segment.length === 0 || segment === "." || segment === "..")) {
+    throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest contains an unsafe path");
+  }
+  return segments;
+}
+
+async function readRegularFile(path: string, label: string): Promise<string> {
+  const stats = await lstat(path);
+  if (stats.isSymbolicLink() || !stats.isFile()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: ${label} is not a regular file`);
+  return await readFile(path, "utf8");
+}
+
+async function readScaffoldFile(root: string, projectPath: string, relativePath: string): Promise<string> {
+  const segments = assertSafeManifestPath(relativePath);
+  let current = join(root, projectPath);
+  const projectStats = await lstat(current);
+  if (projectStats.isSymbolicLink() || !projectStats.isDirectory()) throw new Error("ROLLBACK_SCOPE_CONFLICT: generated project root is not a real directory");
+  for (let index = 0; index < segments.length; index += 1) {
+    current = join(current, segments[index]);
+    const stats = await lstat(current);
+    if (stats.isSymbolicLink()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated path became a symbolic link: ${relativePath}`);
+    if (index < segments.length - 1 && !stats.isDirectory()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated path parent is not a directory: ${relativePath}`);
+    if (index === segments.length - 1 && !stats.isFile()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated path is not a regular file: ${relativePath}`);
+  }
+  return await readFile(current, "utf8");
+}
+
+async function assertScaffoldSourcesUnchanged(root: string, projectPath: string, expectedManifest: string): Promise<void> {
+  const manifestText = await readScaffoldFile(root, projectPath, ".nexus/scaffold-manifest.json");
+  if (manifestText !== expectedManifest) throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest changed after publication");
+  const manifest = JSON.parse(manifestText) as ScaffoldManifest;
   if (!Array.isArray(manifest.files)) throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest is malformed");
+  const seen = new Set<string>();
   for (const entry of manifest.files) {
     if (!entry || typeof entry.path !== "string" || !/^[a-f0-9]{64}$/u.test(entry.sha256)) throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest is malformed");
-    const path = join(root, projectPath, entry.path);
-    const digest = createHash("sha256").update(await readFile(path)).digest("hex");
+    assertSafeManifestPath(entry.path);
+    if (seen.has(entry.path)) throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest contains duplicate paths");
+    seen.add(entry.path);
+    const digest = createHash("sha256").update(await readScaffoldFile(root, projectPath, entry.path)).digest("hex");
     if (digest !== entry.sha256) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated source changed after scaffold: ${entry.path}`);
   }
 }
 
-async function assertRollbackConfined(root: string, projectPath: string, expectedLockfile: string | null): Promise<void> {
+async function assertRollbackConfined(root: string, projectPath: string, expectedLockfile: string | null, expectedManifest: string | null): Promise<void> {
   const changed = new Set<string>([
     ...await gitPaths(root, ["diff", "--name-only", "--no-renames", "-z"]),
     ...await gitPaths(root, ["diff", "--cached", "--name-only", "--no-renames", "-z"]),
@@ -77,10 +114,19 @@ async function assertRollbackConfined(root: string, projectPath: string, expecte
   ]);
   const unexpected = [...changed].filter((path) => path !== "pnpm-lock.yaml" && !path.startsWith(`${projectPath}/`));
   if (unexpected.length) throw new Error(`ROLLBACK_SCOPE_CONFLICT: unrelated worktree changes appeared: ${unexpected[0]}`);
-  if (expectedLockfile !== null && await readFile(join(root, "pnpm-lock.yaml"), "utf8") !== expectedLockfile) {
+  if (expectedLockfile === null) {
+    if (changed.has("pnpm-lock.yaml")) throw new Error("ROLLBACK_SCOPE_CONFLICT: workspace lockfile changed before scaffold publication completed");
+  } else if (await readRegularFile(join(root, "pnpm-lock.yaml"), "workspace lockfile") !== expectedLockfile) {
     throw new Error("ROLLBACK_SCOPE_CONFLICT: workspace lockfile changed after scaffold publication");
   }
-  if (await pathExists(join(root, projectPath))) await assertScaffoldSourcesUnchanged(root, projectPath);
+  const targetExists = await pathExists(join(root, projectPath));
+  if (expectedManifest === null) {
+    if (targetExists) throw new Error("ROLLBACK_SCOPE_CONFLICT: project target appeared before scaffold publication completed");
+  } else if (!targetExists) {
+    throw new Error("ROLLBACK_SCOPE_CONFLICT: generated project disappeared before rollback");
+  } else {
+    await assertScaffoldSourcesUnchanged(root, projectPath, expectedManifest);
+  }
 }
 
 export const DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS = 300_000;
@@ -108,13 +154,15 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
   let modulesLinked = false;
   let completed = false;
   let scaffoldLockfile: string | null = null;
+  let scaffoldManifest: string | null = null;
   try {
     await writeFile(specPath, `${JSON.stringify({ schemaVersion: 1, slug, business: spec.business, artDirection: spec.artDirection }, null, 2)}\n`);
     await command(root, "git", ["switch", "-c", branchName, spec.baseSha]);
     branchCreated = true;
     await command(root, process.execPath, ["scripts/scaffold-client.mjs", slug, "--project-spec", specPath]);
     scaffoldCreated = true;
-    scaffoldLockfile = await readFile(join(root, "pnpm-lock.yaml"), "utf8");
+    scaffoldLockfile = await readRegularFile(join(root, "pnpm-lock.yaml"), "workspace lockfile");
+    scaffoldManifest = await readScaffoldFile(root, projectPath, ".nexus/scaffold-manifest.json");
     try { await stat(join(root, "apps", "_experience-seed", "node_modules")); } catch { throw new Error("DEPENDENCY_UNAVAILABLE: workspace dependencies are not installed"); }
     await symlink(join("..", "_experience-seed", "node_modules"), projectModules, "dir");
     modulesLinked = true;
@@ -151,7 +199,7 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
           await rm(projectModules, { recursive: true, force: true });
           modulesLinked = false;
         }
-        await assertRollbackConfined(root, projectPath, scaffoldLockfile);
+        await assertRollbackConfined(root, projectPath, scaffoldLockfile, scaffoldManifest);
         await command(root, "git", ["reset", "--hard", spec.baseSha]);
         if (scaffoldCreated) await rm(join(root, projectPath), { recursive: true, force: true });
         if (originalBranch) await command(root, "git", ["switch", originalBranch]);
