@@ -72,8 +72,8 @@ export interface CrawlObservationInput {
   actor: CrawlActor;
   authority: ObservationAuthority;
   source: string;
-  responseTimeMs?: number;
-  redirectLocation?: string;
+  responseTimeMs?: number | null;
+  redirectLocation?: string | null;
   robotsAllowed?: boolean | null;
 }
 
@@ -311,8 +311,8 @@ export function parseObservationJsonLine(line: string): CrawlObservationInput {
     actor: value.actor as CrawlActor,
     authority: value.authority as ObservationAuthority,
     source: value.source as string,
-    responseTimeMs: value.responseTimeMs as number | undefined,
-    redirectLocation: value.redirectLocation as string | undefined,
+    responseTimeMs: value.responseTimeMs as number | null | undefined,
+    redirectLocation: value.redirectLocation as string | null | undefined,
     robotsAllowed: value.robotsAllowed as boolean | null | undefined,
   };
 }
