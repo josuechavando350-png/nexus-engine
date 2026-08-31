@@ -39,18 +39,30 @@ describe("reputation shield", () => {
     expect(verifyReputationShield(scope, "brand-a", sources, ["refund", "delay", "fraud"], report)).toBe(true);
   });
 
-  it("fails closed on cross-tenant evidence and mixed authorities", () => {
+  it("fails closed on cross-tenant evidence and forged live authority", () => {
     const other: CompetitiveScope = { tenantId: "tenant-b", organizationId: "org-b", brandId: "brand-b" };
     expect(() => analyzeReputationShield(scope, "brand-a", [source("one", ["refund"]), source("two", ["refund"], other)], ["refund"]))
       .toThrow(/scope mismatch/);
 
     const forged = structuredClone(source("one", ["refund"]));
+    expect(forged.observation.observationDigest).toMatch(/^[a-f0-9]{64}$/u);
     const core = { ...forged.observation, authority: "PUBLIC_HTTP_CAPTURE" as const };
-    const { observationDigest, ...withoutDigest } = core;
-    expect(observationDigest).toMatch(/^sha256:/);
+    const { observationDigest: _oldDigest, ...withoutDigest } = core;
     forged.observation = { ...withoutDigest, observationDigest: digest(withoutDigest) };
+    expect(forged.observation.observationDigest).toMatch(/^[a-f0-9]{64}$/u);
     expect(() => analyzeReputationShield(scope, "brand-a", [forged], ["refund"]))
       .toThrow(/attested|live/i);
+  });
+
+  it("fails closed on mixed observation authorities before producing a report", () => {
+    const controlled = source("one", ["refund"]);
+    const forgedLive = structuredClone(source("two", ["refund"]));
+    const core = { ...forgedLive.observation, authority: "PUBLIC_HTTP_CAPTURE" as const };
+    const { observationDigest: _oldDigest, ...withoutDigest } = core;
+    forgedLive.observation = { ...withoutDigest, observationDigest: digest(withoutDigest) };
+
+    expect(() => analyzeReputationShield(scope, "brand-a", [controlled, forgedLive], ["refund"]))
+      .toThrow(/attested|live|mixed/i);
   });
 
   it("detects replay/tamper and rejects duplicate or ambiguous monitored terms", () => {
