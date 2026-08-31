@@ -65,10 +65,10 @@ if (!inputPath && !envelopePath) {
     if (signal) {
       const decision = decide(signal, { denyEnabled });
       validateDecision(signal, decision, { denyEnabled });
-      const evidence = signal.provider === "CONTROLLED_TEST" ? "CONTROLLED_TEST" : "OBSERVED";
       process.stdout.write(`${JSON.stringify({
         status: "ASSESSED",
-        evidence,
+        evidence: "OBSERVED",
+        inputClass: signal.provider === "CONTROLLED_TEST" ? "CONTROLLED_TEST" : "RUNTIME_OR_LOG_INPUT",
         authority,
         decision,
         distributedReplayProtection: envelopePath ? "NOT_VERIFIED_PROCESS_LOCAL_ONLY" : "NOT_APPLICABLE",
