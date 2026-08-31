@@ -1,12 +1,16 @@
 {
   "name": "@nexus/search-console-ctr",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./intent-radar": "./src/intent-radar.ts",
+    "./intent-radar-runtime": "./src/intent-radar-runtime.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/search-console-ctr/src/index.test.ts",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+    "test": "vitest run --root ../.. packages/search-console-ctr/src/index.test.ts packages/search-console-ctr/src/intent-radar.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/intent-radar.js && test -f dist/intent-radar-runtime.js"
   }
 }
