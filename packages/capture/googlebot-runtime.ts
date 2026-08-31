@@ -377,7 +377,7 @@ export async function simulateGooglebotRender(urlInput: string, options: Googleb
         const html = await raceAbort(page.content(), options.signal, timeoutMs, "rendered HTML extraction");
         const htmlBytes = Buffer.byteLength(html, "utf8");
         if (htmlBytes > maxHtmlBytes) throw new Error(`rendered HTML exceeds ${maxHtmlBytes} bytes`);
-        const text = await raceAbort(page.locator("body").innerText({ timeout: Math.min(timeoutMs, 10_000) }).catch(() => ""), options.signal, timeoutMs, "rendered text extraction");
+        const text = await raceAbort(page.locator("body").innerText({ timeout: Math.min(timeoutMs, 10_000) }), options.signal, timeoutMs, "rendered text extraction");
         if (text.length > maxTextChars) throw new Error(`rendered text exceeds ${maxTextChars} characters`);
         const screenshot = await raceAbort(page.screenshot({ type: "png", fullPage: false, animations: "disabled" }), options.signal, timeoutMs, "render screenshot");
         if (screenshot.byteLength > maxScreenshotBytes) throw new Error(`render screenshot exceeds ${maxScreenshotBytes} bytes`);
