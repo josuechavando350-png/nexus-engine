@@ -196,9 +196,11 @@ function parseBrowserObservation(value: unknown): BrowserCapabilityObservation {
   const events = input.events;
   if (!Array.isArray(events)) throw new Error("browserObservation.events must be an array");
   if (events.length > MAX_RUNTIME_EVENTS) throw new Error(`browserObservation.events exceeds ${MAX_RUNTIME_EVENTS} entries`);
+  const authority = enumValue(input.authority, AUTHORITIES, "browserObservation.authority");
+  if (authority === "BROWSER_RUNTIME") throw new Error("untrusted request cannot assert BROWSER_RUNTIME authority");
 
   return {
-    authority: enumValue(input.authority, AUTHORITIES, "browserObservation.authority"),
+    authority,
     source: requiredString(input, "source", "browserObservation"),
     observedAt: requiredString(input, "observedAt", "browserObservation"),
     browser: requiredString(input, "browser", "browserObservation"),
