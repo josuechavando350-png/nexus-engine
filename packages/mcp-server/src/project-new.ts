@@ -7,8 +7,12 @@ import { readProjects } from "./projects.js";
 import { runProcess } from "./process.js";
 
 const CLIENT_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/u;
+const BRANCH_NAME_RE = /^nexus-mcp\/[a-z0-9][a-z0-9/_-]*$/u;
 const RESERVED_CLIENT_PREFIXES = ["_", "reference-", "v2-probe-", "probe-", "test-"] as const;
 const MAX_MANIFEST_PATH_LENGTH = 512;
+const MAX_BRANCH_NAME_LENGTH = 240;
+const MAX_COMMIT_MESSAGE_LENGTH = 200;
+const MAX_PROJECT_SPEC_BYTES = 256 * 1024;
 
 export interface ProjectSpec {
   slug: string;
@@ -54,6 +58,20 @@ async function pathExists(path: string): Promise<boolean> {
 function assertSafeClientSlug(value: string): string {
   if (typeof value !== "string" || value.length < 1 || value.length > 80 || !CLIENT_SLUG_RE.test(value) || value.includes("--") || RESERVED_CLIENT_PREFIXES.some((prefix) => value.startsWith(prefix))) {
     throw new Error("slug uses a reserved or invalid client-project name");
+  }
+  return value;
+}
+
+function assertSafeBranchName(value: string): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > MAX_BRANCH_NAME_LENGTH || !BRANCH_NAME_RE.test(value) || value.includes("..") || value.includes("//")) {
+    throw new Error("branchName violates the bounded nexus-mcp branch policy");
+  }
+  return value;
+}
+
+function assertSafeCommitMessage(value: string): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > MAX_COMMIT_MESSAGE_LENGTH || value !== value.trim() || value.includes("\0")) {
+    throw new Error("commitMessage must be trimmed, non-empty, NUL-free, and at most 200 characters");
   }
   return value;
 }
@@ -133,12 +151,13 @@ export const DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS = 300_000;
 
 export async function createProject(root: string, spec: ProjectSpec, executionTimeoutMs = DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS, maxOutputBytes = 8 * 1024 * 1024): Promise<ProjectCreation> {
   const slug = assertSafeClientSlug(spec.slug);
-  const branchName = spec.branchName ?? `nexus-mcp/${slug}`;
-  const commitMessage = spec.commitMessage ?? `feat(client): initialize ${slug}`;
+  const branchName = assertSafeBranchName(spec.branchName ?? `nexus-mcp/${slug}`);
+  const commitMessage = assertSafeCommitMessage(spec.commitMessage ?? `feat(client): initialize ${slug}`);
   const projectPath = `apps/${slug}`;
   const projectModules = join(root, projectPath, "node_modules");
   if (!/^[a-f0-9]{40}$/u.test(spec.baseSha)) throw new Error("baseSha must be an exact 40-character lowercase Git commit SHA");
-  if (!branchName.startsWith("nexus-mcp/")) throw new Error("branchName must start with nexus-mcp/");
+  const projectSpecJson = `${JSON.stringify({ schemaVersion: 1, slug, business: spec.business, artDirection: spec.artDirection }, null, 2)}\n`;
+  if (Buffer.byteLength(projectSpecJson, "utf8") > MAX_PROJECT_SPEC_BYTES) throw new Error(`project specification exceeds ${MAX_PROJECT_SPEC_BYTES} bytes`);
   await command(root, "git", ["check-ref-format", "--branch", branchName]);
   if (await pathExists(join(root, projectPath))) throw new Error(`TARGET_EXISTS: ${projectPath} already exists`);
   const originalHead = await command(root, "git", ["rev-parse", "HEAD"]);
@@ -156,7 +175,7 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
   let scaffoldLockfile: string | null = null;
   let scaffoldManifest: string | null = null;
   try {
-    await writeFile(specPath, `${JSON.stringify({ schemaVersion: 1, slug, business: spec.business, artDirection: spec.artDirection }, null, 2)}\n`);
+    await writeFile(specPath, projectSpecJson);
     await command(root, "git", ["switch", "-c", branchName, spec.baseSha]);
     branchCreated = true;
     await command(root, process.execPath, ["scripts/scaffold-client.mjs", slug, "--project-spec", specPath]);
@@ -206,9 +225,7 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
         else await command(root, "git", ["switch", "--detach", spec.baseSha]);
         await command(root, "git", ["branch", "-D", branchName]);
       } catch (rollbackCause) {
-        const primary = cause instanceof Error ? cause.message : String(cause);
-        const rollback = rollbackCause instanceof Error ? rollbackCause.message : String(rollbackCause);
-        throw new Error(`PROJECT_CREATION_ROLLBACK_FAILED: ${primary}; rollback: ${rollback}`, { cause: rollbackCause });
+        throw new Error("PROJECT_CREATION_ROLLBACK_FAILED: rollback could not be completed safely", { cause: rollbackCause });
       }
     }
     throw cause;
