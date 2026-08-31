@@ -1,5 +1,5 @@
 import { capturePublicPage, validateCompetitiveScope, type CompetitiveScope } from "./competitive-intelligence";
-import { analyzeReputationShield, type ReputationReport } from "./reputation-shield";
+import { analyzeReputationShield, normalizeMonitoredTerms, type ReputationReport } from "./reputation-shield";
 
 const MAX_SOURCES = 50;
 const MAX_ID = 200;
@@ -27,6 +27,7 @@ export async function runReputationShield(request: ReputationRuntimeRequest, sig
   if (!request || typeof request !== "object") throw new Error("reputation runtime request must be an object");
   const scope = validateCompetitiveScope(request.scope);
   const subjectId = clean("subjectId", request.subjectId, MAX_ID);
+  const monitoredTerms = normalizeMonitoredTerms(request.monitoredTerms);
   if (!Array.isArray(request.sources) || request.sources.length < 1 || request.sources.length > MAX_SOURCES) {
     throw new Error(`sources must contain 1 to ${MAX_SOURCES} entries`);
   }
@@ -35,6 +36,7 @@ export async function runReputationShield(request: ReputationRuntimeRequest, sig
   for (let index = 0; index < request.sources.length; index += 1) {
     if (signal?.aborted) throw signal.reason instanceof Error ? signal.reason : new Error("reputation shield cancelled");
     const source = request.sources[index]!;
+    if (!source || typeof source !== "object") throw new Error(`sources[${index}] must be an object`);
     const id = clean(`sources[${index}].id`, source.id, MAX_ID);
     if (ids.has(id)) throw new Error("reputation source ids must be unique");
     ids.add(id);
@@ -42,5 +44,5 @@ export async function runReputationShield(request: ReputationRuntimeRequest, sig
     const url = clean(`sources[${index}].url`, source.url, MAX_URL);
     observations.push({ id, label, observation: await capturePublicPage(url, request.observedAt, { scope, timeoutMs: request.timeoutMs, signal }) });
   }
-  return analyzeReputationShield(scope, subjectId, observations, request.monitoredTerms);
+  return analyzeReputationShield(scope, subjectId, observations, monitoredTerms);
 }
