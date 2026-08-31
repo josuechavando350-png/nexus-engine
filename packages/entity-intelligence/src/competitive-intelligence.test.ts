@@ -87,8 +87,13 @@ describe("competitive intelligence", () => {
     await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, signal: controller.signal })).rejects.toThrow();
   });
 
-  it("times out while reading a stalled response body even when the injected transport ignores abort", async () => {
-    const fetchImpl = vi.fn(async () => new Response(new ReadableStream<Uint8Array>({ start() { /* intentionally stalled */ } }), { status: 200 })) as unknown as typeof fetch;
-    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
+  it("fails closed when timeout or caller cancellation interrupts a stalled response body", async () => {
+    const stalledFetch = vi.fn(async () => new Response(new ReadableStream<Uint8Array>({ start() { /* intentionally stalled */ } }), { status: 200 })) as unknown as typeof fetch;
+    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl: stalledFetch, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
+
+    const controller = new AbortController();
+    const capture = capturePublicPage("https://example.com/", observedAt, { fetchImpl: stalledFetch, lookup: publicLookup, signal: controller.signal });
+    setTimeout(() => controller.abort(new Error("caller cancelled stalled body")), 10);
+    await expect(capture).rejects.toThrow(/caller cancelled stalled body/);
   });
 });
