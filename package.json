@@ -29,6 +29,7 @@
     "nexus": "node scripts/nexus.mjs",
     "scaffold": "node scripts/scaffold-client.mjs",
     "third-party-proof": "node scripts/third-party-proof.mjs",
+    "verify:speculative-delivery": "pnpm --filter @nexus/transport-http3 build && node scripts/verify-speculative-delivery.mjs",
     "release:validate": "pnpm security-hygiene && pnpm v3-gates && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm operability:h07 && pnpm third-party-proof",
     "v3-gates": "node scripts/run-v3-gates.mjs",
     "rust:test": "cargo test --locked --workspace --manifest-path runtime/Cargo.toml",
