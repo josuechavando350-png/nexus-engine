@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { digest } from "./index";
 import { createControlledPublicPageObservation, type CompetitiveScope } from "./competitive-intelligence";
+import { runReputationShield } from "./reputation-shield-runtime";
 import { analyzeReputationShield, verifyReputationShield } from "./reputation-shield";
 
 const scope: CompetitiveScope = { tenantId: "tenant-a", organizationId: "org-a", brandId: "brand-a" };
@@ -66,7 +67,7 @@ describe("reputation shield", () => {
   });
 
   it("detects replay/tamper and rejects duplicate or ambiguous monitored terms", () => {
-    const sources = [source("one", ["refund"]), source("two", ["delay"])];
+    const sources = [source("one", ["refund"]), source("two", ["delay"] )];
     const report = analyzeReputationShield(scope, "brand-a", sources, ["refund", "delay"]);
     const tampered = structuredClone(report);
     (tampered.signals[0] as { sourceCount: number }).sourceCount = 99;
@@ -79,5 +80,36 @@ describe("reputation shield", () => {
     expect(() => analyzeReputationShield(scope, "brand-a", [], ["refund"])).toThrow(/1 to 50/);
     expect(() => analyzeReputationShield(scope, "brand-a", [source("one", ["refund"]), source("one", ["delay"])], ["refund"]))
       .toThrow(/unique/);
+  });
+
+  it("validates tenant scope before the production runtime can capture public pages", async () => {
+    await expect(runReputationShield({
+      scope: { tenantId: "", organizationId: "org-a", brandId: "brand-a" },
+      subjectId: "brand-a",
+      observedAt,
+      sources: [{ id: "one", label: "One", url: "http://127.0.0.1/private" }],
+      monitoredTerms: ["refund"],
+    })).rejects.toThrow(/scope\.tenantId/);
+  });
+
+  it("fails closed before transport on cancellation and invalid timeout budgets", async () => {
+    const controller = new AbortController();
+    controller.abort(new Error("operator cancelled reputation run"));
+    await expect(runReputationShield({
+      scope,
+      subjectId: "brand-a",
+      observedAt,
+      sources: [{ id: "one", label: "One", url: "https://example.com/" }],
+      monitoredTerms: ["refund"],
+    }, controller.signal)).rejects.toThrow(/operator cancelled reputation run/);
+
+    await expect(runReputationShield({
+      scope,
+      subjectId: "brand-a",
+      observedAt,
+      sources: [{ id: "one", label: "One", url: "https://example.com/" }],
+      monitoredTerms: ["refund"],
+      timeoutMs: 30_001,
+    })).rejects.toThrow(/timeoutMs must be an integer from 100 to 30000/);
   });
 });
