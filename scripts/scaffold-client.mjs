@@ -1,11 +1,20 @@
 #!/usr/bin/env node
 import { createHash } from "node:crypto";
-import { basename, join, relative } from "node:path";
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { basename, dirname, join, relative } from "node:path";
+import { cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { addWorkspaceImporterFromSeed, assertClientSlug, compileProjectSources, parseProjectSpecification } from "./project-spec-contract.mjs";
+
+const MAX_PROJECT_SPEC_BYTES = 256 * 1024;
 
 function usage() {
   throw new Error("usage: node scripts/scaffold-client.mjs <kebab-case-name> --project-spec <json-path>");
+}
+
+function regularFile(path, label, maxBytes) {
+  if (!existsSync(path)) throw new Error(`${label} is missing`);
+  const stats = lstatSync(path);
+  if (stats.isSymbolicLink() || !stats.isFile()) throw new Error(`${label} must be a regular file`);
+  if (maxBytes !== undefined && stats.size > maxBytes) throw new Error(`${label} exceeds ${maxBytes} bytes`);
 }
 
 const [rawName, specFlag, specPath, ...extra] = process.argv.slice(2);
@@ -15,9 +24,10 @@ const root = process.cwd();
 const source = join(root, "apps", "_experience-seed");
 const target = join(root, "apps", name);
 const lockfilePath = join(root, "pnpm-lock.yaml");
-if (!existsSync(source) || !statSync(source).isDirectory()) throw new Error("apps/_experience-seed is missing");
+if (!existsSync(source) || lstatSync(source).isSymbolicLink() || !lstatSync(source).isDirectory()) throw new Error("apps/_experience-seed must be a real directory");
 if (existsSync(target)) throw new Error(`target already exists: apps/${name}`);
-if (!existsSync(lockfilePath) || !statSync(lockfilePath).isFile()) throw new Error("pnpm-lock.yaml is required for a client scaffold");
+regularFile(lockfilePath, "pnpm-lock.yaml");
+regularFile(specPath, "project specification", MAX_PROJECT_SPEC_BYTES);
 
 let parsed;
 try { parsed = JSON.parse(readFileSync(specPath, "utf8")); }
@@ -35,7 +45,8 @@ const excluded = new Set([".next", "node_modules", "dist", "coverage", "tsconfig
 const replaceTokens = (directory) => {
   for (const entry of readdirSync(directory).sort((a, b) => a.localeCompare(b, "en"))) {
     const path = join(directory, entry);
-    const stats = statSync(path);
+    const stats = lstatSync(path);
+    if (stats.isSymbolicLink()) throw new Error(`symbolic links are forbidden in client scaffolds: ${relative(staging, path)}`);
     if (stats.isDirectory()) replaceTokens(path);
     else if (stats.isFile()) {
       const bytes = readFileSync(path);
@@ -47,7 +58,8 @@ const replaceTokens = (directory) => {
 const walkFiles = (directory, output = []) => {
   for (const entry of readdirSync(directory).sort((a, b) => a.localeCompare(b, "en"))) {
     const path = join(directory, entry);
-    const stats = statSync(path);
+    const stats = lstatSync(path);
+    if (stats.isSymbolicLink()) throw new Error(`symbolic links are forbidden in client scaffolds: ${relative(staging, path)}`);
     if (stats.isDirectory()) walkFiles(path, output);
     else if (stats.isFile()) output.push(path);
   }
@@ -58,6 +70,7 @@ try {
   cpSync(source, staging, {
     recursive: true,
     preserveTimestamps: false,
+    dereference: false,
     filter: (path) => path === source || !excluded.has(basename(path)),
   });
   replaceTokens(staging);
@@ -74,7 +87,7 @@ try {
   writeFileSync(join(staging, ".nexus", "compiled-project.json"), `${JSON.stringify(compiled.evidence, null, 2)}\n`);
   for (const [relativePath, content] of compiled.files.entries()) {
     const path = join(staging, relativePath);
-    mkdirSync(join(path, ".."), { recursive: true });
+    mkdirSync(dirname(path), { recursive: true });
     writeFileSync(path, content);
   }
 
@@ -91,7 +104,7 @@ try {
     files: manifest,
   }, null, 2)}\n`);
 
-  writeFileSync(lockfileStaging, nextLockfile);
+  writeFileSync(lockfileStaging, nextLockfile, { flag: "wx" });
   if (existsSync(target)) throw new Error(`target already exists: apps/${name}`);
   renameSync(staging, target);
   published = true;
