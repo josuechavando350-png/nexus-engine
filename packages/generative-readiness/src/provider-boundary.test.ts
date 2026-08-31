@@ -57,7 +57,7 @@ describe("provider-neutral advisory boundary", () => {
     expect(verifyAdvisoryProposal(scope, { ...item, instruction: "tampered" })).toBe(false);
     expect(verifyAdvisoryProposal({ ...scope, tenantId: "tenant-b" }, item)).toBe(false);
     const rt = runtime(governance(), executor(), ["ANTHROPIC_CLAUDE"]);
-    const cross = createAdvisoryProposal({ ...item, scope: { ...scope, tenantId: "tenant-b" } });
+    const cross = createAdvisoryProposal({ scope: { ...scope, tenantId: "tenant-b" }, provider: item.provider, instruction: item.instruction, createdAt: item.createdAt });
     await expect(rt.execute({ proposal: cross, approval: approval(cross), idempotencyKey: "cross", now })).rejects.toThrow(/scope\/integrity/u);
     const stale = createAdvisoryProposal({ scope, provider: "ANTHROPIC_CLAUDE", instruction: "old", createdAt: "2026-08-31T14:00:00.000Z" });
     await expect(rt.execute({ proposal: stale, approval: approval(stale), idempotencyKey: "stale", now })).rejects.toThrow(/stale/u);
