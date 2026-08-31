@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./speculative-delivery": "./src/speculative-delivery.ts",
+    "./bbrv3": "./src/bbrv3.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/transport-http3/src/index.test.ts",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+    "test": "vitest run --root ../.. packages/transport-http3/src/*.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/speculative-delivery.js && test -f dist/speculative-delivery.d.ts && test -f dist/bbrv3.js && test -f dist/bbrv3.d.ts"
   }
 }
