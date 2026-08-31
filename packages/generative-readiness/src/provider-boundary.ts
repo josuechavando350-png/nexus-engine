@@ -28,7 +28,14 @@ function canonicalTime(value: string): string {
   return iso;
 }
 
+function sameScope(left: PresenceScope, right: PresenceScope): boolean {
+  return left.tenantId === right.tenantId && left.organizationId === right.organizationId && left.brandId === right.brandId;
+}
+
 export function createAdvisoryProposal(input: Omit<AdvisoryProposal, "formatVersion" | "proposalDigest">): AdvisoryProposal {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("advisory proposal input must be an object");
+  const allowed = new Set(["scope", "provider", "instruction", "createdAt"]);
+  for (const key of Object.keys(input as object)) if (!allowed.has(key)) throw new Error(`unknown advisory proposal field: ${key}`);
   const scope = validatePresenceScope(input.scope);
   if (!(["ANTHROPIC_CLAUDE", "OPENAI_CHATGPT", "OTHER"] as const).includes(input.provider)) throw new Error("unsupported advisory provider");
   const core = {
@@ -41,10 +48,16 @@ export function createAdvisoryProposal(input: Omit<AdvisoryProposal, "formatVers
   return Object.freeze({ ...core, proposalDigest: digestValue(core) });
 }
 
-export function verifyAdvisoryProposal(proposal: AdvisoryProposal): boolean {
+export function verifyAdvisoryProposal(expectedScope: PresenceScope, proposal: AdvisoryProposal): boolean {
   try {
-    const rebuilt = createAdvisoryProposal(proposal);
-    return canonicalJson(rebuilt) === canonicalJson(proposal);
+    const scope = validatePresenceScope(expectedScope);
+    const rebuilt = createAdvisoryProposal({
+      scope: proposal.scope,
+      provider: proposal.provider,
+      instruction: proposal.instruction,
+      createdAt: proposal.createdAt,
+    });
+    return sameScope(scope, rebuilt.scope) && canonicalJson(rebuilt) === canonicalJson(proposal);
   } catch {
     return false;
   }
