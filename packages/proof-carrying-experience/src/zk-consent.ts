@@ -15,6 +15,7 @@ export type ZkConsentStatus =
   | "NOT_VERIFIED"
   | "UNAVAILABLE"
   | "INVALID_BINDING"
+  | "UNTRUSTED_VERIFIER"
   | "REPLAYED"
   | "TIMEOUT"
   | "CANCELLED";
@@ -51,10 +52,16 @@ export interface ReplayGuard {
   consume(input: { tenantId: string; scope: string; nonceDigest: string }): Promise<boolean>;
 }
 
+/** Authorizes only verifier-key digests provisioned for this exact tenant/scope/action. */
+export interface VerificationKeyPolicy {
+  authorize(input: { tenantId: string; scope: string; action: string; verificationKeyDigest: string }): Promise<boolean>;
+}
+
 export interface ZkConsentVerifierOptions {
   executable?: string;
   timeoutMs?: number;
   replayGuard: ReplayGuard;
+  verificationKeyPolicy: VerificationKeyPolicy;
 }
 
 interface ProcessResult {
@@ -179,11 +186,13 @@ export class SnarkjsGroth16ConsentVerifier {
   readonly executable: string;
   readonly timeoutMs: number;
   readonly replayGuard: ReplayGuard;
+  readonly verificationKeyPolicy: VerificationKeyPolicy;
 
   constructor(options: ZkConsentVerifierOptions) {
     this.executable = options.executable ?? "snarkjs";
     this.timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
     this.replayGuard = options.replayGuard;
+    this.verificationKeyPolicy = options.verificationKeyPolicy;
     if (this.timeoutMs < 100 || this.timeoutMs > MAX_TIMEOUT_MS) throw new Error("timeoutMs is outside the permitted range");
     if (!/^[A-Za-z0-9._/\\:-]{1,512}$/u.test(this.executable)) throw new Error("executable is invalid");
   }
@@ -215,6 +224,15 @@ export class SnarkjsGroth16ConsentVerifier {
 
     if (publicSignals[0] !== bindingSignal) {
       return { ...base, status: "INVALID_BINDING", toolchainVersion: null, reason: "first public signal does not bind tenant/scope/action/nonce/payload" };
+    }
+    const trustedKey = await this.verificationKeyPolicy.authorize({
+      tenantId: request.tenantId,
+      scope: request.scope,
+      action: request.action,
+      verificationKeyDigest: base.verificationKeyDigest,
+    });
+    if (!trustedKey) {
+      return { ...base, status: "UNTRUSTED_VERIFIER", toolchainVersion: null, reason: "verification key digest is not provisioned for tenant/scope/action" };
     }
     if (signal?.aborted) return { ...base, status: "CANCELLED", toolchainVersion: null, reason: "verification cancelled before execution" };
 
@@ -252,15 +270,13 @@ export class SnarkjsGroth16ConsentVerifier {
         return { ...base, status: "NOT_VERIFIED", toolchainVersion, reason: "snarkjs did not emit an affirmative verification result" };
       }
 
-      // Consume only after cryptographic verification. Atomic consume prevents concurrent/replayed operations,
-      // while an invalid proof cannot burn a valid nonce and deny a later legitimate consent.
       const replayAccepted = await this.replayGuard.consume({
         tenantId: request.tenantId,
         scope: request.scope,
         nonceDigest: base.nonceDigest,
       });
       if (!replayAccepted) return { ...base, status: "REPLAYED", toolchainVersion, reason: "nonce was already consumed for tenant/scope" };
-      return { ...base, status: "VERIFIED", toolchainVersion, reason: "real snarkjs Groth16 verifier accepted the bound proof" };
+      return { ...base, status: "VERIFIED", toolchainVersion, reason: "trusted real snarkjs Groth16 verifier accepted the bound proof" };
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
