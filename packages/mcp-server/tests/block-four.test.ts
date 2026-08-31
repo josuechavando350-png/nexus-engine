@@ -36,6 +36,16 @@ async function initializeCreationFixture(prefix: string): Promise<{ root: string
   return { root, baseSha, originalLockfile: await readFile(join(root, "pnpm-lock.yaml"), "utf8") };
 }
 
+async function withFakePnpm(script: string, action: () => Promise<void>): Promise<void> {
+  const fakeBin = await mkdtemp(join(tmpdir(), "nexus-fake-pnpm-")); roots.push(fakeBin);
+  const fakePnpm = join(fakeBin, "pnpm");
+  await writeFile(fakePnpm, `#!/usr/bin/env node\n${script}\n`);
+  await chmod(fakePnpm, 0o755);
+  const previousPath = process.env.PATH;
+  process.env.PATH = `${fakeBin}${delimiter}${previousPath ?? ""}`;
+  try { await action(); } finally { process.env.PATH = previousPath; }
+}
+
 describe("block four project creation", () => {
   it("compiles supplied facts and art direction into a non-placeholder client app plus lockfile importer", async () => {
     const root = await mkdtemp(join(tmpdir(), "nexus-scaffold-test-")); roots.push(root);
@@ -99,22 +109,35 @@ describe("block four project creation", () => {
   it("refuses destructive rollback when unrelated work appears during creation", async () => {
     const { root, baseSha } = await initializeCreationFixture("nexus-project-conflict-");
     await mkdir(join(root, "apps/_experience-seed/node_modules"), { recursive: true });
-    const fakeBin = await mkdtemp(join(tmpdir(), "nexus-fake-pnpm-")); roots.push(fakeBin);
-    const fakePnpm = join(fakeBin, "pnpm");
-    await writeFile(fakePnpm, "#!/usr/bin/env node\nrequire('node:fs').writeFileSync('unrelated.txt', 'must survive rollback'); process.exit(1);\n");
-    await chmod(fakePnpm, 0o755);
-    const previousPath = process.env.PATH;
-    process.env.PATH = `${fakeBin}${delimiter}${previousPath ?? ""}`;
-    try {
+    await withFakePnpm("require('node:fs').writeFileSync('unrelated.txt', 'must survive rollback'); process.exit(1);", async () => {
       await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/PROJECT_CREATION_ROLLBACK_FAILED/);
-    } finally {
-      process.env.PATH = previousPath;
-    }
+    });
 
     expect(await readFile(join(root, "unrelated.txt"), "utf8")).toBe("must survive rollback");
     expect((await exec("git", ["branch", "--show-current"], { cwd: root })).stdout.trim()).toBe(`nexus-mcp/${spec.slug}`);
     expect(await readFile(join(root, `apps/${spec.slug}/.nexus/scaffold-manifest.json`), "utf8")).toContain("NEXUS_SCAFFOLD_V2");
     expect(await readFile(join(root, "pnpm-lock.yaml"), "utf8")).toContain(`  apps/${spec.slug}:\n`);
+  }, 20_000);
+
+  it("preserves ignored files that appear inside the project during a failed mutation", async () => {
+    const { root, baseSha } = await initializeCreationFixture("nexus-project-ignored-conflict-");
+    await mkdir(join(root, "apps/_experience-seed/node_modules"), { recursive: true });
+    await withFakePnpm(`require('node:fs').writeFileSync('apps/${spec.slug}/.env.local', 'external-data'); process.exit(1);`, async () => {
+      await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/PROJECT_CREATION_ROLLBACK_FAILED/);
+    });
+    expect(await readFile(join(root, `apps/${spec.slug}/.env.local`), "utf8")).toBe("external-data");
+    expect((await exec("git", ["branch", "--show-current"], { cwd: root })).stdout.trim()).toBe(`nexus-mcp/${spec.slug}`);
+  }, 20_000);
+
+  it("never recursively deletes a replaced node_modules link during rollback", async () => {
+    const { root, baseSha } = await initializeCreationFixture("nexus-project-link-conflict-");
+    await mkdir(join(root, "apps/_experience-seed/node_modules"), { recursive: true });
+    const mutation = `const fs=require('node:fs'); const p='apps/${spec.slug}/node_modules'; fs.unlinkSync(p); fs.mkdirSync(p); fs.writeFileSync(p+'/preserve.txt','external-data'); process.exit(1);`;
+    await withFakePnpm(mutation, async () => {
+      await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/PROJECT_CREATION_ROLLBACK_FAILED/);
+    });
+    expect(await readFile(join(root, `apps/${spec.slug}/node_modules/preserve.txt`), "utf8")).toBe("external-data");
+    expect((await exec("git", ["branch", "--show-current"], { cwd: root })).stdout.trim()).toBe(`nexus-mcp/${spec.slug}`);
   }, 20_000);
 
   it("reports rollback failure as FAIL even when the primary failure was dependency unavailability", async () => {
