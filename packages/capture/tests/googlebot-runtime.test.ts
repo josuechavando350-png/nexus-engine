@@ -9,7 +9,7 @@ describe("Googlebot runtime safety", () => {
     });
     expect(evidence.status).toBe("UNAVAILABLE");
     expect(evidence.source).toBe("OBSERVED_HTTP_FETCH");
-    expect(evidence.reason).toMatch(/private or reserved IPv4 target is blocked/);
+    expect(evidence.reason).toMatch(/private or reserved ipv4 target is blocked/i);
     expect(evidence.htmlDigest).toBeNull();
   });
 
