@@ -153,7 +153,7 @@ export async function capturePublicPage(
       if (controller.signal.aborted) throw abortError(controller.signal);
       let response: Response;
       if (controlledTransport) {
-        await resolvePublicAddress(current, options.lookup);
+        await resolvePublicAddress(current, options.lookup, controller.signal);
         response = await (options.fetchImpl ?? fetch)(current, { method: "GET", redirect: "manual", signal: controller.signal });
       } else {
         response = await requestPinnedPublicUrl(current, controller.signal);
