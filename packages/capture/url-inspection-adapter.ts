@@ -1,3 +1,4 @@
+import { domainToASCII } from "node:url";
 import {
   canonicalGooglebotJson,
   canonicalGooglebotTimestamp,
@@ -28,6 +29,7 @@ const MAX_TIMEOUT_MS = 60_000;
 const DEFAULT_MAX_RESPONSE_BYTES = 2 * 1024 * 1024;
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const TOOL_VERSION = "nexus-search-console-url-inspection/1.0.0";
+const URL_INSPECTION_USER_AGENT = "NOT_EXPOSED_BY_URL_INSPECTION_API";
 
 function boundedInteger(value: number | undefined, fallback: number, field: string, min: number, max: number): number {
   const resolved = value ?? fallback;
@@ -71,16 +73,20 @@ function canonicalSiteUrl(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) throw new Error("siteUrl is required");
   if (trimmed.startsWith("sc-domain:")) {
-    const domain = trimmed.slice("sc-domain:".length).toLowerCase();
-    if (!domain || domain.length > 253 || domain.includes("/") || domain.includes(":") || domain.startsWith(".") || domain.endsWith(".")) {
-      throw new Error("sc-domain siteUrl is invalid");
-    }
+    const rawDomain = trimmed.slice("sc-domain:".length).toLowerCase();
+    const domain = domainToASCII(rawDomain);
+    if (!domain || domain.length > 253 || domain.includes("..") || domain.startsWith(".") || domain.endsWith(".")) throw new Error("sc-domain siteUrl is invalid");
     return `sc-domain:${domain}`;
   }
-  const url = new URL(canonicalGooglebotUrl(trimmed));
+  let rawUrl: URL;
+  try {
+    rawUrl = new URL(trimmed);
+  } catch {
+    throw new Error("URL-prefix siteUrl must be an absolute HTTP(S) URL");
+  }
+  if (rawUrl.search || rawUrl.hash || rawUrl.username || rawUrl.password) throw new Error("URL-prefix siteUrl cannot contain credentials, query, or fragment");
+  const url = new URL(canonicalGooglebotUrl(rawUrl.toString()));
   if (!url.pathname.endsWith("/")) throw new Error("URL-prefix siteUrl must include a trailing slash");
-  url.hash = "";
-  url.search = "";
   return url.toString();
 }
 
@@ -98,7 +104,15 @@ function assertInspectionWithinProperty(inspectionUrl: string, siteUrl: string):
   }
 }
 
+function isJsonContentType(value: string | null): boolean {
+  if (value === null) return false;
+  const mediaType = value.split(";", 1)[0]?.trim().toLowerCase();
+  return mediaType === "application/json" || Boolean(mediaType?.endsWith("+json"));
+}
+
 async function readBoundedJson(response: Response, maxBytes: number, signal: AbortSignal | undefined): Promise<unknown> {
+  const contentLength = response.headers.get("content-length");
+  if (contentLength !== null && /^\d+$/u.test(contentLength) && Number(contentLength) > maxBytes) throw new Error(`Search Console API response Content-Length exceeds ${maxBytes} bytes`);
   if (response.body === null) throw new Error("Search Console API response body is empty");
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -180,7 +194,7 @@ function unavailable(
     status,
     url: inspectionUrl,
     observedAt: observedAt(options.clock),
-    userAgent: "Google Search Console URL Inspection API",
+    userAgent: URL_INSPECTION_USER_AGENT,
     toolVersion: safeToolVersion(options.toolVersion),
     htmlDigest: null,
     textDigest: null,
@@ -223,21 +237,28 @@ export async function inspectUrlWithSearchConsole(
       const status = response.status === 401 || response.status === 403 || response.status === 429 || response.status >= 500 ? "UNAVAILABLE" : "NOT_VERIFIED";
       return unavailable(inspectionUrl, `Search Console URL Inspection API returned HTTP ${response.status}`, options, status);
     }
-    const payload = await readBoundedJson(response, maxResponseBytes, controller.signal);
-    const metadata = inspectionMetadata(payload);
-    return normalizeGooglebotRenderSnapshot({
-      source: "GOOGLE_SEARCH_CONSOLE_API",
-      status: "GOOGLE_API_OBSERVED",
-      url: inspectionUrl,
-      observedAt: observedAt(options.clock),
-      userAgent: "Google Search Console URL Inspection API",
-      toolVersion: safeToolVersion(options.toolVersion),
-      htmlDigest: null,
-      textDigest: null,
-      screenshotDigest: null,
-      apiPayloadDigest: googlebotEvidenceDigest(payload),
-      metadata,
-    });
+    if (!isJsonContentType(response.headers.get("content-type"))) return unavailable(inspectionUrl, "Search Console URL Inspection API returned a non-JSON Content-Type", options, "NOT_VERIFIED");
+
+    try {
+      const payload = await readBoundedJson(response, maxResponseBytes, controller.signal);
+      const metadata = inspectionMetadata(payload);
+      return normalizeGooglebotRenderSnapshot({
+        source: "GOOGLE_SEARCH_CONSOLE_API",
+        status: "GOOGLE_API_OBSERVED",
+        url: inspectionUrl,
+        observedAt: observedAt(options.clock),
+        userAgent: URL_INSPECTION_USER_AGENT,
+        toolVersion: safeToolVersion(options.toolVersion),
+        htmlDigest: null,
+        textDigest: null,
+        screenshotDigest: null,
+        apiPayloadDigest: googlebotEvidenceDigest(payload),
+        metadata,
+      });
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : "Search Console API response could not be verified";
+      return unavailable(inspectionUrl, reason, options, /cancelled|abort|timed out/iu.test(reason) ? "UNAVAILABLE" : "NOT_VERIFIED");
+    }
   } catch (error) {
     return unavailable(
       inspectionUrl,
