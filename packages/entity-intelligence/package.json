@@ -1,22 +1,25 @@
 {
   "name": "@nexus/entity-intelligence",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "private": true,
   "type": "module",
   "bin": {
     "nexus-competitive-intelligence": "./dist/competitive-intelligence-cli.js",
-    "nexus-reputation-shield": "./dist/reputation-shield-cli.js"
+    "nexus-reputation-shield": "./dist/reputation-shield-cli.js",
+    "nexus-pricing-intelligence": "./dist/pricing-intelligence-cli.js"
   },
   "exports": {
     ".": "./src/index.ts",
     "./competitive-intelligence": "./src/competitive-intelligence.ts",
     "./competitive-intelligence-runtime": "./src/competitive-intelligence-runtime.ts",
     "./reputation-shield": "./src/reputation-shield.ts",
-    "./reputation-shield-runtime": "./src/reputation-shield-runtime.ts"
+    "./reputation-shield-runtime": "./src/reputation-shield-runtime.ts",
+    "./pricing-intelligence": "./src/pricing-intelligence.ts",
+    "./pricing-intelligence-runtime": "./src/pricing-intelligence-runtime.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/entity-intelligence/src/index.test.ts packages/entity-intelligence/src/competitive-intelligence.test.ts packages/entity-intelligence/src/reputation-shield.test.ts",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/competitive-intelligence.js && test -f dist/competitive-intelligence.d.ts && test -f dist/competitive-intelligence-runtime.js && test -f dist/competitive-intelligence-cli.js && test -f dist/reputation-shield.js && test -f dist/reputation-shield.d.ts && test -f dist/reputation-shield-runtime.js && test -f dist/reputation-shield-cli.js"
+    "test": "vitest run --root ../.. packages/entity-intelligence/src/index.test.ts packages/entity-intelligence/src/competitive-intelligence.test.ts packages/entity-intelligence/src/reputation-shield.test.ts packages/entity-intelligence/src/pricing-intelligence.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/competitive-intelligence.js && test -f dist/competitive-intelligence.d.ts && test -f dist/competitive-intelligence-runtime.js && test -f dist/competitive-intelligence-cli.js && test -f dist/reputation-shield.js && test -f dist/reputation-shield.d.ts && test -f dist/reputation-shield-runtime.js && test -f dist/reputation-shield-cli.js && test -f dist/pricing-intelligence.js && test -f dist/pricing-intelligence.d.ts && test -f dist/pricing-intelligence-runtime.js && test -f dist/pricing-intelligence-cli.js"
   }
 }
