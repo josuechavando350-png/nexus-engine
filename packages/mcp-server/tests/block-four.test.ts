@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
-import { cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { chmod, cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
@@ -19,6 +19,22 @@ const spec = {
   business: { name: "Fixture Client", industry: "Hospitality", location: "Mérida", contact: { email: "hello@example.com" }, confirmedServices: [{ name: "Reservations" }] },
   artDirection: { palette: [{ hex: "#112233", role: "surface", rationale: "Quiet base" }, { hex: "#DDAA22", role: "accent", rationale: "Warm emphasis" }], typography: { display: "Editorial serif", body: "Humanist sans", rationale: "Clear hierarchy" }, heroComposition: { direction: "Asymmetric split", rationale: "Prioritize place" }, sectionRhythm: { direction: "Alternating dense and open", rationale: "Measured pacing" }, motion: { direction: "Short reveals", reducedMotionBehavior: "No transforms", rationale: "Preserve orientation" }, prohibitions: ["No invented reviews"] },
 };
+
+async function initializeCreationFixture(prefix: string): Promise<{ root: string; baseSha: string; originalLockfile: string }> {
+  const root = await mkdtemp(join(tmpdir(), prefix)); roots.push(root);
+  await cp(join(repositoryRoot, "apps/_experience-seed"), join(root, "apps/_experience-seed"), { recursive: true, filter: (source) => !source.includes("/.next/") && !source.includes("/node_modules/") });
+  await mkdir(join(root, "scripts"), { recursive: true });
+  await cp(join(repositoryRoot, "scripts/scaffold-client.mjs"), join(root, "scripts/scaffold-client.mjs"));
+  await cp(join(repositoryRoot, "scripts/project-spec-contract.mjs"), join(root, "scripts/project-spec-contract.mjs"));
+  await cp(join(repositoryRoot, "pnpm-lock.yaml"), join(root, "pnpm-lock.yaml"));
+  await exec("git", ["init", "-b", "work"], { cwd: root });
+  await exec("git", ["config", "user.email", "nexus-test@example.com"], { cwd: root });
+  await exec("git", ["config", "user.name", "NEXUS Test"], { cwd: root });
+  await exec("git", ["add", "."], { cwd: root });
+  await exec("git", ["commit", "-m", "fixture"], { cwd: root });
+  const baseSha = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
+  return { root, baseSha, originalLockfile: await readFile(join(root, "pnpm-lock.yaml"), "utf8") };
+}
 
 describe("block four project creation", () => {
   it("compiles supplied facts and art direction into a non-placeholder client app plus lockfile importer", async () => {
@@ -59,19 +75,7 @@ describe("block four project creation", () => {
   });
 
   it("rolls back branch, files and lockfile when creation fails after scaffold publication", async () => {
-    const root = await mkdtemp(join(tmpdir(), "nexus-project-rollback-")); roots.push(root);
-    await cp(join(repositoryRoot, "apps/_experience-seed"), join(root, "apps/_experience-seed"), { recursive: true, filter: (source) => !source.includes("/.next/") && !source.includes("/node_modules/") });
-    await mkdir(join(root, "scripts"), { recursive: true });
-    await cp(join(repositoryRoot, "scripts/scaffold-client.mjs"), join(root, "scripts/scaffold-client.mjs"));
-    await cp(join(repositoryRoot, "scripts/project-spec-contract.mjs"), join(root, "scripts/project-spec-contract.mjs"));
-    await cp(join(repositoryRoot, "pnpm-lock.yaml"), join(root, "pnpm-lock.yaml"));
-    await exec("git", ["init", "-b", "work"], { cwd: root });
-    await exec("git", ["config", "user.email", "nexus-test@example.com"], { cwd: root });
-    await exec("git", ["config", "user.name", "NEXUS Test"], { cwd: root });
-    await exec("git", ["add", "."], { cwd: root });
-    await exec("git", ["commit", "-m", "fixture"], { cwd: root });
-    const baseSha = (await exec("git", ["rev-parse", "HEAD"], { cwd: root })).stdout.trim();
-    const originalLockfile = await readFile(join(root, "pnpm-lock.yaml"), "utf8");
+    const { root, baseSha, originalLockfile } = await initializeCreationFixture("nexus-project-rollback-");
 
     await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/DEPENDENCY_UNAVAILABLE/);
 
@@ -81,6 +85,33 @@ describe("block four project creation", () => {
     expect((await exec("git", ["branch", "--list", `nexus-mcp/${spec.slug}`], { cwd: root })).stdout.trim()).toBe("");
     await expect(stat(join(root, `apps/${spec.slug}`))).rejects.toThrow();
     expect(await readFile(join(root, "pnpm-lock.yaml"), "utf8")).toBe(originalLockfile);
+
+    const marker = join(root, `apps/${spec.slug}/node_modules/preserve.txt`);
+    await mkdir(join(root, `apps/${spec.slug}/node_modules`), { recursive: true });
+    await writeFile(marker, "existing project data");
+    await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/TARGET_EXISTS/);
+    expect(await readFile(marker, "utf8")).toBe("existing project data");
+  }, 20_000);
+
+  it("refuses destructive rollback when unrelated work appears during creation", async () => {
+    const { root, baseSha } = await initializeCreationFixture("nexus-project-conflict-");
+    await mkdir(join(root, "apps/_experience-seed/node_modules"), { recursive: true });
+    const fakeBin = await mkdtemp(join(tmpdir(), "nexus-fake-pnpm-")); roots.push(fakeBin);
+    const fakePnpm = join(fakeBin, "pnpm");
+    await writeFile(fakePnpm, "#!/usr/bin/env node\nrequire('node:fs').writeFileSync('unrelated.txt', 'must survive rollback'); process.exit(1);\n");
+    await chmod(fakePnpm, 0o755);
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${fakeBin}${delimiter}${previousPath ?? ""}`;
+    try {
+      await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/PROJECT_CREATION_ROLLBACK_FAILED.*ROLLBACK_SCOPE_CONFLICT/s);
+    } finally {
+      process.env.PATH = previousPath;
+    }
+
+    expect(await readFile(join(root, "unrelated.txt"), "utf8")).toBe("must survive rollback");
+    expect((await exec("git", ["branch", "--show-current"], { cwd: root })).stdout.trim()).toBe(`nexus-mcp/${spec.slug}`);
+    expect(await readFile(join(root, `apps/${spec.slug}/.nexus/scaffold-manifest.json`), "utf8")).toContain("NEXUS_SCAFFOLD_V2");
+    expect(await readFile(join(root, "pnpm-lock.yaml"), "utf8")).toContain(`  apps/${spec.slug}:\n`);
   }, 20_000);
 
   it("rejects collisions before invoking creation and leaves existing projects untouched", async () => {
