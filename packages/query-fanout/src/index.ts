@@ -25,6 +25,7 @@ export interface SimulatedSubquery {
   readonly query: string;
   readonly intentId: string | null;
   readonly entityId: string | null;
+  readonly entityLabel: string | null;
   readonly attributeId: string | null;
   readonly constraintId: string | null;
   readonly evidenceNeed: EvidenceNeed | null;
@@ -154,6 +155,7 @@ function makeSubquery(
     query,
     intentId: intent?.id ?? null,
     entityId: entity?.id ?? null,
+    entityLabel: entity?.label ?? null,
     attributeId: attribute?.id ?? null,
     constraintId: constraint?.id ?? null,
     evidenceNeed,
@@ -182,19 +184,15 @@ export function simulateFanOut(input: FanOutInput): readonly SimulatedSubquery[]
     if (!output.has(query.query)) output.set(query.query, query);
   };
 
-  add(makeSubquery(root, null, null, null, null, null));
-  for (const intent of intents) add(makeSubquery(root, intent, null, null, null, null));
-  for (const entity of entities) add(makeSubquery(root, null, entity, null, null, null));
-  for (const attribute of attributes) add(makeSubquery(root, null, null, attribute, null, null));
-  for (const constraint of constraints) add(makeSubquery(root, null, null, null, constraint, null));
-  for (const evidenceNeed of evidenceNeeds) add(makeSubquery(root, null, null, null, null, evidenceNeed));
-
-  for (const intent of intents) {
+  for (const intent of [null, ...intents]) {
     for (const entity of [null, ...entities]) {
       for (const attribute of [null, ...attributes]) {
         for (const constraint of [null, ...constraints]) {
           for (const evidenceNeed of [null, ...evidenceNeeds]) {
-            if (!entity && !attribute && !constraint && !evidenceNeed) continue;
+            if (!intent && !entity && !attribute && !constraint && !evidenceNeed) {
+              add(makeSubquery(root, null, null, null, null, null));
+              continue;
+            }
             add(makeSubquery(root, intent, entity, attribute, constraint, evidenceNeed));
           }
         }
@@ -213,9 +211,13 @@ function coverageFor(query: SimulatedSubquery, passage: CorpusPassage): Omit<Que
   const queryTokens = tokens(query.query);
   const passageTokens = tokens(`${passage.heading} ${passage.text} ${passage.topics.join(" ")} ${passage.entities.join(" ")}`);
   const lexicalCoverage = ratioIntersection(queryTokens, passageTokens);
-  const entityCoverage = query.entityId === null
+  const entityCoverage = query.entityLabel === null
     ? 1
-    : passage.entities.some((entity) => normalized(entity) === normalized(query.entityId) || queryTokens.has(normalized(entity))) ? 1 : 0;
+    : passage.entities.some((entity) => {
+        const corpusEntity = normalized(entity);
+        const expectedEntity = normalized(query.entityLabel ?? "");
+        return corpusEntity === expectedEntity || tokens(entity).size > 0 && ratioIntersection(tokens(entity), tokens(query.entityLabel ?? "")) === 1;
+      }) ? 1 : 0;
   const evidenceCoverage = query.evidenceNeed === null ? 1 : passage.evidence.includes(query.evidenceNeed) ? 1 : 0;
   const combinedCoverage = lexicalCoverage * 0.65 + entityCoverage * 0.2 + evidenceCoverage * 0.15;
   return { bestPassageId: passage.id, lexicalCoverage, entityCoverage, evidenceCoverage, combinedCoverage };
@@ -225,8 +227,15 @@ export function assessFanOut(input: FanOutInput, corpus: readonly CorpusPassage[
   const queries = simulateFanOut(input);
   const passageIds = new Set<string>();
   for (const passage of corpus) {
-    if (!clean(passage.id) || !clean(passage.url) || passageIds.has(passage.id)) throw new Error("Invalid or duplicate corpus passage");
-    passageIds.add(passage.id);
+    const passageId = clean(passage.id);
+    const passageUrl = clean(passage.url);
+    if (!passageId || !passageUrl || passageIds.has(passageId)) throw new Error("Invalid or duplicate corpus passage");
+    try {
+      new URL(passageUrl);
+    } catch {
+      throw new Error("Corpus passage URL must be absolute");
+    }
+    passageIds.add(passageId);
   }
   const coverage: QueryCoverage[] = queries.map((query) => {
     const best = corpus
