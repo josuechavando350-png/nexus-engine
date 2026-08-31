@@ -80,49 +80,55 @@ describe("speculative delivery", () => {
   });
 
   it("blocks unsafe navigation and requires explicit anonymous policy for cross-origin preload", () => {
-    const result = planSpeculativeDelivery(request({
-      candidates: [
-        {
-          id: "cross-nav",
-          target: "https://other.example/page",
-          kind: "navigation",
-          action: "prefetch",
-          estimatedBytes: 10,
-          priority: 1,
-          sideEffectFree: true,
-          requiresAuthentication: false,
-          cacheSafety: "CACHEABLE",
-        },
-        {
-          id: "private-nav",
-          target: "/account",
-          kind: "navigation",
-          action: "prerender",
-          estimatedBytes: 10,
-          priority: 0.9,
-          sideEffectFree: true,
-          requiresAuthentication: true,
-          cacheSafety: "NO_STORE",
-        },
-        {
-          id: "cdn-font",
-          target: "https://cdn.example/font.woff2",
-          kind: "subresource",
-          action: "preload",
-          as: "font",
-          estimatedBytes: 10,
-          priority: 0.8,
-          sideEffectFree: true,
-          requiresAuthentication: false,
-          cacheSafety: "CACHEABLE",
-          crossOriginMode: "ANONYMOUS",
-        },
-      ],
+    const candidates: SpeculativeDeliveryRequest["candidates"] = [
+      {
+        id: "cross-nav",
+        target: "https://other.example/page",
+        kind: "navigation",
+        action: "prefetch",
+        estimatedBytes: 10,
+        priority: 1,
+        sideEffectFree: true,
+        requiresAuthentication: false,
+        cacheSafety: "CACHEABLE",
+      },
+      {
+        id: "private-nav",
+        target: "/account",
+        kind: "navigation",
+        action: "prerender",
+        estimatedBytes: 10,
+        priority: 0.9,
+        sideEffectFree: true,
+        requiresAuthentication: true,
+        cacheSafety: "NO_STORE",
+      },
+      {
+        id: "cdn-font",
+        target: "https://cdn.example/font.woff2",
+        kind: "subresource",
+        action: "preload",
+        as: "font",
+        estimatedBytes: 10,
+        priority: 0.8,
+        sideEffectFree: true,
+        requiresAuthentication: false,
+        cacheSafety: "CACHEABLE",
+        crossOriginMode: "ANONYMOUS",
+      },
+    ];
+
+    const blocked = planSpeculativeDelivery(request({ candidates }));
+    expect(blocked.decisions.find((entry) => entry.candidateId === "cross-nav")?.reason).toBe("CROSS_ORIGIN_NAVIGATION_BLOCKED");
+    expect(blocked.decisions.find((entry) => entry.candidateId === "private-nav")?.reason).toBe("AUTHENTICATED_NAVIGATION_BLOCKED");
+    expect(blocked.decisions.find((entry) => entry.candidateId === "cdn-font")?.reason).toBe("CROSS_ORIGIN_PRELOAD_REQUIRES_ANONYMOUS_POLICY");
+
+    const explicitlyAllowed = planSpeculativeDelivery(request({
+      candidates,
+      policy: { allowCrossOriginAnonymousPreload: true },
     }));
-    expect(result.decisions.find((entry) => entry.candidateId === "cross-nav")?.reason).toBe("CROSS_ORIGIN_NAVIGATION_BLOCKED");
-    expect(result.decisions.find((entry) => entry.candidateId === "private-nav")?.reason).toBe("AUTHENTICATED_NAVIGATION_BLOCKED");
-    expect(result.decisions.find((entry) => entry.candidateId === "cdn-font")?.selected).toBe(true);
-    expect(result.resourceHints[0]).toMatchObject({ crossorigin: "anonymous" });
+    expect(explicitlyAllowed.decisions.find((entry) => entry.candidateId === "cdn-font")?.selected).toBe(true);
+    expect(explicitlyAllowed.resourceHints[0]).toMatchObject({ crossorigin: "anonymous" });
   });
 
   it("blocks side-effecting and no-store prerender targets", () => {
