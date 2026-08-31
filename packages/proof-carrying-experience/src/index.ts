@@ -23,6 +23,7 @@ export {
 } from "./proof.js";
 export type {
   ReplayGuard,
+  VerificationKeyPolicy,
   ZkConsentEvidence,
   ZkConsentRequest,
   ZkConsentStatus,
