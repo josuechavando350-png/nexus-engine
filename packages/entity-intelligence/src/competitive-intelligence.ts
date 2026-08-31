@@ -1,5 +1,6 @@
-import { isIP } from "node:net";
+import { Buffer } from "node:buffer";
 import { lookup as dnsLookup } from "node:dns/promises";
+import { isIP } from "node:net";
 import { canonicalJson, digest } from "./index";
 
 const MAX_COMPETITORS = 20;
