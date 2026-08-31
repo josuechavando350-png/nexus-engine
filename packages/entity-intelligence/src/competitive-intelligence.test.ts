@@ -7,8 +7,9 @@ const scope: CompetitiveScope = { tenantId: "tenant-a", organizationId: "org-a",
 const observedAt = "2026-08-31T09:10:00.000Z";
 const publicLookup = async () => [{ address: "93.184.216.34", family: 4 }] as const;
 
-function controlled(url: string, terms: string[]) {
+function controlled(url: string, terms: string[], observationScope: CompetitiveScope = scope) {
   return createControlledPublicPageObservation({
+    scope: observationScope,
     url,
     finalUrl: url,
     observedAt,
@@ -24,8 +25,9 @@ function controlled(url: string, terms: string[]) {
 describe("competitive intelligence", () => {
   it("keeps injected transport captures explicitly synthetic while exercising extraction", async () => {
     const fetchImpl = vi.fn(async () => new Response("<html><head><title>Competitor</title><meta name=\"description\" content=\"Fast legal service\"><link rel=\"canonical\" href=\"/canonical\"></head><body>Legal strategy strategy pricing</body></html>", { status: 200, headers: { "content-type": "text/html" } })) as unknown as typeof fetch;
-    const observation = await capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup });
+    const observation = await capturePublicPage("https://example.com/", observedAt, { scope, fetchImpl, lookup: publicLookup });
     expect(observation.authority).toBe("CONTROLLED_TEST");
+    expect(observation.scope).toEqual(scope);
     expect(observation.title).toBe("Competitor");
     expect(observation.description).toBe("Fast legal service");
     expect(observation.canonicalUrl).toBe("https://example.com/canonical");
@@ -34,11 +36,11 @@ describe("competitive intelligence", () => {
 
   it("blocks SSRF to private addresses before transport and revalidates redirects", async () => {
     const fetchImpl = vi.fn(async () => new Response("ok")) as unknown as typeof fetch;
-    await expect(capturePublicPage("http://127.0.0.1/private", observedAt, { fetchImpl })).rejects.toThrow(/private or reserved/);
+    await expect(capturePublicPage("http://127.0.0.1/private", observedAt, { scope, fetchImpl })).rejects.toThrow(/private or reserved/);
     expect(fetchImpl).not.toHaveBeenCalled();
 
     const redirectFetch = vi.fn(async () => new Response(null, { status: 302, headers: { location: "http://10.0.0.1/secret" } })) as unknown as typeof fetch;
-    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl: redirectFetch, lookup: publicLookup })).rejects.toThrow(/private or reserved/);
+    await expect(capturePublicPage("https://example.com/", observedAt, { scope, fetchImpl: redirectFetch, lookup: publicLookup })).rejects.toThrow(/private or reserved/);
     expect(redirectFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -55,6 +57,13 @@ describe("competitive intelligence", () => {
     const tampered = structuredClone(report);
     (tampered.gaps[0] as { competitorCount: number }).competitorCount = 99;
     expect(verifyCompetitiveIntelligence(scope, target, competitors, tampered)).toBe(false);
+  });
+
+  it("rejects cross-tenant observations even when their evidence is otherwise valid", () => {
+    const otherScope: CompetitiveScope = { tenantId: "tenant-b", organizationId: "org-b", brandId: "brand-b" };
+    const target = { id: "self", label: "Self", observation: controlled("https://self.example/", ["legal"]) };
+    const competitor = { id: "c1", label: "C1", observation: controlled("https://c1.example/", ["strategy"], otherScope) };
+    expect(() => analyzeCompetitiveIntelligence(scope, target, [competitor])).toThrow(/scope mismatch/);
   });
 
   it("rejects forged live authority rather than upgrading controlled evidence", () => {
@@ -81,26 +90,26 @@ describe("competitive intelligence", () => {
     const fetchImpl = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
       init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
     })) as unknown as typeof fetch;
-    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/aborted/);
+    await expect(capturePublicPage("https://example.com/", observedAt, { scope, fetchImpl, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/aborted/);
 
     const controller = new AbortController();
     controller.abort(new Error("cancelled"));
-    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, signal: controller.signal })).rejects.toThrow();
+    await expect(capturePublicPage("https://example.com/", observedAt, { scope, fetchImpl, lookup: publicLookup, signal: controller.signal })).rejects.toThrow();
   });
 
   it("bounds stalled DNS resolution with the same capture deadline", async () => {
     const stalledLookup = vi.fn(async () => new Promise<readonly { address: string; family: number }[]>(() => undefined));
     const fetchImpl = vi.fn(async () => new Response("should not run")) as unknown as typeof fetch;
-    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: stalledLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
+    await expect(capturePublicPage("https://example.com/", observedAt, { scope, fetchImpl, lookup: stalledLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
   it("fails closed when timeout or caller cancellation interrupts a stalled response body", async () => {
     const stalledFetch = vi.fn(async () => new Response(new ReadableStream<Uint8Array>({ start() { /* intentionally stalled */ } }), { status: 200 })) as unknown as typeof fetch;
-    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl: stalledFetch, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
+    await expect(capturePublicPage("https://example.com/", observedAt, { scope, fetchImpl: stalledFetch, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
 
     const controller = new AbortController();
-    const capture = capturePublicPage("https://example.com/", observedAt, { fetchImpl: stalledFetch, lookup: publicLookup, signal: controller.signal });
+    const capture = capturePublicPage("https://example.com/", observedAt, { scope, fetchImpl: stalledFetch, lookup: publicLookup, signal: controller.signal });
     setTimeout(() => controller.abort(new Error("caller cancelled stalled body")), 10);
     await expect(capture).rejects.toThrow(/caller cancelled stalled body/);
   });
