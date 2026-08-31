@@ -19,6 +19,7 @@ function snapshot(overrides: Partial<GooglebotRenderSnapshot> = {}): GooglebotRe
     htmlDigest: sha("a"),
     textDigest: sha("b"),
     screenshotDigest: sha("c"),
+    apiPayloadDigest: null,
     metadata: { browser: "chromium" },
     ...overrides,
   };
@@ -33,18 +34,23 @@ describe("Googlebot render evidence model", () => {
   });
 
   it("rejects forged Google API observation from simulated evidence", () => {
-    expect(() => normalizeGooglebotRenderSnapshot(snapshot({ status: "GOOGLE_API_OBSERVED" }))).toThrow(/GOOGLE_API_OBSERVED requires/);
+    expect(() => normalizeGooglebotRenderSnapshot(snapshot({ status: "GOOGLE_API_OBSERVED" }))).toThrow(/cannot be emitted/);
   });
 
-  it("accepts Search Console API evidence only with matching authority", () => {
+  it("accepts Search Console API evidence only as an API payload, never as rendered DOM evidence", () => {
     const normalized = normalizeGooglebotRenderSnapshot(snapshot({
       source: "GOOGLE_SEARCH_CONSOLE_API",
       status: "GOOGLE_API_OBSERVED",
       userAgent: "Google Search Console URL Inspection API",
+      htmlDigest: null,
+      textDigest: null,
       screenshotDigest: null,
+      apiPayloadDigest: sha("d"),
       metadata: { inspectionResultLink: "available-in-adapter-evidence" },
     }));
     expect(normalized.status).toBe("GOOGLE_API_OBSERVED");
+    expect(normalized.apiPayloadDigest).toBe(sha("d"));
+    expect(() => normalizeGooglebotRenderSnapshot({ ...normalized, htmlDigest: sha("e") })).toThrow(/cannot be represented as rendered HTML/);
   });
 
   it("requires fail-closed reason and no artifact digests when unavailable", () => {
@@ -55,6 +61,7 @@ describe("Googlebot render evidence model", () => {
       htmlDigest: null,
       textDigest: null,
       screenshotDigest: null,
+      apiPayloadDigest: null,
       reason: "Search Console credentials not configured",
     }));
     expect(unavailable.reason).toMatch(/credentials/);
@@ -64,7 +71,7 @@ describe("Googlebot render evidence model", () => {
     expect(() => normalizeGooglebotRenderSnapshot(snapshot({ url: "https://user:secret@example.com/" }))).toThrow(/credential-bearing/);
   });
 
-  it("diffs artifact digests deterministically and marks external verification only from Google API evidence", () => {
+  it("keeps Search Console observation separate from render comparisons", () => {
     const result = diffGooglebotRenderEvidence({
       scope: { tenantId: "tenant-a", brandId: "brand-a" },
       expectedUrl: "https://example.com/page",
@@ -73,24 +80,32 @@ describe("Googlebot render evidence model", () => {
         source: "GOOGLE_SEARCH_CONSOLE_API",
         status: "GOOGLE_API_OBSERVED",
         userAgent: "Google Search Console URL Inspection API",
+        htmlDigest: null,
+        textDigest: null,
         screenshotDigest: null,
-        textDigest: sha("d"),
+        apiPayloadDigest: sha("d"),
       }),
     });
-    expect(result.comparisons).toEqual({ html: "MATCH", text: "DIFFERENT", screenshot: "UNASSESSED" });
-    expect(result.externallyVerified).toBe(true);
+    expect(result.comparisons).toEqual({ html: "UNASSESSED", text: "UNASSESSED", screenshot: "UNASSESSED", apiPayload: "UNASSESSED" });
+    expect(result.verification).toEqual({ googleApiObserved: true, googleLiveRenderVerified: false });
     expect(result.resultDigest).toMatch(/^sha256:[a-f0-9]{64}$/u);
     expect(() => validateGooglebotRenderDiffResult(result)).not.toThrow();
   });
 
-  it("does not call simulated-vs-observed-fetch evidence externally verified by Google", () => {
+  it("does not call simulated-vs-observed-fetch evidence Google-verified", () => {
     const result = diffGooglebotRenderEvidence({
       scope: { tenantId: "tenant-a", brandId: "brand-a" },
       expectedUrl: "https://example.com/page",
       baseline: snapshot(),
-      candidate: snapshot({ source: "OBSERVED_HTTP_FETCH", status: "OBSERVED_FETCH", userAgent: "Googlebot" }),
+      candidate: snapshot({
+        source: "OBSERVED_HTTP_FETCH",
+        status: "OBSERVED_FETCH",
+        userAgent: "Googlebot",
+        screenshotDigest: null,
+      }),
     });
-    expect(result.externallyVerified).toBe(false);
+    expect(result.verification).toEqual({ googleApiObserved: false, googleLiveRenderVerified: false });
+    expect(result.comparisons.html).toBe("MATCH");
   });
 
   it("rejects URL scope drift between evidence and requested target", () => {
@@ -109,7 +124,10 @@ describe("Googlebot render evidence model", () => {
       baseline: snapshot(),
       candidate: snapshot(),
     });
-    expect(() => validateGooglebotRenderDiffResult({ ...result, externallyVerified: true })).toThrow(/external verification replay mismatch/);
+    expect(() => validateGooglebotRenderDiffResult({
+      ...result,
+      verification: { googleApiObserved: true, googleLiveRenderVerified: false },
+    })).toThrow(/verification replay mismatch/);
   });
 
   it("rejects malformed digests and non-canonical timestamps", () => {
