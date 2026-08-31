@@ -1,6 +1,9 @@
 import { closeSync, openSync, readSync } from "node:fs";
 import { release } from "node:os";
-import type { BbrV3Observation } from "./bbrv3.js";
+import { assessBbrV3, validateBbrV3Assessment, type BbrV3Assessment, type BbrV3Observation } from "./bbrv3.js";
+
+export type { BbrV3Assessment, BbrV3Observation } from "./bbrv3.js";
+export { validateBbrV3Assessment } from "./bbrv3.js";
 
 const MAX_PROC_BYTES = 4_096;
 const ACTIVE_PATH = "/proc/sys/net/ipv4/tcp_congestion_control";
@@ -59,10 +62,15 @@ export function collectLiveBbrV3Observation(now: () => Date = () => new Date()):
     activeCongestionControl: active?.toLowerCase() ?? null,
     availableCongestionControls: Object.freeze(available),
     kernelRelease,
-    // Linux exposes the algorithm name as "bbr", but that alone does not establish BBRv3.
-    // A version claim therefore remains unverified unless a separate authoritative adapter
-    // supplies a BBRv3 marker with provenance.
+    // Procfs exposes an algorithm label such as "bbr" but no authoritative BBR generation.
+    // This collector therefore cannot manufacture a BBRv3 version marker.
     versionMarker: null,
     versionMarkerSource: null,
   });
+}
+
+export function assessLiveBbrV3(now: () => Date = () => new Date()): BbrV3Assessment {
+  const assessment = assessBbrV3(collectLiveBbrV3Observation(now));
+  validateBbrV3Assessment(assessment);
+  return assessment;
 }
