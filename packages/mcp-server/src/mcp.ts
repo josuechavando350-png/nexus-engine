@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v4";
+import { operatorCommandSchema, type NexusOperatorRuntime, type OperatorRequestContext } from "./operator-gateway.js";
 import { nexusBuild, nexusCapture, nexusComparator, nexusGates, nexusPassport, nexusProjectNew, nexusProjects, nexusStatus, type ToolDependencies } from "./tools.js";
 import { REMOTE_READINESS_DEFAULT_TOOLS, type NexusToolName } from "./policy.js";
 
@@ -7,7 +8,14 @@ function resultContent(result: unknown) {
   return { content: [{ type: "text" as const, text: JSON.stringify(result) }], structuredContent: result as Record<string, unknown> };
 }
 
-export function createNexusMcpServer(dependencies: ToolDependencies, options: { allowProjectWrite?: boolean; enabledTools?: ReadonlySet<NexusToolName> } = {}): McpServer {
+export interface NexusMcpServerOptions {
+  allowProjectWrite?: boolean;
+  enabledTools?: ReadonlySet<NexusToolName>;
+  operatorRuntime?: NexusOperatorRuntime;
+  operatorContext?: OperatorRequestContext;
+}
+
+export function createNexusMcpServer(dependencies: ToolDependencies, options: NexusMcpServerOptions = {}): McpServer {
   const server = new McpServer({ name: "nexus-mcp-server", version: "0.1.0" });
   const enabled = options.enabledTools ?? new Set<NexusToolName>(REMOTE_READINESS_DEFAULT_TOOLS);
   if (enabled.has("nexus_status")) server.registerTool("nexus_status", {
@@ -63,5 +71,14 @@ export function createNexusMcpServer(dependencies: ToolDependencies, options: { 
     },
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false },
   }, async (input) => resultContent(await nexusProjectNew(input, dependencies)));
+  if (enabled.has("nexus_operator")) {
+    if (!options.operatorRuntime || !options.operatorContext) throw new Error("nexus_operator requires a server-owned operator runtime and request context");
+    server.registerTool("nexus_operator", {
+      title: "NEXUS governed operator gateway",
+      description: "Executes a bounded typed NEXUS operator command through canonical status/project/build/gate/capture/passport/comparator/project-creation surfaces. Free-form text is data only and is never executed as shell, GitHub, deployment, or state mutation input.",
+      inputSchema: { command: operatorCommandSchema },
+      annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    }, async (input) => resultContent(await options.operatorRuntime!.execute(input.command, dependencies, options.operatorContext!)));
+  }
   return server;
 }
