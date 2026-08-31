@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { digest } from "./index";
 import { analyzeCompetitiveIntelligence, capturePublicPage, createControlledPublicPageObservation, verifyCompetitiveIntelligence, type CompetitiveScope } from "./competitive-intelligence";
+import { runCompetitiveIntelligence } from "./competitive-intelligence-runtime";
 
 const scope: CompetitiveScope = { tenantId: "tenant-a", organizationId: "org-a", brandId: "brand-a" };
 const observedAt = "2026-08-31T09:10:00.000Z";
@@ -95,5 +96,14 @@ describe("competitive intelligence", () => {
     const capture = capturePublicPage("https://example.com/", observedAt, { fetchImpl: stalledFetch, lookup: publicLookup, signal: controller.signal });
     setTimeout(() => controller.abort(new Error("caller cancelled stalled body")), 10);
     await expect(capture).rejects.toThrow(/caller cancelled stalled body/);
+  });
+
+  it("validates tenant scope before the runtime can perform public capture", async () => {
+    await expect(runCompetitiveIntelligence({
+      scope: { tenantId: "", organizationId: "org-a", brandId: "brand-a" },
+      observedAt,
+      target: { id: "self", label: "Self", url: "http://127.0.0.1/private" },
+      competitors: [{ id: "c1", label: "C1", url: "http://127.0.0.1/private" }],
+    })).rejects.toThrow(/scope\.tenantId/);
   });
 });
