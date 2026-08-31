@@ -26,15 +26,49 @@ describe("query fan-out", () => {
       heading: "Defensa fiscal en Colima",
       text: "Atendemos controversias fiscales y explicamos costos y proceso de consulta.",
       topics: ["defensa fiscal"],
-      entities: ["colima"],
+      entities: ["Colima"],
       evidence: ["EXPERIENCE"],
     }]);
     expect(report.weightedCoverage).toBeGreaterThan(0);
     expect(JSON.stringify(report)).not.toMatch(/Google executed|observed Google internal/i);
   });
 
+  test("matches entity labels rather than leaking internal factor ids into corpus semantics", () => {
+    const semanticInput: FanOutInput = {
+      ...input,
+      entities: [{ id: "geo-001", label: "Ciudad de México", weight: 1 }],
+    };
+    const report = assessFanOut(semanticInput, [{
+      id: "p-cdmx",
+      url: "https://example.com/cdmx",
+      heading: "Defensa fiscal en Ciudad de México",
+      text: "Atención local con experiencia comprobable.",
+      topics: ["defensa fiscal"],
+      entities: ["Ciudad de México"],
+      evidence: ["EXPERIENCE"],
+    }]);
+    const entityQuery = report.queries.find((query) => query.entityId === "geo-001");
+    expect(entityQuery?.entityLabel).toBe("Ciudad de México");
+    const coverage = report.coverage.find((item) => item.queryId === entityQuery?.id);
+    expect(coverage?.entityCoverage).toBe(1);
+  });
+
+  test("creates useful cross-factor combinations even when no intent factors exist", () => {
+    const noIntent: FanOutInput = {
+      ...input,
+      intents: [],
+      entities: [{ id: "mx", label: "México", weight: 1 }],
+      attributes: [{ id: "price", label: "precio", weight: 0.8 }],
+      constraints: [],
+      evidenceNeeds: [],
+      maximumQueries: 96,
+    };
+    expect(simulateFanOut(noIntent).some((query) => query.entityId === "mx" && query.attributeId === "price")).toBe(true);
+  });
+
   test("fails closed on invalid factors and query bounds", () => {
     expect(() => simulateFanOut({ ...input, rootQuery: " " })).toThrow(/rootQuery/);
+    expect(() => simulateFanOut({ ...input, locale: " " })).toThrow(/locale/);
     expect(() => simulateFanOut({ ...input, maximumQueries: 0 })).toThrow(/maximumQueries/);
     expect(() => simulateFanOut({ ...input, intents: [{ id: "x", label: "x", weight: Number.NaN }] })).toThrow(/weight/);
     expect(() => simulateFanOut({ ...input, intents: [{ id: "x", label: "x", weight: 0.5 }, { id: "x", label: "dup", weight: 0.5 }] })).toThrow(/duplicate/);
@@ -58,8 +92,9 @@ describe("query fan-out", () => {
     expect(report.recommendations.join(" ")).toMatch(/do not create doorway or scaled pages/i);
   });
 
-  test("rejects duplicate corpus passage ids", () => {
+  test("rejects duplicate passage ids and non-absolute corpus URLs", () => {
     const passage = { id: "p", url: "https://example.com/a", heading: "A", text: "B", topics: [], entities: [], evidence: [] } as const;
     expect(() => assessFanOut(input, [passage, { ...passage, url: "https://example.com/b" }])).toThrow(/duplicate corpus/);
+    expect(() => assessFanOut(input, [{ ...passage, url: "/relative" }])).toThrow(/absolute/);
   });
 });
