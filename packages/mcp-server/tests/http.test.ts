@@ -48,7 +48,8 @@ describe("remote MCP HTTP surface", () => {
   });
 
   it("exposes project creation only to the separate write token and rejects traversal at the MCP boundary", async () => {
-    const { base, writeToken } = await listen(new Set(TOOL_NAMES));
+    const writeSurface = new Set<NexusToolName>(TOOL_NAMES.filter((name) => name !== "nexus_operator"));
+    const { base, writeToken } = await listen(writeSurface);
     const transport = new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { Authorization: `Bearer ${writeToken}` } } });
     const client = new Client({ name: "nexus-mcp-write-test", version: "1.0.0" });
     await client.connect(transport);
@@ -56,6 +57,12 @@ describe("remote MCP HTTP surface", () => {
     const called = await client.callTool({ name: "nexus_project_new", arguments: { slug: "../escape" } });
     expect(called.isError).toBe(true);
     await client.close();
+  });
+
+  it("refuses to expose nexus_operator without a server-owned operator scope or runtime", () => {
+    const tokenSha256 = createHash("sha256").update("operator-read-token").digest("hex");
+    const enabledTools = new Set<NexusToolName>(["nexus_operator"]);
+    expect(() => createNexusHttpApp({ root: process.cwd(), tokenSha256, enabledTools })).toThrow(/server-owned operator scope or runtime/);
   });
 
   it("fails closed when read and write credential hashes are equal", () => {
