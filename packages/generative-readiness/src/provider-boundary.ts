@@ -2,6 +2,8 @@ import { canonicalJson, digestValue } from "./index.js";
 import { validatePresenceScope, type PresenceScope } from "./presence.js";
 
 export type AdvisoryProvider = "ANTHROPIC_CLAUDE" | "OPENAI_CHATGPT" | "OTHER";
+export type NexusWriterAuthority = "NEXUS_OPENAI_OPERATOR";
+export type AdvisoryExecutionStatus = "COMMITTED" | "REJECTED" | "UNAVAILABLE" | "OUTCOME_UNKNOWN" | "CANCELLED" | "TIMEOUT";
 
 export interface AdvisoryProposal {
   readonly formatVersion: "nexus-advisory-proposal-v1";
@@ -12,63 +14,9 @@ export interface AdvisoryProposal {
   readonly proposalDigest: string;
 }
 
-function cleanInstruction(value: string): string {
-  if (typeof value !== "string") throw new Error("instruction must be a string");
-  const normalized = value.normalize("NFKC").replace(/\s+/gu, " ").trim();
-  if (!normalized || normalized.length > 20_000) throw new Error("instruction must be non-empty and <= 20000 characters");
-  return normalized;
-}
-
-function canonicalTime(value: string): string {
-  if (typeof value !== "string") throw new Error("createdAt must be a string");
-  const time = Date.parse(value);
-  if (!Number.isFinite(time)) throw new Error("createdAt must be a valid timestamp");
-  const iso = new Date(time).toISOString();
-  if (iso !== value) throw new Error("createdAt must be canonical ISO-8601 UTC");
-  return iso;
-}
-
-function sameScope(left: PresenceScope, right: PresenceScope): boolean {
-  return left.tenantId === right.tenantId && left.organizationId === right.organizationId && left.brandId === right.brandId;
-}
-
-export function createAdvisoryProposal(input: Omit<AdvisoryProposal, "formatVersion" | "proposalDigest">): AdvisoryProposal {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("advisory proposal input must be an object");
-  const allowed = new Set(["scope", "provider", "instruction", "createdAt"]);
-  for (const key of Object.keys(input as object)) if (!allowed.has(key)) throw new Error(`unknown advisory proposal field: ${key}`);
-  const scope = validatePresenceScope(input.scope);
-  if (!(["ANTHROPIC_CLAUDE", "OPENAI_CHATGPT", "OTHER"] as const).includes(input.provider)) throw new Error("unsupported advisory provider");
-  const core = {
-    formatVersion: "nexus-advisory-proposal-v1" as const,
-    scope,
-    provider: input.provider,
-    instruction: cleanInstruction(input.instruction),
-    createdAt: canonicalTime(input.createdAt),
-  };
-  return Object.freeze({ ...core, proposalDigest: digestValue(core) });
-}
-
-export function verifyAdvisoryProposal(expectedScope: PresenceScope, proposal: AdvisoryProposal): boolean {
-  try {
-    const scope = validatePresenceScope(expectedScope);
-    const rebuilt = createAdvisoryProposal({
-      scope: proposal.scope,
-      provider: proposal.provider,
-      instruction: proposal.instruction,
-      createdAt: proposal.createdAt,
-    });
-    return sameScope(scope, rebuilt.scope) && canonicalJson(rebuilt) === canonicalJson(proposal);
-  } catch {
-    return false;
-  }
-}
-
-export type NexusWriterAuthority = "NEXUS_OPENAI_OPERATOR";
-export type AdvisoryApprovalStatus = "APPROVED" | "DENIED";
-export type AdvisoryExecutionStatus = "COMMITTED" | "REJECTED" | "UNAVAILABLE" | "OUTCOME_UNKNOWN" | "CANCELLED" | "TIMEOUT";
-
+/** Integrity envelope only; authoritative approval is re-verified by NEXUS governance. */
 export interface AdvisoryApproval {
-  readonly status: AdvisoryApprovalStatus;
+  readonly status: "APPROVED" | "DENIED";
   readonly proposalDigest: string;
   readonly scope: PresenceScope;
   readonly approvedAt: string;
@@ -91,16 +39,27 @@ export interface AdvisoryExecutionOutcome {
   readonly detail?: string;
 }
 
-/**
- * The only write-capable adapter on this boundary. Implementations are NEXUS-owned
- * executors operated by the OpenAI/ChatGPT control plane. Advisory providers never
- * receive an instance of this interface or credentials capable of implementing it.
- */
+export interface AdvisoryGovernanceDecision {
+  readonly decision: "ALLOW" | "DENY";
+  readonly requestDigest: string;
+  readonly authorization: "VERIFIED" | "DENIED";
+  readonly capability: "ADVISORY_EXECUTION" | "DENIED";
+  readonly budget: "WITHIN_LIMIT" | "EXCEEDED";
+  readonly approval: "VERIFIED" | "DENIED";
+  readonly evidenceDigest: string;
+}
+
+/** NEXUS-side bridge to canonical authorization/capability/budget/approval policy. */
+export interface NexusAdvisoryGovernancePort {
+  authorize(request: AdvisoryExecutionRequest, now: string, signal: AbortSignal): Promise<AdvisoryGovernanceDecision>;
+}
+
+/** The sole write-capable adapter. Advisory providers never receive this interface or its credentials. */
 export interface NexusAdvisoryExecutor {
   execute(request: AdvisoryExecutionRequest, signal: AbortSignal): Promise<AdvisoryExecutionOutcome>;
 }
 
-/** Read-only future provider transport. It can only return proposal data. */
+/** Provider-neutral and deliberately read-only. */
 export interface AdvisoryProposalSource {
   readonly provider: AdvisoryProvider;
   read(signal: AbortSignal): Promise<AdvisoryProposal>;
@@ -123,39 +82,65 @@ export interface AdvisoryExecutionInput {
 
 export interface AdvisoryAuditEvent {
   readonly sequence: number;
-  readonly type: "VALIDATED" | "DENIED" | "DISPATCHED" | "COMPLETED" | "BOUNDED_STOP";
+  readonly type: "VALIDATED" | "GOVERNED" | "DENIED" | "DISPATCHED" | "COMPLETED" | "BOUNDED_STOP";
   readonly proposalDigest: string;
   readonly requestDigest: string;
-  readonly status: AdvisoryExecutionStatus | "VALIDATED";
+  readonly status: AdvisoryExecutionStatus | "VALIDATED" | "GOVERNED";
   readonly previousDigest: string;
   readonly eventDigest: string;
 }
 
+const PROVIDERS: readonly AdvisoryProvider[] = ["ANTHROPIC_CLAUDE", "OPENAI_CHATGPT", "OTHER"];
+const EXECUTION_STATUSES: readonly AdvisoryExecutionStatus[] = ["COMMITTED", "REJECTED", "UNAVAILABLE", "OUTCOME_UNKNOWN", "CANCELLED", "TIMEOUT"];
 const DIGEST_RE = /^[a-f0-9]{64}$/u;
 const IDEMPOTENCY_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/u;
 const MAX_TIMEOUT_MS = 60_000;
 const MAX_PROPOSAL_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 
-function assertExactKeys(value: object, allowed: readonly string[], label: string): void {
+function exactKeys(value: object, allowed: readonly string[], label: string): void {
   const keys = Object.keys(value);
   if (keys.length !== allowed.length || keys.some((key) => !allowed.includes(key))) throw new Error(`${label} contains unknown or missing fields`);
 }
 
-function validatePolicy(input: AdvisoryRuntimePolicy): Readonly<AdvisoryRuntimePolicy> {
-  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("advisory policy must be an object");
-  assertExactKeys(input, ["scope", "allowedProviders", "maxProposalAgeMs", "timeoutMs"], "advisory policy");
+function canonicalTime(value: string): string {
+  if (typeof value !== "string") throw new Error("timestamp must be a string");
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) throw new Error("timestamp must be valid");
+  const iso = new Date(parsed).toISOString();
+  if (iso !== value) throw new Error("timestamp must be canonical ISO-8601 UTC");
+  return iso;
+}
+
+function sameScope(a: PresenceScope, b: PresenceScope): boolean {
+  return a.tenantId === b.tenantId && a.organizationId === b.organizationId && a.brandId === b.brandId;
+}
+
+function cleanInstruction(value: string): string {
+  if (typeof value !== "string") throw new Error("instruction must be a string");
+  const normalized = value.normalize("NFKC").replace(/\s+/gu, " ").trim();
+  if (!normalized || normalized.length > 20_000) throw new Error("instruction must be non-empty and <= 20000 characters");
+  return normalized;
+}
+
+export function createAdvisoryProposal(input: Omit<AdvisoryProposal, "formatVersion" | "proposalDigest">): AdvisoryProposal {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("advisory proposal input must be an object");
+  exactKeys(input, ["scope", "provider", "instruction", "createdAt"], "advisory proposal");
   const scope = validatePresenceScope(input.scope);
-  if (!Array.isArray(input.allowedProviders) || input.allowedProviders.length === 0 || input.allowedProviders.length > 3) throw new Error("allowedProviders is invalid");
-  const providers = [...new Set(input.allowedProviders)];
-  if (providers.length !== input.allowedProviders.length || providers.some((provider) => !(["ANTHROPIC_CLAUDE", "OPENAI_CHATGPT", "OTHER"] as const).includes(provider))) throw new Error("allowedProviders is invalid");
-  if (!Number.isInteger(input.maxProposalAgeMs) || input.maxProposalAgeMs < 0 || input.maxProposalAgeMs > MAX_PROPOSAL_AGE_MS) throw new Error("maxProposalAgeMs is invalid");
-  if (!Number.isInteger(input.timeoutMs) || input.timeoutMs < 10 || input.timeoutMs > MAX_TIMEOUT_MS) throw new Error("timeoutMs is invalid");
-  return Object.freeze({ scope, allowedProviders: Object.freeze(providers), maxProposalAgeMs: input.maxProposalAgeMs, timeoutMs: input.timeoutMs });
+  if (!PROVIDERS.includes(input.provider)) throw new Error("unsupported advisory provider");
+  const core = { formatVersion: "nexus-advisory-proposal-v1" as const, scope, provider: input.provider, instruction: cleanInstruction(input.instruction), createdAt: canonicalTime(input.createdAt) };
+  return Object.freeze({ ...core, proposalDigest: digestValue(core) });
+}
+
+export function verifyAdvisoryProposal(expectedScope: PresenceScope, proposal: AdvisoryProposal): boolean {
+  try {
+    const rebuilt = createAdvisoryProposal({ scope: proposal.scope, provider: proposal.provider, instruction: proposal.instruction, createdAt: proposal.createdAt });
+    return sameScope(validatePresenceScope(expectedScope), rebuilt.scope) && canonicalJson(rebuilt) === canonicalJson(proposal);
+  } catch { return false; }
 }
 
 export function createAdvisoryApproval(input: Omit<AdvisoryApproval, "approvalDigest">): AdvisoryApproval {
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("approval must be an object");
-  assertExactKeys(input, ["status", "proposalDigest", "scope", "approvedAt", "expiresAt"], "approval");
+  exactKeys(input, ["status", "proposalDigest", "scope", "approvedAt", "expiresAt"], "approval");
   if (input.status !== "APPROVED" && input.status !== "DENIED") throw new Error("approval status is invalid");
   if (!DIGEST_RE.test(input.proposalDigest)) throw new Error("approval proposal digest is invalid");
   const scope = validatePresenceScope(input.scope);
@@ -168,23 +153,22 @@ export function createAdvisoryApproval(input: Omit<AdvisoryApproval, "approvalDi
 
 export function verifyAdvisoryApproval(expectedScope: PresenceScope, proposal: AdvisoryProposal, approval: AdvisoryApproval, now: string): boolean {
   try {
-    const rebuilt = createAdvisoryApproval({
-      status: approval.status,
-      proposalDigest: approval.proposalDigest,
-      scope: approval.scope,
-      approvedAt: approval.approvedAt,
-      expiresAt: approval.expiresAt,
-    });
-    const canonicalNow = canonicalTime(now);
-    return canonicalJson(rebuilt) === canonicalJson(approval)
-      && sameScope(validatePresenceScope(expectedScope), rebuilt.scope)
-      && rebuilt.proposalDigest === proposal.proposalDigest
-      && rebuilt.status === "APPROVED"
-      && Date.parse(canonicalNow) >= Date.parse(rebuilt.approvedAt)
-      && Date.parse(canonicalNow) < Date.parse(rebuilt.expiresAt);
-  } catch {
-    return false;
-  }
+    const rebuilt = createAdvisoryApproval({ status: approval.status, proposalDigest: approval.proposalDigest, scope: approval.scope, approvedAt: approval.approvedAt, expiresAt: approval.expiresAt });
+    const instant = Date.parse(canonicalTime(now));
+    return canonicalJson(rebuilt) === canonicalJson(approval) && sameScope(validatePresenceScope(expectedScope), rebuilt.scope) && rebuilt.proposalDigest === proposal.proposalDigest && rebuilt.status === "APPROVED" && instant >= Date.parse(rebuilt.approvedAt) && instant < Date.parse(rebuilt.expiresAt);
+  } catch { return false; }
+}
+
+function validatePolicy(input: AdvisoryRuntimePolicy): Readonly<AdvisoryRuntimePolicy> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("advisory policy must be an object");
+  exactKeys(input, ["scope", "allowedProviders", "maxProposalAgeMs", "timeoutMs"], "advisory policy");
+  const scope = validatePresenceScope(input.scope);
+  if (!Array.isArray(input.allowedProviders) || input.allowedProviders.length === 0 || input.allowedProviders.length > PROVIDERS.length) throw new Error("allowedProviders is invalid");
+  const providers = [...new Set(input.allowedProviders)];
+  if (providers.length !== input.allowedProviders.length || providers.some((provider) => !PROVIDERS.includes(provider))) throw new Error("allowedProviders is invalid");
+  if (!Number.isInteger(input.maxProposalAgeMs) || input.maxProposalAgeMs < 0 || input.maxProposalAgeMs > MAX_PROPOSAL_AGE_MS) throw new Error("maxProposalAgeMs is invalid");
+  if (!Number.isInteger(input.timeoutMs) || input.timeoutMs < 10 || input.timeoutMs > MAX_TIMEOUT_MS) throw new Error("timeoutMs is invalid");
+  return Object.freeze({ scope, allowedProviders: Object.freeze(providers), maxProposalAgeMs: input.maxProposalAgeMs, timeoutMs: input.timeoutMs });
 }
 
 function createRequest(proposal: AdvisoryProposal, approval: AdvisoryApproval, idempotencyKey: string): AdvisoryExecutionRequest {
@@ -193,40 +177,40 @@ function createRequest(proposal: AdvisoryProposal, approval: AdvisoryApproval, i
   return Object.freeze({ ...core, requestDigest: digestValue(core) });
 }
 
-function normalizeOutcome(outcome: AdvisoryExecutionOutcome, requestDigest: string): AdvisoryExecutionOutcome {
-  if (!outcome || typeof outcome !== "object" || Array.isArray(outcome)) throw new Error("executor outcome must be an object");
-  const allowed = outcome.detail === undefined ? ["status", "requestDigest", "evidenceDigest"] : ["status", "requestDigest", "evidenceDigest", "detail"];
-  assertExactKeys(outcome, allowed, "executor outcome");
-  if (!(<readonly string[]>["COMMITTED", "REJECTED", "UNAVAILABLE", "OUTCOME_UNKNOWN", "CANCELLED", "TIMEOUT"]).includes(outcome.status)) throw new Error("executor outcome status is invalid");
-  if (outcome.requestDigest !== requestDigest) throw new Error("executor outcome request binding mismatch");
-  if (!DIGEST_RE.test(outcome.evidenceDigest)) throw new Error("executor evidence digest is invalid");
-  if (outcome.detail !== undefined && (typeof outcome.detail !== "string" || outcome.detail.length > 2_000)) throw new Error("executor outcome detail is invalid");
-  return Object.freeze({ ...outcome });
+function normalizeGovernance(value: AdvisoryGovernanceDecision, requestDigest: string): AdvisoryGovernanceDecision {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("governance decision must be an object");
+  exactKeys(value, ["decision", "requestDigest", "authorization", "capability", "budget", "approval", "evidenceDigest"], "governance decision");
+  if (!DIGEST_RE.test(value.evidenceDigest) || value.requestDigest !== requestDigest) throw new Error("governance decision binding is invalid");
+  const fieldsValid = (value.decision === "ALLOW" || value.decision === "DENY") && (value.authorization === "VERIFIED" || value.authorization === "DENIED") && (value.capability === "ADVISORY_EXECUTION" || value.capability === "DENIED") && (value.budget === "WITHIN_LIMIT" || value.budget === "EXCEEDED") && (value.approval === "VERIFIED" || value.approval === "DENIED");
+  if (!fieldsValid) throw new Error("governance decision status is invalid");
+  if (value.decision === "ALLOW" && (value.authorization !== "VERIFIED" || value.capability !== "ADVISORY_EXECUTION" || value.budget !== "WITHIN_LIMIT" || value.approval !== "VERIFIED")) throw new Error("governance ALLOW is internally inconsistent");
+  return Object.freeze({ ...value });
 }
 
-class AdvisoryBoundaryError extends Error {
-  constructor(readonly reason: "TIMEOUT" | "CANCELLED") {
-    super(reason);
-    this.name = "AdvisoryBoundaryError";
-  }
+function normalizeOutcome(value: AdvisoryExecutionOutcome, requestDigest: string): AdvisoryExecutionOutcome {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("executor outcome must be an object");
+  exactKeys(value, value.detail === undefined ? ["status", "requestDigest", "evidenceDigest"] : ["status", "requestDigest", "evidenceDigest", "detail"], "executor outcome");
+  if (!EXECUTION_STATUSES.includes(value.status) || value.requestDigest !== requestDigest || !DIGEST_RE.test(value.evidenceDigest)) throw new Error("executor outcome binding is invalid");
+  if (value.detail !== undefined && (typeof value.detail !== "string" || value.detail.length > 2_000)) throw new Error("executor outcome detail is invalid");
+  return Object.freeze({ ...value });
+}
+
+class BoundaryStop extends Error {
+  constructor(readonly reason: "TIMEOUT" | "CANCELLED") { super(reason); this.name = "BoundaryStop"; }
 }
 
 async function bounded<T>(operation: (signal: AbortSignal) => Promise<T>, timeoutMs: number, parent?: AbortSignal): Promise<T> {
-  if (parent?.aborted) throw new AdvisoryBoundaryError("CANCELLED");
+  if (parent?.aborted) throw new BoundaryStop("CANCELLED");
   const controller = new AbortController();
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const onAbort = (): void => controller.abort(new AdvisoryBoundaryError("CANCELLED"));
+  const onAbort = (): void => controller.abort(new BoundaryStop("CANCELLED"));
   parent?.addEventListener("abort", onAbort, { once: true });
+  let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     return await Promise.race([
       operation(controller.signal),
       new Promise<never>((_resolve, reject) => {
-        timer = setTimeout(() => {
-          const error = new AdvisoryBoundaryError("TIMEOUT");
-          controller.abort(error);
-          reject(error);
-        }, timeoutMs);
-        controller.signal.addEventListener("abort", () => reject(controller.signal.reason instanceof Error ? controller.signal.reason : new AdvisoryBoundaryError("CANCELLED")), { once: true });
+        timer = setTimeout(() => { const error = new BoundaryStop("TIMEOUT"); controller.abort(error); reject(error); }, timeoutMs);
+        controller.signal.addEventListener("abort", () => reject(controller.signal.reason instanceof Error ? controller.signal.reason : new BoundaryStop("CANCELLED")), { once: true });
       }),
     ]);
   } finally {
@@ -237,15 +221,18 @@ async function bounded<T>(operation: (signal: AbortSignal) => Promise<T>, timeou
 
 export class GovernedAdvisoryRuntime {
   readonly #policy: Readonly<AdvisoryRuntimePolicy>;
+  readonly #governance: NexusAdvisoryGovernancePort;
   readonly #executor: NexusAdvisoryExecutor;
   readonly #terminal = new Map<string, AdvisoryExecutionOutcome>();
   readonly #bindings = new Map<string, string>();
   readonly #inflight = new Map<string, Promise<AdvisoryExecutionOutcome>>();
   readonly #audit: AdvisoryAuditEvent[] = [];
 
-  constructor(policy: AdvisoryRuntimePolicy, executor: NexusAdvisoryExecutor) {
+  constructor(policy: AdvisoryRuntimePolicy, governance: NexusAdvisoryGovernancePort, executor: NexusAdvisoryExecutor) {
     this.#policy = validatePolicy(policy);
+    if (!governance || typeof governance.authorize !== "function") throw new Error("NEXUS advisory governance port is invalid");
     if (!executor || typeof executor.execute !== "function") throw new Error("NEXUS advisory executor is invalid");
+    this.#governance = governance;
     this.#executor = executor;
   }
 
@@ -260,7 +247,6 @@ export class GovernedAdvisoryRuntime {
   verifyAuditTrail(): void {
     let previousDigest = digestValue(null);
     this.#audit.forEach((event, sequence) => {
-      assertExactKeys(event, ["sequence", "type", "proposalDigest", "requestDigest", "status", "previousDigest", "eventDigest"], "advisory audit event");
       const { eventDigest, ...core } = event;
       if (event.sequence !== sequence || event.previousDigest !== previousDigest || digestValue(core) !== eventDigest) throw new Error("advisory audit chain verification failed");
       previousDigest = eventDigest;
@@ -269,8 +255,7 @@ export class GovernedAdvisoryRuntime {
 
   async execute(input: AdvisoryExecutionInput): Promise<AdvisoryExecutionOutcome> {
     if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("advisory execution input must be an object");
-    const allowed = input.signal === undefined ? ["proposal", "approval", "idempotencyKey", "now"] : ["proposal", "approval", "idempotencyKey", "now", "signal"];
-    assertExactKeys(input, allowed, "advisory execution input");
+    exactKeys(input, input.signal === undefined ? ["proposal", "approval", "idempotencyKey", "now"] : ["proposal", "approval", "idempotencyKey", "now", "signal"], "advisory execution input");
     const now = canonicalTime(input.now);
     if (!verifyAdvisoryProposal(this.#policy.scope, input.proposal)) throw new Error("advisory proposal failed scope/integrity validation");
     if (!this.#policy.allowedProviders.includes(input.proposal.provider)) throw new Error("advisory provider is not allowed by policy");
@@ -279,12 +264,12 @@ export class GovernedAdvisoryRuntime {
     const request = createRequest(input.proposal, input.approval, input.idempotencyKey);
     if (!verifyAdvisoryApproval(this.#policy.scope, input.proposal, input.approval, now)) {
       this.#record("DENIED", input.proposal.proposalDigest, request.requestDigest, "REJECTED");
-      return Object.freeze({ status: "REJECTED", requestDigest: request.requestDigest, evidenceDigest: digestValue({ reason: "APPROVAL_DENIED", requestDigest: request.requestDigest }) });
+      return Object.freeze({ status: "REJECTED", requestDigest: request.requestDigest, evidenceDigest: digestValue({ reason: "PRELIMINARY_APPROVAL_INVALID", requestDigest: request.requestDigest }) });
     }
     this.#record("VALIDATED", input.proposal.proposalDigest, request.requestDigest, "VALIDATED");
 
-    const existingBinding = this.#bindings.get(input.idempotencyKey);
-    if (existingBinding && existingBinding !== request.requestDigest) throw new Error("idempotency key conflict");
+    const existing = this.#bindings.get(input.idempotencyKey);
+    if (existing && existing !== request.requestDigest) throw new Error("idempotency key conflict");
     this.#bindings.set(input.idempotencyKey, request.requestDigest);
     const terminal = this.#terminal.get(input.idempotencyKey);
     if (terminal) return terminal;
@@ -292,23 +277,38 @@ export class GovernedAdvisoryRuntime {
     if (inflight) return await inflight;
 
     const task = (async (): Promise<AdvisoryExecutionOutcome> => {
-      this.#record("DISPATCHED", input.proposal.proposalDigest, request.requestDigest, "VALIDATED");
       try {
-        const outcome = normalizeOutcome(await bounded((signal) => this.#executor.execute(request, signal), this.#policy.timeoutMs, input.signal), request.requestDigest);
-        this.#record("COMPLETED", input.proposal.proposalDigest, request.requestDigest, outcome.status);
-        if (outcome.status === "COMMITTED" || outcome.status === "REJECTED" || outcome.status === "UNAVAILABLE") this.#terminal.set(input.idempotencyKey, outcome);
-        else this.#terminal.set(input.idempotencyKey, outcome);
-        return outcome;
-      } catch (error) {
-        const boundedReason = error instanceof AdvisoryBoundaryError ? error.reason : null;
-        const status: AdvisoryExecutionStatus = boundedReason === "TIMEOUT" ? "TIMEOUT" : boundedReason === "CANCELLED" ? "CANCELLED" : "OUTCOME_UNKNOWN";
-        const outcome = Object.freeze({ status, requestDigest: request.requestDigest, evidenceDigest: digestValue({ status, requestDigest: request.requestDigest }) });
-        this.#record("BOUNDED_STOP", input.proposal.proposalDigest, request.requestDigest, status);
-        this.#terminal.set(input.idempotencyKey, outcome);
-        return outcome;
-      } finally {
-        this.#inflight.delete(input.idempotencyKey);
-      }
+        let decision: AdvisoryGovernanceDecision;
+        try {
+          decision = normalizeGovernance(await bounded((signal) => this.#governance.authorize(request, now, signal), this.#policy.timeoutMs, input.signal), request.requestDigest);
+        } catch (error) {
+          const status: AdvisoryExecutionStatus = error instanceof BoundaryStop && error.reason === "CANCELLED" ? "CANCELLED" : error instanceof BoundaryStop ? "TIMEOUT" : "UNAVAILABLE";
+          const outcome = Object.freeze({ status, requestDigest: request.requestDigest, evidenceDigest: digestValue({ stage: "GOVERNANCE", status, requestDigest: request.requestDigest }) });
+          this.#record("BOUNDED_STOP", input.proposal.proposalDigest, request.requestDigest, status);
+          this.#terminal.set(input.idempotencyKey, outcome);
+          return outcome;
+        }
+        if (decision.decision !== "ALLOW") {
+          const outcome = Object.freeze({ status: "REJECTED" as const, requestDigest: request.requestDigest, evidenceDigest: decision.evidenceDigest });
+          this.#record("DENIED", input.proposal.proposalDigest, request.requestDigest, "REJECTED");
+          this.#terminal.set(input.idempotencyKey, outcome);
+          return outcome;
+        }
+        this.#record("GOVERNED", input.proposal.proposalDigest, request.requestDigest, "GOVERNED");
+        this.#record("DISPATCHED", input.proposal.proposalDigest, request.requestDigest, "VALIDATED");
+        try {
+          const outcome = normalizeOutcome(await bounded((signal) => this.#executor.execute(request, signal), this.#policy.timeoutMs, input.signal), request.requestDigest);
+          this.#record("COMPLETED", input.proposal.proposalDigest, request.requestDigest, outcome.status);
+          this.#terminal.set(input.idempotencyKey, outcome);
+          return outcome;
+        } catch (error) {
+          const status: AdvisoryExecutionStatus = error instanceof BoundaryStop && error.reason === "TIMEOUT" ? "TIMEOUT" : error instanceof BoundaryStop && error.reason === "CANCELLED" ? "CANCELLED" : "OUTCOME_UNKNOWN";
+          const outcome = Object.freeze({ status, requestDigest: request.requestDigest, evidenceDigest: digestValue({ stage: "EXECUTION", status, requestDigest: request.requestDigest }) });
+          this.#record("BOUNDED_STOP", input.proposal.proposalDigest, request.requestDigest, status);
+          this.#terminal.set(input.idempotencyKey, outcome);
+          return outcome;
+        }
+      } finally { this.#inflight.delete(input.idempotencyKey); }
     })();
     this.#inflight.set(input.idempotencyKey, task);
     return await task;
@@ -316,7 +316,7 @@ export class GovernedAdvisoryRuntime {
 
   async ingest(source: AdvisoryProposalSource, approval: AdvisoryApproval, idempotencyKey: string, now: string, signal?: AbortSignal): Promise<AdvisoryExecutionOutcome> {
     if (!source || !this.#policy.allowedProviders.includes(source.provider) || typeof source.read !== "function") throw new Error("advisory source is invalid or not allowed");
-    const proposal = await bounded((childSignal) => source.read(childSignal), this.#policy.timeoutMs, signal);
+    const proposal = await bounded((child) => source.read(child), this.#policy.timeoutMs, signal);
     if (proposal.provider !== source.provider) throw new Error("advisory source/provider mismatch");
     return await this.execute({ proposal, approval, idempotencyKey, now, ...(signal ? { signal } : {}) });
   }
