@@ -53,6 +53,18 @@ describe("crawl observability", () => {
     expect(assessCrawl(input).status).toBe("INSUFFICIENT_EVIDENCE");
   });
 
+  it("fails closed on an observed 5xx even when evidence volume is sparse", () => {
+    const input = createDataset({
+      site: "https://example.com",
+      windowStart: "2026-08-30T09:00:00Z",
+      windowEnd: "2026-08-30T11:00:00Z",
+      observations: [{ ...base, id: "sparse-5xx", observedAt: "2026-08-30T10:00:00Z", url: "https://example.com/", status: 503 }],
+    });
+    const assessment = assessCrawl(input);
+    expect(assessment.status).toBe("BLOCKED");
+    expect(assessment.issues.some((issue) => issue.code === "SEARCH_BOT_5XX" && issue.severity === "ERROR")).toBe(true);
+  });
+
   it("detects redirect chains and loops", () => {
     const input = dataset([
       { status: 301, redirectLocation: "https://example.com/a" },
@@ -60,8 +72,8 @@ describe("crawl observability", () => {
       { url: "https://example.com/b", status: 302, redirectLocation: "https://example.com/" },
     ]);
     const assessment = assessCrawl(input);
-    expect(assessment.status).not.toBe("READY");
-    expect(assessment.issues.some((issue) => issue.code === "SEARCH_BOT_REDIRECT_CHAIN")).toBe(true);
+    expect(assessment.status).toBe("BLOCKED");
+    expect(assessment.issues.some((issue) => issue.code === "SEARCH_BOT_REDIRECT_CHAIN" && issue.severity === "ERROR")).toBe(true);
   });
 
   it("rejects tampered observation, dataset and assessment evidence", () => {

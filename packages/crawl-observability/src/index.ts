@@ -242,6 +242,10 @@ function redirectIssues(observations: readonly CrawlObservation[]): CrawlIssue[]
       if (!nextObservation?.redirectLocation) break;
       ids.push(nextObservation.id);
       current = nextObservation.redirectLocation;
+      if (visited.has(current)) {
+        issues.push({ code: "SEARCH_BOT_REDIRECT_CHAIN", severity: "ERROR", url: start, observationIds: Object.freeze([...ids]), detail: "Observed search-bot redirects contain a loop." });
+        break;
+      }
       if (hop >= 2) {
         issues.push({ code: "SEARCH_BOT_REDIRECT_CHAIN", severity: "WARN", url: start, observationIds: Object.freeze([...ids]), detail: "Observed search-bot redirect path exceeds two hops." });
         break;
@@ -277,7 +281,7 @@ export function assessCrawl(dataset: CrawlDataset): CrawlAssessment {
   issues.sort((a, b) => `${a.code}:${a.url ?? ""}:${a.observationIds.join(",")}`.localeCompare(`${b.code}:${b.url ?? ""}:${b.observationIds.join(",")}`));
   const hasError = issues.some((issue) => issue.severity === "ERROR");
   const hasWarn = issues.some((issue) => issue.severity === "WARN");
-  const status: CrawlAssessmentStatus = search.length < 3 ? "INSUFFICIENT_EVIDENCE" : hasError ? "BLOCKED" : hasWarn ? "DEGRADED" : "READY";
+  const status: CrawlAssessmentStatus = hasError ? "BLOCKED" : search.length < 3 ? "INSUFFICIENT_EVIDENCE" : hasWarn ? "DEGRADED" : "READY";
   const core = {
     site: dataset.site,
     datasetDigest: dataset.datasetDigest,
