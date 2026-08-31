@@ -20,18 +20,36 @@ const spec = {
 };
 
 describe("block four project creation", () => {
-  it("uses the repository scaffold to persist supplied facts and explicit client classification", async () => {
+  it("compiles supplied facts and art direction into a non-placeholder client app plus lockfile importer", async () => {
     const root = await mkdtemp(join(tmpdir(), "nexus-scaffold-test-")); roots.push(root);
     await cp(join(repositoryRoot, "apps/_experience-seed"), join(root, "apps/_experience-seed"), { recursive: true, filter: (source) => !source.includes("/.next/") && !source.includes("/node_modules/") });
     await mkdir(join(root, "scripts"), { recursive: true });
     await cp(join(repositoryRoot, "scripts/scaffold-client.mjs"), join(root, "scripts/scaffold-client.mjs"));
+    await cp(join(repositoryRoot, "scripts/project-spec-contract.mjs"), join(root, "scripts/project-spec-contract.mjs"));
+    await cp(join(repositoryRoot, "pnpm-lock.yaml"), join(root, "pnpm-lock.yaml"));
     const input = join(root, "input.json");
     await writeFile(input, JSON.stringify({ schemaVersion: 1, slug: spec.slug, business: spec.business, artDirection: spec.artDirection }));
     await exec(process.execPath, ["scripts/scaffold-client.mjs", spec.slug, "--project-spec", input], { cwd: root });
-    const manifest = JSON.parse(await readFile(join(root, `apps/${spec.slug}/package.json`), "utf8"));
+    const packageManifest = JSON.parse(await readFile(join(root, `apps/${spec.slug}/package.json`), "utf8"));
     const stored = JSON.parse(await readFile(join(root, `apps/${spec.slug}/.nexus/project-spec.json`), "utf8"));
-    expect(manifest).toMatchObject({ name: `@nexus/${spec.slug}`, nexus: { clientProject: true } });
+    const compiled = JSON.parse(await readFile(join(root, `apps/${spec.slug}/.nexus/compiled-project.json`), "utf8"));
+    const scaffold = JSON.parse(await readFile(join(root, `apps/${spec.slug}/.nexus/scaffold-manifest.json`), "utf8"));
+    const page = await readFile(join(root, `apps/${spec.slug}/src/app/page.tsx`), "utf8");
+    const data = await readFile(join(root, `apps/${spec.slug}/src/app/project-data.ts`), "utf8");
+    const theme = await readFile(join(root, `apps/${spec.slug}/src/app/theme.ts`), "utf8");
+    const lockfile = await readFile(join(root, "pnpm-lock.yaml"), "utf8");
+
+    expect(packageManifest).toMatchObject({ name: `@nexus/${spec.slug}`, nexus: { clientProject: true, projectSpecDigest: expect.stringMatching(/^sha256:[a-f0-9]{64}$/) } });
     expect(stored).toMatchObject({ slug: spec.slug, business: spec.business, artDirection: spec.artDirection });
+    expect(compiled).toMatchObject({ authority: "NEXUS_PROJECT_SPEC_COMPILER_V1", specDigest: packageManifest.nexus.projectSpecDigest });
+    expect(scaffold).toMatchObject({ authority: "NEXUS_SCAFFOLD_V2", client: spec.slug, projectSpecDigest: packageManifest.nexus.projectSpecDigest });
+    expect(data).toContain("Fixture Client");
+    expect(data).toContain("Reservations");
+    expect(page).toContain("projectData.business.confirmedServices");
+    expect(page).not.toMatch(/\[\s*(?:Marca|Título|Acción|Contenido|Pie|Enlace)/u);
+    expect(theme).toContain('"surface.base": "#112233"');
+    expect(theme).toContain('"accent.default": "#DDAA22"');
+    expect(lockfile).toContain(`  apps/${spec.slug}:\n`);
     await expect(exec(process.execPath, ["scripts/scaffold-client.mjs", spec.slug, "--project-spec", input], { cwd: root })).rejects.toThrow(/target already exists/);
   });
 
