@@ -71,6 +71,7 @@ export class SaliencyAugmentedCaptureAdapter implements BrowserDeviceCapturePort
 
     try {
       const baseResult = await this.base.capture(baseRequest);
+      validateCaptureResult(baseRequest, baseResult);
       if (baseResult.outcome !== "CAPTURED") {
         return Object.freeze({
           requestId,
