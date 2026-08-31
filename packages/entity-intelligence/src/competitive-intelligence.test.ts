@@ -88,6 +88,13 @@ describe("competitive intelligence", () => {
     await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, signal: controller.signal })).rejects.toThrow();
   });
 
+  it("bounds stalled DNS resolution with the same capture deadline", async () => {
+    const stalledLookup = vi.fn(async () => new Promise<readonly { address: string; family: number }[]>(() => undefined));
+    const fetchImpl = vi.fn(async () => new Response("should not run")) as unknown as typeof fetch;
+    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: stalledLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
   it("fails closed when timeout or caller cancellation interrupts a stalled response body", async () => {
     const stalledFetch = vi.fn(async () => new Response(new ReadableStream<Uint8Array>({ start() { /* intentionally stalled */ } }), { status: 200 })) as unknown as typeof fetch;
     await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl: stalledFetch, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
