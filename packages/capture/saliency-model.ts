@@ -99,7 +99,13 @@ function canonicalize(value: unknown, seen = new WeakSet<object>()): unknown {
     if (!Number.isFinite(value)) throw new Error("saliency canonical JSON rejects non-finite numbers");
     return Object.is(value, -0) ? 0 : value;
   }
-  if (Array.isArray(value)) return value.map((item) => canonicalize(item, seen));
+  if (Array.isArray(value)) {
+    if (seen.has(value)) throw new Error("saliency canonical JSON rejects cyclic objects");
+    seen.add(value);
+    const output = value.map((item) => canonicalize(item, seen));
+    seen.delete(value);
+    return output;
+  }
   if (typeof value === "object") {
     const object = value as Record<string, unknown>;
     if (seen.has(object)) throw new Error("saliency canonical JSON rejects cyclic objects");
