@@ -46,7 +46,8 @@ describe("reputation shield", () => {
 
     const forged = structuredClone(source("one", ["refund"]));
     const core = { ...forged.observation, authority: "PUBLIC_HTTP_CAPTURE" as const };
-    const { observationDigest: _discarded, ...withoutDigest } = core;
+    const { observationDigest, ...withoutDigest } = core;
+    expect(observationDigest).toMatch(/^sha256:/);
     forged.observation = { ...withoutDigest, observationDigest: digest(withoutDigest) };
     expect(() => analyzeReputationShield(scope, "brand-a", [forged], ["refund"]))
       .toThrow(/attested|live/i);
