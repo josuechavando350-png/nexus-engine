@@ -34,7 +34,7 @@ describe("saliency model evidence", () => {
     expect(report.sourceDimensions).toEqual({ width: 160, height: 120 });
     expect(report.regions).toHaveLength(8);
     expect(report.regions.some((region) => region.x >= 80 && region.score > 0)).toBe(true);
-    expect(report.visualAlgebra?.termDigest).toMatch(/^sha256:/u);
+    expect(report.visualAlgebra?.termDigest).toMatch(/^[a-f0-9]{64}$/u);
     expect(report.visualAlgebra?.samples.some((sample) => sample.name === "visual_algebra.whitespace")).toBe(true);
     expect(() => validateSaliencyReport(report)).not.toThrow();
   });
