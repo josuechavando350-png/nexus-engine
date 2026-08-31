@@ -8,17 +8,17 @@ const scope: CompetitiveScope = { tenantId: "tenant-a", organizationId: "org-a",
 const observedAt = "2026-08-31T11:00:00.000Z";
 
 function source(id: string, terms: readonly string[], sourceScope: CompetitiveScope = scope) {
-  const url = `https://${id}.example/`;
+  const url = `https://${id.trim() || "source"}.example/`;
   return {
     id,
-    label: id,
+    label: id.trim() || "source",
     observation: createControlledPublicPageObservation({
       scope: sourceScope,
       url,
       finalUrl: url,
       observedAt,
       status: 200,
-      title: id,
+      title: id.trim() || "source",
       description: null,
       canonicalUrl: url,
       visibleTerms: terms,
@@ -67,7 +67,7 @@ describe("reputation shield", () => {
   });
 
   it("detects replay/tamper and rejects duplicate or ambiguous monitored terms", () => {
-    const sources = [source("one", ["refund"]), source("two", ["delay"] )];
+    const sources = [source("one", ["refund"]), source("two", ["delay"])];
     const report = analyzeReputationShield(scope, "brand-a", sources, ["refund", "delay"]);
     const tampered = structuredClone(report);
     (tampered.signals[0] as { sourceCount: number }).sourceCount = 99;
@@ -76,9 +76,16 @@ describe("reputation shield", () => {
     expect(() => analyzeReputationShield(scope, "brand-a", sources, ["two words"])).toThrow(/single normalized tokens/);
   });
 
-  it("bounds source count and requires unique source ids", () => {
+  it("canonicalizes source ids before emitting signed report fields", () => {
+    const report = analyzeReputationShield(scope, "brand-a", [source("  one  ", ["refund"])], ["refund"]);
+    expect(report.sourceIds).toEqual(["one"]);
+    expect(report.signals).toEqual([{ term: "refund", sourceCount: 1, sourceIds: ["one"] }]);
+    expect(report.reportDigest).toMatch(/^[a-f0-9]{64}$/u);
+  });
+
+  it("bounds source count and requires unique source ids after normalization", () => {
     expect(() => analyzeReputationShield(scope, "brand-a", [], ["refund"])).toThrow(/1 to 50/);
-    expect(() => analyzeReputationShield(scope, "brand-a", [source("one", ["refund"]), source("one", ["delay"])], ["refund"]))
+    expect(() => analyzeReputationShield(scope, "brand-a", [source("one", ["refund"]), source(" one ", ["delay"])], ["refund"]))
       .toThrow(/unique/);
   });
 
