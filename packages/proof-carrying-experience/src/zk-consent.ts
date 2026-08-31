@@ -1,5 +1,5 @@
-import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -46,6 +46,7 @@ export interface ZkConsentEvidence {
   reason: string;
 }
 
+/** Implementations must atomically return true exactly once for a tenant/scope/nonce tuple. */
 export interface ReplayGuard {
   consume(input: { tenantId: string; scope: string; nonceDigest: string }): Promise<boolean>;
 }
@@ -62,6 +63,7 @@ interface ProcessResult {
   stderr: string;
   timedOut: boolean;
   cancelled: boolean;
+  outputExceeded: boolean;
 }
 
 function sha256(value: string): string {
@@ -69,9 +71,7 @@ function sha256(value: string): string {
 }
 
 function assertIdentifier(label: string, value: string, max = 256): void {
-  if (value.length < 1 || value.length > max || /[\u0000-\u001f\u007f]/u.test(value)) {
-    throw new Error(`${label} is invalid`);
-  }
+  if (value.length < 1 || value.length > max || /[\u0000-\u001f\u007f]/u.test(value)) throw new Error(`${label} is invalid`);
 }
 
 function assertDigest(label: string, value: string): void {
@@ -80,13 +80,11 @@ function assertDigest(label: string, value: string): void {
 
 function assertBoundedJson(label: string, value: string): unknown {
   if (Buffer.byteLength(value, "utf8") > MAX_JSON_BYTES) throw new Error(`${label} exceeds ${MAX_JSON_BYTES} bytes`);
-  let parsed: unknown;
   try {
-    parsed = JSON.parse(value) as unknown;
+    return JSON.parse(value) as unknown;
   } catch {
     throw new Error(`${label} must be valid JSON`);
   }
-  return parsed;
 }
 
 function canonicalBinding(request: Pick<ZkConsentRequest, "tenantId" | "scope" | "action" | "nonce" | "payloadDigest">): string {
@@ -102,8 +100,7 @@ function canonicalBinding(request: Pick<ZkConsentRequest, "tenantId" | "scope" |
 export function zkConsentBindingSignal(
   request: Pick<ZkConsentRequest, "tenantId" | "scope" | "action" | "nonce" | "payloadDigest">,
 ): string {
-  const digest = sha256(canonicalBinding(request));
-  return (BigInt(`0x${digest}`) % BN254_SCALAR_FIELD).toString(10);
+  return (BigInt(`0x${sha256(canonicalBinding(request))}`) % BN254_SCALAR_FIELD).toString(10);
 }
 
 function parsePublicSignals(value: unknown): string[] {
@@ -129,27 +126,11 @@ async function runBoundedProcess(
     let outputBytes = 0;
     let timedOut = false;
     let cancelled = false;
+    let outputExceeded = false;
     let settled = false;
 
-    const finish = (result: ProcessResult): void => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      signal?.removeEventListener("abort", onAbort);
-      resolve(result);
-    };
     const kill = (): void => {
       if (!child.killed) child.kill("SIGKILL");
-    };
-    const onData = (target: "stdout" | "stderr", chunk: Buffer | string): void => {
-      const text = chunk.toString();
-      outputBytes += Buffer.byteLength(text, "utf8");
-      if (outputBytes > MAX_OUTPUT_BYTES) {
-        kill();
-        return;
-      }
-      if (target === "stdout") stdout += text;
-      else stderr += text;
     };
     const onAbort = (): void => {
       cancelled = true;
@@ -159,17 +140,36 @@ async function runBoundedProcess(
       timedOut = true;
       kill();
     }, timeoutMs);
+    const cleanup = (): void => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", onAbort);
+    };
+    const onData = (target: "stdout" | "stderr", chunk: Buffer | string): void => {
+      const text = chunk.toString();
+      outputBytes += Buffer.byteLength(text, "utf8");
+      if (outputBytes > MAX_OUTPUT_BYTES) {
+        outputExceeded = true;
+        kill();
+        return;
+      }
+      if (target === "stdout") stdout += text;
+      else stderr += text;
+    };
 
     child.stdout.on("data", (chunk: Buffer | string) => onData("stdout", chunk));
     child.stderr.on("data", (chunk: Buffer | string) => onData("stderr", chunk));
-    child.on("error", (error) => {
+    child.once("error", (error) => {
       if (settled) return;
       settled = true;
-      clearTimeout(timer);
-      signal?.removeEventListener("abort", onAbort);
+      cleanup();
       reject(error);
     });
-    child.on("close", (code) => finish({ code, stdout, stderr, timedOut, cancelled }));
+    child.once("close", (code) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      resolve({ code, stdout, stderr, timedOut, cancelled, outputExceeded });
+    });
     if (signal?.aborted) onAbort();
     else signal?.addEventListener("abort", onAbort, { once: true });
   });
@@ -226,11 +226,10 @@ export class SnarkjsGroth16ConsentVerifier {
     }
     if (version.cancelled) return { ...base, status: "CANCELLED", toolchainVersion: null, reason: "toolchain version check cancelled" };
     if (version.timedOut) return { ...base, status: "TIMEOUT", toolchainVersion: null, reason: "toolchain version check timed out" };
-    if (version.code !== 0) return { ...base, status: "UNAVAILABLE", toolchainVersion: null, reason: "snarkjs version check failed" };
+    if (version.outputExceeded || version.code !== 0) {
+      return { ...base, status: "UNAVAILABLE", toolchainVersion: null, reason: "snarkjs version check failed or exceeded bounded output" };
+    }
     const toolchainVersion = version.stdout.trim().slice(0, 128) || version.stderr.trim().slice(0, 128) || "unknown";
-
-    const replayAccepted = await this.replayGuard.consume({ tenantId: request.tenantId, scope: request.scope, nonceDigest: base.nonceDigest });
-    if (!replayAccepted) return { ...base, status: "REPLAYED", toolchainVersion, reason: "nonce was already consumed for tenant/scope" };
 
     const dir = await mkdtemp(join(tmpdir(), "nexus-zk-consent-"));
     try {
@@ -245,9 +244,22 @@ export class SnarkjsGroth16ConsentVerifier {
       const result = await runBoundedProcess(this.executable, ["groth16", "verify", vkPath, signalsPath, proofPath], this.timeoutMs, signal);
       if (result.cancelled) return { ...base, status: "CANCELLED", toolchainVersion, reason: "verification cancelled" };
       if (result.timedOut) return { ...base, status: "TIMEOUT", toolchainVersion, reason: "verification timed out" };
-      if (result.code !== 0) return { ...base, status: "NOT_VERIFIED", toolchainVersion, reason: "snarkjs rejected proof or verifier execution failed" };
+      if (result.outputExceeded || result.code !== 0) {
+        return { ...base, status: "NOT_VERIFIED", toolchainVersion, reason: "snarkjs rejected proof, failed, or exceeded bounded output" };
+      }
       const normalized = `${result.stdout}\n${result.stderr}`.toLowerCase();
-      if (!normalized.includes("ok")) return { ...base, status: "NOT_VERIFIED", toolchainVersion, reason: "snarkjs did not emit an affirmative verification result" };
+      if (!/(^|\s)ok([!\s]|$)/u.test(normalized)) {
+        return { ...base, status: "NOT_VERIFIED", toolchainVersion, reason: "snarkjs did not emit an affirmative verification result" };
+      }
+
+      // Consume only after cryptographic verification. Atomic consume prevents concurrent/replayed operations,
+      // while an invalid proof cannot burn a valid nonce and deny a later legitimate consent.
+      const replayAccepted = await this.replayGuard.consume({
+        tenantId: request.tenantId,
+        scope: request.scope,
+        nonceDigest: base.nonceDigest,
+      });
+      if (!replayAccepted) return { ...base, status: "REPLAYED", toolchainVersion, reason: "nonce was already consumed for tenant/scope" };
       return { ...base, status: "VERIFIED", toolchainVersion, reason: "real snarkjs Groth16 verifier accepted the bound proof" };
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -264,6 +276,5 @@ export async function requireVerifiedZkConsent<T>(
   const evidence = await verifier.verify(request, signal);
   if (evidence.status !== "VERIFIED") return { evidence };
   if (signal?.aborted) return { evidence: { ...evidence, status: "CANCELLED", reason: "operation cancelled after verification" } };
-  const value = await operation();
-  return { evidence, value };
+  return { evidence, value: await operation() };
 }
