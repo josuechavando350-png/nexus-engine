@@ -54,6 +54,10 @@ describe("block four project creation", () => {
     await expect(exec(process.execPath, ["scripts/scaffold-client.mjs", spec.slug, "--project-spec", input], { cwd: root })).rejects.toThrow(/target already exists/);
   });
 
+  it("rejects traversal-like slugs before any filesystem or Git mutation", async () => {
+    await expect(createProject(process.cwd(), { ...spec, slug: "../../escape" })).rejects.toThrow(/reserved or invalid client-project name/);
+  });
+
   it("rolls back branch, files and lockfile when creation fails after scaffold publication", async () => {
     const root = await mkdtemp(join(tmpdir(), "nexus-project-rollback-")); roots.push(root);
     await cp(join(repositoryRoot, "apps/_experience-seed"), join(root, "apps/_experience-seed"), { recursive: true, filter: (source) => !source.includes("/.next/") && !source.includes("/node_modules/") });
