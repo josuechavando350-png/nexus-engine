@@ -10,3 +10,4 @@ export * from "./build.js";
 export * from "./artifacts.js";
 export * from "./execution.js";
 export * from "./policy.js";
+export * from "./operator-gateway.js";
