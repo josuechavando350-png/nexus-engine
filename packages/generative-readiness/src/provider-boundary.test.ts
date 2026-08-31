@@ -7,6 +7,7 @@ import {
   type AdvisoryExecutionOutcome,
   type AdvisoryExecutionRequest,
   type AdvisoryProposalSource,
+  type AdvisoryProvider,
   type NexusAdvisoryExecutor,
 } from "./provider-boundary.js";
 import { digestValue } from "./index.js";
@@ -14,7 +15,7 @@ import { digestValue } from "./index.js";
 const scope = { tenantId: "tenant-a", organizationId: "org-a", brandId: "brand-a" } as const;
 const now = "2026-08-31T14:35:30.000Z";
 
-function proposal(provider: "ANTHROPIC_CLAUDE" | "OPENAI_CHATGPT" | "OTHER" = "ANTHROPIC_CLAUDE") {
+function proposal(provider: AdvisoryProvider = "ANTHROPIC_CLAUDE") {
   return createAdvisoryProposal({
     scope,
     provider,
@@ -42,7 +43,7 @@ function executor(fn?: (request: AdvisoryExecutionRequest, signal: AbortSignal) 
   };
 }
 
-function runtime(exec = executor(), providers = ["ANTHROPIC_CLAUDE", "OPENAI_CHATGPT", "OTHER"] as const) {
+function runtime(exec = executor(), providers: readonly AdvisoryProvider[] = ["ANTHROPIC_CLAUDE", "OPENAI_CHATGPT", "OTHER"]) {
   return new GovernedAdvisoryRuntime({ scope, allowedProviders: providers, maxProposalAgeMs: 60_000, timeoutMs: 50 }, exec);
 }
 
