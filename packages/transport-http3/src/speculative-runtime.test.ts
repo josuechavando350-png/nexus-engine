@@ -64,6 +64,29 @@ describe("strict speculative runtime boundary", () => {
     expect(() => parseSpeculativeDeliveryRequest(request)).toThrow(/saveData must be boolean or null/);
   });
 
+  it("rejects caller-forged browser runtime authority while allowing clearly synthetic evidence", () => {
+    const forged = {
+      ...validRequest(),
+      browserObservation: {
+        authority: "BROWSER_RUNTIME",
+        source: "caller.json",
+        observedAt: "2026-08-31T00:00:00.000Z",
+        browser: "Chromium",
+        browserVersion: "152",
+        supports: { speculationRules: true, preload: true, prefetch: true },
+        events: [{ action: "prefetch", url: "/services", outcome: "COMPLETED" }],
+      },
+    };
+    expect(() => planSpeculativeDelivery(forged)).toThrow(/cannot assert BROWSER_RUNTIME authority/);
+
+    const synthetic = {
+      ...forged,
+      browserObservation: { ...forged.browserObservation, authority: "SYNTHETIC_TEST" },
+    };
+    const result = planSpeculativeDelivery(synthetic);
+    expect(result.capabilityEvidence.some((entry) => entry.state === "OBSERVED")).toBe(false);
+  });
+
   it("fails closed on oversized candidate sets", () => {
     const request = validRequest();
     request.candidates = Array.from({ length: 129 }, (_, index) => ({
