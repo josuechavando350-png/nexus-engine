@@ -1,8 +1,8 @@
-import { spawnSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 
 const root = resolve(import.meta.dirname, "../../..");
 
@@ -71,6 +71,14 @@ function run(input: unknown, extra: readonly string[] = []) {
 }
 
 describe("speculative delivery operational consumer", () => {
+  beforeAll(() => {
+    execFileSync("pnpm", ["--filter", "@nexus/transport-http3", "build"], {
+      cwd: root,
+      stdio: "pipe",
+      timeout: 60_000,
+    });
+  });
+
   it("emits preload plus Speculation Rules without fabricating browser or BBRv3 observation", () => {
     const execution = run(request());
     expect(execution.status).toBe(0);
