@@ -13,7 +13,7 @@ const liveObservations = new WeakSet<object>();
 export interface CompetitiveScope { readonly tenantId: string; readonly organizationId: string; readonly brandId: string }
 export type CompetitiveAuthority = "PUBLIC_HTTP_CAPTURE" | "CONTROLLED_TEST";
 export interface PublicPageObservation {
-  readonly url: string; readonly finalUrl: string; readonly observedAt: string; readonly status: number;
+  readonly scope: CompetitiveScope; readonly url: string; readonly finalUrl: string; readonly observedAt: string; readonly status: number;
   readonly authority: CompetitiveAuthority; readonly title: string | null; readonly description: string | null;
   readonly canonicalUrl: string | null; readonly visibleTerms: readonly string[]; readonly bodyDigest: string; readonly observationDigest: string;
 }
@@ -74,7 +74,7 @@ function buildObservation(input: Omit<PublicPageObservation, "observationDigest"
   const terms = input.visibleTerms.map((term) => clean("visible term", term, 80));
   if (terms.length > MAX_TERMS || new Set(terms).size !== terms.length) throw new Error("visible terms must be unique and bounded");
   const core = {
-    url: normalizeUrl(input.url), finalUrl: normalizeUrl(input.finalUrl), observedAt: canonicalTime(input.observedAt), status: input.status, authority: input.authority,
+    scope: normalizedScope(input.scope), url: normalizeUrl(input.url), finalUrl: normalizeUrl(input.finalUrl), observedAt: canonicalTime(input.observedAt), status: input.status, authority: input.authority,
     title: cleanNullable("title", input.title, 2_000), description: cleanNullable("description", input.description, 2_000),
     canonicalUrl: input.canonicalUrl === null ? null : normalizeUrl(input.canonicalUrl), visibleTerms: Object.freeze(terms), bodyDigest: input.bodyDigest,
   };
@@ -135,8 +135,9 @@ async function readBoundedBody(response: Response, controller: AbortController):
 export async function capturePublicPage(
   url: string,
   observedAt: string,
-  options: Readonly<{ timeoutMs?: number; signal?: AbortSignal; fetchImpl?: FetchLike; lookup?: LookupPublic }> = {},
+  options: Readonly<{ scope: CompetitiveScope; timeoutMs?: number; signal?: AbortSignal; fetchImpl?: FetchLike; lookup?: LookupPublic }>,
 ): Promise<PublicPageObservation> {
+  const scope = normalizedScope(options.scope);
   const timeoutMs = options.timeoutMs ?? 10_000;
   if (!Number.isInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > MAX_TIMEOUT_MS) throw new Error("timeoutMs must be an integer from 100 to 30000");
   const initialUrl = normalizeUrl(url);
@@ -169,7 +170,7 @@ export async function capturePublicPage(
       const body = await readBoundedBody(response, controller);
       const canonicalHref = matchFirst(body, /<link\b[^>]*rel=["'][^"']*canonical[^"']*["'][^>]*href=["']([^"']+)["'][^>]*>/iu) ?? matchFirst(body, /<link\b[^>]*href=["']([^"']+)["'][^>]*rel=["'][^"']*canonical[^"']*["'][^>]*>/iu);
       const observation = buildObservation({
-        url: initialUrl, finalUrl: current, observedAt, status: response.status, authority: controlledTransport ? "CONTROLLED_TEST" : "PUBLIC_HTTP_CAPTURE",
+        scope, url: initialUrl, finalUrl: current, observedAt, status: response.status, authority: controlledTransport ? "CONTROLLED_TEST" : "PUBLIC_HTTP_CAPTURE",
         title: matchFirst(body, /<title\b[^>]*>([\s\S]*?)<\/title>/iu),
         description: matchFirst(body, /<meta\b[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/iu) ?? matchFirst(body, /<meta\b[^>]*content=["']([^"']*)["'][^>]*name=["']description["'][^>]*>/iu),
         canonicalUrl: canonicalHref ? normalizeUrl(new URL(canonicalHref, current).toString()) : null, visibleTerms: visibleTerms(body), bodyDigest: digest(body),
@@ -190,7 +191,11 @@ export function analyzeCompetitiveIntelligence(scopeInput: CompetitiveScope, tar
   const all = [target, ...competitors];
   const ids = all.map((subject) => clean("subject.id", subject.id, 200));
   if (new Set(ids).size !== ids.length) throw new Error("competitive subject ids must be unique");
-  all.forEach((subject) => { clean("subject.label", subject.label, 500); validatePublicPageObservation(subject.observation); });
+  all.forEach((subject) => {
+    clean("subject.label", subject.label, 500);
+    validatePublicPageObservation(subject.observation);
+    if (canonicalJson(subject.observation.scope) !== canonicalJson(scope)) throw new Error("competitive observation scope mismatch");
+  });
   const authorities = new Set(all.map((subject) => subject.observation.authority));
   if (authorities.size !== 1) throw new Error("mixed competitive observation authorities are forbidden");
   const targetTerms = new Set(target.observation.visibleTerms);
