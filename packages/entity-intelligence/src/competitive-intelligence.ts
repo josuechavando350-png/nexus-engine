@@ -186,6 +186,7 @@ export async function capturePublicPage(
   const timer = setTimeout(() => controller.abort(new Error("competitive capture timeout")), timeoutMs);
   const fetchImpl = options.fetchImpl ?? fetch;
   const lookup = options.lookup ?? defaultLookup;
+  const authority: CompetitiveAuthority = options.fetchImpl || options.lookup ? "CONTROLLED_TEST" : "PUBLIC_HTTP_CAPTURE";
   let current = initialUrl;
   try {
     for (let redirect = 0; redirect <= MAX_REDIRECTS; redirect += 1) {
@@ -220,7 +221,7 @@ export async function capturePublicPage(
         finalUrl: current,
         observedAt,
         status: response.status,
-        authority: "PUBLIC_HTTP_CAPTURE",
+        authority,
         title: matchFirst(body, /<title\b[^>]*>([\s\S]*?)<\/title>/iu),
         description: matchFirst(body, /<meta\b[^>]*name=["']description["'][^>]*content=["']([^"']*)["'][^>]*>/iu) ?? matchFirst(body, /<meta\b[^>]*content=["']([^"']*)["'][^>]*name=["']description["'][^>]*>/iu),
         canonicalUrl,
@@ -254,7 +255,7 @@ export function analyzeCompetitiveIntelligence(scopeInput: CompetitiveScope, tar
     .slice(0, 500));
   const evidenceState = all.every((subject) => subject.observation.authority === "PUBLIC_HTTP_CAPTURE")
     ? "OBSERVED_PUBLIC_HTTP" as const
-    : all.length > 1 ? "SYNTHETIC" as const : "NOT_ENOUGH_EVIDENCE" as const;
+    : "SYNTHETIC" as const;
   const core = {
     formatVersion: "nexus-competitive-intelligence-v1" as const,
     scope: normalizedScope,
