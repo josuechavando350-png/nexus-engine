@@ -138,7 +138,7 @@ const DEFAULT_POLICY: SpeculativeDeliveryPolicy = Object.freeze({
   maxNavigationBytes: 1024 * 1024,
   maxSingleCandidateBytes: 8 * 1024 * 1024,
   sameOriginNavigationOnly: true,
-  allowCrossOriginAnonymousPreload: true,
+  allowCrossOriginAnonymousPreload: false,
   defaultEagerness: "moderate",
 });
 
@@ -365,12 +365,8 @@ function rejectReason(candidate: SpeculationCandidate, request: NormalizedSpecul
     if (dataSaving) return "REDUCED_DATA_BLOCKED";
     if (constrainedNetwork) return "CONSTRAINED_NETWORK_BLOCKED";
     if (candidate.cacheSafety === "NO_STORE" && candidate.action === "prerender") return "NO_STORE_PRERENDER_BLOCKED";
-  } else {
-    if (candidate.action === "prefetch" && !sameOrigin) return "CROSS_ORIGIN_PREFETCH_BLOCKED";
-    if (candidate.action === "prefetch" && candidate.cacheSafety !== "CACHEABLE") return "UNSAFE_PREFETCH_CACHE_POLICY";
-    if (candidate.action === "preload" && !sameOrigin) {
-      if (!request.policy.allowCrossOriginAnonymousPreload || candidate.crossOriginMode !== "ANONYMOUS") return "CROSS_ORIGIN_PRELOAD_REQUIRES_ANONYMOUS_POLICY";
-    }
+  } else if (candidate.action === "preload" && !sameOrigin) {
+    if (!request.policy.allowCrossOriginAnonymousPreload || candidate.crossOriginMode !== "ANONYMOUS") return "CROSS_ORIGIN_PRELOAD_REQUIRES_ANONYMOUS_POLICY";
   }
   return null;
 }
@@ -464,8 +460,6 @@ function createOutputs(selected: readonly SpeculationCandidate[], policy: Specul
         as: candidate.as,
         ...(candidate.crossOriginMode === "ANONYMOUS" ? { crossorigin: "anonymous" as const } : {}),
       }));
-    } else if (candidate.kind === "subresource") {
-      resourceHints.push(Object.freeze({ rel: "prefetch", href: candidate.target }));
     } else {
       const entry = Object.freeze({
         source: "list" as const,
