@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { createNexusMcpServer } from "./mcp.js";
+import { NEXUS_OPERATOR_AUTHORITY, NexusOperatorRuntime, operatorDigest, type OperatorScope } from "./operator-gateway.js";
 import type { ToolDependencies } from "./tools.js";
 import { LocalArtifactStore, type ArtifactStore } from "./artifacts.js";
 import { ConcurrencyLimitError, ExecutionCoordinator, type ExecutionRunner } from "./execution.js";
@@ -18,6 +19,8 @@ export interface HttpServerOptions extends ToolDependencies {
   limits?: RuntimeLimits;
   artifactStore?: ArtifactStore;
   coordinator?: ExecutionRunner;
+  operatorScope?: OperatorScope;
+  operatorRuntime?: NexusOperatorRuntime;
 }
 
 function authorized(header: string | undefined, expectedHex: string): boolean {
@@ -33,6 +36,8 @@ export function createNexusHttpApp(options: HttpServerOptions) {
   if (options.writeTokenSha256 === options.tokenSha256) throw new Error("read and write token hashes must be different");
   const limits = options.limits ?? { maxConcurrency: DEFAULT_MAX_CONCURRENCY, executionTimeoutMs: undefined, maxArtifactBytes: DEFAULT_MAX_ARTIFACT_BYTES, maxProcessOutputBytes: DEFAULT_MAX_PROCESS_OUTPUT_BYTES };
   const enabledTools = options.enabledTools ?? new Set<NexusToolName>(REMOTE_READINESS_DEFAULT_TOOLS);
+  if (enabledTools.has("nexus_operator") && !options.operatorRuntime && !options.operatorScope) throw new Error("nexus_operator requires a server-owned operator scope or runtime");
+  const operatorRuntime = options.operatorRuntime ?? (options.operatorScope ? new NexusOperatorRuntime(options.operatorScope) : undefined);
   const localArtifactRoot = options.artifactRoot ?? join(options.root, ".artifacts", "mcp");
   const artifactStore = options.artifactStore ?? new LocalArtifactStore(localArtifactRoot, limits.maxArtifactBytes);
   const coordinator = options.coordinator ?? new ExecutionCoordinator(options.root, join(localArtifactRoot, "worktrees"), limits.maxConcurrency, limits.executionTimeoutMs, limits.maxProcessOutputBytes);
@@ -57,13 +62,32 @@ export function createNexusHttpApp(options: HttpServerOptions) {
       return;
     }
     const toolName = request.body?.method === "tools/call" && typeof request.body?.params?.name === "string" ? request.body.params.name as NexusToolName : null;
-    const isolated = toolName !== null && new Set<NexusToolName>(["nexus_gates", "nexus_capture", "nexus_build", "nexus_project_new"]).has(toolName);
+    const isolated = toolName !== null && new Set<NexusToolName>(["nexus_gates", "nexus_capture", "nexus_build", "nexus_project_new", "nexus_operator"]).has(toolName);
     const requestId = randomUUID();
     try {
       const git = await (options.git ?? readGitState)(options.root);
       await coordinator.run(requestId, git.headSha, isolated, async (root) => {
         const dependencies: ToolDependencies = { ...options, root, artifactRoot: localArtifactRoot, artifactStore, limits, requestId: () => requestId };
-        const server = createNexusMcpServer(dependencies, { allowProjectWrite: writeAuthorized, enabledTools });
+        const authorizationDurationMs = Math.min(limits.executionTimeoutMs ?? 900_000, 900_000);
+        const authorizationExpiresAt = new Date(Date.now() + authorizationDurationMs).toISOString();
+        const mutationApproval = writeAuthorized ? Object.freeze({
+          status: "APPROVED" as const,
+          expiresAt: authorizationExpiresAt,
+          evidenceDigest: operatorDigest({ channel: "MCP_WRITE_TOKEN", requestId, repository: dependencies.repository ?? "josuechavando350-png/nexus-engine" }),
+        }) : undefined;
+        const server = createNexusMcpServer(dependencies, {
+          allowProjectWrite: writeAuthorized,
+          enabledTools,
+          operatorRuntime,
+          operatorContext: operatorRuntime ? Object.freeze({
+            authority: NEXUS_OPERATOR_AUTHORITY,
+            authenticated: true as const,
+            writeAuthorized,
+            authorizationExpiresAt,
+            enabledTools,
+            ...(mutationApproval ? { mutationApproval } : {}),
+          }) : undefined,
+        });
         const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
         try { await server.connect(transport); await transport.handleRequest(request, response, request.body); }
         finally { await transport.close(); await server.close(); }
