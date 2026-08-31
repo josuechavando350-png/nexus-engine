@@ -1,0 +1,78 @@
+import { describe, expect, it, vi } from "vitest";
+import { digest } from "./index";
+import { analyzeCompetitiveIntelligence, capturePublicPage, createControlledPublicPageObservation, verifyCompetitiveIntelligence, type CompetitiveScope } from "./competitive-intelligence";
+
+const scope: CompetitiveScope = { tenantId: "tenant-a", organizationId: "org-a", brandId: "brand-a" };
+const observedAt = "2026-08-31T09:10:00.000Z";
+const publicLookup = async () => [{ address: "93.184.216.34", family: 4 }] as const;
+
+function controlled(url: string, terms: string[]) {
+  return createControlledPublicPageObservation({
+    url,
+    finalUrl: url,
+    observedAt,
+    status: 200,
+    title: "Example",
+    description: "Example description",
+    canonicalUrl: url,
+    visibleTerms: terms,
+    bodyDigest: digest(`<html>${terms.join(" ")}</html>`),
+  });
+}
+
+describe("competitive intelligence", () => {
+  it("captures bounded public HTTP evidence and extracts page signals", async () => {
+    const fetchImpl = vi.fn(async () => new Response("<html><head><title>Competitor</title><meta name=\"description\" content=\"Fast legal service\"><link rel=\"canonical\" href=\"/canonical\"></head><body>Legal strategy strategy pricing</body></html>", { status: 200, headers: { "content-type": "text/html" } })) as unknown as typeof fetch;
+    const observation = await capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup });
+    expect(observation.authority).toBe("PUBLIC_HTTP_CAPTURE");
+    expect(observation.title).toBe("Competitor");
+    expect(observation.description).toBe("Fast legal service");
+    expect(observation.canonicalUrl).toBe("https://example.com/canonical");
+    expect(observation.visibleTerms).toContain("strategy");
+  });
+
+  it("blocks SSRF to private addresses before transport and revalidates redirects", async () => {
+    const fetchImpl = vi.fn(async () => new Response("ok")) as unknown as typeof fetch;
+    await expect(capturePublicPage("http://127.0.0.1/private", observedAt, { fetchImpl })).rejects.toThrow(/private or reserved/);
+    expect(fetchImpl).not.toHaveBeenCalled();
+
+    const redirectFetch = vi.fn(async () => new Response(null, { status: 302, headers: { location: "http://10.0.0.1/secret" } })) as unknown as typeof fetch;
+    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl: redirectFetch, lookup: publicLookup })).rejects.toThrow(/private or reserved/);
+    expect(redirectFetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("honestly labels controlled comparisons synthetic and detects report tampering", () => {
+    const target = { id: "self", label: "Self", observation: controlled("https://self.example/", ["legal", "service"]) };
+    const competitors = [
+      { id: "c1", label: "C1", observation: controlled("https://c1.example/", ["legal", "pricing", "strategy"]) },
+      { id: "c2", label: "C2", observation: controlled("https://c2.example/", ["pricing", "strategy", "fast"]) },
+    ];
+    const report = analyzeCompetitiveIntelligence(scope, target, competitors);
+    expect(report.evidenceState).toBe("SYNTHETIC");
+    expect(report.gaps.slice(0, 2).map((gap) => gap.term)).toEqual(["pricing", "strategy"]);
+    expect(verifyCompetitiveIntelligence(scope, target, competitors, report)).toBe(true);
+    const tampered = structuredClone(report);
+    (tampered.gaps[0] as { competitorCount: number }).competitorCount = 99;
+    expect(verifyCompetitiveIntelligence(scope, target, competitors, tampered)).toBe(false);
+  });
+
+  it("rejects mixed authorities rather than upgrading synthetic evidence", async () => {
+    const live = await capturePublicPage("https://example.com/", observedAt, {
+      lookup: publicLookup,
+      fetchImpl: async () => new Response("<html><body>legal strategy</body></html>", { status: 200 }),
+    });
+    const synthetic = controlled("https://competitor.example/", ["strategy"]);
+    expect(() => analyzeCompetitiveIntelligence(scope, { id: "self", label: "Self", observation: live }, [{ id: "c", label: "C", observation: synthetic }])).toThrow(/mixed competitive observation authorities/);
+  });
+
+  it("bounds capture execution with timeout and caller cancellation", async () => {
+    const fetchImpl = vi.fn(async (_input: string | URL | Request, init?: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+    })) as unknown as typeof fetch;
+    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/aborted/);
+
+    const controller = new AbortController();
+    controller.abort(new Error("cancelled"));
+    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, signal: controller.signal })).rejects.toThrow();
+  });
+});
