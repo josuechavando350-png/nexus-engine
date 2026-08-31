@@ -21,10 +21,10 @@ function controlled(url: string, terms: string[]) {
 }
 
 describe("competitive intelligence", () => {
-  it("captures bounded public HTTP evidence and extracts page signals", async () => {
+  it("keeps injected transport captures explicitly synthetic while exercising extraction", async () => {
     const fetchImpl = vi.fn(async () => new Response("<html><head><title>Competitor</title><meta name=\"description\" content=\"Fast legal service\"><link rel=\"canonical\" href=\"/canonical\"></head><body>Legal strategy strategy pricing</body></html>", { status: 200, headers: { "content-type": "text/html" } })) as unknown as typeof fetch;
     const observation = await capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup });
-    expect(observation.authority).toBe("PUBLIC_HTTP_CAPTURE");
+    expect(observation.authority).toBe("CONTROLLED_TEST");
     expect(observation.title).toBe("Competitor");
     expect(observation.description).toBe("Fast legal service");
     expect(observation.canonicalUrl).toBe("https://example.com/canonical");
@@ -56,13 +56,10 @@ describe("competitive intelligence", () => {
     expect(verifyCompetitiveIntelligence(scope, target, competitors, tampered)).toBe(false);
   });
 
-  it("rejects mixed authorities rather than upgrading synthetic evidence", async () => {
-    const live = await capturePublicPage("https://example.com/", observedAt, {
-      lookup: publicLookup,
-      fetchImpl: async () => new Response("<html><body>legal strategy</body></html>", { status: 200 }),
-    });
+  it("rejects forged live authority rather than upgrading controlled evidence", () => {
     const synthetic = controlled("https://competitor.example/", ["strategy"]);
-    expect(() => analyzeCompetitiveIntelligence(scope, { id: "self", label: "Self", observation: live }, [{ id: "c", label: "C", observation: synthetic }])).toThrow(/mixed competitive observation authorities/);
+    const forgedLive = { ...controlled("https://self.example/", ["legal"]), authority: "PUBLIC_HTTP_CAPTURE" as const };
+    expect(() => analyzeCompetitiveIntelligence(scope, { id: "self", label: "Self", observation: forgedLive }, [{ id: "c", label: "C", observation: synthetic }])).toThrow(/replay mismatch/);
   });
 
   it("bounds capture execution with timeout and caller cancellation", async () => {
