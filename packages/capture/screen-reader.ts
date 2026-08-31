@@ -61,10 +61,10 @@ interface HarnessResponseEnvelope {
   readonly status: ScreenReaderEvidenceStatus;
   readonly observedAt: string;
   readonly platform: string;
-  readonly readerVersion?: string | null;
-  readonly nativeSession?: boolean;
-  readonly synthetic?: boolean;
-  readonly events?: readonly ScreenReaderEvent[];
+  readonly readerVersion: string | null;
+  readonly nativeSession: boolean;
+  readonly synthetic: boolean;
+  readonly events: readonly ScreenReaderEvent[];
   readonly reason?: string;
 }
 
@@ -424,10 +424,10 @@ export class ScreenReaderProcessAdapter {
         status,
         observedAt: response.observedAt,
         platform: response.platform,
-        readerVersion: response.readerVersion ?? null,
+        readerVersion: response.readerVersion,
         harness: Object.freeze({ protocolVersion: "1", executableDigest: harnessDigest }),
-        session: Object.freeze({ nativeSession: response.nativeSession === true, synthetic: response.synthetic === true }),
-        events: status === "UNAVAILABLE" ? Object.freeze([]) : response.events ?? Object.freeze([]),
+        session: Object.freeze({ nativeSession: response.nativeSession, synthetic: response.synthetic }),
+        events: status === "UNAVAILABLE" ? Object.freeze([]) : response.events,
         ...(reason ? { reason: safeText(reason, "reason", MAX_REASON) } : {}),
       });
     } catch (error) {
