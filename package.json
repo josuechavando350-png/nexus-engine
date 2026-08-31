@@ -27,6 +27,7 @@
     "shadow:baseline": "node scripts/shadow-baseline.mjs",
     "fleet:anomalies": "node scripts/fleet-anomaly-report.mjs",
     "nexus": "node scripts/nexus.mjs",
+    "query-fan-out": "pnpm --filter @nexus/query-fan-out build && node scripts/simulate-query-fan-out.mjs",
     "scaffold": "node scripts/scaffold-client.mjs",
     "third-party-proof": "node scripts/third-party-proof.mjs",
     "release:validate": "pnpm security-hygiene && pnpm v3-gates && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm operability:h07 && pnpm third-party-proof",

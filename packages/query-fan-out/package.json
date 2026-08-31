@@ -1,0 +1,1 @@
+{"name":"@nexus/query-fan-out","version":"1.0.0","private":true,"type":"module","exports":{".":"./src/index.ts"},"scripts":{"typecheck":"tsc -p tsconfig.json --noEmit","test":"vitest run --root ../.. packages/query-fan-out/src/index.test.ts","build":"rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"}}
