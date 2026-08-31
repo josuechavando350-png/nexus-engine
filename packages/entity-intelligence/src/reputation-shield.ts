@@ -75,19 +75,22 @@ export function analyzeReputationShield(
     throw new Error(`sources must contain 1 to ${MAX_SOURCES} observations`);
   }
   const monitoredTerms = normalizeMonitoredTerms(monitoredTermsInput);
-  const ids = sources.map((source, index) => clean(`sources[${index}].id`, source.id, MAX_ID));
-  if (new Set(ids).size !== ids.length) throw new Error("reputation source ids must be unique");
-
-  sources.forEach((source, index) => {
+  const normalizedSources = sources.map((source, index) => {
+    if (!source || typeof source !== "object") throw new Error(`sources[${index}] must be an object`);
+    const id = clean(`sources[${index}].id`, source.id, MAX_ID);
     clean(`sources[${index}].label`, source.label, MAX_LABEL);
     validatePublicPageObservation(source.observation);
     if (canonicalJson(source.observation.scope) !== canonicalJson(scope)) throw new Error("reputation observation scope mismatch");
+    return Object.freeze({ id, observation: source.observation });
   });
-  const authorities = new Set(sources.map((source) => source.observation.authority));
+  const ids = normalizedSources.map((source) => source.id);
+  if (new Set(ids).size !== ids.length) throw new Error("reputation source ids must be unique");
+
+  const authorities = new Set(normalizedSources.map((source) => source.observation.authority));
   if (authorities.size !== 1) throw new Error("mixed reputation observation authorities are forbidden");
 
   const signals = Object.freeze(monitoredTerms.map((term) => {
-    const sourceIds = sources
+    const sourceIds = normalizedSources
       .filter((source) => source.observation.visibleTerms.includes(term))
       .map((source) => source.id)
       .sort((a, b) => a.localeCompare(b, "en"));
@@ -100,11 +103,11 @@ export function analyzeReputationShield(
     scope,
     subjectId,
     sourceIds: Object.freeze([...ids].sort((a, b) => a.localeCompare(b, "en"))),
-    evidenceState: sources[0]!.observation.authority === "PUBLIC_HTTP_CAPTURE" ? "OBSERVED_PUBLIC_HTTP" as const : "SYNTHETIC" as const,
+    evidenceState: normalizedSources[0]!.observation.authority === "PUBLIC_HTTP_CAPTURE" ? "OBSERVED_PUBLIC_HTTP" as const : "SYNTHETIC" as const,
     nonClaim: "PUBLIC_PAGE_TERM_SIGNAL_NOT_SENTIMENT_RATING_REVIEW_AUTHENTICITY_OR_BUSINESS_OUTCOME" as const,
     monitoredTerms,
     signals,
-    sourceDigests: Object.freeze(sources.map((source) => source.observation.observationDigest).sort((a, b) => a.localeCompare(b, "en"))),
+    sourceDigests: Object.freeze(normalizedSources.map((source) => source.observation.observationDigest).sort((a, b) => a.localeCompare(b, "en"))),
   };
   return Object.freeze({ ...core, reportDigest: digest(core) });
 }
