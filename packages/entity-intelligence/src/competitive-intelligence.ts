@@ -105,8 +105,9 @@ async function readBoundedBody(response: Response, controller: AbortController):
     let onAbort: (() => void) | undefined;
     const aborted = new Promise<never>((_resolve, reject) => {
       onAbort = () => {
+        const error = abortError(controller.signal);
+        reject(error);
         void reader.cancel(controller.signal.reason).catch(() => undefined);
-        reject(abortError(controller.signal));
       };
       controller.signal.addEventListener("abort", onAbort, { once: true });
     });
@@ -116,6 +117,7 @@ async function readBoundedBody(response: Response, controller: AbortController):
     } finally {
       if (onAbort) controller.signal.removeEventListener("abort", onAbort);
     }
+    if (controller.signal.aborted) throw abortError(controller.signal);
     if (chunk.done) break;
     bytes += chunk.value.byteLength;
     if (bytes > MAX_BODY_BYTES) {
