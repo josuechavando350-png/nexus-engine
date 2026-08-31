@@ -83,8 +83,8 @@ describe("production advisory runtime", () => {
   it("rejects dependency smuggling before constructing the server-side runtime", () => {
     expect(() => createGovernedAdvisoryRuntime({
       policy: { scope, allowedProviders: ["ANTHROPIC_CLAUDE"], maxProposalAgeMs: 60_000, timeoutMs: 100 },
-      governance: { async authorize(request) { return allow(request); } },
-      executor: { async execute(request) { return { status: "COMMITTED" as const, requestDigest: request.requestDigest, evidenceDigest: digestValue(request.requestDigest) }; } },
+      governance: { async authorize(request: AdvisoryExecutionRequest) { return allow(request); } },
+      executor: { async execute(request: AdvisoryExecutionRequest) { return { status: "COMMITTED" as const, requestDigest: request.requestDigest, evidenceDigest: digestValue(request.requestDigest) }; } },
       extraAuthority: true,
     } as never)).toThrow(/unknown or missing fields/u);
   });
