@@ -1,0 +1,23 @@
+{
+  "name": "@nexus/verified-synthesis-kernel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./types": "./src/types.ts",
+    "./egraph": "./src/egraph.ts",
+    "./solver": "./src/solver.ts",
+    "./oracle": "./src/oracle.ts",
+    "./kernel": "./src/kernel.ts",
+    "./runtime": "./src/runtime.ts"
+  },
+  "bin": {
+    "nexus-verified-synthesis": "./dist/cli.js"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. packages/verified-synthesis-kernel/src/kernel.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/kernel.js && test -f dist/cli.js"
+  }
+}
