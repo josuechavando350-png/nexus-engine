@@ -1,0 +1,38 @@
+name: TEMP Cap13 lockfile fix
+
+on:
+  push:
+    branches:
+      - feat/capability-13-passive-bot-defense
+
+permissions:
+  contents: write
+
+jobs:
+  fix-lockfile:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/capability-13-passive-bot-defense
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Regenerate lockfile importer and self-clean
+        run: |
+          set -euo pipefail
+          pnpm install --lockfile-only --frozen-lockfile=false
+          grep -Fq 'packages/passive-bot-defense:' pnpm-lock.yaml
+          rm .github/workflows/temp-cap13-lockfile-fix.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add pnpm-lock.yaml .github/workflows/temp-cap13-lockfile-fix.yml
+          git diff --cached --check
+          git commit -m 'fix(bot-defense): synchronize workspace lockfile'
+          git push origin HEAD:feat/capability-13-passive-bot-defense
