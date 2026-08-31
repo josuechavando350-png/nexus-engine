@@ -1,0 +1,43 @@
+name: TEMP Capability 12 Lockfile Refresh
+
+on:
+  push:
+    branches:
+      - feat/capability-12-crawl-observability
+
+permissions:
+  contents: write
+
+jobs:
+  refresh-lockfile:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: feat/capability-12-crawl-observability
+          fetch-depth: 0
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+      - name: Enable pinned pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+      - name: Refresh lockfile and remove temporary workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm install --lockfile-only
+          git rm .github/workflows/tmp-capability-12-lockfile.yml
+          git add pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "Expected a lockfile or workflow cleanup change" >&2
+            exit 1
+          fi
+          git config user.name "nexus-ci"
+          git config user.email "nexus-ci@users.noreply.github.com"
+          git commit -m "chore: refresh workspace lockfile"
+          git push origin HEAD:feat/capability-12-crawl-observability
