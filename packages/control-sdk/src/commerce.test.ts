@@ -17,6 +17,8 @@ const scope = { tenantId: "tenant-a", organizationId: "org-a", brandId: "brand-a
 const operator: CommercePrincipal = {
   principalId: "operator-a",
   tenantId: "tenant-a",
+  organizationId: "org-a",
+  brandId: "brand-a",
   permissions: ["commerce:prepare", "commerce:approve", "commerce:execute", "commerce:read"],
 };
 
@@ -87,9 +89,28 @@ describe("governed agentic commerce", () => {
     const executor = new RecordingExecutor();
     const control = engine(executor);
     const tx = control.prepare(operator, request(), preparedAt);
-    const other: CommercePrincipal = { principalId: "operator-b", tenantId: "tenant-b", permissions: ["commerce:prepare", "commerce:approve", "commerce:execute", "commerce:read"] };
+    const other: CommercePrincipal = {
+      principalId: "operator-b",
+      tenantId: "tenant-b",
+      organizationId: "org-b",
+      brandId: "brand-b",
+      permissions: ["commerce:prepare", "commerce:approve", "commerce:execute", "commerce:read"],
+    };
     expect(() => control.getTransaction(other, "tenant-b", tx.transactionId)).toThrow(/not found/u);
     await expect(control.execute(other, "tenant-b", tx.transactionId)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(executor.requests).toHaveLength(0);
+  });
+
+  it("fails closed across organization and brand boundaries", async () => {
+    const executor = new RecordingExecutor();
+    const control = engine(executor);
+    const tx = control.prepare(operator, request(), preparedAt);
+    const otherOrg: CommercePrincipal = { ...operator, principalId: "operator-other-org", organizationId: "org-b" };
+    const otherBrand: CommercePrincipal = { ...operator, principalId: "operator-other-brand", brandId: "brand-b" };
+    expect(() => control.getTransaction(otherOrg, "tenant-a", tx.transactionId)).toThrow(/not found/u);
+    expect(() => control.getTransaction(otherBrand, "tenant-a", tx.transactionId)).toThrow(/not found/u);
+    await expect(control.execute(otherOrg, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "NOT_FOUND" });
+    await expect(control.execute(otherBrand, "tenant-a", tx.transactionId)).rejects.toMatchObject({ code: "NOT_FOUND" });
     expect(executor.requests).toHaveLength(0);
   });
 
