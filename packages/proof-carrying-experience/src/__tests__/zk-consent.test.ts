@@ -81,6 +81,18 @@ describe("ZK consent binding", () => {
     expect(evidence.toolchainVersion).toBeNull();
   });
 
+  it("does not consume a nonce when the native verifier rejects the proof", async () => {
+    const replayGuard = guard();
+    const sut = new SnarkjsGroth16ConsentVerifier({
+      executable: process.execPath,
+      replayGuard,
+      verificationKeyPolicy: keyPolicy(),
+    });
+    const evidence = await sut.verify(request());
+    expect(evidence.status).toBe("NOT_VERIFIED");
+    expect(replayGuard.consume).not.toHaveBeenCalled();
+  });
+
   it("fails closed and never executes the runtime operation without VERIFIED evidence", async () => {
     const operation = vi.fn(async () => "mutated");
     const outcome = await requireVerifiedZkConsent(verifier(), request(), operation);
