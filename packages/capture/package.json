@@ -1,6 +1,6 @@
 {
   "name": "@nexus/capture",
-  "version": "9.6.0",
+  "version": "9.7.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -14,12 +14,14 @@
     "./field-rum": "./field-rum.ts",
     "./googlebot-render-diff": "./googlebot-render-diff.ts",
     "./googlebot-runtime": "./googlebot-runtime.ts",
-    "./url-inspection": "./url-inspection-adapter.ts"
+    "./url-inspection": "./url-inspection-adapter.ts",
+    "./saliency-model": "./saliency-model.ts",
+    "./saliency-adapter": "./saliency-adapter.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "test:browser": "vitest run tests/playwright-adapter.test.ts tests/mutation-runner.test.ts tests/adversarial-matrix.test.ts tests/apca-audit.test.ts tests/apca-placeholder.test.ts --testTimeout=180000",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/capture/index.js && test -f dist/capture/index.d.ts && test -f dist/capture/playwright-adapter.js && test -f dist/capture/playwright-adapter.d.ts && test -f dist/capture/design-genome.js && test -f dist/capture/design-genome.d.ts && test -f dist/capture/mutation-runner.js && test -f dist/capture/mutation-runner.d.ts && test -f dist/capture/adversarial-matrix.js && test -f dist/capture/adversarial-matrix.d.ts && test -f dist/capture/apca-audit.js && test -f dist/capture/apca-audit.d.ts && test -f dist/capture/web-vitals.js && test -f dist/capture/web-vitals.d.ts && test -f dist/capture/field-rum.js && test -f dist/capture/field-rum.d.ts && test -f dist/capture/googlebot-render-diff.js && test -f dist/capture/googlebot-render-diff.d.ts && test -f dist/capture/googlebot-runtime.js && test -f dist/capture/googlebot-runtime.d.ts && test -f dist/capture/url-inspection-adapter.js && test -f dist/capture/url-inspection-adapter.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/capture/index.js && test -f dist/capture/index.d.ts && test -f dist/capture/playwright-adapter.js && test -f dist/capture/playwright-adapter.d.ts && test -f dist/capture/design-genome.js && test -f dist/capture/design-genome.d.ts && test -f dist/capture/mutation-runner.js && test -f dist/capture/mutation-runner.d.ts && test -f dist/capture/adversarial-matrix.js && test -f dist/capture/adversarial-matrix.d.ts && test -f dist/capture/apca-audit.js && test -f dist/capture/apca-audit.d.ts && test -f dist/capture/web-vitals.js && test -f dist/capture/web-vitals.d.ts && test -f dist/capture/field-rum.js && test -f dist/capture/field-rum.d.ts && test -f dist/capture/googlebot-render-diff.js && test -f dist/capture/googlebot-render-diff.d.ts && test -f dist/capture/googlebot-runtime.js && test -f dist/capture/googlebot-runtime.d.ts && test -f dist/capture/url-inspection-adapter.js && test -f dist/capture/url-inspection-adapter.d.ts && test -f dist/capture/saliency-model.js && test -f dist/capture/saliency-model.d.ts && test -f dist/capture/saliency-adapter.js && test -f dist/capture/saliency-adapter.d.ts"
   },
   "dependencies": {
     "@axe-core/playwright": "^4.10.2",
