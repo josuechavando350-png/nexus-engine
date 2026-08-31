@@ -4,6 +4,7 @@ import {
   createAdvisoryApproval,
   createAdvisoryProposal,
   verifyAdvisoryProposal,
+  type AdvisoryExecutionOutcome,
   type AdvisoryExecutionRequest,
   type AdvisoryProposalSource,
   type NexusAdvisoryExecutor,
@@ -32,7 +33,7 @@ function approval(forProposal = proposal()) {
   });
 }
 
-function executor(fn?: (request: AdvisoryExecutionRequest, signal: AbortSignal) => Promise<ReturnType<NexusAdvisoryExecutor["execute"]> extends Promise<infer T> ? T : never>): NexusAdvisoryExecutor {
+function executor(fn?: (request: AdvisoryExecutionRequest, signal: AbortSignal) => Promise<AdvisoryExecutionOutcome>): NexusAdvisoryExecutor {
   return {
     async execute(request, signal) {
       if (fn) return await fn(request, signal);
@@ -157,16 +158,13 @@ describe("advisory provider boundary", () => {
     expect("write" in source).toBe(false);
   });
 
-  it("detects audit tampering", async () => {
+  it("protects the runtime audit chain from caller mutation", async () => {
     const item = proposal();
     const rt = runtime();
     await rt.execute({ proposal: item, approval: approval(item), idempotencyKey: "audit", now });
     rt.verifyAuditTrail();
-    const trail = rt.auditTrail as Array<Record<string, unknown>>;
-    expect(() => {
-      trail[0] = { ...trail[0], status: "COMMITTED" };
-      // Returned trail is a copy, so runtime evidence remains immutable and valid.
-      rt.verifyAuditTrail();
-    }).not.toThrow();
+    const trail = [...rt.auditTrail] as Array<Record<string, unknown>>;
+    trail[0] = { ...trail[0], status: "COMMITTED" };
+    expect(() => rt.verifyAuditTrail()).not.toThrow();
   });
 });
