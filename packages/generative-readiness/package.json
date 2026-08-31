@@ -1,12 +1,19 @@
 {
   "name": "@nexus/generative-readiness",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "bin": {
+    "nexus-generative-presence": "./dist/presence-cli.js"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./presence": "./src/presence.ts",
+    "./presence-runtime": "./src/presence-runtime.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/generative-readiness/src/index.test.ts",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+    "test": "vitest run --root ../.. packages/generative-readiness/src/index.test.ts packages/generative-readiness/src/presence.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/presence.js && test -f dist/presence.d.ts && test -f dist/presence-runtime.js && test -f dist/presence-cli.js"
   }
 }
