@@ -12,4 +12,6 @@ The enforced flow is:
 
 The NEXUS governance port must fail closed unless authorization, the required capability, execution budget, and authoritative approval are all verified. The proposal-side approval envelope is integrity data only and is not itself proof of approval authority. Provider transport failures, policy failures, timeout/cancellation, cross-tenant attempts, stale/replayed proposals, idempotency conflicts, or malformed evidence cannot fall through to execution.
 
+Production callers must create one long-lived `GovernedAdvisoryRuntime` per governed scope with `createGovernedAdvisoryRuntime(...)` and reuse that instance across requests. Creating a fresh runtime per request is not a valid production integration because it would discard in-process idempotency bindings, concurrent-request coalescing, terminal `OUTCOME_UNKNOWN` state, and the tamper-evident audit chain. Durable cross-process guarantees remain the responsibility of the authoritative governance/executor/storage layer; this package does not claim that its in-memory runtime state is durable across process restarts.
+
 There is no direct advisor-to-GitHub, advisor-to-motor, advisor-to-deployment, advisor-to-transaction, or advisor-to-graph write path.
