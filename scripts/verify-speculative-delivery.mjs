@@ -1,14 +1,14 @@
 import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
-import { assessBbrV3, validateBbrV3Assessment } from "../packages/transport-http3/src/bbrv3.ts";
-import { collectLiveBbrV3Observation } from "../packages/transport-http3/src/bbrv3-runtime.ts";
+import { assessBbrV3, validateBbrV3Assessment } from "../packages/transport-http3/dist/bbrv3.js";
+import { collectLiveBbrV3Observation } from "../packages/transport-http3/dist/bbrv3-runtime.js";
 import {
   parseSpeculativeDeliveryRequest,
   planSpeculativeDelivery,
   serializeResourceHintTags,
   serializeSpeculationRulesScript,
   validateSpeculativeDeliveryResult,
-} from "../packages/transport-http3/src/speculative-runtime.ts";
+} from "../packages/transport-http3/dist/speculative-runtime.js";
 
 const MAX_INPUT_BYTES = 512 * 1024;
 const EXECUTION_BUDGET_MS = 5_000;
