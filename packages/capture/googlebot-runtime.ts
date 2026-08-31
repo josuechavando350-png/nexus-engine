@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
-import { chromium, type Route } from "playwright";
+import { BlockList, isIP } from "node:net";
+import { chromium, type Browser, type Route } from "playwright";
 import {
   canonicalGooglebotTimestamp,
   canonicalGooglebotUrl,
@@ -46,6 +46,33 @@ const DEFAULT_MAX_OBSERVED_HOSTS = 64;
 const MAX_OBSERVED_HOSTS = 256;
 const RUNTIME_TOOL_VERSION = "nexus-capture-googlebot/1.0.0";
 
+const RESERVED_IPS = new BlockList();
+for (const [network, prefix] of [
+  ["0.0.0.0", 8],
+  ["10.0.0.0", 8],
+  ["100.64.0.0", 10],
+  ["127.0.0.0", 8],
+  ["169.254.0.0", 16],
+  ["172.16.0.0", 12],
+  ["192.0.0.0", 24],
+  ["192.0.2.0", 24],
+  ["192.88.99.0", 24],
+  ["192.168.0.0", 16],
+  ["198.18.0.0", 15],
+  ["198.51.100.0", 24],
+  ["203.0.113.0", 24],
+  ["224.0.0.0", 4],
+  ["240.0.0.0", 4],
+] as const) RESERVED_IPS.addSubnet(network, prefix, "ipv4");
+for (const [network, prefix] of [
+  ["::", 128],
+  ["::1", 128],
+  ["::ffff:0:0", 96],
+  ["fc00::", 7],
+  ["fe80::", 10],
+  ["2001:db8::", 32],
+] as const) RESERVED_IPS.addSubnet(network, prefix, "ipv6");
+
 function sha256(bytes: Uint8Array | string): string {
   return `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 }
@@ -78,7 +105,7 @@ function unavailableSnapshot(
     status,
     url,
     observedAt: nowIso(control.clock),
-    userAgent: source === "GOOGLE_SEARCH_CONSOLE_API" ? "Google Search Console URL Inspection API" : GOOGLEBOT_SMARTPHONE_USER_AGENT,
+    userAgent: source === "GOOGLE_SEARCH_CONSOLE_API" ? "NOT_EXPOSED_BY_URL_INSPECTION_API" : GOOGLEBOT_SMARTPHONE_USER_AGENT,
     toolVersion: toolVersion(control.toolVersion),
     htmlDigest: null,
     textDigest: null,
@@ -92,37 +119,12 @@ function normalizedTimeout(value: number | undefined): number {
   return boundedInteger(value, DEFAULT_TIMEOUT_MS, "timeoutMs", 100, MAX_TIMEOUT_MS);
 }
 
-function isPrivateIpv4(address: string): boolean {
-  const octets = address.split(".").map(Number);
-  if (octets.length !== 4 || octets.some((value) => !Number.isInteger(value) || value < 0 || value > 255)) return true;
-  const [a, b] = octets as [number, number, number, number];
-  return a === 0
-    || a === 10
-    || a === 127
-    || (a === 100 && b >= 64 && b <= 127)
-    || (a === 169 && b === 254)
-    || (a === 172 && b >= 16 && b <= 31)
-    || (a === 192 && b === 0)
-    || (a === 192 && b === 168)
-    || (a === 198 && (b === 18 || b === 19))
-    || a >= 224;
-}
-
-function isPrivateIpv6(address: string): boolean {
-  const normalized = address.toLowerCase();
-  if (normalized === "::" || normalized === "::1") return true;
-  if (normalized.startsWith("fc") || normalized.startsWith("fd")) return true;
-  if (/^fe[89ab]/u.test(normalized)) return true;
-  if (normalized.startsWith("2001:db8:")) return true;
-  const mapped = normalized.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/u);
-  return mapped ? isPrivateIpv4(mapped[1]!) : false;
-}
-
 function assertPublicIp(address: string): void {
-  const family = isIP(address);
-  if (family === 4 && isPrivateIpv4(address)) throw new Error(`private or reserved IPv4 target is blocked: ${address}`);
-  if (family === 6 && isPrivateIpv6(address)) throw new Error(`private or reserved IPv6 target is blocked: ${address}`);
+  const normalized = address.startsWith("[") && address.endsWith("]") ? address.slice(1, -1) : address;
+  const family = isIP(normalized);
   if (family === 0) throw new Error(`invalid resolved IP address: ${address}`);
+  const familyName = family === 4 ? "ipv4" : "ipv6";
+  if (RESERVED_IPS.check(normalized, familyName)) throw new Error(`private or reserved ${familyName.toUpperCase()} target is blocked: ${normalized}`);
 }
 
 async function raceAbort<T>(promise: Promise<T>, signal: AbortSignal | undefined, timeoutMs: number, label: string): Promise<T> {
@@ -148,16 +150,17 @@ async function raceAbort<T>(promise: Promise<T>, signal: AbortSignal | undefined
 
 async function assertPublicHostname(url: URL, signal: AbortSignal | undefined, timeoutMs: number): Promise<void> {
   const hostname = url.hostname.toLowerCase();
-  if (hostname === "localhost" || hostname.endsWith(".localhost") || hostname.endsWith(".local") || hostname.endsWith(".internal")) {
-    throw new Error(`local hostname is blocked: ${hostname}`);
+  const unbracketedHostname = hostname.startsWith("[") && hostname.endsWith("]") ? hostname.slice(1, -1) : hostname;
+  if (unbracketedHostname === "localhost" || unbracketedHostname.endsWith(".localhost") || unbracketedHostname.endsWith(".local") || unbracketedHostname.endsWith(".internal")) {
+    throw new Error(`local hostname is blocked: ${unbracketedHostname}`);
   }
-  const directFamily = isIP(hostname);
+  const directFamily = isIP(unbracketedHostname);
   if (directFamily !== 0) {
-    assertPublicIp(hostname);
+    assertPublicIp(unbracketedHostname);
     return;
   }
-  const addresses = await raceAbort(lookup(hostname, { all: true, verbatim: true }), signal, Math.min(timeoutMs, 5_000), "DNS resolution");
-  if (addresses.length === 0) throw new Error(`hostname did not resolve: ${hostname}`);
+  const addresses = await raceAbort(lookup(unbracketedHostname, { all: true, verbatim: true }), signal, Math.min(timeoutMs, 5_000), "DNS resolution");
+  if (addresses.length === 0) throw new Error(`hostname did not resolve: ${unbracketedHostname}`);
   for (const address of addresses) assertPublicIp(address.address);
 }
 
@@ -176,6 +179,10 @@ function normalizedAllowedOrigins(url: URL, values: readonly string[] | undefine
 }
 
 async function readBoundedBody(response: Response, maxBytes: number, signal: AbortSignal | undefined): Promise<Uint8Array> {
+  const contentLength = response.headers.get("content-length");
+  if (contentLength !== null && /^\d+$/u.test(contentLength) && Number(contentLength) > maxBytes) {
+    throw new Error(`HTTP response Content-Length exceeds ${maxBytes} bytes`);
+  }
   if (response.body === null) return new Uint8Array();
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
@@ -256,7 +263,6 @@ export async function observeHttpFetchAsGooglebot(urlInput: string, options: Goo
         );
       }
       const body = await readBoundedBody(response, maxResponseBytes, options.signal);
-      const bodyText = new TextDecoder("utf-8", { fatal: false }).decode(body);
       return normalizeGooglebotRenderSnapshot({
         source: "OBSERVED_HTTP_FETCH",
         status: "OBSERVED_FETCH",
@@ -265,7 +271,7 @@ export async function observeHttpFetchAsGooglebot(urlInput: string, options: Goo
         userAgent: GOOGLEBOT_SMARTPHONE_USER_AGENT,
         toolVersion: toolVersion(options.toolVersion),
         htmlDigest: sha256(body),
-        textDigest: bodyText.length === 0 ? null : sha256(bodyText),
+        textDigest: null,
         screenshotDigest: null,
         apiPayloadDigest: null,
         metadata: {
@@ -279,12 +285,13 @@ export async function observeHttpFetchAsGooglebot(urlInput: string, options: Goo
     }
     throw new Error("HTTP redirect budget exhausted");
   } catch (error) {
+    const reason = error instanceof Error ? error.message : "HTTP Googlebot-style fetch failed";
     return unavailableSnapshot(
       "OBSERVED_HTTP_FETCH",
       url.toString(),
-      error instanceof Error ? error.message : "HTTP Googlebot-style fetch failed",
+      reason,
       options,
-      error instanceof Error && /blocked|cancelled|timed out|resolve/u.test(error.message) ? "UNAVAILABLE" : "NOT_VERIFIED",
+      /blocked|cancelled|timed out|abort|resolve|fetch failed|network/iu.test(reason) ? "UNAVAILABLE" : "NOT_VERIFIED",
     );
   }
 }
@@ -326,6 +333,17 @@ async function routePublicRequest(
   else await route.abort("blockedbyclient");
 }
 
+async function launchBoundedBrowser(signal: AbortSignal | undefined, timeoutMs: number): Promise<Browser> {
+  if (signal?.aborted) throw new Error("Chromium launch cancelled");
+  const launchPromise = chromium.launch({ headless: true, timeout: timeoutMs });
+  try {
+    return await raceAbort(launchPromise, signal, timeoutMs, "Chromium launch");
+  } catch (error) {
+    void launchPromise.then((browser) => browser.close(), () => undefined);
+    throw error;
+  }
+}
+
 export async function simulateGooglebotRender(urlInput: string, options: GooglebotSimulationOptions = {}): Promise<GooglebotRenderSnapshot> {
   const url = safeUrl(urlInput);
   const timeoutMs = normalizedTimeout(options.timeoutMs);
@@ -341,7 +359,7 @@ export async function simulateGooglebotRender(urlInput: string, options: Googleb
   try {
     await assertPublicHostname(url, options.signal, timeoutMs);
     if (options.signal?.aborted) throw new Error("browser render cancelled");
-    const browser = await raceAbort(chromium.launch({ headless: true }), options.signal, timeoutMs, "Chromium launch");
+    const browser = await launchBoundedBrowser(options.signal, timeoutMs);
     try {
       const context = await browser.newContext({
         viewport: { width: viewport.width, height: viewport.height },
@@ -361,7 +379,7 @@ export async function simulateGooglebotRender(urlInput: string, options: Googleb
         if (htmlBytes > maxHtmlBytes) throw new Error(`rendered HTML exceeds ${maxHtmlBytes} bytes`);
         const text = await raceAbort(page.locator("body").innerText({ timeout: Math.min(timeoutMs, 10_000) }).catch(() => ""), options.signal, timeoutMs, "rendered text extraction");
         if (text.length > maxTextChars) throw new Error(`rendered text exceeds ${maxTextChars} characters`);
-        const screenshot = await raceAbort(page.screenshot({ type: "png", fullPage: true, animations: "disabled" }), options.signal, timeoutMs, "render screenshot");
+        const screenshot = await raceAbort(page.screenshot({ type: "png", fullPage: false, animations: "disabled" }), options.signal, timeoutMs, "render screenshot");
         if (screenshot.byteLength > maxScreenshotBytes) throw new Error(`render screenshot exceeds ${maxScreenshotBytes} bytes`);
         return normalizeGooglebotRenderSnapshot({
           source: "SIMULATED_BROWSER",
@@ -378,6 +396,7 @@ export async function simulateGooglebotRender(urlInput: string, options: Googleb
             browser: "chromium",
             browserVersion: browser.version(),
             viewport: `${viewport.width}x${viewport.height}`,
+            screenshotScope: "viewport",
             htmlBytes: String(htmlBytes),
             textChars: String(text.length),
             screenshotBytes: String(screenshot.byteLength),
@@ -392,12 +411,13 @@ export async function simulateGooglebotRender(urlInput: string, options: Googleb
       await browser.close();
     }
   } catch (error) {
+    const reason = error instanceof Error ? error.message : "Googlebot simulation failed";
     return unavailableSnapshot(
       "SIMULATED_BROWSER",
       url.toString(),
-      error instanceof Error ? error.message : "Googlebot simulation failed",
+      reason,
       options,
-      error instanceof Error && /blocked|cancelled|timed out|browserType\.launch|Executable/u.test(error.message) ? "UNAVAILABLE" : "NOT_VERIFIED",
+      /blocked|cancelled|timed out|abort|browserType\.launch|Executable|resolve/iu.test(reason) ? "UNAVAILABLE" : "NOT_VERIFIED",
     );
   }
 }
