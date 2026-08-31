@@ -46,9 +46,9 @@ describe("reputation shield", () => {
       .toThrow(/scope mismatch/);
 
     const forged = structuredClone(source("one", ["refund"]));
-    expect(forged.observation.observationDigest).toMatch(/^[a-f0-9]{64}$/u);
     const core = { ...forged.observation, authority: "PUBLIC_HTTP_CAPTURE" as const };
-    const { observationDigest: _oldDigest, ...withoutDigest } = core;
+    const { observationDigest, ...withoutDigest } = core;
+    expect(observationDigest).toMatch(/^[a-f0-9]{64}$/u);
     forged.observation = { ...withoutDigest, observationDigest: digest(withoutDigest) };
     expect(forged.observation.observationDigest).toMatch(/^[a-f0-9]{64}$/u);
     expect(() => analyzeReputationShield(scope, "brand-a", [forged], ["refund"]))
@@ -59,7 +59,8 @@ describe("reputation shield", () => {
     const controlled = source("one", ["refund"]);
     const forgedLive = structuredClone(source("two", ["refund"]));
     const core = { ...forgedLive.observation, authority: "PUBLIC_HTTP_CAPTURE" as const };
-    const { observationDigest: _oldDigest, ...withoutDigest } = core;
+    const { observationDigest, ...withoutDigest } = core;
+    expect(observationDigest).toMatch(/^[a-f0-9]{64}$/u);
     forgedLive.observation = { ...withoutDigest, observationDigest: digest(withoutDigest) };
 
     expect(() => analyzeReputationShield(scope, "brand-a", [controlled, forgedLive], ["refund"]))
@@ -67,7 +68,7 @@ describe("reputation shield", () => {
   });
 
   it("detects replay/tamper and rejects duplicate or ambiguous monitored terms", () => {
-    const sources = [source("one", ["refund"]), source("two", ["delay"])];
+    const sources = [source("one", ["refund"]), source("two", ["delay"] )];
     const report = analyzeReputationShield(scope, "brand-a", sources, ["refund", "delay"]);
     const tampered = structuredClone(report);
     (tampered.signals[0] as { sourceCount: number }).sourceCount = 99;
