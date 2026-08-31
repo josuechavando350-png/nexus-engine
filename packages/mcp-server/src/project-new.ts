@@ -297,7 +297,6 @@ export async function createProject(root: string, spec: ProjectSpec, executionTi
     }
     throw cause;
   } finally {
-    if (modulesLinked) await removeOwnedNodeModulesLink(projectModules, nodeModulesTarget);
     await rm(temporary, { recursive: true, force: true });
   }
 }
