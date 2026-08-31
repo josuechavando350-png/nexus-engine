@@ -86,4 +86,9 @@ describe("competitive intelligence", () => {
     controller.abort(new Error("cancelled"));
     await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, signal: controller.signal })).rejects.toThrow();
   });
+
+  it("times out while reading a stalled response body even when the injected transport ignores abort", async () => {
+    const fetchImpl = vi.fn(async () => new Response(new ReadableStream<Uint8Array>({ start() { /* intentionally stalled */ } }), { status: 200 })) as unknown as typeof fetch;
+    await expect(capturePublicPage("https://example.com/", observedAt, { fetchImpl, lookup: publicLookup, timeoutMs: 100 })).rejects.toThrow(/competitive capture timeout/);
+  });
 });
