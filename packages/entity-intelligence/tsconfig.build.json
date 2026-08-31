@@ -16,6 +16,9 @@
     "src/competitive-intelligence-cli.ts",
     "src/reputation-shield.ts",
     "src/reputation-shield-runtime.ts",
-    "src/reputation-shield-cli.ts"
+    "src/reputation-shield-cli.ts",
+    "src/pricing-intelligence.ts",
+    "src/pricing-intelligence-runtime.ts",
+    "src/pricing-intelligence-cli.ts"
   ]
 }
