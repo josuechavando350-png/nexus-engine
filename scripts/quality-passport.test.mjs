@@ -90,7 +90,9 @@ describe("quality passport generator", () => {
     const root = await mkdtemp(join(tmpdir(), "nexus-passport-security-fail-"));
     const evidence = join(root, ".artifacts", "evidence");
     await mkdir(evidence, { recursive: true });
-    const { "Content-Security-Policy": _omitted, ...headersWithoutCsp } = securityHeaders;
+    const headersWithoutCsp = Object.fromEntries(
+      Object.entries(securityHeaders).filter(([name]) => name !== "Content-Security-Policy"),
+    );
 
     await withHttpServer(headersWithoutCsp, async (url) => {
       const result = await inspectSecurityHeaders(root, "b".repeat(40), url, evidence);
