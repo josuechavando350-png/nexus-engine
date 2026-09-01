@@ -90,7 +90,7 @@ export function createNexusHttpApp(options: HttpServerOptions) {
       return;
     }
     const toolName = request.body?.method === "tools/call" && typeof request.body?.params?.name === "string" ? request.body.params.name as NexusToolName : null;
-    const isolated = toolName !== null && new Set<NexusToolName>(["nexus_gates", "nexus_capture", "nexus_build", "nexus_project_new", "nexus_operator"]).has(toolName);
+    const isolated = toolName !== null && new Set<NexusToolName>(["nexus_gates", "nexus_capture", "nexus_build", "nexus_comparator", "nexus_project_new", "nexus_operator"]).has(toolName);
     const requestId = randomUUID();
     try {
       const git = await (options.git ?? readGitState)(options.root);
