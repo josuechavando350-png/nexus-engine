@@ -6,7 +6,12 @@ import { afterEach, describe, expect, it } from "vitest";
 import { runNexusClientPipelineWithWorkspaceRuntime } from "../scripts/nexus-client-pipeline.mjs";
 
 const roots: string[] = [];
-afterEach(() => { while (roots.length) rmSync(roots.pop()!, { recursive: true, force: true }); });
+afterEach(() => {
+  while (roots.length) {
+    const root = roots.pop();
+    if (root) rmSync(root, { recursive: true, force: true });
+  }
+});
 
 function tempSpec(value: unknown): string {
   const root = mkdtempSync(join(tmpdir(), "nexus-client-runtime-boundary-"));
@@ -14,6 +19,14 @@ function tempSpec(value: unknown): string {
   const path = join(root, "spec.json");
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
   return path;
+}
+
+function executeClientScript(script: string, specPath: string) {
+  return spawnSync(process.execPath, [script, "--spec", specPath], {
+    cwd: process.cwd(),
+    encoding: "utf8",
+    env: process.env,
+  });
 }
 
 describe("NEXUS client pipeline production boundary", () => {
@@ -29,13 +42,11 @@ describe("NEXUS client pipeline production boundary", () => {
     )).rejects.toThrow(/did not assemble required production adapter render/);
   });
 
-  it("proves the direct pipeline CLI now crosses the workspace-runtime boundary instead of silently running adapterless", () => {
-    const specPath = tempSpec({});
-    const execution = spawnSync(process.execPath, ["scripts/nexus-client-pipeline.mjs", "--spec", specPath], {
-      cwd: process.cwd(),
-      encoding: "utf8",
-      env: process.env,
-    });
+  it.each([
+    "scripts/nexus-client-pipeline.mjs",
+    "scripts/nexus-client-run.mjs",
+  ])("proves %s crosses the workspace-runtime boundary instead of silently running adapterless", (script) => {
+    const execution = executeClientScript(script, tempSpec({}));
     expect(execution.status).toBe(1);
     expect(execution.stderr).toContain("workspace runtime execution requires spec.runtime.target");
     expect(execution.stderr).not.toContain("ExperienceBrief");
