@@ -13,6 +13,7 @@ export interface VisualReview {
   verdict: Exclude<VerdictState, "NOT_TESTED">;
   findings: readonly string[];
   evidenceArtifactIds: readonly string[];
+  evidenceArtifactDigests: readonly `sha256:${string}`[];
   reviewedAt: string;
   modelIdentity?: string;
   providerId?: string;
@@ -172,6 +173,7 @@ export async function executeMultimodalVisualReview(input: {
     verdict: outcome.verdict,
     findings: Object.freeze([...outcome.findings]),
     evidenceArtifactIds: Object.freeze(images.map((image) => image.artifactId)),
+    evidenceArtifactDigests: Object.freeze(images.map((image) => image.digest as `sha256:${string}`)),
     reviewedAt: outcome.reviewedAt,
     providerId: input.port.providerId.trim(),
     modelId: input.port.modelId.trim(),
@@ -191,6 +193,7 @@ export async function judgeVisualEvidence(input: {
 
   const findings: string[] = [];
   const verifiedArtifactIds: string[] = [];
+  const verifiedArtifactById = new Map<string, CaptureArtifact>();
   const screenshotMatrix = new Set<string>();
   const genomeMatrix = new Set<string>();
   const screenshotIdsByMatrix = new Map<string, string[]>();
@@ -202,7 +205,12 @@ export async function judgeVisualEvidence(input: {
       findings.push(problem);
       continue;
     }
+    if (verifiedArtifactById.has(artifact.artifactId)) {
+      findings.push(`duplicate verified artifactId ${artifact.artifactId}`);
+      continue;
+    }
     verifiedArtifactIds.push(artifact.artifactId);
+    verifiedArtifactById.set(artifact.artifactId, artifact);
     const browser = artifact.metadata?.browser;
     const viewport = artifact.metadata?.viewport;
     if (!browser || !viewport) {
@@ -255,13 +263,29 @@ export async function judgeVisualEvidence(input: {
     } else {
       const verified = new Set(verifiedArtifactIds);
       const reviewIds = review.evidenceArtifactIds;
+      const reviewDigests = review.evidenceArtifactDigests;
       const uniqueReviewIds = new Set(reviewIds);
       const missingEvidence = reviewIds.filter((artifactId) => !verified.has(artifactId));
+      const invalidDigests = reviewDigests.filter((value) => !canonicalSha256(value));
+      const digestMismatches = reviewIds.flatMap((artifactId, index) => {
+        const artifact = verifiedArtifactById.get(artifactId);
+        const expectedDigest = reviewDigests[index];
+        return artifact && expectedDigest && artifact.digest !== expectedDigest ? [artifactId] : [];
+      });
       const requiredScreenshotIds = required.flatMap((requiredKey) => screenshotIdsByMatrix.get(requiredKey) ?? []);
       const omittedRequiredScreenshots = requiredScreenshotIds.filter((artifactId) => !uniqueReviewIds.has(artifactId));
-      if (!reviewIds.length || missingEvidence.length || uniqueReviewIds.size !== reviewIds.length || omittedRequiredScreenshots.length) {
+      if (!reviewIds.length
+        || reviewDigests.length !== reviewIds.length
+        || invalidDigests.length
+        || missingEvidence.length
+        || digestMismatches.length
+        || uniqueReviewIds.size !== reviewIds.length
+        || omittedRequiredScreenshots.length) {
         if (!reviewIds.length) findings.push("visual review must reference persisted screenshot evidence");
+        if (reviewDigests.length !== reviewIds.length) findings.push("visual review evidenceArtifactDigests must align one-to-one with evidenceArtifactIds");
+        if (invalidDigests.length) findings.push("visual review evidenceArtifactDigests must be canonical SHA-256 digests");
         if (missingEvidence.length) findings.push(`visual review references unverified evidence: ${missingEvidence.join(", ")}`);
+        if (digestMismatches.length) findings.push(`visual review artifact digest mismatch: ${digestMismatches.join(", ")}`);
         if (uniqueReviewIds.size !== reviewIds.length) findings.push("visual review evidenceArtifactIds cannot contain duplicates");
         if (omittedRequiredScreenshots.length) findings.push(`visual review omitted required screenshots: ${omittedRequiredScreenshots.join(", ")}`);
         reviewVerdict = "FAIL";
