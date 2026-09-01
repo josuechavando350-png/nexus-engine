@@ -1,12 +1,14 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { runNexusClientPipelineWithWorkspaceRuntime } from "../scripts/nexus-client-pipeline.mjs";
 
 const roots: string[] = [];
-const HEAD = execFileSync("git", ["rev-parse", "HEAD"], { cwd: process.cwd(), encoding: "utf8" }).trim();
+const REPOSITORY_ROOT = process.cwd();
+const RUNNER = join(REPOSITORY_ROOT, "scripts", "nexus-client-run.mjs");
+const HEAD = execFileSync("git", ["rev-parse", "HEAD"], { cwd: REPOSITORY_ROOT, encoding: "utf8" }).trim();
 afterEach(() => {
   while (roots.length) {
     const root = roots.pop();
@@ -22,9 +24,9 @@ function tempSpec(value: unknown): string {
   return path;
 }
 
-function executeProductionClient(specPath: string) {
-  return spawnSync(process.execPath, ["scripts/nexus-client-run.mjs", "--spec", specPath], {
-    cwd: process.cwd(),
+function executeProductionClient(specPath: string, cwd = REPOSITORY_ROOT) {
+  return spawnSync(process.execPath, [RUNNER, "--spec", specPath], {
+    cwd,
     encoding: "utf8",
     env: process.env,
   });
@@ -57,6 +59,15 @@ describe("NEXUS client pipeline production boundary", () => {
     expect(execution.stderr).toContain("client runtime target definitely-not-a-workspace-client is not a discovered workspace app");
     expect(execution.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
     expect(execution.stderr).not.toContain("ExperienceBrief");
+  });
+
+  it("binds Git preflight and runtime discovery to the NEXUS checkout instead of caller cwd", () => {
+    const specPath = tempSpec({ sourceRevision: HEAD, runtime: { target: "definitely-not-a-workspace-client" } });
+    const execution = executeProductionClient(specPath, dirname(specPath));
+    expect(execution.status).toBe(1);
+    expect(execution.stderr).toContain("client runtime target definitely-not-a-workspace-client is not a discovered workspace app");
+    expect(execution.stderr).not.toContain("not a git repository");
+    expect(execution.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
   });
 
   it("rejects a stale sourceRevision before the TypeScript engine graph is loaded", () => {
