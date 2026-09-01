@@ -163,7 +163,7 @@ export function createProductionRedTeamAdapter(context, dependencies = {}) {
       await mkdir(outputDir, { recursive: true });
       const runtimeEvidence = await serverRunner(root, project, async (targetUrl) => ({
         mutationSuite: await mutationRunner({ targetUrl, outputDir, browser: envelope.mutations.browser ?? "chromium", brandSwap, industryTransplant }),
-        removalSuite: await removalRunner({ targetUrl, outputDir, browser: envelope.mutations.browser ?? "chromium", candidates: excessCandidates.map(({ elementId, selector }) => ({ elementId, selector })) }),
+        removalSuite: await removalRunner({ targetUrl, outputDir: join(outputDir, "excess-removal"), browser: envelope.mutations.browser ?? "chromium", candidates: excessCandidates.map(({ elementId, selector }) => ({ elementId, selector })) }),
       }));
       const suite = runtimeEvidence.mutationSuite;
       if (suite.authority !== "NEXUS_BROWSER_MUTATION_RUNNER") throw new Error("browser mutation runner returned an invalid authority");
