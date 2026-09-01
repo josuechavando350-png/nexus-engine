@@ -4,10 +4,10 @@ import type { ToolResult } from "./contracts.js";
 import { readGitState } from "./git.js";
 import type { NexusToolName } from "./policy.js";
 import type { ProjectSpec } from "./project-new.js";
+import { nexusComparatorV2 } from "./comparator.js";
 import {
   nexusBuild,
   nexusCapture,
-  nexusComparator,
   nexusGates,
   nexusPassport,
   nexusProjectNew,
@@ -84,7 +84,7 @@ export const operatorCommandSchema = z.discriminatedUnion("action", [
   commandBase.extend({ action: z.literal("BUILD"), payload: z.object({ target: z.string().regex(SLUG_RE), clean: z.literal(true).optional().default(true) }).strict() }).strict(),
   commandBase.extend({ action: z.literal("VALIDATE"), payload: z.object({ target: z.string().regex(SLUG_RE), gates: z.array(z.enum(["lint", "typecheck", "test", "build", "quality-gates", "browser"])).min(1).max(6).optional() }).strict() }).strict(),
   commandBase.extend({ action: z.literal("CAPTURE"), payload: z.object({ target: z.string().regex(SLUG_RE), fullPage: z.literal(true).optional().default(true) }).strict() }).strict(),
-  commandBase.extend({ action: z.literal("AUDIT"), payload: z.object({ target: z.string().regex(SLUG_RE) }).strict() }).strict(),
+  commandBase.extend({ action: z.literal("AUDIT"), payload: z.object({ target: z.string().regex(SLUG_RE), baselineManifestPath: z.string().trim().min(1).max(2_048) }).strict() }).strict(),
   commandBase.extend({ action: z.literal("CREATE_PROJECT"), payload: z.object({ spec: projectSpecSchema }).strict() }).strict(),
 ]);
 
@@ -393,7 +393,7 @@ export class NexusOperatorRuntime {
           let stop = ensureActive(); if (stop) { this.#record("BOUNDED_STOP", commandDigest, command.action, stop.status); return stop; }
           stages.push(stageFromTool(await nexusPassport({ target: command.payload.target, sourceSha: command.sourceSha }, dependencies) as ToolResult<unknown>));
           stop = ensureActive(); if (stop) { this.#record("BOUNDED_STOP", commandDigest, command.action, stop.status); return stop; }
-          stages.push(stageFromTool(await nexusComparator({ source: { target: command.payload.target }, sourceSha: command.sourceSha }, dependencies) as ToolResult<unknown>));
+          stages.push(stageFromTool(await nexusComparatorV2({ target: command.payload.target, sourceSha: command.sourceSha, baselineManifestPath: command.payload.baselineManifestPath }, dependencies) as ToolResult<unknown>));
           break;
         }
         case "CREATE_PROJECT": {
