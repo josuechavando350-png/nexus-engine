@@ -61,6 +61,7 @@ const app = createNexusHttpApp({
   root: process.env.NEXUS_REPOSITORY_ROOT ?? process.cwd(),
   repository,
   githubToken: process.env.NEXUS_GITHUB_TOKEN,
+  ssimulacra2Path: process.env.NEXUS_SSIMULACRA2_PATH?.trim() || undefined,
   tokenSha256,
   writeTokenSha256,
   oauth,
