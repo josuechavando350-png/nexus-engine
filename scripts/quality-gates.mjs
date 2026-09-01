@@ -233,7 +233,7 @@ const apps = activeNextApps();
   );
 })();
 
-/* 6. Security baseline */
+/* 6. Security wiring (runtime delivery is verified by the formal Quality Passport) */
 (function securityGate() {
   const problems = [];
 
@@ -262,11 +262,11 @@ const apps = activeNextApps();
   }
 
   report(
-    "Security baseline",
-    problems.length ? "FAIL" : "PASS",
+    "Security wiring",
+    problems.length ? "FAIL" : "WARNING",
     problems.length
       ? problems.join("; ")
-      : `headers + CSP wired in ${apps.length} active apps`,
+      : `static configuration wiring found in ${apps.length} active apps; live HTTP delivery is certified separately by the formal Quality Passport`,
   );
 })();
 
