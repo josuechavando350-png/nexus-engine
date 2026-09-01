@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compareFingerprints, type StyleFingerprintV2 } from "../originality";
+import { compareFingerprints, validateStyleFingerprintV2, type StyleFingerprintV2 } from "../originality";
 
 const base: StyleFingerprintV2 = {
   version: 2,
@@ -19,6 +19,13 @@ const base: StyleFingerprintV2 = {
 describe("Originality Engine V2", () => {
   it("contains no color dimension", () => {
     expect(JSON.stringify(base)).not.toMatch(/color|palette|hex/i);
+  });
+
+  it("validates committed fingerprint evidence before comparison", () => {
+    expect(validateStyleFingerprintV2(base)).toMatchObject({ version: 2, subject: "a" });
+    expect(() => validateStyleFingerprintV2({ ...base, structure: { ...base.structure, symmetry: 1.4 } })).toThrow(/symmetry/);
+    expect(() => validateStyleFingerprintV2({ ...base, ctaGrammar: ["Textual", "textual"] })).toThrow(/unique/);
+    expect(() => validateStyleFingerprintV2({ ...base, observedAt: "not-a-date" })).toThrow(/observedAt/);
   });
 
   it("compares structure and grammar without inventing a pass/fail threshold", () => {
