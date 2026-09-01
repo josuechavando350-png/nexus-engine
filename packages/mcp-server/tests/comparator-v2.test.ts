@@ -1,4 +1,5 @@
-import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -175,6 +176,12 @@ describe("MCP comparator V2 runtime", () => {
     expect(result.data?.baseline.approvalReference).toBe("art-direction:approval-42");
     expect(rt.readOnly).toHaveBeenCalledWith("git", ["rev-parse", `${baselineSha}:baselines/home.png`], expect.any(String));
     expect(result.data?.comparison.nonClaim).toBe("VISUAL_REGRESSION_EXECUTION_NOT_AUTOMATIC_ART_DIRECTION_APPROVAL");
+    const reportEvidence = result.evidence.find((item) => item.kind === "artifact" && item.locator.includes("comparison.json#sha256="));
+    expect(reportEvidence).toBeDefined();
+    const [reportPath, declaredHash] = reportEvidence!.locator.split("#sha256=");
+    const reportBytes = await readFile(reportPath!);
+    expect(createHash("sha256").update(reportBytes).digest("hex")).toBe(declaredHash);
+    expect(declaredHash).not.toBe(comparisonDigest);
   });
 
   it("fails closed when the baseline screenshot bytes did not exist at the claimed approved revision", async () => {
@@ -193,6 +200,19 @@ describe("MCP comparator V2 runtime", () => {
     expect(result.errors[0]?.message).toMatch(/must stay inside repository root/u);
     expect(rt.build).not.toHaveBeenCalled();
     expect(rt.loadRuntime).not.toHaveBeenCalled();
+  });
+
+  it("rejects a committed-looking baseline symlink that resolves outside the repository", async () => {
+    const { root, dependencies } = await fixture();
+    const outside = `${root}-outside.json`;
+    roots.push(outside);
+    await writeFile(outside, `${JSON.stringify(baselineEnvelope())}\n`);
+    await symlink(outside, join(root, "baseline-link.json"));
+    const rt = runtime();
+    const result = await nexusComparatorV2({ target: project.slug, sourceSha: currentSha, baselineManifestPath: "baseline-link.json" }, dependencies, rt as never);
+    expect(result.status).toBe("FAIL");
+    expect(result.errors[0]?.message).toMatch(/regular file and not a symlink|resolves outside repository root/u);
+    expect(rt.build).not.toHaveBeenCalled();
   });
 
   it("maps an environment-incompatible approved baseline to NOT_TESTED rather than fabricated PASS", async () => {
