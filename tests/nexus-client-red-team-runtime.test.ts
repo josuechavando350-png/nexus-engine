@@ -5,6 +5,7 @@ import { createProductionRedTeamAdapter } from "../scripts/nexus-client-red-team
 
 const SHA = "a".repeat(40);
 const digest = (bytes: Uint8Array | string) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
+const fixedDigest = (character: string) => `sha256:${character.repeat(64)}`;
 
 const project = {
   slug: "client",
@@ -120,6 +121,28 @@ function designGenomeArtifact() {
   };
 }
 
+function removalArtifact() {
+  const targetPresent = { present: true, visible: true, tagName: "section", textCharacterCount: 80, interactiveElementCount: 1, focusableElementCount: 1, headingOneCount: 1, mainLandmarkCount: 0, mediaElementCount: 0 };
+  const targetAbsent = { present: false, visible: false, tagName: "", textCharacterCount: 0, interactiveElementCount: 0, focusableElementCount: 0, headingOneCount: 0, mainLandmarkCount: 0, mediaElementCount: 0 };
+  return {
+    elementId: "hero-copy",
+    selector: "[data-nexus-element='hero-copy']",
+    browser: "chromium",
+    viewport: { width: 390, height: 844 },
+    beforeScreenshotUri: "/tmp/before.png",
+    beforeScreenshotDigest: fixedDigest("4"),
+    beforeScreenshotByteLength: 100,
+    afterScreenshotUri: "/tmp/after.png",
+    afterScreenshotDigest: fixedDigest("5"),
+    afterScreenshotByteLength: 80,
+    diagnosticsUri: "/tmp/removal.json",
+    diagnosticsDigest: fixedDigest("6"),
+    removedNodeCount: 1,
+    before: { selectorCount: 1, visibleElementCount: 20, textCharacterCount: 300, interactiveElementCount: 2, focusableElementCount: 2, headingOneCount: 1, mainLandmarkCount: 1, mediaElementCount: 1, horizontalOverflowPx: 0, scrollHeightPx: 1200, target: targetPresent, designGenome: { visibleElementCount: 20 } },
+    after: { selectorCount: 0, visibleElementCount: 12, textCharacterCount: 220, interactiveElementCount: 1, focusableElementCount: 1, headingOneCount: 0, mainLandmarkCount: 1, mediaElementCount: 1, horizontalOverflowPx: 0, scrollHeightPx: 900, target: targetAbsent, designGenome: { visibleElementCount: 12 } },
+  };
+}
+
 function context() {
   return {
     root: "/repo",
@@ -130,50 +153,103 @@ function context() {
   };
 }
 
+function passingDependencies(bytes: Buffer, artifact: ReturnType<typeof designGenomeArtifact>["artifact"], rawEnvelope: ReturnType<typeof envelope>) {
+  const mutationEvaluation = {
+    authority: "NEXUS_MUTATION_EVIDENCE_EVALUATOR",
+    verdicts: { BRAND_SWAP: "PASS", INDUSTRY_TRANSPLANT: "PASS", CONTENT_STRESS: "PASS", ASSET_DEGRADATION: "PASS", VIEWPORT_TORTURE: "PASS", MOTION_REMOVAL: "PASS", GRAYSCALE: "PASS" },
+    findings: [],
+    evidence: { BRAND_SWAP: [fixedDigest("1")] },
+  };
+  const criticEvaluate = vi.fn((contract: CreativeContract) => ({ authority: "NEXUS_CREATIVE_CRITIC", verdict: "PASS", approved: true, findings: [], referenceEntryIds: ["ref-a", "ref-b"], contract }));
+  const runArena = vi.fn(() => ({ authority: "NEXUS_RED_TEAM_ARENA", experienceId: "client", verdict: "PASS", approved: true, attacks: [{ attackId: "BRAND_SWAP", verdict: "PASS", detail: "evidence-bound", evidence: [fixedDigest("2")] }], similarityReports: [] }));
+  const runMutations = vi.fn(async () => ({ authority: "NEXUS_BROWSER_MUTATION_RUNNER", targetUrl: "http://127.0.0.1:3000", artifacts: [] }));
+  return {
+    git: async () => ({ branch: "audit", headSha: SHA, detached: false, clean: true, changedPaths: [], remoteUrl: null }),
+    committedFileReader: async () => ({ raw: JSON.stringify(rawEnvelope), digest: fixedDigest("3"), relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
+    genomeFileReader: async () => bytes,
+    withProjectServer: async (_root: string, _project: unknown, operation: (url: string) => Promise<unknown>) => await operation("http://127.0.0.1:3000"),
+    runBrowserMutationSuite: runMutations,
+    evaluateBrowserMutationEvidence: () => mutationEvaluation,
+    evaluateStructuralFingerprints: () => ({ authority: "NEXUS_STRUCTURAL_FINGERPRINT", templateFingerprint: { verdict: "PASS", findings: [], evidence: ["history:compared"] }, aiFingerprint: { verdict: "PASS", findings: [], evidence: [artifact.digest] } }),
+    runRedTeamArena: runArena,
+    creativeCritic: { evaluate: criticEvaluate },
+    runMutations,
+    criticEvaluate,
+    runArena,
+  };
+}
+
 describe("production client Red Team runtime", () => {
-  it("executes real authorities, derives brand-swap critic input from mutation evidence, and refuses to fake Excess Removal", async () => {
+  it("executes real authorities, derives brand-swap critic input, and keeps Excess Removal NOT_TESTED when no candidates are configured", async () => {
     const { bytes, artifact } = designGenomeArtifact();
-    const mutationEvaluation = {
-      authority: "NEXUS_MUTATION_EVIDENCE_EVALUATOR",
-      verdicts: { BRAND_SWAP: "PASS", INDUSTRY_TRANSPLANT: "PASS", CONTENT_STRESS: "PASS", ASSET_DEGRADATION: "PASS", VIEWPORT_TORTURE: "PASS", MOTION_REMOVAL: "PASS", GRAYSCALE: "PASS" },
-      findings: [],
-      evidence: { BRAND_SWAP: [`sha256:${"1".repeat(64)}`] },
-    };
-    const criticEvaluate = vi.fn((contract: CreativeContract) => ({ authority: "NEXUS_CREATIVE_CRITIC", verdict: "PASS", approved: true, findings: [], referenceEntryIds: ["ref-a", "ref-b"], contract }));
-    const runArena = vi.fn(() => ({ authority: "NEXUS_RED_TEAM_ARENA", experienceId: "client", verdict: "PASS", approved: true, attacks: [{ attackId: "BRAND_SWAP", verdict: "PASS", detail: "evidence-bound", evidence: [`sha256:${"2".repeat(64)}`] }], similarityReports: [] }));
-    const runMutations = vi.fn(async () => ({ authority: "NEXUS_BROWSER_MUTATION_RUNNER", targetUrl: "http://127.0.0.1:3000", artifacts: [] }));
-    const adapter = createProductionRedTeamAdapter(context(), {
-      git: async () => ({ branch: "audit", headSha: SHA, detached: false, clean: true, changedPaths: [], remoteUrl: null }),
-      committedFileReader: async () => ({ raw: JSON.stringify(envelope()), digest: `sha256:${"3".repeat(64)}`, relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
-      genomeFileReader: async () => bytes,
-      withProjectServer: async (_root: string, _project: unknown, operation: (url: string) => Promise<unknown>) => await operation("http://127.0.0.1:3000"),
-      runBrowserMutationSuite: runMutations,
-      evaluateBrowserMutationEvidence: () => mutationEvaluation,
-      evaluateStructuralFingerprints: () => ({ authority: "NEXUS_STRUCTURAL_FINGERPRINT", templateFingerprint: { verdict: "PASS", findings: [], evidence: ["history:compared"] }, aiFingerprint: { verdict: "PASS", findings: [], evidence: [artifact.digest] } }),
-      runRedTeamArena: runArena,
-      creativeCritic: { evaluate: criticEvaluate },
-    });
+    const dependencies = passingDependencies(bytes, artifact, envelope());
+    const adapter = createProductionRedTeamAdapter(context(), dependencies);
 
-    const result = await adapter({
-      capture: { evidence: { artifacts: [artifact] } },
-      visualJudge: { gate: { verdict: "PASS" } },
-    });
+    const result = await adapter({ capture: { evidence: { artifacts: [artifact] } }, visualJudge: { gate: { verdict: "PASS" } } });
 
-    expect(runMutations).toHaveBeenCalledOnce();
-    expect(criticEvaluate).toHaveBeenCalledOnce();
-    expect(criticEvaluate.mock.calls[0]?.[0].adversarial.brandSwapVerdict).toBe("PASS");
-    expect(runArena).toHaveBeenCalledOnce();
+    expect(dependencies.runMutations).toHaveBeenCalledOnce();
+    expect(dependencies.criticEvaluate).toHaveBeenCalledOnce();
+    expect(dependencies.criticEvaluate.mock.calls[0]?.[0].adversarial.brandSwapVerdict).toBe("PASS");
+    expect(dependencies.runArena).toHaveBeenCalledOnce();
     expect(result.report.verdict).toBe("PASS");
     expect(result.excessRemoval.verdict).toBe("NOT_TESTED");
+    expect(result.removalExperiments).toBeUndefined();
     expect(result.gate.verdict).toBe("NOT_TESTED");
-    expect(result.gate.detail).toContain("dedicated removal experiment");
+    expect(result.gate.detail).toContain("no removal candidates");
+  });
+
+  it("executes Excess Removal against the same governed CLIENT server and passes only on objective evidence", async () => {
+    const { bytes, artifact } = designGenomeArtifact();
+    const configured = envelope({
+      excessRemoval: {
+        browser: "chromium",
+        viewport: "mobile-390",
+        candidates: [{ elementId: "hero-copy", selector: "[data-nexus-element='hero-copy']", purposes: ["HIERARCHY", "CONTENT"], rationale: "Owns the only page-level heading" }],
+      },
+    });
+    const dependencies = passingDependencies(bytes, artifact, configured);
+    const runRemovals = vi.fn(async () => ({ authority: "NEXUS_REMOVAL_EXPERIMENT_RUNNER", targetUrl: "http://127.0.0.1:3000", artifacts: [removalArtifact()] }));
+    const adapter = createProductionRedTeamAdapter(context(), { ...dependencies, runRemovalExperiments: runRemovals });
+
+    const result = await adapter({ capture: { evidence: { artifacts: [artifact] } }, visualJudge: { gate: { verdict: "PASS" } } });
+
+    expect(dependencies.runMutations).toHaveBeenCalledOnce();
+    expect(runRemovals).toHaveBeenCalledOnce();
+    expect(runRemovals.mock.calls[0]?.[0]).toMatchObject({ browser: "chromium", viewport: { width: 390, height: 844 } });
+    expect(result.removalExperiments.authority).toBe("NEXUS_REMOVAL_EXPERIMENT_RUNNER");
+    expect(result.excessRemoval.verdict).toBe("PASS");
+    expect(result.excessRemoval.findings[0]?.code).toBe("PURPOSE_SUPPORTED");
+    expect(result.gate.verdict).toBe("PASS");
+    expect(result.gate.evidenceIds).toEqual(expect.arrayContaining([fixedDigest("4"), fixedDigest("5"), fixedDigest("6")]));
+  });
+
+  it("keeps a non-objective removal NOT_TESTED until a human review is bound to the executed hashes", async () => {
+    const { bytes, artifact } = designGenomeArtifact();
+    const executed = removalArtifact();
+    executed.before.headingOneCount = 1;
+    executed.after.headingOneCount = 1;
+    executed.before.target.headingOneCount = 0;
+    const configured = envelope({
+      excessRemoval: {
+        candidates: [{ elementId: "hero-copy", selector: "[data-nexus-element='hero-copy']", purposes: ["IDENTITY"], rationale: "Carries the opening identity" }],
+      },
+    });
+    const dependencies = passingDependencies(bytes, artifact, configured);
+    const adapter = createProductionRedTeamAdapter(context(), {
+      ...dependencies,
+      runRemovalExperiments: async () => ({ authority: "NEXUS_REMOVAL_EXPERIMENT_RUNNER", targetUrl: "http://127.0.0.1:3000", artifacts: [executed] }),
+    });
+    const result = await adapter({ capture: { evidence: { artifacts: [artifact] } }, visualJudge: { gate: { verdict: "PASS" } } });
+    expect(result.excessRemoval.verdict).toBe("NOT_TESTED");
+    expect(result.gate.verdict).toBe("NOT_TESTED");
+    expect(result.gate.detail).toContain("human review");
   });
 
   it("fails before executing mutations when the committed envelope is bound to another SHA", async () => {
     const runMutations = vi.fn();
     const adapter = createProductionRedTeamAdapter(context(), {
       git: async () => ({ branch: "audit", headSha: SHA, detached: false, clean: true, changedPaths: [], remoteUrl: null }),
-      committedFileReader: async () => ({ raw: JSON.stringify(envelope({ sourceRevision: "b".repeat(40) })), digest: `sha256:${"3".repeat(64)}`, relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
+      committedFileReader: async () => ({ raw: JSON.stringify(envelope({ sourceRevision: "b".repeat(40) })), digest: fixedDigest("3"), relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
       runBrowserMutationSuite: runMutations,
     });
     const result = await adapter({ capture: { evidence: { artifacts: [{ capability: "DESIGN_GENOME" }] } }, visualJudge: { gate: { verdict: "PASS" } } });
@@ -186,7 +262,7 @@ describe("production client Red Team runtime", () => {
     const runMutations = vi.fn();
     const adapter = createProductionRedTeamAdapter(context(), {
       git: async () => ({ branch: "audit", headSha: SHA, detached: false, clean: true, changedPaths: [], remoteUrl: null }),
-      committedFileReader: async () => ({ raw: JSON.stringify(envelope({ fingerprint: { ...fingerprint, structure: { ...fingerprint.structure, overlap: 2 } } })), digest: `sha256:${"3".repeat(64)}`, relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
+      committedFileReader: async () => ({ raw: JSON.stringify(envelope({ fingerprint: { ...fingerprint, structure: { ...fingerprint.structure, overlap: 2 } } })), digest: fixedDigest("3"), relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
       runBrowserMutationSuite: runMutations,
     });
     const result = await adapter({ capture: { evidence: { artifacts: [{ capability: "DESIGN_GENOME" }] } }, visualJudge: { gate: { verdict: "PASS" } } });
