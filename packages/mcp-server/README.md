@@ -1,25 +1,48 @@
 # `@nexus/mcp-server`
 
-Remote, deterministic MCP control surface for NEXUS. It exposes the approved block 1–4 tools over Streamable HTTP at `POST /mcp`.
+Remote, deterministic MCP control surface for NEXUS. It exposes the approved tools over Streamable HTTP at `POST /mcp` and supports two explicit authentication modes:
 
-## Configuration
+1. OAuth 2.1 protected-resource authentication for ChatGPT/Codex MCP clients.
+2. Pre-shared Bearer token hashes for controlled internal/API clients that can supply a token directly.
 
-- `NEXUS_MCP_TOKEN_SHA256` (required): lowercase SHA-256 of the Bearer token. The raw token is not stored by the server.
-- `NEXUS_MCP_WRITE_TOKEN_SHA256` (required to expose `nexus_project_new`): SHA-256 of a separate write-capable Bearer token. The read token never lists or invokes the creation tool.
-- `NEXUS_REPOSITORY_ROOT` (optional): checkout root; defaults to the process working directory.
-- `NEXUS_GITHUB_REPOSITORY` (optional): `owner/repository`; defaults to `josuechavando350-png/nexus-engine`.
-- `NEXUS_GITHUB_TOKEN` (optional): read-only GitHub token used for PR/check state. Without it, `nexus_status` returns `NOT_TESTED` for the GitHub portion rather than claiming there are no PRs.
-- `NEXUS_MCP_ALLOWED_HOSTS` (optional locally, required for deployment): comma-separated HTTP Host allowlist. Defaults to `localhost,127.0.0.1`; set it to the public service hostname when hosted.
-- `NEXUS_MCP_ARTIFACT_ROOT` (optional): private capture storage; defaults to `.artifacts/mcp` in the checkout.
-- `NEXUS_MCP_ENABLED_TOOLS` (optional): comma-separated capability allowlist. It defaults to `nexus_status,nexus_projects`; no execution or mutation tool is remotely exposed by default.
-- `NEXUS_MCP_MAX_CONCURRENCY` (optional, default `2`, range `1..16`): maximum simultaneous MCP tool calls. The cap bounds CPU/process pressure; excess work fails with HTTP 429 and is never queued silently.
-- `NEXUS_MCP_EXECUTION_TIMEOUT_MS` (optional, range `1000..900000`): explicit execution-timeout override used by gates, builds and project validation commands. When unset, historical per-operation defaults apply: `300000` ms for lint, typecheck, test and project validation; `900000` ms for build, browser and quality gates. The explicit override is capped at 15 minutes.
-- `NEXUS_MCP_MAX_ARTIFACT_BYTES` (optional, default `26214400`, range `1024..104857600`): maximum size of one stored artifact. The 100 MiB ceiling prevents configuration from removing the disk/memory guard.
-- `NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES` (optional, default `8388608`, range `1024..16777216`): maximum captured stdout/stderr for a gate or build. The 16 MiB ceiling bounds child-process and log memory even when misconfigured.
-- `NEXUS_MCP_CHILD_ENV_ALLOW` (optional): comma-separated names selected from the reviewed extension allowlist exported by `child-env.ts`. Arbitrary names are rejected; names containing `TOKEN`, `SECRET`, `KEY`, or `PASSWORD` are also rejected defensively. This is an administrator choice among code-reviewed operational settings, not a way to forward arbitrary server configuration.
-- `PORT` (optional): HTTP port, default `3000`.
+Neither mode disables the repository's tool allowlist, source-SHA binding, isolated worktrees, operator scope checks, or write authorization.
 
-Every MCP child process receives a private temporary `HOME`, private XDG config/cache directories, an empty npm user-config path, and `GIT_TERMINAL_PROMPT=0`; the server's real `HOME` and user credential/config files are not inherited.
+## ChatGPT / OAuth mode
+
+ChatGPT-authenticated deployment uses the MCP authorization contract rather than a custom API key. Configure:
+
+- `NEXUS_MCP_OAUTH_RESOURCE` (required for OAuth): canonical public HTTPS origin of this MCP resource server.
+- `NEXUS_MCP_OAUTH_AUTHORIZATION_SERVERS` (required for OAuth): comma-separated exact OAuth issuer identifiers. Nexus does not normalize issuer identifiers because OAuth clients compare them exactly.
+- `NEXUS_MCP_OAUTH_INTROSPECTION_ENDPOINT` (required for OAuth): HTTPS RFC 7662 token introspection endpoint for the trusted authorization server.
+- `NEXUS_MCP_OAUTH_INTROSPECTION_CLIENT_ID` and `NEXUS_MCP_OAUTH_INTROSPECTION_CLIENT_SECRET` (required for OAuth): resource-server credentials used only when Nexus introspects an incoming access token.
+- `NEXUS_MCP_OAUTH_READ_SCOPE` (optional, default `nexus:read`).
+- `NEXUS_MCP_OAUTH_WRITE_SCOPE` (optional, default `nexus:write`). It must differ from the read scope.
+- `NEXUS_MCP_OAUTH_RESOURCE_DOCUMENTATION` (optional): public HTTPS documentation URL advertised in protected-resource metadata.
+
+When OAuth mode is configured, Nexus exposes unauthenticated `GET /.well-known/oauth-protected-resource`. Unauthorized MCP requests include a `WWW-Authenticate` challenge pointing at that metadata document. The configured authorization server remains responsible for its OAuth discovery document, authorization-code flow, PKCE `S256`, client identification/registration (CIMD, DCR, or a predefined client), user authentication and consent.
+
+Nexus introspects every presented OAuth access token and fails closed unless all of the following are true:
+
+- introspection succeeds and returns `active: true`;
+- the token audience contains the exact `NEXUS_MCP_OAUTH_RESOURCE` value;
+- the token is not expired when an `exp` value is present;
+- the token contains the configured read scope;
+- write capability is granted only when the configured write scope is also present.
+
+The OAuth client secret is never sent to ChatGPT. It is a server-to-server credential between Nexus and the configured authorization server.
+
+If `nexus_operator` is enabled, also configure the server-owned scope:
+
+- `NEXUS_OPERATOR_TENANT_ID`
+- `NEXUS_OPERATOR_ORGANIZATION_ID`
+- `NEXUS_OPERATOR_BRAND_ID`
+
+The repository is fixed to `NEXUS_GITHUB_REPOSITORY` (default `josuechavando350-png/nexus-engine`) and is included in the operator scope. OAuth authentication does not let an MCP client supply or widen that server-owned scope.
+
+## Shared-token mode
+
+- `NEXUS_MCP_TOKEN_SHA256` (optional when OAuth is configured): lowercase SHA-256 of the read Bearer token. The raw token is not stored by the server.
+- `NEXUS_MCP_WRITE_TOKEN_SHA256` (optional): SHA-256 of a separate write-capable Bearer token. The read and write hashes must differ.
 
 Generate a fresh random token and its stored SHA-256 locally, without putting either in git or a chat:
 
@@ -27,41 +50,47 @@ Generate a fresh random token and its stored SHA-256 locally, without putting ei
 pnpm --filter @nexus/mcp-server token:generate
 ```
 
-After `pnpm --filter @nexus/mcp-server build`, run from the repository root:
+## Common configuration
+
+- `NEXUS_REPOSITORY_ROOT` (optional): checkout root; defaults to the process working directory.
+- `NEXUS_GITHUB_REPOSITORY` (optional): `owner/repository`; defaults to `josuechavando350-png/nexus-engine`.
+- `NEXUS_GITHUB_TOKEN` (optional): read-only GitHub token used for PR/check state. Without it, `nexus_status` returns `NOT_TESTED` for the GitHub portion rather than claiming there are no PRs.
+- `NEXUS_MCP_ALLOWED_HOSTS` (optional locally, required for deliberate deployment policy): comma-separated HTTP Host allowlist. In OAuth mode, the OAuth resource hostname must be included. When omitted in OAuth mode, Nexus uses the resource hostname; otherwise the local default is `localhost,127.0.0.1`.
+- `NEXUS_MCP_ARTIFACT_ROOT` (optional): private capture storage; defaults to `.artifacts/mcp` in the checkout.
+- `NEXUS_MCP_ENABLED_TOOLS` (optional): comma-separated capability allowlist. It defaults to `nexus_status,nexus_projects`; no execution or mutation tool is remotely exposed by default.
+- `NEXUS_MCP_MAX_CONCURRENCY` (optional, default `2`, range `1..16`): maximum simultaneous MCP tool calls. Excess work fails with HTTP 429 and is never queued silently.
+- `NEXUS_MCP_EXECUTION_TIMEOUT_MS` (optional, range `1000..900000`): explicit execution-timeout override used by gates, builds and project validation commands.
+- `NEXUS_MCP_MAX_ARTIFACT_BYTES` (optional, default `26214400`, range `1024..104857600`).
+- `NEXUS_MCP_MAX_PROCESS_OUTPUT_BYTES` (optional, default `8388608`, range `1024..16777216`).
+- `NEXUS_MCP_CHILD_ENV_ALLOW` (optional): comma-separated names selected from the reviewed extension allowlist exported by `child-env.ts`. Arbitrary names and secret-like names are rejected.
+- `PORT` (optional): HTTP port, default `3000`.
+
+Every MCP child process receives a private temporary `HOME`, private XDG config/cache directories, an empty npm user-config path, and `GIT_TERMINAL_PROMPT=0`; the server's real `HOME` and user credential/config files are not inherited.
+
+After `pnpm --filter @nexus/mcp-server build`, run the built server from the repository root with either a configured OAuth environment or the shared-token environment:
 
 ```sh
-NEXUS_MCP_TOKEN_SHA256='<sha256>' node packages/mcp-server/dist/mcp-server/src/server.js
+node packages/mcp-server/dist/mcp-server/src/server.js
 ```
 
-The unauthenticated `GET /healthz` response contains only service health/version. Every MCP request requires `Authorization: Bearer <token>`. The server registers no prompts, sampling, model calls, merge, deploy, push, force-push, branch deletion, or production access. `nexus_project_new` is the sole mutation tool: it is branch-scoped, requires the distinct write token, and is disabled by the default remote capability policy.
+The unauthenticated `GET /healthz` response contains only service health/version. OAuth protected-resource metadata contains only the configured public resource/issuer/scope contract. All repository data, artifacts and MCP operations require authentication.
 
-The read and write token hashes must be different. Server startup fails closed when both variables contain the same digest.
+The server registers no prompts, sampling, model calls, merge, deploy, push, force-push, branch deletion, or production access. `nexus_project_new` is the explicit repository mutation tool and requires write authorization. The governed `nexus_operator` can dispatch only its typed allowlisted actions and cannot turn free-form text into shell/GitHub/deployment commands.
 
-## Remote Readiness Phase 1.1
+This package contains the MCP service and authentication boundary; it does not claim that a public HTTPS deployment or a ChatGPT app registration exists. Those are deployment/account operations outside the repository and must be verified against the running service rather than inferred from this source tree.
 
-- The initial exposure policy registers only `nexus_status` and `nexus_projects`. Existing execution tools remain implemented but require an explicit `NEXUS_MCP_ENABLED_TOOLS` allowlist entry. `nexus_project_new` additionally requires the write token.
+## Remote readiness
+
+- The initial exposure policy registers only `nexus_status` and `nexus_projects`. Existing execution tools remain implemented but require an explicit `NEXUS_MCP_ENABLED_TOOLS` allowlist entry.
 - Every enabled tool call is concurrency-limited. Gates, builds, captures and project creation execute in a detached ephemeral Git worktree at the request's source SHA. Dependencies are linked into that worktree by a frozen offline pnpm install, existing derived outputs are copied rather than shared, and the worktree is forcibly removed and pruned after the response.
 - Gates, builds and captures publish request-scoped artifact records through `ArtifactStore`. The default `LocalArtifactStore` writes `.artifacts/mcp/<requestId>/manifest.json`; every record contains media type, byte length, SHA-256, metadata and an authenticated download URL.
-- Local storage is an explicit first adapter, not a cloud fallback. A future remote deployment may provide another `ArtifactStore` without changing tool contracts.
-- The repository includes `packages/mcp-server/Dockerfile` as a reproducible Node 24 / pnpm 10.15.0 execution definition. It is not deployment or hosting configuration.
+- Local storage is an explicit first adapter, not a cloud fallback. A remote deployment may provide another `ArtifactStore` without changing tool contracts.
+- `packages/mcp-server/Dockerfile` is a reproducible Node 24 / pnpm 10.15.0 execution definition. It is not itself deployment or hosting configuration.
 
+## Evidence behavior
 
-## Block 2 evidence behavior
-
-- `nexus_gates` runs fixed pnpm scripts for non-build checks; its target `build` gate shares the single-build, SHA-bound manifest path used by `nexus_build`. It records one log per executed gate and requires an exact clean source SHA.
-- `nexus_passport` reads only `.artifacts/quality-passports/<target>.json` (or an explicitly supplied path inside that directory) and delegates integrity verification to `@nexus/quality/quality-passport`. It never creates a Passport.
+- `nexus_gates` runs fixed pnpm scripts for non-build checks; its target `build` gate shares the single-build, SHA-bound manifest path used by `nexus_build`.
+- `nexus_passport` reads only the configured Quality Passport source of truth and delegates integrity verification to `@nexus/quality/quality-passport`. It never fabricates a Passport.
 - `nexus_capture` starts a selected workspace app locally and delegates screenshots to `@nexus/capture/playwright`. Captures are downloadable through the authenticated `/artifacts/:requestId/:name` endpoint.
-- Arbitrary public URL capture intentionally returns `NOT_TESTED` in this block. The existing capture adapter validates the initial HTTP(S) URL but does not yet enforce the approved SSRF policy across redirects and subresources; the MCP layer will not claim that unsafe gap is tested.
-
-## Block 3 evidence behavior
-
-- `nexus_build` requires an exact clean SHA and invokes `scripts/build-target-manifest.mjs`, which delegates target discovery, cache restoration, deterministic environment setup, build execution, cache storage, and output snapshotting to the existing `scripts/build-core.mjs` pipeline. The MCP layer does not implement a second builder.
-- A successful build returns every generated artifact path, byte length, SHA-256, the existing pipeline output digest/build key, lockfile hash, toolchain versions, and a hash of the manifest itself.
-- `nexus_comparator` is registered but returns `NOT_TESTED` with `NEXUS_CAPABILITY_MISSING: VISUAL_REGRESSION_GEOMETRY`. Repository inspection confirmed that pixel diff, mutation overflow measurements, and design-genome geometry observations exist, but no geometric comparator contract/implementation or permanent negative fixture exists. No counts or violations are synthesized.
-
-## Block 4 project creation
-
-- `nexus_project_new` is visible only with the separate write token. It requires complete confirmed business data and structured art direction; MCP schema validation rejects omissions and reserved, malformed, or traversal-like slugs before any write.
-- Creation requires an exact clean `baseSha`, creates only a `nexus-mcp/*` branch, and delegates file creation to the existing `scripts/scaffold-client.mjs`. It never overwrites an app, merges, pushes, deploys, or writes outside `apps/<slug>`.
-- The scaffold stores the supplied facts verbatim in `.nexus/project-spec.json`, marks the package with the existing `nexus.clientProject: true` admission signal, and excludes generated dependency/build directories from the seed copy.
-- Before committing, the tool runs the new package's existing `lint`, `typecheck`, and `build` scripts and verifies admission through the same workspace discovery used by `nexus_projects`. A missing command/dependency is `NOT_TESTED`; an executed failure is `FAIL`.
+- `nexus_build` requires an exact clean SHA and delegates target discovery, cache restoration, deterministic environment setup, build execution, cache storage, and output snapshotting to the existing build pipeline.
+- `nexus_project_new` requires complete confirmed business data and structured art direction, creates only a `nexus-mcp/*` branch, and delegates project compilation to the existing scaffold/compiler path. It never merges, pushes, deploys, or writes outside the confined project/lockfile surface.
