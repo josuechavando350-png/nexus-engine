@@ -80,6 +80,25 @@ describe("removal experiment runner", () => {
     })).rejects.toThrow(/exactly one node/);
   });
 
+  it("persists distinct evidence paths when different element IDs normalize to the same filename", async () => {
+    const result = await runRemovalExperiments({
+      targetUrl,
+      outputDir,
+      candidates: [
+        { elementId: "hero/copy", selector: ".hero" },
+        { elementId: "hero?copy", selector: ".proof" },
+      ],
+    });
+    expect(result.artifacts).toHaveLength(2);
+    const paths = result.artifacts.flatMap((artifact) => [artifact.beforeScreenshotUri, artifact.afterScreenshotUri, artifact.diagnosticsUri]);
+    expect(new Set(paths).size).toBe(paths.length);
+    for (const artifact of result.artifacts) {
+      expect(sha256(await readFile(artifact.beforeScreenshotUri))).toBe(artifact.beforeScreenshotDigest);
+      expect(sha256(await readFile(artifact.afterScreenshotUri))).toBe(artifact.afterScreenshotDigest);
+      expect(sha256(await readFile(artifact.diagnosticsUri))).toBe(artifact.diagnosticsDigest);
+    }
+  }, 30_000);
+
   it("rejects duplicate candidates and non-http targets before manufacturing evidence", async () => {
     await expect(runRemovalExperiments({
       targetUrl,
@@ -94,5 +113,22 @@ describe("removal experiment runner", () => {
       outputDir,
       candidates: [{ elementId: "hero", selector: ".hero" }],
     })).rejects.toThrow(/HTTP\(S\)/);
+    await expect(runRemovalExperiments({
+      targetUrl,
+      outputDir,
+      browser: "firefox" as never,
+      candidates: [{ elementId: "hero", selector: ".hero" }],
+    })).rejects.toThrow(/unsupported removal experiment browser/);
+    await expect(runRemovalExperiments({
+      targetUrl,
+      outputDir,
+      navigationTimeoutMs: 0,
+      candidates: [{ elementId: "hero", selector: ".hero" }],
+    })).rejects.toThrow(/navigationTimeoutMs/);
+    await expect(runRemovalExperiments({
+      targetUrl,
+      outputDir,
+      candidates: Array.from({ length: 101 }, (_, index) => ({ elementId: `candidate-${index}`, selector: `[data-candidate='${index}']` })),
+    })).rejects.toThrow(/at most 100 candidates/);
   });
 });
