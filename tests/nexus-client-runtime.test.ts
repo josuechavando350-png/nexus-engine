@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createWorkspaceClientRuntimeAdapters } from "../scripts/nexus-client-runtime.mjs";
 
 const SHA = "a".repeat(40);
+const BLOB_SHA = "c".repeat(40);
 const project = {
   slug: "client",
   path: "apps/client",
@@ -50,12 +51,37 @@ function captureEvidence() {
   return { requestId: "capture-1", runId: "run-1", targetUrl: "http://127.0.0.1:3000", artifacts, samples: [] };
 }
 
+function digestBoundReview(overrides: Record<string, unknown> = {}) {
+  const screenshots = captureEvidence().artifacts.filter((item) => item.capability === "SCREENSHOT");
+  return JSON.stringify({
+    schemaVersion: 2,
+    projectId: "client",
+    sourceRevision: SHA,
+    evidenceArtifacts: screenshots.map((item) => ({ artifactId: item.artifactId, digest: item.digest })),
+    review: {
+      reviewerType: "HUMAN",
+      reviewerId: "reviewer-1",
+      rubricVersion: "1",
+      rubricDigest: `sha256:${"f".repeat(64)}`,
+      verdict: "PASS",
+      findings: [],
+      evidenceArtifactIds: screenshots.map((item) => item.artifactId),
+      evidenceArtifactDigests: screenshots.map((item) => item.digest),
+      reviewedAt: "2026-09-01T00:00:00.000Z",
+    },
+    ...overrides,
+  });
+}
+
 function options(root: string, overrides: Record<string, unknown> = {}) {
   return {
     root,
     projects: async () => [project],
     git: async () => ({ branch: "audit", headSha: SHA, detached: false, clean: true, changedPaths: [], remoteUrl: null }),
-    readOnly: async () => "",
+    readOnly: async (_command: string, args: readonly string[]) => {
+      if (args[0] === "rev-parse" || args[0] === "hash-object") return BLOB_SHA;
+      return "";
+    },
     build: async () => ({
       target: { slug: "client", path: "apps/client", packageName: "@nexus/client" },
       command: "node scripts/build-target-manifest.mjs",
@@ -70,6 +96,18 @@ function options(root: string, overrides: Record<string, unknown> = {}) {
     capture: async () => captureEvidence(),
     ...overrides,
   };
+}
+
+function passingVisualJudge() {
+  return vi.fn(async ({ artifacts }: { artifacts: readonly { artifactId: string }[] }) => ({
+    authority: "NEXUS_VISUAL_JUDGE",
+    verdict: "PASS",
+    approved: true,
+    integrityVerdict: "PASS",
+    reviewVerdict: "PASS",
+    findings: [],
+    verifiedArtifactIds: artifacts.filter((item) => item.artifactId.startsWith("SCREENSHOT-")).map((item) => item.artifactId),
+  }));
 }
 
 describe("workspace client runtime adapters", () => {
@@ -100,33 +138,12 @@ describe("workspace client runtime adapters", () => {
     expect(build).not.toHaveBeenCalled();
   });
 
-  it("binds a configured committed visual review to the exact project SHA and captured artifact identities", async () => {
+  it("binds a configured committed visual review to the exact project SHA and captured artifact bytes", async () => {
     const root = "/repo";
     const base = spec(root);
     const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
-    const visualJudge = vi.fn(async ({ artifacts }: { artifacts: readonly { artifactId: string }[] }) => ({
-      authority: "NEXUS_VISUAL_JUDGE",
-      verdict: "PASS",
-      approved: true,
-      integrityVerdict: "PASS",
-      reviewVerdict: "PASS",
-      findings: [],
-      verifiedArtifactIds: artifacts.filter((item) => item.artifactId.startsWith("SCREENSHOT-")).map((item) => item.artifactId),
-    }));
-    const review = JSON.stringify({
-      projectId: "client",
-      sourceRevision: SHA,
-      review: {
-        reviewerType: "HUMAN",
-        reviewerId: "reviewer-1",
-        rubricVersion: "1",
-        rubricDigest: `sha256:${"f".repeat(64)}`,
-        verdict: "PASS",
-        findings: [],
-        evidenceArtifactIds: [],
-        reviewedAt: "2026-09-01T00:00:00.000Z",
-      },
-    });
+    const visualJudge = passingVisualJudge();
+    const review = digestBoundReview();
     const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => review }));
     const generation = { generationDigest: `sha256:${"d".repeat(64)}` };
     const render = await adapters.render({ generation });
@@ -138,12 +155,79 @@ describe("workspace client runtime adapters", () => {
     expect(visualJudge).toHaveBeenCalledOnce();
   });
 
+  it("rejects a review when an artifact ID is reused for different screenshot bytes", async () => {
+    const root = "/repo";
+    const base = spec(root);
+    const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
+    const visualJudge = passingVisualJudge();
+    const parsed = JSON.parse(digestBoundReview());
+    const fakeDigest = `sha256:${"e".repeat(64)}`;
+    parsed.evidenceArtifacts[0].digest = fakeDigest;
+    parsed.review.evidenceArtifactDigests[0] = fakeDigest;
+    const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => JSON.stringify(parsed) }));
+    const generation = { generationDigest: `sha256:${"d".repeat(64)}` };
+    const render = await adapters.render({ generation });
+    const capture = await adapters.capture({ generation, render });
+    const result = await adapters.visualJudge({ capture });
+    expect(result.gate.verdict).toBe("FAIL");
+    expect(result.gate.detail).toContain("artifact bytes");
+    expect(visualJudge).not.toHaveBeenCalled();
+  });
+
+  it("executes a fresh exact-SHA build, recapture and digest-bound rejudge before REPAIR_REJUDGE can pass", async () => {
+    const root = "/repo";
+    const base = spec(root);
+    const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
+    const visualJudge = passingVisualJudge();
+    const buildImplementation = options(root).build;
+    const build = vi.fn(buildImplementation);
+    const captureRunner = vi.fn(async () => captureEvidence());
+    const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, {
+      visualJudge,
+      build,
+      capture: captureRunner,
+      readReviewFile: async () => digestBoundReview(),
+      qualityCycleDependencies: { clock: () => new Date("2026-09-01T00:02:00.000Z") },
+    }));
+    const result = await adapters.repairRejudge({ generation: { generationDigest: `sha256:${"d".repeat(64)}` } });
+    expect(result.gate).toMatchObject({ gateId: "REPAIR_REJUDGE", verdict: "PASS" });
+    expect(result.report.status).toBe("SHIPPABLE");
+    expect(result.report.snapshots).toHaveLength(1);
+    expect(result.report.repairLineage).toHaveLength(0);
+    expect(build).toHaveBeenCalledOnce();
+    expect(captureRunner).toHaveBeenCalledOnce();
+    expect(visualJudge).toHaveBeenCalledOnce();
+  });
+
+  it("returns NOT_TESTED instead of inventing a source repair when fresh rejudge is non-passing", async () => {
+    const root = "/repo";
+    const base = spec(root);
+    const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
+    const visualJudge = vi.fn(async ({ artifacts }: { artifacts: readonly { artifactId: string }[] }) => ({
+      authority: "NEXUS_VISUAL_JUDGE",
+      verdict: "FAIL",
+      approved: false,
+      integrityVerdict: "PASS",
+      reviewVerdict: "FAIL",
+      findings: ["review requires a source change"],
+      verifiedArtifactIds: artifacts.filter((item) => item.artifactId.startsWith("SCREENSHOT-")).map((item) => item.artifactId),
+    }));
+    const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, {
+      visualJudge,
+      readReviewFile: async () => digestBoundReview(),
+      qualityCycleDependencies: { clock: () => new Date("2026-09-01T00:02:00.000Z") },
+    }));
+    const result = await adapters.repairRejudge({ generation: { generationDigest: `sha256:${"d".repeat(64)}` } });
+    expect(result.gate.verdict).toBe("NOT_TESTED");
+    expect(result.gate.detail).toContain("no governed source repair authority");
+  });
+
   it("fails closed before judging a visual review bound to another source revision", async () => {
     const root = "/repo";
     const base = spec(root);
     const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
     const visualJudge = vi.fn();
-    const review = JSON.stringify({ projectId: "client", sourceRevision: "b".repeat(40), review: {} });
+    const review = digestBoundReview({ sourceRevision: "b".repeat(40) });
     const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => review }));
     const generation = { generationDigest: `sha256:${"d".repeat(64)}` };
     const render = await adapters.render({ generation });

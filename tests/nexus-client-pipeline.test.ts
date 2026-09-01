@@ -56,14 +56,28 @@ function syntheticAdapters() {
     verdict: "PASS",
     findings: [{ elementId: "synthetic-purposeful-element", verdict: "PASS", code: "PURPOSE_SUPPORTED", message: "synthetic removal showed meaningful loss", evidenceIds: ["synthetic:excess:element"] }],
   };
-  const cycleReport = { authority: "NEXUS_BOUNDED_REPAIR_LOOP", status: "SHIPPABLE", finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["synthetic:judge"] }, iterations: [], snapshots: [], repairLineage: [] };
+  const cycleEvidence = [
+    { evidenceId: "synthetic:cycle:build", stage: "BUILD", subjectRevision: SOURCE_SHA, producedAt: "2026-09-01T00:00:00.000Z" },
+    { evidenceId: "synthetic:cycle:capture", stage: "CAPTURE", subjectRevision: SOURCE_SHA, producedAt: "2026-09-01T00:00:01.000Z" },
+    { evidenceId: "synthetic:cycle:judge", stage: "JUDGE", subjectRevision: SOURCE_SHA, producedAt: "2026-09-01T00:00:02.000Z" },
+  ];
+  const cycleEvidenceIds = cycleEvidence.map((item) => item.evidenceId);
+  const cycleEvaluation = { verdict: "PASS", findings: [], evidenceIds: cycleEvidenceIds };
+  const cycleReport = {
+    authority: "NEXUS_BOUNDED_REPAIR_LOOP",
+    status: "SHIPPABLE",
+    finalEvaluation: cycleEvaluation,
+    iterations: [],
+    snapshots: [{ revision: SOURCE_SHA, evaluation: cycleEvaluation, evidence: cycleEvidence, judgeCriterion: { rubricVersion: "synthetic-v1", rubricDigest: "a".repeat(64) } }],
+    repairLineage: [],
+  };
   return {
     render: async () => passGate("RENDER"),
     capture: async () => passGate("CAPTURE"),
     designGenome: async () => passGate("DESIGN_GENOME"),
     visualJudge: async () => ({ ...passGate("VISUAL_JUDGE"), report: visualReport }),
     redTeam: async () => ({ ...passGate("RED_TEAM"), report: redReport, excessRemoval }),
-    repairRejudge: async () => ({ ...passGate("REPAIR_REJUDGE"), report: cycleReport }),
+    repairRejudge: async () => ({ gate: { gateId: "REPAIR_REJUDGE", verdict: "PASS", detail: "REPAIR_REJUDGE synthetic adapter PASS", evidenceIds: cycleEvidenceIds }, report: cycleReport }),
   };
 }
 

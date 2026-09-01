@@ -97,6 +97,23 @@ function redTeamComplete(report: RedTeamArenaReport | undefined, excessRemoval: 
   return excessRemoval.findings.every((finding) => finding.verdict === "PASS" && finding.code === "PURPOSE_SUPPORTED" && finding.evidenceIds.length > 0);
 }
 
+function qualityCycleComplete(report: QualityCycleResult | undefined, sourceRevision: string, gateEvidenceIds: readonly string[]): boolean {
+  if (!report || report.authority !== "NEXUS_BOUNDED_REPAIR_LOOP" || report.status !== "SHIPPABLE" || report.finalEvaluation.verdict !== "PASS") return false;
+  // Delivery is SHA-bound. If a repair advanced the revision, the complete pipeline must be
+  // restarted on that new SHA so content/provenance/render/red-team gates are all fresh too.
+  if (report.snapshots.length !== 1 || report.iterations.length !== 0 || report.repairLineage.length !== 0) return false;
+  const snapshot = report.snapshots[0];
+  if (!snapshot || snapshot.revision !== sourceRevision || snapshot.evaluation.verdict !== "PASS") return false;
+  const stages = new Set(snapshot.evidence.map((item) => item.stage));
+  if (stages.size !== 3 || !stages.has("BUILD") || !stages.has("CAPTURE") || !stages.has("JUDGE")) return false;
+  if (snapshot.evidence.some((item) => item.subjectRevision !== sourceRevision || !item.evidenceId.trim())) return false;
+  const evaluated = new Set(snapshot.evaluation.evidenceIds);
+  if (snapshot.evidence.some((item) => !evaluated.has(item.evidenceId))) return false;
+  const gateEvidence = new Set(gateEvidenceIds);
+  const required = [...snapshot.evidence.map((item) => item.evidenceId), ...snapshot.evaluation.evidenceIds];
+  return required.every((evidenceId) => gateEvidence.has(evidenceId));
+}
+
 export function certifyQualityGatesForDelivery(input: QualityGateCertificationInput): QualityGateCertificationReport {
   const projectId = input.projectId.trim();
   if (!projectId) throw new Error("delivery certification requires projectId");
@@ -133,11 +150,9 @@ export function certifyQualityGatesForDelivery(input: QualityGateCertificationIn
   }
 
   const repairGate = normalized.find((gate) => gate.gateId === "REPAIR_REJUDGE")!;
-  if (repairGate.verdict === "PASS") {
-    if (!input.qualityCycle || input.qualityCycle.authority !== "NEXUS_BOUNDED_REPAIR_LOOP" || input.qualityCycle.status !== "SHIPPABLE" || input.qualityCycle.finalEvaluation.verdict !== "PASS") {
-      blockers.push("REPAIR_REJUDGE claimed PASS without a SHIPPABLE evidence-bound quality cycle");
-      repairGate.verdict = "FAIL";
-    }
+  if (repairGate.verdict === "PASS" && !qualityCycleComplete(input.qualityCycle, input.sourceRevision, repairGate.evidenceIds)) {
+    blockers.push("REPAIR_REJUDGE claimed PASS without a fresh single-revision SHIPPABLE quality cycle bound to the exact delivery SHA and gate evidence");
+    repairGate.verdict = "FAIL";
   }
 
   for (const gate of normalized) {
