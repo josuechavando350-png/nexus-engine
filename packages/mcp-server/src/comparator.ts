@@ -1,5 +1,5 @@
-import { randomUUID } from "node:crypto";
-import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { createHash, randomUUID } from "node:crypto";
+import { lstat, mkdir, readFile, realpath, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve, sep } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -108,7 +108,10 @@ function repositoryFile(root: string, relativePath: string, label: string): { ab
 }
 
 async function assertCommittedFile(root: string, sourceSha: string, file: { absolute: string; relative: string }, label: string, readOnly: typeof runReadOnly): Promise<void> {
-  if (!(await stat(file.absolute).catch(() => null))?.isFile()) throw new Error(`${label} does not exist as a file`);
+  const info = await lstat(file.absolute).catch(() => null);
+  if (!info?.isFile()) throw new Error(`${label} must be a regular file and not a symlink`);
+  const [rootReal, fileReal] = await Promise.all([realpath(root), realpath(file.absolute)]);
+  if (!fileReal.startsWith(`${rootReal}${sep}`)) throw new Error(`${label} resolves outside repository root`);
   if ((await readOnly("git", ["status", "--porcelain", "--", file.relative], root)).trim()) throw new Error(`${label} must be committed and clean`);
   const committedBlob = (await readOnly("git", ["rev-parse", `${sourceSha}:${file.relative}`], root)).trim();
   const workingBlob = (await readOnly("git", ["hash-object", "--", file.relative], root)).trim();
@@ -250,9 +253,11 @@ export async function nexusComparatorV2(
     core.validateComparison(comparison);
     const reportPath = join(outDir, "comparison.json");
     await mkdir(dirname(reportPath), { recursive: true });
-    await writeFile(reportPath, `${JSON.stringify(comparison, null, 2)}\n`, "utf8");
+    const reportBytes = Buffer.from(`${JSON.stringify(comparison, null, 2)}\n`, "utf8");
+    await writeFile(reportPath, reportBytes);
+    const reportSha256 = createHash("sha256").update(reportBytes).digest("hex");
 
-    const evidence: ToolEvidence[] = [...baseEvidence, { kind: "file", locator: manifestFile.relative }, { kind: "file", locator: screenshotFile.relative }, { kind: "artifact", locator: `sha256:${build.manifest.manifestSha256}` }, { kind: "capture", locator: `${current.path}#sha256=${current.record.screenshotSha256}` }, { kind: "artifact", locator: `${reportPath}#sha256=${comparison.digest}` }];
+    const evidence: ToolEvidence[] = [...baseEvidence, { kind: "file", locator: manifestFile.relative }, { kind: "file", locator: screenshotFile.relative }, { kind: "artifact", locator: `sha256:${build.manifest.manifestSha256}` }, { kind: "capture", locator: `${current.path}#sha256=${current.record.screenshotSha256}` }, { kind: "artifact", locator: `${reportPath}#sha256=${reportSha256}` }];
     if (comparison.diffPath && comparison.diffSha256) evidence.push({ kind: "capture", locator: `${comparison.diffPath}#sha256=${comparison.diffSha256}` });
     if (dependencies.artifactStore) {
       const currentArtifact = await dependencies.artifactStore.putFile(requestId, "comparator-current.png", current.path, "image/png", { tool: "nexus_comparator", target: project.slug, sourceSha: input.sourceSha, sceneDigest: scene.digest });
