@@ -9,7 +9,7 @@ import type { ToolDependencies } from "./tools.js";
 import { LocalArtifactStore, type ArtifactStore } from "./artifacts.js";
 import { ConcurrencyLimitError, ExecutionCoordinator, type ExecutionRunner } from "./execution.js";
 import { DEFAULT_MAX_ARTIFACT_BYTES, DEFAULT_MAX_CONCURRENCY, DEFAULT_MAX_PROCESS_OUTPUT_BYTES, REMOTE_READINESS_DEFAULT_TOOLS, type NexusToolName, type RuntimeLimits } from "./policy.js";
-import { prepareOAuthResourceServer, type OAuthFetch, type OAuthResourceServerConfig, type PreparedOAuthResourceServer } from "./oauth-resource.js";
+import { OAUTH_PROTECTED_RESOURCE_PATH, prepareOAuthResourceServer, type OAuthFetch, type OAuthResourceServerConfig, type PreparedOAuthResourceServer } from "./oauth-resource.js";
 import { readGitState } from "./git.js";
 
 export interface HttpServerOptions extends ToolDependencies {
@@ -68,7 +68,7 @@ export function createNexusHttpApp(options: HttpServerOptions) {
   const coordinator = options.coordinator ?? new ExecutionCoordinator(options.root, join(localArtifactRoot, "worktrees"), limits.maxConcurrency, limits.executionTimeoutMs, limits.maxProcessOutputBytes);
   const app = createMcpExpressApp({ host: "0.0.0.0", allowedHosts: [...(options.allowedHosts ?? ["localhost", "127.0.0.1"])] });
   app.get("/healthz", (_request: Request, response: Response) => response.json({ status: "ok", service: "nexus-mcp-server", version: "0.1.0" }));
-  if (oauth) app.get("/.well-known/oauth-protected-resource", (_request: Request, response: Response) => response.json(oauth.protectedResourceMetadata()));
+  if (oauth) app.get(OAUTH_PROTECTED_RESOURCE_PATH, (_request: Request, response: Response) => response.json(oauth.protectedResourceMetadata()));
   app.get("/artifacts/:requestId/:name", async (request: Request, response: Response) => {
     const auth = await requestAuthorization(request.header("authorization"), options.tokenSha256, options.writeTokenSha256, oauth);
     if (!auth) { rejectUnauthorized(response, oauth); return; }
