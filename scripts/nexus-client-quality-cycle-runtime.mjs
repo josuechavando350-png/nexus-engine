@@ -28,7 +28,8 @@ function digestObject(value) {
 
 function canonicalTimestamp(value) {
   const parsed = new Date(value);
-  return Number.isFinite(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new Error("quality cycle clock must produce a canonical UTC timestamp");
+  return value;
 }
 
 function assertMatrix(artifacts, capability, browsers, viewports) {
