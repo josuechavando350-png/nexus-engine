@@ -215,6 +215,22 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, sceneModel, emitted, generation, certification });
 }
 
+export async function runNexusClientPipelineWithWorkspaceRuntime(spec, options = {}) {
+  const runtimeTarget = spec?.runtime?.target;
+  if (typeof runtimeTarget !== "string" || !runtimeTarget.trim()) {
+    throw new Error("workspace runtime execution requires spec.runtime.target; use runNexusClientPipeline() only for explicit adapter-level tests or offline contract evaluation");
+  }
+  const runtimeFactory = options.runtimeFactory ?? (await import("./nexus-client-runtime.mjs")).createWorkspaceClientRuntimeAdapters;
+  if (typeof runtimeFactory !== "function") throw new Error("workspace runtime factory is unavailable");
+  const adapters = await runtimeFactory(spec, options.runtimeOptions ?? {});
+  for (const requiredAdapter of ["render", "capture", "designGenome"]) {
+    if (typeof adapters?.[requiredAdapter] !== "function") {
+      throw new Error(`workspace runtime target ${runtimeTarget} did not assemble required production adapter ${requiredAdapter}`);
+    }
+  }
+  return runNexusClientPipeline(spec, adapters);
+}
+
 async function main() {
   const args = process.argv.slice(2);
   const specIndex = args.indexOf("--spec");
@@ -223,7 +239,7 @@ async function main() {
   const specPath = resolve(args[specIndex + 1]);
   const spec = JSON.parse(await readFile(specPath, "utf8"));
   if (outIndex >= 0 && args[outIndex + 1]) spec.outputDir = resolve(args[outIndex + 1]);
-  const result = await runNexusClientPipeline(spec);
+  const result = await runNexusClientPipelineWithWorkspaceRuntime(spec);
   process.stdout.write(`${JSON.stringify({ authority: result.authority, status: result.status, certification: result.certification, blocker: result.blocker }, null, 2)}\n`);
   process.exitCode = result.status === "CERTIFIED" ? 0 : 2;
 }
