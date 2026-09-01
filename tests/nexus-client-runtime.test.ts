@@ -102,8 +102,8 @@ describe("workspace client runtime adapters", () => {
 
   it("binds a configured committed visual review to the exact project SHA and captured artifact identities", async () => {
     const root = "/repo";
-    const configured = spec(root);
-    configured.runtime.visualReviewFile = "evidence/client-visual-review.json";
+    const base = spec(root);
+    const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
     const visualJudge = vi.fn(async ({ artifacts }: { artifacts: readonly { artifactId: string }[] }) => ({
       authority: "NEXUS_VISUAL_JUDGE",
       verdict: "PASS",
@@ -140,8 +140,8 @@ describe("workspace client runtime adapters", () => {
 
   it("fails closed before judging a visual review bound to another source revision", async () => {
     const root = "/repo";
-    const configured = spec(root);
-    configured.runtime.visualReviewFile = "evidence/client-visual-review.json";
+    const base = spec(root);
+    const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
     const visualJudge = vi.fn();
     const review = JSON.stringify({ projectId: "client", sourceRevision: "b".repeat(40), review: {} });
     const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => review }));
