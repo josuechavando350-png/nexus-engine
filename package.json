@@ -21,7 +21,7 @@
     "passport:pdf": "node scripts/quality-passport-pdf.mjs",
     "security-hygiene": "node scripts/security-hygiene.mjs",
     "sbom": "node scripts/generate-sbom.mjs",
-    "client:run": "node scripts/nexus-client-pipeline.mjs",
+    "client:run": "node scripts/nexus-client-run.mjs",
     "decisions:trace": "node scripts/client-decision-trace.mjs",
     "shadow:run": "node scripts/shadow-mode.mjs",
     "shadow:baseline": "node scripts/shadow-baseline.mjs",
