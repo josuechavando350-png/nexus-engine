@@ -62,6 +62,9 @@ export interface RemovalExperimentResult {
 
 const sha256 = (bytes: Uint8Array): string => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const browserType = (name: RemovalExperimentBrowser): BrowserType => name === "chromium" ? chromium : webkit;
+const MAX_CANDIDATES = 100;
+const MIN_NAVIGATION_TIMEOUT_MS = 1_000;
+const MAX_NAVIGATION_TIMEOUT_MS = 180_000;
 
 function safe(value: string): string {
   return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80) || "element";
@@ -75,6 +78,7 @@ function validateTarget(targetUrl: string): void {
 
 function validateCandidates(candidates: readonly RemovalExperimentCandidate[]): readonly RemovalExperimentCandidate[] {
   if (!Array.isArray(candidates) || candidates.length === 0) throw new Error("removal experiment requires at least one candidate");
+  if (candidates.length > MAX_CANDIDATES) throw new Error(`removal experiment accepts at most ${MAX_CANDIDATES} candidates`);
   const normalized = candidates.map((candidate, index) => {
     if (!candidate || typeof candidate !== "object") throw new Error(`removal candidate[${index}] must be an object`);
     const elementId = candidate.elementId?.trim();
@@ -161,20 +165,25 @@ export async function runRemovalExperiments(input: {
   if (!input.outputDir.trim()) throw new Error("removal experiment outputDir is required");
   const candidates = validateCandidates(input.candidates);
   const browserName = input.browser ?? "chromium";
+  if (browserName !== "chromium" && browserName !== "webkit") throw new Error(`unsupported removal experiment browser: ${String(browserName)}`);
   const viewport = Object.freeze({ ...(input.viewport ?? { width: 390, height: 844 }) });
   if (!Number.isInteger(viewport.width) || viewport.width < 240 || viewport.width > 4096 || !Number.isInteger(viewport.height) || viewport.height < 240 || viewport.height > 4096) {
     throw new Error("removal experiment viewport must use integer dimensions in [240,4096]");
+  }
+  const navigationTimeoutMs = input.navigationTimeoutMs ?? 30_000;
+  if (!Number.isSafeInteger(navigationTimeoutMs) || navigationTimeoutMs < MIN_NAVIGATION_TIMEOUT_MS || navigationTimeoutMs > MAX_NAVIGATION_TIMEOUT_MS) {
+    throw new Error(`removal experiment navigationTimeoutMs must be an integer in [${MIN_NAVIGATION_TIMEOUT_MS},${MAX_NAVIGATION_TIMEOUT_MS}]`);
   }
   const outputDir = resolve(input.outputDir);
   await mkdir(outputDir, { recursive: true });
   const browser = await browserType(browserName).launch({ headless: true });
   const artifacts: RemovalExperimentArtifact[] = [];
   try {
-    for (const candidate of candidates) {
+    for (const [candidateIndex, candidate] of candidates.entries()) {
       const context = await browser.newContext({ viewport, locale: "en-US", timezoneId: "UTC", reducedMotion: "reduce" });
       try {
         const page = await context.newPage();
-        await page.goto(input.targetUrl, { waitUntil: "networkidle", timeout: input.navigationTimeoutMs ?? 30_000 });
+        await page.goto(input.targetUrl, { waitUntil: "networkidle", timeout: navigationTimeoutMs });
         await settle(page);
         const before = await diagnostics(page, candidate.selector);
         if (before.selectorCount !== 1) throw new Error(`removal candidate ${candidate.elementId} selector must resolve exactly one node; got ${before.selectorCount}`);
@@ -192,7 +201,8 @@ export async function runRemovalExperiments(input: {
         if (after.selectorCount !== 0 || after.target.present) throw new Error(`removal candidate ${candidate.elementId} remained present after removal`);
         const afterPng = await page.screenshot({ fullPage: true, animations: "disabled", type: "png" });
 
-        const stem = `${browserName}-${safe(candidate.elementId)}-${viewport.width}x${viewport.height}`;
+        const candidateDigest = createHash("sha256").update(candidate.elementId).digest("hex").slice(0, 12);
+        const stem = `${browserName}-${String(candidateIndex).padStart(3, "0")}-${safe(candidate.elementId)}-${candidateDigest}-${viewport.width}x${viewport.height}`;
         const beforeScreenshotUri = resolve(outputDir, `${stem}-before.png`);
         const afterScreenshotUri = resolve(outputDir, `${stem}-after.png`);
         const diagnosticsUri = resolve(outputDir, `${stem}.json`);
