@@ -66,6 +66,14 @@ function audienceIncludes(value: unknown, resource: string): boolean {
   return Array.isArray(value) && value.some((entry) => entry === resource);
 }
 
+function formEncode(value: string): string {
+  return new URLSearchParams({ value }).toString().slice("value=".length);
+}
+
+function clientSecretBasic(clientId: string, clientSecret: string): string {
+  return Buffer.from(`${formEncode(clientId)}:${formEncode(clientSecret)}`, "utf8").toString("base64");
+}
+
 export interface PreparedOAuthResourceServer {
   readonly resource: string;
   readonly metadataUrl: string;
@@ -91,7 +99,7 @@ export function prepareOAuthResourceServer(config: OAuthResourceServerConfig, fe
   if (readScope === writeScope) throw new Error("OAuth read and write scopes must be different");
   const resourceDocumentation = config.resourceDocumentation === undefined ? undefined : httpsUrl(config.resourceDocumentation, "NEXUS_MCP_OAUTH_RESOURCE_DOCUMENTATION");
   const metadataUrl = `${resource}${OAUTH_PROTECTED_RESOURCE_PATH}`;
-  const basic = Buffer.from(`${config.introspection.clientId}:${config.introspection.clientSecret}`, "utf8").toString("base64");
+  const basic = clientSecretBasic(config.introspection.clientId, config.introspection.clientSecret);
 
   async function authorize(authorizationHeader: string | undefined): Promise<OAuthAuthorization | null> {
     const token = bearerToken(authorizationHeader);
