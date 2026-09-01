@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { chmod, cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, join } from "node:path";
+import { delimiter, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { afterEach, describe, expect, it } from "vitest";
@@ -10,6 +10,7 @@ import { nexusProjectNew, type ToolDependencies } from "../src/tools.js";
 
 const exec = promisify(execFile);
 const repositoryRoot = fileURLToPath(new URL("../../..", import.meta.url));
+const experienceSeedRoot = join(repositoryRoot, "apps/_experience-seed");
 const roots: string[] = [];
 afterEach(async () => Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true }))));
 
@@ -20,9 +21,14 @@ const spec = {
   artDirection: { palette: [{ hex: "#112233", role: "surface", rationale: "Quiet base" }, { hex: "#DDAA22", role: "accent", rationale: "Warm emphasis" }], typography: { display: "Editorial serif", body: "Humanist sans", rationale: "Clear hierarchy" }, heroComposition: { direction: "Asymmetric split", rationale: "Prioritize place" }, sectionRhythm: { direction: "Alternating dense and open", rationale: "Measured pacing" }, motion: { direction: "Short reveals", reducedMotionBehavior: "No transforms", rationale: "Preserve orientation" }, prohibitions: ["No invented reviews"] },
 };
 
+function copySeedSource(source: string): boolean {
+  const segments = relative(experienceSeedRoot, source).split(/[\\/]/u).filter(Boolean);
+  return !segments.includes(".next") && !segments.includes("node_modules");
+}
+
 async function initializeCreationFixture(prefix: string): Promise<{ root: string; baseSha: string; originalLockfile: string }> {
   const root = await mkdtemp(join(tmpdir(), prefix)); roots.push(root);
-  await cp(join(repositoryRoot, "apps/_experience-seed"), join(root, "apps/_experience-seed"), { recursive: true, filter: (source) => !source.includes("/.next/") && !source.includes("/node_modules/") });
+  await cp(experienceSeedRoot, join(root, "apps/_experience-seed"), { recursive: true, filter: copySeedSource });
   await mkdir(join(root, "scripts"), { recursive: true });
   await cp(join(repositoryRoot, "scripts/scaffold-client.mjs"), join(root, "scripts/scaffold-client.mjs"));
   await cp(join(repositoryRoot, "scripts/project-spec-contract.mjs"), join(root, "scripts/project-spec-contract.mjs"));
@@ -49,7 +55,7 @@ async function withFakePnpm(script: string, action: () => Promise<void>): Promis
 describe("block four project creation", () => {
   it("compiles supplied facts and art direction into a non-placeholder client app plus lockfile importer", async () => {
     const root = await mkdtemp(join(tmpdir(), "nexus-scaffold-test-")); roots.push(root);
-    await cp(join(repositoryRoot, "apps/_experience-seed"), join(root, "apps/_experience-seed"), { recursive: true, filter: (source) => !source.includes("/.next/") && !source.includes("/node_modules/") });
+    await cp(experienceSeedRoot, join(root, "apps/_experience-seed"), { recursive: true, filter: copySeedSource });
     await mkdir(join(root, "scripts"), { recursive: true });
     await cp(join(repositoryRoot, "scripts/scaffold-client.mjs"), join(root, "scripts/scaffold-client.mjs"));
     await cp(join(repositoryRoot, "scripts/project-spec-contract.mjs"), join(root, "scripts/project-spec-contract.mjs"));
@@ -89,6 +95,7 @@ describe("block four project creation", () => {
 
   it("rolls back branch, files and lockfile when creation fails after scaffold publication", async () => {
     const { root, baseSha, originalLockfile } = await initializeCreationFixture("nexus-project-rollback-");
+    await expect(stat(join(root, "apps/_experience-seed/node_modules"))).rejects.toThrow();
 
     await expect(createProject(root, { ...spec, baseSha })).rejects.toThrow(/DEPENDENCY_UNAVAILABLE/);
 
