@@ -20,6 +20,8 @@ export interface ToolDependencies {
   artifactRoot?: string;
   buildRunner?: typeof import("./build.js").buildTarget;
   buildValidator?: typeof import("./build.js").validateBuildManifest;
+  visualComparatorRunner?: typeof import("./visual-comparator.js").runVisualComparator;
+  ssimulacra2Path?: string;
   projectCreator?: typeof import("./project-new.js").createProject;
   artifactStore?: import("./artifacts.js").ArtifactStore;
   limits?: import("./policy.js").RuntimeLimits;
@@ -187,7 +189,6 @@ export async function nexusCapture(input: import("./capture.js").CaptureInput, d
   }
 }
 
-
 export async function nexusBuild(input: { target: string; sourceSha: string; clean?: boolean }, dependencies: ToolDependencies): Promise<ToolResult<import("./build.js").BuildExecution>> {
   const { buildTarget, validateBuildManifest } = await import("./build.js");
   const now = dependencies.clock ?? (() => new Date()); const startedAt = now().toISOString(); const requestId = (dependencies.requestId ?? randomUUID)(); const repository = dependencies.repository ?? "josuechavando350-png/nexus-engine";
@@ -211,16 +212,35 @@ export async function nexusBuild(input: { target: string; sourceSha: string; cle
   return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "PASS", execution, evidence, []);
 }
 
-export async function nexusComparator(input: { source: { target: string } | { url: string }; sourceSha?: string; viewports?: readonly { name: string; width: number; height: number }[] }, dependencies: ToolDependencies): Promise<ToolResult<null>> {
-  void input.viewports;
+export async function nexusComparator(input: import("./visual-comparator.js").VisualComparatorInput, dependencies: ToolDependencies): Promise<ToolResult<import("./visual-comparator.js").VisualComparatorExecution>> {
+  const { runVisualComparator } = await import("./visual-comparator.js");
   const now = dependencies.clock ?? (() => new Date()); const startedAt = now().toISOString(); const requestId = (dependencies.requestId ?? randomUUID)(); const repository = dependencies.repository ?? "josuechavando350-png/nexus-engine";
   let git: GitState;
-  try { git = await (dependencies.git ?? readGitState)(dependencies.root); } catch (cause) { return base<null>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, null, "FAIL", null, [], [error("NOT_A_GIT_REPOSITORY", cause)]); }
-  if ("target" in input.source) {
-    if (input.sourceSha !== git.headSha) return base<null>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("SOURCE_SHA_MISMATCH", `requested ${input.sourceSha ?? "missing"}, current HEAD is ${git.headSha}`)]);
-    const target = input.source.target;
-    const projects = await (dependencies.projects ?? readProjects)(dependencies.root);
-    if (!projects.some((project) => project.slug === target)) return base<null>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_NOT_FOUND", `unknown target ${target}`)]);
+  try { git = await (dependencies.git ?? readGitState)(dependencies.root); } catch (cause) { return base<import("./visual-comparator.js").VisualComparatorExecution>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, null, "FAIL", null, [], [error("NOT_A_GIT_REPOSITORY", cause)]); }
+  if (input.sourceSha !== git.headSha) return base<import("./visual-comparator.js").VisualComparatorExecution>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("SOURCE_SHA_MISMATCH", "visual comparison must target the current exact HEAD")]);
+  if (!git.clean) return base<import("./visual-comparator.js").VisualComparatorExecution>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("DIRTY_WORKTREE", "visual comparison requires a clean exact-SHA checkout")]);
+  const projects = await (dependencies.projects ?? readProjects)(dependencies.root); const project = projects.find((item) => item.slug === input.source.target);
+  if (!project) return base<import("./visual-comparator.js").VisualComparatorExecution>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_NOT_FOUND", `unknown target ${input.source.target}`)]);
+  try {
+    const data = await (dependencies.visualComparatorRunner ?? runVisualComparator)(input, { root: dependencies.root, project, requestId, artifactRoot: dependencies.artifactRoot ?? join(dependencies.root, ".artifacts", "mcp"), ssimulacra2Path: dependencies.ssimulacra2Path, buildRunner: dependencies.buildRunner, buildValidator: dependencies.buildValidator });
+    const failed = data.comparisons.filter((comparison) => comparison.report.verdict !== "PASS");
+    const evidence: ToolEvidence[] = [
+      { kind: "git", locator: `git:${git.headSha}` },
+      { kind: "file", locator: data.baselineEnvelopePath },
+      { kind: "artifact", locator: `sha256:${data.baselineEnvelopeSha256}` },
+      { kind: "artifact", locator: `sha256:${data.buildManifestSha256}` },
+      { kind: "artifact", locator: `sha256:${data.buildDigest}` },
+      ...data.comparisons.flatMap((comparison) => [
+        { kind: "artifact" as const, locator: `baseline:${comparison.id}#sha256=${comparison.baselineScreenshotSha256}` },
+        { kind: "capture" as const, locator: `current:${comparison.id}#sha256=${comparison.currentScreenshotSha256}` },
+        { kind: "artifact" as const, locator: `comparison:${comparison.id}#sha256=${comparison.report.digest}` },
+        ...(comparison.report.diffSha256 ? [{ kind: "artifact" as const, locator: `diff:${comparison.id}#sha256=${comparison.report.diffSha256}` }] : []),
+      ]),
+    ];
+    return base("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, failed.length ? "FAIL" : "PASS", data, evidence, failed.length ? [error("VISUAL_REGRESSION_DETECTED", `${failed.length} approved-baseline comparison(s) did not pass`)] : []);
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : String(cause);
+    const unavailable = /PERCEPTUAL_COMPARATOR_UNAVAILABLE|VISUAL_BUILD_UNAVAILABLE|Cannot find module|browser.*(not found|executable)|ENOENT/u.test(message);
+    return base<import("./visual-comparator.js").VisualComparatorExecution>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, unavailable ? "NOT_TESTED" : "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error(unavailable ? "VISUAL_COMPARATOR_UNAVAILABLE" : "VISUAL_COMPARISON_FAILED", unavailable ? "required visual-regression runtime dependency is unavailable" : "visual comparison execution failed", unavailable)]);
   }
-  return base<null>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "NOT_TESTED", null, [{ kind: "git", locator: `git:${git.headSha}` }, { kind: "file", locator: "AUDIT_REPORT.md" }, { kind: "file", locator: "docs/architecture/MCP_SERVER_PHASE_1_DESIGN.md" }], [error("NEXUS_CAPABILITY_MISSING", "VISUAL_REGRESSION_GEOMETRY: no geometric comparator implementation or permanent negative fixture exists in NEXUS")]);
 }
