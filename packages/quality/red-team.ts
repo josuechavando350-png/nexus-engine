@@ -45,6 +45,7 @@ export interface RedTeamArenaInput {
   corpus: readonly StyleFingerprintV2[];
   artifacts: readonly CaptureArtifact[];
   mutationVerdicts: Readonly<Record<MutationAttackId, VerdictState>>;
+  mutationEvidence?: Readonly<Partial<Record<MutationAttackId, readonly string[]>>>;
   structuralFingerprint?: StructuralFingerprintReport;
   originalityPolicy?: OriginalityPolicy;
   browserEvidencePolicy?: BrowserEvidencePolicy;
@@ -215,17 +216,22 @@ export function runRedTeamArena(input: RedTeamArenaInput): RedTeamArenaReport {
     "GRAYSCALE",
   ];
   for (const attackId of requiredMutationAttacks) {
-    const verdict = input.mutationVerdicts[attackId];
+    const declaredVerdict = input.mutationVerdicts[attackId];
+    const evidence = Object.freeze([...(input.mutationEvidence?.[attackId] ?? [])].filter((item) => item.trim().length > 0));
+    const verdict: VerdictState = declaredVerdict === "PASS" && evidence.length === 0 ? "NOT_TESTED" : declaredVerdict;
     attacks.push(attack(
       attackId,
       verdict,
-      verdict === "PASS"
-        ? `${attackId.toLowerCase()} attack passed`
-        : verdict === "FAIL"
-          ? `${attackId.toLowerCase()} attack exposed a shipping blocker`
-          : verdict === "WARNING"
-            ? `${attackId.toLowerCase()} attack produced a non-blocking warning`
-            : `${attackId.toLowerCase()} attack has not been executed`,
+      declaredVerdict === "PASS" && evidence.length === 0
+        ? `${attackId.toLowerCase()} declared PASS without evidence and was downgraded to NOT_TESTED`
+        : verdict === "PASS"
+          ? `${attackId.toLowerCase()} attack passed with bound evidence`
+          : verdict === "FAIL"
+            ? `${attackId.toLowerCase()} attack exposed a shipping blocker`
+            : verdict === "WARNING"
+              ? `${attackId.toLowerCase()} attack produced a non-blocking warning`
+              : `${attackId.toLowerCase()} attack has not been executed`,
+      evidence,
     ));
   }
 
