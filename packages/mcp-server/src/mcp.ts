@@ -1,7 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod/v4";
+import { nexusComparatorV2 } from "./comparator.js";
 import { operatorCommandSchema, type NexusOperatorRuntime, type OperatorRequestContext } from "./operator-gateway.js";
-import { nexusBuild, nexusCapture, nexusComparator, nexusGates, nexusPassport, nexusProjectNew, nexusProjects, nexusStatus, type ToolDependencies } from "./tools.js";
+import { nexusBuild, nexusCapture, nexusGates, nexusPassport, nexusProjectNew, nexusProjects, nexusStatus, type ToolDependencies } from "./tools.js";
 import { REMOTE_READINESS_DEFAULT_TOOLS, type NexusToolName } from "./policy.js";
 
 function resultContent(result: unknown) {
@@ -55,11 +56,15 @@ export function createNexusMcpServer(dependencies: ToolDependencies, options: Ne
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async (input) => resultContent(await nexusBuild(input, dependencies)));
   if (enabled.has("nexus_comparator")) server.registerTool("nexus_comparator", {
-    title: "NEXUS geometric comparator availability",
-    description: "Reports the verified availability of the NEXUS geometric comparator; it does not synthesize comparisons.",
-    inputSchema: { source: z.union([z.object({ target: z.string().min(1) }).strict(), z.object({ url: z.string().url() }).strict()]), sourceSha: z.string().regex(/^[a-f0-9]{40}$/).optional(), viewports: z.array(z.object({ name: z.string().min(1), width: z.number().int().min(240), height: z.number().int().min(240) })).min(1).optional() },
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
-  }, async (input) => resultContent(await nexusComparator(input, dependencies)));
+    title: "NEXUS approved visual regression comparator",
+    description: "Rebuilds and captures an exact-SHA workspace target, then compares it with an explicitly approved committed NEXUS V2 visual baseline. Automated comparison is not art-direction approval.",
+    inputSchema: {
+      target: z.string().min(1),
+      sourceSha: z.string().regex(/^[a-f0-9]{40}$/),
+      baselineManifestPath: z.string().trim().min(1).max(2_048),
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: false, openWorldHint: false },
+  }, async (input) => resultContent(await nexusComparatorV2(input, dependencies)));
   if (options.allowProjectWrite && enabled.has("nexus_project_new")) server.registerTool("nexus_project_new", {
     title: "Create NEXUS client project",
     description: "Creates and commits a client app through the existing NEXUS scaffold on an isolated nexus-mcp/* branch.",

@@ -219,18 +219,22 @@ function sha256Hex(label: string, value: unknown): string {
   return text;
 }
 
-function safeUrl(value: unknown): string {
-  const raw = cleanString("scene.url", value, MAX_URL);
+function safeHttpUrl(label: string, value: unknown): string {
+  const raw = cleanString(label, value, MAX_URL);
   let parsed: URL;
   try {
     parsed = new URL(raw);
   } catch {
-    throw new Error("scene.url must be a valid HTTP(S) URL");
+    throw new Error(`${label} must be a valid HTTP(S) URL`);
   }
-  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("scene.url must use HTTP(S)");
-  if (parsed.username || parsed.password) throw new Error("scene.url must not contain credentials");
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error(`${label} must use HTTP(S)`);
+  if (parsed.username || parsed.password) throw new Error(`${label} must not contain credentials`);
   parsed.hash = "";
   return parsed.toString();
+}
+
+function safeUrl(value: unknown): string {
+  return safeHttpUrl("scene.url", value);
 }
 
 function finiteRange(label: string, value: unknown, minimum: number, maximum: number): number {
@@ -363,6 +367,7 @@ async function settle(page: Page): Promise<void> {
 
 export async function captureScene(input: {
   scene: Scene;
+  navigationUrl?: string;
   browserName: BrowserName;
   viewport: Viewport;
   revision: string;
@@ -373,6 +378,7 @@ export async function captureScene(input: {
   const revision = cleanString("revision", input.revision, 500);
   const buildDigest = sha256Hex("buildDigest", input.buildDigest);
   const viewport = createViewport(input.viewport.name, input.viewport.width, input.viewport.height);
+  const navigationUrl = input.navigationUrl === undefined ? input.scene.url : safeHttpUrl("navigationUrl", input.navigationUrl);
   const timeout = positiveInteger("navigationTimeoutMs", input.navigationTimeoutMs ?? 30_000, MAX_NAVIGATION_TIMEOUT_MS);
   const browserType = input.browserName === "chromium" ? chromium : input.browserName === "webkit" ? webkit : null;
   if (!browserType) throw new Error("unsupported browserName");
@@ -390,7 +396,7 @@ export async function captureScene(input: {
     try {
       const page = await context.newPage();
       page.setDefaultTimeout(timeout);
-      await page.goto(input.scene.url, { waitUntil: "load", timeout });
+      await page.goto(navigationUrl, { waitUntil: "load", timeout });
       await settle(page);
 
       const dimensions = await page.evaluate(() => ({

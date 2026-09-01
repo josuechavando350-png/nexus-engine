@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" },
+  "exports": {
+    ".": "./src/index.ts",
+    "./runtime": "./src/runtime.ts"
+  },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/capture-visual-regression-v2/src/index.test.ts",
-    "test:native": "NEXUS_NATIVE_VISUAL_PROOF=1 vitest run --root ../.. packages/capture-visual-regression-v2/src/native-browser.test.ts --testTimeout=180000",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts"
+    "test": "vitest run --root ../.. packages/capture-visual-regression-v2/src/index.test.ts packages/capture-visual-regression-v2/src/runtime.test.ts",
+    "test:native": "NEXUS_NATIVE_VISUAL_PROOF=1 vitest run --root ../.. packages/capture-visual-regression-v2/src/native-browser.test.ts packages/capture-visual-regression-v2/src/runtime.native.test.ts --testTimeout=180000",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/runtime.js && test -f dist/index.d.ts && test -f dist/runtime.d.ts"
   },
   "dependencies": {
     "@nexus/perceptual-images": "workspace:*",
