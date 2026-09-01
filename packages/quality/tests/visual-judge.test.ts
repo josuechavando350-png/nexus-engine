@@ -9,6 +9,7 @@ import { calibrateVisualReviewer, executeMultimodalVisualReview, judgeVisualEvid
 const tempDirs: string[] = [];
 const digest = (bytes: Uint8Array) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const RUBRIC_DIGEST = `sha256:${"e".repeat(64)}` as const;
+const TAMPERED_DIGEST = `sha256:${"f".repeat(64)}` as `sha256:${string}`;
 
 async function evidenceArtifacts(): Promise<CaptureArtifact[]> {
   const dir = await mkdtemp(join(tmpdir(), "nexus-visual-judge-"));
@@ -128,7 +129,7 @@ describe("NEXUS visual judge", () => {
       verdict: "PASS",
       findings: [],
       evidenceArtifactIds: bindings.ids,
-      evidenceArtifactDigests: bindings.digests.map((value, index) => index === 0 ? `sha256:${"f".repeat(64)}` : value),
+      evidenceArtifactDigests: bindings.digests.map((value, index) => index === 0 ? TAMPERED_DIGEST : value),
       reviewedAt: "2026-08-17T00:01:00.000Z",
     };
     const result = await judgeVisualEvidence({ artifacts, review });
