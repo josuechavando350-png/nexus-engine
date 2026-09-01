@@ -38,9 +38,9 @@ function captured(sceneDigest: string): CaptureArtifact {
 }
 
 describe("visual regression runtime navigation boundary", () => {
-  it("navigates through an ephemeral URL while preserving the stable logical scene digest", async () => {
+  it("navigates through an ephemeral URL while preserving the sealed logical scene", async () => {
     const scene = createScene({ id: "cano-home", url: "https://nexus.local/cano-penal/" });
-    const executor = vi.fn(async (input: { scene: typeof scene }) => captured(input.scene.digest));
+    const executor = vi.fn(async (input: { scene: typeof scene; navigationUrl?: string }) => captured(input.scene.digest));
     const result = await captureSceneAtNavigationUrl({
       scene,
       navigationUrl: "http://127.0.0.1:43871/#transport-only",
@@ -51,10 +51,11 @@ describe("visual regression runtime navigation boundary", () => {
       outDir: "/tmp",
     }, executor as never);
 
-    expect(scene.url).toBe("https://nexus.local/cano-penal/");
     expect(executor).toHaveBeenCalledOnce();
-    expect(executor.mock.calls[0]?.[0].scene.url).toBe("http://127.0.0.1:43871/");
+    expect(executor.mock.calls[0]?.[0].scene).toBe(scene);
+    expect(executor.mock.calls[0]?.[0].scene.url).toBe("https://nexus.local/cano-penal/");
     expect(executor.mock.calls[0]?.[0].scene.digest).toBe(scene.digest);
+    expect(executor.mock.calls[0]?.[0].navigationUrl).toBe("http://127.0.0.1:43871/");
     expect(result.record.sceneDigest).toBe(scene.digest);
   });
 
