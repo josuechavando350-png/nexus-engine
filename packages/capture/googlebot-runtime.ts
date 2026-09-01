@@ -149,6 +149,7 @@ async function raceAbort<T>(promise: Promise<T>, signal: AbortSignal | undefined
 }
 
 async function assertPublicHostname(url: URL, signal: AbortSignal | undefined, timeoutMs: number): Promise<void> {
+  if (signal?.aborted) throw new Error("DNS resolution cancelled");
   const hostname = url.hostname.toLowerCase();
   const unbracketedHostname = hostname.startsWith("[") && hostname.endsWith("]") ? hostname.slice(1, -1) : hostname;
   if (unbracketedHostname === "localhost" || unbracketedHostname.endsWith(".localhost") || unbracketedHostname.endsWith(".local") || unbracketedHostname.endsWith(".internal")) {
