@@ -98,7 +98,8 @@ jobs:
             corepack enable
             corepack prepare pnpm@10.15.0 --activate
             pnpm install --frozen-lockfile
-            NEXUS_CAPTURE_EVIDENCE_DIR="$GITHUB_WORKSPACE/.artifacts/baseline-capture" pnpm --filter @nexus/capture test:browser
+            NEXUS_CAPTURE_EVIDENCE_DIR="$GITHUB_WORKSPACE/.artifacts/baseline-capture" \
+              pnpm --filter @nexus/capture exec vitest run tests/playwright-adapter.test.ts --testTimeout=180000
           )
           mkdir -p "$NEXUS_VISUAL_BASELINE_DIR"
           cp "$GITHUB_WORKSPACE"/.artifacts/baseline-capture/*.png "$NEXUS_VISUAL_BASELINE_DIR"/

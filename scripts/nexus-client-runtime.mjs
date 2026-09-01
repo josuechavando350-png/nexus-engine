@@ -7,6 +7,7 @@ import { buildTarget, validateBuildManifest } from "../packages/mcp-server/src/b
 import { captureProjectEvidence } from "../packages/mcp-server/src/capture.ts";
 import { runProcess, runReadOnly } from "../packages/mcp-server/src/process.ts";
 import { judgeVisualEvidence } from "../packages/quality/visual-judge.ts";
+import { createProductionRedTeamAdapter } from "./nexus-client-red-team-runtime.mjs";
 
 const DEFAULT_CAPABILITIES = Object.freeze(["SCREENSHOT", "ACCESSIBILITY", "DESIGN_GENOME", "CONTRAST", "PERFORMANCE"]);
 const DEFAULT_BROWSERS = Object.freeze(["chromium", "webkit"]);
@@ -156,6 +157,13 @@ export async function createWorkspaceClientRuntimeAdapters(spec, options = {}) {
         report,
       });
     };
+  }
+
+  if (spec.runtime.redTeamEvidenceFile) {
+    adapters.redTeam = createProductionRedTeamAdapter(
+      { root, project, spec, browsers, viewports },
+      { git: gitReader, readOnly, ...(options.redTeamDependencies ?? {}) },
+    );
   }
 
   return Object.freeze(adapters);
