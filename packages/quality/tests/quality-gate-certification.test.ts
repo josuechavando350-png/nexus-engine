@@ -6,9 +6,20 @@ import type { RedTeamArenaReport } from "../red-team";
 import type { VisualJudgeResult } from "../visual-judge";
 
 const SHA = "a".repeat(40);
+const CYCLE_EVIDENCE = [
+  { evidenceId: "cycle:build", stage: "BUILD" as const, subjectRevision: SHA, producedAt: "2026-09-01T00:00:00.000Z" },
+  { evidenceId: "cycle:capture", stage: "CAPTURE" as const, subjectRevision: SHA, producedAt: "2026-09-01T00:00:01.000Z" },
+  { evidenceId: "cycle:judge", stage: "JUDGE" as const, subjectRevision: SHA, producedAt: "2026-09-01T00:00:02.000Z" },
+];
+const CYCLE_EVIDENCE_IDS = CYCLE_EVIDENCE.map((item) => item.evidenceId);
 
 function passingGates(): DeliveryGateEvidence[] {
-  return requiredDeliveryGateIds().map((gateId) => ({ gateId, verdict: "PASS", detail: `${gateId} executed on exact revision`, evidenceIds: [`evidence:${gateId}`] }));
+  return requiredDeliveryGateIds().map((gateId) => ({
+    gateId,
+    verdict: "PASS",
+    detail: `${gateId} executed on exact revision`,
+    evidenceIds: gateId === "REPAIR_REJUDGE" ? [...CYCLE_EVIDENCE_IDS] : [`evidence:${gateId}`],
+  }));
 }
 
 const visualJudge: VisualJudgeResult = {
@@ -42,21 +53,69 @@ const excessRemoval: ExcessRemovalReport = {
   }],
 };
 
+const cycleEvaluation = { verdict: "PASS" as const, findings: [], evidenceIds: CYCLE_EVIDENCE_IDS };
 const qualityCycle: QualityCycleResult = {
   authority: "NEXUS_BOUNDED_REPAIR_LOOP",
   status: "SHIPPABLE",
-  finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["judge:final"] },
+  finalEvaluation: cycleEvaluation,
   iterations: [],
-  snapshots: [],
+  snapshots: [{
+    revision: SHA,
+    evaluation: cycleEvaluation,
+    evidence: CYCLE_EVIDENCE,
+    judgeCriterion: { rubricVersion: "quality-v1", rubricDigest: "b".repeat(64) },
+  }],
   repairLineage: [],
 };
 
 describe("delivery certification", () => {
-  it("certifies only when every required gate and hostile quality authority passes", () => {
+  it("certifies only when every required gate and hostile quality authority passes on one exact revision", () => {
     const report = certifyQualityGatesForDelivery({ projectId: "fixture", sourceRevision: SHA, gates: passingGates(), visualJudge, redTeam, excessRemoval, qualityCycle });
     expect(report.verdict).toBe("PASS");
     expect(report.certified).toBe(true);
     expect(report.blockers).toEqual([]);
+  });
+
+  it("refuses a quality cycle that advanced to another revision without restarting the full delivery pipeline", () => {
+    const repairedSha = "b".repeat(40);
+    const mixed: QualityCycleResult = {
+      ...qualityCycle,
+      finalEvaluation: { verdict: "PASS", findings: [], evidenceIds: ["r2:build", "r2:capture", "r2:judge"] },
+      iterations: [{
+        attempt: 1,
+        before: { verdict: "FAIL", findings: ["weak hierarchy"], evidenceIds: CYCLE_EVIDENCE_IDS },
+        action: { summary: "changed source", changedFiles: ["src/page.tsx"], evidenceIds: ["patch:r2"] },
+        after: { verdict: "PASS", findings: [], evidenceIds: ["r2:build", "r2:capture", "r2:judge"] },
+      }],
+      snapshots: [
+        ...qualityCycle.snapshots,
+        {
+          revision: repairedSha,
+          evaluation: { verdict: "PASS", findings: [], evidenceIds: ["r2:build", "r2:capture", "r2:judge"] },
+          evidence: [
+            { evidenceId: "r2:build", stage: "BUILD", subjectRevision: repairedSha, producedAt: "2026-09-01T00:01:00.000Z" },
+            { evidenceId: "r2:capture", stage: "CAPTURE", subjectRevision: repairedSha, producedAt: "2026-09-01T00:01:01.000Z" },
+            { evidenceId: "r2:judge", stage: "JUDGE", subjectRevision: repairedSha, producedAt: "2026-09-01T00:01:02.000Z" },
+          ],
+          judgeCriterion: { rubricVersion: "quality-v1", rubricDigest: "b".repeat(64) },
+        },
+      ],
+      repairLineage: [{
+        attempt: 1,
+        fromRevision: SHA,
+        toRevision: repairedSha,
+        triggeringEvidenceIds: CYCLE_EVIDENCE_IDS,
+        repairEvidenceIds: ["patch:r2"],
+        changedFiles: ["src/page.tsx"],
+      }],
+    };
+    const gates = passingGates();
+    const repair = gates.find((gate) => gate.gateId === "REPAIR_REJUDGE")!;
+    repair.evidenceIds = [...CYCLE_EVIDENCE_IDS, "r2:build", "r2:capture", "r2:judge", "patch:r2"];
+    const report = certifyQualityGatesForDelivery({ projectId: "fixture", sourceRevision: SHA, gates, visualJudge, redTeam, excessRemoval, qualityCycle: mixed });
+    expect(report.verdict).toBe("FAIL");
+    expect(report.certified).toBe(false);
+    expect(report.blockers.join(" ")).toContain("fresh single-revision SHIPPABLE quality cycle");
   });
 
   it("treats any missing required gate as NOT_TESTED rather than pretending a build is deliverable", () => {
