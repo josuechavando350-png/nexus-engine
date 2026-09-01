@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { describe, expect, it } from "vitest";
 import { prepareOAuthResourceServer, type OAuthFetch } from "../src/oauth-resource.js";
 
@@ -44,6 +45,20 @@ describe("OAuth protected resource", () => {
     expect(observed?.method).toBe("POST");
     expect(new Headers(observed?.headers).get("authorization")).toMatch(/^Basic /u);
     expect(String(observed?.body)).toContain("token=oauth-access-token");
+  });
+
+  it("form-encodes reserved client credentials before client_secret_basic authentication", async () => {
+    let authorizationHeader: string | null = null;
+    const oauth = prepareOAuthResourceServer({
+      ...BASE_CONFIG,
+      introspection: { ...BASE_CONFIG.introspection, clientId: "client:id a", clientSecret: "s:e/cret +%" },
+    }, introspection({ active: true, aud: RESOURCE, scope: "nexus:read" }, (init) => {
+      authorizationHeader = new Headers(init?.headers).get("authorization");
+    }));
+    await expect(oauth.authorize("Bearer encoded-client-test")).resolves.toMatchObject({ authenticated: true });
+    expect(authorizationHeader).toMatch(/^Basic /u);
+    const decoded = Buffer.from(authorizationHeader!.slice("Basic ".length), "base64").toString("utf8");
+    expect(decoded).toBe("client%3Aid+a:s%3Ae%2Fcret+%2B%25");
   });
 
   it("rejects active tokens for another audience or without the required read scope", async () => {
