@@ -63,9 +63,15 @@ export async function captureProjectEvidence(
     const outputDir = join(artifactRoot, requestId);
     const scope = { tenantId: "nexus-mcp", brandId: project.slug };
     const startedAt = new Date().toISOString();
-    const run = createRun({ workload: { id: `mcp-capture-${project.slug}`, version: "2", scope, name: "NEXUS project browser evidence", parameters: { target: project.slug, sourceSha, capabilities: capabilities.join(",") } }, environment: { os: process.platform, architecture: process.arch, runtime: "node", runtimeVersion: process.version, deviceClass: "mcp-runner", browser: (options.browsers ?? ["chromium", "webkit"]).join(",") }, scope, startedAt });
+    const browsers = options.browsers ?? ["chromium", "webkit"];
+    const run = createRun({ workload: { id: `mcp-capture-${project.slug}`, version: "2", scope, name: "NEXUS project browser evidence", parameters: { target: project.slug, sourceSha, capabilities: capabilities.join(",") } }, environment: { os: process.platform, architecture: process.arch, runtime: "node", runtimeVersion: process.version, deviceClass: "mcp-runner", browser: browsers.join(",") }, scope, startedAt });
     const request: CaptureRequest = { run, scope, targetId: url, capabilities, metadata: { sourceSha, project: project.slug, packageName: project.packageName } };
-    const adapter = new PlaywrightBrowserDeviceCaptureAdapter({ outputDir, browsers: options.browsers, viewports: options.viewports });
+    const adapterOptions = {
+      outputDir,
+      ...(options.browsers ? { browsers: options.browsers } : {}),
+      ...(options.viewports ? { viewports: options.viewports } : {}),
+    };
+    const adapter = new PlaywrightBrowserDeviceCaptureAdapter(adapterOptions);
     const result = await adapter.capture(request);
     validateCaptureResult(request, result);
     if (result.outcome !== "CAPTURED") throw new Error(result.reason ?? "capture failed without reason");
