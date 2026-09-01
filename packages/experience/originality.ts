@@ -57,6 +57,67 @@ export type OriginalityPolicy = {
   overallWarnAbove?: number;
 };
 
+const STRUCTURE_KEYS = ["cardReliance", "gridRegularity", "symmetry", "overlap", "whitespace", "continuity"] as const satisfies readonly (keyof StyleFingerprintV2["structure"])[];
+const LIST_KEYS = ["sectionSequence", "ctaGrammar", "geometryGrammar", "mediaGrammar", "motionGrammar", "typographyHierarchy"] as const satisfies readonly (keyof StyleFingerprintV2)[];
+
+function requireText(value: unknown, field: string): string {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${field} must be a non-empty string`);
+  if (value.length > 2_048) throw new Error(`${field} exceeds 2048 characters`);
+  return value;
+}
+
+function validateObservedAt(value: unknown): string {
+  const observedAt = requireText(value, "fingerprint.observedAt");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(observedAt)) {
+    const parsed = new Date(`${observedAt}T00:00:00.000Z`);
+    if (Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === observedAt) return observedAt;
+  }
+  const parsed = new Date(observedAt);
+  if (Number.isFinite(parsed.getTime()) && parsed.toISOString() === observedAt) return observedAt;
+  throw new Error("fingerprint.observedAt must be YYYY-MM-DD or canonical ISO-8601 UTC");
+}
+
+function validateStringList(value: unknown, field: string): readonly string[] {
+  if (!Array.isArray(value)) throw new Error(`${field} must be an array`);
+  const result = value.map((item, index) => requireText(item, `${field}[${index}]`));
+  const normalized = result.map((item) => item.trim().toLowerCase());
+  if (new Set(normalized).size !== normalized.length) throw new Error(`${field} must be unique after normalization`);
+  return Object.freeze(result);
+}
+
+export function validateStyleFingerprintV2(value: unknown): StyleFingerprintV2 {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("fingerprint must be an object");
+  const raw = value as Record<string, unknown>;
+  if (raw.version !== 2) throw new Error("fingerprint.version must be 2");
+  const structureRaw = raw.structure;
+  if (!structureRaw || typeof structureRaw !== "object" || Array.isArray(structureRaw)) throw new Error("fingerprint.structure must be an object");
+  const structureRecord = structureRaw as Record<string, unknown>;
+  const structure = {} as StyleFingerprintV2["structure"];
+  for (const key of STRUCTURE_KEYS) {
+    const numeric = structureRecord[key];
+    if (typeof numeric !== "number" || !Number.isFinite(numeric) || numeric < 0 || numeric > 1) throw new Error(`fingerprint.structure.${key} must be finite in [0,1]`);
+    structure[key] = numeric;
+  }
+
+  const lists = Object.fromEntries(LIST_KEYS.map((key) => [key, validateStringList(raw[key], `fingerprint.${String(key)}`)])) as Pick<StyleFingerprintV2, typeof LIST_KEYS[number]>;
+  const notes = raw.notes === undefined ? undefined : requireText(raw.notes, "fingerprint.notes");
+  return Object.freeze({
+    version: 2,
+    subject: requireText(raw.subject, "fingerprint.subject"),
+    observedAt: validateObservedAt(raw.observedAt),
+    openingSignature: requireText(raw.openingSignature, "fingerprint.openingSignature"),
+    navigationSignature: requireText(raw.navigationSignature, "fingerprint.navigationSignature"),
+    sectionSequence: lists.sectionSequence,
+    structure: Object.freeze(structure),
+    ctaGrammar: lists.ctaGrammar,
+    geometryGrammar: lists.geometryGrammar,
+    mediaGrammar: lists.mediaGrammar,
+    motionGrammar: lists.motionGrammar,
+    typographyHierarchy: lists.typographyHierarchy,
+    ...(notes ? { notes } : {}),
+  });
+}
+
 function textSimilarity(a: string, b: string): number {
   return a.trim().toLowerCase() === b.trim().toLowerCase() ? 1 : 0;
 }
@@ -96,13 +157,15 @@ function structureSimilarity(a: StyleFingerprintV2["structure"], b: StyleFingerp
 }
 
 export function compareFingerprints(
-  left: StyleFingerprintV2,
-  right: StyleFingerprintV2,
+  leftInput: StyleFingerprintV2,
+  rightInput: StyleFingerprintV2,
   options: {
     policy?: OriginalityPolicy;
     justifications?: Partial<Record<FingerprintDimension, string>>;
   } = {}
 ): SimilarityReport {
+  const left = validateStyleFingerprintV2(leftInput);
+  const right = validateStyleFingerprintV2(rightInput);
   const raw: Array<[FingerprintDimension, number, string[]]> = [
     ["opening", textSimilarity(left.openingSignature, right.openingSignature), [left.openingSignature, right.openingSignature]],
     ["navigation", textSimilarity(left.navigationSignature, right.navigationSignature), [left.navigationSignature, right.navigationSignature]],
