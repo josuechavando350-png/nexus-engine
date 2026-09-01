@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "projectId": "client-runtime-fixture",
+  "sourceRevision": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "runtime": {
+    "target": "definitely-not-a-workspace-client"
+  }
+}
