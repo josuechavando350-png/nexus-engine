@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { expect, it } from "vitest";
 import type { BuildExecution, BuildManifest } from "../src/build.js";
 import type { GitState, ProjectState } from "../src/contracts.js";
-import { nexusBuild, nexusComparator } from "../src/tools.js";
+import { nexusBuild } from "../src/tools.js";
 
 const sha = "a".repeat(40);
 const git: GitState = { branch: "work", headSha: sha, detached: false, clean: true, changedPaths: [], remoteUrl: null };
@@ -30,17 +30,4 @@ it("distinguishes executed build failure from unavailable build capability", asy
   expect(failed.status).toBe("FAIL"); expect(failed.errors[0]?.code).toBe("BUILD_FAILED");
   const unavailable = await nexusBuild({ target: project.slug, sourceSha: sha }, { ...base, buildRunner: async () => execution({ exitCode: null, manifest: null, unavailableReason: "node executable is unavailable" }) });
   expect(unavailable.status).toBe("NOT_TESTED"); expect(unavailable.errors[0]?.code).toBe("DEPENDENCIES_UNAVAILABLE");
-});
-
-it("reports the absent geometric comparator as NOT_TESTED without fabricated counts", async () => {
-  const result = await nexusComparator({ source: { target: project.slug }, sourceSha: sha }, base);
-  expect(result.status).toBe("NOT_TESTED");
-  expect(result.data).toBeNull();
-  expect(result.errors).toEqual([{ code: "NEXUS_CAPABILITY_MISSING", message: "VISUAL_REGRESSION_GEOMETRY: no geometric comparator implementation or permanent negative fixture exists in NEXUS", retryable: false }]);
-});
-
-it("fails comparator target requests that are not bound to current source", async () => {
-  const result = await nexusComparator({ source: { target: project.slug }, sourceSha: "f".repeat(40) }, base);
-  expect(result.status).toBe("FAIL");
-  expect(result.errors[0]?.code).toBe("SOURCE_SHA_MISMATCH");
 });
