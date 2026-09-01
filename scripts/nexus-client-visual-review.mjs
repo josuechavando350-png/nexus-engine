@@ -17,19 +17,28 @@ export function sha256Text(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
+function nonEmpty(value, label) {
+  if (typeof value !== "string" || !value.trim()) throw new Error(`${label} must be a non-empty string`);
+  return value.trim();
+}
+
+function evidenceKey(browser, viewport) {
+  return `${browser.trim().toLowerCase()}::${viewport.trim().toLowerCase()}`;
+}
+
 function validateEvidenceBindings(value, review) {
-  if (!Array.isArray(value) || value.length === 0) throw new Error("visual review envelope evidenceArtifacts must be a non-empty array");
+  if (!Array.isArray(value) || value.length === 0) throw new Error("visual review envelope evidenceScreenshots must be a non-empty array");
   const bindings = value.map((item, index) => {
-    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error(`visual review evidenceArtifacts[${index}] must be an object`);
-    if (typeof item.artifactId !== "string" || !item.artifactId.trim()) throw new Error(`visual review evidenceArtifacts[${index}].artifactId is required`);
-    if (typeof item.digest !== "string" || !SHA256.test(item.digest)) throw new Error(`visual review evidenceArtifacts[${index}].digest must be canonical sha256`);
-    return Object.freeze({ artifactId: item.artifactId.trim(), digest: item.digest });
+    if (!item || typeof item !== "object" || Array.isArray(item)) throw new Error(`visual review evidenceScreenshots[${index}] must be an object`);
+    const browser = nonEmpty(item.browser, `visual review evidenceScreenshots[${index}].browser`);
+    const viewport = nonEmpty(item.viewport, `visual review evidenceScreenshots[${index}].viewport`);
+    if (typeof item.digest !== "string" || !SHA256.test(item.digest)) throw new Error(`visual review evidenceScreenshots[${index}].digest must be canonical sha256`);
+    return Object.freeze({ browser, viewport, digest: item.digest, key: evidenceKey(browser, viewport) });
   });
-  if (new Set(bindings.map((item) => item.artifactId)).size !== bindings.length) throw new Error("visual review evidence artifact IDs must be unique");
-  if (!Array.isArray(review.evidenceArtifactIds) || review.evidenceArtifactIds.length !== bindings.length) throw new Error("visual review evidenceArtifactIds must match evidenceArtifacts exactly");
-  if (review.evidenceArtifactIds.some((artifactId, index) => artifactId !== bindings[index]?.artifactId)) throw new Error("visual review evidenceArtifactIds order must match evidenceArtifacts");
-  if (!Array.isArray(review.evidenceArtifactDigests) || review.evidenceArtifactDigests.length !== bindings.length) throw new Error("visual review evidenceArtifactDigests must match evidenceArtifacts exactly");
-  if (review.evidenceArtifactDigests.some((digest, index) => digest !== bindings[index]?.digest)) throw new Error("visual review evidenceArtifactDigests order must match evidenceArtifacts");
+  if (new Set(bindings.map((item) => item.key)).size !== bindings.length) throw new Error("visual review evidence screenshot browser/viewport pairs must be unique");
+  if (review.evidenceArtifactIds !== undefined || review.evidenceArtifactDigests !== undefined) {
+    throw new Error("visual review schema-v3 must not persist transient artifact IDs or artifact digest vectors inside review");
+  }
   return Object.freeze(bindings);
 }
 
@@ -45,27 +54,50 @@ export async function loadCommittedVisualReview(input) {
   const raw = await reader(reviewPath.absolute);
   const envelope = JSON.parse(raw);
   if (!envelope || typeof envelope !== "object" || Array.isArray(envelope)) throw new Error("visual review envelope must be an object");
-  if (envelope.schemaVersion !== 2) throw new Error("visual review envelope schemaVersion must be 2 for digest-bound evidence");
+  if (envelope.schemaVersion !== 3) throw new Error("visual review envelope schemaVersion must be 3 for stable digest-bound evidence");
   if (envelope.projectId !== input.projectId) throw new Error(`visual review projectId ${envelope.projectId ?? "missing"} does not match ${input.projectId}`);
-  if (envelope.sourceRevision !== input.sourceRevision) throw new Error(`visual review sourceRevision ${envelope.sourceRevision ?? "missing"} does not match ${input.sourceRevision}`);
+  if (Object.hasOwn(envelope, "sourceRevision")) throw new Error("visual review schema-v3 must not self-declare sourceRevision; commit identity is supplied by the verified repository revision");
   if (!envelope.review || typeof envelope.review !== "object" || Array.isArray(envelope.review)) throw new Error("visual review envelope is missing review payload");
-  const evidenceArtifacts = validateEvidenceBindings(envelope.evidenceArtifacts, envelope.review);
-  return Object.freeze({ envelope, evidenceArtifacts, rawDigest: sha256Text(raw), path: reviewPath });
+  const evidenceScreenshots = validateEvidenceBindings(envelope.evidenceScreenshots, envelope.review);
+  return Object.freeze({ envelope, evidenceScreenshots, rawDigest: sha256Text(raw), path: reviewPath, blobSha: committedBlob, sourceRevision: input.sourceRevision });
+}
+
+function currentScreenshotIndex(artifacts) {
+  const byKey = new Map();
+  for (const artifact of artifacts) {
+    if (artifact.capability !== "SCREENSHOT") continue;
+    const browser = artifact.metadata?.browser;
+    const viewport = artifact.metadata?.viewport;
+    if (!browser || !viewport) throw new Error(`screenshot artifact ${artifact.artifactId} is missing browser/viewport metadata`);
+    if (typeof artifact.digest !== "string" || !SHA256.test(artifact.digest)) throw new Error(`screenshot artifact ${artifact.artifactId} has a non-canonical digest`);
+    const key = evidenceKey(browser, viewport);
+    if (byKey.has(key)) throw new Error(`current capture contains duplicate screenshot evidence for ${key}`);
+    byKey.set(key, artifact);
+  }
+  return byKey;
 }
 
 export async function evaluateDigestBoundVisualReview(input) {
   const evaluator = input.evaluator ?? judgeVisualEvidence;
-  const artifactById = new Map(input.artifacts.map((artifact) => [artifact.artifactId, artifact]));
+  const screenshots = currentScreenshotIndex(input.artifacts);
+  const matched = [];
   const mismatches = [];
-  for (const binding of input.committed.evidenceArtifacts) {
-    const artifact = artifactById.get(binding.artifactId);
-    if (!artifact) mismatches.push(`${binding.artifactId}:missing`);
-    else if (artifact.digest !== binding.digest) mismatches.push(`${binding.artifactId}:digest-mismatch`);
+  for (const binding of input.committed.evidenceScreenshots) {
+    const artifact = screenshots.get(binding.key);
+    if (!artifact) mismatches.push(`${binding.key}:missing`);
+    else if (artifact.digest !== binding.digest) mismatches.push(`${binding.key}:digest-mismatch`);
+    else matched.push(artifact);
   }
-  if (mismatches.length) throw new Error(`visual review is not bound to current artifact bytes: ${mismatches.join(", ")}`);
-  const report = await evaluator({ artifacts: input.artifacts, review: input.committed.envelope.review });
+  if (mismatches.length) throw new Error(`visual review is not bound to current screenshot bytes: ${mismatches.join(", ")}`);
+
+  const review = Object.freeze({
+    ...input.committed.envelope.review,
+    evidenceArtifactIds: Object.freeze(matched.map((artifact) => artifact.artifactId)),
+    evidenceArtifactDigests: Object.freeze(matched.map((artifact) => artifact.digest)),
+  });
+  const report = await evaluator({ artifacts: input.artifacts, review });
   return Object.freeze({
     report,
-    evidenceIds: Object.freeze([input.committed.rawDigest, ...input.committed.evidenceArtifacts.map((item) => item.digest)]),
+    evidenceIds: Object.freeze([input.committed.rawDigest, ...input.committed.evidenceScreenshots.map((item) => item.digest)]),
   });
 }
