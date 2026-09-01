@@ -56,7 +56,7 @@ interface RuntimeNavigationModule {
 export interface VisualComparatorInput {
   source: { target: string };
   sourceSha: string;
-  baselineEnvelopePath: string;
+  baselineEnvelopePath?: string;
 }
 
 export interface VisualComparatorDependencies {
@@ -194,8 +194,10 @@ function runtimeUrl(origin: string, runtimeRoute: string): string {
 
 export async function runVisualComparator(input: VisualComparatorInput, dependencies: VisualComparatorDependencies): Promise<VisualComparatorExecution> {
   if (input.source.target !== dependencies.project.slug) throw new Error("visual comparator target does not match resolved project");
+  const baselineEnvelopePath = input.baselineEnvelopePath;
+  if (!baselineEnvelopePath) throw new Error("BASELINE_NOT_CONFIGURED");
   const modules = await (dependencies.visualModuleLoader ?? (() => loadVisualModules(dependencies.root)))();
-  const envelopeFile = await committedFile(dependencies.root, input.baselineEnvelopePath, input.sourceSha, "visual baseline envelope");
+  const envelopeFile = await committedFile(dependencies.root, baselineEnvelopePath, input.sourceSha, "visual baseline envelope");
   const envelope = parseEnvelope(JSON.parse(envelopeFile.bytes.toString("utf8")), dependencies.project.slug, modules.visual);
   const baselineFiles = new Map<string, { absolute: string; sha256: string }>();
   for (const entry of envelope.baselines) {
