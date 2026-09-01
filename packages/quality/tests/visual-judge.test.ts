@@ -52,6 +52,14 @@ async function evidenceArtifacts(): Promise<CaptureArtifact[]> {
   return artifacts;
 }
 
+function screenshotBindings(artifacts: readonly CaptureArtifact[]) {
+  const screenshots = artifacts.filter((artifact) => artifact.capability === "SCREENSHOT");
+  return {
+    ids: screenshots.map((artifact) => artifact.artifactId),
+    digests: screenshots.map((artifact) => artifact.digest as `sha256:${string}`),
+  };
+}
+
 afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
@@ -67,8 +75,9 @@ describe("NEXUS visual judge", () => {
     expect(result.verifiedArtifactIds).toHaveLength(12);
   });
 
-  it("approves only when a traceable review references persisted evidence and immutable rubric identity", async () => {
+  it("approves only when a traceable review references persisted evidence IDs, bytes and immutable rubric identity", async () => {
     const artifacts = await evidenceArtifacts();
+    const bindings = screenshotBindings(artifacts);
     const review: VisualReview = {
       reviewerType: "HUMAN",
       reviewerId: "creative-director-1",
@@ -76,7 +85,8 @@ describe("NEXUS visual judge", () => {
       rubricDigest: RUBRIC_DIGEST,
       verdict: "PASS",
       findings: ["hierarchy and responsive composition survived review"],
-      evidenceArtifactIds: artifacts.filter((artifact) => artifact.capability === "SCREENSHOT").map((artifact) => artifact.artifactId),
+      evidenceArtifactIds: bindings.ids,
+      evidenceArtifactDigests: bindings.digests,
       reviewedAt: "2026-08-17T00:01:00.000Z",
     };
     const result = await judgeVisualEvidence({ artifacts, review });
@@ -88,7 +98,7 @@ describe("NEXUS visual judge", () => {
 
   it("fails a PASS review that omits any required screenshot from its evidence lineage", async () => {
     const artifacts = await evidenceArtifacts();
-    const screenshots = artifacts.filter((artifact) => artifact.capability === "SCREENSHOT");
+    const screenshots = artifacts.filter((artifact) => artifact.capability === "SCREENSHOT").slice(0, -1);
     const review: VisualReview = {
       reviewerType: "HUMAN",
       reviewerId: "creative-director-1",
@@ -96,7 +106,8 @@ describe("NEXUS visual judge", () => {
       rubricDigest: RUBRIC_DIGEST,
       verdict: "PASS",
       findings: [],
-      evidenceArtifactIds: screenshots.slice(0, -1).map((artifact) => artifact.artifactId),
+      evidenceArtifactIds: screenshots.map((artifact) => artifact.artifactId),
+      evidenceArtifactDigests: screenshots.map((artifact) => artifact.digest as `sha256:${string}`),
       reviewedAt: "2026-08-17T00:01:00.000Z",
     };
     const result = await judgeVisualEvidence({ artifacts, review });
@@ -106,8 +117,29 @@ describe("NEXUS visual judge", () => {
     expect(result.findings.join(" ")).toMatch(/omitted required screenshots/);
   });
 
+  it("rejects replay of a prior approval when the artifact ID is reused with different bytes", async () => {
+    const artifacts = await evidenceArtifacts();
+    const bindings = screenshotBindings(artifacts);
+    const review: VisualReview = {
+      reviewerType: "HUMAN",
+      reviewerId: "creative-director-1",
+      rubricVersion: "nexus-visual-rubric-v1",
+      rubricDigest: RUBRIC_DIGEST,
+      verdict: "PASS",
+      findings: [],
+      evidenceArtifactIds: bindings.ids,
+      evidenceArtifactDigests: bindings.digests.map((value, index) => index === 0 ? `sha256:${"f".repeat(64)}` : value),
+      reviewedAt: "2026-08-17T00:01:00.000Z",
+    };
+    const result = await judgeVisualEvidence({ artifacts, review });
+    expect(result.verdict).toBe("FAIL");
+    expect(result.approved).toBe(false);
+    expect(result.findings.join(" ")).toMatch(/artifact digest mismatch/);
+  });
+
   it("rejects a review whose rubric identity is only a mutable label", async () => {
     const artifacts = await evidenceArtifacts();
+    const bindings = screenshotBindings(artifacts);
     const review = {
       reviewerType: "HUMAN",
       reviewerId: "creative-director-1",
@@ -115,7 +147,8 @@ describe("NEXUS visual judge", () => {
       rubricDigest: "rubric-v1",
       verdict: "PASS",
       findings: [],
-      evidenceArtifactIds: artifacts.filter((artifact) => artifact.capability === "SCREENSHOT").map((artifact) => artifact.artifactId),
+      evidenceArtifactIds: bindings.ids,
+      evidenceArtifactDigests: bindings.digests,
       reviewedAt: "2026-08-17T00:01:00.000Z",
     } as unknown as VisualReview;
     const result = await judgeVisualEvidence({ artifacts, review });
@@ -155,6 +188,7 @@ describe("NEXUS visual judge", () => {
     const review = await executeMultimodalVisualReview({ artifacts, reviewerId: "visual-review-service", rubricVersion: "nexus-visual-rubric-v2", rubricDigest: RUBRIC_DIGEST, port });
     expect(observedImageCount).toBe(6);
     expect(review.rubricDigest).toBe(RUBRIC_DIGEST);
+    expect(review.evidenceArtifactDigests).toHaveLength(6);
     expect(review.providerId).toBe("fixture-provider");
     expect(review.modelId).toBe("ui-specialist-fixture");
     expect(review.providerRequestId).toBe("fixture-request-1");
@@ -182,6 +216,7 @@ describe("NEXUS visual judge", () => {
 
   it("refuses multimodal reviews that hide execution provenance", async () => {
     const artifacts = await evidenceArtifacts();
+    const first = artifacts[0]!;
     const result = await judgeVisualEvidence({
       artifacts,
       review: {
@@ -191,7 +226,8 @@ describe("NEXUS visual judge", () => {
         rubricDigest: RUBRIC_DIGEST,
         verdict: "PASS",
         findings: [],
-        evidenceArtifactIds: [artifacts[0]!.artifactId],
+        evidenceArtifactIds: [first.artifactId],
+        evidenceArtifactDigests: [first.digest as `sha256:${string}`],
         reviewedAt: "2026-08-17T00:01:00.000Z",
         modelIdentity: "opaque-string-only",
       },
