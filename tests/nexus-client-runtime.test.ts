@@ -100,6 +100,60 @@ describe("workspace client runtime adapters", () => {
     expect(build).not.toHaveBeenCalled();
   });
 
+  it("binds a configured committed visual review to the exact project SHA and captured artifact identities", async () => {
+    const root = "/repo";
+    const configured = spec(root);
+    configured.runtime.visualReviewFile = "evidence/client-visual-review.json";
+    const visualJudge = vi.fn(async ({ artifacts }: { artifacts: readonly { artifactId: string }[] }) => ({
+      authority: "NEXUS_VISUAL_JUDGE",
+      verdict: "PASS",
+      approved: true,
+      integrityVerdict: "PASS",
+      reviewVerdict: "PASS",
+      findings: [],
+      verifiedArtifactIds: artifacts.filter((item) => item.artifactId.startsWith("SCREENSHOT-")).map((item) => item.artifactId),
+    }));
+    const review = JSON.stringify({
+      projectId: "client",
+      sourceRevision: SHA,
+      review: {
+        reviewerType: "HUMAN",
+        reviewerId: "reviewer-1",
+        rubricVersion: "1",
+        rubricDigest: `sha256:${"f".repeat(64)}`,
+        verdict: "PASS",
+        findings: [],
+        evidenceArtifactIds: [],
+        reviewedAt: "2026-09-01T00:00:00.000Z",
+      },
+    });
+    const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => review }));
+    const generation = { generationDigest: `sha256:${"d".repeat(64)}` };
+    const render = await adapters.render({ generation });
+    const capture = await adapters.capture({ generation, render });
+    const result = await adapters.visualJudge({ capture });
+    expect(result.gate.verdict).toBe("PASS");
+    expect(result.gate.evidenceIds[0]).toMatch(/^sha256:[a-f0-9]{64}$/);
+    expect(result.gate.evidenceIds).toHaveLength(7);
+    expect(visualJudge).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed before judging a visual review bound to another source revision", async () => {
+    const root = "/repo";
+    const configured = spec(root);
+    configured.runtime.visualReviewFile = "evidence/client-visual-review.json";
+    const visualJudge = vi.fn();
+    const review = JSON.stringify({ projectId: "client", sourceRevision: "b".repeat(40), review: {} });
+    const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => review }));
+    const generation = { generationDigest: `sha256:${"d".repeat(64)}` };
+    const render = await adapters.render({ generation });
+    const capture = await adapters.capture({ generation, render });
+    const result = await adapters.visualJudge({ capture });
+    expect(result.gate.verdict).toBe("FAIL");
+    expect(result.gate.detail).toContain("does not match");
+    expect(visualJudge).not.toHaveBeenCalled();
+  });
+
   it("does not invent production adapters when runtime target is absent", async () => {
     await expect(createWorkspaceClientRuntimeAdapters({ projectId: "client", sourceRevision: SHA }, { root: "/repo" })).resolves.toEqual({});
   });
