@@ -29,13 +29,14 @@ export interface OAuthAuthorization {
 export type OAuthFetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 
 function httpsUrl(value: string, name: string, originOnly = false): string {
+  const candidate = value.trim();
   let parsed: URL;
-  try { parsed = new URL(value); }
+  try { parsed = new URL(candidate); }
   catch { throw new Error(`${name} must be an absolute HTTPS URL`); }
   if (parsed.protocol !== "https:") throw new Error(`${name} must use HTTPS`);
   if (parsed.username || parsed.password || parsed.search || parsed.hash) throw new Error(`${name} must not contain credentials, query, or fragment`);
-  if (originOnly && (parsed.pathname !== "/" || parsed.port && parsed.port !== "443")) throw new Error(`${name} must be a canonical HTTPS origin`);
-  return originOnly ? parsed.origin : parsed.toString().replace(/\/$/u, "");
+  if (originOnly && parsed.pathname !== "/") throw new Error(`${name} must be a canonical HTTPS origin`);
+  return originOnly ? parsed.origin : candidate;
 }
 
 function scopeName(value: string | undefined, fallback: string, name: string): string {
