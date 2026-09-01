@@ -28,6 +28,8 @@ function validateEvidenceBindings(value, review) {
   if (new Set(bindings.map((item) => item.artifactId)).size !== bindings.length) throw new Error("visual review evidence artifact IDs must be unique");
   if (!Array.isArray(review.evidenceArtifactIds) || review.evidenceArtifactIds.length !== bindings.length) throw new Error("visual review evidenceArtifactIds must match evidenceArtifacts exactly");
   if (review.evidenceArtifactIds.some((artifactId, index) => artifactId !== bindings[index]?.artifactId)) throw new Error("visual review evidenceArtifactIds order must match evidenceArtifacts");
+  if (!Array.isArray(review.evidenceArtifactDigests) || review.evidenceArtifactDigests.length !== bindings.length) throw new Error("visual review evidenceArtifactDigests must match evidenceArtifacts exactly");
+  if (review.evidenceArtifactDigests.some((digest, index) => digest !== bindings[index]?.digest)) throw new Error("visual review evidenceArtifactDigests order must match evidenceArtifacts");
   return Object.freeze(bindings);
 }
 
