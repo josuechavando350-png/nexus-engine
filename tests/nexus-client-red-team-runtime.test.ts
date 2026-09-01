@@ -86,6 +86,12 @@ function envelope(overrides: Record<string, unknown> = {}) {
       industryTransplant: [{ from: "legal", to: "hospitality" }],
     },
     mutationVisualReviews: [],
+    excessRemovalCandidates: [{
+      elementId: "evidence-rule",
+      selector: "[data-purpose='evidence-rule']",
+      purposes: ["HIERARCHY"],
+      rationale: "Connects the opening premise to supporting evidence.",
+    }],
     ...overrides,
   };
 }
@@ -131,7 +137,7 @@ function context() {
 }
 
 describe("production client Red Team runtime", () => {
-  it("executes real authorities, derives brand-swap critic input from mutation evidence, and refuses to fake Excess Removal", async () => {
+  it("executes real authorities, derives brand-swap critic input from mutation evidence, and keeps unreviewed removal evidence NOT_TESTED", async () => {
     const { bytes, artifact } = designGenomeArtifact();
     const mutationEvaluation = {
       authority: "NEXUS_MUTATION_EVIDENCE_EVALUATOR",
@@ -148,6 +154,11 @@ describe("production client Red Team runtime", () => {
       genomeFileReader: async () => bytes,
       withProjectServer: async (_root: string, _project: unknown, operation: (url: string) => Promise<unknown>) => await operation("http://127.0.0.1:3000"),
       runBrowserMutationSuite: runMutations,
+      runBrowserRemovalSuite: async () => ({
+        authority: "NEXUS_BROWSER_REMOVAL_RUNNER",
+        targetUrl: "http://127.0.0.1:3000",
+        artifacts: [{ elementId: "evidence-rule", selector: "[data-purpose='evidence-rule']", matchedElementCount: 1, beforeScreenshotUri: "/tmp/before.png", beforeScreenshotDigest: `sha256:${"4".repeat(64)}`, afterScreenshotUri: "/tmp/after.png", afterScreenshotDigest: `sha256:${"5".repeat(64)}` }],
+      }),
       evaluateBrowserMutationEvidence: () => mutationEvaluation,
       evaluateStructuralFingerprints: () => ({ authority: "NEXUS_STRUCTURAL_FINGERPRINT", templateFingerprint: { verdict: "PASS", findings: [], evidence: ["history:compared"] }, aiFingerprint: { verdict: "PASS", findings: [], evidence: [artifact.digest] } }),
       runRedTeamArena: runArena,
@@ -166,7 +177,33 @@ describe("production client Red Team runtime", () => {
     expect(result.report.verdict).toBe("PASS");
     expect(result.excessRemoval.verdict).toBe("NOT_TESTED");
     expect(result.gate.verdict).toBe("NOT_TESTED");
-    expect(result.gate.detail).toContain("dedicated removal experiment");
+    expect(result.gate.detail).toContain("committed digest-bound observation");
+  });
+
+  it("passes Excess Removal only when a committed observation matches the fresh before/after digests", async () => {
+    const { bytes, artifact } = designGenomeArtifact();
+    const beforeDigest = `sha256:${"4".repeat(64)}`;
+    const afterDigest = `sha256:${"5".repeat(64)}`;
+    const committedEnvelope = envelope({ excessRemovalCandidates: [{
+      elementId: "evidence-rule", selector: "[data-purpose='evidence-rule']", purposes: ["HIERARCHY"], rationale: "Connects premise to evidence.",
+      observation: { outcome: "MEANINGFUL_LOSS", beforeDigest, afterDigest, reviewerId: "art-director-1", reviewedAt: "2026-09-01T00:00:00.000Z", notes: "Removing the rule disconnected the evidence sequence." },
+    }] });
+    const adapter = createProductionRedTeamAdapter(context(), {
+      git: async () => ({ branch: "audit", headSha: SHA, detached: false, clean: true, changedPaths: [], remoteUrl: null }),
+      committedFileReader: async () => ({ raw: JSON.stringify(committedEnvelope), digest: `sha256:${"3".repeat(64)}`, relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
+      genomeFileReader: async () => bytes,
+      withProjectServer: async (_root: string, _project: unknown, operation: (url: string) => Promise<unknown>) => await operation("http://127.0.0.1:3000"),
+      runBrowserMutationSuite: async () => ({ authority: "NEXUS_BROWSER_MUTATION_RUNNER", targetUrl: "http://127.0.0.1:3000", artifacts: [] }),
+      runBrowserRemovalSuite: async () => ({ authority: "NEXUS_BROWSER_REMOVAL_RUNNER", targetUrl: "http://127.0.0.1:3000", artifacts: [{ elementId: "evidence-rule", selector: "[data-purpose='evidence-rule']", matchedElementCount: 1, beforeScreenshotUri: "/tmp/before.png", beforeScreenshotDigest: beforeDigest, afterScreenshotUri: "/tmp/after.png", afterScreenshotDigest: afterDigest }] }),
+      evaluateBrowserMutationEvidence: () => ({ authority: "NEXUS_MUTATION_EVIDENCE_EVALUATOR", verdicts: { BRAND_SWAP: "PASS", INDUSTRY_TRANSPLANT: "PASS", CONTENT_STRESS: "PASS", ASSET_DEGRADATION: "PASS", VIEWPORT_TORTURE: "PASS", MOTION_REMOVAL: "PASS", GRAYSCALE: "PASS" }, findings: [], evidence: { BRAND_SWAP: [beforeDigest] } }),
+      evaluateStructuralFingerprints: () => ({ authority: "NEXUS_STRUCTURAL_FINGERPRINT", templateFingerprint: { verdict: "PASS", findings: [], evidence: ["history:compared"] }, aiFingerprint: { verdict: "PASS", findings: [], evidence: [artifact.digest] } }),
+      runRedTeamArena: () => ({ authority: "NEXUS_RED_TEAM_ARENA", experienceId: "client", verdict: "PASS", approved: true, attacks: [{ attackId: "BRAND_SWAP", verdict: "PASS", detail: "bound", evidence: [beforeDigest] }], similarityReports: [] }),
+      creativeCritic: { evaluate: () => ({ authority: "NEXUS_CREATIVE_CRITIC", verdict: "PASS", approved: true, findings: [], referenceEntryIds: [], contract: committedEnvelope.creativeContract }) },
+    });
+    const result = await adapter({ capture: { evidence: { artifacts: [artifact] } }, visualJudge: { gate: { verdict: "PASS" } } });
+    expect(result.excessRemoval.verdict).toBe("PASS");
+    expect(result.excessRemoval.findings[0]?.evidenceIds).toEqual([beforeDigest, afterDigest]);
+    expect(result.gate.verdict).toBe("PASS");
   });
 
   it("fails before executing mutations when the committed envelope is bound to another SHA", async () => {
