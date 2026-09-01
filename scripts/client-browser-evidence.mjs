@@ -1,0 +1,166 @@
+#!/usr/bin/env node
+
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { lstat, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
+import { dirname, join, relative, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
+import { installRepositoryTypeScriptRuntime } from "./typescript-source-runtime.mjs";
+
+const SHA1 = /^[a-f0-9]{40}$/;
+const SHA256 = /^[a-f0-9]{64}$/;
+const PROJECT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const REQUIRED_VIEWPORTS = Object.freeze([
+  Object.freeze({ name: "mobile-390", width: 390, height: 844 }),
+  Object.freeze({ name: "tablet-768", width: 768, height: 1024 }),
+  Object.freeze({ name: "desktop-1440", width: 1440, height: 1200 }),
+]);
+
+const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const normalizePath = (path) => path.split(sep).join("/");
+const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
+
+function git(args) {
+  return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
+}
+
+function canonicalEvidencePayload(value) {
+  const { manifestSha256: _manifestSha256, ...payload } = value;
+  void _manifestSha256;
+  return JSON.stringify(payload);
+}
+
+export function sealClientBrowserEvidence(payload) {
+  return Object.freeze({
+    ...payload,
+    manifestSha256: sha256(Buffer.from(JSON.stringify(payload), "utf8")),
+  });
+}
+
+export function verifyClientBrowserEvidenceSeal(manifest) {
+  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) return false;
+  if (!SHA256.test(manifest.manifestSha256 ?? "")) return false;
+  return sha256(Buffer.from(canonicalEvidencePayload(manifest), "utf8")) === manifest.manifestSha256;
+}
+
+async function confinedRegularFile(path, root, label) {
+  const metadata = await lstat(path).catch(() => null);
+  if (!metadata?.isFile() || metadata.isSymbolicLink()) throw new Error(`${label} must be a regular non-symlink file`);
+  const [rootReal, fileReal] = await Promise.all([realpath(root), realpath(path)]);
+  if (fileReal !== rootReal && !fileReal.startsWith(`${rootReal}${sep}`)) throw new Error(`${label} resolves outside its evidence root`);
+  return fileReal;
+}
+
+async function main() {
+  const [projectId, ...extra] = process.argv.slice(2);
+  if (!projectId || extra.length || !PROJECT_ID.test(projectId)) {
+    throw new Error("usage: node scripts/client-browser-evidence.mjs <kebab-case-project-id>");
+  }
+
+  const sourceRevision = (process.env.NEXUS_VALIDATED_SHA || git(["rev-parse", "HEAD"])).trim();
+  if (!SHA1.test(sourceRevision)) throw new Error("NEXUS_VALIDATED_SHA must be a full lowercase Git SHA-1");
+  const head = git(["rev-parse", "HEAD"]);
+  if (head !== sourceRevision) throw new Error(`browser evidence source SHA mismatch: expected ${sourceRevision}, HEAD is ${head}`);
+  if (git(["status", "--porcelain", "--untracked-files=no"])) throw new Error("client browser evidence requires a clean tracked worktree");
+
+  const hooks = installRepositoryTypeScriptRuntime();
+  try {
+    const [{ readProjects }, { buildTarget, validateBuildManifest }, { captureProjectEvidence }] = await Promise.all([
+      import("../packages/mcp-server/src/projects.ts"),
+      import("../packages/mcp-server/src/build.ts"),
+      import("../packages/mcp-server/src/capture.ts"),
+    ]);
+
+    const projects = await readProjects(repositoryRoot);
+    const project = projects.find((candidate) => candidate.slug === projectId);
+    if (!project) throw new Error(`browser evidence target ${projectId} is not a discovered workspace app`);
+    if (!project.workspaceMember) throw new Error(`browser evidence target ${projectId} is not a workspace member`);
+
+    const captureRoot = join(repositoryRoot, "artifacts", "browser-capture", projectId);
+    await rm(captureRoot, { recursive: true, force: true });
+    await mkdir(captureRoot, { recursive: true });
+
+    execFileSync("pnpm", ["--filter", "@nexus/capture...", "build"], { cwd: repositoryRoot, stdio: "inherit" });
+
+    const requestId = `passport-${projectId}-${sourceRevision.slice(0, 12)}`;
+    const build = await buildTarget(repositoryRoot, project, sourceRevision, `${requestId}-build`);
+    if (!build.manifest) {
+      throw new Error(build.unavailableReason ? `exact-SHA client build unavailable: ${build.unavailableReason}` : `exact-SHA client build failed with exit ${build.exitCode ?? "unknown"}`);
+    }
+    if (!(await validateBuildManifest(repositoryRoot, project, sourceRevision, build.manifest))) {
+      throw new Error("exact-SHA client build manifest failed integrity validation");
+    }
+
+    const buildManifestPath = join(captureRoot, "build-manifest.json");
+    await writeFile(buildManifestPath, `${JSON.stringify(build.manifest, null, 2)}\n`, "utf8");
+
+    const capture = await captureProjectEvidence(
+      repositoryRoot,
+      project,
+      sourceRevision,
+      requestId,
+      captureRoot,
+      { capabilities: ["SCREENSHOT"], browsers: ["chromium"], viewports: REQUIRED_VIEWPORTS },
+    );
+
+    const screenshots = capture.artifacts.filter((artifact) => artifact.capability === "SCREENSHOT");
+    if (screenshots.length !== REQUIRED_VIEWPORTS.length) {
+      throw new Error(`expected ${REQUIRED_VIEWPORTS.length} exact-SHA screenshots, captured ${screenshots.length}`);
+    }
+
+    const captures = [];
+    for (const viewport of REQUIRED_VIEWPORTS) {
+      const matches = screenshots.filter((artifact) => artifact.metadata?.browser === "chromium" && artifact.metadata?.viewport === viewport.name);
+      if (matches.length !== 1) throw new Error(`expected exactly one chromium screenshot for ${viewport.name}, observed ${matches.length}`);
+      const artifact = matches[0];
+      if (!artifact.uri) throw new Error(`screenshot ${viewport.name} is missing a file URI`);
+      const fileReal = await confinedRegularFile(artifact.uri, captureRoot, `screenshot ${viewport.name}`);
+      const bytes = await readFile(fileReal);
+      const observedDigest = sha256(bytes);
+      const declaredDigest = String(artifact.digest ?? "").replace(/^sha256:/, "");
+      if (!SHA256.test(declaredDigest) || declaredDigest !== observedDigest) throw new Error(`screenshot ${viewport.name} digest does not match persisted bytes`);
+      if (artifact.byteLength !== bytes.byteLength) throw new Error(`screenshot ${viewport.name} byte length does not match persisted bytes`);
+      const width = Number(artifact.metadata?.width);
+      const height = Number(artifact.metadata?.height);
+      if (width !== viewport.width || height !== viewport.height) throw new Error(`screenshot ${viewport.name} viewport metadata is inconsistent`);
+      captures.push(Object.freeze({
+        browser: "chromium",
+        viewport: viewport.name,
+        width,
+        height,
+        path: normalizePath(relative(repositoryRoot, fileReal)),
+        byteLength: bytes.byteLength,
+        sha256: observedDigest,
+      }));
+    }
+
+    const payload = {
+      schemaVersion: 1,
+      authority: "NEXUS_CLIENT_BROWSER_EVIDENCE_V1",
+      projectId,
+      sourceRevision,
+      route: "/",
+      requestId: capture.requestId,
+      runId: capture.runId,
+      build: {
+        authority: build.manifest.authority,
+        target: build.manifest.target,
+        manifestPath: normalizePath(relative(repositoryRoot, buildManifestPath)),
+        manifestSha256: build.manifest.manifestSha256,
+        outputDigest: build.manifest.outputDigest,
+      },
+      captures,
+    };
+    const manifest = sealClientBrowserEvidence(payload);
+    const manifestPath = join(captureRoot, "evidence-manifest.json");
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, "utf8");
+    if (!verifyClientBrowserEvidenceSeal(manifest)) throw new Error("client browser evidence manifest seal failed self-verification");
+
+    process.stdout.write(`${normalizePath(relative(repositoryRoot, manifestPath))}\n`);
+  } finally {
+    hooks.deregister();
+  }
+}
+
+const invoked = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (invoked) main().catch((error) => { console.error(error); process.exitCode = 1; });
