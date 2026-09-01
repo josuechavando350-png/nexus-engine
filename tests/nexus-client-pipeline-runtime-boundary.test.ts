@@ -21,8 +21,8 @@ function tempSpec(value: unknown): string {
   return path;
 }
 
-function executeClientScript(script: string, specPath: string) {
-  return spawnSync(process.execPath, [script, "--spec", specPath], {
+function executeProductionClient(specPath: string) {
+  return spawnSync(process.execPath, ["scripts/nexus-client-run.mjs", "--spec", specPath], {
     cwd: process.cwd(),
     encoding: "utf8",
     env: process.env,
@@ -42,23 +42,19 @@ describe("NEXUS client pipeline production boundary", () => {
     )).rejects.toThrow(/did not assemble required production adapter render/);
   });
 
-  it.each([
-    "scripts/nexus-client-pipeline.mjs",
-    "scripts/nexus-client-run.mjs",
-  ])("proves %s crosses the workspace-runtime boundary instead of silently running adapterless", (script) => {
-    const execution = executeClientScript(script, tempSpec({}));
+  it("executes the supported production entrypoint through the repository TypeScript runtime", () => {
+    const execution = executeProductionClient(tempSpec({}));
     expect(execution.status).toBe(1);
     expect(execution.stderr).toContain("workspace runtime execution requires spec.runtime.target");
+    expect(execution.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
     expect(execution.stderr).not.toContain("ExperienceBrief");
   });
 
-  it.each([
-    "scripts/nexus-client-pipeline.mjs",
-    "scripts/nexus-client-run.mjs",
-  ])("proves %s loads real workspace project discovery before pipeline evaluation", (script) => {
-    const execution = executeClientScript(script, tempSpec({ runtime: { target: "definitely-not-a-workspace-client" } }));
+  it("loads real workspace project discovery before pipeline evaluation", () => {
+    const execution = executeProductionClient(tempSpec({ runtime: { target: "definitely-not-a-workspace-client" } }));
     expect(execution.status).toBe(1);
     expect(execution.stderr).toContain("client runtime target definitely-not-a-workspace-client is not a discovered workspace app");
+    expect(execution.stderr).not.toContain("ERR_MODULE_NOT_FOUND");
     expect(execution.stderr).not.toContain("ExperienceBrief");
   });
 });
