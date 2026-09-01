@@ -23,41 +23,40 @@ function spec(root: string) {
   };
 }
 
-function artifact(capability: string, browser: string, viewport: string, index: number) {
+function artifact(capability: string, browser: string, viewport: string, index: number, run = "run-1") {
   return {
-    artifactId: `${capability}-${browser}-${viewport}`,
-    runId: "run-1",
+    artifactId: `${run}-${capability}-${browser}-${viewport}`,
+    runId: run,
     scope: { tenantId: "nexus-mcp", brandId: "client" },
     capability,
     mediaType: capability === "SCREENSHOT" ? "image/png" : "application/json",
     digest: `sha256:${String(index).padStart(64, "0")}`,
     byteLength: 10,
     capturedAt: "2026-09-01T00:00:00.000Z",
-    uri: `/tmp/${capability}-${browser}-${viewport}`,
+    uri: `/tmp/${run}-${capability}-${browser}-${viewport}`,
     metadata: { browser, viewport },
   };
 }
 
-function captureEvidence() {
+function captureEvidence(run = "run-1") {
   const artifacts = [];
   let index = 1;
   for (const browser of ["chromium", "webkit"]) {
     for (const viewport of ["mobile-390", "tablet-768", "desktop-1440"]) {
-      artifacts.push(artifact("SCREENSHOT", browser, viewport, index++));
-      artifacts.push(artifact("ACCESSIBILITY", browser, viewport, index++));
-      artifacts.push(artifact("DESIGN_GENOME", browser, viewport, index++));
+      artifacts.push(artifact("SCREENSHOT", browser, viewport, index++, run));
+      artifacts.push(artifact("ACCESSIBILITY", browser, viewport, index++, run));
+      artifacts.push(artifact("DESIGN_GENOME", browser, viewport, index++, run));
     }
   }
-  return { requestId: "capture-1", runId: "run-1", targetUrl: "http://127.0.0.1:3000", artifacts, samples: [] };
+  return { requestId: `capture-${run}`, runId: run, targetUrl: "http://127.0.0.1:3000", artifacts, samples: [] };
 }
 
 function digestBoundReview(overrides: Record<string, unknown> = {}) {
-  const screenshots = captureEvidence().artifacts.filter((item) => item.capability === "SCREENSHOT");
+  const screenshots = captureEvidence("reviewed-run").artifacts.filter((item) => item.capability === "SCREENSHOT");
   return JSON.stringify({
-    schemaVersion: 2,
+    schemaVersion: 3,
     projectId: "client",
-    sourceRevision: SHA,
-    evidenceArtifacts: screenshots.map((item) => ({ artifactId: item.artifactId, digest: item.digest })),
+    evidenceScreenshots: screenshots.map((item) => ({ browser: item.metadata.browser, viewport: item.metadata.viewport, digest: item.digest })),
     review: {
       reviewerType: "HUMAN",
       reviewerId: "reviewer-1",
@@ -65,8 +64,6 @@ function digestBoundReview(overrides: Record<string, unknown> = {}) {
       rubricDigest: `sha256:${"f".repeat(64)}`,
       verdict: "PASS",
       findings: [],
-      evidenceArtifactIds: screenshots.map((item) => item.artifactId),
-      evidenceArtifactDigests: screenshots.map((item) => item.digest),
       reviewedAt: "2026-09-01T00:00:00.000Z",
     },
     ...overrides,
@@ -93,20 +90,20 @@ function options(root: string, overrides: Record<string, unknown> = {}) {
     }),
     buildValidator: async () => true,
     prepareCapture: async () => undefined,
-    capture: async () => captureEvidence(),
+    capture: async () => captureEvidence("fresh-run"),
     ...overrides,
   };
 }
 
 function passingVisualJudge() {
-  return vi.fn(async ({ artifacts }: { artifacts: readonly { artifactId: string }[] }) => ({
+  return vi.fn(async ({ artifacts, review }: { artifacts: readonly { artifactId: string }[]; review: { evidenceArtifactIds: readonly string[] } }) => ({
     authority: "NEXUS_VISUAL_JUDGE",
     verdict: "PASS",
     approved: true,
     integrityVerdict: "PASS",
     reviewVerdict: "PASS",
     findings: [],
-    verifiedArtifactIds: artifacts.filter((item) => item.artifactId.startsWith("SCREENSHOT-")).map((item) => item.artifactId),
+    verifiedArtifactIds: artifacts.filter((item) => review.evidenceArtifactIds.includes(item.artifactId)).map((item) => item.artifactId),
   }));
 }
 
@@ -138,7 +135,7 @@ describe("workspace client runtime adapters", () => {
     expect(build).not.toHaveBeenCalled();
   });
 
-  it("binds a configured committed visual review to the exact project SHA and captured artifact bytes", async () => {
+  it("binds a configured committed visual review to exact browser/viewport screenshot bytes while remapping fresh artifact IDs", async () => {
     const root = "/repo";
     const base = spec(root);
     const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
@@ -153,24 +150,25 @@ describe("workspace client runtime adapters", () => {
     expect(result.gate.evidenceIds[0]).toMatch(/^sha256:[a-f0-9]{64}$/);
     expect(result.gate.evidenceIds).toHaveLength(7);
     expect(visualJudge).toHaveBeenCalledOnce();
+    const call = visualJudge.mock.calls[0]?.[0];
+    expect(call.review.evidenceArtifactIds).toHaveLength(6);
+    expect(call.review.evidenceArtifactIds.every((id: string) => id.startsWith("fresh-run-SCREENSHOT-"))).toBe(true);
   });
 
-  it("rejects a review when an artifact ID is reused for different screenshot bytes", async () => {
+  it("rejects a review when stable browser/viewport evidence is bound to different screenshot bytes", async () => {
     const root = "/repo";
     const base = spec(root);
     const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
     const visualJudge = passingVisualJudge();
     const parsed = JSON.parse(digestBoundReview());
-    const fakeDigest = `sha256:${"e".repeat(64)}`;
-    parsed.evidenceArtifacts[0].digest = fakeDigest;
-    parsed.review.evidenceArtifactDigests[0] = fakeDigest;
+    parsed.evidenceScreenshots[0].digest = `sha256:${"e".repeat(64)}`;
     const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => JSON.stringify(parsed) }));
     const generation = { generationDigest: `sha256:${"d".repeat(64)}` };
     const render = await adapters.render({ generation });
     const capture = await adapters.capture({ generation, render });
     const result = await adapters.visualJudge({ capture });
     expect(result.gate.verdict).toBe("FAIL");
-    expect(result.gate.detail).toContain("artifact bytes");
+    expect(result.gate.detail).toContain("screenshot bytes");
     expect(visualJudge).not.toHaveBeenCalled();
   });
 
@@ -181,7 +179,7 @@ describe("workspace client runtime adapters", () => {
     const visualJudge = passingVisualJudge();
     const buildImplementation = options(root).build;
     const build = vi.fn(buildImplementation);
-    const captureRunner = vi.fn(async () => captureEvidence());
+    const captureRunner = vi.fn(async () => captureEvidence("quality-cycle-run"));
     const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, {
       visualJudge,
       build,
@@ -197,6 +195,8 @@ describe("workspace client runtime adapters", () => {
     expect(build).toHaveBeenCalledOnce();
     expect(captureRunner).toHaveBeenCalledOnce();
     expect(visualJudge).toHaveBeenCalledOnce();
+    const call = visualJudge.mock.calls[0]?.[0];
+    expect(call.review.evidenceArtifactIds.every((id: string) => id.startsWith("quality-cycle-run-SCREENSHOT-"))).toBe(true);
   });
 
   it("returns NOT_TESTED instead of inventing a source repair when fresh rejudge is non-passing", async () => {
@@ -210,7 +210,7 @@ describe("workspace client runtime adapters", () => {
       integrityVerdict: "PASS",
       reviewVerdict: "FAIL",
       findings: ["review requires a source change"],
-      verifiedArtifactIds: artifacts.filter((item) => item.artifactId.startsWith("SCREENSHOT-")).map((item) => item.artifactId),
+      verifiedArtifactIds: artifacts.filter((item) => item.artifactId.includes("SCREENSHOT-")).map((item) => item.artifactId),
     }));
     const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, {
       visualJudge,
@@ -222,19 +222,23 @@ describe("workspace client runtime adapters", () => {
     expect(result.gate.detail).toContain("no governed source repair authority");
   });
 
-  it("fails closed before judging a visual review bound to another source revision", async () => {
+  it("fails closed on legacy self-referential visual review envelopes", async () => {
     const root = "/repo";
     const base = spec(root);
     const configured = { ...base, runtime: { ...base.runtime, visualReviewFile: "evidence/client-visual-review.json" } };
     const visualJudge = vi.fn();
-    const review = digestBoundReview({ sourceRevision: "b".repeat(40) });
-    const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => review }));
+    const legacy = JSON.parse(digestBoundReview());
+    legacy.schemaVersion = 2;
+    legacy.sourceRevision = "b".repeat(40);
+    legacy.evidenceArtifacts = legacy.evidenceScreenshots.map((item: { digest: string }, index: number) => ({ artifactId: `legacy-${index}`, digest: item.digest }));
+    delete legacy.evidenceScreenshots;
+    const adapters = await createWorkspaceClientRuntimeAdapters(configured, options(root, { visualJudge, readReviewFile: async () => JSON.stringify(legacy) }));
     const generation = { generationDigest: `sha256:${"d".repeat(64)}` };
     const render = await adapters.render({ generation });
     const capture = await adapters.capture({ generation, render });
     const result = await adapters.visualJudge({ capture });
     expect(result.gate.verdict).toBe("FAIL");
-    expect(result.gate.detail).toContain("does not match");
+    expect(result.gate.detail).toContain("schemaVersion must be 3");
     expect(visualJudge).not.toHaveBeenCalled();
   });
 
