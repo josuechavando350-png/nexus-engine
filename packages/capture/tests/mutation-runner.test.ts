@@ -90,7 +90,7 @@ describe("browser mutation runner", () => {
   it("executes an exact-selector removal and persists distinct before/after evidence", async () => {
     const result = await runBrowserRemovalSuite({
       targetUrl,
-      outputDir,
+      outputDir: join(outputDir, "excess-removal"),
       candidates: [{ elementId: "hero", selector: "[data-purpose='hero']" }],
     });
     expect(result.authority).toBe("NEXUS_BROWSER_REMOVAL_RUNNER");
@@ -103,8 +103,9 @@ describe("browser mutation runner", () => {
   }, 30_000);
 
   it("fails closed when a removal selector is missing or ambiguous", async () => {
-    await expect(runBrowserRemovalSuite({ targetUrl, outputDir, candidates: [{ elementId: "missing", selector: ".unknown" }] })).rejects.toThrow(/exactly one/);
-    await expect(runBrowserRemovalSuite({ targetUrl, outputDir, candidates: [{ elementId: "paragraph", selector: "p" }] })).rejects.toThrow(/matched 2/);
+    const removalOutputDir = join(outputDir, "excess-removal");
+    await expect(runBrowserRemovalSuite({ targetUrl, outputDir: removalOutputDir, candidates: [{ elementId: "missing", selector: ".unknown" }] })).rejects.toThrow(/exactly one/);
+    await expect(runBrowserRemovalSuite({ targetUrl, outputDir: removalOutputDir, candidates: [{ elementId: "paragraph", selector: "p" }] })).rejects.toThrow(/matched 2/);
   }, 30_000);
 
   it("rejects invalid identity mutation inputs before producing evidence", async () => {
