@@ -13,7 +13,6 @@ import { runProcess, runReadOnly } from "./process.js";
 import type { ToolDependencies } from "./tools.js";
 
 const SHA1 = /^[a-f0-9]{40}$/;
-const SHA256 = /^[a-f0-9]{64}$/;
 const MAX_ROUTE = 2_048;
 
 type VisualRegressionModule = typeof import("../../capture-visual-regression-v2/src/index.js");
