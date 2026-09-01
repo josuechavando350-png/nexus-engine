@@ -194,6 +194,7 @@ export async function nexusComparatorV2(
     if (envelope.projectId !== project.slug) throw new Error(`baseline projectId ${envelope.projectId} does not match target ${project.slug}`);
     const screenshotFile = repositoryFile(dependencies.root, envelope.screenshotPath, "baseline screenshot");
     await assertCommittedFile(dependencies.root, input.sourceSha, screenshotFile, "baseline screenshot", readOnly);
+    await assertCommittedFile(dependencies.root, envelope.sourceRevision, screenshotFile, "baseline screenshot at approved sourceRevision", readOnly);
 
     const perceptualPath = (runtimeDependencies.perceptualPath ?? process.env.NEXUS_SSIMULACRA2_PATH ?? "").trim();
     if (!perceptualPath) return result({ requestId, repository, startedAt, finishedAt: now().toISOString(), branch: git.branch, sourceSha: git.headSha, status: "NOT_TESTED", data: null, evidence: [...baseEvidence, { kind: "file", locator: manifestFile.relative }, { kind: "file", locator: screenshotFile.relative }], errors: [toolError("PERCEPTUAL_COMPARATOR_UNAVAILABLE", "NEXUS_SSIMULACRA2_PATH is not configured", true)] });
