@@ -1,6 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 import { defineExperienceBrief } from "../packages/experience/brief.ts";
 import { synthesizeAutonomousExperience, autonomousExperienceDigest } from "../packages/experience/autonomy.ts";
 import { evaluateContentReadiness } from "../packages/experience/content-readiness.ts";
@@ -215,18 +214,18 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, sceneModel, emitted, generation, certification });
 }
 
-async function main() {
-  const args = process.argv.slice(2);
-  const specIndex = args.indexOf("--spec");
-  const outIndex = args.indexOf("--out");
-  if (specIndex < 0 || !args[specIndex + 1]) throw new Error("usage: node scripts/nexus-client-pipeline.mjs --spec <json> [--out <dir>]");
-  const specPath = resolve(args[specIndex + 1]);
-  const spec = JSON.parse(await readFile(specPath, "utf8"));
-  if (outIndex >= 0 && args[outIndex + 1]) spec.outputDir = resolve(args[outIndex + 1]);
-  const result = await runNexusClientPipeline(spec);
-  process.stdout.write(`${JSON.stringify({ authority: result.authority, status: result.status, certification: result.certification, blocker: result.blocker }, null, 2)}\n`);
-  process.exitCode = result.status === "CERTIFIED" ? 0 : 2;
+export async function runNexusClientPipelineWithWorkspaceRuntime(spec, options = {}) {
+  const runtimeTarget = spec?.runtime?.target;
+  if (typeof runtimeTarget !== "string" || !runtimeTarget.trim()) {
+    throw new Error("workspace runtime execution requires spec.runtime.target; use runNexusClientPipeline() only for explicit adapter-level tests or offline contract evaluation");
+  }
+  const runtimeFactory = options.runtimeFactory ?? (await import("./nexus-client-runtime.mjs")).createWorkspaceClientRuntimeAdapters;
+  if (typeof runtimeFactory !== "function") throw new Error("workspace runtime factory is unavailable");
+  const adapters = await runtimeFactory(spec, options.runtimeOptions ?? {});
+  for (const requiredAdapter of ["render", "capture", "designGenome"]) {
+    if (typeof adapters?.[requiredAdapter] !== "function") {
+      throw new Error(`workspace runtime target ${runtimeTarget} did not assemble required production adapter ${requiredAdapter}`);
+    }
+  }
+  return runNexusClientPipeline(spec, adapters);
 }
-
-const invoked = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (invoked) main().catch((error) => { console.error(error); process.exitCode = 1; });
