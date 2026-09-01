@@ -1,9 +1,19 @@
-import { mkdtemp, rm, stat, symlink, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { lstat, mkdtemp, readFile, readdir, readlink, rm, stat, symlink, unlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import type { ProjectState } from "./contracts.js";
 import { readProjects } from "./projects.js";
 import { runProcess } from "./process.js";
+
+const CLIENT_SLUG_RE = /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/u;
+const BRANCH_NAME_RE = /^nexus-mcp\/[a-z0-9][a-z0-9/_-]*$/u;
+const RESERVED_CLIENT_PREFIXES = ["_", "reference-", "v2-probe-", "probe-", "test-"] as const;
+const MAX_MANIFEST_PATH_LENGTH = 512;
+const MAX_BRANCH_NAME_LENGTH = 240;
+const MAX_COMMIT_MESSAGE_LENGTH = 200;
+const MAX_PROJECT_SPEC_BYTES = 256 * 1024;
+const VALIDATION_EPHEMERAL_FILES = new Set(["next-env.d.ts", "tsconfig.tsbuildinfo"]);
 
 export interface ProjectSpec {
   slug: string;
@@ -22,44 +32,271 @@ export interface ProjectCreation {
   validation: readonly { command: string; exitCode: number; status: "PASS" }[];
 }
 
+interface ScaffoldManifest {
+  files: readonly { path: string; sha256: string }[];
+}
+
 async function command(root: string, executable: string, args: readonly string[], timeout = 120_000, maxOutputBytes = 8 * 1024 * 1024): Promise<string> {
   const result = await runProcess(executable, args, { cwd: root, timeoutMs: timeout, maxOutputBytes });
   return result.stdout.toString("utf8").trim();
 }
 
+async function gitPaths(root: string, args: readonly string[]): Promise<readonly string[]> {
+  const result = await runProcess("git", args, { cwd: root, timeoutMs: 120_000, maxOutputBytes: 8 * 1024 * 1024 });
+  return result.stdout.toString("utf8").split("\0").filter(Boolean);
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await lstat(path);
+    return true;
+  } catch (cause) {
+    if ((cause as NodeJS.ErrnoException).code === "ENOENT") return false;
+    throw cause;
+  }
+}
+
+function assertSafeClientSlug(value: string): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > 80 || !CLIENT_SLUG_RE.test(value) || value.includes("--") || RESERVED_CLIENT_PREFIXES.some((prefix) => value.startsWith(prefix))) {
+    throw new Error("slug uses a reserved or invalid client-project name");
+  }
+  return value;
+}
+
+function assertSafeBranchName(value: string): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > MAX_BRANCH_NAME_LENGTH || !BRANCH_NAME_RE.test(value) || value.includes("..") || value.includes("//")) {
+    throw new Error("branchName violates the bounded nexus-mcp branch policy");
+  }
+  return value;
+}
+
+function assertSafeCommitMessage(value: string): string {
+  if (typeof value !== "string" || value.length < 1 || value.length > MAX_COMMIT_MESSAGE_LENGTH || value !== value.trim() || value.includes("\0")) {
+    throw new Error("commitMessage must be trimmed, non-empty, NUL-free, and at most 200 characters");
+  }
+  return value;
+}
+
+function assertSafeManifestPath(value: string): readonly string[] {
+  if (typeof value !== "string" || value.length < 1 || value.length > MAX_MANIFEST_PATH_LENGTH || value.startsWith("/") || value.includes("\\") || value.includes("\0")) {
+    throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest contains an unsafe path");
+  }
+  const segments = value.split("/");
+  if (segments.some((segment) => segment.length === 0 || segment === "." || segment === "..")) {
+    throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest contains an unsafe path");
+  }
+  return segments;
+}
+
+async function readRegularFile(path: string, label: string): Promise<string> {
+  const stats = await lstat(path);
+  if (stats.isSymbolicLink() || !stats.isFile()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: ${label} is not a regular file`);
+  return await readFile(path, "utf8");
+}
+
+async function readScaffoldFile(root: string, projectPath: string, relativePath: string): Promise<string> {
+  const segments = assertSafeManifestPath(relativePath);
+  let current = join(root, projectPath);
+  const projectStats = await lstat(current);
+  if (projectStats.isSymbolicLink() || !projectStats.isDirectory()) throw new Error("ROLLBACK_SCOPE_CONFLICT: generated project root is not a real directory");
+  for (let index = 0; index < segments.length; index += 1) {
+    current = join(current, segments[index]);
+    const stats = await lstat(current);
+    if (stats.isSymbolicLink()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated path became a symbolic link: ${relativePath}`);
+    if (index < segments.length - 1 && !stats.isDirectory()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated path parent is not a directory: ${relativePath}`);
+    if (index === segments.length - 1 && !stats.isFile()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated path is not a regular file: ${relativePath}`);
+  }
+  return await readFile(current, "utf8");
+}
+
+function manifestPathSets(manifest: ScaffoldManifest): { files: Set<string>; directories: Set<string> } {
+  const files = new Set<string>([".nexus/scaffold-manifest.json"]);
+  const directories = new Set<string>();
+  for (const entry of manifest.files) {
+    const segments = assertSafeManifestPath(entry.path);
+    files.add(entry.path);
+    for (let index = 1; index < segments.length; index += 1) directories.add(segments.slice(0, index).join("/"));
+  }
+  directories.add(".nexus");
+  return { files, directories };
+}
+
+async function assertNoUnknownProjectEntries(root: string, projectPath: string, manifest: ScaffoldManifest): Promise<void> {
+  const { files, directories } = manifestPathSets(manifest);
+  const projectRoot = join(root, projectPath);
+  const walk = async (directory: string, prefix: string): Promise<void> => {
+    for (const entry of (await readdir(directory, { withFileTypes: true })).sort((a, b) => a.name.localeCompare(b.name, "en"))) {
+      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const absolutePath = join(directory, entry.name);
+      const stats = await lstat(absolutePath);
+      if (stats.isSymbolicLink()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated project contains an unexpected symbolic link: ${relativePath}`);
+      if (relativePath === ".next") {
+        if (!stats.isDirectory()) throw new Error("ROLLBACK_SCOPE_CONFLICT: .next is not a directory");
+        continue;
+      }
+      if (VALIDATION_EPHEMERAL_FILES.has(relativePath)) {
+        if (!stats.isFile()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: validation artifact is not a regular file: ${relativePath}`);
+        continue;
+      }
+      if (stats.isDirectory()) {
+        if (!directories.has(relativePath)) throw new Error(`ROLLBACK_SCOPE_CONFLICT: unexpected directory appeared in generated project: ${relativePath}`);
+        await walk(absolutePath, relativePath);
+        continue;
+      }
+      if (!stats.isFile() || !files.has(relativePath)) throw new Error(`ROLLBACK_SCOPE_CONFLICT: unexpected file appeared in generated project: ${relativePath}`);
+    }
+  };
+  await walk(projectRoot, "");
+}
+
+async function assertScaffoldSourcesUnchanged(root: string, projectPath: string, expectedManifest: string): Promise<void> {
+  const manifestText = await readScaffoldFile(root, projectPath, ".nexus/scaffold-manifest.json");
+  if (manifestText !== expectedManifest) throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest changed after publication");
+  const manifest = JSON.parse(manifestText) as ScaffoldManifest;
+  if (!Array.isArray(manifest.files)) throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest is malformed");
+  const seen = new Set<string>();
+  for (const entry of manifest.files) {
+    if (!entry || typeof entry.path !== "string" || !/^[a-f0-9]{64}$/u.test(entry.sha256)) throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest is malformed");
+    assertSafeManifestPath(entry.path);
+    if (seen.has(entry.path)) throw new Error("ROLLBACK_SCOPE_CONFLICT: scaffold manifest contains duplicate paths");
+    seen.add(entry.path);
+    const digest = createHash("sha256").update(await readScaffoldFile(root, projectPath, entry.path)).digest("hex");
+    if (digest !== entry.sha256) throw new Error(`ROLLBACK_SCOPE_CONFLICT: generated source changed after scaffold: ${entry.path}`);
+  }
+  await assertNoUnknownProjectEntries(root, projectPath, manifest);
+}
+
+async function assertRollbackConfined(root: string, projectPath: string, expectedLockfile: string | null, expectedManifest: string | null): Promise<void> {
+  const changed = new Set<string>([
+    ...await gitPaths(root, ["diff", "--name-only", "--no-renames", "-z"]),
+    ...await gitPaths(root, ["diff", "--cached", "--name-only", "--no-renames", "-z"]),
+    ...await gitPaths(root, ["ls-files", "--others", "--exclude-standard", "-z"]),
+  ]);
+  const unexpected = [...changed].filter((path) => path !== "pnpm-lock.yaml" && !path.startsWith(`${projectPath}/`));
+  if (unexpected.length) throw new Error(`ROLLBACK_SCOPE_CONFLICT: unrelated worktree changes appeared: ${unexpected[0]}`);
+  if (expectedLockfile === null) {
+    if (changed.has("pnpm-lock.yaml")) throw new Error("ROLLBACK_SCOPE_CONFLICT: workspace lockfile changed before scaffold publication completed");
+  } else if (await readRegularFile(join(root, "pnpm-lock.yaml"), "workspace lockfile") !== expectedLockfile) {
+    throw new Error("ROLLBACK_SCOPE_CONFLICT: workspace lockfile changed after scaffold publication");
+  }
+  const targetExists = await pathExists(join(root, projectPath));
+  if (expectedManifest === null) {
+    if (targetExists) throw new Error("ROLLBACK_SCOPE_CONFLICT: project target appeared before scaffold publication completed");
+  } else if (!targetExists) {
+    throw new Error("ROLLBACK_SCOPE_CONFLICT: generated project disappeared before rollback");
+  } else {
+    await assertScaffoldSourcesUnchanged(root, projectPath, expectedManifest);
+  }
+}
+
+async function removeOwnedNodeModulesLink(path: string, expectedTarget: string): Promise<void> {
+  const stats = await lstat(path);
+  if (!stats.isSymbolicLink()) throw new Error("ROLLBACK_SCOPE_CONFLICT: generated node_modules link was replaced");
+  if (await readlink(path) !== expectedTarget) throw new Error("ROLLBACK_SCOPE_CONFLICT: generated node_modules link target changed");
+  await unlink(path);
+}
+
+async function removeValidationArtifacts(root: string, projectPath: string): Promise<void> {
+  const nextDirectory = join(root, projectPath, ".next");
+  if (await pathExists(nextDirectory)) {
+    const stats = await lstat(nextDirectory);
+    if (stats.isSymbolicLink() || !stats.isDirectory()) throw new Error("ROLLBACK_SCOPE_CONFLICT: .next was replaced with a non-directory");
+    await rm(nextDirectory, { recursive: true, force: true });
+  }
+  for (const relativePath of VALIDATION_EPHEMERAL_FILES) {
+    const path = join(root, projectPath, relativePath);
+    if (!await pathExists(path)) continue;
+    const stats = await lstat(path);
+    if (stats.isSymbolicLink() || !stats.isFile()) throw new Error(`ROLLBACK_SCOPE_CONFLICT: validation artifact was replaced: ${relativePath}`);
+    await unlink(path);
+  }
+}
+
 export const DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS = 300_000;
 
 export async function createProject(root: string, spec: ProjectSpec, executionTimeoutMs = DEFAULT_PROJECT_VALIDATION_TIMEOUT_MS, maxOutputBytes = 8 * 1024 * 1024): Promise<ProjectCreation> {
-  const branchName = spec.branchName ?? `nexus-mcp/${spec.slug}`;
-  const commitMessage = spec.commitMessage ?? `feat(client): initialize ${spec.slug}`;
+  const slug = assertSafeClientSlug(spec.slug);
+  const branchName = assertSafeBranchName(spec.branchName ?? `nexus-mcp/${slug}`);
+  const commitMessage = assertSafeCommitMessage(spec.commitMessage ?? `feat(client): initialize ${slug}`);
+  const projectPath = `apps/${slug}`;
+  const projectModules = join(root, projectPath, "node_modules");
+  const nodeModulesTarget = join("..", "_experience-seed", "node_modules");
+  if (!/^[a-f0-9]{40}$/u.test(spec.baseSha)) throw new Error("baseSha must be an exact 40-character lowercase Git commit SHA");
+  const projectSpecJson = `${JSON.stringify({ schemaVersion: 1, slug, business: spec.business, artDirection: spec.artDirection }, null, 2)}\n`;
+  if (Buffer.byteLength(projectSpecJson, "utf8") > MAX_PROJECT_SPEC_BYTES) throw new Error(`project specification exceeds ${MAX_PROJECT_SPEC_BYTES} bytes`);
+  await command(root, "git", ["check-ref-format", "--branch", branchName]);
+  if (await pathExists(join(root, projectPath))) throw new Error(`TARGET_EXISTS: ${projectPath} already exists`);
+  const originalHead = await command(root, "git", ["rev-parse", "HEAD"]);
+  if (originalHead !== spec.baseSha) throw new Error(`SOURCE_SHA_MISMATCH: requested ${spec.baseSha}, current HEAD is ${originalHead}`);
+  const originalBranch = await command(root, "git", ["symbolic-ref", "--quiet", "--short", "HEAD"]).catch(() => "");
+  const originalStatus = await command(root, "git", ["status", "--porcelain"]);
+  if (originalStatus) throw new Error("DIRTY_WORKTREE: project creation requires a clean checkout");
+
   const temporary = await mkdtemp(join(tmpdir(), "nexus-project-spec-"));
   const specPath = join(temporary, "project-spec.json");
-  const projectModules = join(root, "apps", spec.slug, "node_modules");
+  let branchCreated = false;
+  let scaffoldCreated = false;
+  let modulesLinked = false;
+  let completed = false;
+  let scaffoldLockfile: string | null = null;
+  let scaffoldManifest: string | null = null;
   try {
-    await writeFile(specPath, `${JSON.stringify({ schemaVersion: 1, slug: spec.slug, business: spec.business, artDirection: spec.artDirection }, null, 2)}\n`);
+    await writeFile(specPath, projectSpecJson);
     await command(root, "git", ["switch", "-c", branchName, spec.baseSha]);
-    await command(root, process.execPath, ["scripts/scaffold-client.mjs", spec.slug, "--project-spec", specPath]);
+    branchCreated = true;
+    await command(root, process.execPath, ["scripts/scaffold-client.mjs", slug, "--project-spec", specPath]);
+    scaffoldCreated = true;
+    scaffoldLockfile = await readRegularFile(join(root, "pnpm-lock.yaml"), "workspace lockfile");
+    scaffoldManifest = await readScaffoldFile(root, projectPath, ".nexus/scaffold-manifest.json");
     try { await stat(join(root, "apps", "_experience-seed", "node_modules")); } catch { throw new Error("DEPENDENCY_UNAVAILABLE: workspace dependencies are not installed"); }
-    await symlink(join("..", "_experience-seed", "node_modules"), projectModules, "dir");
+    await symlink(nodeModulesTarget, projectModules, "dir");
+    modulesLinked = true;
     const validations = ["lint", "typecheck", "build"] as const;
     const validation = [];
     for (const task of validations) {
-      const args = ["--filter", `@nexus/${spec.slug}`, task];
+      const args = ["--filter", `@nexus/${slug}`, task];
       await command(root, "pnpm", args, executionTimeoutMs, maxOutputBytes);
       validation.push({ command: `pnpm ${args.join(" ")}`, exitCode: 0 as const, status: "PASS" as const });
     }
-    await rm(projectModules, { recursive: true, force: true });
-    const project = (await readProjects(root)).find((candidate) => candidate.slug === spec.slug);
+    await removeOwnedNodeModulesLink(projectModules, nodeModulesTarget);
+    modulesLinked = false;
+    await removeValidationArtifacts(root, projectPath);
+    const project = (await readProjects(root)).find((candidate) => candidate.slug === slug);
     if (!project || project.kind !== "CLIENT" || !project.clientProject) throw new Error("created project was not admitted by NEXUS client discovery");
-    await command(root, "git", ["add", "--", `apps/${spec.slug}`]);
-    const files = (await command(root, "git", ["diff", "--cached", "--name-only", "--", `apps/${spec.slug}`])).split("\n").filter(Boolean);
-    if (files.length === 0 || files.some((path) => !path.startsWith(`apps/${spec.slug}/`))) throw new Error("scaffold produced no confined project files");
-    await command(root, "git", ["commit", "-m", commitMessage, "--", `apps/${spec.slug}`]);
+
+    await command(root, "git", ["add", "--", projectPath, "pnpm-lock.yaml"]);
+    const files = (await command(root, "git", ["diff", "--cached", "--name-only", "--", projectPath, "pnpm-lock.yaml"])).split("\n").filter(Boolean);
+    const projectFiles = files.filter((path) => path.startsWith(`${projectPath}/`));
+    const unexpected = files.filter((path) => path !== "pnpm-lock.yaml" && !path.startsWith(`${projectPath}/`));
+    if (!projectFiles.length || !files.includes("pnpm-lock.yaml") || unexpected.length) {
+      throw new Error("scaffold must stage confined client files plus the workspace lockfile importer");
+    }
+    await command(root, "git", ["commit", "-m", commitMessage, "--", projectPath, "pnpm-lock.yaml"]);
+    const residual = await command(root, "git", ["status", "--porcelain"]);
+    if (residual) throw new Error(`project creation left uncommitted changes: ${residual.split("\n")[0]}`);
     const headSha = await command(root, "git", ["rev-parse", "HEAD"]);
     const remoteUrl = await command(root, "git", ["remote", "get-url", "origin"]).catch(() => "");
+    completed = true;
     return { project, branch: { name: branchName, baseSha: spec.baseSha, headSha, remoteUrl: remoteUrl || null }, commit: { sha: headSha, message: commitMessage }, files, validation };
+  } catch (cause) {
+    if (branchCreated && !completed) {
+      try {
+        if (modulesLinked) {
+          await removeOwnedNodeModulesLink(projectModules, nodeModulesTarget);
+          modulesLinked = false;
+        }
+        await assertRollbackConfined(root, projectPath, scaffoldLockfile, scaffoldManifest);
+        await command(root, "git", ["reset", "--hard", spec.baseSha]);
+        if (scaffoldCreated) await rm(join(root, projectPath), { recursive: true, force: true });
+        if (originalBranch) await command(root, "git", ["switch", originalBranch]);
+        else await command(root, "git", ["switch", "--detach", spec.baseSha]);
+        await command(root, "git", ["branch", "-D", branchName]);
+      } catch (rollbackCause) {
+        throw new Error("PROJECT_CREATION_ROLLBACK_FAILED: rollback could not be completed safely", { cause: rollbackCause });
+      }
+    }
+    throw cause;
   } finally {
-    await rm(projectModules, { recursive: true, force: true });
     await rm(temporary, { recursive: true, force: true });
   }
 }

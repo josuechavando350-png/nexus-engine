@@ -11,3 +11,4 @@ export * from "./artifacts.js";
 export * from "./execution.js";
 export * from "./policy.js";
 export * from "./operator-gateway.js";
+export * from "./oauth-resource.js";

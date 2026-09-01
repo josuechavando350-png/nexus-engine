@@ -13,14 +13,23 @@ permissions:
 env:
   CARGO_TERM_COLOR: always
   RUSTFLAGS: "-D warnings"
+  NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 
 jobs:
   architecture:
     name: V3 runtime boundary
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with: { fetch-depth: 0 }
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Assert exact source and pristine checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test -z "$(git status --porcelain)"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: 24 }
       - name: V3 boundary gate
@@ -31,8 +40,16 @@ jobs:
     runs-on: ubuntu-24.04
     needs: architecture
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with: { fetch-depth: 0 }
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Assert exact source and pristine checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test -z "$(git status --porcelain)"
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: 24 }
       - name: Enable pinned pnpm
@@ -44,6 +61,7 @@ jobs:
       - name: Validate workspace
         run: |
           set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           pnpm security-hygiene
           pnpm lint
           pnpm typecheck
@@ -51,6 +69,7 @@ jobs:
           pnpm quality-gates
           pnpm third-party-proof
           pnpm build
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test -z "$(git status --porcelain --untracked-files=no)"
 
   rust-workspace:
@@ -58,8 +77,16 @@ jobs:
     runs-on: ubuntu-24.04
     needs: web-quality
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-        with: { fetch-depth: 0 }
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Assert exact source and pristine checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test -z "$(git status --porcelain)"
       - name: Setup Rust 1.88.0
         run: |
           rustup toolchain install 1.88.0 --profile minimal --component rustfmt,clippy
@@ -72,6 +99,7 @@ jobs:
           cargo clippy --locked --workspace --all-targets -- -D warnings
           cargo test --locked --workspace
           cargo build --locked --workspace --release
+          test "$(git -C .. rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test -z "$(git -C .. status --porcelain --untracked-files=no)"
 
   rust-adapters:
@@ -79,7 +107,16 @@ jobs:
     runs-on: ubuntu-24.04
     needs: rust-workspace
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Assert exact source and pristine checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test -z "$(git status --porcelain)"
       - name: Setup Rust 1.88.0
         run: |
           rustup toolchain install 1.88.0 --profile minimal
@@ -94,3 +131,5 @@ jobs:
           cargo check --locked -p nexus-graph --features neo4j
           cargo check --locked -p nexus-ingest --features kafka
           cargo check --locked -p nexus-edge-wasm --features wasmtime
+          test "$(git -C .. rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test -z "$(git -C .. status --porcelain --untracked-files=no)"

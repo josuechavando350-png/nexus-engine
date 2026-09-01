@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 
 import { createHash } from "node:crypto";
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { once } from "node:events";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
@@ -13,8 +15,21 @@ const BROWSER_CAPTURES = Object.freeze([
   ["tablet-768.png", 768],
   ["desktop-1440.png", 1440],
 ]);
+const REQUIRED_SECURITY_HEADERS = Object.freeze([
+  ["x-content-type-options", "nosniff"],
+  ["referrer-policy", "strict-origin-when-cross-origin"],
+  ["x-frame-options", "SAMEORIGIN"],
+  ["permissions-policy", "camera=(), microphone=(), geolocation=()"],
+]);
+const REQUIRED_CSP_DIRECTIVES = Object.freeze({
+  "default-src": ["'self'"],
+  "base-uri": ["'self'"],
+  "frame-ancestors": ["'self'"],
+  "object-src": ["'none'"],
+});
 
 const normalizePath = (path) => path.split(sep).join("/");
+const sleep = (milliseconds) => new Promise((resolveSleep) => setTimeout(resolveSleep, milliseconds));
 
 async function filesRecursively(directory) {
   const files = [];
@@ -100,18 +115,139 @@ export async function inspectOperability(repositoryRoot, sourceRevision) {
   });
 }
 
-async function inspectSecurityHeaders(repositoryRoot, appRoot, evidenceDirectory) {
-  const configPath = join(appRoot, "next.config.ts");
-  const config = await readFile(configPath, "utf8");
-  const passed = config.includes("NEXUS_SECURITY_HEADERS_BASE") && (config.includes("NEXUS_CSP_BASE") || config.includes("buildCsp"));
+function parseCsp(value) {
+  const directives = new Map();
+  for (const rawDirective of value.split(";")) {
+    const tokens = rawDirective.trim().split(/\s+/u).filter(Boolean);
+    if (!tokens.length) continue;
+    const [name, ...sources] = tokens;
+    directives.set(name.toLowerCase(), new Set(sources));
+  }
+  return directives;
+}
+
+export async function inspectSecurityHeaders(repositoryRoot, sourceRevision, url, evidenceDirectory) {
+  const response = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(10_000) });
+  const observedHeaders = Object.fromEntries([
+    ...REQUIRED_SECURITY_HEADERS.map(([name]) => [name, response.headers.get(name)]),
+    ["content-security-policy", response.headers.get("content-security-policy")],
+  ]);
+  const failures = [];
+
+  if (response.status < 200 || response.status >= 400) failures.push(`unexpected HTTP status ${response.status}`);
+  for (const [name, expected] of REQUIRED_SECURITY_HEADERS) {
+    const actual = response.headers.get(name);
+    if (actual !== expected) failures.push(`${name} expected ${JSON.stringify(expected)} but observed ${JSON.stringify(actual)}`);
+  }
+
+  const cspValue = response.headers.get("content-security-policy");
+  if (!cspValue) {
+    failures.push("content-security-policy header missing");
+  } else {
+    const csp = parseCsp(cspValue);
+    for (const [directive, requiredSources] of Object.entries(REQUIRED_CSP_DIRECTIVES)) {
+      const observed = csp.get(directive);
+      if (!observed) {
+        failures.push(`CSP directive ${directive} missing`);
+        continue;
+      }
+      for (const source of requiredSources) {
+        if (!observed.has(source)) failures.push(`CSP directive ${directive} missing required source ${source}`);
+      }
+    }
+  }
+
   const evidencePath = join(evidenceDirectory, "security-headers.json");
-  await writeFile(evidencePath, `${JSON.stringify({ configPath: normalizePath(relative(repositoryRoot, configPath)), configSha256: await sha256File(configPath), hasSecurityHeadersBase: config.includes("NEXUS_SECURITY_HEADERS_BASE"), hasCsp: config.includes("NEXUS_CSP_BASE") || config.includes("buildCsp") }, null, 2)}\n`, "utf8");
+  await writeFile(evidencePath, `${JSON.stringify({
+    authority: "NEXUS_HTTP_SECURITY_HEADERS_OBSERVATION_V1",
+    sourceRevision,
+    url,
+    responseStatus: response.status,
+    observedHeaders,
+    requiredHeaders: Object.fromEntries(REQUIRED_SECURITY_HEADERS),
+    requiredCspDirectives: REQUIRED_CSP_DIRECTIVES,
+    failures,
+  }, null, 2)}\n`, "utf8");
+
+  const passed = failures.length === 0;
   return Object.freeze({
     id: "security-headers",
     status: passed ? "PASS" : "FAIL",
-    detail: passed ? "app config wires the NEXUS security header baseline and CSP" : "app config does not wire the required security headers and CSP",
+    detail: passed ? "observed required security headers and CSP on the live built app response" : failures.join("; "),
     evidenceIds: Object.freeze([await evidenceId(repositoryRoot, evidencePath)]),
   });
+}
+
+async function reserveTcpPort() {
+  return await new Promise((resolvePort, rejectPort) => {
+    const server = createServer();
+    server.unref();
+    server.once("error", rejectPort);
+    server.listen(0, "127.0.0.1", () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        server.close();
+        rejectPort(new Error("could not reserve a TCP port for live security-header inspection"));
+        return;
+      }
+      const port = address.port;
+      server.close((error) => error ? rejectPort(error) : resolvePort(port));
+    });
+  });
+}
+
+async function stopServerProcess(serverProcess) {
+  if (serverProcess.exitCode !== null || serverProcess.signalCode !== null) return;
+  serverProcess.kill("SIGTERM");
+  const stopped = await Promise.race([
+    once(serverProcess, "exit").then(() => true),
+    sleep(5_000).then(() => false),
+  ]);
+  if (!stopped && serverProcess.exitCode === null && serverProcess.signalCode === null) {
+    serverProcess.kill("SIGKILL");
+    await once(serverProcess, "exit").catch(() => undefined);
+  }
+}
+
+async function inspectBuiltAppSecurityHeaders(repositoryRoot, appManifest, sourceRevision, evidenceDirectory) {
+  if (typeof appManifest.scripts?.start !== "string" || !appManifest.scripts.start.trim()) {
+    throw new Error(`${appManifest.name} has no start script; live HTTP security headers cannot be certified`);
+  }
+
+  const port = await reserveTcpPort();
+  const url = `http://127.0.0.1:${port}/`;
+  const serverProcess = spawn("pnpm", ["--filter", appManifest.name, "exec", "next", "start", "--hostname", "127.0.0.1", "--port", String(port)], {
+    cwd: repositoryRoot,
+    env: process.env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let output = "";
+  const record = (chunk) => {
+    if (output.length < 128 * 1024) output += chunk.toString();
+  };
+  serverProcess.stdout?.on("data", record);
+  serverProcess.stderr?.on("data", record);
+
+  try {
+    const deadline = Date.now() + 30_000;
+    let lastError = null;
+    while (Date.now() < deadline) {
+      if (serverProcess.exitCode !== null || serverProcess.signalCode !== null) {
+        throw new Error(`built app server exited before HTTP inspection: ${output.trim().slice(-4000)}`);
+      }
+      try {
+        const probe = await fetch(url, { redirect: "manual", signal: AbortSignal.timeout(2_000) });
+        await probe.body?.cancel();
+        if (probe.status >= 100) return await inspectSecurityHeaders(repositoryRoot, sourceRevision, url, evidenceDirectory);
+      } catch (error) {
+        lastError = error;
+      }
+      await sleep(250);
+    }
+    throw new Error(`built app server did not become reachable at ${url}`, { cause: lastError });
+  } finally {
+    await stopServerProcess(serverProcess);
+  }
 }
 
 async function loadQualityPassportContract(repositoryRoot) {
@@ -148,12 +284,13 @@ async function main() {
   checks.push(await runGate({ id: "typecheck", command: "pnpm", args: ["--filter", appManifest.name, "typecheck"], repositoryRoot, evidenceDirectory }));
   checks.push(await runGate({ id: "tests", command: "pnpm", args: ["test"], repositoryRoot, evidenceDirectory }));
   checks.push(await runGate({ id: "declared-assets", command: "pnpm", args: ["verify:assets"], repositoryRoot, evidenceDirectory }));
-  checks.push(await inspectSecurityHeaders(repositoryRoot, appRoot, evidenceDirectory));
 
   await rm(outputDirectory, { recursive: true, force: true });
   const buildCheck = await runGate({ id: "build", command: "pnpm", args: ["--filter", appManifest.name, "build"], repositoryRoot, evidenceDirectory });
   checks.unshift(buildCheck);
   if (buildCheck.status !== "PASS") throw new Error("cannot create a Passport from a failed app build");
+
+  checks.push(await inspectBuiltAppSecurityHeaders(repositoryRoot, appManifest, sourceRevision, evidenceDirectory));
 
   const browserCapture = await inspectBrowserCapture(repositoryRoot, projectId);
   if (browserCapture) checks.push(browserCapture);

@@ -1,60 +1,136 @@
 #!/usr/bin/env node
-import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash } from "node:crypto";
+import { dirname, join, relative } from "node:path";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { addWorkspaceImporterFromSeed, assertClientSlug, compileProjectSources, parseProjectSpecification } from "./project-spec-contract.mjs";
 
-const [name, specFlag, specPath] = process.argv.slice(2);
-if (!name || !/^[a-z0-9][a-z0-9-]*$/.test(name) || name.endsWith('-') || name.includes('--')) throw new Error('usage: node scripts/scaffold-client.mjs <kebab-case-name> [--project-spec <json-path>]');
-if ((specFlag || specPath) && (specFlag !== '--project-spec' || !specPath)) throw new Error('usage: node scripts/scaffold-client.mjs <kebab-case-name> [--project-spec <json-path>]');
+const MAX_PROJECT_SPEC_BYTES = 256 * 1024;
+const SEED_SOURCE_FILES = Object.freeze([
+  "next.config.ts",
+  "package.json",
+  "src/app/a11y-gap.css",
+  "src/app/css.d.ts",
+  "src/app/reset.css",
+  "tsconfig.json",
+]);
+
+function usage() {
+  throw new Error("usage: node scripts/scaffold-client.mjs <kebab-case-name> --project-spec <json-path>");
+}
+
+function regularFile(path, label, maxBytes) {
+  if (!existsSync(path)) throw new Error(`${label} is missing`);
+  const stats = lstatSync(path);
+  if (stats.isSymbolicLink() || !stats.isFile()) throw new Error(`${label} must be a regular file`);
+  if (maxBytes !== undefined && stats.size > maxBytes) throw new Error(`${label} exceeds ${maxBytes} bytes`);
+}
+
+function copySeedFile(sourceRoot, targetRoot, relativePath) {
+  const segments = relativePath.split("/");
+  let current = sourceRoot;
+  for (let index = 0; index < segments.length; index += 1) {
+    current = join(current, segments[index]);
+    if (!existsSync(current)) throw new Error(`required seed source is missing: ${relativePath}`);
+    const stats = lstatSync(current);
+    if (stats.isSymbolicLink()) throw new Error(`symbolic links are forbidden in seed source paths: ${relativePath}`);
+    if (index < segments.length - 1 && !stats.isDirectory()) throw new Error(`seed source parent is not a directory: ${relativePath}`);
+    if (index === segments.length - 1 && !stats.isFile()) throw new Error(`seed source is not a regular file: ${relativePath}`);
+  }
+  const destination = join(targetRoot, relativePath);
+  mkdirSync(dirname(destination), { recursive: true });
+  writeFileSync(destination, readFileSync(current));
+}
+
+const [rawName, specFlag, specPath, ...extra] = process.argv.slice(2);
+if (!rawName || specFlag !== "--project-spec" || !specPath || extra.length) usage();
+const name = assertClientSlug(rawName);
 const root = process.cwd();
-const source = join(root, 'apps/_experience-seed');
-const target = join(root, `apps/${name}`);
-if (!existsSync(source)) throw new Error('apps/_experience-seed is missing');
+const source = join(root, "apps", "_experience-seed");
+const target = join(root, "apps", name);
+const lockfilePath = join(root, "pnpm-lock.yaml");
+if (!existsSync(source) || lstatSync(source).isSymbolicLink() || !lstatSync(source).isDirectory()) throw new Error("apps/_experience-seed must be a real directory");
 if (existsSync(target)) throw new Error(`target already exists: apps/${name}`);
-const excluded = new Set(['.next', 'node_modules', 'dist', 'coverage', 'tsconfig.tsbuildinfo']);
-cpSync(source, target, { recursive: true, preserveTimestamps: false, filter: (path) => path === source || !excluded.has(path.slice(path.lastIndexOf('/') + 1)) });
+regularFile(lockfilePath, "pnpm-lock.yaml");
+regularFile(specPath, "project specification", MAX_PROJECT_SPEC_BYTES);
+
+let parsed;
+try { parsed = JSON.parse(readFileSync(specPath, "utf8")); }
+catch (cause) { throw new Error("project specification is not valid JSON", { cause }); }
+const spec = parseProjectSpecification(parsed, name);
+const compiled = compileProjectSources(spec);
+const originalLockfile = readFileSync(lockfilePath, "utf8");
+const nextLockfile = addWorkspaceImporterFromSeed(originalLockfile, name);
+
+const staging = mkdtempSync(join(root, "apps", `.nexus-scaffold-${name}-`));
+const lockfileStaging = join(root, `.pnpm-lock.nexus-${name}-${process.pid}.yaml`);
+let published = false;
 
 const replaceTokens = (directory) => {
-  for (const entry of readdirSync(directory).sort((a, b) => a.localeCompare(b, 'en'))) {
+  for (const entry of readdirSync(directory).sort((a, b) => a.localeCompare(b, "en"))) {
     const path = join(directory, entry);
-    if (statSync(path).isDirectory()) replaceTokens(path);
-    else {
+    const stats = lstatSync(path);
+    if (stats.isSymbolicLink()) throw new Error(`symbolic links are forbidden in client scaffolds: ${relative(staging, path)}`);
+    if (stats.isDirectory()) replaceTokens(path);
+    else if (stats.isFile()) {
       const bytes = readFileSync(path);
-      if (!bytes.includes(0)) {
-        const text = bytes.toString('utf8').replaceAll('__NEXUS_CLIENT_SLUG__', name);
-        writeFileSync(path, text);
-      }
+      if (!bytes.includes(0)) writeFileSync(path, bytes.toString("utf8").replaceAll("__NEXUS_CLIENT_SLUG__", name));
     }
   }
 };
-replaceTokens(target);
 
-if (specPath) {
-  const spec = JSON.parse(readFileSync(specPath, 'utf8'));
-  if (spec?.schemaVersion !== 1 || spec?.slug !== name || !spec.business || !spec.artDirection) throw new Error('invalid project specification');
-  const packagePath = join(target, 'package.json');
-  const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
+const walkFiles = (directory, output = []) => {
+  for (const entry of readdirSync(directory).sort((a, b) => a.localeCompare(b, "en"))) {
+    const path = join(directory, entry);
+    const stats = lstatSync(path);
+    if (stats.isSymbolicLink()) throw new Error(`symbolic links are forbidden in client scaffolds: ${relative(staging, path)}`);
+    if (stats.isDirectory()) walkFiles(path, output);
+    else if (stats.isFile()) output.push(path);
+  }
+  return output;
+};
+
+try {
+  for (const relativePath of SEED_SOURCE_FILES) copySeedFile(source, staging, relativePath);
+  replaceTokens(staging);
+
+  const packagePath = join(staging, "package.json");
+  const packageJson = JSON.parse(readFileSync(packagePath, "utf8"));
   packageJson.name = `@nexus/${name}`;
   packageJson.description = `NEXUS client experience for ${spec.business.name}`;
-  packageJson.nexus = { clientProject: true };
+  packageJson.nexus = { clientProject: true, projectSpecDigest: compiled.specDigest };
   writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
-  mkdirSync(join(target, '.nexus'), { recursive: true });
-  writeFileSync(join(target, '.nexus/project-spec.json'), `${JSON.stringify(spec, null, 2)}\n`);
-}
 
-const files = [];
-const walk = (directory) => {
-  for (const entry of readdirSync(directory).sort((a, b) => a.localeCompare(b, 'en'))) {
-    const path = join(directory, entry);
-    if (statSync(path).isDirectory()) walk(path);
-    else files.push(path);
+  mkdirSync(join(staging, ".nexus"), { recursive: true });
+  writeFileSync(join(staging, ".nexus", "project-spec.json"), `${JSON.stringify(spec, null, 2)}\n`);
+  writeFileSync(join(staging, ".nexus", "compiled-project.json"), `${JSON.stringify(compiled.evidence, null, 2)}\n`);
+  for (const [relativePath, content] of compiled.files.entries()) {
+    const path = join(staging, relativePath);
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, content);
   }
-};
-walk(target);
-const manifest = files.map((path) => ({
-  path: relative(target, path).replaceAll('\\', '/'),
-  sha256: createHash('sha256').update(readFileSync(path)).digest('hex')
-}));
-mkdirSync(join(target, '.nexus'), { recursive: true });
-writeFileSync(join(target, '.nexus/scaffold-manifest.json'), `${JSON.stringify({ authority: 'NEXUS_SCAFFOLD_V1', client: name, files: manifest }, null, 2)}\n`);
-console.log(`scaffolded apps/${name}`);
+
+  const files = walkFiles(staging).filter((path) => relative(staging, path).replaceAll("\\", "/") !== ".nexus/scaffold-manifest.json");
+  const manifest = files.map((path) => ({
+    path: relative(staging, path).replaceAll("\\", "/"),
+    sha256: createHash("sha256").update(readFileSync(path)).digest("hex"),
+  }));
+  writeFileSync(join(staging, ".nexus", "scaffold-manifest.json"), `${JSON.stringify({
+    authority: "NEXUS_SCAFFOLD_V2",
+    client: name,
+    projectSpecDigest: compiled.specDigest,
+    compilerAuthority: compiled.evidence.authority,
+    files: manifest,
+  }, null, 2)}\n`);
+
+  writeFileSync(lockfileStaging, nextLockfile, { flag: "wx" });
+  if (existsSync(target)) throw new Error(`target already exists: apps/${name}`);
+  renameSync(staging, target);
+  published = true;
+  renameSync(lockfileStaging, lockfilePath);
+  console.log(`scaffolded apps/${name} from ${compiled.specDigest}`);
+} catch (cause) {
+  if (published) rmSync(target, { recursive: true, force: true });
+  rmSync(staging, { recursive: true, force: true });
+  rmSync(lockfileStaging, { force: true });
+  throw cause;
+}
