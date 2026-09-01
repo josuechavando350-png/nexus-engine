@@ -187,7 +187,6 @@ export async function nexusCapture(input: import("./capture.js").CaptureInput, d
   }
 }
 
-
 export async function nexusBuild(input: { target: string; sourceSha: string; clean?: boolean }, dependencies: ToolDependencies): Promise<ToolResult<import("./build.js").BuildExecution>> {
   const { buildTarget, validateBuildManifest } = await import("./build.js");
   const now = dependencies.clock ?? (() => new Date()); const startedAt = now().toISOString(); const requestId = (dependencies.requestId ?? randomUUID)(); const repository = dependencies.repository ?? "josuechavando350-png/nexus-engine";
@@ -209,18 +208,4 @@ export async function nexusBuild(input: { target: string; sourceSha: string; cle
   if (!execution.manifest || !await (dependencies.buildValidator ?? validateBuildManifest)(dependencies.root, project, git.headSha, execution.manifest)) return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "FAIL", execution, evidence, [error("ARTIFACT_ENUMERATION_FAILED", "build manifest is missing or invalid")]);
   evidence.push({ kind: "artifact", locator: `sha256:${execution.manifest.manifestSha256}` }, ...execution.manifest.files.map((file) => ({ kind: "artifact" as const, locator: `${file.path}#sha256=${file.sha256}` })));
   return base<import("./build.js").BuildExecution>("nexus_build", startedAt, now().toISOString(), requestId, repository, git, "PASS", execution, evidence, []);
-}
-
-export async function nexusComparator(input: { source: { target: string } | { url: string }; sourceSha?: string; viewports?: readonly { name: string; width: number; height: number }[] }, dependencies: ToolDependencies): Promise<ToolResult<null>> {
-  void input.viewports;
-  const now = dependencies.clock ?? (() => new Date()); const startedAt = now().toISOString(); const requestId = (dependencies.requestId ?? randomUUID)(); const repository = dependencies.repository ?? "josuechavando350-png/nexus-engine";
-  let git: GitState;
-  try { git = await (dependencies.git ?? readGitState)(dependencies.root); } catch (cause) { return base<null>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, null, "FAIL", null, [], [error("NOT_A_GIT_REPOSITORY", cause)]); }
-  if ("target" in input.source) {
-    if (input.sourceSha !== git.headSha) return base<null>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("SOURCE_SHA_MISMATCH", `requested ${input.sourceSha ?? "missing"}, current HEAD is ${git.headSha}`)]);
-    const target = input.source.target;
-    const projects = await (dependencies.projects ?? readProjects)(dependencies.root);
-    if (!projects.some((project) => project.slug === target)) return base<null>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "FAIL", null, [{ kind: "git", locator: `git:${git.headSha}` }], [error("TARGET_NOT_FOUND", `unknown target ${target}`)]);
-  }
-  return base<null>("nexus_comparator", startedAt, now().toISOString(), requestId, repository, git, "NOT_TESTED", null, [{ kind: "git", locator: `git:${git.headSha}` }, { kind: "file", locator: "AUDIT_REPORT.md" }, { kind: "file", locator: "docs/architecture/MCP_SERVER_PHASE_1_DESIGN.md" }], [error("NEXUS_CAPABILITY_MISSING", "VISUAL_REGRESSION_GEOMETRY: no geometric comparator implementation or permanent negative fixture exists in NEXUS")]);
 }
