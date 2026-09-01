@@ -56,20 +56,28 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright dependencies
         run: pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
-      - name: Build once and validate independently
-        run: |
-          set -euo pipefail
-          pnpm lint
-          pnpm typecheck
-          pnpm test
-          pnpm test:browser
-          pnpm build
-          pnpm security-hygiene
-          pnpm v3-gates
-          pnpm rust:test
-          pnpm rust:lint
-          pnpm rust:build
-          pnpm third-party-proof
+      - name: Clean-room lint
+        run: pnpm lint
+      - name: Clean-room typecheck
+        run: pnpm typecheck
+      - name: Clean-room unit and integration tests
+        run: pnpm test
+      - name: Clean-room browser tests
+        run: pnpm test:browser
+      - name: Clean-room build
+        run: pnpm build
+      - name: Clean-room security hygiene
+        run: pnpm security-hygiene
+      - name: Clean-room V3 gates
+        run: pnpm v3-gates
+      - name: Clean-room Rust tests
+        run: pnpm rust:test
+      - name: Clean-room Rust lint
+        run: pnpm rust:lint
+      - name: Clean-room Rust release build
+        run: pnpm rust:build
+      - name: Clean-room third-party proof
+        run: pnpm third-party-proof
       - name: Execute operability proof
         run: pnpm operability:h07
       - name: Assert clean build and evidence identity
