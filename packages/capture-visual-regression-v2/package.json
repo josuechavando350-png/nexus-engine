@@ -10,7 +10,7 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --root ../.. packages/capture-visual-regression-v2/src/index.test.ts packages/capture-visual-regression-v2/src/runtime-navigation.test.ts",
-    "test:native": "NEXUS_NATIVE_VISUAL_PROOF=1 vitest run --root ../.. packages/capture-visual-regression-v2/src/native-browser.test.ts --testTimeout=180000",
+    "test:native": "NEXUS_NATIVE_VISUAL_PROOF=1 vitest run --root ../.. packages/capture-visual-regression-v2/src/native-browser.test.ts packages/capture-visual-regression-v2/src/runtime-navigation.native.test.ts --testTimeout=180000",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/runtime-navigation.js && test -f dist/runtime-navigation.d.ts"
   },
   "dependencies": {
