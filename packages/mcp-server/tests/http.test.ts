@@ -4,10 +4,17 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { afterEach, describe, expect, it } from "vitest";
 import { createNexusHttpApp } from "../src/http.js";
+import type { OperatorScope } from "../src/operator-gateway.js";
 import { TOOL_NAMES, type NexusToolName } from "../src/policy.js";
 
 const servers: Server[] = [];
 const OAUTH_RESOURCE = "https://nexus.example.test";
+const OPERATOR_SCOPE: OperatorScope = Object.freeze({
+  tenantId: "owner",
+  organizationId: "nexus",
+  brandId: "nexus-bot-studio",
+  repository: "josuechavando350-png/nexus-engine",
+});
 afterEach(async () => { await Promise.all(servers.splice(0).map((server) => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())))); });
 
 async function start(app: ReturnType<typeof createNexusHttpApp>) {
@@ -31,10 +38,11 @@ async function listen(enabledTools?: ReadonlySet<NexusToolName>) {
   return { token, writeToken, base: await start(app) };
 }
 
-async function listenOAuth(scope: string, enabledTools?: ReadonlySet<NexusToolName>) {
+async function listenOAuth(scope: string, enabledTools?: ReadonlySet<NexusToolName>, operatorScope?: OperatorScope) {
   const token = `oauth-token-${scope.replace(/\s+/gu, "-")}`;
   const app = createNexusHttpApp({
     root: process.cwd(),
+    repository: "josuechavando350-png/nexus-engine",
     oauth: {
       resource: OAUTH_RESOURCE,
       authorizationServers: ["https://auth.example.test"],
@@ -48,6 +56,7 @@ async function listenOAuth(scope: string, enabledTools?: ReadonlySet<NexusToolNa
     git: async () => ({ branch: "work", headSha: "c".repeat(40), detached: false, clean: true, changedPaths: [], remoteUrl: null }),
     projects: async () => [],
     enabledTools,
+    ...(operatorScope ? { operatorScope } : {}),
     coordinator: { run: async (_requestId, _sourceSha, _isolated, operation) => await operation(process.cwd()) },
   });
   return { token, base: await start(app) };
@@ -98,6 +107,32 @@ describe("remote MCP HTTP surface", () => {
     await writeClient.connect(writeTransport);
     expect((await writeClient.listTools()).tools.map((tool) => tool.name)).toContain("nexus_project_new");
     await writeClient.close();
+  });
+
+  it("invokes the governed Nexus OpenAI operator over an OAuth-authenticated MCP session", async () => {
+    const enabledTools = new Set<NexusToolName>(["nexus_status", "nexus_projects", "nexus_operator"]);
+    const { base, token } = await listenOAuth("nexus:read", enabledTools, OPERATOR_SCOPE);
+    const transport = new StreamableHTTPClientTransport(new URL(`${base}/mcp`), { requestInit: { headers: { Authorization: `Bearer ${token}` } } });
+    const client = new Client({ name: "chatgpt-nexus-operator-test", version: "1.0.0" });
+    await client.connect(transport);
+    expect((await client.listTools()).tools.map((tool) => tool.name)).toContain("nexus_operator");
+    const result = await client.callTool({
+      name: "nexus_operator",
+      arguments: {
+        command: {
+          action: "INSPECT",
+          scope: OPERATOR_SCOPE,
+          sourceSha: "c".repeat(40),
+          idempotencyKey: "oauth-inspect-1",
+          requestedAt: new Date().toISOString(),
+          intentSummary: "Inspect the exact Nexus source state through the governed OpenAI operator.",
+          payload: { includePullRequests: false },
+        },
+      },
+    });
+    expect((result.structuredContent as { writerAuthority?: string }).writerAuthority).toBe("NEXUS_OPENAI_OPERATOR");
+    expect((result.structuredContent as { action?: string }).action).toBe("INSPECT");
+    await client.close();
   });
 
   it("exposes project creation only to the separate write token and rejects traversal at the MCP boundary", async () => {
