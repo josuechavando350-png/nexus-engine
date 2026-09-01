@@ -4,8 +4,11 @@
 
 - Repositorio: `josuechavando350-png/nexus-engine`.
 - Baseline auditado para el inventario: `main@4e7ace3da7776d6559f646c08a3ae70257f7078b`.
-- Head auditado para la Fase 1: `fix/production-closeout-integrity@43a83e86c30f2d3a52fad1dfad790b06bf5687cf`.
-- Comparación realizada: `git diff 4e7ace3d..43a83e86`, 84 rutas, 2.145 inserciones y 3.269 eliminaciones.
+- Head auditado para el cierre: `codex/auditar-pr-#85-sin-mergear@4f0ea2abcbc7784420caeeb1d5d91fc09882b4bc`.
+- Comparación realizada contra `main@4e7ace3d`: la PR #86 concentra en un
+  commit el estado funcional de #85 y el cierre posterior. La comparación de
+  árboles `git diff 43a83e86..4f0ea2ab` identifica 19 rutas de cierre; #86 no
+  desciende de #85, aunque parte del mismo baseline.
 
 El remoto se configuró como `https://github.com/josuechavando350-png/nexus-engine.git`, el fetch terminó correctamente y `git cat-file -t 43a83e...` devolvió `commit`. No se hizo merge ni se usó contenido de `nexus-experience-engine`.
 
@@ -13,7 +16,25 @@ El remoto se configuró como `https://github.com/josuechavando350-png/nexus-engi
 
 ### 1. Build completo
 
-**BLOCKED_ON_ENVIRONMENT_EXECUTION_LIMIT; no se observó una falla del build.**
+**PASS EN CI SOBRE EL SHA EXACTO `4f0ea2ab`.**
+
+GitHub Actions completó con `success` los cuatro workflows disparados por la
+PR #86: Baseline Validation (incluidos Web reproducible build, Rust locked
+workspace y optional adapters), Full Validation, H07 Clean-Room Operability y
+Real Browser Capture Validation. Los pasos `Validate workspace`,
+`Hermetic deterministic build`, `Rust release build`, `Format, lint, test and
+release build`, `Build and validate independently` y
+`Assert clean build and evidence identity` terminaron con success.
+
+Runs observados:
+
+- Baseline Validation: `32652551572`.
+- Full Validation: `32652551560`.
+- H07 Clean-Room Operability Proof: `32652551575`.
+- Real Browser Capture Validation: `32652551579`.
+
+La limitación descrita a continuación pertenece exclusivamente a intentos
+interactivos anteriores y ya no bloquea el cierre:
 
 Se ejecutó `pnpm build` sobre el head exacto, primero con Node 20.20.2 y
 después con el Node 24.15.0 ya instalado mediante `nvm`. Node 20 produjo el
@@ -92,14 +113,19 @@ y llegó a `Collecting build traces ...`. El runner volvió a terminar la sesió
 antes de entregar exit status. Esto es consistente con un límite temporal del
 runner, incluso para una sola app; no se declara PASS completo.
 
-### Disposición actual de #85
+### Disposición actual de #85 y #86
 
-**NOT_READY_FOR_APPROVAL.** Los puntos 2 y 3 están resueltos localmente, pero la
-rama no pudo subirse: `git push origin fix/production-closeout-integrity` falló
-exactamente con `fatal: could not read Username for 'https://github.com': No
-such device or address`. Sin credenciales no es posible disparar GitHub Actions
-ni proporcionar un enlace de run. Tras subir los commits desde un entorno
-autenticado, el build CI completo sigue siendo el bloqueo de aprobación.
+**#85 SUPERSEDED BY #86.** Ambas PR parten de `main@4e7ace3d`. #85 contiene 19
+commits hasta `43a83e86`; #86 concentra el estado resultante y el cierre nuevo
+en `4f0ea2ab`. #86 no es descendiente Git de #85, por lo que no preserva esos
+19 commits como historial individual, pero su árbol incorpora ese trabajo y lo
+reemplaza deliberadamente en las rutas de cierre (scene model, separación de
+certificaciones y retirada de checks estáticos no ejecutables). No es necesario
+mergear #85 antes de #86 para conservar el estado funcional auditado.
+
+El head de #86 está subido y sus cuatro workflows terminaron verdes. La
+disposición coherente es cerrar #85 sin mergear y someter exclusivamente #86 a
+aprobación humana. Este informe no constituye una aprobación ni autoriza merge.
 
 ## Fase 1 — auditoría de #85
 
@@ -157,23 +183,24 @@ Reglas de estado:
 | Field RUM | `packages/capture/field-rum.ts` valida/agrega muestras y p75, pero no existe colector desplegado, ingestión autenticada ni evidencia CI de datos de campo reales. | `packages/capture/tests/field-rum.test.ts`. | Unit tests solamente; ningún job demuestra captura de campo. | **PARTIAL** |
 | Browser capture real | `packages/capture/playwright-adapter.ts` lanza Chromium/WebKit, visita HTTP(S), captura PNG y artefactos a11y/genome/performance. | `packages/capture/tests/playwright-adapter.test.ts`, APCA y mutation runner browser tests. | `quality-browser-capture.yml` instala motores, levanta targets, captura y verifica PNG/JSON ligados al SHA. | **IMPLEMENTED** |
 
-## Matriz de capacidades en el head de #85
+## Matriz de capacidades en `4f0ea2ab` (head de #86)
 
 Esta segunda matriz mide el código ejecutable de
-`fix/production-closeout-integrity`, no anticipa el estado de `main` y no
-convierte la descripción de #85 en evidencia.
+`codex/auditar-pr-#85-sin-mergear`, no anticipa el estado de `main` y no
+convierte la descripción de #86 en evidencia. La columna CI refleja los runs
+verdes sobre el SHA exacto `4f0ea2ab`, no el success anterior de `43a83e86`.
 
-| CAPABILITY | IMPLEMENTATION (#85) | TEST | CI EVIDENCE DEFINIDA | STATUS |
+| CAPABILITY | IMPLEMENTATION (`4f0ea2ab`) | TEST | CI EVIDENCE OBSERVADA | STATUS |
 | --- | --- | --- | --- | --- |
 | Comparator / regresión visual | Conserva el pixel diff real de `ci-browser-quality.mjs`; no incorpora comparator geométrico ni fixture roto permanente. | Browser-quality/capture, sin test unitario dedicado al comparator. | `quality-browser-capture.yml`. | **PARTIAL** |
 | Overlap/overflow geométrico | Adversarial matrix y mutation runner miden overflow horizontal; no calculan intersecciones, clipping de texto o containment de sección. | `adversarial-matrix.test.ts`, mutation tests. | Browser workflows ejecutan ambas superficies. | **PARTIAL** |
 | Asset-integrity guard | `verify-declared-assets.mjs` falla por faltante, directorio o archivo vacío, pero no valida MIME, dimensiones, tamaño mínimo ni SHA-256 manifestado. | `verify-declared-assets.test.mjs` solo cubre presente/faltante. | `pnpm lint` y `pnpm build` llaman `verify:assets`. | **PARTIAL** |
 | Identificación inequívoca de cliente | `client-fleet.mjs` exige `nexus.clientProject=true`, pero también excluye proyectos por prefijos del nombre de carpeta. No es todavía puramente estructurado. | `client-fleet.test.mjs`. | Unit suite; Shadow consume el descubrimiento. | **PARTIAL** |
 | Design DNA ejecutable | Sin cambio material: validación y generación existen, pero no son gate universal por app. | DNA, Experience y pipeline tests. | `pnpm test`. | **PARTIAL** |
-| Scene model derivado por motor | `visual-scene-model.ts` deriva una IR intrínseca de DNA + plan + contenido + assets + entorno y el pipeline la produce antes de generar código. | Tests positivos, provenance determinista y matriz adversarial de crecimiento. | Export/build integrados; ejecución CI pendiente del push autenticado. | **IMPLEMENTED LOCALLY / CI PENDING** |
+| Scene model derivado por motor | `visual-scene-model.ts` deriva una IR intrínseca de DNA + plan + contenido + assets + entorno y el pipeline la produce antes de generar código. | Tests positivos, provenance determinista y matriz adversarial de crecimiento. | Baseline, Full Validation, H07 y Browser Capture completaron con success sobre `4f0ea2ab`. | **IMPLEMENTED** |
 | Adversarial probes | `adversarial-matrix.ts` ejecuta nueve probes reales, incluidos texto doble, heading 40, media ausente/vertical, zoom, teclado y reduced motion. Falta la geometría obligatoria para detectar todas las colisiones silenciosas. | Test browser positivo de la matriz. | Incluido en `test:browser`. | **PARTIAL** |
 | Shadow Mode | Ejecuta build sin deploy, descubre clientes, hashea scenes/artefactos y compara baseline. Sin cliente real manifestado devuelve `NOT_TESTED`; no hay evidencia operacional todavía. | `client-fleet.test.mjs`; no hay E2E de Shadow con build real. | Script disponible, no job con cliente real. | **PARTIAL** |
-| Build hermético determinista | Verifica inputs y reproduce/canonicaliza dos builds; está integrado en `pnpm build`. El runner local no entregó exit status completo. | `build-core.test.mjs`, deterministic build-id test. | Workflows ejecutan `pnpm build`; falta observar el nuevo run por bloqueo de push. | **PARTIAL (CI PENDING)** |
+| Build hermético determinista | Verifica inputs y reproduce/canonicaliza dos builds; está integrado en `pnpm build`. | `build-core.test.mjs`, deterministic build-id test. | Full Validation completó `Hermetic deterministic build`; Baseline completó `Validate workspace` sobre `4f0ea2ab`. | **IMPLEMENTED** |
 | Caché content-addressed | `build-core.mjs` deriva key de inputs/dependencias y verifica hashes al restaurar; corrupción invalida el entry. | `build-core.test.mjs` cubre restore y tampering. | Usada por build workspace. | **IMPLEMENTED** |
 | Decision provenance | Contrato y script validan decisiones y las ligan al Passport; falta evidencia de una entrega cliente real. | `decision-trace.test.ts`. | Unit suite y browser passport consumer. | **PARTIAL** |
 | Quality Passport | Mantiene evidencia real y añade `decisionTraceDigest`. | Passport, decision trace y browser quality tests. | Browser capture workflow genera artefacto. | **IMPLEMENTED** |
@@ -190,7 +217,7 @@ convierte la descripción de #85 en evidencia.
 
 ## Fase 6 — Visual Scene Model
 
-**IMPLEMENTED LOCALLY / CI PENDING.**
+**IMPLEMENTED; CI PASS SOBRE `4f0ea2ab`.**
 
 `packages/experience/visual-scene-model.ts` define schema V1, tipos de contenido,
 assets, entorno, nodos y stages. La derivación produce únicamente sizing
