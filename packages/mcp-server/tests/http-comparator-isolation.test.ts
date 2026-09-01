@@ -38,9 +38,11 @@ it("runs nexus_comparator in an isolated exact-SHA HTTP worktree", async () => {
   const transport = new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${address.port}/mcp`), { requestInit: { headers: { Authorization: `Bearer ${token}` } } });
   const client = new Client({ name: "comparator-isolation-test", version: "1.0.0" });
   await client.connect(transport);
+  const callsBeforeComparator = isolatedCalls.length;
   await client.callTool({ name: "nexus_comparator", arguments: { target: "missing", sourceSha, baselineManifestPath: "evidence/missing.json" } });
+  const comparatorCalls = isolatedCalls.slice(callsBeforeComparator);
   await client.close();
 
-  expect(isolatedCalls.length).toBeGreaterThan(0);
-  expect(isolatedCalls.every(Boolean)).toBe(true);
+  expect(callsBeforeComparator).toBeGreaterThan(0);
+  expect(comparatorCalls).toEqual([true]);
 });
