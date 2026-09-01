@@ -58,7 +58,7 @@ export type OriginalityPolicy = {
 };
 
 const STRUCTURE_KEYS = ["cardReliance", "gridRegularity", "symmetry", "overlap", "whitespace", "continuity"] as const satisfies readonly (keyof StyleFingerprintV2["structure"])[];
-const LIST_KEYS = ["sectionSequence", "ctaGrammar", "geometryGrammar", "mediaGrammar", "motionGrammar", "typographyHierarchy"] as const satisfies readonly (keyof StyleFingerprintV2)[];
+const GRAMMAR_LIST_KEYS = ["ctaGrammar", "geometryGrammar", "mediaGrammar", "motionGrammar", "typographyHierarchy"] as const satisfies readonly (keyof StyleFingerprintV2)[];
 
 function requireText(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) throw new Error(`${field} must be a non-empty string`);
@@ -77,11 +77,13 @@ function validateObservedAt(value: unknown): string {
   throw new Error("fingerprint.observedAt must be YYYY-MM-DD or canonical ISO-8601 UTC");
 }
 
-function validateStringList(value: unknown, field: string): readonly string[] {
+function validateStringList(value: unknown, field: string, options: { unique?: boolean } = {}): readonly string[] {
   if (!Array.isArray(value)) throw new Error(`${field} must be an array`);
   const result = value.map((item, index) => requireText(item, `${field}[${index}]`));
-  const normalized = result.map((item) => item.trim().toLowerCase());
-  if (new Set(normalized).size !== normalized.length) throw new Error(`${field} must be unique after normalization`);
+  if (options.unique) {
+    const normalized = result.map((item) => item.trim().toLowerCase());
+    if (new Set(normalized).size !== normalized.length) throw new Error(`${field} must be unique after normalization`);
+  }
   return Object.freeze(result);
 }
 
@@ -99,7 +101,8 @@ export function validateStyleFingerprintV2(value: unknown): StyleFingerprintV2 {
     structure[key] = numeric;
   }
 
-  const lists = Object.fromEntries(LIST_KEYS.map((key) => [key, validateStringList(raw[key], `fingerprint.${String(key)}`)])) as Pick<StyleFingerprintV2, typeof LIST_KEYS[number]>;
+  const sectionSequence = validateStringList(raw.sectionSequence, "fingerprint.sectionSequence");
+  const grammarLists = Object.fromEntries(GRAMMAR_LIST_KEYS.map((key) => [key, validateStringList(raw[key], `fingerprint.${String(key)}`, { unique: true })])) as Pick<StyleFingerprintV2, typeof GRAMMAR_LIST_KEYS[number]>;
   const notes = raw.notes === undefined ? undefined : requireText(raw.notes, "fingerprint.notes");
   return Object.freeze({
     version: 2,
@@ -107,13 +110,13 @@ export function validateStyleFingerprintV2(value: unknown): StyleFingerprintV2 {
     observedAt: validateObservedAt(raw.observedAt),
     openingSignature: requireText(raw.openingSignature, "fingerprint.openingSignature"),
     navigationSignature: requireText(raw.navigationSignature, "fingerprint.navigationSignature"),
-    sectionSequence: lists.sectionSequence,
+    sectionSequence,
     structure: Object.freeze(structure),
-    ctaGrammar: lists.ctaGrammar,
-    geometryGrammar: lists.geometryGrammar,
-    mediaGrammar: lists.mediaGrammar,
-    motionGrammar: lists.motionGrammar,
-    typographyHierarchy: lists.typographyHierarchy,
+    ctaGrammar: grammarLists.ctaGrammar,
+    geometryGrammar: grammarLists.geometryGrammar,
+    mediaGrammar: grammarLists.mediaGrammar,
+    motionGrammar: grammarLists.motionGrammar,
+    typographyHierarchy: grammarLists.typographyHierarchy,
     ...(notes ? { notes } : {}),
   });
 }
