@@ -55,10 +55,14 @@ export function createNexusMcpServer(dependencies: ToolDependencies, options: Ne
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async (input) => resultContent(await nexusBuild(input, dependencies)));
   if (enabled.has("nexus_comparator")) server.registerTool("nexus_comparator", {
-    title: "NEXUS geometric comparator availability",
-    description: "Reports the verified availability of the NEXUS geometric comparator; it does not synthesize comparisons.",
-    inputSchema: { source: z.union([z.object({ target: z.string().min(1) }).strict(), z.object({ url: z.string().url() }).strict()]), sourceSha: z.string().regex(/^[a-f0-9]{40}$/).optional(), viewports: z.array(z.object({ name: z.string().min(1), width: z.number().int().min(240), height: z.number().int().min(240) })).min(1).optional() },
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+    title: "NEXUS approved-baseline visual regression",
+    description: "Builds the exact target SHA, captures committed scene contracts in a real browser, and compares them only against an explicitly approved committed baseline. It never promotes or rewrites baselines.",
+    inputSchema: {
+      source: z.object({ target: z.string().min(1) }).strict(),
+      sourceSha: z.string().regex(/^[a-f0-9]{40}$/),
+      baselineEnvelopePath: z.string().trim().min(1).max(1024),
+    },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
   }, async (input) => resultContent(await nexusComparator(input, dependencies)));
   if (options.allowProjectWrite && enabled.has("nexus_project_new")) server.registerTool("nexus_project_new", {
     title: "Create NEXUS client project",
