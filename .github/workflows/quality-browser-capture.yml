@@ -113,31 +113,8 @@ jobs:
       - name: Prove comparator stable scene identity in Chromium
         run: NEXUS_NATIVE_VISUAL_PROOF=1 pnpm exec vitest run packages/capture-visual-regression-v2/src/runtime.native.test.ts --testTimeout=180000
 
-      - name: Capture CANO client at mobile tablet and desktop
-        shell: bash
-        run: |
-          set -euo pipefail
-          cano_capture_dir="$GITHUB_WORKSPACE/artifacts/browser-capture/cano-penal"
-          mkdir -p "$cano_capture_dir"
-          pnpm --filter @nexus/cano-penal build
-          pnpm --filter @nexus/cano-penal exec next start -p 3102 >/tmp/cano-penal-next.log 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
-          for attempt in $(seq 1 60); do
-            if curl --fail --silent --show-error http://127.0.0.1:3102/ >/tmp/cano-home.html; then
-              break
-            fi
-            test "$attempt" -lt 60 || { cat /tmp/cano-penal-next.log; exit 1; }
-            sleep 1
-          done
-          grep -Fq 'Conozco cómo investiga la autoridad.' /tmp/cano-home.html
-          for asset in logo-cano.png eduardo-cano-escritorio.jpg audiencia-01.jpg audiencia-02.jpg audiencia-03.jpg audiencia-04.jpg audiencia-05.jpg; do
-            curl --fail --silent --show-error --output /dev/null "http://127.0.0.1:3102/media/$asset"
-          done
-          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="390,844" --full-page http://127.0.0.1:3102/ "$cano_capture_dir/mobile-390.png"
-          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="768,1024" --full-page http://127.0.0.1:3102/ "$cano_capture_dir/tablet-768.png"
-          pnpm --filter @nexus/capture exec playwright screenshot --browser=chromium --viewport-size="1440,1200" --full-page http://127.0.0.1:3102/ "$cano_capture_dir/desktop-1440.png"
-          test "$(find "$cano_capture_dir" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
+      - name: Capture CANO from exact-SHA governed build
+        run: node scripts/client-browser-evidence.mjs "$NEXUS_PASSPORT_PROJECT_ID"
 
       - name: Verify persisted evidence
         shell: bash
@@ -145,6 +122,7 @@ jobs:
           set -euo pipefail
           root="artifacts/browser-capture"
           mutations="$root/mutations"
+          cano="$root/$NEXUS_PASSPORT_PROJECT_ID"
           test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test "$(tr -d '\n\r' < "$root/validated-source-sha.txt")" = "$NEXUS_VALIDATED_SHA"
           test -f "$root/capture-manifest.json"
@@ -155,7 +133,9 @@ jobs:
           test "$(find "$root" -maxdepth 1 -type f -name '*-performance.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "8"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "8"
-          test "$(find "$root/cano-penal" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
+          test -s "$cano/evidence-manifest.json"
+          test -s "$cano/build-manifest.json"
+          test "$(find "$cano" -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
           node - <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
@@ -171,13 +151,16 @@ jobs:
             if (!expected.delete(d.mutationId) || !d.diagnostics || d.diagnostics.visibleElementCount <= 0) process.exit(1);
           }
           if (expected.size) process.exit(1);
+          const cano = JSON.parse(fs.readFileSync(path.join(root, process.env.NEXUS_PASSPORT_PROJECT_ID, 'evidence-manifest.json'), 'utf8'));
+          if (cano.authority !== 'NEXUS_CLIENT_BROWSER_EVIDENCE_V1' || cano.projectId !== process.env.NEXUS_PASSPORT_PROJECT_ID || cano.sourceRevision !== process.env.NEXUS_VALIDATED_SHA) process.exit(1);
+          if (!Array.isArray(cano.captures) || cano.captures.length !== 3 || !cano.captures.every(c => c.browser === 'chromium')) process.exit(1);
           NODE
           find "$root" -type f ! -name 'artifact-checksums.sha256' -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
           test -s "$root/artifact-checksums.sha256"
           sha256sum -c "$root/artifact-checksums.sha256"
           test -z "$(git status --porcelain --untracked-files=no)"
 
-      - name: Evaluate visual baseline and generate CI Quality Passport
+      - name: Evaluate generic capture baseline and generate CI Quality Passport
         shell: bash
         run: |
           set -euo pipefail
@@ -189,10 +172,10 @@ jobs:
           const p = JSON.parse(fs.readFileSync(path, 'utf8'));
           if (p.authority !== 'NEXUS_CI_QUALITY_PASSPORT_V1' || !p.passportSha256) process.exit(1);
           if (p.visualRegression?.verdict !== 'PASS') {
-            console.error(`Visual evidence must PASS for V10 closure; got ${p.visualRegression?.verdict || 'MISSING'}`);
+            console.error(`Generic capture regression must PASS; got ${p.visualRegression?.verdict || 'MISSING'}`);
             process.exit(1);
           }
-          console.log('Passport visual verdict: PASS');
+          console.log('Generic capture regression verdict: PASS');
           NODE
 
       - name: Generate operability evidence for the Quality Passport
