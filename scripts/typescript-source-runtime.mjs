@@ -7,6 +7,7 @@ import ts from "typescript";
 const REPOSITORY_ROOT = realpathSync(resolve(dirname(fileURLToPath(import.meta.url)), ".."));
 const REPOSITORY_PREFIX = `${REPOSITORY_ROOT}${sep}`;
 const TYPESCRIPT_EXTENSIONS = new Set([".ts", ".tsx", ".mts"]);
+const FALLBACK_RESOLUTION_ERRORS = new Set(["ERR_MODULE_NOT_FOUND", "ERR_UNSUPPORTED_DIR_IMPORT"]);
 
 function confinedRealPath(path) {
   const real = realpathSync(path);
@@ -44,7 +45,7 @@ export function installRepositoryTypeScriptRuntime() {
       try {
         return nextResolve(specifier, context);
       } catch (error) {
-        if (error?.code !== "ERR_MODULE_NOT_FOUND") throw error;
+        if (!FALLBACK_RESOLUTION_ERRORS.has(error?.code)) throw error;
         const resolved = resolveRepositoryCandidate(specifier, context.parentURL);
         if (!resolved) throw error;
         return { url: resolved, shortCircuit: true };
