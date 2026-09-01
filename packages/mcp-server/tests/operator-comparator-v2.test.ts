@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const { comparator, gates, passport } = vi.hoisted(() => ({
+  comparator: vi.fn(),
+  gates: vi.fn(),
+  passport: vi.fn(),
+}));
+
 const sourceSha = "a".repeat(40);
-const comparator = vi.fn();
-const gates = vi.fn();
-const passport = vi.fn();
 
 function toolResult(tool: "nexus_gates" | "nexus_passport" | "nexus_comparator") {
   return {
