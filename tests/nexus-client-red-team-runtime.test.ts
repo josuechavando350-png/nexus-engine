@@ -138,7 +138,7 @@ describe("production client Red Team runtime", () => {
       findings: [],
       evidence: { BRAND_SWAP: [`sha256:${"1".repeat(64)}`] },
     };
-    const criticEvaluate = vi.fn(() => ({ authority: "NEXUS_CREATIVE_CRITIC", verdict: "PASS", approved: true, findings: [], referenceEntryIds: ["ref-a", "ref-b"] }));
+    const criticEvaluate = vi.fn((contract: any) => ({ authority: "NEXUS_CREATIVE_CRITIC", verdict: "PASS", approved: true, findings: [], referenceEntryIds: ["ref-a", "ref-b"], contract }));
     const runArena = vi.fn(() => ({ authority: "NEXUS_RED_TEAM_ARENA", experienceId: "client", verdict: "PASS", approved: true, attacks: [{ attackId: "BRAND_SWAP", verdict: "PASS", detail: "evidence-bound", evidence: [`sha256:${"2".repeat(64)}`] }], similarityReports: [] }));
     const runMutations = vi.fn(async () => ({ authority: "NEXUS_BROWSER_MUTATION_RUNNER", targetUrl: "http://127.0.0.1:3000", artifacts: [] }));
     const adapter = createProductionRedTeamAdapter(context(), {
