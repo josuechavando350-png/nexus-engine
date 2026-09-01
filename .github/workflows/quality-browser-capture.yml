@@ -110,6 +110,9 @@ jobs:
       - name: Capture Chromium and WebKit evidence
         run: pnpm --filter @nexus/capture test:browser
 
+      - name: Prove comparator stable scene identity in Chromium
+        run: NEXUS_NATIVE_VISUAL_PROOF=1 pnpm --filter @nexus/capture-visual-regression-v2 exec vitest run src/runtime.native.test.ts --testTimeout=180000
+
       - name: Capture CANO client at mobile tablet and desktop
         shell: bash
         run: |
