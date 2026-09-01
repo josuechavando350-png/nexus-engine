@@ -1,6 +1,5 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
 import { defineExperienceBrief } from "../packages/experience/brief.ts";
 import { synthesizeAutonomousExperience, autonomousExperienceDigest } from "../packages/experience/autonomy.ts";
 import { evaluateContentReadiness } from "../packages/experience/content-readiness.ts";
@@ -230,19 +229,3 @@ export async function runNexusClientPipelineWithWorkspaceRuntime(spec, options =
   }
   return runNexusClientPipeline(spec, adapters);
 }
-
-async function main() {
-  const args = process.argv.slice(2);
-  const specIndex = args.indexOf("--spec");
-  const outIndex = args.indexOf("--out");
-  if (specIndex < 0 || !args[specIndex + 1]) throw new Error("usage: node scripts/nexus-client-pipeline.mjs --spec <json> [--out <dir>]");
-  const specPath = resolve(args[specIndex + 1]);
-  const spec = JSON.parse(await readFile(specPath, "utf8"));
-  if (outIndex >= 0 && args[outIndex + 1]) spec.outputDir = resolve(args[outIndex + 1]);
-  const result = await runNexusClientPipelineWithWorkspaceRuntime(spec);
-  process.stdout.write(`${JSON.stringify({ authority: result.authority, status: result.status, certification: result.certification, blocker: result.blocker }, null, 2)}\n`);
-  process.exitCode = result.status === "CERTIFIED" ? 0 : 2;
-}
-
-const invoked = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
-if (invoked) main().catch((error) => { console.error(error); process.exitCode = 1; });
