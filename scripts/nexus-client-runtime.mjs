@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import { readGitState } from "../packages/mcp-server/src/git.ts";
@@ -8,6 +7,8 @@ import { captureProjectEvidence } from "../packages/mcp-server/src/capture.ts";
 import { runProcess, runReadOnly } from "../packages/mcp-server/src/process.ts";
 import { judgeVisualEvidence } from "../packages/quality/visual-judge.ts";
 import { createProductionRedTeamAdapter } from "./nexus-client-red-team-runtime.mjs";
+import { createProductionQualityCycleAdapter } from "./nexus-client-quality-cycle-runtime.mjs";
+import { loadCommittedVisualReview, evaluateDigestBoundVisualReview } from "./nexus-client-visual-review.mjs";
 
 const DEFAULT_CAPABILITIES = Object.freeze(["SCREENSHOT", "ACCESSIBILITY", "DESIGN_GENOME", "CONTRAST", "PERFORMANCE"]);
 const DEFAULT_BROWSERS = Object.freeze(["chromium", "webkit"]);
@@ -33,17 +34,6 @@ function relativeTarget(root, absolute) {
   const normalizedRoot = `${resolve(root)}${sep}`;
   if (!absolute.startsWith(normalizedRoot)) throw new Error("client runtime target must stay inside repository root");
   return absolute.slice(normalizedRoot.length).split(sep).join("/");
-}
-
-function repositoryPath(root, candidate, label) {
-  const absolute = resolve(root, candidate);
-  const normalizedRoot = `${resolve(root)}${sep}`;
-  if (!absolute.startsWith(normalizedRoot)) throw new Error(`${label} must stay inside repository root`);
-  return { absolute, relative: absolute.slice(normalizedRoot.length).split(sep).join("/") };
-}
-
-function sha256Text(value) {
-  return `sha256:${createHash("sha256").update(value).digest("hex")}`;
 }
 
 function assertMatrix(artifacts, capability, browsers, viewports) {
@@ -140,22 +130,24 @@ export async function createWorkspaceClientRuntimeAdapters(spec, options = {}) {
     adapters.visualJudge = async ({ capture }) => {
       const evidence = capture?.evidence ?? captureEvidence;
       if (!evidence) return gate("VISUAL_JUDGE", "NOT_TESTED", "visual judge requires completed exact-SHA browser evidence");
-      const reviewPath = repositoryPath(root, spec.runtime.visualReviewFile, "visual review file");
-      const dirtyReview = (await readOnly("git", ["status", "--porcelain", "--", reviewPath.relative], root)).trim();
-      if (dirtyReview) return gate("VISUAL_JUDGE", "FAIL", "visual review evidence must be committed before it can be bound to sourceRevision");
-      const raw = await reviewReader(reviewPath.absolute);
-      const envelope = JSON.parse(raw);
-      if (envelope.projectId !== spec.projectId) return gate("VISUAL_JUDGE", "FAIL", `visual review projectId ${envelope.projectId ?? "missing"} does not match ${spec.projectId}`, [sha256Text(raw)]);
-      if (envelope.sourceRevision !== spec.sourceRevision) return gate("VISUAL_JUDGE", "FAIL", `visual review sourceRevision ${envelope.sourceRevision ?? "missing"} does not match ${spec.sourceRevision}`, [sha256Text(raw)]);
-      if (!envelope.review) return gate("VISUAL_JUDGE", "FAIL", "visual review envelope is missing review payload", [sha256Text(raw)]);
-      const report = await visualJudgeEvaluator({ artifacts: evidence.artifacts, review: envelope.review });
-      const artifactById = new Map(evidence.artifacts.map((artifact) => [artifact.artifactId, artifact]));
-      const verifiedDigests = report.verifiedArtifactIds.map((artifactId) => artifactById.get(artifactId)?.digest).filter(Boolean);
-      const evidenceIds = [sha256Text(raw), ...verifiedDigests];
-      return Object.freeze({
-        ...gate("VISUAL_JUDGE", report.approved && report.verdict === "PASS" ? "PASS" : report.verdict === "NOT_TESTED" ? "NOT_TESTED" : "FAIL", report.approved ? "committed human/model visual review passed against exact-SHA persisted browser evidence" : report.findings.join("; ") || "visual review did not approve the evidence", evidenceIds),
-        report,
-      });
+      try {
+        const committed = await loadCommittedVisualReview({
+          root,
+          relativePath: spec.runtime.visualReviewFile,
+          projectId: spec.projectId,
+          sourceRevision: spec.sourceRevision,
+          readOnly,
+          reader: reviewReader,
+        });
+        const evaluated = await evaluateDigestBoundVisualReview({ committed, artifacts: evidence.artifacts, evaluator: visualJudgeEvaluator });
+        const report = evaluated.report;
+        return Object.freeze({
+          ...gate("VISUAL_JUDGE", report.approved && report.verdict === "PASS" ? "PASS" : report.verdict === "NOT_TESTED" ? "NOT_TESTED" : "FAIL", report.approved ? "committed visual review passed against exact artifact IDs and SHA-256 bytes" : report.findings.join("; ") || "visual review did not approve the evidence", evaluated.evidenceIds),
+          report,
+        });
+      } catch (error) {
+        return gate("VISUAL_JUDGE", "FAIL", `digest-bound visual review failed closed: ${error instanceof Error ? error.message : String(error)}`);
+      }
     };
   }
 
@@ -163,6 +155,22 @@ export async function createWorkspaceClientRuntimeAdapters(spec, options = {}) {
     adapters.redTeam = createProductionRedTeamAdapter(
       { root, project, spec, browsers, viewports },
       { git: gitReader, readOnly, ...(options.redTeamDependencies ?? {}) },
+    );
+  }
+
+  if (spec.runtime.visualReviewFile) {
+    adapters.repairRejudge = createProductionQualityCycleAdapter(
+      { root, project, spec, browsers, viewports, prepareCapture },
+      {
+        git: gitReader,
+        readOnly,
+        build: buildRunner,
+        buildValidator,
+        capture: captureRunner,
+        visualJudge: visualJudgeEvaluator,
+        readReviewFile: reviewReader,
+        ...(options.qualityCycleDependencies ?? {}),
+      },
     );
   }
 
