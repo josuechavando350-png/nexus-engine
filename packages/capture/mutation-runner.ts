@@ -37,6 +37,27 @@ export interface BrowserMutationSuiteResult {
   artifacts: readonly BrowserMutationArtifact[];
 }
 
+export interface BrowserRemovalCandidate {
+  elementId: string;
+  selector: string;
+}
+
+export interface BrowserRemovalArtifact {
+  elementId: string;
+  selector: string;
+  matchedElementCount: number;
+  beforeScreenshotUri: string;
+  beforeScreenshotDigest: string;
+  afterScreenshotUri: string;
+  afterScreenshotDigest: string;
+}
+
+export interface BrowserRemovalSuiteResult {
+  authority: "NEXUS_BROWSER_REMOVAL_RUNNER";
+  targetUrl: string;
+  artifacts: readonly BrowserRemovalArtifact[];
+}
+
 const sha256 = (bytes: Uint8Array) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
 const browserType = (name: MutationBrowser): BrowserType => name === "chromium" ? chromium : webkit;
 
@@ -226,4 +247,62 @@ export async function runBrowserMutationSuite(input: {
     await browser.close();
   }
   return Object.freeze({ authority: "NEXUS_BROWSER_MUTATION_RUNNER", targetUrl: input.targetUrl, artifacts: Object.freeze(artifacts) });
+}
+
+export async function runBrowserRemovalSuite(input: {
+  targetUrl: string;
+  outputDir: string;
+  candidates: readonly BrowserRemovalCandidate[];
+  browser?: MutationBrowser;
+  navigationTimeoutMs?: number;
+}): Promise<BrowserRemovalSuiteResult> {
+  validateTarget(input.targetUrl);
+  if (!input.outputDir.trim()) throw new Error("removal outputDir is required");
+  if (!input.candidates.length) throw new Error("removal suite requires at least one candidate");
+  if (new Set(input.candidates.map((candidate) => candidate.elementId)).size !== input.candidates.length) throw new Error("removal candidate elementId values must be unique");
+  for (const candidate of input.candidates) {
+    if (!candidate.elementId.trim() || !candidate.selector.trim()) throw new Error("removal candidates require elementId and selector");
+  }
+
+  const browserName = input.browser ?? "chromium";
+  const outputDir = resolve(input.outputDir);
+  await mkdir(outputDir, { recursive: true });
+  const browser = await browserType(browserName).launch({ headless: true });
+  const artifacts: BrowserRemovalArtifact[] = [];
+  try {
+    for (const candidate of input.candidates) {
+      const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, locale: "en-US", timezoneId: "UTC", reducedMotion: "reduce" });
+      try {
+        const page = await context.newPage();
+        await page.goto(input.targetUrl, { waitUntil: "networkidle", timeout: input.navigationTimeoutMs ?? 30_000 });
+        await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+        const matchedElementCount = await page.locator(candidate.selector).count();
+        if (matchedElementCount !== 1) throw new Error(`removal candidate ${candidate.elementId} selector must match exactly one rendered element; matched ${matchedElementCount}`);
+        const before = await page.screenshot({ fullPage: true, animations: "disabled", type: "png" });
+        await page.locator(candidate.selector).evaluate((element) => element.setAttribute("data-nexus-excess-removed", "true"));
+        await page.addStyleTag({ content: "[data-nexus-excess-removed='true'] { display: none !important; }" });
+        await page.evaluate(() => new Promise<void>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done()))));
+        const after = await page.screenshot({ fullPage: true, animations: "disabled", type: "png" });
+        const stem = `${browserName}-excess-${safe(candidate.elementId)}`;
+        const beforeScreenshotUri = resolve(outputDir, `${stem}-before.png`);
+        const afterScreenshotUri = resolve(outputDir, `${stem}-after.png`);
+        await writeFile(beforeScreenshotUri, before);
+        await writeFile(afterScreenshotUri, after);
+        artifacts.push(Object.freeze({
+          elementId: candidate.elementId,
+          selector: candidate.selector,
+          matchedElementCount,
+          beforeScreenshotUri,
+          beforeScreenshotDigest: sha256(before),
+          afterScreenshotUri,
+          afterScreenshotDigest: sha256(after),
+        }));
+      } finally {
+        await context.close();
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+  return Object.freeze({ authority: "NEXUS_BROWSER_REMOVAL_RUNNER", targetUrl: input.targetUrl, artifacts: Object.freeze(artifacts) });
 }
