@@ -37,9 +37,9 @@ export async function captureSceneAtNavigationUrl(
   executor: SceneCaptureExecutor = captureScene,
 ): Promise<CaptureArtifact> {
   const target = normalizeNavigationUrl(input.navigationUrl);
-  const transportScene = Object.freeze({ ...input.scene, url: target });
   const result = await executor({
-    scene: transportScene,
+    scene: input.scene,
+    navigationUrl: target,
     browserName: input.browserName,
     viewport: input.viewport,
     revision: input.revision,
