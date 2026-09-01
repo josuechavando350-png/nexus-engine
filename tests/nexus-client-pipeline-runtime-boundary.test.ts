@@ -51,4 +51,14 @@ describe("NEXUS client pipeline production boundary", () => {
     expect(execution.stderr).toContain("workspace runtime execution requires spec.runtime.target");
     expect(execution.stderr).not.toContain("ExperienceBrief");
   });
+
+  it.each([
+    "scripts/nexus-client-pipeline.mjs",
+    "scripts/nexus-client-run.mjs",
+  ])("proves %s loads real workspace project discovery before pipeline evaluation", (script) => {
+    const execution = executeClientScript(script, tempSpec({ runtime: { target: "definitely-not-a-workspace-client" } }));
+    expect(execution.status).toBe(1);
+    expect(execution.stderr).toContain("client runtime target definitely-not-a-workspace-client is not a discovered workspace app");
+    expect(execution.stderr).not.toContain("ExperienceBrief");
+  });
 });
