@@ -1,0 +1,378 @@
+name: Build standalone Nexus Bot Studio ZIP
+
+on:
+  push:
+    branches:
+      - artifact/nexus-bot-studio-standalone
+    paths:
+      - '.github/workflows/build-nexus-bot-standalone.yml'
+      - 'apps/nexus-bot-studio/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  standalone-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Enable pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+
+      - name: Create independent project outside monorepo
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT=/tmp/nexus-bot-studio-standalone
+          rm -rf "$ROOT"
+          cp -a apps/nexus-bot-studio "$ROOT"
+          rm -rf "$ROOT/node_modules" "$ROOT/.next"
+
+          cat > "$ROOT/package.json" <<'EOF'
+          {
+            "name": "nexus-bot-studio",
+            "version": "1.0.0",
+            "private": true,
+            "packageManager": "pnpm@10.15.0",
+            "engines": {
+              "node": ">=20.9 <25"
+            },
+            "scripts": {
+              "dev": "next dev",
+              "build": "next build",
+              "start": "next start",
+              "typecheck": "tsc --noEmit"
+            },
+            "dependencies": {
+              "@fontsource/archivo": "5.3.0",
+              "@fontsource/inter": "5.3.0",
+              "gsap": "3.15.0",
+              "lenis": "1.3.26",
+              "next": "15.5.23",
+              "react": "19.2.8",
+              "react-dom": "19.2.8",
+              "sharp": "0.35.3"
+            },
+            "devDependencies": {
+              "@types/node": "24.13.3",
+              "@types/react": "19.2.18",
+              "@types/react-dom": "19.2.4",
+              "autoprefixer": "10.5.4",
+              "postcss": "8.5.18",
+              "tailwindcss": "3.4.19",
+              "typescript": "6.0.3"
+            }
+          }
+          EOF
+
+          cat > "$ROOT/.gitignore" <<'EOF'
+          node_modules/
+          .next/
+          out/
+          .vercel/
+          .env*
+          *.log
+          .DS_Store
+          EOF
+
+          cat > "$ROOT/next.config.ts" <<'EOF'
+          import type { NextConfig } from "next";
+
+          const securityHeaders = [
+            { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
+            { key: "X-Frame-Options", value: "DENY" },
+            { key: "X-Content-Type-Options", value: "nosniff" },
+            { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+            { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+            { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
+            { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
+            { key: "X-DNS-Prefetch-Control", value: "on" },
+          ];
+
+          const nextConfig: NextConfig = {
+            poweredByHeader: false,
+            reactStrictMode: true,
+            async headers() {
+              return [{ source: "/(.*)", headers: securityHeaders }];
+            },
+          };
+
+          export default nextConfig;
+          EOF
+
+          cat > "$ROOT/middleware.ts" <<'EOF'
+          import { NextRequest, NextResponse } from "next/server";
+
+          function createNonce(): string {
+            const bytes = new Uint8Array(16);
+            crypto.getRandomValues(bytes);
+            let binary = "";
+            bytes.forEach((byte) => { binary += String.fromCharCode(byte); });
+            return btoa(binary);
+          }
+
+          export function middleware(request: NextRequest) {
+            const nonce = createNonce();
+            const csp = [
+              "default-src 'self'",
+              "base-uri 'self'",
+              "object-src 'none'",
+              "frame-ancestors 'none'",
+              "form-action 'self'",
+              `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'`,
+              "script-src-attr 'none'",
+              "style-src 'self'",
+              "style-src-attr 'none'",
+              "img-src 'self' data: blob:",
+              "font-src 'self' data:",
+              "connect-src 'self'",
+              "media-src 'self'",
+              "worker-src 'self' blob:",
+              "manifest-src 'self'",
+              "upgrade-insecure-requests",
+              "require-trusted-types-for 'script'",
+              "trusted-types nextjs default",
+            ].join("; ");
+
+            const requestHeaders = new Headers(request.headers);
+            requestHeaders.set("x-nonce", nonce);
+            requestHeaders.set("Content-Security-Policy", csp);
+
+            const response = NextResponse.next({ request: { headers: requestHeaders } });
+            response.headers.set("Content-Security-Policy", csp);
+            return response;
+          }
+
+          export const config = {
+            matcher: [
+              { source: "/((?!api|_next/static|_next/image|favicon.ico).*)", missing: [{ type: "header", key: "next-router-prefetch" }, { type: "header", key: "purpose", value: "prefetch" }] },
+            ],
+          };
+          EOF
+
+          cat > "$ROOT/app/layout.tsx" <<'EOF'
+          import type { Metadata } from "next";
+          import { headers } from "next/headers";
+          import "@fontsource/archivo/800.css";
+          import "@fontsource/archivo/900.css";
+          import "@fontsource/inter/400.css";
+          import "@fontsource/inter/500.css";
+          import "./globals.css";
+          import { Footer } from "@/components/sections/Footer";
+          import { MotionRuntime } from "@/components/ui/MotionRuntime";
+
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nexusbotstudio.com";
+          const title = "Nexus Bot Studio — Diseño web y agentes de IA en México";
+          const description = "Nexus Bot Studio crea sitios web premium, agentes de IA y sistemas digitales para empresas en México que buscan crecer, automatizar y convertir mejor.";
+
+          export const metadata: Metadata = {
+            metadataBase: new URL(siteUrl),
+            title,
+            description,
+            alternates: { canonical: "/" },
+            openGraph: {
+              type: "website",
+              locale: "es_MX",
+              url: "/",
+              siteName: "Nexus Bot Studio",
+              title,
+              description,
+              images: [{ url: "/og-image.webp", width: 1200, height: 630, alt: "Nexus Bot Studio" }],
+            },
+            twitter: { card: "summary_large_image", title, description, images: ["/og-image.webp"] },
+          };
+
+          export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+            const nonce = (await headers()).get("x-nonce") || undefined;
+            const organization = {
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "Nexus Bot Studio",
+              url: siteUrl,
+              logo: `${siteUrl}/logo.webp`,
+              areaServed: { "@type": "Country", name: "México" },
+              address: { "@type": "PostalAddress", addressCountry: "MX" },
+            };
+
+            return (
+              <html lang="es-MX">
+                <body>
+                  <a className="skip-link" href="#contenido">Saltar al contenido</a>
+                  <header className="site-header">
+                    <a className="brand-link" href="#contenido" aria-label="Nexus Bot Studio, inicio">NEXUS</a>
+                    <a className="header-cta" href="#contacto">HABLEMOS →</a>
+                  </header>
+                  <MotionRuntime />
+                  <main id="contenido" className="site-shell">{children}</main>
+                  <Footer />
+                  <script nonce={nonce} type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organization) }} />
+                </body>
+              </html>
+            );
+          }
+          EOF
+
+          cat > "$ROOT/app/robots.ts" <<'EOF'
+          import type { MetadataRoute } from "next";
+
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nexusbotstudio.com";
+
+          export default function robots(): MetadataRoute.Robots {
+            return {
+              rules: { userAgent: "*", allow: "/" },
+              sitemap: `${siteUrl}/sitemap.xml`,
+              host: siteUrl,
+            };
+          }
+          EOF
+
+          cat > "$ROOT/app/sitemap.ts" <<'EOF'
+          import type { MetadataRoute } from "next";
+
+          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://nexusbotstudio.com";
+
+          export default function sitemap(): MetadataRoute.Sitemap {
+            return [{ url: siteUrl, lastModified: new Date(), changeFrequency: "monthly", priority: 1 }];
+          }
+          EOF
+
+          cat > "$ROOT/app/not-found.tsx" <<'EOF'
+          import Link from "next/link";
+
+          export default function NotFound() {
+            return (
+              <section className="section" aria-labelledby="not-found-title">
+                <div className="section-inner phrase-section">
+                  <p className="section-kicker">NEXUS BOT STUDIO</p>
+                  <h1 id="not-found-title" className="phrase-title">404</h1>
+                  <p className="copy">La página que buscas no existe.</p>
+                  <Link className="header-cta" href="/">NEXUS →</Link>
+                  <div className="phrase-ring" aria-hidden="true" />
+                </div>
+              </section>
+            );
+          }
+          EOF
+
+          cat > "$ROOT/README.md" <<'EOF'
+          # Nexus Bot Studio — proyecto independiente
+
+          Este ZIP contiene el sitio de **Nexus Bot Studio** como proyecto Next.js independiente. No requiere el monorepo `nexus-engine` ni dependencias `workspace:*`.
+
+          ## 1. Instalar y correr en local
+
+          Requisitos: Node.js 20.9 o superior (hasta Node 24) y Corepack.
+
+          ```bash
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+          pnpm install --frozen-lockfile
+          pnpm dev
+          ```
+
+          Abre `http://localhost:3000`.
+
+          Para validar producción:
+
+          ```bash
+          pnpm typecheck
+          pnpm build
+          pnpm start
+          ```
+
+          ## 2. Importarlo en Vercel
+
+          Descomprime el ZIP y sube la carpeta a un repositorio, o importa directamente el proyecto desde tu flujo habitual.
+
+          - **Framework Preset:** Next.js
+          - **Root Directory:** `.`
+          - **Install Command:** `pnpm install --frozen-lockfile`
+          - **Build Command:** `pnpm build`
+          - **Output Directory:** dejar en automático (Next.js)
+          - **Node.js:** 24.x o 22.x
+
+          No apuntes Vercel a una carpeta del antiguo monorepo: este paquete ya es autónomo.
+
+          ## 3. Variables de entorno
+
+          No hay variables obligatorias.
+
+          Opcional:
+
+          - `NEXT_PUBLIC_SITE_URL`: URL canónica final, por ejemplo `https://nexusbotstudio.com`. Si no se define, se usa `https://nexusbotstudio.com`.
+
+          ## 4. Qué revisar después del deploy
+
+          1. Abrir `/`, `/robots.txt`, `/sitemap.xml` y una URL inexistente para comprobar la página 404.
+          2. Confirmar que el dominio canónico corresponde al dominio final; si cambia, configurar `NEXT_PUBLIC_SITE_URL` y volver a desplegar.
+          3. Revisar en DevTools que CSP tenga nonce por request y que no aparezca `unsafe-inline`.
+          4. Verificar las cabeceras HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COOP, CORP y X-DNS-Prefetch-Control.
+          5. Probar escritorio y móvil, especialmente animaciones, scroll suave y tarjetas con interacción táctil.
+          EOF
+
+      - name: Install independently and generate lockfile
+        working-directory: /tmp/nexus-bot-studio-standalone
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Generate 1200x630 Open Graph WebP
+        working-directory: /tmp/nexus-bot-studio-standalone
+        run: |
+          node - <<'NODE'
+          const sharp = require('sharp');
+          sharp('public/hero.webp')
+            .resize(1200, 630, { fit: 'cover', position: 'center' })
+            .grayscale()
+            .webp({ quality: 82 })
+            .toFile('public/og-image.webp')
+            .then(() => console.log('og-image.webp generated'));
+          NODE
+
+      - name: Verify independence and package contract
+        working-directory: /tmp/nexus-bot-studio-standalone
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R "workspace:\*" package.json pnpm-lock.yaml
+          ! grep -R "@nexus/" app components lib package.json next.config.ts middleware.ts || (echo "Found monorepo dependency" && exit 1)
+          ! grep -R "unsafe-inline" middleware.ts next.config.ts app || (echo "Found unsafe-inline" && exit 1)
+          ! grep -R "Cross-Origin-Embedder-Policy\|COEP" next.config.ts middleware.ts || (echo "Found forbidden COEP" && exit 1)
+          find public -type f ! -name '*.webp' -print -quit | grep . && { echo "Non-WebP public asset found"; exit 1; } || true
+
+      - name: Typecheck independent project
+        working-directory: /tmp/nexus-bot-studio-standalone
+        run: pnpm typecheck
+
+      - name: Build independent project
+        working-directory: /tmp/nexus-bot-studio-standalone
+        run: pnpm build
+
+      - name: Produce clean ZIP after successful build
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/nexus-bot-studio-standalone/node_modules /tmp/nexus-bot-studio-standalone/.next
+          mkdir -p /tmp/package
+          rm -rf /tmp/package/nexus-bot-studio-standalone
+          cp -a /tmp/nexus-bot-studio-standalone /tmp/package/nexus-bot-studio-standalone
+          cd /tmp/package
+          zip -qr /tmp/nexus-bot-studio-standalone.zip nexus-bot-studio-standalone
+          unzip -l /tmp/nexus-bot-studio-standalone.zip | tee /tmp/zip-list.txt
+          ! grep -E '(^|/)(node_modules|\.next)/' /tmp/zip-list.txt
+          sha256sum /tmp/nexus-bot-studio-standalone.zip
+
+      - name: Upload verified standalone ZIP
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-bot-studio-standalone
+          path: /tmp/nexus-bot-studio-standalone.zip
+          if-no-files-found: error
+          retention-days: 7
