@@ -5,24 +5,29 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { discoverClientApps } from "./client-fleet.mjs";
+import { assertRepositorySourceClean } from "./repository-source-cleanliness.mjs";
 import { installRepositoryTypeScriptRuntime } from "./typescript-source-runtime.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const outputDir = join(repositoryRoot, "artifacts", "decision-trace");
 const SHA1 = /^[a-f0-9]{40}$/;
+const GOVERNED_DERIVED_ROOTS = Object.freeze(["artifacts"]);
 
 function git(args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
 }
 
-function cleanWorktree() {
-  return git(["status", "--porcelain"]) === "";
+function assertDecisionSourceClean(context) {
+  return assertRepositorySourceClean(repositoryRoot, {
+    allowedUntrackedRoots: GOVERNED_DERIVED_ROOTS,
+    context,
+  });
 }
 
 async function main() {
   const sourceRevision = git(["rev-parse", "HEAD"]);
   if (!SHA1.test(sourceRevision)) throw new Error("decision trace requires a full lowercase Git SHA-1 HEAD");
-  if (!cleanWorktree()) throw new Error("decision trace requires a completely clean worktree before exact-SHA client builds");
+  assertDecisionSourceClean("decision trace source before exact-SHA client builds");
 
   const clients = discoverClientApps(repositoryRoot);
   const results = [];
@@ -75,10 +80,10 @@ async function main() {
         if (!(await validateBuildManifest(repositoryRoot, project, sourceRevision, build.manifest))) {
           throw new Error("EXACT_SHA_BUILD_MANIFEST_INVALID");
         }
-        if (!cleanWorktree()) throw new Error("EXACT_SHA_BUILD_DIRTIED_WORKTREE");
+        assertDecisionSourceClean("exact-SHA decision build source");
 
         const rendered = await inspectRenderedNexusElements(repositoryRoot, project);
-        if (!cleanWorktree()) throw new Error("DOM_INSPECTION_DIRTIED_WORKTREE");
+        assertDecisionSourceClean("rendered DOM decision inspection source");
         const { trace, coverage } = evaluateClientDecisionManifest({ projectId, renderedElementIds: rendered.elementIds, manifest });
         const tracePath = join(outputDir, `${projectId}.json`);
         const payload = {
