@@ -1,0 +1,71 @@
+name: Nexus Bot Studio Reference Certification
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: Canonical deployed URL to certify
+        required: false
+        default: https://nexusbotstudio.com
+  pull_request:
+    paths:
+      - "references/nexus-bot-studio/**"
+      - "scripts/audit-nexus-bot-studio-reference.mjs"
+      - ".github/workflows/nexus-bot-studio-reference.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  certify-reference:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      TARGET_URL: ${{ inputs.target_url || 'https://nexusbotstudio.com' }}
+    steps:
+      - name: Checkout candidate
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.0
+          run_install: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install locked workspace
+        run: pnpm install --frozen-lockfile
+
+      - name: Prepare reference evidence directory
+        run: mkdir -p artifacts/nexus-bot-studio-reference
+
+      - name: Growth — generative readiness
+        run: >-
+          node scripts/audit-generative-readiness.mjs
+          --spec references/nexus-bot-studio/generative-home.json
+          > artifacts/nexus-bot-studio-reference/generative-readiness.json
+
+      - name: Five engines — live reference audit
+        run: >-
+          node scripts/audit-nexus-bot-studio-reference.mjs
+          --reference references/nexus-bot-studio/reference.json
+          --url "$TARGET_URL"
+          --output artifacts/nexus-bot-studio-reference/runtime-audit.json
+
+      - name: Nexus governed quality gates
+        if: always()
+        run: pnpm quality-gates
+
+      - name: Upload reference evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nexus-bot-studio-reference-evidence
+          path: artifacts/nexus-bot-studio-reference
+          if-no-files-found: error
+          retention-days: 14
