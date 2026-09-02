@@ -10,6 +10,7 @@ import { installRepositoryTypeScriptRuntime } from "./typescript-source-runtime.
 const SHA1 = /^[a-f0-9]{40}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const PROJECT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const MAX_BUILD_ERROR_EXCERPT_BYTES = 4096;
 const REQUIRED_VIEWPORTS = Object.freeze([
   Object.freeze({ name: "mobile-390", width: 390, height: 844 }),
   Object.freeze({ name: "tablet-768", width: 768, height: 1024 }),
@@ -28,6 +29,15 @@ function canonicalEvidencePayload(value) {
   const { manifestSha256: _manifestSha256, ...payload } = value;
   void _manifestSha256;
   return JSON.stringify(payload);
+}
+
+function buildErrorExcerpt(bytes) {
+  if (!bytes?.byteLength) return "";
+  return bytes
+    .subarray(Math.max(0, bytes.byteLength - MAX_BUILD_ERROR_EXCERPT_BYTES))
+    .toString("utf8")
+    .replace(/\u001b\[[0-9;]*m/g, "")
+    .trim();
 }
 
 export function sealClientBrowserEvidence(payload) {
@@ -61,7 +71,9 @@ async function main() {
   if (!SHA1.test(sourceRevision)) throw new Error("NEXUS_VALIDATED_SHA must be a full lowercase Git SHA-1");
   const head = git(["rev-parse", "HEAD"]);
   if (head !== sourceRevision) throw new Error(`browser evidence source SHA mismatch: expected ${sourceRevision}, HEAD is ${head}`);
-  if (git(["status", "--porcelain", "--untracked-files=no"])) throw new Error("client browser evidence requires a clean tracked worktree");
+  if (git(["status", "--porcelain"])) {
+    throw new Error("client browser evidence requires a completely clean worktree, including untracked files, before exact-SHA build execution");
+  }
 
   const hooks = installRepositoryTypeScriptRuntime();
   try {
@@ -85,7 +97,13 @@ async function main() {
     const requestId = `passport-${projectId}-${sourceRevision.slice(0, 12)}`;
     const build = await buildTarget(repositoryRoot, project, sourceRevision, `${requestId}-build`);
     if (!build.manifest) {
-      throw new Error(build.unavailableReason ? `exact-SHA client build unavailable: ${build.unavailableReason}` : `exact-SHA client build failed with exit ${build.exitCode ?? "unknown"}`);
+      const buildLog = await readFile(build.logPath).catch(() => Buffer.alloc(0));
+      if (buildLog.byteLength) await writeFile(join(captureRoot, "build-failure.log"), buildLog);
+      const excerpt = buildErrorExcerpt(buildLog);
+      const reason = build.unavailableReason
+        ? `exact-SHA client build unavailable: ${build.unavailableReason}`
+        : `exact-SHA client build failed with exit ${build.exitCode ?? "unknown"}`;
+      throw new Error(excerpt ? `${reason}\nBuild log tail:\n${excerpt}` : reason);
     }
     if (!(await validateBuildManifest(repositoryRoot, project, sourceRevision, build.manifest))) {
       throw new Error("exact-SHA client build manifest failed integrity validation");
