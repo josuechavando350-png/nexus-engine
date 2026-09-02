@@ -67,14 +67,14 @@
     {
       "id": "offer-webs",
       "text": "Nexus Bot Studio ofrece Webs Premium.",
-      "kind": "FACT",
+      "kind": "OFFER",
       "evidenceIds": ["site-home"],
       "volatile": false
     },
     {
       "id": "offer-agents",
       "text": "Nexus Bot Studio ofrece Agentes de IA y chatbots empresariales.",
-      "kind": "FACT",
+      "kind": "OFFER",
       "evidenceIds": ["site-home"],
       "volatile": false
     },
@@ -100,12 +100,7 @@
       "volatile": false
     }
   ],
-  "questions": [
-    "¿Qué ofrece Nexus Bot Studio?",
-    "¿Qué evidencia pública respalda sus Webs Premium?",
-    "¿Qué es el motor NEXUS?",
-    "¿La capa generativa garantiza recomendaciones de IAs externas?"
-  ],
+  "questions": [],
   "originalContributions": [
     {
       "id": "reference-engine",
