@@ -40,49 +40,64 @@ describe("repository source cleanliness", () => {
     mkdirSync(join(root, "artifacts", "browser-capture"), { recursive: true });
     writeFileSync(join(root, "artifacts", "browser-capture", "evidence.json"), "{}\n");
 
-    const inspection = inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["artifacts"] });
+    const inspection = inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["artifacts/browser-capture"] });
     expect(inspection.clean).toBe(true);
     expect(inspection.trackedChanges).toEqual([]);
     expect(inspection.disallowedUntrackedPaths).toEqual([]);
     expect(inspection.allowedUntrackedPaths).toEqual(["artifacts/browser-capture/evidence.json"]);
-    expect(() => assertRepositorySourceClean(root, { allowedUntrackedRoots: ["artifacts"] })).not.toThrow();
+    expect(() => assertRepositorySourceClean(root, { allowedUntrackedRoots: ["artifacts/browser-capture"] })).not.toThrow();
+  });
+
+  it("allows the decision-trace namespace without trusting sibling artifact namespaces", () => {
+    const root = createRepository();
+    mkdirSync(join(root, "artifacts", "decision-trace"), { recursive: true });
+    mkdirSync(join(root, "artifacts", "unrelated"), { recursive: true });
+    writeFileSync(join(root, "artifacts", "decision-trace", "client-a.json"), "{}\n");
+    writeFileSync(join(root, "artifacts", "unrelated", "payload.json"), "{}\n");
+
+    const inspection = inspectRepositorySourceCleanliness(root, {
+      allowedUntrackedRoots: ["artifacts/browser-capture", "artifacts/decision-trace"],
+    });
+    expect(inspection.clean).toBe(false);
+    expect(inspection.allowedUntrackedPaths).toEqual(["artifacts/decision-trace/client-a.json"]);
+    expect(inspection.disallowedUntrackedPaths).toEqual(["artifacts/unrelated/payload.json"]);
   });
 
   it("rejects arbitrary untracked source even when governed evidence also exists", () => {
     const root = createRepository();
-    mkdirSync(join(root, "artifacts"), { recursive: true });
-    writeFileSync(join(root, "artifacts", "decision.json"), "{}\n");
+    mkdirSync(join(root, "artifacts", "decision-trace"), { recursive: true });
+    writeFileSync(join(root, "artifacts", "decision-trace", "decision.json"), "{}\n");
     writeFileSync(join(root, "apps", "client-a", "untracked.ts"), "export const injected = true;\n");
 
-    const inspection = inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["artifacts"] });
+    const inspection = inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["artifacts/decision-trace"] });
     expect(inspection.clean).toBe(false);
-    expect(inspection.allowedUntrackedPaths).toEqual(["artifacts/decision.json"]);
+    expect(inspection.allowedUntrackedPaths).toEqual(["artifacts/decision-trace/decision.json"]);
     expect(inspection.disallowedUntrackedPaths).toEqual(["apps/client-a/untracked.ts"]);
-    expect(() => assertRepositorySourceClean(root, { allowedUntrackedRoots: ["artifacts"], context: "decision trace source" }))
+    expect(() => assertRepositorySourceClean(root, { allowedUntrackedRoots: ["artifacts/decision-trace"], context: "decision trace source" }))
       .toThrow(/untracked source paths: apps\/client-a\/untracked\.ts/);
   });
 
   it("rejects tracked source modifications regardless of allowed evidence roots", () => {
     const root = createRepository();
-    mkdirSync(join(root, "artifacts"), { recursive: true });
-    writeFileSync(join(root, "artifacts", "evidence.json"), "{}\n");
+    mkdirSync(join(root, "artifacts", "browser-capture"), { recursive: true });
+    writeFileSync(join(root, "artifacts", "browser-capture", "evidence.json"), "{}\n");
     writeFileSync(join(root, "apps", "client-a", "source.ts"), "export const value = 2;\n");
 
-    const inspection = inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["artifacts"] });
+    const inspection = inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["artifacts/browser-capture"] });
     expect(inspection.clean).toBe(false);
     expect(inspection.trackedChanges.length).toBeGreaterThan(0);
     expect(inspection.disallowedUntrackedPaths).toEqual([]);
-    expect(() => assertRepositorySourceClean(root, { allowedUntrackedRoots: ["artifacts"] })).toThrow(/tracked changes:/);
+    expect(() => assertRepositorySourceClean(root, { allowedUntrackedRoots: ["artifacts/browser-capture"] })).toThrow(/tracked changes:/);
   });
 
   it("uses path-segment-aware allowlisting and refuses repository-root allowlists", () => {
     const root = createRepository();
-    mkdirSync(join(root, "artifacts-escape"), { recursive: true });
-    writeFileSync(join(root, "artifacts-escape", "payload.json"), "{}\n");
+    mkdirSync(join(root, "artifacts", "browser-capture-escape"), { recursive: true });
+    writeFileSync(join(root, "artifacts", "browser-capture-escape", "payload.json"), "{}\n");
 
-    const inspection = inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["artifacts"] });
+    const inspection = inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["artifacts/browser-capture"] });
     expect(inspection.clean).toBe(false);
-    expect(inspection.disallowedUntrackedPaths).toEqual(["artifacts-escape/payload.json"]);
+    expect(inspection.disallowedUntrackedPaths).toEqual(["artifacts/browser-capture-escape/payload.json"]);
     expect(() => inspectRepositorySourceCleanliness(root, { allowedUntrackedRoots: ["."] })).toThrow(/equals repository root/);
   });
 });
