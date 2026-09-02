@@ -57,6 +57,8 @@ jobs:
         run: pnpm test
       - name: Hermetic SHA-bound build
         run: pnpm build
+      - name: Exact-SHA client decision provenance
+        run: pnpm decisions:trace
       - name: Real browser tests
         run: pnpm test:browser
       - name: V3 runtime boundary
