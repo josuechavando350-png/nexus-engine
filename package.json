@@ -32,7 +32,7 @@
     "verify:speculative-delivery": "pnpm --filter @nexus/transport-http3 build && node scripts/verify-speculative-delivery.mjs",
     "verify:googlebot-render": "pnpm --filter @nexus/capture build && node scripts/verify-googlebot-render.mjs",
     "verify:screen-reader": "pnpm --filter @nexus/capture build && node scripts/verify-screen-reader.mjs",
-    "release:validate": "pnpm security-hygiene && pnpm v3-gates && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm operability:h07 && pnpm third-party-proof",
+    "release:validate": "pnpm security-hygiene && pnpm v3-gates && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm decisions:trace && pnpm test:browser && pnpm operability:h07 && pnpm third-party-proof",
     "v3-gates": "node scripts/run-v3-gates.mjs",
     "rust:test": "cargo test --locked --workspace --manifest-path runtime/Cargo.toml",
     "rust:lint": "cargo clippy --locked --all-targets --manifest-path runtime/Cargo.toml -- -D warnings",
