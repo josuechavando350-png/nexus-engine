@@ -36,8 +36,6 @@ jobs:
           test "$actual" = "$NEXUS_VALIDATED_SHA" || exit 1
           test -z "$(git status --porcelain)"
           git show-ref --verify --quiet refs/remotes/origin/main
-          mkdir -p artifacts/browser-capture
-          printf '%s\n' "$actual" > artifacts/browser-capture/validated-source-sha.txt
 
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -67,6 +65,16 @@ jobs:
             test "$attempt" -lt 3 || exit 1
             sleep $((attempt * 15))
           done
+
+      - name: Capture CANO from exact-SHA governed build
+        run: node scripts/client-browser-evidence.mjs "$NEXUS_PASSPORT_PROJECT_ID"
+
+      - name: Record validated source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$NEXUS_CAPTURE_EVIDENCE_DIR"
+          printf '%s\n' "$NEXUS_VALIDATED_SHA" > "$NEXUS_CAPTURE_EVIDENCE_DIR/validated-source-sha.txt"
 
       - name: Install perceptual comparison tooling
         shell: bash
@@ -112,9 +120,6 @@ jobs:
 
       - name: Prove comparator stable scene identity in Chromium
         run: NEXUS_NATIVE_VISUAL_PROOF=1 pnpm exec vitest run packages/capture-visual-regression-v2/src/runtime.native.test.ts --testTimeout=180000
-
-      - name: Capture CANO from exact-SHA governed build
-        run: node scripts/client-browser-evidence.mjs "$NEXUS_PASSPORT_PROJECT_ID"
 
       - name: Verify persisted evidence
         shell: bash
