@@ -5,6 +5,12 @@ import { execFileSync } from "node:child_process";
 import { lstat, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  REQUIRED_CLIENT_BROWSER_VIEWPORTS as REQUIRED_VIEWPORTS,
+  parsePngDimensions,
+  sealClientBrowserEvidence,
+  verifyClientBrowserEvidenceSeal,
+} from "./client-browser-evidence-contract.mjs";
 import { prepareProjectCaptureRuntime } from "./project-capture-runtime.mjs";
 import { installRepositoryTypeScriptRuntime } from "./typescript-source-runtime.mjs";
 
@@ -12,11 +18,6 @@ const SHA1 = /^[a-f0-9]{40}$/;
 const SHA256 = /^[a-f0-9]{64}$/;
 const PROJECT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const MAX_BUILD_ERROR_EXCERPT_BYTES = 4096;
-const REQUIRED_VIEWPORTS = Object.freeze([
-  Object.freeze({ name: "mobile-390", width: 390, height: 844 }),
-  Object.freeze({ name: "tablet-768", width: 768, height: 1024 }),
-  Object.freeze({ name: "desktop-1440", width: 1440, height: 1200 }),
-]);
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const normalizePath = (path) => path.split(sep).join("/");
@@ -24,12 +25,6 @@ const sha256 = (bytes) => createHash("sha256").update(bytes).digest("hex");
 
 function git(args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
-}
-
-function canonicalEvidencePayload(value) {
-  const { manifestSha256: _manifestSha256, ...payload } = value;
-  void _manifestSha256;
-  return JSON.stringify(payload);
 }
 
 function sanitizeTerminalText(value) {
@@ -47,19 +42,6 @@ function buildErrorExcerpt(bytes) {
     .subarray(Math.max(0, bytes.byteLength - MAX_BUILD_ERROR_EXCERPT_BYTES))
     .toString("utf8"))
     .trim();
-}
-
-export function sealClientBrowserEvidence(payload) {
-  return Object.freeze({
-    ...payload,
-    manifestSha256: sha256(Buffer.from(JSON.stringify(payload), "utf8")),
-  });
-}
-
-export function verifyClientBrowserEvidenceSeal(manifest) {
-  if (!manifest || typeof manifest !== "object" || Array.isArray(manifest)) return false;
-  if (!SHA256.test(manifest.manifestSha256 ?? "")) return false;
-  return sha256(Buffer.from(canonicalEvidencePayload(manifest), "utf8")) === manifest.manifestSha256;
 }
 
 async function confinedRegularFile(path, root, label) {
@@ -150,14 +132,19 @@ async function main() {
       const declaredDigest = String(artifact.digest ?? "").replace(/^sha256:/, "");
       if (!SHA256.test(declaredDigest) || declaredDigest !== observedDigest) throw new Error(`screenshot ${viewport.name} digest does not match persisted bytes`);
       if (artifact.byteLength !== bytes.byteLength) throw new Error(`screenshot ${viewport.name} byte length does not match persisted bytes`);
-      const width = Number(artifact.metadata?.width);
-      const height = Number(artifact.metadata?.height);
-      if (width !== viewport.width || height !== viewport.height) throw new Error(`screenshot ${viewport.name} viewport metadata is inconsistent`);
+      const viewportWidth = Number(artifact.metadata?.width);
+      const viewportHeight = Number(artifact.metadata?.height);
+      if (viewportWidth !== viewport.width || viewportHeight !== viewport.height) throw new Error(`screenshot ${viewport.name} viewport metadata is inconsistent`);
+      const imageDimensions = parsePngDimensions(bytes, `screenshot ${viewport.name}`);
+      if (imageDimensions.width !== viewport.width) throw new Error(`screenshot ${viewport.name} full-page PNG width does not match viewport`);
+      if (imageDimensions.height < viewport.height) throw new Error(`screenshot ${viewport.name} full-page PNG is shorter than viewport`);
       captures.push(Object.freeze({
         browser: "chromium",
         viewport: viewport.name,
-        width,
-        height,
+        viewportWidth,
+        viewportHeight,
+        imageWidth: imageDimensions.width,
+        imageHeight: imageDimensions.height,
         path: normalizePath(relative(repositoryRoot, fileReal)),
         byteLength: bytes.byteLength,
         sha256: observedDigest,
