@@ -53,12 +53,12 @@ async function confinedRegularFile(root, candidate, label) {
   return fileReal;
 }
 
-function parsePngDimensions(bytes, label) {
+export function parsePngDimensions(bytes, label = "PNG") {
   if (bytes.length < 24 || !bytes.subarray(0, 8).equals(PNG_SIGNATURE)) throw new Error(`${label} is not a valid PNG header`);
   const width = bytes.readUInt32BE(16);
   const height = bytes.readUInt32BE(20);
   if (width <= 0 || height <= 0) throw new Error(`${label} has invalid PNG dimensions`);
-  return { width, height };
+  return Object.freeze({ width, height });
 }
 
 function verifyBuildManifest(buildManifest, evidence, projectId, sourceRevision) {
@@ -123,12 +123,18 @@ export async function inspectClientBrowserEvidence(repositoryRoot, projectId, so
     const capture = matches[0];
     if (seen.has(capture.viewport)) throw new Error(`browser evidence duplicates viewport ${capture.viewport}`);
     seen.add(capture.viewport);
-    if (capture.width !== expected.width || capture.height !== expected.height) throw new Error(`browser evidence metadata does not match viewport ${expected.name}`);
+    if (capture.viewportWidth !== expected.width || capture.viewportHeight !== expected.height) {
+      throw new Error(`browser evidence viewport metadata does not match ${expected.name}`);
+    }
     if (typeof capture.path !== "string" || !capture.path.trim()) throw new Error(`browser evidence ${expected.name} is missing its file path`);
     const captureReal = await confinedRegularFile(captureRoot, resolve(repositoryRoot, capture.path), `browser evidence ${expected.name}`);
     const bytes = await readFile(captureReal);
     const dimensions = parsePngDimensions(bytes, `browser evidence ${expected.name}`);
-    if (dimensions.width !== expected.width || dimensions.height !== expected.height) throw new Error(`browser evidence PNG dimensions do not match viewport ${expected.name}`);
+    if (capture.imageWidth !== dimensions.width || capture.imageHeight !== dimensions.height) {
+      throw new Error(`browser evidence image metadata does not match persisted PNG dimensions for ${expected.name}`);
+    }
+    if (dimensions.width !== expected.width) throw new Error(`browser evidence PNG width does not match viewport ${expected.name}`);
+    if (dimensions.height < expected.height) throw new Error(`browser evidence full-page PNG is shorter than viewport ${expected.name}`);
     const digest = sha256(bytes);
     if (!SHA256.test(capture.sha256 ?? "") || capture.sha256 !== digest) throw new Error(`browser evidence ${expected.name} digest does not match persisted bytes`);
     if (capture.byteLength !== bytes.byteLength) throw new Error(`browser evidence ${expected.name} byte length does not match persisted bytes`);
@@ -138,7 +144,7 @@ export async function inspectClientBrowserEvidence(repositoryRoot, projectId, so
   return Object.freeze({
     id: "browser-capture",
     status: "PASS",
-    detail: `verified exact-SHA ${projectId} Chromium browser evidence at 390, 768 and 1440 widths against build ${manifest.build.outputDigest}`,
+    detail: `verified exact-SHA ${projectId} Chromium full-page browser evidence at 390, 768 and 1440 viewport widths against build ${manifest.build.outputDigest}`,
     evidenceIds: Object.freeze(evidenceIds),
   });
 }
