@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 2,
+  "authority": "NEXUS_CLIENT_DECISION_MANIFEST_V2",
+  "projectId": "cano-penal",
+  "route": "/",
+  "entries": [
+    {
+      "elementId": "hero",
+      "property": "audit-role",
+      "value": "primary-route-entry",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "The primary route entry carries the positioning statement and the first consultation actions, so it is delivery-critical and must remain explicitly traceable."
+    },
+    {
+      "elementId": "hero-contact-cta",
+      "property": "audit-role",
+      "value": "primary-consultation-action",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "This action routes the user from the primary route entry to the contact surface and is therefore a delivery-critical conversion decision."
+    },
+    {
+      "elementId": "hero-diagnostic-cta",
+      "property": "audit-role",
+      "value": "paid-diagnostic-action",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "This action exposes the paid diagnostic path from the primary route entry and must be independently traceable from the general contact action."
+    },
+    {
+      "elementId": "situations",
+      "property": "audit-role",
+      "value": "initial-situation-routing",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "The section separates urgent and non-urgent user situations into distinct next actions, making it a functional route-decision surface."
+    },
+    {
+      "elementId": "defense-positioning",
+      "property": "audit-role",
+      "value": "service-positioning-evidence",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "The section states specialization, personal handling, proximity and prior authority experience, so its presence materially supports the service positioning."
+    },
+    {
+      "elementId": "trajectory-metrics",
+      "property": "audit-role",
+      "value": "trajectory-and-metrics-evidence",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "The section combines the trajectory narrative with quantitative practice indicators and therefore forms a distinct evidence surface."
+    },
+    {
+      "elementId": "practice-areas",
+      "property": "audit-role",
+      "value": "practice-area-navigation",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "The section is the route-level index into the legal service areas and must remain traceable as navigation rather than decorative content."
+    },
+    {
+      "elementId": "case-evidence",
+      "property": "audit-role",
+      "value": "case-experience-evidence",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "The section exposes selected case narratives as experience evidence and is a separate delivery claim surface from general positioning."
+    },
+    {
+      "elementId": "paid-advisory",
+      "property": "audit-role",
+      "value": "paid-service-offer",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "The section presents a named paid service and price, so it is a commercially material surface that requires explicit provenance."
+    },
+    {
+      "elementId": "contact",
+      "property": "audit-role",
+      "value": "contact-and-location-surface",
+      "authority": "ENGINE_RULE",
+      "authorityRef": "NEXUS_CLIENT_DECISION_PROVENANCE_V2",
+      "rationale": "The section contains the office location, direct contact channels, message fields and map access, making it the final route-level contact surface."
+    }
+  ]
+}
