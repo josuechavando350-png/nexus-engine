@@ -6,6 +6,7 @@ import { buildTarget, validateBuildManifest } from "../packages/mcp-server/src/b
 import { captureProjectEvidence } from "../packages/mcp-server/src/capture.ts";
 import { runProcess, runReadOnly } from "../packages/mcp-server/src/process.ts";
 import { judgeVisualEvidence } from "../packages/quality/visual-judge.ts";
+import { prepareProjectCaptureRuntime } from "./project-capture-runtime.mjs";
 import { createProductionRedTeamAdapter } from "./nexus-client-red-team-runtime.mjs";
 import { createProductionQualityCycleAdapter } from "./nexus-client-quality-cycle-runtime.mjs";
 import { loadCommittedVisualReview, evaluateDigestBoundVisualReview } from "./nexus-client-visual-review.mjs";
@@ -56,7 +57,11 @@ export async function createWorkspaceClientRuntimeAdapters(spec, options = {}) {
   const visualJudgeEvaluator = options.visualJudge ?? judgeVisualEvidence;
   const reviewReader = options.readReviewFile ?? ((path) => readFile(path, "utf8"));
   const prepareCapture = options.prepareCapture ?? (async () => {
-    await runProcess("pnpm", ["--filter", "@nexus/capture...", "build"], { cwd: root, timeoutMs: 15 * 60_000, maxOutputBytes: 8 * 1024 * 1024 });
+    await prepareProjectCaptureRuntime(root, {
+      runner: async (command, args, cwd) => {
+        await runProcess(command, args, { cwd, timeoutMs: 15 * 60_000, maxOutputBytes: 8 * 1024 * 1024 });
+      },
+    });
   });
 
   const projects = await projectsReader(root);

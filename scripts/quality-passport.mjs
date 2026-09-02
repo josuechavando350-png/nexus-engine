@@ -7,14 +7,10 @@ import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises"
 import { createServer } from "node:net";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { inspectClientBrowserEvidence } from "./client-browser-evidence-contract.mjs";
 
 const SHA1 = /^[a-f0-9]{40}$/;
 const PROJECT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const BROWSER_CAPTURES = Object.freeze([
-  ["mobile-390.png", 390],
-  ["tablet-768.png", 768],
-  ["desktop-1440.png", 1440],
-]);
 const REQUIRED_SECURITY_HEADERS = Object.freeze([
   ["x-content-type-options", "nosniff"],
   ["referrer-policy", "strict-origin-when-cross-origin"],
@@ -81,24 +77,8 @@ async function runGate({ id, command, args, repositoryRoot, evidenceDirectory })
   });
 }
 
-export async function inspectBrowserCapture(repositoryRoot, projectId) {
-  const captureRoot = join(repositoryRoot, "artifacts", "browser-capture", projectId);
-  const files = await Promise.all(BROWSER_CAPTURES.map(async ([name, width]) => {
-    const path = join(captureRoot, name);
-    const bytes = await readFile(path).catch(() => null);
-    if (!bytes) return null;
-    const png = bytes.length >= 24 && bytes.subarray(1, 4).toString("ascii") === "PNG";
-    return { path, expectedWidth: width, actualWidth: png ? bytes.readUInt32BE(16) : null };
-  }));
-  if (files.some((file) => file === null)) return null;
-  const captures = files.filter(Boolean);
-  const passed = captures.every((capture) => capture.actualWidth === capture.expectedWidth);
-  return Object.freeze({
-    id: "browser-capture",
-    status: passed ? "PASS" : "FAIL",
-    detail: passed ? "verified CANO browser captures at widths 390, 768 and 1440" : "browser capture PNG dimensions do not match the required widths",
-    evidenceIds: Object.freeze(await Promise.all(captures.map((capture) => evidenceId(repositoryRoot, capture.path)))),
-  });
+export async function inspectBrowserCapture(repositoryRoot, projectId, sourceRevision) {
+  return inspectClientBrowserEvidence(repositoryRoot, projectId, sourceRevision);
 }
 
 export async function inspectOperability(repositoryRoot, sourceRevision) {
@@ -292,7 +272,7 @@ async function main() {
 
   checks.push(await inspectBuiltAppSecurityHeaders(repositoryRoot, appManifest, sourceRevision, evidenceDirectory));
 
-  const browserCapture = await inspectBrowserCapture(repositoryRoot, projectId);
+  const browserCapture = await inspectBrowserCapture(repositoryRoot, projectId, sourceRevision);
   if (browserCapture) checks.push(browserCapture);
   const operability = await inspectOperability(repositoryRoot, sourceRevision);
   if (operability) checks.push(operability);
