@@ -11,7 +11,10 @@ import { installRepositoryTypeScriptRuntime } from "./typescript-source-runtime.
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const outputDir = join(repositoryRoot, "artifacts", "decision-trace");
 const SHA1 = /^[a-f0-9]{40}$/;
-const GOVERNED_DERIVED_ROOTS = Object.freeze(["artifacts"]);
+const GOVERNED_DERIVED_ROOTS = Object.freeze([
+  "artifacts/browser-capture",
+  "artifacts/decision-trace",
+]);
 
 function git(args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
