@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "CANO Estrategia Penal — sitio de producción sobre NEXUS.",
+  "nexus": {
+    "clientProject": true
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
