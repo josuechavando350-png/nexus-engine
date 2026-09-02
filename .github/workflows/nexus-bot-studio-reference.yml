@@ -57,6 +57,16 @@ jobs:
           --url "$TARGET_URL"
           --output artifacts/nexus-bot-studio-reference/runtime-audit.json
 
+      - name: Lint evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          pnpm lint > artifacts/nexus-bot-studio-reference/lint.log 2>&1
+          code=$?
+          cat artifacts/nexus-bot-studio-reference/lint.log
+          exit "$code"
+
       - name: Nexus governed quality gates
         if: always()
         run: pnpm quality-gates
