@@ -5,6 +5,7 @@ import { execFileSync } from "node:child_process";
 import { lstat, mkdir, readFile, realpath, rm, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { prepareProjectCaptureRuntime } from "./project-capture-runtime.mjs";
 import { installRepositoryTypeScriptRuntime } from "./typescript-source-runtime.mjs";
 
 const SHA1 = /^[a-f0-9]{40}$/;
@@ -31,12 +32,20 @@ function canonicalEvidencePayload(value) {
   return JSON.stringify(payload);
 }
 
+function sanitizeTerminalText(value) {
+  let printable = "";
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (code === 9 || code === 10 || code === 13 || code >= 32) printable += character;
+  }
+  return printable.replace(/\[[0-9;?]*[A-Za-z]/g, "");
+}
+
 function buildErrorExcerpt(bytes) {
   if (!bytes?.byteLength) return "";
-  return bytes
+  return sanitizeTerminalText(bytes
     .subarray(Math.max(0, bytes.byteLength - MAX_BUILD_ERROR_EXCERPT_BYTES))
-    .toString("utf8")
-    .replace(/\u001b\[[0-9;]*m/g, "")
+    .toString("utf8"))
     .trim();
 }
 
@@ -75,6 +84,11 @@ async function main() {
     throw new Error("client browser evidence requires a completely clean worktree, including untracked files, before exact-SHA build execution");
   }
 
+  await prepareProjectCaptureRuntime(repositoryRoot);
+  if (git(["status", "--porcelain"])) {
+    throw new Error("project capture runtime preparation modified repository source bytes; exact-SHA evidence requires source to remain clean");
+  }
+
   const hooks = installRepositoryTypeScriptRuntime();
   try {
     const [{ readProjects }, { buildTarget, validateBuildManifest }, { captureProjectEvidence }] = await Promise.all([
@@ -91,8 +105,6 @@ async function main() {
     const captureRoot = join(repositoryRoot, "artifacts", "browser-capture", projectId);
     await rm(captureRoot, { recursive: true, force: true });
     await mkdir(captureRoot, { recursive: true });
-
-    execFileSync("pnpm", ["--filter", "@nexus/capture...", "build"], { cwd: repositoryRoot, stdio: "inherit" });
 
     const requestId = `passport-${projectId}-${sourceRevision.slice(0, 12)}`;
     const build = await buildTarget(repositoryRoot, project, sourceRevision, `${requestId}-build`);
