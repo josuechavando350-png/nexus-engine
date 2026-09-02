@@ -8,6 +8,7 @@ import { createServer } from "node:net";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { inspectClientBrowserEvidence } from "./client-browser-evidence-contract.mjs";
+import { inspectClientDecisionPassportEvidence } from "./client-decision-passport-contract.mjs";
 
 const SHA1 = /^[a-f0-9]{40}$/;
 const PROJECT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -245,6 +246,7 @@ async function main() {
   const appRoot = join(repositoryRoot, "apps", projectId);
   const appManifest = JSON.parse(await readFile(join(appRoot, "package.json"), "utf8"));
   if (!appManifest.private) throw new Error(`apps/${projectId} must be a private monorepo app`);
+  const isClientProject = appManifest?.nexus?.clientProject === true;
 
   const sourceRevision = execFileSync("git", ["rev-parse", "HEAD"], { cwd: repositoryRoot, encoding: "utf8" }).trim();
   if (!SHA1.test(sourceRevision)) throw new Error("git rev-parse HEAD must return 40 lowercase hexadecimal characters");
@@ -273,7 +275,15 @@ async function main() {
   checks.push(await inspectBuiltAppSecurityHeaders(repositoryRoot, appManifest, sourceRevision, evidenceDirectory));
 
   const browserCapture = await inspectBrowserCapture(repositoryRoot, projectId, sourceRevision);
+  if (isClientProject && !browserCapture) throw new Error(`CLIENT Quality Passport requires exact-SHA browser evidence for ${projectId}`);
   if (browserCapture) checks.push(browserCapture);
+
+  const decisionEvidence = isClientProject
+    ? await inspectClientDecisionPassportEvidence(repositoryRoot, projectId, sourceRevision)
+    : null;
+  if (isClientProject && !decisionEvidence) throw new Error(`CLIENT Quality Passport requires rendered-DOM Decision Trace evidence for ${projectId}`);
+  if (decisionEvidence) checks.push(decisionEvidence.check);
+
   const operability = await inspectOperability(repositoryRoot, sourceRevision);
   if (operability) checks.push(operability);
 
@@ -288,6 +298,7 @@ async function main() {
     viewport: { width: 1440, height: 1200 },
     artifactHashes,
     checks,
+    ...(decisionEvidence ? { decisionTrace: decisionEvidence.trace } : {}),
   });
 
   if (!verifyQualityPassport(passport)) throw new Error("generated Quality Passport failed integrity verification");
