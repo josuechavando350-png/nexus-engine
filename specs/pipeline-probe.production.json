@@ -1,13 +1,13 @@
 {
-  "projectId": "cano-penal",
-  "outputDir": "apps/cano-penal",
+  "projectId": "pipeline-probe",
+  "outputDir": "apps/pipeline-probe",
   "locale": "es-MX",
   "runtime": {
-    "target": "cano-penal"
+    "target": "pipeline-probe"
   },
   "brief": {
     "version": 2,
-    "id": "cano-penal-production",
+    "id": "pipeline-probe-production",
     "brand": {
       "name": "CANO Estrategia Penal",
       "industry": "Derecho penal",
@@ -109,14 +109,14 @@
     {
       "id": "current-page-shell",
       "kind": "BASE_SHELL",
-      "filePath": "apps/cano-penal/src/app/page.tsx",
-      "expectedDigest": "sha256:a4bed29b84e439273c1a726aebf1646dc7fea10067f247ac414d7c5fa8006804",
-      "source": "apps/cano-penal/src/app/page.tsx"
+      "filePath": "apps/pipeline-probe/src/app/page.tsx",
+      "expectedDigest": "sha256:409d85aca92f566113465e4f5b61a436b3a563642ba80bef42fef941e36e1be8",
+      "source": "apps/pipeline-probe/src/app/page.tsx"
     },
     {
       "id": "hero-eduardo",
       "kind": "ASSET",
-      "filePath": "apps/cano-penal/public/media/hero-eduardo.jpg",
+      "filePath": "apps/pipeline-probe/public/media/hero-eduardo.jpg",
       "expectedDigest": "sha256:2b018670fc1ad02f612bd13a7c3eff351442721ac51b31fa549255b541e8c3e0",
       "source": "apps/cano-penal/src/app/page.tsx:23",
       "rights": "CLIENT_SUPPLIED",
@@ -125,7 +125,7 @@
     {
       "id": "eduardo-cano-desk",
       "kind": "ASSET",
-      "filePath": "apps/cano-penal/public/media/eduardo-cano-escritorio.jpg",
+      "filePath": "apps/pipeline-probe/public/media/eduardo-cano-escritorio.jpg",
       "expectedDigest": "sha256:c2f01018d086287e9f4a496ed93c9924d16dad7c8990f919b245208c5809d3b3",
       "source": "apps/cano-penal/src/app/page.tsx and apps/cano-penal/src/app/styles.css",
       "rights": "CLIENT_SUPPLIED",
@@ -134,7 +134,7 @@
     {
       "id": "audiencia-01",
       "kind": "ASSET",
-      "filePath": "apps/cano-penal/public/media/audiencia-01.jpg",
+      "filePath": "apps/pipeline-probe/public/media/audiencia-01.jpg",
       "expectedDigest": "sha256:5b926250f817304ee55e1b6faf43d51eb336d309ae0984a8620cb6fe16af0578",
       "source": "apps/cano-penal/src/app/page.tsx",
       "rights": "CLIENT_SUPPLIED",
@@ -212,7 +212,7 @@
   "mediaCandidates": [
     {
       "assetId": "hero-eduardo",
-      "filePath": "apps/cano-penal/public/media/hero-eduardo.jpg",
+      "filePath": "apps/pipeline-probe/public/media/hero-eduardo.jpg",
       "publicPath": "/media/hero-eduardo.jpg",
       "sourceDigest": "sha256:2b018670fc1ad02f612bd13a7c3eff351442721ac51b31fa549255b541e8c3e0",
       "source": "apps/cano-penal/src/app/page.tsx:23",
@@ -223,7 +223,7 @@
     },
     {
       "assetId": "eduardo-cano-desk",
-      "filePath": "apps/cano-penal/public/media/eduardo-cano-escritorio.jpg",
+      "filePath": "apps/pipeline-probe/public/media/eduardo-cano-escritorio.jpg",
       "publicPath": "/media/eduardo-cano-escritorio.jpg",
       "sourceDigest": "sha256:c2f01018d086287e9f4a496ed93c9924d16dad7c8990f919b245208c5809d3b3",
       "source": "apps/cano-penal/src/app/page.tsx and apps/cano-penal/src/app/styles.css",
@@ -234,7 +234,7 @@
     },
     {
       "assetId": "audiencia-01",
-      "filePath": "apps/cano-penal/public/media/audiencia-01.jpg",
+      "filePath": "apps/pipeline-probe/public/media/audiencia-01.jpg",
       "publicPath": "/media/audiencia-01.jpg",
       "sourceDigest": "sha256:5b926250f817304ee55e1b6faf43d51eb336d309ae0984a8620cb6fe16af0578",
       "source": "apps/cano-penal/src/app/page.tsx",
