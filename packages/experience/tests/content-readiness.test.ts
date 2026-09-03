@@ -23,6 +23,43 @@ async function fixture(name = "hero.png"): Promise<string> {
 }
 
 describe("evaluateContentReadiness", () => {
+  it.each([
+    "en todo momento",
+    "Todos los días",
+    "sobre todo",
+    "Toda persona merece una defensa",
+  ])("accepts normal Spanish copy containing %j", async (text) => {
+    const report = await evaluateContentReadiness({
+      policy: { requiredPhotoRoles: [], requiredCopyRoles: ["body"] },
+      photos: [],
+      copy: [{ role: "body", text, source: "client-approved-copy" }],
+    });
+
+    expect(report.verdict).toBe("PASS");
+    expect(report.findings).toHaveLength(0);
+  });
+
+  it.each([
+    "TODO: escribir esto",
+    "Lorem ipsum dolor sit amet",
+    "PLACEHOLDER",
+    "FIXME: replace draft",
+    "TBD",
+    "XXXX",
+    "HACK: temporary copy",
+    "Your company here",
+    "relleno relleno relleno relleno",
+  ])("rejects explicit placeholder copy %j", async (text) => {
+    const report = await evaluateContentReadiness({
+      policy: { requiredPhotoRoles: [], requiredCopyRoles: ["body"] },
+      photos: [],
+      copy: [{ role: "body", text, source: "draft-copy" }],
+    });
+
+    expect(report.verdict).toBe("FAIL");
+    expect(report.findings).toContainEqual(expect.objectContaining({ code: "COPY_PLACEHOLDER", role: "body" }));
+  });
+
   it("passes only when caller-required photo/copy roles exist with real readable evidence", async () => {
     const path = await fixture();
     const report = await evaluateContentReadiness({
