@@ -43,9 +43,9 @@ async function defaultCommittedFileReader(root, relativePath, sourceRevision, re
 
 function validateEnvelope(value, spec) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("red-team evidence envelope must be an object");
-  if (value.schemaVersion !== 1) throw new Error("red-team evidence schemaVersion must be 1");
+  if (value.schemaVersion !== 2) throw new Error("red-team evidence schemaVersion must be 2; schemaVersion 1 is rejected because sourceRevision must be supplied by the verified repository revision");
   if (value.projectId !== spec.projectId) throw new Error(`red-team evidence projectId ${value.projectId ?? "missing"} does not match ${spec.projectId}`);
-  if (value.sourceRevision !== spec.sourceRevision) throw new Error(`red-team evidence sourceRevision ${value.sourceRevision ?? "missing"} does not match ${spec.sourceRevision}`);
+  if (Object.hasOwn(value, "sourceRevision")) throw new Error("red-team evidence schema-v2 must not self-declare sourceRevision; commit identity is supplied by the verified repository revision");
   if (!value.creativeContract || typeof value.creativeContract !== "object") throw new Error("red-team evidence creativeContract is required");
   if (value.creativeContract.projectId !== spec.projectId) throw new Error("creativeContract projectId must match the active project");
   if (!Array.isArray(value.galleryReferences)) throw new Error("red-team evidence galleryReferences must be an array");
@@ -60,6 +60,14 @@ function validateEnvelope(value, spec) {
     if (value.excessRemoval.reviews !== undefined && !Array.isArray(value.excessRemoval.reviews)) throw new Error("excessRemoval reviews must be an array when supplied");
   }
   return value;
+}
+
+export async function loadCommittedRedTeamEvidence(input) {
+  const readOnly = input.readOnly ?? runReadOnly;
+  const committedFileReader = input.committedFileReader ?? ((root, path, sourceRevision) => defaultCommittedFileReader(root, path, sourceRevision, readOnly));
+  const committed = await committedFileReader(input.root, input.relativePath, input.sourceRevision);
+  const envelope = validateEnvelope(JSON.parse(committed.raw), { projectId: input.projectId });
+  return Object.freeze({ ...committed, envelope, sourceRevision: input.sourceRevision });
 }
 
 function validateReplacement(value, label) {
@@ -150,8 +158,14 @@ export function createProductionRedTeamAdapter(context, dependencies = {}) {
       if (git.headSha !== spec.sourceRevision) return gate("FAIL", `repository HEAD moved to ${git.headSha}; expected ${spec.sourceRevision}`);
       if (!git.clean) return gate("FAIL", "production Red Team requires a clean exact-SHA checkout");
 
-      const committed = await committedFileReader(root, spec.runtime.redTeamEvidenceFile, spec.sourceRevision);
-      const envelope = validateEnvelope(JSON.parse(committed.raw), spec);
+      const committed = await loadCommittedRedTeamEvidence({
+        root,
+        relativePath: spec.runtime.redTeamEvidenceFile,
+        projectId: spec.projectId,
+        sourceRevision: spec.sourceRevision,
+        committedFileReader,
+      });
+      const envelope = committed.envelope;
       const fingerprint = validateStyleFingerprintV2(envelope.fingerprint);
       if (fingerprint.subject !== spec.projectId) throw new Error(`current fingerprint subject ${fingerprint.subject} does not match ${spec.projectId}`);
       const priorFingerprints = Object.freeze(envelope.priorFingerprints.map((item) => validateStyleFingerprintV2(item)));
