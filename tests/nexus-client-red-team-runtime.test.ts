@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import type { CreativeContract } from "../packages/creative/critic/index.ts";
-import { createProductionRedTeamAdapter } from "../scripts/nexus-client-red-team-runtime.mjs";
+import { createProductionRedTeamAdapter, loadCommittedRedTeamEvidence } from "../scripts/nexus-client-red-team-runtime.mjs";
 
 const SHA = "a".repeat(40);
 const digest = (bytes: Uint8Array | string) => `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
@@ -57,9 +61,8 @@ const reference = (entryId: string) => ({
 
 function envelope(overrides: Record<string, unknown> = {}) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     projectId: "client",
-    sourceRevision: SHA,
     creativeContract: {
       schemaVersion: 1,
       projectId: "client",
@@ -180,6 +183,48 @@ function passingDependencies(bytes: Buffer, artifact: ReturnType<typeof designGe
 }
 
 describe("production client Red Team runtime", () => {
+  it("binds a committed schema-v2 envelope without sourceRevision to the verified Git HEAD", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nexus-red-team-evidence-"));
+    execFileSync("git", ["init", "-q"], { cwd: root });
+    execFileSync("git", ["config", "user.name", "NEXUS Test"], { cwd: root });
+    execFileSync("git", ["config", "user.email", "nexus-test@example.invalid"], { cwd: root });
+    await writeFile(join(root, "client-red-team.json"), `${JSON.stringify(envelope(), null, 2)}\n`);
+    execFileSync("git", ["add", "client-red-team.json"], { cwd: root });
+    execFileSync("git", ["commit", "-q", "-m", "test: commit red-team evidence"], { cwd: root });
+    const head = execFileSync("git", ["rev-parse", "HEAD"], { cwd: root, encoding: "utf8" }).trim();
+
+    const committed = await loadCommittedRedTeamEvidence({
+      root,
+      relativePath: "client-red-team.json",
+      projectId: "client",
+      sourceRevision: head,
+    });
+
+    expect(committed.envelope).not.toHaveProperty("sourceRevision");
+    expect(committed.sourceRevision).toBe(head);
+    expect(committed.blobSha).toMatch(/^[a-f0-9]{40}$/);
+  });
+
+  it("rejects a schema-v2 envelope that self-declares sourceRevision", async () => {
+    await expect(loadCommittedRedTeamEvidence({
+      root: "/repo",
+      relativePath: "evidence/client-red-team.json",
+      projectId: "client",
+      sourceRevision: SHA,
+      committedFileReader: async () => ({ raw: JSON.stringify(envelope({ sourceRevision: SHA })), digest: fixedDigest("3"), relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
+    })).rejects.toThrow(/must not self-declare sourceRevision/);
+  });
+
+  it("rejects legacy schemaVersion 1 explicitly", async () => {
+    await expect(loadCommittedRedTeamEvidence({
+      root: "/repo",
+      relativePath: "evidence/client-red-team.json",
+      projectId: "client",
+      sourceRevision: SHA,
+      committedFileReader: async () => ({ raw: JSON.stringify(envelope({ schemaVersion: 1 })), digest: fixedDigest("3"), relativePath: "evidence/client-red-team.json", blobSha: "b".repeat(40) }),
+    })).rejects.toThrow(/schemaVersion 1 is rejected/);
+  });
+
   it("executes real authorities, derives brand-swap critic input, and keeps Excess Removal NOT_TESTED when no candidates are configured", async () => {
     const { bytes, artifact } = designGenomeArtifact();
     const dependencies = passingDependencies(bytes, artifact, envelope());
@@ -245,7 +290,7 @@ describe("production client Red Team runtime", () => {
     expect(result.gate.detail).toContain("human review");
   });
 
-  it("fails before executing mutations when the committed envelope is bound to another SHA", async () => {
+  it("fails before executing mutations when the committed envelope self-declares a SHA", async () => {
     const runMutations = vi.fn();
     const adapter = createProductionRedTeamAdapter(context(), {
       git: async () => ({ branch: "audit", headSha: SHA, detached: false, clean: true, changedPaths: [], remoteUrl: null }),
@@ -254,7 +299,7 @@ describe("production client Red Team runtime", () => {
     });
     const result = await adapter({ capture: { evidence: { artifacts: [{ capability: "DESIGN_GENOME" }] } }, visualJudge: { gate: { verdict: "PASS" } } });
     expect(result.gate.verdict).toBe("FAIL");
-    expect(result.gate.detail).toContain("sourceRevision");
+    expect(result.gate.detail).toContain("must not self-declare sourceRevision");
     expect(runMutations).not.toHaveBeenCalled();
   });
 
