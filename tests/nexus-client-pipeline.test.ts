@@ -82,6 +82,18 @@ function syntheticAdapters() {
 }
 
 describe("NEXUS client pipeline", () => {
+  it("records the real content-readiness verdict instead of a premature PASS", async () => {
+    const spec = await fixtureSpec();
+    spec.copyAssets = [];
+
+    const result = await runNexusClientPipeline(spec);
+    const readinessStage = result.stageLog.find((stage: { stage: string }) => stage.stage === "CONTENT_READINESS");
+
+    expect(result.readiness.verdict).toBe("FAIL");
+    expect(readinessStage?.verdict).toBe(result.readiness.verdict);
+    expect(readinessStage?.verdict).not.toBe("PASS");
+  });
+
   it("executes through generation but blocks delivery when real quality adapters are unavailable", async () => {
     const result = await runNexusClientPipeline(await fixtureSpec());
     expect(result.generation.authority).toBe("NEXUS_MULTIPAGE_GENERATOR_V1");
