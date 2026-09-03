@@ -2,6 +2,9 @@
   "name": "@nexus/cano-penal",
   "version": "0.1.0",
   "private": true,
+  "nexus": {
+    "clientProject": true
+  },
   "description": "CANO Estrategia Penal — sitio de producción sobre NEXUS.",
   "scripts": {
     "dev": "next dev",
