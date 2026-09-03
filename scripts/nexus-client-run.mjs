@@ -57,7 +57,7 @@ async function main() {
   installRepositoryTypeScriptRuntime();
   const { runNexusClientPipelineWithWorkspaceRuntime } = await import("./nexus-client-pipeline.mjs");
   const result = await runNexusClientPipelineWithWorkspaceRuntime(spec, { runtimeOptions: { root: REPOSITORY_ROOT } });
-  process.stdout.write(`${JSON.stringify({ authority: result.authority, status: result.status, certification: result.certification, blocker: result.blocker }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ authority: result.authority, status: result.status, stageLog: result.stageLog, certification: result.certification, blocker: result.blocker }, null, 2)}\n`);
   process.exitCode = result.status === "CERTIFIED" ? 0 : 2;
 }
 
