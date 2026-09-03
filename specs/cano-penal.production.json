@@ -1,0 +1,260 @@
+{
+  "projectId": "cano-penal",
+  "outputDir": "apps/cano-penal",
+  "locale": "es-MX",
+  "runtime": {
+    "target": "cano-penal"
+  },
+  "brief": {
+    "version": 2,
+    "id": "cano-penal-production",
+    "brand": {
+      "name": "CANO Estrategia Penal",
+      "industry": "Derecho penal",
+      "positioning": "Defensa penal estratégica en Ciudad de México y asuntos del fuero común y federal, con experiencia previa dentro de la autoridad.",
+      "personality": [
+        "especializada",
+        "personal",
+        "cercana",
+        "directa",
+        "editorial"
+      ],
+      "audiences": [
+        "Personas que recibieron un citatorio de la Fiscalía o de un juez",
+        "Familiares de una persona detenida",
+        "Víctimas de un delito"
+      ]
+    },
+    "commercialGoal": "Facilitar que una persona con un asunto penal contacte al despacho para recibir diagnóstico y estrategia.",
+    "priorities": [
+      "Defensa penal especializada",
+      "Atención personal sin intermediarios",
+      "Comunicación constante sobre el caso",
+      "Fotografía documental real del cliente"
+    ],
+    "requiredCapabilityIds": [
+      "contact",
+      "whatsapp",
+      "gallery",
+      "location",
+      "map",
+      "forms",
+      "analytics",
+      "media"
+    ],
+    "assets": [
+      {
+        "id": "cano-logo",
+        "kind": "logo",
+        "status": "available",
+        "notes": "Logotipo CANO Estrategia Penal presente en el proyecto."
+      },
+      {
+        "id": "eduardo-cano-portrait",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Fotografía real de Eduardo Cano usada en la apertura."
+      },
+      {
+        "id": "eduardo-cano-desk",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Fotografía de Eduardo Cano en su escritorio."
+      },
+      {
+        "id": "hearing-photographs",
+        "kind": "photography",
+        "status": "available",
+        "notes": "Serie de cinco fotografías publicada en la sección de audiencias."
+      }
+    ],
+    "references": [],
+    "forbiddenPatterns": [],
+    "forbiddenWords": [],
+    "constraints": [
+      {
+        "id": "criminal-law-only",
+        "statement": "El despacho atiende exclusivamente materia penal y no debe presentarse como generalista.",
+        "source": "business",
+        "severity": "required"
+      },
+      {
+        "id": "personal-service",
+        "statement": "La estrategia y representación del caso son atendidas personalmente por Eduardo Cano, sin intermediarios.",
+        "source": "business",
+        "severity": "required"
+      },
+      {
+        "id": "client-photography",
+        "statement": "Conservar únicamente fotografías originales suministradas por el cliente, sin regeneración ni retoque.",
+        "source": "brand",
+        "severity": "required"
+      }
+    ]
+  },
+  "businessProfile": {
+    "businessType": "Despacho especializado en derecho penal",
+    "goals": [
+      "INQUIRE",
+      "TRUST",
+      "VISIT"
+    ],
+    "differentiators": [
+      "Especialización exclusiva en derecho penal",
+      "Atención personal del caso sin intermediarios",
+      "Experiencia previa dentro de la autoridad fiscal y financiera"
+    ]
+  },
+  "projectFiles": [
+    {
+      "id": "current-page-shell",
+      "kind": "BASE_SHELL",
+      "filePath": "apps/cano-penal/src/app/page.tsx",
+      "expectedDigest": "sha256:a4bed29b84e439273c1a726aebf1646dc7fea10067f247ac414d7c5fa8006804",
+      "source": "apps/cano-penal/src/app/page.tsx"
+    },
+    {
+      "id": "hero-eduardo",
+      "kind": "ASSET",
+      "filePath": "apps/cano-penal/public/media/hero-eduardo.jpg",
+      "expectedDigest": "sha256:2b018670fc1ad02f612bd13a7c3eff351442721ac51b31fa549255b541e8c3e0",
+      "source": "apps/cano-penal/src/app/page.tsx:23",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Retrato de Eduardo Cano de pie con los brazos cruzados."
+    },
+    {
+      "id": "eduardo-cano-desk",
+      "kind": "ASSET",
+      "filePath": "apps/cano-penal/public/media/eduardo-cano-escritorio.jpg",
+      "expectedDigest": "sha256:c2f01018d086287e9f4a496ed93c9924d16dad7c8990f919b245208c5809d3b3",
+      "source": "apps/cano-penal/src/app/page.tsx and apps/cano-penal/src/app/styles.css",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Eduardo Cano en su escritorio."
+    },
+    {
+      "id": "audiencia-01",
+      "kind": "ASSET",
+      "filePath": "apps/cano-penal/public/media/audiencia-01.jpg",
+      "expectedDigest": "sha256:5b926250f817304ee55e1b6faf43d51eb336d309ae0984a8620cb6fe16af0578",
+      "source": "apps/cano-penal/src/app/page.tsx",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Fotografía publicada en la sección «En sala, en cada audiencia»."
+    }
+  ],
+  "groundedFacts": [
+    {
+      "id": "brand-name",
+      "kind": "BRAND_NAME",
+      "value": "CANO Estrategia Penal",
+      "sourceId": "apps/cano-penal/src/app/content.ts#site.name"
+    },
+    {
+      "id": "business-type",
+      "kind": "BUSINESS_TYPE",
+      "value": "Despacho especializado en derecho penal",
+      "sourceId": "apps/cano-penal/src/app/page.tsx#especializacion"
+    },
+    {
+      "id": "service-location",
+      "kind": "LOCATION",
+      "value": "Ciudad de México",
+      "sourceId": "apps/cano-penal/src/app/content.ts#site.serviceArea"
+    },
+    {
+      "id": "office-address",
+      "kind": "ADDRESS",
+      "value": "World Trade Center Ciudad de México, Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX",
+      "sourceId": "apps/cano-penal/src/app/content.ts#site.address"
+    },
+    {
+      "id": "contact-phone",
+      "kind": "PHONE",
+      "value": "55 6050 1901",
+      "sourceId": "apps/cano-penal/src/app/content.ts#site.phoneDisplay"
+    },
+    {
+      "id": "authority-experience",
+      "kind": "PROOF",
+      "value": "Inicié en 2006 en el área de Delitos Fiscales y Financieros de la Procuraduría Fiscal de la Federación, y ascendí hasta dirigir esa misma área como Director de Investigaciones.",
+      "sourceId": "apps/cano-penal/src/app/content.ts#trajectory"
+    },
+    {
+      "id": "federal-trial-experience",
+      "kind": "PROOF",
+      "value": "Participé y gané los primeros juicios orales de defraudación fiscal a nivel nacional, con la sentencia de mayor cuantía a favor de la Secretaría de Hacienda.",
+      "sourceId": "apps/cano-penal/src/app/content.ts#trajectory"
+    },
+    {
+      "id": "criminal-law-specialization",
+      "kind": "DIFFERENTIATOR",
+      "value": "Soy abogado especialista en derecho penal. No soy generalista y aunque las conozco, no atiendo otras ramas del derecho.",
+      "sourceId": "apps/cano-penal/src/app/page.tsx#especializacion"
+    },
+    {
+      "id": "personal-case-handling",
+      "kind": "DIFFERENTIATOR",
+      "value": "Tu caso lo atiendo personalmente. La estrategia la diseño directamente, no la delego.",
+      "sourceId": "apps/cano-penal/src/app/page.tsx#personalizacion"
+    },
+    {
+      "id": "direct-communication",
+      "kind": "DIFFERENTIATOR",
+      "value": "No hay intermediarios. Mantengo comunicación constante para que sepas en todo momento qué sucede con tu caso.",
+      "sourceId": "apps/cano-penal/src/app/page.tsx#cercania"
+    },
+    {
+      "id": "primary-action",
+      "kind": "PRIMARY_ACTION_LABEL",
+      "value": "Hablemos de tu caso",
+      "sourceId": "apps/cano-penal/src/app/page.tsx#contacto"
+    }
+  ],
+  "mediaCandidates": [
+    {
+      "assetId": "hero-eduardo",
+      "filePath": "apps/cano-penal/public/media/hero-eduardo.jpg",
+      "publicPath": "/media/hero-eduardo.jpg",
+      "sourceDigest": "sha256:2b018670fc1ad02f612bd13a7c3eff351442721ac51b31fa549255b541e8c3e0",
+      "source": "apps/cano-penal/src/app/page.tsx:23",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Retrato de Eduardo Cano de pie con los brazos cruzados.",
+      "width": 2000,
+      "height": 1150
+    },
+    {
+      "assetId": "eduardo-cano-desk",
+      "filePath": "apps/cano-penal/public/media/eduardo-cano-escritorio.jpg",
+      "publicPath": "/media/eduardo-cano-escritorio.jpg",
+      "sourceDigest": "sha256:c2f01018d086287e9f4a496ed93c9924d16dad7c8990f919b245208c5809d3b3",
+      "source": "apps/cano-penal/src/app/page.tsx and apps/cano-penal/src/app/styles.css",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Eduardo Cano en su escritorio.",
+      "width": 1536,
+      "height": 1173
+    },
+    {
+      "assetId": "audiencia-01",
+      "filePath": "apps/cano-penal/public/media/audiencia-01.jpg",
+      "publicPath": "/media/audiencia-01.jpg",
+      "sourceDigest": "sha256:5b926250f817304ee55e1b6faf43d51eb336d309ae0984a8620cb6fe16af0578",
+      "source": "apps/cano-penal/src/app/page.tsx",
+      "rights": "CLIENT_SUPPLIED",
+      "observedContent": "Fotografía publicada en la sección «En sala, en cada audiencia».",
+      "width": 1536,
+      "height": 1119
+    }
+  ],
+  "actions": [
+    {
+      "capabilityId": "whatsapp",
+      "label": "Hablemos de tu caso",
+      "href": "https://wa.me/5215560501901",
+      "sourceId": "apps/cano-penal/src/app/content.ts#site.whatsapp",
+      "emphasis": "primary"
+    }
+  ],
+  "location": {
+    "address": "World Trade Center Ciudad de México, Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX",
+    "sourceId": "apps/cano-penal/src/app/content.ts#site.address"
+  }
+}
