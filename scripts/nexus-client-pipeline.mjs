@@ -83,31 +83,30 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
     stageLog.push(Object.freeze({ stage, detail, verdict }));
   };
 
-  record("BRIEF", "validating factual project brief");
   const brief = defineExperienceBrief(spec.brief);
+  record("BRIEF", "validated factual project brief", "PASS");
 
-  record("EVIDENCE", "ingesting source shell and authorized assets with exact digests");
   const ingestion = await ingestProjectFiles(spec.projectFiles ?? []);
+  record("EVIDENCE", "ingested source shell and authorized assets with exact digests", ingestion.verdict);
   if (ingestion.verdict !== "PASS") {
     return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, blocker: "project ingestion failed", certification: undefined });
   }
 
-  record("EXPERIENCE_DNA", "synthesizing ExperienceDNA from brief/reference/constraint evidence");
   const experience = synthesizeAutonomousExperience({ brief, businessProfile: spec.businessProfile });
   const experienceDigest = autonomousExperienceDigest(experience);
+  record("EXPERIENCE_DNA", "synthesized ExperienceDNA from brief/reference/constraint evidence", "PASS");
 
-  record("CONTENT_CONSTRAINTS", "deriving copy/media constraints from ExperienceDNA and business specificity");
   const contentConstraints = experience.contentConstraints;
   const contentInputs = resolveContentInputs(spec, contentConstraints);
+  record("CONTENT_CONSTRAINTS", "derived copy/media constraints from ExperienceDNA and business specificity", "PASS");
 
-  record("CONTENT_READINESS", "checking NEXUS-assigned copy/media provenance and required roles");
   const readiness = await evaluateContentReadiness({ policy: experience.readinessPolicy, photos: contentInputs.photos, copy: contentInputs.copyAssets });
+  record("CONTENT_READINESS", "checked NEXUS-assigned copy/media provenance and required roles", readiness.verdict);
   if (readiness.verdict !== "PASS") {
     return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, blocker: "content readiness did not PASS", certification: undefined });
   }
   assertGeneratedProvenance({ generatedMedia: contentInputs.generatedMedia, generatedCopy: contentInputs.generatedCopy, copyAssets: contentInputs.copyAssets, ingestion });
 
-  record("VISUAL_SCENE_MODEL", "deriving intrinsic layout from ExperienceDNA, generated content and authorized assets");
   const sceneStages = experience.plan.narrativeSequence.map((stage) => stage.stageId);
   const primaryStage = sceneStages[0];
   const evidenceStage = sceneStages[1] ?? primaryStage;
@@ -125,11 +124,10 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
     environment: spec.sceneEnvironment ?? { viewportWidth: 1440, zoom: 1, reducedMotion: false }
   });
   assertSceneHasNoSilentOverlap(sceneModel);
+  record("VISUAL_SCENE_MODEL", "derived intrinsic layout from ExperienceDNA, generated content and authorized assets", "PASS");
 
-  record("GENERATION", "generating multipage source constrained by ExperienceDNA");
   const emitterInput = deriveConstrainedEmitterInput({ dna: experience.dna, constraints: brief.constraints, projectSeed: spec.projectId });
 
-  record("EMITTER", "emitting identity tokens/CSS from ExperienceDNA and explicit color constraints");
   const emitted = await emitExperienceCss(emitterInput);
   const baseGeneration = emitMultipageNextApp({
     projectId: spec.projectId,
@@ -152,6 +150,8 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
     minimumReviewItems: spec.minimumReviewItems ?? 0,
   });
   if (spec.outputDir) await writeGeneratedFiles(spec.outputDir, generation);
+  record("GENERATION", "generated multipage sources constrained by ExperienceDNA", "PASS");
+  record("EMITTER", "emitted identity tokens/CSS from ExperienceDNA and explicit color constraints", "PASS");
 
   const readinessEvidence = [...readiness.copy.map((item) => item.digest), ...readiness.photos.map((item) => item.digest)];
   const provenanceEvidence = [
@@ -168,48 +168,54 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
 
   let renderResult;
   if (adapters.render) {
-    record("RENDER", "executing real render adapter");
     renderResult = await adapters.render({ spec, brief, experience, emitted, generation, ingestion });
-  } else record("RENDER", "real render adapter unavailable", "NOT_TESTED");
-  gates.push(normalizeQualityGate(renderResult, "RENDER"));
+  }
+  const renderGate = normalizeQualityGate(renderResult, "RENDER");
+  record("RENDER", renderResult ? "executed real render adapter" : "real render adapter unavailable", renderGate.verdict);
+  gates.push(renderGate);
 
   let captureResult;
   if (adapters.capture && renderResult?.gate?.verdict === "PASS") {
-    record("CAPTURE", "executing real browser capture adapter");
     captureResult = await adapters.capture({ spec, generation, render: renderResult });
-  } else record("CAPTURE", "real capture adapter unavailable or render did not PASS", "NOT_TESTED");
-  gates.push(normalizeQualityGate(captureResult, "CAPTURE"));
+  }
+  const captureGate = normalizeQualityGate(captureResult, "CAPTURE");
+  record("CAPTURE", captureResult ? "executed real browser capture adapter" : "real capture adapter unavailable or render did not PASS", captureGate.verdict);
+  gates.push(captureGate);
 
   let genomeResult;
   if (adapters.designGenome && captureResult?.gate?.verdict === "PASS") {
-    record("DESIGN_GENOME", "extracting measured design genome from rendered evidence");
     genomeResult = await adapters.designGenome({ spec, generation, capture: captureResult });
-  } else record("DESIGN_GENOME", "design genome adapter unavailable or capture did not PASS", "NOT_TESTED");
-  gates.push(normalizeQualityGate(genomeResult, "DESIGN_GENOME"));
+  }
+  const genomeGate = normalizeQualityGate(genomeResult, "DESIGN_GENOME");
+  record("DESIGN_GENOME", genomeResult ? "extracted measured design genome from rendered evidence" : "design genome adapter unavailable or capture did not PASS", genomeGate.verdict);
+  gates.push(genomeGate);
 
   let visualResult;
   if (adapters.visualJudge && captureResult?.gate?.verdict === "PASS" && genomeResult?.gate?.verdict === "PASS") {
-    record("VISUAL_JUDGE", "executing bound visual review over real evidence");
     visualResult = await adapters.visualJudge({ spec, brief, experience, generation, capture: captureResult, genome: genomeResult });
-  } else record("VISUAL_JUDGE", "real Visual Judge adapter unavailable or evidence prerequisites did not PASS", "NOT_TESTED");
-  gates.push(normalizeQualityGate(visualResult, "VISUAL_JUDGE"));
+  }
+  const visualGate = normalizeQualityGate(visualResult, "VISUAL_JUDGE");
+  record("VISUAL_JUDGE", visualResult ? "executed bound visual review over real evidence" : "real Visual Judge adapter unavailable or evidence prerequisites did not PASS", visualGate.verdict);
+  gates.push(visualGate);
 
   let redTeamResult;
   if (adapters.redTeam && visualResult?.gate?.verdict === "PASS") {
-    record("RED_TEAM", "executing complete adversarial NEXUS attack arena including Excess Removal evidence");
     redTeamResult = await adapters.redTeam({ spec, brief, experience, generation, capture: captureResult, visualJudge: visualResult });
-  } else record("RED_TEAM", "Red Team adapter unavailable or Visual Judge did not PASS", "NOT_TESTED");
-  gates.push(normalizeQualityGate(redTeamResult, "RED_TEAM"));
+  }
+  const redTeamGate = normalizeQualityGate(redTeamResult, "RED_TEAM");
+  record("RED_TEAM", redTeamResult ? "executed complete adversarial NEXUS attack arena including Excess Removal evidence" : "Red Team adapter unavailable or Visual Judge did not PASS", redTeamGate.verdict);
+  gates.push(redTeamGate);
 
   let repairResult;
   if (adapters.repairRejudge && redTeamResult?.gate?.verdict === "PASS") {
-    record("REPAIR_RECAPTURE_REJUDGE", "executing bounded repair/recapture/rejudge cycle");
     repairResult = await adapters.repairRejudge({ spec, brief, experience, generation, capture: captureResult, visualJudge: visualResult, redTeam: redTeamResult });
-  } else record("REPAIR_RECAPTURE_REJUDGE", "repair/rejudge adapter unavailable or Red Team did not PASS", "NOT_TESTED");
-  gates.push(normalizeQualityGate(repairResult, "REPAIR_REJUDGE"));
+  }
+  const repairGate = normalizeQualityGate(repairResult, "REPAIR_REJUDGE");
+  record("REPAIR_RECAPTURE_REJUDGE", repairResult ? "executed bounded repair/recapture/rejudge cycle" : "repair/rejudge adapter unavailable or Red Team did not PASS", repairGate.verdict);
+  gates.push(repairGate);
 
-  record("DELIVERY_CERTIFICATION", "evaluating fail-closed delivery certification");
   const certification = certifyQualityGatesForDelivery({ projectId: spec.projectId, sourceRevision: spec.sourceRevision, gates, visualJudge: visualResult?.report, redTeam: redTeamResult?.report, excessRemoval: redTeamResult?.excessRemoval, qualityCycle: repairResult?.report });
+  record("DELIVERY_CERTIFICATION", "evaluated fail-closed delivery certification", certification.verdict);
 
   return Object.freeze({ authority: "NEXUS_CLIENT_PIPELINE_V1", status: certification.certified ? "CERTIFIED" : "BLOCKED", stageLog: Object.freeze(stageLog), ingestion, experience, experienceDigest, copySynthesis: contentInputs.copySynthesis, mediaAssignment: contentInputs.mediaAssignment, readiness, sceneModel, emitted, generation, certification });
 }
