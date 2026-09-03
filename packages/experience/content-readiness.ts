@@ -100,10 +100,9 @@ function inspectImage(bytes: Uint8Array, filePath: string): { mediaType: "image/
 
 const PLACEHOLDER_PATTERNS = [
   /\blorem ipsum\b/i,
-  /\bplaceholder\b/i,
-  /\bcoming soon\b/i,
   /\byour (company|brand|product|text) here\b/i,
-  /\b(?:todo|tbd)\b/i,
+  /\b(?:TODO|FIXME|XXX|XXXX|HACK|TBD|PLACEHOLDER|COMING SOON)\b/,
+  /\b([\p{L}\p{N}]{2,})\b(?:\s+\1\b){3,}/iu,
 ];
 
 function normalizedRoles(values: readonly string[], field: string): readonly string[] {
