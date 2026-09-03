@@ -1,8 +1,11 @@
 {
-  "name": "@nexus/cano-penal",
+  "name": "@nexus/pipeline-probe",
   "version": "0.1.0",
   "private": true,
-  "description": "CANO Estrategia Penal — sitio de producción sobre NEXUS.",
+  "nexus": {
+    "clientProject": true
+  },
+  "description": "Disposable client project for exercising the NEXUS generative pipeline.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
