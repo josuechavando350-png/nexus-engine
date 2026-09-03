@@ -110,7 +110,7 @@
       "id": "current-page-shell",
       "kind": "BASE_SHELL",
       "filePath": "apps/pipeline-probe/src/app/page.tsx",
-      "expectedDigest": "sha256:409d85aca92f566113465e4f5b61a436b3a563642ba80bef42fef941e36e1be8",
+      "expectedDigest": "sha256:b95a1d450347de424dc7fce8a82ad322e91d6b7514f8b147375eb35db72f45e3",
       "source": "apps/pipeline-probe/src/app/page.tsx"
     },
     {

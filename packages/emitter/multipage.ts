@@ -184,6 +184,18 @@ function componentSource(locale: string): string {
   return `"use client";\nimport Link from "next/link";\nimport { usePathname } from "next/navigation";\nimport { site } from "./site-data";\n\nexport function SiteNav(){const pathname=usePathname();return <header className="siteHeader"><nav className="nav" aria-label="${l.menu}"><Link className="brand" href="/">{site.brand}</Link><div className="navLinks">{site.routes.map((route)=><Link key={route.path} href={route.path} aria-current={pathname===route.path?"page":undefined}>{route.navLabel}</Link>)}</div></nav></header>}\n\nexport function ExperiencePage({routePath}:{routePath:string}){const route=site.routeContent.find((item)=>item.path===routePath)??site.routeContent[0];if(!route)return null;const headline=route.copy.find((item)=>item.role==="headline")??site.copy.find((item)=>item.role==="headline");const lede=route.copy.find((item)=>item.role==="value-proposition")??site.copy.find((item)=>item.role==="value-proposition");const body=route.copy.filter((item)=>!["headline","value-proposition","primary-cta"].includes(item.role));return <><a className="skip" href="#main">${l.skip}</a><SiteNav/><main id="main" className="page"><div className="opening"><div className="eyebrow">{route.navLabel}</div>{headline&&<h1>{headline.text}</h1>}{lede&&<p className="lede">{lede.text}</p>}<div className="actions">{route.actions.map((action)=><a className="action" data-emphasis={action.emphasis??"secondary"} key={action.href} href={action.href}>{action.label}</a>)}</div></div><div className="sections">{body.map((item,index)=><section className="section" key={item.role}><div className="copyBlock"><div className="eyebrow">{item.role.replaceAll("-"," ")}</div><h2>{item.text.split(/[.!?]/)[0]}</h2><p>{item.text}</p></div>{route.media[index]&&<figure className="mediaBlock"><img src={route.media[index].publicPath} alt={route.media[index].alt}/></figure>}</section>)}{route.media.slice(body.length).map((media)=><section className="section" key={media.assetId}><div className="copyBlock"><div className="eyebrow">{media.role.replaceAll("-"," ")}</div></div><figure className="mediaBlock"><img src={media.publicPath} alt={media.alt}/></figure></section>)}</div></main><footer className="footer">{site.brand}</footer></>}\n`;
 }
 
+function generatedTypesSource(): string {
+  return `export interface Review { readonly sourceId: string; readonly text: string; readonly author?: string; readonly rating?: number; readonly provider?: "GOOGLE_MAPS"; }
+export interface Location { readonly address: string; readonly sourceId: string; readonly embedUrl: string; }
+export interface CopyContent { readonly role: string; readonly text: string; readonly sourceId: string; }
+export interface MediaContent { readonly assetId: string; readonly role: string; readonly publicPath: string; readonly sourceDigest: \`sha256:\${string}\`; readonly alt: string; }
+export interface ActionContent { readonly capabilityId: string; readonly label: string; readonly href: string; readonly sourceId: string; readonly emphasis?: "primary" | "secondary"; }
+export interface RouteContent { readonly path: string; readonly navLabel: string; readonly purpose: string; readonly capabilityIds: readonly string[]; readonly copyRoles: readonly string[]; readonly mediaRoles: readonly string[]; readonly copy: readonly CopyContent[]; readonly media: readonly MediaContent[]; readonly actions: readonly ActionContent[]; }
+export interface SiteData { readonly projectId: string; readonly brand: string; readonly routes: readonly { readonly path: string; readonly navLabel: string }[]; readonly routeContent: readonly RouteContent[]; readonly copy: readonly CopyContent[]; readonly media: readonly MediaContent[]; readonly dnaSubject: string; readonly recipeId: string; }
+export interface Features { readonly location: Location | null; readonly reviews: readonly Review[]; readonly greenCapabilities: readonly string[]; }
+`;
+}
+
 export function emitMultipageNextApp(input: {
   projectId: string;
   locale: string;
@@ -212,10 +224,12 @@ export function emitMultipageNextApp(input: {
   ])].sort((a, b) => a.localeCompare(b, "en"));
 
   const files: Array<{ path: string; content: string; provenanceIds: readonly string[] }> = [
-    { path: "src/app/site-data.ts", content: `export const site = ${escapeJson(siteData)} as const;\n`, provenanceIds },
+    { path: "src/app/generated-types.ts", content: generatedTypesSource(), provenanceIds },
+    { path: "src/app/css.d.ts", content: `declare module "*.css";\n`, provenanceIds },
+    { path: "src/app/site-data.ts", content: `import type { SiteData } from "./generated-types";\nexport const site: SiteData = ${escapeJson(siteData)};\n`, provenanceIds },
     { path: "src/app/generated.css", content: `${input.tokenCss.trim()}\n${generatedCss(input.dna)}\n`, provenanceIds },
     { path: "src/app/ExperiencePage.tsx", content: componentSource(input.locale), provenanceIds },
-    { path: "src/app/layout.tsx", content: `import type { Metadata } from "next";\nimport "./generated.css";\nexport const metadata: Metadata = { title: ${JSON.stringify(input.brief.brand.name)}, description: ${JSON.stringify(input.brief.brand.positioning)} };\nexport default function RootLayout({children}:{children:React.ReactNode}){return <html lang=${JSON.stringify(input.locale.split("-")[0] || "en")}><body>{children}</body></html>}\n`, provenanceIds },
+    { path: "src/app/layout.tsx", content: `import type { Metadata } from "next";\nimport "./generated.css";\nexport const metadata: Metadata = { title: ${JSON.stringify(input.brief.brand.name)}, description: ${JSON.stringify(input.brief.brand.positioning)} };\nexport default function RootLayout({children}:{children:React.ReactNode}){return <html lang=${JSON.stringify(input.locale)}><body>{children}</body></html>}\n`, provenanceIds },
     { path: "src/app/page.tsx", content: `import { ExperiencePage } from "./ExperiencePage";\nexport default function Page(){return <ExperiencePage routePath="/"/>}\n`, provenanceIds },
   ];
 

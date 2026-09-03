@@ -101,7 +101,7 @@ export function augmentExperienceFeatures(input: ExperienceFeatureInput): Multip
     }
     return file;
   });
-  const featureContent = `export const features = ${escaped(featureData)} as const;\n`;
+  const featureContent = `import type { Features } from "./generated-types";\nexport const features: Features = ${escaped(featureData)};\n`;
   const featureFile: GeneratedSourceFile = Object.freeze({ path: "src/app/features-data.ts", content: featureContent, digest: sha256(featureContent), provenanceIds: Object.freeze(featureProvenance) });
   const withFeatures = Object.freeze([...files, featureFile]);
   const provenanceIds = Object.freeze([...new Set([...input.generation.provenanceIds, ...featureProvenance])].sort((a, b) => a.localeCompare(b, "en")));
