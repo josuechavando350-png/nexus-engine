@@ -153,7 +153,7 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   record("GENERATION", "generated multipage sources constrained by ExperienceDNA", "PASS");
   record("EMITTER", "emitted identity tokens/CSS from ExperienceDNA and explicit color constraints", "PASS");
 
-  const readinessEvidence = [...readiness.copy.map((item) => item.digest), ...readiness.photos.map((item) => item.digest)];
+  const readinessEvidence = [...readiness.copy.map((item) => item.source), ...readiness.photos.map((item) => item.digest)];
   const provenanceEvidence = [
     ingestion.provenanceDigest,
     ...(contentInputs.copySynthesis ? [contentInputs.copySynthesis.synthesisDigest] : []),

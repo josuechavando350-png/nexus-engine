@@ -113,4 +113,30 @@ describe("NEXUS client pipeline", () => {
     expect(result.certification.verdict).toBe("PASS");
     expect(result.certification.certified).toBe(true);
   });
+
+  it("keeps identical copy text distinct by its role-bound sourceId during certification", async () => {
+    const spec = {
+      ...await fixtureSpec(),
+      copyAssets: undefined,
+      generatedCopy: undefined,
+      groundedFacts: [
+        { id: "brand", kind: "BRAND_NAME", value: "Fixture Operations", sourceId: "client:brand" },
+        { id: "business", kind: "BUSINESS_TYPE", value: "Operational service", sourceId: "client:business" },
+        { id: "cta", kind: "PRIMARY_ACTION_LABEL", value: "Fixture Operations", sourceId: "client:cta" },
+        { id: "proof", kind: "PROOF", value: "Verified operational evidence.", sourceId: "client:proof" },
+        { id: "phone", kind: "PHONE", value: "+1 555 0100", sourceId: "client:phone" },
+      ],
+    };
+
+    const result = await runNexusClientPipeline(spec, syntheticAdapters());
+    const headline = result.copySynthesis.items.find((item: { role: string }) => item.role === "headline");
+    const primaryCta = result.copySynthesis.items.find((item: { role: string }) => item.role === "primary-cta");
+
+    expect(headline.text).toBe(primaryCta.text);
+    expect(headline.sourceId).toMatch(/^nexus-grounded-copy:headline:[a-f0-9]{16}$/);
+    expect(primaryCta.sourceId).toMatch(/^nexus-grounded-copy:primary-cta:[a-f0-9]{16}$/);
+    expect(headline.sourceId).not.toBe(primaryCta.sourceId);
+    expect(result.certification.evidenceIds).toEqual(expect.arrayContaining([headline.sourceId, primaryCta.sourceId]));
+    expect(result.certification).toMatchObject({ verdict: "PASS", certified: true });
+  });
 });
