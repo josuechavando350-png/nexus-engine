@@ -1,3 +1,3 @@
 export default function PipelineProbePage() {
-  return <main><h1>NEXUS Pipeline Probe</h1></main>;
+  return <main id="main-content"><h1>NEXUS Pipeline Probe</h1></main>;
 }
