@@ -8,16 +8,11 @@ const FORM_CONVERSION = "AW-11458109085/VHB1CKrijeocEJZ909cq";
 type Gtag = (...args: unknown[]) => void;
 
 type RuntimeWindow = typeof window & {
-  dataLayer?: unknown[];
   gtag?: Gtag;
 };
 
 function trackFormConversion() {
-  const runtime = window as RuntimeWindow;
-  const dataLayer = (runtime.dataLayer ||= []);
-  const gtag: Gtag = runtime.gtag || ((...args: unknown[]) => dataLayer.push(args));
-  runtime.gtag = gtag;
-  gtag("event", "conversion", {
+  (window as RuntimeWindow).gtag?.("event", "conversion", {
     send_to: FORM_CONVERSION,
     value: 1.0,
     currency: "MXN",
@@ -45,13 +40,19 @@ export function ContactForm() {
       });
 
       if (!response.ok) throw new Error("Formspree submission failed");
-
-      trackFormConversion();
-      form.reset();
-      setStatus("success");
     } catch {
       setStatus("error");
+      return;
     }
+
+    try {
+      trackFormConversion();
+    } catch {
+      // Tracking must never turn a successful Formspree submission into an error.
+    }
+
+    form.reset();
+    setStatus("success");
   }
 
   return (

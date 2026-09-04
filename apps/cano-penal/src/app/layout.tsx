@@ -45,6 +45,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <head>
         <style dangerouslySetInnerHTML={{ __html: SR_ONLY_CSS }} />
         <style dangerouslySetInnerHTML={{ __html: REDUCED_MOTION_CSS }} />
+        <script dangerouslySetInnerHTML={{ __html: "window.dataLayer=window.dataLayer||[];window.gtag=window.gtag||function(){window.dataLayer.push(arguments);};" }} />
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(attorneySchema) }} />
       </head>
       <body style={themeStyle}>

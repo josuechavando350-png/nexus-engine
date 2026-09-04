@@ -6,11 +6,9 @@ const GOOGLE_ADS_ID = "AW-11458109085";
 const WHATSAPP_CONVERSION = "AW-11458109085/qaC9CPLhg7obEJZ909cq";
 const PHONE_CONVERSION = "AW-11458109085/AtYkCOir1-ocEJZ909cq";
 
-type DataLayer = unknown[];
 type Gtag = (...args: unknown[]) => void;
 
 type RuntimeWindow = typeof window & {
-  dataLayer?: DataLayer;
   gtag?: Gtag;
 };
 
@@ -20,10 +18,7 @@ function ensureGoogleAdsReady(): Promise<void> {
   if (loaderPromise) return loaderPromise;
 
   loaderPromise = new Promise<void>((resolve) => {
-    const runtime = window as RuntimeWindow;
-    const dataLayer = (runtime.dataLayer ||= []);
-    const gtag: Gtag = runtime.gtag || ((...args: unknown[]) => dataLayer.push(args));
-    runtime.gtag = gtag;
+    const gtag = (window as RuntimeWindow).gtag;
 
     const existing = document.querySelector<HTMLScriptElement>("script[data-cano-google-ads='true']");
     if (existing) {
@@ -36,8 +31,8 @@ function ensureGoogleAdsReady(): Promise<void> {
       return;
     }
 
-    gtag("js", new Date());
-    gtag("config", GOOGLE_ADS_ID);
+    gtag?.("js", new Date());
+    gtag?.("config", GOOGLE_ADS_ID);
 
     const script = document.createElement("script");
     script.async = true;
@@ -106,8 +101,12 @@ export function GoogleAdsAfterInteraction() {
 
       if (href.startsWith("tel:")) {
         event.preventDefault();
-        await ensureGoogleAdsReady();
-        trackOutboundConversion(PHONE_CONVERSION, destination, { value: 1.0, currency: "MXN" });
+        try {
+          await ensureGoogleAdsReady();
+          trackOutboundConversion(PHONE_CONVERSION, destination, { value: 1.0, currency: "MXN" });
+        } catch {
+          window.location.href = destination;
+        }
         return;
       }
 
