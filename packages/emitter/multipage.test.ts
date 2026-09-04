@@ -1,7 +1,12 @@
+import { execFileSync } from "node:child_process";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { defineExperienceBrief } from "@nexus/experience/brief";
 import { synthesizeAutonomousExperience } from "@nexus/experience/autonomy";
 import { deriveConstrainedEmitterInput } from "./color-constraints";
+import { augmentExperienceFeatures } from "./experience-features";
 import { emitExperienceCss } from "./index";
 import { emitMultipageNextApp } from "./multipage";
 
@@ -60,6 +65,28 @@ async function generate() {
   });
 }
 
+async function expectGeneratedSourcesToCompile(generation: Awaited<ReturnType<typeof generate>>): Promise<void> {
+  const root = process.cwd();
+  const directory = await mkdtemp(join(tmpdir(), "nexus-generated-contract-"));
+  try {
+    await symlink(join(root, "apps/pipeline-probe/node_modules"), join(directory, "node_modules"), "dir");
+    for (const file of generation.files) {
+      const target = join(directory, file.path);
+      await mkdir(dirname(target), { recursive: true });
+      await writeFile(target, file.content, "utf8");
+    }
+    await writeFile(join(directory, "tsconfig.json"), `${JSON.stringify({
+      extends: join(root, "apps/pipeline-probe/tsconfig.json"),
+      compilerOptions: { incremental: false, noEmit: true },
+      include: ["src/**/*.ts", "src/**/*.tsx"],
+      exclude: [],
+    }, null, 2)}\n`, "utf8");
+    execFileSync(join(root, "node_modules/.bin/tsc"), ["-p", join(directory, "tsconfig.json"), "--pretty", "false"], { cwd: root, stdio: "pipe" });
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
 describe("DNA-constrained multipage generator", () => {
   it("emits a deterministic, provenance-bound Next.js app with multiple routes", async () => {
     const first = await generate();
@@ -71,6 +98,53 @@ describe("DNA-constrained multipage generator", () => {
     expect(first.files.every((file) => /^sha256:[a-f0-9]{64}$/.test(file.digest))).toBe(true);
     expect(first.provenanceIds).toContain("constraint:no-gold");
     expect(first.generationDigest).toMatch(/^sha256:[a-f0-9]{64}$/);
+  });
+
+  it("preserves the complete locale in the generated document language", async () => {
+    const result = await generate();
+    const layout = result.files.find((file) => file.path === "src/app/layout.tsx")?.content ?? "";
+    expect(layout).toContain('<html lang="en-US">');
+  });
+
+  it("emits the accessible page shell for every generated route", async () => {
+    for (const result of [
+      await generate(),
+      augmentExperienceFeatures({ generation: await generate(), locale: "en-US", constraints: [], reviews: [] }),
+    ]) {
+      const layout = result.files.find((file) => file.path === "src/app/layout.tsx")?.content ?? "";
+      const css = result.files.find((file) => file.path === "src/app/generated.css")?.content ?? "";
+      const pages = result.files.filter((file) => file.path.endsWith("/page.tsx"));
+
+      expect(layout).toContain('className="nexus-skip-link"');
+      expect(layout).toContain('href="#main-content"');
+      expect(css).toContain(".nexus-skip-link:focus");
+      expect(pages).toHaveLength(result.routes.length);
+      for (const page of pages) {
+        expect(page.content).toContain('<main id="main-content"');
+        expect(page.content.match(/<h1[ >]/g)).toHaveLength(1);
+      }
+    }
+  });
+
+  it("compiles generated feature sources with an empty review collection", async () => {
+    const result = augmentExperienceFeatures({ generation: await generate(), locale: "en-US", constraints: [], location: { address: "123 Fixture Street", sourceId: "client:location" }, reviews: [] });
+    await expectGeneratedSourcesToCompile(result);
+  });
+
+  it("compiles generated feature sources with evidence-bound reviews", async () => {
+    const result = augmentExperienceFeatures({ generation: await generate(), locale: "en-US", constraints: [], reviews: [{ text: "Verified review.", sourceId: "google:review:1", provider: "GOOGLE_MAPS", author: "Reviewer", rating: 5 }] });
+    await expectGeneratedSourcesToCompile(result);
+  });
+
+  it("compiles routes whose capability arrays contain different capability IDs", async () => {
+    const result = augmentExperienceFeatures({ generation: await generate(), locale: "en-US", constraints: ["WhatsApp must be green."], reviews: [] });
+    expect(new Set(result.routes.map((route) => route.capabilityIds.join(","))).size).toBeGreaterThan(1);
+    await expectGeneratedSourcesToCompile(result);
+  });
+
+  it("compiles generated feature sources without a location", async () => {
+    const result = augmentExperienceFeatures({ generation: await generate(), locale: "en-US", constraints: [], reviews: [] });
+    await expectGeneratedSourcesToCompile(result);
   });
 
   it("preserves the explicit light neutral constraint in generated CSS without a manual aesthetic patch", async () => {
