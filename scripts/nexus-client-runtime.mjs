@@ -58,8 +58,11 @@ export async function createWorkspaceClientRuntimeAdapters(spec, options = {}) {
   const reviewReader = options.readReviewFile ?? ((path) => readFile(path, "utf8"));
   const prepareCapture = options.prepareCapture ?? (async () => {
     await prepareProjectCaptureRuntime(root, {
-      runner: async (command, args, cwd) => {
-        await runProcess(command, args, { cwd, timeoutMs: 15 * 60_000, maxOutputBytes: 8 * 1024 * 1024 });
+      runner: async (command, args, cwd, environment) => {
+        // Only trusted workspace preparation receives this stable build
+        // environment. Capture servers, browsers and other child processes keep
+        // runProcess's strict fresh environment and never inherit user config.
+        await runProcess(command, args, { cwd, env: environment, timeoutMs: 15 * 60_000, maxOutputBytes: 8 * 1024 * 1024 });
       },
     });
   });
