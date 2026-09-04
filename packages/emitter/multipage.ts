@@ -181,7 +181,16 @@ function generatedCss(dna: ExperienceDNA): string {
 
 function componentSource(locale: string): string {
   const l = labels(locale);
-  return `"use client";\nimport Link from "next/link";\nimport { usePathname } from "next/navigation";\nimport { site } from "./site-data";\n\nexport function SiteNav(){const pathname=usePathname();return <header className="siteHeader"><nav className="nav" aria-label="${l.menu}"><Link className="brand" href="/">{site.brand}</Link><div className="navLinks">{site.routes.map((route)=><Link key={route.path} href={route.path} aria-current={pathname===route.path?"page":undefined}>{route.navLabel}</Link>)}</div></nav></header>}\n\nexport function ExperiencePage({routePath}:{routePath:string}){const route=site.routeContent.find((item)=>item.path===routePath)??site.routeContent[0];if(!route)return null;const headline=route.copy.find((item)=>item.role==="headline")??site.copy.find((item)=>item.role==="headline");const lede=route.copy.find((item)=>item.role==="value-proposition")??site.copy.find((item)=>item.role==="value-proposition");const body=route.copy.filter((item)=>!["headline","value-proposition","primary-cta"].includes(item.role));return <><a className="skip" href="#main">${l.skip}</a><SiteNav/><main id="main" className="page"><div className="opening"><div className="eyebrow">{route.navLabel}</div>{headline&&<h1>{headline.text}</h1>}{lede&&<p className="lede">{lede.text}</p>}<div className="actions">{route.actions.map((action)=><a className="action" data-emphasis={action.emphasis??"secondary"} key={action.href} href={action.href}>{action.label}</a>)}</div></div><div className="sections">{body.map((item,index)=><section className="section" key={item.role}><div className="copyBlock"><div className="eyebrow">{item.role.replaceAll("-"," ")}</div><h2>{item.text.split(/[.!?]/)[0]}</h2><p>{item.text}</p></div>{route.media[index]&&<figure className="mediaBlock"><img src={route.media[index].publicPath} alt={route.media[index].alt}/></figure>}</section>)}{route.media.slice(body.length).map((media)=><section className="section" key={media.assetId}><div className="copyBlock"><div className="eyebrow">{media.role.replaceAll("-"," ")}</div></div><figure className="mediaBlock"><img src={media.publicPath} alt={media.alt}/></figure></section>)}</div></main><footer className="footer">{site.brand}</footer></>}\n`;
+  return `"use client";\nimport Link from "next/link";\nimport { usePathname } from "next/navigation";\nimport { site } from "./site-data";\n\nexport function SiteNav(){const pathname=usePathname();return <header className="siteHeader"><nav className="nav" aria-label="${l.menu}"><Link className="brand" href="/">{site.brand}</Link><div className="navLinks">{site.routes.map((route)=><Link key={route.path} href={route.path} aria-current={pathname===route.path?"page":undefined}>{route.navLabel}</Link>)}</div></nav></header>}\n\nexport function SiteFooter(){return <footer className="footer">{site.brand}</footer>}\n\nexport function ExperiencePage({routePath}:{routePath:string}){const route=site.routeContent.find((item)=>item.path===routePath)??site.routeContent[0];if(!route)return null;const lede=route.copy.find((item)=>item.role==="value-proposition")??site.copy.find((item)=>item.role==="value-proposition");const body=route.copy.filter((item)=>!["headline","value-proposition","primary-cta"].includes(item.role));return <><div className="opening"><div className="eyebrow">{route.navLabel}</div>{lede&&<p className="lede">{lede.text}</p>}<div className="actions">{route.actions.map((action)=><a className="action" data-emphasis={action.emphasis??"secondary"} key={action.href} href={action.href}>{action.label}</a>)}</div></div><div className="sections">{body.map((item,index)=><section className="section" key={item.role}><div className="copyBlock"><div className="eyebrow">{item.role.replaceAll("-"," ")}</div><h2>{item.text.split(/[.!?]/)[0]}</h2><p>{item.text}</p></div>{route.media[index]&&<figure className="mediaBlock"><img src={route.media[index].publicPath} alt={route.media[index].alt}/></figure>}</section>)}{route.media.slice(body.length).map((media)=><section className="section" key={media.assetId}><div className="copyBlock"><div className="eyebrow">{media.role.replaceAll("-"," ")}</div></div><figure className="mediaBlock"><img src={media.publicPath} alt={media.alt}/></figure></section>)}</div></>}\n`;
+}
+
+function routePageSource(routePath: string, heading: string, nested: boolean): string {
+  const modulePath = nested ? "../ExperiencePage" : "./ExperiencePage";
+  return `import { ExperiencePage, SiteFooter, SiteNav } from ${JSON.stringify(modulePath)};\nexport default function Page(){return <><SiteNav/><main id="main-content" className="page"><h1>{${JSON.stringify(heading)}}</h1><ExperiencePage routePath=${JSON.stringify(routePath)}/></main><SiteFooter/></>}\n`;
+}
+
+function routeHeading(route: ReturnType<typeof routeModel>, fallback: string): string {
+  return route.copy.find((item) => item.role === "headline")?.text.trim() || fallback;
 }
 
 function generatedTypesSource(): string {
@@ -215,6 +224,8 @@ export function emitMultipageNextApp(input: {
   if (routes.length < 2) throw new Error("multipage generation must produce at least two routes");
 
   const routeContent = routes.map((route) => routeModel(route, input.copy, input.media, input.actions));
+  const rootRoute = routeContent.find((route) => route.path === "/");
+  if (!rootRoute) throw new Error("multipage generation requires a root route");
   const siteData = { projectId: input.projectId, brand: input.brief.brand.name, routes: routes.map(({ path, navLabel }) => ({ path, navLabel })), routeContent, copy: input.copy, media: input.media, dnaSubject: input.dna.subject, recipeId: input.plan.recipeId };
   const provenanceIds = [...new Set([
     ...input.copy.map((item) => item.sourceId),
@@ -227,16 +238,18 @@ export function emitMultipageNextApp(input: {
     { path: "src/app/generated-types.ts", content: generatedTypesSource(), provenanceIds },
     { path: "src/app/css.d.ts", content: `declare module "*.css";\n`, provenanceIds },
     { path: "src/app/site-data.ts", content: `import type { SiteData } from "./generated-types";\nexport const site: SiteData = ${escapeJson(siteData)};\n`, provenanceIds },
-    { path: "src/app/generated.css", content: `${input.tokenCss.trim()}\n${generatedCss(input.dna)}\n`, provenanceIds },
+    { path: "src/app/generated.css", content: `${input.tokenCss.trim()}\n${generatedCss(input.dna)}\n.nexus-skip-link{position:absolute;left:-9999px;top:0}.nexus-skip-link:focus{left:var(--nexus-space-3);top:var(--nexus-space-3);z-index:100;background:var(--nexus-surface-0);padding:var(--nexus-space-2)}\n`, provenanceIds },
     { path: "src/app/ExperiencePage.tsx", content: componentSource(input.locale), provenanceIds },
-    { path: "src/app/layout.tsx", content: `import type { Metadata } from "next";\nimport "./generated.css";\nexport const metadata: Metadata = { title: ${JSON.stringify(input.brief.brand.name)}, description: ${JSON.stringify(input.brief.brand.positioning)} };\nexport default function RootLayout({children}:{children:React.ReactNode}){return <html lang=${JSON.stringify(input.locale)}><body>{children}</body></html>}\n`, provenanceIds },
-    { path: "src/app/page.tsx", content: `import { ExperiencePage } from "./ExperiencePage";\nexport default function Page(){return <ExperiencePage routePath="/"/>}\n`, provenanceIds },
+    { path: "src/app/layout.tsx", content: `import type { Metadata } from "next";\nimport "./generated.css";\nexport const metadata: Metadata = { title: ${JSON.stringify(input.brief.brand.name)}, description: ${JSON.stringify(input.brief.brand.positioning)} };\nexport default function RootLayout({children}:{children:React.ReactNode}){return <html lang=${JSON.stringify(input.locale)}><body><a className="nexus-skip-link" href="#main-content">${labels(input.locale).skip}</a>{children}</body></html>}\n`, provenanceIds },
+    { path: "src/app/page.tsx", content: routePageSource("/", routeHeading(rootRoute, input.brief.brand.name), false), provenanceIds },
   ];
 
   for (const route of routes.filter((route) => route.path !== "/")) {
     const segment = slug(route.path);
     if (!segment) throw new Error(`invalid generated route ${route.path}`);
-    files.push({ path: `src/app/${segment}/page.tsx`, content: `import { ExperiencePage } from "../ExperiencePage";\nexport default function Page(){return <ExperiencePage routePath=${JSON.stringify(route.path)}/>}\n`, provenanceIds });
+    const content = routeContent.find((item) => item.path === route.path);
+    if (!content) throw new Error(`missing generated content for route ${route.path}`);
+    files.push({ path: `src/app/${segment}/page.tsx`, content: routePageSource(route.path, routeHeading(content, route.navLabel), true), provenanceIds });
   }
 
   const generatedFiles: GeneratedSourceFile[] = files.map((file) => Object.freeze({ path: file.path, content: file.content, digest: sha256(file.content), provenanceIds: Object.freeze([...file.provenanceIds]) }));

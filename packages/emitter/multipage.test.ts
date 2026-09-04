@@ -106,6 +106,26 @@ describe("DNA-constrained multipage generator", () => {
     expect(layout).toContain('<html lang="en-US">');
   });
 
+  it("emits the accessible page shell for every generated route", async () => {
+    for (const result of [
+      await generate(),
+      augmentExperienceFeatures({ generation: await generate(), locale: "en-US", constraints: [], reviews: [] }),
+    ]) {
+      const layout = result.files.find((file) => file.path === "src/app/layout.tsx")?.content ?? "";
+      const css = result.files.find((file) => file.path === "src/app/generated.css")?.content ?? "";
+      const pages = result.files.filter((file) => file.path.endsWith("/page.tsx"));
+
+      expect(layout).toContain('className="nexus-skip-link"');
+      expect(layout).toContain('href="#main-content"');
+      expect(css).toContain(".nexus-skip-link:focus");
+      expect(pages).toHaveLength(result.routes.length);
+      for (const page of pages) {
+        expect(page.content).toContain('<main id="main-content"');
+        expect(page.content.match(/<h1[ >]/g)).toHaveLength(1);
+      }
+    }
+  });
+
   it("compiles generated feature sources with an empty review collection", async () => {
     const result = augmentExperienceFeatures({ generation: await generate(), locale: "en-US", constraints: [], location: { address: "123 Fixture Street", sourceId: "client:location" }, reviews: [] });
     await expectGeneratedSourcesToCompile(result);
