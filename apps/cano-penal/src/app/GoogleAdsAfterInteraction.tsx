@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 
 const GOOGLE_ADS_ID = "AW-11458109085";
-const WHATSAPP_CONVERSION = "AW-11458109085/qaC9CPLhg7obEJZ909cq";
-const PHONE_CONVERSION = "AW-11458109085/AtYkCOir1-ocEJZ909cq";
+const WHATSAPP_CONVERSION = "AW-11458109085/91BuCLXLwO4cEJ2909cq";
+const PHONE_CONVERSION = "AW-11458109085/O_A8CLjLwO4cEJ2909cq";
 
 type Gtag = (...args: unknown[]) => void;
 
