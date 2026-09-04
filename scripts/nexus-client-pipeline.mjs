@@ -22,6 +22,19 @@ const PIPELINE = Object.freeze([
 const notTested = (gateId, detail) => Object.freeze({ gateId, verdict: "NOT_TESTED", detail, evidenceIds: Object.freeze([]) });
 const passed = (gateId, detail, evidenceIds) => Object.freeze({ gateId, verdict: "PASS", detail, evidenceIds: Object.freeze([...evidenceIds]) });
 
+function decodedPipelineError(error) {
+  const value = error && typeof error === "object" ? error : {};
+  const decode = (output) => Buffer.isBuffer(output) ? output.toString("utf8") : typeof output === "string" ? output : "";
+  return Object.freeze({
+    name: typeof value.name === "string" ? value.name : "Error",
+    message: error instanceof Error ? error.message : String(error),
+    ...(typeof value.code === "string" ? { code: value.code } : {}),
+    ...(typeof value.exitCode === "number" || value.exitCode === null ? { exitCode: value.exitCode } : {}),
+    stdout: decode(value.stdout),
+    stderr: decode(value.stderr),
+  });
+}
+
 function safeOutput(root, relativePath) {
   const target = resolve(root, relativePath);
   const prefix = `${resolve(root)}${sep}`;
@@ -81,6 +94,22 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   const record = (stage, detail, verdict = "PASS") => {
     if (!PIPELINE.includes(stage)) throw new Error(`unknown pipeline stage ${stage}`);
     stageLog.push(Object.freeze({ stage, detail, verdict }));
+  };
+  const abortAt = (stage, error) => {
+    const decodedError = decodedPipelineError(error);
+    record(stage, `stage aborted with ${decodedError.name}: ${decodedError.message}`, "FAIL");
+    const abortedIndex = PIPELINE.indexOf(stage);
+    for (const pending of PIPELINE.slice(abortedIndex + 1)) {
+      record(pending, `${pending} was not executed because ${stage} aborted`, "NOT_TESTED");
+    }
+    return Object.freeze({
+      authority: "NEXUS_CLIENT_PIPELINE_V1",
+      status: "BLOCKED",
+      stageLog: Object.freeze(stageLog),
+      blocker: `${stage} aborted before returning a gate verdict`,
+      error: decodedError,
+      certification: undefined,
+    });
   };
 
   const brief = defineExperienceBrief(spec.brief);
@@ -167,50 +196,80 @@ export async function runNexusClientPipeline(spec, adapters = {}) {
   ];
 
   let renderResult;
-  if (adapters.render) {
-    renderResult = await adapters.render({ spec, brief, experience, emitted, generation, ingestion });
+  let renderGate;
+  try {
+    if (adapters.render) {
+      renderResult = await adapters.render({ spec, brief, experience, emitted, generation, ingestion });
+    }
+    renderGate = normalizeQualityGate(renderResult, "RENDER");
+  } catch (error) {
+    return abortAt("RENDER", error);
   }
-  const renderGate = normalizeQualityGate(renderResult, "RENDER");
   record("RENDER", renderResult ? "executed real render adapter" : "real render adapter unavailable", renderGate.verdict);
   gates.push(renderGate);
 
   let captureResult;
-  if (adapters.capture && renderResult?.gate?.verdict === "PASS") {
-    captureResult = await adapters.capture({ spec, generation, render: renderResult });
+  let captureGate;
+  try {
+    if (adapters.capture && renderResult?.gate?.verdict === "PASS") {
+      captureResult = await adapters.capture({ spec, generation, render: renderResult });
+    }
+    captureGate = normalizeQualityGate(captureResult, "CAPTURE");
+  } catch (error) {
+    return abortAt("CAPTURE", error);
   }
-  const captureGate = normalizeQualityGate(captureResult, "CAPTURE");
   record("CAPTURE", captureResult ? "executed real browser capture adapter" : "real capture adapter unavailable or render did not PASS", captureGate.verdict);
   gates.push(captureGate);
 
   let genomeResult;
-  if (adapters.designGenome && captureResult?.gate?.verdict === "PASS") {
-    genomeResult = await adapters.designGenome({ spec, generation, capture: captureResult });
+  let genomeGate;
+  try {
+    if (adapters.designGenome && captureResult?.gate?.verdict === "PASS") {
+      genomeResult = await adapters.designGenome({ spec, generation, capture: captureResult });
+    }
+    genomeGate = normalizeQualityGate(genomeResult, "DESIGN_GENOME");
+  } catch (error) {
+    return abortAt("DESIGN_GENOME", error);
   }
-  const genomeGate = normalizeQualityGate(genomeResult, "DESIGN_GENOME");
   record("DESIGN_GENOME", genomeResult ? "extracted measured design genome from rendered evidence" : "design genome adapter unavailable or capture did not PASS", genomeGate.verdict);
   gates.push(genomeGate);
 
   let visualResult;
-  if (adapters.visualJudge && captureResult?.gate?.verdict === "PASS" && genomeResult?.gate?.verdict === "PASS") {
-    visualResult = await adapters.visualJudge({ spec, brief, experience, generation, capture: captureResult, genome: genomeResult });
+  let visualGate;
+  try {
+    if (adapters.visualJudge && captureResult?.gate?.verdict === "PASS" && genomeResult?.gate?.verdict === "PASS") {
+      visualResult = await adapters.visualJudge({ spec, brief, experience, generation, capture: captureResult, genome: genomeResult });
+    }
+    visualGate = normalizeQualityGate(visualResult, "VISUAL_JUDGE");
+  } catch (error) {
+    return abortAt("VISUAL_JUDGE", error);
   }
-  const visualGate = normalizeQualityGate(visualResult, "VISUAL_JUDGE");
   record("VISUAL_JUDGE", visualResult ? "executed bound visual review over real evidence" : "real Visual Judge adapter unavailable or evidence prerequisites did not PASS", visualGate.verdict);
   gates.push(visualGate);
 
   let redTeamResult;
-  if (adapters.redTeam && visualResult?.gate?.verdict === "PASS") {
-    redTeamResult = await adapters.redTeam({ spec, brief, experience, generation, capture: captureResult, visualJudge: visualResult });
+  let redTeamGate;
+  try {
+    if (adapters.redTeam && visualResult?.gate?.verdict === "PASS") {
+      redTeamResult = await adapters.redTeam({ spec, brief, experience, generation, capture: captureResult, visualJudge: visualResult });
+    }
+    redTeamGate = normalizeQualityGate(redTeamResult, "RED_TEAM");
+  } catch (error) {
+    return abortAt("RED_TEAM", error);
   }
-  const redTeamGate = normalizeQualityGate(redTeamResult, "RED_TEAM");
   record("RED_TEAM", redTeamResult ? "executed complete adversarial NEXUS attack arena including Excess Removal evidence" : "Red Team adapter unavailable or Visual Judge did not PASS", redTeamGate.verdict);
   gates.push(redTeamGate);
 
   let repairResult;
-  if (adapters.repairRejudge && redTeamResult?.gate?.verdict === "PASS") {
-    repairResult = await adapters.repairRejudge({ spec, brief, experience, generation, capture: captureResult, visualJudge: visualResult, redTeam: redTeamResult });
+  let repairGate;
+  try {
+    if (adapters.repairRejudge && redTeamResult?.gate?.verdict === "PASS") {
+      repairResult = await adapters.repairRejudge({ spec, brief, experience, generation, capture: captureResult, visualJudge: visualResult, redTeam: redTeamResult });
+    }
+    repairGate = normalizeQualityGate(repairResult, "REPAIR_REJUDGE");
+  } catch (error) {
+    return abortAt("REPAIR_RECAPTURE_REJUDGE", error);
   }
-  const repairGate = normalizeQualityGate(repairResult, "REPAIR_REJUDGE");
   record("REPAIR_RECAPTURE_REJUDGE", repairResult ? "executed bounded repair/recapture/rejudge cycle" : "repair/rejudge adapter unavailable or Red Team did not PASS", repairGate.verdict);
   gates.push(repairGate);
 

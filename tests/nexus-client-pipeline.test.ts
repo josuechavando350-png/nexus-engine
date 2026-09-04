@@ -114,6 +114,45 @@ describe("NEXUS client pipeline", () => {
     expect(result.certification.certified).toBe(true);
   });
 
+  it("preserves completed stages and decodes adapter errors when capture aborts", async () => {
+    const adapters = syntheticAdapters();
+    adapters.capture = async () => {
+      throw Object.assign(new Error("command exited 17"), {
+        name: "ProcessExecutionError",
+        code: "EXIT",
+        exitCode: 17,
+        stdout: Buffer.from("capture stdout\n", "utf8"),
+        stderr: Buffer.from("capture stderr\n", "utf8"),
+      });
+    };
+
+    const result = await runNexusClientPipeline(await fixtureSpec(), adapters);
+    const captureIndex = result.stageLog.findIndex((stage: { stage: string }) => stage.stage === "CAPTURE");
+
+    expect(result).toMatchObject({
+      status: "BLOCKED",
+      blocker: "CAPTURE aborted before returning a gate verdict",
+      certification: undefined,
+      error: {
+        name: "ProcessExecutionError",
+        message: "command exited 17",
+        code: "EXIT",
+        exitCode: 17,
+        stdout: "capture stdout\n",
+        stderr: "capture stderr\n",
+      },
+    });
+    expect(result.stageLog[captureIndex]).toMatchObject({ stage: "CAPTURE", verdict: "FAIL" });
+    expect(result.stageLog.slice(0, captureIndex).every((stage: { verdict: string }) => stage.verdict === "PASS")).toBe(true);
+    expect(result.stageLog.slice(captureIndex + 1).map((stage: { stage: string; verdict: string }) => ({ stage: stage.stage, verdict: stage.verdict }))).toEqual([
+      { stage: "DESIGN_GENOME", verdict: "NOT_TESTED" },
+      { stage: "VISUAL_JUDGE", verdict: "NOT_TESTED" },
+      { stage: "RED_TEAM", verdict: "NOT_TESTED" },
+      { stage: "REPAIR_RECAPTURE_REJUDGE", verdict: "NOT_TESTED" },
+      { stage: "DELIVERY_CERTIFICATION", verdict: "NOT_TESTED" },
+    ]);
+  });
+
   it("keeps identical copy text distinct by its role-bound sourceId during certification", async () => {
     const spec = {
       ...await fixtureSpec(),
