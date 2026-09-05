@@ -19,7 +19,7 @@ const snapshot = {
 const token = "profitability-test-token-000000000000000000000";
 
 describe("CORTEX authenticated profitability provider", () => {
-  it("posts the exact business query over HTTPS with bearer authentication", async () => {
+  it("posts the exact business query over HTTPS with bearer authentication and rejects redirects", async () => {
     let observedUrl = "";
     let observedInit: RequestInit | undefined;
     const provider = new HttpBusinessProfitabilityProvider({
@@ -34,6 +34,7 @@ describe("CORTEX authenticated profitability provider", () => {
     await expect(provider.getProfitability(query)).resolves.toEqual(snapshot);
     expect(observedUrl).toBe("https://finance.example.test/cortex/profitability");
     expect(new Headers(observedInit?.headers).get("authorization")).toBe(`Bearer ${token}`);
+    expect(observedInit?.redirect).toBe("error");
     expect(JSON.parse(String(observedInit?.body))).toEqual(query);
   });
 
