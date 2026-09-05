@@ -206,9 +206,9 @@ export function createBiddingProductionRuntime(options: BiddingProductionRuntime
   const control = new BiddingRuntimeController(options.transactions, options.config.scope, policy.digest, policy.mode, now);
   let rollbackWriteAuthorized = false;
   const guardedGoogleAds: GoogleAdsBiddingGateway = Object.freeze({
-    getCampaignSnapshot: (customerId, campaignId, startMs, endMs) => options.googleAds.getCampaignSnapshot(customerId, campaignId, startMs, endMs),
-    getPortfolioSnapshot: (customerId, resourceName, startMs, endMs) => options.googleAds.getPortfolioSnapshot(customerId, resourceName, startMs, endMs),
-    applyMutation: async (customerId, action) => {
+    getCampaignSnapshot: (customerId: string, campaignId: string, startMs: number, endMs: number) => options.googleAds.getCampaignSnapshot(customerId, campaignId, startMs, endMs),
+    getPortfolioSnapshot: (customerId: string, resourceName: string, startMs: number, endMs: number) => options.googleAds.getPortfolioSnapshot(customerId, resourceName, startMs, endMs),
+    applyMutation: async (customerId: string, action: Parameters<GoogleAdsBiddingGateway["applyMutation"]>[1]) => {
       const effectiveMode = control.effectiveMode();
       if (!rollbackWriteAuthorized && effectiveMode !== "ACTIVE") {
         throw new BiddingSupervisorError("POLICY_VIOLATION", `${effectiveMode} blocks forward Google Ads mutation`);
