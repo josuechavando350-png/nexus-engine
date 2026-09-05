@@ -203,10 +203,23 @@ export function createBiddingProductionRuntime(options: BiddingProductionRuntime
   const expectedToken = validateToken(options.apiToken);
   const now = options.now ?? Date.now;
   const policy = createBiddingSupervisorPolicy(options.config.policy);
-  const supervisor = new PeriodicGoogleAdsBiddingSupervisor(options.transactions, options.config.scope, policy, options.googleAds, options.profitability, now);
   const control = new BiddingRuntimeController(options.transactions, options.config.scope, policy.digest, policy.mode, now);
+  let rollbackWriteAuthorized = false;
+  const guardedGoogleAds: GoogleAdsBiddingGateway = Object.freeze({
+    getCampaignSnapshot: (customerId, campaignId, startMs, endMs) => options.googleAds.getCampaignSnapshot(customerId, campaignId, startMs, endMs),
+    getPortfolioSnapshot: (customerId, resourceName, startMs, endMs) => options.googleAds.getPortfolioSnapshot(customerId, resourceName, startMs, endMs),
+    applyMutation: async (customerId, action) => {
+      const effectiveMode = control.effectiveMode();
+      if (!rollbackWriteAuthorized && effectiveMode !== "ACTIVE") {
+        throw new BiddingSupervisorError("POLICY_VIOLATION", `${effectiveMode} blocks forward Google Ads mutation`);
+      }
+      return options.googleAds.applyMutation(customerId, action);
+    },
+  });
+  const supervisor = new PeriodicGoogleAdsBiddingSupervisor(options.transactions, options.config.scope, policy, guardedGoogleAds, options.profitability, now);
   let interval: ReturnType<typeof setInterval> | null = null;
   let inFlight: Promise<readonly BiddingSupervisorResult[]> | null = null;
+  let safetyOperationInFlight = false;
 
   const emit = (event: BiddingRuntimeTelemetryEvent) => {
     try { options.onTelemetry?.(Object.freeze(event)); }
@@ -214,18 +227,22 @@ export function createBiddingProductionRuntime(options: BiddingProductionRuntime
   };
 
   const runCycle = async (trigger: "STARTUP" | "SCHEDULED" | "MANUAL"): Promise<readonly BiddingSupervisorResult[]> => {
+    if (safetyOperationInFlight) {
+      emit({ operation: "CYCLE", status: "SKIPPED", trigger, customerId: null, campaignId: null, reason: "SAFETY_OPERATION_RUNNING", mode: control.effectiveMode(), durationMs: 0, errorCode: "CONFLICT" });
+      throw new BiddingSupervisorError("CONFLICT", "a rollback safety operation is running");
+    }
     if (inFlight) {
       emit({ operation: "CYCLE", status: "SKIPPED", trigger, customerId: null, campaignId: null, reason: "CYCLE_ALREADY_RUNNING", mode: control.effectiveMode(), durationMs: 0, errorCode: null });
       return inFlight;
     }
     const started = now();
     const promise = (async () => {
-      const mode = control.effectiveMode();
       const bucket = Math.floor(now() / options.config.intervalMs);
       const results: BiddingSupervisorResult[] = [];
       let firstError: unknown = null;
       for (const campaign of options.config.campaigns) {
         const campaignStarted = now();
+        const mode = control.effectiveMode();
         try {
           const result = await supervisor.supervise({ runId: `periodic-${campaign.campaignId}-${bucket}`, customerId: campaign.customerId, campaignId: campaign.campaignId, mode });
           results.push(result);
@@ -258,7 +275,7 @@ export function createBiddingProductionRuntime(options: BiddingProductionRuntime
       const method = request.method ?? "GET";
       const url = new URL(request.url ?? "/", "http://cortex.invalid");
       if (method === "GET" && url.pathname === "/healthz") {
-        writeJson(response, 200, { ok: true, campaigns: options.config.campaigns.length, running: inFlight !== null });
+        writeJson(response, 200, { ok: true, campaigns: options.config.campaigns.length, running: inFlight !== null, safetyOperationRunning: safetyOperationInFlight });
         emit({ operation, status: "OK", trigger: null, customerId: null, campaignId: null, reason: null, mode: null, durationMs: Math.max(0, now() - started), errorCode: null });
         return;
       }
@@ -298,9 +315,23 @@ export function createBiddingProductionRuntime(options: BiddingProductionRuntime
         const customerId = rollback[1]!;
         const campaignId = rollback[2]!;
         if (!options.config.campaigns.some((item) => item.customerId === customerId && item.campaignId === campaignId)) throw new HttpRequestError(404, "campaign is not configured");
-        const result = await supervisor.rollbackLastMutation({ runId: `rollback-${campaignId}-${now()}`, customerId, campaignId });
-        writeJson(response, 200, result);
-        emit({ operation, status: "OK", trigger: null, customerId, campaignId, reason: result.reason, mode: control.effectiveMode(), durationMs: Math.max(0, now() - started), errorCode: null });
+        if (inFlight !== null || safetyOperationInFlight) throw new BiddingSupervisorError("CONFLICT", "rollback requires an idle production runtime");
+        safetyOperationInFlight = true;
+        try {
+          await supervisor.supervise({ runId: `rollback-preflight-${campaignId}-${now()}`, customerId, campaignId, mode: "KILLED" });
+          rollbackWriteAuthorized = true;
+          let result: BiddingSupervisorResult;
+          try {
+            result = await supervisor.rollbackLastMutation({ runId: `rollback-${campaignId}-${now()}`, customerId, campaignId });
+          } finally {
+            rollbackWriteAuthorized = false;
+          }
+          writeJson(response, 200, result);
+          emit({ operation, status: "OK", trigger: null, customerId, campaignId, reason: result.reason, mode: control.effectiveMode(), durationMs: Math.max(0, now() - started), errorCode: null });
+        } finally {
+          rollbackWriteAuthorized = false;
+          safetyOperationInFlight = false;
+        }
         return;
       }
       writeJson(response, 404, { error: "NOT_FOUND" });
