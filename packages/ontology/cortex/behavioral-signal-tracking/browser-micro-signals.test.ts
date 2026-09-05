@@ -4,15 +4,15 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { InMemoryOntologyTransactionStore } from "@nexus/ontology/transaction";
 import { SqliteOntologyTransactionStore } from "@nexus/ontology/cortex/sqlite-transaction-store";
-import { createBehavioralSignalPolicy, type BehavioralSignalPolicy } from "./index";
+import { createBehavioralSignalPolicy, type CreateBehavioralSignalPolicyInput } from "./index";
 import { BehavioralMicroInteractionTrackingEngine, type BehavioralMicroInteractionInput } from "./browser-micro-signals";
 
 const scope = Object.freeze({ tenantId: "tenant-cortex", organizationId: "org-cortex", brandId: "brand-cortex" });
 const NOW = Date.parse("2026-09-05T18:00:00.000Z");
 const KEY = "behavioral-micro-test-key-material-64-bytes-minimum-xxxxxxxxxxxxx";
 
-function policy(overrides: Partial<BehavioralSignalPolicy> = {}) {
-  const base = createBehavioralSignalPolicy({
+function policy(overrides: Partial<CreateBehavioralSignalPolicyInput> = {}) {
+  return createBehavioralSignalPolicy({
     policyId: "behavioral-signals",
     version: "v2",
     pseudonymizationKeyId: "behavior-key-v1",
@@ -25,9 +25,8 @@ function policy(overrides: Partial<BehavioralSignalPolicy> = {}) {
     maxEngagementMsPerEvent: 30_000,
     maxWriteRetries: 3,
     mode: "ACTIVE",
+    ...overrides,
   });
-  if (Object.keys(overrides).length === 0) return base;
-  return Object.freeze({ ...base, ...overrides });
 }
 
 function input(overrides: Partial<BehavioralMicroInteractionInput> = {}): BehavioralMicroInteractionInput {
