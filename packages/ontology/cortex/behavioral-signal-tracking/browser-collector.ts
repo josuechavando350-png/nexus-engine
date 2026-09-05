@@ -33,6 +33,7 @@ export interface BehavioralBrowserCollectorConfig {
   readonly maxRetries?: number;
   readonly retryDelayMs?: number;
   readonly onTransportError?: (error: unknown) => void;
+  readonly onPrivacyError?: (error: unknown) => void;
   readonly environment?: BehavioralBrowserEnvironment;
 }
 
@@ -176,6 +177,7 @@ class BrowserCollector implements BehavioralBrowserCollector {
 
   private readonly onClick = (event: Event) => {
     this.armReadingPause();
+    if (this.formElement(event.target)) return;
     const element = this.signalElement(event.target);
     if (element) this.send("BASE", { kind: "CTA_CLICK", elementId: element.id });
   };
@@ -229,6 +231,23 @@ class BrowserCollector implements BehavioralBrowserCollector {
     return closestWithAttribute(target, `form[${this.signalAttribute}]`, this.signalAttribute);
   }
 
+  private privacyDecision(): BehavioralCollectorPrivacyDecision | null {
+    try {
+      const decision = this.config.privacy();
+      if (!decision || typeof decision.collectionAllowed !== "boolean") throw new Error("privacy provider returned an invalid decision");
+      if (!decision.collectionAllowed) return Object.freeze({ collectionAllowed: false, privacyDecisionRef: null });
+      if (typeof decision.privacyDecisionRef !== "string") throw new Error("privacyDecisionRef is required when collection is allowed");
+      return Object.freeze({ collectionAllowed: true, privacyDecisionRef: identifier(decision.privacyDecisionRef, "privacyDecisionRef") });
+    } catch (error) {
+      try {
+        this.config.onPrivacyError?.(error);
+      } catch {
+        // Privacy observability must not throw into application event handlers.
+      }
+      return null;
+    }
+  }
+
   private clearReadingPause(): void {
     if (this.pauseTimer === null) return;
     this.env.clearTimer(this.pauseTimer);
@@ -253,8 +272,8 @@ class BrowserCollector implements BehavioralBrowserCollector {
 
   private send(channel: BehavioralCollectorChannel, fields: Readonly<Record<string, unknown>>): void {
     if (!this.running) return;
-    const privacy = this.config.privacy();
-    if (!privacy.collectionAllowed || typeof privacy.privacyDecisionRef !== "string" || !privacy.privacyDecisionRef.trim()) return;
+    const privacy = this.privacyDecision();
+    if (!privacy?.collectionAllowed || privacy.privacyDecisionRef === null) return;
     const event = Object.freeze({
       eventId: this.eventId(),
       sessionId: this.sessionId,
@@ -268,7 +287,7 @@ class BrowserCollector implements BehavioralBrowserCollector {
     const envelope: BehavioralCollectorEnvelope = Object.freeze({ channel, event });
     const task = this.deliver(envelope, 0);
     this.pending.add(task);
-    void task.finally(() => this.pending.delete(task));
+    void task.finally(() => this.pending.delete(task)).catch(() => undefined);
   }
 
   private async delay(): Promise<void> {
@@ -278,9 +297,9 @@ class BrowserCollector implements BehavioralBrowserCollector {
   }
 
   private async deliver(envelope: BehavioralCollectorEnvelope, attempt: number): Promise<void> {
-    const privacy = this.config.privacy();
+    const privacy = this.privacyDecision();
     const capturedDecisionRef = envelope.event.privacyDecisionRef;
-    if (!this.running || !privacy.collectionAllowed || typeof privacy.privacyDecisionRef !== "string" || privacy.privacyDecisionRef !== capturedDecisionRef) return;
+    if (!this.running || !privacy?.collectionAllowed || privacy.privacyDecisionRef !== capturedDecisionRef) return;
     try {
       const response = await this.env.fetch(this.endpoint, {
         method: "POST",
