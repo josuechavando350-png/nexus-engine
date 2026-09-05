@@ -132,6 +132,8 @@ export class JsonFileMetadataPublisher implements MetadataPublisher {
       fd = null;
       renameSync(tempPath, this.manifestPath);
       renamed = true;
+      const directoryFd = openSync(dirname(this.manifestPath), "r");
+      try { fsyncSync(directoryFd); } finally { closeSync(directoryFd); }
       const verified = this.readManifest();
       if (!verified || canonicalJson(verified) !== canonicalJson({ formatVersion: FORMAT_VERSION, siteUrl: manifest.siteUrl, pages: stablePages })) {
         throw new MetadataPublisherError("AMBIGUOUS_PUBLISH_OUTCOME", "metadata manifest rename completed but read-back could not certify the result");
@@ -153,7 +155,11 @@ export class JsonFileMetadataPublisher implements MetadataPublisher {
         if (code === "EEXIST") throw new MetadataPublisherError("PUBLISH_CONFLICT", "metadata manifest is locked by another writer");
         throw new MetadataPublisherError("PUBLISH_FAILURE", error instanceof Error ? error.message : "metadata manifest lock failed");
       }
-      const manifest = this.readForSite(action.siteUrl) ?? Object.freeze({ formatVersion: FORMAT_VERSION, siteUrl: action.siteUrl, pages: Object.freeze({}) });
+      const manifest: Manifest = this.readForSite(action.siteUrl) ?? Object.freeze({
+        formatVersion: FORMAT_VERSION,
+        siteUrl: action.siteUrl,
+        pages: Object.freeze({} as Record<string, ManifestEntry>),
+      });
       const current = snapshotFromEntry(action.pageId, manifest.pages[action.pageId]);
       if (current && current.pageUrl !== action.pageUrl) throw new MetadataPublisherError("PUBLISH_CONFLICT", "metadata pageId is bound to another URL");
 
@@ -163,7 +169,7 @@ export class JsonFileMetadataPublisher implements MetadataPublisher {
         }
         if (!sameSnapshot(current, action.expected)) throw new MetadataPublisherError("PUBLISH_CONFLICT", "metadata override changed after optimizer preflight");
         const next = createPublishedMetadataSnapshot({ pageId: action.pageId, pageUrl: action.pageUrl, metadata: action.desired, revision: (current?.revision ?? 0) + 1 });
-        const pages = { ...manifest.pages, [action.pageId]: Object.freeze({ pageUrl: next.pageUrl, metadata: next.metadata, revision: next.revision, digest: next.digest }) };
+        const pages: Record<string, ManifestEntry> = { ...manifest.pages, [action.pageId]: Object.freeze({ pageUrl: next.pageUrl, metadata: next.metadata, revision: next.revision, digest: next.digest }) };
         this.writeManifest(Object.freeze({ formatVersion: FORMAT_VERSION, siteUrl: action.siteUrl, pages: Object.freeze(pages) }));
         const certified = await this.read(action.siteUrl, action.pageId, action.pageUrl);
         if (!certified || certified.digest !== next.digest) throw new MetadataPublisherError("AMBIGUOUS_PUBLISH_OUTCOME", "metadata override write could not be certified after commit");
@@ -172,7 +178,7 @@ export class JsonFileMetadataPublisher implements MetadataPublisher {
 
       if (!current) return Object.freeze({ snapshot: null, recoveredAlreadyApplied: true, publisherVersion: PUBLISHER_VERSION });
       if (!sameSnapshot(current, action.expected)) throw new MetadataPublisherError("PUBLISH_CONFLICT", "metadata override changed before rollback removal");
-      const pages = { ...manifest.pages };
+      const pages: Record<string, ManifestEntry> = { ...manifest.pages };
       delete pages[action.pageId];
       this.writeManifest(Object.freeze({ formatVersion: FORMAT_VERSION, siteUrl: action.siteUrl, pages: Object.freeze(pages) }));
       const certified = await this.read(action.siteUrl, action.pageId, action.pageUrl);
