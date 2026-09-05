@@ -40,7 +40,7 @@ export class HttpBusinessProfitabilityProvider implements BusinessProfitabilityP
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let response: Response;
     try {
-      response = await this.fetchImpl(this.endpoint, { method: "POST", headers: { authorization: `Bearer ${this.token}`, "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(query), signal: controller.signal });
+      response = await this.fetchImpl(this.endpoint, { method: "POST", redirect: "error", headers: { authorization: `Bearer ${this.token}`, "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(query), signal: controller.signal });
     } catch (error) {
       if (controller.signal.aborted) throw new BusinessProfitabilityTransportError("TIMEOUT", "profitability request timed out");
       throw new BusinessProfitabilityTransportError("HTTP_ERROR", error instanceof Error ? error.message : "profitability transport failed");
