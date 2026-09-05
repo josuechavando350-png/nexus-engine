@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, createHmac } from "node:crypto";
 import { canonicalJson, ontologyId, validateSchema, type OntologyScope, type SchemaVersion, type ValidatedSchema } from "@nexus/ontology";
 import { OntologyTransactionError, type JsonValue, type ObjectRecord, type OntologyTransactionPort, type TransactionOperation } from "@nexus/ontology/transaction";
 import {
@@ -23,7 +23,8 @@ const CONTROL = Object.freeze({
   updatedAt: "cortex.behavioral_signal.runtime_control.updated_at",
 });
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
-const CONTROL_PAYLOAD_KEYS = new Set(["active", "previous", "generation"]);
+const HMAC256 = /^hmac-sha256:[0-9a-f]{64}$/u;
+const CONTROL_PAYLOAD_KEYS = new Set(["active", "previous", "generation", "privacyKeyVerifier"]);
 const POLICY_KEYS = new Set([
   "policyId",
   "version",
@@ -44,6 +45,7 @@ interface ControlPayload {
   readonly active: BehavioralSignalPolicy;
   readonly previous: BehavioralSignalPolicy | null;
   readonly generation: number;
+  readonly privacyKeyVerifier: string;
 }
 
 interface ControlRecord extends ControlPayload {
@@ -116,6 +118,21 @@ function canonicalUtc(value: string, field: string): string {
   return value;
 }
 
+function privacyKeyBytes(privacy: BehavioralSignalPrivacyConfig): Buffer {
+  const key = typeof privacy.pseudonymizationKey === "string"
+    ? Buffer.from(privacy.pseudonymizationKey, "utf8")
+    : Buffer.from(privacy.pseudonymizationKey);
+  if (key.byteLength < 32 || key.byteLength > 4_096) throw new BehavioralSignalError("INVALID_INPUT", "pseudonymizationKey must contain 32..4096 bytes");
+  return key;
+}
+
+function privacyKeyVerifier(key: Buffer, pseudonymizationKeyId: string): string {
+  const digest = createHmac("sha256", key)
+    .update(`cortex-behavioral-privacy-key-verifier-v1\n${pseudonymizationKeyId}`, "utf8")
+    .digest("hex");
+  return `hmac-sha256:${digest}`;
+}
+
 function property(id: string, name: string, valueKind: "STRING" | "JSON" | "DATETIME") {
   return { id, name, valueKind, cardinality: "REQUIRED", unique: false, immutable: false } as const;
 }
@@ -183,7 +200,12 @@ function parsePolicy(value: JsonValue, field: string): BehavioralSignalPolicy {
 }
 
 function controlPayloadJson(payload: ControlPayload): JsonValue {
-  return json({ active: policyJson(payload.active), previous: payload.previous ? policyJson(payload.previous) : null, generation: payload.generation }, "runtime.control.payload");
+  return json({
+    active: policyJson(payload.active),
+    previous: payload.previous ? policyJson(payload.previous) : null,
+    generation: payload.generation,
+    privacyKeyVerifier: payload.privacyKeyVerifier,
+  }, "runtime.control.payload");
 }
 
 function controlDigest(payload: ControlPayload, updatedAt: string): string {
@@ -201,8 +223,10 @@ function parseControl(record: ObjectRecord): ControlRecord {
   exactKeys(raw as unknown as Record<string, unknown>, CONTROL_PAYLOAD_KEYS, "runtime.control.payload");
   const active = parsePolicy(raw.active!, "runtime.control.active");
   const previous = raw.previous === null ? null : parsePolicy(raw.previous!, "runtime.control.previous");
+  if (previous && previous.pseudonymizationKeyId !== active.pseudonymizationKeyId) throw new BehavioralSignalError("INTEGRITY_FAILURE", "runtime control crosses pseudonymization key identities");
   if (typeof raw.generation !== "number" || !Number.isSafeInteger(raw.generation) || raw.generation <= 0) throw new BehavioralSignalError("INTEGRITY_FAILURE", "runtime.control.generation invalid");
-  const payload: ControlPayload = { active, previous, generation: raw.generation };
+  if (typeof raw.privacyKeyVerifier !== "string" || !HMAC256.test(raw.privacyKeyVerifier)) throw new BehavioralSignalError("INTEGRITY_FAILURE", "runtime.control.privacyKeyVerifier invalid");
+  const payload: ControlPayload = { active, previous, generation: raw.generation, privacyKeyVerifier: raw.privacyKeyVerifier };
   const updatedAtValue = record.properties[CONTROL.updatedAt];
   if (typeof updatedAtValue !== "string") throw new BehavioralSignalError("INTEGRITY_FAILURE", "runtime.control.updatedAt invalid");
   const updatedAt = canonicalUtc(updatedAtValue, "runtime.control.updatedAt");
@@ -223,6 +247,7 @@ function transactionConflict(error: unknown): boolean {
 export class CortexBehavioralSignalRuntime {
   readonly schema: ValidatedSchema;
   private readonly controlId: string;
+  private readonly privacyKey: Buffer;
   private readonly onTelemetry?: (event: BehavioralSignalRuntimeTelemetryEvent) => void;
   private readonly onTelemetryError?: (error: unknown, event: BehavioralSignalRuntimeTelemetryEvent) => void;
 
@@ -236,9 +261,11 @@ export class CortexBehavioralSignalRuntime {
   ) {
     this.schema = controlSchema(scope);
     this.controlId = ontologyId("cortex-behavioral-signal-runtime-control-v1", { scope });
+    this.privacyKey = privacyKeyBytes(privacy);
     this.onTelemetry = options.onTelemetry;
     this.onTelemetryError = options.onTelemetryError;
     this.ensureControl(verifiedPolicy(initialPolicy));
+    this.verifyPrivacyKeyContinuity();
   }
 
   private clock(): string {
@@ -271,10 +298,26 @@ export class CortexBehavioralSignalRuntime {
     return record;
   }
 
+  private expectedPrivacyKeyVerifier(policy: BehavioralSignalPolicy): string {
+    return privacyKeyVerifier(this.privacyKey, policy.pseudonymizationKeyId);
+  }
+
+  private verifyPrivacyKeyContinuity(): void {
+    const current = this.requireControl();
+    if (current.privacyKeyVerifier !== this.expectedPrivacyKeyVerifier(current.active)) {
+      throw new BehavioralSignalError("INTEGRITY_FAILURE", "configured pseudonymization key does not match durable behavioral control state");
+    }
+  }
+
   private ensureControl(initialPolicy: BehavioralSignalPolicy): void {
     if (this.readControl()) return;
     const updatedAt = this.clock();
-    const payload: ControlPayload = Object.freeze({ active: initialPolicy, previous: null, generation: 1 });
+    const payload: ControlPayload = Object.freeze({
+      active: initialPolicy,
+      previous: null,
+      generation: 1,
+      privacyKeyVerifier: this.expectedPrivacyKeyVerifier(initialPolicy),
+    });
     const operation: TransactionOperation = { kind: "CREATE_OBJECT", record: { id: this.controlId, typeId: CONTROL_TYPE, scope: this.scope, properties: controlProperties(payload, updatedAt) } };
     try {
       this.transactions.transact(this.scope, this.schema, [operation]);
@@ -290,9 +333,17 @@ export class CortexBehavioralSignalRuntime {
     const nextPolicy = verifiedPolicy(nextPolicyInput);
     const current = this.requireControl();
     if (current.active.digest !== expectedActiveDigest) throw new BehavioralSignalError("CONFLICT", "active behavioral policy changed before control update");
+    if (nextPolicy.pseudonymizationKeyId !== current.active.pseudonymizationKeyId) {
+      throw new BehavioralSignalError("POLICY_VIOLATION", "pseudonymization key identity cannot change inside CORTEX #6 runtime control");
+    }
     if (current.active.digest === nextPolicy.digest) return snapshot(current);
     if (!Number.isSafeInteger(current.generation + 1)) throw new BehavioralSignalError("INTEGRITY_FAILURE", "behavioral control generation overflow");
-    const payload: ControlPayload = Object.freeze({ active: nextPolicy, previous: current.active, generation: current.generation + 1 });
+    const payload: ControlPayload = Object.freeze({
+      active: nextPolicy,
+      previous: current.active,
+      generation: current.generation + 1,
+      privacyKeyVerifier: current.privacyKeyVerifier,
+    });
     const operation: TransactionOperation = { kind: "UPDATE_OBJECT", id: current.id, expectedRevision: current.revision, properties: controlProperties(payload, this.clock()) };
     try {
       this.transactions.transact(this.scope, this.schema, [operation]);
@@ -323,8 +374,14 @@ export class CortexBehavioralSignalRuntime {
     const current = this.requireControl();
     if (current.active.digest !== expectedActiveDigest) throw new BehavioralSignalError("CONFLICT", "active behavioral policy changed before rollback");
     if (!current.previous) throw new BehavioralSignalError("POLICY_VIOLATION", "no previous behavioral policy is available for rollback");
+    if (current.previous.pseudonymizationKeyId !== current.active.pseudonymizationKeyId) throw new BehavioralSignalError("INTEGRITY_FAILURE", "rollback crosses pseudonymization key identities");
     if (!Number.isSafeInteger(current.generation + 1)) throw new BehavioralSignalError("INTEGRITY_FAILURE", "behavioral control generation overflow");
-    const payload: ControlPayload = Object.freeze({ active: current.previous, previous: current.active, generation: current.generation + 1 });
+    const payload: ControlPayload = Object.freeze({
+      active: current.previous,
+      previous: current.active,
+      generation: current.generation + 1,
+      privacyKeyVerifier: current.privacyKeyVerifier,
+    });
     const operation: TransactionOperation = { kind: "UPDATE_OBJECT", id: current.id, expectedRevision: current.revision, properties: controlProperties(payload, this.clock()) };
     try {
       this.transactions.transact(this.scope, this.schema, [operation]);
