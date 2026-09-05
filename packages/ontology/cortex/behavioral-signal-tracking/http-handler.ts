@@ -49,6 +49,12 @@ function statusFor(error: unknown): number {
   }
 }
 
+function isJsonContentType(value: string | null): boolean {
+  if (value === null) return false;
+  const [mediaType] = value.split(";", 1);
+  return mediaType?.trim().toLowerCase() === "application/json";
+}
+
 async function readBoundedBody(request: Request, maxBodyBytes: number): Promise<BodyReadResult> {
   const contentLength = request.headers.get("content-length");
   if (contentLength !== null) {
@@ -121,8 +127,7 @@ export function createBehavioralSignalHttpHandler(
       response.headers.set("allow", "POST, OPTIONS");
       return response;
     }
-    const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
-    if (!contentType.startsWith("application/json")) return jsonResponse(415, { error: "JSON_REQUIRED" }, origin);
+    if (!isJsonContentType(request.headers.get("content-type"))) return jsonResponse(415, { error: "JSON_REQUIRED" }, origin);
 
     const body = await readBoundedBody(request, maxBodyBytes);
     if (body.kind === "TOO_LARGE") return jsonResponse(413, { error: "BODY_TOO_LARGE" }, origin);
