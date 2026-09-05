@@ -347,6 +347,10 @@ export function hashEnhancedConversionUserData(
 
   const email = normalizeEmail(input.email);
   const phone = normalizePhone(input.phoneNumber);
+  if (email == null && phone == null) {
+    throw new Error("enhanced conversion user data requires at least email or phoneNumber");
+  }
+
   const firstName = normalizeTextForHash("firstName", input.firstName);
   const lastName = normalizeTextForHash("lastName", input.lastName);
   const street = normalizeTextForHash("street", input.street);
@@ -354,11 +358,6 @@ export function hashEnhancedConversionUserData(
   const region = normalizePlainLocation("region", input.region, 128);
   const postalCode = normalizePlainLocation("postalCode", input.postalCode, 32);
   const country = normalizeCountry(input.country);
-  const hasCompleteAddress = firstName != null && lastName != null && postalCode != null && country != null;
-
-  if (email == null && phone == null && !hasCompleteAddress) {
-    throw new Error("enhanced conversion user data requires email, phoneNumber, or a complete address");
-  }
 
   const output: HashedEnhancedConversionUserData = {};
   if (email) output.sha256_email_address = sha256(email);
