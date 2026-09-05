@@ -53,7 +53,8 @@ export interface CortexBanditRuntimeTelemetryEvent {
 export interface CortexBanditHttpRuntimeOptions {
   readonly transactions: OntologyTransactionPort;
   readonly config: CortexBanditProductionConfig;
-  readonly apiToken: string;
+  readonly dataPlaneToken: string;
+  readonly controlPlaneToken: string;
   readonly now?: () => number;
   readonly onTelemetry?: (event: CortexBanditRuntimeTelemetryEvent) => void;
   readonly onTelemetryError?: (error: unknown) => void;
@@ -134,12 +135,7 @@ function armsFrom(value: unknown): readonly CortexBanditArmDefinition[] {
     if (typeof minTrafficShare !== "number" || !Number.isFinite(minTrafficShare) || minTrafficShare < 0 || minTrafficShare > 1) throw new Error(`arms[${index}].minTrafficShare must be 0..1`);
     if (typeof maxTrafficShare !== "number" || !Number.isFinite(maxTrafficShare) || maxTrafficShare < 0 || maxTrafficShare > 1) throw new Error(`arms[${index}].maxTrafficShare must be 0..1`);
     if (minTrafficShare > maxTrafficShare) throw new Error(`arms[${index}] minimum traffic exceeds maximum traffic`);
-    return Object.freeze({
-      armId,
-      payload: Object.freeze({ ...payload }) as CortexBanditArmDefinition["payload"],
-      minTrafficShare,
-      maxTrafficShare,
-    });
+    return Object.freeze({ armId, payload: Object.freeze({ ...payload }) as CortexBanditArmDefinition["payload"], minTrafficShare, maxTrafficShare });
   }));
 }
 
@@ -182,13 +178,19 @@ export function loadCortexBanditProductionConfig(path: string): CortexBanditProd
   const stat = statSync(path);
   if (!stat.isFile()) throw new Error("bandit production config path must reference a regular file");
   if (stat.size <= 0 || stat.size > MAX_CONFIG_BYTES) throw new Error(`bandit production config must be 1..${MAX_CONFIG_BYTES} bytes`);
-  const source = readFileSync(path, "utf8");
-  return parseCortexBanditProductionConfig(JSON.parse(source) as unknown);
+  return parseCortexBanditProductionConfig(JSON.parse(readFileSync(path, "utf8")) as unknown);
 }
 
-function validateToken(token: string): Buffer {
-  if (typeof token !== "string" || token.length < 32 || token.length > 4096) throw new Error("NEXUS_CORTEX_API_TOKEN must contain 32..4096 characters");
+function validateToken(token: string, name: string): Buffer {
+  if (typeof token !== "string" || token.length < 32 || token.length > 4096) throw new Error(`${name} must contain 32..4096 characters`);
   return Buffer.from(token, "utf8");
+}
+
+function validateTokens(dataPlaneToken: string, controlPlaneToken: string): { readonly data: Buffer; readonly control: Buffer } {
+  const data = validateToken(dataPlaneToken, "dataPlaneToken");
+  const control = validateToken(controlPlaneToken, "controlPlaneToken");
+  if (data.length === control.length && timingSafeEqual(data, control)) throw new Error("dataPlaneToken and controlPlaneToken must be distinct secrets");
+  return Object.freeze({ data, control });
 }
 
 function authorized(request: IncomingMessage, expectedToken: Buffer): boolean {
@@ -200,8 +202,7 @@ function authorized(request: IncomingMessage, expectedToken: Buffer): boolean {
 
 function jsonContentType(request: IncomingMessage): boolean {
   const raw = request.headers["content-type"];
-  if (typeof raw !== "string") return false;
-  return raw.split(";", 1)[0]?.trim().toLowerCase() === "application/json";
+  return typeof raw === "string" && raw.split(";", 1)[0]?.trim().toLowerCase() === "application/json";
 }
 
 async function readJsonBody(request: IncomingMessage): Promise<unknown> {
@@ -218,11 +219,8 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
     chunks.push(buffer);
   }
   if (bytes === 0) throw new HttpRequestError(400, "request body is required");
-  try {
-    return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
-  } catch {
-    throw new HttpRequestError(400, "request body contains malformed JSON");
-  }
+  try { return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown; }
+  catch { throw new HttpRequestError(400, "request body contains malformed JSON"); }
 }
 
 function writeJson(response: ServerResponse, statusCode: number, value: unknown): void {
@@ -267,11 +265,8 @@ function requestObject(value: unknown, allowed: readonly string[], label: string
 }
 
 function requestContext(value: unknown): CortexBanditContext {
-  try {
-    return plainObject(value, "selection request.context") as CortexBanditContext;
-  } catch (error) {
-    throw new HttpRequestError(400, error instanceof Error ? error.message : "selection request.context is invalid");
-  }
+  try { return plainObject(value, "selection request.context") as CortexBanditContext; }
+  catch (error) { throw new HttpRequestError(400, error instanceof Error ? error.message : "selection request.context is invalid"); }
 }
 
 function controlResponse(state: CortexBanditRuntimeControlState, control: CortexBanditRuntimeController) {
@@ -279,7 +274,7 @@ function controlResponse(state: CortexBanditRuntimeControlState, control: Cortex
 }
 
 export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOptions): CortexBanditHttpRuntime {
-  const expectedToken = validateToken(options.apiToken);
+  const tokens = validateTokens(options.dataPlaneToken, options.controlPlaneToken);
   const now = options.now ?? Date.now;
   const experiments = new Map<string, RuntimeExperiment>();
   for (const experiment of options.config.experiments) {
@@ -290,9 +285,8 @@ export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOp
   }
 
   const emit = (event: CortexBanditRuntimeTelemetryEvent) => {
-    try { options.onTelemetry?.(Object.freeze(event)); } catch (error) {
-      try { options.onTelemetryError?.(error); } catch { /* telemetry must not change runtime semantics */ }
-    }
+    try { options.onTelemetry?.(Object.freeze(event)); }
+    catch (error) { try { options.onTelemetryError?.(error); } catch { /* telemetry must not change runtime semantics */ } }
   };
 
   const server = createServer(async (request, response) => {
@@ -309,11 +303,6 @@ export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOp
         emit({ operation, status: "OK", experimentId, durationMs: Math.max(0, now() - startedAt), errorCode: null, decisionReason, controlMode });
         return;
       }
-      if (!authorized(request, expectedToken)) {
-        writeJson(response, 401, { error: "UNAUTHORIZED" });
-        emit({ operation, status: "REJECTED", experimentId, durationMs: Math.max(0, now() - startedAt), errorCode: "UNAUTHORIZED", decisionReason, controlMode });
-        return;
-      }
       const match = /^\/v1\/bandits\/([A-Za-z0-9][A-Za-z0-9._:-]{0,127})\/(select|outcomes|control)$/u.exec(url.pathname);
       if (!match) {
         writeJson(response, 404, { error: "NOT_FOUND" });
@@ -322,6 +311,12 @@ export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOp
       }
       experimentId = match[1]!;
       const action = match[2]!;
+      const requiredToken = action === "control" ? tokens.control : tokens.data;
+      if (!authorized(request, requiredToken)) {
+        writeJson(response, 401, { error: "UNAUTHORIZED" });
+        emit({ operation, status: "REJECTED", experimentId, durationMs: Math.max(0, now() - startedAt), errorCode: "UNAUTHORIZED", decisionReason, controlMode });
+        return;
+      }
       const runtime = experiments.get(experimentId);
       if (!runtime) {
         writeJson(response, 404, { error: "UNKNOWN_EXPERIMENT" });
@@ -358,25 +353,16 @@ export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOp
       } else if (action === "outcomes") {
         operation = "OUTCOME";
         const input = requestObject(body, ["decisionId", "converted", "economicValue", "outcomeAt"], "outcome request");
-        if (typeof input.decisionId !== "string" || typeof input.converted !== "boolean" || typeof input.economicValue !== "number" || typeof input.outcomeAt !== "string") {
-          throw new HttpRequestError(400, "outcome request fields are malformed");
-        }
+        if (typeof input.decisionId !== "string" || typeof input.converted !== "boolean" || typeof input.economicValue !== "number" || typeof input.outcomeAt !== "string") throw new HttpRequestError(400, "outcome request fields are malformed");
         const decision = runtime.engine.recordOutcome({ decisionId: input.decisionId, converted: input.converted, economicValue: input.economicValue, outcomeAt: input.outcomeAt });
         decisionReason = decision.reason;
         writeJson(response, 200, decision);
       } else {
         operation = "CONTROL_WRITE";
         const input = requestObject(body, ["expectedRevision", "mode", "reason", "changedAt"], "control request");
-        if (typeof input.expectedRevision !== "number" || typeof input.mode !== "string" || typeof input.reason !== "string") {
-          throw new HttpRequestError(400, "control request fields are malformed");
-        }
+        if (typeof input.expectedRevision !== "number" || typeof input.mode !== "string" || typeof input.reason !== "string") throw new HttpRequestError(400, "control request fields are malformed");
         if (input.changedAt !== undefined && typeof input.changedAt !== "string") throw new HttpRequestError(400, "changedAt must be a string");
-        const state = runtime.control.set({
-          expectedRevision: input.expectedRevision,
-          mode: input.mode as CortexBanditMode,
-          reason: input.reason,
-          ...(input.changedAt === undefined ? {} : { changedAt: input.changedAt }),
-        });
+        const state = runtime.control.set({ expectedRevision: input.expectedRevision, mode: input.mode as CortexBanditMode, reason: input.reason, ...(input.changedAt === undefined ? {} : { changedAt: input.changedAt }) });
         controlMode = state.mode;
         writeJson(response, 200, controlResponse(state, runtime.control));
       }
