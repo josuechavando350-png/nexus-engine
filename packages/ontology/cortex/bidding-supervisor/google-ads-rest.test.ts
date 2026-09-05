@@ -54,6 +54,7 @@ function campaignSearchRow(overrides: Record<string, unknown> = {}) {
       status: "ENABLED",
       campaignBudget: "customers/1234567890/campaignBudgets/2222222222",
       biddingStrategyType: "MAXIMIZE_CONVERSIONS",
+      biddingStrategySystemStatus: "ENABLED",
       maximizeConversions: { targetCpaMicros: "50000000" },
       ...overrides,
     },
@@ -103,6 +104,7 @@ describe("Google Ads REST adapter", () => {
     expect(headers.authorization).toBe("Bearer oauth-access-token");
     expect(headers["developer-token"]).toBe("developer-token-secret");
     expect(headers["login-customer-id"]).toBe("1234567890");
+    expect(String(body(calls[0]!).query)).toContain("campaign.bidding_strategy_system_status");
     expect(String(body(calls[0]!).query)).toContain("segments.date BETWEEN '2026-08-20' AND '2026-09-02'");
   });
 
