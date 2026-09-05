@@ -1,4 +1,7 @@
 import { Link } from "@nexus/core";
+import { headers } from "next/headers";
+import { AD_CONTEXT_HEADERS } from "../ad-context";
+import { homeHeroForAdExperience } from "./ad-context-copy";
 import { PageShell } from "./SiteChrome";
 import { areas, cases, site, trajectory } from "./content";
 
@@ -16,10 +19,13 @@ const areaDescriptions = [
 ] as const;
 
 // PageShell renders <main id="main-content"> for the global skip-link target.
-export default function HomePage() {
+export default async function HomePage() {
+  const requestHeaders = await headers();
+  const hero = homeHeroForAdExperience(requestHeaders.get(AD_CONTEXT_HEADERS.experience));
+
   return (
     <PageShell>
-      <section className="cp-hero">
+      <section className="cp-hero" data-nexus-ad-experience={hero.id}>
         <img className="cp-hero-image" src="/media/hero-eduardo.jpg" alt="Eduardo Cano de pie con los brazos cruzados" />
         <div className="cp-hero-shade" aria-hidden="true" />
         <div className="cp-wrap cp-hero-content">
@@ -28,11 +34,11 @@ export default function HomePage() {
               <span className="cp-hero-name">Eduardo Cano</span>
               <span className="cp-hero-role">Abogado penalista</span>
             </div>
-            <h1><span>Conozco cómo investiga la autoridad.</span><br /><strong>Trabajé dentro de ella.</strong></h1>
-            <p className="cp-lead">20 años defendiendo exclusivamente en materia penal. Dirigí investigaciones en la Procuraduría Fiscal de la Federación. Hoy uso esa experiencia para defenderte.</p>
+            <h1><span>{hero.lineOne}</span><br /><strong>{hero.lineTwo}</strong></h1>
+            <p className="cp-lead">{hero.lead}</p>
             <div className="cp-actions">
-              <Link className="cp-btn cp-btn-solid" href="#contacto">Hablemos de tu caso</Link>
-              <Link className="cp-btn" href="#asesoria">Diagnóstico y estrategia — $2,500</Link>
+              <Link className="cp-btn cp-btn-solid" href="#contacto">{hero.primaryCta}</Link>
+              <Link className="cp-btn" href="#asesoria">{hero.secondaryCta}</Link>
             </div>
           </div>
         </div>
