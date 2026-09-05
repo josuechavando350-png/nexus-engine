@@ -212,10 +212,7 @@ async function readJsonBody(request: IncomingMessage): Promise<unknown> {
   for await (const chunk of request) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     bytes += buffer.length;
-    if (bytes > MAX_BODY_BYTES) {
-      request.resume();
-      throw new HttpRequestError(413, `request body exceeds ${MAX_BODY_BYTES} bytes`);
-    }
+    if (bytes > MAX_BODY_BYTES) { request.resume(); throw new HttpRequestError(413, `request body exceeds ${MAX_BODY_BYTES} bytes`); }
     chunks.push(buffer);
   }
   if (bytes === 0) throw new HttpRequestError(400, "request body is required");
@@ -270,7 +267,13 @@ function requestContext(value: unknown): CortexBanditContext {
 }
 
 function controlResponse(state: CortexBanditRuntimeControlState, control: CortexBanditRuntimeController) {
-  return Object.freeze({ state, history: control.history(64) });
+  return Object.freeze({
+    state,
+    effectiveMode: control.effectiveMode(),
+    configuredMode: control.configuredMode,
+    currentPolicyDigest: control.policyDigest,
+    history: control.history(64),
+  });
 }
 
 export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOptions): CortexBanditHttpRuntime {
@@ -327,7 +330,7 @@ export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOp
       if (action === "control" && method === "GET") {
         operation = "CONTROL_READ";
         const value = controlResponse(runtime.control.current(), runtime.control);
-        controlMode = value.state.mode;
+        controlMode = value.effectiveMode;
         writeJson(response, 200, value);
         emit({ operation, status: "OK", experimentId, durationMs: Math.max(0, now() - startedAt), errorCode: null, decisionReason, controlMode });
         return;
@@ -345,9 +348,8 @@ export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOp
         if (typeof input.requestId !== "string") throw new HttpRequestError(400, "requestId must be a string");
         if (!Array.isArray(input.eligibleArmIds) || !input.eligibleArmIds.every((item) => typeof item === "string")) throw new HttpRequestError(400, "eligibleArmIds must be a string array");
         const context = requestContext(input.context);
-        const state = runtime.control.current();
-        controlMode = state.mode;
-        const decision = runtime.engine.select({ requestId: input.requestId, context, eligibleArmIds: input.eligibleArmIds as string[], mode: state.mode });
+        controlMode = runtime.control.effectiveMode();
+        const decision = runtime.engine.select({ requestId: input.requestId, context, eligibleArmIds: input.eligibleArmIds as string[], mode: controlMode });
         decisionReason = decision.reason;
         writeJson(response, 200, decision);
       } else if (action === "outcomes") {
@@ -363,8 +365,9 @@ export function createCortexBanditHttpRuntime(options: CortexBanditHttpRuntimeOp
         if (typeof input.expectedRevision !== "number" || typeof input.mode !== "string" || typeof input.reason !== "string") throw new HttpRequestError(400, "control request fields are malformed");
         if (input.changedAt !== undefined && typeof input.changedAt !== "string") throw new HttpRequestError(400, "changedAt must be a string");
         const state = runtime.control.set({ expectedRevision: input.expectedRevision, mode: input.mode as CortexBanditMode, reason: input.reason, ...(input.changedAt === undefined ? {} : { changedAt: input.changedAt }) });
-        controlMode = state.mode;
-        writeJson(response, 200, controlResponse(state, runtime.control));
+        const value = controlResponse(state, runtime.control);
+        controlMode = value.effectiveMode;
+        writeJson(response, 200, value);
       }
       emit({ operation, status: "OK", experimentId, durationMs: Math.max(0, now() - startedAt), errorCode: null, decisionReason, controlMode });
     } catch (error) {
