@@ -318,7 +318,6 @@ export function createBiddingProductionRuntime(options: BiddingProductionRuntime
         if (inFlight !== null || safetyOperationInFlight) throw new BiddingSupervisorError("CONFLICT", "rollback requires an idle production runtime");
         safetyOperationInFlight = true;
         try {
-          await supervisor.supervise({ runId: `rollback-preflight-${campaignId}-${now()}`, customerId, campaignId, mode: "KILLED" });
           rollbackWriteAuthorized = true;
           let result: BiddingSupervisorResult;
           try {
