@@ -195,7 +195,8 @@ describe("SerpMetadataOptimizer", () => {
     expect(result.status).toBe("APPLIED");
     if (result.action?.kind !== "UPSERT_METADATA_OVERRIDE") throw new Error("expected upsert");
     expect(result.action.desired.title).toBe("Federal Criminal Defense | Nexus Legal");
-    expect(result.action.desired.metaDescription).toBe("Federal criminal defense for complex investigations and court proceedings.");
+    // Equal query coverage resolves deterministically to the shorter visible summary.
+    expect(result.action.desired.metaDescription).toBe("Talk with our legal team about federal criminal defense strategy.");
     expect(result.evidence).toMatchObject({ sourceCoverage: "TOP_ROWS_BOUNDED", sourceTruncated: false, nonClaim: "OBSERVATIONAL_CTR_OPPORTUNITY_NOT_CAUSAL_RANKING_OR_SERP_GUARANTEE" });
     expect(JSON.stringify(store.checkpoint())).not.toContain("secretquerytoken");
   });
