@@ -197,18 +197,19 @@ export class SearchConsoleRestClient implements SearchPerformanceProvider {
       const rowLimit = Math.min(MAX_API_ROW_LIMIT, maxRows - rows.length);
       const payload = await this.request(siteUrl, { ...baseBody, rowLimit, startRow });
       const page = this.parseRows(payload, expectedKeys, expectQuery);
+      if (page.length > rowLimit) throw new SearchConsoleApiError("INVALID_RESPONSE", "Search Console returned more rows than requested");
       rows.push(...page);
       if (page.length < rowLimit) return Object.freeze({ rows: Object.freeze(rows), truncated: false });
       startRow += page.length;
-      if (page.length === 0) return Object.freeze({ rows: Object.freeze(rows), truncated: false });
     }
     return Object.freeze({ rows: Object.freeze(rows), truncated: true });
   }
 
   async getPerformance(input: Readonly<{ siteUrl: string; pageUrl: string; startDate: string; endDate: string; maxRows: number }>): Promise<SearchPerformanceSnapshot> {
     const maxRows = positiveInt(input.maxRows, "maxRows", 250_000);
-    const pageBudget = Math.max(1, Math.floor(maxRows / 2));
-    const queryBudget = Math.max(1, maxRows - pageBudget);
+    if (maxRows < 2) throw new SearchConsoleApiError("INVALID_CONFIG", "maxRows must be at least 2 so page and query evidence each receive a row budget");
+    const pageBudget = Math.ceil(maxRows / 2);
+    const queryBudget = maxRows - pageBudget;
     const common = {
       startDate: input.startDate,
       endDate: input.endDate,
