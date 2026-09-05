@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import {
-  GtmServerTransportError,
   buildEnhancedConversionDataLayerEvent,
   buildGoogleConsentModeDefaults,
   buildGoogleTagServerConfig,
@@ -102,25 +101,51 @@ describe("enhanced conversion user data", () => {
     expect(JSON.stringify(result)).not.toContain("+52 55 1234 5678");
   });
 
-  it("requires explicit ad-user-data consent and at least one matching identifier", () => {
+  it("applies Google's Gmail normalization before SHA-256", () => {
+    const result = hashEnhancedConversionUserData({
+      email: " First.Last@GMAIL.COM ",
+    }, granted);
+    expect(result.sha256_email_address).toBe(sha256("firstlast@gmail.com"));
+  });
+
+  it("accepts a complete address as a documented matching identifier", () => {
+    const result = hashEnhancedConversionUserData({
+      firstName: "Ana",
+      lastName: "López",
+      postalCode: "06600",
+      country: "MX",
+    }, granted);
+    expect(result.address).toEqual({
+      sha256_first_name: sha256("ana"),
+      sha256_last_name: sha256("lópez"),
+      postal_code: "06600",
+      country: "MX",
+    });
+  });
+
+  it("enforces explicit consent and the documented E.164 range", () => {
     expect(() => hashEnhancedConversionUserData(
       { email: "client@example.com" },
       { ...granted, adUserData: "denied" },
     )).toThrow(/adUserData consent/u);
     expect(() => hashEnhancedConversionUserData({ firstName: "Only Name" }, granted))
-      .toThrow(/at least email or phoneNumber/u);
+      .toThrow(/email, phoneNumber, or a complete address/u);
+    expect(() => hashEnhancedConversionUserData({ phoneNumber: "+12345678" }, granted))
+      .toThrow(/11 to 15 digits/u);
   });
 
-  it("builds a GTM data-layer event while preventing raw protected fields in generic parameters", () => {
+  it("builds a GTM data-layer event with an explicit deduplication transaction ID", () => {
     const event = buildEnhancedConversionDataLayerEvent({
       eventName: "qualified_lead",
       eventId: "lead:crm:42",
+      transactionId: "ORDER-2026-0042",
       consent: granted,
       userData: { email: "lead@example.com" },
       parameters: { lead_value_bucket: "high", form_version: 3 },
     });
     expect(event.event).toBe("qualified_lead");
     expect(event.event_id).toBe("lead:crm:42");
+    expect(event.transaction_id).toBe("ORDER-2026-0042");
     expect(event.user_data).toEqual({ sha256_email_address: sha256("lead@example.com") });
     expect(() => buildEnhancedConversionDataLayerEvent({
       eventName: "lead",
@@ -128,6 +153,13 @@ describe("enhanced conversion user data", () => {
       consent: granted,
       userData: { email: "lead@example.com" },
       parameters: { email: "raw@example.com" },
+    })).toThrow(/reserved for protected data/u);
+    expect(() => buildEnhancedConversionDataLayerEvent({
+      eventName: "lead",
+      eventId: "lead-2",
+      consent: granted,
+      userData: { email: "lead@example.com" },
+      parameters: { transaction_id: "bypass" },
     })).toThrow(/reserved for protected data/u);
   });
 });
@@ -222,7 +254,8 @@ describe("server-to-server GTM transport", () => {
 
   it("does not transmit click identifiers when ad storage is denied", async () => {
     let body = "";
-    const fakeFetch = (async (_input: string | URL | Request, init?: RequestInit) => {
+    const fakeFetch = (async (input: string | URL | Request, init?: RequestInit) => {
+      void input;
       body = String(init?.body ?? "");
       return new Response(null, { status: 204 });
     }) as typeof fetch;
@@ -259,7 +292,7 @@ describe("server-to-server GTM transport", () => {
       eventId: "evt-4",
       clientId: "client-4",
       consent: granted,
-    })).rejects.toMatchObject<GtmServerTransportError>({
+    })).rejects.toMatchObject({
       name: "GtmServerTransportError",
       status: 503,
       eventId: "evt-4",
