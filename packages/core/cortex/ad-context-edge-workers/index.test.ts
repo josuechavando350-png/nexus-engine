@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createAdContextPolicy, evaluateAdContext } from "./index";
+import { createAdContextPolicy, evaluateAdContext, type AdContextPolicy } from "./index";
 
 function policy(mode: "ACTIVE" | "OBSERVE_ONLY" | "KILLED" = "ACTIVE") {
   return createAdContextPolicy({
@@ -83,7 +83,7 @@ describe("CORTEX ad-context edge workers", () => {
     });
   });
 
-  it("rejects unsafe policy construction before any request is evaluated", () => {
+  it("rejects unsafe or overlapping policy rules before any request is evaluated", () => {
     expect(() => createAdContextPolicy({
       policyId: "unsafe",
       mode: "ACTIVE",
@@ -102,5 +102,29 @@ describe("CORTEX ad-context edge workers", () => {
         { ruleId: "two", experienceId: "default", campaign: "same" },
       ],
     })).toThrow(/duplicate exact-rule matcher/);
+
+    expect(() => createAdContextPolicy({
+      policyId: "overlap",
+      mode: "ACTIVE",
+      defaultExperienceId: "default",
+      allowedExperienceIds: ["default", "specific"],
+      exactRules: [
+        { ruleId: "broad", experienceId: "default", source: "google" },
+        { ruleId: "specific", experienceId: "specific", source: "google", campaign: "penal-cdmx" },
+      ],
+    })).toThrow(/overlap/);
+  });
+
+  it("fails to default even if a structurally forged policy bypasses construction with multiple matching rules", () => {
+    const safe = policy();
+    const forged = {
+      ...safe,
+      exactRules: [
+        { ruleId: "one", experienceId: "campaign-a", source: "google", medium: null, campaign: null },
+        { ruleId: "two", experienceId: "paid-search", source: "google", medium: "cpc", campaign: null },
+      ],
+    } as AdContextPolicy;
+    const result = evaluateAdContext("https://example.test/?utm_source=google&utm_medium=cpc", forged);
+    expect(result).toMatchObject({ experienceId: "default", applied: false, reason: "AMBIGUOUS_CONTEXT", ruleId: null });
   });
 });
