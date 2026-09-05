@@ -2,7 +2,15 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { InMemoryOntologyTransactionStore } from "@nexus/ontology/transaction";
+import type { OntologyScope, ValidatedSchema } from "@nexus/ontology";
+import {
+  InMemoryOntologyTransactionStore,
+  type ObjectRecord,
+  type OntologyTransactionPort,
+  type RelationshipRecord,
+  type TransactionOperation,
+  type TransactionResult,
+} from "@nexus/ontology/transaction";
 import { SqliteOntologyTransactionStore } from "@nexus/ontology/cortex/sqlite-transaction-store";
 import { GoogleAdsApiError } from "@nexus/ontology/cortex/bidding-supervisor/google-ads-rest";
 import {
@@ -178,10 +186,20 @@ class Gateway implements GoogleAdsCreativeGateway {
       const existing = [...this.attributes.values()].find((item) => item.name.toLowerCase() === action.name.toLowerCase());
       if (existing) return Object.freeze({ requestId: null, resourceName: existing.resourceName, recoveredAlreadyApplied: true });
     }
+    if (action.kind === "REMOVE_CUSTOMIZER_ATTRIBUTE") {
+      const existing = this.attributes.get(action.resourceName);
+      if (!existing) return Object.freeze({ requestId: null, resourceName: action.resourceName, recoveredAlreadyApplied: true });
+      if (existing.name !== action.name || existing.type !== action.type) throw new GoogleAdsApiError("REMOTE_CONFLICT", "attribute drift");
+    }
     if (action.kind === "UPDATE_RSA" && this.rsa) {
       const current = contentFromSnapshot(this.rsa);
       if (JSON.stringify(current) === JSON.stringify(action.desired)) return Object.freeze({ requestId: null, resourceName: action.resourceName, recoveredAlreadyApplied: true });
       if (JSON.stringify(current) !== JSON.stringify(action.expected)) throw new GoogleAdsApiError("REMOTE_CONFLICT", "RSA drift");
+    }
+    if (action.kind === "REMOVE_CUSTOMIZER_VALUE") {
+      const current = await this.getCustomizerValue(CUSTOMER, action);
+      if (!current) return Object.freeze({ requestId: null, resourceName: action.expected.resourceName, recoveredAlreadyApplied: true });
+      if (JSON.stringify(current) !== JSON.stringify(action.expected)) throw new GoogleAdsApiError("REMOTE_CONFLICT", "customizer drift");
     }
     if (action.kind === "UPSERT_CUSTOMIZER_VALUE") {
       const current = await this.getCustomizerValue(CUSTOMER, action);
@@ -205,10 +223,31 @@ function contentFromSnapshot(snapshot: ResponsiveSearchAdSnapshot): ResponsiveSe
   };
 }
 
+class FailFinalizeOnceStore implements OntologyTransactionPort {
+  private fail = true;
+  constructor(private readonly delegate: OntologyTransactionPort) {}
+
+  transact(scopeValue: OntologyScope, schema: ValidatedSchema, operations: readonly TransactionOperation[]): TransactionResult {
+    if (this.fail && operations.length === 2 && operations.every((operation) => operation.kind === "UPDATE_OBJECT")) {
+      this.fail = false;
+      throw new Error("synthetic finalize persistence failure");
+    }
+    return this.delegate.transact(scopeValue, schema, operations);
+  }
+
+  getObject(scopeValue: OntologyScope, id: string): ObjectRecord | undefined {
+    return this.delegate.getObject(scopeValue, id);
+  }
+
+  getRelationship(scopeValue: OntologyScope, id: string): RelationshipRecord | undefined {
+    return this.delegate.getRelationship(scopeValue, id);
+  }
+}
+
 function harness(options: {
   readonly source?: Source;
   readonly gateway?: Gateway;
-  readonly store?: InMemoryOntologyTransactionStore | SqliteOntologyTransactionStore;
+  readonly store?: OntologyTransactionPort;
   readonly supervisorPolicy?: ReturnType<typeof policy>;
   readonly nowMs?: number;
 } = {}) {
@@ -230,6 +269,35 @@ describe("NearRealTimeCreativeSynchronizer", () => {
     const source = new Source();
     source.state = desiredState({ customizerAttributes: Object.freeze([{ name: "Price", type: "PRICE" }, { name: "price", type: "PRICE" }]) });
     await expect(sync(harness({ source }), "duplicate-attrs")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+  });
+
+  it("enforces RSA static character, URL, CJK-width and section-specific pin contracts while permitting dynamic insertions", async () => {
+    const tooLongHeadline = new Source();
+    tooLongHeadline.state = desiredState({ responsiveSearchAds: Object.freeze([{ resourceName: AD, ...content("1234567890123456789012345678901") }]) });
+    await expect(sync(harness({ source: tooLongHeadline }), "long-headline")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+
+    const cjkHeadline = new Source();
+    cjkHeadline.state = desiredState({ responsiveSearchAds: Object.freeze([{ resourceName: AD, ...content("漢漢漢漢漢漢漢漢漢漢漢漢漢漢漢漢") }]) });
+    await expect(sync(harness({ source: cjkHeadline }), "cjk-headline")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+
+    const longDescription = new Source();
+    const longDescriptions = content().descriptions.map((asset, index) => index === 0 ? Object.freeze({ text: "x".repeat(91), pinnedField: null }) : asset);
+    longDescription.state = desiredState({ responsiveSearchAds: Object.freeze([{ resourceName: AD, ...content(), descriptions: Object.freeze(longDescriptions) }]) });
+    await expect(sync(harness({ source: longDescription }), "long-description")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+
+    const wrongPin = new Source();
+    const wrongHeadlines = content().headlines.map((asset, index) => index === 0 ? Object.freeze({ text: asset.text, pinnedField: "DESCRIPTION_1" as const }) : asset);
+    wrongPin.state = desiredState({ responsiveSearchAds: Object.freeze([{ resourceName: AD, ...content(), headlines: Object.freeze(wrongHeadlines) }]) });
+    await expect(sync(harness({ source: wrongPin }), "wrong-pin")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+
+    const oversizedUrl = new Source();
+    oversizedUrl.state = desiredState({ responsiveSearchAds: Object.freeze([{ resourceName: AD, ...content(), finalUrls: Object.freeze([`https://example.com/${"a".repeat(2_100)}`]) }]) });
+    await expect(sync(harness({ source: oversizedUrl }), "long-url")).rejects.toMatchObject({ code: "INVALID_INPUT" });
+
+    const dynamic = new Source();
+    dynamic.state = desiredState({ responsiveSearchAds: Object.freeze([{ resourceName: AD, ...content("Special offer {CUSTOMIZER.Price:10USD}") }]) });
+    const dynamicResult = await sync(harness({ source: dynamic }), "dynamic-macro");
+    expect(dynamicResult.action?.kind).toBe("CREATE_CUSTOMIZER_ATTRIBUTE");
   });
 
   it("converges deterministically attribute -> value -> RSA -> IN_SYNC with one remote mutation per run", async () => {
@@ -325,12 +393,44 @@ describe("NearRealTimeCreativeSynchronizer", () => {
     expect(h.gateway.mutationCalls).toBe(2);
   });
 
+  it("recovers a certified remote write after local finalization persistence fails", async () => {
+    const delegate = new InMemoryOntologyTransactionStore();
+    const store = new FailFinalizeOnceStore(delegate);
+    const h = harness({ store });
+    await expect(sync(h, "post-write-local-failure")).rejects.toMatchObject({ code: "PERSISTENCE_FAILURE" });
+    expect(h.gateway.mutationCalls).toBe(1);
+    expect(h.gateway.attributes.size).toBe(1);
+    expect(h.source.calls).toBe(1);
+
+    const recovered = await sync(h, "next-scheduler-cycle");
+    expect(recovered.runId).toBe("post-write-local-failure");
+    expect(recovered.status).toBe("APPLIED");
+    expect(recovered.reason).toBe("ACTION_RECOVERED");
+    expect(h.gateway.mutationCalls).toBe(2);
+    expect(h.gateway.attributes.size).toBe(1);
+    expect(h.source.calls).toBe(1);
+  });
+
   it("releases the lock after a certified remote conflict", async () => {
     const h = harness();
     h.gateway.nextError = new GoogleAdsApiError("REMOTE_CONFLICT", "third-party edit");
     await expect(sync(h, "conflict-1")).rejects.toMatchObject({ code: "REMOTE_FAILURE" });
     const next = await sync(h, "conflict-2");
     expect(next.runId).toBe("conflict-2");
+  });
+
+  it("rolls back a newly created attribute using the certified Google resource name", async () => {
+    const h = harness();
+    const applied = await sync(h, "attribute-apply");
+    expect(applied.action?.kind).toBe("CREATE_CUSTOMIZER_ATTRIBUTE");
+    expect(h.gateway.attributes.size).toBe(1);
+    const createdResource = applied.receipt?.resourceName;
+    expect(createdResource).toMatch(/customizerAttributes\/\d+$/);
+
+    const rollback = await h.engine.rollbackLastMutation({ runId: "attribute-rollback", customerId: CUSTOMER });
+    expect(rollback.status).toBe("ROLLED_BACK");
+    expect(rollback.action).toMatchObject({ kind: "REMOVE_CUSTOMIZER_ATTRIBUTE", resourceName: createdResource });
+    expect(h.gateway.attributes.size).toBe(0);
   });
 
   it("rolls back a certified RSA update only against its exact applied state", async () => {
