@@ -130,7 +130,9 @@ function clean(label: string, value: string, maxLength: number): string {
 
 function validateConsent(consent: TrackingConsent): TrackingConsent {
   if (!consent || typeof consent !== "object") throw new Error("consent is required");
-  for (const [key, value] of Object.entries(consent)) {
+  const keys = ["analyticsStorage", "adStorage", "adUserData", "adPersonalization"] as const;
+  for (const key of keys) {
+    const value = consent[key];
     if (value !== "granted" && value !== "denied") throw new Error(`${key} must be granted or denied`);
   }
   return consent;
@@ -184,9 +186,7 @@ function normalizeActivationPath(value: string): string {
 
 function normalizeClickId(label: string, value: string | null): string | undefined {
   if (value == null || value.trim() === "") return undefined;
-  const clickId = clean(label, value, MAX_CLICK_ID);
-  if (!/^[A-Za-z0-9._~-]+$/u.test(clickId)) throw new Error(`${label} contains unsupported characters`);
-  return clickId;
+  return clean(label, value, MAX_CLICK_ID);
 }
 
 function sha256(value: string): string {
@@ -346,7 +346,7 @@ export function hashEnhancedConversionUserData(
   if (region) address.region = region;
   if (postalCode) address.postal_code = postalCode;
   if (country) address.country = country;
-  if (Object.keys(address).length > 0) output.address = address;
+  if (Object.keys(address).length > 0) output.address = Object.freeze(address);
 
   return Object.freeze(output);
 }
