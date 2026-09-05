@@ -1,0 +1,16 @@
+{
+  "name": "@nexus/cortex",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./bandit-experimentation": "./bandit-experimentation/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/bandit-experimentation/index.js && test -f dist/bandit-experimentation/index.d.ts"
+  },
+  "dependencies": {
+    "@nexus/ontology": "workspace:*"
+  }
+}
