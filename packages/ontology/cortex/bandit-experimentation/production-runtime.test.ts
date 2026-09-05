@@ -10,7 +10,8 @@ import {
   type CortexBanditRuntimeTelemetryEvent,
 } from "./production-runtime";
 
-const token = "test-only-cortex-api-token-00000000000000000000";
+const dataToken = "test-only-cortex-data-token-000000000000000000000";
+const controlToken = "test-only-cortex-control-token-000000000000000000";
 const config = parseCortexBanditProductionConfig({
   version: 1,
   scope: { tenantId: "tenant:production-runtime", organizationId: "org:production-runtime" },
@@ -54,7 +55,7 @@ async function listen(runtime: CortexBanditHttpRuntime): Promise<string> {
   return `http://127.0.0.1:${address.port}`;
 }
 
-async function api(base: string, path: string, init: RequestInit = {}): Promise<Response> {
+async function api(base: string, path: string, token: string, init: RequestInit = {}): Promise<Response> {
   const headers = new Headers(init.headers);
   headers.set("authorization", `Bearer ${token}`);
   if (init.body !== undefined) headers.set("content-type", "application/json");
@@ -70,7 +71,7 @@ describe("CORTEX bandit production HTTP runtime", () => {
     const telemetry: CortexBanditRuntimeTelemetryEvent[] = [];
 
     let store = new SqliteOntologyTransactionStore(dbPath);
-    let runtime = createCortexBanditHttpRuntime({ transactions: store, config, apiToken: token, now: () => now, onTelemetry: (event) => telemetry.push(event) });
+    let runtime = createCortexBanditHttpRuntime({ transactions: store, config, dataPlaneToken: dataToken, controlPlaneToken: controlToken, now: () => now, onTelemetry: (event) => telemetry.push(event) });
     let base = await listen(runtime);
 
     const unauthorized = await fetch(`${base}/v1/bandits/landing-cta/select`, {
@@ -80,7 +81,10 @@ describe("CORTEX bandit production HTTP runtime", () => {
     });
     expect(unauthorized.status).toBe(401);
 
-    const selectionResponse = await api(base, "/v1/bandits/landing-cta/select", {
+    const dataTokenCannotControl = await api(base, "/v1/bandits/landing-cta/control", dataToken);
+    expect(dataTokenCannotControl.status).toBe(401);
+
+    const selectionResponse = await api(base, "/v1/bandits/landing-cta/select", dataToken, {
       method: "POST",
       body: JSON.stringify({ requestId: "request-0001", context: { channel: "paid-search" }, eligibleArmIds: ["control", "variant"] }),
     });
@@ -89,7 +93,7 @@ describe("CORTEX bandit production HTTP runtime", () => {
     expect(selection.armId).toBe("control");
     expect(selection.status).toBe("PENDING");
 
-    const outcomeResponse = await api(base, "/v1/bandits/landing-cta/outcomes", {
+    const outcomeResponse = await api(base, "/v1/bandits/landing-cta/outcomes", dataToken, {
       method: "POST",
       body: JSON.stringify({ decisionId: selection.decisionId, converted: true, economicValue: 50_000, outcomeAt: new Date(now).toISOString() }),
     });
@@ -97,14 +101,14 @@ describe("CORTEX bandit production HTTP runtime", () => {
     expect(await outcomeResponse.json()).toMatchObject({ status: "REWARDED", converted: true, economicValue: 50_000 });
 
     now += 1_000;
-    const rollbackResponse = await api(base, "/v1/bandits/landing-cta/control", {
+    const rollbackResponse = await api(base, "/v1/bandits/landing-cta/control", controlToken, {
       method: "POST",
       body: JSON.stringify({ expectedRevision: 0, mode: "FALLBACK_ONLY", reason: "rollback after monitored conversion regression" }),
     });
     expect(rollbackResponse.status).toBe(200);
     expect(await rollbackResponse.json()).toMatchObject({ state: { mode: "FALLBACK_ONLY", revision: 1 } });
 
-    const rollbackSelectionResponse = await api(base, "/v1/bandits/landing-cta/select", {
+    const rollbackSelectionResponse = await api(base, "/v1/bandits/landing-cta/select", dataToken, {
       method: "POST",
       body: JSON.stringify({ requestId: "request-0002", context: { channel: "paid-search" }, eligibleArmIds: ["control", "variant"] }),
     });
@@ -112,7 +116,7 @@ describe("CORTEX bandit production HTTP runtime", () => {
     expect(await rollbackSelectionResponse.json()).toMatchObject({ armId: "control", reason: "ROLLBACK_FALLBACK" });
 
     now += 1_000;
-    const killResponse = await api(base, "/v1/bandits/landing-cta/control", {
+    const killResponse = await api(base, "/v1/bandits/landing-cta/control", controlToken, {
       method: "POST",
       body: JSON.stringify({ expectedRevision: 1, mode: "KILLED", reason: "emergency kill during upstream incident" }),
     });
@@ -123,16 +127,16 @@ describe("CORTEX bandit production HTTP runtime", () => {
     store.close();
 
     store = new SqliteOntologyTransactionStore(dbPath);
-    runtime = createCortexBanditHttpRuntime({ transactions: store, config, apiToken: token, now: () => now, onTelemetry: (event) => telemetry.push(event) });
+    runtime = createCortexBanditHttpRuntime({ transactions: store, config, dataPlaneToken: dataToken, controlPlaneToken: controlToken, now: () => now, onTelemetry: (event) => telemetry.push(event) });
     base = await listen(runtime);
 
-    const controlResponse = await api(base, "/v1/bandits/landing-cta/control");
+    const controlResponse = await api(base, "/v1/bandits/landing-cta/control", controlToken);
     expect(controlResponse.status).toBe(200);
     const control = await controlResponse.json() as { state: { mode: string; revision: number }; history: unknown[] };
     expect(control.state).toEqual(expect.objectContaining({ mode: "KILLED", revision: 2 }));
     expect(control.history).toHaveLength(2);
 
-    const killedSelectionResponse = await api(base, "/v1/bandits/landing-cta/select", {
+    const killedSelectionResponse = await api(base, "/v1/bandits/landing-cta/select", dataToken, {
       method: "POST",
       body: JSON.stringify({ requestId: "request-0003", context: { channel: "paid-search" }, eligibleArmIds: ["control", "variant"] }),
     });
@@ -141,19 +145,28 @@ describe("CORTEX bandit production HTTP runtime", () => {
 
     const invalidContentType = await fetch(`${base}/v1/bandits/landing-cta/select`, {
       method: "POST",
-      headers: { authorization: `Bearer ${token}`, "content-type": "text/plain" },
+      headers: { authorization: `Bearer ${dataToken}`, "content-type": "text/plain" },
       body: "{}",
     });
     expect(invalidContentType.status).toBe(415);
 
+    const invalidShape = await api(base, "/v1/bandits/landing-cta/select", dataToken, { method: "POST", body: JSON.stringify([]) });
+    expect(invalidShape.status).toBe(400);
+
     expect(JSON.stringify(telemetry)).not.toContain("paid-search");
+    expect(JSON.stringify(telemetry)).not.toContain(dataToken);
+    expect(JSON.stringify(telemetry)).not.toContain(controlToken);
     expect(telemetry.some((event) => event.operation === "CONTROL_WRITE" && event.controlMode === "KILLED")).toBe(true);
 
     await runtime.close();
     store.close();
   });
 
-  it("rejects unknown production config fields before runtime startup", () => {
+  it("rejects unknown production config fields and collapsed runtime privileges", () => {
     expect(() => parseCortexBanditProductionConfig({ ...config, unexpected: true })).toThrow(/unknown field unexpected/i);
+    const store = new SqliteOntologyTransactionStore(":memory:", { allowInMemory: true });
+    expect(() => createCortexBanditHttpRuntime({ transactions: store, config, dataPlaneToken: dataToken, controlPlaneToken: dataToken }))
+      .toThrow(/must be distinct secrets/i);
+    store.close();
   });
 });
