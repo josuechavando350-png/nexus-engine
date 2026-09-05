@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "projectId": "nexus-bot-studio",
+  "canonicalOrigin": "https://nexusbotstudio.com",
+  "referenceImplementation": true,
+  "publicOffers": [
+    {
+      "id": "webs-premium",
+      "name": "Webs Premium",
+      "requiredText": ["Webs Premium"]
+    },
+    {
+      "id": "agentes-ia",
+      "name": "Agentes de IA",
+      "requiredText": ["Agentes de IA", "Chatbot"]
+    }
+  ],
+  "engines": [
+    "experience",
+    "growth",
+    "industrial",
+    "intelligence",
+    "security"
+  ],
+  "fieldRum": {
+    "authority": "NEXUS_FIELD_RUM_V1",
+    "endpoint": "/api/vitals",
+    "metrics": ["LCP", "INP", "CLS"],
+    "candidateRevisionRequired": true
+  },
+  "externalEvidencePolicy": {
+    "aiRecommendationGuarantee": "PROHIBITED",
+    "cruxFabrication": "PROHIBITED",
+    "missingEvidence": "FAIL_CLOSED"
+  }
+}
