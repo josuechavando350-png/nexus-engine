@@ -25,6 +25,7 @@ export interface SqliteOntologyTransactionStoreOptions {
   readonly limits?: TransactionStoreLimits;
   readonly allowInMemory?: boolean;
   readonly onTransaction?: (event: SqliteOntologyTransactionEvent) => void;
+  readonly onTelemetryError?: (error: unknown) => void;
 }
 
 export interface SqliteOntologyTransactionEvent {
@@ -99,6 +100,7 @@ export class SqliteOntologyTransactionStore implements OntologyTransactionPort {
   private readonly database: DatabaseSync;
   private readonly limits: TransactionStoreLimits;
   private readonly onTransaction?: (event: SqliteOntologyTransactionEvent) => void;
+  private readonly onTelemetryError?: (error: unknown) => void;
   private closed = false;
 
   constructor(path: string, options: SqliteOntologyTransactionStoreOptions = {}) {
@@ -112,6 +114,7 @@ export class SqliteOntologyTransactionStore implements OntologyTransactionPort {
     if (databasePath !== ":memory:") mkdirSync(dirname(databasePath), { recursive: true });
     this.limits = options.limits ?? DEFAULT_LIMITS;
     this.onTransaction = options.onTransaction;
+    this.onTelemetryError = options.onTelemetryError;
     this.database = new DatabaseSync(databasePath, {
       timeout: validateBusyTimeout(options.busyTimeoutMs),
       allowExtension: false,
@@ -272,13 +275,24 @@ export class SqliteOntologyTransactionStore implements OntologyTransactionPort {
         }
       }
       this.database.exec("COMMIT");
-      this.onTransaction?.(Object.freeze({
+      const telemetryEvent = Object.freeze({
         scope: Object.freeze({ ...scope }),
         operationCount: operations.length,
         objectIds: Object.freeze([...result.objectIds]),
         relationshipIds: Object.freeze([...result.relationshipIds]),
         durationMs: performance.now() - startedAt,
-      }));
+      });
+      if (this.onTransaction) {
+        try {
+          this.onTransaction(telemetryEvent);
+        } catch (error) {
+          try {
+            this.onTelemetryError?.(error);
+          } catch {
+            // A post-commit telemetry sink must never change transaction semantics.
+          }
+        }
+      }
       return result;
     } catch (error) {
       try {
