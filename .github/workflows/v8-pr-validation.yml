@@ -57,6 +57,14 @@ jobs:
         run: pnpm test
       - name: Hermetic SHA-bound build
         run: pnpm build
+      - name: CORTEX bidding supervisor container build
+        run: |
+          set -euo pipefail
+          docker build \
+            --file packages/ontology/cortex/bidding-supervisor/Dockerfile \
+            --tag "nexus-cortex-bidding:${NEXUS_VALIDATED_SHA}" \
+            .
+          docker image inspect "nexus-cortex-bidding:${NEXUS_VALIDATED_SHA}" >/dev/null
       - name: Real browser tests
         run: pnpm test:browser
       - name: V3 runtime boundary
