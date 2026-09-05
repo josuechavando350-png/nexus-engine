@@ -16,7 +16,11 @@ The adapter uses the Google Ads REST `v25` endpoint family. Google Ads minor rel
 
 Authentication uses OAuth 2.0 plus the required `developer-token` header and optional `login-customer-id`. The included refresh-token provider caches an access token only until five minutes before expiry and coalesces concurrent refreshes.
 
-Reads use GAQL through `googleAds:search`. Retry-safe reads may retry bounded 429/5xx/transport failures. **Mutations are never blindly retried.** Before every mutate, Cortex reads the live control and requires one of these states:
+Reads use GAQL through `googleAds:search`. The campaign snapshot includes Google's output-only `campaign.bidding_strategy_system_status`, which Google exposes on the campaign for both standard and portfolio bidding strategies. `LEARNING_*` and `MULTIPLE_LEARNING` are treated as an explicit learning hold. Misconfigured, paused, unavailable, unknown, unspecified and other non-ready states fail closed. `ENABLED` and Google's `LIMITED_*` / `MULTIPLE_LIMITED` states may continue through the supervisor's own evidence and control guardrails.
+
+The learning/system-status guard is evaluated before profitability work for a new run and again immediately before every non-rollback remote mutation or uncertain-write recovery. If a previously `PREPARED` write reaches that second check while Google is learning or otherwise not ready, the run stays locked and no mutate occurs. A later ACTIVE recovery must first observe a writable status again. Rollback is the deliberate safety exception: an explicitly requested rollback may bypass the learning hold, but still uses the same remote-value preflight before reversing the previously certified Cortex value.
+
+Retry-safe reads may retry bounded 429/5xx/transport failures. **Mutations are never blindly retried.** Before every mutate, Cortex reads the live control and requires one of these states:
 
 1. remote == expected: the absolute mutation may be attempted;
 2. remote == desired: a prior uncertain attempt is recovered as already applied;
@@ -39,6 +43,7 @@ Shared budgets are not changed unless `allowSharedBudgets` is explicitly enabled
 ## Decision guardrails
 
 - Observation windows contain completed UTC dates only and exclude the configured reporting lag.
+- Google bidding strategies in a learning state cannot produce a forward write. Non-ready/unknown system statuses fail closed.
 - Minimum Google Ads spend and conversion evidence must be present.
 - Business evidence older than `maxBusinessDataAgeMs` cannot trigger a write.
 - Increase/decrease profitability thresholds have a hold band between them.
@@ -58,7 +63,7 @@ Rollback finalization, release of the in-flight lock, clearing of rollback eligi
 
 ## Audit evidence
 
-Every run stores policy digest, mode, window, Google snapshots, business snapshot, selected evidence, action, receipt/error code, status and timestamps under a SHA-256 integrity digest. Campaign state stores the current policy digest, cooldown/last-action/in-flight/rollback information under a separate digest. SQLite persistence from CORTEX #1 supplies WAL, `synchronous=FULL`, `BEGIN IMMEDIATE` and validated ontology transaction semantics.
+Every run stores policy digest, mode, window, Google snapshots (including bidding-strategy system status), business snapshot, selected evidence, action, receipt/error code, status and timestamps under a SHA-256 integrity digest. Campaign state stores the current policy digest, cooldown/last-action/in-flight/rollback information under a separate digest. SQLite persistence from CORTEX #1 supplies WAL, `synchronous=FULL`, `BEGIN IMMEDIATE` and validated ontology transaction semantics.
 
 ## Scope boundary
 
