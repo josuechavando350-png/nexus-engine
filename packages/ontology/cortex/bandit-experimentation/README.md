@@ -38,18 +38,20 @@ The executable **fails closed** unless:
 - `NEXUS_CORTEX_STATE_DB` is an absolute non-memory path;
 - `NEXUS_CORTEX_PERSISTENCE_ACK=durable-volume` explicitly confirms that the path is backed by a persistent mounted volume;
 - `NEXUS_CORTEX_BANDIT_CONFIG` is an absolute regular-file path containing a bounded version-1 configuration;
-- `NEXUS_CORTEX_API_TOKEN` is present and at least 32 characters.
+- `NEXUS_CORTEX_DATA_TOKEN` is present and at least 32 characters;
+- `NEXUS_CORTEX_CONTROL_TOKEN` is present and at least 32 characters;
+- the data-plane and control-plane tokens are distinct secrets.
 
 This prevents accidental deployment on an ephemeral serverless filesystem. SQLite remains the included single-node durable adapter; multi-node deployment requires a transaction adapter with the same atomic/CAS guarantees rather than sharing a SQLite file over an unsafe network filesystem.
 
 Runtime control is not a process-local flag. `CortexBanditRuntimeController` persists `ACTIVE`, `FALLBACK_ONLY` or `KILLED` through the same transaction boundary, requires expected-revision CAS on every change, and atomically appends an integrity-digested control event. Control state and its audit history therefore survive process restarts. A selection request cannot supply its own mode; the server always reads the durable control state and applies it to the engine.
 
-The HTTP boundary requires bearer authentication for all experiment endpoints, rejects unknown routes and methods, bounds JSON request bodies, rejects non-JSON media types, emits `Cache-Control: no-store`, and reports only minimized operational telemetry. Raw request context and request bodies are never written to telemetry by this runtime.
+The HTTP boundary uses separate bearer credentials for the data plane and control plane. The data token can call selection and outcome endpoints but cannot read or mutate runtime control. Only the distinct control token can inspect or change rollback/kill state. The boundary rejects unknown routes and methods, bounds JSON request bodies, rejects non-JSON media types, emits `Cache-Control: no-store`, and reports only minimized operational telemetry. Raw request context, request bodies and both bearer secrets are never written to telemetry by this runtime.
 
 The production path is:
 
-`authenticated caller -> production HTTP runtime -> durable runtime control -> ServerSideContextualBanditEngine -> OntologyTransactionPort -> durable SQLite volume`
+`authenticated data caller -> production HTTP runtime -> durable runtime control -> ServerSideContextualBanditEngine -> OntologyTransactionPort -> durable SQLite volume`
 
-and outcomes return through the same runtime into the exact persisted decision and reward state.
+with a separately authenticated control path for rollback/kill/reactivation, while outcomes return through the data plane into the exact persisted decision and reward state.
 
 CORTEX Control Plane integration across technologies remains the scope of GREEN-SPEC #21; it will orchestrate this already-live runtime rather than replace or duplicate its allocation logic.
