@@ -5,6 +5,8 @@ import { homeHeroForAdExperience } from "./ad-context-copy";
 import { PageShell } from "./SiteChrome";
 import { areas, cases, site, trajectory } from "./content";
 
+export const runtime = "edge";
+
 const audienceFiles = ["audiencia-01.jpg", "audiencia-02.jpg", "audiencia-03.jpg", "audiencia-04.jpg", "audiencia-05.jpg"] as const;
 
 const areaDescriptions = [
