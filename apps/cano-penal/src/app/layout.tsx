@@ -10,6 +10,7 @@ import "./enhancements.css";
 import "./client-feedback.css";
 import { canoTheme } from "./theme";
 import { site } from "./content";
+import { NexusBehavioralSignals } from "./NexusBehavioralSignals";
 
 export const metadata: Metadata = {
   title: {
@@ -49,6 +50,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(attorneySchema) }} />
       </head>
       <body style={themeStyle}>
+        <NexusBehavioralSignals />
         <div className="cp-splash" aria-hidden="true">
           <div className="cp-splash-inner">
             <div className="cp-splash-logo-wrap">
