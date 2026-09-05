@@ -90,9 +90,7 @@ function hash(namespace: string, value: unknown): string {
 }
 
 function exactKeys(value: Record<string, unknown>, allowed: ReadonlySet<string>, field: string): void {
-  for (const key of Object.keys(value)) {
-    if (!allowed.has(key)) throw new BehavioralSignalError("INTEGRITY_FAILURE", `${field} contains unsupported field ${key}`);
-  }
+  for (const key of Object.keys(value)) if (!allowed.has(key)) throw new BehavioralSignalError("INTEGRITY_FAILURE", `${field} contains unsupported field ${key}`);
 }
 
 function isJson(value: unknown): value is JsonValue {
@@ -185,11 +183,7 @@ function parsePolicy(value: JsonValue, field: string): BehavioralSignalPolicy {
 }
 
 function controlPayloadJson(payload: ControlPayload): JsonValue {
-  return json({
-    active: policyJson(payload.active),
-    previous: payload.previous ? policyJson(payload.previous) : null,
-    generation: payload.generation,
-  }, "runtime.control.payload");
+  return json({ active: policyJson(payload.active), previous: payload.previous ? policyJson(payload.previous) : null, generation: payload.generation }, "runtime.control.payload");
 }
 
 function controlDigest(payload: ControlPayload, updatedAt: string): string {
@@ -197,11 +191,7 @@ function controlDigest(payload: ControlPayload, updatedAt: string): string {
 }
 
 function controlProperties(payload: ControlPayload, updatedAt: string): Record<string, JsonValue> {
-  return {
-    [CONTROL.payload]: controlPayloadJson(payload),
-    [CONTROL.digest]: controlDigest(payload, updatedAt),
-    [CONTROL.updatedAt]: updatedAt,
-  };
+  return { [CONTROL.payload]: controlPayloadJson(payload), [CONTROL.digest]: controlDigest(payload, updatedAt), [CONTROL.updatedAt]: updatedAt };
 }
 
 function parseControl(record: ObjectRecord): ControlRecord {
@@ -259,26 +249,15 @@ export class CortexBehavioralSignalRuntime {
 
   private emit(event: BehavioralSignalRuntimeTelemetryEvent): void {
     if (!this.onTelemetry) return;
-    try {
-      this.onTelemetry(event);
-    } catch (error) {
-      try {
-        this.onTelemetryError?.(error, event);
-      } catch {
-        // Observability failures must not change committed control or ingestion semantics.
-      }
+    try { this.onTelemetry(event); }
+    catch (error) {
+      try { this.onTelemetryError?.(error, event); }
+      catch { /* observability failures must never change semantic results */ }
     }
   }
 
   private emitControl(action: "BOOTSTRAP" | "ACTIVATE" | "ROLLBACK" | "KILL", record: ControlRecord): void {
-    this.emit(Object.freeze({
-      category: "CONTROL",
-      action,
-      activePolicyDigest: record.active.digest,
-      previousPolicyDigest: record.previous?.digest ?? null,
-      generation: record.generation,
-      controlDigest: record.digest,
-    }));
+    this.emit(Object.freeze({ category: "CONTROL", action, activePolicyDigest: record.active.digest, previousPolicyDigest: record.previous?.digest ?? null, generation: record.generation, controlDigest: record.digest }));
   }
 
   private readControl(): ControlRecord | undefined {
@@ -293,46 +272,28 @@ export class CortexBehavioralSignalRuntime {
   }
 
   private ensureControl(initialPolicy: BehavioralSignalPolicy): void {
-    const existing = this.readControl();
-    if (existing) return;
+    if (this.readControl()) return;
     const updatedAt = this.clock();
     const payload: ControlPayload = Object.freeze({ active: initialPolicy, previous: null, generation: 1 });
-    const operation: TransactionOperation = {
-      kind: "CREATE_OBJECT",
-      record: { id: this.controlId, typeId: CONTROL_TYPE, scope: this.scope, properties: controlProperties(payload, updatedAt) },
-    };
+    const operation: TransactionOperation = { kind: "CREATE_OBJECT", record: { id: this.controlId, typeId: CONTROL_TYPE, scope: this.scope, properties: controlProperties(payload, updatedAt) } };
     try {
       this.transactions.transact(this.scope, this.schema, [operation]);
-      const stored = this.requireControl();
-      this.emitControl("BOOTSTRAP", stored);
+      this.emitControl("BOOTSTRAP", this.requireControl());
     } catch (error) {
-      if (transactionConflict(error)) {
-        this.requireControl();
-        return;
-      }
+      if (transactionConflict(error)) { this.requireControl(); return; }
       if (error instanceof BehavioralSignalError) throw error;
       throw new BehavioralSignalError("PERSISTENCE_FAILURE", error instanceof Error ? error.message : "behavioral runtime bootstrap failed");
     }
   }
 
-  private replaceActive(
-    nextPolicyInput: BehavioralSignalPolicy,
-    expectedActiveDigest: string,
-    action: "ACTIVATE" | "KILL",
-  ): BehavioralSignalControlState {
+  private replaceActive(nextPolicyInput: BehavioralSignalPolicy, expectedActiveDigest: string, action: "ACTIVATE" | "KILL"): BehavioralSignalControlState {
     const nextPolicy = verifiedPolicy(nextPolicyInput);
     const current = this.requireControl();
     if (current.active.digest !== expectedActiveDigest) throw new BehavioralSignalError("CONFLICT", "active behavioral policy changed before control update");
     if (current.active.digest === nextPolicy.digest) return snapshot(current);
     if (!Number.isSafeInteger(current.generation + 1)) throw new BehavioralSignalError("INTEGRITY_FAILURE", "behavioral control generation overflow");
     const payload: ControlPayload = Object.freeze({ active: nextPolicy, previous: current.active, generation: current.generation + 1 });
-    const updatedAt = this.clock();
-    const operation: TransactionOperation = {
-      kind: "UPDATE_OBJECT",
-      id: current.id,
-      expectedRevision: current.revision,
-      properties: controlProperties(payload, updatedAt),
-    };
+    const operation: TransactionOperation = { kind: "UPDATE_OBJECT", id: current.id, expectedRevision: current.revision, properties: controlProperties(payload, this.clock()) };
     try {
       this.transactions.transact(this.scope, this.schema, [operation]);
       const stored = this.requireControl();
@@ -345,9 +306,7 @@ export class CortexBehavioralSignalRuntime {
     }
   }
 
-  controlState(): BehavioralSignalControlState {
-    return snapshot(this.requireControl());
-  }
+  controlState(): BehavioralSignalControlState { return snapshot(this.requireControl()); }
 
   activatePolicy(nextPolicy: BehavioralSignalPolicy, expectedActiveDigest: string): BehavioralSignalControlState {
     return this.replaceActive(nextPolicy, expectedActiveDigest, "ACTIVATE");
@@ -357,8 +316,7 @@ export class CortexBehavioralSignalRuntime {
     const current = this.requireControl();
     if (current.active.digest !== expectedActiveDigest) throw new BehavioralSignalError("CONFLICT", "active behavioral policy changed before kill");
     if (current.active.mode === "KILLED") return snapshot(current);
-    const killed = createBehavioralSignalPolicy({ ...policyCore(current.active), mode: "KILLED" });
-    return this.replaceActive(killed, expectedActiveDigest, "KILL");
+    return this.replaceActive(createBehavioralSignalPolicy({ ...policyCore(current.active), mode: "KILLED" }), expectedActiveDigest, "KILL");
   }
 
   rollbackPolicy(expectedActiveDigest: string): BehavioralSignalControlState {
@@ -367,13 +325,7 @@ export class CortexBehavioralSignalRuntime {
     if (!current.previous) throw new BehavioralSignalError("POLICY_VIOLATION", "no previous behavioral policy is available for rollback");
     if (!Number.isSafeInteger(current.generation + 1)) throw new BehavioralSignalError("INTEGRITY_FAILURE", "behavioral control generation overflow");
     const payload: ControlPayload = Object.freeze({ active: current.previous, previous: current.active, generation: current.generation + 1 });
-    const updatedAt = this.clock();
-    const operation: TransactionOperation = {
-      kind: "UPDATE_OBJECT",
-      id: current.id,
-      expectedRevision: current.revision,
-      properties: controlProperties(payload, updatedAt),
-    };
+    const operation: TransactionOperation = { kind: "UPDATE_OBJECT", id: current.id, expectedRevision: current.revision, properties: controlProperties(payload, this.clock()) };
     try {
       this.transactions.transact(this.scope, this.schema, [operation]);
       const stored = this.requireControl();
@@ -394,10 +346,10 @@ export class CortexBehavioralSignalRuntime {
     const policy = this.requireControl().active;
     try {
       const result = this.suite(policy).ingest(input);
-      this.emit(Object.freeze({ category: "INGEST", channel: "BASE", outcome: result.status, reason: result.reason, siteId: result.siteId, kind: input.kind ?? null, policyDigest: result.policyDigest }));
+      this.emit(Object.freeze({ category: "INGEST", channel: "BASE", outcome: result.status, reason: result.reason, siteId: result.siteId, kind: input.kind, policyDigest: result.policyDigest }));
       return result;
     } catch (error) {
-      this.emit(Object.freeze({ category: "INGEST", channel: "BASE", outcome: "ERROR", reason: error instanceof BehavioralSignalError ? error.code : "UNKNOWN", siteId: typeof input.siteId === "string" ? input.siteId : "invalid", kind: typeof input.kind === "string" ? input.kind : null, policyDigest: policy.digest }));
+      this.emit(Object.freeze({ category: "INGEST", channel: "BASE", outcome: "ERROR", reason: error instanceof BehavioralSignalError ? error.code : "UNKNOWN", siteId: "redacted-on-error", kind: null, policyDigest: policy.digest }));
       throw error;
     }
   }
@@ -406,10 +358,10 @@ export class CortexBehavioralSignalRuntime {
     const policy = this.requireControl().active;
     try {
       const result = this.suite(policy).ingestMicroInteraction(input);
-      this.emit(Object.freeze({ category: "INGEST", channel: "MICRO", outcome: result.status, reason: result.reason, siteId: result.siteId, kind: input.kind ?? null, policyDigest: result.policyDigest }));
+      this.emit(Object.freeze({ category: "INGEST", channel: "MICRO", outcome: result.status, reason: result.reason, siteId: result.siteId, kind: input.kind, policyDigest: result.policyDigest }));
       return result;
     } catch (error) {
-      this.emit(Object.freeze({ category: "INGEST", channel: "MICRO", outcome: "ERROR", reason: error instanceof BehavioralSignalError ? error.code : "UNKNOWN", siteId: typeof input.siteId === "string" ? input.siteId : "invalid", kind: typeof input.kind === "string" ? input.kind : null, policyDigest: policy.digest }));
+      this.emit(Object.freeze({ category: "INGEST", channel: "MICRO", outcome: "ERROR", reason: error instanceof BehavioralSignalError ? error.code : "UNKNOWN", siteId: "redacted-on-error", kind: null, policyDigest: policy.digest }));
       throw error;
     }
   }
