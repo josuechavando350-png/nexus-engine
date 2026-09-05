@@ -26,5 +26,8 @@ describe("runtime contract hardening", () => {
     expect(() => extractGoogleClickIds("https://example.com/?gclid=bad%0Avalue")).toThrow(
       /control characters/u,
     );
+    expect(() => extractGoogleClickIds("https://example.com/?gclid=bad%7Fvalue")).toThrow(
+      /control characters/u,
+    );
   });
 });
