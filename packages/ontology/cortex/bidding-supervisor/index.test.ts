@@ -365,7 +365,7 @@ describe("PeriodicGoogleAdsBiddingSupervisor", () => {
     const directory = mkdtempSync(join(tmpdir(), "nexus-cortex-bidding-"));
     const path = join(directory, "cortex.sqlite");
     const gateway = new TestGateway();
-    let now = Date.parse("2026-09-04T18:00:00.000Z");
+    const now = Date.parse("2026-09-04T18:00:00.000Z");
     const business = new TestBusinessProvider(() => now);
     const p = policy();
     try {
