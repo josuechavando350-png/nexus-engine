@@ -72,6 +72,7 @@ function campaign(overrides: Partial<GoogleAdsCampaignSnapshot> = {}): GoogleAds
     budgetExplicitlyShared: false,
     recommendedBudgetAmountMicros: 150_000_000,
     biddingStrategyType: "MAXIMIZE_CONVERSIONS",
+    biddingStrategySystemStatus: "ENABLED",
     portfolioBiddingStrategyResourceName: null,
     standardTargetCpaMicros: 50_000_000,
     standardTargetRoas: null,
@@ -312,7 +313,7 @@ describe("PeriodicGoogleAdsBiddingSupervisor", () => {
     expect(recovered.status).toBe("APPLIED");
     expect(recovered.reason).toBe("ACTION_RECOVERED");
     expect(h.gateway.mutations).toHaveLength(2);
-    expect(h.gateway.campaignReads).toBe(reads);
+    expect(h.gateway.campaignReads).toBe(reads + 1);
   });
 
   it("keeps the in-flight campaign lock across policy-version rotation", async () => {
@@ -325,6 +326,7 @@ describe("PeriodicGoogleAdsBiddingSupervisor", () => {
     gateway.nextMutationError = new GoogleAdsApiError("AMBIGUOUS_MUTATION_OUTCOME", "uncertain write");
     await expect(first.supervise({ runId: "policy-v1-pending", customerId: CUSTOMER_ID, campaignId: CAMPAIGN_ID })).rejects.toMatchObject({ code: "REMOTE_FAILURE" });
     const readsBeforeRotation = gateway.campaignReads;
+    expect(business.calls).toBe(1);
 
     const v2 = policy({ version: "v2", budgetStepFraction: 0.2 });
     const second = new PeriodicGoogleAdsBiddingSupervisor(store, scope, v2, gateway, business, () => now);
@@ -333,8 +335,9 @@ describe("PeriodicGoogleAdsBiddingSupervisor", () => {
     expect(recovered.runId).toBe("policy-v1-pending");
     expect(recovered.policyDigest).toBe(v1.digest);
     expect(recovered.reason).toBe("ACTION_RECOVERED");
-    expect(gateway.campaignReads).toBe(readsBeforeRotation);
+    expect(gateway.campaignReads).toBe(readsBeforeRotation + 1);
     expect(gateway.mutations).toHaveLength(2);
+    expect(business.calls).toBe(1);
   });
 
   it("releases the lock after a known remote conflict", async () => {
