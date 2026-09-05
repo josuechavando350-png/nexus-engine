@@ -80,7 +80,7 @@ class FakeGoogleAds implements GoogleAdsBiddingGateway {
       budgetExplicitlyShared: false,
       recommendedBudgetAmountMicros: null,
       biddingStrategyType: "OTHER",
-      biddingStrategySystemStatus: "ELIGIBLE",
+      biddingStrategySystemStatus: "ENABLED",
       portfolioBiddingStrategyResourceName: null,
       standardTargetCpaMicros: null,
       standardTargetRoas: null,
