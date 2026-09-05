@@ -25,10 +25,13 @@
     "./cortex/bidding-supervisor": "./cortex/bidding-supervisor/index.ts",
     "./cortex/bidding-supervisor/google-ads-rest": "./cortex/bidding-supervisor/google-ads-rest.ts",
     "./cortex/creative-sync": "./cortex/creative-sync/index.ts",
-    "./cortex/creative-sync/google-ads-creative-rest": "./cortex/creative-sync/google-ads-creative-rest.ts"
+    "./cortex/creative-sync/google-ads-creative-rest": "./cortex/creative-sync/google-ads-creative-rest.ts",
+    "./cortex/serp-metadata-optimizer": "./cortex/serp-metadata-optimizer/index.ts",
+    "./cortex/serp-metadata-optimizer/search-console-rest": "./cortex/serp-metadata-optimizer/search-console-rest.ts",
+    "./cortex/serp-metadata-optimizer/json-file-metadata-publisher": "./cortex/serp-metadata-optimizer/json-file-metadata-publisher.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/semantic-graph.js && test -f dist/semantic-graph-runtime.js && test -f dist/cortex/bandit-experimentation/index.js && test -f dist/cortex/bandit-experimentation/index.d.ts && test -f dist/cortex/sqlite-transaction-store.js && test -f dist/cortex/sqlite-transaction-store.d.ts && test -f dist/cortex/bidding-supervisor/index.js && test -f dist/cortex/bidding-supervisor/index.d.ts && test -f dist/cortex/bidding-supervisor/google-ads-rest.js && test -f dist/cortex/bidding-supervisor/google-ads-rest.d.ts && test -f dist/cortex/creative-sync/index.js && test -f dist/cortex/creative-sync/index.d.ts && test -f dist/cortex/creative-sync/google-ads-creative-rest.js && test -f dist/cortex/creative-sync/google-ads-creative-rest.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/semantic-graph.js && test -f dist/semantic-graph-runtime.js && test -f dist/cortex/bandit-experimentation/index.js && test -f dist/cortex/bandit-experimentation/index.d.ts && test -f dist/cortex/sqlite-transaction-store.js && test -f dist/cortex/sqlite-transaction-store.d.ts && test -f dist/cortex/bidding-supervisor/index.js && test -f dist/cortex/bidding-supervisor/index.d.ts && test -f dist/cortex/bidding-supervisor/google-ads-rest.js && test -f dist/cortex/bidding-supervisor/google-ads-rest.d.ts && test -f dist/cortex/creative-sync/index.js && test -f dist/cortex/creative-sync/index.d.ts && test -f dist/cortex/creative-sync/google-ads-creative-rest.js && test -f dist/cortex/creative-sync/google-ads-creative-rest.d.ts && test -f dist/cortex/serp-metadata-optimizer/index.js && test -f dist/cortex/serp-metadata-optimizer/index.d.ts && test -f dist/cortex/serp-metadata-optimizer/search-console-rest.js && test -f dist/cortex/serp-metadata-optimizer/search-console-rest.d.ts && test -f dist/cortex/serp-metadata-optimizer/json-file-metadata-publisher.js && test -f dist/cortex/serp-metadata-optimizer/json-file-metadata-publisher.d.ts"
   }
 }
