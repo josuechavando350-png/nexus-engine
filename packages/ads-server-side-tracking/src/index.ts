@@ -9,6 +9,7 @@ const MAX_PARAMETER_NAME = 40;
 const MAX_PARAMETER_VALUE = 500;
 const MAX_ACTIVATION_PATH = 512;
 const MAX_BODY_BYTES = 64 * 1024;
+const MAX_TRANSACTION_ID = 64;
 const DEFAULT_TIMEOUT_MS = 5_000;
 
 export type ConsentValue = "granted" | "denied";
@@ -67,6 +68,7 @@ export type TrackingParameters = Readonly<Record<string, TrackingParameterValue>
 export interface EnhancedConversionDataLayerInput {
   eventName: string;
   eventId: string;
+  transactionId?: string;
   consent: TrackingConsent;
   userData: EnhancedConversionUserDataInput;
   parameters?: TrackingParameters;
@@ -152,6 +154,10 @@ function normalizeEventId(value: string): string {
   return eventId;
 }
 
+function normalizeTransactionId(value: string): string {
+  return clean("transactionId", value, MAX_TRANSACTION_ID);
+}
+
 function normalizeClientId(value: string): string {
   return clean("clientId", value, MAX_CLIENT_ID);
 }
@@ -201,9 +207,11 @@ function normalizeTextForHash(label: string, value: string | undefined): string 
 function normalizeEmail(value: string | undefined): string | undefined {
   const normalized = normalizeTextForHash("email", value);
   if (normalized == null) return undefined;
-  const at = normalized.indexOf("@");
-  if (at <= 0 || at === normalized.length - 1 || normalized.indexOf("@", at + 1) !== -1) {
-    throw new Error("email must be a valid email address");
+  const parts = normalized.split("@");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) throw new Error("email must be a valid email address");
+  const [localPart, domain] = parts;
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    return `${localPart.replace(/\./gu, "")}@${domain}`;
   }
   return normalized;
 }
@@ -212,8 +220,8 @@ function normalizePhone(value: string | undefined): string | undefined {
   if (value == null || value.trim() === "") return undefined;
   const raw = clean("phoneNumber", value, 64);
   const compact = raw.replace(/[\s().-]/gu, "");
-  if (!/^\+[1-9]\d{7,14}$/u.test(compact)) {
-    throw new Error("phoneNumber must use E.164 format, for example +525512345678");
+  if (!/^\+[1-9]\d{10,14}$/u.test(compact)) {
+    throw new Error("phoneNumber must use E.164 format with 11 to 15 digits, for example +525512345678");
   }
   return compact;
 }
@@ -236,6 +244,7 @@ function normalizeParameters(parameters: TrackingParameters | undefined): Record
   const reserved = new Set([
     "event",
     "event_id",
+    "transaction_id",
     "user_data",
     "email",
     "phone",
@@ -324,8 +333,6 @@ export function hashEnhancedConversionUserData(
 
   const email = normalizeEmail(input.email);
   const phone = normalizePhone(input.phoneNumber);
-  if (email == null && phone == null) throw new Error("enhanced conversion user data requires at least email or phoneNumber");
-
   const firstName = normalizeTextForHash("firstName", input.firstName);
   const lastName = normalizeTextForHash("lastName", input.lastName);
   const street = normalizeTextForHash("street", input.street);
@@ -333,6 +340,11 @@ export function hashEnhancedConversionUserData(
   const region = normalizePlainLocation("region", input.region, 128);
   const postalCode = normalizePlainLocation("postalCode", input.postalCode, 32);
   const country = normalizeCountry(input.country);
+  const hasCompleteAddress = firstName != null && lastName != null && postalCode != null && country != null;
+
+  if (email == null && phone == null && !hasCompleteAddress) {
+    throw new Error("enhanced conversion user data requires email, phoneNumber, or a complete address");
+  }
 
   const output: HashedEnhancedConversionUserData = {};
   if (email) output.sha256_email_address = sha256(email);
@@ -356,9 +368,16 @@ export function buildEnhancedConversionDataLayerEvent(
 ): Readonly<Record<string, unknown>> {
   const event = normalizeEventName(input.eventName);
   const eventId = normalizeEventId(input.eventId);
+  const transactionId = input.transactionId == null ? undefined : normalizeTransactionId(input.transactionId);
   const parameters = normalizeParameters(input.parameters);
   const userData = hashEnhancedConversionUserData(input.userData, input.consent);
-  return Object.freeze({ event, event_id: eventId, ...parameters, user_data: userData });
+  return Object.freeze({
+    event,
+    event_id: eventId,
+    ...(transactionId == null ? {} : { transaction_id: transactionId }),
+    ...parameters,
+    user_data: userData,
+  });
 }
 
 function validateDimensionIndex(index: number): number {
