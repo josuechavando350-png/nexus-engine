@@ -68,7 +68,7 @@ describe("CORTEX bidding cycle campaign isolation", () => {
           budgetExplicitlyShared: false,
           recommendedBudgetAmountMicros: null,
           biddingStrategyType: "OTHER",
-          biddingStrategySystemStatus: "ELIGIBLE",
+          biddingStrategySystemStatus: "ENABLED",
           portfolioBiddingStrategyResourceName: null,
           standardTargetCpaMicros: null,
           standardTargetRoas: null,
