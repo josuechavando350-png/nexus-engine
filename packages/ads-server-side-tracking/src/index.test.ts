@@ -108,28 +108,19 @@ describe("enhanced conversion user data", () => {
     expect(result.sha256_email_address).toBe(sha256("firstlast@gmail.com"));
   });
 
-  it("accepts a complete address as a documented matching identifier", () => {
-    const result = hashEnhancedConversionUserData({
-      firstName: "Ana",
-      lastName: "López",
-      postalCode: "06600",
-      country: "MX",
-    }, granted);
-    expect(result.address).toEqual({
-      sha256_first_name: sha256("ana"),
-      sha256_last_name: sha256("lópez"),
-      postal_code: "06600",
-      country: "MX",
-    });
-  });
-
-  it("enforces explicit consent and the documented E.164 range", () => {
+  it("enforces explicit consent, a server-side match identifier, and the documented E.164 range", () => {
     expect(() => hashEnhancedConversionUserData(
       { email: "client@example.com" },
       { ...granted, adUserData: "denied" },
     )).toThrow(/adUserData consent/u);
     expect(() => hashEnhancedConversionUserData({ firstName: "Only Name" }, granted))
-      .toThrow(/email, phoneNumber, or a complete address/u);
+      .toThrow(/at least email or phoneNumber/u);
+    expect(() => hashEnhancedConversionUserData({
+      firstName: "Ana",
+      lastName: "López",
+      postalCode: "06600",
+      country: "MX",
+    }, granted)).toThrow(/at least email or phoneNumber/u);
     expect(() => hashEnhancedConversionUserData({ phoneNumber: "+12345678" }, granted))
       .toThrow(/11 to 15 digits/u);
   });
