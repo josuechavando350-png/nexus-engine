@@ -30,7 +30,6 @@ interface Manifest {
 
 export interface JsonFileMetadataPublisherConfig {
   readonly manifestPath: string;
-  readonly now?: () => number;
 }
 
 function object(value: unknown, field: string): Record<string, unknown> {
@@ -93,13 +92,11 @@ function sameMetadata(left: SeoMetadataValue, right: SeoMetadataValue): boolean 
 export class JsonFileMetadataPublisher implements MetadataPublisher {
   readonly manifestPath: string;
   private readonly lockPath: string;
-  private readonly now: () => number;
 
   constructor(config: JsonFileMetadataPublisherConfig) {
     if (typeof config.manifestPath !== "string" || !config.manifestPath.trim()) throw new MetadataPublisherError("INVALID_CONFIG", "manifestPath is required");
     this.manifestPath = resolve(config.manifestPath);
     this.lockPath = `${this.manifestPath}.lock`;
-    this.now = config.now ?? Date.now;
     mkdirSync(dirname(this.manifestPath), { recursive: true });
   }
 
@@ -182,8 +179,10 @@ export class JsonFileMetadataPublisher implements MetadataPublisher {
       if (certified !== null) throw new MetadataPublisherError("AMBIGUOUS_PUBLISH_OUTCOME", "metadata override removal could not be certified after commit");
       return Object.freeze({ snapshot: null, recoveredAlreadyApplied: false, publisherVersion: PUBLISHER_VERSION });
     } finally {
-      if (lockFd !== null) { try { closeSync(lockFd); } catch { /* best effort */ } }
-      try { rmSync(this.lockPath, { force: true }); } catch { /* best effort */ }
+      if (lockFd !== null) {
+        try { closeSync(lockFd); } catch { /* best effort */ }
+        try { rmSync(this.lockPath, { force: true }); } catch { /* best effort */ }
+      }
     }
   }
 }
