@@ -24,7 +24,7 @@ describe("CORTEX bidding periodic scheduler", () => {
     let mutations = 0;
     const google: GoogleAdsBiddingGateway = {
       async getCampaignSnapshot(customerId, campaignId): Promise<GoogleAdsCampaignSnapshot> {
-        return { customerId, campaignId, campaignResourceName: `customers/${customerId}/campaigns/${campaignId}`, campaignName: "Scheduler fixture", status: "ENABLED", budgetResourceName: `customers/${customerId}/campaignBudgets/2222222222`, budgetAmountMicros: budget, budgetExplicitlyShared: false, recommendedBudgetAmountMicros: null, biddingStrategyType: "OTHER", biddingStrategySystemStatus: "ELIGIBLE", portfolioBiddingStrategyResourceName: null, standardTargetCpaMicros: null, standardTargetRoas: null, costMicros: 2_000_000, conversions: 4, conversionValue: 8 };
+        return { customerId, campaignId, campaignResourceName: `customers/${customerId}/campaigns/${campaignId}`, campaignName: "Scheduler fixture", status: "ENABLED", budgetResourceName: `customers/${customerId}/campaignBudgets/2222222222`, budgetAmountMicros: budget, budgetExplicitlyShared: false, recommendedBudgetAmountMicros: null, biddingStrategyType: "OTHER", biddingStrategySystemStatus: "ENABLED", portfolioBiddingStrategyResourceName: null, standardTargetCpaMicros: null, standardTargetRoas: null, costMicros: 2_000_000, conversions: 4, conversionValue: 8 };
       },
       async getPortfolioSnapshot(): Promise<GoogleAdsPortfolioSnapshot> { throw new Error("portfolio read not expected"); },
       async applyMutation(_customerId: string, action: GoogleAdsControlMutation): Promise<GoogleAdsMutationReceipt> {
