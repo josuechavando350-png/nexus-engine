@@ -61,10 +61,28 @@ After a certified application, state retains the exact expected and desired abso
 
 Rollback finalization, release of the in-flight lock, clearing of rollback eligibility and audit timestamps are one local ontology transaction. An ambiguous rollback remains `PREPARED` for the same preflight recovery semantics as a forward mutation.
 
+## Production daemon
+
+`production-runtime.ts` and `scripts/cortex-bidding-supervisor.mjs` connect the supervisor to an actual long-running Node process. The daemon uses the compiled ontology package, a persistent SQLite state volume, the existing Google Ads OAuth/REST adapter, and `HttpBusinessProfitabilityProvider` for an authenticated first-party profitability source.
+
+Startup fails closed unless `NEXUS_CORTEX_STATE_DB` is an absolute non-memory path and `NEXUS_CORTEX_PERSISTENCE_ACK=durable-volume` explicitly confirms a persistent mount. It also requires an absolute `NEXUS_CORTEX_BIDDING_CONFIG`, `NEXUS_CORTEX_API_TOKEN`, Google Ads OAuth/developer-token secrets, and an HTTPS `NEXUS_PROFITABILITY_ENDPOINT` with its bearer token. No production customer or campaign identifier is compiled into the daemon; configured campaigns come from the versioned runtime config file.
+
+The first-party profitability adapter sends the exact `BusinessProfitabilityQuery` over HTTPS with bearer authentication, enforces timeout and a 32 KiB response limit, accepts only JSON, and rejects unknown response fields. The supervisor independently revalidates customer, scope, reporting window, source identifier, canonical timestamp and freshness before any action can be selected.
+
+The daemon schedules one governed cycle every configured `intervalMs` (bounded to five minutes through one day). Run IDs are deterministic for a campaign and interval bucket, so duplicate triggers in the same bucket converge on the supervisor's existing idempotency. The runtime also coalesces overlapping in-process cycles; a second manual or scheduled trigger cannot create a second remote write while the first cycle is active.
+
+Runtime `ACTIVE / OBSERVE_ONLY / KILLED` state is persisted through `BiddingRuntimeController`, bound to the policy digest, changed with expected-revision CAS, and accompanied by an integrity-digested audit event. Therefore a kill or observation mode survives process restart. Automated cycles always read this durable mode before supervision; callers cannot reactivate bidding by attaching a mode to a run request.
+
+Authenticated operational endpoints provide control inspection/change, a manual cycle, and an explicit campaign rollback. Rollback is intentionally a separate operator safety action and calls the supervisor's certified `rollbackLastMutation()` path; it does not silently reactivate the periodic scheduler. All operational responses are `no-store`, and runtime telemetry contains only bounded operation/status identifiers, customer/campaign IDs, reason/mode, duration and error code—not OAuth tokens, profitability records or request bodies.
+
+The live path is:
+
+`periodic/manual trigger -> durable runtime control -> PeriodicGoogleAdsBiddingSupervisor -> Google Ads REST + authenticated first-party profitability -> OntologyTransactionPort -> durable SQLite volume`
+
 ## Audit evidence
 
 Every run stores policy digest, mode, window, Google snapshots (including bidding-strategy system status), business snapshot, selected evidence, action, receipt/error code, status and timestamps under a SHA-256 integrity digest. Campaign state stores the current policy digest, cooldown/last-action/in-flight/rollback information under a separate digest. SQLite persistence from CORTEX #1 supplies WAL, `synchronous=FULL`, `BEGIN IMMEDIATE` and validated ontology transaction semantics.
 
 ## Scope boundary
 
-CORTEX #2 provides this periodic Smart Bidding supervisor. Broader revenue/margin/CAC governance belongs in later control-plane capabilities and is not duplicated here. A deployment is not considered live merely because this package builds: real Google Ads credentials, accessible customer accounts, a real profitability provider and scheduled execution are required at runtime.
+CORTEX #2 provides this periodic Smart Bidding supervisor. Broader revenue/margin/CAC governance belongs in later control-plane capabilities and is not duplicated here. A deployment is not considered live merely because this package builds: real Google Ads credentials, accessible customer accounts, a real profitability provider, a durable state volume and the production daemon are required at runtime.
