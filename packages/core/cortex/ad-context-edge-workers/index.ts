@@ -117,6 +117,16 @@ function ruleKey(rule: Pick<AdContextExactRule, "source" | "medium" | "campaign"
   return `${rule.source ?? "*"}\u0000${rule.medium ?? "*"}\u0000${rule.campaign ?? "*"}`;
 }
 
+function matcherDimensionOverlaps(left: string | null, right: string | null): boolean {
+  return left === null || right === null || left === right;
+}
+
+function rulesOverlap(left: AdContextExactRule, right: AdContextExactRule): boolean {
+  return matcherDimensionOverlaps(left.source, right.source)
+    && matcherDimensionOverlaps(left.medium, right.medium)
+    && matcherDimensionOverlaps(left.campaign, right.campaign);
+}
+
 export function createAdContextPolicy(input: AdContextPolicyInput): AdContextPolicy {
   if (!input || typeof input !== "object") throw new Error("ad context policy is required");
   if (!(["ACTIVE", "OBSERVE_ONLY", "KILLED"] as const).includes(input.mode)) throw new Error("mode is invalid");
@@ -158,6 +168,14 @@ export function createAdContextPolicy(input: AdContextPolicyInput): AdContextPol
     matcherKeys.add(key);
     return normalizedRule;
   });
+
+  for (let left = 0; left < exactRules.length; left += 1) {
+    for (let right = left + 1; right < exactRules.length; right += 1) {
+      const leftRule = exactRules[left]!;
+      const rightRule = exactRules[right]!;
+      if (rulesOverlap(leftRule, rightRule)) throw new Error(`exact rules ${leftRule.ruleId} and ${rightRule.ruleId} overlap`);
+    }
+  }
 
   return Object.freeze({
     policyId,
@@ -302,7 +320,9 @@ export function evaluateAdContext(input: URL | string, policy: AdContextPolicy):
   if (parsed.malformed) return decision(policy, parsed, policy.defaultExperienceId, "MALFORMED_CONTEXT", null);
   if (parsed.ambiguous) return decision(policy, parsed, policy.defaultExperienceId, "AMBIGUOUS_CONTEXT", null);
 
-  const rule = policy.exactRules.find((candidate) => matches(candidate, parsed));
+  const matchingRules = policy.exactRules.filter((candidate) => matches(candidate, parsed));
+  if (matchingRules.length > 1) return decision(policy, parsed, policy.defaultExperienceId, "AMBIGUOUS_CONTEXT", null);
+  const rule = matchingRules[0];
   if (rule) return decision(policy, parsed, rule.experienceId, "EXACT_RULE_MATCH", rule.ruleId);
   if (parsed.channel === "PAID_SEARCH" && policy.paidSearchExperienceId) {
     return decision(policy, parsed, policy.paidSearchExperienceId, "PAID_SEARCH_SIGNAL", null);
