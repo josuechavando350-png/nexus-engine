@@ -44,12 +44,13 @@ The transport sends the documented Measurement Protocol form payload to the serv
 
 ### Google Ads Enhanced Conversions
 
-`hashEnhancedConversionUserData()` normalizes and SHA-256 hashes email, phone, name, and street data before returning `user_data`. `buildEnhancedConversionDataLayerEvent()` also blocks protected raw-data keys from generic parameters.
+`hashEnhancedConversionUserData()` applies Google's documented normalization rules and SHA-256 hashing before returning `user_data`: trim/lowercase, Gmail/Googlemail local-part dot removal, E.164 phone validation, and hex SHA-256 for protected fields. It accepts email, phone, or Google's complete-address matching key (first name, last name, postal code, country). `buildEnhancedConversionDataLayerEvent()` also blocks protected raw-data keys from generic parameters.
 
 ```ts
 const event = buildEnhancedConversionDataLayerEvent({
   eventName: "qualified_lead",
   eventId: lead.id,
+  transactionId: order.id,
   consent,
   userData: {
     email: lead.email,
@@ -60,6 +61,8 @@ const event = buildEnhancedConversionDataLayerEvent({
 
 // dataLayer.push(event)
 ```
+
+`transactionId` is optional because not every conversion is a purchase, but when provided it is emitted as `transaction_id`, capped at Google's 64-character limit, and reserved from generic parameters. It must be a unique, backend-generated, non-PII transaction/order identifier. Google Ads uses matching transaction IDs to minimize duplicate conversion counting.
 
 In GTM, assign the resulting `user_data` field to the Google tag / GA4 event flow sent to the server container. In the server container, configure Conversion Linker plus the Google Ads Conversion Tracking tag and its trigger. Google states that the server-side Ads conversion tag consumes available conversion data, including user-provided data, when it fires.
 
@@ -79,7 +82,8 @@ The package does not attempt to bypass browser privacy choices, consent, or ad-b
 3. Configure and publish Conversion Linker and the server-side Google Ads Conversion Tracking tag when Ads conversions are required.
 4. Set `server_container_url` in the customer's Google tag/web container.
 5. Apply the site's real consent state before emitting events.
-6. Use GTM Preview/Tag Assistant to confirm the server client claims requests and the intended tags fire.
-7. Verify Google Ads diagnostics and deduplication before removing an existing equivalent conversion tag.
+6. For purchase-like conversions, generate a unique non-PII transaction ID in the backend and map `transaction_id` through GTM to Google Ads.
+7. Use GTM Preview/Tag Assistant to confirm the server client claims requests and the intended tags fire.
+8. Verify Google Ads diagnostics and deduplication before removing an existing equivalent conversion tag.
 
-Offline conversion uploads through the Google Ads API are deliberately not implemented here; that is Nexus module 3 and will have its own API credentials, idempotency, and reconciliation contract.
+Offline conversion uploads through an Ads/Data Manager API are deliberately not implemented here; that is Nexus module 3 and will have its own credentials, idempotency, and reconciliation contract.
