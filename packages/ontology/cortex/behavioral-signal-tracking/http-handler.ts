@@ -9,6 +9,12 @@ export interface BehavioralSignalHttpHandlerOptions {
 
 const ENVELOPE_KEYS = new Set(["channel", "event"]);
 
+type BodyReadResult =
+  | { readonly kind: "OK"; readonly bytes: Uint8Array }
+  | { readonly kind: "TOO_LARGE" }
+  | { readonly kind: "INVALID_CONTENT_LENGTH" }
+  | { readonly kind: "READ_FAILED" };
+
 function jsonResponse(status: number, body: Readonly<Record<string, unknown>>, origin?: string): Response {
   const headers = new Headers({ "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
   if (origin) {
@@ -43,6 +49,50 @@ function statusFor(error: unknown): number {
   }
 }
 
+async function readBoundedBody(request: Request, maxBodyBytes: number): Promise<BodyReadResult> {
+  const contentLength = request.headers.get("content-length");
+  if (contentLength !== null) {
+    if (!/^(?:0|[1-9][0-9]*)$/u.test(contentLength)) return { kind: "INVALID_CONTENT_LENGTH" };
+    const declaredBytes = Number(contentLength);
+    if (!Number.isSafeInteger(declaredBytes)) return { kind: "INVALID_CONTENT_LENGTH" };
+    if (declaredBytes > maxBodyBytes) return { kind: "TOO_LARGE" };
+  }
+
+  if (request.body === null) return { kind: "OK", bytes: new Uint8Array() };
+
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let totalBytes = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      totalBytes += value.byteLength;
+      if (totalBytes > maxBodyBytes) {
+        try {
+          await reader.cancel("behavioral request body exceeds configured limit");
+        } catch {
+          // A failed stream cancellation must not turn a bounded rejection into ingestion.
+        }
+        return { kind: "TOO_LARGE" };
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return { kind: "READ_FAILED" };
+  } finally {
+    reader.releaseLock();
+  }
+
+  const bytes = new Uint8Array(totalBytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { kind: "OK", bytes };
+}
+
 export function createBehavioralSignalHttpHandler(
   runtime: CortexBehavioralSignalRuntime,
   options: BehavioralSignalHttpHandlerOptions,
@@ -74,17 +124,14 @@ export function createBehavioralSignalHttpHandler(
     const contentType = request.headers.get("content-type")?.toLowerCase() ?? "";
     if (!contentType.startsWith("application/json")) return jsonResponse(415, { error: "JSON_REQUIRED" }, origin);
 
-    let bytes: ArrayBuffer;
-    try {
-      bytes = await request.arrayBuffer();
-    } catch {
-      return jsonResponse(400, { error: "BODY_READ_FAILED" }, origin);
-    }
-    if (bytes.byteLength > maxBodyBytes) return jsonResponse(413, { error: "BODY_TOO_LARGE" }, origin);
+    const body = await readBoundedBody(request, maxBodyBytes);
+    if (body.kind === "TOO_LARGE") return jsonResponse(413, { error: "BODY_TOO_LARGE" }, origin);
+    if (body.kind === "INVALID_CONTENT_LENGTH") return jsonResponse(400, { error: "INVALID_CONTENT_LENGTH" }, origin);
+    if (body.kind === "READ_FAILED") return jsonResponse(400, { error: "BODY_READ_FAILED" }, origin);
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
+      parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(body.bytes));
     } catch {
       return jsonResponse(400, { error: "INVALID_JSON" }, origin);
     }
