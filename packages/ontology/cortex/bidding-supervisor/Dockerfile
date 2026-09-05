@@ -12,7 +12,9 @@ RUN pnpm install --frozen-lockfile \
   && pnpm --filter @nexus/ontology build
 
 RUN mkdir -p /var/lib/nexus-cortex /etc/nexus-cortex \
-  && chown -R node:node /var/lib/nexus-cortex /etc/nexus-cortex /workspace/nexus-engine
+  && chown node:node /var/lib/nexus-cortex \
+  && chmod 0755 /etc/nexus-cortex \
+  && chmod 0700 /var/lib/nexus-cortex
 
 ENV NODE_ENV=production \
   PORT=8788 \
