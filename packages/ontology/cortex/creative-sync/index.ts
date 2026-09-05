@@ -73,6 +73,8 @@ const REASONS: readonly CreativeSyncReason[] = [
 const ATTRIBUTE_TYPES: readonly CustomizerAttributeType[] = ["TEXT", "NUMBER", "PRICE", "PERCENT"];
 const SCOPE_KINDS: readonly CustomizerScopeKind[] = ["CUSTOMER", "CAMPAIGN", "AD_GROUP", "AD_GROUP_CRITERION"];
 const PINNED_FIELDS: readonly RsaPinnedField[] = ["HEADLINE_1", "HEADLINE_2", "HEADLINE_3", "DESCRIPTION_1", "DESCRIPTION_2"];
+const HEADLINE_PINS: readonly RsaPinnedField[] = ["HEADLINE_1", "HEADLINE_2", "HEADLINE_3"];
+const DESCRIPTION_PINS: readonly RsaPinnedField[] = ["DESCRIPTION_1", "DESCRIPTION_2"];
 
 export interface CreativeTextAsset {
   readonly text: string;
@@ -228,6 +230,7 @@ interface StatePayload {
   readonly lastMutationAt: string | null;
   readonly inFlightRunId: string | null;
   readonly lastAppliedAction: CreativeSyncAction | null;
+  readonly lastRollbackAction: CreativeSyncAction | null;
   readonly lastSourceVersion: string | null;
   readonly lastSourceDigest: string | null;
   readonly lastRollbackAt: string | null;
@@ -348,7 +351,7 @@ function property(id: string, name: string, valueKind: "STRING" | "JSON" | "DATE
 
 function schema(scope: OntologyScope): ValidatedSchema {
   const value: SchemaVersion = {
-    version: "cortex-creative-sync-v1",
+    version: "cortex-creative-sync-v2",
     scope,
     properties: [
       property(STATE.customerId, "CreativeSyncCustomerId", "STRING", true),
@@ -387,7 +390,7 @@ export function createCreativeSyncPolicy(input: CreateCreativeSyncPolicyInput): 
   const mode = input.mode ?? "ACTIVE";
   if (!MODES.includes(mode)) throw new CreativeSyncError("INVALID_INPUT", "mode is invalid");
   const core = { policyId, version, maxSourceAgeMs, maxDesiredResponsiveSearchAds, maxDesiredCustomizerValues, maxWriteRetries, mode };
-  return Object.freeze({ ...core, digest: hash("cortex-creative-sync-policy-v1", core) });
+  return Object.freeze({ ...core, digest: hash("cortex-creative-sync-policy-v2", core) });
 }
 
 function effectiveMode(policy: CreativeSyncMode, requested: CreativeSyncMode | undefined): CreativeSyncMode {
@@ -403,20 +406,56 @@ function validateResourceCustomer(resourceName: string, regex: RegExp, expectedC
   return resourceName;
 }
 
+function googleAdsCharacterCount(value: string): number {
+  let count = 0;
+  for (const character of value) {
+    const code = character.codePointAt(0)!;
+    const doubleWidth =
+      (code >= 0x1100 && code <= 0x11ff) ||
+      (code >= 0x2e80 && code <= 0x30ff) ||
+      (code >= 0x31f0 && code <= 0x31ff) ||
+      (code >= 0x3400 && code <= 0x4dbf) ||
+      (code >= 0x4e00 && code <= 0x9fff) ||
+      (code >= 0xac00 && code <= 0xd7af) ||
+      (code >= 0xf900 && code <= 0xfaff) ||
+      (code >= 0xff01 && code <= 0xff60) ||
+      (code >= 0xffe0 && code <= 0xffe6) ||
+      code >= 0x20000;
+    count += doubleWidth ? 2 : 1;
+  }
+  return count;
+}
+
+function containsDynamicInsertion(value: string): boolean {
+  return /\{[^{}]+\}/u.test(value);
+}
+
 function validateUrl(value: string, field: string): string {
+  const normalized = value.trim();
+  if (normalized.length > 2_048) throw new CreativeSyncError("INVALID_INPUT", `${field} must be at most 2048 characters`);
   try {
-    const parsed = new URL(value);
+    const parsed = new URL(normalized);
     if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("protocol");
   } catch {
     throw new CreativeSyncError("INVALID_INPUT", `${field} must be an absolute HTTP(S) URL`);
   }
-  return value;
+  return normalized;
 }
 
-function normalizeTextAsset(value: CreativeTextAsset, field: string): CreativeTextAsset {
+function normalizeTextAsset(
+  value: CreativeTextAsset,
+  field: string,
+  maxStaticCharacters: number,
+  allowedPins: readonly RsaPinnedField[],
+): CreativeTextAsset {
   const text = value.text.trim();
-  if (!text || [...text].length > 200) throw new CreativeSyncError("INVALID_INPUT", `${field}.text must contain 1..200 Unicode characters`);
-  if (value.pinnedField !== null && !PINNED_FIELDS.includes(value.pinnedField)) throw new CreativeSyncError("INVALID_INPUT", `${field}.pinnedField is invalid`);
+  if (!text) throw new CreativeSyncError("INVALID_INPUT", `${field}.text must not be empty`);
+  if (!containsDynamicInsertion(text) && googleAdsCharacterCount(text) > maxStaticCharacters) {
+    throw new CreativeSyncError("INVALID_INPUT", `${field}.text exceeds Google Ads ${maxStaticCharacters}-character static limit`);
+  }
+  if (value.pinnedField !== null && !allowedPins.includes(value.pinnedField)) {
+    throw new CreativeSyncError("INVALID_INPUT", `${field}.pinnedField is invalid for this RSA asset section`);
+  }
   return Object.freeze({ text, pinnedField: value.pinnedField });
 }
 
@@ -429,11 +468,13 @@ function normalizeRsa(value: DesiredResponsiveSearchAd, expectedCustomerId: stri
   const path1 = value.path1 === null ? null : value.path1.trim();
   const path2 = value.path2 === null ? null : value.path2.trim();
   if (path2 && !path1) throw new CreativeSyncError("INVALID_INPUT", "RSA path2 requires path1");
-  if ((path1?.length ?? 0) > 15 || (path2?.length ?? 0) > 15) throw new CreativeSyncError("INVALID_INPUT", "RSA display paths must be at most 15 characters each");
+  if ((path1 && googleAdsCharacterCount(path1) > 15) || (path2 && googleAdsCharacterCount(path2) > 15)) {
+    throw new CreativeSyncError("INVALID_INPUT", "RSA display paths must be at most 15 Google Ads characters each");
+  }
   return Object.freeze({
     resourceName,
-    headlines: Object.freeze(value.headlines.map((asset, index) => normalizeTextAsset(asset, `headlines[${index}]`))),
-    descriptions: Object.freeze(value.descriptions.map((asset, index) => normalizeTextAsset(asset, `descriptions[${index}]`))),
+    headlines: Object.freeze(value.headlines.map((asset, index) => normalizeTextAsset(asset, `headlines[${index}]`, 30, HEADLINE_PINS))),
+    descriptions: Object.freeze(value.descriptions.map((asset, index) => normalizeTextAsset(asset, `descriptions[${index}]`, 90, DESCRIPTION_PINS))),
     path1: path1 || null,
     path2: path2 || null,
     finalUrls: Object.freeze(value.finalUrls.map((url, index) => validateUrl(url, `finalUrls[${index}]`))),
@@ -499,7 +540,7 @@ function normalizeDesiredState(
     customizerValues: Object.freeze([...customizerValues].sort((a, b) => `${a.scopeKind}/${a.scopeResourceName}/${a.attributeName}`.localeCompare(`${b.scopeKind}/${b.scopeResourceName}/${b.attributeName}`))),
     responsiveSearchAds: Object.freeze([...responsiveSearchAds].sort((a, b) => a.resourceName.localeCompare(b.resourceName))),
   };
-  return Object.freeze({ ...normalized, digest: hash("cortex-creative-desired-state-v1", normalized) });
+  return Object.freeze({ ...normalized, digest: hash("cortex-creative-desired-state-v2", normalized) });
 }
 
 function rsaContent(value: ResponsiveSearchAdSnapshot | DesiredResponsiveSearchAd): ResponsiveSearchAdContent {
@@ -518,7 +559,7 @@ function same(left: unknown, right: unknown): boolean {
 }
 
 function stateDigest(customer: string, payload: StatePayload, updatedAt: string): string {
-  return hash("cortex-creative-sync-state-v1", { customer, payload, updatedAt });
+  return hash("cortex-creative-sync-state-v2", { customer, payload, updatedAt });
 }
 
 function runDigest(
@@ -530,7 +571,7 @@ function runDigest(
   createdAt: string,
   updatedAt: string,
 ): string {
-  return hash("cortex-creative-sync-run-v1", { runId, customer, policyDigest, status, payload, createdAt, updatedAt });
+  return hash("cortex-creative-sync-run-v2", { runId, customer, policyDigest, status, payload, createdAt, updatedAt });
 }
 
 function stateProperties(customer: string, payload: StatePayload, updatedAt: string): Readonly<Record<string, JsonValue>> {
@@ -667,6 +708,7 @@ function parseState(record: ObjectRecord): StateRecord {
     lastMutationAt: nullableString(raw.lastMutationAt, "state.lastMutationAt"),
     inFlightRunId: nullableString(raw.inFlightRunId, "state.inFlightRunId"),
     lastAppliedAction: parseAction(raw.lastAppliedAction),
+    lastRollbackAction: parseAction(raw.lastRollbackAction),
     lastSourceVersion: nullableString(raw.lastSourceVersion, "state.lastSourceVersion"),
     lastSourceDigest: nullableString(raw.lastSourceDigest, "state.lastSourceDigest"),
     lastRollbackAt: nullableString(raw.lastRollbackAt, "state.lastRollbackAt"),
@@ -720,9 +762,9 @@ function conflict(error: unknown): boolean {
   return error instanceof OntologyTransactionError && error.code === "CONFLICT";
 }
 
-function reverseAction(action: CreativeSyncAction): CreativeSyncAction {
+function rollbackActionForApplied(action: CreativeSyncAction, receipt: CreativeMutationReceipt): CreativeSyncAction {
   if (action.kind === "CREATE_CUSTOMIZER_ATTRIBUTE") {
-    throw new CreativeSyncError("POLICY_VIOLATION", "created customizer attribute requires its certified resource name before rollback");
+    return { kind: "REMOVE_CUSTOMIZER_ATTRIBUTE", resourceName: receipt.resourceName, name: action.name, type: action.type };
   }
   if (action.kind === "REMOVE_CUSTOMIZER_ATTRIBUTE") {
     return { kind: "CREATE_CUSTOMIZER_ATTRIBUTE", name: action.name, type: action.type };
@@ -732,7 +774,7 @@ function reverseAction(action: CreativeSyncAction): CreativeSyncAction {
   }
   if (action.kind === "UPSERT_CUSTOMIZER_VALUE") {
     const currentExpected: CustomizerValueSnapshot = {
-      resourceName: action.expected?.resourceName ?? "",
+      resourceName: receipt.resourceName,
       attributeResourceName: action.attributeResourceName,
       type: action.type,
       scopeKind: action.scopeKind,
@@ -777,11 +819,11 @@ export class NearRealTimeCreativeSynchronizer {
   }
 
   private stateId(customer: string): string {
-    return ontologyId("cortex-creative-sync-state-v1", { scope: this.scope, customer });
+    return ontologyId("cortex-creative-sync-state-v2", { scope: this.scope, customer });
   }
 
   private runId(runId: string, customer: string): string {
-    return ontologyId("cortex-creative-sync-run-v1", { scope: this.scope, runId, customer });
+    return ontologyId("cortex-creative-sync-run-v2", { scope: this.scope, runId, customer });
   }
 
   private readState(customer: string): StateRecord | undefined {
@@ -868,6 +910,7 @@ export class NearRealTimeCreativeSynchronizer {
         lastMutationAt: state?.lastMutationAt ?? null,
         inFlightRunId: runId,
         lastAppliedAction: state?.lastAppliedAction ?? null,
+        lastRollbackAction: state?.lastRollbackAction ?? null,
         lastSourceVersion: state?.lastSourceVersion ?? null,
         lastSourceDigest: state?.lastSourceDigest ?? null,
         lastRollbackAt: state?.lastRollbackAt ?? null,
@@ -903,12 +946,19 @@ export class NearRealTimeCreativeSynchronizer {
       if (current.status !== "PREPARED") return current;
       const state = this.readState(run.customerId);
       if (!state || state.inFlightRunId !== run.runId) throw new CreativeSyncError("INTEGRITY_FAILURE", "run no longer owns state lock");
+      const appliedRollbackAction = effect === "APPLY" && payload.action && payload.receipt
+        ? rollbackActionForApplied(payload.action, payload.receipt)
+        : null;
+      if (effect === "APPLY" && (!payload.action || !payload.receipt)) {
+        throw new CreativeSyncError("INTEGRITY_FAILURE", "applied run must carry a certified action and receipt");
+      }
       const nextState: StatePayload = {
         policyDigest: state.policyDigest,
         lastRunAt: nowIso,
         lastMutationAt: effect === "NONE" ? state.lastMutationAt : nowIso,
         inFlightRunId: null,
         lastAppliedAction: effect === "APPLY" && payload.action ? payload.action : effect === "ROLLBACK" ? null : state.lastAppliedAction,
+        lastRollbackAction: effect === "APPLY" ? appliedRollbackAction : effect === "ROLLBACK" ? null : state.lastRollbackAction,
         lastSourceVersion: payload.sourceVersion ?? state.lastSourceVersion,
         lastSourceDigest: payload.sourceDigest ?? state.lastSourceDigest,
         lastRollbackAt: effect === "ROLLBACK" ? nowIso : state.lastRollbackAt,
@@ -1003,19 +1053,16 @@ export class NearRealTimeCreativeSynchronizer {
     const existing = this.readRun(runId, customer);
     if (existing) return this.execute(existing, "ACTIVE");
     const state = this.readState(customer);
-    if (!state?.lastAppliedAction) throw new CreativeSyncError("POLICY_VIOLATION", "no certified creative action is available for rollback");
+    if (!state?.lastAppliedAction || !state.lastRollbackAction) throw new CreativeSyncError("POLICY_VIOLATION", "no certified creative action is available for rollback");
     if (state.inFlightRunId) {
       const inFlight = this.readRun(state.inFlightRunId, customer);
       if (!inFlight) throw new CreativeSyncError("INTEGRITY_FAILURE", "state references missing in-flight run");
       return this.execute(inFlight, "ACTIVE");
     }
-    if (state.lastAppliedAction.kind === "CREATE_CUSTOMIZER_ATTRIBUTE") {
-      throw new CreativeSyncError("POLICY_VIOLATION", "automatic rollback of a newly created customizer attribute is disabled because later hierarchy links may depend on it");
-    }
     const now = this.time();
     const payload: RunPayload = {
       mode: "ACTIVE", reason: "ROLLBACK_APPLIED", sourceId: null, sourceVersion: null, sourceDigest: null,
-      sourceObservedAt: null, action: reverseAction(state.lastAppliedAction), receipt: null, errorCode: null,
+      sourceObservedAt: null, action: state.lastRollbackAction, receipt: null, errorCode: null,
     };
     return this.execute(this.acquire(runId, customer, payload, now.iso), "ACTIVE");
   }
