@@ -114,6 +114,31 @@ describe("ServerSideContextualBanditEngine", () => {
     })).toThrow(/context key email is not allowed/);
   });
 
+  it("rejects an infeasible active eligible subset while keeping the kill switch available", () => {
+    const h = harness({
+      armDefinitions: [
+        { armId: "control", payload: { value: "a" }, minTrafficShare: 0, maxTrafficShare: 0.4 },
+        { armId: "variant-b", payload: { value: "b" }, minTrafficShare: 0, maxTrafficShare: 0.4 },
+        { armId: "variant-c", payload: { value: "c" }, minTrafficShare: 0, maxTrafficShare: 0.4 },
+      ],
+    });
+
+    expect(() => h.engine.select({
+      requestId: "infeasible-active",
+      context: { campaign: "search-brand", device: "mobile" },
+      eligibleArmIds: ["control", "variant-b"],
+    })).toThrow(/maximum traffic shares cannot cover 100 percent/);
+
+    const killed = h.engine.select({
+      requestId: "infeasible-killed",
+      context: { campaign: "search-brand", device: "mobile" },
+      eligibleArmIds: ["control", "variant-b"],
+      mode: "KILLED",
+    });
+    expect(killed.armId).toBe("control");
+    expect(killed.reason).toBe("KILL_SWITCH");
+  });
+
   it("persists assignment and outcome atomically and is idempotent on repeated delivery", () => {
     const h = harness();
     const request = {
