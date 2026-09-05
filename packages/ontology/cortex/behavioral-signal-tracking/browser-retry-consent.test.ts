@@ -23,6 +23,7 @@ class FakeDocument {
 describe("behavioral browser retry privacy guard", () => {
   it("does not retry a queued event after consent is revoked during backoff", async () => {
     const document = new FakeDocument();
+    document.visibilityState = "hidden";
     let allowed = true;
     let requests = 0;
     let uuid = 0;
@@ -68,6 +69,7 @@ describe("behavioral browser retry privacy guard", () => {
 
   it("also drops a retry when the privacy decision reference changes", async () => {
     const document = new FakeDocument();
+    document.visibilityState = "hidden";
     let decisionRef = "decision-v1";
     let requests = 0;
     let uuid = 0;
