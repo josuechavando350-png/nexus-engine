@@ -15,7 +15,7 @@ const googleConfig = buildGoogleTagServerConfig("https://metrics.customer.exampl
 // gtag("config", "G-XXXXXXXXXX", googleConfig)
 ```
 
-Google recommends using a first-party domain for the tagging server. `buildServerContainerCspSources()` returns the origin that must be considered for `img-src`, `connect-src`, and `frame-src`; the application remains responsible for composing those values with its existing CSP rather than replacing its security policy.
+Google recommends using a first-party domain for the tagging server. Same-origin paths such as `https://www.customer.example/metrics` are supported as well as dedicated first-party subdomains. `buildServerContainerCspSources()` returns the origin that must be considered for `img-src`, `connect-src`, and `frame-src`; the application remains responsible for composing those values with its existing CSP rather than replacing its security policy.
 
 ### Backend -> GTM server container
 
@@ -38,13 +38,13 @@ await tracking.send({
 });
 ```
 
-The transport sends the documented Measurement Protocol form payload to the server container over HTTPS, enforces a timeout, rejects redirects, throws on non-2xx responses, and does not automatically retry. Automatic retries are deliberately omitted because a network retry can duplicate measurement unless the customer's downstream deduplication contract is known.
+The transport sends the documented Measurement Protocol form payload to the server container over HTTPS, enforces a timeout, rejects redirects, throws on non-2xx responses, and does not automatically retry. Automatic retries are deliberately omitted because a network retry can duplicate measurement unless the customer's downstream deduplication contract is known. If the server container is configured on a same-origin path such as `/metrics`, the transport preserves that prefix when it appends the Measurement Protocol Activation Path.
 
 `clientId` is mandatory. Nexus does not create a hidden browser fingerprint or synthesize a cross-session identity. The caller must supply an identifier it is legitimately allowed to use.
 
 ### Google Ads Enhanced Conversions
 
-`hashEnhancedConversionUserData()` applies Google's documented normalization rules and SHA-256 hashing before returning `user_data`: trim/lowercase, Gmail/Googlemail local-part dot removal, E.164 phone validation, and hex SHA-256 for protected fields. It accepts email, phone, or Google's complete-address matching key (first name, last name, postal code, country). `buildEnhancedConversionDataLayerEvent()` also blocks protected raw-data keys from generic parameters.
+`hashEnhancedConversionUserData()` applies Google's documented normalization rules and SHA-256 hashing before returning `user_data`: trim/lowercase, Gmail/Googlemail local-part dot removal, E.164 phone validation, and hex SHA-256 for protected fields. For this server-side Google Ads code flow, at least email or phone number is required. Address fields can supplement those matching identifiers when available. `buildEnhancedConversionDataLayerEvent()` also blocks protected raw-data keys from generic parameters.
 
 ```ts
 const event = buildEnhancedConversionDataLayerEvent({
@@ -82,8 +82,9 @@ The package does not attempt to bypass browser privacy choices, consent, or ad-b
 3. Configure and publish Conversion Linker and the server-side Google Ads Conversion Tracking tag when Ads conversions are required.
 4. Set `server_container_url` in the customer's Google tag/web container.
 5. Apply the site's real consent state before emitting events.
-6. For purchase-like conversions, generate a unique non-PII transaction ID in the backend and map `transaction_id` through GTM to Google Ads.
-7. Use GTM Preview/Tag Assistant to confirm the server client claims requests and the intended tags fire.
-8. Verify Google Ads diagnostics and deduplication before removing an existing equivalent conversion tag.
+6. For Enhanced Conversions, provide at least a consented email or phone identifier and include address fields only as additional matching data when available.
+7. For purchase-like conversions, generate a unique non-PII transaction ID in the backend and map `transaction_id` through GTM to Google Ads.
+8. Use GTM Preview/Tag Assistant to confirm the server client claims requests and the intended tags fire.
+9. Verify Google Ads diagnostics and deduplication before removing an existing equivalent conversion tag.
 
 Offline conversion uploads through an Ads/Data Manager API are deliberately not implemented here; that is Nexus module 3 and will have its own credentials, idempotency, and reconciliation contract.
