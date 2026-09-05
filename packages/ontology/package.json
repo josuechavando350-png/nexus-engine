@@ -20,10 +20,11 @@
     "./chatbot-memory": "./chatbot-memory.ts",
     "./chatbot-bandit": "./chatbot-bandit.ts",
     "./chatbot-reasoning": "./chatbot-reasoning.ts",
-    "./cortex/bandit-experimentation": "./cortex/bandit-experimentation/index.ts"
+    "./cortex/bandit-experimentation": "./cortex/bandit-experimentation/index.ts",
+    "./cortex/sqlite-transaction-store": "./cortex/sqlite-transaction-store.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/semantic-graph.js && test -f dist/semantic-graph-runtime.js && test -f dist/cortex/bandit-experimentation/index.js && test -f dist/cortex/bandit-experimentation/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/semantic-graph.js && test -f dist/semantic-graph-runtime.js && test -f dist/cortex/bandit-experimentation/index.js && test -f dist/cortex/bandit-experimentation/index.d.ts && test -f dist/cortex/sqlite-transaction-store.js && test -f dist/cortex/sqlite-transaction-store.d.ts"
   }
 }
