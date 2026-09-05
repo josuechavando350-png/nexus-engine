@@ -21,10 +21,12 @@
     "./chatbot-bandit": "./chatbot-bandit.ts",
     "./chatbot-reasoning": "./chatbot-reasoning.ts",
     "./cortex/bandit-experimentation": "./cortex/bandit-experimentation/index.ts",
-    "./cortex/sqlite-transaction-store": "./cortex/sqlite-transaction-store.ts"
+    "./cortex/sqlite-transaction-store": "./cortex/sqlite-transaction-store.ts",
+    "./cortex/bidding-supervisor": "./cortex/bidding-supervisor/index.ts",
+    "./cortex/bidding-supervisor/google-ads-rest": "./cortex/bidding-supervisor/google-ads-rest.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/semantic-graph.js && test -f dist/semantic-graph-runtime.js && test -f dist/cortex/bandit-experimentation/index.js && test -f dist/cortex/bandit-experimentation/index.d.ts && test -f dist/cortex/sqlite-transaction-store.js && test -f dist/cortex/sqlite-transaction-store.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/semantic-graph.js && test -f dist/semantic-graph-runtime.js && test -f dist/cortex/bandit-experimentation/index.js && test -f dist/cortex/bandit-experimentation/index.d.ts && test -f dist/cortex/sqlite-transaction-store.js && test -f dist/cortex/sqlite-transaction-store.d.ts && test -f dist/cortex/bidding-supervisor/index.js && test -f dist/cortex/bidding-supervisor/index.d.ts && test -f dist/cortex/bidding-supervisor/google-ads-rest.js && test -f dist/cortex/bidding-supervisor/google-ads-rest.d.ts"
   }
 }
