@@ -297,6 +297,24 @@ export class GoogleAdsCreativeRestClient implements GoogleAdsCreativeGateway {
     }
   }
 
+  private async hasCustomizerBindings(customer: string, attributeResourceName: string): Promise<boolean> {
+    const resources: readonly { readonly from: string; readonly field: string }[] = [
+      { from: "customer_customizer", field: "customer_customizer" },
+      { from: "campaign_customizer", field: "campaign_customizer" },
+      { from: "ad_group_customizer", field: "ad_group_customizer" },
+      { from: "ad_group_criterion_customizer", field: "ad_group_criterion_customizer" },
+    ];
+    for (const resource of resources) {
+      const rows = await this.search(customer, [
+        `SELECT ${resource.field}.resource_name`,
+        `FROM ${resource.from} WHERE ${resource.field}.customizer_attribute = ${gaqlString(attributeResourceName)}`,
+        `AND ${resource.field}.status != REMOVED LIMIT 1`,
+      ].join(" "));
+      if (rows.length > 0) return true;
+    }
+    return false;
+  }
+
   async getCustomizerValue(
     customerInput: string,
     lookup: Pick<DesiredCustomizerValue, "scopeKind" | "scopeResourceName"> & { readonly attributeResourceName: string },
@@ -381,6 +399,7 @@ export class GoogleAdsCreativeRestClient implements GoogleAdsCreativeGateway {
       const existing = attributes.find((attribute) => attribute.resourceName === action.resourceName);
       if (!existing) return Object.freeze({ requestId: null, resourceName: action.resourceName, recoveredAlreadyApplied: true });
       if (existing.name !== action.name || existing.type !== action.type) throw new GoogleAdsApiError("REMOTE_CONFLICT", "customizer attribute changed before rollback");
+      if (await this.hasCustomizerBindings(customer, action.resourceName)) throw new GoogleAdsApiError("REMOTE_CONFLICT", "customizer attribute gained a live hierarchy binding before rollback");
       return this.mutate(customer, "customizerAttributes:mutate", [{ remove: action.resourceName }], action.resourceName);
     }
 
