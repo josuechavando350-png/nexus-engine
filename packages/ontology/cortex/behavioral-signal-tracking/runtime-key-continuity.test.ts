@@ -35,15 +35,19 @@ describe("behavioral runtime privacy-key continuity", () => {
     const active = policy();
     try {
       const firstStore = new SqliteOntologyTransactionStore(db);
-      new CortexBehavioralSignalRuntime(firstStore, scope, active, { pseudonymizationKey: KEY_A }, () => NOW);
-      const before = JSON.stringify(firstStore.checkpoint());
+      const firstRuntime = new CortexBehavioralSignalRuntime(firstStore, scope, active, { pseudonymizationKey: KEY_A }, () => NOW);
+      const before = firstRuntime.controlState();
       firstStore.close();
 
-      const reopenedStore = new SqliteOntologyTransactionStore(db);
-      expect(() => new CortexBehavioralSignalRuntime(reopenedStore, scope, active, { pseudonymizationKey: KEY_B }, () => NOW))
+      const wrongKeyStore = new SqliteOntologyTransactionStore(db);
+      expect(() => new CortexBehavioralSignalRuntime(wrongKeyStore, scope, active, { pseudonymizationKey: KEY_B }, () => NOW))
         .toThrow(/does not match durable behavioral control state/);
-      expect(JSON.stringify(reopenedStore.checkpoint())).toBe(before);
-      reopenedStore.close();
+      wrongKeyStore.close();
+
+      const verifiedStore = new SqliteOntologyTransactionStore(db);
+      const verifiedRuntime = new CortexBehavioralSignalRuntime(verifiedStore, scope, active, { pseudonymizationKey: KEY_A }, () => NOW);
+      expect(verifiedRuntime.controlState()).toEqual(before);
+      verifiedStore.close();
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }
