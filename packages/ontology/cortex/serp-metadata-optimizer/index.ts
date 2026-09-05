@@ -162,6 +162,7 @@ export interface CreateSerpMetadataPolicyInput {
   readonly policyId: string;
   readonly version: string;
   readonly maxInventoryAgeMs: number;
+  readonly maxPerformanceAgeMs: number;
   readonly cooldownMs: number;
   readonly maxWindowDays: number;
   readonly minImpressions: number;
@@ -194,6 +195,8 @@ export interface SerpOpportunityEvidence {
   readonly queryRowsConsidered: number;
   readonly selectedDescriptionCoverage: number;
   readonly queryEvidenceDigest: string;
+  readonly sourceCoverage: "TOP_ROWS_BOUNDED";
+  readonly sourceTruncated: boolean;
   readonly nonClaim: "OBSERVATIONAL_CTR_OPPORTUNITY_NOT_CAUSAL_RANKING_OR_SERP_GUARANTEE";
 }
 
@@ -356,7 +359,7 @@ function belongsToProperty(siteUrl: string, pageUrl: string): boolean {
     return host === domain || host.endsWith(`.${domain}`);
   }
   const prefix = new URL(siteUrl);
-  return prefix.origin === page.origin && page.pathname.startsWith(prefix.pathname);
+  return prefix.origin === page.origin && page.toString().startsWith(prefix.toString());
 }
 
 function positiveInt(value: number, field: string, max = Number.MAX_SAFE_INTEGER): number {
@@ -442,6 +445,7 @@ export function createSerpMetadataPolicy(input: CreateSerpMetadataPolicyInput): 
   const policyId = id(input.policyId, "policyId");
   const version = id(input.version, "version");
   const maxInventoryAgeMs = positiveInt(input.maxInventoryAgeMs, "maxInventoryAgeMs", 30 * 24 * 60 * 60 * 1000);
+  const maxPerformanceAgeMs = positiveInt(input.maxPerformanceAgeMs, "maxPerformanceAgeMs", 30 * 24 * 60 * 60 * 1000);
   const cooldownMs = positiveInt(input.cooldownMs, "cooldownMs", 90 * 24 * 60 * 60 * 1000);
   const maxWindowDays = positiveInt(input.maxWindowDays, "maxWindowDays", 180);
   const minImpressions = positiveInt(input.minImpressions, "minImpressions");
@@ -459,9 +463,9 @@ export function createSerpMetadataPolicy(input: CreateSerpMetadataPolicyInput): 
   const mode = input.mode ?? "ACTIVE";
   if (!MODES.includes(mode)) throw new SerpMetadataOptimizerError("INVALID_INPUT", "mode is invalid");
   const core = {
-    policyId, version, maxInventoryAgeMs, cooldownMs, maxWindowDays, minImpressions, minExpectedClicksGain, minPeerPages,
-    peerPositionTolerance, minDescriptionQueryCoverageDelta, maxGeneratedTitleCharacters, maxGeneratedDescriptionCharacters,
-    maxInventoryPages, maxSearchRows, maxWriteRetries, mode,
+    policyId, version, maxInventoryAgeMs, maxPerformanceAgeMs, cooldownMs, maxWindowDays, minImpressions, minExpectedClicksGain,
+    minPeerPages, peerPositionTolerance, minDescriptionQueryCoverageDelta, maxGeneratedTitleCharacters,
+    maxGeneratedDescriptionCharacters, maxInventoryPages, maxSearchRows, maxWriteRetries, mode,
   };
   return Object.freeze({ ...core, digest: hash("cortex-serp-metadata-policy-v1", core) });
 }
@@ -473,22 +477,13 @@ function normalizeMetadata(value: SeoMetadataValue, field: string): SeoMetadataV
   });
 }
 
-function normalizedText(value: string): string {
-  return value.normalize("NFKC").replace(/\s+/gu, " ").trim();
-}
-
-function folded(value: string): string {
-  return normalizedText(value).toLocaleLowerCase("en-US");
-}
-
+function normalizedText(value: string): string { return value.normalize("NFKC").replace(/\s+/gu, " ").trim(); }
+function folded(value: string): string { return normalizedText(value).toLocaleLowerCase("en-US"); }
 function tokens(value: string): readonly string[] {
   const normalized = value.normalize("NFKD").replace(/[\u0300-\u036f]/gu, "").toLocaleLowerCase("en-US");
   return Object.freeze((normalized.match(/[\p{L}\p{N}]+/gu) ?? []).filter((token) => [...token].length >= 3));
 }
-
-function containsVisible(visibleText: string, candidate: string): boolean {
-  return folded(visibleText).includes(folded(candidate));
-}
+function containsVisible(visibleText: string, candidate: string): boolean { return folded(visibleText).includes(folded(candidate)); }
 
 function normalizePage(value: SeoPageSnapshot, siteUrl: string): SeoPageSnapshot {
   const pageId = id(value.pageId, "pageId");
@@ -589,38 +584,20 @@ export function validatePublishedMetadataSnapshot(snapshot: PublishedMetadataSna
   if (rebuilt.digest !== snapshot.digest || canonicalJson(rebuilt) !== canonicalJson(snapshot)) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "published metadata replay mismatch");
 }
 
-function actionJson(action: MetadataPublishAction | null): JsonValue { return json(action, "metadata action"); }
-function receiptJson(receipt: MetadataPublishReceipt | null): JsonValue { return json(receipt, "metadata receipt"); }
-
 function stateDigest(siteUrl: string, pageId: string, payload: StatePayload, updatedAt: string): string {
   return hash("cortex-serp-state-v1", { siteUrl, pageId, payload, updatedAt });
 }
-
 function runDigest(runId: string, siteUrl: string, pageId: string, policyDigest: string, status: SerpMetadataRunStatus, payload: RunPayload, createdAt: string, updatedAt: string): string {
   return hash("cortex-serp-run-v1", { runId, siteUrl, pageId, policyDigest, status, payload, createdAt, updatedAt });
 }
-
 function stateProperties(siteUrl: string, pageId: string, payload: StatePayload, updatedAt: string): Readonly<Record<string, JsonValue>> {
-  return Object.freeze({
-    [STATE.siteUrl]: siteUrl,
-    [STATE.pageId]: pageId,
-    [STATE.payload]: json(payload, "state payload"),
-    [STATE.digest]: stateDigest(siteUrl, pageId, payload, updatedAt),
-    [STATE.updatedAt]: updatedAt,
-  });
+  return Object.freeze({ [STATE.siteUrl]: siteUrl, [STATE.pageId]: pageId, [STATE.payload]: json(payload, "state payload"), [STATE.digest]: stateDigest(siteUrl, pageId, payload, updatedAt), [STATE.updatedAt]: updatedAt });
 }
-
 function runProperties(runId: string, siteUrl: string, pageId: string, policyDigest: string, status: SerpMetadataRunStatus, payload: RunPayload, createdAt: string, updatedAt: string): Readonly<Record<string, JsonValue>> {
   return Object.freeze({
-    [RUN.runId]: runId,
-    [RUN.siteUrl]: siteUrl,
-    [RUN.pageId]: pageId,
-    [RUN.policyDigest]: policyDigest,
-    [RUN.status]: status,
-    [RUN.payload]: json(payload, "run payload"),
-    [RUN.digest]: runDigest(runId, siteUrl, pageId, policyDigest, status, payload, createdAt, updatedAt),
-    [RUN.createdAt]: createdAt,
-    [RUN.updatedAt]: updatedAt,
+    [RUN.runId]: runId, [RUN.siteUrl]: siteUrl, [RUN.pageId]: pageId, [RUN.policyDigest]: policyDigest, [RUN.status]: status,
+    [RUN.payload]: json(payload, "run payload"), [RUN.digest]: runDigest(runId, siteUrl, pageId, policyDigest, status, payload, createdAt, updatedAt),
+    [RUN.createdAt]: createdAt, [RUN.updatedAt]: updatedAt,
   });
 }
 
@@ -655,7 +632,7 @@ function parseAction(value: JsonValue | undefined): MetadataPublishAction | null
 function parseReceipt(value: JsonValue | undefined): MetadataPublishReceipt | null {
   if (value === null || value === undefined) return null;
   const raw = object(value, "receipt");
-  if (typeof raw.recoveredAlreadyApplied !== "boolean" || typeof raw.publisherVersion !== "string") throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "receipt is invalid");
+  if (typeof raw.recoveredAlreadyApplied !== "boolean" || typeof raw.publisherVersion !== "string" || !raw.publisherVersion) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "receipt is invalid");
   return Object.freeze({ snapshot: parsePublished(raw.snapshot, "receipt.snapshot"), recoveredAlreadyApplied: raw.recoveredAlreadyApplied, publisherVersion: raw.publisherVersion });
 }
 
@@ -664,7 +641,11 @@ function parseEvidence(value: JsonValue | undefined): SerpOpportunityEvidence | 
   const raw = object(value, "evidence");
   const numeric = ["impressions", "clicks", "ctr", "averagePosition", "peerCtr", "peerPages", "expectedClicksGain", "queryRowsConsidered", "selectedDescriptionCoverage"] as const;
   for (const key of numeric) if (typeof raw[key] !== "number" || !Number.isFinite(raw[key] as number)) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", `evidence.${key} is invalid`);
-  if (typeof raw.queryEvidenceDigest !== "string" || raw.nonClaim !== "OBSERVATIONAL_CTR_OPPORTUNITY_NOT_CAUSAL_RANKING_OR_SERP_GUARANTEE") throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "evidence identity is invalid");
+  if ((raw.impressions as number) < 0 || (raw.clicks as number) < 0 || (raw.ctr as number) < 0 || (raw.ctr as number) > 1 || (raw.averagePosition as number) <= 0 || (raw.peerCtr as number) < 0 || (raw.peerCtr as number) > 1 || (raw.peerPages as number) < 0 || (raw.expectedClicksGain as number) < 0 || (raw.queryRowsConsidered as number) < 0 || (raw.selectedDescriptionCoverage as number) < 0 || (raw.selectedDescriptionCoverage as number) > 1) {
+    throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "evidence numeric range is invalid");
+  }
+  if (typeof raw.queryEvidenceDigest !== "string" || !/^sha256:[a-f0-9]{64}$/u.test(raw.queryEvidenceDigest)) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "evidence query digest is invalid");
+  if (raw.sourceCoverage !== "TOP_ROWS_BOUNDED" || typeof raw.sourceTruncated !== "boolean" || raw.nonClaim !== "OBSERVATIONAL_CTR_OPPORTUNITY_NOT_CAUSAL_RANKING_OR_SERP_GUARANTEE") throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "evidence source identity is invalid");
   return Object.freeze(raw as unknown as SerpOpportunityEvidence);
 }
 
@@ -725,9 +706,7 @@ function parseRun(record: ObjectRecord): RunRecord {
 function runPayload(run: RunRecord): RunPayload {
   return { mode: run.mode, reason: run.reason, startDate: run.startDate, endDate: run.endDate, inventoryDigest: run.inventoryDigest, performanceDigest: run.performanceDigest, evidence: run.evidence, action: run.action, receipt: run.receipt, errorCode: run.errorCode };
 }
-
 function conflict(error: unknown): boolean { return error instanceof OntologyTransactionError && error.code === "CONFLICT"; }
-
 function same(left: unknown, right: unknown): boolean { return canonicalJson(left) === canonicalJson(right); }
 
 function repeatedToken(title: string): boolean {
@@ -735,13 +714,11 @@ function repeatedToken(title: string): boolean {
   for (const token of tokens(title)) counts.set(token, (counts.get(token) ?? 0) + 1);
   return [...counts.values()].some((count) => count > 2);
 }
-
 function titleContainsHeading(title: string, heading: string): boolean {
   const titleSet = new Set(tokens(title));
   const headingTokens = tokens(heading);
   return headingTokens.length > 0 && headingTokens.every((token) => titleSet.has(token));
 }
-
 function weightedQueryCoverage(candidate: string, rows: readonly SearchPerformanceRow[]): number {
   const candidateTokens = new Set(tokens(candidate));
   let weighted = 0;
@@ -756,19 +733,13 @@ function weightedQueryCoverage(candidate: string, rows: readonly SearchPerforman
   return total > 0 ? weighted / total : 0;
 }
 
-function deriveCandidate(
-  page: SeoPageSnapshot,
-  inventory: PageInventorySnapshot,
-  current: SeoMetadataValue,
-  queries: readonly SearchPerformanceRow[],
-  policy: SerpMetadataPolicy,
-): { readonly metadata: SeoMetadataValue; readonly descriptionCoverage: number } {
+function deriveCandidate(page: SeoPageSnapshot, inventory: PageInventorySnapshot, current: SeoMetadataValue, queries: readonly SearchPerformanceRow[], policy: SerpMetadataPolicy): { readonly metadata: SeoMetadataValue; readonly descriptionCoverage: number } {
   const otherTitles = new Set(inventory.pages.filter((item) => item.pageId !== page.pageId).map((item) => folded(item.currentMetadata.title)));
   const currentTitleDuplicate = otherTitles.has(folded(current.title));
   let title = current.title;
   if (currentTitleDuplicate || !titleContainsHeading(current.title, page.primaryHeading)) {
     const candidates = [
-      page.siteName && !folded(page.primaryHeading).includes(folded(page.siteName)) ? `${page.primaryHeading} | ${page.siteName}` : page.primaryHeading,
+      !folded(page.primaryHeading).includes(folded(page.siteName)) ? `${page.primaryHeading} | ${page.siteName}` : page.primaryHeading,
       page.primaryHeading,
     ];
     const candidate = candidates.find((entry) => [...entry].length <= policy.maxGeneratedTitleCharacters && !otherTitles.has(folded(entry)) && !repeatedToken(entry));
@@ -789,7 +760,7 @@ function deriveCandidate(
     metaDescription = best.entry;
     descriptionCoverage = best.score;
   }
-  return { metadata: Object.freeze({ title, metaDescription }), descriptionCoverage };
+  return Object.freeze({ metadata: Object.freeze({ title, metaDescription }), descriptionCoverage });
 }
 
 function inverseAction(action: MetadataPublishAction, resulting: PublishedMetadataSnapshot | null): MetadataPublishAction {
@@ -799,6 +770,19 @@ function inverseAction(action: MetadataPublishAction, resulting: PublishedMetada
   if (!resulting) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "upsert publish receipt omitted resulting snapshot");
   if (action.expected === null) return Object.freeze({ kind: "REMOVE_METADATA_OVERRIDE", siteUrl: action.siteUrl, pageId: action.pageId, pageUrl: action.pageUrl, expected: resulting });
   return Object.freeze({ kind: "UPSERT_METADATA_OVERRIDE", siteUrl: action.siteUrl, pageId: action.pageId, pageUrl: action.pageUrl, expected: resulting, desired: action.expected.metadata });
+}
+
+function validateReceipt(action: MetadataPublishAction, receipt: MetadataPublishReceipt): void {
+  if (!receipt.publisherVersion.trim()) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "publisher receipt version is empty");
+  if (receipt.snapshot) {
+    validatePublishedMetadataSnapshot(receipt.snapshot);
+    if (receipt.snapshot.pageId !== action.pageId || receipt.snapshot.pageUrl !== action.pageUrl) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "publisher receipt identity mismatch");
+  }
+  if (action.kind === "UPSERT_METADATA_OVERRIDE") {
+    if (!receipt.snapshot || !same(receipt.snapshot.metadata, action.desired)) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "publisher did not certify desired metadata");
+  } else if (receipt.snapshot !== null) {
+    throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "publisher did not certify metadata removal");
+  }
 }
 
 export class SerpMetadataOptimizer {
@@ -823,20 +807,16 @@ export class SerpMetadataOptimizer {
     if (!Number.isFinite(ms)) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "engine clock is invalid");
     return Object.freeze({ ms, iso: new Date(ms).toISOString() });
   }
-
   private stateId(siteUrl: string, pageId: string): string { return ontologyId("cortex-serp-state-v1", { scope: this.scope, siteUrl, pageId }); }
   private runObjectId(runId: string, siteUrl: string, pageId: string): string { return ontologyId("cortex-serp-run-v1", { scope: this.scope, runId, siteUrl, pageId }); }
-
   private readState(siteUrl: string, pageId: string): StateRecord | undefined {
     const raw = this.transactions.getObject(this.scope, this.stateId(siteUrl, pageId));
     return raw ? parseState(raw) : undefined;
   }
-
   private readRun(runId: string, siteUrl: string, pageId: string): RunRecord | undefined {
     const raw = this.transactions.getObject(this.scope, this.runObjectId(runId, siteUrl, pageId));
     return raw ? parseRun(raw) : undefined;
   }
-
   private result(run: RunRecord): SerpMetadataResult {
     return Object.freeze({
       runId: run.runId, siteUrl: run.siteUrl, pageId: run.pageId, status: run.status, mode: run.mode, reason: run.reason,
@@ -844,11 +824,10 @@ export class SerpMetadataOptimizer {
       receipt: run.receipt, policyDigest: run.policyDigest, digest: run.digest,
     });
   }
-
   private emit(run: RunRecord, effect: FinalizeEffect): void {
     if (!this.onTelemetry) return;
     const event: SerpMetadataTelemetryEvent = Object.freeze({ runId: run.runId, siteUrl: run.siteUrl, pageId: run.pageId, status: run.status, reason: run.reason, mode: run.mode, effect });
-    try { this.onTelemetry(event); } catch (error) { try { this.onTelemetryError?.(error, event); } catch { /* telemetry must not affect transaction semantics */ } }
+    try { this.onTelemetry(event); } catch (error) { try { this.onTelemetryError?.(error, event); } catch { /* telemetry must not alter transaction semantics */ } }
   }
 
   private acquire(runId: string, siteUrl: string, pageId: string, payload: RunPayload, nowIso: string): RunRecord {
@@ -932,10 +911,10 @@ export class SerpMetadataOptimizer {
     let receipt: MetadataPublishReceipt;
     try {
       receipt = await this.publisher.apply(run.action);
+      validateReceipt(run.action, receipt);
     } catch (error) {
-      if (error instanceof MetadataPublisherError && error.code === "AMBIGUOUS_PUBLISH_OUTCOME") {
-        throw new SerpMetadataOptimizerError("REMOTE_FAILURE", "metadata publish outcome is ambiguous; run remains PREPARED for preflight recovery");
-      }
+      if (error instanceof MetadataPublisherError && error.code === "AMBIGUOUS_PUBLISH_OUTCOME") throw new SerpMetadataOptimizerError("REMOTE_FAILURE", "metadata publish outcome is ambiguous; run remains PREPARED for preflight recovery");
+      if (error instanceof SerpMetadataOptimizerError && error.code === "INTEGRITY_FAILURE") throw error;
       const reason: SerpMetadataReason = error instanceof MetadataPublisherError && error.code === "PUBLISH_CONFLICT" ? "PUBLISH_CONFLICT" : "PUBLISH_FAILURE";
       const next: RunPayload = { ...runPayload(run), reason, receipt: null, errorCode: error instanceof MetadataPublisherError ? error.code : "UNKNOWN_PUBLISH_FAILURE" };
       this.finalize(run, "FAILED", next, this.time().iso, "NONE", null);
@@ -956,7 +935,10 @@ export class SerpMetadataOptimizer {
     if (dateSpanDays(startDate, endDate) > this.policy.maxWindowDays) throw new SerpMetadataOptimizerError("INVALID_INPUT", "Search Console window exceeds policy maxWindowDays");
     const mode = effectiveMode(this.policy.mode, input.mode);
     const existing = this.readRun(runId, siteUrl, pageId);
-    if (existing) return this.execute(existing, mode);
+    if (existing) {
+      if (existing.startDate !== startDate || existing.endDate !== endDate) throw new SerpMetadataOptimizerError("CONFLICT", "runId was reused with a different Search Console window");
+      return this.execute(existing, mode);
+    }
     const state = this.readState(siteUrl, pageId);
     if (state?.inFlightRunId) {
       const inFlight = this.readRun(state.inFlightRunId, siteUrl, pageId);
@@ -1001,6 +983,14 @@ export class SerpMetadataOptimizer {
     validateSearchPerformanceSnapshot(performance);
     if (performance.siteUrl !== siteUrl || performance.startDate !== startDate || performance.endDate !== endDate) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "Search Console snapshot identity mismatch");
     if (performance.pageRows.length + performance.targetQueryRows.length > this.policy.maxSearchRows) throw new SerpMetadataOptimizerError("POLICY_VIOLATION", "Search Console snapshot exceeds policy row limit");
+    if (performance.targetQueryRows.some((row) => row.pageUrl !== page.url)) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "Search Console query rows include another page");
+    const performanceAge = now.ms - Date.parse(performance.observedAt);
+    if (performanceAge < 0) throw new SerpMetadataOptimizerError("INVALID_INPUT", "Search Console snapshot cannot be observed in the future");
+    if (performanceAge > this.policy.maxPerformanceAgeMs) {
+      const payload: RunPayload = { mode, reason: "SOURCE_STALE", startDate, endDate, inventoryDigest: inventory.digest, performanceDigest: performance.digest, evidence: null, action: null, receipt: null, errorCode: null };
+      return this.execute(this.acquire(runId, siteUrl, pageId, payload, now.iso), mode);
+    }
+
     const target = performance.pageRows.find((row) => row.pageUrl === page.url);
     if (!target || target.impressions < this.policy.minImpressions) {
       const payload: RunPayload = { mode, reason: "INSUFFICIENT_DATA", startDate, endDate, inventoryDigest: inventory.digest, performanceDigest: performance.digest, evidence: null, action: null, receipt: null, errorCode: null };
@@ -1021,7 +1011,10 @@ export class SerpMetadataOptimizer {
     }
 
     const published = await this.publisher.read(siteUrl, pageId, page.url);
-    if (published) validatePublishedMetadataSnapshot(published);
+    if (published) {
+      validatePublishedMetadataSnapshot(published);
+      if (published.pageId !== pageId || published.pageUrl !== page.url) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "publisher read identity mismatch");
+    }
     const current = published?.metadata ?? page.currentMetadata;
     const candidate = deriveCandidate(page, inventory, current, performance.targetQueryRows, this.policy);
     const queryEvidenceDigest = hash("cortex-serp-query-evidence-v1", performance.targetQueryRows.map((row) => ({ query: row.query, impressions: row.impressions, clicks: row.clicks, position: row.position })));
@@ -1036,6 +1029,8 @@ export class SerpMetadataOptimizer {
       queryRowsConsidered: performance.targetQueryRows.length,
       selectedDescriptionCoverage: candidate.descriptionCoverage,
       queryEvidenceDigest,
+      sourceCoverage: performance.coverage,
+      sourceTruncated: performance.truncated,
       nonClaim: "OBSERVATIONAL_CTR_OPPORTUNITY_NOT_CAUSAL_RANKING_OR_SERP_GUARANTEE",
     });
     if (same(candidate.metadata, current)) {
