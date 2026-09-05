@@ -2,6 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
+import { canonicalJson } from "@nexus/ontology";
 import { InMemoryOntologyTransactionStore } from "@nexus/ontology/transaction";
 import { SqliteOntologyTransactionStore } from "@nexus/ontology/cortex/sqlite-transaction-store";
 import {
@@ -59,7 +60,7 @@ class Publisher implements ProgrammaticSeoPublisher {
     if (this.ambiguousOnce) { this.ambiguousOnce = false; if (action.desired) this.current = createPublishedProgrammaticSeoBundle(action.desired, (this.current?.revision ?? 0) + 1); throw new ProgrammaticSeoPublisherError("AMBIGUOUS_PUBLISH_OUTCOME", "synthetic ambiguity"); }
     if (action.desired && this.current?.bundleRef.digest === action.desired.digest) return { snapshot: this.current, recoveredAlreadyApplied: true, publisherVersion: "test-v2" };
     if (action.desired === null && this.current === null) return { snapshot: null, recoveredAlreadyApplied: true, publisherVersion: "test-v2" };
-    if (JSON.stringify(this.current) !== JSON.stringify(action.expected)) throw new ProgrammaticSeoPublisherError("PUBLISH_CONFLICT", "CAS drift");
+    if (canonicalJson(this.current) !== canonicalJson(action.expected)) throw new ProgrammaticSeoPublisherError("PUBLISH_CONFLICT", "CAS drift");
     this.current = action.desired ? createPublishedProgrammaticSeoBundle(action.desired, (this.current?.revision ?? 0) + 1) : null; return { snapshot: this.current, recoveredAlreadyApplied: false, publisherVersion: "test-v2" };
   }
 }
@@ -95,7 +96,9 @@ describe("headless programmatic SEO", () => {
 
   it("requires source evidence and rejects stale or tampered catalogs", async () => {
     expect(() => createProgrammaticSeoCatalogSnapshot({ sourceId: "cms", siteId: "site-a", baseUrl: "https://example.com/", observedAt: new Date(NOW).toISOString(), pages: [page("home", [], null, "Root.", "Root unique.", { evidenceRefs: [] })] })).toThrow(/requires evidenceRefs/);
-    const stale = new CatalogSource(); stale.snapshot = catalog({ observedAt: new Date(NOW - 300_001).toISOString() }); expect((await harness({ source: stale }).engine.build({ runId: "stale", siteId: "site-a" })).reason).toBe("SOURCE_STALE");
+    const staleObservedAt = new Date(NOW - 300_001).toISOString();
+    const stalePages = catalog().pages.map((item) => Object.freeze({ ...item, updatedAt: new Date(Date.parse(staleObservedAt) - 1_000).toISOString() }));
+    const stale = new CatalogSource(); stale.snapshot = catalog({ observedAt: staleObservedAt, pages: stalePages }); expect((await harness({ source: stale }).engine.build({ runId: "stale", siteId: "site-a" })).reason).toBe("SOURCE_STALE");
     const tampered = new CatalogSource(); tampered.snapshot = Object.freeze({ ...catalog(), digest: "sha256:0000000000000000000000000000000000000000000000000000000000000000" }); await expect(harness({ source: tampered }).engine.build({ runId: "tampered", siteId: "site-a" })).rejects.toMatchObject({ code: "INTEGRITY_FAILURE" });
   });
 
