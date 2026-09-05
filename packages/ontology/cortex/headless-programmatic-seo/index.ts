@@ -173,7 +173,7 @@ function normalizeCatalogPage(value: ProgrammaticSeoPageInput, maxDepth: number)
   if (new Set(distinctiveStatements.map(fold)).size !== distinctiveStatements.length) throw new ProgrammaticSeoError("INVALID_INPUT", `page ${pageId} distinctive statements must be unique`);
   const evidenceRefs = Object.freeze(value.evidenceRefs.map((item, index) => clean(item, `page ${pageId}.evidenceRefs[${index}]`, 1_000))); if (new Set(evidenceRefs).size !== evidenceRefs.length) throw new ProgrammaticSeoError("INVALID_INPUT", `page ${pageId} evidence refs must be unique`);
   if (Boolean(value.indexable) && evidenceRefs.length === 0) throw new ProgrammaticSeoError("POLICY_VIOLATION", `indexable page ${pageId} requires evidenceRefs`);
-  const updatedAt = utc(value.updatedAt, `page ${pageId}.updatedAt`); let canonicalPath: string | null = value.canonicalPath ?? null;
+  const updatedAt = utc(value.updatedAt, `page ${pageId}.updatedAt`); const canonicalPath: string | null = value.canonicalPath ?? null;
   if (canonicalPath !== null) {
     if (!canonicalPath.startsWith("/") || !canonicalPath.endsWith("/") || canonicalPath.includes("?") || canonicalPath.includes("#")) throw new ProgrammaticSeoError("INVALID_INPUT", `page ${pageId}.canonicalPath must be a clean path ending in /`);
     const parts = canonicalPath === "/" ? [] : canonicalPath.slice(1, -1).split("/"); const normalized = normalizePath(parts.map((part, index) => segment(part, `page ${pageId}.canonicalPath[${index}]`)));
