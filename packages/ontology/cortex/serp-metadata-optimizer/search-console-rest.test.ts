@@ -74,7 +74,7 @@ describe("SearchConsoleRestClient", () => {
     expect(result.targetQueryRows[0]?.query).toBe("federal criminal defense");
   });
 
-  it("paginates with startRow and never requests more than the configured total row budget", async () => {
+  it("respects the configured total row budget and marks a full bounded result as truncated", async () => {
     const { rest, calls } = client([
       response({ rows: [pageRow(PAGE, 1, 10, 5), pageRow("https://example.com/a", 1, 10, 5), pageRow("https://example.com/b", 1, 10, 5)] }),
       response({ rows: [queryRow("alpha", 1, 10, 5), queryRow("beta", 1, 10, 5), queryRow("gamma", 1, 10, 5)] }),
@@ -87,16 +87,19 @@ describe("SearchConsoleRestClient", () => {
     expect(result.truncated).toBe(true);
   });
 
-  it("continues pagination when a page is full and advances startRow exactly by returned rows", async () => {
+  it("uses Search Console's 25,000-row page cap and advances startRow on larger budgets", async () => {
+    const firstPage = Array.from({ length: 25_000 }, (_, index) => pageRow(index === 0 ? PAGE : `https://example.com/page-${index}`, 0, 1, 5));
     const { rest, calls } = client([
-      response({ rows: [pageRow(PAGE, 1, 10, 5), pageRow("https://example.com/a", 1, 10, 5)] }),
-      response({ rows: [pageRow("https://example.com/b", 1, 10, 5)] }),
+      response({ rows: firstPage }),
+      response({ rows: [pageRow("https://example.com/page-25000", 0, 1, 5)] }),
       response({ rows: [queryRow("alpha", 1, 10, 5)] }),
     ]);
-    const result = await rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 5 });
-    expect(body(calls[0]!)).toMatchObject({ rowLimit: 2, startRow: 0 });
-    expect(body(calls[1]!)).toMatchObject({ rowLimit: 1, startRow: 2 });
-    expect(result.pageRows).toHaveLength(3);
+    const result = await rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 50_002 });
+    expect(calls).toHaveLength(3);
+    expect(body(calls[0]!)).toMatchObject({ rowLimit: 25_000, startRow: 0 });
+    expect(body(calls[1]!)).toMatchObject({ rowLimit: 1, startRow: 25_000 });
+    expect(body(calls[2]!)).toMatchObject({ rowLimit: 25_000, startRow: 0 });
+    expect(result.pageRows).toHaveLength(25_001);
     expect(result.targetQueryRows).toHaveLength(1);
     expect(result.truncated).toBe(true);
   });
