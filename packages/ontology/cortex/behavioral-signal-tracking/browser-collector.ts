@@ -278,6 +278,9 @@ class BrowserCollector implements BehavioralBrowserCollector {
   }
 
   private async deliver(envelope: BehavioralCollectorEnvelope, attempt: number): Promise<void> {
+    const privacy = this.config.privacy();
+    const capturedDecisionRef = envelope.event.privacyDecisionRef;
+    if (!this.running || !privacy.collectionAllowed || typeof privacy.privacyDecisionRef !== "string" || privacy.privacyDecisionRef !== capturedDecisionRef) return;
     try {
       const response = await this.env.fetch(this.endpoint, {
         method: "POST",
@@ -288,8 +291,7 @@ class BrowserCollector implements BehavioralBrowserCollector {
       });
       if (!response.ok) throw new Error(`behavioral collector transport failed with HTTP ${response.status}`);
     } catch (error) {
-      const privacy = this.config.privacy();
-      if (this.running && privacy.collectionAllowed && attempt < this.maxRetries) {
+      if (attempt < this.maxRetries) {
         await this.delay();
         return this.deliver(envelope, attempt + 1);
       }
