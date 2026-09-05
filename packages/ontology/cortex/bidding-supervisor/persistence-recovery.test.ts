@@ -73,6 +73,7 @@ class PreflightGateway implements GoogleAdsBiddingGateway {
       budgetExplicitlyShared: false,
       recommendedBudgetAmountMicros: 150_000_000,
       biddingStrategyType: "OTHER",
+      biddingStrategySystemStatus: "ENABLED",
       portfolioBiddingStrategyResourceName: null,
       standardTargetCpaMicros: null,
       standardTargetRoas: null,
@@ -101,7 +102,10 @@ class PreflightGateway implements GoogleAdsBiddingGateway {
 }
 
 class BusinessProvider implements BusinessProfitabilityProvider {
+  calls = 0;
+
   async getProfitability(query: BusinessProfitabilityQuery): Promise<BusinessProfitabilitySnapshot> {
+    this.calls += 1;
     return Object.freeze({
       ...query,
       revenueMicros: 400_000_000,
@@ -147,20 +151,23 @@ describe("bidding supervisor persistence recovery", () => {
   it("keeps the original run locked when Google applies but local finalization fails", async () => {
     const store = new FailFinalizeOnceStore();
     const gateway = new PreflightGateway();
-    const supervisor = new PeriodicGoogleAdsBiddingSupervisor(store, scope, policy(), gateway, new BusinessProvider(), () => NOW);
+    const business = new BusinessProvider();
+    const supervisor = new PeriodicGoogleAdsBiddingSupervisor(store, scope, policy(), gateway, business, () => NOW);
 
     await expect(supervisor.supervise({ runId: "write-then-local-failure", customerId: CUSTOMER_ID, campaignId: CAMPAIGN_ID }))
       .rejects.toMatchObject({ code: "PERSISTENCE_FAILURE" });
     expect(gateway.budgetAmountMicros).toBe(110_000_000);
     expect(gateway.mutationCalls).toBe(1);
+    expect(business.calls).toBe(1);
     const readsAfterRemoteWrite = gateway.campaignReads;
 
     const recovered = await supervisor.supervise({ runId: "must-not-replan", customerId: CUSTOMER_ID, campaignId: CAMPAIGN_ID });
     expect(recovered.runId).toBe("write-then-local-failure");
     expect(recovered.status).toBe("APPLIED");
     expect(recovered.reason).toBe("ACTION_RECOVERED");
-    expect(gateway.campaignReads).toBe(readsAfterRemoteWrite);
+    expect(gateway.campaignReads).toBe(readsAfterRemoteWrite + 1);
     expect(gateway.mutationCalls).toBe(2);
+    expect(business.calls).toBe(1);
   });
 
   it("never reactivates an OBSERVE_ONLY proposal on an ACTIVE replay", async () => {
