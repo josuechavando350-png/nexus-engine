@@ -1,0 +1,35 @@
+import { timingSafeEqual } from "node:crypto";
+import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
+import { AdContextRuntimeController, AdContextRuntimeControlError, type AdContextDecisionObservation, type AdContextRuntimeMode } from "./ad-context-control";
+
+const MAX_BODY_BYTES = 8_192;
+
+export interface AdContextControlServerOptions {
+  readonly controller: AdContextRuntimeController;
+  readonly edgeToken: string;
+  readonly controlToken: string;
+  readonly onOperationalEvent?: (event: Readonly<Record<string, unknown>>) => void;
+}
+export interface AdContextControlServer { readonly server: Server; close(): Promise<void> }
+
+class HttpError extends Error { constructor(readonly status: number, readonly code: string) { super(code); this.name="AdContextControlHttpError"; } }
+function token(value: string, field: string): Buffer { if (typeof value!=="string" || value.trim().length<32 || value.trim().length>4096) throw new Error(`${field} must contain 32..4096 characters`); return Buffer.from(value.trim(),"utf8"); }
+function authorized(request: IncomingMessage, expected: Buffer): boolean { const raw=request.headers.authorization; if (typeof raw!=="string" || !raw.startsWith("Bearer ")) return false; const candidate=Buffer.from(raw.slice(7),"utf8"); return candidate.length===expected.length && timingSafeEqual(candidate,expected); }
+async function body(request: IncomingMessage): Promise<Record<string,unknown>> { if (request.headers["content-type"]?.split(";",1)[0]?.trim().toLowerCase()!=="application/json") throw new HttpError(415,"JSON_REQUIRED"); let bytes=0; const chunks: Buffer[]=[]; for await (const part of request) { const chunk=Buffer.isBuffer(part)?part:Buffer.from(part); bytes+=chunk.byteLength; if (bytes>MAX_BODY_BYTES) { request.resume(); throw new HttpError(413,"BODY_TOO_LARGE"); } chunks.push(chunk); } if (!bytes) throw new HttpError(400,"BODY_REQUIRED"); let parsed: unknown; try { parsed=JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown; } catch { throw new HttpError(400,"INVALID_JSON"); } if (!parsed || typeof parsed!=="object" || Array.isArray(parsed)) throw new HttpError(400,"INVALID_BODY"); return parsed as Record<string,unknown>; }
+function exact(value: Record<string,unknown>, allowed: readonly string[]): void { const keys=new Set(allowed); for (const key of Object.keys(value)) if (!keys.has(key)) throw new HttpError(400,"INVALID_BODY"); }
+function write(response: ServerResponse,status:number,value:unknown):void { const raw=JSON.stringify(value); response.statusCode=status; response.setHeader("content-type","application/json; charset=utf-8"); response.setHeader("cache-control","no-store"); response.setHeader("content-length",Buffer.byteLength(raw)); response.end(raw); }
+function errorStatus(error:unknown):number { if (error instanceof HttpError) return error.status; if (error instanceof AdContextRuntimeControlError) return error.code==="CONFLICT"?409:error.code==="PERSISTENCE_FAILURE"||error.code==="INTEGRITY_FAILURE"?503:400; return 500; }
+function errorCode(error:unknown):string { if (error instanceof HttpError) return error.code; if (error instanceof AdContextRuntimeControlError) return error.code; return "INTERNAL_ERROR"; }
+
+export function createAdContextControlServer(options: AdContextControlServerOptions): AdContextControlServer {
+  const edgeToken=token(options.edgeToken,"edgeToken"); const controlToken=token(options.controlToken,"controlToken"); if (edgeToken.length===controlToken.length && timingSafeEqual(edgeToken,controlToken)) throw new Error("edgeToken and controlToken must be distinct");
+  const emit=(event:Readonly<Record<string,unknown>>)=>{ try { options.onOperationalEvent?.(event); } catch { /* telemetry is non-authoritative */ } };
+  const server=createServer(async(request,response)=>{ const started=Date.now(); try { const method=request.method??"GET"; const url=new URL(request.url??"/","http://cortex.invalid"); if (method==="GET" && url.pathname==="/healthz") { const current=options.controller.current(); write(response,200,{ok:true,mode:options.controller.effectiveMode(),revision:current.revision}); return; }
+    if (method==="GET" && url.pathname==="/v1/ad-context/runtime") { if (!authorized(request,edgeToken)) throw new HttpError(401,"UNAUTHORIZED"); const state=options.controller.current(); write(response,200,{policyId:options.controller.policyId,mode:options.controller.effectiveMode(),revision:state.revision,digest:state.digest}); return; }
+    if (method==="POST" && url.pathname==="/v1/ad-context/observe") { if (!authorized(request,edgeToken)) throw new HttpError(401,"UNAUTHORIZED"); const input=await body(request); exact(input,["policyId","mode","channel","reason","applied","observedAt"]); const required=["policyId","mode","channel","reason","observedAt"] as const; for (const field of required) if (typeof input[field]!=="string") throw new HttpError(400,"INVALID_BODY"); if (typeof input.applied!=="boolean") throw new HttpError(400,"INVALID_BODY"); const result=options.controller.observe(input as unknown as AdContextDecisionObservation); write(response,202,{accepted:true,day:result.day,revision:result.revision}); emit({operation:"OBSERVE",status:202,durationMs:Math.max(0,Date.now()-started)}); return; }
+    if (method==="GET" && url.pathname==="/v1/ad-context/control") { if (!authorized(request,controlToken)) throw new HttpError(401,"UNAUTHORIZED"); const state=options.controller.current(); write(response,200,{state,effectiveMode:options.controller.effectiveMode(),history:options.controller.history(64)}); return; }
+    if (method==="POST" && url.pathname==="/v1/ad-context/control") { if (!authorized(request,controlToken)) throw new HttpError(401,"UNAUTHORIZED"); const input=await body(request); exact(input,["expectedRevision","mode","reason","changedAt"]); if (typeof input.expectedRevision!=="number" || typeof input.mode!=="string" || typeof input.reason!=="string" || (input.changedAt!==undefined && typeof input.changedAt!=="string")) throw new HttpError(400,"INVALID_BODY"); const state=options.controller.set({ expectedRevision:input.expectedRevision,mode:input.mode as AdContextRuntimeMode,reason:input.reason,...(input.changedAt===undefined?{}:{changedAt:input.changedAt}) }); write(response,200,{state,effectiveMode:options.controller.effectiveMode()}); emit({operation:"CONTROL_WRITE",status:200,mode:state.mode,revision:state.revision,durationMs:Math.max(0,Date.now()-started)}); return; }
+    write(response,404,{error:"NOT_FOUND"});
+  } catch(error) { const status=errorStatus(error); if (!response.headersSent&&!response.writableEnded) write(response,status,{error:errorCode(error)}); emit({operation:"HTTP_ERROR",status,code:errorCode(error),durationMs:Math.max(0,Date.now()-started)}); } });
+  return Object.freeze({server,close:()=>new Promise<void>((resolve,reject)=>{ if(!server.listening){resolve();return;} server.close(error=>error?reject(error):resolve()); })});
+}
