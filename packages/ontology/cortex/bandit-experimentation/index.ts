@@ -231,12 +231,6 @@ interface DecisionRecord {
   readonly revision: number;
 }
 
-interface ArmRuntimeRow {
-  readonly arm: CortexBanditArmDefinition;
-  readonly state?: StateRecord;
-  readonly evidence: CortexBanditArmEvidence;
-}
-
 export class CortexBanditError extends Error {
   constructor(
     public readonly code:
@@ -269,8 +263,18 @@ function finiteNonNegative(value: number, field: string): number {
   return value;
 }
 
+function storedFiniteNonNegative(value: number, field: string): number {
+  if (!Number.isFinite(value) || value < 0) throw new CortexBanditError("INTEGRITY_FAILURE", `${field} must be finite and non-negative`);
+  return value;
+}
+
 function positiveInteger(value: number, field: string): number {
   if (!Number.isInteger(value) || value <= 0) throw new CortexBanditError("INVALID_INPUT", `${field} must be a positive integer`);
+  return value;
+}
+
+function storedPositiveInteger(value: number, field: string): number {
+  if (!Number.isInteger(value) || value <= 0) throw new CortexBanditError("INTEGRITY_FAILURE", `${field} must be a positive integer`);
   return value;
 }
 
@@ -283,6 +287,14 @@ function assertCanonicalUtc(value: string, field: string): string {
   const parsed = new Date(value);
   if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) {
     throw new CortexBanditError("INVALID_INPUT", `${field} must be canonical ISO-8601 UTC`);
+  }
+  return value;
+}
+
+function assertStoredCanonicalUtc(value: string, field: string): string {
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) {
+    throw new CortexBanditError("INTEGRITY_FAILURE", `${field} must be canonical ISO-8601 UTC`);
   }
   return value;
 }
@@ -598,14 +610,14 @@ function projectState(record: ObjectRecord): StateRecord {
     exposures: requireInteger(propertyNumber(record, STATE.exposures), "state exposures"),
     observations: requireInteger(propertyNumber(record, STATE.observations), "state observations"),
     conversions: requireInteger(propertyNumber(record, STATE.conversions), "state conversions"),
-    economicValueSum: finiteNonNegative(propertyNumber(record, STATE.economicValueSum), "state economicValueSum"),
-    rewardSum: finiteNonNegative(propertyNumber(record, STATE.rewardSum), "state rewardSum"),
-    rewardSquareSum: finiteNonNegative(propertyNumber(record, STATE.rewardSquareSum), "state rewardSquareSum"),
+    economicValueSum: storedFiniteNonNegative(propertyNumber(record, STATE.economicValueSum), "state economicValueSum"),
+    rewardSum: storedFiniteNonNegative(propertyNumber(record, STATE.rewardSum), "state rewardSum"),
+    rewardSquareSum: storedFiniteNonNegative(propertyNumber(record, STATE.rewardSquareSum), "state rewardSquareSum"),
     createdAt: propertyString(record, STATE.createdAt),
     updatedAt: propertyString(record, STATE.updatedAt),
   };
-  assertCanonicalUtc(core.createdAt, "state createdAt");
-  assertCanonicalUtc(core.updatedAt, "state updatedAt");
+  assertStoredCanonicalUtc(core.createdAt, "state createdAt");
+  assertStoredCanonicalUtc(core.updatedAt, "state updatedAt");
   if (core.observations > core.exposures || core.conversions > core.observations) throw new CortexBanditError("INTEGRITY_FAILURE", "bandit state count invariants are invalid");
   const observedDigest = propertyString(record, STATE.digest);
   const expectedDigest = stateDigest(core);
@@ -640,19 +652,22 @@ function projectDecision(record: ObjectRecord): DecisionRecord {
     status,
     evidence,
     rewardConfig,
-    maxRewardDelayMs: positiveInteger(propertyNumber(record, DECISION.maxRewardDelayMs), "decision maxRewardDelayMs"),
+    maxRewardDelayMs: storedPositiveInteger(propertyNumber(record, DECISION.maxRewardDelayMs), "decision maxRewardDelayMs"),
     converted: nullableBoolean(record, DECISION.converted),
     economicValue: nullableNumber(record, DECISION.economicValue),
     reward: nullableNumber(record, DECISION.reward),
     outcomeAt: nullableString(record, DECISION.outcomeAt),
   };
-  assertCanonicalUtc(core.issuedAt, "decision issuedAt");
-  if (core.outcomeAt !== null) assertCanonicalUtc(core.outcomeAt, "decision outcomeAt");
+  assertStoredCanonicalUtc(core.issuedAt, "decision issuedAt");
+  if (core.outcomeAt !== null) assertStoredCanonicalUtc(core.outcomeAt, "decision outcomeAt");
   if (status === "PENDING" && (core.converted !== null || core.economicValue !== null || core.reward !== null || core.outcomeAt !== null)) {
     throw new CortexBanditError("INTEGRITY_FAILURE", "pending decision contains outcome data");
   }
   if (status === "REWARDED" && (core.converted === null || core.economicValue === null || core.reward === null || core.outcomeAt === null)) {
     throw new CortexBanditError("INTEGRITY_FAILURE", "rewarded decision is missing outcome data");
+  }
+  if (status === "REWARDED" && (core.economicValue! < 0 || core.reward! < 0 || core.reward! > 1)) {
+    throw new CortexBanditError("INTEGRITY_FAILURE", "rewarded decision outcome values violate reward invariants");
   }
   const observedDigest = propertyString(record, DECISION.digest);
   const expectedDigest = decisionDigest(core);
@@ -741,6 +756,17 @@ function isConflict(error: unknown): boolean {
   return error instanceof OntologyTransactionError && error.code === "CONFLICT";
 }
 
+function assertEligibleTrafficEnvelope(arms: readonly CortexBanditArmDefinition[]): void {
+  const sumMin = arms.reduce((sum, arm) => sum + arm.minTrafficShare, 0);
+  const sumMax = arms.reduce((sum, arm) => sum + arm.maxTrafficShare, 0);
+  if (sumMin > 1 + EPSILON) {
+    throw new CortexBanditError("POLICY_VIOLATION", "eligible-arm minimum traffic shares exceed 100 percent");
+  }
+  if (sumMax < 1 - EPSILON) {
+    throw new CortexBanditError("POLICY_VIOLATION", "eligible-arm maximum traffic shares cannot cover 100 percent of assignments");
+  }
+}
+
 export class ServerSideContextualBanditEngine {
   readonly experimentId: string;
   readonly policy: CortexBanditPolicy;
@@ -766,11 +792,12 @@ export class ServerSideContextualBanditEngine {
       this.arms.set(arm.armId, arm);
     }
     if (!this.arms.has(policy.defaultArmId)) throw new CortexBanditError("INVALID_INPUT", "defaultArmId must reference a registered arm");
-    const sumMin = [...this.arms.values()].reduce((sum, arm) => sum + arm.minTrafficShare, 0);
-    const sumMax = [...this.arms.values()].reduce((sum, arm) => sum + arm.maxTrafficShare, 0);
+    const allArms = [...this.arms.values()];
+    const sumMin = allArms.reduce((sum, arm) => sum + arm.minTrafficShare, 0);
+    const sumMax = allArms.reduce((sum, arm) => sum + arm.maxTrafficShare, 0);
     if (sumMin > 1 + EPSILON) throw new CortexBanditError("INVALID_INPUT", "sum of minTrafficShare cannot exceed 1");
     if (sumMax < 1 - EPSILON) throw new CortexBanditError("INVALID_INPUT", "sum of maxTrafficShare must be at least 1");
-    const armConfig = [...this.arms.values()]
+    const armConfig = allArms
       .sort((a, b) => a.armId.localeCompare(b.armId))
       .map((arm) => ({ armId: arm.armId, payload: arm.payload, minTrafficShare: arm.minTrafficShare, maxTrafficShare: arm.maxTrafficShare }));
     this.configurationDigest = digest("cortex-bandit-configuration-v1", {
@@ -947,6 +974,7 @@ export class ServerSideContextualBanditEngine {
     });
     const eligibilityDigest = digest("cortex-bandit-eligibility-v1", eligibleIds);
     const mode = effectiveMode(this.policy.mode, request.mode);
+    if (mode === "ACTIVE") assertEligibleTrafficEnvelope(eligibleArms);
     const id = this.decisionId(requestId);
 
     for (let attempt = 0; attempt <= this.policy.maxWriteRetries; attempt += 1) {
