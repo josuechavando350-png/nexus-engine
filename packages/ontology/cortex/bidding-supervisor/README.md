@@ -53,13 +53,15 @@ Shared budgets are not changed unless `allowSharedBudgets` is explicitly enabled
 - Only one control is selected per periodic run. When multiple controls are compatible, successive runs rotate away from the last applied control after cooldown.
 - Campaign controls use campaign profitability. Portfolio controls use separately requested aggregate bidding-strategy profitability and aggregate Google strategy metrics.
 - `OBSERVE_ONLY` records the proposed action but performs no mutate.
-- `KILLED` performs no Google/business reads for a new run. It also refuses to resume a previously prepared remote write; the unresolved run remains frozen until ACTIVE reconciliation.
+- `KILLED` performs no Google/business reads for a new run. It also refuses to resume a previously prepared forward write.
 
 ## Rollback
 
 After a certified application, state retains the exact expected and desired absolute values. `rollbackLastMutation()` reverses that action. A rollback is a safety operation and is **not delayed by the normal forward-change cooldown**. Google Ads preflight permits rollback only if the remote control still equals the value Cortex previously applied. Third-party drift therefore fails closed instead of being overwritten.
 
-Rollback finalization, release of the in-flight lock, clearing of rollback eligibility and audit timestamps are one local ontology transaction. An ambiguous rollback remains `PREPARED` for the same preflight recovery semantics as a forward mutation.
+Rollback never acts as a forward-reconciliation shortcut. If the requested rollback `runId` references a forward run, or if the campaign lock is owned by a forward `PREPARED` run, `rollbackLastMutation()` fails with `POLICY_VIOLATION` without another remote mutation attempt. Only a `PREPARED` run whose persisted reason is `ROLLBACK_APPLIED` may be resumed through the rollback path. This lets an ambiguous rollback recover after restart while an ambiguous forward write remains frozen until explicit forward reconciliation.
+
+Rollback finalization, release of the in-flight lock, clearing of rollback eligibility and audit timestamps are one local ontology transaction. An ambiguous rollback remains `PREPARED` for the same remote-value preflight recovery semantics as a forward mutation.
 
 ## Production daemon
 
@@ -67,17 +69,19 @@ Rollback finalization, release of the in-flight lock, clearing of rollback eligi
 
 Startup fails closed unless `NEXUS_CORTEX_STATE_DB` is an absolute non-memory path and `NEXUS_CORTEX_PERSISTENCE_ACK=durable-volume` explicitly confirms a persistent mount. It also requires an absolute `NEXUS_CORTEX_BIDDING_CONFIG`, `NEXUS_CORTEX_API_TOKEN`, Google Ads OAuth/developer-token secrets, and an HTTPS `NEXUS_PROFITABILITY_ENDPOINT` with its bearer token. No production customer or campaign identifier is compiled into the daemon; configured campaigns come from the versioned runtime config file.
 
-The first-party profitability adapter sends the exact `BusinessProfitabilityQuery` over HTTPS with bearer authentication, enforces timeout and a 32 KiB response limit, accepts only JSON, and rejects unknown response fields. The supervisor independently revalidates customer, scope, reporting window, source identifier, canonical timestamp and freshness before any action can be selected.
+The first-party profitability adapter sends the exact `BusinessProfitabilityQuery` over HTTPS with bearer authentication, rejects redirects, enforces timeout and a 32 KiB streaming response limit, accepts only JSON, and rejects unknown response fields. The supervisor independently revalidates customer, scope, reporting window, source identifier, canonical timestamp and freshness before any action can be selected.
 
-The daemon schedules one governed cycle every configured `intervalMs` (bounded to five minutes through one day). Run IDs are deterministic for a campaign and interval bucket, so duplicate triggers in the same bucket converge on the supervisor's existing idempotency. The runtime also coalesces overlapping in-process cycles; a second manual or scheduled trigger cannot create a second remote write while the first cycle is active.
+The daemon schedules one governed cycle every configured `intervalMs` (bounded to five minutes through one day). Run IDs are deterministic for a campaign and interval bucket, so duplicate triggers in the same bucket converge on the supervisor's existing idempotency. The runtime coalesces overlapping in-process cycles and continues to the next configured campaign when one campaign fails; the overall cycle is still reported as failed when any campaign failed.
 
-Runtime `ACTIVE / OBSERVE_ONLY / KILLED` state is persisted through `BiddingRuntimeController`, bound to the policy digest, changed with expected-revision CAS, and accompanied by an integrity-digested audit event. Therefore a kill or observation mode survives process restart. Automated cycles always read this durable mode before supervision; callers cannot reactivate bidding by attaching a mode to a run request.
+Runtime `ACTIVE / OBSERVE_ONLY / KILLED` state is persisted through `BiddingRuntimeController` under one stable NEXUS-scope control identity, independent of policy digest. Each change requires expected-revision CAS and appends an integrity-digested audit event that records the policy digest active at the transition. On policy rotation, the effective mode is always the more restrictive of the persisted operator state and the newly configured policy mode, so a stored kill cannot disappear because a policy digest changed.
 
-Authenticated operational endpoints provide control inspection/change, a manual cycle, and an explicit campaign rollback. Rollback is intentionally a separate operator safety action and calls the supervisor's certified `rollbackLastMutation()` path; it does not silently reactivate the periodic scheduler. All operational responses are `no-store`, and runtime telemetry contains only bounded operation/status identifiers, customer/campaign IDs, reason/mode, duration and error code—not OAuth tokens, profitability records or request bodies.
+The scheduler rereads `effectiveMode()` before each campaign. More importantly, the production Google Ads gateway rereads it again immediately before `applyMutation()`. A kill that arrives after planning or during Google preflight therefore blocks the forward remote write at the last local boundary. The only bypass is an internal rollback capability held while the authenticated rollback endpoint owns an exclusive safety-operation lock; that capability is never accepted from a request.
+
+Authenticated operational endpoints provide control inspection/change, a manual cycle, and an explicit campaign rollback. Rollback may execute while the durable control remains `KILLED`, but the core rollback guard permits only a certified reversal or recovery of an already-prepared reversal. A periodic/manual cycle cannot start while the rollback safety lock is held. All operational responses are `no-store`, and runtime telemetry contains only bounded operation/status identifiers, customer/campaign IDs, reason/mode, duration and error code—not OAuth tokens, profitability records or request bodies.
 
 The live path is:
 
-`periodic/manual trigger -> durable runtime control -> PeriodicGoogleAdsBiddingSupervisor -> Google Ads REST + authenticated first-party profitability -> OntologyTransactionPort -> durable SQLite volume`
+`periodic/manual trigger -> durable runtime control -> PeriodicGoogleAdsBiddingSupervisor -> last-moment mutation guard -> Google Ads REST + authenticated first-party profitability -> OntologyTransactionPort -> durable SQLite volume`
 
 ## Audit evidence
 
