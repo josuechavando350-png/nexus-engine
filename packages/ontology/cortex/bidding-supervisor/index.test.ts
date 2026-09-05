@@ -316,7 +316,7 @@ describe("PeriodicGoogleAdsBiddingSupervisor", () => {
   });
 
   it("keeps the in-flight campaign lock across policy-version rotation", async () => {
-    let now = Date.parse("2026-09-04T18:00:00.000Z");
+    const now = Date.parse("2026-09-04T18:00:00.000Z");
     const store = new InMemoryOntologyTransactionStore();
     const gateway = new TestGateway();
     const business = new TestBusinessProvider(() => now);
@@ -335,7 +335,6 @@ describe("PeriodicGoogleAdsBiddingSupervisor", () => {
     expect(recovered.reason).toBe("ACTION_RECOVERED");
     expect(gateway.campaignReads).toBe(readsBeforeRotation);
     expect(gateway.mutations).toHaveLength(2);
-    now += 1;
   });
 
   it("releases the lock after a known remote conflict", async () => {
