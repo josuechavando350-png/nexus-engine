@@ -121,12 +121,20 @@ export class GtmServerTransportError extends Error {
   }
 }
 
+function containsControlCharacter(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const codeUnit = value.charCodeAt(index);
+    if (codeUnit <= 0x1f || codeUnit === 0x7f) return true;
+  }
+  return false;
+}
+
 function clean(label: string, value: string, maxLength: number): string {
   if (typeof value !== "string") throw new TypeError(`${label} must be a string`);
   const normalized = value.trim();
   if (!normalized) throw new Error(`${label} must not be empty`);
   if (normalized.length > maxLength) throw new Error(`${label} exceeds ${maxLength} characters`);
-  if (/[\u0000-\u001f\u007f]/u.test(normalized)) throw new Error(`${label} contains control characters`);
+  if (containsControlCharacter(normalized)) throw new Error(`${label} contains control characters`);
   return normalized;
 }
 
