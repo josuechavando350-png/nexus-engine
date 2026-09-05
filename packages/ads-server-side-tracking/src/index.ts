@@ -187,7 +187,21 @@ function normalizeActivationPath(value: string): string {
   if (!path.startsWith("/")) throw new Error("activationPath must start with /");
   if (path.includes("?") || path.includes("#")) throw new Error("activationPath must not contain a query string or fragment");
   if (path.startsWith("//")) throw new Error("activationPath must be origin-relative");
+  let decodedPath: string;
+  try {
+    decodedPath = decodeURIComponent(path);
+  } catch {
+    throw new Error("activationPath contains invalid percent encoding");
+  }
+  if (decodedPath.split("/").some((segment) => segment === "." || segment === "..")) {
+    throw new Error("activationPath must not contain dot segments");
+  }
   return path;
+}
+
+function buildServerEndpoint(serverUrl: URL, activationPath: string): string {
+  const basePath = serverUrl.pathname === "/" ? "" : serverUrl.pathname.replace(/\/+$/u, "");
+  return new URL(`${basePath}${activationPath}`, serverUrl.origin).toString();
 }
 
 function normalizeClickId(label: string, value: string | null): string | undefined {
@@ -462,7 +476,7 @@ export function createGtmServerTransport(config: GtmServerTransportConfig): GtmS
   const fetchImplementation = config.fetchImplementation ?? globalThis.fetch;
   if (typeof fetchImplementation !== "function") throw new Error("a fetch implementation is required");
 
-  const endpoint = new URL(activationPath, serverUrl.origin).toString();
+  const endpoint = buildServerEndpoint(serverUrl, activationPath);
 
   return Object.freeze({
     serverContainerUrl: serverUrl.toString().replace(/\/$/u, ""),
