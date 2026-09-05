@@ -29,7 +29,8 @@ if (process.env.NEXUS_CORTEX_PERSISTENCE_ACK !== "durable-volume") {
 }
 const configPath = required("NEXUS_CORTEX_BANDIT_CONFIG");
 if (!isAbsolute(configPath)) throw new Error("NEXUS_CORTEX_BANDIT_CONFIG must be an absolute path");
-const apiToken = required("NEXUS_CORTEX_API_TOKEN");
+const dataPlaneToken = required("NEXUS_CORTEX_DATA_TOKEN");
+const controlPlaneToken = required("NEXUS_CORTEX_CONTROL_TOKEN");
 const host = process.env.NEXUS_CORTEX_HOST?.trim() || "0.0.0.0";
 const port = boundedPort(process.env.PORT);
 const config = loadCortexBanditProductionConfig(configPath);
@@ -41,7 +42,8 @@ const store = new SqliteOntologyTransactionStore(stateDbPath, {
 const runtime = createCortexBanditHttpRuntime({
   transactions: store,
   config,
-  apiToken,
+  dataPlaneToken,
+  controlPlaneToken,
   onTelemetry: (event) => process.stdout.write(`${JSON.stringify({ component: "cortex-bandit-control-plane", ...event })}\n`),
   onTelemetryError: (error) => process.stderr.write(`${JSON.stringify({ component: "cortex-bandit-control-plane", level: "error", code: "TELEMETRY_SINK_FAILURE", message: error instanceof Error ? error.message : "unknown" })}\n`),
 });
