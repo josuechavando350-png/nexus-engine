@@ -20,12 +20,12 @@ import {
   type GoogleAdsControlMutation,
   type GoogleAdsMutationReceipt,
   type GoogleAdsPortfolioSnapshot,
-  type GoogleAdsRestClient,
 } from "./google-ads-rest";
 
 const STATE_TYPE = "cortex.bidding_supervisor_state";
 const RUN_TYPE = "cortex.bidding_supervisor_run";
 const IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,127})$/;
+const DAY_MS = 86_400_000;
 
 const STATE = Object.freeze({
   customerId: "cortex.bidding.state.customer_id",
@@ -67,6 +67,12 @@ export type BiddingSupervisorReason =
   | "REMOTE_CONFLICT"
   | "API_FAILURE"
   | "ROLLBACK_APPLIED";
+
+const RUN_REASONS: readonly BiddingSupervisorReason[] = [
+  "KILL_SWITCH", "COOLDOWN", "CAMPAIGN_NOT_ENABLED", "INSUFFICIENT_EVIDENCE", "STALE_BUSINESS_DATA",
+  "PROFITABILITY_HOLD", "NO_COMPATIBLE_CONTROL", "SHARED_BUDGET_BLOCKED", "OBSERVE_ONLY",
+  "ACTION_APPLIED", "ACTION_RECOVERED", "REMOTE_CONFLICT", "API_FAILURE", "ROLLBACK_APPLIED",
+];
 
 export interface CreateBiddingSupervisorPolicyInput {
   readonly policyId: string;
@@ -122,6 +128,12 @@ export interface BusinessProfitabilityProvider {
   getProfitability(query: BusinessProfitabilityQuery): Promise<BusinessProfitabilitySnapshot>;
 }
 
+export interface GoogleAdsBiddingGateway {
+  getCampaignSnapshot(customerId: string, campaignId: string, startMs: number, endMs: number): Promise<GoogleAdsCampaignSnapshot>;
+  getPortfolioSnapshot(customerId: string, resourceName: string, startMs: number, endMs: number): Promise<GoogleAdsPortfolioSnapshot>;
+  applyMutation(customerId: string, action: GoogleAdsControlMutation): Promise<GoogleAdsMutationReceipt>;
+}
+
 export interface BiddingSupervisorRunInput {
   readonly runId: string;
   readonly customerId: string;
@@ -164,7 +176,7 @@ export interface BiddingSupervisorResult {
   readonly digest: string;
 }
 
-interface SupervisorStatePayload {
+interface StatePayload {
   readonly lastRunAt: string | null;
   readonly lastMutationAt: string | null;
   readonly lastActionKind: BiddingSupervisorActionKind | null;
@@ -173,7 +185,7 @@ interface SupervisorStatePayload {
   readonly lastRollbackAt: string | null;
 }
 
-interface SupervisorStateRecord extends SupervisorStatePayload {
+interface StateRecord extends StatePayload {
   readonly id: string;
   readonly customerId: string;
   readonly campaignId: string;
@@ -183,7 +195,7 @@ interface SupervisorStateRecord extends SupervisorStatePayload {
   readonly revision: number;
 }
 
-interface SupervisorRunPayload {
+interface RunPayload {
   readonly mode: BiddingSupervisorMode;
   readonly direction: BiddingSupervisorDirection;
   readonly reason: BiddingSupervisorReason;
@@ -198,7 +210,7 @@ interface SupervisorRunPayload {
   readonly errorCode: string | null;
 }
 
-interface SupervisorRunRecord extends SupervisorRunPayload {
+interface RunRecord extends RunPayload {
   readonly id: string;
   readonly runId: string;
   readonly customerId: string;
@@ -214,6 +226,7 @@ interface SupervisorRunRecord extends SupervisorRunPayload {
 interface PlannedAction {
   readonly action: GoogleAdsControlMutation;
   readonly evidence: BiddingSupervisorEvidence;
+  readonly business: BusinessProfitabilitySnapshot;
   readonly direction: Exclude<BiddingSupervisorDirection, "HOLD">;
 }
 
@@ -245,12 +258,12 @@ function normalizeNumericId(value: string, field: string): string {
   return normalized;
 }
 
-function positiveInteger(value: number, field: string): number {
+function positiveSafeInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value <= 0) throw new BiddingSupervisorError("INVALID_INPUT", `${field} must be a positive safe integer`);
   return value;
 }
 
-function nonNegativeInteger(value: number, field: string): number {
+function nonNegativeSafeInteger(value: number, field: string): number {
   if (!Number.isSafeInteger(value) || value < 0) throw new BiddingSupervisorError("INVALID_INPUT", `${field} must be a non-negative safe integer`);
   return value;
 }
@@ -279,18 +292,18 @@ function isJsonValue(value: unknown): value is JsonValue {
   return Object.values(value as Record<string, unknown>).every(isJsonValue);
 }
 
-function asJson(value: unknown, field: string): JsonValue {
+function json(value: unknown, field: string): JsonValue {
   if (!isJsonValue(value)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", `${field} must be finite JSON`);
   return value;
 }
 
-function asObject(value: JsonValue, field: string): Record<string, JsonValue> {
+function object(value: JsonValue, field: string): Record<string, JsonValue> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", `${field} must be an object`);
   return value as Record<string, JsonValue>;
 }
 
-function property(id: string, name: string, kind: "STRING" | "JSON" | "DATETIME", cardinality: "REQUIRED" | "OPTIONAL", immutable = false) {
-  return { id, name, valueKind: kind, cardinality, unique: false, immutable } as const;
+function property(id: string, name: string, valueKind: "STRING" | "JSON" | "DATETIME", immutable = false) {
+  return { id, name, valueKind, cardinality: "REQUIRED", unique: false, immutable } as const;
 }
 
 function supervisorSchema(scope: OntologyScope): ValidatedSchema {
@@ -298,21 +311,21 @@ function supervisorSchema(scope: OntologyScope): ValidatedSchema {
     version: "cortex-bidding-supervisor-v1",
     scope,
     properties: [
-      property(STATE.customerId, "BiddingStateCustomerId", "STRING", "REQUIRED", true),
-      property(STATE.campaignId, "BiddingStateCampaignId", "STRING", "REQUIRED", true),
-      property(STATE.policyDigest, "BiddingStatePolicyDigest", "STRING", "REQUIRED", true),
-      property(STATE.payload, "BiddingStatePayload", "JSON", "REQUIRED"),
-      property(STATE.digest, "BiddingStateDigest", "STRING", "REQUIRED"),
-      property(STATE.updatedAt, "BiddingStateUpdatedAt", "DATETIME", "REQUIRED"),
-      property(RUN.runId, "BiddingRunId", "STRING", "REQUIRED", true),
-      property(RUN.customerId, "BiddingRunCustomerId", "STRING", "REQUIRED", true),
-      property(RUN.campaignId, "BiddingRunCampaignId", "STRING", "REQUIRED", true),
-      property(RUN.policyDigest, "BiddingRunPolicyDigest", "STRING", "REQUIRED", true),
-      property(RUN.status, "BiddingRunStatus", "STRING", "REQUIRED"),
-      property(RUN.payload, "BiddingRunPayload", "JSON", "REQUIRED"),
-      property(RUN.digest, "BiddingRunDigest", "STRING", "REQUIRED"),
-      property(RUN.createdAt, "BiddingRunCreatedAt", "DATETIME", "REQUIRED", true),
-      property(RUN.updatedAt, "BiddingRunUpdatedAt", "DATETIME", "REQUIRED"),
+      property(STATE.customerId, "BiddingStateCustomerId", "STRING", true),
+      property(STATE.campaignId, "BiddingStateCampaignId", "STRING", true),
+      property(STATE.policyDigest, "BiddingStatePolicyDigest", "STRING", true),
+      property(STATE.payload, "BiddingStatePayload", "JSON"),
+      property(STATE.digest, "BiddingStateDigest", "STRING"),
+      property(STATE.updatedAt, "BiddingStateUpdatedAt", "DATETIME"),
+      property(RUN.runId, "BiddingRunId", "STRING", true),
+      property(RUN.customerId, "BiddingRunCustomerId", "STRING", true),
+      property(RUN.campaignId, "BiddingRunCampaignId", "STRING", true),
+      property(RUN.policyDigest, "BiddingRunPolicyDigest", "STRING", true),
+      property(RUN.status, "BiddingRunStatus", "STRING"),
+      property(RUN.payload, "BiddingRunPayload", "JSON"),
+      property(RUN.digest, "BiddingRunDigest", "STRING"),
+      property(RUN.createdAt, "BiddingRunCreatedAt", "DATETIME", true),
+      property(RUN.updatedAt, "BiddingRunUpdatedAt", "DATETIME"),
     ],
     interfaces: [],
     objects: [
@@ -330,13 +343,13 @@ function supervisorSchema(scope: OntologyScope): ValidatedSchema {
 export function createBiddingSupervisorPolicy(input: CreateBiddingSupervisorPolicyInput): BiddingSupervisorPolicy {
   const policyId = normalizeIdentifier(input.policyId, "policyId");
   const version = normalizeIdentifier(input.version, "version");
-  const observationWindowDays = positiveInteger(input.observationWindowDays, "observationWindowDays");
+  const observationWindowDays = positiveSafeInteger(input.observationWindowDays, "observationWindowDays");
   if (observationWindowDays > 90) throw new BiddingSupervisorError("INVALID_INPUT", "observationWindowDays must be at most 90");
-  const reportingLagDays = positiveInteger(input.reportingLagDays, "reportingLagDays");
+  const reportingLagDays = positiveSafeInteger(input.reportingLagDays, "reportingLagDays");
   if (reportingLagDays > 14) throw new BiddingSupervisorError("INVALID_INPUT", "reportingLagDays must be at most 14");
-  const cooldownMs = positiveInteger(input.cooldownMs, "cooldownMs");
-  const maxBusinessDataAgeMs = positiveInteger(input.maxBusinessDataAgeMs, "maxBusinessDataAgeMs");
-  const minimumCostMicros = nonNegativeInteger(input.minimumCostMicros, "minimumCostMicros");
+  const cooldownMs = positiveSafeInteger(input.cooldownMs, "cooldownMs");
+  const maxBusinessDataAgeMs = positiveSafeInteger(input.maxBusinessDataAgeMs, "maxBusinessDataAgeMs");
+  const minimumCostMicros = nonNegativeSafeInteger(input.minimumCostMicros, "minimumCostMicros");
   if (!Number.isFinite(input.minimumGoogleConversions) || input.minimumGoogleConversions < 0) throw new BiddingSupervisorError("INVALID_INPUT", "minimumGoogleConversions must be non-negative");
   const increaseVolumeProfitToSpendRatio = positiveFinite(input.increaseVolumeProfitToSpendRatio, "increaseVolumeProfitToSpendRatio");
   const decreaseRiskProfitToSpendRatio = positiveFinite(input.decreaseRiskProfitToSpendRatio, "decreaseRiskProfitToSpendRatio");
@@ -344,48 +357,31 @@ export function createBiddingSupervisorPolicy(input: CreateBiddingSupervisorPoli
   const budgetStepFraction = stepFraction(input.budgetStepFraction, "budgetStepFraction");
   const targetStepFraction = stepFraction(input.targetStepFraction, "targetStepFraction");
   const bidBoundStepFraction = stepFraction(input.bidBoundStepFraction, "bidBoundStepFraction");
-  const minBudgetMicros = positiveInteger(input.minBudgetMicros, "minBudgetMicros");
-  const maxBudgetMicros = positiveInteger(input.maxBudgetMicros, "maxBudgetMicros");
+  const minBudgetMicros = positiveSafeInteger(input.minBudgetMicros, "minBudgetMicros");
+  const maxBudgetMicros = positiveSafeInteger(input.maxBudgetMicros, "maxBudgetMicros");
   if (minBudgetMicros >= maxBudgetMicros) throw new BiddingSupervisorError("INVALID_INPUT", "budget bounds are invalid");
-  const minTargetCpaMicros = positiveInteger(input.minTargetCpaMicros, "minTargetCpaMicros");
-  const maxTargetCpaMicros = positiveInteger(input.maxTargetCpaMicros, "maxTargetCpaMicros");
+  const minTargetCpaMicros = positiveSafeInteger(input.minTargetCpaMicros, "minTargetCpaMicros");
+  const maxTargetCpaMicros = positiveSafeInteger(input.maxTargetCpaMicros, "maxTargetCpaMicros");
   if (minTargetCpaMicros >= maxTargetCpaMicros) throw new BiddingSupervisorError("INVALID_INPUT", "target CPA bounds are invalid");
   const minTargetRoas = positiveFinite(input.minTargetRoas, "minTargetRoas");
   const maxTargetRoas = positiveFinite(input.maxTargetRoas, "maxTargetRoas");
   if (minTargetRoas < 0.01 || maxTargetRoas > 1000 || minTargetRoas >= maxTargetRoas) throw new BiddingSupervisorError("INVALID_INPUT", "target ROAS bounds must fit Google Ads range 0.01..1000");
-  const minPortfolioCpcCeilingMicros = positiveInteger(input.minPortfolioCpcCeilingMicros, "minPortfolioCpcCeilingMicros");
-  const maxPortfolioCpcCeilingMicros = positiveInteger(input.maxPortfolioCpcCeilingMicros, "maxPortfolioCpcCeilingMicros");
+  const minPortfolioCpcCeilingMicros = positiveSafeInteger(input.minPortfolioCpcCeilingMicros, "minPortfolioCpcCeilingMicros");
+  const maxPortfolioCpcCeilingMicros = positiveSafeInteger(input.maxPortfolioCpcCeilingMicros, "maxPortfolioCpcCeilingMicros");
   if (minPortfolioCpcCeilingMicros >= maxPortfolioCpcCeilingMicros) throw new BiddingSupervisorError("INVALID_INPUT", "portfolio CPC ceiling bounds are invalid");
   const mode = input.mode ?? "ACTIVE";
   if (!(["ACTIVE", "OBSERVE_ONLY", "KILLED"] as const).includes(mode)) throw new BiddingSupervisorError("INVALID_INPUT", "mode is invalid");
   const maxWriteRetries = input.maxWriteRetries ?? 3;
   if (!Number.isInteger(maxWriteRetries) || maxWriteRetries < 0 || maxWriteRetries > 10) throw new BiddingSupervisorError("INVALID_INPUT", "maxWriteRetries must be 0..10");
   const core = {
-    policyId,
-    version,
-    observationWindowDays,
-    reportingLagDays,
-    cooldownMs,
-    maxBusinessDataAgeMs,
-    minimumCostMicros,
-    minimumGoogleConversions: input.minimumGoogleConversions,
-    increaseVolumeProfitToSpendRatio,
-    decreaseRiskProfitToSpendRatio,
-    budgetStepFraction,
-    targetStepFraction,
-    bidBoundStepFraction,
-    minBudgetMicros,
-    maxBudgetMicros,
-    minTargetCpaMicros,
-    maxTargetCpaMicros,
-    minTargetRoas,
-    maxTargetRoas,
-    minPortfolioCpcCeilingMicros,
-    maxPortfolioCpcCeilingMicros,
-    allowSharedBudgets: input.allowSharedBudgets,
-    managePortfolioBidBounds: input.managePortfolioBidBounds,
-    mode,
-    maxWriteRetries,
+    policyId, version, observationWindowDays, reportingLagDays, cooldownMs, maxBusinessDataAgeMs,
+    minimumCostMicros, minimumGoogleConversions: input.minimumGoogleConversions,
+    increaseVolumeProfitToSpendRatio, decreaseRiskProfitToSpendRatio,
+    budgetStepFraction, targetStepFraction, bidBoundStepFraction,
+    minBudgetMicros, maxBudgetMicros, minTargetCpaMicros, maxTargetCpaMicros,
+    minTargetRoas, maxTargetRoas, minPortfolioCpcCeilingMicros, maxPortfolioCpcCeilingMicros,
+    allowSharedBudgets: input.allowSharedBudgets, managePortfolioBidBounds: input.managePortfolioBidBounds,
+    mode, maxWriteRetries,
   };
   return Object.freeze({ ...core, digest: digest("cortex-bidding-policy-v1", core) });
 }
@@ -398,43 +394,42 @@ function effectiveMode(policyMode: BiddingSupervisorMode, requestedMode: Bidding
 }
 
 function reportWindow(nowMs: number, policy: BiddingSupervisorPolicy) {
-  const dayMs = 86_400_000;
   const current = new Date(nowMs);
   if (!Number.isFinite(current.getTime())) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "engine clock is invalid");
   const today = Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), current.getUTCDate());
-  const endMs = today - policy.reportingLagDays * dayMs;
-  const startMs = endMs - (policy.observationWindowDays - 1) * dayMs;
-  const format = (ms: number) => new Date(ms).toISOString().slice(0, 10);
-  return Object.freeze({ startMs, endMs, start: format(startMs), end: format(endMs) });
+  const endMs = today - policy.reportingLagDays * DAY_MS;
+  const startMs = endMs - (policy.observationWindowDays - 1) * DAY_MS;
+  const date = (ms: number) => new Date(ms).toISOString().slice(0, 10);
+  return Object.freeze({ startMs, endMs, start: date(startMs), end: date(endMs) });
 }
 
-function stateDigest(customerId: string, campaignId: string, policyDigest: string, payload: SupervisorStatePayload, updatedAt: string): string {
+function stateDigest(customerId: string, campaignId: string, policyDigest: string, payload: StatePayload, updatedAt: string): string {
   return digest("cortex-bidding-state-v1", { customerId, campaignId, policyDigest, payload, updatedAt });
 }
 
-function runDigest(runId: string, customerId: string, campaignId: string, policyDigest: string, status: BiddingSupervisorRunStatus, payload: SupervisorRunPayload, createdAt: string, updatedAt: string): string {
+function runDigest(runId: string, customerId: string, campaignId: string, policyDigest: string, status: BiddingSupervisorRunStatus, payload: RunPayload, createdAt: string, updatedAt: string): string {
   return digest("cortex-bidding-run-v1", { runId, customerId, campaignId, policyDigest, status, payload, createdAt, updatedAt });
 }
 
-function stateProperties(customerId: string, campaignId: string, policyDigest: string, payload: SupervisorStatePayload, updatedAt: string): Readonly<Record<string, JsonValue>> {
+function stateProperties(customerId: string, campaignId: string, policyDigest: string, payload: StatePayload, updatedAt: string): Readonly<Record<string, JsonValue>> {
   return Object.freeze({
     [STATE.customerId]: customerId,
     [STATE.campaignId]: campaignId,
     [STATE.policyDigest]: policyDigest,
-    [STATE.payload]: asJson(payload, "state payload"),
+    [STATE.payload]: json(payload, "state payload"),
     [STATE.digest]: stateDigest(customerId, campaignId, policyDigest, payload, updatedAt),
     [STATE.updatedAt]: updatedAt,
   });
 }
 
-function runProperties(runId: string, customerId: string, campaignId: string, policyDigest: string, status: BiddingSupervisorRunStatus, payload: SupervisorRunPayload, createdAt: string, updatedAt: string): Readonly<Record<string, JsonValue>> {
+function runProperties(runId: string, customerId: string, campaignId: string, policyDigest: string, status: BiddingSupervisorRunStatus, payload: RunPayload, createdAt: string, updatedAt: string): Readonly<Record<string, JsonValue>> {
   return Object.freeze({
     [RUN.runId]: runId,
     [RUN.customerId]: customerId,
     [RUN.campaignId]: campaignId,
     [RUN.policyDigest]: policyDigest,
     [RUN.status]: status,
-    [RUN.payload]: asJson(payload, "run payload"),
+    [RUN.payload]: json(payload, "run payload"),
     [RUN.digest]: runDigest(runId, customerId, campaignId, policyDigest, status, payload, createdAt, updatedAt),
     [RUN.createdAt]: createdAt,
     [RUN.updatedAt]: updatedAt,
@@ -455,45 +450,37 @@ function nullableString(value: JsonValue | undefined, field: string): string | n
 
 function parseAction(value: JsonValue | undefined): GoogleAdsControlMutation | null {
   if (value === null || value === undefined) return null;
-  const raw = asObject(value, "action");
+  const raw = object(value, "action");
   if (typeof raw.kind !== "string" || typeof raw.resourceName !== "string") throw new BiddingSupervisorError("INTEGRITY_FAILURE", "action identity is invalid");
-  const num = (key: string) => {
+  const number = (key: string) => {
     const item = raw[key];
     if (typeof item !== "number" || !Number.isFinite(item)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", `action ${key} is invalid`);
     return item;
   };
-  const nullableNum = (key: string): number | null => raw[key] === null || raw[key] === undefined ? null : num(key);
+  const nullableNumber = (key: string): number | null => raw[key] === null || raw[key] === undefined ? null : number(key);
   const kind = raw.kind;
   const resourceName = raw.resourceName;
-  if (kind === "CAMPAIGN_BUDGET") return { kind, resourceName, expectedAmountMicros: num("expectedAmountMicros"), nextAmountMicros: num("nextAmountMicros") };
-  if (kind === "STANDARD_TARGET_CPA") return { kind, resourceName, expectedTargetCpaMicros: num("expectedTargetCpaMicros"), nextTargetCpaMicros: num("nextTargetCpaMicros") };
-  if (kind === "STANDARD_TARGET_ROAS") return { kind, resourceName, expectedTargetRoas: num("expectedTargetRoas"), nextTargetRoas: num("nextTargetRoas") };
+  if (kind === "CAMPAIGN_BUDGET") return { kind, resourceName, expectedAmountMicros: number("expectedAmountMicros"), nextAmountMicros: number("nextAmountMicros") };
+  if (kind === "STANDARD_TARGET_CPA") return { kind, resourceName, expectedTargetCpaMicros: number("expectedTargetCpaMicros"), nextTargetCpaMicros: number("nextTargetCpaMicros") };
+  if (kind === "STANDARD_TARGET_ROAS") return { kind, resourceName, expectedTargetRoas: number("expectedTargetRoas"), nextTargetRoas: number("nextTargetRoas") };
   if (kind === "PORTFOLIO_TARGET_CPA") {
     if (raw.strategyType !== "TARGET_CPA" && raw.strategyType !== "MAXIMIZE_CONVERSIONS") throw new BiddingSupervisorError("INTEGRITY_FAILURE", "portfolio CPA strategy type is invalid");
-    return { kind, resourceName, strategyType: raw.strategyType, expectedTargetCpaMicros: num("expectedTargetCpaMicros"), nextTargetCpaMicros: num("nextTargetCpaMicros") };
+    return { kind, resourceName, strategyType: raw.strategyType, expectedTargetCpaMicros: number("expectedTargetCpaMicros"), nextTargetCpaMicros: number("nextTargetCpaMicros") };
   }
   if (kind === "PORTFOLIO_TARGET_ROAS") {
     if (raw.strategyType !== "TARGET_ROAS" && raw.strategyType !== "MAXIMIZE_CONVERSION_VALUE") throw new BiddingSupervisorError("INTEGRITY_FAILURE", "portfolio ROAS strategy type is invalid");
-    return { kind, resourceName, strategyType: raw.strategyType, expectedTargetRoas: num("expectedTargetRoas"), nextTargetRoas: num("nextTargetRoas") };
+    return { kind, resourceName, strategyType: raw.strategyType, expectedTargetRoas: number("expectedTargetRoas"), nextTargetRoas: number("nextTargetRoas") };
   }
   if (kind === "PORTFOLIO_BID_BOUNDS") {
     if (!(raw.strategyType === "TARGET_CPA" || raw.strategyType === "MAXIMIZE_CONVERSIONS" || raw.strategyType === "TARGET_ROAS" || raw.strategyType === "MAXIMIZE_CONVERSION_VALUE")) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "portfolio bounds strategy type is invalid");
-    return {
-      kind,
-      resourceName,
-      strategyType: raw.strategyType,
-      expectedCeilingMicros: nullableNum("expectedCeilingMicros"),
-      nextCeilingMicros: nullableNum("nextCeilingMicros"),
-      expectedFloorMicros: nullableNum("expectedFloorMicros"),
-      nextFloorMicros: nullableNum("nextFloorMicros"),
-    };
+    return { kind, resourceName, strategyType: raw.strategyType, expectedCeilingMicros: nullableNumber("expectedCeilingMicros"), nextCeilingMicros: nullableNumber("nextCeilingMicros"), expectedFloorMicros: nullableNumber("expectedFloorMicros"), nextFloorMicros: nullableNumber("nextFloorMicros") };
   }
   throw new BiddingSupervisorError("INTEGRITY_FAILURE", "action kind is invalid");
 }
 
 function parseEvidence(value: JsonValue | undefined): BiddingSupervisorEvidence | null {
   if (value === null || value === undefined) return null;
-  const raw = asObject(value, "evidence");
+  const raw = object(value, "evidence");
   const number = (key: string) => {
     const item = raw[key];
     if (typeof item !== "number" || !Number.isFinite(item)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", `evidence ${key} is invalid`);
@@ -501,34 +488,30 @@ function parseEvidence(value: JsonValue | undefined): BiddingSupervisorEvidence 
   };
   if (typeof raw.sourceId !== "string") throw new BiddingSupervisorError("INTEGRITY_FAILURE", "evidence sourceId is invalid");
   return Object.freeze({
-    googleCostMicros: number("googleCostMicros"),
-    googleConversions: number("googleConversions"),
-    googleConversionValue: number("googleConversionValue"),
-    businessRevenueMicros: number("businessRevenueMicros"),
-    businessGrossProfitBeforeAdSpendMicros: number("businessGrossProfitBeforeAdSpendMicros"),
-    businessQualifiedConversions: number("businessQualifiedConversions"),
-    profitAfterAdSpendMicros: number("profitAfterAdSpendMicros"),
-    profitToSpendRatio: number("profitToSpendRatio"),
-    sourceId: raw.sourceId,
+    googleCostMicros: number("googleCostMicros"), googleConversions: number("googleConversions"), googleConversionValue: number("googleConversionValue"),
+    businessRevenueMicros: number("businessRevenueMicros"), businessGrossProfitBeforeAdSpendMicros: number("businessGrossProfitBeforeAdSpendMicros"),
+    businessQualifiedConversions: number("businessQualifiedConversions"), profitAfterAdSpendMicros: number("profitAfterAdSpendMicros"),
+    profitToSpendRatio: number("profitToSpendRatio"), sourceId: raw.sourceId,
   });
 }
 
 function parseReceipt(value: JsonValue | undefined): GoogleAdsMutationReceipt | null {
   if (value === null || value === undefined) return null;
-  const raw = asObject(value, "receipt");
+  const raw = object(value, "receipt");
   if (typeof raw.resourceName !== "string" || typeof raw.recoveredAlreadyApplied !== "boolean") throw new BiddingSupervisorError("INTEGRITY_FAILURE", "receipt is invalid");
   return Object.freeze({ requestId: nullableString(raw.requestId, "receipt.requestId"), resourceName: raw.resourceName, recoveredAlreadyApplied: raw.recoveredAlreadyApplied });
 }
 
-function parseState(record: ObjectRecord): SupervisorStateRecord {
+function parseState(record: ObjectRecord): StateRecord {
   if (record.typeId !== STATE_TYPE) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "state record type is invalid");
   const customerId = propertyString(record, STATE.customerId);
   const campaignId = propertyString(record, STATE.campaignId);
   const policyDigest = propertyString(record, STATE.policyDigest);
-  const raw = asObject(asJson(record.properties[STATE.payload], "state payload"), "state payload");
+  const rawPayload = json(record.properties[STATE.payload], "state payload");
+  const raw = object(rawPayload, "state payload");
   const lastActionKind = nullableString(raw.lastActionKind, "state.lastActionKind") as BiddingSupervisorActionKind | null;
   if (lastActionKind && !(["CAMPAIGN_BUDGET", "STANDARD_TARGET_CPA", "STANDARD_TARGET_ROAS", "PORTFOLIO_TARGET_CPA", "PORTFOLIO_TARGET_ROAS", "PORTFOLIO_BID_BOUNDS"] as const).includes(lastActionKind)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "state lastActionKind is invalid");
-  const payload: SupervisorStatePayload = {
+  const payload: StatePayload = {
     lastRunAt: nullableString(raw.lastRunAt, "state.lastRunAt"),
     lastMutationAt: nullableString(raw.lastMutationAt, "state.lastMutationAt"),
     lastActionKind,
@@ -543,7 +526,7 @@ function parseState(record: ObjectRecord): SupervisorStateRecord {
   return Object.freeze({ id: record.id, customerId, campaignId, policyDigest, ...payload, digest: observedDigest, updatedAt, revision: record.revision });
 }
 
-function parseRun(record: ObjectRecord): SupervisorRunRecord {
+function parseRun(record: ObjectRecord): RunRecord {
   if (record.typeId !== RUN_TYPE) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run record type is invalid");
   const runId = propertyString(record, RUN.runId);
   const customerId = propertyString(record, RUN.customerId);
@@ -551,25 +534,20 @@ function parseRun(record: ObjectRecord): SupervisorRunRecord {
   const policyDigest = propertyString(record, RUN.policyDigest);
   const status = propertyString(record, RUN.status) as BiddingSupervisorRunStatus;
   if (!(["PREPARED", "APPLIED", "NOOP", "FAILED", "ROLLED_BACK"] as const).includes(status)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run status is invalid");
-  const raw = asObject(asJson(record.properties[RUN.payload], "run payload"), "run payload");
+  const raw = object(json(record.properties[RUN.payload], "run payload"), "run payload");
   const mode = raw.mode as BiddingSupervisorMode;
   const direction = raw.direction as BiddingSupervisorDirection;
   const reason = raw.reason as BiddingSupervisorReason;
   if (!(["ACTIVE", "OBSERVE_ONLY", "KILLED"] as const).includes(mode)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run mode is invalid");
   if (!(["INCREASE_VOLUME", "DECREASE_RISK", "HOLD"] as const).includes(direction)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run direction is invalid");
-  if (typeof reason !== "string" || typeof raw.windowStart !== "string" || typeof raw.windowEnd !== "string") throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run decision fields are invalid");
-  const payload: SupervisorRunPayload = {
-    mode,
-    direction,
-    reason,
-    windowStart: raw.windowStart,
-    windowEnd: raw.windowEnd,
+  if (!RUN_REASONS.includes(reason)) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run reason is invalid");
+  if (typeof raw.windowStart !== "string" || typeof raw.windowEnd !== "string") throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run window is invalid");
+  const payload: RunPayload = {
+    mode, direction, reason, windowStart: raw.windowStart, windowEnd: raw.windowEnd,
     campaignSnapshot: (raw.campaignSnapshot ?? null) as unknown as GoogleAdsCampaignSnapshot | null,
     portfolioSnapshot: (raw.portfolioSnapshot ?? null) as unknown as GoogleAdsPortfolioSnapshot | null,
     businessSnapshot: (raw.businessSnapshot ?? null) as unknown as BusinessProfitabilitySnapshot | null,
-    evidence: parseEvidence(raw.evidence),
-    action: parseAction(raw.action),
-    receipt: parseReceipt(raw.receipt),
+    evidence: parseEvidence(raw.evidence), action: parseAction(raw.action), receipt: parseReceipt(raw.receipt),
     errorCode: nullableString(raw.errorCode, "run.errorCode"),
   };
   const createdAt = canonicalUtc(propertyString(record, RUN.createdAt), "run.createdAt");
@@ -582,22 +560,17 @@ function parseRun(record: ObjectRecord): SupervisorRunRecord {
 function evidenceFrom(google: Pick<GoogleAdsCampaignSnapshot | GoogleAdsPortfolioSnapshot, "costMicros" | "conversions" | "conversionValue">, business: BusinessProfitabilitySnapshot): BiddingSupervisorEvidence {
   const ratio = google.costMicros > 0 ? business.grossProfitBeforeAdSpendMicros / google.costMicros : 0;
   return Object.freeze({
-    googleCostMicros: google.costMicros,
-    googleConversions: google.conversions,
-    googleConversionValue: google.conversionValue,
-    businessRevenueMicros: business.revenueMicros,
-    businessGrossProfitBeforeAdSpendMicros: business.grossProfitBeforeAdSpendMicros,
-    businessQualifiedConversions: business.qualifiedConversions,
-    profitAfterAdSpendMicros: business.grossProfitBeforeAdSpendMicros - google.costMicros,
-    profitToSpendRatio: ratio,
-    sourceId: business.sourceId,
+    googleCostMicros: google.costMicros, googleConversions: google.conversions, googleConversionValue: google.conversionValue,
+    businessRevenueMicros: business.revenueMicros, businessGrossProfitBeforeAdSpendMicros: business.grossProfitBeforeAdSpendMicros,
+    businessQualifiedConversions: business.qualifiedConversions, profitAfterAdSpendMicros: business.grossProfitBeforeAdSpendMicros - google.costMicros,
+    profitToSpendRatio: ratio, sourceId: business.sourceId,
   });
 }
 
 function validateBusiness(snapshot: BusinessProfitabilitySnapshot, query: BusinessProfitabilityQuery, nowMs: number, policy: BiddingSupervisorPolicy): "FRESH" | "STALE" {
   if (snapshot.customerId !== query.customerId || snapshot.scopeKind !== query.scopeKind || snapshot.scopeId !== query.scopeId || snapshot.windowStart !== query.windowStart || snapshot.windowEnd !== query.windowEnd) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "business snapshot scope/window mismatch");
-  nonNegativeInteger(snapshot.revenueMicros, "business revenueMicros");
-  nonNegativeInteger(snapshot.grossProfitBeforeAdSpendMicros, "business grossProfitBeforeAdSpendMicros");
+  nonNegativeSafeInteger(snapshot.revenueMicros, "business revenueMicros");
+  nonNegativeSafeInteger(snapshot.grossProfitBeforeAdSpendMicros, "business grossProfitBeforeAdSpendMicros");
   if (!Number.isFinite(snapshot.qualifiedConversions) || snapshot.qualifiedConversions < 0) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "business qualifiedConversions is invalid");
   normalizeIdentifier(snapshot.sourceId, "business sourceId");
   const observedAt = canonicalUtc(snapshot.observedAt, "business observedAt");
@@ -635,7 +608,7 @@ function reverseAction(action: GoogleAdsControlMutation): GoogleAdsControlMutati
   return { ...action, expectedCeilingMicros: action.nextCeilingMicros, nextCeilingMicros: action.expectedCeilingMicros, expectedFloorMicros: action.nextFloorMicros, nextFloorMicros: action.expectedFloorMicros };
 }
 
-function isTransactionConflict(error: unknown): boolean {
+function transactionConflict(error: unknown): boolean {
   return error instanceof OntologyTransactionError && error.code === "CONFLICT";
 }
 
@@ -646,7 +619,7 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     private readonly transactions: OntologyTransactionPort,
     readonly scope: OntologyScope,
     readonly policy: BiddingSupervisorPolicy,
-    private readonly googleAds: GoogleAdsRestClient,
+    private readonly googleAds: GoogleAdsBiddingGateway,
     private readonly business: BusinessProfitabilityProvider,
     private readonly now: () => number = Date.now,
   ) {
@@ -663,60 +636,60 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     return ontologyId("cortex-bidding-state", { scope: this.scope, policyDigest: this.policy.digest, customerId, campaignId });
   }
 
-  private runId(runId: string, customerId: string, campaignId: string): string {
+  private runObjectId(runId: string, customerId: string, campaignId: string): string {
     return ontologyId("cortex-bidding-run", { scope: this.scope, policyDigest: this.policy.digest, runId, customerId, campaignId });
   }
 
-  private readState(customerId: string, campaignId: string): SupervisorStateRecord | undefined {
+  private readState(customerId: string, campaignId: string): StateRecord | undefined {
     const raw = this.transactions.getObject(this.scope, this.stateId(customerId, campaignId));
     return raw ? parseState(raw) : undefined;
   }
 
-  private readRun(runId: string, customerId: string, campaignId: string): SupervisorRunRecord | undefined {
-    const raw = this.transactions.getObject(this.scope, this.runId(runId, customerId, campaignId));
+  private readRun(runId: string, customerId: string, campaignId: string): RunRecord | undefined {
+    const raw = this.transactions.getObject(this.scope, this.runObjectId(runId, customerId, campaignId));
     return raw ? parseRun(raw) : undefined;
   }
 
-  private result(run: SupervisorRunRecord): BiddingSupervisorResult {
+  private result(run: RunRecord): BiddingSupervisorResult {
     return Object.freeze({ runId: run.runId, customerId: run.customerId, campaignId: run.campaignId, status: run.status, mode: run.mode, direction: run.direction, reason: run.reason, windowStart: run.windowStart, windowEnd: run.windowEnd, action: run.action, receipt: run.receipt, evidence: run.evidence, policyDigest: run.policyDigest, digest: run.digest });
   }
 
-  private campaignCandidates(campaign: GoogleAdsCampaignSnapshot, evidence: BiddingSupervisorEvidence, direction: Exclude<BiddingSupervisorDirection, "HOLD">): PlannedAction[] {
+  private campaignCandidates(campaign: GoogleAdsCampaignSnapshot, business: BusinessProfitabilitySnapshot, evidence: BiddingSupervisorEvidence, direction: Exclude<BiddingSupervisorDirection, "HOLD">): PlannedAction[] {
     const candidates: PlannedAction[] = [];
     const increase = direction === "INCREASE_VOLUME";
     if (!campaign.budgetExplicitlyShared || this.policy.allowSharedBudgets) {
       let next = boundedInteger(campaign.budgetAmountMicros, this.policy.budgetStepFraction, increase ? "UP" : "DOWN", this.policy.minBudgetMicros, this.policy.maxBudgetMicros);
       if (increase && campaign.recommendedBudgetAmountMicros && campaign.recommendedBudgetAmountMicros > campaign.budgetAmountMicros) next = Math.min(next, campaign.recommendedBudgetAmountMicros);
-      if (next !== campaign.budgetAmountMicros) candidates.push({ action: { kind: "CAMPAIGN_BUDGET", resourceName: campaign.budgetResourceName, expectedAmountMicros: campaign.budgetAmountMicros, nextAmountMicros: next }, evidence, direction });
+      if (next !== campaign.budgetAmountMicros) candidates.push({ action: { kind: "CAMPAIGN_BUDGET", resourceName: campaign.budgetResourceName, expectedAmountMicros: campaign.budgetAmountMicros, nextAmountMicros: next }, evidence, business, direction });
     }
     if (!campaign.portfolioBiddingStrategyResourceName && campaign.biddingStrategyType === "MAXIMIZE_CONVERSIONS" && campaign.standardTargetCpaMicros !== null) {
       const next = boundedInteger(campaign.standardTargetCpaMicros, this.policy.targetStepFraction, increase ? "UP" : "DOWN", this.policy.minTargetCpaMicros, this.policy.maxTargetCpaMicros);
-      if (next !== campaign.standardTargetCpaMicros) candidates.push({ action: { kind: "STANDARD_TARGET_CPA", resourceName: campaign.campaignResourceName, expectedTargetCpaMicros: campaign.standardTargetCpaMicros, nextTargetCpaMicros: next }, evidence, direction });
+      if (next !== campaign.standardTargetCpaMicros) candidates.push({ action: { kind: "STANDARD_TARGET_CPA", resourceName: campaign.campaignResourceName, expectedTargetCpaMicros: campaign.standardTargetCpaMicros, nextTargetCpaMicros: next }, evidence, business, direction });
     }
     if (!campaign.portfolioBiddingStrategyResourceName && campaign.biddingStrategyType === "MAXIMIZE_CONVERSION_VALUE" && campaign.standardTargetRoas !== null) {
       const next = boundedFloat(campaign.standardTargetRoas, this.policy.targetStepFraction, increase ? "DOWN" : "UP", this.policy.minTargetRoas, this.policy.maxTargetRoas);
-      if (next !== campaign.standardTargetRoas) candidates.push({ action: { kind: "STANDARD_TARGET_ROAS", resourceName: campaign.campaignResourceName, expectedTargetRoas: campaign.standardTargetRoas, nextTargetRoas: next }, evidence, direction });
+      if (next !== campaign.standardTargetRoas) candidates.push({ action: { kind: "STANDARD_TARGET_ROAS", resourceName: campaign.campaignResourceName, expectedTargetRoas: campaign.standardTargetRoas, nextTargetRoas: next }, evidence, business, direction });
     }
     return candidates;
   }
 
-  private portfolioCandidates(portfolio: GoogleAdsPortfolioSnapshot, evidence: BiddingSupervisorEvidence, direction: Exclude<BiddingSupervisorDirection, "HOLD">): PlannedAction[] {
+  private portfolioCandidates(portfolio: GoogleAdsPortfolioSnapshot, business: BusinessProfitabilitySnapshot, evidence: BiddingSupervisorEvidence, direction: Exclude<BiddingSupervisorDirection, "HOLD">): PlannedAction[] {
     const candidates: PlannedAction[] = [];
     const increase = direction === "INCREASE_VOLUME";
     if ((portfolio.type === "TARGET_CPA" || portfolio.type === "MAXIMIZE_CONVERSIONS") && portfolio.targetCpaMicros !== null) {
       const next = boundedInteger(portfolio.targetCpaMicros, this.policy.targetStepFraction, increase ? "UP" : "DOWN", this.policy.minTargetCpaMicros, this.policy.maxTargetCpaMicros);
-      if (next !== portfolio.targetCpaMicros) candidates.push({ action: { kind: "PORTFOLIO_TARGET_CPA", resourceName: portfolio.resourceName, strategyType: portfolio.type, expectedTargetCpaMicros: portfolio.targetCpaMicros, nextTargetCpaMicros: next }, evidence, direction });
+      if (next !== portfolio.targetCpaMicros) candidates.push({ action: { kind: "PORTFOLIO_TARGET_CPA", resourceName: portfolio.resourceName, strategyType: portfolio.type, expectedTargetCpaMicros: portfolio.targetCpaMicros, nextTargetCpaMicros: next }, evidence, business, direction });
     }
     if ((portfolio.type === "TARGET_ROAS" || portfolio.type === "MAXIMIZE_CONVERSION_VALUE") && portfolio.targetRoas !== null) {
       const next = boundedFloat(portfolio.targetRoas, this.policy.targetStepFraction, increase ? "DOWN" : "UP", this.policy.minTargetRoas, this.policy.maxTargetRoas);
-      if (next !== portfolio.targetRoas) candidates.push({ action: { kind: "PORTFOLIO_TARGET_ROAS", resourceName: portfolio.resourceName, strategyType: portfolio.type, expectedTargetRoas: portfolio.targetRoas, nextTargetRoas: next }, evidence, direction });
+      if (next !== portfolio.targetRoas) candidates.push({ action: { kind: "PORTFOLIO_TARGET_ROAS", resourceName: portfolio.resourceName, strategyType: portfolio.type, expectedTargetRoas: portfolio.targetRoas, nextTargetRoas: next }, evidence, business, direction });
     }
     if (this.policy.managePortfolioBidBounds && portfolio.cpcBidCeilingMicros !== null) {
       const nextCeiling = boundedInteger(portfolio.cpcBidCeilingMicros, this.policy.bidBoundStepFraction, increase ? "UP" : "DOWN", this.policy.minPortfolioCpcCeilingMicros, this.policy.maxPortfolioCpcCeilingMicros);
       let nextFloor = portfolio.cpcBidFloorMicros;
       if (increase && nextFloor !== null) nextFloor = Math.max(1, Math.floor(nextFloor * (1 - this.policy.bidBoundStepFraction)));
       if (nextFloor !== null && nextFloor > nextCeiling) nextFloor = nextCeiling;
-      if (nextCeiling !== portfolio.cpcBidCeilingMicros || nextFloor !== portfolio.cpcBidFloorMicros) candidates.push({ action: { kind: "PORTFOLIO_BID_BOUNDS", resourceName: portfolio.resourceName, strategyType: portfolio.type, expectedCeilingMicros: portfolio.cpcBidCeilingMicros, nextCeilingMicros: nextCeiling, expectedFloorMicros: portfolio.cpcBidFloorMicros, nextFloorMicros: nextFloor }, evidence, direction });
+      if (nextCeiling !== portfolio.cpcBidCeilingMicros || nextFloor !== portfolio.cpcBidFloorMicros) candidates.push({ action: { kind: "PORTFOLIO_BID_BOUNDS", resourceName: portfolio.resourceName, strategyType: portfolio.type, expectedCeilingMicros: portfolio.cpcBidCeilingMicros, nextCeilingMicros: nextCeiling, expectedFloorMicros: portfolio.cpcBidFloorMicros, nextFloorMicros: nextFloor }, evidence, business, direction });
     }
     return candidates;
   }
@@ -728,7 +701,7 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     return index < 0 ? candidates[0]! : candidates[(index + 1) % candidates.length]!;
   }
 
-  private acquire(runId: string, customerId: string, campaignId: string, planned: SupervisorRunPayload, nowMs: number, nowIso: string): SupervisorRunRecord {
+  private acquire(runId: string, customerId: string, campaignId: string, planned: RunPayload, nowMs: number, nowIso: string): RunRecord {
     for (let attempt = 0; attempt <= this.policy.maxWriteRetries; attempt += 1) {
       const existing = this.readRun(runId, customerId, campaignId);
       if (existing) return existing;
@@ -738,9 +711,9 @@ export class PeriodicGoogleAdsBiddingSupervisor {
         if (!inFlight) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "state references missing in-flight run");
         return inFlight;
       }
-      const cooldownActive = planned.action !== null && state?.lastMutationAt !== null && state?.lastMutationAt !== undefined && nowMs - Date.parse(state.lastMutationAt) < this.policy.cooldownMs;
-      const payload: SupervisorRunPayload = cooldownActive ? { ...planned, action: null, reason: "COOLDOWN" } : planned;
-      const nextState: SupervisorStatePayload = {
+      const cooldownActive = planned.action !== null && state?.lastMutationAt != null && nowMs - Date.parse(state.lastMutationAt) < this.policy.cooldownMs;
+      const payload: RunPayload = cooldownActive ? { ...planned, action: null, reason: "COOLDOWN" } : planned;
+      const nextState: StatePayload = {
         lastRunAt: state?.lastRunAt ?? null,
         lastMutationAt: state?.lastMutationAt ?? null,
         lastActionKind: state?.lastActionKind ?? null,
@@ -749,7 +722,7 @@ export class PeriodicGoogleAdsBiddingSupervisor {
         lastRollbackAt: state?.lastRollbackAt ?? null,
       };
       const operations: TransactionOperation[] = [
-        { kind: "CREATE_OBJECT", record: { id: this.runId(runId, customerId, campaignId), typeId: RUN_TYPE, scope: this.scope, properties: runProperties(runId, customerId, campaignId, this.policy.digest, "PREPARED", payload, nowIso, nowIso) } },
+        { kind: "CREATE_OBJECT", record: { id: this.runObjectId(runId, customerId, campaignId), typeId: RUN_TYPE, scope: this.scope, properties: runProperties(runId, customerId, campaignId, this.policy.digest, "PREPARED", payload, nowIso, nowIso) } },
         state
           ? { kind: "UPDATE_OBJECT", id: state.id, expectedRevision: state.revision, properties: stateProperties(customerId, campaignId, this.policy.digest, nextState, nowIso) }
           : { kind: "CREATE_OBJECT", record: { id: this.stateId(customerId, campaignId), typeId: STATE_TYPE, scope: this.scope, properties: stateProperties(customerId, campaignId, this.policy.digest, nextState, nowIso) } },
@@ -760,8 +733,8 @@ export class PeriodicGoogleAdsBiddingSupervisor {
         if (!stored) throw new BiddingSupervisorError("PERSISTENCE_FAILURE", "prepared run unreadable after commit");
         return stored;
       } catch (error) {
-        if (isTransactionConflict(error) && attempt < this.policy.maxWriteRetries) continue;
-        if (isTransactionConflict(error)) throw new BiddingSupervisorError("CONFLICT", "run preparation conflicted after retries");
+        if (transactionConflict(error) && attempt < this.policy.maxWriteRetries) continue;
+        if (transactionConflict(error)) throw new BiddingSupervisorError("CONFLICT", "run preparation conflicted after retries");
         if (error instanceof BiddingSupervisorError) throw error;
         throw new BiddingSupervisorError("PERSISTENCE_FAILURE", error instanceof Error ? error.message : "run preparation failed");
       }
@@ -769,14 +742,14 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     throw new BiddingSupervisorError("CONFLICT", "run preparation exhausted retries");
   }
 
-  private finalize(run: SupervisorRunRecord, status: Exclude<BiddingSupervisorRunStatus, "PREPARED">, payload: SupervisorRunPayload, nowIso: string, effect: FinalizeEffect): SupervisorRunRecord {
+  private finalize(run: RunRecord, status: Exclude<BiddingSupervisorRunStatus, "PREPARED">, payload: RunPayload, nowIso: string, effect: FinalizeEffect): RunRecord {
     for (let attempt = 0; attempt <= this.policy.maxWriteRetries; attempt += 1) {
       const currentRun = this.readRun(run.runId, run.customerId, run.campaignId);
       if (!currentRun) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run disappeared before finalize");
       if (currentRun.status !== "PREPARED") return currentRun;
       const state = this.readState(run.customerId, run.campaignId);
       if (!state || state.inFlightRunId !== run.runId) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "run no longer owns state lock");
-      const nextState: SupervisorStatePayload = {
+      const nextState: StatePayload = {
         lastRunAt: nowIso,
         lastMutationAt: effect === "NONE" ? state.lastMutationAt : nowIso,
         lastActionKind: effect === "APPLY" && payload.action ? payload.action.kind : state.lastActionKind,
@@ -784,18 +757,17 @@ export class PeriodicGoogleAdsBiddingSupervisor {
         lastAppliedAction: effect === "APPLY" && payload.action ? payload.action : effect === "ROLLBACK" ? null : state.lastAppliedAction,
         lastRollbackAt: effect === "ROLLBACK" ? nowIso : state.lastRollbackAt,
       };
-      const operations: TransactionOperation[] = [
-        { kind: "UPDATE_OBJECT", id: currentRun.id, expectedRevision: currentRun.revision, properties: runProperties(currentRun.runId, currentRun.customerId, currentRun.campaignId, currentRun.policyDigest, status, payload, currentRun.createdAt, nowIso) },
-        { kind: "UPDATE_OBJECT", id: state.id, expectedRevision: state.revision, properties: stateProperties(state.customerId, state.campaignId, state.policyDigest, nextState, nowIso) },
-      ];
       try {
-        this.transactions.transact(this.scope, this.schema, operations);
+        this.transactions.transact(this.scope, this.schema, [
+          { kind: "UPDATE_OBJECT", id: currentRun.id, expectedRevision: currentRun.revision, properties: runProperties(currentRun.runId, currentRun.customerId, currentRun.campaignId, currentRun.policyDigest, status, payload, currentRun.createdAt, nowIso) },
+          { kind: "UPDATE_OBJECT", id: state.id, expectedRevision: state.revision, properties: stateProperties(state.customerId, state.campaignId, state.policyDigest, nextState, nowIso) },
+        ]);
         const stored = this.readRun(run.runId, run.customerId, run.campaignId);
         if (!stored) throw new BiddingSupervisorError("PERSISTENCE_FAILURE", "finalized run unreadable after commit");
         return stored;
       } catch (error) {
-        if (isTransactionConflict(error) && attempt < this.policy.maxWriteRetries) continue;
-        if (isTransactionConflict(error)) throw new BiddingSupervisorError("CONFLICT", "run finalize conflicted after retries");
+        if (transactionConflict(error) && attempt < this.policy.maxWriteRetries) continue;
+        if (transactionConflict(error)) throw new BiddingSupervisorError("CONFLICT", "run finalize conflicted after retries");
         if (error instanceof BiddingSupervisorError) throw error;
         throw new BiddingSupervisorError("PERSISTENCE_FAILURE", error instanceof Error ? error.message : "run finalize failed");
       }
@@ -803,19 +775,24 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     throw new BiddingSupervisorError("CONFLICT", "run finalize exhausted retries");
   }
 
-  private async execute(run: SupervisorRunRecord): Promise<BiddingSupervisorResult> {
+  private async execute(run: RunRecord, executionMode: BiddingSupervisorMode): Promise<BiddingSupervisorResult> {
     if (run.status !== "PREPARED") return this.result(run);
-    const { iso } = this.time();
-    if (!run.action || run.mode !== "ACTIVE") return this.result(this.finalize(run, "NOOP", run, iso, "NONE"));
+    if (executionMode !== "ACTIVE" && run.action) {
+      throw new BiddingSupervisorError("POLICY_VIOLATION", `${executionMode} freezes the prepared mutation; ACTIVE reconciliation is required before any remote write`);
+    }
+    if (!run.action || run.mode !== "ACTIVE") return this.result(this.finalize(run, "NOOP", run, this.time().iso, "NONE"));
     const rollback = run.reason === "ROLLBACK_APPLIED";
     try {
       const receipt = await this.googleAds.applyMutation(run.customerId, run.action);
       const reason: BiddingSupervisorReason = rollback ? "ROLLBACK_APPLIED" : receipt.recoveredAlreadyApplied ? "ACTION_RECOVERED" : "ACTION_APPLIED";
-      const payload: SupervisorRunPayload = { ...run, reason, receipt, errorCode: null };
+      const payload: RunPayload = { ...run, reason, receipt, errorCode: null };
       return this.result(this.finalize(run, rollback ? "ROLLED_BACK" : "APPLIED", payload, this.time().iso, rollback ? "ROLLBACK" : "APPLY"));
     } catch (error) {
+      if (error instanceof GoogleAdsApiError && error.code === "AMBIGUOUS_MUTATION_OUTCOME") {
+        throw new BiddingSupervisorError("REMOTE_FAILURE", "Google Ads mutation outcome is ambiguous; run remains PREPARED for preflight recovery");
+      }
       const reason: BiddingSupervisorReason = error instanceof GoogleAdsApiError && error.code === "REMOTE_CONFLICT" ? "REMOTE_CONFLICT" : "API_FAILURE";
-      const payload: SupervisorRunPayload = { ...run, reason, receipt: null, errorCode: error instanceof GoogleAdsApiError ? error.code : "UNKNOWN_REMOTE_FAILURE" };
+      const payload: RunPayload = { ...run, reason, receipt: null, errorCode: error instanceof GoogleAdsApiError ? error.code : "UNKNOWN_REMOTE_FAILURE" };
       this.finalize(run, "FAILED", payload, this.time().iso, "NONE");
       throw new BiddingSupervisorError("REMOTE_FAILURE", `${reason}: Google Ads mutation was not certified as applied`);
     }
@@ -825,15 +802,20 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     const requestedRunId = normalizeIdentifier(input.runId, "runId");
     const customerId = normalizeNumericId(input.customerId, "customerId");
     const campaignId = normalizeNumericId(input.campaignId, "campaignId");
-    const existing = this.readRun(requestedRunId, customerId, campaignId);
-    if (existing) return this.execute(existing);
     const mode = effectiveMode(this.policy.mode, input.mode);
+    const existing = this.readRun(requestedRunId, customerId, campaignId);
+    if (existing) return this.execute(existing, mode);
+    const initialState = this.readState(customerId, campaignId);
+    if (initialState?.inFlightRunId) {
+      const inFlight = this.readRun(initialState.inFlightRunId, customerId, campaignId);
+      if (!inFlight) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "state references missing in-flight run");
+      return this.execute(inFlight, mode);
+    }
     const { ms: nowMs, iso: nowIso } = this.time();
     const window = reportWindow(nowMs, this.policy);
-
     if (mode === "KILLED") {
-      const payload: SupervisorRunPayload = { mode, direction: "HOLD", reason: "KILL_SWITCH", windowStart: window.start, windowEnd: window.end, campaignSnapshot: null, portfolioSnapshot: null, businessSnapshot: null, evidence: null, action: null, receipt: null, errorCode: null };
-      return this.execute(this.acquire(requestedRunId, customerId, campaignId, payload, nowMs, nowIso));
+      const payload: RunPayload = { mode, direction: "HOLD", reason: "KILL_SWITCH", windowStart: window.start, windowEnd: window.end, campaignSnapshot: null, portfolioSnapshot: null, businessSnapshot: null, evidence: null, action: null, receipt: null, errorCode: null };
+      return this.execute(this.acquire(requestedRunId, customerId, campaignId, payload, nowMs, nowIso), mode);
     }
 
     const campaign = await this.googleAds.getCampaignSnapshot(customerId, campaignId, window.startMs, window.endMs);
@@ -856,44 +838,44 @@ export class PeriodicGoogleAdsBiddingSupervisor {
 
     let reason: BiddingSupervisorReason = "NO_COMPATIBLE_CONTROL";
     let chosen: PlannedAction | null = null;
-    const currentState = this.readState(customerId, campaignId);
+    const latestState = this.readState(customerId, campaignId);
     if (campaign.status !== "ENABLED") {
       reason = "CAMPAIGN_NOT_ENABLED";
-    } else if (currentState?.lastMutationAt && nowMs - Date.parse(currentState.lastMutationAt) < this.policy.cooldownMs) {
+    } else if (latestState?.lastMutationAt && nowMs - Date.parse(latestState.lastMutationAt) < this.policy.cooldownMs) {
       reason = "COOLDOWN";
     } else {
       const candidates: PlannedAction[] = [];
-      let freshEvidenceExists = false;
-      let sufficientEvidenceExists = false;
-      let holdEvidenceExists = false;
+      let freshEvidence = false;
+      let enoughEvidence = false;
+      let holdEvidence = false;
       if (campaignFreshness === "FRESH") {
-        freshEvidenceExists = true;
+        freshEvidence = true;
         if (sufficient(campaign, this.policy)) {
-          sufficientEvidenceExists = true;
+          enoughEvidence = true;
           const direction = directionFor(campaignEvidence, this.policy);
-          if (direction === "HOLD") holdEvidenceExists = true;
-          else candidates.push(...this.campaignCandidates(campaign, campaignEvidence, direction));
+          if (direction === "HOLD") holdEvidence = true;
+          else candidates.push(...this.campaignCandidates(campaign, campaignBusiness, campaignEvidence, direction));
         }
       }
-      if (portfolio && portfolioEvidence && portfolioFreshness === "FRESH") {
-        freshEvidenceExists = true;
+      if (portfolio && portfolioBusiness && portfolioEvidence && portfolioFreshness === "FRESH") {
+        freshEvidence = true;
         if (sufficient(portfolio, this.policy)) {
-          sufficientEvidenceExists = true;
+          enoughEvidence = true;
           const direction = directionFor(portfolioEvidence, this.policy);
-          if (direction === "HOLD") holdEvidenceExists = true;
-          else candidates.push(...this.portfolioCandidates(portfolio, portfolioEvidence, direction));
+          if (direction === "HOLD") holdEvidence = true;
+          else candidates.push(...this.portfolioCandidates(portfolio, portfolioBusiness, portfolioEvidence, direction));
         }
       }
-      chosen = this.choose(candidates, currentState?.lastActionKind ?? null);
+      chosen = this.choose(candidates, latestState?.lastActionKind ?? null);
       if (chosen) reason = mode === "OBSERVE_ONLY" ? "OBSERVE_ONLY" : "ACTION_APPLIED";
-      else if (!freshEvidenceExists) reason = "STALE_BUSINESS_DATA";
-      else if (!sufficientEvidenceExists) reason = "INSUFFICIENT_EVIDENCE";
-      else if (holdEvidenceExists) reason = "PROFITABILITY_HOLD";
+      else if (!freshEvidence) reason = "STALE_BUSINESS_DATA";
+      else if (!enoughEvidence) reason = "INSUFFICIENT_EVIDENCE";
+      else if (holdEvidence) reason = "PROFITABILITY_HOLD";
       else if (campaign.budgetExplicitlyShared && !this.policy.allowSharedBudgets && !campaign.portfolioBiddingStrategyResourceName) reason = "SHARED_BUDGET_BLOCKED";
       else reason = "NO_COMPATIBLE_CONTROL";
     }
 
-    const payload: SupervisorRunPayload = {
+    const payload: RunPayload = {
       mode,
       direction: chosen?.direction ?? "HOLD",
       reason,
@@ -901,13 +883,13 @@ export class PeriodicGoogleAdsBiddingSupervisor {
       windowEnd: window.end,
       campaignSnapshot: campaign,
       portfolioSnapshot: portfolio,
-      businessSnapshot: chosen?.action.kind.startsWith("PORTFOLIO_") ? portfolioBusiness : campaignBusiness,
+      businessSnapshot: chosen?.business ?? campaignBusiness,
       evidence: chosen?.evidence ?? campaignEvidence,
       action: chosen?.action ?? null,
       receipt: null,
       errorCode: null,
     };
-    return this.execute(this.acquire(requestedRunId, customerId, campaignId, payload, nowMs, nowIso));
+    return this.execute(this.acquire(requestedRunId, customerId, campaignId, payload, nowMs, nowIso), mode);
   }
 
   async rollbackLastMutation(input: BiddingSupervisorRollbackInput): Promise<BiddingSupervisorResult> {
@@ -915,30 +897,17 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     const customerId = normalizeNumericId(input.customerId, "customerId");
     const campaignId = normalizeNumericId(input.campaignId, "campaignId");
     const existing = this.readRun(runId, customerId, campaignId);
-    if (existing) return this.execute(existing);
+    if (existing) return this.execute(existing, "ACTIVE");
     const state = this.readState(customerId, campaignId);
     if (!state?.lastAppliedAction) throw new BiddingSupervisorError("POLICY_VIOLATION", "no applied action is available for rollback");
     if (state.inFlightRunId) {
       const inFlight = this.readRun(state.inFlightRunId, customerId, campaignId);
       if (!inFlight) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "state references missing in-flight run");
-      return this.execute(inFlight);
+      return this.execute(inFlight, "ACTIVE");
     }
     const { ms: nowMs, iso: nowIso } = this.time();
     const window = reportWindow(nowMs, this.policy);
-    const payload: SupervisorRunPayload = {
-      mode: "ACTIVE",
-      direction: "HOLD",
-      reason: "ROLLBACK_APPLIED",
-      windowStart: window.start,
-      windowEnd: window.end,
-      campaignSnapshot: null,
-      portfolioSnapshot: null,
-      businessSnapshot: null,
-      evidence: null,
-      action: reverseAction(state.lastAppliedAction),
-      receipt: null,
-      errorCode: null,
-    };
-    return this.execute(this.acquire(runId, customerId, campaignId, payload, nowMs, nowIso));
+    const payload: RunPayload = { mode: "ACTIVE", direction: "HOLD", reason: "ROLLBACK_APPLIED", windowStart: window.start, windowEnd: window.end, campaignSnapshot: null, portfolioSnapshot: null, businessSnapshot: null, evidence: null, action: reverseAction(state.lastAppliedAction), receipt: null, errorCode: null };
+    return this.execute(this.acquire(runId, customerId, campaignId, payload, nowMs, nowIso), "ACTIVE");
   }
 }
