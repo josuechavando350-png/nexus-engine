@@ -19,7 +19,7 @@ const areaDescriptions = [
 export default function HomePage() {
   return (
     <PageShell>
-      <section className="cp-hero">
+      <section className="cp-hero" data-nexus-element="hero">
         <img className="cp-hero-image" src="/media/hero-eduardo.jpg" alt="Eduardo Cano de pie con los brazos cruzados" />
         <div className="cp-hero-shade" aria-hidden="true" />
         <div className="cp-wrap cp-hero-content">
@@ -31,14 +31,14 @@ export default function HomePage() {
             <h1><span>Conozco cómo investiga la autoridad.</span><br /><strong>Trabajé dentro de ella.</strong></h1>
             <p className="cp-lead">20 años defendiendo exclusivamente en materia penal. Dirigí investigaciones en la Procuraduría Fiscal de la Federación. Hoy uso esa experiencia para defenderte.</p>
             <div className="cp-actions">
-              <Link className="cp-btn cp-btn-solid" href="#contacto">Hablemos de tu caso</Link>
-              <Link className="cp-btn" href="#asesoria">Diagnóstico y estrategia — $2,500</Link>
+              <Link className="cp-btn cp-btn-solid" href="#contacto" data-nexus-element="hero-contact-cta">Hablemos de tu caso</Link>
+              <Link className="cp-btn" href="#asesoria" data-nexus-element="hero-diagnostic-cta">Diagnóstico y estrategia — $2,500</Link>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="cp-section">
+      <section className="cp-section" data-nexus-element="situations">
         <div className="cp-wrap">
           <div className="cp-section-head"><div><p className="cp-eyebrow">Orientación inicial</p><h2>¿Cuál es tu <strong>situación?</strong></h2></div></div>
           <div className="cp-paths">
@@ -49,7 +49,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="cp-section" id="acerca">
+      <section className="cp-section" id="acerca" data-nexus-element="defense-positioning">
         <div className="cp-wrap">
           <div className="cp-section-head"><div><p className="cp-eyebrow">Defensa personal</p><h2>Por qué <strong>elegirme</strong></h2></div></div>
           <div className="cp-why">
@@ -61,17 +61,17 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="cp-metrics"><div className="cp-wrap cp-metrics-layout"><div className="cp-metrics-about"><div className="cp-eyebrow">Acerca de mí</div><h2>Trayectoria</h2><p>{trajectory}</p><Link className="cp-text-link" href="/acerca-de-mi">Conoce mi trayectoria completa</Link></div><div className="cp-metrics-grid"><div className="cp-metric"><strong>20</strong><span>Años ejerciendo exclusivamente en penal</span></div><div className="cp-metric"><strong>700+</strong><span>Casos atendidos</span></div><div className="cp-metric"><strong>CDMX</strong><span>Fuero común y federal</span></div></div></div></section>
+      <section className="cp-metrics" data-nexus-element="trajectory-metrics"><div className="cp-wrap cp-metrics-layout"><div className="cp-metrics-about"><div className="cp-eyebrow">Acerca de mí</div><h2>Trayectoria</h2><p>{trajectory}</p><Link className="cp-text-link" href="/acerca-de-mi">Conoce mi trayectoria completa</Link></div><div className="cp-metrics-grid"><div className="cp-metric"><strong>20</strong><span>Años ejerciendo exclusivamente en penal</span></div><div className="cp-metric"><strong>700+</strong><span>Casos atendidos</span></div><div className="cp-metric"><strong>CDMX</strong><span>Fuero común y federal</span></div></div></div></section>
 
-      <section className="cp-section" id="areas"><div className="cp-wrap cp-areas-layout"><div className="cp-areas-intro"><h2>Áreas de práctica</h2><p>Soy abogado especialista en derecho penal. No soy generalista y aunque las conozco, no atiendo otras ramas del derecho.</p><Link className="cp-text-link" href="/#contacto">Hablemos de tu caso</Link></div><div className="cp-areas">{areas.map(([name, href], index) => <Link className="cp-area" key={href} href={href}><strong>{name}</strong><span>{areaDescriptions[index]}</span></Link>)}</div></div></section>
+      <section className="cp-section" id="areas" data-nexus-element="practice-areas"><div className="cp-wrap cp-areas-layout"><div className="cp-areas-intro"><h2>Áreas de práctica</h2><p>Soy abogado especialista en derecho penal. No soy generalista y aunque las conozco, no atiendo otras ramas del derecho.</p><Link className="cp-text-link" href="/#contacto">Hablemos de tu caso</Link></div><div className="cp-areas">{areas.map(([name, href], index) => <Link className="cp-area" key={href} href={href}><strong>{name}</strong><span>{areaDescriptions[index]}</span></Link>)}</div></div></section>
 
-      <section className="cp-section" id="casos"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Experiencia aplicada</p><h2><strong>Casos</strong></h2></div><Link className="cp-text-link" href="/casos">Ver todos los casos</Link></div><div className="cp-cases">{[cases[1], cases[4], cases[2]].map(([title, body]) => <article className="cp-case" tabIndex={0} key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
+      <section className="cp-section" id="casos" data-nexus-element="case-evidence"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Experiencia aplicada</p><h2><strong>Casos</strong></h2></div><Link className="cp-text-link" href="/casos">Ver todos los casos</Link></div><div className="cp-cases">{[cases[1], cases[4], cases[2]].map(([title, body]) => <article className="cp-case" tabIndex={0} key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
 
       <section className="cp-section"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Defensa presente</p><h2>En sala, en cada <strong>audiencia.</strong></h2></div></div><div className="cp-audiences">{audienceFiles.map(file => <img src={`/media/${file}`} alt="" tabIndex={0} key={file} />)}</div></div></section>
 
-      <section className="cp-section" id="asesoria"><div className="cp-wrap cp-advisory"><div><h2><span className="cp-title-line">Asesoría legal</span><span className="cp-title-line">penal presencial</span></h2><p>Valoración y estudio inicial de tu situación. Resolvemos todas tus dudas y defines la estrategia de tu caso. Sin tiempo límite, porque los problemas penales son complejos.</p></div><div className="cp-price"><span>Diagnóstico y estrategia</span><strong>$2,500</strong></div></div></section>
+      <section className="cp-section" id="asesoria" data-nexus-element="paid-advisory"><div className="cp-wrap cp-advisory"><div><h2><span className="cp-title-line">Asesoría legal</span><span className="cp-title-line">penal presencial</span></h2><p>Valoración y estudio inicial de tu situación. Resolvemos todas tus dudas y defines la estrategia de tu caso. Sin tiempo límite, porque los problemas penales son complejos.</p></div><div className="cp-price"><span>Diagnóstico y estrategia</span><strong>$2,500</strong></div></div></section>
 
-      <section className="cp-contact-section" id="contacto">
+      <section className="cp-contact-section" id="contacto" data-nexus-element="contact">
         <div className="cp-contact-image" role="img" aria-label="Eduardo Cano en su escritorio" />
         <div className="cp-contact">
           <div><h2>En derecho penal cada minuto cuenta</h2><div className="cp-contact-details"><strong>World Trade Center Ciudad de México</strong><span>Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX</span><a className="cp-text-link cp-map-link" href="https://maps.app.goo.gl/zMjF2TQZvfMchowx8" target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a><a href={site.phoneHref}>{site.phoneDisplay}</a><a href={`mailto:${site.email}`}>{site.email}</a></div></div>

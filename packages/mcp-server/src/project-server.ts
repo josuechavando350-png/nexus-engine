@@ -8,6 +8,15 @@ export interface ProjectServerOptions {
   maxOutputBytes?: number;
 }
 
+export interface RenderedNexusElementInventory {
+  route: "/";
+  elementIds: readonly string[];
+  htmlByteLength: number;
+}
+
+const NEXUS_ELEMENT_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const MAX_RENDERED_HTML_BYTES = 4 * 1024 * 1024;
+
 async function freePort(): Promise<number> {
   return await new Promise((resolvePort, reject) => {
     const server = createServer();
@@ -33,6 +42,27 @@ async function waitForProject(url: string, process: ManagedProcess, startupTimeo
     await new Promise((resolveWait) => setTimeout(resolveWait, 250));
   }
   throw new Error(`target server did not become ready within ${startupTimeoutMs}ms`);
+}
+
+export function parseRenderedNexusElementIds(html: string): readonly string[] {
+  if (typeof html !== "string" || !html.trim()) throw new Error("rendered HTML must be a non-empty string");
+  const byteLength = Buffer.byteLength(html, "utf8");
+  if (byteLength > MAX_RENDERED_HTML_BYTES) throw new Error(`rendered HTML exceeds ${MAX_RENDERED_HTML_BYTES} byte audit bound`);
+
+  const ids: string[] = [];
+  const attribute = /\sdata-nexus-element=(?:"([^"]*)"|'([^']*)')/g;
+  for (const match of html.matchAll(attribute)) {
+    const id = (match[1] ?? match[2] ?? "").trim();
+    if (!NEXUS_ELEMENT_ID.test(id)) throw new Error(`invalid rendered data-nexus-element id: ${id || "<empty>"}`);
+    ids.push(id);
+  }
+  if (!ids.length) throw new Error("rendered route contains no data-nexus-element markers");
+  const unique = new Set(ids);
+  if (unique.size !== ids.length) {
+    const duplicates = [...new Set(ids.filter((id, index) => ids.indexOf(id) !== index))].sort((a, b) => a.localeCompare(b, "en"));
+    throw new Error(`rendered route contains duplicate data-nexus-element ids: ${duplicates.join(", ")}`);
+  }
+  return Object.freeze([...ids].sort((a, b) => a.localeCompare(b, "en")));
 }
 
 export async function withProjectServer<T>(
@@ -64,4 +94,16 @@ export async function withProjectServer<T>(
     await server.terminate();
     await server.completed.catch(() => undefined);
   }
+}
+
+export async function inspectRenderedNexusElements(root: string, project: ProjectState): Promise<RenderedNexusElementInventory> {
+  return await withProjectServer(root, project, async (targetUrl) => {
+    const response = await fetch(`${targetUrl}/`, { redirect: "error", headers: { accept: "text/html" } });
+    if (!response.ok) throw new Error(`rendered route returned HTTP ${response.status}`);
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!contentType.toLowerCase().includes("text/html")) throw new Error(`rendered route did not return text/html: ${contentType || "missing content-type"}`);
+    const html = await response.text();
+    const elementIds = parseRenderedNexusElementIds(html);
+    return Object.freeze({ route: "/", elementIds, htmlByteLength: Buffer.byteLength(html, "utf8") });
+  });
 }
