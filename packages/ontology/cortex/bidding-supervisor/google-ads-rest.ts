@@ -21,6 +21,7 @@ export interface GoogleAdsCampaignSnapshot {
   readonly budgetExplicitlyShared: boolean;
   readonly recommendedBudgetAmountMicros: number | null;
   readonly biddingStrategyType: GoogleAdsBiddingStrategyType;
+  readonly biddingStrategySystemStatus: string;
   readonly portfolioBiddingStrategyResourceName: string | null;
   readonly standardTargetCpaMicros: number | null;
   readonly standardTargetRoas: number | null;
@@ -325,7 +326,7 @@ export class GoogleAdsRestClient {
     const campaignId = normalizeNumericId(campaignIdInput, "campaignId");
     if (startMs > endMs) throw new GoogleAdsApiError("INVALID_CONFIG", "report start must not be after report end");
     const query = [
-      "SELECT campaign.id, campaign.name, campaign.resource_name, campaign.status, campaign.campaign_budget, campaign.bidding_strategy, campaign.bidding_strategy_type,",
+      "SELECT campaign.id, campaign.name, campaign.resource_name, campaign.status, campaign.campaign_budget, campaign.bidding_strategy, campaign.bidding_strategy_type, campaign.bidding_strategy_system_status,",
       "campaign.maximize_conversions.target_cpa_micros, campaign.maximize_conversion_value.target_roas,",
       "campaign_budget.amount_micros, campaign_budget.explicitly_shared, campaign_budget.recommended_budget_amount_micros,",
       "metrics.cost_micros, metrics.conversions, metrics.conversions_value FROM campaign",
@@ -350,6 +351,7 @@ export class GoogleAdsRestClient {
       budgetExplicitlyShared: budget.explicitlyShared === true,
       recommendedBudgetAmountMicros: nullableMicrosFromApi(budget.recommendedBudgetAmountMicros, "campaignBudget.recommendedBudgetAmountMicros"),
       biddingStrategyType: parseStrategyType(campaign.biddingStrategyType),
+      biddingStrategySystemStatus: stringField(campaign.biddingStrategySystemStatus, "campaign.biddingStrategySystemStatus"),
       portfolioBiddingStrategyResourceName: typeof campaign.biddingStrategy === "string" && campaign.biddingStrategy ? campaign.biddingStrategy : null,
       standardTargetCpaMicros: nullableMicrosFromApi(maximizeConversions?.targetCpaMicros, "campaign.maximizeConversions.targetCpaMicros"),
       standardTargetRoas: nullableNumberFromApi(maximizeConversionValue?.targetRoas, "campaign.maximizeConversionValue.targetRoas"),
