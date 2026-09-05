@@ -26,7 +26,7 @@ function policy() {
   });
 }
 
-describe("behavioral HTTP bounded body reader", () => {
+describe("behavioral HTTP boundary guardrails", () => {
   it("cancels an oversized streaming body before consuming the full stream", async () => {
     const store = new InMemoryOntologyTransactionStore();
     const runtime = new CortexBehavioralSignalRuntime(store, scope, policy(), { pseudonymizationKey: KEY }, () => NOW);
@@ -59,6 +59,28 @@ describe("behavioral HTTP bounded body reader", () => {
     expect(response.status).toBe(413);
     expect(cancelled).toBe(true);
     expect(pulls).toBeLessThan(20);
+    expect(store.checkpoint().objects).toHaveLength(1);
+  });
+
+  it("accepts JSON parameters but rejects media types that merely share the application/json prefix", async () => {
+    const store = new InMemoryOntologyTransactionStore();
+    const runtime = new CortexBehavioralSignalRuntime(store, scope, policy(), { pseudonymizationKey: KEY }, () => NOW);
+    const handler = createBehavioralSignalHttpHandler(runtime, { allowedOrigins: [ORIGIN] });
+    const body = JSON.stringify({ channel: "BASE", event: {} });
+
+    const parameterized = await handler(new Request(`${ORIGIN}/api`, {
+      method: "POST",
+      headers: { origin: ORIGIN, "content-type": "application/json; charset=utf-8" },
+      body,
+    }));
+    expect(parameterized.status).not.toBe(415);
+
+    const invalidPrefix = await handler(new Request(`${ORIGIN}/api`, {
+      method: "POST",
+      headers: { origin: ORIGIN, "content-type": "application/jsonp" },
+      body,
+    }));
+    expect(invalidPrefix.status).toBe(415);
     expect(store.checkpoint().objects).toHaveLength(1);
   });
 });
