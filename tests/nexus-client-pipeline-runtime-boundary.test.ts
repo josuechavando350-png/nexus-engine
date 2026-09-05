@@ -1,5 +1,5 @@
 import { execFileSync, spawnSync } from "node:child_process";
-import { mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -33,6 +33,18 @@ function externalTempSpec(value: unknown): string {
   return path;
 }
 
+function linkInstalledDependencies(root: string) {
+  const sourceModules = join(REPOSITORY_ROOT, "node_modules");
+  const targetModules = join(root, "node_modules");
+  mkdirSync(targetModules);
+  for (const entry of readdirSync(sourceModules)) {
+    const source = join(sourceModules, entry);
+    const target = join(targetModules, entry);
+    const type = statSync(source).isDirectory() ? "junction" : "file";
+    symlinkSync(source, target, type);
+  }
+}
+
 function isolatedCheckout() {
   const container = mkdtempSync(join(tmpdir(), "nexus-client-runtime-checkout-"));
   roots.push(container);
@@ -42,7 +54,7 @@ function isolatedCheckout() {
     stdio: "pipe",
   });
   worktrees.push(root);
-  symlinkSync(join(REPOSITORY_ROOT, "node_modules"), join(root, "node_modules"), "junction");
+  linkInstalledDependencies(root);
 
   const status = execFileSync("git", ["status", "--porcelain=v1"], {
     cwd: root,
