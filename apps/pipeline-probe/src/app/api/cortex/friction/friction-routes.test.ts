@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./control/route";
 import { POST } from "./score/route";
@@ -21,6 +22,8 @@ const model = {
   lowRiskMax: 0.33,
   mediumRiskMax: 0.66,
 };
+const MODEL_JSON = JSON.stringify(model);
+const MODEL_ARTIFACT_DIGEST = `sha256:${createHash("sha256").update(MODEL_JSON, "utf8").digest("hex")}`;
 const snapshot = {
   schemaVersion: 1,
   deviceClass: "DESKTOP",
@@ -36,7 +39,8 @@ const snapshot = {
 
 function enable(mode: "ACTIVE" | "OBSERVE_ONLY") {
   vi.stubEnv("NEXUS_CORTEX_09_MODE", mode);
-  vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", JSON.stringify(model));
+  vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", MODEL_JSON);
+  vi.stubEnv("NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST", MODEL_ARTIFACT_DIGEST);
 }
 
 function request(body: unknown, origin = "https://probe.example", contentType = "application/json") {
@@ -53,14 +57,22 @@ afterEach(() => {
 });
 
 describe("CORTEX #9 pipeline-probe boundaries", () => {
-  it("defaults to KILLED and refuses ACTIVE without a valid model artifact", async () => {
-    expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null });
+  it("defaults to KILLED and refuses ACTIVE without an integrity-bound model artifact", async () => {
+    expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
     vi.stubEnv("NEXUS_CORTEX_09_MODE", "ACTIVE");
-    expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null });
+    expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
     vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", "not-json");
-    expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null });
-    vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", JSON.stringify(model));
-    expect(await (await GET()).json()).toEqual({ mode: "ACTIVE", modelId: model.modelId, modelSourceDigest: MODEL_DIGEST });
+    expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
+    vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", MODEL_JSON);
+    vi.stubEnv("NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST", `sha256:${"b".repeat(64)}`);
+    expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
+    vi.stubEnv("NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST", MODEL_ARTIFACT_DIGEST);
+    expect(await (await GET()).json()).toEqual({
+      mode: "ACTIVE",
+      modelId: model.modelId,
+      modelSourceDigest: MODEL_DIGEST,
+      modelArtifactDigest: MODEL_ARTIFACT_DIGEST,
+    });
   });
 
   it("scores a valid same-origin snapshot only under one configured model revision", async () => {
@@ -75,6 +87,7 @@ describe("CORTEX #9 pipeline-probe boundaries", () => {
     expect(body.score.modelSourceDigest).toBe(MODEL_DIGEST);
     const emitted = String(log.mock.calls[0]?.[0]);
     expect(emitted).toContain(MODEL_DIGEST);
+    expect(emitted).toContain(MODEL_ARTIFACT_DIGEST);
     expect(emitted).not.toContain("probe.example");
     expect(emitted).not.toContain("scrollDepthBps");
   });
