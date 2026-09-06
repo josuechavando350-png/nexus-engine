@@ -1,7 +1,8 @@
+import { createHmac } from "node:crypto";
 import { request as httpRequest } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computeRiskNetworkKeyHash, signRiskPayload } from "./index";
-import { fixedUpstreamTarget, normalizeRemoteAddress, startCortex14RiskProxy } from "./production-server";
+import { fixedUpstreamTarget, normalizeRemoteAddress, readBoundedUpstreamBody, startCortex14RiskProxy } from "./production-server";
 
 const port = 39814;
 const origin = `http://127.0.0.1:${port}`;
@@ -25,6 +26,10 @@ function envelope(riskScore: number, networkAddress = "127.0.0.1") {
 
 function encodedEnvelope(value: unknown): string {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
+}
+
+function trustedProxySignature(asserted: string): string {
+  return `sha256=${createHmac("sha256", networkSecret).update(`client-network\0${asserted}`, "utf8").digest("hex")}`;
 }
 
 function request(path: string, headers: Record<string, string> = {}, method = "GET", body?: string): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: string }> {
@@ -84,6 +89,13 @@ describe("CORTEX #14 production proxy helpers", () => {
     expect(target.pathname).toBe("//attacker.invalid/steal");
     expect(target.search).toBe("?x=1");
   });
+
+  it("rejects declared and streamed upstream responses above the configured bound", async () => {
+    const declared = new Response("x", { headers: { "content-length": "2049" } });
+    await expect(readBoundedUpstreamBody(declared, 2048)).rejects.toThrow(/TOO_LARGE/u);
+    const streamed = new Response(new ReadableStream({ start(controller) { controller.enqueue(new Uint8Array(1025)); controller.close(); } }));
+    await expect(readBoundedUpstreamBody(streamed, 1024)).rejects.toThrow(/TOO_LARGE/u);
+  });
 });
 
 describe("CORTEX #14 production risk enforcement", () => {
@@ -107,6 +119,34 @@ describe("CORTEX #14 production risk enforcement", () => {
       expect(forwarded.get("x-forwarded-for")).toBeNull();
       expect(forwarded.get("x-real-ip")).toBeNull();
       expect(forwarded.get("x-nexus-risk-envelope")).toBeNull();
+    } finally {
+      await server.close();
+    }
+  });
+
+  it("accepts a network assertion only from a configured trusted proxy with a valid HMAC", async () => {
+    process.env.NEXUS_CORTEX_14_TRUSTED_PROXY_ADDRESSES = "127.0.0.1";
+    const asserted = "198.51.100.44";
+    const upstreamFetch = vi.fn(async () => new Response("ok", { status: 200 }));
+    vi.stubGlobal("fetch", upstreamFetch);
+    const server = startCortex14RiskProxy();
+    try {
+      await waitReady();
+      const valid = await request("/resource", {
+        "x-nexus-risk-envelope": encodedEnvelope(envelope(100, asserted)),
+        "x-nexus-client-network-key": asserted,
+        "x-nexus-client-network-signature": trustedProxySignature(asserted),
+      });
+      expect(valid.status).toBe(200);
+      expect(upstreamFetch).toHaveBeenCalledTimes(1);
+
+      const invalid = await request("/resource", {
+        "x-nexus-risk-envelope": encodedEnvelope(envelope(100, asserted)),
+        "x-nexus-client-network-key": asserted,
+        "x-nexus-client-network-signature": `sha256=${"0".repeat(64)}`,
+      });
+      expect(invalid.status).toBe(403);
+      expect(upstreamFetch).toHaveBeenCalledTimes(1);
     } finally {
       await server.close();
     }
