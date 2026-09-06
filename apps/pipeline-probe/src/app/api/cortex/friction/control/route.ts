@@ -9,6 +9,7 @@ export async function GET(): Promise<Response> {
     mode: control.mode,
     modelId: control.model?.modelId ?? null,
     modelSourceDigest: control.model?.sourceDigest ?? null,
+    modelArtifactDigest: control.modelArtifactDigest,
   }, {
     status: 200,
     headers: {
