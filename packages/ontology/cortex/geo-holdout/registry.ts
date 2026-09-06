@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { analyzeGeoHoldout, designGeoHoldout, Cortex12Error, type GeoHoldoutAnalysis, type GeoHoldoutDesign, type GeoOutcome } from "./index";
+import { analyzeGeoHoldout, designGeoHoldout, verifyGeoHoldoutDesign, Cortex12Error, type GeoHoldoutAnalysis, type GeoHoldoutDesign, type GeoOutcome } from "./index";
 
 export interface GeoExperimentRecord {
   readonly experimentId: string;
@@ -10,16 +10,22 @@ export interface GeoExperimentRecord {
 }
 
 export class GeoExperimentRegistryError extends Error {
-  constructor(public readonly code: "INVALID_INPUT" | "CONFLICT" | "NOT_FOUND" | "INTEGRITY_FAILURE", message: string, options?: ErrorOptions) {
+  constructor(public readonly code: "INVALID_INPUT" | "CONFLICT" | "NOT_FOUND" | "INTEGRITY_FAILURE" | "MODE_BLOCKED", message: string, options?: ErrorOptions) {
     super(message, options);
     this.name = "GeoExperimentRegistryError";
   }
 }
 
+function canonicalUtc(value: unknown): value is string {
+  if (typeof value !== "string") return false;
+  const parsed = new Date(value);
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString() === value;
+}
+
 export class SqliteGeoExperimentRegistry {
   private readonly db: DatabaseSync;
 
-  constructor(databasePath: string, private readonly now: () => number = Date.now) {
+  constructor(databasePath: string, private readonly now: () => number = Date.now, private readonly mutationAllowed: () => boolean = () => true) {
     if (!databasePath) throw new GeoExperimentRegistryError("INVALID_INPUT", "databasePath is required");
     this.db = new DatabaseSync(databasePath);
     this.db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;");
@@ -45,6 +51,7 @@ export class SqliteGeoExperimentRegistry {
       if (existing.design.designDigest !== design.designDigest) throw new GeoExperimentRegistryError("CONFLICT", "experimentId is already bound to a different geo design");
       return existing;
     }
+    if (!this.mutationAllowed()) throw new GeoExperimentRegistryError("MODE_BLOCKED", "runtime mode blocks durable geo design registration");
     const now = new Date(this.now()).toISOString();
     this.db.prepare("INSERT INTO cortex12_experiments(experiment_id,design_digest,design_json,analysis_json,created_at,updated_at) VALUES(?,?,?,?,?,?)").run(
       design.experimentId,
@@ -59,11 +66,11 @@ export class SqliteGeoExperimentRegistry {
     return created;
   }
 
-  analyze(experimentId: string, minGeosPerArm: number, outcomes: readonly GeoOutcome[]): GeoExperimentRecord {
+  analyze(experimentId: string, outcomes: readonly GeoOutcome[]): GeoExperimentRecord {
     const current = this.get(experimentId);
     if (!current) throw new GeoExperimentRegistryError("NOT_FOUND", "geo experiment was not found");
     let analysis: GeoHoldoutAnalysis;
-    try { analysis = analyzeGeoHoldout({ design: current.design, minGeosPerArm, outcomes }); }
+    try { analysis = analyzeGeoHoldout({ design: current.design, outcomes }); }
     catch (error) {
       if (error instanceof Cortex12Error && error.code === "INTEGRITY_FAILURE") throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", error.message, { cause: error });
       throw new GeoExperimentRegistryError("INVALID_INPUT", error instanceof Error ? error.message : "invalid geo analysis", { cause: error });
@@ -72,6 +79,7 @@ export class SqliteGeoExperimentRegistry {
       if (JSON.stringify(current.analysis) !== JSON.stringify(analysis)) throw new GeoExperimentRegistryError("CONFLICT", "experiment analysis is already immutable and differs from the requested result");
       return current;
     }
+    if (!this.mutationAllowed()) throw new GeoExperimentRegistryError("MODE_BLOCKED", "runtime mode blocks durable geo analysis persistence");
     const updatedAt = new Date(this.now()).toISOString();
     const result = this.db.prepare("UPDATE cortex12_experiments SET analysis_json=?,updated_at=? WHERE experiment_id=? AND analysis_json IS NULL").run(JSON.stringify(analysis), updatedAt, experimentId);
     if (result.changes !== 1) throw new GeoExperimentRegistryError("CONFLICT", "geo analysis was committed concurrently");
@@ -82,10 +90,13 @@ export class SqliteGeoExperimentRegistry {
     if (typeof experimentId !== "string" || experimentId.length < 4 || experimentId.length > 127) throw new GeoExperimentRegistryError("INVALID_INPUT", "experimentId is invalid");
     const row = this.db.prepare("SELECT experiment_id,design_digest,design_json,analysis_json,created_at,updated_at FROM cortex12_experiments WHERE experiment_id=?").get(experimentId) as Record<string, unknown> | undefined;
     if (!row) return undefined;
-    const design = JSON.parse(String(row.design_json)) as GeoHoldoutDesign;
+    let design: GeoHoldoutDesign;
+    try { design = verifyGeoHoldoutDesign(JSON.parse(String(row.design_json)) as unknown); }
+    catch (error) { throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", error instanceof Error ? error.message : "stored geo design is corrupt", { cause: error }); }
     if (design.experimentId !== row.experiment_id || design.designDigest !== row.design_digest || design.status !== "READY") throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", "stored geo design identity is corrupt");
     const analysis = row.analysis_json ? JSON.parse(String(row.analysis_json)) as GeoHoldoutAnalysis : null;
     if (analysis && (analysis.experimentId !== design.experimentId || analysis.designDigest !== design.designDigest)) throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", "stored geo analysis does not match its design");
-    return Object.freeze({ experimentId: String(row.experiment_id), design, analysis, createdAt: String(row.created_at), updatedAt: String(row.updated_at) });
+    if (!canonicalUtc(row.created_at) || !canonicalUtc(row.updated_at)) throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", "stored geo experiment timestamps are corrupt");
+    return Object.freeze({ experimentId: String(row.experiment_id), design, analysis, createdAt: row.created_at, updatedAt: row.updated_at });
   }
 }
