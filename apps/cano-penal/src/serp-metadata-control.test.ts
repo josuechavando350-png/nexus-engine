@@ -69,7 +69,7 @@ describe("CANO SERP metadata consumer", () => {
     const stream = new ReadableStream<Uint8Array>({
       start(controller) {
         controller.enqueue(encoder.encode("{"));
-        controller.enqueue(encoder.encode(`\"padding\":\"${"x".repeat(9 * 1024)}\"}`));
+        controller.enqueue(encoder.encode(`"padding":"${"x".repeat(9 * 1024)}"}`));
         controller.close();
       },
     });
