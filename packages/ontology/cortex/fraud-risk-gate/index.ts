@@ -74,20 +74,20 @@ export function computeRiskNetworkKeyHash(networkKey: string, secret: string): `
 }
 
 export function signRiskPayload(payloadInput: unknown, secret: string): SignedRiskEnvelope {
-  if (secret.length < 32) throw new Cortex14Error("INVALID_INPUT", "signing secret must contain at least 32 characters");
+  if (typeof secret !== "string" || secret.length < 32 || secret.length > 4096 || /[\r\n]/u.test(secret)) throw new Cortex14Error("INVALID_INPUT", "signing secret is invalid");
   const payload = parsePayload(payloadInput);
   const signature = createHmac("sha256", secret).update(canonical(payload), "utf8").digest("hex");
   return Object.freeze({ payload, signature: `sha256=${signature}` as const });
 }
 
 function verifySignature(envelope: SignedRiskEnvelope, secret: string): void {
-  if (secret.length < 32 || typeof envelope.signature !== "string" || !/^sha256=[0-9a-f]{64}$/u.test(envelope.signature)) throw new Cortex14Error("INVALID_SIGNATURE", "risk signature is malformed");
+  if (typeof secret !== "string" || secret.length < 32 || secret.length > 4096 || /[\r\n]/u.test(secret) || typeof envelope.signature !== "string" || !/^sha256=[0-9a-f]{64}$/u.test(envelope.signature)) throw new Cortex14Error("INVALID_SIGNATURE", "risk signature is malformed");
   const expected = Buffer.from(createHmac("sha256", secret).update(canonical(envelope.payload), "utf8").digest("hex"), "utf8");
   const provided = Buffer.from(envelope.signature.slice(7), "utf8");
   if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) throw new Cortex14Error("INVALID_SIGNATURE", "risk signature mismatch");
 }
 
-function parsePolicy(value: unknown): RiskPolicy {
+export function parseRiskPolicy(value: unknown): RiskPolicy {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new Cortex14Error("POLICY_ERROR", "risk policy must be a plain object");
   const raw = value as Record<string, unknown>;
   if (Object.keys(raw).sort().join(",") !== "challengeAtOrAbove,denyAtOrAbove,maxAssessmentAgeSeconds,maxFutureSkewSeconds") throw new Cortex14Error("POLICY_ERROR", "risk policy contract contains missing or unsupported fields");
@@ -108,7 +108,7 @@ function parseAndVerifyEnvelope(envelopeInput: unknown, secret: string, policyIn
   const payload = parsePayload(raw.payload);
   const envelope = { payload, signature: raw.signature } as SignedRiskEnvelope;
   verifySignature(envelope, secret);
-  const policy = parsePolicy(policyInput);
+  const policy = parseRiskPolicy(policyInput);
   if (!Number.isFinite(nowMs)) throw new Cortex14Error("INVALID_INPUT", "nowMs is invalid");
   const assessedAt = parseUtc(payload.assessedAt, "assessedAt");
   const expiresAt = parseUtc(payload.expiresAt, "expiresAt");
