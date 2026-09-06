@@ -99,7 +99,7 @@ describe("CORTEX #14 production proxy helpers", () => {
 
 describe("CORTEX #14 production risk enforcement", () => {
   it("forwards a valid low-risk request only to the fixed upstream and strips spoofable and hop-by-hop headers", async () => {
-    const upstreamFetch = vi.fn(async (_url: URL | string, _init?: RequestInit) => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }));
+    const upstreamFetch = vi.fn(async () => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }));
     vi.stubGlobal("fetch", upstreamFetch);
     const server = startCortex14RiskProxy(config());
     try {
