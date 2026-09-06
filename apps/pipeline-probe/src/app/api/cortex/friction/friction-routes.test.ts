@@ -79,6 +79,13 @@ describe("CORTEX #9 pipeline-probe boundaries", () => {
     expect((await (await GET()).json()).mode).toBe("KILLED");
 
     vi.stubEnv("NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST", MODEL_ARTIFACT_DIGEST);
+    vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", `${MODEL_JSON}\n`);
+    expect((await (await GET()).json()).mode).toBe("KILLED");
+
+    vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", " ".repeat(65_537));
+    expect((await (await GET()).json()).mode).toBe("KILLED");
+
+    vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", MODEL_JSON);
     vi.stubEnv("NEXUS_CORTEX_09_CALIBRATION_SOURCE_DIGEST", `sha256:${"c".repeat(64)}`);
     expect((await (await GET()).json()).mode).toBe("KILLED");
 
