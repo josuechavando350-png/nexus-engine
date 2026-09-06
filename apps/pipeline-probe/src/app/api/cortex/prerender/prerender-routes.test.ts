@@ -2,7 +2,6 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { GET } from "./control/route";
 import { POST } from "./observe/route";
 
-const CONTROL_URL = "https://probe.example/api/cortex/prerender/control";
 const OBSERVE_URL = "https://probe.example/api/cortex/prerender/observe";
 
 afterEach(() => {
