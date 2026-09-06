@@ -2,6 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{3,127}$/u;
 const PATH = /^\/[A-Za-z0-9/_-]{0,255}$/u;
+const MAX_EMBEDDING_RESPONSE_BYTES = 8 * 1024 * 1024;
 
 export interface SearchDocumentInput {
   readonly id: string;
@@ -75,25 +76,68 @@ function cosine(left: readonly number[], right: readonly number[]): number {
 
 function round(value: number): number { return Math.round((value + Number.EPSILON) * 1_000_000) / 1_000_000; }
 
+async function readBoundedJson(response: Response): Promise<unknown> {
+  const declared = response.headers.get("content-length");
+  if (declared !== null && (!/^\d+$/u.test(declared) || Number(declared) > MAX_EMBEDDING_RESPONSE_BYTES)) throw new Cortex15Error("PROVIDER_ERROR", "embedding response is oversized");
+  if (!response.body) throw new Cortex15Error("PROVIDER_ERROR", "embedding response body is missing");
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_EMBEDDING_RESPONSE_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw new Cortex15Error("PROVIDER_ERROR", "embedding response is oversized");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const combined = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { combined.set(chunk, offset); offset += chunk.byteLength; }
+  try {
+    return JSON.parse(new TextDecoder().decode(combined)) as unknown;
+  } catch {
+    throw new Cortex15Error("PROVIDER_ERROR", "embedding response is not valid JSON");
+  }
+}
+
 export class OpenAICompatibleEmbeddingProvider implements EmbeddingProvider {
   constructor(private readonly endpoint: URL, public readonly modelId: string, private readonly bearerToken: string, private readonly timeoutMs = 10_000) {
-    if (endpoint.protocol !== "https:" || !ID.test(modelId) || !bearerToken || !Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 60_000) throw new Cortex15Error("INVALID_INPUT", "embedding provider configuration is invalid");
+    if (endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.hash || !ID.test(modelId) || !bearerToken || bearerToken.length > 8_192 || /[\r\n]/u.test(bearerToken) || !Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 60_000) {
+      throw new Cortex15Error("INVALID_INPUT", "embedding provider configuration is invalid");
+    }
   }
 
   async embed(texts: readonly string[]): Promise<readonly (readonly number[])[]> {
     if (texts.length < 1 || texts.length > 128 || texts.some((text) => typeof text !== "string" || text.length < 1 || text.length > 50_000)) throw new Cortex15Error("INVALID_INPUT", "embedding batch is invalid");
     const response = await fetch(this.endpoint, {
       method: "POST",
-      headers: { authorization: `Bearer ${this.bearerToken}`, "content-type": "application/json" },
+      headers: { authorization: `Bearer ${this.bearerToken}`, "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ model: this.modelId, input: texts }),
       redirect: "error",
       signal: AbortSignal.timeout(this.timeoutMs),
     });
     if (!response.ok) throw new Cortex15Error("PROVIDER_ERROR", `embedding provider returned HTTP ${response.status}`);
-    const body = await response.json() as { data?: { embedding?: unknown; index?: unknown }[] };
-    if (!Array.isArray(body.data) || body.data.length !== texts.length) throw new Cortex15Error("PROVIDER_ERROR", "embedding response cardinality mismatch");
-    const ordered = [...body.data].sort((a, b) => Number(a.index) - Number(b.index));
-    return Object.freeze(ordered.map((item) => vector(item.embedding)));
+    const body = await readBoundedJson(response) as { data?: unknown };
+    if (!body || typeof body !== "object" || !Array.isArray(body.data) || body.data.length !== texts.length) throw new Cortex15Error("PROVIDER_ERROR", "embedding response cardinality mismatch");
+    const byIndex = new Map<number, readonly number[]>();
+    for (const item of body.data) {
+      if (!item || typeof item !== "object" || Array.isArray(item)) throw new Cortex15Error("PROVIDER_ERROR", "embedding response item is invalid");
+      const raw = item as Record<string, unknown>;
+      if (!Number.isSafeInteger(raw.index) || (raw.index as number) < 0 || (raw.index as number) >= texts.length || byIndex.has(raw.index as number)) throw new Cortex15Error("PROVIDER_ERROR", "embedding response index is invalid or duplicated");
+      byIndex.set(raw.index as number, vector(raw.embedding));
+    }
+    const ordered = Array.from({ length: texts.length }, (_, index) => byIndex.get(index));
+    if (ordered.some((item) => !item)) throw new Cortex15Error("PROVIDER_ERROR", "embedding response indices are incomplete");
+    const dimensions = ordered[0]!.length;
+    if (!ordered.every((item) => item!.length === dimensions)) throw new Cortex15Error("PROVIDER_ERROR", "embedding response dimensions are inconsistent");
+    return Object.freeze(ordered as readonly (readonly number[])[]);
   }
 }
 
@@ -104,7 +148,7 @@ export class SqliteSemanticSearchIndex {
   constructor(databasePath: string, private readonly provider: EmbeddingProvider | null, private readonly now: () => number = Date.now) {
     if (!databasePath) throw new Cortex15Error("INVALID_INPUT", "databasePath is required");
     this.db = new DatabaseSync(databasePath);
-    this.db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
+    this.db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;");
     this.db.exec(`CREATE TABLE IF NOT EXISTS cortex15_documents(
       id TEXT PRIMARY KEY,
       text TEXT NOT NULL,
@@ -134,14 +178,14 @@ export class SqliteSemanticSearchIndex {
         statement.run(doc.id, doc.text, doc.landingPath, embedding ? JSON.stringify(embedding) : null, embedding ? this.provider!.modelId : null, updatedAt);
       });
       this.db.exec("COMMIT");
-    } catch (error) { this.db.exec("ROLLBACK"); throw error; }
+    } catch (error) { if (this.db.isTransaction) this.db.exec("ROLLBACK"); throw error; }
     const semantic = embeddings ? docs.length : 0;
     return Object.freeze({ indexed: docs.length, semantic, lexicalOnly: docs.length - semantic });
   }
 
   async search(query: string, options: SemanticSearchOptions): Promise<SemanticSearchResult> {
     if (typeof query !== "string" || query.trim().length < 2 || query.length > 1_000) throw new Cortex15Error("INVALID_INPUT", "query is invalid");
-    if (!Number.isSafeInteger(options.topK) || options.topK < 1 || options.topK > 100 || typeof options.minSemanticCoverage !== "number" || options.minSemanticCoverage < 0 || options.minSemanticCoverage > 1) throw new Cortex15Error("INVALID_INPUT", "search options are invalid");
+    if (!options || typeof options !== "object" || Array.isArray(options) || Object.keys(options).sort().join(",") !== "minSemanticCoverage,topK" || !Number.isSafeInteger(options.topK) || options.topK < 1 || options.topK > 100 || typeof options.minSemanticCoverage !== "number" || !Number.isFinite(options.minSemanticCoverage) || options.minSemanticCoverage < 0 || options.minSemanticCoverage > 1) throw new Cortex15Error("INVALID_INPUT", "search options are invalid");
     const docs = (this.db.prepare("SELECT id,text,landing_path,embedding_json,model_id FROM cortex15_documents ORDER BY id").all() as Record<string, unknown>[]).map((row): StoredDocument => ({
       id: String(row.id), text: String(row.text), landingPath: String(row.landing_path), embedding: row.embedding_json ? vector(JSON.parse(String(row.embedding_json)) as unknown) : null, modelId: row.model_id ? String(row.model_id) : null,
     }));
