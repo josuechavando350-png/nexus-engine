@@ -20,25 +20,35 @@ describe("CORTEX #12 geo holdout design", () => {
     expect(first.minGeosPerArm).toBe(3);
     expect(first.maxBaselineImbalance).toBe(0.2);
     expect(first.seedDigest).toMatch(/^sha256:[0-9a-f]{64}$/u);
+    expect(JSON.stringify(first)).not.toContain(designInput.seed);
     expect(first.assignments.filter((row) => row.arm === "CONTROL").length).toBeGreaterThanOrEqual(3);
     expect(first.assignments.filter((row) => row.arm === "TREATMENT").length).toBeGreaterThanOrEqual(3);
     expect(first.designDigest).toMatch(/^sha256:[0-9a-f]{64}$/u);
     expect(verifyGeoHoldoutDesign(first)).toEqual(first);
   });
 
-  it("rejects duplicate geos, impossible sample plans and excessive baseline imbalance", () => {
+  it("rejects duplicate geos and represents an impossible sample plan without fabricating imbalance", () => {
     expect(() => designGeoHoldout({ ...designInput, geos: [...geos, geos[0]!] })).toThrowError(/duplicated/u);
-    expect(() => designGeoHoldout({ ...designInput, minGeosPerArm: 9 })).toThrowError(/preregistered minimum/u);
+    const impossible = designGeoHoldout({ ...designInput, minGeosPerArm: 9 });
+    expect(impossible.status).toBe("REJECTED");
+    expect(impossible.reason).toBe("INSUFFICIENT_ARM_SIZE");
+    expect(impossible.baselineImbalance).toBeNull();
+    expect(verifyGeoHoldoutDesign(impossible)).toEqual(impossible);
+  });
+
+  it("rejects excessive baseline imbalance explicitly", () => {
     const extreme = geos.map((geo, index) => ({ ...geo, baselineOutcome: index < 10 ? 1 : 1_000_000 + index }));
     const result = designGeoHoldout({ ...designInput, maxBaselineImbalance: 0, geos: extreme });
     expect(result.status).toBe("REJECTED");
     expect(result.reason).toBe("BASELINE_IMBALANCE");
+    expect(result.baselineImbalance).not.toBeNull();
   });
 
-  it("detects mutation of assignments or preregistered thresholds", () => {
+  it("detects mutation of assignments, preregistered thresholds or rejection semantics", () => {
     const design = designGeoHoldout(designInput);
     expect(() => verifyGeoHoldoutDesign({ ...design, minGeosPerArm: 4 })).toThrowError(/digest mismatch/u);
     expect(() => verifyGeoHoldoutDesign({ ...design, assignments: design.assignments.map((item, index) => index === 0 ? { ...item, baselineOutcome: item.baselineOutcome + 1 } : item) })).toThrowError(/digest mismatch/u);
+    expect(() => verifyGeoHoldoutDesign({ ...design, status: "REJECTED", reason: "INSUFFICIENT_ARM_SIZE", baselineImbalance: null })).toThrowError(Cortex12Error);
   });
 });
 
