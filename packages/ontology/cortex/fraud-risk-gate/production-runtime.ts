@@ -1,9 +1,9 @@
 import { readFileSync, statSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import { pathToFileURL } from "node:url";
-import { parseRiskPolicy, type RiskPolicy } from "./index";
-import { startCortex14RiskProxy } from "./production-server";
-import { SqliteRiskGateControl } from "./runtime-control";
+import { parseRiskPolicy, type RiskPolicy } from "./index.js";
+import { startCortex14RiskProxy } from "./production-server.js";
+import { SqliteRiskGateControl } from "./runtime-control.js";
 
 export interface Cortex14ProductionConfig {
   readonly databasePath: string;
