@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
-import { spawn } from "node:child_process";
+import { spawn, execFileSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { execFileSync } from "node:child_process";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const requireFromCapture = createRequire(join(repositoryRoot, "packages", "capture", "package.json"));
@@ -44,7 +43,7 @@ async function waitForServer(processHandle, expectedMode) {
 }
 
 function startProbe(mode) {
-  return spawn("pnpm", ["--filter", "@nexus/pipeline-probe", "exec", "next", "start", "-H", "127.0.0.1", "-p", String(port)], {
+  const child = spawn("pnpm", ["--filter", "@nexus/pipeline-probe", "exec", "next", "start", "-H", "127.0.0.1", "-p", String(port)], {
     cwd: repositoryRoot,
     env: {
       ...process.env,
@@ -52,8 +51,10 @@ function startProbe(mode) {
       NEXUS_CORTEX_08_MAX_PREPARED_TARGETS: "2",
       NODE_ENV: "production",
     },
-    stdio: ["ignore", "pipe", "pipe"],
+    stdio: ["ignore", "inherit", "inherit"],
   });
+  child.on("error", (error) => console.error("pipeline-probe child process error", error));
+  return child;
 }
 
 async function stopProbe(processHandle) {
@@ -69,6 +70,16 @@ async function stopProbe(processHandle) {
   }
 }
 
+async function assertRootServed(processHandle) {
+  const response = await fetch(baseUrl, { redirect: "error", headers: { accept: "text/html" } });
+  const body = await response.text();
+  if (!response.ok) throw new Error(`pipeline-probe root readiness returned HTTP ${response.status}`);
+  if (processHandle.exitCode !== null) throw new Error(`pipeline-probe exited while serving root with code ${processHandle.exitCode}`);
+  if (!body.includes("<a") || ![...allowedProbeRoutes].some((path) => body.includes(`href=\"${path}\"`))) {
+    throw new Error(`pipeline-probe root HTML lacks a real allowlisted navigation target; bytes=${Buffer.byteLength(body)}`);
+  }
+}
+
 async function main() {
   assertExactSource();
   execFileSync("pnpm", ["--filter", "@nexus/pipeline-probe", "build"], {
@@ -81,18 +92,22 @@ async function main() {
   let browser;
   try {
     await waitForServer(server, "ACTIVE");
+    await assertRootServed(server);
+
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
-    const navigation = await page.goto(baseUrl, { waitUntil: "networkidle" });
+    const navigation = await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 15_000 });
     if (!navigation?.ok()) throw new Error(`pipeline-probe root returned HTTP ${navigation?.status() ?? "unknown"}`);
+    if (server.exitCode !== null) throw new Error(`pipeline-probe exited after browser navigation with code ${server.exitCode}`);
 
     try {
       await page.locator('a[href]').first().waitFor({ state: "attached", timeout: 10_000 });
     } catch {
       const bodyText = (await page.locator("body").innerText().catch(() => "")).slice(0, 1000);
-      throw new Error(`real probe rendered no anchors; pageErrors=${JSON.stringify(pageErrors)} body=${JSON.stringify(bodyText)}`);
+      const htmlBytes = Buffer.byteLength(await page.content().catch(() => ""));
+      throw new Error(`real probe rendered no anchors; url=${page.url()} htmlBytes=${htmlBytes} pageErrors=${JSON.stringify(pageErrors)} body=${JSON.stringify(bodyText)}`);
     }
 
     const renderedAnchors = await page.locator("a[href]").evaluateAll((anchors) => anchors.map((anchor) => ({
