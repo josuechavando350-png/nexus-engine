@@ -100,9 +100,12 @@ describe("HttpCreativeDesiredStateProvider", () => {
 
     vi.useFakeTimers();
     try {
-      const pending = provider.getDesiredState(CUSTOMER);
+      const rejection = expect(provider.getDesiredState(CUSTOMER)).rejects.toMatchObject({
+        code: "TIMEOUT",
+        message: "desired-state endpoint timed out",
+      });
       await vi.advanceTimersByTimeAsync(1_001);
-      await expect(pending).rejects.toMatchObject({ code: "TIMEOUT", message: "desired-state endpoint timed out" });
+      await rejection;
     } finally {
       vi.useRealTimers();
     }
