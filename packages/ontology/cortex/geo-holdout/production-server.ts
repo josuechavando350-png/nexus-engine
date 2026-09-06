@@ -1,10 +1,8 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import { analyzeGeoHoldout, designGeoHoldout, Cortex12Error, type GeoHoldoutMode as NeverMode } from "./index";
+import { analyzeGeoHoldout, designGeoHoldout, Cortex12Error, type GeoOutcome } from "./index";
 import { GeoExperimentRegistryError, SqliteGeoExperimentRegistry } from "./registry";
 import { GeoHoldoutControlError, SqliteGeoHoldoutControl, type GeoHoldoutMode } from "./runtime-control";
-
-void (null as NeverMode | null);
 
 const JSON_TYPE = "application/json";
 const MAX_BODY_BYTES = 256 * 1024;
@@ -75,11 +73,11 @@ function controlInput(value: unknown): { mode: GeoHoldoutMode; expectedRevision:
   return { mode: raw.mode, expectedRevision: raw.expectedRevision as number };
 }
 
-function analysisInput(value: unknown): { experimentId: string; outcomes: readonly unknown[] } {
+function analysisInput(value: unknown): { experimentId: string; outcomes: readonly GeoOutcome[] } {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new Cortex12Error("INVALID_INPUT", "analysis request must be a plain object");
   const raw = value as Record<string, unknown>;
   if (Object.keys(raw).sort().join(",") !== "experimentId,outcomes" || typeof raw.experimentId !== "string" || !Array.isArray(raw.outcomes)) throw new Cortex12Error("INVALID_INPUT", "analysis request contract is invalid");
-  return { experimentId: raw.experimentId, outcomes: raw.outcomes };
+  return { experimentId: raw.experimentId, outcomes: raw.outcomes as readonly GeoOutcome[] };
 }
 
 export class GeoHoldoutProductionServer {
