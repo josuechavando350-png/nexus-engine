@@ -89,7 +89,7 @@ export function Cortex09FrictionClient() {
     const sample = async () => {
       if (stopped) return;
       const mode = await readMode().catch(() => "KILLED" as const);
-      if (mode !== "ACTIVE") {
+      if (mode === "KILLED") {
         rollback();
         return;
       }
@@ -119,6 +119,13 @@ export function Cortex09FrictionClient() {
           return;
         }
         const result = await response.json() as { mode?: unknown; score?: { riskBand?: unknown; abandonmentProbability?: unknown } | null };
+        if (mode === "OBSERVE_ONLY") {
+          // Observation mode still exercises the real scoring boundary, but it
+          // must never expose a consumer-visible intervention state.
+          if (result.mode !== "OBSERVE_ONLY" || result.score !== null) rollback();
+          else rollback();
+          return;
+        }
         if (result.mode !== "ACTIVE" || !result.score || typeof result.score.riskBand !== "string" || typeof result.score.abandonmentProbability !== "number") {
           rollback();
           return;
