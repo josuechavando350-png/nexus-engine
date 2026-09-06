@@ -63,8 +63,8 @@ describe("CORTEX #12 durable experiment registry", () => {
 
   it("refuses rejected designs instead of persisting an invalid experiment", () => {
     const registry = new SqliteGeoExperimentRegistry(path());
-    const extreme = geos.map((geo, index) => ({ ...geo, baselineOutcome: index < 10 ? 1 : 1_000_000 + index }));
-    expect(() => registry.registerDesign({ ...designInput, maxBaselineImbalance: 0, geos: extreme })).toThrowError(/not READY/u);
+    const nonlinear = geos.map((geo, index) => ({ ...geo, baselineOutcome: 1_000 + index * index * 10 }));
+    expect(() => registry.registerDesign({ ...designInput, maxBaselineImbalance: 0, geos: nonlinear })).toThrowError(/not READY/u);
     expect(registry.get(designInput.experimentId)).toBeUndefined();
     registry.close();
   });
