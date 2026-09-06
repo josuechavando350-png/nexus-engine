@@ -15,6 +15,7 @@ export interface Cortex09Runtime {
 }
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
+const MAX_MODEL_ARTIFACT_BYTES = 64 * 1024;
 
 function artifactDigest(rawModel: string): `sha256:${string}` {
   return `sha256:${createHash("sha256").update(rawModel, "utf8").digest("hex")}`;
@@ -36,11 +37,15 @@ export function readCortex09Runtime(): Cortex09Runtime {
     : "KILLED";
   if (requestedMode === "KILLED") return killed();
 
-  const rawModel = process.env.NEXUS_CORTEX_09_MODEL_JSON?.trim();
+  // Preserve the exact configured model string for artifact identity. Trimming
+  // before hashing would allow different bytes to authenticate as one artifact.
+  const rawModel = process.env.NEXUS_CORTEX_09_MODEL_JSON;
   const expectedArtifactDigest = process.env.NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST?.trim();
   const expectedCalibrationSourceDigest = process.env.NEXUS_CORTEX_09_CALIBRATION_SOURCE_DIGEST?.trim();
   if (
-    !rawModel
+    rawModel === undefined
+    || rawModel.trim().length === 0
+    || Buffer.byteLength(rawModel, "utf8") > MAX_MODEL_ARTIFACT_BYTES
     || !expectedArtifactDigest
     || !SHA256.test(expectedArtifactDigest)
     || !expectedCalibrationSourceDigest
