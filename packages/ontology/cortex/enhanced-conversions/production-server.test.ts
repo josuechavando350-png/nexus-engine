@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { OntologyScope } from "@nexus/ontology";
 import { InMemoryOntologyTransactionStore } from "@nexus/ontology/transaction";
-import type { DataManagerConversionEvent, DataManagerDestination } from "./data-manager-rest";
+import type { DataManagerDestination } from "./data-manager-rest";
 import { DurableEnhancedConversionsPipeline, type EnhancedConversionGateway } from "./index";
 import { EnhancedConversionProductionServer } from "./production-server";
 import { DurableEnhancedConversionControl } from "./runtime-control";
@@ -25,7 +25,7 @@ const event = {
 
 class Gateway implements EnhancedConversionGateway {
   calls = 0;
-  async ingestConversion(_destination: DataManagerDestination, _event: DataManagerConversionEvent) {
+  async ingestConversion() {
     this.calls += 1;
     return { requestId: `request-${this.calls}-00000000` };
   }
