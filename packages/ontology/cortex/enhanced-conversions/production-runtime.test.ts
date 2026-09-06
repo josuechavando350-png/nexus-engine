@@ -56,7 +56,7 @@ describe("CORTEX #10 production runtime environment", () => {
     }
   });
 
-  it("requires absolute durable state and token paths plus distinct credentials", async () => {
+  it("requires absolute durable state and token paths plus distinct credentials", () => {
     configure();
     vi.stubEnv("NEXUS_CORTEX_10_DATABASE", "relative.sqlite");
     expect(() => createEnhancedConversionProductionRuntimeFromEnv()).toThrowError(/absolute path/u);
@@ -67,7 +67,6 @@ describe("CORTEX #10 production runtime environment", () => {
 
     configure();
     vi.stubEnv("NEXUS_CORTEX_10_CONTROL_TOKEN", process.env.NEXUS_CORTEX_10_INGEST_TOKEN!);
-    const runtime = createEnhancedConversionProductionRuntimeFromEnv();
-    await runtime.close();
+    expect(() => createEnhancedConversionProductionRuntimeFromEnv()).toThrowError(/distinct credentials/u);
   });
 });
