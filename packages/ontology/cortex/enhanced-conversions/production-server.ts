@@ -53,7 +53,7 @@ async function boundedJson(request: IncomingMessage): Promise<unknown> {
     const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     total += bytes.byteLength;
     if (total > MAX_BODY_BYTES) {
-      request.destroy();
+      request.resume();
       throw new Error("BODY_TOO_LARGE");
     }
     chunks.push(bytes);
@@ -148,8 +148,6 @@ export class EnhancedConversionProductionServer {
           return;
         }
 
-        // Final control read before any durable PREPARE mutation. The engine
-        // performs another independent read at its persistence boundary.
         const finalMode = this.options.control.read().mode;
         if (finalMode === "KILLED") { json(response, 503, { error: "KILLED" }); return; }
         if (finalMode === "OBSERVE_ONLY") {
