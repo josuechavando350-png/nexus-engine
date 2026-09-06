@@ -1,5 +1,13 @@
 import type { NextConfig } from "next";
-import { NEXUS_CSP_BASE, NEXUS_SECURITY_HEADERS_BASE } from "@nexus/core/foundation/config";
+import { buildCsp, NEXUS_SECURITY_HEADERS_BASE } from "@nexus/core/foundation/config";
+
+const csp = buildCsp({
+  "script-src": ["'self'", "'unsafe-inline'"],
+  "style-src": ["'self'", "'unsafe-inline'"],
+  "img-src": ["'self'", "data:"],
+  "connect-src": ["'self'"],
+  "font-src": ["'self'"],
+});
 
 const nextConfig: NextConfig = {
   experimental: process.env.NEXUS_DETERMINISTIC_BUILD === "1"
@@ -18,7 +26,7 @@ const nextConfig: NextConfig = {
       source: "/(.*)",
       headers: [
         ...NEXUS_SECURITY_HEADERS_BASE.map(({ key, value }) => ({ key, value })),
-        { key: "Content-Security-Policy", value: NEXUS_CSP_BASE },
+        { key: "Content-Security-Policy", value: csp },
       ],
     }];
   },
