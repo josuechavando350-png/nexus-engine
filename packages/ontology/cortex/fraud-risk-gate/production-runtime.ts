@@ -55,6 +55,9 @@ function parseTrustedProxies(value: string | undefined): readonly string[] {
 }
 
 export function loadCortex14ProductionConfig(env: NodeJS.ProcessEnv = process.env): Cortex14ProductionConfig {
+  if (env.NEXUS_CORTEX_14_PERSISTENCE_ACK !== "durable-volume") {
+    throw new Error("NEXUS_CORTEX_14_PERSISTENCE_ACK must equal durable-volume; ephemeral control storage is refused");
+  }
   const databasePath = absolutePath(env, "NEXUS_CORTEX_14_DATABASE");
   const signingSecret = readSecretFile(env, "NEXUS_CORTEX_14_SIGNING_SECRET_FILE");
   const networkSecret = readSecretFile(env, "NEXUS_CORTEX_14_NETWORK_KEY_SECRET_FILE");
@@ -113,6 +116,7 @@ export function startCortex14ProductionRuntime(env: NodeJS.ProcessEnv = process.
 }
 
 async function main(): Promise<void> {
+  process.umask(0o077);
   const runtime = startCortex14ProductionRuntime();
   let shuttingDown = false;
   const shutdown = async () => {
