@@ -45,7 +45,7 @@ export function evaluateCwvLifecycle(
     throw new TypeError("CWV sample contract is invalid");
   }
   if (!(sampleInput.visibility === "VISIBLE" || sampleInput.visibility === "HIDDEN")) throw new TypeError("visibility is invalid");
-  if (!thresholdsInput || typeof thresholdsInput !== "object" || Array.isArray(thresholdsInput) || Object.keys(thresholdsInput).sort().join(",") !== "clsPressure,inpPressureMs,longTaskPressureMs,lcpPressureMs") {
+  if (!thresholdsInput || typeof thresholdsInput !== "object" || Array.isArray(thresholdsInput) || Object.keys(thresholdsInput).sort().join(",") !== "clsPressure,inpPressureMs,lcpPressureMs,longTaskPressureMs") {
     throw new TypeError("CWV threshold contract is invalid");
   }
 
