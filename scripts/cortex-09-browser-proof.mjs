@@ -224,9 +224,9 @@ async function main() {
     if (activeRequest.featureContractId !== featureContractId || !(activeRequest.pointerClass === "COARSE" || activeRequest.pointerClass === "FINE")) {
       throw new Error(`CORTEX #9 browser sent invalid feature identity: ${JSON.stringify(activeRequest)}`);
     }
-    const serializedRequest = JSON.stringify(activeRequest);
+    const serializedRequest = JSON.stringify(activeRequest).toLowerCase();
     for (const forbidden of ["email", "phone", "name", "address", "value", "text", "href", "url", "gclid"]) {
-      if (serializedRequest.toLowerCase().includes(`\"${forbidden}`)) throw new Error(`CORTEX #9 browser signal payload contains forbidden raw field ${forbidden}`);
+      if (serializedRequest.includes(`"${forbidden}`)) throw new Error(`CORTEX #9 browser signal payload contains forbidden raw field ${forbidden}`);
     }
 
     const activeState = await page.evaluate(() => ({
