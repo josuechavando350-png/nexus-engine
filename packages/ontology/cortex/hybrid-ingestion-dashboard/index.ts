@@ -1,9 +1,9 @@
 import { createHash } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
-import { SqliteDurableEventStream, type DurableEventRecord } from "../event-budget-stream/index";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{3,191}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
+const MAX_PROVIDER_RESPONSE_BYTES = 8 * 1024 * 1024;
 
 export interface FinancialMetricInput {
   readonly source: string;
@@ -34,6 +34,18 @@ export interface ExternalMetricPage {
 export interface ExternalMetricSource {
   readonly sourceId: string;
   poll(cursor: string | null): Promise<ExternalMetricPage>;
+}
+
+export interface DurableMetricEventRecord {
+  readonly sequence: number;
+  readonly eventId: string;
+  readonly payload: unknown;
+}
+
+export interface DurableMetricEventReader {
+  readOffset(consumerId: string, stream: string): number;
+  read(stream: string, afterSequence: number, limit: number): readonly DurableMetricEventRecord[];
+  commitOffset(consumerId: string, stream: string, sequence: number): unknown;
 }
 
 export interface SourceHealth {
@@ -82,18 +94,47 @@ function canonical(value: unknown): string {
 function digest(value: unknown): string { return createHash("sha256").update(canonical(value), "utf8").digest("hex"); }
 function round(value: number): number { return Math.round((value + Number.EPSILON) * 100) / 100; }
 
+async function readBoundedJson(response: Response): Promise<unknown> {
+  const declared = response.headers.get("content-length");
+  if (declared !== null && (!/^\d+$/u.test(declared) || Number(declared) > MAX_PROVIDER_RESPONSE_BYTES)) throw new Cortex18Error("PROVIDER_ERROR", "external metric response is oversized");
+  if (!response.body) throw new Cortex18Error("PROVIDER_ERROR", "external metric response body is missing");
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_PROVIDER_RESPONSE_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw new Cortex18Error("PROVIDER_ERROR", "external metric response is oversized");
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  try { return JSON.parse(new TextDecoder().decode(bytes)) as unknown; }
+  catch { throw new Cortex18Error("PROVIDER_ERROR", "external metric response is not valid JSON"); }
+}
+
 export class HttpIncrementalMetricSource implements ExternalMetricSource {
   constructor(public readonly sourceId: string, private readonly endpoint: URL, private readonly bearerToken: string, private readonly timeoutMs = 10_000) {
-    if (!ID.test(sourceId) || endpoint.protocol !== "https:" || !bearerToken || !Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 60_000) throw new Cortex18Error("INVALID_INPUT", "external metric source configuration is invalid");
+    if (!ID.test(sourceId) || endpoint.protocol !== "https:" || endpoint.username || endpoint.password || endpoint.hash || endpoint.search || !bearerToken || bearerToken.length > 8_192 || /[\r\n\0]/u.test(bearerToken) || !Number.isSafeInteger(timeoutMs) || timeoutMs < 100 || timeoutMs > 60_000) throw new Cortex18Error("INVALID_INPUT", "external metric source configuration is invalid");
   }
   async poll(cursor: string | null): Promise<ExternalMetricPage> {
-    if (cursor !== null && (typeof cursor !== "string" || cursor.length < 1 || cursor.length > 1_024)) throw new Cortex18Error("INVALID_INPUT", "cursor is invalid");
+    if (cursor !== null && (typeof cursor !== "string" || cursor.length < 1 || cursor.length > 1_024 || /[\r\n\0]/u.test(cursor))) throw new Cortex18Error("INVALID_INPUT", "cursor is invalid");
     const url = new URL(this.endpoint);
     if (cursor !== null) url.searchParams.set("cursor", cursor);
     const response = await fetch(url, { headers: { authorization: `Bearer ${this.bearerToken}`, accept: "application/json" }, redirect: "error", signal: AbortSignal.timeout(this.timeoutMs) });
     if (!response.ok) throw new Cortex18Error("PROVIDER_ERROR", `external metric source returned HTTP ${response.status}`);
-    const body = await response.json() as Record<string, unknown>;
+    const body = await readBoundedJson(response) as Record<string, unknown>;
     if (!body || typeof body !== "object" || Array.isArray(body) || Object.keys(body).sort().join(",") !== "items,nextCursor" || !Array.isArray(body.items) || body.items.length > 1_000 || !(body.nextCursor === null || typeof body.nextCursor === "string")) throw new Cortex18Error("PROVIDER_ERROR", "external metric page contract is invalid");
+    if (typeof body.nextCursor === "string" && (body.nextCursor.length < 1 || body.nextCursor.length > 1_024 || /[\r\n\0]/u.test(body.nextCursor))) throw new Cortex18Error("PROVIDER_ERROR", "external metric cursor is invalid");
     const items = body.items.map(parseMetric);
     if (items.some((item) => item.source !== this.sourceId)) throw new Cortex18Error("PROVIDER_ERROR", "external source returned an unexpected source identity");
     return Object.freeze({ items: Object.freeze(items), nextCursor: body.nextCursor as string | null });
@@ -105,7 +146,7 @@ export class HybridFinancialMetricStore {
   constructor(databasePath: string, private readonly now: () => number = Date.now) {
     if (!databasePath) throw new Cortex18Error("INVALID_INPUT", "databasePath is required");
     this.db = new DatabaseSync(databasePath);
-    this.db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
+    this.db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;");
     this.db.exec(`CREATE TABLE IF NOT EXISTS cortex18_metrics(
       source TEXT NOT NULL,event_id TEXT NOT NULL,occurred_at TEXT NOT NULL,currency TEXT NOT NULL,
       revenue REAL NOT NULL,cost REAL NOT NULL,spend REAL NOT NULL,conversions INTEGER NOT NULL,digest TEXT NOT NULL,
@@ -128,11 +169,13 @@ export class HybridFinancialMetricStore {
     return true;
   }
 
-  ingestOwnStream(stream: SqliteDurableEventStream, streamName: string, consumerId: string, limit = 500): { consumed: number; inserted: number; offset: number } {
+  ingestOwnStream(stream: DurableMetricEventReader, streamName: string, consumerId: string, limit = 500): { consumed: number; inserted: number; offset: number } {
+    if (!ID.test(streamName) || !ID.test(consumerId) || !Number.isSafeInteger(limit) || limit < 1 || limit > 1_000) throw new Cortex18Error("INVALID_INPUT", "durable stream ingestion request is invalid");
     const after = stream.readOffset(consumerId, streamName);
     const events = stream.read(streamName, after, limit);
     let inserted = 0; let offset = after;
     for (const event of events) {
+      if (!Number.isSafeInteger(event.sequence) || event.sequence <= offset || typeof event.eventId !== "string" || !ID.test(event.eventId)) throw new Cortex18Error("CONFLICT", "durable event sequence or identity is invalid");
       const metric = this.metricFromOwnEvent(event);
       if (this.ingest(metric)) inserted += 1;
       stream.commitOffset(consumerId, streamName, event.sequence);
@@ -142,6 +185,7 @@ export class HybridFinancialMetricStore {
   }
 
   async pollExternal(source: ExternalMetricSource): Promise<{ received: number; inserted: number; nextCursor: string | null }> {
+    if (!source || typeof source !== "object" || !ID.test(source.sourceId) || typeof source.poll !== "function") throw new Cortex18Error("INVALID_INPUT", "external source is invalid");
     const current = this.sourceHealth(source.sourceId).cursor;
     const page = await source.poll(current);
     let inserted = 0;
@@ -151,7 +195,7 @@ export class HybridFinancialMetricStore {
       const lastPolledAt = new Date(this.now()).toISOString();
       this.db.prepare("INSERT INTO cortex18_cursors(source,cursor,last_polled_at) VALUES(?,?,?) ON CONFLICT(source) DO UPDATE SET cursor=excluded.cursor,last_polled_at=excluded.last_polled_at").run(source.sourceId, page.nextCursor, lastPolledAt);
       this.db.exec("COMMIT");
-    } catch (error) { this.db.exec("ROLLBACK"); throw error; }
+    } catch (error) { if (this.db.isTransaction) this.db.exec("ROLLBACK"); throw error; }
     return Object.freeze({ received: page.items.length, inserted, nextCursor: page.nextCursor });
   }
 
@@ -169,7 +213,7 @@ export class HybridFinancialMetricStore {
     return Object.freeze({ source, cursor: row?.cursor === null || row?.cursor === undefined ? null : String(row.cursor), lastPolledAt: row?.last_polled_at ? String(row.last_polled_at) : null, status: row ? "OK" : "NEVER_POLLED" });
   }
 
-  private metricFromOwnEvent(event: DurableEventRecord): FinancialMetricInput {
+  private metricFromOwnEvent(event: DurableMetricEventRecord): FinancialMetricInput {
     const payload = parseMetric(event.payload);
     if (payload.eventId !== event.eventId) throw new Cortex18Error("CONFLICT", "own-stream eventId does not match metric eventId");
     return payload;
@@ -178,6 +222,7 @@ export class HybridFinancialMetricStore {
 
 export function executeDashboardGraphql(store: HybridFinancialMetricStore, query: string, knownSources: readonly string[]): { data: Record<string, unknown> } {
   if (typeof query !== "string" || query.length < 1 || query.length > 20_000) throw new Cortex18Error("GRAPHQL_ERROR", "GraphQL query is invalid");
+  if (!Array.isArray(knownSources) || knownSources.length > 100 || knownSources.some((source) => typeof source !== "string" || !ID.test(source))) throw new Cortex18Error("GRAPHQL_ERROR", "knownSources are invalid");
   const normalized = query.replace(/#[^\n\r]*/gu, " ").replace(/[\s,]+/gu, " ").trim();
   if (!/^query(?:\s+[A-Za-z_][A-Za-z0-9_]*)?\s*\{/u.test(normalized) || !normalized.endsWith("}")) throw new Cortex18Error("GRAPHQL_ERROR", "only GraphQL query operations are supported");
   const allowedTokens = new Set(["query", "Dashboard", "financialSummary", "currency", "revenue", "cost", "spend", "profit", "conversions", "events", "sourceHealth", "source", "cursor", "lastPolledAt", "status"]);
