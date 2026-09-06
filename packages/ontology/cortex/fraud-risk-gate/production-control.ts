@@ -28,6 +28,7 @@ export function setCortex14ProductionMode(path: string, mode: RiskGateMode, expe
 }
 
 function main(): void {
+  process.umask(0o077);
   if (process.argv.length !== 4) throw new Error("usage: production-control <ACTIVE|OBSERVE_ONLY|KILLED> <expected-revision>");
   const state = setCortex14ProductionMode(databasePath(process.env), parseMode(process.argv[2]), parseRevision(process.argv[3]));
   process.stdout.write(`${JSON.stringify(state)}\n`);
