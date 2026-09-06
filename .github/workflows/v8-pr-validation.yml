@@ -65,6 +65,14 @@ jobs:
             --tag "nexus-cortex-bidding:${NEXUS_VALIDATED_SHA}" \
             .
           docker image inspect "nexus-cortex-bidding:${NEXUS_VALIDATED_SHA}" >/dev/null
+      - name: CORTEX behavioral signals container build
+        run: |
+          set -euo pipefail
+          docker build \
+            --file packages/ontology/cortex/behavioral-signal-tracking/Dockerfile \
+            --tag "nexus-cortex-behavioral:${NEXUS_VALIDATED_SHA}" \
+            .
+          docker image inspect "nexus-cortex-behavioral:${NEXUS_VALIDATED_SHA}" >/dev/null
       - name: Real browser tests
         run: pnpm test:browser
       - name: V3 runtime boundary
