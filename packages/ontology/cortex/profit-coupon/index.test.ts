@@ -45,15 +45,26 @@ describe("CORTEX #19 financial coupon decision", () => {
 });
 
 describe("CORTEX #19 durable issuance", () => {
-  it("atomically enforces frequency caps and is idempotent by canonical request content", () => {
+  it("atomically enforces frequency caps and binds idempotency to request plus policy", () => {
     const issuer = new SqliteCouponIssuer(path("coupons"), "s".repeat(32), () => "ACTIVE", () => Date.parse("2026-09-06T00:00:00.000Z"));
     const first = issuer.issue(request, policy);
     expect(first.code).toMatch(/^NX-[0-9A-F]{12}$/u);
     expect(issuer.issue(request, policy)).toEqual(first);
     const capped = issuer.issue({ ...request, requestId: "coupon-request-0002" }, policy);
     expect(capped).toMatchObject({ action: "NO_OFFER", reason: "FREQUENCY_CAP", code: null });
-    expect(() => issuer.issue({ ...request, price: 999 }, policy)).toThrowError(/different coupon content/u);
+    expect(() => issuer.issue({ ...request, price: 999 }, policy)).toThrowError(/different coupon request or policy content/u);
+    expect(() => issuer.issue(request, { ...policy, minProfitAmount: 301 })).toThrowError(/different coupon request or policy content/u);
     issuer.close();
+  });
+
+  it("keeps OBSERVE_ONLY side-effect free so later ACTIVE can make the durable issuance", () => {
+    const db = path("observe");
+    const observed = new SqliteCouponIssuer(db, "s".repeat(32), () => "OBSERVE_ONLY", () => Date.parse("2026-09-06T00:00:00.000Z"));
+    expect(observed.issue(request, policy)).toMatchObject({ action: "OFFER", code: null, issuedAt: null });
+    observed.close();
+    const active = new SqliteCouponIssuer(db, "s".repeat(32), () => "ACTIVE", () => Date.parse("2026-09-06T00:00:01.000Z"));
+    expect(active.issue(request, policy).code).toMatch(/^NX-[0-9A-F]{12}$/u);
+    active.close();
   });
 
   it("enforces the configured currency-window discount cost cap before code issuance", () => {
@@ -65,10 +76,10 @@ describe("CORTEX #19 durable issuance", () => {
     issuer.close();
   });
 
-  it("rechecks the kill switch after acquiring the ledger lock and before issuance", () => {
+  it("rechecks the kill switch after acquiring the ledger lock and before any durable decision", () => {
     let reads = 0;
     const issuer = new SqliteCouponIssuer(path("kill"), "s".repeat(32), () => (++reads < 2 ? "ACTIVE" : "KILLED"), () => Date.parse("2026-09-06T00:00:00.000Z"));
-    expect(() => issuer.issue(request, policy)).toThrowError(/disabled before issuance/u);
+    expect(() => issuer.issue(request, policy)).toThrowError(/disabled before durable decision/u);
     issuer.close();
   });
 
