@@ -107,6 +107,7 @@ export function Cortex09FrictionClient() {
       lastActionAt: 0,
     };
     let stopped = false;
+    let sampling = false;
 
     const updateScroll = () => {
       const scrollable = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
@@ -150,10 +151,11 @@ export function Cortex09FrictionClient() {
     }
 
     const sample = async () => {
-      if (stopped) return;
+      if (stopped || sampling) return;
+      sampling = true;
       try {
         const initial = await readControl();
-        if (initial.mode === "KILLED") {
+        if (stopped || initial.mode === "KILLED") {
           rollback();
           return;
         }
@@ -178,11 +180,15 @@ export function Cortex09FrictionClient() {
           headers: { "content-type": "application/json", accept: "application/json" },
           body: JSON.stringify(snapshot),
         });
-        if (!response.ok || response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json") {
+        if (stopped || !response.ok || response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() !== "application/json") {
           rollback();
           return;
         }
         const raw = await response.json() as unknown;
+        if (stopped) {
+          rollback();
+          return;
+        }
         if (initial.mode === "OBSERVE_ONLY") {
           const observed = exactPlainObject(raw, ["mode", "modelArtifactDigest", "score"]);
           if (!(observed.mode === "OBSERVE_ONLY" && observed.score === null && observed.modelArtifactDigest === initial.modelArtifactDigest)) {
@@ -228,7 +234,7 @@ export function Cortex09FrictionClient() {
 
         // Last-boundary kill/model recheck immediately before consumer-visible state.
         const final = await readControl();
-        if (final.mode !== "ACTIVE" || !sameModel(initial, final)) {
+        if (stopped || final.mode !== "ACTIVE" || !sameModel(initial, final)) {
           rollback();
           return;
         }
@@ -236,6 +242,8 @@ export function Cortex09FrictionClient() {
         document.documentElement.dataset.nexusCortex09Probability = score.abandonmentProbability.toFixed(4);
       } catch {
         rollback();
+      } finally {
+        sampling = false;
       }
     };
 
