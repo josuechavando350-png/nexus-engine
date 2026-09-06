@@ -22,6 +22,7 @@ export interface DataManagerConversionEvent {
   readonly eventTimestamp: string;
   readonly eventName: string;
   readonly eventSource: "WEB" | "APP" | "IN_STORE" | "PHONE" | "OTHER";
+  readonly adUserDataConsent: "GRANTED" | "DENIED";
   readonly conversionValue?: number;
   readonly currency?: string;
   readonly gclid?: string;
@@ -92,11 +93,13 @@ function eventPayload(event: DataManagerConversionEvent) {
   const occurredAt = new Date(event.eventTimestamp);
   if (!Number.isFinite(occurredAt.getTime()) || occurredAt.toISOString() !== event.eventTimestamp) throw new DataManagerApiError("INVALID_CONFIG", "eventTimestamp must be canonical UTC RFC3339");
   if (!/^[A-Za-z][A-Za-z0-9_]{0,63}$/u.test(event.eventName)) throw new DataManagerApiError("INVALID_CONFIG", "eventName is malformed");
+  if (!(event.adUserDataConsent === "GRANTED" || event.adUserDataConsent === "DENIED")) throw new DataManagerApiError("INVALID_CONFIG", "adUserDataConsent is invalid");
   if (event.conversionValue !== undefined && (!Number.isFinite(event.conversionValue) || event.conversionValue < 0 || event.conversionValue > 1_000_000_000)) throw new DataManagerApiError("INVALID_CONFIG", "conversionValue is invalid");
   if (event.currency !== undefined && !CURRENCY.test(event.currency)) throw new DataManagerApiError("INVALID_CONFIG", "currency must be ISO-style uppercase code");
   if ((event.conversionValue === undefined) !== (event.currency === undefined)) throw new DataManagerApiError("INVALID_CONFIG", "conversionValue and currency must be provided together");
   if (event.gclid !== undefined && (event.gclid.length < 8 || event.gclid.length > 256 || /\s/u.test(event.gclid))) throw new DataManagerApiError("INVALID_CONFIG", "gclid is malformed");
-  if (event.userIdentifiers.length > 5) throw new DataManagerApiError("INVALID_CONFIG", "at most five user identifiers are allowed");
+  if (event.userIdentifiers.length > 10) throw new DataManagerApiError("INVALID_CONFIG", "at most ten user identifiers are allowed");
+  if (event.adUserDataConsent === "DENIED" && event.userIdentifiers.length > 0) throw new DataManagerApiError("INVALID_CONFIG", "user identifiers are forbidden when ad user data consent is denied");
   return {
     destinationReferences: ["google-ads-conversion"],
     transactionId: event.transactionId,
@@ -153,7 +156,7 @@ export class GoogleDataManagerRestClient {
     const body = JSON.stringify({
       destinations: [destinationPayload(destination)],
       events: [eventPayload(event)],
-      consent: { adUserData: "CONSENT_GRANTED" },
+      consent: { adUserData: event.adUserDataConsent === "GRANTED" ? "CONSENT_GRANTED" : "CONSENT_DENIED" },
       encoding: "HEX",
       validateOnly: false,
     });
