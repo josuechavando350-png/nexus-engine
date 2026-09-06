@@ -83,10 +83,19 @@ async function main() {
     await waitForServer(server, "ACTIVE");
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
+    const pageErrors = [];
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
     const navigation = await page.goto(baseUrl, { waitUntil: "networkidle" });
     if (!navigation?.ok()) throw new Error(`pipeline-probe root returned HTTP ${navigation?.status() ?? "unknown"}`);
 
-    const renderedAnchors = await page.locator("header nav a[href]").evaluateAll((anchors) => anchors.map((anchor) => ({
+    try {
+      await page.locator('a[href]').first().waitFor({ state: "attached", timeout: 10_000 });
+    } catch {
+      const bodyText = (await page.locator("body").innerText().catch(() => "")).slice(0, 1000);
+      throw new Error(`real probe rendered no anchors; pageErrors=${JSON.stringify(pageErrors)} body=${JSON.stringify(bodyText)}`);
+    }
+
+    const renderedAnchors = await page.locator("a[href]").evaluateAll((anchors) => anchors.map((anchor) => ({
       href: anchor.getAttribute("href"),
       resolvedHref: anchor instanceof globalThis.HTMLAnchorElement ? anchor.href : null,
     })));
@@ -100,9 +109,9 @@ async function main() {
         }
       })
       .find((anchor) => anchor && anchor.origin === baseUrl && allowedProbeRoutes.has(anchor.pathname));
-    if (!realTarget) throw new Error(`real probe consumer has no rendered allowlisted route target: ${JSON.stringify(renderedAnchors)}`);
+    if (!realTarget) throw new Error(`real probe consumer has no rendered allowlisted route target: ${JSON.stringify(renderedAnchors)} pageErrors=${JSON.stringify(pageErrors)}`);
 
-    const routeLink = page.locator("header nav a[href]").nth(realTarget.index);
+    const routeLink = page.locator("a[href]").nth(realTarget.index);
     await routeLink.hover();
     await page.waitForFunction(() => globalThis.document.querySelectorAll('[data-nexus-cortex08="1"]').length === 1, undefined, { timeout: 5_000 });
 
