@@ -11,6 +11,7 @@ import {
 const CONTROL_ENDPOINT = "/api/cortex/prerender/control";
 const OBSERVE_ENDPOINT = "/api/cortex/prerender/observe";
 const CONTROL_RECONCILE_MS = 5_000;
+const CORTEX_13_SUSPENSION_EVENT = "nexus:cortex13-suspension-change";
 
 async function readControl(): Promise<unknown> {
   const response = await fetch(CONTROL_ENDPOINT, {
@@ -59,12 +60,17 @@ export function Cortex08PrerenderClient() {
         runtime.rollback();
       }
     };
+    const onCwvSuspensionChange = () => {
+      if (document.documentElement.dataset.nexusCortex13SuspendSpeculation === "1") runtime.rollback();
+    };
 
     runtime.start();
+    window.addEventListener(CORTEX_13_SUSPENSION_EVENT, onCwvSuspensionChange);
     void reconcile();
     const interval = window.setInterval(() => { void reconcile(); }, CONTROL_RECONCILE_MS);
     return () => {
       window.clearInterval(interval);
+      window.removeEventListener(CORTEX_13_SUSPENSION_EVENT, onCwvSuspensionChange);
       runtime.stop();
       runtime.rollback();
     };
