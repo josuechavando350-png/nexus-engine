@@ -81,6 +81,14 @@ jobs:
             --tag "nexus-cortex-creative:${NEXUS_VALIDATED_SHA}" \
             .
           docker image inspect "nexus-cortex-creative:${NEXUS_VALIDATED_SHA}" >/dev/null
+      - name: CORTEX ad-context control container build
+        run: |
+          set -euo pipefail
+          docker build \
+            --file packages/ontology/cortex/ad-context-control.Dockerfile \
+            --tag "nexus-cortex-ad-context:${NEXUS_VALIDATED_SHA}" \
+            .
+          docker image inspect "nexus-cortex-ad-context:${NEXUS_VALIDATED_SHA}" >/dev/null
       - name: Real browser tests
         run: pnpm test:browser
       - name: V3 runtime boundary
