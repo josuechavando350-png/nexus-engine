@@ -63,13 +63,17 @@ describe("CORTEX #15 semantic search", () => {
 
 describe("CORTEX #15 HTTPS embedding adapter", () => {
   it("uses an HTTPS OpenAI-compatible boundary with fixed model identity", async () => {
-    const fetchMock = vi.fn(async () => Response.json({ data: [{ index: 0, embedding: [1, 0, 0, 0, 0, 0, 0, 0] }] }));
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      void input;
+      void init;
+      return Response.json({ data: [{ index: 0, embedding: [1, 0, 0, 0, 0, 0, 0, 0] }] });
+    });
     vi.stubGlobal("fetch", fetchMock);
     const adapter = new OpenAICompatibleEmbeddingProvider(new URL("https://embeddings.example/v1/embeddings"), "embedding-model-v1", "token", 1_000);
     expect(await adapter.embed(["defensa penal"])).toHaveLength(1);
-    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
-    expect((init.headers as Record<string, string>).authorization).toBe("Bearer token");
-    expect(init.redirect).toBe("error");
+    const init = fetchMock.mock.calls[0]?.[1];
+    expect((init?.headers as Record<string, string>).authorization).toBe("Bearer token");
+    expect(init?.redirect).toBe("error");
   });
 
   it("rejects non-HTTPS providers", () => {
