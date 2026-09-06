@@ -73,6 +73,14 @@ jobs:
             --tag "nexus-cortex-behavioral:${NEXUS_VALIDATED_SHA}" \
             .
           docker image inspect "nexus-cortex-behavioral:${NEXUS_VALIDATED_SHA}" >/dev/null
+      - name: CORTEX creative sync container build
+        run: |
+          set -euo pipefail
+          docker build \
+            --file packages/ontology/cortex/creative-sync/Dockerfile \
+            --tag "nexus-cortex-creative:${NEXUS_VALIDATED_SHA}" \
+            .
+          docker image inspect "nexus-cortex-creative:${NEXUS_VALIDATED_SHA}" >/dev/null
       - name: Real browser tests
         run: pnpm test:browser
       - name: V3 runtime boundary
