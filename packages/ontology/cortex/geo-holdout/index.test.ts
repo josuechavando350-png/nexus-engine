@@ -43,11 +43,11 @@ describe("CORTEX #12 geo holdout design", () => {
   });
 
   it("rejects excessive baseline imbalance explicitly", () => {
-    const extreme = geos.map((geo, index) => ({ ...geo, baselineOutcome: index < 10 ? 1 : 1_000_000 + index }));
-    const result = designGeoHoldout({ ...designInput, maxBaselineImbalance: 0, geos: extreme });
+    const nonlinear = geos.map((geo, index) => ({ ...geo, baselineOutcome: 1_000 + index * index * 10 }));
+    const result = designGeoHoldout({ ...designInput, maxBaselineImbalance: 0, geos: nonlinear });
     expect(result.status).toBe("REJECTED");
     expect(result.reason).toBe("BASELINE_IMBALANCE");
-    expect(result.baselineImbalance).not.toBeNull();
+    expect(result.baselineImbalance).toBeGreaterThan(0);
   });
 
   it("detects mutation of assignments, preregistered thresholds or rejection semantics", () => {
