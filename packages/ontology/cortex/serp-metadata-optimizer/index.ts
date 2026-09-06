@@ -1048,12 +1048,16 @@ export class SerpMetadataOptimizer {
     const siteUrl = siteProperty(input.siteUrl);
     const pageId = id(input.pageId, "pageId");
     const existing = this.readRun(runId, siteUrl, pageId);
-    if (existing) return this.execute(existing, "ACTIVE");
+    if (existing) {
+      if (existing.reason !== "ROLLBACK_APPLIED") throw new SerpMetadataOptimizerError("POLICY_VIOLATION", "rollback runId cannot reference a forward mutation");
+      return this.execute(existing, "ACTIVE");
+    }
     const state = this.readState(siteUrl, pageId);
     if (!state?.lastInverseAction) throw new SerpMetadataOptimizerError("POLICY_VIOLATION", "no certified metadata mutation is available for rollback");
     if (state.inFlightRunId) {
       const inFlight = this.readRun(state.inFlightRunId, siteUrl, pageId);
       if (!inFlight) throw new SerpMetadataOptimizerError("INTEGRITY_FAILURE", "state references missing in-flight run");
+      if (inFlight.reason !== "ROLLBACK_APPLIED") throw new SerpMetadataOptimizerError("POLICY_VIOLATION", "rollback refuses to reconcile a prepared forward mutation");
       return this.execute(inFlight, "ACTIVE");
     }
     const now = this.time();
