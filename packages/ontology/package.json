@@ -75,7 +75,12 @@
     "./cortex/semantic-search/runtime-control": "./cortex/semantic-search/runtime-control.ts",
     "./cortex/semantic-search/production-control": "./cortex/semantic-search/production-control.ts",
     "./cortex/semantic-search/production-server": "./cortex/semantic-search/production-server.ts",
-    "./cortex/semantic-search/production-runtime": "./cortex/semantic-search/production-runtime.ts"
+    "./cortex/semantic-search/production-runtime": "./cortex/semantic-search/production-runtime.ts",
+    "./cortex/creative-traceability": "./cortex/creative-traceability/index.ts",
+    "./cortex/creative-traceability/runtime-control": "./cortex/creative-traceability/runtime-control.ts",
+    "./cortex/creative-traceability/production-control": "./cortex/creative-traceability/production-control.ts",
+    "./cortex/creative-traceability/production-server": "./cortex/creative-traceability/production-server.ts",
+    "./cortex/creative-traceability/production-runtime": "./cortex/creative-traceability/production-runtime.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",

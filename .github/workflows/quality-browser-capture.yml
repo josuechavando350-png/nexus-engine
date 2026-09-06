@@ -37,6 +37,18 @@ jobs:
           test -z "$(git status --porcelain)"
           git show-ref --verify --quiet refs/remotes/origin/main
 
+      - name: Enforce CORTEX client-site isolation
+        if: github.event_name == 'pull_request'
+        shell: bash
+        env:
+          EVENT_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          if git diff --name-only "$EVENT_BASE_SHA" "$NEXUS_VALIDATED_SHA" | grep -q '^apps/cano-penal/'; then
+            echo "CORTEX certification refuses any apps/cano-penal change." >&2
+            exit 1
+          fi
+
       - name: Setup Node 24
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -83,6 +95,9 @@ jobs:
 
       - name: Prove CORTEX #15 semantic search runtime and coverage fallback
         run: node scripts/cortex-15-runtime-proof.mjs
+
+      - name: Prove CORTEX #16 creative traceability under aggregation
+        run: node scripts/cortex-16-runtime-proof.mjs
 
       - name: Record validated source identity
         shell: bash
