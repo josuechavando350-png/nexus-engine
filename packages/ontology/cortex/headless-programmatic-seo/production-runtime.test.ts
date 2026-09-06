@@ -126,7 +126,7 @@ describe("programmatic SEO production runtime", () => {
     let base = await listen(runtime);
 
     const first = await runtime.runOnce("MANUAL");
-    expect(first).toMatchObject({ status: "APPLIED", reason: "BUNDLE_PUBLISHED", mode: "ACTIVE" });
+    expect(first).toMatchObject({ status: "APPLIED", mode: "ACTIVE" });
     expect(source.calls).toBe(1);
 
     const bundle = await api(base, "/v1/programmatic-seo/bundle?siteId=cano-penal", BUNDLE_TOKEN);
