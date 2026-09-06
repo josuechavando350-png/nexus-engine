@@ -10,6 +10,8 @@ import {
 
 const MAX_BODY_BYTES = 1_048_576;
 const MAX_ENVELOPE_BYTES = 8_192;
+const MAX_UPSTREAM_RESPONSE_BYTES = 2_097_152;
+const ALLOWED_METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
 type Mode = "ACTIVE" | "OBSERVE_ONLY" | "KILLED";
 
 function mode(): Mode {
@@ -86,6 +88,35 @@ async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
   return Buffer.concat(chunks);
 }
 
+export async function readBoundedUpstreamBody(response: Response, maxBytes = MAX_UPSTREAM_RESPONSE_BYTES): Promise<Buffer> {
+  if (!Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > 16 * 1024 * 1024) throw new Error("CORTEX_14_UPSTREAM_RESPONSE_LIMIT_INVALID");
+  const declared = response.headers.get("content-length");
+  if (declared !== null && (/^\d+$/u.test(declared) ? Number(declared) > maxBytes : true)) {
+    await response.body?.cancel().catch(() => undefined);
+    throw new Error("CORTEX_14_UPSTREAM_RESPONSE_TOO_LARGE");
+  }
+  if (!response.body) return Buffer.alloc(0);
+  const reader = response.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = Buffer.from(value);
+      total += chunk.length;
+      if (total > maxBytes) {
+        await reader.cancel().catch(() => undefined);
+        throw new Error("CORTEX_14_UPSTREAM_RESPONSE_TOO_LARGE");
+      }
+      chunks.push(chunk);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  return Buffer.concat(chunks, total);
+}
+
 function json(response: ServerResponse, status: number, body: unknown, headers: Record<string, string> = {}): void {
   const encoded = JSON.stringify(body);
   response.writeHead(status, {
@@ -128,9 +159,6 @@ function upstreamHeaders(request: IncomingMessage): Headers {
 export function fixedUpstreamTarget(upstream: URL, requestUrl: string | undefined): URL {
   const incoming = new URL(requestUrl ?? "/", "http://proxy.invalid");
   const target = new URL(upstream);
-  // Property assignment preserves the configured origin even for a request
-  // path beginning with `//`, which would otherwise be interpreted as a
-  // protocol-relative authority by `new URL(relative, base)`.
   target.pathname = incoming.pathname;
   target.search = incoming.search;
   target.hash = "";
@@ -153,6 +181,7 @@ export function startCortex14RiskProxy(): { close(): Promise<void> } {
   const server = createServer(async (request, response) => {
     try {
       if (request.method === "GET" && request.url === "/healthz") return json(response, mode() === "KILLED" ? 503 : 200, { mode: mode() });
+      if (!request.method || !ALLOWED_METHODS.has(request.method)) return json(response, 405, { error: "METHOD_NOT_ALLOWED" }, { allow: [...ALLOWED_METHODS].join(", ") });
       const initialMode = mode();
       if (initialMode === "KILLED") return json(response, 503, { error: "KILLED" });
 
@@ -165,8 +194,6 @@ export function startCortex14RiskProxy(): { close(): Promise<void> } {
         expectedNetworkKeyHash,
       );
 
-      // Re-read control at the enforcement boundary. OBSERVE_ONLY records the
-      // verified decision but intentionally does not block traffic.
       const finalMode = mode();
       if (finalMode === "KILLED") return json(response, 503, { error: "KILLED" });
       console.info(JSON.stringify({ component: "cortex-14-risk-gate", mode: finalMode, action: decision.action, assessmentId: decision.assessmentId, providerId: decision.providerId, riskScore: decision.riskScore }));
@@ -175,7 +202,6 @@ export function startCortex14RiskProxy(): { close(): Promise<void> } {
 
       const target = fixedUpstreamTarget(upstream, request.url);
       const body = await readBody(request);
-      // Final kill read immediately before the external upstream side effect.
       if (mode() === "KILLED") return json(response, 503, { error: "KILLED" });
       const upstreamResponse = await fetch(target, {
         method: request.method,
@@ -184,7 +210,7 @@ export function startCortex14RiskProxy(): { close(): Promise<void> } {
         redirect: "manual",
         signal: AbortSignal.timeout(15_000),
       });
-      const responseBody = Buffer.from(await upstreamResponse.arrayBuffer());
+      const responseBody = request.method === "HEAD" ? Buffer.alloc(0) : await readBoundedUpstreamBody(upstreamResponse);
       const responseHeaders: Record<string, string> = {
         "cache-control": upstreamResponse.headers.get("cache-control") ?? "no-store",
         "content-type": upstreamResponse.headers.get("content-type") ?? "application/octet-stream",
