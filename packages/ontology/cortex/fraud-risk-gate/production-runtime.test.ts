@@ -75,7 +75,8 @@ describe("CORTEX #14 production runtime composition", () => {
 
   it("refuses startup without an explicit durable-volume persistence acknowledgement", () => {
     const item = fixture();
-    const { NEXUS_CORTEX_14_PERSISTENCE_ACK: _ignored, ...withoutAck } = item.env;
+    const withoutAck = { ...item.env };
+    delete withoutAck.NEXUS_CORTEX_14_PERSISTENCE_ACK;
     expect(() => loadCortex14ProductionConfig(withoutAck)).toThrow(/durable-volume/u);
     expect(() => loadCortex14ProductionConfig({ ...item.env, NEXUS_CORTEX_14_PERSISTENCE_ACK: "ephemeral" })).toThrow(/ephemeral control storage/u);
   });
