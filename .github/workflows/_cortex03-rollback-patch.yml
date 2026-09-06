@@ -1,0 +1,35 @@
+name: CORTEX 03 exact rollback patch
+
+on:
+  push:
+    branches:
+      - fix/cortex-03-green-prod-rebase
+    paths:
+      - scripts/_patch-cortex03-rollback.mjs
+      - .github/workflows/_cortex03-rollback-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/cortex-03-green-prod-rebase
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.13.0'
+      - name: Apply exact source patch
+        run: node scripts/_patch-cortex03-rollback.mjs
+      - name: Commit patched source and remove temporary patch machinery
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git commit -m "fix(cortex): block forward creative recovery through rollback"
+          git push origin HEAD:fix/cortex-03-green-prod-rebase
