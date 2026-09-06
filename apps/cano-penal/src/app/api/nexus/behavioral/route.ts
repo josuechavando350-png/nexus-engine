@@ -25,8 +25,31 @@ async function boundedBody(request: Request): Promise<Uint8Array | null> {
     if (!/^(?:0|[1-9][0-9]*)$/u.test(contentLength)) return null;
     if (Number(contentLength) > MAX_BODY_BYTES) return null;
   }
-  const bytes = new Uint8Array(await request.arrayBuffer());
-  return bytes.byteLength <= MAX_BODY_BYTES ? bytes : null;
+  if (!request.body) return new Uint8Array();
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const next = await reader.read();
+      if (next.done) break;
+      total += next.value.byteLength;
+      if (total > MAX_BODY_BYTES) {
+        await reader.cancel();
+        return null;
+      }
+      chunks.push(next.value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return merged;
 }
 
 async function boundedResponse(response: Response): Promise<Uint8Array | null> {
