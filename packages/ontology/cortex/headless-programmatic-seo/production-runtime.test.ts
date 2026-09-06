@@ -8,7 +8,6 @@ import {
   type ProgrammaticSeoBundleRef,
   type ProgrammaticSeoCatalogProvider,
   type ProgrammaticSeoCatalogSnapshot,
-  type ProgrammaticSeoPublishAction,
   type ProgrammaticSeoPublishReceipt,
   type ProgrammaticSeoPublisher,
   type PublishedProgrammaticSeoBundle,
@@ -63,7 +62,7 @@ class KillBeforeApplyPublisher implements ProgrammaticSeoPublisher {
     return this.staged;
   }
   async read(): Promise<PublishedProgrammaticSeoBundle | null> { return null; }
-  async apply(_action: ProgrammaticSeoPublishAction): Promise<ProgrammaticSeoPublishReceipt> {
+  async apply(): Promise<ProgrammaticSeoPublishReceipt> {
     this.applyCalls += 1;
     throw new Error("underlying publisher must never be reached after kill");
   }
