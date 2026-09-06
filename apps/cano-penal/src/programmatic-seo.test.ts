@@ -61,6 +61,7 @@ describe("CANO programmatic SEO bundle consumer", () => {
     const fetchImpl = vi.fn();
     vi.stubGlobal("fetch", fetchImpl);
     expect(await readCanoProgrammaticSeoPage(["areas", TARGET])).toBeNull();
+    expect(await readCanoProgrammaticSeoPage([])).toBeNull();
     vi.stubEnv("NEXUS_CORTEX_PROGRAMMATIC_SEO_BUNDLE_ENDPOINT", "http://control.example.test/v1/programmatic-seo/bundle");
     vi.stubEnv("NEXUS_CORTEX_PROGRAMMATIC_SEO_BUNDLE_TOKEN", TOKEN);
     expect(await readCanoProgrammaticSeoPage(["areas", TARGET])).toBeNull();
@@ -68,19 +69,24 @@ describe("CANO programmatic SEO bundle consumer", () => {
     expect(fetchImpl).not.toHaveBeenCalled();
   });
 
-  it("accepts an exact approved bundle and keeps the credential server-side", async () => {
+  it("accepts the exact approved home and area pages and keeps the credential server-side", async () => {
     vi.stubEnv("NEXUS_CORTEX_PROGRAMMATIC_SEO_BUNDLE_ENDPOINT", "https://control.example.test/v1/programmatic-seo/bundle");
     vi.stubEnv("NEXUS_CORTEX_PROGRAMMATIC_SEO_BUNDLE_TOKEN", TOKEN);
     const calls: Array<Parameters<typeof fetch>> = [];
     vi.stubGlobal("fetch", vi.fn(async (...args: Parameters<typeof fetch>) => { calls.push(args); return json(envelope()); }));
+
+    const home = await readCanoProgrammaticSeoPage([]);
+    expect(home).toMatchObject({ pageId: "home", path: "/", indexable: true });
     const page = await readCanoProgrammaticSeoPage(["areas", TARGET]);
     expect(page).toMatchObject({ pageId: TARGET, path: `/areas/${TARGET}/`, indexable: true });
-    expect(calls).toHaveLength(1);
-    const [url, init] = calls[0]!;
-    const parsed = new URL(String(url));
-    expect(parsed.protocol).toBe("https:");
-    expect(parsed.searchParams.get("siteId")).toBe("cano-penal");
-    expect(init?.headers).toEqual({ authorization: `Bearer ${TOKEN}`, accept: "application/json" });
+
+    expect(calls).toHaveLength(2);
+    for (const [url, init] of calls) {
+      const parsed = new URL(String(url));
+      expect(parsed.protocol).toBe("https:");
+      expect(parsed.searchParams.get("siteId")).toBe("cano-penal");
+      expect(init?.headers).toEqual({ authorization: `Bearer ${TOKEN}`, accept: "application/json" });
+    }
   });
 
   it("rejects the entire bundle when approved content, route inventory, or identity is altered", async () => {
