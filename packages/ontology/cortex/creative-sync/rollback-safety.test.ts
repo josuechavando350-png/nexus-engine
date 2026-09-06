@@ -10,7 +10,6 @@ import {
   type CreativeSyncAction,
   type CustomizerAttributeSnapshot,
   type CustomizerValueSnapshot,
-  type DesiredCustomizerValue,
   type GoogleAdsCreativeGateway,
   type ResponsiveSearchAdSnapshot,
 } from "./index";
@@ -39,10 +38,7 @@ class AmbiguousOnceGateway implements GoogleAdsCreativeGateway {
     return Object.freeze([]);
   }
 
-  async getCustomizerValue(
-    _customerId: string,
-    _lookup: Pick<DesiredCustomizerValue, "scopeKind" | "scopeResourceName"> & { readonly attributeResourceName: string },
-  ): Promise<CustomizerValueSnapshot | null> {
+  async getCustomizerValue(): Promise<CustomizerValueSnapshot | null> {
     return null;
   }
 
