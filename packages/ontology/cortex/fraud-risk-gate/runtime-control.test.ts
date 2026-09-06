@@ -19,22 +19,34 @@ describe("CORTEX #14 durable control", () => {
     control.close();
   });
 
-  it("initializes exactly once and preserves an operator kill across restart", () => {
+  it("allows explicit CAS initialization and preserves an operator kill across restart", () => {
     const path = databasePath();
     const first = new SqliteRiskGateControl(path, () => Date.parse("2026-09-06T12:00:00.000Z"));
-    expect(first.initialize("ACTIVE")).toMatchObject({ mode: "ACTIVE", revision: 1 });
+    expect(first.setMode("ACTIVE", 0)).toMatchObject({ mode: "ACTIVE", revision: 1 });
     expect(first.setMode("KILLED", 1)).toMatchObject({ mode: "KILLED", revision: 2 });
     first.close();
 
     const reopened = new SqliteRiskGateControl(path, () => Date.parse("2026-09-06T13:00:00.000Z"));
+    expect(reopened.read()).toMatchObject({ mode: "KILLED", revision: 2 });
+    expect(() => reopened.setMode("ACTIVE", 0)).toThrowError(RiskGateControlError);
+    reopened.close();
+  });
+
+  it("keeps initialize idempotent without overwriting an existing operator decision", () => {
+    const path = databasePath();
+    const first = new SqliteRiskGateControl(path);
+    expect(first.initialize("OBSERVE_ONLY")).toMatchObject({ mode: "OBSERVE_ONLY", revision: 1 });
+    expect(first.setMode("KILLED", 1)).toMatchObject({ mode: "KILLED", revision: 2 });
+    first.close();
+
+    const reopened = new SqliteRiskGateControl(path);
     expect(reopened.initialize("ACTIVE")).toMatchObject({ mode: "KILLED", revision: 2 });
-    expect(reopened.read().mode).toBe("KILLED");
     reopened.close();
   });
 
   it("uses revision CAS so stale operators cannot overwrite newer control state", () => {
     const control = new SqliteRiskGateControl(databasePath());
-    control.initialize("OBSERVE_ONLY");
+    expect(control.setMode("OBSERVE_ONLY", 0)).toMatchObject({ mode: "OBSERVE_ONLY", revision: 1 });
     expect(control.setMode("ACTIVE", 1)).toMatchObject({ mode: "ACTIVE", revision: 2 });
     expect(() => control.setMode("KILLED", 1)).toThrowError(RiskGateControlError);
     expect(control.read()).toMatchObject({ mode: "ACTIVE", revision: 2 });
@@ -44,8 +56,8 @@ describe("CORTEX #14 durable control", () => {
   it("rejects malformed modes and revisions rather than guessing control intent", () => {
     const control = new SqliteRiskGateControl(databasePath());
     expect(() => control.initialize("BROKEN" as never)).toThrowError(/initial risk gate mode/u);
-    control.initialize("KILLED");
-    expect(() => control.setMode("ACTIVE", 0)).toThrowError(/control request/u);
+    expect(() => control.setMode("ACTIVE", -1)).toThrowError(/control request/u);
+    expect(() => control.setMode("BROKEN" as never, 0)).toThrowError(/control request/u);
     control.close();
   });
 });
