@@ -36,6 +36,7 @@
     "cortex:bidding-supervisor": "pnpm --filter @nexus/ontology build && node scripts/cortex-bidding-supervisor.mjs",
     "cortex:behavioral-signals": "pnpm --filter @nexus/ontology build && node scripts/cortex-behavioral-signals.mjs",
     "cortex:creative-sync": "pnpm --filter @nexus/ontology build && node scripts/cortex-creative-sync.mjs",
+    "cortex:ad-context-control": "pnpm --filter @nexus/ontology build && node scripts/cortex-ad-context-control.mjs",
     "release:validate": "pnpm security-hygiene && pnpm v3-gates && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm operability:h07 && pnpm third-party-proof",
     "v3-gates": "node scripts/run-v3-gates.mjs",
     "rust:test": "cargo test --locked --workspace --manifest-path runtime/Cargo.toml",

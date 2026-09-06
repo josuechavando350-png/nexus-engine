@@ -1,8 +1,10 @@
-import { NextResponse, type NextRequest } from "next/server";
+import { NextResponse, type NextFetchEvent, type NextRequest } from "next/server";
 import { AD_CONTEXT_HEADERS, resolveCanoAdContext } from "./ad-context";
+import { effectiveCanoAdContextMode, recordCanoAdContextDecision } from "./ad-context-control";
 
-export function middleware(request: NextRequest) {
-  const decision = resolveCanoAdContext(request.nextUrl, process.env.NEXUS_AD_CONTEXT_MODE);
+export async function middleware(request: NextRequest, event: NextFetchEvent) {
+  const mode = await effectiveCanoAdContextMode();
+  const decision = resolveCanoAdContext(request.nextUrl, mode);
   const requestHeaders = new Headers(request.headers);
 
   for (const headerName of Object.values(AD_CONTEXT_HEADERS)) requestHeaders.delete(headerName);
@@ -16,9 +18,8 @@ export function middleware(request: NextRequest) {
   response.headers.set(AD_CONTEXT_HEADERS.channel, decision.channel);
   response.headers.set(AD_CONTEXT_HEADERS.applied, decision.applied ? "1" : "0");
 
-  if (decision.applied) {
-    response.headers.set("Cache-Control", "private, no-store, max-age=0");
-  }
+  if (decision.applied) response.headers.set("Cache-Control", "private, no-store, max-age=0");
+  event.waitUntil(recordCanoAdContextDecision(decision));
   return response;
 }
 
