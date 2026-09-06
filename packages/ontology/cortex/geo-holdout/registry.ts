@@ -41,6 +41,18 @@ export class SqliteGeoExperimentRegistry {
 
   close(): void { this.db.close(); }
 
+  private inImmediateTransaction<T>(operation: () => T): T {
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const value = operation();
+      this.db.exec("COMMIT");
+      return value;
+    } catch (error) {
+      if (this.db.isTransaction) this.db.exec("ROLLBACK");
+      throw error;
+    }
+  }
+
   registerDesign(input: unknown): GeoExperimentRecord {
     let design: GeoHoldoutDesign;
     try { design = designGeoHoldout(input); }
@@ -51,19 +63,26 @@ export class SqliteGeoExperimentRegistry {
       if (existing.design.designDigest !== design.designDigest) throw new GeoExperimentRegistryError("CONFLICT", "experimentId is already bound to a different geo design");
       return existing;
     }
-    if (!this.mutationAllowed()) throw new GeoExperimentRegistryError("MODE_BLOCKED", "runtime mode blocks durable geo design registration");
-    const now = new Date(this.now()).toISOString();
-    this.db.prepare("INSERT INTO cortex12_experiments(experiment_id,design_digest,design_json,analysis_json,created_at,updated_at) VALUES(?,?,?,?,?,?)").run(
-      design.experimentId,
-      design.designDigest,
-      JSON.stringify(design),
-      null,
-      now,
-      now,
-    );
-    const created = this.get(design.experimentId);
-    if (!created) throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", "registered geo experiment was not readable after commit");
-    return created;
+    return this.inImmediateTransaction(() => {
+      const concurrent = this.get(design.experimentId);
+      if (concurrent) {
+        if (concurrent.design.designDigest !== design.designDigest) throw new GeoExperimentRegistryError("CONFLICT", "experimentId was concurrently bound to a different geo design");
+        return concurrent;
+      }
+      if (!this.mutationAllowed()) throw new GeoExperimentRegistryError("MODE_BLOCKED", "runtime mode blocks durable geo design registration");
+      const now = new Date(this.now()).toISOString();
+      this.db.prepare("INSERT INTO cortex12_experiments(experiment_id,design_digest,design_json,analysis_json,created_at,updated_at) VALUES(?,?,?,?,?,?)").run(
+        design.experimentId,
+        design.designDigest,
+        JSON.stringify(design),
+        null,
+        now,
+        now,
+      );
+      const created = this.get(design.experimentId);
+      if (!created) throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", "registered geo experiment was not readable before commit");
+      return created;
+    });
   }
 
   analyze(experimentId: string, outcomes: readonly GeoOutcome[]): GeoExperimentRecord {
@@ -79,11 +98,22 @@ export class SqliteGeoExperimentRegistry {
       if (JSON.stringify(current.analysis) !== JSON.stringify(analysis)) throw new GeoExperimentRegistryError("CONFLICT", "experiment analysis is already immutable and differs from the requested result");
       return current;
     }
-    if (!this.mutationAllowed()) throw new GeoExperimentRegistryError("MODE_BLOCKED", "runtime mode blocks durable geo analysis persistence");
-    const updatedAt = new Date(this.now()).toISOString();
-    const result = this.db.prepare("UPDATE cortex12_experiments SET analysis_json=?,updated_at=? WHERE experiment_id=? AND analysis_json IS NULL").run(JSON.stringify(analysis), updatedAt, experimentId);
-    if (result.changes !== 1) throw new GeoExperimentRegistryError("CONFLICT", "geo analysis was committed concurrently");
-    return this.get(experimentId)!;
+    return this.inImmediateTransaction(() => {
+      const concurrent = this.get(experimentId);
+      if (!concurrent) throw new GeoExperimentRegistryError("NOT_FOUND", "geo experiment disappeared before analysis commit");
+      if (concurrent.design.designDigest !== current.design.designDigest) throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", "geo experiment design changed before analysis commit");
+      if (concurrent.analysis) {
+        if (JSON.stringify(concurrent.analysis) !== JSON.stringify(analysis)) throw new GeoExperimentRegistryError("CONFLICT", "experiment analysis was concurrently committed with a different result");
+        return concurrent;
+      }
+      if (!this.mutationAllowed()) throw new GeoExperimentRegistryError("MODE_BLOCKED", "runtime mode blocks durable geo analysis persistence");
+      const updatedAt = new Date(this.now()).toISOString();
+      const result = this.db.prepare("UPDATE cortex12_experiments SET analysis_json=?,updated_at=? WHERE experiment_id=? AND design_digest=? AND analysis_json IS NULL").run(JSON.stringify(analysis), updatedAt, experimentId, current.design.designDigest);
+      if (result.changes !== 1) throw new GeoExperimentRegistryError("CONFLICT", "geo analysis lost its durable compare-and-set boundary");
+      const committed = this.get(experimentId);
+      if (!committed?.analysis) throw new GeoExperimentRegistryError("INTEGRITY_FAILURE", "geo analysis was not readable before commit");
+      return committed;
+    });
   }
 
   get(experimentId: string): GeoExperimentRecord | undefined {
