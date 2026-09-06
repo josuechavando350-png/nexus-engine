@@ -75,7 +75,7 @@ async function assertRootServed(processHandle) {
   const body = await response.text();
   if (!response.ok) throw new Error(`pipeline-probe root readiness returned HTTP ${response.status}`);
   if (processHandle.exitCode !== null) throw new Error(`pipeline-probe exited while serving root with code ${processHandle.exitCode}`);
-  if (!body.includes("<a") || ![...allowedProbeRoutes].some((path) => body.includes(`href=\"${path}\"`))) {
+  if (!body.includes("<a") || ![...allowedProbeRoutes].some((path) => body.includes(`href="${path}"`))) {
     throw new Error(`pipeline-probe root HTML lacks a real allowlisted navigation target; bytes=${Buffer.byteLength(body)}`);
   }
 }
