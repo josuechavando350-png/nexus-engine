@@ -69,6 +69,9 @@ jobs:
       - name: Capture pipeline probe from exact-SHA governed build
         run: node scripts/client-browser-evidence.mjs "$NEXUS_PASSPORT_PROJECT_ID"
 
+      - name: Prove CORTEX #8 real probe consumer and kill switch
+        run: node scripts/cortex-08-browser-proof.mjs
+
       - name: Record validated source identity
         shell: bash
         run: |
