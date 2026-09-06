@@ -47,6 +47,16 @@ export interface EnhancedConversionRecord {
   readonly revision: number;
 }
 
+export interface EnhancedConversionObservation {
+  readonly transactionDigest: `sha256:${string}`;
+  readonly eventDigest: `sha256:${string}`;
+  readonly eventName: string;
+  readonly eventSource: DataManagerConversionEvent["eventSource"];
+  readonly adUserDataConsent: DataManagerConversionEvent["adUserDataConsent"];
+  readonly userIdentifierCount: number;
+  readonly hasGclid: boolean;
+}
+
 export interface EnhancedConversionGateway {
   ingestConversion(destination: DataManagerDestination, event: DataManagerConversionEvent): Promise<DataManagerIngestReceipt>;
 }
@@ -59,7 +69,7 @@ export interface EnhancedConversionTelemetry {
 }
 
 export class EnhancedConversionError extends Error {
-  constructor(public readonly code: "INVALID_INPUT" | "CONSENT_VIOLATION" | "CONFLICT" | "INTEGRITY_FAILURE" | "PERSISTENCE_FAILURE" | "REMOTE_FAILURE" | "AMBIGUOUS_OUTCOME" | "KILLED", message: string) {
+  constructor(public readonly code: "INVALID_INPUT" | "CONSENT_VIOLATION" | "CONFLICT" | "INTEGRITY_FAILURE" | "PERSISTENCE_FAILURE" | "REMOTE_FAILURE" | "AMBIGUOUS_OUTCOME" | "KILLED" | "MODE_BLOCKED", message: string) {
     super(message);
     this.name = "EnhancedConversionError";
   }
@@ -69,7 +79,7 @@ function sha256(value: string): string {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
-function canonicalDigest(value: unknown): string {
+function canonicalDigest(value: unknown): `sha256:${string}` {
   return `sha256:${sha256(canonicalJson(value))}`;
 }
 
@@ -158,6 +168,19 @@ function eventFromInput(input: EnhancedConversionInput): DataManagerConversionEv
   });
 }
 
+export function observeEnhancedConversionInput(value: unknown): EnhancedConversionObservation {
+  const event = eventFromInput(exactInput(value));
+  return Object.freeze({
+    transactionDigest: `sha256:${sha256(event.transactionId)}`,
+    eventDigest: canonicalDigest(event),
+    eventName: event.eventName,
+    eventSource: event.eventSource,
+    adUserDataConsent: event.adUserDataConsent,
+    userIdentifierCount: event.userIdentifiers.length,
+    hasGclid: event.gclid !== undefined,
+  });
+}
+
 function asJson(value: unknown): JsonValue {
   return JSON.parse(JSON.stringify(value)) as JsonValue;
 }
@@ -230,6 +253,11 @@ export class DurableEnhancedConversionsPipeline {
       if (parsed.digest !== digest) throw new EnhancedConversionError("CONFLICT", "transactionId is already bound to different conversion content");
       return parsed;
     }
+    const mode = this.modeProvider();
+    if (mode !== "ACTIVE") {
+      this.emit({ operation: "PREPARE", status: "BLOCKED", transactionDigest, errorCode: mode === "KILLED" ? "KILLED" : "MODE_BLOCKED" });
+      throw new EnhancedConversionError(mode === "KILLED" ? "KILLED" : "MODE_BLOCKED", `${mode} blocks durable conversion preparation`);
+    }
     const updatedAt = new Date(this.now()).toISOString();
     const operation: TransactionOperation = {
       kind: "CREATE_OBJECT",
@@ -247,6 +275,10 @@ export class DurableEnhancedConversionsPipeline {
         },
       },
     };
+    if (this.modeProvider() !== "ACTIVE") {
+      this.emit({ operation: "PREPARE", status: "BLOCKED", transactionDigest, errorCode: "MODE_BLOCKED" });
+      throw new EnhancedConversionError("MODE_BLOCKED", "runtime mode changed before durable conversion preparation");
+    }
     try { this.transactions.transact(this.scope, this.validatedSchema, [operation]); }
     catch (error) { mapPersistence(error); }
     const created = this.transactions.getObject(this.scope, id);
