@@ -88,7 +88,7 @@ describe("CORTEX #14 production proxy helpers", () => {
 
 describe("CORTEX #14 production risk enforcement", () => {
   it("forwards a valid low-risk request only to the fixed upstream and strips spoofable forwarding/risk headers", async () => {
-    const upstreamFetch = vi.fn(async (url: URL | string, init?: RequestInit) => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }));
+    const upstreamFetch = vi.fn(async (_url: URL | string, _init?: RequestInit) => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }));
     vi.stubGlobal("fetch", upstreamFetch);
     const server = startCortex14RiskProxy();
     try {
@@ -128,7 +128,7 @@ describe("CORTEX #14 production risk enforcement", () => {
   });
 
   it("enforces DENY in ACTIVE but only observes the same verified decision in OBSERVE_ONLY", async () => {
-    const upstreamFetch = vi.fn(async () => new Response("observed", { status: 204 }));
+    const upstreamFetch = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", upstreamFetch);
     let server = startCortex14RiskProxy();
     try {
@@ -162,7 +162,11 @@ describe("CORTEX #14 production risk enforcement", () => {
       const deadline = Date.now() + 5_000;
       let result: Awaited<ReturnType<typeof request>> | undefined;
       while (Date.now() < deadline && !result) {
-        try { result = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(100)) }); } catch { await new Promise((resolve) => setTimeout(resolve, 25)); }
+        try {
+          result = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(100)) });
+        } catch {
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
       }
       expect(result?.status).toBe(503);
       expect(upstreamFetch).not.toHaveBeenCalled();
