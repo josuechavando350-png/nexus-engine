@@ -5,30 +5,30 @@ import {
   Cortex14Error,
   computeRiskNetworkKeyHash,
   evaluateSignedRiskEnvelopeForNetwork,
+  parseRiskPolicy,
   type RiskPolicy,
 } from "./index";
+import type { RiskGateMode } from "./runtime-control";
 
 const MAX_BODY_BYTES = 1_048_576;
 const MAX_ENVELOPE_BYTES = 8_192;
 const MAX_UPSTREAM_RESPONSE_BYTES = 2_097_152;
 const ALLOWED_METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
-type Mode = "ACTIVE" | "OBSERVE_ONLY" | "KILLED";
 
-function mode(): Mode {
-  const raw = process.env.NEXUS_CORTEX_14_MODE;
-  return raw === "ACTIVE" || raw === "OBSERVE_ONLY" ? raw : "KILLED";
+export interface Cortex14RiskProxyConfig {
+  readonly signingSecret: string;
+  readonly networkSecret: string;
+  readonly policy: RiskPolicy;
+  readonly upstreamOrigin: URL | string;
+  readonly trustedProxyAddresses?: readonly string[];
+  readonly port: number;
+  readonly host?: "127.0.0.1";
+  readonly readMode: () => RiskGateMode;
 }
 
-function required(name: string): string {
-  const value = process.env[name]?.trim();
-  if (!value) throw new Error(`${name} is required`);
+function validateSecret(value: string, label: string): string {
+  if (typeof value !== "string" || value.length < 32 || value.length > 4096 || /[\r\n\0]/u.test(value)) throw new Error(`${label} is invalid`);
   return value;
-}
-
-function policy(): RiskPolicy {
-  const parsed = JSON.parse(required("NEXUS_CORTEX_14_POLICY_JSON")) as unknown;
-  if (!parsed || typeof parsed !== "object") throw new Error("NEXUS_CORTEX_14_POLICY_JSON is invalid");
-  return parsed as RiskPolicy;
 }
 
 export function normalizeRemoteAddress(value: string | undefined): string {
@@ -37,10 +37,11 @@ export function normalizeRemoteAddress(value: string | undefined): string {
   return value;
 }
 
-function parseTrustedProxies(value: string | undefined): ReadonlySet<string> {
-  if (!value?.trim()) return new Set();
-  const entries = value.split(",").map((entry) => normalizeRemoteAddress(entry.trim()));
-  if (entries.some((entry) => !entry) || new Set(entries).size !== entries.length || entries.length > 32) throw new Error("NEXUS_CORTEX_14_TRUSTED_PROXY_ADDRESSES is invalid");
+export function parseTrustedProxyAddresses(values: readonly string[] | undefined): ReadonlySet<string> {
+  if (!values?.length) return new Set();
+  if (values.length > 32) throw new Error("CORTEX #14 trusted proxy list is too large");
+  const entries = values.map((entry) => normalizeRemoteAddress(entry.trim()));
+  if (new Set(entries).size !== entries.length) throw new Error("CORTEX #14 trusted proxy list contains duplicates");
   return new Set(entries);
 }
 
@@ -165,25 +166,36 @@ export function fixedUpstreamTarget(upstream: URL, requestUrl: string | undefine
   return target;
 }
 
-export function startCortex14RiskProxy(): { close(): Promise<void> } {
-  const signingSecret = required("NEXUS_CORTEX_14_SIGNING_SECRET");
-  const networkSecret = required("NEXUS_CORTEX_14_NETWORK_KEY_SECRET");
-  if (signingSecret.length < 32) throw new Error("NEXUS_CORTEX_14_SIGNING_SECRET must contain at least 32 characters");
-  if (networkSecret.length < 32) throw new Error("NEXUS_CORTEX_14_NETWORK_KEY_SECRET must contain at least 32 characters");
+function failClosedMode(readMode: () => RiskGateMode): RiskGateMode {
+  try {
+    const value = readMode();
+    return value === "ACTIVE" || value === "OBSERVE_ONLY" || value === "KILLED" ? value : "KILLED";
+  } catch {
+    return "KILLED";
+  }
+}
+
+export function startCortex14RiskProxy(config: Cortex14RiskProxyConfig): { close(): Promise<void> } {
+  const signingSecret = validateSecret(config.signingSecret, "CORTEX #14 signing secret");
+  const networkSecret = validateSecret(config.networkSecret, "CORTEX #14 network-key secret");
   if (secureEqualText(signingSecret, networkSecret)) throw new Error("CORTEX #14 signing and network-key secrets must be distinct");
-  const configuredPolicy = policy();
-  const upstream = new URL(required("NEXUS_CORTEX_14_UPSTREAM_ORIGIN"));
-  if (upstream.protocol !== "https:" || upstream.pathname !== "/" || upstream.search || upstream.hash || upstream.username || upstream.password) throw new Error("NEXUS_CORTEX_14_UPSTREAM_ORIGIN must be a credential-free HTTPS origin");
-  const trustedProxies = parseTrustedProxies(process.env.NEXUS_CORTEX_14_TRUSTED_PROXY_ADDRESSES);
-  const port = Number(process.env.NEXUS_CORTEX_14_PORT ?? "8784");
-  if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) throw new Error("NEXUS_CORTEX_14_PORT is invalid");
+  const configuredPolicy = parseRiskPolicy(config.policy);
+  const upstream = new URL(config.upstreamOrigin);
+  if (upstream.protocol !== "https:" || upstream.pathname !== "/" || upstream.search || upstream.hash || upstream.username || upstream.password) throw new Error("CORTEX #14 upstream must be a credential-free HTTPS origin");
+  const trustedProxies = parseTrustedProxyAddresses(config.trustedProxyAddresses);
+  if (!Number.isSafeInteger(config.port) || config.port < 1 || config.port > 65_535) throw new Error("CORTEX #14 port is invalid");
+  if (config.host !== undefined && config.host !== "127.0.0.1") throw new Error("CORTEX #14 host must be 127.0.0.1");
+  if (typeof config.readMode !== "function") throw new Error("CORTEX #14 durable control reader is required");
+  const host = config.host ?? "127.0.0.1";
 
   const server = createServer(async (request, response) => {
     try {
-      if (request.method === "GET" && request.url === "/healthz") return json(response, mode() === "KILLED" ? 503 : 200, { mode: mode() });
+      if (request.method === "GET" && request.url === "/healthz") {
+        const healthMode = failClosedMode(config.readMode);
+        return json(response, healthMode === "KILLED" ? 503 : 200, { mode: healthMode });
+      }
       if (!request.method || !ALLOWED_METHODS.has(request.method)) return json(response, 405, { error: "METHOD_NOT_ALLOWED" }, { allow: [...ALLOWED_METHODS].join(", ") });
-      const initialMode = mode();
-      if (initialMode === "KILLED") return json(response, 503, { error: "KILLED" });
+      if (failClosedMode(config.readMode) === "KILLED") return json(response, 503, { error: "KILLED" });
 
       const networkKey = trustedProxyNetworkKey(request, networkSecret, trustedProxies);
       const expectedNetworkKeyHash = computeRiskNetworkKeyHash(networkKey, networkSecret);
@@ -194,15 +206,15 @@ export function startCortex14RiskProxy(): { close(): Promise<void> } {
         expectedNetworkKeyHash,
       );
 
-      const finalMode = mode();
-      if (finalMode === "KILLED") return json(response, 503, { error: "KILLED" });
-      console.info(JSON.stringify({ component: "cortex-14-risk-gate", mode: finalMode, action: decision.action, assessmentId: decision.assessmentId, providerId: decision.providerId, riskScore: decision.riskScore }));
-      if (finalMode === "ACTIVE" && decision.action === "DENY") return json(response, 403, { error: "RISK_DENIED", assessmentId: decision.assessmentId });
-      if (finalMode === "ACTIVE" && decision.action === "CHALLENGE") return json(response, 429, { error: "RISK_CHALLENGE", assessmentId: decision.assessmentId }, { "x-nexus-challenge-required": "1" });
+      const enforcementMode = failClosedMode(config.readMode);
+      if (enforcementMode === "KILLED") return json(response, 503, { error: "KILLED" });
+      console.info(JSON.stringify({ component: "cortex-14-risk-gate", mode: enforcementMode, action: decision.action }));
+      if (enforcementMode === "ACTIVE" && decision.action === "DENY") return json(response, 403, { error: "RISK_DENIED" });
+      if (enforcementMode === "ACTIVE" && decision.action === "CHALLENGE") return json(response, 429, { error: "RISK_CHALLENGE" }, { "x-nexus-challenge-required": "1" });
 
       const target = fixedUpstreamTarget(upstream, request.url);
       const body = await readBody(request);
-      if (mode() === "KILLED") return json(response, 503, { error: "KILLED" });
+      if (failClosedMode(config.readMode) === "KILLED") return json(response, 503, { error: "KILLED" });
       const upstreamResponse = await fetch(target, {
         method: request.method,
         headers: upstreamHeaders(request),
@@ -228,8 +240,6 @@ export function startCortex14RiskProxy(): { close(): Promise<void> } {
       json(response, 502, { error: "UPSTREAM_FAILURE" });
     }
   });
-  server.listen(port, "127.0.0.1");
+  server.listen(config.port, host);
   return { close: () => new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve())) };
 }
-
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) startCortex14RiskProxy();
