@@ -67,4 +67,20 @@ describe("HttpProgrammaticSeoCatalogProvider", () => {
     });
     await expect(provider.getCatalog(SITE_ID)).rejects.toBeInstanceOf(ProgrammaticSeoCatalogTransportError);
   });
+
+  it("fails closed while streaming an oversized response without Content-Length", async () => {
+    const oversized = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("x".repeat(8 * 1024 * 1024 + 1)));
+        controller.close();
+      },
+    });
+    const provider = new HttpProgrammaticSeoCatalogProvider({
+      endpoint: "https://catalog.example.test/v1/catalog",
+      bearerToken: TOKEN,
+      maxRouteDepth: 8,
+      fetchImpl: (async () => new Response(oversized, { status: 200, headers: { "content-type": "application/json" } })) as typeof fetch,
+    });
+    await expect(provider.getCatalog(SITE_ID)).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+  });
 });
