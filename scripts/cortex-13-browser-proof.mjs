@@ -198,6 +198,9 @@ async function main() {
       return state.state === "PRESSURE" && state.suspended === "1" && state.speculativeNodes === 0 && String(state.reasons).includes("LONG_TASK");
     }, 8_000, "real main-thread pressure to suspend and roll back speculation", diagnostics);
 
+    // Move off the anchor before retesting it so the next hover must create a
+    // fresh pointer transition instead of reusing the browser's current hover state.
+    await page.mouse.move(1, 1);
     await page.hover(`a[href="${target}"]`);
     await new Promise((resolve) => setTimeout(resolve, 1_000));
     if ((await diagnostics()).speculativeNodes !== 0) throw new Error(`CORTEX #13 pressure allowed speculative work to reappear: ${JSON.stringify(await diagnostics())}`);
@@ -210,8 +213,10 @@ async function main() {
       return state.state === null && state.suspended === null;
     }, 8_000, "OBSERVE_ONLY rollback of consumer-visible optimizer state", diagnostics);
 
-    // OBSERVE_ONLY must not block CORTEX #8. The suspension transition also
-    // clears CORTEX #8's internal prepared-target budget before this hover.
+    // OBSERVE_ONLY must not block CORTEX #8. Generate a fresh pointer transition
+    // after rollback; CORTEX #13's suspension transition has also cleared #8's
+    // prepared-target budget.
+    await page.mouse.move(1, 1);
     await page.hover(`a[href="${target}"]`);
     await waitUntil(async () => (await diagnostics()).speculativeNodes === 1, 8_000, "speculation after OBSERVE_ONLY rollback", diagnostics);
 
