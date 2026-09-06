@@ -1,5 +1,5 @@
 import { scoreFrictionAbandonment } from "@nexus/core/cortex/friction-abandonment-scoring";
-import { readCortex09Mode } from "../friction-runtime";
+import { readCortex09Runtime } from "../friction-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,24 +40,27 @@ export async function POST(request: Request): Promise<Response> {
   const fetchSite = request.headers.get("sec-fetch-site");
   if (fetchSite !== null && fetchSite !== "same-origin") return new Response(null, { status: 403 });
 
-  const initialMode = readCortex09Mode();
-  if (initialMode === "KILLED") return Response.json({ mode: "KILLED" }, { status: 503, headers: { "cache-control": "no-store" } });
+  const initial = readCortex09Runtime();
+  if (initial.mode === "KILLED" || !initial.model) return Response.json({ mode: "KILLED" }, { status: 503, headers: { "cache-control": "no-store" } });
 
   let score;
   try {
-    score = scoreFrictionAbandonment(await readBoundedJson(request));
+    score = scoreFrictionAbandonment(await readBoundedJson(request), initial.model);
   } catch {
     return new Response(null, { status: 400, headers: { "cache-control": "no-store" } });
   }
 
-  const finalMode = readCortex09Mode();
-  if (finalMode === "KILLED") return Response.json({ mode: "KILLED" }, { status: 503, headers: { "cache-control": "no-store" } });
-  if (finalMode === "OBSERVE_ONLY") {
-    console.info(JSON.stringify({ component: "cortex-09-friction-scoring", mode: finalMode, deviceClass: score.deviceClass, riskBand: score.riskBand }));
-    return Response.json({ mode: finalMode, score: null }, { status: 200, headers: { "cache-control": "no-store" } });
+  const final = readCortex09Runtime();
+  if (final.mode === "KILLED" || !final.model) return Response.json({ mode: "KILLED" }, { status: 503, headers: { "cache-control": "no-store" } });
+  if (final.model.sourceDigest !== initial.model.sourceDigest || final.model.modelId !== initial.model.modelId) {
+    return Response.json({ mode: "KILLED" }, { status: 409, headers: { "cache-control": "no-store" } });
+  }
+  if (final.mode === "OBSERVE_ONLY") {
+    console.info(JSON.stringify({ component: "cortex-09-friction-scoring", mode: final.mode, deviceClass: score.deviceClass, riskBand: score.riskBand, modelSourceDigest: score.modelSourceDigest }));
+    return Response.json({ mode: final.mode, score: null }, { status: 200, headers: { "cache-control": "no-store" } });
   }
 
-  console.info(JSON.stringify({ component: "cortex-09-friction-scoring", mode: finalMode, deviceClass: score.deviceClass, riskBand: score.riskBand }));
+  console.info(JSON.stringify({ component: "cortex-09-friction-scoring", mode: final.mode, deviceClass: score.deviceClass, riskBand: score.riskBand, modelSourceDigest: score.modelSourceDigest }));
   return Response.json({ mode: "ACTIVE", score }, {
     status: 200,
     headers: {
