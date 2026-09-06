@@ -97,6 +97,14 @@ jobs:
             --tag "nexus-cortex-serp:${NEXUS_VALIDATED_SHA}" \
             .
           docker image inspect "nexus-cortex-serp:${NEXUS_VALIDATED_SHA}" >/dev/null
+      - name: CORTEX programmatic SEO container build
+        run: |
+          set -euo pipefail
+          docker build \
+            --file packages/ontology/cortex/headless-programmatic-seo/Dockerfile \
+            --tag "nexus-cortex-programmatic-seo:${NEXUS_VALIDATED_SHA}" \
+            .
+          docker image inspect "nexus-cortex-programmatic-seo:${NEXUS_VALIDATED_SHA}" >/dev/null
       - name: Real browser tests
         run: pnpm test:browser
       - name: V3 runtime boundary
