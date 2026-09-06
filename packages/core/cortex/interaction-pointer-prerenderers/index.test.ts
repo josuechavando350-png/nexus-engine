@@ -76,6 +76,22 @@ describe("CORTEX #8 interaction pointer prerenderer", () => {
     expect(decisions.at(-1)?.reason).toBe("KILL_SWITCH");
   });
 
+  it("blocks an in-flight side effect when active changes to observe-only", async () => {
+    const h = harness();
+    const states = [control("ACTIVE"), control("OBSERVE_ONLY")];
+    const decisions: InteractionPointerDecision[] = [];
+    const runtime = createInteractionPointerPrerenderer({
+      environment: h.environment,
+      controlProvider: async () => states.shift() ?? control("OBSERVE_ONLY"),
+      onDecision: (decision) => { decisions.push(decision); },
+    });
+    runtime.start();
+    await h.fire("pointerover", "https://probe.example/explore");
+    expect(h.applied).toEqual([]);
+    expect(h.rollbacks()).toBe(1);
+    expect(decisions.at(-1)).toMatchObject({ reason: "OBSERVE_ONLY", action: "PRERENDER" });
+  });
+
   it("keeps observe-only free of speculative side effects and falls back to prefetch when rules are unsupported", async () => {
     const observe = harness();
     const observed: InteractionPointerDecision[] = [];
@@ -87,6 +103,7 @@ describe("CORTEX #8 interaction pointer prerenderer", () => {
     observeRuntime.start();
     await observe.fire("focusin", "https://probe.example/explore");
     expect(observe.applied).toEqual([]);
+    expect(observe.rollbacks()).toBe(1);
     expect(observed.at(-1)).toMatchObject({ reason: "OBSERVE_ONLY", action: "PRERENDER" });
 
     const fallback = harness({ speculation: false });
@@ -110,6 +127,7 @@ describe("CORTEX #8 interaction pointer prerenderer", () => {
     await h.fire("pointerover", "https://probe.example/explore");
     expect(h.applied).toEqual([]);
     expect(decisions.map((decision) => decision.reason)).toEqual(["CROSS_ORIGIN", "QUERY_NOT_ALLOWED", "REDUCED_DATA"]);
+    expect(h.rollbacks()).toBe(1);
 
     const unavailable = harness();
     const unavailableDecisions: InteractionPointerDecision[] = [];
@@ -121,6 +139,7 @@ describe("CORTEX #8 interaction pointer prerenderer", () => {
     unavailableRuntime.start();
     await unavailable.fire("pointerover", "https://probe.example/explore");
     expect(unavailable.applied).toEqual([]);
+    expect(unavailable.rollbacks()).toBe(1);
     expect(unavailableDecisions.at(-1)?.reason).toBe("CONTROL_UNAVAILABLE");
   });
 
