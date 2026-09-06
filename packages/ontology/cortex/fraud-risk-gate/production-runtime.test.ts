@@ -23,6 +23,7 @@ function fixture(): { dir: string; database: string; signing: string; network: s
     signing,
     network,
     env: {
+      NEXUS_CORTEX_14_PERSISTENCE_ACK: "durable-volume",
       NEXUS_CORTEX_14_DATABASE: database,
       NEXUS_CORTEX_14_SIGNING_SECRET_FILE: signing,
       NEXUS_CORTEX_14_NETWORK_KEY_SECRET_FILE: network,
@@ -70,6 +71,13 @@ describe("CORTEX #14 production runtime composition", () => {
     expect(config.networkSecret).toBe("n".repeat(32));
     expect(config.upstreamOrigin).toBe("https://upstream.example/");
     expect(config.port).toBe(port);
+  });
+
+  it("refuses startup without an explicit durable-volume persistence acknowledgement", () => {
+    const item = fixture();
+    const { NEXUS_CORTEX_14_PERSISTENCE_ACK: _ignored, ...withoutAck } = item.env;
+    expect(() => loadCortex14ProductionConfig(withoutAck)).toThrow(/durable-volume/u);
+    expect(() => loadCortex14ProductionConfig({ ...item.env, NEXUS_CORTEX_14_PERSISTENCE_ACK: "ephemeral" })).toThrow(/ephemeral control storage/u);
   });
 
   it("starts fail-closed with an uninitialized durable database and becomes active only after explicit CAS control", async () => {
