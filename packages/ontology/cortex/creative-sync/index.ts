@@ -1051,12 +1051,16 @@ export class NearRealTimeCreativeSynchronizer {
     const runId = identifier(input.runId, "runId");
     const customer = customerId(input.customerId);
     const existing = this.readRun(runId, customer);
-    if (existing) return this.execute(existing, "ACTIVE");
+    if (existing) {
+      if (existing.reason !== "ROLLBACK_APPLIED") throw new CreativeSyncError("POLICY_VIOLATION", "rollback cannot resume a forward prepared creative mutation");
+      return this.execute(existing, "ACTIVE");
+    }
     const state = this.readState(customer);
     if (!state?.lastAppliedAction || !state.lastRollbackAction) throw new CreativeSyncError("POLICY_VIOLATION", "no certified creative action is available for rollback");
     if (state.inFlightRunId) {
       const inFlight = this.readRun(state.inFlightRunId, customer);
       if (!inFlight) throw new CreativeSyncError("INTEGRITY_FAILURE", "state references missing in-flight run");
+      if (inFlight.reason !== "ROLLBACK_APPLIED") throw new CreativeSyncError("POLICY_VIOLATION", "rollback cannot resume a forward prepared creative mutation");
       return this.execute(inFlight, "ACTIVE");
     }
     const now = this.time();
