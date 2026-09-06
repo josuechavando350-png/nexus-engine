@@ -71,12 +71,17 @@ function parseCreative(value: unknown): CreativeVersionInput {
   return Object.freeze({ creativeId: raw.creativeId, version: raw.version, assetDigests: Object.freeze([...raw.assetDigests]), deploymentKeys: Object.freeze([...raw.deploymentKeys]), activatedAt: utc(raw.activatedAt) });
 }
 
+function traceSecret(value: string): string {
+  if (typeof value !== "string" || value.length < 32 || value.length > 4096 || /[\r\n\0]/u.test(value)) throw new Cortex16Error("INVALID_INPUT", "trace signing secret is invalid");
+  return value;
+}
+
 export class SqliteCreativeTraceRegistry {
   private readonly db: DatabaseSync;
   constructor(databasePath: string) {
     if (!databasePath) throw new Cortex16Error("INVALID_INPUT", "databasePath is required");
     this.db = new DatabaseSync(databasePath);
-    this.db.exec("PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;");
+    this.db.exec("PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;");
     this.db.exec(`CREATE TABLE IF NOT EXISTS cortex16_creatives(
       creative_id TEXT NOT NULL,
       version TEXT NOT NULL,
@@ -88,7 +93,8 @@ export class SqliteCreativeTraceRegistry {
   }
   close(): void { this.db.close(); }
 
-  register(value: unknown): CreativeVersionRecord {
+  register(value: unknown, beforeCommit?: () => void): CreativeVersionRecord {
+    if (beforeCommit !== undefined && typeof beforeCommit !== "function") throw new Cortex16Error("INVALID_INPUT", "beforeCommit guard is invalid");
     const input = parseCreative(value);
     const manifestDigest = digest(input);
     const traceKey = `nxc16-${createHash("sha256").update(`${input.creativeId}\0${input.version}\0${manifestDigest}`, "utf8").digest("hex").slice(0, 24)}`;
@@ -97,8 +103,19 @@ export class SqliteCreativeTraceRegistry {
       if (existing.manifest_digest !== manifestDigest) throw new Cortex16Error("CONFLICT", "creative version is already bound to different assets or deployments");
       return Object.freeze({ ...parseCreative(JSON.parse(String(existing.manifest_json)) as unknown), manifestDigest, traceKey: String(existing.trace_key) });
     }
-    this.db.prepare("INSERT INTO cortex16_creatives(creative_id,version,manifest_digest,trace_key,manifest_json) VALUES(?,?,?,?,?)").run(input.creativeId, input.version, manifestDigest, traceKey, canonical(input));
-    return Object.freeze({ ...input, manifestDigest, traceKey });
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      const raced = this.db.prepare("SELECT manifest_digest,trace_key,manifest_json FROM cortex16_creatives WHERE creative_id=? AND version=?").get(input.creativeId, input.version) as Record<string, unknown> | undefined;
+      if (raced) {
+        if (raced.manifest_digest !== manifestDigest) throw new Cortex16Error("CONFLICT", "creative version is already bound to different assets or deployments");
+        this.db.exec("COMMIT");
+        return Object.freeze({ ...parseCreative(JSON.parse(String(raced.manifest_json)) as unknown), manifestDigest, traceKey: String(raced.trace_key) });
+      }
+      beforeCommit?.();
+      this.db.prepare("INSERT INTO cortex16_creatives(creative_id,version,manifest_digest,trace_key,manifest_json) VALUES(?,?,?,?,?)").run(input.creativeId, input.version, manifestDigest, traceKey, canonical(input));
+      this.db.exec("COMMIT");
+      return Object.freeze({ ...input, manifestDigest, traceKey });
+    } catch (error) { if (this.db.isTransaction) this.db.exec("ROLLBACK"); throw error; }
   }
 
   getByTraceKey(traceKey: string): CreativeVersionRecord | undefined {
@@ -125,16 +142,17 @@ export class SqliteCreativeTraceRegistry {
 }
 
 export function signCreativeTrace(record: CreativeVersionRecord, secret: string): SignedCreativeTrace {
-  if (secret.length < 32) throw new Cortex16Error("INVALID_INPUT", "trace signing secret must contain at least 32 characters");
-  const signature = createHmac("sha256", secret).update(`${record.traceKey}\0${record.manifestDigest}`, "utf8").digest("hex");
+  const signingSecret = traceSecret(secret);
+  const signature = createHmac("sha256", signingSecret).update(`${record.traceKey}\0${record.manifestDigest}`, "utf8").digest("hex");
   return Object.freeze({ traceKey: record.traceKey, manifestDigest: record.manifestDigest, signature: `sha256=${signature}` });
 }
 
 export function verifyCreativeTrace(value: unknown, secret: string): { traceKey: string; manifestDigest: `sha256:${string}` } {
+  const signingSecret = traceSecret(secret);
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new Cortex16Error("INVALID_INPUT", "signed trace must be a plain object");
   const raw = value as Record<string, unknown>;
-  if (Object.keys(raw).sort().join(",") !== "manifestDigest,signature,traceKey" || typeof raw.traceKey !== "string" || !ID.test(raw.traceKey) || typeof raw.manifestDigest !== "string" || !SHA256.test(raw.manifestDigest) || typeof raw.signature !== "string" || !/^sha256=[0-9a-f]{64}$/u.test(raw.signature) || secret.length < 32) throw new Cortex16Error("INVALID_SIGNATURE", "signed creative trace is malformed");
-  const expected = Buffer.from(createHmac("sha256", secret).update(`${raw.traceKey}\0${raw.manifestDigest}`, "utf8").digest("hex"));
+  if (Object.keys(raw).sort().join(",") !== "manifestDigest,signature,traceKey" || typeof raw.traceKey !== "string" || !ID.test(raw.traceKey) || typeof raw.manifestDigest !== "string" || !SHA256.test(raw.manifestDigest) || typeof raw.signature !== "string" || !/^sha256=[0-9a-f]{64}$/u.test(raw.signature)) throw new Cortex16Error("INVALID_SIGNATURE", "signed creative trace is malformed");
+  const expected = Buffer.from(createHmac("sha256", signingSecret).update(`${raw.traceKey}\0${raw.manifestDigest}`, "utf8").digest("hex"));
   const provided = Buffer.from(raw.signature.slice(7));
   if (expected.length !== provided.length || !timingSafeEqual(expected, provided)) throw new Cortex16Error("INVALID_SIGNATURE", "creative trace signature mismatch");
   return Object.freeze({ traceKey: raw.traceKey, manifestDigest: raw.manifestDigest as `sha256:${string}` });
