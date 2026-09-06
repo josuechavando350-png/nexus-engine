@@ -18,7 +18,7 @@ export interface GeoHoldoutProductionServerOptions {
 
 function secret(value: string, label: string): Buffer {
   const normalized = value.trim();
-  if (normalized.length < 24 || normalized.length > 4096) throw new Error(`${label} must contain 24..4096 characters`);
+  if (normalized.length < 24 || normalized.length > 4096 || /[\r\n]/u.test(normalized)) throw new Error(`${label} must contain one 24..4096 character secret`);
   return createHash("sha256").update(normalized, "utf8").digest();
 }
 
@@ -123,7 +123,7 @@ export class GeoHoldoutProductionServer {
     try {
       const path = pathOf(request);
       if (request.method === "GET" && path === "/healthz") {
-        json(response, 200, { status: "ok", mode: this.options.control.read().mode });
+        json(response, 200, { status: "ok" });
         return;
       }
       if (path === "/v1/geo-holdout/control") {
@@ -146,6 +146,7 @@ export class GeoHoldoutProductionServer {
         const finalMode = this.options.control.read().mode;
         if (finalMode === "KILLED") return json(response, 503, { error: "KILLED" });
         if (finalMode === "OBSERVE_ONLY") return json(response, 200, { status: "OBSERVED", design });
+        if (design.status !== "READY") return json(response, 422, { status: "REJECTED", design });
         const record = this.options.registry.registerDesign(input);
         return json(response, 201, { status: "REGISTERED", design: record.design, createdAt: record.createdAt });
       }
