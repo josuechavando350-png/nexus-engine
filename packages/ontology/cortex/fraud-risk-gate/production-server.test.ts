@@ -2,14 +2,15 @@ import { createHmac } from "node:crypto";
 import { request as httpRequest } from "node:http";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { computeRiskNetworkKeyHash, signRiskPayload } from "./index";
-import { fixedUpstreamTarget, normalizeRemoteAddress, readBoundedUpstreamBody, startCortex14RiskProxy } from "./production-server";
+import { fixedUpstreamTarget, normalizeRemoteAddress, readBoundedUpstreamBody, startCortex14RiskProxy, type Cortex14RiskProxyConfig } from "./production-server";
+import type { RiskGateMode } from "./runtime-control";
 
 const port = 39814;
 const origin = `http://127.0.0.1:${port}`;
 const signingSecret = "s".repeat(32);
 const networkSecret = "n".repeat(32);
 const policy = { challengeAtOrAbove: 500, denyAtOrAbove: 800, maxAssessmentAgeSeconds: 300, maxFutureSkewSeconds: 30 } as const;
-const originalEnv = { ...process.env };
+let mode: RiskGateMode;
 
 function envelope(riskScore: number, networkAddress = "127.0.0.1") {
   const now = Date.now();
@@ -32,6 +33,18 @@ function trustedProxySignature(asserted: string): string {
   return `sha256=${createHmac("sha256", networkSecret).update(`client-network\0${asserted}`, "utf8").digest("hex")}`;
 }
 
+function config(overrides: Partial<Cortex14RiskProxyConfig> = {}): Cortex14RiskProxyConfig {
+  return {
+    signingSecret,
+    networkSecret,
+    policy,
+    upstreamOrigin: "https://upstream.example/",
+    port,
+    readMode: () => mode,
+    ...overrides,
+  };
+}
+
 function request(path: string, headers: Record<string, string> = {}, method = "GET", body?: string): Promise<{ status: number; headers: Record<string, string | string[] | undefined>; body: string }> {
   return new Promise((resolve, reject) => {
     const req = httpRequest(`${origin}${path}`, { method, headers: { ...headers, ...(body ? { "content-length": String(Buffer.byteLength(body)) } : {}) } }, (response) => {
@@ -45,12 +58,12 @@ function request(path: string, headers: Record<string, string> = {}, method = "G
   });
 }
 
-async function waitReady(): Promise<void> {
+async function waitReady(expectedStatus = 200): Promise<void> {
   const deadline = Date.now() + 5_000;
   while (Date.now() < deadline) {
     try {
       const result = await request("/healthz");
-      if (result.status === 200) return;
+      if (result.status === expectedStatus) return;
     } catch {
       // bounded startup retry
     }
@@ -59,22 +72,8 @@ async function waitReady(): Promise<void> {
   throw new Error("CORTEX #14 test server did not become ready");
 }
 
-beforeEach(() => {
-  process.env.NEXUS_CORTEX_14_MODE = "ACTIVE";
-  process.env.NEXUS_CORTEX_14_SIGNING_SECRET = signingSecret;
-  process.env.NEXUS_CORTEX_14_NETWORK_KEY_SECRET = networkSecret;
-  process.env.NEXUS_CORTEX_14_POLICY_JSON = JSON.stringify(policy);
-  process.env.NEXUS_CORTEX_14_UPSTREAM_ORIGIN = "https://upstream.example/";
-  process.env.NEXUS_CORTEX_14_PORT = String(port);
-  delete process.env.NEXUS_CORTEX_14_TRUSTED_PROXY_ADDRESSES;
-});
-
-afterEach(() => {
-  vi.unstubAllGlobals();
-  vi.restoreAllMocks();
-  for (const key of Object.keys(process.env)) if (!(key in originalEnv)) delete process.env[key];
-  for (const [key, value] of Object.entries(originalEnv)) process.env[key] = value;
-});
+beforeEach(() => { mode = "ACTIVE"; });
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("CORTEX #14 production proxy helpers", () => {
   it("normalizes IPv4-mapped addresses and rejects missing network identity", () => {
@@ -102,7 +101,7 @@ describe("CORTEX #14 production risk enforcement", () => {
   it("forwards a valid low-risk request only to the fixed upstream and strips spoofable forwarding/risk headers", async () => {
     const upstreamFetch = vi.fn(async (_url: URL | string, _init?: RequestInit) => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }));
     vi.stubGlobal("fetch", upstreamFetch);
-    const server = startCortex14RiskProxy();
+    const server = startCortex14RiskProxy(config());
     try {
       await waitReady();
       const result = await request("//attacker.invalid/steal?x=1", {
@@ -119,17 +118,14 @@ describe("CORTEX #14 production risk enforcement", () => {
       expect(forwarded.get("x-forwarded-for")).toBeNull();
       expect(forwarded.get("x-real-ip")).toBeNull();
       expect(forwarded.get("x-nexus-risk-envelope")).toBeNull();
-    } finally {
-      await server.close();
-    }
+    } finally { await server.close(); }
   });
 
   it("accepts a network assertion only from a configured trusted proxy with a valid HMAC", async () => {
-    process.env.NEXUS_CORTEX_14_TRUSTED_PROXY_ADDRESSES = "127.0.0.1";
     const asserted = "198.51.100.44";
     const upstreamFetch = vi.fn(async () => new Response("ok", { status: 200 }));
     vi.stubGlobal("fetch", upstreamFetch);
-    const server = startCortex14RiskProxy();
+    const server = startCortex14RiskProxy(config({ trustedProxyAddresses: ["127.0.0.1"] }));
     try {
       await waitReady();
       const valid = await request("/resource", {
@@ -147,71 +143,75 @@ describe("CORTEX #14 production risk enforcement", () => {
       });
       expect(invalid.status).toBe(403);
       expect(upstreamFetch).toHaveBeenCalledTimes(1);
-    } finally {
-      await server.close();
-    }
+    } finally { await server.close(); }
   });
 
   it("rejects replay of a valid signed low-risk assessment from a different network before upstream", async () => {
     const upstreamFetch = vi.fn(async () => new Response("unexpected", { status: 200 }));
     vi.stubGlobal("fetch", upstreamFetch);
-    const server = startCortex14RiskProxy();
+    const server = startCortex14RiskProxy(config());
     try {
       await waitReady();
       const result = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(100, "203.0.113.77")) });
       expect(result.status).toBe(403);
       expect(JSON.parse(result.body)).toEqual({ error: "NETWORK_MISMATCH" });
       expect(upstreamFetch).not.toHaveBeenCalled();
-    } finally {
-      await server.close();
-    }
+    } finally { await server.close(); }
   });
 
   it("enforces DENY in ACTIVE but only observes the same verified decision in OBSERVE_ONLY", async () => {
     const upstreamFetch = vi.fn(async () => new Response(null, { status: 204 }));
     vi.stubGlobal("fetch", upstreamFetch);
-    let server = startCortex14RiskProxy();
+    const server = startCortex14RiskProxy(config());
     try {
       await waitReady();
       const blocked = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(900)) });
       expect(blocked.status).toBe(403);
       expect(upstreamFetch).not.toHaveBeenCalled();
-    } finally {
-      await server.close();
-    }
 
-    process.env.NEXUS_CORTEX_14_MODE = "OBSERVE_ONLY";
-    server = startCortex14RiskProxy();
-    try {
-      await waitReady();
+      mode = "OBSERVE_ONLY";
       const observed = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(900)) });
       expect(observed.status).toBe(204);
       expect(observed.headers["x-nexus-risk-action"]).toBe("DENY");
       expect(upstreamFetch).toHaveBeenCalledTimes(1);
-    } finally {
-      await server.close();
-    }
+    } finally { await server.close(); }
   });
 
-  it("fails closed when killed before evaluating or forwarding", async () => {
-    process.env.NEXUS_CORTEX_14_MODE = "KILLED";
+  it("fails closed when durable control is killed or unreadable", async () => {
     const upstreamFetch = vi.fn(async () => new Response("unexpected"));
     vi.stubGlobal("fetch", upstreamFetch);
-    const server = startCortex14RiskProxy();
+    mode = "KILLED";
+    let server = startCortex14RiskProxy(config());
     try {
-      const deadline = Date.now() + 5_000;
-      let result: Awaited<ReturnType<typeof request>> | undefined;
-      while (Date.now() < deadline && !result) {
-        try {
-          result = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(100)) });
-        } catch {
-          await new Promise((resolve) => setTimeout(resolve, 25));
-        }
-      }
-      expect(result?.status).toBe(503);
+      await waitReady(503);
+      const killed = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(100)) });
+      expect(killed.status).toBe(503);
       expect(upstreamFetch).not.toHaveBeenCalled();
-    } finally {
-      await server.close();
-    }
+    } finally { await server.close(); }
+
+    server = startCortex14RiskProxy(config({ readMode: () => { throw new Error("control unavailable"); } }));
+    try {
+      await waitReady(503);
+      const unavailable = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(100)) });
+      expect(unavailable.status).toBe(503);
+      expect(upstreamFetch).not.toHaveBeenCalled();
+    } finally { await server.close(); }
+  });
+
+  it("logs only minimized enforcement metadata", async () => {
+    const upstreamFetch = vi.fn(async () => new Response("ok", { status: 200 }));
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.stubGlobal("fetch", upstreamFetch);
+    const server = startCortex14RiskProxy(config());
+    try {
+      await waitReady();
+      const result = await request("/resource", { "x-nexus-risk-envelope": encodedEnvelope(envelope(100)) });
+      expect(result.status).toBe(200);
+      const serialized = info.mock.calls.map((call) => String(call[0])).join("\n");
+      expect(serialized).toContain('"action":"ALLOW"');
+      expect(serialized).not.toContain("assessment-");
+      expect(serialized).not.toContain("provider-");
+      expect(serialized).not.toContain('"riskScore"');
+    } finally { await server.close(); }
   });
 });
