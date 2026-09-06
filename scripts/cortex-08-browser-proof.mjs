@@ -87,13 +87,13 @@ async function main() {
     const proofLink = page.locator('a[href="/proof"]').first();
     if ((await proofLink.count()) !== 1) throw new Error("real probe consumer is missing the /proof navigation target");
     await proofLink.hover();
-    await page.waitForFunction(() => document.querySelectorAll('[data-nexus-cortex08="1"]').length === 1, undefined, { timeout: 5_000 });
+    await page.waitForFunction(() => globalThis.document.querySelectorAll('[data-nexus-cortex08="1"]').length === 1, undefined, { timeout: 5_000 });
 
-    const prepared = await page.evaluate(() => Array.from(document.querySelectorAll('[data-nexus-cortex08="1"]')).map((node) => ({
+    const prepared = await page.evaluate(() => Array.from(globalThis.document.querySelectorAll('[data-nexus-cortex08="1"]')).map((node) => ({
       tag: node.tagName,
-      href: node instanceof HTMLLinkElement ? node.href : null,
-      type: node instanceof HTMLScriptElement ? node.type : null,
-      text: node instanceof HTMLScriptElement ? node.textContent : null,
+      href: node instanceof globalThis.HTMLLinkElement ? node.href : null,
+      type: node instanceof globalThis.HTMLScriptElement ? node.type : null,
+      text: node instanceof globalThis.HTMLScriptElement ? node.textContent : null,
     })));
     if (prepared.length !== 1) throw new Error(`expected one CORTEX-owned speculative node, observed ${prepared.length}`);
     const serialized = JSON.stringify(prepared[0]);
@@ -101,11 +101,11 @@ async function main() {
     if (serialized.includes("cano-penal") || serialized.includes("canopenal.com")) throw new Error("CORTEX #8 browser proof must not target the client site");
 
     await page.evaluate(() => {
-      const testLink = document.createElement("a");
+      const testLink = globalThis.document.createElement("a");
       testLink.href = "https://example.invalid/cortex-cross-origin";
       testLink.textContent = "cross origin browser proof";
       testLink.dataset.cortexCrossOriginProof = "1";
-      document.body.appendChild(testLink);
+      globalThis.document.body.appendChild(testLink);
     });
     await page.locator('[data-cortex-cross-origin-proof="1"]').hover();
     await page.waitForTimeout(100);
@@ -115,7 +115,7 @@ async function main() {
     await stopProbe(server);
     server = startProbe("KILLED");
     await waitForServer(server, "KILLED");
-    await page.waitForFunction(() => document.querySelectorAll('[data-nexus-cortex08="1"]').length === 0, undefined, { timeout: 8_000 });
+    await page.waitForFunction(() => globalThis.document.querySelectorAll('[data-nexus-cortex08="1"]').length === 0, undefined, { timeout: 8_000 });
     const killedControl = await page.evaluate(async () => {
       const response = await fetch("/api/cortex/prerender/control", { cache: "no-store" });
       return response.json();
