@@ -1,6 +1,6 @@
 import { isAbsolute } from "node:path";
 import { pathToFileURL } from "node:url";
-import { SqliteRiskGateControl, type RiskGateControlState, type RiskGateMode } from "./runtime-control";
+import { SqliteRiskGateControl, type RiskGateControlState, type RiskGateMode } from "./runtime-control.js";
 
 function databasePath(env: NodeJS.ProcessEnv): string {
   const value = env.NEXUS_CORTEX_14_DATABASE;
