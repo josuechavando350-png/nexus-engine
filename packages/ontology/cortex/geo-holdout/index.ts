@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{3,127}$/u;
+const SHA256 = /^sha256:[0-9a-f]{64}$/u;
 
 export interface GeoBaseline {
   readonly geoId: string;
@@ -12,6 +13,7 @@ export interface GeoHoldoutDesignInput {
   readonly seed: string;
   readonly holdoutFraction: number;
   readonly maxBaselineImbalance: number;
+  readonly minGeosPerArm: number;
   readonly geos: readonly GeoBaseline[];
 }
 
@@ -26,7 +28,10 @@ export interface GeoHoldoutDesign {
   readonly designVersion: 1;
   readonly status: "READY" | "REJECTED";
   readonly reason: "BALANCED" | "BASELINE_IMBALANCE";
+  readonly seedDigest: `sha256:${string}`;
   readonly holdoutFraction: number;
+  readonly maxBaselineImbalance: number;
+  readonly minGeosPerArm: number;
   readonly baselineImbalance: number;
   readonly assignments: readonly GeoAssignment[];
   readonly designDigest: `sha256:${string}`;
@@ -40,7 +45,6 @@ export interface GeoOutcome {
 
 export interface GeoHoldoutAnalysisInput {
   readonly design: GeoHoldoutDesign;
-  readonly minGeosPerArm: number;
   readonly outcomes: readonly GeoOutcome[];
 }
 
@@ -67,6 +71,12 @@ export class Cortex12Error extends Error {
 function number(value: unknown, label: string, min: number, max: number): number {
   if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max) throw new Cortex12Error("INVALID_INPUT", `${label} is out of range`);
   return value;
+}
+
+function integer(value: unknown, label: string, min: number, max: number): number {
+  const parsed = number(value, label, min, max);
+  if (!Number.isSafeInteger(parsed)) throw new Cortex12Error("INVALID_INPUT", `${label} must be an integer`);
+  return parsed;
 }
 
 function canonical(value: unknown): string {
@@ -97,24 +107,33 @@ function round(value: number): number {
   return Math.round((value + Number.EPSILON) * 1_000_000) / 1_000_000;
 }
 
+function plain(value: unknown, label: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new Cortex12Error("INVALID_INPUT", `${label} must be a plain object`);
+  return value as Record<string, unknown>;
+}
+
+function exactKeys(raw: Record<string, unknown>, expected: readonly string[], label: string): void {
+  if (Object.keys(raw).sort().join(",") !== [...expected].sort().join(",")) throw new Cortex12Error("INVALID_INPUT", `${label} contains missing or unsupported fields`);
+}
+
 function parseDesignInput(value: unknown): GeoHoldoutDesignInput {
-  if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new Cortex12Error("INVALID_INPUT", "design input must be a plain object");
-  const raw = value as Record<string, unknown>;
-  if (Object.keys(raw).sort().join(",") !== "experimentId,geos,holdoutFraction,maxBaselineImbalance,seed") throw new Cortex12Error("INVALID_INPUT", "design contract contains missing or unsupported fields");
+  const raw = plain(value, "design input");
+  exactKeys(raw, ["experimentId", "seed", "holdoutFraction", "maxBaselineImbalance", "minGeosPerArm", "geos"], "design contract");
   if (typeof raw.experimentId !== "string" || !ID.test(raw.experimentId)) throw new Cortex12Error("INVALID_INPUT", "experimentId is malformed");
   if (typeof raw.seed !== "string" || raw.seed.length < 16 || raw.seed.length > 256) throw new Cortex12Error("INVALID_INPUT", "seed must contain 16-256 characters");
   const holdoutFraction = number(raw.holdoutFraction, "holdoutFraction", 0.1, 0.5);
   const maxBaselineImbalance = number(raw.maxBaselineImbalance, "maxBaselineImbalance", 0, 1);
+  const minGeosPerArm = integer(raw.minGeosPerArm, "minGeosPerArm", 3, 250);
   if (!Array.isArray(raw.geos) || raw.geos.length < 8 || raw.geos.length > 500) throw new Cortex12Error("INVALID_INPUT", "geos must contain 8-500 entries");
   const seen = new Set<string>();
   const geos = raw.geos.map((item): GeoBaseline => {
-    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item as object).sort().join(",") !== "baselineOutcome,geoId") throw new Cortex12Error("INVALID_INPUT", "geo baseline contract is invalid");
-    const row = item as Record<string, unknown>;
+    const row = plain(item, "geo baseline");
+    exactKeys(row, ["baselineOutcome", "geoId"], "geo baseline contract");
     if (typeof row.geoId !== "string" || !ID.test(row.geoId) || seen.has(row.geoId)) throw new Cortex12Error("INVALID_INPUT", "geoId is malformed or duplicated");
     seen.add(row.geoId);
     return Object.freeze({ geoId: row.geoId, baselineOutcome: number(row.baselineOutcome, "baselineOutcome", 0, 1e15) });
   });
-  return Object.freeze({ experimentId: raw.experimentId, seed: raw.seed, holdoutFraction, maxBaselineImbalance, geos: Object.freeze(geos) });
+  return Object.freeze({ experimentId: raw.experimentId, seed: raw.seed, holdoutFraction, maxBaselineImbalance, minGeosPerArm, geos: Object.freeze(geos) });
 }
 
 export function designGeoHoldout(value: unknown): GeoHoldoutDesign {
@@ -130,7 +149,7 @@ export function designGeoHoldout(value: unknown): GeoHoldoutDesign {
   }
   const controls = assignments.filter((item) => item.arm === "CONTROL");
   const treatment = assignments.filter((item) => item.arm === "TREATMENT");
-  if (controls.length < 3 || treatment.length < 3) throw new Cortex12Error("INVALID_INPUT", "design must produce at least three geos per arm");
+  if (controls.length < input.minGeosPerArm || treatment.length < input.minGeosPerArm) throw new Cortex12Error("INVALID_INPUT", "design cannot satisfy the preregistered minimum geos per arm");
   const overall = Math.max(1e-9, mean(assignments.map((item) => item.baselineOutcome)));
   const imbalance = Math.abs(mean(treatment.map((item) => item.baselineOutcome)) - mean(controls.map((item) => item.baselineOutcome))) / overall;
   const base = {
@@ -138,11 +157,52 @@ export function designGeoHoldout(value: unknown): GeoHoldoutDesign {
     designVersion: 1 as const,
     status: imbalance <= input.maxBaselineImbalance ? "READY" as const : "REJECTED" as const,
     reason: imbalance <= input.maxBaselineImbalance ? "BALANCED" as const : "BASELINE_IMBALANCE" as const,
+    seedDigest: digest({ seed: input.seed }),
     holdoutFraction: input.holdoutFraction,
+    maxBaselineImbalance: input.maxBaselineImbalance,
+    minGeosPerArm: input.minGeosPerArm,
     baselineImbalance: round(imbalance),
     assignments: Object.freeze(assignments.sort((a, b) => a.geoId.localeCompare(b.geoId))),
   };
   return Object.freeze({ ...base, designDigest: digest(base) });
+}
+
+export function verifyGeoHoldoutDesign(value: unknown): GeoHoldoutDesign {
+  const raw = plain(value, "geo holdout design");
+  exactKeys(raw, ["experimentId", "designVersion", "status", "reason", "seedDigest", "holdoutFraction", "maxBaselineImbalance", "minGeosPerArm", "baselineImbalance", "assignments", "designDigest"], "geo holdout design");
+  if (typeof raw.experimentId !== "string" || !ID.test(raw.experimentId) || raw.designVersion !== 1) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design identity is invalid");
+  if (!(raw.status === "READY" || raw.status === "REJECTED") || !(raw.reason === "BALANCED" || raw.reason === "BASELINE_IMBALANCE") || (raw.status === "READY") !== (raw.reason === "BALANCED")) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design status is invalid");
+  if (typeof raw.seedDigest !== "string" || !SHA256.test(raw.seedDigest) || typeof raw.designDigest !== "string" || !SHA256.test(raw.designDigest)) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design digest is invalid");
+  const holdoutFraction = number(raw.holdoutFraction, "holdoutFraction", 0.1, 0.5);
+  const maxBaselineImbalance = number(raw.maxBaselineImbalance, "maxBaselineImbalance", 0, 1);
+  const minGeosPerArm = integer(raw.minGeosPerArm, "minGeosPerArm", 3, 250);
+  const baselineImbalance = number(raw.baselineImbalance, "baselineImbalance", 0, 500);
+  if (!Array.isArray(raw.assignments) || raw.assignments.length < 8 || raw.assignments.length > 500) throw new Cortex12Error("INTEGRITY_FAILURE", "stored assignments are invalid");
+  const seen = new Set<string>();
+  const assignments = raw.assignments.map((item): GeoAssignment => {
+    const row = plain(item, "geo assignment");
+    exactKeys(row, ["arm", "baselineOutcome", "geoId"], "geo assignment");
+    if (typeof row.geoId !== "string" || !ID.test(row.geoId) || seen.has(row.geoId) || !(row.arm === "TREATMENT" || row.arm === "CONTROL")) throw new Cortex12Error("INTEGRITY_FAILURE", "stored geo assignment is invalid");
+    seen.add(row.geoId);
+    return Object.freeze({ geoId: row.geoId, arm: row.arm, baselineOutcome: number(row.baselineOutcome, "baselineOutcome", 0, 1e15) });
+  });
+  const treatmentCount = assignments.filter((assignment) => assignment.arm === "TREATMENT").length;
+  const controlCount = assignments.length - treatmentCount;
+  if (treatmentCount < minGeosPerArm || controlCount < minGeosPerArm) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design violates its preregistered minimum sample");
+  const base = {
+    experimentId: raw.experimentId,
+    designVersion: 1 as const,
+    status: raw.status,
+    reason: raw.reason,
+    seedDigest: raw.seedDigest as `sha256:${string}`,
+    holdoutFraction,
+    maxBaselineImbalance,
+    minGeosPerArm,
+    baselineImbalance,
+    assignments: Object.freeze(assignments),
+  };
+  if (digest(base) !== raw.designDigest) throw new Cortex12Error("INTEGRITY_FAILURE", "design digest mismatch");
+  return Object.freeze({ ...base, designDigest: raw.designDigest as `sha256:${string}` });
 }
 
 function tCritical95(df: number): number {
@@ -152,22 +212,17 @@ function tCritical95(df: number): number {
 }
 
 export function analyzeGeoHoldout(value: unknown): GeoHoldoutAnalysis {
-  if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new Cortex12Error("INVALID_INPUT", "analysis input must be a plain object");
-  const raw = value as Record<string, unknown>;
-  if (Object.keys(raw).sort().join(",") !== "design,minGeosPerArm,outcomes") throw new Cortex12Error("INVALID_INPUT", "analysis contract contains missing or unsupported fields");
-  const design = raw.design as GeoHoldoutDesign;
-  if (!design || design.designVersion !== 1 || design.status !== "READY") throw new Cortex12Error("DESIGN_REJECTED", "only READY designs can be analyzed");
-  const { designDigest: suppliedDigest, ...base } = design;
-  if (digest(base) !== suppliedDigest) throw new Cortex12Error("INTEGRITY_FAILURE", "design digest mismatch");
-  const minGeosPerArm = number(raw.minGeosPerArm, "minGeosPerArm", 3, 250);
-  if (!Number.isSafeInteger(minGeosPerArm)) throw new Cortex12Error("INVALID_INPUT", "minGeosPerArm must be an integer");
+  const raw = plain(value, "analysis input");
+  exactKeys(raw, ["design", "outcomes"], "analysis contract");
+  const design = verifyGeoHoldoutDesign(raw.design);
+  if (design.status !== "READY") throw new Cortex12Error("DESIGN_REJECTED", "only READY designs can be analyzed");
   if (!Array.isArray(raw.outcomes) || raw.outcomes.length !== design.assignments.length) throw new Cortex12Error("INVALID_INPUT", "outcomes must cover every assigned geo exactly once");
   const assignmentByGeo = new Map(design.assignments.map((item) => [item.geoId, item]));
   const seen = new Set<string>();
   const deltas = { TREATMENT: [] as number[], CONTROL: [] as number[] };
   for (const item of raw.outcomes) {
-    if (!item || typeof item !== "object" || Array.isArray(item) || Object.keys(item as object).sort().join(",") !== "baselineOutcome,experimentOutcome,geoId") throw new Cortex12Error("INVALID_INPUT", "geo outcome contract is invalid");
-    const row = item as Record<string, unknown>;
+    const row = plain(item, "geo outcome");
+    exactKeys(row, ["baselineOutcome", "experimentOutcome", "geoId"], "geo outcome contract");
     if (typeof row.geoId !== "string" || seen.has(row.geoId)) throw new Cortex12Error("INVALID_INPUT", "geo outcome is duplicated");
     seen.add(row.geoId);
     const assignment = assignmentByGeo.get(row.geoId);
@@ -177,7 +232,7 @@ export function analyzeGeoHoldout(value: unknown): GeoHoldoutAnalysis {
     if (Math.abs(baseline - assignment.baselineOutcome) > 1e-9) throw new Cortex12Error("INTEGRITY_FAILURE", "baseline outcome changed after randomization");
     deltas[assignment.arm].push(experiment - baseline);
   }
-  if (deltas.TREATMENT.length < minGeosPerArm || deltas.CONTROL.length < minGeosPerArm) throw new Cortex12Error("INSUFFICIENT_SAMPLE", "minimum geos per arm was not reached");
+  if (deltas.TREATMENT.length < design.minGeosPerArm || deltas.CONTROL.length < design.minGeosPerArm) throw new Cortex12Error("INSUFFICIENT_SAMPLE", "preregistered minimum geos per arm was not reached");
   const treatmentMean = mean(deltas.TREATMENT);
   const controlMean = mean(deltas.CONTROL);
   const vT = variance(deltas.TREATMENT);
@@ -193,7 +248,7 @@ export function analyzeGeoHoldout(value: unknown): GeoHoldoutAnalysis {
   const high = incremental + critical * standardError;
   return Object.freeze({
     experimentId: design.experimentId,
-    designDigest: suppliedDigest,
+    designDigest: design.designDigest,
     treatmentGeos: deltas.TREATMENT.length,
     controlGeos: deltas.CONTROL.length,
     treatmentMeanDelta: round(treatmentMean),
