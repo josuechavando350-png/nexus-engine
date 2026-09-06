@@ -51,23 +51,42 @@ function startProbe(mode) {
       NEXUS_CORTEX_08_MAX_PREPARED_TARGETS: "2",
       NODE_ENV: "production",
     },
+    detached: process.platform !== "win32",
     stdio: ["ignore", "inherit", "inherit"],
   });
   child.on("error", (error) => console.error("pipeline-probe child process error", error));
   return child;
 }
 
-async function stopProbe(processHandle) {
+function signalProbeTree(processHandle, signal) {
   if (processHandle.exitCode !== null) return;
-  processHandle.kill("SIGTERM");
-  const deadline = Date.now() + 10_000;
+  if (process.platform !== "win32" && processHandle.pid) {
+    try {
+      process.kill(-processHandle.pid, signal);
+      return;
+    } catch (error) {
+      if (error?.code === "ESRCH") return;
+      throw error;
+    }
+  }
+  processHandle.kill(signal);
+}
+
+async function waitForProbeExit(processHandle, timeoutMs) {
+  const deadline = Date.now() + timeoutMs;
   while (processHandle.exitCode === null && Date.now() < deadline) {
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  if (processHandle.exitCode === null) {
-    processHandle.kill("SIGKILL");
-    throw new Error("pipeline-probe did not stop after SIGTERM");
-  }
+  return processHandle.exitCode !== null;
+}
+
+async function stopProbe(processHandle) {
+  if (processHandle.exitCode !== null) return;
+  signalProbeTree(processHandle, "SIGTERM");
+  if (await waitForProbeExit(processHandle, 10_000)) return;
+  signalProbeTree(processHandle, "SIGKILL");
+  await waitForProbeExit(processHandle, 2_000);
+  throw new Error("pipeline-probe did not stop after SIGTERM");
 }
 
 async function assertRootServed(processHandle) {
