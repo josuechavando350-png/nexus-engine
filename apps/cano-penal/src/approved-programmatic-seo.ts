@@ -111,12 +111,12 @@ export function approvedCanoProgrammaticPages(): readonly ApprovedCanoProgrammat
   return Object.freeze([home, ...areaPages]);
 }
 
-export function approvedCanoProgrammaticCatalog() {
+export function approvedCanoProgrammaticCatalog(observedAt = new Date().toISOString()) {
   return Object.freeze({
     sourceId: "cano-approved-repository-content",
     siteId: CANO_PROGRAMMATIC_SITE_ID,
     baseUrl: CANO_PROGRAMMATIC_BASE_URL,
-    observedAt: HOME_UPDATED_AT,
+    observedAt,
     pages: approvedCanoProgrammaticPages(),
   });
 }
