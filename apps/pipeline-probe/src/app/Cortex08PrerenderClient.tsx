@@ -3,11 +3,13 @@
 import { useEffect } from "react";
 import {
   createInteractionPointerPrerenderer,
+  parseInteractionPointerControl,
   type InteractionPointerDecision,
 } from "@nexus/core/cortex/interaction-pointer-prerenderers";
 
 const CONTROL_ENDPOINT = "/api/cortex/prerender/control";
 const OBSERVE_ENDPOINT = "/api/cortex/prerender/observe";
+const CONTROL_RECONCILE_MS = 5_000;
 
 async function readControl(): Promise<unknown> {
   const response = await fetch(CONTROL_ENDPOINT, {
@@ -41,8 +43,19 @@ function observe(decision: InteractionPointerDecision): void {
 export function Cortex08PrerenderClient() {
   useEffect(() => {
     const runtime = createInteractionPointerPrerenderer({ controlProvider: readControl, onDecision: observe });
+    const reconcile = async () => {
+      try {
+        if (parseInteractionPointerControl(await readControl()).mode !== "ACTIVE") runtime.rollback();
+      } catch {
+        runtime.rollback();
+      }
+    };
+
     runtime.start();
+    void reconcile();
+    const interval = window.setInterval(() => { void reconcile(); }, CONTROL_RECONCILE_MS);
     return () => {
+      window.clearInterval(interval);
       runtime.stop();
       runtime.rollback();
     };
