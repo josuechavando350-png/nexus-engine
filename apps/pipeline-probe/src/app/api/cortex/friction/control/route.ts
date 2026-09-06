@@ -1,10 +1,15 @@
-import { readCortex09Mode } from "../friction-runtime";
+import { readCortex09Runtime } from "../friction-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(): Promise<Response> {
-  return Response.json({ mode: readCortex09Mode() }, {
+  const control = readCortex09Runtime();
+  return Response.json({
+    mode: control.mode,
+    modelId: control.model?.modelId ?? null,
+    modelSourceDigest: control.model?.sourceDigest ?? null,
+  }, {
     status: 200,
     headers: {
       "cache-control": "no-store, max-age=0",
