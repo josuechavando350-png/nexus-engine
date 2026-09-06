@@ -16,7 +16,8 @@
     "plugins": [{ "name": "next" }],
     "paths": {
       "@nexus/core": ["../../packages/core/index.ts"],
-      "@nexus/core/*": ["../../packages/core/*"]
+      "@nexus/core/*": ["../../packages/core/*"],
+      "@nexus/ontology/cortex/behavioral-signal-tracking/browser-collector": ["../../packages/ontology/cortex/behavioral-signal-tracking/browser-collector.ts"]
     }
   },
   "include": ["next-env.d.ts", ".next/types/**/*.ts", "src/**/*.ts", "src/**/*.tsx"],
