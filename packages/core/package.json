@@ -20,7 +20,8 @@
     "./components": "./components/index.ts",
     "./cortex/ad-context-edge-workers": "./cortex/ad-context-edge-workers/index.ts",
     "./cortex/interaction-pointer-prerenderers": "./cortex/interaction-pointer-prerenderers/index.ts",
-    "./cortex/friction-abandonment-scoring": "./cortex/friction-abandonment-scoring/index.ts"
+    "./cortex/friction-abandonment-scoring": "./cortex/friction-abandonment-scoring/index.ts",
+    "./cortex/cwv-lifecycle-optimizer": "./cortex/cwv-lifecycle-optimizer/index.ts"
   },
   "peerDependencies": {
     "react": ">=18.2.0"
@@ -32,6 +33,6 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/core/index.js && test -f dist/core/index.d.ts && test -f dist/core/components/index.js && test -f dist/core/components/index.d.ts && test -f dist/core/a11y/index.js && test -f dist/core/a11y/index.d.ts && test -f dist/core/cortex/ad-context-edge-workers/index.js && test -f dist/core/cortex/ad-context-edge-workers/index.d.ts && test -f dist/core/cortex/interaction-pointer-prerenderers/index.js && test -f dist/core/cortex/interaction-pointer-prerenderers/index.d.ts && test -f dist/core/cortex/friction-abandonment-scoring/index.js && test -f dist/core/cortex/friction-abandonment-scoring/index.d.ts"
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/core/index.js && test -f dist/core/index.d.ts && test -f dist/core/components/index.js && test -f dist/core/components/index.d.ts && test -f dist/core/a11y/index.js && test -f dist/core/a11y/index.d.ts && test -f dist/core/cortex/ad-context-edge-workers/index.js && test -f dist/core/cortex/ad-context-edge-workers/index.d.ts && test -f dist/core/cortex/interaction-pointer-prerenderers/index.js && test -f dist/core/cortex/interaction-pointer-prerenderers/index.d.ts && test -f dist/core/cortex/friction-abandonment-scoring/index.js && test -f dist/core/cortex/friction-abandonment-scoring/index.d.ts && test -f dist/core/cortex/cwv-lifecycle-optimizer/index.js && test -f dist/core/cortex/cwv-lifecycle-optimizer/index.d.ts"
   }
 }
