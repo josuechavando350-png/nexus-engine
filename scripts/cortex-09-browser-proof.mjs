@@ -171,13 +171,14 @@ async function waitForControl(processHandle, expectedMode) {
   throw new Error(`pipeline-probe did not become ready in CORTEX #9 ${expectedMode} mode`);
 }
 
-async function waitUntil(predicate, timeoutMs, label) {
+async function waitUntil(predicate, timeoutMs, label, diagnostics) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (await predicate()) return;
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  throw new Error(`timed out waiting for ${label}`);
+  const detail = diagnostics ? ` diagnostics=${JSON.stringify(await diagnostics())}` : "";
+  throw new Error(`timed out waiting for ${label}${detail}`);
 }
 
 async function main() {
@@ -209,8 +210,13 @@ async function main() {
     const page = await context.newPage();
     const scoreRequests = [];
     const scoreResponses = [];
+    const controlResponses = [];
     const pageErrors = [];
+    const consoleErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("console", (message) => {
+      if (message.type() === "error") consoleErrors.push(message.text());
+    });
     page.on("request", (request) => {
       try {
         const url = new URL(request.url());
@@ -225,21 +231,49 @@ async function main() {
     page.on("response", (response) => {
       try {
         const url = new URL(response.url());
-        if (url.origin !== baseUrl || url.pathname !== scorePath || response.request().method() !== "POST") return;
-        void response.json().then((body) => scoreResponses.push(body)).catch(() => scoreResponses.push(null));
+        if (url.origin !== baseUrl) return;
+        if (url.pathname === scorePath && response.request().method() === "POST") {
+          void response.json().then((body) => scoreResponses.push({ status: response.status(), body })).catch(() => scoreResponses.push({ status: response.status(), body: null }));
+        } else if (url.pathname === controlPath && response.request().method() === "GET") {
+          void response.json().then((body) => controlResponses.push({ status: response.status(), body })).catch(() => controlResponses.push({ status: response.status(), body: null }));
+        }
       } catch {
-        scoreResponses.push(null);
+        // Diagnostics cannot alter the browser proof semantics.
       }
+    });
+
+    const diagnostics = async () => ({
+      scoreRequests,
+      scoreResponses,
+      controlResponses,
+      pageErrors,
+      consoleErrors,
+      currentControl: await readControl().catch((error) => ({ error: String(error) })),
+      domState: await page.evaluate(() => ({
+        risk: globalThis.document.documentElement.dataset.nexusCortex09Risk ?? null,
+        probability: globalThis.document.documentElement.dataset.nexusCortex09Probability ?? null,
+      })).catch((error) => ({ error: String(error) })),
     });
 
     const navigation = await page.goto(baseUrl, { waitUntil: "networkidle", timeout: 20_000 });
     if (!navigation?.ok()) throw new Error(`pipeline-probe root returned HTTP ${navigation?.status() ?? "unknown"}`);
+
+    // Prove the real browser client reached the server-side scoring boundary
+    // before using the DOM intervention state as evidence. This order preserves
+    // useful exact-head diagnostics if the client fails closed.
+    await waitUntil(
+      () => scoreRequests.length > 0 && scoreResponses.some((entry) => entry.body?.mode === "ACTIVE"),
+      12_000,
+      "an ACTIVE CORTEX #9 scoring exchange",
+      diagnostics,
+    );
     await page.waitForFunction(() => {
       const root = globalThis.document.documentElement;
       return typeof root.dataset.nexusCortex09Risk === "string" && typeof root.dataset.nexusCortex09Probability === "string";
-    }, undefined, { timeout: 12_000 });
+    }, undefined, { timeout: 5_000 }).catch(async (error) => {
+      throw new Error(`CORTEX #9 ACTIVE scoring did not produce consumer-visible state: ${String(error)} diagnostics=${JSON.stringify(await diagnostics())}`);
+    });
 
-    await waitUntil(() => scoreRequests.length > 0 && scoreResponses.some((body) => body?.mode === "ACTIVE"), 5_000, "an ACTIVE CORTEX #9 scoring exchange");
     const activeRequest = scoreRequests.find((body) => body && Object.keys(body).sort().join(",") === snapshotKeys);
     if (!activeRequest) throw new Error(`CORTEX #9 browser did not send the exact minimized signal contract: ${JSON.stringify(scoreRequests)}`);
     if (activeRequest.featureContractId !== featureContractId || !(activeRequest.pointerClass === "COARSE" || activeRequest.pointerClass === "FINE")) {
@@ -263,9 +297,10 @@ async function main() {
     await waitForControl(server, "OBSERVE_ONLY");
     const responseCountBeforeObserve = scoreResponses.length;
     await waitUntil(
-      () => scoreResponses.slice(responseCountBeforeObserve).some((body) => body?.mode === "OBSERVE_ONLY" && body?.score === null && body?.modelArtifactDigest === modelArtifactDigest),
+      () => scoreResponses.slice(responseCountBeforeObserve).some((entry) => entry.body?.mode === "OBSERVE_ONLY" && entry.body?.score === null && entry.body?.modelArtifactDigest === modelArtifactDigest),
       12_000,
       "an OBSERVE_ONLY CORTEX #9 scoring exchange",
+      diagnostics,
     );
     await page.waitForFunction(() => {
       const root = globalThis.document.documentElement;
@@ -280,7 +315,7 @@ async function main() {
       return root.dataset.nexusCortex09Risk === undefined && root.dataset.nexusCortex09Probability === undefined;
     }, undefined, { timeout: 8_000 });
 
-    if (pageErrors.length) throw new Error(`CORTEX #9 browser page errors: ${JSON.stringify(pageErrors)}`);
+    if (pageErrors.length || consoleErrors.length) throw new Error(`CORTEX #9 browser errors: ${JSON.stringify({ pageErrors, consoleErrors })}`);
     process.stdout.write(`${JSON.stringify({
       component: "cortex-09-browser-proof",
       sourceRevision: expectedSha,
