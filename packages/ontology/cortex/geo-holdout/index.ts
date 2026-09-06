@@ -27,12 +27,12 @@ export interface GeoHoldoutDesign {
   readonly experimentId: string;
   readonly designVersion: 1;
   readonly status: "READY" | "REJECTED";
-  readonly reason: "BALANCED" | "BASELINE_IMBALANCE";
+  readonly reason: "BALANCED" | "BASELINE_IMBALANCE" | "INSUFFICIENT_ARM_SIZE";
   readonly seedDigest: `sha256:${string}`;
   readonly holdoutFraction: number;
   readonly maxBaselineImbalance: number;
   readonly minGeosPerArm: number;
-  readonly baselineImbalance: number;
+  readonly baselineImbalance: number | null;
   readonly assignments: readonly GeoAssignment[];
   readonly designDigest: `sha256:${string}`;
 }
@@ -147,22 +147,29 @@ export function designGeoHoldout(value: unknown): GeoHoldoutDesign {
     const controlIds = new Set([...stratum].sort((a, b) => rank(input.seed, a.geoId).localeCompare(rank(input.seed, b.geoId))).slice(0, desiredControls).map((geo) => geo.geoId));
     for (const geo of stratum) assignments.push(Object.freeze({ geoId: geo.geoId, arm: controlIds.has(geo.geoId) ? "CONTROL" : "TREATMENT", baselineOutcome: geo.baselineOutcome }));
   }
+  assignments.sort((a, b) => a.geoId.localeCompare(b.geoId));
   const controls = assignments.filter((item) => item.arm === "CONTROL");
   const treatment = assignments.filter((item) => item.arm === "TREATMENT");
-  if (controls.length < input.minGeosPerArm || treatment.length < input.minGeosPerArm) throw new Cortex12Error("INVALID_INPUT", "design cannot satisfy the preregistered minimum geos per arm");
-  const overall = Math.max(1e-9, mean(assignments.map((item) => item.baselineOutcome)));
-  const imbalance = Math.abs(mean(treatment.map((item) => item.baselineOutcome)) - mean(controls.map((item) => item.baselineOutcome))) / overall;
-  const base = {
+  const common = {
     experimentId: input.experimentId,
     designVersion: 1 as const,
-    status: imbalance <= input.maxBaselineImbalance ? "READY" as const : "REJECTED" as const,
-    reason: imbalance <= input.maxBaselineImbalance ? "BALANCED" as const : "BASELINE_IMBALANCE" as const,
     seedDigest: digest({ seed: input.seed }),
     holdoutFraction: input.holdoutFraction,
     maxBaselineImbalance: input.maxBaselineImbalance,
     minGeosPerArm: input.minGeosPerArm,
+    assignments: Object.freeze(assignments),
+  };
+  if (controls.length < input.minGeosPerArm || treatment.length < input.minGeosPerArm) {
+    const base = { ...common, status: "REJECTED" as const, reason: "INSUFFICIENT_ARM_SIZE" as const, baselineImbalance: null };
+    return Object.freeze({ ...base, designDigest: digest(base) });
+  }
+  const overall = Math.max(1e-9, mean(assignments.map((item) => item.baselineOutcome)));
+  const imbalance = Math.abs(mean(treatment.map((item) => item.baselineOutcome)) - mean(controls.map((item) => item.baselineOutcome))) / overall;
+  const base = {
+    ...common,
+    status: imbalance <= input.maxBaselineImbalance ? "READY" as const : "REJECTED" as const,
+    reason: imbalance <= input.maxBaselineImbalance ? "BALANCED" as const : "BASELINE_IMBALANCE" as const,
     baselineImbalance: round(imbalance),
-    assignments: Object.freeze(assignments.sort((a, b) => a.geoId.localeCompare(b.geoId))),
   };
   return Object.freeze({ ...base, designDigest: digest(base) });
 }
@@ -171,12 +178,12 @@ export function verifyGeoHoldoutDesign(value: unknown): GeoHoldoutDesign {
   const raw = plain(value, "geo holdout design");
   exactKeys(raw, ["experimentId", "designVersion", "status", "reason", "seedDigest", "holdoutFraction", "maxBaselineImbalance", "minGeosPerArm", "baselineImbalance", "assignments", "designDigest"], "geo holdout design");
   if (typeof raw.experimentId !== "string" || !ID.test(raw.experimentId) || raw.designVersion !== 1) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design identity is invalid");
-  if (!(raw.status === "READY" || raw.status === "REJECTED") || !(raw.reason === "BALANCED" || raw.reason === "BASELINE_IMBALANCE") || (raw.status === "READY") !== (raw.reason === "BALANCED")) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design status is invalid");
+  if (!(raw.status === "READY" || raw.status === "REJECTED") || !(raw.reason === "BALANCED" || raw.reason === "BASELINE_IMBALANCE" || raw.reason === "INSUFFICIENT_ARM_SIZE") || (raw.status === "READY") !== (raw.reason === "BALANCED")) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design status is invalid");
   if (typeof raw.seedDigest !== "string" || !SHA256.test(raw.seedDigest) || typeof raw.designDigest !== "string" || !SHA256.test(raw.designDigest)) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design digest is invalid");
   const holdoutFraction = number(raw.holdoutFraction, "holdoutFraction", 0.1, 0.5);
   const maxBaselineImbalance = number(raw.maxBaselineImbalance, "maxBaselineImbalance", 0, 1);
   const minGeosPerArm = integer(raw.minGeosPerArm, "minGeosPerArm", 3, 250);
-  const baselineImbalance = number(raw.baselineImbalance, "baselineImbalance", 0, 500);
+  const baselineImbalance = raw.baselineImbalance === null ? null : number(raw.baselineImbalance, "baselineImbalance", 0, 500);
   if (!Array.isArray(raw.assignments) || raw.assignments.length < 8 || raw.assignments.length > 500) throw new Cortex12Error("INTEGRITY_FAILURE", "stored assignments are invalid");
   const seen = new Set<string>();
   const assignments = raw.assignments.map((item): GeoAssignment => {
@@ -188,7 +195,11 @@ export function verifyGeoHoldoutDesign(value: unknown): GeoHoldoutDesign {
   });
   const treatmentCount = assignments.filter((assignment) => assignment.arm === "TREATMENT").length;
   const controlCount = assignments.length - treatmentCount;
-  if (treatmentCount < minGeosPerArm || controlCount < minGeosPerArm) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design violates its preregistered minimum sample");
+  const insufficient = treatmentCount < minGeosPerArm || controlCount < minGeosPerArm;
+  if ((raw.reason === "INSUFFICIENT_ARM_SIZE") !== insufficient || (raw.reason === "INSUFFICIENT_ARM_SIZE") !== (baselineImbalance === null)) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design sample-size status is inconsistent");
+  if (!insufficient && baselineImbalance === null) throw new Cortex12Error("INTEGRITY_FAILURE", "stored baseline imbalance is missing");
+  if (raw.reason === "BALANCED" && baselineImbalance !== null && baselineImbalance > maxBaselineImbalance) throw new Cortex12Error("INTEGRITY_FAILURE", "stored balanced design exceeds its imbalance threshold");
+  if (raw.reason === "BASELINE_IMBALANCE" && baselineImbalance !== null && baselineImbalance <= maxBaselineImbalance) throw new Cortex12Error("INTEGRITY_FAILURE", "stored rejected design does not exceed its imbalance threshold");
   const base = {
     experimentId: raw.experimentId,
     designVersion: 1 as const,
