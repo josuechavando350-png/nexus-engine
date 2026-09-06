@@ -98,7 +98,7 @@ describe("CORTEX #14 production proxy helpers", () => {
 });
 
 describe("CORTEX #14 production risk enforcement", () => {
-  it("forwards a valid low-risk request only to the fixed upstream and strips spoofable forwarding/risk headers", async () => {
+  it("forwards a valid low-risk request only to the fixed upstream and strips spoofable and hop-by-hop headers", async () => {
     const upstreamFetch = vi.fn(async (_url: URL | string, _init?: RequestInit) => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }));
     vi.stubGlobal("fetch", upstreamFetch);
     const server = startCortex14RiskProxy(config());
@@ -108,6 +108,9 @@ describe("CORTEX #14 production risk enforcement", () => {
         "x-nexus-risk-envelope": encodedEnvelope(envelope(100)),
         "x-forwarded-for": "203.0.113.200",
         "x-real-ip": "203.0.113.201",
+        connection: "x-hop-by-hop, keep-alive",
+        "x-hop-by-hop": "must-not-forward",
+        "keep-alive": "timeout=5",
       });
       expect(result.status).toBe(200);
       expect(result.headers["x-nexus-risk-action"]).toBe("ALLOW");
@@ -118,6 +121,9 @@ describe("CORTEX #14 production risk enforcement", () => {
       expect(forwarded.get("x-forwarded-for")).toBeNull();
       expect(forwarded.get("x-real-ip")).toBeNull();
       expect(forwarded.get("x-nexus-risk-envelope")).toBeNull();
+      expect(forwarded.get("connection")).toBeNull();
+      expect(forwarded.get("keep-alive")).toBeNull();
+      expect(forwarded.get("x-hop-by-hop")).toBeNull();
     } finally { await server.close(); }
   });
 
