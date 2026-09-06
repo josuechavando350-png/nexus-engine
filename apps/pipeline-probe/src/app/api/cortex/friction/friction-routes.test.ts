@@ -41,6 +41,7 @@ function enable(mode: "ACTIVE" | "OBSERVE_ONLY") {
   vi.stubEnv("NEXUS_CORTEX_09_MODE", mode);
   vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", MODEL_JSON);
   vi.stubEnv("NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST", MODEL_ARTIFACT_DIGEST);
+  vi.stubEnv("NEXUS_CORTEX_09_CALIBRATION_SOURCE_DIGEST", MODEL_DIGEST);
 }
 
 function request(body: unknown, origin = "https://probe.example", contentType = "application/json") {
@@ -57,16 +58,23 @@ afterEach(() => {
 });
 
 describe("CORTEX #9 pipeline-probe boundaries", () => {
-  it("defaults to KILLED and refuses ACTIVE without an integrity-bound model artifact", async () => {
+  it("defaults to KILLED and refuses ACTIVE without integrity and independent calibration provenance", async () => {
     expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
     vi.stubEnv("NEXUS_CORTEX_09_MODE", "ACTIVE");
     expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
     vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", "not-json");
     expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
+
     vi.stubEnv("NEXUS_CORTEX_09_MODEL_JSON", MODEL_JSON);
     vi.stubEnv("NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST", `sha256:${"b".repeat(64)}`);
+    vi.stubEnv("NEXUS_CORTEX_09_CALIBRATION_SOURCE_DIGEST", MODEL_DIGEST);
     expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
+
     vi.stubEnv("NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST", MODEL_ARTIFACT_DIGEST);
+    vi.stubEnv("NEXUS_CORTEX_09_CALIBRATION_SOURCE_DIGEST", `sha256:${"c".repeat(64)}`);
+    expect(await (await GET()).json()).toEqual({ mode: "KILLED", modelId: null, modelSourceDigest: null, modelArtifactDigest: null });
+
+    vi.stubEnv("NEXUS_CORTEX_09_CALIBRATION_SOURCE_DIGEST", MODEL_DIGEST);
     expect(await (await GET()).json()).toEqual({
       mode: "ACTIVE",
       modelId: model.modelId,
