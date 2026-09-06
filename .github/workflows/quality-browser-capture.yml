@@ -78,6 +78,9 @@ jobs:
       - name: Prove CORTEX #13 real CWV pressure coordination
         run: node scripts/cortex-13-browser-proof.mjs
 
+      - name: Prove CORTEX #14 durable fraud-risk proxy boundary
+        run: node scripts/cortex-14-runtime-proof.mjs
+
       - name: Record validated source identity
         shell: bash
         run: |
