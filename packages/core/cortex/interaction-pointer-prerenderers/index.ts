@@ -201,6 +201,7 @@ export function createInteractionPointerPrerenderer(options: InteractionPointerP
     try {
       const initialControl = await readControl();
       if (!initialControl) {
+        rollback();
         emit(safeDecision(signal, "NONE", "CONTROL_UNAVAILABLE"));
         return;
       }
@@ -218,15 +219,18 @@ export function createInteractionPointerPrerenderer(options: InteractionPointerP
         return;
       }
       if (environment.saveData() || environment.reducedData()) {
+        rollback();
         emit(safeDecision(signal, "NONE", "REDUCED_DATA"));
         return;
       }
       if (environment.reducedMotion()) {
+        rollback();
         emit(safeDecision(signal, "NONE", "REDUCED_MOTION"));
         return;
       }
       const action: Exclude<InteractionPointerAction, "NONE"> = environment.speculationRulesSupported() ? "PRERENDER" : "PREFETCH";
       if (initialControl.mode === "OBSERVE_ONLY") {
+        rollback();
         emit(safeDecision(signal, action, "OBSERVE_ONLY"));
         return;
       }
@@ -234,6 +238,7 @@ export function createInteractionPointerPrerenderer(options: InteractionPointerP
       // Mandatory last-boundary guard: re-read control after planning and immediately before the DOM side effect.
       const finalControl = await readControl();
       if (!finalControl) {
+        rollback();
         emit(safeDecision(signal, "NONE", "CONTROL_UNAVAILABLE"));
         return;
       }
@@ -243,14 +248,17 @@ export function createInteractionPointerPrerenderer(options: InteractionPointerP
         return;
       }
       if (finalControl.mode === "OBSERVE_ONLY") {
+        rollback();
         emit(safeDecision(signal, action, "OBSERVE_ONLY"));
         return;
       }
       if (!finalControl.allowedPaths.includes(normalized.path)) {
+        rollback();
         emit(safeDecision(signal, "NONE", "TARGET_NOT_ALLOWLISTED"));
         return;
       }
       if (prepared.size >= finalControl.maxPreparedTargets) {
+        rollback();
         emit(safeDecision(signal, "NONE", "BUDGET_EXHAUSTED"));
         return;
       }
