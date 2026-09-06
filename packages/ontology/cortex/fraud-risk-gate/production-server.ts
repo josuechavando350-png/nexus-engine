@@ -15,6 +15,7 @@ const MAX_ENVELOPE_BYTES = 8_192;
 const MAX_UPSTREAM_RESPONSE_BYTES = 2_097_152;
 const MAX_CONNECTION_HEADER_BYTES = 2_048;
 const HTTP_TOKEN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/u;
+const BASE64URL = /^[A-Za-z0-9_-]+$/u;
 const ALLOWED_METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
 
 export interface Cortex14RiskProxyConfig {
@@ -67,10 +68,18 @@ function trustedProxyNetworkKey(request: IncomingMessage, networkSecret: string,
 }
 
 function decodeEnvelope(header: string | string[] | undefined): unknown {
-  if (typeof header !== "string" || header.length < 8 || header.length > MAX_ENVELOPE_BYTES * 2) throw new Cortex14Error("INVALID_INPUT", "risk envelope header is missing or oversized");
+  if (typeof header !== "string" || header.length < 8 || header.length > MAX_ENVELOPE_BYTES * 2 || !BASE64URL.test(header)) {
+    throw new Cortex14Error("INVALID_INPUT", "risk envelope header is missing, oversized, or malformed");
+  }
   const decoded = Buffer.from(header, "base64url");
-  if (decoded.length > MAX_ENVELOPE_BYTES) throw new Cortex14Error("INVALID_INPUT", "risk envelope is oversized");
-  return JSON.parse(decoded.toString("utf8")) as unknown;
+  if (decoded.length > MAX_ENVELOPE_BYTES || decoded.toString("base64url") !== header) {
+    throw new Cortex14Error("INVALID_INPUT", "risk envelope encoding is not canonical base64url");
+  }
+  try {
+    return JSON.parse(decoded.toString("utf8")) as unknown;
+  } catch {
+    throw new Cortex14Error("INVALID_INPUT", "risk envelope JSON is malformed");
+  }
 }
 
 async function readBody(request: IncomingMessage): Promise<Buffer | undefined> {
