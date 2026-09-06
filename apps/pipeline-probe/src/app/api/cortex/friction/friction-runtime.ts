@@ -22,7 +22,14 @@ export function readCortex09Runtime(): Cortex09Runtime {
 
   const rawModel = process.env.NEXUS_CORTEX_09_MODEL_JSON?.trim();
   const expectedArtifactDigest = process.env.NEXUS_CORTEX_09_MODEL_ARTIFACT_DIGEST?.trim();
-  if (!rawModel || !expectedArtifactDigest || !SHA256.test(expectedArtifactDigest)) {
+  const expectedCalibrationSourceDigest = process.env.NEXUS_CORTEX_09_CALIBRATION_SOURCE_DIGEST?.trim();
+  if (
+    !rawModel
+    || !expectedArtifactDigest
+    || !SHA256.test(expectedArtifactDigest)
+    || !expectedCalibrationSourceDigest
+    || !SHA256.test(expectedCalibrationSourceDigest)
+  ) {
     return Object.freeze({ mode: "KILLED", model: null, modelArtifactDigest: null });
   }
 
@@ -32,11 +39,13 @@ export function readCortex09Runtime(): Cortex09Runtime {
   }
 
   try {
-    return Object.freeze({
-      mode: requestedMode,
-      model: parseFrictionProbabilityModel(JSON.parse(rawModel) as unknown),
-      modelArtifactDigest: actualArtifactDigest,
-    });
+    const model = parseFrictionProbabilityModel(JSON.parse(rawModel) as unknown);
+    // The model cannot self-authorize its own calibration provenance. Require an
+    // independently configured source identity and fail closed on disagreement.
+    if (model.sourceDigest !== expectedCalibrationSourceDigest) {
+      return Object.freeze({ mode: "KILLED", model: null, modelArtifactDigest: null });
+    }
+    return Object.freeze({ mode: requestedMode, model, modelArtifactDigest: actualArtifactDigest });
   } catch {
     return Object.freeze({ mode: "KILLED", model: null, modelArtifactDigest: null });
   }
