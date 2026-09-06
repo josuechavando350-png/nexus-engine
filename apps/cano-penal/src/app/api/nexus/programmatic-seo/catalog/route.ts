@@ -2,7 +2,7 @@ import { timingSafeEqual } from "node:crypto";
 import {
   CANO_PROGRAMMATIC_SITE_ID,
   approvedCanoProgrammaticCatalog,
-} from "../../../../../../approved-programmatic-seo";
+} from "../../../../../approved-programmatic-seo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
