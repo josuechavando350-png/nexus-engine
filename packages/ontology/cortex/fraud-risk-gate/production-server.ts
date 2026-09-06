@@ -13,6 +13,8 @@ import type { RiskGateMode } from "./runtime-control";
 const MAX_BODY_BYTES = 1_048_576;
 const MAX_ENVELOPE_BYTES = 8_192;
 const MAX_UPSTREAM_RESPONSE_BYTES = 2_097_152;
+const MAX_CONNECTION_HEADER_BYTES = 2_048;
+const HTTP_TOKEN = /^[!#$%&'*+\-.^_`|~0-9A-Za-z]+$/u;
 const ALLOWED_METHODS = new Set(["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]);
 
 export interface Cortex14RiskProxyConfig {
@@ -130,16 +132,37 @@ function json(response: ServerResponse, status: number, body: unknown, headers: 
   response.end(encoded);
 }
 
+function connectionHopByHopNames(value: string | string[] | undefined): ReadonlySet<string> {
+  if (value === undefined) return new Set();
+  const values = Array.isArray(value) ? value : [value];
+  if (values.reduce((sum, item) => sum + Buffer.byteLength(item, "utf8"), 0) > MAX_CONNECTION_HEADER_BYTES) {
+    throw new Cortex14Error("INVALID_INPUT", "Connection header is oversized");
+  }
+  const names = new Set<string>();
+  for (const raw of values) {
+    for (const item of raw.split(",")) {
+      const token = item.trim();
+      if (!token || !HTTP_TOKEN.test(token)) throw new Cortex14Error("INVALID_INPUT", "Connection header contains an invalid hop-by-hop token");
+      names.add(token.toLowerCase());
+    }
+  }
+  return names;
+}
+
 function upstreamHeaders(request: IncomingMessage): Headers {
   const headers = new Headers();
   const blocked = new Set([
     "connection",
-    "host",
-    "content-length",
+    "keep-alive",
+    "proxy-connection",
+    "proxy-authenticate",
+    "proxy-authorization",
+    "te",
+    "trailer",
     "transfer-encoding",
     "upgrade",
-    "proxy-authorization",
-    "proxy-authenticate",
+    "host",
+    "content-length",
     "forwarded",
     "x-forwarded-for",
     "x-forwarded-host",
@@ -149,6 +172,7 @@ function upstreamHeaders(request: IncomingMessage): Headers {
     "x-nexus-client-network-key",
     "x-nexus-client-network-signature",
   ]);
+  for (const name of connectionHopByHopNames(request.headers.connection)) blocked.add(name);
   for (const [name, value] of Object.entries(request.headers)) {
     if (blocked.has(name.toLowerCase()) || value === undefined) continue;
     if (Array.isArray(value)) for (const item of value) headers.append(name, item);
