@@ -2,8 +2,16 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { OntologyScope } from "@nexus/ontology";
-import { InMemoryOntologyTransactionStore } from "@nexus/ontology/transaction";
+import type { OntologyScope, ValidatedSchema } from "@nexus/ontology";
+import {
+  InMemoryOntologyTransactionStore,
+  OntologyTransactionError,
+  type ObjectRecord,
+  type OntologyTransactionPort,
+  type RelationshipRecord,
+  type TransactionOperation,
+  type TransactionResult,
+} from "@nexus/ontology/transaction";
 import { SqliteOntologyTransactionStore } from "@nexus/ontology/cortex/sqlite-transaction-store";
 import { DataManagerApiError, type DataManagerConversionEvent, type DataManagerDestination } from "./data-manager-rest";
 import { DurableEnhancedConversionsPipeline, EnhancedConversionError, type EnhancedConversionGateway, type EnhancedConversionMode } from "./index";
@@ -32,17 +40,27 @@ class Gateway implements EnhancedConversionGateway {
   calls = 0;
   received: DataManagerConversionEvent[] = [];
   nextError: Error | null = null;
-  beforeApply: (() => void) | null = null;
   async ingestConversion(_destination: DataManagerDestination, event: DataManagerConversionEvent) {
     this.calls += 1;
     this.received.push(event);
-    this.beforeApply?.();
     if (this.nextError) throw this.nextError;
     return { requestId: `request-${this.calls}` };
   }
 }
 
-function pipeline(store = new InMemoryOntologyTransactionStore(), gateway = new Gateway(), modeRef = { value: "ACTIVE" as EnhancedConversionMode }) {
+class FailSentPersistenceStore implements OntologyTransactionPort {
+  constructor(private readonly inner = new InMemoryOntologyTransactionStore()) {}
+  transact(currentScope: OntologyScope, schema: ValidatedSchema, operations: readonly TransactionOperation[]): TransactionResult {
+    if (operations.some((operation) => operation.kind === "UPDATE_OBJECT" && Object.values(operation.properties).includes("SENT"))) {
+      throw new OntologyTransactionError("CONFLICT", "simulated post-side-effect SENT persistence failure");
+    }
+    return this.inner.transact(currentScope, schema, operations);
+  }
+  getObject(currentScope: OntologyScope, id: string): ObjectRecord | undefined { return this.inner.getObject(currentScope, id); }
+  getRelationship(currentScope: OntologyScope, id: string): RelationshipRecord | undefined { return this.inner.getRelationship(currentScope, id); }
+}
+
+function pipeline(store: OntologyTransactionPort = new InMemoryOntologyTransactionStore(), gateway = new Gateway(), modeRef = { value: "ACTIVE" as EnhancedConversionMode }) {
   return {
     gateway,
     modeRef,
@@ -82,14 +100,13 @@ describe("CORTEX #10 durable enhanced conversions pipeline", () => {
     expect(() => engine.prepare(input({ conversionValue: 999 }))).toThrow(/different conversion content/i);
   });
 
-  it("rechecks kill immediately before the external side effect", async () => {
+  it("rechecks kill immediately before the external side effect and safely restores PREPARED", async () => {
     const gateway = new Gateway();
-    const modeRef = { value: "ACTIVE" as EnhancedConversionMode };
+    let reads = 0;
     const store = new InMemoryOntologyTransactionStore();
     const engine = new DurableEnhancedConversionsPipeline(store, scope, destination, gateway, () => {
-      const mode = modeRef.value;
-      if (mode === "ACTIVE") modeRef.value = "KILLED";
-      return mode;
+      reads += 1;
+      return reads <= 3 ? "ACTIVE" : "KILLED";
     }, () => NOW);
     const prepared = engine.prepare(input());
     await expect(engine.dispatch(prepared.transactionId)).rejects.toMatchObject({ code: "KILLED" });
@@ -108,6 +125,17 @@ describe("CORTEX #10 durable enhanced conversions pipeline", () => {
     expect(() => engine.rollback(sent.transactionId)).toThrow(/only PREPARED/i);
   });
 
+  it("restores PREPARED after deterministic remote rejection so corrected credentials can be retried", async () => {
+    const { engine, gateway } = pipeline();
+    const prepared = engine.prepare(input());
+    gateway.nextError = new DataManagerApiError("AUTHENTICATION_FAILED", "unauthorized", 401);
+    await expect(engine.dispatch(prepared.transactionId)).rejects.toMatchObject({ code: "REMOTE_FAILURE" });
+    expect(engine.get(prepared.transactionId)?.status).toBe("PREPARED");
+    gateway.nextError = null;
+    expect((await engine.dispatch(prepared.transactionId)).status).toBe("SENT");
+    expect(gateway.calls).toBe(2);
+  });
+
   it("quarantines ambiguous external outcomes and forbids automatic replay", async () => {
     const { engine, gateway } = pipeline();
     const prepared = engine.prepare(input());
@@ -115,6 +143,19 @@ describe("CORTEX #10 durable enhanced conversions pipeline", () => {
     await expect(engine.dispatch(prepared.transactionId)).rejects.toMatchObject({ code: "AMBIGUOUS_OUTCOME" });
     expect(engine.get(prepared.transactionId)?.status).toBe("AMBIGUOUS");
     gateway.nextError = null;
+    await expect(engine.dispatch(prepared.transactionId)).rejects.toMatchObject({ code: "AMBIGUOUS_OUTCOME" });
+    expect(gateway.calls).toBe(1);
+    expect(() => engine.rollback(prepared.transactionId)).toThrow(/only PREPARED/i);
+  });
+
+  it("leaves DISPATCHING after remote success plus local SENT failure and never replays it", async () => {
+    const store = new FailSentPersistenceStore();
+    const gateway = new Gateway();
+    const engine = new DurableEnhancedConversionsPipeline(store, scope, destination, gateway, () => "ACTIVE", () => NOW);
+    const prepared = engine.prepare(input());
+    await expect(engine.dispatch(prepared.transactionId)).rejects.toMatchObject({ code: "AMBIGUOUS_OUTCOME" });
+    expect(engine.get(prepared.transactionId)?.status).toBe("DISPATCHING");
+    expect(gateway.calls).toBe(1);
     await expect(engine.dispatch(prepared.transactionId)).rejects.toMatchObject({ code: "AMBIGUOUS_OUTCOME" });
     expect(gateway.calls).toBe(1);
     expect(() => engine.rollback(prepared.transactionId)).toThrow(/only PREPARED/i);
