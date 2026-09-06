@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
 import type { EnhancedConversionMode } from "./index";
-import { DurableEnhancedConversionsPipeline, EnhancedConversionError } from "./index";
+import { DurableEnhancedConversionsPipeline, EnhancedConversionError, observeEnhancedConversionInput } from "./index";
 import { DurableEnhancedConversionControl } from "./runtime-control";
 
 const JSON_TYPE = "application/json";
@@ -140,12 +140,28 @@ export class EnhancedConversionProductionServer {
       }
       if (!authorized(request, this.ingestToken)) { json(response, 401, { error: "UNAUTHORIZED" }); return; }
       if (request.method === "POST" && path === "/v1/enhanced-conversions/events") {
-        const prepared = this.options.engine.prepare(await boundedJson(request));
+        const initialMode = this.options.control.read().mode;
+        if (initialMode === "KILLED") { json(response, 503, { error: "KILLED" }); return; }
+        const input = await boundedJson(request);
+        if (initialMode === "OBSERVE_ONLY") {
+          json(response, 200, { status: "OBSERVED", observation: observeEnhancedConversionInput(input) });
+          return;
+        }
+
+        // Final control read before any durable PREPARE mutation. The engine
+        // performs another independent read at its persistence boundary.
+        const finalMode = this.options.control.read().mode;
+        if (finalMode === "KILLED") { json(response, 503, { error: "KILLED" }); return; }
+        if (finalMode === "OBSERVE_ONLY") {
+          json(response, 200, { status: "OBSERVED", observation: observeEnhancedConversionInput(input) });
+          return;
+        }
+        const prepared = this.options.engine.prepare(input);
         try {
           const result = await this.options.engine.dispatch(prepared.transactionId);
           json(response, result.status === "SENT" ? 202 : 200, { transactionId: result.transactionId, status: result.status, digest: result.digest, externalRequestId: result.externalRequestId });
         } catch (error) {
-          if (error instanceof EnhancedConversionError && error.code === "KILLED") { json(response, 503, { error: "KILLED", transactionId: prepared.transactionId }); return; }
+          if (error instanceof EnhancedConversionError && (error.code === "KILLED" || error.code === "MODE_BLOCKED")) { json(response, 503, { error: error.code, transactionId: prepared.transactionId }); return; }
           if (error instanceof EnhancedConversionError && error.code === "AMBIGUOUS_OUTCOME") { json(response, 202, { transactionId: prepared.transactionId, status: "AMBIGUOUS" }); return; }
           throw error;
         }
@@ -161,7 +177,10 @@ export class EnhancedConversionProductionServer {
     } catch (error) {
       if (response.headersSent || response.destroyed) return;
       const code = error instanceof EnhancedConversionError ? error.code : "INVALID_REQUEST";
-      const status = error instanceof EnhancedConversionError && error.code === "CONFLICT" ? 409 : error instanceof EnhancedConversionError && error.code === "CONSENT_VIOLATION" ? 403 : 400;
+      const status = error instanceof EnhancedConversionError && error.code === "CONFLICT" ? 409
+        : error instanceof EnhancedConversionError && error.code === "CONSENT_VIOLATION" ? 403
+          : error instanceof EnhancedConversionError && (error.code === "KILLED" || error.code === "MODE_BLOCKED") ? 503
+            : 400;
       json(response, status, { error: code });
     }
   }
