@@ -7,8 +7,8 @@ import {
   evaluateSignedRiskEnvelopeForNetwork,
   parseRiskPolicy,
   type RiskPolicy,
-} from "./index";
-import type { RiskGateMode } from "./runtime-control";
+} from "./index.js";
+import type { RiskGateMode } from "./runtime-control.js";
 
 const MAX_BODY_BYTES = 1_048_576;
 const MAX_ENVELOPE_BYTES = 8_192;
