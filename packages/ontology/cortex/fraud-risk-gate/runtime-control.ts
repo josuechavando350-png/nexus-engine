@@ -64,14 +64,18 @@ export class SqliteRiskGateControl {
   }
 
   setMode(mode: RiskGateMode, expectedRevision: number): RiskGateControlState {
-    if (!validMode(mode) || !Number.isSafeInteger(expectedRevision) || expectedRevision < 1) throw new RiskGateControlError("INVALID_INPUT", "risk gate control request is invalid");
+    if (!validMode(mode) || !Number.isSafeInteger(expectedRevision) || expectedRevision < 0) throw new RiskGateControlError("INVALID_INPUT", "risk gate control request is invalid");
     this.db.exec("BEGIN IMMEDIATE");
     try {
       const current = this.read();
       if (current.revision !== expectedRevision) throw new RiskGateControlError("CONFLICT", "risk gate control revision conflict");
       const updatedAt = new Date(this.now()).toISOString();
-      const result = this.db.prepare("UPDATE cortex14_control SET mode=?,revision=revision+1,updated_at=? WHERE singleton=1 AND revision=?").run(mode, updatedAt, expectedRevision);
-      if (result.changes !== 1) throw new RiskGateControlError("CONFLICT", "risk gate control revision conflict");
+      if (expectedRevision === 0) {
+        this.db.prepare("INSERT INTO cortex14_control(singleton,mode,revision,updated_at) VALUES(1,?,1,?)").run(mode, updatedAt);
+      } else {
+        const result = this.db.prepare("UPDATE cortex14_control SET mode=?,revision=revision+1,updated_at=? WHERE singleton=1 AND revision=?").run(mode, updatedAt, expectedRevision);
+        if (result.changes !== 1) throw new RiskGateControlError("CONFLICT", "risk gate control revision conflict");
+      }
       this.db.exec("COMMIT");
       return this.read();
     } catch (error) {
