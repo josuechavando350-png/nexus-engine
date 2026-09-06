@@ -61,13 +61,27 @@ describe("HttpPageInventoryProvider", () => {
     expect(() => new HttpPageInventoryProvider({ endpoint, bearerToken: TOKEN })).toThrow(PageInventoryTransportError);
   });
 
-  it("fails closed on non-JSON and oversized responses", async () => {
-    for (const make of [
-      () => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } }),
-      () => new Response(`"${"x".repeat(2 * 1024 * 1024)}"`, { status: 200, headers: { "content-type": "application/json" } }),
-    ]) {
-      const provider = new HttpPageInventoryProvider({ endpoint: "https://inventory.example.test/v1/pages", bearerToken: TOKEN, fetchImpl: (async () => make()) as typeof fetch });
-      await expect(provider.getInventory(SITE)).rejects.toBeInstanceOf(PageInventoryTransportError);
-    }
+  it("fails closed on non-JSON responses", async () => {
+    const provider = new HttpPageInventoryProvider({
+      endpoint: "https://inventory.example.test/v1/pages",
+      bearerToken: TOKEN,
+      fetchImpl: (async () => new Response("ok", { status: 200, headers: { "content-type": "text/plain" } })) as typeof fetch,
+    });
+    await expect(provider.getInventory(SITE)).rejects.toBeInstanceOf(PageInventoryTransportError);
+  });
+
+  it("fails closed while streaming an oversized response without Content-Length", async () => {
+    const oversized = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("x".repeat(2 * 1024 * 1024 + 1)));
+        controller.close();
+      },
+    });
+    const provider = new HttpPageInventoryProvider({
+      endpoint: "https://inventory.example.test/v1/pages",
+      bearerToken: TOKEN,
+      fetchImpl: (async () => new Response(oversized, { status: 200, headers: { "content-type": "application/json" } })) as typeof fetch,
+    });
+    await expect(provider.getInventory(SITE)).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
   });
 });
