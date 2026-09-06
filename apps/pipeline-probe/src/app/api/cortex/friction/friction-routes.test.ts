@@ -4,7 +4,7 @@ import { FRICTION_FEATURE_CONTRACT_ID } from "@nexus/core/cortex/friction-abando
 import { GET } from "./control/route";
 import { POST } from "./score/route";
 
-const SCORE_URL = "https://probe.example/api/cortex/friction/score";
+const SCORE_URL = "https://internal-runtime.example/api/cortex/friction/score";
 const MODEL_SOURCE_DIGEST = `sha256:${"a".repeat(64)}`;
 const model = {
   schemaVersion: 1,
@@ -47,10 +47,21 @@ function enable(mode: "ACTIVE" | "OBSERVE_ONLY") {
   vi.stubEnv("NEXUS_CORTEX_09_CALIBRATION_SOURCE_DIGEST", MODEL_SOURCE_DIGEST);
 }
 
-function request(body: unknown, origin = "https://probe.example", contentType = "application/json") {
+function request(
+  body: unknown,
+  origin = "https://probe.example",
+  contentType = "application/json",
+  host = "probe.example",
+  fetchSite = "same-origin",
+) {
   return new Request(SCORE_URL, {
     method: "POST",
-    headers: { origin, "sec-fetch-site": "same-origin", "content-type": contentType },
+    headers: {
+      origin,
+      host,
+      "sec-fetch-site": fetchSite,
+      "content-type": contentType,
+    },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
@@ -99,7 +110,7 @@ describe("CORTEX #9 pipeline-probe boundaries", () => {
     });
   });
 
-  it("scores a valid same-origin snapshot under the exact configured artifact", async () => {
+  it("scores a browser request whose external authority differs from the internal reconstructed URL", async () => {
     enable("ACTIVE");
     const log = vi.spyOn(console, "info").mockImplementation(() => undefined);
     const response = await POST(request(snapshot));
@@ -121,6 +132,16 @@ describe("CORTEX #9 pipeline-probe boundaries", () => {
     expect(emitted).not.toContain("probe.example");
     expect(emitted).not.toContain("scrollDepthBps");
     expect(emitted).not.toContain("validationErrorCount");
+  });
+
+  it("uses an explicitly configured public origin as the production proxy boundary", async () => {
+    enable("ACTIVE");
+    vi.stubEnv("NEXUS_CORTEX_09_PUBLIC_ORIGIN", "https://probe.example");
+    expect((await POST(request(snapshot, "https://probe.example", "application/json", "internal-runtime.example"))).status).toBe(200);
+    expect((await POST(request(snapshot, "https://attacker.example", "application/json", "internal-runtime.example"))).status).toBe(403);
+
+    vi.stubEnv("NEXUS_CORTEX_09_PUBLIC_ORIGIN", "not-an-origin");
+    expect((await POST(request(snapshot))).status).toBe(403);
   });
 
   it("executes the scoring boundary in OBSERVE_ONLY without returning an actionable score", async () => {
@@ -147,9 +168,12 @@ describe("CORTEX #9 pipeline-probe boundaries", () => {
     expect(await response.json()).toEqual({ mode: "KILLED" });
   });
 
-  it("rejects cross-origin, malformed media, unknown fields, and oversized streaming bodies", async () => {
+  it("rejects authority mismatch, spoofed fetch-site, malformed media, unknown fields, and oversized streaming bodies", async () => {
     enable("ACTIVE");
     expect((await POST(request(snapshot, "https://attacker.example"))).status).toBe(403);
+    expect((await POST(request(snapshot, "https://probe.example", "application/json", "attacker.example"))).status).toBe(403);
+    expect((await POST(request(snapshot, "https://probe.example", "application/json", "probe.example", "cross-site"))).status).toBe(403);
+    expect((await POST(request(snapshot, "https://probe.example", "application/json", "probe.example, attacker.example"))).status).toBe(403);
     expect((await POST(request(snapshot, "https://probe.example", "text/plain"))).status).toBe(400);
     expect((await POST(request("{broken-json"))).status).toBe(400);
     expect((await POST(request({ ...snapshot, email: "not-allowed@example.invalid" }))).status).toBe(400);
