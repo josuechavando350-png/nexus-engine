@@ -21,10 +21,16 @@ describe("CORTEX #12 geo holdout design", () => {
     expect(first.maxBaselineImbalance).toBe(0.2);
     expect(first.seedDigest).toMatch(/^sha256:[0-9a-f]{64}$/u);
     expect(JSON.stringify(first)).not.toContain(designInput.seed);
-    expect(first.assignments.filter((row) => row.arm === "CONTROL").length).toBeGreaterThanOrEqual(3);
-    expect(first.assignments.filter((row) => row.arm === "TREATMENT").length).toBeGreaterThanOrEqual(3);
+    expect(first.assignments.filter((row) => row.arm === "CONTROL").length).toBe(Math.round(geos.length * designInput.holdoutFraction));
+    expect(first.assignments.filter((row) => row.arm === "TREATMENT").length).toBe(geos.length - Math.round(geos.length * designInput.holdoutFraction));
     expect(first.designDigest).toMatch(/^sha256:[0-9a-f]{64}$/u);
     expect(verifyGeoHoldoutDesign(first)).toEqual(first);
+  });
+
+  it("honors the requested holdout fraction across a non-default allocation", () => {
+    const result = designGeoHoldout({ ...designInput, holdoutFraction: 0.2 });
+    expect(result.assignments.filter((row) => row.arm === "CONTROL")).toHaveLength(4);
+    expect(verifyGeoHoldoutDesign(result)).toEqual(result);
   });
 
   it("rejects duplicate geos and represents an impossible sample plan without fabricating imbalance", () => {
@@ -49,6 +55,8 @@ describe("CORTEX #12 geo holdout design", () => {
     expect(() => verifyGeoHoldoutDesign({ ...design, minGeosPerArm: 4 })).toThrowError(/digest mismatch/u);
     expect(() => verifyGeoHoldoutDesign({ ...design, assignments: design.assignments.map((item, index) => index === 0 ? { ...item, baselineOutcome: item.baselineOutcome + 1 } : item) })).toThrowError(/digest mismatch/u);
     expect(() => verifyGeoHoldoutDesign({ ...design, status: "REJECTED", reason: "INSUFFICIENT_ARM_SIZE", baselineImbalance: null })).toThrowError(Cortex12Error);
+    const changedArm = design.assignments.map((item, index) => index === 0 ? { ...item, arm: item.arm === "CONTROL" ? "TREATMENT" as const : "CONTROL" as const } : item);
+    expect(() => verifyGeoHoldoutDesign({ ...design, assignments: changedArm })).toThrowError(Cortex12Error);
   });
 });
 
