@@ -41,7 +41,9 @@ export async function POST(request: Request): Promise<Response> {
   if (fetchSite !== null && fetchSite !== "same-origin") return new Response(null, { status: 403 });
 
   const initial = readCortex09Runtime();
-  if (initial.mode === "KILLED" || !initial.model) return Response.json({ mode: "KILLED" }, { status: 503, headers: { "cache-control": "no-store" } });
+  if (initial.mode === "KILLED" || !initial.model || !initial.modelArtifactDigest) {
+    return Response.json({ mode: "KILLED" }, { status: 503, headers: { "cache-control": "no-store" } });
+  }
 
   let score;
   try {
@@ -50,17 +52,40 @@ export async function POST(request: Request): Promise<Response> {
     return new Response(null, { status: 400, headers: { "cache-control": "no-store" } });
   }
 
+  // Re-read the complete runtime immediately before emitting any actionable
+  // result. Same modelId/sourceDigest is insufficient: the exact artifact hash
+  // must remain stable so coefficients cannot change under an old identity.
   const final = readCortex09Runtime();
-  if (final.mode === "KILLED" || !final.model) return Response.json({ mode: "KILLED" }, { status: 503, headers: { "cache-control": "no-store" } });
-  if (final.model.sourceDigest !== initial.model.sourceDigest || final.model.modelId !== initial.model.modelId) {
+  if (final.mode === "KILLED" || !final.model || !final.modelArtifactDigest) {
+    return Response.json({ mode: "KILLED" }, { status: 503, headers: { "cache-control": "no-store" } });
+  }
+  if (
+    final.modelArtifactDigest !== initial.modelArtifactDigest
+    || final.model.sourceDigest !== initial.model.sourceDigest
+    || final.model.modelId !== initial.model.modelId
+  ) {
     return Response.json({ mode: "KILLED" }, { status: 409, headers: { "cache-control": "no-store" } });
   }
   if (final.mode === "OBSERVE_ONLY") {
-    console.info(JSON.stringify({ component: "cortex-09-friction-scoring", mode: final.mode, deviceClass: score.deviceClass, riskBand: score.riskBand, modelSourceDigest: score.modelSourceDigest }));
+    console.info(JSON.stringify({
+      component: "cortex-09-friction-scoring",
+      mode: final.mode,
+      deviceClass: score.deviceClass,
+      riskBand: score.riskBand,
+      modelSourceDigest: score.modelSourceDigest,
+      modelArtifactDigest: final.modelArtifactDigest,
+    }));
     return Response.json({ mode: final.mode, score: null }, { status: 200, headers: { "cache-control": "no-store" } });
   }
 
-  console.info(JSON.stringify({ component: "cortex-09-friction-scoring", mode: final.mode, deviceClass: score.deviceClass, riskBand: score.riskBand, modelSourceDigest: score.modelSourceDigest }));
+  console.info(JSON.stringify({
+    component: "cortex-09-friction-scoring",
+    mode: final.mode,
+    deviceClass: score.deviceClass,
+    riskBand: score.riskBand,
+    modelSourceDigest: score.modelSourceDigest,
+    modelArtifactDigest: final.modelArtifactDigest,
+  }));
   return Response.json({ mode: "ACTIVE", score }, {
     status: 200,
     headers: {
