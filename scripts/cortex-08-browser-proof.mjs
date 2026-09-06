@@ -80,6 +80,42 @@ async function assertRootServed(processHandle) {
   }
 }
 
+async function openProbePage() {
+  const failures = [];
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const browser = await chromium.launch({ headless: true });
+    const context = await browser.newContext({
+      viewport: { width: 1280, height: 800 },
+      reducedMotion: "no-preference",
+      locale: "en-US",
+      timezoneId: "UTC",
+    });
+    const page = await context.newPage();
+    const pageErrors = [];
+    let crashed = false;
+    let closed = false;
+    let disconnected = false;
+    page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("crash", () => { crashed = true; });
+    page.on("close", () => { closed = true; });
+    browser.on("disconnected", () => { disconnected = true; });
+    try {
+      const navigation = await page.goto(baseUrl, { waitUntil: "networkidle", timeout: 20_000 });
+      if (!navigation?.ok()) throw new Error(`root returned HTTP ${navigation?.status() ?? "unknown"}`);
+      await page.locator('a[href]').first().waitFor({ state: "attached", timeout: 10_000 });
+      return { browser, context, page, pageErrors };
+    } catch (error) {
+      const url = page.isClosed() ? "closed" : page.url();
+      const htmlBytes = page.isClosed() ? 0 : Buffer.byteLength(await page.content().catch(() => ""));
+      failures.push({ attempt, error: String(error), url, htmlBytes, crashed, closed, disconnected, pageErrors });
+      await context.close().catch(() => undefined);
+      await browser.close().catch(() => undefined);
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+  }
+  throw new Error(`real probe browser could not reach a rendered navigation target: ${JSON.stringify(failures)}`);
+}
+
 async function main() {
   assertExactSource();
   execFileSync("pnpm", ["--filter", "@nexus/pipeline-probe", "build"], {
@@ -90,25 +126,16 @@ async function main() {
 
   let server = startProbe("ACTIVE");
   let browser;
+  let context;
   try {
     await waitForServer(server, "ACTIVE");
     await assertRootServed(server);
 
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-    const pageErrors = [];
-    page.on("pageerror", (error) => pageErrors.push(String(error)));
-    const navigation = await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 15_000 });
-    if (!navigation?.ok()) throw new Error(`pipeline-probe root returned HTTP ${navigation?.status() ?? "unknown"}`);
+    const opened = await openProbePage();
+    browser = opened.browser;
+    context = opened.context;
+    const { page, pageErrors } = opened;
     if (server.exitCode !== null) throw new Error(`pipeline-probe exited after browser navigation with code ${server.exitCode}`);
-
-    try {
-      await page.locator('a[href]').first().waitFor({ state: "attached", timeout: 10_000 });
-    } catch {
-      const bodyText = (await page.locator("body").innerText().catch(() => "")).slice(0, 1000);
-      const htmlBytes = Buffer.byteLength(await page.content().catch(() => ""));
-      throw new Error(`real probe rendered no anchors; url=${page.url()} htmlBytes=${htmlBytes} pageErrors=${JSON.stringify(pageErrors)} body=${JSON.stringify(bodyText)}`);
-    }
 
     const renderedAnchors = await page.locator("a[href]").evaluateAll((anchors) => anchors.map((anchor) => ({
       href: anchor.getAttribute("href"),
@@ -165,6 +192,7 @@ async function main() {
 
     process.stdout.write(`${JSON.stringify({ component: "cortex-08-browser-proof", sourceRevision: expectedSha, targetPath: realTarget.pathname, verdict: "PASS" })}\n`);
   } finally {
+    if (context) await context.close().catch(() => undefined);
     if (browser) await browser.close().catch(() => undefined);
     await stopProbe(server).catch(() => undefined);
   }
