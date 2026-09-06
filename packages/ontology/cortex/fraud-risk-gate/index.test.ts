@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
-import { Cortex14Error, evaluateSignedRiskEnvelope, signRiskPayload } from "./index";
+import {
+  Cortex14Error,
+  computeRiskNetworkKeyHash,
+  evaluateSignedRiskEnvelope,
+  evaluateSignedRiskEnvelopeForNetwork,
+  signRiskPayload,
+} from "./index";
 
 const secret = "s".repeat(32);
+const networkSecret = "n".repeat(32);
 const policy = { challengeAtOrAbove: 500, denyAtOrAbove: 800, maxAssessmentAgeSeconds: 300, maxFutureSkewSeconds: 30 } as const;
 const now = Date.parse("2026-09-06T00:02:00.000Z");
+const networkKeyHash = computeRiskNetworkKeyHash("203.0.113.10", networkSecret);
 const payload = {
   schemaVersion: 1,
   assessmentId: "assessment-00000001",
@@ -11,7 +19,7 @@ const payload = {
   assessedAt: "2026-09-06T00:00:00.000Z",
   expiresAt: "2026-09-06T00:05:00.000Z",
   riskScore: 100,
-  networkKeyHash: `sha256:${"a".repeat(64)}`,
+  networkKeyHash,
 } as const;
 
 describe("CORTEX #14 signed risk gate", () => {
@@ -22,6 +30,20 @@ describe("CORTEX #14 signed risk gate", () => {
     expect(evaluateSignedRiskEnvelope(medium, secret, policy, now).action).toBe("CHALLENGE");
     const high = signRiskPayload({ ...payload, assessmentId: "assessment-00000003", riskScore: 900 }, secret);
     expect(evaluateSignedRiskEnvelope(high, secret, policy, now).action).toBe("DENY");
+  });
+
+  it("binds an otherwise valid signed assessment to the exact request network key", () => {
+    const signed = signRiskPayload(payload, secret);
+    expect(evaluateSignedRiskEnvelopeForNetwork(signed, secret, policy, networkKeyHash, now).action).toBe("ALLOW");
+    const replayNetworkHash = computeRiskNetworkKeyHash("203.0.113.11", networkSecret);
+    expect(() => evaluateSignedRiskEnvelopeForNetwork(signed, secret, policy, replayNetworkHash, now)).toThrowError(/different request network key/u);
+  });
+
+  it("derives opaque network bindings with a keyed digest rather than storing an address", () => {
+    expect(networkKeyHash).toMatch(/^sha256:[0-9a-f]{64}$/u);
+    expect(networkKeyHash).not.toContain("203.0.113.10");
+    expect(computeRiskNetworkKeyHash("203.0.113.10", networkSecret)).toBe(networkKeyHash);
+    expect(computeRiskNetworkKeyHash("203.0.113.10", "m".repeat(32))).not.toBe(networkKeyHash);
   });
 
   it("rejects tampering instead of trusting client-supplied scores", () => {
@@ -40,6 +62,7 @@ describe("CORTEX #14 signed risk gate", () => {
 
   it("requires a hashed network key and rejects unbounded or contradictory policies", () => {
     expect(() => signRiskPayload({ ...payload, networkKeyHash: "192.0.2.1" }, secret)).toThrowError(/SHA-256/u);
+    expect(() => computeRiskNetworkKeyHash("203.0.113.10", "short")).toThrowError(/secret/u);
     const signed = signRiskPayload(payload, secret);
     expect(() => evaluateSignedRiskEnvelope(signed, secret, { ...policy, challengeAtOrAbove: 900, denyAtOrAbove: 800 }, now)).toThrowError(/out of range/u);
   });
