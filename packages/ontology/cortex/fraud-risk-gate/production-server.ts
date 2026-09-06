@@ -252,11 +252,12 @@ export function startCortex14RiskProxy(config: Cortex14RiskProxyConfig): { close
 
       const target = fixedUpstreamTarget(upstream, request.url);
       const body = await readBody(request);
+      const upstreamBody: ArrayBuffer | undefined = body === undefined ? undefined : Uint8Array.from(body).buffer as ArrayBuffer;
       if (failClosedMode(config.readMode) === "KILLED") return json(response, 503, { error: "KILLED" });
       const upstreamResponse = await fetch(target, {
         method: request.method,
         headers: upstreamHeaders(request),
-        body,
+        body: upstreamBody,
         redirect: "manual",
         signal: AbortSignal.timeout(15_000),
       });
