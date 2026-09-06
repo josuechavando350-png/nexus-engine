@@ -158,10 +158,15 @@ function upstreamHeaders(request: IncomingMessage): Headers {
 }
 
 export function fixedUpstreamTarget(upstream: URL, requestUrl: string | undefined): URL {
-  const incoming = new URL(requestUrl ?? "/", "http://proxy.invalid");
+  const raw = requestUrl ?? "/";
+  if (!raw.startsWith("/") || /[\r\n\0#]/u.test(raw)) throw new Cortex14Error("INVALID_INPUT", "request target must use origin-form syntax");
+  const queryAt = raw.indexOf("?");
+  const pathname = queryAt === -1 ? raw : raw.slice(0, queryAt);
+  const search = queryAt === -1 ? "" : raw.slice(queryAt);
+  if (pathname.length < 1 || pathname.length > 8_192 || search.length > 8_192) throw new Cortex14Error("INVALID_INPUT", "request target is oversized");
   const target = new URL(upstream);
-  target.pathname = incoming.pathname;
-  target.search = incoming.search;
+  target.pathname = pathname;
+  target.search = search;
   target.hash = "";
   return target;
 }
