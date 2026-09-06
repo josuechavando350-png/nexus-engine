@@ -75,6 +75,9 @@ jobs:
       - name: Prove CORTEX #9 real friction scoring and fail-closed control
         run: node scripts/cortex-09-browser-proof.mjs
 
+      - name: Prove CORTEX #13 real CWV pressure coordination
+        run: node scripts/cortex-13-browser-proof.mjs
+
       - name: Record validated source identity
         shell: bash
         run: |

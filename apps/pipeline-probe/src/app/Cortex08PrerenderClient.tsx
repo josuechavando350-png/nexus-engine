@@ -4,12 +4,14 @@ import { useEffect } from "react";
 import {
   createInteractionPointerPrerenderer,
   parseInteractionPointerControl,
+  type InteractionPointerControl,
   type InteractionPointerDecision,
 } from "@nexus/core/cortex/interaction-pointer-prerenderers";
 
 const CONTROL_ENDPOINT = "/api/cortex/prerender/control";
 const OBSERVE_ENDPOINT = "/api/cortex/prerender/observe";
 const CONTROL_RECONCILE_MS = 5_000;
+const CORTEX_13_SUSPENSION_EVENT = "nexus:cortex13-suspension-change";
 
 async function readControl(): Promise<unknown> {
   const response = await fetch(CONTROL_ENDPOINT, {
@@ -27,6 +29,14 @@ async function readControl(): Promise<unknown> {
   return response.json();
 }
 
+async function readEffectiveControl(): Promise<InteractionPointerControl> {
+  const control = parseInteractionPointerControl(await readControl());
+  if (document.documentElement.dataset.nexusCortex13SuspendSpeculation === "1") {
+    return Object.freeze({ ...control, mode: "OBSERVE_ONLY" as const });
+  }
+  return control;
+}
+
 function observe(decision: InteractionPointerDecision): void {
   const body = JSON.stringify({ signal: decision.signal, action: decision.action, reason: decision.reason });
   void fetch(OBSERVE_ENDPOINT, {
@@ -42,20 +52,25 @@ function observe(decision: InteractionPointerDecision): void {
 
 export function Cortex08PrerenderClient() {
   useEffect(() => {
-    const runtime = createInteractionPointerPrerenderer({ controlProvider: readControl, onDecision: observe });
+    const runtime = createInteractionPointerPrerenderer({ controlProvider: readEffectiveControl, onDecision: observe });
     const reconcile = async () => {
       try {
-        if (parseInteractionPointerControl(await readControl()).mode !== "ACTIVE") runtime.rollback();
+        if ((await readEffectiveControl()).mode !== "ACTIVE") runtime.rollback();
       } catch {
         runtime.rollback();
       }
     };
+    const onCwvSuspensionChange = () => {
+      if (document.documentElement.dataset.nexusCortex13SuspendSpeculation === "1") runtime.rollback();
+    };
 
     runtime.start();
+    window.addEventListener(CORTEX_13_SUSPENSION_EVENT, onCwvSuspensionChange);
     void reconcile();
     const interval = window.setInterval(() => { void reconcile(); }, CONTROL_RECONCILE_MS);
     return () => {
       window.clearInterval(interval);
+      window.removeEventListener(CORTEX_13_SUSPENSION_EVENT, onCwvSuspensionChange);
       runtime.stop();
       runtime.rollback();
     };
