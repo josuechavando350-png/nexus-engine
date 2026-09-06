@@ -64,7 +64,9 @@ export class DurableEnhancedConversionControl {
     try {
       this.transactions.transact(this.scope, this.validatedSchema, [operation]);
     } catch (error) {
-      if (error instanceof OntologyTransactionError && (error.code === "CONFLICT" || error.code === "UNIQUE_CONSTRAINT")) throw new Error("enhanced-conversion control revision conflict");
+      if (error instanceof OntologyTransactionError && (error.code === "CONFLICT" || error.code === "UNIQUE_CONSTRAINT")) {
+        throw new Error("enhanced-conversion control revision conflict", { cause: error });
+      }
       throw error;
     }
     return this.read();
