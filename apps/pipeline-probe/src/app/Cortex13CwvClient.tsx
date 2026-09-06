@@ -7,6 +7,7 @@ type Control = { mode: "ACTIVE" | "OBSERVE_ONLY" | "KILLED"; thresholds: CwvLife
 const CONTROL_ENDPOINT = "/api/cortex/cwv/control";
 const CONTROL_RECONCILE_MS = 2_000;
 const LONG_TASK_PRESSURE_RETENTION_MS = 10_000;
+const SUSPENSION_EVENT = "nexus:cortex13-suspension-change";
 
 function parseControl(value: unknown): Control | null {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) return null;
@@ -47,17 +48,25 @@ function removeSpeculation(): number {
   return nodes.length;
 }
 
+function emitSuspensionChange(suspended: boolean): void {
+  window.dispatchEvent(new CustomEvent(SUSPENSION_EVENT, { detail: Object.freeze({ suspended }) }));
+}
+
 function clearState(): void {
+  const wasSuspended = document.documentElement.dataset.nexusCortex13SuspendSpeculation === "1";
   delete document.documentElement.dataset.nexusCortex13State;
   delete document.documentElement.dataset.nexusCortex13Reasons;
   delete document.documentElement.dataset.nexusCortex13SuspendSpeculation;
+  if (wasSuspended) emitSuspensionChange(false);
 }
 
 function publishState(state: "NORMAL" | "PRESSURE" | "PAUSED", reasons: readonly string[], suspend: boolean): void {
+  const wasSuspended = document.documentElement.dataset.nexusCortex13SuspendSpeculation === "1";
   document.documentElement.dataset.nexusCortex13State = state;
   document.documentElement.dataset.nexusCortex13Reasons = reasons.join(",");
   if (suspend) document.documentElement.dataset.nexusCortex13SuspendSpeculation = "1";
   else delete document.documentElement.dataset.nexusCortex13SuspendSpeculation;
+  if (suspend !== wasSuspended) emitSuspensionChange(suspend);
 }
 
 export function Cortex13CwvClient(): null {
