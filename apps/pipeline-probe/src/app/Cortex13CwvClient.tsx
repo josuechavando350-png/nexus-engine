@@ -7,6 +7,8 @@ type Control = { mode: "ACTIVE" | "OBSERVE_ONLY" | "KILLED"; thresholds: CwvLife
 const CONTROL_ENDPOINT = "/api/cortex/cwv/control";
 const CONTROL_RECONCILE_MS = 2_000;
 const LONG_TASK_PRESSURE_RETENTION_MS = 10_000;
+const EVENT_LOOP_SAMPLE_MS = 50;
+const EVENT_LOOP_WARMUP_MS = 1_000;
 const SUSPENSION_EVENT = "nexus:cortex13-suspension-change";
 
 function parseControl(value: unknown): Control | null {
@@ -153,6 +155,25 @@ export function Cortex13CwvClient(): null {
       if (entries.length) longTaskPressureUntil = performance.now() + LONG_TASK_PRESSURE_RETENTION_MS;
     });
 
+    // Long Tasks API availability varies by browser/runtime. Independently
+    // measure real main-thread scheduling stalls as a fail-safe signal. This
+    // does not synthesize a state: it observes how late a scheduled browser
+    // task actually runs. Warm-up prevents navigation/bootstrap work from
+    // being classified as steady-state pressure.
+    let eventLoopPreviousAt = performance.now();
+    const eventLoopArmedAt = eventLoopPreviousAt + EVENT_LOOP_WARMUP_MS;
+    const eventLoopInterval = window.setInterval(() => {
+      const now = performance.now();
+      const elapsed = now - eventLoopPreviousAt;
+      eventLoopPreviousAt = now;
+      if (disposed || now < eventLoopArmedAt) return;
+      const schedulingStallMs = Math.max(0, elapsed - EVENT_LOOP_SAMPLE_MS);
+      if (schedulingStallMs <= 0) return;
+      recentLongTaskMs = Math.max(recentLongTaskMs, schedulingStallMs);
+      longTaskPressureUntil = now + LONG_TASK_PRESSURE_RETENTION_MS;
+      void apply();
+    }, EVENT_LOOP_SAMPLE_MS);
+
     const onVisibility = () => { void apply(); };
     document.addEventListener("visibilitychange", onVisibility, { passive: true });
     window.addEventListener("pagehide", onVisibility, { passive: true });
@@ -171,6 +192,7 @@ export function Cortex13CwvClient(): null {
       disposed = true;
       controller.abort();
       window.clearInterval(interval);
+      window.clearInterval(eventLoopInterval);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", onVisibility);
       for (const observer of observers) observer.disconnect();
