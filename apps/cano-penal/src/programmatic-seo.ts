@@ -17,6 +17,7 @@ export type CanoProgrammaticSeoPage = Readonly<{
   description: string;
   heading: string;
   bodyText: string;
+  distinctiveStatements: readonly string[];
   path: string;
   url: string;
   canonicalUrl: string;
@@ -95,11 +96,13 @@ function parseBundle(value: unknown): Bundle | null {
       typeof page.pageId !== "string" ||
       !Array.isArray(page.routeSegments) || !page.routeSegments.every((part) => typeof part === "string") ||
       typeof page.title !== "string" || typeof page.description !== "string" || typeof page.heading !== "string" || typeof page.bodyText !== "string" ||
+      !Array.isArray(page.distinctiveStatements) || !page.distinctiveStatements.every((statement) => typeof statement === "string") ||
       typeof page.path !== "string" || typeof page.url !== "string" || typeof page.canonicalUrl !== "string" ||
       typeof page.indexable !== "boolean" || typeof page.updatedAt !== "string" ||
       typeof page.contentDigest !== "string" || !DIGEST.test(page.contentDigest)
     ) return null;
     const routeSegments = page.routeSegments as string[];
+    const distinctiveStatements = page.distinctiveStatements as string[];
     if (routeSegments.some((part) => !SEGMENT.test(part))) return null;
     const expectedPath = routeSegments.length === 0 ? "/" : `/${routeSegments.join("/")}/`;
     const expected = approvedByPath.get(expectedPath);
@@ -109,6 +112,7 @@ function parseBundle(value: unknown): Bundle | null {
       page.path !== expectedPath || page.pageId !== expected.pageId ||
       JSON.stringify(routeSegments) !== JSON.stringify(expected.routeSegments) ||
       page.title !== expected.title || page.description !== expected.description || page.heading !== expected.heading || page.bodyText !== expected.bodyText ||
+      JSON.stringify(distinctiveStatements) !== JSON.stringify(expected.distinctiveStatements) ||
       page.url !== expectedUrl || page.canonicalUrl !== expectedUrl || page.indexable !== expected.indexable || page.updatedAt !== expected.updatedAt
     ) return null;
     seen.add(expectedPath);
@@ -119,6 +123,7 @@ function parseBundle(value: unknown): Bundle | null {
       description: page.description,
       heading: page.heading,
       bodyText: page.bodyText,
+      distinctiveStatements: Object.freeze([...distinctiveStatements]),
       path: page.path,
       url: page.url,
       canonicalUrl: page.canonicalUrl,
