@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PageShell } from "../../SiteChrome";
 import { areas } from "../../content";
+import { mergeSerpMetadata, readSerpMetadataOverride } from "../../../serp-metadata-control";
 
 const areaMap = Object.fromEntries(areas.map(([name, href]) => [href.split("/").pop()!, name]));
 
@@ -62,10 +63,12 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const paragraphs = areaContent[slug];
   if (!name || !paragraphs) return {};
   const fiscal = slug === "delitos-fiscales-y-financieros";
-  return {
+  const fallback: Metadata = {
     title: `${name} — ${fiscal ? "abogado delitos fiscales CDMX" : "abogado penalista CDMX"}`,
     description: paragraphs[0]
   };
+  const pageUrl = `https://canopenal.com/areas/${slug}`;
+  return mergeSerpMetadata(fallback, await readSerpMetadataOverride(slug, pageUrl));
 }
 
 export default async function AreaPage({ params }: { params: Promise<{ slug: string }> }) {
