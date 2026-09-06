@@ -16,17 +16,27 @@ const signingSecret = "s".repeat(32);
 function database(): string { const dir = mkdtempSync(join(tmpdir(), "nexus-cortex16-server-")); dirs.push(dir); return join(dir, "trace.sqlite"); }
 afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
-function request(path: string, token: string, payload?: unknown): Promise<{ status: number; body: any }> {
+type RegisterResponse = { record: { traceKey: string; manifestDigest: `sha256:${string}` }; signedTrace: unknown };
+type ResolveResponse = { result: Record<string, unknown> };
+
+function request<T = unknown>(path: string, token: string, payload?: unknown): Promise<{ status: number; body: T }> {
   return new Promise((resolve, reject) => {
     const encoded = payload === undefined ? undefined : JSON.stringify(payload);
     const req = httpRequest(`${origin}${path}`, { method: payload === undefined ? "GET" : "POST", headers: { authorization: `Bearer ${token}`, ...(encoded ? { "content-type": "application/json", "content-length": String(Buffer.byteLength(encoded)) } : {}) } }, (response) => {
       const chunks: Buffer[] = []; response.on("data", (chunk) => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
-      response.on("end", () => { const text = Buffer.concat(chunks).toString("utf8"); resolve({ status: response.statusCode ?? 0, body: text ? JSON.parse(text) : null }); });
+      response.on("end", () => { const text = Buffer.concat(chunks).toString("utf8"); resolve({ status: response.statusCode ?? 0, body: (text ? JSON.parse(text) : null) as T }); });
     });
     req.on("error", reject); if (encoded) req.write(encoded); req.end();
   });
 }
-async function ready(expected: number): Promise<void> { const deadline = Date.now() + 5_000; while (Date.now() < deadline) { try { if ((await request("/healthz", readToken)).status === expected) return; } catch {} await new Promise((resolve) => setTimeout(resolve, 25)); } throw new Error("CORTEX #16 server readiness failed"); }
+async function ready(expected: number): Promise<void> {
+  const deadline = Date.now() + 5_000;
+  while (Date.now() < deadline) {
+    try { if ((await request("/healthz", readToken)).status === expected) return; } catch { /* bounded startup retry */ }
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error("CORTEX #16 server readiness failed");
+}
 
 const creativeA = { creativeId: "creative-alpha", version: "version-0001", assetDigests: [`sha256:${"a".repeat(64)}`], deploymentKeys: ["campaign-0001"], activatedAt: "2026-09-06T00:00:00.000Z" } as const;
 const creativeB = { creativeId: "creative-beta", version: "version-0001", assetDigests: [`sha256:${"b".repeat(64)}`], deploymentKeys: ["campaign-0002"], activatedAt: "2026-09-06T00:00:00.000Z" } as const;
@@ -37,12 +47,12 @@ describe("CORTEX #16 production traceability boundary", () => {
     const server = startCortex16Server({ registry, writeToken, readToken, signingSecret, port, readMode: () => mode });
     try {
       await ready(200);
-      const a = await request("/v1/creatives/register", writeToken, creativeA); const b = await request("/v1/creatives/register", writeToken, creativeB);
+      const a = await request<RegisterResponse>("/v1/creatives/register", writeToken, creativeA); const b = await request<RegisterResponse>("/v1/creatives/register", writeToken, creativeB);
       expect(a.status).toBe(201); expect(b.status).toBe(201);
       expect(verifyCreativeTrace(a.body.signedTrace, signingSecret)).toEqual({ traceKey: a.body.record.traceKey, manifestDigest: a.body.record.manifestDigest });
-      const exact = await request("/v1/aggregates/resolve", readToken, { aggregationId: "aggregate-0001", metric: "conversions", value: 12, traceKeys: [a.body.record.traceKey] });
+      const exact = await request<ResolveResponse>("/v1/aggregates/resolve", readToken, { aggregationId: "aggregate-0001", metric: "conversions", value: 12, traceKeys: [a.body.record.traceKey] });
       expect(exact.body.result).toMatchObject({ resolution: "EXACT", creativeIds: ["creative-alpha"], value: 12 });
-      const ambiguous = await request("/v1/aggregates/resolve", readToken, { aggregationId: "aggregate-0002", metric: "conversions", value: 30, traceKeys: [a.body.record.traceKey, b.body.record.traceKey] });
+      const ambiguous = await request<ResolveResponse>("/v1/aggregates/resolve", readToken, { aggregationId: "aggregate-0002", metric: "conversions", value: 30, traceKeys: [a.body.record.traceKey, b.body.record.traceKey] });
       expect(ambiguous.body.result).toMatchObject({ resolution: "AMBIGUOUS_SET", creativeIds: ["creative-alpha", "creative-beta"], value: 30 });
       expect(ambiguous.body.result).not.toHaveProperty("allocation");
       mode = "OBSERVE_ONLY";
