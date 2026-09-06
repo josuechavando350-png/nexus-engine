@@ -139,15 +139,17 @@ function parseDesignInput(value: unknown): GeoHoldoutDesignInput {
 export function designGeoHoldout(value: unknown): GeoHoldoutDesign {
   const input = parseDesignInput(value);
   const sorted = [...input.geos].sort((a, b) => a.baselineOutcome - b.baselineOutcome || a.geoId.localeCompare(b.geoId));
-  const assignments: GeoAssignment[] = [];
-  const stratumSize = 5;
-  for (let offset = 0; offset < sorted.length; offset += stratumSize) {
-    const stratum = sorted.slice(offset, offset + stratumSize);
-    const desiredControls = Math.max(1, Math.min(stratum.length - 1, Math.round(stratum.length * input.holdoutFraction)));
-    const controlIds = new Set([...stratum].sort((a, b) => rank(input.seed, a.geoId).localeCompare(rank(input.seed, b.geoId))).slice(0, desiredControls).map((geo) => geo.geoId));
-    for (const geo of stratum) assignments.push(Object.freeze({ geoId: geo.geoId, arm: controlIds.has(geo.geoId) ? "CONTROL" : "TREATMENT", baselineOutcome: geo.baselineOutcome }));
+  const desiredControls = Math.max(1, Math.min(sorted.length - 1, Math.round(sorted.length * input.holdoutFraction)));
+  const controlIds = new Set<string>();
+  for (let stratumIndex = 0; stratumIndex < desiredControls; stratumIndex += 1) {
+    const start = Math.floor((stratumIndex * sorted.length) / desiredControls);
+    const end = Math.floor(((stratumIndex + 1) * sorted.length) / desiredControls);
+    const stratum = sorted.slice(start, end);
+    const selected = [...stratum].sort((a, b) => rank(input.seed, a.geoId).localeCompare(rank(input.seed, b.geoId)))[0];
+    if (!selected) throw new Cortex12Error("INTEGRITY_FAILURE", "stratified assignment produced an empty stratum");
+    controlIds.add(selected.geoId);
   }
-  assignments.sort((a, b) => a.geoId.localeCompare(b.geoId));
+  const assignments = sorted.map((geo): GeoAssignment => Object.freeze({ geoId: geo.geoId, arm: controlIds.has(geo.geoId) ? "CONTROL" : "TREATMENT", baselineOutcome: geo.baselineOutcome })).sort((a, b) => a.geoId.localeCompare(b.geoId));
   const controls = assignments.filter((item) => item.arm === "CONTROL");
   const treatment = assignments.filter((item) => item.arm === "TREATMENT");
   const common = {
@@ -195,6 +197,8 @@ export function verifyGeoHoldoutDesign(value: unknown): GeoHoldoutDesign {
   });
   const treatmentCount = assignments.filter((assignment) => assignment.arm === "TREATMENT").length;
   const controlCount = assignments.length - treatmentCount;
+  const expectedControls = Math.max(1, Math.min(assignments.length - 1, Math.round(assignments.length * holdoutFraction)));
+  if (controlCount !== expectedControls) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design does not honor its preregistered holdout fraction");
   const insufficient = treatmentCount < minGeosPerArm || controlCount < minGeosPerArm;
   if ((raw.reason === "INSUFFICIENT_ARM_SIZE") !== insufficient || (raw.reason === "INSUFFICIENT_ARM_SIZE") !== (baselineImbalance === null)) throw new Cortex12Error("INTEGRITY_FAILURE", "stored design sample-size status is inconsistent");
   if (!insufficient && baselineImbalance === null) throw new Cortex12Error("INTEGRITY_FAILURE", "stored baseline imbalance is missing");
