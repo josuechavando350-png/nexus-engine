@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseFrictionSnapshot, scoreFrictionAbandonment } from "./index.js";
+import { parseFrictionProbabilityModel, parseFrictionSnapshot, scoreFrictionAbandonment } from "./index.js";
 
 function snapshot(overrides: Record<string, unknown> = {}) {
   return {
@@ -17,26 +17,56 @@ function snapshot(overrides: Record<string, unknown> = {}) {
   };
 }
 
+function model(overrides: Record<string, unknown> = {}) {
+  return {
+    schemaVersion: 1,
+    modelId: "test-calibration-v1",
+    sourceDigest: `sha256:${"a".repeat(64)}`,
+    intercept: -3,
+    coefficients: {
+      interactionLatency: 2,
+      validationErrorRatio: 2,
+      repeatedActionRatio: 2,
+      longTaskRate: 2,
+      visibilityLossRate: 2,
+      scrollDeficit: 2,
+      mobileIndicator: 0,
+    },
+    lowRiskMax: 0.33,
+    mediumRiskMax: 0.66,
+    ...overrides,
+  };
+}
+
 describe("CORTEX #9 friction abandonment scoring", () => {
-  it("accepts an exact bounded privacy-minimized contract", () => {
+  it("accepts an exact bounded privacy-minimized snapshot contract", () => {
     expect(parseFrictionSnapshot(snapshot())).toEqual(snapshot());
     expect(() => parseFrictionSnapshot(snapshot({ email: "not-allowed@example.invalid" }))).toThrow(/unknown or missing/i);
     expect(() => parseFrictionSnapshot(snapshot({ scrollDepthBps: 10_001 }))).toThrow(/scrollDepthBps/i);
     expect(() => parseFrictionSnapshot(snapshot({ deviceClass: "TABLET" }))).toThrow(/deviceClass/i);
   });
 
-  it("produces a deterministic bounded probability and explicit evidence", () => {
-    const first = scoreFrictionAbandonment(snapshot());
-    const second = scoreFrictionAbandonment(snapshot());
+  it("requires an explicit bounded probability-model contract", () => {
+    expect(parseFrictionProbabilityModel(model())).toEqual(model());
+    expect(() => parseFrictionProbabilityModel(model({ sourceDigest: "unbound" }))).toThrow(/sourceDigest/i);
+    expect(() => parseFrictionProbabilityModel(model({ lowRiskMax: 0.8, mediumRiskMax: 0.4 }))).toThrow(/greater/i);
+    expect(() => parseFrictionProbabilityModel(model({ inventedField: true }))).toThrow(/unknown or missing/i);
+  });
+
+  it("produces a deterministic bounded probability bound to model provenance", () => {
+    const first = scoreFrictionAbandonment(snapshot(), model());
+    const second = scoreFrictionAbandonment(snapshot(), model());
     expect(first).toEqual(second);
     expect(first.abandonmentProbability).toBeGreaterThanOrEqual(0);
     expect(first.abandonmentProbability).toBeLessThanOrEqual(1);
-    expect(first.estimator).toBe("DETERMINISTIC_FRICTION_INDEX_V1");
+    expect(first.estimator).toBe("CONFIGURED_LOGISTIC_MODEL_V1");
+    expect(first.modelId).toBe("test-calibration-v1");
+    expect(first.modelSourceDigest).toBe(`sha256:${"a".repeat(64)}`);
     expect(first.riskBand).toBe("LOW");
   });
 
-  it("raises risk monotonically as measured friction grows", () => {
-    const low = scoreFrictionAbandonment(snapshot());
+  it("raises risk as measured friction grows under a positive calibrated model", () => {
+    const low = scoreFrictionAbandonment(snapshot(), model());
     const high = scoreFrictionAbandonment(snapshot({
       scrollDepthBps: 0,
       maxInteractionLatencyMs: 900,
@@ -44,14 +74,14 @@ describe("CORTEX #9 friction abandonment scoring", () => {
       repeatedActionCount: 10,
       longTaskCount: 20,
       visibilityLossCount: 5,
-    }));
+    }), model());
     expect(high.abandonmentProbability).toBeGreaterThan(low.abandonmentProbability);
     expect(high.riskBand).toBe("HIGH");
   });
 
-  it("does not create a mobile penalty without measured mobile friction", () => {
-    const desktop = scoreFrictionAbandonment(snapshot({ deviceClass: "DESKTOP" }));
-    const mobile = scoreFrictionAbandonment(snapshot({ deviceClass: "MOBILE" }));
+  it("does not invent a mobile penalty when the configured model has no mobile coefficient", () => {
+    const desktop = scoreFrictionAbandonment(snapshot({ deviceClass: "DESKTOP" }), model());
+    const mobile = scoreFrictionAbandonment(snapshot({ deviceClass: "MOBILE" }), model());
     expect(mobile.abandonmentProbability).toBe(desktop.abandonmentProbability);
     expect(mobile.evidence).toEqual(desktop.evidence);
   });
