@@ -38,6 +38,46 @@ async function readBoundedJson(request: Request): Promise<unknown> {
   return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
 }
 
+function normalizedOrigin(value: string | null): URL | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    if ((parsed.protocol !== "http:" && parsed.protocol !== "https:") || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function normalizedHost(value: string | null): string | null {
+  if (!value || value.includes(",") || /[\s/@\\]/u.test(value)) return null;
+  try {
+    return new URL(`http://${value}`).host.toLowerCase();
+  } catch {
+    return null;
+  }
+}
+
+function isSameOriginBrowserRequest(request: Request): boolean {
+  if (request.headers.get("sec-fetch-site") !== "same-origin") return false;
+  const origin = normalizedOrigin(request.headers.get("origin"));
+  if (!origin) return false;
+
+  // When a canonical public origin is configured it is the authoritative
+  // boundary. This is the production-safe path behind reverse proxies.
+  const configured = normalizedOrigin(process.env.NEXUS_CORTEX_09_PUBLIC_ORIGIN ?? null);
+  if (process.env.NEXUS_CORTEX_09_PUBLIC_ORIGIN !== undefined) {
+    return Boolean(configured && configured.origin === origin.origin);
+  }
+
+  // In direct/self-hosted execution, bind the browser Origin to the actual
+  // HTTP Host authority received by the server. Do not trust forwarded host
+  // headers here: those are proxy-controlled and require the explicit public
+  // origin configuration above.
+  const effectiveHost = normalizedHost(request.headers.get("host"));
+  return Boolean(effectiveHost && effectiveHost === origin.host.toLowerCase());
+}
+
 function sameModel(
   left: ReturnType<typeof readCortex09Runtime>,
   right: ReturnType<typeof readCortex09Runtime>,
@@ -55,10 +95,7 @@ function sameModel(
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const requestOrigin = request.headers.get("origin");
-  if (requestOrigin !== new URL(request.url).origin) return new Response(null, { status: 403 });
-  const fetchSite = request.headers.get("sec-fetch-site");
-  if (fetchSite !== null && fetchSite !== "same-origin") return new Response(null, { status: 403 });
+  if (!isSameOriginBrowserRequest(request)) return new Response(null, { status: 403 });
 
   const initial = readCortex09Runtime();
   if (initial.mode === "KILLED" || !initial.model || !initial.modelArtifactDigest) {
