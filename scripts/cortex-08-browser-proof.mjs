@@ -100,13 +100,17 @@ async function main() {
     if (!serialized.includes("/proof")) throw new Error("speculative side effect is not bound to the real /proof target");
     if (serialized.includes("cano-penal") || serialized.includes("canopenal.com")) throw new Error("CORTEX #8 browser proof must not target the client site");
 
-    const external = page.locator('a[href^="https://wa.me/"]').first();
-    if ((await external.count()) === 1) {
-      await external.hover();
-      await page.waitForTimeout(100);
-      const count = await page.locator('[data-nexus-cortex08="1"]').count();
-      if (count !== 1) throw new Error("cross-origin hover created a speculative side effect");
-    }
+    await page.evaluate(() => {
+      const testLink = document.createElement("a");
+      testLink.href = "https://example.invalid/cortex-cross-origin";
+      testLink.textContent = "cross origin browser proof";
+      testLink.dataset.cortexCrossOriginProof = "1";
+      document.body.appendChild(testLink);
+    });
+    await page.locator('[data-cortex-cross-origin-proof="1"]').hover();
+    await page.waitForTimeout(100);
+    const afterCrossOrigin = await page.locator('[data-nexus-cortex08="1"]').count();
+    if (afterCrossOrigin !== 1) throw new Error("cross-origin hover created a speculative side effect");
 
     await stopProbe(server);
     server = startProbe("KILLED");
