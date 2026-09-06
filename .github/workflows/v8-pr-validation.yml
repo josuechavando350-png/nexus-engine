@@ -89,6 +89,14 @@ jobs:
             --tag "nexus-cortex-ad-context:${NEXUS_VALIDATED_SHA}" \
             .
           docker image inspect "nexus-cortex-ad-context:${NEXUS_VALIDATED_SHA}" >/dev/null
+      - name: CORTEX SERP metadata container build
+        run: |
+          set -euo pipefail
+          docker build \
+            --file packages/ontology/cortex/serp-metadata-optimizer/Dockerfile \
+            --tag "nexus-cortex-serp:${NEXUS_VALIDATED_SHA}" \
+            .
+          docker image inspect "nexus-cortex-serp:${NEXUS_VALIDATED_SHA}" >/dev/null
       - name: Real browser tests
         run: pnpm test:browser
       - name: V3 runtime boundary
