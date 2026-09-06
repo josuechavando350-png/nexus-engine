@@ -354,7 +354,23 @@ export class ProgrammaticSeoEngine {
     const action: ProgrammaticSeoPublishAction = Object.freeze({ kind: "REPLACE_BUNDLE", siteId, expected: current, desired }); return this.execute(this.acquire(runId, siteId, { mode, reason: "BUNDLE_PENDING", sourceDigest: source.digest, bundleDigest: bundle.digest, action, receipt: null, errorCode: null }, now.iso), mode);
   }
   async rollbackLastMutation(input: Readonly<{ runId: string; siteId: string }>): Promise<ProgrammaticSeoResult> {
-    const runId = identifier(input.runId, "runId"); const siteId = identifier(input.siteId, "siteId"); const state = this.readState(siteId); if (!state?.lastInverseAction) throw new ProgrammaticSeoError("POLICY_VIOLATION", "no certified bundle mutation is available to roll back");
-    const run = this.acquire(runId, siteId, { mode: "ACTIVE", reason: "ROLLBACK_PENDING", sourceDigest: null, bundleDigest: state.lastInverseAction.desired?.bundleDigest ?? null, action: state.lastInverseAction, receipt: null, errorCode: null }, this.time().iso); return this.execute(run, "ACTIVE");
+    const runId = identifier(input.runId, "runId");
+    const siteId = identifier(input.siteId, "siteId");
+    const existing = this.readRun(runId, siteId);
+    if (existing) {
+      if (existing.reason !== "ROLLBACK_PENDING" && existing.reason !== "ROLLBACK_APPLIED") throw new ProgrammaticSeoError("POLICY_VIOLATION", "rollback runId cannot reference a forward bundle mutation");
+      return this.execute(existing, "ACTIVE");
+    }
+    const state = this.readState(siteId);
+    if (!state?.lastInverseAction) throw new ProgrammaticSeoError("POLICY_VIOLATION", "no certified bundle mutation is available to roll back");
+    if (state.inFlightRunId) {
+      const inFlight = this.readRun(state.inFlightRunId, siteId);
+      if (!inFlight) throw new ProgrammaticSeoError("INTEGRITY_FAILURE", "state references missing in-flight run");
+      if (inFlight.reason !== "ROLLBACK_PENDING") throw new ProgrammaticSeoError("POLICY_VIOLATION", "rollback refuses to reconcile a prepared forward bundle mutation");
+      return this.execute(inFlight, "ACTIVE");
+    }
+    const run = this.acquire(runId, siteId, { mode: "ACTIVE", reason: "ROLLBACK_PENDING", sourceDigest: null, bundleDigest: state.lastInverseAction.desired?.bundleDigest ?? null, action: state.lastInverseAction, receipt: null, errorCode: null }, this.time().iso);
+    if (run.reason !== "ROLLBACK_PENDING") throw new ProgrammaticSeoError("POLICY_VIOLATION", "rollback acquisition returned non-rollback work");
+    return this.execute(run, "ACTIVE");
   }
 }

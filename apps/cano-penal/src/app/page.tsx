@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
 import { Link } from "@nexus/core";
 import { headers } from "next/headers";
 import { AD_CONTEXT_HEADERS } from "../ad-context";
+import { readCanoProgrammaticSeoPage } from "../programmatic-seo";
 import { homeHeroForAdExperience } from "./ad-context-copy";
 import { PageShell } from "./SiteChrome";
 import { areas, cases, site, trajectory } from "./content";
@@ -8,6 +10,8 @@ import { areas, cases, site, trajectory } from "./content";
 export const runtime = "edge";
 
 const audienceFiles = ["audiencia-01.jpg", "audiencia-02.jpg", "audiencia-03.jpg", "audiencia-04.jpg", "audiencia-05.jpg"] as const;
+const fallbackAreasHeading = "Áreas de práctica";
+const fallbackAreasIntro = "Soy abogado especialista en derecho penal. No soy generalista y aunque las conozco, no atiendo otras ramas del derecho.";
 
 const areaDescriptions = [
   "Investigación, defensa y estrategia ante autoridades fiscales y financieras.",
@@ -20,10 +24,24 @@ const areaDescriptions = [
   "Impugnación de resoluciones penales mediante amparo, recursos y apelaciones."
 ] as const;
 
+export async function generateMetadata(): Promise<Metadata> {
+  const governed = await readCanoProgrammaticSeoPage([]);
+  if (!governed) return {};
+  return {
+    title: governed.title,
+    description: governed.description,
+    alternates: { canonical: governed.canonicalUrl },
+    robots: { index: governed.indexable, follow: true },
+  };
+}
+
 // PageShell renders <main id="main-content"> for the global skip-link target.
 export default async function HomePage() {
   const requestHeaders = await headers();
   const hero = homeHeroForAdExperience(requestHeaders.get(AD_CONTEXT_HEADERS.experience));
+  const governedHome = await readCanoProgrammaticSeoPage([]);
+  const areasHeading = governedHome?.heading ?? fallbackAreasHeading;
+  const areasIntro = governedHome?.distinctiveStatements[0] ?? fallbackAreasIntro;
 
   return (
     <PageShell>
@@ -71,7 +89,7 @@ export default async function HomePage() {
 
       <section className="cp-metrics"><div className="cp-wrap cp-metrics-layout"><div className="cp-metrics-about"><div className="cp-eyebrow">Acerca de mí</div><h2>Trayectoria</h2><p>{trajectory}</p><Link className="cp-text-link" href="/acerca-de-mi">Conoce mi trayectoria completa</Link></div><div className="cp-metrics-grid"><div className="cp-metric"><strong>20</strong><span>Años ejerciendo exclusivamente en penal</span></div><div className="cp-metric"><strong>700+</strong><span>Casos atendidos</span></div><div className="cp-metric"><strong>CDMX</strong><span>Fuero común y federal</span></div></div></div></section>
 
-      <section className="cp-section" id="areas"><div className="cp-wrap cp-areas-layout"><div className="cp-areas-intro"><h2>Áreas de práctica</h2><p>Soy abogado especialista en derecho penal. No soy generalista y aunque las conozco, no atiendo otras ramas del derecho.</p><Link className="cp-text-link" href="/#contacto">Hablemos de tu caso</Link></div><div className="cp-areas">{areas.map(([name, href], index) => <Link className="cp-area" key={href} href={href}><strong>{name}</strong><span>{areaDescriptions[index]}</span></Link>)}</div></div></section>
+      <section className="cp-section" id="areas"><div className="cp-wrap cp-areas-layout"><div className="cp-areas-intro"><h2>{areasHeading}</h2><p>{areasIntro}</p><Link className="cp-text-link" href="/#contacto">Hablemos de tu caso</Link></div><div className="cp-areas">{areas.map(([name, href], index) => <Link className="cp-area" key={href} href={href}><strong>{name}</strong><span>{areaDescriptions[index]}</span></Link>)}</div></div></section>
 
       <section className="cp-section" id="casos"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Experiencia aplicada</p><h2><strong>Casos</strong></h2></div><Link className="cp-text-link" href="/casos">Ver todos los casos</Link></div><div className="cp-cases">{[cases[1], cases[4], cases[2]].map(([title, body]) => <article className="cp-case" tabIndex={0} key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
 
