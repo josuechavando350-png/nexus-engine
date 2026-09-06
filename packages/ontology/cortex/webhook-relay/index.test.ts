@@ -2,7 +2,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { Cortex11Error, DurableWebhookRelay, FetchWebhookRelayGateway, RelayGatewayError, observeRelayInput, parseRelayInput, type RelayGateway, type RelayInput, type RelayMode } from "./index";
+import { Cortex11Error, DurableWebhookRelay, FetchWebhookRelayGateway, RelayGatewayError, observeRelayInput, parseRelayInput, type RelayGateway, type RelayMode } from "./index";
 
 const dirs: string[] = [];
 const identifier = { kind: "EMAIL_SHA256", value: `sha256:${"a".repeat(64)}` } as const;
@@ -95,16 +95,19 @@ describe("CORTEX #11 durable relay", () => {
 
   it("leaves DISPATCHING durable if the destination acknowledges but local SENT persistence is lost", async () => {
     const db = path();
-    let relay: DurableWebhookRelay;
+    const relayRef: { current: DurableWebhookRelay | null } = { current: null };
     let calls = 0;
     const gateway: RelayGateway = {
       async send() {
         calls += 1;
-        relay.close();
+        const current = relayRef.current;
+        if (!current) throw new Error("relay unavailable during crash simulation");
+        current.close();
         return { requestId: "request-00000009" };
       },
     };
-    relay = new DurableWebhookRelay(db, gateway, () => "ACTIVE");
+    const relay = new DurableWebhookRelay(db, gateway, () => "ACTIVE");
+    relayRef.current = relay;
     relay.prepare(event);
     await expect(relay.dispatch(event.eventId)).rejects.toMatchObject({ code: "AMBIGUOUS_OUTCOME" });
     expect(calls).toBe(1);
@@ -133,7 +136,7 @@ describe("CORTEX #11 durable relay", () => {
   });
 
   it("persists a successful receipt without exposing hashed identifiers in record metadata", async () => {
-    const gateway: RelayGateway = { send: vi.fn(async (_event: RelayInput) => ({ requestId: "request-00000004" })) };
+    const gateway: RelayGateway = { send: vi.fn(async () => ({ requestId: "request-00000004" })) };
     const db = path();
     const relay = new DurableWebhookRelay(db, gateway, () => "ACTIVE", () => Date.parse("2026-09-06T00:00:02.000Z"));
     relay.prepare(event);
@@ -151,18 +154,21 @@ describe("CORTEX #11 durable relay", () => {
 
 describe("CORTEX #11 HTTPS gateway", () => {
   it("uses HTTPS, bearer auth, digest and HMAC signature with bounded timeout semantics", async () => {
-    const fetchMock = vi.fn(async (_url: URL, init?: RequestInit) => new Response(null, { status: 204, headers: { "x-request-id": "request-00000005" } }));
+    const fetchMock = vi.fn(async (url: URL, init?: RequestInit) => {
+      expect(url.toString()).toBe("https://relay.example/v1/events");
+      const headers = init?.headers as Record<string, string>;
+      expect(headers.authorization).toBe("Bearer bearer-secret");
+      expect(headers["x-nexus-event-digest"]).toMatch(/^sha256:/u);
+      expect(headers["x-nexus-signature"]).toMatch(/^sha256=[0-9a-f]{64}$/u);
+      expect(init?.redirect).toBe("error");
+      return new Response(null, { status: 204, headers: { "x-request-id": "request-00000005" } });
+    });
     vi.stubGlobal("fetch", fetchMock);
     const gateway = new FetchWebhookRelayGateway(new URL("https://relay.example/v1/events"), "bearer-secret", "s".repeat(32), 1_000);
     const parsed = parseRelayInput(event);
     const receipt = await gateway.send(parsed, `sha256:${"b".repeat(64)}`);
     expect(receipt.requestId).toBe("request-00000005");
-    const init = fetchMock.mock.calls[0]?.[1];
-    const headers = init?.headers as Record<string, string>;
-    expect(headers.authorization).toBe("Bearer bearer-secret");
-    expect(headers["x-nexus-event-digest"]).toMatch(/^sha256:/u);
-    expect(headers["x-nexus-signature"]).toMatch(/^sha256=[0-9a-f]{64}$/u);
-    expect(init?.redirect).toBe("error");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("distinguishes deterministic 4xx rejection from ambiguous transport or server failure", async () => {
