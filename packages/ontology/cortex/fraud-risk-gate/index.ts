@@ -34,7 +34,7 @@ export interface RiskGateDecision {
 }
 
 export class Cortex14Error extends Error {
-  constructor(public readonly code: "INVALID_INPUT" | "INVALID_SIGNATURE" | "STALE_ASSESSMENT" | "POLICY_ERROR", message: string) {
+  constructor(public readonly code: "INVALID_INPUT" | "INVALID_SIGNATURE" | "STALE_ASSESSMENT" | "POLICY_ERROR" | "NETWORK_MISMATCH", message: string) {
     super(message);
     this.name = "Cortex14Error";
   }
@@ -67,6 +67,12 @@ function parsePayload(value: unknown): RiskEnvelopePayload {
   return Object.freeze(raw as unknown as RiskEnvelopePayload);
 }
 
+export function computeRiskNetworkKeyHash(networkKey: string, secret: string): `sha256:${string}` {
+  if (typeof networkKey !== "string" || networkKey.length < 1 || networkKey.length > 256 || /[\r\n\0]/u.test(networkKey)) throw new Cortex14Error("INVALID_INPUT", "network key is malformed");
+  if (typeof secret !== "string" || secret.length < 32 || secret.length > 4096 || /[\r\n]/u.test(secret)) throw new Cortex14Error("INVALID_INPUT", "network key secret is invalid");
+  return `sha256:${createHmac("sha256", secret).update(networkKey, "utf8").digest("hex")}`;
+}
+
 export function signRiskPayload(payloadInput: unknown, secret: string): SignedRiskEnvelope {
   if (secret.length < 32) throw new Cortex14Error("INVALID_INPUT", "signing secret must contain at least 32 characters");
   const payload = parsePayload(payloadInput);
@@ -95,7 +101,7 @@ function parsePolicy(value: unknown): RiskPolicy {
   return Object.freeze({ challengeAtOrAbove: challenge, denyAtOrAbove: deny, maxAssessmentAgeSeconds: maxAge, maxFutureSkewSeconds: skew });
 }
 
-export function evaluateSignedRiskEnvelope(envelopeInput: unknown, secret: string, policyInput: unknown, nowMs = Date.now()): RiskGateDecision {
+function parseAndVerifyEnvelope(envelopeInput: unknown, secret: string, policyInput: unknown, nowMs: number): { payload: RiskEnvelopePayload; policy: RiskPolicy } {
   if (!envelopeInput || typeof envelopeInput !== "object" || Array.isArray(envelopeInput) || Object.getPrototypeOf(envelopeInput) !== Object.prototype) throw new Cortex14Error("INVALID_INPUT", "signed risk envelope must be a plain object");
   const raw = envelopeInput as Record<string, unknown>;
   if (Object.keys(raw).sort().join(",") !== "payload,signature") throw new Cortex14Error("INVALID_INPUT", "signed risk envelope contract is invalid");
@@ -107,7 +113,25 @@ export function evaluateSignedRiskEnvelope(envelopeInput: unknown, secret: strin
   const assessedAt = parseUtc(payload.assessedAt, "assessedAt");
   const expiresAt = parseUtc(payload.expiresAt, "expiresAt");
   if (expiresAt <= assessedAt || nowMs > expiresAt || nowMs - assessedAt > policy.maxAssessmentAgeSeconds * 1_000 || assessedAt - nowMs > policy.maxFutureSkewSeconds * 1_000) throw new Cortex14Error("STALE_ASSESSMENT", "risk assessment is stale, expired, or from the future");
+  return { payload, policy };
+}
+
+function decisionFor(payload: RiskEnvelopePayload, policy: RiskPolicy): RiskGateDecision {
   if (payload.riskScore >= policy.denyAtOrAbove) return Object.freeze({ action: "DENY", assessmentId: payload.assessmentId, providerId: payload.providerId, riskScore: payload.riskScore, reason: "DENY_THRESHOLD" });
   if (payload.riskScore >= policy.challengeAtOrAbove) return Object.freeze({ action: "CHALLENGE", assessmentId: payload.assessmentId, providerId: payload.providerId, riskScore: payload.riskScore, reason: "CHALLENGE_THRESHOLD" });
   return Object.freeze({ action: "ALLOW", assessmentId: payload.assessmentId, providerId: payload.providerId, riskScore: payload.riskScore, reason: "BELOW_CHALLENGE_THRESHOLD" });
+}
+
+export function evaluateSignedRiskEnvelope(envelopeInput: unknown, secret: string, policyInput: unknown, nowMs = Date.now()): RiskGateDecision {
+  const { payload, policy } = parseAndVerifyEnvelope(envelopeInput, secret, policyInput, nowMs);
+  return decisionFor(payload, policy);
+}
+
+export function evaluateSignedRiskEnvelopeForNetwork(envelopeInput: unknown, secret: string, policyInput: unknown, expectedNetworkKeyHash: string, nowMs = Date.now()): RiskGateDecision {
+  if (typeof expectedNetworkKeyHash !== "string" || !SHA256.test(expectedNetworkKeyHash)) throw new Cortex14Error("INVALID_INPUT", "expected network key hash is invalid");
+  const { payload, policy } = parseAndVerifyEnvelope(envelopeInput, secret, policyInput, nowMs);
+  const expected = Buffer.from(expectedNetworkKeyHash, "utf8");
+  const supplied = Buffer.from(payload.networkKeyHash, "utf8");
+  if (expected.length !== supplied.length || !timingSafeEqual(expected, supplied)) throw new Cortex14Error("NETWORK_MISMATCH", "risk assessment is bound to a different request network key");
+  return decisionFor(payload, policy);
 }
