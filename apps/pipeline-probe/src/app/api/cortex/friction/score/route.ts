@@ -1,5 +1,5 @@
 import { scoreFrictionAbandonment } from "@nexus/core/cortex/friction-abandonment-scoring";
-import { readCortex09Mode } from "../control/route";
+import { readCortex09Mode } from "../friction-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
