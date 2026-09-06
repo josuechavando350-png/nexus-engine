@@ -136,7 +136,11 @@ export function decideCoupon(requestInput: unknown, policyInput: unknown): Coupo
   return Object.freeze({ action: "OFFER", reason: "OFFER_ALLOWED", discountBps: tier.discountBps, discountAmount, priceAfterDiscount, profitAfterDiscount });
 }
 
-function noOfferFrom(decision: CouponDecision, reason: "FREQUENCY_CAP" | "COST_CAP", request: CouponRequest, frequencyCount: number, windowDiscountCost: number): CouponIssuance {
+function issuanceProjection(decision: CouponDecision, request: CouponRequest): CouponIssuance {
+  return Object.freeze({ ...decision, requestId: request.requestId, code: null, issuedAt: null, frequencyCount: 0, windowDiscountCost: 0 });
+}
+
+function noOfferFrom(reason: "FREQUENCY_CAP" | "COST_CAP", request: CouponRequest, frequencyCount: number, windowDiscountCost: number): CouponIssuance {
   return Object.freeze({
     action: "NO_OFFER",
     reason,
@@ -168,32 +172,42 @@ export class SqliteCouponIssuer {
 
   issue(requestInput: unknown, policyInput: unknown): CouponIssuance {
     const request = parseRequest(requestInput); const policy = parsePolicy(policyInput); const decision = decideCoupon(request, policy);
-    const requestDigest = `sha256:${createHash("sha256").update(canonical(request), "utf8").digest("hex")}`;
+    const requestDigest = `sha256:${createHash("sha256").update(canonical({ request, policy }), "utf8").digest("hex")}`;
     const existing = this.db.prepare("SELECT request_digest,decision_json FROM cortex19_issuances WHERE request_id=?").get(request.requestId) as Record<string, unknown> | undefined;
-    if (existing) { if (existing.request_digest !== requestDigest) throw new Cortex19Error("CONFLICT", "requestId is already bound to different coupon content"); return JSON.parse(String(existing.decision_json)) as CouponIssuance; }
+    if (existing) {
+      if (existing.request_digest !== requestDigest) throw new Cortex19Error("CONFLICT", "requestId is already bound to different coupon request or policy content");
+      return JSON.parse(String(existing.decision_json)) as CouponIssuance;
+    }
+
     const initialMode = this.modeProvider();
     if (initialMode === "KILLED") throw new Cortex19Error("KILLED", "coupon injector is killed");
-    if (decision.action !== "OFFER" || initialMode !== "ACTIVE") {
-      const issuance = Object.freeze({ ...decision, requestId: request.requestId, code: null, issuedAt: null, frequencyCount: 0, windowDiscountCost: 0 });
-      this.db.prepare("INSERT INTO cortex19_issuances(request_id,request_digest,subject_hash,sku,currency,code,issued_at,discount_amount,decision_json) VALUES(?,?,?,?,?,?,?,?,?)").run(request.requestId, requestDigest, request.subjectHash, request.sku, request.currency, null, null, 0, JSON.stringify(issuance));
-      return issuance;
-    }
+    if (initialMode === "OBSERVE_ONLY") return issuanceProjection(decision, request);
+
     const nowMs = this.now();
     const policyWindowStart = new Date(nowMs - policy.frequencyWindowSeconds * 1_000).toISOString();
     this.db.exec("BEGIN IMMEDIATE");
     try {
+      const raced = this.db.prepare("SELECT request_digest,decision_json FROM cortex19_issuances WHERE request_id=?").get(request.requestId) as Record<string, unknown> | undefined;
+      if (raced) {
+        if (raced.request_digest !== requestDigest) throw new Cortex19Error("CONFLICT", "requestId is already bound to different coupon request or policy content");
+        this.db.exec("COMMIT");
+        return JSON.parse(String(raced.decision_json)) as CouponIssuance;
+      }
+
       const countRow = this.db.prepare("SELECT COUNT(*) count FROM cortex19_issuances WHERE subject_hash=? AND issued_at IS NOT NULL AND issued_at>=?").get(request.subjectHash, policyWindowStart) as { count?: unknown };
       const count = Number(countRow.count ?? 0);
       const costRow = this.db.prepare("SELECT COALESCE(SUM(discount_amount),0) cost FROM cortex19_issuances WHERE currency=? AND issued_at IS NOT NULL AND issued_at>=?").get(request.currency, policyWindowStart) as { cost?: unknown };
       const currentWindowCost = Number(costRow.cost ?? 0);
-      if (!Number.isFinite(currentWindowCost) || currentWindowCost < 0) throw new Cortex19Error("CONFLICT", "coupon cost ledger is invalid");
-      if (this.modeProvider() !== "ACTIVE") throw new Cortex19Error("KILLED", "coupon injector was disabled before issuance");
+      if (!Number.isSafeInteger(count) || count < 0 || !Number.isFinite(currentWindowCost) || currentWindowCost < 0) throw new Cortex19Error("CONFLICT", "coupon ledger is invalid");
+      if (this.modeProvider() !== "ACTIVE") throw new Cortex19Error("KILLED", "coupon injector was disabled before durable decision");
 
       let issuance: CouponIssuance;
-      if (count >= policy.maxCouponsPerWindow) {
-        issuance = noOfferFrom(decision, "FREQUENCY_CAP", request, count, currentWindowCost);
+      if (decision.action !== "OFFER") {
+        issuance = issuanceProjection(decision, request);
+      } else if (count >= policy.maxCouponsPerWindow) {
+        issuance = noOfferFrom("FREQUENCY_CAP", request, count, currentWindowCost);
       } else if (currentWindowCost + decision.discountAmount - policy.maxDiscountCostPerWindow > 1e-9) {
-        issuance = noOfferFrom(decision, "COST_CAP", request, count, currentWindowCost);
+        issuance = noOfferFrom("COST_CAP", request, count, currentWindowCost);
       } else {
         const issuedAt = new Date(nowMs).toISOString();
         const code = `NX-${createHmac("sha256", this.signingSecret).update(`${request.requestId}\0${request.subjectHash}\0${request.sku}`, "utf8").digest("hex").slice(0, 12).toUpperCase()}`;
@@ -203,7 +217,8 @@ export class SqliteCouponIssuer {
         this.db.prepare("INSERT INTO cortex19_outbox(event_id,payload_json,sent) VALUES(?,?,0)").run(eventId, JSON.stringify(eventPayload));
       }
       this.db.prepare("INSERT INTO cortex19_issuances(request_id,request_digest,subject_hash,sku,currency,code,issued_at,discount_amount,decision_json) VALUES(?,?,?,?,?,?,?,?,?)").run(request.requestId, requestDigest, request.subjectHash, request.sku, request.currency, issuance.code, issuance.issuedAt, issuance.discountAmount, JSON.stringify(issuance));
-      this.db.exec("COMMIT"); return issuance;
+      this.db.exec("COMMIT");
+      return issuance;
     } catch (error) { if (this.db.isTransaction) this.db.exec("ROLLBACK"); throw error; }
   }
 
