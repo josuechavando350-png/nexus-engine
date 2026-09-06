@@ -237,9 +237,17 @@ export function createInteractionPointerPrerenderer(options: InteractionPointerP
         emit(safeDecision(signal, "NONE", "CONTROL_UNAVAILABLE"));
         return;
       }
-      if (finalControl.mode !== "ACTIVE" || !finalControl.allowedPaths.includes(normalized.path)) {
-        if (finalControl.mode === "KILLED") rollback();
-        emit(safeDecision(signal, "NONE", finalControl.mode === "KILLED" ? "KILL_SWITCH" : "TARGET_NOT_ALLOWLISTED"));
+      if (finalControl.mode === "KILLED") {
+        rollback();
+        emit(safeDecision(signal, "NONE", "KILL_SWITCH"));
+        return;
+      }
+      if (finalControl.mode === "OBSERVE_ONLY") {
+        emit(safeDecision(signal, action, "OBSERVE_ONLY"));
+        return;
+      }
+      if (!finalControl.allowedPaths.includes(normalized.path)) {
+        emit(safeDecision(signal, "NONE", "TARGET_NOT_ALLOWLISTED"));
         return;
       }
       if (prepared.size >= finalControl.maxPreparedTargets) {
