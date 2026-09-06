@@ -72,6 +72,9 @@ jobs:
       - name: Prove CORTEX #8 real probe consumer and kill switch
         run: node scripts/cortex-08-browser-proof.mjs
 
+      - name: Prove CORTEX #9 real friction scoring and fail-closed control
+        run: node scripts/cortex-09-browser-proof.mjs
+
       - name: Record validated source identity
         shell: bash
         run: |
