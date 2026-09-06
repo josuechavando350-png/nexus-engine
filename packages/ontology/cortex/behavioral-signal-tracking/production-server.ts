@@ -118,7 +118,7 @@ export function createBehavioralProductionServer(options: BehavioralProductionSe
         const webRequest = new Request("https://cortex.internal/v1/behavioral/ingest", {
           method,
           headers,
-          ...(method === "POST" ? { body } : {}),
+          ...(method === "POST" ? { body: Buffer.from(body).toString("utf8") } : {}),
         });
         const webResponse = await handler(webRequest);
         await sendWebResponse(response, webResponse);
