@@ -12,6 +12,7 @@ const { chromium } = requireFromCapture("playwright");
 const port = 39181;
 const baseUrl = `http://127.0.0.1:${port}`;
 const expectedSha = process.env.NEXUS_VALIDATED_SHA?.trim();
+const allowedProbeRoutes = new Set(["/explore", "/proof", "/visit", "/contact"]);
 
 function git(args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
@@ -82,11 +83,27 @@ async function main() {
     await waitForServer(server, "ACTIVE");
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
-    await page.goto(baseUrl, { waitUntil: "networkidle" });
+    const navigation = await page.goto(baseUrl, { waitUntil: "networkidle" });
+    if (!navigation?.ok()) throw new Error(`pipeline-probe root returned HTTP ${navigation?.status() ?? "unknown"}`);
 
-    const proofLink = page.locator('a[href="/proof"]').first();
-    if ((await proofLink.count()) !== 1) throw new Error("real probe consumer is missing the /proof navigation target");
-    await proofLink.hover();
+    const renderedAnchors = await page.locator("header nav a[href]").evaluateAll((anchors) => anchors.map((anchor) => ({
+      href: anchor.getAttribute("href"),
+      resolvedHref: anchor instanceof globalThis.HTMLAnchorElement ? anchor.href : null,
+    })));
+    const realTarget = renderedAnchors
+      .map((anchor, index) => {
+        try {
+          const url = new URL(anchor.resolvedHref ?? "", baseUrl);
+          return { ...anchor, index, origin: url.origin, pathname: url.pathname };
+        } catch {
+          return null;
+        }
+      })
+      .find((anchor) => anchor && anchor.origin === baseUrl && allowedProbeRoutes.has(anchor.pathname));
+    if (!realTarget) throw new Error(`real probe consumer has no rendered allowlisted route target: ${JSON.stringify(renderedAnchors)}`);
+
+    const routeLink = page.locator("header nav a[href]").nth(realTarget.index);
+    await routeLink.hover();
     await page.waitForFunction(() => globalThis.document.querySelectorAll('[data-nexus-cortex08="1"]').length === 1, undefined, { timeout: 5_000 });
 
     const prepared = await page.evaluate(() => Array.from(globalThis.document.querySelectorAll('[data-nexus-cortex08="1"]')).map((node) => ({
@@ -97,7 +114,7 @@ async function main() {
     })));
     if (prepared.length !== 1) throw new Error(`expected one CORTEX-owned speculative node, observed ${prepared.length}`);
     const serialized = JSON.stringify(prepared[0]);
-    if (!serialized.includes("/proof")) throw new Error("speculative side effect is not bound to the real /proof target");
+    if (!serialized.includes(realTarget.pathname)) throw new Error(`speculative side effect is not bound to rendered probe target ${realTarget.pathname}`);
     if (serialized.includes("cano-penal") || serialized.includes("canopenal.com")) throw new Error("CORTEX #8 browser proof must not target the client site");
 
     await page.evaluate(() => {
@@ -122,7 +139,7 @@ async function main() {
     });
     if (killedControl?.mode !== "KILLED") throw new Error("browser did not observe KILLED control after server restart");
 
-    process.stdout.write(`${JSON.stringify({ component: "cortex-08-browser-proof", sourceRevision: expectedSha, verdict: "PASS" })}\n`);
+    process.stdout.write(`${JSON.stringify({ component: "cortex-08-browser-proof", sourceRevision: expectedSha, targetPath: realTarget.pathname, verdict: "PASS" })}\n`);
   } finally {
     if (browser) await browser.close().catch(() => undefined);
     await stopProbe(server).catch(() => undefined);
