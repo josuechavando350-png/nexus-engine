@@ -34,7 +34,8 @@ describe("HttpCreativeDesiredStateProvider", () => {
 
     await expect(provider.getDesiredState(CUSTOMER)).resolves.toEqual(desired);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    const [url, init] = fetchImpl.mock.calls[0]!;
+    const calls = fetchImpl.mock.calls as unknown as Array<Parameters<typeof fetch>>;
+    const [url, init] = calls[0]!;
     expect(String(url)).toBe("https://inventory.example.test/cortex/creative-state");
     expect(init).toMatchObject({ method: "POST", redirect: "error", cache: "no-store" });
     expect(init?.headers).toEqual({ authorization: `Bearer ${TOKEN}`, "content-type": "application/json" });

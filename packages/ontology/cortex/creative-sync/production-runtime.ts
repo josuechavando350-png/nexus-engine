@@ -46,10 +46,10 @@ export function createCreativeProductionRuntime(options:CreativeProductionRuntim
   const now=options.now??Date.now;const policy=createCreativeSyncPolicy(options.config.policy);const control=new CreativeRuntimeController(options.transactions,options.config.scope,policy.digest,policy.mode,now);let rollbackAuthorized=false;let safetyOperation=false;let cycle:Promise<readonly CreativeSyncResult[]>|null=null;let interval:ReturnType<typeof setInterval>|null=null;
   const emit=(event:CreativeRuntimeTelemetryEvent)=>{try{options.onTelemetry?.(Object.freeze(event));}catch(error){try{options.onTelemetryError?.(error);}catch{/* telemetry is non-authoritative */}}};
   const guarded:GoogleAdsCreativeGateway=Object.freeze({
-    getCustomizerAttributes:(customerId)=>options.googleAds.getCustomizerAttributes(customerId),
-    getCustomizerValue:(customerId,lookup)=>options.googleAds.getCustomizerValue(customerId,lookup),
-    getResponsiveSearchAd:(customerId,resourceName)=>options.googleAds.getResponsiveSearchAd(customerId,resourceName),
-    applyMutation:async(customerId,action)=>{const effective=control.effectiveMode();if(!rollbackAuthorized&&effective!=="ACTIVE")throw new CreativeSyncError("POLICY_VIOLATION",`${effective} blocks forward Google Ads creative mutation`);return options.googleAds.applyMutation(customerId,action);},
+    getCustomizerAttributes:(customerId:string)=>options.googleAds.getCustomizerAttributes(customerId),
+    getCustomizerValue:(customerId:string,lookup:Parameters<GoogleAdsCreativeGateway["getCustomizerValue"]>[1])=>options.googleAds.getCustomizerValue(customerId,lookup),
+    getResponsiveSearchAd:(customerId:string,resourceName:string)=>options.googleAds.getResponsiveSearchAd(customerId,resourceName),
+    applyMutation:async(customerId:string,action:Parameters<GoogleAdsCreativeGateway["applyMutation"]>[1])=>{const effective=control.effectiveMode();if(!rollbackAuthorized&&effective!=="ACTIVE")throw new CreativeSyncError("POLICY_VIOLATION",`${effective} blocks forward Google Ads creative mutation`);return options.googleAds.applyMutation(customerId,action);},
   });
   const engine=new NearRealTimeCreativeSynchronizer(options.transactions,options.config.scope,policy,guarded,options.desiredState,now);
   const configured=new Set(options.config.customers);
