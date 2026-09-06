@@ -106,8 +106,8 @@ async function waitForControl(processHandle, expectedMode) {
       if (body?.mode === expectedMode) {
         if (expectedMode === "KILLED") {
           if (body.thresholds !== null) throw new Error(`CORTEX #13 KILLED control leaked thresholds: ${JSON.stringify(body)}`);
-        } else {
-          if (body.thresholds?.longTaskPressureMs !== 50) throw new Error(`CORTEX #13 threshold identity mismatch: ${JSON.stringify(body)}`);
+        } else if (body.thresholds?.longTaskPressureMs !== 50) {
+          throw new Error(`CORTEX #13 threshold identity mismatch: ${JSON.stringify(body)}`);
         }
         return body;
       }
@@ -132,7 +132,7 @@ async function waitUntil(predicate, timeoutMs, label, diagnostics) {
 async function findInternalTarget(page) {
   const targets = await page.evaluate(() => [...globalThis.document.querySelectorAll("header nav a[href]")].map((anchor) => ({
     href: anchor.getAttribute("href"),
-    absolute: anchor instanceof HTMLAnchorElement ? anchor.href : null,
+    absolute: typeof anchor.href === "string" ? anchor.href : null,
   })));
   for (const target of targets) {
     if (!target.absolute) continue;
