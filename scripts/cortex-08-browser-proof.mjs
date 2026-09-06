@@ -6,7 +6,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const probeRoot = join(repositoryRoot, "apps", "pipeline-probe");
 const requireFromCapture = createRequire(join(repositoryRoot, "packages", "capture", "package.json"));
+const requireFromProbe = createRequire(join(probeRoot, "package.json"));
+const nextCli = requireFromProbe.resolve("next/dist/bin/next");
 const { chromium } = requireFromCapture("playwright");
 const port = 39181;
 const baseUrl = `http://127.0.0.1:${port}`;
@@ -26,7 +29,9 @@ function assertExactSource() {
 async function waitForServer(processHandle, expectedMode) {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
-    if (processHandle.exitCode !== null) throw new Error(`pipeline-probe exited before readiness with code ${processHandle.exitCode}`);
+    if (processHandle.exitCode !== null || processHandle.signalCode !== null) {
+      throw new Error(`pipeline-probe exited before readiness with code ${processHandle.exitCode} signal ${processHandle.signalCode}`);
+    }
     try {
       const response = await fetch(`${baseUrl}/api/cortex/prerender/control`, { headers: { accept: "application/json" }, redirect: "error" });
       if (response.ok) {
@@ -43,8 +48,11 @@ async function waitForServer(processHandle, expectedMode) {
 }
 
 function startProbe(mode) {
-  const child = spawn("pnpm", ["--filter", "@nexus/pipeline-probe", "exec", "next", "start", "-H", "127.0.0.1", "-p", String(port)], {
-    cwd: repositoryRoot,
+  // Launch Next directly rather than through pnpm. The proof must own the actual
+  // server process so SIGTERM semantics are observable instead of being hidden
+  // behind a package-manager wrapper process.
+  const child = spawn(process.execPath, [nextCli, "start", "-H", "127.0.0.1", "-p", String(port)], {
+    cwd: probeRoot,
     env: {
       ...process.env,
       NEXUS_CORTEX_08_MODE: mode,
@@ -59,7 +67,7 @@ function startProbe(mode) {
 }
 
 function signalProbeTree(processHandle, signal) {
-  if (processHandle.exitCode !== null) return;
+  if (processHandle.exitCode !== null || processHandle.signalCode !== null) return;
   if (process.platform !== "win32" && processHandle.pid) {
     try {
       process.kill(-processHandle.pid, signal);
@@ -73,15 +81,24 @@ function signalProbeTree(processHandle, signal) {
 }
 
 async function waitForProbeExit(processHandle, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (processHandle.exitCode === null && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  return processHandle.exitCode !== null;
+  if (processHandle.exitCode !== null || processHandle.signalCode !== null) return true;
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      processHandle.off("exit", onExit);
+      resolve(value);
+    };
+    const onExit = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    processHandle.once("exit", onExit);
+  });
 }
 
 async function stopProbe(processHandle) {
-  if (processHandle.exitCode !== null) return;
+  if (processHandle.exitCode !== null || processHandle.signalCode !== null) return;
   signalProbeTree(processHandle, "SIGTERM");
   if (await waitForProbeExit(processHandle, 10_000)) return;
   signalProbeTree(processHandle, "SIGKILL");
@@ -93,7 +110,9 @@ async function assertRootServed(processHandle) {
   const response = await fetch(baseUrl, { redirect: "error", headers: { accept: "text/html" } });
   const body = await response.text();
   if (!response.ok) throw new Error(`pipeline-probe root readiness returned HTTP ${response.status}`);
-  if (processHandle.exitCode !== null) throw new Error(`pipeline-probe exited while serving root with code ${processHandle.exitCode}`);
+  if (processHandle.exitCode !== null || processHandle.signalCode !== null) {
+    throw new Error(`pipeline-probe exited while serving root with code ${processHandle.exitCode} signal ${processHandle.signalCode}`);
+  }
   if (!body.includes("<a") || ![...allowedProbeRoutes].some((path) => body.includes(`href="${path}"`))) {
     throw new Error(`pipeline-probe root HTML lacks a real allowlisted navigation target; bytes=${Buffer.byteLength(body)}`);
   }
@@ -154,7 +173,9 @@ async function main() {
     browser = opened.browser;
     context = opened.context;
     const { page, pageErrors } = opened;
-    if (server.exitCode !== null) throw new Error(`pipeline-probe exited after browser navigation with code ${server.exitCode}`);
+    if (server.exitCode !== null || server.signalCode !== null) {
+      throw new Error(`pipeline-probe exited after browser navigation with code ${server.exitCode} signal ${server.signalCode}`);
+    }
 
     const renderedAnchors = await page.locator("a[href]").evaluateAll((anchors) => anchors.map((anchor) => ({
       href: anchor.getAttribute("href"),
