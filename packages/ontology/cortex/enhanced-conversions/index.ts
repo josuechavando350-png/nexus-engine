@@ -21,7 +21,7 @@ const OUTBOX = Object.freeze({
 });
 
 export type EnhancedConversionMode = "ACTIVE" | "OBSERVE_ONLY" | "KILLED";
-export type EnhancedConversionStatus = "PREPARED" | "SENT" | "CANCELLED" | "AMBIGUOUS";
+export type EnhancedConversionStatus = "PREPARED" | "DISPATCHING" | "SENT" | "CANCELLED" | "AMBIGUOUS";
 
 export interface EnhancedConversionInput {
   readonly transactionId: string;
@@ -69,8 +69,8 @@ export interface EnhancedConversionTelemetry {
 }
 
 export class EnhancedConversionError extends Error {
-  constructor(public readonly code: "INVALID_INPUT" | "CONSENT_VIOLATION" | "CONFLICT" | "INTEGRITY_FAILURE" | "PERSISTENCE_FAILURE" | "REMOTE_FAILURE" | "AMBIGUOUS_OUTCOME" | "KILLED" | "MODE_BLOCKED", message: string) {
-    super(message);
+  constructor(public readonly code: "INVALID_INPUT" | "CONSENT_VIOLATION" | "CONFLICT" | "INTEGRITY_FAILURE" | "PERSISTENCE_FAILURE" | "REMOTE_FAILURE" | "AMBIGUOUS_OUTCOME" | "KILLED" | "MODE_BLOCKED", message: string, options?: ErrorOptions) {
+    super(message, options);
     this.name = "EnhancedConversionError";
   }
 }
@@ -139,9 +139,7 @@ function normalizedEmail(value: string): string {
   let local = compact.slice(0, at);
   const domain = compact.slice(at + 1);
   if (!/^[a-z0-9.-]+\.[a-z]{2,63}$/u.test(domain)) throw new EnhancedConversionError("INVALID_INPUT", "email domain is malformed");
-  if (domain === "gmail.com" || domain === "googlemail.com") {
-    local = local.split("+", 1)[0]!.replaceAll(".", "");
-  }
+  if (domain === "gmail.com" || domain === "googlemail.com") local = local.split("+", 1)[0]!.replaceAll(".", "");
   if (!local || local.length > 64) throw new EnhancedConversionError("INVALID_INPUT", "email local part is malformed");
   return `${local}@${domain}`;
 }
@@ -194,7 +192,7 @@ function parseRecord(record: ObjectRecord): EnhancedConversionRecord {
   const externalRequestId = record.properties[OUTBOX.externalRequestId];
   const updatedAt = record.properties[OUTBOX.updatedAt];
   if (typeof transactionId !== "string" || !ID.test(transactionId)) throw new EnhancedConversionError("INTEGRITY_FAILURE", "stored transactionId is invalid");
-  if (!(status === "PREPARED" || status === "SENT" || status === "CANCELLED" || status === "AMBIGUOUS")) throw new EnhancedConversionError("INTEGRITY_FAILURE", "stored status is invalid");
+  if (!(status === "PREPARED" || status === "DISPATCHING" || status === "SENT" || status === "CANCELLED" || status === "AMBIGUOUS")) throw new EnhancedConversionError("INTEGRITY_FAILURE", "stored status is invalid");
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) throw new EnhancedConversionError("INTEGRITY_FAILURE", "stored payload is invalid");
   if (typeof digest !== "string" || !SHA256.test(digest)) throw new EnhancedConversionError("INTEGRITY_FAILURE", "stored digest is invalid");
   if (typeof externalRequestId !== "string") throw new EnhancedConversionError("INTEGRITY_FAILURE", "stored externalRequestId is invalid");
@@ -206,10 +204,18 @@ function parseRecord(record: ObjectRecord): EnhancedConversionRecord {
 
 function mapPersistence(error: unknown): never {
   if (error instanceof OntologyTransactionError) {
-    if (error.code === "CONFLICT" || error.code === "UNIQUE_CONSTRAINT") throw new EnhancedConversionError("CONFLICT", error.message);
-    throw new EnhancedConversionError("PERSISTENCE_FAILURE", error.message);
+    if (error.code === "CONFLICT" || error.code === "UNIQUE_CONSTRAINT") throw new EnhancedConversionError("CONFLICT", error.message, { cause: error });
+    throw new EnhancedConversionError("PERSISTENCE_FAILURE", error.message, { cause: error });
   }
   throw error;
+}
+
+function remoteOutcomeIsDeterministicallyRejected(error: unknown): boolean {
+  return error instanceof DataManagerApiError && (
+    error.code === "INVALID_CONFIG"
+    || error.code === "AUTHENTICATION_FAILED"
+    || (error.code === "API_ERROR" && error.httpStatus !== null && error.httpStatus >= 400 && error.httpStatus < 500)
+  );
 }
 
 export class DurableEnhancedConversionsPipeline {
@@ -232,6 +238,24 @@ export class DurableEnhancedConversionsPipeline {
 
   private objectId(transactionId: string): string {
     return `cortex-enhanced-conversion:${sha256(transactionId).slice(0, 32)}`;
+  }
+
+  private transition(record: EnhancedConversionRecord, status: EnhancedConversionStatus, externalRequestId = record.externalRequestId ?? ""): EnhancedConversionRecord {
+    try {
+      this.transactions.transact(this.scope, this.validatedSchema, [{
+        kind: "UPDATE_OBJECT",
+        id: record.id,
+        expectedRevision: record.revision,
+        properties: {
+          [OUTBOX.status]: status,
+          [OUTBOX.externalRequestId]: externalRequestId,
+          [OUTBOX.updatedAt]: new Date(this.now()).toISOString(),
+        },
+      }]);
+    } catch (error) { mapPersistence(error); }
+    const updated = this.transactions.getObject(this.scope, record.id);
+    if (!updated) throw new EnhancedConversionError("PERSISTENCE_FAILURE", `outbox record disappeared after transition to ${status}`);
+    return parseRecord(updated);
   }
 
   get(transactionId: string): EnhancedConversionRecord | undefined {
@@ -258,7 +282,6 @@ export class DurableEnhancedConversionsPipeline {
       this.emit({ operation: "PREPARE", status: "BLOCKED", transactionDigest, errorCode: mode === "KILLED" ? "KILLED" : "MODE_BLOCKED" });
       throw new EnhancedConversionError(mode === "KILLED" ? "KILLED" : "MODE_BLOCKED", `${mode} blocks durable conversion preparation`);
     }
-    const updatedAt = new Date(this.now()).toISOString();
     const operation: TransactionOperation = {
       kind: "CREATE_OBJECT",
       record: {
@@ -271,7 +294,7 @@ export class DurableEnhancedConversionsPipeline {
           [OUTBOX.payload]: asJson(event),
           [OUTBOX.digest]: digest,
           [OUTBOX.externalRequestId]: "",
-          [OUTBOX.updatedAt]: updatedAt,
+          [OUTBOX.updatedAt]: new Date(this.now()).toISOString(),
         },
       },
     };
@@ -292,7 +315,9 @@ export class DurableEnhancedConversionsPipeline {
     if (!record) throw new EnhancedConversionError("INVALID_INPUT", "prepared conversion was not found");
     const transactionDigest = `sha256:${sha256(record.transactionId)}`;
     if (record.status === "SENT" || record.status === "CANCELLED") return record;
-    if (record.status === "AMBIGUOUS") throw new EnhancedConversionError("AMBIGUOUS_OUTCOME", "ambiguous conversion cannot be retried automatically");
+    if (record.status === "AMBIGUOUS" || record.status === "DISPATCHING") {
+      throw new EnhancedConversionError("AMBIGUOUS_OUTCOME", `${record.status} conversion cannot be replayed automatically`);
+    }
     const initialMode = this.modeProvider();
     if (initialMode !== "ACTIVE") {
       this.emit({ operation: "DISPATCH", status: initialMode === "OBSERVE_ONLY" ? "OBSERVED" : "BLOCKED", transactionDigest, errorCode: initialMode === "KILLED" ? "KILLED" : null });
@@ -300,35 +325,44 @@ export class DurableEnhancedConversionsPipeline {
       return record;
     }
 
+    let dispatching = this.transition(record, "DISPATCHING");
     const finalMode = this.modeProvider();
     if (finalMode !== "ACTIVE") {
+      dispatching = this.transition(dispatching, "PREPARED", "");
       this.emit({ operation: "DISPATCH", status: finalMode === "OBSERVE_ONLY" ? "OBSERVED" : "BLOCKED", transactionDigest, errorCode: finalMode === "KILLED" ? "KILLED" : null });
       if (finalMode === "KILLED") throw new EnhancedConversionError("KILLED", "kill switch blocks conversion dispatch at side-effect boundary");
-      return record;
+      return dispatching;
     }
 
     let receipt: DataManagerIngestReceipt;
     try {
-      receipt = await this.gateway.ingestConversion(this.destination, record.event);
+      receipt = await this.gateway.ingestConversion(this.destination, dispatching.event);
     } catch (error) {
-      if (error instanceof DataManagerApiError && (error.code === "AMBIGUOUS_OUTCOME" || error.code === "TIMEOUT")) {
-        try {
-          this.transactions.transact(this.scope, this.validatedSchema, [{ kind: "UPDATE_OBJECT", id: record.id, expectedRevision: record.revision, properties: { [OUTBOX.status]: "AMBIGUOUS", [OUTBOX.updatedAt]: new Date(this.now()).toISOString() } }]);
-        } catch (persistenceError) { mapPersistence(persistenceError); }
-        this.emit({ operation: "DISPATCH", status: "AMBIGUOUS", transactionDigest, errorCode: error.code });
-        throw new EnhancedConversionError("AMBIGUOUS_OUTCOME", error.message);
+      if (remoteOutcomeIsDeterministicallyRejected(error)) {
+        try { this.transition(dispatching, "PREPARED", ""); }
+        catch (resetError) {
+          throw new EnhancedConversionError("AMBIGUOUS_OUTCOME", "remote request was rejected but local dispatch state could not be reset safely", { cause: resetError });
+        }
+        this.emit({ operation: "DISPATCH", status: "FAILED", transactionDigest, errorCode: error instanceof DataManagerApiError ? error.code : "REMOTE_FAILURE" });
+        throw new EnhancedConversionError("REMOTE_FAILURE", error instanceof Error ? error.message : "Data Manager rejected ingestion", { cause: error instanceof Error ? error : undefined });
       }
-      this.emit({ operation: "DISPATCH", status: "FAILED", transactionDigest, errorCode: error instanceof DataManagerApiError ? error.code : "REMOTE_FAILURE" });
-      throw new EnhancedConversionError("REMOTE_FAILURE", error instanceof Error ? error.message : "Data Manager ingestion failed");
+
+      try { this.transition(dispatching, "AMBIGUOUS"); }
+      catch (transitionError) {
+        throw new EnhancedConversionError("AMBIGUOUS_OUTCOME", "remote outcome is uncertain and local record remains DISPATCHING", { cause: transitionError });
+      }
+      this.emit({ operation: "DISPATCH", status: "AMBIGUOUS", transactionDigest, errorCode: error instanceof DataManagerApiError ? error.code : "AMBIGUOUS_OUTCOME" });
+      throw new EnhancedConversionError("AMBIGUOUS_OUTCOME", error instanceof Error ? error.message : "Data Manager ingestion outcome is ambiguous", { cause: error instanceof Error ? error : undefined });
     }
 
+    let sent: EnhancedConversionRecord;
     try {
-      this.transactions.transact(this.scope, this.validatedSchema, [{ kind: "UPDATE_OBJECT", id: record.id, expectedRevision: record.revision, properties: { [OUTBOX.status]: "SENT", [OUTBOX.externalRequestId]: receipt.requestId, [OUTBOX.updatedAt]: new Date(this.now()).toISOString() } }]);
-    } catch (error) { mapPersistence(error); }
-    const sent = this.transactions.getObject(this.scope, record.id);
-    if (!sent) throw new EnhancedConversionError("PERSISTENCE_FAILURE", "sent outbox record disappeared after commit");
+      sent = this.transition(dispatching, "SENT", receipt.requestId);
+    } catch (error) {
+      throw new EnhancedConversionError("AMBIGUOUS_OUTCOME", "Data Manager accepted the event but local SENT persistence failed; DISPATCHING must not be replayed automatically", { cause: error instanceof Error ? error : undefined });
+    }
     this.emit({ operation: "DISPATCH", status: "SENT", transactionDigest, errorCode: null });
-    return parseRecord(sent);
+    return sent;
   }
 
   rollback(transactionId: string): EnhancedConversionRecord {
@@ -337,12 +371,8 @@ export class DurableEnhancedConversionsPipeline {
     const transactionDigest = `sha256:${sha256(record.transactionId)}`;
     if (record.status === "CANCELLED") return record;
     if (record.status !== "PREPARED") throw new EnhancedConversionError("CONFLICT", `only PREPARED conversions can be rolled back; observed ${record.status}`);
-    try {
-      this.transactions.transact(this.scope, this.validatedSchema, [{ kind: "UPDATE_OBJECT", id: record.id, expectedRevision: record.revision, properties: { [OUTBOX.status]: "CANCELLED", [OUTBOX.updatedAt]: new Date(this.now()).toISOString() } }]);
-    } catch (error) { mapPersistence(error); }
-    const cancelled = this.transactions.getObject(this.scope, record.id);
-    if (!cancelled) throw new EnhancedConversionError("PERSISTENCE_FAILURE", "cancelled outbox record disappeared after commit");
+    const cancelled = this.transition(record, "CANCELLED", "");
     this.emit({ operation: "ROLLBACK", status: "CANCELLED", transactionDigest, errorCode: null });
-    return parseRecord(cancelled);
+    return cancelled;
   }
 }
