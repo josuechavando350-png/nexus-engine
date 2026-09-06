@@ -7,7 +7,10 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const probeRoot = join(repositoryRoot, "apps", "pipeline-probe");
 const requireFromCapture = createRequire(join(repositoryRoot, "packages", "capture", "package.json"));
+const requireFromProbe = createRequire(join(probeRoot, "package.json"));
+const nextCli = requireFromProbe.resolve("next/dist/bin/next");
 const { chromium } = requireFromCapture("playwright");
 const port = 39182;
 const baseUrl = `http://127.0.0.1:${port}`;
@@ -70,8 +73,11 @@ function assertExactSource() {
 }
 
 function startProbe(mode, artifactDigest = modelArtifactDigest) {
-  const child = spawn("pnpm", ["--filter", "@nexus/pipeline-probe", "exec", "next", "start", "-H", "127.0.0.1", "-p", String(port)], {
-    cwd: repositoryRoot,
+  // Own the actual Next.js server process. Launching through pnpm leaves the
+  // package-manager wrapper as the child, which can hide server exit semantics
+  // and made the exact-head browser proof unable to prove a clean restart.
+  const child = spawn(process.execPath, [nextCli, "start", "-H", "127.0.0.1", "-p", String(port)], {
+    cwd: probeRoot,
     env: {
       ...process.env,
       NODE_ENV: "production",
@@ -88,8 +94,12 @@ function startProbe(mode, artifactDigest = modelArtifactDigest) {
   return child;
 }
 
+function hasExited(processHandle) {
+  return processHandle.exitCode !== null || processHandle.signalCode !== null;
+}
+
 function signalProbeTree(processHandle, signal) {
-  if (processHandle.exitCode !== null) return;
+  if (hasExited(processHandle)) return;
   if (process.platform !== "win32" && processHandle.pid) {
     try {
       process.kill(-processHandle.pid, signal);
@@ -103,15 +113,24 @@ function signalProbeTree(processHandle, signal) {
 }
 
 async function waitForProbeExit(processHandle, timeoutMs) {
-  const deadline = Date.now() + timeoutMs;
-  while (processHandle.exitCode === null && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-  }
-  return processHandle.exitCode !== null;
+  if (hasExited(processHandle)) return true;
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (value) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      processHandle.off("exit", onExit);
+      resolve(value);
+    };
+    const onExit = () => finish(true);
+    const timer = setTimeout(() => finish(false), timeoutMs);
+    processHandle.once("exit", onExit);
+  });
 }
 
 async function stopProbe(processHandle) {
-  if (!processHandle || processHandle.exitCode !== null) return;
+  if (!processHandle || hasExited(processHandle)) return;
   signalProbeTree(processHandle, "SIGTERM");
   if (await waitForProbeExit(processHandle, 10_000)) return;
   signalProbeTree(processHandle, "SIGKILL");
@@ -128,7 +147,9 @@ async function readControl() {
 async function waitForControl(processHandle, expectedMode) {
   const deadline = Date.now() + 30_000;
   while (Date.now() < deadline) {
-    if (processHandle.exitCode !== null) throw new Error(`pipeline-probe exited before CORTEX #9 readiness with code ${processHandle.exitCode}`);
+    if (hasExited(processHandle)) {
+      throw new Error(`pipeline-probe exited before CORTEX #9 readiness with code ${processHandle.exitCode} signal ${processHandle.signalCode}`);
+    }
     try {
       const body = await readControl();
       if (body?.mode === expectedMode) {
