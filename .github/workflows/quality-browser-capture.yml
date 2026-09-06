@@ -15,7 +15,7 @@ env:
   NEXUS_CAPTURE_EVIDENCE_DIR: ${{ github.workspace }}/artifacts/browser-capture
   NEXUS_VISUAL_BASELINE_DIR: quality-baselines/browser-capture
   NEXUS_VISUAL_MAX_CHANGED_RATIO: "0.001"
-  NEXUS_PASSPORT_PROJECT_ID: cano-penal
+  NEXUS_PASSPORT_PROJECT_ID: pipeline-probe
 
 jobs:
   real-browser-evidence:
@@ -66,7 +66,7 @@ jobs:
             sleep $((attempt * 15))
           done
 
-      - name: Capture CANO from exact-SHA governed build
+      - name: Capture pipeline probe from exact-SHA governed build
         run: node scripts/client-browser-evidence.mjs "$NEXUS_PASSPORT_PROJECT_ID"
 
       - name: Record validated source identity
@@ -127,7 +127,7 @@ jobs:
           set -euo pipefail
           root="artifacts/browser-capture"
           mutations="$root/mutations"
-          cano="$root/$NEXUS_PASSPORT_PROJECT_ID"
+          project="$root/$NEXUS_PASSPORT_PROJECT_ID"
           test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
           test "$(tr -d '\n\r' < "$root/validated-source-sha.txt")" = "$NEXUS_VALIDATED_SHA"
           test -f "$root/capture-manifest.json"
@@ -138,9 +138,9 @@ jobs:
           test "$(find "$root" -maxdepth 1 -type f -name '*-performance.json' | wc -l | tr -d ' ')" = "6"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.png' | wc -l | tr -d ' ')" = "8"
           test "$(find "$mutations" -maxdepth 1 -type f -name '*.json' | wc -l | tr -d ' ')" = "8"
-          test -s "$cano/evidence-manifest.json"
-          test -s "$cano/build-manifest.json"
-          test "$(find "$cano" -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
+          test -s "$project/evidence-manifest.json"
+          test -s "$project/build-manifest.json"
+          test "$(find "$project" -type f -name '*.png' | wc -l | tr -d ' ')" = "3"
           node - <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
@@ -156,9 +156,9 @@ jobs:
             if (!expected.delete(d.mutationId) || !d.diagnostics || d.diagnostics.visibleElementCount <= 0) process.exit(1);
           }
           if (expected.size) process.exit(1);
-          const cano = JSON.parse(fs.readFileSync(path.join(root, process.env.NEXUS_PASSPORT_PROJECT_ID, 'evidence-manifest.json'), 'utf8'));
-          if (cano.authority !== 'NEXUS_CLIENT_BROWSER_EVIDENCE_V1' || cano.projectId !== process.env.NEXUS_PASSPORT_PROJECT_ID || cano.sourceRevision !== process.env.NEXUS_VALIDATED_SHA) process.exit(1);
-          if (!Array.isArray(cano.captures) || cano.captures.length !== 3 || !cano.captures.every(c => c.browser === 'chromium')) process.exit(1);
+          const project = JSON.parse(fs.readFileSync(path.join(root, process.env.NEXUS_PASSPORT_PROJECT_ID, 'evidence-manifest.json'), 'utf8'));
+          if (project.authority !== 'NEXUS_CLIENT_BROWSER_EVIDENCE_V1' || project.projectId !== process.env.NEXUS_PASSPORT_PROJECT_ID || project.sourceRevision !== process.env.NEXUS_VALIDATED_SHA) process.exit(1);
+          if (!Array.isArray(project.captures) || project.captures.length !== 3 || !project.captures.every(c => c.browser === 'chromium')) process.exit(1);
           NODE
           find "$root" -type f ! -name 'artifact-checksums.sha256' -print0 | sort -z | xargs -0 sha256sum > "$root/artifact-checksums.sha256"
           test -s "$root/artifact-checksums.sha256"
