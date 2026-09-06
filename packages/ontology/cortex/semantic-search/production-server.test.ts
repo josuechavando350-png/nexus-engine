@@ -68,7 +68,7 @@ describe("CORTEX #15 production search boundary", () => {
   it("rechecks durable control immediately before mutation and rolls the transaction back", async () => {
     const index = new SqliteSemanticSearchIndex(database(), null);
     let reads = 0;
-    const server = startCortex15Server({ index, writeToken, readToken, port, readMode: () => (++reads < 3 ? "ACTIVE" : "KILLED") });
+    const server = startCortex15Server({ index, writeToken, readToken, port, readMode: () => (++reads < 2 ? "ACTIVE" : "KILLED") });
     try {
       await waitHealth(200);
       reads = 0;
