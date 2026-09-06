@@ -78,13 +78,13 @@ export async function POST(request: Request): Promise<Response> {
         "content-type": "application/json",
         origin,
       },
-      body,
+      body: new TextDecoder().decode(body),
     });
     const responseBody = await boundedResponse(response);
     if (!responseBody) return json(502, { error: "BEHAVIORAL_UPSTREAM_INVALID_RESPONSE" });
     const responseType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
     if (responseType !== "application/json") return json(502, { error: "BEHAVIORAL_UPSTREAM_INVALID_RESPONSE" });
-    return new Response(responseBody, {
+    return new Response(new TextDecoder().decode(responseBody), {
       status: response.status,
       headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" },
     });
