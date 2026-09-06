@@ -173,6 +173,7 @@ async function main() {
       reasons: globalThis.document.documentElement.dataset.nexusCortex13Reasons ?? null,
       suspended: globalThis.document.documentElement.dataset.nexusCortex13SuspendSpeculation ?? null,
       speculativeNodes: globalThis.document.querySelectorAll('[data-nexus-cortex08="1"]').length,
+      performanceEntryTypes: globalThis.PerformanceObserver?.supportedEntryTypes ?? [],
     }));
 
     await waitUntil(async () => (await diagnostics()).state === "NORMAL", 8_000, "CORTEX #13 NORMAL lifecycle state", diagnostics);
@@ -180,11 +181,14 @@ async function main() {
     await page.hover(`a[href="${target}"]`);
     await waitUntil(async () => (await diagnostics()).speculativeNodes === 1, 8_000, "CORTEX #8 speculative node before CWV pressure", diagnostics);
 
-    // Produce a real >50ms main-thread task. Chromium exposes it through the
-    // Long Tasks PerformanceObserver; no synthetic CORTEX state is injected.
+    // Let the production client leave its navigation/bootstrap warm-up window,
+    // then produce a real main-thread scheduling stall. The product observes
+    // either the Long Tasks API or its independent event-loop lateness fallback;
+    // the proof does not inject CORTEX state or call internal implementation hooks.
+    await new Promise((resolve) => setTimeout(resolve, 1_200));
     await page.evaluate(() => {
       const start = performance.now();
-      while (performance.now() - start < 120) {
+      while (performance.now() - start < 180) {
         Math.sqrt(12345.6789);
       }
     });
@@ -192,7 +196,7 @@ async function main() {
     await waitUntil(async () => {
       const state = await diagnostics();
       return state.state === "PRESSURE" && state.suspended === "1" && state.speculativeNodes === 0 && String(state.reasons).includes("LONG_TASK");
-    }, 8_000, "real long-task pressure to suspend and roll back speculation", diagnostics);
+    }, 8_000, "real main-thread pressure to suspend and roll back speculation", diagnostics);
 
     await page.hover(`a[href="${target}"]`);
     await new Promise((resolve) => setTimeout(resolve, 1_000));
@@ -220,7 +224,7 @@ async function main() {
     }, 8_000, "KILLED optimizer rollback", diagnostics);
 
     if (pageErrors.length || consoleErrors.length) throw new Error(`CORTEX #13 browser errors: ${JSON.stringify({ pageErrors, consoleErrors })}`);
-    process.stdout.write(`${JSON.stringify({ component: "cortex-13-browser-proof", sourceRevision: expectedSha, signal: "real-longtask", integration: "cortex08-speculation-suspension", verdict: "PASS" })}\n`);
+    process.stdout.write(`${JSON.stringify({ component: "cortex-13-browser-proof", sourceRevision: expectedSha, signal: "real-main-thread-scheduling-stall", integration: "cortex08-speculation-suspension", verdict: "PASS" })}\n`);
   } finally {
     if (context) await context.close().catch(() => undefined);
     if (browser) await browser.close().catch(() => undefined);
