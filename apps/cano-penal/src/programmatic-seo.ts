@@ -65,8 +65,12 @@ async function boundedJson(response: Response): Promise<unknown> {
 }
 
 function cleanPath(parts: readonly string[]): string | null {
-  if (parts.length < 1 || parts.length > 16 || parts.some((part) => !SEGMENT.test(part))) return null;
-  return `/${parts.join("/")}/`;
+  if (parts.length > 16 || parts.some((part) => !SEGMENT.test(part))) return null;
+  return parts.length === 0 ? "/" : `/${parts.join("/")}/`;
+}
+
+function approvedPath(routeSegments: readonly string[]): string {
+  return routeSegments.length === 0 ? "/" : `/${routeSegments.join("/")}/`;
 }
 
 function parseBundle(value: unknown): Bundle | null {
@@ -76,7 +80,7 @@ function parseBundle(value: unknown): Bundle | null {
   const raw = outer.bundle as Record<string, unknown>;
   const approved = approvedCanoProgrammaticPages();
   const approvedByPath = new Map(approved.map((page) => {
-    const path = page.routeSegments.length === 0 ? "/" : `/${page.routeSegments.join("/")}/`;
+    const path = approvedPath(page.routeSegments);
     return [path, page] as const;
   }));
   if (
@@ -104,7 +108,7 @@ function parseBundle(value: unknown): Bundle | null {
     const routeSegments = page.routeSegments as string[];
     const distinctiveStatements = page.distinctiveStatements as string[];
     if (routeSegments.some((part) => !SEGMENT.test(part))) return null;
-    const expectedPath = routeSegments.length === 0 ? "/" : `/${routeSegments.join("/")}/`;
+    const expectedPath = approvedPath(routeSegments);
     const expected = approvedByPath.get(expectedPath);
     if (!expected || seen.has(expectedPath)) return null;
     const expectedUrl = new URL(expectedPath.slice(1), CANO_PROGRAMMATIC_BASE_URL).toString();
@@ -146,7 +150,7 @@ export async function readCanoProgrammaticSeoPage(routeSegments: readonly string
   const path = cleanPath(routeSegments);
   if (!path) return null;
   const approved = approvedCanoProgrammaticPages();
-  if (!approved.some((page) => `/${page.routeSegments.join("/")}/` === path)) return null;
+  if (!approved.some((page) => approvedPath(page.routeSegments) === path)) return null;
   const endpoint = endpointFromEnv();
   const token = process.env.NEXUS_CORTEX_PROGRAMMATIC_SEO_BUNDLE_TOKEN?.trim();
   if (!endpoint || !token || token.length < 32 || token.length > 4096) return null;
