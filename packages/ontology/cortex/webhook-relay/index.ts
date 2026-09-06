@@ -205,12 +205,12 @@ export class DurableWebhookRelay {
     const initialMode = this.modeProvider();
     if (initialMode !== "ACTIVE") throw new Cortex11Error(initialMode === "KILLED" ? "KILLED" : "MODE_BLOCKED", "relay is not active");
 
-    let dispatching = this.transition(eventId, "PENDING", "DISPATCHING");
+    const dispatching = this.transition(eventId, "PENDING", "DISPATCHING");
     const raw = this.db.prepare("SELECT payload_json FROM cortex11_relay WHERE event_id = ?").get(eventId) as { payload_json?: unknown } | undefined;
     const event = parseRelayInput(JSON.parse(String(raw?.payload_json ?? "null")) as unknown);
     const finalMode = this.modeProvider();
     if (finalMode !== "ACTIVE") {
-      dispatching = this.transition(eventId, "DISPATCHING", "PENDING", null);
+      this.transition(eventId, "DISPATCHING", "PENDING", null);
       if (finalMode === "KILLED") throw new Cortex11Error("KILLED", "relay was killed before the outbound side effect");
       throw new Cortex11Error("MODE_BLOCKED", "relay switched to observe-only before the outbound side effect");
     }
