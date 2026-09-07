@@ -54,13 +54,13 @@ describe("CORTEX #20 serverless form ingress", () => {
 
 describe("CORTEX #20 durable HTTPS writer", () => {
   it("rejects weak bearer credentials at the adapter boundary", () => {
-    expect(() => new HttpDurableEventWriter(new URL("https://events.example/v1/events"), "short", 1000)).toThrowError(/configuration is invalid/u);
+    expect(() => new HttpDurableEventWriter(new URL("https://events.example/v1/events"), "short", 1000, () => undefined)).toThrowError(/configuration is invalid/u);
   });
 
   it("accepts only a receipt that proves the same durable event identity", async () => {
     const event = { stream: "forms.accepted", eventId: "form-event-00000001", occurredAt: submission.submittedAt, payload: { encrypted: "opaque" } } as const;
     const fetchMock = vi.fn(async () => Response.json({ ...event, sequence: 9 }, { status: 201 })); vi.stubGlobal("fetch", fetchMock);
-    const writer = new HttpDurableEventWriter(new URL("https://events.example/v1/events"), "e".repeat(32), 1000);
+    const writer = new HttpDurableEventWriter(new URL("https://events.example/v1/events"), "e".repeat(32), 1000, () => undefined);
     await expect(writer.append(event)).resolves.toEqual({ sequence: 9 });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
@@ -68,7 +68,15 @@ describe("CORTEX #20 durable HTTPS writer", () => {
   it("rejects an ambiguous receipt bound to a different event", async () => {
     const event = { stream: "forms.accepted", eventId: "form-event-00000001", occurredAt: submission.submittedAt, payload: { encrypted: "opaque" } } as const;
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ ...event, eventId: "form-event-00000002", sequence: 9 }, { status: 201 })));
-    const writer = new HttpDurableEventWriter(new URL("https://events.example/v1/events"), "e".repeat(32), 1000);
+    const writer = new HttpDurableEventWriter(new URL("https://events.example/v1/events"), "e".repeat(32), 1000, () => undefined);
     await expect(writer.append(event)).rejects.toThrowError(/does not prove the same event identity/u);
+  });
+
+  it("does not start the queue POST when the final mutation guard kills the request", async () => {
+    const event = { stream: "forms.accepted", eventId: "form-event-00000001", occurredAt: submission.submittedAt, payload: { encrypted: "opaque" } } as const;
+    const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
+    const writer = new HttpDurableEventWriter(new URL("https://events.example/v1/events"), "e".repeat(32), 1000, () => { throw new Cortex20Error("QUEUE_FAILURE", "killed at final POST boundary"); });
+    await expect(writer.append(event)).rejects.toThrowError(/final POST boundary/u);
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
