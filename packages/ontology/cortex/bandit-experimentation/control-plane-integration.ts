@@ -114,7 +114,6 @@ interface RuntimeExperiment {
   readonly engine: ServerSideContextualBanditEngine;
   readonly control: CortexBanditRuntimeController;
   readonly controlPolicy: CortexBanditControlPlaneExperimentPolicyInput;
-  readonly defaultArmId: string;
   readonly variantMaxTrafficShares: readonly number[];
 }
 
@@ -137,8 +136,8 @@ function plainObject(value: unknown, label: string, code: "INVALID_CONFIG" | "IN
 }
 
 function exactKeys(value: Record<string, unknown>, allowed: readonly string[], label: string, code: "INVALID_CONFIG" | "INVALID_RESPONSE" | "INVALID_COMMAND" = "INVALID_RESPONSE"): void {
-  const set = new Set(allowed);
-  for (const key of Object.keys(value)) if (!set.has(key)) throw new CortexBanditControlPlaneIntegrationError(code, `${label} contains unknown field ${key}`);
+  const allowedSet = new Set(allowed);
+  for (const key of Object.keys(value)) if (!allowedSet.has(key)) throw new CortexBanditControlPlaneIntegrationError(code, `${label} contains unknown field ${key}`);
   for (const key of allowed) if (!(key in value)) throw new CortexBanditControlPlaneIntegrationError(code, `${label}.${key} is required`);
 }
 
@@ -153,8 +152,7 @@ function digest(value: unknown, label: string, code: "INVALID_CONFIG" | "INVALID
 }
 
 function nullableDigest(value: unknown, label: string): string | null {
-  if (value === null) return null;
-  return digest(value, label);
+  return value === null ? null : digest(value, label);
 }
 
 function revision(value: unknown, label: string, code: "INVALID_RESPONSE" | "INVALID_COMMAND" = "INVALID_RESPONSE"): number {
@@ -162,7 +160,7 @@ function revision(value: unknown, label: string, code: "INVALID_RESPONSE" | "INV
   return value as number;
 }
 
-function positiveInteger(value: unknown, label: string, min: number, max: number): number {
+function integer(value: unknown, label: string, min: number, max: number): number {
   if (!Number.isSafeInteger(value) || (value as number) < min || (value as number) > max) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `${label} is outside ${min}..${max}`);
   return value as number;
 }
@@ -178,7 +176,7 @@ function mode(value: unknown, code: "INVALID_RESPONSE" | "INVALID_COMMAND" = "IN
 }
 
 function bootstrapMode(value: unknown, label: string): "FALLBACK_ONLY" | "KILLED" {
-  if (!(value === "FALLBACK_ONLY" || value === "KILLED")) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `${label} must be FALLBACK_ONLY or KILLED`);
+  if (value !== "FALLBACK_ONLY" && value !== "KILLED") throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `${label} must be FALLBACK_ONLY or KILLED`);
   return value;
 }
 
@@ -205,8 +203,7 @@ function canonicalUtc(value: unknown, label: string, code: "INVALID_RESPONSE" | 
 
 function endpoint(value: string): string {
   let parsed: URL;
-  try { parsed = new URL(value); }
-  catch { throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", "control-plane endpoint is invalid"); }
+  try { parsed = new URL(value); } catch { throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", "control-plane endpoint is invalid"); }
   if (parsed.protocol !== "https:") throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", "control-plane endpoint must use https");
   if (parsed.username || parsed.password || parsed.hash || parsed.search) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", "control-plane endpoint must not contain credentials, query, or fragment");
   return parsed.toString();
@@ -226,10 +223,9 @@ function timeout(value: number | undefined): number {
 
 function safeContext(value: unknown, label: string): CortexBanditContext {
   const object = plainObject(value, label, "INVALID_CONFIG");
-  const entries = Object.entries(object);
-  if (entries.length > 64) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `${label} contains too many features`);
+  if (Object.keys(object).length > 64) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `${label} contains too many features`);
   const result: Record<string, string | number | boolean> = {};
-  for (const [key, item] of entries) {
+  for (const [key, item] of Object.entries(object)) {
     identifier(key, `${label} key`, "INVALID_CONFIG");
     if (typeof item === "string") {
       const normalized = item.normalize("NFKC");
@@ -255,35 +251,38 @@ export function createCortexBanditControlPlanePolicy(value: unknown): CortexBand
   exactKeys(object, ["version", "policyId", "maxCommandAgeMs", "maxFutureSkewMs", "experiments"], "control-plane policy", "INVALID_CONFIG");
   if (object.version !== 1) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", "control-plane policy version must be 1");
   const policyId = identifier(object.policyId, "control-plane policyId", "INVALID_CONFIG");
-  const maxCommandAgeMs = positiveInteger(object.maxCommandAgeMs, "maxCommandAgeMs", 1_000, 86_400_000);
-  const maxFutureSkewMs = positiveInteger(object.maxFutureSkewMs, "maxFutureSkewMs", 0, 300_000);
+  const maxCommandAgeMs = integer(object.maxCommandAgeMs, "maxCommandAgeMs", 1_000, 86_400_000);
+  const maxFutureSkewMs = integer(object.maxFutureSkewMs, "maxFutureSkewMs", 0, 300_000);
   if (!Array.isArray(object.experiments) || object.experiments.length < 1 || object.experiments.length > MAX_POLICY_EXPERIMENTS) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `control-plane policy experiments must contain 1..${MAX_POLICY_EXPERIMENTS} items`);
-  const experiments = object.experiments.map((item, index): CortexBanditControlPlaneExperimentPolicyInput => {
-    const experiment = plainObject(item, `control-plane policy experiments[${index}]`, "INVALID_CONFIG");
-    exactKeys(experiment, ["experimentId", "bootstrapMode", "maxVariantTrafficShare", "minimumTotalObservationsForRelaxation", "minimumObservationsPerArmForRelaxation", "maximumPendingOutcomeFractionForRelaxation", "requireConfidentWinnerForActive", "evidenceScenarios"], `control-plane policy experiments[${index}]`, "INVALID_CONFIG");
-    const experimentId = identifier(experiment.experimentId, `experiments[${index}].experimentId`, "INVALID_CONFIG");
-    const configuredBootstrapMode = bootstrapMode(experiment.bootstrapMode, `experiments[${index}].bootstrapMode`);
-    const maxVariantTrafficShare = boundedNumber(experiment.maxVariantTrafficShare, `experiments[${index}].maxVariantTrafficShare`, 0, 1);
-    const minimumTotalObservationsForRelaxation = positiveInteger(experiment.minimumTotalObservationsForRelaxation, `experiments[${index}].minimumTotalObservationsForRelaxation`, 1, 1_000_000_000);
-    const minimumObservationsPerArmForRelaxation = positiveInteger(experiment.minimumObservationsPerArmForRelaxation, `experiments[${index}].minimumObservationsPerArmForRelaxation`, 1, 1_000_000_000);
-    const maximumPendingOutcomeFractionForRelaxation = boundedNumber(experiment.maximumPendingOutcomeFractionForRelaxation, `experiments[${index}].maximumPendingOutcomeFractionForRelaxation`, 0, 1);
-    if (typeof experiment.requireConfidentWinnerForActive !== "boolean") throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `experiments[${index}].requireConfidentWinnerForActive must be boolean`);
-    if (!Array.isArray(experiment.evidenceScenarios) || experiment.evidenceScenarios.length < 1 || experiment.evidenceScenarios.length > MAX_EVIDENCE_SCENARIOS) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `experiments[${index}].evidenceScenarios must contain 1..${MAX_EVIDENCE_SCENARIOS} items`);
+
+  const experimentIds = new Set<string>();
+  const experiments = object.experiments.map((valueItem, experimentIndex): CortexBanditControlPlaneExperimentPolicyInput => {
+    const item = plainObject(valueItem, `experiments[${experimentIndex}]`, "INVALID_CONFIG");
+    exactKeys(item, ["experimentId", "bootstrapMode", "maxVariantTrafficShare", "minimumTotalObservationsForRelaxation", "minimumObservationsPerArmForRelaxation", "maximumPendingOutcomeFractionForRelaxation", "requireConfidentWinnerForActive", "evidenceScenarios"], `experiments[${experimentIndex}]`, "INVALID_CONFIG");
+    const experimentId = identifier(item.experimentId, `experiments[${experimentIndex}].experimentId`, "INVALID_CONFIG");
+    if (experimentIds.has(experimentId)) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `duplicate control-plane experiment ${experimentId}`);
+    experimentIds.add(experimentId);
+    const configuredBootstrapMode = bootstrapMode(item.bootstrapMode, `experiments[${experimentIndex}].bootstrapMode`);
+    const maxVariantTrafficShare = boundedNumber(item.maxVariantTrafficShare, `experiments[${experimentIndex}].maxVariantTrafficShare`, 0, 1);
+    const minimumTotalObservationsForRelaxation = integer(item.minimumTotalObservationsForRelaxation, `experiments[${experimentIndex}].minimumTotalObservationsForRelaxation`, 1, 1_000_000_000);
+    const minimumObservationsPerArmForRelaxation = integer(item.minimumObservationsPerArmForRelaxation, `experiments[${experimentIndex}].minimumObservationsPerArmForRelaxation`, 1, 1_000_000_000);
+    const maximumPendingOutcomeFractionForRelaxation = boundedNumber(item.maximumPendingOutcomeFractionForRelaxation, `experiments[${experimentIndex}].maximumPendingOutcomeFractionForRelaxation`, 0, 1);
+    if (typeof item.requireConfidentWinnerForActive !== "boolean") throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `experiments[${experimentIndex}].requireConfidentWinnerForActive must be boolean`);
+    if (!Array.isArray(item.evidenceScenarios) || item.evidenceScenarios.length < 1 || item.evidenceScenarios.length > MAX_EVIDENCE_SCENARIOS) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `experiments[${experimentIndex}].evidenceScenarios must contain 1..${MAX_EVIDENCE_SCENARIOS} items`);
     const scenarioIds = new Set<string>();
-    const evidenceScenarios = experiment.evidenceScenarios.map((scenarioValue, scenarioIndex): CortexBanditControlPlaneEvidenceScenarioInput => {
-      const scenario = plainObject(scenarioValue, `experiments[${index}].evidenceScenarios[${scenarioIndex}]`, "INVALID_CONFIG");
-      exactKeys(scenario, ["scenarioId", "context", "eligibleArmIds"], `experiments[${index}].evidenceScenarios[${scenarioIndex}]`, "INVALID_CONFIG");
+    const evidenceScenarios = item.evidenceScenarios.map((scenarioValue, scenarioIndex): CortexBanditControlPlaneEvidenceScenarioInput => {
+      const scenario = plainObject(scenarioValue, `experiments[${experimentIndex}].evidenceScenarios[${scenarioIndex}]`, "INVALID_CONFIG");
+      exactKeys(scenario, ["scenarioId", "context", "eligibleArmIds"], `experiments[${experimentIndex}].evidenceScenarios[${scenarioIndex}]`, "INVALID_CONFIG");
       const scenarioId = identifier(scenario.scenarioId, `evidenceScenarios[${scenarioIndex}].scenarioId`, "INVALID_CONFIG");
       if (scenarioIds.has(scenarioId)) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `duplicate evidence scenario ${scenarioId}`);
       scenarioIds.add(scenarioId);
       if (!Array.isArray(scenario.eligibleArmIds) || scenario.eligibleArmIds.length < 2 || scenario.eligibleArmIds.length > 64) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `evidenceScenarios[${scenarioIndex}].eligibleArmIds must contain 2..64 items`);
-      const eligibleArmIds = scenario.eligibleArmIds.map((armId, armIndex) => identifier(armId, `evidenceScenarios[${scenarioIndex}].eligibleArmIds[${armIndex}]`, "INVALID_CONFIG"));
+      const eligibleArmIds = scenario.eligibleArmIds.map((armId, armIndex) => identifier(armId, `eligibleArmIds[${armIndex}]`, "INVALID_CONFIG"));
       if (new Set(eligibleArmIds).size !== eligibleArmIds.length) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `evidenceScenarios[${scenarioIndex}].eligibleArmIds contains duplicates`);
       return Object.freeze({ scenarioId, context: safeContext(scenario.context, `evidenceScenarios[${scenarioIndex}].context`), eligibleArmIds: Object.freeze(eligibleArmIds) });
     });
-    return Object.freeze({ experimentId, bootstrapMode: configuredBootstrapMode, maxVariantTrafficShare, minimumTotalObservationsForRelaxation, minimumObservationsPerArmForRelaxation, maximumPendingOutcomeFractionForRelaxation, requireConfidentWinnerForActive: experiment.requireConfidentWinnerForActive, evidenceScenarios: Object.freeze(evidenceScenarios) });
+    return Object.freeze({ experimentId, bootstrapMode: configuredBootstrapMode, maxVariantTrafficShare, minimumTotalObservationsForRelaxation, minimumObservationsPerArmForRelaxation, maximumPendingOutcomeFractionForRelaxation, requireConfidentWinnerForActive: item.requireConfidentWinnerForActive, evidenceScenarios: Object.freeze(evidenceScenarios) });
   });
-  if (new Set(experiments.map((item) => item.experimentId)).size !== experiments.length) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", "control-plane policy experimentId values must be unique");
   const core = Object.freeze({ version: 1 as const, policyId, maxCommandAgeMs, maxFutureSkewMs, experiments: Object.freeze(experiments) });
   return Object.freeze({ ...core, digest: policyHash(core) });
 }
@@ -312,8 +311,7 @@ async function boundedJson(response: Response): Promise<unknown> {
   const merged = new Uint8Array(bytes);
   let offset = 0;
   for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.byteLength; }
-  try { return JSON.parse(new TextDecoder().decode(merged)) as unknown; }
-  catch { throw new CortexBanditControlPlaneIntegrationError("INVALID_RESPONSE", "control-plane response contains malformed JSON"); }
+  try { return JSON.parse(new TextDecoder().decode(merged)) as unknown; } catch { throw new CortexBanditControlPlaneIntegrationError("INVALID_RESPONSE", "control-plane response contains malformed JSON"); }
 }
 
 function parseCommand(value: unknown, index: number): CortexBanditControlPlaneCommand {
@@ -338,10 +336,8 @@ function parseResponse(value: unknown): CortexBanditControlPlanePullResponse {
   if (object.version !== 1) throw new CortexBanditControlPlaneIntegrationError("INVALID_RESPONSE", "control-plane response version must be 1");
   if (!Array.isArray(object.commands) || object.commands.length > 64) throw new CortexBanditControlPlaneIntegrationError("INVALID_RESPONSE", "control-plane commands must contain at most 64 items");
   const commands = object.commands.map(parseCommand);
-  const commandIds = commands.map((command) => command.commandId);
-  if (new Set(commandIds).size !== commandIds.length) throw new CortexBanditControlPlaneIntegrationError("INVALID_RESPONSE", "control-plane commandId values must be unique");
-  const experimentIds = commands.map((command) => command.experimentId);
-  if (new Set(experimentIds).size !== experimentIds.length) throw new CortexBanditControlPlaneIntegrationError("INVALID_RESPONSE", "control-plane may return at most one command per experiment");
+  if (new Set(commands.map((command) => command.commandId)).size !== commands.length) throw new CortexBanditControlPlaneIntegrationError("INVALID_RESPONSE", "control-plane commandId values must be unique");
+  if (new Set(commands.map((command) => command.experimentId)).size !== commands.length) throw new CortexBanditControlPlaneIntegrationError("INVALID_RESPONSE", "control-plane may return at most one command per experiment");
   return Object.freeze({ version: 1, commands: Object.freeze(commands) });
 }
 
@@ -378,7 +374,9 @@ export class HttpCortexBanditControlPlaneSource implements CortexBanditControlPl
       if (controller.signal.aborted) throw new CortexBanditControlPlaneIntegrationError("TIMEOUT", "control-plane request timed out");
       if (error instanceof CortexBanditControlPlaneIntegrationError) throw error;
       throw new CortexBanditControlPlaneIntegrationError("HTTP_ERROR", error instanceof Error ? error.message : "control-plane transport failed");
-    } finally { clearTimeout(timer); }
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }
 
@@ -404,11 +402,12 @@ export class CortexBanditControlPlaneReconciler {
       const banditPolicy = createCortexBanditPolicy(experiment.policy);
       if (configuredControlPolicy.minimumObservationsPerArmForRelaxation < banditPolicy.minimumObservationsPerArm) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `control-plane evidence floor for ${experiment.experimentId} cannot weaken the bandit policy minimum`);
       const variants = experiment.arms.filter((arm) => arm.armId !== banditPolicy.defaultArmId);
+      if (variants.length < 1) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `experiment ${experiment.experimentId} must contain a non-default arm`);
       if (variants.some((arm) => arm.maxTrafficShare > configuredControlPolicy.maxVariantTrafficShare + 1e-12)) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `configured variant traffic exceeds the control-plane risk ceiling for ${experiment.experimentId}`);
       const engine = new ServerSideContextualBanditEngine(transactions, config.scope, experiment.experimentId, banditPolicy, experiment.arms, now);
       for (const scenario of configuredControlPolicy.evidenceScenarios) engine.auditSnapshot(scenario.context, scenario.eligibleArmIds);
       const control = new CortexBanditRuntimeController(transactions, config.scope, experiment.experimentId, banditPolicy.digest, banditPolicy.mode, now);
-      this.experiments.set(experiment.experimentId, Object.freeze({ engine, control, controlPolicy: configuredControlPolicy, defaultArmId: banditPolicy.defaultArmId, variantMaxTrafficShares: Object.freeze(variants.map((arm) => arm.maxTrafficShare)) }));
+      this.experiments.set(experiment.experimentId, Object.freeze({ engine, control, controlPolicy: configuredControlPolicy, variantMaxTrafficShares: Object.freeze(variants.map((arm) => arm.maxTrafficShare)) }));
     }
     for (const experimentId of controlByExperiment.keys()) if (!this.experiments.has(experimentId)) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", `control-plane policy references unknown experiment ${experimentId}`);
     this.enforceBootstrapPolicy();
@@ -416,7 +415,7 @@ export class CortexBanditControlPlaneReconciler {
 
   private clock(): number {
     const value = this.now();
-    if (!Number.isFinite(value)) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", "control-plane clock returned a non-finite value");
+    if (!Number.isFinite(value) || !Number.isFinite(new Date(value).getTime())) throw new CortexBanditControlPlaneIntegrationError("INVALID_CONFIG", "control-plane clock returned an invalid value");
     return value;
   }
 
@@ -444,8 +443,8 @@ export class CortexBanditControlPlaneReconciler {
       const value = scenario.evidence;
       if (value.totalObservations < item.controlPolicy.minimumTotalObservationsForRelaxation) throw new CortexBanditControlPlaneIntegrationError("INVALID_COMMAND", `insufficient total observations for ${experimentId}/${scenario.scenarioId}`);
       if (value.arms.some((arm) => arm.observations < item.controlPolicy.minimumObservationsPerArmForRelaxation)) throw new CortexBanditControlPlaneIntegrationError("INVALID_COMMAND", `insufficient per-arm observations for ${experimentId}/${scenario.scenarioId}`);
-      const pending = value.arms.reduce((sum, arm) => sum + arm.pendingOutcomes, 0);
-      const pendingFraction = value.totalExposures === 0 ? 1 : pending / value.totalExposures;
+      const pendingOutcomes = value.arms.reduce((sum, arm) => sum + arm.pendingOutcomes, 0);
+      const pendingFraction = value.totalExposures === 0 ? 1 : pendingOutcomes / value.totalExposures;
       if (pendingFraction > item.controlPolicy.maximumPendingOutcomeFractionForRelaxation + 1e-12) throw new CortexBanditControlPlaneIntegrationError("INVALID_COMMAND", `pending outcome fraction exceeds policy for ${experimentId}/${scenario.scenarioId}`);
       if (targetMode === "ACTIVE" && item.controlPolicy.requireConfidentWinnerForActive && value.confidentWinnerArmId === null) throw new CortexBanditControlPlaneIntegrationError("INVALID_COMMAND", `ACTIVE requires a confident winner for ${experimentId}/${scenario.scenarioId}`);
     }
@@ -460,9 +459,11 @@ export class CortexBanditControlPlaneReconciler {
   }
 
   async syncOnce(): Promise<CortexBanditControlPlaneSyncResult> {
-    const response = await this.source.pull(Object.freeze({ version: 1, scope: this.scope, experiments: this.states() }));
+    const request = Object.freeze({ version: 1 as const, scope: this.scope, experiments: this.states() });
+    const response = parseResponse(await this.source.pull(request));
     const now = this.clock();
     const prepared: Array<{ command: CortexBanditControlPlaneCommand; control: CortexBanditRuntimeController; stale: boolean }> = [];
+
     for (const command of response.commands) {
       const item = this.experiments.get(command.experimentId);
       if (!item) throw new CortexBanditControlPlaneIntegrationError("INVALID_COMMAND", `control-plane command references unknown experiment ${command.experimentId}`);
@@ -474,11 +475,7 @@ export class CortexBanditControlPlaneReconciler {
       const current = control.current();
       if (command.expectedRevision > current.revision) throw new CortexBanditControlPlaneIntegrationError("INVALID_COMMAND", `control-plane command skips runtime revision for ${command.experimentId}`);
       if (current.changedAt !== null && issuedAt < Date.parse(current.changedAt) && command.expectedRevision === current.revision) throw new CortexBanditControlPlaneIntegrationError("INVALID_COMMAND", `control-plane command predates current runtime state for ${command.experimentId}`);
-      if (command.expectedRevision < current.revision) {
-        prepared.push({ command, control, stale: true });
-        continue;
-      }
-      if (command.mode === current.mode && command.reason === current.reason) {
+      if (command.expectedRevision < current.revision || (command.mode === current.mode && command.reason === current.reason)) {
         prepared.push({ command, control, stale: true });
         continue;
       }
@@ -496,8 +493,22 @@ export class CortexBanditControlPlaneReconciler {
     const applied: string[] = [];
     const stale: string[] = [];
     for (const item of prepared) {
-      if (item.stale) { stale.push(item.command.commandId); continue; }
-      item.control.set({ expectedRevision: item.command.expectedRevision, mode: item.command.mode, reason: item.command.reason, changedAt: item.command.issuedAt });
+      if (item.stale) {
+        stale.push(item.command.commandId);
+        continue;
+      }
+      item.control.set({
+        expectedRevision: item.command.expectedRevision,
+        mode: item.command.mode,
+        reason: item.command.reason,
+        changedAt: item.command.issuedAt,
+        authorization: {
+          source: "EXTERNAL_CONTROL_PLANE",
+          commandId: item.command.commandId,
+          controlPolicyDigest: item.command.controlPolicyDigest,
+          evidenceDigest: item.command.evidenceDigest,
+        },
+      });
       applied.push(item.command.commandId);
     }
     return Object.freeze({ appliedCommandIds: Object.freeze(applied), staleCommandIds: Object.freeze(stale), experimentCount: this.experiments.size });
