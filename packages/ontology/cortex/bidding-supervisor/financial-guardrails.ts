@@ -202,7 +202,7 @@ export class FinancialGuardedBiddingAdapters {
     }
   }
 
-  private applyMutation(customerId: string, action: GoogleAdsControlMutation): Promise<GoogleAdsMutationReceipt> {
+  private async applyMutation(customerId: string, action: GoogleAdsControlMutation): Promise<GoogleAdsMutationReceipt> {
     if (!expansion(action) || this.durableRollback(customerId, action)) return this.inner.googleAds.applyMutation(customerId, action);
     try {
       this.assertMarginAndCac(action);
