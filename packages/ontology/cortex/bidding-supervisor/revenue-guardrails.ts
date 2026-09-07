@@ -82,8 +82,8 @@ export function createRevenueGuardrailPolicy(input: CreateRevenueGuardrailPolicy
   });
 }
 
-function scopeKey(customerId: string, kind: BusinessProfitabilityQuery["scopeKind"], scopeId: string): ScopeKey {
-  return `${customerId}\u0000${kind}\u0000${scopeId}`;
+function scopeKey(customerId: string, kind: BusinessProfitabilityQuery["scopeKind"], scopeId: string, startMs: number, endMs: number): ScopeKey {
+  return `${customerId}\u0000${kind}\u0000${scopeId}\u0000${startMs}\u0000${endMs}`;
 }
 
 function canonicalUtc(value: string, field: string): number {
@@ -156,7 +156,7 @@ export class RevenueGuardedBiddingAdapters {
 
   private async getCampaignSnapshot(customerId: string, campaignId: string, startMs: number, endMs: number): Promise<GoogleAdsCampaignSnapshot> {
     const snapshot = await this.options.googleAds.getCampaignSnapshot(customerId, campaignId, startMs, endMs);
-    const key = scopeKey(customerId, "CAMPAIGN", campaignId);
+    const key = scopeKey(customerId, "CAMPAIGN", campaignId, startMs, endMs);
     this.resourceScope.set(snapshot.campaignResourceName, key);
     this.resourceScope.set(snapshot.budgetResourceName, key);
     this.costByScope.set(key, snapshot.costMicros);
@@ -167,7 +167,7 @@ export class RevenueGuardedBiddingAdapters {
 
   private async getPortfolioSnapshot(customerId: string, resourceName: string, startMs: number, endMs: number): Promise<GoogleAdsPortfolioSnapshot> {
     const snapshot = await this.options.googleAds.getPortfolioSnapshot(customerId, resourceName, startMs, endMs);
-    const key = scopeKey(customerId, "BIDDING_STRATEGY", snapshot.strategyId);
+    const key = scopeKey(customerId, "BIDDING_STRATEGY", snapshot.strategyId, startMs, endMs);
     this.resourceScope.set(snapshot.resourceName, key);
     this.costByScope.set(key, snapshot.costMicros);
     const current = this.evidence.get(key);
@@ -178,7 +178,9 @@ export class RevenueGuardedBiddingAdapters {
   private async getProfitability(query: BusinessProfitabilityQuery): Promise<BusinessProfitabilitySnapshot> {
     const snapshot = await this.options.profitability.getProfitability(query);
     if (snapshot.customerId !== query.customerId || snapshot.scopeKind !== query.scopeKind || snapshot.scopeId !== query.scopeId || snapshot.windowStart !== query.windowStart || snapshot.windowEnd !== query.windowEnd) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "revenue guardrail profitability scope/window mismatch");
-    const key = scopeKey(query.customerId, query.scopeKind, query.scopeId);
+    const startMs = canonicalUtc(query.windowStart, "revenue guardrail windowStart");
+    const endMs = canonicalUtc(query.windowEnd, "revenue guardrail windowEnd");
+    const key = scopeKey(query.customerId, query.scopeKind, query.scopeId, startMs, endMs);
     this.evidence.set(key, Object.freeze({ snapshot, googleCostMicros: this.costByScope.get(key) ?? -1 }));
     return snapshot;
   }
