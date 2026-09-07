@@ -56,7 +56,7 @@ function local(overrides: Partial<ProgrammaticSeoPageInput> = {}): ProgrammaticS
     title: "Defensa penal en Monterrey: juzgados y atención local",
     description: "Información local verificada para asuntos penales en Monterrey, con referencias operativas y judiciales específicas.",
     heading: "Defensa penal en Monterrey",
-    bodyText: "La atención de un asunto penal en Monterrey exige identificar la sede judicial y la autoridad que lleva la carpeta antes de definir traslados o entregas documentales. El material local registra horarios operativos verificados y referencias de acceso a las sedes utilizadas en la zona metropolitana. También distingue qué diligencias requieren presencia física y cuáles admiten coordinación previa, de acuerdo con la evidencia editorial disponible.",
+    bodyText: "Defensa penal en Monterrey. La atención de un asunto penal en Monterrey exige identificar la sede judicial y la autoridad que lleva la carpeta antes de definir traslados o entregas documentales. El material local registra horarios operativos verificados y referencias de acceso a las sedes utilizadas en la zona metropolitana. También distingue qué diligencias requieren presencia física y cuáles admiten coordinación previa, de acuerdo con la evidencia editorial disponible.",
     distinctiveStatements: ["La atención de un asunto penal en Monterrey exige identificar la sede judicial y la autoridad que lleva la carpeta antes de definir traslados o entregas documentales.", "El material local registra horarios operativos verificados y referencias de acceso a las sedes utilizadas en la zona metropolitana."],
     evidenceRefs: ["geo:monterrey-court-directory-v4", "geo:monterrey-access-v2", "demand:gsc-longtail-mty-v7", "demand:first-party-intent-mty-v3"],
     updatedAt: new Date(NOW).toISOString(),
@@ -147,7 +147,7 @@ describe("CORTEX #25 hyperlocal long-tail", () => {
     await expect(wrapper(collision).getCatalog(SITE_ID)).rejects.toMatchObject({ code: "POLICY_VIOLATION" });
 
     const nearDuplicate = local({
-      bodyText: service().bodyText,
+      bodyText: `Defensa penal en Monterrey. ${service().bodyText}`,
       distinctiveStatements: service().distinctiveStatements,
       evidenceRefs: ["geo:one", "geo:two", "demand:one", "demand:two"],
     });
