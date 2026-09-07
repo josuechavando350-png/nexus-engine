@@ -2,6 +2,8 @@ import { createSearchPerformanceSnapshot, type SearchPerformanceProvider, type S
 
 const SEARCH_CONSOLE_BASE = "https://www.googleapis.com/webmasters/v3";
 const MAX_API_ROW_LIMIT = 25_000;
+const DEFAULT_MAX_RESPONSE_BYTES = 32 * 1024 * 1024;
+const MAX_MAX_RESPONSE_BYTES = 64 * 1024 * 1024;
 
 export type GoogleSearchConsoleAccessTokenProvider = () => Promise<string>;
 
@@ -21,6 +23,7 @@ export interface SearchConsoleRestClientConfig {
   readonly fetchImpl?: typeof fetch;
   readonly timeoutMs?: number;
   readonly maxReadRetries?: number;
+  readonly maxResponseBytes?: number;
   readonly sleep?: (ms: number) => Promise<void>;
   readonly now?: () => number;
 }
@@ -97,11 +100,38 @@ async function defaultSleep(ms: number): Promise<void> {
   await new Promise<void>((resolve) => setTimeout(resolve, ms));
 }
 
+async function boundedJson(response: Response, maxBytes: number): Promise<unknown> {
+  const contentType = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
+  if (contentType !== "application/json") throw new SearchConsoleApiError("INVALID_RESPONSE", "Search Console response must use application/json", response.status);
+  if (!response.body) throw new SearchConsoleApiError("INVALID_RESPONSE", "Search Console response body is missing", response.status);
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let bytes = 0;
+  try {
+    for (;;) {
+      const next = await reader.read();
+      if (next.done) break;
+      bytes += next.value.byteLength;
+      if (bytes > maxBytes) {
+        await reader.cancel();
+        throw new SearchConsoleApiError("INVALID_RESPONSE", `Search Console response exceeds ${maxBytes} bytes`, response.status);
+      }
+      chunks.push(next.value);
+    }
+  } finally { reader.releaseLock(); }
+  const merged = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) { merged.set(chunk, offset); offset += chunk.byteLength; }
+  try { return JSON.parse(new TextDecoder().decode(merged)) as unknown; }
+  catch { throw new SearchConsoleApiError("INVALID_RESPONSE", "Search Console response contains malformed JSON", response.status); }
+}
+
 export class SearchConsoleRestClient implements SearchPerformanceProvider {
   private readonly accessTokenProvider: GoogleSearchConsoleAccessTokenProvider;
   private readonly fetchImpl: typeof fetch;
   private readonly timeoutMs: number;
   private readonly maxReadRetries: number;
+  private readonly maxResponseBytes: number;
   private readonly sleep: (ms: number) => Promise<void>;
   private readonly now: () => number;
 
@@ -112,6 +142,9 @@ export class SearchConsoleRestClient implements SearchPerformanceProvider {
     positiveInt(this.timeoutMs, "timeoutMs", 120_000);
     this.maxReadRetries = config.maxReadRetries ?? 2;
     if (!Number.isInteger(this.maxReadRetries) || this.maxReadRetries < 0 || this.maxReadRetries > 5) throw new SearchConsoleApiError("INVALID_CONFIG", "maxReadRetries must be 0..5");
+    this.maxResponseBytes = config.maxResponseBytes ?? DEFAULT_MAX_RESPONSE_BYTES;
+    positiveInt(this.maxResponseBytes, "maxResponseBytes", MAX_MAX_RESPONSE_BYTES);
+    if (this.maxResponseBytes < 1_024) throw new SearchConsoleApiError("INVALID_CONFIG", "maxResponseBytes must be at least 1024");
     this.sleep = config.sleep ?? defaultSleep;
     this.now = config.now ?? Date.now;
   }
@@ -131,9 +164,8 @@ export class SearchConsoleRestClient implements SearchPerformanceProvider {
           signal: controller.signal,
           redirect: "error",
         });
-        let payload: unknown = null;
-        try { payload = await response.json(); } catch { payload = null; }
-        if (response.ok) return object(payload ?? {}, "Search Console response");
+        const payload = await boundedJson(response, this.maxResponseBytes);
+        if (response.ok) return object(payload, "Search Console response");
         const status = googleStatus(payload);
         if ((response.status === 429 || response.status >= 500) && attempt + 1 < attempts) {
           const nowMs = this.now();
@@ -153,7 +185,7 @@ export class SearchConsoleRestClient implements SearchPerformanceProvider {
           await this.sleep(Math.min(8_000, 500 * 2 ** attempt));
           continue;
         }
-        if (aborted) throw new SearchConsoleApiError("TIMEOUT", "Search Console request timed out");
+        if (aborted || controller.signal.aborted) throw new SearchConsoleApiError("TIMEOUT", "Search Console request timed out");
         throw new SearchConsoleApiError("API_ERROR", "Search Console transport failed");
       } finally {
         clearTimeout(timer);
