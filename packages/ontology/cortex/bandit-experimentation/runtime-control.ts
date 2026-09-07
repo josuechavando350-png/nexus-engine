@@ -84,8 +84,15 @@ function controlDigest(input: Omit<CortexBanditRuntimeControlState, "digest">): 
 function legacyEventDigest(input: Omit<CortexBanditRuntimeControlEvent, "digest" | "authorization">): string { return hash("cortex-bandit-runtime-control-event-v2", input); }
 function eventDigest(input: Omit<CortexBanditRuntimeControlEvent, "digest">): string {
   if (input.authorization === undefined) {
-    const { authorization: _authorization, ...legacy } = input;
-    return legacyEventDigest(legacy);
+    return legacyEventDigest({
+      experimentId: input.experimentId,
+      policyDigest: input.policyDigest,
+      fromMode: input.fromMode,
+      toMode: input.toMode,
+      reason: input.reason,
+      changedAt: input.changedAt,
+      targetRevision: input.targetRevision,
+    });
   }
   return hash("cortex-bandit-runtime-control-event-v3-authorized", input);
 }
