@@ -31,12 +31,16 @@ function body(call: FetchCall): Record<string, unknown> {
   return JSON.parse(call.init.body) as Record<string, unknown>;
 }
 
-function client(steps: readonly FetchStep[], options: { readonly maxReadRetries?: number; readonly sleep?: (ms: number) => Promise<void> } = {}) {
+function client(
+  steps: readonly FetchStep[],
+  options: { readonly maxReadRetries?: number; readonly maxResponseBytes?: number; readonly sleep?: (ms: number) => Promise<void> } = {},
+) {
   const s = sequence(steps);
   const rest = new SearchConsoleRestClient({
     accessTokenProvider: async () => "oauth-token",
     fetchImpl: s.fetchImpl,
     maxReadRetries: options.maxReadRetries ?? 0,
+    maxResponseBytes: options.maxResponseBytes,
     sleep: options.sleep,
     now: () => NOW,
   });
@@ -85,6 +89,16 @@ describe("SearchConsoleRestClient", () => {
     expect(body(calls[1]!)).toMatchObject({ rowLimit: 3, startRow: 0 });
     expect(result.pageRows.length + result.targetQueryRows.length).toBe(6);
     expect(result.truncated).toBe(true);
+  });
+
+  it("rejects oversized Search Console response bodies before JSON parsing", async () => {
+    const oversized = response({ padding: "x".repeat(2_000) });
+    const { rest, calls } = client([oversized], { maxResponseBytes: 1_024 });
+    await expect(rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 20 })).rejects.toMatchObject({
+      code: "INVALID_RESPONSE",
+      message: "Search Console response exceeds 1024 bytes",
+    });
+    expect(calls).toHaveLength(1);
   });
 
   it("uses Search Console's 25,000-row page cap and advances startRow on larger budgets", async () => {
