@@ -8,7 +8,7 @@
   "description": "Disposable client project for exercising the NEXUS generative pipeline.",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node ../../scripts/cortex-cwv-build-evidence.mjs prepare && next build && node ../../scripts/cortex-cwv-build-evidence.mjs certify",
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit"
