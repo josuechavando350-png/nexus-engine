@@ -1,6 +1,11 @@
 import { createHash } from "node:crypto";
-import type { CreativeDesiredState, CreativeDesiredStateProvider, CustomizerAttributeType, CustomizerScopeKind, DesiredCustomizerValue } from "./index";
-import { CreativeSyncError } from "./index";
+import type {
+  CreativeDesiredState,
+  CreativeDesiredStateProvider,
+  CustomizerAttributeType,
+  CustomizerScopeKind,
+  DesiredCustomizerValue,
+} from "./index";
 
 const ID = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,127})$/u;
 const CUSTOMER_ID = /^\d{5,20}$/u;
@@ -11,7 +16,8 @@ export type InventoryAvailability = "IN_STOCK" | "OUT_OF_STOCK";
 export interface InventoryCreativeItem {
   readonly sku: string;
   readonly availability: InventoryAvailability;
-  readonly creativeValue: string | null;
+  /** Exact trusted copy/value that should be exposed to Google Ads for this inventory state. */
+  readonly creativeValue: string;
 }
 
 export interface InventoryCreativeSnapshot {
@@ -57,15 +63,25 @@ export interface InventoryAwareCreativeDesiredStateProviderOptions {
 }
 
 export class InventoryIntelligenceError extends Error {
-  constructor(public readonly code: "INVALID_CONFIG" | "HTTP_ERROR" | "TIMEOUT" | "INVALID_RESPONSE" | "STALE_INVENTORY" | "INTEGRITY_FAILURE", message: string) {
+  constructor(
+    public readonly code: "INVALID_CONFIG" | "HTTP_ERROR" | "TIMEOUT" | "INVALID_RESPONSE" | "STALE_INVENTORY" | "INTEGRITY_FAILURE",
+    message: string,
+  ) {
     super(message);
     this.name = "InventoryIntelligenceError";
   }
 }
 
-function id(value: unknown, field: string): string {
-  if (typeof value !== "string" || !ID.test(value.trim())) throw new InventoryIntelligenceError("INVALID_CONFIG", `${field} is malformed`);
+function identifier(value: unknown, field: string, code: InventoryIntelligenceError["code"] = "INVALID_CONFIG"): string {
+  if (typeof value !== "string" || !ID.test(value.trim())) throw new InventoryIntelligenceError(code, `${field} is malformed`);
   return value.trim();
+}
+
+function canonicalUtc(value: unknown, field: string, code: InventoryIntelligenceError["code"]): string {
+  if (typeof value !== "string") throw new InventoryIntelligenceError(code, `${field} must be canonical UTC`);
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new InventoryIntelligenceError(code, `${field} must be canonical UTC`);
+  return value;
 }
 
 function endpoint(value: string): string {
@@ -88,15 +104,10 @@ function timeout(value: number | undefined): number {
   return resolved;
 }
 
-function canonicalUtc(value: unknown, field: string, code: InventoryIntelligenceError["code"] = "INVALID_RESPONSE"): string {
-  if (typeof value !== "string") throw new InventoryIntelligenceError(code, `${field} must be canonical UTC`);
-  const parsed = new Date(value);
-  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new InventoryIntelligenceError(code, `${field} must be canonical UTC`);
-  return value;
-}
-
-function object(value: unknown, field: string): Record<string, unknown> {
-  if (!value || typeof value !== "object" || Array.isArray(value) || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) throw new InventoryIntelligenceError("INVALID_RESPONSE", `${field} must be a plain object`);
+function plainObject(value: unknown, field: string): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value) || (Object.getPrototypeOf(value) !== Object.prototype && Object.getPrototypeOf(value) !== null)) {
+    throw new InventoryIntelligenceError("INVALID_RESPONSE", `${field} must be a plain object`);
+  }
   return value as Record<string, unknown>;
 }
 
@@ -112,7 +123,10 @@ async function boundedJson(response: Response): Promise<unknown> {
       const next = await reader.read();
       if (next.done) break;
       bytes += next.value.byteLength;
-      if (bytes > MAX_RESPONSE_BYTES) { await reader.cancel(); throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory response exceeds ${MAX_RESPONSE_BYTES} bytes`); }
+      if (bytes > MAX_RESPONSE_BYTES) {
+        await reader.cancel();
+        throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory response exceeds ${MAX_RESPONSE_BYTES} bytes`);
+      }
       chunks.push(next.value);
     }
   } finally { reader.releaseLock(); }
@@ -124,33 +138,29 @@ async function boundedJson(response: Response): Promise<unknown> {
 }
 
 function parseSnapshot(value: unknown, expectedCustomerId: string, expectedSkus: readonly string[]): InventoryCreativeSnapshot {
-  const raw = object(value, "inventory response");
-  const allowed = new Set(["customerId", "sourceId", "sourceVersion", "observedAt", "items"]);
-  for (const key of Object.keys(raw)) if (!allowed.has(key)) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory response contains unknown field ${key}`);
+  const raw = plainObject(value, "inventory response");
+  const keys = new Set(["customerId", "sourceId", "sourceVersion", "observedAt", "items"]);
+  for (const key of Object.keys(raw)) if (!keys.has(key)) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory response contains unknown field ${key}`);
   if (raw.customerId !== expectedCustomerId) throw new InventoryIntelligenceError("INVALID_RESPONSE", "inventory customerId mismatch");
-  const sourceId = id(raw.sourceId, "inventory sourceId");
-  const sourceVersion = id(raw.sourceVersion, "inventory sourceVersion");
-  const observedAt = canonicalUtc(raw.observedAt, "inventory observedAt");
-  if (!Array.isArray(raw.items) || raw.items.length > 5000) throw new InventoryIntelligenceError("INVALID_RESPONSE", "inventory items must be an array with at most 5000 entries");
+  const sourceId = identifier(raw.sourceId, "inventory sourceId", "INVALID_RESPONSE");
+  const sourceVersion = identifier(raw.sourceVersion, "inventory sourceVersion", "INVALID_RESPONSE");
+  const observedAt = canonicalUtc(raw.observedAt, "inventory observedAt", "INVALID_RESPONSE");
+  if (!Array.isArray(raw.items) || raw.items.length !== expectedSkus.length) throw new InventoryIntelligenceError("INVALID_RESPONSE", "inventory response must contain exactly one item per requested sku");
   const expected = new Set(expectedSkus);
   const seen = new Set<string>();
   const items = raw.items.map((entry, index): InventoryCreativeItem => {
-    const item = object(entry, `inventory items[${index}]`);
-    const keys = new Set(["sku", "availability", "creativeValue"]);
-    for (const key of Object.keys(item)) if (!keys.has(key)) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory items[${index}] contains unknown field ${key}`);
-    const sku = id(item.sku, `inventory items[${index}].sku`);
-    if (!expected.has(sku)) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory returned unrequested sku ${sku}`);
-    if (seen.has(sku)) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory returned duplicate sku ${sku}`);
+    const item = plainObject(entry, `inventory items[${index}]`);
+    const itemKeys = new Set(["sku", "availability", "creativeValue"]);
+    for (const key of Object.keys(item)) if (!itemKeys.has(key)) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory items[${index}] contains unknown field ${key}`);
+    const sku = identifier(item.sku, `inventory items[${index}].sku`, "INVALID_RESPONSE");
+    if (!expected.has(sku) || seen.has(sku)) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory sku ${sku} is unrequested or duplicated`);
     seen.add(sku);
     if (!(item.availability === "IN_STOCK" || item.availability === "OUT_OF_STOCK")) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory items[${index}].availability is invalid`);
-    if (item.availability === "IN_STOCK") {
-      if (typeof item.creativeValue !== "string" || item.creativeValue.trim().length < 1 || item.creativeValue.trim().length > 500) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory items[${index}].creativeValue must contain 1..500 characters when in stock`);
-      return Object.freeze({ sku, availability: item.availability, creativeValue: item.creativeValue.trim() });
+    if (typeof item.creativeValue !== "string" || item.creativeValue.trim().length < 1 || item.creativeValue.trim().length > 500) {
+      throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory items[${index}].creativeValue must contain 1..500 characters for every availability state`);
     }
-    if (item.creativeValue !== null) throw new InventoryIntelligenceError("INVALID_RESPONSE", `inventory items[${index}].creativeValue must be null when out of stock`);
-    return Object.freeze({ sku, availability: item.availability, creativeValue: null });
+    return Object.freeze({ sku, availability: item.availability, creativeValue: item.creativeValue.trim() });
   });
-  if (seen.size !== expected.size) throw new InventoryIntelligenceError("INVALID_RESPONSE", "inventory response is missing one or more requested skus");
   return Object.freeze({ customerId: expectedCustomerId, sourceId, sourceVersion, observedAt, items: Object.freeze(items) });
 }
 
@@ -159,22 +169,30 @@ export class HttpInventoryCreativeProvider implements InventoryCreativeProvider 
   private readonly secret: string;
   private readonly timeoutMs: number;
   private readonly fetchImpl: typeof fetch;
+
   constructor(config: HttpInventoryCreativeProviderConfig) {
     this.url = endpoint(config.endpoint);
     this.secret = token(config.bearerToken);
     this.timeoutMs = timeout(config.timeoutMs);
     this.fetchImpl = config.fetchImpl ?? fetch;
   }
+
   async getInventory(customerId: string, skus: readonly string[]): Promise<InventoryCreativeSnapshot> {
     if (!CUSTOMER_ID.test(customerId)) throw new InventoryIntelligenceError("INVALID_CONFIG", "inventory customerId is malformed");
     if (!Array.isArray(skus) || skus.length < 1 || skus.length > 5000) throw new InventoryIntelligenceError("INVALID_CONFIG", "inventory skus must contain 1..5000 items");
-    const normalized = skus.map((sku) => id(sku, "inventory sku"));
+    const normalized = skus.map((sku) => identifier(sku, "inventory sku"));
     if (new Set(normalized).size !== normalized.length) throw new InventoryIntelligenceError("INVALID_CONFIG", "inventory skus must be unique");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let response: Response;
     try {
-      response = await this.fetchImpl(this.url, { method: "POST", redirect: "error", headers: { authorization: `Bearer ${this.secret}`, accept: "application/json", "content-type": "application/json" }, body: JSON.stringify({ customerId, skus: normalized }), signal: controller.signal });
+      response = await this.fetchImpl(this.url, {
+        method: "POST",
+        redirect: "error",
+        headers: { authorization: `Bearer ${this.secret}`, accept: "application/json", "content-type": "application/json" },
+        body: JSON.stringify({ customerId, skus: normalized }),
+        signal: controller.signal,
+      });
     } catch (error) {
       if (controller.signal.aborted) throw new InventoryIntelligenceError("TIMEOUT", "inventory request timed out");
       throw new InventoryIntelligenceError("HTTP_ERROR", error instanceof Error ? error.message : "inventory transport failed");
@@ -190,28 +208,29 @@ function bindingKey(binding: Pick<InventoryCreativeBinding, "scopeKind" | "scope
 
 export function createInventoryCreativePolicy(input: InventoryCreativePolicy): InventoryCreativePolicy {
   if (input.version !== 1) throw new InventoryIntelligenceError("INVALID_CONFIG", "inventory creative policy version must be 1");
-  const compositeSourceId = id(input.compositeSourceId, "compositeSourceId");
+  const compositeSourceId = identifier(input.compositeSourceId, "compositeSourceId");
   if (!Number.isSafeInteger(input.maxInventoryAgeMs) || input.maxInventoryAgeMs < 1_000 || input.maxInventoryAgeMs > 86_400_000) throw new InventoryIntelligenceError("INVALID_CONFIG", "maxInventoryAgeMs must be 1000..86400000");
   if (!Array.isArray(input.allowedInventorySourceIds) || input.allowedInventorySourceIds.length < 1 || input.allowedInventorySourceIds.length > 32) throw new InventoryIntelligenceError("INVALID_CONFIG", "allowedInventorySourceIds must contain 1..32 items");
-  const allowedInventorySourceIds = input.allowedInventorySourceIds.map((value) => id(value, "allowedInventorySourceId"));
+  const allowedInventorySourceIds = input.allowedInventorySourceIds.map((value) => identifier(value, "allowedInventorySourceId"));
   if (new Set(allowedInventorySourceIds).size !== allowedInventorySourceIds.length) throw new InventoryIntelligenceError("INVALID_CONFIG", "allowedInventorySourceIds must be unique");
   if (!Array.isArray(input.bindings) || input.bindings.length < 1 || input.bindings.length > 5000) throw new InventoryIntelligenceError("INVALID_CONFIG", "inventory bindings must contain 1..5000 items");
-  const bindings = input.bindings.map((binding, index) => {
-    const sku = id(binding.sku, `bindings[${index}].sku`);
+  const bindings = input.bindings.map((binding, index): InventoryCreativeBinding => {
+    const sku = identifier(binding.sku, `bindings[${index}].sku`);
     if (typeof binding.attributeName !== "string" || binding.attributeName.trim().length < 1 || binding.attributeName.trim().length > 40) throw new InventoryIntelligenceError("INVALID_CONFIG", `bindings[${index}].attributeName is invalid`);
     if (!(binding.type === "TEXT" || binding.type === "NUMBER" || binding.type === "PRICE" || binding.type === "PERCENT")) throw new InventoryIntelligenceError("INVALID_CONFIG", `bindings[${index}].type is invalid`);
     if (!(binding.scopeKind === "CUSTOMER" || binding.scopeKind === "CAMPAIGN" || binding.scopeKind === "AD_GROUP" || binding.scopeKind === "AD_GROUP_CRITERION")) throw new InventoryIntelligenceError("INVALID_CONFIG", `bindings[${index}].scopeKind is invalid`);
     if (typeof binding.scopeResourceName !== "string" || binding.scopeResourceName.trim().length < 1 || binding.scopeResourceName.trim().length > 256) throw new InventoryIntelligenceError("INVALID_CONFIG", `bindings[${index}].scopeResourceName is invalid`);
     return Object.freeze({ sku, attributeName: binding.attributeName.trim(), type: binding.type, scopeKind: binding.scopeKind, scopeResourceName: binding.scopeResourceName.trim() });
   });
-  const keys = bindings.map(bindingKey);
-  if (new Set(keys).size !== keys.length) throw new InventoryIntelligenceError("INVALID_CONFIG", "inventory bindings must have unique creative targets");
+  const targets = bindings.map(bindingKey);
+  if (new Set(targets).size !== targets.length) throw new InventoryIntelligenceError("INVALID_CONFIG", "inventory bindings must have unique creative targets");
   return Object.freeze({ version: 1, compositeSourceId, maxInventoryAgeMs: input.maxInventoryAgeMs, allowedInventorySourceIds: Object.freeze(allowedInventorySourceIds), bindings: Object.freeze(bindings) });
 }
 
 export class InventoryAwareCreativeDesiredStateProvider implements CreativeDesiredStateProvider {
   readonly policy: InventoryCreativePolicy;
   private readonly now: () => number;
+
   constructor(private readonly options: InventoryAwareCreativeDesiredStateProviderOptions) {
     this.policy = createInventoryCreativePolicy(options.policy);
     this.now = options.now ?? Date.now;
@@ -230,21 +249,27 @@ export class InventoryAwareCreativeDesiredStateProvider implements CreativeDesir
     const itemBySku = new Map(inventory.items.map((item) => [item.sku, item] as const));
     const attributes = new Map(base.customizerAttributes.map((attribute) => [attribute.name.toLocaleLowerCase("en-US"), attribute] as const));
     const values = new Map(base.customizerValues.map((value) => [bindingKey(value), value] as const));
+
     for (const binding of this.policy.bindings) {
       const attribute = attributes.get(binding.attributeName.toLocaleLowerCase("en-US"));
       if (!attribute || attribute.type !== binding.type) throw new InventoryIntelligenceError("INTEGRITY_FAILURE", `inventory binding ${binding.attributeName} does not match a declared desired customizer attribute`);
       const item = itemBySku.get(binding.sku);
       if (!item) throw new InventoryIntelligenceError("INTEGRITY_FAILURE", `inventory snapshot is missing sku ${binding.sku}`);
-      const key = bindingKey(binding);
-      if (item.availability === "OUT_OF_STOCK") {
-        values.delete(key);
-        continue;
-      }
-      if (item.creativeValue === null) throw new InventoryIntelligenceError("INTEGRITY_FAILURE", `in-stock sku ${binding.sku} has no creative value`);
-      const next: DesiredCustomizerValue = Object.freeze({ attributeName: binding.attributeName, type: binding.type, scopeKind: binding.scopeKind, scopeResourceName: binding.scopeResourceName, stringValue: item.creativeValue });
-      values.set(key, next);
+      const next: DesiredCustomizerValue = Object.freeze({
+        attributeName: binding.attributeName,
+        type: binding.type,
+        scopeKind: binding.scopeKind,
+        scopeResourceName: binding.scopeResourceName,
+        stringValue: item.creativeValue,
+      });
+      values.set(bindingKey(binding), next);
     }
-    const sourceVersion = `sha256:${createHash("sha256").update(JSON.stringify({ base: { sourceId: base.sourceId, sourceVersion: base.sourceVersion, observedAt: baseObservedAt }, inventory: { sourceId: inventory.sourceId, sourceVersion: inventory.sourceVersion, observedAt: inventoryObservedAt, items: inventory.items }, bindings: this.policy.bindings }), "utf8").digest("hex")}`;
+
+    const sourceVersion = `sha256:${createHash("sha256").update(JSON.stringify({
+      base: { sourceId: base.sourceId, sourceVersion: base.sourceVersion, observedAt: baseObservedAt },
+      inventory: { sourceId: inventory.sourceId, sourceVersion: inventory.sourceVersion, observedAt: inventoryObservedAt, items: inventory.items },
+      bindings: this.policy.bindings,
+    }), "utf8").digest("hex")}`;
     const observedAt = Date.parse(baseObservedAt) <= Date.parse(inventoryObservedAt) ? baseObservedAt : inventoryObservedAt;
     return Object.freeze({
       sourceId: this.policy.compositeSourceId,
