@@ -31,12 +31,16 @@ function body(call: FetchCall): Record<string, unknown> {
   return JSON.parse(call.init.body) as Record<string, unknown>;
 }
 
-function client(steps: readonly FetchStep[], options: { readonly maxReadRetries?: number; readonly sleep?: (ms: number) => Promise<void> } = {}) {
+function client(
+  steps: readonly FetchStep[],
+  options: { readonly maxReadRetries?: number; readonly maxResponseBytes?: number; readonly sleep?: (ms: number) => Promise<void> } = {},
+) {
   const s = sequence(steps);
   const rest = new SearchConsoleRestClient({
     accessTokenProvider: async () => "oauth-token",
     fetchImpl: s.fetchImpl,
     maxReadRetries: options.maxReadRetries ?? 0,
+    maxResponseBytes: options.maxResponseBytes,
     sleep: options.sleep,
     now: () => NOW,
   });
@@ -87,6 +91,16 @@ describe("SearchConsoleRestClient", () => {
     expect(result.truncated).toBe(true);
   });
 
+  it("rejects oversized Search Console response bodies before JSON parsing", async () => {
+    const oversized = response({ padding: "x".repeat(2_000) });
+    const { rest, calls } = client([oversized], { maxResponseBytes: 1_024 });
+    await expect(rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 20 })).rejects.toMatchObject({
+      code: "INVALID_RESPONSE",
+      message: "Search Console response exceeds 1024 bytes",
+    });
+    expect(calls).toHaveLength(1);
+  });
+
   it("uses Search Console's 25,000-row page cap and advances startRow on larger budgets", async () => {
     const firstPage = Array.from({ length: 25_000 }, (_, index) => pageRow(index === 0 ? PAGE : `https://example.com/page-${index}`, 0, 1, 5));
     const { rest, calls } = client([
@@ -115,6 +129,28 @@ describe("SearchConsoleRestClient", () => {
     expect(calls).toHaveLength(3);
     expect(sleeps).toEqual([2_000]);
     expect(result.pageRows[0]?.impressions).toBe(1_000);
+  });
+
+  it("retries retryable HTTP statuses even when the transient error body is not JSON", async () => {
+    const sleeps: number[] = [];
+    const transient = new Response("upstream unavailable", { status: 503, headers: { "content-type": "text/plain" } });
+    const { rest, calls } = client([
+      transient,
+      response({ rows: [pageRow(PAGE, 20, 1_000, 5)] }),
+      response({ rows: [queryRow("federal defense", 20, 1_000, 5)] }),
+    ], { maxReadRetries: 1, sleep: async (ms) => { sleeps.push(ms); } });
+    const result = await rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 20 });
+    expect(calls).toHaveLength(3);
+    expect(sleeps).toEqual([500]);
+    expect(result.pageRows[0]?.impressions).toBe(1_000);
+  });
+
+  it("classifies a final non-JSON quota response by HTTP status", async () => {
+    const quota = client([new Response("busy", { status: 429, headers: { "content-type": "text/plain" } })]);
+    await expect(quota.rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 20 })).rejects.toMatchObject({
+      code: "QUOTA_EXHAUSTED",
+      httpStatus: 429,
+    });
   });
 
   it("classifies authentication and malformed responses without inventing rows", async () => {
