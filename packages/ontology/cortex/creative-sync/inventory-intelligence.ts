@@ -184,21 +184,22 @@ export class HttpInventoryCreativeProvider implements InventoryCreativeProvider 
     if (new Set(normalized).size !== normalized.length) throw new InventoryIntelligenceError("INVALID_CONFIG", "inventory skus must be unique");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
-    let response: Response;
     try {
-      response = await this.fetchImpl(this.url, {
+      const response = await this.fetchImpl(this.url, {
         method: "POST",
         redirect: "error",
         headers: { authorization: `Bearer ${this.secret}`, accept: "application/json", "content-type": "application/json" },
         body: JSON.stringify({ customerId, skus: normalized }),
         signal: controller.signal,
       });
+      if (!response.ok) throw new InventoryIntelligenceError("HTTP_ERROR", `inventory endpoint returned HTTP ${response.status}`);
+      const payload = await boundedJson(response);
+      return parseSnapshot(payload, customerId, normalized);
     } catch (error) {
       if (controller.signal.aborted) throw new InventoryIntelligenceError("TIMEOUT", "inventory request timed out");
+      if (error instanceof InventoryIntelligenceError) throw error;
       throw new InventoryIntelligenceError("HTTP_ERROR", error instanceof Error ? error.message : "inventory transport failed");
     } finally { clearTimeout(timer); }
-    if (!response.ok) throw new InventoryIntelligenceError("HTTP_ERROR", `inventory endpoint returned HTTP ${response.status}`);
-    return parseSnapshot(await boundedJson(response), customerId, normalized);
   }
 }
 
