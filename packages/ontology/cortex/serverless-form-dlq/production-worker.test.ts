@@ -71,6 +71,53 @@ describe("CORTEX #20 production worker over CORTEX #17 HTTP boundary", () => {
     worker.close();
   });
 
+  it("survives restart with retry timing and local offset intact", async () => {
+    const db = database(); let now = Date.parse("2026-09-06T00:20:00.000Z");
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input));
+      if (url.pathname === "/v1/events" && (!init?.method || init.method === "GET")) {
+        const after = Number(url.searchParams.get("after") ?? "0");
+        return Response.json({ events: after >= 1 ? [] : [acceptedEvent] });
+      }
+      if (url.pathname === "/v1/offsets" && init?.method === "POST") return Response.json({ sequence: 1 });
+      throw new Error(`unexpected request ${init?.method ?? "GET"} ${url.pathname}`);
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    let deliveries = 0;
+    const destination: LeadDestination = { deliver: vi.fn(async () => {
+      deliveries += 1;
+      if (deliveries === 1) throw new Cortex20Error("DESTINATION_FAILURE", "ambiguous downstream failure");
+      return { receiptId: "receipt-00000001" };
+    }) };
+    const makeWorker = () => new Cortex20ProductionWorker({
+      databasePath: db,
+      eventClient: new HttpCortex17FormEventClient(new URL("https://events.example/"), "r".repeat(32), "w".repeat(32), 1000),
+      destination,
+      encryptionKeyBase64: key,
+      encryptionKeyId: "form-key-0001",
+      consumerId: "form-worker-00000004",
+      maxAttempts: 3,
+      baseRetryDelayMs: 100,
+      readMode: () => "ACTIVE",
+      now: () => now,
+    });
+    let worker = makeWorker();
+    expect(await worker.runOnce()).toEqual({ processed: 1, delivered: 0, dlq: 0, deferred: 0, offset: 0 });
+    worker.close();
+
+    worker = makeWorker();
+    expect(await worker.runOnce()).toEqual({ processed: 0, delivered: 0, dlq: 0, deferred: 1, offset: 0 });
+    expect(deliveries).toBe(1);
+    now += 100;
+    expect(await worker.runOnce()).toEqual({ processed: 1, delivered: 1, dlq: 0, deferred: 0, offset: 1 });
+    worker.close();
+
+    worker = makeWorker();
+    expect(await worker.runOnce()).toEqual({ processed: 0, delivered: 0, dlq: 0, deferred: 0, offset: 1 });
+    expect(deliveries).toBe(2);
+    worker.close();
+  });
+
   it("performs no remote reads or deliveries while KILLED", async () => {
     const fetchMock = vi.fn(); vi.stubGlobal("fetch", fetchMock);
     const destination: LeadDestination = { deliver: vi.fn(async () => ({ receiptId: "receipt-00000001" })) };
