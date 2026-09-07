@@ -135,6 +135,7 @@ export class RevenueGuardedBiddingAdapters {
   readonly policy: RevenueGuardrailPolicy;
   private readonly resourceScope = new Map<string, ScopeKey>();
   private readonly evidence = new Map<ScopeKey, ScopeEvidence>();
+  private readonly googleCosts = new Map<ScopeKey, number>();
   private readonly now: () => number;
 
   constructor(private readonly options: RevenueGuardedBiddingAdaptersOptions) {
@@ -158,6 +159,7 @@ export class RevenueGuardedBiddingAdapters {
     const key = scopeKey(customerId, "CAMPAIGN", campaignId);
     this.resourceScope.set(snapshot.campaignResourceName, key);
     this.resourceScope.set(snapshot.budgetResourceName, key);
+    this.googleCosts.set(key, snapshot.costMicros);
     const current = this.evidence.get(key);
     if (current) this.evidence.set(key, Object.freeze({ ...current, googleCostMicros: snapshot.costMicros }));
     return snapshot;
@@ -167,6 +169,7 @@ export class RevenueGuardedBiddingAdapters {
     const snapshot = await this.options.googleAds.getPortfolioSnapshot(customerId, resourceName, startMs, endMs);
     const key = scopeKey(customerId, "BIDDING_STRATEGY", snapshot.strategyId);
     this.resourceScope.set(snapshot.resourceName, key);
+    this.googleCosts.set(key, snapshot.costMicros);
     const current = this.evidence.get(key);
     if (current) this.evidence.set(key, Object.freeze({ ...current, googleCostMicros: snapshot.costMicros }));
     return snapshot;
@@ -177,7 +180,7 @@ export class RevenueGuardedBiddingAdapters {
     if (snapshot.customerId !== query.customerId || snapshot.scopeKind !== query.scopeKind || snapshot.scopeId !== query.scopeId || snapshot.windowStart !== query.windowStart || snapshot.windowEnd !== query.windowEnd) throw new BiddingSupervisorError("INTEGRITY_FAILURE", "revenue guardrail profitability scope/window mismatch");
     const key = scopeKey(query.customerId, query.scopeKind, query.scopeId);
     const prior = this.evidence.get(key);
-    this.evidence.set(key, Object.freeze({ snapshot, googleCostMicros: prior?.googleCostMicros ?? -1 }));
+    this.evidence.set(key, Object.freeze({ snapshot, googleCostMicros: prior?.googleCostMicros ?? this.googleCosts.get(key) ?? -1 }));
     return snapshot;
   }
 
