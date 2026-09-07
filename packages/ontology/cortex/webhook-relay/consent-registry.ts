@@ -203,7 +203,14 @@ export class ConsentRegistryFailoverGateway implements RelayGateway {
     const channel = channelFromEvent(event);
     const subjectKey = subjectFromEvent(event, channel);
     // Final opt-out boundary immediately before any outbound provider request.
-    this.options.registry.assertGranted(subjectKey, channel);
+    try {
+      this.options.registry.assertGranted(subjectKey, channel);
+    } catch (error) {
+      if (error instanceof Cortex11Error && error.code === "CONSENT_VIOLATION") {
+        throw new RelayGatewayError("REJECTED", error.message, 403);
+      }
+      throw error;
+    }
     const routes = this.options.routes[channel];
     for (let index = 0; index < routes.length; index += 1) {
       const route = routes[index]!;
@@ -213,8 +220,6 @@ export class ConsentRegistryFailoverGateway implements RelayGateway {
         return receipt;
       } catch (error) {
         if (error instanceof RelayGatewayError && error.code === "REJECTED" && error.httpStatus === 429 && index + 1 < routes.length) {
-          // HTTP 429 is deterministic non-acceptance; failover is safe. Ambiguous
-          // transport/5xx outcomes are never retried automatically.
           this.emit({ operation: "FAILOVER", channel, routeIndex: index, outcome: "RATE_LIMITED_NOT_ACCEPTED" });
           continue;
         }
