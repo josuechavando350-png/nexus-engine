@@ -215,7 +215,7 @@ export class RevenueGuardedBiddingAdapters {
     if (revenueToSpend < this.policy.minimumRevenueToSpendRatio) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail minimum revenue-to-spend ratio is not met");
   }
 
-  private applyMutation(customerId: string, action: GoogleAdsControlMutation): Promise<GoogleAdsMutationReceipt> {
+  private async applyMutation(customerId: string, action: GoogleAdsControlMutation): Promise<GoogleAdsMutationReceipt> {
     if (!expansion(action)) {
       this.emit({ operation: "ALLOW", customerId, resourceName: action.resourceName, actionKind: action.kind, reason: "RISK_CONTRACTION" });
       return this.options.googleAds.applyMutation(customerId, action);
