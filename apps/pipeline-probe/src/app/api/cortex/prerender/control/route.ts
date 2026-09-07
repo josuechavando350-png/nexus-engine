@@ -1,30 +1,19 @@
+import { createEdgeCachePolicy, prerenderControlFromEdgeCache, type EdgeCachePolicyInput } from "@nexus/core/cortex/interaction-pointer-edge-caching";
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-const ALLOWED_PATHS = Object.freeze(["/", "/explore", "/proof", "/visit", "/contact"]);
-const DEFAULT_MAX_PREPARED_TARGETS = 4;
-
 function configuredControl() {
-  const rawMode = process.env.NEXUS_CORTEX_08_MODE?.trim();
-  const mode = rawMode === "ACTIVE" || rawMode === "OBSERVE_ONLY" || rawMode === "KILLED" ? rawMode : "KILLED";
-  const rawMax = process.env.NEXUS_CORTEX_08_MAX_PREPARED_TARGETS?.trim();
-  let maxPreparedTargets = DEFAULT_MAX_PREPARED_TARGETS;
-  let effectiveMode = mode;
-  if (rawMax) {
-    if (!/^\d+$/u.test(rawMax)) {
-      effectiveMode = "KILLED";
-      maxPreparedTargets = 1;
-    } else {
-      const parsed = Number(rawMax);
-      if (!Number.isSafeInteger(parsed) || parsed < 1 || parsed > 16) {
-        effectiveMode = "KILLED";
-        maxPreparedTargets = 1;
-      } else {
-        maxPreparedTargets = parsed;
-      }
-    }
+  try {
+    const raw = process.env.NEXUS_CORTEX_28_EDGE_CACHE_POLICY_JSON?.trim();
+    if (!raw) throw new Error("NEXUS_CORTEX_28_EDGE_CACHE_POLICY_JSON is required");
+    const policy = createEdgeCachePolicy(JSON.parse(raw) as EdgeCachePolicyInput);
+    const maxRaw = process.env.NEXUS_CORTEX_08_MAX_PREPARED_TARGETS?.trim() ?? "4";
+    if (!/^\d+$/u.test(maxRaw)) throw new Error("NEXUS_CORTEX_08_MAX_PREPARED_TARGETS is invalid");
+    return prerenderControlFromEdgeCache(policy, Number(maxRaw));
+  } catch {
+    return { mode: "KILLED", allowedPaths: ["/"], maxPreparedTargets: 1 } as const;
   }
-  return { mode: effectiveMode, allowedPaths: ALLOWED_PATHS, maxPreparedTargets } as const;
 }
 
 export async function GET(): Promise<Response> {
