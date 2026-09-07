@@ -206,6 +206,58 @@ describe("CORTEX #24 statistical rollback", () => {
     expect(h.publisher.current).not.toBeNull();
   });
 
+  it("excludes other treated targets from the peer control so concurrent harm cannot mask rollback", async () => {
+    const h = await appliedMutation();
+    const performance: SearchPerformanceProvider = {
+      async getPerformance(input) {
+        const baseline = input.endDate === "2026-08-14";
+        return createSearchPerformanceSnapshot({
+          sourceId: "google-search-console",
+          siteUrl: SITE,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          dataState: "FINAL",
+          coverage: "TOP_ROWS_BOUNDED",
+          truncated: false,
+          observedAt: new Date(EVALUATION_NOW).toISOString(),
+          pageRows: [
+            { pageUrl: PAGE, query: null, clicks: baseline ? 100 : 20, impressions: 1_000, ctr: baseline ? 0.1 : 0.02, position: 5 },
+            { pageUrl: PEER_A, query: null, clicks: baseline ? 1_000 : 200, impressions: 10_000, ctr: baseline ? 0.1 : 0.02, position: 5 },
+            { pageUrl: PEER_B, query: null, clicks: 100, impressions: 1_000, ctr: 0.1, position: 5 },
+          ],
+          targetQueryRows: [],
+        });
+      },
+    };
+    const rollback = vi.fn();
+    const watch = new StatisticalSerpRollbackSupervisor({
+      transactions: h.store,
+      scope,
+      siteUrl: SITE,
+      targets: [{ pageId: PAGE_ID, pageUrl: PAGE }, { pageId: "treated-fiscal", pageUrl: PEER_A }],
+      performance,
+      policy: {
+        version: 1,
+        evaluationWindowDays: 7,
+        reportingLagDays: 2,
+        minimumTargetImpressionsPerWindow: 500,
+        minimumPeerImpressionsPerWindow: 500,
+        minimumPeerPages: 1,
+        minimumAbsoluteCtrDrop: 0.02,
+        minimumRelativeCtrDrop: 0.2,
+        minimumZScore: 2,
+        maximumAveragePositionDelta: 0.5,
+        maxRows: 20_000,
+      },
+      rollback,
+      now: () => EVALUATION_NOW,
+    });
+    const decision = await watch.evaluate(PAGE_ID, false);
+    expect(decision).toMatchObject({ status: "ROLLBACK_REQUIRED", baselinePeerCtr: 0.1, currentPeerCtr: 0.1 });
+    expect(decision.adjustedCtrDrop).toBeCloseTo(0.08);
+    expect(rollback).not.toHaveBeenCalled();
+  });
+
   it("does not attribute CTR deterioration to metadata when average position moved materially", async () => {
     const h = await appliedMutation();
     const watch = supervisor(h, evaluationPerformance({ position: 7 }));
