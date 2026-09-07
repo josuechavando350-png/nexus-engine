@@ -1,7 +1,7 @@
 import { readFileSync, statSync } from "node:fs";
 import { isAbsolute } from "node:path";
 import { pathToFileURL } from "node:url";
-import { Cortex20Error, FetchLeadDestination, HttpDurableEventWriter, ServerlessFormIngress, type DurableEventWriter } from "./index.js";
+import { Cortex20Error, FetchLeadDestination, HttpDurableEventWriter, ServerlessFormIngress } from "./index.js";
 import { KillGuardedLeadDestination } from "./production-destination.js";
 import { startCortex20Server } from "./production-server.js";
 import { Cortex20ProductionWorker, Cortex20WorkerError, HttpCortex17FormEventClient } from "./production-worker.js";
@@ -49,18 +49,20 @@ export function startCortex20ProductionRuntime(env: NodeJS.ProcessEnv = process.
   const consumerId = required(env, "NEXUS_CORTEX_20_CONSUMER_ID"); if (!CONSUMER_ID.test(consumerId)) throw new Error("NEXUS_CORTEX_20_CONSUMER_ID is invalid");
   const origin = eventOrigin(env);
   const control = new SqliteCortex20Control(databasePath);
-  const assertMutationActive = () => {
+  const assertWorkerMutationActive = () => {
     if (control.read().mode !== "ACTIVE") throw new Cortex20WorkerError("KILLED", "CORTEX #20 killed at final event mutation boundary");
   };
-  const eventWriter = new HttpDurableEventWriter(new URL("/v1/events", origin), eventWriteToken, integerEnv(env, "NEXUS_CORTEX_20_EVENT_TIMEOUT_MS", 5_000, 100, 30_000));
-  const guardedQueue: DurableEventWriter = {
-    async append(event) {
-      if (control.read().mode !== "ACTIVE") throw new Cortex20Error("QUEUE_FAILURE", "durable append disabled by CORTEX #20 control");
-      return eventWriter.append(event);
-    },
+  const assertIngressMutationActive = () => {
+    if (control.read().mode !== "ACTIVE") throw new Cortex20Error("QUEUE_FAILURE", "durable append disabled by CORTEX #20 control at final POST boundary");
   };
-  const ingress = new ServerlessFormIngress(guardedQueue, encryptionKey, keyId);
-  const eventClient = new HttpCortex17FormEventClient(origin, eventReadToken, eventWriteToken, integerEnv(env, "NEXUS_CORTEX_20_EVENT_TIMEOUT_MS", 5_000, 100, 60_000), assertMutationActive);
+  const eventWriter = new HttpDurableEventWriter(
+    new URL("/v1/events", origin),
+    eventWriteToken,
+    integerEnv(env, "NEXUS_CORTEX_20_EVENT_TIMEOUT_MS", 5_000, 100, 30_000),
+    assertIngressMutationActive,
+  );
+  const ingress = new ServerlessFormIngress(eventWriter, encryptionKey, keyId);
+  const eventClient = new HttpCortex17FormEventClient(origin, eventReadToken, eventWriteToken, integerEnv(env, "NEXUS_CORTEX_20_EVENT_TIMEOUT_MS", 5_000, 100, 60_000), assertWorkerMutationActive);
   const rawDestination = new FetchLeadDestination(destinationEndpoint(env), destinationToken, integerEnv(env, "NEXUS_CORTEX_20_DESTINATION_TIMEOUT_MS", 10_000, 100, 30_000));
   const destination = new KillGuardedLeadDestination(rawDestination, () => control.read().mode);
   const worker = new Cortex20ProductionWorker({
