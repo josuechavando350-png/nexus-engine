@@ -21,10 +21,11 @@ ENV NODE_ENV=production \
   NEXUS_CORTEX_STATE_DB=/var/lib/nexus-cortex/serp-state.sqlite \
   NEXUS_CORTEX_SERP_MANIFEST=/var/lib/nexus-cortex/serp-metadata.json \
   NEXUS_CORTEX_PERSISTENCE_ACK=durable-volume \
-  NEXUS_CORTEX_SERP_CONFIG=/etc/nexus-cortex/serp-metadata.json
+  NEXUS_CORTEX_SERP_CONFIG=/etc/nexus-cortex/serp-metadata.json \
+  NEXUS_CORTEX_SERP_STATISTICAL_ROLLBACK_CONFIG=/etc/nexus-cortex/serp-statistical-rollback.json
 
 VOLUME ["/var/lib/nexus-cortex"]
 EXPOSE 8792
 USER node
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD node -e 'fetch("http://127.0.0.1:"+(process.env.PORT||8792)+"/healthz").then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))'
-CMD ["node", "scripts/cortex-serp-metadata.mjs"]
+CMD ["node", "scripts/cortex-serp-metadata-statistical.mjs"]
