@@ -117,9 +117,12 @@ describe("CORTEX #23 inventory intelligence", () => {
       return new Response(body, { status: 200, headers: { "content-type": "application/json" } });
     });
     const provider = new HttpInventoryCreativeProvider({ endpoint: "https://inventory.example/v1/creative", bearerToken: "i".repeat(32), timeoutMs: 1_000, fetchImpl: fetchMock as unknown as typeof fetch });
-    const pending = provider.getInventory(CUSTOMER, ["sku-0001"]);
+    const outcome = provider.getInventory(CUSTOMER, ["sku-0001"]).then(
+      () => null,
+      (error: unknown) => error,
+    );
     await vi.advanceTimersByTimeAsync(1_000);
-    await expect(pending).rejects.toMatchObject({ code: "TIMEOUT" });
+    await expect(outcome).resolves.toMatchObject({ code: "TIMEOUT" });
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
