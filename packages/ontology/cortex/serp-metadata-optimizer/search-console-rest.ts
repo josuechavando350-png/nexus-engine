@@ -164,14 +164,29 @@ export class SearchConsoleRestClient implements SearchPerformanceProvider {
           signal: controller.signal,
           redirect: "error",
         });
-        const payload = await boundedJson(response, this.maxResponseBytes);
-        if (response.ok) return object(payload, "Search Console response");
-        const status = googleStatus(payload);
-        if ((response.status === 429 || response.status >= 500) && attempt + 1 < attempts) {
+        const retryableStatus = response.status === 429 || response.status >= 500;
+        if (!response.ok && retryableStatus && attempt + 1 < attempts) {
+          if (response.body) await response.body.cancel().catch(() => undefined);
           const nowMs = this.now();
           await this.sleep(retryAfterMs(response.headers.get("retry-after"), nowMs) ?? Math.min(8_000, 500 * 2 ** attempt));
           continue;
         }
+        let payload: unknown;
+        try {
+          payload = await boundedJson(response, this.maxResponseBytes);
+        } catch (error) {
+          if (!response.ok && error instanceof SearchConsoleApiError && error.code === "INVALID_RESPONSE") {
+            const code = response.status === 429
+              ? "QUOTA_EXHAUSTED"
+              : response.status === 401 || response.status === 403
+                ? "AUTHENTICATION_FAILED"
+                : "API_ERROR";
+            throw new SearchConsoleApiError(code, "Search Console API request failed", response.status);
+          }
+          throw error;
+        }
+        if (response.ok) return object(payload, "Search Console response");
+        const status = googleStatus(payload);
         const code = response.status === 429 || status === "RESOURCE_EXHAUSTED"
           ? "QUOTA_EXHAUSTED"
           : response.status === 401 || response.status === 403
