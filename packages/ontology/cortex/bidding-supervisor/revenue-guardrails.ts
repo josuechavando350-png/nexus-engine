@@ -16,7 +16,7 @@ export interface RevenueGuardrailPolicy {
   readonly allowedSourceIds: readonly string[];
 }
 
-export interface CreateRevenueGuardrailPolicyInput extends RevenueGuardrailPolicy {}
+export type CreateRevenueGuardrailPolicyInput = RevenueGuardrailPolicy;
 export interface RevenueGuardrailCampaign { readonly customerId: string; readonly campaignId: string }
 export interface RevenueGuardrailTelemetryEvent {
   readonly operation: "ALLOW" | "BLOCK" | "ROLLBACK_BYPASS";
