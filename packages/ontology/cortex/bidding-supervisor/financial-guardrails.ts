@@ -45,8 +45,14 @@ interface ScopeEvidence {
   readonly googleCostMicros: number;
 }
 
-function scopeKey(customerId: string, kind: BusinessProfitabilityQuery["scopeKind"], scopeId: string): ScopeKey {
-  return `${customerId}\u0000${kind}\u0000${scopeId}`;
+function scopeKey(customerId: string, kind: BusinessProfitabilityQuery["scopeKind"], scopeId: string, startMs: number, endMs: number): ScopeKey {
+  return `${customerId}\u0000${kind}\u0000${scopeId}\u0000${startMs}\u0000${endMs}`;
+}
+
+function canonicalUtcMs(value: string, field: string): number {
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new BiddingSupervisorError("INTEGRITY_FAILURE", `${field} must be canonical UTC`);
+  return parsed.getTime();
 }
 
 function boundedRatio(value: number, field: string): number {
@@ -107,7 +113,7 @@ export class FinancialGuardedBiddingAdapters {
     const observedGoogleAds: GoogleAdsBiddingGateway = Object.freeze({
       getCampaignSnapshot: async (customerId: string, campaignId: string, startMs: number, endMs: number): Promise<GoogleAdsCampaignSnapshot> => {
         const snapshot = await options.googleAds.getCampaignSnapshot(customerId, campaignId, startMs, endMs);
-        const key = scopeKey(customerId, "CAMPAIGN", campaignId);
+        const key = scopeKey(customerId, "CAMPAIGN", campaignId, startMs, endMs);
         this.resourceScope.set(snapshot.campaignResourceName, key);
         this.resourceScope.set(snapshot.budgetResourceName, key);
         this.costByScope.set(key, snapshot.costMicros);
@@ -117,7 +123,7 @@ export class FinancialGuardedBiddingAdapters {
       },
       getPortfolioSnapshot: async (customerId: string, resourceName: string, startMs: number, endMs: number): Promise<GoogleAdsPortfolioSnapshot> => {
         const snapshot = await options.googleAds.getPortfolioSnapshot(customerId, resourceName, startMs, endMs);
-        const key = scopeKey(customerId, "BIDDING_STRATEGY", snapshot.strategyId);
+        const key = scopeKey(customerId, "BIDDING_STRATEGY", snapshot.strategyId, startMs, endMs);
         this.resourceScope.set(snapshot.resourceName, key);
         this.costByScope.set(key, snapshot.costMicros);
         const current = this.evidence.get(key);
@@ -130,7 +136,12 @@ export class FinancialGuardedBiddingAdapters {
     const observedProfitability: BusinessProfitabilityProvider = Object.freeze({
       getProfitability: async (query: BusinessProfitabilityQuery): Promise<BusinessProfitabilitySnapshot> => {
         const business = await options.profitability.getProfitability(query);
-        const key = scopeKey(query.customerId, query.scopeKind, query.scopeId);
+        if (business.customerId !== query.customerId || business.scopeKind !== query.scopeKind || business.scopeId !== query.scopeId || business.windowStart !== query.windowStart || business.windowEnd !== query.windowEnd) {
+          throw new BiddingSupervisorError("INTEGRITY_FAILURE", "financial guardrail profitability scope/window mismatch");
+        }
+        const startMs = canonicalUtcMs(query.windowStart, "financial guardrail windowStart");
+        const endMs = canonicalUtcMs(query.windowEnd, "financial guardrail windowEnd");
+        const key = scopeKey(query.customerId, query.scopeKind, query.scopeId, startMs, endMs);
         this.evidence.set(key, Object.freeze({ business, googleCostMicros: this.costByScope.get(key) ?? -1 }));
         return business;
       },
