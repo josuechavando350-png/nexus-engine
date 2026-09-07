@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { InMemoryOntologyTransactionStore } from "@nexus/ontology/transaction";
 import { ServerSideContextualBanditEngine, createCortexBanditPolicy } from "./index";
 import { parseCortexBanditProductionConfig, type CortexBanditHttpRuntime } from "./production-runtime";
+import { CortexBanditRuntimeController } from "./runtime-control";
 import {
   CortexBanditControlPlaneIntegrationError,
   CortexBanditControlPlaneReconciler,
@@ -184,6 +185,31 @@ describe("CORTEX #21 external control-plane integration", () => {
     const reconciler = new CortexBanditControlPlaneReconciler(store, config, controlPolicyInput, source, () => current);
     await expect(reconciler.syncOnce()).resolves.toEqual({ appliedCommandIds: ["activate-0001"], staleCommandIds: [], experimentCount: 1 });
     expect(reconciler.states()).toEqual([expect.objectContaining({ revision: 2, mode: "ACTIVE", effectiveMode: "ACTIVE" })]);
+  });
+
+  it("detects tampering with durable external authorization provenance", async () => {
+    const store = new InMemoryOntologyTransactionStore();
+    const current = seedRelaxationEvidence(store);
+    const commandTime = new Date(current).toISOString();
+    const source: CortexBanditControlPlaneSource = {
+      async pull(request) {
+        const state = request.experiments[0]!;
+        return { version: 1, commands: [{ commandId: "activate-tamper-0001", experimentId: "landing-cta", policyDigest, controlPolicyDigest: controlPolicy.digest, evidenceDigest: state.evidenceDigest, expectedRevision: state.revision, mode: "ACTIVE", reason: "evidence criteria satisfied", issuedAt: commandTime }] };
+      },
+    };
+    const reconciler = new CortexBanditControlPlaneReconciler(store, config, controlPolicyInput, source, () => current);
+    await expect(reconciler.syncOnce()).resolves.toMatchObject({ appliedCommandIds: ["activate-tamper-0001"] });
+
+    const checkpoint = store.checkpoint();
+    const event = checkpoint.objects.find((record) => record.typeId === "cortex.bandit_runtime_control_event" && record.properties["cortex.bandit.control_event.command_id"] === "activate-tamper-0001");
+    if (!event) throw new Error("authorized control event was not persisted");
+    store.restore({
+      objects: checkpoint.objects.map((record) => record.id === event.id ? { ...record, properties: { ...record.properties, "cortex.bandit.control_event.command_id": "activate-tamper-0002" } } : record),
+      relationships: checkpoint.relationships,
+    });
+
+    const controller = new CortexBanditRuntimeController(store, config.scope, "landing-cta", policyDigest, "ACTIVE", () => current);
+    expect(() => controller.history()).toThrowError(/control event digest mismatch/u);
   });
 
   it("treats superseded and exact no-op commands as stale instead of replaying writes", async () => {
