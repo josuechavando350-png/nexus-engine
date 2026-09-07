@@ -182,7 +182,12 @@ export class GoogleDataManagerRestClient {
         body,
       });
     } catch (error) {
-      if (error instanceof DataManagerApiError && error.code === "CONSENT_BLOCKED") throw error;
+      // Consent revocation is a deterministic local veto. Translate it to the
+      // existing deterministic 4xx remote-failure class so the durable outbox
+      // safely returns to PREPARED instead of becoming AMBIGUOUS.
+      if (error instanceof DataManagerApiError && error.code === "CONSENT_BLOCKED") {
+        throw new DataManagerApiError("API_ERROR", error.message, error.httpStatus ?? 403);
+      }
       if (controller.signal.aborted) throw new DataManagerApiError("TIMEOUT", "Data Manager request timed out");
       throw new DataManagerApiError("AMBIGUOUS_OUTCOME", error instanceof Error ? `Data Manager transport failed: ${error.message}` : "Data Manager transport failed");
     } finally {
