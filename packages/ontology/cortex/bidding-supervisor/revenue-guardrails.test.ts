@@ -121,7 +121,10 @@ describe("CORTEX #22 revenue guardrails", () => {
     const mutations: GoogleAdsControlMutation[] = [];
     const adapters = guarded(store, baseGateway(mutations), profitability(8_000_000, 1_000_000));
     const supervisor = new PeriodicGoogleAdsBiddingSupervisor(store, scope, policy, adapters.googleAds, adapters.profitability, () => NOW);
-    await expect(supervisor.supervise({ runId: "blocked-expansion-0001", customerId: campaigns[0].customerId, campaignId: campaigns[0].campaignId, mode: "ACTIVE" })).rejects.toMatchObject({ code: "POLICY_VIOLATION" });
+    const input = { runId: "blocked-expansion-0001", customerId: campaigns[0].customerId, campaignId: campaigns[0].campaignId, mode: "ACTIVE" } as const;
+    await expect(supervisor.supervise(input)).rejects.toMatchObject({ code: "POLICY_VIOLATION" });
+    expect(mutations).toEqual([]);
+    await expect(supervisor.supervise(input)).resolves.toMatchObject({ status: "FAILED", reason: "POLICY_BLOCKED" });
     expect(mutations).toEqual([]);
   });
 
