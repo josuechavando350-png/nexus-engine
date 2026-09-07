@@ -72,7 +72,7 @@ class Gateway implements GoogleAdsCreativeGateway {
   }
 }
 
-afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe("CORTEX #23 inventory intelligence", () => {
   it("turns a trusted OUT_OF_STOCK inventory value into the real Google Ads customizer mutation", async () => {
@@ -103,6 +103,24 @@ describe("CORTEX #23 inventory intelligence", () => {
     );
     await expect(engine.synchronize({ runId: "stale-inventory-0001", customerId: CUSTOMER, mode: "ACTIVE" })).rejects.toBeInstanceOf(InventoryIntelligenceError);
     expect(gateway.mutations).toEqual([]);
+  });
+
+  it("keeps the timeout active while streaming the inventory response body", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const signal = init?.signal;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          signal?.addEventListener("abort", () => controller.error(new DOMException("Aborted", "AbortError")), { once: true });
+        },
+      });
+      return new Response(body, { status: 200, headers: { "content-type": "application/json" } });
+    });
+    const provider = new HttpInventoryCreativeProvider({ endpoint: "https://inventory.example/v1/creative", bearerToken: "i".repeat(32), timeoutMs: 1_000, fetchImpl: fetchMock as unknown as typeof fetch });
+    const pending = provider.getInventory(CUSTOMER, ["sku-0001"]);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(pending).rejects.toMatchObject({ code: "TIMEOUT" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("requires the inventory service to return explicit copy for both stock states", async () => {
