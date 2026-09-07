@@ -4,6 +4,13 @@ import type { OntologyScope } from "@nexus/ontology";
 import { SqliteOntologyTransactionStore } from "@nexus/ontology/cortex/sqlite-transaction-store";
 import { GoogleDataManagerRestClient, type DataManagerDestination } from "./data-manager-rest";
 import { DurableEnhancedConversionsPipeline } from "./index";
+import {
+  HttpConversionPrivacyDecisionProvider,
+  PrivacyGuardedEnhancedConversionsPipeline,
+  createPrivacyMutationGuard,
+  equalBearerSecret,
+} from "./privacy-abstraction";
+import { loadConversionPrivacyPolicy } from "./privacy-policy-config";
 import { EnhancedConversionProductionServer } from "./production-server";
 import { DurableEnhancedConversionControl } from "./runtime-control";
 
@@ -14,7 +21,7 @@ const MAX_TOKEN_FILE_BYTES = 16 * 1024;
 export interface EnhancedConversionProductionRuntime {
   readonly store: SqliteOntologyTransactionStore;
   readonly control: DurableEnhancedConversionControl;
-  readonly engine: DurableEnhancedConversionsPipeline;
+  readonly engine: PrivacyGuardedEnhancedConversionsPipeline;
   readonly server: EnhancedConversionProductionServer;
   start(): Promise<{ host: string; port: number }>;
   close(): Promise<void>;
@@ -77,23 +84,41 @@ function integerEnv(name: string, fallback: number, min: number, max: number): n
 }
 
 export function createEnhancedConversionProductionRuntimeFromEnv(): EnhancedConversionProductionRuntime {
+  if (process.env.NEXUS_CORTEX_PERSISTENCE_ACK !== "durable-volume") {
+    throw new Error("NEXUS_CORTEX_PERSISTENCE_ACK must equal durable-volume; ephemeral filesystems are refused");
+  }
   const databasePath = requiredEnv("NEXUS_CORTEX_10_DATABASE");
-  if (!isAbsolute(databasePath)) throw new Error("NEXUS_CORTEX_10_DATABASE must be an absolute path");
+  if (databasePath === ":memory:" || !isAbsolute(databasePath)) throw new Error("NEXUS_CORTEX_10_DATABASE must be an absolute path on a durable mounted volume");
   const accessTokenFile = requiredEnv("NEXUS_CORTEX_10_ACCESS_TOKEN_FILE");
   const scope = scopeFromEnv();
   const destination = destinationFromEnv();
+  const privacyPolicy = loadConversionPrivacyPolicy(requiredEnv("NEXUS_CORTEX_30_PRIVACY_CONFIG"));
+  const ingestToken = requiredEnv("NEXUS_CORTEX_10_INGEST_TOKEN");
+  const controlToken = requiredEnv("NEXUS_CORTEX_10_CONTROL_TOKEN");
+  const privacyToken = requiredEnv("NEXUS_CORTEX_30_PRIVACY_TOKEN");
+  if (equalBearerSecret(privacyToken, ingestToken) || equalBearerSecret(privacyToken, controlToken) || equalBearerSecret(ingestToken, controlToken)) {
+    throw new Error("ingest, control and privacy credentials must be distinct");
+  }
+
   const store = new SqliteOntologyTransactionStore(databasePath);
   const control = new DurableEnhancedConversionControl(store, scope);
+  const decisions = new HttpConversionPrivacyDecisionProvider({
+    endpoint: requiredEnv("NEXUS_CORTEX_30_PRIVACY_ENDPOINT"),
+    bearerToken: privacyToken,
+    timeoutMs: integerEnv("NEXUS_CORTEX_30_PRIVACY_TIMEOUT_MS", 5_000, 1_000, 60_000),
+  });
   const gateway = new GoogleDataManagerRestClient({
     accessTokenProvider: accessTokenProviderFromFile(accessTokenFile),
     timeoutMs: integerEnv("NEXUS_CORTEX_10_DATA_MANAGER_TIMEOUT_MS", 15_000, 1_000, 120_000),
+    beforeMutation: createPrivacyMutationGuard(decisions, privacyPolicy),
   });
-  const engine = new DurableEnhancedConversionsPipeline(store, scope, destination, gateway, () => control.read().mode);
+  const baseEngine = new DurableEnhancedConversionsPipeline(store, scope, destination, gateway, () => control.read().mode);
+  const engine = new PrivacyGuardedEnhancedConversionsPipeline({ base: baseEngine, decisions, policy: privacyPolicy });
   const server = new EnhancedConversionProductionServer({
     engine,
     control,
-    ingestToken: requiredEnv("NEXUS_CORTEX_10_INGEST_TOKEN"),
-    controlToken: requiredEnv("NEXUS_CORTEX_10_CONTROL_TOKEN"),
+    ingestToken,
+    controlToken,
     host: process.env.NEXUS_CORTEX_10_HOST?.trim() || "127.0.0.1",
     port: integerEnv("NEXUS_CORTEX_10_PORT", 8080, 1, 65_535),
   });
@@ -128,7 +153,7 @@ export async function runEnhancedConversionProductionRuntimeFromEnv(): Promise<v
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   runEnhancedConversionProductionRuntimeFromEnv().catch((error) => {
-    console.error(JSON.stringify({ component: "cortex-10-production-runtime", error: error instanceof Error ? error.message : "UNKNOWN" }));
+    console.error(JSON.stringify({ component: "cortex-30-production-runtime", error: error instanceof Error ? error.message : "UNKNOWN" }));
     process.exitCode = 1;
   });
 }
