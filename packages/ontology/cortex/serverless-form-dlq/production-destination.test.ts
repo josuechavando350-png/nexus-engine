@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import type { LeadDestination } from "./index";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { FetchLeadDestination, type LeadDestination } from "./index";
 import { KillGuardedLeadDestination } from "./production-destination";
 import { Cortex20WorkerError } from "./production-worker";
 
@@ -10,6 +10,27 @@ const submission = {
   contactConsent: "GRANTED",
   fields: { name: "Cliente" },
 } as const;
+afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+describe("CORTEX #20 real lead destination adapter", () => {
+  it("sends the stable idempotency key and accepts only a bounded receipt identity", async () => {
+    const fetchMock = vi.fn(async (input: string | URL | Request, init?: RequestInit) => {
+      expect(String(input)).toBe("https://crm.example/v1/leads"); expect(init?.method).toBe("POST"); expect(init?.redirect).toBe("error");
+      const headers = init?.headers as Record<string, string>; expect(headers["idempotency-key"]).toBe("form-accepted-00000001");
+      return new Response(null, { status: 200, headers: { "x-request-id": "receipt-00000001" } });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const destination = new FetchLeadDestination(new URL("https://crm.example/v1/leads"), "d".repeat(32), 1_000);
+    await expect(destination.deliver(submission, "form-accepted-00000001")).resolves.toEqual({ receiptId: "receipt-00000001" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("fails closed on an ambiguous destination response without a receipt", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 200 })));
+    const destination = new FetchLeadDestination(new URL("https://crm.example/v1/leads"), "d".repeat(32), 1_000);
+    await expect(destination.deliver(submission, "form-accepted-00000001")).rejects.toThrowError(/receipt is invalid/u);
+  });
+});
 
 describe("CORTEX #20 final lead destination guard", () => {
   it("delegates only while durable control is ACTIVE", async () => {
