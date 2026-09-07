@@ -159,8 +159,12 @@ function secureEndpoint(endpoint: URL, token: string, timeoutMs: number, label: 
 }
 
 export class HttpDurableEventWriter implements DurableEventWriter {
-  constructor(private readonly endpoint: URL, private readonly bearerToken: string, private readonly timeoutMs = 5_000) { secureEndpoint(endpoint, bearerToken, timeoutMs, "durable event writer"); }
+  constructor(private readonly endpoint: URL, private readonly bearerToken: string, private readonly timeoutMs: number, private readonly assertMutationAllowed: () => void) {
+    secureEndpoint(endpoint, bearerToken, timeoutMs, "durable event writer");
+    if (typeof assertMutationAllowed !== "function") throw new Cortex20Error("INVALID_INPUT", "durable event writer mutation guard is required");
+  }
   async append(event: DurableFormEventInput): Promise<{ sequence: number }> {
+    this.assertMutationAllowed();
     const response = await fetch(this.endpoint, { method: "POST", headers: { authorization: `Bearer ${this.bearerToken}`, "content-type": "application/json", accept: "application/json" }, body: JSON.stringify(event), redirect: "error", signal: AbortSignal.timeout(this.timeoutMs) });
     if (!(response.status === 200 || response.status === 201)) throw new Cortex20Error("QUEUE_FAILURE", `durable event stream returned HTTP ${response.status}`);
     const body = await readBoundedJson(response) as Record<string, unknown>;
