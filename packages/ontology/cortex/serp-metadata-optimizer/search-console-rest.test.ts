@@ -131,6 +131,28 @@ describe("SearchConsoleRestClient", () => {
     expect(result.pageRows[0]?.impressions).toBe(1_000);
   });
 
+  it("retries retryable HTTP statuses even when the transient error body is not JSON", async () => {
+    const sleeps: number[] = [];
+    const transient = new Response("upstream unavailable", { status: 503, headers: { "content-type": "text/plain" } });
+    const { rest, calls } = client([
+      transient,
+      response({ rows: [pageRow(PAGE, 20, 1_000, 5)] }),
+      response({ rows: [queryRow("federal defense", 20, 1_000, 5)] }),
+    ], { maxReadRetries: 1, sleep: async (ms) => { sleeps.push(ms); } });
+    const result = await rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 20 });
+    expect(calls).toHaveLength(3);
+    expect(sleeps).toEqual([500]);
+    expect(result.pageRows[0]?.impressions).toBe(1_000);
+  });
+
+  it("classifies a final non-JSON quota response by HTTP status", async () => {
+    const quota = client([new Response("busy", { status: 429, headers: { "content-type": "text/plain" } })]);
+    await expect(quota.rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 20 })).rejects.toMatchObject({
+      code: "QUOTA_EXHAUSTED",
+      httpStatus: 429,
+    });
+  });
+
   it("classifies authentication and malformed responses without inventing rows", async () => {
     const auth = client([response({ error: { status: "PERMISSION_DENIED", message: "denied" } }, 403)]);
     await expect(auth.rest.getPerformance({ siteUrl: SITE, pageUrl: PAGE, startDate: "2026-08-01", endDate: "2026-08-28", maxRows: 20 })).rejects.toMatchObject({ code: "AUTHENTICATION_FAILED" });
