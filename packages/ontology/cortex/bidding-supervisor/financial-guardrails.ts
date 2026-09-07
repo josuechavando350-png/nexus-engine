@@ -97,6 +97,7 @@ export class FinancialGuardedBiddingAdapters {
   readonly profitability: BusinessProfitabilityProvider;
   readonly policy: FinancialGuardrailPolicy;
   private readonly evidence = new Map<ScopeKey, ScopeEvidence>();
+  private readonly googleCosts = new Map<ScopeKey, number>();
   private readonly resourceScope = new Map<string, ScopeKey>();
   private readonly inner: RevenueGuardedBiddingAdapters;
 
@@ -109,6 +110,7 @@ export class FinancialGuardedBiddingAdapters {
         const key = scopeKey(customerId, "CAMPAIGN", campaignId);
         this.resourceScope.set(snapshot.campaignResourceName, key);
         this.resourceScope.set(snapshot.budgetResourceName, key);
+        this.googleCosts.set(key, snapshot.costMicros);
         const current = this.evidence.get(key);
         if (current) this.evidence.set(key, Object.freeze({ ...current, googleCostMicros: snapshot.costMicros }));
         return snapshot;
@@ -117,6 +119,7 @@ export class FinancialGuardedBiddingAdapters {
         const snapshot = await options.googleAds.getPortfolioSnapshot(customerId, resourceName, startMs, endMs);
         const key = scopeKey(customerId, "BIDDING_STRATEGY", snapshot.strategyId);
         this.resourceScope.set(snapshot.resourceName, key);
+        this.googleCosts.set(key, snapshot.costMicros);
         const current = this.evidence.get(key);
         if (current) this.evidence.set(key, Object.freeze({ ...current, googleCostMicros: snapshot.costMicros }));
         return snapshot;
@@ -129,7 +132,7 @@ export class FinancialGuardedBiddingAdapters {
         const business = await options.profitability.getProfitability(query);
         const key = scopeKey(query.customerId, query.scopeKind, query.scopeId);
         const current = this.evidence.get(key);
-        this.evidence.set(key, Object.freeze({ business, googleCostMicros: current?.googleCostMicros ?? -1 }));
+        this.evidence.set(key, Object.freeze({ business, googleCostMicros: current?.googleCostMicros ?? this.googleCosts.get(key) ?? -1 }));
         return business;
       },
     });
