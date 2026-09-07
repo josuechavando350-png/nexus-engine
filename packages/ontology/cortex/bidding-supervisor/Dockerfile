@@ -20,7 +20,8 @@ ENV NODE_ENV=production \
   PORT=8788 \
   NEXUS_CORTEX_STATE_DB=/var/lib/nexus-cortex/bidding-supervisor.sqlite \
   NEXUS_CORTEX_PERSISTENCE_ACK=durable-volume \
-  NEXUS_CORTEX_BIDDING_CONFIG=/etc/nexus-cortex/bidding.json
+  NEXUS_CORTEX_BIDDING_CONFIG=/etc/nexus-cortex/bidding.json \
+  NEXUS_CORTEX_REVENUE_GUARD_CONFIG=/etc/nexus-cortex/revenue-guardrails.json
 
 VOLUME ["/var/lib/nexus-cortex"]
 EXPOSE 8788
@@ -29,4 +30,4 @@ USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node -e 'fetch(`http://127.0.0.1:${process.env.PORT || "8788"}/healthz`).then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))'
 
-CMD ["node", "scripts/cortex-bidding-supervisor.mjs"]
+CMD ["node", "scripts/cortex-bidding-revenue-guarded.mjs"]

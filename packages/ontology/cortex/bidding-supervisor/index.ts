@@ -54,6 +54,10 @@ export class BiddingSupervisorError extends Error {
   constructor(public readonly code: "INVALID_INPUT" | "POLICY_VIOLATION" | "CONFLICT" | "INTEGRITY_FAILURE" | "PERSISTENCE_FAILURE" | "REMOTE_FAILURE", message: string) { super(message); this.name = "BiddingSupervisorError"; }
 }
 
+export class BiddingSupervisorPolicyBlockError extends BiddingSupervisorError {
+  constructor(message: string) { super("POLICY_VIOLATION", message); this.name = "BiddingSupervisorPolicyBlockError"; }
+}
+
 function hash(namespace: string, value: unknown): string { return `sha256:${createHash("sha256").update(`${namespace}\n${canonicalJson(value)}`, "utf8").digest("hex")}`; }
 function id(value: string, field: string): string { const v = value.trim(); if (!IDENTIFIER.test(v)) throw new BiddingSupervisorError("INVALID_INPUT", `${field} is malformed`); return v; }
 function numericId(value: string, field: string): string { const v = value.replaceAll("-", "").trim(); if (!/^\d{5,20}$/.test(v)) throw new BiddingSupervisorError("INVALID_INPUT", `${field} is malformed`); return v; }
@@ -189,7 +193,7 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     let receipt: GoogleAdsMutationReceipt;
     try { receipt = await this.googleAds.applyMutation(run.customerId, run.action); }
     catch (error) {
-      if (error instanceof BiddingSupervisorError && error.code === "POLICY_VIOLATION") {
+      if (error instanceof BiddingSupervisorPolicyBlockError) {
         const next: RunPayload = { ...payload(run), reason: "POLICY_BLOCKED", receipt: null, errorCode: error.code };
         this.finalize(run, "FAILED", next, this.time().iso, "NONE");
         throw error;

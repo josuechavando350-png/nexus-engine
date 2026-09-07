@@ -24,7 +24,7 @@ const campaignSnapshot: GoogleAdsCampaignSnapshot = {
   budgetExplicitlyShared: false,
   recommendedBudgetAmountMicros: null,
   biddingStrategyType: "MAXIMIZE_CONVERSIONS",
-  biddingStrategySystemStatus: "ELIGIBLE",
+  biddingStrategySystemStatus: "ENABLED",
   portfolioBiddingStrategyResourceName: null,
   standardTargetCpaMicros: null,
   standardTargetRoas: null,

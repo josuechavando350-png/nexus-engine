@@ -1,6 +1,6 @@
 import { canonicalJson, ontologyId, type OntologyScope } from "@nexus/ontology";
 import type { JsonValue, OntologyTransactionPort } from "@nexus/ontology/transaction";
-import { BiddingSupervisorError, type BusinessProfitabilityProvider, type BusinessProfitabilityQuery, type BusinessProfitabilitySnapshot, type GoogleAdsBiddingGateway } from "./index";
+import { BiddingSupervisorError, BiddingSupervisorPolicyBlockError, type BusinessProfitabilityProvider, type BusinessProfitabilityQuery, type BusinessProfitabilitySnapshot, type GoogleAdsBiddingGateway } from "./index";
 import type { GoogleAdsCampaignSnapshot, GoogleAdsControlMutation, GoogleAdsMutationReceipt, GoogleAdsPortfolioSnapshot } from "./google-ads-rest";
 
 const ID = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,127})$/u;
@@ -199,19 +199,19 @@ export class RevenueGuardedBiddingAdapters {
 
   private assertExpansionAllowed(customerId: string, action: GoogleAdsControlMutation): void {
     const key = this.resourceScope.get(action.resourceName);
-    if (!key) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail has no verified scope for expansion mutation");
+    if (!key) throw new BiddingSupervisorPolicyBlockError("revenue guardrail has no verified scope for expansion mutation");
     const evidence = this.evidence.get(key);
-    if (!evidence || evidence.googleCostMicros < 0) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail lacks complete business and spend evidence");
+    if (!evidence || evidence.googleCostMicros < 0) throw new BiddingSupervisorPolicyBlockError("revenue guardrail lacks complete business and spend evidence");
     const observedAt = canonicalUtc(evidence.snapshot.observedAt, "revenue guardrail observedAt");
     const age = this.now() - observedAt;
-    if (age < 0 || age > this.policy.maxSnapshotAgeMs) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail business evidence is stale or future-dated");
-    if (!this.policy.allowedSourceIds.includes(evidence.snapshot.sourceId)) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail source is not allowlisted");
-    if (evidence.snapshot.revenueMicros < this.policy.minimumRevenueMicros) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail minimum realized revenue is not met");
+    if (age < 0 || age > this.policy.maxSnapshotAgeMs) throw new BiddingSupervisorPolicyBlockError("revenue guardrail business evidence is stale or future-dated");
+    if (!this.policy.allowedSourceIds.includes(evidence.snapshot.sourceId)) throw new BiddingSupervisorPolicyBlockError("revenue guardrail source is not allowlisted");
+    if (evidence.snapshot.revenueMicros < this.policy.minimumRevenueMicros) throw new BiddingSupervisorPolicyBlockError("revenue guardrail minimum realized revenue is not met");
     const profitAfterAdSpend = evidence.snapshot.grossProfitBeforeAdSpendMicros - evidence.googleCostMicros;
-    if (profitAfterAdSpend < this.policy.minimumProfitAfterAdSpendMicros) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail minimum profit after ad spend is not met");
-    if (evidence.snapshot.qualifiedConversions < this.policy.minimumQualifiedConversions) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail minimum qualified conversions is not met");
+    if (profitAfterAdSpend < this.policy.minimumProfitAfterAdSpendMicros) throw new BiddingSupervisorPolicyBlockError("revenue guardrail minimum profit after ad spend is not met");
+    if (evidence.snapshot.qualifiedConversions < this.policy.minimumQualifiedConversions) throw new BiddingSupervisorPolicyBlockError("revenue guardrail minimum qualified conversions is not met");
     const revenueToSpend = evidence.googleCostMicros > 0 ? evidence.snapshot.revenueMicros / evidence.googleCostMicros : 0;
-    if (revenueToSpend < this.policy.minimumRevenueToSpendRatio) throw new BiddingSupervisorError("POLICY_VIOLATION", "revenue guardrail minimum revenue-to-spend ratio is not met");
+    if (revenueToSpend < this.policy.minimumRevenueToSpendRatio) throw new BiddingSupervisorPolicyBlockError("revenue guardrail minimum revenue-to-spend ratio is not met");
   }
 
   private applyMutation(customerId: string, action: GoogleAdsControlMutation): Promise<GoogleAdsMutationReceipt> {

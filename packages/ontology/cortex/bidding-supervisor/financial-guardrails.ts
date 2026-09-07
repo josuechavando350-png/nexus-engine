@@ -2,6 +2,7 @@ import { canonicalJson, ontologyId, type OntologyScope } from "@nexus/ontology";
 import type { JsonValue, OntologyTransactionPort } from "@nexus/ontology/transaction";
 import {
   BiddingSupervisorError,
+  BiddingSupervisorPolicyBlockError,
   type BusinessProfitabilityProvider,
   type BusinessProfitabilityQuery,
   type BusinessProfitabilitySnapshot,
@@ -176,19 +177,19 @@ export class FinancialGuardedBiddingAdapters {
 
   private assertMarginAndCac(action: GoogleAdsControlMutation): void {
     const key = this.resourceScope.get(action.resourceName);
-    if (!key) throw new BiddingSupervisorError("POLICY_VIOLATION", "financial guardrail has no verified campaign/strategy scope");
+    if (!key) throw new BiddingSupervisorPolicyBlockError("financial guardrail has no verified campaign/strategy scope");
     const evidence = this.evidence.get(key);
-    if (!evidence || evidence.googleCostMicros < 0) throw new BiddingSupervisorError("POLICY_VIOLATION", "financial guardrail lacks complete cost and profitability evidence");
+    if (!evidence || evidence.googleCostMicros < 0) throw new BiddingSupervisorPolicyBlockError("financial guardrail lacks complete cost and profitability evidence");
     const revenue = evidence.business.revenueMicros;
     const grossProfit = evidence.business.grossProfitBeforeAdSpendMicros;
     const grossMarginRatio = revenue > 0 ? grossProfit / revenue : 0;
     if (!Number.isFinite(grossMarginRatio) || grossMarginRatio < this.policy.minimumGrossMarginRatio) {
-      throw new BiddingSupervisorError("POLICY_VIOLATION", "financial guardrail minimum gross-margin ratio is not met");
+      throw new BiddingSupervisorPolicyBlockError("financial guardrail minimum gross-margin ratio is not met");
     }
     const qualifiedConversions = evidence.business.qualifiedConversions;
     const cacMicros = qualifiedConversions > 0 ? evidence.googleCostMicros / qualifiedConversions : Number.POSITIVE_INFINITY;
     if (!Number.isFinite(cacMicros) || cacMicros > this.policy.maximumCustomerAcquisitionCostMicros) {
-      throw new BiddingSupervisorError("POLICY_VIOLATION", "financial guardrail target CAC is exceeded");
+      throw new BiddingSupervisorPolicyBlockError("financial guardrail target CAC is exceeded");
     }
   }
 
