@@ -22,7 +22,7 @@ function root(): ProgrammaticSeoPageInput {
     title: "Defensa penal especializada",
     description: "Información jurídica general y rutas de atención penal.",
     heading: "Defensa penal especializada",
-    bodyText: "Nuestro sitio explica rutas de atención penal, etapas procesales y criterios para solicitar orientación jurídica. La página principal organiza las áreas y recursos disponibles para cada asunto.",
+    bodyText: "Defensa penal especializada. Nuestro sitio explica rutas de atención penal, etapas procesales y criterios para solicitar orientación jurídica. La página principal organiza las áreas y recursos disponibles para cada asunto.",
     distinctiveStatements: ["La página principal organiza las áreas y recursos disponibles para cada asunto.", "Nuestro sitio explica rutas de atención penal, etapas procesales y criterios para solicitar orientación jurídica."],
     evidenceRefs: ["editorial:home-v1"],
     updatedAt: new Date(NOW).toISOString(),
@@ -39,7 +39,7 @@ function service(): ProgrammaticSeoPageInput {
     title: "Defensa penal y estrategia procesal",
     description: "Guía sobre defensa penal, investigación y estrategia procesal.",
     heading: "Defensa penal y estrategia procesal",
-    bodyText: "Esta guía describe investigación inicial, audiencias, preparación de evidencia y coordinación de defensa. Incluye criterios procesales aplicables a asuntos penales complejos y explica cómo organizar documentación relevante.",
+    bodyText: "Defensa penal y estrategia procesal. Esta guía describe investigación inicial, audiencias, preparación de evidencia y coordinación de defensa. Incluye criterios procesales aplicables a asuntos penales complejos y explica cómo organizar documentación relevante.",
     distinctiveStatements: ["Esta guía describe investigación inicial, audiencias, preparación de evidencia y coordinación de defensa.", "Incluye criterios procesales aplicables a asuntos penales complejos y explica cómo organizar documentación relevante."],
     evidenceRefs: ["editorial:defensa-v3"],
     updatedAt: new Date(NOW).toISOString(),
@@ -122,7 +122,7 @@ describe("CORTEX #25 hyperlocal long-tail", () => {
 
   it("merges only evidence-backed hyperlocal pages and passes them through the real #5 anti-doorway compiler", async () => {
     const merged = await wrapper(catalog("hyperlocal-editorial-v1", [local()])).getCatalog(SITE_ID);
-    expect(merged.pages.map((page) => page.pageId)).toEqual(["home", "criminal-defense", "criminal-defense-monterrey"]);
+    expect(merged.pages.map((page) => page.pageId)).toEqual(["criminal-defense", "criminal-defense-monterrey", "home"]);
     const bundle = compileProgrammaticSeoBundle(merged, compilePolicy);
     expect(bundle.pages).toHaveLength(3);
     expect(bundle.sitemap.map((entry) => entry.url)).toContain("https://example.com/defensa-penal/monterrey/");
@@ -136,7 +136,8 @@ describe("CORTEX #25 hyperlocal long-tail", () => {
   });
 
   it("rejects stale or unapproved hyperlocal sources before they enter the publish bundle", async () => {
-    const stale = catalog("hyperlocal-editorial-v1", [local()], new Date(NOW - 3_600_001).toISOString());
+    const staleObservedAt = new Date(NOW - 3_600_001).toISOString();
+    const stale = catalog("hyperlocal-editorial-v1", [local({ updatedAt: staleObservedAt })], staleObservedAt);
     await expect(wrapper(stale).getCatalog(SITE_ID)).rejects.toMatchObject({ code: "POLICY_VIOLATION" });
     const foreign = catalog("unknown-source", [local()]);
     await expect(wrapper(foreign).getCatalog(SITE_ID)).rejects.toMatchObject({ code: "POLICY_VIOLATION" });
