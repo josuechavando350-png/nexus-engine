@@ -1,0 +1,83 @@
+import { mkdtempSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
+import { afterEach, describe, expect, it } from "vitest";
+import { Cortex19Error, SqliteCouponIssuer, decideCoupon } from "./index";
+
+const dirs: string[] = [];
+function path(name: string): string { const dir = mkdtempSync(join(tmpdir(), `nexus-cortex19-${name}-`)); dirs.push(dir); return join(dir, `${name}.sqlite`); }
+afterEach(() => { for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
+
+const request = {
+  requestId: "coupon-request-0001",
+  subjectHash: `sha256:${"a".repeat(64)}`,
+  sku: "product-00000001",
+  price: 1000.05,
+  variableCost: 500,
+  currency: "MXN",
+  eligible: true,
+  probabilityEvidence: { probability: 0.2, modelId: "friction-model-0001", modelDigest: `sha256:${"b".repeat(64)}` },
+} as const;
+const policy = {
+  minProfitAmount: 300,
+  maxDiscountBps: 2000,
+  maxCouponsPerWindow: 1,
+  maxDiscountCostPerWindow: 1000,
+  frequencyWindowSeconds: 3600,
+  tiers: [{ probabilityAtOrBelow: 0.3, discountBps: 1000 }, { probabilityAtOrBelow: 0.6, discountBps: 500 }],
+} as const;
+
+describe("CORTEX #19 financial coupon decision", () => {
+  it("uses approved probability evidence with deterministic cent-safe discount rounding", () => {
+    expect(decideCoupon(request, policy)).toEqual({ action: "OFFER", reason: "OFFER_ALLOWED", discountBps: 1000, discountAmount: 100, priceAfterDiscount: 900.05, profitAfterDiscount: 400.05 });
+  });
+
+  it("refuses incentives that violate the configured minimum profit", () => {
+    const result = decideCoupon(request, { ...policy, minProfitAmount: 450.06 });
+    expect(result.action).toBe("NO_OFFER"); expect(result.reason).toBe("MARGIN_GUARDRAIL");
+  });
+
+  it("rejects unsupported precision, duplicate tier thresholds, and missing model provenance", () => {
+    expect(() => decideCoupon({ ...request, price: 1000.051 }, policy)).toThrowError(/two decimal places/u);
+    expect(() => decideCoupon(request, { ...policy, tiers: [{ probabilityAtOrBelow: 0.3, discountBps: 1000 }, { probabilityAtOrBelow: 0.3, discountBps: 500 }] })).toThrowError(/duplicated/u);
+    expect(() => decideCoupon({ ...request, probabilityEvidence: { ...request.probabilityEvidence, modelDigest: "unknown" } }, policy)).toThrowError(Cortex19Error);
+  });
+});
+
+describe("CORTEX #19 durable issuance", () => {
+  it("atomically enforces frequency caps and binds idempotency to normalized request plus policy", () => {
+    const issuer = new SqliteCouponIssuer(path("coupons"), "s".repeat(32), () => "ACTIVE", () => Date.parse("2026-09-06T00:00:00.000Z"));
+    const first = issuer.issue(request, policy);
+    expect(first.code).toMatch(/^NX-[0-9A-F]{12}$/u); expect(issuer.issue(request, policy)).toEqual(first);
+    const capped = issuer.issue({ ...request, requestId: "coupon-request-0002" }, policy);
+    expect(capped).toMatchObject({ action: "NO_OFFER", reason: "FREQUENCY_CAP", code: null });
+    expect(() => issuer.issue({ ...request, price: 999 }, policy)).toThrowError(/different coupon request or policy content/u);
+    expect(() => issuer.issue(request, { ...policy, minProfitAmount: 301 })).toThrowError(/different coupon request or policy content/u);
+    issuer.close();
+  });
+
+  it("keeps OBSERVE_ONLY completely side-effect free so ACTIVE can later make the durable decision", () => {
+    const db = path("observe");
+    const observed = new SqliteCouponIssuer(db, "s".repeat(32), () => "OBSERVE_ONLY", () => Date.parse("2026-09-06T00:00:00.000Z"));
+    expect(observed.issue(request, policy)).toMatchObject({ action: "OFFER", code: null, issuedAt: null }); observed.close();
+    const active = new SqliteCouponIssuer(db, "s".repeat(32), () => "ACTIVE", () => Date.parse("2026-09-06T00:00:01.000Z"));
+    expect(active.issue(request, policy).code).toMatch(/^NX-[0-9A-F]{12}$/u); active.close();
+  });
+
+  it("enforces the currency-window discount cost cap in exact cents before code issuance", () => {
+    const issuer = new SqliteCouponIssuer(path("cost"), "s".repeat(32), () => "ACTIVE", () => Date.parse("2026-09-06T00:00:00.000Z"));
+    const costPolicy = { ...policy, maxCouponsPerWindow: 10, maxDiscountCostPerWindow: 150 };
+    expect(issuer.issue(request, costPolicy)).toMatchObject({ action: "OFFER", discountAmount: 100, windowDiscountCost: 100 });
+    const second = issuer.issue({ ...request, requestId: "coupon-request-0002", subjectHash: `sha256:${"c".repeat(64)}` }, costPolicy);
+    expect(second).toMatchObject({ action: "NO_OFFER", reason: "COST_CAP", code: null, windowDiscountCost: 100 });
+    issuer.close();
+  });
+
+  it("fails closed when control becomes unavailable or KILLED after the ledger lock is acquired", () => {
+    let reads = 0;
+    const issuer = new SqliteCouponIssuer(path("kill"), "s".repeat(32), () => (++reads < 2 ? "ACTIVE" : "KILLED"), () => Date.parse("2026-09-06T00:00:00.000Z"));
+    expect(() => issuer.issue(request, policy)).toThrowError(/disabled before durable decision/u); issuer.close();
+    const unavailable = new SqliteCouponIssuer(path("unavailable"), "s".repeat(32), () => { throw new Error("control unavailable"); });
+    expect(() => unavailable.issue(request, policy)).toThrowError(/killed/u); unavailable.close();
+  });
+});
