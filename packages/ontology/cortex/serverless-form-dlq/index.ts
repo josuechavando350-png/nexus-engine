@@ -58,7 +58,7 @@ export function parseFormSubmission(value: unknown): FormSubmission {
   if (!(raw.contactConsent === "GRANTED" || raw.contactConsent === "DENIED")) throw new Cortex20Error("INVALID_INPUT", "contactConsent is invalid");
   if (raw.contactConsent !== "GRANTED") throw new Cortex20Error("CONSENT_VIOLATION", "contact processing requires explicit consent");
   if (!raw.fields || typeof raw.fields !== "object" || Array.isArray(raw.fields) || Object.getPrototypeOf(raw.fields) !== Object.prototype) throw new Cortex20Error("INVALID_INPUT", "fields must be a plain object");
-  const entries = Object.entries(raw.fields as Record<string, unknown>).sort(([left], [right]) => left.localeCompare(right));
+  const entries = Object.entries(raw.fields as Record<string, unknown>).sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
   if (entries.length < 1 || entries.length > 64) throw new Cortex20Error("INVALID_INPUT", "fields must contain 1-64 entries");
   const fields: Record<string, string> = {};
   let bytes = 0;
