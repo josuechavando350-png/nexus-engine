@@ -33,6 +33,7 @@
     "verify:googlebot-render": "pnpm --filter @nexus/capture build && node scripts/verify-googlebot-render.mjs",
     "verify:screen-reader": "pnpm --filter @nexus/capture build && node scripts/verify-screen-reader.mjs",
     "cortex:bandit-control-plane": "pnpm --filter @nexus/ontology build && node scripts/cortex-bandit-control-plane.mjs",
+    "cortex:bandit-integrated-control-plane": "pnpm --filter @nexus/ontology build && node scripts/cortex-bandit-integrated-control-plane.mjs",
     "cortex:bidding-supervisor": "pnpm --filter @nexus/ontology build && node scripts/cortex-bidding-supervisor.mjs",
     "cortex:behavioral-signals": "pnpm --filter @nexus/ontology build && node scripts/cortex-behavioral-signals.mjs",
     "cortex:creative-sync": "pnpm --filter @nexus/ontology build && node scripts/cortex-creative-sync.mjs",
