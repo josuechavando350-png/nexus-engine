@@ -10,6 +10,7 @@ function temp(name: string): string { const dir = mkdtempSync(join(tmpdir(), `ne
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); for (const dir of dirs.splice(0)) rmSync(dir, { recursive: true, force: true }); });
 
 const metric = { source: "first-party", eventId: "metric-00000001", occurredAt: "2026-09-06T00:00:00.000Z", currency: "MXN", revenue: 1000, cost: 300, spend: 200, conversions: 2 } as const;
+const validBearerToken = "s".repeat(32);
 
 describe("CORTEX #18 hybrid ingestion", () => {
   it("consumes first-party financial events from the durable CORTEX #17 stream with committed offsets", () => {
@@ -69,12 +70,16 @@ describe("CORTEX #18 external HTTPS adapter", () => {
       return Response.json({ items: [{ ...metric, source: "external-ads", eventId: "metric-00000004" }], nextCursor: "next-1" });
     });
     vi.stubGlobal("fetch", fetchMock);
-    const source = new HttpIncrementalMetricSource("external-ads", new URL("https://metrics.example/v1/events"), "secret", 1_000);
+    const source = new HttpIncrementalMetricSource("external-ads", new URL("https://metrics.example/v1/events"), validBearerToken, 1_000);
     expect((await source.poll("cursor-0")).nextCursor).toBe("next-1");
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("rejects non-HTTPS external sources", () => {
-    expect(() => new HttpIncrementalMetricSource("external-ads", new URL("http://metrics.example"), "secret")).toThrowError(/configuration/u);
+    expect(() => new HttpIncrementalMetricSource("external-ads", new URL("http://metrics.example"), validBearerToken)).toThrowError(/configuration/u);
+  });
+
+  it("rejects bearer credentials below the production minimum", () => {
+    expect(() => new HttpIncrementalMetricSource("external-ads", new URL("https://metrics.example/v1/events"), "secret")).toThrowError(/configuration/u);
   });
 });
