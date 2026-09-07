@@ -9,6 +9,10 @@ jobs:
   build-verification:
     runs-on: ubuntu-24.04
     container: node:24
+    env:
+      GIT_CONFIG_COUNT: 1
+      GIT_CONFIG_KEY_0: safe.directory
+      GIT_CONFIG_VALUE_0: ${{ github.workspace }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
