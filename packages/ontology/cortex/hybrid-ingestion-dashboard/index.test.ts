@@ -62,11 +62,16 @@ describe("CORTEX #18 dashboard GraphQL boundary", () => {
 
 describe("CORTEX #18 external HTTPS adapter", () => {
   it("uses a fixed HTTPS endpoint and the durable cursor", async () => {
-    const fetchMock = vi.fn(async (url: URL) => Response.json({ items: [{ ...metric, source: "external-ads", eventId: "metric-00000004" }], nextCursor: "next-1" }));
+    const fetchMock = vi.fn(async (url: URL) => {
+      expect(url.origin).toBe("https://metrics.example");
+      expect(url.pathname).toBe("/v1/events");
+      expect(url.searchParams.get("cursor")).toBe("cursor-0");
+      return Response.json({ items: [{ ...metric, source: "external-ads", eventId: "metric-00000004" }], nextCursor: "next-1" });
+    });
     vi.stubGlobal("fetch", fetchMock);
     const source = new HttpIncrementalMetricSource("external-ads", new URL("https://metrics.example/v1/events"), "secret", 1_000);
     expect((await source.poll("cursor-0")).nextCursor).toBe("next-1");
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain("cursor=cursor-0");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
   it("rejects non-HTTPS external sources", () => {
