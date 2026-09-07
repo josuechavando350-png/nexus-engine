@@ -20,10 +20,11 @@ ENV NODE_ENV=production \
   PORT=8791 \
   NEXUS_CORTEX_STATE_DB=/var/lib/nexus-cortex/creative-sync.sqlite \
   NEXUS_CORTEX_PERSISTENCE_ACK=durable-volume \
-  NEXUS_CORTEX_CREATIVE_CONFIG=/etc/nexus-cortex/creative-sync.json
+  NEXUS_CORTEX_CREATIVE_CONFIG=/etc/nexus-cortex/creative-sync.json \
+  NEXUS_CORTEX_INVENTORY_CREATIVE_CONFIG=/etc/nexus-cortex/inventory-creative.json
 
 VOLUME ["/var/lib/nexus-cortex"]
 EXPOSE 8791
 USER node
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD node -e 'fetch("http://127.0.0.1:"+(process.env.PORT||8791)+"/healthz").then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))'
-CMD ["node", "scripts/cortex-creative-sync.mjs"]
+CMD ["node", "scripts/cortex-creative-inventory-sync.mjs"]
