@@ -140,7 +140,6 @@ function aggregate(rows: readonly SearchPerformanceRow[], predicate: (row: Searc
   let clicks = 0;
   let impressions = 0;
   let positionWeighted = 0;
-  let pageCount = 0;
   const pages = new Set<string>();
   for (const row of rows) {
     if (!predicate(row)) continue;
@@ -152,8 +151,7 @@ function aggregate(rows: readonly SearchPerformanceRow[], predicate: (row: Searc
     positionWeighted += row.position * row.impressions;
     pages.add(row.pageUrl);
   }
-  pageCount = pages.size;
-  return Object.freeze({ clicks, impressions, ctr: impressions > 0 ? clicks / impressions : 0, averagePosition: impressions > 0 ? positionWeighted / impressions : 0, pageCount });
+  return Object.freeze({ clicks, impressions, ctr: impressions > 0 ? clicks / impressions : 0, averagePosition: impressions > 0 ? positionWeighted / impressions : 0, pageCount: pages.size });
 }
 
 function validateSnapshot(snapshot: SearchPerformanceSnapshot, siteUrl: string, startDate: string, endDate: string): void {
