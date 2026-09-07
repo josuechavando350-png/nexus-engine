@@ -37,11 +37,13 @@ export interface DataManagerRestConfig {
   readonly accessTokenProvider: DataManagerAccessTokenProvider;
   readonly fetchImpl?: typeof fetch;
   readonly timeoutMs?: number;
+  /** Final authoritative guard, evaluated immediately before the external POST. */
+  readonly beforeMutation?: (event: DataManagerConversionEvent) => Promise<void>;
 }
 
 export class DataManagerApiError extends Error {
   constructor(
-    public readonly code: "INVALID_CONFIG" | "AUTHENTICATION_FAILED" | "API_ERROR" | "INVALID_RESPONSE" | "TIMEOUT" | "AMBIGUOUS_OUTCOME",
+    public readonly code: "INVALID_CONFIG" | "AUTHENTICATION_FAILED" | "API_ERROR" | "INVALID_RESPONSE" | "TIMEOUT" | "AMBIGUOUS_OUTCOME" | "CONSENT_BLOCKED",
     message: string,
     public readonly httpStatus: number | null = null,
   ) {
@@ -165,6 +167,9 @@ export class GoogleDataManagerRestClient {
     let response: Response;
     try {
       const accessToken = token(await this.config.accessTokenProvider());
+      // CORTEX #30 final privacy boundary: no network mutation is allowed until
+      // the authoritative consent/identity policy has been revalidated.
+      await this.config.beforeMutation?.(event);
       response = await this.fetchImpl(DATA_MANAGER_INGEST_URL, {
         method: "POST",
         redirect: "error",
@@ -177,6 +182,7 @@ export class GoogleDataManagerRestClient {
         body,
       });
     } catch (error) {
+      if (error instanceof DataManagerApiError && error.code === "CONSENT_BLOCKED") throw error;
       if (controller.signal.aborted) throw new DataManagerApiError("TIMEOUT", "Data Manager request timed out");
       throw new DataManagerApiError("AMBIGUOUS_OUTCOME", error instanceof Error ? `Data Manager transport failed: ${error.message}` : "Data Manager transport failed");
     } finally {
