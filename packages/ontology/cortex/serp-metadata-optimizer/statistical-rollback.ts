@@ -190,6 +190,7 @@ function decisionBase(pageId: string, state: Partial<StatisticalRollbackDecision
 export class StatisticalSerpRollbackSupervisor {
   readonly policy: StatisticalRollbackPolicy;
   private readonly targets: ReadonlyMap<string, StatisticalRollbackTarget>;
+  private readonly targetUrls: ReadonlySet<string>;
   private readonly now: () => number;
 
   constructor(private readonly options: StatisticalRollbackSupervisorOptions) {
@@ -203,6 +204,7 @@ export class StatisticalSerpRollbackSupervisor {
       if (url.protocol !== "https:" || !target.pageUrl.startsWith(options.siteUrl)) throw new SerpMetadataOptimizerError("INVALID_INPUT", `pageUrl for ${target.pageId} must be HTTPS within siteUrl`);
     }
     this.targets = new Map(normalized.map((target) => [target.pageId, target] as const));
+    this.targetUrls = new Set(normalized.map((target) => target.pageUrl));
     this.now = options.now ?? Date.now;
   }
 
@@ -260,8 +262,8 @@ export class StatisticalSerpRollbackSupervisor {
 
     const beforeTarget = aggregate(before.pageRows, (row) => row.pageUrl === target.pageUrl);
     const afterTarget = aggregate(after.pageRows, (row) => row.pageUrl === target.pageUrl);
-    const beforePeers = aggregate(before.pageRows, (row) => row.pageUrl !== target.pageUrl);
-    const afterPeers = aggregate(after.pageRows, (row) => row.pageUrl !== target.pageUrl);
+    const beforePeers = aggregate(before.pageRows, (row) => !this.targetUrls.has(row.pageUrl));
+    const afterPeers = aggregate(after.pageRows, (row) => !this.targetUrls.has(row.pageUrl));
     const common = {
       mutationAt: mutation.lastMutationAt,
       baselineStart: baseline.startDate,
