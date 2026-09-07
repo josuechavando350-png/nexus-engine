@@ -6,7 +6,6 @@ import { loadCortexBanditProductionConfig } from "../packages/ontology/dist/cort
 import {
   CortexBanditControlPlaneReconciler,
   HttpCortexBanditControlPlaneSource,
-  createCortexBanditControlPlanePolicy,
   createExternallyGovernedCortexBanditHttpRuntime,
 } from "../packages/ontology/dist/cortex/bandit-experimentation/control-plane-integration.js";
 
@@ -35,10 +34,8 @@ function loadControlPolicy(path) {
   if (!isAbsolute(path)) throw new Error("NEXUS_CORTEX_CONTROL_PLANE_POLICY must be an absolute path");
   const stat = statSync(path);
   if (!stat.isFile() || stat.size <= 0 || stat.size > MAX_CONTROL_POLICY_BYTES) throw new Error(`control-plane policy must be a regular file containing 1..${MAX_CONTROL_POLICY_BYTES} bytes`);
-  let parsed;
-  try { parsed = JSON.parse(readFileSync(path, "utf8")); }
+  try { return JSON.parse(readFileSync(path, "utf8")); }
   catch (error) { throw new Error("control-plane policy must contain valid JSON", { cause: error }); }
-  return createCortexBanditControlPlanePolicy(parsed);
 }
 
 const stateDbPath = required("NEXUS_CORTEX_STATE_DB");
@@ -56,12 +53,12 @@ const host = process.env.NEXUS_CORTEX_HOST?.trim() || "0.0.0.0";
 if (!host || /[\r\n\0]/u.test(host)) throw new Error("NEXUS_CORTEX_HOST is invalid");
 const port = boundedPort(process.env.PORT);
 const config = loadCortexBanditProductionConfig(configPath);
-const controlPolicy = loadControlPolicy(controlPolicyPath);
+const controlPolicyInput = loadControlPolicy(controlPolicyPath);
 const store = new SqliteOntologyTransactionStore(stateDbPath, {
   onTelemetryError: (error) => process.stderr.write(`${JSON.stringify({ component: "cortex-ontology-store", level: "error", code: "TELEMETRY_SINK_FAILURE", message: error instanceof Error ? error.message : "unknown" })}\n`),
 });
 const source = new HttpCortexBanditControlPlaneSource({ endpoint: externalControlEndpoint, bearerToken: externalControlToken });
-const reconciler = new CortexBanditControlPlaneReconciler(store, config, controlPolicy, source);
+const reconciler = new CortexBanditControlPlaneReconciler(store, config, controlPolicyInput, source);
 
 const initialSync = await reconciler.syncOnce();
 process.stdout.write(`${JSON.stringify({ component: "cortex-bandit-external-control-plane", operation: "INITIAL_SYNC", applied: initialSync.appliedCommandIds.length, stale: initialSync.staleCommandIds.length, experiments: initialSync.experimentCount, controlPolicyDigest: reconciler.policy.digest })}\n`);
