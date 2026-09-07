@@ -43,6 +43,7 @@
     "cortex:serp-metadata": "pnpm --filter @nexus/ontology build && node scripts/cortex-serp-metadata.mjs",
     "cortex:serp-metadata-statistical": "pnpm --filter @nexus/ontology build && node scripts/cortex-serp-metadata-statistical.mjs",
     "cortex:programmatic-seo": "pnpm --filter @nexus/ontology build && node scripts/cortex-programmatic-seo.mjs",
+    "cortex:programmatic-seo-hyperlocal": "pnpm --filter @nexus/ontology build && node scripts/cortex-programmatic-seo-hyperlocal.mjs",
     "release:validate": "pnpm security-hygiene && pnpm v3-gates && pnpm lint && pnpm typecheck && pnpm test && pnpm build && pnpm test:browser && pnpm operability:h07 && pnpm third-party-proof",
     "v3-gates": "node scripts/run-v3-gates.mjs",
     "rust:test": "cargo test --locked --workspace --manifest-path runtime/Cargo.toml",
