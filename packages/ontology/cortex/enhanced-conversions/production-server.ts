@@ -1,14 +1,21 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import type { EnhancedConversionMode } from "./index";
-import { DurableEnhancedConversionsPipeline, EnhancedConversionError, observeEnhancedConversionInput } from "./index";
+import type { EnhancedConversionMode, EnhancedConversionObservation, EnhancedConversionRecord } from "./index";
+import { EnhancedConversionError, observeEnhancedConversionInput } from "./index";
 import { DurableEnhancedConversionControl } from "./runtime-control";
 
 const JSON_TYPE = "application/json";
 const MAX_BODY_BYTES = 16 * 1024;
 
+export interface EnhancedConversionProductionEngine {
+  prepare(value: unknown): EnhancedConversionRecord | Promise<EnhancedConversionRecord>;
+  dispatch(transactionId: string): Promise<EnhancedConversionRecord>;
+  rollback(transactionId: string): EnhancedConversionRecord;
+  observe?(value: unknown): EnhancedConversionObservation | Promise<EnhancedConversionObservation>;
+}
+
 export interface EnhancedConversionProductionServerOptions {
-  readonly engine: DurableEnhancedConversionsPipeline;
+  readonly engine: EnhancedConversionProductionEngine;
   readonly control: DurableEnhancedConversionControl;
   readonly ingestToken: string;
   readonly controlToken: string;
@@ -144,17 +151,23 @@ export class EnhancedConversionProductionServer {
         if (initialMode === "KILLED") { json(response, 503, { error: "KILLED" }); return; }
         const input = await boundedJson(request);
         if (initialMode === "OBSERVE_ONLY") {
-          json(response, 200, { status: "OBSERVED", observation: observeEnhancedConversionInput(input) });
+          const observation = this.options.engine.observe
+            ? await this.options.engine.observe(input)
+            : observeEnhancedConversionInput(input);
+          json(response, 200, { status: "OBSERVED", observation });
           return;
         }
 
         const finalMode = this.options.control.read().mode;
         if (finalMode === "KILLED") { json(response, 503, { error: "KILLED" }); return; }
         if (finalMode === "OBSERVE_ONLY") {
-          json(response, 200, { status: "OBSERVED", observation: observeEnhancedConversionInput(input) });
+          const observation = this.options.engine.observe
+            ? await this.options.engine.observe(input)
+            : observeEnhancedConversionInput(input);
+          json(response, 200, { status: "OBSERVED", observation });
           return;
         }
-        const prepared = this.options.engine.prepare(input);
+        const prepared = await this.options.engine.prepare(input);
         try {
           const result = await this.options.engine.dispatch(prepared.transactionId);
           json(response, result.status === "SENT" ? 202 : 200, { transactionId: result.transactionId, status: result.status, digest: result.digest, externalRequestId: result.externalRequestId });
@@ -174,11 +187,14 @@ export class EnhancedConversionProductionServer {
       json(response, 404, { error: "NOT_FOUND" });
     } catch (error) {
       if (response.headersSent || response.destroyed) return;
-      const code = error instanceof EnhancedConversionError ? error.code : "INVALID_REQUEST";
+      const code = error instanceof EnhancedConversionError ? error.code
+        : error instanceof Error && "code" in error ? String((error as { code: unknown }).code)
+          : "INVALID_REQUEST";
       const status = error instanceof EnhancedConversionError && error.code === "CONFLICT" ? 409
         : error instanceof EnhancedConversionError && error.code === "CONSENT_VIOLATION" ? 403
-          : error instanceof EnhancedConversionError && (error.code === "KILLED" || error.code === "MODE_BLOCKED") ? 503
-            : 400;
+          : code === "CONSENT_DENIED" || code === "CONSENT_REVOKED" || code === "POLICY_VIOLATION" ? 403
+            : error instanceof EnhancedConversionError && (error.code === "KILLED" || error.code === "MODE_BLOCKED") ? 503
+              : 400;
       json(response, status, { error: code });
     }
   }
