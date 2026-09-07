@@ -14,11 +14,11 @@ export type BiddingSupervisorMode = "ACTIVE" | "OBSERVE_ONLY" | "KILLED";
 export type BiddingSupervisorRunStatus = "PREPARED" | "APPLIED" | "NOOP" | "FAILED" | "ROLLED_BACK";
 export type BiddingSupervisorDirection = "INCREASE_VOLUME" | "DECREASE_RISK" | "HOLD";
 export type BiddingSupervisorActionKind = GoogleAdsControlMutation["kind"];
-export type BiddingSupervisorReason = "KILL_SWITCH" | "COOLDOWN" | "CAMPAIGN_NOT_ENABLED" | "BIDDING_STRATEGY_LEARNING" | "BIDDING_STRATEGY_NOT_READY" | "INSUFFICIENT_EVIDENCE" | "STALE_BUSINESS_DATA" | "PROFITABILITY_HOLD" | "NO_COMPATIBLE_CONTROL" | "SHARED_BUDGET_BLOCKED" | "OBSERVE_ONLY" | "ACTION_APPLIED" | "ACTION_RECOVERED" | "REMOTE_CONFLICT" | "API_FAILURE" | "ROLLBACK_APPLIED";
+export type BiddingSupervisorReason = "KILL_SWITCH" | "COOLDOWN" | "CAMPAIGN_NOT_ENABLED" | "BIDDING_STRATEGY_LEARNING" | "BIDDING_STRATEGY_NOT_READY" | "INSUFFICIENT_EVIDENCE" | "STALE_BUSINESS_DATA" | "PROFITABILITY_HOLD" | "NO_COMPATIBLE_CONTROL" | "SHARED_BUDGET_BLOCKED" | "OBSERVE_ONLY" | "ACTION_APPLIED" | "ACTION_RECOVERED" | "POLICY_BLOCKED" | "REMOTE_CONFLICT" | "API_FAILURE" | "ROLLBACK_APPLIED";
 const MODES: readonly BiddingSupervisorMode[] = ["ACTIVE", "OBSERVE_ONLY", "KILLED"];
 const STATUSES: readonly BiddingSupervisorRunStatus[] = ["PREPARED", "APPLIED", "NOOP", "FAILED", "ROLLED_BACK"];
 const DIRECTIONS: readonly BiddingSupervisorDirection[] = ["INCREASE_VOLUME", "DECREASE_RISK", "HOLD"];
-const REASONS: readonly BiddingSupervisorReason[] = ["KILL_SWITCH", "COOLDOWN", "CAMPAIGN_NOT_ENABLED", "BIDDING_STRATEGY_LEARNING", "BIDDING_STRATEGY_NOT_READY", "INSUFFICIENT_EVIDENCE", "STALE_BUSINESS_DATA", "PROFITABILITY_HOLD", "NO_COMPATIBLE_CONTROL", "SHARED_BUDGET_BLOCKED", "OBSERVE_ONLY", "ACTION_APPLIED", "ACTION_RECOVERED", "REMOTE_CONFLICT", "API_FAILURE", "ROLLBACK_APPLIED"];
+const REASONS: readonly BiddingSupervisorReason[] = ["KILL_SWITCH", "COOLDOWN", "CAMPAIGN_NOT_ENABLED", "BIDDING_STRATEGY_LEARNING", "BIDDING_STRATEGY_NOT_READY", "INSUFFICIENT_EVIDENCE", "STALE_BUSINESS_DATA", "PROFITABILITY_HOLD", "NO_COMPATIBLE_CONTROL", "SHARED_BUDGET_BLOCKED", "OBSERVE_ONLY", "ACTION_APPLIED", "ACTION_RECOVERED", "POLICY_BLOCKED", "REMOTE_CONFLICT", "API_FAILURE", "ROLLBACK_APPLIED"];
 
 export interface CreateBiddingSupervisorPolicyInput {
   readonly policyId: string; readonly version: string; readonly observationWindowDays: number; readonly reportingLagDays: number;
@@ -52,6 +52,10 @@ type FinalizeEffect = "NONE" | "APPLY" | "ROLLBACK";
 
 export class BiddingSupervisorError extends Error {
   constructor(public readonly code: "INVALID_INPUT" | "POLICY_VIOLATION" | "CONFLICT" | "INTEGRITY_FAILURE" | "PERSISTENCE_FAILURE" | "REMOTE_FAILURE", message: string) { super(message); this.name = "BiddingSupervisorError"; }
+}
+
+export class BiddingSupervisorPolicyBlockError extends BiddingSupervisorError {
+  constructor(message: string) { super("POLICY_VIOLATION", message); this.name = "BiddingSupervisorPolicyBlockError"; }
 }
 
 function hash(namespace: string, value: unknown): string { return `sha256:${createHash("sha256").update(`${namespace}\n${canonicalJson(value)}`, "utf8").digest("hex")}`; }
@@ -188,7 +192,13 @@ export class PeriodicGoogleAdsBiddingSupervisor {
     if (!rollback) { const window = runWindowMs(run); const currentCampaign = await this.googleAds.getCampaignSnapshot(run.customerId, run.campaignId, window.startMs, window.endMs); const currentStrategyReason = biddingStrategySystemStatusReason(currentCampaign.biddingStrategySystemStatus); if (currentCampaign.status !== "ENABLED" || currentStrategyReason) throw new BiddingSupervisorError("POLICY_VIOLATION", `prepared mutation is frozen while campaign/bidding strategy is not ready: ${currentCampaign.status}/${currentCampaign.biddingStrategySystemStatus}`); }
     let receipt: GoogleAdsMutationReceipt;
     try { receipt = await this.googleAds.applyMutation(run.customerId, run.action); }
-    catch (error) { if (error instanceof GoogleAdsApiError && error.code === "AMBIGUOUS_MUTATION_OUTCOME") throw new BiddingSupervisorError("REMOTE_FAILURE", "Google Ads mutation outcome is ambiguous; run remains PREPARED for preflight recovery"); const reason: BiddingSupervisorReason = error instanceof GoogleAdsApiError && error.code === "REMOTE_CONFLICT" ? "REMOTE_CONFLICT" : "API_FAILURE"; const next: RunPayload = { ...payload(run), reason, receipt: null, errorCode: error instanceof GoogleAdsApiError ? error.code : "UNKNOWN_REMOTE_FAILURE" }; this.finalize(run, "FAILED", next, this.time().iso, "NONE"); throw new BiddingSupervisorError("REMOTE_FAILURE", `${reason}: Google Ads mutation was not certified as applied`); }
+    catch (error) {
+      if (error instanceof BiddingSupervisorPolicyBlockError) {
+        const next: RunPayload = { ...payload(run), reason: "POLICY_BLOCKED", receipt: null, errorCode: error.code };
+        this.finalize(run, "FAILED", next, this.time().iso, "NONE");
+        throw error;
+      }
+      if (error instanceof GoogleAdsApiError && error.code === "AMBIGUOUS_MUTATION_OUTCOME") throw new BiddingSupervisorError("REMOTE_FAILURE", "Google Ads mutation outcome is ambiguous; run remains PREPARED for preflight recovery"); const reason: BiddingSupervisorReason = error instanceof GoogleAdsApiError && error.code === "REMOTE_CONFLICT" ? "REMOTE_CONFLICT" : "API_FAILURE"; const next: RunPayload = { ...payload(run), reason, receipt: null, errorCode: error instanceof GoogleAdsApiError ? error.code : "UNKNOWN_REMOTE_FAILURE" }; this.finalize(run, "FAILED", next, this.time().iso, "NONE"); throw new BiddingSupervisorError("REMOTE_FAILURE", `${reason}: Google Ads mutation was not certified as applied`); }
     const reason: BiddingSupervisorReason = rollback ? "ROLLBACK_APPLIED" : receipt.recoveredAlreadyApplied ? "ACTION_RECOVERED" : "ACTION_APPLIED"; const next: RunPayload = { ...payload(run), reason, receipt, errorCode: null }; return this.result(this.finalize(run, rollback ? "ROLLED_BACK" : "APPLIED", next, this.time().iso, rollback ? "ROLLBACK" : "APPLY"));
   }
 
