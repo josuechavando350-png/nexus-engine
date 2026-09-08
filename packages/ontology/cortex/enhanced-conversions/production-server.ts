@@ -11,6 +11,7 @@ export interface EnhancedConversionEnginePort {
   prepare(value: unknown): EnhancedConversionRecord;
   dispatch(transactionId: string): Promise<EnhancedConversionRecord>;
   rollback(transactionId: string): EnhancedConversionRecord;
+  get(transactionId: string): EnhancedConversionRecord | undefined;
 }
 
 export interface EnhancedConversionProductionServerOptions {
