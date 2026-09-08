@@ -169,11 +169,16 @@ export class ConnectedSeoProfessionalSystem {
       throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "conversion click identifier kind does not match the landing assessment");
     }
 
-    const { landing: _landing, ...candidateInput } = input;
-    const candidate = {
-      ...candidateInput,
+    const candidate: OfflineCandidate = {
+      leadId: input.leadId,
+      occurredAt: input.occurredAt,
+      stage: input.stage,
+      conversionValue: input.conversionValue,
+      currencyCode: input.currencyCode,
       invalidTrafficScore: landing.traffic.riskScore,
-    } as OfflineCandidate;
+      clickId: input.clickId,
+      adUserDataConsent: input.adUserDataConsent,
+    };
     return this.offlineConversions.process(candidate, options);
   }
 
