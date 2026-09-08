@@ -16,7 +16,7 @@ const ALLOWED_UPDATE_MASKS = new Set([
   "phoneNumbers.primaryPhone",
   "storefrontAddress",
 ] as const);
-const ALLOWED_PATCH_KEYS = new Set(["title", "websiteUri", "phoneNumbers", "storefrontAddress"]);
+const ALLOWED_PATCH_KEYS: ReadonlySet<string> = new Set(["title", "websiteUri", "phoneNumbers", "storefrontAddress"]);
 
 export type GoogleBusinessProfileAccessTokenProvider = () => Promise<string>;
 export type GoogleBusinessProfileExecutionMode = "VALIDATE_ONLY" | "APPLY";
@@ -292,7 +292,7 @@ function validatePatch(patch: GoogleBusinessProfilePatch, mask: readonly GoogleB
   if (!patch || typeof patch !== "object" || Array.isArray(patch)) throw new GoogleBusinessProfileError("INVALID_INPUT", "location patch is required");
   const raw = patch as Record<string, unknown>;
   for (const key of Object.keys(raw)) if (!ALLOWED_PATCH_KEYS.has(key)) throw new GoogleBusinessProfileError("INVALID_INPUT", `unsupported patch field ${key}`);
-  const allowedTopLevelForMask = new Set(mask.map((field) => field === "phoneNumbers.primaryPhone" ? "phoneNumbers" : field));
+  const allowedTopLevelForMask = new Set<string>(mask.map((field) => field === "phoneNumbers.primaryPhone" ? "phoneNumbers" : field));
   for (const key of Object.keys(raw)) if (!allowedTopLevelForMask.has(key)) throw new GoogleBusinessProfileError("INVALID_INPUT", `patch field ${key} is not present in updateMask`);
 
   const normalized: {
