@@ -105,6 +105,15 @@ describe("exact search-term selection", () => {
     ]));
   });
 
+  it("rejects policies that could select more candidates than one atomic mutation accepts", () => {
+    expect(() => selectExactMatchCandidates([observation()], { ...policy, maximumCandidates: 51 })).toThrow(/maximumCandidates must be an integer from 1 to 50/u);
+  });
+
+  it("rejects malformed runtime search terms with a domain error instead of leaking a native TypeError", () => {
+    const malformed = { ...observation(), searchTerm: 42 } as unknown as SearchTermObservation;
+    expect(() => selectExactMatchCandidates([malformed], policy)).toThrow(/searchTerm must be a string/u);
+  });
+
   it("normalizes Unicode width/case/whitespace without inventing synonyms", () => {
     expect(normalizeSearchTerm("  ABOGADO\tPenalista  CDMX  ")).toBe("abogado penalista cdmx");
     expect(normalizeSearchTerm("ＡＢＣ")).toBe("abc");
