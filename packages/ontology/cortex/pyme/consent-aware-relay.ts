@@ -154,7 +154,7 @@ export class PymeConsentAwareLeadDestination implements LeadDestination {
     });
     const eventDigest = canonicalDigest(relay);
 
-    let ledger = this.row(idempotencyKey);
+    const ledger = this.row(idempotencyKey);
     if (ledger && ledger.eventDigest !== eventDigest) throw new Cortex20Error("DESTINATION_FAILURE", "PyME relay idempotency key is already bound to different content");
     if (ledger?.status === "SENT" || ledger?.status === "SUPPRESSED") return { receiptId: ledger.receiptId! };
     if (ledger?.status === "DISPATCHING") {
@@ -163,7 +163,6 @@ export class PymeConsentAwareLeadDestination implements LeadDestination {
     }
     if (!ledger) {
       this.db.prepare("INSERT INTO cortex_pyme_relay_ledger(event_id,event_digest,status,receipt_id,attempts,updated_at) VALUES(?,?,?,?,?,?)").run(idempotencyKey, eventDigest, "PENDING", null, 0, new Date(this.now()).toISOString());
-      ledger = this.row(idempotencyKey)!;
       this.audit(idempotencyKey, eventDigest, "PREPARE", "PENDING", idempotencyKey);
     }
 
