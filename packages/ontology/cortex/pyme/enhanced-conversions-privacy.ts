@@ -7,6 +7,7 @@ import { SqlitePymeConsentRegistry } from "./consent-registry";
 
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
 const ID = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{2,127})$/u;
+const TRANSACTION_ID = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{7,127})$/u;
 
 export interface PymeEnhancedConversionsPrivacyConfig {
   readonly databasePath: string;
@@ -60,6 +61,7 @@ export class PymeEnhancedConversionsPrivacyLayer {
   }
 
   private assertFinalConsent(event: DataManagerConversionEvent): void {
+    if (event.adUserDataConsent !== "GRANTED") throw new EnhancedConversionError("CONSENT_VIOLATION", "PyME enhanced conversions require explicit granted ad-user-data consent");
     const binding = this.binding(event.transactionId);
     const decision = this.config.consentRegistry.authorize(binding.subjectId, "ENHANCED_CONVERSIONS", binding.purpose, event.transactionId, new Date(this.now()).toISOString());
     if (!decision.authorized) throw new EnhancedConversionError("CONSENT_VIOLATION", `central consent registry blocks enhanced conversion: ${decision.reason}`);
@@ -67,18 +69,22 @@ export class PymeEnhancedConversionsPrivacyLayer {
 
   prepare(subjectId: `sha256:${string}`, value: unknown): EnhancedConversionRecord {
     if (!SHA256.test(subjectId)) throw new EnhancedConversionError("INVALID_INPUT", "PyME conversion subjectId must be sha256");
-    if (!value || typeof value !== "object" || Array.isArray(value) || typeof (value as Record<string, unknown>).transactionId !== "string") throw new EnhancedConversionError("INVALID_INPUT", "PyME enhanced conversion input is missing transactionId");
-    const transactionId = String((value as Record<string, unknown>).transactionId).trim();
-    if (!/^[A-Za-z0-9](?:[A-Za-z0-9._:-]{7,127})$/u.test(transactionId)) throw new EnhancedConversionError("INVALID_INPUT", "PyME enhanced conversion transactionId is malformed");
+    if (!value || typeof value !== "object" || Array.isArray(value)) throw new EnhancedConversionError("INVALID_INPUT", "PyME enhanced conversion input must be an object");
+    const raw = value as Record<string, unknown>;
+    if (typeof raw.transactionId !== "string" || !TRANSACTION_ID.test(raw.transactionId.trim())) throw new EnhancedConversionError("INVALID_INPUT", "PyME enhanced conversion transactionId is malformed");
+    if (raw.adUserDataConsent !== "GRANTED") throw new EnhancedConversionError("CONSENT_VIOLATION", "PyME enhanced conversion input must carry GRANTED adUserDataConsent");
+    const transactionId = raw.transactionId.trim();
     const consent = this.config.consentRegistry.authorize(subjectId, "ENHANCED_CONVERSIONS", this.purpose, transactionId, new Date(this.now()).toISOString());
     if (!consent.authorized) throw new EnhancedConversionError("CONSENT_VIOLATION", `central consent registry blocks enhanced conversion preparation: ${consent.reason}`);
+
+    const prepared = this.pipeline.prepare(value);
     const existing = this.db.prepare("SELECT subject_id,purpose FROM cortex_pyme_conversion_subject WHERE transaction_id=?").get(transactionId) as Record<string, unknown> | undefined;
     if (existing) {
       if (existing.subject_id !== subjectId || existing.purpose !== this.purpose) throw new EnhancedConversionError("CONFLICT", "transactionId is already bound to another PyME consent subject or purpose");
     } else {
       this.db.prepare("INSERT INTO cortex_pyme_conversion_subject(transaction_id,subject_id,purpose,bound_at) VALUES(?,?,?,?)").run(transactionId, subjectId, this.purpose, new Date(this.now()).toISOString());
     }
-    return this.pipeline.prepare(value);
+    return prepared;
   }
 
   async dispatch(transactionId: string): Promise<EnhancedConversionRecord> {
