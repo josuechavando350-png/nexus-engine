@@ -1,6 +1,9 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
 import {
   InvalidTrafficClickScorer,
   QualifiedOfflineConversionEngine,
+  type GoogleClickId,
+  type GoogleClickIdKind,
   type InvalidTrafficAssessment,
   type InvalidTrafficClickInput,
   type OfflineConversionCandidate,
@@ -19,10 +22,15 @@ import {
 } from "./topology.js";
 
 const CUSTOMER_ID = /^\d{5,20}$/u;
+const ASSESSMENT_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{7,191}$/u;
+const SHA256 = /^sha256:[0-9a-f]{64}$/u;
+const SIGNATURE = /^sha256=[0-9a-f]{64}$/u;
+const DEFAULT_ATTRIBUTION_TTL_MS = 30 * 24 * 60 * 60 * 1_000;
+const MAX_ATTRIBUTION_TTL_MS = 90 * 24 * 60 * 60 * 1_000;
 
 export class SeoProfessionalSystemError extends Error {
   constructor(
-    public readonly code: "INVALID_CONFIG" | "INVALID_INPUT" | "ATTRIBUTION_MISMATCH",
+    public readonly code: "INVALID_CONFIG" | "INVALID_INPUT" | "ATTRIBUTION_MISMATCH" | "ATTRIBUTION_EXPIRED",
     message: string,
   ) {
     super(message);
@@ -37,10 +45,29 @@ export interface CamaleonWebPort<TDecision> {
 export interface SeoProfessionalSystemDependencies<TDecision> {
   readonly googleAdsCustomerId: string;
   readonly maximumPersonalizationRiskScore: number;
+  readonly attributionSecret: string;
+  readonly attributionTtlMs?: number;
+  readonly now?: () => number;
   readonly trafficScorer: InvalidTrafficClickScorer;
   readonly offlineConversions: QualifiedOfflineConversionEngine;
   readonly exactMatchSynthesizer: ExactMatchSynthesizerEngine;
   readonly camaleonWeb: CamaleonWebPort<TDecision>;
+}
+
+export interface ConnectedAttributionPayload {
+  readonly schemaVersion: 1;
+  readonly assessmentId: string;
+  readonly googleAdsCustomerId: string;
+  readonly riskScore: number;
+  readonly clickIdKind: GoogleClickIdKind;
+  readonly clickIdDigest: `sha256:${string}`;
+  readonly issuedAt: string;
+  readonly expiresAt: string;
+}
+
+export interface ConnectedAttributionReceipt {
+  readonly payload: ConnectedAttributionPayload;
+  readonly signature: `sha256=${string}`;
 }
 
 export interface ConnectedLandingEvaluation<TDecision> {
@@ -48,11 +75,12 @@ export interface ConnectedLandingEvaluation<TDecision> {
   readonly traffic: InvalidTrafficAssessment;
   readonly personalization: TDecision;
   readonly personalizationSuppressedByTrafficRisk: boolean;
+  readonly attribution: ConnectedAttributionReceipt | null;
   readonly strategyTrace: readonly [1, 3];
 }
 
-export type ConnectedOfflineConversionInput<TDecision> = Omit<OfflineConversionCandidate, "invalidTrafficScore"> & {
-  readonly landing: ConnectedLandingEvaluation<TDecision>;
+export type ConnectedOfflineConversionInput = Omit<OfflineConversionCandidate, "invalidTrafficScore"> & {
+  readonly attribution: ConnectedAttributionReceipt;
 };
 
 export type ConnectedExactMatchOptimizationInput = Omit<ExactMatchSynthesizerRunRequest, "customerId">;
@@ -78,9 +106,42 @@ function boundedRisk(value: number): number {
   return value;
 }
 
+function attributionSecret(value: string): string {
+  if (typeof value !== "string" || value.length < 32 || value.length > 4_096) {
+    throw new SeoProfessionalSystemError("INVALID_CONFIG", "attributionSecret must contain 32..4096 characters");
+  }
+  for (const character of value) {
+    const code = character.codePointAt(0) ?? 0;
+    if (code < 0x20 || code === 0x7f) throw new SeoProfessionalSystemError("INVALID_CONFIG", "attributionSecret contains a control character");
+  }
+  return value;
+}
+
+function boundedAttributionTtl(value: number | undefined): number {
+  const resolved = value ?? DEFAULT_ATTRIBUTION_TTL_MS;
+  if (!Number.isSafeInteger(resolved) || resolved < 60_000 || resolved > MAX_ATTRIBUTION_TTL_MS) {
+    throw new SeoProfessionalSystemError("INVALID_CONFIG", "attributionTtlMs must be between 1 minute and 90 days");
+  }
+  return resolved;
+}
+
+function currentTime(now: () => number): number {
+  const value = now();
+  if (!Number.isFinite(value)) throw new SeoProfessionalSystemError("INVALID_INPUT", "clock returned a non-finite timestamp");
+  return value;
+}
+
 function withoutAcquisitionContext(value: InvalidTrafficClickInput["url"]): URL {
   const url = value instanceof URL ? new URL(value.href) : new URL(value);
   url.search = "";
+  return url;
+}
+
+function absoluteUrl(value: InvalidTrafficClickInput["url"]): URL {
+  const url = value instanceof URL ? new URL(value.href) : new URL(value);
+  if (!(url.protocol === "https:" || url.protocol === "http:") || url.username || url.password) {
+    throw new SeoProfessionalSystemError("INVALID_INPUT", "landing URL is malformed or unsupported");
+  }
   return url;
 }
 
@@ -98,9 +159,78 @@ function assertRuntimeDependency(value: unknown, method: string, label: string):
   }
 }
 
+function canonical(value: unknown): string {
+  if (value === null || typeof value !== "object") return JSON.stringify(value);
+  if (Array.isArray(value)) return `[${value.map(canonical).join(",")}]`;
+  return `{${Object.entries(value as Record<string, unknown>)
+    .sort(([left], [right]) => left.localeCompare(right, "en"))
+    .map(([key, item]) => `${JSON.stringify(key)}:${canonical(item)}`)
+    .join(",")}}`;
+}
+
+function clickDigest(secret: string, clickId: GoogleClickId): `sha256:${string}` {
+  return `sha256:${createHmac("sha256", secret).update(`click\0${clickId.kind}\0${clickId.value}`, "utf8").digest("hex")}`;
+}
+
+function receiptSignature(secret: string, payload: ConnectedAttributionPayload): `sha256=${string}` {
+  return `sha256=${createHmac("sha256", secret).update(`receipt\0${canonical(payload)}`, "utf8").digest("hex")}`;
+}
+
+function canonicalUtc(value: unknown, label: string): string {
+  if (typeof value !== "string") throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", `${label} must be canonical UTC`);
+  const parsed = new Date(value);
+  if (!Number.isFinite(parsed.getTime()) || parsed.toISOString() !== value) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", `${label} must be canonical UTC`);
+  return value;
+}
+
+function parseReceiptPayload(value: unknown): ConnectedAttributionPayload {
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) {
+    throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution payload must be a plain object");
+  }
+  const raw = value as Record<string, unknown>;
+  if (Object.keys(raw).sort().join(",") !== "assessmentId,clickIdDigest,clickIdKind,expiresAt,googleAdsCustomerId,issuedAt,riskScore,schemaVersion") {
+    throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution payload contains missing or unsupported fields");
+  }
+  if (raw.schemaVersion !== 1) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "unsupported attribution schema version");
+  if (typeof raw.assessmentId !== "string" || !ASSESSMENT_ID.test(raw.assessmentId)) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution assessmentId is malformed");
+  if (typeof raw.googleAdsCustomerId !== "string" || !CUSTOMER_ID.test(raw.googleAdsCustomerId)) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution customer id is malformed");
+  if (!Number.isInteger(raw.riskScore) || (raw.riskScore as number) < 0 || (raw.riskScore as number) > 1_000) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution risk score is malformed");
+  if (!(raw.clickIdKind === "gclid" || raw.clickIdKind === "gbraid" || raw.clickIdKind === "wbraid")) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution click id kind is malformed");
+  if (typeof raw.clickIdDigest !== "string" || !SHA256.test(raw.clickIdDigest)) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution click digest is malformed");
+  const issuedAt = canonicalUtc(raw.issuedAt, "attribution issuedAt");
+  const expiresAt = canonicalUtc(raw.expiresAt, "attribution expiresAt");
+  return Object.freeze({
+    schemaVersion: 1,
+    assessmentId: raw.assessmentId,
+    googleAdsCustomerId: raw.googleAdsCustomerId,
+    riskScore: raw.riskScore as number,
+    clickIdKind: raw.clickIdKind,
+    clickIdDigest: raw.clickIdDigest as `sha256:${string}`,
+    issuedAt,
+    expiresAt,
+  });
+}
+
+function safeEqual(left: string, right: string): boolean {
+  const leftBytes = Buffer.from(left, "utf8");
+  const rightBytes = Buffer.from(right, "utf8");
+  return leftBytes.length === rightBytes.length && timingSafeEqual(leftBytes, rightBytes);
+}
+
+function extractVerifiedClickId(urlInput: InvalidTrafficClickInput["url"], assessment: InvalidTrafficAssessment): GoogleClickId | null {
+  const kind = assessment.googleClickIdKind;
+  if (!assessment.hasGoogleClickId || kind === null) return null;
+  const values = absoluteUrl(urlInput).searchParams.getAll(kind);
+  if (values.length !== 1 || !values[0]) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "verified click identifier is not singular on the landing URL");
+  return Object.freeze({ kind, value: values[0] } as GoogleClickId);
+}
+
 export class ConnectedSeoProfessionalSystem<TDecision> {
   private readonly googleAdsCustomerId: string;
   private readonly maximumPersonalizationRiskScore: number;
+  private readonly attributionSigningSecret: string;
+  private readonly attributionTtlMs: number;
+  private readonly now: () => number;
   private readonly trafficScorer: InvalidTrafficClickScorer;
   private readonly offlineConversions: QualifiedOfflineConversionEngine;
   private readonly exactMatchSynthesizer: ExactMatchSynthesizerEngine;
@@ -111,6 +241,9 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
     assertConnectedSeoProfessionalTopology();
     this.googleAdsCustomerId = normalizedCustomerId(dependencies.googleAdsCustomerId);
     this.maximumPersonalizationRiskScore = boundedRisk(dependencies.maximumPersonalizationRiskScore);
+    this.attributionSigningSecret = attributionSecret(dependencies.attributionSecret);
+    this.attributionTtlMs = boundedAttributionTtl(dependencies.attributionTtlMs);
+    this.now = dependencies.now ?? Date.now;
     assertRuntimeDependency(dependencies.trafficScorer, "assess", "trafficScorer");
     assertRuntimeDependency(dependencies.offlineConversions, "process", "offlineConversions");
     assertRuntimeDependency(dependencies.exactMatchSynthesizer, "run", "exactMatchSynthesizer");
@@ -137,30 +270,30 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
     const personalization = await this.camaleonWeb.resolve(
       personalizationSuppressedByTrafficRisk ? withoutAcquisitionContext(input.url) : input.url,
     );
+    const clickId = extractVerifiedClickId(input.url, traffic);
+    const nowMs = currentTime(this.now);
+    const attribution = clickId === null ? null : this.createAttributionReceipt(traffic, clickId, nowMs);
     return Object.freeze({
       googleAdsCustomerId: this.googleAdsCustomerId,
       traffic,
       personalization,
       personalizationSuppressedByTrafficRisk,
+      attribution,
       strategyTrace: Object.freeze([1, 3] as const),
     });
   }
 
   async recordQualifiedConversion(
-    input: ConnectedOfflineConversionInput<TDecision>,
+    input: ConnectedOfflineConversionInput,
     options?: OfflineConversionUploadOptions,
   ): Promise<QualifiedOfflineConversionEngineResult> {
     if (!input || typeof input !== "object") throw new SeoProfessionalSystemError("INVALID_INPUT", "connected offline conversion input is required");
-    const landing = input.landing;
-    if (!landing || landing.googleAdsCustomerId !== this.googleAdsCustomerId) {
-      throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "landing belongs to a different Google Ads customer");
-    }
-    assertTrafficAssessmentIntegrity(landing.traffic);
-    if (!landing.traffic.hasGoogleClickId || landing.traffic.googleClickIdKind === null) {
-      throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "landing has no single verified Google click identifier kind");
-    }
-    if (!input.clickId || input.clickId.kind !== landing.traffic.googleClickIdKind) {
-      throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "conversion click identifier kind does not match the landing assessment");
+    if (!input.clickId || typeof input.clickId !== "object") throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "conversion click identifier is required");
+    const attribution = this.verifyAttributionReceipt(input.attribution, currentTime(this.now));
+    if (attribution.googleAdsCustomerId !== this.googleAdsCustomerId) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution belongs to a different Google Ads customer");
+    if (input.clickId.kind !== attribution.clickIdKind) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "conversion click identifier kind does not match attribution");
+    if (!safeEqual(clickDigest(this.attributionSigningSecret, input.clickId), attribution.clickIdDigest)) {
+      throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "conversion click identifier does not match attribution");
     }
 
     const candidate: OfflineConversionCandidate = {
@@ -169,7 +302,7 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
       stage: input.stage,
       conversionValue: input.conversionValue,
       currencyCode: input.currencyCode,
-      invalidTrafficScore: landing.traffic.riskScore,
+      invalidTrafficScore: attribution.riskScore,
       clickId: input.clickId,
       adUserDataConsent: input.adUserDataConsent,
     };
@@ -189,5 +322,38 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
       strategies: SEO_PROFESSIONAL_STRATEGIES,
       connections: SEO_PROFESSIONAL_CONNECTIONS,
     });
+  }
+
+  private createAttributionReceipt(assessment: InvalidTrafficAssessment, clickId: GoogleClickId, nowMs: number): ConnectedAttributionReceipt {
+    const payload: ConnectedAttributionPayload = Object.freeze({
+      schemaVersion: 1,
+      assessmentId: assessment.assessmentId,
+      googleAdsCustomerId: this.googleAdsCustomerId,
+      riskScore: assessment.riskScore,
+      clickIdKind: clickId.kind,
+      clickIdDigest: clickDigest(this.attributionSigningSecret, clickId),
+      issuedAt: new Date(nowMs).toISOString(),
+      expiresAt: new Date(nowMs + this.attributionTtlMs).toISOString(),
+    });
+    return Object.freeze({ payload, signature: receiptSignature(this.attributionSigningSecret, payload) });
+  }
+
+  private verifyAttributionReceipt(receipt: ConnectedAttributionReceipt, nowMs: number): ConnectedAttributionPayload {
+    if (!receipt || typeof receipt !== "object" || Array.isArray(receipt) || Object.getPrototypeOf(receipt) !== Object.prototype) {
+      throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution receipt must be a plain object");
+    }
+    const raw = receipt as unknown as Record<string, unknown>;
+    if (Object.keys(raw).sort().join(",") !== "payload,signature" || typeof raw.signature !== "string" || !SIGNATURE.test(raw.signature)) {
+      throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution receipt contract is invalid");
+    }
+    const payload = parseReceiptPayload(raw.payload);
+    const expected = receiptSignature(this.attributionSigningSecret, payload);
+    if (!safeEqual(expected, raw.signature)) throw new SeoProfessionalSystemError("ATTRIBUTION_MISMATCH", "attribution signature mismatch");
+    const issuedAt = Date.parse(payload.issuedAt);
+    const expiresAt = Date.parse(payload.expiresAt);
+    if (expiresAt <= issuedAt || expiresAt - issuedAt > this.attributionTtlMs || nowMs < issuedAt || nowMs > expiresAt) {
+      throw new SeoProfessionalSystemError("ATTRIBUTION_EXPIRED", "attribution receipt is expired or outside its configured lifetime");
+    }
+    return payload;
   }
 }
