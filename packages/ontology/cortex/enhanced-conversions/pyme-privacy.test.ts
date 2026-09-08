@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { OntologyScope } from "@nexus/ontology";
 import { InMemoryOntologyTransactionStore } from "@nexus/ontology/transaction";
 import { GoogleDataManagerRestClient, type DataManagerConversionEvent, type DataManagerDestination } from "./data-manager-rest";
-import { DurableEnhancedConversionsPipeline, EnhancedConversionError, type EnhancedConversionGateway } from "./index";
+import { DurableEnhancedConversionsPipeline, type EnhancedConversionGateway } from "./index";
 
 const scope: OntologyScope = Object.freeze({ tenantId: "tenant-pyme", organizationId: "org-pyme", brandId: "brand-pyme" });
 const destination: DataManagerDestination = Object.freeze({ operatingAccountId: "1234567890", conversionActionId: "9876543210" });
@@ -63,7 +63,7 @@ describe("CORTEX #30 PyME privacy hardening", () => {
     );
     const prepared = pipeline.prepare(conversion({ transactionId: "pyme-revoke-123456" }));
     granted = false;
-    await expect(pipeline.dispatch(prepared.transactionId)).rejects.toMatchObject<Partial<EnhancedConversionError>>({ code: "CONSENT_VIOLATION" });
+    await expect(pipeline.dispatch(prepared.transactionId)).rejects.toMatchObject({ code: "CONSENT_VIOLATION" });
     expect(pipeline.get(prepared.transactionId)?.status).toBe("PREPARED");
     expect(gateway.ingestConversion).not.toHaveBeenCalled();
   });
