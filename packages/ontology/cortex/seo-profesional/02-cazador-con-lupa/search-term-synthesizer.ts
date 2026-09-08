@@ -116,10 +116,18 @@ function canonicalDate(value: string, label: string): string {
   return value;
 }
 
+function containsControlCharacters(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
 export function normalizeSearchTerm(value: string): string {
   if (typeof value !== "string") throw new ExactMatchSynthesizerError("INVALID_INPUT", "searchTerm must be a string");
   const normalized = value.normalize("NFKC").replace(/\s+/gu, " ").trim().toLowerCase();
-  if (!normalized || /[\u0000-\u001f\u007f]/u.test(normalized)) throw new ExactMatchSynthesizerError("INVALID_INPUT", "searchTerm is empty or contains control characters");
+  if (!normalized || containsControlCharacters(normalized)) throw new ExactMatchSynthesizerError("INVALID_INPUT", "searchTerm is empty or contains control characters");
   return normalized;
 }
 
