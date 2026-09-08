@@ -21,10 +21,11 @@ ENV NODE_ENV=production \
   NEXUS_CORTEX_STATE_DB=/var/lib/nexus-cortex/programmatic-seo-state.sqlite \
   NEXUS_CORTEX_PROGRAMMATIC_SEO_MANIFEST=/var/lib/nexus-cortex/programmatic-seo.json \
   NEXUS_CORTEX_PERSISTENCE_ACK=durable-volume \
-  NEXUS_CORTEX_PROGRAMMATIC_SEO_CONFIG=/etc/nexus-cortex/programmatic-seo.json
+  NEXUS_CORTEX_PROGRAMMATIC_SEO_CONFIG=/etc/nexus-cortex/programmatic-seo.json \
+  NEXUS_CORTEX_HYPERLOCAL_LONG_TAIL_CONFIG=/etc/nexus-cortex/hyperlocal-long-tail.json
 
 VOLUME ["/var/lib/nexus-cortex"]
 EXPOSE 8793
 USER node
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD node -e 'fetch("http://127.0.0.1:"+(process.env.PORT||8793)+"/healthz").then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))'
-CMD ["node", "scripts/cortex-programmatic-seo.mjs"]
+CMD ["node", "scripts/cortex-programmatic-seo-hyperlocal.mjs"]
