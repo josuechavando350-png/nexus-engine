@@ -236,5 +236,6 @@ export function composeSchemas(schemas: readonly ValidatedSchema[]): ValidatedSc
 
 export * as SeoProfesionalDetectorDeTrampas from "./cortex/seo-profesional/01-detector-de-trampas/index.js";
 export * as SeoProfesionalCazadorConLupa from "./cortex/seo-profesional/02-cazador-con-lupa/index.js";
+export * as SeoProfesionalImanDelMapa from "./cortex/seo-profesional/04-iman-del-mapa/index.js";
 export * as SeoProfesionalConnectedSystem from "./cortex/seo-profesional/connected-system.js";
 export * as SeoProfesionalTopology from "./cortex/seo-profesional/topology.js";

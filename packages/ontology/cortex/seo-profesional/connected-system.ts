@@ -43,7 +43,12 @@ export interface CamaleonWebPort<TDecision> {
   resolve(input: URL | string): TDecision | Promise<TDecision>;
 }
 
-export interface SeoProfessionalSystemDependencies<TDecision> {
+export interface LocalPresencePort<TLocalPresence> {
+  canonicalWebsiteOrigin(): string;
+  snapshot(): TLocalPresence;
+}
+
+export interface SeoProfessionalSystemDependencies<TDecision, TLocalPresence> {
   readonly googleAdsCustomerId: string;
   readonly maximumPersonalizationRiskScore: number;
   readonly attributionSecret: string;
@@ -53,6 +58,7 @@ export interface SeoProfessionalSystemDependencies<TDecision> {
   readonly offlineConversions: IdentifiedQualifiedOfflineConversionEngine;
   readonly exactMatchSynthesizer: ExactMatchSynthesizerEngine;
   readonly camaleonWeb: CamaleonWebPort<TDecision>;
+  readonly localPresence: LocalPresencePort<TLocalPresence>;
 }
 
 export interface ConnectedAttributionPayload {
@@ -71,13 +77,15 @@ export interface ConnectedAttributionReceipt {
   readonly signature: `sha256=${string}`;
 }
 
-export interface ConnectedLandingEvaluation<TDecision> {
+export interface ConnectedLandingEvaluation<TDecision, TLocalPresence> {
   readonly googleAdsCustomerId: string;
+  readonly canonicalWebsiteOrigin: string;
+  readonly localPresence: TLocalPresence;
   readonly traffic: InvalidTrafficAssessment;
   readonly personalization: TDecision;
   readonly personalizationSuppressedByTrafficRisk: boolean;
   readonly attribution: ConnectedAttributionReceipt | null;
-  readonly strategyTrace: readonly [1, 3];
+  readonly strategyTrace: readonly [4, 1, 3, 4];
 }
 
 export type ConnectedOfflineConversionInput = Omit<OfflineConversionCandidate, "invalidTrafficScore"> & {
@@ -89,7 +97,8 @@ export type ConnectedExactMatchOptimizationInput = Omit<ExactMatchSynthesizerRun
 export interface SeoProfessionalSystemSnapshot {
   readonly googleAdsCustomerId: string;
   readonly offlineConversionProvider: OfflineConversionProvider;
-  readonly strategyNumbers: readonly [1, 2, 3];
+  readonly canonicalWebsiteOrigin: string;
+  readonly strategyNumbers: readonly [1, 2, 3, 4];
   readonly connectionCount: number;
   readonly connected: true;
 }
@@ -145,6 +154,20 @@ function absoluteUrl(value: InvalidTrafficClickInput["url"]): URL {
     throw new SeoProfessionalSystemError("INVALID_INPUT", "landing URL is malformed or unsupported");
   }
   return url;
+}
+
+function canonicalOrigin(value: unknown): string {
+  if (typeof value !== "string") throw new SeoProfessionalSystemError("INVALID_CONFIG", "localPresence canonical website origin must be a string");
+  let url: URL;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new SeoProfessionalSystemError("INVALID_CONFIG", "localPresence canonical website origin is malformed");
+  }
+  if (!(url.protocol === "https:" || url.protocol === "http:") || url.username || url.password || url.pathname !== "/" || url.search || url.hash) {
+    throw new SeoProfessionalSystemError("INVALID_CONFIG", "localPresence canonical website origin must be an http(s) origin");
+  }
+  return url.origin;
 }
 
 function assertTrafficAssessmentIntegrity(assessment: InvalidTrafficAssessment): void {
@@ -227,9 +250,10 @@ function extractVerifiedClickId(urlInput: InvalidTrafficClickInput["url"], asses
   return Object.freeze({ kind, value: values[0] } as GoogleClickId);
 }
 
-export class ConnectedSeoProfessionalSystem<TDecision> {
+export class ConnectedSeoProfessionalSystem<TDecision, TLocalPresence> {
   private readonly googleAdsCustomerId: string;
   private readonly offlineConversionProvider: OfflineConversionProvider;
+  private readonly canonicalWebsiteOriginValue: string;
   private readonly maximumPersonalizationRiskScore: number;
   private readonly attributionSigningSecret: string;
   private readonly attributionTtlMs: number;
@@ -238,8 +262,9 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
   private readonly offlineConversions: IdentifiedQualifiedOfflineConversionEngine;
   private readonly exactMatchSynthesizer: ExactMatchSynthesizerEngine;
   private readonly camaleonWeb: CamaleonWebPort<TDecision>;
+  private readonly localPresence: LocalPresencePort<TLocalPresence>;
 
-  constructor(dependencies: SeoProfessionalSystemDependencies<TDecision>) {
+  constructor(dependencies: SeoProfessionalSystemDependencies<TDecision, TLocalPresence>) {
     if (!dependencies || typeof dependencies !== "object") throw new SeoProfessionalSystemError("INVALID_CONFIG", "SEO Profesional system dependencies are required");
     assertConnectedSeoProfessionalTopology();
     this.googleAdsCustomerId = normalizedCustomerId(dependencies.googleAdsCustomerId);
@@ -252,28 +277,38 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
     assertRuntimeDependency(dependencies.offlineConversions, "destinationIdentity", "offlineConversions");
     assertRuntimeDependency(dependencies.exactMatchSynthesizer, "run", "exactMatchSynthesizer");
     assertRuntimeDependency(dependencies.camaleonWeb, "resolve", "camaleonWeb");
+    assertRuntimeDependency(dependencies.localPresence, "canonicalWebsiteOrigin", "localPresence");
+    assertRuntimeDependency(dependencies.localPresence, "snapshot", "localPresence");
     const offlineIdentity = dependencies.offlineConversions.destinationIdentity();
     if (offlineIdentity.googleAdsCustomerId !== this.googleAdsCustomerId) {
       throw new SeoProfessionalSystemError("INVALID_CONFIG", "offline conversion destination must match googleAdsCustomerId");
     }
     this.offlineConversionProvider = offlineIdentity.provider;
+    this.canonicalWebsiteOriginValue = canonicalOrigin(dependencies.localPresence.canonicalWebsiteOrigin());
     this.trafficScorer = dependencies.trafficScorer;
     this.offlineConversions = dependencies.offlineConversions;
     this.exactMatchSynthesizer = dependencies.exactMatchSynthesizer;
     this.camaleonWeb = dependencies.camaleonWeb;
+    this.localPresence = dependencies.localPresence;
   }
 
   snapshot(): SeoProfessionalSystemSnapshot {
     return Object.freeze({
       googleAdsCustomerId: this.googleAdsCustomerId,
       offlineConversionProvider: this.offlineConversionProvider,
-      strategyNumbers: Object.freeze([1, 2, 3] as const),
+      canonicalWebsiteOrigin: this.canonicalWebsiteOriginValue,
+      strategyNumbers: Object.freeze([1, 2, 3, 4] as const),
       connectionCount: SEO_PROFESSIONAL_CONNECTIONS.length,
       connected: true as const,
     });
   }
 
-  async assessLanding(input: InvalidTrafficClickInput): Promise<ConnectedLandingEvaluation<TDecision>> {
+  async assessLanding(input: InvalidTrafficClickInput): Promise<ConnectedLandingEvaluation<TDecision, TLocalPresence>> {
+    const landingUrl = absoluteUrl(input.url);
+    if (landingUrl.origin !== this.canonicalWebsiteOriginValue) {
+      throw new SeoProfessionalSystemError("INVALID_INPUT", "landing origin does not match the canonical local business website");
+    }
+    const localPresence = this.localPresence.snapshot();
     const traffic = await this.trafficScorer.assess(input);
     assertTrafficAssessmentIntegrity(traffic);
     const personalizationSuppressedByTrafficRisk = traffic.riskScore > this.maximumPersonalizationRiskScore;
@@ -285,11 +320,13 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
     const attribution = clickId === null ? null : this.createAttributionReceipt(traffic, clickId, nowMs);
     return Object.freeze({
       googleAdsCustomerId: this.googleAdsCustomerId,
+      canonicalWebsiteOrigin: this.canonicalWebsiteOriginValue,
+      localPresence,
       traffic,
       personalization,
       personalizationSuppressedByTrafficRisk,
       attribution,
-      strategyTrace: Object.freeze([1, 3] as const),
+      strategyTrace: Object.freeze([4, 1, 3, 4] as const),
     });
   }
 
