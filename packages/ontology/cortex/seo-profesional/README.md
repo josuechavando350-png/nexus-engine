@@ -11,12 +11,13 @@ Esta carpeta concentra capacidades de adquisición y SEO ejecutables, medibles y
 5. `05-emboscador-de-nacimientos` — verificación de dominios recientes mediante IANA/RDAP + DNS y outreach por WhatsApp Cloud API exclusivamente con template y evidencia de opt-in.
 6. `06-infiltrador-corporativo` — inteligencia de RFQ/RFP/licitaciones exclusivamente sobre fuentes públicas: OCDS primero, HTML público como fallback Playwright, robots/anti-SSRF, cola durable multi-tenant y handoff first-party.
 7. `07-recomendacion-de-dios` — adopta el Unified Semantic Graph canónico de Nexus y su proyección Schema.org; añade selección page-specific, evidencia DOM visible, política Google Rich Results y recibos hash que atan grafo + página + JSON-LD.
+8. `08-resucitador-de-muertos` — enriquecimiento pasivo de tecnología/SEO sobre homepages públicas de relaciones ya autorizadas, cola distribuida Redis con leases y handoff first-party para revisión; nunca escanea vulnerabilidades ni ejecuta outreach automático.
 
 Las estrategias restantes se incorporan de forma incremental. Cada una debe mantener contratos tipados, límites de seguridad, pruebas de fallo y una ruta de producción explícita antes de considerarse terminada. Cuando una capacidad canónica existente ya supera la estrategia propuesta, se conserva esa implementación y la carpeta maestra registra su ubicación sin crear una segunda versión peor o divergente.
 
 ## Regla de conectividad
 
-SEO Profesional funciona como un sistema, no como once módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta `08-*`, `09-*`, etc. sin registrarla y conectarla hace fallar CI.
+SEO Profesional funciona como un sistema, no como once módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta `09-*`, `10-*`, etc. sin registrarla y conectarla hace fallar CI.
 
 El core #1–#4 permanece exactamente conectado así:
 
@@ -41,7 +42,12 @@ El core #1–#4 permanece exactamente conectado así:
 - `#4 -> #7` por `VERIFIED_PUBLISHER_IDENTITY`: la URL que publica Schema.org debe pertenecer exactamente al origen LocalBusiness canónico de #4.
 - `#7 -> #1` por `GROUNDED_STRUCTURED_LANDING`: el JSON-LD queda ligado por hash a la misma página first-party; esa página continúa sometida a los gates del circuito web existente.
 
-`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6 y #7 y continuará como punto acumulativo para #8–#11. Ningún motor necesita importar la implementación interna de otro.
+#8 añade enriquecimiento distribuido sin tocar los motores anteriores:
+
+- `#4 -> #8` por `VERIFIED_REVIVAL_OPERATOR_IDENTITY`: el origen del operador y del handoff de reactivación debe coincidir exactamente con el LocalBusiness canónico de #4.
+- `#8 -> #1` por `QUALIFIED_REVIVAL_HANDOFF`: un assessment únicamente produce revisión first-party; cualquier navegación posterior vuelve a entrar por #1 y #8 no puede saltarse los gates de adquisición.
+
+`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7 y #8 y continuará como punto acumulativo para #9–#11. Ningún motor necesita importar la implementación interna de otro.
 
 ## Fronteras externas
 
@@ -51,7 +57,9 @@ La inteligencia de dominios #5 usa el bootstrap RDAP de IANA para localizar el s
 
 La inteligencia corporativa #6 no entra a portales privados. Prefiere OCDS/JSON; para HTML público usa un adapter Playwright aislado por contexto y gobernado por robots + política de URL pública. No expone login, CAPTCHA bypass, evasión anti-bot, proxy rotation, submit de ofertas ni contacto automático a compradores.
 
-#7 conserva `packages/ontology/semantic-graph.ts` como autoridad semántica. Solo proyecta nodos verificados con `verifyUnifiedSemanticGraph` + `projectSchemaOrg`, exige evidencia Playwright del contenido visible y genera un recibo SHA-256 que ata graph digest, node digests, page evidence, reglas y JSON-LD. La salida se marca `READY_FOR_RICH_RESULTS_TEST`, nunca como “garantizada por Google”: Google declara que incluso el marcado correcto puede no aparecer como rich result.
+#7 conserva `packages/ontology/semantic-graph.ts` como autoridad semántica. Solo proyecta nodos verificados con `verifyUnifiedSemanticGraph` + `projectSchemaOrg`, exige evidencia Playwright del contenido visible y genera un recibo SHA-256 que ata graph digest, node digests, page evidence, reglas y JSON-LD. La salida se marca `READY_FOR_RICH_RESULTS_TEST`, nunca como “garantizada por Google”.
+
+#8 inspecciona exclusivamente la homepage HTTPS pública de un candidato ya existente en CRM/portfolio. Resuelve DNS, bloquea redes no públicas y pinnea el socket HTTPS al IP autorizado para impedir DNS rebinding. No ejecuta JavaScript ni subrecursos y no prueba puertos, versiones vulnerables, CVEs, admin paths o credenciales. La tecnología detectada no suma score; el assessment se basa en dormancia conocida y señales públicas neutrales. Las tareas se coordinan mediante Redis RESP2 + Lua atómico, `rediss://` en producción y sin retry automático de comandos ambiguos.
 
 ## Regla de producción
 

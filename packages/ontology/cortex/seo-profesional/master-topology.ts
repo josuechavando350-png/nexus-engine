@@ -3,7 +3,7 @@ import {
   SEO_PROFESSIONAL_STRATEGIES as CORE_STRATEGIES,
 } from "./topology.js";
 
-export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
 
 export type SeoProfessionalMasterStrategyId =
   | "detector-de-trampas"
@@ -12,7 +12,8 @@ export type SeoProfessionalMasterStrategyId =
   | "iman-del-mapa"
   | "emboscador-de-nacimientos"
   | "infiltrador-corporativo"
-  | "recomendacion-de-dios";
+  | "recomendacion-de-dios"
+  | "resucitador-de-muertos";
 
 export interface SeoProfessionalMasterStrategyDefinition {
   readonly number: SeoProfessionalMasterStrategyNumber;
@@ -32,7 +33,9 @@ export type SeoProfessionalMasterConnectionChannel =
   | "VERIFIED_SELLER_IDENTITY"
   | "QUALIFIED_PROCUREMENT_HANDOFF"
   | "VERIFIED_PUBLISHER_IDENTITY"
-  | "GROUNDED_STRUCTURED_LANDING";
+  | "GROUNDED_STRUCTURED_LANDING"
+  | "VERIFIED_REVIVAL_OPERATOR_IDENTITY"
+  | "QUALIFIED_REVIVAL_HANDOFF";
 
 export interface SeoProfessionalMasterConnection {
   readonly from: SeoProfessionalMasterStrategyNumber;
@@ -66,6 +69,12 @@ export const SEO_PROFESSIONAL_MASTER_STRATEGIES: readonly SeoProfessionalMasterS
     implementationRef: "packages/ontology/cortex/seo-profesional/07-recomendacion-de-dios",
     responsibility: "verified semantic-graph grounding, page-visible Schema.org projection, Google structured-data policy gates and hash-bound first-party JSON-LD",
   }),
+  Object.freeze({
+    number: 8 as const,
+    id: "resucitador-de-muertos" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/08-resucitador-de-muertos",
+    responsibility: "passive public-homepage technology enrichment for authorized dormant relationships, Redis-backed distributed review jobs and first-party reactivation handoff without vulnerability scanning or automated outreach",
+  }),
 ] as const);
 
 export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMasterConnection[] = Object.freeze([
@@ -81,6 +90,8 @@ export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMaster
   Object.freeze({ from: 6 as const, to: 1 as const, channel: "QUALIFIED_PROCUREMENT_HANDOFF" as const, boundary: "WEB_REQUEST" as const }),
   Object.freeze({ from: 4 as const, to: 7 as const, channel: "VERIFIED_PUBLISHER_IDENTITY" as const, boundary: "WEB_REQUEST" as const }),
   Object.freeze({ from: 7 as const, to: 1 as const, channel: "GROUNDED_STRUCTURED_LANDING" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 4 as const, to: 8 as const, channel: "VERIFIED_REVIVAL_OPERATOR_IDENTITY" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 8 as const, to: 1 as const, channel: "QUALIFIED_REVIVAL_HANDOFF" as const, boundary: "WEB_REQUEST" as const }),
 ] as const);
 
 function reachable(

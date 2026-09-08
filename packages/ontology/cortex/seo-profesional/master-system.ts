@@ -21,6 +21,11 @@ import type {
   GroundedStructuredDataArtifact,
   StructuredKnowledgePublishRequest,
 } from "./07-recomendacion-de-dios/index.js";
+import type {
+  RevivalAssessment,
+  RevivalCandidate,
+  RevivalEnqueueRequest,
+} from "./08-resucitador-de-muertos/index.js";
 import {
   assertConnectedSeoProfessionalMasterTopology,
   SEO_PROFESSIONAL_MASTER_CONNECTIONS,
@@ -80,6 +85,17 @@ export interface StructuredKnowledgePort {
   publish(input: StructuredKnowledgePublishRequest): Promise<GroundedStructuredDataArtifact>;
 }
 
+export interface PassiveRevivalIntelligencePort {
+  identity(): Readonly<{
+    strategy: 8;
+    provider: "PASSIVE_TECH_ENRICHMENT_REDIS";
+    queue: "REDIS_RESP2_LUA";
+    operatorWebsiteOrigin: string;
+  }>;
+  assess(input: RevivalCandidate): Promise<RevivalAssessment>;
+  enqueue(input: RevivalEnqueueRequest): Promise<string>;
+}
+
 export interface SeoProfessionalMasterSystemSnapshot {
   readonly googleAdsCustomerId: string;
   readonly offlineConversionProvider: string;
@@ -87,7 +103,9 @@ export interface SeoProfessionalMasterSystemSnapshot {
   readonly domainBirthOutreachProvider: "WHATSAPP_CLOUD_API";
   readonly corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE";
   readonly structuredKnowledgeProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS";
-  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7];
+  readonly revivalIntelligenceProvider: "PASSIVE_TECH_ENRICHMENT_REDIS";
+  readonly revivalQueue: "REDIS_RESP2_LUA";
+  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8];
   readonly connectionCount: number;
   readonly connected: true;
 }
@@ -103,12 +121,14 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
   private readonly domainBirthOutreach: DomainBirthOutreachPort;
   private readonly corporateProcurement: CorporateProcurementPort;
   private readonly structuredKnowledge: StructuredKnowledgePort;
+  private readonly revivalIntelligence: PassiveRevivalIntelligencePort;
 
   constructor(input: {
     readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
     readonly domainBirthOutreach: DomainBirthOutreachPort;
     readonly corporateProcurement: CorporateProcurementPort;
     readonly structuredKnowledge: StructuredKnowledgePort;
+    readonly revivalIntelligence: PassiveRevivalIntelligencePort;
   }) {
     if (!input || typeof input !== "object") throw new SeoProfessionalMasterSystemError("INVALID_CONFIG", "SEO Profesional master system dependencies are required");
     assertConnectedSeoProfessionalMasterTopology();
@@ -122,10 +142,14 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     assertMethod(input.corporateProcurement, "scan", "corporateProcurement");
     assertMethod(input.structuredKnowledge, "identity", "structuredKnowledge");
     assertMethod(input.structuredKnowledge, "publish", "structuredKnowledge");
+    assertMethod(input.revivalIntelligence, "identity", "revivalIntelligence");
+    assertMethod(input.revivalIntelligence, "assess", "revivalIntelligence");
+    assertMethod(input.revivalIntelligence, "enqueue", "revivalIntelligence");
     const coreIdentity = input.core.snapshot();
     const outreachIdentity = input.domainBirthOutreach.identity();
     const procurementIdentity = input.corporateProcurement.identity();
     const structuredKnowledgeIdentity = input.structuredKnowledge.identity();
+    const revivalIdentity = input.revivalIntelligence.identity();
     if (outreachIdentity.strategy !== 5 || outreachIdentity.provider !== "WHATSAPP_CLOUD_API") {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "domainBirthOutreach must identify SEO strategy #5 on WhatsApp Cloud API");
     }
@@ -144,10 +168,17 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     if (structuredKnowledgeIdentity.publisherWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#7 publisher website origin must match the #4 canonical local business origin");
     }
+    if (revivalIdentity.strategy !== 8 || revivalIdentity.provider !== "PASSIVE_TECH_ENRICHMENT_REDIS" || revivalIdentity.queue !== "REDIS_RESP2_LUA") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "revivalIntelligence must identify SEO strategy #8 on the passive technology enrichment Redis boundary");
+    }
+    if (revivalIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#8 operator website origin must match the #4 canonical local business origin");
+    }
     this.core = input.core;
     this.domainBirthOutreach = input.domainBirthOutreach;
     this.corporateProcurement = input.corporateProcurement;
     this.structuredKnowledge = input.structuredKnowledge;
+    this.revivalIntelligence = input.revivalIntelligence;
   }
 
   snapshot(): SeoProfessionalMasterSystemSnapshot {
@@ -159,7 +190,9 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
       domainBirthOutreachProvider: "WHATSAPP_CLOUD_API" as const,
       corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE" as const,
       structuredKnowledgeProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS" as const,
-      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7] as const),
+      revivalIntelligenceProvider: "PASSIVE_TECH_ENRICHMENT_REDIS" as const,
+      revivalQueue: "REDIS_RESP2_LUA" as const,
+      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8] as const),
       connectionCount: SEO_PROFESSIONAL_MASTER_CONNECTIONS.length,
       connected: true as const,
     });
@@ -190,6 +223,14 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
 
   publishStructuredKnowledge(input: StructuredKnowledgePublishRequest): Promise<GroundedStructuredDataArtifact> {
     return this.structuredKnowledge.publish(input);
+  }
+
+  assessRevivalCandidate(input: RevivalCandidate): Promise<RevivalAssessment> {
+    return this.revivalIntelligence.assess(input);
+  }
+
+  enqueueRevivalCandidate(input: RevivalEnqueueRequest): Promise<string> {
+    return this.revivalIntelligence.enqueue(input);
   }
 
   topology() {
@@ -225,3 +266,23 @@ export type {
   SemanticGraphProviderPort,
   StructuredKnowledgePublishRequest as SeoProfessionalStructuredKnowledgePublishRequest,
 } from "./07-recomendacion-de-dios/index.js";
+export {
+  NodePinnedHttpsTransport,
+  PassivePublicSiteProbe,
+  PassiveTechnologyRevivalEngine,
+  PassiveTechnologyRevivalRuntime,
+  RedisRespScriptClient,
+  RedisRevivalJobQueue,
+  RevivalAsyncWorker,
+  fingerprintPublicTechnology,
+} from "./08-resucitador-de-muertos/index.js";
+export type {
+  DetectedTechnology,
+  PassivePublicSiteEvidence as SeoProfessionalPassivePublicSiteEvidence,
+  RevivalAssessment as SeoProfessionalRevivalAssessment,
+  RevivalAssessmentSinkPort,
+  RevivalCandidate as SeoProfessionalRevivalCandidate,
+  RevivalEnqueueRequest as SeoProfessionalRevivalEnqueueRequest,
+  RevivalQueueJob,
+  RevivalTenantProfile,
+} from "./08-resucitador-de-muertos/index.js";
