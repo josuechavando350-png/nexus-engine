@@ -12,12 +12,13 @@ Esta carpeta concentra capacidades de adquisición y SEO ejecutables, medibles y
 6. `06-infiltrador-corporativo` — inteligencia de RFQ/RFP/licitaciones exclusivamente sobre fuentes públicas: OCDS primero, HTML público como fallback Playwright, robots/anti-SSRF, cola durable multi-tenant y handoff first-party.
 7. `07-recomendacion-de-dios` — adopta el Unified Semantic Graph canónico de Nexus y su proyección Schema.org; añade selección page-specific, evidencia DOM visible, política Google Rich Results y recibos hash que atan grafo + página + JSON-LD.
 8. `08-resucitador-de-muertos` — enriquecimiento pasivo de tecnología/SEO sobre homepages públicas de relaciones ya autorizadas, cola distribuida Redis con leases y handoff first-party para revisión; nunca escanea vulnerabilidades ni ejecuta outreach automático.
+9. `09-parasito-inteligente` — adopta el CORTEX Headless Programmatic SEO canónico y le añade autorización de propiedad: first-party en el origen canónico o delegación DNS TXT HMAC de corta duración, fuentes editoriales gobernadas y recibo que liga autorización + run pSEO.
 
 Las estrategias restantes se incorporan de forma incremental. Cada una debe mantener contratos tipados, límites de seguridad, pruebas de fallo y una ruta de producción explícita antes de considerarse terminada. Cuando una capacidad canónica existente ya supera la estrategia propuesta, se conserva esa implementación y la carpeta maestra registra su ubicación sin crear una segunda versión peor o divergente.
 
 ## Regla de conectividad
 
-SEO Profesional funciona como un sistema, no como once módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta `09-*`, `10-*`, etc. sin registrarla y conectarla hace fallar CI.
+SEO Profesional funciona como un sistema, no como once módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta `10-*`, `11-*`, etc. sin registrarla y conectarla hace fallar CI.
 
 El core #1–#4 permanece exactamente conectado así:
 
@@ -47,7 +48,12 @@ El core #1–#4 permanece exactamente conectado así:
 - `#4 -> #8` por `VERIFIED_REVIVAL_OPERATOR_IDENTITY`: el origen del operador y del handoff de reactivación debe coincidir exactamente con el LocalBusiness canónico de #4.
 - `#8 -> #1` por `QUALIFIED_REVIVAL_HANDOFF`: un assessment únicamente produce revisión first-party; cualquier navegación posterior vuelve a entrar por #1 y #8 no puede saltarse los gates de adquisición.
 
-`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7 y #8 y continuará como punto acumulativo para #9–#11. Ningún motor necesita importar la implementación interna de otro.
+#9 reutiliza el motor pSEO ya certificado y solo añade una frontera de autorización:
+
+- `#4 -> #9` por `VERIFIED_PSEO_OPERATOR_IDENTITY`: la identidad del operador que autoriza propiedades debe coincidir con el origen LocalBusiness canónico de #4.
+- `#9 -> #1` por `AUTHORIZED_PROGRAMMATIC_LANDING`: una página programática solo puede publicarse dentro de la propiedad configurada y autorizada; cualquier visita posterior sigue entrando por #1.
+
+`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7, #8 y #9 y continuará como punto acumulativo para #10–#11. Ningún motor necesita importar la implementación interna de otro. #9 sí importa deliberadamente `headless-programmatic-seo` porque su responsabilidad es gobernar y reutilizar ese motor canónico, no reemplazarlo.
 
 ## Fronteras externas
 
@@ -60,6 +66,8 @@ La inteligencia corporativa #6 no entra a portales privados. Prefiere OCDS/JSON;
 #7 conserva `packages/ontology/semantic-graph.ts` como autoridad semántica. Solo proyecta nodos verificados con `verifyUnifiedSemanticGraph` + `projectSchemaOrg`, exige evidencia Playwright del contenido visible y genera un recibo SHA-256 que ata graph digest, node digests, page evidence, reglas y JSON-LD. La salida se marca `READY_FOR_RICH_RESULTS_TEST`, nunca como “garantizada por Google”.
 
 #8 inspecciona exclusivamente la homepage HTTPS pública de un candidato ya existente en CRM/portfolio. Resuelve DNS, bloquea redes no públicas y pinnea el socket HTTPS al IP autorizado para impedir DNS rebinding. No ejecuta JavaScript ni subrecursos y no prueba puertos, versiones vulnerables, CVEs, admin paths o credenciales. La tecnología detectada no suma score; el assessment se basa en dormancia conocida y señales públicas neutrales. Las tareas se coordinan mediante Redis RESP2 + Lua atómico, `rediss://` en producción y sin retry automático de comandos ambiguos.
+
+#9 no genera páginas por su cuenta. Reutiliza `packages/ontology/cortex/headless-programmatic-seo`, que ya aplica evidencia page-specific, distinctive statements, anti-doorway/near-duplicate gates, self-canonical indexable pages, publicación CAS y rollback. El origen canónico de #4 se considera first-party. Una propiedad distinta requiere un token HMAC-SHA256 publicado como TXT `_nexus-pseo.<host>`, ligado a `siteId`, propiedad, operador y expiración máxima de 30 días. El catálogo además debe provenir de un source ID gobernado como contenido first-party del operador o del propietario de la propiedad. No existe categoría para contenido patrocinado de terceros destinado a explotar reputación de host.
 
 ## Regla de producción
 

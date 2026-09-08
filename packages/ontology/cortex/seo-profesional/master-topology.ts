@@ -3,7 +3,7 @@ import {
   SEO_PROFESSIONAL_STRATEGIES as CORE_STRATEGIES,
 } from "./topology.js";
 
-export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 
 export type SeoProfessionalMasterStrategyId =
   | "detector-de-trampas"
@@ -13,7 +13,8 @@ export type SeoProfessionalMasterStrategyId =
   | "emboscador-de-nacimientos"
   | "infiltrador-corporativo"
   | "recomendacion-de-dios"
-  | "resucitador-de-muertos";
+  | "resucitador-de-muertos"
+  | "parasito-inteligente";
 
 export interface SeoProfessionalMasterStrategyDefinition {
   readonly number: SeoProfessionalMasterStrategyNumber;
@@ -35,7 +36,9 @@ export type SeoProfessionalMasterConnectionChannel =
   | "VERIFIED_PUBLISHER_IDENTITY"
   | "GROUNDED_STRUCTURED_LANDING"
   | "VERIFIED_REVIVAL_OPERATOR_IDENTITY"
-  | "QUALIFIED_REVIVAL_HANDOFF";
+  | "QUALIFIED_REVIVAL_HANDOFF"
+  | "VERIFIED_PSEO_OPERATOR_IDENTITY"
+  | "AUTHORIZED_PROGRAMMATIC_LANDING";
 
 export interface SeoProfessionalMasterConnection {
   readonly from: SeoProfessionalMasterStrategyNumber;
@@ -75,6 +78,12 @@ export const SEO_PROFESSIONAL_MASTER_STRATEGIES: readonly SeoProfessionalMasterS
     implementationRef: "packages/ontology/cortex/seo-profesional/08-resucitador-de-muertos",
     responsibility: "passive public-homepage technology enrichment for authorized dormant relationships, Redis-backed distributed review jobs and first-party reactivation handoff without vulnerability scanning or automated outreach",
   }),
+  Object.freeze({
+    number: 9 as const,
+    id: "parasito-inteligente" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/09-parasito-inteligente",
+    responsibility: "owned-or-explicitly-authorized programmatic SEO publication by reusing the canonical CORTEX headless programmatic SEO engine behind DNS-scoped property authorization and governed first-party catalog sources",
+  }),
 ] as const);
 
 export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMasterConnection[] = Object.freeze([
@@ -92,6 +101,8 @@ export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMaster
   Object.freeze({ from: 7 as const, to: 1 as const, channel: "GROUNDED_STRUCTURED_LANDING" as const, boundary: "WEB_REQUEST" as const }),
   Object.freeze({ from: 4 as const, to: 8 as const, channel: "VERIFIED_REVIVAL_OPERATOR_IDENTITY" as const, boundary: "WEB_REQUEST" as const }),
   Object.freeze({ from: 8 as const, to: 1 as const, channel: "QUALIFIED_REVIVAL_HANDOFF" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 4 as const, to: 9 as const, channel: "VERIFIED_PSEO_OPERATOR_IDENTITY" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 9 as const, to: 1 as const, channel: "AUTHORIZED_PROGRAMMATIC_LANDING" as const, boundary: "WEB_REQUEST" as const }),
 ] as const);
 
 function reachable(

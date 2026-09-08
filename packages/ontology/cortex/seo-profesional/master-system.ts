@@ -26,6 +26,10 @@ import type {
   RevivalCandidate,
   RevivalEnqueueRequest,
 } from "./08-resucitador-de-muertos/index.js";
+import type {
+  AuthorizedProgrammaticSeoResult,
+  AuthorizedProgrammaticSeoRunInput,
+} from "./09-parasito-inteligente/index.js";
 import {
   assertConnectedSeoProfessionalMasterTopology,
   SEO_PROFESSIONAL_MASTER_CONNECTIONS,
@@ -96,6 +100,19 @@ export interface PassiveRevivalIntelligencePort {
   enqueue(input: RevivalEnqueueRequest): Promise<string>;
 }
 
+export interface AuthorizedProgrammaticSeoPort {
+  identity(): Readonly<{
+    strategy: 9;
+    provider: "AUTHORIZED_HEADLESS_PROGRAMMATIC_SEO";
+    engine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO";
+    siteId: string;
+    propertyOrigin: string;
+    operatorWebsiteOrigin: string;
+  }>;
+  build(input: AuthorizedProgrammaticSeoRunInput): Promise<AuthorizedProgrammaticSeoResult>;
+  rollbackLastMutation(input: Readonly<{ runId: string }>): Promise<AuthorizedProgrammaticSeoResult>;
+}
+
 export interface SeoProfessionalMasterSystemSnapshot {
   readonly googleAdsCustomerId: string;
   readonly offlineConversionProvider: string;
@@ -105,7 +122,9 @@ export interface SeoProfessionalMasterSystemSnapshot {
   readonly structuredKnowledgeProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS";
   readonly revivalIntelligenceProvider: "PASSIVE_TECH_ENRICHMENT_REDIS";
   readonly revivalQueue: "REDIS_RESP2_LUA";
-  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8];
+  readonly programmaticSeoProvider: "AUTHORIZED_HEADLESS_PROGRAMMATIC_SEO";
+  readonly programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO";
+  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8, 9];
   readonly connectionCount: number;
   readonly connected: true;
 }
@@ -122,6 +141,7 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
   private readonly corporateProcurement: CorporateProcurementPort;
   private readonly structuredKnowledge: StructuredKnowledgePort;
   private readonly revivalIntelligence: PassiveRevivalIntelligencePort;
+  private readonly programmaticSeo: AuthorizedProgrammaticSeoPort;
 
   constructor(input: {
     readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
@@ -129,6 +149,7 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     readonly corporateProcurement: CorporateProcurementPort;
     readonly structuredKnowledge: StructuredKnowledgePort;
     readonly revivalIntelligence: PassiveRevivalIntelligencePort;
+    readonly programmaticSeo: AuthorizedProgrammaticSeoPort;
   }) {
     if (!input || typeof input !== "object") throw new SeoProfessionalMasterSystemError("INVALID_CONFIG", "SEO Profesional master system dependencies are required");
     assertConnectedSeoProfessionalMasterTopology();
@@ -145,11 +166,15 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     assertMethod(input.revivalIntelligence, "identity", "revivalIntelligence");
     assertMethod(input.revivalIntelligence, "assess", "revivalIntelligence");
     assertMethod(input.revivalIntelligence, "enqueue", "revivalIntelligence");
+    assertMethod(input.programmaticSeo, "identity", "programmaticSeo");
+    assertMethod(input.programmaticSeo, "build", "programmaticSeo");
+    assertMethod(input.programmaticSeo, "rollbackLastMutation", "programmaticSeo");
     const coreIdentity = input.core.snapshot();
     const outreachIdentity = input.domainBirthOutreach.identity();
     const procurementIdentity = input.corporateProcurement.identity();
     const structuredKnowledgeIdentity = input.structuredKnowledge.identity();
     const revivalIdentity = input.revivalIntelligence.identity();
+    const programmaticIdentity = input.programmaticSeo.identity();
     if (outreachIdentity.strategy !== 5 || outreachIdentity.provider !== "WHATSAPP_CLOUD_API") {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "domainBirthOutreach must identify SEO strategy #5 on WhatsApp Cloud API");
     }
@@ -174,11 +199,18 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     if (revivalIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#8 operator website origin must match the #4 canonical local business origin");
     }
+    if (programmaticIdentity.strategy !== 9 || programmaticIdentity.provider !== "AUTHORIZED_HEADLESS_PROGRAMMATIC_SEO" || programmaticIdentity.engine !== "CORTEX_HEADLESS_PROGRAMMATIC_SEO") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "programmaticSeo must identify SEO strategy #9 on the authorized canonical headless programmatic SEO boundary");
+    }
+    if (programmaticIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#9 operator website origin must match the #4 canonical local business origin");
+    }
     this.core = input.core;
     this.domainBirthOutreach = input.domainBirthOutreach;
     this.corporateProcurement = input.corporateProcurement;
     this.structuredKnowledge = input.structuredKnowledge;
     this.revivalIntelligence = input.revivalIntelligence;
+    this.programmaticSeo = input.programmaticSeo;
   }
 
   snapshot(): SeoProfessionalMasterSystemSnapshot {
@@ -192,7 +224,9 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
       structuredKnowledgeProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS" as const,
       revivalIntelligenceProvider: "PASSIVE_TECH_ENRICHMENT_REDIS" as const,
       revivalQueue: "REDIS_RESP2_LUA" as const,
-      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8] as const),
+      programmaticSeoProvider: "AUTHORIZED_HEADLESS_PROGRAMMATIC_SEO" as const,
+      programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO" as const,
+      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9] as const),
       connectionCount: SEO_PROFESSIONAL_MASTER_CONNECTIONS.length,
       connected: true as const,
     });
@@ -231,6 +265,14 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
 
   enqueueRevivalCandidate(input: RevivalEnqueueRequest): Promise<string> {
     return this.revivalIntelligence.enqueue(input);
+  }
+
+  runAuthorizedProgrammaticSeo(input: AuthorizedProgrammaticSeoRunInput): Promise<AuthorizedProgrammaticSeoResult> {
+    return this.programmaticSeo.build(input);
+  }
+
+  rollbackAuthorizedProgrammaticSeo(input: Readonly<{ runId: string }>): Promise<AuthorizedProgrammaticSeoResult> {
+    return this.programmaticSeo.rollbackLastMutation(input);
   }
 
   topology() {
@@ -286,3 +328,17 @@ export type {
   RevivalQueueJob,
   RevivalTenantProfile,
 } from "./08-resucitador-de-muertos/index.js";
+export {
+  AuthorizedProgrammaticSeoCatalogBoundary,
+  AuthorizedProgrammaticSeoRuntime,
+  DnsTxtProgrammaticPropertyAuthorizer,
+  createDnsTxtProgrammaticAuthorizationToken,
+} from "./09-parasito-inteligente/index.js";
+export type {
+  AuthorizedProgrammaticSeoResult as SeoProfessionalAuthorizedProgrammaticSeoResult,
+  AuthorizedProgrammaticSeoRunInput as SeoProfessionalAuthorizedProgrammaticSeoRunInput,
+  AuthorizedProgrammaticSeoSourcePolicy,
+  DnsTxtProgrammaticAuthorizationPayload,
+  ProgrammaticPropertyAuthorizationEvidence,
+  ProgrammaticPropertyAuthorizationPort,
+} from "./09-parasito-inteligente/index.js";
