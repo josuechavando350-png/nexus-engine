@@ -25,7 +25,7 @@ describe("SEO Profesional connected topology", () => {
     const folders = implementedStrategyFolders();
     const coreRegistered = SEO_PROFESSIONAL_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
     const masterRegistered = SEO_PROFESSIONAL_MASTER_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
-    expect(folders).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(folders).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
     expect(coreRegistered).toEqual([1, 2, 3, 4]);
     expect(masterRegistered).toEqual(folders);
     expect(() => assertConnectedSeoProfessionalTopology()).not.toThrow();
@@ -42,7 +42,7 @@ describe("SEO Profesional connected topology", () => {
     ]);
   });
 
-  it("extends the master graph with #5 through #8 without mutating core edges", () => {
+  it("extends the master graph with #5 through #9 without mutating core edges", () => {
     expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.slice(0, SEO_PROFESSIONAL_CONNECTIONS.length)).toEqual(SEO_PROFESSIONAL_CONNECTIONS);
     expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.slice(SEO_PROFESSIONAL_CONNECTIONS.length)).toEqual([
       { from: 4, to: 5, channel: "VERIFIED_SENDER_IDENTITY", boundary: "WHATSAPP_BUSINESS" },
@@ -53,6 +53,8 @@ describe("SEO Profesional connected topology", () => {
       { from: 7, to: 1, channel: "GROUNDED_STRUCTURED_LANDING", boundary: "WEB_REQUEST" },
       { from: 4, to: 8, channel: "VERIFIED_REVIVAL_OPERATOR_IDENTITY", boundary: "WEB_REQUEST" },
       { from: 8, to: 1, channel: "QUALIFIED_REVIVAL_HANDOFF", boundary: "WEB_REQUEST" },
+      { from: 4, to: 9, channel: "VERIFIED_PSEO_OPERATOR_IDENTITY", boundary: "WEB_REQUEST" },
+      { from: 9, to: 1, channel: "AUTHORIZED_PROGRAMMATIC_LANDING", boundary: "WEB_REQUEST" },
     ]);
     for (const strategy of SEO_PROFESSIONAL_MASTER_STRATEGIES) {
       expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.some((edge) => edge.from === strategy.number)).toBe(true);
@@ -60,10 +62,10 @@ describe("SEO Profesional connected topology", () => {
     }
   });
 
-  it("rejects a master graph that isolates Resucitador de Muertos", () => {
+  it("rejects a master graph that isolates Parásito Inteligente", () => {
     expect(() => assertConnectedSeoProfessionalMasterTopology(
       SEO_PROFESSIONAL_MASTER_STRATEGIES,
-      SEO_PROFESSIONAL_MASTER_CONNECTIONS.filter((edge) => edge.from !== 8 && edge.to !== 8),
-    )).toThrow(/strategy 8|strongly connected|connection/u);
+      SEO_PROFESSIONAL_MASTER_CONNECTIONS.filter((edge) => edge.from !== 9 && edge.to !== 9),
+    )).toThrow(/strategy 9|strongly connected|connection/u);
   });
 });
