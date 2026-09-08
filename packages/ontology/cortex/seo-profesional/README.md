@@ -1,6 +1,6 @@
 # SEO Profesional — Nexus Core
 
-Esta carpeta concentra capacidades de adquisición y SEO que deben ser ejecutables, medibles y auditables. Ningún módulo puede depender de promesas de ranking, datos inventados, ubicaciones ficticias, tráfico artificial o respuestas hardcodeadas que simulen una integración externa.
+Esta carpeta concentra capacidades de adquisición y SEO que deben ser ejecutables, medibles y auditables. Ningún módulo puede depender de promesas de ranking, datos inventados, ubicaciones ficticias, tráfico artificial, mensajería no consentida o respuestas hardcodeadas que simulen una integración externa.
 
 ## Estrategias
 
@@ -8,26 +8,34 @@ Esta carpeta concentra capacidades de adquisición y SEO que deben ser ejecutabl
 2. `02-cazador-con-lupa` — search-term evidence + exact keyword synthesis + atomic Google Ads mutation into paused single-intent ad groups.
 3. `03-camaleon-web` — adopta la capacidad canónica existente `packages/core/cortex/ad-context-edge-workers`: query/ad-context driven UI en Edge, personalización allowlisted, fail-closed y render real. No duplica el motor.
 4. `04-iman-del-mapa` — perfil LocalBusiness validado + JSON-LD seguro + auditoría/sincronización gobernada de una ubicación existente de Google Business Profile.
+5. `05-emboscador-de-nacimientos` — verificación de dominios recientes mediante IANA/RDAP + DNS y outreach por WhatsApp Cloud API exclusivamente con template y evidencia de opt-in.
 
 Las estrategias restantes se incorporan de forma incremental. Cada una debe mantener contratos tipados, límites de seguridad, pruebas de fallo y una ruta de producción explícita antes de considerarse terminada. Cuando una capacidad canónica existente ya supera la estrategia propuesta, se conserva esa implementación y la carpeta maestra registra su ubicación sin crear una segunda versión peor o divergente.
 
 ## Regla de conectividad
 
-SEO Profesional funciona como un sistema, no como once módulos aislados. `topology.ts` registra todas las estrategias implementadas y exige un grafo fuertemente conectado: cada estrategia debe tener entrada, salida y camino hacia todas las demás. `topology.test.ts` compara además las carpetas numeradas implementadas contra el registro; añadir una nueva carpeta `05-*`, `06-*`, etc. sin registrarla y conectarla hace fallar CI.
+SEO Profesional funciona como un sistema, no como once módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta `06-*`, `07-*`, etc. sin registrarla y conectarla hace fallar CI.
 
-Para #1–#4 el circuito es:
+El core #1–#4 permanece exactamente conectado así:
 
 - `#4 -> #1` por `VERIFIED_LOCAL_ENTITY_CONTEXT`: el origen canónico del negocio definido por la presencia local limita qué host puede entrar al circuito de adquisición.
 - `#1 -> #2` por `QUALIFIED_CONVERSION_FEEDBACK`: #1 filtra tráfico inválido y envía únicamente conversiones calificadas al mismo cliente de Google Ads que #2 optimiza.
 - `#2 -> #3` por `PAID_SEARCH_TRAFFIC`: las keywords/grupos exactos materializados por #2 generan tráfico pagado que #3 interpreta como contexto de adquisición.
 - `#3 -> #4` por `LOCAL_STRUCTURED_PRESENCE`: cada landing devuelve la experiencia de #3 junto con el snapshot LocalBusiness/JSON-LD de #4, sin llamada a GBP en request-time.
-- `#3 -> #1` por `ATTRIBUTED_LANDING_FEEDBACK` se conserva como feedback directo del circuito previo.
+- `#3 -> #1` por `ATTRIBUTED_LANDING_FEEDBACK` se conserva como feedback directo.
 
-`connected-system.ts` impone el wiring operativo sin hacer que los motores importen sus implementaciones entre sí. El mismo `googleAdsCustomerId` queda fijado a nivel sistema. En landing, #4 fija el origen permitido, #1 evalúa riesgo, #3 resuelve la experiencia y #4 aporta el snapshot estructurado. Por encima del umbral de riesgo, se suprime el contexto de adquisición y #3 sirve la experiencia por defecto.
+#5 extiende ese circuito sin reescribirlo:
 
-Para conversiones diferidas se emite un recibo de atribución firmado que contiene únicamente assessment id, customer id, score, tipo de click y un HMAC del click ID: nunca devuelve el click ID crudo. La conversión posterior debe presentar el mismo click y un recibo válido antes de llegar al sink de #1.
+- `#4 -> #5` por `VERIFIED_SENDER_IDENTITY`: el origen del sender/landing de WhatsApp debe ser exactamente el origen LocalBusiness canónico de #4.
+- `#5 -> #1` por `CONSENTED_DOMAIN_BIRTH_OUTREACH`: un contacto que ya otorgó opt-in puede recibir un template aprobado que dirige al landing canónico; cualquier visita resultante vuelve a entrar por #1 y continúa por el circuito web existente.
+
+`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puerto estructural con #5 y será el punto acumulativo donde se conectarán #6–#11. De este modo ningún motor necesita importar la implementación interna de otro.
+
+Para conversiones diferidas, el core emite un recibo de atribución firmado que contiene únicamente assessment id, customer id, score, tipo de click y un HMAC del click ID: nunca devuelve el click ID crudo. La conversión posterior debe presentar el mismo click y un recibo válido antes de llegar al sink de #1.
 
 La sincronización con Google Business Profile no ocurre dentro del request de landing. #4 lee y actualiza una ubicación existente fuera de esa ruta, usa `readMask`/`updateMask`, bloquea escrituras si Google reporta updates pendientes y revalida el estado después de `APPLY`.
+
+La inteligencia de dominios #5 usa el bootstrap RDAP de IANA para localizar el servidor autoritativo, conserva únicamente metadatos técnicos/registrales no-contacto y consulta A/AAAA/MX/NS. Nunca extrae destinatarios desde RDAP/WHOIS. WhatsApp exige template, número E.164 y evidencia de opt-in ligada al mismo número; las mutaciones ambiguas no se reintentan a ciegas.
 
 ## Regla de producción
 
