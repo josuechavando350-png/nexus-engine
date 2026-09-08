@@ -114,7 +114,7 @@ function eventPayload(event: DataManagerConversionEvent) {
   if (event.currency !== undefined && !CURRENCY.test(event.currency)) throw new DataManagerApiError("INVALID_CONFIG", "currency must be ISO-style uppercase code");
   if ((event.conversionValue === undefined) !== (event.currency === undefined)) throw new DataManagerApiError("INVALID_CONFIG", "conversionValue and currency must be provided together");
   const adIdentifiers = adIdentifierPayload(event);
-  if (event.userIdentifiers.length > 10) throw new DataManagerApiError("INVALID_CONFIG", "at most ten user identifiers are allowed");
+  if (!Array.isArray(event.userIdentifiers) || event.userIdentifiers.length > 10) throw new DataManagerApiError("INVALID_CONFIG", "at most ten user identifiers are allowed");
   if (event.adUserDataConsent === "DENIED" && event.userIdentifiers.length > 0) throw new DataManagerApiError("INVALID_CONFIG", "user identifiers are forbidden when ad user data consent is denied");
   if (adIdentifiers === null && event.userIdentifiers.length === 0) throw new DataManagerApiError("INVALID_CONFIG", "a supported ad identifier or user identifier is required");
   return {
@@ -130,6 +130,8 @@ function eventPayload(event: DataManagerConversionEvent) {
 }
 
 async function boundedJson(response: Response): Promise<unknown> {
+  const declared = response.headers.get("content-length");
+  if (declared !== null && (!/^\d+$/u.test(declared) || Number(declared) > MAX_RESPONSE_BYTES)) throw new DataManagerApiError("INVALID_RESPONSE", "Data Manager response declared an invalid or oversized body", response.status);
   const reader = response.body?.getReader();
   if (!reader) return null;
   const chunks: Uint8Array[] = [];
@@ -140,7 +142,7 @@ async function boundedJson(response: Response): Promise<unknown> {
       if (next.done) break;
       total += next.value.byteLength;
       if (total > MAX_RESPONSE_BYTES) {
-        await reader.cancel();
+        await reader.cancel().catch(() => undefined);
         throw new DataManagerApiError("INVALID_RESPONSE", "Data Manager response exceeded bounded size", response.status);
       }
       chunks.push(next.value);
@@ -180,6 +182,7 @@ export class GoogleDataManagerRestClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let response: Response;
+    let parsed: unknown;
     try {
       const accessToken = token(await this.config.accessTokenProvider());
       response = await this.fetchImpl(DATA_MANAGER_INGEST_URL, {
@@ -193,15 +196,18 @@ export class GoogleDataManagerRestClient {
         },
         body,
       });
+      parsed = await boundedJson(response);
     } catch (error) {
-      if (controller.signal.aborted) throw new DataManagerApiError("TIMEOUT", "Data Manager request timed out");
+      if (controller.signal.aborted) throw new DataManagerApiError("TIMEOUT", "Data Manager request timed out while awaiting headers or body");
+      if (error instanceof DataManagerApiError) throw error;
       throw new DataManagerApiError("AMBIGUOUS_OUTCOME", error instanceof Error ? `Data Manager transport failed: ${error.message}` : "Data Manager transport failed");
     } finally {
       clearTimeout(timer);
     }
-    const parsed = await boundedJson(response);
     if (response.status === 401 || response.status === 403) throw new DataManagerApiError("AUTHENTICATION_FAILED", "Data Manager authentication or authorization failed", response.status);
     if (!response.ok) throw new DataManagerApiError("API_ERROR", `Data Manager rejected ingestion with HTTP ${response.status}`, response.status);
+    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+    if (!contentType.includes("application/json")) throw new DataManagerApiError("INVALID_RESPONSE", "Data Manager success response must be JSON", response.status);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || typeof (parsed as Record<string, unknown>).requestId !== "string" || !(parsed as Record<string, unknown>).requestId) {
       throw new DataManagerApiError("INVALID_RESPONSE", "Data Manager response is missing requestId", response.status);
     }
