@@ -94,7 +94,7 @@ describe("exact search-term selection", () => {
     const cappedPolicy = { ...policy, maximumCandidates: 1 };
     const result = selectExactMatchCandidates([
       observation({ searchTerm: "termino ganador a", conversions: 5, clicks: 20, conversionValue: 100, costMicros: 20_000_000 }),
-      observation({ searchTerm: "termino ganador b", adGroupId: "3333333333", conversions: 3, clicks: 20, conversionValue: 80, costMicros: 20_000_000 }),
+      observation({ searchTerm: "termino ganador b", adGroupId: "3333333333", conversions: 3, clicks: 20, conversionValue: 80, costMicros: 15_000_000 }),
       observation({ searchTerm: "termino caro", adGroupId: "4444444444", conversions: 2, clicks: 20, conversionValue: 5, costMicros: 30_000_000 }),
     ], cappedPolicy);
 
