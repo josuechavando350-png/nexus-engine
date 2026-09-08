@@ -279,7 +279,7 @@ function partialFailureMessage(payload: unknown): string | null {
 
 function validateJobId(value: number | undefined): number | undefined {
   if (value === undefined) return undefined;
-  if (!Number.isSafeInteger(value) || value < 0 || value >= 2 ** 31) throw new OfflineConversionError("INVALID_INPUT", "jobId must be an integer in [0, 2^31)");
+  if (!Number.isSafeInteger(value) || value <= 0 || value >= 2 ** 31) throw new OfflineConversionError("INVALID_INPUT", "jobId must be an integer in [1, 2^31)");
   return value;
 }
 
