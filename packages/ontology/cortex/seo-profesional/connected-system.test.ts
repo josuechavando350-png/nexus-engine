@@ -15,6 +15,10 @@ import {
   GoogleAdsExactMatchClient,
 } from "./02-cazador-con-lupa/index.js";
 import {
+  GoogleBusinessProfileClient,
+  LocalBusinessPresenceEngine,
+} from "./04-iman-del-mapa/index.js";
+import {
   ConnectedSeoProfessionalSystem,
   type ConnectedAttributionReceipt,
 } from "./connected-system.js";
@@ -151,6 +155,37 @@ function offlineEngine(requests: HttpRecord[], customerId = CUSTOMER_ID) {
   });
 }
 
+function localPresence(fetchImpl: typeof fetch) {
+  return new LocalBusinessPresenceEngine({
+    profile: {
+      schemaType: "Attorney",
+      name: "NEXUS Local Test",
+      websiteUri: "https://example.test/",
+      primaryPhone: "+52 55 1234 5678",
+      storefrontAddress: {
+        regionCode: "MX",
+        addressLines: ["Montecito 38"],
+        locality: "Benito Juárez",
+        administrativeArea: "CDMX",
+        postalCode: "03810",
+      },
+      areaServed: ["Ciudad de México"],
+    },
+    locationName: "locations/1234567890123456789",
+    client: new GoogleBusinessProfileClient({
+      accessTokenProvider: async () => "oauth-access-token-business-profile-123456",
+      fetchImpl,
+      maxReadRetries: 0,
+    }),
+  });
+}
+
+function requestTimeGbpTransport(): typeof fetch {
+  return vi.fn(async () => {
+    throw new Error("GBP network access is forbidden on the landing request path");
+  });
+}
+
 function landingHeaders(userAgent = "Mozilla/5.0 Nexus Test Browser") {
   return {
     "user-agent": userAgent,
@@ -165,6 +200,7 @@ function buildSystem(
   exactRequests: HttpRecord[],
   offlineRequests: HttpRecord[],
   offlineCustomerId = CUSTOMER_ID,
+  gbpFetch: typeof fetch = requestTimeGbpTransport(),
 ) {
   return new ConnectedSeoProfessionalSystem({
     googleAdsCustomerId: "123-456-7890",
@@ -176,20 +212,23 @@ function buildSystem(
     offlineConversions: offlineEngine(offlineRequests, offlineCustomerId),
     exactMatchSynthesizer: exactMatchEngine(exactRequests),
     camaleonWeb: createSeoProfessionalCamaleonAdapter(personalizationPolicy()),
+    localPresence: localPresence(gbpFetch),
   });
 }
 
-describe("SEO Profesional connected system #1 + #2 + #3", () => {
-  it("runs the real acquisition loop through one verified customer identity and a signed private attribution receipt", async () => {
+describe("SEO Profesional connected system #1 + #2 + #3 + #4", () => {
+  it("runs the acquisition/local-presence loop through one verified customer and canonical local entity", async () => {
     const exactRequests: HttpRecord[] = [];
     const offlineRequests: HttpRecord[] = [];
-    const system = buildSystem(trafficScorer(), exactRequests, offlineRequests);
+    const gbpFetch = requestTimeGbpTransport();
+    const system = buildSystem(trafficScorer(), exactRequests, offlineRequests, CUSTOMER_ID, gbpFetch);
 
     expect(system.snapshot()).toEqual({
       googleAdsCustomerId: CUSTOMER_ID,
       offlineConversionProvider: "GOOGLE_ADS_API",
-      strategyNumbers: [1, 2, 3],
-      connectionCount: 3,
+      canonicalWebsiteOrigin: "https://example.test",
+      strategyNumbers: [1, 2, 3, 4],
+      connectionCount: 5,
       connected: true,
     });
 
@@ -206,10 +245,16 @@ describe("SEO Profesional connected system #1 + #2 + #3", () => {
       applied: true,
       reason: "PAID_SEARCH_SIGNAL",
     });
+    expect(landing.localPresence).toMatchObject({
+      canonicalWebsiteOrigin: "https://example.test",
+      profile: { schemaType: "Attorney", name: "NEXUS Local Test" },
+      jsonLd: { "@type": "Attorney", url: "https://example.test/" },
+    });
     expect(landing.personalizationSuppressedByTrafficRisk).toBe(false);
-    expect(landing.strategyTrace).toEqual([1, 3]);
+    expect(landing.strategyTrace).toEqual([4, 1, 3, 4]);
     expect(landing.attribution).not.toBeNull();
     expect(JSON.stringify(landing.attribution)).not.toContain(CLICK_ID);
+    expect(gbpFetch).not.toHaveBeenCalled();
 
     const conversion = await system.recordQualifiedConversion({
       leadId: "lead-connected-0001",
@@ -258,6 +303,15 @@ describe("SEO Profesional connected system #1 + #2 + #3", () => {
     for (const request of exactRequests) expect(request.url).toContain(`/customers/${CUSTOMER_ID}/`);
     expect(String(exactRequests[0]!.body.query)).toContain("FROM search_term_view");
     expect(exactRequests[2]!.body).toMatchObject({ validateOnly: true, partialFailure: false });
+  });
+
+  it("uses #4 canonical entity context to reject a landing from another origin before acquisition processing", async () => {
+    const system = buildSystem(trafficScorer(), [], []);
+    await expect(system.assessLanding({
+      url: `https://not-the-business.example/?gclid=${CLICK_ID}`,
+      clientIp: "203.0.113.10",
+      headers: landingHeaders(),
+    })).rejects.toMatchObject({ code: "INVALID_INPUT" });
   });
 
   it("rejects a tampered receipt and a different click id before the real offline transport", async () => {

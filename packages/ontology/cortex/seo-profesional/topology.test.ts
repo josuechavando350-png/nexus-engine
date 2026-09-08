@@ -19,16 +19,18 @@ describe("SEO Profesional connected topology", () => {
   it("registers every implemented numbered strategy folder", () => {
     const folders = implementedStrategyFolders();
     const registered = SEO_PROFESSIONAL_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
-    expect(folders).toEqual([1, 2, 3]);
+    expect(folders).toEqual([1, 2, 3, 4]);
     expect(registered).toEqual(folders);
     expect(() => assertConnectedSeoProfessionalTopology()).not.toThrow();
   });
 
-  it("keeps a closed acquisition loop with no isolated strategy", () => {
+  it("keeps all four strategies in one strongly connected acquisition/local-presence graph", () => {
     expect(SEO_PROFESSIONAL_CONNECTIONS).toEqual([
       { from: 1, to: 2, channel: "QUALIFIED_CONVERSION_FEEDBACK", boundary: "GOOGLE_ADS" },
       { from: 2, to: 3, channel: "PAID_SEARCH_TRAFFIC", boundary: "GOOGLE_ADS" },
       { from: 3, to: 1, channel: "ATTRIBUTED_LANDING_FEEDBACK", boundary: "WEB_REQUEST" },
+      { from: 3, to: 4, channel: "LOCAL_STRUCTURED_PRESENCE", boundary: "WEB_REQUEST" },
+      { from: 4, to: 1, channel: "VERIFIED_LOCAL_ENTITY_CONTEXT", boundary: "WEB_REQUEST" },
     ]);
     for (const strategy of SEO_PROFESSIONAL_STRATEGIES) {
       expect(SEO_PROFESSIONAL_CONNECTIONS.some((edge) => edge.from === strategy.number)).toBe(true);
@@ -36,10 +38,10 @@ describe("SEO Profesional connected topology", () => {
     }
   });
 
-  it("rejects a graph that disconnects an implemented strategy", () => {
+  it("rejects a graph that isolates Iman del Mapa", () => {
     expect(() => assertConnectedSeoProfessionalTopology(
       SEO_PROFESSIONAL_STRATEGIES,
-      SEO_PROFESSIONAL_CONNECTIONS.filter((edge) => edge.from !== 3 && edge.to !== 3),
-    )).toThrow(/strategy 3|strongly connected|connection/u);
+      SEO_PROFESSIONAL_CONNECTIONS.filter((edge) => edge.from !== 4 && edge.to !== 4),
+    )).toThrow(/strategy 4|strongly connected|connection/u);
   });
 });

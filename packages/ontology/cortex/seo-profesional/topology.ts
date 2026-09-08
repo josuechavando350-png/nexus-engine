@@ -1,9 +1,10 @@
-export type SeoProfessionalStrategyNumber = 1 | 2 | 3;
+export type SeoProfessionalStrategyNumber = 1 | 2 | 3 | 4;
 
 export type SeoProfessionalStrategyId =
   | "detector-de-trampas"
   | "cazador-con-lupa"
-  | "camaleon-web";
+  | "camaleon-web"
+  | "iman-del-mapa";
 
 export interface SeoProfessionalStrategyDefinition {
   readonly number: SeoProfessionalStrategyNumber;
@@ -15,7 +16,9 @@ export interface SeoProfessionalStrategyDefinition {
 export type SeoProfessionalConnectionChannel =
   | "QUALIFIED_CONVERSION_FEEDBACK"
   | "PAID_SEARCH_TRAFFIC"
-  | "ATTRIBUTED_LANDING_FEEDBACK";
+  | "ATTRIBUTED_LANDING_FEEDBACK"
+  | "LOCAL_STRUCTURED_PRESENCE"
+  | "VERIFIED_LOCAL_ENTITY_CONTEXT";
 
 export interface SeoProfessionalConnection {
   readonly from: SeoProfessionalStrategyNumber;
@@ -43,12 +46,20 @@ export const SEO_PROFESSIONAL_STRATEGIES: readonly SeoProfessionalStrategyDefini
     implementationRef: "packages/core/cortex/ad-context-edge-workers",
     responsibility: "query/ad-context driven allowlisted landing personalization",
   }),
+  Object.freeze({
+    number: 4,
+    id: "iman-del-mapa",
+    implementationRef: "packages/ontology/cortex/seo-profesional/04-iman-del-mapa",
+    responsibility: "validated LocalBusiness structured presence and governed Google Business Profile synchronization",
+  }),
 ] as const);
 
 export const SEO_PROFESSIONAL_CONNECTIONS: readonly SeoProfessionalConnection[] = Object.freeze([
   Object.freeze({ from: 1, to: 2, channel: "QUALIFIED_CONVERSION_FEEDBACK", boundary: "GOOGLE_ADS" }),
   Object.freeze({ from: 2, to: 3, channel: "PAID_SEARCH_TRAFFIC", boundary: "GOOGLE_ADS" }),
   Object.freeze({ from: 3, to: 1, channel: "ATTRIBUTED_LANDING_FEEDBACK", boundary: "WEB_REQUEST" }),
+  Object.freeze({ from: 3, to: 4, channel: "LOCAL_STRUCTURED_PRESENCE", boundary: "WEB_REQUEST" }),
+  Object.freeze({ from: 4, to: 1, channel: "VERIFIED_LOCAL_ENTITY_CONTEXT", boundary: "WEB_REQUEST" }),
 ] as const);
 
 function reachable(
