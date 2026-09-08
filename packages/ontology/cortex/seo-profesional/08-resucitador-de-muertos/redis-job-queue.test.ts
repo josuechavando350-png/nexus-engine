@@ -12,11 +12,17 @@ const candidate = Object.freeze({
 
 describe("RedisRevivalJobQueue", () => {
   it("uses cluster-slot-safe tenant keys and Lua EVAL for deduplicated enqueue", async () => {
-    const evalFn = vi.fn(async () => "revjob_123e4567-e89b-12d3-a456-426614174000");
-    const queue = new RedisRevivalJobQueue({ eval: evalFn });
+    const calls: Array<readonly [string, readonly string[], readonly string[]]> = [];
+    const redis: RedisScriptPort = {
+      eval: vi.fn(async (script: string, keys: readonly string[], args: readonly string[]) => {
+        calls.push([script, keys, args]);
+        return "revjob_123e4567-e89b-12d3-a456-426614174000";
+      }),
+    };
+    const queue = new RedisRevivalJobQueue(redis);
     await expect(queue.enqueue(candidate, "cycle-2026-09-08", 1_000)).resolves.toBe("revjob_123e4567-e89b-12d3-a456-426614174000");
-    expect(evalFn).toHaveBeenCalledTimes(1);
-    const [script, keys, args] = evalFn.mock.calls[0]!;
+    expect(redis.eval).toHaveBeenCalledTimes(1);
+    const [script, keys, args] = calls[0]!;
     expect(script).toMatch(/HGET|HSET|ZADD/u);
     expect(keys).toEqual([
       "nexus:seo8:{tenant-revival}:dedupe",
@@ -76,9 +82,9 @@ describe("RedisRevivalJobQueue", () => {
       updatedAt: 1_000,
       lastError: null,
     };
-    const evalFn = vi.fn<RedisScriptPort["eval"]>();
-    evalFn.mockResolvedValueOnce("OK").mockResolvedValueOnce("PENDING");
-    const queue = new RedisRevivalJobQueue({ eval: evalFn });
+    const replies: Array<"OK" | "PENDING"> = ["OK", "PENDING"];
+    const redis: RedisScriptPort = { eval: vi.fn(async () => replies.shift() ?? null) };
+    const queue = new RedisRevivalJobQueue(redis);
     await expect(queue.complete(job, "worker-001", 2_000)).resolves.toBeUndefined();
     await expect(queue.retry(job, "worker-001", "temporary transport error", 3_000)).resolves.toBe("PENDING");
   });

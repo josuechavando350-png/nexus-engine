@@ -95,6 +95,8 @@ function receipt(value: unknown): string {
 
 export class PassiveTechnologyRevivalEngine {
   private readonly profile: Readonly<Required<RevivalTenantProfile>>;
+  private readonly probe: PassivePublicSiteProbe;
+  private readonly now: () => number;
 
   constructor(
     input: {
@@ -117,13 +119,6 @@ export class PassiveTechnologyRevivalEngine {
     });
     this.probe = input.probe ?? new PassivePublicSiteProbe();
     this.now = input.now ?? Date.now;
-  }
-
-  private readonly probe: PassivePublicSiteProbe;
-  private readonly now: () => number;
-
-  identity() {
-    return Object.freeze({ strategy: 8 as const, provider: "PASSIVE_TECH_ENRICHMENT_REDIS" as const, operatorWebsiteOrigin: this.profile.operatorWebsiteOrigin });
   }
 
   async assess(candidate: RevivalCandidate): Promise<RevivalAssessment> {

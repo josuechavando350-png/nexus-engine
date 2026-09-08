@@ -1,5 +1,6 @@
 import { lookup } from "node:dns/promises";
-import { request as httpsRequest, type IncomingHttpHeaders, type IncomingMessage } from "node:https";
+import type { IncomingHttpHeaders, IncomingMessage } from "node:http";
+import { request as httpsRequest } from "node:https";
 import { isIP } from "node:net";
 
 export class PassivePublicSiteProbeError extends Error {

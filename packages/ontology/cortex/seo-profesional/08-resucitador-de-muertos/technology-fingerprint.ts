@@ -23,48 +23,58 @@ export interface TechnologyFingerprint {
   readonly policyVersion: "seo8-passive-tech-v1";
 }
 
+interface RuleInput {
+  readonly headers: Record<string, string>;
+  readonly html: string;
+  readonly generator: string;
+}
+
 type Rule = Readonly<{
   name: string;
   category: DetectedTechnologyCategory;
   confidence: "HIGH" | "MEDIUM";
-  test: (input: { headers: Record<string, string>; html: string; generator: string }) => readonly TechnologyEvidenceKind[];
+  test: (input: RuleInput) => readonly TechnologyEvidenceKind[];
 }>;
 
+function evidence(...values: TechnologyEvidenceKind[]): readonly TechnologyEvidenceKind[] {
+  return values;
+}
+
 const RULES: readonly Rule[] = Object.freeze([
-  { name: "Cloudflare", category: "EDGE_HOSTING", confidence: "HIGH", test: ({ headers }) => headers["cf-ray"] || /cloudflare/iu.test(headers.server ?? "") ? ["HEADER"] : [] },
-  { name: "Vercel", category: "EDGE_HOSTING", confidence: "HIGH", test: ({ headers }) => headers["x-vercel-id"] ? ["HEADER"] : [] },
-  { name: "Netlify", category: "EDGE_HOSTING", confidence: "HIGH", test: ({ headers }) => headers["x-nf-request-id"] ? ["HEADER"] : [] },
-  { name: "WordPress", category: "CMS", confidence: "HIGH", test: ({ html, generator }) => {
+  { name: "Cloudflare", category: "EDGE_HOSTING", confidence: "HIGH", test: ({ headers }: RuleInput) => headers["cf-ray"] || /cloudflare/iu.test(headers.server ?? "") ? evidence("HEADER") : evidence() },
+  { name: "Vercel", category: "EDGE_HOSTING", confidence: "HIGH", test: ({ headers }: RuleInput) => headers["x-vercel-id"] ? evidence("HEADER") : evidence() },
+  { name: "Netlify", category: "EDGE_HOSTING", confidence: "HIGH", test: ({ headers }: RuleInput) => headers["x-nf-request-id"] ? evidence("HEADER") : evidence() },
+  { name: "WordPress", category: "CMS", confidence: "HIGH", test: ({ html, generator }: RuleInput) => {
     const kinds: TechnologyEvidenceKind[] = [];
     if (/wordpress/iu.test(generator)) kinds.push("META_GENERATOR");
     if (/\/(?:wp-content|wp-includes)\//iu.test(html)) kinds.push("ASSET_URL");
     return kinds;
   } },
-  { name: "Shopify", category: "COMMERCE", confidence: "HIGH", test: ({ html, generator }) => {
+  { name: "Shopify", category: "COMMERCE", confidence: "HIGH", test: ({ html, generator }: RuleInput) => {
     const kinds: TechnologyEvidenceKind[] = [];
     if (/shopify/iu.test(generator)) kinds.push("META_GENERATOR");
     if (/cdn\.shopify\.com|shopify-section/iu.test(html)) kinds.push("ASSET_URL");
     return kinds;
   } },
-  { name: "Wix", category: "CMS", confidence: "HIGH", test: ({ html, generator }) => {
+  { name: "Wix", category: "CMS", confidence: "HIGH", test: ({ html, generator }: RuleInput) => {
     const kinds: TechnologyEvidenceKind[] = [];
     if (/wix/iu.test(generator)) kinds.push("META_GENERATOR");
     if (/wixstatic\.com|wix-image/iu.test(html)) kinds.push("ASSET_URL");
     return kinds;
   } },
-  { name: "Squarespace", category: "CMS", confidence: "HIGH", test: ({ html, generator }) => {
+  { name: "Squarespace", category: "CMS", confidence: "HIGH", test: ({ html, generator }: RuleInput) => {
     const kinds: TechnologyEvidenceKind[] = [];
     if (/squarespace/iu.test(generator)) kinds.push("META_GENERATOR");
     if (/static1\.squarespace\.com|squarespace-cdn/iu.test(html)) kinds.push("ASSET_URL");
     return kinds;
   } },
-  { name: "Next.js", category: "FRAMEWORK", confidence: "HIGH", test: ({ headers, html }) => {
+  { name: "Next.js", category: "FRAMEWORK", confidence: "HIGH", test: ({ headers, html }: RuleInput) => {
     const kinds: TechnologyEvidenceKind[] = [];
     if (/next\.js/iu.test(headers["x-powered-by"] ?? "")) kinds.push("HEADER");
     if (/\/_next\/|__NEXT_DATA__/u.test(html)) kinds.push("ASSET_URL");
     return kinds;
   } },
-  { name: "React", category: "FRAMEWORK", confidence: "MEDIUM", test: ({ html }) => /data-reactroot|data-reactid|react-dom/iu.test(html) ? ["HTML_MARKER"] : [] },
+  { name: "React", category: "FRAMEWORK", confidence: "MEDIUM", test: ({ html }: RuleInput) => /data-reactroot|data-reactid|react-dom/iu.test(html) ? evidence("HTML_MARKER") : evidence() },
 ] as const);
 
 function metaGenerator(html: string): string {
