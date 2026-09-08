@@ -1,12 +1,13 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import {
+  IdentifiedQualifiedOfflineConversionEngine,
   InvalidTrafficClickScorer,
-  QualifiedOfflineConversionEngine,
   type GoogleClickId,
   type GoogleClickIdKind,
   type InvalidTrafficAssessment,
   type InvalidTrafficClickInput,
   type OfflineConversionCandidate,
+  type OfflineConversionProvider,
   type OfflineConversionUploadOptions,
   type QualifiedOfflineConversionEngineResult,
 } from "./01-detector-de-trampas/index.js";
@@ -49,7 +50,7 @@ export interface SeoProfessionalSystemDependencies<TDecision> {
   readonly attributionTtlMs?: number;
   readonly now?: () => number;
   readonly trafficScorer: InvalidTrafficClickScorer;
-  readonly offlineConversions: QualifiedOfflineConversionEngine;
+  readonly offlineConversions: IdentifiedQualifiedOfflineConversionEngine;
   readonly exactMatchSynthesizer: ExactMatchSynthesizerEngine;
   readonly camaleonWeb: CamaleonWebPort<TDecision>;
 }
@@ -87,6 +88,7 @@ export type ConnectedExactMatchOptimizationInput = Omit<ExactMatchSynthesizerRun
 
 export interface SeoProfessionalSystemSnapshot {
   readonly googleAdsCustomerId: string;
+  readonly offlineConversionProvider: OfflineConversionProvider;
   readonly strategyNumbers: readonly [1, 2, 3];
   readonly connectionCount: number;
   readonly connected: true;
@@ -227,12 +229,13 @@ function extractVerifiedClickId(urlInput: InvalidTrafficClickInput["url"], asses
 
 export class ConnectedSeoProfessionalSystem<TDecision> {
   private readonly googleAdsCustomerId: string;
+  private readonly offlineConversionProvider: OfflineConversionProvider;
   private readonly maximumPersonalizationRiskScore: number;
   private readonly attributionSigningSecret: string;
   private readonly attributionTtlMs: number;
   private readonly now: () => number;
   private readonly trafficScorer: InvalidTrafficClickScorer;
-  private readonly offlineConversions: QualifiedOfflineConversionEngine;
+  private readonly offlineConversions: IdentifiedQualifiedOfflineConversionEngine;
   private readonly exactMatchSynthesizer: ExactMatchSynthesizerEngine;
   private readonly camaleonWeb: CamaleonWebPort<TDecision>;
 
@@ -246,8 +249,14 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
     this.now = dependencies.now ?? Date.now;
     assertRuntimeDependency(dependencies.trafficScorer, "assess", "trafficScorer");
     assertRuntimeDependency(dependencies.offlineConversions, "process", "offlineConversions");
+    assertRuntimeDependency(dependencies.offlineConversions, "destinationIdentity", "offlineConversions");
     assertRuntimeDependency(dependencies.exactMatchSynthesizer, "run", "exactMatchSynthesizer");
     assertRuntimeDependency(dependencies.camaleonWeb, "resolve", "camaleonWeb");
+    const offlineIdentity = dependencies.offlineConversions.destinationIdentity();
+    if (offlineIdentity.googleAdsCustomerId !== this.googleAdsCustomerId) {
+      throw new SeoProfessionalSystemError("INVALID_CONFIG", "offline conversion destination must match googleAdsCustomerId");
+    }
+    this.offlineConversionProvider = offlineIdentity.provider;
     this.trafficScorer = dependencies.trafficScorer;
     this.offlineConversions = dependencies.offlineConversions;
     this.exactMatchSynthesizer = dependencies.exactMatchSynthesizer;
@@ -257,6 +266,7 @@ export class ConnectedSeoProfessionalSystem<TDecision> {
   snapshot(): SeoProfessionalSystemSnapshot {
     return Object.freeze({
       googleAdsCustomerId: this.googleAdsCustomerId,
+      offlineConversionProvider: this.offlineConversionProvider,
       strategyNumbers: Object.freeze([1, 2, 3] as const),
       connectionCount: SEO_PROFESSIONAL_CONNECTIONS.length,
       connected: true as const,
