@@ -368,7 +368,10 @@ export class GoogleAdsOfflineConversionClient implements OfflineConversionSink {
       parsed = await boundedJson(response);
     } catch (error) {
       if (error instanceof OfflineConversionError) throw error;
-      if (controller.signal.aborted) throw new OfflineConversionError("TIMEOUT", "Google Ads offline conversion upload timed out");
+      if (controller.signal.aborted) {
+        if (validateOnly) throw new OfflineConversionError("TIMEOUT", "Google Ads validation request timed out");
+        throw new OfflineConversionError("AMBIGUOUS_OUTCOME", "Google Ads offline conversion upload timed out; remote application of the conversion is unconfirmed");
+      }
       throw new OfflineConversionError("AMBIGUOUS_OUTCOME", error instanceof Error ? `Google Ads offline conversion transport failed: ${error.message}` : "Google Ads offline conversion transport failed");
     } finally {
       clearTimeout(timer);
