@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --root ../.. packages/perceptual-images/src/index.test.ts",
+    "test": "vitest run --root ../.. packages/perceptual-images/src/index.test.ts packages/perceptual-images/src/cwv-adapter.test.ts",
     "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/cwv-adapter.js && test -f dist/cwv-adapter.d.ts"
   },
   "dependencies": {
