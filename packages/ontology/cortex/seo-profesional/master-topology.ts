@@ -3,7 +3,7 @@ import {
   SEO_PROFESSIONAL_STRATEGIES as CORE_STRATEGIES,
 } from "./topology.js";
 
-export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6;
+export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 
 export type SeoProfessionalMasterStrategyId =
   | "detector-de-trampas"
@@ -11,7 +11,8 @@ export type SeoProfessionalMasterStrategyId =
   | "camaleon-web"
   | "iman-del-mapa"
   | "emboscador-de-nacimientos"
-  | "infiltrador-corporativo";
+  | "infiltrador-corporativo"
+  | "recomendacion-de-dios";
 
 export interface SeoProfessionalMasterStrategyDefinition {
   readonly number: SeoProfessionalMasterStrategyNumber;
@@ -29,7 +30,9 @@ export type SeoProfessionalMasterConnectionChannel =
   | "VERIFIED_SENDER_IDENTITY"
   | "CONSENTED_DOMAIN_BIRTH_OUTREACH"
   | "VERIFIED_SELLER_IDENTITY"
-  | "QUALIFIED_PROCUREMENT_HANDOFF";
+  | "QUALIFIED_PROCUREMENT_HANDOFF"
+  | "VERIFIED_PUBLISHER_IDENTITY"
+  | "GROUNDED_STRUCTURED_LANDING";
 
 export interface SeoProfessionalMasterConnection {
   readonly from: SeoProfessionalMasterStrategyNumber;
@@ -57,6 +60,12 @@ export const SEO_PROFESSIONAL_MASTER_STRATEGIES: readonly SeoProfessionalMasterS
     implementationRef: "packages/ontology/cortex/seo-profesional/06-infiltrador-corporativo",
     responsibility: "public procurement intelligence through OCDS-first ingestion, robots-governed public HTML fallback, tenant-isolated asynchronous work and first-party opportunity handoff",
   }),
+  Object.freeze({
+    number: 7 as const,
+    id: "recomendacion-de-dios" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/07-recomendacion-de-dios",
+    responsibility: "verified semantic-graph grounding, page-visible Schema.org projection, Google structured-data policy gates and hash-bound first-party JSON-LD",
+  }),
 ] as const);
 
 export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMasterConnection[] = Object.freeze([
@@ -70,6 +79,8 @@ export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMaster
   Object.freeze({ from: 5 as const, to: 1 as const, channel: "CONSENTED_DOMAIN_BIRTH_OUTREACH" as const, boundary: "WHATSAPP_BUSINESS" as const }),
   Object.freeze({ from: 4 as const, to: 6 as const, channel: "VERIFIED_SELLER_IDENTITY" as const, boundary: "PUBLIC_PROCUREMENT" as const }),
   Object.freeze({ from: 6 as const, to: 1 as const, channel: "QUALIFIED_PROCUREMENT_HANDOFF" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 4 as const, to: 7 as const, channel: "VERIFIED_PUBLISHER_IDENTITY" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 7 as const, to: 1 as const, channel: "GROUNDED_STRUCTURED_LANDING" as const, boundary: "WEB_REQUEST" as const }),
 ] as const);
 
 function reachable(
