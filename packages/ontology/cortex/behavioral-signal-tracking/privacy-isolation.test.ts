@@ -61,7 +61,7 @@ function harness(options: { maxTrackedSessionsPerSite?: number } = {}) {
     ],
   }, () => now);
   const retaining = new PrivacyRetainingTransactionPort(raw, scope, policy, () => now);
-  const runtime = new CortexBehavioralSignalRuntime(raw === retaining ? raw : retaining, scope, behavioralPolicy(), { pseudonymizationKey: trackerKey }, () => now);
+  const runtime = new CortexBehavioralSignalRuntime(retaining, scope, behavioralPolicy(), { pseudonymizationKey: trackerKey }, () => now);
   const sessions = new PrivacyIsolationSessionService({
     keyLifecycle: lifecycle,
     now: () => now,
