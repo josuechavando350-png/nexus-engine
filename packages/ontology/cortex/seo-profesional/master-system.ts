@@ -13,6 +13,10 @@ import {
   type DomainBirthOutreachRequest,
   type DomainBirthOutreachResult,
 } from "./05-emboscador-de-nacimientos/index.js";
+import type {
+  ProcurementScanResult,
+  ProcurementSourceConfig,
+} from "./06-infiltrador-corporativo/index.js";
 import {
   assertConnectedSeoProfessionalMasterTopology,
   SEO_PROFESSIONAL_MASTER_CONNECTIONS,
@@ -54,12 +58,22 @@ export interface DomainBirthOutreachPort {
   run(input: DomainBirthOutreachRequest): Promise<DomainBirthOutreachResult>;
 }
 
+export interface CorporateProcurementPort {
+  identity(): Readonly<{
+    strategy: 6;
+    provider: "PUBLIC_PROCUREMENT_INTELLIGENCE";
+    sellerWebsiteOrigin: string;
+  }>;
+  scan(input: ProcurementSourceConfig): Promise<ProcurementScanResult>;
+}
+
 export interface SeoProfessionalMasterSystemSnapshot {
   readonly googleAdsCustomerId: string;
   readonly offlineConversionProvider: string;
   readonly canonicalWebsiteOrigin: string;
   readonly domainBirthOutreachProvider: "WHATSAPP_CLOUD_API";
-  readonly strategyNumbers: readonly [1, 2, 3, 4, 5];
+  readonly corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE";
+  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6];
   readonly connectionCount: number;
   readonly connected: true;
 }
@@ -73,10 +87,12 @@ function assertMethod(value: unknown, method: string, label: string): void {
 export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
   private readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
   private readonly domainBirthOutreach: DomainBirthOutreachPort;
+  private readonly corporateProcurement: CorporateProcurementPort;
 
   constructor(input: {
     readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
     readonly domainBirthOutreach: DomainBirthOutreachPort;
+    readonly corporateProcurement: CorporateProcurementPort;
   }) {
     if (!input || typeof input !== "object") throw new SeoProfessionalMasterSystemError("INVALID_CONFIG", "SEO Profesional master system dependencies are required");
     assertConnectedSeoProfessionalMasterTopology();
@@ -86,16 +102,26 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     assertMethod(input.core, "optimizeExactMatches", "core");
     assertMethod(input.domainBirthOutreach, "identity", "domainBirthOutreach");
     assertMethod(input.domainBirthOutreach, "run", "domainBirthOutreach");
+    assertMethod(input.corporateProcurement, "identity", "corporateProcurement");
+    assertMethod(input.corporateProcurement, "scan", "corporateProcurement");
     const coreIdentity = input.core.snapshot();
     const outreachIdentity = input.domainBirthOutreach.identity();
+    const procurementIdentity = input.corporateProcurement.identity();
     if (outreachIdentity.strategy !== 5 || outreachIdentity.provider !== "WHATSAPP_CLOUD_API") {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "domainBirthOutreach must identify SEO strategy #5 on WhatsApp Cloud API");
     }
     if (outreachIdentity.senderWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#5 sender website origin must match the #4 canonical local business origin");
     }
+    if (procurementIdentity.strategy !== 6 || procurementIdentity.provider !== "PUBLIC_PROCUREMENT_INTELLIGENCE") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "corporateProcurement must identify SEO strategy #6 on the public procurement intelligence boundary");
+    }
+    if (procurementIdentity.sellerWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#6 seller website origin must match the #4 canonical local business origin");
+    }
     this.core = input.core;
     this.domainBirthOutreach = input.domainBirthOutreach;
+    this.corporateProcurement = input.corporateProcurement;
   }
 
   snapshot(): SeoProfessionalMasterSystemSnapshot {
@@ -105,7 +131,8 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
       offlineConversionProvider: core.offlineConversionProvider,
       canonicalWebsiteOrigin: core.canonicalWebsiteOrigin,
       domainBirthOutreachProvider: "WHATSAPP_CLOUD_API" as const,
-      strategyNumbers: Object.freeze([1, 2, 3, 4, 5] as const),
+      corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE" as const,
+      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6] as const),
       connectionCount: SEO_PROFESSIONAL_MASTER_CONNECTIONS.length,
       connected: true as const,
     });
@@ -130,7 +157,25 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     return this.domainBirthOutreach.run(input);
   }
 
+  scanCorporateProcurement(input: ProcurementSourceConfig): Promise<ProcurementScanResult> {
+    return this.corporateProcurement.scan(input);
+  }
+
   topology() {
     return Object.freeze({ strategies: SEO_PROFESSIONAL_MASTER_STRATEGIES, connections: SEO_PROFESSIONAL_MASTER_CONNECTIONS });
   }
 }
+
+export {
+  ProcurementAsyncWorker,
+  PublicProcurementIntelligenceEngine,
+  PublicProcurementUrlPolicy,
+  SqliteProcurementJobQueue,
+} from "./06-infiltrador-corporativo/index.js";
+export type {
+  ProcurementResultSinkPort,
+  ProcurementScanResult as SeoProfessionalProcurementScanResult,
+  ProcurementSourceConfig as SeoProfessionalProcurementSourceConfig,
+  ProcurementTenantProfile,
+  PublicProcurementBrowserPort,
+} from "./06-infiltrador-corporativo/index.js";
