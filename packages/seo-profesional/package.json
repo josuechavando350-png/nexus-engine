@@ -1,0 +1,20 @@
+{
+  "name": "@nexus/seo-profesional",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./system": "./src/system.ts",
+    "./topology": "./src/topology.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --root ../.. packages/seo-profesional/src/topology.test.ts packages/seo-profesional/src/system.test.ts",
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/system.js && test -f dist/system.d.ts && test -f dist/topology.js && test -f dist/topology.d.ts"
+  },
+  "dependencies": {
+    "@nexus/core": "workspace:*",
+    "@nexus/ontology": "workspace:*"
+  }
+}
