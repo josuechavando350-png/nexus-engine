@@ -3,6 +3,7 @@ const MAX_RESPONSE_BYTES = 64 * 1024;
 const NUMERIC_ID = /^\d{5,20}$/u;
 const SHA256_HEX = /^[0-9a-f]{64}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
+const AD_ID = /^\S{8,256}$/u;
 
 export interface DataManagerAccessTokenProvider { (): Promise<string> }
 
@@ -26,6 +27,8 @@ export interface DataManagerConversionEvent {
   readonly conversionValue?: number;
   readonly currency?: string;
   readonly gclid?: string;
+  readonly gbraid?: string;
+  readonly wbraid?: string;
   readonly userIdentifiers: readonly DataManagerUserIdentifier[];
 }
 
@@ -88,6 +91,19 @@ function identifierPayload(identifier: DataManagerUserIdentifier) {
   throw new DataManagerApiError("INVALID_CONFIG", "unsupported Data Manager user identifier");
 }
 
+function adIdentifierPayload(event: DataManagerConversionEvent): Readonly<Record<string, string>> | null {
+  for (const [label, value] of [["gclid", event.gclid], ["gbraid", event.gbraid], ["wbraid", event.wbraid]] as const) {
+    if (value !== undefined && !AD_ID.test(value)) throw new DataManagerApiError("INVALID_CONFIG", `${label} is malformed`);
+  }
+  if (event.gbraid !== undefined && event.wbraid !== undefined) throw new DataManagerApiError("INVALID_CONFIG", "gbraid and wbraid are mutually exclusive for one conversion event");
+  const values = Object.freeze({
+    ...(event.gclid === undefined ? {} : { gclid: event.gclid }),
+    ...(event.gbraid === undefined ? {} : { gbraid: event.gbraid }),
+    ...(event.wbraid === undefined ? {} : { wbraid: event.wbraid }),
+  });
+  return Object.keys(values).length === 0 ? null : values;
+}
+
 function eventPayload(event: DataManagerConversionEvent) {
   if (!/^[A-Za-z0-9._:-]{8,128}$/u.test(event.transactionId)) throw new DataManagerApiError("INVALID_CONFIG", "transactionId is malformed");
   const occurredAt = new Date(event.eventTimestamp);
@@ -97,9 +113,10 @@ function eventPayload(event: DataManagerConversionEvent) {
   if (event.conversionValue !== undefined && (!Number.isFinite(event.conversionValue) || event.conversionValue < 0 || event.conversionValue > 1_000_000_000)) throw new DataManagerApiError("INVALID_CONFIG", "conversionValue is invalid");
   if (event.currency !== undefined && !CURRENCY.test(event.currency)) throw new DataManagerApiError("INVALID_CONFIG", "currency must be ISO-style uppercase code");
   if ((event.conversionValue === undefined) !== (event.currency === undefined)) throw new DataManagerApiError("INVALID_CONFIG", "conversionValue and currency must be provided together");
-  if (event.gclid !== undefined && (event.gclid.length < 8 || event.gclid.length > 256 || /\s/u.test(event.gclid))) throw new DataManagerApiError("INVALID_CONFIG", "gclid is malformed");
-  if (event.userIdentifiers.length > 10) throw new DataManagerApiError("INVALID_CONFIG", "at most ten user identifiers are allowed");
+  const adIdentifiers = adIdentifierPayload(event);
+  if (!Array.isArray(event.userIdentifiers) || event.userIdentifiers.length > 10) throw new DataManagerApiError("INVALID_CONFIG", "at most ten user identifiers are allowed");
   if (event.adUserDataConsent === "DENIED" && event.userIdentifiers.length > 0) throw new DataManagerApiError("INVALID_CONFIG", "user identifiers are forbidden when ad user data consent is denied");
+  if (adIdentifiers === null && event.userIdentifiers.length === 0) throw new DataManagerApiError("INVALID_CONFIG", "a supported ad identifier or user identifier is required");
   return {
     destinationReferences: ["google-ads-conversion"],
     transactionId: event.transactionId,
@@ -107,12 +124,14 @@ function eventPayload(event: DataManagerConversionEvent) {
     eventName: event.eventName,
     eventSource: event.eventSource,
     ...(event.conversionValue === undefined ? {} : { conversionValue: event.conversionValue, currency: event.currency }),
-    ...(event.gclid === undefined ? {} : { adIdentifiers: { gclid: event.gclid } }),
+    ...(adIdentifiers === null ? {} : { adIdentifiers }),
     ...(event.userIdentifiers.length === 0 ? {} : { userData: { userIdentifiers: event.userIdentifiers.map(identifierPayload) } }),
   };
 }
 
 async function boundedJson(response: Response): Promise<unknown> {
+  const declared = response.headers.get("content-length");
+  if (declared !== null && (!/^\d+$/u.test(declared) || Number(declared) > MAX_RESPONSE_BYTES)) throw new DataManagerApiError("INVALID_RESPONSE", "Data Manager response declared an invalid or oversized body", response.status);
   const reader = response.body?.getReader();
   if (!reader) return null;
   const chunks: Uint8Array[] = [];
@@ -123,7 +142,7 @@ async function boundedJson(response: Response): Promise<unknown> {
       if (next.done) break;
       total += next.value.byteLength;
       if (total > MAX_RESPONSE_BYTES) {
-        await reader.cancel();
+        await reader.cancel().catch(() => undefined);
         throw new DataManagerApiError("INVALID_RESPONSE", "Data Manager response exceeded bounded size", response.status);
       }
       chunks.push(next.value);
@@ -163,6 +182,7 @@ export class GoogleDataManagerRestClient {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), this.timeoutMs);
     let response: Response;
+    let parsed: unknown;
     try {
       const accessToken = token(await this.config.accessTokenProvider());
       response = await this.fetchImpl(DATA_MANAGER_INGEST_URL, {
@@ -176,15 +196,18 @@ export class GoogleDataManagerRestClient {
         },
         body,
       });
+      parsed = await boundedJson(response);
     } catch (error) {
-      if (controller.signal.aborted) throw new DataManagerApiError("TIMEOUT", "Data Manager request timed out");
+      if (controller.signal.aborted) throw new DataManagerApiError("TIMEOUT", "Data Manager request timed out while awaiting headers or body");
+      if (error instanceof DataManagerApiError) throw error;
       throw new DataManagerApiError("AMBIGUOUS_OUTCOME", error instanceof Error ? `Data Manager transport failed: ${error.message}` : "Data Manager transport failed");
     } finally {
       clearTimeout(timer);
     }
-    const parsed = await boundedJson(response);
     if (response.status === 401 || response.status === 403) throw new DataManagerApiError("AUTHENTICATION_FAILED", "Data Manager authentication or authorization failed", response.status);
     if (!response.ok) throw new DataManagerApiError("API_ERROR", `Data Manager rejected ingestion with HTTP ${response.status}`, response.status);
+    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+    if (!contentType.includes("application/json")) throw new DataManagerApiError("INVALID_RESPONSE", "Data Manager success response must be JSON", response.status);
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || typeof (parsed as Record<string, unknown>).requestId !== "string" || !(parsed as Record<string, unknown>).requestId) {
       throw new DataManagerApiError("INVALID_RESPONSE", "Data Manager response is missing requestId", response.status);
     }

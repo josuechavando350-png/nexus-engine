@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
-import { evaluateCwvLifecycle, type CwvLifecycleThresholds } from "@nexus/core/cortex/cwv-lifecycle-optimizer";
+import { evaluateCwvRuntimeOptimization } from "@nexus/core/cortex/cwv-lifecycle-pipeline";
+import { type CwvLifecycleThresholds } from "@nexus/core/cortex/cwv-lifecycle-optimizer";
 
 type Control = { mode: "ACTIVE" | "OBSERVE_ONLY" | "KILLED"; thresholds: CwvLifecycleThresholds | null };
 const CONTROL_ENDPOINT = "/api/cortex/cwv/control";
@@ -59,13 +60,23 @@ function clearState(): void {
   delete document.documentElement.dataset.nexusCortex13State;
   delete document.documentElement.dataset.nexusCortex13Reasons;
   delete document.documentElement.dataset.nexusCortex13SuspendSpeculation;
+  delete document.documentElement.dataset.nexusCortex33JavascriptScheduling;
+  delete document.documentElement.dataset.nexusCortex33LazyLoading;
   if (wasSuspended) emitSuspensionChange(false);
 }
 
-function publishState(state: "NORMAL" | "PRESSURE" | "PAUSED", reasons: readonly string[], suspend: boolean): void {
+function publishState(
+  state: "NORMAL" | "PRESSURE" | "PAUSED",
+  reasons: readonly string[],
+  suspend: boolean,
+  javascriptScheduling: "NORMAL" | "YIELD_NON_CRITICAL",
+  lazyLoading: "NORMAL" | "SUSPEND_BACKGROUND",
+): void {
   const wasSuspended = document.documentElement.dataset.nexusCortex13SuspendSpeculation === "1";
   document.documentElement.dataset.nexusCortex13State = state;
   document.documentElement.dataset.nexusCortex13Reasons = reasons.join(",");
+  document.documentElement.dataset.nexusCortex33JavascriptScheduling = javascriptScheduling;
+  document.documentElement.dataset.nexusCortex33LazyLoading = lazyLoading;
   if (suspend) document.documentElement.dataset.nexusCortex13SuspendSpeculation = "1";
   else delete document.documentElement.dataset.nexusCortex13SuspendSpeculation;
   if (suspend !== wasSuspended) emitSuspensionChange(suspend);
@@ -99,7 +110,7 @@ export function Cortex13CwvClient(): null {
         clearState();
         return;
       }
-      const decision = evaluateCwvLifecycle(snapshot(), initial.thresholds);
+      const decision = evaluateCwvRuntimeOptimization(snapshot(), initial.thresholds);
 
       // Mandatory last-boundary guard: the control and exact thresholds are
       // re-read immediately before any consumer-visible or speculative-loading mutation.
@@ -114,7 +125,13 @@ export function Cortex13CwvClient(): null {
         return;
       }
 
-      publishState(decision.state, decision.reasons, decision.shouldSuspendSpeculation);
+      publishState(
+        decision.state,
+        decision.reasons,
+        decision.shouldSuspendSpeculation,
+        decision.javascriptScheduling,
+        decision.lazyLoading,
+      );
       if (decision.shouldSuspendSpeculation) removeSpeculation();
     };
 

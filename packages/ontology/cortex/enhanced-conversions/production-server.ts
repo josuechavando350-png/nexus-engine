@@ -1,17 +1,25 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from "node:http";
-import type { EnhancedConversionMode } from "./index";
-import { DurableEnhancedConversionsPipeline, EnhancedConversionError, observeEnhancedConversionInput } from "./index";
+import type { EnhancedConversionMode, EnhancedConversionRecord } from "./index";
+import { EnhancedConversionError, observeEnhancedConversionInput } from "./index";
 import { DurableEnhancedConversionControl } from "./runtime-control";
 
 const JSON_TYPE = "application/json";
 const MAX_BODY_BYTES = 16 * 1024;
 
+export interface EnhancedConversionEnginePort {
+  prepare(value: unknown): EnhancedConversionRecord;
+  dispatch(transactionId: string): Promise<EnhancedConversionRecord>;
+  rollback(transactionId: string): EnhancedConversionRecord;
+  get(transactionId: string): EnhancedConversionRecord | undefined;
+}
+
 export interface EnhancedConversionProductionServerOptions {
-  readonly engine: DurableEnhancedConversionsPipeline;
+  readonly engine: EnhancedConversionEnginePort;
   readonly control: DurableEnhancedConversionControl;
   readonly ingestToken: string;
   readonly controlToken: string;
+  readonly observeInput?: (value: unknown) => unknown;
   readonly host?: string;
   readonly port?: number;
 }
@@ -121,6 +129,10 @@ export class EnhancedConversionProductionServer {
     await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
   }
 
+  private observe(value: unknown): unknown {
+    return this.options.observeInput ? this.options.observeInput(value) : observeEnhancedConversionInput(value);
+  }
+
   private async handle(request: IncomingMessage, response: ServerResponse): Promise<void> {
     try {
       const path = pathOf(request);
@@ -144,14 +156,14 @@ export class EnhancedConversionProductionServer {
         if (initialMode === "KILLED") { json(response, 503, { error: "KILLED" }); return; }
         const input = await boundedJson(request);
         if (initialMode === "OBSERVE_ONLY") {
-          json(response, 200, { status: "OBSERVED", observation: observeEnhancedConversionInput(input) });
+          json(response, 200, { status: "OBSERVED", observation: this.observe(input) });
           return;
         }
 
         const finalMode = this.options.control.read().mode;
         if (finalMode === "KILLED") { json(response, 503, { error: "KILLED" }); return; }
         if (finalMode === "OBSERVE_ONLY") {
-          json(response, 200, { status: "OBSERVED", observation: observeEnhancedConversionInput(input) });
+          json(response, 200, { status: "OBSERVED", observation: this.observe(input) });
           return;
         }
         const prepared = this.options.engine.prepare(input);
