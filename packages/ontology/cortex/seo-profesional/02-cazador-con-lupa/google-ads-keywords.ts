@@ -450,7 +450,7 @@ export class GoogleAdsExactMatchClient {
     const candidates = candidatesInput.map(validateCandidate);
     const campaignIds = [...new Set(candidates.map((candidate) => candidate.campaignId))];
     const existing = await this.fetchExistingExactKeywords(customerId, campaignIds);
-    const existingByKey = new Map(existing.map((keyword) => [`${keyword.campaignId}\u0000${keyword.normalizedText}`, keyword] as const));
+    const existingByKey = new Map<string, ExistingExactKeyword>(existing.map((keyword) => [`${keyword.campaignId}\u0000${keyword.normalizedText}`, keyword] as const));
     const candidateKeys = new Set<string>();
     const planned: ExactMatchCandidate[] = [];
     const skipped: ExactMatchSkippedItem[] = [];
