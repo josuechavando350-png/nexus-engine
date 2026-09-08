@@ -20,7 +20,9 @@ ENV NODE_ENV=production \
   PORT=8789 \
   NEXUS_CORTEX_STATE_DB=/var/lib/nexus-cortex/behavioral-signals.sqlite \
   NEXUS_CORTEX_PERSISTENCE_ACK=durable-volume \
-  NEXUS_CORTEX_BEHAVIORAL_CONFIG=/etc/nexus-cortex/behavioral.json
+  NEXUS_CORTEX_BEHAVIORAL_CONFIG=/etc/nexus-cortex/behavioral.json \
+  NEXUS_CORTEX_BEHAVIORAL_PRIVACY_ISOLATION_CONFIG=/etc/nexus-cortex/behavioral-privacy-isolation.json \
+  NEXUS_CORTEX_BEHAVIORAL_PRIVACY_KEYRING=/run/secrets/nexus-behavioral-privacy-keyring.json
 
 VOLUME ["/var/lib/nexus-cortex"]
 EXPOSE 8789
@@ -29,4 +31,4 @@ USER node
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
   CMD node -e 'fetch(`http://127.0.0.1:${process.env.PORT || "8789"}/healthz`).then((r)=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))'
 
-CMD ["node", "scripts/cortex-behavioral-signals.mjs"]
+CMD ["node", "scripts/cortex-behavioral-signals-private.mjs"]

@@ -17,7 +17,7 @@ The public input accepts only the declared fields for these signal kinds:
 
 Surface and element IDs must come from policy allowlists. CTA/form signals require an allowlisted element ID. Engagement and scroll values are bounded and are only legal on their matching signal kind. Unknown fields are rejected rather than copied into storage.
 
-Every accepted event must carry a canonical UTC timestamp, an opaque event ID, an opaque session ID, `collectionAllowed=true`, and a non-empty privacy decision reference supplied by the upstream privacy layer. CORTEX #6 does not decide legal basis or consent itself; it fails closed when upstream collection is denied.
+Every accepted #6 event must carry a canonical UTC timestamp, an opaque event ID, an opaque session ID, `collectionAllowed=true`, and a non-empty privacy decision reference supplied by the upstream privacy layer. CORTEX #6 does not decide legal basis or consent itself; it fails closed when upstream collection is denied. Production deployments use the CORTEX #26 boundary described below so browser requests do not supply those privacy assertions directly.
 
 ## Privacy and minimization boundary
 
@@ -32,7 +32,19 @@ Durable state contains only:
 
 There is no durable raw per-event object or reconstructable raw event stream. Session receipts are capped by policy and by a hard limit of 512 events.
 
-Key lifecycle, deletion/retention enforcement, stronger storage isolation, and consent isolation belong to CORTEX #26 and related privacy capabilities. #6 must not be treated as their substitute.
+## CORTEX #26 privacy isolation, retention, and key lifecycle
+
+The production behavioral entrypoint is wrapped by CORTEX #26 rather than exposing the raw #6 identity/consent inputs to browser ingestion.
+
+- A trusted control boundary issues short-lived session tokens only after receiving an upstream `collectionAllowed=true` decision and opaque privacy-decision reference. Browser ingest payloads cannot submit `collectionAllowed`, `privacyDecisionRef`, or a raw `sessionId`.
+- Session tokens bind site, privacy-decision digest, nonce, key epoch, issuance, and expiry under HMAC. Reused client event identifiers are re-pseudonymized per server-issued session, preventing deliberate cross-session identity continuity in this telemetry layer.
+- Privacy session keys come from a bounded, pre-provisioned keyring. Durable control state stores only key IDs and HMAC verifiers. Rotation is CAS-controlled; the previous key remains verification-only until every token from its epoch must have expired, then it can be retired. New session issuance fails closed when the active epoch exceeds policy age.
+- A durable per-site retention index is written atomically in the same transaction as BASE or MICRO aggregates. The index tracks exact aggregate object IDs without raw browser identifiers. New sessions are refused before commit if the bounded index cannot track them.
+- Retention uses fixed site windows so site totals and session aggregates cannot drift apart. At expiry, tracked BASE/MICRO session objects, both site aggregate objects, and the retention index are deleted with expected revisions. A startup sweep, periodic sweep, and synchronous pre-ingest sweep enforce the same policy.
+- A state store containing legacy behavioral aggregates without a CORTEX #26 retention index is rejected. Production must use a clean private store or an explicit purge migration rather than silently adopting state whose retention start cannot be proven.
+- Keyring secrets, bearer credentials, raw privacy-decision references, session tokens, and token nonces are never written to the behavioral state store or operational telemetry.
+
+CORTEX #26 still does not determine legal basis or implement a consent registry. The trusted upstream privacy system remains authoritative for whether collection is allowed; #26 isolates that decision from browser-controlled ingest fields and binds it cryptographically to the short-lived session.
 
 ## Determinism and idempotency
 
@@ -44,19 +56,21 @@ Session receipts are sorted by pseudonymous event key. Counters, engagement tota
 
 - `ACTIVE`: validates and atomically persists aggregates.
 - `OBSERVE_ONLY`: validates and produces the event digest without persistence.
-- `KILLED`: performs no transaction-store reads or writes and does not normalize behavioral identifiers.
+- `KILLED`: performs no behavioral aggregate reads or writes and does not normalize raw behavioral identifiers in #6.
 
-A request may make the current policy more restrictive, never less restrictive.
+A request may make the current behavioral policy more restrictive, never less restrictive. CORTEX #26 retains the same durable #6 control plane; its isolation and retention wrappers do not bypass the final kill/rollback boundary.
 
 ## Guardrails
 
 Policy controls and hard bounds cover event age, future skew, session duration, event count per session, engagement duration, surface count, element count, and write retries. Site and session state is integrity-digested and revalidated on every read. Corrupted persisted payloads fail as `INTEGRITY_FAILURE`.
 
+CORTEX #26 additionally bounds session TTL, aggregate retention, sweep cadence, tracked sessions per site, active privacy-key age, keyring size, config size, request body size, and browser origins. Privacy control mutations require a separate control credential from ingestion.
+
 Telemetry runs after the semantic result is known. Telemetry sink failures are isolated and cannot reverse or falsify a committed ingestion.
 
 ## Persistence and scale boundary
 
-The implementation uses the existing `OntologyTransactionPort`. Tests exercise both the in-memory reference adapter and the durable `SqliteOntologyTransactionStore`, including close/reopen idempotency.
+The implementation uses the existing `OntologyTransactionPort`. Tests exercise both the in-memory reference adapter and the durable `SqliteOntologyTransactionStore`, including close/reopen idempotency in the behavioral runtime. CORTEX #26 retention adds deletion through the same transaction boundary and refuses ephemeral state in the production executable.
 
 The current SQLite adapter is a durable correctness adapter, not an unbounded high-throughput event bus. High-volume deployments must benchmark and provision an appropriate transaction adapter before claiming production throughput.
 
