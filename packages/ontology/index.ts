@@ -233,3 +233,5 @@ export function composeSchemas(schemas: readonly ValidatedSchema[]): ValidatedSc
   }
   return [...schemas];
 }
+
+export * as SeoProfesionalDetectorDeTrampas from "./cortex/seo-profesional/01-detector-de-trampas/index.js";
