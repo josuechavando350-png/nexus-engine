@@ -1,7 +1,7 @@
 import { DatabaseSync } from "node:sqlite";
 import type { OntologyScope } from "@nexus/ontology";
 import type { OntologyTransactionPort } from "@nexus/ontology/transaction";
-import { DurableEnhancedConversionsPipeline, EnhancedConversionError, type EnhancedConversionGateway, type EnhancedConversionMode, type EnhancedConversionRecord } from "../enhanced-conversions/index";
+import { DurableEnhancedConversionsPipeline, EnhancedConversionError, observeEnhancedConversionInput, type EnhancedConversionGateway, type EnhancedConversionMode, type EnhancedConversionRecord } from "../enhanced-conversions/index";
 import type { DataManagerConversionEvent, DataManagerDestination } from "../enhanced-conversions/data-manager-rest";
 import { SqlitePymeConsentRegistry } from "./consent-registry";
 
@@ -77,14 +77,22 @@ export class PymeEnhancedConversionsPrivacyLayer {
     const consent = this.config.consentRegistry.authorize(subjectId, "ENHANCED_CONVERSIONS", this.purpose, transactionId, new Date(this.now()).toISOString());
     if (!consent.authorized) throw new EnhancedConversionError("CONSENT_VIOLATION", `central consent registry blocks enhanced conversion preparation: ${consent.reason}`);
 
-    const prepared = this.pipeline.prepare(value);
     const existing = this.db.prepare("SELECT subject_id,purpose FROM cortex_pyme_conversion_subject WHERE transaction_id=?").get(transactionId) as Record<string, unknown> | undefined;
+    let insertedBinding = false;
     if (existing) {
       if (existing.subject_id !== subjectId || existing.purpose !== this.purpose) throw new EnhancedConversionError("CONFLICT", "transactionId is already bound to another PyME consent subject or purpose");
     } else {
       this.db.prepare("INSERT INTO cortex_pyme_conversion_subject(transaction_id,subject_id,purpose,bound_at) VALUES(?,?,?,?)").run(transactionId, subjectId, this.purpose, new Date(this.now()).toISOString());
+      insertedBinding = true;
     }
-    return prepared;
+    try {
+      return this.pipeline.prepare(value);
+    } catch (error) {
+      if (insertedBinding) {
+        try { this.db.prepare("DELETE FROM cortex_pyme_conversion_subject WHERE transaction_id=? AND subject_id=? AND purpose=?").run(transactionId, subjectId, this.purpose); } catch { /* stale binding is safe and fails closed; preserve original error */ }
+      }
+      throw error;
+    }
   }
 
   async dispatch(transactionId: string): Promise<EnhancedConversionRecord> {
@@ -98,4 +106,26 @@ export class PymeEnhancedConversionsPrivacyLayer {
 
   rollback(transactionId: string): EnhancedConversionRecord { return this.pipeline.rollback(transactionId); }
   get(transactionId: string): EnhancedConversionRecord | undefined { return this.pipeline.get(transactionId); }
+}
+
+interface PymeEnhancedConversionEnvelope {
+  readonly subjectId: `sha256:${string}`;
+  readonly event: unknown;
+}
+
+function envelope(value: unknown): PymeEnhancedConversionEnvelope {
+  if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new EnhancedConversionError("INVALID_INPUT", "PyME enhanced conversion request must be a plain envelope");
+  const raw = value as Record<string, unknown>;
+  if (Object.keys(raw).sort().join(",") !== "event,subjectId" || typeof raw.subjectId !== "string" || !SHA256.test(raw.subjectId)) throw new EnhancedConversionError("INVALID_INPUT", "PyME enhanced conversion envelope must contain subjectId and event");
+  return Object.freeze({ subjectId: raw.subjectId as `sha256:${string}`, event: raw.event });
+}
+
+export class PymeEnhancedConversionProductionEngine {
+  constructor(private readonly layer: PymeEnhancedConversionsPrivacyLayer) {}
+  prepare(value: unknown): EnhancedConversionRecord { const parsed = envelope(value); return this.layer.prepare(parsed.subjectId, parsed.event); }
+  dispatch(transactionId: string): Promise<EnhancedConversionRecord> { return this.layer.dispatch(transactionId); }
+  rollback(transactionId: string): EnhancedConversionRecord { return this.layer.rollback(transactionId); }
+  get(transactionId: string): EnhancedConversionRecord | undefined { return this.layer.get(transactionId); }
+  observe(value: unknown): unknown { return observeEnhancedConversionInput(envelope(value).event); }
+  close(): void { this.layer.close(); }
 }
