@@ -2,6 +2,11 @@ import { readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  assertConnectedSeoProfessionalMasterTopology,
+  SEO_PROFESSIONAL_MASTER_CONNECTIONS,
+  SEO_PROFESSIONAL_MASTER_STRATEGIES,
+} from "./master-topology.js";
+import {
   assertConnectedSeoProfessionalTopology,
   SEO_PROFESSIONAL_CONNECTIONS,
   SEO_PROFESSIONAL_STRATEGIES,
@@ -16,15 +21,18 @@ function implementedStrategyFolders(): number[] {
 }
 
 describe("SEO Profesional connected topology", () => {
-  it("registers every implemented numbered strategy folder", () => {
+  it("keeps the certified #1-#4 core stable while the master registers every implemented numbered strategy folder", () => {
     const folders = implementedStrategyFolders();
-    const registered = SEO_PROFESSIONAL_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
-    expect(folders).toEqual([1, 2, 3, 4]);
-    expect(registered).toEqual(folders);
+    const coreRegistered = SEO_PROFESSIONAL_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
+    const masterRegistered = SEO_PROFESSIONAL_MASTER_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
+    expect(folders).toEqual([1, 2, 3, 4, 5]);
+    expect(coreRegistered).toEqual([1, 2, 3, 4]);
+    expect(masterRegistered).toEqual(folders);
     expect(() => assertConnectedSeoProfessionalTopology()).not.toThrow();
+    expect(() => assertConnectedSeoProfessionalMasterTopology()).not.toThrow();
   });
 
-  it("keeps all four strategies in one strongly connected acquisition/local-presence graph", () => {
+  it("keeps all four core strategies in their original strongly connected acquisition/local-presence graph", () => {
     expect(SEO_PROFESSIONAL_CONNECTIONS).toEqual([
       { from: 1, to: 2, channel: "QUALIFIED_CONVERSION_FEEDBACK", boundary: "GOOGLE_ADS" },
       { from: 2, to: 3, channel: "PAID_SEARCH_TRAFFIC", boundary: "GOOGLE_ADS" },
@@ -32,16 +40,24 @@ describe("SEO Profesional connected topology", () => {
       { from: 3, to: 4, channel: "LOCAL_STRUCTURED_PRESENCE", boundary: "WEB_REQUEST" },
       { from: 4, to: 1, channel: "VERIFIED_LOCAL_ENTITY_CONTEXT", boundary: "WEB_REQUEST" },
     ]);
-    for (const strategy of SEO_PROFESSIONAL_STRATEGIES) {
-      expect(SEO_PROFESSIONAL_CONNECTIONS.some((edge) => edge.from === strategy.number)).toBe(true);
-      expect(SEO_PROFESSIONAL_CONNECTIONS.some((edge) => edge.to === strategy.number)).toBe(true);
+  });
+
+  it("extends the master graph with verified sender identity and consented #5 handoff without mutating core edges", () => {
+    expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.slice(0, SEO_PROFESSIONAL_CONNECTIONS.length)).toEqual(SEO_PROFESSIONAL_CONNECTIONS);
+    expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.slice(SEO_PROFESSIONAL_CONNECTIONS.length)).toEqual([
+      { from: 4, to: 5, channel: "VERIFIED_SENDER_IDENTITY", boundary: "WHATSAPP_BUSINESS" },
+      { from: 5, to: 1, channel: "CONSENTED_DOMAIN_BIRTH_OUTREACH", boundary: "WHATSAPP_BUSINESS" },
+    ]);
+    for (const strategy of SEO_PROFESSIONAL_MASTER_STRATEGIES) {
+      expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.some((edge) => edge.from === strategy.number)).toBe(true);
+      expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.some((edge) => edge.to === strategy.number)).toBe(true);
     }
   });
 
-  it("rejects a graph that isolates Iman del Mapa", () => {
-    expect(() => assertConnectedSeoProfessionalTopology(
-      SEO_PROFESSIONAL_STRATEGIES,
-      SEO_PROFESSIONAL_CONNECTIONS.filter((edge) => edge.from !== 4 && edge.to !== 4),
-    )).toThrow(/strategy 4|strongly connected|connection/u);
+  it("rejects a master graph that isolates Emboscador de Nacimientos", () => {
+    expect(() => assertConnectedSeoProfessionalMasterTopology(
+      SEO_PROFESSIONAL_MASTER_STRATEGIES,
+      SEO_PROFESSIONAL_MASTER_CONNECTIONS.filter((edge) => edge.from !== 5 && edge.to !== 5),
+    )).toThrow(/strategy 5|strongly connected|connection/u);
   });
 });
