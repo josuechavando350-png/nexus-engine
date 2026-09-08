@@ -158,7 +158,7 @@ export class PymeConsentAwareLeadDestination implements LeadDestination {
     if (ledger && ledger.eventDigest !== eventDigest) throw new Cortex20Error("DESTINATION_FAILURE", "PyME relay idempotency key is already bound to different content");
     if (ledger?.status === "SENT" || ledger?.status === "SUPPRESSED") return { receiptId: ledger.receiptId! };
     if (ledger?.status === "DISPATCHING") {
-      ledger = this.transition(idempotencyKey, "DISPATCHING", "PENDING");
+      this.transition(idempotencyKey, "DISPATCHING", "PENDING");
       this.audit(idempotencyKey, eventDigest, "RECOVER", "IDEMPOTENT_RETRY", idempotencyKey);
     }
     if (!ledger) {
