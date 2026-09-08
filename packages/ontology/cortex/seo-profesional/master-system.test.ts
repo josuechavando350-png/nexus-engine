@@ -60,7 +60,7 @@ function outreach(origin = "https://example.test", requests: string[] = []) {
   };
   const dnsPort: DnsDomainIntelligencePort = { inspect: async () => dns() };
   const intelligence = new DomainBirthIntelligenceEngine({ rdap, dns: dnsPort, now: () => NOW });
-  const fetchImpl: typeof fetch = vi.fn(async (input) => {
+  const fetchImpl: typeof fetch = vi.fn(async (input: RequestInfo | URL) => {
     requests.push(String(input));
     return new Response(JSON.stringify({ messages: [{ id: "wamid.master00000001" }], contacts: [{ wa_id: "525512345678" }] }), { status: 200 });
   });
@@ -82,7 +82,7 @@ function outreach(origin = "https://example.test", requests: string[] = []) {
 
 function procurement(origin = "https://example.test") {
   const urlPolicy = new PublicProcurementUrlPolicy(["https://compras.example"], { resolve: async () => ["8.8.8.8"] });
-  const fetchImpl: typeof fetch = vi.fn(async (input) => String(input).endsWith("robots.txt")
+  const fetchImpl: typeof fetch = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith("robots.txt")
     ? new Response("User-agent: *\nAllow: /\n", { status: 200 })
     : new Response(JSON.stringify({ releases: [{ id: "r1", tender: { title: "Seguridad administrada" } }] }), { status: 200 }));
   return new PublicProcurementIntelligenceEngine({
@@ -94,13 +94,21 @@ function procurement(origin = "https://example.test") {
   });
 }
 
-describe("SeoProfessionalMasterSystem #1..#6", () => {
-  it("binds #5 and #6 to the canonical #4 identity and executes both through the same master runtime", async () => {
+function structuredKnowledge(origin = "https://example.test") {
+  return {
+    identity: () => Object.freeze({ strategy: 7 as const, provider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS" as const, publisherWebsiteOrigin: origin }),
+    publish: async () => { throw new Error("not exercised in master wiring test"); },
+  };
+}
+
+describe("SeoProfessionalMasterSystem #1..#7", () => {
+  it("binds #5, #6 and #7 to the canonical #4 identity through the same master runtime", async () => {
     const requests: string[] = [];
     const system = new SeoProfessionalMasterSystem({
       core: core(),
       domainBirthOutreach: outreach("https://example.test", requests),
       corporateProcurement: procurement("https://example.test"),
+      structuredKnowledge: structuredKnowledge("https://example.test"),
     });
     expect(system.snapshot()).toEqual({
       googleAdsCustomerId: "1234567890",
@@ -108,11 +116,12 @@ describe("SeoProfessionalMasterSystem #1..#6", () => {
       canonicalWebsiteOrigin: "https://example.test",
       domainBirthOutreachProvider: "WHATSAPP_CLOUD_API",
       corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE",
-      strategyNumbers: [1, 2, 3, 4, 5, 6],
-      connectionCount: 9,
+      structuredKnowledgeProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS",
+      strategyNumbers: [1, 2, 3, 4, 5, 6, 7],
+      connectionCount: 11,
       connected: true,
     });
-    expect(system.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(system.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6, 7]);
 
     const outreachResult = await system.runDomainBirthOutreach({
       domain: "newco.com",
@@ -142,6 +151,7 @@ describe("SeoProfessionalMasterSystem #1..#6", () => {
       core: core("https://example.test"),
       domainBirthOutreach: outreach("https://other.example"),
       corporateProcurement: procurement("https://example.test"),
+      structuredKnowledge: structuredKnowledge("https://example.test"),
     })).toThrowError(/#5 sender website origin/u);
   });
 
@@ -150,6 +160,16 @@ describe("SeoProfessionalMasterSystem #1..#6", () => {
       core: core("https://example.test"),
       domainBirthOutreach: outreach("https://example.test"),
       corporateProcurement: procurement("https://other.example"),
+      structuredKnowledge: structuredKnowledge("https://example.test"),
     })).toThrowError(/#6 seller website origin/u);
+  });
+
+  it("fails closed when #7 publisher identity does not match the canonical local business origin", () => {
+    expect(() => new SeoProfessionalMasterSystem({
+      core: core("https://example.test"),
+      domainBirthOutreach: outreach("https://example.test"),
+      corporateProcurement: procurement("https://example.test"),
+      structuredKnowledge: structuredKnowledge("https://other.example"),
+    })).toThrowError(/#7 publisher website origin/u);
   });
 });

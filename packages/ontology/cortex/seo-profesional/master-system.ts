@@ -17,6 +17,10 @@ import type {
   ProcurementScanResult,
   ProcurementSourceConfig,
 } from "./06-infiltrador-corporativo/index.js";
+import type {
+  GroundedStructuredDataArtifact,
+  StructuredKnowledgePublishRequest,
+} from "./07-recomendacion-de-dios/index.js";
 import {
   assertConnectedSeoProfessionalMasterTopology,
   SEO_PROFESSIONAL_MASTER_CONNECTIONS,
@@ -67,13 +71,23 @@ export interface CorporateProcurementPort {
   scan(input: ProcurementSourceConfig): Promise<ProcurementScanResult>;
 }
 
+export interface StructuredKnowledgePort {
+  identity(): Readonly<{
+    strategy: 7;
+    provider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS";
+    publisherWebsiteOrigin: string;
+  }>;
+  publish(input: StructuredKnowledgePublishRequest): Promise<GroundedStructuredDataArtifact>;
+}
+
 export interface SeoProfessionalMasterSystemSnapshot {
   readonly googleAdsCustomerId: string;
   readonly offlineConversionProvider: string;
   readonly canonicalWebsiteOrigin: string;
   readonly domainBirthOutreachProvider: "WHATSAPP_CLOUD_API";
   readonly corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE";
-  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6];
+  readonly structuredKnowledgeProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS";
+  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7];
   readonly connectionCount: number;
   readonly connected: true;
 }
@@ -88,11 +102,13 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
   private readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
   private readonly domainBirthOutreach: DomainBirthOutreachPort;
   private readonly corporateProcurement: CorporateProcurementPort;
+  private readonly structuredKnowledge: StructuredKnowledgePort;
 
   constructor(input: {
     readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
     readonly domainBirthOutreach: DomainBirthOutreachPort;
     readonly corporateProcurement: CorporateProcurementPort;
+    readonly structuredKnowledge: StructuredKnowledgePort;
   }) {
     if (!input || typeof input !== "object") throw new SeoProfessionalMasterSystemError("INVALID_CONFIG", "SEO Profesional master system dependencies are required");
     assertConnectedSeoProfessionalMasterTopology();
@@ -104,9 +120,12 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     assertMethod(input.domainBirthOutreach, "run", "domainBirthOutreach");
     assertMethod(input.corporateProcurement, "identity", "corporateProcurement");
     assertMethod(input.corporateProcurement, "scan", "corporateProcurement");
+    assertMethod(input.structuredKnowledge, "identity", "structuredKnowledge");
+    assertMethod(input.structuredKnowledge, "publish", "structuredKnowledge");
     const coreIdentity = input.core.snapshot();
     const outreachIdentity = input.domainBirthOutreach.identity();
     const procurementIdentity = input.corporateProcurement.identity();
+    const structuredKnowledgeIdentity = input.structuredKnowledge.identity();
     if (outreachIdentity.strategy !== 5 || outreachIdentity.provider !== "WHATSAPP_CLOUD_API") {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "domainBirthOutreach must identify SEO strategy #5 on WhatsApp Cloud API");
     }
@@ -119,9 +138,16 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     if (procurementIdentity.sellerWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#6 seller website origin must match the #4 canonical local business origin");
     }
+    if (structuredKnowledgeIdentity.strategy !== 7 || structuredKnowledgeIdentity.provider !== "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "structuredKnowledge must identify SEO strategy #7 on the verified semantic graph rich-results boundary");
+    }
+    if (structuredKnowledgeIdentity.publisherWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#7 publisher website origin must match the #4 canonical local business origin");
+    }
     this.core = input.core;
     this.domainBirthOutreach = input.domainBirthOutreach;
     this.corporateProcurement = input.corporateProcurement;
+    this.structuredKnowledge = input.structuredKnowledge;
   }
 
   snapshot(): SeoProfessionalMasterSystemSnapshot {
@@ -132,7 +158,8 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
       canonicalWebsiteOrigin: core.canonicalWebsiteOrigin,
       domainBirthOutreachProvider: "WHATSAPP_CLOUD_API" as const,
       corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE" as const,
-      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6] as const),
+      structuredKnowledgeProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS" as const,
+      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7] as const),
       connectionCount: SEO_PROFESSIONAL_MASTER_CONNECTIONS.length,
       connected: true as const,
     });
@@ -161,6 +188,10 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     return this.corporateProcurement.scan(input);
   }
 
+  publishStructuredKnowledge(input: StructuredKnowledgePublishRequest): Promise<GroundedStructuredDataArtifact> {
+    return this.structuredKnowledge.publish(input);
+  }
+
   topology() {
     return Object.freeze({ strategies: SEO_PROFESSIONAL_MASTER_STRATEGIES, connections: SEO_PROFESSIONAL_MASTER_CONNECTIONS });
   }
@@ -179,3 +210,18 @@ export type {
   ProcurementTenantProfile,
   PublicProcurementBrowserPort,
 } from "./06-infiltrador-corporativo/index.js";
+export {
+  CanonicalSemanticGraphProvider,
+  VerifiedStructuredKnowledgeEngine,
+  VerifiedStructuredKnowledgeRuntime,
+  verifyGroundedStructuredDataArtifact,
+} from "./07-recomendacion-de-dios/index.js";
+export type {
+  GoogleRichResultFeature,
+  GroundedRichResultRule,
+  GroundedStructuredDataArtifact as SeoProfessionalGroundedStructuredDataArtifact,
+  RenderedPageEvidence as SeoProfessionalRenderedPageEvidence,
+  RenderedPageEvidencePort,
+  SemanticGraphProviderPort,
+  StructuredKnowledgePublishRequest as SeoProfessionalStructuredKnowledgePublishRequest,
+} from "./07-recomendacion-de-dios/index.js";

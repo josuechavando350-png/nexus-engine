@@ -25,7 +25,7 @@ describe("SEO Profesional connected topology", () => {
     const folders = implementedStrategyFolders();
     const coreRegistered = SEO_PROFESSIONAL_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
     const masterRegistered = SEO_PROFESSIONAL_MASTER_STRATEGIES.map((strategy) => strategy.number).sort((left, right) => left - right);
-    expect(folders).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(folders).toEqual([1, 2, 3, 4, 5, 6, 7]);
     expect(coreRegistered).toEqual([1, 2, 3, 4]);
     expect(masterRegistered).toEqual(folders);
     expect(() => assertConnectedSeoProfessionalTopology()).not.toThrow();
@@ -42,13 +42,15 @@ describe("SEO Profesional connected topology", () => {
     ]);
   });
 
-  it("extends the master graph with #5 and #6 without mutating core edges", () => {
+  it("extends the master graph with #5, #6 and #7 without mutating core edges", () => {
     expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.slice(0, SEO_PROFESSIONAL_CONNECTIONS.length)).toEqual(SEO_PROFESSIONAL_CONNECTIONS);
     expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.slice(SEO_PROFESSIONAL_CONNECTIONS.length)).toEqual([
       { from: 4, to: 5, channel: "VERIFIED_SENDER_IDENTITY", boundary: "WHATSAPP_BUSINESS" },
       { from: 5, to: 1, channel: "CONSENTED_DOMAIN_BIRTH_OUTREACH", boundary: "WHATSAPP_BUSINESS" },
       { from: 4, to: 6, channel: "VERIFIED_SELLER_IDENTITY", boundary: "PUBLIC_PROCUREMENT" },
       { from: 6, to: 1, channel: "QUALIFIED_PROCUREMENT_HANDOFF", boundary: "WEB_REQUEST" },
+      { from: 4, to: 7, channel: "VERIFIED_PUBLISHER_IDENTITY", boundary: "WEB_REQUEST" },
+      { from: 7, to: 1, channel: "GROUNDED_STRUCTURED_LANDING", boundary: "WEB_REQUEST" },
     ]);
     for (const strategy of SEO_PROFESSIONAL_MASTER_STRATEGIES) {
       expect(SEO_PROFESSIONAL_MASTER_CONNECTIONS.some((edge) => edge.from === strategy.number)).toBe(true);
@@ -56,10 +58,10 @@ describe("SEO Profesional connected topology", () => {
     }
   });
 
-  it("rejects a master graph that isolates Infiltrador Corporativo", () => {
+  it("rejects a master graph that isolates Recomendacion de Dios", () => {
     expect(() => assertConnectedSeoProfessionalMasterTopology(
       SEO_PROFESSIONAL_MASTER_STRATEGIES,
-      SEO_PROFESSIONAL_MASTER_CONNECTIONS.filter((edge) => edge.from !== 6 && edge.to !== 6),
-    )).toThrow(/strategy 6|strongly connected|connection/u);
+      SEO_PROFESSIONAL_MASTER_CONNECTIONS.filter((edge) => edge.from !== 7 && edge.to !== 7),
+    )).toThrow(/strategy 7|strongly connected|connection/u);
   });
 });
