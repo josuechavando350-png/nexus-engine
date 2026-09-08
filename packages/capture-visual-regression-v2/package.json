@@ -17,6 +17,6 @@
     "@nexus/perceptual-images": "workspace:*",
     "pixelmatch": "7.2.0",
     "playwright": "^1.55.0",
-    "sharp": "0.35.3"
+    "sharp": "0.35.4"
   }
 }

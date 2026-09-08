@@ -13,6 +13,6 @@
     "build": "rm -rf dist && tsc -p tsconfig.build.json && test -f dist/index.js && test -f dist/index.d.ts && test -f dist/cwv-adapter.js && test -f dist/cwv-adapter.d.ts"
   },
   "dependencies": {
-    "sharp": "0.35.3"
+    "sharp": "0.35.4"
   }
 }
