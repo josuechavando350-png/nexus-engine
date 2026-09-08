@@ -96,6 +96,14 @@ export interface GoogleAdsExactMatchClientConfig {
   readonly apiVersion?: `v${number}`;
 }
 
+function containsControlCharacters(value: string): boolean {
+  for (let index = 0; index < value.length; index += 1) {
+    const code = value.charCodeAt(index);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
 function numericCustomerId(value: string, label: string): string {
   const normalized = value.replaceAll("-", "").trim();
   if (!NUMERIC_CUSTOMER_ID.test(normalized)) throw new ExactMatchGoogleAdsError("INVALID_CONFIG", `${label} is malformed`);
@@ -110,7 +118,7 @@ function numericResourceId(value: string, label: string): string {
 
 function secret(value: string, label: string): string {
   const normalized = value.trim();
-  if (!normalized || normalized.length > 8192 || /[\r\n\0]/u.test(normalized)) throw new ExactMatchGoogleAdsError("INVALID_CONFIG", `${label} is missing or malformed`);
+  if (!normalized || normalized.length > 8192 || containsControlCharacters(normalized)) throw new ExactMatchGoogleAdsError("INVALID_CONFIG", `${label} is missing or malformed`);
   return normalized;
 }
 
@@ -244,7 +252,7 @@ function validateCandidate(candidate: ExactMatchCandidate): ExactMatchCandidate 
 
 function adGroupName(prefixInput: string | undefined, candidate: ExactMatchCandidate): string {
   const prefix = (prefixInput ?? "NEXUS EX").normalize("NFKC").replace(/\s+/gu, " ").trim();
-  if (!prefix || prefix.length > 80 || /[\u0000-\u001f\u007f]/u.test(prefix)) throw new ExactMatchGoogleAdsError("INVALID_INPUT", "adGroupNamePrefix is empty, too long, or contains control characters");
+  if (!prefix || prefix.length > 80 || containsControlCharacters(prefix)) throw new ExactMatchGoogleAdsError("INVALID_INPUT", "adGroupNamePrefix is empty, too long, or contains control characters");
   const value = `${prefix} | ${candidate.searchTerm} | ${candidate.fingerprint.slice(0, 12)}`;
   if (value.length > 256) throw new ExactMatchGoogleAdsError("INVALID_INPUT", "generated ad group name exceeds Google Ads limits");
   return value;
