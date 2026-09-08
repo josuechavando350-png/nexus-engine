@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { DataManagerApiError, GoogleDataManagerRestClient, type DataManagerConversionEvent, type DataManagerDestination } from "./data-manager-rest";
 
 const destination: DataManagerDestination = Object.freeze({ operatingAccountId: "123-456-7890", loginAccountId: "1112223333", conversionActionId: "9876543210" });
@@ -14,7 +14,9 @@ const event: DataManagerConversionEvent = Object.freeze({
   userIdentifiers: Object.freeze([{ hashedEmail: "a".repeat(64) }]),
 });
 
-describe("CORTEX #10 Google Data Manager REST adapter", () => {
+afterEach(() => { vi.useRealTimers(); });
+
+describe("CORTEX #10/#30 Google Data Manager REST adapter", () => {
   it("calls the real Data Manager ingestion boundary with normalized destination and explicit consent", async () => {
     const fetchImpl = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       expect(String(input)).toBe("https://datamanager.googleapis.com/v1/events:ingest");
@@ -42,7 +44,7 @@ describe("CORTEX #10 Google Data Manager REST adapter", () => {
       const payload = JSON.parse(String(init?.body)) as { consent: { adUserData: string }; events: unknown[] };
       expect(payload.consent.adUserData).toBe("CONSENT_DENIED");
       expect(payload.events).toEqual([expect.not.objectContaining({ userData: expect.anything() })]);
-      return new Response(JSON.stringify({ requestId: "request-denied-consent" }), { status: 200 });
+      return new Response(JSON.stringify({ requestId: "request-denied-consent" }), { status: 200, headers: { "content-type": "application/json" } });
     });
     const client = new GoogleDataManagerRestClient({ accessTokenProvider: async () => "access-token-long-enough", fetchImpl: fetchImpl as typeof fetch });
     await client.ingestConversion(destination, { ...event, adUserDataConsent: "DENIED", userIdentifiers: [] });
@@ -54,7 +56,7 @@ describe("CORTEX #10 Google Data Manager REST adapter", () => {
     const authClient = new GoogleDataManagerRestClient({ accessTokenProvider: async () => "access-token-long-enough", fetchImpl: async () => new Response("{}", { status: 403 }) });
     await expect(authClient.ingestConversion(destination, event)).rejects.toMatchObject({ code: "AUTHENTICATION_FAILED", httpStatus: 403 });
 
-    const malformedClient = new GoogleDataManagerRestClient({ accessTokenProvider: async () => "access-token-long-enough", fetchImpl: async () => new Response("not-json", { status: 200 }) });
+    const malformedClient = new GoogleDataManagerRestClient({ accessTokenProvider: async () => "access-token-long-enough", fetchImpl: async () => new Response("not-json", { status: 200, headers: { "content-type": "application/json" } }) });
     await expect(malformedClient.ingestConversion(destination, event)).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
 
     const transportClient = new GoogleDataManagerRestClient({ accessTokenProvider: async () => "super-secret-access-token", fetchImpl: async () => { throw new Error("socket reset"); } });
@@ -66,8 +68,26 @@ describe("CORTEX #10 Google Data Manager REST adapter", () => {
   it("bounds the response stream before materializing it", async () => {
     const client = new GoogleDataManagerRestClient({
       accessTokenProvider: async () => "access-token-long-enough",
-      fetchImpl: async () => new Response("x".repeat(70 * 1024), { status: 200 }),
+      fetchImpl: async () => new Response("x".repeat(70 * 1024), { status: 200, headers: { "content-type": "application/json" } }),
     });
     await expect(client.ingestConversion(destination, event)).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+  });
+
+  it("keeps the timeout active while consuming a body that stalls after headers", async () => {
+    vi.useFakeTimers();
+    const fetchImpl = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      const signal = init?.signal;
+      const body = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(new TextEncoder().encode('{"requestId":"partial'));
+          signal?.addEventListener("abort", () => controller.error(new DOMException("aborted", "AbortError")), { once: true });
+        },
+      });
+      return new Response(body, { status: 200, headers: { "content-type": "application/json" } });
+    });
+    const client = new GoogleDataManagerRestClient({ accessTokenProvider: async () => "access-token-long-enough", fetchImpl: fetchImpl as typeof fetch, timeoutMs: 1_000 });
+    const outcome = client.ingestConversion(destination, event).then(() => null, (error: unknown) => error as DataManagerApiError);
+    await vi.advanceTimersByTimeAsync(1_000);
+    await expect(outcome).resolves.toMatchObject({ code: "TIMEOUT" });
   });
 });
