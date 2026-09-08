@@ -74,6 +74,14 @@ function subject(value: string): `sha256:${string}` {
   return value as `sha256:${string}`;
 }
 
+function hasControlCharacters(value: string): boolean {
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (code <= 31 || code === 127) return true;
+  }
+  return false;
+}
+
 export function createPymeConsentSubjectId(kind: "EMAIL" | "PHONE" | "OPAQUE", value: string): `sha256:${string}` {
   if (typeof value !== "string") throw new PymeConsentError("INVALID_INPUT", "consent subject value must be a string");
   let normalized: string;
@@ -92,7 +100,7 @@ export function createPymeConsentSubjectId(kind: "EMAIL" | "PHONE" | "OPAQUE", v
     if (!PHONE.test(normalized)) throw new PymeConsentError("INVALID_INPUT", "phone consent subject must be canonical E.164");
   } else {
     normalized = value.normalize("NFKC").trim();
-    if (normalized.length < 8 || normalized.length > 512 || /[\u0000-\u001f\u007f]/u.test(normalized)) throw new PymeConsentError("INVALID_INPUT", "opaque consent subject is malformed");
+    if (normalized.length < 8 || normalized.length > 512 || hasControlCharacters(normalized)) throw new PymeConsentError("INVALID_INPUT", "opaque consent subject is malformed");
   }
   return hash(`NEXUS-CORTEX-PYME-CONSENT-${kind}-V1`, normalized);
 }
