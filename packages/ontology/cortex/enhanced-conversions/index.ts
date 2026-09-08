@@ -6,7 +6,7 @@ import { DataManagerApiError, type DataManagerConversionEvent, type DataManagerD
 const OUTBOX_TYPE = "cortex.enhanced_conversion_outbox";
 const ID = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{7,127})$/u;
 const EVENT_NAME = /^[A-Za-z][A-Za-z0-9_]{0,63}$/u;
-const GCLID = /^\S{8,256}$/u;
+const AD_ID = /^\S{8,256}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
 const PHONE = /^\+[1-9]\d{7,14}$/u;
 const SHA256 = /^sha256:[0-9a-f]{64}$/u;
@@ -32,6 +32,8 @@ export interface EnhancedConversionInput {
   readonly conversionValue?: number;
   readonly currency?: string;
   readonly gclid?: string;
+  readonly gbraid?: string;
+  readonly wbraid?: string;
   readonly emailAddresses?: readonly string[];
   readonly phoneNumbers?: readonly string[];
 }
@@ -55,6 +57,8 @@ export interface EnhancedConversionObservation {
   readonly adUserDataConsent: DataManagerConversionEvent["adUserDataConsent"];
   readonly userIdentifierCount: number;
   readonly hasGclid: boolean;
+  readonly hasGbraid: boolean;
+  readonly hasWbraid: boolean;
 }
 
 export interface EnhancedConversionGateway {
@@ -67,6 +71,8 @@ export interface EnhancedConversionTelemetry {
   readonly transactionDigest: string;
   readonly errorCode: string | null;
 }
+
+export type EnhancedConversionSideEffectGuard = (event: DataManagerConversionEvent) => void;
 
 export class EnhancedConversionError extends Error {
   constructor(public readonly code: "INVALID_INPUT" | "CONSENT_VIOLATION" | "CONFLICT" | "INTEGRITY_FAILURE" | "PERSISTENCE_FAILURE" | "REMOTE_FAILURE" | "AMBIGUOUS_OUTCOME" | "KILLED" | "MODE_BLOCKED", message: string, options?: ErrorOptions) {
@@ -109,7 +115,7 @@ function schema(scope: OntologyScope): ValidatedSchema {
 function exactInput(value: unknown): EnhancedConversionInput {
   if (!value || typeof value !== "object" || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype) throw new EnhancedConversionError("INVALID_INPUT", "enhanced conversion input must be a plain object");
   const raw = value as Record<string, unknown>;
-  const allowed = new Set(["transactionId", "eventTimestamp", "eventName", "eventSource", "adUserDataConsent", "conversionValue", "currency", "gclid", "emailAddresses", "phoneNumbers"]);
+  const allowed = new Set(["transactionId", "eventTimestamp", "eventName", "eventSource", "adUserDataConsent", "conversionValue", "currency", "gclid", "gbraid", "wbraid", "emailAddresses", "phoneNumbers"]);
   for (const key of Object.keys(raw)) if (!allowed.has(key)) throw new EnhancedConversionError("INVALID_INPUT", `enhanced conversion input contains unsupported field ${key}`);
   if (typeof raw.transactionId !== "string" || !ID.test(raw.transactionId.trim())) throw new EnhancedConversionError("INVALID_INPUT", "transactionId is malformed");
   if (typeof raw.eventTimestamp !== "string") throw new EnhancedConversionError("INVALID_INPUT", "eventTimestamp must be a string");
@@ -121,14 +127,18 @@ function exactInput(value: unknown): EnhancedConversionInput {
   if (raw.conversionValue !== undefined && (typeof raw.conversionValue !== "number" || !Number.isFinite(raw.conversionValue) || raw.conversionValue < 0 || raw.conversionValue > 1_000_000_000)) throw new EnhancedConversionError("INVALID_INPUT", "conversionValue is invalid");
   if (raw.currency !== undefined && (typeof raw.currency !== "string" || !CURRENCY.test(raw.currency))) throw new EnhancedConversionError("INVALID_INPUT", "currency is invalid");
   if ((raw.conversionValue === undefined) !== (raw.currency === undefined)) throw new EnhancedConversionError("INVALID_INPUT", "conversionValue and currency must be provided together");
-  if (raw.gclid !== undefined && (typeof raw.gclid !== "string" || !GCLID.test(raw.gclid))) throw new EnhancedConversionError("INVALID_INPUT", "gclid is malformed");
+  for (const key of ["gclid", "gbraid", "wbraid"] as const) {
+    const identifier = raw[key];
+    if (identifier !== undefined && (typeof identifier !== "string" || !AD_ID.test(identifier))) throw new EnhancedConversionError("INVALID_INPUT", `${key} is malformed`);
+  }
+  if (raw.gbraid !== undefined && raw.wbraid !== undefined) throw new EnhancedConversionError("INVALID_INPUT", "gbraid and wbraid are mutually exclusive for one conversion event");
   const emails = raw.emailAddresses === undefined ? [] : raw.emailAddresses;
   const phones = raw.phoneNumbers === undefined ? [] : raw.phoneNumbers;
   if (!Array.isArray(emails) || !emails.every((item) => typeof item === "string") || emails.length > 10) throw new EnhancedConversionError("INVALID_INPUT", "emailAddresses must contain at most ten strings");
   if (!Array.isArray(phones) || !phones.every((item) => typeof item === "string") || phones.length > 10) throw new EnhancedConversionError("INVALID_INPUT", "phoneNumbers must contain at most ten strings");
   if (emails.length + phones.length > 10) throw new EnhancedConversionError("INVALID_INPUT", "at most ten user identifiers are allowed");
   if (raw.adUserDataConsent === "DENIED" && emails.length + phones.length > 0) throw new EnhancedConversionError("CONSENT_VIOLATION", "raw user identifiers are forbidden when ad user data consent is denied");
-  if (!raw.gclid && emails.length + phones.length === 0) throw new EnhancedConversionError("INVALID_INPUT", "a gclid or consented user identifier is required");
+  if (!raw.gclid && !raw.gbraid && !raw.wbraid && emails.length + phones.length === 0) throw new EnhancedConversionError("INVALID_INPUT", "a supported ad identifier or consented user identifier is required");
   return raw as unknown as EnhancedConversionInput;
 }
 
@@ -162,6 +172,8 @@ function eventFromInput(input: EnhancedConversionInput): DataManagerConversionEv
     adUserDataConsent: input.adUserDataConsent,
     ...(input.conversionValue === undefined ? {} : { conversionValue: input.conversionValue, currency: input.currency }),
     ...(input.gclid === undefined ? {} : { gclid: input.gclid }),
+    ...(input.gbraid === undefined ? {} : { gbraid: input.gbraid }),
+    ...(input.wbraid === undefined ? {} : { wbraid: input.wbraid }),
     userIdentifiers: Object.freeze(identifiers),
   });
 }
@@ -176,6 +188,8 @@ export function observeEnhancedConversionInput(value: unknown): EnhancedConversi
     adUserDataConsent: event.adUserDataConsent,
     userIdentifierCount: event.userIdentifiers.length,
     hasGclid: event.gclid !== undefined,
+    hasGbraid: event.gbraid !== undefined,
+    hasWbraid: event.wbraid !== undefined,
   });
 }
 
@@ -228,6 +242,7 @@ export class DurableEnhancedConversionsPipeline {
     private readonly modeProvider: () => EnhancedConversionMode,
     private readonly now: () => number = Date.now,
     private readonly onTelemetry?: (event: EnhancedConversionTelemetry) => void,
+    private readonly beforeSideEffect?: EnhancedConversionSideEffectGuard,
   ) {
     this.validatedSchema = schema(scope);
   }
@@ -332,6 +347,18 @@ export class DurableEnhancedConversionsPipeline {
       this.emit({ operation: "DISPATCH", status: finalMode === "OBSERVE_ONLY" ? "OBSERVED" : "BLOCKED", transactionDigest, errorCode: finalMode === "KILLED" ? "KILLED" : null });
       if (finalMode === "KILLED") throw new EnhancedConversionError("KILLED", "kill switch blocks conversion dispatch at side-effect boundary");
       return dispatching;
+    }
+
+    if (this.beforeSideEffect) {
+      try { this.beforeSideEffect(dispatching.event); }
+      catch (error) {
+        try { this.transition(dispatching, "PREPARED", ""); }
+        catch (resetError) {
+          throw new EnhancedConversionError("AMBIGUOUS_OUTCOME", "conversion authorization failed but local dispatch state could not be reset safely", { cause: resetError });
+        }
+        this.emit({ operation: "DISPATCH", status: "BLOCKED", transactionDigest, errorCode: "CONSENT_VIOLATION" });
+        throw new EnhancedConversionError("CONSENT_VIOLATION", error instanceof Error ? error.message : "conversion authorization was revoked before dispatch", { cause: error instanceof Error ? error : undefined });
+      }
     }
 
     let receipt: DataManagerIngestReceipt;
