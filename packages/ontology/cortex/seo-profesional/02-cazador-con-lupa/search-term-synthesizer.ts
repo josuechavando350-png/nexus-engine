@@ -32,6 +32,17 @@ export interface ExactMatchSelectionPolicy {
   readonly maximumCandidates: number;
 }
 
+interface ResolvedExactMatchSelectionPolicy {
+  readonly startDate: string;
+  readonly endDate: string;
+  readonly minimumClicks: number;
+  readonly minimumConversions: number;
+  readonly minimumConversionRate: number;
+  readonly maximumCostPerConversionMicros: number | null;
+  readonly minimumConversionValuePerCost: number | null;
+  readonly maximumCandidates: number;
+}
+
 export interface ExactMatchCandidate {
   readonly campaignId: string;
   readonly sourceAdGroupId: string;
@@ -133,6 +144,7 @@ function validateMatchType(value: SearchTermMatchType): SearchTermMatchType {
 
 function validateObservation(value: SearchTermObservation): Readonly<SearchTermObservation> {
   if (!value || typeof value !== "object") throw new ExactMatchSynthesizerError("INVALID_INPUT", "search term observation is required");
+  if (typeof value.searchTerm !== "string") throw new ExactMatchSynthesizerError("INVALID_INPUT", "searchTerm must be a string");
   const searchTerm = value.searchTerm.normalize("NFKC").replace(/\s+/gu, " ").trim();
   normalizeSearchTerm(searchTerm);
   return Object.freeze({
@@ -149,7 +161,7 @@ function validateObservation(value: SearchTermObservation): Readonly<SearchTermO
   });
 }
 
-function validatePolicy(value: ExactMatchSelectionPolicy): Readonly<ExactMatchSelectionPolicy> {
+function validatePolicy(value: ExactMatchSelectionPolicy): ResolvedExactMatchSelectionPolicy {
   if (!value || typeof value !== "object") throw new ExactMatchSynthesizerError("INVALID_POLICY", "selection policy is required");
   const startDate = canonicalDate(value.startDate, "startDate");
   const endDate = canonicalDate(value.endDate, "endDate");
