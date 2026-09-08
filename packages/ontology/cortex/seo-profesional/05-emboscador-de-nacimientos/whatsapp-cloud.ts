@@ -12,6 +12,7 @@ export type WhatsAppAccessTokenProvider = () => Promise<string>;
 
 export interface WhatsAppConsentEvidence {
   readonly status: "OPTED_IN";
+  readonly purpose: "DOMAIN_BIRTH_OUTREACH";
   readonly recipientE164: string;
   readonly capturedAt: string;
   readonly source: string;
@@ -112,6 +113,7 @@ function validateConsent(value: unknown, recipient: string, nowMs: number): What
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new WhatsAppCloudApiError("CONSENT_REQUIRED", "explicit WhatsApp opt-in evidence is required");
   const raw = value as Record<string, unknown>;
   if (raw.status !== "OPTED_IN") throw new WhatsAppCloudApiError("CONSENT_REQUIRED", "WhatsApp recipient has not opted in");
+  if (raw.purpose !== "DOMAIN_BIRTH_OUTREACH") throw new WhatsAppCloudApiError("CONSENT_REQUIRED", "WhatsApp opt-in does not cover domain-birth outreach");
   const evidenceRecipient = normalizeWhatsAppRecipient(raw.recipientE164);
   if (evidenceRecipient !== recipient) throw new WhatsAppCloudApiError("CONSENT_REQUIRED", "WhatsApp consent belongs to a different recipient");
   const capturedAt = canonicalUtc(raw.capturedAt, "consent.capturedAt");
@@ -123,7 +125,7 @@ function validateConsent(value: unknown, recipient: string, nowMs: number): What
   const source = boundedText(raw.source, "consent.source", 128);
   const proofId = boundedText(raw.proofId, "consent.proofId", 192);
   if (!PROOF_ID.test(proofId)) throw new WhatsAppCloudApiError("CONSENT_REQUIRED", "WhatsApp consent proofId is malformed");
-  return Object.freeze({ status: "OPTED_IN", recipientE164: evidenceRecipient, capturedAt, source, proofId });
+  return Object.freeze({ status: "OPTED_IN", purpose: "DOMAIN_BIRTH_OUTREACH", recipientE164: evidenceRecipient, capturedAt, source, proofId });
 }
 
 function validateTemplateName(value: unknown): string {
@@ -153,13 +155,51 @@ function accessToken(value: unknown): string {
   return normalized;
 }
 
-async function boundedJson(response: Response): Promise<unknown> {
+async function discardBody(response: Response): Promise<void> {
+  if (response.body === null) return;
+  try {
+    await response.body.cancel();
+  } catch {
+    // Disposal is best-effort and must not replace the provider outcome.
+  }
+}
+
+async function readBoundedBody(response: Response): Promise<Uint8Array> {
   const declared = response.headers.get("content-length");
   if (declared !== null && (!/^\d+$/u.test(declared) || Number(declared) > MAX_RESPONSE_BYTES)) {
+    await discardBody(response);
     throw new WhatsAppCloudApiError("INVALID_RESPONSE", "WhatsApp response declared an invalid or oversized body", response.status);
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength > MAX_RESPONSE_BYTES) throw new WhatsAppCloudApiError("INVALID_RESPONSE", "WhatsApp response exceeded the bounded body size", response.status);
+  if (response.body === null) return new Uint8Array();
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > MAX_RESPONSE_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw new WhatsAppCloudApiError("INVALID_RESPONSE", "WhatsApp response exceeded the bounded body size", response.status);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+async function boundedJson(response: Response): Promise<unknown> {
+  const bytes = await readBoundedBody(response);
   if (bytes.byteLength === 0) return null;
   try {
     return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
@@ -246,7 +286,14 @@ export class WhatsAppCloudApiClient {
   async sendTemplate(input: WhatsAppTemplateMessageInput): Promise<WhatsAppSendReceipt> {
     const nowMs = this.now();
     const payload = buildWhatsAppTemplatePayload(input, nowMs);
-    const token = accessToken(await this.accessTokenProvider());
+    let token: string;
+    try {
+      token = accessToken(await this.accessTokenProvider());
+    } catch (error) {
+      if (error instanceof WhatsAppCloudApiError) throw error;
+      throw new WhatsAppCloudApiError("AUTHENTICATION_FAILED", "WhatsApp access token provider failed");
+    }
+
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.timeoutMs);
     let response: Response;
@@ -267,11 +314,23 @@ export class WhatsAppCloudApiClient {
     } finally {
       clearTimeout(timeout);
     }
-    const body = await boundedJson(response);
-    if (response.status === 401 || response.status === 403) throw new WhatsAppCloudApiError("AUTHENTICATION_FAILED", "WhatsApp authentication failed", response.status);
-    if (response.status === 429) throw new WhatsAppCloudApiError("QUOTA_EXHAUSTED", "WhatsApp quota or rate limit was exhausted", response.status);
-    if (response.status >= 500) throw new WhatsAppCloudApiError("AMBIGUOUS_OUTCOME", "WhatsApp server error leaves mutation outcome ambiguous; do not retry blindly", response.status);
-    if (!response.ok) throw new WhatsAppCloudApiError("API_ERROR", "WhatsApp rejected the template message", response.status);
-    return parseReceipt(body, this.graphApiVersion);
+
+    if (response.status === 401 || response.status === 403) {
+      await discardBody(response);
+      throw new WhatsAppCloudApiError("AUTHENTICATION_FAILED", "WhatsApp authentication failed", response.status);
+    }
+    if (response.status === 429) {
+      await discardBody(response);
+      throw new WhatsAppCloudApiError("QUOTA_EXHAUSTED", "WhatsApp quota or rate limit was exhausted", response.status);
+    }
+    if (response.status >= 500) {
+      await discardBody(response);
+      throw new WhatsAppCloudApiError("AMBIGUOUS_OUTCOME", "WhatsApp server error leaves mutation outcome ambiguous; do not retry blindly", response.status);
+    }
+    if (!response.ok) {
+      await discardBody(response);
+      throw new WhatsAppCloudApiError("API_ERROR", "WhatsApp rejected the template message", response.status);
+    }
+    return parseReceipt(await boundedJson(response), this.graphApiVersion);
   }
 }

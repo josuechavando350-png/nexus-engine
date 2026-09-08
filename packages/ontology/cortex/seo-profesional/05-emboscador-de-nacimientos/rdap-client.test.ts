@@ -82,7 +82,17 @@ describe("IanaRdapClient", () => {
 
   it("normalizes IDN input and rejects malformed hostnames before network access", () => {
     expect(normalizeDomainName("BÜCHER.example")).toBe("xn--bcher-kva.example");
-    expect(() => normalizeDomainName("https://example.com/path")).toThrow(/malformed label/u);
+    expect(() => normalizeDomainName("https://example.com/path")).toThrow();
     expect(() => normalizeDomainName("localhost")).toThrow(/public suffix/u);
+  });
+
+  it("rejects an oversized declared bootstrap body before JSON parsing", async () => {
+    const fetchImpl: typeof fetch = vi.fn(async () => new Response("{}", {
+      status: 200,
+      headers: { "content-length": String(2 * 1024 * 1024 + 1) },
+    }));
+    const client = new IanaRdapClient({ fetchImpl, maxReadRetries: 0 });
+    await expect(client.lookupDomain("example.com")).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });

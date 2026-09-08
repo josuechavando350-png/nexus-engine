@@ -84,13 +84,51 @@ function boundedInteger(value: number | undefined, fallback: number, minimum: nu
   return resolved;
 }
 
-async function boundedJson(response: Response): Promise<unknown> {
+async function readBoundedBody(response: Response): Promise<Uint8Array> {
   const declared = response.headers.get("content-length");
   if (declared !== null && (!/^\d+$/u.test(declared) || Number(declared) > MAX_RESPONSE_BYTES)) {
+    await discardBody(response);
     throw new RdapClientError("INVALID_RESPONSE", "RDAP response declared an invalid or oversized body", response.status);
   }
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength > MAX_RESPONSE_BYTES) throw new RdapClientError("INVALID_RESPONSE", "RDAP response exceeded the bounded body size", response.status);
+  if (response.body === null) return new Uint8Array();
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (!value) continue;
+      total += value.byteLength;
+      if (total > MAX_RESPONSE_BYTES) {
+        await reader.cancel().catch(() => undefined);
+        throw new RdapClientError("INVALID_RESPONSE", "RDAP response exceeded the bounded body size", response.status);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return bytes;
+}
+
+async function discardBody(response: Response): Promise<void> {
+  if (response.body === null) return;
+  try {
+    await response.body.cancel();
+  } catch {
+    // Disposal is best-effort and must not replace the authoritative API outcome.
+  }
+}
+
+async function boundedJson(response: Response): Promise<unknown> {
+  const bytes = await readBoundedBody(response);
   try {
     return JSON.parse(new TextDecoder().decode(bytes)) as unknown;
   } catch {
@@ -211,8 +249,14 @@ export class IanaRdapClient {
     if (!base) throw new RdapClientError("BOOTSTRAP_ERROR", `IANA RDAP bootstrap has no service for .${tld}`);
     const url = new URL(`domain/${encodeURIComponent(domain)}`, base).href;
     const response = await this.read(url, "application/rdap+json, application/json");
-    if (response.status === 404) return Object.freeze({ status: "NOT_REGISTERED", domain });
-    if (!response.ok) this.throwHttp(response.status, "RDAP domain lookup failed");
+    if (response.status === 404) {
+      await discardBody(response);
+      return Object.freeze({ status: "NOT_REGISTERED", domain });
+    }
+    if (!response.ok) {
+      await discardBody(response);
+      this.throwHttp(response.status, "RDAP domain lookup failed");
+    }
     return Object.freeze({ status: "REGISTERED", record: parseRecord(await boundedJson(response), domain) });
   }
 
@@ -221,7 +265,10 @@ export class IanaRdapClient {
     if (!Number.isFinite(now)) throw new RdapClientError("INVALID_CONFIG", "clock returned a non-finite timestamp");
     if (this.bootstrapCache && this.bootstrapCache.expiresAt > now) return this.bootstrapCache.services;
     const response = await this.read(IANA_RDAP_BOOTSTRAP_URL, "application/json");
-    if (!response.ok) this.throwHttp(response.status, "IANA RDAP bootstrap lookup failed");
+    if (!response.ok) {
+      await discardBody(response);
+      this.throwHttp(response.status, "IANA RDAP bootstrap lookup failed");
+    }
     const payload = object(await boundedJson(response), "IANA RDAP bootstrap");
     if (!Array.isArray(payload.services)) throw new RdapClientError("BOOTSTRAP_ERROR", "IANA RDAP bootstrap services are missing");
     const services = new Map<string, string>();
@@ -264,6 +311,7 @@ export class IanaRdapClient {
         });
         if (!retryableStatus(response.status) || attempt === this.maxReadRetries) return response;
         lastError = new RdapClientError(response.status === 429 ? "QUOTA_EXHAUSTED" : "API_ERROR", "RDAP read returned a retryable status", response.status);
+        await discardBody(response);
       } catch (error) {
         lastError = error;
         if (attempt === this.maxReadRetries) {

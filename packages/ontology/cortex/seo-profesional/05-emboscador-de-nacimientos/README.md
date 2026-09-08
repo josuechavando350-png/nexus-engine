@@ -17,6 +17,7 @@ RDAP puede contener entidades/vCards. Este módulo descarta deliberadamente esos
 El número destinatario debe provenir de una fuente autorizada (`FIRST_PARTY_CRM`, `USER_REQUEST` o `PARTNER_OPT_IN`) y además debe presentar `WhatsAppConsentEvidence` con:
 
 - `status: OPTED_IN`;
+- `purpose: DOMAIN_BIRTH_OUTREACH`, para impedir reutilizar un opt-in genérico para este flujo;
 - el mismo número E.164 del destinatario;
 - timestamp UTC de captura;
 - fuente de consentimiento;
@@ -25,10 +26,12 @@ El número destinatario debe provenir de una fuente autorizada (`FIRST_PARTY_CRM
 
 Sin esa evidencia el cliente falla antes de obtener el token o hacer red.
 
-## Mutaciones y reintentos
+## Límites de red y mutaciones
 
-- Lecturas IANA/RDAP pueden reintentarse de forma acotada.
-- Un POST de WhatsApp nunca se reintenta automáticamente después de timeout, error de transporte o 5xx: el resultado se considera `AMBIGUOUS_OUTCOME` para evitar duplicados.
+- IANA/RDAP y respuestas exitosas de WhatsApp se consumen mediante streaming con límite duro de bytes; un body chunked no puede saltarse el tope por omitir `Content-Length`.
+- Lecturas IANA/RDAP pueden reintentarse de forma acotada y descartan el body antes del retry.
+- Un POST de WhatsApp nunca se reintenta automáticamente después de timeout, error de transporte o 5xx: el resultado se considera `AMBIGUOUS_OUTCOME` para evitar duplicados. Los 5xx se clasifican antes de parsear el body, porque un body defectuoso no elimina la ambigüedad de la mutación.
+- Fallos del proveedor de access token se normalizan a `AUTHENTICATION_FAILED` antes de cualquier request a Meta.
 - `PLAN_ONLY` valida clasificación, consentimiento, template y landing sin enviar mensaje.
 - `APPLY` realiza exactamente una mutación de template.
 

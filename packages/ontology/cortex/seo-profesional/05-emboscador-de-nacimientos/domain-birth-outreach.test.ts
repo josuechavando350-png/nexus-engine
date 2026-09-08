@@ -53,6 +53,7 @@ function intelligence(registrationDate: string | null, active = true) {
 function consent(): WhatsAppConsentEvidence {
   return {
     status: "OPTED_IN",
+    purpose: "DOMAIN_BIRTH_OUTREACH",
     recipientE164: "+525512345678",
     capturedAt: "2026-09-01T10:00:00.000Z",
     source: "first-party CRM",
