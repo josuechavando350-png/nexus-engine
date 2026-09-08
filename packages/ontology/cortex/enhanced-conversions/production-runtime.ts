@@ -4,8 +4,11 @@ import type { OntologyScope } from "@nexus/ontology";
 import { SqliteOntologyTransactionStore } from "@nexus/ontology/cortex/sqlite-transaction-store";
 import { GoogleDataManagerRestClient, type DataManagerDestination } from "./data-manager-rest";
 import { DurableEnhancedConversionsPipeline } from "./index";
-import { EnhancedConversionProductionServer } from "./production-server";
+import { EnhancedConversionProductionServer, type EnhancedConversionEnginePort } from "./production-server";
 import { DurableEnhancedConversionControl } from "./runtime-control";
+import { SqlitePymeConsentRegistry } from "../pyme/consent-registry";
+import { PymeEnhancedConversionProductionEngine, PymeEnhancedConversionsPrivacyLayer } from "../pyme/enhanced-conversions-privacy";
+import { loadPymeProductionProfile } from "../pyme/production-profile";
 
 const IDENTIFIER = /^[A-Za-z0-9](?:[A-Za-z0-9._:-]{0,127})$/u;
 const NUMERIC_ID = /^\d{5,20}$/u;
@@ -14,7 +17,7 @@ const MAX_TOKEN_FILE_BYTES = 16 * 1024;
 export interface EnhancedConversionProductionRuntime {
   readonly store: SqliteOntologyTransactionStore;
   readonly control: DurableEnhancedConversionControl;
-  readonly engine: DurableEnhancedConversionsPipeline;
+  readonly engine: EnhancedConversionEnginePort;
   readonly server: EnhancedConversionProductionServer;
   start(): Promise<{ host: string; port: number }>;
   close(): Promise<void>;
@@ -77,6 +80,7 @@ function integerEnv(name: string, fallback: number, min: number, max: number): n
 }
 
 export function createEnhancedConversionProductionRuntimeFromEnv(): EnhancedConversionProductionRuntime {
+  const profile = loadPymeProductionProfile(process.env);
   const databasePath = requiredEnv("NEXUS_CORTEX_10_DATABASE");
   if (!isAbsolute(databasePath)) throw new Error("NEXUS_CORTEX_10_DATABASE must be an absolute path");
   const accessTokenFile = requiredEnv("NEXUS_CORTEX_10_ACCESS_TOKEN_FILE");
@@ -88,12 +92,38 @@ export function createEnhancedConversionProductionRuntimeFromEnv(): EnhancedConv
     accessTokenProvider: accessTokenProviderFromFile(accessTokenFile),
     timeoutMs: integerEnv("NEXUS_CORTEX_10_DATA_MANAGER_TIMEOUT_MS", 15_000, 1_000, 120_000),
   });
-  const engine = new DurableEnhancedConversionsPipeline(store, scope, destination, gateway, () => control.read().mode);
+
+  let pymeRegistry: SqlitePymeConsentRegistry | null = null;
+  let pymeEngine: PymeEnhancedConversionProductionEngine | null = null;
+  let engine: EnhancedConversionEnginePort;
+  let observeInput: ((value: unknown) => unknown) | undefined;
+  if (profile) {
+    const privacyDatabasePath = requiredEnv("NEXUS_CORTEX_PYME_PRIVACY_DATABASE");
+    if (!isAbsolute(privacyDatabasePath)) throw new Error("NEXUS_CORTEX_PYME_PRIVACY_DATABASE must be an absolute path");
+    pymeRegistry = new SqlitePymeConsentRegistry(privacyDatabasePath);
+    const layer = new PymeEnhancedConversionsPrivacyLayer({
+      databasePath: privacyDatabasePath,
+      transactions: store,
+      scope,
+      destination,
+      gateway,
+      modeProvider: () => control.read().mode,
+      consentRegistry: pymeRegistry,
+      consentPurpose: process.env.NEXUS_CORTEX_PYME_CONVERSION_PURPOSE?.trim() || "ads_measurement",
+    });
+    pymeEngine = new PymeEnhancedConversionProductionEngine(layer);
+    engine = pymeEngine;
+    observeInput = (value) => pymeEngine!.observe(value);
+  } else {
+    engine = new DurableEnhancedConversionsPipeline(store, scope, destination, gateway, () => control.read().mode);
+  }
+
   const server = new EnhancedConversionProductionServer({
     engine,
     control,
     ingestToken: requiredEnv("NEXUS_CORTEX_10_INGEST_TOKEN"),
     controlToken: requiredEnv("NEXUS_CORTEX_10_CONTROL_TOKEN"),
+    ...(observeInput ? { observeInput } : {}),
     host: process.env.NEXUS_CORTEX_10_HOST?.trim() || "127.0.0.1",
     port: integerEnv("NEXUS_CORTEX_10_PORT", 8080, 1, 65_535),
   });
@@ -107,8 +137,8 @@ export function createEnhancedConversionProductionRuntimeFromEnv(): EnhancedConv
     close: async () => {
       if (closed) return;
       closed = true;
-      await server.close();
-      store.close();
+      try { await server.close(); }
+      finally { pymeEngine?.close(); pymeRegistry?.close(); store.close(); }
     },
   });
 }
@@ -128,7 +158,7 @@ export async function runEnhancedConversionProductionRuntimeFromEnv(): Promise<v
 
 if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
   runEnhancedConversionProductionRuntimeFromEnv().catch((error) => {
-    console.error(JSON.stringify({ component: "cortex-10-production-runtime", error: error instanceof Error ? error.message : "UNKNOWN" }));
+    console.error(JSON.stringify({ component: process.env.NEXUS_CORTEX_PROFILE === "PYME" ? "cortex-pyme-30-production-runtime" : "cortex-10-production-runtime", error: error instanceof Error ? error.message : "UNKNOWN" }));
     process.exitCode = 1;
   });
 }
