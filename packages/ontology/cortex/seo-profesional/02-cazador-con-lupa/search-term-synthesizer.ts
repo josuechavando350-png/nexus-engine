@@ -4,6 +4,7 @@ const NUMERIC_ID = /^\d{1,20}$/u;
 const DATE = /^\d{4}-\d{2}-\d{2}$/u;
 const MAX_KEYWORD_CHARACTERS = 80;
 const MAX_KEYWORD_WORDS = 10;
+const MAX_CANDIDATES_PER_RUN = 50;
 
 export type SearchTermTargetingStatus = "NONE" | "ADDED" | "EXCLUDED" | "ADDED_EXCLUDED" | "UNKNOWN" | "UNSPECIFIED";
 export type SearchTermMatchType = "BROAD" | "PHRASE" | "EXACT" | "NEAR_EXACT" | "NEAR_PHRASE" | "AI_MAX" | "PERFORMANCE_MAX" | "UNKNOWN" | "UNSPECIFIED";
@@ -173,7 +174,7 @@ function validatePolicy(value: ExactMatchSelectionPolicy): ResolvedExactMatchSel
   if (maximumCostPerConversionMicros !== null && (!Number.isSafeInteger(maximumCostPerConversionMicros) || maximumCostPerConversionMicros <= 0)) throw new ExactMatchSynthesizerError("INVALID_POLICY", "maximumCostPerConversionMicros must be a positive safe integer or null");
   const minimumConversionValuePerCost = value.minimumConversionValuePerCost ?? null;
   if (minimumConversionValuePerCost !== null && (!Number.isFinite(minimumConversionValuePerCost) || minimumConversionValuePerCost < 0)) throw new ExactMatchSynthesizerError("INVALID_POLICY", "minimumConversionValuePerCost must be finite and non-negative or null");
-  if (!Number.isSafeInteger(value.maximumCandidates) || value.maximumCandidates < 1 || value.maximumCandidates > 100) throw new ExactMatchSynthesizerError("INVALID_POLICY", "maximumCandidates must be an integer from 1 to 100");
+  if (!Number.isSafeInteger(value.maximumCandidates) || value.maximumCandidates < 1 || value.maximumCandidates > MAX_CANDIDATES_PER_RUN) throw new ExactMatchSynthesizerError("INVALID_POLICY", `maximumCandidates must be an integer from 1 to ${MAX_CANDIDATES_PER_RUN}`);
   return Object.freeze({
     startDate,
     endDate,
