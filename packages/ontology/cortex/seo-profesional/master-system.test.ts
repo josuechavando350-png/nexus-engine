@@ -11,6 +11,7 @@ import { PublicProcurementIntelligenceEngine } from "./06-infiltrador-corporativ
 import { PublicProcurementUrlPolicy } from "./06-infiltrador-corporativo/public-url-policy.js";
 import {
   SeoProfessionalMasterSystem,
+  type PassiveRevivalIntelligencePort,
   type SeoProfessionalCorePort,
 } from "./master-system.js";
 
@@ -101,14 +102,38 @@ function structuredKnowledge(origin = "https://example.test") {
   };
 }
 
-describe("SeoProfessionalMasterSystem #1..#7", () => {
-  it("binds #5, #6 and #7 to the canonical #4 identity through the same master runtime", async () => {
+function revival(origin = "https://example.test"): PassiveRevivalIntelligencePort {
+  return {
+    identity: () => Object.freeze({ strategy: 8 as const, provider: "PASSIVE_TECH_ENRICHMENT_REDIS" as const, queue: "REDIS_RESP2_LUA" as const, operatorWebsiteOrigin: origin }),
+    assess: async (candidate) => Object.freeze({
+      assessmentId: "rev_master000000000000000000000001",
+      assessedAt: "2026-09-08T12:00:00.000Z",
+      tenantId: candidate.tenantId,
+      candidateId: candidate.candidateId,
+      websiteOrigin: new URL(candidate.websiteUrl).origin,
+      relationship: candidate.relationship,
+      dormantDays: 365,
+      classification: "REVIEW_REACTIVATION" as const,
+      score: 40,
+      reasons: Object.freeze(["DORMANT_365_PLUS_DAYS"]),
+      publicSite: Object.freeze({ status: 200, title: null, description: null, hasCanonical: false, hasViewport: false, hasJsonLd: false }),
+      technology: null,
+      handoffUrl: `${origin}/revival-review?assessment=rev_master000000000000000000000001`,
+      receiptDigest: `sha256:${"a".repeat(64)}`,
+    }),
+    enqueue: async () => "revjob_123e4567-e89b-12d3-a456-426614174000",
+  };
+}
+
+describe("SeoProfessionalMasterSystem #1..#8", () => {
+  it("binds #5 through #8 to the canonical #4 identity through the same master runtime", async () => {
     const requests: string[] = [];
     const system = new SeoProfessionalMasterSystem({
       core: core(),
       domainBirthOutreach: outreach("https://example.test", requests),
       corporateProcurement: procurement("https://example.test"),
       structuredKnowledge: structuredKnowledge("https://example.test"),
+      revivalIntelligence: revival("https://example.test"),
     });
     expect(system.snapshot()).toEqual({
       googleAdsCustomerId: "1234567890",
@@ -117,11 +142,13 @@ describe("SeoProfessionalMasterSystem #1..#7", () => {
       domainBirthOutreachProvider: "WHATSAPP_CLOUD_API",
       corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE",
       structuredKnowledgeProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS",
-      strategyNumbers: [1, 2, 3, 4, 5, 6, 7],
-      connectionCount: 11,
+      revivalIntelligenceProvider: "PASSIVE_TECH_ENRICHMENT_REDIS",
+      revivalQueue: "REDIS_RESP2_LUA",
+      strategyNumbers: [1, 2, 3, 4, 5, 6, 7, 8],
+      connectionCount: 13,
       connected: true,
     });
-    expect(system.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6, 7]);
+    expect(system.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 
     const outreachResult = await system.runDomainBirthOutreach({
       domain: "newco.com",
@@ -144,32 +171,25 @@ describe("SeoProfessionalMasterSystem #1..#7", () => {
     const scan = await system.scanCorporateProcurement({ sourceId: "portal-ocds", kind: "OCDS_JSON", url: "https://compras.example/ocds.json" });
     expect(scan.matches).toHaveLength(1);
     expect(scan.matches[0]?.handoffUrl).toMatch(/^https:\/\/example\.test\/procurement-opportunity/u);
+
+    const candidate = { tenantId: "tenant-master", candidateId: "lead-master-001", websiteUrl: "https://candidate.example/", relationship: "FIRST_PARTY_CRM" as const, dormantSince: "2025-01-01T00:00:00.000Z" };
+    await expect(system.assessRevivalCandidate(candidate)).resolves.toMatchObject({ candidateId: "lead-master-001", classification: "REVIEW_REACTIVATION" });
+    await expect(system.enqueueRevivalCandidate({ candidate, scanKey: "cycle-master-001" })).resolves.toMatch(/^revjob_/u);
   });
 
   it("fails closed when #5 sender identity does not match the canonical local business origin", () => {
-    expect(() => new SeoProfessionalMasterSystem({
-      core: core("https://example.test"),
-      domainBirthOutreach: outreach("https://other.example"),
-      corporateProcurement: procurement("https://example.test"),
-      structuredKnowledge: structuredKnowledge("https://example.test"),
-    })).toThrowError(/#5 sender website origin/u);
+    expect(() => new SeoProfessionalMasterSystem({ core: core("https://example.test"), domainBirthOutreach: outreach("https://other.example"), corporateProcurement: procurement("https://example.test"), structuredKnowledge: structuredKnowledge("https://example.test"), revivalIntelligence: revival("https://example.test") })).toThrowError(/#5 sender website origin/u);
   });
 
   it("fails closed when #6 seller identity does not match the canonical local business origin", () => {
-    expect(() => new SeoProfessionalMasterSystem({
-      core: core("https://example.test"),
-      domainBirthOutreach: outreach("https://example.test"),
-      corporateProcurement: procurement("https://other.example"),
-      structuredKnowledge: structuredKnowledge("https://example.test"),
-    })).toThrowError(/#6 seller website origin/u);
+    expect(() => new SeoProfessionalMasterSystem({ core: core("https://example.test"), domainBirthOutreach: outreach("https://example.test"), corporateProcurement: procurement("https://other.example"), structuredKnowledge: structuredKnowledge("https://example.test"), revivalIntelligence: revival("https://example.test") })).toThrowError(/#6 seller website origin/u);
   });
 
   it("fails closed when #7 publisher identity does not match the canonical local business origin", () => {
-    expect(() => new SeoProfessionalMasterSystem({
-      core: core("https://example.test"),
-      domainBirthOutreach: outreach("https://example.test"),
-      corporateProcurement: procurement("https://example.test"),
-      structuredKnowledge: structuredKnowledge("https://other.example"),
-    })).toThrowError(/#7 publisher website origin/u);
+    expect(() => new SeoProfessionalMasterSystem({ core: core("https://example.test"), domainBirthOutreach: outreach("https://example.test"), corporateProcurement: procurement("https://example.test"), structuredKnowledge: structuredKnowledge("https://other.example"), revivalIntelligence: revival("https://example.test") })).toThrowError(/#7 publisher website origin/u);
+  });
+
+  it("fails closed when #8 operator identity does not match the canonical local business origin", () => {
+    expect(() => new SeoProfessionalMasterSystem({ core: core("https://example.test"), domainBirthOutreach: outreach("https://example.test"), corporateProcurement: procurement("https://example.test"), structuredKnowledge: structuredKnowledge("https://example.test"), revivalIntelligence: revival("https://other.example") })).toThrowError(/#8 operator website origin/u);
   });
 });
