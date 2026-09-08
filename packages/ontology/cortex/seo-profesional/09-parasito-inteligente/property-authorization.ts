@@ -188,7 +188,7 @@ export class DnsTxtProgrammaticPropertyAuthorizer implements ProgrammaticPropert
     if (!Number.isFinite(nowMs)) throw new ProgrammaticPropertyAuthorizationError("INVALID_CONFIG", "authorization clock is invalid");
     const verifiedAt = new Date(nowMs).toISOString();
     if (propertyOrigin === operatorWebsiteOrigin) {
-      const core = { kind: "FIRST_PARTY_CANONICAL_ORIGIN", siteId: normalizedSiteId, propertyBaseUrl, propertyOrigin, operatorWebsiteOrigin, policyVersion: PROGRAMMATIC_PROPERTY_AUTHORIZATION_POLICY };
+      const core = { kind: "FIRST_PARTY_CANONICAL_ORIGIN" as const, siteId: normalizedSiteId, propertyBaseUrl, propertyOrigin, operatorWebsiteOrigin, policyVersion: PROGRAMMATIC_PROPERTY_AUTHORIZATION_POLICY };
       return Object.freeze({ ...core, verifiedAt, expiresAt: null, dnsName: null, proofDigest: `sha256:${createHash("sha256").update(JSON.stringify(core), "utf8").digest("hex")}` });
     }
 
