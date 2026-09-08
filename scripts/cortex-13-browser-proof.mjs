@@ -186,11 +186,16 @@ async function main() {
       state: globalThis.document.documentElement.dataset.nexusCortex13State ?? null,
       reasons: globalThis.document.documentElement.dataset.nexusCortex13Reasons ?? null,
       suspended: globalThis.document.documentElement.dataset.nexusCortex13SuspendSpeculation ?? null,
+      javascriptScheduling: globalThis.document.documentElement.dataset.nexusCortex33JavascriptScheduling ?? null,
+      lazyLoading: globalThis.document.documentElement.dataset.nexusCortex33LazyLoading ?? null,
       speculativeNodes: globalThis.document.querySelectorAll('[data-nexus-cortex08="1"]').length,
       performanceEntryTypes: globalThis.PerformanceObserver?.supportedEntryTypes ?? [],
     }));
 
-    await waitUntil(async () => (await diagnostics()).state === "NORMAL", 8_000, "CORTEX #13 NORMAL lifecycle state", diagnostics);
+    await waitUntil(async () => {
+      const state = await diagnostics();
+      return state.state === "NORMAL" && state.javascriptScheduling === "NORMAL" && state.lazyLoading === "NORMAL";
+    }, 8_000, "CORTEX #13/#33 NORMAL lifecycle state", diagnostics);
     const target = await findInternalTarget(page);
     await page.hover(`a[href="${target}"]`);
     await waitUntil(async () => (await diagnostics()).speculativeNodes === 1, 8_000, "CORTEX #8 speculative node before CWV pressure", diagnostics);
@@ -209,8 +214,13 @@ async function main() {
 
     await waitUntil(async () => {
       const state = await diagnostics();
-      return state.state === "PRESSURE" && state.suspended === "1" && state.speculativeNodes === 0 && String(state.reasons).includes("LONG_TASK");
-    }, 8_000, "real main-thread pressure to suspend and roll back speculation", diagnostics);
+      return state.state === "PRESSURE"
+        && state.suspended === "1"
+        && state.speculativeNodes === 0
+        && state.javascriptScheduling === "YIELD_NON_CRITICAL"
+        && state.lazyLoading === "NORMAL"
+        && String(state.reasons).includes("LONG_TASK");
+    }, 8_000, "real main-thread pressure to suspend speculation and yield non-critical JavaScript", diagnostics);
 
     // Move off the anchor before retesting it so the next hover must create a
     // fresh pointer transition instead of reusing the browser's current hover state.
@@ -224,7 +234,7 @@ async function main() {
     await waitForControl(server, "OBSERVE_ONLY");
     await waitUntil(async () => {
       const state = await diagnostics();
-      return state.state === null && state.suspended === null;
+      return state.state === null && state.suspended === null && state.javascriptScheduling === null && state.lazyLoading === null;
     }, 8_000, "OBSERVE_ONLY rollback of consumer-visible optimizer state", diagnostics);
 
     // OBSERVE_ONLY must not block CORTEX #8. Generate a fresh pointer transition
@@ -239,12 +249,12 @@ async function main() {
     await waitForControl(server, "KILLED");
     await waitUntil(async () => {
       const state = await diagnostics();
-      return state.state === null && state.suspended === null;
+      return state.state === null && state.suspended === null && state.javascriptScheduling === null && state.lazyLoading === null;
     }, 8_000, "KILLED optimizer rollback", diagnostics);
 
     const unexpectedConsole = unexpectedConsoleErrors(consoleErrors);
-    if (pageErrors.length || unexpectedConsole.length) throw new Error(`CORTEX #13 browser errors: ${JSON.stringify({ pageErrors, unexpectedConsole, transportConsoleErrors: consoleErrors.length - unexpectedConsole.length })}`);
-    process.stdout.write(`${JSON.stringify({ component: "cortex-13-browser-proof", sourceRevision: expectedSha, signal: "real-main-thread-scheduling-stall", integration: "cortex08-speculation-suspension", expectedTransportConsoleErrors: consoleErrors.length, verdict: "PASS" })}\n`);
+    if (pageErrors.length || unexpectedConsole.length) throw new Error(`CORTEX #13/#33 browser errors: ${JSON.stringify({ pageErrors, unexpectedConsole, transportConsoleErrors: consoleErrors.length - unexpectedConsole.length })}`);
+    process.stdout.write(`${JSON.stringify({ component: "cortex-13-browser-proof", sourceRevision: expectedSha, signal: "real-main-thread-scheduling-stall", integration: "cortex08-speculation-suspension+cortex33-runtime-optimization", expectedTransportConsoleErrors: consoleErrors.length, verdict: "PASS" })}\n`);
   } finally {
     if (context) await context.close().catch(() => undefined);
     if (browser) await browser.close().catch(() => undefined);
