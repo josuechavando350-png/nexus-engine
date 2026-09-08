@@ -61,6 +61,13 @@ function finite(value: unknown, label: string, min: number, max: number): number
 function integer(value: unknown, label: string, max: number): number { const n = finite(value, label, 0, max); if (!Number.isSafeInteger(n)) throw new TypeError(`${label} must be an integer`); return n; }
 function digest(value: string, label: string): `sha256:${string}` { if (!SHA256.test(value)) throw new TypeError(`${label} must be sha256`); return value as `sha256:${string}`; }
 function metric(value: unknown, label: string, max: number): number | null { return value === null ? null : finite(value, label, 0, max); }
+function hasControlCharacters(value: string): boolean {
+  for (const character of value) {
+    const code = character.charCodeAt(0);
+    if (code <= 31 || code === 127) return true;
+  }
+  return false;
+}
 
 export function createCwvBuildOptimizationPlan(policyIdInput: string, actionsInput: readonly CwvBuildOptimizationAction[]): CwvBuildOptimizationPlan {
   const policyId = policyIdInput.trim();
@@ -71,7 +78,7 @@ export function createCwvBuildOptimizationPlan(policyIdInput: string, actionsInp
     if (!entry || typeof entry !== "object" || Array.isArray(entry) || Object.keys(entry).sort().join(",") !== "actionId,kind,required,target") throw new TypeError(`CWV action ${index} contract is invalid`);
     if (!ID.test(entry.actionId) || seen.has(entry.actionId)) throw new TypeError(`CWV action ${index} id is invalid or duplicated`); seen.add(entry.actionId);
     if (!(entry.kind === "BUNDLE_SPLIT" || entry.kind === "CRITICAL_CSS" || entry.kind === "IMAGE_PERCEPTUAL" || entry.kind === "FONT_LOADING" || entry.kind === "EDGE_CACHE" || entry.kind === "LAZY_LOADING" || entry.kind === "JS_SCHEDULING" || entry.kind === "LCP_PRELOAD")) throw new TypeError(`CWV action ${index} kind is invalid`);
-    if (typeof entry.target !== "string" || entry.target.length < 1 || entry.target.length > 512 || /[\u0000-\u001f\u007f]/u.test(entry.target)) throw new TypeError(`CWV action ${index} target is invalid`);
+    if (typeof entry.target !== "string" || entry.target.length < 1 || entry.target.length > 512 || hasControlCharacters(entry.target)) throw new TypeError(`CWV action ${index} target is invalid`);
     if (typeof entry.required !== "boolean") throw new TypeError(`CWV action ${index} required is invalid`);
     return Object.freeze({ actionId: entry.actionId, kind: entry.kind, target: entry.target, required: entry.required });
   });
