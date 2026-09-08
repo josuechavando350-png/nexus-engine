@@ -7,7 +7,7 @@ import { InMemoryOntologyTransactionStore } from "@nexus/ontology/transaction";
 import type { EnhancedConversionGateway } from "../enhanced-conversions/index";
 import type { DataManagerDestination } from "../enhanced-conversions/data-manager-rest";
 import { createPymeConsentSubjectId, SqlitePymeConsentRegistry } from "./consent-registry";
-import { PymeEnhancedConversionsPrivacyLayer } from "./enhanced-conversions-privacy";
+import { PymeEnhancedConversionProductionEngine, PymeEnhancedConversionsPrivacyLayer } from "./enhanced-conversions-privacy";
 
 const dirs: string[] = [];
 afterEach(() => { while (dirs.length) rmSync(dirs.pop()!, { recursive: true, force: true }); });
@@ -44,6 +44,19 @@ describe("CORTEX #30 PyME central privacy layer", () => {
     expect(layer.get(prepared.transactionId)?.status).toBe("PREPARED");
     expect(gateway.ingestConversion).not.toHaveBeenCalled();
     layer.close(); registry.close();
+  });
+
+  it("accepts the production envelope without exposing the consent subject in observation output", () => {
+    const dir = mkdtempSync(join(tmpdir(), "nexus-pyme-conversion-")); dirs.push(dir);
+    const registry = new SqlitePymeConsentRegistry(join(dir, "privacy.sqlite"));
+    const subject = createPymeConsentSubjectId("OPAQUE", "customer-identity-3030");
+    registry.grant({ subjectId: subject, channel: "ENHANCED_CONVERSIONS", purpose: "ads_measurement", expectedRevision: 0, reasonCode: "EXPLICIT_OPT_IN", sourceRef: "consent-source-3030", decidedAt: new Date(Date.now() - 1000).toISOString() });
+    const layer = new PymeEnhancedConversionsPrivacyLayer({ databasePath: join(dir, "privacy.sqlite"), transactions: new InMemoryOntologyTransactionStore(), scope, destination, gateway: { ingestConversion: vi.fn(async () => ({ requestId: "unused-request" })) }, modeProvider: () => "ACTIVE", consentRegistry: registry });
+    const engine = new PymeEnhancedConversionProductionEngine(layer);
+    const envelope = { subjectId: subject, event: { transactionId: "pyme-envelope-3030", eventTimestamp: new Date().toISOString(), eventName: "lead", eventSource: "WEB", adUserDataConsent: "GRANTED", gclid: "gclid-click-303000" } };
+    expect(engine.prepare(envelope).status).toBe("PREPARED");
+    expect(JSON.stringify(engine.observe(envelope))).not.toContain(subject);
+    engine.close(); registry.close();
   });
 
   it("refuses PyME preparation when the event itself declares denied ad-user-data consent", () => {
