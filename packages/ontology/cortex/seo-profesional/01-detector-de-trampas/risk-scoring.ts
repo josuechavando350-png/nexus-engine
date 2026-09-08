@@ -270,8 +270,8 @@ function headerMap(input: TrafficHeaders): ReadonlyMap<string, string> {
   } else {
     for (const [name, value] of Object.entries(input)) {
       if (value === undefined) continue;
-      if (Array.isArray(value)) for (const item of value) append(name, item);
-      else append(name, value);
+      if (typeof value === "string") append(name, value);
+      else for (const item of value) append(name, item);
     }
   }
   return result;
