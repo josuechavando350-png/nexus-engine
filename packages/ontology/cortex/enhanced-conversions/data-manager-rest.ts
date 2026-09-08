@@ -3,6 +3,7 @@ const MAX_RESPONSE_BYTES = 64 * 1024;
 const NUMERIC_ID = /^\d{5,20}$/u;
 const SHA256_HEX = /^[0-9a-f]{64}$/u;
 const CURRENCY = /^[A-Z]{3}$/u;
+const AD_ID = /^\S{8,256}$/u;
 
 export interface DataManagerAccessTokenProvider { (): Promise<string> }
 
@@ -26,6 +27,8 @@ export interface DataManagerConversionEvent {
   readonly conversionValue?: number;
   readonly currency?: string;
   readonly gclid?: string;
+  readonly gbraid?: string;
+  readonly wbraid?: string;
   readonly userIdentifiers: readonly DataManagerUserIdentifier[];
 }
 
@@ -88,6 +91,19 @@ function identifierPayload(identifier: DataManagerUserIdentifier) {
   throw new DataManagerApiError("INVALID_CONFIG", "unsupported Data Manager user identifier");
 }
 
+function adIdentifierPayload(event: DataManagerConversionEvent): Readonly<Record<string, string>> | null {
+  for (const [label, value] of [["gclid", event.gclid], ["gbraid", event.gbraid], ["wbraid", event.wbraid]] as const) {
+    if (value !== undefined && !AD_ID.test(value)) throw new DataManagerApiError("INVALID_CONFIG", `${label} is malformed`);
+  }
+  if (event.gbraid !== undefined && event.wbraid !== undefined) throw new DataManagerApiError("INVALID_CONFIG", "gbraid and wbraid are mutually exclusive for one conversion event");
+  const values = Object.freeze({
+    ...(event.gclid === undefined ? {} : { gclid: event.gclid }),
+    ...(event.gbraid === undefined ? {} : { gbraid: event.gbraid }),
+    ...(event.wbraid === undefined ? {} : { wbraid: event.wbraid }),
+  });
+  return Object.keys(values).length === 0 ? null : values;
+}
+
 function eventPayload(event: DataManagerConversionEvent) {
   if (!/^[A-Za-z0-9._:-]{8,128}$/u.test(event.transactionId)) throw new DataManagerApiError("INVALID_CONFIG", "transactionId is malformed");
   const occurredAt = new Date(event.eventTimestamp);
@@ -97,9 +113,10 @@ function eventPayload(event: DataManagerConversionEvent) {
   if (event.conversionValue !== undefined && (!Number.isFinite(event.conversionValue) || event.conversionValue < 0 || event.conversionValue > 1_000_000_000)) throw new DataManagerApiError("INVALID_CONFIG", "conversionValue is invalid");
   if (event.currency !== undefined && !CURRENCY.test(event.currency)) throw new DataManagerApiError("INVALID_CONFIG", "currency must be ISO-style uppercase code");
   if ((event.conversionValue === undefined) !== (event.currency === undefined)) throw new DataManagerApiError("INVALID_CONFIG", "conversionValue and currency must be provided together");
-  if (event.gclid !== undefined && (event.gclid.length < 8 || event.gclid.length > 256 || /\s/u.test(event.gclid))) throw new DataManagerApiError("INVALID_CONFIG", "gclid is malformed");
+  const adIdentifiers = adIdentifierPayload(event);
   if (event.userIdentifiers.length > 10) throw new DataManagerApiError("INVALID_CONFIG", "at most ten user identifiers are allowed");
   if (event.adUserDataConsent === "DENIED" && event.userIdentifiers.length > 0) throw new DataManagerApiError("INVALID_CONFIG", "user identifiers are forbidden when ad user data consent is denied");
+  if (adIdentifiers === null && event.userIdentifiers.length === 0) throw new DataManagerApiError("INVALID_CONFIG", "a supported ad identifier or user identifier is required");
   return {
     destinationReferences: ["google-ads-conversion"],
     transactionId: event.transactionId,
@@ -107,7 +124,7 @@ function eventPayload(event: DataManagerConversionEvent) {
     eventName: event.eventName,
     eventSource: event.eventSource,
     ...(event.conversionValue === undefined ? {} : { conversionValue: event.conversionValue, currency: event.currency }),
-    ...(event.gclid === undefined ? {} : { adIdentifiers: { gclid: event.gclid } }),
+    ...(adIdentifiers === null ? {} : { adIdentifiers }),
     ...(event.userIdentifiers.length === 0 ? {} : { userData: { userIdentifiers: event.userIdentifiers.map(identifierPayload) } }),
   };
 }
