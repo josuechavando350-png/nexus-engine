@@ -3,14 +3,15 @@ import {
   SEO_PROFESSIONAL_STRATEGIES as CORE_STRATEGIES,
 } from "./topology.js";
 
-export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5;
+export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6;
 
 export type SeoProfessionalMasterStrategyId =
   | "detector-de-trampas"
   | "cazador-con-lupa"
   | "camaleon-web"
   | "iman-del-mapa"
-  | "emboscador-de-nacimientos";
+  | "emboscador-de-nacimientos"
+  | "infiltrador-corporativo";
 
 export interface SeoProfessionalMasterStrategyDefinition {
   readonly number: SeoProfessionalMasterStrategyNumber;
@@ -26,13 +27,15 @@ export type SeoProfessionalMasterConnectionChannel =
   | "LOCAL_STRUCTURED_PRESENCE"
   | "VERIFIED_LOCAL_ENTITY_CONTEXT"
   | "VERIFIED_SENDER_IDENTITY"
-  | "CONSENTED_DOMAIN_BIRTH_OUTREACH";
+  | "CONSENTED_DOMAIN_BIRTH_OUTREACH"
+  | "VERIFIED_SELLER_IDENTITY"
+  | "QUALIFIED_PROCUREMENT_HANDOFF";
 
 export interface SeoProfessionalMasterConnection {
   readonly from: SeoProfessionalMasterStrategyNumber;
   readonly to: SeoProfessionalMasterStrategyNumber;
   readonly channel: SeoProfessionalMasterConnectionChannel;
-  readonly boundary: "GOOGLE_ADS" | "WEB_REQUEST" | "WHATSAPP_BUSINESS";
+  readonly boundary: "GOOGLE_ADS" | "WEB_REQUEST" | "WHATSAPP_BUSINESS" | "PUBLIC_PROCUREMENT";
 }
 
 export const SEO_PROFESSIONAL_MASTER_STRATEGIES: readonly SeoProfessionalMasterStrategyDefinition[] = Object.freeze([
@@ -48,6 +51,12 @@ export const SEO_PROFESSIONAL_MASTER_STRATEGIES: readonly SeoProfessionalMasterS
     implementationRef: "packages/ontology/cortex/seo-profesional/05-emboscador-de-nacimientos",
     responsibility: "privacy-minimized RDAP/DNS domain-birth verification and consent-gated WhatsApp Cloud API outreach",
   }),
+  Object.freeze({
+    number: 6 as const,
+    id: "infiltrador-corporativo" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/06-infiltrador-corporativo",
+    responsibility: "public procurement intelligence through OCDS-first ingestion, robots-governed public HTML fallback, tenant-isolated asynchronous work and first-party opportunity handoff",
+  }),
 ] as const);
 
 export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMasterConnection[] = Object.freeze([
@@ -59,6 +68,8 @@ export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMaster
   })),
   Object.freeze({ from: 4 as const, to: 5 as const, channel: "VERIFIED_SENDER_IDENTITY" as const, boundary: "WHATSAPP_BUSINESS" as const }),
   Object.freeze({ from: 5 as const, to: 1 as const, channel: "CONSENTED_DOMAIN_BIRTH_OUTREACH" as const, boundary: "WHATSAPP_BUSINESS" as const }),
+  Object.freeze({ from: 4 as const, to: 6 as const, channel: "VERIFIED_SELLER_IDENTITY" as const, boundary: "PUBLIC_PROCUREMENT" as const }),
+  Object.freeze({ from: 6 as const, to: 1 as const, channel: "QUALIFIED_PROCUREMENT_HANDOFF" as const, boundary: "WEB_REQUEST" as const }),
 ] as const);
 
 function reachable(

@@ -7,6 +7,8 @@ import {
   type RdapDomainLookupPort,
   WhatsAppCloudApiClient,
 } from "./05-emboscador-de-nacimientos/index.js";
+import { PublicProcurementIntelligenceEngine } from "./06-infiltrador-corporativo/procurement-intelligence.js";
+import { PublicProcurementUrlPolicy } from "./06-infiltrador-corporativo/public-url-policy.js";
 import {
   SeoProfessionalMasterSystem,
   type SeoProfessionalCorePort,
@@ -78,22 +80,41 @@ function outreach(origin = "https://example.test", requests: string[] = []) {
   });
 }
 
-describe("SeoProfessionalMasterSystem #1..#5", () => {
-  it("binds #5 to the canonical #4 identity and executes consented domain-birth outreach through the same master runtime", async () => {
+function procurement(origin = "https://example.test") {
+  const urlPolicy = new PublicProcurementUrlPolicy(["https://compras.example"], { resolve: async () => ["8.8.8.8"] });
+  const fetchImpl: typeof fetch = vi.fn(async (input) => String(input).endsWith("robots.txt")
+    ? new Response("User-agent: *\nAllow: /\n", { status: 200 })
+    : new Response(JSON.stringify({ releases: [{ id: "r1", tender: { title: "Seguridad administrada" } }] }), { status: 200 }));
+  return new PublicProcurementIntelligenceEngine({
+    profile: { tenantId: "tenant-master", canonicalWebsiteOrigin: origin, capabilityPhrases: ["seguridad administrada"], minimumMatchScore: 1 },
+    urlPolicy,
+    browser: { fetchPublicPage: async () => { throw new Error("OCDS path does not use Playwright"); } },
+    fetchImpl,
+    now: () => NOW,
+  });
+}
+
+describe("SeoProfessionalMasterSystem #1..#6", () => {
+  it("binds #5 and #6 to the canonical #4 identity and executes both through the same master runtime", async () => {
     const requests: string[] = [];
-    const system = new SeoProfessionalMasterSystem({ core: core(), domainBirthOutreach: outreach("https://example.test", requests) });
+    const system = new SeoProfessionalMasterSystem({
+      core: core(),
+      domainBirthOutreach: outreach("https://example.test", requests),
+      corporateProcurement: procurement("https://example.test"),
+    });
     expect(system.snapshot()).toEqual({
       googleAdsCustomerId: "1234567890",
       offlineConversionProvider: "GOOGLE_ADS_API",
       canonicalWebsiteOrigin: "https://example.test",
       domainBirthOutreachProvider: "WHATSAPP_CLOUD_API",
-      strategyNumbers: [1, 2, 3, 4, 5],
-      connectionCount: 7,
+      corporateProcurementProvider: "PUBLIC_PROCUREMENT_INTELLIGENCE",
+      strategyNumbers: [1, 2, 3, 4, 5, 6],
+      connectionCount: 9,
       connected: true,
     });
-    expect(system.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5]);
+    expect(system.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6]);
 
-    const result = await system.runDomainBirthOutreach({
+    const outreachResult = await system.runDomainBirthOutreach({
       domain: "newco.com",
       recipientE164: "+525512345678",
       consent: {
@@ -108,14 +129,27 @@ describe("SeoProfessionalMasterSystem #1..#5", () => {
       landingUrl: "https://example.test/domain-intelligence?utm_source=whatsapp",
       executionMode: "APPLY",
     });
-    expect(result).toMatchObject({ status: "SENT", assessment: { classification: "NEWLY_REGISTERED_ACTIVE" } });
+    expect(outreachResult).toMatchObject({ status: "SENT", assessment: { classification: "NEWLY_REGISTERED_ACTIVE" } });
     expect(requests).toEqual(["https://graph.facebook.com/v26.0/123456789012345/messages"]);
+
+    const scan = await system.scanCorporateProcurement({ sourceId: "portal-ocds", kind: "OCDS_JSON", url: "https://compras.example/ocds.json" });
+    expect(scan.matches).toHaveLength(1);
+    expect(scan.matches[0]?.handoffUrl).toMatch(/^https:\/\/example\.test\/procurement-opportunity/u);
   });
 
   it("fails closed when #5 sender identity does not match the canonical local business origin", () => {
     expect(() => new SeoProfessionalMasterSystem({
       core: core("https://example.test"),
       domainBirthOutreach: outreach("https://other.example"),
-    })).toThrowError(/must match the #4 canonical local business origin/u);
+      corporateProcurement: procurement("https://example.test"),
+    })).toThrowError(/#5 sender website origin/u);
+  });
+
+  it("fails closed when #6 seller identity does not match the canonical local business origin", () => {
+    expect(() => new SeoProfessionalMasterSystem({
+      core: core("https://example.test"),
+      domainBirthOutreach: outreach("https://example.test"),
+      corporateProcurement: procurement("https://other.example"),
+    })).toThrowError(/#6 seller website origin/u);
   });
 });
