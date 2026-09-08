@@ -36,8 +36,8 @@ La keyword que Nexus crea usa `matchType: EXACT`, pero la semántica de Google A
 ## Límites y protecciones
 
 - Máximo 100,000 observaciones procesadas por síntesis.
-- Máximo 100 candidatos seleccionados por política.
-- Máximo 50 candidatos por mutación atómica (100 operaciones: grupo + keyword).
+- Máximo 50 candidatos seleccionados por ejecución.
+- Máximo 50 candidatos por mutación atómica (100 operaciones: grupo + keyword), por lo que el selector nunca puede producir un lote que el ejecutor rechace por tamaño.
 - Keywords: máximo 80 caracteres y 10 palabras antes de llegar a la API.
 - IDs y fechas validados antes de formar GAQL.
 - No se interpola texto de usuario libre dentro de filtros GAQL; los únicos valores interpolados son fechas canónicas e IDs numéricos validados.
