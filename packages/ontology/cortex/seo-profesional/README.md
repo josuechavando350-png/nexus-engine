@@ -14,12 +14,13 @@ Esta carpeta concentra capacidades de adquisición y SEO ejecutables, medibles y
 8. `08-resucitador-de-muertos` — enriquecimiento pasivo de tecnología/SEO sobre homepages públicas de relaciones ya autorizadas, cola distribuida Redis con leases y handoff first-party para revisión; nunca escanea vulnerabilidades ni ejecuta outreach automático.
 9. `09-parasito-inteligente` — adopta el CORTEX Headless Programmatic SEO canónico y le añade autorización de propiedad: first-party en el origen canónico o delegación DNS TXT HMAC de corta duración, fuentes editoriales gobernadas y recibo que liga autorización + run pSEO.
 10. `10-candado-invisible` — resiliencia Edge portable para el origen first-party: timeout acotado, circuit breaker, bulkhead por isolate, cache policy privada/pública y headers diferenciados Cloudflare/Vercel con stale delivery gobernado; no promete inmunidad ni cero downtime.
+11. `11-guardian-latencia-cero` — supervisor portable de handlers request-time dentro de #10: deadlines cooperativos con `AbortSignal`, circuit breaker por operación, fallback acotado, bulkhead por isolate y fail-open del backend de estado; no promete latencia literal cero ni forced GC.
 
-Las estrategias restantes se incorporan de forma incremental. Cada una debe mantener contratos tipados, límites de seguridad, pruebas de fallo y una ruta de producción explícita antes de considerarse terminada. Cuando una capacidad canónica existente ya supera la estrategia propuesta, se conserva esa implementación y la carpeta maestra registra su ubicación sin crear una segunda versión peor o divergente.
+Las estrategias se incorporan de forma incremental. Cada una debe mantener contratos tipados, límites de seguridad, pruebas de fallo y una ruta de producción explícita antes de considerarse terminada. Cuando una capacidad canónica existente ya supera la estrategia propuesta, se conserva esa implementación y la carpeta maestra registra su ubicación sin crear una segunda versión peor o divergente.
 
 ## Regla de conectividad
 
-SEO Profesional funciona como un sistema, no como once módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta `10-*`, `11-*`, etc. sin registrarla y conectarla hace fallar CI.
+SEO Profesional funciona como un sistema, no como once módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta numerada sin registrarla y conectarla hace fallar CI.
 
 El core #1–#4 permanece exactamente conectado así:
 
@@ -57,9 +58,13 @@ El core #1–#4 permanece exactamente conectado así:
 #10 añade resiliencia de entrega sin reescribir #3 ni crear un framework Edge paralelo:
 
 - `#4 -> #10` por `VERIFIED_EDGE_OPERATOR_IDENTITY`: el runtime Edge solo puede proteger el mismo origen HTTPS canónico definido por #4.
-- `#10 -> #1` por `RESILIENT_WEB_LANDING`: una respuesta servida normalmente o una respuesta previamente cacheada por el proveedor sigue siendo la misma superficie web y conserva el circuito de adquisición de #1.
 
-`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7, #8, #9 y #10 y continuará como punto acumulativo para #11. Ningún motor necesita importar la implementación interna de otro. #9 sí importa deliberadamente `headless-programmatic-seo` porque su responsabilidad es gobernar y reutilizar ese motor canónico, no reemplazarlo.
+#11 convierte la salida de #10 en una cadena de ejecución protegida, en lugar de un módulo paralelo:
+
+- `#10 -> #11` por `RESILIENT_EDGE_RUNTIME_HANDOFF`: #10 conserva la frontera exterior de timeout/cache/proveedor y entrega su mismo `Request` + `AbortSignal` al guard de handlers #11.
+- `#11 -> #1` por `GUARDED_WEB_LANDING`: la respuesta primaria o fallback de #11 vuelve a través de #10 y continúa siendo la misma superficie first-party que entra al circuito de adquisición #1.
+
+`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7, #8, #9, #10 y #11. `serveGuardedEdgeRequest()` materializa la ruta real `#10 -> #11` en código; no es solo un arco documental. Ningún motor necesita importar la implementación interna de otro salvo las reutilizaciones deliberadas de capacidades canónicas.
 
 ## Fronteras externas
 
@@ -76,6 +81,8 @@ La inteligencia corporativa #6 no entra a portales privados. Prefiere OCDS/JSON;
 #9 no genera páginas por su cuenta. Reutiliza `packages/ontology/cortex/headless-programmatic-seo`, que ya aplica evidencia page-specific, distinctive statements, anti-doorway/near-duplicate gates, self-canonical indexable pages, publicación CAS y rollback. El origen canónico de #4 se considera first-party. Una propiedad distinta requiere un token HMAC-SHA256 publicado como TXT `_nexus-pseo.<host>`, ligado a `siteId`, propiedad, operador y expiración máxima de 30 días. El catálogo además debe provenir de un source ID gobernado como contenido first-party del operador o del propietario de la propiedad. No existe categoría para contenido patrocinado de terceros destinado a explotar reputación de host.
 
 #10 usa únicamente APIs Web (`Request`, `Response`, `AbortController`) y un puerto de estado atómico. El store en memoria incluido no se presenta como coordinación global; en producción se inyecta un backend compartido apropiado. Requests con Authorization, Cookie, sesión o personalización Nexus y responses con `Set-Cookie` nunca pasan a shared cache. Cloudflare recibe `Cloudflare-CDN-Cache-Control` sin `s-maxage` para preservar sus semantics actuales de stale; Vercel recibe `CDN-Cache-Control`. Un cache miss real no puede beneficiarse de `stale-if-error`, por lo que #10 limita daño pero no promete disponibilidad absoluta.
+
+#11 reutiliza el `EdgeCircuitStatePort` de #10 para aislar operaciones lógicas fallidas. No bufferiza cuerpos, libera siempre su reserva de concurrencia en `finally`, limita la espera del backend de estado y propaga el `AbortSignal` exterior. JavaScript no ofrece un API portable para forzar garbage collection ni terminar de forma segura una Promise arbitraria que ignore cancelación; por eso #11 previene amplificación de presión y aplica fallbacks, mientras los límites duros de CPU/memoria siguen siendo responsabilidad del proveedor. Cloudflare documenta actualmente 128 MB por isolate. Vercel deprecó Edge Functions para proyectos nuevos; la integración portable se consume desde la frontera Vercel apropiada (Routing Middleware o Functions/Fluid según el workload) sin atarse a un SDK Edge obsoleto.
 
 ## Regla de producción
 
