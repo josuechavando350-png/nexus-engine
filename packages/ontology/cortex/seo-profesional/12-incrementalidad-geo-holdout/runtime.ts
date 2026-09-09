@@ -18,10 +18,20 @@ function exactScope(
   operatorWebsiteOrigin: string,
   googleAdsCustomerId: string,
 ): void {
-  let origin: string;
-  try { origin = new URL(operatorWebsiteOrigin).origin; }
+  let url: URL;
+  try { url = new URL(operatorWebsiteOrigin); }
   catch { throw new SeoGeoIncrementalityError("SCOPE_MISMATCH", "request operator origin is invalid"); }
-  if (origin !== policy.operatorWebsiteOrigin || googleAdsCustomerId.trim() !== policy.googleAdsCustomerId) {
+  const customerId = typeof googleAdsCustomerId === "string" ? googleAdsCustomerId.trim() : "";
+  if (
+    url.protocol !== "https:"
+    || url.username
+    || url.password
+    || url.search
+    || url.hash
+    || url.pathname !== "/"
+    || url.origin !== policy.operatorWebsiteOrigin
+    || customerId !== policy.googleAdsCustomerId
+  ) {
     throw new SeoGeoIncrementalityError("SCOPE_MISMATCH", "geo incrementality request does not match the configured operator/customer scope");
   }
 }
