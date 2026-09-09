@@ -3,7 +3,8 @@ import {
   SEO_PROFESSIONAL_STRATEGIES as CORE_STRATEGIES,
 } from "./topology.js";
 
-export type SeoProfessionalMasterStrategyNumber = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11;
+export type SeoProfessionalMasterStrategyNumber =
+  1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16;
 
 export type SeoProfessionalMasterStrategyId =
   | "detector-de-trampas"
@@ -16,7 +17,12 @@ export type SeoProfessionalMasterStrategyId =
   | "resucitador-de-muertos"
   | "parasito-inteligente"
   | "candado-invisible"
-  | "guardian-latencia-cero";
+  | "guardian-latencia-cero"
+  | "motor-rag-dinamico"
+  | "inyector-semantico"
+  | "matriz-de-enlaces"
+  | "cola-fifo"
+  | "inyector-indexacion";
 
 export interface SeoProfessionalMasterStrategyDefinition {
   readonly number: SeoProfessionalMasterStrategyNumber;
@@ -43,13 +49,28 @@ export type SeoProfessionalMasterConnectionChannel =
   | "AUTHORIZED_PROGRAMMATIC_LANDING"
   | "VERIFIED_EDGE_OPERATOR_IDENTITY"
   | "RESILIENT_EDGE_RUNTIME_HANDOFF"
-  | "GUARDED_WEB_LANDING";
+  | "GUARDED_RAG_REQUEST"
+  | "GROUNDED_DYNAMIC_CONTENT"
+  | "SEMANTIC_HTML"
+  | "EDGE_LINKED_LANDING"
+  | "VERIFIED_INDEXABLE_PAGE_EVENT"
+  | "ORDERED_INDEXING_ELIGIBILITY_EVENT"
+  | "INDEXING_NOTIFICATION_STATUS";
+
+export type SeoProfessionalMasterConnectionBoundary =
+  | "GOOGLE_ADS"
+  | "WEB_REQUEST"
+  | "WHATSAPP_BUSINESS"
+  | "PUBLIC_PROCUREMENT"
+  | "EDGE_DELIVERY"
+  | "EVENT_QUEUE"
+  | "GOOGLE_INDEXING";
 
 export interface SeoProfessionalMasterConnection {
   readonly from: SeoProfessionalMasterStrategyNumber;
   readonly to: SeoProfessionalMasterStrategyNumber;
   readonly channel: SeoProfessionalMasterConnectionChannel;
-  readonly boundary: "GOOGLE_ADS" | "WEB_REQUEST" | "WHATSAPP_BUSINESS" | "PUBLIC_PROCUREMENT" | "EDGE_DELIVERY";
+  readonly boundary: SeoProfessionalMasterConnectionBoundary;
 }
 
 export const SEO_PROFESSIONAL_MASTER_STRATEGIES: readonly SeoProfessionalMasterStrategyDefinition[] = Object.freeze([
@@ -101,6 +122,36 @@ export const SEO_PROFESSIONAL_MASTER_STRATEGIES: readonly SeoProfessionalMasterS
     implementationRef: "packages/ontology/cortex/seo-profesional/11-guardian-latencia-cero",
     responsibility: "portable global handler supervision layered inside #10 with cooperative deadlines, logical-operation circuit breaking, bounded fallback execution and isolate pressure containment without zero-latency or forced-GC claims",
   }),
+  Object.freeze({
+    number: 12 as const,
+    id: "motor-rag-dinamico" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/12-motor-rag-dinamico",
+    responsibility: "framework-neutral grounded Edge RAG using verified first-party knowledge and Workers AI or bounded OpenAI-compatible inference without allowing unsupported model answers",
+  }),
+  Object.freeze({
+    number: 13 as const,
+    id: "inyector-semantico" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/13-inyector-semantico",
+    responsibility: "idempotent Schema.org JSON-LD interleaving from #7 hash-grounded artifacts with schema-dts-compatible TypeScript shape and Google Indexing eligibility derivation",
+  }),
+  Object.freeze({
+    number: 14 as const,
+    id: "matriz-de-enlaces" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/14-matriz-de-enlaces",
+    responsibility: "same-origin Edge-compiled internal link matrices backed by Cloudflare Workers KV or Upstash Redis REST and injected safely before HTML delivery",
+  }),
+  Object.freeze({
+    number: 15 as const,
+    id: "cola-fifo" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/15-cola-fifo",
+    responsibility: "distributed indexing-event queue with QStash strict FIFO semantics and an explicit non-FIFO Cloudflare Queues adapter that cannot masquerade as ordered delivery",
+  }),
+  Object.freeze({
+    number: 16 as const,
+    id: "inyector-indexacion" as const,
+    implementationRef: "packages/ontology/cortex/seo-profesional/16-inyector-indexacion",
+    responsibility: "serverless Google Indexing API publication through an official googleapis client boundary restricted to eligible JobPosting and livestream BroadcastEvent pages",
+  }),
 ] as const);
 
 export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMasterConnection[] = Object.freeze([
@@ -108,7 +159,7 @@ export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMaster
     from: connection.from as SeoProfessionalMasterStrategyNumber,
     to: connection.to as SeoProfessionalMasterStrategyNumber,
     channel: connection.channel as SeoProfessionalMasterConnectionChannel,
-    boundary: connection.boundary,
+    boundary: connection.boundary as SeoProfessionalMasterConnectionBoundary,
   })),
   Object.freeze({ from: 4 as const, to: 5 as const, channel: "VERIFIED_SENDER_IDENTITY" as const, boundary: "WHATSAPP_BUSINESS" as const }),
   Object.freeze({ from: 5 as const, to: 1 as const, channel: "CONSENTED_DOMAIN_BIRTH_OUTREACH" as const, boundary: "WHATSAPP_BUSINESS" as const }),
@@ -122,7 +173,13 @@ export const SEO_PROFESSIONAL_MASTER_CONNECTIONS: readonly SeoProfessionalMaster
   Object.freeze({ from: 9 as const, to: 1 as const, channel: "AUTHORIZED_PROGRAMMATIC_LANDING" as const, boundary: "WEB_REQUEST" as const }),
   Object.freeze({ from: 4 as const, to: 10 as const, channel: "VERIFIED_EDGE_OPERATOR_IDENTITY" as const, boundary: "EDGE_DELIVERY" as const }),
   Object.freeze({ from: 10 as const, to: 11 as const, channel: "RESILIENT_EDGE_RUNTIME_HANDOFF" as const, boundary: "EDGE_DELIVERY" as const }),
-  Object.freeze({ from: 11 as const, to: 1 as const, channel: "GUARDED_WEB_LANDING" as const, boundary: "EDGE_DELIVERY" as const }),
+  Object.freeze({ from: 11 as const, to: 12 as const, channel: "GUARDED_RAG_REQUEST" as const, boundary: "EDGE_DELIVERY" as const }),
+  Object.freeze({ from: 12 as const, to: 13 as const, channel: "GROUNDED_DYNAMIC_CONTENT" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 13 as const, to: 14 as const, channel: "SEMANTIC_HTML" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 14 as const, to: 1 as const, channel: "EDGE_LINKED_LANDING" as const, boundary: "WEB_REQUEST" as const }),
+  Object.freeze({ from: 13 as const, to: 15 as const, channel: "VERIFIED_INDEXABLE_PAGE_EVENT" as const, boundary: "EVENT_QUEUE" as const }),
+  Object.freeze({ from: 15 as const, to: 16 as const, channel: "ORDERED_INDEXING_ELIGIBILITY_EVENT" as const, boundary: "EVENT_QUEUE" as const }),
+  Object.freeze({ from: 16 as const, to: 13 as const, channel: "INDEXING_NOTIFICATION_STATUS" as const, boundary: "GOOGLE_INDEXING" as const }),
 ] as const);
 
 function reachable(
