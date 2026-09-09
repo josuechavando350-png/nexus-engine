@@ -94,7 +94,7 @@ function sha256(value: string): `sha256:${string}` {
 export function createSeoGeoIncrementalityPolicy(input: SeoGeoIncrementalityPolicyInput): SeoGeoIncrementalityPolicy {
   if (!input || typeof input !== "object") throw new SeoGeoIncrementalityError("INVALID_CONFIG", "SEO #12 policy is required");
   const operatorWebsiteOrigin = canonicalOrigin(input.operatorWebsiteOrigin);
-  const googleAdsCustomerId = input.googleAdsCustomerId?.trim();
+  const googleAdsCustomerId = typeof input.googleAdsCustomerId === "string" ? input.googleAdsCustomerId.trim() : "";
   if (!CUSTOMER_ID.test(googleAdsCustomerId)) throw new SeoGeoIncrementalityError("INVALID_CONFIG", "googleAdsCustomerId must contain exactly 10 digits");
   const scopeDigest = sha256(`${SEO_GEO_INCREMENTALITY_POLICY_VERSION}\0${operatorWebsiteOrigin}\0${googleAdsCustomerId}`);
   return Object.freeze({
