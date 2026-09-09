@@ -30,6 +30,7 @@ import type {
   AuthorizedProgrammaticSeoResult,
   AuthorizedProgrammaticSeoRunInput,
 } from "./09-parasito-inteligente/index.js";
+import type { EdgePlatform, EdgeUpstreamHandler } from "./10-candado-invisible/index.js";
 import {
   assertConnectedSeoProfessionalMasterTopology,
   SEO_PROFESSIONAL_MASTER_CONNECTIONS,
@@ -113,6 +114,16 @@ export interface AuthorizedProgrammaticSeoPort {
   rollbackLastMutation(input: Readonly<{ runId: string }>): Promise<AuthorizedProgrammaticSeoResult>;
 }
 
+export interface EdgeResiliencePort {
+  identity(): Readonly<{
+    strategy: 10;
+    provider: "PORTABLE_EDGE_RESILIENCE";
+    platform: EdgePlatform;
+    operatorWebsiteOrigin: string;
+  }>;
+  handle(routeKey: string, request: Request, upstream: EdgeUpstreamHandler): Promise<Response>;
+}
+
 export interface SeoProfessionalMasterSystemSnapshot {
   readonly googleAdsCustomerId: string;
   readonly offlineConversionProvider: string;
@@ -124,7 +135,9 @@ export interface SeoProfessionalMasterSystemSnapshot {
   readonly revivalQueue: "REDIS_RESP2_LUA";
   readonly programmaticSeoProvider: "AUTHORIZED_HEADLESS_PROGRAMMATIC_SEO";
   readonly programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO";
-  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8, 9];
+  readonly edgeResilienceProvider: "PORTABLE_EDGE_RESILIENCE";
+  readonly edgePlatform: EdgePlatform;
+  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
   readonly connectionCount: number;
   readonly connected: true;
 }
@@ -142,6 +155,7 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
   private readonly structuredKnowledge: StructuredKnowledgePort;
   private readonly revivalIntelligence: PassiveRevivalIntelligencePort;
   private readonly programmaticSeo: AuthorizedProgrammaticSeoPort;
+  private readonly edgeResilience: EdgeResiliencePort;
 
   constructor(input: {
     readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
@@ -150,6 +164,7 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     readonly structuredKnowledge: StructuredKnowledgePort;
     readonly revivalIntelligence: PassiveRevivalIntelligencePort;
     readonly programmaticSeo: AuthorizedProgrammaticSeoPort;
+    readonly edgeResilience: EdgeResiliencePort;
   }) {
     if (!input || typeof input !== "object") throw new SeoProfessionalMasterSystemError("INVALID_CONFIG", "SEO Profesional master system dependencies are required");
     assertConnectedSeoProfessionalMasterTopology();
@@ -169,12 +184,17 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     assertMethod(input.programmaticSeo, "identity", "programmaticSeo");
     assertMethod(input.programmaticSeo, "build", "programmaticSeo");
     assertMethod(input.programmaticSeo, "rollbackLastMutation", "programmaticSeo");
+    assertMethod(input.edgeResilience, "identity", "edgeResilience");
+    assertMethod(input.edgeResilience, "handle", "edgeResilience");
+
     const coreIdentity = input.core.snapshot();
     const outreachIdentity = input.domainBirthOutreach.identity();
     const procurementIdentity = input.corporateProcurement.identity();
     const structuredKnowledgeIdentity = input.structuredKnowledge.identity();
     const revivalIdentity = input.revivalIntelligence.identity();
     const programmaticIdentity = input.programmaticSeo.identity();
+    const edgeIdentity = input.edgeResilience.identity();
+
     if (outreachIdentity.strategy !== 5 || outreachIdentity.provider !== "WHATSAPP_CLOUD_API") {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "domainBirthOutreach must identify SEO strategy #5 on WhatsApp Cloud API");
     }
@@ -205,16 +225,25 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     if (programmaticIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#9 operator website origin must match the #4 canonical local business origin");
     }
+    if (edgeIdentity.strategy !== 10 || edgeIdentity.provider !== "PORTABLE_EDGE_RESILIENCE" || (edgeIdentity.platform !== "CLOUDFLARE" && edgeIdentity.platform !== "VERCEL")) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "edgeResilience must identify SEO strategy #10 on the portable Cloudflare/Vercel edge resilience boundary");
+    }
+    if (edgeIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#10 operator website origin must match the #4 canonical local business origin");
+    }
+
     this.core = input.core;
     this.domainBirthOutreach = input.domainBirthOutreach;
     this.corporateProcurement = input.corporateProcurement;
     this.structuredKnowledge = input.structuredKnowledge;
     this.revivalIntelligence = input.revivalIntelligence;
     this.programmaticSeo = input.programmaticSeo;
+    this.edgeResilience = input.edgeResilience;
   }
 
   snapshot(): SeoProfessionalMasterSystemSnapshot {
     const core = this.core.snapshot();
+    const edge = this.edgeResilience.identity();
     return Object.freeze({
       googleAdsCustomerId: core.googleAdsCustomerId,
       offlineConversionProvider: core.offlineConversionProvider,
@@ -226,7 +255,9 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
       revivalQueue: "REDIS_RESP2_LUA" as const,
       programmaticSeoProvider: "AUTHORIZED_HEADLESS_PROGRAMMATIC_SEO" as const,
       programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO" as const,
-      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9] as const),
+      edgeResilienceProvider: "PORTABLE_EDGE_RESILIENCE" as const,
+      edgePlatform: edge.platform,
+      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const),
       connectionCount: SEO_PROFESSIONAL_MASTER_CONNECTIONS.length,
       connected: true as const,
     });
@@ -273,6 +304,10 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
 
   rollbackAuthorizedProgrammaticSeo(input: Readonly<{ runId: string }>): Promise<AuthorizedProgrammaticSeoResult> {
     return this.programmaticSeo.rollbackLastMutation(input);
+  }
+
+  protectEdgeRequest(routeKey: string, request: Request, upstream: EdgeUpstreamHandler): Promise<Response> {
+    return this.edgeResilience.handle(routeKey, request, upstream);
   }
 
   topology() {
@@ -342,3 +377,19 @@ export type {
   ProgrammaticPropertyAuthorizationEvidence,
   ProgrammaticPropertyAuthorizationPort,
 } from "./09-parasito-inteligente/index.js";
+export {
+  InMemoryEdgeCircuitStateStore,
+  PortableEdgeResilienceRuntime,
+  applyEdgeResilienceCachePolicy,
+  createEdgeResiliencePolicy,
+} from "./10-candado-invisible/index.js";
+export type {
+  EdgeCacheMode,
+  EdgeCircuitStatePort,
+  EdgePlatform,
+  EdgeResilienceIdentity,
+  EdgeResiliencePolicy,
+  EdgeResiliencePolicyInput,
+  EdgeResilienceTelemetryEvent,
+  EdgeUpstreamHandler,
+} from "./10-candado-invisible/index.js";
