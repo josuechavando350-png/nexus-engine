@@ -32,6 +32,11 @@ import type {
 } from "./09-parasito-inteligente/index.js";
 import type { EdgePlatform, EdgeUpstreamHandler } from "./10-candado-invisible/index.js";
 import type { EdgeRuntimeHandler } from "./11-guardian-latencia-cero/index.js";
+import type { DynamicRagResult } from "./12-motor-rag-dinamico/index.js";
+import type { SemanticInjectionResult } from "./13-inyector-semantico/index.js";
+import type { LinkMatrixRecord } from "./14-matriz-de-enlaces/index.js";
+import type { IndexingQueueEvent } from "./15-cola-fifo/index.js";
+import type { GoogleIndexingPublishReceipt } from "./16-inyector-indexacion/index.js";
 import {
   assertConnectedSeoProfessionalMasterTopology,
   SEO_PROFESSIONAL_MASTER_CONNECTIONS,
@@ -40,7 +45,7 @@ import {
 
 export class SeoProfessionalMasterSystemError extends Error {
   constructor(
-    public readonly code: "INVALID_CONFIG" | "IDENTITY_MISMATCH",
+    public readonly code: "INVALID_CONFIG" | "INVALID_INPUT" | "IDENTITY_MISMATCH",
     message: string,
   ) {
     super(message);
@@ -65,29 +70,17 @@ export interface SeoProfessionalCorePort<TDecision, TLocalPresence> {
 }
 
 export interface DomainBirthOutreachPort {
-  identity(): Readonly<{
-    strategy: 5;
-    provider: "WHATSAPP_CLOUD_API";
-    senderWebsiteOrigin: string;
-  }>;
+  identity(): Readonly<{ strategy: 5; provider: "WHATSAPP_CLOUD_API"; senderWebsiteOrigin: string }>;
   run(input: DomainBirthOutreachRequest): Promise<DomainBirthOutreachResult>;
 }
 
 export interface CorporateProcurementPort {
-  identity(): Readonly<{
-    strategy: 6;
-    provider: "PUBLIC_PROCUREMENT_INTELLIGENCE";
-    sellerWebsiteOrigin: string;
-  }>;
+  identity(): Readonly<{ strategy: 6; provider: "PUBLIC_PROCUREMENT_INTELLIGENCE"; sellerWebsiteOrigin: string }>;
   scan(input: ProcurementSourceConfig): Promise<ProcurementScanResult>;
 }
 
 export interface StructuredKnowledgePort {
-  identity(): Readonly<{
-    strategy: 7;
-    provider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS";
-    publisherWebsiteOrigin: string;
-  }>;
+  identity(): Readonly<{ strategy: 7; provider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS"; publisherWebsiteOrigin: string }>;
   publish(input: StructuredKnowledgePublishRequest): Promise<GroundedStructuredDataArtifact>;
 }
 
@@ -136,6 +129,65 @@ export interface EdgeRuntimeGuardPort {
   handle(operationKey: string, request: Request, parentSignal: AbortSignal, primary: EdgeRuntimeHandler, fallback: EdgeRuntimeHandler): Promise<Response>;
 }
 
+export interface DynamicRagPort {
+  identity(): Readonly<{
+    strategy: 12;
+    provider: "DYNAMIC_HEADLESS_EDGE_RAG";
+    platform: EdgePlatform;
+    inferenceProvider: "CLOUDFLARE_WORKERS_AI" | "OPENAI_COMPATIBLE_HTTP";
+    operatorWebsiteOrigin: string;
+  }>;
+  answer(userMessage: string, signal?: AbortSignal): Promise<DynamicRagResult>;
+  handle(request: Request): Promise<Response>;
+}
+
+export interface SemanticInterleaverPort {
+  identity(): Readonly<{
+    strategy: 13;
+    provider: "SCHEMA_DTS_ENTITY_GRAPH_INTERLEAVER";
+    upstreamProvider: "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS";
+    operatorWebsiteOrigin: string;
+  }>;
+  inject(html: string, artifact: GroundedStructuredDataArtifact): SemanticInjectionResult;
+}
+
+export interface LinkMatrixPort {
+  identity(): Readonly<{
+    strategy: 14;
+    provider: "EDGE_COMPILED_LINK_MATRIX";
+    storeProvider: "CLOUDFLARE_WORKERS_KV" | "UPSTASH_REDIS_REST";
+    operatorWebsiteOrigin: string;
+  }>;
+  publish(key: string, record: LinkMatrixRecord, signal?: AbortSignal): Promise<void>;
+  inject(
+    key: string,
+    requestUrl: string,
+    html: string,
+    signal?: AbortSignal,
+  ): Promise<Readonly<{ html: string; linkCount: number; matrixVersion: number | null; storeProvider: "CLOUDFLARE_WORKERS_KV" | "UPSTASH_REDIS_REST" }>>;
+}
+
+export interface StrictFifoIndexingQueuePort {
+  identity(): Readonly<{
+    strategy: 15;
+    provider: "UPSTASH_QSTASH_FIFO";
+    ordering: "STRICT_FIFO";
+    operatorWebsiteOrigin: string;
+  }>;
+  enqueue(event: IndexingQueueEvent, signal?: AbortSignal): Promise<Readonly<{ messageId: string | null }>>;
+}
+
+export interface GoogleIndexingPort {
+  identity(): Readonly<{
+    strategy: 16;
+    provider: "GOOGLE_INDEXING_API";
+    sdkBoundary: "GOOGLEAPIS_NODE_SERVERLESS";
+    operatorWebsiteOrigin: string;
+    eligibleTypes: readonly ["JOB_POSTING", "LIVESTREAM_BROADCAST_EVENT"];
+  }>;
+  publish(event: IndexingQueueEvent): Promise<GoogleIndexingPublishReceipt>;
+}
+
 export interface SeoProfessionalMasterSystemSnapshot {
   readonly googleAdsCustomerId: string;
   readonly offlineConversionProvider: string;
@@ -149,8 +201,15 @@ export interface SeoProfessionalMasterSystemSnapshot {
   readonly programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO";
   readonly edgeResilienceProvider: "PORTABLE_EDGE_RESILIENCE";
   readonly edgeRuntimeGuardProvider: "EDGE_RUNTIME_GLOBAL_GUARD";
+  readonly dynamicRagProvider: "DYNAMIC_HEADLESS_EDGE_RAG";
+  readonly semanticInterleaverProvider: "SCHEMA_DTS_ENTITY_GRAPH_INTERLEAVER";
+  readonly linkMatrixProvider: "EDGE_COMPILED_LINK_MATRIX";
+  readonly linkMatrixStoreProvider: "CLOUDFLARE_WORKERS_KV" | "UPSTASH_REDIS_REST";
+  readonly indexingQueueProvider: "UPSTASH_QSTASH_FIFO";
+  readonly indexingQueueOrdering: "STRICT_FIFO";
+  readonly googleIndexingProvider: "GOOGLE_INDEXING_API";
   readonly edgePlatform: EdgePlatform;
-  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
   readonly connectionCount: number;
   readonly connected: true;
 }
@@ -170,6 +229,11 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
   private readonly programmaticSeo: AuthorizedProgrammaticSeoPort;
   private readonly edgeResilience: EdgeResiliencePort;
   private readonly edgeRuntimeGuard: EdgeRuntimeGuardPort;
+  private readonly dynamicRag: DynamicRagPort;
+  private readonly semanticInterleaver: SemanticInterleaverPort;
+  private readonly linkMatrix: LinkMatrixPort;
+  private readonly indexingQueue: StrictFifoIndexingQueuePort;
+  private readonly googleIndexing: GoogleIndexingPort;
 
   constructor(input: {
     readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
@@ -180,29 +244,50 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     readonly programmaticSeo: AuthorizedProgrammaticSeoPort;
     readonly edgeResilience: EdgeResiliencePort;
     readonly edgeRuntimeGuard: EdgeRuntimeGuardPort;
+    readonly dynamicRag: DynamicRagPort;
+    readonly semanticInterleaver: SemanticInterleaverPort;
+    readonly linkMatrix: LinkMatrixPort;
+    readonly indexingQueue: StrictFifoIndexingQueuePort;
+    readonly googleIndexing: GoogleIndexingPort;
   }) {
     if (!input || typeof input !== "object") throw new SeoProfessionalMasterSystemError("INVALID_CONFIG", "SEO Profesional master system dependencies are required");
     assertConnectedSeoProfessionalMasterTopology();
-    assertMethod(input.core, "snapshot", "core");
-    assertMethod(input.core, "assessLanding", "core");
-    assertMethod(input.core, "recordQualifiedConversion", "core");
-    assertMethod(input.core, "optimizeExactMatches", "core");
-    assertMethod(input.domainBirthOutreach, "identity", "domainBirthOutreach");
-    assertMethod(input.domainBirthOutreach, "run", "domainBirthOutreach");
-    assertMethod(input.corporateProcurement, "identity", "corporateProcurement");
-    assertMethod(input.corporateProcurement, "scan", "corporateProcurement");
-    assertMethod(input.structuredKnowledge, "identity", "structuredKnowledge");
-    assertMethod(input.structuredKnowledge, "publish", "structuredKnowledge");
-    assertMethod(input.revivalIntelligence, "identity", "revivalIntelligence");
-    assertMethod(input.revivalIntelligence, "assess", "revivalIntelligence");
-    assertMethod(input.revivalIntelligence, "enqueue", "revivalIntelligence");
-    assertMethod(input.programmaticSeo, "identity", "programmaticSeo");
-    assertMethod(input.programmaticSeo, "build", "programmaticSeo");
-    assertMethod(input.programmaticSeo, "rollbackLastMutation", "programmaticSeo");
-    assertMethod(input.edgeResilience, "identity", "edgeResilience");
-    assertMethod(input.edgeResilience, "handle", "edgeResilience");
-    assertMethod(input.edgeRuntimeGuard, "identity", "edgeRuntimeGuard");
-    assertMethod(input.edgeRuntimeGuard, "handle", "edgeRuntimeGuard");
+
+    const methodContracts: readonly [unknown, string, string][] = [
+      [input.core, "snapshot", "core"],
+      [input.core, "assessLanding", "core"],
+      [input.core, "recordQualifiedConversion", "core"],
+      [input.core, "optimizeExactMatches", "core"],
+      [input.domainBirthOutreach, "identity", "domainBirthOutreach"],
+      [input.domainBirthOutreach, "run", "domainBirthOutreach"],
+      [input.corporateProcurement, "identity", "corporateProcurement"],
+      [input.corporateProcurement, "scan", "corporateProcurement"],
+      [input.structuredKnowledge, "identity", "structuredKnowledge"],
+      [input.structuredKnowledge, "publish", "structuredKnowledge"],
+      [input.revivalIntelligence, "identity", "revivalIntelligence"],
+      [input.revivalIntelligence, "assess", "revivalIntelligence"],
+      [input.revivalIntelligence, "enqueue", "revivalIntelligence"],
+      [input.programmaticSeo, "identity", "programmaticSeo"],
+      [input.programmaticSeo, "build", "programmaticSeo"],
+      [input.programmaticSeo, "rollbackLastMutation", "programmaticSeo"],
+      [input.edgeResilience, "identity", "edgeResilience"],
+      [input.edgeResilience, "handle", "edgeResilience"],
+      [input.edgeRuntimeGuard, "identity", "edgeRuntimeGuard"],
+      [input.edgeRuntimeGuard, "handle", "edgeRuntimeGuard"],
+      [input.dynamicRag, "identity", "dynamicRag"],
+      [input.dynamicRag, "answer", "dynamicRag"],
+      [input.dynamicRag, "handle", "dynamicRag"],
+      [input.semanticInterleaver, "identity", "semanticInterleaver"],
+      [input.semanticInterleaver, "inject", "semanticInterleaver"],
+      [input.linkMatrix, "identity", "linkMatrix"],
+      [input.linkMatrix, "publish", "linkMatrix"],
+      [input.linkMatrix, "inject", "linkMatrix"],
+      [input.indexingQueue, "identity", "indexingQueue"],
+      [input.indexingQueue, "enqueue", "indexingQueue"],
+      [input.googleIndexing, "identity", "googleIndexing"],
+      [input.googleIndexing, "publish", "googleIndexing"],
+    ];
+    for (const [dependency, method, label] of methodContracts) assertMethod(dependency, method, label);
 
     const coreIdentity = input.core.snapshot();
     const outreachIdentity = input.domainBirthOutreach.identity();
@@ -212,6 +297,11 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     const programmaticIdentity = input.programmaticSeo.identity();
     const edgeIdentity = input.edgeResilience.identity();
     const guardIdentity = input.edgeRuntimeGuard.identity();
+    const ragIdentity = input.dynamicRag.identity();
+    const semanticIdentity = input.semanticInterleaver.identity();
+    const linkIdentity = input.linkMatrix.identity();
+    const queueIdentity = input.indexingQueue.identity();
+    const indexingIdentity = input.googleIndexing.identity();
 
     if (outreachIdentity.strategy !== 5 || outreachIdentity.provider !== "WHATSAPP_CLOUD_API") {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "domainBirthOutreach must identify SEO strategy #5 on WhatsApp Cloud API");
@@ -249,14 +339,41 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     if (edgeIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#10 operator website origin must match the #4 canonical local business origin");
     }
-    if (guardIdentity.strategy !== 11 || guardIdentity.provider !== "EDGE_RUNTIME_GLOBAL_GUARD" || guardIdentity.upstreamProvider !== "PORTABLE_EDGE_RESILIENCE" || (guardIdentity.platform !== "CLOUDFLARE" && guardIdentity.platform !== "VERCEL")) {
-      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "edgeRuntimeGuard must identify SEO strategy #11 layered over the #10 portable edge resilience boundary");
+    if (guardIdentity.strategy !== 11 || guardIdentity.provider !== "EDGE_RUNTIME_GLOBAL_GUARD" || guardIdentity.upstreamProvider !== "PORTABLE_EDGE_RESILIENCE") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "edgeRuntimeGuard must identify SEO strategy #11 layered over #10");
     }
-    if (guardIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
-      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#11 operator website origin must match the #4 canonical local business origin");
+    if (guardIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin || guardIdentity.platform !== edgeIdentity.platform) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#11 origin/platform must match #10 and #4");
     }
-    if (guardIdentity.platform !== edgeIdentity.platform) {
-      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#11 edge platform must match #10");
+    if (ragIdentity.strategy !== 12 || ragIdentity.provider !== "DYNAMIC_HEADLESS_EDGE_RAG") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "dynamicRag must identify SEO strategy #12");
+    }
+    if (ragIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin || ragIdentity.platform !== guardIdentity.platform) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#12 origin/platform must match the guarded #11 edge boundary");
+    }
+    if (semanticIdentity.strategy !== 13 || semanticIdentity.provider !== "SCHEMA_DTS_ENTITY_GRAPH_INTERLEAVER" || semanticIdentity.upstreamProvider !== "VERIFIED_SEMANTIC_GRAPH_RICH_RESULTS") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "semanticInterleaver must identify #13 backed by the verified #7 structured graph");
+    }
+    if (semanticIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#13 operator origin must match #4");
+    }
+    if (linkIdentity.strategy !== 14 || linkIdentity.provider !== "EDGE_COMPILED_LINK_MATRIX") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "linkMatrix must identify SEO strategy #14");
+    }
+    if (linkIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#14 operator origin must match #4");
+    }
+    if (queueIdentity.strategy !== 15 || queueIdentity.provider !== "UPSTASH_QSTASH_FIFO" || queueIdentity.ordering !== "STRICT_FIFO") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#15 indexing chain requires UPSTASH_QSTASH_FIFO with STRICT_FIFO ordering");
+    }
+    if (queueIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#15 operator origin must match #4");
+    }
+    if (indexingIdentity.strategy !== 16 || indexingIdentity.provider !== "GOOGLE_INDEXING_API" || indexingIdentity.sdkBoundary !== "GOOGLEAPIS_NODE_SERVERLESS") {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#16 must use the Google Indexing API through the googleapis Node/serverless boundary");
+    }
+    if (indexingIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#16 operator origin must match #4");
     }
 
     this.core = input.core;
@@ -267,11 +384,17 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     this.programmaticSeo = input.programmaticSeo;
     this.edgeResilience = input.edgeResilience;
     this.edgeRuntimeGuard = input.edgeRuntimeGuard;
+    this.dynamicRag = input.dynamicRag;
+    this.semanticInterleaver = input.semanticInterleaver;
+    this.linkMatrix = input.linkMatrix;
+    this.indexingQueue = input.indexingQueue;
+    this.googleIndexing = input.googleIndexing;
   }
 
   snapshot(): SeoProfessionalMasterSystemSnapshot {
     const core = this.core.snapshot();
     const edge = this.edgeResilience.identity();
+    const link = this.linkMatrix.identity();
     return Object.freeze({
       googleAdsCustomerId: core.googleAdsCustomerId,
       offlineConversionProvider: core.offlineConversionProvider,
@@ -285,8 +408,15 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
       programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO" as const,
       edgeResilienceProvider: "PORTABLE_EDGE_RESILIENCE" as const,
       edgeRuntimeGuardProvider: "EDGE_RUNTIME_GLOBAL_GUARD" as const,
+      dynamicRagProvider: "DYNAMIC_HEADLESS_EDGE_RAG" as const,
+      semanticInterleaverProvider: "SCHEMA_DTS_ENTITY_GRAPH_INTERLEAVER" as const,
+      linkMatrixProvider: "EDGE_COMPILED_LINK_MATRIX" as const,
+      linkMatrixStoreProvider: link.storeProvider,
+      indexingQueueProvider: "UPSTASH_QSTASH_FIFO" as const,
+      indexingQueueOrdering: "STRICT_FIFO" as const,
+      googleIndexingProvider: "GOOGLE_INDEXING_API" as const,
       edgePlatform: edge.platform,
-      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const),
+      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16] as const),
       connectionCount: SEO_PROFESSIONAL_MASTER_CONNECTIONS.length,
       connected: true as const,
     });
@@ -351,6 +481,76 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
       request,
       (edgeRequest, edgeSignal) => this.edgeRuntimeGuard.handle(operationKey, edgeRequest, edgeSignal, primary, fallback),
     );
+  }
+
+  answerDynamicRag(userMessage: string, signal?: AbortSignal): Promise<DynamicRagResult> {
+    return this.dynamicRag.answer(userMessage, signal);
+  }
+
+  serveGuardedRagRequest(
+    routeKey: string,
+    operationKey: string,
+    request: Request,
+    fallback: EdgeRuntimeHandler,
+  ): Promise<Response> {
+    return this.edgeResilience.handle(
+      routeKey,
+      request,
+      (edgeRequest, edgeSignal) => this.edgeRuntimeGuard.handle(
+        operationKey,
+        edgeRequest,
+        edgeSignal,
+        (guardedRequest, guardSignal) => this.dynamicRag.handle(new Request(guardedRequest, { signal: guardSignal })),
+        fallback,
+      ),
+    );
+  }
+
+  async renderSemanticLinkedHtml(input: Readonly<{
+    html: string;
+    artifact: GroundedStructuredDataArtifact;
+    linkMatrixKey: string;
+    requestUrl: string;
+    signal?: AbortSignal;
+  }>) {
+    const semantic = this.semanticInterleaver.inject(input.html, input.artifact);
+    const linked = await this.linkMatrix.inject(input.linkMatrixKey, input.requestUrl, semantic.html, input.signal);
+    return Object.freeze({ semantic, linked });
+  }
+
+  publishLinkMatrix(key: string, record: LinkMatrixRecord, signal?: AbortSignal): Promise<void> {
+    return this.linkMatrix.publish(key, record, signal);
+  }
+
+  enqueueStructuredIndexingEvent(
+    semantic: SemanticInjectionResult,
+    input: Readonly<{
+      eventId: string;
+      sequence: number;
+      notificationType: "URL_UPDATED" | "URL_DELETED";
+      eligibility?: "JOB_POSTING" | "LIVESTREAM_BROADCAST_EVENT";
+      createdAt: string;
+    }>,
+    signal?: AbortSignal,
+  ): Promise<Readonly<{ messageId: string | null }>> {
+    const eligibility = input.eligibility ?? semantic.indexingEligibility[0];
+    if (!eligibility || !semantic.indexingEligibility.includes(eligibility)) {
+      throw new SeoProfessionalMasterSystemError("INVALID_INPUT", "#15 enqueue requires eligibility derived by #13 for this exact semantic artifact");
+    }
+    const event: IndexingQueueEvent = Object.freeze({
+      eventId: input.eventId,
+      sequence: input.sequence,
+      pageUrl: semantic.pageUrl,
+      notificationType: input.notificationType,
+      eligibility,
+      semanticReceiptDigest: semantic.receiptDigest,
+      createdAt: input.createdAt,
+    });
+    return this.indexingQueue.enqueue(event, signal);
+  }
+
+  publishIndexingNotification(event: IndexingQueueEvent): Promise<GoogleIndexingPublishReceipt> {
+    return this.googleIndexing.publish(event);
   }
 
   topology() {
@@ -449,3 +649,8 @@ export type {
   EdgeRuntimeGuardTelemetryEvent,
   EdgeRuntimeHandler,
 } from "./11-guardian-latencia-cero/index.js";
+export * from "./12-motor-rag-dinamico/index.js";
+export * from "./13-inyector-semantico/index.js";
+export * from "./14-matriz-de-enlaces/index.js";
+export * from "./15-cola-fifo/index.js";
+export * from "./16-inyector-indexacion/index.js";
