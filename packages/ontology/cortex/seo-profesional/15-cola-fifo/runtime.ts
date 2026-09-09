@@ -62,6 +62,14 @@ function canonicalEvent(event: IndexingQueueEvent): IndexingQueueEvent {
   return Object.freeze({ ...event, pageUrl: page.href });
 }
 
+function bareOrigin(raw: string): string {
+  const url = httpsEndpoint(raw, "operatorWebsiteOrigin");
+  if (url.search || url.hash || url.pathname !== "/" || url.port) {
+    throw new EdgeQueueError("INVALID_CONFIG", "operatorWebsiteOrigin must be a bare HTTPS origin");
+  }
+  return url.origin;
+}
+
 function httpsEndpoint(raw: string, field: string): URL {
   let url: URL;
   try {
@@ -81,12 +89,11 @@ export class UpstashQStashFifoQueue implements DistributedEdgeQueuePort {
   private readonly apiBase: URL;
   private readonly destination: URL;
   private readonly fetchImpl: typeof fetch;
-  private readonly queueName: string;
-  private readonly tokenProvider: () => Promise<string>;
 
   constructor(input: Readonly<{
     queueName: string;
     destination: string;
+    operatorWebsiteOrigin: string;
     tokenProvider: () => Promise<string>;
     apiBase?: string;
     fetchImpl?: typeof fetch;
@@ -95,18 +102,23 @@ export class UpstashQStashFifoQueue implements DistributedEdgeQueuePort {
       throw new EdgeQueueError("INVALID_CONFIG", "QStash queueName/tokenProvider are invalid");
     }
     this.queueName = input.queueName;
+    this.operatorWebsiteOrigin = bareOrigin(input.operatorWebsiteOrigin);
     this.destination = httpsEndpoint(input.destination, "destination");
     this.apiBase = httpsEndpoint(input.apiBase ?? "https://qstash.upstash.io", "apiBase");
     this.tokenProvider = input.tokenProvider;
     this.fetchImpl = input.fetchImpl ?? fetch;
   }
 
-  identity(operatorWebsiteOrigin: string) {
+  private readonly queueName: string;
+  private readonly operatorWebsiteOrigin: string;
+  private readonly tokenProvider: () => Promise<string>;
+
+  identity() {
     return Object.freeze({
       strategy: 15 as const,
       provider: this.provider,
       ordering: this.ordering,
-      operatorWebsiteOrigin,
+      operatorWebsiteOrigin: this.operatorWebsiteOrigin,
     });
   }
 
@@ -156,16 +168,22 @@ export class CloudflareQueuesProducer implements DistributedEdgeQueuePort {
   readonly provider = "CLOUDFLARE_QUEUES" as const;
   readonly ordering = "AT_LEAST_ONCE_UNORDERED" as const;
 
-  constructor(private readonly queue: CloudflareQueueBinding) {
+  private readonly operatorWebsiteOrigin: string;
+
+  constructor(
+    private readonly queue: CloudflareQueueBinding,
+    operatorWebsiteOrigin: string,
+  ) {
     if (!queue || typeof queue.send !== "function") throw new EdgeQueueError("INVALID_CONFIG", "Cloudflare Queue binding is required");
+    this.operatorWebsiteOrigin = bareOrigin(operatorWebsiteOrigin);
   }
 
-  identity(operatorWebsiteOrigin: string) {
+  identity() {
     return Object.freeze({
       strategy: 15 as const,
       provider: this.provider,
       ordering: this.ordering,
-      operatorWebsiteOrigin,
+      operatorWebsiteOrigin: this.operatorWebsiteOrigin,
     });
   }
 
