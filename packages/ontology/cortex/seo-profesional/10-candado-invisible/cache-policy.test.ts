@@ -68,6 +68,56 @@ describe("edge resilience cache policy", () => {
     expect(result.response.headers.has("expires")).toBe(false);
   });
 
+  it("preserves upstream privacy on transient failures instead of exposing stale public caching", () => {
+    const response = new Response("private failure", {
+      status: 503,
+      headers: {
+        "cache-control": "private, no-store",
+        "cdn-cache-control": "public, max-age=600, stale-if-error=3600",
+        "surrogate-control": "max-age=600",
+      },
+    });
+    const result = applyEdgeResilienceFailureCachePolicy(new Request("https://example.test/"), response);
+    expect(result.cacheMode).toBe("PRIVATE_NO_STORE");
+    expect(result.response.headers.get("cache-control")).toBe("private, no-store");
+    expect(result.response.headers.has("cdn-cache-control")).toBe(false);
+    expect(result.response.headers.has("surrogate-control")).toBe(false);
+  });
+
+  it("treats Set-Cookie failures as private even when public CDN headers are present", () => {
+    const response = new Response("session failure", {
+      status: 503,
+      headers: {
+        "set-cookie": "sid=secret; HttpOnly; Secure",
+        "cdn-cache-control": "public, max-age=600",
+      },
+    });
+    const result = applyEdgeResilienceFailureCachePolicy(new Request("https://example.test/"), response);
+    expect(result.cacheMode).toBe("PRIVATE_NO_STORE");
+    expect(result.response.headers.get("cache-control")).toBe("private, no-store");
+    expect(result.response.headers.has("cdn-cache-control")).toBe(false);
+    expect(result.response.headers.has("set-cookie")).toBe(true);
+  });
+
+  it("treats Vary authorization and zero shared max-age failures as private", () => {
+    const varyResponse = new Response("auth failure", {
+      status: 503,
+      headers: { vary: "Accept-Encoding, Authorization", "cdn-cache-control": "public, max-age=600" },
+    });
+    const varyResult = applyEdgeResilienceFailureCachePolicy(new Request("https://example.test/"), varyResponse);
+    expect(varyResult.cacheMode).toBe("PRIVATE_NO_STORE");
+    expect(varyResult.response.headers.get("cache-control")).toBe("private, no-store");
+
+    const zeroSharedMaxAge = new Response("do not share", {
+      status: 503,
+      headers: { "cloudflare-cdn-cache-control": "public, s-maxage=0" },
+    });
+    const zeroResult = applyEdgeResilienceFailureCachePolicy(new Request("https://example.test/"), zeroSharedMaxAge);
+    expect(zeroResult.cacheMode).toBe("PRIVATE_NO_STORE");
+    expect(zeroResult.response.headers.get("cache-control")).toBe("private, no-store");
+    expect(zeroResult.response.headers.has("cloudflare-cdn-cache-control")).toBe(false);
+  });
+
   it("does not add no-store to a public 5xx because that can suppress provider stale-if-error fallback", () => {
     const result = createEdgeUnavailableResponse(new Request("https://example.test/"), policy("CLOUDFLARE"), 503);
     expect(result.cacheMode).toBe("BYPASS_UNCACHEABLE");
