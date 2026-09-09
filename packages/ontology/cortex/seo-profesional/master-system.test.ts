@@ -9,10 +9,13 @@ import {
 } from "./05-emboscador-de-nacimientos/index.js";
 import { PublicProcurementIntelligenceEngine } from "./06-infiltrador-corporativo/procurement-intelligence.js";
 import { PublicProcurementUrlPolicy } from "./06-infiltrador-corporativo/public-url-policy.js";
+import { InMemoryEdgeCircuitStateStore } from "./10-candado-invisible/index.js";
+import { PortableEdgeRuntimeGuard, createEdgeRuntimeGuardPolicy } from "./11-guardian-latencia-cero/index.js";
 import {
   SeoProfessionalMasterSystem,
   type AuthorizedProgrammaticSeoPort,
   type EdgeResiliencePort,
+  type EdgeRuntimeGuardPort,
   type PassiveRevivalIntelligencePort,
   type SeoProfessionalCorePort,
 } from "./master-system.js";
@@ -85,7 +88,15 @@ function edge(origin = "https://example.test", platform: "CLOUDFLARE" | "VERCEL"
   };
 }
 
-function system(origin = "https://example.test", overrides: Partial<{ outreachOrigin: string; procurementOrigin: string; structuredOrigin: string; revivalOrigin: string; programmaticOrigin: string; edgeOrigin: string }> = {}) {
+function guard(origin = "https://example.test", platform: "CLOUDFLARE" | "VERCEL" = "VERCEL"): EdgeRuntimeGuardPort {
+  return new PortableEdgeRuntimeGuard({
+    policy: createEdgeRuntimeGuardPolicy({ policyId: "master-edge-guard", operatorWebsiteOrigin: origin, platform, primaryTimeoutMs: 100, fallbackTimeoutMs: 50, stateOperationTimeoutMs: 20, failureThreshold: 1, openCircuitMs: 1_000, maxConcurrentExecutions: 8, retryAfterSeconds: 1 }),
+    state: new InMemoryEdgeCircuitStateStore(),
+  });
+}
+
+function system(origin = "https://example.test", overrides: Partial<{ outreachOrigin: string; procurementOrigin: string; structuredOrigin: string; revivalOrigin: string; programmaticOrigin: string; edgeOrigin: string; guardOrigin: string; edgePlatform: "CLOUDFLARE" | "VERCEL"; guardPlatform: "CLOUDFLARE" | "VERCEL" }> = {}) {
+  const edgePlatform = overrides.edgePlatform ?? "VERCEL";
   return new SeoProfessionalMasterSystem({
     core: core(origin),
     domainBirthOutreach: outreach(overrides.outreachOrigin ?? origin),
@@ -93,14 +104,15 @@ function system(origin = "https://example.test", overrides: Partial<{ outreachOr
     structuredKnowledge: structuredKnowledge(overrides.structuredOrigin ?? origin),
     revivalIntelligence: revival(overrides.revivalOrigin ?? origin),
     programmaticSeo: programmatic(overrides.programmaticOrigin ?? origin),
-    edgeResilience: edge(overrides.edgeOrigin ?? origin),
+    edgeResilience: edge(overrides.edgeOrigin ?? origin, edgePlatform),
+    edgeRuntimeGuard: guard(overrides.guardOrigin ?? origin, overrides.guardPlatform ?? edgePlatform),
   });
 }
 
-describe("SeoProfessionalMasterSystem #1..#10", () => {
-  it("binds #5 through #10 to the canonical #4 operator identity while preserving each strategy boundary", async () => {
+describe("SeoProfessionalMasterSystem #1..#11", () => {
+  it("binds #5 through #11 to the canonical #4 identity and executes the real #10 -> #11 guarded request chain", async () => {
     const requests: string[] = [];
-    const master = new SeoProfessionalMasterSystem({ core: core(), domainBirthOutreach: outreach("https://example.test", requests), corporateProcurement: procurement(), structuredKnowledge: structuredKnowledge(), revivalIntelligence: revival(), programmaticSeo: programmatic(), edgeResilience: edge() });
+    const master = new SeoProfessionalMasterSystem({ core: core(), domainBirthOutreach: outreach("https://example.test", requests), corporateProcurement: procurement(), structuredKnowledge: structuredKnowledge(), revivalIntelligence: revival(), programmaticSeo: programmatic(), edgeResilience: edge(), edgeRuntimeGuard: guard() });
     expect(master.snapshot()).toEqual({
       googleAdsCustomerId: "1234567890",
       offlineConversionProvider: "GOOGLE_ADS_API",
@@ -113,12 +125,13 @@ describe("SeoProfessionalMasterSystem #1..#10", () => {
       programmaticSeoProvider: "AUTHORIZED_HEADLESS_PROGRAMMATIC_SEO",
       programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO",
       edgeResilienceProvider: "PORTABLE_EDGE_RESILIENCE",
+      edgeRuntimeGuardProvider: "EDGE_RUNTIME_GLOBAL_GUARD",
       edgePlatform: "VERCEL",
-      strategyNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-      connectionCount: 17,
+      strategyNumbers: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11],
+      connectionCount: 18,
       connected: true,
     });
-    expect(master.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]);
+    expect(master.topology().strategies.map((strategy) => strategy.number)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
 
     const outreachResult = await master.runDomainBirthOutreach({ domain: "newco.com", recipientE164: "+525512345678", consent: { status: "OPTED_IN", purpose: "DOMAIN_BIRTH_OUTREACH", recipientE164: "+525512345678", capturedAt: "2026-09-01T10:00:00.000Z", source: "first-party CRM", proofId: "consent-proof-master-0001" }, leadSource: "FIRST_PARTY_CRM", landingUrl: "https://example.test/domain-intelligence?utm_source=whatsapp", executionMode: "APPLY" });
     expect(outreachResult).toMatchObject({ status: "SENT", assessment: { classification: "NEWLY_REGISTERED_ACTIVE" } });
@@ -131,6 +144,9 @@ describe("SeoProfessionalMasterSystem #1..#10", () => {
     await expect(master.enqueueRevivalCandidate({ candidate, scanKey: "cycle-master-001" })).resolves.toMatch(/^revjob_/u);
     await expect(master.runAuthorizedProgrammaticSeo({ runId: "seo9-master-001", mode: "OBSERVE_ONLY" })).resolves.toMatchObject({ programmatic: { siteId: "site-client", reason: "OBSERVE_ONLY" }, authorization: { propertyOrigin: "https://client.example", operatorWebsiteOrigin: "https://example.test" } });
     await expect(master.protectEdgeRequest("homepage", new Request("https://example.test/"), async () => new Response("edge-ok", { status: 200 }))).resolves.toMatchObject({ status: 200 });
+    const guarded = await master.serveGuardedEdgeRequest("homepage", "render.homepage", new Request("https://example.test/"), async () => new Response("primary-down", { status: 503 }), async () => new Response("guarded-fallback", { status: 200 }));
+    expect(guarded.status).toBe(200);
+    expect(await guarded.text()).toBe("guarded-fallback");
   });
 
   it("fails closed when #5 sender identity does not match #4", () => { expect(() => system("https://example.test", { outreachOrigin: "https://other.example" })).toThrowError(/#5 sender website origin/u); });
@@ -139,4 +155,6 @@ describe("SeoProfessionalMasterSystem #1..#10", () => {
   it("fails closed when #8 operator identity does not match #4", () => { expect(() => system("https://example.test", { revivalOrigin: "https://other.example" })).toThrowError(/#8 operator website origin/u); });
   it("fails closed when #9 operator identity does not match #4", () => { expect(() => system("https://example.test", { programmaticOrigin: "https://other.example" })).toThrowError(/#9 operator website origin/u); });
   it("fails closed when #10 edge operator identity does not match #4", () => { expect(() => system("https://example.test", { edgeOrigin: "https://other.example" })).toThrowError(/#10 operator website origin/u); });
+  it("fails closed when #11 guard identity does not match #4", () => { expect(() => system("https://example.test", { guardOrigin: "https://other.example" })).toThrowError(/#11 operator website origin/u); });
+  it("fails closed when #11 platform does not match #10", () => { expect(() => system("https://example.test", { edgePlatform: "VERCEL", guardPlatform: "CLOUDFLARE" })).toThrowError(/#11 edge platform must match #10/u); });
 });
