@@ -14,7 +14,7 @@ function edge(origin = "https://example.test", platform: "CLOUDFLARE" | "VERCEL"
 function guard(origin = "https://example.test", platform: "CLOUDFLARE" | "VERCEL" = "VERCEL", calls: string[] = []): EdgeRuntimeGuardBoundaryPort {
   return {
     identity: () => Object.freeze({ strategy: 11 as const, provider: "EDGE_RUNTIME_GLOBAL_GUARD" as const, upstreamProvider: "PORTABLE_EDGE_RESILIENCE" as const, platform, operatorWebsiteOrigin: origin }),
-    handle: async (operationKey, request, signal, primary, _fallback) => {
+    handle: async (operationKey, request, signal, primary) => {
       calls.push(`#11:${operationKey}`);
       return primary(request, signal);
     },
