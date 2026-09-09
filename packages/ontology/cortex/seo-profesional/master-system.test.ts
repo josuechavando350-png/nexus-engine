@@ -242,5 +242,5 @@ describe("SeoProfessionalMasterSystem #1..#12", () => {
   it("fails closed when #11 guard identity does not match #4", () => { expect(() => system("https://example.test", { guardOrigin: "https://other.example" })).toThrowError(/#11 operator website origin/u); });
   it("fails closed when #11 platform does not match #10", () => { expect(() => system("https://example.test", { edgePlatform: "VERCEL", guardPlatform: "CLOUDFLARE" })).toThrowError(/#11 edge platform must match #10/u); });
   it("fails closed when #12 operator identity does not match #4", () => { expect(() => system("https://example.test", { incrementalityOrigin: "https://other.example" })).toThrowError(/#12 operator website origin/u); });
-  it("fails closed when #12 Google Ads customer does not match #1\/#2", () => { expect(() => system("https://example.test", { incrementalityCustomer: "0000000000" })).toThrowError(/#12 Google Ads customer must match/u); });
+  it("fails closed when #12 Google Ads customer does not match #1/#2", () => { expect(() => system("https://example.test", { incrementalityCustomer: "0000000000" })).toThrowError(/#12 Google Ads customer must match/u); });
 });
