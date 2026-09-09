@@ -8,7 +8,15 @@ const PRIVATE_REQUEST_HEADERS = Object.freeze([
   "x-nexus-personalization",
   "x-nexus-session",
 ] as const);
+const RESPONSE_CACHE_CONTROL_HEADERS = Object.freeze([
+  "cache-control",
+  "cdn-cache-control",
+  "cloudflare-cdn-cache-control",
+  "vercel-cdn-cache-control",
+  "surrogate-control",
+] as const);
 const RESTRICTIVE_CACHE_DIRECTIVE = /(?:^|,)\s*(?:private|no-store|no-cache|must-revalidate|proxy-revalidate)(?:\s*(?:=|,|$)|$)/iu;
+const ZERO_SHARED_MAX_AGE_DIRECTIVE = /(?:^|,)\s*s-maxage\s*=\s*0\s*(?:,|$)/iu;
 
 export interface EdgeCachePolicyApplication {
   readonly response: Response;
@@ -23,6 +31,26 @@ function cloneWithHeaders(response: Response, headers: Headers): Response {
   });
 }
 
+function responseVariesOnPrivateContext(response: Response): boolean {
+  const vary = response.headers.get("vary")?.toLowerCase() ?? "";
+  return vary
+    .split(",")
+    .map((value) => value.trim())
+    .some((value) => value === "*" || value === "cookie" || value === "authorization");
+}
+
+function responseDeclaresRestrictiveCaching(response: Response): boolean {
+  for (const name of RESPONSE_CACHE_CONTROL_HEADERS) {
+    const value = response.headers.get(name) ?? "";
+    if (RESTRICTIVE_CACHE_DIRECTIVE.test(value) || ZERO_SHARED_MAX_AGE_DIRECTIVE.test(value)) return true;
+  }
+  return false;
+}
+
+function failureResponseRequiresPrivateNoStore(response: Response): boolean {
+  return response.headers.has("set-cookie") || responseVariesOnPrivateContext(response) || responseDeclaresRestrictiveCaching(response);
+}
+
 export function requestCanUseSharedResilienceCache(request: Request): boolean {
   if (request.method !== "GET" && request.method !== "HEAD") return false;
   for (const name of PRIVATE_REQUEST_HEADERS) if (request.headers.has(name)) return false;
@@ -32,10 +60,8 @@ export function requestCanUseSharedResilienceCache(request: Request): boolean {
 export function responseCanUseSharedResilienceCache(response: Response): boolean {
   if (response.status !== 200) return false;
   if (response.headers.has("set-cookie")) return false;
-  const vary = response.headers.get("vary")?.toLowerCase() ?? "";
-  if (vary.split(",").map((value) => value.trim()).some((value) => value === "*" || value === "cookie" || value === "authorization")) return false;
-  const existing = response.headers.get("cache-control") ?? "";
-  if (RESTRICTIVE_CACHE_DIRECTIVE.test(existing)) return false;
+  if (responseVariesOnPrivateContext(response)) return false;
+  if (responseDeclaresRestrictiveCaching(response)) return false;
   return true;
 }
 
@@ -45,6 +71,8 @@ function privateNoStore(response: Response): EdgeCachePolicyApplication {
   headers.delete("cdn-cache-control");
   headers.delete("cloudflare-cdn-cache-control");
   headers.delete("vercel-cdn-cache-control");
+  headers.delete("surrogate-control");
+  headers.delete("expires");
   return Object.freeze({ response: cloneWithHeaders(response, headers), cacheMode: "PRIVATE_NO_STORE" as const });
 }
 
@@ -75,7 +103,8 @@ export function applyEdgeResilienceCachePolicy(request: Request, response: Respo
 }
 
 export function applyEdgeResilienceFailureCachePolicy(request: Request, response: Response): EdgeCachePolicyApplication {
-  if (!requestCanUseSharedResilienceCache(request)) return privateNoStore(response);
+  if (!requestCanUseSharedResilienceCache(request) || failureResponseRequiresPrivateNoStore(response)) return privateNoStore(response);
+
   const headers = new Headers(response.headers);
   headers.delete("cache-control");
   headers.delete("cdn-cache-control");
