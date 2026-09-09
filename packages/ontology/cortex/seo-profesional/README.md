@@ -13,6 +13,7 @@ Esta carpeta concentra capacidades de adquisición y SEO ejecutables, medibles y
 7. `07-recomendacion-de-dios` — adopta el Unified Semantic Graph canónico de Nexus y su proyección Schema.org; añade selección page-specific, evidencia DOM visible, política Google Rich Results y recibos hash que atan grafo + página + JSON-LD.
 8. `08-resucitador-de-muertos` — enriquecimiento pasivo de tecnología/SEO sobre homepages públicas de relaciones ya autorizadas, cola distribuida Redis con leases y handoff first-party para revisión; nunca escanea vulnerabilidades ni ejecuta outreach automático.
 9. `09-parasito-inteligente` — adopta el CORTEX Headless Programmatic SEO canónico y le añade autorización de propiedad: first-party en el origen canónico o delegación DNS TXT HMAC de corta duración, fuentes editoriales gobernadas y recibo que liga autorización + run pSEO.
+10. `10-candado-invisible` — resiliencia Edge portable para el origen first-party: timeout acotado, circuit breaker, bulkhead por isolate, cache policy privada/pública y headers diferenciados Cloudflare/Vercel con stale delivery gobernado; no promete inmunidad ni cero downtime.
 
 Las estrategias restantes se incorporan de forma incremental. Cada una debe mantener contratos tipados, límites de seguridad, pruebas de fallo y una ruta de producción explícita antes de considerarse terminada. Cuando una capacidad canónica existente ya supera la estrategia propuesta, se conserva esa implementación y la carpeta maestra registra su ubicación sin crear una segunda versión peor o divergente.
 
@@ -53,7 +54,12 @@ El core #1–#4 permanece exactamente conectado así:
 - `#4 -> #9` por `VERIFIED_PSEO_OPERATOR_IDENTITY`: la identidad del operador que autoriza propiedades debe coincidir con el origen LocalBusiness canónico de #4.
 - `#9 -> #1` por `AUTHORIZED_PROGRAMMATIC_LANDING`: una página programática solo puede publicarse dentro de la propiedad configurada y autorizada; cualquier visita posterior sigue entrando por #1.
 
-`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7, #8 y #9 y continuará como punto acumulativo para #10–#11. Ningún motor necesita importar la implementación interna de otro. #9 sí importa deliberadamente `headless-programmatic-seo` porque su responsabilidad es gobernar y reutilizar ese motor canónico, no reemplazarlo.
+#10 añade resiliencia de entrega sin reescribir #3 ni crear un framework Edge paralelo:
+
+- `#4 -> #10` por `VERIFIED_EDGE_OPERATOR_IDENTITY`: el runtime Edge solo puede proteger el mismo origen HTTPS canónico definido por #4.
+- `#10 -> #1` por `RESILIENT_WEB_LANDING`: una respuesta servida normalmente o una respuesta previamente cacheada por el proveedor sigue siendo la misma superficie web y conserva el circuito de adquisición de #1.
+
+`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7, #8, #9 y #10 y continuará como punto acumulativo para #11. Ningún motor necesita importar la implementación interna de otro. #9 sí importa deliberadamente `headless-programmatic-seo` porque su responsabilidad es gobernar y reutilizar ese motor canónico, no reemplazarlo.
 
 ## Fronteras externas
 
@@ -68,6 +74,8 @@ La inteligencia corporativa #6 no entra a portales privados. Prefiere OCDS/JSON;
 #8 inspecciona exclusivamente la homepage HTTPS pública de un candidato ya existente en CRM/portfolio. Resuelve DNS, bloquea redes no públicas y pinnea el socket HTTPS al IP autorizado para impedir DNS rebinding. No ejecuta JavaScript ni subrecursos y no prueba puertos, versiones vulnerables, CVEs, admin paths o credenciales. La tecnología detectada no suma score; el assessment se basa en dormancia conocida y señales públicas neutrales. Las tareas se coordinan mediante Redis RESP2 + Lua atómico, `rediss://` en producción y sin retry automático de comandos ambiguos.
 
 #9 no genera páginas por su cuenta. Reutiliza `packages/ontology/cortex/headless-programmatic-seo`, que ya aplica evidencia page-specific, distinctive statements, anti-doorway/near-duplicate gates, self-canonical indexable pages, publicación CAS y rollback. El origen canónico de #4 se considera first-party. Una propiedad distinta requiere un token HMAC-SHA256 publicado como TXT `_nexus-pseo.<host>`, ligado a `siteId`, propiedad, operador y expiración máxima de 30 días. El catálogo además debe provenir de un source ID gobernado como contenido first-party del operador o del propietario de la propiedad. No existe categoría para contenido patrocinado de terceros destinado a explotar reputación de host.
+
+#10 usa únicamente APIs Web (`Request`, `Response`, `AbortController`) y un puerto de estado atómico. El store en memoria incluido no se presenta como coordinación global; en producción se inyecta un backend compartido apropiado. Requests con Authorization, Cookie, sesión o personalización Nexus y responses con `Set-Cookie` nunca pasan a shared cache. Cloudflare recibe `Cloudflare-CDN-Cache-Control` sin `s-maxage` para preservar sus semantics actuales de stale; Vercel recibe `CDN-Cache-Control`. Un cache miss real no puede beneficiarse de `stale-if-error`, por lo que #10 limita daño pero no promete disponibilidad absoluta.
 
 ## Regla de producción
 
