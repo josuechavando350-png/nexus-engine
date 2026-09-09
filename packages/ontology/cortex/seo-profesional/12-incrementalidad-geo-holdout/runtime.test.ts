@@ -87,19 +87,20 @@ describe("SEO Profesional #12 geo incrementality", () => {
     composed.close();
   });
 
-  it("rejects cross-customer/cross-origin reuse before registry access", () => {
+  it("rejects cross-customer, cross-origin and noncanonical-origin reuse before registry access", () => {
     const composed = durableRuntime();
     composed.control.setMode("ACTIVE", 0);
-    expect(() => composed.runtime.registerDesign({
+    const common = {
       experimentKey: "wrong-scope-001",
-      operatorWebsiteOrigin: "https://other.example",
       googleAdsCustomerId: "1234567890",
       seed: "deterministic-seed-for-seo12",
       holdoutFraction: 0.5,
       maxBaselineImbalance: 0,
       minGeosPerArm: 3,
       geos: Array.from({ length: 8 }, (_, index) => ({ geoId: `geo-${index + 1}`, baselineOutcome: 100 })),
-    })).toThrow(/does not match the configured operator\/customer scope/u);
+    } as const;
+    expect(() => composed.runtime.registerDesign({ ...common, operatorWebsiteOrigin: "https://other.example" })).toThrow(/does not match the configured operator\/customer scope/u);
+    expect(() => composed.runtime.registerDesign({ ...common, operatorWebsiteOrigin: "https://example.test/path" })).toThrow(/does not match the configured operator\/customer scope/u);
     expect(() => composed.runtime.analyze({ experimentKey: "wrong-scope-001", operatorWebsiteOrigin: "https://example.test", googleAdsCustomerId: "0000000000", outcomes: [] })).toThrow(/does not match the configured operator\/customer scope/u);
     composed.close();
   });
