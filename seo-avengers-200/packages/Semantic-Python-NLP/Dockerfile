@@ -6,17 +6,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-RUN python -m pip install --upgrade pip && \
-    python -m pip install \
-      "fastapi>=0.116,<1" \
-      "uvicorn[standard]>=0.35,<1" \
-      "pydantic>=2.11,<3" \
-      "httpx>=0.28,<1" \
-      "beautifulsoup4>=4.13,<5" \
-      "google-cloud-language>=2.17,<3" \
-      "redis>=6,<7"
+COPY pyproject.toml ./
+COPY main.py bert_embeddings.py railway_entry.py render_entry.py render_neon_entry.py neon_store.py local_semantic_provider.py site_bootstrap.py ./
 
-COPY main.py bert_embeddings.py railway_entry.py ./
+RUN python -m pip install --upgrade pip && \
+    python -m pip install .
 
 EXPOSE 8080
 
