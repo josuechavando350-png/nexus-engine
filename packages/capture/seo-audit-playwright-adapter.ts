@@ -193,10 +193,8 @@ async function navigateFirstParty(page: Page, initial: URL, timeoutMs: number): 
 }
 
 async function captureTransportAudit(response: PlaywrightResponse, route: NetworkRoute): Promise<TransportAuditEvidence> {
-  let securityDetails: Awaited<ReturnType<PlaywrightResponse["securityDetails"]>> = null;
-  let serverAddr: Awaited<ReturnType<PlaywrightResponse["serverAddr"]>> = null;
-  try { securityDetails = await response.securityDetails(); } catch { securityDetails = null; }
-  try { serverAddr = await response.serverAddr(); } catch { serverAddr = null; }
+  const securityDetails = await response.securityDetails().catch(() => null);
+  const serverAddr = await response.serverAddr().catch(() => null);
   const headers = response.headers();
   return Object.freeze({
     route: route.kind,
