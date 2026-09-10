@@ -1,0 +1,84 @@
+name: Materialize SEO Avengers 200
+
+on:
+  push:
+    branches:
+      - feat/seo-avengers-200
+    paths:
+      - '.bootstrap/seo200/tail.b64'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: materialize-seo-avengers-200
+  cancel-in-progress: false
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout isolated branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/seo-avengers-200
+          fetch-depth: 0
+
+      - name: Reassemble verified archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            .bootstrap/seo200/chunk-00 \
+            .bootstrap/seo200/chunk-01 \
+            .bootstrap/seo200/chunk-02 \
+            .bootstrap/seo200/chunk-03 \
+            .bootstrap/seo200/tail.b64 \
+            > /tmp/seo-avengers-200.zip.b64
+          base64 -d /tmp/seo-avengers-200.zip.b64 > /tmp/seo-avengers-200.zip
+          echo '3180a63d28f1285bb595acd2ea0d16fe57bdea17c56f36060fa9520090471a11  /tmp/seo-avengers-200.zip' | sha256sum -c -
+          unzip -q -o /tmp/seo-avengers-200.zip -d .
+
+      - name: Validate 200-module contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          path = Path('seo-avengers-200/packages/Core-Go-Backend/module-catalog.json')
+          catalog = json.loads(path.read_text())
+          assert len(catalog) == 200, len(catalog)
+          assert [m['id'] for m in catalog] == list(range(1, 201))
+          assert all(m.get('request_path_blocking') is False for m in catalog)
+          print('SEO Avengers catalog 200/200: PASS')
+          PY
+          grep -R '"CONFIG_SEO_AVENGERS_200"[[:space:]]*:[[:space:]]*false' -n seo-avengers-200 >/dev/null
+
+      - name: Enforce production isolation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add seo-avengers-200
+          git rm -r .bootstrap/seo200
+          changed="$(git diff --cached --name-only)"
+          echo "$changed"
+          bad="$(printf '%s\n' "$changed" | grep -Ev '^(seo-avengers-200/|\.bootstrap/seo200/)' || true)"
+          if [ -n "$bad" ]; then
+            echo 'Refusing unrelated staged paths:'
+            echo "$bad"
+            exit 1
+          fi
+          if printf '%s\n' "$changed" | grep -q '^apps/cano-penal/'; then
+            echo 'apps/cano-penal isolation violated'
+            exit 1
+          fi
+
+      - name: Commit materialized suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'feat(seo-avengers): materialize complete 200-module suite'
+          git push origin HEAD:feat/seo-avengers-200
