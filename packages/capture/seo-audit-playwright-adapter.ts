@@ -128,7 +128,7 @@ function normalizeNetworkProxies(input: readonly string[] | undefined): readonly
     }
     let parsed: URL;
     try { parsed = new URL(raw); } catch { throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "network proxy endpoint must be an absolute URL"); }
-    if (!parsed.hostname || !["http:", "https:", "socks5:"].includes(parsed.protocol) || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+    if (!parsed.hostname || !["http:", "https:", "socks5:"].includes(parsed.protocol) || (parsed.pathname !== "" && parsed.pathname !== "/") || parsed.search || parsed.hash) {
       throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "network proxy endpoint must be http, https, or socks5 without path, query, or fragment");
     }
     if (parsed.protocol === "socks5:" && (parsed.username || parsed.password)) {
