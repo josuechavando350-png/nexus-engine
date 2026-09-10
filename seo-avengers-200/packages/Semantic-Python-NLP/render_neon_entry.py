@@ -8,8 +8,10 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 import main as semantic_main
+from local_semantic_provider import install_local_provider
 from neon_store import PostgresJobStore, PostgresSeoVectorStore
 
+install_local_provider(semantic_main)
 app = semantic_main.app
 
 
