@@ -16,8 +16,8 @@ RUN python -m pip install --upgrade pip && \
       "google-cloud-language>=2.17,<3" \
       "redis>=6,<7"
 
-COPY main.py bert_embeddings.py ./
+COPY main.py bert_embeddings.py railway_entry.py ./
 
 EXPOSE 8080
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8080"]
+CMD ["uvicorn", "railway_entry:app", "--host", "0.0.0.0", "--port", "8080"]
