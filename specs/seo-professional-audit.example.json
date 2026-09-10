@@ -1,0 +1,38 @@
+{
+  "config": {
+    "canonicalOrigin": "https://example.com",
+    "userAgent": "NexusSeoAuditBot",
+    "maxPages": 100,
+    "maxDepth": 3,
+    "requestTimeoutMs": 15000,
+    "minDelayMs": 250,
+    "maxDelayMs": 900,
+    "sitemapUrls": [
+      "https://example.com/sitemap.xml"
+    ]
+  },
+  "activation": {
+    "requestedBy": "nexus-operator",
+    "reason": "authorized first-party technical SEO audit",
+    "expiresInMs": 3600000
+  },
+  "startUrls": [
+    "https://example.com/"
+  ],
+  "uxScenarios": [
+    {
+      "url": "https://example.com/contact",
+      "selector": "#message",
+      "text": "Prueba de telemetría UX",
+      "seed": 42,
+      "profile": {
+        "minKeyDelayMs": 40,
+        "maxKeyDelayMs": 190,
+        "correctionRate": 0.02,
+        "pauseEveryChars": 24,
+        "minPauseMs": 180,
+        "maxPauseMs": 500
+      }
+    }
+  ]
+}
