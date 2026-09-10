@@ -83,7 +83,7 @@ async def discover_routes(client: httpx.AsyncClient) -> list[str]:
 
 
 def _build_request(semantic_main: Any, route: str, text: str, provider_id: str):
-    revision_digest = hashlib.sha256(f"{provider_id}\n{text}".encode("utf-8")).hexdigest()
+    revision_digest = hashlib.sha256(f"{provider_id}\n{text}".encode()).hexdigest()
     core = {
         "authority": "NEXUS_SEO_AVENGERS_200_SECTION_V1",
         "schema_version": 2,
@@ -127,9 +127,12 @@ async def bootstrap_nexus_site(semantic_main: Any, provider_id: str) -> dict[str
                     deduplicated += 1
                 else:
                     queued += 1
-            except Exception as exc:  # bootstrap is never allowed to kill the web service
+            except Exception as exc:  # noqa: BLE001 - service bootstrap must never kill runtime
                 failed += 1
-                print(f"seo-avengers bootstrap skipped route={route!r}: {type(exc).__name__}", flush=True)
+                print(
+                    f"seo-avengers bootstrap skipped route={route!r}: {type(exc).__name__}",
+                    flush=True,
+                )
 
     result = {
         "discovered": len(routes),
