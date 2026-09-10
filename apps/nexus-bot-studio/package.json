@@ -26,5 +26,11 @@
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
     "typescript": "^6.0.3"
+  },
+  "nexus": {
+    "clientProject": true,
+    "siteId": "nexus-bot-studio",
+    "canonicalOrigin": "https://nexusbotstudio.com",
+    "CONFIG_SEO_AVENGERS_200": true
   }
 }
