@@ -1,0 +1,10 @@
+{
+  "name": "@nexus/telemetry-cortex",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {".": "./src/index.ts"},
+  "scripts": {"typecheck": "tsc --noEmit"},
+  "dependencies": {"web-vitals": "6.2.1"},
+  "devDependencies": {"typescript": "^5.9.0"}
+}

@@ -1,0 +1,8 @@
+[
+  {
+    "client_id": "cliente-ejemplo-wordpress",
+    "incoming_domain": "https://abogadomexico.com",
+    "target_origin": "https://wpengine.com",
+    "CONFIG_SEO_AVENGERS_200": false
+  }
+]
