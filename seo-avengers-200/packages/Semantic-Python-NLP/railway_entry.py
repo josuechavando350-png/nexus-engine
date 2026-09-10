@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from main import app, healthz
+from render_neon_entry import app
+from main import healthz
 
-# Railway currently probes /health for this service. Keep /healthz as the
-# canonical application endpoint and expose this compatibility alias only in
-# the Railway entrypoint so application semantics remain unchanged.
+# Railway probes /health. Keep /healthz canonical and expose this compatibility
+# alias while running the same Neon + local semantic provider stack as Render.
 app.add_api_route("/health", healthz, methods=["GET"], include_in_schema=False)
+
+__all__ = ["app"]
