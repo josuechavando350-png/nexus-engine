@@ -20,7 +20,7 @@ embeddings = ["sentence-transformers>=5,<6"]
 dev = ["pytest>=8,<9", "pytest-asyncio>=1,<2", "ruff>=0.12,<1"]
 
 [tool.setuptools]
-py-modules = ["main", "bert_embeddings", "railway_entry", "render_entry", "neon_store"]
+py-modules = ["main", "bert_embeddings", "railway_entry", "render_entry", "render_neon_entry", "neon_store"]
 
 [tool.ruff]
 line-length = 100
