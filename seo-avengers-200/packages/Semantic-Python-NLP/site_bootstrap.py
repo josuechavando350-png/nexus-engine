@@ -17,23 +17,23 @@ MAX_BOOTSTRAP_ROUTES = 64
 
 
 def bootstrap_is_authorized_by_deployment() -> bool:
-    """Enable only the dedicated Nexus deployment, never a generic/client service.
+    """Enable only the dedicated Nexus publisher deployment.
 
-    The already-required protected edge publisher URL is the deployment-scoped
-    authority. External tenants use different publisher hosts and therefore do
-    not enter this path. Requiring both secrets keeps an incomplete deployment
-    from starting background work accidentally.
+    Bootstrap runs in-process and does not traverse the protected /v1 API, so
+    SEMANTIC_SHARED_SECRET must not gate it. The deployment-scoped authority is
+    the exact Nexus edge publisher URL plus its bearer token. External tenants
+    use different publisher hosts and therefore cannot enter this path.
     """
     endpoint = os.getenv("NEXUS_SEO_VECTOR_EDGE_PUBLISH_URL", "").strip()
     edge_token = os.getenv("NEXUS_SEO_EDGE_PUBLISH_TOKEN", "").strip()
-    semantic_secret = os.getenv("SEMANTIC_SHARED_SECRET", "").strip()
-    if not endpoint or not edge_token or not semantic_secret:
+    if not endpoint or not edge_token:
         return False
     parsed = urlparse(endpoint)
+    normalized_path = parsed.path.rstrip("/") or "/"
     return (
         parsed.scheme == "https"
         and parsed.hostname == "nexusbotstudio.com"
-        and parsed.path == VECTOR_ADMIN_PATH
+        and normalized_path == VECTOR_ADMIN_PATH
         and not parsed.params
         and not parsed.query
         and not parsed.fragment
@@ -107,6 +107,7 @@ def _build_request(semantic_main: Any, route: str, text: str, provider_id: str):
 async def bootstrap_nexus_site(semantic_main: Any, provider_id: str) -> dict[str, int]:
     """Queue live Nexus pages asynchronously into the durable semantic store."""
     if not bootstrap_is_authorized_by_deployment():
+        print("seo-avengers bootstrap disabled: publisher deployment not authorized", flush=True)
         return {"discovered": 0, "queued": 0, "deduplicated": 0, "failed": 0}
 
     timeout = httpx.Timeout(8.0, connect=3.0)
@@ -130,7 +131,7 @@ async def bootstrap_nexus_site(semantic_main: Any, provider_id: str) -> dict[str
             except Exception as exc:  # noqa: BLE001 - service bootstrap must never kill runtime
                 failed += 1
                 print(
-                    f"seo-avengers bootstrap skipped route={route!r}: {type(exc).__name__}",
+                    f"seo-avengers bootstrap skipped route={route!r}: {type(exc).__name__}: {exc}",
                     flush=True,
                 )
 
