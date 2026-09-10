@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "seo-avengers-transformer",
+  "main": "build/worker/shim.mjs",
+  "compatibility_date": "2026-09-09",
+  "workers_dev": false,
+  "build": {
+    "command": "cargo install -q worker-build && worker-build --release"
+  }
+}

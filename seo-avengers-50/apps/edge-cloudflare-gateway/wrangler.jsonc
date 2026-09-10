@@ -1,0 +1,18 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "seo-avengers-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-09",
+  "workers_dev": false,
+  "vars": {
+    "CONFIG_SEO_AVENGERS_50": "false",
+    "NEXUS_ORIGIN_URL": "https://nexusbotstudio.com",
+    "NEXUS_SITE_ID": "nexus-bot-studio"
+  },
+  "kv_namespaces": [
+    { "binding": "SEO_VECTORS", "id": "REPLACE_WITH_PRODUCTION_KV_ID", "preview_id": "REPLACE_WITH_PREVIEW_KV_ID" }
+  ],
+  "services": [
+    { "binding": "SEO_AVENGERS_TRANSFORMER", "service": "seo-avengers-transformer" }
+  ]
+}
