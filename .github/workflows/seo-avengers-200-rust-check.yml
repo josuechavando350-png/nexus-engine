@@ -1,0 +1,30 @@
+name: SEO Avengers 200 Rust Check
+
+on:
+  push:
+    branches:
+      - feat/seo-avengers-200
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rust-worker:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: seo-avengers-200/apps/edge-cloudflare-worker
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+      - name: Cargo check wasm32
+        run: cargo check --target wasm32-unknown-unknown
+      - name: Install worker-build
+        run: cargo install --locked worker-build
+      - name: Build Worker
+        run: worker-build --release
