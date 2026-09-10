@@ -5,7 +5,7 @@ on:
     branches:
       - feat/seo-avengers-200
     paths:
-      - '.bootstrap/seo200/tail.b64'
+      - '.bootstrap/seo200/tail-09'
 
 permissions:
   contents: write
@@ -33,7 +33,16 @@ jobs:
             .bootstrap/seo200/chunk-01 \
             .bootstrap/seo200/chunk-02 \
             .bootstrap/seo200/chunk-03 \
-            .bootstrap/seo200/tail.b64 \
+            .bootstrap/seo200/tail-00 \
+            .bootstrap/seo200/tail-01 \
+            .bootstrap/seo200/tail-02 \
+            .bootstrap/seo200/tail-03 \
+            .bootstrap/seo200/tail-04 \
+            .bootstrap/seo200/tail-05 \
+            .bootstrap/seo200/tail-06 \
+            .bootstrap/seo200/tail-07 \
+            .bootstrap/seo200/tail-08 \
+            .bootstrap/seo200/tail-09 \
             > /tmp/seo-avengers-200.zip.b64
           base64 -d /tmp/seo-avengers-200.zip.b64 > /tmp/seo-avengers-200.zip
           echo '3180a63d28f1285bb595acd2ea0d16fe57bdea17c56f36060fa9520090471a11  /tmp/seo-avengers-200.zip' | sha256sum -c -
