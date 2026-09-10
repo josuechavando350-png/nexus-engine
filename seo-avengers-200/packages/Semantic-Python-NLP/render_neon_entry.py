@@ -8,8 +8,9 @@ from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
 import main as semantic_main
-from local_semantic_provider import install_local_provider
+from local_semantic_provider import PROVIDER_ID, install_local_provider
 from neon_store import PostgresJobStore, PostgresSeoVectorStore
+from site_bootstrap import bootstrap_nexus_site
 
 install_local_provider(semantic_main)
 app = semantic_main.app
@@ -33,9 +34,18 @@ async def render_neon_lifespan(fastapi_app: FastAPI):
     semantic_main.worker_tasks.extend(
         asyncio.create_task(semantic_main.worker_loop()) for _ in range(worker_count)
     )
+
+    # This task is deliberately out-of-band. The HTTP service becomes ready
+    # without waiting for sitemap discovery, NLP, Neon writes, or Edge publish.
+    # site_bootstrap additionally requires the exact protected Nexus publisher
+    # deployment before it will queue any work, so client deployments stay off.
+    bootstrap_task = asyncio.create_task(bootstrap_nexus_site(semantic_main, PROVIDER_ID))
     try:
         yield
     finally:
+        if not bootstrap_task.done():
+            bootstrap_task.cancel()
+        await asyncio.gather(bootstrap_task, return_exceptions=True)
         for task in semantic_main.worker_tasks:
             task.cancel()
         await asyncio.gather(*semantic_main.worker_tasks, return_exceptions=True)
