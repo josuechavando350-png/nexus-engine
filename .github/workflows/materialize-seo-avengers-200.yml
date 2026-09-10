@@ -5,7 +5,7 @@ on:
     branches:
       - feat/seo-avengers-200
     paths:
-      - '.bootstrap/seo200/final-04'
+      - '.github/workflows/materialize-seo-avengers-200.yml'
 
 permissions:
   contents: write
@@ -34,7 +34,10 @@ jobs:
             .bootstrap/seo200/chunk-02 \
             .bootstrap/seo200/chunk-03 \
             .bootstrap/seo200/final-00 \
-            .bootstrap/seo200/final-01 \
+            .bootstrap/seo200/final-01-00 \
+            .bootstrap/seo200/final-01-01 \
+            .bootstrap/seo200/final-01-02 \
+            .bootstrap/seo200/final-01-03 \
             .bootstrap/seo200/final-02 \
             .bootstrap/seo200/final-03 \
             .bootstrap/seo200/final-04 \
