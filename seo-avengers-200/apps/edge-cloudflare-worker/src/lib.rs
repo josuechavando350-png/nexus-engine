@@ -210,7 +210,6 @@ fn rewrite_html_shadow_streaming(
     rewriter
         .end()
         .map_err(|e| Error::RustError(format!("lol_html end failed: {e}")))?;
-    drop(rewriter);
     Ok(output)
 }
 
