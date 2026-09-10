@@ -8,9 +8,10 @@ dependencies = [
   "pydantic>=2.11,<3",
   "httpx>=0.28,<1",
   "beautifulsoup4>=4.13,<5",
-  "google-cloud-language>=2.17,<3",
   "redis>=6,<7",
-  "psycopg[binary]>=3.2,<4"
+  "psycopg[binary]>=3.2,<4",
+  "spacy>=3.8,<4",
+  "xx-ent-wiki-sm @ https://github.com/explosion/spacy-models/releases/download/xx_ent_wiki_sm-3.8.0/xx_ent_wiki_sm-3.8.0-py3-none-any.whl"
 ]
 
 [project.optional-dependencies]
@@ -20,7 +21,7 @@ embeddings = ["sentence-transformers>=5,<6"]
 dev = ["pytest>=8,<9", "pytest-asyncio>=1,<2", "ruff>=0.12,<1"]
 
 [tool.setuptools]
-py-modules = ["main", "bert_embeddings", "railway_entry", "render_entry", "render_neon_entry", "neon_store"]
+py-modules = ["main", "bert_embeddings", "railway_entry", "render_entry", "render_neon_entry", "neon_store", "local_semantic_provider"]
 
 [tool.ruff]
 line-length = 100
