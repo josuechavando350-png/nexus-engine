@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 import psycopg
@@ -63,30 +62,32 @@ class PostgresJobStore:
         return JobAccepted(job_id=job_id, deduplicated=row is None)
 
     async def next_job(self) -> QueuedJob | None:
-        async with await psycopg.AsyncConnection.connect(self.url) as conn:
-            async with conn.transaction():
-                cursor = await conn.execute(
-                    """
-                    WITH candidate AS (
-                        SELECT job_id
-                        FROM seo_semantic_jobs
-                        WHERE status = 'queued'
-                           OR (status = 'running' AND locked_at < now() - interval '10 minutes')
-                        ORDER BY created_at ASC
-                        FOR UPDATE SKIP LOCKED
-                        LIMIT 1
-                    )
-                    UPDATE seo_semantic_jobs AS jobs
-                    SET status = 'running',
-                        locked_at = now(),
-                        attempts = attempts + 1,
-                        updated_at = now()
-                    FROM candidate
-                    WHERE jobs.job_id = candidate.job_id
-                    RETURNING jobs.job_id, jobs.kind, jobs.payload
-                    """
+        async with (
+            await psycopg.AsyncConnection.connect(self.url) as conn,
+            conn.transaction(),
+        ):
+            cursor = await conn.execute(
+                """
+                WITH candidate AS (
+                    SELECT job_id
+                    FROM seo_semantic_jobs
+                    WHERE status = 'queued'
+                       OR (status = 'running' AND locked_at < now() - interval '10 minutes')
+                    ORDER BY created_at ASC
+                    FOR UPDATE SKIP LOCKED
+                    LIMIT 1
                 )
-                row = await cursor.fetchone()
+                UPDATE seo_semantic_jobs AS jobs
+                SET status = 'running',
+                    locked_at = now(),
+                    attempts = attempts + 1,
+                    updated_at = now()
+                FROM candidate
+                WHERE jobs.job_id = candidate.job_id
+                RETURNING jobs.job_id, jobs.kind, jobs.payload
+                """
+            )
+            row = await cursor.fetchone()
         if row is None:
             return None
         job_id, kind, payload = row
@@ -172,50 +173,52 @@ class PostgresSeoVectorStore:
             await conn.commit()
 
     async def upsert(self, record: SectionVectorResponse) -> int:
-        async with await psycopg.AsyncConnection.connect(self.url) as conn:
-            async with conn.transaction():
-                await conn.execute(
-                    """
-                    INSERT INTO seo_vectors(
-                        site_id, route, section_id, locale, source_revision, input_hash,
-                        entity_map, json_ld, vector_profile, module_evidence, output_hash, updated_at
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
-                    ON CONFLICT(site_id, route, section_id) DO UPDATE SET
-                        locale = EXCLUDED.locale,
-                        source_revision = EXCLUDED.source_revision,
-                        input_hash = EXCLUDED.input_hash,
-                        entity_map = EXCLUDED.entity_map,
-                        json_ld = EXCLUDED.json_ld,
-                        vector_profile = EXCLUDED.vector_profile,
-                        module_evidence = EXCLUDED.module_evidence,
-                        output_hash = EXCLUDED.output_hash,
-                        updated_at = now()
-                    """,
-                    (
-                        record.site_id,
-                        record.route,
-                        record.section_id,
-                        record.locale,
-                        record.source_revision,
-                        record.input_hash,
-                        Jsonb(record.entities),
-                        Jsonb(record.json_ld),
-                        Jsonb(record.vector_profile),
-                        Jsonb(record.module_evidence),
-                        record.output_hash,
-                    ),
-                )
-                cursor = await conn.execute(
-                    """
-                    INSERT INTO seo_vector_route_versions(site_id, route, version)
-                    VALUES (%s, %s, 1)
-                    ON CONFLICT(site_id, route) DO UPDATE
-                    SET version = seo_vector_route_versions.version + 1
-                    RETURNING version
-                    """,
-                    (record.site_id, record.route),
-                )
-                row = await cursor.fetchone()
+        async with (
+            await psycopg.AsyncConnection.connect(self.url) as conn,
+            conn.transaction(),
+        ):
+            await conn.execute(
+                """
+                INSERT INTO seo_vectors(
+                    site_id, route, section_id, locale, source_revision, input_hash,
+                    entity_map, json_ld, vector_profile, module_evidence, output_hash, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, now())
+                ON CONFLICT(site_id, route, section_id) DO UPDATE SET
+                    locale = EXCLUDED.locale,
+                    source_revision = EXCLUDED.source_revision,
+                    input_hash = EXCLUDED.input_hash,
+                    entity_map = EXCLUDED.entity_map,
+                    json_ld = EXCLUDED.json_ld,
+                    vector_profile = EXCLUDED.vector_profile,
+                    module_evidence = EXCLUDED.module_evidence,
+                    output_hash = EXCLUDED.output_hash,
+                    updated_at = now()
+                """,
+                (
+                    record.site_id,
+                    record.route,
+                    record.section_id,
+                    record.locale,
+                    record.source_revision,
+                    record.input_hash,
+                    Jsonb(record.entities),
+                    Jsonb(record.json_ld),
+                    Jsonb(record.vector_profile),
+                    Jsonb(record.module_evidence),
+                    record.output_hash,
+                ),
+            )
+            cursor = await conn.execute(
+                """
+                INSERT INTO seo_vector_route_versions(site_id, route, version)
+                VALUES (%s, %s, 1)
+                ON CONFLICT(site_id, route) DO UPDATE
+                SET version = seo_vector_route_versions.version + 1
+                RETURNING version
+                """,
+                (record.site_id, record.route),
+            )
+            row = await cursor.fetchone()
         return int(row[0]) if row else 0
 
     async def route_snapshot(self, site_id: str, route: str) -> dict[str, Any]:
