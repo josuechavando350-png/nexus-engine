@@ -9,6 +9,9 @@
     "maxDelayMs": 900,
     "sitemapUrls": [
       "https://example.com/sitemap.xml"
+    ],
+    "network_proxies": [
+      "https://backup-egress.example.net:8443"
     ]
   },
   "activation": {

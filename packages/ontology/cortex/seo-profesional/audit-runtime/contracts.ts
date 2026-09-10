@@ -35,6 +35,24 @@ export interface SeoAuditHeadingSnapshot {
   readonly text: string;
 }
 
+export interface SeoAuditTransportAudit {
+  readonly route: "DIRECT" | "PROXY_FAILOVER";
+  readonly proxyIndex: number | null;
+  readonly proxyServer: string | null;
+  readonly failoverOnly: true;
+  readonly tlsProtocol: string | null;
+  readonly tlsIssuer: string | null;
+  readonly tlsSubjectName: string | null;
+  readonly serverIp: string | null;
+  readonly serverPort: number | null;
+  /** Populated only when the first-party WAF emits x-nexus-waf-ja3. */
+  readonly wafReportedJa3: string | null;
+  /** Populated only when the first-party WAF emits x-nexus-waf-ja4. */
+  readonly wafReportedJa4: string | null;
+  /** The audit adapter observes transport identity and never mutates ClientHello fingerprints. */
+  readonly fingerprintMutation: false;
+}
+
 export interface SeoAuditPageSnapshot {
   readonly requestedUrl: string;
   readonly finalUrl: string;
@@ -51,6 +69,7 @@ export interface SeoAuditPageSnapshot {
   readonly jsonLdBlocks: readonly string[];
   readonly textLength: number;
   readonly responseTimeMs: number;
+  readonly transportAudit?: SeoAuditTransportAudit;
 }
 
 export interface SeoAuditBrowserInspectRequest {
@@ -137,6 +156,7 @@ export interface SeoAuditTypingSimulationResult {
   readonly corrections: number;
   readonly elapsedMs: number;
   readonly submitted: false;
+  readonly transportAudit?: SeoAuditTransportAudit;
 }
 
 export interface SeoAuditUxScenario {

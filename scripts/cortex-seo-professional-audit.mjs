@@ -23,12 +23,16 @@ if (process.env.NEXUS_SEO_AUDIT_ENABLED !== "1") {
   } else {
     try {
       const payload = JSON.parse(readFileSync(resolve(configPath), "utf8"));
-      if (!payload || typeof payload !== "object" || !payload.config || !Array.isArray(payload.startUrls) || !payload.activation) {
+      if (!payload || typeof payload !== "object" || !payload.config || typeof payload.config !== "object" || !Array.isArray(payload.startUrls) || !payload.activation) {
         throw new Error("config file must contain config, startUrls, and activation objects");
       }
-      const http = new FirstPartyFetchSeoAuditAdapter(payload.config.canonicalOrigin);
-      const browser = new PlaywrightSeoAuditBrowserAdapter();
-      const runtime = new SeoProfessionalAuditRuntime({ config: payload.config, http, browser });
+      const { network_proxies: networkProxies, ...runtimeConfig } = payload.config;
+      if (networkProxies !== undefined && !Array.isArray(networkProxies)) {
+        throw new Error("config.network_proxies must be an array of ordered proxy endpoint URLs");
+      }
+      const http = new FirstPartyFetchSeoAuditAdapter(runtimeConfig.canonicalOrigin);
+      const browser = new PlaywrightSeoAuditBrowserAdapter(undefined, { networkProxies });
+      const runtime = new SeoProfessionalAuditRuntime({ config: runtimeConfig, http, browser });
       const expiresAtMs = Number.isFinite(payload.activation.expiresInMs) ? Date.now() + Number(payload.activation.expiresInMs) : undefined;
       runtime.activate({ requestedBy: payload.activation.requestedBy, reason: payload.activation.reason, expiresAtMs });
       const report = await runtime.run({ startUrls: payload.startUrls, uxScenarios: payload.uxScenarios });

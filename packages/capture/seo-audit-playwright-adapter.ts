@@ -1,8 +1,8 @@
-import { chromium, type Browser, type BrowserContext, type Page, type Route } from "playwright";
+import { chromium, type Browser, type BrowserContext, type Page, type Response as PlaywrightResponse, type Route } from "playwright";
 
 export class SeoAuditPlaywrightAdapterError extends Error {
   constructor(
-    public readonly code: "INVALID_INPUT" | "NAVIGATION_DENIED" | "NAVIGATION_FAILURE" | "INTERACTION_DENIED" | "INTERACTION_FAILURE" | "BOUNDS_EXCEEDED",
+    public readonly code: "INVALID_INPUT" | "NAVIGATION_DENIED" | "NAVIGATION_FAILURE" | "NETWORK_UNAVAILABLE" | "INTERACTION_DENIED" | "INTERACTION_FAILURE" | "BOUNDS_EXCEEDED",
     message: string,
   ) {
     super(message);
@@ -12,6 +12,11 @@ export class SeoAuditPlaywrightAdapterError extends Error {
 
 export interface SeoAuditPlaywrightLauncher {
   launch(): Promise<Browser>;
+}
+
+export interface SeoAuditPlaywrightAdapterOptions {
+  /** Ordered connectivity failover only. Direct egress is always attempted first. */
+  readonly networkProxies?: readonly string[];
 }
 
 export interface SeoAuditBrowserInspectRequestLike {
@@ -36,6 +41,45 @@ export interface SeoAuditTypingSimulationRequestLike {
   readonly plan: readonly SeoAuditTypingActionLike[];
 }
 
+interface NormalizedNetworkProxy {
+  readonly server: string;
+  readonly username?: string;
+  readonly password?: string;
+  readonly displayServer: string;
+}
+
+interface NetworkRoute {
+  readonly kind: "DIRECT" | "PROXY_FAILOVER";
+  readonly proxyIndex: number | null;
+  readonly proxy: NormalizedNetworkProxy | null;
+}
+
+interface TransportAuditEvidence {
+  readonly route: "DIRECT" | "PROXY_FAILOVER";
+  readonly proxyIndex: number | null;
+  readonly proxyServer: string | null;
+  readonly failoverOnly: true;
+  readonly tlsProtocol: string | null;
+  readonly tlsIssuer: string | null;
+  readonly tlsSubjectName: string | null;
+  readonly serverIp: string | null;
+  readonly serverPort: number | null;
+  readonly wafReportedJa3: string | null;
+  readonly wafReportedJa4: string | null;
+  readonly fingerprintMutation: false;
+}
+
+interface OpenedAuditPage {
+  readonly context: BrowserContext;
+  readonly page: Page;
+  readonly response: PlaywrightResponse;
+  readonly finalUrl: URL;
+  readonly transportAudit: TransportAuditEvidence;
+}
+
+const MAX_NETWORK_PROXIES = 4;
+const MAX_PROXY_ENDPOINT_LENGTH = 2_048;
+const MAX_PROXY_CREDENTIAL_LENGTH = 256;
 const defaultLauncher: SeoAuditPlaywrightLauncher = Object.freeze({ launch: () => chromium.launch({ headless: true }) });
 
 function assertOrigin(value: string): string {
@@ -61,6 +105,65 @@ function validateTimeout(value: number): void {
   if (!Number.isSafeInteger(value) || value < 1_000 || value > 30_000) throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "browser timeout must be between 1000 and 30000 ms");
 }
 
+function decodeProxyCredential(value: string): string {
+  try {
+    const decoded = decodeURIComponent(value);
+    if (decoded.length > MAX_PROXY_CREDENTIAL_LENGTH) throw new Error("credential too long");
+    return decoded;
+  } catch {
+    throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "network proxy credentials are malformed or oversized");
+  }
+}
+
+function normalizeNetworkProxies(input: readonly string[] | undefined): readonly NormalizedNetworkProxy[] {
+  if (input === undefined) return Object.freeze([]);
+  if (!Array.isArray(input) || input.length > MAX_NETWORK_PROXIES) {
+    throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", `networkProxies must contain at most ${MAX_NETWORK_PROXIES} ordered failover endpoints`);
+  }
+  const normalized: NormalizedNetworkProxy[] = [];
+  const seen = new Set<string>();
+  for (const raw of input) {
+    if (typeof raw !== "string" || raw.length === 0 || raw.length > MAX_PROXY_ENDPOINT_LENGTH) {
+      throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "network proxy endpoint is invalid");
+    }
+    let parsed: URL;
+    try { parsed = new URL(raw); } catch { throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "network proxy endpoint must be an absolute URL"); }
+    if (!parsed.hostname || !["http:", "https:", "socks5:"].includes(parsed.protocol) || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+      throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "network proxy endpoint must be http, https, or socks5 without path, query, or fragment");
+    }
+    if (parsed.protocol === "socks5:" && (parsed.username || parsed.password)) {
+      throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "authenticated SOCKS5 proxies are not supported by this audit adapter");
+    }
+    const server = `${parsed.protocol}//${parsed.host}`;
+    const dedupeKey = `${server}|${parsed.username}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+    normalized.push(Object.freeze({
+      server,
+      ...(parsed.username ? { username: decodeProxyCredential(parsed.username) } : {}),
+      ...(parsed.password ? { password: decodeProxyCredential(parsed.password) } : {}),
+      displayServer: server,
+    }));
+  }
+  return Object.freeze(normalized);
+}
+
+function networkRoutes(proxies: readonly NormalizedNetworkProxy[]): readonly NetworkRoute[] {
+  const routes: NetworkRoute[] = [Object.freeze({ kind: "DIRECT", proxyIndex: null, proxy: null })];
+  for (const [index, proxy] of proxies.entries()) routes.push(Object.freeze({ kind: "PROXY_FAILOVER", proxyIndex: index, proxy }));
+  return Object.freeze(routes);
+}
+
+/**
+ * Connectivity-only classifier. HTTP responses (including 401/403/429/5xx) are not failures here,
+ * so they never trigger proxy failover.
+ */
+export function isSeoAuditConnectivityFailure(error: unknown): boolean {
+  if (error instanceof SeoAuditPlaywrightAdapterError) return error.code === "NETWORK_UNAVAILABLE";
+  const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+  return /(?:net::ERR_(?:CONNECTION_(?:REFUSED|RESET|CLOSED|TIMED_OUT)|NAME_NOT_RESOLVED|INTERNET_DISCONNECTED|NETWORK_CHANGED|PROXY_CONNECTION_FAILED|TUNNEL_CONNECTION_FAILED|TIMED_OUT|ADDRESS_UNREACHABLE)|NS_ERROR_(?:NET_TIMEOUT|UNKNOWN_HOST|PROXY_CONNECTION_REFUSED|CONNECTION_REFUSED)|(?:navigation|page\.goto).*timeout|TimeoutError:.*exceeded)/iu.test(message);
+}
+
 async function installReadOnlyFirstPartyBoundary(page: Page, origin: string): Promise<void> {
   await page.route("**/*", async (route: Route) => {
     const request = route.request();
@@ -72,6 +175,42 @@ async function installReadOnlyFirstPartyBoundary(page: Page, origin: string): Pr
       return;
     }
     await route.continue();
+  });
+}
+
+async function navigateFirstParty(page: Page, initial: URL, timeoutMs: number): Promise<PlaywrightResponse> {
+  try {
+    const response = await page.goto(initial.toString(), { waitUntil: "domcontentloaded", timeout: timeoutMs });
+    if (!response) throw new SeoAuditPlaywrightAdapterError("NETWORK_UNAVAILABLE", "SEO audit navigation returned no main response");
+    return response;
+  } catch (error) {
+    if (error instanceof SeoAuditPlaywrightAdapterError) throw error;
+    if (isSeoAuditConnectivityFailure(error)) {
+      throw new SeoAuditPlaywrightAdapterError("NETWORK_UNAVAILABLE", "first-party navigation lost network connectivity");
+    }
+    throw new SeoAuditPlaywrightAdapterError("NAVIGATION_FAILURE", `SEO audit navigation failed: ${error instanceof Error ? error.message : "unknown error"}`);
+  }
+}
+
+async function captureTransportAudit(response: PlaywrightResponse, route: NetworkRoute): Promise<TransportAuditEvidence> {
+  let securityDetails: Awaited<ReturnType<PlaywrightResponse["securityDetails"]>> = null;
+  let serverAddr: Awaited<ReturnType<PlaywrightResponse["serverAddr"]>> = null;
+  try { securityDetails = await response.securityDetails(); } catch { securityDetails = null; }
+  try { serverAddr = await response.serverAddr(); } catch { serverAddr = null; }
+  const headers = response.headers();
+  return Object.freeze({
+    route: route.kind,
+    proxyIndex: route.proxyIndex,
+    proxyServer: route.proxy?.displayServer ?? null,
+    failoverOnly: true as const,
+    tlsProtocol: securityDetails?.protocol?.slice(0, 128) ?? null,
+    tlsIssuer: securityDetails?.issuer?.slice(0, 512) ?? null,
+    tlsSubjectName: securityDetails?.subjectName?.slice(0, 512) ?? null,
+    serverIp: serverAddr?.ipAddress?.slice(0, 128) ?? null,
+    serverPort: serverAddr?.port ?? null,
+    wafReportedJa3: headers["x-nexus-waf-ja3"]?.slice(0, 256) ?? null,
+    wafReportedJa4: headers["x-nexus-waf-ja4"]?.slice(0, 256) ?? null,
+    fingerprintMutation: false as const,
   });
 }
 
@@ -103,8 +242,56 @@ function pointerPath(endX: number, endY: number, steps: number, seed: number): r
 }
 
 export class PlaywrightSeoAuditBrowserAdapter {
-  constructor(private readonly launcher: SeoAuditPlaywrightLauncher = defaultLauncher) {
+  private readonly networkProxies: readonly NormalizedNetworkProxy[];
+
+  constructor(
+    private readonly launcher: SeoAuditPlaywrightLauncher = defaultLauncher,
+    options: SeoAuditPlaywrightAdapterOptions = {},
+  ) {
     if (!launcher || typeof launcher.launch !== "function") throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "Playwright launcher is invalid");
+    this.networkProxies = normalizeNetworkProxies(options.networkProxies);
+  }
+
+  private async openFirstPartyPage(
+    browser: Browser,
+    initial: URL,
+    origin: string,
+    timeoutMs: number,
+    userAgent?: string,
+  ): Promise<OpenedAuditPage> {
+    const routes = networkRoutes(this.networkProxies);
+    for (const [routeIndex, route] of routes.entries()) {
+      let context: BrowserContext | null = null;
+      try {
+        const proxy = route.proxy ? {
+          server: route.proxy.server,
+          ...(route.proxy.username ? { username: route.proxy.username } : {}),
+          ...(route.proxy.password ? { password: route.proxy.password } : {}),
+        } : undefined;
+        context = await browser.newContext({
+          ...(userAgent ? { userAgent } : {}),
+          acceptDownloads: false,
+          serviceWorkers: "block",
+          javaScriptEnabled: true,
+          ...(proxy ? { proxy } : {}),
+        });
+        const page = await context.newPage();
+        await installReadOnlyFirstPartyBoundary(page, origin);
+        const response = await navigateFirstParty(page, initial, timeoutMs);
+        const finalUrl = assertFirstPartyUrl(page.url(), origin);
+        const transportAudit = await captureTransportAudit(response, route);
+        return Object.freeze({ context, page, response, finalUrl, transportAudit });
+      } catch (error) {
+        if (context) await context.close().catch(() => undefined);
+        if (isSeoAuditConnectivityFailure(error) && routeIndex < routes.length - 1) continue;
+        if (isSeoAuditConnectivityFailure(error)) {
+          throw new SeoAuditPlaywrightAdapterError("NETWORK_UNAVAILABLE", `all ${routes.length} configured connectivity path(s) failed for the first-party audit`);
+        }
+        if (error instanceof SeoAuditPlaywrightAdapterError) throw error;
+        throw new SeoAuditPlaywrightAdapterError("NAVIGATION_FAILURE", `Playwright SEO audit failed: ${error instanceof Error ? error.message : "unknown error"}`);
+      }
+    }
+    throw new SeoAuditPlaywrightAdapterError("NETWORK_UNAVAILABLE", "no connectivity path was available for the first-party audit");
   }
 
   async inspect(input: SeoAuditBrowserInspectRequestLike) {
@@ -113,17 +300,12 @@ export class PlaywrightSeoAuditBrowserAdapter {
     const origin = assertOrigin(input.canonicalOrigin);
     const initial = assertFirstPartyUrl(input.url, origin);
     let browser: Browser | null = null;
-    let context: BrowserContext | null = null;
+    let opened: OpenedAuditPage | null = null;
     const startedAt = Date.now();
     try {
       browser = await this.launcher.launch();
-      context = await browser.newContext({ userAgent: input.userAgent, acceptDownloads: false, serviceWorkers: "block", javaScriptEnabled: true });
-      const page = await context.newPage();
-      await installReadOnlyFirstPartyBoundary(page, origin);
-      const response = await page.goto(initial.toString(), { waitUntil: "domcontentloaded", timeout: input.timeoutMs });
-      if (!response) throw new SeoAuditPlaywrightAdapterError("NAVIGATION_FAILURE", "SEO audit navigation returned no main response");
-      const finalUrl = assertFirstPartyUrl(page.url(), origin);
-      const snapshot = await page.evaluate(() => {
+      opened = await this.openFirstPartyPage(browser, initial, origin, input.timeoutMs, input.userAgent);
+      const snapshot = await opened.page.evaluate(() => {
         const meta = (name: string) => document.querySelector<HTMLMetaElement>(`meta[name="${name}"]`)?.content ?? null;
         const headings = Array.from(document.querySelectorAll<HTMLHeadingElement>("h1,h2,h3,h4,h5,h6")).slice(0, 512).map((heading) => ({ level: Number.parseInt(heading.tagName.slice(1), 10), text: (heading.textContent ?? "").trim().slice(0, 2_000) }));
         const links = Array.from(document.querySelectorAll<HTMLAnchorElement>("a[href]")).slice(0, 2_000).map((anchor) => ({ href: anchor.href, rel: anchor.rel ?? "", text: (anchor.textContent ?? "").trim().slice(0, 1_000) }));
@@ -145,13 +327,13 @@ export class PlaywrightSeoAuditBrowserAdapter {
       });
       return Object.freeze({
         requestedUrl: initial.toString(),
-        finalUrl: finalUrl.toString(),
-        status: response.status(),
+        finalUrl: opened.finalUrl.toString(),
+        status: opened.response.status(),
         title: snapshot.title.slice(0, 2_000),
         description: snapshot.description?.slice(0, 4_000) ?? null,
         canonical: snapshot.canonical?.slice(0, 8_000) ?? null,
         robotsMeta: snapshot.robotsMeta?.slice(0, 2_000) ?? null,
-        xRobotsTag: response.headers()["x-robots-tag"]?.slice(0, 2_000) ?? null,
+        xRobotsTag: opened.response.headers()["x-robots-tag"]?.slice(0, 2_000) ?? null,
         language: snapshot.language?.slice(0, 128) ?? null,
         headings: Object.freeze(snapshot.headings.map((heading) => Object.freeze({ level: heading.level as 1 | 2 | 3 | 4 | 5 | 6, text: heading.text }))),
         links: Object.freeze(snapshot.links.map((link) => Object.freeze(link))),
@@ -159,12 +341,13 @@ export class PlaywrightSeoAuditBrowserAdapter {
         jsonLdBlocks: Object.freeze(snapshot.jsonLdBlocks.map((block) => block.slice(0, 512 * 1024))),
         textLength: snapshot.textLength,
         responseTimeMs: Date.now() - startedAt,
+        transportAudit: opened.transportAudit,
       });
     } catch (error) {
       if (error instanceof SeoAuditPlaywrightAdapterError) throw error;
       throw new SeoAuditPlaywrightAdapterError("NAVIGATION_FAILURE", `Playwright SEO audit failed: ${error instanceof Error ? error.message : "unknown error"}`);
     } finally {
-      if (context) await context.close().catch(() => undefined);
+      if (opened) await opened.context.close().catch(() => undefined);
       if (browser) await browser.close().catch(() => undefined);
     }
   }
@@ -177,45 +360,48 @@ export class PlaywrightSeoAuditBrowserAdapter {
     const origin = assertOrigin(input.canonicalOrigin);
     const initial = assertFirstPartyUrl(input.url, origin);
     let browser: Browser | null = null;
-    let context: BrowserContext | null = null;
+    let opened: OpenedAuditPage | null = null;
     const startedAt = Date.now();
     let typedCharacters = 0;
     let corrections = 0;
     try {
       browser = await this.launcher.launch();
-      context = await browser.newContext({ acceptDownloads: false, serviceWorkers: "block", javaScriptEnabled: true });
-      const page = await context.newPage();
-      await installReadOnlyFirstPartyBoundary(page, origin);
-      const response = await page.goto(initial.toString(), { waitUntil: "domcontentloaded", timeout: input.timeoutMs });
-      if (!response) throw new SeoAuditPlaywrightAdapterError("NAVIGATION_FAILURE", "UX telemetry navigation returned no main response");
-      const finalUrl = assertFirstPartyUrl(page.url(), origin);
-      const locator = page.locator(input.selector).first();
+      opened = await this.openFirstPartyPage(browser, initial, origin, input.timeoutMs);
+      const locator = opened.page.locator(input.selector).first();
       if (!(await locator.isVisible()) || !(await locator.isEditable())) throw new SeoAuditPlaywrightAdapterError("INTERACTION_DENIED", "UX telemetry target must be a visible editable first-party control");
       const box = await locator.boundingBox();
       if (!box) throw new SeoAuditPlaywrightAdapterError("INTERACTION_DENIED", "UX telemetry target has no visible bounding box");
-      for (const point of pointerPath(box.x + box.width / 2, box.y + box.height / 2, input.pointerSteps, input.pointerSeed)) await page.mouse.move(point.x, point.y);
+      for (const point of pointerPath(box.x + box.width / 2, box.y + box.height / 2, input.pointerSteps, input.pointerSeed)) await opened.page.mouse.move(point.x, point.y);
       await locator.focus();
       for (const action of input.plan) {
         if (action.type === "WAIT") {
           if (!Number.isSafeInteger(action.ms) || action.ms < 0 || action.ms > 5_000) throw new SeoAuditPlaywrightAdapterError("BOUNDS_EXCEEDED", "UX telemetry wait is outside bounds");
-          await page.waitForTimeout(action.ms);
+          await opened.page.waitForTimeout(action.ms);
         } else if (action.type === "TYPE") {
           if (typeof action.value !== "string" || action.value.length < 1 || action.value.length > 8) throw new SeoAuditPlaywrightAdapterError("BOUNDS_EXCEEDED", "UX telemetry key chunk is outside bounds");
-          await page.keyboard.type(action.value);
+          await opened.page.keyboard.type(action.value);
           typedCharacters += action.value.length;
         } else if (action.type === "BACKSPACE") {
-          await page.keyboard.press("Backspace");
+          await opened.page.keyboard.press("Backspace");
           corrections += 1;
         } else {
           throw new SeoAuditPlaywrightAdapterError("INVALID_INPUT", "UX telemetry action is unsupported");
         }
       }
-      return Object.freeze({ url: finalUrl.toString(), selector: input.selector, typedCharacters, corrections, elapsedMs: Date.now() - startedAt, submitted: false as const });
+      return Object.freeze({
+        url: opened.finalUrl.toString(),
+        selector: input.selector,
+        typedCharacters,
+        corrections,
+        elapsedMs: Date.now() - startedAt,
+        submitted: false as const,
+        transportAudit: opened.transportAudit,
+      });
     } catch (error) {
       if (error instanceof SeoAuditPlaywrightAdapterError) throw error;
       throw new SeoAuditPlaywrightAdapterError("INTERACTION_FAILURE", `Playwright UX telemetry failed: ${error instanceof Error ? error.message : "unknown error"}`);
     } finally {
-      if (context) await context.close().catch(() => undefined);
+      if (opened) await opened.context.close().catch(() => undefined);
       if (browser) await browser.close().catch(() => undefined);
     }
   }
