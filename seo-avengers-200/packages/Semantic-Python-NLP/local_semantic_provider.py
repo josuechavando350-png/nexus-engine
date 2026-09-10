@@ -3,13 +3,12 @@ from __future__ import annotations
 import asyncio
 import hashlib
 import os
-from collections import defaultdict
 from typing import Any
 
 import httpx
 import psycopg
-from psycopg.types.json import Jsonb
 import xx_ent_wiki_sm
+from psycopg.types.json import Jsonb
 
 PROVIDER_ID = "spacy-xx-ent-wiki-sm-3.8.0+wikidata-frozen-cache"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
@@ -73,7 +72,7 @@ def _extract_sync(text: str) -> list[dict[str, Any]]:
 
 
 def _cache_key(name: str, language: str) -> str:
-    payload = f"{PROVIDER_ID}\n{language}\n{name.casefold()}".encode("utf-8")
+    payload = f"{PROVIDER_ID}\n{language}\n{name.casefold()}".encode()
     return hashlib.sha256(payload).hexdigest()
 
 
@@ -145,6 +144,7 @@ async def _ground_with_frozen_cache(rows: list[dict[str, Any]]) -> list[dict[str
         limits = httpx.Limits(max_connections=4, max_keepalive_connections=2)
         semaphore = asyncio.Semaphore(4)
         async with httpx.AsyncClient(timeout=timeout, limits=limits) as client:
+
             async def resolve(key: str, item: dict[str, Any]):
                 async with semaphore:
                     language, metadata = await _wikidata_lookup(client, item["name"])
@@ -238,7 +238,12 @@ def install_local_provider(semantic_main: Any) -> None:
     async def analyze_entities(text: str):
         return await analyze_entities_local(semantic_main, text)
 
-    def module_evidence(req: Any, entities: list[Any], profile: dict[str, Any], bert_profile: dict[str, Any] | None):
+    def module_evidence(
+        req: Any,
+        entities: list[Any],
+        profile: dict[str, Any],
+        bert_profile: dict[str, Any] | None,
+    ):
         evidence = original_module_evidence(req, entities, profile, bert_profile)
         grounded_count = sum(1 for item in entities if item.metadata.get("wikidata_id"))
         for module_id in range(51, 101):
