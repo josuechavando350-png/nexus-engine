@@ -4,7 +4,7 @@ members = ["apps/edge-cloudflare-worker"]
 
 [profile.release]
 lto = true
-strip = true
+strip = "debuginfo"
 codegen-units = 1
 opt-level = "s"
 panic = "abort"
