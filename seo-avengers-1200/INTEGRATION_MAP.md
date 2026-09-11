@@ -26,10 +26,10 @@ seo-avengers-1200 engine overlay
           |
           +--> verify/bridge real SEO Avengers 200 module_evidence
           |
-          +--> M201/M202 search performance
-          +--> M301/M302 competitive keyword coverage
-          +--> M401/M402 traffic change + volatility
-          +--> M501/M502 revenue projection + attribution coverage
+          +--> M201-M204 search performance
+          +--> M301-M304 competitive keyword coverage
+          +--> M401-M404 traffic behavior
+          +--> M501-M504 revenue/funnel evidence
           +--> M601/M602 content quality
           +--> M701/M702 external brand corpus
           +--> M801/M802 local consistency
@@ -51,14 +51,14 @@ The wrapper does not manufacture Search Console, competitor, traffic, revenue, e
 ## 1200-slot registry contract
 
 - M1-M200: `DELEGATED_TO_SEO_AVENGERS_200`.
-- M201, M202, M301, M302, M401, M402, M501, M502, M601, M602, M701, M702, M801, M802, M901, M902, M1001, M1002, M1101, M1102: `IMPLEMENTED_PRODUCTION` in the extension.
+- M201-M204, M301-M304, M401-M404, M501-M504, M601-M602, M701-M702, M801-M802, M901-M902, M1001-M1002, M1101-M1102: `IMPLEMENTED_PRODUCTION` in the extension.
 - Every other post-200 slot through M1200: `RESERVED`, with no executable handler.
 
-The current extension therefore has 20 reviewed post-200 implementations and 18 pre-gate receipts. Registry cardinality is not used to inflate production capability counts.
+The current extension therefore has 28 reviewed post-200 implementations and 26 pre-gate receipts. Registry cardinality is not used to inflate production capability counts.
 
 ## Evidence and trust boundary
 
-Every promoted module emits a deterministic receipt. All 18 pre-gate receipts, plus any independently verified legacy Avengers 200 evidence, enter a single M1101 pass. M1101 removes an embedded `evidence_hash` before recomputation, validates exact SHA-256 syntax and module identity, rejects malformed/duplicate records, and compares the recomputed digest with the reported digest.
+Every promoted module emits a deterministic receipt. All 26 pre-gate receipts, plus any independently verified legacy Avengers 200 evidence, enter a single M1101 pass. M1101 removes an embedded `evidence_hash` before recomputation, validates exact SHA-256 syntax and module identity, rejects malformed/duplicate records, and compares the recomputed digest with the reported digest.
 
 The Avengers 200 bridge independently reproduces its existing semantic `module_evidence` hash contract before wrapping a legacy record. A bad legacy hash is emitted as invalid evidence, never silently promoted.
 
