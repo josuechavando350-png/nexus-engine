@@ -42,15 +42,13 @@ The catalog preserves the attached source contract metadata (`execution_layer`, 
 
 ## Edge bridge
 
-- `apps/edge-cloudflare-gateway/src/index.ts:175` — `false`/missing returns origin immediately before SEO KV or transformer access.
-- `apps/edge-cloudflare-gateway/src/index.ts:153` — 4 ms race covers optional KV + Rust shadow transformation only.
-- `apps/edge-cloudflare-worker/src/lib.rs:139+` — `lol_html` shadow-streaming transform.
-- Rust does not fabricate Wikidata IDs. It emits only tenant-scoped graph nodes supported by the semantic snapshot.
+- `apps/edge-cloudflare-gateway/src/index.ts` — `false`/missing returns origin immediately before SEO KV or transformer access; origin/body materialization is outside the optional edge deadline; the native gateway uses a 50 ms KV + Rust deadline.
+- `apps/seo-avengers-reverse-proxy/src/index.ts` — unknown/disabled tenants bypass without SEO KV/Service Binding; enabled external tenants materialize the origin body before starting the 4 ms KV + Rust deadline.
+- `apps/edge-cloudflare-worker/src/lib.rs` — `lol_html` shadow-streaming transform. Rust does not fabricate Wikidata IDs and emits only tenant-scoped graph nodes supported by the semantic snapshot.
 
 ## External tenants
 
 - `apps/seo-avengers-reverse-proxy/external-clients.json` — all entries ship `CONFIG_SEO_AVENGERS_200: false`.
-- `apps/seo-avengers-reverse-proxy/src/index.ts:235` — unknown/disabled tenant bypasses without SEO KV/Service Binding.
 - `scripts/add-external-client.sh` — atomic per-client registry update.
 - `scripts/deploy-capability.sh` — the only supported activation command for a named tenant.
 - `scripts/disable-capability.sh` — turns off one named tenant without enabling any other.
@@ -58,4 +56,5 @@ The catalog preserves the attached source contract metadata (`execution_layer`, 
 ## End-to-end proof
 
 - `scripts/verify.sh` — 12 static/unit gates, including 200/200 source-contract parity and global OFF state.
+- `scripts/test-external-reverse-proxy.mjs` — regression proof that slow origin-body materialization does not consume the external 4 ms edge deadline.
 - `scripts/local-mirror-e2e.sh` — exercises outbox → Go → Python → SQLite vectors, gateway fail-open, 200-module activation, and 200 asynchronous background jobs.
