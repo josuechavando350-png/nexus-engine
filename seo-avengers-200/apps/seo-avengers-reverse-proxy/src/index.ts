@@ -169,27 +169,29 @@ async function transformWithinBudget(
   tenant: ExternalTenant,
   env: Env,
 ): Promise<Response> {
+  const requestUrl = new URL(request.url);
+  const declared = Number(originResponse.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declared) && declared > MAX_HTML_BYTES) throw new Error("SEO_HTML_TOO_LARGE");
+
+  // Origin body materialization is not part of the optional edge deadline.
+  // The deadline below is reserved for the optional KV lookup + Rust transform.
+  const html = await originResponse.clone().text();
+  if (new TextEncoder().encode(html).byteLength > MAX_HTML_BYTES) throw new Error("SEO_HTML_TOO_LARGE");
+
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      controller.abort("seo-avengers-200-4ms-transform-budget");
+      controller.abort(`seo-avengers-200-${SEO_BUDGET_MS}ms-transform-budget`);
       reject(new Error("SEO_AVENGERS_200_TIMEOUT"));
     }, SEO_BUDGET_MS);
   });
 
   const candidate = (async () => {
-    const requestUrl = new URL(request.url);
-    const declared = Number(originResponse.headers.get("content-length") ?? 0);
-    if (Number.isFinite(declared) && declared > MAX_HTML_BYTES) throw new Error("SEO_HTML_TOO_LARGE");
-
-    const [html, vectorRaw] = await Promise.all([
-      originResponse.clone().text(),
-      env.SEO_VECTORS.get(vectorKey(tenant.clientId, requestUrl.pathname)),
-    ]);
-    if (new TextEncoder().encode(html).byteLength > MAX_HTML_BYTES) throw new Error("SEO_HTML_TOO_LARGE");
+    const vectorRaw = await env.SEO_VECTORS.get(vectorKey(tenant.clientId, requestUrl.pathname));
     if (!vectorRaw) throw new Error("SEO_VECTOR_MISS");
     if (controller.signal.aborted) throw new Error("SEO_AVENGERS_200_TIMEOUT");
+
     const vector: unknown = JSON.parse(vectorRaw);
     if (!validVectorPayload(vector) || vector.site_id !== tenant.clientId) throw new Error("SEO_VECTOR_INVALID");
 
@@ -205,8 +207,8 @@ async function transformWithinBudget(
 
   let body: string;
   try {
-    // Exactly as in the native gateway, only optional KV + Rust work is
-    // deadline-gated. Local ETag/header assembly is not part of that budget.
+    // Only optional KV + Rust work is deadline-gated. Local ETag/header assembly
+    // happens after the shadow candidate has already won the race.
     body = await Promise.race([candidate, timeout]);
   } finally {
     if (timer !== undefined) clearTimeout(timer);
@@ -253,7 +255,7 @@ export default {
     }
 
     try {
-      // 4 ms covers only optional KV + Rust shadow transform after WAN origin exists.
+      // The 4 ms budget covers only optional KV + Rust work after body materialization.
       return await transformWithinBudget(originResponse.clone(), request, tenant, env);
     } catch {
       return originResponse;
