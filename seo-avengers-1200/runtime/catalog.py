@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-IMPLEMENTED_EXTENDED_MODULES = frozenset({
+from .mass_lot_manifest import MASS_LOT_TARGET_MODULES
+
+BASE_IMPLEMENTED_EXTENDED_MODULES = frozenset({
     "M201", "M202", "M203", "M204", "M205", "M206", "M207", "M208",
     "M209", "M210", "M211", "M212", "M213", "M214",
     "M301", "M302", "M303", "M304", "M305", "M306", "M307", "M308", "M309", "M310", "M311", "M312", "M313", "M314", "M315", "M316",
@@ -15,6 +17,8 @@ IMPLEMENTED_EXTENDED_MODULES = frozenset({
     "M1001", "M1002", "M1003", "M1004", "M1005", "M1006",
     "M1101", "M1102",
 })
+
+IMPLEMENTED_EXTENDED_MODULES = BASE_IMPLEMENTED_EXTENDED_MODULES | MASS_LOT_TARGET_MODULES
 
 PRE_GATE_MODULES = tuple(
     sorted(

@@ -15,6 +15,14 @@ const MAX_CONTENT_DOCUMENTS = 2_000;
 const MAX_CONTENT_DECAY_RECORDS = 10_000;
 const MAX_EXTERNAL_PAGES = 5_000;
 const MAX_LOCAL_BUSINESS_RECORDS = 5_000;
+const MAX_EDGE_HTML_RECORDS = 5_000;
+const MAX_SEMANTIC_TEXT_RECORDS = 5_000;
+const MAX_PERSISTENCE_STATE_RECORDS = 5_000;
+const MAX_EDGE_GATEWAY_RECORDS = 5_000;
+const MAX_SEARCH_INTENT_RECORDS = 5_000;
+const MAX_CWV_EDGE_RECORDS = 5_000;
+const MAX_CANONICALIZATION_RECORDS = 5_000;
+const MAX_POLICY_AUDIT_RECORDS = 5_000;
 const MAX_UPSTREAM_EVIDENCE = 1_200;
 const MAX_LEGACY_MODULE_EVIDENCE = 200;
 const JSON_KEY_RE = /^[A-Za-z0-9_.:-]+$/;
@@ -158,6 +166,14 @@ function validateExtensionPayload(value) {
   const contentDecayRecords = boundedArray(value.content_decay_records, "content_decay_records", MAX_CONTENT_DECAY_RECORDS);
   const externalPages = boundedArray(value.external_pages, "external_pages", MAX_EXTERNAL_PAGES);
   const localBusinessRecords = boundedArray(value.local_business_records, "local_business_records", MAX_LOCAL_BUSINESS_RECORDS);
+  const edgeHtmlRecords = boundedArray(value.edge_html_records, "edge_html_records", MAX_EDGE_HTML_RECORDS);
+  const semanticTextRecords = boundedArray(value.semantic_text_records, "semantic_text_records", MAX_SEMANTIC_TEXT_RECORDS);
+  const persistenceStateRecords = boundedArray(value.persistence_state_records, "persistence_state_records", MAX_PERSISTENCE_STATE_RECORDS);
+  const edgeGatewayRecords = boundedArray(value.edge_gateway_records, "edge_gateway_records", MAX_EDGE_GATEWAY_RECORDS);
+  const searchIntentRecords = boundedArray(value.search_intent_records, "search_intent_records", MAX_SEARCH_INTENT_RECORDS);
+  const cwvEdgeRecords = boundedArray(value.cwv_edge_records, "cwv_edge_records", MAX_CWV_EDGE_RECORDS);
+  const canonicalizationRecords = boundedArray(value.canonicalization_records, "canonicalization_records", MAX_CANONICALIZATION_RECORDS);
+  const policyAuditRecords = boundedArray(value.policy_audit_records, "policy_audit_records", MAX_POLICY_AUDIT_RECORDS);
   const upstreamEvidence = boundedArray(value.upstream_evidence, "upstream_evidence", MAX_UPSTREAM_EVIDENCE);
   const legacyEvidence = value.seo_avengers_200_module_evidence;
 
@@ -185,6 +201,14 @@ function validateExtensionPayload(value) {
     content_decay_records: contentDecayRecords,
     external_pages: externalPages,
     local_business_records: localBusinessRecords,
+    edge_html_records: edgeHtmlRecords,
+    semantic_text_records: semanticTextRecords,
+    persistence_state_records: persistenceStateRecords,
+    edge_gateway_records: edgeGatewayRecords,
+    search_intent_records: searchIntentRecords,
+    cwv_edge_records: cwvEdgeRecords,
+    canonicalization_records: canonicalizationRecords,
+    policy_audit_records: policyAuditRecords,
     upstream_evidence: upstreamEvidence,
     seo_avengers_200_module_evidence_json: legacyEvidenceJson,
   };

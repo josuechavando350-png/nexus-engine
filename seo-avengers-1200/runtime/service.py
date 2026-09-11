@@ -32,6 +32,7 @@ from .batch_605_1006 import (
 )
 from .catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
 from .legacy_bridge import bridge_semantic200_module_evidence
+from .mass_lot import run_mass_lot
 from .seo_avengers_1200 import (
     canonical_hash, inspect_evidence_m1101, run_m901, run_m902, run_m1001, run_m1002, run_m1102,
 )
@@ -180,6 +181,8 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     receipts["M1004"] = run_m1004(image_records, config)
     receipts["M1005"] = run_m1005(image_records, config)
     receipts["M1006"] = run_m1006(image_records, config)
+
+    receipts.update(run_mass_lot(effective_payload, config))
 
     evidence_rows: List[Any] = _upstream_rows(effective_payload.get("upstream_evidence", []))
     evidence_rows.extend(legacy_rows)
