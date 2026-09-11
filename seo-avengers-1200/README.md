@@ -79,3 +79,5 @@ This means the suite can grow to 1200 real capabilities without poisoning the en
 ## Next integration slices
 
 Post-200 modules are promoted in small reviewed batches. Each promotion must include its algorithm, input normalization, configuration hash, deterministic receipt/evidence hash, positive/negative/boundary tests, and a real integration data source. No module is promoted from `RESERVED` because of a name or placeholder implementation.
+
+**First-slice scope is frozen while CI runs.** Further module promotions belong in a follow-up branch after this isolation layer is green and merged.
