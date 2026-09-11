@@ -1,7 +1,7 @@
 import unittest
 
 from runtime.batch_309_314 import run_m309, run_m310, run_m311, run_m312
-from runtime.batch_313_314 import run_m313
+from runtime.batch_313_314 import run_m313, run_m314
 from runtime.catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
 from runtime.service import execute_avengers_1200
 
@@ -64,6 +64,13 @@ class Batch309314Tests(unittest.TestCase):
                  "m313_max_weighted_tail_excess_milli": 750},
                 {"m313_min_gap_search_volume": 100, "m313_tail_pressure_floor_competitor_count": 0,
                  "m313_max_weighted_tail_excess_milli": 700},
+                covered_only, "INSUFFICIENT_COMPETITIVE_GAP_VOLUME",
+            ),
+            (
+                "M314", run_m314,
+                {"m314_min_gap_search_volume": 100, "m314_max_weighted_median_gap_competitor_count": 3},
+                {"m314_min_gap_search_volume": 100, "m314_max_weighted_median_gap_competitor_count": 4},
+                {"m314_min_gap_search_volume": 0, "m314_max_weighted_median_gap_competitor_count": 3},
                 covered_only, "INSUFFICIENT_COMPETITIVE_GAP_VOLUME",
             ),
         ]
@@ -183,6 +190,44 @@ class Batch309314Tests(unittest.TestCase):
         self.assertEqual(result["finding_status"], "NO_FINDING")
         self.assertEqual(result["reason_code"], "COMPETITIVE_GAP_TAIL_EXCESS_WITHIN_POLICY")
 
+    def test_m314_golden_weighted_median_pressure(self):
+        result = run_m314(self.records, {
+            "m314_min_gap_search_volume": 100,
+            "m314_max_weighted_median_gap_competitor_count": 3,
+        })
+        self.assertEqual(result["execution_status"], "SUCCESS")
+        self.assertEqual(result["finding_status"], "FINDING")
+        self.assertEqual(result["reason_code"], "COMPETITIVE_GAP_WEIGHTED_MEDIAN_PRESSURE_HIGH")
+        self.assertEqual(result["output"]["gap_search_volume"], 400)
+        self.assertEqual(result["output"]["gap_keyword_count"], 2)
+        self.assertEqual(result["output"]["weighted_median_target_search_volume"], 200)
+        self.assertEqual(result["output"]["weighted_median_gap_competitor_count"], 4)
+        self.assertEqual(result["output"]["weighted_median_support_keyword"], "gap dos")
+        self.assertEqual(result["output"]["weighted_median_support_search_volume"], 300)
+
+    def test_m314_boundary_is_not_false_positive(self):
+        result = run_m314(self.records, {
+            "m314_min_gap_search_volume": 100,
+            "m314_max_weighted_median_gap_competitor_count": 4,
+        })
+        self.assertEqual(result["finding_status"], "NO_FINDING")
+        self.assertEqual(result["reason_code"], "COMPETITIVE_GAP_WEIGHTED_MEDIAN_PRESSURE_WITHIN_POLICY")
+
+    def test_m314_exact_half_uses_lower_threshold_crossing(self):
+        records = [
+            {"keyword": "bajo", "site_ranked": False, "competitor_ranked_count": 2, "search_volume": 200},
+            {"keyword": "alto", "site_ranked": False, "competitor_ranked_count": 4, "search_volume": 200},
+        ]
+        result = run_m314(records, {
+            "m314_min_gap_search_volume": 100,
+            "m314_max_weighted_median_gap_competitor_count": 2,
+        })
+        self.assertEqual(result["execution_status"], "SUCCESS")
+        self.assertEqual(result["finding_status"], "NO_FINDING")
+        self.assertEqual(result["output"]["weighted_median_target_search_volume"], 200)
+        self.assertEqual(result["output"]["weighted_median_gap_competitor_count"], 2)
+        self.assertEqual(result["output"]["weighted_median_support_keyword"], "bajo")
+
     def test_each_audited_module_returns_insufficient_without_required_real_sample(self):
         for module_id, handler, config, _, _, records, reason_code in self._audit_cases():
             with self.subTest(module=module_id):
@@ -237,14 +282,14 @@ class Batch309314Tests(unittest.TestCase):
 
     def test_promoted_modules_are_executable_and_gateway_connected(self):
         registry = module_registry()
-        required = {"M309", "M310", "M311", "M312", "M313"}
+        required = {"M309", "M310", "M311", "M312", "M313", "M314"}
         self.assertTrue(required.issubset(IMPLEMENTED_EXTENDED_MODULES))
         self.assertTrue(required.issubset(set(PRE_GATE_MODULES)))
         for module_id in required:
             self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
             self.assertTrue(registry[module_id]["executable_here"])
-        self.assertEqual(registry["M314"]["status"], "RESERVED")
-        self.assertFalse(registry["M314"]["executable_here"])
+        self.assertEqual(registry["M315"]["status"], "RESERVED")
+        self.assertFalse(registry["M315"]["executable_here"])
 
         result = execute_avengers_1200(
             {"keyword_coverage_records": self.records},
@@ -261,7 +306,9 @@ class Batch309314Tests(unittest.TestCase):
              "m312_max_gap_pressure_mad_milli": 700,
              "m313_min_gap_search_volume": 100,
              "m313_tail_pressure_floor_competitor_count": 3,
-             "m313_max_weighted_tail_excess_milli": 700},
+             "m313_max_weighted_tail_excess_milli": 700,
+             "m314_min_gap_search_volume": 100,
+             "m314_max_weighted_median_gap_competitor_count": 3},
         )
         for module_id in required:
             self.assertIn(module_id, result["receipts"])
