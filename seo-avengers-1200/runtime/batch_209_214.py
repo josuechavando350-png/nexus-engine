@@ -31,15 +31,22 @@ def _search_input_error(module: str, algorithm: str, records: Any, raw_hash: Any
     return None
 
 
-def _conflict_receipt(module: str, algorithm: str, raw_hash: str, norm_hash: str,
-                      cfg_hash: str, conflicts: List[Dict[str, str]], invalid_count: int) -> Dict[str, Any] | None:
-    if not conflicts:
-        return None
-    return compile_receipt(
-        module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
-        "ERROR", "FINDING", "DUPLICATE_SEARCH_OBSERVATION_CONFLICT",
-        {"duplicate_observation_conflicts": conflicts, "invalid_records_count": invalid_count},
-    )
+def _data_quality_receipt(module: str, algorithm: str, raw_hash: str, norm_hash: str,
+                          cfg_hash: str, conflicts: List[Dict[str, str]],
+                          invalid_count: int) -> Dict[str, Any] | None:
+    if conflicts:
+        return compile_receipt(
+            module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+            "ERROR", "FINDING", "DUPLICATE_SEARCH_OBSERVATION_CONFLICT",
+            {"duplicate_observation_conflicts": conflicts, "invalid_records_count": invalid_count},
+        )
+    if invalid_count:
+        return compile_receipt(
+            module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+            "ERROR", "NOT_APPLICABLE", "INVALID_SEARCH_PERFORMANCE_RECORDS",
+            {"invalid_records_count": invalid_count},
+        )
+    return None
 
 
 def run_m209(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
@@ -60,12 +67,13 @@ def run_m209(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
         "position_scale": 1000,
     })
     norm_hash = _search_norm_hash(dataset, invalid_count, conflicts)
-    if min_impressions is None or max_position is None:
+    if min_impressions is None or min_impressions < 1 or max_position is None:
         return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
                                "ERROR", "NOT_APPLICABLE", "INVALID_MODULE_CONFIG", {})
-    conflict = _conflict_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash, conflicts, invalid_count)
-    if conflict is not None:
-        return conflict
+    data_quality = _data_quality_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash,
+                                         conflicts, invalid_count)
+    if data_quality is not None:
+        return data_quality
 
     total_impressions = 0
     weighted_position_sum = 0
@@ -116,12 +124,13 @@ def run_m210(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
         "position_scale": 1000,
     })
     norm_hash = _search_norm_hash(dataset, invalid_count, conflicts)
-    if min_clicks is None or max_position is None:
+    if min_clicks is None or min_clicks < 1 or max_position is None:
         return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
                                "ERROR", "NOT_APPLICABLE", "INVALID_MODULE_CONFIG", {})
-    conflict = _conflict_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash, conflicts, invalid_count)
-    if conflict is not None:
-        return conflict
+    data_quality = _data_quality_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash,
+                                         conflicts, invalid_count)
+    if data_quality is not None:
+        return data_quality
 
     total_clicks = 0
     weighted_position_sum = 0
@@ -171,12 +180,14 @@ def run_m211(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
         "query_presence": "query_page_record_with_positive_impressions",
     })
     norm_hash = _search_norm_hash(dataset, invalid_count, conflicts)
-    if min_page_impressions is None or min_queries is None or min_queries < 1:
+    if (min_page_impressions is None or min_page_impressions < 1 or
+            min_queries is None or min_queries < 1):
         return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
                                "ERROR", "NOT_APPLICABLE", "INVALID_MODULE_CONFIG", {})
-    conflict = _conflict_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash, conflicts, invalid_count)
-    if conflict is not None:
-        return conflict
+    data_quality = _data_quality_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash,
+                                         conflicts, invalid_count)
+    if data_quality is not None:
+        return data_quality
 
     page_impressions: Dict[str, int] = {}
     page_queries: Dict[str, Set[str]] = {}
@@ -234,12 +245,13 @@ def run_m212(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
         "denominator": "all_page_impressions",
     })
     norm_hash = _search_norm_hash(dataset, invalid_count, conflicts)
-    if min_page_impressions is None or max_share is None:
+    if min_page_impressions is None or min_page_impressions < 1 or max_share is None:
         return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
                                "ERROR", "NOT_APPLICABLE", "INVALID_MODULE_CONFIG", {})
-    conflict = _conflict_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash, conflicts, invalid_count)
-    if conflict is not None:
-        return conflict
+    data_quality = _data_quality_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash,
+                                         conflicts, invalid_count)
+    if data_quality is not None:
+        return data_quality
 
     by_page: Dict[str, Dict[str, int]] = {}
     for item in dataset:
@@ -304,12 +316,13 @@ def run_m213(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
         "metric": "sum(abs(position-center)*impressions)/sum(impressions)",
     })
     norm_hash = _search_norm_hash(dataset, invalid_count, conflicts)
-    if min_impressions is None or max_mad is None:
+    if min_impressions is None or min_impressions < 1 or max_mad is None:
         return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
                                "ERROR", "NOT_APPLICABLE", "INVALID_MODULE_CONFIG", {})
-    conflict = _conflict_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash, conflicts, invalid_count)
-    if conflict is not None:
-        return conflict
+    data_quality = _data_quality_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash,
+                                         conflicts, invalid_count)
+    if data_quality is not None:
+        return data_quality
 
     total_impressions = 0
     weighted_position_sum = 0
@@ -374,12 +387,14 @@ def run_m214(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
         "ctr_scale": PPM_SCALE,
     })
     norm_hash = _search_norm_hash(dataset, invalid_count, conflicts)
-    if min_query_impressions is None or min_queries is None or min_queries < 2 or max_mad is None:
+    if (min_query_impressions is None or min_query_impressions < 1 or
+            min_queries is None or min_queries < 2 or max_mad is None):
         return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
                                "ERROR", "NOT_APPLICABLE", "INVALID_MODULE_CONFIG", {})
-    conflict = _conflict_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash, conflicts, invalid_count)
-    if conflict is not None:
-        return conflict
+    data_quality = _data_quality_receipt(module, algorithm, raw_hash, norm_hash, cfg_hash,
+                                         conflicts, invalid_count)
+    if data_quality is not None:
+        return data_quality
 
     by_query: Dict[str, Dict[str, int]] = {}
     for item in dataset:
