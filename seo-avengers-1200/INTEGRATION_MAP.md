@@ -17,6 +17,8 @@ Activation requires both project flags to be the literal boolean `true`:
 
 If either flag is absent, false, malformed, or unreadable, the extension is OFF. The outbox producer checks the switches before repository discovery or artifact creation. The outbox worker checks them again before consuming queued work.
 
+The dedicated CI gate accepts branch changes only under `seo-avengers-1200/**` plus `.github/workflows/seo-avengers-1200-isolated-check.yml`. Any other changed path fails the isolation check, with `apps/cano-penal/**` explicitly forbidden.
+
 ## Current connection path
 
 ```text
@@ -107,4 +109,4 @@ The saved generated 1200-module artifact is not a production source. It is exclu
 
 ## Verification
 
-`seo-avengers-1200/scripts/verify.sh` checks syntax, golden vectors, the verified SEO Avengers 200 bridge, Node/Python wire-hash parity, outbox processing, the 1200-slot honesty invariant, deny-by-default activation, wrapper import resolution, and absence of a client-specific `apps/cano-penal` dependency in executable extension code.
+`seo-avengers-1200/scripts/verify.sh` checks syntax, golden vectors, the verified SEO Avengers 200 bridge, Node/Python wire-hash parity, outbox processing, the 1200-slot honesty invariant, deny-by-default activation, wrapper syntax/direct import targets, and absence of a client-specific `apps/cano-penal` dependency in executable extension code.
