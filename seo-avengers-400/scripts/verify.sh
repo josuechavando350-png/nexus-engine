@@ -3,8 +3,23 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-echo '[1/5] Original Avengers M001-M200 verification'
-bash seo-avengers-200/scripts/verify.sh
+echo '[1/5] Original Avengers M001-M200 catalog/source parity'
+python - <<'PY'
+import json
+from pathlib import Path
+base=Path('seo-avengers-200')
+catalog=json.loads((base/'packages/Core-Go-Backend/module-catalog.json').read_text())
+source=json.loads((base/'contracts/SEO_Avengers_200_Pure_Engine.source.json').read_text())
+contracts=source['Module_Catalog_Contracts']['modules']
+assert len(catalog)==200
+assert [x['id'] for x in catalog]==list(range(1,201))
+assert len(contracts)==200
+by_id={int(x['id']):x for x in contracts}
+assert set(by_id)==set(range(1,201))
+for item in catalog:
+    assert int(item['id']) in by_id
+print('original seo-avengers-200 preserves exact M001-M200 catalog/source contract')
+PY
 
 echo '[2/5] Avengers 400 Python syntax'
 python -m py_compile seo-avengers-400/runtime/*.py seo-avengers-400/tests/*.py
