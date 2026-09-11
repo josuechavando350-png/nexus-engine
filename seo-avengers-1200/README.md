@@ -14,7 +14,7 @@ This tree never fabricates a per-module implementation just to make the catalog 
 - `CONFIG_SEO_AVENGERS_1200` is deny-by-default and additionally requires `CONFIG_SEO_AVENGERS_200=true`.
 - This tree does not modify `apps/cano-penal/**`.
 
-The old generated `seo-avengers-1200-core` artifact is deliberately not imported into the engine. The production path is rebuilt from reviewed algorithms only.
+The old generated `seo-avengers-1200-core` artifact is deliberately not imported into the engine. Its repeated/generated formulas and malformed identifiers are treated only as historical inventory hints, never as production implementations.
 
 ## First integrated vertical slice
 
@@ -72,7 +72,7 @@ The verification suite covers syntax, deterministic golden vectors, exact 1200-s
 
 ## How the remaining slots are populated
 
-Promotion is deliberately incremental. The generated 6048-line placeholder artifact is useful only as a rough category inventory; it is **not** treated as executable truth. Each future batch is reconstructed from an actual source contract or a newly reviewed algorithm, tested in isolation, connected to a real data producer, and only then moved from `RESERVED` to `IMPLEMENTED_PRODUCTION`.
+Promotion is deliberately incremental. Each future batch is reconstructed from an actual source contract or a newly reviewed algorithm, tested in isolation, connected to a real data producer, and only then moved from `RESERVED` to `IMPLEMENTED_PRODUCTION`.
 
 This means the suite can grow to 1200 real capabilities without poisoning the engine with repeated formulas, malformed identifiers, fake provider results, or invented telemetry. If a slot has no verified algorithm/data contract yet, leaving it reserved is the correct production behavior.
 
