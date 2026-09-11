@@ -11,14 +11,12 @@ This tree never fabricates a per-module implementation just to make the catalog 
 - A post-200 module is executable here only when a reviewed algorithm exists in source and has a deterministic receipt contract.
 - Every other slot is `RESERVED` and has **no executable handler**.
 - Reserved modules are not counted as executions or production capabilities.
-- `CONFIG_SEO_AVENGERS_1200` is deny-by-default: only the literal boolean `true` enables this runtime.
+- `CONFIG_SEO_AVENGERS_1200` is deny-by-default and additionally requires `CONFIG_SEO_AVENGERS_200=true`.
 - This tree does not modify `apps/cano-penal/**`.
 
 The old generated `seo-avengers-1200-core` artifact is deliberately not imported into the engine. The production path is rebuilt from reviewed algorithms only.
 
 ## First integrated vertical slice
-
-The first executable extension set is deliberately small and real:
 
 | Module | Algorithm | State |
 | --- | --- | --- |
@@ -29,25 +27,34 @@ The first executable extension set is deliberately small and real:
 | M1101 | Edge Evidence Integrity Inspector | `IMPLEMENTED_PRODUCTION` |
 | M1102 | Edge Deployment Integrity Gate Policy | `IMPLEMENTED_PRODUCTION` |
 
-M1101 recomputes evidence hashes at the trusted boundary. M1102 consumes the resulting inspected set and fails closed on malformed records, duplicates, missing required modules, unexpected modules, invalid manifests, arithmetic failure, or hash mismatch above policy.
+The extension also contains a **verification bridge**, not a new fake module, for real `module_evidence` already emitted by SEO Avengers 200. The bridge reproduces the existing 200 hash contract before wrapping a verified record into a normal receipt. A mismatch becomes invalid evidence and therefore reaches M1101/M1102 as fail-closed input.
 
 ## Runtime chain
 
 ```text
-existing SEO Avengers 200 evidence (optional upstream input)
-                 |
-                 v
-M901 infrastructure policy ----+
-M902 contradiction detector ----+--> receipt/evidence set
-M1001 chromatic diversity ------+
-M1002 lexical alignment --------+
-                                 |
-                                 v
-                       M1101 integrity inspector
-                                 |
-                                 v
-                       M1102 deployment gate policy
+native Nexus pipeline
+      |
+      | RENDER PASS
+      v
+isolated Avengers sidecars
+      |
+      +--> existing Avengers 200 path
+      |
+      +--> 1200 durable outbox
+               |
+               v
+        verified 200-evidence bridge
+               |
+        M901 / M902 / M1001 / M1002
+               |
+               v
+        M1101 integrity inspector
+               |
+               v
+        M1102 deployment gate policy
 ```
+
+The outbox producer and Python worker use a byte-identical typed wire hash across Node/Python. Legacy SEO Avengers 200 evidence can contain real floating-point semantic measurements, so it is transported as a hash-bound canonical JSON string and revalidated under the original Python evidence hash contract after parsing.
 
 The extended runtime never performs a destructive deployment action. M901 and M902 emit recommendations; M1102 emits `deployment_halt_recommended`. The actual deployment controller must explicitly consume that policy before this can be called enforcement.
 
@@ -56,11 +63,11 @@ The extended runtime never performs a destructive deployment action. M901 and M9
 From this directory:
 
 ```bash
-./scripts/verify.sh
+bash scripts/verify.sh
 ```
 
-The verification suite checks Python syntax, deterministic golden vectors, exact 1200-slot registry cardinality, deny-by-default activation, fail-closed integrity behavior, and the invariant that no reserved slot has an executable handler.
+The verification suite covers syntax, deterministic golden vectors, exact 1200-slot registry cardinality, deny-by-default activation, Node/Python wire-hash parity, the SEO Avengers 200 evidence bridge, durable worker behavior, fail-closed integrity handling, and the invariant that no reserved slot has an executable handler.
 
 ## Next integration slices
 
-Post-200 modules are promoted in small reviewed batches. Each promotion must include its algorithm, input normalization, configuration hash, deterministic receipt/evidence hash, negative tests, and integration data source. No module is promoted from `RESERVED` because of a name or a placeholder implementation.
+Post-200 modules are promoted in small reviewed batches. Each promotion must include its algorithm, input normalization, configuration hash, deterministic receipt/evidence hash, positive/negative/boundary tests, and a real integration data source. No module is promoted from `RESERVED` because of a name or placeholder implementation.
