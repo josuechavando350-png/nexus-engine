@@ -27,6 +27,15 @@ const projectDir = join(tempRoot, "apps", "probe");
 await import("node:fs/promises").then(({ mkdir }) => mkdir(projectDir, { recursive: true }));
 
 try {
+  const legacyEvidence = {
+    M51: {
+      status: "complete",
+      basis: "google-nlp-v2+deterministic-vector",
+      query_cosine: 0.8125,
+      normalized_salience: [0.75, 0.25],
+      evidence_hash: `sha256:${"a".repeat(64)}`,
+    },
+  };
   const payload = {
     meta_telemetry: {
       server_cpu_utilization_percent: 40,
@@ -36,6 +45,7 @@ try {
     },
     site_images_data: [],
     upstream_evidence: [],
+    seo_avengers_200_module_evidence: legacyEvidence,
   };
   const runtimeConfig = {
     m901_max_safe_cpu_percent: 80,
@@ -93,6 +103,10 @@ try {
   assert.equal(python.status, 0, python.stderr);
   assert.equal(python.stdout.trim(), envelope.input_hash);
 
+  const transportedLegacy = JSON.parse(envelope.payload.seo_avengers_200_module_evidence_json);
+  assert.equal(transportedLegacy.M51.query_cosine, 0.8125);
+  assert.deepEqual(transportedLegacy.M51.normalized_salience, [0.75, 0.25]);
+
   await writeFile(
     join(projectDir, "package.json"),
     JSON.stringify({
@@ -117,8 +131,10 @@ try {
   assert.equal(persisted.input_hash, envelope.input_hash);
   assert.equal(persisted.idempotency_key, envelope.input_hash);
   assert.equal(persisted.payload.meta_telemetry.locale_probe, "México — señal ñ");
+  const persistedLegacy = JSON.parse(persisted.payload.seo_avengers_200_module_evidence_json);
+  assert.equal(persistedLegacy.M51.query_cosine, 0.8125);
 
-  console.log("SEO Avengers 1200 outbox lazy bypass + Node/Python wire hash verified");
+  console.log("SEO Avengers 1200 outbox lazy bypass + Node/Python wire hash + legacy float transport verified");
 } finally {
   await rm(tempRoot, { recursive: true, force: true });
 }
