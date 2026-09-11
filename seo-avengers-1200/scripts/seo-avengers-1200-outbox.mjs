@@ -41,8 +41,37 @@ function canonicalJson(value) {
   return JSON.stringify(value);
 }
 
+function wireBytes(value) {
+  if (value === null) return Buffer.from("n;", "ascii");
+  if (typeof value === "boolean") return Buffer.from(value ? "b1;" : "b0;", "ascii");
+  if (typeof value === "number") return Buffer.from(`i${value};`, "ascii");
+  if (typeof value === "string") {
+    const bytes = Buffer.from(value, "utf8");
+    return Buffer.concat([Buffer.from(`s${bytes.length}:`, "ascii"), bytes]);
+  }
+  if (Array.isArray(value)) {
+    const parts = [Buffer.from(`a${value.length}[`, "ascii")];
+    for (const item of value) parts.push(wireBytes(item));
+    parts.push(Buffer.from("]", "ascii"));
+    return Buffer.concat(parts);
+  }
+  const keys = Object.keys(value).sort();
+  const parts = [Buffer.from(`o${keys.length}{`, "ascii")];
+  for (const key of keys) {
+    parts.push(wireBytes(key));
+    parts.push(wireBytes(value[key]));
+  }
+  parts.push(Buffer.from("}", "ascii"));
+  return Buffer.concat(parts);
+}
+
 function sha256(value) {
   return `sha256:${createHash("sha256").update(value).digest("hex")}`;
+}
+
+export function envelopeHashV1(value) {
+  assertJsonValue(value);
+  return sha256(wireBytes(value));
 }
 
 function assertSegment(value, label) {
@@ -104,7 +133,7 @@ export function buildSeoAvengers1200Envelope(input) {
     payload,
     runtime_config: runtimeConfig,
   });
-  const inputHash = sha256(canonicalJson(core));
+  const inputHash = envelopeHashV1(core);
   return Object.freeze({ ...core, input_hash: inputHash, idempotency_key: inputHash });
 }
 
