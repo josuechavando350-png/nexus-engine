@@ -1,6 +1,6 @@
 import unittest
 
-from runtime.batch_309_314 import run_m309, run_m310, run_m311
+from runtime.batch_309_314 import run_m309, run_m310, run_m311, run_m312
 from runtime.catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
 from runtime.service import execute_avengers_1200
 
@@ -47,6 +47,13 @@ class Batch309314Tests(unittest.TestCase):
                 {"m311_min_high_pressure_search_volume": 100, "m311_high_pressure_competitor_count": 0,
                  "m311_min_site_coverage_share_ppm": 500_000},
                 low_pressure_only, "INSUFFICIENT_HIGH_PRESSURE_COMPETITIVE_VOLUME",
+            ),
+            (
+                "M312", run_m312,
+                {"m312_min_gap_search_volume": 100, "m312_max_gap_pressure_mad_milli": 700},
+                {"m312_min_gap_search_volume": 100, "m312_max_gap_pressure_mad_milli": 750},
+                {"m312_min_gap_search_volume": 0, "m312_max_gap_pressure_mad_milli": 700},
+                covered_only, "INSUFFICIENT_COMPETITIVE_GAP_VOLUME",
             ),
         ]
 
@@ -119,6 +126,27 @@ class Batch309314Tests(unittest.TestCase):
         self.assertEqual(result["finding_status"], "NO_FINDING")
         self.assertEqual(result["reason_code"], "HIGH_PRESSURE_SITE_COVERAGE_WITHIN_POLICY")
 
+    def test_m312_golden_weighted_gap_pressure_dispersion(self):
+        result = run_m312(self.records, {
+            "m312_min_gap_search_volume": 100,
+            "m312_max_gap_pressure_mad_milli": 700,
+        })
+        self.assertEqual(result["execution_status"], "SUCCESS")
+        self.assertEqual(result["finding_status"], "FINDING")
+        self.assertEqual(result["reason_code"], "COMPETITIVE_GAP_PRESSURE_DISPERSION_HIGH")
+        self.assertEqual(result["output"]["gap_search_volume"], 400)
+        self.assertEqual(result["output"]["gap_keyword_count"], 2)
+        self.assertEqual(result["output"]["weighted_gap_competitor_count_milli"], 3_500)
+        self.assertEqual(result["output"]["weighted_gap_pressure_mad_milli"], 750)
+
+    def test_m312_boundary_is_not_false_positive(self):
+        result = run_m312(self.records, {
+            "m312_min_gap_search_volume": 100,
+            "m312_max_gap_pressure_mad_milli": 750,
+        })
+        self.assertEqual(result["finding_status"], "NO_FINDING")
+        self.assertEqual(result["reason_code"], "COMPETITIVE_GAP_PRESSURE_DISPERSION_WITHIN_POLICY")
+
     def test_each_audited_module_returns_insufficient_without_required_real_sample(self):
         for module_id, handler, config, _, _, records, reason_code in self._audit_cases():
             with self.subTest(module=module_id):
@@ -173,14 +201,14 @@ class Batch309314Tests(unittest.TestCase):
 
     def test_promoted_modules_are_executable_and_gateway_connected(self):
         registry = module_registry()
-        required = {"M309", "M310", "M311"}
+        required = {"M309", "M310", "M311", "M312"}
         self.assertTrue(required.issubset(IMPLEMENTED_EXTENDED_MODULES))
         self.assertTrue(required.issubset(set(PRE_GATE_MODULES)))
         for module_id in required:
             self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
             self.assertTrue(registry[module_id]["executable_here"])
-        self.assertEqual(registry["M312"]["status"], "RESERVED")
-        self.assertFalse(registry["M312"]["executable_here"])
+        self.assertEqual(registry["M313"]["status"], "RESERVED")
+        self.assertFalse(registry["M313"]["executable_here"])
 
         result = execute_avengers_1200(
             {"keyword_coverage_records": self.records},
@@ -192,7 +220,9 @@ class Batch309314Tests(unittest.TestCase):
              "m310_max_high_pressure_gap_volume_share_ppm": 700_000,
              "m311_min_high_pressure_search_volume": 100,
              "m311_high_pressure_competitor_count": 4,
-             "m311_min_site_coverage_share_ppm": 500_000},
+             "m311_min_site_coverage_share_ppm": 500_000,
+             "m312_min_gap_search_volume": 100,
+             "m312_max_gap_pressure_mad_milli": 700},
         )
         for module_id in required:
             self.assertIn(module_id, result["receipts"])
