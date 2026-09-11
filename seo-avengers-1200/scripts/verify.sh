@@ -4,7 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 echo "[1/8] Python syntax"
-python3 -m py_compile runtime/__init__.py runtime/catalog.py runtime/seo_avengers_1200.py runtime/batch_201_502.py runtime/batch_203_504.py runtime/batch_205_506.py runtime/batch_207_508.py runtime/batch_209_214.py runtime/batch_601_802.py runtime/batch_603_1004.py runtime/batch_605_1006.py runtime/wire.py runtime/legacy_bridge.py runtime/service.py tests/test_runtime.py tests/test_batch_201_502.py tests/test_batch_203_504.py tests/test_batch_205_506.py tests/test_batch_207_508.py tests/test_batch_209_214.py tests/test_batch_601_802.py tests/test_batch_603_1004.py tests/test_batch_605_1006.py tests/test_gateway_edges.py tests/test_outbox_worker.py tests/test_legacy_bridge.py scripts/run.py scripts/process-outbox.py
+python3 -m py_compile runtime/__init__.py runtime/catalog.py runtime/seo_avengers_1200.py runtime/batch_201_502.py runtime/batch_203_504.py runtime/batch_205_506.py runtime/batch_207_508.py runtime/batch_209_214.py runtime/batch_309_314.py runtime/batch_313_314.py runtime/batch_601_802.py runtime/batch_603_1004.py runtime/batch_605_1006.py runtime/wire.py runtime/legacy_bridge.py runtime/service.py tests/test_runtime.py tests/test_batch_201_502.py tests/test_batch_203_504.py tests/test_batch_205_506.py tests/test_batch_207_508.py tests/test_batch_209_214.py tests/test_batch_309_314.py tests/test_batch_601_802.py tests/test_batch_603_1004.py tests/test_batch_605_1006.py tests/test_gateway_edges.py tests/test_outbox_worker.py tests/test_legacy_bridge.py scripts/run.py scripts/process-outbox.py
 
 echo "[2/8] Runtime + promoted batches + bridge + worker unit/golden tests"
 python3 -m unittest discover -s tests -v
@@ -18,7 +18,7 @@ from runtime.catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, modu
 expected = frozenset({
     "M201", "M202", "M203", "M204", "M205", "M206", "M207", "M208",
     "M209", "M210", "M211", "M212", "M213", "M214",
-    "M301", "M302", "M303", "M304", "M305", "M306", "M307", "M308",
+    "M301", "M302", "M303", "M304", "M305", "M306", "M307", "M308", "M309", "M310", "M311", "M312", "M313", "M314",
     "M401", "M402", "M403", "M404", "M405", "M406", "M407", "M408",
     "M501", "M502", "M503", "M504", "M505", "M506", "M507", "M508",
     "M601", "M602", "M603", "M604", "M605", "M606",
@@ -32,10 +32,10 @@ registry = module_registry()
 assert len(registry) == 1200
 assert list(registry) == [f"M{i}" for i in range(1, 1201)]
 assert IMPLEMENTED_EXTENDED_MODULES == expected
-assert len(PRE_GATE_MODULES) == 64
+assert len(PRE_GATE_MODULES) == 70
 assert all(not row["executable_here"] for row in registry.values() if row["status"] == "RESERVED")
-assert sum(1 for row in registry.values() if row["status"] == "IMPLEMENTED_PRODUCTION") == 66
-print("1200 contiguous slots; exactly 66 reviewed extended handlers; reserved slots remain non-executable")
+assert sum(1 for row in registry.values() if row["status"] == "IMPLEMENTED_PRODUCTION") == 72
+print("1200 contiguous slots; exactly 72 reviewed extended handlers; reserved slots remain non-executable")
 PY
 
 echo "[5/8] CLI deny-by-default boundary"

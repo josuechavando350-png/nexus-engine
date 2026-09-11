@@ -18,6 +18,8 @@ from .batch_207_508 import (
 from .batch_209_214 import (
     run_m209, run_m210, run_m211, run_m212, run_m213, run_m214,
 )
+from .batch_309_314 import run_m309, run_m310, run_m311, run_m312
+from .batch_313_314 import run_m313, run_m314
 from .batch_601_802 import (
     run_m601, run_m602, run_m701, run_m702, run_m801, run_m802,
 )
@@ -120,6 +122,12 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     receipts["M306"] = run_m306(keyword_records, config)
     receipts["M307"] = run_m307(keyword_records, config)
     receipts["M308"] = run_m308(keyword_records, config)
+    receipts["M309"] = run_m309(keyword_records, config)
+    receipts["M310"] = run_m310(keyword_records, config)
+    receipts["M311"] = run_m311(keyword_records, config)
+    receipts["M312"] = run_m312(keyword_records, config)
+    receipts["M313"] = run_m313(keyword_records, config)
+    receipts["M314"] = run_m314(keyword_records, config)
 
     receipts["M401"] = run_m401(traffic_windows, config)
     receipts["M402"] = run_m402(traffic_series, config)
@@ -191,17 +199,13 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
 
     executed = sum(1 for receipt in receipts.values() if receipt["execution_status"] == "SUCCESS")
     return {
-        "suite": "SEO_AVENGERS_1200",
-        "enabled": True,
-        "bypassed": False,
-        "registry_size": 1200,
-        "delegated_legacy_modules": 200,
+        "suite": "SEO_AVENGERS_1200", "enabled": True, "bypassed": False,
+        "registry_size": 1200, "delegated_legacy_modules": 200,
         "implemented_extended_modules": sorted(
             IMPLEMENTED_EXTENDED_MODULES, key=lambda module_id: int(module_id[1:]),
         ),
         "reserved_extended_modules": 1000 - len(IMPLEMENTED_EXTENDED_MODULES),
-        "modules_executed": executed,
-        "legacy_evidence_bridge": bridge_summary,
+        "modules_executed": executed, "legacy_evidence_bridge": bridge_summary,
         "receipts": receipts,
     }
 
