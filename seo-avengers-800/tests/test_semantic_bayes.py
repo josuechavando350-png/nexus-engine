@@ -5,22 +5,22 @@ import unittest
 
 from fixture import rich_payload, row_for
 from runtime.common import canonical_json, hash_value
-from runtime.manifest import MODULE_SPECS, SOURCE_MODULES, TARGET_MODULES, source_to_target_map
+from runtime.manifest import MODULE_SPECS, SEMANTIC_SOURCE_MODULES, SEMANTIC_TARGET_MODULES, source_to_target_map
 from runtime.runner import run_module, run_semantic_25
 from runtime.semantic_bayes import _entropy_from_counts_ppm
 
 
 class SemanticBayesSliceTests(unittest.TestCase):
     def test_exact_25_source_target_mapping(self):
-        self.assertEqual(TARGET_MODULES, tuple(f"M{i}" for i in range(701, 726)))
-        self.assertEqual(SOURCE_MODULES, tuple(f"M{i}" for i in range(1701, 1726)))
+        self.assertEqual(SEMANTIC_TARGET_MODULES, tuple(f"M{i}" for i in range(701, 726)))
+        self.assertEqual(SEMANTIC_SOURCE_MODULES, tuple(f"M{i}" for i in range(1701, 1726)))
         mapping = source_to_target_map()
         self.assertEqual(mapping["M1701"], "M701")
         self.assertEqual(mapping["M1725"], "M725")
-        self.assertEqual(len(mapping), 25)
+        self.assertEqual(len([s for s in MODULE_SPECS.values() if s["family"] == "SEMANTIC_BAYES"]), 25)
 
     def test_operations_are_unique_and_non_generic(self):
-        operations = [spec["operation"] for spec in MODULE_SPECS.values()]
+        operations = [MODULE_SPECS[module_id]["operation"] for module_id in SEMANTIC_TARGET_MODULES]
         self.assertEqual(len(operations), 25)
         self.assertEqual(len(set(operations)), 25)
         self.assertFalse(any("resolver_" in operation or "metric_" in operation for operation in operations))
