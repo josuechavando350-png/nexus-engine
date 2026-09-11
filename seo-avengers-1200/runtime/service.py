@@ -51,6 +51,16 @@ from .batch_601_802 import (
     run_m801,
     run_m802,
 )
+from .batch_603_1004 import (
+    run_m603,
+    run_m604,
+    run_m703,
+    run_m704,
+    run_m803,
+    run_m804,
+    run_m1003,
+    run_m1004,
+)
 from .catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
 from .legacy_bridge import bridge_semantic200_module_evidence
 from .seo_avengers_1200 import (
@@ -130,6 +140,10 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     traffic_series = effective_payload.get("traffic_series_records", [])
     funnel_records = effective_payload.get("revenue_funnel_records", [])
     attribution_records = effective_payload.get("revenue_attribution_records", [])
+    content_documents = effective_payload.get("content_documents", [])
+    external_pages = effective_payload.get("external_pages", [])
+    local_records = effective_payload.get("local_business_records", [])
+    image_records = effective_payload.get("site_images_data", [])
 
     receipts["M201"] = run_m201(search_records, config)
     receipts["M202"] = run_m202(search_records, config)
@@ -167,16 +181,28 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     receipts["M507"] = run_m507(attribution_records, config)
     receipts["M508"] = run_m508(attribution_records, config)
 
-    receipts["M601"] = run_m601(effective_payload.get("content_documents", []), config)
+    receipts["M601"] = run_m601(content_documents, config)
     receipts["M602"] = run_m602(effective_payload.get("content_decay_records", []), config)
-    receipts["M701"] = run_m701(effective_payload.get("external_pages", []), config)
-    receipts["M702"] = run_m702(effective_payload.get("external_pages", []), config)
-    receipts["M801"] = run_m801(effective_payload.get("local_business_records", []), config)
-    receipts["M802"] = run_m802(effective_payload.get("local_business_records", []), config)
+    receipts["M603"] = run_m603(content_documents, config)
+    receipts["M604"] = run_m604(content_documents, config)
+
+    receipts["M701"] = run_m701(external_pages, config)
+    receipts["M702"] = run_m702(external_pages, config)
+    receipts["M703"] = run_m703(external_pages, config)
+    receipts["M704"] = run_m704(external_pages, config)
+
+    receipts["M801"] = run_m801(local_records, config)
+    receipts["M802"] = run_m802(local_records, config)
+    receipts["M803"] = run_m803(local_records, config)
+    receipts["M804"] = run_m804(local_records, config)
+
     receipts["M901"] = run_m901(effective_payload.get("meta_telemetry", {}), config)
     receipts["M902"] = run_m902(effective_payload.get("meta_telemetry", {}), config)
-    receipts["M1001"] = run_m1001(effective_payload.get("site_images_data", []), config)
-    receipts["M1002"] = run_m1002(effective_payload.get("site_images_data", []), config)
+
+    receipts["M1001"] = run_m1001(image_records, config)
+    receipts["M1002"] = run_m1002(image_records, config)
+    receipts["M1003"] = run_m1003(image_records, config)
+    receipts["M1004"] = run_m1004(image_records, config)
 
     evidence_rows: List[Any] = _upstream_rows(effective_payload.get("upstream_evidence", []))
     evidence_rows.extend(legacy_rows)
