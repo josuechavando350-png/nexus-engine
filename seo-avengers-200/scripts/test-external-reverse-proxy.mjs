@@ -61,6 +61,27 @@ async function activeTenantUsesTargetAndTransformer() {
   } finally { globalThis.fetch = previous; }
 }
 
+async function slowOriginBodyDoesNotConsumeSeoBudget() {
+  const previous = globalThis.fetch;
+  const encoder = new TextEncoder();
+  globalThis.fetch = async () => new Response(new ReadableStream({
+    start(controller) {
+      setTimeout(() => {
+        controller.enqueue(encoder.encode(html));
+        controller.close();
+      }, 20);
+    },
+  }), { headers: { "content-type": "text/html", "x-origin": "external" } });
+  try {
+    const response = await proxy.fetch(new Request("https://abogadomexico.com/"), {
+      SEO_VECTORS: { async get() { return vector; }, async put() {} },
+      SEO_AVENGERS_TRANSFORMER: { async fetch() { return new Response("<html>slow-origin transformed</html>"); } },
+    }, ctx);
+    assert.equal(await response.text(), "<html>slow-origin transformed</html>");
+    assert.equal(response.headers.get("x-nexus-seo-avengers"), "200-applied");
+  } finally { globalThis.fetch = previous; }
+}
+
 async function activeTenantTimeoutReturnsOrigin() {
   const previous = globalThis.fetch;
   globalThis.fetch = async () => new Response(html, { headers: { "content-type": "text/html", "x-origin": "external" } });
@@ -80,5 +101,6 @@ async function activeTenantTimeoutReturnsOrigin() {
 
 await unknownTenantBypassesWithoutSeo();
 await activeTenantUsesTargetAndTransformer();
+await slowOriginBodyDoesNotConsumeSeoBudget();
 await activeTenantTimeoutReturnsOrigin();
-console.log("external reverse proxy lazy-bypass/fail-open tests: PASS");
+console.log("external reverse proxy lazy-bypass/fail-open/body-budget tests: PASS");
