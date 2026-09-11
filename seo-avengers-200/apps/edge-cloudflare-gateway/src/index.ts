@@ -6,7 +6,7 @@ export interface Env {
   SEO_AVENGERS_TRANSFORMER: Fetcher;
 }
 
-const SEO_BUDGET_MS = 4;
+const SEO_BUDGET_MS = 50;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
 const VECTOR_ADMIN_PATH = "/__nexus/seo-vector";
 
@@ -107,25 +107,26 @@ async function transformWithinBudget(
   request: Request,
   env: Env,
 ): Promise<Response> {
+  const requestUrl = new URL(request.url);
+  const declared = Number(nativeResponse.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declared) && declared > MAX_HTML_BYTES) throw new Error("SEO_HTML_TOO_LARGE");
+
+  // Origin body materialization is not part of the optional edge deadline.
+  // The deadline below is reserved for the optional KV lookup + Rust transform.
+  const html = await nativeResponse.clone().text();
+  if (new TextEncoder().encode(html).byteLength > MAX_HTML_BYTES) throw new Error("SEO_HTML_TOO_LARGE");
+
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
     timer = setTimeout(() => {
-      controller.abort("seo-avengers-200-4ms-budget");
+      controller.abort(`seo-avengers-200-${SEO_BUDGET_MS}ms-budget`);
       reject(new Error("SEO_AVENGERS_200_TIMEOUT"));
     }, SEO_BUDGET_MS);
   });
 
   const candidate = (async () => {
-    const requestUrl = new URL(request.url);
-    const declared = Number(nativeResponse.headers.get("content-length") ?? 0);
-    if (Number.isFinite(declared) && declared > MAX_HTML_BYTES) throw new Error("SEO_HTML_TOO_LARGE");
-
-    const [html, vectorRaw] = await Promise.all([
-      nativeResponse.clone().text(),
-      env.SEO_VECTORS.get(vectorKey(env.NEXUS_SITE_ID, requestUrl.pathname)),
-    ]);
-    if (new TextEncoder().encode(html).byteLength > MAX_HTML_BYTES) throw new Error("SEO_HTML_TOO_LARGE");
+    const vectorRaw = await env.SEO_VECTORS.get(vectorKey(env.NEXUS_SITE_ID, requestUrl.pathname));
     if (!vectorRaw) throw new Error("SEO_VECTOR_MISS");
     if (controller.signal.aborted) throw new Error("SEO_AVENGERS_200_TIMEOUT");
 
@@ -147,7 +148,7 @@ async function transformWithinBudget(
 
   let body: string;
   try {
-    // The 4 ms guard covers only optional KV lookup + Rust transform.
+    // The 50 ms guard covers only optional KV lookup + Rust transform.
     // Local response hashing/header assembly happens after the shadow candidate
     // has already won the race and therefore cannot cause a false fail-open.
     body = await Promise.race([candidate, timeout]);
@@ -179,7 +180,7 @@ export default {
       return publishVector(request, env);
     }
 
-    // Native origin work is deliberately outside the optional 4 ms SEO budget.
+    // Native origin work is deliberately outside the optional SEO edge budget.
     const nativeResponse = await fetch(request);
     const contentType = nativeResponse.headers.get("content-type")?.toLowerCase() ?? "";
     if (!contentType.includes("text/html") || nativeResponse.status === 204 || nativeResponse.status === 304) {
