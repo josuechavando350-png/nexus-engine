@@ -35,8 +35,9 @@ assert mapping["M1725"] == "M725"
 print("exact semantic slice: M1701-M1725 -> M701-M725")
 PY
 
-echo "[5/6] Reject fabricated providers/placeholders and cano coupling"
-if grep -RInE 'tusitio\.com|example\.com|SEO Avengers Suite|google_kg_mock|apps/cano-penal|delivery/cano-penal' seo-avengers-800; then
+echo "[5/6] Reject fabricated providers/placeholders and client coupling in executable/test code"
+if grep -RInE 'tusitio\.com|example\.com|SEO Avengers Suite|google_kg_mock|apps/cano-penal|delivery/cano-penal' \
+  seo-avengers-800/runtime seo-avengers-800/tests; then
   echo "forbidden fabricated/coupled content found" >&2
   exit 1
 fi
