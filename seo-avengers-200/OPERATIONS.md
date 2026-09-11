@@ -85,15 +85,18 @@ seo_vectors:<site_id>:<pathname>
 
 The Rust transformer is shared through `SEO_AVENGERS_TRANSFORMER` Service Binding. Tenant identity does not come from the transformer environment; the JSON-LD graph comes only from the `site_id`-scoped semantic snapshot.
 
-## 4 ms rule
+## Edge deadline rules
 
-The 4 ms timer starts only after the native/external origin response has arrived. It races:
+Origin/network work and HTML body materialization are outside the optional SEO deadline. Only the KV lookup plus Rust Service Binding transform are raced against fallback:
 
 ```text
-read HTML + read route vector + call Rust Service Binding + receive transformed HTML
+origin response + body materialization
+  -> start optional SEO timer
+  -> read route vector + call Rust Service Binding + receive transformed HTML
+  -> hash/header assembly after a successful transform
 ```
 
-against the fallback. WAN/origin latency cannot truthfully be included in a 4 ms guarantee. When the transform loses that race, the untouched origin response is returned.
+The production-hardened native Nexus gateway uses a **50 ms** optional edge deadline. The external reverse proxy retains the source-spec **4 ms** optional edge deadline. Neither figure is an end-to-end network SLA. When the transform loses its race, the untouched native/origin response is returned.
 
 ## Dry runs
 
