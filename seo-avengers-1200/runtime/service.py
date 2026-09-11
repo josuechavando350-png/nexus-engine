@@ -1,9 +1,32 @@
 from __future__ import annotations
 
+import json
 from typing import Any, Dict
 
 from .legacy_bridge import bridge_semantic200_module_evidence
 from .seo_avengers_1200 import SeoAvengers1200Runtime
+
+
+def _resolve_legacy_evidence(effective_payload: Dict[str, Any]) -> Any:
+    direct = effective_payload.pop("seo_avengers_200_module_evidence", None)
+    transported = effective_payload.pop("seo_avengers_200_module_evidence_json", None)
+
+    if direct is not None and transported is not None:
+        return {
+            "__bridge_conflict__": {
+                "evidence_hash": "INVALID",
+            }
+        }
+    if direct is not None:
+        return direct
+    if transported is None:
+        return None
+    if not isinstance(transported, str):
+        return transported
+    try:
+        return json.loads(transported)
+    except json.JSONDecodeError:
+        return transported
 
 
 def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
@@ -20,7 +43,7 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
         return runtime.execute(payload, config)
 
     effective_payload = dict(payload)
-    legacy_value = effective_payload.pop("seo_avengers_200_module_evidence", None)
+    legacy_value = _resolve_legacy_evidence(effective_payload)
     legacy_rows, bridge_summary = bridge_semantic200_module_evidence(legacy_value)
 
     upstream = effective_payload.get("upstream_evidence", [])
