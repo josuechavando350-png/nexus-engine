@@ -18,7 +18,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from runtime.seo_avengers_1200 import SeoAvengers1200Runtime  # noqa: E402
+from runtime.service import execute_avengers_1200  # noqa: E402
 
 
 def main() -> int:
@@ -44,7 +44,7 @@ def main() -> int:
 
     payload = request.get("payload", {})
     config = request.get("config", {})
-    result = SeoAvengers1200Runtime().execute(payload, config)
+    result = execute_avengers_1200(payload, config)
     json.dump(result, sys.stdout, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False)
     sys.stdout.write("\n")
 
