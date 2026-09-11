@@ -87,7 +87,7 @@ class Batch203504Tests(unittest.TestCase):
             {"m404_min_points": 7, "m404_max_peak_share_ppm": 400_000},
         )
         self.assertEqual(result["execution_status"], "SUCCESS")
-        self.assertEqual(result["output"]["peak_share_ppm"], 625_000)
+        self.assertEqual(result["output"]["concentrated_entities"][0]["peak_share_ppm"], 625_000)
         self.assertEqual(result["reason_code"], "TRAFFIC_PEAK_CONCENTRATION_HIGH")
 
     def test_m503_reports_only_observed_funnel_stage_weakness(self):
