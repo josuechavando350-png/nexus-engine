@@ -1,0 +1,41 @@
+name: SEO Avengers 600 Isolated Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'seo-avengers-600/**'
+      - '.github/workflows/seo-avengers-600-isolated-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-600:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Verify original 400 plus new 200
+        run: bash seo-avengers-600/scripts/verify.sh
+
+      - name: Prove branch diff is isolated
+        shell: bash
+        run: |
+          git fetch origin main --no-tags
+          CHANGED="$(git diff --name-only origin/main...HEAD)"
+          BAD="$(printf '%s\n' "$CHANGED" | grep -Ev '^(seo-avengers-600/|\.github/workflows/seo-avengers-600-isolated-check\.yml$)' || true)"
+          if [ -n "$BAD" ]; then
+            echo 'Avengers 600 branch changed files outside the isolated allowlist:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          if printf '%s\n' "$CHANGED" | grep -Eq '^(apps/cano-penal|delivery/cano-penal)/'; then
+            echo 'Avengers 600 unexpectedly touched cano-penal' >&2
+            exit 1
+          fi
+          echo 'branch diff is isolated to seo-avengers-600 and its dedicated workflow'
