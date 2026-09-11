@@ -14,7 +14,8 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from runtime.seo_avengers_1200 import SeoAvengers1200Runtime, canonical_hash  # noqa: E402
+from runtime.seo_avengers_1200 import canonical_hash  # noqa: E402
+from runtime.service import execute_avengers_1200  # noqa: E402
 from runtime.wire import envelope_hash_v1  # noqa: E402
 
 AUTHORITY = "NEXUS_SEO_AVENGERS_1200_EXTENSION_V1"
@@ -109,7 +110,6 @@ def process(project_dir: Path, limit: int) -> dict[str, Any]:
     processed = 0
     rejected = 0
     halt_recommended = 0
-    runtime = SeoAvengers1200Runtime()
 
     jobs = sorted(path for path in outbox.glob("*.json") if path.is_file())[:limit]
     for job_path in jobs:
@@ -119,7 +119,7 @@ def process(project_dir: Path, limit: int) -> dict[str, Any]:
             # This is not caller-controlled activation: the worker already
             # revalidated both project switches immediately above.
             runtime_config["CONFIG_SEO_AVENGERS_1200"] = True
-            result = runtime.execute(envelope["payload"], runtime_config)
+            result = execute_avengers_1200(envelope["payload"], runtime_config)
             result_envelope = {
                 "authority": "NEXUS_SEO_AVENGERS_1200_RESULT_V1",
                 "site_id": envelope["site_id"],
