@@ -200,3 +200,86 @@ def run_m310(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
          "high_pressure_keywords": high_pressure_keywords,
          "invalid_records_count": invalid_count},
     )
+
+
+def run_m311(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Measure site coverage share inside explicitly observed high-competition search volume."""
+    module = "M311"
+    algorithm = "high_pressure_competitive_site_coverage_share_monitor"
+    raw_hash, dataset, invalid_count, conflicts = _prepare_competitor_records(records)
+    early = _competitive_input_error(module, algorithm, records, raw_hash)
+    if early is not None:
+        return early
+
+    min_volume = normalize_integer(config.get("m311_min_high_pressure_search_volume", 100), 100_000_000_000)
+    high_pressure_count = normalize_integer(config.get("m311_high_pressure_competitor_count", 4), 100_000)
+    min_coverage = normalize_integer(config.get("m311_min_site_coverage_share_ppm", 500_000), PPM_SCALE)
+    cfg_hash = canonical_hash({
+        "min_high_pressure_search_volume": min_volume if min_volume is not None else "INVALID",
+        "high_pressure_competitor_count": high_pressure_count if high_pressure_count is not None else "INVALID",
+        "min_site_coverage_share_ppm": min_coverage if min_coverage is not None else "INVALID",
+        "population": "competitor_ranked_count_gte_high_pressure_count_and_positive_search_volume",
+        "numerator": "site_ranked_high_pressure_search_volume",
+        "denominator": "all_high_pressure_search_volume",
+    })
+    norm_hash = _competitive_norm_hash(dataset, invalid_count, conflicts)
+    if (min_volume is None or min_volume < 1 or high_pressure_count is None or
+            high_pressure_count < 1 or min_coverage is None):
+        return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+                               "ERROR", "NOT_APPLICABLE", "INVALID_MODULE_CONFIG", {})
+    data_quality = _competitive_data_quality_receipt(
+        module, algorithm, raw_hash, norm_hash, cfg_hash, conflicts, invalid_count
+    )
+    if data_quality is not None:
+        return data_quality
+
+    high_pressure_volume = 0
+    covered_volume = 0
+    uncovered_keywords: List[Dict[str, Any]] = []
+    for item in dataset:
+        if item["competitor_ranked_count"] < high_pressure_count or item["search_volume"] == 0:
+            continue
+        next_total = _checked_add(high_pressure_volume, item["search_volume"])
+        if next_total is None:
+            return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+                                   "ERROR", "NOT_APPLICABLE", "ARITHMETIC_RANGE_EXCEEDED", {})
+        high_pressure_volume = next_total
+        if item["site_ranked"]:
+            next_covered = _checked_add(covered_volume, item["search_volume"])
+            if next_covered is None:
+                return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+                                       "ERROR", "NOT_APPLICABLE", "ARITHMETIC_RANGE_EXCEEDED", {})
+            covered_volume = next_covered
+        else:
+            uncovered_keywords.append({
+                "keyword": item["keyword"],
+                "search_volume": item["search_volume"],
+                "competitor_ranked_count": item["competitor_ranked_count"],
+            })
+
+    if high_pressure_volume == 0 or high_pressure_volume < min_volume:
+        return compile_receipt(
+            module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+            "INSUFFICIENT_DATA", "NOT_APPLICABLE", "INSUFFICIENT_HIGH_PRESSURE_COMPETITIVE_VOLUME",
+            {"high_pressure_search_volume": high_pressure_volume,
+             "invalid_records_count": invalid_count},
+        )
+    coverage = div_round_half_even(covered_volume, high_pressure_volume, PPM_SCALE)
+    if coverage is None:
+        return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+                               "ERROR", "NOT_APPLICABLE", "ARITHMETIC_RANGE_EXCEEDED", {})
+    low = coverage < min_coverage
+    uncovered_keywords.sort(key=lambda item: (
+        -item["search_volume"], -item["competitor_ranked_count"], item["keyword"]
+    ))
+    return compile_receipt(
+        module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+        "SUCCESS", "FINDING" if low else "NO_FINDING",
+        "HIGH_PRESSURE_SITE_COVERAGE_LOW" if low else "HIGH_PRESSURE_SITE_COVERAGE_WITHIN_POLICY",
+        {"share_scale": PPM_SCALE,
+         "high_pressure_search_volume": high_pressure_volume,
+         "site_covered_high_pressure_search_volume": covered_volume,
+         "high_pressure_site_coverage_ppm": coverage,
+         "uncovered_high_pressure_keywords": uncovered_keywords,
+         "invalid_records_count": invalid_count},
+    )
