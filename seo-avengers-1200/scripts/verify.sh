@@ -4,9 +4,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 echo "[1/8] Python syntax"
-python3 -m py_compile runtime/__init__.py runtime/seo_avengers_1200.py runtime/wire.py tests/test_runtime.py tests/test_outbox_worker.py scripts/run.py scripts/process-outbox.py
+python3 -m py_compile runtime/__init__.py runtime/seo_avengers_1200.py runtime/wire.py runtime/legacy_bridge.py runtime/service.py tests/test_runtime.py tests/test_gateway_edges.py tests/test_outbox_worker.py tests/test_legacy_bridge.py scripts/run.py scripts/process-outbox.py
 
-echo "[2/8] Runtime + worker unit/golden tests"
+echo "[2/8] Runtime + bridge + worker unit/golden tests"
 python3 -m unittest discover -s tests -v
 
 echo "[3/8] Node/Python outbox wire contract + lazy bypass"
