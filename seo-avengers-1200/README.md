@@ -68,6 +68,12 @@ bash scripts/verify.sh
 
 The verification suite covers syntax, deterministic golden vectors, exact 1200-slot registry cardinality, deny-by-default activation, Node/Python wire-hash parity, the SEO Avengers 200 evidence bridge, durable worker behavior, fail-closed integrity handling, and the invariant that no reserved slot has an executable handler.
 
+## How the remaining slots are populated
+
+Promotion is deliberately incremental. The generated 6048-line placeholder artifact is useful only as a rough category inventory; it is **not** treated as executable truth. Each future batch is reconstructed from an actual source contract or a newly reviewed algorithm, tested in isolation, connected to a real data producer, and only then moved from `RESERVED` to `IMPLEMENTED_PRODUCTION`.
+
+This means the suite can grow to 1200 real capabilities without poisoning the engine with repeated formulas, malformed identifiers, fake provider results, or invented telemetry. If a slot has no verified algorithm/data contract yet, leaving it reserved is the correct production behavior.
+
 ## Next integration slices
 
 Post-200 modules are promoted in small reviewed batches. Each promotion must include its algorithm, input normalization, configuration hash, deterministic receipt/evidence hash, positive/negative/boundary tests, and a real integration data source. No module is promoted from `RESERVED` because of a name or placeholder implementation.
