@@ -1,0 +1,68 @@
+syntax = "proto3";
+package nexus.seo.v1;
+
+// Control-plane API only. Expensive work is always submitted as a job and
+// resolved out-of-band; Nexus render/hash generation never waits on it.
+service SeoAvengers {
+  rpc SubmitJob(SubmitJobRequest) returns (SubmitJobResponse);
+  rpc SubmitPageRank(PageRankJobRequest) returns (SubmitJobResponse);
+  rpc GetJob(GetJobRequest) returns (JobResult);
+}
+
+message Provenance {
+  string source_revision = 1;
+  string input_hash = 2;
+  string idempotency_key = 3;
+}
+
+message SubmitJobRequest {
+  uint32 module_id = 1;
+  Provenance provenance = 2;
+  bytes payload_json = 3;
+}
+
+message SubmitJobResponse {
+  string job_id = 1;
+  bool deduplicated = 2;
+}
+
+message GetJobRequest { string job_id = 1; }
+
+message JobResult {
+  string job_id = 1;
+  string status = 2;
+  string output_hash = 3;
+  bytes payload_json = 4;
+  string error = 5;
+}
+
+message Link {
+  string from = 1;
+  string to = 2;
+}
+
+message PageRankRequest {
+  repeated string routes = 1;
+  repeated Link links = 2;
+  double damping = 3;
+  double tolerance = 4;
+  uint32 max_iterations = 5;
+}
+
+message PageRankJobRequest {
+  Provenance provenance = 1;
+  PageRankRequest graph = 2;
+}
+
+message RouteScore {
+  string route = 1;
+  double score = 2;
+}
+
+message PageRankResponse {
+  repeated RouteScore scores = 1;
+  uint32 iterations = 2;
+  double residual_l1 = 3;
+  bool converged = 4;
+  string output_hash = 5;
+}

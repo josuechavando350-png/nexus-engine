@@ -1,0 +1,1 @@
+{"name":"@nexus/core-go-backend","version":"1.0.0","private":true,"scripts":{"test":"go test ./..."}}

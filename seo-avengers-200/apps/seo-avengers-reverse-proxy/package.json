@@ -1,0 +1,16 @@
+{
+  "name": "@nexus/seo-avengers-reverse-proxy",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "wrangler dev --config wrangler.generated.jsonc",
+    "deploy": "wrangler deploy --config wrangler.generated.jsonc"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260909.0",
+    "typescript": "^6.0.3",
+    "wrangler": "^4.68.0"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "seo-avengers-gateway",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-09-09",
+  "workers_dev": false,
+  "preview_urls": false,
+  "routes": [],
+  "vars": {
+    "CONFIG_SEO_AVENGERS_200": "false",
+    "NEXUS_SITE_ID": "disabled"
+  },
+  "observability": { "enabled": true }
+}

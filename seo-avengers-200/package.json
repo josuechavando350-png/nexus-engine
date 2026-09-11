@@ -1,0 +1,13 @@
+{
+  "name": "seo-avengers-200",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "verify": "bash ./scripts/verify.sh",
+    "test:go": "go test ./packages/Core-Go-Backend/... ./apps/nexus-commander-dashboard/...",
+    "format:rust": "cargo fmt --all -- --check",
+    "typecheck:telemetry": "npm --workspace @nexus/telemetry-cortex run typecheck"
+  },
+  "engines": {"node": ">=22"}
+}

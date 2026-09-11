@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+node_modules/
+target/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+coverage/
+dist/
+.wrangler/
+apps/*/wrangler.generated*.jsonc
