@@ -24,18 +24,26 @@ The old generated `seo-avengers-1200-core` artifact is deliberately not imported
 | M202 | Search Demand Concentration Monitor | `IMPLEMENTED_PRODUCTION` |
 | M203 | Zero-Click Search Exposure Detector | `IMPLEMENTED_PRODUCTION` |
 | M204 | Search Query Multi-Page Exposure Detector | `IMPLEMENTED_PRODUCTION` |
+| M205 | Search Position Band Exposure Monitor | `IMPLEMENTED_PRODUCTION` |
+| M206 | Search Click Concentration Monitor | `IMPLEMENTED_PRODUCTION` |
 | M301 | Competitor Keyword Gap Detector | `IMPLEMENTED_PRODUCTION` |
 | M302 | Competitive Keyword Coverage Share Monitor | `IMPLEMENTED_PRODUCTION` |
 | M303 | Competitor Saturation Share Monitor | `IMPLEMENTED_PRODUCTION` |
 | M304 | Uncovered Keyword Opportunity Concentration Monitor | `IMPLEMENTED_PRODUCTION` |
+| M305 | Competitive Keyword Breadth Monitor | `IMPLEMENTED_PRODUCTION` |
+| M306 | Contested Site Coverage Share Monitor | `IMPLEMENTED_PRODUCTION` |
 | M401 | Traffic Window Change Detector | `IMPLEMENTED_PRODUCTION` |
 | M402 | Traffic Volatility Monitor | `IMPLEMENTED_PRODUCTION` |
 | M403 | Traffic Decline Streak Detector | `IMPLEMENTED_PRODUCTION` |
 | M404 | Traffic Peak Concentration Monitor | `IMPLEMENTED_PRODUCTION` |
+| M405 | Traffic Zero-Interval Share Monitor | `IMPLEMENTED_PRODUCTION` |
+| M406 | Traffic Half-Window Shift Detector | `IMPLEMENTED_PRODUCTION` |
 | M501 | Funnel Revenue Projection Auditor | `IMPLEMENTED_PRODUCTION` |
 | M502 | Revenue Attribution Coverage Monitor | `IMPLEMENTED_PRODUCTION` |
 | M503 | Funnel Stage Conversion Monitor | `IMPLEMENTED_PRODUCTION` |
 | M504 | Attributed Revenue Source Concentration Monitor | `IMPLEMENTED_PRODUCTION` |
+| M505 | Composed Funnel Conversion Monitor | `IMPLEMENTED_PRODUCTION` |
+| M506 | Source Attribution Gap Detector | `IMPLEMENTED_PRODUCTION` |
 | M601 | Internal Content Similarity Detector | `IMPLEMENTED_PRODUCTION` |
 | M602 | Content Decay Review Candidate Detector | `IMPLEMENTED_PRODUCTION` |
 | M701 | Unlinked Brand Mention Detector | `IMPLEMENTED_PRODUCTION` |
@@ -49,9 +57,9 @@ The old generated `seo-avengers-1200-core` artifact is deliberately not imported
 | M1101 | Edge Evidence Integrity Inspector | `IMPLEMENTED_PRODUCTION` |
 | M1102 | Edge Deployment Integrity Gate Policy | `IMPLEMENTED_PRODUCTION` |
 
-**Current truth:** the extension contributes 28 reviewed executable post-200 modules. M1-M200 remain owned by the existing Avengers 200 implementation. The other 972 post-200 slots remain reserved and non-executable.
+**Current truth:** the extension contributes 36 reviewed executable post-200 modules. M1-M200 remain owned by the existing Avengers 200 implementation. The other 964 post-200 slots remain reserved and non-executable.
 
-M201-M204 consume explicit search-performance records for CTR opportunity, demand concentration, zero-click exposure, and multi-page query exposure. M301-M304 consume explicit competitive keyword coverage and search-volume evidence for gaps, weighted coverage, saturation, and uncovered-opportunity concentration. M401-M404 use equal-window or bounded traffic series for material change, relative MAD, decline streaks, and peak concentration; none claims to forecast. M501-M504 operate only on supplied funnel and attribution evidence: projection, attribution coverage, stage conversion policy, and attributed-source concentration. M601-M802 preserve their reviewed content, external-corpus, NAP, and microdegree contracts. M901-M1102 remain the reviewed policy, visual, integrity, and deployment-gate layer.
+M201-M206 consume explicit search-performance records for CTR opportunity, demand concentration, zero-click exposure, multi-page query exposure, position-band exposure, and click concentration. M301-M306 consume explicit competitive keyword coverage/search-volume evidence for gaps, weighted coverage, saturation, opportunity concentration, count-based breadth, and contested site coverage. M401-M406 use equal-window or bounded traffic series for material change, relative MAD, decline streaks, peak concentration, zero-interval share, and equal-half shifts; none claims to forecast. M501-M506 operate only on supplied funnel and attribution evidence: projection, aggregate attribution coverage, stage conversion policy, attributed-source concentration, composed funnel conversion, and source-level attribution gaps. M601-M802 preserve their reviewed content, external-corpus, NAP, and microdegree contracts. M901-M1102 remain the reviewed policy, visual, integrity, and deployment-gate layer.
 
 The extension also contains a **verification bridge**, not a new fake module, for real `module_evidence` already emitted by SEO Avengers 200. The bridge reproduces the existing 200 hash contract before wrapping a verified record into a normal receipt. A mismatch becomes invalid evidence and therefore reaches M1101/M1102 as fail-closed input.
 
@@ -71,10 +79,10 @@ isolated Avengers sidecars
                v
         verified 200-evidence bridge
                |
-        M201-M204   search performance
-        M301-M304   competitive coverage
-        M401-M404   traffic behavior
-        M501-M504   revenue/funnel evidence
+        M201-M206   search performance
+        M301-M306   competitive coverage
+        M401-M406   traffic behavior
+        M501-M506   revenue/funnel evidence
         M601-M602   content quality
         M701-M702   external brand corpus
         M801-M802   local consistency
@@ -88,7 +96,7 @@ isolated Avengers sidecars
         M1102 deployment gate policy
 ```
 
-Every promoted pre-gate module emits a normal receipt. The public service composes all twenty-six pre-gate receipts into one evidence set, M1101 recomputes their integrity, and M1102 evaluates the exact required manifest. Reserved modules never enter the dispatcher or denominator.
+Every promoted pre-gate module emits a normal receipt. The public service composes all thirty-four pre-gate receipts into one evidence set, M1101 recomputes their integrity, and M1102 evaluates the exact required manifest. Reserved modules never enter the dispatcher or denominator.
 
 The outbox producer and Python worker use a byte-identical typed wire hash across Node/Python. Legacy SEO Avengers 200 evidence can contain real floating-point semantic measurements, so it is transported as a hash-bound canonical JSON string and revalidated under the original Python evidence hash contract after parsing.
 
@@ -102,7 +110,7 @@ From this directory:
 bash scripts/verify.sh
 ```
 
-The verification suite covers syntax, deterministic golden vectors, exact 1200-slot registry cardinality, the twenty-eight-module production allowlist, deny-by-default activation, Node/Python wire-hash parity, the SEO Avengers 200 evidence bridge, durable worker behavior, fail-closed integrity handling, and the invariant that no reserved slot has an executable handler.
+The verification suite covers syntax, deterministic golden vectors, exact 1200-slot registry cardinality, the thirty-six-module production allowlist, deny-by-default activation, Node/Python wire-hash parity, the SEO Avengers 200 evidence bridge, durable worker behavior, fail-closed integrity handling, and the invariant that no reserved slot has an executable handler.
 
 ## How the remaining slots are populated
 
