@@ -6,6 +6,7 @@ import { readSeoAvengers1200ProjectConfig } from "./seo-avengers-1200-config.mjs
 const AUTHORITY = "NEXUS_SEO_AVENGERS_1200_EXTENSION_V1";
 const MAX_IMAGES = 10_000;
 const MAX_UPSTREAM_EVIDENCE = 1_200;
+const MAX_LEGACY_MODULE_EVIDENCE = 200;
 const JSON_KEY_RE = /^[A-Za-z0-9_.:-]+$/;
 
 function assertJsonValue(value, path = "$") {
@@ -32,11 +33,42 @@ function assertJsonValue(value, path = "$") {
   throw new TypeError(`${path} contains a non-JSON value`);
 }
 
+function assertLegacyJsonValue(value, path = "$") {
+  if (value === null || typeof value === "string" || typeof value === "boolean") return;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new TypeError(`${path} contains a non-finite number`);
+    return;
+  }
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) assertLegacyJsonValue(value[index], `${path}[${index}]`);
+    return;
+  }
+  if (typeof value === "object") {
+    const proto = Object.getPrototypeOf(value);
+    if (proto !== Object.prototype && proto !== null) throw new TypeError(`${path} must be a plain JSON object`);
+    for (const [key, child] of Object.entries(value)) {
+      if (!JSON_KEY_RE.test(key)) throw new TypeError(`${path} contains a non-canonical object key`);
+      assertLegacyJsonValue(child, `${path}.${key}`);
+    }
+    return;
+  }
+  throw new TypeError(`${path} contains a non-JSON value`);
+}
+
 function canonicalJson(value) {
   assertJsonValue(value);
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
   if (value && typeof value === "object") {
     return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function canonicalLegacyJson(value) {
+  assertLegacyJsonValue(value);
+  if (Array.isArray(value)) return `[${value.map(canonicalLegacyJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalLegacyJson(value[key])}`).join(",")}}`;
   }
   return JSON.stringify(value);
 }
@@ -95,6 +127,7 @@ function validateExtensionPayload(value) {
   const metaTelemetry = value.meta_telemetry ?? {};
   const siteImagesData = value.site_images_data ?? [];
   const upstreamEvidence = value.upstream_evidence ?? [];
+  const legacyEvidence = value.seo_avengers_200_module_evidence;
 
   if (!metaTelemetry || typeof metaTelemetry !== "object" || Array.isArray(metaTelemetry)) {
     throw new TypeError("meta_telemetry must be an object");
@@ -106,10 +139,22 @@ function validateExtensionPayload(value) {
     throw new TypeError(`upstream_evidence must be an array with at most ${MAX_UPSTREAM_EVIDENCE} entries`);
   }
 
+  let legacyEvidenceJson = null;
+  if (legacyEvidence !== undefined && legacyEvidence !== null) {
+    if (typeof legacyEvidence !== "object" || Array.isArray(legacyEvidence)) {
+      throw new TypeError("seo_avengers_200_module_evidence must be an object");
+    }
+    if (Object.keys(legacyEvidence).length > MAX_LEGACY_MODULE_EVIDENCE) {
+      throw new TypeError(`seo_avengers_200_module_evidence may contain at most ${MAX_LEGACY_MODULE_EVIDENCE} records`);
+    }
+    legacyEvidenceJson = canonicalLegacyJson(legacyEvidence);
+  }
+
   const normalized = {
     meta_telemetry: metaTelemetry,
     site_images_data: siteImagesData,
     upstream_evidence: upstreamEvidence,
+    seo_avengers_200_module_evidence_json: legacyEvidenceJson,
   };
   assertJsonValue(normalized);
   return normalized;
