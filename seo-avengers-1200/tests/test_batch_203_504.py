@@ -114,37 +114,27 @@ class Batch203504Tests(unittest.TestCase):
         self.assertEqual(result["output"]["top_source_share_ppm"], 800_000)
         self.assertEqual(result["reason_code"], "ATTRIBUTED_REVENUE_SOURCE_CONCENTRATION_HIGH")
 
-    def test_catalog_truthfully_has_twenty_eight_extended_modules(self):
+    def test_original_203_504_batch_remains_promoted_as_catalog_grows(self):
         registry = module_registry()
-        self.assertEqual(len(IMPLEMENTED_EXTENDED_MODULES), 28)
-        self.assertEqual(len(PRE_GATE_MODULES), 26)
-        self.assertEqual(registry["M204"]["status"], "IMPLEMENTED_PRODUCTION")
-        self.assertEqual(registry["M504"]["status"], "IMPLEMENTED_PRODUCTION")
-        self.assertEqual(registry["M505"]["status"], "RESERVED")
-        self.assertFalse(registry["M505"]["executable_here"])
+        original_batch = {"M203", "M204", "M303", "M304", "M403", "M404", "M503", "M504"}
+        self.assertTrue(original_batch.issubset(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertTrue(original_batch.issubset(PRE_GATE_MODULES))
+        for module_id in original_batch:
+            self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
+            self.assertTrue(registry[module_id]["executable_here"])
 
-    def test_all_twenty_six_pre_gate_receipts_reach_integrity_gateway(self):
-        payload = {
-            "meta_telemetry": {},
-            "site_images_data": [],
-            "search_performance_records": [],
-            "keyword_coverage_records": [],
-            "traffic_window_records": [],
-            "traffic_series_records": [],
-            "revenue_funnel_records": [],
-            "revenue_attribution_records": [],
-            "content_documents": [],
-            "content_decay_records": [],
-            "external_pages": [],
-            "local_business_records": [],
-            "upstream_evidence": [],
-        }
-        result = execute_avengers_1200(payload, {"CONFIG_SEO_AVENGERS_1200": True})
-        self.assertEqual(result["implemented_extended_modules"],
-                         sorted(IMPLEMENTED_EXTENDED_MODULES, key=lambda mid: int(mid[1:])))
-        self.assertEqual(result["reserved_extended_modules"], 972)
+    def test_current_pre_gate_manifest_reaches_integrity_gateway(self):
+        result = execute_avengers_1200({}, {"CONFIG_SEO_AVENGERS_1200": True})
+        self.assertEqual(
+            result["implemented_extended_modules"],
+            sorted(IMPLEMENTED_EXTENDED_MODULES, key=lambda module_id: int(module_id[1:])),
+        )
+        self.assertEqual(result["reserved_extended_modules"], 1000 - len(IMPLEMENTED_EXTENDED_MODULES))
         self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EDGE_EVIDENCE_INTEGRITY_VERIFIED")
-        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], 26)
+        self.assertEqual(
+            result["receipts"]["M1101"]["output"]["checked_modules_count"],
+            len(PRE_GATE_MODULES),
+        )
 
 
 if __name__ == "__main__":
