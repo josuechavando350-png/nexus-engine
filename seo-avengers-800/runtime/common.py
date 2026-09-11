@@ -123,6 +123,22 @@ def need_int_list(row: Mapping[str, Any], key: str, *, minimum: int | None = Non
     return out
 
 
+def overlap_ppm(left: Sequence[str], right: Sequence[str]) -> int:
+    a = {x.casefold() for x in left if x}
+    b = {x.casefold() for x in right if x}
+    if not a or not b:
+        raise InsufficientData("overlap_requires_nonempty_sets")
+    return ratio_ppm(len(a & b), len(a | b))
+
+
+def subset_coverage_ppm(required: Sequence[str], observed: Sequence[str]) -> int:
+    req = {x.casefold() for x in required if x}
+    obs = {x.casefold() for x in observed if x}
+    if not req:
+        raise InsufficientData("required_set_empty")
+    return ratio_ppm(len(req & obs), len(req))
+
+
 def normalize_records(payload: Mapping[str, Any], dataset_key: str) -> Dict[str, Dict[str, Any]]:
     raw = payload.get(dataset_key)
     if raw is None:
