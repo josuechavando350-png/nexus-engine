@@ -1,4 +1,4 @@
-name: SEO Avengers 800 Partial Batch Check
+name: SEO Avengers 800 Isolated Check
 
 on:
   pull_request:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  verify-partial-batch:
+  verify-800:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify audited M001-M600 plus implemented M601-M750 batch
+      - name: Verify audited M001-M600 plus exact M601-M800
         run: bash seo-avengers-800/scripts/verify.sh
 
       - name: Prove branch diff is isolated

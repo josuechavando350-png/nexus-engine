@@ -2,12 +2,13 @@ from __future__ import annotations
 from typing import Any, Dict, Sequence, Tuple
 
 from .foundation_specs import FOUNDATION_SPECS, SOURCE_MODULES as FOUNDATION_SOURCE_MODULES, TARGET_MODULES as FOUNDATION_TARGET_MODULES
+from .final_specs import FINAL_SPECS, SOURCE_MODULES as FINAL_SOURCE_MODULES, TARGET_MODULES as FINAL_TARGET_MODULES
 
 SEMANTIC_SOURCE_RANGE = (1701, 1725)
 SEMANTIC_TARGET_RANGE = (701, 725)
 HTML_SOURCE_RANGE = (1726, 1750)
 HTML_TARGET_RANGE = (726, 750)
-TOTAL_IMPLEMENTED_THIS_BATCH = 150
+TOTAL_IMPLEMENTED_THIS_BATCH = 200
 
 SEMANTIC_DATASET_KEY = "bayesian_semantic_records"
 HTML_DATASET_KEY = "html_stream_records"
@@ -87,20 +88,25 @@ def _add_ops(source_start: int, rows: Sequence[Tuple[str, Sequence[str], int]], 
 
 _add_ops(SEMANTIC_SOURCE_RANGE[0], SEMANTIC_BAYES_OPS, "SEMANTIC_BAYES", SEMANTIC_DATASET_KEY)
 _add_ops(HTML_SOURCE_RANGE[0], HTML_STREAM_OPS, "HTML_STREAM_V2", HTML_DATASET_KEY)
+MODULE_SPECS.update(FINAL_SPECS)
 
 SEMANTIC_TARGET_MODULES = tuple(f"M{i}" for i in range(SEMANTIC_TARGET_RANGE[0], SEMANTIC_TARGET_RANGE[1] + 1))
 SEMANTIC_SOURCE_MODULES = tuple(f"M{i}" for i in range(SEMANTIC_SOURCE_RANGE[0], SEMANTIC_SOURCE_RANGE[1] + 1))
 HTML_TARGET_MODULES = tuple(f"M{i}" for i in range(HTML_TARGET_RANGE[0], HTML_TARGET_RANGE[1] + 1))
 HTML_SOURCE_MODULES = tuple(f"M{i}" for i in range(HTML_SOURCE_RANGE[0], HTML_SOURCE_RANGE[1] + 1))
-TARGET_MODULES = tuple(f"M{i}" for i in range(601, 751))
-SOURCE_MODULES = tuple(f"M{i}" for i in range(1601, 1751))
+TARGET_MODULES = tuple(f"M{i}" for i in range(601, 801))
+SOURCE_MODULES = tuple(f"M{i}" for i in range(1601, 1801))
 
 if FOUNDATION_TARGET_MODULES != tuple(f"M{i}" for i in range(601, 701)):
     raise RuntimeError("foundation target range drift")
 if FOUNDATION_SOURCE_MODULES != tuple(f"M{i}" for i in range(1601, 1701)):
     raise RuntimeError("foundation source range drift")
+if FINAL_TARGET_MODULES != tuple(f"M{i}" for i in range(751, 801)):
+    raise RuntimeError("final target range drift")
+if FINAL_SOURCE_MODULES != tuple(f"M{i}" for i in range(1751, 1801)):
+    raise RuntimeError("final source range drift")
 if tuple(MODULE_SPECS) != TARGET_MODULES:
-    raise RuntimeError("M601-M750 manifest is incomplete or out of order")
+    raise RuntimeError("M601-M800 manifest is incomplete or out of order")
 if len(MODULE_SPECS) != TOTAL_IMPLEMENTED_THIS_BATCH:
     raise RuntimeError("implemented module cardinality mismatch")
 if len({spec["source_module"] for spec in MODULE_SPECS.values()}) != TOTAL_IMPLEMENTED_THIS_BATCH:

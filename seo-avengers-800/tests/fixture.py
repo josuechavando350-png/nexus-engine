@@ -1,7 +1,6 @@
 from __future__ import annotations
 
-from foundation_fixture import foundation_row
-from runtime.foundation_specs import FOUNDATION_SPECS
+from foundation_fixture import formula_row
 from runtime.manifest import MODULE_SPECS
 
 
@@ -60,9 +59,10 @@ VALUES = {
 
 
 def row_for(module_id: str) -> dict:
-    if module_id in FOUNDATION_SPECS:
-        return foundation_row(module_id)
-    op = MODULE_SPECS[module_id]["operation"]
+    spec = MODULE_SPECS[module_id]
+    if "formula" in spec:
+        return formula_row(module_id)
+    op = spec["operation"]
     row = {"module_id": module_id}
     row.update(VALUES[op])
     return row

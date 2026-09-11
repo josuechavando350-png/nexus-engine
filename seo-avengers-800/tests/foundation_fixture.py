@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from runtime.foundation_specs import FOUNDATION_SPECS
+from runtime.manifest import MODULE_SPECS
 
 
-def foundation_row(module_id: str) -> dict:
-    spec = FOUNDATION_SPECS[module_id]
+def formula_row(module_id: str) -> dict:
+    spec = MODULE_SPECS[module_id]
     fields = tuple(spec['input_fields'])
-    formula = str(spec['formula'])
+    formula = str(spec.get('formula', ''))
+    if not formula:
+        raise AssertionError(f'module has no formula fixture contract:{module_id}')
     row = {'module_id': module_id}
 
     if formula == 'coverage_count': row.update({fields[0]: 10, fields[1]: 10})
@@ -24,3 +26,7 @@ def foundation_row(module_id: str) -> dict:
     elif formula == 'delta_int': row.update({fields[0]: 10, fields[1]: 10, fields[2]: 0})
     else: raise AssertionError(f'unsupported fixture formula:{formula}')
     return row
+
+
+def foundation_row(module_id: str) -> dict:
+    return formula_row(module_id)

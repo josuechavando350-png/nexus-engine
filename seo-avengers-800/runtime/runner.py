@@ -43,7 +43,7 @@ def run_module(module_id: str, payload: Mapping[str, Any], config: Mapping[str, 
         normalized_row = _normalize(raw_row)
         threshold = int(module_config["threshold_ppm"])
         family = str(spec["family"])
-        if family in {"SEMANTIC_INTENT", "HTML_FOUNDATION", "EDGE_FOUNDATION", "RELATIONAL_FOUNDATION"}:
+        if family in {"SEMANTIC_INTENT", "HTML_FOUNDATION", "EDGE_FOUNDATION", "RELATIONAL_FOUNDATION", "EDGE_PARITY", "RELATIONAL_BAYES"}:
             effective_spec = dict(spec); effective_spec["threshold_ppm"] = threshold
             output = foundation_evidence.evaluate(str(spec["operation"]), normalized_row, effective_spec)
         elif family == "SEMANTIC_BAYES":
@@ -73,5 +73,5 @@ def run_html_stream_25(payload: Mapping[str, Any], config: Mapping[str, Any]) ->
     return {module_id: run_module(module_id, payload, config) for module_id in HTML_TARGET_MODULES}
 
 
-def run_implemented_150(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+def run_new_200(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
     return {module_id: run_module(module_id, payload, config) for module_id in TARGET_MODULES}
