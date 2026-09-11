@@ -5,7 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from runtime.seo_avengers_1200 import canonical_hash
+from runtime.wire import envelope_hash_v1
 
 
 class OutboxWorkerTests(unittest.TestCase):
@@ -51,7 +51,7 @@ class OutboxWorkerTests(unittest.TestCase):
                 "payload": payload,
                 "runtime_config": runtime_config,
             }
-            input_hash = canonical_hash(core)
+            input_hash = envelope_hash_v1(core)
             envelope = {
                 **core,
                 "input_hash": input_hash,
