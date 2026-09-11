@@ -15,6 +15,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from runtime.seo_avengers_1200 import SeoAvengers1200Runtime, canonical_hash  # noqa: E402
+from runtime.wire import envelope_hash_v1  # noqa: E402
 
 AUTHORITY = "NEXUS_SEO_AVENGERS_1200_EXTENSION_V1"
 
@@ -65,7 +66,7 @@ def load_and_verify_envelope(path: Path) -> dict[str, Any]:
         "payload": envelope.get("payload"),
         "runtime_config": envelope.get("runtime_config"),
     }
-    if canonical_hash(core) != input_hash:
+    if envelope_hash_v1(core) != input_hash:
         raise ValueError("envelope input_hash mismatch")
     if not isinstance(core["payload"], dict) or not isinstance(core["runtime_config"], dict):
         raise ValueError("invalid envelope payload/config schema")
