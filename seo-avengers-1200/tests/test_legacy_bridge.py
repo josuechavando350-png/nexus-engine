@@ -1,6 +1,7 @@
 import json
 import unittest
 
+from runtime.catalog import PRE_GATE_MODULES
 from runtime.legacy_bridge import bridge_semantic200_module_evidence
 from runtime.seo_avengers_1200 import canonical_hash
 from runtime.service import execute_avengers_1200
@@ -24,6 +25,10 @@ class LegacyEvidenceBridgeTests(unittest.TestCase):
         }
         record["evidence_hash"] = canonical_hash({"module_id": 51, **record})
         return record
+
+    @staticmethod
+    def _manifest_with_m51():
+        return ["M51", *PRE_GATE_MODULES]
 
     def test_valid_semantic200_record_is_independently_verified(self):
         record = self._legacy_record()
@@ -51,7 +56,7 @@ class LegacyEvidenceBridgeTests(unittest.TestCase):
         }
         config = {
             "CONFIG_SEO_AVENGERS_1200": True,
-            "m1102_required_module_ids": ["M51", "M901", "M902", "M1001", "M1002"],
+            "m1102_required_module_ids": self._manifest_with_m51(),
             "m1102_max_failure_rate_ppm": 50_000,
         }
         result = execute_avengers_1200(payload, config)
@@ -70,7 +75,7 @@ class LegacyEvidenceBridgeTests(unittest.TestCase):
         }
         config = {
             "CONFIG_SEO_AVENGERS_1200": True,
-            "m1102_required_module_ids": ["M51", "M901", "M902", "M1001", "M1002"],
+            "m1102_required_module_ids": self._manifest_with_m51(),
             "m1102_max_failure_rate_ppm": 1_000_000,
         }
         result = execute_avengers_1200(payload, config)
@@ -89,7 +94,7 @@ class LegacyEvidenceBridgeTests(unittest.TestCase):
         }
         config = {
             "CONFIG_SEO_AVENGERS_1200": True,
-            "m1102_required_module_ids": ["M51", "M901", "M902", "M1001", "M1002"],
+            "m1102_required_module_ids": self._manifest_with_m51(),
             "m1102_max_failure_rate_ppm": 1_000_000,
         }
         result = execute_avengers_1200(payload, config)
