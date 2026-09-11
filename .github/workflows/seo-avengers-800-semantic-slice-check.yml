@@ -1,0 +1,41 @@
+name: SEO Avengers 800 Semantic Slice Check
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'seo-avengers-800/**'
+      - '.github/workflows/seo-avengers-800-semantic-slice-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-semantic-slice:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Verify audited M001-M600 plus M701-M725 slice
+        run: bash seo-avengers-800/scripts/verify.sh
+
+      - name: Prove branch diff is isolated
+        shell: bash
+        run: |
+          git fetch origin main --no-tags
+          CHANGED="$(git diff --name-only origin/main...HEAD)"
+          BAD="$(printf '%s\n' "$CHANGED" | grep -Ev '^(seo-avengers-800/|\.github/workflows/seo-avengers-800-semantic-slice-check\.yml$)' || true)"
+          if [ -n "$BAD" ]; then
+            echo 'Avengers 800 semantic branch changed files outside the isolated allowlist:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+          if printf '%s\n' "$CHANGED" | grep -Eq '^(apps/cano-penal|delivery/cano-penal)/'; then
+            echo 'Avengers 800 semantic slice unexpectedly touched cano-penal' >&2
+            exit 1
+          fi
+          echo 'branch diff is isolated to seo-avengers-800 semantic slice and its dedicated workflow'
