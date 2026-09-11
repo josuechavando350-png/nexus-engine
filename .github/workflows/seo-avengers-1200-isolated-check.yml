@@ -1,0 +1,34 @@
+name: SEO Avengers 1200 Isolated Check
+
+on:
+  push:
+    branches:
+      - feat/seo-avengers-1200-real-runtime
+    paths:
+      - "seo-avengers-1200/**"
+      - ".github/workflows/seo-avengers-1200-isolated-check.yml"
+  pull_request:
+    paths:
+      - "seo-avengers-1200/**"
+      - ".github/workflows/seo-avengers-1200-isolated-check.yml"
+
+jobs:
+  verify-1200:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify isolated Avengers 1200 runtime
+        working-directory: seo-avengers-1200
+        run: bash scripts/verify.sh
+
+      - name: Prove feature branch does not touch client app
+        run: |
+          if git diff --name-only "${{ github.event.before }}" "${{ github.sha }}" 2>/dev/null | grep -q '^apps/cano-penal/'; then
+            echo 'seo-avengers-1200 change touched apps/cano-penal unexpectedly' >&2
+            exit 1
+          fi
+          echo 'no apps/cano-penal changes in this push'
