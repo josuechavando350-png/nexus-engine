@@ -118,19 +118,19 @@ class Batch6051006Tests(unittest.TestCase):
         self.assertEqual(finding["bound_violation"], "BELOW_MIN")
         self.assertEqual(finding["alt_token_count"], 1)
 
-    def test_catalog_and_gateway_include_all_fifty_eight_pre_gate_modules(self):
+    def test_m605_m1006_batch_remains_promoted_and_gateway_connected_as_catalog_grows(self):
         registry = module_registry()
-        self.assertEqual(len(IMPLEMENTED_EXTENDED_MODULES), 60)
-        self.assertEqual(len(PRE_GATE_MODULES), 58)
-        for module_id in ("M605", "M606", "M705", "M706", "M805", "M806", "M1005", "M1006"):
+        required = {"M605", "M606", "M705", "M706", "M805", "M806", "M1005", "M1006"}
+        self.assertTrue(required.issubset(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertTrue(required.issubset(set(PRE_GATE_MODULES)))
+        self.assertEqual(len(PRE_GATE_MODULES), len(IMPLEMENTED_EXTENDED_MODULES) - 2)
+        for module_id in required:
             self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
             self.assertTrue(registry[module_id]["executable_here"])
-        self.assertEqual(registry["M1007"]["status"], "RESERVED")
-        self.assertFalse(registry["M1007"]["executable_here"])
 
         result = execute_avengers_1200({}, {"CONFIG_SEO_AVENGERS_1200": True})
-        self.assertEqual(result["reserved_extended_modules"], 940)
-        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], 58)
+        self.assertEqual(result["reserved_extended_modules"], 1000 - len(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], len(PRE_GATE_MODULES))
         self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EDGE_EVIDENCE_INTEGRITY_VERIFIED")
         self.assertFalse(result["receipts"]["M1102"]["output"]["deployment_halt_recommended"])
 
