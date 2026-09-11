@@ -6,7 +6,7 @@ export interface Env {
   SEO_AVENGERS_TRANSFORMER: Fetcher;
 }
 
-const SEO_BUDGET_MS = 50;
+const SEO_BUDGET_MS = 100;
 const MAX_HTML_BYTES = 2 * 1024 * 1024;
 const VECTOR_ADMIN_PATH = "/__nexus/seo-vector";
 
@@ -26,6 +26,21 @@ function transformedHeaders(headers: Headers, etag?: string): Headers {
   next.set("x-nexus-seo-suite", "SEO_AVENGERS_200");
   if (etag) next.set("etag", etag);
   return next;
+}
+
+function enforceNexusAutomationCanonical(body: string, requestUrl: URL, siteId: string): string {
+  if (siteId !== "nexus-bot-studio" || requestUrl.pathname !== "/automation") return body;
+
+  const canonical = "https://nexusbotstudio.com/automation";
+  return body.replace(
+    /<link\b(?=[^>]*\brel\s*=\s*["']canonical["'])[^>]*>/i,
+    (tag) => {
+      if (/\bhref\s*=\s*["'][^"']*["']/i.test(tag)) {
+        return tag.replace(/\bhref\s*=\s*["'][^"']*["']/i, `href="${canonical}"`);
+      }
+      return tag.replace(/>$/, ` href="${canonical}">`);
+    },
+  );
 }
 
 function tokenMatches(expected: string, got: string): boolean {
@@ -148,14 +163,15 @@ async function transformWithinBudget(
 
   let body: string;
   try {
-    // The 50 ms guard covers only optional KV lookup + Rust transform.
-    // Local response hashing/header assembly happens after the shadow candidate
-    // has already won the race and therefore cannot cause a false fail-open.
+    // The 100 ms guard covers only optional KV lookup + Rust transform.
+    // Local canonical correction plus response hashing/header assembly happen
+    // after the shadow candidate has already won the race.
     body = await Promise.race([candidate, timeout]);
   } finally {
     if (timer !== undefined) clearTimeout(timer);
   }
 
+  body = enforceNexusAutomationCanonical(body, requestUrl, env.NEXUS_SITE_ID);
   const etag = await sha256Etag(body);
   const headers = transformedHeaders(nativeResponse.headers, etag);
   if (ifNoneMatchMatches(request.headers.get("if-none-match"), etag)) {
