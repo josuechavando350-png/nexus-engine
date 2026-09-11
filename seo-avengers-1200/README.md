@@ -27,6 +27,8 @@ The old generated `seo-avengers-1200-core` artifact is deliberately not imported
 | M1101 | Edge Evidence Integrity Inspector | `IMPLEMENTED_PRODUCTION` |
 | M1102 | Edge Deployment Integrity Gate Policy | `IMPLEMENTED_PRODUCTION` |
 
+**Current truth:** the new extension contributes 6 reviewed executable post-200 modules. M1-M200 remain owned by the existing Avengers 200 implementation. Nothing else is counted as implemented merely because its slot exists.
+
 The extension also contains a **verification bridge**, not a new fake module, for real `module_evidence` already emitted by SEO Avengers 200. The bridge reproduces the existing 200 hash contract before wrapping a verified record into a normal receipt. A mismatch becomes invalid evidence and therefore reaches M1101/M1102 as fail-closed input.
 
 ## Runtime chain
