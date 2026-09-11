@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/seo-avengers-200
+      - feat/cano-avengers-200-bootstrap
   workflow_dispatch:
 
 permissions:
