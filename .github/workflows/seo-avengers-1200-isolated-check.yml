@@ -27,12 +27,21 @@ jobs:
         working-directory: seo-avengers-1200
         run: bash scripts/verify.sh
 
-      - name: Prove branch does not touch client app
+      - name: Prove branch diff is isolated
         run: |
           git fetch origin main --no-tags --depth=1
           CHANGED="$(git diff --name-only origin/main...HEAD)"
+
+          BAD="$(printf '%s\n' "$CHANGED" | grep -Ev '^(seo-avengers-1200/|\.github/workflows/seo-avengers-1200-isolated-check\.yml$)' || true)"
+          if [ -n "$BAD" ]; then
+            echo 'seo-avengers-1200 branch changed files outside the isolated allowlist:' >&2
+            printf '%s\n' "$BAD" >&2
+            exit 1
+          fi
+
           if printf '%s\n' "$CHANGED" | grep -q '^apps/cano-penal/'; then
             echo 'seo-avengers-1200 change touched apps/cano-penal unexpectedly' >&2
             exit 1
           fi
-          echo 'no apps/cano-penal changes in branch diff'
+
+          echo 'branch diff is isolated to seo-avengers-1200 plus its dedicated workflow'
