@@ -209,7 +209,7 @@ def _build_request(
     )
 
 
-async def bootstrap_nexus_site(semantic_main: Any, provider_id: str) -> dict[str, int]:
+async def bootstrap_site_tenant(semantic_main: Any, provider_id: str) -> dict[str, int]:
     """Queue one authorized deployment tenant into the durable semantic store."""
     tenant = load_bootstrap_tenant()
     if tenant is None or not bootstrap_is_authorized_by_deployment(tenant):
@@ -269,3 +269,7 @@ async def bootstrap_nexus_site(semantic_main: Any, provider_id: str) -> dict[str
         flush=True,
     )
     return result
+
+
+# Backward-compatible internal alias for deployments still importing the old name.
+bootstrap_nexus_site = bootstrap_site_tenant
