@@ -6,7 +6,7 @@ Premium multi-tenant SEO/semantic sidecar for Nexus Bot Studio. This package exp
 
 `CONFIG_SEO_AVENGERS_200` is **OFF for every tenant in source control**. No tenant, including Nexus Bot Studio, is implicitly activated. A missing property is also OFF. The legacy `CONFIG_SEO_AVENGERS_50` flag is not an alias and cannot enable this suite.
 
-The attached source specification declares the same deny-by-default switch, a 4 ms edge guard and 200 non-blocking module contracts. Those 200 source contract fields are preserved exactly in `packages/Core-Go-Backend/module-catalog.json`. The implementation hardens unsafe/incomplete sample snippets rather than copying them blindly—for example, there is no hard-coded secret, no fabricated Wikidata identity, and the Python semantic worker contains real persistence/analysis logic rather than a `pass` placeholder.
+The attached source specification declares the same deny-by-default switch, a 4 ms edge guard and 200 non-blocking module contracts. Those 200 source contract fields are preserved exactly in `packages/Core-Go-Backend/module-catalog.json`. The production-hardened native Nexus gateway uses a 50 ms optional KV + Rust deadline; the external reverse proxy retains the 4 ms source-spec deadline. In both cases origin/body materialization is outside the optional edge timer. The implementation hardens unsafe/incomplete sample snippets rather than copying them blindly—for example, there is no hard-coded secret, no fabricated Wikidata identity, and the Python semantic worker contains real persistence/analysis logic rather than a `pass` placeholder.
 
 ## Isolation model
 
@@ -26,13 +26,15 @@ ON tenant (only after explicit operator activation)
   -> Python FastAPI / Google NLP v2 + deterministic vector profile
   -> isolated seo_vectors
   -> Edge KV snapshot
-  -> origin HTML
-  -> 4 ms optional KV + Rust/lol_html shadow transform
+  -> origin HTML/body materialization
+  -> bounded optional KV + Rust/lol_html shadow transform
+       ├─ native Nexus gateway: 50 ms
+       ├─ external reverse proxy: 4 ms
        ├─ success -> transformed response
        └─ timeout/error/miss -> untouched origin response
 ```
 
-The 4 ms figure is an **optional transform wait budget after the origin response exists**, not an end-to-end network SLA.
+These figures are **optional edge-transform wait budgets after origin/body materialization**, not end-to-end network SLAs.
 
 ## Module families
 
