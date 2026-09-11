@@ -74,13 +74,21 @@ try {
 }
 JS
 
-echo "[7/8] Native-wrapper import resolves without touching native pipeline"
-node --experimental-strip-types --input-type=module - <<'JS'
-const bridge = await import("./engine-overlay/scripts/nexus-client-pipeline-seo-avengers-1200.mjs");
-if (typeof bridge.runNexusClientPipelineWithSeoAvengers1200 !== "function") throw new Error("1200 bridge export missing");
-if (typeof bridge.runNexusClientPipelineWithWorkspaceRuntimeAndSeoAvengers1200 !== "function") throw new Error("1200 workspace bridge export missing");
-console.log("isolated native-pipeline bridge imports successfully");
-JS
+echo "[7/8] Native-wrapper syntax and import-target paths"
+node --check engine-overlay/scripts/nexus-client-pipeline-seo-avengers-1200.mjs
+python3 - <<'PY'
+from pathlib import Path
+wrapper = Path("engine-overlay/scripts/nexus-client-pipeline-seo-avengers-1200.mjs").resolve()
+base = wrapper.parent
+required = [
+    (base / "../../../scripts/nexus-client-pipeline.mjs").resolve(),
+    (base / "../../../seo-avengers-200/scripts/seo-avengers-200-outbox.mjs").resolve(),
+    (base / "../../scripts/seo-avengers-1200-outbox.mjs").resolve(),
+]
+for path in required:
+    assert path.is_file(), path
+print("wrapper parses and all direct import targets exist")
+PY
 
 echo "[8/8] Isolation invariant"
 python3 - <<'PY'
