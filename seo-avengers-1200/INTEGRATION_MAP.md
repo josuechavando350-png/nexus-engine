@@ -4,20 +4,9 @@
 
 The native Nexus pipeline remains the delivery authority. `seo-avengers-1200/**` is an opt-in sidecar extension and does not replace or mutate native generation, rendering, capture, judging, repair, or certification behavior.
 
-Activation requires both project flags to be the literal boolean `true`:
+Activation requires both project flags to be the literal boolean `true`: `CONFIG_SEO_AVENGERS_200` and `CONFIG_SEO_AVENGERS_1200`. Missing, false, malformed, or unreadable configuration is authoritative OFF. The producer checks activation before creating outbox work and the worker checks it again before consuming queued work.
 
-```json
-{
-  "nexus": {
-    "CONFIG_SEO_AVENGERS_200": true,
-    "CONFIG_SEO_AVENGERS_1200": true
-  }
-}
-```
-
-If either flag is absent, false, malformed, or unreadable, the extension is OFF. The outbox producer checks the switches before repository discovery or artifact creation. The outbox worker checks them again before consuming queued work.
-
-The dedicated CI gate accepts branch changes only under `seo-avengers-1200/**` plus `.github/workflows/seo-avengers-1200-isolated-check.yml`. Any other changed path fails the isolation check, with `apps/cano-penal/**` explicitly forbidden.
+The dedicated CI gate allows only `seo-avengers-1200/**` plus its dedicated workflow. Client code, including `apps/cano-penal/**`, remains outside this integration path.
 
 ## Current connection path
 
@@ -28,85 +17,61 @@ Nexus native pipeline
   v
 seo-avengers-1200 engine overlay
   |
-  +--> existing SEO Avengers 200 generated-copy outbox
+  +--> existing SEO Avengers 200 sidecar/evidence
   |
-  +--> SEO Avengers 1200 extension outbox
+  +--> SEO Avengers 1200 hash-bound outbox
           |
-          | typed Node/Python hash-bound envelope
           v
-      process-outbox.py
+      asynchronous worker
           |
           +--> verify/bridge real SEO Avengers 200 module_evidence
           |
-          v
-      SeoAvengers1200Runtime
-          |
-          +--> M901 infrastructure load throttle policy
-          +--> M902 algorithmic contradiction detector
-          +--> M1001 chromatic diversity ratio auditor
-          +--> M1002 alt-context lexical alignment auditor
+          +--> M201/M202 search performance
+          +--> M301/M302 competitive keyword coverage
+          +--> M401/M402 traffic change + volatility
+          +--> M501/M502 revenue projection + attribution coverage
+          +--> M601/M602 content quality
+          +--> M701/M702 external brand corpus
+          +--> M801/M802 local consistency
+          +--> M901/M902 runtime/meta policy
+          +--> M1001/M1002 visual-search signals
           |
           v
       M1101 trusted-boundary evidence recomputation
           |
           v
-      M1102 deployment integrity gate policy
+      M1102 exact-manifest deployment gate policy
           |
           v
       immutable result artifact
 ```
 
-The overlay does not synthesize telemetry or image measurements from unrelated Nexus stage data. It queues the extended runtime only when `spec.seoAvengers1200Input` is explicitly supplied by a real upstream collector. Missing typed source data means no extended job is queued.
+The wrapper does not manufacture Search Console, competitor, traffic, revenue, external-corpus, local, image, or infrastructure observations from unrelated Nexus state. Extended jobs execute only against explicitly supplied typed datasets from real upstream collectors. Missing data produces `INSUFFICIENT_DATA`, not fabricated measurements.
 
 ## 1200-slot registry contract
 
 - M1-M200: `DELEGATED_TO_SEO_AVENGERS_200`.
-- M901, M902, M1001, M1002, M1101, M1102: executable production implementations in the extension runtime.
-- Every other slot through M1200: `RESERVED`, with no executable handler.
+- M201, M202, M301, M302, M401, M402, M501, M502, M601, M602, M701, M702, M801, M802, M901, M902, M1001, M1002, M1101, M1102: `IMPLEMENTED_PRODUCTION` in the extension.
+- Every other post-200 slot through M1200: `RESERVED`, with no executable handler.
 
-The registry is a namespace/catalog contract, not a claim that 1200 algorithms are implemented. A reserved module cannot execute and is not counted as a production capability.
+The current extension therefore has 20 reviewed post-200 implementations and 18 pre-gate receipts. Registry cardinality is not used to inflate production capability counts.
 
-## Evidence bridge
+## Evidence and trust boundary
 
-Normal 1200 receipts cross M1101 as:
+Every promoted module emits a deterministic receipt. All 18 pre-gate receipts, plus any independently verified legacy Avengers 200 evidence, enter a single M1101 pass. M1101 removes an embedded `evidence_hash` before recomputation, validates exact SHA-256 syntax and module identity, rejects malformed/duplicate records, and compares the recomputed digest with the reported digest.
 
-```json
-{
-  "target_module_id": "M901",
-  "reported_evidence_hash": "sha256:<64 lowercase hex>",
-  "receipt_payload": {}
-}
-```
+The Avengers 200 bridge independently reproduces its existing semantic `module_evidence` hash contract before wrapping a legacy record. A bad legacy hash is emitted as invalid evidence, never silently promoted.
 
-M1101 removes an embedded `evidence_hash` before recomputation, verifies that the receipt module matches `target_module_id`, validates exact SHA-256 syntax, rejects malformed or duplicate evidence, and compares the independently recomputed digest with the reported digest.
+The Node/Python outbox envelope uses a typed byte encoding rather than implementation-specific JSON number formatting. Normal extension payload/config numbers are restricted to shared safe integers. Legacy semantic evidence may contain real floats, so it is transported as a hash-bound canonical JSON string and verified under its original Python contract after parsing.
 
-The existing SEO Avengers 200 semantic runtime already emits `module_evidence` records under keys such as `M51`. The 1200 transport accepts that real mapping as `seo_avengers_200_module_evidence`; Node serializes it into a hash-bound JSON string so legacy floating-point evidence is not coerced into the integer-only cross-runtime envelope contract. Python reparses the string and independently reproduces the existing SEO Avengers 200 hash formula:
+M1102 consumes the exact expected pre-gate manifest. Missing, unexpected, malformed, duplicate, or integrity-mismatched evidence cannot dilute the denominator and triggers fail-closed behavior according to the policy. M1102 emits a halt recommendation; actual deployment mutation remains outside this runtime.
 
-```text
-canonical_hash({"module_id": numeric_id, **record_without_evidence_hash})
-```
+## Promotion rule
 
-Only a matching legacy hash is wrapped into a normal bridge receipt. Malformed or mismatched legacy evidence is converted into an invalid evidence row so M1101/M1102 fail closed; it is never silently promoted.
+A reserved slot moves to `IMPLEMENTED_PRODUCTION` only when source control contains: a real input contract; a reviewable algorithm; deterministic normalization/config hashing; receipt/evidence hashing; positive/negative/boundary tests; a declared execution layer; a connection into the evidence chain; and no hidden destructive action.
 
-The outer Node/Python outbox envelope uses a separate typed byte encoding (`runtime/wire.py` and `envelopeHashV1`) rather than relying on implementation-specific JSON number/string serialization. Keys are constrained, strings are framed by UTF-8 byte length, and numbers in the normal extension payload/config are restricted to the shared JS/Python safe-integer range.
-
-M1102 validates an exact required module manifest and fails closed on missing, unexpected, malformed, duplicate, or integrity-mismatched evidence according to its policy. It emits a recommendation; it does not itself perform a deployment mutation.
-
-## Promotion rule for M201-M1200
-
-A reserved module may be promoted only with all of the following present in source control:
-
-1. a real input/data source or an explicit `INSUFFICIENT_DATA` path;
-2. a named, reviewable algorithm with no fabricated provider result;
-3. deterministic normalization and configuration hashing;
-4. receipt/evidence hashing and explicit reason codes;
-5. positive, negative, boundary, and fail-closed tests;
-6. a declared execution layer and connection to the preceding/next evidence boundary;
-7. no request-path blocking unless the native pipeline contract explicitly approves it;
-8. no destructive action hidden behind a detector/recommendation name.
-
-The saved generated 1200-module artifact is not a production source. It is excluded from this path because generated placeholders and malformed identifiers would violate the promotion rule.
+The saved generated 1200-module artifact is not production source. Its repeated formulas and malformed identifiers are deliberately excluded.
 
 ## Verification
 
-`seo-avengers-1200/scripts/verify.sh` checks syntax, golden vectors, the verified SEO Avengers 200 bridge, Node/Python wire-hash parity, outbox processing, the 1200-slot honesty invariant, deny-by-default activation, wrapper syntax/direct import targets, and absence of a client-specific `apps/cano-penal` dependency in executable extension code.
+`seo-avengers-1200/scripts/verify.sh` checks syntax, golden vectors, all promoted batches, the verified Avengers 200 bridge, Node/Python wire parity, durable outbox processing, exact registry/allowlist counts, deny-by-default activation, wrapper import targets, and executable-source isolation from client apps.

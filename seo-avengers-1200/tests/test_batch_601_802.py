@@ -169,17 +169,17 @@ class Batch601802Tests(unittest.TestCase):
         self.assertEqual(result["reason_code"], "LOCAL_GEOLOCATION_DEVIATION_FOUND")
         self.assertEqual(result["output"]["out_of_policy_sources"][0]["l1_deviation_e6"], 10_000)
 
-    def test_authoritative_catalog_has_only_twelve_real_extended_handlers(self):
+    def test_601_802_modules_remain_promoted_inside_expanded_catalog(self):
         registry = module_registry()
-        self.assertEqual(len(registry), 1200)
-        self.assertEqual(len(IMPLEMENTED_EXTENDED_MODULES), 12)
-        self.assertEqual(len(PRE_GATE_MODULES), 10)
+        required = {"M601", "M602", "M701", "M702", "M801", "M802"}
+        self.assertTrue(required.issubset(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertTrue(required.issubset(set(PRE_GATE_MODULES)))
         self.assertEqual(registry["M601"]["status"], "IMPLEMENTED_PRODUCTION")
         self.assertEqual(registry["M802"]["status"], "IMPLEMENTED_PRODUCTION")
         self.assertEqual(registry["M803"]["status"], "RESERVED")
         self.assertFalse(registry["M803"]["executable_here"])
 
-    def test_service_connects_all_pre_gate_receipts_to_m1101_m1102(self):
+    def test_service_connects_all_current_pre_gate_receipts_to_m1101_m1102(self):
         repeated = " ".join(f"palabra{i}" for i in range(30))
         payload = {
             "meta_telemetry": {
@@ -239,10 +239,10 @@ class Batch601802Tests(unittest.TestCase):
         }
         result = execute_avengers_1200(payload, config)
         self.assertEqual(result["implemented_extended_modules"], sorted(IMPLEMENTED_EXTENDED_MODULES, key=lambda mid: int(mid[1:])))
-        self.assertEqual(result["reserved_extended_modules"], 988)
+        self.assertEqual(result["reserved_extended_modules"], 1000 - len(IMPLEMENTED_EXTENDED_MODULES))
         self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EDGE_EVIDENCE_INTEGRITY_VERIFIED")
         self.assertFalse(result["receipts"]["M1102"]["output"]["deployment_halt_recommended"])
-        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], 10)
+        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], len(PRE_GATE_MODULES))
 
 
 if __name__ == "__main__":
