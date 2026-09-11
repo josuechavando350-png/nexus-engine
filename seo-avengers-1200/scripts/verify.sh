@@ -3,13 +3,16 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-echo "[1/7] Python syntax"
-python3 -m py_compile runtime/__init__.py runtime/seo_avengers_1200.py tests/test_runtime.py tests/test_outbox_worker.py scripts/run.py scripts/process-outbox.py
+echo "[1/8] Python syntax"
+python3 -m py_compile runtime/__init__.py runtime/seo_avengers_1200.py runtime/wire.py tests/test_runtime.py tests/test_outbox_worker.py scripts/run.py scripts/process-outbox.py
 
-echo "[2/7] Runtime + worker unit/golden tests"
+echo "[2/8] Runtime + worker unit/golden tests"
 python3 -m unittest discover -s tests -v
 
-echo "[3/7] 1200-slot honesty invariant"
+echo "[3/8] Node/Python outbox wire contract + lazy bypass"
+node tests/test-outbox.mjs
+
+echo "[4/8] 1200-slot honesty invariant"
 python3 - <<'PY'
 from runtime.seo_avengers_1200 import IMPLEMENTED_EXTENDED_MODULES, module_registry
 registry = module_registry()
@@ -20,7 +23,7 @@ assert IMPLEMENTED_EXTENDED_MODULES == frozenset({"M901", "M902", "M1001", "M100
 print("1200 contiguous slots; no reserved slot has an executable handler")
 PY
 
-echo "[4/7] CLI deny-by-default boundary"
+echo "[5/8] CLI deny-by-default boundary"
 CLI_OUTPUT="$(printf '%s' '{"payload":{},"config":{}}' | python3 scripts/run.py)"
 python3 - "$CLI_OUTPUT" <<'PY'
 import json, sys
@@ -32,7 +35,7 @@ assert result["modules_executed"] == 0
 print("CLI is deny-by-default")
 PY
 
-echo "[5/7] Tenant switch + deterministic outbox"
+echo "[6/8] Tenant switch + durable deterministic outbox"
 node --input-type=module - <<'JS'
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -65,13 +68,13 @@ try {
   if (queued.status !== "QUEUED") throw new Error(`outbox status was ${queued.status}`);
   const stored = JSON.parse(await readFile(queued.path, "utf8"));
   if (stored.input_hash !== stored.idempotency_key) throw new Error("outbox idempotency binding mismatch");
-  console.log("dual-switch and deterministic outbox verified");
+  console.log("dual-switch and durable outbox verified");
 } finally {
   await rm(repo, {recursive:true, force:true});
 }
 JS
 
-echo "[6/7] Native-wrapper import resolves without touching native pipeline"
+echo "[7/8] Native-wrapper import resolves without touching native pipeline"
 node --experimental-strip-types --input-type=module - <<'JS'
 const bridge = await import("./engine-overlay/scripts/nexus-client-pipeline-seo-avengers-1200.mjs");
 if (typeof bridge.runNexusClientPipelineWithSeoAvengers1200 !== "function") throw new Error("1200 bridge export missing");
@@ -79,7 +82,7 @@ if (typeof bridge.runNexusClientPipelineWithWorkspaceRuntimeAndSeoAvengers1200 !
 console.log("isolated native-pipeline bridge imports successfully");
 JS
 
-echo "[7/7] Isolation invariant"
+echo "[8/8] Isolation invariant"
 python3 - <<'PY'
 from pathlib import Path
 root = Path.cwd().resolve()
