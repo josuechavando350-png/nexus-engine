@@ -47,9 +47,9 @@ assert runtime_source_to_target_map()=={f'M{1201+i}':f'M{201+i}' for i in range(
 print('M001-M200 original sidecar + M201-M400 new source-bound algorithms = exactly 400')
 PY
 
-echo '[5/5] Isolation invariant'
-if grep -R -nE 'apps/cano-penal|delivery/cano-penal' seo-avengers-400 --exclude-dir=__pycache__; then
-  echo 'seo-avengers-400 must not depend on cano-penal paths' >&2
+echo '[5/5] Runtime/test isolation invariant'
+if grep -R -nE 'apps/cano-penal|delivery/cano-penal' seo-avengers-400/runtime seo-avengers-400/tests --exclude-dir=__pycache__; then
+  echo 'seo-avengers-400 runtime/tests must not depend on cano-penal paths' >&2
   exit 1
 fi
 
