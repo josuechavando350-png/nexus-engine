@@ -30,9 +30,11 @@ seo-avengers-1200 engine overlay
   |
   +--> SEO Avengers 1200 extension outbox
           |
-          | deterministic, hash-bound envelope
+          | typed Node/Python hash-bound envelope
           v
       process-outbox.py
+          |
+          +--> verify/bridge real SEO Avengers 200 module_evidence
           |
           v
       SeoAvengers1200Runtime
@@ -64,7 +66,7 @@ The registry is a namespace/catalog contract, not a claim that 1200 algorithms a
 
 ## Evidence bridge
 
-`payload.upstream_evidence` accepts evidence emitted by already-real Avengers modules. Each row crossing M1101 must contain:
+Normal 1200 receipts cross M1101 as:
 
 ```json
 {
@@ -75,6 +77,16 @@ The registry is a namespace/catalog contract, not a claim that 1200 algorithms a
 ```
 
 M1101 removes an embedded `evidence_hash` before recomputation, verifies that the receipt module matches `target_module_id`, validates exact SHA-256 syntax, rejects malformed or duplicate evidence, and compares the independently recomputed digest with the reported digest.
+
+The existing SEO Avengers 200 semantic runtime already emits `module_evidence` records under keys such as `M51`. The 1200 transport accepts that real mapping as `seo_avengers_200_module_evidence`; Node serializes it into a hash-bound JSON string so legacy floating-point evidence is not coerced into the integer-only cross-runtime envelope contract. Python reparses the string and independently reproduces the existing SEO Avengers 200 hash formula:
+
+```text
+canonical_hash({"module_id": numeric_id, **record_without_evidence_hash})
+```
+
+Only a matching legacy hash is wrapped into a normal bridge receipt. Malformed or mismatched legacy evidence is converted into an invalid evidence row so M1101/M1102 fail closed; it is never silently promoted.
+
+The outer Node/Python outbox envelope uses a separate typed byte encoding (`runtime/wire.py` and `envelopeHashV1`) rather than relying on implementation-specific JSON number/string serialization. Keys are constrained, strings are framed by UTF-8 byte length, and numbers in the normal extension payload/config are restricted to the shared JS/Python safe-integer range.
 
 M1102 validates an exact required module manifest and fails closed on missing, unexpected, malformed, duplicate, or integrity-mismatched evidence according to its policy. It emits a recommendation; it does not itself perform a deployment mutation.
 
@@ -95,4 +107,4 @@ The saved generated 1200-module artifact is not a production source. It is exclu
 
 ## Verification
 
-`seo-avengers-1200/scripts/verify.sh` checks syntax, golden vectors, outbox processing, the 1200-slot honesty invariant, deny-by-default activation, wrapper import resolution, and absence of a client-specific `apps/cano-penal` dependency in executable extension code.
+`seo-avengers-1200/scripts/verify.sh` checks syntax, golden vectors, the verified SEO Avengers 200 bridge, Node/Python wire-hash parity, outbox processing, the 1200-slot honesty invariant, deny-by-default activation, wrapper import resolution, and absence of a client-specific `apps/cano-penal` dependency in executable extension code.
