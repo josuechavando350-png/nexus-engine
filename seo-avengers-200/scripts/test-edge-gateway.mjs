@@ -5,7 +5,7 @@ function native(body = "<html><head></head><body><img src=\"/x.jpg\"></body></ht
   return new Response(body, { status: 200, headers: { "content-type": "text/html; charset=utf-8", "x-origin": "nexus" } });
 }
 
-async function runCase({ flag, vector = '{"suite":"SEO_AVENGERS_200","module_count":200,"site_id":"nexus-bot-studio","route":"/","version":1,"sections":{},"output_hash":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}', transformer, expectedBody, expectedApplied, expectSeoReads }) {
+async function runCase({ flag, vector = '{"suite":"SEO_AVENGERS_200","module_count":200,"site_id":"nexus-bot-studio","route":"/","version":1,"sections":{},"output_hash":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}', transformer, expectedBody, expectedApplied, expectSeoReads, requestUrl = "https://nexusbotstudio.com/" }) {
   const previous = globalThis.fetch;
   let vectorReads = 0;
   let transformerCalls = 0;
@@ -23,7 +23,7 @@ async function runCase({ flag, vector = '{"suite":"SEO_AVENGERS_200","module_cou
         async fetch(...args) { transformerCalls++; return transformer(...args); },
       },
     };
-    const response = await gateway.fetch(new Request("https://nexusbotstudio.com/"), env);
+    const response = await gateway.fetch(new Request(requestUrl), env);
     assert.equal(await response.text(), expectedBody);
     assert.equal(response.headers.get("x-origin"), "nexus");
     assert.equal(response.headers.get("x-nexus-seo-avengers") === "200-applied", expectedApplied);
@@ -59,4 +59,13 @@ await runCase({
   expectedApplied: true,
   expectSeoReads: true,
 });
-console.log("native edge gateway deny-by-default/fail-open tests: PASS");
+await runCase({
+  flag: "true",
+  requestUrl: "https://www.nexusbotstudio.com/automation",
+  vector: '{"suite":"SEO_AVENGERS_200","module_count":200,"site_id":"nexus-bot-studio","route":"/automation","version":1,"sections":{},"output_hash":"sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}',
+  transformer: async () => new Response('<html><head><link rel="canonical" href="https://nexusbotstudio.com"></head><body>automation</body></html>'),
+  expectedBody: '<html><head><link rel="canonical" href="https://nexusbotstudio.com/automation"></head><body>automation</body></html>',
+  expectedApplied: true,
+  expectSeoReads: true,
+});
+console.log("native edge gateway deny-by-default/fail-open/canonical tests: PASS");

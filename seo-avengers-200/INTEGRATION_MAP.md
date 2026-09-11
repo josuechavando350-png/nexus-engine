@@ -42,7 +42,7 @@ The catalog preserves the attached source contract metadata (`execution_layer`, 
 
 ## Edge bridge
 
-- `apps/edge-cloudflare-gateway/src/index.ts` — `false`/missing returns origin immediately before SEO KV or transformer access; origin/body materialization is outside the optional edge deadline; the native gateway uses a 50 ms KV + Rust deadline.
+- `apps/edge-cloudflare-gateway/src/index.ts` — `false`/missing returns origin immediately before SEO KV or transformer access; origin/body materialization is outside the optional edge deadline; the native gateway uses a 100 ms KV + Rust deadline. For Nexus Bot Studio `/automation`, the gateway also enforces the route self-canonical after a successful transform so the page no longer canonicalizes to the home page.
 - `apps/seo-avengers-reverse-proxy/src/index.ts` — unknown/disabled tenants bypass without SEO KV/Service Binding; enabled external tenants materialize the origin body before starting the 4 ms KV + Rust deadline.
 - `apps/edge-cloudflare-worker/src/lib.rs` — `lol_html` shadow-streaming transform. Rust does not fabricate Wikidata IDs and emits only tenant-scoped graph nodes supported by the semantic snapshot.
 
@@ -56,5 +56,6 @@ The catalog preserves the attached source contract metadata (`execution_layer`, 
 ## End-to-end proof
 
 - `scripts/verify.sh` — 12 static/unit gates, including 200/200 source-contract parity and global OFF state.
+- `scripts/test-edge-gateway.mjs` — verifies deny-by-default/fail-open behavior plus the Nexus Bot Studio `/automation` canonical correction.
 - `scripts/test-external-reverse-proxy.mjs` — regression proof that slow origin-body materialization does not consume the external 4 ms edge deadline.
 - `scripts/local-mirror-e2e.sh` — exercises outbox → Go → Python → SQLite vectors, gateway fail-open, 200-module activation, and 200 asynchronous background jobs.

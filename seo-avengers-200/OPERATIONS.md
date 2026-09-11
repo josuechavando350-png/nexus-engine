@@ -93,10 +93,12 @@ Origin/network work and HTML body materialization are outside the optional SEO d
 origin response + body materialization
   -> start optional SEO timer
   -> read route vector + call Rust Service Binding + receive transformed HTML
-  -> hash/header assembly after a successful transform
+  -> canonical/hash/header assembly after a successful transform
 ```
 
-The production-hardened native Nexus gateway uses a **50 ms** optional edge deadline. The external reverse proxy retains the source-spec **4 ms** optional edge deadline. Neither figure is an end-to-end network SLA. When the transform loses its race, the untouched native/origin response is returned.
+The production-hardened native Nexus gateway uses a **100 ms** optional edge deadline. The external reverse proxy retains the source-spec **4 ms** optional edge deadline. Neither figure is an end-to-end network SLA. When the transform loses its race, the untouched native/origin response is returned.
+
+The 100 ms native budget was selected from production evidence: the shared Rust transformer completed the verified Nexus Bot Studio `/automation` transform in 26 ms wall time, while a 50 ms aggregate KV + Service Binding budget still produced fail-open behavior. The 100 ms budget then produced the expected `x-nexus-seo-avengers: 200-applied` response marker.
 
 ## Dry runs
 
