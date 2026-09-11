@@ -33,6 +33,16 @@ from .batch_205_506 import (
     run_m505,
     run_m506,
 )
+from .batch_207_508 import (
+    run_m207,
+    run_m208,
+    run_m307,
+    run_m308,
+    run_m407,
+    run_m408,
+    run_m507,
+    run_m508,
+)
 from .batch_601_802 import (
     run_m601,
     run_m602,
@@ -114,30 +124,49 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     legacy_rows, bridge_summary = bridge_semantic200_module_evidence(legacy_value)
 
     receipts: Dict[str, Dict[str, Any]] = {}
-    receipts["M201"] = run_m201(effective_payload.get("search_performance_records", []), config)
-    receipts["M202"] = run_m202(effective_payload.get("search_performance_records", []), config)
-    receipts["M203"] = run_m203(effective_payload.get("search_performance_records", []), config)
-    receipts["M204"] = run_m204(effective_payload.get("search_performance_records", []), config)
-    receipts["M205"] = run_m205(effective_payload.get("search_performance_records", []), config)
-    receipts["M206"] = run_m206(effective_payload.get("search_performance_records", []), config)
-    receipts["M301"] = run_m301(effective_payload.get("keyword_coverage_records", []), config)
-    receipts["M302"] = run_m302(effective_payload.get("keyword_coverage_records", []), config)
-    receipts["M303"] = run_m303(effective_payload.get("keyword_coverage_records", []), config)
-    receipts["M304"] = run_m304(effective_payload.get("keyword_coverage_records", []), config)
-    receipts["M305"] = run_m305(effective_payload.get("keyword_coverage_records", []), config)
-    receipts["M306"] = run_m306(effective_payload.get("keyword_coverage_records", []), config)
-    receipts["M401"] = run_m401(effective_payload.get("traffic_window_records", []), config)
-    receipts["M402"] = run_m402(effective_payload.get("traffic_series_records", []), config)
-    receipts["M403"] = run_m403(effective_payload.get("traffic_series_records", []), config)
-    receipts["M404"] = run_m404(effective_payload.get("traffic_series_records", []), config)
-    receipts["M405"] = run_m405(effective_payload.get("traffic_series_records", []), config)
-    receipts["M406"] = run_m406(effective_payload.get("traffic_series_records", []), config)
-    receipts["M501"] = run_m501(effective_payload.get("revenue_funnel_records", []), config)
-    receipts["M502"] = run_m502(effective_payload.get("revenue_attribution_records", []), config)
-    receipts["M503"] = run_m503(effective_payload.get("revenue_funnel_records", []), config)
-    receipts["M504"] = run_m504(effective_payload.get("revenue_attribution_records", []), config)
-    receipts["M505"] = run_m505(effective_payload.get("revenue_funnel_records", []), config)
-    receipts["M506"] = run_m506(effective_payload.get("revenue_attribution_records", []), config)
+    search_records = effective_payload.get("search_performance_records", [])
+    keyword_records = effective_payload.get("keyword_coverage_records", [])
+    traffic_windows = effective_payload.get("traffic_window_records", [])
+    traffic_series = effective_payload.get("traffic_series_records", [])
+    funnel_records = effective_payload.get("revenue_funnel_records", [])
+    attribution_records = effective_payload.get("revenue_attribution_records", [])
+
+    receipts["M201"] = run_m201(search_records, config)
+    receipts["M202"] = run_m202(search_records, config)
+    receipts["M203"] = run_m203(search_records, config)
+    receipts["M204"] = run_m204(search_records, config)
+    receipts["M205"] = run_m205(search_records, config)
+    receipts["M206"] = run_m206(search_records, config)
+    receipts["M207"] = run_m207(search_records, config)
+    receipts["M208"] = run_m208(search_records, config)
+
+    receipts["M301"] = run_m301(keyword_records, config)
+    receipts["M302"] = run_m302(keyword_records, config)
+    receipts["M303"] = run_m303(keyword_records, config)
+    receipts["M304"] = run_m304(keyword_records, config)
+    receipts["M305"] = run_m305(keyword_records, config)
+    receipts["M306"] = run_m306(keyword_records, config)
+    receipts["M307"] = run_m307(keyword_records, config)
+    receipts["M308"] = run_m308(keyword_records, config)
+
+    receipts["M401"] = run_m401(traffic_windows, config)
+    receipts["M402"] = run_m402(traffic_series, config)
+    receipts["M403"] = run_m403(traffic_series, config)
+    receipts["M404"] = run_m404(traffic_series, config)
+    receipts["M405"] = run_m405(traffic_series, config)
+    receipts["M406"] = run_m406(traffic_series, config)
+    receipts["M407"] = run_m407(traffic_series, config)
+    receipts["M408"] = run_m408(traffic_series, config)
+
+    receipts["M501"] = run_m501(funnel_records, config)
+    receipts["M502"] = run_m502(attribution_records, config)
+    receipts["M503"] = run_m503(funnel_records, config)
+    receipts["M504"] = run_m504(attribution_records, config)
+    receipts["M505"] = run_m505(funnel_records, config)
+    receipts["M506"] = run_m506(attribution_records, config)
+    receipts["M507"] = run_m507(attribution_records, config)
+    receipts["M508"] = run_m508(attribution_records, config)
+
     receipts["M601"] = run_m601(effective_payload.get("content_documents", []), config)
     receipts["M602"] = run_m602(effective_payload.get("content_decay_records", []), config)
     receipts["M701"] = run_m701(effective_payload.get("external_pages", []), config)
