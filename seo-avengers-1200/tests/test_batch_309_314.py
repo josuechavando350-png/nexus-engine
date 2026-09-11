@@ -1,6 +1,8 @@
 import unittest
 
 from runtime.batch_309_314 import run_m309
+from runtime.catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
+from runtime.service import execute_avengers_1200
 
 
 class Batch309314Tests(unittest.TestCase):
@@ -80,6 +82,25 @@ class Batch309314Tests(unittest.TestCase):
         self.assertIsNotNone(first["evidence_hash"])
         self.assertNotEqual(first["module_config_hash"], changed["module_config_hash"])
         self.assertNotEqual(first["evidence_hash"], changed["evidence_hash"])
+
+    def test_m309_is_registered_executable_and_gateway_connected(self):
+        registry = module_registry()
+        self.assertIn("M309", IMPLEMENTED_EXTENDED_MODULES)
+        self.assertIn("M309", PRE_GATE_MODULES)
+        self.assertEqual(registry["M309"]["status"], "IMPLEMENTED_PRODUCTION")
+        self.assertTrue(registry["M309"]["executable_here"])
+        self.assertEqual(registry["M310"]["status"], "RESERVED")
+        self.assertFalse(registry["M310"]["executable_here"])
+
+        result = execute_avengers_1200(
+            {"keyword_coverage_records": self.records},
+            {"CONFIG_SEO_AVENGERS_1200": True, **self.config},
+        )
+        self.assertIn("M309", result["receipts"])
+        self.assertEqual(result["receipts"]["M309"]["execution_status"], "SUCCESS")
+        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], len(PRE_GATE_MODULES))
+        self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EDGE_EVIDENCE_INTEGRITY_VERIFIED")
+        self.assertFalse(result["receipts"]["M1102"]["output"]["deployment_halt_recommended"])
 
 
 if __name__ == "__main__":
