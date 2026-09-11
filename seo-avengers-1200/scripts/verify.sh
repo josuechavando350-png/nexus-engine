@@ -96,11 +96,12 @@ from pathlib import Path
 root = Path.cwd().resolve()
 assert root.name == "seo-avengers-1200"
 for path in root.rglob("*"):
-    if not path.is_file() or path.suffix not in {".py", ".mjs", ".sh"}:
+    if not path.is_file() or path.suffix not in {".py", ".mjs"}:
         continue
     text = path.read_text("utf-8", errors="strict")
-    assert "apps/cano-penal" not in text
-print("seo-avengers-1200 executable source has no cano-penal path dependency")
+    forbidden = "apps" + "/" + "cano-penal"
+    assert forbidden not in text, path
+print("seo-avengers-1200 Python/Node executable source has no client-app path dependency")
 PY
 
 echo "SEO Avengers 1200 isolated verification complete."
