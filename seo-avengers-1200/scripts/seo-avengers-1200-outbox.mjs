@@ -5,6 +5,10 @@ import { readSeoAvengers1200ProjectConfig } from "./seo-avengers-1200-config.mjs
 
 const AUTHORITY = "NEXUS_SEO_AVENGERS_1200_EXTENSION_V1";
 const MAX_IMAGES = 10_000;
+const MAX_CONTENT_DOCUMENTS = 2_000;
+const MAX_CONTENT_DECAY_RECORDS = 10_000;
+const MAX_EXTERNAL_PAGES = 5_000;
+const MAX_LOCAL_BUSINESS_RECORDS = 5_000;
 const MAX_UPSTREAM_EVIDENCE = 1_200;
 const MAX_LEGACY_MODULE_EVIDENCE = 200;
 const JSON_KEY_RE = /^[A-Za-z0-9_.:-]+$/;
@@ -122,22 +126,28 @@ function repositoryRootFromProject(projectDir) {
   return absolute.slice(0, index);
 }
 
+function boundedArray(value, label, maxItems) {
+  const resolved = value ?? [];
+  if (!Array.isArray(resolved) || resolved.length > maxItems) {
+    throw new TypeError(`${label} must be an array with at most ${maxItems} entries`);
+  }
+  return resolved;
+}
+
 function validateExtensionPayload(value) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError("extension payload must be an object");
   const metaTelemetry = value.meta_telemetry ?? {};
-  const siteImagesData = value.site_images_data ?? [];
-  const upstreamEvidence = value.upstream_evidence ?? [];
-  const legacyEvidence = value.seo_avengers_200_module_evidence;
-
   if (!metaTelemetry || typeof metaTelemetry !== "object" || Array.isArray(metaTelemetry)) {
     throw new TypeError("meta_telemetry must be an object");
   }
-  if (!Array.isArray(siteImagesData) || siteImagesData.length > MAX_IMAGES) {
-    throw new TypeError(`site_images_data must be an array with at most ${MAX_IMAGES} entries`);
-  }
-  if (!Array.isArray(upstreamEvidence) || upstreamEvidence.length > MAX_UPSTREAM_EVIDENCE) {
-    throw new TypeError(`upstream_evidence must be an array with at most ${MAX_UPSTREAM_EVIDENCE} entries`);
-  }
+
+  const siteImagesData = boundedArray(value.site_images_data, "site_images_data", MAX_IMAGES);
+  const contentDocuments = boundedArray(value.content_documents, "content_documents", MAX_CONTENT_DOCUMENTS);
+  const contentDecayRecords = boundedArray(value.content_decay_records, "content_decay_records", MAX_CONTENT_DECAY_RECORDS);
+  const externalPages = boundedArray(value.external_pages, "external_pages", MAX_EXTERNAL_PAGES);
+  const localBusinessRecords = boundedArray(value.local_business_records, "local_business_records", MAX_LOCAL_BUSINESS_RECORDS);
+  const upstreamEvidence = boundedArray(value.upstream_evidence, "upstream_evidence", MAX_UPSTREAM_EVIDENCE);
+  const legacyEvidence = value.seo_avengers_200_module_evidence;
 
   let legacyEvidenceJson = null;
   if (legacyEvidence !== undefined && legacyEvidence !== null) {
@@ -153,6 +163,10 @@ function validateExtensionPayload(value) {
   const normalized = {
     meta_telemetry: metaTelemetry,
     site_images_data: siteImagesData,
+    content_documents: contentDocuments,
+    content_decay_records: contentDecayRecords,
+    external_pages: externalPages,
+    local_business_records: localBusinessRecords,
     upstream_evidence: upstreamEvidence,
     seo_avengers_200_module_evidence_json: legacyEvidenceJson,
   };
@@ -186,8 +200,6 @@ export async function enqueueSeoAvengers1200Run(input) {
   try {
     const projectDir = resolve(input.projectDir);
     const config = await readSeoAvengers1200ProjectConfig(projectDir);
-    // True lazy bypass: no repository discovery, mkdir, hashing or queue artifact
-    // unless both the existing 200 suite and the 1200 extension are enabled.
     if (!config.enabled || !config.siteId) return Object.freeze({ status: "DISABLED" });
     if (!input.payload) return Object.freeze({ status: "SKIPPED_NO_EXTENSION_INPUT" });
 

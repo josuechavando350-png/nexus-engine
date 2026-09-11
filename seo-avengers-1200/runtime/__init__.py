@@ -1,4 +1,10 @@
-from .seo_avengers_1200 import SeoAvengers1200Runtime, module_registry
-from .service import execute_avengers_1200
+from .catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
+from .service import SeoAvengers1200Runtime, execute_avengers_1200
 
-__all__ = ["SeoAvengers1200Runtime", "module_registry", "execute_avengers_1200"]
+__all__ = [
+    "IMPLEMENTED_EXTENDED_MODULES",
+    "PRE_GATE_MODULES",
+    "SeoAvengers1200Runtime",
+    "execute_avengers_1200",
+    "module_registry",
+]
