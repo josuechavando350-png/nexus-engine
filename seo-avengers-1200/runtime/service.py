@@ -18,7 +18,7 @@ from .batch_207_508 import (
 from .batch_209_214 import (
     run_m209, run_m210, run_m211, run_m212, run_m213, run_m214,
 )
-from .batch_309_314 import run_m309, run_m310
+from .batch_309_314 import run_m309, run_m310, run_m311
 from .batch_601_802 import (
     run_m601, run_m602, run_m701, run_m702, run_m801, run_m802,
 )
@@ -123,6 +123,7 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     receipts["M308"] = run_m308(keyword_records, config)
     receipts["M309"] = run_m309(keyword_records, config)
     receipts["M310"] = run_m310(keyword_records, config)
+    receipts["M311"] = run_m311(keyword_records, config)
 
     receipts["M401"] = run_m401(traffic_windows, config)
     receipts["M402"] = run_m402(traffic_series, config)
