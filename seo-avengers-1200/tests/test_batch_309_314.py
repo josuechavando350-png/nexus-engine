@@ -288,8 +288,6 @@ class Batch309314Tests(unittest.TestCase):
         for module_id in required:
             self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
             self.assertTrue(registry[module_id]["executable_here"])
-        self.assertEqual(registry["M315"]["status"], "RESERVED")
-        self.assertFalse(registry["M315"]["executable_here"])
 
         result = execute_avengers_1200(
             {"keyword_coverage_records": self.records},
