@@ -58,10 +58,10 @@ node --experimental-strip-types scripts/test-native-outbox-disabled.mjs
 echo "[7/12] Engine overlay fail-closed switch"
 node engine-overlay/tests/seo-avengers-200-switch.test.mjs
 
-echo "[8/12] Native gateway deny-by-default / 4ms fail-open"
+echo "[8/12] Native gateway deny-by-default / 50ms edge fail-open"
 node --experimental-strip-types scripts/test-edge-gateway.mjs
 
-echo "[9/12] External reverse proxy lazy-bypass / 4ms fail-open"
+echo "[9/12] External reverse proxy lazy-bypass / 4ms edge fail-open"
 node --experimental-strip-types scripts/test-external-reverse-proxy.mjs
 
 echo "[10/12] External route generation"
