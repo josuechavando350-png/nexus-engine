@@ -4,7 +4,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 echo "[1/8] Python syntax"
-python3 -m py_compile runtime/__init__.py runtime/catalog.py runtime/seo_avengers_1200.py runtime/batch_201_502.py runtime/batch_203_504.py runtime/batch_205_506.py runtime/batch_207_508.py runtime/batch_601_802.py runtime/batch_603_1004.py runtime/wire.py runtime/legacy_bridge.py runtime/service.py tests/test_runtime.py tests/test_batch_201_502.py tests/test_batch_203_504.py tests/test_batch_205_506.py tests/test_batch_207_508.py tests/test_batch_601_802.py tests/test_batch_603_1004.py tests/test_gateway_edges.py tests/test_outbox_worker.py tests/test_legacy_bridge.py scripts/run.py scripts/process-outbox.py
+python3 -m py_compile runtime/__init__.py runtime/catalog.py runtime/seo_avengers_1200.py runtime/batch_201_502.py runtime/batch_203_504.py runtime/batch_205_506.py runtime/batch_207_508.py runtime/batch_601_802.py runtime/batch_603_1004.py runtime/batch_605_1006.py runtime/wire.py runtime/legacy_bridge.py runtime/service.py tests/test_runtime.py tests/test_batch_201_502.py tests/test_batch_203_504.py tests/test_batch_205_506.py tests/test_batch_207_508.py tests/test_batch_601_802.py tests/test_batch_603_1004.py tests/test_batch_605_1006.py tests/test_gateway_edges.py tests/test_outbox_worker.py tests/test_legacy_bridge.py scripts/run.py scripts/process-outbox.py
 
 echo "[2/8] Runtime + promoted batches + bridge + worker unit/golden tests"
 python3 -m unittest discover -s tests -v
@@ -20,21 +20,21 @@ expected = frozenset({
     "M301", "M302", "M303", "M304", "M305", "M306", "M307", "M308",
     "M401", "M402", "M403", "M404", "M405", "M406", "M407", "M408",
     "M501", "M502", "M503", "M504", "M505", "M506", "M507", "M508",
-    "M601", "M602", "M603", "M604",
-    "M701", "M702", "M703", "M704",
-    "M801", "M802", "M803", "M804",
+    "M601", "M602", "M603", "M604", "M605", "M606",
+    "M701", "M702", "M703", "M704", "M705", "M706",
+    "M801", "M802", "M803", "M804", "M805", "M806",
     "M901", "M902",
-    "M1001", "M1002", "M1003", "M1004",
+    "M1001", "M1002", "M1003", "M1004", "M1005", "M1006",
     "M1101", "M1102",
 })
 registry = module_registry()
 assert len(registry) == 1200
 assert list(registry) == [f"M{i}" for i in range(1, 1201)]
 assert IMPLEMENTED_EXTENDED_MODULES == expected
-assert len(PRE_GATE_MODULES) == 50
+assert len(PRE_GATE_MODULES) == 58
 assert all(not row["executable_here"] for row in registry.values() if row["status"] == "RESERVED")
-assert sum(1 for row in registry.values() if row["status"] == "IMPLEMENTED_PRODUCTION") == 52
-print("1200 contiguous slots; exactly 52 reviewed extended handlers; reserved slots remain non-executable")
+assert sum(1 for row in registry.values() if row["status"] == "IMPLEMENTED_PRODUCTION") == 60
+print("1200 contiguous slots; exactly 60 reviewed extended handlers; reserved slots remain non-executable")
 PY
 
 echo "[5/8] CLI deny-by-default boundary"
@@ -74,18 +74,10 @@ try {
     sourceRevision: "fixture-revision",
     payload: {
       meta_telemetry: {server_cpu_utilization_percent:40, cloudflare_kv_latency_ms:900, active_pipeline_actions_pool:[]},
-      site_images_data: [],
-      search_performance_records: [],
-      keyword_coverage_records: [],
-      traffic_window_records: [],
-      traffic_series_records: [],
-      revenue_funnel_records: [],
-      revenue_attribution_records: [],
-      content_documents: [],
-      content_decay_records: [],
-      external_pages: [],
-      local_business_records: [],
-      upstream_evidence: [],
+      site_images_data: [], search_performance_records: [], keyword_coverage_records: [],
+      traffic_window_records: [], traffic_series_records: [], revenue_funnel_records: [],
+      revenue_attribution_records: [], content_documents: [], content_decay_records: [],
+      external_pages: [], local_business_records: [], upstream_evidence: [],
     },
     runtimeConfig: {m1102_max_failure_rate_ppm:50000},
   });
