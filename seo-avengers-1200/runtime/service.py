@@ -3,6 +3,16 @@ from __future__ import annotations
 import json
 from typing import Any, Dict, List
 
+from .batch_201_502 import (
+    run_m201,
+    run_m202,
+    run_m301,
+    run_m302,
+    run_m401,
+    run_m402,
+    run_m501,
+    run_m502,
+)
 from .batch_601_802 import (
     run_m601,
     run_m602,
@@ -27,13 +37,8 @@ from .seo_avengers_1200 import (
 def _resolve_legacy_evidence(effective_payload: Dict[str, Any]) -> Any:
     direct = effective_payload.pop("seo_avengers_200_module_evidence", None)
     transported = effective_payload.pop("seo_avengers_200_module_evidence_json", None)
-
     if direct is not None and transported is not None:
-        return {
-            "__bridge_conflict__": {
-                "evidence_hash": "INVALID",
-            }
-        }
+        return {"__bridge_conflict__": {"evidence_hash": "INVALID"}}
     if direct is not None:
         return direct
     if transported is None:
@@ -78,13 +83,7 @@ def _invalid_payload_result() -> Dict[str, Any]:
 
 
 def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
-    """Execute all currently promoted modules and exactly one evidence gateway.
-
-    No reserved slot is dispatched. Every promoted pre-gate module contributes a
-    receipt to the same M1101 integrity set, then M1102 evaluates the exact
-    required manifest. The function is computation-only; deployment mutation is
-    outside this runtime.
-    """
+    """Execute all currently promoted modules and exactly one evidence gateway."""
     if not isinstance(config, dict) or config.get("CONFIG_SEO_AVENGERS_1200") is not True:
         return _disabled_result()
     if not isinstance(payload, dict):
@@ -95,6 +94,14 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     legacy_rows, bridge_summary = bridge_semantic200_module_evidence(legacy_value)
 
     receipts: Dict[str, Dict[str, Any]] = {}
+    receipts["M201"] = run_m201(effective_payload.get("search_performance_records", []), config)
+    receipts["M202"] = run_m202(effective_payload.get("search_performance_records", []), config)
+    receipts["M301"] = run_m301(effective_payload.get("keyword_coverage_records", []), config)
+    receipts["M302"] = run_m302(effective_payload.get("keyword_coverage_records", []), config)
+    receipts["M401"] = run_m401(effective_payload.get("traffic_window_records", []), config)
+    receipts["M402"] = run_m402(effective_payload.get("traffic_series_records", []), config)
+    receipts["M501"] = run_m501(effective_payload.get("revenue_funnel_records", []), config)
+    receipts["M502"] = run_m502(effective_payload.get("revenue_attribution_records", []), config)
     receipts["M601"] = run_m601(effective_payload.get("content_documents", []), config)
     receipts["M602"] = run_m602(effective_payload.get("content_decay_records", []), config)
     receipts["M701"] = run_m701(effective_payload.get("external_pages", []), config)
@@ -130,10 +137,7 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
         gateway_raw_hash,
     )
 
-    executed = sum(
-        1 for receipt in receipts.values()
-        if receipt["execution_status"] == "SUCCESS"
-    )
+    executed = sum(1 for receipt in receipts.values() if receipt["execution_status"] == "SUCCESS")
     return {
         "suite": "SEO_AVENGERS_1200",
         "enabled": True,

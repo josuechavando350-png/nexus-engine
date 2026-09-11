@@ -20,6 +20,14 @@ The old generated `seo-avengers-1200-core` artifact is deliberately not imported
 
 | Module | Algorithm | State |
 | --- | --- | --- |
+| M201 | Search CTR Opportunity Detector | `IMPLEMENTED_PRODUCTION` |
+| M202 | Search Demand Concentration Monitor | `IMPLEMENTED_PRODUCTION` |
+| M301 | Competitor Keyword Gap Detector | `IMPLEMENTED_PRODUCTION` |
+| M302 | Competitive Keyword Coverage Share Monitor | `IMPLEMENTED_PRODUCTION` |
+| M401 | Traffic Window Change Detector | `IMPLEMENTED_PRODUCTION` |
+| M402 | Traffic Volatility Monitor | `IMPLEMENTED_PRODUCTION` |
+| M501 | Funnel Revenue Projection Auditor | `IMPLEMENTED_PRODUCTION` |
+| M502 | Revenue Attribution Coverage Monitor | `IMPLEMENTED_PRODUCTION` |
 | M601 | Internal Content Similarity Detector | `IMPLEMENTED_PRODUCTION` |
 | M602 | Content Decay Review Candidate Detector | `IMPLEMENTED_PRODUCTION` |
 | M701 | Unlinked Brand Mention Detector | `IMPLEMENTED_PRODUCTION` |
@@ -33,9 +41,9 @@ The old generated `seo-avengers-1200-core` artifact is deliberately not imported
 | M1101 | Edge Evidence Integrity Inspector | `IMPLEMENTED_PRODUCTION` |
 | M1102 | Edge Deployment Integrity Gate Policy | `IMPLEMENTED_PRODUCTION` |
 
-**Current truth:** the extension contributes 12 reviewed executable post-200 modules. M1-M200 remain owned by the existing Avengers 200 implementation. The other 988 post-200 slots remain reserved and non-executable.
+**Current truth:** the extension contributes 20 reviewed executable post-200 modules. M1-M200 remain owned by the existing Avengers 200 implementation. The other 980 post-200 slots remain reserved and non-executable.
 
-M601 uses bounded pairwise Jaccard similarity over deterministic lexical shingles and is worker-only. M602 compares like-for-like traffic windows and only recommends review. M701 parses per-document HTML, ignores non-content/hidden text under its parser contract, inspects actual anchors, and never invents backlinks. M702 measures share only inside the explicitly supplied tracked corpus and refuses undersized samples. M801 compares normalized NAP fields against an explicit canonical business record. M802 uses integer microdegree L1 deviation and does not claim meter distance.
+M201/M202 consume explicit search-performance records and compute CTR/concentration without inventing Search Console responses. M301/M302 consume explicit competitive keyword coverage and search-volume evidence. M401/M402 use equal-window traffic comparisons and bounded integer volatility; neither claims to forecast. M501 projects funnel revenue only from supplied sessions, rates, and ticket values in integer micros, while M502 measures observed attribution coverage. M601-M802 preserve their reviewed content, external-corpus, NAP, and microdegree contracts. M901-M1102 remain the reviewed policy, visual, integrity, and deployment-gate layer.
 
 The extension also contains a **verification bridge**, not a new fake module, for real `module_evidence` already emitted by SEO Avengers 200. The bridge reproduces the existing 200 hash contract before wrapping a verified record into a normal receipt. A mismatch becomes invalid evidence and therefore reaches M1101/M1102 as fail-closed input.
 
@@ -55,11 +63,15 @@ isolated Avengers sidecars
                v
         verified 200-evidence bridge
                |
-        M601 / M602
-        M701 / M702
-        M801 / M802
-        M901 / M902
-        M1001 / M1002
+        M201 / M202   search performance
+        M301 / M302   competitive coverage
+        M401 / M402   traffic change/volatility
+        M501 / M502   revenue projection/coverage
+        M601 / M602   content quality
+        M701 / M702   external brand corpus
+        M801 / M802   local consistency
+        M901 / M902   runtime/meta policy
+        M1001 / M1002 visual-search signals
                |
                v
         M1101 integrity inspector
@@ -68,11 +80,11 @@ isolated Avengers sidecars
         M1102 deployment gate policy
 ```
 
-Every promoted pre-gate module emits a normal receipt. The public service composes all ten pre-gate receipts into one evidence set, M1101 recomputes their integrity, and M1102 evaluates the exact required manifest. Reserved modules never enter the dispatcher or denominator.
+Every promoted pre-gate module emits a normal receipt. The public service composes all eighteen pre-gate receipts into one evidence set, M1101 recomputes their integrity, and M1102 evaluates the exact required manifest. Reserved modules never enter the dispatcher or denominator.
 
 The outbox producer and Python worker use a byte-identical typed wire hash across Node/Python. Legacy SEO Avengers 200 evidence can contain real floating-point semantic measurements, so it is transported as a hash-bound canonical JSON string and revalidated under the original Python evidence hash contract after parsing.
 
-The extended runtime never performs a destructive deployment action. M601/M602/M701/M702/M801/M802/M901/M902 are detectors, monitors, auditors, or recommendations. M1102 emits `deployment_halt_recommended`; the actual deployment controller must explicitly consume that policy before this can be called enforcement.
+The extended runtime never performs a destructive deployment action. Its growth, dominance, traffic, revenue, content, external-corpus, local, meta, and visual modules are detectors, monitors, auditors, or recommendations. M1102 emits `deployment_halt_recommended`; the actual deployment controller must explicitly consume that policy before this can be called enforcement.
 
 ## Verification
 
@@ -82,7 +94,7 @@ From this directory:
 bash scripts/verify.sh
 ```
 
-The verification suite covers syntax, deterministic golden vectors, exact 1200-slot registry cardinality, the twelve-module production allowlist, deny-by-default activation, Node/Python wire-hash parity, the SEO Avengers 200 evidence bridge, durable worker behavior, fail-closed integrity handling, and the invariant that no reserved slot has an executable handler.
+The verification suite covers syntax, deterministic golden vectors, exact 1200-slot registry cardinality, the twenty-module production allowlist, deny-by-default activation, Node/Python wire-hash parity, the SEO Avengers 200 evidence bridge, durable worker behavior, fail-closed integrity handling, and the invariant that no reserved slot has an executable handler.
 
 ## How the remaining slots are populated
 

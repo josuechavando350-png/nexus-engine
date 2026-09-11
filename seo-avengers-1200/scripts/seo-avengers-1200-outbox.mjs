@@ -5,6 +5,12 @@ import { readSeoAvengers1200ProjectConfig } from "./seo-avengers-1200-config.mjs
 
 const AUTHORITY = "NEXUS_SEO_AVENGERS_1200_EXTENSION_V1";
 const MAX_IMAGES = 10_000;
+const MAX_SEARCH_PERFORMANCE_RECORDS = 50_000;
+const MAX_KEYWORD_COVERAGE_RECORDS = 50_000;
+const MAX_TRAFFIC_WINDOW_RECORDS = 10_000;
+const MAX_TRAFFIC_SERIES_RECORDS = 10_000;
+const MAX_REVENUE_FUNNEL_RECORDS = 10_000;
+const MAX_REVENUE_ATTRIBUTION_RECORDS = 10_000;
 const MAX_CONTENT_DOCUMENTS = 2_000;
 const MAX_CONTENT_DECAY_RECORDS = 10_000;
 const MAX_EXTERNAL_PAGES = 5_000;
@@ -142,6 +148,12 @@ function validateExtensionPayload(value) {
   }
 
   const siteImagesData = boundedArray(value.site_images_data, "site_images_data", MAX_IMAGES);
+  const searchPerformanceRecords = boundedArray(value.search_performance_records, "search_performance_records", MAX_SEARCH_PERFORMANCE_RECORDS);
+  const keywordCoverageRecords = boundedArray(value.keyword_coverage_records, "keyword_coverage_records", MAX_KEYWORD_COVERAGE_RECORDS);
+  const trafficWindowRecords = boundedArray(value.traffic_window_records, "traffic_window_records", MAX_TRAFFIC_WINDOW_RECORDS);
+  const trafficSeriesRecords = boundedArray(value.traffic_series_records, "traffic_series_records", MAX_TRAFFIC_SERIES_RECORDS);
+  const revenueFunnelRecords = boundedArray(value.revenue_funnel_records, "revenue_funnel_records", MAX_REVENUE_FUNNEL_RECORDS);
+  const revenueAttributionRecords = boundedArray(value.revenue_attribution_records, "revenue_attribution_records", MAX_REVENUE_ATTRIBUTION_RECORDS);
   const contentDocuments = boundedArray(value.content_documents, "content_documents", MAX_CONTENT_DOCUMENTS);
   const contentDecayRecords = boundedArray(value.content_decay_records, "content_decay_records", MAX_CONTENT_DECAY_RECORDS);
   const externalPages = boundedArray(value.external_pages, "external_pages", MAX_EXTERNAL_PAGES);
@@ -163,6 +175,12 @@ function validateExtensionPayload(value) {
   const normalized = {
     meta_telemetry: metaTelemetry,
     site_images_data: siteImagesData,
+    search_performance_records: searchPerformanceRecords,
+    keyword_coverage_records: keywordCoverageRecords,
+    traffic_window_records: trafficWindowRecords,
+    traffic_series_records: trafficSeriesRecords,
+    revenue_funnel_records: revenueFunnelRecords,
+    revenue_attribution_records: revenueAttributionRecords,
     content_documents: contentDocuments,
     content_decay_records: contentDecayRecords,
     external_pages: externalPages,

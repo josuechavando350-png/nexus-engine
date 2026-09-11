@@ -3,6 +3,14 @@ from __future__ import annotations
 from typing import Any, Dict
 
 IMPLEMENTED_EXTENDED_MODULES = frozenset({
+    "M201",
+    "M202",
+    "M301",
+    "M302",
+    "M401",
+    "M402",
+    "M501",
+    "M502",
     "M601",
     "M602",
     "M701",

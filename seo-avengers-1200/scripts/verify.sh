@@ -4,9 +4,9 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 echo "[1/8] Python syntax"
-python3 -m py_compile runtime/__init__.py runtime/catalog.py runtime/seo_avengers_1200.py runtime/batch_601_802.py runtime/wire.py runtime/legacy_bridge.py runtime/service.py tests/test_runtime.py tests/test_batch_601_802.py tests/test_gateway_edges.py tests/test_outbox_worker.py tests/test_legacy_bridge.py scripts/run.py scripts/process-outbox.py
+python3 -m py_compile runtime/__init__.py runtime/catalog.py runtime/seo_avengers_1200.py runtime/batch_201_502.py runtime/batch_601_802.py runtime/wire.py runtime/legacy_bridge.py runtime/service.py tests/test_runtime.py tests/test_batch_201_502.py tests/test_batch_601_802.py tests/test_gateway_edges.py tests/test_outbox_worker.py tests/test_legacy_bridge.py scripts/run.py scripts/process-outbox.py
 
-echo "[2/8] Runtime + promoted batch + bridge + worker unit/golden tests"
+echo "[2/8] Runtime + promoted batches + bridge + worker unit/golden tests"
 python3 -m unittest discover -s tests -v
 
 echo "[3/8] Node/Python outbox wire contract + lazy bypass"
@@ -16,6 +16,7 @@ echo "[4/8] 1200-slot honesty invariant"
 python3 - <<'PY'
 from runtime.catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
 expected = frozenset({
+    "M201", "M202", "M301", "M302", "M401", "M402", "M501", "M502",
     "M601", "M602", "M701", "M702", "M801", "M802",
     "M901", "M902", "M1001", "M1002", "M1101", "M1102",
 })
@@ -23,10 +24,10 @@ registry = module_registry()
 assert len(registry) == 1200
 assert list(registry) == [f"M{i}" for i in range(1, 1201)]
 assert IMPLEMENTED_EXTENDED_MODULES == expected
-assert len(PRE_GATE_MODULES) == 10
+assert len(PRE_GATE_MODULES) == 18
 assert all(not row["executable_here"] for row in registry.values() if row["status"] == "RESERVED")
-assert sum(1 for row in registry.values() if row["status"] == "IMPLEMENTED_PRODUCTION") == 12
-print("1200 contiguous slots; exactly 12 reviewed extended handlers; reserved slots remain non-executable")
+assert sum(1 for row in registry.values() if row["status"] == "IMPLEMENTED_PRODUCTION") == 20
+print("1200 contiguous slots; exactly 20 reviewed extended handlers; reserved slots remain non-executable")
 PY
 
 echo "[5/8] CLI deny-by-default boundary"
@@ -67,6 +68,12 @@ try {
     payload: {
       meta_telemetry: {server_cpu_utilization_percent:40, cloudflare_kv_latency_ms:900, active_pipeline_actions_pool:[]},
       site_images_data: [],
+      search_performance_records: [],
+      keyword_coverage_records: [],
+      traffic_window_records: [],
+      traffic_series_records: [],
+      revenue_funnel_records: [],
+      revenue_attribution_records: [],
       content_documents: [],
       content_decay_records: [],
       external_pages: [],
@@ -78,8 +85,9 @@ try {
   if (queued.status !== "QUEUED") throw new Error(`outbox status was ${queued.status}`);
   const stored = JSON.parse(await readFile(queued.path, "utf8"));
   if (stored.input_hash !== stored.idempotency_key) throw new Error("outbox idempotency binding mismatch");
-  if (!Array.isArray(stored.payload.content_documents)) throw new Error("content_documents transport missing");
-  if (!Array.isArray(stored.payload.local_business_records)) throw new Error("local_business_records transport missing");
+  for (const key of ["search_performance_records", "keyword_coverage_records", "traffic_window_records", "traffic_series_records", "revenue_funnel_records", "revenue_attribution_records", "content_documents", "local_business_records"]) {
+    if (!Array.isArray(stored.payload[key])) throw new Error(`${key} transport missing`);
+  }
   console.log("dual-switch and durable multi-dataset outbox verified");
 } finally {
   await rm(repo, {recursive:true, force:true});
@@ -116,4 +124,4 @@ for path in root.rglob("*"):
 print("seo-avengers-1200 Python/Node executable source has no client-app path dependency")
 PY
 
-echo "SEO Avengers 1200 promoted-batch verification complete."
+echo "SEO Avengers 1200 expanded-batch verification complete."
