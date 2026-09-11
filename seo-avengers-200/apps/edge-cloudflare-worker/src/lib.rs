@@ -69,7 +69,7 @@ pub async fn main(mut req: Request, _env: Env, _ctx: worker::Context) -> Result<
     // Strict fail-open requires the gateway to retain the pristine origin body.
     // Rust therefore uses lol_html as a streaming parser over 16 KiB chunks into
     // a shadow output buffer; bytes are committed to the client only after the
-    // gateway's 4 ms Promise.race accepts the completed candidate.
+    // calling gateway's bounded edge deadline accepts the completed candidate.
     let output = rewrite_html_shadow_streaming(
         payload.html.as_bytes(),
         &graph,
