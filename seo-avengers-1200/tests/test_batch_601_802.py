@@ -20,11 +20,7 @@ class Batch601802Tests(unittest.TestCase):
                 {"document_id": "/a", "text": text},
                 {"document_id": "/b", "text": text},
             ],
-            {
-                "m601_similarity_threshold_ppm": 900_000,
-                "m601_shingle_size": 5,
-                "m601_min_tokens": 20,
-            },
+            {"m601_similarity_threshold_ppm": 900_000, "m601_shingle_size": 5, "m601_min_tokens": 20},
         )
         self.assertEqual(result["execution_status"], "SUCCESS")
         self.assertEqual(result["reason_code"], "HIGH_INTERNAL_CONTENT_SIMILARITY_FOUND")
@@ -44,24 +40,11 @@ class Batch601802Tests(unittest.TestCase):
 
     def test_m602_like_for_like_decay_is_review_candidate(self):
         result = run_m602(
-            [
-                {
-                    "document_id": "/guia",
-                    "baseline_clicks": 100,
-                    "current_clicks": 50,
-                    "baseline_impressions": 1000,
-                    "current_impressions": 700,
-                    "baseline_window_days": 28,
-                    "current_window_days": 28,
-                    "age_days": 120,
-                }
-            ],
-            {
-                "m602_min_decline_ppm": 300_000,
-                "m602_min_age_days": 60,
-                "m602_min_baseline_clicks": 10,
-                "m602_min_baseline_impressions": 100,
-            },
+            [{"document_id": "/guia", "baseline_clicks": 100, "current_clicks": 50,
+              "baseline_impressions": 1000, "current_impressions": 700,
+              "baseline_window_days": 28, "current_window_days": 28, "age_days": 120}],
+            {"m602_min_decline_ppm": 300_000, "m602_min_age_days": 60,
+             "m602_min_baseline_clicks": 10, "m602_min_baseline_impressions": 100},
         )
         self.assertEqual(result["execution_status"], "SUCCESS")
         self.assertEqual(result["reason_code"], "CONTENT_DECAY_REVIEW_CANDIDATE_FOUND")
@@ -72,29 +55,11 @@ class Batch601802Tests(unittest.TestCase):
 
     def test_m701_detects_external_unlinked_mention_only(self):
         pages = [
-            {
-                "source_url": "https://example.org/post-a",
-                "html": "<html><body><p>Nexus Bot ayuda a negocios.</p></body></html>",
-                "authority_score_ppm": 700_000,
-            },
-            {
-                "source_url": "https://example.net/post-b",
-                "html": '<html><body><p>Nexus Bot</p><a href="https://nexusbotstudio.com/">sitio</a></body></html>',
-                "authority_score_ppm": 500_000,
-            },
-            {
-                "source_url": "https://example.com/post-c",
-                "html": "<html><body><script>Nexus Bot</script><p>sin marca elegible</p></body></html>",
-                "authority_score_ppm": 900_000,
-            },
+            {"source_url": "https://example.org/post-a", "html": "<html><body><p>Nexus Bot ayuda a negocios.</p></body></html>", "authority_score_ppm": 700_000},
+            {"source_url": "https://example.net/post-b", "html": '<html><body><p>Nexus Bot</p><a href="https://nexusbotstudio.com/">sitio</a></body></html>', "authority_score_ppm": 500_000},
+            {"source_url": "https://example.com/post-c", "html": "<html><body><script>Nexus Bot</script><p>sin marca elegible</p></body></html>", "authority_score_ppm": 900_000},
         ]
-        result = run_m701(
-            pages,
-            {
-                "m701_brand_terms": ["Nexus Bot"],
-                "m701_owned_hosts": ["nexusbotstudio.com"],
-            },
-        )
+        result = run_m701(pages, {"m701_brand_terms": ["Nexus Bot"], "m701_owned_hosts": ["nexusbotstudio.com"]})
         self.assertEqual(result["execution_status"], "SUCCESS")
         self.assertEqual(result["reason_code"], "UNLINKED_BRAND_MENTION_FOUND")
         self.assertEqual(len(result["output"]["unlinked_brand_mentions"]), 1)
@@ -109,12 +74,8 @@ class Batch601802Tests(unittest.TestCase):
         ]
         result = run_m702(
             pages,
-            {
-                "m702_brand_terms": ["Nexus Bot"],
-                "m702_competitor_terms": ["Competidor Uno"],
-                "m702_min_sample_documents": 3,
-                "m702_min_brand_share_ppm": 400_000,
-            },
+            {"m702_brand_terms": ["Nexus Bot"], "m702_competitor_terms": ["Competidor Uno"],
+             "m702_min_sample_documents": 3, "m702_min_brand_share_ppm": 400_000},
         )
         self.assertEqual(result["execution_status"], "SUCCESS")
         self.assertEqual(result["output"]["relevant_sample_documents_count"], 3)
@@ -123,27 +84,11 @@ class Batch601802Tests(unittest.TestCase):
         self.assertEqual(result["reason_code"], "LOW_BRAND_PROMINENCE_SHARE_FOUND")
 
     def test_m801_strict_nap_reports_exact_field_mismatch(self):
-        config = {
-            "m801_canonical_nap": {
-                "name": "Nexus Bot Studio",
-                "address": "Av Reforma 100, CDMX",
-                "phone": "+52 55 1234 5678",
-            }
-        }
+        config = {"m801_canonical_nap": {"name": "Nexus Bot Studio", "address": "Av Reforma 100, CDMX", "phone": "+52 55 1234 5678"}}
         result = run_m801(
             [
-                {
-                    "source_id": "google-business-profile",
-                    "name": "Nexus Bot Studio",
-                    "address": "Av Reforma 100, CDMX",
-                    "phone": "+52 55 1234 5678",
-                },
-                {
-                    "source_id": "directory-x",
-                    "name": "Nexus Bot Studio",
-                    "address": "Av Reforma 101, CDMX",
-                    "phone": "+52 55 1234 5678",
-                },
+                {"source_id": "google-business-profile", "name": "Nexus Bot Studio", "address": "Av Reforma 100, CDMX", "phone": "+52 55 1234 5678"},
+                {"source_id": "directory-x", "name": "Nexus Bot Studio", "address": "Av Reforma 101, CDMX", "phone": "+52 55 1234 5678"},
             ],
             config,
         )
@@ -159,11 +104,8 @@ class Batch601802Tests(unittest.TestCase):
                 {"source_id": "a", "latitude_e6": 19_432_600, "longitude_e6": -99_133_200},
                 {"source_id": "b", "latitude_e6": 19_442_600, "longitude_e6": -99_133_200},
             ],
-            {
-                "m802_reference_latitude_e6": 19_432_600,
-                "m802_reference_longitude_e6": -99_133_200,
-                "m802_max_l1_deviation_e6": 5_000,
-            },
+            {"m802_reference_latitude_e6": 19_432_600, "m802_reference_longitude_e6": -99_133_200,
+             "m802_max_l1_deviation_e6": 5_000},
         )
         self.assertEqual(result["execution_status"], "SUCCESS")
         self.assertEqual(result["reason_code"], "LOCAL_GEOLOCATION_DEVIATION_FOUND")
@@ -174,68 +116,37 @@ class Batch601802Tests(unittest.TestCase):
         required = {"M601", "M602", "M701", "M702", "M801", "M802"}
         self.assertTrue(required.issubset(IMPLEMENTED_EXTENDED_MODULES))
         self.assertTrue(required.issubset(set(PRE_GATE_MODULES)))
-        self.assertEqual(registry["M601"]["status"], "IMPLEMENTED_PRODUCTION")
-        self.assertEqual(registry["M802"]["status"], "IMPLEMENTED_PRODUCTION")
-        self.assertEqual(registry["M803"]["status"], "RESERVED")
-        self.assertFalse(registry["M803"]["executable_here"])
+        for module_id in required:
+            self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
+            self.assertTrue(registry[module_id]["executable_here"])
 
     def test_service_connects_all_current_pre_gate_receipts_to_m1101_m1102(self):
         repeated = " ".join(f"palabra{i}" for i in range(30))
         payload = {
-            "meta_telemetry": {
-                "server_cpu_utilization_percent": 20,
-                "cloudflare_kv_latency_ms": 50,
-                "active_pipeline_actions_pool": [],
-            },
+            "meta_telemetry": {"server_cpu_utilization_percent": 20, "cloudflare_kv_latency_ms": 50,
+                               "active_pipeline_actions_pool": []},
             "site_images_data": [],
-            "content_documents": [
-                {"document_id": "/a", "text": repeated},
-                {"document_id": "/b", "text": repeated},
-            ],
-            "content_decay_records": [
-                {
-                    "document_id": "/a",
-                    "baseline_clicks": 100,
-                    "current_clicks": 90,
-                    "baseline_impressions": 1000,
-                    "current_impressions": 900,
-                    "baseline_window_days": 28,
-                    "current_window_days": 28,
-                    "age_days": 100,
-                }
-            ],
+            "content_documents": [{"document_id": "/a", "text": repeated}, {"document_id": "/b", "text": repeated}],
+            "content_decay_records": [{"document_id": "/a", "baseline_clicks": 100, "current_clicks": 90,
+                                        "baseline_impressions": 1000, "current_impressions": 900,
+                                        "baseline_window_days": 28, "current_window_days": 28, "age_days": 100}],
             "external_pages": [
                 {"source_url": "https://one.example/x", "html": "<p>Nexus Bot</p>", "authority_score_ppm": 1},
                 {"source_url": "https://two.example/x", "html": "<p>Competidor Uno</p>", "authority_score_ppm": 1},
             ],
-            "local_business_records": [
-                {
-                    "source_id": "gbp",
-                    "name": "Nexus Bot Studio",
-                    "address": "Av Reforma 100, CDMX",
-                    "phone": "+52 55 1234 5678",
-                    "latitude_e6": 19_432_600,
-                    "longitude_e6": -99_133_200,
-                }
-            ],
+            "local_business_records": [{"source_id": "gbp", "name": "Nexus Bot Studio",
+                                        "address": "Av Reforma 100, CDMX", "phone": "+52 55 1234 5678",
+                                        "latitude_e6": 19_432_600, "longitude_e6": -99_133_200}],
             "upstream_evidence": [],
         }
         config = {
             "CONFIG_SEO_AVENGERS_1200": True,
-            "m601_min_tokens": 20,
-            "m601_shingle_size": 5,
-            "m702_brand_terms": ["Nexus Bot"],
-            "m702_competitor_terms": ["Competidor Uno"],
+            "m601_min_tokens": 20, "m601_shingle_size": 5,
+            "m702_brand_terms": ["Nexus Bot"], "m702_competitor_terms": ["Competidor Uno"],
             "m702_min_sample_documents": 2,
-            "m701_brand_terms": ["Nexus Bot"],
-            "m701_owned_hosts": ["nexusbotstudio.com"],
-            "m801_canonical_nap": {
-                "name": "Nexus Bot Studio",
-                "address": "Av Reforma 100, CDMX",
-                "phone": "+52 55 1234 5678",
-            },
-            "m802_reference_latitude_e6": 19_432_600,
-            "m802_reference_longitude_e6": -99_133_200,
+            "m701_brand_terms": ["Nexus Bot"], "m701_owned_hosts": ["nexusbotstudio.com"],
+            "m801_canonical_nap": {"name": "Nexus Bot Studio", "address": "Av Reforma 100, CDMX", "phone": "+52 55 1234 5678"},
+            "m802_reference_latitude_e6": 19_432_600, "m802_reference_longitude_e6": -99_133_200,
         }
         result = execute_avengers_1200(payload, config)
         self.assertEqual(result["implemented_extended_modules"], sorted(IMPLEMENTED_EXTENDED_MODULES, key=lambda mid: int(mid[1:])))

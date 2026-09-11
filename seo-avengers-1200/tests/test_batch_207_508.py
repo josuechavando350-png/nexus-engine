@@ -119,17 +119,19 @@ class Batch207508Tests(unittest.TestCase):
         self.assertEqual(result["execution_status"], "ERROR")
         self.assertEqual(result["reason_code"], "DUPLICATE_SEARCH_OBSERVATION_CONFLICT")
 
-    def test_catalog_and_gateway_include_all_forty_two_pre_gate_modules(self):
+    def test_original_207_508_batch_remains_promoted_as_catalog_grows(self):
         registry = module_registry()
-        self.assertEqual(len(IMPLEMENTED_EXTENDED_MODULES), 44)
-        self.assertEqual(len(PRE_GATE_MODULES), 42)
-        self.assertEqual(registry["M508"]["status"], "IMPLEMENTED_PRODUCTION")
-        self.assertEqual(registry["M509"]["status"], "RESERVED")
-        self.assertFalse(registry["M509"]["executable_here"])
+        original_batch = {"M207", "M208", "M307", "M308", "M407", "M408", "M507", "M508"}
+        self.assertTrue(original_batch.issubset(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertTrue(original_batch.issubset(set(PRE_GATE_MODULES)))
+        for module_id in original_batch:
+            self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
+            self.assertTrue(registry[module_id]["executable_here"])
 
+    def test_current_pre_gate_manifest_reaches_integrity_gateway(self):
         result = execute_avengers_1200({}, {"CONFIG_SEO_AVENGERS_1200": True})
-        self.assertEqual(result["reserved_extended_modules"], 956)
-        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], 42)
+        self.assertEqual(result["reserved_extended_modules"], 1000 - len(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], len(PRE_GATE_MODULES))
         self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EDGE_EVIDENCE_INTEGRITY_VERIFIED")
         self.assertFalse(result["receipts"]["M1102"]["output"]["deployment_halt_recommended"])
 
