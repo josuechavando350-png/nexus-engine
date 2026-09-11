@@ -1,6 +1,6 @@
 import unittest
 
-from runtime.batch_309_314 import run_m309, run_m310
+from runtime.batch_309_314 import run_m309, run_m310, run_m311
 from runtime.catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
 from runtime.service import execute_avengers_1200
 
@@ -14,12 +14,19 @@ class Batch309314Tests(unittest.TestCase):
         ]
 
     def _audit_cases(self):
+        covered_only = [
+            {"keyword": "cubierto", "site_ranked": True, "competitor_ranked_count": 4, "search_volume": 500},
+        ]
+        low_pressure_only = [
+            {"keyword": "baja presion", "site_ranked": False, "competitor_ranked_count": 2, "search_volume": 500},
+        ]
         return [
             (
                 "M309", run_m309,
                 {"m309_min_gap_search_volume": 100, "m309_max_weighted_gap_competitor_count_milli": 3_000},
                 {"m309_min_gap_search_volume": 100, "m309_max_weighted_gap_competitor_count_milli": 3_500},
                 {"m309_min_gap_search_volume": 0, "m309_max_weighted_gap_competitor_count_milli": 3_000},
+                covered_only, "INSUFFICIENT_COMPETITIVE_GAP_VOLUME",
             ),
             (
                 "M310", run_m310,
@@ -29,6 +36,17 @@ class Batch309314Tests(unittest.TestCase):
                  "m310_max_high_pressure_gap_volume_share_ppm": 750_000},
                 {"m310_min_gap_search_volume": 100, "m310_high_pressure_competitor_count": 0,
                  "m310_max_high_pressure_gap_volume_share_ppm": 700_000},
+                covered_only, "INSUFFICIENT_COMPETITIVE_GAP_VOLUME",
+            ),
+            (
+                "M311", run_m311,
+                {"m311_min_high_pressure_search_volume": 100, "m311_high_pressure_competitor_count": 4,
+                 "m311_min_site_coverage_share_ppm": 500_000},
+                {"m311_min_high_pressure_search_volume": 100, "m311_high_pressure_competitor_count": 4,
+                 "m311_min_site_coverage_share_ppm": 250_000},
+                {"m311_min_high_pressure_search_volume": 100, "m311_high_pressure_competitor_count": 0,
+                 "m311_min_site_coverage_share_ppm": 500_000},
+                low_pressure_only, "INSUFFICIENT_HIGH_PRESSURE_COMPETITIVE_VOLUME",
             ),
         ]
 
@@ -75,23 +93,46 @@ class Batch309314Tests(unittest.TestCase):
         self.assertEqual(result["finding_status"], "NO_FINDING")
         self.assertEqual(result["reason_code"], "HIGH_PRESSURE_GAP_VOLUME_SHARE_WITHIN_POLICY")
 
-    def test_each_audited_module_returns_insufficient_without_real_gap_volume(self):
-        records = [
-            {"keyword": "cubierto", "site_ranked": True, "competitor_ranked_count": 4, "search_volume": 500},
-        ]
-        for module_id, handler, config, _, _ in self._audit_cases():
+    def test_m311_golden_high_pressure_site_coverage_share(self):
+        result = run_m311(self.records, {
+            "m311_min_high_pressure_search_volume": 100,
+            "m311_high_pressure_competitor_count": 4,
+            "m311_min_site_coverage_share_ppm": 500_000,
+        })
+        self.assertEqual(result["execution_status"], "SUCCESS")
+        self.assertEqual(result["finding_status"], "FINDING")
+        self.assertEqual(result["reason_code"], "HIGH_PRESSURE_SITE_COVERAGE_LOW")
+        self.assertEqual(result["output"]["high_pressure_search_volume"], 400)
+        self.assertEqual(result["output"]["site_covered_high_pressure_search_volume"], 100)
+        self.assertEqual(result["output"]["high_pressure_site_coverage_ppm"], 250_000)
+        self.assertEqual(
+            [row["keyword"] for row in result["output"]["uncovered_high_pressure_keywords"]],
+            ["gap dos"],
+        )
+
+    def test_m311_boundary_is_not_false_positive(self):
+        result = run_m311(self.records, {
+            "m311_min_high_pressure_search_volume": 100,
+            "m311_high_pressure_competitor_count": 4,
+            "m311_min_site_coverage_share_ppm": 250_000,
+        })
+        self.assertEqual(result["finding_status"], "NO_FINDING")
+        self.assertEqual(result["reason_code"], "HIGH_PRESSURE_SITE_COVERAGE_WITHIN_POLICY")
+
+    def test_each_audited_module_returns_insufficient_without_required_real_sample(self):
+        for module_id, handler, config, _, _, records, reason_code in self._audit_cases():
             with self.subTest(module=module_id):
                 result = handler(records, config)
                 self.assertEqual(result["execution_status"], "INSUFFICIENT_DATA")
                 self.assertEqual(result["finding_status"], "NOT_APPLICABLE")
-                self.assertEqual(result["reason_code"], "INSUFFICIENT_COMPETITIVE_GAP_VOLUME")
+                self.assertEqual(result["reason_code"], reason_code)
 
     def test_each_audited_module_conflicting_duplicate_fails_closed(self):
         records = [
             {"keyword": "gap", "site_ranked": False, "competitor_ranked_count": 2, "search_volume": 100},
             {"keyword": "gap", "site_ranked": False, "competitor_ranked_count": 3, "search_volume": 100},
         ]
-        for module_id, handler, config, _, _ in self._audit_cases():
+        for module_id, handler, config, _, _, _, _ in self._audit_cases():
             with self.subTest(module=module_id):
                 result = handler(records, config)
                 self.assertEqual(result["execution_status"], "ERROR")
@@ -101,7 +142,7 @@ class Batch309314Tests(unittest.TestCase):
         records = self.records + [
             {"keyword": "mal", "site_ranked": False, "competitor_ranked_count": -1, "search_volume": 100},
         ]
-        for module_id, handler, config, _, _ in self._audit_cases():
+        for module_id, handler, config, _, _, _, _ in self._audit_cases():
             with self.subTest(module=module_id):
                 result = handler(records, config)
                 self.assertEqual(result["execution_status"], "ERROR")
@@ -110,14 +151,14 @@ class Batch309314Tests(unittest.TestCase):
                 self.assertEqual(result["output"]["invalid_records_count"], 1)
 
     def test_each_audited_module_invalid_config_fails_closed(self):
-        for module_id, handler, _, _, invalid_config in self._audit_cases():
+        for module_id, handler, _, _, invalid_config, _, _ in self._audit_cases():
             with self.subTest(module=module_id):
                 result = handler(self.records, invalid_config)
                 self.assertEqual(result["execution_status"], "ERROR")
                 self.assertEqual(result["reason_code"], "INVALID_MODULE_CONFIG")
 
     def test_each_audited_module_is_deterministic_and_config_hash_bound(self):
-        for module_id, handler, config, changed_config, _ in self._audit_cases():
+        for module_id, handler, config, changed_config, _, _, _ in self._audit_cases():
             with self.subTest(module=module_id):
                 first = handler(self.records, config)
                 second = handler(self.records, config)
@@ -132,14 +173,14 @@ class Batch309314Tests(unittest.TestCase):
 
     def test_promoted_modules_are_executable_and_gateway_connected(self):
         registry = module_registry()
-        required = {"M309", "M310"}
+        required = {"M309", "M310", "M311"}
         self.assertTrue(required.issubset(IMPLEMENTED_EXTENDED_MODULES))
         self.assertTrue(required.issubset(set(PRE_GATE_MODULES)))
         for module_id in required:
             self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
             self.assertTrue(registry[module_id]["executable_here"])
-        self.assertEqual(registry["M311"]["status"], "RESERVED")
-        self.assertFalse(registry["M311"]["executable_here"])
+        self.assertEqual(registry["M312"]["status"], "RESERVED")
+        self.assertFalse(registry["M312"]["executable_here"])
 
         result = execute_avengers_1200(
             {"keyword_coverage_records": self.records},
@@ -148,7 +189,10 @@ class Batch309314Tests(unittest.TestCase):
              "m309_max_weighted_gap_competitor_count_milli": 3_000,
              "m310_min_gap_search_volume": 100,
              "m310_high_pressure_competitor_count": 4,
-             "m310_max_high_pressure_gap_volume_share_ppm": 700_000},
+             "m310_max_high_pressure_gap_volume_share_ppm": 700_000,
+             "m311_min_high_pressure_search_volume": 100,
+             "m311_high_pressure_competitor_count": 4,
+             "m311_min_site_coverage_share_ppm": 500_000},
         )
         for module_id in required:
             self.assertIn(module_id, result["receipts"])
