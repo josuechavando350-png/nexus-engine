@@ -110,23 +110,27 @@ class Batch205506Tests(unittest.TestCase):
         self.assertEqual(gap["attribution_coverage_ppm"], 600_000)
         self.assertEqual(gap["unattributed_revenue_micros"], 400)
 
-    def test_catalog_truthfully_has_thirty_six_extended_modules(self):
+    def test_original_205_506_batch_remains_promoted_as_catalog_grows(self):
         registry = module_registry()
-        self.assertEqual(len(IMPLEMENTED_EXTENDED_MODULES), 36)
-        self.assertEqual(len(PRE_GATE_MODULES), 34)
-        for module_id in ("M205", "M206", "M305", "M306", "M405", "M406", "M505", "M506"):
+        original_batch = {"M205", "M206", "M305", "M306", "M405", "M406", "M505", "M506"}
+        self.assertTrue(original_batch.issubset(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertTrue(original_batch.issubset(set(PRE_GATE_MODULES)))
+        for module_id in original_batch:
             self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
             self.assertTrue(registry[module_id]["executable_here"])
-        self.assertEqual(registry["M507"]["status"], "RESERVED")
-        self.assertFalse(registry["M507"]["executable_here"])
 
-    def test_all_thirty_four_pre_gate_receipts_reach_integrity_gateway(self):
+    def test_current_pre_gate_manifest_reaches_integrity_gateway(self):
         result = execute_avengers_1200({}, {"CONFIG_SEO_AVENGERS_1200": True})
-        self.assertEqual(result["implemented_extended_modules"],
-                         sorted(IMPLEMENTED_EXTENDED_MODULES, key=lambda mid: int(mid[1:])))
-        self.assertEqual(result["reserved_extended_modules"], 964)
+        self.assertEqual(
+            result["implemented_extended_modules"],
+            sorted(IMPLEMENTED_EXTENDED_MODULES, key=lambda module_id: int(module_id[1:])),
+        )
+        self.assertEqual(result["reserved_extended_modules"], 1000 - len(IMPLEMENTED_EXTENDED_MODULES))
         self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EDGE_EVIDENCE_INTEGRITY_VERIFIED")
-        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], 34)
+        self.assertEqual(
+            result["receipts"]["M1101"]["output"]["checked_modules_count"],
+            len(PRE_GATE_MODULES),
+        )
 
 
 if __name__ == "__main__":
