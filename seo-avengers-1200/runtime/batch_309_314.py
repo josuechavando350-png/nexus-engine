@@ -4,7 +4,7 @@ from typing import Any, Dict, List
 
 from .batch_201_502 import _checked_mul
 from .batch_203_504 import _checked_add, _prepare_competitor_records
-from .seo_avengers_1200 import canonical_hash, compile_receipt, div_round_half_even, normalize_integer
+from .seo_avengers_1200 import PPM_SCALE, canonical_hash, compile_receipt, div_round_half_even, normalize_integer
 
 
 def _competitive_norm_hash(dataset: List[Dict[str, Any]], invalid_count: int,
@@ -119,4 +119,84 @@ def run_m309(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
         {"pressure_scale": 1000, "gap_search_volume": gap_volume,
          "weighted_gap_competitor_count_milli": pressure_milli,
          "gap_keywords": gap_keywords, "invalid_records_count": invalid_count},
+    )
+
+
+def run_m310(records: Any, config: Dict[str, Any]) -> Dict[str, Any]:
+    """Measure gap search-volume share exposed to a configured high-competitor-count tail."""
+    module = "M310"
+    algorithm = "competitive_gap_high_pressure_volume_share_monitor"
+    raw_hash, dataset, invalid_count, conflicts = _prepare_competitor_records(records)
+    early = _competitive_input_error(module, algorithm, records, raw_hash)
+    if early is not None:
+        return early
+
+    min_gap_volume = normalize_integer(config.get("m310_min_gap_search_volume", 100), 100_000_000_000)
+    high_pressure_count = normalize_integer(config.get("m310_high_pressure_competitor_count", 4), 100_000)
+    max_share = normalize_integer(config.get("m310_max_high_pressure_gap_volume_share_ppm", 700_000), PPM_SCALE)
+    cfg_hash = canonical_hash({
+        "min_gap_search_volume": min_gap_volume if min_gap_volume is not None else "INVALID",
+        "high_pressure_competitor_count": high_pressure_count if high_pressure_count is not None else "INVALID",
+        "max_high_pressure_gap_volume_share_ppm": max_share if max_share is not None else "INVALID",
+        "population": "site_absent_and_competitor_ranked_count_gt_zero",
+        "numerator": "gap_search_volume_where_competitor_count_gte_high_pressure_count",
+        "denominator": "all_gap_search_volume",
+    })
+    norm_hash = _competitive_norm_hash(dataset, invalid_count, conflicts)
+    if (min_gap_volume is None or min_gap_volume < 1 or
+            high_pressure_count is None or high_pressure_count < 1 or max_share is None):
+        return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+                               "ERROR", "NOT_APPLICABLE", "INVALID_MODULE_CONFIG", {})
+    data_quality = _competitive_data_quality_receipt(
+        module, algorithm, raw_hash, norm_hash, cfg_hash, conflicts, invalid_count
+    )
+    if data_quality is not None:
+        return data_quality
+
+    gap_volume = 0
+    high_pressure_volume = 0
+    high_pressure_keywords: List[Dict[str, Any]] = []
+    for item in dataset:
+        if item["site_ranked"] or item["competitor_ranked_count"] <= 0 or item["search_volume"] == 0:
+            continue
+        next_gap = _checked_add(gap_volume, item["search_volume"])
+        if next_gap is None:
+            return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+                                   "ERROR", "NOT_APPLICABLE", "ARITHMETIC_RANGE_EXCEEDED", {})
+        gap_volume = next_gap
+        if item["competitor_ranked_count"] >= high_pressure_count:
+            next_high = _checked_add(high_pressure_volume, item["search_volume"])
+            if next_high is None:
+                return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+                                       "ERROR", "NOT_APPLICABLE", "ARITHMETIC_RANGE_EXCEEDED", {})
+            high_pressure_volume = next_high
+            high_pressure_keywords.append({
+                "keyword": item["keyword"],
+                "search_volume": item["search_volume"],
+                "competitor_ranked_count": item["competitor_ranked_count"],
+            })
+
+    if gap_volume == 0 or gap_volume < min_gap_volume:
+        return compile_receipt(
+            module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+            "INSUFFICIENT_DATA", "NOT_APPLICABLE", "INSUFFICIENT_COMPETITIVE_GAP_VOLUME",
+            {"gap_search_volume": gap_volume, "invalid_records_count": invalid_count},
+        )
+    share = div_round_half_even(high_pressure_volume, gap_volume, PPM_SCALE)
+    if share is None:
+        return compile_receipt(module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+                               "ERROR", "NOT_APPLICABLE", "ARITHMETIC_RANGE_EXCEEDED", {})
+    high = share > max_share
+    high_pressure_keywords.sort(key=lambda item: (
+        -item["search_volume"], -item["competitor_ranked_count"], item["keyword"]
+    ))
+    return compile_receipt(
+        module, algorithm, 1, 1, raw_hash, norm_hash, cfg_hash,
+        "SUCCESS", "FINDING" if high else "NO_FINDING",
+        "HIGH_PRESSURE_GAP_VOLUME_SHARE_HIGH" if high else "HIGH_PRESSURE_GAP_VOLUME_SHARE_WITHIN_POLICY",
+        {"share_scale": PPM_SCALE, "gap_search_volume": gap_volume,
+         "high_pressure_gap_search_volume": high_pressure_volume,
+         "high_pressure_gap_volume_share_ppm": share,
+         "high_pressure_keywords": high_pressure_keywords,
+         "invalid_records_count": invalid_count},
     )
