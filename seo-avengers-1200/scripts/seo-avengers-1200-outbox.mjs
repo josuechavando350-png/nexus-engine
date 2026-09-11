@@ -6,6 +6,7 @@ import { readSeoAvengers1200ProjectConfig } from "./seo-avengers-1200-config.mjs
 const AUTHORITY = "NEXUS_SEO_AVENGERS_1200_EXTENSION_V1";
 const MAX_IMAGES = 10_000;
 const MAX_UPSTREAM_EVIDENCE = 1_200;
+const JSON_KEY_RE = /^[A-Za-z0-9_.:-]+$/;
 
 function assertJsonValue(value, path = "$") {
   if (value === null || typeof value === "string" || typeof value === "boolean") return;
@@ -22,7 +23,10 @@ function assertJsonValue(value, path = "$") {
   if (typeof value === "object") {
     const proto = Object.getPrototypeOf(value);
     if (proto !== Object.prototype && proto !== null) throw new TypeError(`${path} must be a plain JSON object`);
-    for (const [key, child] of Object.entries(value)) assertJsonValue(child, `${path}.${key}`);
+    for (const [key, child] of Object.entries(value)) {
+      if (!JSON_KEY_RE.test(key)) throw new TypeError(`${path} contains a non-canonical object key`);
+      assertJsonValue(child, `${path}.${key}`);
+    }
     return;
   }
   throw new TypeError(`${path} contains a non-JSON value`);
@@ -82,14 +86,23 @@ function validateExtensionPayload(value) {
   return normalized;
 }
 
+function validateRuntimeConfig(value) {
+  if (value === undefined || value === null) return {};
+  if (typeof value !== "object" || Array.isArray(value)) throw new TypeError("runtimeConfig must be an object");
+  assertJsonValue(value);
+  return value;
+}
+
 export function buildSeoAvengers1200Envelope(input) {
   const payload = validateExtensionPayload(input.payload);
+  const runtimeConfig = validateRuntimeConfig(input.runtimeConfig);
   const core = Object.freeze({
     authority: AUTHORITY,
     schema_version: 1,
     site_id: assertSegment(input.siteId, "siteId"),
     source_revision: assertSegment(input.sourceRevision, "sourceRevision"),
     payload,
+    runtime_config: runtimeConfig,
   });
   const inputHash = sha256(canonicalJson(core));
   return Object.freeze({ ...core, input_hash: inputHash, idempotency_key: inputHash });
@@ -108,6 +121,7 @@ export async function enqueueSeoAvengers1200Run(input) {
       siteId: config.siteId,
       sourceRevision: input.sourceRevision,
       payload: input.payload,
+      runtimeConfig: input.runtimeConfig,
     });
 
     const root = repositoryRootFromProject(projectDir);
