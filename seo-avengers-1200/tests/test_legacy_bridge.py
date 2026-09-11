@@ -79,6 +79,25 @@ class LegacyEvidenceBridgeTests(unittest.TestCase):
         self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EVIDENCE_SET_ANOMALY_DETECTED")
         self.assertTrue(result["receipts"]["M1102"]["output"]["deployment_halt_recommended"])
 
+    def test_direct_and_transport_sources_are_rejected_as_ambiguous(self):
+        record = self._legacy_record()
+        payload = {
+            "meta_telemetry": {},
+            "site_images_data": [],
+            "seo_avengers_200_module_evidence": {"M51": record},
+            "seo_avengers_200_module_evidence_json": json.dumps({"M51": record}),
+        }
+        config = {
+            "CONFIG_SEO_AVENGERS_1200": True,
+            "m1102_required_module_ids": ["M51", "M901", "M902", "M1001", "M1002"],
+            "m1102_max_failure_rate_ppm": 1_000_000,
+        }
+        result = execute_avengers_1200(payload, config)
+        self.assertEqual(result["legacy_evidence_bridge"]["verified_records"], 0)
+        self.assertGreater(result["legacy_evidence_bridge"]["rejected_records"], 0)
+        self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EVIDENCE_SET_ANOMALY_DETECTED")
+        self.assertTrue(result["receipts"]["M1102"]["output"]["deployment_halt_recommended"])
+
 
 if __name__ == "__main__":
     unittest.main()
