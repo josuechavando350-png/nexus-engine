@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { mkdir, rename, writeFile } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { join, resolve } from "node:path";
 import { readSeoAvengers1200ProjectConfig } from "./seo-avengers-1200-config.mjs";
 
 const AUTHORITY = "NEXUS_SEO_AVENGERS_1200_EXTENSION_V1";
