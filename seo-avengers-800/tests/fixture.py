@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from foundation_fixture import foundation_row
+from runtime.foundation_specs import FOUNDATION_SPECS
 from runtime.manifest import MODULE_SPECS
 
 
@@ -58,6 +60,8 @@ VALUES = {
 
 
 def row_for(module_id: str) -> dict:
+    if module_id in FOUNDATION_SPECS:
+        return foundation_row(module_id)
     op = MODULE_SPECS[module_id]["operation"]
     row = {"module_id": module_id}
     row.update(VALUES[op])
@@ -65,7 +69,7 @@ def row_for(module_id: str) -> dict:
 
 
 def rich_payload() -> dict:
-    payload = {"bayesian_semantic_records": [], "html_stream_records": []}
+    payload = {spec["dataset_key"]: [] for spec in MODULE_SPECS.values()}
     for module_id, spec in MODULE_SPECS.items():
         payload[spec["dataset_key"]].append(row_for(module_id))
     return payload

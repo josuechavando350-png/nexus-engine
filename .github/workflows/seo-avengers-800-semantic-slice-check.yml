@@ -20,7 +20,7 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Verify audited M001-M600 plus implemented M701-M750 slices
+      - name: Verify audited M001-M600 plus implemented M601-M750 batch
         run: bash seo-avengers-800/scripts/verify.sh
 
       - name: Prove branch diff is isolated

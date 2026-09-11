@@ -1,11 +1,13 @@
 from __future__ import annotations
 from typing import Any, Dict, Sequence, Tuple
 
+from .foundation_specs import FOUNDATION_SPECS, SOURCE_MODULES as FOUNDATION_SOURCE_MODULES, TARGET_MODULES as FOUNDATION_TARGET_MODULES
+
 SEMANTIC_SOURCE_RANGE = (1701, 1725)
 SEMANTIC_TARGET_RANGE = (701, 725)
 HTML_SOURCE_RANGE = (1726, 1750)
 HTML_TARGET_RANGE = (726, 750)
-TOTAL_IMPLEMENTED_THIS_BATCH = 50
+TOTAL_IMPLEMENTED_THIS_BATCH = 150
 
 SEMANTIC_DATASET_KEY = "bayesian_semantic_records"
 HTML_DATASET_KEY = "html_stream_records"
@@ -66,7 +68,7 @@ HTML_STREAM_OPS = [
     ('stream_completion_integrity', ['expected_terminal_tokens', 'observed_terminal_tokens'], 850000),
 ]
 
-MODULE_SPECS: Dict[str, Dict[str, Any]] = {}
+MODULE_SPECS: Dict[str, Dict[str, Any]] = dict(FOUNDATION_SPECS)
 
 
 def _add_ops(source_start: int, rows: Sequence[Tuple[str, Sequence[str], int]], family: str, dataset_key: str) -> None:
@@ -90,11 +92,17 @@ SEMANTIC_TARGET_MODULES = tuple(f"M{i}" for i in range(SEMANTIC_TARGET_RANGE[0],
 SEMANTIC_SOURCE_MODULES = tuple(f"M{i}" for i in range(SEMANTIC_SOURCE_RANGE[0], SEMANTIC_SOURCE_RANGE[1] + 1))
 HTML_TARGET_MODULES = tuple(f"M{i}" for i in range(HTML_TARGET_RANGE[0], HTML_TARGET_RANGE[1] + 1))
 HTML_SOURCE_MODULES = tuple(f"M{i}" for i in range(HTML_SOURCE_RANGE[0], HTML_SOURCE_RANGE[1] + 1))
-TARGET_MODULES = SEMANTIC_TARGET_MODULES + HTML_TARGET_MODULES
-SOURCE_MODULES = SEMANTIC_SOURCE_MODULES + HTML_SOURCE_MODULES
+TARGET_MODULES = tuple(f"M{i}" for i in range(601, 751))
+SOURCE_MODULES = tuple(f"M{i}" for i in range(1601, 1751))
 
+if FOUNDATION_TARGET_MODULES != tuple(f"M{i}" for i in range(601, 701)):
+    raise RuntimeError("foundation target range drift")
+if FOUNDATION_SOURCE_MODULES != tuple(f"M{i}" for i in range(1601, 1701)):
+    raise RuntimeError("foundation source range drift")
 if tuple(MODULE_SPECS) != TARGET_MODULES:
-    raise RuntimeError("M701-M750 manifest is incomplete or out of order")
+    raise RuntimeError("M601-M750 manifest is incomplete or out of order")
+if len(MODULE_SPECS) != TOTAL_IMPLEMENTED_THIS_BATCH:
+    raise RuntimeError("implemented module cardinality mismatch")
 if len({spec["source_module"] for spec in MODULE_SPECS.values()}) != TOTAL_IMPLEMENTED_THIS_BATCH:
     raise RuntimeError("source modules must be unique")
 if len({spec["operation"] for spec in MODULE_SPECS.values()}) != TOTAL_IMPLEMENTED_THIS_BATCH:
