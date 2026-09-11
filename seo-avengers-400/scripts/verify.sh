@@ -11,13 +11,16 @@ base=Path('seo-avengers-200')
 catalog=json.loads((base/'packages/Core-Go-Backend/module-catalog.json').read_text())
 source=json.loads((base/'contracts/SEO_Avengers_200_Pure_Engine.source.json').read_text())
 contracts=source['Module_Catalog_Contracts']['modules']
-assert len(catalog)==200
-assert [x['id'] for x in catalog]==list(range(1,201))
-assert len(contracts)==200
-by_id={int(x['id']):x for x in contracts}
-assert set(by_id)==set(range(1,201))
+assert len(catalog)==200, len(catalog)
+assert [x['id'] for x in catalog] == list(range(1,201))
+assert source['Module_Catalog_Contracts']['global_switch']['CONFIG_SEO_AVENGERS_200'] is False
+assert len(contracts)==200, len(contracts)
 for item in catalog:
-    assert int(item['id']) in by_id
+    expected=contracts[f"module_{item['id']:03d}"]
+    assert item['request_path_blocking'] is False
+    for key in ('request_path_blocking','execution_layer','category','contract_type','fail_safe_status'):
+        assert item.get(key)==expected.get(key), (item['id'], key, item.get(key), expected.get(key))
+    assert item.get('determinism_contract')
 print('original seo-avengers-200 preserves exact M001-M200 catalog/source contract')
 PY
 
