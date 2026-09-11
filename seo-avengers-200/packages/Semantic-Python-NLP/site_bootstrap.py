@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 import hashlib
 import os
 import re
+from dataclasses import dataclass
 from typing import Any
 from urllib.parse import urlparse
 from xml.etree import ElementTree
