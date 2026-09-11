@@ -87,20 +87,26 @@ class Batch201502Tests(unittest.TestCase):
         self.assertEqual(receipt["reason_code"], "REVENUE_ATTRIBUTION_COVERAGE_LOW")
         self.assertEqual(receipt["output"]["attribution_coverage_ppm"], 800_000)
 
-    def test_catalog_truthfully_has_twenty_extended_modules(self):
+    def test_original_201_502_batch_remains_promoted_as_catalog_grows(self):
         registry = module_registry()
-        self.assertEqual(len(IMPLEMENTED_EXTENDED_MODULES), 20)
-        self.assertEqual(len(PRE_GATE_MODULES), 18)
-        self.assertEqual(registry["M201"]["status"], "IMPLEMENTED_PRODUCTION")
-        self.assertEqual(registry["M502"]["status"], "IMPLEMENTED_PRODUCTION")
-        self.assertEqual(registry["M503"]["status"], "RESERVED")
-        self.assertFalse(registry["M503"]["executable_here"])
+        original_batch = {"M201", "M202", "M301", "M302", "M401", "M402", "M501", "M502"}
+        self.assertTrue(original_batch.issubset(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertTrue(original_batch.issubset(PRE_GATE_MODULES))
+        for module_id in original_batch:
+            self.assertEqual(registry[module_id]["status"], "IMPLEMENTED_PRODUCTION")
+            self.assertTrue(registry[module_id]["executable_here"])
 
-    def test_all_eighteen_pre_gate_receipts_reach_integrity_gateway(self):
+    def test_current_pre_gate_manifest_reaches_integrity_gateway(self):
         result = execute_avengers_1200({}, {"CONFIG_SEO_AVENGERS_1200": True})
-        self.assertEqual(len(result["implemented_extended_modules"]), 20)
-        self.assertEqual(result["reserved_extended_modules"], 980)
-        self.assertEqual(result["receipts"]["M1101"]["output"]["checked_modules_count"], 18)
+        self.assertEqual(
+            result["implemented_extended_modules"],
+            sorted(IMPLEMENTED_EXTENDED_MODULES, key=lambda module_id: int(module_id[1:])),
+        )
+        self.assertEqual(result["reserved_extended_modules"], 1000 - len(IMPLEMENTED_EXTENDED_MODULES))
+        self.assertEqual(
+            result["receipts"]["M1101"]["output"]["checked_modules_count"],
+            len(PRE_GATE_MODULES),
+        )
         self.assertEqual(result["receipts"]["M1101"]["reason_code"], "EDGE_EVIDENCE_INTEGRITY_VERIFIED")
         self.assertFalse(result["receipts"]["M1102"]["output"]["deployment_halt_recommended"])
 
