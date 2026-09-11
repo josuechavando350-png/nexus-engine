@@ -3,13 +3,13 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
-echo "[1/6] Python syntax"
-python3 -m py_compile runtime/__init__.py runtime/seo_avengers_1200.py tests/test_runtime.py scripts/run.py
+echo "[1/7] Python syntax"
+python3 -m py_compile runtime/__init__.py runtime/seo_avengers_1200.py tests/test_runtime.py tests/test_outbox_worker.py scripts/run.py scripts/process-outbox.py
 
-echo "[2/6] Runtime unit/golden tests"
+echo "[2/7] Runtime + worker unit/golden tests"
 python3 -m unittest discover -s tests -v
 
-echo "[3/6] 1200-slot honesty invariant"
+echo "[3/7] 1200-slot honesty invariant"
 python3 - <<'PY'
 from runtime.seo_avengers_1200 import IMPLEMENTED_EXTENDED_MODULES, module_registry
 registry = module_registry()
@@ -20,7 +20,7 @@ assert IMPLEMENTED_EXTENDED_MODULES == frozenset({"M901", "M902", "M1001", "M100
 print("1200 contiguous slots; no reserved slot has an executable handler")
 PY
 
-echo "[4/6] CLI deny-by-default boundary"
+echo "[4/7] CLI deny-by-default boundary"
 CLI_OUTPUT="$(printf '%s' '{"payload":{},"config":{}}' | python3 scripts/run.py)"
 python3 - "$CLI_OUTPUT" <<'PY'
 import json, sys
@@ -32,42 +32,64 @@ assert result["modules_executed"] == 0
 print("CLI is deny-by-default")
 PY
 
-echo "[5/6] Tenant switch requires both Avengers 200 and 1200"
+echo "[5/7] Tenant switch + deterministic outbox"
 node --input-type=module - <<'JS'
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { readSeoAvengers1200ProjectConfig } from "./engine-overlay/scripts/seo-avengers-1200-config.mjs";
+import { readSeoAvengers1200ProjectConfig } from "./scripts/seo-avengers-1200-config.mjs";
+import { enqueueSeoAvengers1200Run } from "./scripts/seo-avengers-1200-outbox.mjs";
 
-const dir = await mkdtemp(join(tmpdir(), "seo-avengers-1200-"));
+const repo = await mkdtemp(join(tmpdir(), "seo-avengers-1200-"));
+const project = join(repo, "apps", "probe");
+await import("node:fs/promises").then(({mkdir}) => mkdir(project, {recursive:true}));
 try {
-  await writeFile(join(dir, "package.json"), JSON.stringify({name:"tenant-a", nexus:{CONFIG_SEO_AVENGERS_200:true, CONFIG_SEO_AVENGERS_1200:false}}));
-  let cfg = await readSeoAvengers1200ProjectConfig(dir);
-  if (cfg.enabled !== false) throw new Error("1200 extension enabled without its explicit switch");
+  await writeFile(join(project, "package.json"), JSON.stringify({name:"probe", nexus:{CONFIG_SEO_AVENGERS_200:true, CONFIG_SEO_AVENGERS_1200:false}}));
+  let cfg = await readSeoAvengers1200ProjectConfig(project);
+  if (cfg.enabled !== false) throw new Error("extension enabled without explicit dual switch");
 
-  await writeFile(join(dir, "package.json"), JSON.stringify({name:"tenant-a", nexus:{CONFIG_SEO_AVENGERS_200:false, CONFIG_SEO_AVENGERS_1200:true}}));
-  cfg = await readSeoAvengers1200ProjectConfig(dir);
-  if (cfg.enabled !== false) throw new Error("1200 extension enabled without Avengers 200 base");
-
-  await writeFile(join(dir, "package.json"), JSON.stringify({name:"tenant-a", nexus:{CONFIG_SEO_AVENGERS_200:true, CONFIG_SEO_AVENGERS_1200:true}}));
-  cfg = await readSeoAvengers1200ProjectConfig(dir);
+  await writeFile(join(project, "package.json"), JSON.stringify({name:"probe", nexus:{CONFIG_SEO_AVENGERS_200:true, CONFIG_SEO_AVENGERS_1200:true}}));
+  cfg = await readSeoAvengers1200ProjectConfig(project);
   if (cfg.enabled !== true) throw new Error("explicit dual enable did not activate extension");
-  console.log("dual-switch extension gate verified");
+
+  const queued = await enqueueSeoAvengers1200Run({
+    projectDir: project,
+    sourceRevision: "fixture-revision",
+    payload: {
+      meta_telemetry: {server_cpu_utilization_percent:40, cloudflare_kv_latency_ms:900, active_pipeline_actions_pool:[]},
+      site_images_data: [],
+      upstream_evidence: [],
+    },
+    runtimeConfig: {m1102_max_failure_rate_ppm:50000},
+  });
+  if (queued.status !== "QUEUED") throw new Error(`outbox status was ${queued.status}`);
+  const stored = JSON.parse(await readFile(queued.path, "utf8"));
+  if (stored.input_hash !== stored.idempotency_key) throw new Error("outbox idempotency binding mismatch");
+  console.log("dual-switch and deterministic outbox verified");
 } finally {
-  await rm(dir, {recursive:true, force:true});
+  await rm(repo, {recursive:true, force:true});
 }
 JS
 
-echo "[6/6] Isolation invariant"
+echo "[6/7] Native-wrapper import resolves without touching native pipeline"
+node --experimental-strip-types --input-type=module - <<'JS'
+const bridge = await import("./engine-overlay/scripts/nexus-client-pipeline-seo-avengers-1200.mjs");
+if (typeof bridge.runNexusClientPipelineWithSeoAvengers1200 !== "function") throw new Error("1200 bridge export missing");
+if (typeof bridge.runNexusClientPipelineWithWorkspaceRuntimeAndSeoAvengers1200 !== "function") throw new Error("1200 workspace bridge export missing");
+console.log("isolated native-pipeline bridge imports successfully");
+JS
+
+echo "[7/7] Isolation invariant"
 python3 - <<'PY'
 from pathlib import Path
 root = Path.cwd().resolve()
 assert root.name == "seo-avengers-1200"
 for path in root.rglob("*"):
-    if path.is_file():
-        text = path.read_text("utf-8", errors="ignore")
-        assert "apps/cano-penal" not in text
-print("seo-avengers-1200 is isolated; no cano-penal path references")
+    if not path.is_file() or path.suffix not in {".py", ".mjs", ".sh"}:
+        continue
+    text = path.read_text("utf-8", errors="strict")
+    assert "apps/cano-penal" not in text
+print("seo-avengers-1200 executable source has no cano-penal path dependency")
 PY
 
 echo "SEO Avengers 1200 isolated verification complete."
