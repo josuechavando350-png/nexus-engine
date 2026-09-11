@@ -15,6 +15,9 @@ from .batch_205_506 import (
 from .batch_207_508 import (
     run_m207, run_m208, run_m307, run_m308, run_m407, run_m408, run_m507, run_m508,
 )
+from .batch_209_214 import (
+    run_m209, run_m210, run_m211, run_m212, run_m213, run_m214,
+)
 from .batch_601_802 import (
     run_m601, run_m602, run_m701, run_m702, run_m801, run_m802,
 )
@@ -102,6 +105,12 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     receipts["M206"] = run_m206(search_records, config)
     receipts["M207"] = run_m207(search_records, config)
     receipts["M208"] = run_m208(search_records, config)
+    receipts["M209"] = run_m209(search_records, config)
+    receipts["M210"] = run_m210(search_records, config)
+    receipts["M211"] = run_m211(search_records, config)
+    receipts["M212"] = run_m212(search_records, config)
+    receipts["M213"] = run_m213(search_records, config)
+    receipts["M214"] = run_m214(search_records, config)
 
     receipts["M301"] = run_m301(keyword_records, config)
     receipts["M302"] = run_m302(keyword_records, config)
