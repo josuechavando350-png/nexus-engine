@@ -4,73 +4,30 @@ import json
 from typing import Any, Dict, List
 
 from .batch_201_502 import (
-    run_m201,
-    run_m202,
-    run_m301,
-    run_m302,
-    run_m401,
-    run_m402,
-    run_m501,
-    run_m502,
+    run_m201, run_m202, run_m301, run_m302, run_m401, run_m402, run_m501, run_m502,
 )
 from .batch_203_504 import (
-    run_m203,
-    run_m204,
-    run_m303,
-    run_m304,
-    run_m403,
-    run_m404,
-    run_m503,
-    run_m504,
+    run_m203, run_m204, run_m303, run_m304, run_m403, run_m404, run_m503, run_m504,
 )
 from .batch_205_506 import (
-    run_m205,
-    run_m206,
-    run_m305,
-    run_m306,
-    run_m405,
-    run_m406,
-    run_m505,
-    run_m506,
+    run_m205, run_m206, run_m305, run_m306, run_m405, run_m406, run_m505, run_m506,
 )
 from .batch_207_508 import (
-    run_m207,
-    run_m208,
-    run_m307,
-    run_m308,
-    run_m407,
-    run_m408,
-    run_m507,
-    run_m508,
+    run_m207, run_m208, run_m307, run_m308, run_m407, run_m408, run_m507, run_m508,
 )
 from .batch_601_802 import (
-    run_m601,
-    run_m602,
-    run_m701,
-    run_m702,
-    run_m801,
-    run_m802,
+    run_m601, run_m602, run_m701, run_m702, run_m801, run_m802,
 )
 from .batch_603_1004 import (
-    run_m603,
-    run_m604,
-    run_m703,
-    run_m704,
-    run_m803,
-    run_m804,
-    run_m1003,
-    run_m1004,
+    run_m603, run_m604, run_m703, run_m704, run_m803, run_m804, run_m1003, run_m1004,
+)
+from .batch_605_1006 import (
+    run_m605, run_m606, run_m705, run_m706, run_m805, run_m806, run_m1005, run_m1006,
 )
 from .catalog import IMPLEMENTED_EXTENDED_MODULES, PRE_GATE_MODULES, module_registry
 from .legacy_bridge import bridge_semantic200_module_evidence
 from .seo_avengers_1200 import (
-    canonical_hash,
-    inspect_evidence_m1101,
-    run_m901,
-    run_m902,
-    run_m1001,
-    run_m1002,
-    run_m1102,
+    canonical_hash, inspect_evidence_m1101, run_m901, run_m902, run_m1001, run_m1002, run_m1102,
 )
 
 
@@ -101,24 +58,16 @@ def _upstream_rows(value: Any) -> List[Any]:
 
 def _disabled_result() -> Dict[str, Any]:
     return {
-        "suite": "SEO_AVENGERS_1200",
-        "enabled": False,
-        "bypassed": True,
-        "registry_size": 1200,
-        "modules_executed": 0,
-        "receipts": {},
+        "suite": "SEO_AVENGERS_1200", "enabled": False, "bypassed": True,
+        "registry_size": 1200, "modules_executed": 0, "receipts": {},
     }
 
 
 def _invalid_payload_result() -> Dict[str, Any]:
     return {
-        "suite": "SEO_AVENGERS_1200",
-        "enabled": True,
-        "bypassed": False,
-        "registry_size": 1200,
-        "modules_executed": 0,
-        "error": "INVALID_INPUT_SCHEMA",
-        "receipts": {},
+        "suite": "SEO_AVENGERS_1200", "enabled": True, "bypassed": False,
+        "registry_size": 1200, "modules_executed": 0,
+        "error": "INVALID_INPUT_SCHEMA", "receipts": {},
     }
 
 
@@ -185,16 +134,22 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     receipts["M602"] = run_m602(effective_payload.get("content_decay_records", []), config)
     receipts["M603"] = run_m603(content_documents, config)
     receipts["M604"] = run_m604(content_documents, config)
+    receipts["M605"] = run_m605(content_documents, config)
+    receipts["M606"] = run_m606(content_documents, config)
 
     receipts["M701"] = run_m701(external_pages, config)
     receipts["M702"] = run_m702(external_pages, config)
     receipts["M703"] = run_m703(external_pages, config)
     receipts["M704"] = run_m704(external_pages, config)
+    receipts["M705"] = run_m705(external_pages, config)
+    receipts["M706"] = run_m706(external_pages, config)
 
     receipts["M801"] = run_m801(local_records, config)
     receipts["M802"] = run_m802(local_records, config)
     receipts["M803"] = run_m803(local_records, config)
     receipts["M804"] = run_m804(local_records, config)
+    receipts["M805"] = run_m805(local_records, config)
+    receipts["M806"] = run_m806(local_records, config)
 
     receipts["M901"] = run_m901(effective_payload.get("meta_telemetry", {}), config)
     receipts["M902"] = run_m902(effective_payload.get("meta_telemetry", {}), config)
@@ -203,6 +158,8 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     receipts["M1002"] = run_m1002(image_records, config)
     receipts["M1003"] = run_m1003(image_records, config)
     receipts["M1004"] = run_m1004(image_records, config)
+    receipts["M1005"] = run_m1005(image_records, config)
+    receipts["M1006"] = run_m1006(image_records, config)
 
     evidence_rows: List[Any] = _upstream_rows(effective_payload.get("upstream_evidence", []))
     evidence_rows.extend(legacy_rows)
@@ -220,12 +177,7 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
     required_manifest = config.get("m1102_required_module_ids", list(PRE_GATE_MODULES))
     gateway_raw_hash = canonical_hash({"raw_evidence": evidence_rows})
     receipts["M1102"] = run_m1102(
-        inspected,
-        invalid_count,
-        duplicate_count,
-        required_manifest,
-        config,
-        gateway_raw_hash,
+        inspected, invalid_count, duplicate_count, required_manifest, config, gateway_raw_hash,
     )
 
     executed = sum(1 for receipt in receipts.values() if receipt["execution_status"] == "SUCCESS")
@@ -236,8 +188,7 @@ def execute_avengers_1200(payload: Any, config: Any) -> Dict[str, Any]:
         "registry_size": 1200,
         "delegated_legacy_modules": 200,
         "implemented_extended_modules": sorted(
-            IMPLEMENTED_EXTENDED_MODULES,
-            key=lambda module_id: int(module_id[1:]),
+            IMPLEMENTED_EXTENDED_MODULES, key=lambda module_id: int(module_id[1:]),
         ),
         "reserved_extended_modules": 1000 - len(IMPLEMENTED_EXTENDED_MODULES),
         "modules_executed": executed,
