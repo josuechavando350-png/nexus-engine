@@ -48,7 +48,7 @@ def _normalize_input_for_kernel(spec: Mapping[str, Any], payload: Mapping[str, A
         raw = payload.get(dataset, [])
         if not isinstance(raw, list):
             raise InvalidData("upstream_evidence_must_be_list")
-        return list(raw)
+        return {"records": list(raw), "invalid_records_count": 0}
     if dataset == "MULTI":
         search, search_invalid = normalize_search_records(payload.get("search_performance_records", []))
         documents, content_invalid = normalize_content_documents(payload.get("content_documents", []))
@@ -128,8 +128,8 @@ _DISPATCH = {
     "twin_service_location_portfolio": twin_service_location_portfolio,
     "twin_economic_priority": twin_economic_priority,
     "twin_strategic_portfolio": twin_strategic_portfolio,
-    "proof_operation_health": proof_operation_health,
-    "proof_bundle_health": proof_bundle_health,
+    "proof_operation_health": lambda s,n,c: proof_operation_health(s,n["records"],c),
+    "proof_bundle_health": lambda s,n,c: proof_bundle_health(s,n["records"],c),
     "search_content_observation_readiness": search_content_observation_readiness,
     "demand_weighted_proof_risk": demand_weighted_proof_risk,
 }
