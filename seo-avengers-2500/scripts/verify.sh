@@ -10,10 +10,13 @@ python -m compileall -q "$SUITE/runtime" "$SUITE/tests"
   python -m unittest discover -s tests -v
 )
 node --check "$SUITE/control-plane/tenant-control.mjs"
+node --check "$SUITE/evidence/tenant-evidence.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --test \
   "$SUITE/tests/test_tenant_control.mjs" \
-  "$SUITE/tests/test_tenant_control_strict.mjs"
+  "$SUITE/tests/test_tenant_control_strict.mjs" \
+  "$SUITE/tests/test_tenant_control_paths.mjs" \
+  "$SUITE/tests/test_tenant_evidence.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
