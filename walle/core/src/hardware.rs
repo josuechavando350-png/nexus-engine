@@ -22,7 +22,6 @@ pub struct HostFacts {
 pub enum HardwareVerdict {
     Blocked,
     Unverified,
-    Verified,
 }
 
 impl HardwareVerdict {
@@ -30,7 +29,6 @@ impl HardwareVerdict {
         match self {
             Self::Blocked => "BLOCKED",
             Self::Unverified => "UNVERIFIED",
-            Self::Verified => "VERIFIED",
         }
     }
 }
@@ -153,8 +151,12 @@ mod tests {
 
     #[test]
     fn parses_intel_vendor_and_vmx() {
-        let cpuinfo = "processor : 0\nvendor_id : GenuineIntel\nmodel name : Test CPU\nflags : fpu vmx sse\n";
-        assert_eq!(cpu_field(cpuinfo, "vendor_id").as_deref(), Some("GenuineIntel"));
+        let cpuinfo =
+            "processor : 0\nvendor_id : GenuineIntel\nmodel name : Test CPU\nflags : fpu vmx sse\n";
+        assert_eq!(
+            cpu_field(cpuinfo, "vendor_id").as_deref(),
+            Some("GenuineIntel")
+        );
         assert!(cpu_flags(cpuinfo).contains(&"vmx".to_owned()));
     }
 
