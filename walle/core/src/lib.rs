@@ -153,9 +153,7 @@ pub fn is_valid_workload_id(value: &str) -> bool {
     }
 
     bytes.iter().all(|byte| {
-        byte.is_ascii_lowercase()
-            || byte.is_ascii_digit()
-            || matches!(*byte, b'-' | b'_' | b'.')
+        byte.is_ascii_lowercase() || byte.is_ascii_digit() || matches!(*byte, b'-' | b'_' | b'.')
     })
 }
 
@@ -483,7 +481,10 @@ mod tests {
             CertificationProfile::Hardened,
             CertificationProfile::Certification,
         ] {
-            assert_eq!(profile.to_string().parse::<CertificationProfile>(), Ok(profile));
+            assert_eq!(
+                profile.to_string().parse::<CertificationProfile>(),
+                Ok(profile)
+            );
         }
 
         for state in [
