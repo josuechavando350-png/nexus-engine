@@ -1,9 +1,14 @@
+pub mod capsule;
 mod hardware;
 
 use std::env;
 use std::process::ExitCode;
 use std::str::FromStr;
 
+use capsule::{
+    classify_exit, CancellationOwner, CancellationPolicy, CapabilityRequest, ChildProcessCapability,
+    ExecutionCapsule, ExitObservation, FilesystemCapability,
+};
 use hardware::{
     assess_target, collect_host_facts, OPERATOR_SECONDARY_CAPACITY_BYTES,
     OPERATOR_SECONDARY_CAPACITY_LABEL, TARGET_CPU_VENDOR, TARGET_INSTALLED_RAM_BYTES,
@@ -23,6 +28,8 @@ fn usage() {
            walle-core validate-sha <sha256:...>\n\
            walle-core transition <FROM> <TO>\n\
            walle-core plan <workload-id> <sha256:...> <FAST|HARDENED|CERTIFICATION>\n\
+           walle-core capsule-contract <run-id> <workload-id> <sha256:...> <FAST|HARDENED|CERTIFICATION>\n\
+           walle-core classify-exit <exit-code|NONE> <timed-out> <cancelled> <policy-violation> <well-formed>\n\
            walle-core hardware-contract\n\
            walle-core host-attest"
     );
@@ -131,6 +138,89 @@ fn command_plan(args: &[String]) -> Result<(), String> {
     Ok(())
 }
 
+fn command_capsule_contract(args: &[String]) -> Result<(), String> {
+    if args.len() != 4 {
+        return Err(
+            "capsule-contract requires run-id, workload-id, lowercase sha256 identity, and certification profile"
+                .to_owned(),
+        );
+    }
+
+    let profile = CertificationProfile::from_str(&args[3]).map_err(|error| error.to_string())?;
+    let resources = ResourcePlan::baseline(profile);
+    let timeout_ms = resources
+        .wall_time_seconds
+        .checked_mul(1_000)
+        .ok_or_else(|| "resource wall-time overflow".to_owned())?;
+    let capsule = ExecutionCapsule {
+        run_id: &args[0],
+        attempt: 1,
+        adapter_id: "generic-command-v1",
+        adapter_version: "1.0.0",
+        workload_id: &args[1],
+        source_sha256: &args[2],
+        profile,
+        resources,
+        capabilities: CapabilityRequest {
+            filesystem: FilesystemCapability::ReadOnlyInputs,
+            network: NetworkPolicy::DenyAll,
+            network_allowlist: &[],
+            child_processes: ChildProcessCapability::Bounded,
+            secret_names: &[],
+            device_names: &[],
+        },
+        timeout_ms,
+        max_stdout_bytes: 64 * 1024 * 1024,
+        max_stderr_bytes: 64 * 1024,
+        cancellation: CancellationPolicy {
+            owner: CancellationOwner::WalleControlPlane,
+            grace_ms: 5_000,
+        },
+    };
+
+    println!(
+        "{}",
+        capsule.canonical_json().map_err(|error| error.to_string())?
+    );
+    Ok(())
+}
+
+fn command_classify_exit(args: &[String]) -> Result<(), String> {
+    if args.len() != 5 {
+        return Err(
+            "classify-exit requires exit-code|NONE, timed-out, cancelled, policy-violation, and well-formed"
+                .to_owned(),
+        );
+    }
+
+    let exit_code = if args[0] == "NONE" {
+        None
+    } else {
+        Some(
+            args[0]
+                .parse::<i32>()
+                .map_err(|_| "exit-code must be an i32 or NONE".to_owned())?,
+        )
+    };
+    let observation = ExitObservation {
+        exit_code,
+        timed_out: parse_bool("timed-out", &args[1])?,
+        cancelled: parse_bool("cancelled", &args[2])?,
+        policy_violation: parse_bool("policy-violation", &args[3])?,
+        output_well_formed: parse_bool("well-formed", &args[4])?,
+    };
+    println!("EXIT_CLASS={}", classify_exit(observation).as_str());
+    Ok(())
+}
+
+fn parse_bool(name: &str, value: &str) -> Result<bool, String> {
+    match value {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        _ => Err(format!("{name} must be exactly true or false")),
+    }
+}
+
 fn command_hardware_contract(args: &[String]) -> Result<(), String> {
     if !args.is_empty() {
         return Err("hardware-contract takes no arguments".to_owned());
@@ -231,6 +321,8 @@ fn run() -> Result<(), String> {
         "validate-sha" => command_validate_sha(&rest),
         "transition" => command_transition(&rest),
         "plan" => command_plan(&rest),
+        "capsule-contract" => command_capsule_contract(&rest),
+        "classify-exit" => command_classify_exit(&rest),
         "hardware-contract" => command_hardware_contract(&rest),
         "host-attest" => command_host_attest(&rest),
         _ => {
