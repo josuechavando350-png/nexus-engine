@@ -11,32 +11,32 @@ trap 'rm -rf "$CARGO_TARGET_DIR"' EXIT
 
 cd "$CORE"
 
-echo "[WALLE 1/13] toolchain identity"
+echo "[WALLE 1/14] toolchain identity"
 rustc --version
 cargo --version
 
-echo "[WALLE 2/13] locked metadata"
+echo "[WALLE 2/14] locked metadata"
 cargo metadata --locked --format-version 1 >/dev/null
 
-echo "[WALLE 3/13] formatting"
+echo "[WALLE 3/14] formatting"
 cargo fmt --all -- --check
 
-echo "[WALLE 4/13] compile all targets"
+echo "[WALLE 4/14] compile all targets"
 cargo check --locked --all-targets
 
-echo "[WALLE 5/13] clippy deny warnings"
+echo "[WALLE 5/14] clippy deny warnings"
 cargo clippy --locked --all-targets -- -D warnings
 
-echo "[WALLE 6/13] unit tests"
+echo "[WALLE 6/14] unit tests"
 cargo test --locked
 
-echo "[WALLE 7/13] deterministic CLI smoke"
+echo "[WALLE 7/14] deterministic CLI smoke"
 cargo run --quiet --locked -- doctor
 cargo run --quiet --locked -- validate-sha "$VALID_SHA"
 cargo run --quiet --locked -- plan seo-avengers-2500 "$VALID_SHA" CERTIFICATION
 cargo run --quiet --locked -- transition EXECUTING VERIFYING
 
-echo "[WALLE 8/13] W1 execution capsule is canonical and fail-closed"
+echo "[WALLE 8/14] W1 execution capsule is canonical and fail-closed"
 CAPSULE_ONE="$(cargo run --quiet --locked -- capsule-contract "$VALID_RUN_ID" seo-avengers-2500 "$VALID_SHA" CERTIFICATION)"
 CAPSULE_TWO="$(cargo run --quiet --locked -- capsule-contract "$VALID_RUN_ID" seo-avengers-2500 "$VALID_SHA" CERTIFICATION)"
 printf '%s\n' "$CAPSULE_ONE"
@@ -54,7 +54,7 @@ if cargo run --quiet --locked -- capsule-contract "$VALID_RUN_ID" '../escape' "$
   exit 1
 fi
 
-echo "[WALLE 9/13] W1 exit taxonomy cannot promote failures to success"
+echo "[WALLE 9/14] W1 exit taxonomy cannot promote failures to success"
 test "$(cargo run --quiet --locked -- classify-exit 0 true false false true)" = 'EXIT_CLASS=TIMED_OUT'
 test "$(cargo run --quiet --locked -- classify-exit 0 false false true true)" = 'EXIT_CLASS=POLICY_VIOLATION'
 test "$(cargo run --quiet --locked -- classify-exit 0 false false false false)" = 'EXIT_CLASS=MALFORMED_OUTPUT'
@@ -62,7 +62,38 @@ test "$(cargo run --quiet --locked -- classify-exit 9 false false false true)" =
 test "$(cargo run --quiet --locked -- classify-exit NONE false false false true)" = 'EXIT_CLASS=INFRASTRUCTURE_ERROR'
 test "$(cargo run --quiet --locked -- classify-exit 0 false false false true)" = 'EXIT_CLASS=SUCCESS'
 
-echo "[WALLE 10/13] hardware contract is exact and ambiguity stays unresolved"
+echo "[WALLE 10/14] W2 microVM host preflight reports only proven capabilities"
+set +e
+ISOLATION_PREFLIGHT="$(cargo run --quiet --locked -- isolation-host-preflight 2>&1)"
+ISOLATION_PREFLIGHT_CODE=$?
+set -e
+printf '%s\n' "$ISOLATION_PREFLIGHT"
+grep -Fq 'isolation_backend_target=FIRECRACKER_MICROVM' <<<"$ISOLATION_PREFLIGHT"
+case "$ISOLATION_PREFLIGHT_CODE" in
+  0)
+    grep -Fq 'isolation_host_verdict=READY' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'linux_verified=true' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'x86_64_verified=true' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'privileged_supervisor_verified=true' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'kvm_verified=true' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'cgroup_v2_verified=true' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'cgroup_controllers_verified=true' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'seccomp_verified=true' <<<"$ISOLATION_PREFLIGHT"
+    ;;
+  2)
+    grep -Fq 'isolation_host_verdict=UNAVAILABLE' <<<"$ISOLATION_PREFLIGHT"
+    ;;
+  *)
+    echo "WALLE verifier failure: isolation-host-preflight returned unexpected code $ISOLATION_PREFLIGHT_CODE" >&2
+    exit 1
+    ;;
+esac
+if grep -Fq 'isolation_host_verdict=READY' <<<"$ISOLATION_PREFLIGHT" && grep -Eq '=false$' <<<"$ISOLATION_PREFLIGHT"; then
+  echo "WALLE verifier failure: microVM host was marked READY with an unverified prerequisite" >&2
+  exit 1
+fi
+
+echo "[WALLE 11/14] hardware contract is exact and ambiguity stays unresolved"
 HARDWARE_CONTRACT="$(cargo run --quiet --locked -- hardware-contract)"
 printf '%s\n' "$HARDWARE_CONTRACT"
 grep -Fq 'target_cpu_vendor_id=GenuineIntel' <<<"$HARDWARE_CONTRACT"
@@ -72,7 +103,7 @@ grep -Fq 'operator_secondary_capacity_label=Gb' <<<"$HARDWARE_CONTRACT"
 grep -Fq 'operator_secondary_capacity_bytes=2199023255552' <<<"$HARDWARE_CONTRACT"
 grep -Fq 'operator_secondary_capacity_component=UNRESOLVED' <<<"$HARDWARE_CONTRACT"
 
-echo "[WALLE 11/13] host attestation refuses unsupported hardware claims"
+echo "[WALLE 12/14] host attestation refuses unsupported hardware claims"
 set +e
 HOST_ATTEST="$(cargo run --quiet --locked -- host-attest 2>&1)"
 HOST_ATTEST_CODE=$?
@@ -88,7 +119,7 @@ if grep -Fq 'hardware_verdict=VERIFIED' <<<"$HOST_ATTEST"; then
   exit 1
 fi
 
-echo "[WALLE 12/13] fail-closed CLI negatives"
+echo "[WALLE 13/14] fail-closed CLI negatives"
 if cargo run --quiet --locked -- validate-sha 'sha256:DEADBEEF' >/dev/null 2>&1; then
   echo "WALLE verifier failure: uppercase/short digest was accepted" >&2
   exit 1
@@ -106,7 +137,7 @@ if cargo run --quiet --locked -- classify-exit 0 TRUE false false true >/dev/nul
   exit 1
 fi
 
-echo "[WALLE 13/13] real SEO Avengers verifier chain adapter"
+echo "[WALLE 14/14] real SEO Avengers verifier chain adapter"
 cd "$ROOT"
 bash walle/adapters/seo-avengers-2500.sh --expected-sha "$(git rev-parse HEAD)"
 
