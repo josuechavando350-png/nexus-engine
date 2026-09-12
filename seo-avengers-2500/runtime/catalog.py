@@ -6,8 +6,8 @@ from .manifest import MODULE_SPECS
 
 TOTAL_TARGET_MODULES = 2500
 DELEGATED_MODULES = tuple(f"M{i}" for i in range(1, 1001))
-IMPLEMENTED_MODULES = tuple(f"M{i}" for i in range(1001, 2001))
-RESERVED_MODULES = tuple(f"M{i}" for i in range(2001, 2501))
+IMPLEMENTED_MODULES = tuple(f"M{i}" for i in range(1001, 2201))
+RESERVED_MODULES = tuple(f"M{i}" for i in range(2201, 2501))
 
 def module_registry() -> Dict[str, Dict[str, Any]]:
     registry: Dict[str, Dict[str, Any]] = {}
@@ -20,7 +20,7 @@ def module_registry() -> Dict[str, Dict[str, Any]]:
                 "executable_here": False,
                 "delegated_runtime": "seo-avengers-1000",
             }
-        elif number <= 2000:
+        elif number <= 2200:
             spec = MODULE_SPECS[module_id]
             registry[module_id] = {
                 "module": module_id,
@@ -46,7 +46,7 @@ def module_registry() -> Dict[str, Dict[str, Any]]:
         raise RuntimeError("registry range drift")
     if "M2501" in registry:
         raise RuntimeError("M2501 forbidden")
-    if sum(1 for v in registry.values() if v["status"] == "IMPLEMENTED_PRODUCTION") != 1000:
+    if sum(1 for v in registry.values() if v["status"] == "IMPLEMENTED_PRODUCTION") != 1200:
         raise RuntimeError("implemented cardinality drift")
     if any(registry[mid]["executable_here"] for mid in RESERVED_MODULES):
         raise RuntimeError("reserved module became executable")

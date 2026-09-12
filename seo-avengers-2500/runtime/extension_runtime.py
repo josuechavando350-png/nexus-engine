@@ -7,6 +7,8 @@ from .kernel_discovery import discovery_velocity_metric
 from .kernel_topical import topical_lattice_metric
 from .kernel_frontier import demand_frontier_metric
 from .kernel_counterfactual import link_counterfactual_metric
+from .kernel_representation import representation_proof_metric
+from .kernel_entity_graph import entity_proof_graph_metric
 from .kernel_extended_release import extended_release_guard, extended_release_gate
 
 _EXISTING_LIST_CONTRACTS = (
@@ -75,6 +77,10 @@ def evaluate_extension_spec(
         score, violation, details = demand_frontier_metric(effective, normalized, config)
     elif kernel == "link_counterfactual_metric":
         score, violation, details = link_counterfactual_metric(effective, normalized, config)
+    elif kernel == "representation_proof_metric":
+        score, violation, details = representation_proof_metric(effective, normalized, config)
+    elif kernel == "entity_proof_graph_metric":
+        score, violation, details = entity_proof_graph_metric(effective, normalized, config)
     elif kernel == "extended_release_guard":
         score, violation, details = extended_release_guard(effective, normalized, config, prior_receipts)
     elif kernel == "extended_release_gate":

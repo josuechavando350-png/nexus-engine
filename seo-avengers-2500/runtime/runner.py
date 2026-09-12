@@ -5,7 +5,7 @@ from typing import Any, Dict, Mapping
 from .catalog import module_registry
 from .module_runtime import execute_module
 
-_TERMINAL_MODULES = {"M1200", "M1400", "M1600", "M1700", "M1800", "M1900", "M2000"}
+_TERMINAL_MODULES = {"M1200", "M1400", "M1600", "M1700", "M1800", "M1900", "M2000", "M2100", "M2200"}
 
 def run_module(module_id: str, payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
     if module_id in _TERMINAL_MODULES:
@@ -136,15 +136,31 @@ def run_batch_1001_2000(payload: Mapping[str, Any], config: Mapping[str, Any]) -
         guard_start=1991, guard_end=1999, terminal=2000,
     )
 
+def run_batch_1001_2100(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+    _validate_inputs(payload, config)
+    return _extend_extension_block(
+        run_batch_1001_2000(payload, config), payload, config,
+        predecessor=2000, current_start=2001, current_end=2090,
+        guard_start=2091, guard_end=2099, terminal=2100,
+    )
+
+def run_batch_1001_2200(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+    _validate_inputs(payload, config)
+    return _extend_extension_block(
+        run_batch_1001_2100(payload, config), payload, config,
+        predecessor=2100, current_start=2101, current_end=2190,
+        guard_start=2191, guard_end=2199, terminal=2200,
+    )
+
 def suite_state() -> Dict[str, Any]:
     registry = module_registry()
     return {
         "suite": "SEO_AVENGERS_2500",
         "target_registry_size": 2500,
         "delegated_production_count": 1000,
-        "implemented_local_count": 1000,
-        "reserved_not_executable_count": 500,
-        "current_implemented_range": ["M1001", "M2000"],
+        "implemented_local_count": 1200,
+        "reserved_not_executable_count": 300,
+        "current_implemented_range": ["M1001", "M2200"],
         "final_target_range": ["M1", "M2500"],
         "m2501_present": False,
         "registry": registry,
