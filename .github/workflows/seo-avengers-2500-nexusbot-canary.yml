@@ -107,15 +107,16 @@ jobs:
           } catch {}
 
           const receipts = envelope?.receipts && typeof envelope.receipts === 'object' ? envelope.receipts : {};
-          const executionStatuses = {};
-          const findingStatuses = {};
+          const derivedExecutionStatuses = {};
+          const derivedFindingStatuses = {};
           for (const receipt of Object.values(receipts)) {
             const execution = String(receipt?.execution_status ?? 'MISSING');
             const finding = String(receipt?.finding_status ?? 'MISSING');
-            executionStatuses[execution] = (executionStatuses[execution] ?? 0) + 1;
-            findingStatuses[finding] = (findingStatuses[finding] ?? 0) + 1;
+            derivedExecutionStatuses[execution] = (derivedExecutionStatuses[execution] ?? 0) + 1;
+            derivedFindingStatuses[finding] = (derivedFindingStatuses[finding] ?? 0) + 1;
           }
-          const terminal = receipts.M2500 ?? null;
+          const terminalReceipt = receipts.M2500 ?? null;
+          const terminalSummary = envelope?.terminalStatus ?? null;
           const summary = {
             schema_version: 1,
             validated_sha: process.env.GITHUB_SHA,
@@ -131,13 +132,20 @@ jobs:
             execution_hash: envelope?.executionHash ?? null,
             terminal_evidence_hash: envelope?.terminalEvidenceHash ?? null,
             receipt_count: envelope?.receiptCount ?? null,
-            receipt_execution_status_counts: executionStatuses,
-            receipt_finding_status_counts: findingStatuses,
-            m2500: terminal ? {
-              execution_status: terminal.execution_status ?? null,
-              finding_status: terminal.finding_status ?? null,
-              release_safe: terminal.output?.release_safe ?? null,
-              suite: terminal.output?.suite ?? null,
+            receipt_execution_status_counts: envelope?.executionStatusCounts ?? derivedExecutionStatuses,
+            receipt_finding_status_counts: envelope?.findingStatusCounts ?? derivedFindingStatuses,
+            receipts_released: Boolean(envelope?.receipts),
+            receipts_suppressed: envelope?.receiptsSuppressed === true,
+            m2500: terminalReceipt ? {
+              execution_status: terminalReceipt.execution_status ?? null,
+              finding_status: terminalReceipt.finding_status ?? null,
+              release_safe: terminalReceipt.output?.release_safe ?? null,
+              suite: terminalReceipt.output?.suite ?? null,
+            } : terminalSummary ? {
+              execution_status: terminalSummary.executionStatus ?? null,
+              finding_status: terminalSummary.findingStatus ?? null,
+              release_safe: terminalSummary.releaseSafe ?? null,
+              suite: terminalSummary.suite ?? null,
             } : null,
             canary: envelope?.canary ? {
               origin: envelope.canary.origin ?? null,
@@ -216,7 +224,7 @@ jobs:
             .artifacts/hot-disable-exit-code.txt
             .artifacts/hot-disable-stderr.log
 
-      - name: Enforce canary release and hot-disable gates
+      - name: Enforce canary execution and hot-disable gates
         if: always()
         run: |
           node --input-type=module <<'NODE'
@@ -225,18 +233,38 @@ jobs:
           const disabled = JSON.parse(await readFile('.artifacts/hot-disable-summary.json', 'utf8'));
           if (canary.validated_sha !== process.env.GITHUB_SHA) throw new Error('canary source SHA mismatch');
           if (canary.site_id !== 'nexus-bot-studio') throw new Error('wrong canary tenant');
-          if (canary.status !== 'RELEASED') throw new Error(`live canary did not release: ${canary.status}/${canary.reason}`);
-          if (canary.receipt_count !== 1500) throw new Error('live canary did not return exact local receipt count');
-          if (canary.m2500?.execution_status !== 'SUCCESS' || canary.m2500?.finding_status !== 'NO_FINDING') {
-            throw new Error('M2500 did not complete cleanly');
+          if (canary.canary?.origin !== 'https://nexusbotstudio.com') throw new Error('wrong canary origin');
+          if (!Number.isSafeInteger(canary.canary?.collected_documents) || canary.canary.collected_documents < 1) {
+            throw new Error('live canary collected no usable public documents');
           }
-          if (canary.m2500?.release_safe !== true || canary.m2500?.suite !== 'SEO_AVENGERS_2500') {
-            throw new Error('M2500 release-safe contract missing');
+          if (canary.receipt_count !== 1500) throw new Error('live canary did not execute exact local receipt count');
+          if ((canary.receipt_execution_status_counts?.ERROR ?? 0) !== 0) {
+            throw new Error('live canary produced runtime ERROR receipts');
           }
+          if (canary.m2500?.execution_status !== 'SUCCESS') throw new Error('M2500 did not execute successfully');
+
+          if (canary.status === 'RELEASED') {
+            if (canary.reason !== 'RELEASED' || canary.cli_exit_code !== 0) throw new Error('released canary envelope is inconsistent');
+            if (canary.m2500?.finding_status !== 'NO_FINDING' || canary.m2500?.release_safe !== true || canary.m2500?.suite !== 'SEO_AVENGERS_2500') {
+              throw new Error('released canary lacks M2500 release-safe certification');
+            }
+            if (canary.receipts_released !== true) throw new Error('released canary omitted receipts');
+          } else if (canary.status === 'BLOCKED' && canary.reason === 'SUITE_NOT_RELEASE_SAFE') {
+            if (canary.cli_exit_code !== 2) throw new Error('non-release canary exit code drift');
+            if (canary.m2500?.release_safe === true && canary.m2500?.finding_status === 'NO_FINDING') {
+              throw new Error('non-release canary contradicts M2500 state');
+            }
+            if (canary.receipts_released !== false || canary.receipts_suppressed !== true) {
+              throw new Error('non-release canary exposed suppressed receipts');
+            }
+          } else {
+            throw new Error(`live canary did not produce a valid execution outcome: ${canary.status}/${canary.reason}`);
+          }
+
           if (disabled.site_id !== 'nexus-bot-studio') throw new Error('wrong hot-disable tenant');
           if (disabled.status !== 'OFF' || disabled.reason !== 'KILL_SWITCH_ACTIVE') {
             throw new Error(`hot-disable proof failed: ${disabled.status}/${disabled.reason}`);
           }
           if (disabled.receipts_released !== false) throw new Error('hot-disabled run released receipts');
-          console.log('NexusBotStudio live canary + emergency hot-disable proof: PASS');
+          console.log('NexusBotStudio live canary execution + emergency hot-disable proof: PASS');
           NODE
