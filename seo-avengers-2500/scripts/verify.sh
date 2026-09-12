@@ -11,6 +11,7 @@ python -m compileall -q "$SUITE/runtime" "$SUITE/sidecar" "$SUITE/tests"
 )
 node --check "$SUITE/control-plane/tenant-control.mjs"
 node --check "$SUITE/evidence/tenant-evidence.mjs"
+node --check "$SUITE/evidence/versioned-evidence-reader.mjs"
 node --check "$SUITE/evidence/versioned-evidence.mjs"
 node --check "$SUITE/canary/nexusbotstudio-canary.mjs"
 node --check "$SUITE/sidecar/tenant-worker.mjs"
