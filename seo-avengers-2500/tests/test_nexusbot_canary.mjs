@@ -55,6 +55,17 @@ function response(body, contentType = "text/html; charset=utf-8", status = 200) 
   return new Response(body, { status, headers: { "content-type": contentType } });
 }
 
+function responseAt(body, finalUrl, contentType = "text/html; charset=utf-8", status = 200) {
+  const base = response(body, contentType, status);
+  return {
+    ok: base.ok,
+    status: base.status,
+    headers: base.headers,
+    url: finalUrl,
+    arrayBuffer: () => base.arrayBuffer(),
+  };
+}
+
 test("sitemap parser accepts only exact NexusBotStudio HTTPS hosts", () => {
   const routes = extractSameTenantRoutes(`<?xml version="1.0"?><urlset>
     <url><loc>https://nexusbotstudio.com/automation</loc></url>
@@ -119,6 +130,30 @@ test("authorized canary collects only same-tenant public pages and releases side
   assert.equal(calls.some((item) => item.includes("outside.example")), false);
 });
 
+test("conflicting redirects to one final document fail closed", async (t) => {
+  const ctx = await setup(t);
+  let executions = 0;
+  const result = await runNexusBotStudioCanary({
+    ...ctx,
+    fetchImpl: async (url) => {
+      const value = String(url);
+      if (value.endsWith("/sitemap.xml")) {
+        return response("<urlset><url><loc>https://nexusbotstudio.com/a</loc></url><url><loc>https://nexusbotstudio.com/b</loc></url></urlset>", "application/xml");
+      }
+      if (value.endsWith("/a")) return responseAt("<main>alpha</main>", "https://www.nexusbotstudio.com/same");
+      if (value.endsWith("/b")) return responseAt("<main>beta</main>", "https://www.nexusbotstudio.com/same");
+      return response("<main>root</main>");
+    },
+    executeSuite: async () => {
+      executions += 1;
+      return successfulExecution();
+    },
+  });
+  assert.equal(executions, 0);
+  assert.equal(result.status, "BLOCKED");
+  assert.equal(result.reason, "CONFLICTING_FINAL_DOCUMENT");
+});
+
 test("kill switch activated after sitemap discovery aborts before page fetch and publication", async (t) => {
   const ctx = await setup(t);
   let calls = 0;
@@ -145,6 +180,27 @@ test("kill switch activated after sitemap discovery aborts before page fetch and
   assert.equal(result.status, "OFF");
   assert.equal(result.reason, "KILL_SWITCH_ACTIVE");
   assert.equal(result.controlGeneration, 2);
+});
+
+test("evidence publication failure returns structured BLOCKED result", async (t) => {
+  const ctx = await setup(t);
+  let executions = 0;
+  const result = await runNexusBotStudioCanary({
+    ...ctx,
+    fetchImpl: async (url) => {
+      if (String(url).endsWith("/sitemap.xml")) return response("<urlset></urlset>", "application/xml");
+      await rm(ctx.evidenceRoot, { recursive: true, force: true });
+      return response("<main>Nexus Bot Studio</main>");
+    },
+    executeSuite: async () => {
+      executions += 1;
+      return successfulExecution();
+    },
+  });
+  assert.equal(executions, 0);
+  assert.equal(result.status, "BLOCKED");
+  assert.equal(result.reason, "EVIDENCE_PUBLICATION_FAILED");
+  assert.equal(result.collectedDocuments, 1);
 });
 
 test("no usable HTML evidence returns INSUFFICIENT_DATA without suite execution", async (t) => {
