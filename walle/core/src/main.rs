@@ -317,13 +317,19 @@ fn command_isolation_host_preflight(args: &[String]) -> Result<(), String> {
         "kvm_is_character_device={}",
         assessment.facts.kvm_is_character_device
     );
-    println!("kvm_open_read_write={}", assessment.facts.kvm_open_read_write);
+    println!(
+        "kvm_open_read_write={}",
+        assessment.facts.kvm_open_read_write
+    );
     println!("cgroup_v2={}", assessment.facts.cgroup_v2);
     println!(
         "cgroup_controllers={}",
         assessment.facts.cgroup_controllers.join(",")
     );
-    println!("seccomp_actions={}", assessment.facts.seccomp_actions.join(","));
+    println!(
+        "seccomp_actions={}",
+        assessment.facts.seccomp_actions.join(",")
+    );
     println!("linux_verified={}", assessment.linux_verified);
     println!("x86_64_verified={}", assessment.x86_64_verified);
     println!(
