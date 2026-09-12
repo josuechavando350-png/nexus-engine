@@ -1,0 +1,49 @@
+name: WALLE Foundation Verification
+
+on:
+  push:
+    branches:
+      - feat/walle-certification-engine-foundation
+    paths:
+      - 'walle/**'
+      - '.github/workflows/walle-foundation.yml'
+  pull_request:
+    paths:
+      - 'walle/**'
+      - '.github/workflows/walle-foundation.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-walle-foundation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact event revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact source and pristine checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
+          test -z "$(git status --porcelain)"
+
+      - name: Install pinned Rust toolchain
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.88.0 --profile minimal --component rustfmt,clippy
+          rustup override set 1.88.0
+
+      - name: Verify WALLE foundation
+        run: bash walle/scripts/verify.sh
+
+      - name: Assert verifier left repository clean
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
