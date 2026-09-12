@@ -53,7 +53,9 @@ fn command_doctor(args: &[String]) -> Result<(), String> {
         RunState::Certifying,
         RunState::Certified,
     ] {
-        machine.transition(next).map_err(|error| error.to_string())?;
+        machine
+            .transition(next)
+            .map_err(|error| error.to_string())?;
     }
 
     println!("WALLE_DOCTOR=PASS");
