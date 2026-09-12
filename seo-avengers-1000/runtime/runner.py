@@ -34,7 +34,13 @@ def _error_config(spec: Mapping[str, Any]) -> Dict[str, Any]:
     }
 
 
-def run_module(module_id: str, payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
+def run_module(
+    module_id: str,
+    payload: Mapping[str, Any],
+    config: Mapping[str, Any],
+    *,
+    prior_receipts: Mapping[str, Mapping[str, Any]] | None = None,
+) -> Dict[str, Any]:
     spec = MODULE_SPECS.get(module_id)
     if spec is None:
         raise KeyError(module_id)
@@ -77,6 +83,7 @@ def run_module(module_id: str, payload: Mapping[str, Any], config: Mapping[str, 
                 threshold,
                 registry=module_registry() if module_id == "M1000" else None,
                 module_specs=MODULE_SPECS if module_id == "M1000" else None,
+                prior_receipts=prior_receipts if module_id == "M1000" else None,
             )
         else:
             raise InvalidData(f"unsupported_family:{family}")
@@ -126,4 +133,13 @@ def run_module(module_id: str, payload: Mapping[str, Any], config: Mapping[str, 
 
 
 def run_new_200(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
-    return {module_id: run_module(module_id, payload, config) for module_id in TARGET_MODULES}
+    receipts: Dict[str, Dict[str, Any]] = {}
+    for module_id in TARGET_MODULES[:-1]:
+        receipts[module_id] = run_module(module_id, payload, config)
+    receipts["M1000"] = run_module(
+        "M1000",
+        payload,
+        config,
+        prior_receipts=receipts,
+    )
+    return receipts

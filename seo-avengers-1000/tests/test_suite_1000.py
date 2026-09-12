@@ -84,6 +84,11 @@ class Suite1000Tests(unittest.TestCase):
         self.assertNotEqual(base["module_config_hash"], changed["module_config_hash"])
         self.assertNotEqual(base["evidence_hash"], changed["evidence_hash"])
 
+    def test_terminal_cannot_self_certify_without_prior_receipts(self) -> None:
+        receipt = run_module("M1000", full_payload(), {})
+        self.assertEqual(receipt["execution_status"], "ERROR")
+        self.assertEqual(receipt["reason_code"], "prior_receipts_required")
+
     def test_terminal_threshold_cannot_be_relaxed(self) -> None:
         receipt = run_module("M1000", full_payload(), {"m1000_threshold_ppm": 999999})
         self.assertEqual(receipt["execution_status"], "ERROR")

@@ -49,9 +49,11 @@ def certify_composition(
     row: Mapping[str, Any],
     registry: Mapping[str, Mapping[str, Any]],
     module_specs: Mapping[str, Mapping[str, Any]],
+    prior_receipts: Mapping[str, Mapping[str, Any]] | None,
 ) -> Dict[str, Any]:
     expected_catalog = tuple(f"M{i}" for i in range(1, 1001))
     expected_new = tuple(f"M{i}" for i in range(801, 1001))
+    expected_prior = tuple(f"M{i}" for i in range(801, 1000))
     expected_delegated = tuple(f"M{i}" for i in range(1, 801))
     expected_sources = tuple(f"M{i}" for i in range(1801, 2001))
 
@@ -73,6 +75,8 @@ def certify_composition(
         operation = spec.get("operation")
         if not isinstance(source, str) or not isinstance(operation, str):
             raise InvalidData(f"module_spec_shape:{module_id}")
+        if not source.startswith("M") or not source[1:].isdigit():
+            raise InvalidData(f"source_module_format:{module_id}")
         if int(source[1:]) != int(module_id[1:]) + 1000:
             raise InvalidData(f"source_mapping_drift:{module_id}")
         sources.append(source)
@@ -99,6 +103,38 @@ def certify_composition(
         if entry.get("executable_here") is not True:
             raise InvalidData(f"implemented_execution_drift:{module_id}")
 
+    if prior_receipts is None:
+        raise InvalidData("prior_receipts_required")
+    if tuple(prior_receipts) != expected_prior:
+        raise InvalidData("prior_receipt_range_drift")
+    receipt_hashes: list[str] = []
+    for module_id in expected_prior:
+        receipt = prior_receipts[module_id]
+        if not isinstance(receipt, Mapping):
+            raise InvalidData(f"prior_receipt_shape:{module_id}")
+        spec = module_specs[module_id]
+        if receipt.get("module") != module_id:
+            raise InvalidData(f"prior_receipt_module_drift:{module_id}")
+        if receipt.get("source_module") != spec["source_module"]:
+            raise InvalidData(f"prior_receipt_source_drift:{module_id}")
+        if receipt.get("operation") != spec["operation"]:
+            raise InvalidData(f"prior_receipt_operation_drift:{module_id}")
+        if receipt.get("family") != spec["family"]:
+            raise InvalidData(f"prior_receipt_family_drift:{module_id}")
+        expected_algorithm = f"avengers1000_v1_{module_id.lower()}_{spec['operation']}"
+        if receipt.get("algorithm") != expected_algorithm:
+            raise InvalidData(f"prior_receipt_algorithm_drift:{module_id}")
+        claimed_evidence_hash = need_sha256(receipt, "evidence_hash")
+        need_sha256(receipt, "module_config_hash")
+        for key in ("raw_input_hash", "normalized_input_hash"):
+            if receipt.get(key) is not None:
+                need_sha256(receipt, key)
+        receipt_body = dict(receipt)
+        receipt_body.pop("evidence_hash", None)
+        if hash_value(receipt_body) != claimed_evidence_hash:
+            raise InvalidData(f"prior_receipt_evidence_hash_mismatch:{module_id}")
+        receipt_hashes.append(f"{module_id}:{claimed_evidence_hash}")
+
     delegated_runtime = need_str(row, "delegated_runtime")
     if delegated_runtime != "seo-avengers-800":
         raise InvalidData("delegated_runtime_evidence_mismatch")
@@ -119,6 +155,7 @@ def certify_composition(
         "implemented_modules": list(expected_new),
         "source_map": source_map,
         "operations": operations,
+        "prior_receipt_hashes": receipt_hashes,
     }
     composition_hash = hash_value(descriptor)
     return {
@@ -126,13 +163,14 @@ def certify_composition(
         "threshold_ppm": PPM,
         "violation": False,
         "composition_hash": composition_hash,
+        "prior_receipt_hashes_hash": hash_value(receipt_hashes),
         "catalog_module_count": 1000,
         "delegated_module_count": 800,
         "implemented_module_count": 200,
         "source_mapping_count": 200,
         "operation_count": 200,
+        "prior_receipt_count": 199,
     }
-
 
 def evaluate(
     operation: str,
@@ -141,6 +179,7 @@ def evaluate(
     *,
     registry: Mapping[str, Mapping[str, Any]] | None = None,
     module_specs: Mapping[str, Mapping[str, Any]] | None = None,
+    prior_receipts: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> Dict[str, Any]:
     fields = REQUIRED_FIELDS.get(operation)
     if fields is None:
@@ -150,7 +189,7 @@ def evaluate(
     if operation == "terminal_composition_certifier":
         if registry is None or module_specs is None:
             raise InvalidData("terminal_composition_context_required")
-        return certify_composition(row, registry, module_specs)
+        return certify_composition(row, registry, module_specs, prior_receipts)
     if operation == "primary_key_presence_coverage":
         score = bounded_ratio_ppm(need_int(row, "rows_with_primary_key", minimum=0), need_int(row, "row_count", minimum=1))
     elif operation == "unique_constraint_violation_resistance":

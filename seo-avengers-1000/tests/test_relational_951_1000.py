@@ -8,8 +8,17 @@ from runtime.common import InvalidData
 from runtime.manifest import MODULE_SPECS
 from runtime.neon_store import certify_composition, evaluate
 from runtime.relational_specs import RELATIONAL_SPECS, SOURCE_MODULES, TARGET_MODULES
+from runtime.runner import run_module
+from fixture import full_payload
 from relational_fixture import RELATIONAL_ROWS, terminal_row
 
+
+def _prior_receipts():
+    payload = full_payload()
+    return {
+        module_id: run_module(module_id, payload, {})
+        for module_id in tuple(f"M{i}" for i in range(801, 1000))
+    }
 
 class RelationalSliceTests(unittest.TestCase):
     def test_exact_range_and_source_mapping(self) -> None:
@@ -36,7 +45,7 @@ class RelationalSliceTests(unittest.TestCase):
 
     def test_m1000_certifies_exact_internal_composition(self) -> None:
         row = terminal_row(MODULE_SPECS)
-        output = certify_composition(row, module_registry(), MODULE_SPECS)
+        output = certify_composition(row, module_registry(), MODULE_SPECS, _prior_receipts())
         self.assertFalse(output["violation"])
         self.assertEqual(output["catalog_module_count"], 1000)
         self.assertEqual(output["delegated_module_count"], 800)
@@ -49,26 +58,26 @@ class RelationalSliceTests(unittest.TestCase):
         row = terminal_row(MODULE_SPECS)
         row["delegated_modules"] = row["delegated_modules"][:-1]
         with self.assertRaises(InvalidData):
-            certify_composition(row, module_registry(), MODULE_SPECS)
+            certify_composition(row, module_registry(), MODULE_SPECS, _prior_receipts())
 
     def test_m1000_fails_extra_catalog_module(self) -> None:
         row = terminal_row(MODULE_SPECS)
         row["observed_catalog_modules"].append("M1001")
         with self.assertRaises(InvalidData):
-            certify_composition(row, module_registry(), MODULE_SPECS)
+            certify_composition(row, module_registry(), MODULE_SPECS, _prior_receipts())
 
     def test_m1000_fails_wrong_source_map(self) -> None:
         row = terminal_row(MODULE_SPECS)
         row["observed_source_map"][0] = "M1801->M802"
         with self.assertRaises(InvalidData):
-            certify_composition(row, module_registry(), MODULE_SPECS)
+            certify_composition(row, module_registry(), MODULE_SPECS, _prior_receipts())
 
     def test_m1000_rejects_m1001_in_internal_registry(self) -> None:
         row = terminal_row(MODULE_SPECS)
         registry = module_registry()
         registry["M1001"] = {"module": "M1001"}
         with self.assertRaisesRegex(InvalidData, "M1001_forbidden"):
-            certify_composition(row, registry, MODULE_SPECS)
+            certify_composition(row, registry, MODULE_SPECS, _prior_receipts())
 
     def test_m1000_rejects_operation_collision(self) -> None:
         row = terminal_row(MODULE_SPECS)
@@ -76,12 +85,20 @@ class RelationalSliceTests(unittest.TestCase):
         specs["M802"]["operation"] = specs["M801"]["operation"]
         row["observed_operation_names"][1] = row["observed_operation_names"][0]
         with self.assertRaisesRegex(InvalidData, "operation_collision"):
-            certify_composition(row, module_registry(), specs)
+            certify_composition(row, module_registry(), specs, _prior_receipts())
+
+    def test_m1000_rejects_tampered_prior_receipt_hash(self) -> None:
+        row = terminal_row(MODULE_SPECS)
+        prior = _prior_receipts()
+        prior["M801"] = dict(prior["M801"])
+        prior["M801"]["output"] = {"tampered": True}
+        with self.assertRaisesRegex(InvalidData, "prior_receipt_evidence_hash_mismatch:M801"):
+            certify_composition(row, module_registry(), MODULE_SPECS, prior)
 
     def test_m1000_composition_hash_is_deterministic(self) -> None:
         row = terminal_row(MODULE_SPECS)
-        first = certify_composition(row, module_registry(), MODULE_SPECS)
-        second = certify_composition(copy.deepcopy(row), module_registry(), MODULE_SPECS)
+        first = certify_composition(row, module_registry(), MODULE_SPECS, _prior_receipts())
+        second = certify_composition(copy.deepcopy(row), module_registry(), MODULE_SPECS, _prior_receipts())
         self.assertEqual(first["composition_hash"], second["composition_hash"])
 
 
