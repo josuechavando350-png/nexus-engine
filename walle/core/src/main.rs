@@ -158,22 +158,37 @@ fn command_host_attest(args: &[String]) -> Result<(), String> {
     println!("target_silicon_process={TARGET_SILICON_PROCESS}");
     println!("target_installed_ram_bytes={TARGET_INSTALLED_RAM_BYTES}");
     println!("observed_architecture={}", assessment.facts.architecture);
-    print_optional("observed_cpu_vendor_id", assessment.facts.cpu_vendor_id.as_deref());
-    print_optional("observed_cpu_model_name", assessment.facts.cpu_model_name.as_deref());
+    print_optional(
+        "observed_cpu_vendor_id",
+        assessment.facts.cpu_vendor_id.as_deref(),
+    );
+    print_optional(
+        "observed_cpu_model_name",
+        assessment.facts.cpu_model_name.as_deref(),
+    );
     println!("observed_vmx_present={}", assessment.facts.vmx_present);
     print_optional_u64(
         "observed_usable_memory_bytes",
         assessment.facts.usable_memory_bytes,
     );
-    print_optional("observed_system_vendor", assessment.facts.system_vendor.as_deref());
-    print_optional("observed_product_name", assessment.facts.product_name.as_deref());
+    print_optional(
+        "observed_system_vendor",
+        assessment.facts.system_vendor.as_deref(),
+    );
+    print_optional(
+        "observed_product_name",
+        assessment.facts.product_name.as_deref(),
+    );
     println!("vendor_verified={}", assessment.vendor_verified);
     println!("vmx_verified={}", assessment.vmx_verified);
     println!(
         "silicon_process_verified={}",
         assessment.silicon_process_verified
     );
-    println!("installed_ram_verified={}", assessment.installed_ram_verified);
+    println!(
+        "installed_ram_verified={}",
+        assessment.installed_ram_verified
+    );
     println!(
         "secondary_capacity_component_resolved={}",
         assessment.secondary_capacity_component_resolved
