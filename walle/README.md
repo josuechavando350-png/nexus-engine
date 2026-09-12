@@ -1,55 +1,88 @@
-# WALLE — Controlled Execution, Validation & Certification Engine
+# Walle — Controlled Execution, Validation & Certification Engine
 
-WALLE is the internal codename for Nexus' controlled software-assurance platform. Its purpose is to execute software in bounded environments, validate explicit contracts, collect tamper-evident evidence, and emit a reproducible certification verdict.
+**Walle** is the internal Nexus software-assurance engine. The stable machine identifier remains `WALLE`, but the product/codename is Walle.
 
-WALLE is not a deployment system and is not a production mutation path. A workload under test must not gain production authority merely by being connected to WALLE.
+Its purpose is to execute software in bounded environments, validate explicit contracts, collect evidence, and emit reproducible verdicts without gaining deployment authority. A workload connected to Walle does not automatically gain permission to deploy, activate a tenant, mutate a CMS, modify Ads, or enter a client request path.
 
 ## Core principles
 
 1. **Fail closed.** Unknown, malformed, stale, conflicting, unverifiable, or policy-violating states never become PASS.
-2. **Evidence before claims.** Missing evidence is reported as `INSUFFICIENT_DATA`; it is never fabricated.
-3. **Exact source identity.** Every run binds to an exact source revision and, later, an exact toolchain/environment identity.
+2. **Evidence before claims.** Missing evidence is reported as insufficient/unverified; it is never fabricated.
+3. **Exact source identity.** Runs bind to an exact source revision and must detect source movement during verification.
 4. **Controlled side effects.** Network, filesystem, process, secret, and device access are explicit capabilities, not ambient privileges.
-5. **Deterministic certification.** Equal source, contract, evidence, policy, and environment should yield the same certification decision wherever determinism is applicable.
-6. **Separation of execution and authority.** A successful test run does not itself authorize deployment, tenant activation, CMS mutation, Ads changes, or any other production action.
-7. **Terminal verdicts are immutable.** Once a run reaches a terminal certification state, that run cannot transition back into execution.
-8. **No percentage-based escape hatch for critical gates.** One critical integrity or isolation failure blocks certification.
+5. **Deterministic certification.** Equal source, contract, evidence, policy, and environment should yield the same decision wherever determinism is applicable.
+6. **Separation of execution and authority.** Test success is not deployment authorization.
+7. **Terminal verdicts are immutable.** A terminal run cannot transition back into execution.
+8. **No percentage escape hatch for critical gates.** One critical integrity or isolation failure blocks certification.
 
-## Initial certification states
-
-WALLE uses these run states:
+## Run states
 
 `PLANNED -> PREPARING -> ISOLATED -> EXECUTING -> VERIFYING -> CERTIFYING -> CERTIFIED`
 
-At any appropriate non-terminal stage, the run may instead terminate as:
-
-- `BLOCKED` — a hard contract, integrity, isolation, or policy gate failed.
-- `INSUFFICIENT_DATA` — execution was valid but available evidence cannot support the requested conclusion.
-- `CANCELLED` — an authorized operator or kill path stopped the run.
-
-Terminal states cannot transition further.
+Fail-closed terminal exits are `BLOCKED`, `INSUFFICIENT_DATA`, and `CANCELLED`.
 
 ## Profiles
 
-- `FAST`: short feedback loop for development. Never emits production certification.
-- `HARDENED`: stronger verification, fault handling, and security analysis. Still not the maximum certification tier.
-- `CERTIFICATION`: the only profile eligible to emit a final `CERTIFIED` verdict once all required controls are implemented.
+- `FAST`: short feedback loop; never the maximum assurance claim.
+- `HARDENED`: stronger verification and fault handling.
+- `CERTIFICATION`: the only profile eligible for final certification after all required controls are actually implemented and proven.
 
-The foundation intentionally does **not** claim that isolation, signing, SBOM, Firecracker, gVisor, fuzzing, mutation testing, red-team automation, or distributed scheduling already exist. Those are staged capabilities and will be added only with executable tests and evidence.
+## Hardware target requested for Walle
 
-## Current W0 scope
+The target contract currently records:
 
-The first WALLE increment establishes:
+- CPU vendor: Intel (`GenuineIntel` at the Linux evidence layer);
+- silicon fabrication/process target: **Intel 18A**;
+- installed RAM target: **2 TiB** = `2199023255552` bytes;
+- virtualization target: Intel VT-x / VMX;
+- an additional operator request written as **`Gb 2 TB`**, preserved as a 2 TiB capacity requirement whose hardware component is intentionally `UNRESOLVED` until the operator identifies whether it means storage, GPU memory, or something else.
 
-- a standalone Rust control-core crate pinned to the same Rust 1.88 toolchain used by Nexus;
-- a typed fail-closed state machine;
-- strict workload/source identity validation;
-- bounded baseline resource plans for FAST/HARDENED/CERTIFICATION profiles;
-- a zero-dependency CLI for `version`, `doctor`, `validate-sha`, `transition`, and `plan`;
-- locked, formatted, clippy-clean, unit-tested CI verification;
-- an explicit threat model and phased architecture roadmap.
+Walle does not pretend generic Linux host data can prove Intel 18A. `/proc/cpuinfo` can expose vendor/model/VMX but not authoritative fabrication-node provenance. Likewise `/proc/meminfo` reports usable memory, not authoritative installed DIMM capacity. Therefore `host-attest` currently returns a fail-closed non-success verdict until a platform-attestation source can prove those properties.
 
-W0 does not touch CANO, NexusBotStudio production paths, Avengers tenant activation, Vercel, Cloudflare, CMS data, Google Ads, or client request paths.
+Commands:
+
+```bash
+cargo run --manifest-path walle/core/Cargo.toml --locked -- hardware-contract
+cargo run --manifest-path walle/core/Cargo.toml --locked -- host-attest
+```
+
+The second command intentionally exits non-zero while the complete target cannot be proven.
+
+## Real SEO Avengers connection
+
+SEO Avengers is no longer only a future placeholder in Walle. The adapter at:
+
+```text
+walle/adapters/seo-avengers-2500.sh
+```
+
+is connected to the real repository verification chain:
+
+```text
+seo-avengers-2500/scripts/verify.sh
+  -> seo-avengers-1000/scripts/verify.sh
+     -> seo-avengers-800/scripts/verify.sh
+        -> seo-avengers-600/scripts/verify.sh
+           -> seo-avengers-400/scripts/verify.sh
+```
+
+The adapter requires a clean Git tree, optionally binds an expected Git SHA, checks every predecessor reference, runs the real chained verifier under a hard timeout, verifies that HEAD/tree/worktree did not move, hashes verifier/output evidence with SHA-256, and emits `WALLE_AVENGERS_STATUS=VERIFIED_CHAIN` only on success.
+
+It also emits `WALLE_FULL_EXECUTION_CLAIM=false`. This is mandatory because the current chained verifier checks M001-M200 source/catalog parity through `seo-avengers-400`, but it does **not** execute `seo-avengers-200/scripts/verify.sh`. Walle will not mislabel that as 2,500 freshly executed modules.
+
+## Current implemented scope
+
+This branch contains real executable code for:
+
+- a zero-dependency Rust control core pinned to Rust 1.88;
+- typed fail-closed state transitions;
+- strict workload/source SHA-256 identity validation;
+- bounded resource plans;
+- hardware target/observation logic with tests preventing false Intel 18A/RAM claims;
+- a real SEO Avengers chained-verifier adapter with source-stability checks and output/verifier hashes;
+- CI that installs exact Python 3.11, Node 24 and Rust 1.88 toolchains and runs the connected verifier.
+
+The verification script keeps Cargo build output outside the repository so a successful verification must leave the checkout clean.
 
 ## Verification
 
@@ -57,10 +90,12 @@ W0 does not touch CANO, NexusBotStudio production paths, Avengers tenant activat
 bash walle/scripts/verify.sh
 ```
 
-## First workload
+A green run proves the checks that are actually executed by that script. It does not prove microVM isolation, TPM attestation, signed provenance, full M001-M2500 fresh execution, or a bug-free system.
 
-SEO Avengers will be WALLE's first major certification workload, but WALLE itself is deliberately workload-agnostic. The future Avengers adapter must prove whether M001-M2500 were actually executed in a run versus composition-verified/delegated; it may not collapse those two meanings into the same claim.
+## Still blocked before final certification
+
+Walle must not emit a production-grade final certification claim until, at minimum, strong isolation and capability enforcement, authoritative hardware/environment attestation, durable tamper-evident evidence publication, and a real no-skip execution path for the currently delegated M001-M200 gap are implemented and tested.
 
 ## Naming
 
-`WALLE` is an internal Nexus codename. If this system is later distributed or marketed publicly, the product name should receive a separate trademark/name review before release.
+Walle is an internal Nexus codename. Public distribution/marketing should receive a separate name/trademark review before release.
