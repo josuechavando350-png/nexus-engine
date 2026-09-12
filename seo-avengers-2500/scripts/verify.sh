@@ -32,5 +32,5 @@ for path in runtime.glob("*.py"):
             call=f"{node.func.value.id}.{node.func.attr}"
             if call in banned_calls:
                 raise SystemExit(f"volatile call forbidden:{path}:{node.lineno}:{call}")
-print("seo-avengers-2500 batch M1001-M1200 verification: PASS")
+print("seo-avengers-2500 current M1001-M1400 verification: PASS")
 PY

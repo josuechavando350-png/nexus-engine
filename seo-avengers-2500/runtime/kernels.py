@@ -2,12 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Mapping
 
-from .common import (
-    InvalidData,
-    normalize_content_documents,
-    normalize_local_records,
-    normalize_search_records,
-)
+from .common import InvalidData, normalize_content_documents, normalize_local_records, normalize_search_records
 from .kernel_search import (
     _search_band_opportunity, _search_pattern_share, _search_query_page_degree,
     _search_page_query_degree, _search_pareto_frontier, _search_gini,
@@ -29,6 +24,14 @@ from .kernel_content import (
     _brand_identity_conflict, _phone_identity_conflict, _address_identity_conflict,
     _whitehat_gate,
 )
+from .kernel_twin import (
+    twin_query_content_alignment, twin_longtail_geometry, twin_service_location_portfolio,
+    twin_economic_priority, twin_strategic_portfolio,
+)
+from .kernel_proof import (
+    proof_operation_health, proof_bundle_health, search_content_observation_readiness,
+    demand_weighted_proof_risk, indexation_readiness_guard, indexation_readiness_release_gate,
+)
 
 def _normalize_input_for_kernel(spec: Mapping[str, Any], payload: Mapping[str, Any]) -> Any:
     dataset = spec["dataset_key"]
@@ -41,14 +44,28 @@ def _normalize_input_for_kernel(spec: Mapping[str, Any], payload: Mapping[str, A
     if dataset == "local_business_records":
         rows, invalid = normalize_local_records(payload.get(dataset, []))
         return {"records": rows, "invalid_records_count": invalid}
+    if dataset == "upstream_evidence":
+        raw = payload.get(dataset, [])
+        if not isinstance(raw, list):
+            raise InvalidData("upstream_evidence_must_be_list")
+        return list(raw)
     if dataset == "MULTI":
         search, search_invalid = normalize_search_records(payload.get("search_performance_records", []))
         documents, content_invalid = normalize_content_documents(payload.get("content_documents", []))
         local, local_invalid = normalize_local_records(payload.get("local_business_records", []))
+        funnel = payload.get("revenue_funnel_records", [])
+        decay = payload.get("content_decay_records", [])
+        upstream = payload.get("upstream_evidence", [])
+        if not isinstance(funnel, list): raise InvalidData("revenue_funnel_records_must_be_list")
+        if not isinstance(decay, list): raise InvalidData("content_decay_records_must_be_list")
+        if not isinstance(upstream, list): raise InvalidData("upstream_evidence_must_be_list")
         return {
             "search_performance_records": search,
             "content_documents": documents,
             "local_business_records": local,
+            "revenue_funnel_records": list(funnel),
+            "content_decay_records": list(decay),
+            "upstream_evidence_raw": list(upstream),
             "invalid_records_count": search_invalid + content_invalid + local_invalid,
         }
     raw = payload.get(dataset, [])
@@ -106,23 +123,34 @@ _DISPATCH = {
     "brand_identity_conflict_guard": _brand_identity_conflict,
     "phone_identity_conflict_guard": _phone_identity_conflict,
     "address_identity_conflict_guard": _address_identity_conflict,
+    "twin_query_content_alignment": twin_query_content_alignment,
+    "twin_longtail_geometry": twin_longtail_geometry,
+    "twin_service_location_portfolio": twin_service_location_portfolio,
+    "twin_economic_priority": twin_economic_priority,
+    "twin_strategic_portfolio": twin_strategic_portfolio,
+    "proof_operation_health": proof_operation_health,
+    "proof_bundle_health": proof_bundle_health,
+    "search_content_observation_readiness": search_content_observation_readiness,
+    "demand_weighted_proof_risk": demand_weighted_proof_risk,
 }
 
 def evaluate_spec(
-    spec: Mapping[str, Any],
-    payload: Mapping[str, Any],
-    config: Mapping[str, Any],
-    *,
+    spec: Mapping[str, Any], payload: Mapping[str, Any], config: Mapping[str, Any], *,
     prior_receipts: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> tuple[Any, Any, Dict[str, Any]]:
     raw_input = payload if spec["dataset_key"] == "MULTI" else payload.get(spec["dataset_key"], [])
     normalized = _normalize_input_for_kernel(spec, payload)
-    if spec["kernel"] == "whitehat_release_gate":
+    kernel = spec["kernel"]
+    if kernel == "whitehat_release_gate":
         score, violation, details = _whitehat_gate(spec, normalized, config, prior_receipts)
+    elif kernel == "indexation_readiness_guard":
+        score, violation, details = indexation_readiness_guard(spec, normalized, config, prior_receipts)
+    elif kernel == "indexation_readiness_release_gate":
+        score, violation, details = indexation_readiness_release_gate(spec, normalized, config, prior_receipts)
     else:
-        fn = _DISPATCH.get(spec["kernel"])
+        fn = _DISPATCH.get(kernel)
         if fn is None:
-            raise InvalidData(f"unsupported_kernel:{spec['kernel']}")
+            raise InvalidData(f"unsupported_kernel:{kernel}")
         score, violation, details = fn(spec, normalized, config)
     if isinstance(score, bool) or not isinstance(score, int) or not 0 <= score <= 1_000_000:
         raise InvalidData("kernel_score_out_of_range")
