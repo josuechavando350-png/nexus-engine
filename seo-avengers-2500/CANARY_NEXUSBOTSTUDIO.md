@@ -27,7 +27,14 @@ out-of-band M1001-M2500 sidecar
 RELEASED / INSUFFICIENT_DATA / BLOCKED / STALE / OFF
 ```
 
-A `RELEASED` result remains an execution/integrity statement. It is not a ranking, indexation, traffic, lead, client or revenue guarantee.
+The initial live canary intentionally has only public `content_documents`; it does not fabricate Search Console, Analytics, local-business, conversion, revenue or provider evidence merely to force M2500 green. Therefore the operational canary does **not** require NexusBotStudio itself to receive a `RELEASED` result. It requires the exact 1500 local modules to execute without runtime `ERROR`, and then accepts either:
+
+- `RELEASED`, when M2500 genuinely certifies the observed evidence; or
+- `BLOCKED / SUITE_NOT_RELEASE_SAFE`, when the exact execution is structurally valid but M2500 truthfully refuses release.
+
+In the second case individual receipts remain suppressed. The proof artifact stores only redacted execution hashes, aggregate status counts, exact receipt count, terminal M2500 state and collection counters. A process/runtime failure (`SUITE_EXECUTION_FAILED`) still fails the canary.
+
+A `RELEASED` result remains an execution/integrity statement. It is not a ranking, indexation, traffic, lead, client or revenue guarantee. A successful operational canary with `SUITE_NOT_RELEASE_SAFE` likewise does not certify NexusBotStudio SEO quality; it certifies that real evidence traversed the guarded pipeline and that the release gate refused to overclaim.
 
 ## Hard tenant boundary
 
@@ -51,10 +58,11 @@ Collection limits:
 - routes: at most 24 by default and never more than 64;
 - pages: at most 2 MB each;
 - request timeout: 8 seconds by default, bounded to 30 seconds;
-- redirects must terminate on an allowed HTTPS NexusBotStudio host;
+- redirects are followed manually, with every destination validated before the next request and a maximum of five redirects;
+- redirect/sitemap destinations must remain on an allowed HTTPS NexusBotStudio host;
 - sitemap entries with another host, query string, insecure scheme or invalid route are ignored.
 
-Only observed visible page text is emitted as `content_documents`. Missing provider/business/search/revenue evidence is left missing; the runtime must return `INSUFFICIENT_DATA` where appropriate rather than inventing it.
+Only observed visible page text is emitted as `content_documents`. Missing provider/business/search/revenue evidence is left missing; the runtime must use its existing `INSUFFICIENT_DATA` semantics rather than inventing observations.
 
 ## Atomic evidence publication
 
@@ -74,7 +82,7 @@ Dataset files and the manifest are written into a pending immutable snapshot, fs
 
 `HEAD.json` binds the snapshot to the tenant, the current control generation and the canonical manifest SHA-256. Readers reject pending publication markers, symlinks, layout drift, generation mismatch, undeclared files, dataset digest mismatch and head/manifest mismatch.
 
-This versioned reader is integrated behind the existing `readTenantEvidenceSnapshot()` API. Existing v1 flat snapshots remain readable when no v2 `HEAD.json` / `snapshots/` structure is present.
+The versioned reader is integrated behind the existing `readTenantEvidenceSnapshot()` API. Existing v1 flat snapshots remain readable when no v2 `HEAD.json` / `snapshots/` structure is present. The versioned reader and writer are separate modules so the sidecar reader retains a statically testable read-only filesystem boundary.
 
 ## Hot-disable contract
 
@@ -84,6 +92,8 @@ The kill switch is authoritative. If it becomes active or the control generation
 - any snapshot written under the old generation remains cryptographically/generation bound to that old state;
 - the sidecar rechecks authorization and suppresses stale receipts;
 - the website itself is unaffected because the collector/worker is not in its request path.
+
+The live proof activates the kill switch after the first execution and requires a second attempt to return `OFF / KILL_SWITCH_ACTIVE` with no released receipts.
 
 ## Relationship to SEO Avengers 200
 
@@ -105,6 +115,6 @@ An optional `--config` JSON file may provide factual project-local configuration
 
 ## Activation state
 
-Adding this code does not activate NexusBotStudio. A real canary run still requires a separately provisioned control root and evidence root, explicit enablement of the `nexus-bot-studio` tenant, and an operator-run process/service with read-only access to the evidence it consumes.
+Adding this code does not permanently activate NexusBotStudio. The CI proof creates ephemeral control and evidence roots, explicitly enables only `nexus-bot-studio` for that isolated run, exercises the public collector and sidecar, proves the kill switch, and then the runner is destroyed.
 
 CANO remains out of scope. External clients remain OFF.
