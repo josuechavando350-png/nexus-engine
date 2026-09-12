@@ -31,10 +31,11 @@ test("generation gap fails closed", async () => withRoot(async (root) => {
   const tenantDir = join(root, "tenants", "cano-penal");
   await mkdir(tenantDir, { recursive: true });
   await writeFile(join(tenantDir, "00000000000000000002.json"), "{}\n", "utf8");
+  await writeFile(join(tenantDir, ".hwm.json"), "{}\n", "utf8");
   const state = await readTenantControl({ controlRoot: root, siteId: "cano-penal" });
   assert.equal(state.authorized, false);
   assert.equal(state.integrityOk, false);
-  assert.equal(state.reason, "HWM_MISSING");
+  assert.equal(state.reason, "GENERATION_GAP");
 }));
 
 test("malformed boolean cannot be normalized into enabled state", async () => withRoot(async (root) => {
