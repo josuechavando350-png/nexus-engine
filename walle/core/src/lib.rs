@@ -129,7 +129,7 @@ pub struct WorkloadContract<'a> {
     pub resources: ResourcePlan,
 }
 
-impl<'a> WorkloadContract<'a> {
+impl WorkloadContract<'_> {
     pub fn validate(self) -> Result<(), ContractValidationError> {
         if !is_valid_workload_id(self.workload_id) {
             return Err(ContractValidationError::InvalidWorkloadId);
@@ -209,21 +209,22 @@ impl RunState {
             return false;
         }
 
-        match (self, next) {
+        matches!(
+            (self, next),
             (Self::Planned, Self::Preparing)
-            | (Self::Preparing, Self::Isolated)
-            | (Self::Isolated, Self::Executing)
-            | (Self::Executing, Self::Verifying)
-            | (Self::Verifying, Self::Certifying)
-            | (Self::Certifying, Self::Certified) => true,
-            (_, Self::Blocked) | (_, Self::Cancelled) => true,
-            (Self::Preparing, Self::InsufficientData)
-            | (Self::Isolated, Self::InsufficientData)
-            | (Self::Executing, Self::InsufficientData)
-            | (Self::Verifying, Self::InsufficientData)
-            | (Self::Certifying, Self::InsufficientData) => true,
-            _ => false,
-        }
+                | (Self::Preparing, Self::Isolated)
+                | (Self::Isolated, Self::Executing)
+                | (Self::Executing, Self::Verifying)
+                | (Self::Verifying, Self::Certifying)
+                | (Self::Certifying, Self::Certified)
+                | (_, Self::Blocked)
+                | (_, Self::Cancelled)
+                | (Self::Preparing, Self::InsufficientData)
+                | (Self::Isolated, Self::InsufficientData)
+                | (Self::Executing, Self::InsufficientData)
+                | (Self::Verifying, Self::InsufficientData)
+                | (Self::Certifying, Self::InsufficientData)
+        )
     }
 }
 
