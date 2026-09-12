@@ -1,0 +1,270 @@
+name: SEO Avengers 2500 NexusBotStudio Canary Proof
+
+on:
+  push:
+    branches:
+      - feat/seo-avengers-2500-nexusbot-canary
+    paths:
+      - 'seo-avengers-2500/**'
+      - '.github/workflows/seo-avengers-2500-nexusbot-canary.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: seo-avengers-2500-nexusbot-canary
+  cancel-in-progress: true
+
+jobs:
+  nexusbot-canary:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact canary revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact source and pristine checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test -z "$(git status --porcelain)"
+
+      - name: Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Use Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
+      - name: Prepare redacted proof directory
+        run: mkdir -p .artifacts
+
+      - name: Verify exact canary code before live collection
+        run: bash seo-avengers-2500/scripts/verify.sh
+
+      - name: Provision ephemeral isolated tenant roots
+        run: |
+          set -euo pipefail
+          CONTROL_ROOT="${RUNNER_TEMP}/seo-avengers-2500-control"
+          EVIDENCE_ROOT="${RUNNER_TEMP}/seo-avengers-2500-evidence"
+          mkdir -p "${CONTROL_ROOT}" "${EVIDENCE_ROOT}/tenants" .artifacts
+          chmod 700 "${CONTROL_ROOT}" "${EVIDENCE_ROOT}" "${EVIDENCE_ROOT}/tenants"
+          {
+            echo "CANARY_CONTROL_ROOT=${CONTROL_ROOT}"
+            echo "CANARY_EVIDENCE_ROOT=${EVIDENCE_ROOT}"
+          } >> "${GITHUB_ENV}"
+
+      - name: Explicitly enable only NexusBotStudio
+        run: |
+          set -euo pipefail
+          node seo-avengers-2500/scripts/seo-avengers-2500-control.mjs \
+            enable \
+            --root "${CANARY_CONTROL_ROOT}" \
+            --site nexus-bot-studio \
+            > .artifacts/control-enable.json
+
+      - name: Run real public-site canary out of band
+        id: live_canary
+        continue-on-error: true
+        run: |
+          set +e
+          node seo-avengers-2500/scripts/seo-avengers-2500-nexusbot-canary.mjs \
+            --control-root "${CANARY_CONTROL_ROOT}" \
+            --evidence-root "${CANARY_EVIDENCE_ROOT}" \
+            > .artifacts/canary-envelope.json \
+            2> .artifacts/canary-stderr.log
+          code=$?
+          set -e
+          echo "${code}" > .artifacts/canary-exit-code.txt
+          exit 0
+
+      - name: Produce redacted canary evidence summary
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import { createHash } from 'node:crypto';
+          import { readFile, writeFile } from 'node:fs/promises';
+
+          const sha256 = (value) => `sha256:${createHash('sha256').update(value).digest('hex')}`;
+          let raw = Buffer.alloc(0);
+          let envelope = null;
+          let parseError = null;
+          try {
+            raw = await readFile('.artifacts/canary-envelope.json');
+            envelope = JSON.parse(raw.toString('utf8'));
+          } catch (error) {
+            parseError = error instanceof Error ? error.message : String(error);
+          }
+          let exitCode = null;
+          try {
+            exitCode = Number((await readFile('.artifacts/canary-exit-code.txt', 'utf8')).trim());
+          } catch {}
+
+          const receipts = envelope?.receipts && typeof envelope.receipts === 'object' ? envelope.receipts : {};
+          const derivedExecutionStatuses = {};
+          const derivedFindingStatuses = {};
+          for (const receipt of Object.values(receipts)) {
+            const execution = String(receipt?.execution_status ?? 'MISSING');
+            const finding = String(receipt?.finding_status ?? 'MISSING');
+            derivedExecutionStatuses[execution] = (derivedExecutionStatuses[execution] ?? 0) + 1;
+            derivedFindingStatuses[finding] = (derivedFindingStatuses[finding] ?? 0) + 1;
+          }
+          const terminalReceipt = receipts.M2500 ?? null;
+          const terminalSummary = envelope?.terminalStatus ?? null;
+          const summary = {
+            schema_version: 1,
+            validated_sha: process.env.GITHUB_SHA,
+            cli_exit_code: exitCode,
+            envelope_sha256: raw.length ? sha256(raw) : null,
+            parse_error: parseError,
+            site_id: envelope?.siteId ?? null,
+            status: envelope?.status ?? null,
+            reason: envelope?.reason ?? null,
+            control_generation: envelope?.controlGeneration ?? null,
+            evidence_manifest_hash: envelope?.evidenceManifestHash ?? envelope?.canary?.manifestHash ?? null,
+            config_hash: envelope?.configHash ?? null,
+            execution_hash: envelope?.executionHash ?? null,
+            terminal_evidence_hash: envelope?.terminalEvidenceHash ?? null,
+            receipt_count: envelope?.receiptCount ?? null,
+            receipt_execution_status_counts: envelope?.executionStatusCounts ?? derivedExecutionStatuses,
+            receipt_finding_status_counts: envelope?.findingStatusCounts ?? derivedFindingStatuses,
+            receipts_released: Boolean(envelope?.receipts),
+            receipts_suppressed: envelope?.receiptsSuppressed === true,
+            m2500: terminalReceipt ? {
+              execution_status: terminalReceipt.execution_status ?? null,
+              finding_status: terminalReceipt.finding_status ?? null,
+              release_safe: terminalReceipt.output?.release_safe ?? null,
+              suite: terminalReceipt.output?.suite ?? null,
+            } : terminalSummary ? {
+              execution_status: terminalSummary.executionStatus ?? null,
+              finding_status: terminalSummary.findingStatus ?? null,
+              release_safe: terminalSummary.releaseSafe ?? null,
+              suite: terminalSummary.suite ?? null,
+            } : null,
+            canary: envelope?.canary ? {
+              origin: envelope.canary.origin ?? null,
+              discovered_routes: envelope.canary.discoveredRoutes ?? null,
+              collected_documents: envelope.canary.collectedDocuments ?? null,
+              failed_routes: envelope.canary.failedRoutes ?? null,
+              snapshot_id: envelope.canary.snapshotId ?? null,
+              manifest_hash: envelope.canary.manifestHash ?? null,
+            } : null,
+          };
+          await writeFile('.artifacts/canary-summary.json', `${JSON.stringify(summary, null, 2)}\n`);
+          console.log(JSON.stringify(summary, null, 2));
+          NODE
+
+      - name: Prove emergency hot-disable on the same ephemeral tenant
+        if: always()
+        continue-on-error: true
+        run: |
+          set +e
+          node seo-avengers-2500/scripts/seo-avengers-2500-control.mjs \
+            kill \
+            --root "${CANARY_CONTROL_ROOT}" \
+            --site nexus-bot-studio \
+            > .artifacts/control-kill.json \
+            2> .artifacts/control-kill-stderr.log
+          kill_code=$?
+          node seo-avengers-2500/scripts/seo-avengers-2500-nexusbot-canary.mjs \
+            --control-root "${CANARY_CONTROL_ROOT}" \
+            --evidence-root "${CANARY_EVIDENCE_ROOT}" \
+            > .artifacts/hot-disable-result.json \
+            2> .artifacts/hot-disable-stderr.log
+          disabled_code=$?
+          set -e
+          printf '%s\n' "${kill_code}" > .artifacts/control-kill-exit-code.txt
+          printf '%s\n' "${disabled_code}" > .artifacts/hot-disable-exit-code.txt
+          exit 0
+
+      - name: Summarize hot-disable proof without page content
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile, writeFile } from 'node:fs/promises';
+          let result = null;
+          let parseError = null;
+          try {
+            result = JSON.parse(await readFile('.artifacts/hot-disable-result.json', 'utf8'));
+          } catch (error) {
+            parseError = error instanceof Error ? error.message : String(error);
+          }
+          const summary = {
+            schema_version: 1,
+            validated_sha: process.env.GITHUB_SHA,
+            parse_error: parseError,
+            site_id: result?.siteId ?? null,
+            status: result?.status ?? null,
+            reason: result?.reason ?? null,
+            control_generation: result?.controlGeneration ?? null,
+            receipts_released: Boolean(result?.receipts),
+          };
+          await writeFile('.artifacts/hot-disable-summary.json', `${JSON.stringify(summary, null, 2)}\n`);
+          console.log(JSON.stringify(summary, null, 2));
+          NODE
+
+      - name: Upload redacted canary proof
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: seo-avengers-2500-nexusbot-canary-${{ github.sha }}-${{ github.run_id }}
+          if-no-files-found: error
+          retention-days: 14
+          path: |
+            .artifacts/canary-summary.json
+            .artifacts/canary-exit-code.txt
+            .artifacts/canary-stderr.log
+            .artifacts/hot-disable-summary.json
+            .artifacts/hot-disable-exit-code.txt
+            .artifacts/hot-disable-stderr.log
+
+      - name: Enforce canary execution and hot-disable gates
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const canary = JSON.parse(await readFile('.artifacts/canary-summary.json', 'utf8'));
+          const disabled = JSON.parse(await readFile('.artifacts/hot-disable-summary.json', 'utf8'));
+          if (canary.validated_sha !== process.env.GITHUB_SHA) throw new Error('canary source SHA mismatch');
+          if (canary.site_id !== 'nexus-bot-studio') throw new Error('wrong canary tenant');
+          if (canary.canary?.origin !== 'https://nexusbotstudio.com') throw new Error('wrong canary origin');
+          if (!Number.isSafeInteger(canary.canary?.collected_documents) || canary.canary.collected_documents < 1) {
+            throw new Error('live canary collected no usable public documents');
+          }
+          if (canary.receipt_count !== 1500) throw new Error('live canary did not execute exact local receipt count');
+          if ((canary.receipt_execution_status_counts?.ERROR ?? 0) !== 0) {
+            throw new Error('live canary produced runtime ERROR receipts');
+          }
+          if (canary.m2500?.execution_status !== 'SUCCESS') throw new Error('M2500 did not execute successfully');
+
+          if (canary.status === 'RELEASED') {
+            if (canary.reason !== 'RELEASED' || canary.cli_exit_code !== 0) throw new Error('released canary envelope is inconsistent');
+            if (canary.m2500?.finding_status !== 'NO_FINDING' || canary.m2500?.release_safe !== true || canary.m2500?.suite !== 'SEO_AVENGERS_2500') {
+              throw new Error('released canary lacks M2500 release-safe certification');
+            }
+            if (canary.receipts_released !== true) throw new Error('released canary omitted receipts');
+          } else if (canary.status === 'BLOCKED' && canary.reason === 'SUITE_NOT_RELEASE_SAFE') {
+            if (canary.cli_exit_code !== 2) throw new Error('non-release canary exit code drift');
+            if (canary.m2500?.release_safe === true && canary.m2500?.finding_status === 'NO_FINDING') {
+              throw new Error('non-release canary contradicts M2500 state');
+            }
+            if (canary.receipts_released !== false || canary.receipts_suppressed !== true) {
+              throw new Error('non-release canary exposed suppressed receipts');
+            }
+          } else {
+            throw new Error(`live canary did not produce a valid execution outcome: ${canary.status}/${canary.reason}`);
+          }
+
+          if (disabled.site_id !== 'nexus-bot-studio') throw new Error('wrong hot-disable tenant');
+          if (disabled.status !== 'OFF' || disabled.reason !== 'KILL_SWITCH_ACTIVE') {
+            throw new Error(`hot-disable proof failed: ${disabled.status}/${disabled.reason}`);
+          }
+          if (disabled.receipts_released !== false) throw new Error('hot-disabled run released receipts');
+          console.log('NexusBotStudio live canary execution + emergency hot-disable proof: PASS');
+          NODE
