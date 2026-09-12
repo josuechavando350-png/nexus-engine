@@ -388,10 +388,16 @@ pub fn evaluate_page_safety(
     deployed: Option<DeployedArtifactObservation<'_>>,
 ) -> PageSafetyDecision {
     if candidate.validate().is_err() {
-        return blocked(DecisionReason::InvalidCandidateContract, AdsDisposition::Blocked);
+        return blocked(
+            DecisionReason::InvalidCandidateContract,
+            AdsDisposition::Blocked,
+        );
     }
     if !policy.validate() {
-        return blocked(DecisionReason::InvalidPublicationPolicy, AdsDisposition::Blocked);
+        return blocked(
+            DecisionReason::InvalidPublicationPolicy,
+            AdsDisposition::Blocked,
+        );
     }
 
     let ads = ads_disposition(candidate.ads_intent, quality.ads_destination);
