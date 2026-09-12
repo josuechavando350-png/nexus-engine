@@ -117,10 +117,7 @@ pub enum GracefulTerminationOutcome {
 #[derive(Debug)]
 pub enum SpawnAttempt<P, E> {
     Running(P),
-    Failed {
-        error: E,
-        process: Option<P>,
-    },
+    Failed { error: E, process: Option<P> },
 }
 
 /// Host implementations own the side effects. The orchestrator owns ordering,
@@ -137,7 +134,10 @@ pub trait MicroVmSupervisorHost {
     fn prepare_run_root(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Self::Error>;
     fn apply_cgroup(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Self::Error>;
     fn materialize_runtime(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Self::Error>;
-    fn spawn(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> SpawnAttempt<Self::Process, Self::Error>;
+    fn spawn(
+        &mut self,
+        plan: &MicroVmSupervisorPlan<'_>,
+    ) -> SpawnAttempt<Self::Process, Self::Error>;
     fn wait(
         &mut self,
         process: &mut Self::Process,
@@ -198,12 +198,7 @@ pub fn execute_supervisor_lifecycle<H: MicroVmSupervisorHost>(
                     Some(ContainmentMode::Forced),
                 );
             }
-            return blocked_after_cleanup(
-                host,
-                plan,
-                SupervisorLifecycleReason::SpawnFailed,
-                None,
-            );
+            return blocked_after_cleanup(host, plan, SupervisorLifecycleReason::SpawnFailed, None);
         }
     };
 
@@ -261,10 +256,7 @@ fn finish_contained_terminal<H: MicroVmSupervisorHost>(
         None => return blocked(SupervisorLifecycleReason::ContainmentFailed, None),
     };
     if host.cleanup(plan).is_err() {
-        return blocked(
-            SupervisorLifecycleReason::CleanupFailed,
-            Some(containment),
-        );
+        return blocked(SupervisorLifecycleReason::CleanupFailed, Some(containment));
     }
     SupervisorLifecycleResult {
         status,
@@ -449,10 +441,7 @@ mod tests {
             }
         }
 
-        fn force_kill_and_reap(
-            &mut self,
-            _process: &mut Self::Process,
-        ) -> Result<(), Self::Error> {
+        fn force_kill_and_reap(&mut self, _process: &mut Self::Process) -> Result<(), Self::Error> {
             self.events.push("force-kill");
             if self.fails(FailurePoint::ForceKill) {
                 Err(FakeError)
@@ -475,15 +464,18 @@ mod tests {
         MicroVmSupervisorPlan {
             run_id: "run-0123456789abcdef0123456789abcdef",
             workload_id: "seo-avengers-2500",
-            source_sha256: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            source_sha256:
+                "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             backend_id: "firecracker-microvm-v1",
             firecracker_exec: "/opt/walle/bin/firecracker",
             jailer_exec: "/opt/walle/bin/jailer",
             run_root: "/var/lib/walle/runs/run-0123456789abcdef0123456789abcdef",
             kernel_source: "/var/lib/walle/images/kernel-v1.bin",
             rootfs_source: "/var/lib/walle/images/rootfs-v1.ext4",
-            kernel_sha256: "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
-            rootfs_sha256: "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            kernel_sha256:
+                "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789",
+            rootfs_sha256:
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111",
             jail_uid: 65_534,
             jail_gid: 65_534,
             cgroup: CgroupV2Plan {
@@ -521,7 +513,15 @@ mod tests {
         assert_eq!(result.containment, None);
         assert_eq!(
             host.events,
-            ["verify", "prepare", "cgroup", "materialize", "spawn", "wait", "cleanup"]
+            [
+                "verify",
+                "prepare",
+                "cgroup",
+                "materialize",
+                "spawn",
+                "wait",
+                "cleanup"
+            ]
         );
         assert_eq!(
             result.canonical_json(),
