@@ -26,9 +26,9 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Use Node 20
+      - name: Use Node 24
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
       - name: Verify predecessor and current batch
         run: bash seo-avengers-2500/scripts/verify.sh
