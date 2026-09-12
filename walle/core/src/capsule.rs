@@ -155,7 +155,11 @@ impl ExecutionCapsule<'_> {
         output.push(',');
         push_key_array(&mut output, "device_names", self.capabilities.device_names);
         output.push(',');
-        push_key_str(&mut output, "filesystem", self.capabilities.filesystem.as_str());
+        push_key_str(
+            &mut output,
+            "filesystem",
+            self.capabilities.filesystem.as_str(),
+        );
         output.push(',');
         push_key_str(&mut output, "network", self.capabilities.network.as_str());
         output.push(',');
@@ -175,11 +179,19 @@ impl ExecutionCapsule<'_> {
         push_key_str(&mut output, "profile", self.profile.as_str());
         output.push(',');
         output.push_str("\"resources\":{");
-        push_key_u64(&mut output, "cpu_cores", u64::from(self.resources.cpu_cores));
+        push_key_u64(
+            &mut output,
+            "cpu_cores",
+            u64::from(self.resources.cpu_cores),
+        );
         output.push(',');
         push_key_u64(&mut output, "memory_mib", self.resources.memory_mib);
         output.push(',');
-        push_key_u64(&mut output, "pid_limit", u64::from(self.resources.pid_limit));
+        push_key_u64(
+            &mut output,
+            "pid_limit",
+            u64::from(self.resources.pid_limit),
+        );
         output.push(',');
         push_key_u64(
             &mut output,
@@ -196,7 +208,11 @@ impl ExecutionCapsule<'_> {
         output.push(',');
         push_key_str(&mut output, "run_id", self.run_id);
         output.push(',');
-        push_key_u64(&mut output, "schema_version", u64::from(CAPSULE_SCHEMA_VERSION));
+        push_key_u64(
+            &mut output,
+            "schema_version",
+            u64::from(CAPSULE_SCHEMA_VERSION),
+        );
         output.push(',');
         push_key_str(&mut output, "source_sha256", self.source_sha256);
         output.push(',');
@@ -394,8 +410,12 @@ impl Display for CapsuleError {
             Self::OutputLimitOutOfRange => "stdout/stderr byte limits are outside allowed bounds",
             Self::CancellationGraceOutOfRange => "cancellation grace exceeds execution timeout",
             Self::InvalidNetworkAllowlist => "invalid network allowlist",
-            Self::NetworkAllowlistNotAllowed => "network allowlist provided for non-allowlist policy",
-            Self::NetworkAllowlistRequired => "explicit network policy requires non-empty allowlist",
+            Self::NetworkAllowlistNotAllowed => {
+                "network allowlist provided for non-allowlist policy"
+            }
+            Self::NetworkAllowlistRequired => {
+                "explicit network policy requires non-empty allowlist"
+            }
             Self::InvalidSecretNames => "invalid secret name list",
             Self::InvalidDeviceNames => "invalid device name list",
             Self::InvalidReceiptSequence => "phase receipt sequence must be greater than zero",
@@ -478,9 +498,9 @@ fn is_run_id(value: &str) -> bool {
 fn is_reason_code(value: &str) -> bool {
     !value.is_empty()
         && value.len() <= 96
-        && value.bytes().all(|byte| {
-            byte.is_ascii_uppercase() || byte.is_ascii_digit() || matches!(byte, b'_')
-        })
+        && value
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || matches!(byte, b'_'))
 }
 
 fn is_machine_token(value: &str, max_len: usize) -> bool {
@@ -549,8 +569,7 @@ fn push_json_string(output: &mut String, value: &str) {
 mod tests {
     use super::*;
 
-    const SOURCE: &str =
-        "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const SOURCE: &str = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     const EVIDENCE: &str =
         "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 
@@ -612,10 +631,7 @@ mod tests {
     fn output_caps_are_bounded() {
         let mut capsule = valid_capsule();
         capsule.max_stdout_bytes = MAX_OUTPUT_BYTES + 1;
-        assert_eq!(
-            capsule.validate(),
-            Err(CapsuleError::OutputLimitOutOfRange)
-        );
+        assert_eq!(capsule.validate(), Err(CapsuleError::OutputLimitOutOfRange));
     }
 
     #[test]
