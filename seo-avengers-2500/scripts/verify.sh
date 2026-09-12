@@ -11,7 +11,9 @@ python -m compileall -q "$SUITE/runtime" "$SUITE/tests"
 )
 node --check "$SUITE/control-plane/tenant-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
-node --test "$SUITE/tests/test_tenant_control.mjs"
+node --test \
+  "$SUITE/tests/test_tenant_control.mjs" \
+  "$SUITE/tests/test_tenant_control_strict.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
