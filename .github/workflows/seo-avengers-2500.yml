@@ -1,0 +1,30 @@
+name: SEO Avengers 2500 White-Hat Check
+
+on:
+  push:
+    paths:
+      - 'seo-avengers-2500/**'
+      - '.github/workflows/seo-avengers-2500.yml'
+  pull_request:
+    paths:
+      - 'seo-avengers-2500/**'
+      - '.github/workflows/seo-avengers-2500.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact event head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify predecessor and current batch
+        run: bash seo-avengers-2500/scripts/verify.sh
