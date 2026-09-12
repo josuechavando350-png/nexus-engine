@@ -4,20 +4,24 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 SUITE="$ROOT/seo-avengers-2500"
 
 bash "$ROOT/seo-avengers-1000/scripts/verify.sh"
-python -m compileall -q "$SUITE/runtime" "$SUITE/tests"
+python -m compileall -q "$SUITE/runtime" "$SUITE/sidecar" "$SUITE/tests"
 (
   cd "$SUITE"
   python -m unittest discover -s tests -v
 )
 node --check "$SUITE/control-plane/tenant-control.mjs"
 node --check "$SUITE/evidence/tenant-evidence.mjs"
+node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
+node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
 node --test \
   "$SUITE/tests/test_tenant_control.mjs" \
   "$SUITE/tests/test_tenant_control_strict.mjs" \
   "$SUITE/tests/test_tenant_control_paths.mjs" \
   "$SUITE/tests/test_tenant_evidence.mjs" \
-  "$SUITE/tests/test_tenant_evidence_readonly.mjs"
+  "$SUITE/tests/test_tenant_evidence_readonly.mjs" \
+  "$SUITE/tests/test_tenant_worker.mjs" \
+  "$SUITE/tests/test_tenant_worker_boundary.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
