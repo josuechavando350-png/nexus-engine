@@ -102,9 +102,7 @@ impl Display for MicroVmPlanError {
             Self::NetworkPolicyNotSupported => {
                 "firecracker microVM v1 currently supports DENY_ALL networking only"
             }
-            Self::SecretsNotSupported => {
-                "firecracker microVM v1 does not support secret injection"
-            }
+            Self::SecretsNotSupported => "firecracker microVM v1 does not support secret injection",
             Self::DevicesNotSupported => {
                 "firecracker microVM v1 does not support device passthrough"
             }
@@ -183,12 +181,9 @@ mod tests {
     };
     use walle_core::{CertificationProfile, ResourcePlan};
 
-    const SHA_A: &str =
-        "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-    const SHA_B: &str =
-        "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
-    const SHA_C: &str =
-        "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    const SHA_A: &str = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const SHA_B: &str = "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
+    const SHA_C: &str = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
 
     fn ready_host() -> IsolationHostFacts {
         IsolationHostFacts {
