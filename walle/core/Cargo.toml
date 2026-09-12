@@ -3,6 +3,7 @@ name = "walle-core"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.88"
+default-run = "walle-core"
 publish = false
 license = "UNLICENSED"
 description = "Nexus WALLE controlled execution and certification control core"
