@@ -1,3 +1,9 @@
+extern crate self as walle_core;
+
+pub mod capsule;
+pub mod isolation;
+pub mod microvm;
+
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::str::FromStr;
