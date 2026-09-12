@@ -64,8 +64,8 @@ class Batch10011200Tests(unittest.TestCase):
 
     def test_registry_marks_only_reviewed_range_executable(self):
         registry=module_registry(); self.assertEqual(len(registry),2500); self.assertNotIn("M2501",registry)
-        for i in range(1001,1801): self.assertEqual(registry[f"M{i}"]["status"],"IMPLEMENTED_PRODUCTION")
-        for i in range(1801,2501): self.assertEqual(registry[f"M{i}"]["status"],"RESERVED_NOT_EXECUTABLE")
+        for i in range(1001,2001): self.assertEqual(registry[f"M{i}"]["status"],"IMPLEMENTED_PRODUCTION")
+        for i in range(2001,2501): self.assertEqual(registry[f"M{i}"]["status"],"RESERVED_NOT_EXECUTABLE")
 
     def test_no_float_literals_or_network_imports(self):
         root=pathlib.Path(__file__).resolve().parents[1]/"runtime"; banned={"requests","httpx","aiohttp","urllib.request","socket"}
