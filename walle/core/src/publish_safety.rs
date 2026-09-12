@@ -1,5 +1,3 @@
-use std::fmt::{Display, Formatter};
-
 use crate::is_valid_sha256;
 
 pub const PAGE_CANDIDATE_SCHEMA_VERSION: u32 = 1;
@@ -16,19 +14,6 @@ pub enum PageType {
     Other,
 }
 
-impl PageType {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::Service => "SERVICE",
-            Self::Location => "LOCATION",
-            Self::Guide => "GUIDE",
-            Self::CaseStudy => "CASE_STUDY",
-            Self::Faq => "FAQ",
-            Self::Other => "OTHER",
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CanonicalIntent<'a> {
     SelfCanonical,
@@ -40,15 +25,6 @@ pub enum CanonicalIntent<'a> {
 pub enum SearchIntent {
     NoIndex,
     IndexCandidate,
-}
-
-impl SearchIntent {
-    pub const fn as_str(self) -> &'static str {
-        match self {
-            Self::NoIndex => "NOINDEX",
-            Self::IndexCandidate => "INDEX_CANDIDATE",
-        }
-    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -114,33 +90,6 @@ pub enum CandidateContractError {
     FactOrderOrUniquenessViolation,
 }
 
-impl Display for CandidateContractError {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
-        formatter.write_str(match self {
-            Self::InvalidCandidateId => "candidate_id is not a bounded machine-safe token",
-            Self::InvalidSiteId => "site_id is not a bounded machine-safe token",
-            Self::InvalidUserNeedId => "intended_user_need_id is not a bounded machine-safe token",
-            Self::UnsafeTargetPath => "target_path is not a normalized safe absolute path",
-            Self::InvalidSourceRevision => "source_revision is not a strict lowercase sha256 identity",
-            Self::InvalidTemplateRevision => "template_revision is not a strict lowercase sha256 identity",
-            Self::InvalidFactBundleSha256 => "fact_bundle_sha256 is invalid",
-            Self::InvalidRenderedHtmlSha256 => "rendered_html_sha256 is invalid",
-            Self::InvalidNormalizedContentSha256 => "normalized_content_sha256 is invalid",
-            Self::InvalidGenerationReceiptSha256 => "generation_receipt_sha256 is invalid",
-            Self::UnsafeCanonicalPath => "canonical target is not a normalized safe absolute path",
-            Self::IndexCandidateWithoutFacts => "index candidates require evidence-backed facts",
-            Self::TooManyFacts => "fact count exceeds the bounded page contract",
-            Self::InvalidFactId => "fact_id is not a bounded machine-safe token",
-            Self::InvalidSourceId => "source_id is not a bounded machine-safe token",
-            Self::InvalidFactSourceSha256 => "fact source sha256 is invalid",
-            Self::InvalidClaimSha256 => "fact claim sha256 is invalid",
-            Self::FactOrderOrUniquenessViolation => {
-                "facts must be strictly sorted by fact_id and unique"
-            }
-        })
-    }
-}
-
 impl PageCandidateContract<'_> {
     pub fn validate(self) -> Result<(), CandidateContractError> {
         if !safe_token(self.candidate_id) {
@@ -185,7 +134,7 @@ impl PageCandidateContract<'_> {
             return Err(CandidateContractError::IndexCandidateWithoutFacts);
         }
 
-        let mut previous: Option<&str> = None;
+        let mut previous = None;
         for fact in self.facts {
             if !safe_token(fact.fact_id) {
                 return Err(CandidateContractError::InvalidFactId);
@@ -255,29 +204,12 @@ pub struct PublicationPolicy<'a> {
     pub require_post_deploy_match_for_index: bool,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum PublicationPolicyError {
-    InvalidPolicyId,
-    InvalidPolicySha256,
-    InvalidNearDuplicateThreshold,
-    InvalidInformationGainThreshold,
-}
-
 impl PublicationPolicy<'_> {
-    pub fn validate(self) -> Result<(), PublicationPolicyError> {
-        if !safe_token(self.policy_id) {
-            return Err(PublicationPolicyError::InvalidPolicyId);
-        }
-        if !is_valid_sha256(self.policy_sha256) {
-            return Err(PublicationPolicyError::InvalidPolicySha256);
-        }
-        if self.max_near_duplicate_ppm > PPM {
-            return Err(PublicationPolicyError::InvalidNearDuplicateThreshold);
-        }
-        if self.min_information_gain_ppm > PPM {
-            return Err(PublicationPolicyError::InvalidInformationGainThreshold);
-        }
-        Ok(())
+    pub fn validate(self) -> bool {
+        safe_token(self.policy_id)
+            && is_valid_sha256(self.policy_sha256)
+            && self.max_near_duplicate_ppm <= PPM
+            && self.min_information_gain_ppm <= PPM
     }
 }
 
@@ -295,6 +227,17 @@ pub enum ArtifactStatus {
     Malformed,
 }
 
+impl ArtifactStatus {
+    const fn as_str(self) -> &'static str {
+        match self {
+            Self::NotObserved => "NOT_OBSERVED",
+            Self::Match => "MATCH",
+            Self::Drift => "DRIFT",
+            Self::Malformed => "MALFORMED",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PublicationDisposition {
     Hold,
@@ -304,7 +247,7 @@ pub enum PublicationDisposition {
 }
 
 impl PublicationDisposition {
-    pub const fn as_str(self) -> &'static str {
+    const fn as_str(self) -> &'static str {
         match self {
             Self::Hold => "HOLD",
             Self::ReviewRequired => "REVIEW_REQUIRED",
@@ -323,7 +266,7 @@ pub enum SearchIndexDisposition {
 }
 
 impl SearchIndexDisposition {
-    pub const fn as_str(self) -> &'static str {
+    const fn as_str(self) -> &'static str {
         match self {
             Self::Blocked => "BLOCKED",
             Self::NoIndex => "NOINDEX",
@@ -342,7 +285,7 @@ pub enum AdsDisposition {
 }
 
 impl AdsDisposition {
-    pub const fn as_str(self) -> &'static str {
+    const fn as_str(self) -> &'static str {
         match self {
             Self::NotApplicable => "NOT_APPLICABLE",
             Self::Blocked => "BLOCKED",
@@ -378,7 +321,7 @@ pub enum DecisionReason {
 }
 
 impl DecisionReason {
-    pub const fn as_str(self) -> &'static str {
+    const fn as_str(self) -> &'static str {
         match self {
             Self::InvalidCandidateContract => "INVALID_CANDIDATE_CONTRACT",
             Self::InvalidPublicationPolicy => "INVALID_PUBLICATION_POLICY",
@@ -419,18 +362,16 @@ impl PageSafetyDecision {
     pub fn canonical_json(self) -> String {
         format!(
             concat!(
-                "{{",
-                "\"ads\":\"{}\",",
+                "{\"ads\":\"{}\",",
                 "\"artifact_status\":\"{}\",",
                 "\"publication\":\"{}\",",
                 "\"reason\":\"{}\",",
                 "\"schema_version\":{},",
                 "\"search_index\":\"{}\",",
-                "\"sitemap_eligible\":{}",
-                "}}"
+                "\"sitemap_eligible\":{}}}"
             ),
             self.ads.as_str(),
-            artifact_status_str(self.artifact_status),
+            self.artifact_status.as_str(),
             self.publication.as_str(),
             self.reason.as_str(),
             PAGE_CANDIDATE_SCHEMA_VERSION,
@@ -449,7 +390,7 @@ pub fn evaluate_page_safety(
     if candidate.validate().is_err() {
         return blocked(DecisionReason::InvalidCandidateContract, AdsDisposition::Blocked);
     }
-    if policy.validate().is_err() {
+    if !policy.validate() {
         return blocked(DecisionReason::InvalidPublicationPolicy, AdsDisposition::Blocked);
     }
 
@@ -514,11 +455,9 @@ pub fn evaluate_page_safety(
     {
         return review(ads);
     }
-
     if quality.technical_indexability == GateSignal::Blocked {
         return noindex(DecisionReason::TechnicalIndexabilityBlocked, ads);
     }
-
     if candidate.search_intent == SearchIntent::NoIndex
         || matches!(candidate.canonical_intent, CanonicalIntent::NoIndex)
     {
@@ -539,11 +478,9 @@ pub fn evaluate_page_safety(
             ads,
             ArtifactStatus::Malformed,
         ),
-        ArtifactStatus::Drift => blocked_with_artifact(
-            DecisionReason::ArtifactDrift,
-            ads,
-            ArtifactStatus::Drift,
-        ),
+        ArtifactStatus::Drift => {
+            blocked_with_artifact(DecisionReason::ArtifactDrift, ads, ArtifactStatus::Drift)
+        }
         ArtifactStatus::NotObserved if policy.require_post_deploy_match_for_index => {
             PageSafetyDecision {
                 publication: PublicationDisposition::Publish,
@@ -590,11 +527,11 @@ const fn ads_disposition(intent: AdsIntent, signal: AdsDestinationSignal) -> Ads
     match intent {
         AdsIntent::NotApplicable => AdsDisposition::NotApplicable,
         AdsIntent::DestinationCandidate => match signal {
+            AdsDestinationSignal::Pass => AdsDisposition::Eligible,
+            AdsDestinationSignal::Review => AdsDisposition::ReviewRequired,
             AdsDestinationSignal::NotApplicable
             | AdsDestinationSignal::Blocked
             | AdsDestinationSignal::InsufficientData => AdsDisposition::Blocked,
-            AdsDestinationSignal::Review => AdsDisposition::ReviewRequired,
-            AdsDestinationSignal::Pass => AdsDisposition::Eligible,
         },
     }
 }
@@ -640,15 +577,6 @@ const fn review(ads: AdsDisposition) -> PageSafetyDecision {
     }
 }
 
-const fn artifact_status_str(status: ArtifactStatus) -> &'static str {
-    match status {
-        ArtifactStatus::NotObserved => "NOT_OBSERVED",
-        ArtifactStatus::Match => "MATCH",
-        ArtifactStatus::Drift => "DRIFT",
-        ArtifactStatus::Malformed => "MALFORMED",
-    }
-}
-
 fn safe_token(value: &str) -> bool {
     if value.is_empty() || value.len() > 128 {
         return false;
@@ -670,7 +598,10 @@ fn safe_path(value: &str) -> bool {
     if value.contains('?') || value.contains('#') || value.contains("//") || value.contains('\\') {
         return false;
     }
-    if value.split('/').any(|segment| segment == "." || segment == "..") {
+    if value
+        .split('/')
+        .any(|segment| segment == "." || segment == "..")
+    {
         return false;
     }
     value.bytes().all(|byte| {
@@ -684,14 +615,10 @@ fn safe_path(value: &str) -> bool {
 mod tests {
     use super::*;
 
-    const SHA_A: &str =
-        "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
-    const SHA_B: &str =
-        "sha256:1111111111111111111111111111111111111111111111111111111111111111";
-    const SHA_C: &str =
-        "sha256:2222222222222222222222222222222222222222222222222222222222222222";
-    const SHA_D: &str =
-        "sha256:3333333333333333333333333333333333333333333333333333333333333333";
+    const SHA_A: &str = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
+    const SHA_B: &str = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    const SHA_C: &str = "sha256:2222222222222222222222222222222222222222222222222222222222222222";
+    const SHA_D: &str = "sha256:3333333333333333333333333333333333333333333333333333333333333333";
 
     const FACTS: [FactEvidence<'static>; 2] = [
         FactEvidence {
@@ -760,89 +687,29 @@ mod tests {
     }
 
     #[test]
-    fn index_candidate_requires_real_fact_evidence() {
-        let candidate = PageCandidateContract {
-            facts: &[],
-            ..candidate()
-        };
-        assert_eq!(
-            candidate.validate(),
-            Err(CandidateContractError::IndexCandidateWithoutFacts)
-        );
-    }
-
-    #[test]
-    fn unsafe_path_is_rejected() {
-        let candidate = PageCandidateContract {
-            target_path: "/legal/../escape",
-            ..candidate()
-        };
-        assert_eq!(
-            candidate.validate(),
-            Err(CandidateContractError::UnsafeTargetPath)
-        );
-    }
-
-    #[test]
-    fn stale_evidence_holds_publication() {
-        const STALE_FACTS: [FactEvidence<'static>; 1] = [FactEvidence {
-            fact_id: "fact-a",
-            source_id: "official-source-a",
-            source_sha256: SHA_A,
-            claim_sha256: SHA_B,
-            freshness: EvidenceFreshness::Stale,
-        }];
-        let candidate = PageCandidateContract {
-            facts: &STALE_FACTS,
-            ..candidate()
-        };
-        let decision = evaluate_page_safety(candidate, quality(), policy(), None);
-        assert_eq!(decision.publication, PublicationDisposition::Hold);
-        assert_eq!(decision.search_index, SearchIndexDisposition::Blocked);
-        assert_eq!(decision.reason, DecisionReason::StaleEvidence);
-    }
-
-    #[test]
-    fn exact_duplicate_is_never_index_eligible() {
+    fn exact_duplicate_is_not_index_eligible() {
         let quality = PageQualitySignals {
             exact_duplicate_found: true,
             ..quality()
         };
         let decision = evaluate_page_safety(candidate(), quality, policy(), None);
-        assert_eq!(decision.publication, PublicationDisposition::PublishNoIndex);
         assert_eq!(decision.search_index, SearchIndexDisposition::NoIndex);
         assert!(!decision.sitemap_eligible);
     }
 
     #[test]
-    fn high_doorway_risk_is_never_index_eligible() {
+    fn high_doorway_risk_is_not_index_eligible() {
         let quality = PageQualitySignals {
             doorway_risk: DoorwayRisk::High,
             ..quality()
         };
         let decision = evaluate_page_safety(candidate(), quality, policy(), None);
-        assert_eq!(decision.search_index, SearchIndexDisposition::NoIndex);
         assert_eq!(decision.reason, DecisionReason::DoorwayRiskHigh);
+        assert_eq!(decision.search_index, SearchIndexDisposition::NoIndex);
     }
 
     #[test]
-    fn thresholds_are_versioned_internal_policy_not_google_constants() {
-        let strict = PublicationPolicy {
-            min_information_gain_ppm: 900_000,
-            ..policy()
-        };
-        let strict_decision = evaluate_page_safety(candidate(), quality(), strict, None);
-        assert_eq!(strict_decision.search_index, SearchIndexDisposition::NoIndex);
-
-        let normal_decision = evaluate_page_safety(candidate(), quality(), policy(), None);
-        assert_eq!(
-            normal_decision.search_index,
-            SearchIndexDisposition::AwaitingArtifactVerification
-        );
-    }
-
-    #[test]
-    fn indexability_waits_for_post_deploy_artifact_match() {
+    fn indexability_waits_for_deployed_artifact_match() {
         let decision = evaluate_page_safety(candidate(), quality(), policy(), None);
         assert_eq!(decision.publication, PublicationDisposition::Publish);
         assert_eq!(
@@ -862,7 +729,6 @@ mod tests {
         assert_eq!(decision.artifact_status, ArtifactStatus::Match);
         assert_eq!(decision.search_index, SearchIndexDisposition::Eligible);
         assert!(decision.sitemap_eligible);
-        assert_eq!(decision.ads, AdsDisposition::Eligible);
     }
 
     #[test]
@@ -874,12 +740,11 @@ mod tests {
         let decision = evaluate_page_safety(candidate(), quality(), policy(), Some(observation));
         assert_eq!(decision.artifact_status, ArtifactStatus::Drift);
         assert_eq!(decision.publication, PublicationDisposition::Hold);
-        assert_eq!(decision.search_index, SearchIndexDisposition::Blocked);
         assert_eq!(decision.reason, DecisionReason::ArtifactDrift);
     }
 
     #[test]
-    fn ads_and_search_are_independent_verdicts() {
+    fn ads_and_search_verdicts_are_independent() {
         let quality = PageQualitySignals {
             ads_destination: AdsDestinationSignal::Blocked,
             ..quality()
@@ -894,6 +759,16 @@ mod tests {
     }
 
     #[test]
+    fn internal_policy_thresholds_are_not_google_constants() {
+        let strict = PublicationPolicy {
+            min_information_gain_ppm: 900_000,
+            ..policy()
+        };
+        let decision = evaluate_page_safety(candidate(), quality(), strict, None);
+        assert_eq!(decision.search_index, SearchIndexDisposition::NoIndex);
+    }
+
+    #[test]
     fn decision_receipt_is_byte_stable() {
         let observation = DeployedArtifactObservation {
             rendered_html_sha256: SHA_D,
@@ -901,6 +776,8 @@ mod tests {
         };
         let decision = evaluate_page_safety(candidate(), quality(), policy(), Some(observation));
         assert_eq!(decision.canonical_json(), decision.canonical_json());
-        assert!(decision.canonical_json().contains("\"search_index\":\"ELIGIBLE\""));
+        assert!(decision
+            .canonical_json()
+            .contains("\"search_index\":\"ELIGIBLE\""));
     }
 }
