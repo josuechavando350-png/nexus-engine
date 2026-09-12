@@ -9,6 +9,7 @@ const DEFAULT_MAX_ROUTES = 24;
 const MAX_SITEMAP_BYTES = 512_000;
 const MAX_PAGE_BYTES = 2_000_000;
 const DEFAULT_TIMEOUT_MS = 8_000;
+const MAX_REDIRECTS = 5;
 
 function decision(status, reason, generation = 0, extra = {}) {
   return Object.freeze({
@@ -98,29 +99,56 @@ export function visibleTextFromHtml(html) {
   return decodeHtmlEntities(withoutNonVisible).normalize("NFC").replace(/\s+/g, " ").trim();
 }
 
+function isRedirectStatus(status) {
+  return status === 301 || status === 302 || status === 303 || status === 307 || status === 308;
+}
+
 async function fetchBounded(fetchImpl, url, { timeoutMs, maxBytes, contentType }) {
+  const initialUrl = allowedHttpsUrl(url);
+  if (!initialUrl) throw new Error("canary URL rejected");
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let currentUrl = initialUrl;
   try {
-    const response = await fetchImpl(url, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: { accept: contentType },
-    });
-    const finalUrl = allowedHttpsUrl(response.url || url);
-    if (!finalUrl) throw new Error("cross-tenant redirect rejected");
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    const declaredHeader = response.headers.get("content-length");
-    if (declaredHeader !== null) {
-      const declared = Number(declaredHeader);
-      if (!Number.isSafeInteger(declared) || declared < 0 || declared > maxBytes) {
-        throw new Error("response exceeds byte limit");
+    for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
+      const response = await fetchImpl(currentUrl.href, {
+        method: "GET",
+        redirect: "manual",
+        signal: controller.signal,
+        headers: { accept: contentType },
+      });
+
+      if (isRedirectStatus(response.status)) {
+        if (redirectCount >= MAX_REDIRECTS) throw new Error("redirect limit exceeded");
+        const location = response.headers.get("location");
+        if (!location) throw new Error("redirect location missing");
+        let resolved;
+        try {
+          resolved = new URL(location, currentUrl);
+        } catch {
+          throw new Error("redirect location invalid");
+        }
+        const nextUrl = allowedHttpsUrl(resolved.href);
+        if (!nextUrl) throw new Error("cross-tenant redirect rejected");
+        currentUrl = nextUrl;
+        continue;
       }
+
+      const observedUrl = response.url ? allowedHttpsUrl(response.url) : currentUrl;
+      if (!observedUrl) throw new Error("cross-tenant response URL rejected");
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const declaredHeader = response.headers.get("content-length");
+      if (declaredHeader !== null) {
+        const declared = Number(declaredHeader);
+        if (!Number.isSafeInteger(declared) || declared < 0 || declared > maxBytes) {
+          throw new Error("response exceeds byte limit");
+        }
+      }
+      const bytes = Buffer.from(await response.arrayBuffer());
+      if (bytes.length > maxBytes) throw new Error("response exceeds byte limit");
+      return { response, finalUrl: observedUrl, bytes };
     }
-    const bytes = Buffer.from(await response.arrayBuffer());
-    if (bytes.length > maxBytes) throw new Error("response exceeds byte limit");
-    return { response, finalUrl, bytes };
+    throw new Error("redirect limit exceeded");
   } finally {
     clearTimeout(timer);
   }
