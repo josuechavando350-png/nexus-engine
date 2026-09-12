@@ -43,6 +43,10 @@ test("enable requires an explicit append and produces generation one", async () 
   assert.equal(state.killSwitch, false);
   assert.equal(state.generation, 1);
   assert.match(state.stateHash, /^sha256:[0-9a-f]{64}$/);
+  const hwm = JSON.parse(await readFile(join(root, "tenants", "nexus-bot-studio", ".hwm.json"), "utf8"));
+  assert.equal(hwm.generation, 1);
+  assert.equal(hwm.state_hash, state.stateHash);
+  assert.match(hwm.hwm_hash, /^sha256:[0-9a-f]{64}$/);
 }));
 
 test("kill switch is independent and enable never clears it", async () => withRoot(async (root) => {
@@ -152,7 +156,7 @@ test("malformed latest state fails closed and blocks mutation", async () => with
   const state = await readTenantControl({ controlRoot: root, siteId: "cano-penal" });
   assert.equal(state.authorized, false);
   assert.equal(state.integrityOk, false);
-  assert.equal(state.reason, "STATE_INTEGRITY_FAILURE");
+  assert.equal(state.reason, "HWM_MISSING");
   await assert.rejects(
     setTenantEnabled({ controlRoot: root, siteId: "cano-penal", enabled: true, expectedGeneration: 1 }),
     /fail-closed/,
@@ -181,4 +185,53 @@ test("tenant namespaces do not bleed into each other and path traversal is rejec
   const traversal = await readTenantControl({ controlRoot: root, siteId: "../nexus-bot-studio" });
   assert.equal(traversal.authorized, false);
   assert.equal(traversal.reason, "INVALID_SITE_ID");
+}));
+
+test("tail truncation cannot resurrect a killed tenant", async () => withRoot(async (root) => {
+  await setTenantEnabled({ controlRoot: root, siteId: "cano-penal", enabled: true, expectedGeneration: 0 });
+  await setTenantKillSwitch({ controlRoot: root, siteId: "cano-penal", active: true, expectedGeneration: 1 });
+  const tenantDir = join(root, "tenants", "cano-penal");
+  await rm(join(tenantDir, "00000000000000000002.json"));
+
+  const state = await readTenantControl({ controlRoot: root, siteId: "cano-penal" });
+  assert.equal(state.authorized, false);
+  assert.equal(state.integrityOk, false);
+  assert.equal(state.reason, "HWM_MISMATCH");
+  const decision = await authorizeTenantJob({ controlRoot: root, siteId: "cano-penal", jobGeneration: 1 });
+  assert.equal(decision.authorized, false);
+  assert.equal(decision.reason, "HWM_MISMATCH");
+  await assert.rejects(
+    setTenantEnabled({ controlRoot: root, siteId: "cano-penal", enabled: true, expectedGeneration: 1 }),
+    /fail-closed/,
+  );
+}));
+
+test("missing high-water mark fails closed instead of trusting journal tail", async () => withRoot(async (root) => {
+  await setTenantEnabled({ controlRoot: root, siteId: "nexus-bot-studio", enabled: true, expectedGeneration: 0 });
+  const tenantDir = join(root, "tenants", "nexus-bot-studio");
+  await rm(join(tenantDir, ".hwm.json"));
+
+  const state = await readTenantControl({ controlRoot: root, siteId: "nexus-bot-studio" });
+  assert.equal(state.authorized, false);
+  assert.equal(state.integrityOk, false);
+  assert.equal(state.reason, "HWM_MISSING");
+  await assert.rejects(
+    setTenantEnabled({ controlRoot: root, siteId: "nexus-bot-studio", enabled: false, expectedGeneration: 1 }),
+    /fail-closed/,
+  );
+}));
+
+test("high-water mark without journal fails closed and cannot be reinitialized", async () => withRoot(async (root) => {
+  await setTenantEnabled({ controlRoot: root, siteId: "nexus-bot-studio", enabled: true, expectedGeneration: 0 });
+  const tenantDir = join(root, "tenants", "nexus-bot-studio");
+  await rm(join(tenantDir, "00000000000000000001.json"));
+
+  const state = await readTenantControl({ controlRoot: root, siteId: "nexus-bot-studio" });
+  assert.equal(state.authorized, false);
+  assert.equal(state.integrityOk, false);
+  assert.equal(state.reason, "HWM_WITHOUT_JOURNAL");
+  await assert.rejects(
+    setTenantEnabled({ controlRoot: root, siteId: "nexus-bot-studio", enabled: true, expectedGeneration: 0 }),
+    /fail-closed/,
+  );
 }));
