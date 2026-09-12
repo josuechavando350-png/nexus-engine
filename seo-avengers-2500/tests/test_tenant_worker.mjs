@@ -55,8 +55,10 @@ function successfulExecution() {
       execution_status: "SUCCESS",
       finding_status: "NO_FINDING",
       evidence_hash: evidenceHash,
+      output: {},
     };
   }
+  receipts.M2500.output = { release_safe: true, suite: "SEO_AVENGERS_2500" };
   return {
     schema_version: 1,
     receipt_count: 1500,
@@ -183,11 +185,22 @@ test("runtime execution error is fail-closed and suppresses receipts", async (t)
   assert.equal("receipts" in result, false);
 });
 
-test("ERROR receipt or failed M2500 certification cannot be released", async (t) => {
+test("ERROR receipt cannot be released", async (t) => {
   const ctx = await setup(t);
   await writeSnapshot(ctx);
   const execution = successfulExecution();
   execution.receipts.M1777.execution_status = "ERROR";
+  const result = await runTenantSidecarJob({ ...ctx, executeSuite: async () => execution });
+  assert.equal(result.status, "BLOCKED");
+  assert.equal(result.reason, "SUITE_EXECUTION_FAILED");
+  assert.equal("receipts" in result, false);
+});
+
+test("M2500 without release-safe certification cannot be released", async (t) => {
+  const ctx = await setup(t);
+  await writeSnapshot(ctx);
+  const execution = successfulExecution();
+  execution.receipts.M2500.output.release_safe = false;
   const result = await runTenantSidecarJob({ ...ctx, executeSuite: async () => execution });
   assert.equal(result.status, "BLOCKED");
   assert.equal(result.reason, "SUITE_EXECUTION_FAILED");
