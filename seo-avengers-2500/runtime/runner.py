@@ -6,13 +6,15 @@ from .catalog import module_registry
 from .module_runtime import execute_module
 
 def run_module(module_id: str, payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
-    if module_id in {"M1200","M1400"}:
+    if module_id in {"M1200", "M1400", "M1600"}:
         raise ValueError(f"{module_id} requires exact prior receipt context; use the batch runner")
     return execute_module(module_id, payload, config)
 
 def run_batch_1001_1200(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
-    if not isinstance(payload, Mapping): raise TypeError("payload_must_be_mapping")
-    if not isinstance(config, Mapping): raise TypeError("config_must_be_mapping")
+    if not isinstance(payload, Mapping):
+        raise TypeError("payload_must_be_mapping")
+    if not isinstance(config, Mapping):
+        raise TypeError("config_must_be_mapping")
     receipts: Dict[str, Dict[str, Any]] = {}
     for number in range(1001, 1200):
         module_id = f"M{number}"
@@ -24,25 +26,51 @@ def run_batch_1001_1200(payload: Mapping[str, Any], config: Mapping[str, Any]) -
     return receipts
 
 def run_batch_1001_1400(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
-    if not isinstance(payload, Mapping): raise TypeError("payload_must_be_mapping")
-    if not isinstance(config, Mapping): raise TypeError("config_must_be_mapping")
+    if not isinstance(payload, Mapping):
+        raise TypeError("payload_must_be_mapping")
+    if not isinstance(config, Mapping):
+        raise TypeError("config_must_be_mapping")
     receipts = run_batch_1001_1200(payload, config)
     for number in range(1201, 1391):
-        module_id=f"M{number}"
-        receipts[module_id]=execute_module(module_id,payload,config)
-    guard_context: Dict[str, Dict[str, Any]] = {"M1200":receipts["M1200"]}
-    for number in range(1201,1391):
-        guard_context[f"M{number}"]=receipts[f"M{number}"]
-    for number in range(1391,1400):
-        module_id=f"M{number}"
-        receipts[module_id]=execute_module(module_id,payload,config,prior_receipts=guard_context)
-    gate_context: Dict[str, Dict[str, Any]]={"M1200":receipts["M1200"]}
-    for number in range(1391,1400):
-        gate_context[f"M{number}"]=receipts[f"M{number}"]
-    receipts["M1400"]=execute_module("M1400",payload,config,prior_receipts=gate_context)
-    expected=tuple(f"M{i}" for i in range(1001,1401))
-    if tuple(receipts)!=expected:
+        module_id = f"M{number}"
+        receipts[module_id] = execute_module(module_id, payload, config)
+    guard_context: Dict[str, Dict[str, Any]] = {"M1200": receipts["M1200"]}
+    for number in range(1201, 1391):
+        guard_context[f"M{number}"] = receipts[f"M{number}"]
+    for number in range(1391, 1400):
+        module_id = f"M{number}"
+        receipts[module_id] = execute_module(module_id, payload, config, prior_receipts=guard_context)
+    gate_context: Dict[str, Dict[str, Any]] = {"M1200": receipts["M1200"]}
+    for number in range(1391, 1400):
+        gate_context[f"M{number}"] = receipts[f"M{number}"]
+    receipts["M1400"] = execute_module("M1400", payload, config, prior_receipts=gate_context)
+    expected = tuple(f"M{i}" for i in range(1001, 1401))
+    if tuple(receipts) != expected:
         raise RuntimeError("batch M1001-M1400 receipt range drift")
+    return receipts
+
+def run_batch_1001_1600(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+    if not isinstance(payload, Mapping):
+        raise TypeError("payload_must_be_mapping")
+    if not isinstance(config, Mapping):
+        raise TypeError("config_must_be_mapping")
+    receipts = run_batch_1001_1400(payload, config)
+    for number in range(1401, 1591):
+        module_id = f"M{number}"
+        receipts[module_id] = execute_module(module_id, payload, config)
+    guard_context: Dict[str, Dict[str, Any]] = {"M1400": receipts["M1400"]}
+    for number in range(1401, 1591):
+        guard_context[f"M{number}"] = receipts[f"M{number}"]
+    for number in range(1591, 1600):
+        module_id = f"M{number}"
+        receipts[module_id] = execute_module(module_id, payload, config, prior_receipts=guard_context)
+    gate_context: Dict[str, Dict[str, Any]] = {"M1400": receipts["M1400"]}
+    for number in range(1591, 1600):
+        gate_context[f"M{number}"] = receipts[f"M{number}"]
+    receipts["M1600"] = execute_module("M1600", payload, config, prior_receipts=gate_context)
+    expected = tuple(f"M{i}" for i in range(1001, 1601))
+    if tuple(receipts) != expected:
+        raise RuntimeError("batch M1001-M1600 receipt range drift")
     return receipts
 
 def suite_state() -> Dict[str, Any]:
@@ -51,9 +79,9 @@ def suite_state() -> Dict[str, Any]:
         "suite": "SEO_AVENGERS_2500",
         "target_registry_size": 2500,
         "delegated_production_count": 1000,
-        "implemented_local_count": 400,
-        "reserved_not_executable_count": 1100,
-        "current_implemented_range": ["M1001", "M1400"],
+        "implemented_local_count": 600,
+        "reserved_not_executable_count": 900,
+        "current_implemented_range": ["M1001", "M1600"],
         "final_target_range": ["M1", "M2500"],
         "m2501_present": False,
         "registry": registry,
