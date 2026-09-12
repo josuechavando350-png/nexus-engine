@@ -3,7 +3,14 @@ from __future__ import annotations
 import copy
 import unittest
 
-from runtime.common import InvalidData, _normalize, canonical_json, hash_value, make_receipt, select_record
+from runtime.common import (
+    InvalidData,
+    _normalize,
+    canonical_json,
+    hash_value,
+    make_receipt,
+    select_record,
+)
 from runtime.semantic_nlp import EVALUATORS, evaluate
 from runtime.semantic_specs import SEMANTIC_SPECS, SOURCE_MODULES, TARGET_MODULES
 from semantic_fixture import SEMANTIC_ROWS, semantic_payload
@@ -26,34 +33,38 @@ class SemanticSliceTests(unittest.TestCase):
             for field in spec["input_fields"]:
                 self.assertIn(field, row)
             output = evaluate(str(spec["operation"]), row, int(spec["threshold_ppm"]))
-            self.assertFalse(output["violation"])
+            self.assertEqual(output["violation"], False)
             self.assertGreaterEqual(output["score_ppm"], spec["threshold_ppm"])
 
     def test_missing_field_is_insufficient_not_no_finding(self) -> None:
-        spec = SEMANTIC_SPECS["M801"]
-        row = dict(SEMANTIC_ROWS["M801"])
+        module_id = "M801"
+        spec = SEMANTIC_SPECS[module_id]
+        row = dict(SEMANTIC_ROWS[module_id])
         row.pop("required_entities")
         with self.assertRaises(Exception) as ctx:
             evaluate(str(spec["operation"]), row, int(spec["threshold_ppm"]))
         self.assertIn("required_entities_missing", str(ctx.exception))
 
     def test_malformed_bool_as_int_fails_closed(self) -> None:
-        spec = SEMANTIC_SPECS["M804"]
-        row = dict(SEMANTIC_ROWS["M804"])
+        module_id = "M804"
+        spec = SEMANTIC_SPECS[module_id]
+        row = dict(SEMANTIC_ROWS[module_id])
         row["total_claims"] = True
         with self.assertRaises(InvalidData):
             evaluate(str(spec["operation"]), row, int(spec["threshold_ppm"]))
 
     def test_ppm_out_of_range_fails_closed(self) -> None:
-        spec = SEMANTIC_SPECS["M841"]
-        row = dict(SEMANTIC_ROWS["M841"])
+        module_id = "M841"
+        spec = SEMANTIC_SPECS[module_id]
+        row = dict(SEMANTIC_ROWS[module_id])
         row["baseline_polarity_ppm"] = 1_000_001
         with self.assertRaises(InvalidData):
             evaluate(str(spec["operation"]), row, int(spec["threshold_ppm"]))
 
     def test_target_source_conflict_fails_closed(self) -> None:
         payload = semantic_payload()
-        source = copy.deepcopy(SEMANTIC_ROWS["M801"])
+        target = copy.deepcopy(SEMANTIC_ROWS["M801"])
+        source = copy.deepcopy(target)
         source["module_id"] = "M1801"
         source["aligned_entities"] = ["different"]
         payload["semantic_nlp_records"].append(source)
@@ -74,13 +85,33 @@ class SemanticSliceTests(unittest.TestCase):
         with self.assertRaises(InvalidData):
             _normalize({"nested": [2**63]})
 
+    def test_mixed_mapping_keys_fail_closed_as_invalid_data(self) -> None:
+        with self.assertRaisesRegex(InvalidData, "mapping_keys_must_be_strings"):
+            _normalize({"valid": 1, 2: "invalid"})
+
     def test_receipt_is_byte_deterministic_and_namespaced(self) -> None:
         spec = SEMANTIC_SPECS["M801"]
         row = SEMANTIC_ROWS["M801"]
         normalized = _normalize(row)
-        config = {"activation_state": "deny_by_default", "threshold_ppm": spec["threshold_ppm"], "implementation_mode": "deterministic_evidence_audit_no_external_side_effects"}
+        config = {
+            "activation_state": "deny_by_default",
+            "threshold_ppm": spec["threshold_ppm"],
+            "implementation_mode": "deterministic_evidence_audit_no_external_side_effects",
+        }
         output = evaluate(str(spec["operation"]), row, int(spec["threshold_ppm"]))
-        args = dict(module_id="M801", source_module="M1801", operation=str(spec["operation"]), family=str(spec["family"]), raw_row=row, normalized_row=normalized, module_config=config, execution_status="SUCCESS", finding_status="NO_FINDING", reason_code="POLICY_SATISFIED", output=output)
+        args = dict(
+            module_id="M801",
+            source_module="M1801",
+            operation=str(spec["operation"]),
+            family=str(spec["family"]),
+            raw_row=row,
+            normalized_row=normalized,
+            module_config=config,
+            execution_status="SUCCESS",
+            finding_status="NO_FINDING",
+            reason_code="POLICY_SATISFIED",
+            output=output,
+        )
         first = make_receipt(**args)
         second = make_receipt(**args)
         self.assertEqual(canonical_json(first), canonical_json(second))
@@ -91,14 +122,42 @@ class SemanticSliceTests(unittest.TestCase):
         spec = SEMANTIC_SPECS["M801"]
         row = SEMANTIC_ROWS["M801"]
         normalized = _normalize(row)
-        base = {"activation_state": "deny_by_default", "threshold_ppm": spec["threshold_ppm"], "implementation_mode": "deterministic_evidence_audit_no_external_side_effects"}
+        base = {
+            "activation_state": "deny_by_default",
+            "threshold_ppm": spec["threshold_ppm"],
+            "implementation_mode": "deterministic_evidence_audit_no_external_side_effects",
+        }
         changed = dict(base)
         changed["threshold_ppm"] = int(base["threshold_ppm"]) - 1
         self.assertNotEqual(hash_value(base), hash_value(changed))
-        first = make_receipt(module_id="M801", source_module="M1801", operation=str(spec["operation"]), family=str(spec["family"]), raw_row=row, normalized_row=normalized, module_config=base, execution_status="SUCCESS", finding_status="NO_FINDING", reason_code="POLICY_SATISFIED", output=evaluate(str(spec["operation"]), row, int(base["threshold_ppm"])))
-        second = make_receipt(module_id="M801", source_module="M1801", operation=str(spec["operation"]), family=str(spec["family"]), raw_row=row, normalized_row=normalized, module_config=changed, execution_status="SUCCESS", finding_status="NO_FINDING", reason_code="POLICY_SATISFIED", output=evaluate(str(spec["operation"]), row, int(changed["threshold_ppm"])))
-        self.assertNotEqual(first["module_config_hash"], second["module_config_hash"])
-        self.assertNotEqual(first["evidence_hash"], second["evidence_hash"])
+        r1 = make_receipt(
+            module_id="M801",
+            source_module="M1801",
+            operation=str(spec["operation"]),
+            family=str(spec["family"]),
+            raw_row=row,
+            normalized_row=normalized,
+            module_config=base,
+            execution_status="SUCCESS",
+            finding_status="NO_FINDING",
+            reason_code="POLICY_SATISFIED",
+            output=evaluate(str(spec["operation"]), row, int(base["threshold_ppm"])),
+        )
+        r2 = make_receipt(
+            module_id="M801",
+            source_module="M1801",
+            operation=str(spec["operation"]),
+            family=str(spec["family"]),
+            raw_row=row,
+            normalized_row=normalized,
+            module_config=changed,
+            execution_status="SUCCESS",
+            finding_status="NO_FINDING",
+            reason_code="POLICY_SATISFIED",
+            output=evaluate(str(spec["operation"]), row, int(changed["threshold_ppm"])),
+        )
+        self.assertNotEqual(r1["module_config_hash"], r2["module_config_hash"])
+        self.assertNotEqual(r1["evidence_hash"], r2["evidence_hash"])
 
 
 if __name__ == "__main__":

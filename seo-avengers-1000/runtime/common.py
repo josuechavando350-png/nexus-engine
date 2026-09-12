@@ -36,10 +36,11 @@ def _normalize(value: Any) -> Any:
     if isinstance(value, tuple):
         return [_normalize(v) for v in value]
     if isinstance(value, Mapping):
+        keys = list(value.keys())
+        if any(not isinstance(key, str) for key in keys):
+            raise InvalidData("mapping_keys_must_be_strings")
         out: Dict[str, Any] = {}
-        for key in sorted(value):
-            if not isinstance(key, str):
-                raise InvalidData("mapping_keys_must_be_strings")
+        for key in sorted(keys):
             normalized_key = unicodedata.normalize("NFC", key)
             if normalized_key in out:
                 raise InvalidData("normalized_mapping_key_collision")
@@ -49,14 +50,25 @@ def _normalize(value: Any) -> Any:
 
 
 def canonical_json(value: Any) -> str:
-    return json.dumps(_normalize(value), ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return json.dumps(
+        _normalize(value),
+        ensure_ascii=False,
+        sort_keys=True,
+        separators=(",", ":"),
+    )
 
 
 def hash_value(value: Any) -> str:
     return "sha256:" + hashlib.sha256(canonical_json(value).encode("utf-8")).hexdigest()
 
 
-def need_int(row: Mapping[str, Any], key: str, *, minimum: int | None = None, maximum: int | None = None) -> int:
+def need_int(
+    row: Mapping[str, Any],
+    key: str,
+    *,
+    minimum: int | None = None,
+    maximum: int | None = None,
+) -> int:
     value = row.get(key)
     if isinstance(value, bool) or not isinstance(value, int):
         raise InvalidData(f"{key}_must_be_int")
@@ -119,7 +131,14 @@ def need_str_list(row: Mapping[str, Any], key: str, *, allow_empty: bool = False
     return out
 
 
-def need_int_list(row: Mapping[str, Any], key: str, *, minimum: int | None = None, maximum: int | None = None, allow_empty: bool = False) -> List[int]:
+def need_int_list(
+    row: Mapping[str, Any],
+    key: str,
+    *,
+    minimum: int | None = None,
+    maximum: int | None = None,
+    allow_empty: bool = False,
+) -> List[int]:
     values = need_list(row, key, allow_empty=allow_empty)
     out: List[int] = []
     for value in values:
@@ -277,7 +296,12 @@ def normalize_records(payload: Mapping[str, Any], dataset_key: str) -> Dict[str,
     return normalized
 
 
-def select_record(payload: Mapping[str, Any], dataset_key: str, target_id: str, source_id: str) -> Dict[str, Any]:
+def select_record(
+    payload: Mapping[str, Any],
+    dataset_key: str,
+    target_id: str,
+    source_id: str,
+) -> Dict[str, Any]:
     rows = normalize_records(payload, dataset_key)
     target = rows.get(target_id)
     source = rows.get(source_id)
@@ -287,14 +311,29 @@ def select_record(payload: Mapping[str, Any], dataset_key: str, target_id: str, 
         target_copy.pop("module_id", None)
         source_copy.pop("module_id", None)
         if canonical_json(target_copy) != canonical_json(source_copy):
-            raise InvalidData(f"{dataset_key}_target_source_conflict:{target_id}:{source_id}")
+            raise InvalidData(
+                f"{dataset_key}_target_source_conflict:{target_id}:{source_id}"
+            )
     row = target if target is not None else source
     if row is None:
         raise InsufficientData(f"{dataset_key}_record_missing:{target_id}")
     return row
 
 
-def make_receipt(*, module_id: str, source_module: str, operation: str, family: str, raw_row: Mapping[str, Any] | None, normalized_row: Mapping[str, Any] | None, module_config: Mapping[str, Any], execution_status: str, finding_status: str, reason_code: str, output: Mapping[str, Any]) -> Dict[str, Any]:
+def make_receipt(
+    *,
+    module_id: str,
+    source_module: str,
+    operation: str,
+    family: str,
+    raw_row: Mapping[str, Any] | None,
+    normalized_row: Mapping[str, Any] | None,
+    module_config: Mapping[str, Any],
+    execution_status: str,
+    finding_status: str,
+    reason_code: str,
+    output: Mapping[str, Any],
+) -> Dict[str, Any]:
     algorithm = f"avengers1000_v1_{module_id.lower()}_{operation}"
     receipt = {
         "module": module_id,
@@ -305,7 +344,9 @@ def make_receipt(*, module_id: str, source_module: str, operation: str, family: 
         "algorithm_version": 1,
         "schema_version": 1,
         "raw_input_hash": hash_value(raw_row) if raw_row is not None else None,
-        "normalized_input_hash": hash_value(normalized_row) if normalized_row is not None else None,
+        "normalized_input_hash": hash_value(normalized_row)
+        if normalized_row is not None
+        else None,
         "module_config_hash": hash_value(module_config),
         "execution_status": execution_status,
         "finding_status": finding_status,
