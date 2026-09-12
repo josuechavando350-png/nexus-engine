@@ -92,10 +92,13 @@ TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/walle-avengers.XXXXXX")"
 trap 'rm -rf "$TMP_ROOT"' EXIT
 STDOUT_FILE="$TMP_ROOT/stdout.log"
 STDERR_FILE="$TMP_ROOT/stderr.log"
+PYCACHE_ROOT="$TMP_ROOT/pycache"
+mkdir -p "$PYCACHE_ROOT"
 
 set +e
-PYTHONDONTWRITEBYTECODE=1 timeout --signal=KILL 20m \
-  bash "${CHAIN_PATHS[0]}" >"$STDOUT_FILE" 2>"$STDERR_FILE"
+PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$PYCACHE_ROOT" \
+  timeout --signal=KILL 20m bash "${CHAIN_PATHS[0]}" \
+  >"$STDOUT_FILE" 2>"$STDERR_FILE"
 EXIT_CODE=$?
 set -e
 
