@@ -172,7 +172,7 @@ export async function readVersionedEvidenceSnapshot({ controlRoot, evidenceRoot,
       controlGeneration: control.generation,
       status: "BLOCKED",
       integrityOk: false,
-      reason: "VERSIONED_EVIDENCE_ROOT_UNSAFE_OR_UNREADABLE",
+      reason: "EVIDENCE_ROOT_UNSAFE_OR_UNREADABLE",
     });
   }
 
