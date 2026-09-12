@@ -21,7 +21,7 @@ _METRICS = (
     ("demand_orphan_content_gap", "authority_demand_orphan_content_gap", 950_000, "Measure observed {label} impressions whose landing document is absent from the supplied content corpus; this is not an index-state claim."),
     ("query_content_edge_support", "authority_query_content_edge_support", 700_000, "Measure impression-weighted lexical support between observed queries and supplied landing content for {label}."),
     ("query_content_token_jaccard", "authority_query_content_jaccard", 10_000, "Measure weighted query-to-document token overlap for {label} as an evidence signal, not a ranking score."),
-    ("local_identity_support", "authority_local_identity_support", 700_000, "Measure whether landing documents serving {label} visibly corroborate supplied local-business identity evidence."),
+    ("local_identity_corroboration", "authority_local_identity_support", 700_000, "Measure whether landing documents serving {label} visibly corroborate supplied local-business identity evidence."),
     ("brand_nonbrand_bridge_coverage", "authority_brand_nonbrand_bridge", 100_000, "Measure pages that legitimately bridge brand and non-brand observations inside {label}."),
     ("zero_click_demand_gap", "authority_zero_click_demand_gap", 500_000, "Measure the share of {label} impressions attached to zero-click observations for prioritization."),
     ("first_page_underclick_gap", "authority_first_page_underclick_gap", 600_000, "Measure under-clicked observations already appearing in supplied top-ten position data for {label}."),
