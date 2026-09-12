@@ -53,5 +53,5 @@ for path in runtime.glob("*.py"):
                 raise SystemExit(f"new environment dependency forbidden:{path}:{node.lineno}:{call}")
         if isinstance(node,ast.Subscript) and dotted_name(node.value)=="os.environ":
             raise SystemExit(f"new environment dependency forbidden:{path}:{node.lineno}:os.environ")
-print("seo-avengers-2500 current M1001-M1800 verification: PASS")
+print("seo-avengers-2500 current M1001-M2000 verification: PASS")
 PY
