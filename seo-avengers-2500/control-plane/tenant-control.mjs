@@ -125,11 +125,12 @@ async function generationFiles(directory) {
   }
   const generations = [];
   for (const entry of entries) {
-    if (!entry.isFile()) continue;
+    if (!entry.isFile()) throw new Error("unexpected non-file control entry");
     const match = GENERATION_FILE_RE.exec(entry.name);
-    if (!match) continue;
+    if (!match) throw new Error("unexpected control filename");
     const generation = Number(match[1]);
-    if (Number.isSafeInteger(generation) && generation >= 1) generations.push(generation);
+    if (!Number.isSafeInteger(generation) || generation < 1) throw new Error("invalid generation filename");
+    generations.push(generation);
   }
   return generations.sort((a, b) => a - b);
 }
