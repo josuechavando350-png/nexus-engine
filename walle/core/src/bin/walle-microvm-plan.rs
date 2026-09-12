@@ -1,20 +1,13 @@
-#[path = "../capsule.rs"]
-mod capsule;
-#[path = "../isolation.rs"]
-mod isolation;
-#[path = "../microvm.rs"]
-mod microvm;
-
 use std::env;
 use std::process::ExitCode;
 use std::str::FromStr;
 
-use capsule::{
+use walle_core::capsule::{
     CancellationOwner, CancellationPolicy, CapabilityRequest, ChildProcessCapability,
     ExecutionCapsule, FilesystemCapability,
 };
-use isolation::collect_isolation_host_facts;
-use microvm::{build_microvm_plan, MicroVmImageSet};
+use walle_core::isolation::collect_isolation_host_facts;
+use walle_core::microvm::{build_microvm_plan, MicroVmImageSet};
 use walle_core::{CertificationProfile, NetworkPolicy, ResourcePlan};
 
 fn usage() {
