@@ -32,6 +32,28 @@ from .kernel_proof import (
     proof_operation_health, proof_bundle_health, search_content_observation_readiness,
     demand_weighted_proof_risk, indexation_readiness_guard, indexation_readiness_release_gate,
 )
+from .kernel_authority import (
+    authority_page_impression_concentration, authority_page_click_concentration,
+    authority_query_fragmentation, authority_impression_weighted_fragmentation,
+    authority_page_query_breadth, authority_page_intent_mixing,
+    authority_demand_orphan_content_gap, authority_query_content_edge_support,
+    authority_query_content_jaccard, authority_local_identity_support,
+    authority_brand_nonbrand_bridge, authority_zero_click_demand_gap,
+    authority_first_page_underclick_gap, authority_position_weighted_visibility,
+    authority_page_demand_gini, authority_query_demand_gini,
+    authority_pareto_page_efficiency, authority_bipartite_component_health,
+    authority_page_pair_query_overlap, authority_service_location_cell_fragmentation,
+)
+from .kernel_conversion import (
+    conversion_impression_share, conversion_click_share, conversion_ctr_health,
+    conversion_zero_click_health, conversion_top10_visibility_share, conversion_rank_gap_health,
+    conversion_content_support, conversion_identity_support, conversion_page_specialization,
+    conversion_landing_concentration_health, conversion_query_breadth_share,
+    conversion_longtail_impression_share, conversion_lead_priority, conversion_close_priority,
+    conversion_composed_priority, conversion_zero_click_lead_priority,
+    conversion_rank_gap_lead_priority, conversion_content_gap_lead_priority,
+)
+from .kernel_release import growth_release_guard, growth_release_gate
 
 def _normalize_input_for_kernel(spec: Mapping[str, Any], payload: Mapping[str, Any]) -> Any:
     dataset = spec["dataset_key"]
@@ -56,9 +78,12 @@ def _normalize_input_for_kernel(spec: Mapping[str, Any], payload: Mapping[str, A
         funnel = payload.get("revenue_funnel_records", [])
         decay = payload.get("content_decay_records", [])
         upstream = payload.get("upstream_evidence", [])
-        if not isinstance(funnel, list): raise InvalidData("revenue_funnel_records_must_be_list")
-        if not isinstance(decay, list): raise InvalidData("content_decay_records_must_be_list")
-        if not isinstance(upstream, list): raise InvalidData("upstream_evidence_must_be_list")
+        if not isinstance(funnel, list):
+            raise InvalidData("revenue_funnel_records_must_be_list")
+        if not isinstance(decay, list):
+            raise InvalidData("content_decay_records_must_be_list")
+        if not isinstance(upstream, list):
+            raise InvalidData("upstream_evidence_must_be_list")
         return {
             "search_performance_records": search,
             "content_documents": documents,
@@ -132,6 +157,44 @@ _DISPATCH = {
     "proof_bundle_health": lambda s,n,c: proof_bundle_health(s,n["records"],c),
     "search_content_observation_readiness": search_content_observation_readiness,
     "demand_weighted_proof_risk": demand_weighted_proof_risk,
+    "authority_page_impression_concentration": authority_page_impression_concentration,
+    "authority_page_click_concentration": authority_page_click_concentration,
+    "authority_query_fragmentation": authority_query_fragmentation,
+    "authority_impression_weighted_fragmentation": authority_impression_weighted_fragmentation,
+    "authority_page_query_breadth": authority_page_query_breadth,
+    "authority_page_intent_mixing": authority_page_intent_mixing,
+    "authority_demand_orphan_content_gap": authority_demand_orphan_content_gap,
+    "authority_query_content_edge_support": authority_query_content_edge_support,
+    "authority_query_content_jaccard": authority_query_content_jaccard,
+    "authority_local_identity_support": authority_local_identity_support,
+    "authority_brand_nonbrand_bridge": authority_brand_nonbrand_bridge,
+    "authority_zero_click_demand_gap": authority_zero_click_demand_gap,
+    "authority_first_page_underclick_gap": authority_first_page_underclick_gap,
+    "authority_position_weighted_visibility": authority_position_weighted_visibility,
+    "authority_page_demand_gini": authority_page_demand_gini,
+    "authority_query_demand_gini": authority_query_demand_gini,
+    "authority_pareto_page_efficiency": authority_pareto_page_efficiency,
+    "authority_bipartite_component_health": authority_bipartite_component_health,
+    "authority_page_pair_query_overlap": authority_page_pair_query_overlap,
+    "authority_service_location_cell_fragmentation": authority_service_location_cell_fragmentation,
+    "conversion_impression_share": conversion_impression_share,
+    "conversion_click_share": conversion_click_share,
+    "conversion_ctr_health": conversion_ctr_health,
+    "conversion_zero_click_health": conversion_zero_click_health,
+    "conversion_top10_visibility_share": conversion_top10_visibility_share,
+    "conversion_rank_gap_health": conversion_rank_gap_health,
+    "conversion_content_support": conversion_content_support,
+    "conversion_identity_support": conversion_identity_support,
+    "conversion_page_specialization": conversion_page_specialization,
+    "conversion_landing_concentration_health": conversion_landing_concentration_health,
+    "conversion_query_breadth_share": conversion_query_breadth_share,
+    "conversion_longtail_impression_share": conversion_longtail_impression_share,
+    "conversion_lead_priority": conversion_lead_priority,
+    "conversion_close_priority": conversion_close_priority,
+    "conversion_composed_priority": conversion_composed_priority,
+    "conversion_zero_click_lead_priority": conversion_zero_click_lead_priority,
+    "conversion_rank_gap_lead_priority": conversion_rank_gap_lead_priority,
+    "conversion_content_gap_lead_priority": conversion_content_gap_lead_priority,
 }
 
 def evaluate_spec(
@@ -147,6 +210,10 @@ def evaluate_spec(
         score, violation, details = indexation_readiness_guard(spec, normalized, config, prior_receipts)
     elif kernel == "indexation_readiness_release_gate":
         score, violation, details = indexation_readiness_release_gate(spec, normalized, config, prior_receipts)
+    elif kernel == "growth_release_guard":
+        score, violation, details = growth_release_guard(spec, normalized, config, prior_receipts)
+    elif kernel == "growth_release_gate":
+        score, violation, details = growth_release_gate(spec, normalized, config, prior_receipts)
     else:
         fn = _DISPATCH.get(kernel)
         if fn is None:
