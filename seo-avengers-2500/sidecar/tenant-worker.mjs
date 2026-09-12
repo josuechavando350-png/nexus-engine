@@ -13,6 +13,10 @@ const LAST_MODULE = "M2500";
 const WORKER_SCHEMA_VERSION = 1;
 const SUITE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
+function compareStrings(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function canonicalJson(value) {
   if (value === null || typeof value === "boolean" || typeof value === "string") {
     return JSON.stringify(typeof value === "string" ? value.normalize("NFC") : value);
@@ -25,7 +29,7 @@ function canonicalJson(value) {
   if (value && typeof value === "object") {
     const entries = Object.entries(value)
       .map(([key, item]) => [key.normalize("NFC"), item])
-      .sort(([left], [right]) => left.localeCompare(right));
+      .sort(([left], [right]) => compareStrings(left, right));
     const seen = new Set();
     return `{${entries.map(([key, item]) => {
       if (seen.has(key)) throw new TypeError("normalized mapping key collision");
@@ -93,7 +97,7 @@ function validateExecutionEnvelope(execution) {
   return execution;
 }
 
-export async function executeSuiteWithPython({ payload, config, pythonBin = "python3", timeoutMs = 120000, maxOutputBytes = 64 * 1024 * 1024 }) {
+export async function executeSuiteWithPython({ payload, config, pythonBin = "python", timeoutMs = 120000, maxOutputBytes = 64 * 1024 * 1024 }) {
   if (typeof pythonBin !== "string" || !pythonBin.trim()) throw new TypeError("pythonBin is required");
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw new TypeError("timeoutMs must be a positive integer");
   if (!Number.isSafeInteger(maxOutputBytes) || maxOutputBytes < 1024) throw new TypeError("maxOutputBytes must be an integer >= 1024");
@@ -219,9 +223,14 @@ export async function runTenantSidecarJob({ controlRoot, evidenceRoot, siteId, c
 
   const evidenceAfterExecution = await readTenantEvidenceSnapshot({ controlRoot, evidenceRoot, siteId });
   if (evidenceAfterExecution.status !== "READY") {
+    const postEvidenceStatus = evidenceAfterExecution.status === "OFF"
+      ? "OFF"
+      : evidenceAfterExecution.status === "INSUFFICIENT_DATA"
+        ? "STALE"
+        : "BLOCKED";
     return decision({
       siteId,
-      status: evidenceAfterExecution.status === "OFF" ? "OFF" : "STALE",
+      status: postEvidenceStatus,
       reason: evidenceAfterExecution.reason,
       controlGeneration: evidenceAfterExecution.controlGeneration,
       evidenceManifestHash: snapshot.manifestHash,
