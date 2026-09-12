@@ -1,5 +1,6 @@
 pub mod capsule;
 mod hardware;
+pub mod isolation;
 
 use std::env;
 use std::process::ExitCode;
@@ -14,6 +15,7 @@ use hardware::{
     OPERATOR_SECONDARY_CAPACITY_LABEL, TARGET_CPU_VENDOR, TARGET_INSTALLED_RAM_BYTES,
     TARGET_SILICON_PROCESS,
 };
+use isolation::{assess_isolation_host, collect_isolation_host_facts, IsolationHostVerdict};
 use walle_core::{
     is_valid_sha256, CertificationProfile, NetworkPolicy, ResourcePlan, RunMachine, RunState,
     WorkloadContract, ENGINE_NAME, ENGINE_VERSION,
@@ -31,7 +33,8 @@ fn usage() {
            walle-core capsule-contract <run-id> <workload-id> <sha256:...> <FAST|HARDENED|CERTIFICATION>\n\
            walle-core classify-exit <exit-code|NONE> <timed-out> <cancelled> <policy-violation> <well-formed>\n\
            walle-core hardware-contract\n\
-           walle-core host-attest"
+           walle-core host-attest\n\
+           walle-core isolation-host-preflight"
     );
 }
 
@@ -298,11 +301,67 @@ fn command_host_attest(args: &[String]) -> Result<(), String> {
     ))
 }
 
+fn command_isolation_host_preflight(args: &[String]) -> Result<(), String> {
+    if !args.is_empty() {
+        return Err("isolation-host-preflight takes no arguments".to_owned());
+    }
+
+    let assessment = assess_isolation_host(collect_isolation_host_facts());
+    println!("engine={ENGINE_NAME}");
+    println!("isolation_backend_target=FIRECRACKER_MICROVM");
+    println!("observed_os={}", assessment.facts.os);
+    println!("observed_architecture={}", assessment.facts.architecture);
+    print_optional_u32("observed_effective_uid", assessment.facts.effective_uid);
+    println!("kvm_exists={}", assessment.facts.kvm_exists);
+    println!(
+        "kvm_is_character_device={}",
+        assessment.facts.kvm_is_character_device
+    );
+    println!("kvm_open_read_write={}", assessment.facts.kvm_open_read_write);
+    println!("cgroup_v2={}", assessment.facts.cgroup_v2);
+    println!(
+        "cgroup_controllers={}",
+        assessment.facts.cgroup_controllers.join(",")
+    );
+    println!("seccomp_actions={}", assessment.facts.seccomp_actions.join(","));
+    println!("linux_verified={}", assessment.linux_verified);
+    println!("x86_64_verified={}", assessment.x86_64_verified);
+    println!(
+        "privileged_supervisor_verified={}",
+        assessment.privileged_supervisor_verified
+    );
+    println!("kvm_verified={}", assessment.kvm_verified);
+    println!("cgroup_v2_verified={}", assessment.cgroup_v2_verified);
+    println!(
+        "cgroup_controllers_verified={}",
+        assessment.cgroup_controllers_verified
+    );
+    println!("seccomp_verified={}", assessment.seccomp_verified);
+    println!("isolation_host_verdict={}", assessment.verdict.as_str());
+    println!("isolation_host_reason={}", assessment.reason);
+
+    if assessment.verdict == IsolationHostVerdict::Ready {
+        Ok(())
+    } else {
+        Err(format!(
+            "microVM host prerequisites are not ready: {}",
+            assessment.reason
+        ))
+    }
+}
+
 fn print_optional(key: &str, value: Option<&str>) {
     println!("{key}={}", value.unwrap_or("UNAVAILABLE"));
 }
 
 fn print_optional_u64(key: &str, value: Option<u64>) {
+    match value {
+        Some(value) => println!("{key}={value}"),
+        None => println!("{key}=UNAVAILABLE"),
+    }
+}
+
+fn print_optional_u32(key: &str, value: Option<u32>) {
     match value {
         Some(value) => println!("{key}={value}"),
         None => println!("{key}=UNAVAILABLE"),
@@ -327,6 +386,7 @@ fn run() -> Result<(), String> {
         "classify-exit" => command_classify_exit(&rest),
         "hardware-contract" => command_hardware_contract(&rest),
         "host-attest" => command_host_attest(&rest),
+        "isolation-host-preflight" => command_isolation_host_preflight(&rest),
         _ => {
             usage();
             Err(format!("unknown command: {command}"))
