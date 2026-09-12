@@ -5,12 +5,15 @@ This tree is the incremental build toward the final exact M001-M2500 composition
 Current reviewed implementation:
 - M001-M1000: delegated to audited `seo-avengers-1000`.
 - M1001-M1200: local demand/entity/content intelligence plus strict white-hat firewall.
-- M1201-M1300: Local Opportunity Twin — query↔page↔content geometry, long-tail structure, service×location portfolio and funnel-weighted priority indices.
-- M1301-M1400: Indexation Readiness / Proof Fusion — upstream technical proof verification, content/search observation readiness, demand-weighted proof risk and M1400 batch certification.
-- M1401-M1500: Local Authority Graph — observed query↔page graph health, fragmentation, demand concentration, content/identity support, service×location cells and graph connectivity.
-- M1501-M1590: Local Conversion Intelligence — demand/click/CTR/visibility/content/identity signals plus funnel-weighted prioritization indices using existing organic funnel evidence.
-- M1591-M1600: fail-closed Local Growth Certification; M1600 binds M1400 and exact M1591-M1599 guard receipts.
-- M1601-M2500: `RESERVED_NOT_EXECUTABLE`; never counted as production capabilities.
+- M1201-M1300: Local Opportunity Twin.
+- M1301-M1400: Indexation Readiness / Proof Fusion.
+- M1401-M1500: Local Authority Graph.
+- M1501-M1600: Local Conversion Intelligence and fail-closed growth certification.
+- M1601-M1700: Discovery Velocity and exact discovery certification.
+- M1701-M1800: Local Topical Lattice and exact topical certification.
+- M1801-M1900: Local Demand Frontier and exact frontier certification.
+- M1901-M2000: Internal Authority Counterfactual and exact link-simulation certification.
+- M2001-M2500: `RESERVED_NOT_EXECUTABLE`; never counted as implemented capabilities.
 - M2501: forbidden.
 
 ## Non-negotiable policy
@@ -19,98 +22,120 @@ Every local module is `SAFE_WHITE_HAT` and `OBSERVE_ONLY`.
 
 The runtime does not publish pages, mutate client content, create external links, scrape Google, call a new provider, write to a database, or require a new API/database/queue/service/cloud resource/daemon/secret/credential. Missing evidence returns `INSUFFICIENT_DATA`; malformed or contradictory evidence fails closed.
 
-No module may infer a Google indexing state from absence of search-performance observations. The vocabulary is deliberately `SEARCH_UNOBSERVED` / `CONTENT_NOT_SUPPLIED`, never `UNINDEXED`, unless an authorized upstream producer eventually supplies explicit indexing evidence under its own reviewed contract.
+No module claims guaranteed ranking, guaranteed crawl speed, guaranteed indexation, ban-proof status, revenue, leads or clients. Search-observation absence is never converted into an invented Google index state.
 
-No local-authority module claims to calculate Google PageRank or private Google ranking internals. Graph calculations operate only on the evidence NEXUS actually possesses: observed query↔landing relations, supplied content, factual local identity and existing technical receipts.
+## M1001-M1200 — Local demand + white-hat firewall
 
-No conversion-priority module predicts revenue, leads, clients, or ranking lift. Existing `revenue_funnel_records` may weight review priority only when explicitly supplied and configured as an organic source.
+M1001-M1100 analyzes ranking-band opportunities, zero-click demand, query/page fragmentation, Pareto frontiers, integer Gini concentration, service×location tensors and confidence-aware CTR gaps.
 
-## M1001-M1200
+M1101-M1150 binds local identity, NAP/content corroboration, source quorum, query↔entity alignment and geographic evidence.
 
-M1001-M1100 — `LOCAL_DEMAND`: ranking-band opportunities, zero-click demand, intent share, query/page fragmentation, Pareto opportunity frontiers, integer Gini concentration, service×location tensors, confidence-aware CTR gaps and click-efficiency lift.
+M1151-M1175 measures service/location/commercial/question/urgency content coverage.
 
-M1101-M1150 — `LOCAL_ENTITY`: NAP/content corroboration, source quorum, query↔entity alignment, evidence completeness, geolocation corroboration and local-demand→page→identity bridges.
+M1176-M1200 detects doorway/clone/repetition/thin-content/unsupported-location-or-service/identity risks. M1200 binds the exact policy slice and fails closed.
 
-M1151-M1175 — `LOCAL_CONTENT`: service/location/commercial/question/urgency coverage and distribution plus co-occurrence/proximity metrics.
+## M1201-M1400 — Opportunity Twin + Proof Fusion
 
-M1176-M1200 — `WHITEHAT_POLICY`: doorway/clone/repetition/thin-content/unsupported-location-or-service/identity and information-gain guards. M1200 binds the exact M1176-M1199 receipts and fails closed.
+The Local Opportunity Twin models query↔landing↔content↔service↔location↔funnel relations from supplied evidence. Economic signals are review-priority indices, explicitly not revenue forecasts.
 
-## M1201-M1300 — Local Opportunity Twin
+Proof Fusion recomputes upstream receipt hashes before trusting technical evidence and preserves the invariant `SEARCH_UNOBSERVED != UNINDEXED`. M1400 requires M1200 plus its exact readiness guards.
 
-This is an evidence-constrained digital twin of observed local search demand. It does not simulate Google internals and does not promise ranking lift.
+## M1401-M1600 — Authority Graph + Conversion Intelligence
 
-Capabilities include query→landing→content support geometry, long-tail demand bands, service×location portfolio cells, click/zero-click exposure, landing dispersion, content support, query overlap and funnel-weighted prioritization.
+The Local Authority Graph measures observed query↔landing structure: fragmentation, connected components, concentration, service×location cells, content support and identity corroboration. It is not Google PageRank.
 
-The funnel-weighted indices are explicitly **not revenue forecasts**. They use supplied organic conversion/close/ticket evidence only to prioritize where observed search demand may deserve human review.
+Conversion Intelligence combines first-party search observations, supplied content/local identity and existing organic funnel evidence to prioritize work. It never predicts customers or revenue. M1600 binds exact current guards and the M1400 predecessor.
 
-## M1301-M1400 — Indexation Readiness / Proof Fusion
+## M1601-M1700 — Discovery Velocity
 
-This layer consumes the existing `upstream_evidence` contract and recomputes receipt hashes before trusting technical proofs. It verifies concrete predecessor operations spanning canonical, robots, metadata, structured data, visible-text integrity, status/redirect/content parity and human/crawler parity.
+This layer measures everything NEXUS can legitimately control around discovery/readiness without claiming control over Google timing:
+- canonical/sitemap/database consistency;
+- internal inlink evidence;
+- persistence and publication readiness;
+- publisher/edge delivery health;
+- redirect budgets and response integrity;
+- robots/index/follow expectation consistency;
+- human/bot parity against cloaking;
+- demand→content→canonical→sitemap→publisher bridges.
 
-M1400 requires the exact M1391-M1399 guard receipts plus the M1200 white-hat receipt. Missing/corrupt/error/finding evidence prevents a safe release state.
+M1700 certifies the exact discovery slice. The semantic boundary is readiness, never a promise that Google will crawl or index at a specific time.
 
-## M1401-M1500 — Local Authority Graph
+## M1701-M1800 — Local Topical Lattice
 
-Five factual demand scopes (`all`, `commercial`, `service`, `location`, `urgency`) each receive twenty distinct graph or distribution analyses:
-- page impression/click concentration;
-- query fragmentation and impression-weighted fragmentation;
-- page query breadth and intent mixing;
-- observed demand whose content document is not supplied;
-- query↔content edge support and token overlap;
-- local identity corroboration;
-- brand/non-brand bridge coverage;
-- zero-click and first-page under-click gaps;
-- fixed-point position-bucket visibility;
-- page/query demand Gini;
-- Pareto page efficiency;
-- bipartite query↔page connected components;
-- pairwise landing-page query overlap;
-- service×location cell fragmentation.
+The topical lattice binds factual project vocabulary to observed search intent, services, verified locations, entities, content, navigation and local identity. It can identify missing/weak topical connections without generating city clones or doorway pages.
 
-These are structural measurements over supplied evidence. They are not Google authority scores and never mutate the site.
+Every output is observe-only, evidence-grounded and explicitly carries `no_content_generation` / `no_doorway_generation` semantics. M1800 binds the exact topical guards.
 
-## M1501-M1590 — Local Conversion Intelligence
+## M1801-M1900 — Local Demand Frontier
 
-Five demand scopes each receive eighteen independent measurements covering impression/click share, CTR, zero-click health, top-ten observations, rank-gap exposure, content support, local identity support, page specialization, landing concentration, query breadth, long-tail demand and six funnel-weighted priority indices.
+M1801-M1890 form a first-party organic demand frontier. Ninety distinct metrics cover:
+- query and landing evidence breadth;
+- impression/click/CTR/zero-click structure;
+- top-3, top-10, 11–20 and 21+ exposure;
+- commercial, service, location, urgency, long-tail, question and non-brand demand;
+- service×location cells;
+- query→content/canonical/sitemap/internal-link backing;
+- intent, anchor, navigation, semantic entity and local-identity corroboration;
+- Gini, HHI, Pareto and demand-diversity diagnostics;
+- high-impression/low-CTR, first-page under-click, rank-gap, deep-gap and high-intent opportunity health;
+- evidence breadth and decision-readiness composition.
 
-Priority indices use the existing organic funnel contract and carry explicit `not_a_revenue_forecast` semantics. They do not output predicted clients, predicted revenue or promised ranking gains.
+These modules consume supplied Search performance and existing NEXUS evidence only. They never scrape Google and every receipt states `not_a_rank_forecast`, `not_a_revenue_forecast` and `not_an_indexation_guarantee`.
 
-## M1591-M1600 — Local Growth Certification
+M1891-M1899 recompute hashes, require successful execution, white-hat/observe-only metadata, zero-new-infrastructure, exact source mapping, algorithm uniqueness and existing-contract-only evidence. M1900 binds those guards plus exact M1800 predecessor safety.
 
-M1591-M1599 verify:
-1. M1400 predecessor safety;
-2. exact receipt-hash integrity for M1401-M1590;
-3. status-domain and execution integrity;
-4. `SAFE_WHITE_HAT` / `OBSERVE_ONLY` metadata;
-5. absence of guaranteed-rank, ban-proof, definite-index or manipulation claims;
-6. forecast disclaimers on conversion-priority receipts;
-7. a hash-bound zero-new-infrastructure runtime contract;
-8. exact source-module mapping;
-9. algorithm and operation uniqueness.
+## M1901-M2000 — Internal Authority Counterfactual
 
-M1600 binds M1400 plus the exact nine guard receipts and fails closed on missing, corrupt, non-success or blocking evidence. M1600 is a current-batch certifier, not the future final M2500 certifier.
+M1901-M1990 are a deterministic graph simulator over the internal-link/silo evidence NEXUS already owns. This is the hard-to-copy structural layer: it measures current topology and simulates candidate internal-link effects before any human-approved site change.
 
-## Determinism and deduplication
+It includes:
+- directed reachability, weak components, orphan/source/sink nodes;
+- in/out-degree balance, density and reciprocity;
+- bridge-edge and articulation-node resilience;
+- cycle detection, shortest-path radius/diameter and path-cost structure;
+- query/entity/anchor/navigation/service/location/commercial support;
+- demand/click/zero-click/top-10/rank-gap weighted reachability;
+- component and silo concentration;
+- counterfactual bridge, orphan-attach, sink-escape and component-merge gains;
+- worst-edge-removal resilience;
+- simulated bridge/articulation redundancy and route-depth reduction;
+- candidate semantic/query/entity/canonical support and evidence confidence.
 
-NFC canonical JSON, SHA-256 receipts, int64-bounded integers and PPM fixed-point arithmetic are used. Floats are rejected. Import-time invariants require:
-- exact current local range M1001-M1600;
-- exact M2001-M2600 source map;
-- 600 unique operation names;
-- 600 unique functional fingerprints;
-- at least 70 distinct analytical kernels;
-- all modules white-hat and observe-only.
+The simulator does **not** edit HTML, add links, create external links or schemes, and does not claim Google PageRank. Outputs explicitly carry `counterfactual_only`, `no_site_mutation`, `no_external_link_creation`, `no_link_scheme` and `not_google_pagerank`.
+
+M1991-M1999 apply the same exact fail-closed certification contract. M2000 binds M1900 plus those nine guards and certifies only M1001-M2000.
+
+## Determinism and integrity
+
+NFC canonical JSON, SHA-256 receipts, int64-bounded integers and PPM fixed-point arithmetic are used. Floats are rejected.
+
+Import-time invariants require:
+- exact current local range M1001-M2000;
+- exact M2001-M3000 source mapping;
+- 1000 unique operation names;
+- 1000 unique functional fingerprints;
+- all modules `SAFE_WHITE_HAT` and `OBSERVE_ONLY`.
+
+Successful local receipts hash-bind a runtime contract declaring no new external API, database, queue, secret, cloud resource or daemon.
 
 ## Existing data only
 
-This batch reuses existing repository contracts:
+The current runtime reuses contracts already present in NEXUS, including:
 - `search_performance_records`
 - `content_documents`
-- `content_decay_records`
 - `local_business_records`
+- `content_decay_records`
 - `revenue_funnel_records`
 - `upstream_evidence`
+- `search_intent_records`
+- `canonicalization_records`
+- `persistence_state_records`
+- `edge_gateway_records`
+- `cwv_edge_records`
+- `policy_audit_records`
+- `semantic_text_records`
 
-No new external provider or infrastructure is necessary.
+Project-local term/group configuration is factual vocabulary, not a new provider.
 
 ## Verification
 
@@ -118,6 +143,6 @@ No new external provider or infrastructure is necessary.
 bash seo-avengers-2500/scripts/verify.sh
 ```
 
-The verifier chains `seo-avengers-1000/scripts/verify.sh`, compiles/tests the current suite, and rejects runtime float literals, direct network/database/queue/cloud clients, new environment-variable dependencies, volatile time/random/UUID calls and `pass` placeholders. Dedicated GitHub Actions checks out the exact event head.
+The verifier chains `seo-avengers-1000/scripts/verify.sh`, compiles/tests the current suite, and rejects runtime float literals, direct network/database/queue/cloud clients, new environment-variable dependencies, volatile time/random/UUID calls and `pass` placeholders. GitHub Actions checks out the exact event head.
 
-This is deliberately **not** represented as final M001-M2500 certification. M1601-M2500 remain reserved until their reviewed algorithms, evidence contracts, tests and integration exist.
+This is deliberately **not** final M001-M2500 certification. M2001-M2500 remain reserved until their algorithms, evidence contracts, tests and integration are real and reviewed. Final M2500 will only exist after M2001-M2499 are implemented and audited.
