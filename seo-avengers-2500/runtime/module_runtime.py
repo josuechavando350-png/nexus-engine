@@ -22,6 +22,16 @@ def _config_for(spec: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str,
         "new_secret_required": False,
     }
 
+def _runtime_contract() -> Dict[str, bool]:
+    return {
+        "new_external_api_required": False,
+        "new_database_required": False,
+        "new_queue_required": False,
+        "new_secret_required": False,
+        "new_cloud_resource_required": False,
+        "new_daemon_required": False,
+    }
+
 def execute_module(
     module_id: str,
     payload: Mapping[str, Any],
@@ -51,6 +61,7 @@ def execute_module(
         raw_input, normalized_input, output = evaluate_spec(
             spec, payload, config, prior_receipts=prior_receipts,
         )
+        output = {**output, "runtime_contract": _runtime_contract()}
         finding = "FINDING" if output.get("violation") is True else "NO_FINDING"
         reason = (
             f"{spec['operation'].upper()}_FINDING"
