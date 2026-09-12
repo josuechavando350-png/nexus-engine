@@ -18,6 +18,10 @@ from . import (
     specs_velocity_release,
     specs_topical,
     specs_topical_release,
+    specs_frontier,
+    specs_frontier_release,
+    specs_counterfactual,
+    specs_counterfactual_release,
 )
 
 _ROWS: list[dict[str, Any]] = []
@@ -34,10 +38,14 @@ specs_discovery.build(_ROWS)
 specs_velocity_release.build(_ROWS)
 specs_topical.build(_ROWS)
 specs_topical_release.build(_ROWS)
+specs_frontier.build(_ROWS)
+specs_frontier_release.build(_ROWS)
+specs_counterfactual.build(_ROWS)
+specs_counterfactual_release.build(_ROWS)
 
 MODULE_SPECS: Dict[str, Dict[str, Any]] = {row["module_id"]: row for row in _ROWS}
-TARGET_MODULES = tuple(f"M{i}" for i in range(1001, 1801))
-SOURCE_MODULES = tuple(f"M{i}" for i in range(2001, 2801))
+TARGET_MODULES = tuple(f"M{i}" for i in range(1001, 2001))
+SOURCE_MODULES = tuple(f"M{i}" for i in range(2001, 3001))
 SUPPORTED_FAMILIES = frozenset({
     "LOCAL_DEMAND",
     "LOCAL_ENTITY",
@@ -52,13 +60,17 @@ SUPPORTED_FAMILIES = frozenset({
     "DISCOVERY_CERTIFICATION",
     "LOCAL_TOPICAL_LATTICE",
     "TOPICAL_CERTIFICATION",
+    "LOCAL_DEMAND_FRONTIER",
+    "FRONTIER_CERTIFICATION",
+    "LOCAL_LINK_COUNTERFACTUAL",
+    "LINK_CERTIFICATION",
 })
 
 if tuple(MODULE_SPECS) != TARGET_MODULES:
     raise RuntimeError("target range drift")
-if len(MODULE_SPECS) != 800:
+if len(MODULE_SPECS) != 1000:
     raise RuntimeError("module cardinality mismatch")
-if len({spec["operation"] for spec in MODULE_SPECS.values()}) != 800:
+if len({spec["operation"] for spec in MODULE_SPECS.values()}) != 1000:
     raise RuntimeError("operation collision")
 if tuple(spec["source_module"] for spec in MODULE_SPECS.values()) != SOURCE_MODULES:
     raise RuntimeError("source mapping drift")
@@ -85,7 +97,7 @@ def functional_fingerprint(spec: Mapping[str, Any]) -> str:
     })
 
 FINGERPRINTS = {module_id: functional_fingerprint(spec) for module_id, spec in MODULE_SPECS.items()}
-if len(set(FINGERPRINTS.values())) != 800:
+if len(set(FINGERPRINTS.values())) != 1000:
     raise RuntimeError("functional fingerprint collision")
 
 READ_ONLY_MODULE_SPECS = MappingProxyType(MODULE_SPECS)
