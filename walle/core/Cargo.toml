@@ -1,0 +1,17 @@
+[package]
+name = "walle-core"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+license = "UNLICENSED"
+description = "Nexus WALLE controlled execution and certification control core"
+
+[dependencies]
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+overflow-checks = true
