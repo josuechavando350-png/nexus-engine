@@ -81,11 +81,15 @@ pub fn assess_isolation_host(facts: IsolationHostFacts) -> IsolationHostAssessme
     let linux_verified = facts.os == "linux";
     let x86_64_verified = facts.architecture == "x86_64";
     let privileged_supervisor_verified = facts.effective_uid == Some(0);
-    let kvm_verified = facts.kvm_exists && facts.kvm_is_character_device && facts.kvm_open_read_write;
+    let kvm_verified =
+        facts.kvm_exists && facts.kvm_is_character_device && facts.kvm_open_read_write;
     let cgroup_v2_verified = facts.cgroup_v2;
-    let cgroup_controllers_verified = REQUIRED_CGROUP_CONTROLLERS
-        .iter()
-        .all(|required| facts.cgroup_controllers.iter().any(|actual| actual == required));
+    let cgroup_controllers_verified = REQUIRED_CGROUP_CONTROLLERS.iter().all(|required| {
+        facts
+            .cgroup_controllers
+            .iter()
+            .any(|actual| actual == required)
+    });
     let seccomp_verified = facts
         .seccomp_actions
         .iter()
@@ -220,7 +224,9 @@ mod tests {
     #[test]
     fn missing_required_cgroup_controller_is_unavailable() {
         let mut facts = ready_facts();
-        facts.cgroup_controllers.retain(|controller| controller != "pids");
+        facts
+            .cgroup_controllers
+            .retain(|controller| controller != "pids");
         let assessment = assess_isolation_host(facts);
         assert_eq!(assessment.verdict, IsolationHostVerdict::Unavailable);
         assert_eq!(
@@ -244,10 +250,16 @@ mod tests {
     #[test]
     fn effective_uid_parser_uses_effective_field() {
         let status = "Name:\ttest\nUid:\t1000\t0\t1000\t1000\n";
-        let line = status.lines().find(|line| line.starts_with("Uid:")).unwrap();
+        let line = status
+            .lines()
+            .find(|line| line.starts_with("Uid:"))
+            .unwrap();
         let mut fields = line.split_whitespace();
         assert_eq!(fields.next(), Some("Uid:"));
         let _real_uid = fields.next().unwrap();
-        assert_eq!(fields.next().and_then(|value| value.parse::<u32>().ok()), Some(0));
+        assert_eq!(
+            fields.next().and_then(|value| value.parse::<u32>().ok()),
+            Some(0)
+        );
     }
 }
