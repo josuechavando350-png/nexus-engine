@@ -16,7 +16,8 @@ node --test \
   "$SUITE/tests/test_tenant_control.mjs" \
   "$SUITE/tests/test_tenant_control_strict.mjs" \
   "$SUITE/tests/test_tenant_control_paths.mjs" \
-  "$SUITE/tests/test_tenant_evidence.mjs"
+  "$SUITE/tests/test_tenant_evidence.mjs" \
+  "$SUITE/tests/test_tenant_evidence_readonly.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
