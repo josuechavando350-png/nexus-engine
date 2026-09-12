@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { lstat, mkdir, open, readdir, readFile, rename } from "node:fs/promises";
+import { lstat, mkdir, open, readdir, readFile, realpath, rename } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 
 const SCHEMA_VERSION = 1;
@@ -185,14 +185,44 @@ async function syncDirectory(directory) {
   }
 }
 
-async function assertRegularDirectory(directory, label) {
+async function assertCanonicalDirectory(directory, label) {
   const info = await lstat(directory);
   if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`${label} must be a real directory`);
+  const actual = await realpath(directory);
+  if (actual !== resolve(directory)) throw new Error(`${label} must not traverse symlinks`);
+}
+
+async function readCanonicalTextFile(path, label) {
+  const info = await lstat(path);
+  if (!info.isFile() || info.isSymbolicLink()) throw new Error(`${label} must be a regular file`);
+  const actual = await realpath(path);
+  if (actual !== resolve(path)) throw new Error(`${label} must not traverse symlinks`);
+  return readFile(path, "utf8");
+}
+
+async function resolveTenantReadDirectory(controlRoot, siteId) {
+  const root = controlRootPath(controlRoot);
+  await assertCanonicalDirectory(root, "controlRoot");
+  const tenantsRoot = resolve(root, "tenants");
+  try {
+    await assertCanonicalDirectory(tenantsRoot, "tenants root");
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+  const directory = tenantDirectory(controlRoot, siteId);
+  try {
+    await assertCanonicalDirectory(directory, "tenant directory");
+  } catch (error) {
+    if (error?.code === "ENOENT") return null;
+    throw error;
+  }
+  return directory;
 }
 
 async function ensureTenantDirectory(controlRoot, siteId) {
   const root = controlRootPath(controlRoot);
-  await assertRegularDirectory(root, "controlRoot");
+  await assertCanonicalDirectory(root, "controlRoot");
 
   const tenantsRoot = resolve(root, "tenants");
   let tenantsCreated = false;
@@ -202,7 +232,7 @@ async function ensureTenantDirectory(controlRoot, siteId) {
   } catch (error) {
     if (error?.code !== "EEXIST") throw error;
   }
-  await assertRegularDirectory(tenantsRoot, "tenants root");
+  await assertCanonicalDirectory(tenantsRoot, "tenants root");
   if (tenantsCreated) await syncDirectory(root);
 
   const directory = tenantDirectory(controlRoot, siteId);
@@ -213,7 +243,7 @@ async function ensureTenantDirectory(controlRoot, siteId) {
   } catch (error) {
     if (error?.code !== "EEXIST") throw error;
   }
-  await assertRegularDirectory(directory, "tenant directory");
+  await assertCanonicalDirectory(directory, "tenant directory");
   if (tenantCreated) await syncDirectory(tenantsRoot);
   return directory;
 }
@@ -242,10 +272,11 @@ export async function readTenantControl({ controlRoot, siteId }) {
 
   let directory;
   try {
-    directory = tenantDirectory(controlRoot, siteId);
+    directory = await resolveTenantReadDirectory(controlRoot, siteId);
   } catch {
-    return offDecision(siteId, "CONTROL_ROOT_INVALID");
+    return offDecision(siteId, "CONTROL_STORE_UNREADABLE");
   }
+  if (directory === null) return offDecision(siteId, "TENANT_MISSING", 0, true);
 
   let entries;
   try {
@@ -271,7 +302,7 @@ export async function readTenantControl({ controlRoot, siteId }) {
   for (const generation of generations) {
     try {
       const path = join(directory, generationFileName(generation));
-      const parsed = JSON.parse(await readFile(path, "utf8"));
+      const parsed = JSON.parse(await readCanonicalTextFile(path, `generation ${generation}`));
       latest = validateStoredState(parsed, siteId, generation, previousHash);
       previousHash = latest.state_hash;
     } catch {
@@ -281,12 +312,18 @@ export async function readTenantControl({ controlRoot, siteId }) {
 
   let hwm;
   try {
-    hwm = validateHighWaterMark(JSON.parse(await readFile(join(directory, HWM_FILENAME), "utf8")), siteId);
+    hwm = validateHighWaterMark(JSON.parse(await readCanonicalTextFile(join(directory, HWM_FILENAME), "high-water mark")), siteId);
   } catch {
     return offDecision(siteId, "HWM_INTEGRITY_FAILURE", latest.generation);
   }
   if (hwm.generation !== latest.generation || hwm.state_hash !== latest.state_hash) {
     return offDecision(siteId, "HWM_MISMATCH", latest.generation);
+  }
+
+  try {
+    await assertCanonicalDirectory(directory, "tenant directory");
+  } catch {
+    return offDecision(siteId, "CONTROL_STORE_UNREADABLE", latest.generation);
   }
 
   const authorized = latest.enabled === true && latest.kill_switch === false;
