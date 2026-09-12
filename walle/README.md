@@ -81,12 +81,13 @@ This branch contains real executable code for:
 - the W1 execution-capsule contract with explicit capabilities, canonical manifests, phase receipts, cancellation ownership and structured exit classification;
 - W2 host-prerequisite observation for Linux/x86-64, usable KVM, privileged supervision, cgroup v2 controllers and seccomp availability;
 - a deterministic W2 Firecracker launch-plan contract that refuses non-ready hosts, binds kernel/rootfs SHA-256 identities, requires a read-only base rootfs and guest seccomp, carries CPU/memory/PID/scratch requirements, emits zero network interfaces for `DENY_ALL`, and refuses secret/device grants it cannot yet enforce;
+- a deterministic W2 supervisor contract that exact-binds the execution capsule to the admitted launch plan, rejects stale/tampered plan fields and unsafe host paths, derives cgroup-v2 CPU/memory/PID limits, requires a non-root jail identity, and records mandatory digest verification, atomic materialization, timeout/cancel kill and cgroup-cleanup obligations;
 - a dedicated `walle-microvm-plan` command that returns no launch plan when the observed host prerequisites are not ready;
 - hardware target/observation logic with tests preventing false Intel 18A/RAM claims;
 - a real SEO Avengers chained-verifier adapter with source-stability checks and output/verifier hashes;
 - CI that installs exact Python 3.11, Node 24 and Rust 1.88 toolchains and runs the connected verifier.
 
-The W2 launch plan is an admission/configuration contract, not proof that Firecracker has started a guest. `guest_pid_limit` and `guest_seccomp_required` are requirements for the later guest/supervisor implementation; they are not yet claims that those controls were enforced in a running VM.
+The W2 launch and supervisor plans are admission/configuration contracts, not proof that Firecracker has started a guest. The supervisor contract derives the limits and lifecycle obligations that a later runtime must enforce, but it does not write cgroup controls, canonicalize or stage real image files, verify image bytes, invoke `jailer`/`firecracker`, enforce guest PID/seccomp policy, terminate a real VM, or prove cleanup. Those claims remain blocked until the side-effectful supervisor implementation and dedicated KVM-host tests exist.
 
 The verification script keeps Cargo build output outside the repository so a successful verification must leave the checkout clean.
 
@@ -96,11 +97,11 @@ The verification script keeps Cargo build output outside the repository so a suc
 bash walle/scripts/verify.sh
 ```
 
-A green run proves the checks that are actually executed by that script. It does not yet prove a successful Firecracker guest launch, runtime microVM isolation, guest PID/seccomp enforcement, escape resistance, TPM attestation, signed provenance, full M001-M2500 fresh execution, or a bug-free system.
+A green run proves the checks that are actually executed by that script. It does not yet prove a successful Firecracker guest launch, runtime microVM isolation, cgroup enforcement, guest PID/seccomp enforcement, image staging integrity, cancellation cleanup, escape resistance, TPM attestation, signed provenance, full M001-M2500 fresh execution, or a bug-free system.
 
 ## Still blocked before final certification
 
-Walle must not emit a production-grade final certification claim until, at minimum, the microVM supervisor/jailer and runtime capability enforcement, authoritative hardware/environment attestation, durable tamper-evident evidence publication, adversarial isolation/escape testing, and a real no-skip execution path for the currently delegated M001-M200 gap are implemented and tested.
+Walle must not emit a production-grade final certification claim until, at minimum, the side-effectful microVM supervisor/jailer lifecycle and runtime capability enforcement, authoritative hardware/environment attestation, durable tamper-evident evidence publication, adversarial isolation/escape testing, and a real no-skip execution path for the currently delegated M001-M200 gap are implemented and tested.
 
 ## Naming
 
