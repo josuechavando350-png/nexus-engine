@@ -1,6 +1,12 @@
 name: SEO Avengers 1000 Isolated Check
 
 on:
+  push:
+    branches:
+      - feat/seo-avengers-1000-batch-801-1000
+    paths:
+      - 'seo-avengers-1000/**'
+      - '.github/workflows/seo-avengers-1000-isolated-check.yml'
   pull_request:
     branches:
       - main
@@ -15,11 +21,11 @@ jobs:
   verify-1000:
     runs-on: ubuntu-24.04
     steps:
-      - name: Checkout exact pull request head
+      - name: Checkout exact event head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           fetch-depth: 0
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
 
       - name: Verify audited M001-M800 plus exact M801-M1000
         run: bash seo-avengers-1000/scripts/verify.sh
