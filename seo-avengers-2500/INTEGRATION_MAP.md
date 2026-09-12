@@ -1,4 +1,4 @@
-# SEO Avengers 2500 — integration map (current M1001-M1600)
+# SEO Avengers 2500 — integration map (current M1001-M2000)
 
 ```text
 seo-avengers-1000  [M001-M1000 audited predecessor]
@@ -8,123 +8,122 @@ seo-avengers-2500/runtime/catalog.py
         |
         +--> M001-M1000   DELEGATED_PRODUCTION
         |
-        +--> M1001-M1200  local demand/entity/content + white-hat firewall
+        +--> M1001-M1199  demand/entity/content + white-hat diagnostics
         |        |
-        |        +--> search_performance_records
-        |        +--> local_business_records
-        |        +--> content_documents
-        |        +--> content_decay_records
-        |        +--> upstream_evidence
         |        v
         |      M1200 strict white-hat gate
         |
-        +--> M1201-M1300  Local Opportunity Twin
+        +--> M1201-M1390  Local Opportunity Twin + Proof Fusion
         |        |
-        |        +--> search_performance_records
-        |        +--> content_documents
-        |        +--> revenue_funnel_records
-        |        +--> factual project term/group configuration
-        |
-        +--> M1301-M1390  Indexation Readiness / Proof Fusion
-        |        |
-        |        +--> upstream_evidence receipts
-        |        +--> search_performance_records
-        |        +--> content_documents
         |        v
-        |     M1391-M1399 fail-closed readiness guards
+        |     M1391-M1399 exact readiness guards
         |        |
-        |        +--> requires M1200 safe receipt
         |        v
         |      M1400 readiness certifier
         |
-        +--> M1401-M1500  Local Authority Graph
+        +--> M1401-M1590  Local Authority Graph + Conversion Intelligence
         |        |
-        |        +--> observed query <-> landing graph
-        |        +--> content-document evidence
-        |        +--> local-business identity evidence
-        |        +--> service/location grouping facts
         |        v
-        |      structural authority diagnostics
-        |
-        +--> M1501-M1590  Local Conversion Intelligence
+        |     M1591-M1599 exact local-growth guards
         |        |
-        |        +--> observed search performance
-        |        +--> supplied content/local identity
-        |        +--> existing revenue_funnel_records
-        |        +--> organic_funnel_source_ids
         |        v
-        |      bounded priority indices, never forecasts
+        |      M1600 local-growth certifier
         |
-        +--> M1591-M1599  Local Growth Certification guards
+        +--> M1601-M1690  Discovery Velocity
         |        |
-        |        +--> requires M1400 safe receipt
-        |        +--> recomputes M1401-M1590 receipt hashes
-        |        +--> verifies white-hat / observe-only metadata
-        |        +--> verifies no forecast/manipulation claims
-        |        +--> verifies zero-new-infrastructure contract
-        |        +--> verifies source map / algorithm uniqueness
+        |        +--> canonicalization_records
+        |        +--> persistence_state_records
+        |        +--> edge_gateway_records
+        |        +--> cwv_edge_records
+        |        +--> policy_audit_records
+        |        +--> first-party search/content evidence
         |        v
-        |      M1600 exact current-batch certifier
+        |     M1691-M1699 exact discovery guards
+        |        |
+        |        v
+        |      M1700 discovery certifier
         |
-        +--> M1601-M2500 RESERVED_NOT_EXECUTABLE
+        +--> M1701-M1790  Local Topical Lattice
+        |        |
+        |        +--> search_intent_records
+        |        +--> semantic_text_records
+        |        +--> verified project service/location vocabulary
+        |        +--> content/local identity/search evidence
+        |        v
+        |     M1791-M1799 exact topical guards
+        |        |
+        |        v
+        |      M1800 topical certifier
+        |
+        +--> M1801-M1890  Local Demand Frontier
+        |        |
+        |        +--> search_performance_records
+        |        +--> content_documents
+        |        +--> canonicalization_records
+        |        +--> search_intent_records
+        |        +--> semantic_text_records
+        |        +--> local_business_records
+        |        v
+        |     90 first-party demand/opportunity measurements
+        |        |
+        |        v
+        |     M1891-M1899 exact frontier guards
+        |        |
+        |        v
+        |      M1900 frontier certifier
+        |
+        +--> M1901-M1990  Internal Authority Counterfactual
+        |        |
+        |        +--> existing silo/internal-link evidence
+        |        +--> observed search demand
+        |        +--> canonical/content/entity evidence
+        |        v
+        |     deterministic topology + counterfactual simulation
+        |        |
+        |        +--> never mutates site
+        |        +--> never creates links
+        |        +--> never claims Google PageRank
+        |        v
+        |     M1991-M1999 exact counterfactual guards
+        |        |
+        |        v
+        |      M2000 current exact certifier
+        |
+        +--> M2001-M2500 RESERVED_NOT_EXECUTABLE
 ```
 
-## Existing data contracts only
+## Evidence boundary
 
-No new infrastructure contract is introduced. Current modules consume payload families already present in the repository. Project-local configuration is factual vocabulary/grouping plus an explicit list of which existing funnel `source_id` values represent organic traffic:
-
-- `local_commercial_terms`
-- `local_service_terms`
-- `local_location_terms`
-- `local_urgency_terms`
-- `local_question_terms`
-- `local_brand_terms`
-- `local_verified_service_terms`
-- `local_verified_location_terms`
-- `local_service_groups`
-- `local_location_groups`
-- `organic_funnel_source_ids`
-
-These are project facts/configuration, not a new provider or secret.
-
-## Authority-graph boundary
-
-The authority layer does **not** claim access to Google PageRank or any private Google ranking signal. Its graph is constructed only from supplied evidence:
+Current local modules consume only evidence contracts already present in NEXUS:
 
 ```text
-observed query
-      |
-      +--> observed landing URL
-      |       |
-      |       +--> supplied content document
-      |       +--> supplied local-business identity evidence
-      |
-      +--> configured factual service/location/intent groups
+search_performance_records
+content_documents
+local_business_records
+content_decay_records
+revenue_funnel_records
+upstream_evidence
+search_intent_records
+canonicalization_records
+persistence_state_records
+edge_gateway_records
+cwv_edge_records
+policy_audit_records
+semantic_text_records
 ```
 
-It can measure connected components, overlap, fragmentation, concentration, service×location cells and content/identity support without mutating the client site.
+Project configuration contains factual vocabulary/grouping (`local_service_terms`, `local_location_terms`, verified service/location terms, service/location groups, brand/commercial/urgency/question terms and explicit organic funnel source IDs). These are project facts, not external data providers.
 
-## Conversion boundary
+## Strict white-hat action boundary
 
-Conversion Intelligence uses Search observations and the existing `revenue_funnel_records` contract. Existing funnel rates may change **priority**, but the layer does not output predicted leads, predicted clients, revenue forecasts, or guaranteed ranking gains.
+Every M1001-M2000 spec is:
 
 ```text
-observed demand
-      |
-      +--> content / identity / visibility diagnostics
-      |
-      +--> explicitly supplied organic funnel evidence
-      |
-      v
-bounded review-priority indices
-      |
-      +--> not_a_revenue_forecast = true
-      +--> OBSERVE_ONLY
+policy_status = SAFE_WHITE_HAT
+action_mode   = OBSERVE_ONLY
 ```
 
-## Hash-bound zero-infrastructure contract
-
-Every successful local receipt includes a `runtime_contract` declaring:
+The runtime cannot publish pages, edit HTML, generate doorway pages, build external links, scrape Google or write to external infrastructure. Successful receipts hash-bind:
 
 ```text
 new_external_api_required     = false
@@ -135,22 +134,91 @@ new_cloud_resource_required   = false
 new_daemon_required           = false
 ```
 
-Because this object is part of the receipt output, it is covered by the receipt evidence hash. M1597 verifies the exact current batch rather than trusting documentation alone.
+A recommendation becoming a production change remains a separate reviewed action outside this observe-only suite.
 
-## Safety boundaries
+## Demand Frontier boundary
 
-M1001-M1600 are evidence-only and `OBSERVE_ONLY`. They do not edit `apps/**`, `delivery/**`, HTML, external links or external services. Future application of a recommendation remains a separately reviewed action.
+M1801-M1890 model **observed first-party demand**, not Google's private ranking system:
 
-`upstream_evidence` is not trusted blindly. Proof-fusion layers recompute supplied receipt hashes before using proof state. Missing proof yields unknown/insufficient evidence, not a fabricated pass.
+```text
+Search observation
+      |
+      +--> intent / service / location classification
+      +--> observed landing
+      +--> supplied content
+      +--> canonical / sitemap / inlink evidence
+      +--> semantic / local identity corroboration
+      |
+      v
+fixed-point demand frontier
+      |
+      +--> CTR / zero-click / position-band structure
+      +--> long-tail / local / commercial / urgency exposure
+      +--> service×location cells
+      +--> concentration / Pareto / fragmentation health
+      +--> evidence-backed opportunity diagnostics
+```
 
-Search observation is never equated with indexation. A content page with no supplied Search performance row is reported as unobserved/not supplied, not `UNINDEXED`.
+Every output carries explicit non-claim semantics: no Google scraping, no ranking forecast, no revenue forecast and no indexation guarantee.
 
-## Current certification boundaries
+## Internal Authority Counterfactual boundary
 
-M1200 certifies only the strict white-hat policy slice M1176-M1199.
+M1901-M1990 simulate only the site's supplied internal graph:
 
-M1400 binds M1200 plus exact M1391-M1399 readiness guards.
+```text
+search_intent_records
+   silo + internal_link_targets
+             |
+             v
+      directed internal graph
+             |
+             +--> components / reachability
+             +--> orphan/source/sink structure
+             +--> bridges / articulations / cycles
+             +--> shortest paths / radius / diameter
+             +--> demand-weighted topology
+             |
+             v
+       candidate edge simulation
+             |
+             +--> reachability gain
+             +--> demand reach gain
+             +--> redundancy/resilience gain
+             +--> path-depth reduction
+             +--> semantic/entity/query/canonical support
+             |
+             v
+      OBSERVE_ONLY recommendation evidence
+```
 
-M1600 binds M1400 plus exact M1591-M1599 local-growth guards. Its certified local range is M1001-M1600.
+The simulation never inserts the candidate edge. It is not PageRank, does not create external links and cannot become a link scheme by itself.
 
-M1600 is **not** the final M2500 terminal certifier. The final certifier will only be implemented after M1601-M2499 are real, connected and audited.
+## Exact certification chain
+
+Each boundary is cryptographically chained through deterministic SHA-256 receipts:
+
+```text
+M1200
+  -> M1400
+  -> M1600
+  -> M1700
+  -> M1800
+  -> M1900
+  -> M2000
+```
+
+For extension batches, nine guards verify predecessor safety, current receipt hashes, execution success, policy/action metadata, forbidden claims, zero-new-infrastructure, exact source mapping, algorithm uniqueness and existing-contract-only evidence. The terminal module binds the predecessor plus exactly those nine guard receipts.
+
+M2000 certifies only the current local range M1001-M2000. It is **not** the future final M2500 terminal certifier.
+
+## Current cardinality
+
+```text
+M001-M1000    delegated audited predecessor  = 1000
+M1001-M2000   implemented here               = 1000
+M2001-M2500   reserved, non-executable       =  500
+----------------------------------------------------
+final target                                = 2500
+```
+
+The manifest requires exactly 1000 local operation names and 1000 functional fingerprints with exact source mapping M2001-M3000. Reserved modules cannot execute.
