@@ -66,6 +66,10 @@ function responseAt(body, finalUrl, contentType = "text/html; charset=utf-8", st
   };
 }
 
+function redirectResponse(location, status = 302) {
+  return new Response(null, { status, headers: { location } });
+}
+
 test("sitemap parser accepts only exact NexusBotStudio HTTPS hosts", () => {
   const routes = extractSameTenantRoutes(`<?xml version="1.0"?><urlset>
     <url><loc>https://nexusbotstudio.com/automation</loc></url>
@@ -128,6 +132,56 @@ test("authorized canary collects only same-tenant public pages and releases side
   assert.equal(result.canary.discoveredRoutes, 2);
   assert.equal(result.canary.collectedDocuments, 2);
   assert.equal(calls.some((item) => item.includes("outside.example")), false);
+});
+
+test("allowed root-to-www redirect is followed manually", async (t) => {
+  const ctx = await setup(t);
+  const calls = [];
+  const result = await runNexusBotStudioCanary({
+    ...ctx,
+    fetchImpl: async (url) => {
+      const value = String(url);
+      calls.push(value);
+      if (value.endsWith("/sitemap.xml")) return response("<urlset></urlset>", "application/xml");
+      if (value === "https://nexusbotstudio.com/") return redirectResponse("https://www.nexusbotstudio.com/");
+      if (value === "https://www.nexusbotstudio.com/") return response("<main>Nexus Bot Studio</main>");
+      throw new Error(`unexpected URL ${value}`);
+    },
+    executeSuite: async () => successfulExecution(),
+  });
+  assert.equal(result.status, "RELEASED");
+  assert.deepEqual(calls, [
+    "https://nexusbotstudio.com/sitemap.xml",
+    "https://nexusbotstudio.com/",
+    "https://www.nexusbotstudio.com/",
+  ]);
+});
+
+test("cross-tenant redirect is rejected before target fetch", async (t) => {
+  const ctx = await setup(t);
+  const calls = [];
+  let executions = 0;
+  const result = await runNexusBotStudioCanary({
+    ...ctx,
+    fetchImpl: async (url) => {
+      const value = String(url);
+      calls.push(value);
+      if (value.endsWith("/sitemap.xml")) return response("<urlset></urlset>", "application/xml");
+      if (value === "https://nexusbotstudio.com/") return redirectResponse("http://169.254.169.254/latest/meta-data/");
+      throw new Error("redirect target must never be fetched");
+    },
+    executeSuite: async () => {
+      executions += 1;
+      return successfulExecution();
+    },
+  });
+  assert.equal(executions, 0);
+  assert.equal(result.status, "INSUFFICIENT_DATA");
+  assert.equal(result.reason, "CANARY_CONTENT_EVIDENCE_EMPTY");
+  assert.deepEqual(calls, [
+    "https://nexusbotstudio.com/sitemap.xml",
+    "https://nexusbotstudio.com/",
+  ]);
 });
 
 test("conflicting redirects to one final document fail closed", async (t) => {
