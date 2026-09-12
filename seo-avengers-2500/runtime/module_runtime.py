@@ -4,6 +4,7 @@ from typing import Any, Dict, Mapping
 
 from .common import InvalidData, InsufficientData, make_receipt
 from .kernels import evaluate_spec
+from .extension_runtime import evaluate_extension_spec
 from .manifest import MODULE_SPECS
 
 def _config_for(spec: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
@@ -32,6 +33,15 @@ def _runtime_contract() -> Dict[str, bool]:
         "new_daemon_required": False,
     }
 
+def _is_extension_module(module_id: str) -> bool:
+    if not module_id.startswith("M"):
+        return False
+    try:
+        number = int(module_id[1:])
+    except ValueError:
+        return False
+    return number >= 1601
+
 def execute_module(
     module_id: str,
     payload: Mapping[str, Any],
@@ -58,7 +68,8 @@ def execute_module(
             finding_status="NOT_APPLICABLE", reason_code=str(exc), output={},
         )
     try:
-        raw_input, normalized_input, output = evaluate_spec(
+        evaluator = evaluate_extension_spec if _is_extension_module(module_id) else evaluate_spec
+        raw_input, normalized_input, output = evaluator(
             spec, payload, config, prior_receipts=prior_receipts,
         )
         output = {**output, "runtime_contract": _runtime_contract()}
