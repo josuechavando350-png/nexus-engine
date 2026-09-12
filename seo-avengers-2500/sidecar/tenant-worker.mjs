@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
-import { dirname, join } from "node:path";
+import { dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { readTenantControl } from "../control-plane/tenant-control.mjs";
@@ -11,7 +11,6 @@ const LOCAL_RECEIPT_COUNT = 1500;
 const FIRST_MODULE = "M1001";
 const LAST_MODULE = "M2500";
 const WORKER_SCHEMA_VERSION = 1;
-const BRIDGE_PATH = fileURLToPath(new URL("./execute_suite.py", import.meta.url));
 const SUITE_ROOT = dirname(dirname(fileURLToPath(import.meta.url)));
 
 function canonicalJson(value) {
@@ -72,6 +71,7 @@ function validateExecutionEnvelope(execution) {
   if (!receipts || typeof receipts !== "object" || Array.isArray(receipts)) throw new Error("receipts must be an object");
   const keys = Object.keys(receipts);
   if (keys.length !== LOCAL_RECEIPT_COUNT) throw new Error("receipt range cardinality mismatch");
+  const allowedExecutionStatuses = new Set(["SUCCESS", "INSUFFICIENT_DATA"]);
   for (let number = 1001; number <= 2500; number += 1) {
     const moduleId = `M${number}`;
     const receipt = receipts[moduleId];
@@ -81,9 +81,7 @@ function validateExecutionEnvelope(execution) {
       throw new Error(`unsafe receipt policy ${moduleId}`);
     }
     if (!SHA256_RE.test(receipt.evidence_hash ?? "")) throw new Error(`invalid receipt evidence hash ${moduleId}`);
-    if (!new Set(["SUCCESS", "INSUFFICIENT_DATA"]).has(receipt.execution_status)) {
-      throw new Error(`runtime error receipt ${moduleId}`);
-    }
+    if (!allowedExecutionStatuses.has(receipt.execution_status)) throw new Error(`runtime error receipt ${moduleId}`);
   }
   const terminal = receipts[LAST_MODULE];
   if (terminal.execution_status !== "SUCCESS" || terminal.finding_status !== "NO_FINDING") {
@@ -102,7 +100,7 @@ export async function executeSuiteWithPython({ payload, config, pythonBin = "pyt
 
   const request = JSON.stringify({ schema_version: 1, payload, config });
   return new Promise((resolve, reject) => {
-    const child = spawn(pythonBin, [BRIDGE_PATH], {
+    const child = spawn(pythonBin, ["-m", "sidecar.execute_suite"], {
       cwd: SUITE_ROOT,
       shell: false,
       stdio: ["pipe", "pipe", "pipe"],
@@ -110,6 +108,7 @@ export async function executeSuiteWithPython({ payload, config, pythonBin = "pyt
     const stdout = [];
     const stderr = [];
     let outputBytes = 0;
+    let stderrBytes = 0;
     let settled = false;
 
     const finish = (callback) => {
@@ -135,7 +134,11 @@ export async function executeSuiteWithPython({ payload, config, pythonBin = "pyt
       stdout.push(chunk);
     });
     child.stderr.on("data", (chunk) => {
-      if (stderr.reduce((total, item) => total + item.length, 0) < 65536) stderr.push(chunk);
+      if (stderrBytes >= 65536) return;
+      const remaining = 65536 - stderrBytes;
+      const captured = chunk.subarray(0, remaining);
+      stderr.push(captured);
+      stderrBytes += captured.length;
     });
     child.on("close", (code) => finish(() => {
       const errorText = Buffer.concat(stderr).toString("utf8").trim();
