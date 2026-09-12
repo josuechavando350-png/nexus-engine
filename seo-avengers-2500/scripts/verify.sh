@@ -16,6 +16,7 @@ node --check "$SUITE/canary/nexusbotstudio-canary.mjs"
 node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
+node --check "$SUITE/scripts/seo-avengers-2500-nexusbot-canary.mjs"
 node --test \
   "$SUITE/tests/test_tenant_control.mjs" \
   "$SUITE/tests/test_tenant_control_strict.mjs" \
