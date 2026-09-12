@@ -85,7 +85,11 @@ impl MicroVmSupervisorPlan<'_> {
         output.push(',');
         push_key_u64(&mut output, "cpu_quota_us", self.cgroup.cpu_quota_us);
         output.push(',');
-        push_key_u64(&mut output, "memory_max_bytes", self.cgroup.memory_max_bytes);
+        push_key_u64(
+            &mut output,
+            "memory_max_bytes",
+            self.cgroup.memory_max_bytes,
+        );
         output.push(',');
         push_key_u64(&mut output, "pids_max", u64::from(self.cgroup.pids_max));
         output.push('}');
@@ -197,8 +201,12 @@ impl Display for SupervisorPlanError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         formatter.write_str(match self {
             Self::InvalidCapsule => "execution capsule is invalid",
-            Self::LaunchPlanMismatch => "microVM launch plan does not exactly match the execution capsule",
-            Self::UnsafeRuntimePath => "supervisor runtime path is not a normalized absolute host path",
+            Self::LaunchPlanMismatch => {
+                "microVM launch plan does not exactly match the execution capsule"
+            }
+            Self::UnsafeRuntimePath => {
+                "supervisor runtime path is not a normalized absolute host path"
+            }
             Self::InvalidJailIdentity => "microVM jail uid/gid must both be non-zero",
             Self::ResourceOverflow => "supervisor resource limit conversion overflowed",
         })
@@ -469,7 +477,10 @@ mod tests {
             request,
             launch(request),
             paths(),
-            JailIdentity { uid: 65_534, gid: 65_534 },
+            JailIdentity {
+                uid: 65_534,
+                gid: 65_534,
+            },
         )
         .expect("supervisor plan");
         let json = plan.canonical_json();
@@ -506,7 +517,10 @@ mod tests {
                 request,
                 stale,
                 paths(),
-                JailIdentity { uid: 65_534, gid: 65_534 },
+                JailIdentity {
+                    uid: 65_534,
+                    gid: 65_534,
+                },
             ),
             Err(SupervisorPlanError::LaunchPlanMismatch)
         );
@@ -522,7 +536,10 @@ mod tests {
                 request,
                 launch(request),
                 unsafe_paths,
-                JailIdentity { uid: 65_534, gid: 65_534 },
+                JailIdentity {
+                    uid: 65_534,
+                    gid: 65_534,
+                },
             ),
             Err(SupervisorPlanError::UnsafeRuntimePath)
         );
@@ -534,7 +551,10 @@ mod tests {
                 request,
                 launch(request),
                 root_paths,
-                JailIdentity { uid: 65_534, gid: 65_534 },
+                JailIdentity {
+                    uid: 65_534,
+                    gid: 65_534,
+                },
             ),
             Err(SupervisorPlanError::UnsafeRuntimePath)
         );
@@ -548,7 +568,10 @@ mod tests {
                 request,
                 launch(request),
                 paths(),
-                JailIdentity { uid: 0, gid: 65_534 },
+                JailIdentity {
+                    uid: 0,
+                    gid: 65_534,
+                },
             ),
             Err(SupervisorPlanError::InvalidJailIdentity)
         );
@@ -562,7 +585,10 @@ mod tests {
             request,
             launch(request),
             paths(),
-            JailIdentity { uid: 65_534, gid: 65_534 },
+            JailIdentity {
+                uid: 65_534,
+                gid: 65_534,
+            },
         )
         .expect("supervisor plan");
         assert_eq!(plan.filesystem_mode, "READ_ONLY_INPUTS");
@@ -579,7 +605,10 @@ mod tests {
                 request,
                 launch,
                 paths(),
-                JailIdentity { uid: 65_534, gid: 65_534 },
+                JailIdentity {
+                    uid: 65_534,
+                    gid: 65_534,
+                },
             ),
             Err(SupervisorPlanError::ResourceOverflow)
         );
