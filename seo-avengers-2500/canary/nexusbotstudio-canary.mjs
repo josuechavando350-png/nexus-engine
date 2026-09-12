@@ -234,12 +234,21 @@ export async function runNexusBotStudioCanary({
     });
   }
 
-  const publication = await publishVersionedEvidenceSnapshot({
-    evidenceRoot,
-    siteId: NEXUSBOT_CANARY_SITE_ID,
-    controlGeneration: generation,
-    datasets: { content_documents: collection.documents },
-  });
+  let publication;
+  try {
+    publication = await publishVersionedEvidenceSnapshot({
+      evidenceRoot,
+      siteId: NEXUSBOT_CANARY_SITE_ID,
+      controlGeneration: generation,
+      datasets: { content_documents: collection.documents },
+    });
+  } catch {
+    return decision("BLOCKED", "EVIDENCE_PUBLICATION_FAILED", generation, {
+      discoveredRoutes: collection.routes.length,
+      collectedDocuments: collection.documents.length,
+      failedRoutes: collection.failures.length,
+    });
+  }
 
   const afterPublish = await readTenantControl({ controlRoot, siteId: NEXUSBOT_CANARY_SITE_ID });
   if (!controlMatches(afterPublish, generation)) {
