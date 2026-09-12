@@ -1,5 +1,5 @@
 import { readTenantControl } from "../control-plane/tenant-control.mjs";
-import { publishVersionedEvidenceSnapshot } from "../evidence/versioned-evidence.mjs";
+import { publishVersionedEvidenceSnapshot } from "../evidence/versioned-evidence-writer.mjs";
 import { runTenantSidecarJob } from "../sidecar/tenant-worker.mjs";
 
 export const NEXUSBOT_CANARY_SITE_ID = "nexus-bot-studio";
