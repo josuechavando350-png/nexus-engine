@@ -91,6 +91,9 @@ function validateExecutionEnvelope(execution) {
   if (terminal.execution_status !== "SUCCESS" || terminal.finding_status !== "NO_FINDING") {
     throw new Error("terminal M2500 did not certify release");
   }
+  if (!terminal.output || terminal.output.release_safe !== true || terminal.output.suite !== "SEO_AVENGERS_2500") {
+    throw new Error("terminal M2500 release-safe contract missing");
+  }
   if (terminal.evidence_hash !== execution.terminal_evidence_hash) {
     throw new Error("terminal evidence hash mismatch");
   }
