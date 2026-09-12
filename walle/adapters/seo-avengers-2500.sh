@@ -25,7 +25,7 @@ while (($#)); do
   esac
 done
 
-for command_name in bash git grep python node sha256sum timeout; do
+for command_name in awk bash git grep node python sha256sum timeout; do
   command -v "$command_name" >/dev/null 2>&1 || {
     echo "WALLE_AVENGERS_ERROR=missing_required_command:$command_name" >&2
     exit 2
