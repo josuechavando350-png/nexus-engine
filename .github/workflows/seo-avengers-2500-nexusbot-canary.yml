@@ -13,7 +13,7 @@ permissions:
 
 concurrency:
   group: seo-avengers-2500-nexusbot-canary
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   nexusbot-canary:
