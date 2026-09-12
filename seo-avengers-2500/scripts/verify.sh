@@ -11,6 +11,8 @@ python -m compileall -q "$SUITE/runtime" "$SUITE/sidecar" "$SUITE/tests"
 )
 node --check "$SUITE/control-plane/tenant-control.mjs"
 node --check "$SUITE/evidence/tenant-evidence.mjs"
+node --check "$SUITE/evidence/versioned-evidence.mjs"
+node --check "$SUITE/canary/nexusbotstudio-canary.mjs"
 node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
@@ -20,8 +22,10 @@ node --test \
   "$SUITE/tests/test_tenant_control_paths.mjs" \
   "$SUITE/tests/test_tenant_evidence.mjs" \
   "$SUITE/tests/test_tenant_evidence_readonly.mjs" \
+  "$SUITE/tests/test_versioned_evidence.mjs" \
   "$SUITE/tests/test_tenant_worker.mjs" \
-  "$SUITE/tests/test_tenant_worker_boundary.mjs"
+  "$SUITE/tests/test_tenant_worker_boundary.mjs" \
+  "$SUITE/tests/test_nexusbot_canary.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
