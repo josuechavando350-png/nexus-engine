@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
@@ -150,13 +150,13 @@ test("disabled or killed tenant cannot authorize a job", async () => withRoot(as
 }));
 
 test("malformed latest state fails closed and blocks mutation", async () => withRoot(async (root) => {
-  const tenantDir = join(root, "tenants", "cano-penal");
-  await mkdir(tenantDir, { recursive: true });
-  await writeFile(join(tenantDir, "00000000000000000001.json"), "{not-json\n", "utf8");
+  await setTenantEnabled({ controlRoot: root, siteId: "cano-penal", enabled: true, expectedGeneration: 0 });
+  const path = join(root, "tenants", "cano-penal", "00000000000000000001.json");
+  await writeFile(path, "{not-json\n", "utf8");
   const state = await readTenantControl({ controlRoot: root, siteId: "cano-penal" });
   assert.equal(state.authorized, false);
   assert.equal(state.integrityOk, false);
-  assert.equal(state.reason, "HWM_MISSING");
+  assert.equal(state.reason, "STATE_INTEGRITY_FAILURE");
   await assert.rejects(
     setTenantEnabled({ controlRoot: root, siteId: "cano-penal", enabled: true, expectedGeneration: 1 }),
     /fail-closed/,
