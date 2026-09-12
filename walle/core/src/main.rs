@@ -6,8 +6,8 @@ use std::process::ExitCode;
 use std::str::FromStr;
 
 use capsule::{
-    classify_exit, CancellationOwner, CancellationPolicy, CapabilityRequest, ChildProcessCapability,
-    ExecutionCapsule, ExitObservation, FilesystemCapability,
+    classify_exit, CancellationOwner, CancellationPolicy, CapabilityRequest,
+    ChildProcessCapability, ExecutionCapsule, ExitObservation, FilesystemCapability,
 };
 use hardware::{
     assess_target, collect_host_facts, OPERATOR_SECONDARY_CAPACITY_BYTES,
@@ -180,7 +180,9 @@ fn command_capsule_contract(args: &[String]) -> Result<(), String> {
 
     println!(
         "{}",
-        capsule.canonical_json().map_err(|error| error.to_string())?
+        capsule
+            .canonical_json()
+            .map_err(|error| error.to_string())?
     );
     Ok(())
 }
