@@ -6,7 +6,7 @@ import test from "node:test";
 
 import { setTenantEnabled } from "../control-plane/tenant-control.mjs";
 import { readTenantEvidenceSnapshot } from "../evidence/tenant-evidence.mjs";
-import { publishVersionedEvidenceSnapshot } from "../evidence/versioned-evidence.mjs";
+import { publishVersionedEvidenceSnapshot } from "../evidence/versioned-evidence-writer.mjs";
 
 async function setup(t) {
   const controlRoot = await mkdtemp(join(tmpdir(), "avengers-control-v2-"));
@@ -70,6 +70,23 @@ test("dataset tamper after publication fails closed", async (t) => {
   assert.equal(result.status, "BLOCKED");
   assert.equal(result.integrityOk, false);
   assert.equal(result.reason, "VERSIONED_EVIDENCE_INTEGRITY_FAILURE");
+});
+
+test("writer refuses to reuse a tampered immutable snapshot", async (t) => {
+  const ctx = await setup(t);
+  const args = {
+    evidenceRoot: ctx.evidenceRoot,
+    siteId: ctx.siteId,
+    controlGeneration: ctx.generation,
+    datasets: { content_documents: [{ document_id: "/", text: "stable" }] },
+  };
+  const publication = await publishVersionedEvidenceSnapshot(args);
+  await writeFile(
+    join(ctx.evidenceRoot, "tenants", ctx.siteId, "snapshots", publication.snapshotId, "content_documents.json"),
+    '[{"document_id":"/","text":"tampered"}]\n',
+    "utf8",
+  );
+  await assert.rejects(publishVersionedEvidenceSnapshot(args), /existing snapshot dataset mismatch/);
 });
 
 test("pending HEAD marker blocks readers instead of exposing partial publication", async (t) => {
