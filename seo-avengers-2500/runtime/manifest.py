@@ -30,6 +30,8 @@ from . import (
     specs_traffic_portfolio_release,
     specs_temporal,
     specs_temporal_release,
+    specs_compliance,
+    specs_final_release,
 )
 
 _ROWS: list[dict[str, Any]] = []
@@ -58,10 +60,12 @@ specs_traffic_portfolio.build(_ROWS)
 specs_traffic_portfolio_release.build(_ROWS)
 specs_temporal.build(_ROWS)
 specs_temporal_release.build(_ROWS)
+specs_compliance.build(_ROWS)
+specs_final_release.build(_ROWS)
 
 MODULE_SPECS: Dict[str, Dict[str, Any]] = {row["module_id"]: row for row in _ROWS}
-TARGET_MODULES = tuple(f"M{i}" for i in range(1001, 2401))
-SOURCE_MODULES = tuple(f"M{i}" for i in range(2001, 3401))
+TARGET_MODULES = tuple(f"M{i}" for i in range(1001, 2501))
+SOURCE_MODULES = tuple(f"M{i}" for i in range(2001, 3501))
 SUPPORTED_FAMILIES = frozenset({
     "LOCAL_DEMAND",
     "LOCAL_ENTITY",
@@ -88,17 +92,19 @@ SUPPORTED_FAMILIES = frozenset({
     "TRAFFIC_PORTFOLIO_CERTIFICATION",
     "ORGANIC_TEMPORAL_OBSERVATORY",
     "TEMPORAL_CERTIFICATION",
+    "STRICT_WHITEHAT_COMPLIANCE_KERNEL",
+    "GLOBAL_COMPOSITION_CERTIFICATION",
 })
 
 if tuple(MODULE_SPECS) != TARGET_MODULES:
     raise RuntimeError("target range drift")
-if len(MODULE_SPECS) != 1400:
+if len(MODULE_SPECS) != 1500:
     raise RuntimeError("module cardinality mismatch")
-if len({spec["operation"] for spec in MODULE_SPECS.values()}) != 1400:
+if len({spec["operation"] for spec in MODULE_SPECS.values()}) != 1500:
     raise RuntimeError("operation collision")
 if tuple(spec["source_module"] for spec in MODULE_SPECS.values()) != SOURCE_MODULES:
     raise RuntimeError("source mapping drift")
-if len({spec["kernel"] for spec in MODULE_SPECS.values()}) < 74:
+if len({spec["kernel"] for spec in MODULE_SPECS.values()}) < 77:
     raise RuntimeError("kernel diversity unexpectedly low")
 if any(spec["family"] not in SUPPORTED_FAMILIES for spec in MODULE_SPECS.values()):
     raise RuntimeError("unsupported family")
@@ -121,7 +127,7 @@ def functional_fingerprint(spec: Mapping[str, Any]) -> str:
     })
 
 FINGERPRINTS = {module_id: functional_fingerprint(spec) for module_id, spec in MODULE_SPECS.items()}
-if len(set(FINGERPRINTS.values())) != 1400:
+if len(set(FINGERPRINTS.values())) != 1500:
     raise RuntimeError("functional fingerprint collision")
 
 READ_ONLY_MODULE_SPECS = MappingProxyType(MODULE_SPECS)

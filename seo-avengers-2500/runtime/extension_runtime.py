@@ -11,6 +11,8 @@ from .kernel_representation import representation_proof_metric
 from .kernel_entity_graph import entity_proof_graph_metric
 from .kernel_traffic_portfolio import traffic_portfolio_metric
 from .kernel_temporal import temporal_observatory_metric
+from .kernel_compliance import compliance_kernel_metric
+from .kernel_terminal import global_composition_guard, terminal_composition_certifier
 from .kernel_extended_release import extended_release_guard, extended_release_gate
 
 _EXISTING_LIST_CONTRACTS = (
@@ -91,6 +93,12 @@ def evaluate_extension_spec(
         score, violation, details = traffic_portfolio_metric(effective, normalized, config)
     elif kernel == "temporal_observatory_metric":
         score, violation, details = temporal_observatory_metric(effective, normalized, config)
+    elif kernel == "compliance_kernel_metric":
+        score, violation, details = compliance_kernel_metric(effective, normalized, config)
+    elif kernel == "global_composition_guard":
+        score, violation, details = global_composition_guard(effective, normalized, config, prior_receipts)
+    elif kernel == "terminal_composition_certifier":
+        score, violation, details = terminal_composition_certifier(effective, normalized, config, prior_receipts)
     elif kernel == "extended_release_guard":
         score, violation, details = extended_release_guard(effective, normalized, config, prior_receipts)
     elif kernel == "extended_release_gate":

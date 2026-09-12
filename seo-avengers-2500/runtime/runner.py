@@ -5,10 +5,10 @@ from typing import Any, Dict, Mapping
 from .catalog import module_registry
 from .module_runtime import execute_module
 
-_TERMINAL_MODULES = {"M1200", "M1400", "M1600", "M1700", "M1800", "M1900", "M2000", "M2100", "M2200", "M2300", "M2400"}
+_TERMINAL_MODULES = {"M1200", "M1400", "M1600", "M1700", "M1800", "M1900", "M2000", "M2100", "M2200", "M2300", "M2400", "M2500"}
 
 def run_module(module_id: str, payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Any]:
-    if module_id in _TERMINAL_MODULES:
+    if module_id in _TERMINAL_MODULES or module_id in {f"M{i}" for i in range(2491, 2500)}:
         raise ValueError(f"{module_id} requires exact prior receipt context; use the batch runner")
     return execute_module(module_id, payload, config)
 
@@ -136,15 +136,32 @@ def run_batch_1001_2400(payload: Mapping[str, Any], config: Mapping[str, Any]) -
     _validate_inputs(payload, config)
     return _extend_extension_block(run_batch_1001_2300(payload, config), payload, config, predecessor=2300, current_start=2301, current_end=2390, guard_start=2391, guard_end=2399, terminal=2400)
 
+def run_batch_1001_2500(payload: Mapping[str, Any], config: Mapping[str, Any]) -> Dict[str, Dict[str, Any]]:
+    _validate_inputs(payload, config)
+    receipts = run_batch_1001_2400(payload, config)
+    for number in range(2401, 2491):
+        module_id = f"M{number}"
+        receipts[module_id] = execute_module(module_id, payload, config)
+    global_context = {f"M{i}": receipts[f"M{i}"] for i in range(1001, 2491)}
+    for number in range(2491, 2500):
+        module_id = f"M{number}"
+        receipts[module_id] = execute_module(module_id, payload, config, prior_receipts=global_context)
+    terminal_context = {f"M{i}": receipts[f"M{i}"] for i in range(1001, 2500)}
+    receipts["M2500"] = execute_module("M2500", payload, config, prior_receipts=terminal_context)
+    expected = tuple(f"M{i}" for i in range(1001, 2501))
+    if tuple(receipts) != expected:
+        raise RuntimeError("batch M1001-M2500 receipt range drift")
+    return receipts
+
 def suite_state() -> Dict[str, Any]:
     registry = module_registry()
     return {
         "suite": "SEO_AVENGERS_2500",
         "target_registry_size": 2500,
         "delegated_production_count": 1000,
-        "implemented_local_count": 1400,
-        "reserved_not_executable_count": 100,
-        "current_implemented_range": ["M1001", "M2400"],
+        "implemented_local_count": 1500,
+        "reserved_not_executable_count": 0,
+        "current_implemented_range": ["M1001", "M2500"],
         "final_target_range": ["M1", "M2500"],
         "m2501_present": False,
         "registry": registry,
