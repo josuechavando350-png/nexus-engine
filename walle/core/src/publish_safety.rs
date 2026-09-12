@@ -362,7 +362,7 @@ impl PageSafetyDecision {
     pub fn canonical_json(self) -> String {
         format!(
             concat!(
-                "{\"ads\":\"{}\",",
+                "{{\"ads\":\"{}\",",
                 "\"artifact_status\":\"{}\",",
                 "\"publication\":\"{}\",",
                 "\"reason\":\"{}\",",
