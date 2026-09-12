@@ -101,25 +101,29 @@ export function visibleTextFromHtml(html) {
 async function fetchBounded(fetchImpl, url, { timeoutMs, maxBytes, contentType }) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
-  let response;
   try {
-    response = await fetchImpl(url, {
+    const response = await fetchImpl(url, {
       method: "GET",
       redirect: "follow",
       signal: controller.signal,
       headers: { accept: contentType },
     });
+    const finalUrl = allowedHttpsUrl(response.url || url);
+    if (!finalUrl) throw new Error("cross-tenant redirect rejected");
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    const declaredHeader = response.headers.get("content-length");
+    if (declaredHeader !== null) {
+      const declared = Number(declaredHeader);
+      if (!Number.isSafeInteger(declared) || declared < 0 || declared > maxBytes) {
+        throw new Error("response exceeds byte limit");
+      }
+    }
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.length > maxBytes) throw new Error("response exceeds byte limit");
+    return { response, finalUrl, bytes };
   } finally {
     clearTimeout(timer);
   }
-  const finalUrl = allowedHttpsUrl(response.url || url);
-  if (!finalUrl) throw new Error("cross-tenant redirect rejected");
-  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-  const declared = Number(response.headers.get("content-length"));
-  if (Number.isFinite(declared) && declared > maxBytes) throw new Error("response exceeds byte limit");
-  const bytes = Buffer.from(await response.arrayBuffer());
-  if (bytes.length > maxBytes) throw new Error("response exceeds byte limit");
-  return { response, finalUrl, bytes };
 }
 
 async function discoverRoutes(fetchImpl, timeoutMs, maxRoutes) {
@@ -137,12 +141,12 @@ async function discoverRoutes(fetchImpl, timeoutMs, maxRoutes) {
 
 async function collectDocuments({ controlRoot, fetchImpl, generation, timeoutMs, maxRoutes }) {
   const routes = await discoverRoutes(fetchImpl, timeoutMs, maxRoutes);
-  const documents = [];
+  const documentsById = new Map();
   const failures = [];
   for (const route of routes) {
     const control = await readTenantControl({ controlRoot, siteId: NEXUSBOT_CANARY_SITE_ID });
     if (!controlMatches(control, generation)) {
-      return { aborted: control, routes, documents: [], failures };
+      return { aborted: control, integrityFailure: null, routes, documents: [], failures };
     }
     try {
       const { response, finalUrl, bytes } = await fetchBounded(fetchImpl, `${NEXUSBOT_CANARY_ORIGIN}${route}`, {
@@ -165,13 +169,19 @@ async function collectDocuments({ controlRoot, fetchImpl, generation, timeoutMs,
         failures.push({ route, reason: "FINAL_ROUTE_INVALID" });
         continue;
       }
-      documents.push({ document_id: documentId, text });
+      const prior = documentsById.get(documentId);
+      if (prior !== undefined && prior !== text) {
+        return { aborted: null, integrityFailure: "CONFLICTING_FINAL_DOCUMENT", routes, documents: [], failures };
+      }
+      documentsById.set(documentId, text);
     } catch (error) {
       failures.push({ route, reason: error instanceof Error ? error.message : String(error) });
     }
   }
-  documents.sort((left, right) => left.document_id.localeCompare(right.document_id));
-  return { aborted: null, routes, documents, failures };
+  const documents = [...documentsById.entries()]
+    .map(([document_id, text]) => ({ document_id, text }))
+    .sort((left, right) => left.document_id.localeCompare(right.document_id));
+  return { aborted: null, integrityFailure: null, routes, documents, failures };
 }
 
 export async function runNexusBotStudioCanary({
@@ -199,6 +209,13 @@ export async function runNexusBotStudioCanary({
     return decision("OFF", current.authorized ? "STALE_CONTROL_GENERATION" : current.reason, current.generation, {
       discoveredRoutes: collection.routes.length,
       collectedDocuments: 0,
+    });
+  }
+  if (collection.integrityFailure) {
+    return decision("BLOCKED", collection.integrityFailure, generation, {
+      discoveredRoutes: collection.routes.length,
+      collectedDocuments: 0,
+      failedRoutes: collection.failures.length,
     });
   }
   if (collection.documents.length === 0) {
