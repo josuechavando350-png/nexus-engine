@@ -1,10 +1,12 @@
 import { createHash } from "node:crypto";
-import { mkdir, open, readdir, readFile } from "node:fs/promises";
+import { lstat, mkdir, open, readdir, readFile, rename } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 
 const SCHEMA_VERSION = 1;
 const SITE_ID_RE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const GENERATION_FILE_RE = /^(\d{20})\.json$/;
+const HWM_FILENAME = ".hwm.json";
+const HWM_TEMP_FILENAME = ".hwm.pending.json";
 const MAX_GENERATION = Number.MAX_SAFE_INTEGER;
 
 function sha256(text) {
@@ -73,6 +75,26 @@ function buildState(input) {
   return Object.freeze({ ...core, state_hash: sha256(canonicalJson(core)) });
 }
 
+function hwmCore({ siteId, generation, stateHash }) {
+  if (!Number.isSafeInteger(generation) || generation < 1 || generation > MAX_GENERATION) {
+    throw new TypeError("hwm generation must be a positive safe integer");
+  }
+  if (typeof stateHash !== "string" || !/^sha256:[0-9a-f]{64}$/.test(stateHash)) {
+    throw new TypeError("hwm stateHash must be sha256 hex");
+  }
+  return {
+    schema_version: SCHEMA_VERSION,
+    site_id: assertSiteId(siteId),
+    generation,
+    state_hash: stateHash,
+  };
+}
+
+function buildHighWaterMark(input) {
+  const core = hwmCore(input);
+  return Object.freeze({ ...core, hwm_hash: sha256(canonicalJson(core)) });
+}
+
 function offDecision(siteId, reason, generation = 0, integrityOk = false) {
   return Object.freeze({
     siteId,
@@ -115,16 +137,35 @@ function validateStoredState(value, expectedSiteId, expectedGeneration, expected
   return value;
 }
 
-async function generationFiles(directory) {
+function validateHighWaterMark(value, expectedSiteId) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("hwm must be an object");
+  const exactKeys = ["generation", "hwm_hash", "schema_version", "site_id", "state_hash"];
+  if (JSON.stringify(Object.keys(value).sort()) !== JSON.stringify(exactKeys)) throw new Error("unexpected hwm keys");
+  if (value.schema_version !== SCHEMA_VERSION) throw new Error("unsupported hwm schema version");
+  if (value.site_id !== expectedSiteId) throw new Error("cross-tenant hwm rejected");
+  const core = hwmCore({ siteId: value.site_id, generation: value.generation, stateHash: value.state_hash });
+  if (typeof value.hwm_hash !== "string" || !/^sha256:[0-9a-f]{64}$/.test(value.hwm_hash)) throw new Error("invalid hwm hash");
+  if (sha256(canonicalJson(core)) !== value.hwm_hash) throw new Error("hwm hash mismatch");
+  return value;
+}
+
+async function journalEntries(directory) {
   let entries;
   try {
     entries = await readdir(directory, { withFileTypes: true });
   } catch (error) {
-    if (error?.code === "ENOENT") return [];
+    if (error?.code === "ENOENT") return { generations: [], hasHwm: false };
     throw error;
   }
   const generations = [];
+  let hasHwm = false;
   for (const entry of entries) {
+    if (entry.name === HWM_FILENAME) {
+      if (!entry.isFile()) throw new Error("hwm must be a regular file");
+      if (hasHwm) throw new Error("duplicate hwm");
+      hasHwm = true;
+      continue;
+    }
     if (!entry.isFile()) throw new Error("unexpected non-file control entry");
     const match = GENERATION_FILE_RE.exec(entry.name);
     if (!match) throw new Error("unexpected control filename");
@@ -132,7 +173,64 @@ async function generationFiles(directory) {
     if (!Number.isSafeInteger(generation) || generation < 1) throw new Error("invalid generation filename");
     generations.push(generation);
   }
-  return generations.sort((a, b) => a - b);
+  return { generations: generations.sort((a, b) => a - b), hasHwm };
+}
+
+async function syncDirectory(directory) {
+  const handle = await open(directory, "r");
+  try {
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+}
+
+async function assertRegularDirectory(directory, label) {
+  const info = await lstat(directory);
+  if (!info.isDirectory() || info.isSymbolicLink()) throw new Error(`${label} must be a real directory`);
+}
+
+async function ensureTenantDirectory(controlRoot, siteId) {
+  const root = controlRootPath(controlRoot);
+  await assertRegularDirectory(root, "controlRoot");
+
+  const tenantsRoot = resolve(root, "tenants");
+  let tenantsCreated = false;
+  try {
+    await mkdir(tenantsRoot, { mode: 0o700 });
+    tenantsCreated = true;
+  } catch (error) {
+    if (error?.code !== "EEXIST") throw error;
+  }
+  await assertRegularDirectory(tenantsRoot, "tenants root");
+  if (tenantsCreated) await syncDirectory(root);
+
+  const directory = tenantDirectory(controlRoot, siteId);
+  let tenantCreated = false;
+  try {
+    await mkdir(directory, { mode: 0o700 });
+    tenantCreated = true;
+  } catch (error) {
+    if (error?.code !== "EEXIST") throw error;
+  }
+  await assertRegularDirectory(directory, "tenant directory");
+  if (tenantCreated) await syncDirectory(tenantsRoot);
+  return directory;
+}
+
+async function writeHighWaterMark(directory, state) {
+  const hwm = buildHighWaterMark({ siteId: state.site_id, generation: state.generation, stateHash: state.state_hash });
+  const temp = join(directory, HWM_TEMP_FILENAME);
+  const destination = join(directory, HWM_FILENAME);
+  const handle = await open(temp, "wx", 0o600);
+  try {
+    await handle.writeFile(`${JSON.stringify(hwm)}\n`, "utf8");
+    await handle.sync();
+  } finally {
+    await handle.close();
+  }
+  await rename(temp, destination);
+  await syncDirectory(directory);
 }
 
 export async function readTenantControl({ controlRoot, siteId }) {
@@ -149,13 +247,18 @@ export async function readTenantControl({ controlRoot, siteId }) {
     return offDecision(siteId, "CONTROL_ROOT_INVALID");
   }
 
-  let generations;
+  let entries;
   try {
-    generations = await generationFiles(directory);
+    entries = await journalEntries(directory);
   } catch {
     return offDecision(siteId, "CONTROL_STORE_UNREADABLE");
   }
-  if (generations.length === 0) return offDecision(siteId, "TENANT_MISSING", 0, true);
+  const { generations, hasHwm } = entries;
+  if (generations.length === 0) {
+    if (hasHwm) return offDecision(siteId, "HWM_WITHOUT_JOURNAL");
+    return offDecision(siteId, "TENANT_MISSING", 0, true);
+  }
+  if (!hasHwm) return offDecision(siteId, "HWM_MISSING", generations.at(-1));
 
   for (let index = 0; index < generations.length; index += 1) {
     if (generations[index] !== index + 1) {
@@ -174,6 +277,16 @@ export async function readTenantControl({ controlRoot, siteId }) {
     } catch {
       return offDecision(siteId, "STATE_INTEGRITY_FAILURE", generation);
     }
+  }
+
+  let hwm;
+  try {
+    hwm = validateHighWaterMark(JSON.parse(await readFile(join(directory, HWM_FILENAME), "utf8")), siteId);
+  } catch {
+    return offDecision(siteId, "HWM_INTEGRITY_FAILURE", latest.generation);
+  }
+  if (hwm.generation !== latest.generation || hwm.state_hash !== latest.state_hash) {
+    return offDecision(siteId, "HWM_MISMATCH", latest.generation);
   }
 
   const authorized = latest.enabled === true && latest.kill_switch === false;
@@ -215,8 +328,7 @@ export async function appendTenantControl({
     killSwitch,
     previousHash: current.stateHash,
   });
-  const directory = tenantDirectory(controlRoot, siteId);
-  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const directory = await ensureTenantDirectory(controlRoot, siteId);
   const destination = join(directory, generationFileName(generation));
   const handle = await open(destination, "wx", 0o600);
   try {
@@ -225,6 +337,8 @@ export async function appendTenantControl({
   } finally {
     await handle.close();
   }
+  await syncDirectory(directory);
+  await writeHighWaterMark(directory, state);
   return readTenantControl({ controlRoot, siteId });
 }
 
