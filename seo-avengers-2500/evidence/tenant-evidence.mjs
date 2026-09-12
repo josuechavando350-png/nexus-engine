@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { lstat, readdir, readFile, realpath } from "node:fs/promises";
 import { join, resolve, sep } from "node:path";
 import { readTenantControl } from "../control-plane/tenant-control.mjs";
+import { readVersionedEvidenceSnapshot } from "./versioned-evidence.mjs";
 
 const SCHEMA_VERSION = 1;
 const SITE_ID_RE = /^[a-z0-9][a-z0-9-]{0,79}$/;
@@ -140,6 +141,14 @@ export async function readTenantEvidenceSnapshot({ controlRoot, evidenceRoot, si
       reason: control.reason,
     });
   }
+
+  const versioned = await readVersionedEvidenceSnapshot({
+    controlRoot,
+    evidenceRoot,
+    siteId,
+    authorizedControl: control,
+  });
+  if (versioned !== null) return versioned;
 
   let root;
   let tenantsRoot;
