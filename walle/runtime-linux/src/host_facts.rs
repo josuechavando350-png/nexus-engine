@@ -54,19 +54,17 @@ impl KvmObservation {
 
     fn canonical_json(&self) -> String {
         match self {
-            Self::Usable { api_version } => format!(
-                "{{\"api_version\":{api_version},\"status\":\"USABLE\"}}"
-            ),
-            Self::Missing => "{\"status\":\"MISSING\"}".to_owned(),
-            Self::NotCharacterDevice => {
-                "{\"status\":\"NOT_CHARACTER_DEVICE\"}".to_owned()
+            Self::Usable { api_version } => {
+                format!("{{\"api_version\":{api_version},\"status\":\"USABLE\"}}")
             }
+            Self::Missing => "{\"status\":\"MISSING\"}".to_owned(),
+            Self::NotCharacterDevice => "{\"status\":\"NOT_CHARACTER_DEVICE\"}".to_owned(),
             Self::OpenDenied { errno } => canonical_errno("OPEN_DENIED", *errno),
             Self::OpenFailed { errno } => canonical_errno("OPEN_FAILED", *errno),
             Self::IoctlFailed { errno } => canonical_errno("IOCTL_FAILED", *errno),
-            Self::UnexpectedApiVersion { api_version } => format!(
-                "{{\"api_version\":{api_version},\"status\":\"UNEXPECTED_API_VERSION\"}}"
-            ),
+            Self::UnexpectedApiVersion { api_version } => {
+                format!("{{\"api_version\":{api_version},\"status\":\"UNEXPECTED_API_VERSION\"}}")
+            }
         }
     }
 }
@@ -338,7 +336,9 @@ fn parse_mountinfo(input: &str) -> Result<Vec<MountObservation>, HostFactsError>
         let (before_separator, after_separator) = line
             .split_once(" - ")
             .ok_or(HostFactsError::MalformedMountInfo { line: index + 1 })?;
-        let before = before_separator.split_ascii_whitespace().collect::<Vec<_>>();
+        let before = before_separator
+            .split_ascii_whitespace()
+            .collect::<Vec<_>>();
         let after = after_separator.split_ascii_whitespace().collect::<Vec<_>>();
         if before.len() < 6 || after.len() < 3 {
             return Err(HostFactsError::MalformedMountInfo { line: index + 1 });
@@ -419,10 +419,7 @@ mod tests {
         assert_eq!(mounts.len(), 3);
         assert_eq!(mounts[0], mount("/", "ext4", "/dev/vda1"));
         assert_eq!(mounts[1], mount("/proc", "proc", "proc"));
-        assert_eq!(
-            mounts[2],
-            mount("/sys/fs/cgroup", "cgroup2", "cgroup")
-        );
+        assert_eq!(mounts[2], mount("/sys/fs/cgroup", "cgroup2", "cgroup"));
     }
 
     #[test]
@@ -448,10 +445,7 @@ mod tests {
 
         let mut wrong_api = facts.clone();
         wrong_api.kvm = KvmObservation::UnexpectedApiVersion { api_version: 11 };
-        assert_eq!(
-            wrong_api.preflight_verdict(),
-            HostPreflightVerdict::Blocked
-        );
+        assert_eq!(wrong_api.preflight_verdict(), HostPreflightVerdict::Blocked);
 
         let mut no_cgroup_v2 = facts;
         no_cgroup_v2.cgroup_v2_mounts.clear();
@@ -482,7 +476,10 @@ mod tests {
         ));
         fs::write(&path, b"12345").expect("write fixture");
         let error = read_bounded_utf8(&path, 4).expect_err("must reject oversized file");
-        assert!(matches!(error, HostFactsError::FileTooLarge { limit: 4, .. }));
+        assert!(matches!(
+            error,
+            HostFactsError::FileTooLarge { limit: 4, .. }
+        ));
         fs::remove_file(path).expect("cleanup fixture");
     }
 }
