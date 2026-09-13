@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use walle_core::supervisor::MicroVmSupervisorPlan;
 use walle_core::supervisor_lifecycle::{
     execute_supervisor_lifecycle, GracefulTerminationOutcome, MicroVmSupervisorHost, SpawnAttempt,
-    SupervisorLifecycleResult, WaitOutcome,
+    SupervisorLifecycleReason, SupervisorLifecycleResult, SupervisorTerminalStatus, WaitOutcome,
 };
 
 use crate::artifact::SystemSha256;
@@ -17,6 +17,7 @@ use crate::host::LinuxMicroVmHost;
 pub const SUPERVISOR_PLAN_EVIDENCE_KIND: &str = "supervisor-plan";
 pub const RUNTIME_BINARY_IDENTITY_EVIDENCE_KIND: &str = "runtime-binary-identity";
 pub const IMAGE_INTEGRITY_EVIDENCE_KIND: &str = "image-integrity";
+pub const SUPERVISOR_OUTPUT_BOUNDS_EVIDENCE_KIND: &str = "supervisor-output-bounds";
 pub const SUPERVISOR_LIFECYCLE_EVIDENCE_KIND: &str = "supervisor-lifecycle-result";
 
 #[derive(Debug)]
@@ -57,6 +58,7 @@ pub struct EvidencedSupervisorResult {
     pub plan_receipt: EvidenceReceipt,
     pub runtime_binary_identity_receipt: Option<EvidenceReceipt>,
     pub image_integrity_receipt: Option<EvidenceReceipt>,
+    pub output_bounds_receipt: Option<EvidenceReceipt>,
     pub lifecycle_receipt: EvidenceReceipt,
     pub seal: EvidenceSeal,
 }
@@ -69,9 +71,12 @@ pub struct EvidencedSupervisorResult {
 /// successful `LinuxMicroVmHost::materialize_runtime` is tracked as the proof
 /// boundary for runtime/image identity because that method hashes the staged
 /// Firecracker, jailer, kernel and rootfs bytes and rejects any mismatch before
-/// spawn. Only after that success are distinct identity receipts appended. The
-/// exact canonical terminal result is then persisted, the chain is sealed, and
-/// all durable bytes are re-read and verified before success can return.
+/// spawn. Only after that success are distinct identity receipts appended.
+/// `OUTPUT_BOUNDS` is appended only for the concrete terminal shape reached
+/// after Linux has joined both bounded output drains and checked their overflow
+/// flags. The exact canonical terminal result is then persisted, the chain is
+/// sealed, and all durable bytes are re-read and verified before success can
+/// return.
 #[derive(Debug)]
 pub struct SupervisorEvidenceRun {
     evidence: EvidenceRun,
@@ -108,7 +113,7 @@ impl SupervisorEvidenceRun {
 
     /// Executes only through the concrete Linux host. Keeping this public
     /// boundary concrete prevents a generic test/dummy host from manufacturing
-    /// runtime or image identity receipts merely by returning `Ok(())`.
+    /// runtime, image or output-bound receipts merely by returning success.
     pub fn execute(
         &mut self,
         host: &mut LinuxMicroVmHost,
@@ -118,12 +123,15 @@ impl SupervisorEvidenceRun {
             return Err(SupervisorEvidenceError::PlanBindingMismatch);
         }
         let result = execute_with_sink(host, plan, &mut self.evidence)?;
-        let mut receipts = Vec::with_capacity(4);
+        let mut receipts = Vec::with_capacity(5);
         receipts.push(result.plan_receipt.clone());
         if let Some(receipt) = result.runtime_binary_identity_receipt.as_ref() {
             receipts.push(receipt.clone());
         }
         if let Some(receipt) = result.image_integrity_receipt.as_ref() {
+            receipts.push(receipt.clone());
+        }
+        if let Some(receipt) = result.output_bounds_receipt.as_ref() {
             receipts.push(receipt.clone());
         }
         receipts.push(result.lifecycle_receipt.clone());
@@ -249,6 +257,16 @@ where
         (None, None)
     };
 
+    let output_bounds_receipt = if proves_output_bounds(&lifecycle) {
+        let payload = output_bounds_payload(plan);
+        Some(sink.append(
+            SUPERVISOR_OUTPUT_BOUNDS_EVIDENCE_KIND,
+            payload.as_bytes(),
+        )?)
+    } else {
+        None
+    };
+
     let lifecycle_json = lifecycle.canonical_json();
     let lifecycle_receipt = sink.append(
         SUPERVISOR_LIFECYCLE_EVIDENCE_KIND,
@@ -261,9 +279,15 @@ where
         plan_receipt,
         runtime_binary_identity_receipt,
         image_integrity_receipt,
+        output_bounds_receipt,
         lifecycle_receipt,
         seal,
     })
+}
+
+fn proves_output_bounds(lifecycle: &SupervisorLifecycleResult) -> bool {
+    lifecycle.status == SupervisorTerminalStatus::Exited
+        && lifecycle.reason == SupervisorLifecycleReason::ProcessExited
 }
 
 fn runtime_binary_identity_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
@@ -294,11 +318,24 @@ fn image_integrity_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
     )
 }
 
+fn output_bounds_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
+    format!(
+        concat!(
+            "{{",
+            "\"max_stderr_bytes\":{},",
+            "\"max_stdout_bytes\":{},",
+            "\"run_id\":\"{}\",",
+            "\"verification\":\"LINUX_OUTPUT_DRAINS_JOINED_LIMITS_CHECKED\"",
+            "}}"
+        ),
+        plan.max_stderr_bytes, plan.max_stdout_bytes, plan.run_id,
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use walle_core::supervisor::{CgroupV2Plan, MicroVmSupervisorPlan};
-    use walle_core::supervisor_lifecycle::{SupervisorLifecycleReason, SupervisorTerminalStatus};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct FakeError;
@@ -314,6 +351,14 @@ mod tests {
             Self {
                 events: Vec::new(),
                 wait: Ok(WaitOutcome::Exited(0)),
+                materialize: Ok(()),
+            }
+        }
+
+        fn nonzero_exit() -> Self {
+            Self {
+                events: Vec::new(),
+                wait: Ok(WaitOutcome::Exited(9)),
                 materialize: Ok(()),
             }
         }
@@ -533,7 +578,7 @@ mod tests {
     }
 
     #[test]
-    fn materialized_run_persists_distinct_runtime_image_and_lifecycle_receipts() {
+    fn materialized_run_persists_distinct_runtime_image_output_and_lifecycle_receipts() {
         let plan = plan();
         let mut host = FakeHost::exited();
         let mut sink = FakeSink::healthy();
@@ -545,9 +590,10 @@ mod tests {
             result.lifecycle.reason,
             SupervisorLifecycleReason::ProcessExited
         );
-        assert_eq!(result.seal.entry_count, 4);
+        assert_eq!(result.seal.entry_count, 5);
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
+        assert!(result.output_bounds_receipt.is_some());
         assert!(sink.sealed);
         assert_eq!(sink.writes[0].0, SUPERVISOR_PLAN_EVIDENCE_KIND);
         assert_eq!(sink.writes[0].1, plan.canonical_json());
@@ -555,8 +601,10 @@ mod tests {
         assert_eq!(sink.writes[1].1, runtime_binary_identity_payload(&plan));
         assert_eq!(sink.writes[2].0, IMAGE_INTEGRITY_EVIDENCE_KIND);
         assert_eq!(sink.writes[2].1, image_integrity_payload(&plan));
-        assert_eq!(sink.writes[3].0, SUPERVISOR_LIFECYCLE_EVIDENCE_KIND);
-        assert_eq!(sink.writes[3].1, result.lifecycle.canonical_json());
+        assert_eq!(sink.writes[3].0, SUPERVISOR_OUTPUT_BOUNDS_EVIDENCE_KIND);
+        assert_eq!(sink.writes[3].1, output_bounds_payload(&plan));
+        assert_eq!(sink.writes[4].0, SUPERVISOR_LIFECYCLE_EVIDENCE_KIND);
+        assert_eq!(sink.writes[4].1, result.lifecycle.canonical_json());
         assert_ne!(
             result
                 .runtime_binary_identity_receipt
@@ -568,6 +616,14 @@ mod tests {
                 .as_ref()
                 .expect("image receipt")
                 .receipt_sha256
+        );
+        assert_ne!(
+            result
+                .output_bounds_receipt
+                .as_ref()
+                .expect("output receipt")
+                .receipt_sha256,
+            result.lifecycle_receipt.receipt_sha256
         );
         assert_eq!(
             host.events,
@@ -584,7 +640,26 @@ mod tests {
     }
 
     #[test]
-    fn materialization_failure_cannot_emit_runtime_or_image_identity_receipts() {
+    fn nonzero_process_exit_still_persists_output_bounds_proof() {
+        let plan = plan();
+        let mut host = FakeHost::nonzero_exit();
+        let mut sink = FakeSink::healthy();
+
+        let result = execute_with_sink(&mut host, &plan, &mut sink).expect("record lifecycle");
+
+        assert_eq!(result.lifecycle.status, SupervisorTerminalStatus::Exited);
+        assert_eq!(
+            result.lifecycle.reason,
+            SupervisorLifecycleReason::ProcessExited
+        );
+        assert_eq!(result.lifecycle.exit_code, Some(9));
+        assert!(result.output_bounds_receipt.is_some());
+        assert_eq!(sink.writes[3].0, SUPERVISOR_OUTPUT_BOUNDS_EVIDENCE_KIND);
+        assert_eq!(result.seal.entry_count, 5);
+    }
+
+    #[test]
+    fn materialization_failure_cannot_emit_identity_or_output_bounds_receipts() {
         let plan = plan();
         let mut host = FakeHost::materialization_failure();
         let mut sink = FakeSink::healthy();
@@ -598,6 +673,7 @@ mod tests {
         );
         assert!(result.runtime_binary_identity_receipt.is_none());
         assert!(result.image_integrity_receipt.is_none());
+        assert!(result.output_bounds_receipt.is_none());
         assert_eq!(result.seal.entry_count, 2);
         assert_eq!(sink.writes[0].0, SUPERVISOR_PLAN_EVIDENCE_KIND);
         assert_eq!(sink.writes[1].0, SUPERVISOR_LIFECYCLE_EVIDENCE_KIND);
@@ -608,7 +684,7 @@ mod tests {
     }
 
     #[test]
-    fn blocked_after_materialization_keeps_identity_receipts_but_not_successful_lifecycle() {
+    fn blocked_after_materialization_keeps_identity_receipts_but_not_output_bounds() {
         let plan = plan();
         let mut host = FakeHost::wait_failure();
         let mut sink = FakeSink::healthy();
@@ -622,6 +698,7 @@ mod tests {
         );
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
+        assert!(result.output_bounds_receipt.is_none());
         assert_eq!(sink.writes.len(), 4);
         assert!(sink.sealed);
         assert_eq!(
@@ -678,10 +755,34 @@ mod tests {
     }
 
     #[test]
-    fn terminal_write_failure_prevents_seal_after_execution() {
+    fn output_bounds_write_failure_prevents_seal_after_verified_exit() {
         let plan = plan();
         let mut host = FakeHost::exited();
         let mut sink = FakeSink::fail_append_at(3);
+
+        let result = execute_with_sink(&mut host, &plan, &mut sink);
+
+        assert!(matches!(result, Err(EvidenceError::InvalidKind)));
+        assert_eq!(
+            host.events,
+            vec![
+                "verify",
+                "prepare",
+                "cgroup",
+                "materialize",
+                "spawn",
+                "wait",
+                "cleanup"
+            ]
+        );
+        assert!(!sink.sealed);
+    }
+
+    #[test]
+    fn terminal_write_failure_prevents_seal_after_execution() {
+        let plan = plan();
+        let mut host = FakeHost::exited();
+        let mut sink = FakeSink::fail_append_at(4);
 
         let result = execute_with_sink(&mut host, &plan, &mut sink);
 
