@@ -1251,14 +1251,8 @@ mod tests {
         );
         let cancellation = AtomicBool::new(false);
 
-        let error = wait_process(
-            &mut child,
-            5_000,
-            &cancellation,
-            drain.as_ref(),
-            None,
-        )
-        .expect_err("live stdout overflow must fail wait");
+        let error = wait_process(&mut child, 5_000, &cancellation, drain.as_ref(), None)
+            .expect_err("live stdout overflow must fail wait");
         assert!(matches!(
             error,
             LinuxHostError::StdoutLimitExceeded(OUTPUT_FLOOD_LIMIT)
@@ -1286,14 +1280,8 @@ mod tests {
         );
         let cancellation = AtomicBool::new(false);
 
-        let error = wait_process(
-            &mut child,
-            5_000,
-            &cancellation,
-            None,
-            drain.as_ref(),
-        )
-        .expect_err("live stderr overflow must fail wait");
+        let error = wait_process(&mut child, 5_000, &cancellation, None, drain.as_ref())
+            .expect_err("live stderr overflow must fail wait");
         assert!(matches!(
             error,
             LinuxHostError::StderrLimitExceeded(OUTPUT_FLOOD_LIMIT)
