@@ -36,22 +36,57 @@ pub enum CgroupError {
         actual: String,
     },
     ProcessesStillAttached(String),
-    Io { operation: &'static str, source: io::Error },
+    Io {
+        operation: &'static str,
+        source: io::Error,
+    },
 }
 
 impl Display for CgroupError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UnsafeMountPath(path) => write!(formatter, "unsafe cgroup mount path: {}", path.display()),
-            Self::UnsafeParentPath(path) => write!(formatter, "unsafe cgroup parent path: {}", path.display()),
-            Self::InvalidRunId => formatter.write_str("run id is not valid for a jailer/cgroup leaf"),
-            Self::ParentNotDirectory(path) => write!(formatter, "cgroup parent is not a directory: {}", path.display()),
-            Self::MissingController(controller) => write!(formatter, "required cgroup controller is unavailable: {controller}"),
-            Self::ControllerNotDelegated(controller) => write!(formatter, "required cgroup controller is not enabled in subtree_control: {controller}"),
-            Self::RunAlreadyExists(path) => write!(formatter, "run cgroup already exists: {}", path.display()),
-            Self::ControlFileMissing(path) => write!(formatter, "required cgroup control file is missing: {}", path.display()),
-            Self::ControlReadbackMismatch { path, expected, actual } => write!(formatter, "cgroup control readback mismatch for {}: expected {expected}, got {actual}", path.display()),
-            Self::ProcessesStillAttached(value) => write!(formatter, "cgroup still contains processes: {value}"),
+            Self::UnsafeMountPath(path) => {
+                write!(formatter, "unsafe cgroup mount path: {}", path.display())
+            }
+            Self::UnsafeParentPath(path) => {
+                write!(formatter, "unsafe cgroup parent path: {}", path.display())
+            }
+            Self::InvalidRunId => {
+                formatter.write_str("run id is not valid for a jailer/cgroup leaf")
+            }
+            Self::ParentNotDirectory(path) => write!(
+                formatter,
+                "cgroup parent is not a directory: {}",
+                path.display()
+            ),
+            Self::MissingController(controller) => write!(
+                formatter,
+                "required cgroup controller is unavailable: {controller}"
+            ),
+            Self::ControllerNotDelegated(controller) => write!(
+                formatter,
+                "required cgroup controller is not enabled in subtree_control: {controller}"
+            ),
+            Self::RunAlreadyExists(path) => {
+                write!(formatter, "run cgroup already exists: {}", path.display())
+            }
+            Self::ControlFileMissing(path) => write!(
+                formatter,
+                "required cgroup control file is missing: {}",
+                path.display()
+            ),
+            Self::ControlReadbackMismatch {
+                path,
+                expected,
+                actual,
+            } => write!(
+                formatter,
+                "cgroup control readback mismatch for {}: expected {expected}, got {actual}",
+                path.display()
+            ),
+            Self::ProcessesStillAttached(value) => {
+                write!(formatter, "cgroup still contains processes: {value}")
+            }
             Self::Io { operation, source } => write!(formatter, "{operation} failed: {source}"),
         }
     }
@@ -176,10 +211,7 @@ impl CgroupLayout {
     }
 }
 
-pub fn write_and_verify_limits(
-    cgroup_path: &Path,
-    plan: CgroupV2Plan,
-) -> Result<(), CgroupError> {
+pub fn write_and_verify_limits(cgroup_path: &Path, plan: CgroupV2Plan) -> Result<(), CgroupError> {
     let cpu_value = format!("{} {}", plan.cpu_quota_us, plan.cpu_period_us);
     let memory_value = plan.memory_max_bytes.to_string();
     let pids_value = plan.pids_max.to_string();
@@ -236,18 +268,18 @@ fn read_tokens(path: &Path) -> Result<Vec<String>, CgroupError> {
         operation: "read cgroup controller set",
         source,
     })?;
-    Ok(value
-        .split_ascii_whitespace()
-        .map(str::to_owned)
-        .collect())
+    Ok(value.split_ascii_whitespace().map(str::to_owned).collect())
 }
 
 fn validate_mount(path: &Path) -> Result<(), CgroupError> {
     if !path.is_absolute()
         || path.as_os_str().is_empty()
-        || path
-            .components()
-            .any(|component| matches!(component, Component::CurDir | Component::ParentDir | Component::Prefix(_)))
+        || path.components().any(|component| {
+            matches!(
+                component,
+                Component::CurDir | Component::ParentDir | Component::Prefix(_)
+            )
+        })
     {
         return Err(CgroupError::UnsafeMountPath(path.to_path_buf()));
     }
@@ -257,7 +289,9 @@ fn validate_mount(path: &Path) -> Result<(), CgroupError> {
 fn validate_relative_parent(path: &Path) -> Result<(), CgroupError> {
     if path.as_os_str().is_empty()
         || path.is_absolute()
-        || path.components().any(|component| !matches!(component, Component::Normal(_)))
+        || path
+            .components()
+            .any(|component| !matches!(component, Component::Normal(_)))
     {
         return Err(CgroupError::UnsafeParentPath(path.to_path_buf()));
     }
@@ -285,10 +319,8 @@ mod tests {
 
     fn test_dir(label: &str) -> PathBuf {
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!(
-            "walle-cgroup-{label}-{}-{id}",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("walle-cgroup-{label}-{}-{id}", std::process::id()));
         fs::create_dir(&path).expect("create test directory");
         path
     }
@@ -309,9 +341,20 @@ mod tests {
             fs::write(root.join(name), b"").expect("control file");
         }
         write_and_verify_limits(&root, plan()).expect("limits");
-        assert_eq!(fs::read_to_string(root.join("cpu.max")).unwrap().trim(), "200000 100000");
-        assert_eq!(fs::read_to_string(root.join("memory.max")).unwrap().trim(), "1073741824");
-        assert_eq!(fs::read_to_string(root.join("pids.max")).unwrap().trim(), "64");
+        assert_eq!(
+            fs::read_to_string(root.join("cpu.max")).unwrap().trim(),
+            "200000 100000"
+        );
+        assert_eq!(
+            fs::read_to_string(root.join("memory.max"))
+                .unwrap()
+                .trim(),
+            "1073741824"
+        );
+        assert_eq!(
+            fs::read_to_string(root.join("pids.max")).unwrap().trim(),
+            "64"
+        );
         fs::remove_dir_all(root).expect("cleanup");
     }
 
@@ -358,7 +401,13 @@ mod tests {
     fn jailer_run_id_rejects_shell_or_path_characters() {
         let layout = CgroupLayout::new("/sys/fs/cgroup", "walle").expect("layout");
         assert!(layout.run_path("run-0123abcd").is_ok());
-        assert!(matches!(layout.run_path("run/escape"), Err(CgroupError::InvalidRunId)));
-        assert!(matches!(layout.run_path("run_underscore"), Err(CgroupError::InvalidRunId)));
+        assert!(matches!(
+            layout.run_path("run/escape"),
+            Err(CgroupError::InvalidRunId)
+        ));
+        assert!(matches!(
+            layout.run_path("run_underscore"),
+            Err(CgroupError::InvalidRunId)
+        ));
     }
 }
