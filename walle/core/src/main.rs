@@ -70,7 +70,6 @@ fn command_doctor(args: &[String]) -> Result<(), String> {
         RunState::Executing,
         RunState::Verifying,
         RunState::Certifying,
-        RunState::Certified,
     ] {
         machine
             .transition(next)
