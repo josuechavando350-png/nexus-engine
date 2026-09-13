@@ -217,7 +217,7 @@ impl LinuxManagedProcess {
     }
 
     fn join_drains(&mut self) -> Result<(), LinuxHostError> {
-        let stdout = join_output_drain(&mut self.stdout, "stdout") ;
+        let stdout = join_output_drain(&mut self.stdout, "stdout");
         let stderr = join_output_drain(&mut self.stderr, "stderr");
         stdout?;
         stderr?;
@@ -675,38 +675,40 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             }
         };
 
-        let stdout = match start_output_drain(stdout_pipe, stdout_log, plan.max_stdout_bytes, "stdout") {
-            Ok(drain) => drain,
-            Err(source) => {
-                return SpawnAttempt::Failed {
-                    error: LinuxHostError::Io {
-                        operation: "start stdout drain thread",
-                        source,
-                    },
-                    process: Some(LinuxManagedProcess {
-                        child,
-                        stdout: None,
-                        stderr: None,
-                    }),
+        let stdout =
+            match start_output_drain(stdout_pipe, stdout_log, plan.max_stdout_bytes, "stdout") {
+                Ok(drain) => drain,
+                Err(source) => {
+                    return SpawnAttempt::Failed {
+                        error: LinuxHostError::Io {
+                            operation: "start stdout drain thread",
+                            source,
+                        },
+                        process: Some(LinuxManagedProcess {
+                            child,
+                            stdout: None,
+                            stderr: None,
+                        }),
+                    }
                 }
-            }
-        };
-        let stderr = match start_output_drain(stderr_pipe, stderr_log, plan.max_stderr_bytes, "stderr") {
-            Ok(drain) => drain,
-            Err(source) => {
-                return SpawnAttempt::Failed {
-                    error: LinuxHostError::Io {
-                        operation: "start stderr drain thread",
-                        source,
-                    },
-                    process: Some(LinuxManagedProcess {
-                        child,
-                        stdout: Some(stdout),
-                        stderr: None,
-                    }),
+            };
+        let stderr =
+            match start_output_drain(stderr_pipe, stderr_log, plan.max_stderr_bytes, "stderr") {
+                Ok(drain) => drain,
+                Err(source) => {
+                    return SpawnAttempt::Failed {
+                        error: LinuxHostError::Io {
+                            operation: "start stderr drain thread",
+                            source,
+                        },
+                        process: Some(LinuxManagedProcess {
+                            child,
+                            stdout: Some(stdout),
+                            stderr: None,
+                        }),
+                    }
                 }
-            }
-        };
+            };
 
         SpawnAttempt::Running(LinuxManagedProcess {
             child,
