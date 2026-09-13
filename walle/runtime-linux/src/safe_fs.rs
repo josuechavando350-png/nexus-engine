@@ -21,6 +21,7 @@ const RESOLVE_NO_MAGICLINKS: u64 = 0x02;
 const RESOLVE_NO_SYMLINKS: u64 = 0x04;
 const RESOLVE_BENEATH: u64 = 0x08;
 const EEXIST: i32 = 17;
+const AT_REMOVEDIR: i32 = 0x200;
 
 #[repr(C)]
 struct OpenHow {
@@ -47,6 +48,7 @@ pub enum SecureFsError {
         uid: u32,
         mode: u32,
     },
+    DirectoryIdentityChanged(PathBuf),
     Openat2Failed {
         path: PathBuf,
         source: io::Error,
@@ -77,9 +79,14 @@ impl Display for SecureFsError {
             }
             Self::UntrustedDirectory { path, uid, mode } => write!(
                 formatter,
-                "runtime directory must be root-owned and not group/world writable: {} (uid={uid}, mode={:o})",
+                "runtime directory chain must be root-owned and not group/world writable: {} (uid={uid}, mode={:o})",
                 path.display(),
                 mode & 0o7777
+            ),
+            Self::DirectoryIdentityChanged(path) => write!(
+                formatter,
+                "runtime directory identity changed during trusted-chain validation: {}",
+                path.display()
             ),
             Self::Openat2Failed { path, source } => {
                 write!(formatter, "openat2 rejected {}: {source}", path.display())
@@ -137,19 +144,45 @@ impl SecureDirectory {
         self.file.as_raw_fd()
     }
 
+    /// Validates the entire absolute directory chain, not only the final leaf.
+    /// Each component is opened relative to the previously held fd with
+    /// openat2's no-symlink constraints. The final inode is compared with the
+    /// fd held by this object so a path replacement cannot silently change the
+    /// admitted anchor.
     pub fn validate_trusted(&self) -> Result<(), SecureFsError> {
-        let metadata = self.file.metadata().map_err(|source| SecureFsError::Io {
-            operation: "inspect trusted runtime directory",
+        validate_absolute(&self.path)?;
+        let mut current_path = PathBuf::from("/");
+        let mut current = File::open("/").map_err(|source| SecureFsError::Io {
+            operation: "open host root directory for trust validation",
             source,
         })?;
-        let uid = metadata.uid();
-        let mode = metadata.mode();
-        if uid != 0 || mode & 0o022 != 0 {
-            return Err(SecureFsError::UntrustedDirectory {
-                path: self.path.clone(),
-                uid,
-                mode,
-            });
+        validate_trusted_directory(&current, &current_path)?;
+
+        for component in self.path.components().skip(1) {
+            let Component::Normal(name) = component else {
+                return Err(SecureFsError::UnsafeAbsolutePath(self.path.clone()));
+            };
+            current_path.push(name);
+            current = open_relative(
+                current.as_raw_fd(),
+                name,
+                O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW,
+                0,
+                &current_path,
+            )?;
+            validate_trusted_directory(&current, &current_path)?;
+        }
+
+        let held = self.file.metadata().map_err(|source| SecureFsError::Io {
+            operation: "inspect held runtime directory",
+            source,
+        })?;
+        let traversed = current.metadata().map_err(|source| SecureFsError::Io {
+            operation: "inspect traversed runtime directory",
+            source,
+        })?;
+        if held.dev() != traversed.dev() || held.ino() != traversed.ino() {
+            return Err(SecureFsError::DirectoryIdentityChanged(self.path.clone()));
         }
         Ok(())
     }
@@ -219,39 +252,47 @@ impl SecureDirectory {
             }
         };
 
-        let file = open_relative(
-            self.file.as_raw_fd(),
-            name,
-            O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW,
-            0,
-            &child_path,
-        )?;
-        let metadata = file.metadata().map_err(|source| SecureFsError::Io {
-            operation: "inspect secure runtime directory",
-            source,
-        })?;
-        if !metadata.file_type().is_dir() {
-            return Err(SecureFsError::NotDirectory(child_path));
-        }
-        if created {
-            file.set_permissions(Permissions::from_mode(mode))
-                .map_err(|source| SecureFsError::Io {
-                    operation: "set exact runtime directory mode",
+        let result = (|| {
+            let file = open_relative(
+                self.file.as_raw_fd(),
+                name,
+                O_RDONLY | O_DIRECTORY | O_CLOEXEC | O_NOFOLLOW,
+                0,
+                &child_path,
+            )?;
+            let metadata = file.metadata().map_err(|source| SecureFsError::Io {
+                operation: "inspect secure runtime directory",
+                source,
+            })?;
+            if !metadata.file_type().is_dir() {
+                return Err(SecureFsError::NotDirectory(child_path.clone()));
+            }
+            if created {
+                file.set_permissions(Permissions::from_mode(mode))
+                    .map_err(|source| SecureFsError::Io {
+                        operation: "set exact runtime directory mode",
+                        source,
+                    })?;
+                file.sync_all().map_err(|source| SecureFsError::Io {
+                    operation: "sync created runtime directory",
                     source,
                 })?;
-            file.sync_all().map_err(|source| SecureFsError::Io {
-                operation: "sync created runtime directory",
-                source,
-            })?;
-            self.file.sync_all().map_err(|source| SecureFsError::Io {
-                operation: "sync parent runtime directory",
-                source,
-            })?;
+                self.file.sync_all().map_err(|source| SecureFsError::Io {
+                    operation: "sync parent runtime directory",
+                    source,
+                })?;
+            }
+            Ok(Self {
+                path: child_path.clone(),
+                file,
+            })
+        })();
+
+        if result.is_err() && created {
+            let _ = unsafe { unlinkat(self.file.as_raw_fd(), name_c.as_ptr(), AT_REMOVEDIR) };
+            let _ = self.file.sync_all();
         }
-        Ok(Self {
-            path: child_path,
-            file,
-        })
+        result
     }
 
     fn create_new_file_with_cloexec(
@@ -292,6 +333,26 @@ impl SecureDirectory {
         })?;
         Ok(file)
     }
+}
+
+fn validate_trusted_directory(file: &File, path: &Path) -> Result<(), SecureFsError> {
+    let metadata = file.metadata().map_err(|source| SecureFsError::Io {
+        operation: "inspect trusted runtime directory chain",
+        source,
+    })?;
+    if !metadata.file_type().is_dir() {
+        return Err(SecureFsError::NotDirectory(path.to_path_buf()));
+    }
+    let uid = metadata.uid();
+    let mode = metadata.mode();
+    if uid != 0 || mode & 0o022 != 0 {
+        return Err(SecureFsError::UntrustedDirectory {
+            path: path.to_path_buf(),
+            uid,
+            mode,
+        });
+    }
+    Ok(())
 }
 
 fn open_absolute_directory(path: &Path) -> Result<File, SecureFsError> {
@@ -465,5 +526,22 @@ mod tests {
             Err(SecureFsError::UnsafeChildName(_))
         ));
         fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn trusted_validation_rejects_untrusted_directory_chain() {
+        let root = test_dir("untrusted-chain");
+        let dir = SecureDirectory::open(&root).expect("open");
+        assert!(matches!(
+            dir.validate_trusted(),
+            Err(SecureFsError::UntrustedDirectory { .. })
+        ));
+        fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn trusted_validation_accepts_root_owned_system_chain() {
+        let dir = SecureDirectory::open("/usr").expect("open /usr");
+        dir.validate_trusted().expect("/usr trusted chain");
     }
 }
