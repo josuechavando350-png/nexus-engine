@@ -492,6 +492,8 @@ mod tests {
             memory_mib: 65_536,
             scratch_disk_mib: 65_536,
             filesystem_mode: "SCRATCH_AND_DECLARED_OUTPUT",
+            max_stdout_bytes: 64 * 1024 * 1024,
+            max_stderr_bytes: 64 * 1024,
             timeout_ms: 1_200_000,
             cancellation_grace_ms: 5_000,
             rootfs_read_only: true,
