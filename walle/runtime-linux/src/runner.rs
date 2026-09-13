@@ -537,9 +537,8 @@ mod tests {
             exit_code: Some(9),
             containment: None,
         };
-        let projected = project_certification_evidence(&result(
-            lifecycle, true, true, true, true, true, true,
-        ));
+        let projected =
+            project_certification_evidence(&result(lifecycle, true, true, true, true, true, true));
 
         assert_eq!(
             evidence(&projected, CertificationEvidenceKind::SourceIdentity).assessment,
@@ -587,9 +586,8 @@ mod tests {
             exit_code: None,
             containment: Some(ContainmentMode::Forced),
         };
-        let projected = project_certification_evidence(&result(
-            lifecycle, true, true, true, true, true, false,
-        ));
+        let projected =
+            project_certification_evidence(&result(lifecycle, true, true, true, true, true, false));
 
         assert_eq!(projected.len(), 8);
         assert!(projected
