@@ -15,7 +15,6 @@ use walle_core::is_valid_sha256;
 // Linux x86_64 UAPI constants. This crate intentionally supports only the host
 // architecture admitted by WALLE's Firecracker preflight.
 const SYS_OPENAT2: i64 = 437;
-const O_WRONLY: u64 = 0o1;
 const O_RDWR: u64 = 0o2;
 const O_CREAT: u64 = 0o100;
 const O_EXCL: u64 = 0o200;
@@ -52,29 +51,75 @@ pub enum ArtifactError {
     HashProgramNotRegular(PathBuf),
     HashProgramUnsafeOwnership(PathBuf),
     SourceNotRegular(PathBuf),
-    Openat2Failed { path: PathBuf, source: io::Error },
+    Openat2Failed {
+        path: PathBuf,
+        source: io::Error,
+    },
     DestinationExists(PathBuf),
-    Io { operation: &'static str, source: io::Error },
-    HashProgramFailed { code: Option<i32> },
+    Io {
+        operation: &'static str,
+        source: io::Error,
+    },
+    HashProgramFailed {
+        code: Option<i32>,
+    },
     MalformedHashOutput,
-    DigestMismatch { expected: String, actual: String },
+    DigestMismatch {
+        expected: String,
+        actual: String,
+    },
 }
 
 impl Display for ArtifactError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::InvalidExpectedSha256 => formatter.write_str("expected digest is not a canonical lowercase sha256"),
-            Self::InvalidDestinationMode(mode) => write!(formatter, "invalid staging file mode: {mode:o}"),
-            Self::UnsafeAbsolutePath(path) => write!(formatter, "unsafe or non-normalized absolute path: {}", path.display()),
-            Self::HashProgramNotRegular(path) => write!(formatter, "sha256 program is not a regular file: {}", path.display()),
-            Self::HashProgramUnsafeOwnership(path) => write!(formatter, "sha256 program must be root-owned and not group/world writable: {}", path.display()),
-            Self::SourceNotRegular(path) => write!(formatter, "artifact source is not a regular file: {}", path.display()),
-            Self::Openat2Failed { path, source } => write!(formatter, "openat2 rejected artifact path {}: {source}", path.display()),
-            Self::DestinationExists(path) => write!(formatter, "staging destination already exists: {}", path.display()),
+            Self::InvalidExpectedSha256 => {
+                formatter.write_str("expected digest is not a canonical lowercase sha256")
+            }
+            Self::InvalidDestinationMode(mode) => {
+                write!(formatter, "invalid staging file mode: {mode:o}")
+            }
+            Self::UnsafeAbsolutePath(path) => write!(
+                formatter,
+                "unsafe or non-normalized absolute path: {}",
+                path.display()
+            ),
+            Self::HashProgramNotRegular(path) => write!(
+                formatter,
+                "sha256 program is not a regular file: {}",
+                path.display()
+            ),
+            Self::HashProgramUnsafeOwnership(path) => write!(
+                formatter,
+                "sha256 program must be root-owned and not group/world writable: {}",
+                path.display()
+            ),
+            Self::SourceNotRegular(path) => write!(
+                formatter,
+                "artifact source is not a regular file: {}",
+                path.display()
+            ),
+            Self::Openat2Failed { path, source } => write!(
+                formatter,
+                "openat2 rejected artifact path {}: {source}",
+                path.display()
+            ),
+            Self::DestinationExists(path) => write!(
+                formatter,
+                "staging destination already exists: {}",
+                path.display()
+            ),
             Self::Io { operation, source } => write!(formatter, "{operation} failed: {source}"),
-            Self::HashProgramFailed { code } => write!(formatter, "sha256 program failed with exit code {code:?}"),
-            Self::MalformedHashOutput => formatter.write_str("sha256 program returned malformed output"),
-            Self::DigestMismatch { expected, actual } => write!(formatter, "artifact digest mismatch: expected {expected}, got {actual}"),
+            Self::HashProgramFailed { code } => {
+                write!(formatter, "sha256 program failed with exit code {code:?}")
+            }
+            Self::MalformedHashOutput => {
+                formatter.write_str("sha256 program returned malformed output")
+            }
+            Self::DigestMismatch { expected, actual } => write!(
+                formatter,
+                "artifact digest mismatch: expected {expected}, got {actual}"
+            ),
         }
     }
 }
@@ -338,10 +383,8 @@ mod tests {
 
     fn test_dir(label: &str) -> PathBuf {
         let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
-        let path = std::env::temp_dir().join(format!(
-            "walle-runtime-{label}-{}-{id}",
-            std::process::id()
-        ));
+        let path =
+            std::env::temp_dir().join(format!("walle-runtime-{label}-{}-{id}", std::process::id()));
         fs::create_dir(&path).expect("create test directory");
         path
     }
@@ -366,17 +409,15 @@ mod tests {
         fs::write(&source, b"walle-runtime-test\n").expect("source bytes");
         let destination = staging.join("artifact.img");
 
-        let verified = stage_verified_regular_file(
-            &source,
-            &destination,
-            TEST_SHA,
-            0o400,
-            &system_hasher(),
-        )
-        .expect("verified stage");
+        let verified =
+            stage_verified_regular_file(&source, &destination, TEST_SHA, 0o400, &system_hasher())
+                .expect("verified stage");
         assert_eq!(verified.sha256, TEST_SHA);
         assert_eq!(verified.bytes, 19);
-        assert_eq!(fs::read(&destination).expect("staged bytes"), b"walle-runtime-test\n");
+        assert_eq!(
+            fs::read(&destination).expect("staged bytes"),
+            b"walle-runtime-test\n"
+        );
         fs::remove_dir_all(root).expect("cleanup");
     }
 
@@ -416,14 +457,9 @@ mod tests {
         let staging_alias = root.join("staging-alias");
         symlink(&real_staging, &staging_alias).expect("staging symlink");
         let destination = staging_alias.join("artifact.img");
-        let error = stage_verified_regular_file(
-            &source,
-            &destination,
-            TEST_SHA,
-            0o400,
-            &system_hasher(),
-        )
-        .expect_err("destination ancestor symlink must fail");
+        let error =
+            stage_verified_regular_file(&source, &destination, TEST_SHA, 0o400, &system_hasher())
+                .expect_err("destination ancestor symlink must fail");
         assert!(matches!(error, ArtifactError::Openat2Failed { .. }));
         assert!(!real_staging.join("artifact.img").exists());
         fs::remove_dir_all(root).expect("cleanup");
@@ -437,14 +473,9 @@ mod tests {
         fs::create_dir(&staging).expect("staging dir");
         fs::write(&source, b"wrong bytes\n").expect("source bytes");
         let destination = staging.join("artifact.img");
-        let error = stage_verified_regular_file(
-            &source,
-            &destination,
-            TEST_SHA,
-            0o400,
-            &system_hasher(),
-        )
-        .expect_err("digest mismatch must fail");
+        let error =
+            stage_verified_regular_file(&source, &destination, TEST_SHA, 0o400, &system_hasher())
+                .expect_err("digest mismatch must fail");
         assert!(matches!(error, ArtifactError::DigestMismatch { .. }));
         assert!(!destination.exists());
         fs::remove_dir_all(root).expect("cleanup");
@@ -458,17 +489,17 @@ mod tests {
         fs::create_dir(&staging).expect("staging dir");
         fs::write(&source, b"walle-runtime-test\n").expect("source bytes");
         let destination = staging.join("artifact.img");
-        stage_verified_regular_file(
-            &source,
-            &destination,
-            TEST_SHA,
-            0o400,
-            &system_hasher(),
-        )
-        .expect("verified stage");
+        stage_verified_regular_file(&source, &destination, TEST_SHA, 0o400, &system_hasher())
+            .expect("verified stage");
         fs::write(&source, b"changed after staging\n").expect("mutate source");
-        assert_eq!(fs::read(&destination).expect("staged bytes"), b"walle-runtime-test\n");
-        assert_eq!(system_hasher().hash_path(&destination).expect("digest"), TEST_SHA);
+        assert_eq!(
+            fs::read(&destination).expect("staged bytes"),
+            b"walle-runtime-test\n"
+        );
+        assert_eq!(
+            system_hasher().hash_path(&destination).expect("digest"),
+            TEST_SHA
+        );
         fs::remove_dir_all(root).expect("cleanup");
     }
 }
