@@ -853,7 +853,7 @@ mod tests {
     fn existing_program(candidates: &[&'static str]) -> &'static str {
         for candidate in candidates {
             if Path::new(candidate).is_file() {
-                return *candidate;
+                return candidate;
             }
         }
         panic!("required test program is unavailable");
