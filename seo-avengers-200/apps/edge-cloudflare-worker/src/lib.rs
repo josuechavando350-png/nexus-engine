@@ -1,6 +1,6 @@
-use lol_html::{element, html_content::ContentType, HtmlRewriter, Settings};
+use lol_html::{HtmlRewriter, Settings, element, html_content::ContentType};
 use serde::Deserialize;
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::collections::BTreeMap;
 use worker::*;
 
@@ -70,16 +70,16 @@ pub async fn main(mut req: Request, _env: Env, _ctx: worker::Context) -> Result<
     // Rust therefore uses lol_html as a streaming parser over 16 KiB chunks into
     // a shadow output buffer; bytes are committed to the client only after the
     // calling gateway's bounded edge deadline accepts the completed candidate.
-    let output = rewrite_html_shadow_streaming(
-        payload.html.as_bytes(),
-        &graph,
-        &payload.delivery_profile,
-    )?;
+    let output =
+        rewrite_html_shadow_streaming(payload.html.as_bytes(), &graph, &payload.delivery_profile)?;
     let headers = Headers::new();
     headers.set("content-type", "text/html; charset=utf-8")?;
     headers.set("x-nexus-seo-suite", "SEO_AVENGERS_200")?;
     headers.set("x-nexus-seo-transformer", "rust-wasm-lol-html/200")?;
-    headers.set("x-nexus-seo-vector-version", &payload.vector.version.to_string())?;
+    headers.set(
+        "x-nexus-seo-vector-version",
+        &payload.vector.version.to_string(),
+    )?;
     headers.set("x-nexus-seo-vector-hash", &payload.vector.output_hash)?;
     Ok(Response::from_bytes(output)?.with_headers(headers))
 }
@@ -92,7 +92,9 @@ fn validate_snapshot(snapshot: &RouteVectorSnapshot) -> Result<()> {
         || snapshot.version == 0
         || !snapshot.output_hash.starts_with("sha256:")
     {
-        return Err(Error::RustError("invalid SEO AVENGERS 200 vector snapshot identity".into()));
+        return Err(Error::RustError(
+            "invalid SEO AVENGERS 200 vector snapshot identity".into(),
+        ));
     }
     for section in snapshot.sections.values() {
         if !section.output_hash.starts_with("sha256:") || !section.json_ld.is_object() {
@@ -147,11 +149,7 @@ fn rewrite_html_shadow_streaming(
         safe_inline_json(json_ld)
     );
     let save_data = delivery.save_data;
-    let ect = delivery
-        .ect
-        .as_deref()
-        .unwrap_or("")
-        .to_ascii_lowercase();
+    let ect = delivery.ect.as_deref().unwrap_or("").to_ascii_lowercase();
     let constrained_network = save_data || matches!(ect.as_str(), "slow-2g" | "2g");
 
     let settings = Settings::new()
@@ -196,10 +194,13 @@ fn rewrite_html_shadow_streaming(
             element.remove_attribute("type");
             Ok(())
         }))
-        .append_element_content_handler(element!(r#"link[rel="stylesheet"][type="text/css"]"#, |element| {
-            element.remove_attribute("type");
-            Ok(())
-        }));
+        .append_element_content_handler(element!(
+            r#"link[rel="stylesheet"][type="text/css"]"#,
+            |element| {
+                element.remove_attribute("type");
+                Ok(())
+            }
+        ));
 
     let mut rewriter = HtmlRewriter::new(settings, |chunk: &[u8]| output.extend_from_slice(chunk));
     for chunk in input.chunks(STREAM_CHUNK_BYTES) {
@@ -226,7 +227,8 @@ mod tests {
             route: "/".into(),
             version: 1,
             sections: BTreeMap::new(),
-            output_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".into(),
+            output_hash: "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+                .into(),
         };
         assert!(validate_snapshot(&snapshot).is_err());
     }

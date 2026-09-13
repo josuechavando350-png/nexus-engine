@@ -90,21 +90,69 @@ done
 
 TMP_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/walle-avengers.XXXXXX")"
 trap 'rm -rf "$TMP_ROOT"' EXIT
-STDOUT_FILE="$TMP_ROOT/stdout.log"
-STDERR_FILE="$TMP_ROOT/stderr.log"
+CHAIN_STDOUT_FILE="$TMP_ROOT/chain.stdout.log"
+CHAIN_STDERR_FILE="$TMP_ROOT/chain.stderr.log"
+M200_STDOUT_FILE="$TMP_ROOT/m001-m200.stdout.log"
+M200_STDERR_FILE="$TMP_ROOT/m001-m200.stderr.log"
 PYCACHE_ROOT="$TMP_ROOT/pycache"
 mkdir -p "$PYCACHE_ROOT"
 
 set +e
 PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$PYCACHE_ROOT" \
   timeout --signal=KILL 20m bash "${CHAIN_PATHS[0]}" \
-  >"$STDOUT_FILE" 2>"$STDERR_FILE"
-EXIT_CODE=$?
+  >"$CHAIN_STDOUT_FILE" 2>"$CHAIN_STDERR_FILE"
+CHAIN_EXIT_CODE=$?
 set -e
 
-cat "$STDOUT_FILE"
-if [[ -s "$STDERR_FILE" ]]; then
-  cat "$STDERR_FILE" >&2
+cat "$CHAIN_STDOUT_FILE"
+if [[ -s "$CHAIN_STDERR_FILE" ]]; then
+  cat "$CHAIN_STDERR_FILE" >&2
+fi
+
+if [[ "$CHAIN_EXIT_CODE" -eq 124 || "$CHAIN_EXIT_CODE" -eq 137 ]]; then
+  echo "WALLE_AVENGERS_ERROR=verification_timeout:m201_m2500" >&2
+  exit 2
+fi
+if [[ "$CHAIN_EXIT_CODE" -ne 0 ]]; then
+  echo "WALLE_AVENGERS_ERROR=verification_failed:m201_m2500:$CHAIN_EXIT_CODE" >&2
+  exit 2
+fi
+
+# The chained M2500 verifier does not call the original M001-M200 sidecar.
+# Execute that verifier explicitly and reject its built-in SKIP paths so a
+# missing Go/Python/Rust/TypeScript toolchain cannot be mislabeled as proof.
+M200_PATH="$PATH"
+if [[ -n "${WALLE_M200_PYTHON_DIR:-}" ]]; then
+  [[ -x "$WALLE_M200_PYTHON_DIR/python3" ]] || {
+    echo "WALLE_AVENGERS_ERROR=missing_m001_m200_python_runtime" >&2
+    exit 2
+  }
+  M200_PATH="$WALLE_M200_PYTHON_DIR:$PATH"
+fi
+
+set +e
+PATH="$M200_PATH" PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$PYCACHE_ROOT" \
+  timeout --signal=KILL 10m bash "$ORIGINAL_VERIFIER" \
+  >"$M200_STDOUT_FILE" 2>"$M200_STDERR_FILE"
+M200_EXIT_CODE=$?
+set -e
+
+cat "$M200_STDOUT_FILE"
+if [[ -s "$M200_STDERR_FILE" ]]; then
+  cat "$M200_STDERR_FILE" >&2
+fi
+
+if [[ "$M200_EXIT_CODE" -eq 124 || "$M200_EXIT_CODE" -eq 137 ]]; then
+  echo "WALLE_AVENGERS_ERROR=verification_timeout:m001_m200" >&2
+  exit 2
+fi
+if [[ "$M200_EXIT_CODE" -ne 0 ]]; then
+  echo "WALLE_AVENGERS_ERROR=verification_failed:m001_m200:$M200_EXIT_CODE" >&2
+  exit 2
+fi
+if grep -Eq '(^|[[:space:]])SKIP([[:space:]]|$)' "$M200_STDOUT_FILE" "$M200_STDERR_FILE"; then
+  echo "WALLE_AVENGERS_ERROR=incomplete_original_verifier_toolchain:m001_m200" >&2
+  exit 2
 fi
 
 HEAD_AFTER="$(git rev-parse HEAD)"
@@ -120,14 +168,6 @@ if [[ -n "$STATUS_AFTER" ]]; then
   printf '%s\n' "$STATUS_AFTER" >&2
   exit 2
 fi
-if [[ "$EXIT_CODE" -eq 124 || "$EXIT_CODE" -eq 137 ]]; then
-  echo "WALLE_AVENGERS_ERROR=verification_timeout" >&2
-  exit 2
-fi
-if [[ "$EXIT_CODE" -ne 0 ]]; then
-  echo "WALLE_AVENGERS_ERROR=verification_failed:$EXIT_CODE" >&2
-  exit 2
-fi
 
 hash_file() {
   local path="$1"
@@ -140,13 +180,15 @@ printf 'WALLE_ENGINE=WALLE\n'
 printf 'WALLE_WORKLOAD=seo-avengers-2500\n'
 printf 'WALLE_SOURCE_HEAD=%s\n' "$HEAD_BEFORE"
 printf 'WALLE_SOURCE_TREE=%s\n' "$TREE_BEFORE"
-printf 'WALLE_AVENGERS_STATUS=VERIFIED_CHAIN\n'
+printf 'WALLE_AVENGERS_STATUS=VERIFIED_CHAIN_AND_ORIGINAL_200_VERIFIER\n'
 printf 'WALLE_FULL_EXECUTION_CLAIM=false\n'
-printf 'WALLE_FULL_EXECUTION_BLOCKER=M001_M200_ORIGINAL_SIDECAR_NOT_EXECUTED_BY_CHAINED_2500_VERIFIER\n'
-printf 'WALLE_M001_M200_MODE=CONTRACT_PARITY_ONLY\n'
+printf 'WALLE_FULL_EXECUTION_BLOCKER=M001_M200_ORIGINAL_VERIFIER_VALIDATES_ENGINE_AND_CATALOG_BUT_DOES_NOT_EXECUTE_EACH_MODULE_RUNTIME\n'
+printf 'WALLE_M001_M200_MODE=ORIGINAL_VERIFIER_EXECUTION\n'
 printf 'WALLE_M201_M2500_MODE=CHAINED_VERIFIER_EXECUTION\n'
-printf 'WALLE_STDOUT_SHA256=%s\n' "$(hash_file "$STDOUT_FILE")"
-printf 'WALLE_STDERR_SHA256=%s\n' "$(hash_file "$STDERR_FILE")"
+printf 'WALLE_CHAIN_STDOUT_SHA256=%s\n' "$(hash_file "$CHAIN_STDOUT_FILE")"
+printf 'WALLE_CHAIN_STDERR_SHA256=%s\n' "$(hash_file "$CHAIN_STDERR_FILE")"
+printf 'WALLE_M001_M200_STDOUT_SHA256=%s\n' "$(hash_file "$M200_STDOUT_FILE")"
+printf 'WALLE_M001_M200_STDERR_SHA256=%s\n' "$(hash_file "$M200_STDERR_FILE")"
 
 for path in "${CHAIN_PATHS[@]}"; do
   printf 'WALLE_VERIFIER_SHA256[%s]=%s\n' "$path" "$(hash_file "$path")"

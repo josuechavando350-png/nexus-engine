@@ -46,7 +46,7 @@ declare module "web-vitals" {
   export const onTTFB:(cb:(m:M)=>void)=>void;
 }
 TS
-  tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution Bundler --lib DOM,ES2022 \
+  tsc --ignoreConfig --noEmit --strict --target ES2022 --module ESNext --moduleResolution Bundler --lib DOM,ES2022 \
     packages/Telemetry-Nexus-Cortex/src/index.ts packages/Telemetry-Nexus-Cortex/src/ingest.ts "$STUB"
 else
   echo "[5/12] SKIP TypeScript: tsc not installed"
