@@ -266,11 +266,7 @@ mod tests {
                 RUNTIME_RECEIPT_SHA,
             )),
             image_integrity_receipt: Some(receipt(3, "image-integrity", IMAGE_RECEIPT_SHA)),
-            output_bounds_receipt: Some(receipt(
-                4,
-                "supervisor-output-bounds",
-                OUTPUT_RECEIPT_SHA,
-            )),
+            output_bounds_receipt: Some(receipt(4, "supervisor-output-bounds", OUTPUT_RECEIPT_SHA)),
             lifecycle_receipt: receipt(5, "supervisor-lifecycle-result", LIFECYCLE_RECEIPT_SHA),
             seal: EvidenceSeal {
                 run_id: RUN_ID.to_owned(),
