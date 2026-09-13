@@ -346,9 +346,7 @@ mod tests {
             "200000 100000"
         );
         assert_eq!(
-            fs::read_to_string(root.join("memory.max"))
-                .unwrap()
-                .trim(),
+            fs::read_to_string(root.join("memory.max")).unwrap().trim(),
             "1073741824"
         );
         assert_eq!(
