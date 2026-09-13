@@ -1140,6 +1140,8 @@ mod tests {
     use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
 
     static NEXT_LOG_ID: AtomicU64 = AtomicU64::new(1);
+    const OUTPUT_FLOOD_ENV: &str = "WALLE_TEST_OUTPUT_FLOOD_STREAM";
+    const OUTPUT_FLOOD_LIMIT: u64 = 4 * 1024;
 
     fn existing_program(candidates: &[&'static str]) -> &'static str {
         for candidate in candidates {
@@ -1160,6 +1162,64 @@ mod tests {
         (path, file)
     }
 
+    fn spawn_output_flood(stream: &str) -> Child {
+        Command::new(std::env::current_exe().expect("current test executable"))
+            .args([
+                "--exact",
+                "host::tests::output_flood_child_helper",
+                "--nocapture",
+            ])
+            .env(OUTPUT_FLOOD_ENV, stream)
+            .stdin(Stdio::null())
+            .stdout(if stream == "stdout" {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
+            .stderr(if stream == "stderr" {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
+            .spawn()
+            .expect("spawn output flood child")
+    }
+
+    #[test]
+    fn output_flood_child_helper() {
+        let Some(stream) = std::env::var_os(OUTPUT_FLOOD_ENV) else {
+            return;
+        };
+        let chunk = [b'x'; 16 * 1024];
+        match stream.to_str() {
+            Some("stdout") => {
+                let mut output = io::stdout().lock();
+                loop {
+                    if output
+                        .write_all(&chunk)
+                        .and_then(|()| output.flush())
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
+            }
+            Some("stderr") => {
+                let mut output = io::stderr().lock();
+                loop {
+                    if output
+                        .write_all(&chunk)
+                        .and_then(|()| output.flush())
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
+            }
+            _ => panic!("invalid output flood stream"),
+        }
+    }
+
     #[test]
     fn bounded_output_persists_only_declared_bytes_and_marks_overflow() {
         let (path, file) = output_test_file("bounded");
@@ -1178,6 +1238,76 @@ mod tests {
         assert_eq!(fs::read(&path).expect("read output"), b"abc");
         assert!(!exceeded.load(Ordering::SeqCst));
         fs::remove_file(path).expect("cleanup");
+    }
+
+    #[test]
+    fn real_child_stdout_flood_fails_wait_while_live_and_persists_only_limit() {
+        let mut child = spawn_output_flood("stdout");
+        let pipe = child.stdout.take().expect("piped child stdout");
+        let (path, file) = output_test_file("stdout-live-overflow");
+        let mut drain = Some(
+            start_output_drain(pipe, file, OUTPUT_FLOOD_LIMIT, "stdout")
+                .expect("start stdout drain"),
+        );
+        let cancellation = AtomicBool::new(false);
+
+        let error = wait_process(
+            &mut child,
+            5_000,
+            &cancellation,
+            drain.as_ref(),
+            None,
+        )
+        .expect_err("live stdout overflow must fail wait");
+        assert!(matches!(
+            error,
+            LinuxHostError::StdoutLimitExceeded(OUTPUT_FLOOD_LIMIT)
+        ));
+        assert!(child.try_wait().expect("poll live flood child").is_none());
+
+        force_kill_and_reap(&mut child).expect("contain stdout flood child");
+        join_output_drain(&mut drain, "stdout").expect("join stdout drain");
+        assert_eq!(
+            fs::metadata(&path).expect("stdout log metadata").len(),
+            OUTPUT_FLOOD_LIMIT
+        );
+        assert!(child.try_wait().expect("final stdout child wait").is_some());
+        fs::remove_file(path).expect("cleanup stdout log");
+    }
+
+    #[test]
+    fn real_child_stderr_flood_fails_wait_while_live_and_persists_only_limit() {
+        let mut child = spawn_output_flood("stderr");
+        let pipe = child.stderr.take().expect("piped child stderr");
+        let (path, file) = output_test_file("stderr-live-overflow");
+        let mut drain = Some(
+            start_output_drain(pipe, file, OUTPUT_FLOOD_LIMIT, "stderr")
+                .expect("start stderr drain"),
+        );
+        let cancellation = AtomicBool::new(false);
+
+        let error = wait_process(
+            &mut child,
+            5_000,
+            &cancellation,
+            None,
+            drain.as_ref(),
+        )
+        .expect_err("live stderr overflow must fail wait");
+        assert!(matches!(
+            error,
+            LinuxHostError::StderrLimitExceeded(OUTPUT_FLOOD_LIMIT)
+        ));
+        assert!(child.try_wait().expect("poll live flood child").is_none());
+
+        force_kill_and_reap(&mut child).expect("contain stderr flood child");
+        join_output_drain(&mut drain, "stderr").expect("join stderr drain");
+        assert_eq!(
+            fs::metadata(&path).expect("stderr log metadata").len(),
+            OUTPUT_FLOOD_LIMIT
+        );
+        assert!(child.try_wait().expect("final stderr child wait").is_some());
+        fs::remove_file(path).expect("cleanup stderr log");
     }
 
     #[test]
