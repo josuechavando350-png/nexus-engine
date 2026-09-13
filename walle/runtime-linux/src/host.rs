@@ -318,11 +318,12 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
         }
 
         let run_root_path = PathBuf::from(plan.run_root);
-        let run_root_parent = run_root_path
-            .parent()
-            .ok_or(LinuxHostError::InvalidLifecycleState(
-                "run root does not have a parent directory",
-            ))?;
+        let run_root_parent =
+            run_root_path
+                .parent()
+                .ok_or(LinuxHostError::InvalidLifecycleState(
+                    "run root does not have a parent directory",
+                ))?;
         SecureDirectory::open(run_root_parent.to_path_buf())?.validate_trusted()?;
         let run_root = SecureDirectory::create_leaf(run_root_path, 0o700)?;
         run_root.validate_trusted()?;
