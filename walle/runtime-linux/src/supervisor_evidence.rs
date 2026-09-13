@@ -467,7 +467,10 @@ fn serial_bytes_prove_microvm_boot(plan: &MicroVmSupervisorPlan<'_>, serial: &[u
 }
 
 fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
-    !needle.is_empty() && haystack.windows(needle.len()).any(|window| window == needle)
+    !needle.is_empty()
+        && haystack
+            .windows(needle.len())
+            .any(|window| window == needle)
 }
 
 fn microvm_boot_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
@@ -902,11 +905,23 @@ mod tests {
         assert!(serial_bytes_prove_microvm_boot(&plan, valid.as_bytes()));
 
         let wrong_run = valid.replace(plan.run_id, "run-ffffffffffffffffffffffffffffffff");
-        assert!(!serial_bytes_prove_microvm_boot(&plan, wrong_run.as_bytes()));
-        let wrong_source = valid.replace(plan.source_sha256, "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
-        assert!(!serial_bytes_prove_microvm_boot(&plan, wrong_source.as_bytes()));
+        assert!(!serial_bytes_prove_microvm_boot(
+            &plan,
+            wrong_run.as_bytes()
+        ));
+        let wrong_source = valid.replace(
+            plan.source_sha256,
+            "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+        );
+        assert!(!serial_bytes_prove_microvm_boot(
+            &plan,
+            wrong_source.as_bytes()
+        ));
         let no_kernel = valid.replace("Linux version ", "guest text ");
-        assert!(!serial_bytes_prove_microvm_boot(&plan, no_kernel.as_bytes()));
+        assert!(!serial_bytes_prove_microvm_boot(
+            &plan,
+            no_kernel.as_bytes()
+        ));
 
         let payload = microvm_boot_payload(&plan);
         assert!(payload.contains(plan.run_id));
