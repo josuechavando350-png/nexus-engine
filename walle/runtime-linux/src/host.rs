@@ -850,10 +850,10 @@ fn force_kill_and_reap(child: &mut Child) -> Result<(), LinuxHostError> {
 mod tests {
     use super::*;
 
-    fn existing_program(candidates: &[&str]) -> &'static str {
+    fn existing_program(candidates: &[&'static str]) -> &'static str {
         for candidate in candidates {
             if Path::new(candidate).is_file() {
-                return candidate;
+                return *candidate;
             }
         }
         panic!("required test program is unavailable");
