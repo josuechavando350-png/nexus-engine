@@ -666,7 +666,10 @@ mod tests {
             SupervisorLifecycleReason::ProcessExited
         );
         assert_eq!(result.seal.entry_count, 7);
-        assert_eq!(result.source_identity_receipt.kind, SOURCE_IDENTITY_EVIDENCE_KIND);
+        assert_eq!(
+            result.source_identity_receipt.kind,
+            SOURCE_IDENTITY_EVIDENCE_KIND
+        );
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
@@ -686,7 +689,10 @@ mod tests {
         assert_eq!(sink.writes[5].1, output_bounds_payload(&plan));
         assert_eq!(sink.writes[6].0, SUPERVISOR_LIFECYCLE_EVIDENCE_KIND);
         assert_eq!(sink.writes[6].1, result.lifecycle.canonical_json());
-        assert_ne!(result.source_identity_receipt.receipt_sha256, result.plan_receipt.receipt_sha256);
+        assert_ne!(
+            result.source_identity_receipt.receipt_sha256,
+            result.plan_receipt.receipt_sha256
+        );
         assert_ne!(
             result.source_identity_receipt.receipt_sha256,
             result
@@ -722,7 +728,10 @@ mod tests {
             result.lifecycle.reason,
             SupervisorLifecycleReason::CgroupApplicationFailed
         );
-        assert_eq!(result.source_identity_receipt.kind, SOURCE_IDENTITY_EVIDENCE_KIND);
+        assert_eq!(
+            result.source_identity_receipt.kind,
+            SOURCE_IDENTITY_EVIDENCE_KIND
+        );
         assert!(result.resource_controls_receipt.is_none());
         assert!(result.runtime_binary_identity_receipt.is_none());
         assert!(result.image_integrity_receipt.is_none());
@@ -744,7 +753,10 @@ mod tests {
             result.lifecycle.reason,
             SupervisorLifecycleReason::MaterializationFailed
         );
-        assert_eq!(result.source_identity_receipt.kind, SOURCE_IDENTITY_EVIDENCE_KIND);
+        assert_eq!(
+            result.source_identity_receipt.kind,
+            SOURCE_IDENTITY_EVIDENCE_KIND
+        );
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_none());
         assert!(result.image_integrity_receipt.is_none());
@@ -762,7 +774,10 @@ mod tests {
         let result = execute_with_sink(&mut host, &plan, &mut sink).expect("record lifecycle");
 
         assert_eq!(result.lifecycle.exit_code, Some(9));
-        assert_eq!(result.source_identity_receipt.kind, SOURCE_IDENTITY_EVIDENCE_KIND);
+        assert_eq!(
+            result.source_identity_receipt.kind,
+            SOURCE_IDENTITY_EVIDENCE_KIND
+        );
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.output_bounds_receipt.is_some());
         assert_eq!(result.seal.entry_count, 7);
@@ -781,7 +796,10 @@ mod tests {
             result.lifecycle.reason,
             SupervisorLifecycleReason::WaitFailed
         );
-        assert_eq!(result.source_identity_receipt.kind, SOURCE_IDENTITY_EVIDENCE_KIND);
+        assert_eq!(
+            result.source_identity_receipt.kind,
+            SOURCE_IDENTITY_EVIDENCE_KIND
+        );
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
