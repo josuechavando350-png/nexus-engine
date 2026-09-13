@@ -227,7 +227,6 @@ impl RunState {
                 | (Self::Isolated, Self::Executing)
                 | (Self::Executing, Self::Verifying)
                 | (Self::Verifying, Self::Certifying)
-                | (Self::Certifying, Self::Certified)
                 | (_, Self::Blocked)
                 | (_, Self::Cancelled)
                 | (Self::Preparing, Self::InsufficientData)
@@ -295,6 +294,20 @@ impl RunMachine {
             });
         }
         self.state = next;
+        Ok(())
+    }
+
+    pub(crate) fn certify_from_gate(
+        &mut self,
+        _token: certification::CertificationTransitionToken,
+    ) -> Result<(), TransitionError> {
+        if self.state != RunState::Certifying {
+            return Err(TransitionError {
+                from: self.state,
+                to: RunState::Certified,
+            });
+        }
+        self.state = RunState::Certified;
         Ok(())
     }
 }
@@ -376,7 +389,7 @@ mod tests {
         "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
 
     #[test]
-    fn happy_path_reaches_certified_exactly() {
+    fn generic_transition_cannot_self_certify() {
         let mut machine = RunMachine::new();
         for next in [
             RunState::Preparing,
@@ -384,12 +397,18 @@ mod tests {
             RunState::Executing,
             RunState::Verifying,
             RunState::Certifying,
-            RunState::Certified,
         ] {
             machine.transition(next).expect("valid transition");
         }
-        assert_eq!(machine.state(), RunState::Certified);
-        assert!(machine.state().is_terminal());
+        assert_eq!(machine.state(), RunState::Certifying);
+        assert_eq!(
+            machine.transition(RunState::Certified),
+            Err(TransitionError {
+                from: RunState::Certifying,
+                to: RunState::Certified,
+            })
+        );
+        assert_eq!(machine.state(), RunState::Certifying);
     }
 
     #[test]
@@ -421,6 +440,7 @@ mod tests {
     fn skipped_happy_path_transition_is_rejected() {
         assert!(!RunState::Planned.can_transition_to(RunState::Executing));
         assert!(!RunState::Executing.can_transition_to(RunState::Certified));
+        assert!(!RunState::Certifying.can_transition_to(RunState::Certified));
         assert!(!RunState::Verifying.can_transition_to(RunState::Isolated));
     }
 
