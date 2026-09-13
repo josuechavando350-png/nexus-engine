@@ -1,11 +1,12 @@
 use std::error::Error;
 use std::ffi::{CString, OsStr};
 use std::fmt::{Display, Formatter};
-use std::fs::File;
+use std::fs::{File, Permissions};
 use std::io;
 use std::mem::size_of;
 use std::os::fd::{AsRawFd, FromRawFd, RawFd};
 use std::os::unix::ffi::OsStrExt;
+use std::os::unix::fs::{MetadataExt, PermissionsExt};
 use std::path::{Component, Path, PathBuf};
 
 const SYS_OPENAT2: i64 = 437;
@@ -41,6 +42,11 @@ pub enum SecureFsError {
     InvalidMode(u32),
     NotDirectory(PathBuf),
     AlreadyExists(PathBuf),
+    UntrustedDirectory {
+        path: PathBuf,
+        uid: u32,
+        mode: u32,
+    },
     Openat2Failed {
         path: PathBuf,
         source: io::Error,
@@ -69,6 +75,12 @@ impl Display for SecureFsError {
             Self::AlreadyExists(path) => {
                 write!(formatter, "path already exists: {}", path.display())
             }
+            Self::UntrustedDirectory { path, uid, mode } => write!(
+                formatter,
+                "runtime directory must be root-owned and not group/world writable: {} (uid={uid}, mode={:o})",
+                path.display(),
+                mode & 0o7777
+            ),
             Self::Openat2Failed { path, source } => {
                 write!(formatter, "openat2 rejected {}: {source}", path.display())
             }
@@ -125,6 +137,23 @@ impl SecureDirectory {
         self.file.as_raw_fd()
     }
 
+    pub fn validate_trusted(&self) -> Result<(), SecureFsError> {
+        let metadata = self.file.metadata().map_err(|source| SecureFsError::Io {
+            operation: "inspect trusted runtime directory",
+            source,
+        })?;
+        let uid = metadata.uid();
+        let mode = metadata.mode();
+        if uid != 0 || mode & 0o022 != 0 {
+            return Err(SecureFsError::UntrustedDirectory {
+                path: self.path.clone(),
+                uid,
+                mode,
+            });
+        }
+        Ok(())
+    }
+
     pub fn create_child_directory(
         &self,
         name: &str,
@@ -172,25 +201,23 @@ impl SecureDirectory {
         validate_child_name(name)?;
         let name_c = os_string_to_cstring(name)?;
         let child_path = self.path.join(name);
-        let result = unsafe { mkdirat(self.file.as_raw_fd(), name_c.as_ptr(), mode) };
-        if result != 0 {
-            let source = io::Error::last_os_error();
-            if source.raw_os_error() != Some(EEXIST) || !allow_existing {
-                return if source.raw_os_error() == Some(EEXIST) {
-                    Err(SecureFsError::AlreadyExists(child_path))
-                } else {
-                    Err(SecureFsError::Io {
-                        operation: "mkdirat secure runtime directory",
-                        source,
-                    })
-                };
+        let created = match unsafe { mkdirat(self.file.as_raw_fd(), name_c.as_ptr(), mode) } {
+            0 => true,
+            _ => {
+                let source = io::Error::last_os_error();
+                if source.raw_os_error() != Some(EEXIST) || !allow_existing {
+                    return if source.raw_os_error() == Some(EEXIST) {
+                        Err(SecureFsError::AlreadyExists(child_path))
+                    } else {
+                        Err(SecureFsError::Io {
+                            operation: "mkdirat secure runtime directory",
+                            source,
+                        })
+                    };
+                }
+                false
             }
-        } else {
-            self.file.sync_all().map_err(|source| SecureFsError::Io {
-                operation: "sync parent runtime directory",
-                source,
-            })?;
-        }
+        };
 
         let file = open_relative(
             self.file.as_raw_fd(),
@@ -205,6 +232,21 @@ impl SecureDirectory {
         })?;
         if !metadata.file_type().is_dir() {
             return Err(SecureFsError::NotDirectory(child_path));
+        }
+        if created {
+            file.set_permissions(Permissions::from_mode(mode))
+                .map_err(|source| SecureFsError::Io {
+                    operation: "set exact runtime directory mode",
+                    source,
+                })?;
+            file.sync_all().map_err(|source| SecureFsError::Io {
+                operation: "sync created runtime directory",
+                source,
+            })?;
+            self.file.sync_all().map_err(|source| SecureFsError::Io {
+                operation: "sync parent runtime directory",
+                source,
+            })?;
         }
         Ok(Self {
             path: child_path,
@@ -225,7 +267,7 @@ impl SecureDirectory {
         if cloexec {
             flags |= O_CLOEXEC;
         }
-        match open_relative(
+        let file = match open_relative(
             self.file.as_raw_fd(),
             OsStr::new(name),
             flags,
@@ -235,10 +277,20 @@ impl SecureDirectory {
             Err(SecureFsError::Openat2Failed { path, source })
                 if source.raw_os_error() == Some(EEXIST) =>
             {
-                Err(SecureFsError::AlreadyExists(path))
+                return Err(SecureFsError::AlreadyExists(path));
             }
-            result => result,
-        }
+            result => result?,
+        };
+        file.set_permissions(Permissions::from_mode(mode))
+            .map_err(|source| SecureFsError::Io {
+                operation: "set exact runtime file mode",
+                source,
+            })?;
+        self.file.sync_all().map_err(|source| SecureFsError::Io {
+            operation: "sync runtime directory after file creation",
+            source,
+        })?;
+        Ok(file)
     }
 }
 
@@ -364,12 +416,16 @@ mod tests {
     }
 
     #[test]
-    fn leaf_directory_and_file_are_created_fd_relative() {
+    fn leaf_directory_and_file_are_created_fd_relative_with_exact_modes() {
         let root = test_dir("create");
         let leaf = SecureDirectory::create_leaf(root.join("run-abc"), 0o700).expect("leaf");
-        let file = leaf.create_new_file("evidence.log", 0o600).expect("file");
+        let file = leaf.create_new_file("evidence.log", 0o640).expect("file");
         assert!(file.metadata().expect("metadata").is_file());
-        assert!(root.join("run-abc/evidence.log").is_file());
+        assert_eq!(file.metadata().expect("metadata").mode() & 0o777, 0o640);
+        assert_eq!(
+            fs::metadata(root.join("run-abc")).expect("leaf metadata").mode() & 0o777,
+            0o700
+        );
         drop(file);
         fs::remove_dir_all(root).expect("cleanup");
     }
