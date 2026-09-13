@@ -3,7 +3,9 @@ use std::ffi::OsString;
 use std::fmt::{Display, Formatter};
 use std::path::{Component, Path, PathBuf};
 
-use walle_core::supervisor::{MicroVmSupervisorPlan, GUEST_CONFIG_PATH, GUEST_KERNEL_PATH, GUEST_ROOTFS_PATH};
+use walle_core::supervisor::{
+    MicroVmSupervisorPlan, GUEST_CONFIG_PATH, GUEST_KERNEL_PATH, GUEST_ROOTFS_PATH,
+};
 
 pub const DEFAULT_BOOT_ARGS: &str = "console=ttyS0 reboot=k panic=1 pci=off";
 pub const SCRATCH_GUEST_PATH: &str = "/walle/scratch.ext4";
@@ -73,15 +75,30 @@ pub enum FirecrackerPlanError {
 impl Display for FirecrackerPlanError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::UnsafePlan => formatter.write_str("supervisor plan is incompatible with deny-all Firecracker execution"),
-            Self::UnsupportedVcpuCount(value) => write!(formatter, "Firecracker vCPU count is unsupported: {value}"),
-            Self::InvalidBootArgs => formatter.write_str("kernel boot arguments are empty, too long, or contain unsupported control bytes"),
-            Self::ScratchImageRequired => formatter.write_str("writable scratch is required by the plan but no staged scratch image was supplied"),
-            Self::UnexpectedScratchImage => formatter.write_str("a scratch image was supplied even though the plan does not allocate scratch"),
+            Self::UnsafePlan => formatter
+                .write_str("supervisor plan is incompatible with deny-all Firecracker execution"),
+            Self::UnsupportedVcpuCount(value) => {
+                write!(formatter, "Firecracker vCPU count is unsupported: {value}")
+            }
+            Self::InvalidBootArgs => formatter.write_str(
+                "kernel boot arguments are empty, too long, or contain unsupported control bytes",
+            ),
+            Self::ScratchImageRequired => formatter.write_str(
+                "writable scratch is required by the plan but no staged scratch image was supplied",
+            ),
+            Self::UnexpectedScratchImage => formatter.write_str(
+                "a scratch image was supplied even though the plan does not allocate scratch",
+            ),
             Self::UnsafeGuestPath(path) => write!(formatter, "unsafe guest path: {path}"),
-            Self::UnsafeHostPath(path) => write!(formatter, "unsafe host path: {}", path.display()),
-            Self::UnsafeCgroupPath(path) => write!(formatter, "unsafe cgroup relative path: {}", path.display()),
-            Self::MissingFirecrackerFileName => formatter.write_str("staged Firecracker executable has no file name"),
+            Self::UnsafeHostPath(path) => {
+                write!(formatter, "unsafe host path: {}", path.display())
+            }
+            Self::UnsafeCgroupPath(path) => {
+                write!(formatter, "unsafe cgroup relative path: {}", path.display())
+            }
+            Self::MissingFirecrackerFileName => {
+                formatter.write_str("staged Firecracker executable has no file name")
+            }
         }
     }
 }
@@ -119,7 +136,9 @@ pub fn build_firecracker_config(
     json.push_str(",\"boot_args\":");
     push_json_string(&mut json, options.boot_args);
     json.push_str("},\"drives\":[{");
-    json.push_str("\"drive_id\":\"rootfs\",\"is_root_device\":true,\"is_read_only\":true,\"path_on_host\":");
+    json.push_str(
+        "\"drive_id\":\"rootfs\",\"is_root_device\":true,\"is_read_only\":true,\"path_on_host\":",
+    );
     push_json_string(&mut json, GUEST_ROOTFS_PATH);
     json.push('}');
 
@@ -213,7 +232,10 @@ fn validate_supervisor_plan(plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Fire
     {
         return Err(FirecrackerPlanError::UnsafePlan);
     }
-    if plan.vcpu_count == 0 || plan.vcpu_count > 32 || (plan.vcpu_count != 1 && plan.vcpu_count % 2 != 0) {
+    if plan.vcpu_count == 0
+        || plan.vcpu_count > 32
+        || (plan.vcpu_count != 1 && plan.vcpu_count % 2 != 0)
+    {
         return Err(FirecrackerPlanError::UnsupportedVcpuCount(plan.vcpu_count));
     }
     Ok(())
@@ -318,15 +340,18 @@ mod tests {
         MicroVmSupervisorPlan {
             run_id: "run-0123456789abcdef0123456789abcdef",
             workload_id: "seo-avengers-2500",
-            source_sha256: "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+            source_sha256:
+                "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             backend_id: "firecracker-microvm-v1",
             firecracker_exec: "/opt/walle/firecracker",
             jailer_exec: "/opt/walle/jailer",
             run_root: "/var/lib/walle/runs/run-0123456789abcdef0123456789abcdef",
             kernel_source: "/opt/walle/images/vmlinux",
             rootfs_source: "/opt/walle/images/rootfs.ext4",
-            kernel_sha256: "sha256:1111111111111111111111111111111111111111111111111111111111111111",
-            rootfs_sha256: "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+            kernel_sha256:
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+            rootfs_sha256:
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222",
             jail_uid: 10001,
             jail_gid: 10001,
             cgroup: CgroupV2Plan {
@@ -407,8 +432,12 @@ mod tests {
             .map(|value| value.to_string_lossy().into_owned())
             .collect();
         assert_eq!(command.program, PathBuf::from("/opt/walle/staged/jailer"));
-        assert!(args.windows(2).any(|pair| pair == ["--cgroup-version", "2"]));
-        assert!(args.windows(2).any(|pair| pair == ["--config-file", GUEST_CONFIG_PATH]));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["--cgroup-version", "2"]));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["--config-file", GUEST_CONFIG_PATH]));
         assert!(args.iter().any(|value| value == "--no-api"));
         assert!(!args.iter().any(|value| value == "--daemonize"));
         assert!(!args.iter().any(|value| value == "--new-pid-ns"));
