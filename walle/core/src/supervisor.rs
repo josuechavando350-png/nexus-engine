@@ -443,6 +443,8 @@ mod tests {
             kvm_exists: true,
             kvm_is_character_device: true,
             kvm_open_read_write: true,
+            kvm_api_version: Some(12),
+            kvm_api_compatible: true,
             cgroup_v2: true,
             cgroup_controllers: vec![
                 "cpu".to_owned(),
