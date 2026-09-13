@@ -23,9 +23,18 @@ fi
 
 if command -v cargo >/dev/null 2>&1; then
   echo "[4/12] Rust format/check"
-  cargo fmt --all -- --check
-  if command -v rustup >/dev/null 2>&1; then rustup target add wasm32-unknown-unknown >/dev/null; fi
-  cargo check --target wasm32-unknown-unknown -p seo-avengers-edge
+  RUST_VERIFY_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/seo-avengers-200-rust.XXXXXX")"
+  (
+    set -euo pipefail
+    trap 'rm -rf "$RUST_VERIFY_ROOT"' EXIT
+    mkdir -p "$RUST_VERIFY_ROOT/apps"
+    cp "$ROOT/Cargo.toml" "$RUST_VERIFY_ROOT/Cargo.toml"
+    cp -R "$ROOT/apps/edge-cloudflare-worker" "$RUST_VERIFY_ROOT/apps/edge-cloudflare-worker"
+    cd "$RUST_VERIFY_ROOT"
+    cargo fmt --all -- --check
+    if command -v rustup >/dev/null 2>&1; then rustup target add wasm32-unknown-unknown >/dev/null; fi
+    cargo check --target wasm32-unknown-unknown -p seo-avengers-edge
+  )
 else
   echo "[4/12] SKIP Rust: cargo not installed"
 fi
@@ -46,7 +55,7 @@ declare module "web-vitals" {
   export const onTTFB:(cb:(m:M)=>void)=>void;
 }
 TS
-  tsc --noEmit --strict --target ES2022 --module ESNext --moduleResolution Bundler --lib DOM,ES2022 \
+  tsc --ignoreConfig --noEmit --strict --target ES2022 --module ESNext --moduleResolution Bundler --lib DOM,ES2022 \
     packages/Telemetry-Nexus-Cortex/src/index.ts packages/Telemetry-Nexus-Cortex/src/ingest.ts "$STUB"
 else
   echo "[5/12] SKIP TypeScript: tsc not installed"
