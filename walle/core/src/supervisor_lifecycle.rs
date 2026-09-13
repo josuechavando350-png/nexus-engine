@@ -468,7 +468,11 @@ mod tests {
                 "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
             backend_id: "firecracker-microvm-v1",
             firecracker_exec: "/opt/walle/bin/firecracker",
+            firecracker_sha256:
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222",
             jailer_exec: "/opt/walle/bin/jailer",
+            jailer_sha256:
+                "sha256:3333333333333333333333333333333333333333333333333333333333333333",
             run_root: "/var/lib/walle/runs/run-0123456789abcdef0123456789abcdef",
             kernel_source: "/var/lib/walle/images/kernel-v1.bin",
             rootfs_source: "/var/lib/walle/images/rootfs-v1.ext4",
