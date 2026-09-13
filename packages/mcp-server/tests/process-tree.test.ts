@@ -38,6 +38,20 @@ describe.runIf(process.platform !== "win32")("auditable process-tree hard stop",
     await assertDead(pid);
   });
 
+  it("owns a timeout rejection until a delayed caller observes completion", async () => {
+    const cwd = await root();
+    const execution = startProcess(
+      process.execPath,
+      ["-e", "process.on('SIGTERM',()=>{});setInterval(()=>{},1000)"],
+      { cwd, timeoutMs: 20, maxOutputBytes: 1024, termGraceMs: 20, reapDeadlineMs: 2_000 },
+    );
+    const pid = execution.child.pid;
+    expect(pid).toBeTypeOf("number");
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    await expect(execution.completed).rejects.toMatchObject({ code: "TIMEOUT" });
+    await assertDead(pid as number);
+  });
+
   it("kills and reaps a grandchild that ignores TERM", async () => {
     const cwd = await root(); const parentPath = join(cwd, "parent"); const grandchildPath = join(cwd, "grandchild");
     const grandchild = `require('fs').writeFileSync(${JSON.stringify(grandchildPath)},String(process.pid));process.on('SIGTERM',()=>{});setInterval(()=>{},1000)`;

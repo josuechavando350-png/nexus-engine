@@ -52,6 +52,7 @@ export class ManagedProcess {
   private termination: Promise<void> | null = null;
   private timeout: NodeJS.Timeout | null = null;
   private abortHandler: (() => void) | null = null;
+  private rejectTerminationFailure: ((cause: unknown) => void) | null = null;
 
   constructor(readonly command: string, readonly args: readonly string[], readonly options: ProcessOptions) {
     const capture = options.captureOutput !== false;
@@ -66,10 +67,7 @@ export class ManagedProcess {
     const collect = (target: Buffer[]) => (chunk: Buffer) => {
       this.outputBytes += chunk.length;
       if (this.outputBytes <= options.maxOutputBytes) target.push(Buffer.from(chunk));
-      else if (!this.stopReason) {
-        this.stopReason = "OUTPUT_LIMIT";
-        void this.terminate();
-      }
+      else this.requestStop("OUTPUT_LIMIT");
     };
     this.child.stdout?.on("data", collect(this.stdout));
     this.child.stderr?.on("data", collect(this.stderr));
@@ -77,7 +75,10 @@ export class ManagedProcess {
     // unhandled EventEmitter error before a consumer awaits completion.
     const error = once(this.child, "error").then(([cause]) => { throw cause; });
     const close = once(this.child, "close").then(([code]) => code as number | null);
-    this.completed = Promise.race([close, error]).then(async (code) => {
+    const terminationFailure = new Promise<never>((_, reject) => {
+      this.rejectTerminationFailure = reject;
+    });
+    this.completed = Promise.race([close, error, terminationFailure]).then(async (code) => {
       await this.closeStreams();
       const out = Buffer.concat(this.stdout); const err = Buffer.concat(this.stderr);
       if (this.stopReason) throw new ProcessExecutionError(`process ${this.stopReason.toLowerCase()}`, this.stopReason, code, out, err);
@@ -88,10 +89,14 @@ export class ManagedProcess {
       if (cause instanceof ProcessExecutionError) throw cause;
       throw new ProcessExecutionError(cause instanceof Error ? cause.message : String(cause), "SPAWN", null, Buffer.concat(this.stdout), Buffer.concat(this.stderr));
     }).finally(() => this.cleanupListeners());
-    this.timeout = setTimeout(() => { if (!this.stopReason) { this.stopReason = "TIMEOUT"; void this.terminate(); } }, options.timeoutMs);
+    // A ManagedProcess may intentionally be observed later (for example after
+    // a readiness probe). Mark the promise as handled immediately without
+    // changing its rejection semantics for callers that await `completed`.
+    void this.completed.catch(() => undefined);
+    this.timeout = setTimeout(() => this.requestStop("TIMEOUT"), options.timeoutMs);
     this.timeout.unref();
     if (options.signal) {
-      this.abortHandler = () => { if (!this.stopReason) { this.stopReason = "ABORTED"; void this.terminate(); } };
+      this.abortHandler = () => this.requestStop("ABORTED");
       if (options.signal.aborted) this.abortHandler();
       else options.signal.addEventListener("abort", this.abortHandler, { once: true });
     }
@@ -111,6 +116,14 @@ export class ManagedProcess {
     return this.termination;
   }
 
+  private requestStop(reason: ProcessExecutionError["code"]): void {
+    if (this.stopReason) return;
+    this.stopReason = reason;
+    void this.terminate().catch((cause: unknown) => {
+      this.rejectTerminationFailure?.(cause);
+    });
+  }
+
   private async closeStreams(): Promise<void> {
     this.child.stdin?.destroy();
     for (const stream of [this.child.stdout, this.child.stderr]) {
@@ -121,6 +134,7 @@ export class ManagedProcess {
   private cleanupListeners(): void {
     if (this.timeout) clearTimeout(this.timeout);
     if (this.abortHandler) this.options.signal?.removeEventListener("abort", this.abortHandler);
+    this.rejectTerminationFailure = null;
   }
 }
 
