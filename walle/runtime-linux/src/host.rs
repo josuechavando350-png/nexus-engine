@@ -1,14 +1,14 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::fs;
-use std::io::{self, Seek, SeekFrom, Write};
+use std::fs::{self, File};
+use std::io::{self, Read, Seek, SeekFrom, Write};
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 use std::process::{Child, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
-use std::thread;
+use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 
 use walle_core::is_valid_sha256;
@@ -50,6 +50,11 @@ pub struct LinuxMicroVmHostConfig {
 pub enum LinuxHostError {
     InvalidFirecrackerSha256,
     InvalidJailerSha256,
+    RuntimeIdentityMismatch {
+        label: &'static str,
+        plan: String,
+        configured: String,
+    },
     UnsafeTrustedProgram(PathBuf),
     DigestMismatch {
         label: &'static str,
@@ -57,6 +62,9 @@ pub enum LinuxHostError {
         actual: String,
     },
     InvalidLifecycleState(&'static str),
+    StdoutLimitExceeded(u64),
+    StderrLimitExceeded(u64),
+    OutputDrainPanicked(&'static str),
     MissingScratchFormatter,
     ScratchSizeOverflow,
     ScratchFormatterFailed(Option<i32>),
@@ -80,6 +88,14 @@ impl Display for LinuxHostError {
             Self::InvalidJailerSha256 => {
                 formatter.write_str("jailer digest is not a canonical lowercase sha256")
             }
+            Self::RuntimeIdentityMismatch {
+                label,
+                plan,
+                configured,
+            } => write!(
+                formatter,
+                "{label} identity differs between supervisor plan ({plan}) and Linux host configuration ({configured})"
+            ),
             Self::UnsafeTrustedProgram(path) => write!(
                 formatter,
                 "trusted runtime program must be root-owned and not group/world writable: {}",
@@ -98,6 +114,15 @@ impl Display for LinuxHostError {
                     formatter,
                     "invalid Linux supervisor lifecycle state: {reason}"
                 )
+            }
+            Self::StdoutLimitExceeded(limit) => {
+                write!(formatter, "runtime stdout exceeded declared limit of {limit} bytes")
+            }
+            Self::StderrLimitExceeded(limit) => {
+                write!(formatter, "runtime stderr exceeded declared limit of {limit} bytes")
+            }
+            Self::OutputDrainPanicked(stream) => {
+                write!(formatter, "{stream} output drain thread panicked")
             }
             Self::MissingScratchFormatter => formatter.write_str(
                 "scratch filesystem was requested but no trusted mkfs.ext4 program was configured",
@@ -173,13 +198,44 @@ impl CancellationHandle {
 }
 
 #[derive(Debug)]
+struct OutputDrain {
+    handle: Option<JoinHandle<io::Result<()>>>,
+    exceeded: Arc<AtomicBool>,
+    limit: u64,
+}
+
+#[derive(Debug)]
 pub struct LinuxManagedProcess {
     child: Child,
+    stdout: Option<OutputDrain>,
+    stderr: Option<OutputDrain>,
 }
 
 impl LinuxManagedProcess {
     pub fn id(&self) -> u32 {
         self.child.id()
+    }
+
+    fn join_drains(&mut self) -> Result<(), LinuxHostError> {
+        let stdout = join_output_drain(&mut self.stdout, "stdout");
+        let stderr = join_output_drain(&mut self.stderr, "stderr");
+        stdout?;
+        stderr?;
+        Ok(())
+    }
+
+    fn check_output_limits(&self) -> Result<(), LinuxHostError> {
+        if let Some(stdout) = self.stdout.as_ref() {
+            if stdout.exceeded.load(Ordering::SeqCst) {
+                return Err(LinuxHostError::StdoutLimitExceeded(stdout.limit));
+            }
+        }
+        if let Some(stderr) = self.stderr.as_ref() {
+            if stderr.exceeded.load(Ordering::SeqCst) {
+                return Err(LinuxHostError::StderrLimitExceeded(stderr.limit));
+            }
+        }
+        Ok(())
     }
 }
 
@@ -280,17 +336,31 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
                 "host instance already owns a run",
             ));
         }
+        if plan.firecracker_sha256 != self.config.firecracker_sha256 {
+            return Err(LinuxHostError::RuntimeIdentityMismatch {
+                label: "Firecracker binary",
+                plan: plan.firecracker_sha256.to_owned(),
+                configured: self.config.firecracker_sha256.clone(),
+            });
+        }
+        if plan.jailer_sha256 != self.config.jailer_sha256 {
+            return Err(LinuxHostError::RuntimeIdentityMismatch {
+                label: "jailer binary",
+                plan: plan.jailer_sha256.to_owned(),
+                configured: self.config.jailer_sha256.clone(),
+            });
+        }
         verify_digest(
             &self.hasher,
             "Firecracker binary",
             Path::new(plan.firecracker_exec),
-            &self.config.firecracker_sha256,
+            plan.firecracker_sha256,
         )?;
         verify_digest(
             &self.hasher,
             "jailer binary",
             Path::new(plan.jailer_exec),
-            &self.config.jailer_sha256,
+            plan.jailer_sha256,
         )?;
         verify_digest(
             &self.hasher,
@@ -405,8 +475,6 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
     fn materialize_runtime(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Self::Error> {
         self.require_verified(plan)?;
         let hasher = self.hasher.clone();
-        let firecracker_sha256 = self.config.firecracker_sha256.clone();
-        let jailer_sha256 = self.config.jailer_sha256.clone();
         let chroot_base = self.config.chroot_base.clone();
         let boot_args = self.config.boot_args.clone();
         let mkfs_ext4_program = self.config.mkfs_ext4_program.clone();
@@ -436,7 +504,7 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             Path::new(plan.firecracker_exec),
             &run.run_root,
             "firecracker",
-            &firecracker_sha256,
+            plan.firecracker_sha256,
             0o555,
             &hasher,
         )?;
@@ -444,7 +512,7 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             Path::new(plan.jailer_exec),
             &run.run_root,
             "jailer",
-            &jailer_sha256,
+            plan.jailer_sha256,
             0o555,
             &hasher,
         )?;
@@ -537,7 +605,7 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
                 }
             }
         };
-        let stdout = match run.run_root.create_new_file("stdout.log", 0o600) {
+        let stdout_log = match run.run_root.create_new_file("stdout.log", 0o600) {
             Ok(file) => file,
             Err(error) => {
                 return SpawnAttempt::Failed {
@@ -546,7 +614,7 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
                 }
             }
         };
-        let stderr = match run.run_root.create_new_file("stderr.log", 0o600) {
+        let stderr_log = match run.run_root.create_new_file("stderr.log", 0o600) {
             Ok(file) => file,
             Err(error) => {
                 return SpawnAttempt::Failed {
@@ -560,19 +628,93 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             .args(&command_plan.args)
             .env_clear()
             .stdin(Stdio::null())
-            .stdout(Stdio::from(stdout))
-            .stderr(Stdio::from(stderr))
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
             .spawn();
-        match child {
-            Ok(child) => SpawnAttempt::Running(LinuxManagedProcess { child }),
-            Err(source) => SpawnAttempt::Failed {
-                error: LinuxHostError::Io {
-                    operation: "spawn jailer",
-                    source,
-                },
-                process: None,
-            },
-        }
+        let mut child = match child {
+            Ok(child) => child,
+            Err(source) => {
+                return SpawnAttempt::Failed {
+                    error: LinuxHostError::Io {
+                        operation: "spawn jailer",
+                        source,
+                    },
+                    process: None,
+                }
+            }
+        };
+
+        let stdout_pipe = match child.stdout.take() {
+            Some(pipe) => pipe,
+            None => {
+                return SpawnAttempt::Failed {
+                    error: LinuxHostError::InvalidLifecycleState(
+                        "spawned jailer is missing piped stdout",
+                    ),
+                    process: Some(LinuxManagedProcess {
+                        child,
+                        stdout: None,
+                        stderr: None,
+                    }),
+                }
+            }
+        };
+        let stderr_pipe = match child.stderr.take() {
+            Some(pipe) => pipe,
+            None => {
+                return SpawnAttempt::Failed {
+                    error: LinuxHostError::InvalidLifecycleState(
+                        "spawned jailer is missing piped stderr",
+                    ),
+                    process: Some(LinuxManagedProcess {
+                        child,
+                        stdout: None,
+                        stderr: None,
+                    }),
+                }
+            }
+        };
+
+        let stdout =
+            match start_output_drain(stdout_pipe, stdout_log, plan.max_stdout_bytes, "stdout") {
+                Ok(drain) => drain,
+                Err(source) => {
+                    return SpawnAttempt::Failed {
+                        error: LinuxHostError::Io {
+                            operation: "start stdout drain thread",
+                            source,
+                        },
+                        process: Some(LinuxManagedProcess {
+                            child,
+                            stdout: None,
+                            stderr: None,
+                        }),
+                    }
+                }
+            };
+        let stderr =
+            match start_output_drain(stderr_pipe, stderr_log, plan.max_stderr_bytes, "stderr") {
+                Ok(drain) => drain,
+                Err(source) => {
+                    return SpawnAttempt::Failed {
+                        error: LinuxHostError::Io {
+                            operation: "start stderr drain thread",
+                            source,
+                        },
+                        process: Some(LinuxManagedProcess {
+                            child,
+                            stdout: Some(stdout),
+                            stderr: None,
+                        }),
+                    }
+                }
+            };
+
+        SpawnAttempt::Running(LinuxManagedProcess {
+            child,
+            stdout: Some(stdout),
+            stderr: Some(stderr),
+        })
     }
 
     fn wait(
@@ -580,7 +722,18 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
         process: &mut Self::Process,
         timeout_ms: u64,
     ) -> Result<WaitOutcome, Self::Error> {
-        wait_process(&mut process.child, timeout_ms, &self.cancellation)
+        let outcome = wait_process(
+            &mut process.child,
+            timeout_ms,
+            &self.cancellation,
+            process.stdout.as_ref(),
+            process.stderr.as_ref(),
+        )?;
+        if matches!(outcome, WaitOutcome::Exited(_)) {
+            process.join_drains()?;
+            process.check_output_limits()?;
+        }
+        Ok(outcome)
     }
 
     fn terminate_and_wait(
@@ -588,11 +741,16 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
         process: &mut Self::Process,
         grace_ms: u64,
     ) -> Result<GracefulTerminationOutcome, Self::Error> {
-        terminate_process(&mut process.child, grace_ms)
+        let outcome = terminate_process(&mut process.child, grace_ms)?;
+        if outcome == GracefulTerminationOutcome::Exited {
+            process.join_drains()?;
+        }
+        Ok(outcome)
     }
 
     fn force_kill_and_reap(&mut self, process: &mut Self::Process) -> Result<(), Self::Error> {
-        force_kill_and_reap(&mut process.child)
+        force_kill_and_reap(&mut process.child)?;
+        process.join_drains()
     }
 
     fn cleanup(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Self::Error> {
@@ -802,14 +960,96 @@ fn create_scratch_ext4(
     Ok(directory.path().join("scratch.ext4"))
 }
 
+fn start_output_drain<R: Read + Send + 'static>(
+    reader: R,
+    file: File,
+    limit: u64,
+    stream: &'static str,
+) -> io::Result<OutputDrain> {
+    let exceeded = Arc::new(AtomicBool::new(false));
+    let thread_exceeded = Arc::clone(&exceeded);
+    let handle = thread::Builder::new()
+        .name(format!("walle-{stream}-drain"))
+        .spawn(move || drain_bounded_output(reader, file, limit, &thread_exceeded))?;
+    Ok(OutputDrain {
+        handle: Some(handle),
+        exceeded,
+        limit,
+    })
+}
+
+fn drain_bounded_output<R: Read>(
+    mut reader: R,
+    mut file: File,
+    limit: u64,
+    exceeded: &AtomicBool,
+) -> io::Result<()> {
+    let mut observed = 0_u64;
+    let mut buffer = [0_u8; 16 * 1024];
+    loop {
+        let count = reader.read(&mut buffer)?;
+        if count == 0 {
+            break;
+        }
+        let count_u64 = u64::try_from(count).unwrap_or(u64::MAX);
+        let remaining = limit.saturating_sub(observed);
+        let writable = remaining.min(count_u64) as usize;
+        if writable > 0 {
+            file.write_all(&buffer[..writable])?;
+        }
+        if count_u64 > remaining {
+            exceeded.store(true, Ordering::SeqCst);
+        }
+        observed = observed.saturating_add(count_u64);
+    }
+    file.flush()?;
+    file.sync_all()
+}
+
+fn join_output_drain(
+    drain: &mut Option<OutputDrain>,
+    stream: &'static str,
+) -> Result<(), LinuxHostError> {
+    let Some(drain) = drain.as_mut() else {
+        return Ok(());
+    };
+    let Some(handle) = drain.handle.take() else {
+        return Ok(());
+    };
+    match handle.join() {
+        Ok(Ok(())) => Ok(()),
+        Ok(Err(source)) => Err(LinuxHostError::Io {
+            operation: if stream == "stdout" {
+                "drain bounded stdout"
+            } else {
+                "drain bounded stderr"
+            },
+            source,
+        }),
+        Err(_) => Err(LinuxHostError::OutputDrainPanicked(stream)),
+    }
+}
+
 fn wait_process(
     child: &mut Child,
     timeout_ms: u64,
     cancellation: &AtomicBool,
+    stdout: Option<&OutputDrain>,
+    stderr: Option<&OutputDrain>,
 ) -> Result<WaitOutcome, LinuxHostError> {
     let started = Instant::now();
     let timeout = Duration::from_millis(timeout_ms);
     loop {
+        if let Some(stdout) = stdout {
+            if stdout.exceeded.load(Ordering::SeqCst) {
+                return Err(LinuxHostError::StdoutLimitExceeded(stdout.limit));
+            }
+        }
+        if let Some(stderr) = stderr {
+            if stderr.exceeded.load(Ordering::SeqCst) {
+                return Err(LinuxHostError::StderrLimitExceeded(stderr.limit));
+            }
+        }
         if let Some(status) = child.try_wait().map_err(|source| LinuxHostError::Io {
             operation: "poll jailer process",
             source,
@@ -897,6 +1137,11 @@ fn force_kill_and_reap(child: &mut Child) -> Result<(), LinuxHostError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::atomic::{AtomicU64, Ordering as AtomicOrdering};
+
+    static NEXT_LOG_ID: AtomicU64 = AtomicU64::new(1);
+    const OUTPUT_FLOOD_ENV: &str = "WALLE_TEST_OUTPUT_FLOOD_STREAM";
+    const OUTPUT_FLOOD_LIMIT: u64 = 4 * 1024;
 
     fn existing_program(candidates: &[&'static str]) -> &'static str {
         for candidate in candidates {
@@ -907,12 +1152,158 @@ mod tests {
         panic!("required test program is unavailable");
     }
 
+    fn output_test_file(label: &str) -> (PathBuf, File) {
+        let id = NEXT_LOG_ID.fetch_add(1, AtomicOrdering::Relaxed);
+        let path = std::env::temp_dir().join(format!(
+            "walle-output-{label}-{}-{id}.log",
+            std::process::id()
+        ));
+        let file = File::create(&path).expect("create output test file");
+        (path, file)
+    }
+
+    fn spawn_output_flood(stream: &str) -> Child {
+        Command::new(std::env::current_exe().expect("current test executable"))
+            .args([
+                "--exact",
+                "host::tests::output_flood_child_helper",
+                "--nocapture",
+            ])
+            .env(OUTPUT_FLOOD_ENV, stream)
+            .stdin(Stdio::null())
+            .stdout(if stream == "stdout" {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
+            .stderr(if stream == "stderr" {
+                Stdio::piped()
+            } else {
+                Stdio::null()
+            })
+            .spawn()
+            .expect("spawn output flood child")
+    }
+
+    #[test]
+    fn output_flood_child_helper() {
+        let Some(stream) = std::env::var_os(OUTPUT_FLOOD_ENV) else {
+            return;
+        };
+        let chunk = [b'x'; 16 * 1024];
+        match stream.to_str() {
+            Some("stdout") => {
+                let mut output = io::stdout().lock();
+                loop {
+                    if output
+                        .write_all(&chunk)
+                        .and_then(|()| output.flush())
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
+            }
+            Some("stderr") => {
+                let mut output = io::stderr().lock();
+                loop {
+                    if output
+                        .write_all(&chunk)
+                        .and_then(|()| output.flush())
+                        .is_err()
+                    {
+                        return;
+                    }
+                }
+            }
+            _ => panic!("invalid output flood stream"),
+        }
+    }
+
+    #[test]
+    fn bounded_output_persists_only_declared_bytes_and_marks_overflow() {
+        let (path, file) = output_test_file("bounded");
+        let exceeded = AtomicBool::new(false);
+        drain_bounded_output(&b"abcdef"[..], file, 3, &exceeded).expect("drain");
+        assert_eq!(fs::read(&path).expect("read output"), b"abc");
+        assert!(exceeded.load(Ordering::SeqCst));
+        fs::remove_file(path).expect("cleanup");
+    }
+
+    #[test]
+    fn exact_output_limit_does_not_report_overflow() {
+        let (path, file) = output_test_file("exact");
+        let exceeded = AtomicBool::new(false);
+        drain_bounded_output(&b"abc"[..], file, 3, &exceeded).expect("drain");
+        assert_eq!(fs::read(&path).expect("read output"), b"abc");
+        assert!(!exceeded.load(Ordering::SeqCst));
+        fs::remove_file(path).expect("cleanup");
+    }
+
+    #[test]
+    fn real_child_stdout_flood_fails_wait_while_live_and_persists_only_limit() {
+        let mut child = spawn_output_flood("stdout");
+        let pipe = child.stdout.take().expect("piped child stdout");
+        let (path, file) = output_test_file("stdout-live-overflow");
+        let mut drain = Some(
+            start_output_drain(pipe, file, OUTPUT_FLOOD_LIMIT, "stdout")
+                .expect("start stdout drain"),
+        );
+        let cancellation = AtomicBool::new(false);
+
+        let error = wait_process(&mut child, 5_000, &cancellation, drain.as_ref(), None)
+            .expect_err("live stdout overflow must fail wait");
+        assert!(matches!(
+            error,
+            LinuxHostError::StdoutLimitExceeded(OUTPUT_FLOOD_LIMIT)
+        ));
+        assert!(child.try_wait().expect("poll live flood child").is_none());
+
+        force_kill_and_reap(&mut child).expect("contain stdout flood child");
+        join_output_drain(&mut drain, "stdout").expect("join stdout drain");
+        assert_eq!(
+            fs::metadata(&path).expect("stdout log metadata").len(),
+            OUTPUT_FLOOD_LIMIT
+        );
+        assert!(child.try_wait().expect("final stdout child wait").is_some());
+        fs::remove_file(path).expect("cleanup stdout log");
+    }
+
+    #[test]
+    fn real_child_stderr_flood_fails_wait_while_live_and_persists_only_limit() {
+        let mut child = spawn_output_flood("stderr");
+        let pipe = child.stderr.take().expect("piped child stderr");
+        let (path, file) = output_test_file("stderr-live-overflow");
+        let mut drain = Some(
+            start_output_drain(pipe, file, OUTPUT_FLOOD_LIMIT, "stderr")
+                .expect("start stderr drain"),
+        );
+        let cancellation = AtomicBool::new(false);
+
+        let error = wait_process(&mut child, 5_000, &cancellation, None, drain.as_ref())
+            .expect_err("live stderr overflow must fail wait");
+        assert!(matches!(
+            error,
+            LinuxHostError::StderrLimitExceeded(OUTPUT_FLOOD_LIMIT)
+        ));
+        assert!(child.try_wait().expect("poll live flood child").is_none());
+
+        force_kill_and_reap(&mut child).expect("contain stderr flood child");
+        join_output_drain(&mut drain, "stderr").expect("join stderr drain");
+        assert_eq!(
+            fs::metadata(&path).expect("stderr log metadata").len(),
+            OUTPUT_FLOOD_LIMIT
+        );
+        assert!(child.try_wait().expect("final stderr child wait").is_some());
+        fs::remove_file(path).expect("cleanup stderr log");
+    }
+
     #[test]
     fn real_child_exit_is_observed_and_reaped_by_try_wait() {
         let program = existing_program(&["/usr/bin/false", "/bin/false"]);
         let mut child = Command::new(program).spawn().expect("spawn false");
         let cancellation = AtomicBool::new(false);
-        let outcome = wait_process(&mut child, 5_000, &cancellation).expect("wait");
+        let outcome = wait_process(&mut child, 5_000, &cancellation, None, None).expect("wait");
         assert_eq!(outcome, WaitOutcome::Exited(1));
     }
 
@@ -921,7 +1312,7 @@ mod tests {
         let program = existing_program(&["/usr/bin/sleep", "/bin/sleep"]);
         let mut child = Command::new(program).arg("5").spawn().expect("spawn sleep");
         let cancellation = AtomicBool::new(false);
-        let outcome = wait_process(&mut child, 20, &cancellation).expect("wait");
+        let outcome = wait_process(&mut child, 20, &cancellation, None, None).expect("wait");
         assert_eq!(outcome, WaitOutcome::TimedOut);
         let graceful = terminate_process(&mut child, 1_000).expect("terminate");
         if graceful == GracefulTerminationOutcome::StillRunning {
@@ -935,7 +1326,7 @@ mod tests {
         let program = existing_program(&["/usr/bin/sleep", "/bin/sleep"]);
         let mut child = Command::new(program).arg("5").spawn().expect("spawn sleep");
         let cancellation = AtomicBool::new(true);
-        let outcome = wait_process(&mut child, 5_000, &cancellation).expect("wait");
+        let outcome = wait_process(&mut child, 5_000, &cancellation, None, None).expect("wait");
         assert_eq!(outcome, WaitOutcome::Cancelled);
         force_kill_and_reap(&mut child).expect("contain cancelled child");
     }
