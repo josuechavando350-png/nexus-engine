@@ -1,5 +1,7 @@
 use crate::{is_valid_sha256, CertificationProfile, RunMachine, RunState, TransitionError};
 
+pub(crate) struct CertificationTransitionToken(());
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub enum CertificationEvidenceKind {
     SourceIdentity,
@@ -237,12 +239,15 @@ pub fn evaluate_and_apply_final_certification(
         ..input
     };
     let decision = evaluate_final_certification(bound_input);
-    let target = match decision.verdict {
-        FinalCertificationVerdict::Certified => RunState::Certified,
-        FinalCertificationVerdict::InsufficientData => RunState::InsufficientData,
-        FinalCertificationVerdict::Blocked => RunState::Blocked,
-    };
-    machine.transition(target)?;
+    match decision.verdict {
+        FinalCertificationVerdict::Certified => {
+            machine.certify_from_gate(CertificationTransitionToken(()))?
+        }
+        FinalCertificationVerdict::InsufficientData => {
+            machine.transition(RunState::InsufficientData)?
+        }
+        FinalCertificationVerdict::Blocked => machine.transition(RunState::Blocked)?,
+    }
     Ok(decision)
 }
 
@@ -341,9 +346,10 @@ mod tests {
     }
 
     #[test]
-    fn connected_gate_applies_certified_terminal_transition() {
+    fn connected_gate_is_the_only_certified_terminal_transition() {
         let evidence = all_proven();
         let mut machine = machine_at_certifying();
+        assert!(machine.transition(RunState::Certified).is_err());
         let decision = evaluate_and_apply_final_certification(&mut machine, input(&evidence))
             .expect("apply certification");
         assert_eq!(decision.verdict, FinalCertificationVerdict::Certified);
