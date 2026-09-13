@@ -70,12 +70,16 @@ ISOLATION_PREFLIGHT_CODE=$?
 set -e
 printf '%s\n' "$ISOLATION_PREFLIGHT"
 grep -Fq 'isolation_backend_target=FIRECRACKER_MICROVM' <<<"$ISOLATION_PREFLIGHT"
+grep -Eq '^kvm_api_version=(UNAVAILABLE|[0-9]+)$' <<<"$ISOLATION_PREFLIGHT"
+grep -Eq '^kvm_api_compatible=(true|false)$' <<<"$ISOLATION_PREFLIGHT"
 case "$ISOLATION_PREFLIGHT_CODE" in
   0)
     grep -Fq 'isolation_host_verdict=READY' <<<"$ISOLATION_PREFLIGHT"
     grep -Fq 'linux_verified=true' <<<"$ISOLATION_PREFLIGHT"
     grep -Fq 'x86_64_verified=true' <<<"$ISOLATION_PREFLIGHT"
     grep -Fq 'privileged_supervisor_verified=true' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'kvm_api_version=12' <<<"$ISOLATION_PREFLIGHT"
+    grep -Fq 'kvm_api_compatible=true' <<<"$ISOLATION_PREFLIGHT"
     grep -Fq 'kvm_verified=true' <<<"$ISOLATION_PREFLIGHT"
     grep -Fq 'cgroup_v2_verified=true' <<<"$ISOLATION_PREFLIGHT"
     grep -Fq 'cgroup_controllers_verified=true' <<<"$ISOLATION_PREFLIGHT"

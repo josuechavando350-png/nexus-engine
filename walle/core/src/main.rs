@@ -323,6 +323,8 @@ fn command_isolation_host_preflight(args: &[String]) -> Result<(), String> {
         "kvm_open_read_write={}",
         assessment.facts.kvm_open_read_write
     );
+    print_optional_i32("kvm_api_version", assessment.facts.kvm_api_version);
+    println!("kvm_api_compatible={}", assessment.facts.kvm_api_compatible);
     println!("cgroup_v2={}", assessment.facts.cgroup_v2);
     println!(
         "cgroup_controllers={}",
@@ -370,6 +372,13 @@ fn print_optional_u64(key: &str, value: Option<u64>) {
 }
 
 fn print_optional_u32(key: &str, value: Option<u32>) {
+    match value {
+        Some(value) => println!("{key}={value}"),
+        None => println!("{key}=UNAVAILABLE"),
+    }
+}
+
+fn print_optional_i32(key: &str, value: Option<i32>) {
     match value {
         Some(value) => println!("{key}={value}"),
         None => println!("{key}=UNAVAILABLE"),
