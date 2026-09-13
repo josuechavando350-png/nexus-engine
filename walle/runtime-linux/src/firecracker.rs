@@ -9,6 +9,8 @@ use walle_core::supervisor::{
 
 pub const DEFAULT_BOOT_ARGS: &str = "console=ttyS0 reboot=k panic=1 pci=off";
 pub const SCRATCH_GUEST_PATH: &str = "/walle/scratch.ext4";
+pub const RUN_ID_BOOT_ARG_PREFIX: &str = "walle.run_id=";
+pub const SOURCE_SHA_BOOT_ARG_PREFIX: &str = "walle.source_sha256=";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FirecrackerConfigOptions<'a> {
@@ -64,6 +66,7 @@ pub enum FirecrackerPlanError {
     UnsafePlan,
     UnsupportedVcpuCount(u16),
     InvalidBootArgs,
+    ReservedBootBinding,
     ScratchImageRequired,
     UnexpectedScratchImage,
     UnsafeGuestPath(String),
@@ -82,6 +85,9 @@ impl Display for FirecrackerPlanError {
             }
             Self::InvalidBootArgs => formatter.write_str(
                 "kernel boot arguments are empty, too long, or contain unsupported control bytes",
+            ),
+            Self::ReservedBootBinding => formatter.write_str(
+                "caller boot arguments may not declare WALLE run/source identity bindings",
             ),
             Self::ScratchImageRequired => formatter.write_str(
                 "writable scratch is required by the plan but no staged scratch image was supplied",
@@ -109,6 +115,11 @@ impl Error for FirecrackerPlanError {}
 /// schema names (`boot-source`, `drives`, `machine-config`,
 /// `network-interfaces`). No network interface is emitted.
 ///
+/// The kernel command line is always extended with WALLE-owned run/source
+/// bindings. A physical serial observation can therefore prove that the guest
+/// kernel which actually booted received the exact admitted run identity rather
+/// than merely proving that a Firecracker process was spawned.
+///
 /// This function is configuration construction only. In particular it does not
 /// prove guest PID/seccomp enforcement; the real host backend must keep final
 /// certification blocked until those guest controls are evidenced.
@@ -120,7 +131,7 @@ pub fn build_firecracker_config(
     validate_guest_path(GUEST_KERNEL_PATH)?;
     validate_guest_path(GUEST_ROOTFS_PATH)?;
     validate_guest_path(GUEST_CONFIG_PATH)?;
-    validate_boot_args(options.boot_args)?;
+    let boot_args = build_bound_boot_args(plan, options.boot_args)?;
 
     match (plan.scratch_disk_mib, options.scratch_guest_path) {
         (0, None) => {}
@@ -134,7 +145,7 @@ pub fn build_firecracker_config(
     json.push_str("\"kernel_image_path\":");
     push_json_string(&mut json, GUEST_KERNEL_PATH);
     json.push_str(",\"boot_args\":");
-    push_json_string(&mut json, options.boot_args);
+    push_json_string(&mut json, &boot_args);
     json.push_str("},\"drives\":[{");
     json.push_str(
         "\"drive_id\":\"rootfs\",\"is_root_device\":true,\"is_read_only\":true,\"path_on_host\":",
@@ -215,6 +226,26 @@ pub fn build_jailer_command(
         api_disabled: true,
         new_pid_namespace: false,
     })
+}
+
+fn build_bound_boot_args(
+    plan: &MicroVmSupervisorPlan<'_>,
+    configured: &str,
+) -> Result<String, FirecrackerPlanError> {
+    validate_boot_args(configured)?;
+    if configured.split_ascii_whitespace().any(|argument| {
+        argument.starts_with(RUN_ID_BOOT_ARG_PREFIX)
+            || argument.starts_with(SOURCE_SHA_BOOT_ARG_PREFIX)
+    }) {
+        return Err(FirecrackerPlanError::ReservedBootBinding);
+    }
+
+    let bound = format!(
+        "{configured} {RUN_ID_BOOT_ARG_PREFIX}{} {SOURCE_SHA_BOOT_ARG_PREFIX}{}",
+        plan.run_id, plan.source_sha256
+    );
+    validate_boot_args(&bound)?;
+    Ok(bound)
 }
 
 fn validate_supervisor_plan(plan: &MicroVmSupervisorPlan<'_>) -> Result<(), FirecrackerPlanError> {
@@ -392,7 +423,8 @@ mod tests {
 
     #[test]
     fn deny_all_config_uses_current_schema_and_zero_nics() {
-        let config = build_firecracker_config(&plan(0), FirecrackerConfigOptions::default())
+        let plan = plan(0);
+        let config = build_firecracker_config(&plan, FirecrackerConfigOptions::default())
             .expect("config");
         let value = config.as_str();
         assert!(value.contains("\"boot-source\""));
@@ -401,7 +433,34 @@ mod tests {
         assert!(value.contains("\"machine-config\""));
         assert!(value.contains("\"smt\":false"));
         assert!(value.contains("\"network-interfaces\":[]"));
+        assert!(value.contains(&format!("{RUN_ID_BOOT_ARG_PREFIX}{}", plan.run_id)));
+        assert!(value.contains(&format!("{SOURCE_SHA_BOOT_ARG_PREFIX}{}", plan.source_sha256)));
         assert!(!value.contains("ht_enabled"));
+    }
+
+    #[test]
+    fn caller_cannot_override_physical_boot_identity_bindings() {
+        let plan = plan(0);
+        assert!(matches!(
+            build_firecracker_config(
+                &plan,
+                FirecrackerConfigOptions {
+                    boot_args: "console=ttyS0 walle.run_id=forged",
+                    scratch_guest_path: None,
+                },
+            ),
+            Err(FirecrackerPlanError::ReservedBootBinding)
+        ));
+        assert!(matches!(
+            build_firecracker_config(
+                &plan,
+                FirecrackerConfigOptions {
+                    boot_args: "console=ttyS0 walle.source_sha256=sha256:forged",
+                    scratch_guest_path: None,
+                },
+            ),
+            Err(FirecrackerPlanError::ReservedBootBinding)
+        ));
     }
 
     #[test]
