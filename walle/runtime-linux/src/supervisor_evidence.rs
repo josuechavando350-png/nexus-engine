@@ -7,7 +7,10 @@ use walle_core::supervisor_lifecycle::{
     execute_supervisor_lifecycle, MicroVmSupervisorHost, SupervisorLifecycleResult,
 };
 
-use crate::evidence::{EvidenceError, EvidenceReceipt, EvidenceRun, EvidenceSeal};
+use crate::artifact::SystemSha256;
+use crate::evidence::{
+    verify_evidence_chain, EvidenceError, EvidenceReceipt, EvidenceRun, EvidenceSeal,
+};
 
 pub const SUPERVISOR_PLAN_EVIDENCE_KIND: &str = "supervisor-plan";
 pub const SUPERVISOR_LIFECYCLE_EVIDENCE_KIND: &str = "supervisor-lifecycle-result";
@@ -57,12 +60,14 @@ pub struct EvidencedSupervisorResult {
 ///
 /// Construction does not execute the workload. `execute` first persists the
 /// exact canonical supervisor plan, then runs the lifecycle, persists the exact
-/// canonical terminal result, and finally seals the chain. If any evidence
-/// operation fails, the caller receives an error and no certification claim can
-/// be made from this API.
+/// canonical terminal result, seals the chain, and re-reads/verifies the sealed
+/// bytes before returning success. If any evidence operation or terminal
+/// integrity check fails, the caller receives an error and no certification
+/// claim can be made from this API.
 #[derive(Debug)]
 pub struct SupervisorEvidenceRun {
     evidence: EvidenceRun,
+    hasher: SystemSha256,
     run_id: String,
     source_sha256: String,
 }
@@ -73,6 +78,8 @@ impl SupervisorEvidenceRun {
         sha256_program: impl Into<PathBuf>,
         plan: &MicroVmSupervisorPlan<'_>,
     ) -> Result<Self, SupervisorEvidenceError> {
+        let sha256_program = sha256_program.into();
+        let hasher = SystemSha256::new(sha256_program.clone()).map_err(EvidenceError::from)?;
         let evidence = EvidenceRun::begin(
             evidence_root,
             sha256_program,
@@ -81,6 +88,7 @@ impl SupervisorEvidenceRun {
         )?;
         Ok(Self {
             evidence,
+            hasher,
             run_id: plan.run_id.to_owned(),
             source_sha256: plan.source_sha256.to_owned(),
         })
@@ -98,7 +106,10 @@ impl SupervisorEvidenceRun {
         if plan.run_id != self.run_id || plan.source_sha256 != self.source_sha256 {
             return Err(SupervisorEvidenceError::PlanBindingMismatch);
         }
-        execute_with_sink(host, plan, &mut self.evidence).map_err(SupervisorEvidenceError::from)
+        let result = execute_with_sink(host, plan, &mut self.evidence)?;
+        let receipts = [result.plan_receipt.clone(), result.lifecycle_receipt.clone()];
+        verify_evidence_chain(self.evidence.path(), &receipts, &result.seal, &self.hasher)?;
+        Ok(result)
     }
 }
 
