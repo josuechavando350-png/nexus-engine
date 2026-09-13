@@ -326,7 +326,6 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
                 ))?;
         SecureDirectory::open(run_root_parent.to_path_buf())?.validate_trusted()?;
         let run_root = SecureDirectory::create_leaf(run_root_path, 0o700)?;
-        run_root.validate_trusted()?;
         self.run = Some(PreparedRun {
             run_id: plan.run_id.to_owned(),
             run_root,
@@ -336,22 +335,56 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             cgroup: None,
             command: None,
         });
+        self.run_mut(plan)?.run_root.validate_trusted()?;
 
         let chroot_base = SecureDirectory::open(self.config.chroot_base.clone())?;
         chroot_base.validate_trusted()?;
         let executable_root = chroot_base.create_child_directory("firecracker", 0o755, true)?;
         executable_root.validate_trusted()?;
-        let vm_dir = executable_root.create_child_directory(plan.run_id, 0o700, false)?;
-        vm_dir.validate_trusted()?;
-        let chroot_root = vm_dir.create_child_directory("root", 0o755, false)?;
-        chroot_root.validate_trusted()?;
-        let walle_dir = chroot_root.create_child_directory("walle", 0o755, false)?;
-        walle_dir.validate_trusted()?;
 
-        let run = self.run_mut(plan)?;
-        run.chroot_vm_dir = Some(vm_dir);
-        run.chroot_root = Some(chroot_root);
-        run.walle_dir = Some(walle_dir);
+        let vm_dir = executable_root.create_child_directory(plan.run_id, 0o700, false)?;
+        self.run_mut(plan)?.chroot_vm_dir = Some(vm_dir);
+        self.run_mut(plan)?
+            .chroot_vm_dir
+            .as_ref()
+            .ok_or(LinuxHostError::InvalidLifecycleState(
+                "created jailer run directory was not tracked",
+            ))?
+            .validate_trusted()?;
+
+        let chroot_root = self
+            .run_mut(plan)?
+            .chroot_vm_dir
+            .as_ref()
+            .ok_or(LinuxHostError::InvalidLifecycleState(
+                "jailer run directory is unavailable",
+            ))?
+            .create_child_directory("root", 0o755, false)?;
+        self.run_mut(plan)?.chroot_root = Some(chroot_root);
+        self.run_mut(plan)?
+            .chroot_root
+            .as_ref()
+            .ok_or(LinuxHostError::InvalidLifecycleState(
+                "created chroot root was not tracked",
+            ))?
+            .validate_trusted()?;
+
+        let walle_dir = self
+            .run_mut(plan)?
+            .chroot_root
+            .as_ref()
+            .ok_or(LinuxHostError::InvalidLifecycleState(
+                "chroot root is unavailable",
+            ))?
+            .create_child_directory("walle", 0o755, false)?;
+        self.run_mut(plan)?.walle_dir = Some(walle_dir);
+        self.run_mut(plan)?
+            .walle_dir
+            .as_ref()
+            .ok_or(LinuxHostError::InvalidLifecycleState(
+                "created WALLE jail directory was not tracked",
+            ))?
+            .validate_trusted()?;
         Ok(())
     }
 
