@@ -691,10 +691,7 @@ mod tests {
         assert!(result.image_integrity_receipt.is_none());
         assert!(result.output_bounds_receipt.is_none());
         assert_eq!(result.seal.entry_count, 2);
-        assert_eq!(
-            host.events,
-            vec!["verify", "prepare", "cgroup", "cleanup"]
-        );
+        assert_eq!(host.events, vec!["verify", "prepare", "cgroup", "cleanup"]);
     }
 
     #[test]
@@ -741,7 +738,10 @@ mod tests {
         let result = execute_with_sink(&mut host, &plan, &mut sink).expect("record blocked result");
 
         assert_eq!(result.lifecycle.status, SupervisorTerminalStatus::Blocked);
-        assert_eq!(result.lifecycle.reason, SupervisorLifecycleReason::WaitFailed);
+        assert_eq!(
+            result.lifecycle.reason,
+            SupervisorLifecycleReason::WaitFailed
+        );
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
