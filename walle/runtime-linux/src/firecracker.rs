@@ -424,8 +424,8 @@ mod tests {
     #[test]
     fn deny_all_config_uses_current_schema_and_zero_nics() {
         let plan = plan(0);
-        let config = build_firecracker_config(&plan, FirecrackerConfigOptions::default())
-            .expect("config");
+        let config =
+            build_firecracker_config(&plan, FirecrackerConfigOptions::default()).expect("config");
         let value = config.as_str();
         assert!(value.contains("\"boot-source\""));
         assert!(value.contains("\"kernel_image_path\":\"/walle/kernel\""));
@@ -434,7 +434,10 @@ mod tests {
         assert!(value.contains("\"smt\":false"));
         assert!(value.contains("\"network-interfaces\":[]"));
         assert!(value.contains(&format!("{RUN_ID_BOOT_ARG_PREFIX}{}", plan.run_id)));
-        assert!(value.contains(&format!("{SOURCE_SHA_BOOT_ARG_PREFIX}{}", plan.source_sha256)));
+        assert!(value.contains(&format!(
+            "{SOURCE_SHA_BOOT_ARG_PREFIX}{}",
+            plan.source_sha256
+        )));
         assert!(!value.contains("ht_enabled"));
     }
 
