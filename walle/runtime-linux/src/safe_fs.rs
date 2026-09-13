@@ -423,7 +423,10 @@ mod tests {
         assert!(file.metadata().expect("metadata").is_file());
         assert_eq!(file.metadata().expect("metadata").mode() & 0o777, 0o640);
         assert_eq!(
-            fs::metadata(root.join("run-abc")).expect("leaf metadata").mode() & 0o777,
+            fs::metadata(root.join("run-abc"))
+                .expect("leaf metadata")
+                .mode()
+                & 0o777,
             0o700
         );
         drop(file);
