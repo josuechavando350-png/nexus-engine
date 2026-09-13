@@ -41,20 +41,34 @@ pub enum SecureFsError {
     InvalidMode(u32),
     NotDirectory(PathBuf),
     AlreadyExists(PathBuf),
-    Openat2Failed { path: PathBuf, source: io::Error },
-    Io { operation: &'static str, source: io::Error },
+    Openat2Failed {
+        path: PathBuf,
+        source: io::Error,
+    },
+    Io {
+        operation: &'static str,
+        source: io::Error,
+    },
 }
 
 impl Display for SecureFsError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnsafeAbsolutePath(path) => {
-                write!(formatter, "unsafe absolute directory path: {}", path.display())
+                write!(
+                    formatter,
+                    "unsafe absolute directory path: {}",
+                    path.display()
+                )
             }
             Self::UnsafeChildName(name) => write!(formatter, "unsafe directory child name: {name}"),
             Self::InvalidMode(mode) => write!(formatter, "invalid filesystem mode: {mode:o}"),
-            Self::NotDirectory(path) => write!(formatter, "path is not a directory: {}", path.display()),
-            Self::AlreadyExists(path) => write!(formatter, "path already exists: {}", path.display()),
+            Self::NotDirectory(path) => {
+                write!(formatter, "path is not a directory: {}", path.display())
+            }
+            Self::AlreadyExists(path) => {
+                write!(formatter, "path already exists: {}", path.display())
+            }
             Self::Openat2Failed { path, source } => {
                 write!(formatter, "openat2 rejected {}: {source}", path.display())
             }
@@ -120,11 +134,7 @@ impl SecureDirectory {
         self.create_child_directory_os(OsStr::new(name), mode, allow_existing)
     }
 
-    pub fn create_new_file(
-        &self,
-        name: &str,
-        mode: u32,
-    ) -> Result<File, SecureFsError> {
+    pub fn create_new_file(&self, name: &str, mode: u32) -> Result<File, SecureFsError> {
         self.create_new_file_with_cloexec(name, mode, true)
     }
 
@@ -330,9 +340,8 @@ fn validate_mode(mode: u32) -> Result<(), SecureFsError> {
 }
 
 fn os_string_to_cstring(value: &OsStr) -> Result<CString, SecureFsError> {
-    CString::new(value.as_bytes()).map_err(|_| {
-        SecureFsError::UnsafeChildName(value.to_string_lossy().into_owned())
-    })
+    CString::new(value.as_bytes())
+        .map_err(|_| SecureFsError::UnsafeChildName(value.to_string_lossy().into_owned()))
 }
 
 #[cfg(test)]
