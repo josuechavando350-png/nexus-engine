@@ -73,15 +73,13 @@ impl OwnedCertificationEvidence {
 /// A concrete Linux supervisor execution plus only the certification evidence
 /// this layer can actually prove from that execution.
 ///
-/// `RUNTIME_BINARY_IDENTITY` and `IMAGE_INTEGRITY` are emitted only when the
-/// evidence chain contains the distinct receipts created after the concrete
-/// Linux host successfully completed its staged SHA-256 materialization step.
-/// `OUTPUT_BOUNDS` is emitted only from its own receipt, created after the
-/// concrete host completed an exited process path whose bounded stdout/stderr
-/// drains joined and passed overflow checks. `LIFECYCLE` and
-/// `DURABLE_EVIDENCE_CHAIN` retain their independent semantics. This layer still
-/// does not manufacture source identity, host-isolation, microVM-boot,
-/// resource-control, network, guest-seccomp or guest-ACK proof.
+/// `RESOURCE_CONTROLS` is emitted only from the dedicated receipt created after
+/// the concrete Linux host successfully creates its cgroup-v2 leaf, writes the
+/// CPU/memory/PID limits and reads those exact limits back. Runtime identity,
+/// image integrity and output bounds likewise require their own receipts.
+/// `LIFECYCLE` and `DURABLE_EVIDENCE_CHAIN` retain independent semantics. This
+/// layer still does not manufacture source identity, host-isolation,
+/// microVM-boot, network, guest-seccomp or guest-completion proof.
 #[derive(Debug)]
 pub struct LinuxSupervisorEvidenceBundle {
     supervisor: EvidencedSupervisorResult,
@@ -103,19 +101,6 @@ impl LinuxSupervisorEvidenceBundle {
 
 /// Executes one exact supervisor plan through the concrete Linux host while
 /// binding the run to the durable supervisor evidence chain.
-///
-/// The Linux host is constructed first so an invalid trusted-runtime
-/// configuration cannot create an evidence directory that looks like an
-/// attempted workload run. Once construction succeeds, `SupervisorEvidenceRun`
-/// persists the canonical plan before any workload-side lifecycle effect,
-/// executes the existing fail-closed supervisor, persists only proof that the
-/// concrete host actually established, persists the terminal result, seals the
-/// chain, and verifies the durable bytes before this function can return
-/// success.
-///
-/// This function does not promote a successful lifecycle into WALLE
-/// certification. KVM/Firecracker boot, guest completion, resource-control and
-/// other required certification evidence remain separate proof obligations.
 pub fn execute_linux_supervisor_with_evidence(
     host_config: LinuxMicroVmHostConfig,
     evidence_root: impl Into<PathBuf>,
@@ -130,10 +115,7 @@ pub fn execute_linux_supervisor_with_evidence(
 /// Executes the same verified Linux supervisor path and projects only proof
 /// categories backed by distinct verified receipts from that run.
 ///
-/// Runtime/image identity and output bounds are never inferred from the
-/// supervisor plan alone: the corresponding evidence is absent unless the
-/// concrete Linux execution created the dedicated receipts and those receipts
-/// survived sealing and chain verification. The durable-chain assessment is
+/// No category is inferred from the plan. The durable-chain assessment is
 /// `PROVEN` only because the wrapped execution cannot return until
 /// `SupervisorEvidenceRun` has re-read and verified the sealed receipt chain.
 pub fn execute_linux_supervisor_with_certification_evidence(
@@ -152,7 +134,17 @@ pub fn execute_linux_supervisor_with_certification_evidence(
 fn project_certification_evidence(
     result: &EvidencedSupervisorResult,
 ) -> Vec<OwnedCertificationEvidence> {
-    let mut projected = Vec::with_capacity(5);
+    let mut projected = Vec::with_capacity(6);
+
+    if let Some(receipt) = result.resource_controls_receipt.as_ref() {
+        projected.push(OwnedCertificationEvidence {
+            kind: CertificationEvidenceKind::ResourceControls,
+            run_id: result.seal.run_id.clone(),
+            source_sha256: result.seal.source_sha256.clone(),
+            receipt_sha256: receipt.receipt_sha256.clone(),
+            assessment: EvidenceAssessment::Proven,
+        });
+    }
 
     if let Some(receipt) = result.runtime_binary_identity_receipt.as_ref() {
         projected.push(OwnedCertificationEvidence {
@@ -222,14 +214,16 @@ mod tests {
         "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     const PLAN_RECEIPT_SHA: &str =
         "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
-    const RUNTIME_RECEIPT_SHA: &str =
+    const RESOURCE_RECEIPT_SHA: &str =
         "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
-    const IMAGE_RECEIPT_SHA: &str =
+    const RUNTIME_RECEIPT_SHA: &str =
         "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
-    const OUTPUT_RECEIPT_SHA: &str =
+    const IMAGE_RECEIPT_SHA: &str =
         "sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd";
-    const LIFECYCLE_RECEIPT_SHA: &str =
+    const OUTPUT_RECEIPT_SHA: &str =
         "sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee";
+    const LIFECYCLE_RECEIPT_SHA: &str =
+        "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff";
 
     fn receipt(sequence: u64, kind: &str, sha256: &str) -> EvidenceReceipt {
         EvidenceReceipt {
@@ -254,83 +248,6 @@ mod tests {
         }
     }
 
-    fn result_with_identity_and_output(
-        lifecycle: SupervisorLifecycleResult,
-    ) -> EvidencedSupervisorResult {
-        EvidencedSupervisorResult {
-            lifecycle,
-            plan_receipt: receipt(1, "supervisor-plan", PLAN_RECEIPT_SHA),
-            runtime_binary_identity_receipt: Some(receipt(
-                2,
-                "runtime-binary-identity",
-                RUNTIME_RECEIPT_SHA,
-            )),
-            image_integrity_receipt: Some(receipt(3, "image-integrity", IMAGE_RECEIPT_SHA)),
-            output_bounds_receipt: Some(receipt(4, "supervisor-output-bounds", OUTPUT_RECEIPT_SHA)),
-            lifecycle_receipt: receipt(5, "supervisor-lifecycle-result", LIFECYCLE_RECEIPT_SHA),
-            seal: EvidenceSeal {
-                run_id: RUN_ID.to_owned(),
-                source_sha256: SOURCE_SHA.to_owned(),
-                entry_count: 5,
-                head_receipt_sha256: LIFECYCLE_RECEIPT_SHA.to_owned(),
-                seal_file: "seal.json".to_owned(),
-                seal_sha256:
-                    "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                        .to_owned(),
-            },
-        }
-    }
-
-    fn result_with_identity_without_output(
-        lifecycle: SupervisorLifecycleResult,
-    ) -> EvidencedSupervisorResult {
-        EvidencedSupervisorResult {
-            lifecycle,
-            plan_receipt: receipt(1, "supervisor-plan", PLAN_RECEIPT_SHA),
-            runtime_binary_identity_receipt: Some(receipt(
-                2,
-                "runtime-binary-identity",
-                RUNTIME_RECEIPT_SHA,
-            )),
-            image_integrity_receipt: Some(receipt(3, "image-integrity", IMAGE_RECEIPT_SHA)),
-            output_bounds_receipt: None,
-            lifecycle_receipt: receipt(4, "supervisor-lifecycle-result", LIFECYCLE_RECEIPT_SHA),
-            seal: EvidenceSeal {
-                run_id: RUN_ID.to_owned(),
-                source_sha256: SOURCE_SHA.to_owned(),
-                entry_count: 4,
-                head_receipt_sha256: LIFECYCLE_RECEIPT_SHA.to_owned(),
-                seal_file: "seal.json".to_owned(),
-                seal_sha256:
-                    "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                        .to_owned(),
-            },
-        }
-    }
-
-    fn result_without_optional_receipts(
-        lifecycle: SupervisorLifecycleResult,
-    ) -> EvidencedSupervisorResult {
-        EvidencedSupervisorResult {
-            lifecycle,
-            plan_receipt: receipt(1, "supervisor-plan", PLAN_RECEIPT_SHA),
-            runtime_binary_identity_receipt: None,
-            image_integrity_receipt: None,
-            output_bounds_receipt: None,
-            lifecycle_receipt: receipt(2, "supervisor-lifecycle-result", LIFECYCLE_RECEIPT_SHA),
-            seal: EvidenceSeal {
-                run_id: RUN_ID.to_owned(),
-                source_sha256: SOURCE_SHA.to_owned(),
-                entry_count: 2,
-                head_receipt_sha256: LIFECYCLE_RECEIPT_SHA.to_owned(),
-                seal_file: "seal.json".to_owned(),
-                seal_sha256:
-                    "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                        .to_owned(),
-            },
-        }
-    }
-
     fn clean_exit() -> SupervisorLifecycleResult {
         SupervisorLifecycleResult {
             status: SupervisorTerminalStatus::Exited,
@@ -340,33 +257,67 @@ mod tests {
         }
     }
 
-    #[test]
-    fn successful_materialized_supervisor_projects_five_distinct_verified_categories() {
-        let result = result_with_identity_and_output(clean_exit());
-        let projected = project_certification_evidence(&result);
+    fn result(
+        lifecycle: SupervisorLifecycleResult,
+        resource: bool,
+        runtime: bool,
+        image: bool,
+        output: bool,
+    ) -> EvidencedSupervisorResult {
+        EvidencedSupervisorResult {
+            lifecycle,
+            plan_receipt: receipt(1, "supervisor-plan", PLAN_RECEIPT_SHA),
+            resource_controls_receipt: resource
+                .then(|| receipt(2, "resource-controls", RESOURCE_RECEIPT_SHA)),
+            runtime_binary_identity_receipt: runtime
+                .then(|| receipt(3, "runtime-binary-identity", RUNTIME_RECEIPT_SHA)),
+            image_integrity_receipt: image
+                .then(|| receipt(4, "image-integrity", IMAGE_RECEIPT_SHA)),
+            output_bounds_receipt: output
+                .then(|| receipt(5, "supervisor-output-bounds", OUTPUT_RECEIPT_SHA)),
+            lifecycle_receipt: receipt(6, "supervisor-lifecycle-result", LIFECYCLE_RECEIPT_SHA),
+            seal: EvidenceSeal {
+                run_id: RUN_ID.to_owned(),
+                source_sha256: SOURCE_SHA.to_owned(),
+                entry_count: 6,
+                head_receipt_sha256: LIFECYCLE_RECEIPT_SHA.to_owned(),
+                seal_file: "seal.json".to_owned(),
+                seal_sha256:
+                    "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+                        .to_owned(),
+            },
+        }
+    }
 
-        assert_eq!(projected.len(), 5);
+    #[test]
+    fn successful_supervisor_projects_six_distinct_verified_categories() {
+        let projected =
+            project_certification_evidence(&result(clean_exit(), true, true, true, true));
+
+        assert_eq!(projected.len(), 6);
         assert_eq!(
             projected[0].kind,
+            CertificationEvidenceKind::ResourceControls
+        );
+        assert_eq!(projected[0].receipt_sha256, RESOURCE_RECEIPT_SHA);
+        assert_eq!(
+            projected[1].kind,
             CertificationEvidenceKind::RuntimeBinaryIdentity
         );
-        assert_eq!(projected[0].assessment, EvidenceAssessment::Proven);
-        assert_eq!(projected[0].receipt_sha256, RUNTIME_RECEIPT_SHA);
-        assert_eq!(projected[1].kind, CertificationEvidenceKind::ImageIntegrity);
-        assert_eq!(projected[1].assessment, EvidenceAssessment::Proven);
-        assert_eq!(projected[1].receipt_sha256, IMAGE_RECEIPT_SHA);
-        assert_eq!(projected[2].kind, CertificationEvidenceKind::OutputBounds);
-        assert_eq!(projected[2].assessment, EvidenceAssessment::Proven);
-        assert_eq!(projected[2].receipt_sha256, OUTPUT_RECEIPT_SHA);
-        assert_eq!(projected[3].kind, CertificationEvidenceKind::Lifecycle);
-        assert_eq!(projected[3].assessment, EvidenceAssessment::Proven);
-        assert_eq!(projected[3].receipt_sha256, LIFECYCLE_RECEIPT_SHA);
+        assert_eq!(projected[1].receipt_sha256, RUNTIME_RECEIPT_SHA);
+        assert_eq!(projected[2].kind, CertificationEvidenceKind::ImageIntegrity);
+        assert_eq!(projected[2].receipt_sha256, IMAGE_RECEIPT_SHA);
+        assert_eq!(projected[3].kind, CertificationEvidenceKind::OutputBounds);
+        assert_eq!(projected[3].receipt_sha256, OUTPUT_RECEIPT_SHA);
+        assert_eq!(projected[4].kind, CertificationEvidenceKind::Lifecycle);
+        assert_eq!(projected[4].assessment, EvidenceAssessment::Proven);
         assert_eq!(
-            projected[4].kind,
+            projected[5].kind,
             CertificationEvidenceKind::DurableEvidenceChain
         );
-        assert_eq!(projected[4].assessment, EvidenceAssessment::Proven);
-        assert_eq!(projected[4].receipt_sha256, PLAN_RECEIPT_SHA);
+        assert!(projected
+            .iter()
+            .all(|item| item.assessment == EvidenceAssessment::Proven));
         for (index, evidence) in projected.iter().enumerate() {
             assert!(projected[..index]
                 .iter()
@@ -379,9 +330,23 @@ mod tests {
     }
 
     #[test]
-    fn missing_optional_receipts_cannot_be_inferred_from_plan_or_lifecycle() {
-        let result = result_without_optional_receipts(clean_exit());
-        let projected = project_certification_evidence(&result);
+    fn missing_resource_receipt_is_never_inferred_from_other_success_proof() {
+        let projected =
+            project_certification_evidence(&result(clean_exit(), false, true, true, true));
+
+        assert_eq!(projected.len(), 5);
+        assert!(projected
+            .iter()
+            .all(|item| item.kind != CertificationEvidenceKind::ResourceControls));
+        assert!(projected
+            .iter()
+            .any(|item| item.kind == CertificationEvidenceKind::RuntimeBinaryIdentity));
+    }
+
+    #[test]
+    fn missing_all_optional_receipts_leaves_only_lifecycle_and_durable_chain() {
+        let projected =
+            project_certification_evidence(&result(clean_exit(), false, false, false, false));
 
         assert_eq!(projected.len(), 2);
         assert_eq!(projected[0].kind, CertificationEvidenceKind::Lifecycle);
@@ -389,56 +354,50 @@ mod tests {
             projected[1].kind,
             CertificationEvidenceKind::DurableEvidenceChain
         );
-        assert!(projected
-            .iter()
-            .all(|item| item.kind != CertificationEvidenceKind::RuntimeBinaryIdentity));
-        assert!(projected
-            .iter()
-            .all(|item| item.kind != CertificationEvidenceKind::ImageIntegrity));
-        assert!(projected
-            .iter()
-            .all(|item| item.kind != CertificationEvidenceKind::OutputBounds));
     }
 
     #[test]
-    fn nonzero_exit_blocks_lifecycle_without_downgrading_verified_other_proofs() {
-        let result = result_with_identity_and_output(SupervisorLifecycleResult {
+    fn nonzero_exit_blocks_lifecycle_without_downgrading_verified_other_proof() {
+        let lifecycle = SupervisorLifecycleResult {
             status: SupervisorTerminalStatus::Exited,
             reason: SupervisorLifecycleReason::ProcessExited,
             exit_code: Some(9),
             containment: None,
-        });
-        let projected = project_certification_evidence(&result);
+        };
+        let projected = project_certification_evidence(&result(lifecycle, true, true, true, true));
 
         assert_eq!(projected[0].assessment, EvidenceAssessment::Proven);
         assert_eq!(projected[1].assessment, EvidenceAssessment::Proven);
         assert_eq!(projected[2].assessment, EvidenceAssessment::Proven);
-        assert_eq!(projected[3].assessment, EvidenceAssessment::Blocked);
-        assert_eq!(projected[4].assessment, EvidenceAssessment::Proven);
+        assert_eq!(projected[3].assessment, EvidenceAssessment::Proven);
+        assert_eq!(projected[4].kind, CertificationEvidenceKind::Lifecycle);
+        assert_eq!(projected[4].assessment, EvidenceAssessment::Blocked);
+        assert_eq!(projected[5].assessment, EvidenceAssessment::Proven);
     }
 
     #[test]
-    fn timeout_or_containment_terminal_cannot_invent_output_or_lifecycle_proof() {
-        let result = result_with_identity_without_output(SupervisorLifecycleResult {
+    fn timeout_cannot_invent_output_or_lifecycle_proof() {
+        let lifecycle = SupervisorLifecycleResult {
             status: SupervisorTerminalStatus::TimedOut,
             reason: SupervisorLifecycleReason::TimeoutContained,
             exit_code: None,
             containment: Some(ContainmentMode::Forced),
-        });
-        let projected = project_certification_evidence(&result);
+        };
+        let projected = project_certification_evidence(&result(lifecycle, true, true, true, false));
 
-        assert_eq!(projected.len(), 4);
-        assert_eq!(projected[0].assessment, EvidenceAssessment::Proven);
-        assert_eq!(projected[1].assessment, EvidenceAssessment::Proven);
-        assert_eq!(projected[2].kind, CertificationEvidenceKind::Lifecycle);
-        assert_eq!(projected[2].assessment, EvidenceAssessment::Blocked);
-        assert_eq!(
-            projected[3].kind,
-            CertificationEvidenceKind::DurableEvidenceChain
-        );
+        assert_eq!(projected.len(), 5);
         assert!(projected
             .iter()
             .all(|item| item.kind != CertificationEvidenceKind::OutputBounds));
+        let lifecycle = projected
+            .iter()
+            .find(|item| item.kind == CertificationEvidenceKind::Lifecycle)
+            .expect("lifecycle evidence");
+        assert_eq!(lifecycle.assessment, EvidenceAssessment::Blocked);
+        assert!(projected
+            .iter()
+            .find(|item| item.kind == CertificationEvidenceKind::ResourceControls)
+            .is_some_and(|item| item.assessment == EvidenceAssessment::Proven));
     }
 
     #[test]
