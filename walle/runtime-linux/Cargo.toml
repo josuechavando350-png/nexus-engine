@@ -1,0 +1,18 @@
+[package]
+name = "walle-runtime-linux"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.88"
+publish = false
+license = "UNLICENSED"
+description = "Linux x86_64 runtime primitives for WALLE Firecracker execution"
+
+[dependencies]
+walle-core = { path = "../core" }
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+strip = "symbols"
+overflow-checks = true
