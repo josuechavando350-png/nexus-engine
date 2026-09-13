@@ -234,10 +234,7 @@ mod tests {
             Ok(GracefulTerminationOutcome::StillRunning)
         }
 
-        fn force_kill_and_reap(
-            &mut self,
-            _process: &mut Self::Process,
-        ) -> Result<(), Self::Error> {
+        fn force_kill_and_reap(&mut self, _process: &mut Self::Process) -> Result<(), Self::Error> {
             self.events.push("force");
             Ok(())
         }
@@ -378,7 +375,10 @@ mod tests {
         let result = execute_with_sink(&mut host, &plan, &mut sink).expect("record lifecycle");
 
         assert_eq!(result.lifecycle.status, SupervisorTerminalStatus::Exited);
-        assert_eq!(result.lifecycle.reason, SupervisorLifecycleReason::ProcessExited);
+        assert_eq!(
+            result.lifecycle.reason,
+            SupervisorLifecycleReason::ProcessExited
+        );
         assert_eq!(result.seal.entry_count, 2);
         assert!(sink.sealed);
         assert_eq!(
@@ -396,7 +396,15 @@ mod tests {
         );
         assert_eq!(
             host.events,
-            vec!["verify", "prepare", "cgroup", "materialize", "spawn", "wait", "cleanup"]
+            vec![
+                "verify",
+                "prepare",
+                "cgroup",
+                "materialize",
+                "spawn",
+                "wait",
+                "cleanup"
+            ]
         );
     }
 
@@ -409,15 +417,25 @@ mod tests {
         let result = execute_with_sink(&mut host, &plan, &mut sink).expect("record blocked result");
 
         assert_eq!(result.lifecycle.status, SupervisorTerminalStatus::Blocked);
-        assert_eq!(result.lifecycle.reason, SupervisorLifecycleReason::WaitFailed);
+        assert_eq!(
+            result.lifecycle.reason,
+            SupervisorLifecycleReason::WaitFailed
+        );
         assert!(sink.sealed);
         assert_eq!(sink.writes.len(), 2);
         assert_eq!(sink.writes[1].1, result.lifecycle.canonical_json());
         assert_eq!(
             host.events,
             vec![
-                "verify", "prepare", "cgroup", "materialize", "spawn", "wait", "terminate",
-                "force", "cleanup",
+                "verify",
+                "prepare",
+                "cgroup",
+                "materialize",
+                "spawn",
+                "wait",
+                "terminate",
+                "force",
+                "cleanup",
             ]
         );
     }
@@ -446,7 +464,15 @@ mod tests {
         assert!(matches!(result, Err(EvidenceError::InvalidKind)));
         assert_eq!(
             host.events,
-            vec!["verify", "prepare", "cgroup", "materialize", "spawn", "wait", "cleanup"]
+            vec![
+                "verify",
+                "prepare",
+                "cgroup",
+                "materialize",
+                "spawn",
+                "wait",
+                "cleanup"
+            ]
         );
         assert!(!sink.sealed);
     }
