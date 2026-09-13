@@ -327,11 +327,7 @@ mod tests {
             RESOURCE_RECEIPT_SHA
         );
         assert_eq!(
-            evidence(
-                &projected,
-                CertificationEvidenceKind::RuntimeBinaryIdentity
-            )
-            .receipt_sha256,
+            evidence(&projected, CertificationEvidenceKind::RuntimeBinaryIdentity).receipt_sha256,
             RUNTIME_RECEIPT_SHA
         );
         assert_eq!(
@@ -347,11 +343,7 @@ mod tests {
             EvidenceAssessment::Proven
         );
         assert_eq!(
-            evidence(
-                &projected,
-                CertificationEvidenceKind::DurableEvidenceChain
-            )
-            .receipt_sha256,
+            evidence(&projected, CertificationEvidenceKind::DurableEvidenceChain).receipt_sha256,
             PLAN_RECEIPT_SHA
         );
         assert!(projected
@@ -433,11 +425,7 @@ mod tests {
             EvidenceAssessment::Proven
         );
         assert_eq!(
-            evidence(
-                &projected,
-                CertificationEvidenceKind::RuntimeBinaryIdentity
-            )
-            .assessment,
+            evidence(&projected, CertificationEvidenceKind::RuntimeBinaryIdentity).assessment,
             EvidenceAssessment::Proven
         );
         assert_eq!(
@@ -453,11 +441,7 @@ mod tests {
             EvidenceAssessment::Blocked
         );
         assert_eq!(
-            evidence(
-                &projected,
-                CertificationEvidenceKind::DurableEvidenceChain
-            )
-            .assessment,
+            evidence(&projected, CertificationEvidenceKind::DurableEvidenceChain).assessment,
             EvidenceAssessment::Proven
         );
     }
