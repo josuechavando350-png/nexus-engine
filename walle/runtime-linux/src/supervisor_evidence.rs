@@ -2,6 +2,10 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::path::{Path, PathBuf};
 
+use walle_core::isolation::{
+    assess_isolation_host, collect_isolation_host_facts, IsolationHostAssessment,
+    IsolationHostVerdict,
+};
 use walle_core::supervisor::MicroVmSupervisorPlan;
 use walle_core::supervisor_lifecycle::{
     execute_supervisor_lifecycle, GracefulTerminationOutcome, MicroVmSupervisorHost, SpawnAttempt,
@@ -13,9 +17,13 @@ use crate::evidence::{
     verify_evidence_chain, EvidenceError, EvidenceReceipt, EvidenceRun, EvidenceSeal,
 };
 use crate::host::LinuxMicroVmHost;
+use crate::host_facts::{
+    collect_linux_host_facts, HostPreflightVerdict, LinuxHostFacts,
+};
 
 pub const SUPERVISOR_PLAN_EVIDENCE_KIND: &str = "supervisor-plan";
 pub const SOURCE_IDENTITY_EVIDENCE_KIND: &str = "source-identity";
+pub const HOST_ISOLATION_EVIDENCE_KIND: &str = "host-isolation";
 pub const RESOURCE_CONTROLS_EVIDENCE_KIND: &str = "resource-controls";
 pub const RUNTIME_BINARY_IDENTITY_EVIDENCE_KIND: &str = "runtime-binary-identity";
 pub const IMAGE_INTEGRITY_EVIDENCE_KIND: &str = "image-integrity";
@@ -59,6 +67,7 @@ pub struct EvidencedSupervisorResult {
     pub lifecycle: SupervisorLifecycleResult,
     pub plan_receipt: EvidenceReceipt,
     pub source_identity_receipt: EvidenceReceipt,
+    pub host_isolation_receipt: Option<EvidenceReceipt>,
     pub resource_controls_receipt: Option<EvidenceReceipt>,
     pub runtime_binary_identity_receipt: Option<EvidenceReceipt>,
     pub image_integrity_receipt: Option<EvidenceReceipt>,
@@ -73,15 +82,20 @@ pub struct EvidencedSupervisorResult {
 /// Construction does not execute the workload. `execute` first verifies that
 /// the caller's plan is still bound to the exact run id/source digest captured
 /// at `begin`, persists the canonical plan and a dedicated source-identity
-/// receipt, then runs the concrete Linux lifecycle. A successful
-/// `LinuxMicroVmHost::apply_cgroup` is tracked as the `RESOURCE_CONTROLS` proof
-/// boundary because that implementation creates the exact cgroup-v2 leaf,
-/// writes CPU/memory/PID limits and reads every limit back before returning
-/// success. A successful materialization is the independent runtime/image
-/// identity boundary. `OUTPUT_BOUNDS` is appended only for the concrete
-/// terminal shape reached after Linux has joined both bounded output drains and
-/// checked their overflow flags. The exact canonical terminal result is then
-/// persisted, the chain is sealed, and all durable bytes are re-read and
+/// receipt, and then probes the live Linux host. `HOST_ISOLATION` is persisted
+/// only when two independent concrete probes agree that the current process is
+/// on Linux x86_64, privileged, has usable KVM API 12, cgroup v2/controllers,
+/// host seccomp support, and observable root/proc/cgroup-v2 mounts. A missing,
+/// denied or inconsistent prerequisite produces no host-isolation proof.
+///
+/// A successful `LinuxMicroVmHost::apply_cgroup` is tracked as the
+/// `RESOURCE_CONTROLS` proof boundary because that implementation creates the
+/// exact cgroup-v2 leaf, writes CPU/memory/PID limits and reads every limit back
+/// before returning success. A successful materialization is the independent
+/// runtime/image identity boundary. `OUTPUT_BOUNDS` is appended only for the
+/// concrete terminal shape reached after Linux has joined both bounded output
+/// drains and checked their overflow flags. The exact canonical terminal result
+/// is then persisted, the chain is sealed, and all durable bytes are re-read and
 /// verified before success can return.
 #[derive(Debug)]
 pub struct SupervisorEvidenceRun {
@@ -119,8 +133,8 @@ impl SupervisorEvidenceRun {
 
     /// Executes only through the concrete Linux host. Keeping this public
     /// boundary concrete prevents a generic test/dummy host from manufacturing
-    /// cgroup, runtime, image or output-bound receipts merely by returning
-    /// success from trait methods.
+    /// host-isolation, cgroup, runtime, image or output-bound receipts merely by
+    /// returning success from trait methods.
     pub fn execute(
         &mut self,
         host: &mut LinuxMicroVmHost,
@@ -129,10 +143,19 @@ impl SupervisorEvidenceRun {
         if plan.run_id != self.run_id || plan.source_sha256 != self.source_sha256 {
             return Err(SupervisorEvidenceError::PlanBindingMismatch);
         }
-        let result = execute_with_sink(host, plan, &mut self.evidence)?;
-        let mut receipts = Vec::with_capacity(7);
+        let host_isolation_payload = collect_host_isolation_payload(plan);
+        let result = execute_with_sink_and_host_isolation(
+            host,
+            plan,
+            &mut self.evidence,
+            host_isolation_payload.as_deref(),
+        )?;
+        let mut receipts = Vec::with_capacity(8);
         receipts.push(result.plan_receipt.clone());
         receipts.push(result.source_identity_receipt.clone());
+        if let Some(receipt) = result.host_isolation_receipt.as_ref() {
+            receipts.push(receipt.clone());
+        }
         if let Some(receipt) = result.resource_controls_receipt.as_ref() {
             receipts.push(receipt.clone());
         }
@@ -255,6 +278,19 @@ where
     H: MicroVmSupervisorHost,
     S: SupervisorEvidenceSink,
 {
+    execute_with_sink_and_host_isolation(host, plan, sink, None)
+}
+
+fn execute_with_sink_and_host_isolation<H, S>(
+    host: &mut H,
+    plan: &MicroVmSupervisorPlan<'_>,
+    sink: &mut S,
+    host_isolation_payload: Option<&str>,
+) -> Result<EvidencedSupervisorResult, EvidenceError>
+where
+    H: MicroVmSupervisorHost,
+    S: SupervisorEvidenceSink,
+{
     let plan_json = plan.canonical_json();
     let plan_receipt = sink.append(SUPERVISOR_PLAN_EVIDENCE_KIND, plan_json.as_bytes())?;
     let source_identity_json = source_identity_payload(plan);
@@ -262,6 +298,10 @@ where
         SOURCE_IDENTITY_EVIDENCE_KIND,
         source_identity_json.as_bytes(),
     )?;
+    let host_isolation_receipt = match host_isolation_payload {
+        Some(payload) => Some(sink.append(HOST_ISOLATION_EVIDENCE_KIND, payload.as_bytes())?),
+        None => None,
+    };
 
     let mut tracked_host = ProofTrackingHost::new(host);
     let lifecycle = execute_supervisor_lifecycle(&mut tracked_host, plan);
@@ -304,6 +344,7 @@ where
         lifecycle,
         plan_receipt,
         source_identity_receipt,
+        host_isolation_receipt,
         resource_controls_receipt,
         runtime_binary_identity_receipt,
         image_integrity_receipt,
@@ -316,6 +357,62 @@ where
 fn proves_output_bounds(lifecycle: &SupervisorLifecycleResult) -> bool {
     lifecycle.status == SupervisorTerminalStatus::Exited
         && lifecycle.reason == SupervisorLifecycleReason::ProcessExited
+}
+
+fn collect_host_isolation_payload(plan: &MicroVmSupervisorPlan<'_>) -> Option<String> {
+    let linux_facts = collect_linux_host_facts().ok()?;
+    let isolation = assess_isolation_host(collect_isolation_host_facts());
+    host_isolation_payload(plan, &linux_facts, &isolation)
+}
+
+fn host_isolation_payload(
+    plan: &MicroVmSupervisorPlan<'_>,
+    linux_facts: &LinuxHostFacts,
+    isolation: &IsolationHostAssessment,
+) -> Option<String> {
+    if linux_facts.preflight_verdict() != HostPreflightVerdict::Ready
+        || isolation.verdict != IsolationHostVerdict::Ready
+        || !isolation.linux_verified
+        || !isolation.x86_64_verified
+        || !isolation.privileged_supervisor_verified
+        || !isolation.kvm_verified
+        || !isolation.cgroup_v2_verified
+        || !isolation.cgroup_controllers_verified
+        || !isolation.seccomp_verified
+    {
+        return None;
+    }
+    let effective_uid = isolation.facts.effective_uid?;
+    let kvm_api_version = isolation.facts.kvm_api_version?;
+
+    Some(format!(
+        concat!(
+            "{{",
+            "\"architecture\":\"{}\",",
+            "\"cgroup_controllers_verified\":true,",
+            "\"cgroup_v2_verified\":true,",
+            "\"effective_uid\":{},",
+            "\"host_facts\":{},",
+            "\"kvm_api_version\":{},",
+            "\"kvm_verified\":true,",
+            "\"linux_verified\":true,",
+            "\"os\":\"{}\",",
+            "\"privileged_supervisor_verified\":true,",
+            "\"run_id\":\"{}\",",
+            "\"seccomp_verified\":true,",
+            "\"source_sha256\":\"{}\",",
+            "\"verification\":\"LIVE_LINUX_X86_64_KVM_CGROUP_SECCOMP_PREFLIGHT_READY\",",
+            "\"x86_64_verified\":true",
+            "}}"
+        ),
+        isolation.facts.architecture,
+        effective_uid,
+        linux_facts.canonical_json(),
+        kvm_api_version,
+        isolation.facts.os,
+        plan.run_id,
+        plan.source_sha256,
+    ))
 }
 
 fn source_identity_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
@@ -396,7 +493,9 @@ fn output_bounds_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use walle_core::isolation::IsolationHostFacts;
     use walle_core::supervisor::{CgroupV2Plan, MicroVmSupervisorPlan};
+    use crate::host_facts::{KvmObservation, MountObservation};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct FakeError;
@@ -652,6 +751,134 @@ mod tests {
         }
     }
 
+    fn mount(mount_point: &str, fs_type: &str, source: &str) -> MountObservation {
+        MountObservation {
+            mount_point: mount_point.to_owned(),
+            fs_type: fs_type.to_owned(),
+            source: source.to_owned(),
+        }
+    }
+
+    fn ready_linux_facts() -> LinuxHostFacts {
+        LinuxHostFacts {
+            kernel_release: "6.8.0-test".to_owned(),
+            kvm: KvmObservation::Usable { api_version: 12 },
+            root_mount: Some(mount("/", "ext4", "/dev/vda1")),
+            proc_mount: Some(mount("/proc", "proc", "proc")),
+            cgroup_v2_mounts: vec![mount("/sys/fs/cgroup", "cgroup2", "cgroup")],
+        }
+    }
+
+    fn ready_isolation_assessment() -> IsolationHostAssessment {
+        IsolationHostAssessment {
+            facts: IsolationHostFacts {
+                os: "linux".to_owned(),
+                architecture: "x86_64".to_owned(),
+                effective_uid: Some(0),
+                kvm_exists: true,
+                kvm_is_character_device: true,
+                kvm_open_read_write: true,
+                kvm_api_version: Some(12),
+                kvm_api_compatible: true,
+                cgroup_v2: true,
+                cgroup_controllers: vec![
+                    "cpu".to_owned(),
+                    "io".to_owned(),
+                    "memory".to_owned(),
+                    "pids".to_owned(),
+                ],
+                seccomp_actions: vec!["errno".to_owned(), "kill_process".to_owned()],
+            },
+            linux_verified: true,
+            x86_64_verified: true,
+            privileged_supervisor_verified: true,
+            kvm_verified: true,
+            cgroup_v2_verified: true,
+            cgroup_controllers_verified: true,
+            seccomp_verified: true,
+            verdict: IsolationHostVerdict::Ready,
+            reason: "MICROVM_HOST_PREREQUISITES_READY",
+        }
+    }
+
+    #[test]
+    fn host_isolation_payload_requires_both_live_preflights_to_be_ready() {
+        let plan = plan();
+        let linux = ready_linux_facts();
+        let isolation = ready_isolation_assessment();
+        let payload = host_isolation_payload(&plan, &linux, &isolation).expect("host proof");
+
+        assert!(payload.contains("\"kvm_api_version\":12"));
+        assert!(payload.contains("\"preflight\":\"READY\""));
+        assert!(payload.contains("\"run_id\":\"run-0123456789abcdef0123456789abcdef\""));
+        assert!(payload.contains("LIVE_LINUX_X86_64_KVM_CGROUP_SECCOMP_PREFLIGHT_READY"));
+
+        let mut blocked_linux = linux.clone();
+        blocked_linux.kvm = KvmObservation::Missing;
+        assert!(host_isolation_payload(&plan, &blocked_linux, &isolation).is_none());
+
+        let mut blocked_isolation = isolation.clone();
+        blocked_isolation.verdict = IsolationHostVerdict::Unavailable;
+        assert!(host_isolation_payload(&plan, &linux, &blocked_isolation).is_none());
+    }
+
+    #[test]
+    fn explicit_host_isolation_receipt_is_persisted_before_lifecycle() {
+        let plan = plan();
+        let mut host = FakeHost::exited();
+        let mut sink = FakeSink::healthy();
+        let payload = host_isolation_payload(
+            &plan,
+            &ready_linux_facts(),
+            &ready_isolation_assessment(),
+        )
+        .expect("host payload");
+
+        let result = execute_with_sink_and_host_isolation(
+            &mut host,
+            &plan,
+            &mut sink,
+            Some(&payload),
+        )
+        .expect("record lifecycle");
+
+        assert_eq!(result.seal.entry_count, 8);
+        assert_eq!(
+            result.host_isolation_receipt.as_ref().expect("host receipt").kind,
+            HOST_ISOLATION_EVIDENCE_KIND
+        );
+        assert_eq!(sink.writes[2].0, HOST_ISOLATION_EVIDENCE_KIND);
+        assert_eq!(sink.writes[2].1, payload);
+        assert_ne!(
+            result.host_isolation_receipt.as_ref().expect("host receipt").receipt_sha256,
+            result.source_identity_receipt.receipt_sha256
+        );
+    }
+
+    #[test]
+    fn host_isolation_write_failure_prevents_execution() {
+        let plan = plan();
+        let mut host = FakeHost::exited();
+        let mut sink = FakeSink::fail_append_at(2);
+        let payload = host_isolation_payload(
+            &plan,
+            &ready_linux_facts(),
+            &ready_isolation_assessment(),
+        )
+        .expect("host payload");
+
+        let result = execute_with_sink_and_host_isolation(
+            &mut host,
+            &plan,
+            &mut sink,
+            Some(&payload),
+        );
+
+        assert!(matches!(result, Err(EvidenceError::InvalidKind)));
+        assert!(host.events.is_empty());
+        assert!(!sink.sealed);
+    }
+
     #[test]
     fn successful_run_persists_source_resource_runtime_image_output_and_lifecycle_receipts() {
         let plan = plan();
@@ -670,6 +897,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.host_isolation_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
@@ -732,6 +960,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.host_isolation_receipt.is_none());
         assert!(result.resource_controls_receipt.is_none());
         assert!(result.runtime_binary_identity_receipt.is_none());
         assert!(result.image_integrity_receipt.is_none());
@@ -757,6 +986,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.host_isolation_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_none());
         assert!(result.image_integrity_receipt.is_none());
@@ -778,6 +1008,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.host_isolation_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.output_bounds_receipt.is_some());
         assert_eq!(result.seal.entry_count, 7);
@@ -800,6 +1031,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.host_isolation_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
