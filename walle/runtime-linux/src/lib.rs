@@ -11,5 +11,6 @@ pub mod cgroup;
 pub mod evidence;
 pub mod firecracker;
 pub mod host;
+pub mod runner;
 pub mod safe_fs;
 pub mod supervisor_evidence;
