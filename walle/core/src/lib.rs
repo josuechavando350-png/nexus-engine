@@ -1,6 +1,7 @@
 extern crate self as walle_core;
 
 pub mod capsule;
+pub mod growth_attribution;
 pub mod isolation;
 pub mod microvm;
 pub mod publish_safety;
