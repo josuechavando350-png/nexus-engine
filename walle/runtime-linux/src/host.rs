@@ -1,6 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
-use std::fs::{self, File};
+use std::fs;
 use std::io::{self, Seek, SeekFrom, Write};
 use std::os::fd::AsRawFd;
 use std::os::unix::fs::MetadataExt;
@@ -20,8 +20,8 @@ use walle_core::supervisor_lifecycle::{
 use crate::artifact::{open_regular_no_symlinks, ArtifactError, SystemSha256};
 use crate::cgroup::{AppliedCgroup, CgroupError, CgroupLayout};
 use crate::firecracker::{
-    build_firecracker_config, build_jailer_command, FirecrackerConfigOptions,
-    FirecrackerPlanError, JailerCommandPlan, SCRATCH_GUEST_PATH,
+    build_firecracker_config, build_jailer_command, FirecrackerConfigOptions, FirecrackerPlanError,
+    JailerCommandPlan, SCRATCH_GUEST_PATH,
 };
 use crate::safe_fs::{SecureDirectory, SecureFsError};
 
@@ -94,7 +94,10 @@ impl Display for LinuxHostError {
                 "{label} digest mismatch: expected {expected}, got {actual}"
             ),
             Self::InvalidLifecycleState(reason) => {
-                write!(formatter, "invalid Linux supervisor lifecycle state: {reason}")
+                write!(
+                    formatter,
+                    "invalid Linux supervisor lifecycle state: {reason}"
+                )
             }
             Self::MissingScratchFormatter => formatter.write_str(
                 "scratch filesystem was requested but no trusted mkfs.ext4 program was configured",
@@ -105,7 +108,9 @@ impl Display for LinuxHostError {
             Self::ScratchFormatterFailed(code) => {
                 write!(formatter, "mkfs.ext4 failed with exit code {code:?}")
             }
-            Self::ProcessIdOverflow(pid) => write!(formatter, "child pid does not fit pid_t: {pid}"),
+            Self::ProcessIdOverflow(pid) => {
+                write!(formatter, "child pid does not fit pid_t: {pid}")
+            }
             Self::Artifact(error) => Display::fmt(error, formatter),
             Self::Cgroup(error) => Display::fmt(error, formatter),
             Self::Firecracker(error) => Display::fmt(error, formatter),
@@ -186,8 +191,6 @@ struct PreparedRun {
     chroot_root: Option<SecureDirectory>,
     walle_dir: Option<SecureDirectory>,
     cgroup: Option<AppliedCgroup>,
-    staged_firecracker: Option<PathBuf>,
-    staged_jailer: Option<PathBuf>,
     command: Option<JailerCommandPlan>,
 }
 
@@ -254,7 +257,9 @@ impl LinuxMicroVmHost {
         let run = self
             .run
             .as_mut()
-            .ok_or(LinuxHostError::InvalidLifecycleState("run root is not prepared"))?;
+            .ok_or(LinuxHostError::InvalidLifecycleState(
+                "run root is not prepared",
+            ))?;
         if run.run_id != plan.run_id {
             return Err(LinuxHostError::InvalidLifecycleState(
                 "prepared run id does not match supervisor plan",
@@ -319,8 +324,6 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             chroot_root: None,
             walle_dir: None,
             cgroup: None,
-            staged_firecracker: None,
-            staged_jailer: None,
             command: None,
         });
 
@@ -344,7 +347,9 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
                 "cgroup was already applied",
             ));
         }
-        let cgroup = self.cgroup_layout.create_and_apply(plan.run_id, plan.cgroup)?;
+        let cgroup = self
+            .cgroup_layout
+            .create_and_apply(plan.run_id, plan.cgroup)?;
         self.run_mut(plan)?.cgroup = Some(cgroup);
         Ok(())
     }
@@ -456,8 +461,6 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             ));
         }
 
-        run.staged_firecracker = Some(staged_firecracker);
-        run.staged_jailer = Some(staged_jailer);
         run.command = Some(command);
         Ok(())
     }
@@ -545,30 +548,53 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
     }
 
     fn cleanup(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Self::Error> {
-        if let Some(run) = self.run.as_ref() {
-            if run.run_id != plan.run_id {
+        let active_run_id = self.run.as_ref().map(|run| run.run_id.as_str());
+        if let Some(run_id) = active_run_id {
+            if run_id != plan.run_id {
                 return Err(LinuxHostError::InvalidLifecycleState(
                     "cleanup plan does not match active run",
                 ));
             }
-            if run.cgroup.is_some() {
-                self.cgroup_layout.cleanup_empty(plan.run_id)?;
+        }
+
+        let cgroup_present = self
+            .run
+            .as_ref()
+            .is_some_and(|run| run.cgroup.is_some());
+        if cgroup_present {
+            self.cgroup_layout.cleanup_empty(plan.run_id)?;
+            if let Some(run) = self.run.as_mut() {
+                run.cgroup = None;
             }
-            if let Some(vm_dir) = run.chroot_vm_dir.as_ref() {
-                if vm_dir.path().exists() {
-                    fs::remove_dir_all(vm_dir.path()).map_err(|source| LinuxHostError::Io {
-                        operation: "remove jailer run directory",
-                        source,
-                    })?;
-                }
+        }
+
+        let chroot_vm_path = self
+            .run
+            .as_ref()
+            .and_then(|run| run.chroot_vm_dir.as_ref())
+            .map(|directory| directory.path().to_path_buf());
+        if let Some(path) = chroot_vm_path {
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|source| LinuxHostError::Io {
+                    operation: "remove jailer run directory",
+                    source,
+                })?;
             }
-            if run.run_root.path().exists() {
-                fs::remove_dir_all(run.run_root.path()).map_err(|source| LinuxHostError::Io {
+        }
+
+        let run_root_path = self
+            .run
+            .as_ref()
+            .map(|run| run.run_root.path().to_path_buf());
+        if let Some(path) = run_root_path {
+            if path.exists() {
+                fs::remove_dir_all(&path).map_err(|source| LinuxHostError::Io {
                     operation: "remove supervisor run directory",
                     source,
                 })?;
             }
         }
+
         self.run = None;
         self.verified_run_id = None;
         self.cancellation.store(false, Ordering::SeqCst);
@@ -848,7 +874,10 @@ mod tests {
     #[test]
     fn real_child_timeout_requires_containment_before_reap() {
         let program = existing_program(&["/usr/bin/sleep", "/bin/sleep"]);
-        let mut child = Command::new(program).arg("5").spawn().expect("spawn sleep");
+        let mut child = Command::new(program)
+            .arg("5")
+            .spawn()
+            .expect("spawn sleep");
         let cancellation = AtomicBool::new(false);
         let outcome = wait_process(&mut child, 20, &cancellation).expect("wait");
         assert_eq!(outcome, WaitOutcome::TimedOut);
@@ -862,7 +891,10 @@ mod tests {
     #[test]
     fn cancellation_is_observed_by_real_wait_loop() {
         let program = existing_program(&["/usr/bin/sleep", "/bin/sleep"]);
-        let mut child = Command::new(program).arg("5").spawn().expect("spawn sleep");
+        let mut child = Command::new(program)
+            .arg("5")
+            .spawn()
+            .expect("spawn sleep");
         let cancellation = AtomicBool::new(true);
         let outcome = wait_process(&mut child, 5_000, &cancellation).expect("wait");
         assert_eq!(outcome, WaitOutcome::Cancelled);
@@ -875,8 +907,7 @@ mod tests {
             sha256_program: PathBuf::from("/usr/bin/sha256sum"),
             firecracker_sha256: "sha256:ABC".to_owned(),
             jailer_sha256:
-                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
-                    .to_owned(),
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
             cgroup_mount: PathBuf::from("/sys/fs/cgroup"),
             cgroup_parent_relative: PathBuf::from("walle"),
             chroot_base: PathBuf::from("/srv/jailer"),
