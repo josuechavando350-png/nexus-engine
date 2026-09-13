@@ -2,10 +2,20 @@ use std::fs::{self, File, OpenOptions};
 use std::io;
 use std::path::Path;
 
+#[cfg(target_os = "linux")]
+use std::os::fd::AsRawFd;
 #[cfg(unix)]
 use std::os::unix::fs::FileTypeExt;
 
 pub const REQUIRED_CGROUP_CONTROLLERS: [&str; 4] = ["cpu", "io", "memory", "pids"];
+const KVM_API_VERSION: i32 = 12;
+#[cfg(target_os = "linux")]
+const KVM_GET_API_VERSION: usize = 0xAE00;
+
+#[cfg(target_os = "linux")]
+extern "C" {
+    fn ioctl(fd: i32, request: usize, ...) -> i32;
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IsolationHostFacts {
@@ -15,6 +25,8 @@ pub struct IsolationHostFacts {
     pub kvm_exists: bool,
     pub kvm_is_character_device: bool,
     pub kvm_open_read_write: bool,
+    pub kvm_api_version: Option<i32>,
+    pub kvm_api_compatible: bool,
     pub cgroup_v2: bool,
     pub cgroup_controllers: Vec<String>,
     pub seccomp_actions: Vec<String>,
@@ -51,26 +63,32 @@ pub struct IsolationHostAssessment {
     pub reason: &'static str,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct KvmProbe {
+    exists: bool,
+    is_character_device: bool,
+    open_read_write: bool,
+    api_version: Option<i32>,
+}
+
+impl KvmProbe {
+    const fn api_compatible(self) -> bool {
+        matches!(self.api_version, Some(KVM_API_VERSION))
+    }
+}
+
 pub fn collect_isolation_host_facts() -> IsolationHostFacts {
-    let kvm_path = Path::new("/dev/kvm");
-    let kvm_metadata = fs::symlink_metadata(kvm_path).ok();
-    let kvm_exists = kvm_metadata.is_some();
-    let kvm_is_character_device = kvm_metadata
-        .as_ref()
-        .is_some_and(|metadata| metadata.file_type().is_char_device());
-    let kvm_open_read_write = if kvm_is_character_device {
-        open_kvm_read_write(kvm_path).is_ok()
-    } else {
-        false
-    };
+    let kvm = probe_kvm(Path::new("/dev/kvm"));
 
     IsolationHostFacts {
         os: std::env::consts::OS.to_owned(),
         architecture: std::env::consts::ARCH.to_owned(),
         effective_uid: read_effective_uid(),
-        kvm_exists,
-        kvm_is_character_device,
-        kvm_open_read_write,
+        kvm_exists: kvm.exists,
+        kvm_is_character_device: kvm.is_character_device,
+        kvm_open_read_write: kvm.open_read_write,
+        kvm_api_version: kvm.api_version,
+        kvm_api_compatible: kvm.api_compatible(),
         cgroup_v2: Path::new("/sys/fs/cgroup/cgroup.controllers").is_file(),
         cgroup_controllers: read_words("/sys/fs/cgroup/cgroup.controllers"),
         seccomp_actions: read_words("/proc/sys/kernel/seccomp/actions_avail"),
@@ -81,8 +99,10 @@ pub fn assess_isolation_host(facts: IsolationHostFacts) -> IsolationHostAssessme
     let linux_verified = facts.os == "linux";
     let x86_64_verified = facts.architecture == "x86_64";
     let privileged_supervisor_verified = facts.effective_uid == Some(0);
-    let kvm_verified =
-        facts.kvm_exists && facts.kvm_is_character_device && facts.kvm_open_read_write;
+    let kvm_verified = facts.kvm_exists
+        && facts.kvm_is_character_device
+        && facts.kvm_open_read_write
+        && facts.kvm_api_compatible;
     let cgroup_v2_verified = facts.cgroup_v2;
     let cgroup_controllers_verified = REQUIRED_CGROUP_CONTROLLERS.iter().all(|required| {
         facts
@@ -139,6 +159,52 @@ pub fn assess_isolation_host(facts: IsolationHostFacts) -> IsolationHostAssessme
     }
 }
 
+fn probe_kvm(path: &Path) -> KvmProbe {
+    let metadata = fs::symlink_metadata(path).ok();
+    let exists = metadata.is_some();
+    let is_character_device = metadata
+        .as_ref()
+        .is_some_and(|metadata| metadata.file_type().is_char_device());
+    if !is_character_device {
+        return KvmProbe {
+            exists,
+            is_character_device,
+            open_read_write: false,
+            api_version: None,
+        };
+    }
+
+    let file = match open_kvm_read_write(path) {
+        Ok(file) => file,
+        Err(_) => {
+            return KvmProbe {
+                exists,
+                is_character_device,
+                open_read_write: false,
+                api_version: None,
+            }
+        }
+    };
+
+    KvmProbe {
+        exists,
+        is_character_device,
+        open_read_write: true,
+        api_version: read_kvm_api_version(&file),
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn read_kvm_api_version(file: &File) -> Option<i32> {
+    let version = unsafe { ioctl(file.as_raw_fd(), KVM_GET_API_VERSION) };
+    (version >= 0).then_some(version)
+}
+
+#[cfg(not(target_os = "linux"))]
+fn read_kvm_api_version(_file: &File) -> Option<i32> {
+    None
+}
+
 fn open_kvm_read_write(path: &Path) -> io::Result<File> {
     OpenOptions::new().read(true).write(true).open(path)
 }
@@ -182,6 +248,8 @@ mod tests {
             kvm_exists: true,
             kvm_is_character_device: true,
             kvm_open_read_write: true,
+            kvm_api_version: Some(KVM_API_VERSION),
+            kvm_api_compatible: true,
             cgroup_v2: true,
             cgroup_controllers: vec![
                 "cpu".to_owned(),
@@ -204,9 +272,22 @@ mod tests {
     }
 
     #[test]
+    fn kvm_requires_exact_api_version_not_just_open_access() {
+        let mut facts = ready_facts();
+        facts.kvm_api_version = Some(KVM_API_VERSION - 1);
+        facts.kvm_api_compatible = false;
+        let assessment = assess_isolation_host(facts);
+        assert_eq!(assessment.verdict, IsolationHostVerdict::Unavailable);
+        assert_eq!(assessment.reason, "KVM_NOT_USABLE");
+        assert!(!assessment.kvm_verified);
+    }
+
+    #[test]
     fn missing_kvm_is_unavailable_not_ready() {
         let mut facts = ready_facts();
         facts.kvm_open_read_write = false;
+        facts.kvm_api_version = None;
+        facts.kvm_api_compatible = false;
         let assessment = assess_isolation_host(facts);
         assert_eq!(assessment.verdict, IsolationHostVerdict::Unavailable);
         assert_eq!(assessment.reason, "KVM_NOT_USABLE");
