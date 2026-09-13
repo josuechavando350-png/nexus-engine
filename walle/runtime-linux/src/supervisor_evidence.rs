@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
+use std::io::Read;
 use std::path::{Path, PathBuf};
 
 use walle_core::isolation::{
@@ -12,16 +13,18 @@ use walle_core::supervisor_lifecycle::{
     SupervisorLifecycleReason, SupervisorLifecycleResult, SupervisorTerminalStatus, WaitOutcome,
 };
 
-use crate::artifact::SystemSha256;
+use crate::artifact::{open_regular_no_symlinks, SystemSha256};
 use crate::evidence::{
     verify_evidence_chain, EvidenceError, EvidenceReceipt, EvidenceRun, EvidenceSeal,
 };
+use crate::firecracker::{RUN_ID_BOOT_ARG_PREFIX, SOURCE_SHA_BOOT_ARG_PREFIX};
 use crate::host::LinuxMicroVmHost;
 use crate::host_facts::{collect_linux_host_facts, HostPreflightVerdict, LinuxHostFacts};
 
 pub const SUPERVISOR_PLAN_EVIDENCE_KIND: &str = "supervisor-plan";
 pub const SOURCE_IDENTITY_EVIDENCE_KIND: &str = "source-identity";
 pub const HOST_ISOLATION_EVIDENCE_KIND: &str = "host-isolation";
+pub const MICROVM_BOOT_EVIDENCE_KIND: &str = "microvm-boot";
 pub const RESOURCE_CONTROLS_EVIDENCE_KIND: &str = "resource-controls";
 pub const RUNTIME_BINARY_IDENTITY_EVIDENCE_KIND: &str = "runtime-binary-identity";
 pub const IMAGE_INTEGRITY_EVIDENCE_KIND: &str = "image-integrity";
@@ -66,6 +69,7 @@ pub struct EvidencedSupervisorResult {
     pub plan_receipt: EvidenceReceipt,
     pub source_identity_receipt: EvidenceReceipt,
     pub host_isolation_receipt: Option<EvidenceReceipt>,
+    pub microvm_boot_receipt: Option<EvidenceReceipt>,
     pub resource_controls_receipt: Option<EvidenceReceipt>,
     pub runtime_binary_identity_receipt: Option<EvidenceReceipt>,
     pub image_integrity_receipt: Option<EvidenceReceipt>,
@@ -85,6 +89,13 @@ pub struct EvidencedSupervisorResult {
 /// on Linux x86_64, privileged, has usable KVM API 12, cgroup v2/controllers,
 /// host seccomp support, and observable root/proc/cgroup-v2 mounts. A missing,
 /// denied or inconsistent prerequisite produces no host-isolation proof.
+///
+/// `MICROVM_BOOT` is materially different from process-spawn evidence. The
+/// concrete Firecracker configuration injects the exact run id and source hash
+/// into the guest kernel command line. Before cleanup removes the private run
+/// root, this layer opens the bounded serial stdout log with no-symlink Linux
+/// resolution and requires a guest `Linux version` banner plus both exact
+/// bindings. Generic/fake lifecycle hosts never enable this physical capture.
 ///
 /// A successful `LinuxMicroVmHost::apply_cgroup` is tracked as the
 /// `RESOURCE_CONTROLS` proof boundary because that implementation creates the
@@ -131,8 +142,8 @@ impl SupervisorEvidenceRun {
 
     /// Executes only through the concrete Linux host. Keeping this public
     /// boundary concrete prevents a generic test/dummy host from manufacturing
-    /// host-isolation, cgroup, runtime, image or output-bound receipts merely by
-    /// returning success from trait methods.
+    /// physical boot, host-isolation, cgroup, runtime, image or output-bound
+    /// receipts merely by returning success from trait methods.
     pub fn execute(
         &mut self,
         host: &mut LinuxMicroVmHost,
@@ -147,11 +158,15 @@ impl SupervisorEvidenceRun {
             plan,
             &mut self.evidence,
             host_isolation_payload.as_deref(),
+            true,
         )?;
-        let mut receipts = Vec::with_capacity(8);
+        let mut receipts = Vec::with_capacity(9);
         receipts.push(result.plan_receipt.clone());
         receipts.push(result.source_identity_receipt.clone());
         if let Some(receipt) = result.host_isolation_receipt.as_ref() {
+            receipts.push(receipt.clone());
+        }
+        if let Some(receipt) = result.microvm_boot_receipt.as_ref() {
             receipts.push(receipt.clone());
         }
         if let Some(receipt) = result.resource_controls_receipt.as_ref() {
@@ -193,14 +208,18 @@ impl SupervisorEvidenceSink for EvidenceRun {
 /// path hashes each staged runtime/image artifact and fails closed on mismatch.
 struct ProofTrackingHost<'a, H> {
     inner: &'a mut H,
+    capture_physical_boot: bool,
+    microvm_boot_payload: Option<String>,
     resource_controls_applied: bool,
     materialized: bool,
 }
 
 impl<'a, H> ProofTrackingHost<'a, H> {
-    fn new(inner: &'a mut H) -> Self {
+    fn new(inner: &'a mut H, capture_physical_boot: bool) -> Self {
         Self {
             inner,
+            capture_physical_boot,
+            microvm_boot_payload: None,
             resource_controls_applied: false,
             materialized: false,
         }
@@ -263,6 +282,9 @@ impl<H: MicroVmSupervisorHost> MicroVmSupervisorHost for ProofTrackingHost<'_, H
     }
 
     fn cleanup(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Self::Error> {
+        if self.capture_physical_boot && self.microvm_boot_payload.is_none() {
+            self.microvm_boot_payload = observe_microvm_boot(plan);
+        }
         self.inner.cleanup(plan)
     }
 }
@@ -277,7 +299,7 @@ where
     H: MicroVmSupervisorHost,
     S: SupervisorEvidenceSink,
 {
-    execute_with_sink_and_host_isolation(host, plan, sink, None)
+    execute_with_sink_and_host_isolation(host, plan, sink, None, false)
 }
 
 fn execute_with_sink_and_host_isolation<H, S>(
@@ -285,6 +307,7 @@ fn execute_with_sink_and_host_isolation<H, S>(
     plan: &MicroVmSupervisorPlan<'_>,
     sink: &mut S,
     host_isolation_payload: Option<&str>,
+    capture_physical_boot: bool,
 ) -> Result<EvidencedSupervisorResult, EvidenceError>
 where
     H: MicroVmSupervisorHost,
@@ -302,8 +325,13 @@ where
         None => None,
     };
 
-    let mut tracked_host = ProofTrackingHost::new(host);
+    let mut tracked_host = ProofTrackingHost::new(host, capture_physical_boot);
     let lifecycle = execute_supervisor_lifecycle(&mut tracked_host, plan);
+
+    let microvm_boot_receipt = match tracked_host.microvm_boot_payload.as_deref() {
+        Some(payload) => Some(sink.append(MICROVM_BOOT_EVIDENCE_KIND, payload.as_bytes())?),
+        None => None,
+    };
 
     let resource_controls_receipt = if tracked_host.resource_controls_applied {
         let payload = resource_controls_payload(plan);
@@ -344,6 +372,7 @@ where
         plan_receipt,
         source_identity_receipt,
         host_isolation_receipt,
+        microvm_boot_receipt,
         resource_controls_receipt,
         runtime_binary_identity_receipt,
         image_integrity_receipt,
@@ -412,6 +441,48 @@ fn host_isolation_payload(
         plan.run_id,
         plan.source_sha256,
     ))
+}
+
+fn observe_microvm_boot(plan: &MicroVmSupervisorPlan<'_>) -> Option<String> {
+    let stdout_path = Path::new(plan.run_root).join("stdout.log");
+    let file = open_regular_no_symlinks(&stdout_path).ok()?;
+    let mut serial = Vec::new();
+    file.take(plan.max_stdout_bytes.saturating_add(1))
+        .read_to_end(&mut serial)
+        .ok()?;
+    if u64::try_from(serial.len()).ok()? > plan.max_stdout_bytes
+        || !serial_bytes_prove_microvm_boot(plan, &serial)
+    {
+        return None;
+    }
+    Some(microvm_boot_payload(plan))
+}
+
+fn serial_bytes_prove_microvm_boot(plan: &MicroVmSupervisorPlan<'_>, serial: &[u8]) -> bool {
+    let run_binding = format!("{RUN_ID_BOOT_ARG_PREFIX}{}", plan.run_id);
+    let source_binding = format!("{SOURCE_SHA_BOOT_ARG_PREFIX}{}", plan.source_sha256);
+    contains_bytes(serial, b"Linux version ")
+        && contains_bytes(serial, run_binding.as_bytes())
+        && contains_bytes(serial, source_binding.as_bytes())
+}
+
+fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
+    !needle.is_empty() && haystack.windows(needle.len()).any(|window| window == needle)
+}
+
+fn microvm_boot_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
+    format!(
+        concat!(
+            "{{",
+            "\"kernel_sha256\":\"{}\",",
+            "\"rootfs_sha256\":\"{}\",",
+            "\"run_id\":\"{}\",",
+            "\"source_sha256\":\"{}\",",
+            "\"verification\":\"FIRECRACKER_GUEST_SERIAL_KERNEL_BOOT_BOUND_TO_RUN_SOURCE\"",
+            "}}"
+        ),
+        plan.kernel_sha256, plan.rootfs_sha256, plan.run_id, plan.source_sha256,
+    )
 }
 
 fn source_identity_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
@@ -822,6 +893,29 @@ mod tests {
     }
 
     #[test]
+    fn physical_boot_serial_requires_kernel_banner_and_exact_run_source_bindings() {
+        let plan = plan();
+        let valid = format!(
+            "[    0.000000] Linux version 6.8.0-walle\n[    0.000000] Kernel command line: console=ttyS0 {RUN_ID_BOOT_ARG_PREFIX}{} {SOURCE_SHA_BOOT_ARG_PREFIX}{}\n",
+            plan.run_id, plan.source_sha256
+        );
+        assert!(serial_bytes_prove_microvm_boot(&plan, valid.as_bytes()));
+
+        let wrong_run = valid.replace(plan.run_id, "run-ffffffffffffffffffffffffffffffff");
+        assert!(!serial_bytes_prove_microvm_boot(&plan, wrong_run.as_bytes()));
+        let wrong_source = valid.replace(plan.source_sha256, "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff");
+        assert!(!serial_bytes_prove_microvm_boot(&plan, wrong_source.as_bytes()));
+        let no_kernel = valid.replace("Linux version ", "guest text ");
+        assert!(!serial_bytes_prove_microvm_boot(&plan, no_kernel.as_bytes()));
+
+        let payload = microvm_boot_payload(&plan);
+        assert!(payload.contains(plan.run_id));
+        assert!(payload.contains(plan.source_sha256));
+        assert!(payload.contains(plan.kernel_sha256));
+        assert!(payload.contains(plan.rootfs_sha256));
+    }
+
+    #[test]
     fn explicit_host_isolation_receipt_is_persisted_before_lifecycle() {
         let plan = plan();
         let mut host = FakeHost::exited();
@@ -830,9 +924,14 @@ mod tests {
             host_isolation_payload(&plan, &ready_linux_facts(), &ready_isolation_assessment())
                 .expect("host payload");
 
-        let result =
-            execute_with_sink_and_host_isolation(&mut host, &plan, &mut sink, Some(&payload))
-                .expect("record lifecycle");
+        let result = execute_with_sink_and_host_isolation(
+            &mut host,
+            &plan,
+            &mut sink,
+            Some(&payload),
+            false,
+        )
+        .expect("record lifecycle");
 
         assert_eq!(result.seal.entry_count, 8);
         assert_eq!(
@@ -843,6 +942,7 @@ mod tests {
                 .kind,
             HOST_ISOLATION_EVIDENCE_KIND
         );
+        assert!(result.microvm_boot_receipt.is_none());
         assert_eq!(sink.writes[2].0, HOST_ISOLATION_EVIDENCE_KIND);
         assert_eq!(sink.writes[2].1, payload);
         assert_ne!(
@@ -864,8 +964,13 @@ mod tests {
             host_isolation_payload(&plan, &ready_linux_facts(), &ready_isolation_assessment())
                 .expect("host payload");
 
-        let result =
-            execute_with_sink_and_host_isolation(&mut host, &plan, &mut sink, Some(&payload));
+        let result = execute_with_sink_and_host_isolation(
+            &mut host,
+            &plan,
+            &mut sink,
+            Some(&payload),
+            false,
+        );
 
         assert!(matches!(result, Err(EvidenceError::InvalidKind)));
         assert!(host.events.is_empty());
@@ -891,6 +996,7 @@ mod tests {
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
         assert!(result.host_isolation_receipt.is_none());
+        assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
@@ -954,6 +1060,7 @@ mod tests {
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
         assert!(result.host_isolation_receipt.is_none());
+        assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_none());
         assert!(result.runtime_binary_identity_receipt.is_none());
         assert!(result.image_integrity_receipt.is_none());
@@ -980,6 +1087,7 @@ mod tests {
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
         assert!(result.host_isolation_receipt.is_none());
+        assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_none());
         assert!(result.image_integrity_receipt.is_none());
@@ -1002,6 +1110,7 @@ mod tests {
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
         assert!(result.host_isolation_receipt.is_none());
+        assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.output_bounds_receipt.is_some());
         assert_eq!(result.seal.entry_count, 7);
@@ -1025,6 +1134,7 @@ mod tests {
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
         assert!(result.host_isolation_receipt.is_none());
+        assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
         assert!(result.runtime_binary_identity_receipt.is_some());
         assert!(result.image_integrity_receipt.is_some());
