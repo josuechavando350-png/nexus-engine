@@ -259,10 +259,7 @@ where
 
     let output_bounds_receipt = if proves_output_bounds(&lifecycle) {
         let payload = output_bounds_payload(plan);
-        Some(sink.append(
-            SUPERVISOR_OUTPUT_BOUNDS_EVIDENCE_KIND,
-            payload.as_bytes(),
-        )?)
+        Some(sink.append(SUPERVISOR_OUTPUT_BOUNDS_EVIDENCE_KIND, payload.as_bytes())?)
     } else {
         None
     };
