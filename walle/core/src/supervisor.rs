@@ -2,9 +2,10 @@ use std::fmt::{Display, Formatter};
 use std::path::{Component, Path};
 
 use crate::capsule::{ExecutionCapsule, FilesystemCapability};
+use crate::is_valid_sha256;
 use crate::microvm::{MicroVmLaunchPlan, FIRECRACKER_BACKEND_ID};
 
-pub const SUPERVISOR_PLAN_SCHEMA_VERSION: u32 = 1;
+pub const SUPERVISOR_PLAN_SCHEMA_VERSION: u32 = 2;
 pub const CGROUP_CPU_PERIOD_US: u64 = 100_000;
 pub const GUEST_KERNEL_PATH: &str = "/walle/kernel";
 pub const GUEST_ROOTFS_PATH: &str = "/walle/rootfs";
@@ -17,6 +18,12 @@ pub struct SupervisorRuntimePaths<'a> {
     pub run_root: &'a str,
     pub kernel_source: &'a str,
     pub rootfs_source: &'a str,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SupervisorRuntimeIdentity<'a> {
+    pub firecracker_sha256: &'a str,
+    pub jailer_sha256: &'a str,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,7 +47,9 @@ pub struct MicroVmSupervisorPlan<'a> {
     pub source_sha256: &'a str,
     pub backend_id: &'static str,
     pub firecracker_exec: &'a str,
+    pub firecracker_sha256: &'a str,
     pub jailer_exec: &'a str,
+    pub jailer_sha256: &'a str,
     pub run_root: &'a str,
     pub kernel_source: &'a str,
     pub rootfs_source: &'a str,
@@ -70,7 +79,7 @@ pub struct MicroVmSupervisorPlan<'a> {
 
 impl MicroVmSupervisorPlan<'_> {
     pub fn canonical_json(self) -> String {
-        let mut output = String::with_capacity(1_536);
+        let mut output = String::with_capacity(1_768);
         output.push('{');
         push_key_bool(
             &mut output,
@@ -110,6 +119,8 @@ impl MicroVmSupervisorPlan<'_> {
         output.push(',');
         push_key_str(&mut output, "firecracker_exec", self.firecracker_exec);
         output.push(',');
+        push_key_str(&mut output, "firecracker_sha256", self.firecracker_sha256);
+        output.push(',');
         push_key_str(&mut output, "guest_config_path", self.guest_config_path);
         output.push(',');
         push_key_str(&mut output, "guest_kernel_path", self.guest_kernel_path);
@@ -133,6 +144,8 @@ impl MicroVmSupervisorPlan<'_> {
         push_key_u64(&mut output, "jail_uid", u64::from(self.jail_uid));
         output.push(',');
         push_key_str(&mut output, "jailer_exec", self.jailer_exec);
+        output.push(',');
+        push_key_str(&mut output, "jailer_sha256", self.jailer_sha256);
         output.push(',');
         push_key_str(&mut output, "kernel_sha256", self.kernel_sha256);
         output.push(',');
@@ -193,6 +206,7 @@ pub enum SupervisorPlanError {
     InvalidCapsule,
     LaunchPlanMismatch,
     UnsafeRuntimePath,
+    InvalidRuntimeBinaryIdentity,
     InvalidJailIdentity,
     ResourceOverflow,
 }
@@ -207,6 +221,9 @@ impl Display for SupervisorPlanError {
             Self::UnsafeRuntimePath => {
                 "supervisor runtime path is not a normalized absolute host path"
             }
+            Self::InvalidRuntimeBinaryIdentity => {
+                "Firecracker and jailer identities must be canonical lowercase sha256 values"
+            }
             Self::InvalidJailIdentity => "microVM jail uid/gid must both be non-zero",
             Self::ResourceOverflow => "supervisor resource limit conversion overflowed",
         })
@@ -217,6 +234,7 @@ pub fn build_supervisor_plan<'a>(
     capsule: ExecutionCapsule<'a>,
     launch: MicroVmLaunchPlan<'a>,
     paths: SupervisorRuntimePaths<'a>,
+    runtime_identity: SupervisorRuntimeIdentity<'a>,
     jail: JailIdentity,
 ) -> Result<MicroVmSupervisorPlan<'a>, SupervisorPlanError> {
     capsule
@@ -224,6 +242,11 @@ pub fn build_supervisor_plan<'a>(
         .map_err(|_| SupervisorPlanError::InvalidCapsule)?;
     validate_launch_binding(capsule, launch)?;
     validate_paths(paths)?;
+    if !is_valid_sha256(runtime_identity.firecracker_sha256)
+        || !is_valid_sha256(runtime_identity.jailer_sha256)
+    {
+        return Err(SupervisorPlanError::InvalidRuntimeBinaryIdentity);
+    }
     if jail.uid == 0 || jail.gid == 0 {
         return Err(SupervisorPlanError::InvalidJailIdentity);
     }
@@ -242,7 +265,9 @@ pub fn build_supervisor_plan<'a>(
         source_sha256: launch.source_sha256,
         backend_id: FIRECRACKER_BACKEND_ID,
         firecracker_exec: paths.firecracker_exec,
+        firecracker_sha256: runtime_identity.firecracker_sha256,
         jailer_exec: paths.jailer_exec,
+        jailer_sha256: runtime_identity.jailer_sha256,
         run_root: paths.run_root,
         kernel_source: paths.kernel_source,
         rootfs_source: paths.rootfs_source,
@@ -399,6 +424,8 @@ mod tests {
     const SHA_A: &str = "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef";
     const SHA_B: &str = "sha256:abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
     const SHA_C: &str = "sha256:1111111111111111111111111111111111111111111111111111111111111111";
+    const SHA_D: &str = "sha256:2222222222222222222222222222222222222222222222222222222222222222";
+    const SHA_E: &str = "sha256:3333333333333333333333333333333333333333333333333333333333333333";
 
     fn ready_host() -> IsolationHostFacts {
         IsolationHostFacts {
@@ -470,6 +497,13 @@ mod tests {
         }
     }
 
+    fn runtime_identity() -> SupervisorRuntimeIdentity<'static> {
+        SupervisorRuntimeIdentity {
+            firecracker_sha256: SHA_D,
+            jailer_sha256: SHA_E,
+        }
+    }
+
     #[test]
     fn exact_launch_binding_produces_deterministic_fail_closed_supervisor_contract() {
         let request = capsule();
@@ -477,6 +511,7 @@ mod tests {
             request,
             launch(request),
             paths(),
+            runtime_identity(),
             JailIdentity {
                 uid: 65_534,
                 gid: 65_534,
@@ -504,7 +539,31 @@ mod tests {
         assert!(plan.kill_on_cancel_required);
         assert!(plan.cgroup_cleanup_required);
         assert!(json.contains("\"backend_id\":\"firecracker-microvm-v1\""));
+        assert!(json.contains("\"schema_version\":2"));
+        assert!(json.contains(&format!("\"firecracker_sha256\":\"{SHA_D}\"")));
+        assert!(json.contains(&format!("\"jailer_sha256\":\"{SHA_E}\"")));
         assert!(json.contains("\"guest_config_path\":\"/walle/firecracker-config.json\""));
+    }
+
+    #[test]
+    fn invalid_runtime_binary_identity_fails_closed() {
+        let request = capsule();
+        assert_eq!(
+            build_supervisor_plan(
+                request,
+                launch(request),
+                paths(),
+                SupervisorRuntimeIdentity {
+                    firecracker_sha256: "sha256:ABC",
+                    jailer_sha256: SHA_E,
+                },
+                JailIdentity {
+                    uid: 65_534,
+                    gid: 65_534,
+                },
+            ),
+            Err(SupervisorPlanError::InvalidRuntimeBinaryIdentity)
+        );
     }
 
     #[test]
@@ -517,6 +576,7 @@ mod tests {
                 request,
                 stale,
                 paths(),
+                runtime_identity(),
                 JailIdentity {
                     uid: 65_534,
                     gid: 65_534,
@@ -536,6 +596,7 @@ mod tests {
                 request,
                 launch(request),
                 unsafe_paths,
+                runtime_identity(),
                 JailIdentity {
                     uid: 65_534,
                     gid: 65_534,
@@ -551,6 +612,7 @@ mod tests {
                 request,
                 launch(request),
                 root_paths,
+                runtime_identity(),
                 JailIdentity {
                     uid: 65_534,
                     gid: 65_534,
@@ -568,6 +630,7 @@ mod tests {
                 request,
                 launch(request),
                 paths(),
+                runtime_identity(),
                 JailIdentity {
                     uid: 0,
                     gid: 65_534,
@@ -585,6 +648,7 @@ mod tests {
             request,
             launch(request),
             paths(),
+            runtime_identity(),
             JailIdentity {
                 uid: 65_534,
                 gid: 65_534,
@@ -605,6 +669,7 @@ mod tests {
                 request,
                 launch,
                 paths(),
+                runtime_identity(),
                 JailIdentity {
                     uid: 65_534,
                     gid: 65_534,
