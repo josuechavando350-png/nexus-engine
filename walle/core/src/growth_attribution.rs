@@ -267,9 +267,7 @@ pub fn summarize_growth_period(
     ads_spend_minor: u64,
     observation_complete: bool,
 ) -> Result<GrowthPeriodSummary, SummaryError> {
-    ledger
-        .validate()
-        .map_err(|_| SummaryError::InvalidLedger)?;
+    ledger.validate().map_err(|_| SummaryError::InvalidLedger)?;
 
     let mut max_stage = BTreeMap::new();
     let mut channels = BTreeMap::new();
@@ -323,8 +321,7 @@ pub fn summarize_growth_period(
             summary.signed_clients = checked_inc(summary.signed_clients)?;
             channel_summary.signed_clients = checked_inc(channel_summary.signed_clients)?;
             if channel.is_attributed() {
-                summary.attributed_signed_clients =
-                    checked_inc(summary.attributed_signed_clients)?;
+                summary.attributed_signed_clients = checked_inc(summary.attributed_signed_clients)?;
             }
 
             let journey_revenue = *revenue.get(journey).unwrap_or(&0);
@@ -342,10 +339,7 @@ pub fn summarize_growth_period(
     summary.attribution_completeness_ppm = if summary.signed_clients == 0 {
         PPM
     } else {
-        ratio_ppm(
-            summary.attributed_signed_clients,
-            summary.signed_clients,
-        )
+        ratio_ppm(summary.attributed_signed_clients, summary.signed_clients)
     };
 
     Ok(summary)
