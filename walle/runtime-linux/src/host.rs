@@ -557,10 +557,7 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             }
         }
 
-        let cgroup_present = self
-            .run
-            .as_ref()
-            .is_some_and(|run| run.cgroup.is_some());
+        let cgroup_present = self.run.as_ref().is_some_and(|run| run.cgroup.is_some());
         if cgroup_present {
             self.cgroup_layout.cleanup_empty(plan.run_id)?;
             if let Some(run) = self.run.as_mut() {
@@ -874,10 +871,7 @@ mod tests {
     #[test]
     fn real_child_timeout_requires_containment_before_reap() {
         let program = existing_program(&["/usr/bin/sleep", "/bin/sleep"]);
-        let mut child = Command::new(program)
-            .arg("5")
-            .spawn()
-            .expect("spawn sleep");
+        let mut child = Command::new(program).arg("5").spawn().expect("spawn sleep");
         let cancellation = AtomicBool::new(false);
         let outcome = wait_process(&mut child, 20, &cancellation).expect("wait");
         assert_eq!(outcome, WaitOutcome::TimedOut);
@@ -891,10 +885,7 @@ mod tests {
     #[test]
     fn cancellation_is_observed_by_real_wait_loop() {
         let program = existing_program(&["/usr/bin/sleep", "/bin/sleep"]);
-        let mut child = Command::new(program)
-            .arg("5")
-            .spawn()
-            .expect("spawn sleep");
+        let mut child = Command::new(program).arg("5").spawn().expect("spawn sleep");
         let cancellation = AtomicBool::new(true);
         let outcome = wait_process(&mut child, 5_000, &cancellation).expect("wait");
         assert_eq!(outcome, WaitOutcome::Cancelled);
