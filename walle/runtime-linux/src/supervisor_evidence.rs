@@ -17,9 +17,7 @@ use crate::evidence::{
     verify_evidence_chain, EvidenceError, EvidenceReceipt, EvidenceRun, EvidenceSeal,
 };
 use crate::host::LinuxMicroVmHost;
-use crate::host_facts::{
-    collect_linux_host_facts, HostPreflightVerdict, LinuxHostFacts,
-};
+use crate::host_facts::{collect_linux_host_facts, HostPreflightVerdict, LinuxHostFacts};
 
 pub const SUPERVISOR_PLAN_EVIDENCE_KIND: &str = "supervisor-plan";
 pub const SOURCE_IDENTITY_EVIDENCE_KIND: &str = "source-identity";
@@ -493,9 +491,9 @@ fn output_bounds_payload(plan: &MicroVmSupervisorPlan<'_>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::host_facts::{KvmObservation, MountObservation};
     use walle_core::isolation::IsolationHostFacts;
     use walle_core::supervisor::{CgroupV2Plan, MicroVmSupervisorPlan};
-    use crate::host_facts::{KvmObservation, MountObservation};
 
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
     struct FakeError;
@@ -827,30 +825,31 @@ mod tests {
         let plan = plan();
         let mut host = FakeHost::exited();
         let mut sink = FakeSink::healthy();
-        let payload = host_isolation_payload(
-            &plan,
-            &ready_linux_facts(),
-            &ready_isolation_assessment(),
-        )
-        .expect("host payload");
+        let payload =
+            host_isolation_payload(&plan, &ready_linux_facts(), &ready_isolation_assessment())
+                .expect("host payload");
 
-        let result = execute_with_sink_and_host_isolation(
-            &mut host,
-            &plan,
-            &mut sink,
-            Some(&payload),
-        )
-        .expect("record lifecycle");
+        let result =
+            execute_with_sink_and_host_isolation(&mut host, &plan, &mut sink, Some(&payload))
+                .expect("record lifecycle");
 
         assert_eq!(result.seal.entry_count, 8);
         assert_eq!(
-            result.host_isolation_receipt.as_ref().expect("host receipt").kind,
+            result
+                .host_isolation_receipt
+                .as_ref()
+                .expect("host receipt")
+                .kind,
             HOST_ISOLATION_EVIDENCE_KIND
         );
         assert_eq!(sink.writes[2].0, HOST_ISOLATION_EVIDENCE_KIND);
         assert_eq!(sink.writes[2].1, payload);
         assert_ne!(
-            result.host_isolation_receipt.as_ref().expect("host receipt").receipt_sha256,
+            result
+                .host_isolation_receipt
+                .as_ref()
+                .expect("host receipt")
+                .receipt_sha256,
             result.source_identity_receipt.receipt_sha256
         );
     }
@@ -860,19 +859,12 @@ mod tests {
         let plan = plan();
         let mut host = FakeHost::exited();
         let mut sink = FakeSink::fail_append_at(2);
-        let payload = host_isolation_payload(
-            &plan,
-            &ready_linux_facts(),
-            &ready_isolation_assessment(),
-        )
-        .expect("host payload");
+        let payload =
+            host_isolation_payload(&plan, &ready_linux_facts(), &ready_isolation_assessment())
+                .expect("host payload");
 
-        let result = execute_with_sink_and_host_isolation(
-            &mut host,
-            &plan,
-            &mut sink,
-            Some(&payload),
-        );
+        let result =
+            execute_with_sink_and_host_isolation(&mut host, &plan, &mut sink, Some(&payload));
 
         assert!(matches!(result, Err(EvidenceError::InvalidKind)));
         assert!(host.events.is_empty());
