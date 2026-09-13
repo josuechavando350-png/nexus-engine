@@ -267,18 +267,14 @@ mod tests {
         EvidencedSupervisorResult {
             lifecycle,
             plan_receipt: receipt(1, "supervisor-plan", PLAN_RECEIPT_SHA),
-            resource_controls_receipt: resource.then(|| {
-                receipt(2, "resource-controls", RESOURCE_RECEIPT_SHA)
-            }),
-            runtime_binary_identity_receipt: runtime.then(|| {
-                receipt(3, "runtime-binary-identity", RUNTIME_RECEIPT_SHA)
-            }),
-            image_integrity_receipt: image.then(|| {
-                receipt(4, "image-integrity", IMAGE_RECEIPT_SHA)
-            }),
-            output_bounds_receipt: output.then(|| {
-                receipt(5, "supervisor-output-bounds", OUTPUT_RECEIPT_SHA)
-            }),
+            resource_controls_receipt: resource
+                .then(|| receipt(2, "resource-controls", RESOURCE_RECEIPT_SHA)),
+            runtime_binary_identity_receipt: runtime
+                .then(|| receipt(3, "runtime-binary-identity", RUNTIME_RECEIPT_SHA)),
+            image_integrity_receipt: image
+                .then(|| receipt(4, "image-integrity", IMAGE_RECEIPT_SHA)),
+            output_bounds_receipt: output
+                .then(|| receipt(5, "supervisor-output-bounds", OUTPUT_RECEIPT_SHA)),
             lifecycle_receipt: receipt(6, "supervisor-lifecycle-result", LIFECYCLE_RECEIPT_SHA),
             seal: EvidenceSeal {
                 run_id: RUN_ID.to_owned(),
@@ -295,10 +291,14 @@ mod tests {
 
     #[test]
     fn successful_supervisor_projects_six_distinct_verified_categories() {
-        let projected = project_certification_evidence(&result(clean_exit(), true, true, true, true));
+        let projected =
+            project_certification_evidence(&result(clean_exit(), true, true, true, true));
 
         assert_eq!(projected.len(), 6);
-        assert_eq!(projected[0].kind, CertificationEvidenceKind::ResourceControls);
+        assert_eq!(
+            projected[0].kind,
+            CertificationEvidenceKind::ResourceControls
+        );
         assert_eq!(projected[0].receipt_sha256, RESOURCE_RECEIPT_SHA);
         assert_eq!(
             projected[1].kind,
@@ -331,7 +331,8 @@ mod tests {
 
     #[test]
     fn missing_resource_receipt_is_never_inferred_from_other_success_proof() {
-        let projected = project_certification_evidence(&result(clean_exit(), false, true, true, true));
+        let projected =
+            project_certification_evidence(&result(clean_exit(), false, true, true, true));
 
         assert_eq!(projected.len(), 5);
         assert!(projected
@@ -344,7 +345,8 @@ mod tests {
 
     #[test]
     fn missing_all_optional_receipts_leaves_only_lifecycle_and_durable_chain() {
-        let projected = project_certification_evidence(&result(clean_exit(), false, false, false, false));
+        let projected =
+            project_certification_evidence(&result(clean_exit(), false, false, false, false));
 
         assert_eq!(projected.len(), 2);
         assert_eq!(projected[0].kind, CertificationEvidenceKind::Lifecycle);
