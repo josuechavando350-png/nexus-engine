@@ -1,6 +1,8 @@
 use std::str;
 
 pub const GUEST_ATTESTATION_PREFIX: &str = "WALLE_GUEST_ATTESTATION_V1";
+pub const GUEST_PROTOCOL_BOOT_ARG_PREFIX: &str = "walle.guest_protocol=";
+pub const GUEST_PROTOCOL_BOOT_ARG: &str = "walle.guest_protocol=1";
 pub const MAX_GUEST_ATTESTATION_LINE_BYTES: usize = 1_024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -211,7 +213,11 @@ mod tests {
 
     #[test]
     fn oversized_candidate_line_is_rejected() {
-        let line = format!("{} {}", valid_line(), "x".repeat(MAX_GUEST_ATTESTATION_LINE_BYTES));
+        let line = format!(
+            "{} {}",
+            valid_line(),
+            "x".repeat(MAX_GUEST_ATTESTATION_LINE_BYTES)
+        );
         assert!(parse_guest_attestation(line.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
     }
 }
