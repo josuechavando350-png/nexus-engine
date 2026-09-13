@@ -5,7 +5,7 @@ use crate::capsule::{ExecutionCapsule, FilesystemCapability};
 use crate::is_valid_sha256;
 use crate::microvm::{MicroVmLaunchPlan, FIRECRACKER_BACKEND_ID};
 
-pub const SUPERVISOR_PLAN_SCHEMA_VERSION: u32 = 2;
+pub const SUPERVISOR_PLAN_SCHEMA_VERSION: u32 = 3;
 pub const CGROUP_CPU_PERIOD_US: u64 = 100_000;
 pub const GUEST_KERNEL_PATH: &str = "/walle/kernel";
 pub const GUEST_ROOTFS_PATH: &str = "/walle/rootfs";
@@ -62,6 +62,8 @@ pub struct MicroVmSupervisorPlan<'a> {
     pub memory_mib: u64,
     pub scratch_disk_mib: u64,
     pub filesystem_mode: &'static str,
+    pub max_stdout_bytes: u64,
+    pub max_stderr_bytes: u64,
     pub timeout_ms: u64,
     pub cancellation_grace_ms: u64,
     pub rootfs_read_only: bool,
@@ -79,7 +81,7 @@ pub struct MicroVmSupervisorPlan<'a> {
 
 impl MicroVmSupervisorPlan<'_> {
     pub fn canonical_json(self) -> String {
-        let mut output = String::with_capacity(1_768);
+        let mut output = String::with_capacity(1_896);
         output.push('{');
         push_key_bool(
             &mut output,
@@ -162,6 +164,10 @@ impl MicroVmSupervisorPlan<'_> {
             "kill_on_timeout_required",
             self.kill_on_timeout_required,
         );
+        output.push(',');
+        push_key_u64(&mut output, "max_stderr_bytes", self.max_stderr_bytes);
+        output.push(',');
+        push_key_u64(&mut output, "max_stdout_bytes", self.max_stdout_bytes);
         output.push(',');
         push_key_u64(&mut output, "memory_mib", self.memory_mib);
         output.push(',');
@@ -285,6 +291,8 @@ pub fn build_supervisor_plan<'a>(
         memory_mib: launch.memory_mib,
         scratch_disk_mib: launch.scratch_disk_mib,
         filesystem_mode: launch.filesystem_mode,
+        max_stdout_bytes: capsule.max_stdout_bytes,
+        max_stderr_bytes: capsule.max_stderr_bytes,
         timeout_ms: capsule.timeout_ms,
         cancellation_grace_ms: capsule.cancellation.grace_ms,
         rootfs_read_only: launch.rootfs_read_only,
@@ -530,6 +538,8 @@ mod tests {
             request.resources.memory_mib * 1024 * 1024
         );
         assert_eq!(plan.cgroup.pids_max, request.resources.pid_limit);
+        assert_eq!(plan.max_stdout_bytes, request.max_stdout_bytes);
+        assert_eq!(plan.max_stderr_bytes, request.max_stderr_bytes);
         assert!(plan.rootfs_read_only);
         assert_eq!(plan.network_interfaces, 0);
         assert!(plan.guest_seccomp_required);
@@ -539,9 +549,11 @@ mod tests {
         assert!(plan.kill_on_cancel_required);
         assert!(plan.cgroup_cleanup_required);
         assert!(json.contains("\"backend_id\":\"firecracker-microvm-v1\""));
-        assert!(json.contains("\"schema_version\":2"));
+        assert!(json.contains("\"schema_version\":3"));
         assert!(json.contains(&format!("\"firecracker_sha256\":\"{SHA_D}\"")));
         assert!(json.contains(&format!("\"jailer_sha256\":\"{SHA_E}\"")));
+        assert!(json.contains("\"max_stdout_bytes\":67108864"));
+        assert!(json.contains("\"max_stderr_bytes\":65536"));
         assert!(json.contains("\"guest_config_path\":\"/walle/firecracker-config.json\""));
     }
 
