@@ -80,7 +80,9 @@ fn command_doctor(args: &[String]) -> Result<(), String> {
     println!("WALLE_DOCTOR=PASS");
     println!("ENGINE={ENGINE_NAME}");
     println!("VERSION={ENGINE_VERSION}");
-    println!("STATE={}", machine.state());
+    println!("DOCTOR_SCOPE=STATE_MACHINE_SELF_TEST");
+    println!("STATE_MACHINE_SELF_TEST_FINAL_STATE={}", machine.state());
+    println!("WALLE_CERTIFICATION_STATUS=NOT_EVALUATED");
     Ok(())
 }
 
