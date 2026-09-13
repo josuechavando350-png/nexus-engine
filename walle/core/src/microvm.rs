@@ -193,6 +193,8 @@ mod tests {
             kvm_exists: true,
             kvm_is_character_device: true,
             kvm_open_read_write: true,
+            kvm_api_version: Some(12),
+            kvm_api_compatible: true,
             cgroup_v2: true,
             cgroup_controllers: vec![
                 "cpu".to_owned(),
@@ -276,6 +278,19 @@ mod tests {
     fn missing_kvm_blocks_plan() {
         let mut host = ready_host();
         host.kvm_open_read_write = false;
+        host.kvm_api_version = None;
+        host.kvm_api_compatible = false;
+        assert_eq!(
+            build_microvm_plan(capsule(), host, images()),
+            Err(MicroVmPlanError::HostNotReady)
+        );
+    }
+
+    #[test]
+    fn incompatible_kvm_api_blocks_plan() {
+        let mut host = ready_host();
+        host.kvm_api_version = Some(11);
+        host.kvm_api_compatible = false;
         assert_eq!(
             build_microvm_plan(capsule(), host, images()),
             Err(MicroVmPlanError::HostNotReady)
