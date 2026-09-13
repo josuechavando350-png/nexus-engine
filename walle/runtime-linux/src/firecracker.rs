@@ -372,6 +372,8 @@ mod tests {
             } else {
                 "SCRATCH_AND_DECLARED_OUTPUT"
             },
+            max_stdout_bytes: 1024 * 1024,
+            max_stderr_bytes: 64 * 1024,
             timeout_ms: 60_000,
             cancellation_grace_ms: 2_000,
             rootfs_read_only: true,
