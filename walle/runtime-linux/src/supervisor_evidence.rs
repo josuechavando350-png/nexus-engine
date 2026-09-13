@@ -107,7 +107,10 @@ impl SupervisorEvidenceRun {
             return Err(SupervisorEvidenceError::PlanBindingMismatch);
         }
         let result = execute_with_sink(host, plan, &mut self.evidence)?;
-        let receipts = [result.plan_receipt.clone(), result.lifecycle_receipt.clone()];
+        let receipts = [
+            result.plan_receipt.clone(),
+            result.lifecycle_receipt.clone(),
+        ];
         verify_evidence_chain(self.evidence.path(), &receipts, &result.seal, &self.hasher)?;
         Ok(result)
     }
