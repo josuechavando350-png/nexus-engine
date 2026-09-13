@@ -2,8 +2,8 @@ use std::fmt::{Display, Formatter};
 use std::path::{Component, Path};
 
 use crate::capsule::{ExecutionCapsule, FilesystemCapability};
-use crate::microvm::{MicroVmLaunchPlan, FIRECRACKER_BACKEND_ID};
 use crate::is_valid_sha256;
+use crate::microvm::{MicroVmLaunchPlan, FIRECRACKER_BACKEND_ID};
 
 pub const SUPERVISOR_PLAN_SCHEMA_VERSION: u32 = 2;
 pub const CGROUP_CPU_PERIOD_US: u64 = 100_000;
@@ -119,11 +119,7 @@ impl MicroVmSupervisorPlan<'_> {
         output.push(',');
         push_key_str(&mut output, "firecracker_exec", self.firecracker_exec);
         output.push(',');
-        push_key_str(
-            &mut output,
-            "firecracker_sha256",
-            self.firecracker_sha256,
-        );
+        push_key_str(&mut output, "firecracker_sha256", self.firecracker_sha256);
         output.push(',');
         push_key_str(&mut output, "guest_config_path", self.guest_config_path);
         output.push(',');
