@@ -302,10 +302,10 @@ mod tests {
         }
     }
 
-    fn evidence<'a>(
-        projected: &'a [OwnedCertificationEvidence],
+    fn evidence(
+        projected: &[OwnedCertificationEvidence],
         kind: CertificationEvidenceKind,
-    ) -> &'a OwnedCertificationEvidence {
+    ) -> &OwnedCertificationEvidence {
         projected
             .iter()
             .find(|item| item.kind == kind)
