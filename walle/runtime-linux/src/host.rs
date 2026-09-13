@@ -217,7 +217,8 @@ impl LinuxMicroVmHost {
             config.cgroup_mount.clone(),
             config.cgroup_parent_relative.clone(),
         )?;
-        SecureDirectory::open(config.chroot_base.clone())?;
+        let chroot_base = SecureDirectory::open(config.chroot_base.clone())?;
+        chroot_base.validate_trusted()?;
         if let Some(program) = config.mkfs_ext4_program.as_deref() {
             validate_trusted_program(program)?;
         }
@@ -316,7 +317,15 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
             ));
         }
 
-        let run_root = SecureDirectory::create_leaf(PathBuf::from(plan.run_root), 0o700)?;
+        let run_root_path = PathBuf::from(plan.run_root);
+        let run_root_parent = run_root_path
+            .parent()
+            .ok_or(LinuxHostError::InvalidLifecycleState(
+                "run root does not have a parent directory",
+            ))?;
+        SecureDirectory::open(run_root_parent.to_path_buf())?.validate_trusted()?;
+        let run_root = SecureDirectory::create_leaf(run_root_path, 0o700)?;
+        run_root.validate_trusted()?;
         self.run = Some(PreparedRun {
             run_id: plan.run_id.to_owned(),
             run_root,
@@ -328,10 +337,15 @@ impl MicroVmSupervisorHost for LinuxMicroVmHost {
         });
 
         let chroot_base = SecureDirectory::open(self.config.chroot_base.clone())?;
+        chroot_base.validate_trusted()?;
         let executable_root = chroot_base.create_child_directory("firecracker", 0o755, true)?;
+        executable_root.validate_trusted()?;
         let vm_dir = executable_root.create_child_directory(plan.run_id, 0o700, false)?;
+        vm_dir.validate_trusted()?;
         let chroot_root = vm_dir.create_child_directory("root", 0o755, false)?;
+        chroot_root.validate_trusted()?;
         let walle_dir = chroot_root.create_child_directory("walle", 0o755, false)?;
+        walle_dir.validate_trusted()?;
 
         let run = self.run_mut(plan)?;
         run.chroot_vm_dir = Some(vm_dir);
