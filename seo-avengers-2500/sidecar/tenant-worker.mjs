@@ -44,7 +44,7 @@ function hashJson(value) {
   return `sha256:${createHash("sha256").update(canonicalJson(value), "utf8").digest("hex")}`;
 }
 
-function decision({ siteId, status, reason, controlGeneration = 0, evidenceManifestHash = null, configHash = null }) {
+function decision({ siteId, status, reason, controlGeneration = 0, evidenceManifestHash = null, configHash = null, extra = {} }) {
   return Object.freeze({
     schemaVersion: WORKER_SCHEMA_VERSION,
     siteId: typeof siteId === "string" ? siteId : "",
@@ -53,6 +53,7 @@ function decision({ siteId, status, reason, controlGeneration = 0, evidenceManif
     controlGeneration,
     evidenceManifestHash,
     configHash,
+    ...extra,
   });
 }
 
@@ -60,7 +61,7 @@ function controlStillMatches(control, generation) {
   return control.authorized === true && control.integrityOk === true && control.generation === generation;
 }
 
-function validateExecutionEnvelope(execution) {
+function inspectExecutionEnvelope(execution) {
   if (!execution || typeof execution !== "object" || Array.isArray(execution)) {
     throw new Error("suite execution result must be an object");
   }
@@ -75,7 +76,12 @@ function validateExecutionEnvelope(execution) {
   if (!receipts || typeof receipts !== "object" || Array.isArray(receipts)) throw new Error("receipts must be an object");
   const keys = Object.keys(receipts);
   if (keys.length !== LOCAL_RECEIPT_COUNT) throw new Error("receipt range cardinality mismatch");
-  const allowedExecutionStatuses = new Set(["SUCCESS", "INSUFFICIENT_DATA"]);
+
+  const allowedExecutionStatuses = new Set(["SUCCESS", "INSUFFICIENT_DATA", "ERROR"]);
+  const allowedFindingStatuses = new Set(["FINDING", "NO_FINDING", "NOT_APPLICABLE"]);
+  const executionStatusCounts = { SUCCESS: 0, INSUFFICIENT_DATA: 0, ERROR: 0 };
+  const findingStatusCounts = { FINDING: 0, NO_FINDING: 0, NOT_APPLICABLE: 0 };
+
   for (let number = 1001; number <= 2500; number += 1) {
     const moduleId = `M${number}`;
     const receipt = receipts[moduleId];
@@ -85,19 +91,48 @@ function validateExecutionEnvelope(execution) {
       throw new Error(`unsafe receipt policy ${moduleId}`);
     }
     if (!SHA256_RE.test(receipt.evidence_hash ?? "")) throw new Error(`invalid receipt evidence hash ${moduleId}`);
-    if (!allowedExecutionStatuses.has(receipt.execution_status)) throw new Error(`runtime error receipt ${moduleId}`);
+    if (!allowedExecutionStatuses.has(receipt.execution_status)) throw new Error(`invalid execution status ${moduleId}`);
+    if (!allowedFindingStatuses.has(receipt.finding_status)) throw new Error(`invalid finding status ${moduleId}`);
+    executionStatusCounts[receipt.execution_status] += 1;
+    findingStatusCounts[receipt.finding_status] += 1;
   }
+
   const terminal = receipts[LAST_MODULE];
-  if (terminal.execution_status !== "SUCCESS" || terminal.finding_status !== "NO_FINDING") {
-    throw new Error("terminal M2500 did not certify release");
-  }
-  if (!terminal.output || terminal.output.release_safe !== true || terminal.output.suite !== "SEO_AVENGERS_2500") {
-    throw new Error("terminal M2500 release-safe contract missing");
-  }
   if (terminal.evidence_hash !== execution.terminal_evidence_hash) {
     throw new Error("terminal evidence hash mismatch");
   }
-  return execution;
+  const terminalStatus = Object.freeze({
+    executionStatus: terminal.execution_status,
+    findingStatus: terminal.finding_status,
+    releaseSafe: terminal.output?.release_safe === true,
+    suite: typeof terminal.output?.suite === "string" ? terminal.output.suite : null,
+  });
+  const releaseSafe = (
+    terminalStatus.executionStatus === "SUCCESS"
+    && terminalStatus.findingStatus === "NO_FINDING"
+    && terminalStatus.releaseSafe === true
+    && terminalStatus.suite === "SEO_AVENGERS_2500"
+  );
+
+  return Object.freeze({
+    execution,
+    executionStatusCounts: Object.freeze({ ...executionStatusCounts }),
+    findingStatusCounts: Object.freeze({ ...findingStatusCounts }),
+    terminalStatus,
+    releaseSafe,
+  });
+}
+
+function executionSummary(inspection) {
+  return Object.freeze({
+    executionHash: inspection.execution.execution_hash,
+    terminalEvidenceHash: inspection.execution.terminal_evidence_hash,
+    receiptCount: inspection.execution.receipt_count,
+    executionStatusCounts: inspection.executionStatusCounts,
+    findingStatusCounts: inspection.findingStatusCounts,
+    terminalStatus: inspection.terminalStatus,
+    receiptsSuppressed: true,
+  });
 }
 
 export async function executeSuiteWithPython({ payload, config, pythonBin = "python", timeoutMs = 120000, maxOutputBytes = 64 * 1024 * 1024 }) {
@@ -198,9 +233,9 @@ export async function runTenantSidecarJob({ controlRoot, evidenceRoot, siteId, c
     });
   }
 
-  let execution;
+  let inspection;
   try {
-    execution = validateExecutionEnvelope(await executeSuite({ payload: snapshot.datasets, config }));
+    inspection = inspectExecutionEnvelope(await executeSuite({ payload: snapshot.datasets, config }));
   } catch {
     return decision({
       siteId,
@@ -263,6 +298,31 @@ export async function runTenantSidecarJob({ controlRoot, evidenceRoot, siteId, c
     });
   }
 
+  if (inspection.executionStatusCounts.ERROR > 0) {
+    return decision({
+      siteId,
+      status: "BLOCKED",
+      reason: "SUITE_EXECUTION_FAILED",
+      controlGeneration: generation,
+      evidenceManifestHash: snapshot.manifestHash,
+      configHash,
+      extra: executionSummary(inspection),
+    });
+  }
+
+  if (!inspection.releaseSafe) {
+    return decision({
+      siteId,
+      status: "BLOCKED",
+      reason: "SUITE_NOT_RELEASE_SAFE",
+      controlGeneration: generation,
+      evidenceManifestHash: snapshot.manifestHash,
+      configHash,
+      extra: executionSummary(inspection),
+    });
+  }
+
+  const execution = inspection.execution;
   return Object.freeze({
     schemaVersion: WORKER_SCHEMA_VERSION,
     siteId,
@@ -274,6 +334,9 @@ export async function runTenantSidecarJob({ controlRoot, evidenceRoot, siteId, c
     executionHash: execution.execution_hash,
     terminalEvidenceHash: execution.terminal_evidence_hash,
     receiptCount: execution.receipt_count,
+    executionStatusCounts: inspection.executionStatusCounts,
+    findingStatusCounts: inspection.findingStatusCounts,
+    terminalStatus: inspection.terminalStatus,
     receipts: Object.freeze(execution.receipts),
   });
 }

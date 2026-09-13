@@ -86,6 +86,9 @@ test("authorized stable tenant releases exact sidecar result", async (t) => {
   assert.equal(result.status, "RELEASED");
   assert.equal(result.controlGeneration, 1);
   assert.equal(result.receiptCount, 1500);
+  assert.equal(result.executionStatusCounts.SUCCESS, 1500);
+  assert.equal(result.executionStatusCounts.ERROR, 0);
+  assert.equal(result.terminalStatus.releaseSafe, true);
   assert.equal(Object.keys(result.receipts).length, 1500);
   assert.match(result.evidenceManifestHash, /^sha256:[0-9a-f]{64}$/);
   assert.match(result.configHash, /^sha256:[0-9a-f]{64}$/);
@@ -193,6 +196,30 @@ test("ERROR receipt cannot be released", async (t) => {
   const result = await runTenantSidecarJob({ ...ctx, executeSuite: async () => execution });
   assert.equal(result.status, "BLOCKED");
   assert.equal(result.reason, "SUITE_EXECUTION_FAILED");
+  assert.equal(result.receiptCount, 1500);
+  assert.equal(result.executionStatusCounts.ERROR, 1);
+  assert.equal(result.receiptsSuppressed, true);
+  assert.equal("receipts" in result, false);
+});
+
+test("valid exact execution that M2500 does not certify is distinguished from runtime failure", async (t) => {
+  const ctx = await setup(t);
+  await writeSnapshot(ctx);
+  const execution = successfulExecution();
+  execution.receipts.M1401.execution_status = "INSUFFICIENT_DATA";
+  execution.receipts.M1401.finding_status = "NOT_APPLICABLE";
+  execution.receipts.M2500.finding_status = "FINDING";
+  execution.receipts.M2500.output.release_safe = false;
+  const result = await runTenantSidecarJob({ ...ctx, executeSuite: async () => execution });
+  assert.equal(result.status, "BLOCKED");
+  assert.equal(result.reason, "SUITE_NOT_RELEASE_SAFE");
+  assert.equal(result.receiptCount, 1500);
+  assert.equal(result.executionStatusCounts.INSUFFICIENT_DATA, 1);
+  assert.equal(result.executionStatusCounts.ERROR, 0);
+  assert.equal(result.terminalStatus.executionStatus, "SUCCESS");
+  assert.equal(result.terminalStatus.findingStatus, "FINDING");
+  assert.equal(result.terminalStatus.releaseSafe, false);
+  assert.equal(result.receiptsSuppressed, true);
   assert.equal("receipts" in result, false);
 });
 
@@ -203,7 +230,8 @@ test("M2500 without release-safe certification cannot be released", async (t) =>
   execution.receipts.M2500.output.release_safe = false;
   const result = await runTenantSidecarJob({ ...ctx, executeSuite: async () => execution });
   assert.equal(result.status, "BLOCKED");
-  assert.equal(result.reason, "SUITE_EXECUTION_FAILED");
+  assert.equal(result.reason, "SUITE_NOT_RELEASE_SAFE");
+  assert.equal(result.receiptsSuppressed, true);
   assert.equal("receipts" in result, false);
 });
 
