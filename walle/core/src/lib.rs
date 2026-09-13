@@ -4,6 +4,7 @@ pub mod capsule;
 pub mod isolation;
 pub mod microvm;
 pub mod supervisor;
+pub mod supervisor_lifecycle;
 
 use std::error::Error;
 use std::fmt::{Display, Formatter};
