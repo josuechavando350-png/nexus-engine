@@ -267,6 +267,7 @@ impl<H: MicroVmSupervisorHost> MicroVmSupervisorHost for ProofTrackingHost<'_, H
     }
 }
 
+#[cfg(test)]
 fn execute_with_sink<H, S>(
     host: &mut H,
     plan: &MicroVmSupervisorPlan<'_>,
