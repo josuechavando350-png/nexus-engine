@@ -356,11 +356,7 @@ mod tests {
                 "guest_protocol=1\n",
                 "guest_seccomp_policy={}\n"
             ),
-            KERNEL_SHA,
-            ROOTFS_SHA,
-            AGENT_SHA,
-            GUEST_AGENT_PATH,
-            GUEST_SECCOMP_POLICY_ID,
+            KERNEL_SHA, ROOTFS_SHA, AGENT_SHA, GUEST_AGENT_PATH, GUEST_SECCOMP_POLICY_ID,
         )
     }
 
