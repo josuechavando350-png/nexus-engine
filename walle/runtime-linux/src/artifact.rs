@@ -211,12 +211,10 @@ impl SystemSha256 {
             operation: "open sha256 stdin pipe",
             source: io::Error::new(io::ErrorKind::BrokenPipe, "sha256 stdin pipe missing"),
         })?;
-        stdin
-            .write_all(bytes)
-            .map_err(|source| ArtifactError::Io {
-                operation: "write evidence bytes to sha256 program",
-                source,
-            })?;
+        stdin.write_all(bytes).map_err(|source| ArtifactError::Io {
+            operation: "write evidence bytes to sha256 program",
+            source,
+        })?;
         drop(stdin);
         let output = child
             .wait_with_output()
