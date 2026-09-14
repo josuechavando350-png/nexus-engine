@@ -24,7 +24,11 @@ def is_google_consumer_surface(value: str) -> bool:
         return False
     host = (parsed.hostname or "").rstrip(".").casefold()
     labels = host.split(".") if host else []
-    return len(labels) >= 2 and "google" in labels
+    if labels and labels[0] == "www":
+        labels = labels[1:]
+    direct_google_host = len(labels) >= 2 and labels[0] == "google"
+    google_web_subdomain = len(labels) >= 3 and "google" in labels
+    return direct_google_host or google_web_subdomain
 
 
 def google_consumer_crawl_field(payload: Any) -> str | None:
