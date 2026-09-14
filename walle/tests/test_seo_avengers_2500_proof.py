@@ -87,12 +87,24 @@ class ProofFixture:
                         },
                     }
                 else:
+                    output = {"module": module_id}
+                    if number == 2500:
+                        output.update(
+                            {
+                                "release_safe": True,
+                                "strict_white_hat_only": True,
+                                "no_google_scraping": True,
+                                "observe_only": True,
+                            }
+                        )
                     receipts[module_id] = {
                         "module": module_id,
                         "execution_status": "SUCCESS",
                         "finding_status": "NO_FINDING",
+                        "action_mode": "OBSERVE_ONLY",
+                        "policy_status": "SAFE_WHITE_HAT",
                         "evidence_hash": evidence_hash,
-                        "output": {"module": module_id},
+                        "output": output,
                     }
             data = {
                 "schema_version": 1,
@@ -140,6 +152,7 @@ class ExecutionProofTests(unittest.TestCase):
             proofmod.validate_proof_document(proof, self.fx.root)
             + proofmod._validate_verifier_gates(proof, self.fx.root)
             + proofmod._validate_range_containers(proof, self.fx.root)
+            + proofmod._validate_terminal_safety(proof, self.fx.root)
             + proofmod._validate_raw_receipt_hashes(proof, self.fx.root)
         )
         return base_errors + proofmod._validate_claim(proof, base_errors)
@@ -155,6 +168,55 @@ class ExecutionProofTests(unittest.TestCase):
         self.assertEqual(
             proof["counts"],
             {"EXECUTED": 2500, "FAILED": 0, "BLOCKED": 0, "NOT_TESTED": 0},
+        )
+        self.assertEqual(proof["finding_counts"], {"NO_FINDING": 2300, "UNREPORTED": 200})
+
+    def test_successful_finding_is_executed_and_preserved(self) -> None:
+        path = self.fx.root / "ranges" / "m401-m600.json"
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw["receipts"]["M401"]["finding_status"] = "FINDING"
+        proofmod._write_json(path, raw)
+        proof, errors = self.fx.build()
+        self.assertEqual(errors, [])
+        self.assertTrue(proof["full_execution_claim"])
+        record = next(item for item in proof["modules"] if item["module_id"] == "M401")
+        self.assertEqual(record["status"], "EXECUTED")
+        self.assertEqual(record["reason"], "SUCCESS_WITH_FINDING")
+        self.assertEqual(record["finding_status"], "FINDING")
+        self.assertEqual(proof["finding_counts"]["FINDING"], 1)
+
+    def test_insufficient_data_remains_blocked(self) -> None:
+        path = self.fx.root / "ranges" / "m1001-m2500.json"
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw["receipts"]["M1001"]["execution_status"] = "INSUFFICIENT_DATA"
+        raw["receipts"]["M1001"]["finding_status"] = "NOT_APPLICABLE"
+        proofmod._write_json(path, raw)
+        proof, errors = self.fx.build()
+        self.assertEqual(errors, [])
+        self.assertFalse(proof["full_execution_claim"])
+        self.assertEqual(proof["counts"]["BLOCKED"], 1)
+        self.assertEqual(proof["counts"]["EXECUTED"], 2499)
+
+    def test_terminal_finding_forces_false_claim(self) -> None:
+        path = self.fx.root / "ranges" / "m1001-m2500.json"
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw["receipts"]["M2499"]["finding_status"] = "FINDING"
+        proofmod._write_json(path, raw)
+        proof, errors = self.fx.build()
+        self.assertFalse(proof["full_execution_claim"])
+        self.assertTrue(any("terminal_safety_finding:M2499" in error for error in errors), errors)
+        self.assertEqual(proof["counts"]["EXECUTED"], 2500)
+
+    def test_terminal_release_safe_false_forces_false_claim(self) -> None:
+        path = self.fx.root / "ranges" / "m1001-m2500.json"
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        raw["receipts"]["M2500"]["output"]["release_safe"] = False
+        proofmod._write_json(path, raw)
+        proof, errors = self.fx.build()
+        self.assertFalse(proof["full_execution_claim"])
+        self.assertTrue(
+            any("terminal_safety_m2500_release_safe_not_true" in error for error in errors),
+            errors,
         )
 
     def test_missing_module_is_rejected(self) -> None:
