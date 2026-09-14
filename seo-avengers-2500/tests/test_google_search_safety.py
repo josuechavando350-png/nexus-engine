@@ -118,6 +118,51 @@ func policy() {
             errors = safety.audit_m200_activation_policy(root)
         self.assertTrue(any("operator_review_overrides_missing:M23" in error for error in errors), errors)
 
+    def test_removed_production_google_ingress_guard_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            package = root / "seo-avengers-200/packages/Semantic-Python-NLP"
+            package.mkdir(parents=True)
+            (package / "google_surface_policy.py").write_text(
+                '''from typing import Any
+def is_google_consumer_surface(value: str) -> bool:
+    labels = ["google", "com"]
+    return labels[0] == "google"
+def google_consumer_crawl_field(payload: Any) -> str | None:
+    index = 0
+    if payload:
+        return "target_url"
+    return f"competitor_urls[{index}]"
+''',
+                encoding="utf-8",
+            )
+            (package / "render_neon_entry.py").write_text(
+                '''from google_surface_policy import google_consumer_crawl_field
+if request.url.path.startswith("/v1/"):
+    if not expected:
+        status_code=503
+# Deliberately missing /v1/semantic/jobs guard and helper invocation.
+''',
+                encoding="utf-8",
+            )
+            (package / "railway_entry.py").write_text(
+                "from render_neon_entry import app\n", encoding="utf-8"
+            )
+            (package / "render_entry.py").write_text(
+                "from render_neon_entry import app\n", encoding="utf-8"
+            )
+            (package / "Dockerfile").write_text(
+                'COPY google_surface_policy.py ./\nCMD ["uvicorn", "railway_entry:app", "--host", "0.0.0.0"]\n',
+                encoding="utf-8",
+            )
+            (package / "pyproject.toml").write_text(
+                'py-modules = ["google_surface_policy"]\n', encoding="utf-8"
+            )
+            errors = safety.audit_m200_production_ingress(root)
+        self.assertTrue(
+            any("m200_production_ingress_fragment_missing" in error for error in errors), errors
+        )
+
     def test_missing_compliance_control_fails(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)
