@@ -2,7 +2,11 @@ use std::env;
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::fs;
-use std::process::{Command, ExitCode};
+use std::io;
+use std::os::unix::fs::{FileTypeExt, MetadataExt};
+use std::os::unix::process::CommandExt;
+use std::process::{self, Command, ExitCode, Stdio};
+use std::ptr;
 
 use walle_core::is_valid_sha256;
 use walle_runtime_linux::guest_protocol::GUEST_SECCOMP_POLICY_ID;
@@ -11,6 +15,11 @@ const RUN_ID_PREFIX: &str = "walle.run_id=";
 const SOURCE_SHA_PREFIX: &str = "walle.source_sha256=";
 const PROTOCOL_ARG: &str = "walle.guest_protocol=1";
 const ATTESTATION_PREFIX: &str = "WALLE_GUEST_ATTESTATION_V1";
+const INIT_PID: u32 = 1;
+const WORKLOAD_UID: u32 = 65_534;
+const WORKLOAD_GID: u32 = 65_534;
+const REQUIRED_ATTESTATION_DEVICES: &[&str] = &["/dev/console", "/dev/ttyS0"];
+const OPTIONAL_KERNEL_LOG_DEVICE: &str = "/dev/kmsg";
 
 const PR_SET_SECCOMP: i32 = 22;
 const PR_SET_NO_NEW_PRIVS: i32 = 38;
@@ -82,6 +91,9 @@ const DENIED_SYSCALLS: &[u32] = &[
 
 unsafe extern "C" {
     fn prctl(option: i32, arg2: usize, arg3: usize, arg4: usize, arg5: usize) -> i32;
+    fn setgroups(size: usize, groups: *const u32) -> i32;
+    fn setgid(gid: u32) -> i32;
+    fn setuid(uid: u32) -> i32;
 }
 
 #[repr(C)]
@@ -117,6 +129,8 @@ enum AgentError {
     InvalidKernelCommandLine,
     InvalidRunId,
     InvalidSourceSha256,
+    NotInitProcess,
+    UnsafeAttestationDevice,
     NoNewPrivilegesFailed,
     SeccompPolicyTooLarge,
     SeccompInstallFailed,
@@ -136,6 +150,10 @@ impl Display for AgentError {
             }
             Self::InvalidRunId => "guest run id is invalid",
             Self::InvalidSourceSha256 => "guest source SHA-256 is invalid",
+            Self::NotInitProcess => "guest agent must execute as PID 1",
+            Self::UnsafeAttestationDevice => {
+                "guest console/serial device permissions do not exclude the untrusted workload identity"
+            }
             Self::NoNewPrivilegesFailed => {
                 "failed to enforce PR_SET_NO_NEW_PRIVS before workload spawn"
             }
@@ -175,6 +193,10 @@ fn run() -> Result<i32, AgentError> {
     let cmdline =
         fs::read_to_string("/proc/cmdline").map_err(|_| AgentError::InvalidKernelCommandLine)?;
     let identity = parse_boot_identity(&cmdline)?;
+    if process::id() != INIT_PID {
+        return Err(AgentError::NotInitProcess);
+    }
+    verify_attestation_devices()?;
 
     enforce_no_new_privileges()?;
     install_guest_seccomp_filter()?;
@@ -185,8 +207,18 @@ fn run() -> Result<i32, AgentError> {
         return Err(AgentError::SeccompStateMismatch);
     }
 
-    let status = Command::new(workload)
+    let mut command = Command::new(workload);
+    command
         .args(workload_args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    // SAFETY: `pre_exec` runs only async-signal-safe credential syscalls. The
+    // closure captures no heap-backed state and returns immediately on failure.
+    unsafe {
+        command.pre_exec(drop_workload_privileges);
+    }
+    let status = command
         .status()
         .map_err(|_| AgentError::WorkloadSpawnFailed)?;
     let workload_exit_code = status.code().unwrap_or(128);
@@ -260,6 +292,51 @@ fn valid_run_id(value: &str) -> bool {
         && value
             .bytes()
             .all(|byte| byte.is_ascii_alphanumeric() || byte == b'-')
+}
+
+fn verify_attestation_devices() -> Result<(), AgentError> {
+    for path in REQUIRED_ATTESTATION_DEVICES {
+        let metadata =
+            fs::symlink_metadata(path).map_err(|_| AgentError::UnsafeAttestationDevice)?;
+        if !attestation_device_excludes_workload(&metadata) {
+            return Err(AgentError::UnsafeAttestationDevice);
+        }
+    }
+
+    match fs::symlink_metadata(OPTIONAL_KERNEL_LOG_DEVICE) {
+        Ok(metadata) => {
+            if !attestation_device_excludes_workload(&metadata) {
+                return Err(AgentError::UnsafeAttestationDevice);
+            }
+        }
+        Err(error) if error.kind() == io::ErrorKind::NotFound => {}
+        Err(_) => return Err(AgentError::UnsafeAttestationDevice),
+    }
+    Ok(())
+}
+
+fn attestation_device_excludes_workload(metadata: &fs::Metadata) -> bool {
+    metadata.file_type().is_char_device()
+        && metadata.uid() == 0
+        && metadata.mode() & 0o002 == 0
+        && !(metadata.gid() == WORKLOAD_GID && metadata.mode() & 0o020 != 0)
+}
+
+fn drop_workload_privileges() -> io::Result<()> {
+    // SAFETY: these are integer/pointer-only Linux credential syscalls. A zero
+    // group count permits a null group pointer. Clearing supplementary groups
+    // happens while the child is still privileged; setgid/setuid then make the
+    // dedicated nobody identity permanent before exec.
+    if unsafe { setgroups(0, ptr::null()) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    if unsafe { setgid(WORKLOAD_GID) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    if unsafe { setuid(WORKLOAD_UID) } != 0 {
+        return Err(io::Error::last_os_error());
+    }
+    Ok(())
 }
 
 fn enforce_no_new_privileges() -> Result<(), AgentError> {
@@ -468,6 +545,39 @@ mod tests {
     }
 
     #[test]
+    fn attestation_devices_must_exclude_the_untrusted_workload_identity() {
+        assert_ne!(WORKLOAD_UID, 0);
+        assert_ne!(WORKLOAD_GID, 0);
+
+        let safe_root_tty = DeviceMode {
+            uid: 0,
+            gid: 5,
+            mode: 0o620,
+            char_device: true,
+        };
+        assert!(device_mode_excludes_workload(safe_root_tty));
+
+        let workload_group_tty = DeviceMode {
+            gid: WORKLOAD_GID,
+            ..safe_root_tty
+        };
+        assert!(!device_mode_excludes_workload(workload_group_tty));
+
+        let world_writable = DeviceMode {
+            mode: 0o622,
+            ..safe_root_tty
+        };
+        assert!(!device_mode_excludes_workload(world_writable));
+
+        let workload_owned = DeviceMode {
+            uid: WORKLOAD_UID,
+            mode: 0o600,
+            ..safe_root_tty
+        };
+        assert!(!device_mode_excludes_workload(workload_owned));
+    }
+
+    #[test]
     fn run_id_validation_matches_control_plane_shape() {
         assert!(valid_run_id(RUN_ID));
         assert!(!valid_run_id(""));
@@ -481,5 +591,20 @@ mod tests {
         assert_eq!(exit_code(125), ExitCode::from(125));
         assert_eq!(exit_code(-1), ExitCode::from(1));
         assert_eq!(exit_code(999), ExitCode::from(1));
+    }
+
+    #[derive(Debug, Clone, Copy)]
+    struct DeviceMode {
+        uid: u32,
+        gid: u32,
+        mode: u32,
+        char_device: bool,
+    }
+
+    fn device_mode_excludes_workload(device: DeviceMode) -> bool {
+        device.char_device
+            && device.uid == 0
+            && device.mode & 0o002 == 0
+            && !(device.gid == WORKLOAD_GID && device.mode & 0o020 != 0)
     }
 }
