@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import test from "node:test";
 
+import "./test_authorized_provider_snapshot.mjs";
 import "./test_canary_result_store.mjs";
 import "./test_readonly_canary.mjs";
 import "./test_readonly_canary_real.mjs";
@@ -13,6 +14,7 @@ const execFile = promisify(execFileCallback);
 const workerUrl = new URL("../sidecar/tenant-worker.mjs", import.meta.url);
 const bridgeUrl = new URL("../sidecar/execute_suite.py", import.meta.url);
 const canaryRunnerUrl = new URL("../sidecar/readonly-canary.mjs", import.meta.url);
+const providerPublisherUrl = new URL("../evidence/authorized-provider-snapshot.mjs", import.meta.url);
 const canaryAdapterUrl = new URL("../../walle/adapters/seo-avengers-2500-canary.sh", import.meta.url);
 
 test("sidecar worker has no client-app or network integration imports", async () => {
@@ -40,6 +42,17 @@ test("read-only canary is fixed to synthetic identity and adds no network/client
   assert.doesNotMatch(source, /apps\//);
   assert.doesNotMatch(source, /node:http|node:https|node:net|node:dgram|node:tls/);
   assert.doesNotMatch(source, /googleapis|google-ads|searchconsole|vercel|cloudflare/i);
+});
+
+test("real-data publisher has evidence authority only and no provider network or control mutation path", async () => {
+  const source = await readFile(providerPublisherUrl, "utf8");
+  assert.doesNotMatch(source, /apps\//);
+  assert.doesNotMatch(source, /node:http|node:https|node:net|node:dgram|node:tls/);
+  assert.doesNotMatch(source, /\bfetch\s*\(|axios|googleapis|OAuth2|refresh_token|access_token/);
+  assert.doesNotMatch(source, /setTenantEnabled|setTenantKillSwitch|appendTenantControl/);
+  assert.match(source, /readTenantControl/);
+  assert.match(source, /upstream_evidence/);
+  assert.match(source, /records_sha256/);
 });
 
 test("WALLE canary adapter is shell-valid and exposes no caller-supplied tenant id", async () => {
