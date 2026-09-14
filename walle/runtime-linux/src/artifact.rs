@@ -192,6 +192,46 @@ impl SystemSha256 {
         parse_sha256_stdout(&output.stdout)
     }
 
+    /// Hashes already-bounded bytes through the same admitted system SHA-256
+    /// program used for files. This keeps the digest primitive identical for
+    /// evidence obtained through a pipe without requiring an intermediate path.
+    pub fn hash_bytes(&self, bytes: &[u8]) -> Result<String, ArtifactError> {
+        let mut child = Command::new(&self.program)
+            .arg("-")
+            .env_clear()
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|source| ArtifactError::Io {
+                operation: "spawn sha256 program for evidence bytes",
+                source,
+            })?;
+        let mut stdin = child.stdin.take().ok_or_else(|| ArtifactError::Io {
+            operation: "open sha256 stdin pipe",
+            source: io::Error::new(io::ErrorKind::BrokenPipe, "sha256 stdin pipe missing"),
+        })?;
+        stdin
+            .write_all(bytes)
+            .map_err(|source| ArtifactError::Io {
+                operation: "write evidence bytes to sha256 program",
+                source,
+            })?;
+        drop(stdin);
+        let output = child
+            .wait_with_output()
+            .map_err(|source| ArtifactError::Io {
+                operation: "wait for sha256 evidence-byte hash",
+                source,
+            })?;
+        if !output.status.success() {
+            return Err(ArtifactError::HashProgramFailed {
+                code: output.status.code(),
+            });
+        }
+        parse_sha256_stdout(&output.stdout)
+    }
+
     pub fn hash_path(&self, path: &Path) -> Result<String, ArtifactError> {
         let file = open_regular_no_symlinks(path)?;
         self.hash_file(&file)
@@ -419,6 +459,16 @@ mod tests {
             b"walle-runtime-test\n"
         );
         fs::remove_dir_all(root).expect("cleanup");
+    }
+
+    #[test]
+    fn in_memory_bytes_use_same_sha256_identity_primitive() {
+        assert_eq!(
+            system_hasher()
+                .hash_bytes(b"walle-runtime-test\n")
+                .expect("hash bytes"),
+            TEST_SHA
+        );
     }
 
     #[test]
