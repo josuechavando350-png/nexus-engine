@@ -132,3 +132,8 @@ for path in files:
                 raise SystemExit(f"network/process escape forbidden:{path}:{node.lineno}:{call}")
 print("seo-avengers M201-M1000 direct-network boundary: PASS")
 PY
+
+# One policy gate spans the complete Avengers execution surface. This is part of
+# the chained verifier consumed by WALLE, so a policy regression prevents the
+# 2,500-module full-execution claim rather than merely producing a warning.
+python "$SUITE/scripts/google_search_safety.py" --repo-root "$ROOT"
