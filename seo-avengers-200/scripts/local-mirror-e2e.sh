@@ -145,7 +145,18 @@ mods=r['result']['modules']
 assert r['result']['enabled'] is True and r['result']['module_count'] == 200 and len(mods)==200
 assert [m['id'] for m in mods] == list(range(1,201))
 assert all(m['state'] in {'ON','GATED','ADVISORY'} for m in mods)
-print('200/200 module contracts switched through Commander: PASS')
+by_id={m['id']:m for m in mods}
+for module_id in (18,21,23,25,50):
+    module=by_id[module_id]
+    assert module['state']=='ADVISORY', module
+    assert module['mode']=='advisory-only', module
+    assert module['catalog_mode']=='compliant', module
+assert by_id[19]['state']=='GATED' and by_id[19]['mode']=='disabled-by-default', by_id[19]
+assert by_id[27]['state']=='GATED' and by_id[27]['mode']=='eligibility-gated', by_id[27]
+assert by_id[30]['state']=='ADVISORY' and by_id[30]['mode']=='advisory-only', by_id[30]
+assert by_id[31]['state']=='GATED' and by_id[31]['mode']=='experiment-safe', by_id[31]
+assert by_id[39]['state']=='GATED' and by_id[39]['mode']=='consent-aware', by_id[39]
+print('200/200 module contracts switched through Commander with policy-sensitive actions fail-closed: PASS')
 PY
 
 python - "$TMP/dispatch-request.json" "$SITE_ID" "$SOURCE_REVISION" <<'PY'
@@ -218,6 +229,7 @@ job_root=pathlib.Path(sys.argv[2])
 out_path=pathlib.Path(sys.argv[3])
 source_revision=sys.argv[4]
 receipts={}
+policy_states={18:'ADVISORY',21:'ADVISORY',23:'ADVISORY',25:'ADVISORY',50:'ADVISORY'}
 for module_id in range(1,201):
     response=json.loads((job_root/f"{module_id:03d}.json").read_text(encoding='utf-8'))
     result=response.get('result') or {}
@@ -233,6 +245,8 @@ for module_id in range(1,201):
     assert evidence.get('module_id') == module_id, (module_id, evidence)
     assert evidence.get('source_revision') == source_revision, (module_id, evidence)
     assert sha_re.fullmatch(str(evidence.get('evidence_hash',''))), (module_id, evidence.get('evidence_hash'))
+    if module_id in policy_states:
+        assert evidence.get('state') == policy_states[module_id], (module_id, evidence)
     receipts[f'M{module_id}']={
       'job_id':job['job_id'],
       'module_id':module_id,
@@ -249,7 +263,7 @@ out={
 }
 out_path.parent.mkdir(parents=True, exist_ok=True)
 out_path.write_text(json.dumps(out,sort_keys=True,separators=(',',':'))+'\n', encoding='utf-8')
-print(f'exported 200 module receipts to {out_path}')
+print(f'exported 200 module receipts with policy-state evidence to {out_path}')
 PY
 fi
 
