@@ -1,16 +1,15 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
-import { mkdir, mkdtemp, readFile, symlink } from "node:fs/promises";
+import { lstat, mkdir, mkdtemp, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 
-import { setTenantEnabled, readTenantControl } from "../control-plane/tenant-control.mjs";
-import { readTenantEvidenceSnapshot } from "../evidence/tenant-evidence.mjs";
+import { readTenantControl, setTenantEnabled } from "../control-plane/tenant-control.mjs";
 import {
   canonicalProviderRecordsSha256,
   publishAuthorizedProviderSnapshot,
 } from "../evidence/authorized-provider-snapshot.mjs";
+import { readTenantEvidenceSnapshot } from "../evidence/tenant-evidence.mjs";
 
 const SITE_ID = "walle-real-data-probe";
 
@@ -149,10 +148,24 @@ test("provider-dataset mismatch and credential-shaped extra fields fail closed",
 });
 
 test("floating-point provider values are rejected instead of silently rounded", async () => {
-  const { controlRoot, evidenceRoot, control } = await setup();
+  const { control } = await setup();
   const bad = snapshot(control.generation);
   bad.datasets[0].records[0].average_position_milli = 4.5;
   assert.throws(() => canonicalProviderRecordsSha256(bad.datasets[0].records), /safe integers/);
+});
+
+test("publication lock blocks competing writer and is released after a successful publish", async () => {
+  const { controlRoot, evidenceRoot, control } = await setup();
+  const lock = join(evidenceRoot, `.provider-lock-${SITE_ID}`);
+  await mkdir(lock, { mode: 0o700 });
+  await assert.rejects(
+    publishAuthorizedProviderSnapshot({ controlRoot, evidenceRoot, siteId: SITE_ID, snapshot: snapshot(control.generation) }),
+    /already locked/,
+  );
+  await rm(lock, { recursive: true });
+  const result = await publishAuthorizedProviderSnapshot({ controlRoot, evidenceRoot, siteId: SITE_ID, snapshot: snapshot(control.generation) });
+  assert.equal(result.status, "PUBLISHED");
+  await assert.rejects(lstat(lock), (error) => error?.code === "ENOENT");
 });
 
 test("symlinked tenant evidence destination is rejected by publisher", async () => {
