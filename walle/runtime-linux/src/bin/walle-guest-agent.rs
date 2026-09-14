@@ -77,7 +77,8 @@ fn run() -> Result<i32, AgentError> {
     let workload = args.next().ok_or(AgentError::Usage)?;
     let workload_args: Vec<_> = args.collect();
 
-    let cmdline = fs::read_to_string("/proc/cmdline").map_err(|_| AgentError::InvalidKernelCommandLine)?;
+    let cmdline =
+        fs::read_to_string("/proc/cmdline").map_err(|_| AgentError::InvalidKernelCommandLine)?;
     let identity = parse_boot_identity(&cmdline)?;
 
     enforce_no_new_privileges()?;
@@ -249,8 +250,10 @@ mod tests {
         assert_eq!(identity.source_sha256, SOURCE_SHA);
 
         assert!(parse_boot_identity(&format!("{} {PROTOCOL_ARG}", cmdline())).is_err());
-        assert!(parse_boot_identity(&cmdline().replace(PROTOCOL_ARG, "walle.guest_protocol=2"))
-            .is_err());
+        assert!(
+            parse_boot_identity(&cmdline().replace(PROTOCOL_ARG, "walle.guest_protocol=2"))
+                .is_err()
+        );
         assert!(parse_boot_identity(&format!("{} {RUN_ID_PREFIX}{RUN_ID}", cmdline())).is_err());
         assert!(parse_boot_identity(&cmdline().replace(SOURCE_SHA, "sha256:deadbeef")).is_err());
     }
