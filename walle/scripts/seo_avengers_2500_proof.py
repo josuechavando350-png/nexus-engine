@@ -31,6 +31,7 @@ RANGE_SPECS = (
     ("M801-M1000", 801, 1000, "seo-avengers-1000"),
     ("M1001-M2500", 1001, 2500, "seo-avengers-2500-sidecar"),
 )
+TERMINAL_SAFETY_MODULES = tuple(f"M{i}" for i in range(2491, 2501))
 
 
 def _canonical_json_bytes(value: Any) -> bytes:
@@ -86,9 +87,7 @@ def _normalize_execution_status(receipt: Mapping[str, Any]) -> tuple[str, str]:
     if raw in {"ERROR", "FAILED", "FAIL", "FAILURE"}:
         return STATUS_FAILED, raw
     if raw == "SUCCESS":
-        if finding == "FINDING":
-            return STATUS_FAILED, "FINDING"
-        return STATUS_EXECUTED, "SUCCESS"
+        return STATUS_EXECUTED, "SUCCESS_WITH_FINDING" if finding == "FINDING" else "SUCCESS"
     return STATUS_BLOCKED, f"UNKNOWN_EXECUTION_STATUS:{raw or 'MISSING'}"
 
 
@@ -224,6 +223,20 @@ import json
 from sidecar.execute_suite import execute_request
 from test_batch_2201_2400 import fixture
 payload, config = fixture()
+# WALLE's proof fixture extends the existing deterministic test corpus only to
+# exercise evidence-dependent branches that correctly return INSUFFICIENT_DATA
+# when their observations are absent. These rows are controlled synthetic test
+# evidence, never production/client measurements and never a ranking claim.
+config["local_brand_terms"] = list(config.get("local_brand_terms", [])) + ["walle proof"]
+payload["content_documents"] = list(payload.get("content_documents", [])) + [{
+    "document_id":"/walle-proof",
+    "text":"walle proof abogado consulta defensa penal fraude audiencia inicial cdmx ciudad de mexico urgente que hacer como cuando evidencia controlada"
+}]
+payload["search_performance_records"] = list(payload.get("search_performance_records", [])) + [
+    {"query":"walle proof abogado penal cdmx urgente que hacer","page_url":"/walle-proof","clicks":0,"impressions":80,"average_position_milli":2000},
+    {"query":"walle proof consulta fraude ciudad de mexico urgente como","page_url":"/walle-proof","clicks":0,"impressions":80,"average_position_milli":6000},
+    {"query":"walle proof defensa audiencia inicial cdmx urgente cuando","page_url":"/walle-proof","clicks":0,"impressions":80,"average_position_milli":25000},
+]
 result = execute_request({"schema_version":1,"payload":payload,"config":config})
 expected = tuple(f"M{i}" for i in range(1001, 2501))
 if result.get("receipt_count") != 1500 or tuple(result.get("receipts", {})) != expected:
@@ -453,6 +466,8 @@ def _build_module_records(
                         "runtime": runtime,
                         "status": STATUS_NOT_TESTED,
                         "reason": "RANGE_NOT_RUN",
+                        "native_execution_status": None,
+                        "finding_status": "UNREPORTED",
                         "source_revision": source_revision,
                         "source_tree": source_tree,
                         "receipt_sha256": None,
@@ -472,6 +487,8 @@ def _build_module_records(
                         "runtime": runtime,
                         "status": range_status,
                         "reason": reason,
+                        "native_execution_status": None,
+                        "finding_status": "UNREPORTED",
                         "source_revision": source_revision,
                         "source_tree": source_tree,
                         "receipt_sha256": None,
@@ -500,14 +517,22 @@ def _build_module_records(
             receipt: dict[str, Any] | None
             status: str
             reason: str
+            native_execution_status: str | None = None
+            finding_status = "UNREPORTED"
             if first == 1:
                 receipt, status, reason = _receipt_from_m200(raw, module_id, source_revision)
+                if receipt is not None:
+                    native_execution_status = "CONTRACT_EVALUATED"
             else:
                 value = raw_receipts.get(module_id)
                 if not isinstance(value, Mapping):
                     receipt, status, reason = None, STATUS_BLOCKED, "MISSING_RECEIPT"
                 else:
                     receipt = dict(value)
+                    native_execution_status = str(
+                        receipt.get("execution_status", receipt.get("status", ""))
+                    ).upper() or None
+                    finding_status = str(receipt.get("finding_status", "UNREPORTED")).upper()
                     status, reason = _normalize_execution_status(receipt)
             receipt_sha = _sha256_value(receipt) if receipt is not None else None
             evidence_hash = receipt.get("evidence_hash") if receipt is not None else None
@@ -525,6 +550,8 @@ def _build_module_records(
                     "runtime": runtime,
                     "status": status,
                     "reason": reason,
+                    "native_execution_status": native_execution_status,
+                    "finding_status": finding_status,
                     "source_revision": source_revision,
                     "source_tree": source_tree,
                     "receipt_sha256": receipt_sha,
@@ -533,6 +560,14 @@ def _build_module_records(
                 }
             )
     return records, errors
+
+
+def _finding_counts(modules: list[dict[str, Any]]) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for item in modules:
+        value = str(item.get("finding_status", "UNREPORTED")).upper()
+        counts[value] = counts.get(value, 0) + 1
+    return {key: counts[key] for key in sorted(counts)}
 
 
 def validate_proof_document(proof: Mapping[str, Any], evidence_root: Path) -> list[str]:
@@ -605,6 +640,9 @@ def validate_proof_document(proof: Mapping[str, Any], evidence_root: Path) -> li
             counts[str(item["status"])] += 1
     if proof.get("counts") != counts:
         errors.append("count_summary_mismatch")
+    comparable_modules = [dict(item) for item in modules if isinstance(item, Mapping)]
+    if proof.get("finding_counts") != _finding_counts(comparable_modules):
+        errors.append("finding_count_summary_mismatch")
     return errors
 
 
@@ -686,6 +724,54 @@ def _validate_range_containers(proof: Mapping[str, Any], evidence_root: Path) ->
     return errors
 
 
+def _validate_terminal_safety(proof: Mapping[str, Any], evidence_root: Path) -> list[str]:
+    errors: list[str] = []
+    modules = proof.get("modules")
+    if not isinstance(modules, list):
+        return ["terminal_safety_modules_not_list"]
+    m2500 = next(
+        (item for item in modules if isinstance(item, Mapping) and item.get("module_id") == "M2500"),
+        None,
+    )
+    if not isinstance(m2500, Mapping):
+        return ["terminal_safety_m2500_missing"]
+    receipt_file = m2500.get("receipt_file")
+    if not isinstance(receipt_file, str):
+        return ["terminal_safety_receipt_file_missing"]
+    path = (evidence_root / receipt_file).resolve()
+    if not _inside(path, evidence_root) or not path.is_file():
+        return ["terminal_safety_receipt_container_missing"]
+    try:
+        raw = _load_json(path)
+    except Exception:
+        return ["terminal_safety_receipt_container_corrupt"]
+    receipts = raw.get("receipts") if isinstance(raw, Mapping) else None
+    if not isinstance(receipts, Mapping):
+        return ["terminal_safety_receipts_missing"]
+    for module_id in TERMINAL_SAFETY_MODULES:
+        receipt = receipts.get(module_id)
+        if not isinstance(receipt, Mapping):
+            errors.append(f"terminal_safety_receipt_missing:{module_id}")
+            continue
+        if receipt.get("execution_status") != "SUCCESS":
+            errors.append(f"terminal_safety_execution_not_success:{module_id}")
+        if receipt.get("finding_status") != "NO_FINDING":
+            errors.append(f"terminal_safety_finding:{module_id}")
+        if receipt.get("action_mode") != "OBSERVE_ONLY":
+            errors.append(f"terminal_safety_action_mode:{module_id}")
+        if receipt.get("policy_status") != "SAFE_WHITE_HAT":
+            errors.append(f"terminal_safety_policy_status:{module_id}")
+    terminal = receipts.get("M2500")
+    output = terminal.get("output") if isinstance(terminal, Mapping) else None
+    if not isinstance(output, Mapping):
+        errors.append("terminal_safety_m2500_output_missing")
+    else:
+        for key in ("release_safe", "strict_white_hat_only", "no_google_scraping", "observe_only"):
+            if output.get(key) is not True:
+                errors.append(f"terminal_safety_m2500_{key}_not_true")
+    return errors
+
+
 def _validate_verifier_gates(proof: Mapping[str, Any], evidence_root: Path) -> list[str]:
     errors: list[str] = []
     gates = proof.get("verifier_gates")
@@ -762,6 +848,7 @@ def _build_and_write_proof(
 ) -> tuple[dict[str, Any], list[str]]:
     modules, collection_errors = _build_module_records(evidence_root, source_revision, source_tree, outcomes)
     counts = {status: sum(item["status"] == status for item in modules) for status in VALID_STATUSES}
+    finding_counts = _finding_counts(modules)
     draft = {
         "schema_version": SCHEMA_VERSION,
         "workload": "seo-avengers-2500",
@@ -772,6 +859,7 @@ def _build_and_write_proof(
         "expected_unique_module_count": 2500,
         "verifier_gates": verifier_gates,
         "counts": counts,
+        "finding_counts": finding_counts,
         "full_execution_claim": False,
         "modules": modules,
     }
@@ -781,6 +869,7 @@ def _build_and_write_proof(
         + validate_proof_document(draft, evidence_root)
         + _validate_verifier_gates(draft, evidence_root)
         + _validate_range_containers(draft, evidence_root)
+        + _validate_terminal_safety(draft, evidence_root)
         + _validate_raw_receipt_hashes(draft, evidence_root)
     )
     draft["full_execution_claim"] = (
@@ -800,6 +889,7 @@ def _build_and_write_proof(
         "source_revision": source_revision,
         "source_tree": source_tree,
         "counts": counts,
+        "finding_counts": finding_counts,
         "full_execution_claim": draft["full_execution_claim"],
         "validation_errors": final_errors,
         "proof_sha256": _sha256_file(evidence_root / "proof.json"),
@@ -822,6 +912,7 @@ def _write_manifest(evidence_root: Path) -> str:
 
 def _print_result(proof: Mapping[str, Any], proof_sha: str, manifest_sha: str) -> None:
     counts = proof["counts"]
+    finding_counts = proof["finding_counts"]
     print("WALLE_ENGINE=WALLE")
     print("WALLE_WORKLOAD=seo-avengers-2500")
     print(f"WALLE_SOURCE_HEAD={proof['source_revision']}")
@@ -831,6 +922,9 @@ def _print_result(proof: Mapping[str, Any], proof_sha: str, manifest_sha: str) -
     print(f"WALLE_MODULE_FAILED={counts[STATUS_FAILED]}")
     print(f"WALLE_MODULE_BLOCKED={counts[STATUS_BLOCKED]}")
     print(f"WALLE_MODULE_NOT_TESTED={counts[STATUS_NOT_TESTED]}")
+    print(f"WALLE_MODULE_FINDINGS={finding_counts.get('FINDING', 0)}")
+    print(f"WALLE_MODULE_NO_FINDING={finding_counts.get('NO_FINDING', 0)}")
+    print(f"WALLE_MODULE_NOT_APPLICABLE={finding_counts.get('NOT_APPLICABLE', 0)}")
     print(f"WALLE_PROOF_SHA256={proof_sha}")
     print(f"WALLE_EVIDENCE_MANIFEST_SHA256={manifest_sha}")
     print(f"WALLE_FULL_EXECUTION_CLAIM={'true' if proof['full_execution_claim'] else 'false'}")
@@ -878,6 +972,7 @@ def validate_command(args: argparse.Namespace) -> int:
         validate_proof_document(proof, evidence_root)
         + _validate_verifier_gates(proof, evidence_root)
         + _validate_range_containers(proof, evidence_root)
+        + _validate_terminal_safety(proof, evidence_root)
         + _validate_raw_receipt_hashes(proof, evidence_root)
     )
     errors = base_errors + _validate_claim(proof, base_errors)
