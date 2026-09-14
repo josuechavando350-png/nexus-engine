@@ -18,4 +18,5 @@ pub mod host_facts;
 pub mod runner;
 pub mod safe_fs;
 pub mod supervisor_evidence;
+pub mod trusted_guest_proofs;
 pub mod trusted_runner;
