@@ -303,12 +303,7 @@ fn install_guest_seccomp_filter() -> Result<(), AgentError> {
 fn build_guest_seccomp_filter() -> Vec<SockFilter> {
     let mut filter = Vec::with_capacity(5 + DENIED_SYSCALLS.len() * 2);
     filter.push(bpf_stmt(BPF_LD | BPF_W | BPF_ABS, SECCOMP_DATA_ARCH_OFFSET));
-    filter.push(bpf_jump(
-        BPF_JMP | BPF_JEQ | BPF_K,
-        AUDIT_ARCH_X86_64,
-        1,
-        0,
-    ));
+    filter.push(bpf_jump(BPF_JMP | BPF_JEQ | BPF_K, AUDIT_ARCH_X86_64, 1, 0));
     filter.push(bpf_stmt(BPF_RET | BPF_K, SECCOMP_RET_KILL_PROCESS));
     filter.push(bpf_stmt(BPF_LD | BPF_W | BPF_ABS, SECCOMP_DATA_NR_OFFSET));
     for syscall in DENIED_SYSCALLS {
@@ -426,12 +421,7 @@ mod tests {
         );
         assert_eq!(
             filter[1],
-            bpf_jump(
-                BPF_JMP | BPF_JEQ | BPF_K,
-                AUDIT_ARCH_X86_64,
-                1,
-                0
-            )
+            bpf_jump(BPF_JMP | BPF_JEQ | BPF_K, AUDIT_ARCH_X86_64, 1, 0)
         );
         assert_eq!(
             filter[2],
