@@ -5,15 +5,98 @@ use std::fs;
 use std::process::{Command, ExitCode};
 
 use walle_core::is_valid_sha256;
+use walle_runtime_linux::guest_protocol::GUEST_SECCOMP_POLICY_ID;
 
 const RUN_ID_PREFIX: &str = "walle.run_id=";
 const SOURCE_SHA_PREFIX: &str = "walle.source_sha256=";
 const PROTOCOL_ARG: &str = "walle.guest_protocol=1";
 const ATTESTATION_PREFIX: &str = "WALLE_GUEST_ATTESTATION_V1";
+
+const PR_SET_SECCOMP: i32 = 22;
 const PR_SET_NO_NEW_PRIVS: i32 = 38;
+const SECCOMP_MODE_FILTER: usize = 2;
+
+const BPF_LD: u16 = 0x00;
+const BPF_W: u16 = 0x00;
+const BPF_ABS: u16 = 0x20;
+const BPF_JMP: u16 = 0x05;
+const BPF_JEQ: u16 = 0x10;
+const BPF_K: u16 = 0x00;
+const BPF_RET: u16 = 0x06;
+
+const SECCOMP_RET_KILL_PROCESS: u32 = 0x8000_0000;
+const SECCOMP_RET_ERRNO: u32 = 0x0005_0000;
+const SECCOMP_RET_ALLOW: u32 = 0x7fff_0000;
+const EPERM: u32 = 1;
+const AUDIT_ARCH_X86_64: u32 = 0xc000_003e;
+const SECCOMP_DATA_NR_OFFSET: u32 = 0;
+const SECCOMP_DATA_ARCH_OFFSET: u32 = 4;
+
+// x86_64 syscall numbers deliberately denied by the first WALLE guest policy.
+// The policy blocks namespace changes, kernel/module mutation, privileged mount
+// operations, cross-process memory writes, BPF/perf attack surfaces and newer
+// mount APIs while leaving ordinary process/file operations available.
+const DENIED_SYSCALLS: &[u32] = &[
+    101, // ptrace
+    103, // syslog
+    155, // pivot_root
+    161, // chroot
+    163, // acct
+    164, // settimeofday
+    165, // mount
+    166, // umount2
+    167, // swapon
+    168, // swapoff
+    169, // reboot
+    170, // sethostname
+    171, // setdomainname
+    172, // iopl
+    173, // ioperm
+    175, // init_module
+    176, // delete_module
+    179, // quotactl
+    227, // clock_settime
+    246, // kexec_load
+    248, // add_key
+    249, // request_key
+    250, // keyctl
+    272, // unshare
+    298, // perf_event_open
+    304, // open_by_handle_at
+    308, // setns
+    310, // process_vm_readv
+    311, // process_vm_writev
+    313, // finit_module
+    320, // kexec_file_load
+    321, // bpf
+    323, // userfaultfd
+    428, // open_tree
+    429, // move_mount
+    430, // fsopen
+    431, // fsconfig
+    432, // fsmount
+    433, // fspick
+    438, // pidfd_getfd
+    442, // mount_setattr
+];
 
 unsafe extern "C" {
-    fn prctl(option: i32, arg2: u64, arg3: u64, arg4: u64, arg5: u64) -> i32;
+    fn prctl(option: i32, arg2: usize, arg3: usize, arg4: usize, arg5: usize) -> i32;
+}
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SockFilter {
+    code: u16,
+    jt: u8,
+    jf: u8,
+    k: u32,
+}
+
+#[repr(C)]
+struct SockFprog {
+    len: u16,
+    filter: *const SockFilter,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -35,6 +118,9 @@ enum AgentError {
     InvalidRunId,
     InvalidSourceSha256,
     NoNewPrivilegesFailed,
+    SeccompPolicyTooLarge,
+    SeccompInstallFailed,
+    SeccompStateMismatch,
     InvalidProcessStatus,
     NetworkInspectionFailed,
     NetworkInterfaceOverflow,
@@ -50,8 +136,17 @@ impl Display for AgentError {
             }
             Self::InvalidRunId => "guest run id is invalid",
             Self::InvalidSourceSha256 => "guest source SHA-256 is invalid",
-            Self::NoNewPrivilegesFailed => "failed to enforce PR_SET_NO_NEW_PRIVS before workload spawn",
-            Self::InvalidProcessStatus => "failed to read canonical Seccomp/NoNewPrivs process state",
+            Self::NoNewPrivilegesFailed => {
+                "failed to enforce PR_SET_NO_NEW_PRIVS before workload spawn"
+            }
+            Self::SeccompPolicyTooLarge => "guest seccomp BPF program length overflowed u16",
+            Self::SeccompInstallFailed => "failed to install WALLE guest seccomp filter",
+            Self::SeccompStateMismatch => {
+                "guest seccomp/no-new-privileges state does not match WALLE policy"
+            }
+            Self::InvalidProcessStatus => {
+                "failed to read canonical Seccomp/NoNewPrivs process state"
+            }
             Self::NetworkInspectionFailed => "failed to inspect guest network interfaces",
             Self::NetworkInterfaceOverflow => "guest network interface count overflowed u32",
             Self::WorkloadSpawnFailed => "failed to spawn or wait for guest workload",
@@ -82,6 +177,13 @@ fn run() -> Result<i32, AgentError> {
     let identity = parse_boot_identity(&cmdline)?;
 
     enforce_no_new_privileges()?;
+    install_guest_seccomp_filter()?;
+    let process_status =
+        fs::read_to_string("/proc/self/status").map_err(|_| AgentError::InvalidProcessStatus)?;
+    let security = parse_process_security_state(&process_status)?;
+    if security.seccomp_mode != 2 || !security.no_new_privs {
+        return Err(AgentError::SeccompStateMismatch);
+    }
 
     let status = Command::new(workload)
         .args(workload_args)
@@ -89,9 +191,6 @@ fn run() -> Result<i32, AgentError> {
         .map_err(|_| AgentError::WorkloadSpawnFailed)?;
     let workload_exit_code = status.code().unwrap_or(128);
 
-    let process_status =
-        fs::read_to_string("/proc/self/status").map_err(|_| AgentError::InvalidProcessStatus)?;
-    let security = parse_process_security_state(&process_status)?;
     let network_non_loopback_interfaces = count_non_loopback_interfaces("/sys/class/net")?;
     let completion = if workload_exit_code == 0 {
         "SUCCESS"
@@ -100,10 +199,11 @@ fn run() -> Result<i32, AgentError> {
     };
 
     println!(
-        "{ATTESTATION_PREFIX} run_id={} source_sha256={} seccomp_mode={} no_new_privs={} network_non_loopback_interfaces={} workload_exit_code={} completion={completion}",
+        "{ATTESTATION_PREFIX} run_id={} source_sha256={} seccomp_mode={} seccomp_policy={} no_new_privs={} network_non_loopback_interfaces={} workload_exit_code={} completion={completion}",
         identity.run_id,
         identity.source_sha256,
         security.seccomp_mode,
+        GUEST_SECCOMP_POLICY_ID,
         u8::from(security.no_new_privs),
         network_non_loopback_interfaces,
         workload_exit_code,
@@ -172,6 +272,59 @@ fn enforce_no_new_privileges() -> Result<(), AgentError> {
     } else {
         Err(AgentError::NoNewPrivilegesFailed)
     }
+}
+
+fn install_guest_seccomp_filter() -> Result<(), AgentError> {
+    let filter = build_guest_seccomp_filter();
+    let len = u16::try_from(filter.len()).map_err(|_| AgentError::SeccompPolicyTooLarge)?;
+    let program = SockFprog {
+        len,
+        filter: filter.as_ptr(),
+    };
+    // SAFETY: `program` and its backing filter vector remain alive for the
+    // duration of this synchronous prctl call. The kernel copies the classic
+    // BPF program before returning. Linux x86_64 is the only supported target.
+    let result = unsafe {
+        prctl(
+            PR_SET_SECCOMP,
+            SECCOMP_MODE_FILTER,
+            (&raw const program) as usize,
+            0,
+            0,
+        )
+    };
+    if result == 0 {
+        Ok(())
+    } else {
+        Err(AgentError::SeccompInstallFailed)
+    }
+}
+
+fn build_guest_seccomp_filter() -> Vec<SockFilter> {
+    let mut filter = Vec::with_capacity(5 + DENIED_SYSCALLS.len() * 2);
+    filter.push(bpf_stmt(BPF_LD | BPF_W | BPF_ABS, SECCOMP_DATA_ARCH_OFFSET));
+    filter.push(bpf_jump(BPF_JMP | BPF_JEQ | BPF_K, AUDIT_ARCH_X86_64, 1, 0));
+    filter.push(bpf_stmt(BPF_RET | BPF_K, SECCOMP_RET_KILL_PROCESS));
+    filter.push(bpf_stmt(BPF_LD | BPF_W | BPF_ABS, SECCOMP_DATA_NR_OFFSET));
+    for syscall in DENIED_SYSCALLS {
+        filter.push(bpf_jump(BPF_JMP | BPF_JEQ | BPF_K, *syscall, 0, 1));
+        filter.push(bpf_stmt(BPF_RET | BPF_K, SECCOMP_RET_ERRNO | EPERM));
+    }
+    filter.push(bpf_stmt(BPF_RET | BPF_K, SECCOMP_RET_ALLOW));
+    filter
+}
+
+const fn bpf_stmt(code: u16, k: u32) -> SockFilter {
+    SockFilter {
+        code,
+        jt: 0,
+        jf: 0,
+        k,
+    }
+}
+
+const fn bpf_jump(code: u16, k: u32, jt: u8, jf: u8) -> SockFilter {
+    SockFilter { code, jt, jf, k }
 }
 
 fn parse_process_security_state(status: &str) -> Result<ProcessSecurityState, AgentError> {
@@ -256,6 +409,43 @@ mod tests {
         );
         assert!(parse_boot_identity(&format!("{} {RUN_ID_PREFIX}{RUN_ID}", cmdline())).is_err());
         assert!(parse_boot_identity(&cmdline().replace(SOURCE_SHA, "sha256:deadbeef")).is_err());
+    }
+
+    #[test]
+    fn guest_seccomp_filter_has_arch_guard_and_denies_every_policy_syscall() {
+        let filter = build_guest_seccomp_filter();
+        assert_eq!(filter.len(), 5 + DENIED_SYSCALLS.len() * 2);
+        assert_eq!(
+            filter[0],
+            bpf_stmt(BPF_LD | BPF_W | BPF_ABS, SECCOMP_DATA_ARCH_OFFSET)
+        );
+        assert_eq!(
+            filter[1],
+            bpf_jump(BPF_JMP | BPF_JEQ | BPF_K, AUDIT_ARCH_X86_64, 1, 0)
+        );
+        assert_eq!(
+            filter[2],
+            bpf_stmt(BPF_RET | BPF_K, SECCOMP_RET_KILL_PROCESS)
+        );
+        assert_eq!(
+            filter[3],
+            bpf_stmt(BPF_LD | BPF_W | BPF_ABS, SECCOMP_DATA_NR_OFFSET)
+        );
+        for (index, syscall) in DENIED_SYSCALLS.iter().enumerate() {
+            let offset = 4 + index * 2;
+            assert_eq!(
+                filter[offset],
+                bpf_jump(BPF_JMP | BPF_JEQ | BPF_K, *syscall, 0, 1)
+            );
+            assert_eq!(
+                filter[offset + 1],
+                bpf_stmt(BPF_RET | BPF_K, SECCOMP_RET_ERRNO | EPERM)
+            );
+        }
+        assert_eq!(
+            *filter.last().expect("allow tail"),
+            bpf_stmt(BPF_RET | BPF_K, SECCOMP_RET_ALLOW)
+        );
     }
 
     #[test]
