@@ -223,19 +223,22 @@ import json
 from sidecar.execute_suite import execute_request
 from test_batch_2201_2400 import fixture
 payload, config = fixture()
-# WALLE's proof fixture extends the existing deterministic test corpus only to
-# exercise evidence-dependent branches that correctly return INSUFFICIENT_DATA
-# when their observations are absent. These rows are controlled synthetic test
-# evidence, never production/client measurements and never a ranking claim.
-config["local_brand_terms"] = list(config.get("local_brand_terms", [])) + ["walle proof"]
-payload["content_documents"] = list(payload.get("content_documents", [])) + [{
-    "document_id":"/walle-proof",
-    "text":"walle proof abogado consulta defensa penal fraude audiencia inicial cdmx ciudad de mexico urgente que hacer como cuando evidencia controlada"
-}]
+# WALLE extends only the controlled fixture evidence needed to exercise every
+# evidence-dependent branch. Reuse the existing long, identity-grounded pages
+# rather than creating a synthetic SEO landing page: this keeps the white-hat
+# policy guards meaningful while providing complete deterministic observations.
+for document in payload.get("content_documents", []):
+    document["text"] = document["text"] + (
+        " Orientacion informativa sobre que hacer, como prepararse y cuando solicitar apoyo "
+        "ante una situacion urgente o inmediata, siempre segun los hechos y la evidencia disponible."
+    )
 payload["search_performance_records"] = list(payload.get("search_performance_records", [])) + [
-    {"query":"walle proof abogado penal cdmx urgente que hacer","page_url":"/walle-proof","clicks":0,"impressions":80,"average_position_milli":2000},
-    {"query":"walle proof consulta fraude ciudad de mexico urgente como","page_url":"/walle-proof","clicks":0,"impressions":80,"average_position_milli":6000},
-    {"query":"walle proof defensa audiencia inicial cdmx urgente cuando","page_url":"/walle-proof","clicks":0,"impressions":80,"average_position_milli":25000},
+    {"query":"que hacer abogado penal urgente cdmx","page_url":"/penal-cdmx","clicks":0,"impressions":80,"average_position_milli":2000},
+    {"query":"como actuar audiencia inicial cdmx","page_url":"/audiencia-inicial-cdmx","clicks":0,"impressions":80,"average_position_milli":6000},
+    {"query":"cuando contratar abogado fraude urgente cdmx","page_url":"/fraude-cdmx","clicks":0,"impressions":80,"average_position_milli":25000},
+    {"query":"cano estrategia penal penal cdmx","page_url":"/penal-cdmx","clicks":4,"impressions":80,"average_position_milli":6000},
+    {"query":"cano estrategia penal fraude cdmx","page_url":"/fraude-cdmx","clicks":0,"impressions":80,"average_position_milli":6000},
+    {"query":"cano estrategia penal audiencia inicial cdmx","page_url":"/audiencia-inicial-cdmx","clicks":4,"impressions":80,"average_position_milli":6000},
 ]
 result = execute_request({"schema_version":1,"payload":payload,"config":config})
 expected = tuple(f"M{i}" for i in range(1001, 2501))
