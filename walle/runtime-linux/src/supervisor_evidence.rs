@@ -18,6 +18,7 @@ use crate::evidence::{
     verify_evidence_chain, EvidenceError, EvidenceReceipt, EvidenceRun, EvidenceSeal,
 };
 use crate::firecracker::{RUN_ID_BOOT_ARG_PREFIX, SOURCE_SHA_BOOT_ARG_PREFIX};
+use crate::guest_protocol::parse_guest_attestation;
 use crate::host::LinuxMicroVmHost;
 use crate::host_facts::{collect_linux_host_facts, HostPreflightVerdict, LinuxHostFacts};
 
@@ -25,6 +26,7 @@ pub const SUPERVISOR_PLAN_EVIDENCE_KIND: &str = "supervisor-plan";
 pub const SOURCE_IDENTITY_EVIDENCE_KIND: &str = "source-identity";
 pub const HOST_ISOLATION_EVIDENCE_KIND: &str = "host-isolation";
 pub const MICROVM_BOOT_EVIDENCE_KIND: &str = "microvm-boot";
+pub const GUEST_ATTESTATION_CANDIDATE_EVIDENCE_KIND: &str = "guest-attestation-candidate";
 pub const RESOURCE_CONTROLS_EVIDENCE_KIND: &str = "resource-controls";
 pub const RUNTIME_BINARY_IDENTITY_EVIDENCE_KIND: &str = "runtime-binary-identity";
 pub const IMAGE_INTEGRITY_EVIDENCE_KIND: &str = "image-integrity";
@@ -95,7 +97,11 @@ pub struct EvidencedSupervisorResult {
 /// into the guest kernel command line. Before cleanup removes the private run
 /// root, this layer opens the bounded serial stdout log with no-symlink Linux
 /// resolution and requires a guest `Linux version` banner plus both exact
-/// bindings. Generic/fake lifecycle hosts never enable this physical capture.
+/// bindings. The same concrete serial capture may also persist one strict
+/// `guest-attestation-candidate` receipt, but that payload retains the explicit
+/// `UNTRUSTED_GUEST_CLAIM_PENDING_AGENT_IDENTITY` marker and is never projected
+/// as guest-seccomp, network-isolation or guest-completion certification proof.
+/// Generic/fake lifecycle hosts never enable this physical capture.
 ///
 /// A successful `LinuxMicroVmHost::apply_cgroup` is tracked as the
 /// `RESOURCE_CONTROLS` proof boundary because that implementation creates the
@@ -142,8 +148,8 @@ impl SupervisorEvidenceRun {
 
     /// Executes only through the concrete Linux host. Keeping this public
     /// boundary concrete prevents a generic test/dummy host from manufacturing
-    /// physical boot, host-isolation, cgroup, runtime, image or output-bound
-    /// receipts merely by returning success from trait methods.
+    /// physical boot, host-isolation, guest-attestation, cgroup, runtime, image
+    /// or output-bound receipts merely by returning success from trait methods.
     pub fn execute(
         &mut self,
         host: &mut LinuxMicroVmHost,
@@ -153,20 +159,24 @@ impl SupervisorEvidenceRun {
             return Err(SupervisorEvidenceError::PlanBindingMismatch);
         }
         let host_isolation_payload = collect_host_isolation_payload(plan);
-        let result = execute_with_sink_and_host_isolation(
-            host,
-            plan,
-            &mut self.evidence,
-            host_isolation_payload.as_deref(),
-            true,
-        )?;
-        let mut receipts = Vec::with_capacity(9);
+        let (result, guest_attestation_candidate_receipt) =
+            execute_with_sink_and_host_isolation_capture(
+                host,
+                plan,
+                &mut self.evidence,
+                host_isolation_payload.as_deref(),
+                true,
+            )?;
+        let mut receipts = Vec::with_capacity(10);
         receipts.push(result.plan_receipt.clone());
         receipts.push(result.source_identity_receipt.clone());
         if let Some(receipt) = result.host_isolation_receipt.as_ref() {
             receipts.push(receipt.clone());
         }
         if let Some(receipt) = result.microvm_boot_receipt.as_ref() {
+            receipts.push(receipt.clone());
+        }
+        if let Some(receipt) = guest_attestation_candidate_receipt.as_ref() {
             receipts.push(receipt.clone());
         }
         if let Some(receipt) = result.resource_controls_receipt.as_ref() {
@@ -210,6 +220,7 @@ struct ProofTrackingHost<'a, H> {
     inner: &'a mut H,
     capture_physical_boot: bool,
     microvm_boot_payload: Option<String>,
+    guest_attestation_candidate_payload: Option<String>,
     resource_controls_applied: bool,
     materialized: bool,
 }
@@ -220,6 +231,7 @@ impl<'a, H> ProofTrackingHost<'a, H> {
             inner,
             capture_physical_boot,
             microvm_boot_payload: None,
+            guest_attestation_candidate_payload: None,
             resource_controls_applied: false,
             materialized: false,
         }
@@ -282,8 +294,21 @@ impl<H: MicroVmSupervisorHost> MicroVmSupervisorHost for ProofTrackingHost<'_, H
     }
 
     fn cleanup(&mut self, plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Self::Error> {
-        if self.capture_physical_boot && self.microvm_boot_payload.is_none() {
-            self.microvm_boot_payload = observe_microvm_boot(plan);
+        if self.capture_physical_boot
+            && (self.microvm_boot_payload.is_none()
+                || self.guest_attestation_candidate_payload.is_none())
+        {
+            if let Some(serial) = read_bounded_serial(plan) {
+                if self.microvm_boot_payload.is_none()
+                    && serial_bytes_prove_microvm_boot(plan, &serial)
+                {
+                    self.microvm_boot_payload = Some(microvm_boot_payload(plan));
+                }
+                if self.guest_attestation_candidate_payload.is_none() {
+                    self.guest_attestation_candidate_payload =
+                        guest_attestation_candidate_payload(plan, &serial);
+                }
+            }
         }
         self.inner.cleanup(plan)
     }
@@ -302,6 +327,7 @@ where
     execute_with_sink_and_host_isolation(host, plan, sink, None, false)
 }
 
+#[cfg(test)]
 fn execute_with_sink_and_host_isolation<H, S>(
     host: &mut H,
     plan: &MicroVmSupervisorPlan<'_>,
@@ -309,6 +335,27 @@ fn execute_with_sink_and_host_isolation<H, S>(
     host_isolation_payload: Option<&str>,
     capture_physical_boot: bool,
 ) -> Result<EvidencedSupervisorResult, EvidenceError>
+where
+    H: MicroVmSupervisorHost,
+    S: SupervisorEvidenceSink,
+{
+    execute_with_sink_and_host_isolation_capture(
+        host,
+        plan,
+        sink,
+        host_isolation_payload,
+        capture_physical_boot,
+    )
+    .map(|(result, _candidate)| result)
+}
+
+fn execute_with_sink_and_host_isolation_capture<H, S>(
+    host: &mut H,
+    plan: &MicroVmSupervisorPlan<'_>,
+    sink: &mut S,
+    host_isolation_payload: Option<&str>,
+    capture_physical_boot: bool,
+) -> Result<(EvidencedSupervisorResult, Option<EvidenceReceipt>), EvidenceError>
 where
     H: MicroVmSupervisorHost,
     S: SupervisorEvidenceSink,
@@ -332,6 +379,14 @@ where
         Some(payload) => Some(sink.append(MICROVM_BOOT_EVIDENCE_KIND, payload.as_bytes())?),
         None => None,
     };
+    let guest_attestation_candidate_receipt =
+        match tracked_host.guest_attestation_candidate_payload.as_deref() {
+            Some(payload) => Some(sink.append(
+                GUEST_ATTESTATION_CANDIDATE_EVIDENCE_KIND,
+                payload.as_bytes(),
+            )?),
+            None => None,
+        };
 
     let resource_controls_receipt = if tracked_host.resource_controls_applied {
         let payload = resource_controls_payload(plan);
@@ -367,19 +422,22 @@ where
     )?;
     let seal = sink.seal()?;
 
-    Ok(EvidencedSupervisorResult {
-        lifecycle,
-        plan_receipt,
-        source_identity_receipt,
-        host_isolation_receipt,
-        microvm_boot_receipt,
-        resource_controls_receipt,
-        runtime_binary_identity_receipt,
-        image_integrity_receipt,
-        output_bounds_receipt,
-        lifecycle_receipt,
-        seal,
-    })
+    Ok((
+        EvidencedSupervisorResult {
+            lifecycle,
+            plan_receipt,
+            source_identity_receipt,
+            host_isolation_receipt,
+            microvm_boot_receipt,
+            resource_controls_receipt,
+            runtime_binary_identity_receipt,
+            image_integrity_receipt,
+            output_bounds_receipt,
+            lifecycle_receipt,
+            seal,
+        },
+        guest_attestation_candidate_receipt,
+    ))
 }
 
 fn proves_output_bounds(lifecycle: &SupervisorLifecycleResult) -> bool {
@@ -443,19 +501,14 @@ fn host_isolation_payload(
     ))
 }
 
-fn observe_microvm_boot(plan: &MicroVmSupervisorPlan<'_>) -> Option<String> {
+fn read_bounded_serial(plan: &MicroVmSupervisorPlan<'_>) -> Option<Vec<u8>> {
     let stdout_path = Path::new(plan.run_root).join("stdout.log");
     let file = open_regular_no_symlinks(&stdout_path).ok()?;
     let mut serial = Vec::new();
     file.take(plan.max_stdout_bytes.saturating_add(1))
         .read_to_end(&mut serial)
         .ok()?;
-    if u64::try_from(serial.len()).ok()? > plan.max_stdout_bytes
-        || !serial_bytes_prove_microvm_boot(plan, &serial)
-    {
-        return None;
-    }
-    Some(microvm_boot_payload(plan))
+    (u64::try_from(serial.len()).ok()? <= plan.max_stdout_bytes).then_some(serial)
 }
 
 fn serial_bytes_prove_microvm_boot(plan: &MicroVmSupervisorPlan<'_>, serial: &[u8]) -> bool {
@@ -464,6 +517,17 @@ fn serial_bytes_prove_microvm_boot(plan: &MicroVmSupervisorPlan<'_>, serial: &[u
     contains_bytes(serial, b"Linux version ")
         && contains_bytes(serial, run_binding.as_bytes())
         && contains_bytes(serial, source_binding.as_bytes())
+}
+
+fn guest_attestation_candidate_payload(
+    plan: &MicroVmSupervisorPlan<'_>,
+    serial: &[u8],
+) -> Option<String> {
+    if !serial_bytes_prove_microvm_boot(plan, serial) {
+        return None;
+    }
+    parse_guest_attestation(serial, plan.run_id, plan.source_sha256)
+        .map(|attestation| attestation.canonical_json())
 }
 
 fn contains_bytes(haystack: &[u8], needle: &[u8]) -> bool {
@@ -928,6 +992,31 @@ mod tests {
         assert!(payload.contains(plan.source_sha256));
         assert!(payload.contains(plan.kernel_sha256));
         assert!(payload.contains(plan.rootfs_sha256));
+    }
+
+    #[test]
+    fn guest_attestation_candidate_requires_physical_boot_and_remains_untrusted() {
+        let plan = plan();
+        let line = format!(
+            "WALLE_GUEST_ATTESTATION_V1 run_id={} source_sha256={} seccomp_mode=2 no_new_privs=1 network_non_loopback_interfaces=0 workload_exit_code=0 completion=SUCCESS",
+            plan.run_id, plan.source_sha256
+        );
+        let serial = format!(
+            "[    0.000000] Linux version 6.8.0-walle\n[    0.000000] Kernel command line: console=ttyS0 {RUN_ID_BOOT_ARG_PREFIX}{} {SOURCE_SHA_BOOT_ARG_PREFIX}{}\n{line}\n",
+            plan.run_id, plan.source_sha256
+        );
+        let payload = guest_attestation_candidate_payload(&plan, serial.as_bytes())
+            .expect("identity-bound physical guest candidate");
+        assert!(payload.contains("\"seccomp_mode\":2"));
+        assert!(payload.contains("\"network_non_loopback_interfaces\":0"));
+        assert!(payload.contains("\"completion\":\"SUCCESS\""));
+        assert!(payload.contains("UNTRUSTED_GUEST_CLAIM_PENDING_AGENT_IDENTITY"));
+
+        let no_kernel = format!("host text\n{line}\n");
+        assert!(guest_attestation_candidate_payload(&plan, no_kernel.as_bytes()).is_none());
+
+        let duplicate = format!("{serial}{line}\n");
+        assert!(guest_attestation_candidate_payload(&plan, duplicate.as_bytes()).is_none());
     }
 
     #[test]
