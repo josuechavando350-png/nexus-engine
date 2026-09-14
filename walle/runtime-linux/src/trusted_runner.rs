@@ -260,7 +260,7 @@ mod tests {
     }
 
     #[test]
-    fn trusted_guest_error_preserves_durable_evidence_source() {
+    fn trusted_guest_binding_error_is_explicit_without_a_nested_source() {
         let error = TrustedGuestRunError::TrustedEvidence(
             TrustedGuestEvidenceError::PrimaryEvidenceBindingMismatch,
         );
@@ -269,5 +269,10 @@ mod tests {
             "primary supervisor evidence seal is not bound to the trusted guest run"
         );
         assert!(error.source().is_some());
+        assert!(error
+            .source()
+            .expect("trusted evidence error")
+            .source()
+            .is_none());
     }
 }
