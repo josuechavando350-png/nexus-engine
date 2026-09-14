@@ -3,6 +3,7 @@ use std::str;
 pub const GUEST_ATTESTATION_PREFIX: &str = "WALLE_GUEST_ATTESTATION_V1";
 pub const GUEST_PROTOCOL_BOOT_ARG_PREFIX: &str = "walle.guest_protocol=";
 pub const GUEST_PROTOCOL_BOOT_ARG: &str = "walle.guest_protocol=1";
+pub const GUEST_SECCOMP_POLICY_ID: &str = "WALLE_GUEST_SECCOMP_V1";
 pub const MAX_GUEST_ATTESTATION_LINE_BYTES: usize = 1_024;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,6 +26,7 @@ pub struct GuestAttestation {
     pub run_id: String,
     pub source_sha256: String,
     pub seccomp_mode: u8,
+    pub seccomp_policy: String,
     pub no_new_privs: bool,
     pub network_non_loopback_interfaces: u32,
     pub workload_exit_code: i32,
@@ -41,6 +43,7 @@ impl GuestAttestation {
                 "\"no_new_privs\":{},",
                 "\"run_id\":\"{}\",",
                 "\"seccomp_mode\":{},",
+                "\"seccomp_policy\":\"{}\",",
                 "\"source_sha256\":\"{}\",",
                 "\"trust\":\"UNTRUSTED_GUEST_CLAIM_PENDING_AGENT_IDENTITY\",",
                 "\"workload_exit_code\":{}",
@@ -51,6 +54,7 @@ impl GuestAttestation {
             self.no_new_privs,
             self.run_id,
             self.seccomp_mode,
+            self.seccomp_policy,
             self.source_sha256,
             self.workload_exit_code,
         )
@@ -58,9 +62,10 @@ impl GuestAttestation {
 }
 
 /// Extracts exactly one strict guest attestation line from the bounded serial
-/// stream. The line is identity-bound, but deliberately remains an untrusted
-/// claim until a separately identified guest agent is integrated and proven.
-/// Duplicate candidate lines are rejected to avoid first/last-wins ambiguity.
+/// stream. The line is identity-bound and policy-labelled, but deliberately
+/// remains an untrusted claim until the guest agent's executable identity and
+/// mandatory boot path are separately proven. Duplicate candidate lines are
+/// rejected to avoid first/last-wins ambiguity.
 pub fn parse_guest_attestation(
     serial: &[u8],
     expected_run_id: &str,
@@ -87,7 +92,7 @@ fn parse_line(
 ) -> Option<GuestAttestation> {
     let text = str::from_utf8(line).ok()?;
     let fields: Vec<&str> = text.split_ascii_whitespace().collect();
-    if fields.len() != 8 || fields[0] != GUEST_ATTESTATION_PREFIX {
+    if fields.len() != 9 || fields[0] != GUEST_ATTESTATION_PREFIX {
         return None;
     }
 
@@ -99,20 +104,23 @@ fn parse_line(
 
     let seccomp_mode =
         exact_value(fields[3], "seccomp_mode=").and_then(|value| value.parse::<u8>().ok())?;
-    if seccomp_mode > 2 {
+    if seccomp_mode != 2 {
         return None;
     }
-    let no_new_privs = match exact_value(fields[4], "no_new_privs=")? {
-        "0" => false,
+    let seccomp_policy = exact_value(fields[4], "seccomp_policy=")?;
+    if seccomp_policy != GUEST_SECCOMP_POLICY_ID {
+        return None;
+    }
+    let no_new_privs = match exact_value(fields[5], "no_new_privs=")? {
         "1" => true,
         _ => return None,
     };
     let network_non_loopback_interfaces =
-        exact_value(fields[5], "network_non_loopback_interfaces=")
+        exact_value(fields[6], "network_non_loopback_interfaces=")
             .and_then(|value| value.parse::<u32>().ok())?;
-    let workload_exit_code = exact_value(fields[6], "workload_exit_code=")
+    let workload_exit_code = exact_value(fields[7], "workload_exit_code=")
         .and_then(|value| value.parse::<i32>().ok())?;
-    let completion = match exact_value(fields[7], "completion=")? {
+    let completion = match exact_value(fields[8], "completion=")? {
         "SUCCESS" => GuestCompletion::Success,
         "FAILURE" => GuestCompletion::Failure,
         _ => return None,
@@ -122,6 +130,7 @@ fn parse_line(
         run_id: run_id.to_owned(),
         source_sha256: source_sha256.to_owned(),
         seccomp_mode,
+        seccomp_policy: seccomp_policy.to_owned(),
         no_new_privs,
         network_non_loopback_interfaces,
         workload_exit_code,
@@ -144,7 +153,7 @@ mod tests {
 
     fn valid_line() -> String {
         format!(
-            "{GUEST_ATTESTATION_PREFIX} run_id={RUN_ID} source_sha256={SOURCE_SHA} seccomp_mode=2 no_new_privs=1 network_non_loopback_interfaces=0 workload_exit_code=0 completion=SUCCESS"
+            "{GUEST_ATTESTATION_PREFIX} run_id={RUN_ID} source_sha256={SOURCE_SHA} seccomp_mode=2 seccomp_policy={GUEST_SECCOMP_POLICY_ID} no_new_privs=1 network_non_loopback_interfaces=0 workload_exit_code=0 completion=SUCCESS"
         )
     }
 
@@ -157,13 +166,14 @@ mod tests {
         assert_eq!(attestation.run_id, RUN_ID);
         assert_eq!(attestation.source_sha256, SOURCE_SHA);
         assert_eq!(attestation.seccomp_mode, 2);
+        assert_eq!(attestation.seccomp_policy, GUEST_SECCOMP_POLICY_ID);
         assert!(attestation.no_new_privs);
         assert_eq!(attestation.network_non_loopback_interfaces, 0);
         assert_eq!(attestation.workload_exit_code, 0);
         assert_eq!(attestation.completion, GuestCompletion::Success);
-        assert!(attestation
-            .canonical_json()
-            .contains("UNTRUSTED_GUEST_CLAIM_PENDING_AGENT_IDENTITY"));
+        let canonical = attestation.canonical_json();
+        assert!(canonical.contains("\"seccomp_policy\":\"WALLE_GUEST_SECCOMP_V1\""));
+        assert!(canonical.contains("UNTRUSTED_GUEST_CLAIM_PENDING_AGENT_IDENTITY"));
     }
 
     #[test]
@@ -186,13 +196,29 @@ mod tests {
     }
 
     #[test]
+    fn wrong_or_missing_seccomp_policy_is_rejected() {
+        let wrong = valid_line().replace(GUEST_SECCOMP_POLICY_ID, "UNRELATED_FILTER");
+        assert!(parse_guest_attestation(wrong.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
+
+        let missing = valid_line().replace(
+            &format!(" seccomp_policy={GUEST_SECCOMP_POLICY_ID}"),
+            "",
+        );
+        assert!(parse_guest_attestation(missing.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
+    }
+
+    #[test]
     fn malformed_or_reordered_claims_are_rejected() {
-        let malformed = valid_line().replace("seccomp_mode=2", "seccomp_mode=99");
+        let malformed = valid_line().replace("seccomp_mode=2", "seccomp_mode=1");
         assert!(parse_guest_attestation(malformed.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
 
         let reordered = valid_line().replace(
-            "seccomp_mode=2 no_new_privs=1",
-            "no_new_privs=1 seccomp_mode=2",
+            &format!(
+                "seccomp_mode=2 seccomp_policy={GUEST_SECCOMP_POLICY_ID} no_new_privs=1"
+            ),
+            &format!(
+                "no_new_privs=1 seccomp_mode=2 seccomp_policy={GUEST_SECCOMP_POLICY_ID}"
+            ),
         );
         assert!(parse_guest_attestation(reordered.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
     }
