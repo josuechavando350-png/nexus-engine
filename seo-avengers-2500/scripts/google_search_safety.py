@@ -148,6 +148,16 @@ def audit_python_runtime(path: Path) -> list[str]:
     return errors
 
 
+def _is_test_source(path: Path) -> bool:
+    name = path.name
+    return (
+        "tests" in path.parts
+        or name.startswith(("test_", "test-"))
+        or "_test." in name
+        or ".test." in name
+    )
+
+
 def audit_direct_google_search_urls(repo_root: Path) -> list[str]:
     errors: list[str] = []
     for relative in EXECUTABLE_TREES:
@@ -156,7 +166,7 @@ def audit_direct_google_search_urls(repo_root: Path) -> list[str]:
             errors.append(f"executable_tree_missing:{relative}")
             continue
         for path in sorted(p for p in root.rglob("*") if p.is_file() and p.suffix in EXECUTABLE_SUFFIXES):
-            if "tests" in path.parts or path.name.startswith("test_"):
+            if _is_test_source(path):
                 continue
             text = path.read_text(encoding="utf-8", errors="replace")
             for match in DIRECT_GOOGLE_SEARCH_URL.finditer(text):
@@ -246,6 +256,61 @@ def audit_m200_outbound_boundary(repo_root: Path) -> list[str]:
     return errors
 
 
+def audit_m200_production_ingress(repo_root: Path) -> list[str]:
+    package_root = repo_root / "seo-avengers-200/packages/Semantic-Python-NLP"
+    paths = {
+        "guard": package_root / "google_surface_policy.py",
+        "entry": package_root / "render_neon_entry.py",
+        "railway": package_root / "railway_entry.py",
+        "render": package_root / "render_entry.py",
+        "docker": package_root / "Dockerfile",
+        "project": package_root / "pyproject.toml",
+    }
+    try:
+        texts = {name: path.read_text(encoding="utf-8") for name, path in paths.items()}
+    except OSError as exc:
+        return [f"m200_production_ingress_unreadable:{type(exc).__name__}:{exc}"]
+
+    errors: list[str] = []
+    guard_required = (
+        "def is_google_consumer_surface(value: str) -> bool:",
+        'labels[0] == "google"',
+        "def google_consumer_crawl_field(payload: Any) -> str | None:",
+        'return "target_url"',
+        'return f"competitor_urls[{index}]"',
+    )
+    for fragment in guard_required:
+        if fragment not in texts["guard"]:
+            errors.append(f"m200_google_guard_fragment_missing:{fragment}")
+
+    entry_required = (
+        "from google_surface_policy import google_consumer_crawl_field",
+        'if request.url.path.startswith("/v1/"):',
+        'if not expected:',
+        "status_code=503",
+        'if request.url.path == "/v1/semantic/jobs" and request.method == "POST":',
+        "forbidden_field = google_consumer_crawl_field(payload)",
+        "if forbidden_field is not None:",
+        "status_code=403",
+        "use an authorized provider/API contract",
+    )
+    for fragment in entry_required:
+        if fragment not in texts["entry"]:
+            errors.append(f"m200_production_ingress_fragment_missing:{fragment}")
+
+    if "from render_neon_entry import app" not in texts["railway"]:
+        errors.append("m200_railway_entry_bypasses_production_guard")
+    if "from render_neon_entry import app" not in texts["render"]:
+        errors.append("m200_render_entry_bypasses_production_guard")
+    if "google_surface_policy.py" not in texts["docker"]:
+        errors.append("m200_docker_missing_google_surface_policy")
+    if 'CMD ["uvicorn", "railway_entry:app"' not in texts["docker"]:
+        errors.append("m200_docker_bypasses_guarded_entry")
+    if '"google_surface_policy"' not in texts["project"]:
+        errors.append("m200_package_missing_google_surface_policy")
+    return errors
+
+
 def audit_compliance_kernel(repo_root: Path) -> list[str]:
     specs = repo_root / "seo-avengers-2500/runtime/specs_compliance.py"
     kernel = repo_root / "seo-avengers-2500/runtime/kernel_compliance.py"
@@ -295,6 +360,10 @@ def audit_repository(repo_root: Path) -> dict[str, object]:
     boundary_errors = audit_m200_outbound_boundary(root)
     errors.extend(boundary_errors)
     checks["M001_M200_OUTBOUND_BOUNDARY"] = "PASS" if not boundary_errors else "FAIL"
+
+    ingress_errors = audit_m200_production_ingress(root)
+    errors.extend(ingress_errors)
+    checks["M001_M200_PRODUCTION_GOOGLE_INGRESS"] = "PASS" if not ingress_errors else "FAIL"
 
     compliance_errors = audit_compliance_kernel(root)
     errors.extend(compliance_errors)
