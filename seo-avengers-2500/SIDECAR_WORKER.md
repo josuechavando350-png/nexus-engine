@@ -38,7 +38,7 @@ The Node sidecar launches only the repository-local Python bridge `sidecar/execu
 
 The child process receives only two JSON objects over stdin: the already-validated evidence payload and the factual configuration object. The worker enforces an execution timeout and a maximum stdout size. The suite output is validated again before release.
 
-The current CLI writes the final envelope to stdout only. There is deliberately no result database, outbox, cloud sink or client-site write in this PR. A later result-persistence layer must define its own atomic/durable publication contract before production use.
+The current CLI writes the final envelope to stdout only. The WALLE read-only production canary adds a separate immutable result-proof store for the fixed synthetic canary identity; it does not turn the worker into a client mutation or publication plane.
 
 ## CLI
 
@@ -54,6 +54,4 @@ The configuration file is optional and defaults to `{}`. It must remain factual 
 
 ## Current activation state
 
-This PR does not create or enable a tenant. It does not activate CANO or Nexus Bot Studio. No site is connected merely because this worker exists in the repository.
-
-The intended next integration stage is a controlled Nexus Bot Studio canary after this worker is merged, with observability/alerting and an independently tested hot-disable path before any CANO read-only activation.
+This worker does not create or enable a tenant. The next operational stage is the fixed `walle-production-canary` path described in `PRODUCTION_CANARY.md`. It must prove observability, immutable result evidence and the existing hot-disable path before any real tenant is considered for read-only activation. CANO, SOMA and Nexus Bot Studio remain outside this canary.
