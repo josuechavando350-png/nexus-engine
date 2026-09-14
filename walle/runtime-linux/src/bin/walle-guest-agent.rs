@@ -91,6 +91,7 @@ const DENIED_SYSCALLS: &[u32] = &[
 
 unsafe extern "C" {
     fn prctl(option: i32, arg2: usize, arg3: usize, arg4: usize, arg5: usize) -> i32;
+    fn setsid() -> i32;
     fn setgroups(size: usize, groups: *const u32) -> i32;
     fn setgid(gid: u32) -> i32;
     fn setuid(uid: u32) -> i32;
@@ -213,8 +214,8 @@ fn run() -> Result<i32, AgentError> {
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
-    // SAFETY: `pre_exec` runs only async-signal-safe credential syscalls. The
-    // closure captures no heap-backed state and returns immediately on failure.
+    // SAFETY: `pre_exec` runs only async-signal-safe session/credential syscalls.
+    // The closure captures no heap-backed state and returns immediately on failure.
     unsafe {
         command.pre_exec(drop_workload_privileges);
     }
@@ -323,10 +324,15 @@ fn attestation_device_excludes_workload(metadata: &fs::Metadata) -> bool {
 }
 
 fn drop_workload_privileges() -> io::Result<()> {
-    // SAFETY: these are integer/pointer-only Linux credential syscalls. A zero
-    // group count permits a null group pointer. Clearing supplementary groups
-    // happens while the child is still privileged; setgid/setuid then make the
-    // dedicated nobody identity permanent before exec.
+    // SAFETY: these are integer/pointer-only Linux session/credential syscalls.
+    // `setsid` first guarantees the untrusted workload starts in a fresh session
+    // without a controlling terminal, so `/dev/tty` cannot bypass the protected
+    // console/serial device boundary. A zero group count permits a null group
+    // pointer. Clearing supplementary groups happens while the child is still
+    // privileged; setgid/setuid then make the dedicated nobody identity permanent.
+    if unsafe { setsid() } < 0 {
+        return Err(io::Error::last_os_error());
+    }
     if unsafe { setgroups(0, ptr::null()) } != 0 {
         return Err(io::Error::last_os_error());
     }
