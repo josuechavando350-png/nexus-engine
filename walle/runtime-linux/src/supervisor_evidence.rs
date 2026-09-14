@@ -18,12 +18,14 @@ use crate::evidence::{
     verify_evidence_chain, EvidenceError, EvidenceReceipt, EvidenceRun, EvidenceSeal,
 };
 use crate::firecracker::{RUN_ID_BOOT_ARG_PREFIX, SOURCE_SHA_BOOT_ARG_PREFIX};
+use crate::guest_image::AdmittedGuestImageIdentity;
 use crate::guest_protocol::parse_guest_attestation;
 use crate::host::LinuxMicroVmHost;
 use crate::host_facts::{collect_linux_host_facts, HostPreflightVerdict, LinuxHostFacts};
 
 pub const SUPERVISOR_PLAN_EVIDENCE_KIND: &str = "supervisor-plan";
 pub const SOURCE_IDENTITY_EVIDENCE_KIND: &str = "source-identity";
+pub const GUEST_IMAGE_IDENTITY_EVIDENCE_KIND: &str = "guest-image-identity";
 pub const HOST_ISOLATION_EVIDENCE_KIND: &str = "host-isolation";
 pub const MICROVM_BOOT_EVIDENCE_KIND: &str = "microvm-boot";
 pub const GUEST_ATTESTATION_CANDIDATE_EVIDENCE_KIND: &str = "guest-attestation-candidate";
@@ -70,6 +72,7 @@ pub struct EvidencedSupervisorResult {
     pub lifecycle: SupervisorLifecycleResult,
     pub plan_receipt: EvidenceReceipt,
     pub source_identity_receipt: EvidenceReceipt,
+    pub guest_image_identity_receipt: Option<EvidenceReceipt>,
     pub host_isolation_receipt: Option<EvidenceReceipt>,
     pub microvm_boot_receipt: Option<EvidenceReceipt>,
     pub resource_controls_receipt: Option<EvidenceReceipt>,
@@ -86,11 +89,14 @@ pub struct EvidencedSupervisorResult {
 /// Construction does not execute the workload. `execute` first verifies that
 /// the caller's plan is still bound to the exact run id/source digest captured
 /// at `begin`, persists the canonical plan and a dedicated source-identity
-/// receipt, and then probes the live Linux host. `HOST_ISOLATION` is persisted
-/// only when two independent concrete probes agree that the current process is
-/// on Linux x86_64, privileged, has usable KVM API 12, cgroup v2/controllers,
-/// host seccomp support, and observable root/proc/cgroup-v2 mounts. A missing,
-/// denied or inconsistent prerequisite produces no host-isolation proof.
+/// receipt, and then probes the live Linux host. The trusted guest path can also
+/// persist one canonical host-admitted guest image identity receipt before any
+/// lifecycle operation begins; failure to write it is fail-closed and prevents
+/// execution. `HOST_ISOLATION` is persisted only when two independent concrete
+/// probes agree that the current process is on Linux x86_64, privileged, has
+/// usable KVM API 12, cgroup v2/controllers, host seccomp support, and observable
+/// root/proc/cgroup-v2 mounts. A missing, denied or inconsistent prerequisite
+/// produces no host-isolation proof.
 ///
 /// `MICROVM_BOOT` is materially different from process-spawn evidence. The
 /// concrete Firecracker configuration injects the exact run id and source hash
@@ -155,21 +161,48 @@ impl SupervisorEvidenceRun {
         host: &mut LinuxMicroVmHost,
         plan: &MicroVmSupervisorPlan<'_>,
     ) -> Result<EvidencedSupervisorResult, SupervisorEvidenceError> {
+        self.execute_internal(host, plan, None)
+    }
+
+    /// Trusted-run entrypoint used only after the host has admitted a canonical
+    /// guest image manifest. The exact canonical identity is appended to this
+    /// run's receipt chain before any supervisor lifecycle operation executes.
+    pub(crate) fn execute_with_admitted_guest_image_identity(
+        &mut self,
+        host: &mut LinuxMicroVmHost,
+        plan: &MicroVmSupervisorPlan<'_>,
+        guest_image_identity: &AdmittedGuestImageIdentity,
+    ) -> Result<EvidencedSupervisorResult, SupervisorEvidenceError> {
+        self.execute_internal(host, plan, Some(guest_image_identity))
+    }
+
+    fn execute_internal(
+        &mut self,
+        host: &mut LinuxMicroVmHost,
+        plan: &MicroVmSupervisorPlan<'_>,
+        guest_image_identity: Option<&AdmittedGuestImageIdentity>,
+    ) -> Result<EvidencedSupervisorResult, SupervisorEvidenceError> {
         if plan.run_id != self.run_id || plan.source_sha256 != self.source_sha256 {
             return Err(SupervisorEvidenceError::PlanBindingMismatch);
         }
+        let guest_image_identity_payload =
+            guest_image_identity.map(AdmittedGuestImageIdentity::canonical_json);
         let host_isolation_payload = collect_host_isolation_payload(plan);
         let (result, guest_attestation_candidate_receipt) =
             execute_with_sink_and_host_isolation_capture(
                 host,
                 plan,
                 &mut self.evidence,
+                guest_image_identity_payload.as_deref(),
                 host_isolation_payload.as_deref(),
                 true,
             )?;
-        let mut receipts = Vec::with_capacity(10);
+        let mut receipts = Vec::with_capacity(11);
         receipts.push(result.plan_receipt.clone());
         receipts.push(result.source_identity_receipt.clone());
+        if let Some(receipt) = result.guest_image_identity_receipt.as_ref() {
+            receipts.push(receipt.clone());
+        }
         if let Some(receipt) = result.host_isolation_receipt.as_ref() {
             receipts.push(receipt.clone());
         }
@@ -343,8 +376,31 @@ where
         host,
         plan,
         sink,
+        None,
         host_isolation_payload,
         capture_physical_boot,
+    )
+    .map(|(result, _candidate)| result)
+}
+
+#[cfg(test)]
+fn execute_with_sink_and_guest_image_identity<H, S>(
+    host: &mut H,
+    plan: &MicroVmSupervisorPlan<'_>,
+    sink: &mut S,
+    guest_image_identity_payload: &str,
+) -> Result<EvidencedSupervisorResult, EvidenceError>
+where
+    H: MicroVmSupervisorHost,
+    S: SupervisorEvidenceSink,
+{
+    execute_with_sink_and_host_isolation_capture(
+        host,
+        plan,
+        sink,
+        Some(guest_image_identity_payload),
+        None,
+        false,
     )
     .map(|(result, _candidate)| result)
 }
@@ -353,6 +409,7 @@ fn execute_with_sink_and_host_isolation_capture<H, S>(
     host: &mut H,
     plan: &MicroVmSupervisorPlan<'_>,
     sink: &mut S,
+    guest_image_identity_payload: Option<&str>,
     host_isolation_payload: Option<&str>,
     capture_physical_boot: bool,
 ) -> Result<(EvidencedSupervisorResult, Option<EvidenceReceipt>), EvidenceError>
@@ -367,6 +424,10 @@ where
         SOURCE_IDENTITY_EVIDENCE_KIND,
         source_identity_json.as_bytes(),
     )?;
+    let guest_image_identity_receipt = match guest_image_identity_payload {
+        Some(payload) => Some(sink.append(GUEST_IMAGE_IDENTITY_EVIDENCE_KIND, payload.as_bytes())?),
+        None => None,
+    };
     let host_isolation_receipt = match host_isolation_payload {
         Some(payload) => Some(sink.append(HOST_ISOLATION_EVIDENCE_KIND, payload.as_bytes())?),
         None => None,
@@ -427,6 +488,7 @@ where
             lifecycle,
             plan_receipt,
             source_identity_receipt,
+            guest_image_identity_receipt,
             host_isolation_receipt,
             microvm_boot_receipt,
             resource_controls_receipt,
@@ -888,6 +950,22 @@ mod tests {
         }
     }
 
+    fn guest_image_identity() -> AdmittedGuestImageIdentity {
+        AdmittedGuestImageIdentity {
+            manifest_sha256:
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
+            kernel_sha256:
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
+            rootfs_sha256:
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222".to_owned(),
+            guest_agent_sha256:
+                "sha256:3333333333333333333333333333333333333333333333333333333333333333".to_owned(),
+            guest_agent_path: "/usr/libexec/walle/walle-guest-agent".to_owned(),
+            guest_protocol: 1,
+            guest_seccomp_policy: "WALLE_GUEST_SECCOMP_V1".to_owned(),
+        }
+    }
+
     fn mount(mount_point: &str, fs_type: &str, source: &str) -> MountObservation {
         MountObservation {
             mount_point: mount_point.to_owned(),
@@ -1021,6 +1099,47 @@ mod tests {
     }
 
     #[test]
+    fn guest_image_identity_receipt_is_persisted_before_lifecycle() {
+        let plan = plan();
+        let identity = guest_image_identity();
+        let payload = identity.canonical_json();
+        let mut host = FakeHost::exited();
+        let mut sink = FakeSink::healthy();
+
+        let result =
+            execute_with_sink_and_guest_image_identity(&mut host, &plan, &mut sink, &payload)
+                .expect("record trusted guest lifecycle");
+
+        assert_eq!(result.seal.entry_count, 8);
+        let receipt = result
+            .guest_image_identity_receipt
+            .as_ref()
+            .expect("guest image identity receipt");
+        assert_eq!(receipt.kind, GUEST_IMAGE_IDENTITY_EVIDENCE_KIND);
+        assert_eq!(sink.writes[2].0, GUEST_IMAGE_IDENTITY_EVIDENCE_KIND);
+        assert_eq!(sink.writes[2].1, payload);
+        assert_eq!(sink.writes[3].0, RESOURCE_CONTROLS_EVIDENCE_KIND);
+        assert_eq!(host.events.first().copied(), Some("verify"));
+        assert!(sink.sealed);
+    }
+
+    #[test]
+    fn guest_image_identity_write_failure_prevents_execution() {
+        let plan = plan();
+        let payload = guest_image_identity().canonical_json();
+        let mut host = FakeHost::exited();
+        let mut sink = FakeSink::fail_append_at(2);
+
+        let result =
+            execute_with_sink_and_guest_image_identity(&mut host, &plan, &mut sink, &payload);
+
+        assert!(matches!(result, Err(EvidenceError::InvalidKind)));
+        assert_eq!(sink.writes.len(), 2);
+        assert!(host.events.is_empty());
+        assert!(!sink.sealed);
+    }
+
+    #[test]
     fn explicit_host_isolation_receipt_is_persisted_before_lifecycle() {
         let plan = plan();
         let mut host = FakeHost::exited();
@@ -1047,6 +1166,7 @@ mod tests {
                 .kind,
             HOST_ISOLATION_EVIDENCE_KIND
         );
+        assert!(result.guest_image_identity_receipt.is_none());
         assert!(result.microvm_boot_receipt.is_none());
         assert_eq!(sink.writes[2].0, HOST_ISOLATION_EVIDENCE_KIND);
         assert_eq!(sink.writes[2].1, payload);
@@ -1100,6 +1220,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.guest_image_identity_receipt.is_none());
         assert!(result.host_isolation_receipt.is_none());
         assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
@@ -1164,6 +1285,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.guest_image_identity_receipt.is_none());
         assert!(result.host_isolation_receipt.is_none());
         assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_none());
@@ -1191,6 +1313,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.guest_image_identity_receipt.is_none());
         assert!(result.host_isolation_receipt.is_none());
         assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
@@ -1214,6 +1337,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.guest_image_identity_receipt.is_none());
         assert!(result.host_isolation_receipt.is_none());
         assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());
@@ -1238,6 +1362,7 @@ mod tests {
             result.source_identity_receipt.kind,
             SOURCE_IDENTITY_EVIDENCE_KIND
         );
+        assert!(result.guest_image_identity_receipt.is_none());
         assert!(result.host_isolation_receipt.is_none());
         assert!(result.microvm_boot_receipt.is_none());
         assert!(result.resource_controls_receipt.is_some());

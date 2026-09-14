@@ -8,6 +8,7 @@ use walle_core::certification::{
 use walle_core::supervisor::MicroVmSupervisorPlan;
 use walle_core::supervisor_lifecycle::{SupervisorLifecycleReason, SupervisorTerminalStatus};
 
+use crate::guest_image::AdmittedGuestImageIdentity;
 use crate::host::{LinuxHostError, LinuxMicroVmHost, LinuxMicroVmHostConfig};
 use crate::supervisor_evidence::{
     EvidencedSupervisorResult, SupervisorEvidenceError, SupervisorEvidenceRun,
@@ -85,8 +86,9 @@ impl OwnedCertificationEvidence {
 /// cgroup-v2 leaf, writes the CPU/memory/PID limits and reads those exact limits
 /// back. Runtime identity, image integrity and output bounds likewise require
 /// their own receipts. `LIFECYCLE` and `DURABLE_EVIDENCE_CHAIN` retain
-/// independent semantics. This layer still does not manufacture network,
-/// guest-seccomp or guest-completion proof.
+/// independent semantics. A trusted guest-image identity may also be bound into
+/// the sealed chain, but this layer still does not manufacture network,
+/// guest-seccomp or guest-completion proof from that admission alone.
 #[derive(Debug)]
 pub struct LinuxSupervisorEvidenceBundle {
     supervisor: EvidencedSupervisorResult,
@@ -117,6 +119,34 @@ pub fn execute_linux_supervisor_with_evidence(
     let mut host = LinuxMicroVmHost::new(host_config)?;
     let mut evidence = SupervisorEvidenceRun::begin(evidence_root, evidence_hasher, plan)?;
     evidence.execute(&mut host, plan).map_err(Into::into)
+}
+
+/// Executes the same concrete Linux path, but first binds a host-admitted guest
+/// image/agent identity into the exact supervisor evidence chain. The identity
+/// receipt is durable and hash-chained before lifecycle execution starts.
+///
+/// This is intentionally crate-private: the only production caller is the
+/// trusted guest runner after strict manifest admission. Persisting this receipt
+/// does not by itself project any additional certification category.
+pub(crate) fn execute_linux_supervisor_with_admitted_guest_image(
+    host_config: LinuxMicroVmHostConfig,
+    evidence_root: impl Into<PathBuf>,
+    plan: &MicroVmSupervisorPlan<'_>,
+    guest_image_identity: &AdmittedGuestImageIdentity,
+) -> Result<LinuxSupervisorEvidenceBundle, LinuxEvidencedRunError> {
+    let evidence_hasher = host_config.sha256_program.clone();
+    let mut host = LinuxMicroVmHost::new(host_config)?;
+    let mut evidence = SupervisorEvidenceRun::begin(evidence_root, evidence_hasher, plan)?;
+    let supervisor = evidence.execute_with_admitted_guest_image_identity(
+        &mut host,
+        plan,
+        guest_image_identity,
+    )?;
+    let certification_evidence = project_certification_evidence(&supervisor);
+    Ok(LinuxSupervisorEvidenceBundle {
+        supervisor,
+        certification_evidence,
+    })
 }
 
 /// Executes the same verified Linux supervisor path and projects only proof
@@ -311,6 +341,7 @@ mod tests {
             lifecycle,
             plan_receipt: receipt(1, "supervisor-plan", PLAN_RECEIPT_SHA),
             source_identity_receipt: receipt(2, "source-identity", SOURCE_RECEIPT_SHA),
+            guest_image_identity_receipt: None,
             host_isolation_receipt: host.then(|| receipt(3, "host-isolation", HOST_RECEIPT_SHA)),
             microvm_boot_receipt: boot.then(|| receipt(9, "microvm-boot", BOOT_RECEIPT_SHA)),
             resource_controls_receipt: resource
