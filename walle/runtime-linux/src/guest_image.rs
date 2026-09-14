@@ -65,7 +65,10 @@ pub enum GuestImageError {
     InvalidExpectedManifestSha256,
     UnsafeManifestOwnership(PathBuf),
     ManifestTooLarge(u64),
-    ManifestDigestMismatch { expected: String, actual: String },
+    ManifestDigestMismatch {
+        expected: String,
+        actual: String,
+    },
     MalformedManifest,
     NonCanonicalManifest,
     UnsupportedSchemaVersion,
@@ -77,7 +80,10 @@ pub enum GuestImageError {
     GuestSeccompPolicyMismatch,
     PlanImageMismatch,
     Artifact(ArtifactError),
-    Io { operation: &'static str, source: io::Error },
+    Io {
+        operation: &'static str,
+        source: io::Error,
+    },
 }
 
 impl Display for GuestImageError {
@@ -119,10 +125,12 @@ impl Display for GuestImageError {
             }
             Self::GuestProtocolMismatch => formatter
                 .write_str("guest image manifest does not use the required protocol version"),
-            Self::GuestSeccompPolicyMismatch => formatter
-                .write_str("guest image manifest does not use the required seccomp policy"),
-            Self::PlanImageMismatch => formatter
-                .write_str("supervisor kernel/rootfs identities do not match the admitted guest image"),
+            Self::GuestSeccompPolicyMismatch => {
+                formatter.write_str("guest image manifest does not use the required seccomp policy")
+            }
+            Self::PlanImageMismatch => formatter.write_str(
+                "supervisor kernel/rootfs identities do not match the admitted guest image",
+            ),
             Self::Artifact(error) => Display::fmt(error, formatter),
             Self::Io { operation, source } => write!(formatter, "{operation} failed: {source}"),
         }
@@ -163,12 +171,16 @@ pub fn load_and_bind_guest_image_manifest(
         return Err(GuestImageError::InvalidExpectedManifestSha256);
     }
     let mut file = open_regular_no_symlinks(&source.path)?;
-    let metadata = file.metadata().map_err(|source_error| GuestImageError::Io {
-        operation: "inspect guest image manifest",
-        source: source_error,
-    })?;
+    let metadata = file
+        .metadata()
+        .map_err(|source_error| GuestImageError::Io {
+            operation: "inspect guest image manifest",
+            source: source_error,
+        })?;
     if metadata.uid() != 0 || metadata.mode() & 0o022 != 0 {
-        return Err(GuestImageError::UnsafeManifestOwnership(source.path.clone()));
+        return Err(GuestImageError::UnsafeManifestOwnership(
+            source.path.clone(),
+        ));
     }
     if metadata.len() > MAX_GUEST_IMAGE_MANIFEST_BYTES {
         return Err(GuestImageError::ManifestTooLarge(metadata.len()));
@@ -289,7 +301,10 @@ fn field<'a>(line: &'a str, prefix: &str) -> Result<&'a str, GuestImageError> {
     let value = line
         .strip_prefix(prefix)
         .ok_or(GuestImageError::MalformedManifest)?;
-    if value.is_empty() || value.contains('=') || value.bytes().any(|byte| byte.is_ascii_whitespace()) {
+    if value.is_empty()
+        || value.contains('=')
+        || value.bytes().any(|byte| byte.is_ascii_whitespace())
+    {
         return Err(GuestImageError::MalformedManifest);
     }
     Ok(value)
@@ -331,17 +346,15 @@ mod tests {
         "sha256:3333333333333333333333333333333333333333333333333333333333333333";
 
     fn manifest() -> String {
-        format!(
-            concat!(
-                "schema_version=1\n",
-                "kernel_sha256={KERNEL_SHA}\n",
-                "rootfs_sha256={ROOTFS_SHA}\n",
-                "guest_agent_sha256={AGENT_SHA}\n",
-                "guest_agent_path={GUEST_AGENT_PATH}\n",
-                "guest_protocol=1\n",
-                "guest_seccomp_policy={GUEST_SECCOMP_POLICY_ID}\n"
-            )
-        )
+        format!(concat!(
+            "schema_version=1\n",
+            "kernel_sha256={KERNEL_SHA}\n",
+            "rootfs_sha256={ROOTFS_SHA}\n",
+            "guest_agent_sha256={AGENT_SHA}\n",
+            "guest_agent_path={GUEST_AGENT_PATH}\n",
+            "guest_protocol=1\n",
+            "guest_seccomp_policy={GUEST_SECCOMP_POLICY_ID}\n"
+        ))
     }
 
     fn plan() -> MicroVmSupervisorPlan<'static> {
