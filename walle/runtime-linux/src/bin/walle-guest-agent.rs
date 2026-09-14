@@ -296,7 +296,8 @@ fn valid_run_id(value: &str) -> bool {
 
 fn verify_attestation_devices() -> Result<(), AgentError> {
     for path in REQUIRED_ATTESTATION_DEVICES {
-        let metadata = fs::symlink_metadata(path).map_err(|_| AgentError::UnsafeAttestationDevice)?;
+        let metadata =
+            fs::symlink_metadata(path).map_err(|_| AgentError::UnsafeAttestationDevice)?;
         if !attestation_device_excludes_workload(&metadata) {
             return Err(AgentError::UnsafeAttestationDevice);
         }
