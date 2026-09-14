@@ -64,17 +64,35 @@ impl GuestAgentRootfsProvenance {
 pub enum GuestRootfsError {
     InvalidDebugfsSha256,
     UnsafeDebugfsProgram(PathBuf),
-    DebugfsDigestMismatch { expected: String, actual: String },
+    DebugfsDigestMismatch {
+        expected: String,
+        actual: String,
+    },
     GuestImageBindingMismatch,
-    RootfsDigestMismatch { expected: String, actual: String },
-    DebugfsRequestFailed { request: &'static str, code: Option<i32> },
-    DebugfsOutputTooLarge { request: &'static str, limit: u64 },
+    RootfsDigestMismatch {
+        expected: String,
+        actual: String,
+    },
+    DebugfsRequestFailed {
+        request: &'static str,
+        code: Option<i32>,
+    },
+    DebugfsOutputTooLarge {
+        request: &'static str,
+        limit: u64,
+    },
     MalformedAgentStat,
     GuestAgentNotRegular,
     GuestAgentNotExecutable,
-    GuestAgentDigestMismatch { expected: String, actual: String },
+    GuestAgentDigestMismatch {
+        expected: String,
+        actual: String,
+    },
     Artifact(ArtifactError),
-    Io { operation: &'static str, source: io::Error },
+    Io {
+        operation: &'static str,
+        source: io::Error,
+    },
 }
 
 impl Display for GuestRootfsError {
@@ -403,16 +421,13 @@ mod tests {
     fn provenance_payload_is_canonical_and_explicit() {
         let proof = GuestAgentRootfsProvenance {
             debugfs_sha256:
-                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                    .to_owned(),
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             guest_agent_bytes: 4096,
             guest_agent_path: GUEST_AGENT_PATH.to_owned(),
             guest_agent_sha256:
-                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-                    .to_owned(),
+                "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb".to_owned(),
             rootfs_sha256:
-                "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
-                    .to_owned(),
+                "sha256:cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc".to_owned(),
         };
         let json = proof.canonical_json();
         assert!(json.contains("READ_ONLY_EXT4_AGENT_BYTES_HASHED_FROM_EXACT_ROOTFS_FD"));
