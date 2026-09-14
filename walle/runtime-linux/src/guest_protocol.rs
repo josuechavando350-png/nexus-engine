@@ -200,10 +200,8 @@ mod tests {
         let wrong = valid_line().replace(GUEST_SECCOMP_POLICY_ID, "UNRELATED_FILTER");
         assert!(parse_guest_attestation(wrong.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
 
-        let missing = valid_line().replace(
-            &format!(" seccomp_policy={GUEST_SECCOMP_POLICY_ID}"),
-            "",
-        );
+        let missing =
+            valid_line().replace(&format!(" seccomp_policy={GUEST_SECCOMP_POLICY_ID}"), "");
         assert!(parse_guest_attestation(missing.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
     }
 
@@ -213,12 +211,8 @@ mod tests {
         assert!(parse_guest_attestation(malformed.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
 
         let reordered = valid_line().replace(
-            &format!(
-                "seccomp_mode=2 seccomp_policy={GUEST_SECCOMP_POLICY_ID} no_new_privs=1"
-            ),
-            &format!(
-                "no_new_privs=1 seccomp_mode=2 seccomp_policy={GUEST_SECCOMP_POLICY_ID}"
-            ),
+            &format!("seccomp_mode=2 seccomp_policy={GUEST_SECCOMP_POLICY_ID} no_new_privs=1"),
+            &format!("no_new_privs=1 seccomp_mode=2 seccomp_policy={GUEST_SECCOMP_POLICY_ID}"),
         );
         assert!(parse_guest_attestation(reordered.as_bytes(), RUN_ID, SOURCE_SHA).is_none());
     }
