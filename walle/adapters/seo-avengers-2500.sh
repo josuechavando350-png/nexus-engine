@@ -83,7 +83,8 @@ ORIGINAL_CONTRACT="seo-avengers-200/contracts/SEO_Avengers_200_Pure_Engine.sourc
 ORIGINAL_VERIFIER="seo-avengers-200/scripts/verify.sh"
 ORIGINAL_E2E="seo-avengers-200/scripts/local-mirror-e2e.sh"
 PROOF_RUNNER="walle/scripts/seo_avengers_2500_proof.py"
-for path in "$ORIGINAL_CATALOG" "$ORIGINAL_CONTRACT" "$ORIGINAL_VERIFIER" "$ORIGINAL_E2E" "$PROOF_RUNNER"; do
+SKIP_GUARD="walle/scripts/skip_guard.py"
+for path in "$ORIGINAL_CATALOG" "$ORIGINAL_CONTRACT" "$ORIGINAL_VERIFIER" "$ORIGINAL_E2E" "$PROOF_RUNNER" "$SKIP_GUARD"; do
   [[ -f "$path" ]] || {
     echo "WALLE_AVENGERS_ERROR=missing_execution_proof_component:$path" >&2
     exit 2
@@ -103,7 +104,7 @@ PYCACHE_ROOT="$TMP_ROOT/pycache"
 mkdir -p "$PYCACHE_ROOT"
 
 PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$PYCACHE_ROOT" \
-  "$WALLE_PYTHON" -m unittest -v walle/tests/test_seo_avengers_2500_proof.py
+  "$WALLE_PYTHON" -m unittest discover -s walle/tests -p 'test_*.py' -v
 
 EVIDENCE_ROOT="${WALLE_AVENGERS_EVIDENCE_ROOT:-${TMPDIR:-/tmp}/walle-avengers-evidence.${HEAD_BEFORE}.$$}"
 if [[ -e "$EVIDENCE_ROOT" ]]; then
@@ -124,39 +125,11 @@ hash_file() {
   printf 'sha256:%s' "$digest"
 }
 
-# Return success only when a real SKIP marker is present. Test frameworks often
-# print an explicit zero counter such as "skipped 0"; that is evidence that no
-# test was skipped and must not be confused with an actual skipped execution.
-# Any other SKIP/SKIPPED token (including skipped=1, # SKIP, or a reason line)
-# remains fail-closed.
+# Return success only when a real SKIP/NOT_TESTED marker is present. The parser
+# is independently unit-tested, including Node's "ℹ skipped 0" summary. Any
+# positive/ambiguous skip marker remains fail-closed.
 has_real_skip() {
-  "$WALLE_PYTHON" - "$@" <<'PY'
-import re
-import sys
-from pathlib import Path
-
-ansi = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
-skip_token = re.compile(r"\bSKIP(?:PED)?\b", re.IGNORECASE)
-zero_counters = (
-    re.compile(r"^[^\w]*skipped\s+0[^\w]*$", re.IGNORECASE),
-    re.compile(r"^[^\w]*0\s+skipped[^\w]*$", re.IGNORECASE),
-    re.compile(r"^[^\w]*skip(?:ped)?\s*[:=]\s*0[^\w]*$", re.IGNORECASE),
-)
-
-for raw_path in sys.argv[1:]:
-    path = Path(raw_path)
-    if not path.is_file():
-        continue
-    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-        line = ansi.sub("", raw_line).strip()
-        if not skip_token.search(line):
-            continue
-        if any(pattern.fullmatch(line) for pattern in zero_counters):
-            continue
-        print(f"REAL_SKIP_MARKER:{path}:{line_number}:{line}", file=sys.stderr)
-        raise SystemExit(0)
-raise SystemExit(1)
-PY
+  "$WALLE_PYTHON" "$SKIP_GUARD" "$@"
 }
 
 set +e
@@ -315,3 +288,4 @@ printf 'WALLE_ORIGINAL_M001_M200_CONTRACT_SHA256=%s\n' "$(hash_file "$ORIGINAL_C
 printf 'WALLE_ORIGINAL_M001_M200_VERIFIER_SHA256=%s\n' "$(hash_file "$ORIGINAL_VERIFIER")"
 printf 'WALLE_ORIGINAL_M001_M200_E2E_SHA256=%s\n' "$(hash_file "$ORIGINAL_E2E")"
 printf 'WALLE_EXECUTION_PROOF_RUNNER_SHA256=%s\n' "$(hash_file "$PROOF_RUNNER")"
+printf 'WALLE_SKIP_GUARD_SHA256=%s\n' "$(hash_file "$SKIP_GUARD")"
