@@ -7,6 +7,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
+from google_surface_policy import google_consumer_crawl_field
 import main as semantic_main
 from local_semantic_provider import PROVIDER_ID, install_local_provider
 from neon_store import PostgresJobStore, PostgresSeoVectorStore
@@ -65,4 +66,22 @@ async def render_fail_closed_auth(request: Request, call_next):
         got = request.headers.get("authorization", "")
         if got != f"Bearer {expected}":
             return JSONResponse(status_code=401, content={"detail": "unauthorized"})
+
+        # Production semantic crawling is for client/competitor sites, never a
+        # direct Google-owned consumer surface. Search Console and other Google
+        # data must arrive through separately authorized provider/API adapters.
+        if request.url.path == "/v1/semantic/jobs" and request.method == "POST":
+            try:
+                payload = await request.json()
+            except ValueError:
+                payload = None
+            forbidden_field = google_consumer_crawl_field(payload)
+            if forbidden_field is not None:
+                return JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": "google consumer surfaces are denied for semantic crawling; use an authorized provider/API contract",
+                        "field": forbidden_field,
+                    },
+                )
     return await call_next(request)
