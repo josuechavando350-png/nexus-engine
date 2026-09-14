@@ -953,17 +953,13 @@ mod tests {
     fn guest_image_identity() -> AdmittedGuestImageIdentity {
         AdmittedGuestImageIdentity {
             manifest_sha256:
-                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-                    .to_owned(),
+                "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa".to_owned(),
             kernel_sha256:
-                "sha256:1111111111111111111111111111111111111111111111111111111111111111"
-                    .to_owned(),
+                "sha256:1111111111111111111111111111111111111111111111111111111111111111".to_owned(),
             rootfs_sha256:
-                "sha256:2222222222222222222222222222222222222222222222222222222222222222"
-                    .to_owned(),
+                "sha256:2222222222222222222222222222222222222222222222222222222222222222".to_owned(),
             guest_agent_sha256:
-                "sha256:3333333333333333333333333333333333333333333333333333333333333333"
-                    .to_owned(),
+                "sha256:3333333333333333333333333333333333333333333333333333333333333333".to_owned(),
             guest_agent_path: "/usr/libexec/walle/walle-guest-agent".to_owned(),
             guest_protocol: 1,
             guest_seccomp_policy: "WALLE_GUEST_SECCOMP_V1".to_owned(),
@@ -1110,13 +1106,9 @@ mod tests {
         let mut host = FakeHost::exited();
         let mut sink = FakeSink::healthy();
 
-        let result = execute_with_sink_and_guest_image_identity(
-            &mut host,
-            &plan,
-            &mut sink,
-            &payload,
-        )
-        .expect("record trusted guest lifecycle");
+        let result =
+            execute_with_sink_and_guest_image_identity(&mut host, &plan, &mut sink, &payload)
+                .expect("record trusted guest lifecycle");
 
         assert_eq!(result.seal.entry_count, 8);
         let receipt = result
@@ -1138,12 +1130,8 @@ mod tests {
         let mut host = FakeHost::exited();
         let mut sink = FakeSink::fail_append_at(2);
 
-        let result = execute_with_sink_and_guest_image_identity(
-            &mut host,
-            &plan,
-            &mut sink,
-            &payload,
-        );
+        let result =
+            execute_with_sink_and_guest_image_identity(&mut host, &plan, &mut sink, &payload);
 
         assert!(matches!(result, Err(EvidenceError::InvalidKind)));
         assert_eq!(sink.writes.len(), 2);
