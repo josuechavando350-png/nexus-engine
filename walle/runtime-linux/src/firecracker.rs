@@ -7,6 +7,8 @@ use walle_core::supervisor::{
     MicroVmSupervisorPlan, GUEST_CONFIG_PATH, GUEST_KERNEL_PATH, GUEST_ROOTFS_PATH,
 };
 
+use crate::guest_protocol::{GUEST_PROTOCOL_BOOT_ARG, GUEST_PROTOCOL_BOOT_ARG_PREFIX};
+
 pub const DEFAULT_BOOT_ARGS: &str = "console=ttyS0 reboot=k panic=1 pci=off";
 pub const SCRATCH_GUEST_PATH: &str = "/walle/scratch.ext4";
 pub const RUN_ID_BOOT_ARG_PREFIX: &str = "walle.run_id=";
@@ -87,7 +89,7 @@ impl Display for FirecrackerPlanError {
                 "kernel boot arguments are empty, too long, or contain unsupported control bytes",
             ),
             Self::ReservedBootBinding => formatter.write_str(
-                "caller boot arguments may not declare WALLE run/source identity bindings",
+                "caller boot arguments may not declare WALLE run/source/protocol bindings",
             ),
             Self::ScratchImageRequired => formatter.write_str(
                 "writable scratch is required by the plan but no staged scratch image was supplied",
@@ -116,9 +118,10 @@ impl Error for FirecrackerPlanError {}
 /// `network-interfaces`). No network interface is emitted.
 ///
 /// The kernel command line is always extended with WALLE-owned run/source
-/// bindings. A physical serial observation can therefore prove that the guest
-/// kernel which actually booted received the exact admitted run identity rather
-/// than merely proving that a Firecracker process was spawned.
+/// bindings and the exact guest attestation protocol version. A physical serial
+/// observation can therefore prove which run identity/protocol the guest kernel
+/// actually received rather than merely proving that a Firecracker process was
+/// spawned. The protocol marker is not itself guest-seccomp/completion proof.
 ///
 /// This function is configuration construction only. In particular it does not
 /// prove guest PID/seccomp enforcement; the real host backend must keep final
@@ -236,12 +239,13 @@ fn build_bound_boot_args(
     if configured.split_ascii_whitespace().any(|argument| {
         argument.starts_with(RUN_ID_BOOT_ARG_PREFIX)
             || argument.starts_with(SOURCE_SHA_BOOT_ARG_PREFIX)
+            || argument.starts_with(GUEST_PROTOCOL_BOOT_ARG_PREFIX)
     }) {
         return Err(FirecrackerPlanError::ReservedBootBinding);
     }
 
     let bound = format!(
-        "{configured} {RUN_ID_BOOT_ARG_PREFIX}{} {SOURCE_SHA_BOOT_ARG_PREFIX}{}",
+        "{configured} {RUN_ID_BOOT_ARG_PREFIX}{} {SOURCE_SHA_BOOT_ARG_PREFIX}{} {GUEST_PROTOCOL_BOOT_ARG}",
         plan.run_id, plan.source_sha256
     );
     validate_boot_args(&bound)?;
@@ -438,6 +442,7 @@ mod tests {
             "{SOURCE_SHA_BOOT_ARG_PREFIX}{}",
             plan.source_sha256
         )));
+        assert!(value.contains(GUEST_PROTOCOL_BOOT_ARG));
         assert!(!value.contains("ht_enabled"));
     }
 
@@ -459,6 +464,16 @@ mod tests {
                 &plan,
                 FirecrackerConfigOptions {
                     boot_args: "console=ttyS0 walle.source_sha256=sha256:forged",
+                    scratch_guest_path: None,
+                },
+            ),
+            Err(FirecrackerPlanError::ReservedBootBinding)
+        ));
+        assert!(matches!(
+            build_firecracker_config(
+                &plan,
+                FirecrackerConfigOptions {
+                    boot_args: "console=ttyS0 walle.guest_protocol=99",
                     scratch_guest_path: None,
                 },
             ),

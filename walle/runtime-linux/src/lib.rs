@@ -10,6 +10,7 @@ pub mod artifact;
 pub mod cgroup;
 pub mod evidence;
 pub mod firecracker;
+pub mod guest_protocol;
 pub mod host;
 pub mod host_facts;
 pub mod runner;
