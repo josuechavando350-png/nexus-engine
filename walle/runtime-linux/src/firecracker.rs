@@ -7,12 +7,16 @@ use walle_core::supervisor::{
     MicroVmSupervisorPlan, GUEST_CONFIG_PATH, GUEST_KERNEL_PATH, GUEST_ROOTFS_PATH,
 };
 
+use crate::guest_image::GUEST_AGENT_PATH;
 use crate::guest_protocol::{GUEST_PROTOCOL_BOOT_ARG, GUEST_PROTOCOL_BOOT_ARG_PREFIX};
 
 pub const DEFAULT_BOOT_ARGS: &str = "console=ttyS0 reboot=k panic=1 pci=off";
 pub const SCRATCH_GUEST_PATH: &str = "/walle/scratch.ext4";
 pub const RUN_ID_BOOT_ARG_PREFIX: &str = "walle.run_id=";
 pub const SOURCE_SHA_BOOT_ARG_PREFIX: &str = "walle.source_sha256=";
+pub const GUEST_WORKLOAD_DIRECTORY: &str = "/usr/libexec/walle/workloads";
+const INIT_BOOT_ARG_PREFIX: &str = "init=";
+const RDINIT_BOOT_ARG_PREFIX: &str = "rdinit=";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct FirecrackerConfigOptions<'a> {
@@ -89,7 +93,7 @@ impl Display for FirecrackerPlanError {
                 "kernel boot arguments are empty, too long, or contain unsupported control bytes",
             ),
             Self::ReservedBootBinding => formatter.write_str(
-                "caller boot arguments may not declare WALLE run/source/protocol bindings",
+                "caller boot arguments may not declare WALLE run/source/protocol/init bindings or the init argv delimiter",
             ),
             Self::ScratchImageRequired => formatter.write_str(
                 "writable scratch is required by the plan but no staged scratch image was supplied",
@@ -118,10 +122,14 @@ impl Error for FirecrackerPlanError {}
 /// `network-interfaces`). No network interface is emitted.
 ///
 /// The kernel command line is always extended with WALLE-owned run/source
-/// bindings and the exact guest attestation protocol version. A physical serial
-/// observation can therefore prove which run identity/protocol the guest kernel
-/// actually received rather than merely proving that a Firecracker process was
-/// spawned. The protocol marker is not itself guest-seccomp/completion proof.
+/// bindings and the exact guest attestation protocol version. It also forces
+/// the manifest-bound WALLE guest agent as Linux init and passes exactly one
+/// deterministic workload wrapper path after the kernel `--` delimiter. That
+/// makes the guest agent the mandatory execution bootstrap instead of relying
+/// on an image-default init process that could bypass WALLE guest controls.
+/// A physical serial observation can therefore prove which run identity and
+/// protocol the guest kernel received; later physical evidence still has to
+/// prove the admitted agent identity before guest claims become certifying.
 ///
 /// This function is configuration construction only. In particular it does not
 /// prove guest PID/seccomp enforcement; the real host backend must keep final
@@ -134,6 +142,7 @@ pub fn build_firecracker_config(
     validate_guest_path(GUEST_KERNEL_PATH)?;
     validate_guest_path(GUEST_ROOTFS_PATH)?;
     validate_guest_path(GUEST_CONFIG_PATH)?;
+    validate_guest_path(GUEST_AGENT_PATH)?;
     let boot_args = build_bound_boot_args(plan, options.boot_args)?;
 
     match (plan.scratch_disk_mib, options.scratch_guest_path) {
@@ -240,12 +249,17 @@ fn build_bound_boot_args(
         argument.starts_with(RUN_ID_BOOT_ARG_PREFIX)
             || argument.starts_with(SOURCE_SHA_BOOT_ARG_PREFIX)
             || argument.starts_with(GUEST_PROTOCOL_BOOT_ARG_PREFIX)
+            || argument.starts_with(INIT_BOOT_ARG_PREFIX)
+            || argument.starts_with(RDINIT_BOOT_ARG_PREFIX)
+            || argument == "--"
     }) {
         return Err(FirecrackerPlanError::ReservedBootBinding);
     }
 
+    let workload_path = format!("{GUEST_WORKLOAD_DIRECTORY}/{}", plan.workload_id);
+    validate_guest_path(&workload_path)?;
     let bound = format!(
-        "{configured} {RUN_ID_BOOT_ARG_PREFIX}{} {SOURCE_SHA_BOOT_ARG_PREFIX}{} {GUEST_PROTOCOL_BOOT_ARG}",
+        "{configured} {RUN_ID_BOOT_ARG_PREFIX}{} {SOURCE_SHA_BOOT_ARG_PREFIX}{} {GUEST_PROTOCOL_BOOT_ARG} {INIT_BOOT_ARG_PREFIX}{GUEST_AGENT_PATH} -- {workload_path}",
         plan.run_id, plan.source_sha256
     );
     validate_boot_args(&bound)?;
@@ -264,6 +278,7 @@ fn validate_supervisor_plan(plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Fire
         || plan.memory_mib == 0
         || plan.jail_uid == 0
         || plan.jail_gid == 0
+        || !is_machine_token(plan.workload_id, 128)
     {
         return Err(FirecrackerPlanError::UnsafePlan);
     }
@@ -274,6 +289,19 @@ fn validate_supervisor_plan(plan: &MicroVmSupervisorPlan<'_>) -> Result<(), Fire
         return Err(FirecrackerPlanError::UnsupportedVcpuCount(plan.vcpu_count));
     }
     Ok(())
+}
+
+fn is_machine_token(value: &str, max_len: usize) -> bool {
+    if value.is_empty() || value.len() > max_len {
+        return false;
+    }
+    let bytes = value.as_bytes();
+    (bytes[0].is_ascii_lowercase() || bytes[0].is_ascii_digit())
+        && bytes.iter().all(|byte| {
+            byte.is_ascii_lowercase()
+                || byte.is_ascii_digit()
+                || matches!(*byte, b'-' | b'_' | b'.')
+        })
 }
 
 fn validate_boot_args(value: &str) -> Result<(), FirecrackerPlanError> {
@@ -443,41 +471,44 @@ mod tests {
             plan.source_sha256
         )));
         assert!(value.contains(GUEST_PROTOCOL_BOOT_ARG));
+        assert!(value.contains(&format!(
+            "{INIT_BOOT_ARG_PREFIX}{GUEST_AGENT_PATH} -- {GUEST_WORKLOAD_DIRECTORY}/{}",
+            plan.workload_id
+        )));
         assert!(!value.contains("ht_enabled"));
     }
 
     #[test]
     fn caller_cannot_override_physical_boot_identity_bindings() {
         let plan = plan(0);
+        for boot_args in [
+            "console=ttyS0 walle.run_id=forged",
+            "console=ttyS0 walle.source_sha256=sha256:forged",
+            "console=ttyS0 walle.guest_protocol=99",
+            "console=ttyS0 init=/bin/sh",
+            "console=ttyS0 rdinit=/bin/sh",
+            "console=ttyS0 -- /bin/sh",
+        ] {
+            assert!(matches!(
+                build_firecracker_config(
+                    &plan,
+                    FirecrackerConfigOptions {
+                        boot_args,
+                        scratch_guest_path: None,
+                    },
+                ),
+                Err(FirecrackerPlanError::ReservedBootBinding)
+            ));
+        }
+    }
+
+    #[test]
+    fn unsafe_workload_id_cannot_become_an_init_argument() {
+        let mut invalid = plan(0);
+        invalid.workload_id = "../escape";
         assert!(matches!(
-            build_firecracker_config(
-                &plan,
-                FirecrackerConfigOptions {
-                    boot_args: "console=ttyS0 walle.run_id=forged",
-                    scratch_guest_path: None,
-                },
-            ),
-            Err(FirecrackerPlanError::ReservedBootBinding)
-        ));
-        assert!(matches!(
-            build_firecracker_config(
-                &plan,
-                FirecrackerConfigOptions {
-                    boot_args: "console=ttyS0 walle.source_sha256=sha256:forged",
-                    scratch_guest_path: None,
-                },
-            ),
-            Err(FirecrackerPlanError::ReservedBootBinding)
-        ));
-        assert!(matches!(
-            build_firecracker_config(
-                &plan,
-                FirecrackerConfigOptions {
-                    boot_args: "console=ttyS0 walle.guest_protocol=99",
-                    scratch_guest_path: None,
-                },
-            ),
-            Err(FirecrackerPlanError::ReservedBootBinding)
+            build_firecracker_config(&invalid, FirecrackerConfigOptions::default()),
+            Err(FirecrackerPlanError::UnsafePlan)
         ));
     }
 
