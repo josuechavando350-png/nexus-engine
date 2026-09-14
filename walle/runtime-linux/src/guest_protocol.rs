@@ -75,11 +75,7 @@ pub fn parse_guest_attestation(
         if found.is_some() || line.len() > MAX_GUEST_ATTESTATION_LINE_BYTES {
             return None;
         }
-        found = Some(parse_line(
-            line,
-            expected_run_id,
-            expected_source_sha256,
-        )?);
+        found = Some(parse_line(line, expected_run_id, expected_source_sha256)?);
     }
     found
 }
@@ -101,8 +97,8 @@ fn parse_line(
         return None;
     }
 
-    let seccomp_mode = exact_value(fields[3], "seccomp_mode=")
-        .and_then(|value| value.parse::<u8>().ok())?;
+    let seccomp_mode =
+        exact_value(fields[3], "seccomp_mode=").and_then(|value| value.parse::<u8>().ok())?;
     if seccomp_mode > 2 {
         return None;
     }
