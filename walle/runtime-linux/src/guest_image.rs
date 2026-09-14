@@ -23,6 +23,15 @@ pub struct GuestImageManifestSource {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct GuestAgentRootfsBinding {
+    pub debugfs_sha256: String,
+    pub guest_agent_bytes: u64,
+    pub guest_agent_path: String,
+    pub guest_agent_sha256: String,
+    pub rootfs_sha256: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmittedGuestImageIdentity {
     pub manifest_sha256: String,
     pub kernel_sha256: String,
@@ -31,32 +40,86 @@ pub struct AdmittedGuestImageIdentity {
     pub guest_agent_path: String,
     pub guest_protocol: u32,
     pub guest_seccomp_policy: String,
+    pub guest_agent_rootfs_binding: Option<GuestAgentRootfsBinding>,
 }
 
 impl AdmittedGuestImageIdentity {
     pub fn canonical_json(&self) -> String {
-        format!(
-            concat!(
-                "{{",
-                "\"guest_agent_path\":\"{}\",",
-                "\"guest_agent_sha256\":\"{}\",",
-                "\"guest_protocol\":{},",
-                "\"guest_seccomp_policy\":\"{}\",",
-                "\"kernel_sha256\":\"{}\",",
-                "\"manifest_sha256\":\"{}\",",
-                "\"rootfs_sha256\":\"{}\",",
-                "\"schema_version\":{}",
-                "}}"
+        match self.guest_agent_rootfs_binding.as_ref() {
+            Some(binding) => format!(
+                concat!(
+                    "{{",
+                    "\"guest_agent_path\":\"{}\",",
+                    "\"guest_agent_rootfs_binding\":{{",
+                    "\"debugfs_sha256\":\"{}\",",
+                    "\"guest_agent_bytes\":{},",
+                    "\"guest_agent_path\":\"{}\",",
+                    "\"guest_agent_sha256\":\"{}\",",
+                    "\"rootfs_sha256\":\"{}\"",
+                    "}},",
+                    "\"guest_agent_sha256\":\"{}\",",
+                    "\"guest_protocol\":{},",
+                    "\"guest_seccomp_policy\":\"{}\",",
+                    "\"kernel_sha256\":\"{}\",",
+                    "\"manifest_sha256\":\"{}\",",
+                    "\"rootfs_sha256\":\"{}\",",
+                    "\"schema_version\":{}",
+                    "}}"
+                ),
+                self.guest_agent_path,
+                binding.debugfs_sha256,
+                binding.guest_agent_bytes,
+                binding.guest_agent_path,
+                binding.guest_agent_sha256,
+                binding.rootfs_sha256,
+                self.guest_agent_sha256,
+                self.guest_protocol,
+                self.guest_seccomp_policy,
+                self.kernel_sha256,
+                self.manifest_sha256,
+                self.rootfs_sha256,
+                GUEST_IMAGE_MANIFEST_SCHEMA_VERSION,
             ),
-            self.guest_agent_path,
-            self.guest_agent_sha256,
-            self.guest_protocol,
-            self.guest_seccomp_policy,
-            self.kernel_sha256,
-            self.manifest_sha256,
-            self.rootfs_sha256,
-            GUEST_IMAGE_MANIFEST_SCHEMA_VERSION,
-        )
+            None => format!(
+                concat!(
+                    "{{",
+                    "\"guest_agent_path\":\"{}\",",
+                    "\"guest_agent_sha256\":\"{}\",",
+                    "\"guest_protocol\":{},",
+                    "\"guest_seccomp_policy\":\"{}\",",
+                    "\"kernel_sha256\":\"{}\",",
+                    "\"manifest_sha256\":\"{}\",",
+                    "\"rootfs_sha256\":\"{}\",",
+                    "\"schema_version\":{}",
+                    "}}"
+                ),
+                self.guest_agent_path,
+                self.guest_agent_sha256,
+                self.guest_protocol,
+                self.guest_seccomp_policy,
+                self.kernel_sha256,
+                self.manifest_sha256,
+                self.rootfs_sha256,
+                GUEST_IMAGE_MANIFEST_SCHEMA_VERSION,
+            ),
+        }
+    }
+
+    pub fn bind_guest_agent_rootfs_provenance(
+        &mut self,
+        binding: GuestAgentRootfsBinding,
+    ) -> Result<(), GuestImageError> {
+        if self.guest_agent_rootfs_binding.is_some()
+            || !is_valid_sha256(&binding.debugfs_sha256)
+            || binding.guest_agent_bytes == 0
+            || binding.guest_agent_path != self.guest_agent_path
+            || binding.guest_agent_sha256 != self.guest_agent_sha256
+            || binding.rootfs_sha256 != self.rootfs_sha256
+        {
+            return Err(GuestImageError::GuestAgentRootfsProvenanceMismatch);
+        }
+        self.guest_agent_rootfs_binding = Some(binding);
+        Ok(())
     }
 }
 
@@ -79,6 +142,7 @@ pub enum GuestImageError {
     GuestProtocolMismatch,
     GuestSeccompPolicyMismatch,
     PlanImageMismatch,
+    GuestAgentRootfsProvenanceMismatch,
     Artifact(ArtifactError),
     Io {
         operation: &'static str,
@@ -130,6 +194,9 @@ impl Display for GuestImageError {
             }
             Self::PlanImageMismatch => formatter.write_str(
                 "supervisor kernel/rootfs identities do not match the admitted guest image",
+            ),
+            Self::GuestAgentRootfsProvenanceMismatch => formatter.write_str(
+                "guest-agent rootfs provenance does not exactly match the admitted guest image identity",
             ),
             Self::Artifact(error) => Display::fmt(error, formatter),
             Self::Io { operation, source } => write!(formatter, "{operation} failed: {source}"),
@@ -290,6 +357,7 @@ fn parse_manifest_bytes(
         guest_agent_path: guest_agent_path.to_owned(),
         guest_protocol,
         guest_seccomp_policy: guest_seccomp_policy.to_owned(),
+        guest_agent_rootfs_binding: None,
     };
     if canonical_manifest(&identity).as_bytes() != bytes {
         return Err(GuestImageError::NonCanonicalManifest);
@@ -344,6 +412,8 @@ mod tests {
         "sha256:2222222222222222222222222222222222222222222222222222222222222222";
     const AGENT_SHA: &str =
         "sha256:3333333333333333333333333333333333333333333333333333333333333333";
+    const DEBUGFS_SHA: &str =
+        "sha256:6666666666666666666666666666666666666666666666666666666666666666";
 
     fn manifest() -> String {
         format!(
@@ -419,9 +489,65 @@ mod tests {
         assert_eq!(identity.guest_agent_path, GUEST_AGENT_PATH);
         assert_eq!(identity.guest_protocol, GUEST_PROTOCOL_VERSION);
         assert_eq!(identity.guest_seccomp_policy, GUEST_SECCOMP_POLICY_ID);
+        assert!(identity.guest_agent_rootfs_binding.is_none());
         assert!(identity
             .canonical_json()
             .contains("\"manifest_sha256\":\"sha256:aaaaaaaa"));
+    }
+
+    #[test]
+    fn exact_rootfs_agent_provenance_extends_durable_identity_without_changing_manifest() {
+        let mut identity =
+            parse_manifest_bytes(manifest().as_bytes(), MANIFEST_SHA).expect("manifest");
+        identity
+            .bind_guest_agent_rootfs_provenance(GuestAgentRootfsBinding {
+                debugfs_sha256: DEBUGFS_SHA.to_owned(),
+                guest_agent_bytes: 4096,
+                guest_agent_path: GUEST_AGENT_PATH.to_owned(),
+                guest_agent_sha256: AGENT_SHA.to_owned(),
+                rootfs_sha256: ROOTFS_SHA.to_owned(),
+            })
+            .expect("rootfs provenance binding");
+
+        let canonical = identity.canonical_json();
+        assert!(canonical.contains("\"guest_agent_rootfs_binding\":{"));
+        assert!(canonical.contains("\"guest_agent_bytes\":4096"));
+        assert!(canonical.contains(DEBUGFS_SHA));
+        assert_eq!(canonical_manifest(&identity), manifest());
+    }
+
+    #[test]
+    fn mismatched_or_replaced_rootfs_agent_provenance_fails_closed() {
+        let mut identity =
+            parse_manifest_bytes(manifest().as_bytes(), MANIFEST_SHA).expect("manifest");
+        let wrong = GuestAgentRootfsBinding {
+            debugfs_sha256: DEBUGFS_SHA.to_owned(),
+            guest_agent_bytes: 4096,
+            guest_agent_path: GUEST_AGENT_PATH.to_owned(),
+            guest_agent_sha256:
+                "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+                    .to_owned(),
+            rootfs_sha256: ROOTFS_SHA.to_owned(),
+        };
+        assert!(matches!(
+            identity.bind_guest_agent_rootfs_provenance(wrong),
+            Err(GuestImageError::GuestAgentRootfsProvenanceMismatch)
+        ));
+
+        let valid = GuestAgentRootfsBinding {
+            debugfs_sha256: DEBUGFS_SHA.to_owned(),
+            guest_agent_bytes: 4096,
+            guest_agent_path: GUEST_AGENT_PATH.to_owned(),
+            guest_agent_sha256: AGENT_SHA.to_owned(),
+            rootfs_sha256: ROOTFS_SHA.to_owned(),
+        };
+        identity
+            .bind_guest_agent_rootfs_provenance(valid.clone())
+            .expect("first binding");
+        assert!(matches!(
+            identity.bind_guest_agent_rootfs_provenance(valid),
+            Err(GuestImageError::GuestAgentRootfsProvenanceMismatch)
+        ));
     }
 
     #[test]
