@@ -7,8 +7,12 @@ use walle_core::supervisor::MicroVmSupervisorPlan;
 
 use crate::evidence::EvidenceReceipt;
 use crate::guest_image::{
-    load_and_bind_guest_image_manifest, AdmittedGuestImageIdentity, GuestImageError,
-    GuestImageManifestSource,
+    load_and_bind_guest_image_manifest, AdmittedGuestImageIdentity, GuestAgentRootfsBinding,
+    GuestImageError, GuestImageManifestSource,
+};
+use crate::guest_rootfs::{
+    verify_guest_agent_in_rootfs, GuestAgentRootfsProvenance, GuestRootfsError,
+    GuestRootfsInspectorSource,
 };
 use crate::host::LinuxMicroVmHostConfig;
 use crate::runner::{
@@ -20,6 +24,7 @@ use crate::supervisor_evidence::EvidencedSupervisorResult;
 #[derive(Debug)]
 pub enum TrustedGuestRunError {
     GuestImage(GuestImageError),
+    GuestRootfs(GuestRootfsError),
     Runner(LinuxEvidencedRunError),
 }
 
@@ -27,6 +32,7 @@ impl Display for TrustedGuestRunError {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::GuestImage(error) => Display::fmt(error, formatter),
+            Self::GuestRootfs(error) => Display::fmt(error, formatter),
             Self::Runner(error) => Display::fmt(error, formatter),
         }
     }
@@ -36,6 +42,7 @@ impl Error for TrustedGuestRunError {
     fn source(&self) -> Option<&(dyn Error + 'static)> {
         match self {
             Self::GuestImage(error) => Some(error),
+            Self::GuestRootfs(error) => Some(error),
             Self::Runner(error) => Some(error),
         }
     }
@@ -47,6 +54,12 @@ impl From<GuestImageError> for TrustedGuestRunError {
     }
 }
 
+impl From<GuestRootfsError> for TrustedGuestRunError {
+    fn from(value: GuestRootfsError) -> Self {
+        Self::GuestRootfs(value)
+    }
+}
+
 impl From<LinuxEvidencedRunError> for TrustedGuestRunError {
     fn from(value: LinuxEvidencedRunError) -> Self {
         Self::Runner(value)
@@ -54,23 +67,31 @@ impl From<LinuxEvidencedRunError> for TrustedGuestRunError {
 }
 
 /// Result of a concrete Linux/Firecracker run whose kernel/rootfs identities
-/// were first bound to a host-controlled guest image manifest.
+/// were first bound to a host-controlled guest image manifest and whose exact
+/// guest-agent bytes were then verified at the mandatory init path inside that
+/// admitted rootfs.
 ///
-/// The admitted identity is preserved for operator inspection and is also
-/// persisted as its own receipt inside the exact sealed supervisor evidence
-/// chain before lifecycle execution begins. That durable admission receipt does
-/// not by itself prove that the manifest-declared guest-agent digest is the
-/// binary physically executed from the rootfs, so guest seccomp, network
+/// The admitted identity is preserved for operator inspection. Before lifecycle
+/// execution begins, its canonical durable receipt also contains the exact
+/// rootfs-to-agent provenance binding: rootfs digest, agent digest/path, byte
+/// count and pinned read-only inspector identity. This closes the manifest-to-
+/// rootfs byte relation but still does not by itself authenticate a serial claim
+/// as having been emitted by that agent at runtime, so guest seccomp, network
 /// isolation and completion acknowledgement remain non-certifying here.
 #[derive(Debug)]
 pub struct TrustedGuestEvidenceBundle {
     guest_image_identity: AdmittedGuestImageIdentity,
+    guest_agent_rootfs_provenance: GuestAgentRootfsProvenance,
     execution: LinuxSupervisorEvidenceBundle,
 }
 
 impl TrustedGuestEvidenceBundle {
     pub fn guest_image_identity(&self) -> &AdmittedGuestImageIdentity {
         &self.guest_image_identity
+    }
+
+    pub fn guest_agent_rootfs_provenance(&self) -> &GuestAgentRootfsProvenance {
+        &self.guest_agent_rootfs_provenance
     }
 
     pub fn guest_image_identity_receipt(&self) -> Option<&EvidenceReceipt> {
@@ -89,33 +110,51 @@ impl TrustedGuestEvidenceBundle {
     }
 }
 
-/// Admits a trusted guest image identity before the concrete Linux supervisor
-/// is created, then executes through the durable-evidence runner while binding
-/// that identity into the same receipt chain.
+/// Admits a trusted guest image identity, verifies the exact guest-agent bytes
+/// inside the admitted rootfs with a pinned read-only host inspector, binds that
+/// provenance into the canonical admitted identity, and only then creates the
+/// concrete Linux supervisor execution.
 ///
 /// The ordering is deliberate: an invalid, stale, tampered, non-canonical or
 /// plan-mismatched guest image manifest fails before KVM/Firecracker execution.
-/// The configured manifest SHA is host/operator input, not a value supplied by
-/// the guest. The manifest itself is resolved without symlinks, must be
-/// root-owned and non-writable by group/world, and binds the exact kernel,
-/// rootfs, guest-agent digest, agent path, protocol and seccomp policy. After
-/// admission, failure to persist the canonical identity receipt also fails
-/// closed before lifecycle execution can start.
+/// The configured manifest SHA and debugfs SHA are host/operator inputs, not
+/// values supplied by the guest. The manifest and inspector are both resolved
+/// without symlinks and must satisfy their respective ownership/integrity
+/// requirements. The rootfs verifier opens the admitted ext4 image, proves the
+/// exact executable bytes at `/usr/libexec/walle/walle-guest-agent`, and hashes
+/// the same rootfs fd before and after inspection. That result is then embedded
+/// in the `guest-image-identity` receipt that is appended before lifecycle
+/// execution; persistence failure is fail-closed.
 ///
-/// The strict serial attestation remains a non-certifying candidate until a
-/// later slice proves that the manifest-declared guest-agent digest corresponds
-/// to the binary physically executed from the admitted rootfs.
+/// The strict serial attestation remains non-certifying until a later slice
+/// authenticates the physical runtime claim against this now-proven agent
+/// identity instead of trusting arbitrary guest console output.
 pub fn execute_linux_supervisor_with_trusted_guest_image(
     host_config: LinuxMicroVmHostConfig,
     evidence_root: impl Into<PathBuf>,
     plan: &MicroVmSupervisorPlan<'_>,
     guest_image_manifest: &GuestImageManifestSource,
+    guest_rootfs_inspector: &GuestRootfsInspectorSource,
 ) -> Result<TrustedGuestEvidenceBundle, TrustedGuestRunError> {
-    let guest_image_identity = load_and_bind_guest_image_manifest(
+    let mut guest_image_identity = load_and_bind_guest_image_manifest(
         guest_image_manifest,
         host_config.sha256_program.clone(),
         plan,
     )?;
+    let guest_agent_rootfs_provenance = verify_guest_agent_in_rootfs(
+        guest_rootfs_inspector,
+        host_config.sha256_program.clone(),
+        plan,
+        &guest_image_identity,
+    )?;
+    guest_image_identity.bind_guest_agent_rootfs_provenance(GuestAgentRootfsBinding {
+        debugfs_sha256: guest_agent_rootfs_provenance.debugfs_sha256.clone(),
+        guest_agent_bytes: guest_agent_rootfs_provenance.guest_agent_bytes,
+        guest_agent_path: guest_agent_rootfs_provenance.guest_agent_path.clone(),
+        guest_agent_sha256: guest_agent_rootfs_provenance.guest_agent_sha256.clone(),
+        rootfs_sha256: guest_agent_rootfs_provenance.rootfs_sha256.clone(),
+    })?;
+
     let execution = execute_linux_supervisor_with_admitted_guest_image(
         host_config,
         evidence_root,
@@ -125,6 +164,7 @@ pub fn execute_linux_supervisor_with_trusted_guest_image(
 
     Ok(TrustedGuestEvidenceBundle {
         guest_image_identity,
+        guest_agent_rootfs_provenance,
         execution,
     })
 }
@@ -139,6 +179,16 @@ mod tests {
         assert_eq!(
             error.to_string(),
             "supervisor kernel/rootfs identities do not match the admitted guest image"
+        );
+        assert!(error.source().is_some());
+    }
+
+    #[test]
+    fn trusted_guest_error_preserves_rootfs_provenance_source() {
+        let error = TrustedGuestRunError::GuestRootfs(GuestRootfsError::GuestAgentNotExecutable);
+        assert_eq!(
+            error.to_string(),
+            "guest-agent path inside rootfs is not executable"
         );
         assert!(error.source().is_some());
     }

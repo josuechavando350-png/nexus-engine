@@ -963,6 +963,7 @@ mod tests {
             guest_agent_path: "/usr/libexec/walle/walle-guest-agent".to_owned(),
             guest_protocol: 1,
             guest_seccomp_policy: "WALLE_GUEST_SECCOMP_V1".to_owned(),
+            guest_agent_rootfs_binding: None,
         }
     }
 
