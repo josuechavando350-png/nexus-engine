@@ -525,8 +525,7 @@ mod tests {
             guest_agent_bytes: 4096,
             guest_agent_path: GUEST_AGENT_PATH.to_owned(),
             guest_agent_sha256:
-                "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                    .to_owned(),
+                "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_owned(),
             rootfs_sha256: ROOTFS_SHA.to_owned(),
         };
         assert!(matches!(
