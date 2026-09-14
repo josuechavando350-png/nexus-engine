@@ -2,7 +2,7 @@ use std::error::Error;
 use std::fmt::{Display, Formatter};
 use std::io::{self, Read, Seek, SeekFrom};
 use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str;
 
 use walle_core::is_valid_sha256;
@@ -346,15 +346,22 @@ mod tests {
         "sha256:3333333333333333333333333333333333333333333333333333333333333333";
 
     fn manifest() -> String {
-        format!(concat!(
-            "schema_version=1\n",
-            "kernel_sha256={KERNEL_SHA}\n",
-            "rootfs_sha256={ROOTFS_SHA}\n",
-            "guest_agent_sha256={AGENT_SHA}\n",
-            "guest_agent_path={GUEST_AGENT_PATH}\n",
-            "guest_protocol=1\n",
-            "guest_seccomp_policy={GUEST_SECCOMP_POLICY_ID}\n"
-        ))
+        format!(
+            concat!(
+                "schema_version=1\n",
+                "kernel_sha256={}\n",
+                "rootfs_sha256={}\n",
+                "guest_agent_sha256={}\n",
+                "guest_agent_path={}\n",
+                "guest_protocol=1\n",
+                "guest_seccomp_policy={}\n"
+            ),
+            KERNEL_SHA,
+            ROOTFS_SHA,
+            AGENT_SHA,
+            GUEST_AGENT_PATH,
+            GUEST_SECCOMP_POLICY_ID,
+        )
     }
 
     fn plan() -> MicroVmSupervisorPlan<'static> {
