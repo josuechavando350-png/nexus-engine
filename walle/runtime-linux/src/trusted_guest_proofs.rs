@@ -1,9 +1,7 @@
 use walle_core::is_valid_sha256;
 use walle_core::supervisor::MicroVmSupervisorPlan;
 
-use crate::guest_image::{
-    AdmittedGuestImageIdentity, GUEST_AGENT_PATH, GUEST_PROTOCOL_VERSION,
-};
+use crate::guest_image::{AdmittedGuestImageIdentity, GUEST_AGENT_PATH, GUEST_PROTOCOL_VERSION};
 use crate::guest_protocol::{GuestAttestation, GuestCompletion, GUEST_SECCOMP_POLICY_ID};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -297,8 +295,7 @@ mod tests {
 
         let mut claim = attestation();
         claim.source_sha256 =
-            "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
-                .to_owned();
+            "sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff".to_owned();
         assert!(derive_trusted_guest_proof_payloads(&plan(), &identity(), &claim).is_none());
     }
 
@@ -334,14 +331,23 @@ mod tests {
     fn plan_that_does_not_require_the_hardened_guest_contract_is_rejected() {
         let mut unsafe_plan = plan();
         unsafe_plan.rootfs_read_only = false;
-        assert!(derive_trusted_guest_proof_payloads(&unsafe_plan, &identity(), &attestation()).is_none());
+        assert!(
+            derive_trusted_guest_proof_payloads(&unsafe_plan, &identity(), &attestation())
+                .is_none()
+        );
 
         let mut unsafe_plan = plan();
         unsafe_plan.network_interfaces = 1;
-        assert!(derive_trusted_guest_proof_payloads(&unsafe_plan, &identity(), &attestation()).is_none());
+        assert!(
+            derive_trusted_guest_proof_payloads(&unsafe_plan, &identity(), &attestation())
+                .is_none()
+        );
 
         let mut unsafe_plan = plan();
         unsafe_plan.guest_seccomp_required = false;
-        assert!(derive_trusted_guest_proof_payloads(&unsafe_plan, &identity(), &attestation()).is_none());
+        assert!(
+            derive_trusted_guest_proof_payloads(&unsafe_plan, &identity(), &attestation())
+                .is_none()
+        );
     }
 }
