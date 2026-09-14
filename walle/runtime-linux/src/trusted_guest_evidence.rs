@@ -13,9 +13,7 @@ use crate::evidence::{
 use crate::guest_image::AdmittedGuestImageIdentity;
 use crate::guest_protocol::{GuestAttestation, GuestCompletion};
 use crate::safe_fs::{SecureDirectory, SecureFsError};
-use crate::trusted_guest_proofs::{
-    derive_trusted_guest_proof_payloads, TrustedGuestProofPayloads,
-};
+use crate::trusted_guest_proofs::{derive_trusted_guest_proof_payloads, TrustedGuestProofPayloads};
 
 pub const TRUSTED_GUEST_EVIDENCE_DIRECTORY: &str = "trusted-guest-proofs";
 pub const NETWORK_ISOLATION_EVIDENCE_KIND: &str = "network-isolation";
@@ -159,11 +157,9 @@ pub fn persist_trusted_guest_proof_evidence(
     let primary_directory = SecureDirectory::open(primary_run_directory.clone())?;
     primary_directory.validate_trusted()?;
 
-    let Some(attestation) = load_primary_guest_attestation_candidate(
-        &primary_run_directory,
-        primary_seal,
-        plan,
-    )? else {
+    let Some(attestation) =
+        load_primary_guest_attestation_candidate(&primary_run_directory, primary_seal, plan)?
+    else {
         return Ok(TrustedGuestProofEvidence::default());
     };
 
@@ -177,12 +173,7 @@ pub fn persist_trusted_guest_proof_evidence(
         return Ok(TrustedGuestProofEvidence::default());
     }
 
-    persist_extension_chain(
-        evidence_root,
-        sha256_program.into(),
-        plan,
-        payloads,
-    )
+    persist_extension_chain(evidence_root, sha256_program.into(), plan, payloads)
 }
 
 fn persist_extension_chain(
@@ -366,21 +357,21 @@ fn extract_string_after<'a>(
 }
 
 fn extract_u32_after(text: &str, field_prefix: &str) -> Result<u32, TrustedGuestEvidenceError> {
-    extract_number_after(text, field_prefix)?.parse::<u32>().map_err(|_| {
-        TrustedGuestEvidenceError::MalformedGuestAttestationCandidatePayload
-    })
+    extract_number_after(text, field_prefix)?
+        .parse::<u32>()
+        .map_err(|_| TrustedGuestEvidenceError::MalformedGuestAttestationCandidatePayload)
 }
 
 fn extract_u8_after(text: &str, field_prefix: &str) -> Result<u8, TrustedGuestEvidenceError> {
-    extract_number_after(text, field_prefix)?.parse::<u8>().map_err(|_| {
-        TrustedGuestEvidenceError::MalformedGuestAttestationCandidatePayload
-    })
+    extract_number_after(text, field_prefix)?
+        .parse::<u8>()
+        .map_err(|_| TrustedGuestEvidenceError::MalformedGuestAttestationCandidatePayload)
 }
 
 fn extract_i32_after(text: &str, field_prefix: &str) -> Result<i32, TrustedGuestEvidenceError> {
-    extract_number_after(text, field_prefix)?.parse::<i32>().map_err(|_| {
-        TrustedGuestEvidenceError::MalformedGuestAttestationCandidatePayload
-    })
+    extract_number_after(text, field_prefix)?
+        .parse::<i32>()
+        .map_err(|_| TrustedGuestEvidenceError::MalformedGuestAttestationCandidatePayload)
 }
 
 fn extract_bool_after(text: &str, field_prefix: &str) -> Result<bool, TrustedGuestEvidenceError> {
