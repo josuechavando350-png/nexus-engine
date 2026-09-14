@@ -124,6 +124,41 @@ hash_file() {
   printf 'sha256:%s' "$digest"
 }
 
+# Return success only when a real SKIP marker is present. Test frameworks often
+# print an explicit zero counter such as "skipped 0"; that is evidence that no
+# test was skipped and must not be confused with an actual skipped execution.
+# Any other SKIP/SKIPPED token (including skipped=1, # SKIP, or a reason line)
+# remains fail-closed.
+has_real_skip() {
+  "$WALLE_PYTHON" - "$@" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+ansi = re.compile(r"\x1b\[[0-9;]*[A-Za-z]")
+skip_token = re.compile(r"\bSKIP(?:PED)?\b", re.IGNORECASE)
+zero_counters = (
+    re.compile(r"^[^\w]*skipped\s+0[^\w]*$", re.IGNORECASE),
+    re.compile(r"^[^\w]*0\s+skipped[^\w]*$", re.IGNORECASE),
+    re.compile(r"^[^\w]*skip(?:ped)?\s*[:=]\s*0[^\w]*$", re.IGNORECASE),
+)
+
+for raw_path in sys.argv[1:]:
+    path = Path(raw_path)
+    if not path.is_file():
+        continue
+    for line_number, raw_line in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+        line = ansi.sub("", raw_line).strip()
+        if not skip_token.search(line):
+            continue
+        if any(pattern.fullmatch(line) for pattern in zero_counters):
+            continue
+        print(f"REAL_SKIP_MARKER:{path}:{line_number}:{line}", file=sys.stderr)
+        raise SystemExit(0)
+raise SystemExit(1)
+PY
+}
+
 set +e
 PYTHONDONTWRITEBYTECODE=1 PYTHONPYCACHEPREFIX="$PYCACHE_ROOT" \
   timeout --signal=KILL 20m bash "${CHAIN_PATHS[0]}" \
@@ -140,7 +175,7 @@ if [[ "$CHAIN_EXIT_CODE" -ne 0 ]]; then
   echo "WALLE_AVENGERS_ERROR=verification_failed:m201_m2500:$CHAIN_EXIT_CODE" >&2
   exit 2
 fi
-if grep -Eiq '(^|[[:space:]])SKIP(PED)?([[:space:]:]|$)' "$CHAIN_STDOUT_FILE" "$CHAIN_STDERR_FILE"; then
+if has_real_skip "$CHAIN_STDOUT_FILE" "$CHAIN_STDERR_FILE"; then
   echo "WALLE_AVENGERS_ERROR=skip_detected:m201_m2500" >&2
   exit 2
 fi
@@ -169,7 +204,7 @@ if [[ "$M200_EXIT_CODE" -ne 0 ]]; then
   echo "WALLE_AVENGERS_ERROR=verification_failed:m001_m200:$M200_EXIT_CODE" >&2
   exit 2
 fi
-if grep -Eiq '(^|[[:space:]])SKIP(PED)?([[:space:]:]|$)' "$M200_STDOUT_FILE" "$M200_STDERR_FILE"; then
+if has_real_skip "$M200_STDOUT_FILE" "$M200_STDERR_FILE"; then
   echo "WALLE_AVENGERS_ERROR=skip_detected:m001_m200" >&2
   exit 2
 fi
