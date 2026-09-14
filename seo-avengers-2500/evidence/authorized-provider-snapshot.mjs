@@ -228,7 +228,7 @@ async function targetExists(target) {
 async function writeCanonicalFile(path, value) {
   const bytes = Buffer.from(`${canonicalJson(value)}\n`, "utf8");
   await writeFile(path, bytes, { flag: "wx", mode: 0o600 });
-  return { bytes, sha256: sha256Bytes(bytes) };
+  return { sha256: sha256Bytes(bytes) };
 }
 
 export async function publishAuthorizedProviderSnapshot({ controlRoot, evidenceRoot, siteId, snapshot }) {
@@ -242,13 +242,23 @@ export async function publishAuthorizedProviderSnapshot({ controlRoot, evidenceR
   await assertCanonicalDirectory(root, "evidenceRoot");
   await assertCanonicalDirectory(tenantsRoot, "evidence tenants root");
 
-  const stagingRoot = await mkdtemp(join(root, ".provider-staging-"));
-  const stagedTenant = join(stagingRoot, "tenant");
-  const previousTenant = join(stagingRoot, "previous");
+  const lockDirectory = join(root, `.provider-lock-${siteId}`);
+  try {
+    await mkdir(lockDirectory, { mode: 0o700 });
+  } catch (error) {
+    if (error?.code === "EEXIST") throw new Error("provider publication already locked");
+    throw error;
+  }
+
+  let stagingRoot = null;
   let previousMoved = false;
   let published = false;
   try {
+    stagingRoot = await mkdtemp(join(root, ".provider-staging-"));
+    const stagedTenant = join(stagingRoot, "tenant");
+    const previousTenant = join(stagingRoot, "previous");
     await mkdir(stagedTenant, { mode: 0o700 });
+
     const descriptors = [];
     const provenance = [];
     for (const dataset of datasets) {
@@ -330,10 +340,12 @@ export async function publishAuthorizedProviderSnapshot({ controlRoot, evidenceR
       datasetCount: descriptors.length,
     });
   } finally {
-    if (!published && previousMoved) {
+    if (!published && previousMoved && stagingRoot !== null) {
       const target = tenantPath(evidenceRoot, siteId);
-      if (!(await targetExists(target))) await rename(previousTenant, target);
+      const previousTenant = join(stagingRoot, "previous");
+      if (!(await targetExists(target)) && await targetExists(previousTenant)) await rename(previousTenant, target);
     }
-    await rm(stagingRoot, { recursive: true, force: true });
+    if (stagingRoot !== null) await rm(stagingRoot, { recursive: true, force: true });
+    await rm(lockDirectory, { recursive: true, force: true });
   }
 }
