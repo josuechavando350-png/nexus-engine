@@ -52,10 +52,15 @@ async def test_section_vector_persists_in_isolated_table(tmp_path, monkeypatch):
     assert saved["vector_profile"]["model"] == "nexus-feature-hash-v1"
 
 
-def test_google_consumer_surfaces_are_denied_but_authorized_api_hosts_are_not():
+def test_google_web_surfaces_are_denied_but_authorized_api_hosts_are_not():
     assert google_policy.is_google_consumer_surface("https://www.google.com/search?q=rank")
     assert google_policy.is_google_consumer_surface("https://google.com.mx/maps?q=business")
     assert google_policy.is_google_consumer_surface("https://www.google.co.uk/webhp?q=rank")
+    assert google_policy.is_google_consumer_surface("https://maps.google.com/maps?q=business")
+    assert google_policy.is_google_consumer_surface("https://news.google.com/")
+    assert google_policy.is_google_consumer_surface(
+        "https://developers.google.com/search/docs/essentials/spam-policies"
+    )
 
     assert not google_policy.is_google_consumer_surface(
         "https://www.googleapis.com/webmasters/v3/sites/example/searchAnalytics/query"
@@ -63,9 +68,7 @@ def test_google_consumer_surfaces_are_denied_but_authorized_api_hosts_are_not():
     assert not google_policy.is_google_consumer_surface(
         "https://searchconsole.googleapis.com/v1/urlInspection/index:inspect"
     )
-    assert not google_policy.is_google_consumer_surface(
-        "https://developers.google.com/search/docs/essentials/spam-policies"
-    )
+    assert not google_policy.is_google_consumer_surface("https://example.com/google/search")
 
 
 def test_google_consumer_crawl_field_identifies_target_and_competitor_inputs():
@@ -75,7 +78,7 @@ def test_google_consumer_crawl_field_identifies_target_and_competitor_inputs():
     assert google_policy.google_consumer_crawl_field(
         {
             "target_url": "https://example.com/",
-            "competitor_urls": ["https://competitor.example/", "https://google.com.mx/search?q=x"],
+            "competitor_urls": ["https://competitor.example/", "https://maps.google.com/maps?q=x"],
         }
     ) == "competitor_urls[1]"
     assert google_policy.google_consumer_crawl_field(
