@@ -13,6 +13,7 @@ pub mod cgroup;
 pub mod evidence;
 pub mod firecracker;
 pub mod guest_image;
+pub mod guest_manifest_builder;
 pub mod guest_protocol;
 pub mod guest_rootfs;
 pub mod host;
