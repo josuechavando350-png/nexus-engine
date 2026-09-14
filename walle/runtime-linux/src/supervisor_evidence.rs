@@ -998,7 +998,7 @@ mod tests {
     fn guest_attestation_candidate_requires_physical_boot_and_remains_untrusted() {
         let plan = plan();
         let line = format!(
-            "WALLE_GUEST_ATTESTATION_V1 run_id={} source_sha256={} seccomp_mode=2 no_new_privs=1 network_non_loopback_interfaces=0 workload_exit_code=0 completion=SUCCESS",
+            "WALLE_GUEST_ATTESTATION_V1 run_id={} source_sha256={} seccomp_mode=2 seccomp_policy=WALLE_GUEST_SECCOMP_V1 no_new_privs=1 network_non_loopback_interfaces=0 workload_exit_code=0 completion=SUCCESS",
             plan.run_id, plan.source_sha256
         );
         let serial = format!(
@@ -1008,6 +1008,7 @@ mod tests {
         let payload = guest_attestation_candidate_payload(&plan, serial.as_bytes())
             .expect("identity-bound physical guest candidate");
         assert!(payload.contains("\"seccomp_mode\":2"));
+        assert!(payload.contains("\"seccomp_policy\":\"WALLE_GUEST_SECCOMP_V1\""));
         assert!(payload.contains("\"network_non_loopback_interfaces\":0"));
         assert!(payload.contains("\"completion\":\"SUCCESS\""));
         assert!(payload.contains("UNTRUSTED_GUEST_CLAIM_PENDING_AGENT_IDENTITY"));
