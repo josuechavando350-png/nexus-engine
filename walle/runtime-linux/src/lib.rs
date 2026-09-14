@@ -7,6 +7,7 @@
 compile_error!("walle-runtime-linux currently supports Linux x86_64 only");
 
 pub mod artifact;
+pub mod certification_runtime;
 pub mod cgroup;
 pub mod evidence;
 pub mod firecracker;
