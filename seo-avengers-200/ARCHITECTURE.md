@@ -3,9 +3,17 @@
 1. **Nexus render path is untouchable.** All CPU/network-heavy work is submitted after artifact commit and handled asynchronously.
 2. **Hash first.** Every job carries Nexus `source_revision`, `input_hash`, and `idempotency_key`; every result carries `output_hash`.
 3. **Edge transforms are bounded and semantic-equivalent.** No crawler-only text, links or structured-data claims.
-4. **External APIs are adapters.** Google NLP, indexing, SERP providers and backlink providers fail closed and never crash or stall Nexus.
-5. **Operator gates risky mutations.** Redirects, slug rewrites, disavow recommendations, DNS changes and title experiments are proposed/evidenced before activation.
-6. **RUM is observational.** Telemetry is deferred, sampled, consent-aware where required, and never used to fake CrUX.
+4. **External APIs are adapters.** Google NLP, eligible Google APIs, Search Console, SERP-data providers and backlink-data providers fail closed and never crash or stall Nexus. Direct automated querying or scraping of Google Search is not an allowed provider path.
+5. **Operator gates risky mutations.** Redirects, slug rewrites, external-link/backlink creation, disavow actions, DNS changes and title experiments are proposed/evidenced before activation. Enabling `CONFIG_SEO_AVENGERS_200` alone is never sufficient authorization for those mutations.
+6. **Policy-sensitive catalog entries fail closed at activation.** Historical catalog entries M18, M21, M23, M25 and M50 are forced to effective `advisory-only` activation even when their catalog mode remains `compliant`; the original catalog mode is retained in activation evidence as `catalog_mode` for provenance.
+7. **RUM is observational.** Telemetry is deferred, sampled, consent-aware where required, and never used to fake CrUX.
+8. **Controlled execution is not production authorization.** WALLE/local-mirror runs may execute every module contract to collect deterministic evidence, including GATED/ADVISORY contracts, but that execution must not be interpreted as permission to perform an external or destructive action.
+
+## Google Search safety boundary
+
+NEXUS must use authorized provider/API surfaces for Google-owned data where applicable. It must not use Google Search result pages as a rank-check scraping surface, must not generate crawler-only variants, must not create external links automatically for ranking manipulation, and must not publish doorway/near-duplicate location or service pages merely to capture queries. A missing eligibility signal, operator approval, provenance record, or policy decision is a deny condition rather than an implicit allow.
+
+This boundary is intentionally stricter than module names. A module may retain a historical name such as "Web Scraper a Backlink" for catalog identity while its effective activation remains advisory and its external action stays forbidden unless a separately authorized provider/action contract exists.
 
 ## Multi-tenant capability boundary
 
