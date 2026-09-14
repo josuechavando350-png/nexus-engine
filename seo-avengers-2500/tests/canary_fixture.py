@@ -7,6 +7,12 @@ client app, call a provider, crawl a site, or represent production measurements.
 from __future__ import annotations
 
 import json
+from pathlib import Path
+import sys
+
+SUITE_ROOT = Path(__file__).resolve().parents[1]
+if str(SUITE_ROOT) not in sys.path:
+    sys.path.insert(0, str(SUITE_ROOT))
 
 from test_batch_2201_2400 import fixture as base_fixture
 
