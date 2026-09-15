@@ -23,6 +23,7 @@ PROVIDER = "IBM_QUANTUM_COMPUTE"
 BRIDGE_ID = "NEXUS_IBM_QUANTUM_QISKIT_BRIDGE_V1"
 API_KEY_ENV = "NEXUS_IBM_QUANTUM_API_KEY"
 INSTANCE_CRN_ENV = "NEXUS_IBM_QUANTUM_INSTANCE_CRN"
+MAX_TRANSPILER_SEED = 2_147_483_647
 
 
 def _canonical(value: Any) -> str:
@@ -127,6 +128,22 @@ def _required_int(value: Any, label: str, minimum: int = 0) -> int:
     return value
 
 
+def _optional_transpiler_seed(value: Any) -> int | None:
+    if value is None:
+        return None
+    seed = _required_int(value, "transpilerSeed", 0)
+    if seed > MAX_TRANSPILER_SEED:
+        raise ValueError(f"transpilerSeed must be <= {MAX_TRANSPILER_SEED}")
+    return seed
+
+
+def _transpiler_options(request: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "optimization_level": 1,
+        "seed_transpiler": _optional_transpiler_seed(request["transpilerSeed"]),
+    }
+
+
 def _validate_request(payload: Any) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("bridge request must be object")
@@ -143,6 +160,7 @@ def _validate_request(payload: Any) -> dict[str, Any]:
         "optimizationProblemReportSha256",
         "optimizationModelSha256",
         "circuitSha256",
+        "transpilerSeed",
         "logicalCircuitArtifact",
     }
     if set(payload) != expected:
@@ -163,6 +181,7 @@ def _validate_request(payload: Any) -> dict[str, Any]:
     _required_text(payload["adapterVersion"], "adapterVersion")
     _required_int(payload["shots"], "shots", 1)
     _required_int(payload["logicalQubitCount"], "logicalQubitCount", 1)
+    _optional_transpiler_seed(payload["transpilerSeed"])
     if payload["measurementBitOrder"] != "QUBIT_0_RIGHTMOST":
         raise ValueError("unsupported measurement bit order")
     for field in (
@@ -315,7 +334,7 @@ def _execute(request: dict[str, Any]) -> dict[str, Any]:
     if int(circuit.num_qubits) != request["logicalQubitCount"]:
         raise RuntimeError("IBM_LOGICAL_QUBIT_COUNT_MISMATCH")
 
-    pass_manager = generate_preset_pass_manager(backend=backend, optimization_level=1)
+    pass_manager = generate_preset_pass_manager(backend=backend, **_transpiler_options(request))
     isa_circuit = pass_manager.run(circuit)
     isa_qasm3 = qasm3.dumps(isa_circuit)
     transpiled_circuit_sha256 = _sha256_text(isa_qasm3)
@@ -347,6 +366,8 @@ def _execute(request: dict[str, Any]) -> dict[str, Any]:
     if calibration_evidence["status"] == "PROVIDER_NOT_EXPOSED":
         calibration_evidence["providerReportedAt"] = completed_at
 
+    seed = _optional_transpiler_seed(request["transpilerSeed"])
+    seed_text = str(seed) if seed is not None else None
     raw_result_json = _artifact_json({
         "provider": PROVIDER,
         "backend": backend_name,
@@ -365,6 +386,7 @@ def _execute(request: dict[str, Any]) -> dict[str, Any]:
         "metrics": metrics,
         "rawResultSha256": raw_result_sha256,
         "transpiledCircuitSha256": transpiled_circuit_sha256,
+        "transpilerSeed": seed_text,
     })
     provider_receipt_sha256 = _sha256_text(provider_receipt_json)
 
@@ -409,7 +431,7 @@ def _execute(request: dict[str, Any]) -> dict[str, Any]:
             "providerSdkVersion": str(qiskit_ibm_runtime.__version__),
             "compiler": "qiskit.generate_preset_pass_manager",
             "compilerVersion": str(qiskit.__version__),
-            "seed": None,
+            "seed": seed_text,
         },
     }
     return {
