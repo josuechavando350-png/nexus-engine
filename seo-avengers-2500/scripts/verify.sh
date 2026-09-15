@@ -56,6 +56,7 @@ node --check "$SUITE/quantum-runtime/providers/ibm/ibm-qpu-adapter.mjs"
 node --check "$SUITE/quantum-runtime/providers/ibm/ibm-qpu-preflight.mjs"
 node --check "$SUITE/quantum-runtime/providers/ibm/ibm-physical-smoke-gate.mjs"
 node --check "$SUITE/quantum-runtime/providers/ibm/ibm-repeated-series-gate.mjs"
+node --check "$SUITE/quantum-runtime/providers/ibm/ibm-physical-session-coordinator.mjs"
 python -m py_compile "$SUITE/quantum-runtime/providers/ibm/ibm-qpu-bridge.py"
 python -m py_compile "$SUITE/quantum-runtime/providers/ibm/ibm-qpu-preflight.py"
 grep -Fx 'qiskit==2.5.2' "$SUITE/quantum-runtime/providers/ibm/requirements.txt" >/dev/null
@@ -95,6 +96,7 @@ node --test \
   "$SUITE/tests/test_quantum_ibm_preflight_v1.mjs" \
   "$SUITE/tests/test_quantum_ibm_physical_smoke_gate_v1.mjs" \
   "$SUITE/tests/test_quantum_ibm_repeated_series_gate_v1.mjs" \
+  "$SUITE/tests/test_quantum_ibm_physical_session_coordinator_v1.mjs" \
   "$SUITE/tests/test_quantum_physical_first_run_plan_v1.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
