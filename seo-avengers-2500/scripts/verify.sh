@@ -15,6 +15,8 @@ node --check "$SUITE/growth-scenario/scenario-engine.mjs"
 node --check "$SUITE/growth-scenario/tenant-scenario.mjs"
 node --check "$SUITE/rank-feasibility/feasibility-engine.mjs"
 node --check "$SUITE/rank-feasibility/tenant-feasibility.mjs"
+node --check "$SUITE/rank-feasibility/longitudinal-engine.mjs"
+node --check "$SUITE/rank-feasibility/tenant-longitudinal.mjs"
 node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
@@ -27,7 +29,8 @@ node --test \
   "$SUITE/tests/test_tenant_worker.mjs" \
   "$SUITE/tests/test_tenant_worker_boundary.mjs" \
   "$SUITE/tests/test_growth_scenario_engine.mjs" \
-  "$SUITE/tests/test_rank_feasibility_engine.mjs"
+  "$SUITE/tests/test_rank_feasibility_engine.mjs" \
+  "$SUITE/tests/test_rank_trend_engine.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
