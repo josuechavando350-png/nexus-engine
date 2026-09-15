@@ -103,3 +103,5 @@ The workflow keeps the Python 3.12 environment required by the original Avengers
 ## Final scope audit
 
 The final certification branch removes an inherited executable-bit-only drift from `seo-avengers-2500/quantum-runtime/providers/ibm/ibm-qpu-preflight.py`. Its blob content was identical to `main`; only the file mode had diverged. The tournament branch therefore remains scoped to commercial-demand research, evidence, tests, workflow and WALLE certification rather than carrying unrelated runtime changes.
+
+The final certification head is synchronized with `main` commit `eff34693f876bd9e94b02aedf6ea5dfdb44d8ea1` before rerunning the Tournament V3 and WALLE proof.
