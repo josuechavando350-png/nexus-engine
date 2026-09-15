@@ -468,6 +468,60 @@ test("series authorization binds the exact repeated request and classical baseli
   assert.deepEqual(counters, { preflight: 0, live: 0 });
 });
 
+test("smoke integrity tampering is rejected before repeated provider calls", async () => {
+  const plan = planFor();
+  const request = physicalRequest();
+  const smoke = await verifiedSmoke(plan, request);
+  const counters = { preflight: 0, live: 0 };
+  const tamperedReport = {
+    ...smoke,
+    gateReport: { ...smoke.gateReport, status: "TAMPERED_SMOKE_GATE_STATUS" },
+  };
+  await assert.rejects(
+    seriesGate(plan, {}, counters).run({
+      physicalRequest: request,
+      smokeGateResult: tamperedReport,
+      executionAuthorization: "PREPARE_ONLY",
+    }),
+    /SMOKE_GATE_REPORT_DIGEST_MISMATCH/,
+  );
+  const tamperedExecution = {
+    ...smoke,
+    smokeExecution: {
+      ...smoke.smokeExecution,
+      reasonCodes: [...smoke.smokeExecution.reasonCodes, "TAMPERED_SMOKE_EXECUTION"],
+    },
+  };
+  await assert.rejects(
+    seriesGate(plan, {}, counters).run({
+      physicalRequest: request,
+      smokeGateResult: tamperedExecution,
+      executionAuthorization: "PREPARE_ONLY",
+    }),
+    /SMOKE_EXECUTION_DIGEST_MISMATCH/,
+  );
+  assert.deepEqual(counters, { preflight: 0, live: 0 });
+});
+
+test("malformed classical baseline is rejected before any repeated provider call", async () => {
+  const plan = planFor();
+  const request = physicalRequest();
+  const smoke = await verifiedSmoke(plan, request);
+  const malformedBaseline = {};
+  const authorizationRecord = seriesAuthorization(plan, smoke, request, malformedBaseline);
+  const counters = { preflight: 0, live: 0 };
+  await assert.rejects(
+    seriesGate(plan, {}, counters).run({
+      physicalRequest: request,
+      baselineProfile: malformedBaseline,
+      smokeGateResult: smoke,
+      executionAuthorization: "EXECUTE_PHYSICAL_QPU",
+      authorizationRecord,
+    }),
+  );
+  assert.deepEqual(counters, { preflight: 0, live: 0 });
+});
+
 test("controlled repeated series performs one preflight per run and certifies classical comparability only", async () => {
   const plan = planFor();
   const request = physicalRequest();
