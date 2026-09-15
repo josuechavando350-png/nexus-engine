@@ -51,6 +51,19 @@ export async function buildTenantRankFeasibilityWithTrend({
     });
   }
 
+  const empty = [];
+  if (evidence.datasets.search_performance_records.length === 0) empty.push("search_performance_records");
+  if (evidence.datasets.search_performance_history_records.length === 0) empty.push("search_performance_history_records");
+  if (empty.length > 0) {
+    return decision({
+      siteId,
+      controlGeneration: evidence.controlGeneration,
+      status: "INSUFFICIENT_DATA",
+      reason: `REQUIRED_DATASETS_EMPTY:${empty.join(",")}`,
+      evidenceManifestHash: evidence.manifestHash,
+    });
+  }
+
   let report;
   try {
     report = buildRankFeasibilityWithTrendReport({
