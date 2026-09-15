@@ -17,8 +17,8 @@ const MAX_TRANSPILER_SEED = 2_147_483_647;
 const MAX_RUNS = 256;
 const MIN_REPEATED_RUNS = 5;
 const MAX_SHOTS = 10_000_000;
-const MIN_JOB_TIMEOUT_MILLIS = 1_000;
-const MAX_JOB_TIMEOUT_MILLIS = 86_400_000;
+const MIN_BRIDGE_TIMEOUT_MILLIS = 1_000;
+const MAX_BRIDGE_TIMEOUT_MILLIS = 86_400_000;
 const GIT_SHA_RE = /^[0-9a-f]{40}$/;
 const NON_PHYSICAL_BACKEND_RE = /(simulator|statevector|mock|fake|fixture|test-only|test_provider|emulator)/i;
 const CONTROL_CHAR_RE = /[\u0000-\u001f\u007f]/u;
@@ -60,6 +60,7 @@ const ABORT_CONDITIONS = Object.freeze([
   "COMPILER_IDENTITY_OR_VERSION_DRIFTED",
   "TOPOLOGY_OR_CAPABILITIES_DRIFTED",
   "PROVIDER_RECEIPT_OR_RAW_RESULT_HASH_MISSING",
+  "LOCAL_BRIDGE_TIMEOUT_REQUIRES_PROVIDER_JOB_RECONCILIATION_BEFORE_RETRY",
   "SECRET_DETECTED_IN_LOG_OR_EVIDENCE",
   "EXACT_HEAD_CI_NOT_GREEN",
   "PROVIDER_COST_OR_ENTITLEMENT_NOT_CONFIRMED",
@@ -138,19 +139,19 @@ export function validatePhysicalQpuFirstRunPlan(plan) {
   }
   integer(plan.repeatedSeries.shots, "physical repeated shots", 1, MAX_SHOTS);
 
-  exactKeys(plan.limits, ["maximumProviderJobs", "maximumSequentialWallTimeMillis", "maximumTotalShots", "perJobTimeoutMillis"], "physical plan limits");
-  const perJobTimeoutMillis = integer(
-    plan.limits.perJobTimeoutMillis,
-    "physical per-job timeout",
-    MIN_JOB_TIMEOUT_MILLIS,
-    MAX_JOB_TIMEOUT_MILLIS,
+  exactKeys(plan.limits, ["bridgeTimeoutMillis", "maximumLocalBridgeWaitMillis", "maximumProviderJobs", "maximumTotalShots"], "physical plan limits");
+  const bridgeTimeoutMillis = integer(
+    plan.limits.bridgeTimeoutMillis,
+    "physical local bridge timeout",
+    MIN_BRIDGE_TIMEOUT_MILLIS,
+    MAX_BRIDGE_TIMEOUT_MILLIS,
   );
   const expectedJobs = 1 + repeatedRunCount;
   const expectedShots = plan.smokeJob.shots + (plan.repeatedSeries.shots * repeatedRunCount);
-  const expectedWallTime = perJobTimeoutMillis * expectedJobs;
+  const expectedLocalWait = bridgeTimeoutMillis * expectedJobs;
   if (plan.limits.maximumProviderJobs !== expectedJobs
     || plan.limits.maximumTotalShots !== expectedShots
-    || plan.limits.maximumSequentialWallTimeMillis !== expectedWallTime) {
+    || plan.limits.maximumLocalBridgeWaitMillis !== expectedLocalWait) {
     throw new Error("physical plan derived execution limits mismatch");
   }
 
@@ -181,8 +182,8 @@ export function validatePhysicalQpuFirstRunPlan(plan) {
 export function buildPhysicalQpuFirstRunPlan(input) {
   exactKeys(input, [
     "backendName",
+    "bridgeTimeoutMillis",
     "evidenceRoot",
-    "perJobTimeoutMillis",
     "repeatedRunCount",
     "repeatedShots",
     "smokeShots",
@@ -199,17 +200,17 @@ export function buildPhysicalQpuFirstRunPlan(input) {
   const smokeShots = integer(input.smokeShots, "physical smoke shots", 1, MAX_SHOTS);
   const repeatedShots = integer(input.repeatedShots, "physical repeated shots", 1, MAX_SHOTS);
   const repeatedRunCount = integer(input.repeatedRunCount, "physical repeated runCount", MIN_REPEATED_RUNS, MAX_RUNS);
-  const perJobTimeoutMillis = integer(
-    input.perJobTimeoutMillis,
-    "physical per-job timeout",
-    MIN_JOB_TIMEOUT_MILLIS,
-    MAX_JOB_TIMEOUT_MILLIS,
+  const bridgeTimeoutMillis = integer(
+    input.bridgeTimeoutMillis,
+    "physical local bridge timeout",
+    MIN_BRIDGE_TIMEOUT_MILLIS,
+    MAX_BRIDGE_TIMEOUT_MILLIS,
   );
 
   const maximumProviderJobs = 1 + repeatedRunCount;
   const maximumTotalShots = smokeShots + (repeatedShots * repeatedRunCount);
-  const maximumSequentialWallTimeMillis = perJobTimeoutMillis * maximumProviderJobs;
-  if (!Number.isSafeInteger(maximumTotalShots) || !Number.isSafeInteger(maximumSequentialWallTimeMillis)) {
+  const maximumLocalBridgeWaitMillis = bridgeTimeoutMillis * maximumProviderJobs;
+  if (!Number.isSafeInteger(maximumTotalShots) || !Number.isSafeInteger(maximumLocalBridgeWaitMillis)) {
     throw new Error("physical plan derived limits exceed safe integer range");
   }
 
@@ -236,8 +237,8 @@ export function buildPhysicalQpuFirstRunPlan(input) {
     limits: {
       maximumProviderJobs,
       maximumTotalShots,
-      perJobTimeoutMillis,
-      maximumSequentialWallTimeMillis,
+      bridgeTimeoutMillis,
+      maximumLocalBridgeWaitMillis,
     },
     providerCostControl: {
       billingApiIntegrated: false,
