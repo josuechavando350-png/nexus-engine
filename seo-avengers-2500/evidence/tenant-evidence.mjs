@@ -10,6 +10,7 @@ const MANIFEST_FILENAME = "manifest.json";
 
 export const ALLOWED_DATASET_KEYS = Object.freeze([
   "canonicalization_records",
+  "client_cohort_records",
   "content_decay_records",
   "content_documents",
   "cwv_edge_records",
