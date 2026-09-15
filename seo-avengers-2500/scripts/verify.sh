@@ -30,7 +30,8 @@ node --test \
   "$SUITE/tests/test_tenant_worker_boundary.mjs" \
   "$SUITE/tests/test_growth_scenario_engine.mjs" \
   "$SUITE/tests/test_rank_feasibility_engine.mjs" \
-  "$SUITE/tests/test_rank_trend_engine.mjs"
+  "$SUITE/tests/test_rank_trend_engine.mjs" \
+  "$SUITE/tests/test_rank_trend_empty_semantics.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
