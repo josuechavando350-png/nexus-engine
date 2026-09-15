@@ -1,0 +1,57 @@
+name: WALLE NEXUS Commercial Demand Tournament V1
+
+on:
+  push:
+    branches:
+      - feat/walle-nexus-commercial-demand-tournament-v1
+    paths:
+      - 'seo-avengers-2500/commercial-demand/**'
+      - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v1.mjs'
+      - 'seo-avengers-2500/tests/test_nexus_commercial_*'
+      - 'walle/**'
+      - '.github/workflows/walle-nexus-commercial-demand-tournament-v1.yml'
+  pull_request:
+    paths:
+      - 'seo-avengers-2500/commercial-demand/**'
+      - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v1.mjs'
+      - 'seo-avengers-2500/tests/test_nexus_commercial_*'
+      - 'walle/**'
+      - '.github/workflows/walle-nexus-commercial-demand-tournament-v1.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact event head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Use Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Use Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Use Go 1.23
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.23.x'
+
+      - name: Run NEXUS tournament assertions
+        run: |
+          node seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v1.mjs \
+            --assert-verdict EXPAND_VALIDATED_DEMAND_BEFORE_CLAIM \
+            --assert-selected SERVICES_PLUS_MIXED_CORE
+
+      - name: Run WALLE full SEO Avengers execution proof
+        run: bash walle/adapters/seo-avengers-2500.sh --expected-sha "$GITHUB_SHA"
