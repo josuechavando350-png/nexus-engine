@@ -30,6 +30,8 @@ node --check "$SUITE/outcome-calibration/calibration-engine.mjs"
 node --check "$SUITE/outcome-calibration/tenant-calibration.mjs"
 node --check "$SUITE/rank-transition/transition-engine.mjs"
 node --check "$SUITE/rank-transition/tenant-transition.mjs"
+node --check "$SUITE/decision-engine/decision-engine.mjs"
+node --check "$SUITE/decision-engine/tenant-decision.mjs"
 node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
@@ -51,7 +53,8 @@ node --test \
   "$SUITE/tests/test_opportunity_prioritization_v2.mjs" \
   "$SUITE/tests/test_client_quality_cohorts_v1.mjs" \
   "$SUITE/tests/test_outcome_calibration_v1.mjs" \
-  "$SUITE/tests/test_rank_transition_v1.mjs"
+  "$SUITE/tests/test_rank_transition_v1.mjs" \
+  "$SUITE/tests/test_decision_engine_v1.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
