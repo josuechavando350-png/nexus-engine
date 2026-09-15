@@ -21,7 +21,6 @@ const MIN_BRIDGE_TIMEOUT_MILLIS = 1_000;
 const MAX_BRIDGE_TIMEOUT_MILLIS = 86_400_000;
 const GIT_SHA_RE = /^[0-9a-f]{40}$/;
 const NON_PHYSICAL_BACKEND_RE = /(simulator|statevector|mock|fake|fixture|test-only|test_provider|emulator)/i;
-const CONTROL_CHAR_RE = /[\u0000-\u001f\u007f]/u;
 
 const PHASES = Object.freeze([
   "PREPARE_ONLY",
@@ -78,9 +77,17 @@ function backendName(value) {
   return normalized;
 }
 
+function hasControlCharacter(value) {
+  for (const character of value) {
+    const codePoint = character.codePointAt(0);
+    if ((codePoint >= 0 && codePoint <= 31) || codePoint === 127) return true;
+  }
+  return false;
+}
+
 function evidenceRoot(value) {
   const normalized = text(value, "physical evidenceRoot", { maxBytes: 2_048 });
-  if (CONTROL_CHAR_RE.test(normalized)) throw new Error("physical evidenceRoot contains control characters");
+  if (hasControlCharacter(normalized)) throw new Error("physical evidenceRoot contains control characters");
   return normalized;
 }
 
