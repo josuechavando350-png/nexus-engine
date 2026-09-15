@@ -5,6 +5,7 @@ const ENGINE_ID = "WALLE_PHYSICAL_QPU_RUN_OPERATOR_V1";
 const EXECUTE_AUTHORIZATION = "EXECUTE_PHYSICAL_QPU";
 const PREPARE_ONLY = "PREPARE_ONLY";
 const MAX_RUNS = 256;
+const IBM_GATED_ADAPTER_ID = "NEXUS_IBM_QUANTUM_COMPUTE_QPU_ADAPTER_V1";
 
 function normalizeAuthorization(value) {
   if (value !== PREPARE_ONLY && value !== EXECUTE_AUTHORIZATION) {
@@ -153,6 +154,9 @@ export async function runPhysicalQpuExperiment({
   const requestedRuns = integer(runCount, "physical runCount", 2, MAX_RUNS);
   const normalizedShots = integer(shots, "physical shots", 1, 10_000_000);
   const authorization = normalizeAuthorization(executionAuthorization);
+  if (authorization === EXECUTE_AUTHORIZATION && descriptor.adapterId === IBM_GATED_ADAPTER_ID) {
+    throw new Error("IBM live physical QPU execution must use the IBM physical session coordinator and gated smoke/repeated-series path");
+  }
 
   const request = freeze({
     optimizationProblemReport,
