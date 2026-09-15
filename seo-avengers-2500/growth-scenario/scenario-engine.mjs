@@ -82,16 +82,6 @@ function mulDivFloor(values, divisor, label) {
   return toSafeNumber(numerator / denominator, label);
 }
 
-function weightedFloor(rows, valueField, weightField, label) {
-  const totalWeight = rows.reduce((sum, row) => sum + BigInt(row[weightField]), 0n);
-  if (totalWeight <= 0n) return 0;
-  const numerator = rows.reduce(
-    (sum, row) => sum + BigInt(row[valueField]) * BigInt(row[weightField]),
-    0n,
-  );
-  return toSafeNumber(numerator / totalWeight, label);
-}
-
 function validateSearchRows(value) {
   if (!Array.isArray(value) || value.length < 1 || value.length > 100_000) {
     throw new Error("searchPerformanceRecords must contain 1..100000 rows");
@@ -149,10 +139,10 @@ function validateAssumptionProfile(value) {
   }
   const sourceIds = value.organic_funnel_source_ids.map((item, index) => stringValue(item, `organic funnel source ${index}`, { maxBytes: 256 }));
   if (new Set(sourceIds).size !== sourceIds.length) throw new Error("organic_funnel_source_ids must be unique");
+
   if (!Array.isArray(value.scenarios) || value.scenarios.length !== SCENARIO_IDS.length) {
     throw new Error("assumption profile must contain exactly three scenarios");
   }
-
   const scenariosById = new Map();
   for (const [index, scenario] of value.scenarios.entries()) {
     exactKeys(scenario, ["scenario_id", "target_ctr_ppm"], `scenario ${index}`);
@@ -169,7 +159,6 @@ function validateAssumptionProfile(value) {
     }
     scenariosById.set(scenario.scenario_id, Object.freeze({ scenarioId: scenario.scenario_id, targetCtrPpm: Object.freeze(targets) }));
   }
-
   for (const target of RANK_TARGETS) {
     let priorCtr = -1;
     for (const scenarioId of SCENARIO_IDS) {
@@ -179,28 +168,42 @@ function validateAssumptionProfile(value) {
     }
   }
 
+  const orderedSourceIds = [...sourceIds].sort(compareStrings);
+  const orderedScenarios = SCENARIO_IDS.map((scenarioId) => scenariosById.get(scenarioId));
+  const canonicalProfile = {
+    schema_version: SCHEMA_VERSION,
+    profile_id: profileId,
+    provenance,
+    click_to_session_ppm: clickToSessionPpm,
+    organic_funnel_source_ids: orderedSourceIds,
+    scenarios: orderedScenarios.map((scenario) => ({
+      scenario_id: scenario.scenarioId,
+      target_ctr_ppm: scenario.targetCtrPpm,
+    })),
+  };
   return Object.freeze({
     schemaVersion: SCHEMA_VERSION,
     profileId,
     provenance,
     clickToSessionPpm,
-    organicFunnelSourceIds: Object.freeze([...sourceIds].sort(compareStrings)),
-    scenarios: Object.freeze(SCENARIO_IDS.map((scenarioId) => scenariosById.get(scenarioId))),
-    sha256: sha256Canonical(value),
+    organicFunnelSourceIds: Object.freeze(orderedSourceIds),
+    scenarios: Object.freeze(orderedScenarios),
+    sha256: sha256Canonical(canonicalProfile),
   });
 }
 
 function aggregateSearch(rows) {
-  const impressions = rows.reduce((sum, row) => sum + row.impressions, 0);
-  const clicks = rows.reduce((sum, row) => sum + row.clicks, 0);
-  if (!Number.isSafeInteger(impressions) || !Number.isSafeInteger(clicks)) throw new Error("search aggregate exceeds safe integer range");
-  if (impressions <= 0) throw new Error("INSUFFICIENT_DATA:search_impressions_empty");
+  const impressionsBig = rows.reduce((sum, row) => sum + BigInt(row.impressions), 0n);
+  const clicksBig = rows.reduce((sum, row) => sum + BigInt(row.clicks), 0n);
+  if (impressionsBig <= 0n) throw new Error("INSUFFICIENT_DATA:search_impressions_empty");
+  const impressions = toSafeNumber(impressionsBig, "search impressions aggregate");
+  const clicks = toSafeNumber(clicksBig, "search clicks aggregate");
   const weightedPositionNumerator = rows.reduce(
     (sum, row) => sum + BigInt(row.averagePositionMilli) * BigInt(row.impressions),
     0n,
   );
-  const ctrPpm = mulDivFloor([clicks, PPM], impressions, "observed ctr");
-  const weightedPositionMilli = toSafeNumber(weightedPositionNumerator / BigInt(impressions), "weighted position");
+  const ctrPpm = toSafeNumber((clicksBig * BigInt(PPM)) / impressionsBig, "observed ctr");
+  const weightedPositionMilli = toSafeNumber(weightedPositionNumerator / impressionsBig, "weighted position");
   return Object.freeze({
     queryCount: new Set(rows.map((row) => row.query)).size,
     pageCount: new Set(rows.map((row) => row.pageUrl)).size,
@@ -215,25 +218,32 @@ function aggregateFunnel(rows, sourceIds) {
   const wanted = new Set(sourceIds);
   const selected = rows.filter((row) => wanted.has(row.sourceId));
   if (selected.length < 1) throw new Error("INSUFFICIENT_DATA:organic_funnel_rows_missing");
-  const sessions = selected.reduce((sum, row) => sum + row.sessions, 0);
-  if (!Number.isSafeInteger(sessions)) throw new Error("funnel sessions exceed safe integer range");
-  if (sessions <= 0) throw new Error("INSUFFICIENT_DATA:organic_funnel_sessions_empty");
-  const leadConversionPpm = weightedFloor(selected, "leadConversionPpm", "sessions", "weighted lead conversion");
-  const leadWeights = selected.map((row) => ({
-    ...row,
-    leadWeight: mulDivFloor([row.sessions, row.leadConversionPpm], 1, "lead weight"),
-  }));
-  const totalLeadWeight = leadWeights.reduce((sum, row) => sum + row.leadWeight, 0);
-  const closeRatePpm = totalLeadWeight > 0
-    ? weightedFloor(leadWeights, "closeRatePpm", "leadWeight", "weighted close rate")
+
+  const sessionsBig = selected.reduce((sum, row) => sum + BigInt(row.sessions), 0n);
+  if (sessionsBig <= 0n) throw new Error("INSUFFICIENT_DATA:organic_funnel_sessions_empty");
+  const sessions = toSafeNumber(sessionsBig, "funnel sessions aggregate");
+  const leadWeight = selected.reduce(
+    (sum, row) => sum + BigInt(row.sessions) * BigInt(row.leadConversionPpm),
+    0n,
+  );
+  const leadConversionPpm = toSafeNumber(leadWeight / sessionsBig, "weighted lead conversion");
+  const closeWeight = selected.reduce(
+    (sum, row) => sum + BigInt(row.sessions) * BigInt(row.leadConversionPpm) * BigInt(row.closeRatePpm),
+    0n,
+  );
+  const closeRatePpm = leadWeight > 0n
+    ? toSafeNumber(closeWeight / leadWeight, "weighted close rate")
     : 0;
-  const closeWeights = leadWeights.map((row) => ({
-    ...row,
-    closeWeight: mulDivFloor([row.leadWeight, row.closeRatePpm], 1, "close weight"),
-  }));
-  const totalCloseWeight = closeWeights.reduce((sum, row) => sum + row.closeWeight, 0);
-  const averageTicketMicros = totalCloseWeight > 0
-    ? weightedFloor(closeWeights, "averageTicketMicros", "closeWeight", "weighted ticket")
+  const ticketWeight = selected.reduce(
+    (sum, row) => sum
+      + BigInt(row.sessions)
+      * BigInt(row.leadConversionPpm)
+      * BigInt(row.closeRatePpm)
+      * BigInt(row.averageTicketMicros),
+    0n,
+  );
+  const averageTicketMicros = closeWeight > 0n
+    ? toSafeNumber(ticketWeight / closeWeight, "weighted ticket")
     : 0;
   const composedConversionPpm = mulDivFloor([leadConversionPpm, closeRatePpm], PPM, "composed conversion");
   return Object.freeze({
