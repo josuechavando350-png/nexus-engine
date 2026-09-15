@@ -20,6 +20,8 @@ node --check "$SUITE/rank-feasibility/longitudinal-engine.mjs"
 node --check "$SUITE/rank-feasibility/tenant-longitudinal.mjs"
 node --check "$SUITE/rank-feasibility/competition-engine.mjs"
 node --check "$SUITE/rank-feasibility/tenant-competition.mjs"
+node --check "$SUITE/rank-feasibility/authority-engine.mjs"
+node --check "$SUITE/rank-feasibility/tenant-authority.mjs"
 node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
@@ -36,7 +38,8 @@ node --test \
   "$SUITE/tests/test_rank_trend_engine.mjs" \
   "$SUITE/tests/test_rank_trend_empty_semantics.mjs" \
   "$SUITE/tests/test_rank_trend_reader_integrity.mjs" \
-  "$SUITE/tests/test_rank_competition_engine.mjs"
+  "$SUITE/tests/test_rank_competition_engine.mjs" \
+  "$SUITE/tests/test_rank_authority_engine.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])

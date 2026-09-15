@@ -13,6 +13,8 @@ const MAX_RECORDS_PER_DATASET = 100_000;
 const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 const PPM = 1_000_000;
 const COMPETITION_PROVIDER = "NEXUS_COMPETITIVE_SNAPSHOT";
+const AUTHORITY_PROVIDER = "NEXUS_AUTHORITY_SNAPSHOT";
+const AUTHORITY_NON_CLAIM = "INTERNAL_TOPICAL_AUTHORITY_DIAGNOSTIC_NOT_SEARCH_ENGINE_RANKING_EVIDENCE";
 
 const PROVIDER_KEYS = Object.freeze({
   GOOGLE_SEARCH_CONSOLE: Object.freeze(["search_performance_history_records", "search_performance_records"]),
@@ -21,6 +23,7 @@ const PROVIDER_KEYS = Object.freeze({
   NEXUS_SITE_SNAPSHOT: Object.freeze(["content_documents"]),
   NEXUS_CRM: Object.freeze(["revenue_funnel_records"]),
   [COMPETITION_PROVIDER]: Object.freeze(["keyword_coverage_records"]),
+  [AUTHORITY_PROVIDER]: Object.freeze(["topical_authority_records"]),
 });
 
 function compareStrings(left, right) {
@@ -133,6 +136,37 @@ function validateKeywordCoverage(rows) {
   }
 }
 
+function validateTopicalAuthority(rows) {
+  for (const [index, row] of rows.entries()) {
+    assertExactKeys(
+      row,
+      [
+        "assessment_status",
+        "authority_ppm",
+        "centrality_ppm",
+        "cohesion_ppm",
+        "coverage_ppm",
+        "intent_coverage_ppm",
+        "primary_evidence_ppm",
+        "source_non_claim",
+        "topic_id",
+      ],
+      `topical authority row ${index}`,
+    );
+    requireString(row.topic_id, `authority topic id ${index}`, { maxBytes: 4096 });
+    if (row.assessment_status !== "READY" && row.assessment_status !== "NEEDS_WORK" && row.assessment_status !== "BLOCKED") {
+      throw new Error(`authority assessment_status ${index} is invalid`);
+    }
+    if (row.source_non_claim !== AUTHORITY_NON_CLAIM) throw new Error(`authority source_non_claim ${index} is invalid`);
+    requireInteger(row.coverage_ppm, `authority coverage ppm ${index}`, 0, PPM);
+    requireInteger(row.intent_coverage_ppm, `authority intent coverage ppm ${index}`, 0, PPM);
+    requireInteger(row.primary_evidence_ppm, `authority primary evidence ppm ${index}`, 0, PPM);
+    requireInteger(row.cohesion_ppm, `authority cohesion ppm ${index}`, 0, PPM);
+    requireInteger(row.centrality_ppm, `authority centrality ppm ${index}`, 0, PPM);
+    requireInteger(row.authority_ppm, `authority ppm ${index}`, 0, PPM);
+  }
+}
+
 function validateTrafficWindows(rows) {
   for (const [index, row] of rows.entries()) {
     assertExactKeys(row, ["baseline_visits", "baseline_window_days", "current_visits", "current_window_days", "entity_id"], `traffic window row ${index}`);
@@ -190,6 +224,7 @@ const VALIDATORS = Object.freeze({
   search_performance_records: validateSearchPerformance,
   search_performance_history_records: validateSearchPerformanceHistory,
   keyword_coverage_records: validateKeywordCoverage,
+  topical_authority_records: validateTopicalAuthority,
   traffic_window_records: validateTrafficWindows,
   traffic_series_records: validateTrafficSeries,
   local_business_records: validateLocalBusiness,
@@ -199,10 +234,15 @@ const VALIDATORS = Object.freeze({
 
 function validateDataset(dataset) {
   if (!dataset || typeof dataset !== "object" || Array.isArray(dataset)) throw new Error("provider dataset must be an object");
-  const competition = dataset.provider === COMPETITION_PROVIDER;
+  const provenanceKind = dataset.provider === COMPETITION_PROVIDER
+    ? "competition"
+    : dataset.provider === AUTHORITY_PROVIDER
+      ? "authority"
+      : null;
+  const provenanceBacked = provenanceKind !== null;
   assertExactKeys(
     dataset,
-    competition
+    provenanceBacked
       ? ["key", "provider", "records", "records_sha256", "source_authority", "source_capture_sha256"]
       : ["key", "provider", "records", "records_sha256"],
     "provider dataset",
@@ -224,11 +264,11 @@ function validateDataset(dataset) {
 
   let sourceAuthority = null;
   let sourceCaptureSha256 = null;
-  if (competition) {
-    sourceAuthority = requireString(dataset.source_authority, "competition source_authority", { maxBytes: 128 });
-    if (!SOURCE_AUTHORITY_RE.test(sourceAuthority)) throw new Error("competition source_authority has invalid format");
+  if (provenanceBacked) {
+    sourceAuthority = requireString(dataset.source_authority, `${provenanceKind} source_authority`, { maxBytes: 128 });
+    if (!SOURCE_AUTHORITY_RE.test(sourceAuthority)) throw new Error(`${provenanceKind} source_authority has invalid format`);
     if (typeof dataset.source_capture_sha256 !== "string" || !SHA256_RE.test(dataset.source_capture_sha256)) {
-      throw new Error("invalid competition source_capture_sha256");
+      throw new Error(`invalid ${provenanceKind} source_capture_sha256`);
     }
     sourceCaptureSha256 = dataset.source_capture_sha256;
   }
