@@ -208,6 +208,24 @@ test("prepare-only mode never calls the physical backend and remains blocked", a
   assert.equal(result.operatorReport.quantumAdvantageClaimAllowed, false);
 });
 
+test("generic operator blocks IBM live adapter before any provider call", async () => {
+  let called = 0;
+  const backend = {
+    descriptor: Object.freeze({
+      adapterId: "NEXUS_IBM_QUANTUM_COMPUTE_QPU_ADAPTER_V1",
+      adapterVersion: "1.0.0",
+      backendFamily: "PHYSICAL_QPU",
+      hardwareExecution: true,
+    }),
+    execute: async () => { called += 1; throw new Error("generic operator must not reach IBM live backend"); },
+  };
+  await assert.rejects(
+    runPhysicalQpuExperiment(operatorInput(backend, PHYSICAL_QPU_RUN_EXECUTION_AUTHORIZATION)),
+    /IBM live physical QPU execution must use the IBM physical session coordinator/,
+  );
+  assert.equal(called, 0);
+});
+
 test("execution authorization with no provider executor attempts once then stops blocked", async () => {
   const backend = new PhysicalQPUBackend({
     provider: "EXTERNAL_QPU_PROVIDER_REQUIRED",
