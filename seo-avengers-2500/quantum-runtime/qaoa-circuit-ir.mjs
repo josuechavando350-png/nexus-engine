@@ -2,7 +2,6 @@ import {
   QUANTUM_CONTRACT_SCHEMA_VERSION as SCHEMA_VERSION,
   TOKEN_RE,
   canonicalQuantumSha256,
-  compareStrings,
   exactKeys,
   freeze,
   integer,
