@@ -15,12 +15,13 @@ Esta carpeta concentra capacidades de adquisición y SEO ejecutables, medibles y
 9. `09-parasito-inteligente` — adopta el CORTEX Headless Programmatic SEO canónico y le añade autorización de propiedad: first-party en el origen canónico o delegación DNS TXT HMAC de corta duración, fuentes editoriales gobernadas y recibo que liga autorización + run pSEO.
 10. `10-candado-invisible` — resiliencia Edge portable para el origen first-party: timeout acotado, circuit breaker, bulkhead por isolate, cache policy privada/pública y headers diferenciados Cloudflare/Vercel con stale delivery gobernado; no promete inmunidad ni cero downtime.
 11. `11-guardian-latencia-cero` — supervisor portable de handlers request-time dentro de #10: deadlines cooperativos con `AbortSignal`, circuit breaker por operación, fallback acotado, bulkhead por isolate y fail-open del backend de estado; no promete latencia literal cero ni forced GC.
+12. `12-incrementalidad-geo-holdout` — adopta el CORTEX #12 canónico de experimentación geo-holdout y añade scope SEO por origen + Google Ads customer, persistencia/control durable y un gate causal que solo habilita la optimización #2 cuando el intervalo 95% del lift incremental es positivo.
 
 Las estrategias se incorporan de forma incremental. Cada una debe mantener contratos tipados, límites de seguridad, pruebas de fallo y una ruta de producción explícita antes de considerarse terminada. Cuando una capacidad canónica existente ya supera la estrategia propuesta, se conserva esa implementación y la carpeta maestra registra su ubicación sin crear una segunda versión peor o divergente.
 
 ## Regla de conectividad
 
-SEO Profesional funciona como un sistema, no como once módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta numerada sin registrarla y conectarla hace fallar CI.
+SEO Profesional funciona como un sistema, no como doce módulos aislados. El runtime certificado #1–#4 conserva su grafo en `topology.ts`. Desde #5, `master-topology.ts` es el registro acumulativo: contiene todas las estrategias implementadas y exige un grafo fuertemente conectado. `topology.test.ts` compara las carpetas numeradas implementadas contra el registro maestro; añadir una nueva carpeta numerada sin registrarla y conectarla hace fallar CI.
 
 El core #1–#4 permanece exactamente conectado así:
 
@@ -64,7 +65,12 @@ El core #1–#4 permanece exactamente conectado así:
 - `#10 -> #11` por `RESILIENT_EDGE_RUNTIME_HANDOFF`: #10 conserva la frontera exterior de timeout/cache/proveedor y entrega su mismo `Request` + `AbortSignal` al guard de handlers #11.
 - `#11 -> #1` por `GUARDED_WEB_LANDING`: la respuesta primaria o fallback de #11 vuelve a través de #10 y continúa siendo la misma superficie first-party que entra al circuito de adquisición #1.
 
-`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7, #8, #9, #10 y #11. `serveGuardedEdgeRequest()` materializa la ruta real `#10 -> #11` en código; no es solo un arco documental. Ningún motor necesita importar la implementación interna de otro salvo las reutilizaciones deliberadas de capacidades canónicas.
+#12 reutiliza el framework estadístico durable de CORTEX y lo convierte en un gate operativo de adquisición:
+
+- `#4 -> #12` por `VERIFIED_EXPERIMENT_OPERATOR_IDENTITY`: el experimento debe pertenecer exactamente al mismo origen canónico de #4 y al mismo `googleAdsCustomerId` compartido por #1/#2.
+- `#12 -> #2` por `INCREMENTALITY_GATED_OPTIMIZATION`: únicamente un análisis durable con verdict `POSITIVE` se traduce a `ALLOW_OPTIMIZATION`; `INCONCLUSIVE` queda en `HOLD` y `NEGATIVE` en `BLOCK_REGRESSION`, sin llamar al mutador #2.
+
+`connected-system.ts` sigue siendo el core operativo #1–#4. `master-system.ts` lo compone por puertos estructurales con #5, #6, #7, #8, #9, #10, #11 y #12. `serveGuardedEdgeRequest()` materializa la ruta real `#10 -> #11`; `optimizeExactMatchesWithIncrementality()` materializa `#12 -> #2` y no delega a Google Ads si la evidencia no es positiva. Ningún motor necesita importar la implementación interna de otro salvo las reutilizaciones deliberadas de capacidades canónicas.
 
 ## Fronteras externas
 
@@ -83,6 +89,8 @@ La inteligencia corporativa #6 no entra a portales privados. Prefiere OCDS/JSON;
 #10 usa únicamente APIs Web (`Request`, `Response`, `AbortController`) y un puerto de estado atómico. El store en memoria incluido no se presenta como coordinación global; en producción se inyecta un backend compartido apropiado. Requests con Authorization, Cookie, sesión o personalización Nexus y responses con `Set-Cookie` nunca pasan a shared cache. Cloudflare recibe `Cloudflare-CDN-Cache-Control` sin `s-maxage` para preservar sus semantics actuales de stale; Vercel recibe `CDN-Cache-Control`. Un cache miss real no puede beneficiarse de `stale-if-error`, por lo que #10 limita daño pero no promete disponibilidad absoluta.
 
 #11 reutiliza el `EdgeCircuitStatePort` de #10 para aislar operaciones lógicas fallidas. No bufferiza cuerpos, libera siempre su reserva de concurrencia en `finally`, limita la espera del backend de estado y propaga el `AbortSignal` exterior. JavaScript no ofrece un API portable para forzar garbage collection ni terminar de forma segura una Promise arbitraria que ignore cancelación; por eso #11 previene amplificación de presión y aplica fallbacks, mientras los límites duros de CPU/memoria siguen siendo responsabilidad del proveedor. Cloudflare documenta actualmente 128 MB por isolate. Vercel deprecó Edge Functions para proyectos nuevos; la integración portable se consume desde la frontera Vercel apropiada (Routing Middleware o Functions/Fluid según el workload) sin atarse a un SDK Edge obsoleto.
+
+#12 no duplica estadística ni guarda identificadores de usuario. Reutiliza `packages/ontology/cortex/geo-holdout`, incluyendo diseño estratificado determinista, digest del diseño, verificación del baseline preregistrado, tamaños mínimos por brazo, difference-in-differences con incertidumbre Welch, registro SQLite durable e `ACTIVE / OBSERVE_ONLY / KILLED`. El wrapper SEO deriva un `scopeDigest` SHA-256 de origen + customer y usa un `experimentId` namespaced para evitar cruces entre cuentas. Trabaja con IDs de geo y outcomes agregados. Un intervalo 95% inconcluso nunca se presenta como lift positivo ni habilita #2; un resultado negativo bloquea la optimización. La validez causal sigue limitada al diseño, los datos y los supuestos del experimento y no implica ranking, tráfico o ingresos futuros.
 
 ## Regla de producción
 

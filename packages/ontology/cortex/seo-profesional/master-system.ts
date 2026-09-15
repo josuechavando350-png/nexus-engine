@@ -32,6 +32,12 @@ import type {
 } from "./09-parasito-inteligente/index.js";
 import type { EdgePlatform, EdgeUpstreamHandler } from "./10-candado-invisible/index.js";
 import type { EdgeRuntimeHandler } from "./11-guardian-latencia-cero/index.js";
+import type {
+  SeoGeoIncrementalityAnalysisRequest,
+  SeoGeoIncrementalityDecision,
+  SeoGeoIncrementalityDesignRequest,
+  SeoGeoIncrementalityRegistration,
+} from "./12-incrementalidad-geo-holdout/index.js";
 import {
   assertConnectedSeoProfessionalMasterTopology,
   SEO_PROFESSIONAL_MASTER_CONNECTIONS,
@@ -136,6 +142,23 @@ export interface EdgeRuntimeGuardPort {
   handle(operationKey: string, request: Request, parentSignal: AbortSignal, primary: EdgeRuntimeHandler, fallback: EdgeRuntimeHandler): Promise<Response>;
 }
 
+export interface GeoIncrementalityPort {
+  identity(): Readonly<{
+    strategy: 12;
+    provider: "CORTEX_GEO_HOLDOUT_INCREMENTALITY";
+    engine: "CORTEX_12_GEO_HOLDOUT";
+    operatorWebsiteOrigin: string;
+    googleAdsCustomerId: string;
+    scopeDigest: `sha256:${string}`;
+  }>;
+  registerDesign(input: SeoGeoIncrementalityDesignRequest): SeoGeoIncrementalityRegistration;
+  analyze(input: SeoGeoIncrementalityAnalysisRequest): SeoGeoIncrementalityDecision;
+}
+
+export type IncrementalityGatedExactMatchOptimizationResult =
+  | Readonly<{ status: "BLOCKED"; decision: SeoGeoIncrementalityDecision; optimization: null }>
+  | Readonly<{ status: "OPTIMIZED"; decision: SeoGeoIncrementalityDecision; optimization: ExactMatchSynthesizerRunResult }>;
+
 export interface SeoProfessionalMasterSystemSnapshot {
   readonly googleAdsCustomerId: string;
   readonly offlineConversionProvider: string;
@@ -149,8 +172,10 @@ export interface SeoProfessionalMasterSystemSnapshot {
   readonly programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO";
   readonly edgeResilienceProvider: "PORTABLE_EDGE_RESILIENCE";
   readonly edgeRuntimeGuardProvider: "EDGE_RUNTIME_GLOBAL_GUARD";
+  readonly geoIncrementalityProvider: "CORTEX_GEO_HOLDOUT_INCREMENTALITY";
+  readonly geoIncrementalityEngine: "CORTEX_12_GEO_HOLDOUT";
   readonly edgePlatform: EdgePlatform;
-  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+  readonly strategyNumbers: readonly [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   readonly connectionCount: number;
   readonly connected: true;
 }
@@ -170,6 +195,7 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
   private readonly programmaticSeo: AuthorizedProgrammaticSeoPort;
   private readonly edgeResilience: EdgeResiliencePort;
   private readonly edgeRuntimeGuard: EdgeRuntimeGuardPort;
+  private readonly geoIncrementality: GeoIncrementalityPort;
 
   constructor(input: {
     readonly core: SeoProfessionalCorePort<TDecision, TLocalPresence>;
@@ -180,6 +206,7 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     readonly programmaticSeo: AuthorizedProgrammaticSeoPort;
     readonly edgeResilience: EdgeResiliencePort;
     readonly edgeRuntimeGuard: EdgeRuntimeGuardPort;
+    readonly geoIncrementality: GeoIncrementalityPort;
   }) {
     if (!input || typeof input !== "object") throw new SeoProfessionalMasterSystemError("INVALID_CONFIG", "SEO Profesional master system dependencies are required");
     assertConnectedSeoProfessionalMasterTopology();
@@ -203,6 +230,9 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     assertMethod(input.edgeResilience, "handle", "edgeResilience");
     assertMethod(input.edgeRuntimeGuard, "identity", "edgeRuntimeGuard");
     assertMethod(input.edgeRuntimeGuard, "handle", "edgeRuntimeGuard");
+    assertMethod(input.geoIncrementality, "identity", "geoIncrementality");
+    assertMethod(input.geoIncrementality, "registerDesign", "geoIncrementality");
+    assertMethod(input.geoIncrementality, "analyze", "geoIncrementality");
 
     const coreIdentity = input.core.snapshot();
     const outreachIdentity = input.domainBirthOutreach.identity();
@@ -212,6 +242,7 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     const programmaticIdentity = input.programmaticSeo.identity();
     const edgeIdentity = input.edgeResilience.identity();
     const guardIdentity = input.edgeRuntimeGuard.identity();
+    const incrementalityIdentity = input.geoIncrementality.identity();
 
     if (outreachIdentity.strategy !== 5 || outreachIdentity.provider !== "WHATSAPP_CLOUD_API") {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "domainBirthOutreach must identify SEO strategy #5 on WhatsApp Cloud API");
@@ -258,6 +289,15 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     if (guardIdentity.platform !== edgeIdentity.platform) {
       throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#11 edge platform must match #10");
     }
+    if (incrementalityIdentity.strategy !== 12 || incrementalityIdentity.provider !== "CORTEX_GEO_HOLDOUT_INCREMENTALITY" || incrementalityIdentity.engine !== "CORTEX_12_GEO_HOLDOUT" || !/^sha256:[0-9a-f]{64}$/u.test(incrementalityIdentity.scopeDigest)) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "geoIncrementality must identify SEO strategy #12 on the canonical CORTEX #12 geo-holdout boundary");
+    }
+    if (incrementalityIdentity.operatorWebsiteOrigin !== coreIdentity.canonicalWebsiteOrigin) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#12 operator website origin must match the #4 canonical local business origin");
+    }
+    if (incrementalityIdentity.googleAdsCustomerId !== coreIdentity.googleAdsCustomerId) {
+      throw new SeoProfessionalMasterSystemError("IDENTITY_MISMATCH", "#12 Google Ads customer must match the #1/#2 customer identity");
+    }
 
     this.core = input.core;
     this.domainBirthOutreach = input.domainBirthOutreach;
@@ -267,6 +307,7 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
     this.programmaticSeo = input.programmaticSeo;
     this.edgeResilience = input.edgeResilience;
     this.edgeRuntimeGuard = input.edgeRuntimeGuard;
+    this.geoIncrementality = input.geoIncrementality;
   }
 
   snapshot(): SeoProfessionalMasterSystemSnapshot {
@@ -285,8 +326,10 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
       programmaticSeoEngine: "CORTEX_HEADLESS_PROGRAMMATIC_SEO" as const,
       edgeResilienceProvider: "PORTABLE_EDGE_RESILIENCE" as const,
       edgeRuntimeGuardProvider: "EDGE_RUNTIME_GLOBAL_GUARD" as const,
+      geoIncrementalityProvider: "CORTEX_GEO_HOLDOUT_INCREMENTALITY" as const,
+      geoIncrementalityEngine: "CORTEX_12_GEO_HOLDOUT" as const,
       edgePlatform: edge.platform,
-      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const),
+      strategyNumbers: Object.freeze([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const),
       connectionCount: SEO_PROFESSIONAL_MASTER_CONNECTIONS.length,
       connected: true as const,
     });
@@ -305,6 +348,24 @@ export class SeoProfessionalMasterSystem<TDecision, TLocalPresence> {
 
   optimizeExactMatches(input: ConnectedExactMatchOptimizationInput): Promise<ExactMatchSynthesizerRunResult> {
     return this.core.optimizeExactMatches(input);
+  }
+
+  registerGeoIncrementalityDesign(input: SeoGeoIncrementalityDesignRequest): SeoGeoIncrementalityRegistration {
+    return this.geoIncrementality.registerDesign(input);
+  }
+
+  analyzeGeoIncrementality(input: SeoGeoIncrementalityAnalysisRequest): SeoGeoIncrementalityDecision {
+    return this.geoIncrementality.analyze(input);
+  }
+
+  async optimizeExactMatchesWithIncrementality(input: Readonly<{
+    incrementality: SeoGeoIncrementalityAnalysisRequest;
+    optimization: ConnectedExactMatchOptimizationInput;
+  }>): Promise<IncrementalityGatedExactMatchOptimizationResult> {
+    const decision = this.geoIncrementality.analyze(input.incrementality);
+    if (decision.gate !== "ALLOW_OPTIMIZATION") return Object.freeze({ status: "BLOCKED" as const, decision, optimization: null });
+    const optimization = await this.core.optimizeExactMatches(input.optimization);
+    return Object.freeze({ status: "OPTIMIZED" as const, decision, optimization });
   }
 
   runDomainBirthOutreach(input: DomainBirthOutreachRequest): Promise<DomainBirthOutreachResult> {
@@ -449,3 +510,21 @@ export type {
   EdgeRuntimeGuardTelemetryEvent,
   EdgeRuntimeHandler,
 } from "./11-guardian-latencia-cero/index.js";
+export {
+  SeoGeoIncrementalityRuntime,
+  createSeoGeoIncrementalityPolicy,
+  createSqliteSeoGeoIncrementalityRuntime,
+  scopedSeoGeoExperimentId,
+} from "./12-incrementalidad-geo-holdout/index.js";
+export type {
+  GeoHoldoutExperimentRegistryPort,
+  SeoGeoIncrementalityAnalysisRequest,
+  SeoGeoIncrementalityDecision,
+  SeoGeoIncrementalityDesignRequest,
+  SeoGeoIncrementalityGate,
+  SeoGeoIncrementalityIdentity,
+  SeoGeoIncrementalityPolicy,
+  SeoGeoIncrementalityPolicyInput,
+  SeoGeoIncrementalityRegistration,
+  SqliteSeoGeoIncrementalityRuntime,
+} from "./12-incrementalidad-geo-holdout/index.js";
