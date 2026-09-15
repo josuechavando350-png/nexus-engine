@@ -7,12 +7,21 @@ from pathlib import Path
 import unittest
 
 
-PREFLIGHT_PATH = Path(__file__).resolve().parents[1] / "quantum-runtime" / "providers" / "ibm" / "ibm-qpu-preflight.py"
+PROVIDER_DIR = Path(__file__).resolve().parents[1] / "quantum-runtime" / "providers" / "ibm"
+PREFLIGHT_PATH = PROVIDER_DIR / "ibm-qpu-preflight.py"
+BRIDGE_PATH = PROVIDER_DIR / "ibm-qpu-bridge.py"
+
 SPEC = importlib.util.spec_from_file_location("nexus_ibm_qpu_preflight", PREFLIGHT_PATH)
 if SPEC is None or SPEC.loader is None:
     raise RuntimeError("unable to load IBM QPU preflight module")
 PREFLIGHT = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(PREFLIGHT)
+
+BRIDGE_SPEC = importlib.util.spec_from_file_location("nexus_ibm_qpu_bridge", BRIDGE_PATH)
+if BRIDGE_SPEC is None or BRIDGE_SPEC.loader is None:
+    raise RuntimeError("unable to load IBM QPU bridge module")
+BRIDGE = importlib.util.module_from_spec(BRIDGE_SPEC)
+BRIDGE_SPEC.loader.exec_module(BRIDGE)
 
 
 def sha256_text(value: str) -> str:
@@ -87,6 +96,22 @@ class IbmQpuPreflightContractTest(unittest.TestCase):
                 "TRANSPILED_CIRCUIT_NOT_NATIVE_TO_TARGET",
             ],
         )
+
+    def test_preflight_and_live_bridge_capability_snapshots_are_byte_identical(self) -> None:
+        class Target:
+            operation_names = ["x", "measure", "cz", "rz", "sx"]
+
+        class Backend:
+            name = "ibm_contract_qpu"
+            num_qubits = 127
+            physical_qubits = 127
+            target = Target()
+
+        preflight_artifact = PREFLIGHT._capabilities_artifact(Backend())
+        live_artifact = BRIDGE._capabilities_artifact(Backend())
+        self.assertEqual(preflight_artifact, live_artifact)
+        self.assertIn('"physicalQubits":127', preflight_artifact)
+        self.assertEqual(sha256_text(preflight_artifact), sha256_text(live_artifact))
 
     def test_live_preflight_source_contains_no_sampler_submission_path(self) -> None:
         source = inspect.getsource(PREFLIGHT._execute)

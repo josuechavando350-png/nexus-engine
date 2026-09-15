@@ -24,7 +24,7 @@ function readyResponse({ seed = "1337", readiness = "READY", statusMessage = "ac
   const logical = logicalCompilation();
   const transpiledQasm3 = `${logical.qasm3}\n// seeded ISA fixture`;
   const topologyJson = JSON.stringify({ backend: "ibm_contract_qpu", edges: [[0, 1]] });
-  const capabilitiesJson = JSON.stringify({ backend: "ibm_contract_qpu", numQubits: 127, operationNames: ["measure", "rz", "sx", "x", "cz"] });
+  const capabilitiesJson = JSON.stringify({ backend: "ibm_contract_qpu", numQubits: 127, physicalQubits: 127, operationNames: ["measure", "rz", "sx", "x", "cz"] });
   return {
     schemaVersion: 1,
     bridgeId: "NEXUS_IBM_QUANTUM_QPU_PREFLIGHT_V1",
