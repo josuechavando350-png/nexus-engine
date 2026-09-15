@@ -13,6 +13,7 @@ const ADAPTER_VERSION = "1.0.0";
 const BRIDGE_ID = "NEXUS_IBM_QUANTUM_QISKIT_BRIDGE_V1";
 const DEFAULT_BRIDGE_PATH = fileURLToPath(new URL("./ibm-qpu-bridge.py", import.meta.url));
 const MAX_BRIDGE_OUTPUT_BYTES = 64 * 1024 * 1024;
+const MAX_TRANSPILER_SEED = 2_147_483_647;
 const SHA_RE = /^sha256:[0-9a-f]{64}$/;
 
 function sha256Text(value) {
@@ -28,6 +29,14 @@ function requiredText(value, label) {
 function optionalSecret(value, label) {
   if (value === null || value === undefined || value === "") return null;
   return requiredText(value, label);
+}
+
+function optionalTranspilerSeed(value) {
+  if (value === null || value === undefined) return null;
+  if (!Number.isSafeInteger(value) || value < 0 || value > MAX_TRANSPILER_SEED) {
+    throw new Error(`IBM transpilerSeed must be integer between 0 and ${MAX_TRANSPILER_SEED}`);
+  }
+  return value;
 }
 
 function exactKeys(value, expected, label) {
@@ -60,7 +69,8 @@ async function writeContentAddressed(path, content) {
   }
 }
 
-export function validateIbmBridgeResponse(response, { logicalCompilation, adapterId = ADAPTER_ID, backendName }) {
+export function validateIbmBridgeResponse(response, { logicalCompilation, adapterId = ADAPTER_ID, backendName, transpilerSeed = null }) {
+  const expectedSeed = optionalTranspilerSeed(transpilerSeed);
   exactKeys(response, ["artifacts", "bridgeId", "evidence", "schemaVersion"], "IBM bridge response");
   if (response.schemaVersion !== 1 || response.bridgeId !== BRIDGE_ID) throw new Error("unsupported IBM bridge response");
   const evidence = response.evidence;
@@ -74,6 +84,10 @@ export function validateIbmBridgeResponse(response, { logicalCompilation, adapte
   if (evidence.backendDevice !== backendName) throw new Error("IBM bridge backend identity mismatch");
   if (evidence.reproducibilityMetadata?.adapterId !== adapterId
     || evidence.reproducibilityMetadata?.adapterVersion !== ADAPTER_VERSION) throw new Error("IBM bridge adapter reproducibility mismatch");
+  const observedSeed = evidence.reproducibilityMetadata?.seed ?? null;
+  if (expectedSeed === null ? observedSeed !== null : observedSeed !== String(expectedSeed)) {
+    throw new Error("IBM bridge transpiler seed binding mismatch");
+  }
   if (evidence.transpilationApplied !== true || !evidence.transpiledCircuitSha256) throw new Error("IBM bridge must preserve ISA transpilation digest");
 
   const artifacts = response.artifacts;
@@ -197,6 +211,7 @@ export function createIbmFilesystemEvidenceSink({ rootDir }) {
       jobId: evidence.jobId,
       circuitSha256: evidence.circuitSha256,
       transpiledCircuitSha256: evidence.transpiledCircuitSha256,
+      transpilerSeed: evidence.reproducibilityMetadata?.seed ?? null,
       rawResultSha256: evidence.rawResultSha256,
       providerReceiptSha256: evidence.providerReceiptSha256,
       calibrationMetadataSha256: evidence.calibrationEvidence?.metadataSha256 ?? null,
@@ -208,7 +223,7 @@ export function createIbmFilesystemEvidenceSink({ rootDir }) {
   };
 }
 
-function buildBridgeRequest({ physicalRequest, backendName, logicalCompilation }) {
+function buildBridgeRequest({ physicalRequest, backendName, logicalCompilation, transpilerSeed }) {
   return Object.freeze({
     schemaVersion: 1,
     provider: PROVIDER,
@@ -222,6 +237,7 @@ function buildBridgeRequest({ physicalRequest, backendName, logicalCompilation }
     optimizationProblemReportSha256: physicalRequest.problemBinding.optimizationProblemReportSha256,
     optimizationModelSha256: physicalRequest.problemBinding.optimizationModelSha256,
     circuitSha256: physicalRequest.circuitPayload.circuitSha256,
+    transpilerSeed,
     logicalCircuitArtifact: Object.freeze({
       format: "OPENQASM_3",
       compilerId: logicalCompilation.compilerId,
@@ -238,6 +254,7 @@ export function createIbmQuantumComputeBackend({
   instanceCrn = null,
   backendName = null,
   evidenceSink = null,
+  transpilerSeed = null,
   pythonExecutable = "python3",
   bridgePath = DEFAULT_BRIDGE_PATH,
   timeoutMillis = 0,
@@ -246,7 +263,8 @@ export function createIbmQuantumComputeBackend({
   const token = optionalSecret(apiKey, "IBM Quantum API key");
   const crn = optionalSecret(instanceCrn, "IBM Quantum instance CRN");
   const backend = optionalSecret(backendName, "IBM Quantum backend name");
-  const anyConfiguration = token !== null || crn !== null || backend !== null || evidenceSink !== null;
+  const seed = optionalTranspilerSeed(transpilerSeed);
+  const anyConfiguration = token !== null || crn !== null || backend !== null || evidenceSink !== null || seed !== null;
   const fullyConfigured = token !== null && crn !== null && backend !== null && typeof evidenceSink === "function";
   if (anyConfiguration && !fullyConfigured) {
     throw new Error("IBM physical QPU configuration requires apiKey, instanceCrn, backendName, and evidenceSink together");
@@ -255,7 +273,7 @@ export function createIbmQuantumComputeBackend({
 
   const executor = !fullyConfigured ? null : async (physicalRequest) => {
     const logicalCompilation = compileQaoaExecutableCircuitToOpenQasm3(physicalRequest.circuitPayload);
-    const request = buildBridgeRequest({ physicalRequest, backendName: backend, logicalCompilation });
+    const request = buildBridgeRequest({ physicalRequest, backendName: backend, logicalCompilation, transpilerSeed: seed });
     const response = await bridgeRunner({
       request,
       apiKey: token,
@@ -264,7 +282,11 @@ export function createIbmQuantumComputeBackend({
       bridgePath,
       timeoutMillis,
     });
-    const checked = validateIbmBridgeResponse(response, { logicalCompilation, backendName: backend });
+    const checked = validateIbmBridgeResponse(response, {
+      logicalCompilation,
+      backendName: backend,
+      transpilerSeed: seed,
+    });
     await evidenceSink({ evidence: checked.evidence, artifacts: checked.artifacts, bridgeRequest: request });
     return checked.evidence;
   };
@@ -277,12 +299,17 @@ export function createIbmQuantumComputeBackend({
   });
 }
 
-export function buildIbmBridgeRequestForContractTest({ physicalRequest, backendName }) {
+export function buildIbmBridgeRequestForContractTest({ physicalRequest, backendName, transpilerSeed = null }) {
+  const seed = optionalTranspilerSeed(transpilerSeed);
   const logicalCompilation = compileQaoaExecutableCircuitToOpenQasm3(physicalRequest.circuitPayload);
-  return Object.freeze({ request: buildBridgeRequest({ physicalRequest, backendName, logicalCompilation }), logicalCompilation });
+  return Object.freeze({
+    request: buildBridgeRequest({ physicalRequest, backendName, logicalCompilation, transpilerSeed: seed }),
+    logicalCompilation,
+  });
 }
 
 export const IBM_QUANTUM_COMPUTE_PROVIDER = PROVIDER;
 export const IBM_QUANTUM_COMPUTE_ADAPTER_ID = ADAPTER_ID;
 export const IBM_QUANTUM_COMPUTE_ADAPTER_VERSION = ADAPTER_VERSION;
 export const IBM_QPU_BRIDGE_PATH = DEFAULT_BRIDGE_PATH;
+export const IBM_QPU_MAX_TRANSPILER_SEED = MAX_TRANSPILER_SEED;
