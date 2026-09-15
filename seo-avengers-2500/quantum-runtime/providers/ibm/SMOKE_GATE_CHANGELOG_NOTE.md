@@ -1,1 +1,0 @@
-This temporary note intentionally does not certify hardware execution. It records that the branch introduces the V1 IBM physical smoke gate and will remain unmerged until exact-head CI and WALLE evidence are green and audited. Delete this note before merge if the final PR description fully captures the certification record.
