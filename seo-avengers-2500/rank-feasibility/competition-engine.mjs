@@ -79,7 +79,6 @@ function validateCompetitionRows(value) {
     );
     if (typeof row.site_ranked !== "boolean") throw new Error(`site_ranked ${index} must be boolean`);
     return Object.freeze({
-      keyword: stringValue(row.keyword, `keyword ${index}`, { maxBytes: 4096 }),
       keywordIdentity: keywordIdentity(row.keyword, `keyword ${index}`),
       siteRanked: row.site_ranked,
       competitorRankedCount: integerValue(row.competitor_ranked_count, `competitor ranked count ${index}`, 0, 100_000),
@@ -134,7 +133,7 @@ function normalizeCompetitionRows(rows) {
   for (const row of rows) {
     const prior = registry.get(row.keywordIdentity);
     const value = Object.freeze({
-      keyword: row.keyword,
+      keyword: row.keywordIdentity,
       keywordIdentity: row.keywordIdentity,
       siteRanked: row.siteRanked,
       competitorRankedCount: row.competitorRankedCount,
