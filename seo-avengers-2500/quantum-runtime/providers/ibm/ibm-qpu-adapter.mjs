@@ -56,7 +56,7 @@ async function writeContentAddressed(path, content) {
   } catch (error) {
     if (error?.code !== "EEXIST") throw error;
     const existing = await readFile(path, "utf8");
-    if (existing !== content) throw new Error(`content-addressed evidence collision:${path}`);
+    if (existing !== content) throw new Error(`content-addressed evidence collision:${path}`, { cause: error });
   }
 }
 
