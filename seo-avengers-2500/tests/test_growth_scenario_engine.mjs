@@ -1,7 +1,18 @@
 import assert from "node:assert/strict";
+import { mkdir, mkdtemp, readFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import test from "node:test";
 
+import { setTenantEnabled } from "../control-plane/tenant-control.mjs";
+import {
+  canonicalProviderRecordsSha256,
+  publishAuthorizedProviderSnapshot,
+} from "../evidence/authorized-provider-snapshot.mjs";
 import { buildGrowthScenarioReport } from "../growth-scenario/scenario-engine.mjs";
+import { buildTenantGrowthScenario } from "../growth-scenario/tenant-scenario.mjs";
+
+const SITE_ID = "walle-growth-probe";
 
 function searchRows() {
   return [
@@ -49,6 +60,41 @@ function profile() {
       },
     ],
   };
+}
+
+function dataset(provider, key, records) {
+  return {
+    provider,
+    key,
+    records,
+    records_sha256: canonicalProviderRecordsSha256(records),
+  };
+}
+
+async function setupEvidence({ includeFunnel = true } = {}) {
+  const root = await mkdtemp(join(tmpdir(), "walle-growth-scenario-"));
+  const controlRoot = join(root, "control");
+  const evidenceRoot = join(root, "evidence");
+  await mkdir(controlRoot, { mode: 0o700 });
+  await mkdir(evidenceRoot, { mode: 0o700 });
+  await mkdir(join(evidenceRoot, "tenants"), { mode: 0o700 });
+  const control = await setTenantEnabled({ controlRoot, siteId: SITE_ID, enabled: true, expectedGeneration: 0 });
+  const datasets = [dataset("GOOGLE_SEARCH_CONSOLE", "search_performance_records", searchRows())];
+  if (includeFunnel) datasets.push(dataset("NEXUS_CRM", "revenue_funnel_records", funnelRows()));
+  await publishAuthorizedProviderSnapshot({
+    controlRoot,
+    evidenceRoot,
+    siteId: SITE_ID,
+    snapshot: {
+      schema_version: 1,
+      site_id: SITE_ID,
+      control_generation: control.generation,
+      capture_id: "growth-scenario-capture-001",
+      observed_at_unix_ms: 1_800_000_000_000,
+      datasets,
+    },
+  });
+  return { controlRoot, evidenceRoot, control };
 }
 
 test("base Top 3 scenario converts explicit CTR assumptions through the observed funnel", () => {
@@ -180,4 +226,54 @@ test("successful output carries explicit no-guarantee and client-quality boundar
   assert.ok(report.warnings.includes("NO_LEAD_OR_REVENUE_GUARANTEE"));
   assert.ok(report.warnings.includes("CTR_ASSUMPTIONS_ARE_NOT_GOOGLE_CONSTANTS"));
   assert.ok(report.warnings.includes("CLIENT_QUALITY_REQUIRES_SEGMENTED_FIRST_PARTY_FUNNEL_EVIDENCE"));
+});
+
+test("tenant scenario consumes only revalidated authorized evidence and binds its manifest", async () => {
+  const { controlRoot, evidenceRoot } = await setupEvidence();
+  const result = await buildTenantGrowthScenario({
+    controlRoot,
+    evidenceRoot,
+    siteId: SITE_ID,
+    assumptionProfile: profile(),
+  });
+  assert.equal(result.status, "READY");
+  assert.equal(result.reason, "SCENARIO_READY");
+  assert.match(result.evidenceManifestHash, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(result.report.engineId, "WALLE_GROWTH_SCENARIO_V1");
+  assert.equal(result.report.observed.search.impressions, 10_000);
+});
+
+test("disabled tenant cannot receive a scenario even when evidence exists", async () => {
+  const { controlRoot, evidenceRoot, control } = await setupEvidence();
+  await setTenantEnabled({ controlRoot, siteId: SITE_ID, enabled: false, expectedGeneration: control.generation });
+  const result = await buildTenantGrowthScenario({
+    controlRoot,
+    evidenceRoot,
+    siteId: SITE_ID,
+    assumptionProfile: profile(),
+  });
+  assert.equal(result.status, "OFF");
+  assert.equal(result.report, null);
+});
+
+test("missing funnel dataset is explicit insufficient data rather than a fabricated conversion", async () => {
+  const { controlRoot, evidenceRoot } = await setupEvidence({ includeFunnel: false });
+  const result = await buildTenantGrowthScenario({
+    controlRoot,
+    evidenceRoot,
+    siteId: SITE_ID,
+    assumptionProfile: profile(),
+  });
+  assert.equal(result.status, "INSUFFICIENT_DATA");
+  assert.match(result.reason, /revenue_funnel_records/);
+  assert.equal(result.report, null);
+});
+
+test("operational tenant scenario has no network, provider client, or control mutation authority", async () => {
+  const source = await readFile(new URL("../growth-scenario/tenant-scenario.mjs", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /node:http|node:https|node:net|node:dgram|node:tls/);
+  assert.doesNotMatch(source, /\bfetch\s*\(|axios|googleapis|OAuth2|refresh_token|access_token/);
+  assert.doesNotMatch(source, /setTenantEnabled|setTenantKillSwitch|appendTenantControl/);
+  assert.match(source, /readTenantEvidenceSnapshot/);
+  assert.match(source, /readTenantControl/);
 });
