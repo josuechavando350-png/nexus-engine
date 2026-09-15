@@ -128,9 +128,10 @@ function planFor(identity = gitIdentity()) {
   });
 }
 
-function authorizationFor(plan, overrides = {}) {
+function authorizationFor(plan, overrides = {}, request = physicalRequest()) {
   return buildPhysicalQpuLiveAuthorizationRecord({
     plan,
+    physicalRequest: request,
     sourceRevision: plan.sourceRevision,
     sourceTree: plan.sourceTree,
     exactHeadCiStatus: "SUCCESS",
@@ -338,13 +339,36 @@ test("authorization builder refuses incomplete WALLE or unconfirmed provider ent
   );
 });
 
+test("authorization is bound to the exact smoke request before any provider bridge call", async () => {
+  const plan = planFor();
+  const counters = { preflight: 0, live: 0 };
+  const authorizedRequest = physicalRequest();
+  const mutatedRequest = {
+    ...authorizedRequest,
+    circuitPayload: {
+      ...authorizedRequest.circuitPayload,
+      circuitSha256: sha256Text("unauthorized-circuit-mutation"),
+    },
+  };
+  await assert.rejects(
+    gateFor(plan, {}, counters).run({
+      physicalRequest: mutatedRequest,
+      executionAuthorization: "EXECUTE_PHYSICAL_QPU",
+      authorizationRecord: authorizationFor(plan, {}, authorizedRequest),
+    }),
+    /AUTHORIZED_REQUEST_MISMATCH/,
+  );
+  assert.deepEqual(counters, { preflight: 0, live: 0 });
+});
+
 test("NOT_READY preflight blocks the physical bridge and preserves physical NOT_TESTED boundary", async () => {
   const plan = planFor();
   const counters = { preflight: 0, live: 0 };
+  const request = physicalRequest();
   const result = await gateFor(plan, { preflightReady: false }, counters).run({
-    physicalRequest: physicalRequest(),
+    physicalRequest: request,
     executionAuthorization: "EXECUTE_PHYSICAL_QPU",
-    authorizationRecord: authorizationFor(plan),
+    authorizationRecord: authorizationFor(plan, {}, request),
   });
   assert.equal(result.gateReport.verdict, "INCONCLUSIVE");
   assert.equal(result.gateReport.status, "PHYSICAL_SMOKE_BLOCKED_BY_PREFLIGHT");
@@ -358,24 +382,25 @@ test("verified smoke executes exactly one live bridge job with plan shots and au
   const plan = planFor();
   const counters = { preflight: 0, live: 0 };
   let observedLiveShots = null;
+  const request = physicalRequest();
   const gate = createIbmPhysicalQpuSmokeGateForContractTest({
     plan,
     apiKey: "contract-secret-not-real",
     instanceCrn: "crn:v1:contract-only",
-    preflightBridgeRunner: async ({ request }) => {
+    preflightBridgeRunner: async ({ request: bridgeRequest }) => {
       counters.preflight += 1;
-      return preflightResponseFor(request);
+      return preflightResponseFor(bridgeRequest);
     },
-    executionBridgeRunner: async ({ request }) => {
+    executionBridgeRunner: async ({ request: bridgeRequest }) => {
       counters.live += 1;
-      observedLiveShots = request.shots;
-      return liveResponseFor(request);
+      observedLiveShots = bridgeRequest.shots;
+      return liveResponseFor(bridgeRequest);
     },
   });
   const result = await gate.run({
-    physicalRequest: physicalRequest(),
+    physicalRequest: request,
     executionAuthorization: "EXECUTE_PHYSICAL_QPU",
-    authorizationRecord: authorizationFor(plan),
+    authorizationRecord: authorizationFor(plan, {}, request),
   });
   assert.equal(observedLiveShots, plan.smokeJob.shots);
   assert.deepEqual(counters, { preflight: 1, live: 1 });
@@ -390,10 +415,11 @@ test("verified smoke executes exactly one live bridge job with plan shots and au
 test("preflight-to-smoke capability drift blocks repeated-series authorization even when provider receipt is otherwise valid", async () => {
   const plan = planFor();
   const counters = { preflight: 0, live: 0 };
+  const request = physicalRequest();
   const result = await gateFor(plan, { executionMode: "CAPABILITIES_DRIFT" }, counters).run({
-    physicalRequest: physicalRequest(),
+    physicalRequest: request,
     executionAuthorization: "EXECUTE_PHYSICAL_QPU",
-    authorizationRecord: authorizationFor(plan),
+    authorizationRecord: authorizationFor(plan, {}, request),
   });
   assert.equal(result.smokeExecution.verdict, "PASS");
   assert.equal(result.gateReport.verdict, "FAIL");
@@ -405,10 +431,11 @@ test("preflight-to-smoke capability drift blocks repeated-series authorization e
 test("ambiguous live bridge timeout requires provider reconciliation and never retries or starts the repeated series", async () => {
   const plan = planFor();
   const counters = { preflight: 0, live: 0 };
+  const request = physicalRequest();
   const result = await gateFor(plan, { executionMode: "TIMEOUT" }, counters).run({
-    physicalRequest: physicalRequest(),
+    physicalRequest: request,
     executionAuthorization: "EXECUTE_PHYSICAL_QPU",
-    authorizationRecord: authorizationFor(plan),
+    authorizationRecord: authorizationFor(plan, {}, request),
   });
   assert.equal(result.smokeExecution.verdict, "FAIL");
   assert.equal(result.gateReport.verdict, "FAIL");
