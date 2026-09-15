@@ -26,7 +26,7 @@ function validInput(overrides = {}) {
     smokeShots: 128,
     repeatedShots: 256,
     repeatedRunCount: PHYSICAL_QPU_FIRST_RUN_MIN_REPEATED_RUNS,
-    perJobTimeoutMillis: 900_000,
+    bridgeTimeoutMillis: 900_000,
     ...overrides,
   };
 }
@@ -44,7 +44,7 @@ test("first physical QPU plan is deterministic, hash-bound, and bounded before l
   assert.equal(first.repeatedSeries.minimumCompletedRuns, 5);
   assert.equal(first.limits.maximumProviderJobs, 6);
   assert.equal(first.limits.maximumTotalShots, 1_408);
-  assert.equal(first.limits.maximumSequentialWallTimeMillis, 5_400_000);
+  assert.equal(first.limits.maximumLocalBridgeWaitMillis, 5_400_000);
   assert.equal(first.providerCostControl.billingApiIntegrated, false);
   assert.equal(first.providerCostControl.liveExecutionRequiresExternalConfirmation, true);
   assert.equal(first.quantumAdvantageClaimAllowed, false);
@@ -80,7 +80,7 @@ test("tampering any hash-bound first-run plan field fails validation", () => {
   assert.throws(() => validatePhysicalQpuFirstRunPlan(tampered), /derived execution limits mismatch|digest mismatch/);
 });
 
-test("IBM preparation record is explicitly NOT_TESTED and cannot masquerade as hardware evidence", () => {
+test("IBM preparation record preserves the blocked physical-hardware boundary", () => {
   const plan = buildPhysicalQpuFirstRunPlan(validInput());
   const backend = createIbmQuantumComputeBackend();
   assert.equal(backend.descriptor.adapterId, IBM_QUANTUM_COMPUTE_ADAPTER_ID);
