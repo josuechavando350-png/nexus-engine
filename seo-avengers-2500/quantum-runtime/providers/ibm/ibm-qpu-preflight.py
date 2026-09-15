@@ -135,9 +135,12 @@ def _capabilities_artifact(backend: Any) -> str:
         names = getattr(target, "operation_names", None)
         if names is not None:
             operation_names = sorted(str(name) for name in names)
+    num_qubits = int(getattr(backend, "num_qubits", 0) or 0)
+    physical_qubits = int(getattr(backend, "physical_qubits", num_qubits) or num_qubits)
     return _artifact_json({
         "backend": str(getattr(backend, "name", "")),
-        "numQubits": int(getattr(backend, "num_qubits", 0) or 0),
+        "numQubits": num_qubits,
+        "physicalQubits": physical_qubits,
         "operationNames": operation_names,
     })
 
