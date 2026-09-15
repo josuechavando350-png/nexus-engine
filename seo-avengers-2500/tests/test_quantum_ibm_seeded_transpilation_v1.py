@@ -20,7 +20,7 @@ def sha256_text(value: str) -> str:
 
 
 def bridge_request(seed: int | None) -> dict[str, object]:
-    qasm = "OPENQASM 3.0;\nqubit[1] q;\nbit[1] c;\nc[0] = measure q[0];\n"
+    qasm = "OPENQASM 3.0;\nqubit[1] q;\nbit[1] c;\nc[0] = measure q[0];"
     circuit_sha = sha256_text("seed-contract-circuit")
     return {
         "schemaVersion": 1,
