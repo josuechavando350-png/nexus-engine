@@ -131,7 +131,7 @@ export class PhysicalQPUBackend extends QuantumBackendAdapter {
             circuitPayload: normalizedRequest.circuitPayload,
             shots: normalizedRequest.shots,
           }));
-        } catch (error) {
+        } catch {
           return freeze({
             schemaVersion: 1, backendAdapterId: normalizedAdapterId, backendFamily: "PHYSICAL_QPU", verdict: "FAIL",
             reasonCodes: ["PHYSICAL_QPU_PROVIDER_EXECUTION_ERROR"], problemBinding: normalizedRequest.problemBinding,
@@ -148,7 +148,7 @@ export class PhysicalQPUBackend extends QuantumBackendAdapter {
             adapterVersion: normalizedAdapterVersion,
             request: normalizedRequest,
           });
-        } catch (error) {
+        } catch {
           return freeze({
             schemaVersion: 1, backendAdapterId: normalizedAdapterId, backendFamily: "PHYSICAL_QPU", verdict: "FAIL",
             reasonCodes: ["PHYSICAL_QPU_PROVIDER_EVIDENCE_INVALID"], problemBinding: normalizedRequest.problemBinding,
@@ -183,7 +183,7 @@ export class PhysicalQPUBackend extends QuantumBackendAdapter {
             providerReceiptSha256: checked.providerReceiptSha256,
             reproducibilityMetadata: checked.reproducibilityMetadata,
           });
-        } catch (error) {
+        } catch {
           return freeze({
             schemaVersion: 1, backendAdapterId: normalizedAdapterId, backendFamily: "PHYSICAL_QPU", verdict: "FAIL",
             reasonCodes: ["PHYSICAL_QPU_PROVIDER_EVIDENCE_INVALID"], problemBinding: normalizedRequest.problemBinding,
