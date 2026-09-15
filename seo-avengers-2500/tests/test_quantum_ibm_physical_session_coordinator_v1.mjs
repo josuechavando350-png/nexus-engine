@@ -141,7 +141,7 @@ test("contract coordinator is restricted to explicit contract backend names", ()
   );
 });
 
-test("prepare-only session calls only the smoke prepare path and remains NOT_TESTED", async () => {
+test("prepare-only session calls only the smoke prepare path and remains blocked", async () => {
   const plan = planFor();
   const { value, calls } = coordinator(plan);
   const result = await value.run({ sessionPhase: IBM_PHYSICAL_SESSION_PREPARE_ONLY });
