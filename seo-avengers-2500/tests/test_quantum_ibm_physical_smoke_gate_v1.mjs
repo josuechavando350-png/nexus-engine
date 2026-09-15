@@ -361,7 +361,7 @@ test("authorization is bound to the exact smoke request before any provider brid
   assert.deepEqual(counters, { preflight: 0, live: 0 });
 });
 
-test("NOT_READY preflight blocks the physical bridge and preserves physical NOT_TESTED boundary", async () => {
+test("preflight readiness failure blocks the physical bridge without promoting hardware execution", async () => {
   const plan = planFor();
   const counters = { preflight: 0, live: 0 };
   const request = physicalRequest();
