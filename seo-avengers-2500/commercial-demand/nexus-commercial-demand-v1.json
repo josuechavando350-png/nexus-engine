@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "scenarioId": "NEXUS_COMMERCIAL_DEMAND_V1",
+  "siteId": "nexus-bot-studio",
+  "market": {
+    "country": "Mexico",
+    "language": "Spanish"
+  },
+  "objective": {
+    "targetClientsMilli": 15000,
+    "interpretation": "PLANNING_TARGET_NOT_FORECAST_OR_GUARANTEE"
+  },
+  "observedSearch": {
+    "evidenceClass": "FIRST_PARTY_OBSERVED",
+    "provider": "GOOGLE_SEARCH_CONSOLE_VIA_WINDSOR",
+    "account": "sc-domain:nexusbotstudio.com",
+    "window": "last_30dT",
+    "capturedAt": "2026-09-15",
+    "aggregate": {
+      "clicks": 2,
+      "impressions": 2613,
+      "ctrPpm": 800,
+      "averagePositionMilli": 5149
+    },
+    "queryRows": [
+      {"query":"bot","pageUrl":"https://nexusbotstudio.com/","clicks":0,"impressions":3,"averagePositionMilli":4667},
+      {"query":"desarrollo de software","pageUrl":"https://nexusbotstudio.com/","clicks":0,"impressions":3,"averagePositionMilli":7000},
+      {"query":"desarrollo web","pageUrl":"https://nexusbotstudio.com/","clicks":0,"impressions":1,"averagePositionMilli":4000},
+      {"query":"designer","pageUrl":"https://nexusbotstudio.com/","clicks":0,"impressions":1,"averagePositionMilli":5000},
+      {"query":"hosting","pageUrl":"https://nexusbotstudio.com/","clicks":0,"impressions":1,"averagePositionMilli":5000},
+      {"query":"studio nexus","pageUrl":"https://nexusbotstudio.com/","clicks":0,"impressions":1,"averagePositionMilli":8000},
+      {"query":"web development","pageUrl":"https://nexusbotstudio.com/","clicks":0,"impressions":2365,"averagePositionMilli":5102},
+      {"query":"web hosting","pageUrl":"https://nexusbotstudio.com/","clicks":0,"impressions":195,"averagePositionMilli":6369}
+    ],
+    "note": "Query-dimension rows do not sum to the aggregate because Search Console can suppress low-volume/anonymized query rows. The aggregate is authoritative for the total window."
+  },
+  "keywordResearch": {
+    "evidenceClass": "RESEARCH_ESTIMATE_NOT_FIRST_PARTY_OUTCOME",
+    "provider": "GOOGLE_ADS_KEYWORD_RESEARCH_VIA_HYPD",
+    "capturedAt": "2026-09-15",
+    "location": "Mexico",
+    "language": "Spanish",
+    "opportunities": [
+      {"id":"seo-agency","keyword":"agencia seo","cluster":"SEO","intentClass":"DIRECT","monthlySearchVolume":880,"competitionIndex":39},
+      {"id":"seo-consulting","keyword":"consultoria seo","cluster":"SEO","intentClass":"DIRECT","monthlySearchVolume":480,"competitionIndex":30},
+      {"id":"seo-services","keyword":"servicios seo","cluster":"SEO","intentClass":"DIRECT","monthlySearchVolume":140,"competitionIndex":43},
+      {"id":"seo-positioning-agency","keyword":"agencia de posicionamiento web","cluster":"SEO","intentClass":"DIRECT","monthlySearchVolume":140,"competitionIndex":16},
+      {"id":"seo-company","keyword":"empresa seo","cluster":"SEO","intentClass":"DIRECT","monthlySearchVolume":90,"competitionIndex":30},
+      {"id":"seo-price","keyword":"precio seo","cluster":"SEO","intentClass":"DECISION","monthlySearchVolume":40,"competitionIndex":10},
+      {"id":"seo-best-agency","keyword":"mejor agencia seo","cluster":"SEO","intentClass":"DECISION","monthlySearchVolume":40,"competitionIndex":21},
+      {"id":"web-design-agency","keyword":"agencia de diseño web","cluster":"WEB","intentClass":"DIRECT","monthlySearchVolume":320,"competitionIndex":63},
+      {"id":"web-development-agency","keyword":"agencia de desarrollo web","cluster":"WEB","intentClass":"DIRECT","monthlySearchVolume":260,"competitionIndex":74},
+      {"id":"web-design-pro","keyword":"diseño web profesional","cluster":"WEB","intentClass":"DIRECT","monthlySearchVolume":140,"competitionIndex":34},
+      {"id":"web-design-mexico","keyword":"diseño web mexico","cluster":"WEB","intentClass":"DIRECT","monthlySearchVolume":210,"competitionIndex":9},
+      {"id":"web-design-cdmx","keyword":"diseño web cdmx","cluster":"WEB","intentClass":"DIRECT","monthlySearchVolume":110,"competitionIndex":26},
+      {"id":"pro-websites","keyword":"paginas web profesionales","cluster":"WEB","intentClass":"DIRECT","monthlySearchVolume":110,"competitionIndex":53},
+      {"id":"web-quote","keyword":"cotizacion desarrollo web","cluster":"WEB","intentClass":"DECISION","monthlySearchVolume":90,"competitionIndex":0},
+      {"id":"custom-software-dev","keyword":"desarrollo de software a la medida","cluster":"SOFTWARE","intentClass":"DIRECT","monthlySearchVolume":70,"competitionIndex":56},
+      {"id":"custom-software","keyword":"software a medida","cluster":"SOFTWARE","intentClass":"DIRECT","monthlySearchVolume":50,"competitionIndex":64},
+      {"id":"automate-whatsapp","keyword":"automatizar whatsapp","cluster":"AUTOMATION","intentClass":"DIRECT","monthlySearchVolume":90,"competitionIndex":69},
+      {"id":"whatsapp-chatbots","keyword":"chatbots whatsapp business","cluster":"AUTOMATION","intentClass":"DIRECT","monthlySearchVolume":110,"competitionIndex":76},
+      {"id":"business-chatbots","keyword":"chatbots para empresas","cluster":"AUTOMATION","intentClass":"DIRECT","monthlySearchVolume":40,"competitionIndex":61},
+      {"id":"automation-services","keyword":"servicios de automatización","cluster":"AUTOMATION","intentClass":"DIRECT","monthlySearchVolume":70,"competitionIndex":32},
+      {"id":"automation-companies","keyword":"automatizacion empresas","cluster":"AUTOMATION","intentClass":"DIRECT","monthlySearchVolume":50,"competitionIndex":45},
+      {"id":"ai-for-companies","keyword":"ia para empresas","cluster":"AI","intentClass":"DIRECT","monthlySearchVolume":90,"competitionIndex":76},
+      {"id":"ai-company","keyword":"empresa de ia","cluster":"AI","intentClass":"MIXED","monthlySearchVolume":170,"competitionIndex":38},
+      {"id":"business-process-automation","keyword":"automatización de procesos empresariales","cluster":"AUTOMATION","intentClass":"DIRECT","monthlySearchVolume":30,"competitionIndex":65},
+      {"id":"sales-automation","keyword":"automatizacion de ventas","cluster":"AUTOMATION","intentClass":"DIRECT","monthlySearchVolume":50,"competitionIndex":34},
+      {"id":"web-design","keyword":"diseño web","cluster":"WEB","intentClass":"MIXED","monthlySearchVolume":2900,"competitionIndex":36},
+      {"id":"web-development","keyword":"desarrollo web","cluster":"WEB","intentClass":"MIXED","monthlySearchVolume":2400,"competitionIndex":35},
+      {"id":"web-page-design","keyword":"diseño de paginas web","cluster":"WEB","intentClass":"MIXED","monthlySearchVolume":2400,"competitionIndex":51},
+      {"id":"web-creation","keyword":"creacion de paginas web","cluster":"WEB","intentClass":"MIXED","monthlySearchVolume":880,"competitionIndex":71},
+      {"id":"web-page-development","keyword":"desarrollo de paginas web","cluster":"WEB","intentClass":"MIXED","monthlySearchVolume":480,"competitionIndex":70},
+      {"id":"website-design","keyword":"diseño de sitios web","cluster":"WEB","intentClass":"MIXED","monthlySearchVolume":390,"competitionIndex":31},
+      {"id":"seo-positioning","keyword":"posicionamiento seo","cluster":"SEO","intentClass":"MIXED","monthlySearchVolume":480,"competitionIndex":38},
+      {"id":"web-positioning","keyword":"posicionamiento web","cluster":"SEO","intentClass":"MIXED","monthlySearchVolume":260,"competitionIndex":33},
+      {"id":"process-automation","keyword":"automatizacion de procesos","cluster":"AUTOMATION","intentClass":"MIXED","monthlySearchVolume":1600,"competitionIndex":31},
+      {"id":"automation","keyword":"automatización","cluster":"AUTOMATION","intentClass":"INFORMATIONAL","monthlySearchVolume":12100,"competitionIndex":9},
+      {"id":"automation-systems","keyword":"sistemas de automatización","cluster":"AUTOMATION","intentClass":"MIXED","monthlySearchVolume":320,"competitionIndex":20},
+      {"id":"whatsapp-auto-replies","keyword":"respuestas automaticas whatsapp","cluster":"AUTOMATION","intentClass":"MIXED","monthlySearchVolume":260,"competitionIndex":52},
+      {"id":"whatsapp-auto-messages","keyword":"mensajes automaticos whatsapp business","cluster":"AUTOMATION","intentClass":"MIXED","monthlySearchVolume":260,"competitionIndex":61},
+      {"id":"ai-business","keyword":"inteligencia artificial empresas","cluster":"AI","intentClass":"MIXED","monthlySearchVolume":140,"competitionIndex":33},
+      {"id":"ai-business-use","keyword":"inteligencia artificial en los negocios","cluster":"AI","intentClass":"MIXED","monthlySearchVolume":110,"competitionIndex":15},
+      {"id":"ai-enterprise","keyword":"ia empresarial","cluster":"AI","intentClass":"MIXED","monthlySearchVolume":70,"competitionIndex":48}
+    ],
+    "deduplicationBoundary": "Each row is a selected representative query. Volumes are not treated as unique people and are not summed into a claim of unique market size."
+  },
+  "trafficAssumptions": {
+    "evidenceClass": "EXPLICIT_PLANNING_ASSUMPTION",
+    "clickToSessionPpm": 900000,
+    "targetCtrPpmByIntent": {
+      "DIRECT": 120000,
+      "DECISION": 150000,
+      "MIXED": 50000,
+      "INFORMATIONAL": 20000
+    },
+    "interpretation": "BOUNDED_SCENARIO_NOT_GOOGLE_CONSTANTS_OR_RANK_FORECAST"
+  },
+  "funnels": [
+    {"id":"HARD_5000","plannedSessions":5000,"leadConversionPpm":25000,"qualifiedLeadPpm":400000,"closeRatePpm":300000},
+    {"id":"POOR_6250","plannedSessions":6250,"leadConversionPpm":20000,"qualifiedLeadPpm":400000,"closeRatePpm":300000},
+    {"id":"VERY_POOR_11500","plannedSessions":11500,"leadConversionPpm":15000,"qualifiedLeadPpm":350000,"closeRatePpm":250000}
+  ],
+  "strategies": [
+    {
+      "id":"DIRECT_SERVICES_ONLY",
+      "pageCount":9,
+      "includeIntentClasses":["DIRECT","DECISION"],
+      "includeClusters":["SEO","WEB","AUTOMATION","AI","SOFTWARE"],
+      "disqualifiers":[]
+    },
+    {
+      "id":"SERVICES_PLUS_MIXED_CORE",
+      "pageCount":18,
+      "includeIntentClasses":["DIRECT","DECISION","MIXED"],
+      "includeClusters":["SEO","WEB","AUTOMATION","AI","SOFTWARE"],
+      "disqualifiers":[]
+    },
+    {
+      "id":"NEXUS_COMMERCIAL_DEMAND_ENGINE",
+      "pageCount":26,
+      "includeIntentClasses":["DIRECT","DECISION","MIXED"],
+      "includeClusters":["SEO","WEB","AUTOMATION","AI","SOFTWARE"],
+      "disqualifiers":[],
+      "architecture":"SERVICES_DECISIONS_PROBLEMS_REAL_GEOGRAPHY_EVIDENCE"
+    },
+    {
+      "id":"INFORMATIONAL_VOLUME_MAXIMIZER",
+      "pageCount":40,
+      "includeIntentClasses":["DIRECT","DECISION","MIXED","INFORMATIONAL"],
+      "includeClusters":["SEO","WEB","AUTOMATION","AI","SOFTWARE"],
+      "disqualifiers":["TRAFFIC_WITHOUT_COMMERCIAL_INTENT_DOMINATES"]
+    },
+    {
+      "id":"CITY_DOORWAY_SCALE",
+      "pageCount":100,
+      "includeIntentClasses":["DIRECT","DECISION","MIXED"],
+      "includeClusters":["SEO","WEB","AUTOMATION","AI","SOFTWARE"],
+      "disqualifiers":["UNVERIFIED_LOCATION_AND_DOORWAY_RISK"]
+    }
+  ],
+  "executionPlan": {
+    "wave1": [
+      "SEO commercial core",
+      "Web premium commercial core",
+      "Web Mexico decision page",
+      "Business automation core",
+      "WhatsApp automation core",
+      "AI for companies core",
+      "Custom software core",
+      "Pricing and quotation decision hub"
+    ],
+    "wave2": [
+      "SEO vs Ads decision content",
+      "Agency vs freelancer decision content",
+      "Website cost decision content",
+      "Automation vs manual process decision content",
+      "How to appear on Google problem page",
+      "How to automate sales problem page",
+      "How to automate WhatsApp problem page",
+      "Lead capture problem page"
+    ],
+    "wave3Boundary": "Add case/evidence and geography pages only when the underlying client evidence or service-area facts are real and publishable."
+  }
+}

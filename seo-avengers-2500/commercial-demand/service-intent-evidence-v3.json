@@ -1,0 +1,174 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "NEXUS_SERVICE_INTENT_EVIDENCE_V3",
+  "capturedAt": "2026-09-15",
+  "market": {
+    "country": "Mexico",
+    "language": "Spanish"
+  },
+  "offerEvidence": {
+    "evidenceClass": "FIRST_PARTY_PUBLIC_SITE_OFFER_SNAPSHOT",
+    "url": "https://www.nexusbotstudio.com/",
+    "offeredServiceLabels": [
+      "Agentes de IA",
+      "Llamadas y Mensajes",
+      "Automatización",
+      "Integraciones",
+      "Plataformas a medida",
+      "Datos y Analytics",
+      "Estrategia y Consultoría"
+    ],
+    "note": "The public first-party site explicitly presents these service lines. V3 may research demand for them, but offer presence does not prove demand or conversion."
+  },
+  "keywordMetrics": {
+    "evidenceClass": "GOOGLE_ADS_RESEARCH_ESTIMATE_NOT_FIRST_PARTY_OUTCOME",
+    "provider": "HYPD_GOOGLE_ADS_KNOWN_KEYWORD_VOLUME",
+    "resultId": "8df1cbfe-8a42-4389-af79-b8833785bc59",
+    "rows": [
+      {
+        "familyId": "AI_AGENTS_BUSINESS",
+        "serviceLabel": "Agentes de IA",
+        "keyword": "agentes de ia para empresas",
+        "monthlySearchVolume": 20,
+        "competitionIndex": 60,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "SYSTEM_INTEGRATION",
+        "serviceLabel": "Integraciones",
+        "keyword": "integracion de sistemas",
+        "monthlySearchVolume": 170,
+        "competitionIndex": 8,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "TECH_CONSULTING",
+        "serviceLabel": "Estrategia y Consultoría",
+        "keyword": "consultoria tecnologica",
+        "monthlySearchVolume": 110,
+        "competitionIndex": 22,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "CUSTOMER_SERVICE_CHATBOT",
+        "serviceLabel": "Llamadas y Mensajes",
+        "keyword": "chatbot atención al cliente",
+        "monthlySearchVolume": 20,
+        "competitionIndex": 17,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "AI_VOICE_CALLS",
+        "serviceLabel": "Llamadas y Mensajes",
+        "keyword": "llamadas con inteligencia artificial",
+        "monthlySearchVolume": 10,
+        "competitionIndex": 79,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "BI_SERVICES",
+        "serviceLabel": "Datos y Analytics",
+        "keyword": "servicios de business intelligence",
+        "monthlySearchVolume": 10,
+        "competitionIndex": 48,
+        "intentClass": "DIRECT"
+      },
+      {
+        "familyId": "AI_AGENTS_GENERIC_INFO",
+        "serviceLabel": "Agentes de IA",
+        "keyword": "agentes de inteligencia artificial",
+        "monthlySearchVolume": 260,
+        "competitionIndex": 43,
+        "intentClass": "INFORMATIONAL"
+      },
+      {
+        "familyId": "DASHBOARD_GENERIC_INFO",
+        "serviceLabel": "Datos y Analytics",
+        "keyword": "dashboard empresarial",
+        "monthlySearchVolume": 70,
+        "competitionIndex": 29,
+        "intentClass": "INFORMATIONAL"
+      }
+    ]
+  },
+  "serpIntentChecks": [
+    {
+      "familyId": "AI_AGENTS_BUSINESS",
+      "resultId": "bf0ecb36-da47-44b2-ba3f-b4c6c7c3ef09",
+      "classification": "MIXED",
+      "reason": "A paid Salesforce result and custom-agent providers show commercial signal, while explainers and platform pages remain prominent."
+    },
+    {
+      "familyId": "SYSTEM_INTEGRATION",
+      "resultId": "d942bdc8-5cd2-4de3-8834-c5ebdc8f9acd",
+      "classification": "MIXED",
+      "reason": "Paid integration-software ads coexist with explanatory integration-system results, so the term is not treated as purely transactional."
+    },
+    {
+      "familyId": "TECH_CONSULTING",
+      "resultId": "4572fa5f-7f27-44a2-b04b-f1e64a35cd20",
+      "classification": "MIXED",
+      "reason": "Technology consulting service providers rank alongside explanatory material; V3 therefore keeps a conservative mixed-intent classification."
+    },
+    {
+      "familyId": "CUSTOMER_SERVICE_CHATBOT",
+      "resultId": "d2e67e0e-aba3-420b-98bc-79998d8f4cb2",
+      "classification": "MIXED",
+      "reason": "Product and vendor pages rank with educational chatbot material and comparison content, so commercial demand is present but not exclusive."
+    },
+    {
+      "familyId": "AI_VOICE_CALLS",
+      "resultId": "db3c830b-3585-48ca-a576-6eb3b75b3a5c",
+      "classification": "MIXED",
+      "reason": "A paid AI Voice Agent ad and multiple business voice-agent providers appear, but the SERP also contains broad educational and consumer-oriented results."
+    },
+    {
+      "familyId": "BI_SERVICES",
+      "resultId": "7409fe49-f6c9-475b-a8ed-bc8870adaf92",
+      "classification": "DIRECT",
+      "reason": "The explicit servicios modifier returns multiple Business Intelligence service and consulting pages, supporting a narrow direct-service classification."
+    }
+  ],
+  "informationalGuards": [
+    {
+      "familyId": "AI_AGENTS_GENERIC_INFO",
+      "resultId": "2c563426-d7ef-45b2-bb38-58618f24e566",
+      "classification": "INFORMATIONAL",
+      "reason": "The generic query is dominated by definitions, guides and platform explainers; its larger volume is not counted as commercial capacity."
+    },
+    {
+      "familyId": "DASHBOARD_GENERIC_INFO",
+      "resultId": "d8460845-7f37-41af-91d3-f3bd2b9ea33f",
+      "classification": "INFORMATIONAL",
+      "reason": "The SERP is dominated by definitions, examples and DIY dashboard content, so the term is kept outside relevant commercial demand."
+    }
+  ],
+  "analyticsBoundary": {
+    "ga4ConversionEvidence": "NOT_AVAILABLE_FROM_CONNECTED_PROPERTY",
+    "interpretation": "DO_NOT_INFER_FIRST_PARTY_LEAD_QUALIFICATION_OR_CLOSE_RATES"
+  },
+  "sensitivityFunnels": [
+    {
+      "id": "SENSITIVITY_BETTER_4000",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 25000,
+      "qualifiedLeadPpm": 500000,
+      "closeRatePpm": 300000
+    },
+    {
+      "id": "SENSITIVITY_STRONG_2858",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 30000,
+      "qualifiedLeadPpm": 500000,
+      "closeRatePpm": 350000
+    },
+    {
+      "id": "SENSITIVITY_HIGH_CONVERSION_1949",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 40000,
+      "qualifiedLeadPpm": 550000,
+      "closeRatePpm": 350000
+    }
+  ],
+  "boundary": "RESEARCH_AND_SENSITIVITY_EVIDENCE_ONLY_NO_RANK_TRAFFIC_LEAD_CLIENT_OR_REVENUE_FORECAST"
+}
