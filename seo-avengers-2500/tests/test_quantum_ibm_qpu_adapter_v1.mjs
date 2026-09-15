@@ -14,6 +14,7 @@ import {
   canonicalQuantumSha256,
 } from "../quantum-runtime/contracts.mjs";
 import {
+  IBM_QPU_MAX_TRANSPILER_SEED,
   IBM_QUANTUM_COMPUTE_ADAPTER_ID,
   IBM_QUANTUM_COMPUTE_PROVIDER,
   buildIbmBridgeRequestForContractTest,
@@ -119,8 +120,9 @@ function physicalRequest(problem = optimizationProblem()) {
 function bridgeResponseFor(request, logicalCompilation, { jobId = "contract-job-alpha-1", tamperTranspiled = false } = {}) {
   const transpiledQasm3 = `${logicalCompilation.qasm3}\n// provider ISA contract fixture\n`;
   const logicalQasm3 = logicalCompilation.qasm3;
+  const seed = request.transpilerSeed === null ? null : String(request.transpilerSeed);
   const rawResultJson = JSON.stringify({ jobId, counts: { "010": 40, "110": 60 } });
-  const providerReceiptJson = JSON.stringify({ jobId, backend: request.backendName, status: "SUCCEEDED" });
+  const providerReceiptJson = JSON.stringify({ jobId, backend: request.backendName, status: "SUCCEEDED", transpilerSeed: seed });
   const metricsJson = JSON.stringify({ timestamps: { created: "2026-09-15T12:00:00Z", running: "2026-09-15T12:00:02Z", finished: "2026-09-15T12:00:03Z" } });
   const topologyJson = JSON.stringify({ backend: request.backendName, edges: [[0, 1], [1, 2]] });
   const capabilitiesJson = JSON.stringify({ backend: request.backendName, operationNames: ["cz", "measure", "rz", "sx", "x"] });
@@ -162,7 +164,7 @@ function bridgeResponseFor(request, logicalCompilation, { jobId = "contract-job-
       reproducibilityMetadata: {
         adapterId: IBM_QUANTUM_COMPUTE_ADAPTER_ID, adapterVersion: "1.0.0",
         providerSdk: "qiskit-ibm-runtime", providerSdkVersion: "0.49.0",
-        compiler: "qiskit.generate_preset_pass_manager", compilerVersion: "2.5.2", seed: null,
+        compiler: "qiskit.generate_preset_pass_manager", compilerVersion: "2.5.2", seed,
       },
     },
     artifacts: {
@@ -228,6 +230,8 @@ test("configured IBM adapter sends hash-bound logical QASM through bridge and pr
   assert.equal(execution.executionReceipt.backendDevice, "ibm_contract_qpu_alpha");
   assert.equal(execution.executionReceipt.shotsCompleted, 100);
   assert.equal(execution.executionReceipt.measurementCounts["110"], 60);
+  assert.equal(execution.executionReceipt.reproducibilityMetadata.seed, null);
+  assert.equal(observedRequest.transpilerSeed, null);
   assert.equal(observedRequest.logicalCircuitArtifact.format, "OPENQASM_3");
   assert.equal(observedRequest.logicalCircuitArtifact.sourceCircuitSha256, physical.circuitPayload.circuitSha256);
   assert.match(observedRequest.logicalCircuitArtifact.qasm3, /^OPENQASM 3\.0;/);
@@ -242,6 +246,63 @@ test("configured IBM adapter sends hash-bound logical QASM through bridge and pr
   assert.equal(judged.verdict, "PASS");
   assert.equal(judged.quantumAdvantageClaimAllowed, false);
   assert.equal(judged.candidate.candidateSource, "PHYSICAL_QPU_MEASUREMENT_COUNTS");
+});
+
+test("configured IBM adapter binds an explicit transpiler seed into request receipt and evidence", async () => {
+  const physical = physicalRequest();
+  let preserved = null;
+  const backend = createIbmQuantumComputeBackend({
+    apiKey: "contract-secret-not-a-real-credential",
+    instanceCrn: "crn:v1:contract-only",
+    backendName: "ibm_contract_qpu_alpha",
+    transpilerSeed: 1337,
+    evidenceSink: async (bundle) => { preserved = bundle; },
+    bridgeRunner: async ({ request }) => {
+      assert.equal(request.transpilerSeed, 1337);
+      const { logicalCompilation } = buildIbmBridgeRequestForContractTest({
+        physicalRequest: physical,
+        backendName: request.backendName,
+        transpilerSeed: 1337,
+      });
+      return bridgeResponseFor(request, logicalCompilation);
+    },
+  });
+  const execution = await backend.execute(physical);
+  assert.equal(execution.verdict, "PASS");
+  assert.equal(execution.executionReceipt.reproducibilityMetadata.seed, "1337");
+  assert.equal(preserved.bridgeRequest.transpilerSeed, 1337);
+  assert.equal(preserved.evidence.reproducibilityMetadata.seed, "1337");
+});
+
+test("IBM adapter rejects transpiler seed drift and invalid seed ranges", () => {
+  const physical = physicalRequest();
+  const { request, logicalCompilation } = buildIbmBridgeRequestForContractTest({
+    physicalRequest: physical,
+    backendName: "ibm_contract_qpu_alpha",
+    transpilerSeed: 42,
+  });
+  const response = bridgeResponseFor(request, logicalCompilation);
+  response.evidence.reproducibilityMetadata.seed = "43";
+  assert.throws(
+    () => validateIbmBridgeResponse(response, {
+      logicalCompilation,
+      backendName: request.backendName,
+      transpilerSeed: 42,
+    }),
+    /transpiler seed binding mismatch/,
+  );
+  assert.throws(
+    () => buildIbmBridgeRequestForContractTest({ physicalRequest: physical, backendName: request.backendName, transpilerSeed: -1 }),
+    /transpilerSeed must be integer/,
+  );
+  assert.throws(
+    () => buildIbmBridgeRequestForContractTest({
+      physicalRequest: physical,
+      backendName: request.backendName,
+      transpilerSeed: IBM_QPU_MAX_TRANSPILER_SEED + 1,
+    }),
+    /transpilerSeed must be integer/,
+  );
 });
 
 test("IBM bridge artifact digest drift is rejected before provider evidence is accepted", () => {
@@ -269,6 +330,7 @@ test("filesystem evidence sink writes immutable content-addressed job bundle wit
     assert.equal(manifest.provider, IBM_QUANTUM_COMPUTE_PROVIDER);
     assert.equal(manifest.jobId, "contract-job-alpha-1");
     assert.equal(manifest.transpiledCircuitSha256, checked.evidence.transpiledCircuitSha256);
+    assert.equal(manifest.transpilerSeed, null);
     const transpiled = await readFile(join(first.jobDir, "transpiled.openqasm3"), "utf8");
     assert.equal(sha256Text(transpiled), checked.evidence.transpiledCircuitSha256);
     const manifestText = await readFile(join(first.jobDir, "manifest.json"), "utf8");
