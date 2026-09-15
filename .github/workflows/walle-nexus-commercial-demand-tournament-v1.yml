@@ -6,21 +6,17 @@ on:
       - feat/walle-nexus-commercial-demand-tournament-v1
     paths:
       - 'seo-avengers-2500/commercial-demand/**'
-      - 'seo-avengers-2500/fixtures/test/nexus-commercial-demand-tournament-v1.json'
       - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v1.mjs'
       - 'seo-avengers-2500/scripts/verify.sh'
-      - 'seo-avengers-2500/test/nexus-commercial-demand-tournament-v1.test.mjs'
-      - 'seo-avengers-2500/test/walle-nexus-commercial-scenario-probe.test.mjs'
+      - 'seo-avengers-2500/tests/test_nexus_commercial_*'
       - 'walle/**'
       - '.github/workflows/walle-nexus-commercial-demand-tournament-v1.yml'
   pull_request:
     paths:
       - 'seo-avengers-2500/commercial-demand/**'
-      - 'seo-avengers-2500/fixtures/test/nexus-commercial-demand-tournament-v1.json'
       - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v1.mjs'
       - 'seo-avengers-2500/scripts/verify.sh'
-      - 'seo-avengers-2500/test/nexus-commercial-demand-tournament-v1.test.mjs'
-      - 'seo-avengers-2500/test/walle-nexus-commercial-scenario-probe.test.mjs'
+      - 'seo-avengers-2500/tests/test_nexus_commercial_*'
       - 'walle/**'
       - '.github/workflows/walle-nexus-commercial-demand-tournament-v1.yml'
 
