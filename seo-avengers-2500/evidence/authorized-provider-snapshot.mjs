@@ -13,7 +13,7 @@ const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 const PPM = 1_000_000;
 
 const PROVIDER_KEYS = Object.freeze({
-  GOOGLE_SEARCH_CONSOLE: Object.freeze(["search_performance_records"]),
+  GOOGLE_SEARCH_CONSOLE: Object.freeze(["search_performance_history_records", "search_performance_records"]),
   GOOGLE_ANALYTICS_4: Object.freeze(["traffic_series_records", "traffic_window_records"]),
   GOOGLE_BUSINESS_PROFILE: Object.freeze(["local_business_records"]),
   NEXUS_SITE_SNAPSHOT: Object.freeze(["content_documents"]),
@@ -89,6 +89,33 @@ function validateSearchPerformance(rows) {
   }
 }
 
+function validateSearchPerformanceHistory(rows) {
+  for (const [index, row] of rows.entries()) {
+    assertExactKeys(
+      row,
+      [
+        "average_position_milli",
+        "clicks",
+        "impressions",
+        "page_url",
+        "query",
+        "window_end_unix_ms",
+        "window_start_unix_ms",
+      ],
+      `search performance history row ${index}`,
+    );
+    requireString(row.query, `search history query ${index}`, { maxBytes: 4096 });
+    requireString(row.page_url, `search history page ${index}`, { maxBytes: 16384 });
+    const clicks = requireInteger(row.clicks, `search history clicks ${index}`, 0, 1_000_000_000_000);
+    const impressions = requireInteger(row.impressions, `search history impressions ${index}`, 0, 1_000_000_000_000);
+    if (clicks > impressions) throw new Error(`search history clicks exceed impressions ${index}`);
+    requireInteger(row.average_position_milli, `search history average position ${index}`, 0, 1_000_000_000);
+    const start = requireInteger(row.window_start_unix_ms, `search history window start ${index}`, 1, Number.MAX_SAFE_INTEGER);
+    const end = requireInteger(row.window_end_unix_ms, `search history window end ${index}`, 1, Number.MAX_SAFE_INTEGER);
+    if (end <= start) throw new Error(`search history window must be half-open and positive ${index}`);
+  }
+}
+
 function validateTrafficWindows(rows) {
   for (const [index, row] of rows.entries()) {
     assertExactKeys(row, ["baseline_visits", "baseline_window_days", "current_visits", "current_window_days", "entity_id"], `traffic window row ${index}`);
@@ -144,6 +171,7 @@ function validateRevenueFunnel(rows) {
 
 const VALIDATORS = Object.freeze({
   search_performance_records: validateSearchPerformance,
+  search_performance_history_records: validateSearchPerformanceHistory,
   traffic_window_records: validateTrafficWindows,
   traffic_series_records: validateTrafficSeries,
   local_business_records: validateLocalBusiness,
