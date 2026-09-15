@@ -195,7 +195,7 @@ function operatorInput(backend, executionAuthorization) {
   };
 }
 
-test("prepare-only mode never calls the physical backend and remains NOT_TESTED", async () => {
+test("prepare-only mode never calls the physical backend and remains blocked", async () => {
   let called = 0;
   const backend = {
     descriptor: Object.freeze({ adapterId: "NEXUS_PREPARE_ONLY_TEST_V1", adapterVersion: "1.0.0", backendFamily: "PHYSICAL_QPU", hardwareExecution: true }),
@@ -208,7 +208,7 @@ test("prepare-only mode never calls the physical backend and remains NOT_TESTED"
   assert.equal(result.operatorReport.quantumAdvantageClaimAllowed, false);
 });
 
-test("execution authorization with no provider executor attempts once then stops NOT_TESTED", async () => {
+test("execution authorization with no provider executor attempts once then stops blocked", async () => {
   const backend = new PhysicalQPUBackend({
     provider: "EXTERNAL_QPU_PROVIDER_REQUIRED",
     adapterId: "NEXUS_EXTERNAL_QPU_ADAPTER_PENDING_V1",
