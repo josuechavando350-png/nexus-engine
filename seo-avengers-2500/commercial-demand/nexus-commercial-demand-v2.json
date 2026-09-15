@@ -1,0 +1,471 @@
+{
+  "schemaVersion": 2,
+  "scenarioId": "NEXUS_COMMERCIAL_DEMAND_V2",
+  "siteId": "nexus-bot-studio",
+  "market": {
+    "country": "Mexico",
+    "language": "Spanish"
+  },
+  "objective": {
+    "minimumPlanningFloorClientsMilli": 15000,
+    "interpretation": "MINIMUM_PLANNING_FLOOR_NOT_FORECAST_OR_GUARANTEE",
+    "optimizationGoal": "MAXIMIZE_WORST_CASE_MODELED_CLIENT_CAPACITY_THEN_STRICT_COMMERCIAL_DEMAND_THEN_RELEVANT_DEMAND_THEN_FAMILY_COVERAGE_THEN_FEWER_PAGES"
+  },
+  "observedSearch": {
+    "evidenceClass": "FIRST_PARTY_OBSERVED_CARRIED_FORWARD_FROM_V1",
+    "provider": "GOOGLE_SEARCH_CONSOLE_VIA_WINDSOR",
+    "account": "sc-domain:nexusbotstudio.com",
+    "window": "last_30dT",
+    "capturedAt": "2026-09-15",
+    "aggregate": {
+      "clicks": 2,
+      "impressions": 2613,
+      "ctrPpm": 800,
+      "averagePositionMilli": 5149
+    },
+    "note": "Carried forward unchanged from Tournament V1. It is baseline context only and is not converted into a funnel."
+  },
+  "keywordResearch": {
+    "evidenceClass": "RESEARCH_ESTIMATE_NOT_FIRST_PARTY_OUTCOME",
+    "snapshots": [
+      {
+        "id": "HYPD_REFRESH_2026_09_16",
+        "provider": "GOOGLE_ADS_KEYWORD_RESEARCH_VIA_HYPD",
+        "capturedAt": "2026-09-16",
+        "resultId": "167f408f-048d-476d-a610-91fd1248ebe2",
+        "location": "Mexico",
+        "language": "Spanish"
+      },
+      {
+        "id": "HYPD_V1_2026_09_15",
+        "provider": "GOOGLE_ADS_KEYWORD_RESEARCH_VIA_HYPD",
+        "capturedAt": "2026-09-15",
+        "resultId": "V1_HANDOFF_RESEARCH_SNAPSHOT",
+        "location": "Mexico",
+        "language": "Spanish"
+      }
+    ],
+    "rawCandidateRowCount": 2291,
+    "deduplicationMethod": "ONE_CONSERVATIVE_REPRESENTATIVE_VOLUME_PER_SEMANTIC_DEMAND_FAMILY_VARIANTS_ARE_NOT_SUMMED",
+    "families": [
+      {
+        "id": "SEO_AGENCY",
+        "cluster": "SEO",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "agencia seo",
+        "monthlySearchVolume": 880,
+        "competitionIndex": 39,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "SEO_CONSULTING",
+        "cluster": "SEO",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "consultoria seo",
+        "monthlySearchVolume": 480,
+        "competitionIndex": 30,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "SEO_SERVICES",
+        "cluster": "SEO",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "servicios seo",
+        "monthlySearchVolume": 140,
+        "competitionIndex": 43,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "SEO_POSITIONING_AGENCY",
+        "cluster": "SEO",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "agencia de posicionamiento web",
+        "monthlySearchVolume": 140,
+        "competitionIndex": 16,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "SEO_BUYING_DECISION",
+        "cluster": "SEO",
+        "intentClass": "DECISION",
+        "representativeKeyword": "paquetes seo",
+        "monthlySearchVolume": 50,
+        "competitionIndex": 51,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "SEO_POSITIONING_CORE",
+        "cluster": "SEO",
+        "intentClass": "MIXED",
+        "representativeKeyword": "posicionamiento seo",
+        "monthlySearchVolume": 480,
+        "competitionIndex": 38,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WEB_DESIGN_CORE",
+        "cluster": "WEB",
+        "intentClass": "MIXED",
+        "representativeKeyword": "diseño web",
+        "monthlySearchVolume": 2900,
+        "competitionIndex": 36,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WEB_DESIGN_AGENCY",
+        "cluster": "WEB",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "agencia de diseño web",
+        "monthlySearchVolume": 320,
+        "competitionIndex": 63,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WEB_DEVELOPMENT_AGENCY",
+        "cluster": "WEB",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "agencia de desarrollo web",
+        "monthlySearchVolume": 260,
+        "competitionIndex": 74,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WEB_PROFESSIONAL",
+        "cluster": "WEB",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "diseño web profesional",
+        "monthlySearchVolume": 140,
+        "competitionIndex": 34,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WEB_LANDING_PAGE",
+        "cluster": "WEB",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "diseño de landing page",
+        "monthlySearchVolume": 50,
+        "competitionIndex": 49,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WEB_CORPORATE",
+        "cluster": "WEB",
+        "intentClass": "MIXED",
+        "representativeKeyword": "web corporativas",
+        "monthlySearchVolume": 140,
+        "competitionIndex": 13,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WEB_QUOTE",
+        "cluster": "WEB",
+        "intentClass": "DECISION",
+        "representativeKeyword": "cotizacion desarrollo web",
+        "monthlySearchVolume": 90,
+        "competitionIndex": 0,
+        "sourceSnapshotId": "HYPD_V1_2026_09_15"
+      },
+      {
+        "id": "AUTOMATION_PROCESS",
+        "cluster": "AUTOMATION",
+        "intentClass": "MIXED",
+        "representativeKeyword": "automatizacion de procesos",
+        "monthlySearchVolume": 1600,
+        "competitionIndex": 31,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "AUTOMATION_SERVICES",
+        "cluster": "AUTOMATION",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "servicios de automatizacion",
+        "monthlySearchVolume": 70,
+        "competitionIndex": 32,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "AUTOMATION_SALES",
+        "cluster": "AUTOMATION",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "automatizacion de ventas",
+        "monthlySearchVolume": 50,
+        "competitionIndex": 34,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "AUTOMATION_BUSINESS_PROCESS",
+        "cluster": "AUTOMATION",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "automatización de procesos de negocio",
+        "monthlySearchVolume": 70,
+        "competitionIndex": 25,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WHATSAPP_CHATBOT_CORE",
+        "cluster": "WHATSAPP",
+        "intentClass": "MIXED",
+        "representativeKeyword": "chatbot whatsapp",
+        "monthlySearchVolume": 1000,
+        "competitionIndex": 60,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WHATSAPP_AUTOMATE",
+        "cluster": "WHATSAPP",
+        "intentClass": "MIXED",
+        "representativeKeyword": "automatizar whatsapp",
+        "monthlySearchVolume": 90,
+        "competitionIndex": 69,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "WHATSAPP_BUSINESS_CHATBOT",
+        "cluster": "WHATSAPP",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "chatbots whatsapp business",
+        "monthlySearchVolume": 110,
+        "competitionIndex": 76,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "AI_COMPANY",
+        "cluster": "AI",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "empresa de ia",
+        "monthlySearchVolume": 170,
+        "competitionIndex": 38,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "AI_FOR_COMPANIES",
+        "cluster": "AI",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "ia para empresas",
+        "monthlySearchVolume": 90,
+        "competitionIndex": 76,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "AI_ENTERPRISE",
+        "cluster": "AI",
+        "intentClass": "MIXED",
+        "representativeKeyword": "ia empresarial",
+        "monthlySearchVolume": 70,
+        "competitionIndex": 48,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "AI_DEVELOPMENT",
+        "cluster": "AI",
+        "intentClass": "MIXED",
+        "representativeKeyword": "desarrollo de ia",
+        "monthlySearchVolume": 90,
+        "competitionIndex": 49,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "CUSTOM_SOFTWARE",
+        "cluster": "SOFTWARE",
+        "intentClass": "DIRECT",
+        "representativeKeyword": "desarrollo de software a la medida",
+        "monthlySearchVolume": 70,
+        "competitionIndex": 56,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      },
+      {
+        "id": "AUTOMATION_GENERIC_INFO",
+        "cluster": "AUTOMATION",
+        "intentClass": "INFORMATIONAL",
+        "representativeKeyword": "automatizacion",
+        "monthlySearchVolume": 12100,
+        "competitionIndex": 9,
+        "sourceSnapshotId": "HYPD_REFRESH_2026_09_16"
+      }
+    ],
+    "deduplicationExamples": [
+      {
+        "familyId": "SEO_AGENCY",
+        "absorbedVariantExamples": [
+          "agenciaseo",
+          "agencia de seo",
+          "agencias de seo"
+        ]
+      },
+      {
+        "familyId": "SEO_CONSULTING",
+        "absorbedVariantExamples": [
+          "consultor seo",
+          "seo consultor",
+          "especialista en seo",
+          "experto en seo"
+        ]
+      },
+      {
+        "familyId": "WEB_DESIGN_CORE",
+        "absorbedVariantExamples": [
+          "diseños web",
+          "diseño de paginas web",
+          "creacion de paginas web",
+          "diseño de sitios web"
+        ]
+      },
+      {
+        "familyId": "WHATSAPP_CHATBOT_CORE",
+        "absorbedVariantExamples": [
+          "chat robot whatsapp",
+          "bot whatsapp",
+          "bot para whatsapp",
+          "bot de whatsapp",
+          "chat bot para whatsapp"
+        ]
+      },
+      {
+        "familyId": "AI_FOR_COMPANIES",
+        "absorbedVariantExamples": [
+          "inteligencia artificial para empresas",
+          "ia empresas",
+          "inteligencia artificial en empresas"
+        ]
+      }
+    ],
+    "excludedExamples": [
+      {
+        "keyword": "automatizacion industrial",
+        "reason": "INDUSTRIAL_AUTOMATION_NOT_OFFERED_BY_NEXUS"
+      },
+      {
+        "keyword": "seo q es",
+        "reason": "INFORMATIONAL_DIY_NOT_COMMERCIAL"
+      },
+      {
+        "keyword": "chat bot para whatsapp gratis",
+        "reason": "FREE_DIY_INTENT_NOT_COMMERCIAL"
+      },
+      {
+        "keyword": "canva paginas web",
+        "reason": "OTHER_BRAND_DIY_INTENT"
+      },
+      {
+        "keyword": "calvek automatizacion",
+        "reason": "OTHER_BRAND_QUERY"
+      },
+      {
+        "keyword": "festo automatizacion",
+        "reason": "OTHER_BRAND_INDUSTRIAL_QUERY"
+      },
+      {
+        "keyword": "automatizacion plc",
+        "reason": "INDUSTRIAL_AUTOMATION_NOT_OFFERED_BY_NEXUS"
+      },
+      {
+        "keyword": "inteligencia artificial apple",
+        "reason": "OTHER_BRAND_QUERY"
+      },
+      {
+        "keyword": "posicionamiento político",
+        "reason": "IRRELEVANT_TO_NEXUS_SERVICES"
+      }
+    ],
+    "note": "Volumes are Google Ads research estimates. Families are conservative semantic buckets; variants and spelling forms are not treated as unique people or additive market size."
+  },
+  "trafficAssumptions": {
+    "evidenceClass": "EXPLICIT_PLANNING_ASSUMPTION",
+    "clickToSessionPpm": 900000,
+    "targetCtrPpmByIntent": {
+      "DIRECT": 120000,
+      "DECISION": 150000,
+      "MIXED": 50000,
+      "INFORMATIONAL": 20000
+    },
+    "interpretation": "BOUNDED_SCENARIO_NOT_GOOGLE_CONSTANTS_OR_RANK_FORECAST"
+  },
+  "funnels": [
+    {
+      "id": "HARD_5000",
+      "leadConversionPpm": 25000,
+      "qualifiedLeadPpm": 400000,
+      "closeRatePpm": 300000
+    },
+    {
+      "id": "POOR_6250",
+      "leadConversionPpm": 20000,
+      "qualifiedLeadPpm": 400000,
+      "closeRatePpm": 300000
+    },
+    {
+      "id": "VERY_POOR_11429",
+      "leadConversionPpm": 15000,
+      "qualifiedLeadPpm": 350000,
+      "closeRatePpm": 250000
+    }
+  ],
+  "pages": [
+    {"id":"seo-agency","title":"Agencia SEO","demandFamilyIds":["SEO_AGENCY"]},
+    {"id":"seo-consulting","title":"Consultoría SEO","demandFamilyIds":["SEO_CONSULTING"]},
+    {"id":"seo-services","title":"Servicios SEO","demandFamilyIds":["SEO_SERVICES"]},
+    {"id":"seo-positioning-agency","title":"Agencia de posicionamiento web","demandFamilyIds":["SEO_POSITIONING_AGENCY"]},
+    {"id":"seo-pricing","title":"Precios y paquetes SEO","demandFamilyIds":["SEO_BUYING_DECISION"]},
+    {"id":"seo-positioning","title":"Posicionamiento SEO","demandFamilyIds":["SEO_POSITIONING_CORE"]},
+    {"id":"web-design","title":"Diseño web","demandFamilyIds":["WEB_DESIGN_CORE"]},
+    {"id":"web-design-agency","title":"Agencia de diseño web","demandFamilyIds":["WEB_DESIGN_AGENCY"]},
+    {"id":"web-development-agency","title":"Agencia de desarrollo web","demandFamilyIds":["WEB_DEVELOPMENT_AGENCY"]},
+    {"id":"professional-web-design","title":"Diseño web profesional","demandFamilyIds":["WEB_PROFESSIONAL"]},
+    {"id":"landing-page-design","title":"Diseño de landing pages","demandFamilyIds":["WEB_LANDING_PAGE"]},
+    {"id":"corporate-websites","title":"Webs corporativas","demandFamilyIds":["WEB_CORPORATE"]},
+    {"id":"web-quote","title":"Cotización de desarrollo web","demandFamilyIds":["WEB_QUOTE"]},
+    {"id":"business-process-automation","title":"Automatización de procesos de negocio","demandFamilyIds":["AUTOMATION_PROCESS","AUTOMATION_BUSINESS_PROCESS"]},
+    {"id":"automation-services","title":"Servicios de automatización","demandFamilyIds":["AUTOMATION_SERVICES"]},
+    {"id":"sales-automation","title":"Automatización de ventas","demandFamilyIds":["AUTOMATION_SALES"]},
+    {"id":"whatsapp-chatbot","title":"Chatbot para WhatsApp","demandFamilyIds":["WHATSAPP_CHATBOT_CORE"]},
+    {"id":"automate-whatsapp","title":"Automatizar WhatsApp","demandFamilyIds":["WHATSAPP_AUTOMATE"]},
+    {"id":"whatsapp-business-chatbot","title":"Chatbots para WhatsApp Business","demandFamilyIds":["WHATSAPP_BUSINESS_CHATBOT"]},
+    {"id":"ai-company","title":"Empresa de IA","demandFamilyIds":["AI_COMPANY"]},
+    {"id":"ai-for-companies","title":"IA para empresas","demandFamilyIds":["AI_FOR_COMPANIES"]},
+    {"id":"enterprise-ai","title":"IA empresarial","demandFamilyIds":["AI_ENTERPRISE"]},
+    {"id":"ai-development","title":"Desarrollo de IA","demandFamilyIds":["AI_DEVELOPMENT"]},
+    {"id":"custom-software","title":"Desarrollo de software a la medida","demandFamilyIds":["CUSTOM_SOFTWARE"]},
+    {"id":"commercial-decision-hub","title":"Centro de decisión comercial","demandFamilyIds":["SEO_BUYING_DECISION","WEB_QUOTE","WEB_DESIGN_AGENCY","AI_FOR_COMPANIES"]},
+    {"id":"automation-commercial-hub","title":"Automatización comercial","demandFamilyIds":["AUTOMATION_SERVICES","AUTOMATION_SALES","WHATSAPP_BUSINESS_CHATBOT"]},
+    {"id":"seo-vs-ads","title":"SEO vs Ads","demandFamilyIds":["SEO_AGENCY","SEO_BUYING_DECISION"]},
+    {"id":"agency-vs-freelancer","title":"Agencia vs freelancer","demandFamilyIds":["WEB_DESIGN_AGENCY","WEB_DEVELOPMENT_AGENCY"]},
+    {"id":"website-cost","title":"Costo de una página web","demandFamilyIds":["WEB_QUOTE","WEB_PROFESSIONAL"]},
+    {"id":"automation-vs-manual","title":"Automatización vs proceso manual","demandFamilyIds":["AUTOMATION_PROCESS","AUTOMATION_BUSINESS_PROCESS"]},
+    {"id":"how-to-automate-sales","title":"Cómo automatizar ventas","demandFamilyIds":["AUTOMATION_SALES"]},
+    {"id":"lead-capture","title":"Captación de prospectos","demandFamilyIds":["WHATSAPP_CHATBOT_CORE","AI_FOR_COMPANIES"]},
+    {"id":"automation-guide","title":"Guía general de automatización","demandFamilyIds":["AUTOMATION_GENERIC_INFO"]}
+  ],
+  "strategies": [
+    {
+      "id": "LEAN_STRICT_COMMERCIAL_12",
+      "pageIds": ["seo-agency","seo-consulting","seo-services","web-design-agency","web-development-agency","professional-web-design","web-quote","automation-services","whatsapp-business-chatbot","ai-company","ai-for-companies","custom-software"],
+      "disqualifiers": [],
+      "architecture": "STRICT_DIRECT_AND_DECISION_SERVICE_PAGES"
+    },
+    {
+      "id": "SERVICES_PLUS_MIXED_CORE_RECONCILED_18",
+      "pageIds": ["seo-agency","seo-consulting","seo-services","seo-pricing","seo-positioning","web-design","web-design-agency","web-development-agency","professional-web-design","web-quote","business-process-automation","automation-services","whatsapp-chatbot","whatsapp-business-chatbot","ai-company","ai-for-companies","custom-software","commercial-decision-hub"],
+      "disqualifiers": [],
+      "architecture": "RECONCILED_V1_STYLE_SERVICES_PLUS_MIXED_CORE_WITH_18_EXPLICIT_PAGES"
+    },
+    {
+      "id": "EVIDENCE_WEIGHTED_HYBRID_26",
+      "pageIds": ["seo-agency","seo-consulting","seo-services","seo-positioning-agency","seo-pricing","seo-positioning","web-design","web-design-agency","web-development-agency","professional-web-design","landing-page-design","corporate-websites","web-quote","business-process-automation","automation-services","sales-automation","whatsapp-chatbot","automate-whatsapp","whatsapp-business-chatbot","ai-company","ai-for-companies","enterprise-ai","ai-development","custom-software","commercial-decision-hub","automation-commercial-hub"],
+      "disqualifiers": [],
+      "architecture": "SERVICES_DECISIONS_MIXED_CORE_AND_COMMERCIAL_HUBS_WITH_FAMILY_LEVEL_DEDUP"
+    },
+    {
+      "id": "EXPANDED_PROBLEM_DECISION_32",
+      "pageIds": ["seo-agency","seo-consulting","seo-services","seo-positioning-agency","seo-pricing","seo-positioning","web-design","web-design-agency","web-development-agency","professional-web-design","landing-page-design","corporate-websites","web-quote","business-process-automation","automation-services","sales-automation","whatsapp-chatbot","automate-whatsapp","whatsapp-business-chatbot","ai-company","ai-for-companies","enterprise-ai","ai-development","custom-software","commercial-decision-hub","automation-commercial-hub","seo-vs-ads","agency-vs-freelancer","website-cost","automation-vs-manual","how-to-automate-sales","lead-capture"],
+      "disqualifiers": [],
+      "architecture": "HYBRID_26_PLUS_SIX_PROBLEM_AND_DECISION_PAGES_WITHOUT_DOUBLE_COUNTING_DEMAND"
+    },
+    {
+      "id": "INFORMATIONAL_VOLUME_MAXIMIZER_33",
+      "pageIds": ["seo-agency","seo-consulting","seo-services","seo-positioning-agency","seo-pricing","seo-positioning","web-design","web-design-agency","web-development-agency","professional-web-design","landing-page-design","corporate-websites","web-quote","business-process-automation","automation-services","sales-automation","whatsapp-chatbot","automate-whatsapp","whatsapp-business-chatbot","ai-company","ai-for-companies","enterprise-ai","ai-development","custom-software","commercial-decision-hub","automation-commercial-hub","seo-vs-ads","agency-vs-freelancer","website-cost","automation-vs-manual","how-to-automate-sales","lead-capture","automation-guide"],
+      "disqualifiers": ["INFORMATIONAL_VOLUME_DOMINATES"],
+      "architecture": "EXPANDED_32_PLUS_GENERIC_INFORMATIONAL_AUTOMATION_VOLUME"
+    }
+  ],
+  "decisionBoundary": "PLAN_ONLY_NO_AUTONOMOUS_SITE_CMS_ADS_DNS_VERCEL_OR_TENANT_MUTATION"
+}
