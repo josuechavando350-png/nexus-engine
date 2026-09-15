@@ -41,7 +41,6 @@ banned_calls={
 
 def banned_module(name):
     return name in banned_exact or any(name.startswith(prefix) for prefix in banned_prefixes)
-
 def dotted_name(node):
     if isinstance(node,ast.Name):
         return node.id
@@ -74,3 +73,67 @@ for path in paths:
             raise SystemExit(f"environment dependency forbidden:{path}:{node.lineno}:os.environ")
 print("seo-avengers-2500 final M1001-M2500 verification: PASS")
 PY
+
+# M201-M1000 are deterministic evaluators fed by controlled/authorized input.
+# They must not grow a hidden direct-network execution path (including a future
+# Google Search scraper) while still being certified through the chained verifier.
+python - <<'PY' "$ROOT"
+import ast
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+runtime_roots = tuple(root / name / "runtime" for name in (
+    "seo-avengers-400",
+    "seo-avengers-600",
+    "seo-avengers-800",
+    "seo-avengers-1000",
+))
+banned_modules = {
+    "requests", "httpx", "aiohttp", "urllib.request", "socket", "http.client",
+    "subprocess", "selenium", "playwright", "pyppeteer",
+}
+banned_calls = {"os.system", "os.popen", "subprocess.run", "subprocess.Popen", "subprocess.call"}
+
+def dotted_name(node):
+    if isinstance(node, ast.Name):
+        return node.id
+    if isinstance(node, ast.Attribute):
+        left = dotted_name(node.value)
+        return f"{left}.{node.attr}" if left else node.attr
+    return ""
+
+def forbidden_import(module, aliases=()):
+    if module in banned_modules:
+        return module
+    if module == "urllib" and any(alias.name == "request" for alias in aliases):
+        return "urllib.request"
+    if module == "http" and any(alias.name == "client" for alias in aliases):
+        return "http.client"
+    return None
+
+files = tuple(path for runtime_root in runtime_roots for path in runtime_root.rglob("*.py"))
+if not files:
+    raise SystemExit("M201-M1000 runtime sources missing")
+for path in files:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name in banned_modules:
+                    raise SystemExit(f"direct-network module forbidden:{path}:{node.lineno}:{alias.name}")
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            forbidden = forbidden_import(node.module, node.names)
+            if forbidden:
+                raise SystemExit(f"direct-network module forbidden:{path}:{node.lineno}:{forbidden}")
+        elif isinstance(node, ast.Call):
+            call = dotted_name(node.func)
+            if call in banned_calls:
+                raise SystemExit(f"network/process escape forbidden:{path}:{node.lineno}:{call}")
+print("seo-avengers M201-M1000 direct-network boundary: PASS")
+PY
+
+# One policy gate spans the complete Avengers execution surface. This is part of
+# the chained verifier consumed by WALLE, so a policy regression prevents the
+# 2,500-module full-execution claim rather than merely producing a warning.
+python "$SUITE/scripts/google_search_safety.py" --repo-root "$ROOT"

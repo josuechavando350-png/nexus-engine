@@ -30,7 +30,7 @@ permissions:
 jobs:
   verify-walle-connected:
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - name: Checkout exact event revision
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -60,7 +60,8 @@ jobs:
             httpx==0.28.1 \
             beautifulsoup4==4.13.4 \
             fastapi==0.116.1 \
-            pydantic==2.11.7
+            pydantic==2.11.7 \
+            'uvicorn[standard]==0.35.0'
           printf 'WALLE_M200_PYTHON_DIR=%s\n' "$(dirname "$(command -v python3)")" >> "$GITHUB_ENV"
 
       - name: Install Python 3.11 for Walle verification
@@ -79,10 +80,22 @@ jobs:
           rustup toolchain install 1.88.0 --profile minimal --component rustfmt,clippy
           rustup override set 1.88.0
 
-      - name: Verify connected Walle engine
+      - name: Verify connected Walle engine and collect 2500-module evidence
+        env:
+          WALLE_AVENGERS_EVIDENCE_ROOT: ${{ runner.temp }}/walle-avengers-evidence-${{ github.run_id }}-${{ github.run_attempt }}
         run: bash walle/scripts/verify.sh
 
+      - name: Upload Walle Avengers execution evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: walle-avengers-2500-evidence-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/walle-avengers-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 30
+
       - name: Assert verifier left repository clean
+        if: always()
         run: |
           set -euo pipefail
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
