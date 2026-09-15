@@ -314,7 +314,7 @@ export async function publishAuthorizedProviderSnapshot({ controlRoot, evidenceR
   try {
     await mkdir(lockDirectory, { mode: 0o700 });
   } catch (error) {
-    if (error?.code === "EEXIST") throw new Error("provider publication already locked");
+    if (error?.code === "EEXIST") throw new Error("provider publication already locked", { cause: error });
     throw error;
   }
 
