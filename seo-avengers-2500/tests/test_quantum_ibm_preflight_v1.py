@@ -47,7 +47,7 @@ class IbmQpuPreflightContractTest(unittest.TestCase):
 
     def test_logical_qasm_digest_drift_fails_closed(self) -> None:
         payload = request()
-        payload["logicalCircuitArtifact"]["qasm3"] += "\n"
+        payload["logicalCircuitArtifact"]["qasm3"] += "\n// tampered semantic bytes"
         with self.assertRaisesRegex(ValueError, "logical QASM3 digest mismatch"):
             PREFLIGHT._validate_request(payload)
 
