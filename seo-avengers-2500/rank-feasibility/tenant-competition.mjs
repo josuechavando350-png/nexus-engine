@@ -1,9 +1,43 @@
+import { createHash } from "node:crypto";
+
 import { readTenantControl } from "../control-plane/tenant-control.mjs";
 import { readTenantEvidenceSnapshot } from "../evidence/tenant-evidence.mjs";
 import { buildRankFeasibilityTrendCompetitionReport } from "./competition-engine.mjs";
 
 const SHA256_RE = /^sha256:[0-9a-f]{64}$/;
+const SOURCE_AUTHORITY_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const COMPETITION_PROVIDER = "NEXUS_COMPETITIVE_SNAPSHOT";
+
+function compareStrings(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
+function canonicalJson(value) {
+  if (value === null || typeof value === "boolean" || typeof value === "string") {
+    return JSON.stringify(typeof value === "string" ? value.normalize("NFC") : value);
+  }
+  if (typeof value === "number") {
+    if (!Number.isSafeInteger(value)) throw new TypeError("competition provenance values must be safe integers");
+    return String(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value)
+      .map(([key, item]) => [key.normalize("NFC"), item])
+      .sort(([left], [right]) => compareStrings(left, right));
+    const seen = new Set();
+    return `{${entries.map(([key, item]) => {
+      if (seen.has(key)) throw new TypeError("normalized mapping key collision");
+      seen.add(key);
+      return `${JSON.stringify(key)}:${canonicalJson(item)}`;
+    }).join(",")}}`;
+  }
+  throw new TypeError("competition provenance values must be JSON-compatible");
+}
+
+function canonicalRecordsSha256(records) {
+  return `sha256:${createHash("sha256").update(Buffer.from(canonicalJson(records), "utf8")).digest("hex")}`;
+}
 
 function decision({
   siteId,
@@ -39,7 +73,7 @@ function competitionProvenanceFromEvidence(evidence) {
   if (
     row.provider !== COMPETITION_PROVIDER
     || typeof row.source_authority !== "string"
-    || !row.source_authority.trim()
+    || !SOURCE_AUTHORITY_RE.test(row.source_authority)
     || typeof row.source_capture_sha256 !== "string"
     || !SHA256_RE.test(row.source_capture_sha256)
     || typeof row.records_sha256 !== "string"
@@ -53,7 +87,9 @@ function competitionProvenanceFromEvidence(evidence) {
   ) {
     return null;
   }
-  if (row.record_count !== evidence.datasets.keyword_coverage_records.length) return null;
+  const records = evidence.datasets.keyword_coverage_records;
+  if (row.record_count !== records.length) return null;
+  if (canonicalRecordsSha256(records) !== row.records_sha256) return null;
   return Object.freeze({
     provider: row.provider,
     sourceAuthority: row.source_authority,
