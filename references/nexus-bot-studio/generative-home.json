@@ -1,0 +1,122 @@
+{
+  "url": "https://nexusbotstudio.com/",
+  "title": "Nexus Bot Studio — Webs Premium y Agentes de IA",
+  "description": "Nexus Bot Studio crea webs premium y agentes de IA para empresas en México, construidos y auditados con el motor NEXUS.",
+  "language": "es-MX",
+  "modifiedDate": "2026-09-02T00:00:00Z",
+  "indexable": true,
+  "crawlAllowed": true,
+  "snippet": "FULL",
+  "sections": [
+    {
+      "id": "webs-premium",
+      "heading": "Webs Premium",
+      "text": "Nexus Bot Studio presenta Webs Premium como su producto principal y publica proyectos propios como evidencia visible de dirección y construcción web.",
+      "claimIds": ["offer-webs", "portfolio-first-party"],
+      "dataNoSnippet": false
+    },
+    {
+      "id": "agentes-ia",
+      "heading": "Agentes de IA",
+      "text": "La oferta pública incluye agentes de IA y chatbot empresarial como una de las dos superficies comerciales principales del estudio.",
+      "claimIds": ["offer-agents"],
+      "dataNoSnippet": false
+    },
+    {
+      "id": "nexus-engine",
+      "heading": "El motor NEXUS",
+      "text": "La capacidad técnica se vincula al repositorio del motor NEXUS y a evidencia ejecutable, no a una promesa de ranking o recomendación garantizada por terceros.",
+      "claimIds": ["engine-evidence", "no-guarantee"],
+      "dataNoSnippet": false
+    }
+  ],
+  "entities": [
+    {
+      "id": "nexus-bot-studio",
+      "name": "Nexus Bot Studio",
+      "type": "Organization",
+      "description": "Estudio tecnológico en México enfocado públicamente en Webs Premium y Agentes de IA.",
+      "sameAs": ["https://nexusbotstudio.com/"]
+    },
+    {
+      "id": "nexus-engine",
+      "name": "NEXUS",
+      "type": "SoftwareApplication",
+      "description": "Motor de ingeniería y evidencia utilizado por Nexus Bot Studio.",
+      "sameAs": ["https://github.com/josuechavando350-png/nexus-engine"]
+    }
+  ],
+  "evidence": [
+    {
+      "id": "site-home",
+      "kind": "PRIMARY_SOURCE",
+      "source": "https://nexusbotstudio.com/"
+    },
+    {
+      "id": "site-portfolio",
+      "kind": "FIRST_PARTY_DATA",
+      "source": "https://nexusbotstudio.com/web"
+    },
+    {
+      "id": "engine-repository",
+      "kind": "PRIMARY_SOURCE",
+      "source": "https://github.com/josuechavando350-png/nexus-engine"
+    }
+  ],
+  "claims": [
+    {
+      "id": "offer-webs",
+      "text": "Nexus Bot Studio ofrece Webs Premium.",
+      "kind": "OFFER",
+      "evidenceIds": ["site-home"],
+      "volatile": false
+    },
+    {
+      "id": "offer-agents",
+      "text": "Nexus Bot Studio ofrece Agentes de IA y chatbots empresariales.",
+      "kind": "OFFER",
+      "evidenceIds": ["site-home"],
+      "volatile": false
+    },
+    {
+      "id": "portfolio-first-party",
+      "text": "El sitio publica proyectos propios dentro de su superficie de Webs Premium.",
+      "kind": "FACT",
+      "evidenceIds": ["site-portfolio"],
+      "volatile": false
+    },
+    {
+      "id": "engine-evidence",
+      "text": "NEXUS dispone de un repositorio de motor con controles y evidencia ejecutable.",
+      "kind": "FACT",
+      "evidenceIds": ["engine-repository"],
+      "volatile": false
+    },
+    {
+      "id": "no-guarantee",
+      "text": "La implementación no afirma poder garantizar ranking, citación o recomendación por una IA externa.",
+      "kind": "FACT",
+      "evidenceIds": ["engine-repository"],
+      "volatile": false
+    }
+  ],
+  "questions": [],
+  "originalContributions": [
+    {
+      "id": "reference-engine",
+      "description": "Una implementación de referencia que une la web comercial con controles ejecutables del motor NEXUS y evidencia ligada al despliegue.",
+      "evidenceIds": ["engine-repository", "site-home"]
+    },
+    {
+      "id": "first-party-project-evidence",
+      "description": "Una superficie de proyectos propios que permite respaldar la oferta de Webs Premium con trabajo publicado por el propio estudio.",
+      "evidenceIds": ["site-portfolio"]
+    }
+  ],
+  "media": [
+    {
+      "url": "https://nexusbotstudio.com/og-image.png",
+      "context": "Imagen social oficial de Nexus Bot Studio asociada a la identidad canónica del sitio."
+    }
+  ]
+}
