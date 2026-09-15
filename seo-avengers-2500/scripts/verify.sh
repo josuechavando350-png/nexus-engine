@@ -38,6 +38,18 @@ node --check "$SUITE/classical-baseline/baseline-solver.mjs"
 node --check "$SUITE/classical-baseline/tenant-baseline.mjs"
 node --check "$SUITE/quantum-hybrid/qaoa-experiment.mjs"
 node --check "$SUITE/quantum-hybrid/tenant-experiment.mjs"
+node --check "$SUITE/quantum-runtime/common.mjs"
+node --check "$SUITE/quantum-runtime/problem-contract.mjs"
+node --check "$SUITE/quantum-runtime/circuit-binding.mjs"
+node --check "$SUITE/quantum-runtime/qaoa-circuit-ir.mjs"
+node --check "$SUITE/quantum-runtime/qaoa-openqasm3-compiler.mjs"
+node --check "$SUITE/quantum-runtime/execution-evidence.mjs"
+node --check "$SUITE/quantum-runtime/contracts.mjs"
+node --check "$SUITE/quantum-runtime/backend-adapter.mjs"
+node --check "$SUITE/quantum-runtime/simulator-backend.mjs"
+node --check "$SUITE/quantum-runtime/physical-qpu-backend.mjs"
+node --check "$SUITE/quantum-runtime/quantum-judge-comparison.mjs"
+node --check "$SUITE/quantum-runtime/physical-experiment-protocol.mjs"
 node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
@@ -63,7 +75,10 @@ node --test \
   "$SUITE/tests/test_decision_engine_v1.mjs" \
   "$SUITE/tests/test_optimization_problem_builder_v1.mjs" \
   "$SUITE/tests/test_classical_baseline_v1.mjs" \
-  "$SUITE/tests/test_quantum_hybrid_experiment_v1.mjs"
+  "$SUITE/tests/test_quantum_hybrid_experiment_v1.mjs" \
+  "$SUITE/tests/test_quantum_openqasm3_compiler_v1.mjs" \
+  "$SUITE/tests/test_quantum_qpu_runtime_v1.mjs" \
+  "$SUITE/tests/test_quantum_physical_experiment_protocol_v1.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
