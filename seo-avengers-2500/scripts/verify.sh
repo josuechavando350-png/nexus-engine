@@ -51,6 +51,7 @@ node --check "$SUITE/quantum-runtime/physical-qpu-backend.mjs"
 node --check "$SUITE/quantum-runtime/quantum-judge-comparison.mjs"
 node --check "$SUITE/quantum-runtime/physical-experiment-protocol.mjs"
 node --check "$SUITE/quantum-runtime/physical-run-operator.mjs"
+node --check "$SUITE/quantum-runtime/physical-first-run-plan.mjs"
 node --check "$SUITE/quantum-runtime/providers/ibm/ibm-qpu-adapter.mjs"
 python -m py_compile "$SUITE/quantum-runtime/providers/ibm/ibm-qpu-bridge.py"
 grep -Fx 'qiskit==2.5.2' "$SUITE/quantum-runtime/providers/ibm/requirements.txt" >/dev/null
@@ -86,7 +87,8 @@ node --test \
   "$SUITE/tests/test_quantum_qpu_runtime_v1.mjs" \
   "$SUITE/tests/test_quantum_physical_experiment_protocol_v1.mjs" \
   "$SUITE/tests/test_quantum_ibm_qpu_adapter_v1.mjs" \
-  "$SUITE/tests/test_quantum_physical_run_operator_v1.mjs"
+  "$SUITE/tests/test_quantum_physical_run_operator_v1.mjs" \
+  "$SUITE/tests/test_quantum_physical_first_run_plan_v1.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
