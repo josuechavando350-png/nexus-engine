@@ -52,6 +52,13 @@ function liveAuthorization(value) {
   return value;
 }
 
+function smokeRequestForPlan(physicalRequest, plan) {
+  if (!physicalRequest || typeof physicalRequest !== "object" || Array.isArray(physicalRequest)) {
+    throw new Error("PHYSICAL_SMOKE_GATE_PHYSICAL_REQUEST_REQUIRED");
+  }
+  return { ...physicalRequest, shots: plan.smokeJob.shots };
+}
+
 function validateLiveAuthorizationRecord(record) {
   exactKeys(record, [
     "authorizationSha256",
@@ -65,6 +72,7 @@ function validateLiveAuthorizationRecord(record) {
     "providerCostOrEntitlementReference",
     "quantumAdvantageClaimAllowed",
     "schemaVersion",
+    "smokeRequestSha256",
     "sourceRevision",
     "sourceTree",
     "walleArtifactSha256",
@@ -80,6 +88,7 @@ function validateLiveAuthorizationRecord(record) {
   gitSha(record.sourceRevision, "authorization sourceRevision");
   gitSha(record.sourceTree, "authorization sourceTree");
   sha(record.planSha256, "authorization planSha256");
+  sha(record.smokeRequestSha256, "authorization smokeRequestSha256");
   sha(record.walleArtifactSha256, "authorization walleArtifactSha256");
   sha(record.walleProofSha256, "authorization walleProofSha256");
   liveAuthorization(record.liveExecutionAuthorization);
@@ -96,7 +105,7 @@ function validateLiveAuthorizationRecord(record) {
     throw new Error("WALLE exact-head evidence is not a complete 2500-module execution claim");
   }
   if (record.quantumAdvantageClaimAllowed !== false
-    || record.interpretation !== "EXTERNAL_CI_WALLE_AND_PROVIDER_COST_BINDING_NOT_PROVIDER_BILLING_VERIFICATION_OR_QUANTUM_ADVANTAGE") {
+    || record.interpretation !== "EXTERNAL_CI_WALLE_PROVIDER_COST_AND_EXACT_SMOKE_REQUEST_BINDING_NOT_PROVIDER_BILLING_VERIFICATION_OR_QUANTUM_ADVANTAGE") {
     throw new Error("physical QPU live authorization claim boundary mismatch");
   }
   const { authorizationSha256, ...unsigned } = record;
@@ -110,6 +119,7 @@ export function buildPhysicalQpuLiveAuthorizationRecord(input) {
   exactKeys(input, [
     "exactHeadCiStatus",
     "fullExecutionClaim",
+    "physicalRequest",
     "plan",
     "providerCostOrEntitlementConfirmed",
     "providerCostOrEntitlementReference",
@@ -128,12 +138,14 @@ export function buildPhysicalQpuLiveAuthorizationRecord(input) {
   if (sourceRevision !== plan.sourceRevision || sourceTree !== plan.sourceTree) {
     throw new Error("authorization source identity must match physical first-run plan");
   }
+  const smokeRequestSha256 = canonicalQuantumSha256(smokeRequestForPlan(input.physicalRequest, plan));
   const unsigned = {
     schemaVersion: 1,
     engineId: AUTHORIZATION_ENGINE_ID,
     sourceRevision,
     sourceTree,
     planSha256: plan.planSha256,
+    smokeRequestSha256,
     exactHeadCiStatus: input.exactHeadCiStatus,
     walleArtifactSha256: sha(input.walleArtifactSha256, "authorization walleArtifactSha256"),
     walleProofSha256: sha(input.walleProofSha256, "authorization walleProofSha256"),
@@ -150,7 +162,7 @@ export function buildPhysicalQpuLiveAuthorizationRecord(input) {
     ),
     liveExecutionAuthorization: EXECUTE_PHYSICAL_QPU,
     quantumAdvantageClaimAllowed: false,
-    interpretation: "EXTERNAL_CI_WALLE_AND_PROVIDER_COST_BINDING_NOT_PROVIDER_BILLING_VERIFICATION_OR_QUANTUM_ADVANTAGE",
+    interpretation: "EXTERNAL_CI_WALLE_PROVIDER_COST_AND_EXACT_SMOKE_REQUEST_BINDING_NOT_PROVIDER_BILLING_VERIFICATION_OR_QUANTUM_ADVANTAGE",
   };
   return validateLiveAuthorizationRecord(freeze({
     ...unsigned,
@@ -186,7 +198,7 @@ function assertPlanSourceIdentity(plan, identity) {
   }
 }
 
-function assertAuthorizationForPlan(record, plan, identity) {
+function assertAuthorizationForPlan(record, plan, identity, physicalRequest) {
   const checked = validateLiveAuthorizationRecord(record);
   if (checked.planSha256 !== plan.planSha256
     || checked.sourceRevision !== plan.sourceRevision
@@ -194,6 +206,10 @@ function assertAuthorizationForPlan(record, plan, identity) {
     || checked.sourceRevision !== identity.sourceRevision
     || checked.sourceTree !== identity.sourceTree) {
     throw new Error("PHYSICAL_SMOKE_GATE_AUTHORIZATION_BINDING_MISMATCH");
+  }
+  const smokeRequestSha256 = canonicalQuantumSha256(smokeRequestForPlan(physicalRequest, plan));
+  if (checked.smokeRequestSha256 !== smokeRequestSha256) {
+    throw new Error("PHYSICAL_SMOKE_GATE_AUTHORIZED_REQUEST_MISMATCH");
   }
   return checked;
 }
@@ -348,10 +364,8 @@ function createGate({
       if (executionAuthorization !== EXECUTE_PHYSICAL_QPU) {
         throw new Error("PHYSICAL_SMOKE_GATE_INVALID_EXECUTION_AUTHORIZATION");
       }
-      if (!physicalRequest || typeof physicalRequest !== "object" || Array.isArray(physicalRequest)) {
-        throw new Error("PHYSICAL_SMOKE_GATE_PHYSICAL_REQUEST_REQUIRED");
-      }
-      const authorization = assertAuthorizationForPlan(authorizationRecord, checkedPlan, identity);
+      const smokeRequest = smokeRequestForPlan(physicalRequest, checkedPlan);
+      const authorization = assertAuthorizationForPlan(authorizationRecord, checkedPlan, identity, physicalRequest);
       const preflightReport = await preflight.run(physicalRequest);
       const readinessReasons = preflightReasons(preflightReport, checkedPlan);
       if (readinessReasons.length > 0) {
@@ -375,8 +389,7 @@ function createGate({
       }
 
       liveBridgeState.lastErrorCode = null;
-      const smokeRequest = freeze({ ...physicalRequest, shots: checkedPlan.smokeJob.shots });
-      const smokeExecution = await backend.execute(smokeRequest);
+      const smokeExecution = await backend.execute(freeze(smokeRequest));
       const reconciliationRequired = smokeExecution?.executionReceipt == null;
       const receiptReasons = smokeReceiptReasons(smokeExecution, preflightReport.preflightEvidence, checkedPlan);
       if (liveBridgeState.lastErrorCode === "IBM_QPU_BRIDGE_TIMEOUT") {
