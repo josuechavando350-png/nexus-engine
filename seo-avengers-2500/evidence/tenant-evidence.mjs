@@ -21,6 +21,7 @@ export const ALLOWED_DATASET_KEYS = Object.freeze([
   "revenue_attribution_records",
   "revenue_funnel_records",
   "search_intent_records",
+  "search_performance_history_records",
   "search_performance_records",
   "semantic_text_records",
   "traffic_series_records",
