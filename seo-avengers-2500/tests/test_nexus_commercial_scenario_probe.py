@@ -101,7 +101,7 @@ class NexusCommercialScenarioProbeTests(unittest.TestCase):
         self.assertFalse(terminal["output"]["release_safe"])
         self.assertTrue(terminal["output"]["blocking_findings"])
 
-    def test_no_skip_or_not_tested_status_is_accepted_as_execution(self):
+    def test_execution_statuses_are_only_success_insufficient_or_error(self):
         statuses = {receipt.get("execution_status") for receipt in self.receipts.values()}
         self.assertFalse({"SKIP", "SKIPPED", "NOT_TESTED"} & statuses)
         self.assertTrue(statuses <= {"SUCCESS", "INSUFFICIENT_DATA", "ERROR"})
