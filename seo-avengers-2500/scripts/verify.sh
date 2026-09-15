@@ -36,6 +36,8 @@ node --check "$SUITE/optimization-problem/problem-builder.mjs"
 node --check "$SUITE/optimization-problem/tenant-problem.mjs"
 node --check "$SUITE/classical-baseline/baseline-solver.mjs"
 node --check "$SUITE/classical-baseline/tenant-baseline.mjs"
+node --check "$SUITE/quantum-hybrid/qaoa-experiment.mjs"
+node --check "$SUITE/quantum-hybrid/tenant-experiment.mjs"
 node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
@@ -60,7 +62,8 @@ node --test \
   "$SUITE/tests/test_rank_transition_v1.mjs" \
   "$SUITE/tests/test_decision_engine_v1.mjs" \
   "$SUITE/tests/test_optimization_problem_builder_v1.mjs" \
-  "$SUITE/tests/test_classical_baseline_v1.mjs"
+  "$SUITE/tests/test_classical_baseline_v1.mjs" \
+  "$SUITE/tests/test_quantum_hybrid_experiment_v1.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
 suite=pathlib.Path(sys.argv[1])
