@@ -7,10 +7,12 @@ import { readTenantControl } from "../control-plane/tenant-control.mjs";
 const SCHEMA_VERSION = 1;
 const SITE_ID_RE = /^[a-z0-9][a-z0-9-]{0,79}$/;
 const CAPTURE_ID_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
+const SOURCE_AUTHORITY_RE = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const SHA256_RE = /^sha256:[0-9a-f]{64}$/;
 const MAX_RECORDS_PER_DATASET = 100_000;
 const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 const PPM = 1_000_000;
+const COMPETITION_PROVIDER = "NEXUS_COMPETITIVE_SNAPSHOT";
 
 const PROVIDER_KEYS = Object.freeze({
   GOOGLE_SEARCH_CONSOLE: Object.freeze(["search_performance_history_records", "search_performance_records"]),
@@ -18,6 +20,7 @@ const PROVIDER_KEYS = Object.freeze({
   GOOGLE_BUSINESS_PROFILE: Object.freeze(["local_business_records"]),
   NEXUS_SITE_SNAPSHOT: Object.freeze(["content_documents"]),
   NEXUS_CRM: Object.freeze(["revenue_funnel_records"]),
+  [COMPETITION_PROVIDER]: Object.freeze(["keyword_coverage_records"]),
 });
 
 function compareStrings(left, right) {
@@ -116,6 +119,20 @@ function validateSearchPerformanceHistory(rows) {
   }
 }
 
+function validateKeywordCoverage(rows) {
+  for (const [index, row] of rows.entries()) {
+    assertExactKeys(
+      row,
+      ["competitor_ranked_count", "keyword", "search_volume", "site_ranked"],
+      `keyword coverage row ${index}`,
+    );
+    requireString(row.keyword, `competition keyword ${index}`, { maxBytes: 4096 });
+    if (typeof row.site_ranked !== "boolean") throw new Error(`competition site_ranked ${index} must be boolean`);
+    requireInteger(row.competitor_ranked_count, `competition ranked count ${index}`, 0, 100_000);
+    requireInteger(row.search_volume, `competition search volume ${index}`, 0, 1_000_000_000_000);
+  }
+}
+
 function validateTrafficWindows(rows) {
   for (const [index, row] of rows.entries()) {
     assertExactKeys(row, ["baseline_visits", "baseline_window_days", "current_visits", "current_window_days", "entity_id"], `traffic window row ${index}`);
@@ -172,6 +189,7 @@ function validateRevenueFunnel(rows) {
 const VALIDATORS = Object.freeze({
   search_performance_records: validateSearchPerformance,
   search_performance_history_records: validateSearchPerformanceHistory,
+  keyword_coverage_records: validateKeywordCoverage,
   traffic_window_records: validateTrafficWindows,
   traffic_series_records: validateTrafficSeries,
   local_business_records: validateLocalBusiness,
@@ -180,7 +198,15 @@ const VALIDATORS = Object.freeze({
 });
 
 function validateDataset(dataset) {
-  assertExactKeys(dataset, ["key", "provider", "records", "records_sha256"], "provider dataset");
+  if (!dataset || typeof dataset !== "object" || Array.isArray(dataset)) throw new Error("provider dataset must be an object");
+  const competition = dataset.provider === COMPETITION_PROVIDER;
+  assertExactKeys(
+    dataset,
+    competition
+      ? ["key", "provider", "records", "records_sha256", "source_authority", "source_capture_sha256"]
+      : ["key", "provider", "records", "records_sha256"],
+    "provider dataset",
+  );
   if (typeof dataset.provider !== "string" || !(dataset.provider in PROVIDER_KEYS)) throw new Error("unsupported provider");
   if (typeof dataset.key !== "string" || !PROVIDER_KEYS[dataset.provider].includes(dataset.key)) {
     throw new Error("provider is not authorized for dataset key");
@@ -195,11 +221,25 @@ function validateDataset(dataset) {
     throw new Error("provider records digest mismatch");
   }
   VALIDATORS[dataset.key](dataset.records);
+
+  let sourceAuthority = null;
+  let sourceCaptureSha256 = null;
+  if (competition) {
+    sourceAuthority = requireString(dataset.source_authority, "competition source_authority", { maxBytes: 128 });
+    if (!SOURCE_AUTHORITY_RE.test(sourceAuthority)) throw new Error("competition source_authority has invalid format");
+    if (typeof dataset.source_capture_sha256 !== "string" || !SHA256_RE.test(dataset.source_capture_sha256)) {
+      throw new Error("invalid competition source_capture_sha256");
+    }
+    sourceCaptureSha256 = dataset.source_capture_sha256;
+  }
+
   return {
     provider: dataset.provider,
     key: dataset.key,
     records: dataset.records,
     recordsSha256: dataset.records_sha256,
+    sourceAuthority,
+    sourceCaptureSha256,
   };
 }
 
@@ -274,7 +314,7 @@ export async function publishAuthorizedProviderSnapshot({ controlRoot, evidenceR
   try {
     await mkdir(lockDirectory, { mode: 0o700 });
   } catch (error) {
-    if (error?.code === "EEXIST") throw new Error("provider publication already locked");
+    if (error?.code === "EEXIST") throw new Error("provider publication already locked", { cause: error });
     throw error;
   }
 
@@ -293,7 +333,7 @@ export async function publishAuthorizedProviderSnapshot({ controlRoot, evidenceR
       const file = `${dataset.key}.json`;
       const written = await writeCanonicalFile(join(stagedTenant, file), dataset.records);
       descriptors.push({ key: dataset.key, file, sha256: written.sha256 });
-      provenance.push({
+      const provenanceRecord = {
         source_id: `${dataset.provider}:${dataset.key}`,
         provider: dataset.provider,
         dataset_key: dataset.key,
@@ -301,7 +341,12 @@ export async function publishAuthorizedProviderSnapshot({ controlRoot, evidenceR
         observed_at_unix_ms: snapshot.observed_at_unix_ms,
         record_count: dataset.records.length,
         records_sha256: dataset.recordsSha256,
-      });
+      };
+      if (dataset.sourceAuthority !== null) {
+        provenanceRecord.source_authority = dataset.sourceAuthority;
+        provenanceRecord.source_capture_sha256 = dataset.sourceCaptureSha256;
+      }
+      provenance.push(provenanceRecord);
     }
 
     const upstreamFile = "upstream_evidence.json";
