@@ -11,6 +11,7 @@ import {
   text,
   TOKEN_RE,
 } from "../../common.mjs";
+import { validateExecutionReceipt } from "../../contracts.mjs";
 import { buildPhysicalQpuExperimentReport } from "../../physical-experiment-protocol.mjs";
 import { validatePhysicalQpuFirstRunPlan } from "../../physical-first-run-plan.mjs";
 import {
@@ -58,14 +59,26 @@ function repeatedRequestForPlan(physicalRequest, plan) {
   return freeze({ ...physicalRequest, shots: plan.repeatedSeries.shots });
 }
 
+function validateSmokeGateReportDigest(report) {
+  if (!report || typeof report !== "object" || Array.isArray(report)) {
+    throw new Error("REPEATED_SERIES_SMOKE_GATE_REPORT_REQUIRED");
+  }
+  const reportSha256 = sha(report.reportSha256, "smoke gate reportSha256");
+  const { reportSha256: ignoredReportSha256, ...unsigned } = report;
+  void ignoredReportSha256;
+  if (reportSha256 !== canonicalQuantumSha256(unsigned)) {
+    throw new Error("REPEATED_SERIES_SMOKE_GATE_REPORT_DIGEST_MISMATCH");
+  }
+  return report;
+}
+
 function smokeReference(smokeGateResult, plan) {
   if (!smokeGateResult || typeof smokeGateResult !== "object" || Array.isArray(smokeGateResult)) {
     throw new Error("REPEATED_SERIES_SMOKE_GATE_RESULT_REQUIRED");
   }
-  const report = smokeGateResult.gateReport;
+  const report = validateSmokeGateReportDigest(smokeGateResult.gateReport);
   const execution = smokeGateResult.smokeExecution;
-  const receipt = execution?.executionReceipt ?? null;
-  if (!report || report.engineId !== SMOKE_GATE_ENGINE_ID
+  if (report.engineId !== SMOKE_GATE_ENGINE_ID
     || report.verdict !== "PASS"
     || report.repeatedSeriesAuthorized !== true
     || report.providerReconciliationRequired !== false
@@ -80,11 +93,18 @@ function smokeReference(smokeGateResult, plan) {
     || report.backendName !== plan.backendName) {
     throw new Error("REPEATED_SERIES_SMOKE_GATE_PLAN_BINDING_MISMATCH");
   }
-  if (!execution || execution.verdict !== "PASS" || !receipt) {
+  if (!execution || execution.verdict !== "PASS" || !execution.executionReceipt) {
     throw new Error("REPEATED_SERIES_SMOKE_EXECUTION_RECEIPT_REQUIRED");
   }
+  const smokeExecutionSha256 = canonicalQuantumSha256(execution);
+  if (report.smokeExecutionSha256 !== smokeExecutionSha256) {
+    throw new Error("REPEATED_SERIES_SMOKE_EXECUTION_DIGEST_MISMATCH");
+  }
+  const receipt = validateExecutionReceipt(execution.executionReceipt);
   if (receipt.provider !== plan.provider
     || receipt.backendDevice !== plan.backendName
+    || receipt.backendFamily !== "PHYSICAL_QPU"
+    || receipt.hardwareExecution !== true
     || receipt.status !== "SUCCEEDED"
     || receipt.shotsRequested !== plan.smokeJob.shots
     || receipt.shotsCompleted !== plan.smokeJob.shots
@@ -103,8 +123,8 @@ function smokeReference(smokeGateResult, plan) {
     throw new Error("REPEATED_SERIES_SMOKE_SEED_MISMATCH");
   }
   return freeze({
-    smokeGateReportSha256: canonicalQuantumSha256(report),
-    smokeExecutionSha256: canonicalQuantumSha256(execution),
+    smokeGateReportSha256: report.reportSha256,
+    smokeExecutionSha256,
     smokeReceiptSha256: sha(receipt.receiptSha256, "smoke receiptSha256"),
     smokeProviderJobId: text(receipt.jobId, "smoke provider jobId", { pattern: TOKEN_RE, maxBytes: 256 }),
     provider: receipt.provider,
@@ -415,6 +435,21 @@ function buildExperimentReport({ physicalRequest, baselineProfile, executions, p
   });
 }
 
+function validateBaselineBeforeSubmission({ physicalRequest, baselineProfile, plan }) {
+  const report = buildExperimentReport({
+    physicalRequest,
+    baselineProfile,
+    executions: [],
+    plan,
+  });
+  if (report.verdict !== "NOT_TESTED"
+    || report.status !== "BLOCKED_PHYSICAL_QPU_EXECUTION_NOT_PERFORMED"
+    || report.quantumAdvantageClaimAllowed !== false) {
+    throw new Error("REPEATED_SERIES_BASELINE_PREVALIDATION_BOUNDARY_MISMATCH");
+  }
+  return report;
+}
+
 function buildGateReport({
   plan,
   identity,
@@ -538,6 +573,11 @@ function createGate({ plan, preflight, backend, liveBridgeState }) {
         physicalRequest,
         baselineProfile,
       );
+      validateBaselineBeforeSubmission({
+        physicalRequest: repeatedRequest,
+        baselineProfile,
+        plan: checkedPlan,
+      });
 
       const executions = [];
       const preflightReports = [];
