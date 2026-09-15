@@ -14,14 +14,17 @@ const MAX_TEXT_BYTES = 2 * 1024 * 1024;
 const PPM = 1_000_000;
 const COMPETITION_PROVIDER = "NEXUS_COMPETITIVE_SNAPSHOT";
 const AUTHORITY_PROVIDER = "NEXUS_AUTHORITY_SNAPSHOT";
+const CRM_PROVIDER = "NEXUS_CRM";
+const CLIENT_COHORT_KEY = "client_cohort_records";
 const AUTHORITY_NON_CLAIM = "INTERNAL_TOPICAL_AUTHORITY_DIAGNOSTIC_NOT_SEARCH_ENGINE_RANKING_EVIDENCE";
+const COHORT_BASIS_VALUES = new Set(["OBSERVED", "CLASSIFIED", "ESTIMATED"]);
 
 const PROVIDER_KEYS = Object.freeze({
   GOOGLE_SEARCH_CONSOLE: Object.freeze(["search_performance_history_records", "search_performance_records"]),
   GOOGLE_ANALYTICS_4: Object.freeze(["traffic_series_records", "traffic_window_records"]),
   GOOGLE_BUSINESS_PROFILE: Object.freeze(["local_business_records"]),
   NEXUS_SITE_SNAPSHOT: Object.freeze(["content_documents"]),
-  NEXUS_CRM: Object.freeze(["revenue_funnel_records"]),
+  [CRM_PROVIDER]: Object.freeze([CLIENT_COHORT_KEY, "revenue_funnel_records"]),
   [COMPETITION_PROVIDER]: Object.freeze(["keyword_coverage_records"]),
   [AUTHORITY_PROVIDER]: Object.freeze(["topical_authority_records"]),
 });
@@ -80,6 +83,11 @@ function requireInteger(value, label, minimum, maximum) {
   if (!Number.isSafeInteger(value) || value < minimum || value > maximum) {
     throw new Error(`${label} must be an integer in range`);
   }
+  return value;
+}
+
+function requireCohortBasis(value, label) {
+  if (typeof value !== "string" || !COHORT_BASIS_VALUES.has(value)) throw new Error(`${label} has invalid evidence basis`);
   return value;
 }
 
@@ -220,6 +228,57 @@ function validateRevenueFunnel(rows) {
   }
 }
 
+function validateClientCohorts(rows) {
+  for (const [index, row] of rows.entries()) {
+    assertExactKeys(
+      row,
+      [
+        "geography",
+        "geography_basis",
+        "intent",
+        "intent_basis",
+        "leads",
+        "revenue_micros",
+        "service_category",
+        "service_category_basis",
+        "sessions",
+        "signed_clients",
+        "source_basis",
+        "source_id",
+        "ticket_band",
+        "ticket_band_basis",
+        "urgency",
+        "urgency_basis",
+        "window_end_unix_ms",
+        "window_start_unix_ms",
+      ],
+      `client cohort row ${index}`,
+    );
+    requireString(row.service_category, `client cohort service category ${index}`, { maxBytes: 512 });
+    requireCohortBasis(row.service_category_basis, `client cohort service category basis ${index}`);
+    requireString(row.intent, `client cohort intent ${index}`, { maxBytes: 512 });
+    requireCohortBasis(row.intent_basis, `client cohort intent basis ${index}`);
+    requireString(row.geography, `client cohort geography ${index}`, { maxBytes: 512 });
+    requireCohortBasis(row.geography_basis, `client cohort geography basis ${index}`);
+    requireString(row.urgency, `client cohort urgency ${index}`, { maxBytes: 512 });
+    requireCohortBasis(row.urgency_basis, `client cohort urgency basis ${index}`);
+    requireString(row.ticket_band, `client cohort ticket band ${index}`, { maxBytes: 512 });
+    requireCohortBasis(row.ticket_band_basis, `client cohort ticket band basis ${index}`);
+    requireString(row.source_id, `client cohort source ${index}`, { maxBytes: 512 });
+    requireCohortBasis(row.source_basis, `client cohort source basis ${index}`);
+    const sessions = requireInteger(row.sessions, `client cohort sessions ${index}`, 0, 1_000_000_000_000);
+    const leads = requireInteger(row.leads, `client cohort leads ${index}`, 0, 1_000_000_000_000);
+    const signedClients = requireInteger(row.signed_clients, `client cohort signed clients ${index}`, 0, 1_000_000_000_000);
+    if (leads > sessions) throw new Error(`client cohort leads exceed sessions ${index}`);
+    if (signedClients > leads) throw new Error(`client cohort signed clients exceed leads ${index}`);
+    const revenueMicros = requireInteger(row.revenue_micros, `client cohort revenue micros ${index}`, 0, Number.MAX_SAFE_INTEGER);
+    if (signedClients === 0 && revenueMicros !== 0) throw new Error(`client cohort revenue requires signed client ${index}`);
+    const start = requireInteger(row.window_start_unix_ms, `client cohort window start ${index}`, 1, Number.MAX_SAFE_INTEGER);
+    const end = requireInteger(row.window_end_unix_ms, `client cohort window end ${index}`, 1, Number.MAX_SAFE_INTEGER);
+    if (end <= start) throw new Error(`client cohort window must be positive ${index}`);
+  }
+}
+
 const VALIDATORS = Object.freeze({
   search_performance_records: validateSearchPerformance,
   search_performance_history_records: validateSearchPerformanceHistory,
@@ -230,6 +289,7 @@ const VALIDATORS = Object.freeze({
   local_business_records: validateLocalBusiness,
   content_documents: validateContentDocuments,
   revenue_funnel_records: validateRevenueFunnel,
+  [CLIENT_COHORT_KEY]: validateClientCohorts,
 });
 
 function validateDataset(dataset) {
@@ -238,7 +298,9 @@ function validateDataset(dataset) {
     ? "competition"
     : dataset.provider === AUTHORITY_PROVIDER
       ? "authority"
-      : null;
+      : dataset.provider === CRM_PROVIDER && dataset.key === CLIENT_COHORT_KEY
+        ? "client cohort"
+        : null;
   const provenanceBacked = provenanceKind !== null;
   assertExactKeys(
     dataset,
