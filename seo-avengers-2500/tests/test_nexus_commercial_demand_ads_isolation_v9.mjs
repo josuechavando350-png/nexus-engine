@@ -11,16 +11,23 @@ function clone(value) {
   return structuredClone(value);
 }
 
-test("V9 isolates the connected LIC Google Ads account from Nexus first-party evidence", () => {
+test("V9 isolates Lic Cano Ads, client data, and Vercel from Nexus execution", () => {
   const result = validateAdsAccountIsolationV9(clone(source));
   assert.deepEqual(result, {
-    status: "THIRD_PARTY_ADS_ACCOUNT_ISOLATED",
+    status: "THIRD_PARTY_CLIENT_RESOURCES_ISOLATED",
+    protectedClientAlias: "LIC_CANO",
     connectedGoogleAdsAccountOwnership: "THIRD_PARTY_NON_NEXUS_ACCOUNT",
     connectedGoogleAdsAccountOwnerAlias: "LIC",
     nexusGoogleAdsAccountAvailable: false,
     nexusFirstPartyPerformanceEvidenceEligible: false,
     connectedAccountMutationAuthorized: false,
-    keywordPlannerResearchOnly: true,
+    newConnectedGoogleAdsApiCallsAuthorized: false,
+    clientDataAccessAuthorized: false,
+    clientDataUseAsNexusEvidenceEligible: false,
+    vercelAccessAuthorized: false,
+    vercelMutationAuthorized: false,
+    vercelDeploymentAuthorized: false,
+    historicalKeywordPlannerResearchOnly: true,
   });
 });
 
@@ -60,12 +67,57 @@ test("V9 cannot mutate the connected third-party Ads account", () => {
   );
 });
 
-test("V9 keeps planner forecasts as market research rather than campaign performance", () => {
+test("V9 cannot make new connected Google Ads API calls without explicit authorization", () => {
   const changed = clone(source);
-  changed.paidSearchGate.keywordPlannerResearchInterpretation = "NEXUS_CAMPAIGN_PERFORMANCE";
+  changed.paidSearchGate.newConnectedGoogleAdsApiCalls = "ALLOWED";
   assert.throws(
     () => validateAdsAccountIsolationV9(changed),
-    /keyword-planner evidence must remain market research only/,
+    /forbids new calls to the connected Google Ads account without explicit user authorization/,
+  );
+});
+
+test("V9 keeps historical planner snapshots static and non-first-party", () => {
+  const changed = clone(source);
+  changed.paidSearchGate.historicalKeywordPlannerSnapshotInterpretation = "NEXUS_CAMPAIGN_PERFORMANCE";
+  assert.throws(
+    () => validateAdsAccountIsolationV9(changed),
+    /historical keyword-planner snapshots must remain static market research only/,
+  );
+});
+
+test("V9 cannot access or use Lic Cano client data without explicit authorization", () => {
+  const changedAccess = clone(source);
+  changedAccess.protectedThirdPartyResources.clientDataAccess = "ALLOWED";
+  assert.throws(
+    () => validateAdsAccountIsolationV9(changedAccess),
+    /forbids Lic Cano client-data access without explicit user authorization/,
+  );
+
+  const changedEvidence = clone(source);
+  changedEvidence.protectedThirdPartyResources.clientDataUseAsNexusEvidence = true;
+  assert.throws(
+    () => validateAdsAccountIsolationV9(changedEvidence),
+    /forbids using Lic Cano client data as Nexus evidence/,
+  );
+});
+
+test("V9 cannot access, mutate, or deploy Lic Cano Vercel without explicit authorization", () => {
+  for (const key of ["vercelAccess", "vercelMutation", "vercelDeployment"]) {
+    const changed = clone(source);
+    changed.protectedThirdPartyResources[key] = "ALLOWED";
+    assert.throws(
+      () => validateAdsAccountIsolationV9(changed),
+      /forbids Lic Cano Vercel (access|mutation|deployment) without explicit user authorization/,
+    );
+  }
+});
+
+test("V9 cannot mutate other Lic Cano tenant resources without explicit authorization", () => {
+  const changed = clone(source);
+  changed.protectedThirdPartyResources.otherClientTenantMutation = "ALLOWED";
+  assert.throws(
+    () => validateAdsAccountIsolationV9(changed),
+    /forbids other Lic Cano tenant mutation without explicit user authorization/,
   );
 });
 
