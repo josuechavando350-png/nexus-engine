@@ -4,7 +4,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-EVIDENCE_ROOT="${WALLE_GAUSS_EVIDENCE_ROOT:-$(mktemp -d "${TMPDIR:-/tmp}/walle-gauss.XXXXXX")}" 
+EVIDENCE_ROOT="${WALLE_GAUSS_EVIDENCE_ROOT:-$(mktemp -d "${TMPDIR:-/tmp}/walle-gauss.XXXXXX")}"
 mkdir -p "$EVIDENCE_ROOT"
 REPORT="$EVIDENCE_ROOT/gauss-foundation-report.json"
 
