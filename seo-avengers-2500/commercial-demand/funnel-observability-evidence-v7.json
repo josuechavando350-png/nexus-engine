@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "NEXUS_FUNNEL_OBSERVABILITY_EVIDENCE_V7",
+  "capturedAt": "2026-09-16",
+  "siteId": "nexus-bot-studio",
+  "market": {
+    "country": "Mexico",
+    "language": "Spanish"
+  },
+  "boundary": "MEASUREMENT_READINESS_EVIDENCE_ONLY_NOT_CONVERSION_RATE_CLIENT_OUTCOME_OR_PROBABILITY_EVIDENCE",
+  "liveBrowserAudits": [
+    {
+      "source": "HYPD_BROWSER_RESOURCE_INVENTORY",
+      "rawUrl": "https://nexusbotstudio.com",
+      "resolvedUrl": "https://www.nexusbotstudio.com/",
+      "statusCode": 200,
+      "scriptCount": 13,
+      "observedGoogleAnalyticsOrAdsBrowserTag": false,
+      "detectorBasis": [
+        "NO_SCRIPT_URL_MATCH_GOOGLETAGMANAGER",
+        "NO_SCRIPT_URL_MATCH_GOOGLE_ANALYTICS",
+        "NO_SCRIPT_URL_MATCH_GTAG_JS"
+      ],
+      "interpretation": "BROWSER_VISIBLE_GOOGLE_MEASUREMENT_TAG_NOT_OBSERVED_DOES_NOT_RULE_OUT_SERVER_SIDE_OR_OTHER_MEASUREMENT"
+    },
+    {
+      "source": "HYPD_BROWSER_RESOURCE_INVENTORY",
+      "rawUrl": "https://nexusbotstudio.com/automation",
+      "resolvedUrl": "https://www.nexusbotstudio.com/automation",
+      "statusCode": 200,
+      "scriptCount": 10,
+      "observedGoogleAnalyticsOrAdsBrowserTag": false,
+      "detectorBasis": [
+        "NO_SCRIPT_URL_MATCH_GOOGLETAGMANAGER",
+        "NO_SCRIPT_URL_MATCH_GOOGLE_ANALYTICS",
+        "NO_SCRIPT_URL_MATCH_GTAG_JS"
+      ],
+      "interpretation": "BROWSER_VISIBLE_GOOGLE_MEASUREMENT_TAG_NOT_OBSERVED_DOES_NOT_RULE_OUT_SERVER_SIDE_OR_OTHER_MEASUREMENT"
+    }
+  ],
+  "connectedDataSources": {
+    "ga4AccessiblePropertyCount": 0,
+    "ga4Status": "NO_ACCESSIBLE_PROPERTIES_IN_CONNECTED_DATA_SOURCE",
+    "nexusGoogleAdsAccountObserved": false,
+    "googleAdsStatus": "NO_NEXUS_ACCOUNT_OBSERVED_IN_CONNECTED_DATA_SOURCE",
+    "metaAdsAccessibleAccountCount": 0,
+    "metaAdsStatus": "NO_ACCESSIBLE_ACCOUNTS_IN_CONNECTED_DATA_SOURCE",
+    "nexusFirstPartyConversionDataset": "UNAVAILABLE",
+    "interpretation": "CONNECTED_SOURCE_SCOPE_IS_NOT_PROOF_THAT_NO_EXTERNAL_ANALYTICS_OR_AD_ACCOUNT_EXISTS"
+  },
+  "planningFunnelSensitivity": {
+    "evidenceClass": "HYPOTHETICAL_PLANNING_SENSITIVITY_NOT_OBSERVED_FUNNEL",
+    "visitToContactPpm": 40000,
+    "contactToQualifiedPpm": 550000,
+    "qualifiedToClosePpm": 350000,
+    "derivedSessionToClientPpm": 7700,
+    "observed": false
+  },
+  "requiredObservedFunnelEvents": [
+    "SESSION",
+    "CONTACT",
+    "QUALIFIED_LEAD",
+    "CLOSED_CLIENT"
+  ],
+  "requiredAttributionDimensions": [
+    "ACQUISITION_CHANNEL",
+    "LANDING_PAGE",
+    "CAMPAIGN_OR_SOURCE",
+    "OBSERVATION_PERIOD"
+  ],
+  "planningRules": {
+    "browserAuditMayBeUsedAs": "MEASUREMENT_READINESS_SIGNAL_ONLY_NOT_PROOF_OF_TOTAL_ANALYTICS_ABSENCE",
+    "connectedSourceMayBeUsedAs": "ACCESS_SCOPE_SIGNAL_ONLY_NOT_PROOF_NO_EXTERNAL_ACCOUNT_EXISTS",
+    "funnelSensitivityMayBeUsedAs": "BREAK_EVEN_REQUIREMENT_MATH_ONLY_NOT_EXPECTED_CONVERSION",
+    "probabilityClaim": "NOT_IDENTIFIABLE_WITHOUT_OBSERVED_FUNNEL_DISTRIBUTION",
+    "clientFloorSupport": "REQUIRES_OBSERVED_SESSION_CONTACT_QUALIFIED_CLOSE_COUNTS_AND_CHANNEL_ATTRIBUTION"
+  }
+}
