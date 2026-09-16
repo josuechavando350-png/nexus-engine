@@ -114,3 +114,38 @@ test('12 information algorithms: independent entropy identities and invalid dist
  assert.throws(()=>info.kullbackLeiblerDivergence({p:[0.2,0.2],q:[0.5,0.5]}),/sum to one/);
  assert.throws(()=>info.discreteBayesianPosterior({prior:[0.5,0.5],likelihood:[0,0]}),/zero probability/);
 });
+
+test('quadratic classifications survive tiny scales, exact signs and near-multiple roots',()=>{
+ const classify=poly.realQuadraticRootClassification;
+ for(const scale of [1e-160,1e-200,1e-300,Number.MIN_VALUE]){
+  const positive=classify({a:scale,b:0,c:-scale});
+  assert.equal(positive.realRootCount,2);if(scale!==1e-160)assert.equal(positive.discriminant,null);
+  close(positive.roots[0],-1);close(positive.roots[1],1);
+  const negative=classify({a:scale,b:0,c:scale});
+  assert.equal(negative.realRootCount,0);if(scale!==1e-160)assert.equal(negative.discriminant,null);
+  const repeated=classify({a:scale,b:2*scale,c:scale});
+  assert.equal(repeated.realRootCount,1);close(repeated.roots[0],-1);
+ }
+ const closePair=classify({a:1,b:2,c:1-Number.EPSILON});
+ assert.equal(closePair.realRootCount,2);assert(closePair.roots[0]<-1&&closePair.roots[1]>-1);
+ const tinyPair=classify({a:1e-200,b:2e-200,c:1e-200*(1-1e-12)});
+ assert.equal(tinyPair.realRootCount,2);
+ for(const root of tinyPair.roots)assert(Math.abs(root*root+2*root+1-1e-12)<1e-10);
+ const subnormal=classify({a:10000,b:1,c:Number.MIN_VALUE});
+ assert.equal(subnormal.realRootCount,2);close(subnormal.roots[0],-1e-4);assert.equal(subnormal.roots[1],-Number.MIN_VALUE);
+ assert.deepEqual(classify({a:1,b:0,c:-4}),{discriminant:16,roots:[-2,2],realRootCount:2});
+ assert.deepEqual(classify({a:1,b:2,c:1}),{discriminant:0,roots:[-1],realRootCount:1});
+ for(const b of [10000,-10000])for(const c of [Number.MIN_VALUE,-Number.MIN_VALUE]){
+  assert.throws(()=>classify({a:1,b,c}),/numerically unresolvable/,
+   'a subnormal nonzero constant must never manufacture an exact zero root');
+ }
+ assert.deepEqual(classify({a:1,b:1,c:0}),{discriminant:1,roots:[-1,0],realRootCount:2});
+ for(const input of [
+  {a:2,b:-7.888609052210118e-31,c:1.5e-323},
+  {a:1,b:-1e-160,c:-Number.MIN_VALUE},
+  {a:-3,b:7.888609052210118e-30,c:-1e-323},
+  {a:-3,b:7.888609052210118e-31,c:1e-323}
+ ])assert.throws(()=>classify(input),/residual precision/,
+ 'subnormal cancellation must fail closed when roots cannot be represented accurately');
+ assert.throws(()=>classify({a:1e-300,b:1,c:1}),/bounded numerical result|numerical|precision/);
+});
