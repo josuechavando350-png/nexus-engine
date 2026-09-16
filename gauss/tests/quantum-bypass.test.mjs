@@ -15,7 +15,7 @@ test("GAUSS refuses to execute without the Nexus Quantum contributor", async () 
 test("missing or forged Quantum contributions block PASS even if GAUSS mathematical tasks executed", async () => {
   const missing = await executeGaussProblem(fixture, { quantumContributor: async () => null });
   assert.equal(missing.status, "BLOCKED");
-  assert.equal(missing.executedLayerCount, 20);
+  assert.equal(missing.executedLayerCount, 21);
   assert.match(missing.errors.join(" "), /problem-bound EXECUTED receipt/u);
 
   const forged = await executeGaussProblem(fixture, {
@@ -65,7 +65,7 @@ test("all Ising subproblems must be covered: two tasks cannot silently reuse one
   duplicate.tasks.push({ ...structuredClone(ising), taskId: "ising-second" });
   const report = await executeGaussProblem(duplicate, { quantumContributor: contributeNexusQuantum });
   assert.equal(report.status, "BLOCKED");
-  assert.equal(report.executedLayerCount, 21);
+  assert.equal(report.executedLayerCount, 22);
   assert.match(report.errors.join(" "), /multiple Ising subproblems/u);
 });
 
