@@ -55,6 +55,13 @@ export function zeroDimensionalPersistence({ vertexCount, edges }) {
     deaths.push(edge.weight);
   }
 
+  let totalFinitePersistence = 0;
+  for (const death of deaths) {
+    totalFinitePersistence += death;
+    if (!Number.isFinite(totalFinitePersistence)) {
+      throw new RangeError("H0 total finite persistence overflow; cannot certify non-finite evidence");
+    }
+  }
   const finiteIntervals = deaths.map((death) => Object.freeze({ birth: 0, death, persistence: death }));
   return Object.freeze({
     filtration: "WEIGHTED_GRAPH_SUBLEVEL_H0",
@@ -64,6 +71,6 @@ export function zeroDimensionalPersistence({ vertexCount, edges }) {
     infiniteIntervalCount: components,
     connectedComponentCount: components,
     cycleEdgeCount,
-    totalFinitePersistence: deaths.reduce((total, death) => total + death, 0),
+    totalFinitePersistence,
   });
 }
