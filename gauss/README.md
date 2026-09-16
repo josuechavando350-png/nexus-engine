@@ -29,7 +29,7 @@ Foundation V1 contains real deterministic implementations for:
 - expected utility;
 - minimax regret;
 - difference-in-differences;
-- inverse-propensity weighted ATE;
+- normalized inverse-propensity weighted ATE (Hájek-style);
 - finite-horizon scalar LQR;
 - seeded Euler-Maruyama SDE integration;
 - Shannon entropy;
