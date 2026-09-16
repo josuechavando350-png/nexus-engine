@@ -81,6 +81,18 @@
     {"taskId":"decision-mdp-finite","layerId":"GAUSS.DECISION.MDP_FINITE_HORIZON.008","input":{"transition":[[[0.8,0.2],[0.5,0.5]],[[0.3,0.7],[0.1,0.9]]],"rewards":[[2,1],[0,3]],"horizon":5,"discount":0.9}},
     {"taskId":"decision-mdp-discount","layerId":"GAUSS.DECISION.MDP_DISCOUNTED.009","input":{"transition":[[[0.8,0.2],[0.5,0.5]],[[0.3,0.7],[0.1,0.9]]],"rewards":[[2,1],[0,3]],"discount":0.9}},
     {"taskId":"decision-mdp-policy","layerId":"GAUSS.DECISION.MDP_POLICY_EVALUATION.010","input":{"transition":[[[0.8,0.2],[0.5,0.5]],[[0.3,0.7],[0.1,0.9]]],"rewards":[[2,1],[0,3]],"policy":[0,1],"discount":0.9}},
-    {"taskId":"decision-markov-reward","layerId":"GAUSS.DECISION.MARKOV_REWARD.011","input":{"initial":[0.6,0.4],"transition":[[0.8,0.2],[0.3,0.7]],"stateRewards":[2,4],"steps":8,"discount":0.9}}
+    {"taskId":"decision-markov-reward","layerId":"GAUSS.DECISION.MARKOV_REWARD.011","input":{"initial":[0.6,0.4],"transition":[[0.8,0.2],[0.3,0.7]],"stateRewards":[2,4],"steps":8,"discount":0.9}},
+    {"taskId":"math-bezout","layerId":"GAUSS.MATH.EXTENDED_EUCLID.010","input":{"a":391,"b":299}},
+    {"taskId":"math-mod-inverse","layerId":"GAUSS.MATH.MODULAR_INVERSE.011","input":{"value":17,"modulus":101}},
+    {"taskId":"math-crt","layerId":"GAUSS.MATH.CRT_COPRIME.012","input":{"congruences":[{"remainder":2,"modulus":3},{"remainder":3,"modulus":5},{"remainder":2,"modulus":7}]}},
+    {"taskId":"math-mod-exp","layerId":"GAUSS.MATH.MODULAR_EXPONENT.013","input":{"base":7,"exponent":123,"modulus":1009}},
+    {"taskId":"math-factorization","layerId":"GAUSS.MATH.PRIME_FACTORIZATION.014","input":{"value":5040}},
+    {"taskId":"math-totient","layerId":"GAUSS.MATH.EULER_TOTIENT.015","input":{"value":60}},
+    {"taskId":"math-primality","layerId":"GAUSS.MATH.PRIMALITY_SAFE_INT.016","input":{"value":2147483647}},
+    {"taskId":"math-sieve","layerId":"GAUSS.MATH.PRIME_SIEVE.017","input":{"limit":60}},
+    {"taskId":"math-isqrt","layerId":"GAUSS.MATH.INTEGER_SQRT.018","input":{"value":9007199254740991}},
+    {"taskId":"math-binomial","layerId":"GAUSS.MATH.BINOMIAL_EXACT.019","input":{"n":100,"k":50}},
+    {"taskId":"math-fibonacci","layerId":"GAUSS.MATH.FIBONACCI_DOUBLING.020","input":{"index":1000}},
+    {"taskId":"math-partitions","layerId":"GAUSS.MATH.INTEGER_PARTITIONS.021","input":{"n":100}}
   ]
 }
