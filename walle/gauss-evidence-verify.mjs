@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { lstat, readFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { GAUSS_ENGINE_ID, sha256Canonical } from "../gauss/core/common.mjs";
@@ -63,7 +64,7 @@ export async function verifyGaussEvidenceFile(path, problemPath = new URL("../ga
   return Object.freeze({ artifactSha256: `sha256:${createHash("sha256").update(reportBytes).digest("hex")}` });
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === fileURLToPath(new URL(`file://${process.argv[1]}`))) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   if (process.argv.length !== 3) throw new Error("Usage: node walle/gauss-evidence-verify.mjs <report.json>");
   const verified = await verifyGaussEvidenceFile(process.argv[2]);
   console.log(`WALLE_GAUSS_REPORT_SHA256=${verified.artifactSha256}`);
