@@ -38,6 +38,7 @@
     "activationRequiresSeparateAuthorization": true,
     "phraseBroadFloorSupport": "FORBIDDEN_WITHOUT_QUERY_LEVEL_INTENT_INCREMENTALITY_AND_OBSERVED_CONVERSION_EVIDENCE",
     "connectedGoogleAdsAccountOwnership": "THIRD_PARTY_NON_NEXUS_ACCOUNT",
+    "connectedGoogleAdsAccountOwnerAlias": "LIC",
     "connectedGoogleAdsPerformanceMayBeUsedAsNexusEvidence": false,
     "connectedGoogleAdsMutation": "FORBIDDEN",
     "keywordPlannerResearchInterpretation": "MARKET_RESEARCH_ONLY_NOT_NEXUS_FIRST_PARTY_CAMPAIGN_PERFORMANCE"
