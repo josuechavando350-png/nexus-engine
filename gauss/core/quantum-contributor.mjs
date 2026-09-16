@@ -14,7 +14,11 @@ const PARAMETER_SETS = Object.freeze([
 ]);
 
 export async function contributeNexusQuantum({ problem, taskResults, problemSha256 }) {
-  const task = problem.tasks.find((row) => row.layerId === ISING_LAYER);
+  const isingTasks = problem.tasks.filter((row) => row.layerId === ISING_LAYER);
+  if (isingTasks.length > 1) {
+    throw new Error("multiple Ising subproblems are not yet supported by the Quantum contributor; all must be covered before certification");
+  }
+  const task = isingTasks[0];
   if (!task) {
     const unsigned = {
       schemaVersion: 1,
