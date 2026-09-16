@@ -31,6 +31,7 @@ export function validateAdsAccountIsolationV9(rawContract) {
     status: "THIRD_PARTY_ADS_ACCOUNT_ISOLATED",
     connectedGoogleAdsAccountOwnership: paid.connectedGoogleAdsAccountOwnership,
     connectedGoogleAdsAccountOwnerAlias: paid.connectedGoogleAdsAccountOwnerAlias,
+    nexusGoogleAdsAccountAvailable: false,
     nexusFirstPartyPerformanceEvidenceEligible: false,
     connectedAccountMutationAuthorized: false,
     keywordPlannerResearchOnly: true,
