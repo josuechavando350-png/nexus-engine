@@ -105,6 +105,19 @@
     {"taskId":"control-diagonal-lqr","layerId":"GAUSS.CONTROL.DIAGONAL_LQR.011","input":{"A":[[1,0.1],[0,0.9]],"B":[[0.1],[1]],"statePenalties":[1,1],"controlPenalties":[0.2],"terminalPenalties":[2,2],"horizon":4,"initialState":[1,-0.5]}},
     {"taskId":"control-lyapunov","layerId":"GAUSS.CONTROL.SCALAR_LYAPUNOV.012","input":{"a":0.8,"forcing":0.36}},
     {"taskId":"control-reach-energy","layerId":"GAUSS.CONTROL.MIN_ENERGY_REACHABILITY.013","input":{"a":0.9,"b":1.2,"initial":0,"target":2,"horizon":4}},
-    {"taskId":"control-reach-interval","layerId":"GAUSS.CONTROL.INTERVAL_REACHABILITY.014","input":{"a":-0.5,"b":2,"initial":1,"controlLower":-1,"controlUpper":1,"horizon":4}}
+    {"taskId":"control-reach-interval","layerId":"GAUSS.CONTROL.INTERVAL_REACHABILITY.014","input":{"a":-0.5,"b":2,"initial":1,"controlLower":-1,"controlUpper":1,"horizon":4}},
+    {"taskId":"geometry-orientation","layerId":"GAUSS.MATH.ORIENTATION_2D.022","input":{"a":[0,0],"b":[4,0],"c":[1,2]}},
+    {"taskId":"geometry-segments","layerId":"GAUSS.MATH.SEGMENT_INTERSECTION.023","input":{"a":[0,0],"b":[4,4],"c":[0,4],"d":[4,0]}},
+    {"taskId":"geometry-hull","layerId":"GAUSS.MATH.CONVEX_HULL_2D.024","input":{"vertices":[[0,0],[3,0],[3,2],[0,2],[1,1]]}},
+    {"taskId":"geometry-area","layerId":"GAUSS.MATH.POLYGON_SIGNED_AREA.025","input":{"vertices":[[0,0],[4,0],[4,3],[0,3]]}},
+    {"taskId":"geometry-centroid","layerId":"GAUSS.MATH.POLYGON_CENTROID.026","input":{"vertices":[[0,0],[4,0],[4,3],[0,3]]}},
+    {"taskId":"geometry-perimeter","layerId":"GAUSS.MATH.POLYGON_PERIMETER.027","input":{"vertices":[[0,0],[4,0],[4,3],[0,3]]}},
+    {"taskId":"geometry-location","layerId":"GAUSS.MATH.POINT_POLYGON_LOCATION.028","input":{"vertices":[[0,0],[4,0],[4,3],[0,3]],"query":[2,1]}},
+    {"taskId":"geometry-nearest","layerId":"GAUSS.MATH.CLOSEST_PAIR_2D.029","input":{"vertices":[[0,0],[4,0],[1,1],[10,5]]}},
+    {"taskId":"geometry-farthest","layerId":"GAUSS.MATH.FARTHEST_PAIR_2D.030","input":{"vertices":[[0,0],[4,0],[1,1],[10,5]]}},
+    {"taskId":"geometry-projection","layerId":"GAUSS.MATH.POINT_SEGMENT_PROJECTION.031","input":{"a":[0,0],"b":[4,0],"query":[2,3]}},
+    {"taskId":"geometry-lines","layerId":"GAUSS.MATH.LINE_INTERSECTION_2D.032","input":{"a":[0,0],"b":[4,4],"c":[0,4],"d":[4,0]}},
+    {"taskId":"geometry-pick","layerId":"GAUSS.MATH.PICK_LATTICE_INTERIOR.033","input":{"vertices":[[0,0],[4,0],[4,3],[0,3]]}},
+    {"taskId":"geometry-diameter","layerId":"GAUSS.MATH.CONVEX_POLYGON_DIAMETER.034","input":{"vertices":[[0,0],[4,0],[4,3],[0,3]]}}
   ]
 }
