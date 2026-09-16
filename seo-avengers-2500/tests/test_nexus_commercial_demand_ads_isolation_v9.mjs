@@ -17,6 +17,7 @@ test("V9 isolates the connected LIC Google Ads account from Nexus first-party ev
     status: "THIRD_PARTY_ADS_ACCOUNT_ISOLATED",
     connectedGoogleAdsAccountOwnership: "THIRD_PARTY_NON_NEXUS_ACCOUNT",
     connectedGoogleAdsAccountOwnerAlias: "LIC",
+    nexusGoogleAdsAccountAvailable: false,
     nexusFirstPartyPerformanceEvidenceEligible: false,
     connectedAccountMutationAuthorized: false,
     keywordPlannerResearchOnly: true,
