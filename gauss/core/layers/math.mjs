@@ -1,4 +1,4 @@
-import { assertArray, assertFiniteNumber, assertObject, normalizeNumberArray } from "../common.mjs";
+import { assertArray, assertObject, normalizeNumberArray } from "../common.mjs";
 
 export function empiricalWasserstein2({ left, right }) {
   const a = normalizeNumberArray(left, "left");
