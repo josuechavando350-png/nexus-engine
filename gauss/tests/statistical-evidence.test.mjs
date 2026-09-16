@@ -22,10 +22,10 @@ const newLayerIds = [
 
 test('all nine statistics operators are present in the unique WALLE-covered fixture', async () => {
   assert.equal(authentic.status, 'PASS');
-  assert.equal(authentic.executedLayerCount, 40);
+  assert.equal(authentic.executedLayerCount, problem.tasks.length);
   assert.deepEqual(newLayerIds.filter(id => !authentic.taskResults.some(row => row.layerId === id)), []);
   const receipt = await verifyGaussFoundationEvidence({ problem, report: authentic });
-  assert.equal(receipt.executedLayerCount, 40);
+  assert.equal(receipt.executedLayerCount, problem.tasks.length);
 });
 
 test('WALLE independently rejects a forged result for EACH statistical operator after hash recomputation', async () => {
