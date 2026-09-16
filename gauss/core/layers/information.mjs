@@ -44,8 +44,12 @@ export function renyiDivergence({ p, q, alpha = 2 }) {
   let sum = 0;
   for (let i = 0; i < left.length; i += 1) {
     if (left[i] === 0) continue;
-    if (right[i] === 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
+    if (right[i] === 0) {
+      if (a > 1) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
+      continue;
+    }
     sum += (left[i] ** a) * (right[i] ** (1 - a));
   }
+  if (sum === 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
   return Object.freeze({ divergenceKind: "FINITE", divergence: Math.log(sum) / (a - 1), alpha: a });
 }
