@@ -81,7 +81,7 @@ function parseInteger(value, label, min, max) {
 }
 
 function required(options, key) {
-  const value = options.values[key];
+  const value = options.values.get(key);
   if (typeof value !== "string" || value.length === 0) fail(`MISSING_${key.slice(2).replaceAll("-", "_").toUpperCase()}`);
   return value;
 }
