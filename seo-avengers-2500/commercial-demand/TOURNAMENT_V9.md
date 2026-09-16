@@ -77,7 +77,7 @@ V9 does **not** install that instrumentation. It only makes its implementation a
 
 ## Google Ads account isolation
 
-The Google Ads account currently connected to the tooling is explicitly classified as `THIRD_PARTY_NON_NEXUS_ACCOUNT`.
+The Google Ads account currently connected to the tooling belongs to the external account owner identified in this project as `LIC`, and is explicitly classified as `THIRD_PARTY_NON_NEXUS_ACCOUNT`.
 
 That connected account is **not a NEXUS advertising account**. V9 therefore enforces these boundaries:
 
@@ -87,7 +87,7 @@ That connected account is **not a NEXUS advertising account**. V9 therefore enfo
 - Keyword Planner research previously used by the tournament remains market-research evidence only, never NEXUS campaign-performance evidence;
 - any future NEXUS paid-search activation would require a separately verified NEXUS-owned account, the measurement contract, and separate authorization.
 
-The isolation guard is executable and fail-closed. Tests reject relabeling the third-party account as NEXUS, using its performance as NEXUS evidence, permitting mutation, or reinterpreting planner research as campaign outcomes.
+The isolation guard is executable and fail-closed. Tests reject relabeling the account or its owner as NEXUS, using its performance as NEXUS evidence, permitting mutation, or reinterpreting planner research as campaign outcomes.
 
 ## Paid-search boundary
 
@@ -127,7 +127,7 @@ What this means:
 - modeled demand is conserved rather than re-counted across hubs and support pages;
 - the highest-capacity pages can be implemented first when a separate execution decision is made;
 - first-party measurement is still required before conversion-rate evidence or a 15-client floor claim can become empirical;
-- the connected third-party Google Ads account is isolated from NEXUS evidence and mutation;
+- the connected LIC Google Ads account is isolated from NEXUS evidence and mutation;
 - paid search and production publishing remain separately gated.
 
 Decision boundary:
