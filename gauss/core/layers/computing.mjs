@@ -50,13 +50,19 @@ export function exactBinaryKnapsack({ items, capacity }) {
       throw new RangeError("exact knapsack search budget exhausted; no optimality claim allowed");
     }
     visitedNodes += 1;
-    if (value > bestValue + 1e-12 || (Math.abs(value - bestValue) <= 1e-12 && betterTie(ids, weight))) {
+    // A tolerance must never redefine which finite objective is greater:
+    // a positive 5e-13 improvement is still a genuine improvement.
+    if (value > bestValue || (value === bestValue && betterTie(ids, weight))) {
       bestValue = value;
       bestWeight = weight;
       bestIds = [...ids];
     }
     if (index >= rows.length) return;
-    if (optimisticBound(index, remainingCapacity, value) < bestValue - 1e-12) return;
+    // Conservative floating-point guard is used only to avoid an unsafe
+    // branch-and-bound prune, not to conflate distinct objective values.
+    const bound = optimisticBound(index, remainingCapacity, value);
+    const roundoffGuard = 128 * Number.EPSILON * Math.max(1, Math.abs(bound), Math.abs(bestValue));
+    if (bound < bestValue - roundoffGuard) return;
     const row = rows[index];
     if (row.weight <= remainingCapacity) {
       ids.push(row.id);
