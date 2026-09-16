@@ -42,6 +42,13 @@
     {"taskId":"stats-km","layerId":"GAUSS.STATS.KAPLAN_MEIER.009","input":{"observations":[{"time":1,"event":1},{"time":1,"event":0},{"time":2,"event":1},{"time":3,"event":0},{"time":3,"event":1}]}},
     {"taskId":"stats-theilsen","layerId":"GAUSS.STATS.THEIL_SEN.010","input":{"x":[0,1,2,3],"y":[2,4,6,8]}},
     {"taskId":"stats-conformal","layerId":"GAUSS.STATS.SPLIT_CONFORMAL.011","input":{"calibrationResiduals":[1,3,2,4,5,2,3,1,4,2,1,4,2,3,5,2,3,1,2,4],"prediction":20,"alpha":0.1}},
-    {"taskId":"stats-sprt","layerId":"GAUSS.STATS.SPRT_BERNOULLI.012","input":{"observations":[1,1,1,0,1,1],"nullRate":0.2,"alternativeRate":0.8,"alpha":0.05,"beta":0.05}}
+    {"taskId":"stats-sprt","layerId":"GAUSS.STATS.SPRT_BERNOULLI.012","input":{"observations":[1,1,1,0,1,1],"nullRate":0.2,"alternativeRate":0.8,"alpha":0.05,"beta":0.05}},
+    {"taskId":"math-gaussian","layerId":"GAUSS.MATH.GAUSSIAN_SOLVE.005","input":{"coefficients":[[3,1],[1,2]],"rhs":[9,8]}},
+    {"taskId":"math-logdet","layerId":"GAUSS.MATH.PIVOTED_LOGDET.006","input":{"coefficients":[[3,1],[1,2]]}},
+    {"taskId":"math-cholesky","layerId":"GAUSS.MATH.CHOLESKY.007","input":{"coefficients":[[4,2],[2,3]]}},
+    {"taskId":"math-cg","layerId":"GAUSS.MATH.CONJUGATE_GRADIENT.008","input":{"coefficients":[[4,1],[1,3]],"rhs":[1,2]}},
+    {"taskId":"math-qr","layerId":"GAUSS.MATH.HOUSEHOLDER_QR.009","input":{"coefficients":[[1,0],[1,1],[1,2]]}},
+    {"taskId":"stats-qr-ls","layerId":"GAUSS.STATS.QR_LEAST_SQUARES.013","input":{"coefficients":[[1,0],[1,1],[1,2],[1,3]],"rhs":[1,3,5,7]}},
+    {"taskId":"info-fft","layerId":"GAUSS.INFO.FFT_RADIX2.005","input":{"real":[1,0,-1,0],"imaginary":[0,0,0,0]}}
   ]
 }
