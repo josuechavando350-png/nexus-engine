@@ -6,6 +6,7 @@
     {"taskId":"math-w2","layerId":"GAUSS.MATH.WASSERSTEIN2.001","input":{"left":[0,1,2,3],"right":[1,2,3,4]}},
     {"taskId":"math-pareto","layerId":"GAUSS.MATH.PARETO.002","input":{"points":[{"id":"a","values":[10,5]},{"id":"b","values":[9,4]},{"id":"c","values":[12,8]}],"objectives":["MAX","MIN"]}},
     {"taskId":"math-laplacian","layerId":"GAUSS.MATH.GRAPH_LAPLACIAN.003","input":{"adjacency":[[0,1,2],[1,0,3],[2,3,0]]}},
+    {"taskId":"math-persistence-h0","layerId":"GAUSS.MATH.PERSISTENCE_H0.004","input":{"vertexCount":5,"edges":[{"i":0,"j":1,"weight":0},{"i":0,"j":2,"weight":2},{"i":1,"j":2,"weight":5},{"i":3,"j":4,"weight":3}]}},
     {"taskId":"physics-takens","layerId":"GAUSS.PHYSICS.TAKENS.001","input":{"series":[0,1,4,9,16,25,36],"dimension":3,"delay":2}},
     {"taskId":"physics-ising-energy","layerId":"GAUSS.PHYSICS.ISING_ENERGY.002","input":{"spins":[1,-1,1],"fields":[0.5,-0.25,0.75],"couplings":[{"i":0,"j":1,"value":-1},{"i":1,"j":2,"value":0.5}],"offset":0.1}},
     {"taskId":"physics-ising-ground","layerId":"GAUSS.PHYSICS.ISING_EXACT_GROUND.003","input":{"fields":[0.5,-0.25,0.75],"couplings":[{"i":0,"j":1,"value":-1},{"i":1,"j":2,"value":0.5}],"offset":0.1}},
