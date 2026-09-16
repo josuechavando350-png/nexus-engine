@@ -35,12 +35,15 @@ test("mathematics operators produce exact deterministic results", () => {
   assert.deepEqual(graphLaplacian({ adjacency: [[0, 2], [2, 0]] }).laplacian, [[2, -2], [-2, 2]]);
 });
 
-test("physics operators implement Takens and exact Ising search", () => {
+test("physics operators implement Takens and exact Ising search with the Quantum spin convention", () => {
   assert.deepEqual(takensEmbedding({ series: [0, 1, 2, 3, 4], dimension: 3, delay: 1 }).embedding, [[0, 1, 2], [1, 2, 3], [2, 3, 4]]);
   const ground = exactIsingGroundState({ fields: [0, 0], couplings: [{ i: 0, j: 1, value: -1 }] });
   assert.equal(ground.energy, -1);
   assert.equal(ground.degeneracy, 2);
   assert.equal(ground.evaluatedStates, 4);
+  const biasedGround = exactIsingGroundState({ fields: [1], couplings: [] });
+  assert.equal(biasedGround.energy, -1);
+  assert.deepEqual(biasedGround.spins, [-1]);
 });
 
 test("statistics operators preserve calibration semantics", () => {
@@ -66,7 +69,7 @@ test("decision and causal operators execute real formulas", () => {
   assert.equal(ate.estimate, 4);
 });
 
-test("control and information operators are deterministic and normalized", () => {
+test("control and information operators are deterministic and numerically stable", () => {
   const lqr = finiteHorizonScalarLQR({ a: 1, b: 1, q: 1, r: 1, terminalQ: 1, horizon: 4, initialState: 2 });
   assert.equal(lqr.controls.length, 4);
   assert(lqr.totalCost > 0);
@@ -90,6 +93,12 @@ test("control and information operators are deterministic and normalized", () =>
     renyiDivergence({ p: [1, 0], q: [0, 1], alpha: 0.5 }),
     { divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: 0.5 },
   );
+  const klLimit = renyiDivergence({ p: [0.5, 0.5], q: [0.25, 0.75], alpha: 1 });
+  assert.equal(klLimit.divergenceKind, "FINITE");
+  assert(Math.abs(klLimit.divergence - (0.5 * Math.log(2) + 0.5 * Math.log(2 / 3))) < 1e-12);
+  const highOrder = renyiDivergence({ p: [0.9, 0.1], q: [0.1, 0.9], alpha: 1000 });
+  assert.equal(highOrder.divergenceKind, "FINITE");
+  assert(Number.isFinite(highOrder.divergence));
 });
 
 test("computer-science operators solve exact bounded optimization and finite-trace temporal property", () => {
@@ -104,7 +113,7 @@ test("computer-science operators solve exact bounded optimization and finite-tra
   assert.equal(verifyRequestEventuallyCertification({ trace: ["REQUEST", "WORK"] }).satisfied, false);
 });
 
-test("Quantum bridge executes an internal statevector QAOA simulation without a hardware claim", () => {
+test("Quantum bridge executes an internal statevector QAOA simulation with the canonical spin convention and no hardware claim", () => {
   const receipt = executeGaussIsingQaoaSimulation({
     problem: { problemId: "qaoa-test", fields: [0, 0], couplings: [{ i: 0, j: 1, value: -1 }], offset: 0 },
     parameterSets: [{ parameterSetId: "p1", gammaMicroradians: [785398], betaMicroradians: [392699] }],
@@ -114,6 +123,12 @@ test("Quantum bridge executes an internal statevector QAOA simulation without a 
   assert.equal(receipt.quantumAdvantageClaimAllowed, false);
   assert(Math.abs(receipt.exactGroundStateEnergy + 1) < 1e-12);
   assert(receipt.candidates[0].normError < 1e-9);
+  const biasedReceipt = executeGaussIsingQaoaSimulation({
+    problem: { problemId: "qaoa-spin-convention", fields: [1], couplings: [], offset: 0 },
+    parameterSets: [{ parameterSetId: "p1", gammaMicroradians: [785398], betaMicroradians: [392699] }],
+  });
+  assert.equal(biasedReceipt.candidates[0].groundStateMask, 1);
+  assert.equal(biasedReceipt.exactGroundStateEnergy, -1);
 });
 
 test("end-to-end NEXUS -> GAUSS -> Quantum run executes all 20 implemented layers", async () => {
