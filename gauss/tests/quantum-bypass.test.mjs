@@ -25,7 +25,38 @@ test("missing or forged Quantum contributions block PASS even if GAUSS mathemati
     }),
   });
   assert.equal(forged.status, "BLOCKED");
-  assert.match(forged.errors.join(" "), /misrepresents hardware/u);
+  assert.match(forged.errors.join(" "), /not bound to the exact Ising task output/u);
+});
+
+test("an executed Quantum receipt must bind the exact GAUSS source task and its output", async () => {
+  const wrongSource = await executeGaussProblem(fixture, {
+    quantumContributor: async (args) => ({
+      ...await contributeNexusQuantum(args), sourceTaskId: "math-w2",
+    }),
+  });
+  assert.equal(wrongSource.status, "BLOCKED");
+  assert.match(wrongSource.errors.join(" "), /not bound to the exact Ising task output/u);
+
+  const wrongOutputHash = await executeGaussProblem(fixture, {
+    quantumContributor: async (args) => ({
+      ...await contributeNexusQuantum(args), sourceTaskOutputSha256: `sha256:${"0".repeat(64)}`,
+    }),
+  });
+  assert.equal(wrongOutputHash.status, "BLOCKED");
+  assert.match(wrongOutputHash.errors.join(" "), /not bound to the exact Ising task output/u);
+});
+
+test("GAUSS blocks a Quantum statevector output modified without a matching receipt hash", async () => {
+  const altered = await executeGaussProblem(fixture, {
+    quantumContributor: async (args) => {
+      const genuine = await contributeNexusQuantum(args);
+      const simulation = structuredClone(genuine.simulation);
+      simulation.selectedExpectedEnergy += 1;
+      return { ...genuine, simulation };
+    },
+  });
+  assert.equal(altered.status, "BLOCKED");
+  assert.match(altered.errors.join(" "), /statevector receipt SHA-256 mismatch/u);
 });
 
 test("all Ising subproblems must be covered: two tasks cannot silently reuse one Quantum receipt", async () => {
@@ -45,4 +76,14 @@ test("non-Ising problems still consult Quantum and receive an explicit NOT_APPLI
   assert.equal(report.executedLayerCount, 1);
   assert.equal(report.quantumContribution.status, "NOT_APPLICABLE");
   assert.deepEqual(report.quantumContribution.reasonCodes, ["NO_ISING_SUBPROBLEM"]);
+
+  const fake = await executeGaussProblem(nonIsing, {
+    quantumContributor: async ({ problemSha256 }) => ({
+      engineId: "NEXUS_QUANTUM", problemSha256, status: "NOT_APPLICABLE",
+      hardwareExecution: false, quantumAdvantageClaimAllowed: false,
+      reasonCodes: ["NO_ISING_SUBPROBLEM"],
+    }),
+  });
+  assert.equal(fake.status, "BLOCKED");
+  assert.match(fake.errors.join(" "), /NOT_APPLICABLE receipt is missing or invalid/u);
 });
