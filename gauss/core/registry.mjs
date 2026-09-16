@@ -32,7 +32,7 @@ const definitions = [
   ["GAUSS.DECISION.EXPECTED_UTILITY.001", "DECISION_THEORY", "Expected utility under a normalized discrete distribution", expectedUtility],
   ["GAUSS.DECISION.MINIMAX_REGRET.002", "DECISION_THEORY", "Minimax regret action selection", minimaxRegret],
   ["GAUSS.CAUSAL.DID.001", "CAUSAL_EXPERIMENTAL", "Difference-in-differences point estimate", differenceInDifferences],
-  ["GAUSS.CAUSAL.IPW_ATE.002", "CAUSAL_EXPERIMENTAL", "Inverse-propensity weighted average treatment effect", inversePropensityWeightedATE],
+  ["GAUSS.CAUSAL.IPW_ATE.002", "CAUSAL_EXPERIMENTAL", "Normalized inverse-propensity weighted ATE (Hajek-style)", inversePropensityWeightedATE],
   ["GAUSS.CONTROL.SCALAR_LQR.001", "CONTROL_DYNAMICS", "Finite-horizon discrete scalar LQR", finiteHorizonScalarLQR],
   ["GAUSS.CONTROL.EULER_MARUYAMA.002", "CONTROL_DYNAMICS", "Seeded Euler-Maruyama SDE integration", eulerMaruyama],
   ["GAUSS.INFO.SHANNON.001", "INFORMATION_THEORY", "Shannon entropy", shannonEntropy],
