@@ -93,11 +93,13 @@ function exactGround(problem) {
   let degeneracy = 0;
   for (let mask = 0; mask < stateCount; mask += 1) {
     const current = energy(problem, mask);
-    if (current < bestEnergy - 1e-12) {
+    // Only equal finite energies are degenerate; a 1e-12 tolerance could
+    // otherwise publish a nonminimum ground energy or impossible negative gap.
+    if (current < bestEnergy) {
       bestEnergy = current;
       bestMask = mask;
       degeneracy = 1;
-    } else if (Math.abs(current - bestEnergy) <= 1e-12) {
+    } else if (current === bestEnergy) {
       degeneracy += 1;
       if (mask < bestMask) bestMask = mask;
     }
@@ -158,8 +160,8 @@ function runStatevector(problem, parameterSet) {
     totalProbability += probability;
     const e = energy(problem, mask);
     expectedEnergy += probability * e;
-    if (Math.abs(e - ground.energy) <= 1e-12) groundProbability += probability;
-    if (probability > bestProbability + 1e-15 || (Math.abs(probability - bestProbability) <= 1e-15 && mask < bestMask)) {
+    if (e === ground.energy) groundProbability += probability;
+    if (probability > bestProbability || (probability === bestProbability && mask < bestMask)) {
       bestProbability = probability;
       bestMask = mask;
     }
