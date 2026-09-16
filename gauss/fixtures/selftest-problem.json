@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "problemId": "gauss-foundation-selftest-v1",
+  "objective": "Exercise every implemented GAUSS Foundation V1 scientific operator with deterministic evidence.",
+  "tasks": [
+    {"taskId":"math-w2","layerId":"GAUSS.MATH.WASSERSTEIN2.001","input":{"left":[0,1,2,3],"right":[1,2,3,4]}},
+    {"taskId":"math-pareto","layerId":"GAUSS.MATH.PARETO.002","input":{"points":[{"id":"a","values":[10,5]},{"id":"b","values":[9,4]},{"id":"c","values":[12,8]}],"objectives":["MAX","MIN"]}},
+    {"taskId":"math-laplacian","layerId":"GAUSS.MATH.GRAPH_LAPLACIAN.003","input":{"adjacency":[[0,1,2],[1,0,3],[2,3,0]]}},
+    {"taskId":"physics-takens","layerId":"GAUSS.PHYSICS.TAKENS.001","input":{"series":[0,1,4,9,16,25,36],"dimension":3,"delay":2}},
+    {"taskId":"physics-ising-energy","layerId":"GAUSS.PHYSICS.ISING_ENERGY.002","input":{"spins":[1,-1,1],"fields":[0.5,-0.25,0.75],"couplings":[{"i":0,"j":1,"value":-1},{"i":1,"j":2,"value":0.5}],"offset":0.1}},
+    {"taskId":"physics-ising-ground","layerId":"GAUSS.PHYSICS.ISING_EXACT_GROUND.003","input":{"fields":[0.5,-0.25,0.75],"couplings":[{"i":0,"j":1,"value":-1},{"i":1,"j":2,"value":0.5}],"offset":0.1}},
+    {"taskId":"stats-wilson","layerId":"GAUSS.STATS.WILSON.001","input":{"successes":92,"trials":100,"confidence":0.95}},
+    {"taskId":"stats-brier","layerId":"GAUSS.STATS.BRIER.002","input":{"probabilities":[0.9,0.8,0.2,0.1],"outcomes":[1,1,0,0]}},
+    {"taskId":"stats-bootstrap","layerId":"GAUSS.STATS.BOOTSTRAP_MEAN.003","input":{"samples":[1,2,3,4,5,6,7,8],"confidence":0.95,"resamples":1000,"seed":12345}},
+    {"taskId":"decision-eu","layerId":"GAUSS.DECISION.EXPECTED_UTILITY.001","input":{"outcomes":[{"probability":0.7,"utility":10},{"probability":0.3,"utility":-4}]}},
+    {"taskId":"decision-regret","layerId":"GAUSS.DECISION.MINIMAX_REGRET.002","input":{"actions":["alpha","beta","gamma"],"payoffMatrix":[[10,3,8],[7,7,7],[5,10,6]]}},
+    {"taskId":"causal-did","layerId":"GAUSS.CAUSAL.DID.001","input":{"treatedPre":[10,12,11],"treatedPost":[18,19,20],"controlPre":[9,10,11],"controlPost":[11,12,13]}},
+    {"taskId":"causal-ipw","layerId":"GAUSS.CAUSAL.IPW_ATE.002","input":{"rows":[{"treatment":1,"outcome":9,"propensity":0.6},{"treatment":1,"outcome":8,"propensity":0.7},{"treatment":0,"outcome":4,"propensity":0.4},{"treatment":0,"outcome":5,"propensity":0.3}]}},
+    {"taskId":"control-lqr","layerId":"GAUSS.CONTROL.SCALAR_LQR.001","input":{"a":1.1,"b":1,"q":1,"r":0.1,"terminalQ":2,"horizon":8,"initialState":3}},
+    {"taskId":"control-sde","layerId":"GAUSS.CONTROL.EULER_MARUYAMA.002","input":{"x0":1,"mu":0.05,"sigma":0.2,"dt":0.01,"steps":50,"seed":424242}},
+    {"taskId":"info-shannon","layerId":"GAUSS.INFO.SHANNON.001","input":{"probabilities":[0.5,0.25,0.25],"base":2}},
+    {"taskId":"info-mi","layerId":"GAUSS.INFO.MUTUAL_INFORMATION.002","input":{"joint":[[0.4,0.1],[0.1,0.4]],"base":2}},
+    {"taskId":"info-renyi","layerId":"GAUSS.INFO.RENYI.003","input":{"p":[0.5,0.3,0.2],"q":[0.4,0.4,0.2],"alpha":2}},
+    {"taskId":"cs-knapsack","layerId":"GAUSS.CS.KNAPSACK_EXACT.001","input":{"capacity":10,"items":[{"id":"a","weight":6,"value":30},{"id":"b","weight":3,"value":14},{"id":"c","weight":4,"value":16},{"id":"d","weight":2,"value":9}]}},
+    {"taskId":"cs-ltl","layerId":"GAUSS.CS.LTL_REQUEST_EVENTUALLY_CERT.002","input":{"trace":["BOOT","REQUEST","WORK","CERTIFICATION","REQUEST","CERTIFICATION"]}}
+  ]
+}
