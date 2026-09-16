@@ -30,6 +30,13 @@ import {
   graphBridges, exactWeightedVertexCover, exactGraphColoring,
   minimumCostAssignment, weightedTreeDiameter, directedEulerTrail,
 } from "./layers/graph-advanced.mjs";
+import {
+  weightedIntervalScheduling, matrixChainMultiplication, minimumCoinChange,
+  exactSubsetSum, longestIncreasingSubsequence, levenshteinDistance,
+  longestCommonSubsequence, optimalHuffmanLengths,
+  optimalSuccessfulBinarySearchTree, minimumPalindromePartition,
+  johnsonTwoMachineSchedule,
+} from "./layers/discrete-optimization.mjs";
 
 export const GAUSS_DOMAINS = deepFreeze([
   { id: "MATHEMATICS", targetLayers: 100 },
@@ -99,6 +106,17 @@ const definitions = [
   ["GAUSS.CS.MIN_COST_ASSIGNMENT.016", "COMPUTER_SCIENCE", "Exact minimum-cost square assignment by subset DP", minimumCostAssignment],
   ["GAUSS.CS.WEIGHTED_TREE_DIAMETER.017", "COMPUTER_SCIENCE", "Weighted nonnegative tree diameter with route witness", weightedTreeDiameter],
   ["GAUSS.CS.DIRECTED_EULER_TRAIL.018", "COMPUTER_SCIENCE", "Directed Euler trail over distinct edge identities", directedEulerTrail],
+  ["GAUSS.DECISION.WEIGHTED_INTERVAL_SCHEDULING.005", "DECISION_THEORY", "Exact reward-maximizing interval scheduling with conflict-free witness", weightedIntervalScheduling],
+  ["GAUSS.CS.MATRIX_CHAIN.019", "COMPUTER_SCIENCE", "Exact minimum multiplication-order matrix-chain dynamic program", matrixChainMultiplication],
+  ["GAUSS.DECISION.MIN_COIN_CHANGE.006", "DECISION_THEORY", "Unbounded minimum coin-change with exact amount witness", minimumCoinChange],
+  ["GAUSS.CS.SUBSET_SUM.020", "COMPUTER_SCIENCE", "Exact bounded subset-sum existence and selected-index witness", exactSubsetSum],
+  ["GAUSS.CS.LONGEST_INCREASING_SUBSEQUENCE.021", "COMPUTER_SCIENCE", "Strict longest increasing subsequence with indices and values", longestIncreasingSubsequence],
+  ["GAUSS.CS.LEVENSHTEIN.022", "COMPUTER_SCIENCE", "Unicode-code-point Levenshtein edit distance", levenshteinDistance],
+  ["GAUSS.CS.LONGEST_COMMON_SUBSEQUENCE.023", "COMPUTER_SCIENCE", "Exact longest common subsequence with witness", longestCommonSubsequence],
+  ["GAUSS.INFO.HUFFMAN_CODE_LENGTHS.006", "INFORMATION_THEORY", "Optimal weighted binary prefix-code lengths and cost", optimalHuffmanLengths],
+  ["GAUSS.CS.OPTIMAL_BST.024", "COMPUTER_SCIENCE", "Minimum weighted successful-search BST with root witness", optimalSuccessfulBinarySearchTree],
+  ["GAUSS.CS.MIN_PALINDROME_PARTITION.025", "COMPUTER_SCIENCE", "Exact minimum partition into palindromic strings", minimumPalindromePartition],
+  ["GAUSS.DECISION.JOHNSON_TWO_MACHINE.007", "DECISION_THEORY", "Two-machine flow-shop Johnson scheduling with makespan witness", johnsonTwoMachineSchedule],
 ];
 
 const domainIds = new Set(GAUSS_DOMAINS.map((domain) => domain.id));
