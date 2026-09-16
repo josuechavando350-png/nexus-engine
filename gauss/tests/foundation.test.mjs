@@ -17,12 +17,14 @@ import { executeGaussIsingQaoaSimulation } from "../../seo-avengers-2500/quantum
 
 const fixture = JSON.parse(await readFile(new URL("../fixtures/selftest-problem.json", import.meta.url), "utf8"));
 
-test("registry exposes exactly 23 executable foundation layers toward an 800-layer target", () => {
+test("registry and self-test have exact unique coverage of the actual implemented operators", () => {
   const summary = gaussRegistrySummary();
   assert.equal(summary.targetLayerCount, 800);
-  assert.equal(summary.implementedLayerCount, 23);
-  assert.equal(GAUSS_IMPLEMENTED_LAYERS.length, 23);
-  assert.equal(new Set(GAUSS_IMPLEMENTED_LAYERS.map((row) => row.id)).size, 23);
+  assert.equal(summary.implementedLayerCount, fixture.tasks.length);
+  assert.equal(GAUSS_IMPLEMENTED_LAYERS.length, fixture.tasks.length);
+  assert.equal(new Set(GAUSS_IMPLEMENTED_LAYERS.map((row) => row.id)).size, fixture.tasks.length);
+  assert.equal(new Set(fixture.tasks.map((row) => row.layerId)).size, fixture.tasks.length);
+  assert.deepEqual(new Set(fixture.tasks.map((row) => row.layerId)), new Set(GAUSS_IMPLEMENTED_LAYERS.map((row) => row.id)));
   for (const domain of summary.domains) assert.equal(domain.targetLayers, 100);
 });
 
@@ -131,11 +133,11 @@ test("Quantum bridge executes an internal statevector QAOA simulation with the c
   assert.equal(biasedReceipt.exactGroundStateEnergy, -1);
 });
 
-test("end-to-end NEXUS -> GAUSS -> Quantum run executes all 23 implemented layers", async () => {
+test("end-to-end NEXUS -> GAUSS -> Quantum runs every registry operator exactly once", async () => {
   const first = await executeGaussProblem(fixture, { quantumContributor: contributeNexusQuantum });
   const second = await executeGaussProblem(fixture, { quantumContributor: contributeNexusQuantum });
   assert.equal(first.status, "PASS");
-  assert.equal(first.executedLayerCount, 23);
+  assert.equal(first.executedLayerCount, GAUSS_IMPLEMENTED_LAYERS.length);
   assert.equal(first.failedLayerCount, 0);
   assert.equal(first.quantumContribution.status, "EXECUTED");
   assert.equal(first.quantumContribution.simulation.hardwareExecution, false);
