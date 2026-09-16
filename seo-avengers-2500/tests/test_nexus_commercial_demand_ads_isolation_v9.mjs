@@ -11,11 +11,12 @@ function clone(value) {
   return structuredClone(value);
 }
 
-test("V9 isolates the connected Google Ads account from Nexus first-party evidence", () => {
+test("V9 isolates the connected LIC Google Ads account from Nexus first-party evidence", () => {
   const result = validateAdsAccountIsolationV9(clone(source));
   assert.deepEqual(result, {
     status: "THIRD_PARTY_ADS_ACCOUNT_ISOLATED",
     connectedGoogleAdsAccountOwnership: "THIRD_PARTY_NON_NEXUS_ACCOUNT",
+    connectedGoogleAdsAccountOwnerAlias: "LIC",
     nexusFirstPartyPerformanceEvidenceEligible: false,
     connectedAccountMutationAuthorized: false,
     keywordPlannerResearchOnly: true,
@@ -28,6 +29,15 @@ test("V9 cannot relabel the connected third-party Ads account as Nexus", () => {
   assert.throws(
     () => validateAdsAccountIsolationV9(changed),
     /connected Google Ads account must remain classified as third-party and non-Nexus/,
+  );
+});
+
+test("V9 cannot relabel the connected Ads account owner away from LIC", () => {
+  const changed = clone(source);
+  changed.paidSearchGate.connectedGoogleAdsAccountOwnerAlias = "NEXUS";
+  assert.throws(
+    () => validateAdsAccountIsolationV9(changed),
+    /connected Google Ads account owner alias must remain LIC/,
   );
 });
 
