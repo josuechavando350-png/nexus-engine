@@ -49,6 +49,15 @@
     {"taskId":"math-cg","layerId":"GAUSS.MATH.CONJUGATE_GRADIENT.008","input":{"coefficients":[[4,1],[1,3]],"rhs":[1,2]}},
     {"taskId":"math-qr","layerId":"GAUSS.MATH.HOUSEHOLDER_QR.009","input":{"coefficients":[[1,0],[1,1],[1,2]]}},
     {"taskId":"stats-qr-ls","layerId":"GAUSS.STATS.QR_LEAST_SQUARES.013","input":{"coefficients":[[1,0],[1,1],[1,2],[1,3]],"rhs":[1,3,5,7]}},
-    {"taskId":"info-fft","layerId":"GAUSS.INFO.FFT_RADIX2.005","input":{"real":[1,0,-1,0],"imaginary":[0,0,0,0]}}
+    {"taskId":"info-fft","layerId":"GAUSS.INFO.FFT_RADIX2.005","input":{"real":[1,0,-1,0],"imaginary":[0,0,0,0]}},
+    {"taskId":"cs-bellman-ford","layerId":"GAUSS.CS.BELLMAN_FORD_SIGNED.010","input":{"vertexCount":4,"edges":[{"from":0,"to":1,"cost":2},{"from":1,"to":2,"cost":-1},{"from":2,"to":3,"cost":3},{"from":0,"to":3,"cost":8}],"source":0,"target":3}},
+    {"taskId":"cs-floyd","layerId":"GAUSS.CS.FLOYD_WARSHALL.011","input":{"vertexCount":3,"edges":[{"from":0,"to":1,"cost":2},{"from":1,"to":2,"cost":-1},{"from":0,"to":2,"cost":5}]}},
+    {"taskId":"cs-articulation","layerId":"GAUSS.CS.ARTICULATION_VERTICES.012","input":{"vertexCount":5,"edges":[{"from":0,"to":1},{"from":1,"to":2},{"from":2,"to":0},{"from":1,"to":3},{"from":3,"to":4}]}},
+    {"taskId":"cs-bridges","layerId":"GAUSS.CS.BRIDGES.013","input":{"vertexCount":4,"edges":[{"from":0,"to":1},{"from":1,"to":2},{"from":2,"to":0},{"from":2,"to":3}]}},
+    {"taskId":"cs-vertex-cover","layerId":"GAUSS.CS.WEIGHTED_VERTEX_COVER.014","input":{"vertexCount":4,"edges":[{"from":0,"to":1},{"from":1,"to":2},{"from":2,"to":3}],"weights":[2,1,1,2]}},
+    {"taskId":"cs-coloring","layerId":"GAUSS.CS.CHROMATIC_NUMBER.015","input":{"vertexCount":3,"edges":[{"from":0,"to":1},{"from":1,"to":2},{"from":2,"to":0}]}},
+    {"taskId":"cs-assignment","layerId":"GAUSS.CS.MIN_COST_ASSIGNMENT.016","input":{"costs":[[4,1,3],[2,0,5],[3,2,2]]}},
+    {"taskId":"cs-tree-diameter","layerId":"GAUSS.CS.WEIGHTED_TREE_DIAMETER.017","input":{"vertexCount":4,"edges":[{"from":0,"to":1,"weight":2},{"from":1,"to":2,"weight":3},{"from":1,"to":3,"weight":4}]}},
+    {"taskId":"cs-euler","layerId":"GAUSS.CS.DIRECTED_EULER_TRAIL.018","input":{"vertexCount":3,"edges":[{"from":0,"to":1},{"from":1,"to":2},{"from":2,"to":0},{"from":0,"to":2}]}}
   ]
 }
