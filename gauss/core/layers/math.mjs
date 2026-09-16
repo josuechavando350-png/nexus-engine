@@ -60,7 +60,9 @@ export function graphLaplacian({ adjacency }) {
   });
   for (let i = 0; i < n; i += 1) {
     for (let j = i + 1; j < n; j += 1) {
-      if (Math.abs(normalized[i][j] - normalized[j][i]) > 1e-12) throw new TypeError("adjacency must be symmetric");
+      // An undirected adjacency matrix must be exactly symmetric. A tolerance
+      // would silently produce an asymmetric Laplacian while claiming otherwise.
+      if (normalized[i][j] !== normalized[j][i]) throw new TypeError("adjacency must be symmetric");
     }
   }
   const degrees = normalized.map((row) => row.reduce((sum, value) => sum + value, 0));
