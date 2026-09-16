@@ -28,7 +28,7 @@ test('exact sign and residuals on 12,000 scaled integer quadratics',()=>{
    success++;
   }catch(e){
    if(e instanceof TypeError && /numerical|precision|bounded/.test(e.message)){expectedRejections++;continue;}
-   throw new Error(`case ${JSON.stringify({a,b,c,u,v,w,s})}: ${e.stack}`);
+   throw new Error(`case ${JSON.stringify({a,b,c,u,v,w,s})}: ${e.stack}`,{cause:e});
   }
  }
  assert(success>11500,`too many numerical rejections ${success}/${expectedRejections}`);
