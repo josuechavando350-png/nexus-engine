@@ -1,12 +1,15 @@
 import { assertArray, assertFiniteNumber, assertObject, assertSafeInteger } from "../common.mjs";
 
+const MAX_EXACT_KNAPSACK_ITEMS = 20;
+const MAX_EXACT_KNAPSACK_NODES = 250_000;
+
 export function exactBinaryKnapsack({ items, capacity }) {
   const cap = assertSafeInteger(capacity, "capacity", { min: 0, max: 1_000_000_000 });
-  const rows = assertArray(items, "items", { min: 1, max: 64 }).map((item, index) => {
+  const rows = assertArray(items, "items", { min: 1, max: MAX_EXACT_KNAPSACK_ITEMS }).map((item, index) => {
     assertObject(item, `items[${index}]`);
     const id = String(item.id ?? "").trim();
     if (!id) throw new TypeError(`items[${index}].id required`);
-    const weight = assertSafeInteger(item.weight, `items[${index}].weight`, { min: 0, max: cap || 1_000_000_000 });
+    const weight = assertSafeInteger(item.weight, `items[${index}].weight`, { min: 0, max: 1_000_000_000 });
     const value = assertFiniteNumber(item.value, `items[${index}].value`, { min: 0 });
     return { id, weight, value, ratio: weight === 0 ? Infinity : value / weight };
   });
@@ -43,6 +46,9 @@ export function exactBinaryKnapsack({ items, capacity }) {
   }
 
   function visit(index, remainingCapacity, value, weight, ids) {
+    if (visitedNodes >= MAX_EXACT_KNAPSACK_NODES) {
+      throw new RangeError("exact knapsack search budget exhausted; no optimality claim allowed");
+    }
     visitedNodes += 1;
     if (value > bestValue + 1e-12 || (Math.abs(value - bestValue) <= 1e-12 && betterTie(ids, weight))) {
       bestValue = value;
