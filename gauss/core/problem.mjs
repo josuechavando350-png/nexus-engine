@@ -71,14 +71,36 @@ export async function executeGaussProblem(problem, { quantumContributor } = {}) 
   let quantum = null;
   try {
     quantum = await quantumContributor({ problem: normalized, taskResults: deepFreeze([...results]), problemSha256 });
-    const requiresIsing = normalized.tasks.some((task) => task.layerId === QUANTUM_ISING_LAYER);
-    const requiredStatus = requiresIsing ? "EXECUTED" : "NOT_APPLICABLE";
+    const isingTasks = normalized.tasks.filter((task) => task.layerId === QUANTUM_ISING_LAYER);
+    const requiredStatus = isingTasks.length > 0 ? "EXECUTED" : "NOT_APPLICABLE";
     if (!quantum || quantum.engineId !== "NEXUS_QUANTUM" || quantum.problemSha256 !== problemSha256 || quantum.status !== requiredStatus) {
       throw new Error(`Nexus Quantum must provide a problem-bound ${requiredStatus} receipt`);
     }
-    if (requiresIsing && (quantum.simulation?.verdict !== "PASS" || quantum.simulation?.hardwareExecution !== false
-      || quantum.simulation?.quantumAdvantageClaimAllowed !== false)) {
-      throw new Error("Nexus Quantum Ising simulation receipt is incomplete or misrepresents hardware");
+    if (isingTasks.length > 1) {
+      throw new Error("multiple Ising subproblems must not share one Quantum receipt");
+    }
+    if (isingTasks.length === 1) {
+      const task = isingTasks[0];
+      const source = results.find((result) => result.taskId === task.taskId);
+      if (source?.status !== "EXECUTED" || quantum.sourceTaskId !== task.taskId || quantum.sourceTaskOutputSha256 !== source.outputSha256) {
+        throw new Error("Nexus Quantum receipt is not bound to the exact Ising task output");
+      }
+      const simulation = quantum.simulation;
+      if (simulation?.verdict !== "PASS" || simulation?.hardwareExecution !== false
+        || simulation?.quantumAdvantageClaimAllowed !== false) {
+        throw new Error("Nexus Quantum Ising simulation receipt is incomplete or misrepresents hardware");
+      }
+      const { receiptSha256, ...unsignedSimulation } = simulation;
+      if (receiptSha256 !== sha256Canonical(unsignedSimulation)) {
+        throw new Error("Nexus Quantum statevector receipt SHA-256 mismatch");
+      }
+    } else {
+      const { receiptSha256, ...unsignedQuantum } = quantum;
+      if (receiptSha256 !== sha256Canonical(unsignedQuantum) || quantum.hardwareExecution !== false
+        || quantum.quantumAdvantageClaimAllowed !== false
+        || quantum.reasonCodes?.length !== 1 || quantum.reasonCodes[0] !== "NO_ISING_SUBPROBLEM") {
+        throw new Error("Nexus Quantum NOT_APPLICABLE receipt is missing or invalid");
+      }
     }
   } catch (error) {
     errors.push(`QUANTUM:${String(error?.message ?? error).replace(/[\r\n]+/gu, " ").slice(0, 2_048)}`);
