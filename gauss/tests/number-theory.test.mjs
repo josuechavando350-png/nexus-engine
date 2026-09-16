@@ -66,7 +66,7 @@ test('prime sieve matches independent trial-division oracle over 0..800',()=>{
 });
 test('integer square root supplies exact floor witness even at safe integer boundary',()=>{
  for(let i=0;i<500;i++){
-  const n=i<450?rand(1000000000):Number.MAX_SAFE_INTEGER-rand(100000000);
+  const n=i===499?Number.MAX_SAFE_INTEGER:i<450?rand(1000000000):Number.MAX_SAFE_INTEGER-rand(100000000);
   const {root,remainder}=exactIntegerSquareRoot({value:n}),r=BigInt(root),value=BigInt(n);
   assert(r*r<=value && (r+1n)*(r+1n)>value);
   assert.equal(BigInt(remainder),value-r*r);
@@ -78,7 +78,8 @@ test('exact binomial coefficient agrees with independent Pascal recursion',()=>{
   if(n){const prev=rows[n-1];rows.push(Array.from({length:n+1},(_,k)=>(k?prev[k-1]??0n:0n)+(prev[k]??0n)));}
   for(let k=0;k<=n;k++)assert.equal(exactBinomialCoefficient({n,k}).coefficient,rows[n][k].toString());
  }
- assert.equal(exactBinomialCoefficient({n:1000,k:500}).coefficient,exactBinomialCoefficient({n:1000,k:500}).coefficient);
+ const factorial=n=>{let result=1n;for(let i=2;i<=n;i++)result*=BigInt(i);return result;};
+ assert.equal(exactBinomialCoefficient({n:1000,k:500}).coefficient,(factorial(1000)/(factorial(500)*factorial(500))).toString());
 });
 test('fast doubling Fibonacci agrees with separate linear-time recurrence',()=>{
  let a=0n,b=1n;for(let n=0;n<=1400;n++){
