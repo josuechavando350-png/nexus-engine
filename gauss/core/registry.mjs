@@ -17,6 +17,12 @@ import {
   scalarRauchTungStriebelSmoother, boundedPidController, finiteHorizonDiagonalCostLqr,
   stableScalarLyapunovCertificate, scalarMinimumEnergyReachability, scalarIntervalReachability,
 } from './layers/control-systems.mjs';
+import {
+  signedOrientation, segmentIntersectionClass, convexHullMonotone, polygonSignedArea,
+  polygonCentroid, polygonPerimeter, pointInSimplePolygon, closestPairSquared,
+  farthestPairSquared, pointSegmentProjection, lineIntersectionCoordinates,
+  latticePolygonInterior, convexPolygonDiameter,
+} from './layers/computational-geometry.mjs';
 
 export { GAUSS_DOMAINS };
 
@@ -45,6 +51,19 @@ const additions = [
   ['GAUSS.CONTROL.SCALAR_LYAPUNOV.012', 'CONTROL_DYNAMICS', 'Stable scalar discrete Lyapunov covariance and residual certificate', stableScalarLyapunovCertificate],
   ['GAUSS.CONTROL.MIN_ENERGY_REACHABILITY.013', 'CONTROL_DYNAMICS', 'Minimum-energy scalar endpoint reachability with control witness', scalarMinimumEnergyReachability],
   ['GAUSS.CONTROL.INTERVAL_REACHABILITY.014', 'CONTROL_DYNAMICS', 'Exact scalar interval reachable-set propagation under bounded controls', scalarIntervalReachability],
+  ['GAUSS.MATH.ORIENTATION_2D.022', 'MATHEMATICS', 'Exact bounded integer signed orientation predicate', signedOrientation],
+  ['GAUSS.MATH.SEGMENT_INTERSECTION.023', 'MATHEMATICS', 'Exact bounded segment intersection classification including overlap', segmentIntersectionClass],
+  ['GAUSS.MATH.CONVEX_HULL_2D.024', 'MATHEMATICS', 'Monotone-chain convex hull with collinear interior removal', convexHullMonotone],
+  ['GAUSS.MATH.POLYGON_SIGNED_AREA.025', 'MATHEMATICS', 'Signed simple lattice polygon area by shoelace sum', polygonSignedArea],
+  ['GAUSS.MATH.POLYGON_CENTROID.026', 'MATHEMATICS', 'Area-weighted centroid for bounded simple integer-coordinate polygons', polygonCentroid],
+  ['GAUSS.MATH.POLYGON_PERIMETER.027', 'MATHEMATICS', 'Euclidean perimeter of a bounded simple polygon', polygonPerimeter],
+  ['GAUSS.MATH.POINT_POLYGON_LOCATION.028', 'MATHEMATICS', 'Exact integer inside, boundary or outside point-in-simple-polygon test', pointInSimplePolygon],
+  ['GAUSS.MATH.CLOSEST_PAIR_2D.029', 'MATHEMATICS', 'Exact bounded minimum squared point-pair distance with witness', closestPairSquared],
+  ['GAUSS.MATH.FARTHEST_PAIR_2D.030', 'MATHEMATICS', 'Exact bounded maximum squared point-pair distance with witness', farthestPairSquared],
+  ['GAUSS.MATH.POINT_SEGMENT_PROJECTION.031', 'MATHEMATICS', 'Clamped Euclidean point-to-segment projection and squared distance', pointSegmentProjection],
+  ['GAUSS.MATH.LINE_INTERSECTION_2D.032', 'MATHEMATICS', 'Parallel, coincident and proper infinite-line intersection coordinates', lineIntersectionCoordinates],
+  ['GAUSS.MATH.PICK_LATTICE_INTERIOR.033', 'MATHEMATICS', 'Exact interior lattice-point count via Pick theorem for simple lattice polygons', latticePolygonInterior],
+  ['GAUSS.MATH.CONVEX_POLYGON_DIAMETER.034', 'MATHEMATICS', 'Exact bounded convex-polygon diameter with extreme-vertex witness', convexPolygonDiameter],
 ];
 
 const domainIds = new Set(GAUSS_DOMAINS.map(domain => domain.id));
