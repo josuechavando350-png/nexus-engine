@@ -184,7 +184,7 @@ function buildSequencedPages(rawBaseScenario) {
 export function runCommercialDemandTournamentV9(rawBaseScenario, rawV3Evidence, rawV4Evidence, rawV5Evidence, rawV6Evidence, rawV7Evidence, rawV8Contract, rawV9Contract) {
   const v8 = runCommercialDemandTournamentV8(rawBaseScenario, rawV3Evidence, rawV4Evidence, rawV5Evidence, rawV6Evidence, rawV7Evidence, rawV8Contract);
   if (v8.targetSupportVerdict !== REQUIRED_V8_VERDICT) throw new Error("V9 requires the certified V8 verdict");
-  if (v8.measurementImplementationReadiness?.instrumentationStatus !== "NOT_INSTALLED_BY_V8") throw new Error("V9 requires V8 to remain non-production");
+  if (v8.measurementImplementationReadiness?.productionInstrumentationInstalledByV8 !== false) throw new Error("V9 requires V8 to remain non-production");
   const contract = validateExecutionContract(rawV9Contract);
   const { rows } = buildSequencedPages(rawBaseScenario);
   const totalRelevantSessionsMilli = rows.reduce((sum, row) => sum + row.assignedRelevantSessionsMilli, 0);
@@ -220,7 +220,7 @@ export function runCommercialDemandTournamentV9(rawBaseScenario, rawV3Evidence, 
       reportSha256: v8.reportSha256,
       targetSupportVerdict: v8.targetSupportVerdict,
       measurementContractId: v8.measurementContract.contractId,
-      instrumentationStatus: v8.measurementImplementationReadiness.instrumentationStatus,
+      instrumentationStatus: v8.measurementImplementationReadiness.productionInstrumentationInstalledByV8 ? "INSTALLED" : "NOT_INSTALLED_BY_V8",
       probabilityOfAtLeast15ClientsPerMonth: v8.measurementImplementationReadiness.probabilityOfAtLeast15ClientsPerMonth,
     },
     executionContract: contract,
