@@ -11,6 +11,9 @@ export function validateAdsAccountIsolationV9(rawContract) {
   if (paid.connectedGoogleAdsAccountOwnership !== "THIRD_PARTY_NON_NEXUS_ACCOUNT") {
     throw new Error("V9 connected Google Ads account must remain classified as third-party and non-Nexus");
   }
+  if (paid.connectedGoogleAdsAccountOwnerAlias !== "LIC") {
+    throw new Error("V9 connected Google Ads account owner alias must remain LIC");
+  }
   if (paid.connectedGoogleAdsPerformanceMayBeUsedAsNexusEvidence !== false) {
     throw new Error("V9 forbids using third-party Google Ads performance as Nexus first-party evidence");
   }
@@ -27,6 +30,7 @@ export function validateAdsAccountIsolationV9(rawContract) {
   return Object.freeze({
     status: "THIRD_PARTY_ADS_ACCOUNT_ISOLATED",
     connectedGoogleAdsAccountOwnership: paid.connectedGoogleAdsAccountOwnership,
+    connectedGoogleAdsAccountOwnerAlias: paid.connectedGoogleAdsAccountOwnerAlias,
     nexusFirstPartyPerformanceEvidenceEligible: false,
     connectedAccountMutationAuthorized: false,
     keywordPlannerResearchOnly: true,
