@@ -76,7 +76,13 @@ test("control and information operators are deterministic and normalized", () =>
   );
   assert.equal(shannonEntropy({ probabilities: [0.5, 0.5], base: 2 }).entropy, 1);
   assert(mutualInformation({ joint: [[0.5, 0], [0, 0.5]], base: 2 }).mutualInformation > 0.999999);
-  assert(renyiDivergence({ p: [0.5, 0.5], q: [0.25, 0.75], alpha: 2 }).divergence > 0);
+  const finiteRenyi = renyiDivergence({ p: [0.5, 0.5], q: [0.25, 0.75], alpha: 2 });
+  assert.equal(finiteRenyi.divergenceKind, "FINITE");
+  assert(finiteRenyi.divergence > 0);
+  assert.deepEqual(
+    renyiDivergence({ p: [1, 0], q: [0, 1], alpha: 2 }),
+    { divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: 2 },
+  );
 });
 
 test("computer-science operators solve exact bounded optimization and finite-trace temporal property", () => {
