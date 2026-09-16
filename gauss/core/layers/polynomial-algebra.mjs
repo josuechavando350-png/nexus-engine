@@ -24,10 +24,85 @@ export function barycentricLagrangeInterpolation(input){shape(input,['nodes','va
 export function newtonDividedDifferenceTable(input){shape(input,['nodes','values']);const x=arr(input.nodes,'nodes',1,12),a=arr(input.values,'values',1,12);if(x.length!==a.length||new Set(x).size!==x.length)fail('distinct nodes and matching values required');
  const out=[a[0]];for(let order=1;order<x.length;order++){for(let i=0;i<x.length-order;i++)a[i]=finite((a[i+1]-a[i])/(x[i+order]-x[i]));out.push(a[0]);}
  return freeze({nodes:freeze(x),newtonCoefficients:freeze(out)});}
-export function realQuadraticRootClassification(input){shape(input,['a','b','c']);const a=num(input.a,'a'),b=num(input.b,'b'),c=num(input.c,'c');if(a===0)fail('quadratic leading coefficient cannot vanish');const d=finite(b*b-4*a*c);
- if(d<0)return freeze({discriminant:d,roots:freeze([]),realRootCount:0});if(d===0)return freeze({discriminant:0,roots:freeze([-b/(2*a)]),realRootCount:1});
- const q=-0.5*(b+Math.sign(b||1)*Math.sqrt(d)),roots=[q/a,c/q].map(finite).sort((u,v)=>u-v);
- return freeze({discriminant:d,roots:freeze(roots),realRootCount:2});}
+// An IEEE-754 float is an exact dyadic rational. Compare b² and 4ac with
+// BigInt mantissas: ordinary Number multiplication may underflow both to 0,
+// causing a genuine pair of roots to be misclassified as a double root.
+const quadraticBits = new DataView(new ArrayBuffer(8));
+const exactDyadic = value => {
+ quadraticBits.setFloat64(0, value, false);
+ const hi=quadraticBits.getUint32(0,false),lo=quadraticBits.getUint32(4,false);
+ const exponent=(hi>>>20)&2047;
+ const fraction=(BigInt(hi&0xfffff)<<32n)|BigInt(lo);
+ const mantissa=(hi>>>31?-1n:1n)*(exponent?fraction+(1n<<52n):fraction);
+ return {mantissa, exponent:exponent?exponent-1075:-1074};
+};
+const binaryMagnitude = value => {
+ const abs=value<0n?-value:value,bits=abs.toString(2).length;
+ const shift=Math.max(0,bits-53);
+ return {top:Number(abs>>BigInt(shift))/2**(bits-1-shift), exponent:bits-1};
+};
+function scaledQuadraticDiscriminant(a,b,c){
+ const A=exactDyadic(a),B=exactDyadic(b),C=exactDyadic(c);
+ const bExponent=2*B.exponent,acExponent=A.exponent+C.exponent;
+ const common=Math.min(bExponent,acExponent);
+ const numerator=(B.mantissa*B.mantissa<<BigInt(bExponent-common))-
+  (4n*A.mantissa*C.mantissa<<BigInt(acExponent-common));
+ if(numerator===0n)return {sign:0,normalized:0};
+ const sign=numerator<0n?-1:1,scale=Math.max(Math.abs(a),Math.abs(b),Math.abs(c));
+ const S=exactDyadic(scale),D=binaryMagnitude(numerator),M=binaryMagnitude(S.mantissa);
+ const normalized=sign*(D.top/(M.top*M.top))*2**(common+D.exponent-2*(S.exponent+M.exponent));
+ if(!Number.isFinite(normalized)||normalized===0||Math.sign(normalized)!==sign)
+  fail('quadratic discriminant outside supported numerical precision');
+ return {sign,normalized,scale};
+}
+// Verify returned binary64 roots against the *exact input floats*. A rounded
+// subnormal c or b*root can otherwise create a convincing but false root.
+function verifyQuadraticRoot(a,b,c,root){
+ const A=exactDyadic(a),B=exactDyadic(b),C=exactDyadic(c),R=exactDyadic(root);
+ const terms=[
+  {m:A.mantissa*R.mantissa*R.mantissa,e:A.exponent+2*R.exponent},
+  {m:B.mantissa*R.mantissa,e:B.exponent+R.exponent},
+  {m:C.mantissa,e:C.exponent}
+ ].filter(term=>term.m!==0n);
+ if(!terms.length)return;
+ const common=Math.min(...terms.map(term=>term.e));
+ const values=terms.map(({m,e})=>m<<BigInt(e-common));
+ const abs=value=>value<0n?-value:value;
+ const magnitude=values.reduce((largest,value)=>largest>abs(value)?largest:abs(value),0n);
+ const residual=abs(values.reduce((sum,value)=>sum+value,0n));
+ if(residual*100000000n>magnitude)fail('quadratic root outside supported residual precision');
+}
+export function realQuadraticRootClassification(input){
+ shape(input,['a','b','c']);const a=num(input.a,'a'),b=num(input.b,'b'),c=num(input.c,'c');
+ if(a===0)fail('quadratic leading coefficient cannot vanish');
+ const raw=b*b-4*a*c,{sign,normalized,scale}=scaledQuadraticDiscriminant(a,b,c);
+ // Preserve the legacy field for representable cases; never claim a false
+ // discriminant of zero if its true value underflows Number precision.
+ const metadata=sign===0?{discriminant:0}:
+  raw!==0&&Math.sign(raw)===sign?{discriminant:finite(raw)}:
+  {discriminant:null,normalizedDiscriminant:normalized,coefficientScale:scale};
+ if(sign<0)return freeze({...metadata,roots:freeze([]),realRootCount:0});
+ const s=scale??Math.max(Math.abs(a),Math.abs(b),Math.abs(c));
+ const A=a/s,B=b/s,C=c/s;
+ if(A===0)fail('quadratic leading coefficient is numerically unresolvable');
+ if(sign===0){
+  const repeated=finite(-B/(2*A));
+  if(repeated===0&&b!==0)fail('nonzero repeated quadratic root is numerically unresolvable');
+  verifyQuadraticRoot(a,b,c,repeated);
+  return freeze({...metadata,roots:freeze([repeated]),realRootCount:1});
+ }
+ const sqrt=Math.sqrt(normalized),q=-0.5*(B+Math.sign(B||1)*sqrt);
+ if(q===0)fail('quadratic roots are numerically unresolvable');
+ // Preserve a tiny nonzero c that may disappear in c / scale.
+ const smallRoot=C===0&&c!==0?c/(s*q):C/q;
+ const roots=[q/A,smallRoot].map(value=>finite(value===0?0:value)).sort((u,v)=>u-v);
+ // If c is nonzero, neither mathematical root is zero. A rounded zero
+ // would be a fabricated exact root, even if the residual underflows.
+ if(c!==0&&roots.some(root=>root===0))fail('nonzero quadratic root is numerically unresolvable');
+ if(roots[0]===roots[1])fail('distinct quadratic roots cannot be resolved at Number precision');
+ roots.forEach(root=>verifyQuadraticRoot(a,b,c,root));
+ return freeze({...metadata,roots:freeze(roots),realRootCount:2});
+}
 export function polynomialComposition(input){shape(input,['outer','inner']);const outer=arr(input.outer,'outer',1,10),inner=arr(input.inner,'inner',1,10);if((outer.length-1)*(inner.length-1)>20)fail('composition exceeds degree bound');
  let result=[0];for(let i=outer.length-1;i>=0;i--){result=multiply(result,inner);result[0]=finite(result[0]+outer[i]);}return freeze({coefficients:freeze(trimmed(result))});}
 export function polynomialArgumentTranslation(input){shape(input,['coefficients','shift']);const p=arr(input.coefficients,'coefficients'),a=num(input.shift,'shift',10),out=Array(p.length).fill(0);
