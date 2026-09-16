@@ -24,6 +24,7 @@
     {"taskId":"info-renyi","layerId":"GAUSS.INFO.RENYI.003","input":{"p":[0.5,0.3,0.2],"q":[0.4,0.4,0.2],"alpha":2}},
     {"taskId":"cs-knapsack","layerId":"GAUSS.CS.KNAPSACK_EXACT.001","input":{"capacity":10,"items":[{"id":"a","weight":6,"value":30},{"id":"b","weight":3,"value":14},{"id":"c","weight":4,"value":16},{"id":"d","weight":2,"value":9}]}},
     {"taskId":"cs-ltl","layerId":"GAUSS.CS.LTL_REQUEST_EVENTUALLY_CERT.002","input":{"trace":["BOOT","REQUEST","WORK","CERTIFICATION","REQUEST","CERTIFICATION"]}},
-    {"taskId":"decision-cvar","layerId":"GAUSS.DECISION.CVAR_DISCRETE.003","input":{"confidence":0.75,"outcomes":[{"loss":0,"probability":0.25},{"loss":10,"probability":0.25},{"loss":20,"probability":0.25},{"loss":30,"probability":0.25}]}}
+    {"taskId":"decision-cvar","layerId":"GAUSS.DECISION.CVAR_DISCRETE.003","input":{"confidence":0.75,"outcomes":[{"loss":0,"probability":0.25},{"loss":10,"probability":0.25},{"loss":20,"probability":0.25},{"loss":30,"probability":0.25}]}},
+    {"taskId":"decision-evar","layerId":"GAUSS.DECISION.EVAR_DISCRETE.004","input":{"confidence":0.75,"outcomes":[{"loss":0,"probability":0.5},{"loss":10,"probability":0.25},{"loss":20,"probability":0.15},{"loss":30,"probability":0.1}]}}
   ]
 }
