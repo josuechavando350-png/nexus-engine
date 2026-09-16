@@ -2,11 +2,11 @@
 
 Source of requirements: `Especificacion_Motor_Matematico_Absoluto.pdf` (six pages, 20 proposed conceptual layers). This document is a requirements crosswalk, not evidence that the proposed outcomes or all 20 conceptual layers have been realized.
 
-**Two different counts must never be conflated:** Foundation V1 registers 20 executable mathematical operators toward its separate 800-operator architectural target. Those operators do **not** implement the PDF's 20 end-to-end conceptual layers. No PDF conceptual layer is certified end-to-end by the foundation self-test.
+**Two different counts must never be conflated:** Foundation V1 registers 21 executable mathematical operators toward its separate 800-operator architectural target. Those operators do **not** implement the PDF's 20 end-to-end conceptual layers. No PDF conceptual layer is certified end-to-end by the foundation self-test.
 
 | PDF conceptual layer | Foundation V1 relationship | What is still not implemented or proven |
 | --- | --- | --- |
-| 1. Persistent homology / TDA | Not implemented | Persistence computation, real-world feature validation. |
+| 1. Persistent homology / TDA | Partial: bounded weighted-graph H0 sublevel persistence with an independent connectivity oracle | Higher-dimensional homology, other filtrations, real-world feature validation or predictive benefits. |
 | 2. Ising/QAOA tournament | Partial: small internal statevector QAOA simulator and exact Ising baseline | Large candidate tournament, physical QPU execution or any real-world advantage. |
 | 3. Wasserstein DRO / CVaR | Not implemented | Ambiguity-set optimization, calibrated risk bounds. |
 | 4. Takens / strange attractors | Partial: deterministic delay-coordinate embedding | Attractor detection and demonstrated prediction validity. |
