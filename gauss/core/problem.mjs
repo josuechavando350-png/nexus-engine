@@ -10,6 +10,8 @@ import {
 } from "./common.mjs";
 import { gaussRegistrySummary, getGaussLayer } from "./registry.mjs";
 
+const QUANTUM_ISING_LAYER = "GAUSS.PHYSICS.ISING_EXACT_GROUND.003";
+
 export function validateGaussProblem(problem) {
   assertExactKeys(problem, ["objective", "problemId", "schemaVersion", "tasks"], "GAUSS problem");
   if (problem.schemaVersion !== GAUSS_SCHEMA_VERSION) throw new TypeError("unsupported GAUSS problem schemaVersion");
@@ -29,7 +31,10 @@ export function validateGaussProblem(problem) {
   return deepFreeze({ schemaVersion: GAUSS_SCHEMA_VERSION, problemId, objective: problem.objective.normalize("NFC").trim(), tasks });
 }
 
-export async function executeGaussProblem(problem, { quantumContributor = null } = {}) {
+export async function executeGaussProblem(problem, { quantumContributor } = {}) {
+  if (typeof quantumContributor !== "function") {
+    throw new TypeError("Nexus Quantum contributor is required; GAUSS cannot bypass Quantum");
+  }
   const normalized = validateGaussProblem(problem);
   const problemSha256 = sha256Canonical(normalized);
   const results = [];
@@ -64,12 +69,19 @@ export async function executeGaussProblem(problem, { quantumContributor = null }
     }
   }
   let quantum = null;
-  if (typeof quantumContributor === "function") {
-    try {
-      quantum = await quantumContributor({ problem: normalized, taskResults: deepFreeze([...results]), problemSha256 });
-    } catch (error) {
-      errors.push(`QUANTUM:${String(error?.message ?? error).replace(/[\r\n]+/gu, " ").slice(0, 2_048)}`);
+  try {
+    quantum = await quantumContributor({ problem: normalized, taskResults: deepFreeze([...results]), problemSha256 });
+    const requiresIsing = normalized.tasks.some((task) => task.layerId === QUANTUM_ISING_LAYER);
+    const requiredStatus = requiresIsing ? "EXECUTED" : "NOT_APPLICABLE";
+    if (!quantum || quantum.engineId !== "NEXUS_QUANTUM" || quantum.problemSha256 !== problemSha256 || quantum.status !== requiredStatus) {
+      throw new Error(`Nexus Quantum must provide a problem-bound ${requiredStatus} receipt`);
     }
+    if (requiresIsing && (quantum.simulation?.verdict !== "PASS" || quantum.simulation?.hardwareExecution !== false
+      || quantum.simulation?.quantumAdvantageClaimAllowed !== false)) {
+      throw new Error("Nexus Quantum Ising simulation receipt is incomplete or misrepresents hardware");
+    }
+  } catch (error) {
+    errors.push(`QUANTUM:${String(error?.message ?? error).replace(/[\r\n]+/gu, " ").slice(0, 2_048)}`);
   }
   const executedLayerCount = results.filter((row) => row.status === "EXECUTED").length;
   const failedLayerCount = results.length - executedLayerCount;
