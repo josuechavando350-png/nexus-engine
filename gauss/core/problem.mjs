@@ -90,6 +90,21 @@ export async function executeGaussProblem(problem, { quantumContributor } = {}) 
         || simulation?.quantumAdvantageClaimAllowed !== false) {
         throw new Error("Nexus Quantum Ising simulation receipt is incomplete or misrepresents hardware");
       }
+      const expectedQuantumProblemSha256 = sha256Canonical({
+        problemId: `${normalized.problemId}:ising`,
+        fields: task.input.fields,
+        couplings: task.input.couplings ?? [],
+        offset: task.input.offset ?? 0,
+      });
+      if (simulation.problemSha256 !== expectedQuantumProblemSha256) {
+        throw new Error("Nexus Quantum simulation is not bound to the submitted Ising Hamiltonian");
+      }
+      const exactEnergy = source.output.energy;
+      const receiptEnergy = simulation.exactGroundStateEnergy;
+      if (typeof receiptEnergy !== "number" || !Number.isFinite(receiptEnergy)
+        || Math.abs(receiptEnergy - exactEnergy) > 1e-10 * Math.max(1, Math.abs(receiptEnergy), Math.abs(exactEnergy))) {
+        throw new Error("Nexus Quantum exact ground energy disagrees with GAUSS independent Ising result");
+      }
       const { receiptSha256, ...unsignedSimulation } = simulation;
       if (receiptSha256 !== sha256Canonical(unsignedSimulation)) {
         throw new Error("Nexus Quantum statevector receipt SHA-256 mismatch");
