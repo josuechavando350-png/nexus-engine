@@ -8,15 +8,21 @@ import { fileURLToPath } from "node:url";
 import { GAUSS_ENGINE_ID, sha256Canonical } from "../gauss/core/common.mjs";
 import { executeGaussProblem } from "../gauss/core/problem.mjs";
 import { contributeNexusQuantum } from "../gauss/core/quantum-contributor.mjs";
+import { GAUSS_IMPLEMENTED_LAYERS } from "../gauss/core/registry.mjs";
 
 const MAX_REPORT_BYTES = 16 * 1024 * 1024;
 
 export async function verifyGaussFoundationEvidence({ problem, report }) {
+  const expectedLayerIds = GAUSS_IMPLEMENTED_LAYERS.map((layer) => layer.id).sort();
+  const fixtureLayerIds = problem?.tasks?.map((task) => task.layerId).sort();
+  assert.deepStrictEqual(fixtureLayerIds, expectedLayerIds, "foundation fixture must execute every registered layer exactly once");
+  const expectedCount = expectedLayerIds.length;
+
   assert.equal(report?.engineId, GAUSS_ENGINE_ID, "GAUSS engine identity mismatch");
   assert.equal(report?.status, "PASS", "GAUSS report must PASS");
   assert.equal(report?.registry?.targetLayerCount, 800, "GAUSS target mismatch");
-  assert.equal(report?.registry?.implementedLayerCount, 20, "GAUSS implemented count mismatch");
-  assert.equal(report?.executedLayerCount, 20, "GAUSS executed count mismatch");
+  assert.equal(report?.registry?.implementedLayerCount, expectedCount, "GAUSS implemented count mismatch");
+  assert.equal(report?.executedLayerCount, expectedCount, "GAUSS executed count mismatch");
   assert.equal(report?.failedLayerCount, 0, "GAUSS failed count mismatch");
   assert.equal(report?.quantumContribution?.status, "EXECUTED", "Quantum contributor did not execute");
   assert.equal(report?.quantumContribution?.simulation?.verdict, "PASS", "Quantum simulation did not PASS");
@@ -26,7 +32,7 @@ export async function verifyGaussFoundationEvidence({ problem, report }) {
   const { reportSha256, ...unsigned } = report;
   assert.equal(reportSha256, sha256Canonical(unsigned), "GAUSS report SHA-256 mismatch");
   assert.equal(report.problemSha256, sha256Canonical(problem), "GAUSS problem SHA-256 mismatch");
-  assert.equal(report.taskResults?.length, problem.tasks?.length, "task coverage mismatch");
+  assert.equal(report.taskResults?.length, expectedCount, "task coverage mismatch");
   for (let i = 0; i < problem.tasks.length; i += 1) {
     const task = problem.tasks[i];
     const result = report.taskResults[i];
@@ -61,11 +67,12 @@ export async function verifyGaussEvidenceFile(path, problemPath = new URL("../ga
   const report = JSON.parse(reportBytes.toString("utf8"));
   const problem = JSON.parse(problemBytes.toString("utf8"));
   await verifyGaussFoundationEvidence({ problem, report });
-  return Object.freeze({ artifactSha256: `sha256:${createHash("sha256").update(reportBytes).digest("hex")}` });
+  return Object.freeze({ artifactSha256: `sha256:${createHash("sha256").update(reportBytes).digest("hex")}`, executedLayerCount: report.executedLayerCount });
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   if (process.argv.length !== 3) throw new Error("Usage: node walle/gauss-evidence-verify.mjs <report.json>");
   const verified = await verifyGaussEvidenceFile(process.argv[2]);
   console.log(`WALLE_GAUSS_REPORT_SHA256=${verified.artifactSha256}`);
+  console.log(`WALLE_GAUSS_IMPLEMENTED_LAYERS=${verified.executedLayerCount}`);
 }
