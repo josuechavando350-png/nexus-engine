@@ -65,6 +65,7 @@ grep -Fx 'qiskit-qasm3-import==0.6.0' "$SUITE/quantum-runtime/providers/ibm/requ
 node --check "$SUITE/sidecar/tenant-worker.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-control.mjs"
 node --check "$SUITE/scripts/seo-avengers-2500-sidecar.mjs"
+node --check "$SUITE/scripts/ibm-physical-session-cli.mjs"
 node --test \
   "$SUITE/tests/test_tenant_control.mjs" \
   "$SUITE/tests/test_tenant_control_strict.mjs" \
@@ -97,6 +98,7 @@ node --test \
   "$SUITE/tests/test_quantum_ibm_physical_smoke_gate_v1.mjs" \
   "$SUITE/tests/test_quantum_ibm_repeated_series_gate_v1.mjs" \
   "$SUITE/tests/test_quantum_ibm_physical_session_coordinator_v1.mjs" \
+  "$SUITE/tests/test_quantum_ibm_physical_session_cli_v1.mjs" \
   "$SUITE/tests/test_quantum_physical_first_run_plan_v1.mjs"
 python - <<'PY' "$SUITE"
 import ast, pathlib, sys
