@@ -17,6 +17,7 @@ const REQUIRED_WAVE_GATES = Object.freeze([
   "CONTENT_AND_INDEXABILITY_VALIDATION_GREEN",
   "NO_CLIENT_OR_REVENUE_GUARANTEE",
 ]);
+const EXPLICIT_AUTHORIZATION_BOUNDARY = "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION";
 
 function object(value, name) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new TypeError(`${name} must be object`);
@@ -96,6 +97,19 @@ function validateExecutionContract(rawContract) {
   if (boolean(paid.activationRequiresMeasurementContract, "paid.activationRequiresMeasurementContract") !== true) throw new Error("V9 paid activation must require measurement");
   if (boolean(paid.activationRequiresSeparateAuthorization, "paid.activationRequiresSeparateAuthorization") !== true) throw new Error("V9 paid activation must require separate authorization");
   if (text(paid.phraseBroadFloorSupport, "paid.phraseBroadFloorSupport") !== "FORBIDDEN_WITHOUT_QUERY_LEVEL_INTENT_INCREMENTALITY_AND_OBSERVED_CONVERSION_EVIDENCE") throw new Error("V9 phrase/broad boundary drifted");
+  if (text(paid.connectedGoogleAdsAccountOwnership, "paid.connectedGoogleAdsAccountOwnership") !== "THIRD_PARTY_NON_NEXUS_ACCOUNT") throw new Error("V9 connected Ads ownership drifted");
+  if (text(paid.connectedGoogleAdsAccountOwnerAlias, "paid.connectedGoogleAdsAccountOwnerAlias") !== "LIC") throw new Error("V9 connected Ads owner drifted");
+  if (boolean(paid.connectedGoogleAdsPerformanceMayBeUsedAsNexusEvidence, "paid.connectedGoogleAdsPerformanceMayBeUsedAsNexusEvidence") !== false) throw new Error("V9 cannot use third-party Ads performance as Nexus evidence");
+  if (text(paid.connectedGoogleAdsMutation, "paid.connectedGoogleAdsMutation") !== "FORBIDDEN") throw new Error("V9 connected Ads mutation boundary drifted");
+  if (text(paid.newConnectedGoogleAdsApiCalls, "paid.newConnectedGoogleAdsApiCalls") !== EXPLICIT_AUTHORIZATION_BOUNDARY) throw new Error("V9 connected Ads API-call boundary drifted");
+  if (text(paid.historicalKeywordPlannerSnapshotInterpretation, "paid.historicalKeywordPlannerSnapshotInterpretation") !== "STATIC_MARKET_RESEARCH_ONLY_NOT_NEXUS_FIRST_PARTY_CAMPAIGN_PERFORMANCE") throw new Error("V9 historical planner interpretation drifted");
+
+  const protectedResources = object(contract.protectedThirdPartyResources, "contract.protectedThirdPartyResources");
+  if (text(protectedResources.protectedClientAlias, "protectedResources.protectedClientAlias") !== "LIC_CANO") throw new Error("V9 protected client alias drifted");
+  for (const key of ["clientDataAccess", "googleAdsAccountAccess", "googleAdsMutation", "vercelAccess", "vercelMutation", "vercelDeployment", "otherClientTenantMutation"]) {
+    if (text(protectedResources[key], `protectedResources.${key}`) !== EXPLICIT_AUTHORIZATION_BOUNDARY) throw new Error(`V9 protected resource boundary drifted: ${key}`);
+  }
+  if (boolean(protectedResources.clientDataUseAsNexusEvidence, "protectedResources.clientDataUseAsNexusEvidence") !== false) throw new Error("V9 cannot use Lic Cano client data as Nexus evidence");
 
   const rules = object(contract.planningRules, "contract.planningRules");
   const requiredRules = {
@@ -121,6 +135,7 @@ function validateExecutionContract(rawContract) {
     preconditions: { ...structuredClone(preconditions), requiredEventTypes: [...preconditions.requiredEventTypes].sort() },
     waveGates: [...gates].sort(),
     paidSearchGate: structuredClone(paid),
+    protectedThirdPartyResources: structuredClone(protectedResources),
     planningRules: structuredClone(rules),
   };
 }
@@ -233,6 +248,7 @@ export function runCommercialDemandTournamentV9(rawBaseScenario, rawV3Evidence, 
       waveCount: waves.length,
       waves,
       paidSearchActivation: "BLOCKED_PENDING_MEASUREMENT_IMPLEMENTATION_AND_SEPARATE_AUTHORIZATION",
+      protectedThirdPartyResources: "BLOCKED_UNTIL_EXPLICIT_USER_AUTHORIZATION",
       productionExecutionStatus: "NOT_AUTHORIZED",
     },
     targetSupportVerdict: "EXECUTION_SEQUENCE_READY_MEASUREMENT_AND_OBSERVED_COHORTS_STILL_REQUIRED",
@@ -241,10 +257,11 @@ export function runCommercialDemandTournamentV9(rawBaseScenario, rawV3Evidence, 
       "PAGE_PRIORITY_IS_IMPLEMENTATION_ORDER_NOT_RANK_FORECAST",
       "PRODUCTION_INSTRUMENTATION_NOT_INSTALLED",
       "PAID_SEARCH_NOT_AUTHORIZED",
+      "LIC_CANO_ADS_DATA_VERCEL_AND_TENANT_RESOURCES_PROTECTED",
       "PROBABILITY_OF_15_PLUS_CLIENTS_REMAINS_UNIDENTIFIABLE",
       "NO_LEAD_CLIENT_OR_REVENUE_GUARANTEE",
     ],
-    decisionBoundary: "PLAN_ONLY_NO_AUTONOMOUS_SITE_CMS_ADS_DNS_OR_TENANT_MUTATION",
+    decisionBoundary: "PLAN_ONLY_NO_AUTONOMOUS_SITE_CMS_ADS_DNS_VERCEL_OR_TENANT_MUTATION",
   };
   return { ...reportWithoutHash, reportSha256: sha256(reportWithoutHash) };
 }
