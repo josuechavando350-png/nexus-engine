@@ -43,40 +43,59 @@ export function mutualInformation({ joint, base = 2 }) {
 }
 
 export function renyiDivergence({ p, q, alpha = 2 }) {
-  const left = normalizeProbabilities(p, "p");
-  const right = normalizeProbabilities(q, "q");
-  if (left.length !== right.length) throw new TypeError("p and q must have equal length");
+  const rawP = normalizeProbabilities(p, "p");
+  const rawQ = normalizeProbabilities(q, "q");
+  if (rawP.length !== rawQ.length) throw new TypeError("p and q must have equal length");
   const a = assertFiniteNumber(alpha, "alpha", { min: Number.EPSILON, max: 1_000_000 });
+  // Normalize accepted round-off in probability mass before using log1p near alpha=1.
+  const totalP = rawP.reduce((sum, value) => sum + value, 0);
+  const totalQ = rawQ.reduce((sum, value) => sum + value, 0);
+  const left = rawP.map((value) => value / totalP);
+  const right = rawQ.map((value) => value / totalQ);
+  const t = a - 1;
 
-  // D_1 is the Kullback-Leibler limit. Evaluating the limit directly also
-  // avoids catastrophic cancellation for alpha numerically close to one.
-  if (Math.abs(a - 1) <= 1e-8) {
+  if (t === 0) {
     let kl = 0;
     for (let i = 0; i < left.length; i += 1) {
       if (left[i] === 0) continue;
       if (right[i] === 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
-      kl += left[i] * Math.log(left[i] / right[i]);
+      kl += left[i] * (Math.log(left[i]) - Math.log(right[i]));
     }
     return Object.freeze({ divergenceKind: "FINITE", divergence: nonNegativeDivergence(kl, "Renyi KL-limit"), alpha: a });
   }
 
+  let hasSupportMismatch = false;
   const logTerms = [];
   let maximumLogTerm = -Infinity;
+  let nearOneDifference = 0;
   for (let i = 0; i < left.length; i += 1) {
     if (left[i] === 0) continue;
     if (right[i] === 0) {
-      if (a > 1) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
+      if (t > 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
+      hasSupportMismatch = true;
       continue;
     }
-    const logTerm = a * Math.log(left[i]) + (1 - a) * Math.log(right[i]);
+    const logP = Math.log(left[i]);
+    const logQ = Math.log(right[i]);
+    const ratioLog = logP - logQ;
+    if (Math.abs(t) <= 1e-6) nearOneDifference += left[i] * Math.expm1(t * ratioLog);
+    const logTerm = logP + t * ratioLog;
     if (!Number.isFinite(logTerm)) throw new RangeError("Renyi log-term exceeded finite numerical range");
     logTerms.push(logTerm);
     if (logTerm > maximumLogTerm) maximumLogTerm = logTerm;
   }
   if (logTerms.length === 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
 
-  const scaledSum = logTerms.reduce((sum, value) => sum + Math.exp(value - maximumLogTerm), 0);
-  const logSum = maximumLogTerm + Math.log(scaledSum);
-  const divergence = logSum / (a - 1);
+  // For full P-support under Q, log1p/expm1 avoids cancellation at alpha≈1.
+  // With a support mismatch and alpha<1, the finite divergence must retain
+  // missing P mass; substituting KL here would incorrectly return infinity.
+  let logSum;
+  if (!hasSupportMismatch && Math.abs(t) <= 1e-6) {
+    logSum = Math.log1p(nearOneDifference);
+  } else {
+    const scaledSum = logTerms.reduce((sum, value) => sum + Math.exp(value - maximumLogTerm), 0);
+    logSum = maximumLogTerm + Math.log(scaledSum);
+  }
+  const divergence = logSum / t;
   return Object.freeze({ divergenceKind: "FINITE", divergence: nonNegativeDivergence(divergence, "Renyi divergence"), alpha: a });
 }
