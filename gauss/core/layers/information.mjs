@@ -24,8 +24,9 @@ export function shannonEntropy({ probabilities, base = 2 }) {
 export function mutualInformation({ joint, base = 2 }) {
   const matrix = assertArray(joint, "joint", { min: 1, max: 10_000 });
   const columns = assertArray(matrix[0], "joint[0]", { min: 1, max: 10_000 }).length;
+  if (matrix.length * columns > 1_000_000) throw new RangeError("mutual information matrix exceeds bounded cell budget");
   const normalized = matrix.map((row, i) => assertArray(row, `joint[${i}]`, { min: columns, max: columns }).map((value, j) => assertFiniteNumber(value, `joint[${i}][${j}]`, { min: 0, max: 1 })));
-  const total = normalized.flat().reduce((sum, value) => sum + value, 0);
+  const total = normalized.reduce((sum, row) => sum + row.reduce((inner, value) => inner + value, 0), 0);
   if (Math.abs(total - 1) > 1e-9) throw new TypeError("joint probabilities must sum to 1");
   const px = normalized.map((row) => row.reduce((sum, value) => sum + value, 0));
   const py = Array.from({ length: columns }, (_, j) => normalized.reduce((sum, row) => sum + row[j], 0));
@@ -60,17 +61,20 @@ export function renyiDivergence({ p, q, alpha = 2 }) {
   }
 
   const logTerms = [];
+  let maximumLogTerm = -Infinity;
   for (let i = 0; i < left.length; i += 1) {
     if (left[i] === 0) continue;
     if (right[i] === 0) {
       if (a > 1) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
       continue;
     }
-    logTerms.push(a * Math.log(left[i]) + (1 - a) * Math.log(right[i]));
+    const logTerm = a * Math.log(left[i]) + (1 - a) * Math.log(right[i]);
+    if (!Number.isFinite(logTerm)) throw new RangeError("Renyi log-term exceeded finite numerical range");
+    logTerms.push(logTerm);
+    if (logTerm > maximumLogTerm) maximumLogTerm = logTerm;
   }
   if (logTerms.length === 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
 
-  const maximumLogTerm = Math.max(...logTerms);
   const scaledSum = logTerms.reduce((sum, value) => sum + Math.exp(value - maximumLogTerm), 0);
   const logSum = maximumLogTerm + Math.log(scaledSum);
   const divergence = logSum / (a - 1);
