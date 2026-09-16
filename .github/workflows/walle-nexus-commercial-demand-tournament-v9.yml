@@ -94,6 +94,11 @@ jobs:
           set -euo pipefail
           node --test seo-avengers-2500/tests/test_nexus_commercial_demand_tournament_v9.mjs
 
+      - name: Enforce third-party Google Ads account isolation
+        run: |
+          set -euo pipefail
+          node --test seo-avengers-2500/tests/test_nexus_commercial_demand_ads_isolation_v9.mjs
+
       - name: Run V9 deterministic execution-sequence assertions
         run: |
           set -euo pipefail
