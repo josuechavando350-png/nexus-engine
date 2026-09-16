@@ -95,21 +95,29 @@ function rejectUnexpected(options, allowedValues, allowedFlags = new Set()) {
   }
 }
 
+function forbiddenSecretOption(arg) {
+  for (const option of FORBIDDEN_SECRET_OPTIONS) {
+    if (arg === option || arg.startsWith(`${option}=`)) return option;
+  }
+  return null;
+}
+
 export function parseIbmPhysicalSessionCliArgs(argv) {
   if (!Array.isArray(argv) || argv.length === 0) fail("COMMAND_REQUIRED");
   const command = String(argv[0]);
-  if (!COMMANDS.has(command)) fail(`UNKNOWN_COMMAND:${command}`);
+  if (!COMMANDS.has(command)) fail("UNKNOWN_COMMAND");
   const values = new Map();
   const flags = new Set();
   for (let index = 1; index < argv.length; index += 1) {
     const arg = String(argv[index]);
-    if (FORBIDDEN_SECRET_OPTIONS.has(arg)) fail(`SECRET_OPTION_FORBIDDEN:${arg}`);
+    const secretOption = forbiddenSecretOption(arg);
+    if (secretOption) fail(`SECRET_OPTION_FORBIDDEN:${secretOption}`);
     if (FLAG_OPTIONS.has(arg)) {
       if (flags.has(arg)) fail(`DUPLICATE_OPTION:${arg}`);
       flags.add(arg);
       continue;
     }
-    if (!VALUE_OPTIONS.has(arg)) fail(`UNKNOWN_OPTION:${arg}`);
+    if (!VALUE_OPTIONS.has(arg)) fail("UNKNOWN_OPTION");
     if (values.has(arg)) fail(`DUPLICATE_OPTION:${arg}`);
     const value = argv[index + 1];
     if (value === undefined || String(value).startsWith("--")) fail(`MISSING_OPTION_VALUE:${arg}`);
@@ -143,6 +151,15 @@ function assertNoCredentialValueLeak(serialized, credentials) {
       fail("OUTPUT_CONTAINS_RUNTIME_CREDENTIAL_MATERIAL");
     }
   }
+}
+
+function sanitizeError(error, env) {
+  let message = String(error?.message ?? error).replace(/[\r\n]+/gu, " ");
+  for (const key of ["IBM_QUANTUM_API_KEY", "IBM_QUANTUM_INSTANCE_CRN"]) {
+    const value = typeof env?.[key] === "string" ? env[key] : "";
+    if (value) message = message.split(value).join("[REDACTED]");
+  }
+  return message.slice(0, 2_048);
 }
 
 async function defaultReadJson(path, label) {
@@ -432,8 +449,7 @@ async function main() {
     const result = await runIbmPhysicalSessionCli();
     process.stdout.write(`IBM_PHYSICAL_SESSION_CLI=PASS command=${result.command} output=${result.outputPath}\n`);
   } catch (error) {
-    const message = String(error?.message ?? error).replace(/[\r\n]+/gu, " ").slice(0, 2_048);
-    process.stderr.write(`IBM_PHYSICAL_SESSION_CLI=FAIL ${message}\n`);
+    process.stderr.write(`IBM_PHYSICAL_SESSION_CLI=FAIL ${sanitizeError(error, process.env)}\n`);
     process.exitCode = 2;
   }
 }
