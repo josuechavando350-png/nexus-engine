@@ -9,6 +9,8 @@ on:
       - 'gauss/**'
       - 'scripts/nexus-gauss.mjs'
       - 'walle/adapters/gauss.sh'
+      - 'walle/gauss-evidence-verify.mjs'
+      - 'seo-avengers-2500/quantum-runtime/common.mjs'
       - 'seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs'
       - '.github/workflows/gauss-foundation.yml'
   pull_request:
@@ -16,6 +18,8 @@ on:
       - 'gauss/**'
       - 'scripts/nexus-gauss.mjs'
       - 'walle/adapters/gauss.sh'
+      - 'walle/gauss-evidence-verify.mjs'
+      - 'seo-avengers-2500/quantum-runtime/common.mjs'
       - 'seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs'
       - '.github/workflows/gauss-foundation.yml'
   workflow_dispatch:
