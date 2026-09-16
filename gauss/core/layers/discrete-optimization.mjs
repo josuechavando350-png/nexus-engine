@@ -90,7 +90,7 @@ export function optimalHuffmanLengths({symbols}){
   return {id:s.id,weight:integer(s.weight,`symbols[${i}].weight`,1,1000000)};
  });
  uniqueStrings(rows.map(r=>r.id),'symbol ids',128);if(!rows.length)throw new TypeError('at least one symbol required');
- let queue=rows.map((r,i)=>({weight:r.weight,minId:r.id,left:null,right:null,id:r.id}));
+ let queue=rows.map(r=>({weight:r.weight,minId:r.id,left:null,right:null,id:r.id}));
  let weightedPathLength=0;
  if(queue.length===1)return seal({weightedPathLength:0,codeLengths:seal([{id:queue[0].id,length:0}])});
  while(queue.length>1){queue.sort((a,b)=>a.weight-b.weight||a.minId.localeCompare(b.minId));const x=queue.shift(),y=queue.shift();
