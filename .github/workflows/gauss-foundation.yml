@@ -1,0 +1,68 @@
+name: GAUSS Foundation Connected Proof
+
+on:
+  push:
+    branches:
+      - main
+      - 'feat/gauss-*'
+    paths:
+      - 'gauss/**'
+      - 'scripts/nexus-gauss.mjs'
+      - 'walle/adapters/gauss.sh'
+      - 'seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs'
+      - '.github/workflows/gauss-foundation.yml'
+  pull_request:
+    paths:
+      - 'gauss/**'
+      - 'scripts/nexus-gauss.mjs'
+      - 'walle/adapters/gauss.sh'
+      - 'seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs'
+      - '.github/workflows/gauss-foundation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gauss-foundation-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact event revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact source and pristine checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
+      - name: Execute connected WALLE -> NEXUS -> GAUSS -> Quantum proof
+        env:
+          WALLE_GAUSS_EVIDENCE_ROOT: ${{ runner.temp }}/gauss-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+        run: bash walle/adapters/gauss.sh
+
+      - name: Upload GAUSS foundation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: gauss-foundation-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/gauss-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Assert proof left repository clean
+        if: always()
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
