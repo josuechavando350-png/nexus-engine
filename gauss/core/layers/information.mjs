@@ -7,6 +7,12 @@ function normalizeProbabilities(values, label) {
   return probs;
 }
 
+function nonNegativeDivergence(value, label) {
+  if (!Number.isFinite(value)) throw new Error(`${label} produced non-finite numerical output`);
+  if (value < -1e-10) throw new Error(`${label} violated non-negativity beyond numerical tolerance`);
+  return value < 0 ? 0 : value;
+}
+
 export function shannonEntropy({ probabilities, base = 2 }) {
   const probs = normalizeProbabilities(probabilities, "probabilities");
   const b = assertFiniteNumber(base, "base", { min: 1 + Number.EPSILON });
@@ -32,24 +38,41 @@ export function mutualInformation({ joint, base = 2 }) {
       information += p * Math.log(p / (px[i] * py[j])) / denominator;
     }
   }
-  return Object.freeze({ mutualInformation: information, base });
+  return Object.freeze({ mutualInformation: nonNegativeDivergence(information, "mutual information"), base });
 }
 
 export function renyiDivergence({ p, q, alpha = 2 }) {
   const left = normalizeProbabilities(p, "p");
   const right = normalizeProbabilities(q, "q");
   if (left.length !== right.length) throw new TypeError("p and q must have equal length");
-  const a = assertFiniteNumber(alpha, "alpha", { min: Number.EPSILON });
-  if (Math.abs(a - 1) < 1e-12) throw new TypeError("alpha=1 is KL divergence and is intentionally not accepted by this Renyi operator");
-  let sum = 0;
+  const a = assertFiniteNumber(alpha, "alpha", { min: Number.EPSILON, max: 1_000_000 });
+
+  // D_1 is the Kullback-Leibler limit. Evaluating the limit directly also
+  // avoids catastrophic cancellation for alpha numerically close to one.
+  if (Math.abs(a - 1) <= 1e-8) {
+    let kl = 0;
+    for (let i = 0; i < left.length; i += 1) {
+      if (left[i] === 0) continue;
+      if (right[i] === 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
+      kl += left[i] * Math.log(left[i] / right[i]);
+    }
+    return Object.freeze({ divergenceKind: "FINITE", divergence: nonNegativeDivergence(kl, "Renyi KL-limit"), alpha: a });
+  }
+
+  const logTerms = [];
   for (let i = 0; i < left.length; i += 1) {
     if (left[i] === 0) continue;
     if (right[i] === 0) {
       if (a > 1) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
       continue;
     }
-    sum += (left[i] ** a) * (right[i] ** (1 - a));
+    logTerms.push(a * Math.log(left[i]) + (1 - a) * Math.log(right[i]));
   }
-  if (sum === 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
-  return Object.freeze({ divergenceKind: "FINITE", divergence: Math.log(sum) / (a - 1), alpha: a });
+  if (logTerms.length === 0) return Object.freeze({ divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: a });
+
+  const maximumLogTerm = Math.max(...logTerms);
+  const scaledSum = logTerms.reduce((sum, value) => sum + Math.exp(value - maximumLogTerm), 0);
+  const logSum = maximumLogTerm + Math.log(scaledSum);
+  const divergence = logSum / (a - 1);
+  return Object.freeze({ divergenceKind: "FINITE", divergence: nonNegativeDivergence(divergence, "Renyi divergence"), alpha: a });
 }
