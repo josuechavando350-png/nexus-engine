@@ -69,6 +69,18 @@
     {"taskId":"info-huffman","layerId":"GAUSS.INFO.HUFFMAN_CODE_LENGTHS.006","input":{"symbols":[{"id":"a","weight":5},{"id":"b","weight":9},{"id":"c","weight":12},{"id":"d","weight":13},{"id":"e","weight":16},{"id":"f","weight":45}]}},
     {"taskId":"cs-obst","layerId":"GAUSS.CS.OPTIMAL_BST.024","input":{"weights":[3,1,2,5]}},
     {"taskId":"cs-palindrome-partition","layerId":"GAUSS.CS.MIN_PALINDROME_PARTITION.025","input":{"text":"aabccb"}},
-    {"taskId":"decision-johnson","layerId":"GAUSS.DECISION.JOHNSON_TWO_MACHINE.007","input":{"jobs":[{"id":"a","first":3,"second":5},{"id":"b","first":5,"second":2},{"id":"c","first":2,"second":4}]}}
+    {"taskId":"decision-johnson","layerId":"GAUSS.DECISION.JOHNSON_TWO_MACHINE.007","input":{"jobs":[{"id":"a","first":3,"second":5},{"id":"b","first":5,"second":2},{"id":"c","first":2,"second":4}]}},
+    {"taskId":"stats-markov-steps","layerId":"GAUSS.STATS.MARKOV_N_STEP.014","input":{"initial":[0.6,0.4],"transition":[[0.8,0.2],[0.3,0.7]],"steps":8}},
+    {"taskId":"stats-markov-hit","layerId":"GAUSS.STATS.MARKOV_HITTING.015","input":{"initial":[1,0],"transition":[[0.8,0.2],[0.3,0.7]],"targets":[1],"steps":8}},
+    {"taskId":"stats-markov-absorb","layerId":"GAUSS.STATS.ABSORBING_MARKOV_TIME.016","input":{"transition":[[0.75,0.25],[0,1]],"absorbingStates":[1]}},
+    {"taskId":"stats-markov-stationary","layerId":"GAUSS.STATS.MARKOV_STATIONARY.017","input":{"transition":[[0.8,0.2],[0.3,0.7]],"tolerance":1e-10}},
+    {"taskId":"stats-hmm-forward","layerId":"GAUSS.STATS.HMM_FORWARD.018","input":{"initial":[0.6,0.4],"transition":[[0.8,0.2],[0.3,0.7]],"emissions":[[0.8,0.2],[0.3,0.7]],"observations":[0,1,1,0]}},
+    {"taskId":"stats-hmm-viterbi","layerId":"GAUSS.STATS.HMM_VITERBI.019","input":{"initial":[0.6,0.4],"transition":[[0.8,0.2],[0.3,0.7]],"emissions":[[0.8,0.2],[0.3,0.7]],"observations":[0,1,1,0]}},
+    {"taskId":"stats-hmm-smoothing","layerId":"GAUSS.STATS.HMM_SMOOTHING.020","input":{"initial":[0.6,0.4],"transition":[[0.8,0.2],[0.3,0.7]],"emissions":[[0.8,0.2],[0.3,0.7]],"observations":[0,1,1,0]}},
+    {"taskId":"stats-poisson-binomial","layerId":"GAUSS.STATS.POISSON_BINOMIAL.021","input":{"probabilities":[0.2,0.5,0.8]}},
+    {"taskId":"decision-mdp-finite","layerId":"GAUSS.DECISION.MDP_FINITE_HORIZON.008","input":{"transition":[[[0.8,0.2],[0.5,0.5]],[[0.3,0.7],[0.1,0.9]]],"rewards":[[2,1],[0,3]],"horizon":5,"discount":0.9}},
+    {"taskId":"decision-mdp-discount","layerId":"GAUSS.DECISION.MDP_DISCOUNTED.009","input":{"transition":[[[0.8,0.2],[0.5,0.5]],[[0.3,0.7],[0.1,0.9]]],"rewards":[[2,1],[0,3]],"discount":0.9}},
+    {"taskId":"decision-mdp-policy","layerId":"GAUSS.DECISION.MDP_POLICY_EVALUATION.010","input":{"transition":[[[0.8,0.2],[0.5,0.5]],[[0.3,0.7],[0.1,0.9]]],"rewards":[[2,1],[0,3]],"policy":[0,1],"discount":0.9}},
+    {"taskId":"decision-markov-reward","layerId":"GAUSS.DECISION.MARKOV_REWARD.011","input":{"initial":[0.6,0.4],"transition":[[0.8,0.2],[0.3,0.7]],"stateRewards":[2,4],"steps":8,"discount":0.9}}
   ]
 }
