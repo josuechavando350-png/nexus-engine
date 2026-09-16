@@ -92,13 +92,20 @@ test("V9 assigns each relevant demand family once instead of double-counting hub
   assert.deepEqual(automationHub.assignedDemandFamilyIds, []);
 });
 
-test("V9 remains blocked from production and paid activation", () => {
+test("V9 remains blocked from production, paid activation, Vercel, and protected third-party resources", () => {
   const report = run();
   assert.equal(report.v8BaselineProof.instrumentationStatus, "NOT_INSTALLED_BY_V8");
   assert.equal(report.executionSequence.productionExecutionStatus, "NOT_AUTHORIZED");
   assert.equal(report.executionSequence.paidSearchActivation, "BLOCKED_PENDING_MEASUREMENT_IMPLEMENTATION_AND_SEPARATE_AUTHORIZATION");
+  assert.equal(report.executionSequence.protectedThirdPartyResources, "BLOCKED_UNTIL_EXPLICIT_USER_AUTHORIZATION");
+  assert.equal(report.executionContract.protectedThirdPartyResources.protectedClientAlias, "LIC_CANO");
+  assert.equal(report.executionContract.protectedThirdPartyResources.clientDataAccess, "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION");
+  assert.equal(report.executionContract.protectedThirdPartyResources.vercelAccess, "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION");
+  assert.equal(report.executionContract.protectedThirdPartyResources.vercelMutation, "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION");
+  assert.equal(report.executionContract.protectedThirdPartyResources.vercelDeployment, "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION");
   assert.equal(report.targetSupportVerdict, "EXECUTION_SEQUENCE_READY_MEASUREMENT_AND_OBSERVED_COHORTS_STILL_REQUIRED");
-  assert.equal(report.decisionBoundary, "PLAN_ONLY_NO_AUTONOMOUS_SITE_CMS_ADS_DNS_OR_TENANT_MUTATION");
+  assert.equal(report.decisionBoundary, "PLAN_ONLY_NO_AUTONOMOUS_SITE_CMS_ADS_DNS_VERCEL_OR_TENANT_MUTATION");
+  assert.ok(report.warnings.includes("LIC_CANO_ADS_DATA_VERCEL_AND_TENANT_RESOURCES_PROTECTED"));
 });
 
 test("V9 cannot promote informational demand into the execution capacity", () => {
@@ -129,4 +136,14 @@ test("V9 preserves the separate-authorization gate on paid search", () => {
   const changed = clone(v9ContractSource);
   changed.paidSearchGate.activationRequiresSeparateAuthorization = false;
   assert.throws(() => run(changed), /V9 paid activation must require separate authorization/);
+});
+
+test("V9 fails closed if Lic Cano Vercel or client-data protection is weakened", () => {
+  const changedVercel = clone(v9ContractSource);
+  changedVercel.protectedThirdPartyResources.vercelMutation = "ALLOWED";
+  assert.throws(() => run(changedVercel), /V9 protected resource boundary drifted: vercelMutation/);
+
+  const changedData = clone(v9ContractSource);
+  changedData.protectedThirdPartyResources.clientDataUseAsNexusEvidence = true;
+  assert.throws(() => run(changedData), /V9 cannot use Lic Cano client data as Nexus evidence/);
 });
