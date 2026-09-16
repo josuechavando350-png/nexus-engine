@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "contractId": "NEXUS_FUNNEL_MEASUREMENT_CONTRACT_V8",
+  "capturedAt": "2026-09-16",
+  "siteId": "nexus-bot-studio",
+  "boundary": "MEASUREMENT_CONTRACT_AND_STATISTICAL_ACCEPTANCE_DESIGN_ONLY_NOT_PRODUCTION_INSTRUMENTATION_OR_OUTCOME_EVIDENCE",
+  "objective": {
+    "metric": "NEW_CLIENTS_PER_MONTH",
+    "planningFloorClients": 15,
+    "v6RequiredSessionToClientPpm": 13073,
+    "interpretation": "RATE_REQUIREMENT_FROM_CERTIFIED_V6_UPPER_BOUND_NOT_OBSERVED_CONVERSION"
+  },
+  "eventContract": [
+    {
+      "eventType": "SESSION",
+      "unitOfCount": "UNIQUE_SESSION_ID",
+      "requiredFields": [
+        "eventId",
+        "occurredAt",
+        "sessionId",
+        "landingPage",
+        "rawSource",
+        "rawMedium",
+        "rawCampaign"
+      ]
+    },
+    {
+      "eventType": "CONTACT",
+      "unitOfCount": "UNIQUE_LEAD_ID",
+      "requiredFields": [
+        "eventId",
+        "occurredAt",
+        "sessionId",
+        "leadId",
+        "contactMethod"
+      ]
+    },
+    {
+      "eventType": "QUALIFIED_LEAD",
+      "unitOfCount": "UNIQUE_LEAD_ID_UNDER_VERSIONED_POLICY",
+      "requiredFields": [
+        "eventId",
+        "occurredAt",
+        "leadId",
+        "qualificationPolicyVersion"
+      ]
+    },
+    {
+      "eventType": "CLOSED_CLIENT",
+      "unitOfCount": "UNIQUE_NEW_CLIENT_ID_HASH",
+      "requiredFields": [
+        "eventId",
+        "occurredAt",
+        "leadId",
+        "newClientIdHash",
+        "isNewClient"
+      ]
+    }
+  ],
+  "joinAndCountingRules": {
+    "eventId": "UNIQUE_ACROSS_DATASET",
+    "contactRequiresSession": true,
+    "qualifiedLeadRequiresContact": true,
+    "closedClientRequiresQualifiedLead": true,
+    "closedClientCountRule": "COUNT_DISTINCT_NEW_CLIENT_ID_HASH_WHERE_IS_NEW_CLIENT_TRUE",
+    "repeatPurchaseOrExpansionRule": "MUST_NOT_COUNT_AS_NEW_CLIENT",
+    "qualificationPolicyRule": "POLICY_VERSION_MUST_BE_RETAINED_AND_NOT_REWRITTEN_RETROACTIVELY",
+    "attributionRule": "PRESERVE_RAW_SOURCE_MEDIUM_CAMPAIGN_AND_LANDING_PAGE_BEFORE_ANY_NORMALIZED_CHANNEL_MAPPING",
+    "cohortRule": "SESSION_DENOMINATOR_AND_DOWNSTREAM_OUTCOMES_MUST_USE_THE_SAME_DECLARED_COHORT",
+    "maturityRule": "DO_NOT_DECLARE_A_COHORT_MATURE_UNTIL_CLOSE_LAG_EVIDENCE_SUPPORTS_THE_CUTOFF"
+  },
+  "privacyRules": {
+    "rawPhoneRequired": false,
+    "rawEmailRequired": false,
+    "messageBodyRequired": false,
+    "clientIdentityForAnalysis": "PSEUDONYMOUS_STABLE_HASH_ONLY",
+    "interpretation": "ANALYTICS_CONTRACT_DOES_NOT_REQUIRE_RAW_CONTACT_PII_OR_MESSAGE_CONTENT"
+  },
+  "qualityGates": [
+    "NO_DUPLICATE_EVENT_IDS",
+    "NO_ORPHAN_CONTACTS",
+    "NO_ORPHAN_QUALIFIED_LEADS",
+    "NO_ORPHAN_CLOSED_CLIENTS",
+    "NO_REPEAT_CLIENT_AS_NEW_CLIENT",
+    "QUALIFICATION_POLICY_VERSION_PRESENT",
+    "RAW_ATTRIBUTION_FIELDS_PRESERVED",
+    "COHORT_BOUNDARIES_DECLARED",
+    "COHORT_MATURITY_EVIDENCE_DECLARED"
+  ],
+  "statisticalDesign": {
+    "method": "WILSON_SCORE_LOWER_BOUND",
+    "confidenceLevelPermille": 950,
+    "zMilli": 1960,
+    "targetSessionToClientPpm": 13073,
+    "successDefinition": "UNIQUE_NEW_CLOSED_CLIENT",
+    "denominatorDefinition": "UNIQUE_SESSION_IN_FULLY_MATURED_DECLARED_COHORT",
+    "checkpointBasis": "MULTIPLES_OF_CEILING_OF_CERTIFIED_V6_ZERO_OVERLAP_UPPER_BOUND_SESSIONS",
+    "baseCheckpointSessions": 1148,
+    "checkpointMultipliers": [1, 2, 4, 8],
+    "interpretation": "PROSPECTIVE_RATE_EVIDENCE_DESIGN_ONLY_NOT_PROBABILITY_OF_MONTHLY_CLIENT_COUNT"
+  },
+  "planningRules": {
+    "schemaMayBeUsedAs": "FUTURE_FIRST_PARTY_EVIDENCE_CONTRACT_ONLY",
+    "statisticalGateMayBeUsedAs": "CONVERSION_RATE_SUPPORT_CHECK_ON_FULLY_MATURED_OBSERVED_COHORTS_ONLY",
+    "statisticalGateMayNotBeUsedAs": "TRAFFIC_FORECAST_OR_MONTHLY_CLIENT_PROBABILITY",
+    "instrumentationStatus": "NOT_INSTALLED_BY_V8",
+    "outcomeEvidenceStatus": "NOT_OBSERVED_IN_V8",
+    "productionMutation": "FORBIDDEN"
+  }
+}
