@@ -2,9 +2,9 @@
 
 Source of requirements: `Especificacion_Motor_Matematico_Absoluto.pdf` (six pages, 20 proposed conceptual layers). This document is a requirements crosswalk, not evidence that the proposed outcomes or all 20 conceptual layers have been realized.
 
-**Two different counts must never be conflated:** Foundation V1 originally registered 21 executable mathematical operators; the bounded CVaR extension brings the registry to **22** toward its separate 800-operator architectural target. Those operators do **not** implement the PDF's 20 end-to-end conceptual layers. No PDF conceptual layer is certified end-to-end by the foundation self-test.
+**Two different counts must never be conflated:** Foundation V1 originally registered 21 executable mathematical operators; bounded CVaR raised the registry to 22 and the bounded discrete EVaR extension proposes **23** toward its separate 800-operator architectural target. Those operators do **not** implement the PDF's 20 end-to-end conceptual layers. No PDF conceptual layer is certified end-to-end by the foundation self-test.
 
-| PDF conceptual layer | Foundation and CVaR extension relationship | What is still not implemented or proven |
+| PDF conceptual layer | Foundation and risk extension relationship | What is still not implemented or proven |
 | --- | --- | --- |
 | 1. Persistent homology / TDA | Partial: bounded weighted-graph H0 sublevel persistence with an independent connectivity oracle | Higher-dimensional homology, other filtrations, real-world feature validation or predictive benefits. |
 | 2. Ising/QAOA tournament | Partial: small internal statevector QAOA simulator and exact Ising baseline | Large candidate tournament, physical QPU execution or any real-world advantage. |
@@ -21,7 +21,7 @@ Source of requirements: `Especificacion_Motor_Matematico_Absoluto.pdf` (six page
 | 13. Doob martingales / optimal stopping | Not implemented | Martingale diagnostics and calibrated stopping policies. |
 | 14. Adversarial domain invariance | Not implemented | Distribution shift tests and transfer validation. |
 | 15. Temporal logic | Partial: one finite-trace request/eventual-certification property | General LTL model checking or proof of system-wide safety. |
-| 16. Entropic value at risk | Not implemented | EVaR calculation and empirically checked tail-risk assumptions. |
+| 16. Entropic value at risk | Partial: bounded discrete EVaR on supplied probabilities, independently checked via a separate Chernoff minimizer and binary KL-ball oracle | Tail probabilities for any actual population, out-of-distribution robustness, prospective calibration or improved decisions. |
 | 17. Closed-loop Ito SDEs | Partial: seeded scalar Euler-Maruyama with constant coefficients | Estimated time-varying dynamics and operational feedback controller. |
 | 18. Zero-knowledge proofs | Not implemented | A validated ZKP protocol; no additional secret or external service. |
 | 19. Dynamic graph stabilization | Not implemented | Time-varying graph model and prospective outcome measurements. |
@@ -29,4 +29,4 @@ Source of requirements: `Especificacion_Motor_Matematico_Absoluto.pdf` (six page
 
 The PDF's 90–99% effectiveness figures are aspirations, not measured calibration or a universal confidence interval. Neither the foundation self-test nor the simulator establishes increased SEO rankings, contacts, revenue, sports prediction accuracy, or physical quantum advantage. Future claims require explicitly identified populations, observed evidence, uncertainty, prospective validation and a separate WALLE certification contract.
 
-Foundation and the CVaR extension add no external API, database, queue, network service, secret or new runtime package. Their GitHub Actions workflow uses the repository's already-present CI infrastructure and is not evidence of independent ownership of the CI provider.
+Foundation and both risk extensions add no external API, database, queue, network service, secret or new runtime package. Their GitHub Actions workflow uses the repository's already-present CI infrastructure and is not evidence of independent ownership of the CI provider.

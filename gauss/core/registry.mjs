@@ -5,6 +5,7 @@ import { exactIsingGroundState, isingEnergy, takensEmbedding } from "./layers/ph
 import { bootstrapMeanInterval, brierScore, wilsonInterval } from "./layers/statistics.mjs";
 import { expectedUtility, minimaxRegret } from "./layers/decision.mjs";
 import { discreteConditionalValueAtRisk } from "./layers/risk.mjs";
+import { discreteEntropicValueAtRisk } from "./layers/entropic-risk.mjs";
 import { differenceInDifferences, inversePropensityWeightedATE } from "./layers/causal.mjs";
 import { eulerMaruyama, finiteHorizonScalarLQR } from "./layers/control.mjs";
 import { mutualInformation, renyiDivergence, shannonEntropy } from "./layers/information.mjs";
@@ -35,6 +36,7 @@ const definitions = [
   ["GAUSS.DECISION.EXPECTED_UTILITY.001", "DECISION_THEORY", "Expected utility under a normalized discrete distribution", expectedUtility],
   ["GAUSS.DECISION.MINIMAX_REGRET.002", "DECISION_THEORY", "Minimax regret action selection", minimaxRegret],
   ["GAUSS.DECISION.CVAR_DISCRETE.003", "DECISION_THEORY", "Weighted discrete conditional value at risk for supplied losses", discreteConditionalValueAtRisk],
+  ["GAUSS.DECISION.EVAR_DISCRETE.004", "DECISION_THEORY", "Bounded discrete entropic value at risk via KL-constrained exponential tilting", discreteEntropicValueAtRisk],
   ["GAUSS.CAUSAL.DID.001", "CAUSAL_EXPERIMENTAL", "Difference-in-differences point estimate", differenceInDifferences],
   ["GAUSS.CAUSAL.IPW_ATE.002", "CAUSAL_EXPERIMENTAL", "Normalized inverse-propensity weighted ATE (Hajek-style)", inversePropensityWeightedATE],
   ["GAUSS.CONTROL.SCALAR_LQR.001", "CONTROL_DYNAMICS", "Finite-horizon discrete scalar LQR", finiteHorizonScalarLQR],
