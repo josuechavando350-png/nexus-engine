@@ -83,6 +83,13 @@ test("control and information operators are deterministic and normalized", () =>
     renyiDivergence({ p: [1, 0], q: [0, 1], alpha: 2 }),
     { divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: 2 },
   );
+  const subunitRenyi = renyiDivergence({ p: [0.5, 0.5], q: [1, 0], alpha: 0.5 });
+  assert.equal(subunitRenyi.divergenceKind, "FINITE");
+  assert(Math.abs(subunitRenyi.divergence - Math.log(2)) < 1e-12);
+  assert.deepEqual(
+    renyiDivergence({ p: [1, 0], q: [0, 1], alpha: 0.5 }),
+    { divergenceKind: "POSITIVE_INFINITY", divergence: null, alpha: 0.5 },
+  );
 });
 
 test("computer-science operators solve exact bounded optimization and finite-trace temporal property", () => {
