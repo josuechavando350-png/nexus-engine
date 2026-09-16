@@ -22,7 +22,7 @@ function tamper(edit) {
 test("WALLE accepts only replayable, hash-bound GAUSS and Quantum foundation evidence", async () => {
   const verified = await verifyGaussFoundationEvidence({ problem, report: genuineReport });
   assert.equal(verified.reportSha256, genuineReport.reportSha256);
-  assert.equal(verified.executedLayerCount, 23);
+  assert.equal(verified.executedLayerCount, problem.tasks.length);
 });
 
 test("WALLE rejects a fixture with a repeated layer even when total task count is unchanged", async () => {
