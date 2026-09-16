@@ -75,33 +75,40 @@ with the V8 deduplication, attribution, privacy, cohort, and maturity rules inta
 
 V9 does **not** install that instrumentation. It only makes its implementation a hard precondition for outcome claims.
 
-## Google Ads account isolation
+## Protected third-party boundary: Lic. Cano
 
-The Google Ads account currently connected to the tooling belongs to the external account owner identified in this project as `LIC`, and is explicitly classified as `THIRD_PARTY_NON_NEXUS_ACCOUNT`.
+The connected client resources identified as belonging to `LIC_CANO` are outside the NEXUS commercial tournament execution surface unless the user gives separate, explicit authorization.
 
-That connected account is **not a NEXUS advertising account**. V9 therefore enforces these boundaries:
+This protection is fail-closed and covers:
 
-- its campaign/performance data cannot be used as NEXUS first-party performance evidence;
-- mutation of that connected account is forbidden;
-- V9 cannot authorize paid-search activation;
-- Keyword Planner research previously used by the tournament remains market-research evidence only, never NEXUS campaign-performance evidence;
-- any future NEXUS paid-search activation would require a separately verified NEXUS-owned account, the measurement contract, and separate authorization.
+- Google Ads account access;
+- Google Ads mutation, campaign launch, budget change, conversion change, or configuration change;
+- any new API call against the connected Google Ads account;
+- campaign/performance data or other client data;
+- using Lic. Cano data as NEXUS first-party evidence;
+- Vercel access;
+- Vercel mutation or deployment;
+- mutation of any other Lic. Cano tenant/customer resource.
 
-The isolation guard is executable and fail-closed. Tests reject relabeling the account or its owner as NEXUS, using its performance as NEXUS evidence, permitting mutation, or reinterpreting planner research as campaign outcomes.
+The currently connected Google Ads account is classified as `THIRD_PARTY_NON_NEXUS_ACCOUNT`, owner alias `LIC`. It is **not** a NEXUS advertising account.
+
+Historical Keyword Planner snapshots already persisted in the certified research chain may remain as static market-research evidence only. V9 does not authorize any new call to the connected Google Ads account to refresh or expand those snapshots.
+
+Tests fail if the account is relabeled as NEXUS, the owner boundary changes, third-party performance or client data is promoted into NEXUS evidence, a new Ads API call is allowed, Ads mutation is allowed, or Lic. Cano Vercel/client-resource access or mutation is enabled.
 
 ## Paid-search boundary
 
 Paid search remains blocked by V9.
 
-The only eligible planning portfolio is the certified V6 exact-match portfolio, and any future activation still requires:
+The only eligible planning portfolio is the already-certified V6 exact-match portfolio, based solely on the historical static research evidence already captured. Any future NEXUS paid-search activation would require:
 
 - implementation of the measurement contract;
 - a separately verified NEXUS-owned advertising account; and
-- separate authorization.
+- separate explicit authorization.
 
 Phrase and broad match remain ineligible for floor support until query-level intent, incrementality, and observed conversion evidence exist.
 
-No connected third-party Ads account may be used to launch or modify campaigns for this project.
+No connected third-party Ads account may be accessed, launched, or modified for this project without explicit user authorization.
 
 ## Release gates
 
@@ -126,10 +133,10 @@ What this means:
 - the commercial architecture is now not only selected, but deterministically prioritized;
 - modeled demand is conserved rather than re-counted across hubs and support pages;
 - the highest-capacity pages can be implemented first when a separate execution decision is made;
-- first-party measurement is still required before conversion-rate evidence or a 15-client floor claim can become empirical;
-- the connected LIC Google Ads account is isolated from NEXUS evidence and mutation;
+- first-party NEXUS measurement is still required before conversion-rate evidence or a 15-client floor claim can become empirical;
+- Lic. Cano Google Ads, data, Vercel, and other tenant resources are isolated from NEXUS execution until explicit authorization;
 - paid search and production publishing remain separately gated.
 
 Decision boundary:
 
-`PLAN_ONLY_NO_AUTONOMOUS_SITE_CMS_ADS_DNS_OR_TENANT_MUTATION`
+`PLAN_ONLY_NO_AUTONOMOUS_SITE_CMS_ADS_DNS_VERCEL_OR_TENANT_MUTATION`
