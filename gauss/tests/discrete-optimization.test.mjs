@@ -8,7 +8,6 @@ import {
 } from '../core/layers/discrete-optimization.mjs';
 let seed=0x19ed24ad;function random(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/2**32;}
 const number=n=>Math.floor(random()*n);
-function combinations(a,k){if(k===0)return [[]];if(a.length<k)return [];return [...combinations(a.slice(1),k-1).map(xs=>[a[0],...xs]),...combinations(a.slice(1),k)];}
 test('weighted intervals agree with independent exhaustive feasible subsets for 200 schedules',()=>{
  for(let run=0;run<200;run++){
   const n=1+number(10),jobs=Array.from({length:n},(_,i)=>{let start=number(12);return {id:`j${i}`,start,end:start+1+number(6),reward:number(18)};});
