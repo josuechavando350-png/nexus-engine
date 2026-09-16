@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "contractId": "NEXUS_COMMERCIAL_EXECUTION_SEQUENCE_CONTRACT_V9",
+  "capturedAt": "2026-09-16",
+  "siteId": "nexus-bot-studio",
+  "boundary": "EXECUTION_SEQUENCE_DESIGN_ONLY_NOT_PRODUCTION_MUTATION_TRAFFIC_FORECAST_OR_CLIENT_OUTCOME_FORECAST",
+  "baseline": {
+    "requiredStrategyId": "OFFER_FIT_FULL_VALIDATED_40",
+    "requiredPageCount": 40,
+    "requiredRelevantSessionsMilli": 776700,
+    "requiredV8Verdict": "MEASUREMENT_CONTRACT_READY_OBSERVED_COHORTS_STILL_REQUIRED"
+  },
+  "sequencingPolicy": {
+    "waveSize": 8,
+    "familyAssignmentRule": "ASSIGN_EACH_RELEVANT_DEMAND_FAMILY_TO_SELECTED_PAGE_WITH_FEWEST_DECLARED_FAMILIES_THEN_STABLE_PAGE_ID",
+    "pageRankingRule": "ASSIGNED_RELEVANT_SESSIONS_DESC_THEN_ASSIGNED_STRICT_COMMERCIAL_SESSIONS_DESC_THEN_ASSIGNED_RAW_SEARCH_VOLUME_DESC_THEN_STABLE_PAGE_ID",
+    "informationalFamiliesEligible": false,
+    "zeroIncrementPagesAllowed": true,
+    "zeroIncrementPageInterpretation": "ARCHITECTURE_OR_DECISION_SUPPORT_ONLY_NOT_ADDITIVE_DEMAND"
+  },
+  "preconditions": {
+    "measurementContractMustBeImplementedBeforeOutcomeClaims": true,
+    "measurementContractId": "NEXUS_FUNNEL_MEASUREMENT_CONTRACT_V8",
+    "requiredEventTypes": ["SESSION", "CONTACT", "QUALIFIED_LEAD", "CLOSED_CLIENT"],
+    "productionInstrumentationStatus": "NOT_INSTALLED_BY_V9",
+    "paidSearchActivationStatus": "NOT_AUTHORIZED_BY_V9"
+  },
+  "waveGates": [
+    "MEASUREMENT_CONTRACT_IMPLEMENTED_AND_VALIDATED",
+    "NO_DUPLICATE_OR_ORPHAN_FUNNEL_EVENTS",
+    "RAW_ATTRIBUTION_FIELDS_PRESERVED",
+    "CONTENT_AND_INDEXABILITY_VALIDATION_GREEN",
+    "NO_CLIENT_OR_REVENUE_GUARANTEE"
+  ],
+  "paidSearchGate": {
+    "eligibleMatchType": "EXACT_ONLY_FROM_CERTIFIED_V6_PORTFOLIO",
+    "activationRequiresMeasurementContract": true,
+    "activationRequiresSeparateAuthorization": true,
+    "phraseBroadFloorSupport": "FORBIDDEN_WITHOUT_QUERY_LEVEL_INTENT_INCREMENTALITY_AND_OBSERVED_CONVERSION_EVIDENCE"
+  },
+  "planningRules": {
+    "waveOrderMayBeUsedAs": "IMPLEMENTATION_PRIORITY_ONLY",
+    "waveModeledSessionsMayBeUsedAs": "RELATIVE_PLANNING_CAPACITY_ONLY_NOT_TRAFFIC_FORECAST",
+    "cumulativeModeledSessionsMayBeUsedAs": "SCENARIO_COVERAGE_ACCOUNTING_ONLY_NOT_OBSERVED_TRAFFIC",
+    "productionMutation": "FORBIDDEN",
+    "autonomousPublishing": "FORBIDDEN",
+    "clientFloorClaim": "FORBIDDEN_UNTIL_V8_OBSERVED_COHORT_GATE_IS_SATISFIED"
+  }
+}
