@@ -18,30 +18,11 @@ fi
 
 while IFS= read -r file; do
   node --check "$file"
-done < <(find gauss scripts/nexus-gauss.mjs seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs -type f -name '*.mjs' 2>/dev/null | sort)
+done < <(find gauss scripts/nexus-gauss.mjs walle/gauss-evidence-verify.mjs seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs -type f -name '*.mjs' | sort)
 
-node --test gauss/tests/foundation.test.mjs
+node --test gauss/tests/*.test.mjs
 node scripts/nexus-gauss.mjs gauss/fixtures/selftest-problem.json --out "$REPORT"
-
-node --input-type=module - "$REPORT" <<'NODE'
-import { createHash } from "node:crypto";
-import { readFile } from "node:fs/promises";
-const path = process.argv[2];
-const bytes = await readFile(path);
-const report = JSON.parse(bytes);
-if (report.engineId !== "NEXUS_GAUSS_SCIENTIFIC_KERNEL_V1") throw new Error("unexpected GAUSS engine identity");
-if (report.status !== "PASS") throw new Error("GAUSS report did not PASS");
-if (report.registry?.targetLayerCount !== 800) throw new Error("GAUSS target layer count mismatch");
-if (report.registry?.implementedLayerCount !== 20) throw new Error("GAUSS implemented layer count mismatch");
-if (report.executedLayerCount !== 20 || report.failedLayerCount !== 0) throw new Error("GAUSS foundation layer execution mismatch");
-if (report.quantumContribution?.engineId !== "NEXUS_QUANTUM" || report.quantumContribution?.status !== "EXECUTED") throw new Error("Nexus Quantum contribution missing");
-if (report.quantumContribution?.simulation?.verdict !== "PASS") throw new Error("Quantum simulation did not PASS");
-if (report.quantumContribution?.simulation?.hardwareExecution !== false) throw new Error("foundation proof must not claim hardware execution");
-if (report.quantumContribution?.simulation?.quantumAdvantageClaimAllowed !== false) throw new Error("foundation proof must not claim quantum advantage");
-if (!/^sha256:[0-9a-f]{64}$/u.test(report.reportSha256)) throw new Error("GAUSS report hash malformed");
-const artifactSha256 = `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-console.log(`WALLE_GAUSS_REPORT_SHA256=${artifactSha256}`);
-NODE
+node walle/gauss-evidence-verify.mjs "$REPORT"
 
 AFTER_HEAD="$(git rev-parse HEAD)"
 AFTER_TREE="$(git rev-parse HEAD^{tree})"
