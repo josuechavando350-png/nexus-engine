@@ -54,7 +54,9 @@ export function exactIsingGroundState({ fields, couplings = [], offset = 0 }) {
   let bestSpins = null;
   let degeneracy = 0;
   for (let mask = 0; mask < total; mask += 1) {
-    const spins = Array.from({ length: n }, (_, index) => ((mask >>> index) & 1) === 1 ? 1 : -1);
+    // Canonical GAUSS/Quantum convention: computational bit 0 -> spin +1,
+    // computational bit 1 -> spin -1.
+    const spins = Array.from({ length: n }, (_, index) => ((mask >>> index) & 1) === 0 ? 1 : -1);
     let energy = model.offset;
     for (let i = 0; i < n; i += 1) energy += model.fields[i] * spins[i];
     for (const edge of model.couplings) energy += edge.value * spins[edge.i] * spins[edge.j];
