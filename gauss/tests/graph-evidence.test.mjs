@@ -21,11 +21,11 @@ const newLayerIds = [
 
 test('every graph operator is executed exactly once and WALLE replays all graph results', async () => {
   assert.equal(authentic.status, 'PASS');
-  assert.equal(authentic.executedLayerCount, 31);
-  assert.equal(new Set(authentic.taskResults.map(row => row.layerId)).size, 31);
+  assert.equal(authentic.executedLayerCount, problem.tasks.length);
+  assert.equal(new Set(authentic.taskResults.map(row => row.layerId)).size, problem.tasks.length);
   assert.deepEqual(newLayerIds.filter(id => !authentic.taskResults.some(row => row.layerId === id)), []);
   const verified = await verifyGaussFoundationEvidence({ problem, report: authentic });
-  assert.equal(verified.executedLayerCount, 31);
+  assert.equal(verified.executedLayerCount, problem.tasks.length);
 });
 
 test('forged outputs of all eight new operators fail WALLE replay even after recomputing every altered hash', async () => {
