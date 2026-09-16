@@ -1,4 +1,4 @@
-import { assertArray, assertExactKeys, assertFiniteNumber } from './common.mjs';
+import { assertArray, assertExactKeys, assertFiniteNumber } from '../common.mjs';
 
 // Entropic Value-at-Risk for a supplied finite, discrete loss distribution.
 // Larger losses are worse. This is an uncertainty-sensitive statistic of the
