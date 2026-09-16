@@ -25,6 +25,11 @@ import {
   conjugateGradientSolve, householderQrDecomposition, qrLeastSquaresSolve,
   radixTwoFourierTransform,
 } from "./layers/numerical-linear-algebra.mjs";
+import {
+  bellmanFordSigned, floydWarshallAllPairs, articulationVertices,
+  graphBridges, exactWeightedVertexCover, exactGraphColoring,
+  minimumCostAssignment, weightedTreeDiameter, directedEulerTrail,
+} from "./layers/graph-advanced.mjs";
 
 export const GAUSS_DOMAINS = deepFreeze([
   { id: "MATHEMATICS", targetLayers: 100 },
@@ -85,6 +90,15 @@ const definitions = [
   ["GAUSS.MATH.HOUSEHOLDER_QR.009", "MATHEMATICS", "Householder orthogonal-triangular factorization", householderQrDecomposition],
   ["GAUSS.STATS.QR_LEAST_SQUARES.013", "STATISTICS_PROBABILITY", "Numerically bounded least-squares fit using orthogonal QR factorization", qrLeastSquaresSolve],
   ["GAUSS.INFO.FFT_RADIX2.005", "INFORMATION_THEORY", "Radix-two complex Fourier transform with inverse and finite checks", radixTwoFourierTransform],
+  ["GAUSS.CS.BELLMAN_FORD_SIGNED.010", "COMPUTER_SCIENCE", "Signed-weight single-source shortest path with reachable negative-cycle rejection", bellmanFordSigned],
+  ["GAUSS.CS.FLOYD_WARSHALL.011", "COMPUTER_SCIENCE", "All-pairs shortest paths with negative-cycle detection", floydWarshallAllPairs],
+  ["GAUSS.CS.ARTICULATION_VERTICES.012", "COMPUTER_SCIENCE", "Undirected articulation vertices using discovery/low-link invariants", articulationVertices],
+  ["GAUSS.CS.BRIDGES.013", "COMPUTER_SCIENCE", "Undirected bridge-edge detection using low-link invariants", graphBridges],
+  ["GAUSS.CS.WEIGHTED_VERTEX_COVER.014", "COMPUTER_SCIENCE", "Exact bounded minimum-weight vertex cover", exactWeightedVertexCover],
+  ["GAUSS.CS.CHROMATIC_NUMBER.015", "COMPUTER_SCIENCE", "Exact bounded chromatic number and coloring witness", exactGraphColoring],
+  ["GAUSS.CS.MIN_COST_ASSIGNMENT.016", "COMPUTER_SCIENCE", "Exact minimum-cost square assignment by subset DP", minimumCostAssignment],
+  ["GAUSS.CS.WEIGHTED_TREE_DIAMETER.017", "COMPUTER_SCIENCE", "Weighted nonnegative tree diameter with route witness", weightedTreeDiameter],
+  ["GAUSS.CS.DIRECTED_EULER_TRAIL.018", "COMPUTER_SCIENCE", "Directed Euler trail over distinct edge identities", directedEulerTrail],
 ];
 
 const domainIds = new Set(GAUSS_DOMAINS.map((domain) => domain.id));
