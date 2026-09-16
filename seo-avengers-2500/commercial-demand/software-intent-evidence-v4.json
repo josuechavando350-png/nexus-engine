@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "NEXUS_SOFTWARE_BUYER_INTENT_EVIDENCE_V4",
+  "capturedAt": "2026-09-15",
+  "market": {
+    "country": "Mexico",
+    "language": "Spanish"
+  },
+  "offerEvidence": {
+    "evidenceClass": "FIRST_PARTY_PUBLIC_SITE_OFFER_SNAPSHOT",
+    "url": "https://www.nexusbotstudio.com/",
+    "offeredServiceLabels": [
+      "Plataformas a medida",
+      "Estrategia y Consultoría"
+    ],
+    "note": "The public first-party site explicitly offers custom platforms and strategy/consulting. V4 uses those offer lines only to establish service relevance; they do not prove search demand, traffic, leads or clients."
+  },
+  "keywordDiscovery": {
+    "evidenceClass": "GOOGLE_ADS_RESEARCH_DISCOVERY_NOT_MARKET_SIZE",
+    "provider": "HYPD_GOOGLE_ADS_KEYWORD_RESEARCH",
+    "resultId": "49208b09-f11e-4031-8fca-03b1ed756d85",
+    "reviewedCandidateRows": 723,
+    "interpretation": "DISCOVERY_ROWS_ARE_REVIEWED_CANDIDATES_NOT_UNIQUE_DEMAND_AND_ARE_NOT_SUMMED_INTO_CAPACITY"
+  },
+  "keywordMetrics": {
+    "evidenceClass": "GOOGLE_ADS_RESEARCH_ESTIMATE_NOT_FIRST_PARTY_OUTCOME",
+    "provider": "HYPD_GOOGLE_ADS_KNOWN_KEYWORD_VOLUME",
+    "resultId": "ea1854ca-8880-4bf7-ba54-29708bcc0928",
+    "rows": [
+      {
+        "familyId": "SOFTWARE_COMPANY_GENERIC",
+        "serviceLabel": "Plataformas a medida",
+        "keyword": "empresa de software",
+        "monthlySearchVolume": 1000,
+        "competitionIndex": 18,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "SOFTWARE_DEVELOPMENT_COMPANY",
+        "serviceLabel": "Plataformas a medida",
+        "keyword": "empresas de desarrollo de software",
+        "monthlySearchVolume": 480,
+        "competitionIndex": 49,
+        "intentClass": "DECISION"
+      },
+      {
+        "familyId": "SOFTWARE_CONSULTING",
+        "serviceLabel": "Estrategia y Consultoría",
+        "keyword": "consultoria de software",
+        "monthlySearchVolume": 170,
+        "competitionIndex": 53,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "SOFTWARE_FACTORY",
+        "serviceLabel": "Plataformas a medida",
+        "keyword": "fabrica de software",
+        "monthlySearchVolume": 140,
+        "competitionIndex": 41,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "SOFTWARE_DEVELOPMENT_GENERIC_INFO",
+        "serviceLabel": "Plataformas a medida",
+        "keyword": "desarrollo de software",
+        "monthlySearchVolume": 5400,
+        "competitionIndex": 36,
+        "intentClass": "INFORMATIONAL"
+      }
+    ]
+  },
+  "serpIntentChecks": [
+    {
+      "familyId": "SOFTWARE_COMPANY_GENERIC",
+      "resultId": "b84a6dea-ed2e-48f3-a9af-7789ae537568",
+      "classification": "MIXED",
+      "reason": "The Mexico SERP contains software-company providers and a local pack, but also category, ranking, recruiting and explanatory results; V4 therefore keeps a conservative mixed-intent classification."
+    },
+    {
+      "familyId": "SOFTWARE_DEVELOPMENT_COMPANY",
+      "resultId": "74ac2597-d94b-45fa-96d2-78e7ce4c2ca5",
+      "classification": "DECISION",
+      "reason": "The Mexico SERP contains paid custom-software offers, a software-company local pack, provider pages and vendor-comparison/ranking results, supporting a buyer decision classification without treating every search as a transaction."
+    },
+    {
+      "familyId": "SOFTWARE_CONSULTING",
+      "resultId": "765db031-6a56-4b17-a202-0a254448e8bf",
+      "classification": "MIXED",
+      "reason": "Software-consulting service providers and local businesses coexist with jobs, definitions and discussion results, so V4 does not promote the query to direct commercial intent."
+    },
+    {
+      "familyId": "SOFTWARE_FACTORY",
+      "resultId": "473c9cd4-1945-4f82-a843-38b7ffabdd92",
+      "classification": "MIXED",
+      "reason": "The Mexico SERP contains software-factory businesses and service pages alongside definitions, government, academic and explanatory results; commercial signal exists but is not exclusive."
+    }
+  ],
+  "informationalGuards": [
+    {
+      "familyId": "SOFTWARE_DEVELOPMENT_GENERIC_INFO",
+      "resultId": "4b228e9e-9ec3-44a6-8e17-e7093289b353",
+      "classification": "INFORMATIONAL",
+      "reason": "The generic development query is dominated by definitions, educational material, software-development lifecycle content and learning/career pages. Its 5,400 monthly research volume is explicitly excluded from commercial capacity."
+    }
+  ],
+  "analyticsBoundary": {
+    "ga4ConversionEvidence": "NOT_AVAILABLE_FROM_CONNECTED_PROPERTY",
+    "interpretation": "DO_NOT_INFER_FIRST_PARTY_LEAD_QUALIFICATION_OR_CLOSE_RATES"
+  },
+  "sensitivityFunnels": [
+    {
+      "id": "SENSITIVITY_BETTER_4000",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 25000,
+      "qualifiedLeadPpm": 500000,
+      "closeRatePpm": 300000
+    },
+    {
+      "id": "SENSITIVITY_STRONG_2858",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 30000,
+      "qualifiedLeadPpm": 500000,
+      "closeRatePpm": 350000
+    },
+    {
+      "id": "SENSITIVITY_HIGH_CONVERSION_1949",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 40000,
+      "qualifiedLeadPpm": 550000,
+      "closeRatePpm": 350000
+    }
+  ],
+  "boundary": "RESEARCH_AND_SENSITIVITY_EVIDENCE_ONLY_NO_RANK_TRAFFIC_LEAD_CLIENT_OR_REVENUE_FORECAST"
+}
