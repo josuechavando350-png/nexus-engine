@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "NEXUS_PAID_SEARCH_CHANNEL_EVIDENCE_V6",
+  "capturedAt": "2026-09-16",
+  "market": {
+    "country": "Mexico",
+    "language": "Spanish"
+  },
+  "boundary": "PAID_SEARCH_PLANNER_EVIDENCE_ONLY_NOT_ACTUAL_TRAFFIC_CONVERSION_CLIENT_OR_REVENUE_OUTCOME",
+  "portfolio": {
+    "evidenceClass": "CURRENT_OFFER_ALIGNED_EXACT_MATCH_PLANNING_PORTFOLIO",
+    "keywordCount": 17,
+    "keywords": [
+      "agencia seo",
+      "consultoria seo",
+      "servicios seo",
+      "agencia de desarrollo web",
+      "diseño web profesional",
+      "cotizacion pagina web",
+      "servicios de automatizacion",
+      "chatbot whatsapp business",
+      "automatizar whatsapp",
+      "chatbot para empresas",
+      "inteligencia artificial para empresas",
+      "empresa de desarrollo de software",
+      "software a medida",
+      "desarrollo de software a medida",
+      "consultoria tecnologica",
+      "consultoria inteligencia artificial",
+      "integracion de sistemas"
+    ],
+    "interpretation": "PORTFOLIO_IS_FOR_CHANNEL_FEASIBILITY_ONLY_AND_DOES_NOT_EXPAND_THE_V5_ORGANIC_DEMAND_UNIVERSE"
+  },
+  "keywordMetrics": {
+    "evidenceClass": "GOOGLE_ADS_KNOWN_KEYWORD_RESEARCH_ESTIMATE_NOT_FIRST_PARTY_OUTCOME",
+    "resultId": "c56bf255-fe7c-46f1-9f6d-91896c6fd392",
+    "researchedKeywordCount": 26,
+    "sourceUnits": "USD_FOR_BID_AND_CPC_FIELDS_SEARCH_VOLUME_IS_MONTHLY_RESEARCH_ESTIMATE",
+    "interpretation": "KEYWORD_METRICS_SUPPORT_CHANNEL_COST_CONTEXT_ONLY_AND_ARE_NOT_SUMMED_AS_NEW_ORGANIC_MARKET_SIZE"
+  },
+  "exactMatchForecasts": [
+    {
+      "resultId": "36165dc8-5410-4033-a884-d663c34b3285",
+      "match": "exact",
+      "dateInterval": "next_month",
+      "bidUsdCents": 200,
+      "averageCpcUsdCents": 114,
+      "costUsdCents": 26079,
+      "clicksMilli": 229570
+    },
+    {
+      "resultId": "ebbc56eb-7c05-4a7f-a65e-737b497653dc",
+      "match": "exact",
+      "dateInterval": "next_month",
+      "bidUsdCents": 400,
+      "averageCpcUsdCents": 189,
+      "costUsdCents": 65526,
+      "clicksMilli": 347330
+    },
+    {
+      "resultId": "eeb14390-1634-4971-9f88-1abc9ffeb66b",
+      "match": "exact",
+      "dateInterval": "next_month",
+      "bidUsdCents": 800,
+      "averageCpcUsdCents": 250,
+      "costUsdCents": 92696,
+      "clicksMilli": 370740
+    }
+  ],
+  "matchExpansionControls": [
+    {
+      "resultId": "62473bfc-c0e2-40e4-8a99-e6504963f01b",
+      "match": "phrase",
+      "dateInterval": "next_month",
+      "bidUsdCents": 400,
+      "averageCpcUsdCents": 159,
+      "costUsdCents": 196618,
+      "clicksMilli": 1240300,
+      "floorSupportEligibility": "INELIGIBLE_WITHOUT_QUERY_LEVEL_INTENT_AND_OFFER_FIT_EVIDENCE"
+    },
+    {
+      "resultId": "96c9a3e8-3269-4872-81aa-3cadd1ee7057",
+      "match": "broad",
+      "dateInterval": "next_month",
+      "bidUsdCents": 400,
+      "averageCpcUsdCents": 190,
+      "costUsdCents": 216353,
+      "clicksMilli": 1141360,
+      "floorSupportEligibility": "INELIGIBLE_WITHOUT_QUERY_LEVEL_INTENT_AND_OFFER_FIT_EVIDENCE"
+    }
+  ],
+  "analyticsBoundary": {
+    "ga4ConversionEvidence": "NOT_AVAILABLE_FROM_CONNECTED_PROPERTY",
+    "conversionAssumptions": "HYPOTHETICAL_PLANNING_ASSUMPTIONS_ONLY",
+    "paidOrganicOverlap": "UNOBSERVED",
+    "paidClickToSessionLoss": "UNOBSERVED"
+  },
+  "planningRules": {
+    "exactForecastMayBeUsedAs": "PAID_CHANNEL_CAPTURE_ENVELOPE_NOT_INCREMENTAL_OUTCOME_FORECAST",
+    "phraseBroadMayBeUsedAs": "UNCERTAINTY_CONTROLS_ONLY",
+    "organicPlusPaidSummation": "ONLY_AS_ZERO_OVERLAP_UPPER_BOUND_NOT_EXPECTED_OUTCOME",
+    "clientFloorSupport": "REQUIRES_OBSERVED_CONVERSION_AND_INCREMENTALITY_EVIDENCE"
+  }
+}
