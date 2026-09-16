@@ -93,6 +93,18 @@
     {"taskId":"math-isqrt","layerId":"GAUSS.MATH.INTEGER_SQRT.018","input":{"value":9007199254740991}},
     {"taskId":"math-binomial","layerId":"GAUSS.MATH.BINOMIAL_EXACT.019","input":{"n":100,"k":50}},
     {"taskId":"math-fibonacci","layerId":"GAUSS.MATH.FIBONACCI_DOUBLING.020","input":{"index":1000}},
-    {"taskId":"math-partitions","layerId":"GAUSS.MATH.INTEGER_PARTITIONS.021","input":{"n":100}}
+    {"taskId":"math-partitions","layerId":"GAUSS.MATH.INTEGER_PARTITIONS.021","input":{"n":100}},
+    {"taskId":"control-state-space","layerId":"GAUSS.CONTROL.STATE_SPACE_TRAJECTORY.003","input":{"A":[[0.9,0.1],[-0.2,0.8]],"B":[[1],[0.5]],"initial":[2,-1],"controls":[[0.5],[-0.25],[1]]}},
+    {"taskId":"control-cgramian","layerId":"GAUSS.CONTROL.CONTROLLABILITY_GRAMIAN.004","input":{"A":[[0.7,0.1],[0.2,0.6]],"B":[[1],[0.5]],"horizon":4}},
+    {"taskId":"control-ogramian","layerId":"GAUSS.CONTROL.OBSERVABILITY_GRAMIAN.005","input":{"A":[[0.7,0.1],[0.2,0.6]],"C":[[1,0.5]],"horizon":4}},
+    {"taskId":"control-crank","layerId":"GAUSS.CONTROL.EXACT_CONTROLLABILITY_RANK.006","input":{"A":[[1,1],[0,1]],"B":[[0],[1]]}},
+    {"taskId":"control-orank","layerId":"GAUSS.CONTROL.EXACT_OBSERVABILITY_RANK.007","input":{"A":[[1,1],[0,1]],"C":[[1,0]]}},
+    {"taskId":"control-kalman","layerId":"GAUSS.CONTROL.SCALAR_KALMAN_FILTER.008","input":{"a":1,"processVariance":0.1,"measurementVariance":0.5,"initialMean":0,"initialVariance":1,"observations":[1,0.5,1.2]}},
+    {"taskId":"control-rts","layerId":"GAUSS.CONTROL.SCALAR_RTS_SMOOTHER.009","input":{"a":1,"processVariance":0.1,"measurementVariance":0.5,"initialMean":0,"initialVariance":1,"observations":[1,0.5,1.2]}},
+    {"taskId":"control-pid","layerId":"GAUSS.CONTROL.BOUNDED_PID.010","input":{"targets":[1,1,2],"measurements":[0,0.5,1],"kp":1,"ki":0.2,"kd":0.1,"dt":0.5,"integralLimit":2}},
+    {"taskId":"control-diagonal-lqr","layerId":"GAUSS.CONTROL.DIAGONAL_LQR.011","input":{"A":[[1,0.1],[0,0.9]],"B":[[0.1],[1]],"statePenalties":[1,1],"controlPenalties":[0.2],"terminalPenalties":[2,2],"horizon":4,"initialState":[1,-0.5]}},
+    {"taskId":"control-lyapunov","layerId":"GAUSS.CONTROL.SCALAR_LYAPUNOV.012","input":{"a":0.8,"forcing":0.36}},
+    {"taskId":"control-reach-energy","layerId":"GAUSS.CONTROL.MIN_ENERGY_REACHABILITY.013","input":{"a":0.9,"b":1.2,"initial":0,"target":2,"horizon":4}},
+    {"taskId":"control-reach-interval","layerId":"GAUSS.CONTROL.INTERVAL_REACHABILITY.014","input":{"a":-0.5,"b":2,"initial":1,"controlLower":-1,"controlUpper":1,"horizon":4}}
   ]
 }
