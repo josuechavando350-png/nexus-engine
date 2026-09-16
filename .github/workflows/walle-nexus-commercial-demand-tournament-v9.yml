@@ -1,0 +1,111 @@
+name: WALLE NEXUS Commercial Demand Tournament V9
+
+on:
+  push:
+    branches:
+      - feat/walle-nexus-commercial-demand-tournament-v9
+    paths:
+      - 'seo-avengers-2500/commercial-demand/**'
+      - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v8.mjs'
+      - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v9.mjs'
+      - 'seo-avengers-2500/scripts/verify.sh'
+      - 'seo-avengers-2500/tests/test_nexus_commercial_*'
+      - 'walle/**'
+      - '.github/workflows/walle-nexus-commercial-demand-tournament-v9.yml'
+  pull_request:
+    paths:
+      - 'seo-avengers-2500/commercial-demand/**'
+      - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v8.mjs'
+      - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v9.mjs'
+      - 'seo-avengers-2500/scripts/verify.sh'
+      - 'seo-avengers-2500/tests/test_nexus_commercial_*'
+      - 'walle/**'
+      - '.github/workflows/walle-nexus-commercial-demand-tournament-v9.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Checkout exact event head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact source and pristine checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${EXPECTED_SHA}"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Install Python 3.12 for original Avengers 200 verifier
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned Avengers 200 Python test dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check \
+            pytest==8.3.5 \
+            pytest-asyncio==1.0.0 \
+            httpx==0.28.1 \
+            beautifulsoup4==4.13.4 \
+            fastapi==0.116.1 \
+            pydantic==2.11.7 \
+            'uvicorn[standard]==0.35.0'
+          printf 'WALLE_M200_PYTHON_DIR=%s\n' "$(dirname "$(command -v python3)")" >> "$GITHUB_ENV"
+
+      - name: Use Python 3.11 for WALLE verification
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+
+      - name: Use Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
+      - name: Use Go 1.23
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: '1.23.x'
+          cache: false
+
+      - name: Run V8 regression assertions
+        run: |
+          set -euo pipefail
+          node --test seo-avengers-2500/tests/test_nexus_commercial_demand_tournament_v8.mjs
+          node seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v8.mjs \
+            --assert-verdict MEASUREMENT_CONTRACT_READY_OBSERVED_COHORTS_STILL_REQUIRED \
+            --assert-target-ppm 13073 \
+            --assert-first-checkpoint-clients 23 \
+            --assert-fourth-checkpoint-clients 142 \
+            --assert-probability-status STILL_NOT_IDENTIFIABLE_UNTIL_REAL_COHORTS_EXIST > /tmp/nexus-commercial-demand-v8.json
+
+      - name: Run V9 unit and contract assertions
+        run: |
+          set -euo pipefail
+          node --test seo-avengers-2500/tests/test_nexus_commercial_demand_tournament_v9.mjs
+
+      - name: Run V9 deterministic execution-sequence assertions
+        run: |
+          set -euo pipefail
+          node seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v9.mjs \
+            --assert-verdict EXECUTION_SEQUENCE_READY_MEASUREMENT_AND_OBSERVED_COHORTS_STILL_REQUIRED \
+            --assert-page-count 40 \
+            --assert-first-wave-sessions-milli 546300 \
+            --assert-conserved-sessions-milli 776700 > /tmp/nexus-commercial-demand-v9.json
+
+      - name: Run WALLE full SEO Avengers execution proof
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          bash walle/adapters/seo-avengers-2500.sh --expected-sha "$EXPECTED_SHA"
