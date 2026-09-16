@@ -3,6 +3,7 @@ name: Walle Connected Verification
 on:
   push:
     branches:
+      - main
       - feat/walle-certification-engine
     paths:
       - 'walle/**'
@@ -23,6 +24,7 @@ on:
       - 'seo-avengers-400/**'
       - 'seo-avengers-200/**'
       - '.github/workflows/walle-foundation.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
