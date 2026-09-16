@@ -1,5 +1,6 @@
 import { deepFreeze } from "./common.mjs";
 import { empiricalWasserstein2, graphLaplacian, paretoFrontier } from "./layers/math.mjs";
+import { zeroDimensionalPersistence } from "./layers/persistence.mjs";
 import { exactIsingGroundState, isingEnergy, takensEmbedding } from "./layers/physics.mjs";
 import { bootstrapMeanInterval, brierScore, wilsonInterval } from "./layers/statistics.mjs";
 import { expectedUtility, minimaxRegret } from "./layers/decision.mjs";
@@ -23,6 +24,7 @@ const definitions = [
   ["GAUSS.MATH.WASSERSTEIN2.001", "MATHEMATICS", "Empirical one-dimensional Wasserstein-2 distance", empiricalWasserstein2],
   ["GAUSS.MATH.PARETO.002", "MATHEMATICS", "Exact Pareto frontier under mixed MAX/MIN objectives", paretoFrontier],
   ["GAUSS.MATH.GRAPH_LAPLACIAN.003", "MATHEMATICS", "Weighted undirected graph Laplacian", graphLaplacian],
+  ["GAUSS.MATH.PERSISTENCE_H0.004", "MATHEMATICS", "H0 persistent homology of a weighted graph sublevel filtration", zeroDimensionalPersistence],
   ["GAUSS.PHYSICS.TAKENS.001", "PHYSICS_COMPLEX_SYSTEMS", "Takens time-delay embedding", takensEmbedding],
   ["GAUSS.PHYSICS.ISING_ENERGY.002", "PHYSICS_COMPLEX_SYSTEMS", "Classical Ising Hamiltonian energy", isingEnergy],
   ["GAUSS.PHYSICS.ISING_EXACT_GROUND.003", "PHYSICS_COMPLEX_SYSTEMS", "Exact bounded Ising ground-state enumeration", exactIsingGroundState],
