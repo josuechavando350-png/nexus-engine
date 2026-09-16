@@ -41,7 +41,19 @@
     "connectedGoogleAdsAccountOwnerAlias": "LIC",
     "connectedGoogleAdsPerformanceMayBeUsedAsNexusEvidence": false,
     "connectedGoogleAdsMutation": "FORBIDDEN",
-    "keywordPlannerResearchInterpretation": "MARKET_RESEARCH_ONLY_NOT_NEXUS_FIRST_PARTY_CAMPAIGN_PERFORMANCE"
+    "newConnectedGoogleAdsApiCalls": "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION",
+    "historicalKeywordPlannerSnapshotInterpretation": "STATIC_MARKET_RESEARCH_ONLY_NOT_NEXUS_FIRST_PARTY_CAMPAIGN_PERFORMANCE"
+  },
+  "protectedThirdPartyResources": {
+    "protectedClientAlias": "LIC_CANO",
+    "clientDataAccess": "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION",
+    "clientDataUseAsNexusEvidence": false,
+    "googleAdsAccountAccess": "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION",
+    "googleAdsMutation": "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION",
+    "vercelAccess": "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION",
+    "vercelMutation": "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION",
+    "vercelDeployment": "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION",
+    "otherClientTenantMutation": "FORBIDDEN_UNTIL_EXPLICIT_USER_AUTHORIZATION"
   },
   "planningRules": {
     "waveOrderMayBeUsedAs": "IMPLEMENTATION_PRIORITY_ONLY",
