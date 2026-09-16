@@ -10,6 +10,11 @@ import { differenceInDifferences, inversePropensityWeightedATE } from "./layers/
 import { eulerMaruyama, finiteHorizonScalarLQR } from "./layers/control.mjs";
 import { mutualInformation, renyiDivergence, shannonEntropy } from "./layers/information.mjs";
 import { exactBinaryKnapsack, verifyRequestEventuallyCertification } from "./layers/computing.mjs";
+import {
+  shortestPathDijkstra, minimumSpanningForest, maximumFlowMinimumCut,
+  stronglyConnectedComponents, bipartiteMaximumMatching, directedAcyclicSchedule,
+  exactTravelingSalesperson, stationaryPageRank,
+} from "./layers/graph-optimization.mjs";
 
 export const GAUSS_DOMAINS = deepFreeze([
   { id: "MATHEMATICS", targetLayers: 100 },
@@ -46,6 +51,14 @@ const definitions = [
   ["GAUSS.INFO.RENYI.003", "INFORMATION_THEORY", "Renyi divergence", renyiDivergence],
   ["GAUSS.CS.KNAPSACK_EXACT.001", "COMPUTER_SCIENCE", "Exact branch-and-bound binary knapsack", exactBinaryKnapsack],
   ["GAUSS.CS.LTL_REQUEST_EVENTUALLY_CERT.002", "COMPUTER_SCIENCE", "Finite-trace verification of G(request -> F(certification))", verifyRequestEventuallyCertification],
+  ["GAUSS.CS.DIJKSTRA_SHORTEST_PATH.003", "COMPUTER_SCIENCE", "Bounded exact nonnegative shortest path with route witness", shortestPathDijkstra],
+  ["GAUSS.CS.MIN_SPANNING_FOREST.004", "COMPUTER_SCIENCE", "Kruskal minimum spanning forest for signed integer edge weights", minimumSpanningForest],
+  ["GAUSS.CS.MAX_FLOW_MIN_CUT.005", "COMPUTER_SCIENCE", "Edmonds-Karp integer max flow with min-cut certificate", maximumFlowMinimumCut],
+  ["GAUSS.CS.STRONG_COMPONENTS.006", "COMPUTER_SCIENCE", "Tarjan strongly connected component partition", stronglyConnectedComponents],
+  ["GAUSS.CS.BIPARTITE_MATCHING.007", "COMPUTER_SCIENCE", "Maximum cardinality bipartite assignment with matching witness", bipartiteMaximumMatching],
+  ["GAUSS.CS.DAG_SCHEDULE.008", "COMPUTER_SCIENCE", "Topological project schedule and longest critical path in a DAG", directedAcyclicSchedule],
+  ["GAUSS.CS.TSP_HELD_KARP.009", "COMPUTER_SCIENCE", "Exact bounded directed traveling-salesperson tour by Held-Karp DP", exactTravelingSalesperson],
+  ["GAUSS.INFO.PAGERANK.004", "INFORMATION_THEORY", "Bounded stationary PageRank with explicit convergence criterion", stationaryPageRank],
 ];
 
 const domainIds = new Set(GAUSS_DOMAINS.map((domain) => domain.id));
