@@ -22,7 +22,7 @@ function tamper(edit) {
 test("WALLE accepts only replayable, hash-bound GAUSS and Quantum foundation evidence", async () => {
   const verified = await verifyGaussFoundationEvidence({ problem, report: genuineReport });
   assert.equal(verified.reportSha256, genuineReport.reportSha256);
-  assert.equal(verified.executedLayerCount, 22);
+  assert.equal(verified.executedLayerCount, 23);
 });
 
 test("WALLE rejects a fixture with a repeated layer even when total task count is unchanged", async () => {
@@ -47,6 +47,16 @@ test("WALLE rejects forged CVaR even if the output and report hashes are recompu
     const result = report.taskResults.find((task) => task.layerId === "GAUSS.DECISION.CVAR_DISCRETE.003");
     assert(result, "CVaR fixture task missing");
     result.output.conditionalValueAtRisk += 1;
+    result.outputSha256 = sha256Canonical(result.output);
+  });
+  await assert.rejects(verifyGaussFoundationEvidence({ problem, report: fake }), /replay differs/u);
+});
+
+test("WALLE rejects forged EVaR even if the output and report hashes are recomputed", async () => {
+  const fake = tamper((report) => {
+    const result = report.taskResults.find((task) => task.layerId === "GAUSS.DECISION.EVAR_DISCRETE.004");
+    assert(result, "EVaR fixture task missing");
+    result.output.entropicValueAtRisk += 1;
     result.outputSha256 = sha256Canonical(result.output);
   });
   await assert.rejects(verifyGaussFoundationEvidence({ problem, report: fake }), /replay differs/u);
