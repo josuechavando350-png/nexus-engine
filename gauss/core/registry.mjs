@@ -20,6 +20,11 @@ import {
   exactPairedSignPermutation, fisherExactTwoSided, kaplanMeierSurvival,
   theilSenLine, splitConformalInterval, bernoulliSequentialLikelihood,
 } from "./layers/statistical-inference.mjs";
+import {
+  gaussianLinearSolve, pivotedLogDeterminant, choleskyDecomposition,
+  conjugateGradientSolve, householderQrDecomposition, qrLeastSquaresSolve,
+  radixTwoFourierTransform,
+} from "./layers/numerical-linear-algebra.mjs";
 
 export const GAUSS_DOMAINS = deepFreeze([
   { id: "MATHEMATICS", targetLayers: 100 },
@@ -73,6 +78,13 @@ const definitions = [
   ["GAUSS.STATS.THEIL_SEN.010", "STATISTICS_PROBABILITY", "Bounded robust median-slope Theil-Sen linear estimator", theilSenLine],
   ["GAUSS.STATS.SPLIT_CONFORMAL.011", "STATISTICS_PROBABILITY", "Finite split-conformal absolute-residual interval with n+1 rank", splitConformalInterval],
   ["GAUSS.STATS.SPRT_BERNOULLI.012", "STATISTICS_PROBABILITY", "Sequential Bernoulli likelihood-ratio decision with explicit boundaries", bernoulliSequentialLikelihood],
+  ["GAUSS.MATH.GAUSSIAN_SOLVE.005", "MATHEMATICS", "Pivoted bounded linear-system solve with residual witness", gaussianLinearSolve],
+  ["GAUSS.MATH.PIVOTED_LOGDET.006", "MATHEMATICS", "Signed log-determinant by bounded pivoted elimination", pivotedLogDeterminant],
+  ["GAUSS.MATH.CHOLESKY.007", "MATHEMATICS", "Cholesky factorization with symmetric-positive-definite checks", choleskyDecomposition],
+  ["GAUSS.MATH.CONJUGATE_GRADIENT.008", "MATHEMATICS", "Conjugate-gradient SPD linear solve with independent residual", conjugateGradientSolve],
+  ["GAUSS.MATH.HOUSEHOLDER_QR.009", "MATHEMATICS", "Householder orthogonal-triangular factorization", householderQrDecomposition],
+  ["GAUSS.STATS.QR_LEAST_SQUARES.013", "STATISTICS_PROBABILITY", "Numerically bounded least-squares fit using orthogonal QR factorization", qrLeastSquaresSolve],
+  ["GAUSS.INFO.FFT_RADIX2.005", "INFORMATION_THEORY", "Radix-two complex Fourier transform with inverse and finite checks", radixTwoFourierTransform],
 ];
 
 const domainIds = new Set(GAUSS_DOMAINS.map((domain) => domain.id));
