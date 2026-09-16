@@ -11,11 +11,11 @@ GAUSS is the NEXUS-owned scientific decision kernel. Foundation V1 begins the re
 - control and dynamics;
 - information theory.
 
-The target is **800 implemented layers**. Foundation V1 does **not** claim that 800 layers exist. It registers exactly 21 executable operators, and an unknown/unimplemented layer is rejected fail-closed instead of being represented by a stub. An executable operator is not an entire conceptual layer from the original 20-layer specification; consult `SPEC_ALIGNMENT.md` for the distinction.
+The target is **800 implemented layers**. The Foundation V1 baseline contained 21 executable operators; the bounded discrete CVaR extension brings the registered total to **22**. Unknown/unimplemented layers are rejected fail-closed instead of being represented by stubs. An executable operator is not an entire conceptual layer from the original 20-layer specification; consult `SPEC_ALIGNMENT.md` for the distinction.
 
-## Foundation V1 implemented operators
+## Implemented operators
 
-Foundation V1 contains executable numerical/scientific implementations for:
+The current GAUSS kernel contains executable numerical/scientific implementations for:
 
 - empirical one-dimensional Wasserstein-2 distance;
 - exact Pareto frontier selection;
@@ -29,6 +29,7 @@ Foundation V1 contains executable numerical/scientific implementations for:
 - seeded percentile bootstrap mean intervals;
 - expected utility;
 - minimax regret;
+- **weighted discrete CVaR** for explicitly supplied loss probabilities;
 - difference-in-differences;
 - normalized inverse-propensity weighted ATE (Hájek-style);
 - finite-horizon scalar LQR;
@@ -41,9 +42,11 @@ Foundation V1 contains executable numerical/scientific implementations for:
 
 The H0 implementation explicitly counts essential (infinite) intervals, finite intervals and cycle edges without inserting a non-JSON `Infinity` value into evidence. Its unit tests compare barcode death multiplicities to independent breadth-first connectivity across 150 seeded weighted graphs. It does not implement higher-dimensional homology, zigzag persistence or prove that a market forecast improves.
 
+The CVaR operator `GAUSS.DECISION.CVAR_DISCRETE.003` accepts 1–10,000 scenarios with explicit finite losses and nonnegative probabilities summing to one, and a confidence in `[0, 0.999999]`. Larger losses are worse. It returns the loss quantile (VaR), mean of the worst `1-confidence` probability mass (CVaR), and expected loss. An independent convex-loss formulation is checked across 180 seeded distributions; malformed distributions fail closed. This is **not Wasserstein distributionally robust optimization**, a calibrated tail bound, an outcome forecast, or proof that a business strategy is safe.
+
 ## Connection topology
 
-The Foundation V1 proof path is:
+The connected proof path is:
 
 ```text
 WALLE adapter
@@ -54,13 +57,13 @@ WALLE adapter
   -> independent WALLE fail-closed evidence checks
 ```
 
-`walle/adapters/gauss.sh` refuses a dirty source tree, syntax-checks the GAUSS/Quantum implementation, runs **all** foundation tests, runs the NEXUS GAUSS CLI on the deterministic 21-operator self-test problem, verifies the report and Quantum receipt, and re-checks the exact Git source identity after execution. The independent WALLE verifier requires the fixture to execute every registered operator **exactly once**, not merely a fixed number of tasks.
+`walle/adapters/gauss.sh` refuses a dirty source tree, syntax-checks the GAUSS/Quantum implementation, runs **all** foundation tests, runs the NEXUS GAUSS CLI on the deterministic 22-operator self-test problem, verifies the report and Quantum receipt, and re-checks the exact Git source identity after execution. The independent WALLE verifier requires the fixture to execute every registered operator **exactly once**, not merely a fixed number of tasks. A falsified CVaR output with recomputed hashes is rejected on replay.
 
 The Quantum contribution is real statevector QAOA simulation for an Ising subproblem. It calculates complex amplitudes, expected energy, most-probable state, exact ground-state energy, ground-state probability, approximation gap and statevector normalization error. It explicitly records `hardwareExecution=false` and `quantumAdvantageClaimAllowed=false`. No physical QPU claim is made by this foundation proof.
 
 ## No new infrastructure dependency
 
-Foundation V1 adds no external API, new database, queue, network service, secret, or package dependency. Scientific operators use the Node.js standard library only. Existing NEXUS Quantum code remains the Quantum execution plane.
+The foundation and CVaR extension add no external API, new database, queue, network service, secret, or package dependency. Scientific operators use the Node.js standard library only. Existing NEXUS Quantum code remains the Quantum execution plane.
 
 ## Evidence boundary
 

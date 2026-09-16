@@ -2,13 +2,13 @@
 
 Source of requirements: `Especificacion_Motor_Matematico_Absoluto.pdf` (six pages, 20 proposed conceptual layers). This document is a requirements crosswalk, not evidence that the proposed outcomes or all 20 conceptual layers have been realized.
 
-**Two different counts must never be conflated:** Foundation V1 registers 21 executable mathematical operators toward its separate 800-operator architectural target. Those operators do **not** implement the PDF's 20 end-to-end conceptual layers. No PDF conceptual layer is certified end-to-end by the foundation self-test.
+**Two different counts must never be conflated:** Foundation V1 originally registered 21 executable mathematical operators; the bounded CVaR extension brings the registry to **22** toward its separate 800-operator architectural target. Those operators do **not** implement the PDF's 20 end-to-end conceptual layers. No PDF conceptual layer is certified end-to-end by the foundation self-test.
 
-| PDF conceptual layer | Foundation V1 relationship | What is still not implemented or proven |
+| PDF conceptual layer | Foundation and CVaR extension relationship | What is still not implemented or proven |
 | --- | --- | --- |
 | 1. Persistent homology / TDA | Partial: bounded weighted-graph H0 sublevel persistence with an independent connectivity oracle | Higher-dimensional homology, other filtrations, real-world feature validation or predictive benefits. |
 | 2. Ising/QAOA tournament | Partial: small internal statevector QAOA simulator and exact Ising baseline | Large candidate tournament, physical QPU execution or any real-world advantage. |
-| 3. Wasserstein DRO / CVaR | Not implemented | Ambiguity-set optimization, calibrated risk bounds. |
+| 3. Wasserstein DRO / CVaR | Partial: bounded weighted discrete CVaR for an explicitly supplied loss distribution, independently checked with a convex optimization oracle | Wasserstein ambiguity sets, distributionally robust optimization, calibrated tail-risk bounds or proven external outcomes. |
 | 4. Takens / strange attractors | Partial: deterministic delay-coordinate embedding | Attractor detection and demonstrated prediction validity. |
 | 5. Manifold reduction / graph Laplacian | Partial: weighted undirected graph Laplacian | Manifold learning and validated market inference. |
 | 6. Wasserstein geodesics | Partial: empirical 1D Wasserstein-2 for equal sample sizes | Riemannian geodesics or business-outcome optimization. |
@@ -29,4 +29,4 @@ Source of requirements: `Especificacion_Motor_Matematico_Absoluto.pdf` (six page
 
 The PDF's 90–99% effectiveness figures are aspirations, not measured calibration or a universal confidence interval. Neither the foundation self-test nor the simulator establishes increased SEO rankings, contacts, revenue, sports prediction accuracy, or physical quantum advantage. Future claims require explicitly identified populations, observed evidence, uncertainty, prospective validation and a separate WALLE certification contract.
 
-Foundation V1 adds no external API, database, queue, network service, secret or new runtime package. Its GitHub Actions workflow uses the repository's already-present CI infrastructure and is not evidence of independent ownership of the CI provider.
+Foundation and the CVaR extension add no external API, database, queue, network service, secret or new runtime package. Their GitHub Actions workflow uses the repository's already-present CI infrastructure and is not evidence of independent ownership of the CI provider.

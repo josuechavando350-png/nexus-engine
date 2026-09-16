@@ -17,12 +17,12 @@ import { executeGaussIsingQaoaSimulation } from "../../seo-avengers-2500/quantum
 
 const fixture = JSON.parse(await readFile(new URL("../fixtures/selftest-problem.json", import.meta.url), "utf8"));
 
-test("registry exposes exactly 21 executable foundation layers toward an 800-layer target", () => {
+test("registry exposes exactly 22 executable foundation layers toward an 800-layer target", () => {
   const summary = gaussRegistrySummary();
   assert.equal(summary.targetLayerCount, 800);
-  assert.equal(summary.implementedLayerCount, 21);
-  assert.equal(GAUSS_IMPLEMENTED_LAYERS.length, 21);
-  assert.equal(new Set(GAUSS_IMPLEMENTED_LAYERS.map((row) => row.id)).size, 21);
+  assert.equal(summary.implementedLayerCount, 22);
+  assert.equal(GAUSS_IMPLEMENTED_LAYERS.length, 22);
+  assert.equal(new Set(GAUSS_IMPLEMENTED_LAYERS.map((row) => row.id)).size, 22);
   for (const domain of summary.domains) assert.equal(domain.targetLayers, 100);
 });
 
@@ -131,11 +131,11 @@ test("Quantum bridge executes an internal statevector QAOA simulation with the c
   assert.equal(biasedReceipt.exactGroundStateEnergy, -1);
 });
 
-test("end-to-end NEXUS -> GAUSS -> Quantum run executes all 21 implemented layers", async () => {
+test("end-to-end NEXUS -> GAUSS -> Quantum run executes all 22 implemented layers", async () => {
   const first = await executeGaussProblem(fixture, { quantumContributor: contributeNexusQuantum });
   const second = await executeGaussProblem(fixture, { quantumContributor: contributeNexusQuantum });
   assert.equal(first.status, "PASS");
-  assert.equal(first.executedLayerCount, 21);
+  assert.equal(first.executedLayerCount, 22);
   assert.equal(first.failedLayerCount, 0);
   assert.equal(first.quantumContribution.status, "EXECUTED");
   assert.equal(first.quantumContribution.simulation.hardwareExecution, false);
