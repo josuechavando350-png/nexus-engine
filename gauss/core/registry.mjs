@@ -37,6 +37,14 @@ import {
   optimalSuccessfulBinarySearchTree, minimumPalindromePartition,
   johnsonTwoMachineSchedule,
 } from "./layers/discrete-optimization.mjs";
+import {
+  markovDistributionAfterSteps, markovHittingProbability,
+  absorbingMarkovExpectedSteps, markovStationaryFromUniform,
+  hiddenMarkovForward, hiddenMarkovViterbi, hiddenMarkovSmoothing,
+  poissonBinomialDistribution, finiteHorizonMarkovDecision,
+  discountedMarkovDecision, fixedPolicyValueEvaluation,
+  markovExpectedCumulativeReward,
+} from "./layers/stochastic-decisions.mjs";
 
 export const GAUSS_DOMAINS = deepFreeze([
   { id: "MATHEMATICS", targetLayers: 100 },
@@ -117,6 +125,18 @@ const definitions = [
   ["GAUSS.CS.OPTIMAL_BST.024", "COMPUTER_SCIENCE", "Minimum weighted successful-search BST with root witness", optimalSuccessfulBinarySearchTree],
   ["GAUSS.CS.MIN_PALINDROME_PARTITION.025", "COMPUTER_SCIENCE", "Exact minimum partition into palindromic strings", minimumPalindromePartition],
   ["GAUSS.DECISION.JOHNSON_TWO_MACHINE.007", "DECISION_THEORY", "Two-machine flow-shop Johnson scheduling with makespan witness", johnsonTwoMachineSchedule],
+  ["GAUSS.STATS.MARKOV_N_STEP.014", "STATISTICS_PROBABILITY", "Finite-state Markov distribution after a bounded number of transitions", markovDistributionAfterSteps],
+  ["GAUSS.STATS.MARKOV_HITTING.015", "STATISTICS_PROBABILITY", "Finite-horizon first-hitting probability for a set of Markov states", markovHittingProbability],
+  ["GAUSS.STATS.ABSORBING_MARKOV_TIME.016", "STATISTICS_PROBABILITY", "Expected absorption times from a bounded finite transient system", absorbingMarkovExpectedSteps],
+  ["GAUSS.STATS.MARKOV_STATIONARY.017", "STATISTICS_PROBABILITY", "Bounded stationary iteration with explicit convergence residual", markovStationaryFromUniform],
+  ["GAUSS.STATS.HMM_FORWARD.018", "STATISTICS_PROBABILITY", "Scaled forward likelihood and terminal posterior of a hidden Markov model", hiddenMarkovForward],
+  ["GAUSS.STATS.HMM_VITERBI.019", "STATISTICS_PROBABILITY", "Most probable hidden state path in a bounded hidden Markov model", hiddenMarkovViterbi],
+  ["GAUSS.STATS.HMM_SMOOTHING.020", "STATISTICS_PROBABILITY", "Forward-backward smoothed hidden-state posterior marginals", hiddenMarkovSmoothing],
+  ["GAUSS.STATS.POISSON_BINOMIAL.021", "STATISTICS_PROBABILITY", "Full count distribution of independent unequal-probability Bernoulli trials", poissonBinomialDistribution],
+  ["GAUSS.DECISION.MDP_FINITE_HORIZON.008", "DECISION_THEORY", "Backward induction for a bounded finite-horizon Markov decision process", finiteHorizonMarkovDecision],
+  ["GAUSS.DECISION.MDP_DISCOUNTED.009", "DECISION_THEORY", "Discounted value iteration with a quantified error bound", discountedMarkovDecision],
+  ["GAUSS.DECISION.MDP_POLICY_EVALUATION.010", "DECISION_THEORY", "Bounded discounted evaluation of a fixed Markov policy", fixedPolicyValueEvaluation],
+  ["GAUSS.DECISION.MARKOV_REWARD.011", "DECISION_THEORY", "Expected discounted cumulative state reward for a finite Markov chain", markovExpectedCumulativeReward],
 ];
 
 const domainIds = new Set(GAUSS_DOMAINS.map((domain) => domain.id));
