@@ -89,7 +89,7 @@ test('discounted MDP value iteration agrees with explicit two-state policy enume
   const m=testMdp(),discount=.1+.8*random(),actual=discountedMarkovDecision({...m,discount});
   let optimal=[-Infinity,-Infinity];
   for(let p0=0;p0<2;p0++)for(let p1=0;p1<2;p1++){
-   const p=[p0,p1],a=m.transition[0][p0],b=m.transition[1][p1],r0=m.rewards[0][p0],r1=m.rewards[1][p1];
+   const a=m.transition[0][p0],b=m.transition[1][p1],r0=m.rewards[0][p0],r1=m.rewards[1][p1];
    const x=1-discount*a[0],y=-discount*a[1],z=-discount*b[0],w=1-discount*b[1],det=x*w-y*z;
    const value0=(r0*w-y*r1)/det,value1=(x*r1-z*r0)/det;
    optimal[0]=Math.max(optimal[0],value0);optimal[1]=Math.max(optimal[1],value1);
