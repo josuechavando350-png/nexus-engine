@@ -11,6 +11,12 @@ import {
   deterministicSafeIntegerPrimality, boundedPrimeSieve, exactIntegerSquareRoot,
   exactBinomialCoefficient, exactFibonacciFastDoubling, exactIntegerPartitionCount,
 } from './layers/number-theory.mjs';
+import {
+  linearStateSpaceTrajectory, finiteControllabilityGramian, finiteObservabilityGramian,
+  exactControllabilityRank, exactObservabilityRank, scalarKalmanFilter,
+  scalarRauchTungStriebelSmoother, boundedPidController, finiteHorizonDiagonalCostLqr,
+  stableScalarLyapunovCertificate, scalarMinimumEnergyReachability, scalarIntervalReachability,
+} from './layers/control-systems.mjs';
 
 export { GAUSS_DOMAINS };
 
@@ -27,6 +33,18 @@ const additions = [
   ['GAUSS.MATH.BINOMIAL_EXACT.019', 'MATHEMATICS', 'Exact binomial coefficient with a decimal BigInt result', exactBinomialCoefficient],
   ['GAUSS.MATH.FIBONACCI_DOUBLING.020', 'MATHEMATICS', 'Exact bounded Fibonacci number by fast doubling', exactFibonacciFastDoubling],
   ['GAUSS.MATH.INTEGER_PARTITIONS.021', 'MATHEMATICS', 'Exact bounded unrestricted integer partition count', exactIntegerPartitionCount],
+  ['GAUSS.CONTROL.STATE_SPACE_TRAJECTORY.003', 'CONTROL_DYNAMICS', 'Bounded discrete-time multivariate linear state-space trajectory', linearStateSpaceTrajectory],
+  ['GAUSS.CONTROL.CONTROLLABILITY_GRAMIAN.004', 'CONTROL_DYNAMICS', 'Finite-horizon discrete controllability Gramian', finiteControllabilityGramian],
+  ['GAUSS.CONTROL.OBSERVABILITY_GRAMIAN.005', 'CONTROL_DYNAMICS', 'Finite-horizon discrete observability Gramian', finiteObservabilityGramian],
+  ['GAUSS.CONTROL.EXACT_CONTROLLABILITY_RANK.006', 'CONTROL_DYNAMICS', 'Exact integer controllability matrix rank with dimension bounds', exactControllabilityRank],
+  ['GAUSS.CONTROL.EXACT_OBSERVABILITY_RANK.007', 'CONTROL_DYNAMICS', 'Exact integer observability matrix rank with dimension bounds', exactObservabilityRank],
+  ['GAUSS.CONTROL.SCALAR_KALMAN_FILTER.008', 'CONTROL_DYNAMICS', 'Scalar Gaussian Kalman state filter and log-likelihood', scalarKalmanFilter],
+  ['GAUSS.CONTROL.SCALAR_RTS_SMOOTHER.009', 'CONTROL_DYNAMICS', 'Scalar Rauch-Tung-Striebel fixed-interval state smoother', scalarRauchTungStriebelSmoother],
+  ['GAUSS.CONTROL.BOUNDED_PID.010', 'CONTROL_DYNAMICS', 'Bounded discrete PID command sequence with integral anti-windup', boundedPidController],
+  ['GAUSS.CONTROL.DIAGONAL_LQR.011', 'CONTROL_DYNAMICS', 'Finite-horizon multivariate Riccati feedback with diagonal costs', finiteHorizonDiagonalCostLqr],
+  ['GAUSS.CONTROL.SCALAR_LYAPUNOV.012', 'CONTROL_DYNAMICS', 'Stable scalar discrete Lyapunov covariance and residual certificate', stableScalarLyapunovCertificate],
+  ['GAUSS.CONTROL.MIN_ENERGY_REACHABILITY.013', 'CONTROL_DYNAMICS', 'Minimum-energy scalar endpoint reachability with control witness', scalarMinimumEnergyReachability],
+  ['GAUSS.CONTROL.INTERVAL_REACHABILITY.014', 'CONTROL_DYNAMICS', 'Exact scalar interval reachable-set propagation under bounded controls', scalarIntervalReachability],
 ];
 
 const domainIds = new Set(GAUSS_DOMAINS.map(domain => domain.id));
