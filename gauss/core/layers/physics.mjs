@@ -60,11 +60,12 @@ export function exactIsingGroundState({ fields, couplings = [], offset = 0 }) {
     let energy = model.offset;
     for (let i = 0; i < n; i += 1) energy += model.fields[i] * spins[i];
     for (const edge of model.couplings) energy += edge.value * spins[edge.i] * spins[edge.j];
-    if (energy < bestEnergy - 1e-12) {
+    // Distinct finite energies are never collapsed into a fake degeneracy.
+    if (energy < bestEnergy) {
       bestEnergy = energy;
       bestSpins = spins;
       degeneracy = 1;
-    } else if (Math.abs(energy - bestEnergy) <= 1e-12) {
+    } else if (energy === bestEnergy) {
       degeneracy += 1;
     }
   }
