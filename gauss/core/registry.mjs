@@ -15,6 +15,11 @@ import {
   stronglyConnectedComponents, bipartiteMaximumMatching, directedAcyclicSchedule,
   exactTravelingSalesperson, stationaryPageRank,
 } from "./layers/graph-optimization.mjs";
+import {
+  weightedLeastSquaresLine, weightedIsotonicRegression, benjaminiHochbergFdr,
+  exactPairedSignPermutation, fisherExactTwoSided, kaplanMeierSurvival,
+  theilSenLine, splitConformalInterval, bernoulliSequentialLikelihood,
+} from "./layers/statistical-inference.mjs";
 
 export const GAUSS_DOMAINS = deepFreeze([
   { id: "MATHEMATICS", targetLayers: 100 },
@@ -59,6 +64,15 @@ const definitions = [
   ["GAUSS.CS.DAG_SCHEDULE.008", "COMPUTER_SCIENCE", "Topological project schedule and longest critical path in a DAG", directedAcyclicSchedule],
   ["GAUSS.CS.TSP_HELD_KARP.009", "COMPUTER_SCIENCE", "Exact bounded directed traveling-salesperson tour by Held-Karp DP", exactTravelingSalesperson],
   ["GAUSS.INFO.PAGERANK.004", "INFORMATION_THEORY", "Bounded stationary PageRank with explicit convergence criterion", stationaryPageRank],
+  ["GAUSS.STATS.WLS_LINE.004", "STATISTICS_PROBABILITY", "Bounded weighted least-squares linear fit and residual witness", weightedLeastSquaresLine],
+  ["GAUSS.STATS.ISOTONIC_PAV.005", "STATISTICS_PROBABILITY", "Weighted pool-adjacent-violators monotone regression", weightedIsotonicRegression],
+  ["GAUSS.STATS.BH_FDR.006", "STATISTICS_PROBABILITY", "Benjamini-Hochberg multiple-testing FDR adjustment", benjaminiHochbergFdr],
+  ["GAUSS.STATS.PAIRED_PERMUTATION.007", "STATISTICS_PROBABILITY", "Exact bounded two-sided paired sign-permutation inference", exactPairedSignPermutation],
+  ["GAUSS.STATS.FISHER_EXACT.008", "STATISTICS_PROBABILITY", "Exact two-sided hypergeometric Fisher test using BigInt combinatorics", fisherExactTwoSided],
+  ["GAUSS.STATS.KAPLAN_MEIER.009", "STATISTICS_PROBABILITY", "Right-censored Kaplan-Meier survival curve with tied events", kaplanMeierSurvival],
+  ["GAUSS.STATS.THEIL_SEN.010", "STATISTICS_PROBABILITY", "Bounded robust median-slope Theil-Sen linear estimator", theilSenLine],
+  ["GAUSS.STATS.SPLIT_CONFORMAL.011", "STATISTICS_PROBABILITY", "Finite split-conformal absolute-residual interval with n+1 rank", splitConformalInterval],
+  ["GAUSS.STATS.SPRT_BERNOULLI.012", "STATISTICS_PROBABILITY", "Sequential Bernoulli likelihood-ratio decision with explicit boundaries", bernoulliSequentialLikelihood],
 ];
 
 const domainIds = new Set(GAUSS_DOMAINS.map((domain) => domain.id));
