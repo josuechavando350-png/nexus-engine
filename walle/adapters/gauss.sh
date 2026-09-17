@@ -8,6 +8,7 @@ EVIDENCE_ROOT="${WALLE_GAUSS_EVIDENCE_ROOT:-$(mktemp -d "${TMPDIR:-/tmp}/walle-g
 mkdir -p "$EVIDENCE_ROOT"
 REPORT="$EVIDENCE_ROOT/gauss-foundation-report.json"
 DETERMINANT_REPORT="$EVIDENCE_ROOT/gauss-exact-integer-determinant-report.json"
+EXACT_REPORT="$EVIDENCE_ROOT/gauss-exact-linear-report.json"
 
 BEFORE_HEAD="$(git rev-parse HEAD)"
 BEFORE_TREE="$(git rev-parse HEAD^{tree})"
@@ -19,13 +20,15 @@ fi
 
 while IFS= read -r file; do
   node --check "$file"
-done < <(find gauss scripts/nexus-gauss.mjs walle/gauss-evidence-verify.mjs walle/gauss-integer-determinant-evidence-verify.mjs seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs -type f -name '*.mjs' | sort)
+done < <(find gauss scripts/nexus-gauss.mjs walle/gauss-evidence-verify.mjs walle/gauss-exact-evidence-verify.mjs walle/gauss-integer-determinant-evidence-verify.mjs seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs -type f -name '*.mjs' | sort)
 
 node --test gauss/tests/*.test.mjs
 node scripts/nexus-gauss.mjs gauss/fixtures/selftest-problem.json --out "$REPORT"
 node walle/gauss-evidence-verify.mjs "$REPORT"
 node scripts/nexus-gauss.mjs gauss/fixtures/exact-integer-determinant-problem.json --out "$DETERMINANT_REPORT"
 node walle/gauss-integer-determinant-evidence-verify.mjs gauss/fixtures/exact-integer-determinant-problem.json "$DETERMINANT_REPORT"
+node scripts/nexus-gauss.mjs gauss/fixtures/exact-linear-problem.json --out "$EXACT_REPORT"
+node walle/gauss-exact-evidence-verify.mjs gauss/fixtures/exact-linear-problem.json "$EXACT_REPORT"
 
 AFTER_HEAD="$(git rev-parse HEAD)"
 AFTER_TREE="$(git rev-parse HEAD^{tree})"
@@ -41,4 +44,5 @@ printf 'WALLE_GAUSS_TARGET_LAYERS=800\n'
 printf 'WALLE_GAUSS_QUANTUM_EXECUTED=true\n'
 printf 'WALLE_GAUSS_PHYSICAL_QPU_EXECUTED=false\n'
 printf 'WALLE_GAUSS_INTEGER_DETERMINANT_VERIFIED=true\n'
+printf 'WALLE_GAUSS_EXACT_RATIONAL_VERIFIED=true\n'
 printf 'WALLE_GAUSS_FOUNDATION_CLAIM=true\n'

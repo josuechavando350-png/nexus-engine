@@ -2,20 +2,26 @@
 import {deepFreeze} from './common.mjs';
 import {GAUSS_DOMAINS, GAUSS_IMPLEMENTED_LAYERS as established} from './registry-prebatch.mjs';
 import {BATCH_200_ADDITIONS} from './batch-200-additions.mjs';
+import {solveExactLinearSystem} from './precision/exact-linear.mjs';
 import {exactIntegerDeterminant} from './precision/exact-integer-determinant.mjs';
 export {GAUSS_DOMAINS};
 const ids=new Set(established.map(x=>x.id));
 const domainIds=new Set(GAUSS_DOMAINS.map(x=>x.id));
 if(established.length!==116 || BATCH_200_ADDITIONS.length!==84 || ids.size!==116) throw new Error('GAUSS first-batch baseline or addition count mismatch');
-// Explicit opt-in extends the existing determinant operation. This DOES NOT add
-// a new registered operator ID or change the audited floating-point logdet path.
+// Exact computation is opt-in on two existing IDs. The original Number-based
+// implementations still handle inputs without mode, with no fabricated IDs.
 const precisionEnabled=established.map(layer=>{
- if(layer.id!=='GAUSS.MATH.PIVOTED_LOGDET.006') return layer;
- return {...layer,execute(input){
+ if(layer.id==='GAUSS.MATH.GAUSSIAN_SOLVE.005') return {...layer,execute(input){
+  if(input?.mode==='EXACT_RATIONAL') return solveExactLinearSystem(input);
+  if(input&&Object.hasOwn(input,'mode')) throw new TypeError('unsupported GAUSS Gaussian solver mode');
+  return layer.execute(input);
+ }};
+ if(layer.id==='GAUSS.MATH.PIVOTED_LOGDET.006') return {...layer,execute(input){
   if(input?.mode==='EXACT_INTEGER') return exactIntegerDeterminant(input);
   if(input&&Object.hasOwn(input,'mode')) throw new TypeError('unsupported GAUSS determinant mode');
   return layer.execute(input);
  }};
+ return layer;
 });
 const newlyImplemented=BATCH_200_ADDITIONS.map(({id,domain,description,execute})=>{
  if(typeof id!=='string'||ids.has(id))throw new Error(`duplicate GAUSS layer id:${id}`);
