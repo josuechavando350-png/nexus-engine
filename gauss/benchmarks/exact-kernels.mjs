@@ -85,7 +85,23 @@ function workloads() {
   }
   return jobs;
 }
-const quantile = (values, position) => values[Math.ceil(values.length * position) - 1];
+// A nearest-rank p95 is an observed sample quantile; an even sample's median
+// must average its two middle observations, not silently select the lower one.
+export function observedLatencyQuantiles(samples) {
+  if (!Array.isArray(samples) || samples.length < 2
+    || samples.some(value => typeof value !== 'number' || !Number.isFinite(value) || value < 0)) {
+    throw new TypeError('latency samples must be at least two finite nonnegative numbers');
+  }
+  const sorted = [...samples].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  const median = sorted.length % 2 === 0
+    ? (sorted[middle - 1] + sorted[middle]) / 2
+    : sorted[middle];
+  return Object.freeze({
+    medianMsPerOperation: Number(median.toFixed(6)),
+    p95MsPerOperation: Number(sorted[Math.ceil(sorted.length * 0.95) - 1].toFixed(6)),
+  });
+}
 export function runExactKernelBenchmark({ samples = 20 } = {}) {
   if (!Number.isSafeInteger(samples) || samples < 2 || samples > 100) {
     throw new RangeError('benchmark samples must be an integer from 2 to 100');
@@ -108,12 +124,10 @@ export function runExactKernelBenchmark({ samples = 20 } = {}) {
       times.push(ms);
       maxRssBytes = Math.max(maxRssBytes, process.memoryUsage().rss);
     }
-    times.sort((a, b) => a - b);
     results.push({
       workload: job.name, inputSha256: hash(job.input), outputSha256,
       warmupIterations: 3, samples, operationsPerSample: job.batch,
-      medianMsPerOperation: Number(quantile(times, 0.5).toFixed(6)),
-      p95MsPerOperation: Number(quantile(times, 0.95).toFixed(6)),
+      ...observedLatencyQuantiles(times),
       maxProcessRssBytes: maxRssBytes,
       verification: job.verification,
     });
