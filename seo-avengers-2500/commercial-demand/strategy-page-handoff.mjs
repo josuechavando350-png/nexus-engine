@@ -25,7 +25,8 @@ function hash(value, name) {
 function assertReportDigest(report, name) {
   const signed = object(report, name);
   const expected = hash(signed.reportSha256, `${name}.reportSha256`);
-  const { reportSha256: ignored, ...unsigned } = signed;
+  const unsigned = { ...signed };
+  delete unsigned.reportSha256;
   if (tournamentTools.sha256Canonical(unsigned) !== expected) throw new Error(`${name} digest mismatch`);
   return signed;
 }
@@ -93,6 +94,7 @@ export function buildStrategyPageHandoff(rawReport, rawExpected, rawProposals) {
   if (!Array.isArray(rawProposals)) throw new TypeError("proposals must be an array");
   const blockers = [];
   const seen = new Set();
+  const proposalById = new Map();
   const digests = new Map();
   const selectedIds = new Set(selected.pageIds);
   for (const proposal of rawProposals) {
@@ -100,6 +102,7 @@ export function buildStrategyPageHandoff(rawReport, rawExpected, rawProposals) {
     const id = text(row.pageId, "proposal.pageId");
     if (seen.has(id)) blockers.push(`DUPLICATE_PAGE_ID:${id}`);
     seen.add(id);
+    if (!proposalById.has(id)) proposalById.set(id, row);
     if (!selectedIds.has(id)) blockers.push(`PAGE_NOT_SELECTED:${id}`);
     if (!ACTIONS.has(row.action)) blockers.push(`INVALID_ACTION:${id}`);
     if (!HASH.test(row.contentSha256)) blockers.push(`MISSING_CONTENT_DIGEST:${id}`);
@@ -119,6 +122,8 @@ export function buildStrategyPageHandoff(rawReport, rawExpected, rawProposals) {
     pageId: id,
     title: byId.get(id).title,
     demandFamilyIds: [...byId.get(id).demandFamilyIds],
+    // This is a declared digest, not verified bytes. The next proof binds it to real bytes.
+    contentSha256: proposalById.get(id)?.contentSha256 ?? null,
   }));
   const result = {
     schemaVersion: 1,
