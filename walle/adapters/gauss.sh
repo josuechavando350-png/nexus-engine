@@ -9,6 +9,7 @@ mkdir -p "$EVIDENCE_ROOT"
 REPORT="$EVIDENCE_ROOT/gauss-foundation-report.json"
 DETERMINANT_REPORT="$EVIDENCE_ROOT/gauss-exact-integer-determinant-report.json"
 EXACT_REPORT="$EVIDENCE_ROOT/gauss-exact-linear-report.json"
+BENCHMARK_REPORT="$EVIDENCE_ROOT/gauss-exact-kernels-benchmark.json"
 
 BEFORE_HEAD="$(git rev-parse HEAD)"
 BEFORE_TREE="$(git rev-parse HEAD^{tree})"
@@ -29,6 +30,7 @@ node scripts/nexus-gauss.mjs gauss/fixtures/exact-integer-determinant-problem.js
 node walle/gauss-integer-determinant-evidence-verify.mjs gauss/fixtures/exact-integer-determinant-problem.json "$DETERMINANT_REPORT"
 node scripts/nexus-gauss.mjs gauss/fixtures/exact-linear-problem.json --out "$EXACT_REPORT"
 node walle/gauss-exact-evidence-verify.mjs gauss/fixtures/exact-linear-problem.json "$EXACT_REPORT"
+node gauss/benchmarks/exact-kernels.mjs --out "$BENCHMARK_REPORT"
 
 AFTER_HEAD="$(git rev-parse HEAD)"
 AFTER_TREE="$(git rev-parse HEAD^{tree})"
@@ -45,4 +47,5 @@ printf 'WALLE_GAUSS_QUANTUM_EXECUTED=true\n'
 printf 'WALLE_GAUSS_PHYSICAL_QPU_EXECUTED=false\n'
 printf 'WALLE_GAUSS_INTEGER_DETERMINANT_VERIFIED=true\n'
 printf 'WALLE_GAUSS_EXACT_RATIONAL_VERIFIED=true\n'
+printf 'WALLE_GAUSS_EXACT_BENCHMARK_RECORDED=true\n'
 printf 'WALLE_GAUSS_FOUNDATION_CLAIM=true\n'
