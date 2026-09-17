@@ -105,6 +105,23 @@ test("trusted content digest set must match the strategy exactly", () => {
   assert.throws(() => verifyStrategyPageContent(handoff, trusted, artifacts), /trusted content digest/);
 });
 
+test("trusted byte hashes cannot silently replace digests declared in the handoff", () => {
+  const { handoff, trusted, artifacts } = fixture();
+  const first = artifacts[0];
+  assert.equal(handoff.selectedPages[0].contentSha256, digest(first.bytes));
+  trusted.contentSha256ByPageId[first.pageId] = `sha256:${"0".repeat(64)}`;
+  assert.throws(() => verifyStrategyPageContent(handoff, trusted, artifacts), /differs from declared handoff/);
+});
+
+test("a handoff declaring different content cannot be validated by a new matching trusted table", () => {
+  const { artifacts, proposals } = fixture();
+  proposals[0].contentSha256 = `sha256:${"1".repeat(64)}`;
+  const changedHandoff = buildStrategyPageHandoff(tournament, decision, proposals);
+  const { trusted } = fixture();
+  trusted.handoffSha256 = changedHandoff.handoffSha256;
+  assert.throws(() => verifyStrategyPageContent(changedHandoff, trusted, artifacts), /differs from declared handoff/);
+});
+
 test("no stale, cross-site, tampered or blocked handoff may be verified", () => {
   const { handoff, trusted, artifacts } = fixture();
   assert.throws(() => verifyStrategyPageContent(handoff, { ...trusted, siteId: "another-tenant" }, artifacts), /independently retained/);
