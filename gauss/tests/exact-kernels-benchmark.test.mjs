@@ -1,6 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { runExactKernelBenchmark } from '../benchmarks/exact-kernels.mjs';
+import { observedLatencyQuantiles, runExactKernelBenchmark } from '../benchmarks/exact-kernels.mjs';
+
+test('reported median averages middle observations and nearest-rank p95 keeps its declared meaning', () => {
+  const samples = [1000, 1, 100, 2];
+  assert.deepEqual(observedLatencyQuantiles(samples), { medianMsPerOperation: 51, p95MsPerOperation: 1000 });
+  assert.deepEqual(samples, [1000, 1, 100, 2], 'the sample array must remain unchanged');
+  assert.deepEqual(observedLatencyQuantiles([3, 1, 2]), { medianMsPerOperation: 2, p95MsPerOperation: 3 });
+  assert.deepEqual(observedLatencyQuantiles([1.0000001, 1.0000003]), {
+    medianMsPerOperation: 1, p95MsPerOperation: 1,
+  });
+  for (const invalid of [[1], [], [1, NaN], [0, Infinity], [-1, 1], ['1', 2]]) {
+    assert.throws(() => observedLatencyQuantiles(invalid), /latency samples/u);
+  }
+});
 
 test('exact arithmetic benchmark uses real checked workloads and stable input/output identities', () => {
   const first = runExactKernelBenchmark({ samples: 2 });
