@@ -35,7 +35,8 @@ function hash(value, name) {
 export function verifyStrategyPageContent(rawHandoff, rawTrusted, rawArtifacts) {
   const handoff = object(rawHandoff, "handoff");
   const trusted = object(rawTrusted, "trusted");
-  const { handoffSha256: omitted, ...unsignedHandoff } = handoff;
+  const unsignedHandoff = { ...handoff };
+  delete unsignedHandoff.handoffSha256;
   const handoffSha256 = hash(handoff.handoffSha256, "handoff.handoffSha256");
   if (tournamentTools.sha256Canonical(unsignedHandoff) !== handoffSha256) {
     throw new Error("handoff digest mismatch");
@@ -57,8 +58,14 @@ export function verifyStrategyPageContent(rawHandoff, rawTrusted, rawArtifacts) 
   if (!Array.isArray(selected) || selected.length === 0 || selected.length > MAX_PAGES) {
     throw new Error("invalid selected page set");
   }
-  const selectedIds = selected.map((row) => text(object(row, "selected page").pageId, "selected page ID"));
-  if (new Set(selectedIds).size !== selectedIds.length) throw new Error("duplicate selected page ID");
+  const selectedById = new Map();
+  for (const rawPage of selected) {
+    const page = object(rawPage, "selected page");
+    const id = text(page.pageId, "selected page ID");
+    if (selectedById.has(id)) throw new Error("duplicate selected page ID");
+    selectedById.set(id, hash(page.contentSha256, `handoff content digest: ${id}`));
+  }
+  const selectedIds = [...selectedById.keys()];
   const selectedSet = new Set(selectedIds);
   const expectedDigests = object(trusted.contentSha256ByPageId, "trusted.contentSha256ByPageId");
   const expectedIds = Object.keys(expectedDigests);
@@ -67,7 +74,9 @@ export function verifyStrategyPageContent(rawHandoff, rawTrusted, rawArtifacts) 
   }
   for (const id of selectedIds) {
     if (!Object.hasOwn(expectedDigests, id)) throw new Error(`missing trusted content digest: ${id}`);
-    hash(expectedDigests[id], `trusted content digest: ${id}`);
+    if (hash(expectedDigests[id], `trusted content digest: ${id}`) !== selectedById.get(id)) {
+      throw new Error(`trusted content digest differs from declared handoff: ${id}`);
+    }
   }
 
   if (!Array.isArray(rawArtifacts)) throw new TypeError("artifacts must be an array");
