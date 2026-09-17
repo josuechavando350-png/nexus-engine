@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "problemId": "gauss-exact-linear-quantum-selftest-v1",
+  "objective": "Prove an exact rational linear solution, independently verified decimal rounding, and a real classical Nexus Quantum Ising receipt.",
+  "tasks": [
+    {
+      "taskId": "exact-linear-third",
+      "layerId": "GAUSS.MATH.GAUSSIAN_SOLVE.005",
+      "input": {
+        "mode": "EXACT_RATIONAL",
+        "coefficients": [["2", "1"], ["1", "-1"]],
+        "rhs": ["1", "0"],
+        "decimalPlaces": 64
+      }
+    },
+    {
+      "taskId": "quantum-ising-crosscheck",
+      "layerId": "GAUSS.PHYSICS.ISING_EXACT_GROUND.003",
+      "input": {
+        "fields": [0.5, -0.25, 0.75],
+        "couplings": [{"i": 0, "j": 1, "value": -1}, {"i": 1, "j": 2, "value": 0.5}],
+        "offset": 0.1
+      }
+    }
+  ]
+}
