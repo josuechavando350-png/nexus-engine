@@ -8,12 +8,14 @@ on:
       - 'seo-avengers-2500/commercial-demand/**'
       - 'seo-avengers-2500/tests/test_strategy_page_handoff_v1.mjs'
       - 'seo-avengers-2500/tests/test_strategy_page_content_proof_v1.mjs'
+      - 'seo-avengers-2500/tests/test_publication_guardian_gate_v1.mjs'
       - '.github/workflows/strategy-page-handoff-proof.yml'
   pull_request:
     paths:
       - 'seo-avengers-2500/commercial-demand/**'
       - 'seo-avengers-2500/tests/test_strategy_page_handoff_v1.mjs'
       - 'seo-avengers-2500/tests/test_strategy_page_content_proof_v1.mjs'
+      - 'seo-avengers-2500/tests/test_publication_guardian_gate_v1.mjs'
       - '.github/workflows/strategy-page-handoff-proof.yml'
 
 permissions:
@@ -40,12 +42,14 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Run tournament, handoff and byte-integrity adversarial tests
+      - name: Run tournament, handoff, byte-integrity and guardian adversarial tests
         run: |
           set -euo pipefail
           node --check seo-avengers-2500/commercial-demand/strategy-page-handoff.mjs
           node --check seo-avengers-2500/commercial-demand/strategy-page-content-proof.mjs
+          node --check seo-avengers-2500/commercial-demand/publication-guardian-gate.mjs
           node --test \
             seo-avengers-2500/tests/test_nexus_commercial_demand_tournament_v4.mjs \
             seo-avengers-2500/tests/test_strategy_page_handoff_v1.mjs \
-            seo-avengers-2500/tests/test_strategy_page_content_proof_v1.mjs
+            seo-avengers-2500/tests/test_strategy_page_content_proof_v1.mjs \
+            seo-avengers-2500/tests/test_publication_guardian_gate_v1.mjs
