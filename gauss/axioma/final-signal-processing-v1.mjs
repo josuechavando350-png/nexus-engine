@@ -1,0 +1,24 @@
+/* Closed-form impulse responses, Fourier basis identities and scalar autocovariance references. */
+import assert from 'node:assert/strict';
+import {runFinalBank,range} from './final-common-v1.mjs';
+const sum=a=>a.reduce((s,v)=>s+v,0),impulse=(n,j,a)=>range(n).map(i=>i===j?a:0);
+const bad=x=>[null,{...x,[Object.keys(x)[0]]:null},{...x,[Object.keys(x)[0]]:'INVALID'}];
+const verify=(got,want,path='root')=>{if(typeof want==='number'){assert.ok(Number.isFinite(got)&&Math.abs(got-want)<=1e-10*Math.max(1,Math.abs(want)),`${path}: ${got} != ${want}`);return;}if(Array.isArray(want)){assert.equal(got.length,want.length);want.forEach((v,i)=>verify(got[i],v,`${path}[${i}]`));return;}if(want&&typeof want==='object'){assert.deepStrictEqual(Object.keys(got).sort(),Object.keys(want).sort());for(const key of Object.keys(want))verify(got[key],want[key],`${path}.${key}`);return;}assert.deepStrictEqual(got,want);};
+const fourier=(x,sign)=>{const n=x.real.length,j=x.real.findIndex(v=>v!==0),a=x.real[j],scale=sign===1?1/n:1;return {real:range(n).map(k=>a*Math.cos(sign*2*Math.PI*j*k/n)*scale),imaginary:range(n).map(k=>a*Math.sin(sign*2*Math.PI*j*k/n)*scale)};};
+const makeFourier=(i,r)=>{const n=2+r(8),j=r(n),a=1+r(8);return {real:impulse(n,j,a),imaginary:impulse(n,0,0)};};
+const convolutionInput=(i,r,equal=false)=>{const n=2+r(7),m=equal?n:2+r(7),j=r(n),k=r(m);return {left:impulse(n,j,1+r(9)),right:impulse(m,k,1+r(9))};};
+const defs=[
+ {id:'GAUSS.INFO.DIRECT_DFT.006',make:makeFourier,reference:x=>fourier(x,-1)},
+ {id:'GAUSS.INFO.INVERSE_DFT.007',make:makeFourier,reference:x=>fourier(x,1)},
+ {id:'GAUSS.INFO.LINEAR_CONVOLUTION.008',make:(i,r)=>convolutionInput(i,r),reference:x=>{const j=x.left.findIndex(Boolean),k=x.right.findIndex(Boolean);return {samples:impulse(x.left.length+x.right.length-1,j+k,x.left[j]*x.right[k])};}},
+ {id:'GAUSS.INFO.CIRCULAR_CONVOLUTION.009',make:(i,r)=>convolutionInput(i,r,true),reference:x=>{const j=x.left.findIndex(Boolean),k=x.right.findIndex(Boolean);return {samples:impulse(x.left.length,(j+k)%x.left.length,x.left[j]*x.right[k])};}},
+ {id:'GAUSS.INFO.LINEAR_CROSS_CORRELATION.010',make:(i,r)=>convolutionInput(i,r),reference:x=>{const j=x.left.findIndex(Boolean),k=x.right.findIndex(Boolean),lags=range(x.left.length+x.right.length-1).map(t=>t-x.right.length+1);return {lags,values:lags.map(lag=>lag===j-k?x.left[j]*x.right[k]:0)};}},
+ {id:'GAUSS.INFO.SAMPLE_AUTOCOVARIANCE.011',make:(i,r)=>{const n=2+r(9);return {samples:range(n).map(()=>r(13)-6),maxLag:r(n)};},reference:x=>{const n=x.samples.length,mu=sum(x.samples)/n;return {mean:mu,covariance:range(x.maxLag+1).map(lag=>{const cross=sum(range(n-lag).map(i=>x.samples[i]*x.samples[i+lag])),left=sum(x.samples.slice(0,n-lag)),right=sum(x.samples.slice(lag));return (cross-mu*(left+right)+(n-lag)*mu*mu)/n;})};}},
+ {id:'GAUSS.INFO.FIR_FILTER.012',make:(i,r)=>{const n=2+r(9),j=r(n);return {samples:impulse(n,j,1+r(9)),taps:range(1+r(6)).map(()=>r(11)-5)};},reference:x=>{const j=x.samples.findIndex(Boolean),a=x.samples[j];return {samples:range(x.samples.length).map(t=>t>=j&&t-j<x.taps.length?a*x.taps[t-j]:0)};}},
+ {id:'GAUSS.INFO.FIRST_ORDER_IIR.013',make:(i,r)=>{const n=2+r(9),j=r(n);return {samples:impulse(n,j,1+r(6)),feedforward:(1+r(4))/4,feedback:r(8)/10,initial:r(9)-4};},reference:x=>{const j=x.samples.findIndex(Boolean),a=x.samples[j],b=x.feedforward,c=x.feedback,z=x.initial;const samples=range(x.samples.length).map(t=>z*c**(t+1)+(t>=j?b*a*c**(t-j):0));return {samples,finalState:samples.at(-1)};}},
+ {id:'GAUSS.INFO.STFT.014',make:(i,r)=>({samples:[0,1+r(9),0,0],window:4,hop:2}),reference:x=>{const a=0.75*x.samples[1];return {frames:[{offset:0,real:range(4).map(k=>a*Math.cos(-2*Math.PI*k/4)),imaginary:range(4).map(k=>a*Math.sin(-2*Math.PI*k/4))}],window:4,hop:2};}},
+ {id:'GAUSS.INFO.PERIODOGRAM.015',make:(i,r)=>{const n=2+r(8),j=r(n);return {samples:impulse(n,j,1+r(9)),samplingRate:1+r(100)};},reference:x=>{const n=x.samples.length,a=x.samples.find(Boolean);return {frequencies:range(Math.floor(n/2)+1).map(k=>k*x.samplingRate/n),power:range(Math.floor(n/2)+1).map(()=>a*a/n)};}},
+ {id:'GAUSS.INFO.GOERTZEL_BIN.016',make:(i,r)=>{const n=2+r(10),j=r(n);return {samples:impulse(n,j,1+r(9)),bin:r(n)};},reference:x=>{const n=x.samples.length,j=x.samples.findIndex(Boolean),a=x.samples[j],angle=2*Math.PI*j*x.bin/n;return {real:a*Math.cos(angle),imaginary:-a*Math.sin(angle),magnitudeSquared:a*a};}},
+ {id:'GAUSS.INFO.HAAR_WAVELET.017',make:(i,r)=>({samples:[r(19)-9,r(19)-9]}),reference:x=>({coefficients:[(x.samples[0]+x.samples[1])/Math.sqrt(2),(x.samples[0]-x.samples[1])/Math.sqrt(2)]})}
+].map(def=>({...def,invalid:bad,verify}));
+export const runFinalSignalProcessingBank=options=>runFinalBank({name:'AXIOMA 12 analytic signal impulse and orthonormal-basis references',definitions:defs,...options});
