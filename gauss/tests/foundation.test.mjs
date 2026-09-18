@@ -1,5 +1,4 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import { empiricalWasserstein2, graphLaplacian, paretoFrontier } from "../core/layers/math.mjs";
@@ -12,10 +11,11 @@ import { mutualInformation, renyiDivergence, shannonEntropy } from "../core/laye
 import { exactBinaryKnapsack, verifyRequestEventuallyCertification } from "../core/layers/computing.mjs";
 import { executeGaussProblem, validateGaussProblem } from "../core/problem.mjs";
 import { GAUSS_IMPLEMENTED_LAYERS, gaussRegistrySummary } from "../core/registry.mjs";
+import { buildGaussFoundationFixture } from "../core/foundation-fixture.mjs";
 import { contributeNexusQuantum } from "../core/quantum-contributor.mjs";
 import { executeGaussIsingQaoaSimulation } from "../../seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs";
 
-const fixture = JSON.parse(await readFile(new URL("../fixtures/selftest-problem.json", import.meta.url), "utf8"));
+const fixture = await buildGaussFoundationFixture();
 
 test("registry and self-test have exact unique coverage of the actual implemented operators", () => {
   const summary = gaussRegistrySummary();
