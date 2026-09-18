@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { resolve } from "node:path";
 import { runCommercialDemandTournamentV4 } from "../commercial-demand/tournament-engine-v4.mjs";
-import { auditCommercialGaussPareto } from "../commercial-demand/gauss-pareto-audit.mjs";
+import { auditCommercialGaussAxiomaWalle } from "../commercial-demand/gauss-axioma-walle-audit.mjs";
 
 const ROOT = resolve(fileURLToPath(new URL("../..", import.meta.url)));
 const DEFAULT_SCENARIO = resolve(ROOT, "seo-avengers-2500/commercial-demand/nexus-commercial-demand-v2.json");
@@ -78,15 +78,15 @@ async function main() {
     throw new Error(`expected worst-case modeled clients ${options.assertWorstMilli}, got ${report.growthFrontier.winnerWorstCaseModeledClientsMilli}`);
   }
 
-  // A real GAUSS computation must validate the modeled choice before reporting.
-  // Quantum correctly returns NOT_APPLICABLE for this non-Ising task.
-  const gaussAudit = await auditCommercialGaussPareto(report.demandTournament);
+  // All three independent mathematical checks are mandatory for the actual V4
+  // planning vectors. No check here verifies rankings or signed contracts.
+  const gaussAudit = await auditCommercialGaussAxiomaWalle(report.demandTournament);
   if (gaussAudit.selectedStrategyId !== report.selectedStrategyId
       || gaussAudit.sourceScenarioSha256 !== report.scenarioSha256) {
     throw new Error("V4_GAUSS_AUDIT_SOURCE_IDENTITY_MISMATCH");
   }
   process.stderr.write(
-    `NEXUS_GAUSS_PARETO=${gaussAudit.status};GAUSS_REPORT_SHA256=${gaussAudit.gaussReportSha256};QUANTUM=${gaussAudit.quantumStatus};SALES_CLAIMS=${gaussAudit.salesClaimStatus}\n`,
+    `NEXUS_GAUSS_PARETO=${gaussAudit.status};GAUSS_REPORT_SHA256=${gaussAudit.gaussReportSha256};QUANTUM=${gaussAudit.quantumStatus};AXIOMA=${gaussAudit.axiomaStatus};AXIOMA_CASE_SHA256=${gaussAudit.axiomaCaseDigest};WALLE_REPLAY=${gaussAudit.walleStatus};WALLE_REPLAY_INPUT_SHA256=${gaussAudit.walleReplayInputSha256};SALES_CLAIMS=${gaussAudit.salesClaimStatus}\n`,
   );
   process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
 }
