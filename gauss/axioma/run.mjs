@@ -30,8 +30,7 @@ import {runHypergraph438Bank} from './hypergraphs-438-v1.mjs';
 import {runPoset438Bank} from './posets-438-v1.mjs';
 import {runGeometry438Bank} from './lattice-geometry-438-v1.mjs';
 import {runGf2Coding438Bank} from './gf2-codes-438-v1.mjs';
-import {runFiniteAutomata438Bank} from './finite-automata-438-v1.mjs';
-import {runNumerical438Bank} from './numerical-methods-438-v1.mjs';
+import {runFiniteAutomata438Bank,runNumerical438Bank} from './contract-overrides-438-v1.mjs';
 
 export function runAxioma({resolveLayer} = {}) {
   const options = resolveLayer ? {resolveLayer} : {};
