@@ -33,6 +33,7 @@ export async function assertTournamentTenantSnapshotBinding({ controlRoot, evide
 
   let clicks = 0;
   let impressions = 0;
+  const seenQueryPages = new Set();
   for (const row of rows) {
     let url;
     try {
@@ -44,6 +45,9 @@ export async function assertTournamentTenantSnapshotBinding({ controlRoot, evide
         || ![declaration.siteHostname, `www.${declaration.siteHostname}`].includes(url.hostname)) {
       throw new Error("CROSS_TENANT_SEARCH_PAGE_HOST_MISMATCH");
     }
+    const identity = `${row.query}\u0000${url.href}`;
+    if (seenQueryPages.has(identity)) throw new Error("TENANT_SEARCH_DUPLICATE_QUERY_PAGE_ROW");
+    seenQueryPages.add(identity);
     if (!Number.isSafeInteger(row.clicks) || !Number.isSafeInteger(row.impressions)
         || row.clicks < 0 || row.impressions < row.clicks) {
       throw new Error("TENANT_SEARCH_COUNTERS_INVALID");
