@@ -12,7 +12,7 @@ function divide(a,b,p){a=trim(a,p);b=trim(b,p);if(zero(b))throw Error('zero poly
 function det(matrix,p){const n=matrix.length;let result=0;function search(row,used,product,parity){if(row===n){result=mod(result+(parity?-product:product),p);return;}for(let col=0;col<n;col++)if(!(used>>col&1)){const swaps=range(n).filter(j=>used>>j&1&&j>col).length;search(row+1,used|1<<col,mod(product*matrix[row][col],p),parity^(swaps%2));}}search(0,0,1,0);return result;}
 function resultant(a,b,p){if(zero(a)||zero(b))return 0;const m=a.length-1,n=b.length-1;if(m===0&&n===0)return 1;if(m===0)return mod(BigInt(a[0])**BigInt(n),p);if(n===0)return mod(BigInt(b[0])**BigInt(m),p);const rows=[];for(let i=0;i<n;i++){const r=Array(m+n).fill(0);a.slice().reverse().forEach((v,j)=>r[i+j]=v);rows.push(r);}for(let i=0;i<m;i++){const r=Array(m+n).fill(0);b.slice().reverse().forEach((v,j)=>r[i+j]=v);rows.push(r);}return det(rows,p);}
 const at=(a,t,p)=>mod(a.reduce((z,v,i)=>z+BigInt(v)*BigInt(t)**BigInt(i),0n),p);
-const normalize=x=>trim(x.coefficients??x.left,x.prime);
+const normalize=x=>trim(x.coefficients??x.left??[0],x.prime);
 function reference(tag,x){const p=x.prime,a=normalize(x),b=x.right?trim(x.right,p):null;
  switch(tag){
  case 'FP_DIVMOD':return divide(a,b,p);
