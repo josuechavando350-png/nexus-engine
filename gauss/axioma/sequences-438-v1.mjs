@@ -26,7 +26,7 @@ function ref(tag,{values:a,target,k}){const ss=subsets(a),rr=intervals(a),pairs=
  case 'SEQ_INVERSIONS':return val(pairs.filter(([x,y])=>x>y).length);
  case 'SEQ_LIS_COUNT':case 'SEQ_LNDS_COUNT':{const candidates=ss.filter(s=>s.ids.length&&s.values.every((v,i)=>i===0||(tag==='SEQ_LIS_COUNT'?s.values[i-1]<v:s.values[i-1]<=v)));const length=Math.max(0,...candidates.map(s=>s.values.length));return {length,count:String(length?candidates.filter(s=>s.ids.length===length).length:1)};}
  case 'SEQ_DISTINCT_SUBSEQUENCES':return val(new Set(ss.filter(s=>s.ids.length).map(s=>JSON.stringify(s.values))).size);
- case 'SEQ_ALTERNATING_RUN':return {length:Math.max(0,...rr.filter(s=>s.values.every((v,i,t)=>i<2||Math.sign(t[i-1]-t[i-2])*Math.sign(v-t[i-1])===-1&&t[i-1]!==t[i-2]&&v!==t[i-1])).map(s=>s.length))};
+ case 'SEQ_ALTERNATING_RUN':return {length:Math.max(0,...rr.filter(s=>s.values.every((v,i,t)=>i===0||i===1?v!==t[0]:Math.sign(t[i-1]-t[i-2])*Math.sign(v-t[i-1])===-1)).map(s=>s.length))};
  case 'SEQ_EQUAL_RUN':return {length:Math.max(0,...rr.filter(s=>s.values.every(v=>v===s.values[0])).map(s=>s.length))};
  case 'SEQ_SUBARRAY_GCD_ONE':return val(rr.filter(s=>s.values.reduce((v,x)=>gcd(v,x),0)===1).length);
  case 'SEQ_INCREASING_K':return val(ss.filter(s=>s.ids.length===k&&s.values.every((v,i)=>i===0||s.values[i-1]<v)).length);
