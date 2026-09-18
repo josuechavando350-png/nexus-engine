@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import {runBatchBank,seq} from './batch-238-common.mjs';
 const tags=['DFA_ACCEPT','DFA_TRACE','DFA_REACHABLE','DFA_COACCESSIBLE','DFA_TRIM','DFA_NONEMPTY_WITNESS','DFA_REJECT_WITNESS','DFA_LANGUAGE_FINITE','DFA_MIN_ACCEPT_LENGTH','DFA_ACCEPT_COUNT','DFA_REJECT_COUNT','DFA_COMPLEMENT','DFA_INTERSECTION','DFA_UNION','DFA_DIFFERENCE','DFA_XOR','DFA_EQUIVALENCE','DFA_INCLUSION','DFA_DISJOINT','DFA_MINIMIZE','DFA_CANONICAL','DFA_REVERSE_NFA','NFA_EPS_CLOSURE','NFA_DETERMINIZE','NFA_ACCEPT'];
-const sorted=a=>[...new Set(a)].sort((a,b)=>a-b),cmp=(a,b)=>a.length-b.length||a.localeCompare(b),alphabet=['0','1'];
+const sorted=a=>[...new Set(a)].sort((a,b)=>a-b),alphabet=['0','1'];
 const words=(a,max)=>{let current=[''],out=[''];for(let i=1;i<=max;i++){current=current.flatMap(w=>a.map(c=>w+c));out=out.concat(current);}return out;};
 const go=(z,word,s=z.start)=>[...word].reduce((v,c)=>z.transitions[v][z.alphabet.indexOf(c)],s);
 const accept=(z,w,s=z.start)=>z.accepting.includes(go(z,w,s));
