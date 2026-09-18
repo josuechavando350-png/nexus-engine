@@ -14,7 +14,6 @@ const zero=()=>q(0),one=()=>q(1),sum=xs=>xs.reduce(plus,zero());
 const transition=weights=>weights.map(row=>{const denom=row.reduce((a,b)=>a+b,0);return row.map(v=>q(v,denom));});
 function paths(weights,start,steps){const P=transition(weights),out=[];function walk(history,prob){if(history.length===steps+1){out.push({history,prob});return;}const current=history.at(-1);for(let j=0;j<P.length;j++)if(P[current][j][0])walk(history.concat(j),times(prob,P[current][j]));}walk([start],one());return out;}
 const prob=(items,predicate)=>sum(items.filter(predicate).map(item=>item.prob));
-const dot=(a,b)=>sum(a.map((v,i)=>times(v,parse(b[i])));
 const distribution=(weights,start,steps)=>range(weights.length).map(j=>prob(paths(weights,start,steps),item=>item.history.at(-1)===j));
 const hitAt=(history,target)=>history.indexOf(target);
 function compute(tag,x){const n=x.weights.length,t=x.steps??0,s=x.start??0,all=tag==='TRANSITION_POWER'?null:paths(x.weights,s,t),target=x.target;
