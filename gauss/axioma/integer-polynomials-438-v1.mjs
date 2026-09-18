@@ -8,7 +8,6 @@ const evaluate=(a,t)=>a.reduce((s,c,i)=>s+c*t**BigInt(i),0n);
 const mul=(a,b)=>{const c=Array(a.length+b.length-1).fill(0n);for(const [i,x] of a.entries())for(const [j,y] of b.entries())c[i+j]+=x*y;return trim(c);};
 const add=(a,b,sign=1n)=>trim(seq(Math.max(a.length,b.length)).map(i=>(a[i]??0n)+sign*(b[i]??0n)));
 const derivative=a=>trim(a.length===1?[0n]:a.slice(1).map((v,i)=>v*BigInt(i+1)));
-const choose=(n,k)=>{let p=1n;for(let j=1;j<=k;j++)p=p*BigInt(n+1-j)/BigInt(j);return p;};
 function input(tag,i,r){const n=1+i%6,make=()=>seq(n).map(()=>r(9)-4),a=make();if(i%11===0)a.fill(0);const x={coefficients:a};
  if(['EXACT_POLY_ADD','EXACT_POLY_SUB','EXACT_POLY_MUL','EXACT_POLY_COMPOSE'].includes(tag))return {left:a,right:make()};
  if(['EXACT_POLY_EVAL','EXACT_POLY_HORNER_TRACE'].includes(tag))return {...x,at:r(9)-4};
