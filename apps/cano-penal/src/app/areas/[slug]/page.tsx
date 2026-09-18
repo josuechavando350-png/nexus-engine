@@ -4,6 +4,7 @@ import { approvedCanoArea } from "../../../approved-programmatic-seo";
 import { readCanoProgrammaticSeoPage } from "../../../programmatic-seo";
 import { mergeSerpMetadata, readSerpMetadataOverride } from "../../../serp-metadata-control";
 import { PageShell } from "../../SiteChrome";
+import { site } from "../../content";
 
 export function generateStaticParams() {
   const slugs = [
@@ -51,6 +52,10 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
           <h1 className="cp-page-title">{heading}</h1>
           <div className="cp-copy" style={{ marginTop: "2.5rem" }}>
             {paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+          </div>
+          <div className="cp-actions" style={{ marginTop: "2rem" }}>
+            <a className="cp-btn cp-btn-solid" href={site.whatsapp} target="_blank" rel="noopener noreferrer">Consultar por WhatsApp</a>
+            <a className="cp-btn" href="/#contacto">Ver teléfono y ubicación</a>
           </div>
         </div>
       </section>
