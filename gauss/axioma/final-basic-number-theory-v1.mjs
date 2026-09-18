@@ -37,5 +37,5 @@ function sample(tag,i,r){switch(tag){
  case 'INTEGER_PARTITIONS':return {n:r(19)};
  default:throw Error('no test case '+tag);
  }}
-const definitions=tags.map((tag,index)=>({id:`GAUSS.MATH.${tag}.${String(10+index).padStart(3,'0')}`,make:(i,r)=>sample(tag,i,r),reference:x=>ref(tag,x),...(tag==='EXTENDED_EUCLID'?{verify:(actual,expected,input)=>{assert.equal(actual.gcd,expected.gcd);assert.ok(Number.isSafeInteger(actual.bezoutX)&&Number.isSafeInteger(actual.bezoutY));assert.equal(BigInt(input.a)*BigInt(actual.bezoutX)+BigInt(input.b)*BigInt(actual.bezoutY),BigInt(expected.gcd));}}:{})}));
+const definitions=tags.map((tag,index)=>({id:`GAUSS.MATH.${tag}.${String(10+index).padStart(3,'0')}`,make:(i,r)=>sample(tag,i,r),reference:x=>ref(tag,x),invalid:x=>{const key=Object.keys(x)[0];return [null,{...x,[key]:null},{...x,[key]:-1}];},...(tag==='EXTENDED_EUCLID'?{verify:(actual,expected,input)=>{assert.equal(actual.gcd,expected.gcd);assert.ok(Number.isSafeInteger(actual.bezoutX)&&Number.isSafeInteger(actual.bezoutY));assert.equal(BigInt(input.a)*BigInt(actual.bezoutX)+BigInt(input.b)*BigInt(actual.bezoutY),BigInt(expected.gcd));}}:{})}));
 export const runFinalBasicNumberTheoryBank=options=>runFinalBank({name:'AXIOMA 12 small-integer exact number-theory references',definitions,...options});
