@@ -53,7 +53,7 @@ function reference(tag,input){const a=parse(input.coefficients??input.left),b=in
  case 'FORMAL_LOG':{const n=input.count,d=derivative(a),inv=reciprocal(a,n);return {coefficients:format(truncate(integral(truncate(convolution(d,inv),Math.max(1,n-1))),n))};}
  case 'FORMAL_EXP':{const n=input.count,out=[O()];for(let k=1;k<n;k++){let val=Z();for(let j=1;j<=k;j++)val=plus(val,times(times(q(j),at(a,j)),out[k-j]));out.push(divide(val,q(k)));}return {coefficients:format(trimmed(out))};}
  case 'INTEGER_POWER':return {coefficients:format(power(a,input.power,input.count))};
- case 'HADAMARD':return {coefficients:format(trimmed(Array.from({length:Math.max(a.length,b.length)},(_,i)=>times(at(a,i),at(b,i))))};
+ case 'HADAMARD':return {coefficients:format(trimmed(Array.from({length:Math.max(a.length,b.length)},(_,i)=>times(at(a,i),at(b,i)))))};
  case 'EVEN_PART':return {coefficients:format(trimmed(a.map((v,i)=>i%2?Z():v)))};
  case 'ODD_PART':return {coefficients:format(trimmed(a.map((v,i)=>i%2?v:Z())))};
  case 'TRANSLATE':{const shift=q(input.shift),out=Array.from({length:a.length},Z);for(let i=0;i<a.length;i++)for(let j=0;j<=i;j++){let s=O();for(let k=0;k<i-j;k++)s=times(s,shift);out[j]=plus(out[j],times(a[i],times(q(choose(i,j).toString()),s)));}return {coefficients:format(trimmed(out))};}
@@ -61,11 +61,11 @@ function reference(tag,input){const a=parse(input.coefficients??input.left),b=in
  default:throw Error('unknown rational series oracle '+tag);
  }}
 function rng(seed){let state=seed>>>0;return max=>{state^=state<<13;state^=state>>>17;state^=state<<5;return (state>>>0)%max;};}
-function inputFor(tag,i,r){const coefficient=()=>{const value=r(7)-3;return r(5)===0?`${value}/2`:value;};let a=Array.from({length:1+r(4)},coefficient),b=Array.from({length:1+r(3)},coefficient);
+function inputFor(tag,i,r){const coefficient=()=>{const value=r(7)-3;return r(5)===0&&value!==0?`${value}/2`:value;};let a=Array.from({length:1+r(4)},coefficient),b=Array.from({length:1+r(3)},coefficient);
  if(i%13===0)a=[0,0,0];if(i%17===0)b=[0];
- if(['RECIPROCAL','LOG_DERIVATIVE','INTEGER_POWER'].includes(tag))a[0]=a[0]===0?1:a[0];
- if(['QUOTIENT','DIVIDE'].includes(tag))b[b.length-1]=b[b.length-1]===0?1:b[b.length-1];
- if(tag==='QUOTIENT')b[0]=b[0]===0?1:b[0];
+ if(['RECIPROCAL','LOG_DERIVATIVE','INTEGER_POWER'].includes(tag))a[0]=q(a[0]).n===0n?1:a[0];
+ if(['QUOTIENT','DIVIDE'].includes(tag))b[b.length-1]=q(b[b.length-1]).n===0n?1:b[b.length-1];
+ if(tag==='QUOTIENT')b[0]=q(b[0]).n===0n?1:b[0];
  if(tag==='FORMAL_LOG')a[0]=1;
  if(tag==='FORMAL_EXP')a[0]=0;
  if(tag==='NORMALIZE'||tag==='DEGREE'||tag==='LEADING'||tag==='DERIVATIVE'||tag==='INTEGRAL'||tag==='REVERSE'||tag==='LOG_DERIVATIVE'||tag==='EVEN_PART'||tag==='ODD_PART')return {coefficients:a};
