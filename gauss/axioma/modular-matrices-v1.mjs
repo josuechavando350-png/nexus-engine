@@ -36,11 +36,11 @@ function reference(tag,x){const p=x.prime,a=norm(x.matrix??x.left,p),b=x.right?n
  switch(tag){
  case 'NORMALIZE':return {matrix:a};
  case 'TRANSPOSE':return {matrix:transpose(a)};
- case 'ADD':return {matrix:a.map((row,i)=>row.map((v,j)=>m(v,b[i][j]))};
- case 'SUBTRACT':return {matrix:a.map((row,i)=>row.map((v,j)=>mod(v-b[i][j],p))};
+ case 'ADD':return {matrix:a.map((row,i)=>row.map((v,j)=>m(v,b[i][j])))};
+ case 'SUBTRACT':return {matrix:a.map((row,i)=>row.map((v,j)=>mod(v-b[i][j],p)))};
  case 'PRODUCT':return {matrix:multiply(a,b,p)};
  case 'SCALE':return {matrix:a.map(row=>row.map(v=>mod(v*x.scalar,p)))};
- case 'HADAMARD':return {matrix:a.map((row,i)=>row.map((v,j)=>mod(v*b[i][j],p))};
+ case 'HADAMARD':return {matrix:a.map((row,i)=>row.map((v,j)=>mod(v*b[i][j],p)))};
  case 'TRACE':return {trace:mod(a.reduce((v,row,i)=>v+row[i],0),p)};
  case 'DETERMINANT':return {determinant:determinant(a,p)};
  case 'RANK':return {rank:r};
@@ -49,7 +49,7 @@ function reference(tag,x){const p=x.prime,a=norm(x.matrix??x.left,p),b=x.right?n
  case 'KERNEL':{const free=range(columns).filter(j=>!rr.pivots.includes(j));return {basis:free.map(j=>{const v=Array(columns).fill(0);v[j]=1;for(const [i,k]of rr.pivots.entries())v[k]=mod(-rr.rows[i][j],p);return v;})};}
  case 'COLUMN_BASIS':return {columns:rr.pivots.map(j=>a.map(row=>row[j]))};
  case 'ROW_BASIS':return {rows:rr.rows.slice(0,r)};
- case 'INVERSE':{const d=determinant(a,p);if(!d)return {inverse:null};const factor=inverse(d,p);return {inverse:range(n).map(i=>range(n).map(j=>mod((i+j)%2?-factor*determinant(a.filter((_,k)=>k!==j).map(row=>row.filter((_,k)=>k!==i)),p):factor*determinant(a.filter((_,k)=>k!==j).map(row=>row.filter((_,k)=>k!==i)),p),p)))};}
+ case 'INVERSE':{const d=determinant(a,p);if(!d)return {inverse:null};const factor=inverse(d,p);return {inverse:range(n).map(i=>range(n).map(j=>{const minor=a.filter((_,k)=>k!==j).map(row=>row.filter((_,k)=>k!==i));return mod((i+j)%2?-factor*determinant(minor,p):factor*determinant(minor,p),p);}))};}
  case 'SOLVE':return solve(a,x.vector.map(v=>mod(v,p)),p);
  case 'CONSISTENT':return {consistent:solve(a,x.vector.map(v=>mod(v,p)),p).consistent};
  case 'SOLUTION_COUNT':{const s=solve(a,x.vector.map(v=>mod(v,p)),p);return {count:s.consistent?String(BigInt(p)**BigInt(s.free)):'0'};}
