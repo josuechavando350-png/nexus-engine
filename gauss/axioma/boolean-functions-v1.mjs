@@ -6,6 +6,7 @@ const TAGS=['EVALUATE','WEIGHT','ZERO_COUNT','BALANCED','SUPPORT','ESSENTIAL_COU
 const id=(tag,i)=>`GAUSS.CS.BOOLEAN_FUNCTIONS.${tag}.${851+i}`;
 const count=m=>m.toString(2).replace(/0/g,'').length;
 const all=n=>Array.from({length:1<<n},(_,i)=>i);
+const variables=n=>Array.from({length:n},(_,i)=>i);
 const subset=(a,b)=>(a&b)===a;
 const parity=x=>count(x)%2;
 const coefficient=(t,s)=>all(Math.log2(t.length)).reduce((sum,m)=>sum+(t[m]?-1:1)*(parity(s&m)?-1:1),0);
@@ -22,8 +23,8 @@ function reference(tag,x){
  case 'WEIGHT':return {ones};
  case 'ZERO_COUNT':return {zeros:t.length-ones};
  case 'BALANCED':return {balanced:ones*2===t.length};
- case 'SUPPORT':return {variables:all(n).filter(k=>differs(t,k).some(Boolean))};
- case 'ESSENTIAL_COUNT':return {count:all(n).filter(k=>differs(t,k).some(Boolean)).length};
+ case 'SUPPORT':return {variables:variables(n).filter(k=>differs(t,k).some(Boolean))};
+ case 'ESSENTIAL_COUNT':return {count:variables(n).filter(k=>differs(t,k).some(Boolean)).length};
  case 'COFACTORS':return {zero:co(t,x.variable,0),one:co(t,x.variable,1)};
  case 'RESTRICT_ZERO':return {table:co(t,x.variable,0)};
  case 'RESTRICT_ONE':return {table:co(t,x.variable,1)};
@@ -42,7 +43,7 @@ function reference(tag,x){
  case 'EQUIVALENT':return {equivalent:t.every((v,i)=>v===x.right[i])};
  case 'HAMMING':return {distance:t.filter((v,i)=>v!==x.right[i]).length};
  case 'NONLINEARITY':{let minimum=t.length;for(let slope=0;slope<(1<<n);slope++)for(let offset=0;offset<2;offset++){const d=domain.filter(m=>t[m]!== (parity(slope&m)^offset)).length;minimum=Math.min(minimum,d);}return {nonlinearity:minimum};}
- case 'CORRELATION_IMMUNITY_1':return {orderOne:all(n).every(k=>coefficient(t,1<<k)===0)};
+ case 'CORRELATION_IMMUNITY_1':return {orderOne:variables(n).every(k=>coefficient(t,1<<k)===0)};
  default:throw Error('unknown reference '+tag);
  }
 }
