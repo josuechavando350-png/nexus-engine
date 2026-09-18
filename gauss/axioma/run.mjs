@@ -1,11 +1,21 @@
-/** AXIOMA: fail-closed independent GAUSS accuracy observations (never a universal claim). */
+/** AXIOMA: independent bounded GAUSS mathematical observations; never a universal precision claim. */
 import assert from 'node:assert/strict';
 import {runFinitePolynomialBank} from '../precision-bank/finite-polynomials-v1.mjs';
 import {runPermutationBank} from './permutations-v1.mjs';
+import {runNumberTheoryBank} from './number-theory-v1.mjs';
+import {runFiniteGraphBank} from './finite-graphs-v1.mjs';
+import {runBooleanBank} from './boolean-functions-v1.mjs';
+import {runFiniteRelationBank} from './finite-relations-v1.mjs';
+import {runPartitionBank} from './partitions-compositions-v1.mjs';
+import {runWeightedTreeBank} from './weighted-trees-v1.mjs';
+import {runPrefixCodeBank} from './prefix-codes-v1.mjs';
+import {runModularMatrixBank} from './modular-matrices-v1.mjs';
+import {runRationalSeriesBank} from './rational-series-v1.mjs';
+import {runTwoMarkovBank} from './markov-two-v1.mjs';
 
 export function runAxioma({resolveLayer} = {}) {
   const options = resolveLayer ? {resolveLayer} : {};
-  const suites = [runFinitePolynomialBank(options), runPermutationBank(options)];
+  const suites = [runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank].map(fn=>fn(options));
   const seen = new Set();
   for (const suite of suites) {
     assert.equal(suite.registryOperators, 1000, 'AXIOMA registry count mismatch');
@@ -22,7 +32,7 @@ export function runAxioma({resolveLayer} = {}) {
   const report = {
     schemaVersion: 1,
     bank: 'AXIOMA',
-    subject: 'GAUSS integration branch, exact bounded reference comparisons',
+    subject: 'GAUSS integration branch, bounded independently referenced comparisons',
     registryOperators: 1000,
     coveredOperators,
     untestedOperators: 1000 - coveredOperators,
@@ -35,7 +45,7 @@ export function runAxioma({resolveLayer} = {}) {
     failedInvalidRejections: sum('failedInvalidRejections'),
     validPassRate: sum('validCases') ? sum('passedValidCases') / sum('validCases') : null,
     invalidRejectionRate: sum('invalidCases') ? sum('passedInvalidRejections') / sum('invalidCases') : null,
-    precisionClaim: 'Only the evaluated inputs of the named exact operators; no universal accuracy, no approximate-operator tolerance claim',
+    precisionClaim: 'Only the evaluated inputs of named bounded operators; exact operations are compared exactly, approximate code entropy within stated tolerance; no universal accuracy claim',
     suites: suites.map(suite => ({
       subject: suite.subject ?? suite.domain,
       seed: suite.seed,
