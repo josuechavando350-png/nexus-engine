@@ -6,11 +6,15 @@ on:
     paths:
       - 'seo-avengers-2500/commercial-demand/cano-evidence-v1.mjs'
       - 'seo-avengers-2500/commercial-demand/cano-evidence-v1.test.mjs'
+      - 'seo-avengers-2500/commercial-demand/cano-tournament-v1.mjs'
+      - 'seo-avengers-2500/commercial-demand/cano-tournament-v1.test.mjs'
       - '.github/workflows/cano-evidence-validation.yml'
   pull_request:
     paths:
       - 'seo-avengers-2500/commercial-demand/cano-evidence-v1.mjs'
       - 'seo-avengers-2500/commercial-demand/cano-evidence-v1.test.mjs'
+      - 'seo-avengers-2500/commercial-demand/cano-tournament-v1.mjs'
+      - 'seo-avengers-2500/commercial-demand/cano-tournament-v1.test.mjs'
       - '.github/workflows/cano-evidence-validation.yml'
   workflow_dispatch:
 permissions:
@@ -23,7 +27,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Check module syntax
-        run: node --check seo-avengers-2500/commercial-demand/cano-evidence-v1.mjs
-      - name: Run CANO evidence tests
-        run: node --test seo-avengers-2500/commercial-demand/cano-evidence-v1.test.mjs
+      - name: Check CANO module syntax
+        run: |
+          node --check seo-avengers-2500/commercial-demand/cano-evidence-v1.mjs
+          node --check seo-avengers-2500/commercial-demand/cano-tournament-v1.mjs
+      - name: Run CANO evidence and tournament tests
+        run: node --test seo-avengers-2500/commercial-demand/cano-evidence-v1.test.mjs seo-avengers-2500/commercial-demand/cano-tournament-v1.test.mjs
