@@ -16,7 +16,7 @@ jobs:
       - name: Archive only committed GAUSS-related source
         shell: bash
         run: |
-          git archive --format=zip --output=/tmp/gauss-source-snapshot.zip HEAD gauss walle/gauss-evidence-verify.mjs walle/adapters/gauss.sh scripts/nexus-gauss.mjs seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs
+          git archive --format=zip --output=/tmp/gauss-source-snapshot.zip HEAD gauss walle/gauss-evidence-verify.mjs walle/adapters/gauss.sh scripts/nexus-gauss.mjs seo-avengers-2500/quantum-runtime
       - uses: actions/upload-artifact@v4
         with:
           name: gauss-source-audit
