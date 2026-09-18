@@ -1,0 +1,78 @@
+name: GAUSS 1000 one-shot isolated import
+on:
+  push:
+    branches: [feat/gauss-1000-audited-integration]
+    paths: ['.github/workflows/gauss-import-once.yml']
+permissions: {}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Fetch exact SHA-256 pinned code and inspect patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --silent --show-error --retry 3 --max-time 120 'https://sdmntprcentralus.oaiusercontent.com/files/00000000-6ab0-81f5-a005-8bfe6978866a/raw?se=2026-09-18T04%3A54%3A41Z&sp=r&sv=2026-02-06&sr=b&scid=40d59408-ab5c-5475-9a56-e742c307d0f6&skoid=e9d2f8b1-028a-4cff-8eb1-d0e66fbefcca&sktid=a48cca56-e6da-484e-a814-9c849652bcb3&skt=2026-09-17T23%3A24%3A20Z&ske=2026-09-18T23%3A24%3A20Z&sks=b&skv=2026-02-06&sig=J7Nk%2B58z15a31AyiI4e1/OHsWtGQfzB8bohkVItoFu4%3D' --output "$RUNNER_TEMP/gauss.zip"
+          echo 'd2697e52f800f1a2ff526017afa2aac4e1d44a375e88b83e30c086604c777654  '"$RUNNER_TEMP/gauss.zip" | sha256sum --check
+          unzip -q "$RUNNER_TEMP/gauss.zip" -d "$RUNNER_TEMP/gauss-transfer"
+          PATCH="$RUNNER_TEMP/gauss-transfer/gauss-1000-audit-v2/GAUSS-1000.patch"
+          echo 'de34fc53a16c6ba139e31b0789e241443d662855b3ad8687780fc085e74db408  '"$PATCH" | sha256sum --check
+          git apply --check "$PATCH"
+          git apply "$PATCH"
+          git diff --check
+          if git diff --name-only | grep -Ev '^(gauss/|walle/)' ; then echo 'UNEXPECTED PATHS' >&2; exit 1; fi
+          git diff --name-only | wc -l
+          cp "$PATCH" "$RUNNER_TEMP/GAUSS-1000.patch"
+      - name: Run all GAUSS tests and connected WALLE proof
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test gauss/tests/*.test.mjs | tee "$RUNNER_TEMP/gauss-tests.tap"
+          WALLE_GAUSS_EVIDENCE_ROOT="$RUNNER_TEMP/gauss-walle" bash walle/adapters/gauss.sh | tee "$RUNNER_TEMP/gauss-walle.log"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: verified-gauss-1000-patch
+          path: |
+            ${{ runner.temp }}/GAUSS-1000.patch
+            ${{ runner.temp }}/gauss-tests.tap
+            ${{ runner.temp }}/gauss-walle.log
+          retention-days: 7
+  commit:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: verified-gauss-1000-patch
+          path: ${{ runner.temp }}/verified
+      - name: Apply only verified patch and push isolated branch (never main)
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$GITHUB_REF_NAME" = feat/gauss-1000-audited-integration
+          PATCH="$RUNNER_TEMP/verified/GAUSS-1000.patch"
+          echo 'de34fc53a16c6ba139e31b0789e241443d662855b3ad8687780fc085e74db408  '"$PATCH" | sha256sum --check
+          git apply --check "$PATCH"
+          git apply "$PATCH"
+          git diff --check
+          if git diff --name-only | grep -Ev '^(gauss/|walle/)' ; then echo 'UNEXPECTED PATHS' >&2; exit 1; fi
+          git add gauss walle/gauss-evidence-verify.mjs walle/adapters/gauss.sh
+          git diff --cached --check
+          git -c user.name='GAUSS audit bot' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'feat(gauss): integrate 800 additional operators with 1000-task WALLE replay'
+          git push origin HEAD:refs/heads/feat/gauss-1000-audited-integration
