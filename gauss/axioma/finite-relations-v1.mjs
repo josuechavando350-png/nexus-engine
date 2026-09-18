@@ -56,7 +56,7 @@ function inputFor(tag,i,r){const size=1+r(5);let pairs=full(size).filter(()=>r(4
  if(i%13===0)pairs=elems(size).map(j=>[j,j]);
  if(tag==='EQUIVALENCE_CLASSES'){
   // Partition into blocks, then independently enumerate pairs in the same block.
-  const groups=elems(size).map(v=>r(3));pairs=full(size).filter(([a,b])=>groups[a]===groups[b]);
+  const groups=elems(size).map(()=>r(3));pairs=full(size).filter(([a,b])=>groups[a]===groups[b]);
  }
  if(['COMPOSITION','UNION','INTERSECTION','DIFFERENCE','SYMMETRIC_DIFFERENCE'].includes(tag))return {size,left:pairs,right:full(size).filter(()=>r(3)===0)};
  if(tag==='POWER')return {size,pairs,power:r(6)};
