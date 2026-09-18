@@ -1,4 +1,4 @@
-/** AXIOMA: independent bounded GAUSS mathematical observations; never a universal precision claim. */
+/** AXIOMA: bounded independent mathematical references, never a universal precision claim. */
 import assert from 'node:assert/strict';
 import {runFinitePolynomialBank} from '../precision-bank/finite-polynomials-v1.mjs';
 import {runPermutationBank} from './permutations-v1.mjs';
@@ -20,10 +20,22 @@ import {runInterval238Bank} from './intervals-238-v1.mjs';
 import {runBinaryGrid238Bank} from './binary-grids-238-v1.mjs';
 import {runRootedTree238Bank} from './rooted-trees-238-v1.mjs';
 import {runCellular238Bank} from './cellular-automata-238-v1.mjs';
+import {runSequence438Bank} from './sequences-438-v1.mjs';
+import {runIntegerPolynomial438Bank} from './integer-polynomials-438-v1.mjs';
+import {runIntegerMatrix438Bank} from './integer-matrices-438-v1.mjs';
+import {runGraphInvariant438Bank} from './graph-invariants-438-v1.mjs';
+import {runUnicode438Bank} from './unicode-strings-438-v1.mjs';
+import {runFiniteNumber438Bank} from './finite-number-theory-438-v1.mjs';
+import {runHypergraph438Bank} from './hypergraphs-438-v1.mjs';
+import {runPoset438Bank} from './posets-438-v1.mjs';
+import {runGeometry438Bank} from './lattice-geometry-438-v1.mjs';
+import {runGf2Coding438Bank} from './gf2-codes-438-v1.mjs';
+import {runFiniteAutomata438Bank} from './finite-automata-438-v1.mjs';
+import {runNumerical438Bank} from './numerical-methods-438-v1.mjs';
 
 export function runAxioma({resolveLayer} = {}) {
   const options = resolveLayer ? {resolveLayer} : {};
-  const suites = [runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank,runBitword238Bank,runFiniteSet238Bank,runFiniteFunction238Bank,runUrn238Bank,runInterval238Bank,runBinaryGrid238Bank,runRootedTree238Bank,runCellular238Bank].map(fn=>fn(options));
+  const suites = [runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank,runBitword238Bank,runFiniteSet238Bank,runFiniteFunction238Bank,runUrn238Bank,runInterval238Bank,runBinaryGrid238Bank,runRootedTree238Bank,runCellular238Bank,runSequence438Bank,runIntegerPolynomial438Bank,runIntegerMatrix438Bank,runGraphInvariant438Bank,runUnicode438Bank,runFiniteNumber438Bank,runHypergraph438Bank,runPoset438Bank,runGeometry438Bank,runGf2Coding438Bank,runFiniteAutomata438Bank,runNumerical438Bank].map(fn=>fn(options));
   const seen = new Set();
   for (const suite of suites) {
     assert.equal(suite.registryOperators, 1000, 'AXIOMA registry count mismatch');
@@ -53,7 +65,7 @@ export function runAxioma({resolveLayer} = {}) {
     failedInvalidRejections: sum('failedInvalidRejections'),
     validPassRate: sum('validCases') ? sum('passedValidCases') / sum('validCases') : null,
     invalidRejectionRate: sum('invalidCases') ? sum('passedInvalidRejections') / sum('invalidCases') : null,
-    precisionClaim: 'Only the evaluated inputs of named bounded operators; exact operations are compared exactly, approximate entropy within stated tolerance; no universal accuracy claim',
+    precisionClaim: 'Only evaluated inputs for named bounded operators; exact comparisons exact, numerical methods checked against explicit analytic tolerances, entropy compared within stated tolerance; no universal accuracy claim',
     suites: suites.map(suite => ({
       subject: suite.subject ?? suite.domain,
       seed: suite.seed,
