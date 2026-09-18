@@ -55,7 +55,7 @@ const GENERAL=[...PREFIX,['0','01'],['0','01','1'],['0','00'],['01','10','0']];
 function rng(seed){let state=seed>>>0;return max=>{state^=state<<13;state^=state>>>17;state^=state<<5;return (state>>>0)%max;};}
 function inputFor(tag,i,r){const restricted=['DECODE','AVAILABLE_LENGTH','CANONICAL'].includes(tag),words=(restricted?PREFIX:GENERAL)[(i+r(restricted?PREFIX.length:GENERAL.length))%(restricted?PREFIX.length:GENERAL.length)].slice(),symbols=words.map((_,j)=>'abcdefghijk'[j]);
  if(tag==='CANONICAL')return {symbols,lengths:words.map(w=>w.length)};
- if(['WEIGHTED_AVERAGE','LENGTH_VARIANCE','SOURCE_ENTROPY','REDUNDANCY'].includes(tag))return {symbols,codewords:words,frequencies:words.map((_,j)=>j===0&&i%11===0?0:1+r(20))};
+ if(['WEIGHTED_AVERAGE','LENGTH_VARIANCE','SOURCE_ENTROPY','REDUNDANCY'].includes(tag))return {symbols,codewords:words,frequencies:words.map((_,j)=>j===0&&i%11===0&&words.length>1?0:1+r(20))};
  if(tag==='ENCODE')return {symbols,codewords:words,message:Array.from({length:r(12)},()=>symbols[r(symbols.length)]).join('')};
  if(tag==='DECODE'){const msg=Array.from({length:r(12)},()=>r(words.length));return {symbols,codewords:words,bits:msg.map(j=>words[j]).join('')};}
  if(tag==='AVAILABLE_LENGTH')return {symbols,codewords:words,length:1+r(5)};
