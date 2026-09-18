@@ -28,10 +28,10 @@ function sample(tag,i,r){const n=2+r(6),a=range(n).map(()=>r(11)-5),b=range(n).m
  if(tag==='WEIGHTED_MOMENTS')return {samples:a,weights:a.map(()=>1+r(5))};
  if(tag==='WEIGHTED_QUANTILE')return {samples:a,weights:a.map(()=>1+r(4)),probability:r(11)/10};
  if(tag==='EMPIRICAL_CDF')return {samples:a,queries:range(1+r(5)).map(()=>r(15)-7)};
- if(tag==='PEARSON_CHI_SQUARE')return {counts:range(2+r(2)).map(()=>range(2+r(2)).map(()=>1+r(8)))};
+ if(tag==='PEARSON_CHI_SQUARE'){const rows=2+r(2),cols=2+r(2);return {counts:range(rows).map(()=>range(cols).map(()=>1+r(8)))};}
  if(tag==='GINI_NONNEGATIVE')return {samples:a.map(v=>v+6)};
  return {samples:a};
 }
 function verify(actual,expected){assert.deepStrictEqual(Object.keys(actual).sort(),Object.keys(expected).sort());for(const k of Object.keys(expected)){if(Array.isArray(expected[k])){assert.equal(actual[k].length,expected[k].length);expected[k].forEach((v,i)=>assert.ok(Math.abs(v-actual[k][i])<=1e-10*Math.max(1,Math.abs(v)),`${k}[${i}] mismatch`));}else if(typeof expected[k]==='number')assert.ok(typeof actual[k]==='number'&&Number.isFinite(actual[k])&&Math.abs(actual[k]-expected[k])<=1e-10*Math.max(1,Math.abs(expected[k])),`${k} mismatch`);else assert.deepStrictEqual(actual[k],expected[k]);}}
-const definitions=tags.map((tag,i)=>({id:`GAUSS.STATS.${tag}.${14+i}`,make:(j,r)=>sample(tag,j,r),reference:x=>ref(tag,x),verify}));
+const definitions=tags.map((tag,i)=>({id:`GAUSS.STATS.${tag}.${String(14+i).padStart(3,'0')}`,make:(j,r)=>sample(tag,j,r),reference:x=>ref(tag,x),verify}));
 export const runFinalDescriptiveStatisticsBank=options=>runFinalBank({name:'AXIOMA 12 separate sample and rank statistic references',definitions,...options});
