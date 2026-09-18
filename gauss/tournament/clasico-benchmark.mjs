@@ -58,12 +58,12 @@ function parseHistorical(text) {
     const key=[date,home,away,stage].join('|');
     assert(!seen.has(key), `duplicate fixture ${key}`);
     seen.add(key);
-    assert(date <= '2025-05-31', 'historical source contains future information');
+    assert(date <= '2026-05-31', 'historical source contains future information');
     return row;
   });
   assert(all.length >= 2000, 'historical sample unexpectedly small');
   const regular = all.filter(r => r.stage === 'Apertura' || r.stage === 'Clausura').sort(sortMatches);
-  assert(regular.some(r=>r.season==='2023-24') && regular.some(r=>r.season==='2024-25'));
+  assert(regular.some(r=>r.season==='2023-24') && regular.some(r=>r.season==='2024-25') && regular.some(r=>r.season==='2025-26'));
   return {all,regular};
 }
 function sortMatches(a,b) {return a.date.localeCompare(b.date)||a.home.localeCompare(b.home)||a.away.localeCompare(b.away);}
@@ -188,11 +188,13 @@ const regular=parsed.regular;
 const training=regular.filter(m=>m.season<'2023-24');
 const validation=regular.filter(m=>m.season==='2023-24');
 const holdout=regular.filter(m=>m.season==='2024-25');
-assert(training.length>1200 && validation.length>=150 && holdout.length>=150,'insufficient chronological sample');
+const postHoldout=regular.filter(m=>m.season==='2025-26');
+assert(training.length>1200 && validation.length>=150 && holdout.length>=150 && postHoldout.length>=150,'insufficient chronological sample');
 assert(training.at(-1).date<validation[0].date && validation.at(-1).date<holdout[0].date);
 const validationResults=await evaluate(validation,training,'validation');
 const quantum=await quantumSelect(validationResults.recipeScores);
 const holdoutResults=await evaluate(holdout,[...training,...validation],'holdout',quantum);
+const postHoldoutResults=await evaluate(postHoldout,[...training,...validation,...holdout],'2025-26-holdout',quantum);
 const current=snapshot();
 const recentResults=await evaluate(current,regular,'2026-primary-snapshot',quantum);
 assert.equal(recentResults.matches,15);
@@ -206,7 +208,7 @@ const probabilities={
   quantumSelectedEnsemble:mixForecast(predicted.baseline,predicted.classic.probs,predicted.context.probs,quantum.mix),
 };
 const sha256=createHash('sha256').update(bytes).digest('hex');
-const report={schemaVersion:1,experiment:'clasico-2026-independent-historical-holdout-v1',source:{historical:HISTORICAL_SOURCE,sourceCommit:SOURCE_COMMIT,historicalSha256:`sha256:${sha256}`,historicalRows:parsed.all.length,regularRows:regular.length,america2026:AMERICA_SOURCE,chivas2026:CHIVAS_SOURCE,current2026Rows:current.length,asOf:FROZEN_AT,missing2025_26:true},method:{trainingSeasonEnd:'2022-23',validationSeason:'2023-24',holdoutSeason:'2024-25',sameDateNoLeakage:true,noTrainingOnHoldout:true,models:MODELS,quantumMixCandidates:MIXES,assumptions:['32 independent Bernoulli opportunities per team, not a learned xG model','historical source ends May 2025: 2025-26 absent','only 15 primary-sourced 2026 matches for current form; no complete 2026 league feed','xG and injuries omitted because consistent timestamped historical coverage unavailable','Quantum simulation optimizes a pre-holdout ensemble; it is not a separate football forecast']},validation:validationResults,quantum:{...quantum,hardwareExecution:false},holdout:holdoutResults,recent2026:recentResults,prematch:{date:'2026-09-19',home:HOME,away:AWAY,probabilities,modalScores:{gaussClassic:predicted.classic.modal,gaussContext:predicted.context.modal},meanGoals:{gaussClassic:expectedGoals(preMatch,HOME,AWAY),gaussContext:expectedGoals(preMatch,HOME,AWAY,true)},gaussReceipts:{classic:predicted.classic.reportSha256,context:predicted.context.reportSha256},resultKnown:false}};
+const report={schemaVersion:1,experiment:'clasico-2026-independent-historical-holdout-v1',source:{historical:HISTORICAL_SOURCE,sourceCommit:SOURCE_COMMIT,historicalSha256:`sha256:${sha256}`,historicalRows:parsed.all.length,regularRows:regular.length,america2026:AMERICA_SOURCE,chivas2026:CHIVAS_SOURCE,current2026Rows:current.length,asOf:FROZEN_AT,historicalThrough:'2026-05-24',missing2025_26:false},method:{trainingSeasonEnd:'2022-23',validationSeason:'2023-24',holdoutSeason:'2024-25',sameDateNoLeakage:true,noTrainingOnHoldout:true,models:MODELS,quantumMixCandidates:MIXES,assumptions:['32 independent Bernoulli opportunities per team, not a learned xG model','historical source includes 2025-26 but the 2026-27 seasonal JSON includes only rounds 1 and 2','only 15 primary-sourced 2026 matches for current form; no complete 2026 league feed','xG and injuries omitted because consistent timestamped historical coverage unavailable','Quantum simulation optimizes a pre-holdout ensemble; it is not a separate football forecast']},validation:validationResults,quantum:{...quantum,hardwareExecution:false},holdout:holdoutResults,postHoldout2025_26:postHoldoutResults,recent2026:recentResults,prematch:{date:'2026-09-19',home:HOME,away:AWAY,probabilities,modalScores:{gaussClassic:predicted.classic.modal,gaussContext:predicted.context.modal},meanGoals:{gaussClassic:expectedGoals(preMatch,HOME,AWAY),gaussContext:expectedGoals(preMatch,HOME,AWAY,true)},gaussReceipts:{classic:predicted.classic.reportSha256,context:predicted.context.reportSha256},resultKnown:false}};
 const serialized=JSON.stringify(report,null,2)+'\n';
 await writeFile(outPath,serialized,{flag:'wx',mode:0o600});
-console.log(`CLASICO_FULL_TOURNAMENT=${JSON.stringify({historicalRows:parsed.all.length,regularRows:regular.length,validation:validationResults.matches,holdout:holdoutResults.matches,recent2026:recentResults.matches,recentMetrics:recentResults.scores,quantumSelectedMix:quantum.mix.id,holdoutMetrics:holdoutResults.scores,prematch:report.prematch.probabilities,modalScores:report.prematch.modalScores,historicalSha256:report.source.historicalSha256})}`);
+console.log(`CLASICO_FULL_TOURNAMENT=${JSON.stringify({historicalRows:parsed.all.length,regularRows:regular.length,validation:validationResults.matches,holdout:holdoutResults.matches,postHoldout2025_26:postHoldoutResults.matches,postHoldoutMetrics:postHoldoutResults.scores,recent2026:recentResults.matches,recentMetrics:recentResults.scores,quantumSelectedMix:quantum.mix.id,holdoutMetrics:holdoutResults.scores,prematch:report.prematch.probabilities,modalScores:report.prematch.modalScores,historicalSha256:report.source.historicalSha256})}`);
