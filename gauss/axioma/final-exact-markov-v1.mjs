@@ -16,7 +16,7 @@ function paths(weights,start,steps){const P=transition(weights),out=[];function 
 const prob=(items,predicate)=>sum(items.filter(predicate).map(item=>item.prob));
 const distribution=(weights,start,steps)=>range(weights.length).map(j=>prob(paths(weights,start,steps),item=>item.history.at(-1)===j));
 const hitAt=(history,target)=>history.indexOf(target);
-function compute(tag,x){const n=x.weights.length,t=x.steps??0,s=x.start??0,all=tag==='TRANSITION_POWER'?null:paths(x.weights,s,t),target=x.target;
+function compute(tag,x){const n=x.weights.length,t=x.steps??x.secondStep??0,s=x.start??0,all=tag==='TRANSITION_POWER'?null:paths(x.weights,s,t),target=x.target;
  switch(tag){
  case 'STEP_DISTRIBUTION':return {distribution:distribution(x.weights,s,t).map(fmt)};
  case 'TRANSITION_POWER':return {transition:range(n).map(i=>distribution(x.weights,i,t).map(fmt))};
