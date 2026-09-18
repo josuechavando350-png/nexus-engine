@@ -1,0 +1,4274 @@
+{
+  "kind": "GAUSS_OFFLINE_FIXTURE",
+  "tasks": [
+    {
+      "layerId": "GAUSS.MATH.SET_UNION.601",
+      "domain": "MATHEMATICS",
+      "description": "Union of two finite integer sets",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_INTERSECTION.602",
+      "domain": "MATHEMATICS",
+      "description": "Intersection of two finite integer sets",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_DIFFERENCE.603",
+      "domain": "MATHEMATICS",
+      "description": "Set-theoretic left difference",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_SYMMETRIC_DIFFERENCE.604",
+      "domain": "MATHEMATICS",
+      "description": "Symmetric difference of finite sets",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_COMPLEMENT.605",
+      "domain": "MATHEMATICS",
+      "description": "Complement inside explicitly bounded universe",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_SUBSET.606",
+      "domain": "MATHEMATICS",
+      "description": "Non-strict subset relation",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_PROPER_SUBSET.607",
+      "domain": "MATHEMATICS",
+      "description": "Strict subset relation",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_DISJOINT.608",
+      "domain": "MATHEMATICS",
+      "description": "Disjointness decision of sets",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_EQUALITY.609",
+      "domain": "MATHEMATICS",
+      "description": "Equality independent of input order",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_CARTESIAN_PRODUCT.610",
+      "domain": "MATHEMATICS",
+      "description": "Lexicographic Cartesian product of two sets",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_POWER_SET.611",
+      "domain": "MATHEMATICS",
+      "description": "Enumerate every subset of a finite set",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_K_SUBSETS.612",
+      "domain": "MATHEMATICS",
+      "description": "Enumerate exact-cardinality subsets of a set",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ],
+        "k": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_JACCARD.613",
+      "domain": "MATHEMATICS",
+      "description": "Exact rational Jaccard similarity",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_DICE.614",
+      "domain": "MATHEMATICS",
+      "description": "Exact rational Sørensen-Dice coefficient",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_HAMMING.615",
+      "domain": "MATHEMATICS",
+      "description": "Hamming distance between characteristic vectors",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_BITMASK.616",
+      "domain": "MATHEMATICS",
+      "description": "Rank a finite subset by its characteristic mask",
+      "input": {
+        "n": 6,
+        "a": [
+          0,
+          2,
+          4
+        ],
+        "b": [
+          2,
+          3,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_UNRANK_MASK.617",
+      "domain": "MATHEMATICS",
+      "description": "Reconstruct subset from a bounded characteristic mask",
+      "input": {
+        "n": 6,
+        "mask": 21
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_COVER_WITNESS.618",
+      "domain": "MATHEMATICS",
+      "description": "Exact minimum-cardinality set-cover witness",
+      "input": {
+        "n": 5,
+        "family": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_COVER_COUNT.619",
+      "domain": "MATHEMATICS",
+      "description": "Exact number of set-cover subfamilies",
+      "input": {
+        "n": 5,
+        "family": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_PACKING_WITNESS.620",
+      "domain": "MATHEMATICS",
+      "description": "Maximum-cardinality disjoint set-family packing",
+      "input": {
+        "n": 5,
+        "family": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_INCIDENCE_MATRIX.621",
+      "domain": "MATHEMATICS",
+      "description": "Set-family incidence matrix",
+      "input": {
+        "n": 5,
+        "family": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_ELEMENT_FREQUENCIES.622",
+      "domain": "MATHEMATICS",
+      "description": "Element incidence multiplicities across set family",
+      "input": {
+        "n": 5,
+        "family": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_TRANSVERSAL.623",
+      "domain": "MATHEMATICS",
+      "description": "Minimum hitting set for a finite family",
+      "input": {
+        "n": 5,
+        "family": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_MAXIMAL_MEMBERS.624",
+      "domain": "MATHEMATICS",
+      "description": "Inclusion-maximal members of an indexed family",
+      "input": {
+        "n": 5,
+        "family": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.SET_ANTICHAIN_CHECK.625",
+      "domain": "MATHEMATICS",
+      "description": "Pairwise inclusion-antichain check for set family",
+      "input": {
+        "n": 5,
+        "family": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_PARENTS.626",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Rooted tree parent array",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_DEPTHS.627",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Root distance from each tree vertex",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_CHILDREN.628",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Sorted rooted child adjacency",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_BFS.629",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Breadth-first vertex traversal",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_PREORDER.630",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Depth-first preorder traversal",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_POSTORDER.631",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Depth-first postorder traversal",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_SUBTREE_SIZES.632",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Subtree vertex count of each root",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_LEAVES.633",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Rooted terminal leaves",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_LEAF_COUNT.634",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Total rooted terminal leaves",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_HEIGHT.635",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Height in edges of rooted tree",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_LEVELS.636",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Vertex partition by root depth",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_SUBTREE_VERTICES.637",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Ordered descendants including selected vertex",
+      "input": {
+        "tree": {
+          "n": 7,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ]
+        },
+        "vertex": 1
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_LCA.638",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Lowest common ancestor",
+      "input": {
+        "tree": {
+          "n": 7,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 3,
+        "b": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_DISTANCE.639",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact unweighted unique-path distance",
+      "input": {
+        "tree": {
+          "n": 7,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 3,
+        "b": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_PATH.640",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Unique simple tree-path vertex witness",
+      "input": {
+        "tree": {
+          "n": 7,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 3,
+        "b": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_KTH_ANCESTOR.641",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Bounded k-th ancestor or null",
+      "input": {
+        "tree": {
+          "n": 7,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ]
+        },
+        "vertex": 6,
+        "k": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_ANCESTOR_CHECK.642",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Ancestor relation in rooted tree",
+      "input": {
+        "tree": {
+          "n": 7,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 2,
+        "b": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_DEGREES.643",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Undirected tree degree sequence",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_DEGREE_HISTOGRAM.644",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Degree frequency distribution",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_MAX_BRANCH.645",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Maximum rooted children and vertex witnesses",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_CENTERS.646",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Unweighted tree centers and radius",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_CENTROIDS.647",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "All balance centroids of unweighted tree",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_DIAMETER.648",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Unweighted tree diameter and endpoints",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_ROOT_LEAF_PATHS.649",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "All root-to-leaf vertex paths",
+      "input": {
+        "n": 7,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1
+          ],
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            3
+          ],
+          [
+            1,
+            4
+          ],
+          [
+            2,
+            5
+          ],
+          [
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.TREE_SUBTREE_SUMS.650",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact integer-valued subtree sums",
+      "input": {
+        "tree": {
+          "n": 7,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1
+            ],
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              3
+            ],
+            [
+              1,
+              4
+            ],
+            [
+              2,
+              5
+            ],
+            [
+              5,
+              6
+            ]
+          ]
+        },
+        "values": [
+          2,
+          3,
+          5,
+          7,
+          11,
+          13,
+          17
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_MERGE.651",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Canonical union of overlapping or touching half-open intervals",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_UNION_LENGTH.652",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Measure of union of integer-endpoint intervals",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_TOTAL_LENGTH.653",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Sum of individual interval lengths counting overlaps",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_MAX_OVERLAP.654",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Maximum simultaneous interval coverage",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_OVERLAP_SEGMENTS.655",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "All positive-length segments covered at least twice",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_DEPTH_PROFILE.656",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Disjoint constant-multiplicity sweep-line profile",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_OVERLAP_PAIRS.657",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Number of intersecting interval-index pairs",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_DISJOINT_PAIRS.658",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Number of nonintersecting interval-index pairs",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_CONTAINMENT_PAIRS.659",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "All ordered indexed containment relations",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_ACTIVE_INDICES.660",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Index witnesses active at integer time",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "time": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_ACTIVE_COUNT.661",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Interval multiplicity at integer time",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "time": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_NEXT_START.662",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Next interval start at or after query time",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "time": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_NEXT_END.663",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Next interval end at or after query time",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "time": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_WINDOW_GAPS.664",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Uncovered subintervals of bounded window",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "start": -2,
+        "end": 12
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_WINDOW_COVERAGE.665",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Covered duration inside bounded window",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "start": -2,
+        "end": 12
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_LONGEST_GAP.666",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Longest uncovered interval of bounded window",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "start": -2,
+        "end": 12
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_EARLIEST_FINISH.667",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Earliest-finishing interval index",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_LATEST_START.668",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Latest-starting interval index",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_MAX_DISJOINT.669",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Maximum-cardinality interval activity selection",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_ROOM_PARTITION.670",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Minimum interval-room coloring assignment",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_SET_INTERSECTION.671",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Intersection of two unions of intervals",
+      "input": {
+        "left": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "right": [
+          [
+            1,
+            3
+          ],
+          [
+            7,
+            11
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_SET_DIFFERENCE.672",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Difference of two interval unions",
+      "input": {
+        "left": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "right": [
+          [
+            1,
+            3
+          ],
+          [
+            7,
+            11
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_SET_SYMMETRIC.673",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Symmetric difference of interval unions",
+      "input": {
+        "left": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ],
+        "right": [
+          [
+            1,
+            3
+          ],
+          [
+            7,
+            11
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_DEPTH_HISTOGRAM.674",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Total length at each strictly positive coverage depth",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CONTROL.INTERVAL_EXCLUSIVE_LENGTH.675",
+      "domain": "CONTROL_DYNAMICS",
+      "description": "Measure covered by precisely one interval",
+      "input": {
+        "intervals": [
+          [
+            0,
+            4
+          ],
+          [
+            2,
+            6
+          ],
+          [
+            6,
+            9
+          ],
+          [
+            3,
+            5
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_NORMALIZE.676",
+      "domain": "MATHEMATICS",
+      "description": "Canonical polynomial coefficients over prime finite field",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_DEGREE.677",
+      "domain": "MATHEMATICS",
+      "description": "Finite-field polynomial degree or zero sentinel",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_ADD.678",
+      "domain": "MATHEMATICS",
+      "description": "Finite-field polynomial coefficient addition",
+      "input": {
+        "prime": 5,
+        "left": [
+          1,
+          2,
+          3
+        ],
+        "right": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_SUBTRACT.679",
+      "domain": "MATHEMATICS",
+      "description": "Finite-field polynomial coefficient subtraction",
+      "input": {
+        "prime": 5,
+        "left": [
+          1,
+          2,
+          3
+        ],
+        "right": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_NEGATE.680",
+      "domain": "MATHEMATICS",
+      "description": "Additive inverse of finite-field polynomial",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_SCALE.681",
+      "domain": "MATHEMATICS",
+      "description": "Finite-field polynomial scalar product",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ],
+        "scalar": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_PRODUCT.682",
+      "domain": "MATHEMATICS",
+      "description": "Convolution product in prime polynomial ring",
+      "input": {
+        "prime": 5,
+        "left": [
+          1,
+          2,
+          3
+        ],
+        "right": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_DIVMOD.683",
+      "domain": "MATHEMATICS",
+      "description": "Exact quotient and remainder in prime polynomial ring",
+      "input": {
+        "prime": 5,
+        "left": [
+          1,
+          2,
+          3
+        ],
+        "right": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_GCD.684",
+      "domain": "MATHEMATICS",
+      "description": "Monic polynomial Euclidean greatest common divisor",
+      "input": {
+        "prime": 5,
+        "left": [
+          1,
+          2,
+          3
+        ],
+        "right": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_MONIC.685",
+      "domain": "MATHEMATICS",
+      "description": "Normalize nonzero polynomial to monic form",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_DERIVATIVE.686",
+      "domain": "MATHEMATICS",
+      "description": "Formal polynomial derivative in characteristic p",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_HASSE_DERIVATIVE.687",
+      "domain": "MATHEMATICS",
+      "description": "Hasse derivative coefficient transform",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ],
+        "order": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_INTEGRATE.688",
+      "domain": "MATHEMATICS",
+      "description": "Formal antiderivative when inverse coefficients exist",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_EVALUATE.689",
+      "domain": "MATHEMATICS",
+      "description": "Finite-field Horner evaluation",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ],
+        "at": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_MULTIPOINT_EVAL.690",
+      "domain": "MATHEMATICS",
+      "description": "Polynomial evaluation on explicitly bounded point set",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ],
+        "points": [
+          0,
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_COMPOSE.691",
+      "domain": "MATHEMATICS",
+      "description": "Polynomial composition in prime field",
+      "input": {
+        "prime": 5,
+        "left": [
+          1,
+          2,
+          3
+        ],
+        "right": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_POWER.692",
+      "domain": "MATHEMATICS",
+      "description": "Polynomial exponentiation by repeated squaring",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ],
+        "exponent": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_POWER_MOD.693",
+      "domain": "MATHEMATICS",
+      "description": "Exponentiation in a polynomial quotient ring",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ],
+        "exponent": 17,
+        "modulus": [
+          2,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_MOD_INVERSE.694",
+      "domain": "MATHEMATICS",
+      "description": "Extended Euclidean modular polynomial inverse",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ],
+        "modulus": [
+          2,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_ROOTS.695",
+      "domain": "MATHEMATICS",
+      "description": "All finite-field polynomial roots",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_ROOT_MULTIPLICITIES.696",
+      "domain": "MATHEMATICS",
+      "description": "Exact finite-field root multiplicities",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_LAGRANGE_INTERPOLATION.697",
+      "domain": "MATHEMATICS",
+      "description": "Finite-field polynomial reconstruction at distinct nodes",
+      "input": {
+        "prime": 5,
+        "points": [
+          0,
+          1,
+          2
+        ],
+        "values": [
+          1,
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_RESULTANT.698",
+      "domain": "MATHEMATICS",
+      "description": "Sylvester determinant resultant over a prime field",
+      "input": {
+        "prime": 5,
+        "left": [
+          1,
+          2,
+          3
+        ],
+        "right": [
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_DISCRIMINANT.699",
+      "domain": "MATHEMATICS",
+      "description": "Polynomial discriminant via derivative resultant",
+      "input": {
+        "prime": 5,
+        "coefficients": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.FP_IRREDUCIBLE.700",
+      "domain": "MATHEMATICS",
+      "description": "Bounded exact finite-field polynomial irreducibility decision",
+      "input": {
+        "prime": 2,
+        "coefficients": [
+          1,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_ONES.701",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Count active binary grid cells",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_ZEROS.702",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Count inactive binary grid cells",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_ROW_COUNTS.703",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Active pixel histogram by row",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_COLUMN_COUNTS.704",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Active pixel histogram by column",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_COMPONENT_LABELS.705",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Four-neighbor connected component labels",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_COMPONENT_COUNT.706",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Four-neighbor connected component count",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_COMPONENT_SIZES.707",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Sizes of all active-cell components",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_LARGEST_COMPONENT.708",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Largest active-cell component area",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_PERIMETER.709",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exposed four-neighbor pixel perimeter",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_HORIZONTAL_EDGES.710",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Count horizontal active-cell adjacencies",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_VERTICAL_EDGES.711",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Count vertical active-cell adjacencies",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_HOLES.712",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Count enclosed four-neighbor zero components",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_EULER.713",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Four-neighbor binary image Euler characteristic",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_BOUNDING_BOX.714",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Bounding rectangle of all active cells",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_SHORTEST_DISTANCE.715",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Four-neighbor obstacle grid shortest distance",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_SHORTEST_PATH.716",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Deterministic obstacle grid shortest path witness",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_SHORTEST_PATH_COUNT.717",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact count of all shortest obstacle-grid paths",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_DISTANCE_FIELD.718",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Full reachable obstacle-grid distance field",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ],
+        "start": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_REACHABLE.719",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Obstacle-grid endpoint reachability decision",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ],
+        "start": [
+          0,
+          0
+        ],
+        "end": [
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_ECCENTRICITY.720",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Maximum finite grid distance from a source",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ],
+        "start": [
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_MONOTONE_COUNT.721",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Count monotone right/down obstacle-grid paths",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_MONOTONE_PATH.722",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Right/down monotone path witness or null",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_LARGEST_SQUARE.723",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Largest all-one axis-aligned square side",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_ALL_SQUARES.724",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Count all all-one square submatrices",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.GRID_LARGEST_RECTANGLE.725",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Maximum all-one axis-aligned rectangle area",
+      "input": {
+        "cells": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_POPCOUNT.726",
+      "domain": "INFORMATION_THEORY",
+      "description": "Exact number of set bits",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_PARITY.727",
+      "domain": "INFORMATION_THEORY",
+      "description": "Parity of a bounded bitword",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_LEADING_ZEROS.728",
+      "domain": "INFORMATION_THEORY",
+      "description": "Number of leading zero bits",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_TRAILING_ZEROS.729",
+      "domain": "INFORMATION_THEORY",
+      "description": "Number of trailing zero bits",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_MSB.730",
+      "domain": "INFORMATION_THEORY",
+      "description": "Most significant set-bit index",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_LSB.731",
+      "domain": "INFORMATION_THEORY",
+      "description": "Least significant set-bit index",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_REVERSE.732",
+      "domain": "INFORMATION_THEORY",
+      "description": "Reverse order of all fixed-width bits",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_COMPLEMENT.733",
+      "domain": "INFORMATION_THEORY",
+      "description": "Fixed-width ones complement",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_ROTL.734",
+      "domain": "INFORMATION_THEORY",
+      "description": "Fixed-width circular left rotation",
+      "input": {
+        "width": 8,
+        "value": 178,
+        "k": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_ROTR.735",
+      "domain": "INFORMATION_THEORY",
+      "description": "Fixed-width circular right rotation",
+      "input": {
+        "width": 8,
+        "value": 178,
+        "k": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_GRAY_ENCODE.736",
+      "domain": "INFORMATION_THEORY",
+      "description": "Binary reflected Gray code encoding",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_GRAY_DECODE.737",
+      "domain": "INFORMATION_THEORY",
+      "description": "Inverse binary reflected Gray code transformation",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_ONE_POSITIONS.738",
+      "domain": "INFORMATION_THEORY",
+      "description": "Ascending indices of set bits",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_ZERO_POSITIONS.739",
+      "domain": "INFORMATION_THEORY",
+      "description": "Ascending indices of clear bits",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_LONGEST_ONE_RUN.740",
+      "domain": "INFORMATION_THEORY",
+      "description": "Longest contiguous run of one bits",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_LONGEST_ZERO_RUN.741",
+      "domain": "INFORMATION_THEORY",
+      "description": "Longest contiguous run of zero bits",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_LINEAR_TRANSITIONS.742",
+      "domain": "INFORMATION_THEORY",
+      "description": "Number of adjacent bit transitions",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_CIRCULAR_TRANSITIONS.743",
+      "domain": "INFORMATION_THEORY",
+      "description": "Number of cyclic bit transitions",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_HAMMING_DISTANCE.744",
+      "domain": "INFORMATION_THEORY",
+      "description": "Hamming distance of two equal-width bitwords",
+      "input": {
+        "width": 8,
+        "left": 178,
+        "right": 204
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_INTERSECTION_SIZE.745",
+      "domain": "INFORMATION_THEORY",
+      "description": "Intersection cardinality of bitmask sets",
+      "input": {
+        "width": 8,
+        "left": 178,
+        "right": 204
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_UNION_SIZE.746",
+      "domain": "INFORMATION_THEORY",
+      "description": "Union cardinality of bitmask sets",
+      "input": {
+        "width": 8,
+        "left": 178,
+        "right": 204
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_JACCARD.747",
+      "domain": "INFORMATION_THEORY",
+      "description": "Exact rational bitset Jaccard coefficient",
+      "input": {
+        "width": 8,
+        "left": 178,
+        "right": 204
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_RANK.748",
+      "domain": "INFORMATION_THEORY",
+      "description": "Number of set bits in the lowest k bit positions",
+      "input": {
+        "width": 8,
+        "value": 178,
+        "k": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_SELECT.749",
+      "domain": "INFORMATION_THEORY",
+      "description": "Zero-indexed select of kth set bit or null",
+      "input": {
+        "width": 8,
+        "value": 178,
+        "k": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.INFO.BIT_PREFIX_PARITIES.750",
+      "domain": "INFORMATION_THEORY",
+      "description": "Parity of every least-significant-bit prefix",
+      "input": {
+        "width": 8,
+        "value": 178
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_INDEGREES.751",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "In-degree histogram of a finite endofunction",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_FIXED_POINTS.752",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Fixed-point vertices of endofunction",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_FIXED_COUNT.753",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact number of fixed points",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_CYCLES.754",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Canonical directed cycle decomposition",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_CYCLE_COUNT.755",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Number of endofunction cycles",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_CYCLIC_VERTICES.756",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Vertices lying on a directed function cycle",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_TRANSIENT_VERTICES.757",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Vertices outside all cycles",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_TRANSIENT_DEPTHS.758",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Steps to eventual cycle for each vertex",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_PERIOD_LENGTHS.759",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Eventual orbit period for every vertex",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_MAX_DEPTH.760",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Maximum transient depth in functional graph",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_ORBIT.761",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Explicit orbit with preperiod and cycle",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ],
+        "vertex": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_FIRST_HIT.762",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Earliest nonnegative target-hitting iterate",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ],
+        "source": 7,
+        "target": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_REACHABLE.763",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Reachability along deterministic iterates",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ],
+        "source": 7,
+        "target": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_KTH_ITERATE.764",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Fast million-step bounded endofunction iterate",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ],
+        "vertex": 3,
+        "steps": 999999
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_IMAGE.765",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Sorted image set of finite function",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_IMAGE_SIZE.766",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Image cardinality of finite function",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_PREIMAGES.767",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Complete direct preimage of target vertex",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ],
+        "vertex": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_COLLISION_PAIRS.768",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "All unordered domain collisions with equal mapped value",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_INJECTIVE.769",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Injectivity test of finite function",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_SURJECTIVE.770",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Surjectivity test of finite function",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_IDEMPOTENT.771",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Check functional idempotence f squared equals f",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_INVOLUTION.772",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Check involutory function f squared equals identity",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_COMPOSE.773",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Compose two total bounded endofunctions",
+      "input": {
+        "left": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ],
+        "right": [
+          0,
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_POWER.774",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exponentiate functional mapping by squaring",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ],
+        "exponent": 12345
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.FUNCTION_BASIN_SIZES.775",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Basins of attraction by canonical cycle representative",
+      "input": {
+        "mapping": [
+          1,
+          2,
+          0,
+          4,
+          5,
+          4,
+          6,
+          5
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_DISTRIBUTION.776",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact multivariate-count hypergeometric red-count distribution",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_PMF.777",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact hypergeometric count probability",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4,
+        "k": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_CDF.778",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact hypergeometric lower cumulative probability",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4,
+        "k": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_TAIL.779",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact hypergeometric upper tail probability",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4,
+        "k": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_MEAN.780",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact expected red draws without replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_VARIANCE.781",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact finite-population red-count variance",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_MODES.782",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "All maximizing hypergeometric count values",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_QUANTILE.783",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact discrete inverse CDF of hypergeometric draws",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4,
+        "numerator": 1,
+        "denominator": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_ENTROPY.784",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Shannon entropy of hypergeometric red-count distribution",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_EVEN.785",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact probability of an even red count without replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_ZERO.786",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact probability of no red draws without replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_ALL.787",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact probability every draw is red without replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_ANY.788",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact probability at least one red without replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_HYPERGEOMETRIC_MAJORITY.789",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact probability red exceeds half of draws without replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_DISTRIBUTION.790",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact red-count distribution for draws with replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_PMF.791",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact binomial red-count probability with replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4,
+        "k": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_CDF.792",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact binomial lower cumulative probability",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4,
+        "k": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_TAIL.793",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact binomial upper tail probability",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4,
+        "k": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_MEAN.794",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact red-count mean with replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_VARIANCE.795",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact red-count variance with replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_MODES.796",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "All maximizing binomial red-count outcomes",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_QUANTILE.797",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact inverse CDF for binomial red-count draws",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4,
+        "numerator": 1,
+        "denominator": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_ENTROPY.798",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Shannon entropy of binomial count distribution",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_EVEN.799",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact probability of an even red count with replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    },
+    {
+      "layerId": "GAUSS.STATS.URN_BINOMIAL_ALL.800",
+      "domain": "STATISTICS_PROBABILITY",
+      "description": "Exact probability every draw is red with replacement",
+      "input": {
+        "red": 6,
+        "blue": 4,
+        "draws": 4
+      }
+    }
+  ]
+}

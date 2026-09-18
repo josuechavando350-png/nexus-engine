@@ -19,7 +19,7 @@ export function validateGaussProblem(problem) {
   if (typeof problem.objective !== "string" || problem.objective.trim().length < 1 || problem.objective.length > 16_384) {
     throw new TypeError("objective must be a non-empty bounded string");
   }
-  const tasks = assertArray(problem.tasks, "tasks", { min: 1, max: 800 }).map((task, index) => {
+  const tasks = assertArray(problem.tasks, "tasks", { min: 1, max: 1000 }).map((task, index) => {
     assertExactKeys(task, ["input", "layerId", "taskId"], `tasks[${index}]`);
     const taskId = assertToken(task.taskId, `tasks[${index}].taskId`);
     const layerId = assertToken(task.layerId, `tasks[${index}].layerId`);

@@ -1,0 +1,2283 @@
+{
+  "schemaVersion": 1,
+  "batch": "401–500",
+  "objective": "Offline deterministic execution of exactly 100 new native computational kernels; no integration or certification of Nexus is implied.",
+  "tasks": [
+    {
+      "taskId": "GAUSS.CS.DFA_ACCEPT.401",
+      "layerId": "GAUSS.CS.DFA_ACCEPT.401",
+      "input": {
+        "dfa": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "word": "1011"
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_TRACE.402",
+      "layerId": "GAUSS.CS.DFA_TRACE.402",
+      "input": {
+        "dfa": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "word": "1011"
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_REACHABLE.403",
+      "layerId": "GAUSS.CS.DFA_REACHABLE.403",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_COACCESSIBLE.404",
+      "layerId": "GAUSS.CS.DFA_COACCESSIBLE.404",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_TRIM.405",
+      "layerId": "GAUSS.CS.DFA_TRIM.405",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_NONEMPTY_WITNESS.406",
+      "layerId": "GAUSS.CS.DFA_NONEMPTY_WITNESS.406",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_REJECT_WITNESS.407",
+      "layerId": "GAUSS.CS.DFA_REJECT_WITNESS.407",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_LANGUAGE_FINITE.408",
+      "layerId": "GAUSS.CS.DFA_LANGUAGE_FINITE.408",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_MIN_ACCEPT_LENGTH.409",
+      "layerId": "GAUSS.CS.DFA_MIN_ACCEPT_LENGTH.409",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_ACCEPT_COUNT.410",
+      "layerId": "GAUSS.CS.DFA_ACCEPT_COUNT.410",
+      "input": {
+        "dfa": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "length": 12
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_REJECT_COUNT.411",
+      "layerId": "GAUSS.CS.DFA_REJECT_COUNT.411",
+      "input": {
+        "dfa": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "length": 12
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_COMPLEMENT.412",
+      "layerId": "GAUSS.CS.DFA_COMPLEMENT.412",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_INTERSECTION.413",
+      "layerId": "GAUSS.CS.DFA_INTERSECTION.413",
+      "input": {
+        "left": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "right": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            0
+          ],
+          "transitions": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_UNION.414",
+      "layerId": "GAUSS.CS.DFA_UNION.414",
+      "input": {
+        "left": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "right": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            0
+          ],
+          "transitions": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_DIFFERENCE.415",
+      "layerId": "GAUSS.CS.DFA_DIFFERENCE.415",
+      "input": {
+        "left": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "right": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            0
+          ],
+          "transitions": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_XOR.416",
+      "layerId": "GAUSS.CS.DFA_XOR.416",
+      "input": {
+        "left": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "right": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            0
+          ],
+          "transitions": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_EQUIVALENCE.417",
+      "layerId": "GAUSS.CS.DFA_EQUIVALENCE.417",
+      "input": {
+        "left": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "right": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            0
+          ],
+          "transitions": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_INCLUSION.418",
+      "layerId": "GAUSS.CS.DFA_INCLUSION.418",
+      "input": {
+        "left": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "right": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            0
+          ],
+          "transitions": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_DISJOINT.419",
+      "layerId": "GAUSS.CS.DFA_DISJOINT.419",
+      "input": {
+        "left": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            1
+          ],
+          "transitions": [
+            [
+              0,
+              1
+            ],
+            [
+              1,
+              0
+            ]
+          ]
+        },
+        "right": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "start": 0,
+          "accepting": [
+            0
+          ],
+          "transitions": [
+            [
+              1,
+              0
+            ],
+            [
+              0,
+              1
+            ]
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_MINIMIZE.420",
+      "layerId": "GAUSS.CS.DFA_MINIMIZE.420",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_CANONICAL.421",
+      "layerId": "GAUSS.CS.DFA_CANONICAL.421",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.DFA_REVERSE_NFA.422",
+      "layerId": "GAUSS.CS.DFA_REVERSE_NFA.422",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "start": 0,
+        "accepting": [
+          1
+        ],
+        "transitions": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.NFA_EPS_CLOSURE.423",
+      "layerId": "GAUSS.CS.NFA_EPS_CLOSURE.423",
+      "input": {
+        "nfa": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "starts": [
+            0
+          ],
+          "accepting": [
+            2
+          ],
+          "transitions": [
+            [
+              [
+                0
+              ],
+              [
+                1
+              ]
+            ],
+            [
+              [],
+              [
+                2
+              ]
+            ],
+            [
+              [],
+              []
+            ]
+          ],
+          "epsilon": [
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        "states": [
+          0
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.NFA_DETERMINIZE.424",
+      "layerId": "GAUSS.CS.NFA_DETERMINIZE.424",
+      "input": {
+        "alphabet": [
+          "0",
+          "1"
+        ],
+        "starts": [
+          0
+        ],
+        "accepting": [
+          2
+        ],
+        "transitions": [
+          [
+            [
+              0
+            ],
+            [
+              1
+            ]
+          ],
+          [
+            [],
+            [
+              2
+            ]
+          ],
+          [
+            [],
+            []
+          ]
+        ],
+        "epsilon": [
+          [
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.NFA_ACCEPT.425",
+      "layerId": "GAUSS.CS.NFA_ACCEPT.425",
+      "input": {
+        "nfa": {
+          "alphabet": [
+            "0",
+            "1"
+          ],
+          "starts": [
+            0
+          ],
+          "accepting": [
+            2
+          ],
+          "transitions": [
+            [
+              [
+                0
+              ],
+              [
+                1
+              ]
+            ],
+            [
+              [],
+              [
+                2
+              ]
+            ],
+            [
+              [],
+              []
+            ]
+          ],
+          "epsilon": [
+            [
+              0,
+              1
+            ]
+          ]
+        },
+        "word": "11"
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_RANK.401",
+      "layerId": "GAUSS.INFO.GF2_RANK.401",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_RREF.402",
+      "layerId": "GAUSS.INFO.GF2_RREF.402",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_NULLSPACE.403",
+      "layerId": "GAUSS.INFO.GF2_NULLSPACE.403",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_DETERMINANT.404",
+      "layerId": "GAUSS.INFO.GF2_DETERMINANT.404",
+      "input": {
+        "matrix": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_INVERSE.405",
+      "layerId": "GAUSS.INFO.GF2_INVERSE.405",
+      "input": {
+        "matrix": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_SOLVE.406",
+      "layerId": "GAUSS.INFO.GF2_SOLVE.406",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ],
+        "rhs": [
+          1,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_MATMUL.407",
+      "layerId": "GAUSS.INFO.GF2_MATMUL.407",
+      "input": {
+        "left": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ],
+        "right": [
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_MATPOWER.408",
+      "layerId": "GAUSS.INFO.GF2_MATPOWER.408",
+      "input": {
+        "matrix": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ],
+        "exponent": 12
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_TRACE.409",
+      "layerId": "GAUSS.INFO.GF2_TRACE.409",
+      "input": {
+        "matrix": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_NULLITY.410",
+      "layerId": "GAUSS.INFO.GF2_NULLITY.410",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_KERNEL_SIZE.411",
+      "layerId": "GAUSS.INFO.GF2_KERNEL_SIZE.411",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_IMAGE_BASIS.412",
+      "layerId": "GAUSS.INFO.GF2_IMAGE_BASIS.412",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_ROW_BASIS.413",
+      "layerId": "GAUSS.INFO.GF2_ROW_BASIS.413",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_TRANSPOSE.414",
+      "layerId": "GAUSS.INFO.GF2_TRANSPOSE.414",
+      "input": {
+        "matrix": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ],
+          [
+            1,
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_CODE_ENCODE.415",
+      "layerId": "GAUSS.INFO.GF2_CODE_ENCODE.415",
+      "input": {
+        "generator": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ]
+        ],
+        "message": [
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_SYNDROME.416",
+      "layerId": "GAUSS.INFO.GF2_SYNDROME.416",
+      "input": {
+        "parityCheck": [
+          [
+            1,
+            1,
+            0,
+            1
+          ],
+          [
+            1,
+            0,
+            1,
+            1
+          ]
+        ],
+        "word": [
+          1,
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_CODE_MIN_DISTANCE.417",
+      "layerId": "GAUSS.INFO.GF2_CODE_MIN_DISTANCE.417",
+      "input": {
+        "generator": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_WEIGHT_ENUM.418",
+      "layerId": "GAUSS.INFO.GF2_WEIGHT_ENUM.418",
+      "input": {
+        "generator": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_DUAL_BASIS.419",
+      "layerId": "GAUSS.INFO.GF2_DUAL_BASIS.419",
+      "input": {
+        "generator": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_NEAREST_DECODE.420",
+      "layerId": "GAUSS.INFO.GF2_NEAREST_DECODE.420",
+      "input": {
+        "generator": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ]
+        ],
+        "received": [
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_ERASURE.421",
+      "layerId": "GAUSS.INFO.GF2_ERASURE.421",
+      "input": {
+        "generator": [
+          [
+            1,
+            0,
+            1,
+            1
+          ],
+          [
+            0,
+            1,
+            1,
+            0
+          ]
+        ],
+        "received": [
+          1,
+          null,
+          1,
+          null
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.HAMMING74_ENCODE.422",
+      "layerId": "GAUSS.INFO.HAMMING74_ENCODE.422",
+      "input": {
+        "data": [
+          1,
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.HAMMING74_DECODE.423",
+      "layerId": "GAUSS.INFO.HAMMING74_DECODE.423",
+      "input": {
+        "received": [
+          0,
+          1,
+          1,
+          0,
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_POLY_DIV.424",
+      "layerId": "GAUSS.INFO.GF2_POLY_DIV.424",
+      "input": {
+        "dividend": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          1
+        ],
+        "divisor": [
+          1,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.INFO.GF2_POLY_GCD.425",
+      "layerId": "GAUSS.INFO.GF2_POLY_GCD.425",
+      "input": {
+        "left": [
+          1,
+          0,
+          1,
+          1
+        ],
+        "right": [
+          1,
+          1,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.DOT3.401",
+      "layerId": "GAUSS.MATH.DOT3.401",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.CROSS3.402",
+      "layerId": "GAUSS.MATH.CROSS3.402",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.NORM_SQUARED3.403",
+      "layerId": "GAUSS.MATH.NORM_SQUARED3.403",
+      "input": {
+        "vector": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.DISTANCE_SQUARED3.404",
+      "layerId": "GAUSS.MATH.DISTANCE_SQUARED3.404",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.SCALAR_TRIPLE3.405",
+      "layerId": "GAUSS.MATH.SCALAR_TRIPLE3.405",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ],
+        "c": [
+          2,
+          5,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.TETRA_SIX_VOLUME3.406",
+      "layerId": "GAUSS.MATH.TETRA_SIX_VOLUME3.406",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ],
+        "c": [
+          2,
+          5,
+          1
+        ],
+        "d": [
+          1,
+          1,
+          8
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.ORIENTATION3.407",
+      "layerId": "GAUSS.MATH.ORIENTATION3.407",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ],
+        "c": [
+          2,
+          5,
+          1
+        ],
+        "d": [
+          1,
+          1,
+          8
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.COLLINEAR3.408",
+      "layerId": "GAUSS.MATH.COLLINEAR3.408",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ],
+        "c": [
+          2,
+          5,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.COPLANAR3.409",
+      "layerId": "GAUSS.MATH.COPLANAR3.409",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ],
+        "c": [
+          2,
+          5,
+          1
+        ],
+        "d": [
+          1,
+          1,
+          8
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.ORTHOGONAL3.410",
+      "layerId": "GAUSS.MATH.ORTHOGONAL3.410",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.PARALLEL3.411",
+      "layerId": "GAUSS.MATH.PARALLEL3.411",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.ANGLE_CLASS3.412",
+      "layerId": "GAUSS.MATH.ANGLE_CLASS3.412",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.TRIANGLE_AREA_SQUARED3.413",
+      "layerId": "GAUSS.MATH.TRIANGLE_AREA_SQUARED3.413",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ],
+        "c": [
+          2,
+          5,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.PARALLELOGRAM_AREA_SQUARED3.414",
+      "layerId": "GAUSS.MATH.PARALLELOGRAM_AREA_SQUARED3.414",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.BARYCENTRIC_TRIANGLE3.415",
+      "layerId": "GAUSS.MATH.BARYCENTRIC_TRIANGLE3.415",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ],
+        "c": [
+          2,
+          5,
+          1
+        ],
+        "point": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.MIDPOINT3.416",
+      "layerId": "GAUSS.MATH.MIDPOINT3.416",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.AFFINE_WEIGHTED3.417",
+      "layerId": "GAUSS.MATH.AFFINE_WEIGHTED3.417",
+      "input": {
+        "a": [
+          1,
+          2,
+          3
+        ],
+        "b": [
+          4,
+          0,
+          2
+        ],
+        "weightA": 2,
+        "weightB": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.CENTROID3.418",
+      "layerId": "GAUSS.MATH.CENTROID3.418",
+      "input": {
+        "points": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            0,
+            2
+          ],
+          [
+            2,
+            5,
+            1
+          ],
+          [
+            1,
+            1,
+            8
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.BOUNDING_BOX3.419",
+      "layerId": "GAUSS.MATH.BOUNDING_BOX3.419",
+      "input": {
+        "points": [
+          [
+            1,
+            2,
+            3
+          ],
+          [
+            4,
+            0,
+            2
+          ],
+          [
+            2,
+            5,
+            1
+          ],
+          [
+            1,
+            1,
+            8
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.BOX_INTERSECTION3.420",
+      "layerId": "GAUSS.MATH.BOX_INTERSECTION3.420",
+      "input": {
+        "left": {
+          "min": [
+            0,
+            0,
+            0
+          ],
+          "max": [
+            4,
+            6,
+            8
+          ]
+        },
+        "right": {
+          "min": [
+            2,
+            -1,
+            3
+          ],
+          "max": [
+            5,
+            2,
+            9
+          ]
+        }
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.BOX_VOLUME3.421",
+      "layerId": "GAUSS.MATH.BOX_VOLUME3.421",
+      "input": {
+        "min": [
+          0,
+          0,
+          0
+        ],
+        "max": [
+          4,
+          6,
+          8
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.SPHERE_POINT3.422",
+      "layerId": "GAUSS.MATH.SPHERE_POINT3.422",
+      "input": {
+        "center": [
+          1,
+          2,
+          3
+        ],
+        "point": [
+          4,
+          0,
+          2
+        ],
+        "radiusSquared": 14
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.PROJECT_POINT_LINE3.423",
+      "layerId": "GAUSS.MATH.PROJECT_POINT_LINE3.423",
+      "input": {
+        "origin": [
+          1,
+          2,
+          3
+        ],
+        "direction": [
+          4,
+          0,
+          2
+        ],
+        "point": [
+          2,
+          5,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.POINT_LINE_DISTANCE3.424",
+      "layerId": "GAUSS.MATH.POINT_LINE_DISTANCE3.424",
+      "input": {
+        "origin": [
+          1,
+          2,
+          3
+        ],
+        "direction": [
+          4,
+          0,
+          2
+        ],
+        "point": [
+          2,
+          5,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.POINT_PLANE_DISTANCE3.425",
+      "layerId": "GAUSS.MATH.POINT_PLANE_DISTANCE3.425",
+      "input": {
+        "origin": [
+          1,
+          2,
+          3
+        ],
+        "normal": [
+          4,
+          0,
+          2
+        ],
+        "point": [
+          2,
+          5,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.BISECTION_ROOT.401",
+      "layerId": "GAUSS.CONTROL.BISECTION_ROOT.401",
+      "input": {
+        "coefficients": [
+          -2,
+          0,
+          1
+        ],
+        "lower": 0,
+        "upper": 2,
+        "tolerance": 1e-10,
+        "maxIterations": 100
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.FALSE_POSITION_ROOT.402",
+      "layerId": "GAUSS.CONTROL.FALSE_POSITION_ROOT.402",
+      "input": {
+        "coefficients": [
+          -2,
+          0,
+          1
+        ],
+        "lower": 0,
+        "upper": 2,
+        "tolerance": 1e-10,
+        "maxIterations": 100
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.SECANT_ROOT.403",
+      "layerId": "GAUSS.CONTROL.SECANT_ROOT.403",
+      "input": {
+        "coefficients": [
+          -2,
+          0,
+          1
+        ],
+        "x0": 1.2,
+        "tolerance": 1e-10,
+        "maxIterations": 50,
+        "x1": 1.5
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.NEWTON_ROOT.404",
+      "layerId": "GAUSS.CONTROL.NEWTON_ROOT.404",
+      "input": {
+        "coefficients": [
+          -2,
+          0,
+          1
+        ],
+        "x0": 1.2,
+        "tolerance": 1e-10,
+        "maxIterations": 50
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.HALLEY_ROOT.405",
+      "layerId": "GAUSS.CONTROL.HALLEY_ROOT.405",
+      "input": {
+        "coefficients": [
+          -2,
+          0,
+          1
+        ],
+        "x0": 1.2,
+        "tolerance": 1e-10,
+        "maxIterations": 50
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.RIDDER_ROOT.406",
+      "layerId": "GAUSS.CONTROL.RIDDER_ROOT.406",
+      "input": {
+        "coefficients": [
+          -2,
+          0,
+          1
+        ],
+        "lower": 0,
+        "upper": 2,
+        "tolerance": 1e-10,
+        "maxIterations": 100
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.ROOT_BRACKET_SCAN.407",
+      "layerId": "GAUSS.CONTROL.ROOT_BRACKET_SCAN.407",
+      "input": {
+        "coefficients": [
+          -1,
+          0,
+          1
+        ],
+        "lower": -2,
+        "upper": 2,
+        "steps": 15
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.DERIV_FORWARD.408",
+      "layerId": "GAUSS.CONTROL.DERIV_FORWARD.408",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "at": 0.5,
+        "h": 0.001
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.DERIV_CENTRAL.409",
+      "layerId": "GAUSS.CONTROL.DERIV_CENTRAL.409",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "at": 0.5,
+        "h": 0.001
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.DERIV_FIVE_POINT.410",
+      "layerId": "GAUSS.CONTROL.DERIV_FIVE_POINT.410",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "at": 0.5,
+        "h": 0.001
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.DERIV_SECOND_CENTRAL.411",
+      "layerId": "GAUSS.CONTROL.DERIV_SECOND_CENTRAL.411",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "at": 0.5,
+        "h": 0.001
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.DERIV_RICHARDSON.412",
+      "layerId": "GAUSS.CONTROL.DERIV_RICHARDSON.412",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "at": 0.5,
+        "h": 0.001
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.QUAD_MIDPOINT.413",
+      "layerId": "GAUSS.CONTROL.QUAD_MIDPOINT.413",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lower": 0,
+        "upper": 1,
+        "steps": 8
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.QUAD_TRAPEZOID.414",
+      "layerId": "GAUSS.CONTROL.QUAD_TRAPEZOID.414",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lower": 0,
+        "upper": 1,
+        "steps": 8
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.QUAD_SIMPSON.415",
+      "layerId": "GAUSS.CONTROL.QUAD_SIMPSON.415",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lower": 0,
+        "upper": 1,
+        "steps": 8
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.QUAD_BOOLE.416",
+      "layerId": "GAUSS.CONTROL.QUAD_BOOLE.416",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lower": 0,
+        "upper": 1,
+        "steps": 8
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.QUAD_GAUSS_2.417",
+      "layerId": "GAUSS.CONTROL.QUAD_GAUSS_2.417",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lower": 0,
+        "upper": 1,
+        "steps": 8
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.QUAD_GAUSS_3.418",
+      "layerId": "GAUSS.CONTROL.QUAD_GAUSS_3.418",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lower": 0,
+        "upper": 1,
+        "steps": 8
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.QUAD_ROMBERG.419",
+      "layerId": "GAUSS.CONTROL.QUAD_ROMBERG.419",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lower": 0,
+        "upper": 1,
+        "levels": 5
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.QUAD_ADAPTIVE_SIMPSON.420",
+      "layerId": "GAUSS.CONTROL.QUAD_ADAPTIVE_SIMPSON.420",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3,
+          4,
+          5
+        ],
+        "lower": 0,
+        "upper": 1,
+        "tolerance": 1e-10,
+        "maxDepth": 12
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.ODE_EULER.421",
+      "layerId": "GAUSS.CONTROL.ODE_EULER.421",
+      "input": {
+        "a": -1,
+        "b": 0.5,
+        "c": 1,
+        "t0": 0,
+        "y0": 2,
+        "dt": 0.05,
+        "steps": 12
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.ODE_HEUN.422",
+      "layerId": "GAUSS.CONTROL.ODE_HEUN.422",
+      "input": {
+        "a": -1,
+        "b": 0.5,
+        "c": 1,
+        "t0": 0,
+        "y0": 2,
+        "dt": 0.05,
+        "steps": 12
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.ODE_MIDPOINT.423",
+      "layerId": "GAUSS.CONTROL.ODE_MIDPOINT.423",
+      "input": {
+        "a": -1,
+        "b": 0.5,
+        "c": 1,
+        "t0": 0,
+        "y0": 2,
+        "dt": 0.05,
+        "steps": 12
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.ODE_RK4.424",
+      "layerId": "GAUSS.CONTROL.ODE_RK4.424",
+      "input": {
+        "a": -1,
+        "b": 0.5,
+        "c": 1,
+        "t0": 0,
+        "y0": 2,
+        "dt": 0.05,
+        "steps": 12
+      }
+    },
+    {
+      "taskId": "GAUSS.CONTROL.OSCILLATOR_SYMPLECTIC_EULER.425",
+      "layerId": "GAUSS.CONTROL.OSCILLATOR_SYMPLECTIC_EULER.425",
+      "input": {
+        "position": 1,
+        "velocity": 0,
+        "omegaSquared": 4,
+        "dt": 0.05,
+        "steps": 20
+      }
+    }
+  ]
+}

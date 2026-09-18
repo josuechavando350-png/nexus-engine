@@ -1,0 +1,1948 @@
+{
+  "schemaVersion": 1,
+  "engineId": "GAUSS_BATCH_600_OFFLINE",
+  "tasks": [
+    {
+      "layerId": "GAUSS.MATH.POSET_TRANSITIVE_CLOSURE.501",
+      "domain": "MATHEMATICS",
+      "description": "Reflexive transitive closure of a finite acyclic relation",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_HASSE_COVER.502",
+      "domain": "MATHEMATICS",
+      "description": "Unique cover-edge representation of a finite poset",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_COMPARABLE_PAIRS.503",
+      "domain": "MATHEMATICS",
+      "description": "Number of distinct unordered comparable element pairs",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_INCOMPARABLE_PAIRS.504",
+      "domain": "MATHEMATICS",
+      "description": "Complete list of incomparable unordered element pairs",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_MINIMAL_ELEMENTS.505",
+      "domain": "MATHEMATICS",
+      "description": "All order-minimal elements",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_MAXIMAL_ELEMENTS.506",
+      "domain": "MATHEMATICS",
+      "description": "All order-maximal elements",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_LEAST.507",
+      "domain": "MATHEMATICS",
+      "description": "Least element existence and witness",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_GREATEST.508",
+      "domain": "MATHEMATICS",
+      "description": "Greatest element existence and witness",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_HEIGHT.509",
+      "domain": "MATHEMATICS",
+      "description": "Maximum chain length with comparability witness",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_WIDTH.510",
+      "domain": "MATHEMATICS",
+      "description": "Maximum antichain by exhaustive bounded enumeration",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_CHAIN_COUNT.511",
+      "domain": "MATHEMATICS",
+      "description": "Exact number of chains including the empty chain",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_ANTICHAIN_COUNT.512",
+      "domain": "MATHEMATICS",
+      "description": "Exact number of antichains including empty",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_IDEAL_COUNT.513",
+      "domain": "MATHEMATICS",
+      "description": "Exact number of downward-closed subsets",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_ALL_IDEALS.514",
+      "domain": "MATHEMATICS",
+      "description": "Enumerate every order ideal of a bounded poset",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_LINEAR_EXTENSIONS.515",
+      "domain": "MATHEMATICS",
+      "description": "Exact linear-extension count via subset dynamic programming",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_LEX_MIN_EXTENSION.516",
+      "domain": "MATHEMATICS",
+      "description": "Lexicographically minimum topological linear extension",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_LEX_MAX_EXTENSION.517",
+      "domain": "MATHEMATICS",
+      "description": "Lexicographically maximum topological linear extension",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_RANK_LEVELS.518",
+      "domain": "MATHEMATICS",
+      "description": "Longest-chain distance from minimal elements",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_CORANK_LEVELS.519",
+      "domain": "MATHEMATICS",
+      "description": "Longest-chain distance to maximal elements",
+      "input": {
+        "size": 4,
+        "relations": [
+          [
+            0,
+            2
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_PRINCIPAL_IDEAL.520",
+      "domain": "MATHEMATICS",
+      "description": "All predecessors of an element including itself",
+      "input": {
+        "poset": {
+          "size": 4,
+          "relations": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        },
+        "element": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_PRINCIPAL_FILTER.521",
+      "domain": "MATHEMATICS",
+      "description": "All successors of an element including itself",
+      "input": {
+        "poset": {
+          "size": 4,
+          "relations": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        },
+        "element": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_INTERVAL.522",
+      "domain": "MATHEMATICS",
+      "description": "Closed interval between two ordered poset elements",
+      "input": {
+        "poset": {
+          "size": 4,
+          "relations": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        },
+        "a": 0,
+        "b": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_MOBIUS_INTERVAL.523",
+      "domain": "MATHEMATICS",
+      "description": "Exact incidence-algebra Mobius function on an interval",
+      "input": {
+        "poset": {
+          "size": 4,
+          "relations": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        },
+        "a": 0,
+        "b": 3
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_ZETA_TRANSFORM.524",
+      "domain": "MATHEMATICS",
+      "description": "Exact order-zeta sum over all predecessors",
+      "input": {
+        "poset": {
+          "size": 4,
+          "relations": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        },
+        "values": [
+          1,
+          2,
+          3,
+          4
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.POSET_MOBIUS_INVERSION.525",
+      "domain": "MATHEMATICS",
+      "description": "Exact Mobius inversion of cumulative order values",
+      "input": {
+        "poset": {
+          "size": 4,
+          "relations": [
+            [
+              0,
+              2
+            ],
+            [
+              1,
+              2
+            ],
+            [
+              2,
+              3
+            ]
+          ]
+        },
+        "values": [
+          1,
+          2,
+          6,
+          10
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_INVERSE.526",
+      "domain": "MATHEMATICS",
+      "description": "Inverse of a finite bijection",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_COMPOSE.527",
+      "domain": "MATHEMATICS",
+      "description": "Function composition of two finite bijections",
+      "input": {
+        "left": {
+          "permutation": [
+            2,
+            0,
+            3,
+            1
+          ]
+        },
+        "right": {
+          "permutation": [
+            1,
+            2,
+            3,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_POWER.528",
+      "domain": "MATHEMATICS",
+      "description": "Exponentiation of a permutation including inverse powers",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ],
+        "exponent": -7
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_CYCLE_DECOMP.529",
+      "domain": "MATHEMATICS",
+      "description": "Disjoint cycle decomposition with canonical starting vertices",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_CYCLE_TYPE.530",
+      "domain": "MATHEMATICS",
+      "description": "Cycle-length integer partition of a permutation",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_ORDER.531",
+      "domain": "MATHEMATICS",
+      "description": "Least positive exponent giving the identity",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_SIGN.532",
+      "domain": "MATHEMATICS",
+      "description": "Sign of a permutation computed from inversion parity",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_INVERSIONS.533",
+      "domain": "MATHEMATICS",
+      "description": "Exact number of inversion pairs",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_MAJOR_INDEX.534",
+      "domain": "MATHEMATICS",
+      "description": "Sum of one-based descent positions",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_DESCENTS.535",
+      "domain": "MATHEMATICS",
+      "description": "All adjacent descent positions",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_ASCENTS.536",
+      "domain": "MATHEMATICS",
+      "description": "All adjacent ascent positions",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_FIXED_POINTS.537",
+      "domain": "MATHEMATICS",
+      "description": "All fixed points of a permutation",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_EXCEDANCES.538",
+      "domain": "MATHEMATICS",
+      "description": "Positions where the image exceeds its argument",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_LEFT_RECORDS.539",
+      "domain": "MATHEMATICS",
+      "description": "Left-to-right record-maximum positions",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_LEHMER_CODE.540",
+      "domain": "MATHEMATICS",
+      "description": "Factoradic inversion-code digits",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_LEX_RANK.541",
+      "domain": "MATHEMATICS",
+      "description": "Exact zero-based lexicographic permutation rank",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_LEX_UNRANK.542",
+      "domain": "MATHEMATICS",
+      "description": "Factoradic unranking of a bounded permutation",
+      "input": {
+        "size": 4,
+        "rank": "15"
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_LEX_NEXT.543",
+      "domain": "MATHEMATICS",
+      "description": "Immediate lexicographic successor or null",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_LEX_PREV.544",
+      "domain": "MATHEMATICS",
+      "description": "Immediate lexicographic predecessor or null",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_POINT_ORBIT.545",
+      "domain": "MATHEMATICS",
+      "description": "Orbit of a specified point under iteration",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ],
+        "point": 0
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_CONJUGATE.546",
+      "domain": "MATHEMATICS",
+      "description": "Conjugation by a second permutation",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ],
+        "by": [
+          1,
+          2,
+          3,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_COMMUTATOR.547",
+      "domain": "MATHEMATICS",
+      "description": "Group commutator a b a^-1 b^-1",
+      "input": {
+        "left": {
+          "permutation": [
+            2,
+            0,
+            3,
+            1
+          ]
+        },
+        "right": {
+          "permutation": [
+            1,
+            2,
+            3,
+            0
+          ]
+        }
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_CENTRALIZER_SIZE.548",
+      "domain": "MATHEMATICS",
+      "description": "Centralizer cardinality from cycle lengths",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_CONJUGACY_CLASS.549",
+      "domain": "MATHEMATICS",
+      "description": "Conjugacy-class cardinality n! / centralizer size",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.MATH.PERM_CYCLE_INDEX_MONOMIAL.550",
+      "domain": "MATHEMATICS",
+      "description": "Cycle-index monomial exponents for all lengths",
+      "input": {
+        "permutation": [
+          2,
+          0,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_VERTEX_DEGREES.551",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Hyperedge incidence degree of every vertex",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_EDGE_SIZE_HIST.552",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Hyperedge cardinality frequency distribution",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_RANK.553",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Maximum cardinality among all hyperedges",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_COVERED_VERTICES.554",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Union of all hyperedge vertex sets",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_COMMON_VERTICES.555",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Intersection of all hyperedge vertex sets",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_MINIMAL_EDGES.556",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Inclusion-minimal hyperedges",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_MAXIMAL_EDGES.557",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Inclusion-maximal hyperedges",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_INCIDENCE_MATRIX.558",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Vertex-edge binary incidence matrix",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_PRIMAL_GRAPH.559",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Pairwise co-occurrence graph of hypergraph vertices",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_INTERSECTION_GRAPH.560",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Intersection graph of nonempty-overlap hyperedges",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_COMPONENTS.561",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Connected components under hyperedge adjacency",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_ISOLATED.562",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Vertices that belong to no hyperedge",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_INDEPENDENT_COUNT.563",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact count of subsets containing no full hyperedge",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_MAX_INDEPENDENT.564",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Maximum independent vertex subset with witness",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_TRANSVERSAL_COUNT.565",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact count of vertex subsets meeting every edge",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_MIN_TRANSVERSAL.566",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Minimum-cardinality hitting set with witness",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_MINIMAL_TRANSVERSALS.567",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "All inclusion-minimal vertex hitting sets",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_MAX_EDGE_PACKING.568",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Maximum collection of pairwise disjoint hyperedges",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_EDGE_PACKING_COUNT.569",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact number of pairwise-disjoint edge collections",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_MIN_EDGE_COVER.570",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Minimum edge collection covering every vertex",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_TWO_COLORABLE.571",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Property-B two-coloring witness with no monochromatic edge",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_TWO_COLORINGS.572",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact number of proper two-color assignments",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_INDUCED.573",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Induced edge-subset hypergraph on supplied vertices",
+      "input": {
+        "hypergraph": {
+          "vertexCount": 5,
+          "edges": [
+            [
+              0,
+              1,
+              2
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              0,
+              4
+            ]
+          ]
+        },
+        "vertices": [
+          0,
+          1,
+          2,
+          4
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_DELETE_VERTEX.574",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Hypergraph vertex deletion discarding incident hyperedges",
+      "input": {
+        "hypergraph": {
+          "vertexCount": 5,
+          "edges": [
+            [
+              0,
+              1,
+              2
+            ],
+            [
+              2,
+              3
+            ],
+            [
+              3,
+              4
+            ],
+            [
+              0,
+              4
+            ]
+          ]
+        },
+        "vertex": 2
+      }
+    },
+    {
+      "layerId": "GAUSS.CS.HYPER_INDEPENDENCE_POLY.575",
+      "domain": "COMPUTER_SCIENCE",
+      "description": "Exact independence polynomial coefficients by vertex-set size",
+      "input": {
+        "vertexCount": 5,
+        "edges": [
+          [
+            0,
+            1,
+            2
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            4
+          ],
+          [
+            0,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_PERIODIC_STEP.576",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Elementary cellular automaton single periodic-boundary update",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_ZERO_BOUNDARY.577",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Elementary cellular automaton update with zero boundary",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_MIRROR_BOUNDARY.578",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Elementary cellular automaton update with reflective boundary",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_SPACETIME_TRACE.579",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Bounded periodic cellular-automaton space-time diagram",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        "steps": 12
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_FINAL_STATE.580",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Periodic cellular automaton evolution after k steps",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        "steps": 32
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_ORBIT.581",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Finite orbit preperiod and cycle length with states",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_PREIMAGE_COUNT.582",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Exact number of one-step predecessors of a target",
+      "input": {
+        "rule": 110,
+        "width": 6,
+        "target": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_PREIMAGE_LIST.583",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Complete enumeration of one-step target preimages",
+      "input": {
+        "rule": 110,
+        "width": 6,
+        "target": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_GARDEN_COUNT.584",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Count one-step Garden-of-Eden configurations",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_GARDEN_STATES.585",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Enumerate finite Garden-of-Eden configurations",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_IMAGE_SIZE.586",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Cardinality of the periodic global update image",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_INJECTIVITY.587",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Finite-width global update injectivity test",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_SURJECTIVITY.588",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Finite-width global update surjectivity test",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_FIXED_STATES.589",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Enumerate all periodic fixed configurations",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_FIXED_COUNT.590",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Count all periodic fixed configurations",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_EXACT_TWO_CYCLES.591",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Count states of minimal period exactly two",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_BASINS.592",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Exact cycle attractor lengths and basin sizes",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_REACHABLE.593",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Finite deterministic reachability of a target state",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          1,
+          0,
+          1,
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_FIRST_HIT.594",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Minimum time to hit a target or null",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        "target": [
+          0,
+          1,
+          0,
+          1,
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_DENSITY_TIMELINE.595",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Number of active cells along a bounded evolution",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ],
+        "steps": 12
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_SINGLE_BIT_DAMAGE.596",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "One-step Hamming damage caused by flipping each cell",
+      "input": {
+        "rule": 110,
+        "state": [
+          1,
+          0,
+          1,
+          1,
+          0,
+          0
+        ]
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_REFLECT_RULE.597",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Left-right reflection of elementary cellular automaton rule",
+      "input": {
+        "rule": 110
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_COMPLEMENT_RULE.598",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Black-white conjugation of an elementary CA rule",
+      "input": {
+        "rule": 110
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_RULE_SYMMETRY.599",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Complete reflection and black-white conjugacy class",
+      "input": {
+        "rule": 110
+      }
+    },
+    {
+      "layerId": "GAUSS.PHYSICS.CA_NUMBER_CONSERVATION.600",
+      "domain": "PHYSICS_COMPLEX_SYSTEMS",
+      "description": "Exact finite-width periodic particle-number conservation",
+      "input": {
+        "rule": 110,
+        "width": 6
+      }
+    }
+  ]
+}

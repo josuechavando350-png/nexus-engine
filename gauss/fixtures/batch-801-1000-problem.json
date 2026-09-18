@@ -1,0 +1,4492 @@
+{
+  "schemaVersion": 1,
+  "problemId": "gauss-offline-801-1000",
+  "objective": "Replay 200 local mathematical implementations with deterministic inputs. Nexus integration pending.",
+  "tasks": [
+    {
+      "taskId": "offline-801",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.NORMALIZE.801",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-802",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.DEGREE.802",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-803",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.LEADING.803",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-804",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.EVALUATE.804",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "at": "2/3"
+      }
+    },
+    {
+      "taskId": "offline-805",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.DERIVATIVE.805",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-806",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.INTEGRAL.806",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-807",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.ADD.807",
+      "input": {
+        "left": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "right": [
+          1,
+          2,
+          "1/3"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-808",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.SUBTRACT.808",
+      "input": {
+        "left": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "right": [
+          1,
+          2,
+          "1/3"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-809",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.PRODUCT.809",
+      "input": {
+        "left": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "right": [
+          1,
+          2,
+          "1/3"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-810",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.SCALE.810",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "scalar": "3/5"
+      }
+    },
+    {
+      "taskId": "offline-811",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.SHIFT.811",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "places": 2
+      }
+    },
+    {
+      "taskId": "offline-812",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.TRUNCATE.812",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "count": 3
+      }
+    },
+    {
+      "taskId": "offline-813",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.REVERSE.813",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-814",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.COMPOSE.814",
+      "input": {
+        "left": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "right": [
+          1,
+          2,
+          "1/3"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-815",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.RECIPROCAL.815",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          3
+        ],
+        "count": 7
+      }
+    },
+    {
+      "taskId": "offline-816",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.QUOTIENT.816",
+      "input": {
+        "left": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "right": [
+          1,
+          2
+        ],
+        "count": 7
+      }
+    },
+    {
+      "taskId": "offline-817",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.LOG_DERIVATIVE.817",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-818",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.FORMAL_LOG.818",
+      "input": {
+        "coefficients": [
+          1,
+          2,
+          1
+        ],
+        "count": 7
+      }
+    },
+    {
+      "taskId": "offline-819",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.FORMAL_EXP.819",
+      "input": {
+        "coefficients": [
+          0,
+          2,
+          1
+        ],
+        "count": 7
+      }
+    },
+    {
+      "taskId": "offline-820",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.INTEGER_POWER.820",
+      "input": {
+        "coefficients": [
+          1,
+          1,
+          1
+        ],
+        "power": -3,
+        "count": 7
+      }
+    },
+    {
+      "taskId": "offline-821",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.HADAMARD.821",
+      "input": {
+        "left": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "right": [
+          1,
+          2,
+          "1/3"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-822",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.EVEN_PART.822",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-823",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.ODD_PART.823",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-824",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.TRANSLATE.824",
+      "input": {
+        "coefficients": [
+          1,
+          "1/2",
+          "-3/4",
+          2
+        ],
+        "shift": "1/2"
+      }
+    },
+    {
+      "taskId": "offline-825",
+      "layerId": "GAUSS.MATH.RATIONAL_SERIES.DIVIDE.825",
+      "input": {
+        "left": [
+          -1,
+          0,
+          1
+        ],
+        "right": [
+          -1,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-826",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_K.826",
+      "input": {
+        "n": 9,
+        "k": 3
+      }
+    },
+    {
+      "taskId": "offline-827",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_DISTINCT.827",
+      "input": {
+        "n": 9
+      }
+    },
+    {
+      "taskId": "offline-828",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_ODD.828",
+      "input": {
+        "n": 9
+      }
+    },
+    {
+      "taskId": "offline-829",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_EVEN.829",
+      "input": {
+        "n": 10
+      }
+    },
+    {
+      "taskId": "offline-830",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_MAX.830",
+      "input": {
+        "n": 9,
+        "max": 4
+      }
+    },
+    {
+      "taskId": "offline-831",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_MIN.831",
+      "input": {
+        "n": 9,
+        "max": 2
+      }
+    },
+    {
+      "taskId": "offline-832",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_EXACT_MAX.832",
+      "input": {
+        "n": 9,
+        "max": 4
+      }
+    },
+    {
+      "taskId": "offline-833",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_ONES.833",
+      "input": {
+        "n": 9,
+        "k": 2
+      }
+    },
+    {
+      "taskId": "offline-834",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_ENUM.834",
+      "input": {
+        "n": 8
+      }
+    },
+    {
+      "taskId": "offline-835",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_CONJUGATE.835",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-836",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_DURFEE.836",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-837",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_WEIGHT.837",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-838",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_LENGTH.838",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-839",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_MULTIPLICITY.839",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-840",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_RANK.840",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-841",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_HOOKS.841",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-842",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_HOOK_PRODUCT.842",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-843",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_STANDARD_TABLEAUX.843",
+      "input": {
+        "parts": [
+          5,
+          3,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-844",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_SELF_CONJUGATE.844",
+      "input": {
+        "parts": [
+          3,
+          2,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-845",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_SELF_CONJUGATE_COUNT.845",
+      "input": {
+        "n": 9
+      }
+    },
+    {
+      "taskId": "offline-846",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.PART_DOMINANCE.846",
+      "input": {
+        "left": [
+          5,
+          3,
+          2,
+          2
+        ],
+        "right": [
+          4,
+          4,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-847",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.COMP_POSITIVE.847",
+      "input": {
+        "n": 9
+      }
+    },
+    {
+      "taskId": "offline-848",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.COMP_K.848",
+      "input": {
+        "n": 9,
+        "k": 3
+      }
+    },
+    {
+      "taskId": "offline-849",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.COMP_MAX.849",
+      "input": {
+        "n": 9,
+        "max": 3
+      }
+    },
+    {
+      "taskId": "offline-850",
+      "layerId": "GAUSS.MATH.PARTITIONS_COMPOSITIONS.COMP_PALINDROMIC.850",
+      "input": {
+        "n": 9
+      }
+    },
+    {
+      "taskId": "offline-851",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.EVALUATE.851",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "mask": 3
+      }
+    },
+    {
+      "taskId": "offline-852",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.WEIGHT.852",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-853",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.ZERO_COUNT.853",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-854",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.BALANCED.854",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-855",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.SUPPORT.855",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-856",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.ESSENTIAL_COUNT.856",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-857",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.COFACTORS.857",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "variable": 1
+      }
+    },
+    {
+      "taskId": "offline-858",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.RESTRICT_ZERO.858",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "variable": 1
+      }
+    },
+    {
+      "taskId": "offline-859",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.RESTRICT_ONE.859",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "variable": 1
+      }
+    },
+    {
+      "taskId": "offline-860",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.DERIVATIVE.860",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "variable": 1
+      }
+    },
+    {
+      "taskId": "offline-861",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.DERIVATIVE_WEIGHT.861",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "variable": 1
+      }
+    },
+    {
+      "taskId": "offline-862",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.WALSH.862",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-863",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.WALSH_COEFF.863",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "mask": 3
+      }
+    },
+    {
+      "taskId": "offline-864",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.ANF.864",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-865",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.ALGEBRAIC_DEGREE.865",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-866",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.MONOTONE.866",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-867",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.AFFINE.867",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-868",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.SYMMETRIC.868",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-869",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.SELF_DUAL.869",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-870",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.SAT_WITNESS.870",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-871",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.FALSIFY_WITNESS.871",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-872",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.EQUIVALENT.872",
+      "input": {
+        "n": 3,
+        "left": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "right": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-873",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.HAMMING.873",
+      "input": {
+        "n": 3,
+        "left": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ],
+        "right": [
+          0,
+          1,
+          0,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-874",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.NONLINEARITY.874",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-875",
+      "layerId": "GAUSS.CS.BOOLEAN_FUNCTIONS.CORRELATION_IMMUNITY_1.875",
+      "input": {
+        "n": 3,
+        "table": [
+          0,
+          1,
+          1,
+          0,
+          1,
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-876",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.DOMAIN.876",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-877",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.RANGE.877",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-878",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.CONVERSE.878",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-879",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.COMPLEMENT.879",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-880",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.IDENTITY.880",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-881",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.REFLEXIVE_CLOSURE.881",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-882",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.SYMMETRIC_CLOSURE.882",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-883",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.TRANSITIVE_CLOSURE.883",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-884",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.COMPOSITION.884",
+      "input": {
+        "size": 4,
+        "left": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "right": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-885",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.POWER.885",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "power": 4
+      }
+    },
+    {
+      "taskId": "offline-886",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.UNION.886",
+      "input": {
+        "size": 4,
+        "left": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "right": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-887",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.INTERSECTION.887",
+      "input": {
+        "size": 4,
+        "left": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "right": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-888",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.DIFFERENCE.888",
+      "input": {
+        "size": 4,
+        "left": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "right": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-889",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.SYMMETRIC_DIFFERENCE.889",
+      "input": {
+        "size": 4,
+        "left": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ],
+        "right": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-890",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.IS_REFLEXIVE.890",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-891",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.IS_IRREFLEXIVE.891",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-892",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.IS_SYMMETRIC.892",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-893",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.IS_ANTISYMMETRIC.893",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-894",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.IS_TRANSITIVE.894",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-895",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.IS_EQUIVALENCE.895",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-896",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.EQUIVALENCE_CLASSES.896",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            3,
+            3
+          ],
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            0
+          ],
+          [
+            2,
+            3
+          ],
+          [
+            3,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-897",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.RIGHT_UNIQUE.897",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-898",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.LEFT_UNIQUE.898",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-899",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.LEFT_TOTAL.899",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-900",
+      "layerId": "GAUSS.CS.FINITE_RELATIONS.RIGHT_TOTAL.900",
+      "input": {
+        "size": 4,
+        "pairs": [
+          [
+            0,
+            1
+          ],
+          [
+            1,
+            2
+          ],
+          [
+            2,
+            0
+          ],
+          [
+            2,
+            3
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-901",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.EDGE_SUM.901",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-902",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.EDGE_MIN.902",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-903",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.EDGE_MAX.903",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-904",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.EDGE_SORT.904",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-905",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.ROOT_DISTANCES.905",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-906",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.PAIR_DISTANCE.906",
+      "input": {
+        "tree": {
+          "n": 6,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1,
+              3
+            ],
+            [
+              0,
+              2,
+              5
+            ],
+            [
+              1,
+              3,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 3,
+        "b": 5
+      }
+    },
+    {
+      "taskId": "offline-907",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.DISTANCE_MATRIX.907",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-908",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.ECCENTRICITIES.908",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-909",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.RADIUS.909",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-910",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.CENTERS.910",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-911",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.DIAMETER.911",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-912",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.DIAMETER_WITNESS.912",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-913",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.WIENER_INDEX.913",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-914",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.PAIR_MEAN.914",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-915",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.FARNESS.915",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-916",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.MEDIAN.916",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-917",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.ROOT_LEAF_DISTANCES.917",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-918",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.ROOT_LEAF_MIN.918",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-919",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.ROOT_LEAF_MAX.919",
+      "input": {
+        "n": 6,
+        "root": 0,
+        "edges": [
+          [
+            0,
+            1,
+            3
+          ],
+          [
+            0,
+            2,
+            5
+          ],
+          [
+            1,
+            3,
+            2
+          ],
+          [
+            1,
+            4,
+            4
+          ],
+          [
+            2,
+            5,
+            6
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-920",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.PATH_WEIGHTS.920",
+      "input": {
+        "tree": {
+          "n": 6,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1,
+              3
+            ],
+            [
+              0,
+              2,
+              5
+            ],
+            [
+              1,
+              3,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 3,
+        "b": 5
+      }
+    },
+    {
+      "taskId": "offline-921",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.PATH_MAX.921",
+      "input": {
+        "tree": {
+          "n": 6,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1,
+              3
+            ],
+            [
+              0,
+              2,
+              5
+            ],
+            [
+              1,
+              3,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 3,
+        "b": 5
+      }
+    },
+    {
+      "taskId": "offline-922",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.PATH_MIN.922",
+      "input": {
+        "tree": {
+          "n": 6,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1,
+              3
+            ],
+            [
+              0,
+              2,
+              5
+            ],
+            [
+              1,
+              3,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 3,
+        "b": 5
+      }
+    },
+    {
+      "taskId": "offline-923",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.PATH_PRODUCT.923",
+      "input": {
+        "tree": {
+          "n": 6,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1,
+              3
+            ],
+            [
+              0,
+              2,
+              5
+            ],
+            [
+              1,
+              3,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              5,
+              6
+            ]
+          ]
+        },
+        "a": 3,
+        "b": 5
+      }
+    },
+    {
+      "taskId": "offline-924",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.THRESHOLD_COMPONENTS.924",
+      "input": {
+        "tree": {
+          "n": 6,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1,
+              3
+            ],
+            [
+              0,
+              2,
+              5
+            ],
+            [
+              1,
+              3,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              5,
+              6
+            ]
+          ]
+        },
+        "threshold": 4
+      }
+    },
+    {
+      "taskId": "offline-925",
+      "layerId": "GAUSS.CS.WEIGHTED_TREES.THRESHOLD_PAIRS.925",
+      "input": {
+        "tree": {
+          "n": 6,
+          "root": 0,
+          "edges": [
+            [
+              0,
+              1,
+              3
+            ],
+            [
+              0,
+              2,
+              5
+            ],
+            [
+              1,
+              3,
+              2
+            ],
+            [
+              1,
+              4,
+              4
+            ],
+            [
+              2,
+              5,
+              6
+            ]
+          ]
+        },
+        "threshold": 4
+      }
+    },
+    {
+      "taskId": "offline-926",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.NORMALIZE.926",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-927",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.TRANSPOSE.927",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-928",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.ADD.928",
+      "input": {
+        "prime": 7,
+        "left": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "right": [
+          [
+            2,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-929",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.SUBTRACT.929",
+      "input": {
+        "prime": 7,
+        "left": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "right": [
+          [
+            2,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-930",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.PRODUCT.930",
+      "input": {
+        "prime": 7,
+        "left": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "right": [
+          [
+            2,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-931",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.SCALE.931",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "scalar": 3
+      }
+    },
+    {
+      "taskId": "offline-932",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.HADAMARD.932",
+      "input": {
+        "prime": 7,
+        "left": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "right": [
+          [
+            2,
+            0,
+            1
+          ],
+          [
+            1,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-933",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.TRACE.933",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-934",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.DETERMINANT.934",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-935",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.RANK.935",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-936",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.RREF.936",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-937",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.NULLITY.937",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-938",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.KERNEL.938",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-939",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.COLUMN_BASIS.939",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-940",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.ROW_BASIS.940",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-941",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.INVERSE.941",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-942",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.SOLVE.942",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "vector": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "offline-943",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.CONSISTENT.943",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "vector": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "offline-944",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.SOLUTION_COUNT.944",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "vector": [
+          1,
+          2,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "offline-945",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.POWER.945",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "exponent": 17
+      }
+    },
+    {
+      "taskId": "offline-946",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.IDENTITY.946",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-947",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.SYMMETRIC.947",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-948",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.IDEMPOTENT.948",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-949",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.ORTHOGONAL.949",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-950",
+      "layerId": "GAUSS.MATH.MODULAR_MATRICES.CHAR_POLY.950",
+      "input": {
+        "prime": 7,
+        "matrix": [
+          [
+            1,
+            2,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-951",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.NORMALIZE.951",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-952",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.STEP_DISTRIBUTION.952",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5
+      }
+    },
+    {
+      "taskId": "offline-953",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.TRANSITION_POWER.953",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "steps": 5
+      }
+    },
+    {
+      "taskId": "offline-954",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.PATH_PROBABILITY.954",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "path": [
+          0,
+          1,
+          2,
+          0
+        ]
+      }
+    },
+    {
+      "taskId": "offline-955",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.RETURN_PROBABILITY.955",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5
+      }
+    },
+    {
+      "taskId": "offline-956",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.OCCUPANCY.956",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5
+      }
+    },
+    {
+      "taskId": "offline-957",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.FIRST_HIT.957",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "target": 2
+      }
+    },
+    {
+      "taskId": "offline-958",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.HIT_BY.958",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "target": 2
+      }
+    },
+    {
+      "taskId": "offline-959",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.SURVIVAL.959",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "target": 2
+      }
+    },
+    {
+      "taskId": "offline-960",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.TRUNCATED_HIT_TIME.960",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "target": 2
+      }
+    },
+    {
+      "taskId": "offline-961",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.CONDITIONAL_HIT_TIME.961",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "target": 2
+      }
+    },
+    {
+      "taskId": "offline-962",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.EXPECTED_REWARD.962",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "rewards": [
+          2,
+          -1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "offline-963",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.CUMULATIVE_REWARD.963",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "rewards": [
+          2,
+          -1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "offline-964",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.DISCOUNTED_REWARD.964",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "rewards": [
+          2,
+          -1,
+          3
+        ],
+        "discount": "1/2"
+      }
+    },
+    {
+      "taskId": "offline-965",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.SET_HIT.965",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "targets": [
+          1,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-966",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.SET_STAY.966",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "allowed": [
+          0,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "offline-967",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.EXACT_VISITS.967",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "target": 2,
+        "visits": 2
+      }
+    },
+    {
+      "taskId": "offline-968",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.EXPECTED_VISITS.968",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "steps": 5,
+        "target": 2
+      }
+    },
+    {
+      "taskId": "offline-969",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.JOINT_STATES.969",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "start": 0,
+        "firstStep": 2,
+        "secondStep": 5,
+        "firstState": 1,
+        "secondState": 2
+      }
+    },
+    {
+      "taskId": "offline-970",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.TOTAL_VARIATION.970",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "startA": 0,
+        "startB": 2,
+        "steps": 5
+      }
+    },
+    {
+      "taskId": "offline-971",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.INVARIANT_CANDIDATE.971",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "stationary": [
+          "3/10",
+          "4/10",
+          "3/10"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-972",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.DETAILED_BALANCE.972",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ],
+        "stationary": [
+          "3/10",
+          "4/10",
+          "3/10"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-973",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.IRREDUCIBLE.973",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-974",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.COMMUNICATING_CLASSES.974",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-975",
+      "layerId": "GAUSS.STATS.EXACT_MARKOV.ABSORBING_STATES.975",
+      "input": {
+        "weights": [
+          [
+            2,
+            1,
+            0
+          ],
+          [
+            0,
+            1,
+            1
+          ],
+          [
+            1,
+            0,
+            1
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "offline-976",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.PREFIX_FREE.976",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-977",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.SUFFIX_FREE.977",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-978",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.UNIQUELY_DECODABLE.978",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-979",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.KRAFT_SUM.979",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-980",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.KRAFT_SLACK.980",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-981",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.MAX_LENGTH.981",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-982",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.MIN_LENGTH.982",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-983",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.LENGTH_HISTOGRAM.983",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-984",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.WEIGHTED_AVERAGE.984",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ],
+        "frequencies": [
+          8,
+          4,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-985",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.LENGTH_VARIANCE.985",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ],
+        "frequencies": [
+          8,
+          4,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-986",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.SOURCE_ENTROPY.986",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ],
+        "frequencies": [
+          8,
+          4,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-987",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.REDUNDANCY.987",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ],
+        "frequencies": [
+          8,
+          4,
+          2,
+          2
+        ]
+      }
+    },
+    {
+      "taskId": "offline-988",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.ENCODE.988",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ],
+        "message": "abdcab"
+      }
+    },
+    {
+      "taskId": "offline-989",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.DECODE.989",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ],
+        "bits": "0101111100"
+      }
+    },
+    {
+      "taskId": "offline-990",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.TRIE_NODES.990",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-991",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.TRIE_LEAVES.991",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-992",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.TRIE_INTERNAL.992",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-993",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.TRIE_DEPTH.993",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-994",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.COMPLETE.994",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-995",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.HAMMING_MIN.995",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-996",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.LEX_ORDER.996",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-997",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.REVERSE.997",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-998",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.COMPLEMENT.998",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ]
+      }
+    },
+    {
+      "taskId": "offline-999",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.CANONICAL.999",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "lengths": [
+          1,
+          2,
+          3,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "offline-1000",
+      "layerId": "GAUSS.INFO.PREFIX_CODES.AVAILABLE_LENGTH.1000",
+      "input": {
+        "symbols": [
+          "a",
+          "b",
+          "c",
+          "d"
+        ],
+        "codewords": [
+          "0",
+          "10",
+          "110",
+          "111"
+        ],
+        "length": 4
+      }
+    }
+  ]
+}
