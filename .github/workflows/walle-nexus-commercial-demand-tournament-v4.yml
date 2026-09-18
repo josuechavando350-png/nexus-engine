@@ -10,6 +10,7 @@ on:
       - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v4.mjs'
       - 'seo-avengers-2500/scripts/verify.sh'
       - 'seo-avengers-2500/tests/test_nexus_commercial_*'
+      - 'gauss/**'
       - 'walle/**'
       - '.github/workflows/walle-nexus-commercial-demand-tournament-v4.yml'
   pull_request:
@@ -19,6 +20,7 @@ on:
       - 'seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v4.mjs'
       - 'seo-avengers-2500/scripts/verify.sh'
       - 'seo-avengers-2500/tests/test_nexus_commercial_*'
+      - 'gauss/**'
       - 'walle/**'
       - '.github/workflows/walle-nexus-commercial-demand-tournament-v4.yml'
 
@@ -93,14 +95,23 @@ jobs:
           set -euo pipefail
           node --test seo-avengers-2500/tests/test_nexus_commercial_demand_tournament_v4.mjs
 
-      - name: Run V4 deterministic tournament assertions
+      - name: Execute actual GAUSS Pareto and Quantum non-Ising receipt tests
+        run: |
+          set -euo pipefail
+          node --test seo-avengers-2500/tests/test_nexus_commercial_gauss_pareto.mjs
+
+      - name: Run V4 deterministic tournament and GAUSS assertions
         run: |
           set -euo pipefail
           node seo-avengers-2500/scripts/nexus-commercial-demand-tournament-v4.mjs \
             --assert-floor-milli 15000 \
             --assert-verdict EXPAND_VALIDATED_DEMAND_AND_OR_CHANNELS_BEFORE_FLOOR_CLAIM \
             --assert-selected SOFTWARE_BUYER_FRONTIER_FULL_VALIDATED_36 \
-            --assert-worst-milli 1015 > /tmp/nexus-commercial-demand-v4.json
+            --assert-worst-milli 1015 \
+            > /tmp/nexus-commercial-demand-v4.json 2> /tmp/nexus-commercial-gauss.log
+          grep -q 'NEXUS_GAUSS_PARETO=PASS' /tmp/nexus-commercial-gauss.log
+          grep -q 'QUANTUM=NOT_APPLICABLE' /tmp/nexus-commercial-gauss.log
+          grep -q 'SALES_CLAIMS=NOT_VALIDATED_FOR_SALES_CLAIMS' /tmp/nexus-commercial-gauss.log
 
       - name: Run WALLE full SEO Avengers execution proof
         env:
