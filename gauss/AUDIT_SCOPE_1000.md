@@ -1,8 +1,9 @@
-# Preliminary audit findings for the proposed 1,000-operator GAUSS integration
+# GAUSS 1,000-operator audit staging — NOT integrated or certified in GitHub
 
-- The verified `main` SHA `ff1115f056b8017f1be2db609e2bb4919aeb56eb` contains 200 registered algorithms, not 1,000.
-- The offline eight-batch overlay has an inventory of 800 new definitions. These have **not** been uploaded to this branch and are not represented as committed, CI-tested algorithms.
-- Existing `gauss/core/problem.mjs` limits requests to 800 tasks. Registry and WALLE assertions target an 800-layer plan and 200 integrated algorithms; a 1,000-task integration needs explicit schema-compatible changes and replay tests.
-- The draft PRs #385 and #386 have unmerged additional work; compare definitions to prevent double counting.
-- A full candidate locally passed 266 tests and 1,000-task execution on a source archive. This is **not** CI on an integrated GitHub SHA and does not demonstrate universal scientific accuracy.
-- Never merge this staging work into `main` or deploy client properties before comparing the exact final diff, getting all checks green and obtaining explicit authorization.
+The audited `main` revision `ff1115f056b8017f1be2db609e2bb4919aeb56eb` still registers exactly **200** algorithms. This auxiliary branch contains staging documentation only; **none of the 800 additional implementation files is committed here**.
+
+The separately delivered offline candidate contains a 88-path source patch (`GAUSS-1000.patch`, SHA-256 `dd430cdb6ed01128cea6678405891042807b2a6bab279e4581e53e774948c5ba`) plus a manifest-pinned installer. Against the archived GAUSS + classical Quantum + WALLE sources, two local installations produced the same Git tree; 267/267 Node GAUSS tests passed, all 1,000 fixture tasks executed with zero failures, and WALLE replay succeeded. On the hardened candidate WALLE rejected 800 individually altered, rehashed outputs. These are **local fixed-fixture checks**, not independent proof of each algorithm's mathematics or CI on a remotely integrated SHA.
+
+Two local defects were corrected before packaging: `markovExactVisits` now accepts 13 valid visits across 12 transitions, and the installer verifies all 80 overlay source SHA-256 hashes before importing any submitted module. Static import review detected no third-party imports in the overlay; this is not a comprehensive security audit.
+
+Before any merge: upload the actual source patch to a dedicated clean integration branch, reconcile draft PRs #385/#386 to avoid double counting, run entire repository CI on the exact integrated SHA, inspect numerical correctness and performance under adversarial inputs, and confirm no client/Vercel deployment will be triggered unexpectedly. Historical 8×100 target was 800; the requested integrated target is 1,000 with an uneven domain distribution. No merge or client deployment is authorized by this staging document.
