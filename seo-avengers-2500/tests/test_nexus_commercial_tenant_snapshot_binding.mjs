@@ -83,6 +83,11 @@ test("reject scenario aggregate borrowed or edited independently from bound reco
   await assert.rejects(assertTournamentTenantSnapshotBinding(input), /CROSS_TENANT_SEARCH_AGGREGATE_MISMATCH/);
 });
 
+test("reject duplicated query-page rows even when their provider snapshot hash is valid", async (t) => {
+  const input = await setup(t, [...searchRows(), ...searchRows()]);
+  await assert.rejects(assertTournamentTenantSnapshotBinding(input), /TENANT_SEARCH_DUPLICATE_QUERY_PAGE_ROW/);
+});
+
 test("reject custom scenario without control and evidence roots", async () => {
   await assert.rejects(
     assertTournamentTenantSnapshotBinding({ scenario, manifest }),
