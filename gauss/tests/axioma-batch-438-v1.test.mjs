@@ -11,8 +11,7 @@ import {runHypergraph438Bank} from '../axioma/hypergraphs-438-v1.mjs';
 import {runPoset438Bank} from '../axioma/posets-438-v1.mjs';
 import {runGeometry438Bank} from '../axioma/lattice-geometry-438-v1.mjs';
 import {runGf2Coding438Bank} from '../axioma/gf2-codes-438-v1.mjs';
-import {runFiniteAutomata438Bank} from '../axioma/finite-automata-438-v1.mjs';
-import {runNumerical438Bank} from '../axioma/numerical-methods-438-v1.mjs';
+import {runFiniteAutomata438Bank,runNumerical438Bank} from '../axioma/contract-overrides-438-v1.mjs';
 const banks=[runSequence438Bank,runIntegerPolynomial438Bank,runIntegerMatrix438Bank,runGraphInvariant438Bank,runUnicode438Bank,runFiniteNumber438Bank,runHypergraph438Bank,runPoset438Bank,runGeometry438Bank,runGf2Coding438Bank,runFiniteAutomata438Bank,runNumerical438Bank];
 for(const bank of banks){
  test(`AXIOMA ${bank.name}: 25 explicit independent operators`,()=>{
