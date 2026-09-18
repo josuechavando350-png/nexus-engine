@@ -45,6 +45,12 @@ test("reject borrowed keyword research snapshot even if GSC matches", () => {
   assert.throws(() => assertTournamentTenantEvidenceBoundary(scenario, manifest), /CROSS_TENANT_RESEARCH_SNAPSHOT_MISMATCH/);
 });
 
+test("reject demand family referring to a different or unlisted research snapshot", () => {
+  const scenario = clone(fixture);
+  scenario.keywordResearch.families[0].sourceSnapshotId = "OTHER_TENANT_RESEARCH";
+  assert.throws(() => assertTournamentTenantEvidenceBoundary(scenario, manifest), /CROSS_TENANT_DEMAND_FAMILY_SOURCE_MISMATCH/);
+});
+
 test("reject market mismatch and forged provider-authorization claim", () => {
   assert.throws(() => assertTournamentTenantEvidenceBoundary(fixture, {...manifest, market: { country: "Chile", language: "Spanish" }}), /CROSS_TENANT_MARKET_COUNTRY_MISMATCH/);
   assert.throws(() => assertTournamentTenantEvidenceBoundary(fixture, {...manifest, evidenceClass: "FIRST_PARTY_AUTHORIZED"}), /must not claim provider authorization/);
