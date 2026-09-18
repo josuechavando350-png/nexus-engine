@@ -24,18 +24,18 @@ test('AXIOMA rejects a broken permutation implementation and malformed data acce
   assert.ok(report.failedInvalidRejections > 0);
 });
 
-test('AXIOMA reports 48 unique operators and does not present other 952 as evaluated', () => {
+test('AXIOMA reports 60 unique operators and does not present other 940 as evaluated', () => {
   const report = runAxioma();
-  assert.equal(report.coveredOperators, 48);
-  assert.equal(report.untestedOperators, 952);
-  assert.equal(report.validCases, 4800);
-  assert.equal(report.passedValidCases, 4800, JSON.stringify(report.suites.flatMap(s => s.failures)));
-  assert.equal(report.invalidCases, 144);
-  assert.equal(report.passedInvalidRejections, 144);
+  assert.equal(report.coveredOperators, 60);
+  assert.equal(report.untestedOperators, 940);
+  assert.equal(report.validCases, 6000);
+  assert.equal(report.passedValidCases, 6000, JSON.stringify(report.suites.flatMap(s => s.failures)));
+  assert.equal(report.invalidCases, 180);
+  assert.equal(report.passedInvalidRejections, 180);
   assert.equal(report.failedValidCases, 0);
   assert.equal(report.failedInvalidRejections, 0);
   assert.equal(report.validPassRate, 1);
-  assert.equal(report.coverageRate, 0.048);
+  assert.equal(report.coverageRate, 0.06);
   assert.notEqual(report.coverageRate, report.validPassRate);
   assert.deepStrictEqual(report, runAxioma(), 'same SHA, seed, and cases must reproduce bit-for-bit');
   console.log(`AXIOMA_V1=${JSON.stringify({coveredOperators: report.coveredOperators, untestedOperators: report.untestedOperators, coverageRate: report.coverageRate, validCases: report.validCases, passedValidCases: report.passedValidCases, invalidCases: report.invalidCases, passedInvalidRejections: report.passedInvalidRejections, suites: report.suites.map(s => ({subject: s.subject, caseDigest: s.caseDigest}))})}`);
