@@ -1,7 +1,7 @@
 /* Independent 3D lattice-vector oracle; exact BigInt determinants and reduced rational coordinates. */
 import {runBatchBank,seq} from './batch-238-common.mjs';
 const tags=['DOT3','CROSS3','NORM_SQUARED3','DISTANCE_SQUARED3','SCALAR_TRIPLE3','TETRA_SIX_VOLUME3','ORIENTATION3','COLLINEAR3','COPLANAR3','ORTHOGONAL3','PARALLEL3','ANGLE_CLASS3','TRIANGLE_AREA_SQUARED3','PARALLELOGRAM_AREA_SQUARED3','BARYCENTRIC_TRIANGLE3','MIDPOINT3','AFFINE_WEIGHTED3','CENTROID3','BOUNDING_BOX3','BOX_INTERSECTION3','BOX_VOLUME3','SPHERE_POINT3','PROJECT_POINT_LINE3','POINT_LINE_DISTANCE3','POINT_PLANE_DISTANCE3'];
-const gcd=(a,b)=>b?gcd(b,a%b):a<0n?-a:a,rat=(n,d=1n)=>{if(d<0n)n=-n,d=-d;const g=gcd(n,d);return {numerator:String(n/g),denominator:String(d/g)};};
+const gcd=(a,b)=>b?gcd(b,a%b):a<0n?-a:a,rat=(n,d=1n)=>{if(d<0n){n=-n;d=-d;}const g=gcd(n,d);return {numerator:String(n/g),denominator:String(d/g)};};
 const sum=v=>v.reduce((s,x)=>s+x,0n),to=a=>a.map(BigInt),sub=(a,b)=>a.map((v,i)=>v-b[i]),dot=(a,b)=>sum(a.map((v,i)=>v*b[i])),norm=a=>dot(a,a);
 const determinant=(a,b,c)=>a[0]*(b[1]*c[2]-b[2]*c[1])-a[1]*(b[0]*c[2]-b[2]*c[0])+a[2]*(b[0]*c[1]-b[1]*c[0]);
 const cross=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]],coord=(a,d)=>a.map(v=>rat(v,d));

@@ -6,8 +6,8 @@ const sorted=s=>[...s].sort((a,b)=>a-b);
 const subset=(a,b)=>a.every(v=>b.includes(v));
 const combinations=a=>{const out=[[]];for(const x of a){const old=out.slice();for(const c of old)out.push([...c,x]);}return out.sort((a,b)=>a.length-b.length||rank(a)-rank(b));};
 const rank=a=>a.reduce((v,k)=>v+2**k,0);
-function input(tag,i,r){const n=1+i%6,base=seq(n),a=base.filter((_,v)=>i%9===0?false:i%9===1?true:r(2)===1),b=base.filter((_,v)=>i%7===0?false:i%7===1?true:r(2)===1);
- if(families.has(tag)){const length=i%11===0?0:1+r(8),family=seq(length).map((_,k)=>base.filter(v=>i%13===0?false:i%13===1?true:r(2)===1));return {n,family};}
+function input(tag,i,r){const n=1+i%6,base=seq(n),a=base.filter(()=>i%9===0?false:i%9===1?true:r(2)===1),b=base.filter(()=>i%7===0?false:i%7===1?true:r(2)===1);
+ if(families.has(tag)){const length=i%11===0?0:1+r(8),family=seq(length).map(()=>base.filter(()=>i%13===0?false:i%13===1?true:r(2)===1));return {n,family};}
  if(tag==='SET_UNRANK_MASK')return {n,mask:i%7===0?0:i%7===1?2**n-1:r(2**n)};
  const x={n,a,b};if(tag==='SET_K_SUBSETS')return {...x,k:i%6===0?0:i%6===1?a.length:r(a.length+1)};return x;
 }

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {runPermutationBank} from '../axioma/permutations-v1.mjs';
 import {runAxioma} from '../axioma/run.mjs';
-import {getGaussLayer} from '../core/registry.mjs';
+import {getGaussLayer,GAUSS_IMPLEMENTED_LAYERS} from '../core/registry.mjs';
 
 test('AXIOMA: 25 bounded permutation operators against exhaustive independent S_n references', () => {
   const report = runPermutationBank();
@@ -24,20 +24,25 @@ test('AXIOMA rejects a broken permutation implementation and malformed data acce
   assert.ok(report.failedInvalidRejections > 0);
 });
 
-test('AXIOMA reports exactly 737 unique reference-checked operators, not the other 263', () => {
+test('AXIOMA independently checks all 1000 unique registered operators without untested gaps', () => {
   const report = runAxioma();
-  assert.equal(report.coveredOperators, 737);
-  assert.equal(report.untestedOperators, 263);
-  assert.equal(report.validCases, 73700);
-  assert.equal(report.passedValidCases, 73700, JSON.stringify(report.suites.flatMap(s => s.failures)));
-  assert.equal(report.invalidCases, 2211);
-  assert.equal(report.passedInvalidRejections, 2211, JSON.stringify(report.suites.flatMap(s=>s.failures)));
-  assert.equal(report.failedValidCases, 0);
-  assert.equal(report.failedInvalidRejections, 0);
-  assert.equal(report.validPassRate, 1);
-  assert.equal(report.coverageRate, 0.737);
-  assert.notEqual(report.coverageRate, report.validPassRate);
-  assert.equal(report.suites.length,32);
-  assert.deepStrictEqual(report, runAxioma(), 'same SHA, seed, and cases must reproduce bit-for-bit');
-  console.log(`AXIOMA_V1=${JSON.stringify({coveredOperators: report.coveredOperators, untestedOperators: report.untestedOperators, coverageRate: report.coverageRate, validCases: report.validCases, passedValidCases: report.passedValidCases, invalidCases: report.invalidCases, passedInvalidRejections: report.passedInvalidRejections, suites: report.suites.map(s => ({subject: s.subject, caseDigest: s.caseDigest}))})}`);
+  const ids=report.suites.flatMap(suite=>suite.operatorResults.map(operator=>operator.id));
+  const registry=new Set(GAUSS_IMPLEMENTED_LAYERS.map(layer=>layer.id));
+  assert.equal(registry.size,1000,'registry contains exactly 1000 unique implementations');
+  assert.equal(ids.length,new Set(ids).size,'no duplicated operator may inflate coverage');
+  assert.ok(ids.every(id=>registry.has(id)),'every verified ID must belong to actual GAUSS registry');
+  assert.deepStrictEqual(new Set(ids),registry,'every registered operator requires independent reference coverage');
+  assert.equal(report.coveredOperators,1000);
+  assert.equal(report.untestedOperators,0);
+  assert.equal(report.validCases,100000);
+  assert.equal(report.passedValidCases,100000,JSON.stringify(report.suites.flatMap(s=>s.failures)));
+  assert.equal(report.invalidCases,3000);
+  assert.equal(report.passedInvalidRejections,3000,JSON.stringify(report.suites.flatMap(s=>s.failures)));
+  assert.equal(report.failedValidCases,0);
+  assert.equal(report.failedInvalidRejections,0);
+  assert.equal(report.validPassRate,1);
+  assert.equal(report.coverageRate,1);
+  assert.equal(report.suites.length,59);
+  assert.deepStrictEqual(report,runAxioma(),'same SHA, seed and cases must reproduce bit-for-bit');
+  console.log(`AXIOMA_V1=${JSON.stringify({coveredOperators:report.coveredOperators,untestedOperators:report.untestedOperators,coverageRate:report.coverageRate,validCases:report.validCases,passedValidCases:report.passedValidCases,invalidCases:report.invalidCases,passedInvalidRejections:report.passedInvalidRejections,suites:report.suites.map(s=>({subject:s.subject,caseDigest:s.caseDigest}))})}`);
 });

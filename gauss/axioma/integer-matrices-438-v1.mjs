@@ -17,7 +17,7 @@ function input(tag,i,r){const n=1+i%3,m=1+(i+1)%3,generate=(h,w)=>seq(h).map(()=
  const sq=['EXACT_MATRIX_TRACE','EXACT_MATRIX_BAREISS_DET','EXACT_MATRIX_PERMANENT','EXACT_MATRIX_INVERSE','EXACT_MATRIX_ADJUGATE','EXACT_MATRIX_POWER','EXACT_MATRIX_DIAGONAL_PRODUCT','EXACT_MATRIX_ANTIDIAGONAL_SUM','EXACT_MATRIX_SYMMETRIC','EXACT_MATRIX_SKEW'].includes(tag);
  if(sq)a=generate(n,n);
  if(tag==='EXACT_MATRIX_INVERSE')a=seq(n).map(j=>seq(n).map(k=>k<j?0:k===j?(r(2)?2:-1):r(5)-2));
- if(tag==='EXACT_MATRIX_SKEW'&&i%2)a=seq(n).map(j=>seq(n).map(k=>j===k?0:j<k?r(5)-2:0)),a=a.map((row,j)=>row.map((v,k)=>j>k?-a[k][j]:v));
+ if(tag==='EXACT_MATRIX_SKEW'&&i%2){a=seq(n).map(j=>seq(n).map(k=>j===k?0:j<k?r(5)-2:0));a=a.map((row,j)=>row.map((v,k)=>j>k?-a[k][j]:v));}
  if(tag==='EXACT_MATRIX_SYMMETRIC'&&i%2)a=a.map((row,j)=>row.map((v,k)=>j>k?a[k][j]:v));
  if(tag==='EXACT_MATRIX_KRONECKER'){a=generate(1+i%2,1+(i+1)%2);b=generate(1+(i+1)%2,1+i%2);}
  if(tag==='EXACT_MATRIX_MUL')b=generate(m,1+r(3));

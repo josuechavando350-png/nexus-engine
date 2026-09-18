@@ -6,7 +6,7 @@ const targetWidthTags=new Set(['CA_PREIMAGE_COUNT','CA_PREIMAGE_LIST']);
 const stateTargetTags=new Set(['CA_REACHABLE','CA_FIRST_HIT']);
 const stepTags=new Set(['CA_SPACETIME_TRACE','CA_FINAL_STATE','CA_DENSITY_TIMELINE']);
 const ruleTags=new Set(['CA_REFLECT_RULE','CA_COMPLEMENT_RULE','CA_RULE_SYMMETRY']);
-function input(tag,i,r){const rule=i%9===0?0:i%9===1?255:i%9===2?204:i%9===3?170:r(256),width=1+i%6,state=seq(width).map((_,k)=>i%7===0?0:i%7===1?1:r(2)),target=seq(width).map((_,k)=>i%5===0?state[k]:r(2));
+function input(tag,i,r){const rule=i%9===0?0:i%9===1?255:i%9===2?204:i%9===3?170:r(256),width=1+i%6,state=seq(width).map(()=>i%7===0?0:i%7===1?1:r(2)),target=seq(width).map((_,k)=>i%5===0?state[k]:r(2));
  if(ruleTags.has(tag))return {rule};if(widthTags.has(tag))return {rule,width};if(targetWidthTags.has(tag))return {rule,width,target};if(stateTargetTags.has(tag))return {rule,state,target};if(stepTags.has(tag))return {rule,state,steps:i%7===0?0:i%7===1?128:r(80)};return {rule,state};}
 const decode=(code,width)=>seq(width).map(i=>Math.floor(code/2**i)%2);
 const encode=bits=>bits.reduce((sum,bit,i)=>sum+bit*2**i,0);
@@ -17,7 +17,7 @@ function transition(rule,width){return allStates(width).map(state=>encode(evolve
 function orbit(rule,state){const trans=transition(rule,state.length),visited=new Map(),states=[];let v=encode(state);while(!visited.has(v)){visited.set(v,states.length);states.push(v);v=trans[v];}const preperiod=visited.get(v);return {states:states.map(v=>decode(v,state.length)),preperiod,period:states.length-preperiod,cycle:states.slice(preperiod)};}
 function reflect(rule){const t=table(rule);return encode(seq(8).map(k=>t[(k%2)*4+(Math.floor(k/2)%2)*2+Math.floor(k/4)]));}
 function complement(rule){const t=table(rule);return encode(seq(8).map(k=>1-t[7-k]));}
-function reference(tag,x){const rule=x.rule,width=x.width??x.state?.length,n=width??1,states=width?allStates(width):null,trans=width?transition(rule,width):null;
+function reference(tag,x){const rule=x.rule,width=x.width??x.state?.length,states=width?allStates(width):null,trans=width?transition(rule,width):null;
  switch(tag){
  case 'CA_PERIODIC_STEP':return {state:evolve(rule,x.state)};
  case 'CA_ZERO_BOUNDARY':return {state:evolve(rule,x.state,'zero')};

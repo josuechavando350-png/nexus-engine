@@ -7,7 +7,7 @@ const pairTags=new Set(['TREE_LCA','TREE_DISTANCE','TREE_PATH','TREE_ANCESTOR_CH
 function input(tag,i,r){const n=1+i%12,edges=seq(n-1).map(j=>{const v=j+1,p=i%9===0?0:i%9===1?v-1:r(v);return r(2)?[v,p]:[p,v];});for(let j=edges.length-1;j>0;j--){const k=r(j+1);[edges[j],edges[k]]=[edges[k],edges[j]];}const tree={n,root:r(n),edges};
  if(pairTags.has(tag))return {tree,a:r(n),b:r(n)};
  if(vertexTags.has(tag))return tag==='TREE_KTH_ANCESTOR'?{tree,vertex:r(n),k:i%7===0?n:r(n+1)}:{tree,vertex:r(n)};
- if(tag==='TREE_SUBTREE_SUMS')return {tree,values:seq(n).map(v=>i%6===0?0:r(401)-200)};
+ if(tag==='TREE_SUBTREE_SUMS')return {tree,values:seq(n).map(()=>i%6===0?0:r(401)-200)};
  return tree;}
 function parsed(tree){const n=tree.n,adj=seq(n).map(()=>[]);for(const [a,b] of tree.edges){adj[a].push(b);adj[b].push(a);}adj.forEach(row=>row.sort((a,b)=>a-b));const parent=Array(n).fill(-1),depth=Array(n).fill(-1),queue=[tree.root];depth[tree.root]=0;for(let p=0;p<queue.length;p++)for(const v of adj[queue[p]])if(depth[v]<0){depth[v]=depth[queue[p]]+1;parent[v]=queue[p];queue.push(v);}const children=seq(n).map(i=>adj[i].filter(v=>v!==parent[i]));const pre=[],post=[];const visit=u=>{pre.push(u);for(const v of children[u])visit(v);post.push(u);};visit(tree.root);
  const ancestors=v=>{const arr=[];for(let t=v;t!==-1;t=parent[t])arr.push(t);return arr;};
