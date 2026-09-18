@@ -1,42 +1,39 @@
 # AXIOMA — banco independiente de verificación matemática de Nexus
 
-AXIOMA compara resultados de GAUSS con cálculos de referencia **implementados por separado**. El banco reúne **237 operadores únicos de 1,000 (23.7% de cobertura): los 37 originales y un lote completo de 200 adicionales**. Los 763 restantes permanecen **NO EVALUADOS por AXIOMA**. La cobertura no es un porcentaje de precisión general; los resultados observados corresponden exclusivamente a los casos y límites declarados.
+AXIOMA compara resultados de operadores registrados en GAUSS contra referencias **implementadas por separado**. Este PR añade **200 nuevos operadores distintos de los 237 anteriores**, para un objetivo comprobable de **437/1,000 (43.7%)**. Los otros **563 permanecen NO EVALUADOS por AXIOMA**. Esta cobertura no es una garantía de precisión matemática universal.
 
-## Ejecución y evidencia
+## Ejecución reproducible
 
-Desde la raíz del repositorio, con Node 24:
+Desde la raíz del repositorio con Node 24:
 
 ```sh
 node --test gauss/tests/precision-bank-finite-polynomials-v1.test.mjs gauss/tests/axioma-*.test.mjs
 node gauss/axioma/run.mjs > /tmp/axioma-report.json
+bash walle/adapters/gauss.sh
 ```
 
-El ejecutor produce JSON reproducible por suite y operador, con entradas válidas, resultados, discrepancias, rechazo de entradas inválidas y SHA-256 de entradas más respuestas de referencia. Sale con código distinto de cero ante discrepancias o aceptación indebida de entradas inválidas. `bash walle/adapters/gauss.sh` ejecuta también las pruebas en el flujo conectado de GAUSS, WALLE y la simulación interna de Quantum. Cada resultado de CI debe atribuirse a su **SHA exacto**; las cifras de abajo son denominadores fijos comprobados por pruebas, no un sustituto del reporte ejecutado.
+El informe de `runAxioma` registra por suite cada ID, entradas ejecutadas, discrepancias, rechazos de entradas inválidas y SHA-256 determinista de casos con respuestas de referencia. El runner falla ante IDs duplicados o denominadores inconsistentes. El comando `run.mjs` sale con error si se detecta cualquier discrepancia o aceptación inválida. Cada ejecución de CI debe vincularse al **SHA exacto** de su commit; escribir una cifra en este README no constituye evidencia de ejecución.
 
-## Alcance del lote completo
+## Composición del segundo lote
 
-| Suite | Operadores únicos | Casos válidos | Entradas inválidas | Referencia separada |
-| --- | ---: | ---: | ---: | --- |
-| Polinomios sobre cuerpos primos | 12 | 1,200 | 36 | BigInt modular, expansión de monomios y potencias |
-| Permutaciones finitas | 25 | 2,500 | 75 | Enumeración exhaustiva de S_n para 1 ≤ n ≤ 6 |
-| Teoría de números | 11 | 1,100 | 33 | Divisores, residuos, potencias, fracciones y testigos |
-| Grafos finitos | 12 | 1,200 | 36 | Subconjuntos, caminos, ciclos y coloraciones |
-| Funciones booleanas | 25 | 2,500 | 75 | Tablas de verdad, sumas sobre subconjuntos y distancia afín |
-| Relaciones binarias finitas | 25 | 2,500 | 75 | Conjuntos de pares y enumeración de caminos |
-| Particiones y composiciones | 25 | 2,500 | 75 | Enumeración de cortes y celdas de Ferrers |
-| Árboles ponderados | 25 | 2,500 | 75 | Caminos únicos, sumas de pares y búsqueda por eliminación de aristas |
-| Códigos binarios | 25 | 2,500 | 75 | Prefijos explícitos, fracciones BigInt y decodificación independiente |
-| Matrices sobre cuerpos primos | 25 | 2,500 | 75 | Determinantes por permutaciones, menores y eliminación separada |
-| Series y polinomios racionales | 25 | 2,500 | 75 | Fracciones BigInt reducidas, convolución y recurrencias formales |
-| Cadenas de Markov exactas | 2 | 200 | 6 | Productos enteros de pesos y denominadores de transición |
-| **Total (sin IDs repetidos)** | **237/1,000 (23.7%)** | **23,700** | **711** | **200 operadores nuevos; 763 no evaluados** |
+| Referencia nueva | IDs | Operadores nuevos | Casos válidos | Entradas inválidas |
+| --- | --- | ---: | ---: | ---: |
+| Autómatas celulares elementales | `GAUSS.PHYSICS.CA_*.576–600` | 25 | 2,500 | 75 |
+| Conjuntos finitos | `GAUSS.MATH.SET_*.601–625` | 25 | 2,500 | 75 |
+| Árboles enraizados | `GAUSS.CS.TREE_*.626–650` | 25 | 2,500 | 75 |
+| Intervalos semiabiertos enteros | `GAUSS.CONTROL.INTERVAL_*.651–675` | 25 | 2,500 | 75 |
+| Cuadrículas binarias | `GAUSS.CS.GRID_*.701–725` | 25 | 2,500 | 75 |
+| Palabras binarias de ancho fijo | `GAUSS.INFO.BIT_*.726–750` | 25 | 2,500 | 75 |
+| Endofunciones finitas | `GAUSS.CS.FUNCTION_*.751–775` | 25 | 2,500 | 75 |
+| Extracciones de urnas | `GAUSS.STATS.URN_*.776–800` | 25 | 2,500 | 75 |
+| **Lote nuevo** | **200 IDs disjuntos** | **200** | **20,000** | **600** |
+| **AXIOMA acumulado (incluidos 237 anteriores)** | **437 IDs disjuntos** | **437** | **43,700** | **1,311** |
 
-El runner exige 1,000 operadores en el registro, IDs únicos, igualdad entre cobertura y resultados por operador, denominadores independientes para casos válidos y entradas inválidas, y resultados sin discrepancias. Cada operador tiene 100 casos válidos deterministas y tres entradas inválidas. Las pruebas de mutación inyectan resultados erróneos y aceptación de datos malformados para comprobar que los detectores fallan de manera cerrada. Cuando un problema admite múltiples testigos correctos, la suite verifica validez y optimalidad, no identidad de representación.
+El banco original contiene 12 referencias a polinomios finitos del rango 676–700, por lo que **no se cuenta todo ese rango otra vez**. Las 200 incorporaciones de este PR se eligen en otros rangos disjuntos; `runAxioma` rechaza IDs repetidos entre suites. Las referencias nuevas incluyen enumeración explícita de estados y espacios finitos, fracciones reducidas BigInt, medidas por ranuras enteras y validación independiente de testigos matemáticos no únicos. Cada operador emplea 100 casos válidos deterministas y tres entradas inválidas. Los tests incluyen mutaciones deliberadas del sujeto que deben producir fallos observables.
 
-## Interpretación responsable
+## Alcance y límites
 
-- **Cobertura**: 237/1,000 operadores. **Conformidad observada**: resultados correctos/casos válidos ejecutados. **Rechazo inválido**: entradas inválidas rechazadas/entradas inválidas ejecutadas. No combinar denominadores.
-- La mayoría de los operadores evaluados usan igualdad exacta. Los dos resultados de entropía y redundancia en códigos binarios, que usan coma flotante, se comparan con una tolerancia relativa predeclarada de `1e-12` multiplicada por `max(1, |valor de referencia|)`; no son pruebas de precisión arbitraria ni de exactitud binaria.
-- Semillas y muestras son deterministas y públicas; no hay un conjunto externo ciego. Referencias separadas no constituyen prueba formal universal de todas las entradas.
-- AXIOMA **no mide** rendimiento, estabilidad o condicionamiento numérico global, precisión arbitraria ni ejecución en una QPU física. No atribuir éxito ni fracaso a los 763 operadores que siguen fuera de este banco.
-- Esta rama parte del banco `507d09fe3be45e6dde572e9306e2aab280930eed`, está separada de `main` y no cambia aplicaciones de clientes ni despliegues. Solo una ejecución verde contra el SHA final permite describir esta versión como validada.
+- **Cobertura objetivo en este PR:** 437/1,000 operadores. **Conformidad observada:** casos válidos acertados / casos válidos ejecutados. **Rechazo inválido:** casos malformados rechazados / casos malformados ejecutados. No mezclar estos denominadores.
+- La mayoría de las comparaciones nuevas son exactas. Las entropías discretas de urnas y las referencias anteriores de códigos binarios usan tolerancia numérica relativa declarada `1e-12 × max(1, |referencia|)`; no son operaciones de precisión arbitraria.
+- Semillas y entradas de prueba son deterministas y públicas. No se afirma una demostración formal de exactitud para todos los posibles datos ni se mide rendimiento, condicionamiento global o una QPU física.
+- El PR #390 está basado en la rama del PR #389, no en `main`; ninguno debe anunciarse como desplegado o fusionado hasta que eso ocurra. No se alteran aplicaciones de clientes ni configuraciones de despliegue.

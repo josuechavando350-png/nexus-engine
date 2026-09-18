@@ -12,10 +12,18 @@ import {runPrefixCodeBank} from './prefix-codes-v1.mjs';
 import {runModularMatrixBank} from './modular-matrices-v1.mjs';
 import {runRationalSeriesBank} from './rational-series-v1.mjs';
 import {runTwoMarkovBank} from './markov-two-v1.mjs';
+import {runBitword238Bank} from './bitwords-238-v1.mjs';
+import {runFiniteSet238Bank} from './finite-sets-238-v1.mjs';
+import {runFiniteFunction238Bank} from './finite-functions-238-v1.mjs';
+import {runUrn238Bank} from './urn-probability-238-v1.mjs';
+import {runInterval238Bank} from './intervals-238-v1.mjs';
+import {runBinaryGrid238Bank} from './binary-grids-238-v1.mjs';
+import {runRootedTree238Bank} from './rooted-trees-238-v1.mjs';
+import {runCellular238Bank} from './cellular-automata-238-v1.mjs';
 
 export function runAxioma({resolveLayer} = {}) {
   const options = resolveLayer ? {resolveLayer} : {};
-  const suites = [runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank].map(fn=>fn(options));
+  const suites = [runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank,runBitword238Bank,runFiniteSet238Bank,runFiniteFunction238Bank,runUrn238Bank,runInterval238Bank,runBinaryGrid238Bank,runRootedTree238Bank,runCellular238Bank].map(fn=>fn(options));
   const seen = new Set();
   for (const suite of suites) {
     assert.equal(suite.registryOperators, 1000, 'AXIOMA registry count mismatch');
@@ -45,7 +53,7 @@ export function runAxioma({resolveLayer} = {}) {
     failedInvalidRejections: sum('failedInvalidRejections'),
     validPassRate: sum('validCases') ? sum('passedValidCases') / sum('validCases') : null,
     invalidRejectionRate: sum('invalidCases') ? sum('passedInvalidRejections') / sum('invalidCases') : null,
-    precisionClaim: 'Only the evaluated inputs of named bounded operators; exact operations are compared exactly, approximate code entropy within stated tolerance; no universal accuracy claim',
+    precisionClaim: 'Only the evaluated inputs of named bounded operators; exact operations are compared exactly, approximate entropy within stated tolerance; no universal accuracy claim',
     suites: suites.map(suite => ({
       subject: suite.subject ?? suite.domain,
       seed: suite.seed,
