@@ -81,6 +81,20 @@ export function assertTournamentTenantEvidenceBoundary(rawScenario, rawManifest)
   if (JSON.stringify(snapshotIds.sort()) !== JSON.stringify(declaredIds.sort())) {
     throw new Error("CROSS_TENANT_RESEARCH_SNAPSHOT_MISMATCH");
   }
+  // A matching list of snapshot IDs is not sufficient if a demand family points
+  // at a nonexistent or different research source. Fail rather than borrowing
+  // another source's volume under a legitimate tenant declaration.
+  const snapshotNames = new Set(research.snapshots.map((row) => text(row.id, "research snapshot.id")));
+  if (snapshotNames.size !== research.snapshots.length) throw new Error("duplicate research snapshot id");
+  if (!Array.isArray(research.families) || research.families.length === 0) {
+    throw new Error("INSUFFICIENT_DATA:DEMAND_FAMILIES_MISSING");
+  }
+  for (const family of research.families) {
+    const familyId = text(object(family, "demand family").id, "demand family.id");
+    if (!snapshotNames.has(text(family.sourceSnapshotId, `family ${familyId}.sourceSnapshotId`))) {
+      throw new Error("CROSS_TENANT_DEMAND_FAMILY_SOURCE_MISMATCH");
+    }
+  }
   return Object.freeze({
     siteId,
     siteHostname,
