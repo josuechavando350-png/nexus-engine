@@ -3,6 +3,7 @@ import {deepFreeze} from './common.mjs';
 import {GAUSS_DOMAINS, GAUSS_IMPLEMENTED_LAYERS as established} from './registry-prebatch.mjs';
 import {BATCH_200_ADDITIONS} from './batch-200-additions.mjs';
 import {BATCH_201_500_MATH_A} from './batch-201-500-math-a.mjs';
+import {BATCH_201_500_STATS_A} from './batch-201-500-stats-a.mjs';
 export {GAUSS_DOMAINS};
 const ids=new Set(established.map(x=>x.id));
 const domainIds=new Set(GAUSS_DOMAINS.map(x=>x.id));
@@ -19,8 +20,9 @@ function acceptBatch(batch,label){
 }
 const batch200=acceptBatch(BATCH_200_ADDITIONS,'001-200 additions');
 const batch201500a=acceptBatch(BATCH_201_500_MATH_A,'201-500 math-a');
-export const GAUSS_IMPLEMENTED_LAYERS=deepFreeze([...established,...batch200,...batch201500a]);
-const expectedCount=116+BATCH_200_ADDITIONS.length+BATCH_201_500_MATH_A.length;
+const batch201500stats=acceptBatch(BATCH_201_500_STATS_A,'201-500 stats-a');
+export const GAUSS_IMPLEMENTED_LAYERS=deepFreeze([...established,...batch200,...batch201500a,...batch201500stats]);
+const expectedCount=116+BATCH_200_ADDITIONS.length+BATCH_201_500_MATH_A.length+BATCH_201_500_STATS_A.length;
 if(GAUSS_IMPLEMENTED_LAYERS.length!==expectedCount||ids.size!==expectedCount||new Set(GAUSS_IMPLEMENTED_LAYERS.map(x=>x.execute)).size!==expectedCount)throw new Error('GAUSS registry uniqueness/integrity failure');
 const byId=new Map(GAUSS_IMPLEMENTED_LAYERS.map(layer=>[layer.id,layer]));
 export function getGaussLayer(layerId){return byId.get(layerId)??null;}
