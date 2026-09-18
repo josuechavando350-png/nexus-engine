@@ -7,6 +7,7 @@ SUITE = Path(__file__).resolve().parents[1]
 ENGINE = SUITE / "commercial-demand" / "tournament-engine-v2.mjs"
 BOUNDARY = SUITE / "commercial-demand" / "tenant-evidence-boundary.mjs"
 SNAPSHOT_BOUNDARY = SUITE / "commercial-demand" / "tenant-snapshot-binding.mjs"
+V3_BUILDER = SUITE / "commercial-demand" / "tournament-v3-scenario.mjs"
 SCENARIO = SUITE / "commercial-demand" / "nexus-commercial-demand-v2.json"
 MANIFEST = SUITE / "commercial-demand" / "nexus-commercial-demand-v2.tenant-manifest.json"
 CLI = SUITE / "scripts" / "nexus-commercial-demand-tournament-v2.mjs"
@@ -27,7 +28,7 @@ class NexusCommercialTournamentV2VerifierIntegrationTests(unittest.TestCase):
         )
 
     def test_v2_engine_cli_and_node_tests_execute_inside_verifier_discovery(self):
-        for path in (ENGINE, BOUNDARY, SNAPSHOT_BOUNDARY, CLI):
+        for path in (ENGINE, BOUNDARY, SNAPSHOT_BOUNDARY, V3_BUILDER, CLI):
             result = self.run_node("--check", path)
             self.assertEqual(result.returncode, 0, result.stderr)
 
