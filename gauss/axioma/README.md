@@ -1,10 +1,10 @@
 # AXIOMA — banco independiente de verificación matemática de Nexus
 
-AXIOMA compara resultados de operadores registrados en GAUSS contra referencias **implementadas por separado**. Este PR añade **200 nuevos operadores distintos de los 237 anteriores**, para un objetivo comprobable de **437/1,000 (43.7%)**. Los otros **563 permanecen NO EVALUADOS por AXIOMA**. Esta cobertura no es una garantía de precisión matemática universal.
+AXIOMA compara los operadores registrados de GAUSS con referencias matemáticas implementadas por separado. El tercer lote de este PR añade **300 referencias para operadores distintos** a los 437 anteriores, con objetivo de **737/1,000 (73.7% de cobertura)**. Los **263 restantes no se evalúan por AXIOMA**. Cada cifra de aciertos debe respaldarse con un informe ejecutado y las comprobaciones de CI del SHA exacto; cobertura no significa precisión universal.
 
 ## Ejecución reproducible
 
-Desde la raíz del repositorio con Node 24:
+Desde la raíz del repositorio, con Node 24:
 
 ```sh
 node --test gauss/tests/precision-bank-finite-polynomials-v1.test.mjs gauss/tests/axioma-*.test.mjs
@@ -12,28 +12,31 @@ node gauss/axioma/run.mjs > /tmp/axioma-report.json
 bash walle/adapters/gauss.sh
 ```
 
-El informe de `runAxioma` registra por suite cada ID, entradas ejecutadas, discrepancias, rechazos de entradas inválidas y SHA-256 determinista de casos con respuestas de referencia. El runner falla ante IDs duplicados o denominadores inconsistentes. El comando `run.mjs` sale con error si se detecta cualquier discrepancia o aceptación inválida. Cada ejecución de CI debe vincularse al **SHA exacto** de su commit; escribir una cifra en este README no constituye evidencia de ejecución.
+El reporte enumera cada ID único, casos válidos acertados o fallidos, entradas inválidas rechazadas o indebidamente admitidas y el digest SHA-256 reproducible de cada suite. `runAxioma` impide duplicar operadores y comprueba los denominadores. Los tests introducen resultados falsos y aceptación permisiva de entradas malformadas: ambas modificaciones deben detectarse.
 
-## Composición del segundo lote
+## Tercer lote: doce bancos de 25
 
-| Referencia nueva | IDs | Operadores nuevos | Casos válidos | Entradas inválidas |
+| Referencias independientes | Familia GAUSS y rango | Operadores | Casos válidos | Inválidos |
 | --- | --- | ---: | ---: | ---: |
-| Autómatas celulares elementales | `GAUSS.PHYSICS.CA_*.576–600` | 25 | 2,500 | 75 |
-| Conjuntos finitos | `GAUSS.MATH.SET_*.601–625` | 25 | 2,500 | 75 |
-| Árboles enraizados | `GAUSS.CS.TREE_*.626–650` | 25 | 2,500 | 75 |
-| Intervalos semiabiertos enteros | `GAUSS.CONTROL.INTERVAL_*.651–675` | 25 | 2,500 | 75 |
-| Cuadrículas binarias | `GAUSS.CS.GRID_*.701–725` | 25 | 2,500 | 75 |
-| Palabras binarias de ancho fijo | `GAUSS.INFO.BIT_*.726–750` | 25 | 2,500 | 75 |
-| Endofunciones finitas | `GAUSS.CS.FUNCTION_*.751–775` | 25 | 2,500 | 75 |
-| Extracciones de urnas | `GAUSS.STATS.URN_*.776–800` | 25 | 2,500 | 75 |
-| **Lote nuevo** | **200 IDs disjuntos** | **200** | **20,000** | **600** |
-| **AXIOMA acumulado (incluidos 237 anteriores)** | **437 IDs disjuntos** | **437** | **43,700** | **1,311** |
+| Secuencias enteras, subconjuntos e intervalos | `STATS`, 301–325 | 25 | 2,500 | 75 |
+| Polinomios enteros y coeficientes BigInt | `MATH`, 301–325 | 25 | 2,500 | 75 |
+| Matrices enteras y menores por permutación | `MATH`, 326–350 | 25 | 2,500 | 75 |
+| Invariantes de grafos por subconjuntos y caminos | `CS`, 301–325 | 25 | 2,500 | 75 |
+| Cadenas Unicode por subcadenas y subsecuencias | `CS`, 201–225 | 25 | 2,500 | 75 |
+| Teoría de números finita y órbitas de palabras | `MATH`, 223–247 | 25 | 2,500 | 75 |
+| Hipergrafos mediante enumeración de vértices y aristas | `CS`, 551–575 | 25 | 2,500 | 75 |
+| Órdenes parciales, ideales y extensiones lineales | `MATH`, 501–525 | 25 | 2,500 | 75 |
+| Geometría 3D con determinantes exactos | `MATH`, 401–425 | 25 | 2,500 | 75 |
+| Matrices y códigos binarios GF(2) | `INFO`, 401–425 | 25 | 2,500 | 75 |
+| Lenguajes de autómatas mediante enumeración de palabras | `CS`, 401–425 | 25 | 2,500 | 75 |
+| Cálculo numérico frente a soluciones analíticas | `CONTROL`, 401–425 | 25 | 2,500 | 75 |
+| **Lote añadido** | **300 IDs distintos** | **300** | **30,000** | **900** |
+| **AXIOMA acumulado, incluyendo los 437 previos** | **737/1,000 (73.7%)** | **737** | **73,700** | **2,211** |
 
-El banco original contiene 12 referencias a polinomios finitos del rango 676–700, por lo que **no se cuenta todo ese rango otra vez**. Las 200 incorporaciones de este PR se eligen en otros rangos disjuntos; `runAxioma` rechaza IDs repetidos entre suites. Las referencias nuevas incluyen enumeración explícita de estados y espacios finitos, fracciones reducidas BigInt, medidas por ranuras enteras y validación independiente de testigos matemáticos no únicos. Cada operador emplea 100 casos válidos deterministas y tres entradas inválidas. Los tests incluyen mutaciones deliberadas del sujeto que deben producir fallos observables.
+En autómatas, las clases de estados equivalentes se obtienen por lenguajes aceptados y se comprueba también la numeración del cociente. En métodos numéricos no se ocultan errores de discretización con un umbral arbitrario: el oráculo usa raíces e integrales analíticas, la corrección exacta del trapecio y del punto medio sobre polinomios cuadráticos y el error analítico del método de Euler en una EDO lineal forzada. Se verifican cotas, convergencia y límites del dominio de prueba.
 
 ## Alcance y límites
 
-- **Cobertura objetivo en este PR:** 437/1,000 operadores. **Conformidad observada:** casos válidos acertados / casos válidos ejecutados. **Rechazo inválido:** casos malformados rechazados / casos malformados ejecutados. No mezclar estos denominadores.
-- La mayoría de las comparaciones nuevas son exactas. Las entropías discretas de urnas y las referencias anteriores de códigos binarios usan tolerancia numérica relativa declarada `1e-12 × max(1, |referencia|)`; no son operaciones de precisión arbitraria.
-- Semillas y entradas de prueba son deterministas y públicas. No se afirma una demostración formal de exactitud para todos los posibles datos ni se mide rendimiento, condicionamiento global o una QPU física.
-- El PR #390 está basado en la rama del PR #389, no en `main`; ninguno debe anunciarse como desplegado o fusionado hasta que eso ocurra. No se alteran aplicaciones de clientes ni configuraciones de despliegue.
+- Cada operador nuevo cuenta con **100 casos válidos deterministas y tres entradas inválidas**. Los operadores exactos se contrastan por igualdad exacta; las aproximaciones con cotas analíticas o tolerancias declaradas, nunca como precisión infinita.
+- Las muestras son conocidas y reproducibles, no constituyen una prueba formal para todas las entradas, ni una evaluación global de precisión arbitraria, velocidad, condicionamiento numérico o hardware cuántico físico.
+- PR #391 depende del #390 y, a su vez, del #389. Las tres ramas están separadas de `main`: no presentar este trabajo como fusionado o desplegado.
