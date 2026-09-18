@@ -24,24 +24,24 @@ test('AXIOMA rejects a broken permutation implementation and malformed data acce
   assert.ok(report.failedInvalidRejections > 0);
 });
 
-test('AXIOMA reports exactly 887 unique reference-checked operators, not the other 113', () => {
+test('AXIOMA reports exactly 921 unique reference-checked operators, not the other 79', () => {
   const report = runAxioma();
   const ids=report.suites.flatMap(suite=>suite.operatorResults.map(operator=>operator.id));
   const registry=new Set(GAUSS_IMPLEMENTED_LAYERS.map(layer=>layer.id));
   assert.equal(ids.length,new Set(ids).size,'no duplicated operator may inflate coverage');
   assert.ok(ids.every(id=>registry.has(id)),'every verified ID must belong to actual GAUSS registry');
-  assert.equal(report.coveredOperators, 887);
-  assert.equal(report.untestedOperators, 113);
-  assert.equal(report.validCases, 88700);
-  assert.equal(report.passedValidCases, 88700, JSON.stringify(report.suites.flatMap(s => s.failures)));
-  assert.equal(report.invalidCases, 2661);
-  assert.equal(report.passedInvalidRejections, 2661, JSON.stringify(report.suites.flatMap(s=>s.failures)));
+  assert.equal(report.coveredOperators, 921);
+  assert.equal(report.untestedOperators, 79);
+  assert.equal(report.validCases, 92100);
+  assert.equal(report.passedValidCases, 92100, JSON.stringify(report.suites.flatMap(s => s.failures)));
+  assert.equal(report.invalidCases, 2763);
+  assert.equal(report.passedInvalidRejections, 2763, JSON.stringify(report.suites.flatMap(s=>s.failures)));
   assert.equal(report.failedValidCases, 0);
   assert.equal(report.failedInvalidRejections, 0);
   assert.equal(report.validPassRate, 1);
-  assert.equal(report.coverageRate, 0.887);
+  assert.equal(report.coverageRate, 0.921);
   assert.notEqual(report.coverageRate, report.validPassRate);
-  assert.equal(report.suites.length,45);
+  assert.equal(report.suites.length,48);
   assert.deepStrictEqual(report, runAxioma(), 'same SHA, seed, and cases must reproduce bit-for-bit');
   console.log(`AXIOMA_V1=${JSON.stringify({coveredOperators: report.coveredOperators, untestedOperators: report.untestedOperators, coverageRate: report.coverageRate, validCases: report.validCases, passedValidCases: report.passedValidCases, invalidCases: report.invalidCases, passedInvalidRejections: report.passedInvalidRejections, suites: report.suites.map(s => ({subject: s.subject, caseDigest: s.caseDigest}))})}`);
 });
