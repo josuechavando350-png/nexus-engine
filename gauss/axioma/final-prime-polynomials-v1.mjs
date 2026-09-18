@@ -38,6 +38,7 @@ function sample(tag,i,r){const p=[2,3,5,7][i%4],coefficient=()=>r(p),polynomial=
  if(tag==='FP_ROOT_MULTIPLICITIES')return {prime:p,coefficients:[...range(r(3)).map(coefficient),1]};
  if(tag==='FP_LAGRANGE_INTERPOLATION'){const q=[3,5,7][i%3],n=1+r(Math.min(q,3));return {prime:q,points:range(n),values:range(n).map(()=>r(q))};}
  if(tag==='FP_HASSE_DERIVATIVE')return {prime:p,coefficients:a,order:r(6)};
+ if(tag==='FP_INTEGRATE'){const characteristic=[5,7][i%2];return {prime:characteristic,coefficients:a};}
  if(tag==='FP_POWER')return {prime:p,coefficients:a,exponent:r(6)};
  if(tag==='FP_IRREDUCIBLE')return {prime:p,coefficients:[...range(r(4)).map(coefficient),1]};
  return {prime:p,coefficients:a};
