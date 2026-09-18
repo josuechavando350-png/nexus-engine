@@ -37,10 +37,12 @@ import {runFinalFiniteEventsBank} from './final-finite-events-v1.mjs';
 import {runFinalCombinatoricsBank} from './final-combinatorics-v1.mjs';
 import {runFinalUnicodeIndexBank} from './final-unicode-index-v1.mjs';
 import {runFinalNumberTheoryTailBank} from './final-number-theory-tail-v1.mjs';
+import {runFinalBasicNumberTheoryBank} from './final-basic-number-theory-v1.mjs';
+import {runFinalDescriptiveStatisticsBank} from './final-descriptive-statistics-v1.mjs';
 
 export function runAxioma({resolveLayer} = {}) {
   const options = resolveLayer ? {resolveLayer} : {};
-  const suites = [runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank,runBitword238Bank,runFiniteSet238Bank,runFiniteFunction238Bank,runUrn238Bank,runInterval238Bank,runBinaryGrid238Bank,runRootedTree238Bank,runCellular238Bank,runSequence438Bank,runIntegerPolynomial438Bank,runIntegerMatrix438Bank,runGraphInvariant438Bank,runUnicode438Bank,runFiniteNumber438Bank,runHypergraph438Bank,runPoset438Bank,runGeometry438Bank,runGf2Coding438Bank,runFiniteAutomata438Bank,runNumerical438Bank,runFinalPrimePolynomialBank,runFinalExactMarkovBank,runFinalFiniteEventsBank,runFinalCombinatoricsBank,runFinalUnicodeIndexBank,runFinalNumberTheoryTailBank].map(fn=>fn(options));
+  const suites = [runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank,runBitword238Bank,runFiniteSet238Bank,runFiniteFunction238Bank,runUrn238Bank,runInterval238Bank,runBinaryGrid238Bank,runRootedTree238Bank,runCellular238Bank,runSequence438Bank,runIntegerPolynomial438Bank,runIntegerMatrix438Bank,runGraphInvariant438Bank,runUnicode438Bank,runFiniteNumber438Bank,runHypergraph438Bank,runPoset438Bank,runGeometry438Bank,runGf2Coding438Bank,runFiniteAutomata438Bank,runNumerical438Bank,runFinalPrimePolynomialBank,runFinalExactMarkovBank,runFinalFiniteEventsBank,runFinalCombinatoricsBank,runFinalUnicodeIndexBank,runFinalNumberTheoryTailBank,runFinalBasicNumberTheoryBank,runFinalDescriptiveStatisticsBank].map(fn=>fn(options));
   const seen = new Set();
   for (const suite of suites) {
     assert.equal(suite.registryOperators, 1000, 'AXIOMA registry count mismatch');
