@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFile, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { sha256Canonical } from "../gauss/core/common.mjs";
@@ -39,10 +40,16 @@ function assertPassingReport(report) {
   assert.equal(report.failedInvalidRejections, 0, "AXIOMA invalid rejection failures");
 }
 
+// The aggregate carries optional suite metadata as undefined; make its serialized
+// evidence the exact, JSON-compatible object used for both hashing and comparison.
+function runSerializedAxioma() {
+  return JSON.parse(JSON.stringify(runAxioma()));
+}
+
 export function createAxiomaEvidence(gaussReportSha256) {
   assert.match(gaussReportSha256, HASH, "GAUSS report digest required");
   const source = sourceIdentity();
-  const axiomaReport = runAxioma();
+  const axiomaReport = runSerializedAxioma();
   assertPassingReport(axiomaReport);
   assert.deepStrictEqual(sourceIdentity(), source, "AXIOMA source changed during execution");
   const unsigned = {
@@ -70,7 +77,7 @@ export function verifyAxiomaEvidence({ evidence, gaussReportSha256 }) {
   assert.equal(evidence.sourceRevision, source.sourceRevision, "AXIOMA source revision mismatch");
   assert.equal(evidence.sourceTree, source.sourceTree, "AXIOMA source tree mismatch");
   assertPassingReport(evidence.axiomaReport);
-  const replay = runAxioma();
+  const replay = runSerializedAxioma();
   assertPassingReport(replay);
   assert.deepStrictEqual(evidence.axiomaReport, replay, "AXIOMA independent replay differs from claimed evidence");
   assert.deepStrictEqual(sourceIdentity(), source, "AXIOMA source changed during verification");
@@ -82,7 +89,7 @@ export function verifyAxiomaEvidence({ evidence, gaussReportSha256 }) {
   });
 }
 
-if (process.argv[1] && fileURLToPath(import.meta.url) === fileURLToPath(new URL(`file://${process.argv[1]}`))) {
+if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   if (process.argv.length !== 5 || process.argv[2] !== "create") {
     throw new Error("Usage: node walle/axioma-evidence.mjs create <gauss-report.json> <axioma-evidence.json>");
   }
