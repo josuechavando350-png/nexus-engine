@@ -1,0 +1,5 @@
+/* Analytic stationary equation for two-node directed graphs with dangling-page mass. */
+import assert from 'node:assert/strict';
+import {runFinalBank} from './final-common-v1.mjs';
+const defs=[{id:'GAUSS.INFO.PAGERANK.004',make:(i,r)=>{const edges=[];if(r(2))edges.push({from:0,to:1});if(r(2))edges.push({from:1,to:0});return {vertexCount:2,edges,damping:[0.2,0.5,0.85,0.95][r(4)],tolerance:1e-11,maxIterations:10000};},reference:g=>{const d=g.damping,a=g.edges.some(e=>e.from===0)?0:0.5,b=g.edges.some(e=>e.from===1)?1:0.5;const q0=((1-d)/2+d*b)/(1-d*a+d*b);return {scores:[q0,1-q0]};},verify:(a,b,x)=>{assert.equal(a.scores.length,2);assert.ok(a.scores.every(Number.isFinite));assert.ok(a.scores.every((v,i)=>Math.abs(v-b.scores[i])<2e-9));assert.ok(Math.abs(a.scores[0]+a.scores[1]-1)<1e-10);assert.ok(Number.isSafeInteger(a.iterations)&&a.iterations>=1&&a.iterations<=x.maxIterations);assert.ok(a.l1Residual<=x.tolerance*1.001);},invalid:x=>[null,{...x,damping:0},{...x,vertexCount:0}]}];
+export const runFinalPageRankBank=options=>runFinalBank({name:'AXIOMA independently solved two-vertex PageRank stationary linear equation',definitions:defs,...options});
