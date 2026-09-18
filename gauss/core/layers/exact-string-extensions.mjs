@@ -11,7 +11,6 @@ function prefix(a){let pi=Array(a.length).fill(0);for(let i=1;i<a.length;i++){le
 function zvalues(a){const z=Array(a.length).fill(0);for(let i=1,l=0,r=0;i<a.length;i++){if(i<=r)z[i]=Math.min(r-i+1,z[i-l]);while(i+z[i]<a.length&&a[z[i]]===a[i+z[i]])z[i]++;if(i+z[i]-1>r){l=i;r=i+z[i]-1;}}if(a.length)z[0]=a.length;return z;}
 function period(a){let n=a.length;if(!n)return 0;let p=n-prefix(a).at(-1);return n%p===0?p:n;}
 function manacher(a){const n=a.length,odd=Array(n).fill(0),even=Array(n).fill(0);for(let i=0,l=0,r=-1;i<n;i++){let k=i>r?1:Math.min(odd[l+r-i],r-i+1);while(i-k>=0&&i+k<n&&a[i-k]===a[i+k])k++;odd[i]=k--;if(i+k>r){l=i-k;r=i+k;}}for(let i=0,l=0,r=-1;i<n;i++){let k=i>r?0:Math.min(even[l+r-i+1],r-i+1);while(i-k-1>=0&&i+k<n&&a[i-k-1]===a[i+k])k++;even[i]=k--;if(i+k>r){l=i-k-1;r=i+k;}}return {odd,even};}
-function equals(a,b){return a.length===b.length&&a.every((x,i)=>x===b[i]);}
 function palindrome(a,start=0,end=a.length){for(let i=start,j=end-1;i<j;i++,j--)if(a[i]!==a[j])return false;return true;}
 function text(points){return String.fromCodePoint(...points);}
 function rotation(a){const n=a.length;if(!n)return 0;const s=a.concat(a);let i=0,j=1,k=0;while(i<n&&j<n&&k<n){const x=s[i+k],y=s[j+k];if(x===y){k++;continue;}if(x>y){i+=k+1;if(i<=j)i=j+1;}else{j+=k+1;if(j<=i)j=i+1;}k=0;}return Math.min(i,j);}

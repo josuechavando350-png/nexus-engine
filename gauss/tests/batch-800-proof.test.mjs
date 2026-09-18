@@ -16,11 +16,9 @@ const fixture=JSON.parse(await readFile(new URL('../fixtures/batch-601-800-probl
 const prior=JSON.parse(await readFile(new URL('../fixtures/prior-400-ids.json',import.meta.url),'utf8'));
 let seed=0x713b4e29;function random(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/2**32;}
 const pick=n=>Math.floor(random()*n);
-const gcd=(a,b)=>{while(b){[a,b]=[b,a%b];}return a;};
 const biggcd=(a,b)=>{a=BigInt(a);b=BigInt(b);while(b){[a,b]=[b,a%b];}return a;};
 const rational=(a,b)=>{a=BigInt(a);b=BigInt(b);const d=biggcd(a,b);return `${a/d}/${b/d}`;};
 const perm=x=>{const a=x.slice();for(let i=a.length-1;i>0;i--){const j=pick(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
-const combinations=(a,k)=>{if(k===0)return [[]];if(!a.length)return [];return [...combinations(a.slice(1),k-1).map(s=>[a[0],...s]),...combinations(a.slice(1),k)];};
 const choose=(n,k)=>{if(k<0||k>n)return 0n;let a=1n;for(let i=1;i<=k;i++)a=a*BigInt(n-i+1)/BigInt(i);return a;};
 
 test('200 executable unique definitions in separate 100-operator packages, exactly 400 historic-new ID exclusions',()=>{

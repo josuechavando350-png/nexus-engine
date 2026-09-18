@@ -24,7 +24,7 @@ export function graphFourCycleCount(x){const {n,a}=N(x);let count=0n;for(let i=0
 export function graphInducedFourCycleCount(x){const {n,a}=N(x);let c=0n;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)for(let k=j+1;k<n;k++)for(let l=k+1;l<n;l++){const vs=[i,j,k,l],deg=vs.map(v=>vs.reduce((s,u)=>s+a[v][u],0));if(deg.every(d=>d===2))c++;}return V(c);}
 export function graphFourCliqueCount(x){const {n,a}=N(x);let c=0n;for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)for(let k=j+1;k<n;k++)for(let l=k+1;l<n;l++)if(a[i][j]&&a[i][k]&&a[i][l]&&a[j][k]&&a[j][l]&&a[k][l])c++;return V(c);}
 export function graphWedgeCount(x){return V(degrees(x).reduce((s,d)=>s+BigInt(d*(d-1)/2),0n));}
-export function graphOpenWedgeCount(x){const {n,a,d}=N(x);let c=0n;for(let v=0;v<n;v++)for(let u=0;u<n;u++)for(let w=u+1;w<n;w++)if(a[v][u]&&a[v][w]&&!a[u][w])c++;return V(c);}
+export function graphOpenWedgeCount(x){const {n,a}=N(x);let c=0n;for(let v=0;v<n;v++)for(let u=0;u<n;u++)for(let w=u+1;w<n;w++)if(a[v][u]&&a[v][w]&&!a[u][w])c++;return V(c);}
 export function graphFirstZagrebIndex(x){return V(degrees(x).reduce((s,d)=>s+BigInt(d*d),0n));}
 export function graphSecondZagrebIndex(x){const {edges,d}=N(x);return V(edges.reduce((s,[u,v])=>s+BigInt(d[u]*d[v]),0n));}
 export function graphAdjacencyMatrix(x){return pack({matrix:N(x).a});}

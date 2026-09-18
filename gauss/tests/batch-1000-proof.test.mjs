@@ -115,7 +115,7 @@ test('arbitrary relation composition, closure, powers and equivalence classes',(
  for(let t=0;t<150;t++){
   const n=1+pick(6),a=[],b=[];
   for(let i=0;i<n;i++)for(let j=0;j<n;j++){if(pick(3)===0)a.push([i,j]);if(pick(3)===0)b.push([i,j]);}
-  const A={size:n,pairs:a},B={size:n,pairs:b},map=p=>new Set(p.map(([i,j])=>`${i},${j}`));
+  const A={size:n,pairs:a},map=p=>new Set(p.map(([i,j])=>`${i},${j}`));
   const comp=map(rel.relationComposition({size:n,left:a,right:b}).pairs);
   for(let i=0;i<n;i++)for(let j=0;j<n;j++){
    const expected=Array.from({length:n},(_,k)=>map(a).has(`${i},${k}`)&&map(b).has(`${k},${j}`)).some(Boolean);
@@ -175,7 +175,6 @@ test('finite-field elimination and characteristic polynomials satisfy independen
 });
 
 test('exact Markov calculations agree with independent path enumeration and normalization',()=>{
- const sample={weights:[[2,1],[1,3]]};
  for(let t=0;t<100;t++){
   const n=2+pick(2),weights=Array.from({length:n},()=>Array.from({length:n},()=>pick(4)));for(const row of weights)if(!row.some(Boolean))row[0]=1;
   const start=pick(n),steps=pick(5),target=pick(n),x={weights,start,steps,target};
@@ -222,7 +221,7 @@ test('all 200 outputs replay deterministically and forged SHA-256 output evidenc
  assert.equal((await verify(report)).verified,true);
  for(const i of [0,21,57,84,103,141,163,199]){
   const forged=structuredClone(report);forged.rows[i].output={...forged.rows[i].output,fake:true};forged.rows[i].outputSha256=hash(forged.rows[i].output);
-  const{reportSha256,...unsigned}=forged;forged.reportSha256=hash(unsigned);
+  const unsigned={...forged};delete unsigned.reportSha256;forged.reportSha256=hash(unsigned);
   await assert.rejects(verify(forged),/replayed output differs/u);
  }
 });

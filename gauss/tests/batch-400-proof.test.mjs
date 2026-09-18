@@ -76,7 +76,7 @@ test('25 matrix operators: independent permutation determinants, permanents, min
   const n=r(1,4),a=Array.from({length:n},()=>Array.from({length:n},()=>r(-3,3))),b=Array.from({length:n},()=>Array.from({length:n},()=>r(-2,2))),o=[];
   const str=m=>({matrix:m.map(row=>row.map(String))});
   const tr=a[0].map((_,j)=>a.map(row=>row[j]));
-  const d=det(a);const product=(u,v)=>u.reduce((s,x,i)=>s+x*v[i],0);
+  const d=det(a);
   const gcd=(u,v)=>v?gcd(v,u%v):Math.abs(u);
   const permsN=perms(Array.from({length:n},(_,i)=>i));
   const perm=permsN.reduce((s,p)=>s+p.reduce((v,j,i)=>v*a[i][j],1),0);
@@ -117,7 +117,7 @@ test('25 graph operators agree with independent subset, path and 4-vertex enumer
  for(let z=0;z<110;z++){
   const n=r(1,6),edges=[];for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(r(0,3)===0)edges.push({from:i,to:j});
   const base={vertexCount:n,edges}, {adj,d}=graphOracle(base),k=r(0,n),m=edges.length,subsets=masks(n);
-  const pair=x=>x.reduce((s,t)=>s+t,0),gcd=(a,b)=>b?gcd(b,a%b):a;
+  const gcd=(a,b)=>b?gcd(b,a%b):a;
   const edg=edges.map(x=>[x.from,x.to]);
   const independent=mask=>{const v=vertices(n,mask);return v.every((u,i)=>v.slice(i+1).every(w=>!adj[u][w]));};
   const cover=mask=>edg.every(([u,v])=>(mask>>u&1)||(mask>>v&1));

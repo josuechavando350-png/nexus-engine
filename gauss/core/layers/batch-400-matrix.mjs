@@ -1,7 +1,6 @@
-import {fields,matrix,scalar,int,pack,gcd,abs,boundedBig} from './batch-400-common.mjs';
+import {fields,matrix,scalar,int,pack,gcd,boundedBig} from './batch-400-common.mjs';
 const one=x=>matrix(fields(x,['matrix']).matrix);
 const two=x=>{fields(x,['left','right']);return [matrix(x.left),matrix(x.right)];};
-const dims=a=>[a.length,a[0].length];
 const R=a=>pack({matrix:a});
 const V=a=>pack({value:a});
 const rect=(a,b)=>{if(a.length!==b.length||a[0].length!==b[0].length)throw new TypeError('matrix dimensions mismatch');};
@@ -12,7 +11,6 @@ const square=a=>{if(a.length!==a[0].length)throw new TypeError('square matrix re
 function det(a){const n=square(a),m=a.map(x=>x.slice());let sign=1n,p=1n;for(let k=0;k<n-1;k++){let row=k;while(row<n&&m[row][k]===0n)row++;if(row===n)return 0n;if(row!==k){[m[k],m[row]]=[m[row],m[k]];sign=-sign;}const pivot=m[k][k];for(let i=k+1;i<n;i++)for(let j=k+1;j<n;j++){const t=boundedBig(m[i][j]*pivot-m[i][k]*m[k][j]);if(t%p)throw new Error('Bareiss nonexact division');m[i][j]=t/p;}for(let i=k+1;i<n;i++)m[i][k]=0n;p=pivot;}return sign*m[n-1][n-1];}
 const minor=(a,i,j)=>a.filter((_,k)=>k!==i).map(row=>row.filter((_,k)=>k!==j));
 function frac(n,d=1n){if(d===0n)throw new Error('zero rational denominator');if(d<0n){n=-n;d=-d;}const g=gcd(n,d);return [n/g,d/g];}
-const ra=([a,b],[c,d])=>frac(a*d+b*c,b*d);
 const rs=([a,b],[c,d])=>frac(a*d-b*c,b*d);
 const rm=([a,b],[c,d])=>frac(a*c,b*d);
 const rd=([a,b],[c,d])=>frac(a*d,b*c);
@@ -39,8 +37,8 @@ export function matrixExactRowGcd(x){return pack({values:one(x).map(row=>row.red
 export function matrixExactColumnGcd(x){return pack({values:trans(one(x)).map(row=>row.reduce(gcd,0n))});}
 export function matrixExactDiagonalProduct(x){const a=one(x),n=square(a);let p=1n;for(let i=0;i<n;i++)p*=a[i][i];return V(p);}
 export function matrixExactAntiDiagonalSum(x){const a=one(x),n=square(a);return V(a.reduce((s,row,i)=>s+row[n-1-i],0n));}
-export function matrixExactSymmetric(x){const a=one(x),n=square(a);return pack({symmetric:a.every((r,i)=>r.every((v,j)=>v===a[j][i]))});}
-export function matrixExactSkewSymmetric(x){const a=one(x),n=square(a);return pack({skewSymmetric:a.every((r,i)=>r.every((v,j)=>v===-a[j][i]))});}
+export function matrixExactSymmetric(x){const a=one(x);square(a);return pack({symmetric:a.every((r,i)=>r.every((v,j)=>v===a[j][i]))});}
+export function matrixExactSkewSymmetric(x){const a=one(x);square(a);return pack({skewSymmetric:a.every((r,i)=>r.every((v,j)=>v===-a[j][i]))});}
 export function matrixExactFrobeniusSquared(x){return V(one(x).flat().reduce((s,v)=>s+v*v,0n));}
 const sample=[[2,1],[1,2]],args={matrix:sample},twoargs={left:sample,right:[[1,2],[3,4]]};
 const definitions=[

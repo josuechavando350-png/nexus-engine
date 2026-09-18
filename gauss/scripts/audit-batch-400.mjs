@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Offline file integrity and static-dependency report; reads package files only.
-import {readdir,readFile,stat} from 'node:fs/promises';
+import {readdir,readFile} from 'node:fs/promises';
 import {join,relative} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';

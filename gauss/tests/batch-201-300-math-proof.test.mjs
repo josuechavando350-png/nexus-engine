@@ -13,7 +13,6 @@ const all=[...groups.flat(),
 ];
 let seed=0xc0ffee;
 const rand=()=>{seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return seed>>>0;};
-function combinations(xs,k){if(k===0)return [[]];if(xs.length<k)return [];return [...combinations(xs.slice(1),k-1).map(a=>[xs[0],...a]),...combinations(xs.slice(1),k)];}
 function fraction(a,b){function gcd(x,y){while(y)[x,y]=[y,x%y];return x;}const g=gcd(a,b);return {numerator:String(a/g),denominator:String(b/g)};}
 function bruteCoin(event,n,k){let count=0n;for(let bits=0;bits<2**n;bits++){const a=Array.from({length:n},(_,i)=>bits>>i&1);if(event(a,k))count++;}return fraction(count,1n<<BigInt(n));}
 function bruteOccupancy(event,n,m,k){let count=0n;for(let code=0;code<m**n;code++){let x=code;const bins=Array(m).fill(0);for(let i=0;i<n;i++){bins[x%m]++;x=Math.floor(x/m);}if(event(bins,k))count++;}return fraction(count,BigInt(m)**BigInt(n));}
@@ -67,7 +66,7 @@ test('every coin and occupancy event matches independent complete sample-space e
  }
 });
 test('independent small-set oracles for combinatorics, number theory, and strings',()=>{
- const [stir2,stir1,signed,bell,ordered,lah,euler,narayana,catalan,motzkin,delannoy,central,derangement,rencontres,involution,partK,partDistinct,partOdd,composition,weak,palindrome,binary]=EXACT_COMBINATORICS.map(x=>x.execute);
+ const [stir2,stir1,signed,bell,ordered,lah,euler,,catalan,motzkin,delannoy,central,derangement,rencontres,involution,partK,partDistinct,partOdd,composition,weak,palindrome,binary]=EXACT_COMBINATORICS.map(x=>x.execute);
  for(let n=0;n<=6;n++){
   const permutations=(a)=>a.length? a.flatMap((x,i)=>permutations(a.filter((_,j)=>j!==i)).map(t=>[x,...t])):[[]];
   const p=permutations(Array.from({length:n},(_,i)=>i));
@@ -104,7 +103,7 @@ test('independent small-set oracles for combinatorics, number theory, and string
   assert.equal(divisorCount>=1,true);
  }
  const textCases=['','a','aaaa','banana','a😀a','abcba','bca','aabbc'];
- const [pre,z,period,borders,longBorder,longPal,countPal,distinctPal,lps,append,prepend,rotate,rotationCount,lyndon,longUnique,inversions,distinctSub,longRepeat,lcs,occ,distinctSeq,edit,hamming,commonPre,commonSuf]=EXACT_STRING_EXTENSIONS.map(x=>x.execute);
+ const [pre,z,period,borders,longBorder,longPal,countPal,distinctPal,,append,prepend,rotate,rotationCount,lyndon,longUnique,inversions,distinctSub,longRepeat,lcs,occ,distinctSeq,edit,hamming,commonPre,commonSuf]=EXACT_STRING_EXTENSIONS.map(x=>x.execute);
  for(const word of textCases){const a=Array.from(word),n=a.length;const s=x=>Array.from(x).join('');
   const naivePal=[];const allSub=[];
   for(let i=0;i<n;i++)for(let j=i+1;j<=n;j++){let sub=a.slice(i,j);allSub.push(s(sub));if(s(sub)===s([...sub].reverse()))naivePal.push(s(sub));}
@@ -141,6 +140,6 @@ test('invalid arithmetic and Unicode data rejected, deterministic 100-operator f
   if(layer.id.includes('WALK_FIRST_RETURN'))data.k=0;
   if((layer.id.includes('NECKLACES')||layer.id.includes('RAMANUJAN')||layer.id.includes('BINARY_PRIMITIVE_WORDS')||layer.id.includes('GCD_SUM_MODULUS')||layer.id.includes('PRIME_FACTORS')||layer.id.includes('JORDAN')||layer.id.includes('SIGMA_')||layer.id.includes('UNITARY')||layer.id.includes('INTEGER_RADICAL')||layer.id.includes('LIOUVILLE')||layer.id.includes('PRIMITIVE_ROOT')||layer.id.includes('QUADRATIC_RESIDUE'))&&data.n===0)data.n=1;
   if(layer.id.includes('NTH_PRIME')&&data.n===0)data.n=1;
-  try{const result=layer.execute(data);assert.equal(Object.isFrozen(result),true,layer.id)}catch(e){if(e instanceof RangeError&&/positive|>= 2/.test(e.message))continue;throw new Error(`${layer.id}: ${e.stack}`);}
+  try{const result=layer.execute(data);assert.equal(Object.isFrozen(result),true,layer.id)}catch(e){if(e instanceof RangeError&&/positive|>= 2/.test(e.message))continue;throw new Error(`${layer.id}: ${e.stack}`,{cause:e});}
  }
 });

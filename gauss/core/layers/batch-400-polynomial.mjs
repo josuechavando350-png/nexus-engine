@@ -1,4 +1,4 @@
-import {fields,int,vector,scalar,pack,gcd,abs,boundedBig} from './batch-400-common.mjs';
+import {fields,int,vector,scalar,pack,gcd,boundedBig} from './batch-400-common.mjs';
 const poly=(v)=>vector(v,{min:1,max:24});
 const norm=v=>{let a=v.slice();while(a.length>1&&a.at(-1)===0n)a.pop();return a;};
 const P=x=>pack({coefficients:norm(x)});

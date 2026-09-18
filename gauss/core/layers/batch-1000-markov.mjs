@@ -5,8 +5,7 @@ const f=x=>{object(x,['weights']);const rows=arr(x.weights,'weights',1,5),n=rows
 const sample={weights:[[2,1,0],[0,1,1],[1,0,1]]};
 const starter=x=>{object(x,['weights','start','steps']);const p=f({weights:x.weights}),n=p.length;return [p,int(x.start,'start',0,n-1),int(x.steps,'steps',0,12)];};
 const hitting=x=>{object(x,['weights','start','steps','target']);const [p,s,t]=starter({weights:x.weights,start:x.start,steps:x.steps});return [p,s,t,int(x.target,'target',0,p.length-1)];};
-const rewards=x=>{object(x,['weights','start','steps','rewards']);const [p,s,t]=starter({weights:x.weights,start:x.start,steps:x.steps}),r=arr(x.rewards,'rewards',p.length,p.length).map((v,i)=>q(v));return [p,s,t,r];};
-const add=(a,b)=>a.map((v,i)=>qa(v,b[i]));
+const rewards=x=>{object(x,['weights','start','steps','rewards']);const [p,s,t]=starter({weights:x.weights,start:x.start,steps:x.steps}),r=arr(x.rewards,'rewards',p.length,p.length).map(v=>q(v));return [p,s,t,r];};
 const mul=(a,b)=>a.map(row=>range(b[0].length).map(j=>row.reduce((s,v,k)=>qa(s,qm(v,b[k][j])),Z)));
 const eye=n=>range(n).map(i=>range(n).map(j=>i===j?O:Z));
 const power=(p,k)=>{let r=eye(p.length),a=p;while(k){if(k%2)r=mul(r,a);k=Math.floor(k/2);if(k)a=mul(a,a);}return r;};

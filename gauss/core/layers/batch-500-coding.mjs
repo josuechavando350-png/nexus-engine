@@ -1,7 +1,6 @@
 import {keys,integer,bits,matrix2,out,tuple} from './batch-500-common.mjs';
 const m=x=>{keys(x,['matrix']);return matrix2(x.matrix);};
 const sq=x=>{const a=m(x);if(a.length!==a[0].length)throw new RangeError('square GF(2) matrix required');return a;};
-function xor(a,b){return a.map((v,i)=>v^b[i]);}
 function dot(a,b){return a.reduce((s,v,i)=>s^(v&b[i]),0);}
 function elim(a, rhs=null){const n=a.length,c=a[0].length,A=a.map((r,i)=>rhs===null?r.slice():[...r,rhs[i]]),pivots=[];let rank=0;
  for(let j=0;j<c&&rank<n;j++){let p=rank;while(p<n&&!A[p][j])p++;if(p===n)continue;[A[p],A[rank]]=[A[rank],A[p]];

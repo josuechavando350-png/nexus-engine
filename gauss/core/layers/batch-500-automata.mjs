@@ -10,7 +10,6 @@ function dfa(x){
  const tr=t.map((row,i)=>array(row,`transitions[${i}]`,a.length,a.length).map((v,j)=>integer(v,`transitions[${i}][${j}]`,0,n-1)));
  return {a,t:tr,n,start,accept:new Set(accept)};
 }
-function raw(z){return {alphabet:[...z.a],start:z.start,accepting:[...z.accept].sort((a,b)=>a-b),transitions:z.t.map(r=>r.slice())};}
 function reach(z,starts=[z.start]){const q=[...starts],seen=new Set(q);for(let k=0;k<q.length;k++)for(const v of z.t[q[k]])if(!seen.has(v)){seen.add(v);q.push(v);}return q.sort((a,b)=>a-b);}
 function coreach(z){const q=[...z.accept],seen=new Set(q);for(let k=0;k<q.length;k++)for(let i=0;i<z.n;i++)if(z.t[i].includes(q[k])&&!seen.has(i)){seen.add(i);q.push(i);}return q.sort((a,b)=>a-b);}
 function witness(z,pred){const q=[[z.start,'']],seen=new Set([z.start]);for(let k=0;k<q.length;k++){const [s,w]=q[k];if(pred(s))return w;for(let j=0;j<z.a.length;j++){const v=z.t[s][j];if(!seen.has(v)){seen.add(v);q.push([v,w+z.a[j]]);}}}return null;}

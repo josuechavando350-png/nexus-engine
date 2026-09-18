@@ -1,4 +1,4 @@
-import {record,integer,array,uniqueInts,output,entries,range,choose,rational} from './batch-800-common.mjs';
+import {record,integer,array,uniqueInts,output,entries,range,rational} from './batch-800-common.mjs';
 const S=x=>{record(x,['n','a','b']);const n=integer(x.n,'n',1,12);return {n,a:uniqueInts(x.a,n,'a'),b:uniqueInts(x.b,n,'b')};};
 const F=x=>{record(x,['n','family']);const n=integer(x.n,'n',1,10);const f=array(x.family,'family',0,15).map((s,i)=>uniqueInts(s,n,`family[${i}]`));return {n,f};};
 const mask=a=>a.reduce((s,v)=>s|1<<v,0),items=(n,m)=>range(n).filter(i=>m>>i&1),pop=m=>{let c=0;while(m){c++;m&=m-1;}return c;};

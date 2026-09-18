@@ -16,8 +16,8 @@ function det(a,p){square(a);const z=a.map(r=>r.slice());let d=1;for(let k=0;k<z.
 function solve(a,b,p){if(a.length!==b.length)throw new TypeError('vector size mismatch');const n=a[0].length,{rows,pivots}=gauss(a.map((r,i)=>[...r,b[i]]),p),inconsistent=rows.some(r=>r.slice(0,n).every(v=>v===0)&&r[n]!==0);if(inconsistent)return {consistent:false,solution:null,free:n-pivots.filter(k=>k<n).length};const sol=Array(n).fill(0);pivots.forEach((col,i)=>{if(col<n)sol[col]=rows[i][n];});return {consistent:true,solution:sol,free:n-pivots.filter(k=>k<n).length};}
 const scalar=x=>{object(x,['prime','matrix','scalar']);const p=prime(x.prime);return [p,parse(x.matrix,p),mod(int(x.scalar,'scalar',-10000,10000),p)];};
 const system=x=>{object(x,['prime','matrix','vector']);const p=prime(x.prime),a=parse(x.matrix,p),b=arr(x.vector,'vector',a.length,a.length).map(v=>mod(int(v),p));return [p,a,b];};
-export function modMatrixNormalize(x){const[p,a]=matrix(x);return freeze({matrix:a});}
-export function modMatrixTranspose(x){const[p,a]=matrix(x);return freeze({matrix:range(a[0].length).map(j=>a.map(row=>row[j]))});}
+export function modMatrixNormalize(x){const [,a]=matrix(x);return freeze({matrix:a});}
+export function modMatrixTranspose(x){const [,a]=matrix(x);return freeze({matrix:range(a[0].length).map(j=>a.map(row=>row[j]))});}
 export function modMatrixAdd(x){const[p,a,b]=both(x);eqShape(a,b);return freeze({matrix:a.map((r,i)=>r.map((v,j)=>mod(v+b[i][j],p)))});}
 export function modMatrixSubtract(x){const[p,a,b]=both(x);eqShape(a,b);return freeze({matrix:a.map((r,i)=>r.map((v,j)=>mod(v-b[i][j],p)))});}
 export function modMatrixMultiply(x){const[p,a,b]=both(x);return freeze({matrix:mul(a,b,p)});}
@@ -36,8 +36,8 @@ export function modMatrixSolve(x){const[p,a,b]=system(x);return freeze(solve(a,b
 export function modMatrixConsistent(x){const[p,a,b]=system(x);return freeze({consistent:solve(a,b,p).consistent});}
 export function modMatrixSolutionCount(x){const[p,a,b]=system(x),r=solve(a,b,p);return freeze({count:r.consistent?String(BigInt(p)**BigInt(r.free)):'0'});}
 export function modMatrixPower(x){object(x,['prime','matrix','exponent']);const p=prime(x.prime);let a=parse(x.matrix,p);square(a);let r=eye(a.length),k=int(x.exponent,'exponent',0,1000000);while(k){if(k%2)r=mul(r,a,p);k=Math.floor(k/2);if(k)a=mul(a,a,p);}return freeze({matrix:r});}
-export function modMatrixIsIdentity(x){const[p,a]=matrix(x);square(a);return freeze({identity:a.every((r,i)=>r.every((v,j)=>v===+(i===j)))});}
-export function modMatrixIsSymmetric(x){const[p,a]=matrix(x);square(a);return freeze({symmetric:a.every((r,i)=>r.every((v,j)=>v===a[j][i]))});}
+export function modMatrixIsIdentity(x){const [,a]=matrix(x);square(a);return freeze({identity:a.every((r,i)=>r.every((v,j)=>v===+(i===j)))});}
+export function modMatrixIsSymmetric(x){const [,a]=matrix(x);square(a);return freeze({symmetric:a.every((r,i)=>r.every((v,j)=>v===a[j][i]))});}
 export function modMatrixIsIdempotent(x){const[p,a]=matrix(x);square(a);return freeze({idempotent:JSON.stringify(mul(a,a,p))===JSON.stringify(a)});}
 export function modMatrixIsOrthogonal(x){const[p,a]=matrix(x);square(a);const t=range(a.length).map(j=>a.map(r=>r[j]));return freeze({orthogonal:JSON.stringify(mul(t,a,p))===JSON.stringify(eye(a.length))});}
 export function modMatrixCharacteristic(x){const[p,a]=matrix(x);square(a);const n=a.length,out=Array(n+1).fill(0);function traverse(i,perm,sign){if(i===n){let poly=[1];for(let r=0;r<n;r++){const c=a[r][perm[r]],factor=r===perm[r]?[mod(-c,p),1]:[mod(-c,p)],next=Array(poly.length+factor.length-1).fill(0);for(let j=0;j<poly.length;j++)for(let k=0;k<factor.length;k++)next[j+k]=mod(next[j+k]+poly[j]*factor[k],p);poly=next;}for(let j=0;j<poly.length;j++)out[j]=mod(out[j]+sign*poly[j],p);return;}for(let j=0;j<n;j++)if(!perm.includes(j))traverse(i+1,[...perm,j],sign*((perm.filter(v=>v>j).length%2)?-1:1));}traverse(0,[],1);return freeze({coefficients:out});}

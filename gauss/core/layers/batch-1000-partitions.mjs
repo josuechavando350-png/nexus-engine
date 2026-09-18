@@ -1,5 +1,5 @@
 // Bounded integer-partition and ordered-composition combinatorics with exact integer counts.
-import {object,arr,int,freeze,entries,choose,gcd} from './batch-1000-common.mjs';
+import {object,arr,int,freeze,entries,choose} from './batch-1000-common.mjs';
 const num=x=>{object(x,['n']);return int(x.n,'n',0,14);};
 const spec=x=>{object(x,['n','k']);return [int(x.n,'n',0,14),int(x.k,'k',0,14)];};
 const limit=x=>{object(x,['n','max']);return [int(x.n,'n',0,14),int(x.max,'max',1,14)];};

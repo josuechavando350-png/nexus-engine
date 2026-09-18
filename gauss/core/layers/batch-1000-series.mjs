@@ -1,5 +1,5 @@
 // Exact rational polynomial and formal power-series operations (bounded degrees).
-import {object,arr,int,freeze,entries,q,qa,qs,qm,qd,qneg,qstr,zero,one,choose,gcd} from './batch-1000-common.mjs';
+import {object,arr,int,freeze,entries,q,qa,qs,qm,qd,qneg,qstr,zero,one,choose} from './batch-1000-common.mjs';
 const Z=zero(),O=one();
 const trim=a=>{const b=a.slice();while(b.length>1&&b.at(-1).n===0n)b.pop();return b.length?b:[Z];};
 const get=(a,i)=>a[i]??Z;

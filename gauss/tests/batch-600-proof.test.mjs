@@ -8,7 +8,6 @@ import * as hy from '../core/layers/batch-600-hypergraphs.mjs';
 import * as ca from '../core/layers/batch-600-cellular.mjs';
 import {executeBatch600,hash} from '../scripts/batch-600-runner.mjs';
 import {verifyBatch600} from '../scripts/verify-batch-600.mjs';
-const root=new URL('../../',import.meta.url);
 let seed=0x9862ab91;function random(){seed^=seed<<13;seed^=seed>>>17;seed^=seed<<5;return (seed>>>0)/4294967296;}
 const pick=n=>Math.floor(random()*n);
 const shuffled=n=>{const a=Array.from({length:n},(_,i)=>i);for(let i=n-1;i>0;i--){const j=pick(i+1);[a[i],a[j]]=[a[j],a[i]];}return a;};
@@ -21,7 +20,6 @@ const allPermutations=a=>{if(!a.length)return [[]];return a.flatMap((v,i)=>allPe
 const isLinear=(r,order)=>order.every((u,i)=>order.slice(0,i).every(v=>!r[u][v]));
 const independent=(edges,s)=>edges.every(e=>(e&s)!==e);
 const hitting=(edges,s)=>edges.every(e=>!!(e&s));
-const run=x=>BATCH_600_ADDITIONS.find(y=>y.id.includes(x))?.execute;
 
 test('100 unique executable implementations, fixture coverage and 300 historic-new ID exclusions',async()=>{
  const prior=JSON.parse(await readFile(new URL('../fixtures/prior-300-ids.json',import.meta.url),'utf8'));

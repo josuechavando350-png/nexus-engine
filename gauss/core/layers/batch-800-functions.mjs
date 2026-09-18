@@ -4,7 +4,6 @@ const at=x=>{record(x,['mapping','vertex']);const f=T({mapping:x.mapping});retur
 const pair=x=>{record(x,['mapping','source','target']);const f=T({mapping:x.mapping});return [f,integer(x.source,'source',0,f.length-1),integer(x.target,'target',0,f.length-1)];};
 function orb(f,v){const seen=new Map(),walk=[];while(!seen.has(v)){seen.set(v,walk.length);walk.push(v);v=f[v];}return {walk,preperiod:seen.get(v),period:walk.length-seen.get(v),cycle:walk.slice(seen.get(v))};}
 function cycles(f){const seen=new Set(),r=[];for(const i of range(f.length)){if(seen.has(i))continue;const o=orb(f,i);o.walk.forEach(v=>seen.add(v));const c=o.cycle,min=Math.min(...c),k=c.indexOf(min);if(!r.some(v=>v.includes(min)))r.push([...c.slice(k),...c.slice(0,k)]);}return r.sort((a,b)=>a[0]-b[0]);}
-function iterate(f,v,k){let x=v;for(let i=0;i<k;i++)x=f[x];return x;}
 function trans(f){return range(f.length).map(i=>orb(f,i));}
 export function fnIndegrees(x){const f=T(x),d=Array(f.length).fill(0);f.forEach(v=>d[v]++);return output({degrees:d});}
 export function fnFixedPoints(x){const f=T(x);return output({vertices:range(f.length).filter(i=>f[i]===i)});}
@@ -26,7 +25,7 @@ export function fnPreimages(x){const [f,v]=at(x);return output({vertices:range(f
 export function fnCollisionPairs(x){const f=T(x),pairs=[];for(let i=0;i<f.length;i++)for(let j=i+1;j<f.length;j++)if(f[i]===f[j])pairs.push([i,j]);return output({pairs});}
 export function fnInjective(x){const f=T(x);return output({injective:new Set(f).size===f.length});}
 export function fnSurjective(x){const f=T(x);return output({surjective:new Set(f).size===f.length});}
-export function fnIdempotent(x){const f=T(x);return output({idempotent:f.every((v,i)=>f[v]===v)});}
+export function fnIdempotent(x){const f=T(x);return output({idempotent:f.every(v=>f[v]===v)});}
 export function fnInvolution(x){const f=T(x);return output({involution:f.every((v,i)=>f[v]===i)});}
 export function fnComposition(x){record(x,['left','right']);const f=T({mapping:x.left}),g=T({mapping:x.right});if(f.length!==g.length)throw new RangeError('domain size mismatch');return output({mapping:g.map(v=>f[v])});}
 export function fnPower(x){record(x,['mapping','exponent']);let f=T({mapping:x.mapping}),k=integer(x.exponent,'exponent',0,1000000),r=range(f.length);while(k){if(k%2)r=r.map(v=>f[v]);k=Math.floor(k/2);if(k)f=f.map(v=>f[v]);}return output({mapping:r});}
