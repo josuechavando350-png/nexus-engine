@@ -5,6 +5,7 @@ import {BATCH_200_ADDITIONS} from './batch-200-additions.mjs';
 import {solveExactLinearSystem} from './precision/exact-linear.mjs';
 import {exactIntegerDeterminant} from './precision/exact-integer-determinant.mjs';
 import {generalizedChineseRemainder, finiteFieldMatrixInverse} from './layers/exact-algebra-extensions.mjs';
+import {exactIntegerPolynomialResultant} from './layers/integer-polynomial-resultant.mjs';
 export {GAUSS_DOMAINS};
 const ids=new Set(established.map(x=>x.id));
 const domainIds=new Set(GAUSS_DOMAINS.map(x=>x.id));
@@ -27,6 +28,7 @@ const precisionEnabled=established.map(layer=>{
 const extensions=[
  {id:'GAUSS.MATH.CRT_GENERAL.059',domain:'MATHEMATICS',description:'Exact bounded generalized Chinese remainder with noncoprime consistency detection',execute:generalizedChineseRemainder},
  {id:'GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060',domain:'MATHEMATICS',description:'Exact prime-field square-matrix inversion and singularity detection',execute:finiteFieldMatrixInverse},
+ {id:'GAUSS.MATH.INTEGER_POLYNOMIAL_RESULTANT.061',domain:'MATHEMATICS',description:'Exact integer polynomial resultant by bounded Sylvester determinant',execute:exactIntegerPolynomialResultant},
 ];
 const newlyImplemented=[...BATCH_200_ADDITIONS,...extensions].map(({id,domain,description,execute})=>{
  if(typeof id!=='string'||ids.has(id))throw new Error(`duplicate GAUSS layer id:${id}`);
@@ -36,7 +38,7 @@ const newlyImplemented=[...BATCH_200_ADDITIONS,...extensions].map(({id,domain,de
  ids.add(id);return {id,domain,description,execute};
 });
 export const GAUSS_IMPLEMENTED_LAYERS=deepFreeze([...precisionEnabled,...newlyImplemented]);
-if(GAUSS_IMPLEMENTED_LAYERS.length!==202||ids.size!==202||new Set(GAUSS_IMPLEMENTED_LAYERS.map(x=>x.execute)).size!==202)throw new Error('GAUSS registry does not contain 202 unique executable operators');
+if(GAUSS_IMPLEMENTED_LAYERS.length!==203||ids.size!==203||new Set(GAUSS_IMPLEMENTED_LAYERS.map(x=>x.execute)).size!==203)throw new Error('GAUSS registry does not contain 203 unique executable operators');
 const byId=new Map(GAUSS_IMPLEMENTED_LAYERS.map(layer=>[layer.id,layer]));
 export function getGaussLayer(layerId){return byId.get(layerId)??null;}
 export function gaussRegistrySummary(){
