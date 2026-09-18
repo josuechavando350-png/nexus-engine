@@ -50,62 +50,76 @@ import {runFinalComputationalGeometryBank} from './final-computational-geometry-
 import {runFinalStructuralGraphsBank} from './final-structural-graphs-v1.mjs';
 import {runFinalRationalStatisticsBank} from './final-rational-statistics-v1.mjs';
 import {runFinalControlSystemsBank} from './final-control-systems-v1.mjs';
+import {runFinalRiskPersistenceBank} from './final-risk-persistence-v1.mjs';
+import {runFinalCoreComputingBank} from './final-core-computing-v1.mjs';
+import {runFinalGraphOptimizationBank} from './final-graph-optimization-v1.mjs';
+import {runFinalPageRankBank} from './final-pagerank-v1.mjs';
+import {runFinalNumericalLinearBank} from './final-numerical-linear-v1.mjs';
+import {runFinalAdvancedGraphsBank} from './final-advanced-graphs-v1.mjs';
+import {runFinalDiscreteOptimizationBank} from './final-discrete-optimization-v1.mjs';
+import {runFinalStochasticDecisionsBank} from './final-stochastic-decisions-v1.mjs';
 
-export function runAxioma({resolveLayer} = {}) {
-  const options = resolveLayer ? {resolveLayer} : {};
-  const suites = [runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank,runBitword238Bank,runFiniteSet238Bank,runFiniteFunction238Bank,runUrn238Bank,runInterval238Bank,runBinaryGrid238Bank,runRootedTree238Bank,runCellular238Bank,runSequence438Bank,runIntegerPolynomial438Bank,runIntegerMatrix438Bank,runGraphInvariant438Bank,runUnicode438Bank,runFiniteNumber438Bank,runHypergraph438Bank,runPoset438Bank,runGeometry438Bank,runGf2Coding438Bank,runFiniteAutomata438Bank,runNumerical438Bank,runFinalPrimePolynomialBank,runFinalExactMarkovBank,runFinalFiniteEventsBank,runFinalCombinatoricsBank,runFinalUnicodeIndexBank,runFinalNumberTheoryTailBank,runFinalBasicNumberTheoryBank,runFinalDescriptiveStatisticsBank,runFinalCausalDecisionBank,runFinalCoreMathPhysicsBank,runFinalInformationControlBank,runFinalDiscreteInformationBank,runFinalPolynomialAlgebraBank,runFinalStatisticalInferenceBank,runFinalSignalProcessingBank,runFinalComputationalGeometryBank,runFinalStructuralGraphsBank,runFinalRationalStatisticsBank,runFinalControlSystemsBank].map(fn=>fn(options));
-  const seen = new Set();
-  for (const suite of suites) {
-    assert.equal(suite.registryOperators, 1000, 'AXIOMA registry count mismatch');
-    for (const item of suite.operatorResults) {
-      assert.ok(!seen.has(item.id), `AXIOMA operator counted twice: ${item.id}`);
+const bankRunners=[
+  runFinitePolynomialBank,runPermutationBank,runNumberTheoryBank,runFiniteGraphBank,
+  runBooleanBank,runFiniteRelationBank,runPartitionBank,runWeightedTreeBank,
+  runPrefixCodeBank,runModularMatrixBank,runRationalSeriesBank,runTwoMarkovBank,
+  runBitword238Bank,runFiniteSet238Bank,runFiniteFunction238Bank,runUrn238Bank,
+  runInterval238Bank,runBinaryGrid238Bank,runRootedTree238Bank,runCellular238Bank,
+  runSequence438Bank,runIntegerPolynomial438Bank,runIntegerMatrix438Bank,runGraphInvariant438Bank,
+  runUnicode438Bank,runFiniteNumber438Bank,runHypergraph438Bank,runPoset438Bank,
+  runGeometry438Bank,runGf2Coding438Bank,runFiniteAutomata438Bank,runNumerical438Bank,
+  runFinalPrimePolynomialBank,runFinalExactMarkovBank,runFinalFiniteEventsBank,
+  runFinalCombinatoricsBank,runFinalUnicodeIndexBank,runFinalNumberTheoryTailBank,
+  runFinalBasicNumberTheoryBank,runFinalDescriptiveStatisticsBank,runFinalCausalDecisionBank,
+  runFinalCoreMathPhysicsBank,runFinalInformationControlBank,runFinalDiscreteInformationBank,
+  runFinalPolynomialAlgebraBank,runFinalStatisticalInferenceBank,runFinalSignalProcessingBank,
+  runFinalComputationalGeometryBank,runFinalStructuralGraphsBank,runFinalRationalStatisticsBank,
+  runFinalControlSystemsBank,runFinalRiskPersistenceBank,runFinalCoreComputingBank,
+  runFinalGraphOptimizationBank,runFinalPageRankBank,runFinalNumericalLinearBank,
+  runFinalAdvancedGraphsBank,runFinalDiscreteOptimizationBank,runFinalStochasticDecisionsBank,
+];
+
+export function runAxioma({resolveLayer}={}){
+  const options=resolveLayer?{resolveLayer}:{};
+  const suites=bankRunners.map(fn=>fn(options));
+  const seen=new Set();
+  for(const suite of suites){
+    assert.equal(suite.registryOperators,1000,'AXIOMA registry count mismatch');
+    for(const item of suite.operatorResults){
+      assert.ok(!seen.has(item.id),`AXIOMA operator counted twice: ${item.id}`);
       seen.add(item.id);
     }
-    assert.equal(suite.coveredOperators, suite.operatorResults.length, 'AXIOMA suite coverage mismatch');
-    assert.equal(suite.validCases, suite.passedValidCases + suite.failedValidCases, 'AXIOMA valid-case denominator mismatch');
-    assert.equal(suite.invalidCases, suite.passedInvalidRejections + suite.failedInvalidRejections, 'AXIOMA invalid-case denominator mismatch');
+    assert.equal(suite.coveredOperators,suite.operatorResults.length,'AXIOMA suite coverage mismatch');
+    assert.equal(suite.validCases,suite.passedValidCases+suite.failedValidCases,'AXIOMA valid-case denominator mismatch');
+    assert.equal(suite.invalidCases,suite.passedInvalidRejections+suite.failedInvalidRejections,'AXIOMA invalid-case denominator mismatch');
   }
-  const sum = key => suites.reduce((total, suite) => total + suite[key], 0);
-  const coveredOperators = seen.size;
-  const report = {
-    schemaVersion: 1,
-    bank: 'AXIOMA',
-    subject: 'GAUSS integration branch, bounded independently referenced comparisons',
-    registryOperators: 1000,
-    coveredOperators,
-    untestedOperators: 1000 - coveredOperators,
-    coverageRate: coveredOperators / 1000,
-    validCases: sum('validCases'),
-    passedValidCases: sum('passedValidCases'),
-    failedValidCases: sum('failedValidCases'),
-    invalidCases: sum('invalidCases'),
-    passedInvalidRejections: sum('passedInvalidRejections'),
-    failedInvalidRejections: sum('failedInvalidRejections'),
-    validPassRate: sum('validCases') ? sum('passedValidCases') / sum('validCases') : null,
-    invalidRejectionRate: sum('invalidCases') ? sum('passedInvalidRejections') / sum('invalidCases') : null,
-    precisionClaim: 'Only evaluated inputs for named bounded operators; exact comparisons exact, numerical methods checked against explicit analytic tolerances, entropy compared within stated tolerance; no universal accuracy claim',
-    suites: suites.map(suite => ({
-      subject: suite.subject ?? suite.domain,
-      seed: suite.seed,
-      oracle: suite.oracle,
-      caseDigest: suite.caseDigest,
-      coveredOperators: suite.coveredOperators,
-      validCases: suite.validCases,
-      passedValidCases: suite.passedValidCases,
-      failedValidCases: suite.failedValidCases,
-      invalidCases: suite.invalidCases,
-      passedInvalidRejections: suite.passedInvalidRejections,
-      failedInvalidRejections: suite.failedInvalidRejections,
-      operatorResults: suite.operatorResults,
-      failures: suite.failures,
+  const sum=key=>suites.reduce((total,suite)=>total+suite[key],0);
+  const coveredOperators=seen.size;
+  const report={
+    schemaVersion:1,bank:'AXIOMA',
+    subject:'GAUSS integration branch, bounded independently referenced comparisons',
+    registryOperators:1000,coveredOperators,untestedOperators:1000-coveredOperators,
+    coverageRate:coveredOperators/1000,
+    validCases:sum('validCases'),passedValidCases:sum('passedValidCases'),failedValidCases:sum('failedValidCases'),
+    invalidCases:sum('invalidCases'),passedInvalidRejections:sum('passedInvalidRejections'),failedInvalidRejections:sum('failedInvalidRejections'),
+    validPassRate:sum('validCases')?sum('passedValidCases')/sum('validCases'):null,
+    invalidRejectionRate:sum('invalidCases')?sum('passedInvalidRejections')/sum('invalidCases'):null,
+    precisionClaim:'Only evaluated inputs for named bounded operators; exact comparisons exact, numerical methods checked against explicit analytic tolerances, entropy compared within stated tolerance; no universal accuracy claim',
+    suites:suites.map(suite=>({
+      subject:suite.subject??suite.domain,seed:suite.seed,oracle:suite.oracle,caseDigest:suite.caseDigest,
+      coveredOperators:suite.coveredOperators,validCases:suite.validCases,passedValidCases:suite.passedValidCases,
+      failedValidCases:suite.failedValidCases,invalidCases:suite.invalidCases,
+      passedInvalidRejections:suite.passedInvalidRejections,failedInvalidRejections:suite.failedInvalidRejections,
+      operatorResults:suite.operatorResults,failures:suite.failures,
     })),
   };
-  assert.equal(report.coveredOperators + report.untestedOperators, 1000);
+  assert.equal(report.coveredOperators,1000,'AXIOMA must cover all 1000 unique registered operators');
+  assert.equal(report.untestedOperators,0);
   return report;
 }
 
-if (process.argv[1] && import.meta.url === new URL(`file://${process.argv[1]}`).href) {
-  const report = runAxioma();
-  console.log(JSON.stringify(report, null, 2));
-  if (report.failedValidCases || report.failedInvalidRejections) process.exitCode = 1;
+if(process.argv[1]&&import.meta.url===new URL(`file://${process.argv[1]}`).href){
+  const report=runAxioma();
+  console.log(JSON.stringify(report,null,2));
+  if(report.failedValidCases||report.failedInvalidRejections)process.exitCode=1;
 }
