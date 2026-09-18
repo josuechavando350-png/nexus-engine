@@ -4,10 +4,11 @@ import {runFinitePolynomialBank} from '../precision-bank/finite-polynomials-v1.m
 import {runPermutationBank} from './permutations-v1.mjs';
 import {runNumberTheoryBank} from './number-theory-v1.mjs';
 import {runFiniteGraphBank} from './finite-graphs-v1.mjs';
+import {runBooleanBank} from './boolean-functions-v1.mjs';
 
 export function runAxioma({resolveLayer} = {}) {
   const options = resolveLayer ? {resolveLayer} : {};
-  const suites = [runFinitePolynomialBank(options), runPermutationBank(options), runNumberTheoryBank(options), runFiniteGraphBank(options)];
+  const suites = [runFinitePolynomialBank(options), runPermutationBank(options), runNumberTheoryBank(options), runFiniteGraphBank(options),runBooleanBank(options)];
   const seen = new Set();
   for (const suite of suites) {
     assert.equal(suite.registryOperators, 1000, 'AXIOMA registry count mismatch');
