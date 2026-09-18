@@ -6,10 +6,12 @@ import {runNumberTheoryBank} from './number-theory-v1.mjs';
 import {runFiniteGraphBank} from './finite-graphs-v1.mjs';
 import {runBooleanBank} from './boolean-functions-v1.mjs';
 import {runFiniteRelationBank} from './finite-relations-v1.mjs';
+import {runPartitionBank} from './partitions-compositions-v1.mjs';
+import {runWeightedTreeBank} from './weighted-trees-v1.mjs';
 
 export function runAxioma({resolveLayer} = {}) {
   const options = resolveLayer ? {resolveLayer} : {};
-  const suites = [runFinitePolynomialBank(options), runPermutationBank(options), runNumberTheoryBank(options), runFiniteGraphBank(options),runBooleanBank(options),runFiniteRelationBank(options)];
+  const suites = [runFinitePolynomialBank(options), runPermutationBank(options), runNumberTheoryBank(options), runFiniteGraphBank(options),runBooleanBank(options),runFiniteRelationBank(options),runPartitionBank(options),runWeightedTreeBank(options)];
   const seen = new Set();
   for (const suite of suites) {
     assert.equal(suite.registryOperators, 1000, 'AXIOMA registry count mismatch');
