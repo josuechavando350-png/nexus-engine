@@ -5,7 +5,7 @@ const tags=['INTERVAL_MERGE','INTERVAL_UNION_LENGTH','INTERVAL_TOTAL_LENGTH','IN
 const timeTags=new Set(['INTERVAL_ACTIVE_INDICES','INTERVAL_ACTIVE_COUNT','INTERVAL_NEXT_START','INTERVAL_NEXT_END']);
 const windowTags=new Set(['INTERVAL_WINDOW_GAPS','INTERVAL_WINDOW_COVERAGE','INTERVAL_LONGEST_GAP']);
 const twoTags=new Set(['INTERVAL_SET_INTERSECTION','INTERVAL_SET_DIFFERENCE','INTERVAL_SET_SYMMETRIC']);
-function source(i,r){const count=i%11===0?0:1+r(7);return seq(count).map(k=>{const s=-5+r(13),e=s+1+r(6);return [s,e];});}
+function source(i,r){const count=i%11===0?0:1+r(7);return seq(count).map(()=>{const s=-5+r(13),e=s+1+r(6);return [s,e];});}
 function input(tag,i,r){const intervals=source(i,r);if(timeTags.has(tag))return {intervals,time:i%6===0?-8:i%6===1?20:-5+r(16)};if(windowTags.has(tag)){const start=-7+r(7),end=start+1+r(18);return {intervals,start,end};}if(twoTags.has(tag))return {left:intervals,right:source(i+7,r)};return {intervals};}
 const depth=(a,t)=>a.filter(([s,e])=>s<=t&&t<e).length;
 function segments(a){if(!a.length)return [];const marks=[...new Set(a.flat())].sort((a,b)=>a-b);return marks.slice(0,-1).map((t,i)=>[t,marks[i+1],depth(a,t)]);}
