@@ -7,6 +7,7 @@ cd "$ROOT"
 EVIDENCE_ROOT="${WALLE_GAUSS_EVIDENCE_ROOT:-$(mktemp -d "${TMPDIR:-/tmp}/walle-gauss.XXXXXX")}"
 mkdir -p "$EVIDENCE_ROOT"
 REPORT="$EVIDENCE_ROOT/gauss-foundation-report.json"
+AXIOMA_REPORT="$EVIDENCE_ROOT/axioma-evidence.json"
 
 BEFORE_HEAD="$(git rev-parse HEAD)"
 BEFORE_TREE="$(git rev-parse HEAD^{tree})"
@@ -18,11 +19,12 @@ fi
 
 while IFS= read -r file; do
   node --check "$file"
-done < <(find gauss scripts/nexus-gauss.mjs walle/gauss-evidence-verify.mjs seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs -type f -name '*.mjs' | sort)
+done < <(find gauss scripts/nexus-gauss.mjs walle/gauss-evidence-verify.mjs walle/axioma-evidence.mjs seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs -type f -name '*.mjs' | sort)
 
 node --test gauss/tests/*.test.mjs
-node scripts/nexus-gauss.mjs gauss/fixtures/selftest-problem.json --out "$REPORT"
-node walle/gauss-evidence-verify.mjs "$REPORT"
+node scripts/nexus-gauss.mjs gauss/fixtures/gauss-1000-selftest.json --out "$REPORT"
+node walle/axioma-evidence.mjs create "$REPORT" "$AXIOMA_REPORT"
+node walle/gauss-evidence-verify.mjs "$REPORT" gauss/fixtures/gauss-1000-selftest.json "$AXIOMA_REPORT"
 
 AFTER_HEAD="$(git rev-parse HEAD)"
 AFTER_TREE="$(git rev-parse HEAD^{tree})"
@@ -34,7 +36,8 @@ fi
 
 printf 'WALLE_GAUSS_SOURCE_REVISION=%s\n' "$BEFORE_HEAD"
 printf 'WALLE_GAUSS_SOURCE_TREE=%s\n' "$BEFORE_TREE"
-printf 'WALLE_GAUSS_TARGET_LAYERS=800\n'
+printf 'WALLE_GAUSS_TARGET_LAYERS=1000\n'
 printf 'WALLE_GAUSS_QUANTUM_EXECUTED=true\n'
 printf 'WALLE_GAUSS_PHYSICAL_QPU_EXECUTED=false\n'
+printf 'WALLE_GAUSS_IMPLEMENTED_LAYERS=1000\n'
 printf 'WALLE_GAUSS_FOUNDATION_CLAIM=true\n'

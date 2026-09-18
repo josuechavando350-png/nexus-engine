@@ -1,0 +1,1813 @@
+{
+  "schemaVersion": 1,
+  "batch": "301–400",
+  "objective": "Deterministic offline execution of every one of the 100 new kernels; no Nexus deployment is claimed.",
+  "tasks": [
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_ADD.301",
+      "layerId": "GAUSS.MATH.EXACT_POLY_ADD.301",
+      "input": {
+        "left": [
+          1,
+          2
+        ],
+        "right": [
+          3,
+          -4,
+          5
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_SUB.302",
+      "layerId": "GAUSS.MATH.EXACT_POLY_SUB.302",
+      "input": {
+        "left": [
+          1,
+          2
+        ],
+        "right": [
+          3,
+          4,
+          5
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_MUL.303",
+      "layerId": "GAUSS.MATH.EXACT_POLY_MUL.303",
+      "input": {
+        "left": [
+          1,
+          2
+        ],
+        "right": [
+          -3,
+          4
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_EVAL.304",
+      "layerId": "GAUSS.MATH.EXACT_POLY_EVAL.304",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ],
+        "at": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_DERIV.305",
+      "layerId": "GAUSS.MATH.EXACT_POLY_DERIV.305",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_DERIV2.306",
+      "layerId": "GAUSS.MATH.EXACT_POLY_DERIV2.306",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_DEGREE.307",
+      "layerId": "GAUSS.MATH.EXACT_POLY_DEGREE.307",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_LEADING.308",
+      "layerId": "GAUSS.MATH.EXACT_POLY_LEADING.308",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_CONTENT.309",
+      "layerId": "GAUSS.MATH.EXACT_POLY_CONTENT.309",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_PRIMITIVE.310",
+      "layerId": "GAUSS.MATH.EXACT_POLY_PRIMITIVE.310",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_REVERSE.311",
+      "layerId": "GAUSS.MATH.EXACT_POLY_REVERSE.311",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_NEGATE_X.312",
+      "layerId": "GAUSS.MATH.EXACT_POLY_NEGATE_X.312",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_EVEN.313",
+      "layerId": "GAUSS.MATH.EXACT_POLY_EVEN.313",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_ODD.314",
+      "layerId": "GAUSS.MATH.EXACT_POLY_ODD.314",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_SCALE.315",
+      "layerId": "GAUSS.MATH.EXACT_POLY_SCALE.315",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ],
+        "factor": -2
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_SCALE_X.316",
+      "layerId": "GAUSS.MATH.EXACT_POLY_SCALE_X.316",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ],
+        "factor": 2
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_SHIFT_X.317",
+      "layerId": "GAUSS.MATH.EXACT_POLY_SHIFT_X.317",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ],
+        "places": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_TRUNC.318",
+      "layerId": "GAUSS.MATH.EXACT_POLY_TRUNC.318",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ],
+        "degree": 2
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_POWER.319",
+      "layerId": "GAUSS.MATH.EXACT_POLY_POWER.319",
+      "input": {
+        "coefficients": [
+          1,
+          1
+        ],
+        "exponent": 5
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_COMPOSE.320",
+      "layerId": "GAUSS.MATH.EXACT_POLY_COMPOSE.320",
+      "input": {
+        "left": [
+          1,
+          2,
+          1
+        ],
+        "right": [
+          0,
+          1,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_HORNER_TRACE.321",
+      "layerId": "GAUSS.MATH.EXACT_POLY_HORNER_TRACE.321",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ],
+        "at": 2
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_SYNTHETIC_DIV.322",
+      "layerId": "GAUSS.MATH.EXACT_POLY_SYNTHETIC_DIV.322",
+      "input": {
+        "coefficients": [
+          -1,
+          0,
+          1
+        ],
+        "root": 1
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_ROOT_TEST.323",
+      "layerId": "GAUSS.MATH.EXACT_POLY_ROOT_TEST.323",
+      "input": {
+        "coefficients": [
+          -1,
+          0,
+          1
+        ],
+        "root": 1
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_SUM_COEFF.324",
+      "layerId": "GAUSS.MATH.EXACT_POLY_SUM_COEFF.324",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_POLY_ALT_COEFF.325",
+      "layerId": "GAUSS.MATH.EXACT_POLY_ALT_COEFF.325",
+      "input": {
+        "coefficients": [
+          1,
+          -2,
+          3,
+          1
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_ADD.326",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_ADD.326",
+      "input": {
+        "left": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "right": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_SUB.327",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_SUB.327",
+      "input": {
+        "left": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "right": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_MUL.328",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_MUL.328",
+      "input": {
+        "left": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "right": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_TRANSPOSE.329",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_TRANSPOSE.329",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_TRACE.330",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_TRACE.330",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_BAREISS_DET.331",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_BAREISS_DET.331",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_PERMANENT.332",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_PERMANENT.332",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_RANK.333",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_RANK.333",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_INVERSE.334",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_INVERSE.334",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_ADJUGATE.335",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_ADJUGATE.335",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_GRAM_LEFT.336",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_GRAM_LEFT.336",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_GRAM_RIGHT.337",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_GRAM_RIGHT.337",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_KRONECKER.338",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_KRONECKER.338",
+      "input": {
+        "left": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "right": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_HADAMARD.339",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_HADAMARD.339",
+      "input": {
+        "left": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "right": [
+          [
+            1,
+            2
+          ],
+          [
+            3,
+            4
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_SCALE.340",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_SCALE.340",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "factor": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_POWER.341",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_POWER.341",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ],
+        "exponent": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_ROW_SUMS.342",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_ROW_SUMS.342",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_COL_SUMS.343",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_COL_SUMS.343",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_ROW_GCD.344",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_ROW_GCD.344",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_COL_GCD.345",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_COL_GCD.345",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_DIAGONAL_PRODUCT.346",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_DIAGONAL_PRODUCT.346",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_ANTIDIAGONAL_SUM.347",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_ANTIDIAGONAL_SUM.347",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_SYMMETRIC.348",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_SYMMETRIC.348",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_SKEW.349",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_SKEW.349",
+      "input": {
+        "matrix": [
+          [
+            0,
+            2
+          ],
+          [
+            -2,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.MATH.EXACT_MATRIX_FROB2.350",
+      "layerId": "GAUSS.MATH.EXACT_MATRIX_FROB2.350",
+      "input": {
+        "matrix": [
+          [
+            2,
+            1
+          ],
+          [
+            1,
+            2
+          ]
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_DEGREE_SEQUENCE.301",
+      "layerId": "GAUSS.CS.GRAPH_DEGREE_SEQUENCE.301",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_DEGREE_HIST.302",
+      "layerId": "GAUSS.CS.GRAPH_DEGREE_HIST.302",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_ISOLATED.303",
+      "layerId": "GAUSS.CS.GRAPH_ISOLATED.303",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_PENDANT.304",
+      "layerId": "GAUSS.CS.GRAPH_PENDANT.304",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_DENSITY_RATIONAL.305",
+      "layerId": "GAUSS.CS.GRAPH_DENSITY_RATIONAL.305",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_CONNECTED_K.306",
+      "layerId": "GAUSS.CS.GRAPH_CONNECTED_K.306",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ],
+        "k": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_INDEPENDENT_K.307",
+      "layerId": "GAUSS.CS.GRAPH_INDEPENDENT_K.307",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ],
+        "k": 2
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_VERTEX_COVER_K.308",
+      "layerId": "GAUSS.CS.GRAPH_VERTEX_COVER_K.308",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ],
+        "k": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_EDGE_COVER_K.309",
+      "layerId": "GAUSS.CS.GRAPH_EDGE_COVER_K.309",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ],
+        "k": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_MAXIMAL_INDEP.310",
+      "layerId": "GAUSS.CS.GRAPH_MAXIMAL_INDEP.310",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_MAXIMAL_CLIQUE.311",
+      "layerId": "GAUSS.CS.GRAPH_MAXIMAL_CLIQUE.311",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_CYCLES_FOUR.312",
+      "layerId": "GAUSS.CS.GRAPH_CYCLES_FOUR.312",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_INDUCED_CYCLES_FOUR.313",
+      "layerId": "GAUSS.CS.GRAPH_INDUCED_CYCLES_FOUR.313",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_CLIQUES_FOUR.314",
+      "layerId": "GAUSS.CS.GRAPH_CLIQUES_FOUR.314",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_WEDGES.315",
+      "layerId": "GAUSS.CS.GRAPH_WEDGES.315",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_OPEN_WEDGES.316",
+      "layerId": "GAUSS.CS.GRAPH_OPEN_WEDGES.316",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_ZAGREB_FIRST.317",
+      "layerId": "GAUSS.CS.GRAPH_ZAGREB_FIRST.317",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_ZAGREB_SECOND.318",
+      "layerId": "GAUSS.CS.GRAPH_ZAGREB_SECOND.318",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_ADJACENCY_MATRIX.319",
+      "layerId": "GAUSS.CS.GRAPH_ADJACENCY_MATRIX.319",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_INCIDENCE_MATRIX.320",
+      "layerId": "GAUSS.CS.GRAPH_INCIDENCE_MATRIX.320",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_COMPLEMENT.321",
+      "layerId": "GAUSS.CS.GRAPH_COMPLEMENT.321",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_LINE_GRAPH.322",
+      "layerId": "GAUSS.CS.GRAPH_LINE_GRAPH.322",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_SHORTEST_PATH_COUNTS.323",
+      "layerId": "GAUSS.CS.GRAPH_SHORTEST_PATH_COUNTS.323",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ],
+        "source": 0
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_DISTANCE_SUM.324",
+      "layerId": "GAUSS.CS.GRAPH_DISTANCE_SUM.324",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.CS.GRAPH_CLOSED_WALKS.325",
+      "layerId": "GAUSS.CS.GRAPH_CLOSED_WALKS.325",
+      "input": {
+        "vertexCount": 4,
+        "edges": [
+          {
+            "from": 0,
+            "to": 1
+          },
+          {
+            "from": 1,
+            "to": 2
+          },
+          {
+            "from": 2,
+            "to": 3
+          },
+          {
+            "from": 3,
+            "to": 0
+          },
+          {
+            "from": 0,
+            "to": 2
+          }
+        ],
+        "length": 4
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_SUBSET_SUM_COUNT.301",
+      "layerId": "GAUSS.STATS.SEQ_SUBSET_SUM_COUNT.301",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ],
+        "target": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_SUBSET_DISTINCT_SUMS.302",
+      "layerId": "GAUSS.STATS.SEQ_SUBSET_DISTINCT_SUMS.302",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_SUBSET_SUM_HIST.303",
+      "layerId": "GAUSS.STATS.SEQ_SUBSET_SUM_HIST.303",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_SUBSET_K_SUM.304",
+      "layerId": "GAUSS.STATS.SEQ_SUBSET_K_SUM.304",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ],
+        "k": 2,
+        "target": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_SUBSET_XOR_HIST.305",
+      "layerId": "GAUSS.STATS.SEQ_SUBSET_XOR_HIST.305",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_PAIR_SUM_HIST.306",
+      "layerId": "GAUSS.STATS.SEQ_PAIR_SUM_HIST.306",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_PAIR_PRODUCT_HIST.307",
+      "layerId": "GAUSS.STATS.SEQ_PAIR_PRODUCT_HIST.307",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_SUBARRAY_SUM_COUNT.308",
+      "layerId": "GAUSS.STATS.SEQ_SUBARRAY_SUM_COUNT.308",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ],
+        "target": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_LONGEST_SUBARRAY_SUM.309",
+      "layerId": "GAUSS.STATS.SEQ_LONGEST_SUBARRAY_SUM.309",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ],
+        "target": 3
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_ALL_SUBARRAY_SUM.310",
+      "layerId": "GAUSS.STATS.SEQ_ALL_SUBARRAY_SUM.310",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_ALL_SUBARRAY_SQUARES.311",
+      "layerId": "GAUSS.STATS.SEQ_ALL_SUBARRAY_SQUARES.311",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_MAX_SUBARRAY.312",
+      "layerId": "GAUSS.STATS.SEQ_MAX_SUBARRAY.312",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_MIN_SUBARRAY.313",
+      "layerId": "GAUSS.STATS.SEQ_MIN_SUBARRAY.313",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_INCREASING_PAIRS.314",
+      "layerId": "GAUSS.STATS.SEQ_INCREASING_PAIRS.314",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_NONDECREASING_PAIRS.315",
+      "layerId": "GAUSS.STATS.SEQ_NONDECREASING_PAIRS.315",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_INVERSIONS.316",
+      "layerId": "GAUSS.STATS.SEQ_INVERSIONS.316",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_LIS_COUNT.317",
+      "layerId": "GAUSS.STATS.SEQ_LIS_COUNT.317",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_LNDS_COUNT.318",
+      "layerId": "GAUSS.STATS.SEQ_LNDS_COUNT.318",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_DISTINCT_SUBSEQUENCES.319",
+      "layerId": "GAUSS.STATS.SEQ_DISTINCT_SUBSEQUENCES.319",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_ALTERNATING_RUN.320",
+      "layerId": "GAUSS.STATS.SEQ_ALTERNATING_RUN.320",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_EQUAL_RUN.321",
+      "layerId": "GAUSS.STATS.SEQ_EQUAL_RUN.321",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_SUBARRAY_GCD_ONE.322",
+      "layerId": "GAUSS.STATS.SEQ_SUBARRAY_GCD_ONE.322",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_INCREASING_K.323",
+      "layerId": "GAUSS.STATS.SEQ_INCREASING_K.323",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ],
+        "k": 2
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_LONGEST_PAL_RUN.324",
+      "layerId": "GAUSS.STATS.SEQ_LONGEST_PAL_RUN.324",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    },
+    {
+      "taskId": "GAUSS.STATS.SEQ_PAL_SUBARRAY_COUNT.325",
+      "layerId": "GAUSS.STATS.SEQ_PAL_SUBARRAY_COUNT.325",
+      "input": {
+        "values": [
+          1,
+          2,
+          1,
+          3
+        ]
+      }
+    }
+  ]
+}

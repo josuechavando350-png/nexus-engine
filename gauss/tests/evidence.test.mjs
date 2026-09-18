@@ -30,7 +30,7 @@ test("WALLE rejects a fixture with a repeated layer even when total task count i
   incomplete.tasks[3] = { ...structuredClone(incomplete.tasks[0]), taskId: "duplicated-math-w2" };
   await assert.rejects(
     verifyGaussFoundationEvidence({ problem: incomplete, report: genuineReport }),
-    /every registered layer exactly once/u,
+    /every required operator exactly once/u,
   );
 });
 

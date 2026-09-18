@@ -9,19 +9,23 @@ import { GAUSS_ENGINE_ID, sha256Canonical } from "../gauss/core/common.mjs";
 import { executeGaussProblem } from "../gauss/core/problem.mjs";
 import { contributeNexusQuantum } from "../gauss/core/quantum-contributor.mjs";
 import { GAUSS_IMPLEMENTED_LAYERS } from "../gauss/core/registry.mjs";
+import { verifyAxiomaEvidence } from "./axioma-evidence.mjs";
 
 const MAX_REPORT_BYTES = 16 * 1024 * 1024;
 
+// Foundation-only replay is retained for narrow unit tests and historical 200-operator evidence.
+// It is NOT a full GAUSS/AXIOMA certification: the file/CLI entrypoint below enforces AXIOMA.
 export async function verifyGaussFoundationEvidence({ problem, report }) {
-  const expectedLayerIds = GAUSS_IMPLEMENTED_LAYERS.map((layer) => layer.id).sort();
-  const fixtureLayerIds = problem?.tasks?.map((task) => task.layerId).sort();
-  assert.deepStrictEqual(fixtureLayerIds, expectedLayerIds, "foundation fixture must execute every registered layer exactly once");
-  const expectedCount = expectedLayerIds.length;
+  const expectedCount = problem?.tasks?.length;
+  assert([200, 1000].includes(expectedCount), "GAUSS fixture must be historical 200 or full 1000");
+  const expectedLayerIds = GAUSS_IMPLEMENTED_LAYERS.slice(0, expectedCount).map((layer) => layer.id).sort();
+  const fixtureLayerIds = problem.tasks.map((task) => task.layerId).sort();
+  assert.deepStrictEqual(fixtureLayerIds, expectedLayerIds, "GAUSS fixture must execute every required operator exactly once");
 
   assert.equal(report?.engineId, GAUSS_ENGINE_ID, "GAUSS engine identity mismatch");
   assert.equal(report?.status, "PASS", "GAUSS report must PASS");
-  assert.equal(report?.registry?.targetLayerCount, 800, "GAUSS target mismatch");
-  assert.equal(report?.registry?.implementedLayerCount, expectedCount, "GAUSS implemented count mismatch");
+  assert.equal(report?.registry?.targetLayerCount, 1000, "GAUSS target mismatch");
+  assert.equal(report?.registry?.implementedLayerCount, GAUSS_IMPLEMENTED_LAYERS.length, "GAUSS implemented count mismatch");
   assert.equal(report?.executedLayerCount, expectedCount, "GAUSS executed count mismatch");
   assert.equal(report?.failedLayerCount, 0, "GAUSS failed count mismatch");
   assert.equal(report?.quantumContribution?.status, "EXECUTED", "Quantum contributor did not execute");
@@ -50,6 +54,7 @@ export async function verifyGaussFoundationEvidence({ problem, report }) {
   // Re-execute independently of the supplied report. A tampered output with
   // recomputed hashes is not enough to pass this fixture-bound proof.
   const replay = await executeGaussProblem(problem, { quantumContributor: contributeNexusQuantum });
+  assert.equal(report.reportSha256, replay.reportSha256, "GAUSS/Quantum replay differs from claimed evidence");
   assert.deepStrictEqual(report, replay, "GAUSS/Quantum replay differs from claimed evidence");
   return Object.freeze({ reportSha256, executedLayerCount: report.executedLayerCount, quantumExecuted: true });
 }
@@ -62,17 +67,42 @@ async function readBoundedJson(path) {
   return readFile(path);
 }
 
-export async function verifyGaussEvidenceFile(path, problemPath = new URL("../gauss/fixtures/selftest-problem.json", import.meta.url)) {
+export async function verifyGaussEvidenceFile(
+  path,
+  problemPath = new URL("../gauss/fixtures/selftest-problem.json", import.meta.url),
+  axiomaPath,
+) {
   const [reportBytes, problemBytes] = await Promise.all([readBoundedJson(path), readBoundedJson(problemPath)]);
   const report = JSON.parse(reportBytes.toString("utf8"));
   const problem = JSON.parse(problemBytes.toString("utf8"));
-  await verifyGaussFoundationEvidence({ problem, report });
-  return Object.freeze({ artifactSha256: `sha256:${createHash("sha256").update(reportBytes).digest("hex")}`, executedLayerCount: report.executedLayerCount });
+  if (problem?.tasks?.length === 1000) {
+    assert(axiomaPath, "AXIOMA evidence required for full GAUSS certification");
+  }
+  const foundation = await verifyGaussFoundationEvidence({ problem, report });
+  let axioma = null;
+  if (problem.tasks.length === 1000) {
+    const evidence = JSON.parse((await readBoundedJson(axiomaPath)).toString("utf8"));
+    axioma = verifyAxiomaEvidence({ evidence, gaussReportSha256: foundation.reportSha256 });
+  }
+  return Object.freeze({
+    artifactSha256: `sha256:${createHash("sha256").update(reportBytes).digest("hex")}`,
+    executedLayerCount: report.executedLayerCount,
+    axiomaEvidenceSha256: axioma?.evidenceSha256 ?? null,
+    certifiedFullCatalog: axioma !== null,
+  });
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
-  if (process.argv.length !== 3) throw new Error("Usage: node walle/gauss-evidence-verify.mjs <report.json>");
-  const verified = await verifyGaussEvidenceFile(process.argv[2]);
+  if (process.argv.length < 3 || process.argv.length > 5) {
+    throw new Error("Usage: node walle/gauss-evidence-verify.mjs <report.json> [problem.json] [axioma-evidence.json]");
+  }
+  const verified = await verifyGaussEvidenceFile(
+    process.argv[2],
+    process.argv[3] ?? new URL("../gauss/fixtures/selftest-problem.json", import.meta.url),
+    process.argv[4],
+  );
   console.log(`WALLE_GAUSS_REPORT_SHA256=${verified.artifactSha256}`);
   console.log(`WALLE_GAUSS_IMPLEMENTED_LAYERS=${verified.executedLayerCount}`);
+  console.log(`WALLE_AXIOMA_EVIDENCE_SHA256=${verified.axiomaEvidenceSha256 ?? "NOT_APPLICABLE"}`);
+  console.log(`WALLE_GAUSS_FULL_CATALOG_CERTIFIED=${verified.certifiedFullCatalog}`);
 }
