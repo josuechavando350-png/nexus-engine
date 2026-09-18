@@ -21,7 +21,7 @@ export function runBatchBank({name,prefix,start,tags,input,reference,verify,inva
   for(let caseIndex=0;caseIndex<100;caseIndex++){
    const data=input(tag,caseIndex,random);
    let expected;
-   try{expected=reference(tag,structuredClone(data));}catch(error){throw Error(`Invalid AXIOMA reference/case for ${id} ${caseIndex}: ${error.stack??error}`);}
+   try{expected=reference(tag,structuredClone(data));}catch(error){throw new Error(`Invalid AXIOMA reference/case for ${id} ${caseIndex}: ${error.stack??error}`,{cause:error});}
    digest.update(JSON.stringify({id,caseIndex,data,expected}));
    report.validCases++;item.validCases++;
    let actual;
