@@ -9,10 +9,10 @@ import { verifyGaussIntegerDeterminantEvidence } from '../../walle/gauss-integer
 
 const fixture = JSON.parse(await readFile(new URL('../fixtures/exact-integer-determinant-problem.json', import.meta.url), 'utf8'));
 
-test('registered exact-integer mode keeps legacy logdet semantics and the true 202-ID count', () => {
+test('registered exact-integer mode keeps legacy logdet semantics and the true 203-ID count', () => {
   const layer = getGaussLayer('GAUSS.MATH.PIVOTED_LOGDET.006');
   assert(layer);
-  assert.equal(gaussRegistrySummary().implementedLayerCount, 202);
+  assert.equal(gaussRegistrySummary().implementedLayerCount, 203);
   const exact = layer.execute(fixture.tasks[0].input);
   assert.deepEqual(exact, { arithmetic: 'EXACT_INTEGER', determinant: '-12', singular: false, pivotExchanges: 1 });
   const legacy = layer.execute({ coefficients: [[3, 1], [1, 2]] });
