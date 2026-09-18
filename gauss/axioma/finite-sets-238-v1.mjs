@@ -26,8 +26,9 @@ function reference(tag,x){const {n,a,b,family:f}=x;
  case 'SET_CARTESIAN_PRODUCT':return {pairs:a.flatMap(v=>b.map(w=>[v,w]))};
  case 'SET_POWER_SET':return {subsets:seq(2**a.length).map(m=>a.filter((_,k)=>Math.floor(m/2**k)%2))};
  case 'SET_K_SUBSETS':return {subsets:seq(2**a.length).map(m=>a.filter((_,k)=>Math.floor(m/2**k)%2)).filter(c=>c.length===x.k)};
- case 'SET_JACCARD':return {similarity:frac(common.length,union.length||1)};
- case 'SET_DICE':return {similarity:frac(2*common.length,a.length+b.length||1)};
+ // Convention of the GAUSS contract: two empty sets have similarity one.
+ case 'SET_JACCARD':return {similarity:union.length?frac(common.length,union.length):'1/1'};
+ case 'SET_DICE':return {similarity:a.length+b.length?frac(2*common.length,a.length+b.length):'1/1'};
  case 'SET_HAMMING':return {distance:union.filter(v=>A.has(v)!==B.has(v)).length};
  case 'SET_BITMASK':return {mask:rank(a)};
  case 'SET_UNRANK_MASK':return {elements:seq(n).filter(k=>Math.floor(x.mask/2**k)%2)};
