@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "NEXUS_OFFER_FIT_DEMAND_EVIDENCE_V5",
+  "capturedAt": "2026-09-16",
+  "market": {
+    "country": "Mexico",
+    "language": "Spanish"
+  },
+  "offerEvidence": {
+    "evidenceClass": "FIRST_PARTY_PUBLIC_SITE_OFFER_SNAPSHOT",
+    "url": "https://www.nexusbotstudio.com/",
+    "offeredServiceLabels": [
+      "Plataformas a medida",
+      "Datos y Analytics",
+      "Estrategia y Consultoría"
+    ],
+    "note": "The public first-party site explicitly presents custom platforms, data and analytics, and strategy/consulting. Offer presence is used only as an offer-fit boundary and does not prove demand, traffic, leads, clients or revenue."
+  },
+  "keywordDiscovery": {
+    "evidenceClass": "GOOGLE_ADS_RESEARCH_DISCOVERY_NOT_MARKET_SIZE",
+    "provider": "HYPD_GOOGLE_ADS_KEYWORD_RESEARCH",
+    "resultId": "00d4509d-a716-4d3b-93be-8e4b51a4d9f7",
+    "reviewedCandidateRows": 2656,
+    "interpretation": "DISCOVERY_ROWS_ARE_REVIEWED_CANDIDATES_NOT_UNIQUE_DEMAND_AND_ARE_NOT_SUMMED_INTO_CAPACITY"
+  },
+  "keywordMetrics": {
+    "evidenceClass": "GOOGLE_ADS_RESEARCH_ESTIMATE_NOT_FIRST_PARTY_OUTCOME",
+    "provider": "HYPD_GOOGLE_ADS_KNOWN_KEYWORD_VOLUME",
+    "resultId": "46c867ce-8050-4ce6-a485-f13083945c78",
+    "researchedKeywordCount": 9,
+    "eligibleRows": [
+      {
+        "familyId": "AI_CONSULTING_SPECIALIZED",
+        "serviceLabel": "Estrategia y Consultoría",
+        "offerFitClass": "FIRST_PARTY_ALIGNED_DISTINCT_DEMAND_FAMILY",
+        "keyword": "consultoria inteligencia artificial",
+        "monthlySearchVolume": 30,
+        "competitionIndex": 59,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "CUSTOM_ERP",
+        "serviceLabel": "Plataformas a medida",
+        "offerFitClass": "FIRST_PARTY_ALIGNED_DISTINCT_DEMAND_FAMILY",
+        "keyword": "erp a medida",
+        "monthlySearchVolume": 10,
+        "competitionIndex": 71,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "CUSTOM_CRM",
+        "serviceLabel": "Plataformas a medida",
+        "offerFitClass": "FIRST_PARTY_ALIGNED_DISTINCT_DEMAND_FAMILY",
+        "keyword": "crm a medida",
+        "monthlySearchVolume": 10,
+        "competitionIndex": 86,
+        "intentClass": "MIXED"
+      },
+      {
+        "familyId": "DATA_CONSULTING",
+        "serviceLabel": "Datos y Analytics",
+        "offerFitClass": "FIRST_PARTY_ALIGNED_DISTINCT_DEMAND_FAMILY",
+        "keyword": "consultoria de datos",
+        "monthlySearchVolume": 20,
+        "competitionIndex": 71,
+        "intentClass": "MIXED"
+      }
+    ],
+    "guardRows": [
+      {
+        "guardId": "ECOMMERCE_DEVELOPMENT_OFFER_UNPROVEN",
+        "keyword": "desarrollo de ecommerce",
+        "monthlySearchVolume": 30,
+        "competitionIndex": 26,
+        "intentClass": "MIXED",
+        "offerFitClass": "FIRST_PARTY_OFFER_ALIGNMENT_UNPROVEN"
+      },
+      {
+        "guardId": "SOFTWARE_MANAGEMENT_ADJACENT_PRODUCT",
+        "keyword": "software de gestion empresarial",
+        "monthlySearchVolume": 140,
+        "competitionIndex": 46,
+        "intentClass": "MIXED",
+        "offerFitClass": "ADJACENT_PRODUCT_MARKET_NOT_CUSTOM_DEVELOPMENT_DEMAND"
+      },
+      {
+        "guardId": "POS_ADJACENT_PRODUCT",
+        "keyword": "puntos de venta para negocios",
+        "monthlySearchVolume": 2400,
+        "competitionIndex": 100,
+        "intentClass": "DECISION",
+        "offerFitClass": "ADJACENT_PRODUCT_MARKET_NOT_CUSTOM_DEVELOPMENT_DEMAND"
+      },
+      {
+        "guardId": "ERP_SYSTEMS_GENERIC_INFORMATIONAL",
+        "keyword": "sistemas erp",
+        "monthlySearchVolume": 6600,
+        "competitionIndex": 41,
+        "intentClass": "INFORMATIONAL",
+        "offerFitClass": "INFORMATIONAL_GENERIC_MARKET_NOT_CUSTOM_DEVELOPMENT_DEMAND"
+      }
+    ],
+    "overlapRows": [
+      {
+        "guardId": "AI_COMPANY_EXISTING_FAMILY_SYNONYM",
+        "keyword": "empresa de inteligencia artificial",
+        "monthlySearchVolume": 170,
+        "competitionIndex": 36,
+        "existingFamilyId": "AI_COMPANY",
+        "overlapClass": "EXISTING_FAMILY_SEMANTIC_OVERLAP_NOT_ADDITIVE"
+      }
+    ]
+  },
+  "serpIntentChecks": [
+    {
+      "familyId": "AI_CONSULTING_SPECIALIZED",
+      "resultId": "f8fe4bca-78b3-47fe-811b-285e5d6fd01d",
+      "classification": "MIXED",
+      "reason": "The Mexico SERP contains multiple AI-consulting providers including global and specialist firms, but also explanatory and employment content; V5 keeps a conservative mixed-intent classification."
+    },
+    {
+      "familyId": "CUSTOM_ERP",
+      "resultId": "2c096ad6-2c5a-4004-ade2-f065c3cb4180",
+      "classification": "MIXED",
+      "reason": "Custom-ERP service providers coexist with comparison and explanatory pages. The explicit a-medida modifier supports custom-platform relevance without making every search transactional."
+    },
+    {
+      "familyId": "CUSTOM_CRM",
+      "resultId": "f3d7cc8c-4661-4caa-b8fd-0a0f46f4ed51",
+      "classification": "MIXED",
+      "reason": "Custom-CRM development providers and vendor pages coexist with advice, comparison and educational results; V5 therefore keeps mixed intent."
+    },
+    {
+      "familyId": "DATA_CONSULTING",
+      "resultId": "10871e65-30fa-4af4-b30f-ef589c3753e7",
+      "classification": "MIXED",
+      "reason": "Data-consulting service providers dominate much of the observed SERP, while employment and educational results remain present; V5 conservatively treats the family as mixed."
+    }
+  ],
+  "offerFitGuards": [
+    {
+      "guardId": "ECOMMERCE_DEVELOPMENT_OFFER_UNPROVEN",
+      "resultId": "262ce47d-7344-4472-b5b9-daa272e341c7",
+      "classification": "MIXED",
+      "offerFitClass": "FIRST_PARTY_OFFER_ALIGNMENT_UNPROVEN",
+      "reason": "The SERP has ecommerce-development providers and informational guides, but the current first-party service snapshot does not explicitly establish ecommerce development as an offered line. V5 therefore refuses to add this volume."
+    },
+    {
+      "guardId": "SOFTWARE_MANAGEMENT_ADJACENT_PRODUCT",
+      "resultId": "0935955b-1293-4b62-89d4-262e7fe04f1e",
+      "classification": "MIXED",
+      "offerFitClass": "ADJACENT_PRODUCT_MARKET_NOT_CUSTOM_DEVELOPMENT_DEMAND",
+      "reason": "The observed SERP is dominated by packaged business-management software, vendor comparisons and definitions. This adjacent product market is not counted as demand for custom Nexus development."
+    },
+    {
+      "guardId": "POS_ADJACENT_PRODUCT",
+      "resultId": "df49163a-3dcb-4c71-98f5-6b35796a4bc2",
+      "classification": "DECISION",
+      "offerFitClass": "ADJACENT_PRODUCT_MARKET_NOT_CUSTOM_DEVELOPMENT_DEMAND",
+      "reason": "The observed SERP contains retail POS hardware kits, payment terminals and off-the-shelf POS software. Buyer intent exists, but it is for an adjacent product market rather than custom-platform development."
+    },
+    {
+      "guardId": "ERP_SYSTEMS_GENERIC_INFORMATIONAL",
+      "resultId": "790502cb-861d-4557-ac11-21228a6400db",
+      "classification": "INFORMATIONAL",
+      "offerFitClass": "INFORMATIONAL_GENERIC_MARKET_NOT_CUSTOM_DEVELOPMENT_DEMAND",
+      "reason": "The generic ERP SERP is dominated by definitions, examples, implementation types and established packaged ERP vendors. Its large volume is explicitly excluded from custom-development capacity."
+    }
+  ],
+  "overlapGuards": [
+    {
+      "guardId": "AI_COMPANY_EXISTING_FAMILY_SYNONYM",
+      "existingFamilyId": "AI_COMPANY",
+      "classification": "EXISTING_FAMILY_SEMANTIC_OVERLAP_NOT_ADDITIVE",
+      "reason": "The exact term empresa de inteligencia artificial carries the same 170 monthly research volume as the already-modeled AI_COMPANY representative empresa de ia. V5 records it as an existing-family synonym and adds zero incremental capacity."
+    }
+  ],
+  "analyticsBoundary": {
+    "ga4ConversionEvidence": "NOT_AVAILABLE_FROM_CONNECTED_PROPERTY",
+    "interpretation": "DO_NOT_INFER_FIRST_PARTY_LEAD_QUALIFICATION_OR_CLOSE_RATES"
+  },
+  "sensitivityFunnels": [
+    {
+      "id": "SENSITIVITY_BETTER_4000",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 25000,
+      "qualifiedLeadPpm": 500000,
+      "closeRatePpm": 300000
+    },
+    {
+      "id": "SENSITIVITY_STRONG_2858",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 30000,
+      "qualifiedLeadPpm": 500000,
+      "closeRatePpm": 350000
+    },
+    {
+      "id": "SENSITIVITY_HIGH_CONVERSION_1949",
+      "evidenceClass": "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
+      "leadConversionPpm": 40000,
+      "qualifiedLeadPpm": 550000,
+      "closeRatePpm": 350000
+    }
+  ],
+  "boundary": "OFFER_FIT_AND_RESEARCH_EVIDENCE_ONLY_NO_RANK_TRAFFIC_LEAD_CLIENT_OR_REVENUE_FORECAST"
+}
