@@ -5,19 +5,22 @@ import { fileURLToPath } from "node:url";
 
 import { runCommercialDemandTournamentV2 } from "../commercial-demand/tournament-engine-v2.mjs";
 import { assertTournamentTenantEvidenceBoundary } from "../commercial-demand/tenant-evidence-boundary.mjs";
+import { assertTournamentTenantSnapshotBinding } from "../commercial-demand/tenant-snapshot-binding.mjs";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const defaultScenario = resolve(here, "../commercial-demand/nexus-commercial-demand-v2.json");
 const defaultManifest = resolve(here, "../commercial-demand/nexus-commercial-demand-v2.tenant-manifest.json");
 
 function usage() {
-  console.error("usage: nexus-commercial-demand-tournament-v2.mjs [--scenario <path> --tenant-manifest <path>] [--assert-verdict <verdict>] [--assert-selected <strategy-id>] [--assert-floor-milli <value>]");
+  console.error("usage: nexus-commercial-demand-tournament-v2.mjs [--scenario <path> --tenant-manifest <path> --control-root <path> --evidence-root <path>] [--assert-verdict <verdict>] [--assert-selected <strategy-id>] [--assert-floor-milli <value>]");
 }
 
 function parseArgs(argv) {
   const result = {
     scenario: defaultScenario,
     tenantManifest: defaultManifest,
+    controlRoot: null,
+    evidenceRoot: null,
     explicitScenario: false,
     explicitManifest: false,
     assertVerdict: null,
@@ -26,7 +29,7 @@ function parseArgs(argv) {
   };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
-    if (["--scenario", "--tenant-manifest", "--assert-verdict", "--assert-selected", "--assert-floor-milli"].includes(arg)) {
+    if (["--scenario", "--tenant-manifest", "--control-root", "--evidence-root", "--assert-verdict", "--assert-selected", "--assert-floor-milli"].includes(arg)) {
       const value = argv[index + 1];
       if (!value || value.startsWith("--")) {
         usage();
@@ -41,6 +44,8 @@ function parseArgs(argv) {
         result.tenantManifest = resolve(value);
         result.explicitManifest = true;
       }
+      if (arg === "--control-root") result.controlRoot = resolve(value);
+      if (arg === "--evidence-root") result.evidenceRoot = resolve(value);
       if (arg === "--assert-verdict") result.assertVerdict = value;
       if (arg === "--assert-selected") result.assertSelected = value;
       if (arg === "--assert-floor-milli") {
@@ -55,8 +60,14 @@ function parseArgs(argv) {
     process.exitCode = 64;
     return null;
   }
-  if (result.explicitScenario && !result.explicitManifest) {
-    throw new Error("CUSTOM_SCENARIO_REQUIRES_EXPLICIT_TENANT_MANIFEST");
+  if (result.explicitScenario !== result.explicitManifest) {
+    throw new Error("CUSTOM_SCENARIO_REQUIRES_EXPLICIT_TENANT_MANIFEST_AND_VICE_VERSA");
+  }
+  if (result.explicitScenario && (!result.controlRoot || !result.evidenceRoot)) {
+    throw new Error("CUSTOM_SCENARIO_REQUIRES_TENANT_CONTROL_AND_EVIDENCE_ROOTS");
+  }
+  if (!result.explicitScenario && (result.controlRoot || result.evidenceRoot)) {
+    throw new Error("TENANT_ROOTS_REQUIRE_EXPLICIT_SCENARIO_AND_MANIFEST");
   }
   return result;
 }
@@ -68,9 +79,16 @@ try {
       readFile(args.scenario, "utf8").then(JSON.parse),
       readFile(args.tenantManifest, "utf8").then(JSON.parse),
     ]);
-    // Check tenant identity and source declarations BEFORE any tournament calculations.
-    const boundary = assertTournamentTenantEvidenceBoundary(raw, manifest);
-    // This statement is deliberately not inserted into the hashed engine report.
+    const boundary = args.explicitScenario
+      ? await assertTournamentTenantSnapshotBinding({
+        controlRoot: args.controlRoot,
+        evidenceRoot: args.evidenceRoot,
+        scenario: raw,
+        manifest,
+      })
+      : assertTournamentTenantEvidenceBoundary(raw, manifest);
+    // Legacy checked-in fixture is declaration-bound only. Custom scenarios must
+    // pass tenant-controlled evidence; neither path verifies Google ownership.
     console.error(`NEXUS_TENANT_EVIDENCE=${boundary.evidenceStatus};SALES_CLAIMS=${boundary.salesClaimStatus}`);
     const report = runCommercialDemandTournamentV2(raw);
     if (args.assertVerdict && report.targetAssessment.targetSupportVerdict !== args.assertVerdict) {
