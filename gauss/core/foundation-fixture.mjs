@@ -9,7 +9,7 @@ export async function buildGaussFoundationFixture() {
     readFile(new URL('../fixtures/selftest-201-202-tasks.json', import.meta.url), 'utf8'),
   ]).then(bytes => bytes.map(JSON.parse));
   if (!Array.isArray(baseline.tasks) || baseline.tasks.length !== 200
-      || !Array.isArray(extension.tasks) || extension.tasks.length !== 2
+      || !Array.isArray(extension.tasks) || extension.tasks.length !== 4
       || Object.keys(extension).length !== 1) {
     throw new Error('GAUSS foundation fixture baseline/extension identity mismatch');
   }
@@ -19,7 +19,7 @@ export async function buildGaussFoundationFixture() {
     throw new Error('GAUSS foundation fixture task and layer IDs must be one-to-one');
   }
   return { ...baseline,
-    objective: 'Exercise all 202 implemented GAUSS scientific operators with deterministic evidence and independently verified replay.',
+    objective: 'Exercise all 204 implemented GAUSS scientific operators with deterministic evidence and independently verified replay.',
     tasks };
 }
 

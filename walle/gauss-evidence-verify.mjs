@@ -67,20 +67,54 @@ function verifyMatrixInverse(task, output) {
       assert.equal(((dot%p)+p)%p,Number(i===j),'independent two-sided matrix inverse proof failed');
     }
 }
+function verifyIntegerPolynomialResultant(task, output) {
+  const f=task.input.left,g=task.input.right;
+  const m=f.length-1,n=g.length-1,size=m+n;
+  // Bounded independent Leibniz oracle: the audited connected fixture is 3x3.
+  assert(size>=2&&size<=7,'independent polynomial resultant fixture exceeds Leibniz budget');
+  const sylvester=Array.from({length:size},()=>Array(size).fill(0n));
+  for(let row=0;row<n;row++)for(let j=0;j<=m;j++)sylvester[row][row+j]=BigInt(f[m-j]);
+  for(let row=0;row<m;row++)for(let j=0;j<=n;j++)sylvester[n+row][row+j]=BigInt(g[n-j]);
+  const expected=determinantLeibniz(sylvester);
+  assert.equal(output?.arithmetic,'EXACT_INTEGER','independent resultant arithmetic mismatch');
+  assert.deepEqual(output?.degrees,[m,n],'independent resultant degree mismatch');
+  assert.equal(output?.resultant,expected.toString(),'independent polynomial resultant determinant mismatch');
+  assert.equal(output?.commonComplexRoot,expected===0n,'independent polynomial resultant common-root mismatch');
+}
+function verifyIntegerPolynomialDiscriminant(task, output) {
+  const f=task.input.coefficients;
+  // Closed-form quadratic formula, independent of the resultant and derivative kernels.
+  assert.equal(f.length,3,'independent polynomial discriminant fixture must be quadratic');
+  const [c,b,a]=f.map(BigInt);
+  assert.notEqual(a,0n,'quadratic leading coefficient must be nonzero');
+  const expected=b*b-4n*a*c;
+  assert.equal(output?.arithmetic,'EXACT_INTEGER','independent discriminant arithmetic mismatch');
+  assert.equal(output?.degree,2,'independent discriminant degree mismatch');
+  assert.equal(output?.discriminant,expected.toString(),'independent polynomial discriminant formula mismatch');
+  assert.equal(output?.repeatedComplexRoot,expected===0n,'independent discriminant repeated-root mismatch');
+}
 
 export async function verifyGaussFoundationEvidence({ problem, report }) {
   const expectedLayerIds = GAUSS_IMPLEMENTED_LAYERS.map((layer) => layer.id).sort();
   const fixtureLayerIds = problem?.tasks?.map((task) => task.layerId).sort();
-  const extensionIds = new Set([
+  const extensions = [
     'GAUSS.MATH.CRT_GENERAL.059',
     'GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060',
+    'GAUSS.MATH.INTEGER_POLYNOMIAL_RESULTANT.061',
+    'GAUSS.MATH.INTEGER_POLYNOMIAL_DISCRIMINANT.062',
+  ];
+  const baselineLayerIds = expectedLayerIds.filter((id) => !extensions.includes(id));
+  const historic202LayerIds = expectedLayerIds.filter((id) => !extensions.slice(2).includes(id));
+  const allowed = new Map([
+    [200, baselineLayerIds],
+    [202, historic202LayerIds],
+    [expectedLayerIds.length, expectedLayerIds],
   ]);
-  const baselineLayerIds = expectedLayerIds.filter((id) => !extensionIds.has(id));
-  const isCurrentFixture = fixtureLayerIds?.length === expectedLayerIds.length;
+  assert(fixtureLayerIds && allowed.has(fixtureLayerIds.length), 'foundation fixture must have 200, 202 or all currently implemented layers');
   assert.deepStrictEqual(
     fixtureLayerIds,
-    isCurrentFixture ? expectedLayerIds : baselineLayerIds,
-    'foundation fixture must execute either the immutable 200-layer baseline or every registered layer exactly once',
+    allowed.get(fixtureLayerIds.length),
+    'foundation fixture must preserve exact historical coverage or execute every registered layer exactly once',
   );
   const expectedTaskCount = fixtureLayerIds.length;
 
@@ -109,6 +143,8 @@ export async function verifyGaussFoundationEvidence({ problem, report }) {
     assert.equal(result?.outputSha256, sha256Canonical(result.output), 'task output SHA-256 mismatch');
     if(task.layerId==='GAUSS.MATH.CRT_GENERAL.059')verifyCrt(task,result.output);
     if(task.layerId==='GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060')verifyMatrixInverse(task,result.output);
+    if(task.layerId==='GAUSS.MATH.INTEGER_POLYNOMIAL_RESULTANT.061')verifyIntegerPolynomialResultant(task,result.output);
+    if(task.layerId==='GAUSS.MATH.INTEGER_POLYNOMIAL_DISCRIMINANT.062')verifyIntegerPolynomialDiscriminant(task,result.output);
   }
   assert.equal(report.quantumContribution.problemSha256, report.problemSha256, 'Quantum problem binding mismatch');
   const source = report.taskResults.find((item) => item.taskId === report.quantumContribution.sourceTaskId);

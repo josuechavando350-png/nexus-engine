@@ -7,8 +7,8 @@ const solve = getGaussLayer('GAUSS.MATH.GAUSSIAN_SOLVE.005');
 const determinant = getGaussLayer('GAUSS.MATH.PIVOTED_LOGDET.006');
 
 test('exact integer determinant and exact rational solve coexist without changing legacy operator IDs or results', () => {
-  assert.equal(GAUSS_IMPLEMENTED_LAYERS.length, 202);
-  assert.equal(new Set(GAUSS_IMPLEMENTED_LAYERS.map(layer => layer.id)).size, 202);
+  assert.equal(GAUSS_IMPLEMENTED_LAYERS.length, 204);
+  assert.equal(new Set(GAUSS_IMPLEMENTED_LAYERS.map(layer => layer.id)).size, 204);
   const coefficients = [[2, 1], [1, -1]];
   const rhs = [1, 0];
   assert.deepStrictEqual(solve.execute({coefficients, rhs}), gaussianLinearSolve({coefficients, rhs}));

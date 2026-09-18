@@ -1,6 +1,8 @@
 {
   "tasks": [
     {"taskId":"math-general-crt","layerId":"GAUSS.MATH.CRT_GENERAL.059","input":{"congruences":[{"remainder":2,"modulus":4},{"remainder":6,"modulus":8},{"remainder":5,"modulus":9}]}},
-    {"taskId":"math-field-inverse","layerId":"GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060","input":{"prime":7,"coefficients":[[1,2],[3,4]]}}
+    {"taskId":"math-field-inverse","layerId":"GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060","input":{"prime":7,"coefficients":[[1,2],[3,4]]}},
+    {"taskId":"math-integer-polynomial-resultant","layerId":"GAUSS.MATH.INTEGER_POLYNOMIAL_RESULTANT.061","input":{"left":[-2,1],"right":[1,0,1]}},
+    {"taskId":"math-integer-polynomial-discriminant","layerId":"GAUSS.MATH.INTEGER_POLYNOMIAL_DISCRIMINANT.062","input":{"coefficients":[1,0,-1]}}
   ]
 }

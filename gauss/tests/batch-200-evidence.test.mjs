@@ -10,12 +10,12 @@ import {verifyGaussFoundationEvidence} from '../../walle/gauss-evidence-verify.m
 const problem=await buildGaussFoundationFixture();
 const report=await executeGaussProblem(problem,{quantumContributor:contributeNexusQuantum});
 
-test('first 200 preserved and 2 distinct new operators run in connected GAUSS/Quantum/WALLE proof',async()=>{
- assert.equal(GAUSS_IMPLEMENTED_LAYERS.length,202);
- assert.equal(problem.tasks.length,202);
- assert.equal(new Set(problem.tasks.map(x=>x.layerId)).size,202);
- assert.equal(new Set(problem.tasks.map(x=>x.taskId)).size,202);
- assert.equal(new Set(GAUSS_IMPLEMENTED_LAYERS.map(x=>x.execute)).size,202);
+test('first 200 preserved and 4 distinct extensions run in connected GAUSS/Quantum/WALLE proof',async()=>{
+ assert.equal(GAUSS_IMPLEMENTED_LAYERS.length,204);
+ assert.equal(problem.tasks.length,204);
+ assert.equal(new Set(problem.tasks.map(x=>x.layerId)).size,204);
+ assert.equal(new Set(problem.tasks.map(x=>x.taskId)).size,204);
+ assert.equal(new Set(GAUSS_IMPLEMENTED_LAYERS.map(x=>x.execute)).size,204);
  assert.equal(new Set(BATCH_200_ADDITIONS.map(x=>x.id)).size,84);
  assert.deepEqual(new Set(problem.tasks.map(x=>x.layerId)),new Set(GAUSS_IMPLEMENTED_LAYERS.map(x=>x.id)));
  for(const definition of BATCH_200_ADDITIONS){
@@ -24,11 +24,13 @@ test('first 200 preserved and 2 distinct new operators run in connected GAUSS/Qu
   assert.deepEqual(tasks[0].input,definition.input,definition.id);
   assert.equal(report.taskResults.filter(x=>x.layerId===definition.id&&x.status==='EXECUTED').length,1,definition.id);
  }
- assert.deepEqual(problem.tasks.at(-2).layerId,'GAUSS.MATH.CRT_GENERAL.059');
- assert.deepEqual(problem.tasks.at(-1).layerId,'GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060');
- assert.equal(report.status,'PASS');assert.equal(report.executedLayerCount,202);assert.equal(report.failedLayerCount,0);
+ assert.equal(problem.tasks.at(-4).layerId,'GAUSS.MATH.CRT_GENERAL.059');
+ assert.equal(problem.tasks.at(-3).layerId,'GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060');
+ assert.equal(problem.tasks.at(-2).layerId,'GAUSS.MATH.INTEGER_POLYNOMIAL_RESULTANT.061');
+ assert.equal(problem.tasks.at(-1).layerId,'GAUSS.MATH.INTEGER_POLYNOMIAL_DISCRIMINANT.062');
+ assert.equal(report.status,'PASS');assert.equal(report.executedLayerCount,204);assert.equal(report.failedLayerCount,0);
  assert.equal(report.quantumContribution.status,'EXECUTED');assert.equal(report.quantumContribution.simulation.hardwareExecution,false);
- const verified=await verifyGaussFoundationEvidence({problem,report});assert.equal(verified.executedLayerCount,202);
+ const verified=await verifyGaussFoundationEvidence({problem,report});assert.equal(verified.executedLayerCount,204);
 });
 
 test('all 84 original additions still reject forged outputs with recalculated SHA-256 digests',async()=>{
@@ -44,12 +46,14 @@ test('all 84 original additions still reject forged outputs with recalculated SH
  }
 });
 
-test('WALLE independent arithmetic rejects altered new operators even with recomputed output and report hashes',async()=>{
+test('WALLE independent arithmetic rejects forged extensions even after hashes are recomputed',async()=>{
  assert.equal(report.status,'PASS');
- for(const id of ['GAUSS.MATH.CRT_GENERAL.059','GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060']){
+ for(const id of ['GAUSS.MATH.CRT_GENERAL.059','GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060','GAUSS.MATH.INTEGER_POLYNOMIAL_RESULTANT.061','GAUSS.MATH.INTEGER_POLYNOMIAL_DISCRIMINANT.062']){
   const fake=structuredClone(report),result=fake.taskResults.find(row=>row.layerId===id);
   if(id==='GAUSS.MATH.CRT_GENERAL.059')result.output.remainder='13';
-  else result.output.inverse[0][0]=0;
+  else if(id==='GAUSS.MATH.FINITE_FIELD_MATRIX_INVERSE.060')result.output.inverse[0][0]=0;
+  else if(id==='GAUSS.MATH.INTEGER_POLYNOMIAL_RESULTANT.061')result.output.resultant='6';
+  else result.output.discriminant='5';
   result.outputSha256=sha256Canonical(result.output);
   const {reportSha256:previous,...unsigned}=fake;void previous;
   fake.reportSha256=sha256Canonical(unsigned);
