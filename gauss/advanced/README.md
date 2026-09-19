@@ -1,6 +1,6 @@
-# GAUSS Advanced V1/V2 — independent, bounded scientific extensions
+# GAUSS Advanced — independent, bounded scientific extensions
 
-**Incremental extension.** The audited `gauss/core/registry.mjs` and existing 1,000 operators are untouched. This is a real, separately versioned GAUSS extension, not a claim that all 20 proposed families are implemented.
+**Incremental extension.** The audited `gauss/core/registry.mjs` and existing 1,000 operators are untouched. This is a real, separately versioned GAUSS extension, not a claim that all 100 proposed technologies are implemented.
 
 ## Implemented V1 (4 bounded parts of the proposed families)
 
@@ -47,3 +47,18 @@ These are genuine but **explicitly scoped implementations**. None is advertised 
 `gauss/tests/advanced-wave3.test.mjs` compares exact HMM outputs to independent exhaustive path enumeration, the fuzzy endpoints to exhaustive corner enumeration, a vector Kalman example to analytic reference, quantum normalization, clock offset consistency and negative inputs. It also executes a real SHA-linked chain `binary Bayes → HMM → quantum walk`, `Chronos → vector Kalman` and `Chronos → type-2 fuzzy` inside GAUSS. These chains prove runtime integration, **not** empirical forecasting skill.
 
 **Completion gate:** the requested first group of 25 is **not complete**. No source stubs or invented "implemented" flags were introduced for unbuilt proposals; particularly, zero-knowledge cryptographic proofs, self-healing code, kernel-level network behavior and GPU pipelines require separate precise specifications, suitable environments and testing. Do not interpret 12 registered advanced operators as 12 fully implemented unrestricted technologies.
+
+## Wave 4 — second requested batch of 25 (proposals 26–50): IN PROGRESS
+
+Six **bounded but executable** mathematical algorithms have been added, not 25 complete technologies. Existing core routines are reused rather than counted twice; previous first-batch algorithms remain scoped, not full unrestricted implementations. All six are registered in the same GAUSS advanced executor; cross-task references are resolved and SHA-256-bound to successful upstream outputs.
+
+13. `STACKELBERG_FINITE_PURE_V1` (proposal 26): exhaustively evaluates pure leader commitments in finite two-player normal-form games with follower pure best responses; explicit optimistic/pessimistic tie semantics. This is NOT mixed-strategy Stackelberg equilibrium or arbitrary multi-layer gaming.
+14. `TRANSFER_ENTROPY_BINARY_LAG1_V1` (proposal 29): actual empirical conditional mutual information `I(X_t; Y_(t+1) | Y_t)` in bits from supplied paired binary observations, including zero-count handling; no assertion that information transfer identifies a causal effect or that the small-sample estimator is bias-free.
+15. `ROBUST_FINITE_SCENARIOS_V1` (proposal 30): exhaustive minimax loss, minimax regret and minimum expected loss under supplied finite scenario probabilities, using exact rational expectations; no inferred scenario universe or continuous constrained optimization.
+16. `TEMPORAL_GRAPH_SHORTEST_PATH_V1` (proposal 32): timestamped directed/undirected edge additions/removals, immutable-by-output snapshots, Dijkstra shortest paths on nonnegative integer weights and explicit disconnected states. Not a distributed large-scale graph store or live external feed.
+17. `DISCOUNTED_MDP_EXACT_V1` (proposal 35): exact rational infinite-horizon discounted finite fully observed MDP policy iteration, independently checked optimal Bellman inequalities and exact residual; discount <1. Not a POMDP or unconstrained continuous-state stochastic control.
+18. `FINITE_MARKOV_ERGODICITY_V1` (proposal 41): exact finite Markov-chain irreducibility, graph period, and a unique rational stationary distribution for irreducible chains. Reports periodic chains as not mixing; makes no uniqueness assertion for reducible chains.
+
+`gauss/tests/advanced-wave4.test.mjs` checks analytic reference examples, negative validation, independently enumerated 40 Stackelberg games, 60 transfer entropy samples, 60 robust profiles, 30 Bellman–Ford graph oracles, 30 stationary-distribution examples and 45 analytically evaluated discounted MDPs. It also exercises the connected GAUSS core and Quantum simulation receipt with `temporal graph → robust decision`, `temporal graph → Stackelberg payoffs`, and `Markov invariant measure → discounted MDP` dependencies. These are verification of the **specified mathematical models**; no benchmark of real-world predictive accuracy has been conducted.
+
+**Delivery status:** this is an increment toward the second batch (26–50), not a claim that the remaining 19 proposals in that batch or all 100 technologies have been completed. Earlier PRs #408, #409 and #410 are dependencies. CI results for the precise new commit and all merge requirements must be checked before merging. Do not deploy automatically.
