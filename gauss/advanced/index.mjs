@@ -13,6 +13,12 @@ import { simulateCoinedQuantumWalk } from './quantum-walk.mjs';
 import { filterVectorKalman } from './kalman-vector.mjs';
 import { synchronizeClockIntervals } from './chronos.mjs';
 import { reduceIntervalType2 } from './type2-fuzzy.mjs';
+import { solvePureStackelberg } from './stackelberg.mjs';
+import { optimizeRobustScenarios } from './robust-scenarios.mjs';
+import { queryTemporalGraph } from './temporal-graph.mjs';
+import { solveDiscountedMdp } from './discounted-mdp.mjs';
+import { certifyFiniteErgodicity } from './ergodic-chain.mjs';
+import { estimateBinaryTransferEntropy } from './transfer-entropy.mjs';
 
 export const GAUSS_ADVANCED_OPERATORS = Object.freeze({
   FORMAL_FINITE_REACHABILITY_V1: checkFiniteTransitionSystem,
@@ -27,6 +33,12 @@ export const GAUSS_ADVANCED_OPERATORS = Object.freeze({
   KALMAN_VECTOR_LINEAR_GAUSSIAN_V1: filterVectorKalman,
   CHRONOS_CLOCK_OFFSET_INTERVAL_V1: synchronizeClockIntervals,
   FUZZY_INTERVAL_TYPE2_KM_V1: reduceIntervalType2,
+  STACKELBERG_FINITE_PURE_V1: solvePureStackelberg,
+  ROBUST_FINITE_SCENARIOS_V1: optimizeRobustScenarios,
+  TEMPORAL_GRAPH_SHORTEST_PATH_V1: queryTemporalGraph,
+  DISCOUNTED_MDP_EXACT_V1: solveDiscountedMdp,
+  FINITE_MARKOV_ERGODICITY_V1: certifyFiniteErgodicity,
+  TRANSFER_ENTROPY_BINARY_LAG1_V1: estimateBinaryTransferEntropy,
 });
 
 // Only previous successful task outputs may supply a value. Object-key inspection
