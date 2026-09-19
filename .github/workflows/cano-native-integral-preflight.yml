@@ -1,0 +1,64 @@
+name: CANO Native Integral Preflight (read-only)
+
+on:
+  pull_request:
+    paths:
+      - 'seo-avengers-2500/tests/test_cano_native_preflight.mjs'
+      - '.github/workflows/cano-native-integral-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cano-authorization-and-avengers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify checked out commit identity
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+      - name: CANO native tenant authorization and missing-evidence gates
+        run: node --test seo-avengers-2500/tests/test_cano_native_preflight.mjs
+      - name: Native Avengers 2500 full predecessor and suite verification
+        run: bash seo-avengers-2500/scripts/verify.sh
+      - name: Diagnose Avengers verifier worktree changes
+        if: always()
+        run: git status --porcelain=v1 --untracked-files=all
+
+  walle-gauss-axioma-quantum:
+    needs: cano-authorization-and-avengers
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact pull request head into independent clean worktree
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify clean source tree and exact commit identity
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          git status --porcelain=v1 --untracked-files=all
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: WALLE native GAUSS plus AXIOMA and Quantum selftest and integrity proof
+        run: bash walle/adapters/gauss.sh
