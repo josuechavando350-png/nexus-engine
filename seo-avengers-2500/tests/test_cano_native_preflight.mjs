@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -11,6 +11,7 @@ import { runTenantSidecarJob } from '../sidecar/tenant-worker.mjs';
 async function isolated(t) {
   const controlRoot = await mkdtemp(join(tmpdir(), 'cano-native-control-'));
   const evidenceRoot = await mkdtemp(join(tmpdir(), 'cano-native-evidence-'));
+  await mkdir(join(evidenceRoot, 'tenants'), { mode: 0o700 });
   t.after(async () => {
     await rm(controlRoot, { recursive: true, force: true });
     await rm(evidenceRoot, { recursive: true, force: true });
