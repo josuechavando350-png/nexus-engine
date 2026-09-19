@@ -1,0 +1,35 @@
+name: CANO Native Integral Preflight (read-only)
+
+on:
+  pull_request:
+    paths:
+      - 'seo-avengers-2500/tests/test_cano_native_preflight.mjs'
+      - '.github/workflows/cano-native-integral-preflight.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  cano-native-integral-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact pull request head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: CANO native tenant authorization and missing-evidence gates
+        run: node --test seo-avengers-2500/tests/test_cano_native_preflight.mjs
+      - name: Native Avengers 2500 full predecessor and suite verification
+        run: bash seo-avengers-2500/scripts/verify.sh
+      - name: WALLE native GAUSS plus AXIOMA and Quantum selftest and integrity proof
+        run: bash walle/adapters/gauss.sh
