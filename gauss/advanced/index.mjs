@@ -8,6 +8,11 @@ import { solveFinitePomdp } from './pomdp.mjs';
 import { evaluateBinaryIntervention } from './causal.mjs';
 import { solveFiniteBimatrixGame } from './game-theory.mjs';
 import { checkFiniteTransitionSystem } from './model-check.mjs';
+import { inferHiddenMarkov } from './hidden-markov.mjs';
+import { simulateCoinedQuantumWalk } from './quantum-walk.mjs';
+import { filterVectorKalman } from './kalman-vector.mjs';
+import { synchronizeClockIntervals } from './chronos.mjs';
+import { reduceIntervalType2 } from './type2-fuzzy.mjs';
 
 export const GAUSS_ADVANCED_OPERATORS = Object.freeze({
   FORMAL_FINITE_REACHABILITY_V1: checkFiniteTransitionSystem,
@@ -17,6 +22,11 @@ export const GAUSS_ADVANCED_OPERATORS = Object.freeze({
   BAYES_BERNOULLI_STREAM_V1: betaBernoulliBatch,
   TDA_PERSISTENT_H0_V1: persistentHomologyZero,
   POMDP_FINITE_HORIZON_V1: solveFinitePomdp,
+  HIDDEN_MARKOV_BINARY_EXACT_V1: inferHiddenMarkov,
+  QUANTUM_WALK_HADAMARD_CYCLE_V1: simulateCoinedQuantumWalk,
+  KALMAN_VECTOR_LINEAR_GAUSSIAN_V1: filterVectorKalman,
+  CHRONOS_CLOCK_OFFSET_INTERVAL_V1: synchronizeClockIntervals,
+  FUZZY_INTERVAL_TYPE2_KM_V1: reduceIntervalType2,
 });
 
 // Only previous successful task outputs may supply a value. Object-key inspection
