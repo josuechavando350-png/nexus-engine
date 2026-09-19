@@ -1,0 +1,38 @@
+name: WALLE CANO Organic Research Demo
+
+on:
+  pull_request:
+    paths:
+      - 'seo-avengers-2500/demos/cano-organic-research-20260918.json'
+      - 'seo-avengers-2500/tests/test_nexus_commercial_cano_research_demo.mjs'
+      - 'seo-avengers-2500/commercial-demand/organic-cold-start.mjs'
+      - '.github/workflows/walle-cano-organic-research-demo.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  demo-proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+      - name: Assert exact source and pristine checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Use Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Prove Cano research remains planning only
+        run: |
+          set -euo pipefail
+          node --test seo-avengers-2500/tests/test_nexus_commercial_cano_research_demo.mjs
