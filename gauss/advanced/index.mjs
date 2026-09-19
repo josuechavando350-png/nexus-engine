@@ -2,6 +2,9 @@ import { assertArray, assertExactKeys, assertObject, assertToken, deepFreeze, sh
 import { executeGaussProblem } from '../core/problem.mjs';
 import { contributeNexusQuantum } from '../core/quantum-contributor.mjs';
 import { updateBinaryBayes } from './bayes.mjs';
+import { betaBernoulliBatch } from './bayes-stream.mjs';
+import { persistentHomologyZero } from './persistent-h0.mjs';
+import { solveFinitePomdp } from './pomdp.mjs';
 import { evaluateBinaryIntervention } from './causal.mjs';
 import { solveFiniteBimatrixGame } from './game-theory.mjs';
 import { checkFiniteTransitionSystem } from './model-check.mjs';
@@ -11,6 +14,9 @@ export const GAUSS_ADVANCED_OPERATORS = Object.freeze({
   BAYES_BINARY_EXACT_V1: updateBinaryBayes,
   CAUSAL_BINARY_INTERVENTION_V1: evaluateBinaryIntervention,
   GAME_FINITE_NASH_V1: solveFiniteBimatrixGame,
+  BAYES_BERNOULLI_STREAM_V1: betaBernoulliBatch,
+  TDA_PERSISTENT_H0_V1: persistentHomologyZero,
+  POMDP_FINITE_HORIZON_V1: solveFinitePomdp,
 });
 
 // Only previous successful task outputs may supply a value. Object-key inspection
@@ -81,7 +87,7 @@ export async function executeGaussAdvancedProblem(problem) {
     const declaredInputSha256 = sha256Canonical(task.input);
     try {
       const resolved = resolveInput(structuredClone(task.input), sources, dependencies);
-      const output = GAUSS_ADVANCED_OPERATORS[task.operatorId](resolved);
+      const output = await GAUSS_ADVANCED_OPERATORS[task.operatorId](resolved);
       const entry = { taskId: task.taskId, operatorId: task.operatorId, status: 'EXECUTED',
         declaredInputSha256, inputSha256: sha256Canonical(resolved),
         dependencies: [...dependencies].map(([taskId, outputSha256]) => ({ taskId, outputSha256 })),
