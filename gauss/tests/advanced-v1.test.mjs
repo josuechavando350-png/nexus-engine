@@ -95,7 +95,7 @@ test('GAUSS advanced is tied to original GAUSS and required Quantum receipt with
   const report = await executeGaussAdvancedProblem(fixture);
   assert.equal(existingCount, 1000);
   assert.equal(gaussRegistrySummary().implementedLayerCount, 1000);
-  assert.equal(Object.keys(GAUSS_ADVANCED_OPERATORS).length, 12);
+  assert.equal(Object.keys(GAUSS_ADVANCED_OPERATORS).length, 18);
   assert.equal(report.status, 'PASS');
   assert.equal(report.taskResults.length, 5);
   assert(report.taskResults.every((result) => result.status === 'EXECUTED'));
