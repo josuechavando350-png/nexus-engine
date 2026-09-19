@@ -37,14 +37,14 @@ test("milliscale rounding ties distinct strategies; exact GAUSS Pareto does not"
   input.avengersOpportunities[0].monthlySearchVolume = 1;
   input.avengersOpportunities[1].monthlySearchVolume = 2;
   input.planningRates = { evidenceClass: "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
-    organicCapturePpm: 1, contactPpm: 1, qualifiedPpm: 1, signedPpm: 1 };
+    organicCapturePpm: 1, contactPpm: 1000000, qualifiedPpm: 1000000, signedPpm: 1000000 };
   const result = await runOrganicExactTournament(input);
   assert.equal(result.legacyMilliscaleFrontierMatchesExact, false);
   assert.deepEqual(result.gaussExactParetoFrontierIds, ["audit-fraud-existing-page"]);
   assert.deepEqual(result.portfolios[0].exactConditionalSignedContracts, {
-    numerator: "1", denominator: "1000000000000000000000000" });
+    numerator: "1", denominator: "1000000" });
   assert.deepEqual(result.portfolios[1].exactConditionalSignedContracts, {
-    numerator: "1", denominator: "500000000000000000000000" });
+    numerator: "1", denominator: "500000" });
 });
 
 test("no fabricated observed outcomes or unapproved services can bypass the exact wrapper", async () => {
