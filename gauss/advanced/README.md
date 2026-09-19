@@ -33,3 +33,17 @@ node scripts/nexus-gauss-advanced.mjs gauss/fixtures/advanced-v1.json
 ## Still to build / validate
 
 Remaining unimplemented families and advanced variants require individual scope, algorithm specification, explicit assumptions and independent tests. Existing GAUSS/Quantum functions must be inventoried before adding any duplicate. Kernel-level signature mutation / fingerprint evasion is **not** part of this offline scientific module. A "99% universal success" certificate is unsupported; model proof is not real-world forecasting calibration.
+
+## Wave 3 — five additional algorithms for the first 25 proposed technologies
+
+These are genuine but **explicitly scoped implementations**. None is advertised as the complete, unlimited version of its scientific field. They are registered in the same GAUSS advanced runner, support reference-based result flow and retain input/output SHA-256 lineage.
+
+8. `HIDDEN_MARKOV_BINARY_EXACT_V1` (proposal 5, hidden-variable component): exact 2-state/2-symbol HMM forward filtering, backward smoothing, Viterbi decoding and observation likelihood. Complete supplied transition/emission matrices are required; this **does not** infer a causal hidden variable or learn a model from unknown data. Existing Shannon entropy remains in GAUSS core.
+9. `QUANTUM_WALK_HADAMARD_CYCLE_V1` (proposal 6): deterministic unitary discrete-time coined quantum walk on a cycle with real/complex amplitudes, interference, explicit output distribution and norm-drift check. Runs as a classical statevector simulation; no physical QPU or quantum speedup is claimed.
+10. `KALMAN_VECTOR_LINEAR_GAUSSIAN_V1` (proposal 7): genuinely multidimensional linear-Gaussian Kalman filter, covariance propagation, PSD/symmetry validation, Joseph covariance update, missing observations and observation log-likelihood. Higher-order motion models can be supplied as a higher-dimensional state vector; nonlinear/RTS filters are **not** implemented here.
+11. `CHRONOS_CLOCK_OFFSET_INTERVAL_V1` (proposal 13): four-timestamp network-clock offset feasibility intervals and intersection across exchanges, rejecting impossible delays and inconsistent constant-offset models. No claim to solve arbitrary distributed-network synchronization, drift or malicious clocks.
+12. `FUZZY_INTERVAL_TYPE2_KM_V1` (proposal 14): iterative Karnik–Mendel type-reduction endpoints for independently bounded interval type-2 rule firing strengths with singleton consequents; tested against exhaustive vertex calculations. Not a full general type-2 inference language.
+
+`gauss/tests/advanced-wave3.test.mjs` compares exact HMM outputs to independent exhaustive path enumeration, the fuzzy endpoints to exhaustive corner enumeration, a vector Kalman example to analytic reference, quantum normalization, clock offset consistency and negative inputs. It also executes a real SHA-linked chain `binary Bayes → HMM → quantum walk`, `Chronos → vector Kalman` and `Chronos → type-2 fuzzy` inside GAUSS. These chains prove runtime integration, **not** empirical forecasting skill.
+
+**Completion gate:** the requested first group of 25 is **not complete**. No source stubs or invented "implemented" flags were introduced for unbuilt proposals; particularly, zero-knowledge cryptographic proofs, self-healing code, kernel-level network behavior and GPU pipelines require separate precise specifications, suitable environments and testing. Do not interpret 12 registered advanced operators as 12 fully implemented unrestricted technologies.
