@@ -163,9 +163,9 @@ export async function discoverSitePages(site, { fetchPublic = pinnedFetch, signa
     try {
       const xml = await readBounded(await fetchPublic(new URL('/sitemap.xml', base).href, activeSignal), activeSignal);
       const candidates = readXmlLocations(xml, base.origin).filter(url => url !== home && robotsAllows(robots, new URL(url).pathname));
-      return { urls: [home, ...candidates.slice(0, MAX_PAGES_PER_SITE - 1)], limitation: candidates.length > MAX_PAGES_PER_SITE - 1 ? 'sitemap page cap reached' : null };
+      return { urls: [home, ...candidates.slice(0, MAX_PAGES_PER_SITE - 1)], limitation: candidates.length > MAX_PAGES_PER_SITE - 1 ? 'sitemap page cap reached' : null, robotsRules: robots };
     } catch (error) {
-      return { urls: [home], limitation: `sitemap unavailable: ${error instanceof Error ? error.message : 'error'}` };
+      return { urls: [home], limitation: `sitemap unavailable: ${error instanceof Error ? error.message : 'error'}`, robotsRules: robots };
     }
   }, signal);
 }
@@ -180,13 +180,15 @@ function htmlText(html) {
 function firstHtmlMatch(html, pattern) {
   return pattern.exec(html)?.[1]?.replace(/\s+/gu, ' ').trim().slice(0, 2_000) || null;
 }
-export async function captureLivePage(url, observedAt, { scope, signal, fetchPublic = pinnedFetch } = {}) {
+export async function captureLivePage(url, observedAt, { scope, signal, fetchPublic = pinnedFetch, allowedPath } = {}) {
+  if (fetchPublic === pinnedFetch && typeof allowedPath !== 'function') throw new Error('live capture requires a verified robots policy');
   const base = publicUrl(url, 'capture URL');
   const inputUrl = base.href;
   return withDeadline(async activeSignal => {
     let current = inputUrl;
     let html;
     for (let redirects = 0; redirects <= 3; redirects++) {
+      if (allowedPath && !allowedPath(new URL(current).pathname)) throw new Error('robots disallows redirect destination');
       const response = await fetchPublic(current, activeSignal);
       if (response.status >= 300 && response.status <= 399) {
         const location = response.headers.get('location');
@@ -247,6 +249,7 @@ export async function runLiveMarket(request, adapters = {}) {
   const observedAt = clock();
   if (typeof observedAt !== 'string' || new Date(observedAt).toISOString() !== observedAt) throw new Error('clock must return canonical ISO-8601');
   const capture = adapters.capture ?? defaultCapture;
+  if (adapters.discover && !adapters.capture) throw new Error('live capture cannot use injected discovery');
   const discover = adapters.discover ?? ((site) => discoverSitePages(site, { signal: adapters.signal }));
   const sites = [];
   let authority = null;
@@ -254,13 +257,15 @@ export async function runLiveMarket(request, adapters = {}) {
     if (adapters.signal?.aborted) throw adapters.signal.reason ?? new Error('cancelled');
     const discovered = await discover(site);
     if (!discovered || !Array.isArray(discovered.urls) || discovered.urls[0] !== site.url || discovered.urls.length > MAX_PAGES_PER_SITE || new Set(discovered.urls).size !== discovered.urls.length) throw new Error('invalid sitemap discovery result');
+    if (!adapters.capture && typeof discovered.robotsRules !== 'string') throw new Error('live discovery did not provide robots policy');
+    const allowedPath = !adapters.capture ? path => robotsAllows(discovered.robotsRules, path) : undefined;
     const pages = [];
     const failures = [];
     for (const url of discovered.urls) {
       const normalized = publicUrl(url, 'discovered url');
       if (normalized.origin !== new URL(site.url).origin || normalized.href !== url) throw new Error('discovery escaped site origin');
       try {
-        const observation = await capture(url, observedAt, { scope, signal: adapters.signal });
+        const observation = await capture(url, observedAt, { scope, signal: adapters.signal, allowedPath });
         validateObservation(observation, scope, url, observedAt);
         if (adapters.capture && observation.authority !== 'CONTROLLED_TEST') throw new Error('injected capture cannot claim live authority');
         if (authority && observation.authority !== authority) throw new Error('mixed test and live evidence');
