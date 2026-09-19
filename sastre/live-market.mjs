@@ -157,7 +157,7 @@ export async function discoverSitePages(site, { fetchPublic = pinnedFetch, signa
       if (response.status === 404 || response.status === 410) robots = '';
       else robots = await readBounded(response, activeSignal);
     } catch (error) {
-      throw new Error(`robots unavailable: ${error instanceof Error ? error.message : 'error'}`);
+      throw new Error(`robots unavailable: ${error instanceof Error ? error.message : 'error'}`, { cause: error });
     }
     if (!robotsAllows(robots, '/')) throw new Error('robots disallows homepage');
     try {
