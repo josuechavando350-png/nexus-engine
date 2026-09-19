@@ -16,6 +16,11 @@
         "id": "fraude-penal",
         "label": "Defensa penal y representación de víctimas en asuntos de fraude",
         "qualifiedClientDefinition": "Persona con asunto de fraude penal que solicita valoración de defensa o representación de víctima, sujeta a aceptación de Eduardo Cano"
+      },
+      {
+        "id": "fiscal-penal",
+        "label": "Defensa en delitos fiscales y financieros",
+        "qualifiedClientDefinition": "Persona o empresa con un asunto penal fiscal o financiero que solicita valoración para posible representación, sujeta a aceptación de Eduardo Cano"
       }
     ]
   },
@@ -32,6 +37,14 @@
       "id": "hypd-80c27513-9dd4-4087-8601-f7034478a869",
       "sourceUrl": "https://ads.google.com/home/tools/keyword-planner/",
       "capturedAt": "2026-09-18",
+      "country": "Mexico",
+      "language": "Spanish",
+      "evidenceClass": "RESEARCH_ESTIMATE_NOT_OBSERVED_OUTCOME"
+    },
+    {
+      "id": "hypd-119874fb-e7b6-4d13-bf49-fec4fad8ceb8",
+      "sourceUrl": "https://ads.google.com/home/tools/keyword-planner/",
+      "capturedAt": "2026-09-19",
       "country": "Mexico",
       "language": "Spanish",
       "evidenceClass": "RESEARCH_ESTIMATE_NOT_OBSERVED_OUTCOME"
@@ -57,19 +70,44 @@
       "monthlySearchVolume": 10,
       "sourceSnapshotId": "hypd-80c27513-9dd4-4087-8601-f7034478a869",
       "proposedPagePath": "/areas/delitos-patrimoniales-y-fraude"
+    },
+    {
+      "id": "penal-urgency",
+      "offerId": "penal-cdmx",
+      "demandFamilyId": "PENAL_URGENCY_MX_EXACT",
+      "keyword": "abogado penalista urgente",
+      "intent": "DIRECT",
+      "monthlySearchVolume": 20,
+      "sourceSnapshotId": "hypd-119874fb-e7b6-4d13-bf49-fec4fad8ceb8",
+      "proposedPagePath": "/"
+    },
+    {
+      "id": "fiscal-penal-mixed",
+      "offerId": "fiscal-penal",
+      "demandFamilyId": "FISCAL_PENAL_MX_MIXED",
+      "keyword": "abogado fiscal penal",
+      "intent": "MIXED",
+      "monthlySearchVolume": 20,
+      "sourceSnapshotId": "hypd-119874fb-e7b6-4d13-bf49-fec4fad8ceb8",
+      "proposedPagePath": "/areas/delitos-fiscales-y-financieros"
+    },
+    {
+      "id": "bank-fraud-lawyer",
+      "offerId": "fraude-penal",
+      "demandFamilyId": "FRAUDE_BANCARIO_MX_EXACT",
+      "keyword": "abogados fraudes bancarios",
+      "intent": "DIRECT",
+      "monthlySearchVolume": 20,
+      "sourceSnapshotId": "hypd-119874fb-e7b6-4d13-bf49-fec4fad8ceb8",
+      "proposedPagePath": "/areas/delitos-patrimoniales-y-fraude"
     }
   ],
   "avengersPortfolios": [
-    {
-      "id": "audit-home-existing-page",
-      "opportunityIds": ["penal-cdmx-exact"],
-      "estimatedImplementationCostMxn": 0
-    },
-    {
-      "id": "audit-fraud-existing-page",
-      "opportunityIds": ["fraude-lawyer-exact"],
-      "estimatedImplementationCostMxn": 0
-    }
+    { "id": "audit-home-existing-page", "opportunityIds": ["penal-cdmx-exact"], "estimatedImplementationCostMxn": 0 },
+    { "id": "audit-fraud-existing-page", "opportunityIds": ["fraude-lawyer-exact"], "estimatedImplementationCostMxn": 0 },
+    { "id": "audit-urgency-existing-home", "opportunityIds": ["penal-urgency"], "estimatedImplementationCostMxn": 0 },
+    { "id": "audit-fiscal-existing-page", "opportunityIds": ["fiscal-penal-mixed"], "estimatedImplementationCostMxn": 0 },
+    { "id": "audit-bank-fraud-existing-page", "opportunityIds": ["bank-fraud-lawyer"], "estimatedImplementationCostMxn": 0 }
   ],
   "planningRates": null
 }
