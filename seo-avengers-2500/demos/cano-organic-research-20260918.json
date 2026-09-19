@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "tenantId": "cano-penal-demo",
+  "maxImplementationCostMxn": 0,
+  "business": {
+    "siteHostname": "canopenal.com",
+    "country": "Mexico",
+    "language": "Spanish",
+    "approvedOffers": [
+      {
+        "id": "penal-cdmx",
+        "label": "Defensa penal en Ciudad de México",
+        "qualifiedClientDefinition": "Persona con asunto penal en CDMX que solicita valoración para posible representación, sujeta a aceptación de Eduardo Cano"
+      },
+      {
+        "id": "fraude-penal",
+        "label": "Defensa penal y representación de víctimas en asuntos de fraude",
+        "qualifiedClientDefinition": "Persona con asunto de fraude penal que solicita valoración de defensa o representación de víctima, sujeta a aceptación de Eduardo Cano"
+      }
+    ]
+  },
+  "researchSnapshots": [
+    {
+      "id": "hypd-c216c893-541a-4955-b304-70888b5cd8e3",
+      "sourceUrl": "https://ads.google.com/home/tools/keyword-planner/",
+      "capturedAt": "2026-09-18",
+      "country": "Mexico",
+      "language": "Spanish",
+      "evidenceClass": "RESEARCH_ESTIMATE_NOT_OBSERVED_OUTCOME"
+    },
+    {
+      "id": "hypd-80c27513-9dd4-4087-8601-f7034478a869",
+      "sourceUrl": "https://ads.google.com/home/tools/keyword-planner/",
+      "capturedAt": "2026-09-18",
+      "country": "Mexico",
+      "language": "Spanish",
+      "evidenceClass": "RESEARCH_ESTIMATE_NOT_OBSERVED_OUTCOME"
+    }
+  ],
+  "avengersOpportunities": [
+    {
+      "id": "penal-cdmx-exact",
+      "offerId": "penal-cdmx",
+      "demandFamilyId": "PENAL_CDMX_EXACT",
+      "keyword": "abogado penalista cdmx",
+      "intent": "DIRECT",
+      "monthlySearchVolume": 390,
+      "sourceSnapshotId": "hypd-c216c893-541a-4955-b304-70888b5cd8e3",
+      "proposedPagePath": "/"
+    },
+    {
+      "id": "fraude-lawyer-exact",
+      "offerId": "fraude-penal",
+      "demandFamilyId": "FRAUDE_LAWYER_EXACT",
+      "keyword": "abogado fraude",
+      "intent": "DIRECT",
+      "monthlySearchVolume": 10,
+      "sourceSnapshotId": "hypd-80c27513-9dd4-4087-8601-f7034478a869",
+      "proposedPagePath": "/areas/delitos-patrimoniales-y-fraude"
+    }
+  ],
+  "avengersPortfolios": [
+    {
+      "id": "audit-home-existing-page",
+      "opportunityIds": ["penal-cdmx-exact"],
+      "estimatedImplementationCostMxn": 0
+    },
+    {
+      "id": "audit-fraud-existing-page",
+      "opportunityIds": ["fraude-lawyer-exact"],
+      "estimatedImplementationCostMxn": 0
+    }
+  ],
+  "planningRates": null
+}
