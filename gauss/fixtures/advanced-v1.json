@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "problemId": "gauss-advanced-example-v1",
+  "objective": "Demonstrate exact bounded reasoning with existing GAUSS and Quantum linkage",
+  "tasks": [
+    {
+      "taskId": "verify-finite-graph",
+      "operatorId": "FORMAL_FINITE_REACHABILITY_V1",
+      "input": {
+        "states": ["START", "REVIEW", "DONE", "ERROR"],
+        "initial": "START",
+        "transitions": [{"from": "START", "to": "REVIEW"}, {"from": "REVIEW", "to": "DONE"}],
+        "forbiddenStates": ["ERROR"],
+        "targetStates": ["DONE"]
+      }
+    },
+    {
+      "taskId": "update-belief",
+      "operatorId": "BAYES_BINARY_EXACT_V1",
+      "input": {"prior": "1/5", "sensitivity": "9/10", "falsePositiveRate": "1/10", "evidence": "POSITIVE"}
+    },
+    {
+      "taskId": "separate-causal-from-observational",
+      "operatorId": "CAUSAL_BINARY_INTERVENTION_V1",
+      "input": {
+        "nodes": [
+          {"id": "U", "parents": [], "table": [{"when": {}, "probabilityTrue": "1/2"}]},
+          {"id": "X", "parents": ["U"], "table": [{"when": {"U": 0}, "probabilityTrue": "0/1"}, {"when": {"U": 1}, "probabilityTrue": "1/1"}]},
+          {"id": "Y", "parents": ["U"], "table": [{"when": {"U": 0}, "probabilityTrue": "0/1"}, {"when": {"U": 1}, "probabilityTrue": "1/1"}]}
+        ],
+        "treatment": "X",
+        "outcome": "Y"
+      }
+    },
+    {
+      "taskId": "bayes-second-observation",
+      "operatorId": "BAYES_BINARY_EXACT_V1",
+      "input": {
+        "prior": {"$ref": {"taskId": "update-belief", "path": ["posteriorTrue"]}},
+        "sensitivity": "9/10",
+        "falsePositiveRate": "1/10",
+        "evidence": "POSITIVE"
+      }
+    },
+    {
+      "taskId": "nash-matching-pennies",
+      "operatorId": "GAME_FINITE_NASH_V1",
+      "input": {"rowPayoffs": [[1, -1], [-1, 1]], "columnPayoffs": [[-1, 1], [1, -1]]}
+    }
+  ],
+  "gaussTasks": [
+    {"taskId": "brier-existing-gauss", "layerId": "GAUSS.STATS.BRIER.002", "input": {"probabilities": [1, 0], "outcomes": [1, 0]}},
+    {"taskId": "ising-quantum-simulation", "layerId": "GAUSS.PHYSICS.ISING_EXACT_GROUND.003", "input": {"fields": [0, 0], "couplings": [{"i": 0, "j": 1, "value": -1}]}}
+  ]
+}
