@@ -112,7 +112,7 @@ test('GAUSS connects Bayesian outputs into POMDP and carries both existing GAUSS
   fixture.tasks.push({taskId:'topological-structure',operatorId:'TDA_PERSISTENT_H0_V1',input:graph});
   const report = await executeGaussAdvancedProblem(fixture);
   assert.equal(report.status, 'PASS');
-  assert.equal(report.advancedOperatorCount, 12);
+  assert.equal(report.advancedOperatorCount, 18);
   assert.equal(gaussRegistrySummary().implementedLayerCount, 1000);
   assert.equal(report.linkedGaussStatus, 'PASS');
   assert.match(report.linkedQuantumReceiptSha256, /^sha256:[a-f0-9]{64}$/);
