@@ -134,7 +134,7 @@ test('All five new operators execute as connected SHA-linked GAUSS tasks',async(
     {taskId:'fuzzy',operatorId:'FUZZY_INTERVAL_TYPE2_KM_V1',input:{rules:[{centroid:{$ref:{taskId:'clock',path:['compatibleOffset','midpoint']}},lower:1,upper:1},{centroid:0,lower:1,upper:1}]}}
   ]};
   const r=await executeGaussAdvancedProblem(problem);
-  assert.equal(r.status,'PASS');assert.equal(r.advancedOperatorCount,12);
+  assert.equal(r.status,'PASS');assert.equal(r.advancedOperatorCount,18);
   assert.equal(r.taskResults.length,6);
   assert.equal(r.taskResults[1].dependencies[0].taskId,'beta');
   assert.equal(r.taskResults[2].dependencies[0].taskId,'hmm');
