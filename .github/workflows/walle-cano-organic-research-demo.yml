@@ -5,7 +5,9 @@ on:
     paths:
       - 'seo-avengers-2500/demos/cano-organic-research-20260918.json'
       - 'seo-avengers-2500/tests/test_nexus_commercial_cano_research_demo.mjs'
+      - 'seo-avengers-2500/tests/test_nexus_organic_exact_tournament.mjs'
       - 'seo-avengers-2500/commercial-demand/organic-cold-start.mjs'
+      - 'seo-avengers-2500/commercial-demand/organic-exact-tournament.mjs'
       - '.github/workflows/walle-cano-organic-research-demo.yml'
 
 permissions:
@@ -32,7 +34,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Prove Cano research remains planning only
+      - name: Prove CANO evidence boundaries and exact GAUSS Pareto
         run: |
           set -euo pipefail
-          node --test seo-avengers-2500/tests/test_nexus_commercial_cano_research_demo.mjs
+          node --test seo-avengers-2500/tests/test_nexus_commercial_cano_research_demo.mjs seo-avengers-2500/tests/test_nexus_organic_exact_tournament.mjs
