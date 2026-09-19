@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import test from 'node:test';
-import { discoverSitePages, runLiveMarket } from './live-market.mjs';
+import { captureLivePage, discoverSitePages, runLiveMarket } from './live-market.mjs';
 
 const sha = value => createHash('sha256').update(value).digest('hex');
 const scope = { tenantId: 'tenant-a', organizationId: 'org-a', brandId: 'brand-a' };
@@ -61,7 +61,6 @@ test('robots and sitemap discovery stays same-origin and fails closed', async ()
 });
 
 test('live HTML adapter emits different digests when the observed page changes', async () => {
-  const { captureLivePage } = await import('./live-market.mjs');
   const html = value => new Response(`<html><head><title>Title ${value}</title></head><body>Defensa ${value}</body></html>`, { status: 200, headers: { 'content-type': 'text/html' } });
   const a = await captureLivePage('https://site.example/', date, { scope, fetchPublic: async () => html('uno') });
   const b = await captureLivePage('https://site.example/', date, { scope, fetchPublic: async () => html('dos') });
@@ -82,4 +81,16 @@ test('stalled robots response is bounded by abort even after HTTP headers arrive
   const pending = discoverSitePages({ url: 'https://site.example/' }, { fetchPublic, signal: controller.signal });
   setTimeout(() => controller.abort(new Error('cancelled read')), 20);
   await assert.rejects(pending, /robots unavailable: cancelled read/);
+});
+
+test('robots policy rejects same-origin redirects into disallowed paths before requesting them', async () => {
+  const requested = [];
+  const fetchPublic = async url => {
+    requested.push(url);
+    return new Response(null, { status: 302, headers: { location: '/private/case' } });
+  };
+  await assert.rejects(captureLivePage('https://site.example/', date, {
+    scope, fetchPublic, allowedPath: path => !path.startsWith('/private'),
+  }), /robots disallows redirect destination/);
+  assert.deepEqual(requested, ['https://site.example/']);
 });
