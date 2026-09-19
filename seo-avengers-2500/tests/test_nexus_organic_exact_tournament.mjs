@@ -6,12 +6,13 @@ import { runOrganicExactTournament } from "../commercial-demand/organic-exact-to
 const fixtureUrl = new URL("../demos/cano-organic-research-20260918.json", import.meta.url);
 const fixture = async () => JSON.parse(await readFile(fixtureUrl, "utf8"));
 
-test("Cano: exact GAUSS/WALLE Pareto runs with verified input boundaries and no invented contracts", async () => {
+test("Cano: exact GAUSS/WALLE Pareto runs with bounded evidence and no invented contracts", async () => {
   const input = await fixture();
   const result = await runOrganicExactTournament(input);
   assert.equal(result.status, "PLANNING_ONLY_NOT_A_SALES_FORECAST");
   assert.equal(result.precision, "EXACT_INTEGER_AND_REDUCED_RATIONAL_ARITHMETIC_FOR_DECLARED_INPUTS");
   assert.equal(result.interpretation, "DEMAND_ONLY_NO_CLIENT_RANKING");
+  assert.equal(result.portfolios.length, 5);
   assert.equal(result.portfolios[0].exactConditionalSignedContracts, null);
   assert.equal(result.portfolios[0].milestones[0].status, "NOT_ESTIMABLE_WITHOUT_RATES");
   assert.equal(result.cortexExperiment.status, "NOT_ACTIVATED");
@@ -34,6 +35,8 @@ test("GAUSS returns reduced exact fractions; hypothetical conversion rates never
 
 test("milliscale rounding ties distinct strategies; exact GAUSS Pareto does not", async () => {
   const input = await fixture();
+  input.avengersOpportunities = input.avengersOpportunities.slice(0, 2);
+  input.avengersPortfolios = input.avengersPortfolios.slice(0, 2);
   input.avengersOpportunities[0].monthlySearchVolume = 1;
   input.avengersOpportunities[1].monthlySearchVolume = 2;
   input.planningRates = { evidenceClass: "HYPOTHETICAL_PLANNING_ASSUMPTION_NOT_OBSERVED",
