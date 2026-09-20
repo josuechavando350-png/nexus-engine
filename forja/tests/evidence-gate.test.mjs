@@ -11,7 +11,7 @@ const SHA = 'a'.repeat(40);
 const HASH = 'b'.repeat(64);
 const gate = join(resolve(dirname(fileURLToPath(import.meta.url)), '../..'), 'forja/evidence-gate.mjs');
 
-// These are synthetic inputs for negative tests, not claims about Nexus.
+// Synthetic inputs exercise failure behavior; they are not real Nexus evidence.
 function fixture() {
   return {
     revision: SHA,
@@ -25,7 +25,6 @@ function fixture() {
       problemSha256: HASH, gaussReportSha256: HASH, quantumReceiptSha256: HASH },
   };
 }
-
 function rejects(change, code) {
   const input = fixture();
   change(input);
@@ -34,23 +33,23 @@ function rejects(change, code) {
   assert.ok(result.findings.some((entry) => entry.code === code), JSON.stringify(result.findings));
 }
 
-test('consistent synthetic reports are explicitly NOT authenticated certification', () => {
+test('internally consistent synthetic inputs never imply certification', () => {
   const result = evaluateEvidence(fixture());
   assert.equal(result.status, 'CONSISTENT');
   assert.match(result.limitations.join(' '), /not authenticated/);
   assert.match(result.limitations.join(' '), /NOT_AUDITED/);
 });
 test('rejects missing report', () => rejects((data) => { delete data.audit; }, 'INVALID_REPORT'));
-test('rejects wrong tool identity', () => rejects((data) => { data.contract.tool = 'fabricated'; }, 'INVALID_REPORT'));
-test('rejects mixed source revisions', () => rejects((data) => { data.audit.sourceRevision = 'c'.repeat(40); }, 'REVISION_MISMATCH'));
+test('rejects false tool identity', () => rejects((data) => { data.contract.tool = 'fake'; }, 'INVALID_REPORT'));
+test('rejects mixed commits', () => rejects((data) => { data.audit.sourceRevision = 'c'.repeat(40); }, 'REVISION_MISMATCH'));
 test('rejects dirty inventory', () => rejects((data) => { data.inventory.status = 'DIRTY_WORKTREE'; }, 'REPORT_NOT_PASSING'));
-test('rejects a skipped execution', () => rejects((data) => { data.contract.status = 'SKIPPED'; }, 'REPORT_NOT_PASSING'));
-test('rejects invented complete coverage', () => rejects((data) => { data.inventory.counts.notAuditedSourceFiles = 0; }, 'INVALID_INVENTORY_PARTITION'));
-test('rejects an audit that omitted an edge', () => rejects((data) => { data.audit.checked.evidencedLinks = 3; }, 'INVALID_AUDIT_COVERAGE'));
-test('rejects hidden findings even with PASS status', () => rejects((data) => { data.audit.findings.push({ code: 'BROKEN' }); }, 'INVALID_AUDIT_COVERAGE'));
-test('rejects a missing node digest', () => rejects((data) => { data.audit.nodes[0].sha256 = null; }, 'INVALID_AUDIT_COVERAGE'));
-test('rejects missing Quantum execution receipt', () => rejects((data) => { data.contract.checked.quantumSimulations = 0; }, 'INVALID_EXECUTION_PROOF'));
-test('rejects unsupported revision syntax', () => assert.throws(() => evaluateEvidence({ ...fixture(), revision: 'HEAD' }), /full lowercase/));
+test('rejects skipped execution', () => rejects((data) => { data.contract.status = 'SKIPPED'; }, 'REPORT_NOT_PASSING'));
+test('rejects invented inventory coverage', () => rejects((data) => { data.inventory.counts.notAuditedSourceFiles = 0; }, 'INVALID_INVENTORY_PARTITION'));
+test('rejects unevidenced link', () => rejects((data) => { data.audit.checked.evidencedLinks = 3; }, 'INVALID_AUDIT_COVERAGE'));
+test('rejects hidden findings under PASS', () => rejects((data) => { data.audit.findings.push({ code: 'BROKEN' }); }, 'INVALID_AUDIT_COVERAGE'));
+test('rejects missing node hash', () => rejects((data) => { data.audit.nodes[0].sha256 = null; }, 'INVALID_AUDIT_COVERAGE'));
+test('rejects absent Quantum receipt', () => rejects((data) => { data.contract.checked.quantumSimulations = 0; }, 'INVALID_EXECUTION_PROOF'));
+test('rejects malformed revision', () => assert.throws(() => evaluateEvidence({ ...fixture(), revision: 'HEAD' }), /full lowercase/));
 
 function git(root, ...args) {
   const result = spawnSync('git', args, { cwd: root, encoding: 'utf8' });
@@ -58,8 +57,8 @@ function git(root, ...args) {
   return result.stdout.trim();
 }
 async function checkout(t) {
-  const root = await mkdtemp(join(tmpdir(), 'forja-evidence-repo-'));
-  const output = await mkdtemp(join(tmpdir(), 'forja-evidence-files-'));
+  const root = await mkdtemp(join(tmpdir(), 'forja-gate-repo-'));
+  const output = await mkdtemp(join(tmpdir(), 'forja-gate-reports-'));
   t.after(async () => { await rm(root, { recursive: true, force: true }); await rm(output, { recursive: true, force: true }); });
   git(root, 'init', '-q');
   git(root, 'config', 'user.email', 'forja@example.invalid');
@@ -78,27 +77,29 @@ async function checkout(t) {
   } };
 }
 
-test('CLI reads three external files and binds their evidence to Git HEAD', async (t) => {
+test('file gate binds three reports to a real clean Git HEAD', async (t) => {
   const sample = await checkout(t);
   const report = await evaluateFiles({ root: sample.root, ...sample.paths });
   assert.equal(report.status, 'CONSISTENT');
-  const cli = spawnSync(process.execPath, [gate, ...Object.values(sample.paths)], { cwd: sample.root, encoding: 'utf8' });
-  // CLI is deliberately bound to the checkout containing this tool, not an arbitrary --root.
-  assert.equal(cli.status, 2);
-  assert.match(cli.stderr, /REVISION_MISMATCH|FORJA_EVIDENCE_GATE_ERROR/);
+  assert.equal(report.sourceRevision, git(sample.root, 'rev-parse', 'HEAD'));
 });
-test('refuses dirty checkouts', async (t) => {
+test('CLI refuses missing arguments instead of treating them as a passing gate', () => {
+  const result = spawnSync(process.execPath, [gate], { encoding: 'utf8' });
+  assert.equal(result.status, 2);
+  assert.match(result.stderr, /Usage:/);
+});
+test('refuses dirty Git checkout', async (t) => {
   const sample = await checkout(t);
   await writeFile(join(sample.root, 'untracked.txt'), 'untracked');
   await assert.rejects(evaluateFiles({ root: sample.root, ...sample.paths }), /not clean/);
 });
-test('refuses symlinked evidence files', async (t) => {
+test('refuses symlinked report', async (t) => {
   const sample = await checkout(t);
   const alias = join(sample.output, 'alias.json');
   await symlink(sample.paths.auditPath, alias);
   await assert.rejects(evaluateFiles({ root: sample.root, ...sample.paths, auditPath: alias }), /bounded regular file/);
 });
-test('refuses mismatched workflow commit', async (t) => {
+test('refuses workflow SHA mismatch', async (t) => {
   const sample = await checkout(t);
   const prior = process.env.FORJA_SOURCE_SHA;
   process.env.FORJA_SOURCE_SHA = SHA;
