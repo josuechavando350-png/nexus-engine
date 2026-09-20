@@ -31,8 +31,10 @@ test('multiline block comment cannot masquerade as imported module', async (t) =
   assert.ok(report.findings.some((finding) => finding.code === 'DECLARED_LINK_NOT_FOUND'));
 });
 
-test('template text and interpolation cannot masquerade as a static ESM import', async (t) => {
-  const root = await fixture(t, "const example = `text\\nimport './worker.mjs';\\n${1 + 1}`;\n");
+test('real multiline template and interpolation cannot masquerade as an import', async (t) => {
+  const source = ['const example = `text', "import './worker.mjs';", '${1 + 1}`;'].join('\n') + '\n';
+  assert.match(source, /\nimport /);
+  const root = await fixture(t, source);
   const report = await auditNexus({ root });
   assert.equal(report.status, 'FAIL');
   assert.equal(report.checked.evidencedLinks, 0);
