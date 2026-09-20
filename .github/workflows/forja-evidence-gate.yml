@@ -42,10 +42,12 @@ jobs:
         run: |
           set -euo pipefail
           node --check forja/evidence-gate.mjs
+          node --check forja/source-proof.mjs
           node --check forja/tests/evidence-gate.test.mjs
-          node --test forja/tests/evidence-gate.test.mjs
+          node --check forja/tests/source-proof.test.mjs
+          node --test forja/tests/evidence-gate.test.mjs forja/tests/source-proof.test.mjs
 
-      - name: Generate three independent reports and check consistency
+      - name: Generate three real reports and verify consistency and source bytes
         env:
           FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
