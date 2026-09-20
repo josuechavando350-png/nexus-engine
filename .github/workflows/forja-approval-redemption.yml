@@ -1,0 +1,97 @@
+name: AXIOMA FORJA One-Time Approval Redemption
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  one-time-review:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Validate module and adversarial state boundaries
+        run: |
+          set -euo pipefail
+          node --check forja/approval-redemption.mjs
+          node --test forja/tests/approval-redemption.test.mjs
+      - name: Run actual SHA-bound evidence job and redeem signed nonce once
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FORJA_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          STATE_DIR="$(mktemp -d "$RUNNER_TEMP/forja-redeem-XXXXXX")"
+          chmod 700 "$STATE_DIR"
+          export STATE_DIR
+          node forja/job-queue.mjs submit "$STATE_DIR" > "$RUNNER_TEMP/forja-redemption-queued.json"
+          node forja/job-queue.mjs run "$STATE_DIR" > "$RUNNER_TEMP/forja-redemption-run.json"
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { spawnSync } from 'node:child_process';
+          import { generateKeyPairSync, randomUUID } from 'node:crypto';
+          import { readFile, stat, writeFile } from 'node:fs/promises';
+          import { join } from 'node:path';
+          import { challengeForJob, signApproval } from './forja/operator-approval.mjs';
+          import { redeemApproval } from './forja/approval-redemption.mjs';
+          const root = process.cwd(), stateDir = process.env.STATE_DIR;
+          const run = JSON.parse(await readFile(join(process.env.RUNNER_TEMP, 'forja-redemption-run.json'), 'utf8'));
+          assert.equal(run.status, 'SUCCEEDED', run.error);
+          assert.equal(run.sourceRevision, process.env.FORJA_SOURCE_SHA);
+          const id = run.id;
+          const keys = generateKeyPairSync('ed25519');
+          const operatorId = 'ci-ephemeral-reviewer';
+          const privateKey = keys.privateKey.export({ type:'pkcs8', format:'pem' }).toString();
+          const trustedOperators = { [operatorId]: keys.publicKey.export({ type:'spki', format:'pem' }).toString() };
+          const challenge = await challengeForJob({ root, stateDir, id, minutes: 15 });
+          const envelope = signApproval(challenge, operatorId, privateKey);
+          const options = { root, stateDir, id, envelope, trustedOperators };
+          const fake = { ...envelope, signature: signApproval(challenge, operatorId,
+            generateKeyPairSync('ed25519').privateKey.export({ type:'pkcs8', format:'pem' }).toString()).signature };
+          await assert.rejects(redeemApproval({ ...options, envelope: fake }), /signature/);
+          const outcomes = await Promise.allSettled([redeemApproval(options), redeemApproval(options)]);
+          assert.equal(outcomes.filter((item) => item.status === 'fulfilled').length, 1, JSON.stringify(outcomes));
+          assert.equal(outcomes.filter((item) => item.status === 'rejected').length, 1, JSON.stringify(outcomes));
+          const receipt = outcomes.find((item) => item.status === 'fulfilled').value;
+          assert.equal(receipt.status, 'CONSUMED_FOR_MANUAL_REVIEW_ONLY');
+          assert.equal(receipt.sourceRevision, process.env.FORJA_SOURCE_SHA);
+          assert.equal(receipt.jobId, id);
+          await assert.rejects(redeemApproval(options), /already consumed/);
+          const receiptFile = join(stateDir, 'approval-redemptions', `${challenge.nonce}.json`);
+          const stored = JSON.parse(await readFile(receiptFile, 'utf8'));
+          assert.deepEqual(stored, receipt);
+          assert.equal((await stat(receiptFile)).mode & 0o777, 0o600);
+          assert.equal((await stat(join(stateDir, 'approval-redemptions'))).mode & 0o777, 0o700);
+          const signedFile = join(process.env.RUNNER_TEMP, `forja-${randomUUID()}-signed.json`);
+          const trustedFile = join(process.env.RUNNER_TEMP, `forja-${randomUUID()}-trusted.json`);
+          await writeFile(signedFile, JSON.stringify(envelope), {mode:0o600});
+          await writeFile(trustedFile, JSON.stringify({operators: trustedOperators}), {mode:0o600});
+          const replay = spawnSync('node', ['forja/approval-redemption.mjs', root, stateDir, id, signedFile, trustedFile],
+            { cwd: root, encoding:'utf8' });
+          assert.notEqual(replay.status, 0);
+          assert.match(replay.stderr, /already consumed/);
+          await writeFile(join(process.env.RUNNER_TEMP, 'forja-redemption-proof.json'), `${JSON.stringify(receipt)}\n`);
+          NODE
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Upload bounded consumption receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forja-redemption-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/forja-redemption-proof.json
+          if-no-files-found: warn
+          retention-days: 30
