@@ -11,6 +11,7 @@ import "./client-feedback.css";
 import { canoTheme } from "./theme";
 import { site } from "./content";
 import { NexusBehavioralSignals } from "./NexusBehavioralSignals";
+import { GoogleAdsConversions } from "./GoogleAdsConversions";
 
 export const metadata: Metadata = {
   title: {
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body style={themeStyle}>
         <NexusBehavioralSignals />
+        <GoogleAdsConversions />
         <div className="cp-splash" aria-hidden="true">
           <div className="cp-splash-inner">
             <div className="cp-splash-logo-wrap">
