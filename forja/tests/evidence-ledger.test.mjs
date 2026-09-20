@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdtemp, readFile, rm, symlink, writeFile, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { persistLedgerRecord, readLedgerRecord } from '../evidence-ledger.mjs';
 
@@ -99,6 +100,13 @@ test('refuses symlinked ledger records and symlinked store roots', async (t) => 
   const alias = join(storeRoot, 'alias');
   await symlink(storeRoot, alias);
   await assert.rejects(persistLedgerRecord({ storeRoot: alias, ...bundle() }), /real directory/);
+});
+
+test('refuses an external-looking path whose parent symlink points inside the checkout', async (t) => {
+  const temp = await store(t);
+  const repository = fileURLToPath(new URL('../../', import.meta.url));
+  await symlink(repository, join(temp, 'checkout-alias'));
+  await assert.rejects(persistLedgerRecord({ storeRoot: join(temp, 'checkout-alias', 'forja'), ...bundle() }), /resolved store must be outside source tree/);
 });
 
 test('refuses unsafe record identifiers', async (t) => {
