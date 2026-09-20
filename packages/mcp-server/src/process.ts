@@ -29,15 +29,25 @@ export interface ProcessOptions {
 export interface ProcessResult { exitCode: number; stdout: Buffer; stderr: Buffer; durationMs: number }
 
 function signalTree(child: ChildProcess, signal: NodeJS.Signals): void {
-  if (!child.pid || child.exitCode !== null || child.signalCode !== null) return;
+  if (!child.pid) return;
   try {
-    // POSIX detached children lead a new process group. A negative PID signals
-    // the whole group, including descendants. Windows has no equivalent Node API.
+    // A POSIX process group outlives its leader while descendants remain.
+    // Do not skip SIGKILL just because the direct child has already exited.
     if (process.platform !== "win32") process.kill(-child.pid, signal);
-    else child.kill(signal);
+    else if (child.exitCode === null && child.signalCode === null) child.kill(signal);
   } catch (cause) {
     const code = (cause as NodeJS.ErrnoException).code;
     if (code !== "ESRCH") throw cause;
+  }
+}
+
+function groupAlive(pid: number): boolean {
+  try { process.kill(-pid, 0); return true; }
+  catch (cause) {
+    const code = (cause as NodeJS.ErrnoException).code;
+    if (code === "ESRCH") return false;
+    if (code === "EPERM") return true;
+    throw cause;
   }
 }
 
@@ -50,6 +60,7 @@ export class ManagedProcess {
   private readonly stderr: Buffer[] = [];
   private outputBytes = 0;
   private termination: Promise<void> | null = null;
+  private readonly closed: Promise<boolean>;
   private timeout: NodeJS.Timeout | null = null;
   private abortHandler: (() => void) | null = null;
   private rejectTerminationFailure: ((cause: unknown) => void) | null = null;
@@ -75,10 +86,15 @@ export class ManagedProcess {
     // unhandled EventEmitter error before a consumer awaits completion.
     const error = once(this.child, "error").then(([cause]) => { throw cause; });
     const close = once(this.child, "close").then(([code]) => code as number | null);
+    // Subscribe at spawn time. A later terminate() must not miss an early close.
+    this.closed = close.then(() => true, () => true);
     const terminationFailure = new Promise<never>((_, reject) => {
       this.rejectTerminationFailure = reject;
     });
     this.completed = Promise.race([close, error, terminationFailure]).then(async (code) => {
+      // A parent can exit before its grandchildren have received SIGKILL.
+      // Do not report timeout/abort/output-limit completion before cleanup.
+      if (this.stopReason && this.termination) await this.termination;
       await this.closeStreams();
       const out = Buffer.concat(this.stdout); const err = Buffer.concat(this.stderr);
       if (this.stopReason) throw new ProcessExecutionError(`process ${this.stopReason.toLowerCase()}`, this.stopReason, code, out, err);
@@ -106,10 +122,20 @@ export class ManagedProcess {
     if (this.termination) return this.termination;
     this.termination = (async () => {
       signalTree(this.child, "SIGTERM");
-      const closed = once(this.child, "close").then(() => true).catch(() => true);
-      const graceful = await Promise.race([closed, delay(this.options.termGraceMs ?? DEFAULT_TERM_GRACE_MS).then(() => false)]);
-      if (!graceful) signalTree(this.child, "SIGKILL");
-      const reaped = graceful || await Promise.race([closed, delay(this.options.reapDeadlineMs ?? DEFAULT_REAP_DEADLINE_MS).then(() => false)]);
+      const grace = delay(this.options.termGraceMs ?? DEFAULT_TERM_GRACE_MS);
+      const graceful = await Promise.race([this.closed, grace.then(() => false)]);
+      if (process.platform !== "win32" && this.child.pid && groupAlive(this.child.pid)) {
+        // Even if the leader has closed, give descendants the remainder of the
+        // grace period, then kill the surviving process group.
+        await grace;
+        signalTree(this.child, "SIGKILL");
+      } else if (!graceful) {
+        signalTree(this.child, "SIGKILL");
+      }
+      const reaped = graceful || await Promise.race([
+        this.closed,
+        delay(this.options.reapDeadlineMs ?? DEFAULT_REAP_DEADLINE_MS).then(() => false),
+      ]);
       if (!reaped) throw new ProcessExecutionError("process tree was not reaped after SIGKILL", "REAP", this.child.exitCode, Buffer.concat(this.stdout), Buffer.concat(this.stderr));
       await this.closeStreams();
     })();
