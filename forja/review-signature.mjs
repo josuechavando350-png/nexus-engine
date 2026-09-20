@@ -3,7 +3,7 @@
 import { createHash, createPrivateKey, createPublicKey, randomBytes, sign, verify } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { lstat, readFile, writeFile } from 'node:fs/promises';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { dirname, isAbsolute, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readLedgerRecord } from './evidence-ledger.mjs';
 
@@ -60,7 +60,10 @@ export function signReview({ record, privateKeyPem, now = Date.now(), nonce = ra
   check(NONCE.test(nonce), 'invalid review nonce');
   const issuedAt = new Date(now).toISOString();
   const expiresAt = new Date(now + MAX_TTL_MS).toISOString();
-  const { fingerprint } = publicIdentity(createPublicKey(privateKey));
+  // createPublicKey accepts the private KeyObject; pass its serialized public
+  // representation to the verifier/fingerprint helper, not a public KeyObject.
+  const publicPem = createPublicKey(privateKey).export({ type: 'spki', format: 'pem' });
+  const { fingerprint } = publicIdentity(publicPem);
   const fields = {
     schemaVersion: 1, tool: TOOL, action: ACTION, recordId: source.id,
     sourceRevision: source.revision, sourceTree: source.tree,
