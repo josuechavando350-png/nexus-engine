@@ -103,7 +103,11 @@ async function execute(ctx, script, args, timeoutMs = 120000) {
     let stdout = Buffer.alloc(0), stderr = Buffer.alloc(0), failed = null;
     const kill = () => {
       if (!child.pid) return;
-      try { process.kill(-child.pid, 'SIGKILL'); } catch { try { child.kill('SIGKILL'); } catch {} }
+      try { process.kill(-child.pid, 'SIGKILL'); }
+      catch {
+        try { child.kill('SIGKILL'); }
+        catch (error) { if (error.code !== 'ESRCH') failed = error; }
+      }
     };
     const timer = setTimeout(() => { failed = new Error('step timeout'); kill(); }, timeoutMs);
     const take = (key, chunk) => {
