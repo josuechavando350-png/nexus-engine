@@ -52,7 +52,7 @@ test('rejects unsafe payoff values, uneven matrices and non-rectangular input', 
   assert.throws(() => solve([[1, 2], [2, 3]], [[1, 2], [3]]), /rectangular/);
   assert.throws(() => solve([[1, 2], [2, 3]], [[1, 2, 3], [4, 5, 6]]), /dimensions/);
   assert.throws(() => solve([[1, 2], [2, 1_000_001]], [[1, 1], [1, 1]]), /safe integer/);
-  assert.throws(() => solve([[1, , 2], [2, 3, 4]], [[1, 1, 1], [1, 1, 1]]), /dense/);
+  assert.throws(() => solve([Object.assign(Array(3), { 0: 1, 2: 2 }), [2, 3, 4]], [[1, 1, 1], [1, 1, 1]]), /dense/);
 });
 
 test('independent oracle checks all pure equilibria and mixed best-response ties in 200 deterministic random games', () => {
