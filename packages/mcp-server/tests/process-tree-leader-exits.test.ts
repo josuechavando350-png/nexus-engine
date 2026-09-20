@@ -46,10 +46,10 @@ describe.runIf(process.platform === "linux")("process-group leader exit regressi
       }
       expect(alive(grandchildPid), `grandchild PID ${grandchildPid} survived parent exit`).toBe(false);
     } finally {
-      // Even a failing regression must not leak a test process tree.
+      // Best-effort cleanup must preserve the original assertion failure.
       if (groupPid) {
         try { process.kill(-groupPid, "SIGKILL"); }
-        catch (error) { if ((error as NodeJS.ErrnoException).code !== "ESRCH") throw error; }
+        catch { /* The group may already have exited. */ }
       }
       await rm(cwd, { recursive: true, force: true });
     }
