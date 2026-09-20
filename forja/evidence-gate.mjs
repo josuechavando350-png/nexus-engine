@@ -1,13 +1,14 @@
 #!/usr/bin/env node
-// Consistency check for reports generated on one clean checkout. Not a signed attestation.
+// Cross-check evidence on one exact clean checkout. Not a signed attestation.
 import { spawnSync } from 'node:child_process';
 import { lstat, readFile, realpath } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { verifyAuditSource } from './source-proof.mjs';
 
 const SHA = /^[a-f0-9]{40}$/;
-const HASH = /^[a-f0-9]{64}$/; // FORJA source-file byte digests.
-const GAUSS_HASH = /^sha256:[a-f0-9]{64}$/; // GAUSS canonical-json digest contract.
+const HASH = /^[a-f0-9]{64}$/; // FORJA raw source-file bytes.
+const GAUSS_HASH = /^sha256:[a-f0-9]{64}$/; // GAUSS canonical-json digest.
 const TOOLS = Object.freeze({
   inventory: 'AXIOMA_FORJA_GIT_TRACKED_INVENTORY',
   audit: 'AXIOMA_FORJA_EXPLICIT_SUBGRAPH_AUDIT',
@@ -57,7 +58,7 @@ export function evaluateEvidence({ revision, inventory, audit, contract }) {
     scope: 'one Git revision, registered source subset, single GAUSS-to-classical-Quantum probe',
     limitations: [
       'Input JSON is not authenticated and may be forged; consistency is not certification.',
-      'Registered-node hashes are not recomputed from repository bytes by this gate.',
+      'Standalone report evaluation does not recompute checkout bytes; the workflow file gate additionally verifies them.',
       'Unregistered source remains NOT_AUDITED. No production, deployment or self-repair approval.',
     ],
   };
@@ -95,12 +96,30 @@ export async function evaluateFiles({ root, inventoryPath, auditPath, contractPa
   return evaluateEvidence({ revision, inventory, audit, contract });
 }
 
+export async function evaluateVerifiedFiles(options) {
+  const base = await evaluateFiles(options);
+  if (base.status !== 'CONSISTENT') return base;
+  const audit = await readReport(options.auditPath);
+  const bytes = await verifyAuditSource({ root: resolve(options.root), audit });
+  return {
+    ...base,
+    status: bytes.status === 'MATCH' ? 'CONSISTENT' : 'INCONSISTENT',
+    findings: [...base.findings, ...bytes.findings],
+    checkedSourceBytes: bytes.verifiedNodes,
+    limitations: [
+      'Registered source and registry digests are compared with checkout bytes; this is not a signed attestation.',
+      'Input JSON and GitHub runner provenance are not cryptographically authenticated by this check.',
+      'Unregistered source remains NOT_AUDITED. No production, deployment or self-repair approval.',
+    ],
+  };
+}
+
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   try {
     const args = process.argv.slice(2);
     if (args.length !== 3) throw new Error('Usage: node forja/evidence-gate.mjs /abs/inventory.json /abs/audit.json /abs/contract.json');
     const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-    const result = await evaluateFiles({ root, inventoryPath: args[0], auditPath: args[1], contractPath: args[2] });
+    const result = await evaluateVerifiedFiles({ root, inventoryPath: args[0], auditPath: args[1], contractPath: args[2] });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     if (result.status !== 'CONSISTENT') process.exitCode = 1;
   } catch (cause) {
