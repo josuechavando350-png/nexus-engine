@@ -28,20 +28,39 @@ function assertBundle(consistency, walle) {
     HASH.test(walle.reportSha256) && HASH.test(walle.axiomaSha256), 'WALLE evidence does not match verified source');
 }
 
+function assertOutsideProject(project, candidate, message) {
+  const location = relative(project, candidate);
+  requireCondition(location === '..' || location.startsWith(`..${sep}`) || isAbsolute(location), message);
+}
+
 async function safeDirectory(storeRoot) {
   requireCondition(typeof storeRoot === 'string' && isAbsolute(storeRoot), 'store path must be absolute');
   const path = resolve(storeRoot);
   const project = await realpath(ROOT);
-  const lexicalLocation = relative(project, path);
-  requireCondition(lexicalLocation === '..' || lexicalLocation.startsWith(`..${sep}`) || isAbsolute(lexicalLocation), 'store must be outside source tree');
+  assertOutsideProject(project, path, 'store must be outside source tree');
+  // Resolve the closest existing ancestor *before* mkdir. If an external-looking
+  // parent symlink enters the source tree, reject it without creating files there.
+  let existing = path;
+  for (;;) {
+    try {
+      await lstat(existing);
+      break;
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+      const parent = dirname(existing);
+      requireCondition(parent !== existing, 'store ancestor could not be resolved');
+      existing = parent;
+    }
+  }
+  const prospective = resolve(await realpath(existing), relative(existing, path));
+  assertOutsideProject(project, prospective, 'resolved store must be outside source tree');
   await mkdir(path, { recursive: true, mode: 0o700 });
   const stat = await lstat(path);
   requireCondition(stat.isDirectory() && !stat.isSymbolicLink(), 'store must be a real directory');
-  // A symlink in a parent directory could otherwise redirect an apparently
-  // external path into the checkout. Check the resolved destination as well.
+  // This postcondition also catches a changed symlink target during mkdir; it
+  // does not claim protection against hostile concurrent filesystem mutation.
   const actualPath = await realpath(path);
-  const location = relative(project, actualPath);
-  requireCondition(location === '..' || location.startsWith(`..${sep}`) || isAbsolute(location), 'resolved store must be outside source tree');
+  assertOutsideProject(project, actualPath, 'resolved store must be outside source tree');
   return path;
 }
 
