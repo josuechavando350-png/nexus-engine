@@ -1,0 +1,71 @@
+name: AXIOMA FORJA Executed GAUSS-Quantum Contract
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '43 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  executed-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify source and pristine checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            git diff --check "${{ github.event.pull_request.base.sha }}" "$EXPECTED_SHA"
+          fi
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
+      - name: Syntax and real CLI integration and adversarial tests
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          node --check forja/contract-probe.mjs
+          node --check forja/tests/contract-probe.test.mjs
+          node --test forja/tests/contract-probe.test.mjs
+
+      - name: Execute verified GAUSS to classical Quantum consumer contract
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          node forja/contract-probe.mjs > "$RUNNER_TEMP/forja-contract-report.json"
+          cat "$RUNNER_TEMP/forja-contract-report.json"
+
+      - name: Upload contract evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forja-contract-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/forja-contract-report.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Verify repository remained untouched
+        if: always()
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
