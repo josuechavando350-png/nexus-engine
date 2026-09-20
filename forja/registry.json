@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "roots": ["walle-gauss"],
+  "nodes": [
+    { "id": "walle-gauss", "path": "walle/adapters/gauss.sh", "kind": "shell" },
+    { "id": "nexus-gauss-cli", "path": "scripts/nexus-gauss.mjs", "kind": "esm" },
+    { "id": "gauss-core", "path": "gauss/core/problem.mjs", "kind": "esm" },
+    { "id": "gauss-quantum-bridge", "path": "gauss/core/quantum-contributor.mjs", "kind": "esm" },
+    { "id": "nexus-quantum-simulator", "path": "seo-avengers-2500/quantum-runtime/gauss-ising-qaoa-simulator.mjs", "kind": "esm" }
+  ],
+  "links": [
+    { "from": "walle-gauss", "to": "nexus-gauss-cli", "method": "shell-node-exec" },
+    { "from": "nexus-gauss-cli", "to": "gauss-core", "method": "esm-static-import" },
+    { "from": "nexus-gauss-cli", "to": "gauss-quantum-bridge", "method": "esm-static-import" },
+    { "from": "gauss-quantum-bridge", "to": "nexus-quantum-simulator", "method": "esm-static-import" }
+  ]
+}
