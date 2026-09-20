@@ -31,7 +31,9 @@ test('authenticated loopback observer is strictly read-only and never leaks erro
   assert.equal((await call('/v1/jobs', { method: 'POST' })).status, 405);
   const jobs = await call('/v1/jobs');
   assert.equal(jobs.headers.get('cache-control'), 'no-store');
-  assert.deepEqual((await jobs.json()).jobs, [{ id, status: 'QUEUED', sourceRevision: sha }]);
+  const listing = await jobs.json();
+  assert.equal(jobs.status, 200, `Observer response ${jobs.status}: ${JSON.stringify(listing)}`);
+  assert.deepEqual(listing.jobs, [{ id, status: 'QUEUED', sourceRevision: sha }]);
   const detail = await call(`/v1/jobs/${id}`);
   assert.equal(detail.status, 200); assert.equal((await detail.json()).verifiedReports, 0);
   assert.equal((await call('/v1/jobs/../evil')).status, 404);
