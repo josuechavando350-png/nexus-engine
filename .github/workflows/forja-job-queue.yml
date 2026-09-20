@@ -27,8 +27,9 @@ jobs:
         run: |
           set -euo pipefail
           node --check forja/job-queue.mjs
-          node --check forja/tests/job-queue.test.mjs
-          node --test forja/tests/job-queue.test.mjs
+          node --check forja/state-inspector.mjs
+          node --check forja/observe.mjs
+          node --test forja/tests/job-queue.test.mjs forja/tests/state-inspector.test.mjs forja/tests/observe.test.mjs
       - name: Execute actual SHA-bound inventory audit GAUSS Quantum and byte gate via durable queue
         env:
           FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
@@ -49,7 +50,14 @@ jobs:
             const final = JSON.parse(await readFile(process.env.STATE_DIR + "/artifacts/" + result.id + "/consistency.json", "utf8"));
             if (final.status !== "CONSISTENT" || final.sourceRevision !== process.env.FORJA_SOURCE_SHA || final.checkedSourceBytes !== 5) process.exit(1);
           '
-          cp "$STATE_DIR/artifacts/$(node -p "JSON.parse(require('node:fs').readFileSync(process.env.RUNNER_TEMP + '/forja-queued.json','utf8')).id")/consistency.json" "$RUNNER_TEMP/forja-job-consistency.json"
+          JOB_ID="$(node -p "JSON.parse(require('node:fs').readFileSync(process.env.RUNNER_TEMP + '/forja-queued.json','utf8')).id")"
+          node forja/state-inspector.mjs "$PWD" "$STATE_DIR" "$JOB_ID" > "$RUNNER_TEMP/forja-inspection.json"
+          node --input-type=module -e '
+            import { readFile } from "node:fs/promises";
+            const report = JSON.parse(await readFile(process.env.RUNNER_TEMP + "/forja-inspection.json", "utf8"));
+            if (report.status !== "PASS" || report.sourceRevision !== process.env.FORJA_SOURCE_SHA || report.jobStatus !== "SUCCEEDED" || report.verifiedReports !== 4 || report.checkedSourceBytes !== 5) process.exit(1);
+          '
+          cp "$STATE_DIR/artifacts/$JOB_ID/consistency.json" "$RUNNER_TEMP/forja-job-consistency.json"
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
       - name: Upload bounded receipt
         if: always()
@@ -60,5 +68,6 @@ jobs:
             ${{ runner.temp }}/forja-queued.json
             ${{ runner.temp }}/forja-run.json
             ${{ runner.temp }}/forja-job-consistency.json
+            ${{ runner.temp }}/forja-inspection.json
           if-no-files-found: warn
           retention-days: 30
