@@ -1,0 +1,78 @@
+name: AXIOMA FORJA Offline Operator Approval Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  approval-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact source SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Reject forged signatures and invalid approval envelopes
+        run: |
+          set -euo pipefail
+          node --check forja/operator-approval.mjs
+          node --test forja/tests/operator-approval.test.mjs
+      - name: Execute four actual evidence stages and verify offline signing boundary
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FORJA_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          STATE_DIR="$(mktemp -d "$RUNNER_TEMP/forja-approved-XXXXXX")"
+          chmod 700 "$STATE_DIR"
+          export STATE_DIR
+          node forja/job-queue.mjs submit "$STATE_DIR" > "$RUNNER_TEMP/forja-approval-queued.json"
+          node forja/job-queue.mjs run "$STATE_DIR" > "$RUNNER_TEMP/forja-approval-run.json"
+          node --input-type=module -e '
+            import assert from "node:assert/strict";
+            import { generateKeyPairSync } from "node:crypto";
+            import { readFile, writeFile } from "node:fs/promises";
+            import { join } from "node:path";
+            import { challengeForJob, signApproval, verifyApproval } from "./forja/operator-approval.mjs";
+            const root = process.cwd(), stateDir = process.env.STATE_DIR;
+            const run = JSON.parse(await readFile(join(process.env.RUNNER_TEMP, "forja-approval-run.json"), "utf8"));
+            assert.equal(run.status, "SUCCEEDED", run.error);
+            assert.equal(run.sourceRevision, process.env.FORJA_SOURCE_SHA);
+            const opts = {root, stateDir, id: run.id};
+            const keys = generateKeyPairSync("ed25519");
+            const operators = {"ci-ephemeral-reviewer":keys.publicKey.export({type:"spki",format:"pem"}).toString()};
+            const challenge = await challengeForJob(opts);
+            const envelope = signApproval(challenge, "ci-ephemeral-reviewer",keys.privateKey.export({type:"pkcs8",format:"pem"}).toString());
+            const accepted = await verifyApproval({...opts,envelope,trustedOperators:operators});
+            assert.equal(accepted.status, "APPROVED_FOR_MANUAL_REVIEW_ONLY");
+            assert.equal(accepted.sourceRevision,process.env.FORJA_SOURCE_SHA);
+            const path = join(stateDir,"artifacts",run.id,"audit.json"), saved = await readFile(path);
+            try {
+              await writeFile(path,Buffer.concat([saved,Buffer.from(" ")]));
+              await assert.rejects(verifyApproval({...opts,envelope,trustedOperators:operators}));
+            } finally { await writeFile(path,saved); }
+            const again = await verifyApproval({...opts,envelope,trustedOperators:operators});
+            assert.equal(again.evidenceDigest,accepted.evidenceDigest);
+            await writeFile(join(process.env.RUNNER_TEMP,"forja-approval-gate.json"),JSON.stringify(accepted)+"\n");
+          '
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Upload bounded approval verification receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forja-approval-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/forja-approval-gate.json
+          if-no-files-found: warn
+          retention-days: 30
