@@ -24,7 +24,8 @@ async function boundedFile(root, rootReal, path, limit) {
     throw new Error('Not a bounded regular file');
   }
   const actual = await realpath(target);
-  if (!actual.startsWith(`${rootReal}${sep}`)) throw new Error('Path escapes repository');
+  const inside = relative(rootReal, actual);
+  if (inside === '..' || inside.startsWith(`..${sep}`) || isAbsolute(inside)) throw new Error('Path escapes repository');
   const contents = await readFile(target);
   if (contents.length > limit) throw new Error('File exceeds byte limit');
   return contents;
