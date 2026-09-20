@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Single-host one-time MANUAL REVIEW receipt. This is not a deploy authorization.
 import { constants } from 'node:fs';
-import { lstat, mkdir, open, realpath, readFile } from 'node:fs/promises';
+import { lstat, mkdir, open, realpath } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
