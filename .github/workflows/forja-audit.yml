@@ -42,8 +42,16 @@ jobs:
         run: |
           set -euo pipefail
           node --check forja/audit.mjs
+          node --check forja/inventory.mjs
           node --check forja/tests/audit.test.mjs
-          node --test forja/tests/audit.test.mjs
+          node --check forja/tests/inventory.test.mjs
+          node --test forja/tests/*.test.mjs
+
+      - name: Inventory tracked Nexus sources on checked-out commit
+        run: |
+          set -euo pipefail
+          node forja/inventory.mjs > "$RUNNER_TEMP/forja-inventory.json"
+          cat "$RUNNER_TEMP/forja-inventory.json"
 
       - name: Audit registered Nexus links on checked-out commit
         env:
@@ -58,7 +66,9 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: forja-audit-${{ github.run_id }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/forja-report.json
+          path: |
+            ${{ runner.temp }}/forja-inventory.json
+            ${{ runner.temp }}/forja-report.json
           if-no-files-found: warn
           retention-days: 30
 
