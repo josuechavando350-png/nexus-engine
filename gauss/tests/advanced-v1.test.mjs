@@ -4,7 +4,6 @@ import test from 'node:test';
 import { checkFiniteTransitionSystem } from '../advanced/model-check.mjs';
 import { updateBinaryBayes } from '../advanced/bayes.mjs';
 import { evaluateBinaryIntervention } from '../advanced/causal.mjs';
-import { solveFiniteBimatrixGame } from '../advanced/game-theory.mjs';
 import { executeGaussAdvancedProblem, GAUSS_ADVANCED_OPERATORS } from '../advanced/index.mjs';
 import { executeGaussProblem } from '../core/problem.mjs';
 import { contributeNexusQuantum } from '../core/quantum-contributor.mjs';
