@@ -27,7 +27,8 @@ before(async () => {
 function editedReport(change) {
   const report = structuredClone(actual);
   change(report);
-  const { reportSha256: _old, ...unsigned } = report;
+  const unsigned = { ...report };
+  delete unsigned.reportSha256;
   report.reportSha256 = sha256Canonical(unsigned);
   return report;
 }
@@ -57,7 +58,8 @@ test('rejects fabricated GAUSS output even after attacker recomputes hashes and 
     report.taskResults[0].outputSha256 = sha256Canonical(report.taskResults[0].output);
     report.quantumContribution.sourceTaskOutputSha256 = report.taskResults[0].outputSha256;
     report.quantumContribution.simulation.exactGroundStateEnergy += 2;
-    const { receiptSha256: _old, ...unsigned } = report.quantumContribution.simulation;
+    const unsigned = { ...report.quantumContribution.simulation };
+    delete unsigned.receiptSha256;
     report.quantumContribution.simulation.receiptSha256 = sha256Canonical(unsigned);
   });
   assert.throws(() => assertGaussQuantumContract(problem, forged), /independent finite oracle/);
@@ -71,7 +73,8 @@ test('rejects a Quantum receipt that points to another GAUSS task', () => {
 test('rejects a Quantum simulation that falsely declares physical hardware', () => {
   const forged = editedReport((report) => {
     report.quantumContribution.simulation.hardwareExecution = true;
-    const { receiptSha256: _old, ...unsigned } = report.quantumContribution.simulation;
+    const unsigned = { ...report.quantumContribution.simulation };
+    delete unsigned.receiptSha256;
     report.quantumContribution.simulation.receiptSha256 = sha256Canonical(unsigned);
   });
   assert.throws(() => assertGaussQuantumContract(problem, forged), /classical Quantum evidence invalid/);
@@ -85,7 +88,8 @@ test('rejects a GAUSS output that has been modified without updating its digest'
 test('rejects a Quantum receipt for a different Hamiltonian', () => {
   const forged = editedReport((report) => {
     report.quantumContribution.simulation.problemSha256 = `sha256:${'0'.repeat(64)}`;
-    const { receiptSha256: _old, ...unsigned } = report.quantumContribution.simulation;
+    const unsigned = { ...report.quantumContribution.simulation };
+    delete unsigned.receiptSha256;
     report.quantumContribution.simulation.receiptSha256 = sha256Canonical(unsigned);
   });
   assert.throws(() => assertGaussQuantumContract(problem, forged), /Hamiltonian digest mismatch/);
