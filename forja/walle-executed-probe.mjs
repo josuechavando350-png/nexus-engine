@@ -23,8 +23,8 @@ function git(...args) {
   return result.stdout.trim();
 }
 
-// WALLE's genuine adapter emits an auditable final key-value receipt. Ignore
-// regular test output, but reject duplicate/unknown final evidence fields.
+// The existing WALLE verifier and adapter both print the same count. Require
+// identical repeated values; conflicting repeated evidence is never accepted.
 export function assertWalleReceipt(text, { sourceRevision, sourceTree, reportSha256, axiomaSha256 }) {
   check(SHA.test(sourceRevision) && SHA.test(sourceTree), 'invalid source identity');
   check(HASH.test(reportSha256) && HASH.test(axiomaSha256), 'invalid evidence digests');
@@ -34,7 +34,10 @@ export function assertWalleReceipt(text, { sourceRevision, sourceTree, reportSha
     if (!line.startsWith('WALLE_')) continue;
     const matched = /^(WALLE_[A-Z_]+)=(\S+)$/.exec(line);
     check(matched, 'invalid WALLE receipt line');
-    check(!receipt.has(matched[1]), `duplicate WALLE receipt field ${matched[1]}`);
+    if (receipt.has(matched[1])) {
+      check(receipt.get(matched[1]) === matched[2], `conflicting WALLE receipt field ${matched[1]}`);
+      continue;
+    }
     receipt.set(matched[1], matched[2]);
   }
   const expected = new Map([
@@ -78,8 +81,9 @@ export async function runWalleExecutedProbe() {
     const verified = await verifyGaussEvidenceFile(reportPath, FIXTURE, axiomaPath);
     check(verified.certifiedFullCatalog && verified.executedLayerCount === 1000 && HASH.test(verified.axiomaEvidenceSha256), 'WALLE verifier did not validate full fixture');
     const [report, axioma] = await Promise.all([readEvidence(reportPath), readEvidence(axiomaPath)]);
-    check(report.reportSha256 === sha256Canonical(Object.fromEntries(Object.entries(report).filter(([key]) => key !== 'reportSha256'))), 'GAUSS report digest mismatch');
-    check(axioma.evidenceSha256 === verified.axiomaEvidenceSha256 && axioma.gaussReportSha256 === report.reportSha256, 'AXIOMA binding mismatch');
+    const { reportSha256, ...unsigned } = report;
+    check(reportSha256 === sha256Canonical(unsigned), 'GAUSS report digest mismatch');
+    check(axioma.evidenceSha256 === verified.axiomaEvidenceSha256 && axioma.gaussReportSha256 === reportSha256, 'AXIOMA binding mismatch');
     const receipt = assertWalleReceipt(result.stdout, {
       sourceRevision: revision, sourceTree: tree, reportSha256: verified.artifactSha256,
       axiomaSha256: verified.axiomaEvidenceSha256,
@@ -88,8 +92,7 @@ export async function runWalleExecutedProbe() {
       git('status', '--porcelain=v1', '--untracked-files=all') === '', 'source changed during probe');
     return {
       schemaVersion: 1, tool: 'AXIOMA_FORJA_EXECUTED_WALLE_GAUSS_AXIOMA_CHAIN',
-      status: 'PASS', ...receipt, sourceRevision: revision,
-      quantumSimulation: 'CLASSICAL_ONLY',
+      status: 'PASS', ...receipt, quantumSimulation: 'CLASSICAL_ONLY',
       limitations: ['The existing GAUSS and AXIOMA replay verifiers share their in-repository implementations.',
         'No physical QPU, independent oracle for all 1000 operators, production deployment or all-Nexus certification.'],
     };
