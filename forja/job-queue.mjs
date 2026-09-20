@@ -192,8 +192,9 @@ export async function serveQueue(ctx, { pollMs = 1000, signal } = {}) {
     await runNext(ctx);
     if (signal?.aborted) break;
     await new Promise((done) => {
-      const timeout = setTimeout(done, pollMs);
-      signal?.addEventListener('abort', () => { clearTimeout(timeout); done(); }, { once: true });
+      const onAbort = () => { clearTimeout(timeout); done(); };
+      const timeout = setTimeout(() => { signal?.removeEventListener('abort', onAbort); done(); }, pollMs);
+      signal?.addEventListener('abort', onAbort, { once: true });
     });
   }
 }
