@@ -97,5 +97,6 @@ test('rejects extra fields, malformed signatures and unsupported keys', () => {
   assert.throws(() => verifyReview({ record: b.record, envelope: b.envelope,
     trustedPublicKeyPem: b.publicKeyPem, now: NOW }), /signature encoding/);
   const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'P-256' });
-  assert.throws(() => signReview({ record: record(), privateKeyPem: privateKey, now: NOW }), /must be Ed25519/);
+  const ecPem = privateKey.export({ type: 'pkcs8', format: 'pem' });
+  assert.throws(() => signReview({ record: record(), privateKeyPem: ecPem, now: NOW }), /must be Ed25519/);
 });
