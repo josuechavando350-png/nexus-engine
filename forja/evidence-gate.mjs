@@ -6,7 +6,8 @@ import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SHA = /^[a-f0-9]{40}$/;
-const HASH = /^[a-f0-9]{64}$/;
+const HASH = /^[a-f0-9]{64}$/; // FORJA source-file byte digests.
+const GAUSS_HASH = /^sha256:[a-f0-9]{64}$/; // GAUSS canonical-json digest contract.
 const TOOLS = Object.freeze({
   inventory: 'AXIOMA_FORJA_GIT_TRACKED_INVENTORY',
   audit: 'AXIOMA_FORJA_EXPLICIT_SUBGRAPH_AUDIT',
@@ -45,8 +46,8 @@ export function evaluateEvidence({ revision, inventory, audit, contract }) {
       fail('INVALID_AUDIT_COVERAGE', 'only the explicit registered subset is checked');
     }
     if (!proof || proof.gaussTasks !== 1 || proof.quantumSimulations !== 1 ||
-        proof.independentIsingStates !== 8 || !HASH.test(contract.problemSha256) ||
-        !HASH.test(contract.gaussReportSha256) || !HASH.test(contract.quantumReceiptSha256)) {
+        proof.independentIsingStates !== 8 || !GAUSS_HASH.test(contract.problemSha256) ||
+        !GAUSS_HASH.test(contract.gaussReportSha256) || !GAUSS_HASH.test(contract.quantumReceiptSha256)) {
       fail('INVALID_EXECUTION_PROOF', 'single bounded Ising fixture');
     }
   }
