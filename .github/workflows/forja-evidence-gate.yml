@@ -1,0 +1,76 @@
+name: AXIOMA FORJA Cross-Report Evidence Gate
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '11 7 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-consistency:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Check exact Git SHA and pristine tree
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FORJA_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            git diff --check "${{ github.event.pull_request.base.sha }}" "$FORJA_SOURCE_SHA"
+          fi
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
+      - name: Check syntax and adversarial evidence tests
+        run: |
+          set -euo pipefail
+          node --check forja/evidence-gate.mjs
+          node --check forja/tests/evidence-gate.test.mjs
+          node --test forja/tests/evidence-gate.test.mjs
+
+      - name: Generate three independent reports and check consistency
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          node forja/inventory.mjs > "$RUNNER_TEMP/forja-inventory.json"
+          node forja/audit.mjs > "$RUNNER_TEMP/forja-audit.json"
+          node forja/contract-probe.mjs > "$RUNNER_TEMP/forja-contract.json"
+          node forja/evidence-gate.mjs "$RUNNER_TEMP/forja-inventory.json" "$RUNNER_TEMP/forja-audit.json" "$RUNNER_TEMP/forja-contract.json" > "$RUNNER_TEMP/forja-consistency.json"
+          cat "$RUNNER_TEMP/forja-consistency.json"
+
+      - name: Upload evidence from exact checkout
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forja-evidence-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/forja-inventory.json
+            ${{ runner.temp }}/forja-audit.json
+            ${{ runner.temp }}/forja-contract.json
+            ${{ runner.temp }}/forja-consistency.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Confirm checkout remains untouched
+        if: always()
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
