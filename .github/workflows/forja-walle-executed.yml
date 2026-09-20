@@ -1,0 +1,67 @@
+name: AXIOMA FORJA Executed WALLE GAUSS AXIOMA Chain
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  walle-executed-chain:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Check exact source and no untracked changes
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FORJA_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          if [ "$GITHUB_EVENT_NAME" = pull_request ]; then
+            git diff --check "${{ github.event.pull_request.base.sha }}" "$FORJA_SOURCE_SHA"
+          fi
+
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
+      - name: Run receipt adversarial tests
+        run: |
+          set -euo pipefail
+          node --check forja/walle-executed-probe.mjs
+          node --check forja/tests/walle-executed-probe.test.mjs
+          node --test forja/tests/walle-executed-probe.test.mjs
+
+      - name: Execute real WALLE adapter and replay GAUSS AXIOMA evidence
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          node forja/walle-executed-probe.mjs > "$RUNNER_TEMP/forja-walle-receipt.json"
+          cat "$RUNNER_TEMP/forja-walle-receipt.json"
+
+      - name: Upload WALLE contract evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forja-walle-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/forja-walle-receipt.json
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Assert pristine source at end
+        if: always()
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
