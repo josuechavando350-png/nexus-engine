@@ -32,7 +32,7 @@ export function assertWalleReceipt(text, { sourceRevision, sourceTree, reportSha
   const receipt = new Map();
   for (const line of text.split(/\r?\n/)) {
     if (!line.startsWith('WALLE_')) continue;
-    const matched = /^(WALLE_[A-Z_]+)=(\S+)$/.exec(line);
+    const matched = /^(WALLE_[A-Z0-9_]+)=(\S+)$/.exec(line);
     check(matched, 'invalid WALLE receipt line');
     if (receipt.has(matched[1])) {
       check(receipt.get(matched[1]) === matched[2], `conflicting WALLE receipt field ${matched[1]}`);
