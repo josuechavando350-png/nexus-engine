@@ -1,0 +1,43 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import test from 'node:test';
+import { createObserver, startObserver } from '../observe.mjs';
+function git(cwd, ...args) { const r = spawnSync('git', args, { cwd, encoding: 'utf8' }); assert.equal(r.status, 0, r.stderr); return r.stdout.trim(); }
+test('observer requires a substantial token and absolute paths', () => {
+  assert.throws(() => createObserver({ root: '/tmp', stateDir: '/tmp/state', token: 'short' }), /token must/);
+  assert.throws(() => createObserver({ root: '.', stateDir: '/tmp/state', token: 'a'.repeat(32) }), /absolute paths/);
+});
+test('authenticated loopback observer is strictly read-only and never leaks errors', async (t) => {
+  const base = await mkdtemp(join(tmpdir(), 'forja-observe-')); t.after(() => rm(base, { recursive: true, force: true }));
+  const root = join(base, 'repo'), stateDir = join(base, 'state');
+  await mkdir(root); await mkdir(join(stateDir, 'jobs'), { recursive: true, mode: 0o700 });
+  git(root, 'init', '-q'); git(root, 'config', 'user.email', 'test@example.invalid'); git(root, 'config', 'user.name', 'test');
+  await writeFile(join(root, 'README'), 'test\n'); git(root, 'add', '.'); git(root, 'commit', '-qm', 'fixture');
+  const id = randomUUID(), sha = git(root, 'rev-parse', 'HEAD');
+  await writeFile(join(stateDir, 'jobs', `${id}.json`), JSON.stringify({ schemaVersion: 1, id, sourceRevision: sha, status: 'QUEUED', completed: [], error: null }));
+  const token = 'not-a-production-secret-for-ci-only-123456';
+  const server = await startObserver({ root, stateDir, token, port: 0 });
+  t.after(() => new Promise((done) => server.close(done)));
+  assert.equal(server.address().address, '127.0.0.1');
+  const url = `http://127.0.0.1:${server.address().port}`;
+  const call = (route, opts = {}) => fetch(url + route, { ...opts, headers: { authorization: `Bearer ${token}`, ...opts.headers } });
+  assert.equal((await fetch(url + '/v1/jobs')).status, 401);
+  assert.equal((await call('/v1/jobs', { headers: { authorization: 'Bearer wrong' } })).status, 401);
+  assert.equal((await call('/v1/health')).status, 200);
+  assert.equal((await call('/v1/jobs', { method: 'POST' })).status, 405);
+  const jobs = await call('/v1/jobs');
+  assert.equal(jobs.headers.get('cache-control'), 'no-store');
+  assert.deepEqual((await jobs.json()).jobs, [{ id, status: 'QUEUED', sourceRevision: sha }]);
+  const detail = await call(`/v1/jobs/${id}`);
+  assert.equal(detail.status, 200); assert.equal((await detail.json()).verifiedReports, 0);
+  assert.equal((await call('/v1/jobs/../evil')).status, 404);
+  assert.equal((await call('/v1/jobs?arbitrary=1')).status, 404);
+  await writeFile(join(stateDir, 'jobs', `${id}.json`), 'broken');
+  const invalid = await call(`/v1/jobs/${id}`);
+  assert.equal(invalid.status, 503);
+  assert.deepEqual(await invalid.json(), { error: 'state unavailable or evidence invalid' });
+});
