@@ -65,13 +65,55 @@ function validateRegistry(value) {
   return value;
 }
 
+// Mask comments and template literals without changing line boundaries.
+// Preserve ordinary quoted specifiers for the deliberately narrow import check.
+// This is not a full JavaScript parser; interpolation is not trusted as static evidence.
+function maskNonCode(source) {
+  const output = source.split('');
+  let mode = 'code';
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+    if (mode === 'code') {
+      if (char === "'" || char === '"') { mode = char; continue; }
+      if (char === '`') { mode = 'template'; output[i] = ' '; continue; }
+      if (char === '/' && next === '/') {
+        mode = 'line'; output[i] = ' '; output[++i] = ' '; continue;
+      }
+      if (char === '/' && next === '*') {
+        mode = 'block'; output[i] = ' '; output[++i] = ' '; continue;
+      }
+    } else if (mode === "'" || mode === '"') {
+      if (char === '\\') { i += 1; continue; }
+      if (char === mode) mode = 'code';
+    } else if (mode === 'line') {
+      if (char === '\n' || char === '\r') mode = 'code';
+      else output[i] = ' ';
+    } else if (mode === 'block') {
+      if (char === '*' && next === '/') {
+        output[i] = ' '; output[++i] = ' '; mode = 'code';
+      } else if (char !== '\n' && char !== '\r') output[i] = ' ';
+    } else if (mode === 'template') {
+      if (char === '\\') {
+        output[i] = ' ';
+        if (i + 1 < source.length) {
+          i += 1;
+          if (source[i] !== '\n' && source[i] !== '\r') output[i] = ' ';
+        }
+      } else if (char === '`') { output[i] = ' '; mode = 'code'; }
+      else if (char !== '\n' && char !== '\r') output[i] = ' ';
+    }
+  }
+  return output.join('');
+}
+
 function referencedPaths(source, fromPath, method) {
   if (method === 'shell-node-exec') {
     // Recognizes direct repository-relative `node path` invocations only; does not execute shell.
     return [...source.matchAll(/(?:^|\n)\s*node\s+([^\s"';&|<>]+\.mjs)(?=\s|$)/g)].map((match) => match[1]);
   }
   // Restricted to static, single-line ESM imports/exports; dynamic imports are not evidence.
-  return [...source.matchAll(/^\s*(?:import|export)\s+(?:[^;\n]*?\sfrom\s*)?["']([^"']+)["']\s*;?\s*$/gm)]
+  return [...maskNonCode(source).matchAll(/^\s*(?:import|export)\s+(?:[^;\n]*?\sfrom\s*)?["']([^"']+)["']\s*;?\s*$/gm)]
     .map((match) => match[1])
     .filter((specifier) => specifier.startsWith('.'))
     .map((specifier) => posix.normalize(posix.join(posix.dirname(fromPath), specifier)));
