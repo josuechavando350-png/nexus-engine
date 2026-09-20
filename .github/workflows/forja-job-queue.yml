@@ -1,0 +1,64 @@
+name: AXIOMA FORJA Durable Evidence Job Queue
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  durable-evidence-job:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact SHA
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Unit and failure-path tests
+        run: |
+          set -euo pipefail
+          node --check forja/job-queue.mjs
+          node --check forja/tests/job-queue.test.mjs
+          node --test forja/tests/job-queue.test.mjs
+      - name: Execute actual SHA-bound inventory audit GAUSS Quantum and byte gate via durable queue
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FORJA_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          STATE_DIR="$(mktemp -d "$RUNNER_TEMP/forja-job-XXXXXX")"
+          chmod 700 "$STATE_DIR"
+          export STATE_DIR
+          node forja/job-queue.mjs submit "$STATE_DIR" > "$RUNNER_TEMP/forja-queued.json"
+          node forja/job-queue.mjs run "$STATE_DIR" > "$RUNNER_TEMP/forja-run.json"
+          node --input-type=module -e '
+            import { readFile } from "node:fs/promises";
+            const submitted = JSON.parse(await readFile(process.env.RUNNER_TEMP + "/forja-queued.json", "utf8"));
+            const result = JSON.parse(await readFile(process.env.RUNNER_TEMP + "/forja-run.json", "utf8"));
+            if (result.status !== "SUCCEEDED" || result.sourceRevision !== process.env.FORJA_SOURCE_SHA || submitted.id !== result.id || result.completed.join(",") !== "inventory,audit,contract,consistency") process.exit(1);
+            const final = JSON.parse(await readFile(process.env.STATE_DIR + "/artifacts/" + result.id + "/consistency.json", "utf8"));
+            if (final.status !== "CONSISTENT" || final.sourceRevision !== process.env.FORJA_SOURCE_SHA || final.checkedSourceBytes !== 5) process.exit(1);
+          '
+          cp "$STATE_DIR/artifacts/$(node -p "JSON.parse(require('node:fs').readFileSync(process.env.RUNNER_TEMP + '/forja-queued.json','utf8')).id")/consistency.json" "$RUNNER_TEMP/forja-job-consistency.json"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Upload bounded receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forja-durable-job-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            ${{ runner.temp }}/forja-queued.json
+            ${{ runner.temp }}/forja-run.json
+            ${{ runner.temp }}/forja-job-consistency.json
+          if-no-files-found: warn
+          retention-days: 30
