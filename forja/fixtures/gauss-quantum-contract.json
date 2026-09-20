@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "problemId": "forja-gauss-quantum-interop-v1",
+  "objective": "Execute the real GAUSS Ising consumer and verify its classical Quantum receipt against a separate finite oracle.",
+  "tasks": [
+    {
+      "taskId": "ising-contract",
+      "layerId": "GAUSS.PHYSICS.ISING_EXACT_GROUND.003",
+      "input": {
+        "fields": [0.5, -0.25, 0.75],
+        "couplings": [
+          { "i": 0, "j": 1, "value": -1 },
+          { "i": 1, "j": 2, "value": 0.5 }
+        ],
+        "offset": 0.1
+      }
+    }
+  ]
+}
