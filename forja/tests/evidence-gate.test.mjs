@@ -9,6 +9,7 @@ import { evaluateEvidence, evaluateFiles } from '../evidence-gate.mjs';
 
 const SHA = 'a'.repeat(40);
 const HASH = 'b'.repeat(64);
+const GAUSS_HASH = `sha256:${HASH}`;
 const gate = join(resolve(dirname(fileURLToPath(import.meta.url)), '../..'), 'forja/evidence-gate.mjs');
 
 // Synthetic inputs exercise failure behavior; they are not real Nexus evidence.
@@ -22,7 +23,7 @@ function fixture() {
       findings: [], nodes: Array.from({ length: 5 }, (_, i) => ({ path: `src/${i}.mjs`, sha256: HASH })) },
     contract: { schemaVersion: 1, tool: 'AXIOMA_FORJA_EXECUTED_GAUSS_QUANTUM_CONTRACT', sourceRevision: SHA,
       status: 'PASS', checked: { gaussTasks: 1, quantumSimulations: 1, independentIsingStates: 8 },
-      problemSha256: HASH, gaussReportSha256: HASH, quantumReceiptSha256: HASH },
+      problemSha256: GAUSS_HASH, gaussReportSha256: GAUSS_HASH, quantumReceiptSha256: GAUSS_HASH },
   };
 }
 function rejects(change, code) {
@@ -49,6 +50,7 @@ test('rejects unevidenced link', () => rejects((data) => { data.audit.checked.ev
 test('rejects hidden findings under PASS', () => rejects((data) => { data.audit.findings.push({ code: 'BROKEN' }); }, 'INVALID_AUDIT_COVERAGE'));
 test('rejects missing node hash', () => rejects((data) => { data.audit.nodes[0].sha256 = null; }, 'INVALID_AUDIT_COVERAGE'));
 test('rejects absent Quantum receipt', () => rejects((data) => { data.contract.checked.quantumSimulations = 0; }, 'INVALID_EXECUTION_PROOF'));
+test('rejects unprefixed GAUSS digest', () => rejects((data) => { data.contract.problemSha256 = HASH; }, 'INVALID_EXECUTION_PROOF'));
 test('rejects malformed revision', () => assert.throws(() => evaluateEvidence({ ...fixture(), revision: 'HEAD' }), /full lowercase/));
 
 function git(root, ...args) {
