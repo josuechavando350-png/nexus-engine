@@ -7,7 +7,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inspectJob } from './state-inspector.mjs';
 
-const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 function demand(ok, text) { if (!ok) throw new Error(`FORJA_OBSERVER: ${text}`); }
 function tokenMatches(given, expected) {
   if (typeof given !== 'string' || !given.startsWith('Bearer ')) return false;
@@ -53,8 +53,7 @@ export function createObserver({ root, stateDir, token }) {
         reply(res, 200, result); return;
       }
       reply(res, 404, { error: 'not found' });
-    } catch (error) {
-      if (process.env.CI === 'true') console.error('FORJA_OBSERVER_CI_DIAGNOSTIC', error?.message);
+    } catch {
       // No filesystem paths, stack traces, or evidence contents cross the HTTP boundary.
       reply(res, 503, { error: 'state unavailable or evidence invalid' });
     } finally { busy--; }
