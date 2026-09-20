@@ -32,11 +32,16 @@ async function safeDirectory(storeRoot) {
   requireCondition(typeof storeRoot === 'string' && isAbsolute(storeRoot), 'store path must be absolute');
   const path = resolve(storeRoot);
   const project = await realpath(ROOT);
-  const location = relative(project, path);
-  requireCondition(location === '..' || location.startsWith(`..${sep}`) || isAbsolute(location), 'store must be outside source tree');
+  const lexicalLocation = relative(project, path);
+  requireCondition(lexicalLocation === '..' || lexicalLocation.startsWith(`..${sep}`) || isAbsolute(lexicalLocation), 'store must be outside source tree');
   await mkdir(path, { recursive: true, mode: 0o700 });
   const stat = await lstat(path);
   requireCondition(stat.isDirectory() && !stat.isSymbolicLink(), 'store must be a real directory');
+  // A symlink in a parent directory could otherwise redirect an apparently
+  // external path into the checkout. Check the resolved destination as well.
+  const actualPath = await realpath(path);
+  const location = relative(project, actualPath);
+  requireCondition(location === '..' || location.startsWith(`..${sep}`) || isAbsolute(location), 'resolved store must be outside source tree');
   return path;
 }
 
