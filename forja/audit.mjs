@@ -90,7 +90,7 @@ function maskNonCode(source) {
       if (char === '\u2028' || char === '\u2029') output[i] = ' ';
       if (char === mode) mode = 'code';
     } else if (mode === 'line') {
-      if (char === '\n' || char === '\r') mode = 'code';
+      if (char === '\n' || char === '\r' || char === '\u2028' || char === '\u2029') mode = 'code';
       else output[i] = ' ';
     } else if (mode === 'block') {
       if (char === '*' && next === '/') {
