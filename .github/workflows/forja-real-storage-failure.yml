@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Fill a real 1 MiB Linux filesystem during backup and restore
+      - name: Fill a real 1 MiB Linux filesystem during backup restore and active work
         env:
           SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
@@ -40,4 +40,5 @@ jobs:
           node --check forja/state-backup.mjs
           node --check forja/tests/state-backup-real-enospc.test.mjs
           node --test forja/tests/state-backup-real-enospc.test.mjs
+          node --test forja/tests/job-queue-storage-failure.test.mjs
           test -z "$(git status --porcelain=v1 --untracked-files=all)"

@@ -29,9 +29,10 @@ jobs:
           node --check forja/job-queue.mjs
           node --check forja/tests/job-queue-real-crash.test.mjs
           node --check forja/tests/job-queue-stage-crashes.test.mjs
+          node --check forja/tests/job-queue-storage-failure.test.mjs
           node --check forja/state-inspector.mjs
           node --check forja/observe.mjs
-          node --test forja/tests/job-queue.test.mjs forja/tests/job-queue-real-crash.test.mjs forja/tests/job-queue-stage-crashes.test.mjs forja/tests/state-inspector.test.mjs forja/tests/observe.test.mjs
+          node --test forja/tests/job-queue.test.mjs forja/tests/job-queue-real-crash.test.mjs forja/tests/job-queue-stage-crashes.test.mjs forja/tests/job-queue-storage-failure.test.mjs forja/tests/state-inspector.test.mjs forja/tests/observe.test.mjs
       - name: Execute actual SHA-bound inventory audit GAUSS Quantum and byte gate via durable queue
         env:
           FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}

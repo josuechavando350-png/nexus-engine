@@ -15,6 +15,27 @@ node forja/job-queue.mjs serve /var/lib/forja/evidence
 
 ## Crash recovery is a manual safety boundary
 
+If the worker cannot persist a terminal job record (for example, the filesystem
+returns `ENOSPC`), it exits with an error and **retains the worker lock and its
+owner/process-group record**. It does not continue to another queued job. The
+last durable record can still say `RUNNING`, even if a stage already finished;
+never infer success or retry from that state. Stop the supervisor and all writers,
+restore storage capacity without deleting job/evidence/approval records, verify
+the worker and its subprocesses exited, then use the explicit recovery procedure
+below. Recovery marks the unfinished job `INTERRUPTED`; pending jobs can run only
+after recovery succeeds. A stage failure whose `FAILED` state is successfully
+persisted still releases the lock normally. Other unexpected queue errors also
+retain the lock; missing or corrupt owner metadata requires investigation.
+
+The storage regression uses an actual committed inventory/audit/GAUSS/Quantum
+checkout with a scheduling barrier around inventory, a real filesystem write
+failure, and a subsequent real four-stage job. Dedicated Linux CI additionally
+fills a bounded 1 MiB tmpfs to provoke kernel `ENOSPC` while inventory is active.
+It checks retained ownership, blocked workers, explicit recovery, no replay and
+the subsequent job's five source-byte proofs. This covers active inventory
+storage failure, not every possible write boundary, hardware power loss or
+production-host recovery.
+
 A worker owns an exclusive on-disk lock. It durably records the process-group ID of each detached step when it starts. If the parent is killed, its detached step or a grandchild **may still be running**. An absent parent PID is never sufficient proof that the children exited; there is also a small spawn-to-fsync window where no child group has yet been recorded. After a crash, a RUNNING job is **not retried automatically**, and `recover` without an explicit confirmation refuses to clear the lock.
 
 On the **same Linux host**, stop the supervisor so it cannot restart FORJA, identify the former worker and any surviving detached child/grandchild processes (including any recorded `activeGroupPid` in the private `worker.lock/owner.json`), and verify that all of them have exited. Inspect the actual process tree and process groups, not just the parent's PID. Do not claim clearance when any process identity is ambiguous, when metadata is missing, or after a reboot without understanding which processes may have persisted. Only after the operator has genuinely checked, run:
