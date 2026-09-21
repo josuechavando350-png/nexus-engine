@@ -23,7 +23,7 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Prove fail-closed pinned unit generation and systemd syntax
+      - name: Prove fail-closed pinned unit generation, real worker lifecycle and systemd syntax
         env:
           FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
@@ -32,7 +32,8 @@ jobs:
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
           command -v systemd-analyze
           node --check forja/linux-service.mjs
-          node --test forja/tests/linux-service.test.mjs
+          node --check forja/tests/linux-service-lifecycle.test.mjs
+          node --test forja/tests/linux-service.test.mjs forja/tests/linux-service-lifecycle.test.mjs
           STATE="$(mktemp -d "$RUNNER_TEMP/forja-service-XXXXXX")"
           chmod 700 "$STATE"
           node forja/linux-service.mjs render "$PWD" "$STATE" > "$RUNNER_TEMP/forja-user.service"
