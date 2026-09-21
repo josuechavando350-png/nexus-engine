@@ -126,6 +126,7 @@ export async function createSnapshot(stateDir, backupRoot) {
 export async function verifySnapshot(backupRoot, id) {
   const backup = await privateDir(backupRoot);
   demand(UUID.test(id), 'invalid snapshot id');
+  await privateDir(join(backup, 'snapshots'));
   const { manifestSha256, records } = await readSnapshot(join(backup, 'snapshots', id));
   return { id, count: records.length, bytes: records.reduce((sum, x) => sum+x.data.length, 0),
     manifestSha256 };
@@ -133,6 +134,7 @@ export async function verifySnapshot(backupRoot, id) {
 export async function restoreSnapshot(backupRoot, id, targetDir, expectedManifestSha256 = null) {
   const backup = await privateDir(backupRoot);
   demand(UUID.test(id) && typeof targetDir === 'string' && isAbsolute(targetDir), 'invalid restore inputs');
+  await privateDir(join(backup, 'snapshots'));
   const requested = resolve(targetDir), parent = await privateDir(dirname(requested));
   const target = join(parent, basename(requested));
   demand(outside(backup, target) && outside(target, backup), 'restore destination overlaps backup');
