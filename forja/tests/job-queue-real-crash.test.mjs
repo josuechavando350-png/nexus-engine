@@ -80,7 +80,12 @@ test('actual SIGKILL leaves an orphan stage; recovery and replay fail closed whi
       /detached subprocess group still alive/);
     assert.equal((await getJob(ctx, job.id)).status, 'RUNNING');
     await assert.rejects(runNext(ctx), { code: 'EEXIST' });
-    assert.equal((await getJob(ctx, job.id)).completed.length, 0);
+    assert.deepEqual((await getJob(ctx, job.id)).completed, []);
+    await assert.rejects(readFile(join(ctx.artifacts, job.id, 'inventory.json')),
+      { code: 'ENOENT' });
+    const stillLocked = JSON.parse(await readFile(join(ctx.lock, 'owner.json'), 'utf8'));
+    assert.equal(stillLocked.token, owner.token, 'unsafe recovery must not replace lock ownership');
+    assert.equal(stillLocked.activeGroupPid, groupPid, 'orphan identity must remain inspectable');
     // The cleanup hook kills the test-only orphan; the production recovery
     // command itself never kills children or clears this unsafe lock.
   });
