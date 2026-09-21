@@ -22,7 +22,8 @@ async function boundedFile(root, path, limit) {
     throw new Error('Symlinked repository parent directory');
   }
   const stat = await lstat(file);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 1 || stat.size > limit) {
+  // A second hard-link name has the same inode, not a second independent file.
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || stat.size < 1 || stat.size > limit) {
     throw new Error('Not a bounded regular file');
   }
   const realFile = await realpath(file);
