@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { chmod, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, mkdtemp, readFile, rename, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -47,3 +47,33 @@ test('signed restore cannot switch manifest between verification and recovery', 
   await assert.rejects(restoreSnapshot(f.backup,saved.id,join(f.root,'changed'),saved.manifestSha256),/authenticated manifest changed/);
   await assert.rejects(lstat(join(f.root,'changed')),/ENOENT/);
 });
+
+for (const unsafe of ['symlink', 'public']) {
+  test(`verification and restore reject a ${unsafe} intermediate snapshots directory`, async t => {
+    const f = await fixture(t), saved = await createSnapshot(f.state, f.backup);
+    const snapshots = join(f.backup, 'snapshots');
+    const moved = join(f.root, 'outside-snapshots');
+    const target = join(f.root, 'restored');
+    if (unsafe === 'symlink') {
+      await rename(snapshots, moved);
+      await symlink(moved, snapshots, 'dir');
+    } else {
+      await chmod(snapshots, 0o755);
+    }
+    // The final UUID directory and its exact manifest/data bytes remain valid.
+    // An authenticated manifest must not authorize an unsafe parent path.
+    await assert.rejects(verifySnapshot(f.backup, saved.id), /directory must be private and owned/);
+    await assert.rejects(restoreSnapshot(f.backup, saved.id, target, saved.manifestSha256),
+      /directory must be private and owned/);
+    await assert.rejects(lstat(target), { code: 'ENOENT' });
+    if (unsafe === 'symlink') {
+      await rm(snapshots);
+      await rename(moved, snapshots);
+    } else {
+      await chmod(snapshots, 0o700);
+    }
+    assert.equal((await verifySnapshot(f.backup, saved.id)).manifestSha256, saved.manifestSha256);
+    assert.equal((await restoreSnapshot(f.backup, saved.id, target, saved.manifestSha256)).restoredFiles, 1);
+    assert.equal(await readFile(join(target, 'jobs', `${f.id}.json`), 'utf8'), '{}\n');
+  });
+}
