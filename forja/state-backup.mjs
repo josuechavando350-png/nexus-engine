@@ -130,7 +130,8 @@ export async function verifySnapshot(backupRoot, id) {
 export async function restoreSnapshot(backupRoot, id, targetDir) {
   const backup = await privateDir(backupRoot);
   demand(UUID.test(id) && typeof targetDir === 'string' && isAbsolute(targetDir), 'invalid restore inputs');
-  const target = resolve(targetDir), parent = await privateDir(dirname(target));
+  const requested = resolve(targetDir), parent = await privateDir(dirname(requested));
+  const target = join(parent, basename(requested));
   demand(outside(backup, target) && outside(target, backup), 'restore destination overlaps backup');
   await lstat(target).then(() => demand(false, 'restore target already exists'), (e) => { if (e.code !== 'ENOENT') throw e; });
   const { records } = await readSnapshot(join(backup, 'snapshots', id));
