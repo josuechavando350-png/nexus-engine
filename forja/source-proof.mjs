@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
-import { isAbsolute, posix, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, posix, relative, resolve, sep } from 'node:path';
 
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const VALID_DIGEST = /^[a-f0-9]{64}$/;
@@ -14,12 +14,17 @@ function safePath(path) {
 
 async function boundedFile(root, path, limit) {
   if (!safePath(path)) throw new Error('Unsafe repository-relative path');
-  const file = resolve(root, path);
+  const realRoot = await realpath(root);
+  const file = resolve(realRoot, path);
+  // A symlink in a parent directory can alias one source as two distinct
+  // registry paths even when the final file itself is not a symlink.
+  if (await realpath(dirname(file)) !== dirname(file)) {
+    throw new Error('Symlinked repository parent directory');
+  }
   const stat = await lstat(file);
   if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 1 || stat.size > limit) {
     throw new Error('Not a bounded regular file');
   }
-  const realRoot = await realpath(root);
   const realFile = await realpath(file);
   const inside = relative(realRoot, realFile);
   if (inside === '..' || inside.startsWith(`..${sep}`) || isAbsolute(inside)) {
