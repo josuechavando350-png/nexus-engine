@@ -80,3 +80,24 @@ test('reject corrupted manifest and partial snapshot without publishing output',
   await assert.rejects(restoreSnapshot(f.backup,id,join(f.root,'restored')),/file set mismatch|invalid manifest entry/);
   assert.deepEqual((await readdir(f.root)).sort(),['backups','state']);
 });
+
+test('unexpected empty nested directories in state and snapshots cannot be silently dropped', async (t) => {
+  const f = await fixture(t);
+  for (const prefix of ['jobs', 'approval-redemptions', `artifacts/${Object.keys(f.payloads)[0].split('/')[1].replace('.json','')}`]) {
+    const rogue = join(f.state, prefix, 'unexpected-empty');
+    await mkdir(rogue, {mode:0o700});
+    await assert.rejects(createSnapshot(f.state, f.backup), /unexpected or public directory/);
+    await rm(rogue, {recursive:true});
+  }
+  const {id} = await createSnapshot(f.state, f.backup);
+  const rogue = join(f.backup, 'snapshots', id, 'jobs', 'unexpected-empty');
+  await mkdir(rogue, {mode:0o700});
+  await assert.rejects(verifySnapshot(f.backup, id), /unexpected or public directory/);
+  await assert.rejects(restoreSnapshot(f.backup, id, join(f.root, 'restored')), /unexpected or public directory/);
+});
+test('restore rejects mismatched expected authenticated manifest before creating target',async (t) => {
+  const f = await fixture(t); const saved = await createSnapshot(f.state, f.backup);
+  await assert.rejects(restoreSnapshot(f.backup, saved.id, join(f.root, 'restored'), '0'.repeat(64)), /authenticated manifest changed/);
+  await assert.rejects(lstat(join(f.root, 'restored')), /ENOENT/);
+  assert.equal((await restoreSnapshot(f.backup, saved.id, join(f.root, 'restored'), saved.manifestSha256)).restoredFiles, 3);
+});
