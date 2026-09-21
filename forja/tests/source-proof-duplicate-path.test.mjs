@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { link, mkdir, mkdtemp, rm, unlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -57,4 +57,21 @@ test('symlinked parent cannot alias a registered source under another path', asy
   const result = await verifyAuditSource(value);
   assert.equal(result.status, 'MISMATCH');
   assert.ok(result.findings.some(({ code }) => code === 'SOURCE_UNAVAILABLE'));
+});
+
+test('hard-linked paths cannot count one inode twice as independent source evidence', async (t) => {
+  const value = await fixture(t, false);
+  await unlink(join(value.root, 'src/two.mjs'));
+  await link(join(value.root, 'src/one.mjs'), join(value.root, 'src/two.mjs'));
+  value.audit.nodes[1].sha256 = value.audit.nodes[0].sha256;
+  const result = await verifyAuditSource(value);
+  assert.equal(result.status, 'MISMATCH');
+  assert.ok(result.findings.some(({ code }) => code === 'SOURCE_UNAVAILABLE'));
+});
+
+test('independent files with identical bytes are still independently verified', async (t) => {
+  const value = await fixture(t, false);
+  await writeFile(join(value.root, 'src/two.mjs'), 'export const one = 1;\n');
+  value.audit.nodes[1].sha256 = value.audit.nodes[0].sha256;
+  assert.deepEqual(await verifyAuditSource(value), { status: 'MATCH', verifiedNodes: 2, findings: [] });
 });
