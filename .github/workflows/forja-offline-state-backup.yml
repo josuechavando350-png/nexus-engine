@@ -23,12 +23,13 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
-      - name: Validate syntax and adversarial restore tests
+      - name: Validate syntax and adversarial restore and signature tests
         run: |
           set -euo pipefail
           node --check forja/state-backup.mjs
-          node --test forja/tests/state-backup.test.mjs
-      - name: Prove real job and consumed approval survive offline restore without replay
+          node --check forja/signed-backup.mjs
+          node --test forja/tests/state-backup.test.mjs forja/tests/state-backup-hardening.test.mjs forja/tests/signed-backup.test.mjs
+      - name: Prove real job and consumed approval survive signed offline restore without replay
         env:
           FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
         run: |
@@ -39,14 +40,14 @@ jobs:
           chmod 700 "$ROOT"
           STATE="$ROOT/state"
           BACKUP="$ROOT/backup"
-          mkdir -m 700 "$STATE" "$BACKUP"
+          mkdir -m 700 "$STATE" "$BACKUP" "$ROOT/keys" "$ROOT/receipts"
           export ROOT STATE
           node forja/job-queue.mjs submit "$STATE" > "$ROOT/submitted.json"
           node forja/job-queue.mjs run "$STATE" > "$ROOT/finished.json"
           node -e 'const j=require(process.argv[1]);if(j.status!=="SUCCEEDED"||j.sourceRevision!==process.env.FORJA_SOURCE_SHA)process.exit(1)' "$ROOT/finished.json"
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
-          import { generateKeyPairSync } from 'node:crypto';
+          import { createHash, generateKeyPairSync } from 'node:crypto';
           import { readFile, writeFile } from 'node:fs/promises';
           import { join } from 'node:path';
           import { challengeForJob, signApproval } from './forja/operator-approval.mjs';
@@ -62,12 +63,20 @@ jobs:
           assert.equal(receipt.sourceRevision,process.env.FORJA_SOURCE_SHA);
           await writeFile(join(process.env.ROOT,'signed.json'),JSON.stringify(envelope),{mode:0o600});
           await writeFile(join(process.env.ROOT,'trusted.json'),JSON.stringify({operators:trustedOperators}),{mode:0o600});
+          const backupPair = generateKeyPairSync('ed25519');
+          await writeFile(join(process.env.ROOT,'keys','private.pem'),backupPair.privateKey.export({type:'pkcs8',format:'pem'}),{mode:0o600});
+          await writeFile(join(process.env.ROOT,'keys','public.pem'),backupPair.publicKey.export({type:'spki',format:'pem'}),{mode:0o600});
+          await writeFile(join(process.env.ROOT,'key-fingerprint'),createHash('sha256')
+            .update(backupPair.publicKey.export({type:'spki',format:'der'})).digest('hex'),{mode:0o600});
           NODE
           node forja/state-backup.mjs create "$STATE" "$BACKUP" > "$ROOT/snapshot.json"
           ID="$(node -p 'require(process.argv[1]).id' "$ROOT/snapshot.json")"
           JOBID="$(node -p 'require(process.argv[1]).id' "$ROOT/finished.json")"
+          PIN="$(cat "$ROOT/key-fingerprint")"
           node forja/state-backup.mjs verify "$BACKUP" "$ID" > "$ROOT/verified.json"
-          node forja/state-backup.mjs restore "$BACKUP" "$ID" "$ROOT/recovered" > "$ROOT/restored.json"
+          node forja/signed-backup.mjs sign "$BACKUP" "$ID" "$ROOT/keys/private.pem" "$ROOT/receipts" > "$ROOT/snapshot-signature.json"
+          node forja/signed-backup.mjs verify "$BACKUP" "$ID" "$ROOT/receipts" "$ROOT/keys/public.pem" "$PIN" > "$ROOT/verified-signature.json"
+          node forja/signed-backup.mjs restore "$BACKUP" "$ID" "$ROOT/receipts" "$ROOT/keys/public.pem" "$PIN" "$ROOT/recovered" > "$ROOT/restored.json"
           diff -r "$STATE" "$ROOT/recovered"
           if node forja/approval-redemption.mjs "$PWD" "$ROOT/recovered" "$JOBID" "$ROOT/signed.json" "$ROOT/trusted.json" > "$ROOT/replay.out" 2> "$ROOT/replay.err"; then
             echo 'A restored consumed approval was replayable' >&2
