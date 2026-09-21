@@ -3,7 +3,7 @@
 // The startup guard fails closed if source, permissions or worker lock changed.
 import { spawnSync } from 'node:child_process';
 import { lstat, realpath } from 'node:fs/promises';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SHA = /^[a-f0-9]{40}$/;
@@ -36,8 +36,13 @@ async function inspect(repoPath, statePath) {
   const state = await realpath(stateInput);
   unitPath(state, 'resolved state');
   demand(outside(root, state) && outside(state, root), 'state must be disjoint from checkout');
-  const runner = await lstat(join(root, 'forja', 'job-queue.mjs'));
-  demand(runner.isFile() && !runner.isSymbolicLink(), 'FORJA worker entrypoint unavailable');
+  for (const file of ['job-queue.mjs', 'linux-service.mjs']) {
+    const source = await lstat(join(root, 'forja', file)).catch((error) => {
+      if (error.code === 'ENOENT') throw new Error(`FORJA_LINUX_SERVICE: FORJA worker entrypoint unavailable: ${file}`);
+      throw error;
+    });
+    demand(source.isFile() && !source.isSymbolicLink(), `FORJA worker entrypoint unavailable: ${file}`);
+  }
   const revision = git(root, 'rev-parse', 'HEAD');
   demand(SHA.test(revision) && git(root, 'status', '--porcelain=v1', '--untracked-files=all') === '',
     'checkout must have a clean exact Git SHA');
@@ -56,7 +61,8 @@ export async function renderLinuxUserUnit(repoPath, statePath, nodePath = proces
   const node = await realpath(unitPath(nodePath, 'Node executable'));
   unitPath(node, 'resolved Node executable');
   const executable = await lstat(node);
-  demand(executable.isFile() && !executable.isSymbolicLink(), 'Node executable must be a real file');
+  demand(executable.isFile() && !executable.isSymbolicLink() && (executable.mode & 0o111) !== 0,
+    'Node executable must be a real executable file');
   const script = join(ctx.root, 'forja', 'linux-service.mjs');
   const worker = join(ctx.root, 'forja', 'job-queue.mjs');
   const unit = [
