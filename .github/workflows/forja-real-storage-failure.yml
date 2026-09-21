@@ -1,0 +1,43 @@
+name: AXIOMA FORJA Real Storage Failure Proof
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  real-enospc:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Fill a real 1 MiB Linux filesystem during backup and restore
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          test "$(id -u)" -ne 0
+          MOUNT="$(mktemp -d "$RUNNER_TEMP/forja-storage-volume-XXXXXX")"
+          sudo mount -t tmpfs -o "size=1m,mode=0700,uid=$(id -u),gid=$(id -g),nosuid,nodev,noexec" tmpfs "$MOUNT"
+          trap 'sudo umount "$MOUNT"; rmdir "$MOUNT"' EXIT
+          test "$(findmnt -rn --target "$MOUNT" -o FSTYPE)" = tmpfs
+          test "$(stat -c %u "$MOUNT")" = "$(id -u)"
+          export FORJA_ENOSPC_MOUNT="$MOUNT"
+          node --check forja/state-backup.mjs
+          node --check forja/tests/state-backup-real-enospc.test.mjs
+          node --test forja/tests/state-backup-real-enospc.test.mjs
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
