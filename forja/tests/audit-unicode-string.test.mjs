@@ -53,3 +53,40 @@ for (const separator of ['\u2028', '\u2029']) {
     assert.equal(report.checked.evidencedLinks, 1);
   });
 }
+
+test('a backtick inside a quoted interpolation cannot expose template text as an import', async (t) => {
+  const source = [
+    'const example = `before ${"`"}',
+    "import './worker.mjs';",
+    'after`;',
+    'export const value = example;',
+  ].join('\n') + '\n';
+  const root = await fixture(t, source);
+  const report = await auditNexus({ root });
+  assert.equal(report.status, 'FAIL');
+  assert.equal(report.checked.evidencedLinks, 0);
+  assert.ok(report.findings.some(({ code }) => code === 'DECLARED_LINK_NOT_FOUND'));
+});
+
+test('a real import after a template interpolation remains visible', async (t) => {
+  const source = [
+    'const example = `before ${"`"}',
+    "import './worker.mjs';",
+    'after`;',
+    "import './worker.mjs';",
+  ].join('\n') + '\n';
+  const report = await auditNexus({ root: await fixture(t, source) });
+  assert.equal(report.status, 'PASS', JSON.stringify(report.findings));
+  assert.equal(report.checked.evidencedLinks, 1);
+});
+
+test('a regex literal with a backtick in an interpolation cannot fabricate a link', async (t) => {
+  const source = [
+    'const example = `before ${/`/.test("x")}',
+    "import './worker.mjs';",
+    'after`;',
+  ].join('\n') + '\n';
+  const report = await auditNexus({ root: await fixture(t, source) });
+  assert.equal(report.status, 'FAIL');
+  assert.equal(report.checked.evidencedLinks, 0);
+});
