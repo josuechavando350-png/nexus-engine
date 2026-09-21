@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Bounded, test-driven GAUSS repair. A local model supplies edits; FORJA verifies them.
+// Bounded, test-driven GAUSS repair. Native deterministic edits need no model.
 import { spawn } from 'node:child_process';
 import { constants } from 'node:fs';
 import { mkdtemp, open, readFile, lstat, realpath } from 'node:fs/promises';
@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { runTestEvidence } from './test-evidence.mjs';
+import { nativeCandidates } from './native-transform.mjs';
 
 const MAX_FILE = 64 * 1024;
 const MAX_OUTPUT = 256 * 1024;
@@ -29,6 +30,7 @@ async function run(command, args, cwd, input = '', timeoutMs = 90_000, limit = M
     };
     child.stdout.on('data', (chunk) => collect('stdout', chunk));
     child.stderr.on('data', (chunk) => collect('stderr', chunk));
+    if (stdout.length > limit || stderr.length > limit) { terminated = true; child.kill('SIGKILL'); }
     child.on('error', (error) => { if (!settled) { settled = true; clearTimeout(timer); reject(error); } });
     child.on('close', (code, signal) => {
       if (settled) return;
@@ -96,10 +98,15 @@ export async function repair(task, repo = process.cwd()) {
   if (files.some((p) => p.startsWith('gauss/tests/'))) fail('Test files are never editable');
   const tests = task.tests.map((p) => checkedPath(p, 'gauss/tests/', /\.test\.mjs$/));
   if (files.some((p) => tests.includes(p))) fail('Tests cannot be edited');
-  const maxAttempts = task.maxAttempts ?? 2;
+  // With no model supplied, native repair is the default. Legacy local models are opt-in.
+  const native = task.engine === 'native' || (task.engine === undefined && task.model === undefined);
+  if (task.engine !== undefined && task.engine !== 'native' && task.engine !== 'local-model') fail('Unknown repair engine');
+  const maxAttempts = task.maxAttempts ?? (native ? 3 : 2);
   if (!Number.isInteger(maxAttempts) || maxAttempts < 1 || maxAttempts > 3) fail('maxAttempts must be 1–3');
   const model = task.model;
-  if (!model || typeof model.executable !== 'string' || !path.isAbsolute(model.executable) ||
+  if (native) {
+    if (model !== undefined || files.length !== 1) fail('Native repairs require exactly one source file and no model');
+  } else if (!model || typeof model.executable !== 'string' || !path.isAbsolute(model.executable) ||
       !Array.isArray(model.args) || model.args.some((arg) => typeof arg !== 'string')) fail('An explicit local model executable and args are required');
   for (const name of [...files, ...tests]) {
     await safeFile(root, name);
@@ -125,20 +132,28 @@ export async function repair(task, repo = process.cwd()) {
   if (result.code === 0) fail('Regression tests already pass; a failing baseline is required');
   if (result.signal) fail(`Baseline tests terminated by signal ${result.signal}`);
   const baseline = { code: result.code, output: `${result.stdout}\n${result.stderr}`.slice(-12_000) };
+  const original = native ? await readFile(await safeFile(workspace, files[0]), 'utf8') : null;
+  const candidates = native ? nativeCandidates(original, task.native) : null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    const sources = [];
-    for (const name of files) sources.push({ path: name, content: await readFile(await safeFile(workspace, name), 'utf8') });
-    const request = JSON.stringify({ objective: task.objective, attempt, files: sources, tests, diagnostics: baseline.output }) + '\n';
-    if (Buffer.byteLength(request) > MAX_OUTPUT) fail('Model request exceeds byte budget');
-    const response = await run(model.executable, model.args, workspace, request, 120_000);
-    if (response.code !== 0 || response.signal) fail(`Local model failed: ${response.stderr.slice(-1000)}`);
     let proposal;
-    try { proposal = JSON.parse(response.stdout); } catch { fail('Model did not return valid JSON'); }
-    if (!proposal || !Array.isArray(proposal.edits) || !proposal.edits.length || proposal.edits.length > files.length) fail('Model returned no valid edits');
+    if (native) {
+      // Each attempt starts from the *same* committed source, not a mutated predecessor.
+      const candidate = candidates[attempt - 1];
+      proposal = { edits: [{ path: files[0], content: candidate.content }] };
+    } else {
+      const sources = [];
+      for (const name of files) sources.push({ path: name, content: await readFile(await safeFile(workspace, name), 'utf8') });
+      const request = JSON.stringify({ objective: task.objective, attempt, files: sources, tests, diagnostics: baseline.output }) + '\n';
+      if (Buffer.byteLength(request) > MAX_OUTPUT) fail('Model request exceeds byte budget');
+      const response = await run(model.executable, model.args, workspace, request, 120_000);
+      if (response.code !== 0 || response.signal) fail(`Local model failed: ${response.stderr.slice(-1000)}`);
+      try { proposal = JSON.parse(response.stdout); } catch { fail('Model did not return valid JSON'); }
+    }
+    if (!proposal || !Array.isArray(proposal.edits) || !proposal.edits.length || proposal.edits.length > files.length) fail('Repair engine returned no valid edits');
     const seen = new Set();
     for (const edit of proposal.edits) {
       if (!edit || !files.includes(edit.path) || seen.has(edit.path) || typeof edit.content !== 'string' ||
-          Buffer.byteLength(edit.content) > MAX_FILE) fail('Model attempted an unsafe or oversized edit');
+          Buffer.byteLength(edit.content) > MAX_FILE) fail('Repair engine attempted an unsafe or oversized edit');
       seen.add(edit.path);
     }
     for (const edit of proposal.edits) {
@@ -152,6 +167,7 @@ export async function repair(task, repo = process.cwd()) {
       const diff = await run('git', ['diff', '--', ...files], workspace, '', 10_000, MAX_OUTPUT);
       if (diff.code !== 0 || !diff.stdout) fail('Passing tests without a source diff');
       return { status: 'CANDIDATE_TESTS_PASS', revision: head.stdout.trim(), workspace, attempts: attempt,
+        engine: native ? 'native' : 'local-model', ...(native ? { transform: candidates[attempt - 1].transform } : {}),
         tests, files, diffSha256: sha(diff.stdout), diff: diff.stdout };
     }
     if (result.signal) fail(`Tests terminated by signal ${result.signal}`);
