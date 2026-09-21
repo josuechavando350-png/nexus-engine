@@ -1,0 +1,51 @@
+name: AXIOMA FORJA Offline State Backup Restore
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-recovery:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Validate syntax and adversarial restore tests
+        run: |
+          set -euo pipefail
+          node --check forja/state-backup.mjs
+          node --test forja/tests/state-backup.test.mjs
+      - name: Prove a real four-stage evidence job survives offline byte-identical restore
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FORJA_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          ROOT="$(mktemp -d "$RUNNER_TEMP/forja-offline-XXXXXX")"
+          chmod 700 "$ROOT"
+          STATE="$ROOT/state"
+          BACKUP="$ROOT/backup"
+          mkdir -m 700 "$STATE" "$BACKUP"
+          node forja/job-queue.mjs submit "$STATE" > "$ROOT/submitted.json"
+          node forja/job-queue.mjs run "$STATE" > "$ROOT/finished.json"
+          node -e 'const j=require(process.argv[1]);if(j.status!=="SUCCEEDED"||j.sourceRevision!==process.env.FORJA_SOURCE_SHA)process.exit(1)' "$ROOT/finished.json"
+          node forja/state-backup.mjs create "$STATE" "$BACKUP" > "$ROOT/snapshot.json"
+          ID="$(node -p 'require(process.argv[1]).id' "$ROOT/snapshot.json")"
+          node forja/state-backup.mjs verify "$BACKUP" "$ID" > "$ROOT/verified.json"
+          node forja/state-backup.mjs restore "$BACKUP" "$ID" "$ROOT/recovered" > "$ROOT/restored.json"
+          diff -r "$STATE" "$ROOT/recovered"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
