@@ -1,0 +1,28 @@
+name: FORJA bounded repair agent
+on:
+  pull_request:
+    paths:
+      - 'forja/repair-agent.mjs'
+      - 'forja/local-model.mjs'
+      - 'forja/tests/repair-agent.test.mjs'
+      - 'forja/tests/local-model.test.mjs'
+      - '.github/workflows/forja-repair-agent.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  bounded-repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify agent syntax and fixture-based repairs (no model or secrets)
+        run: |
+          node --check forja/repair-agent.mjs
+          node --check forja/local-model.mjs
+          node --test forja/tests/repair-agent.test.mjs forja/tests/local-model.test.mjs
