@@ -49,10 +49,11 @@ export async function runTestEvidence(root, files, baseline = null) {
   let receipt;
   try { receipt = JSON.parse(result.stdout); } catch { fail(`Missing trusted test receipt: ${result.stderr.slice(-1000)}`); }
   if (receipt?.schemaVersion !== 1 || !Array.isArray(receipt.tests) ||
-      !Number.isInteger(receipt.plan) || receipt.plan !== receipt.tests.length || !receipt.tests.length) {
+      !Number.isInteger(receipt.plan) ||
+      receipt.plan !== receipt.tests.filter((test) => test.nesting === 0).length || !receipt.tests.length) {
     fail('Incomplete Node test execution receipt');
   }
-  const names = receipt.tests.map((test) => identity(test, root));
+  const names = receipt.tests.map((test) => identity(test, root)).sort();
   if (new Set(names).size !== names.length) fail('Duplicate executed test identity');
   if (receipt.tests.some((test) => test.skipped || test.todo)) fail('Skipped or TODO assertions are not valid repair evidence');
   const actualFiles = new Set(receipt.tests.map((test) => path.relative(root, test.file).split(path.sep).join('/')));
