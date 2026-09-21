@@ -45,3 +45,10 @@ test('rejects changed assertion identities despite a passing exit code', async (
   await writeFile(path.join(root, name[0]), "import test from 'node:test'; test('replacement',()=>{});\n");
   await assert.rejects(runTestEvidence(root, name, baseline.identities), /changed the executed test identities/);
 });
+
+test('records nested assertions without confusing the top-level plan', async (t) => {
+  const root = await fixture(t, "import test from 'node:test'; test('parent',async(t)=>{await t.test('child',()=>{});});\n");
+  const receipt = await runTestEvidence(root, name);
+  assert.equal(receipt.count, 2);
+  assert.equal(receipt.code, 0);
+});
