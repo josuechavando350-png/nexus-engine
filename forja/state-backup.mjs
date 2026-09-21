@@ -78,7 +78,8 @@ async function populate(base, records) {
 }
 async function readSnapshot(snapshot) {
   await privateDir(snapshot);
-  const manifest = JSON.parse((await bytes(join(snapshot, 'manifest.json'))).toString('utf8'));
+  const manifestBytes = await bytes(join(snapshot, 'manifest.json'));
+  const manifest = JSON.parse(manifestBytes.toString('utf8'));
   demand(manifest.schemaVersion === 1 && UUID.test(manifest.id) && basename(snapshot) === manifest.id &&
     Array.isArray(manifest.files) && manifest.files.length > 0 && manifest.files.length <= MAX_FILES, 'invalid manifest');
   const listed = await paths(snapshot, { manifest: true });
@@ -92,7 +93,7 @@ async function readSnapshot(snapshot) {
     demand(total <= MAX_TOTAL && data.length === item.size && digest(data) === item.sha256, 'snapshot bytes mismatch');
     records.push({ path: item.path, data });
   }
-  return { manifest, records };
+  return { manifest, manifestSha256: digest(manifestBytes), records };
 }
 export async function createSnapshot(stateDir, backupRoot) {
   const state = await privateDir(stateDir), backup = await privateDir(backupRoot);
@@ -113,20 +114,21 @@ export async function createSnapshot(stateDir, backupRoot) {
   try {
     await populate(stage, records);
     const manifest = { schemaVersion: 1, id, files: records.map(({path,data}) => ({path, size:data.length, sha256:digest(data)})) };
-    await writeSynced(join(stage, 'manifest.json'), Buffer.from(`${JSON.stringify(manifest)}\n`));
+    const manifestBytes = Buffer.from(`${JSON.stringify(manifest)}\n`);
+    await writeSynced(join(stage, 'manifest.json'), manifestBytes);
     await syncDir(stage);
     demand((await paths(state)).join('\n') === names.join('\n'), 'source file set changed');
     for (const {path,data} of records) demand(digest(await bytes(join(state, path))) === digest(data), 'source changed during snapshot');
     await rename(stage, published); await syncDir(snapshots);
-    return { id, count: records.length, bytes: total, manifestSha256: digest(Buffer.from(`${JSON.stringify(manifest)}\n`)) };
+    return { id, count: records.length, bytes: total, manifestSha256: digest(manifestBytes) };
   } catch (error) { await rm(stage, { recursive: true, force: true }); throw error; }
 }
 export async function verifySnapshot(backupRoot, id) {
   const backup = await privateDir(backupRoot);
   demand(UUID.test(id), 'invalid snapshot id');
-  const { manifest, records } = await readSnapshot(join(backup, 'snapshots', id));
+  const { manifestSha256, records } = await readSnapshot(join(backup, 'snapshots', id));
   return { id, count: records.length, bytes: records.reduce((sum, x) => sum+x.data.length, 0),
-    manifestSha256: digest(Buffer.from(`${JSON.stringify(manifest)}\n`)) };
+    manifestSha256 };
 }
 export async function restoreSnapshot(backupRoot, id, targetDir, expectedManifestSha256 = null) {
   const backup = await privateDir(backupRoot);
@@ -135,10 +137,10 @@ export async function restoreSnapshot(backupRoot, id, targetDir, expectedManifes
   const target = join(parent, basename(requested));
   demand(outside(backup, target) && outside(target, backup), 'restore destination overlaps backup');
   await lstat(target).then(() => demand(false, 'restore target already exists'), (e) => { if (e.code !== 'ENOENT') throw e; });
-  const { manifest, records } = await readSnapshot(join(backup, 'snapshots', id));
+  const { manifestSha256, records } = await readSnapshot(join(backup, 'snapshots', id));
   if (expectedManifestSha256 !== null) {
     demand(typeof expectedManifestSha256 === 'string' && /^[a-f0-9]{64}$/.test(expectedManifestSha256) &&
-      digest(Buffer.from(`${JSON.stringify(manifest)}\n`)) === expectedManifestSha256, 'authenticated manifest changed before restore');
+      manifestSha256 === expectedManifestSha256, 'authenticated manifest changed before restore');
   }
   const stage = join(parent, `.forja-restore-${randomUUID()}`);
   await mkdir(stage, { mode: 0o700 });
