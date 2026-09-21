@@ -1,0 +1,44 @@
+name: AXIOMA FORJA Linux Self-Host Preflight
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-host-readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Install Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Verify Linux readiness gate and adversarial fixtures
+        env:
+          FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$FORJA_SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          node --check forja/host-preflight.mjs
+          node --test forja/tests/host-preflight.test.mjs
+          ROOT="$(mktemp -d "$RUNNER_TEMP/forja-linux-host-XXXXXX")"
+          chmod 700 "$ROOT"
+          mkdir -m 700 "$ROOT/state" "$ROOT/backup" "$ROOT/receipts" "$ROOT/keys"
+          node forja/host-preflight.mjs "$PWD" "$ROOT/state" "$ROOT/backup" "$ROOT/receipts" "$ROOT/keys" "$FORJA_SOURCE_SHA" > "$ROOT/result.json"
+          node -e 'const v=require(process.argv[1]);if(v.status!=="PASS" || v.sourceRevision!==process.env.FORJA_SOURCE_SHA)process.exit(1)' "$ROOT/result.json"
+          if node forja/host-preflight.mjs "$PWD" "$ROOT/state" "$ROOT/backup" "$ROOT/receipts" "$ROOT/keys" "0000000000000000000000000000000000000000"; then
+            echo 'Incorrect Git revision was accepted' >&2
+            exit 1
+          fi
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
