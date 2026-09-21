@@ -164,20 +164,28 @@ export async function runNext(ctx) {
   await mkdir(ctx.lock); // EEXIST: fail closed. Recover manually after proving owner dead.
   const token = randomUUID();
   const owner = { pid: process.pid, host: hostname(), token };
+  let safeToRelease = false;
   try {
     await atomicJson(join(ctx.lock, 'owner.json'), owner, true);
     const queue = (await listJobs(ctx)).filter((job) => job.status === 'QUEUED')
       .sort((a,b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
-    if (!queue.length) return null;
+    if (!queue.length) { safeToRelease = true; return null; }
     const onSpawn = async (groupPid) => {
       check(Number.isSafeInteger(groupPid) && groupPid > 0, 'invalid child process group');
       owner.activeGroupPid = groupPid;
       await atomicJson(join(ctx.lock, 'owner.json'), owner);
     };
-    return await runJob(ctx, queue[0], onSpawn);
+    const result = await runJob(ctx, queue[0], onSpawn);
+    // runJob returns only after persisting its terminal state. If persistence
+    // fails (including the FAILED record), preserve owner/group metadata so a
+    // new worker cannot proceed before explicit interrupted-job recovery.
+    safeToRelease = true;
+    return result;
   } finally {
-    const recorded = JSON.parse(await readFile(join(ctx.lock, 'owner.json'), 'utf8').catch(() => '{}'));
-    if (recorded.token === token) await rm(ctx.lock, { recursive: true, force: true });
+    if (safeToRelease) {
+      const recorded = JSON.parse(await readFile(join(ctx.lock, 'owner.json'), 'utf8').catch(() => '{}'));
+      if (recorded.token === token) await rm(ctx.lock, { recursive: true, force: true });
+    }
   }
 }
 export async function recoverInterrupted(ctx, { confirmedNoSurvivingChildren = false } = {}) {
