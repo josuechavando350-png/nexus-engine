@@ -216,7 +216,7 @@ function referencedPaths(source, fromPath, method) {
     return shellDirectNodePaths(source);
   }
   // Restricted to static, single-line ESM imports/exports; dynamic imports are not evidence.
-  return [...maskNonCode(source).matchAll(/^\s*(?:import|export)\s+(?:[^;\n]*?\sfrom\s*)?["']([^"']+)["']\s*;?\s*$/gm)]
+  return [...maskNonCode(source).matchAll(/^\s*(?:import\s+(?:[^;\n]*?\sfrom\s*)?|export\s+(?:\*\s*(?:as\s+[A-Za-z_$][\w$]*\s*)?|\{[^}\n]*\}\s*)from\s*)["']([^"'\r\n]+)["']\s*;?\s*$/gm)]
     .map((match) => match[1])
     .filter((specifier) => specifier.startsWith('.'))
     .map((specifier) => posix.normalize(posix.join(posix.dirname(fromPath), specifier)));
