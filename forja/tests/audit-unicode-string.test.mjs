@@ -43,3 +43,13 @@ test('a real static import following a Unicode-containing literal is still evide
   assert.equal(report.status, 'PASS', JSON.stringify(report.findings));
   assert.equal(report.checked.evidencedLinks, 1);
 });
+
+for (const separator of ['\u2028', '\u2029']) {
+  test(`real static import after a U+${separator.codePointAt(0).toString(16)} line-comment boundary is evidenced`, async (t) => {
+    const source = `// comment ends at Unicode line separator${separator}import './worker.mjs';\n`;
+    const root = await fixture(t, source);
+    const report = await auditNexus({ root });
+    assert.equal(report.status, 'PASS', JSON.stringify(report.findings));
+    assert.equal(report.checked.evidencedLinks, 1);
+  });
+}
