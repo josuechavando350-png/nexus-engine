@@ -110,10 +110,58 @@ function maskNonCode(source) {
   return output.join('');
 }
 
+// Conservative lexical evidence, not a shell interpreter: exclude comments and
+// multiline quoted data. Any actual heredoc syntax is unsupported and fails
+// closed instead of counting text inside it as a command.
+function shellDirectNodePaths(source) {
+  const output = source.split('');
+  let quote = null;
+  let comment = false;
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+    if (comment) {
+      if (char === '\n') comment = false;
+      else output[i] = ' ';
+      continue;
+    }
+    if (quote) {
+      if (char === '\\' && quote !== "'" && i + 1 < source.length) {
+        output[i] = ' ';
+        i += 1;
+        if (source[i] !== '\n') output[i] = ' ';
+      } else if (char === quote) {
+        output[i] = ' ';
+        quote = null;
+      } else if (char !== '\n') output[i] = ' ';
+      continue;
+    }
+    if (char === '\\' && next === '\n') {
+      output[i] = ' ';
+      output[++i] = ' ';
+      continue;
+    }
+    if (char === "'" || char === '"' || char === '`') {
+      quote = char;
+      output[i] = ' ';
+      continue;
+    }
+    if (char === '#' && (i === 0 || /[\s;|&()]/.test(source[i - 1]))) {
+      comment = true;
+      output[i] = ' ';
+      continue;
+    }
+    // Heredocs require full shell grammar to delimit correctly. Refuse to
+    // authenticate ANY shell edge from a file containing one.
+    if (char === '<' && next === '<') return [];
+  }
+  return [...output.join('').matchAll(/^[ \t]*node[ \t]+([^ \t\r\n"';&|<>]+\.mjs)(?=[ \t]|$)/gm)]
+    .map((match) => match[1]);
+}
+
 function referencedPaths(source, fromPath, method) {
   if (method === 'shell-node-exec') {
-    // Recognizes direct repository-relative `node path` invocations only; does not execute shell.
-    return [...source.matchAll(/(?:^|\n)\s*node\s+([^\s"';&|<>]+\.mjs)(?=\s|$)/g)].map((match) => match[1]);
+    return shellDirectNodePaths(source);
   }
   // Restricted to static, single-line ESM imports/exports; dynamic imports are not evidence.
   return [...maskNonCode(source).matchAll(/^\s*(?:import|export)\s+(?:[^;\n]*?\sfrom\s*)?["']([^"']+)["']\s*;?\s*$/gm)]
