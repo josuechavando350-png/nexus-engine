@@ -54,12 +54,15 @@ export async function verifyAuditSource({ root, audit }) {
   let verifiedNodes = 0;
   if (registry) {
     const expected = new Map();
+    const expectedPaths = new Set();
     for (const node of registry.nodes) {
-      if (!node || typeof node.id !== 'string' || expected.has(node.id) || !safePath(node.path)) {
-        fail('REGISTRY_NODE_SET_MISMATCH', 'invalid or duplicate node');
+      if (!node || typeof node.id !== 'string' || expected.has(node.id) || !safePath(node.path) ||
+          expectedPaths.has(node.path)) {
+        fail('REGISTRY_NODE_SET_MISMATCH', 'invalid or duplicate node or path');
         continue;
       }
       expected.set(node.id, node.path);
+      expectedPaths.add(node.path);
     }
     const seen = new Set();
     for (const node of audit.nodes) {
