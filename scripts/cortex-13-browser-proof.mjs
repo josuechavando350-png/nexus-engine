@@ -15,6 +15,9 @@ const port = 39183;
 const baseUrl = `http://127.0.0.1:${port}`;
 const expectedSha = process.env.NEXUS_VALIDATED_SHA?.trim();
 const controlPath = "/api/cortex/cwv/control";
+// Product retains a genuine long-task signal for 10 seconds; both startup
+// settling and recovery must allow that full window, never force DOM state.
+const pressureRecoveryTimeoutMs = 15_000;
 
 function git(args) {
   return execFileSync("git", args, { cwd: repositoryRoot, encoding: "utf8" }).trim();
@@ -195,7 +198,7 @@ async function main() {
     await waitUntil(async () => {
       const state = await diagnostics();
       return state.state === "NORMAL" && state.javascriptScheduling === "NORMAL" && state.lazyLoading === "NORMAL";
-    }, 8_000, "CORTEX #13/#33 NORMAL lifecycle state", diagnostics);
+    }, pressureRecoveryTimeoutMs, "CORTEX #13/#33 NORMAL lifecycle state after bootstrap", diagnostics);
     const target = await findInternalTarget(page);
     await page.hover(`a[href="${target}"]`);
     await waitUntil(async () => (await diagnostics()).speculativeNodes === 1, 8_000, "CORTEX #8 speculative node before CWV pressure", diagnostics);
@@ -228,6 +231,14 @@ async function main() {
     await page.hover(`a[href="${target}"]`);
     await new Promise((resolve) => setTimeout(resolve, 1_000));
     if ((await diagnostics()).speculativeNodes !== 0) throw new Error(`CORTEX #13 pressure allowed speculative work to reappear: ${JSON.stringify(await diagnostics())}`);
+
+    // Verify actual automatic recovery after a genuine measured stall. This
+    // assertion would have failed under the old every-timer-jitter renewal bug.
+    await waitUntil(async () => {
+      const state = await diagnostics();
+      return state.state === "NORMAL" && state.suspended === null
+        && state.javascriptScheduling === "NORMAL" && state.lazyLoading === "NORMAL";
+    }, pressureRecoveryTimeoutMs, "CORTEX #13/#33 automatic recovery after genuine long task", diagnostics);
 
     await stopProbe(server);
     server = startProbe("OBSERVE_ONLY");
