@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { hostname, tmpdir } from 'node:os';
@@ -70,17 +70,45 @@ test('only one worker can acquire the lock; live worker cannot be recovered',asy
   const {ctx}=await fixture(t);await submitJob(ctx);
   await mkdir(ctx.lock);await writeFile(join(ctx.lock,'owner.json'),JSON.stringify({pid:process.pid,host:hostname(),token:randomUUID()}));
   await assert.rejects(runNext(ctx),{code:'EEXIST'});
-  await assert.rejects(recoverInterrupted(ctx),/still alive/);
+  await assert.rejects(recoverInterrupted(ctx,{confirmedNoSurvivingChildren:true}),/still alive/);
   assert.equal((await listJobs(ctx))[0].status,'QUEUED');
 });
-test('a crashed owner requires explicit recovery; unfinished jobs become INTERRUPTED',async t=>{
+test('a crashed owner requires explicit subprocess clearance; unfinished jobs become INTERRUPTED without replay',async t=>{
   const {ctx}=await fixture(t);const job=await submitJob(ctx);
   job.status='RUNNING';job.completed=['inventory'];
   await writeFile(join(ctx.jobs,`${job.id}.json`),JSON.stringify(job));
   await mkdir(ctx.lock);await writeFile(join(ctx.lock,'owner.json'),JSON.stringify({pid:99999999,host:hostname(),token:randomUUID()}));
-  assert.deepEqual(await recoverInterrupted(ctx),[job.id]);
+  await assert.rejects(recoverInterrupted(ctx),/explicit operator confirmation/);
+  assert.equal((await getJob(ctx,job.id)).status,'RUNNING');
+  assert.deepEqual(await recoverInterrupted(ctx,{confirmedNoSurvivingChildren:true}),[job.id]);
   assert.equal((await getJob(ctx,job.id)).status,'INTERRUPTED');
   assert.equal(await runNext(ctx),null);
+});
+test('a live detached subprocess group prevents recovery even after operator confirms',
+  {skip:process.platform!=='linux'},async t=>{
+    const {ctx}=await fixture(t);const job=await submitJob(ctx);
+    job.status='RUNNING';
+    await writeFile(join(ctx.jobs,`${job.id}.json`),JSON.stringify(job));
+    const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{detached:true,stdio:'ignore'});
+    const exited=new Promise((resolve)=>child.once('exit',resolve));
+    t.after(async()=>{
+      try { process.kill(-child.pid,'SIGKILL'); } catch (error) { if(error.code!=='ESRCH') throw error; }
+      await exited;
+    });
+    assert.ok(Number.isSafeInteger(child.pid) && child.pid>0);
+    await mkdir(ctx.lock);
+    await writeFile(join(ctx.lock,'owner.json'),JSON.stringify({pid:99999999,host:hostname(),token:randomUUID(),activeGroupPid:child.pid}));
+    await assert.rejects(recoverInterrupted(ctx,{confirmedNoSurvivingChildren:true}),/detached subprocess group still alive/);
+    assert.equal((await getJob(ctx,job.id)).status,'RUNNING');
+    assert.equal((await readFile(join(ctx.lock,'owner.json'),'utf8')).includes('activeGroupPid'),true);
+    process.kill(-child.pid,'SIGKILL');
+    await exited;
+    assert.deepEqual(await recoverInterrupted(ctx,{confirmedNoSurvivingChildren:true}),[job.id]);
+  });
+test('invalid recorded child group fails closed without clearing lock',async t=>{
+  const {ctx}=await fixture(t);await mkdir(ctx.lock);
+  await writeFile(join(ctx.lock,'owner.json'),JSON.stringify({pid:99999999,host:hostname(),token:randomUUID(),activeGroupPid:'unknown'}));
+  await assert.rejects(recoverInterrupted(ctx,{confirmedNoSurvivingChildren:true}),/invalid child process-group record/);
 });
 test('symlinked records and unsafe identifiers fail closed',async t=>{
   const {ctx}=await fixture(t);
@@ -97,5 +125,5 @@ test('a malformed JSON record fails closed and does not become an executable job
 test('recovery refuses foreign-host lock even when its PID looks dead',async t=>{
   const {ctx}=await fixture(t);await mkdir(ctx.lock);
   await writeFile(join(ctx.lock,'owner.json'),JSON.stringify({pid:99999999,host:'different-host',token:randomUUID()}));
-  await assert.rejects(recoverInterrupted(ctx),/lock owner cannot be verified/);
+  await assert.rejects(recoverInterrupted(ctx,{confirmedNoSurvivingChildren:true}),/lock owner cannot be verified/);
 });
