@@ -28,7 +28,7 @@ jobs:
           set -euo pipefail
           node --check forja/state-backup.mjs
           node --check forja/signed-backup.mjs
-          node --test forja/tests/state-backup.test.mjs forja/tests/signed-backup.test.mjs
+          node --test forja/tests/state-backup.test.mjs forja/tests/state-backup-hardening.test.mjs forja/tests/signed-backup.test.mjs
       - name: Prove real job and consumed approval survive signed offline restore without replay
         env:
           FORJA_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
