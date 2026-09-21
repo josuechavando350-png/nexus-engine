@@ -7,7 +7,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { fileURLToPath } from 'node:url';
 
 const ID = '[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}';
-const PATH = new RegExp(`^(?:jobs/${ID}\\.json|artifacts/${ID}/(?:inventory|audit|contract|consistency)\\.json|approval-redemptions/${ID}\\.json)$`);
+const PATH = new RegExp(`^(?:jobs/${ID}\.json|artifacts/${ID}/(?:inventory|audit|contract|consistency)\.json|approval-redemptions/${ID}\.json)$`);
 const UUID = new RegExp(`^${ID}$`);
 const MAX_FILES = 10000, MAX_FILE = 2 * 1024 * 1024, MAX_TOTAL = 64 * 1024 * 1024;
 const digest = (data) => createHash('sha256').update(data).digest('hex');
@@ -35,7 +35,13 @@ async function bytes(path) {
 async function paths(root, { manifest = false } = {}) {
   const result = [];
   async function walk(dir, prefix = '') {
-    for (const name of (await readdir(dir)).sort()) {
+    const children = (await readdir(dir)).sort();
+    // Empty UUID artifact directories are valid paths but cannot be represented by
+    // a file-only snapshot manifest. Refuse them rather than silently losing state.
+    if (prefix.startsWith('artifacts/') && UUID.test(prefix.slice('artifacts/'.length))) {
+      demand(children.length > 0, 'empty artifact directory');
+    }
+    for (const name of children) {
       demand(name !== 'worker.lock' && name !== 'backup.lock', 'active or stale lock; stop and inspect worker');
       const rel = prefix ? `${prefix}/${name}` : name;
       if (manifest && rel === 'manifest.json') continue;
