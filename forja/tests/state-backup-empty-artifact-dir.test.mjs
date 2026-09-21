@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { chmod, lstat, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, lstat, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -22,20 +22,40 @@ async function fixture(t) {
   return { root, state, backup, id };
 }
 
-test('backup refuses a valid-ID empty artifact directory rather than silently losing it', async (t) => {
+test('backup records valid empty artifact directories and restores them byte-identically', async (t) => {
   const f = await fixture(t);
   await mkdir(join(f.state, 'artifacts', f.id), { mode: 0o700 });
-  await assert.rejects(createSnapshot(f.state, f.backup), /empty artifact directory/);
-  await assert.rejects(lstat(join(f.backup, 'snapshots')), /ENOENT/);
+  const saved = await createSnapshot(f.state, f.backup);
+  const manifest = JSON.parse(await readFile(join(f.backup, 'snapshots', saved.id, 'manifest.json')));
+  assert.deepEqual(manifest.emptyArtifactDirs, [`artifacts/${f.id}`]);
+  assert.deepEqual(await verifySnapshot(f.backup, saved.id), saved);
+  const restored = join(f.root, 'restored');
+  await restoreSnapshot(f.backup, saved.id, restored, saved.manifestSha256);
+  const dir = await lstat(join(restored, 'artifacts', f.id));
+  assert.equal(dir.isDirectory(), true);
+  assert.equal(dir.mode & 0o077, 0);
+  assert.equal(await readFile(join(restored, 'jobs', `${f.id}.json`), 'utf8'),
+    await readFile(join(f.state, 'jobs', `${f.id}.json`), 'utf8'));
 });
 
-test('verify and restore reject an empty artifact directory added after snapshot publication', async (t) => {
+test('verify and restore reject a valid-ID empty artifact directory injected after snapshot publication', async (t) => {
   const f = await fixture(t);
   const saved = await createSnapshot(f.state, f.backup);
   const injected = join(f.backup, 'snapshots', saved.id, 'artifacts', f.id);
   await mkdir(injected, { recursive: true, mode: 0o700 });
-  await assert.rejects(verifySnapshot(f.backup, saved.id), /empty artifact directory/);
+  await assert.rejects(verifySnapshot(f.backup, saved.id), /snapshot directory set mismatch/);
   const target = join(f.root, 'restored');
-  await assert.rejects(restoreSnapshot(f.backup, saved.id, target), /empty artifact directory/);
+  await assert.rejects(restoreSnapshot(f.backup, saved.id, target), /snapshot directory set mismatch/);
   await assert.rejects(lstat(target), /ENOENT/);
+});
+
+test('verify and restore reject a declared empty artifact directory deleted from snapshot', async (t) => {
+  const f = await fixture(t);
+  await mkdir(join(f.state, 'artifacts', f.id), { mode: 0o700 });
+  const saved = await createSnapshot(f.state, f.backup);
+  await rm(join(f.backup, 'snapshots', saved.id, 'artifacts', f.id), { recursive: true });
+  await assert.rejects(verifySnapshot(f.backup, saved.id), /snapshot directory set mismatch/);
+  await assert.rejects(restoreSnapshot(f.backup, saved.id, join(f.root, 'restored'), saved.manifestSha256),
+    /snapshot directory set mismatch/);
+  await assert.rejects(lstat(join(f.root, 'restored')), /ENOENT/);
 });
