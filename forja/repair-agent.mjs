@@ -6,6 +6,7 @@ import { mkdtemp, open, readFile, lstat, realpath } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
+import { runTestEvidence } from './test-evidence.mjs';
 
 const MAX_FILE = 64 * 1024;
 const MAX_OUTPUT = 256 * 1024;
@@ -112,12 +113,14 @@ export async function repair(task, repo = process.cwd()) {
   console.error(`FORJA candidate workspace: ${workspace}`);
   const digests = { allowed: files, tests: new Map() };
   for (const test of tests) digests.tests.set(test, sha(await readFile(await safeFile(workspace, test))));
-  const executeTests = async () => {
-    const result = await run(process.execPath, ['--test', ...tests], workspace, '', 90_000, 96_000);
-    await checkedTests(workspace, tests, digests);
+  const executeTests = async (baselineIds = null) => {
+    let result;
+    try { result = await runTestEvidence(workspace, tests, baselineIds); }
+    finally { await checkedTests(workspace, tests, digests); }
     return result;
   };
   let result = await executeTests();
+  const baselineIds = result.identities;
   await assertScope(workspace, new Set()); // Baseline tests must not mutate the source.
   if (result.code === 0) fail('Regression tests already pass; a failing baseline is required');
   if (result.signal) fail(`Baseline tests terminated by signal ${result.signal}`);
@@ -144,7 +147,7 @@ export async function repair(task, repo = process.cwd()) {
       try { await handle.writeFile(edit.content, 'utf8'); } finally { await handle.close(); }
     }
     await assertScope(workspace, new Set(files));
-    result = await executeTests();
+    result = await executeTests(baselineIds);
     if (result.code === 0) {
       const diff = await run('git', ['diff', '--', ...files], workspace, '', 10_000, MAX_OUTPUT);
       if (diff.code !== 0 || !diff.stdout) fail('Passing tests without a source diff');
