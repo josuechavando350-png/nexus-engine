@@ -70,6 +70,52 @@ function validateRegistry(value) {
 // This is not a full JavaScript parser; interpolation is not trusted as static evidence.
 function maskNonCode(source) {
   const output = source.split('');
+  // Template interpolations are never static-import evidence. Find their real
+  // closing brace without interpreting backticks inside JS strings as the
+  // end of the enclosing template. An ambiguous slash (regex vs division)
+  // fails closed: mask through EOF rather than invent a link.
+  const scanTemplate = (from) => {
+    for (let i = from; i < source.length;) {
+      if (source[i] === '\\') { i += 2; continue; }
+      if (source[i] === '`') return i + 1;
+      if (source[i] === '$' && source[i + 1] === '{') {
+        i = scanInterpolation(i + 2);
+      } else i += 1;
+    }
+    return source.length;
+  };
+  const scanInterpolation = (from) => {
+    let depth = 1;
+    for (let i = from; i < source.length;) {
+      const char = source[i];
+      const next = source[i + 1];
+      if (char === '"' || char === "'") {
+        const quote = char;
+        i += 1;
+        while (i < source.length) {
+          if (source[i] === '\\') { i += 2; continue; }
+          if (source[i++] === quote) break;
+        }
+        continue;
+      }
+      if (char === '`') { i = scanTemplate(i + 1); continue; }
+      if (char === '/' && next === '/') {
+        i += 2;
+        while (i < source.length && !['\n', '\r', '\u2028', '\u2029'].includes(source[i])) i += 1;
+        continue;
+      }
+      if (char === '/' && next === '*') {
+        const end = source.indexOf('*/', i + 2);
+        i = end < 0 ? source.length : end + 2;
+        continue;
+      }
+      if (char === '/') return source.length; // Not a full JS regex parser.
+      if (char === '{') depth += 1;
+      if (char === '}' && --depth === 0) return i + 1;
+      i += 1;
+    }
+    return source.length;
+  };
   let mode = 'code';
   for (let i = 0; i < source.length; i += 1) {
     const char = source[i];
@@ -97,7 +143,13 @@ function maskNonCode(source) {
         output[i] = ' '; output[++i] = ' '; mode = 'code';
       } else if (char !== '\n' && char !== '\r') output[i] = ' ';
     } else if (mode === 'template') {
-      if (char === '\\') {
+      if (char === '$' && next === '{') {
+        const end = scanInterpolation(i + 2);
+        for (let j = i; j < end; j += 1) {
+          if (source[j] !== '\n' && source[j] !== '\r') output[j] = ' ';
+        }
+        i = end - 1;
+      } else if (char === '\\') {
         output[i] = ' ';
         if (i + 1 < source.length) {
           i += 1;
