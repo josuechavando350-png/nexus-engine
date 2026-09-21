@@ -7,7 +7,7 @@ import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'nod
 import { fileURLToPath } from 'node:url';
 
 const ID = '[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}';
-const PATH = new RegExp(`^(?:jobs/${ID}\.json|artifacts/${ID}/(?:inventory|audit|contract|consistency)\.json|approval-redemptions/${ID}\.json)$`);
+const PATH = new RegExp(`^(?:jobs/${ID}\\.json|artifacts/${ID}/(?:inventory|audit|contract|consistency)\\.json|approval-redemptions/${ID}\\.json)$`);
 const UUID = new RegExp(`^${ID}$`);
 const MAX_FILES = 10000, MAX_FILE = 2 * 1024 * 1024, MAX_TOTAL = 64 * 1024 * 1024;
 const digest = (data) => createHash('sha256').update(data).digest('hex');
