@@ -25,6 +25,9 @@ function git(root, ...args) {
   return out.stdout.trim();
 }
 async function inspect(repoPath, statePath) {
+  demand(process.platform === 'linux', 'Linux required');
+  demand(typeof process.getuid === 'function' && process.getuid() !== 0,
+    'unprivileged service account required');
   demand(Number(process.versions.node.split('.')[0]) >= 24, 'Node 24 or later required');
   const root = await realpath(unitPath(repoPath, 'checkout'));
   unitPath(root, 'resolved checkout');
@@ -32,7 +35,7 @@ async function inspect(repoPath, statePath) {
   const stateInput = unitPath(statePath, 'state');
   const stat = await lstat(stateInput);
   demand(stat.isDirectory() && !stat.isSymbolicLink() && (stat.mode & 0o077) === 0 &&
-    (typeof process.getuid !== 'function' || stat.uid === process.getuid()), 'state directory must be private and owned');
+    stat.uid === process.getuid(), 'state directory must be private and owned');
   const state = await realpath(stateInput);
   unitPath(state, 'resolved state');
   demand(outside(root, state) && outside(state, root), 'state must be disjoint from checkout');
