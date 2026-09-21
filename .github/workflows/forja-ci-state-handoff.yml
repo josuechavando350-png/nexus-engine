@@ -111,7 +111,9 @@ jobs:
           tar --no-same-owner -xf "$RUNNER_TEMP/forja-state-handoff.tar" -C "$BACKUP"
           node forja/state-backup.mjs verify "$BACKUP" "$SNAPSHOT_ID" > "$RUNNER_TEMP/forja-new-verify.json"
           export BACKUP SNAPSHOT_ID MANIFEST_SHA
-          RESTORE="$RUNNER_TEMP/forja-restored-state"
+          RESTORE_PARENT="$(mktemp -d "$RUNNER_TEMP/forja-restore-parent-XXXXXX")"
+          chmod 700 "$RESTORE_PARENT"
+          RESTORE="$RESTORE_PARENT/state"
           test ! -e "$RESTORE"
           export RESTORE JOB_ID SOURCE_SHA
           node --input-type=module -e '
