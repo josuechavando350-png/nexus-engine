@@ -33,7 +33,7 @@ test('verify and restore reject an empty artifact directory added after snapshot
   const f = await fixture(t);
   const saved = await createSnapshot(f.state, f.backup);
   const injected = join(f.backup, 'snapshots', saved.id, 'artifacts', f.id);
-  await mkdir(injected, { mode: 0o700 });
+  await mkdir(injected, { recursive: true, mode: 0o700 });
   await assert.rejects(verifySnapshot(f.backup, saved.id), /empty artifact directory/);
   const target = join(f.root, 'restored');
   await assert.rejects(restoreSnapshot(f.backup, saved.id, target), /empty artifact directory/);
