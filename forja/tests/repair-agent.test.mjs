@@ -22,7 +22,7 @@ async function fixture(t, modelBehavior = 'repair', initial = source) {
   git(repo, 'add', '--', 'gauss/calc.mjs', 'gauss/tests/calc.test.mjs');
   git(repo, 'commit', '-qm', 'fixture');
   const model = path.join(root, 'model.mjs');
-  await writeFile(model, `let data='';process.stdin.setEncoding('utf8');process.stdin.on('data',x=>data+=x);process.stdin.on('end',()=>{const q=JSON.parse(data);const edit=${JSON.stringify(modelBehavior)} === 'escape' ? {path:'apps/cano-penal/src/app/page.tsx',content:'bad'} : {path:'gauss/calc.mjs',content:q.files[0].content.replace('a - b',${JSON.stringify(modelBehavior === 'no-fix' ? 'a - b' : 'a + b')})};process.stdout.write(JSON.stringify({edits:[edit]}));});\n`);
+  await writeFile(model, `let data='';process.stdin.setEncoding('utf8');process.stdin.on('data',x=>data+=x);process.stdin.on('end',()=>{const q=JSON.parse(data);const edit=${JSON.stringify(modelBehavior)} === 'escape' ? {path:'apps/cano-penal/src/app/page.tsx',content:'bad'} : {path:'gauss/calc.mjs',content:q.files[0].content.replace('a - b',${JSON.stringify(modelBehavior === 'no-fix' ? 'a - b' : modelBehavior === 'early-exit' ? 'process.exit(0);a + b' : 'a + b')})};process.stdout.write(JSON.stringify({edits:[edit]}));});\n`);
   t.after(async () => {
     const worktrees = git(repo, 'worktree', 'list', '--porcelain').split('\n').filter(x=>x.startsWith('worktree ')).map(x=>x.slice(9));
     for (const tree of worktrees) if (tree !== repo) git(repo, 'worktree', 'remove', '--force', tree);
@@ -75,4 +75,10 @@ test('forbids broad GAUSS source access and test edits', async (t) => {
 test('never permits editing another regression test', async (t) => {
   const { repo, task } = await fixture(t);
   await assert.rejects(repair({ ...task, files: ['gauss/tests/other.test.mjs'] }, repo), /never editable/);
+});
+
+test('rejects apparent success when a proposed module exits before tests execute', async (t) => {
+  const { repo, task } = await fixture(t, 'early-exit');
+  await assert.rejects(repair(task, repo), /without executing named assertions/);
+  assert.equal(git(repo, 'status', '--porcelain'), '');
 });
