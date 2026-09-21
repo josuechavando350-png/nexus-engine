@@ -39,3 +39,22 @@ test('duplicate registry paths cannot count one source twice as independently ve
   assert.equal(result.status, 'MISMATCH');
   assert.ok(result.findings.some(({ code }) => code === 'REGISTRY_NODE_SET_MISMATCH'));
 });
+
+test('symlinked parent cannot alias a registered source under another path', async (t) => {
+  const value = await fixture(t, false);
+  const { symlink } = await import('node:fs/promises');
+  await symlink('src', join(value.root, 'mirror'), 'dir');
+  const one = 'export const one = 1;\n';
+  const nodes = [
+    { id: 'one', path: 'src/one.mjs', kind: 'esm' },
+    { id: 'two', path: 'mirror/one.mjs', kind: 'esm' },
+  ];
+  const manifest = JSON.stringify({ schemaVersion: 1, roots: ['one'], nodes, links: [] });
+  await writeFile(join(value.root, 'forja/registry.json'), manifest);
+  value.audit.manifestSha256 = sha256(manifest);
+  value.audit.nodes[1].path = 'mirror/one.mjs';
+  value.audit.nodes[1].sha256 = sha256(one);
+  const result = await verifyAuditSource(value);
+  assert.equal(result.status, 'MISMATCH');
+  assert.ok(result.findings.some(({ code }) => code === 'SOURCE_UNAVAILABLE'));
+});
