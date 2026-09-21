@@ -8,6 +8,9 @@ on:
       - 'forja/test-evidence.mjs'
       - 'forja/test-event-reporter.mjs'
       - 'forja/tests/native-repair.test.mjs'
+      - 'forja/NATIVE_REPAIR.md'
+      - 'forja/REPAIR_AGENT.md'
+      - 'forja/VERIFIED_REPAIR.md'
       - '.github/workflows/forja-native-repair.yml'
   workflow_dispatch:
 permissions:
