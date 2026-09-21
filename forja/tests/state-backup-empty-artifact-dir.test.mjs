@@ -26,7 +26,7 @@ test('backup refuses a valid-ID empty artifact directory rather than silently lo
   const f = await fixture(t);
   await mkdir(join(f.state, 'artifacts', f.id), { mode: 0o700 });
   await assert.rejects(createSnapshot(f.state, f.backup), /empty artifact directory/);
-  await assert.rejects(lstat(join(f.backup, 'snapshots', f.id)), /ENOENT/);
+  await assert.rejects(lstat(join(f.backup, 'snapshots')), /ENOENT/);
 });
 
 test('verify and restore reject an empty artifact directory added after snapshot publication', async (t) => {
