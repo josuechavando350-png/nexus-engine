@@ -1,11 +1,11 @@
 import assert from 'node:assert/strict';
-import { createHash, generateKeyPairSync, sign } from 'node:crypto';
+import { createHash, generateKeyPairSync } from 'node:crypto';
 import { chmod, lstat, mkdir, mkdtemp, readFile, rm, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createSnapshot } from './state-backup.mjs';
-import { signSnapshot, verifySignedSnapshot, restoreSignedSnapshot } from './signed-backup.mjs';
+import { createSnapshot } from '../state-backup.mjs';
+import { signSnapshot, verifySignedSnapshot, restoreSignedSnapshot } from '../signed-backup.mjs';
 
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 async function fixture(t) {
