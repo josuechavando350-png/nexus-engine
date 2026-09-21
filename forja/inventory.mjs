@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 
 const MAX_FILES = 20000;
 const MAX_OUTPUT = 4 * 1024 * 1024;
-const SOURCE = /\.(?:mjs|cjs|js|jsx|ts|tsx|rs|py|sh)$/i;
+const SOURCE = /\.(?:mjs|cjs|js|jsx|ts|tsx|mts|cts|rs|py|sh|go)$/i;
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 
 function git(root, ...args) {
@@ -36,6 +36,22 @@ export async function inventoryNexus({ root }) {
   if (filenames.length > MAX_FILES || filenames.some((name) => !safeName(name)) ||
     new Set(filenames).size !== filenames.length) throw new Error('Unsafe or excessive tracked paths');
   filenames.sort();
+  // Git status intentionally suppresses modified paths marked assume-unchanged or
+  // skip-worktree. Refuse any nonstandard tracked-entry mark before claiming
+  // that the checked-out revision is clean and suitable for evidence.
+  const marked = git(base, 'ls-files', '-v', '-z');
+  if (!marked.length || marked[marked.length - 1] !== 0) throw new Error('Malformed Git index flags');
+  const entries = marked.subarray(0, -1).toString('utf8').split('\0');
+  const tracked = new Set(filenames);
+  const observed = new Set();
+  if (entries.length !== filenames.length) throw new Error('Git index flag/path mismatch');
+  for (const entry of entries) {
+    const name = entry.slice(2);
+    if (!entry.startsWith('H ') || !tracked.has(name) || observed.has(name)) {
+      throw new Error('Unsupported Git index flag or path (assume-unchanged/skip-worktree)');
+    }
+    observed.add(name);
+  }
   const registryName = 'forja/registry.json';
   if (!filenames.includes(registryName)) throw new Error('Registry is not tracked');
   const manifest = JSON.parse(await readFile(join(base, registryName), 'utf8'));
@@ -51,10 +67,16 @@ export async function inventoryNexus({ root }) {
   for (const name of filenames) {
     const info = await lstat(join(base, name));
     if (info.isSymbolicLink()) {
+      if (registered.has(name)) throw new Error('Registered source cannot be a symlink');
       trackedSymlinks++;
       continue;
     }
     if (!info.isFile()) throw new Error('Tracked entry is not a regular file');
+    // A registered source must represent its own inode, not another hard-link name.
+    // Git considers equal-byte hard-link substitution clean, so status alone cannot catch it.
+    if (registered.has(name) && info.nlink !== 1) {
+      throw new Error('Registered source must be an independent regular file');
+    }
     const real = await realpath(join(base, name));
     const rel = relative(actualRoot, real);
     if (rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new Error('Tracked entry escapes repository');

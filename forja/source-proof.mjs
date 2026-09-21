@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { lstat, readFile, realpath } from 'node:fs/promises';
-import { isAbsolute, posix, relative, resolve, sep } from 'node:path';
+import { dirname, isAbsolute, posix, relative, resolve, sep } from 'node:path';
 
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const VALID_DIGEST = /^[a-f0-9]{64}$/;
@@ -14,12 +14,18 @@ function safePath(path) {
 
 async function boundedFile(root, path, limit) {
   if (!safePath(path)) throw new Error('Unsafe repository-relative path');
-  const file = resolve(root, path);
+  const realRoot = await realpath(root);
+  const file = resolve(realRoot, path);
+  // A symlink in a parent directory can alias one source as two distinct
+  // registry paths even when the final file itself is not a symlink.
+  if (await realpath(dirname(file)) !== dirname(file)) {
+    throw new Error('Symlinked repository parent directory');
+  }
   const stat = await lstat(file);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size < 1 || stat.size > limit) {
+  // A second hard-link name has the same inode, not a second independent file.
+  if (!stat.isFile() || stat.isSymbolicLink() || stat.nlink !== 1 || stat.size < 1 || stat.size > limit) {
     throw new Error('Not a bounded regular file');
   }
-  const realRoot = await realpath(root);
   const realFile = await realpath(file);
   const inside = relative(realRoot, realFile);
   if (inside === '..' || inside.startsWith(`..${sep}`) || isAbsolute(inside)) {
@@ -54,12 +60,15 @@ export async function verifyAuditSource({ root, audit }) {
   let verifiedNodes = 0;
   if (registry) {
     const expected = new Map();
+    const expectedPaths = new Set();
     for (const node of registry.nodes) {
-      if (!node || typeof node.id !== 'string' || expected.has(node.id) || !safePath(node.path)) {
-        fail('REGISTRY_NODE_SET_MISMATCH', 'invalid or duplicate node');
+      if (!node || typeof node.id !== 'string' || expected.has(node.id) || !safePath(node.path) ||
+          expectedPaths.has(node.path)) {
+        fail('REGISTRY_NODE_SET_MISMATCH', 'invalid or duplicate node or path');
         continue;
       }
       expected.set(node.id, node.path);
+      expectedPaths.add(node.path);
     }
     const seen = new Set();
     for (const node of audit.nodes) {
