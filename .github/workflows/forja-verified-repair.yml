@@ -1,0 +1,26 @@
+name: FORJA independent repair regression gate
+on:
+  pull_request:
+    paths:
+      - 'forja/verified-repair.mjs'
+      - 'forja/repair-agent.mjs'
+      - 'forja/tests/verified-repair.test.mjs'
+      - '.github/workflows/forja-verified-repair.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  independent-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify syntax and real fixture regressions, with no model or secrets
+        run: |
+          node --check forja/verified-repair.mjs
+          node --test forja/tests/repair-agent.test.mjs forja/tests/local-model.test.mjs forja/tests/verified-repair.test.mjs
