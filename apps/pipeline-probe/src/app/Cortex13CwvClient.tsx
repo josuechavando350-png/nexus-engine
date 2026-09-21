@@ -185,7 +185,11 @@ export function Cortex13CwvClient(): null {
       eventLoopPreviousAt = now;
       if (disposed || now < eventLoopArmedAt) return;
       const schedulingStallMs = Math.max(0, elapsed - EVENT_LOOP_SAMPLE_MS);
-      if (schedulingStallMs <= 0) return;
+      // Timer jitter below the active LONG_TASK threshold is not a long task.
+      // Previously every positive jitter extended pressure by ten seconds,
+      // making NORMAL recovery impossible on otherwise idle browser runners.
+      if (control?.mode !== "ACTIVE" || !control.thresholds
+        || schedulingStallMs < control.thresholds.longTaskPressureMs) return;
       recentLongTaskMs = Math.max(recentLongTaskMs, schedulingStallMs);
       longTaskPressureUntil = now + LONG_TASK_PRESSURE_RETENTION_MS;
       void apply();
