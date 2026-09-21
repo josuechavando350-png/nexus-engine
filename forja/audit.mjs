@@ -85,6 +85,9 @@ function maskNonCode(source) {
       }
     } else if (mode === "'" || mode === '"') {
       if (char === '\\') { i += 1; continue; }
+      // Regex multiline mode sees these characters as line boundaries, but
+      // ECMAScript permits them inside an ordinary quoted string.
+      if (char === '\u2028' || char === '\u2029') output[i] = ' ';
       if (char === mode) mode = 'code';
     } else if (mode === 'line') {
       if (char === '\n' || char === '\r') mode = 'code';
