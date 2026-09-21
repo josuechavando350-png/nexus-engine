@@ -42,8 +42,9 @@ async function paths(root, { manifest = false } = {}) {
       const s = await lstat(join(dir, name));
       demand(!s.isSymbolicLink(), 'symlink in state');
       if (s.isDirectory()) {
-        demand((s.mode & 0o077) === 0 && ['jobs','artifacts','approval-redemptions'].includes(prefix || name) &&
-          (prefix !== 'artifacts' || UUID.test(name)), 'unexpected or public directory');
+        demand((s.mode & 0o077) === 0 &&
+          (prefix === '' ? ['jobs','artifacts','approval-redemptions'].includes(name) :
+            prefix === 'artifacts' && UUID.test(name)), 'unexpected or public directory');
         await walk(join(dir, name), rel);
       } else {
         demand(s.isFile() && PATH.test(rel), `unexpected state file: ${rel}`);
@@ -127,14 +128,18 @@ export async function verifySnapshot(backupRoot, id) {
   return { id, count: records.length, bytes: records.reduce((sum, x) => sum+x.data.length, 0),
     manifestSha256: digest(Buffer.from(`${JSON.stringify(manifest)}\n`)) };
 }
-export async function restoreSnapshot(backupRoot, id, targetDir) {
+export async function restoreSnapshot(backupRoot, id, targetDir, expectedManifestSha256 = null) {
   const backup = await privateDir(backupRoot);
   demand(UUID.test(id) && typeof targetDir === 'string' && isAbsolute(targetDir), 'invalid restore inputs');
   const requested = resolve(targetDir), parent = await privateDir(dirname(requested));
   const target = join(parent, basename(requested));
   demand(outside(backup, target) && outside(target, backup), 'restore destination overlaps backup');
   await lstat(target).then(() => demand(false, 'restore target already exists'), (e) => { if (e.code !== 'ENOENT') throw e; });
-  const { records } = await readSnapshot(join(backup, 'snapshots', id));
+  const { manifest, records } = await readSnapshot(join(backup, 'snapshots', id));
+  if (expectedManifestSha256 !== null) {
+    demand(typeof expectedManifestSha256 === 'string' && /^[a-f0-9]{64}$/.test(expectedManifestSha256) &&
+      digest(Buffer.from(`${JSON.stringify(manifest)}\n`)) === expectedManifestSha256, 'authenticated manifest changed before restore');
+  }
   const stage = join(parent, `.forja-restore-${randomUUID()}`);
   await mkdir(stage, { mode: 0o700 });
   try {
