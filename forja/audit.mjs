@@ -70,6 +70,52 @@ function validateRegistry(value) {
 // This is not a full JavaScript parser; interpolation is not trusted as static evidence.
 function maskNonCode(source) {
   const output = source.split('');
+  // Template interpolations are never static-import evidence. Find their real
+  // closing brace without interpreting backticks inside JS strings as the
+  // end of the enclosing template. An ambiguous slash (regex vs division)
+  // fails closed: mask through EOF rather than invent a link.
+  const scanTemplate = (from) => {
+    for (let i = from; i < source.length;) {
+      if (source[i] === '\\') { i += 2; continue; }
+      if (source[i] === '`') return i + 1;
+      if (source[i] === '$' && source[i + 1] === '{') {
+        i = scanInterpolation(i + 2);
+      } else i += 1;
+    }
+    return source.length;
+  };
+  const scanInterpolation = (from) => {
+    let depth = 1;
+    for (let i = from; i < source.length;) {
+      const char = source[i];
+      const next = source[i + 1];
+      if (char === '"' || char === "'") {
+        const quote = char;
+        i += 1;
+        while (i < source.length) {
+          if (source[i] === '\\') { i += 2; continue; }
+          if (source[i++] === quote) break;
+        }
+        continue;
+      }
+      if (char === '`') { i = scanTemplate(i + 1); continue; }
+      if (char === '/' && next === '/') {
+        i += 2;
+        while (i < source.length && !['\n', '\r', '\u2028', '\u2029'].includes(source[i])) i += 1;
+        continue;
+      }
+      if (char === '/' && next === '*') {
+        const end = source.indexOf('*/', i + 2);
+        i = end < 0 ? source.length : end + 2;
+        continue;
+      }
+      if (char === '/') return source.length; // Not a full JS regex parser.
+      if (char === '{') depth += 1;
+      if (char === '}' && --depth === 0) return i + 1;
+      i += 1;
+    }
+    return source.length;
+  };
   let mode = 'code';
   for (let i = 0; i < source.length; i += 1) {
     const char = source[i];
@@ -85,16 +131,25 @@ function maskNonCode(source) {
       }
     } else if (mode === "'" || mode === '"') {
       if (char === '\\') { i += 1; continue; }
+      // Regex multiline mode sees these characters as line boundaries, but
+      // ECMAScript permits them inside an ordinary quoted string.
+      if (char === '\u2028' || char === '\u2029') output[i] = ' ';
       if (char === mode) mode = 'code';
     } else if (mode === 'line') {
-      if (char === '\n' || char === '\r') mode = 'code';
+      if (char === '\n' || char === '\r' || char === '\u2028' || char === '\u2029') mode = 'code';
       else output[i] = ' ';
     } else if (mode === 'block') {
       if (char === '*' && next === '/') {
         output[i] = ' '; output[++i] = ' '; mode = 'code';
       } else if (char !== '\n' && char !== '\r') output[i] = ' ';
     } else if (mode === 'template') {
-      if (char === '\\') {
+      if (char === '$' && next === '{') {
+        const end = scanInterpolation(i + 2);
+        for (let j = i; j < end; j += 1) {
+          if (source[j] !== '\n' && source[j] !== '\r') output[j] = ' ';
+        }
+        i = end - 1;
+      } else if (char === '\\') {
         output[i] = ' ';
         if (i + 1 < source.length) {
           i += 1;
@@ -107,13 +162,61 @@ function maskNonCode(source) {
   return output.join('');
 }
 
+// Conservative lexical evidence, not a shell interpreter: exclude comments and
+// multiline quoted data. Any actual heredoc syntax is unsupported and fails
+// closed instead of counting text inside it as a command.
+function shellDirectNodePaths(source) {
+  const output = source.split('');
+  let quote = null;
+  let comment = false;
+  for (let i = 0; i < source.length; i += 1) {
+    const char = source[i];
+    const next = source[i + 1];
+    if (comment) {
+      if (char === '\n') comment = false;
+      else output[i] = ' ';
+      continue;
+    }
+    if (quote) {
+      if (char === '\\' && quote !== "'" && i + 1 < source.length) {
+        output[i] = ' ';
+        i += 1;
+        if (source[i] !== '\n') output[i] = ' ';
+      } else if (char === quote) {
+        output[i] = ' ';
+        quote = null;
+      } else if (char !== '\n') output[i] = ' ';
+      continue;
+    }
+    if (char === '\\' && next === '\n') {
+      output[i] = ' ';
+      output[++i] = ' ';
+      continue;
+    }
+    if (char === "'" || char === '"' || char === '`') {
+      quote = char;
+      output[i] = ' ';
+      continue;
+    }
+    if (char === '#' && (i === 0 || /[\s;|&()]/.test(source[i - 1]))) {
+      comment = true;
+      output[i] = ' ';
+      continue;
+    }
+    // Heredocs require full shell grammar to delimit correctly. Refuse to
+    // authenticate ANY shell edge from a file containing one.
+    if (char === '<' && next === '<') return [];
+  }
+  return [...output.join('').matchAll(/^[ \t]*node[ \t]+([^ \t\r\n"';&|<>]+\.mjs)(?=[ \t]|$)/gm)]
+    .map((match) => match[1]);
+}
+
 function referencedPaths(source, fromPath, method) {
   if (method === 'shell-node-exec') {
-    // Recognizes direct repository-relative `node path` invocations only; does not execute shell.
-    return [...source.matchAll(/(?:^|\n)\s*node\s+([^\s"';&|<>]+\.mjs)(?=\s|$)/g)].map((match) => match[1]);
+    return shellDirectNodePaths(source);
   }
   // Restricted to static, single-line ESM imports/exports; dynamic imports are not evidence.
-  return [...maskNonCode(source).matchAll(/^\s*(?:import|export)\s+(?:[^;\n]*?\sfrom\s*)?["']([^"']+)["']\s*;?\s*$/gm)]
+  return [...maskNonCode(source).matchAll(/^\s*(?:import\s+(?:[^;\n]*?\sfrom\s*)?|export\s+(?:\*\s*(?:as\s+[A-Za-z_$][\w$]*\s*)?|\{[^}\n]*\}\s*)from\s*)["']([^"'\r\n]+)["']\s*;?\s*$/gm)]
     .map((match) => match[1])
     .filter((specifier) => specifier.startsWith('.'))
     .map((specifier) => posix.normalize(posix.join(posix.dirname(fromPath), specifier)));
