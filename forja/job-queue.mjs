@@ -96,7 +96,7 @@ export async function listJobs(ctx) {
   check(names.length <= 10000, 'too many jobs');
   return Promise.all(names.map((name) => loadJob(join(ctx.jobs, name))));
 }
-async function execute(ctx, script, args, timeoutMs = 120000) {
+async function execute(ctx, script, args, onSpawn, timeoutMs = 120000) {
   return new Promise((resolveDone, rejectDone) => {
     const child = spawn(process.execPath, [script, ...args], { cwd: ctx.repo, detached: true,
       env: { ...process.env, FORJA_SOURCE_SHA: git(ctx.repo, 'rev-parse', 'HEAD') }, stdio: ['ignore','pipe','pipe'] });
@@ -109,6 +109,11 @@ async function execute(ctx, script, args, timeoutMs = 120000) {
         catch (error) { if (error.code !== 'ESRCH') failed = error; }
       }
     };
+    // Persist the detached process-group ID in the durable worker lock. A crash before
+    // this fsync is still possible, so recovery ALSO requires an operator inspection.
+    const recorded = child.pid ? Promise.resolve().then(() => onSpawn(child.pid)).catch((error) => {
+      failed = error; kill();
+    }) : Promise.resolve();
     const timer = setTimeout(() => { failed = new Error('step timeout'); kill(); }, timeoutMs);
     const take = (key, chunk) => {
       if (key === 'out') stdout = Buffer.concat([stdout, chunk]);
@@ -118,8 +123,9 @@ async function execute(ctx, script, args, timeoutMs = 120000) {
     child.stdout.on('data', (data) => take('out', data));
     child.stderr.on('data', (data) => take('err', data));
     child.once('error', (error) => { failed = error; });
-    child.once('close', (code, signal) => {
+    child.once('close', async (code, signal) => {
       clearTimeout(timer);
+      try { await recorded; } catch (error) { failed = error; }
       if (failed || code !== 0 || signal) rejectDone(new Error(`step failed: ${failed?.message ?? `exit=${code} signal=${signal} ${stderr.toString('utf8').slice(0, 300)}`}`));
       else {
         try { resolveDone(JSON.parse(stdout.toString('utf8'))); }
@@ -128,7 +134,7 @@ async function execute(ctx, script, args, timeoutMs = 120000) {
     });
   });
 }
-async function runJob(ctx, job) {
+async function runJob(ctx, job, onSpawn) {
   const path = join(ctx.jobs, `${job.id}.json`);
   const save = async () => atomicJson(path, job);
   const reportDir = join(ctx.artifacts, job.id);
@@ -139,7 +145,7 @@ async function runJob(ctx, job) {
     for (const [name, script, tool, status] of SCRIPTS) {
       check(sourceIdentity(ctx) === job.sourceRevision, 'checkout revision changed mid-run');
       const args = name === 'consistency' ? ['inventory','audit','contract'].map((part) => join(reportDir, `${part}.json`)) : [];
-      const result = await execute(ctx, script, args);
+      const result = await execute(ctx, script, args, onSpawn);
       check(result && result.schemaVersion === 1 && result.tool === tool && result.status === status &&
         result.sourceRevision === job.sourceRevision, `${name} produced invalid or nonpassing evidence`);
       await atomicJson(join(reportDir, `${name}.json`), result, true);
@@ -163,13 +169,21 @@ export async function runNext(ctx) {
     const queue = (await listJobs(ctx)).filter((job) => job.status === 'QUEUED')
       .sort((a,b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
     if (!queue.length) return null;
-    return await runJob(ctx, queue[0]);
+    const onSpawn = async (groupPid) => {
+      check(Number.isSafeInteger(groupPid) && groupPid > 0, 'invalid child process group');
+      owner.activeGroupPid = groupPid;
+      await atomicJson(join(ctx.lock, 'owner.json'), owner);
+    };
+    return await runJob(ctx, queue[0], onSpawn);
   } finally {
     const recorded = JSON.parse(await readFile(join(ctx.lock, 'owner.json'), 'utf8').catch(() => '{}'));
     if (recorded.token === token) await rm(ctx.lock, { recursive: true, force: true });
   }
 }
-export async function recoverInterrupted(ctx) {
+export async function recoverInterrupted(ctx, { confirmedNoSurvivingChildren = false } = {}) {
+  check(process.platform === 'linux', 'manual recovery requires Linux process-group inspection');
+  check(confirmedNoSurvivingChildren === true,
+    'explicit operator confirmation that all subprocesses have exited required');
   const stat = await lstat(ctx.lock);
   check(stat.isDirectory() && !stat.isSymbolicLink(), 'unsafe worker lock');
   const owner = JSON.parse(await readFile(join(ctx.lock, 'owner.json'), 'utf8'));
@@ -177,6 +191,14 @@ export async function recoverInterrupted(ctx) {
   let alive = true;
   try { process.kill(owner.pid, 0); } catch (error) { if (error.code === 'ESRCH') alive = false; else throw error; }
   check(!alive, 'worker owner is still alive');
+  if (owner.activeGroupPid !== undefined) {
+    check(Number.isSafeInteger(owner.activeGroupPid) && owner.activeGroupPid > 0,
+      'invalid child process-group record');
+    let groupAlive = true;
+    try { process.kill(-owner.activeGroupPid, 0); }
+    catch (error) { if (error.code === 'ESRCH') groupAlive = false; else throw error; }
+    check(!groupAlive, 'detached subprocess group still alive; recovery denied');
+  }
   const interrupted = [];
   for (const job of await listJobs(ctx)) {
     if (job.status !== 'RUNNING') continue;
@@ -205,9 +227,11 @@ export async function serveQueue(ctx, { pollMs = 1000, signal } = {}) {
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
     const [command, stateDir, id, ...rest] = process.argv.slice(2);
+    const confirmRecovery = command === 'recover' && id === '--confirmed-no-surviving-children';
     check(!rest.length && ['submit','run','status','recover','serve'].includes(command) &&
-      typeof stateDir === 'string' && (command === 'status' ? !id || ID.test(id) : !id),
-      'usage: node forja/job-queue.mjs submit|run|status|recover|serve /absolute/private/state [job-id-for-status]');
+      typeof stateDir === 'string' && (command === 'status' ? !id || ID.test(id) :
+        command === 'recover' ? confirmRecovery : !id),
+      'usage: node forja/job-queue.mjs submit|run|status|serve /absolute/private/state [job-id-for-status] | recover /absolute/private/state --confirmed-no-surviving-children');
     const ctx = await queueContext({ stateDir });
     if (command === 'serve') {
       const abort = new AbortController();
@@ -216,7 +240,8 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
       await serveQueue(ctx, { signal: abort.signal });
     } else {
       const result = command === 'submit' ? await submitJob(ctx) : command === 'run' ? await runNext(ctx) :
-        command === 'status' ? (id ? await getJob(ctx,id) : await listJobs(ctx)) : await recoverInterrupted(ctx);
+        command === 'status' ? (id ? await getJob(ctx,id) : await listJobs(ctx)) :
+          await recoverInterrupted(ctx, { confirmedNoSurvivingChildren: confirmRecovery });
       process.stdout.write(`${JSON.stringify(result)}\n`);
       if (result?.status === 'FAILED' || result?.status === 'STALE') process.exitCode = 1;
     }
