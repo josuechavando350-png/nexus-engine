@@ -6,6 +6,7 @@ import { lstat, mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { repair } from './repair-agent.mjs';
+import { runTestEvidence } from './test-evidence.mjs';
 
 const digest = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const fail = (reason) => { throw new Error(reason); };
@@ -84,6 +85,7 @@ export async function verifiedRepair(task, repo = process.cwd()) {
   const baseline = path.join(dir, 'baseline');
   let added = false;
   let guardDigests;
+  let guardIdentities;
   try {
     await git(root, 'worktree', 'add', '--detach', baseline, revision);
     added = true;
@@ -93,12 +95,13 @@ export async function verifiedRepair(task, repo = process.cwd()) {
       if (tracked !== guard) fail(`Untracked guard test: ${guard}`);
       guardDigests.set(guard, await checkedGuardFile(baseline, guard));
     }
-    const pass = await command(process.execPath, ['--test', ...guards], baseline);
+    const pass = await runTestEvidence(baseline, guards);
+    guardIdentities = pass.identities;
     await assertOnlySourceEdits(baseline, []);
     for (const guard of guards) {
       if (await checkedGuardFile(baseline, guard) !== guardDigests.get(guard)) fail('Baseline guard changed during execution');
     }
-    if (pass.code !== 0 || pass.signal) fail(`Verification baseline must pass before repair: ${pass.output.slice(-2000)}`);
+    if (pass.code !== 0 || pass.signal) fail(`Verification baseline must pass before repair: ${pass.stdout.slice(-2000)}`);
   } finally {
     if (added) await git(root, 'worktree', 'remove', '--force', baseline);
     await rm(dir, { recursive: true, force: true });
@@ -112,7 +115,7 @@ export async function verifiedRepair(task, repo = process.cwd()) {
     if (await checkedGuardFile(proposal.workspace, guard) !== guardDigests.get(guard)) fail(`Guard test altered: ${guard}`);
   }
   await assertOnlySourceEdits(proposal.workspace, proposal.files);
-  const check = await command(process.execPath, ['--test', ...guards], proposal.workspace);
+  const check = await runTestEvidence(proposal.workspace, guards, guardIdentities);
   await assertOnlySourceEdits(proposal.workspace, proposal.files);
   for (const guard of guards) {
     if (await checkedGuardFile(proposal.workspace, guard) !== guardDigests.get(guard)) fail(`Guard test altered: ${guard}`);
@@ -126,7 +129,7 @@ export async function verifiedRepair(task, repo = process.cwd()) {
   if (check.code !== 0 || check.signal) {
     return { status: 'CANDIDATE_REJECTED_REGRESSION', revision, workspace: proposal.workspace,
       attempts: proposal.attempts, tests: proposal.tests, verificationTests: guards,
-      diffSha256: proposal.diffSha256, diagnostics: check.output.slice(-12_000) };
+      diffSha256: proposal.diffSha256, diagnostics: check.stdout.slice(-12_000) };
   }
   return { ...proposal, status: 'CANDIDATE_VERIFIED_GUARDS_PASS', verificationTests: guards,
     guardSha256: Object.fromEntries(guardDigests) };
