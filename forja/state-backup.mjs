@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 const ID = '[0-9a-f]{8}-(?:[0-9a-f]{4}-){3}[0-9a-f]{12}';
 const PATH = new RegExp(`^(?:jobs/${ID}\\.json|artifacts/${ID}/(?:inventory|audit|contract|consistency)\\.json|approval-redemptions/${ID}\\.json)$`);
 const UUID = new RegExp(`^${ID}$`);
+const EMPTY_ARTIFACT = new RegExp(`^artifacts/${ID}$`);
 const MAX_FILES = 10000, MAX_FILE = 2 * 1024 * 1024, MAX_TOTAL = 64 * 1024 * 1024;
 const digest = (data) => createHash('sha256').update(data).digest('hex');
 function demand(value, reason) { if (!value) throw new Error(`FORJA_BACKUP: ${reason}`); }
@@ -32,14 +33,15 @@ async function bytes(path) {
     return data;
   } finally { await fd.close(); }
 }
-async function paths(root, { manifest = false } = {}) {
+async function paths(root, { manifest = false, emptyArtifactDirs = [] } = {}) {
   const result = [];
   async function walk(dir, prefix = '') {
     const children = (await readdir(dir)).sort();
-    // Empty UUID artifact directories are valid paths but cannot be represented by
-    // a file-only snapshot manifest. Refuse them rather than silently losing state.
-    if (prefix.startsWith('artifacts/') && UUID.test(prefix.slice('artifacts/'.length))) {
-      demand(children.length > 0, 'empty artifact directory');
+    // An empty artifact directory is legitimate queued/interrupted state. Preserve it
+    // explicitly in the manifest, rather than silently omitting it on restore.
+    if (EMPTY_ARTIFACT.test(prefix) && children.length === 0) {
+      emptyArtifactDirs.push(prefix);
+      demand(result.length + emptyArtifactDirs.length <= MAX_FILES, 'too many state entries');
     }
     for (const name of children) {
       demand(name !== 'worker.lock' && name !== 'backup.lock', 'active or stale lock; stop and inspect worker');
@@ -55,7 +57,7 @@ async function paths(root, { manifest = false } = {}) {
       } else {
         demand(s.isFile() && PATH.test(rel), `unexpected state file: ${rel}`);
         result.push(rel);
-        demand(result.length <= MAX_FILES, 'too many files');
+        demand(result.length + emptyArtifactDirs.length <= MAX_FILES, 'too many state entries');
       }
     }
   }
@@ -66,7 +68,7 @@ async function writeSynced(path, data) {
   const fd = await open(path, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL | constants.O_NOFOLLOW, 0o600);
   try { await fd.writeFile(data); await fd.sync(); } finally { await fd.close(); }
 }
-async function populate(base, records) {
+async function populate(base, records, emptyArtifactDirs = []) {
   for (const { path, data } of records) {
     const components = path.split('/'); let dir = base;
     for (const part of components.slice(0, -1)) {
@@ -75,7 +77,11 @@ async function populate(base, records) {
     }
     await writeSynced(join(base, ...components), data);
   }
-  const dirs = ['jobs','artifacts','approval-redemptions', ...records.map(({path}) => path.startsWith('artifacts/') ? path.split('/').slice(0,2).join('/') : '')]
+  for (const path of emptyArtifactDirs) {
+    demand(EMPTY_ARTIFACT.test(path), 'invalid empty artifact directory');
+    await mkdir(join(base, path), { recursive: true, mode: 0o700 });
+  }
+  const dirs = ['jobs','artifacts','approval-redemptions', ...emptyArtifactDirs, ...records.map(({path}) => path.startsWith('artifacts/') ? path.split('/').slice(0,2).join('/') : '')]
     .filter(Boolean).filter((x, i, all) => all.indexOf(x) === i).sort((a,b) => b.length-a.length);
   for (const dir of dirs) {
     try { await syncDir(join(base, dir)); } catch (e) { if (e.code !== 'ENOENT') throw e; }
@@ -88,8 +94,16 @@ async function readSnapshot(snapshot) {
   const manifest = JSON.parse(manifestBytes.toString('utf8'));
   demand(manifest.schemaVersion === 1 && UUID.test(manifest.id) && basename(snapshot) === manifest.id &&
     Array.isArray(manifest.files) && manifest.files.length > 0 && manifest.files.length <= MAX_FILES, 'invalid manifest');
-  const listed = await paths(snapshot, { manifest: true });
+  const emptyArtifactDirs = [];
+  const listed = await paths(snapshot, { manifest: true, emptyArtifactDirs });
   demand(listed.join('\n') === manifest.files.map((item) => item.path).join('\n'), 'snapshot file set mismatch');
+  // Legacy v1 manifests do not declare empty directories. Newly signed snapshots
+  // must bind every such directory to their manifest bytes.
+  const recordedDirs = manifest.emptyArtifactDirs === undefined ? [] : manifest.emptyArtifactDirs;
+  demand(Array.isArray(recordedDirs) && recordedDirs.length <= MAX_FILES &&
+    recordedDirs.every((path, index) => typeof path === 'string' && EMPTY_ARTIFACT.test(path) &&
+      (index === 0 || recordedDirs[index - 1] < path)) &&
+    recordedDirs.join('\n') === emptyArtifactDirs.join('\n'), 'snapshot directory set mismatch');
   const records = []; let total = 0, prev = '';
   for (const item of manifest.files) {
     demand(item && typeof item.path === 'string' && PATH.test(item.path) && item.path > prev &&
@@ -99,12 +113,13 @@ async function readSnapshot(snapshot) {
     demand(total <= MAX_TOTAL && data.length === item.size && digest(data) === item.sha256, 'snapshot bytes mismatch');
     records.push({ path: item.path, data });
   }
-  return { manifest, manifestSha256: digest(manifestBytes), records };
+  return { manifest, manifestSha256: digest(manifestBytes), records, emptyArtifactDirs };
 }
 export async function createSnapshot(stateDir, backupRoot) {
   const state = await privateDir(stateDir), backup = await privateDir(backupRoot);
   demand(outside(state, backup) && outside(backup, state), 'state and backup must be disjoint');
-  const names = await paths(state);
+  const emptyArtifactDirs = [];
+  const names = await paths(state, { emptyArtifactDirs });
   demand(names.length > 0, 'empty state');
   const records = []; let total = 0;
   for (const path of names) {
@@ -118,12 +133,15 @@ export async function createSnapshot(stateDir, backupRoot) {
   const id = randomUUID(), stage = join(snapshots, `.partial-${id}`), published = join(snapshots, id);
   await mkdir(stage, { mode: 0o700 });
   try {
-    await populate(stage, records);
-    const manifest = { schemaVersion: 1, id, files: records.map(({path,data}) => ({path, size:data.length, sha256:digest(data)})) };
+    await populate(stage, records, emptyArtifactDirs);
+    const manifest = { schemaVersion: 1, id, files: records.map(({path,data}) => ({path, size:data.length, sha256:digest(data)})),
+      emptyArtifactDirs };
     const manifestBytes = Buffer.from(`${JSON.stringify(manifest)}\n`);
     await writeSynced(join(stage, 'manifest.json'), manifestBytes);
     await syncDir(stage);
-    demand((await paths(state)).join('\n') === names.join('\n'), 'source file set changed');
+    const remainingEmptyDirs = [];
+    demand((await paths(state, { emptyArtifactDirs: remainingEmptyDirs })).join('\n') === names.join('\n') &&
+      remainingEmptyDirs.join('\n') === emptyArtifactDirs.join('\n'), 'source file or directory set changed');
     for (const {path,data} of records) demand(digest(await bytes(join(state, path))) === digest(data), 'source changed during snapshot');
     await rename(stage, published); await syncDir(snapshots);
     return { id, count: records.length, bytes: total, manifestSha256: digest(manifestBytes) };
@@ -143,7 +161,7 @@ export async function restoreSnapshot(backupRoot, id, targetDir, expectedManifes
   const target = join(parent, basename(requested));
   demand(outside(backup, target) && outside(target, backup), 'restore destination overlaps backup');
   await lstat(target).then(() => demand(false, 'restore target already exists'), (e) => { if (e.code !== 'ENOENT') throw e; });
-  const { manifestSha256, records } = await readSnapshot(join(backup, 'snapshots', id));
+  const { manifestSha256, records, emptyArtifactDirs } = await readSnapshot(join(backup, 'snapshots', id));
   if (expectedManifestSha256 !== null) {
     demand(typeof expectedManifestSha256 === 'string' && /^[a-f0-9]{64}$/.test(expectedManifestSha256) &&
       manifestSha256 === expectedManifestSha256, 'authenticated manifest changed before restore');
@@ -151,7 +169,10 @@ export async function restoreSnapshot(backupRoot, id, targetDir, expectedManifes
   const stage = join(parent, `.forja-restore-${randomUUID()}`);
   await mkdir(stage, { mode: 0o700 });
   try {
-    await populate(stage, records);
+    await populate(stage, records, emptyArtifactDirs);
+    const restoredDirs = [];
+    demand((await paths(stage, { emptyArtifactDirs: restoredDirs })).join('\n') === records.map(({path}) => path).join('\n') &&
+      restoredDirs.join('\n') === emptyArtifactDirs.join('\n'), 'restore file or directory set mismatch');
     for (const {path,data} of records) demand(digest(await bytes(join(stage,path))) === digest(data), 'restore write mismatch');
     await rename(stage, target); await syncDir(parent);
     return { id, target, restoredFiles: records.length };
