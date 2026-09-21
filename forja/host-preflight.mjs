@@ -3,7 +3,7 @@
 import { spawnSync } from 'node:child_process';
 import { access, lstat, realpath, statfs } from 'node:fs/promises';
 import { constants } from 'node:fs';
-import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+import { isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const SHA = /^[a-f0-9]{40}$/;
