@@ -1,0 +1,146 @@
+name: AXIOMA FORJA Cross-Runner State Handoff
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  produce-state:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    outputs:
+      job_id: ${{ steps.snapshot.outputs.job_id }}
+      snapshot_id: ${{ steps.snapshot.outputs.snapshot_id }}
+      manifest_sha: ${{ steps.snapshot.outputs.manifest_sha }}
+      archive_sha: ${{ steps.snapshot.outputs.archive_sha }}
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Execute four real stages and snapshot external private state
+        id: snapshot
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          STATE="$(mktemp -d "$RUNNER_TEMP/forja-state-XXXXXX")"
+          BACKUP="$(mktemp -d "$RUNNER_TEMP/forja-backup-XXXXXX")"
+          chmod 700 "$STATE" "$BACKUP"
+          node forja/job-queue.mjs submit "$STATE" > "$RUNNER_TEMP/forja-handoff-queued.json"
+          node forja/job-queue.mjs run "$STATE" > "$RUNNER_TEMP/forja-handoff-run.json"
+          JOB_ID="$(node -p "JSON.parse(require('node:fs').readFileSync(process.env.RUNNER_TEMP + '/forja-handoff-queued.json','utf8')).id")"
+          node forja/state-inspector.mjs "$PWD" "$STATE" "$JOB_ID" > "$RUNNER_TEMP/forja-handoff-inspection.json"
+          node forja/state-backup.mjs create "$STATE" "$BACKUP" > "$RUNNER_TEMP/forja-handoff-snapshot.json"
+          SNAPSHOT_ID="$(node -p "JSON.parse(require('node:fs').readFileSync(process.env.RUNNER_TEMP + '/forja-handoff-snapshot.json','utf8')).id")"
+          MANIFEST_SHA="$(node -p "JSON.parse(require('node:fs').readFileSync(process.env.RUNNER_TEMP + '/forja-handoff-snapshot.json','utf8')).manifestSha256")"
+          COUNT="$(node -p "JSON.parse(require('node:fs').readFileSync(process.env.RUNNER_TEMP + '/forja-handoff-snapshot.json','utf8')).count")"
+          test "$COUNT" = 5
+          [[ "$JOB_ID" =~ ^[0-9a-f-]{36}$ && "$SNAPSHOT_ID" =~ ^[0-9a-f-]{36}$ && "$MANIFEST_SHA" =~ ^[0-9a-f]{64}$ ]]
+          node forja/state-backup.mjs verify "$BACKUP" "$SNAPSHOT_ID" > "$RUNNER_TEMP/forja-handoff-verified.json"
+          node --input-type=module -e '
+            import {readFile} from "node:fs/promises";
+            const base = process.env.RUNNER_TEMP;
+            const run = JSON.parse(await readFile(base + "/forja-handoff-run.json", "utf8"));
+            const check = JSON.parse(await readFile(base + "/forja-handoff-inspection.json", "utf8"));
+            const snapshot = JSON.parse(await readFile(base + "/forja-handoff-snapshot.json", "utf8"));
+            const verified = JSON.parse(await readFile(base + "/forja-handoff-verified.json", "utf8"));
+            if (run.status !== "SUCCEEDED" || run.sourceRevision !== process.env.SOURCE_SHA ||
+                check.status !== "PASS" || check.verifiedReports !== 4 || check.checkedSourceBytes !== 5 ||
+                verified.manifestSha256 !== snapshot.manifestSha256 || verified.count !== 5) process.exit(1);
+          '
+          tar -C "$BACKUP" -cf "$RUNNER_TEMP/forja-state-handoff.tar" snapshots
+          ARCHIVE_SHA="$(sha256sum "$RUNNER_TEMP/forja-state-handoff.tar" | cut -d' ' -f1)"
+          [[ "$ARCHIVE_SHA" =~ ^[0-9a-f]{64}$ ]]
+          printf 'job_id=%s\nsnapshot_id=%s\nmanifest_sha=%s\narchive_sha=%s\n' "$JOB_ID" "$SNAPSHOT_ID" "$MANIFEST_SHA" "$ARCHIVE_SHA" >> "$GITHUB_OUTPUT"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+      - name: Transfer bounded read-only snapshot to the other runner
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: forja-state-handoff-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/forja-state-handoff.tar
+          if-no-files-found: error
+          retention-days: 7
+
+  restore-on-new-runner:
+    needs: produce-state
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Checkout identical revision independently
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Fetch artifact produced by the previous runner
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: forja-state-handoff-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}
+      - name: Verify independent digest and restore to a new private state directory
+        env:
+          SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+          JOB_ID: ${{ needs.produce-state.outputs.job_id }}
+          SNAPSHOT_ID: ${{ needs.produce-state.outputs.snapshot_id }}
+          MANIFEST_SHA: ${{ needs.produce-state.outputs.manifest_sha }}
+          ARCHIVE_SHA: ${{ needs.produce-state.outputs.archive_sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+          [[ "$ARCHIVE_SHA" =~ ^[0-9a-f]{64}$ && "$MANIFEST_SHA" =~ ^[0-9a-f]{64}$ ]]
+          printf '%s  %s\n' "$ARCHIVE_SHA" "$RUNNER_TEMP/forja-state-handoff.tar" | sha256sum --check --status
+          BACKUP="$(mktemp -d "$RUNNER_TEMP/forja-new-backup-XXXXXX")"
+          chmod 700 "$BACKUP"
+          tar --no-same-owner -xf "$RUNNER_TEMP/forja-state-handoff.tar" -C "$BACKUP"
+          node forja/state-backup.mjs verify "$BACKUP" "$SNAPSHOT_ID" > "$RUNNER_TEMP/forja-new-verify.json"
+          export BACKUP SNAPSHOT_ID MANIFEST_SHA
+          RESTORE="$RUNNER_TEMP/forja-restored-state"
+          test ! -e "$RESTORE"
+          export RESTORE JOB_ID SOURCE_SHA
+          node --input-type=module -e '
+            import { readFile } from "node:fs/promises";
+            import { restoreSnapshot } from "./forja/state-backup.mjs";
+            const verified = JSON.parse(await readFile(process.env.RUNNER_TEMP + "/forja-new-verify.json", "utf8"));
+            if (verified.manifestSha256 !== process.env.MANIFEST_SHA || verified.count !== 5) process.exit(1);
+            const restored = await restoreSnapshot(process.env.BACKUP, process.env.SNAPSHOT_ID,
+              process.env.RESTORE, process.env.MANIFEST_SHA);
+            if (restored.restoredFiles !== 5) process.exit(1);
+          '
+          node forja/state-inspector.mjs "$PWD" "$RESTORE" "$JOB_ID" > "$RUNNER_TEMP/forja-restored-inspection.json"
+          node --input-type=module -e '
+            import { readFile } from "node:fs/promises";
+            const proof = JSON.parse(await readFile(process.env.RUNNER_TEMP + "/forja-restored-inspection.json", "utf8"));
+            if (proof.status !== "PASS" || proof.jobStatus !== "SUCCEEDED" ||
+                proof.jobId !== process.env.JOB_ID || proof.sourceRevision !== process.env.SOURCE_SHA ||
+                proof.verifiedReports !== 4 || proof.checkedSourceBytes !== 5) process.exit(1);
+          '
+          node forja/job-queue.mjs submit "$RESTORE" > "$RUNNER_TEMP/forja-second-job.json"
+          node forja/job-queue.mjs run "$RESTORE" > "$RUNNER_TEMP/forja-second-result.json"
+          node --input-type=module -e '
+            import { readFile } from "node:fs/promises";
+            const dir = process.env.RUNNER_TEMP;
+            const newJob = JSON.parse(await readFile(dir + "/forja-second-job.json", "utf8"));
+            const result = JSON.parse(await readFile(dir + "/forja-second-result.json", "utf8"));
+            if (result.status !== "SUCCEEDED" || result.id !== newJob.id ||
+                result.id === process.env.JOB_ID || result.sourceRevision !== process.env.SOURCE_SHA ||
+                result.completed.join(",") !== "inventory,audit,contract,consistency") process.exit(1);
+          '
+          node forja/state-inspector.mjs "$PWD" "$RESTORE" "$JOB_ID" > /dev/null
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
