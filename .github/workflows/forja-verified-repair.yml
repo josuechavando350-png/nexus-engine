@@ -4,7 +4,10 @@ on:
     paths:
       - 'forja/verified-repair.mjs'
       - 'forja/repair-agent.mjs'
+      - 'forja/test-evidence.mjs'
+      - 'forja/test-event-reporter.mjs'
       - 'forja/tests/verified-repair.test.mjs'
+      - 'forja/tests/test-evidence.test.mjs'
       - '.github/workflows/forja-verified-repair.yml'
   workflow_dispatch:
 permissions:
@@ -20,7 +23,9 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Verify syntax and real fixture regressions, with no model or secrets
+      - name: Verify independent regressions and real executed assertions
         run: |
           node --check forja/verified-repair.mjs
-          node --test forja/tests/repair-agent.test.mjs forja/tests/local-model.test.mjs forja/tests/verified-repair.test.mjs
+          node --check forja/test-evidence.mjs
+          node --check forja/test-event-reporter.mjs
+          node --test forja/tests/repair-agent.test.mjs forja/tests/local-model.test.mjs forja/tests/verified-repair.test.mjs forja/tests/test-evidence.test.mjs
