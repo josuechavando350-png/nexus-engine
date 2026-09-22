@@ -34,7 +34,7 @@ function checkedCircuit(input){
   return {args:['--circuit-stdin',encoded.join(';'),input.outputs.join(',')],stdin:input.inputs.map(x=>x?'1':'0').join(''),expected:input.outputs.map(n=>wires[n]),circuitSha256:hash(JSON.stringify({inputs:input.inputs.length,gates:input.gates,outputs:input.outputs}))};
 }
 function invoke(binary,pin,args,stdin){
-  if(typeof binary!=='string'||!binary||/[\x00-\x1f]/.test(binary))throw new TypeError('invalid binary path');
+  if(typeof binary!=='string'||!binary||Array.from(binary).some(char=>char.charCodeAt(0)<32))throw new TypeError('invalid binary path');
   if(typeof pin!=='string'||!/^[a-f0-9]{64}$/.test(pin))throw new TypeError('expectedBinarySha256 must be an independently trusted sha256');
   let verifiedBytes;
   try{verifiedBytes=readFileSync(resolve(binary));}catch{throw new Error('NEMESIS_89_NATIVE_BINARY_MISSING');}
