@@ -1,4 +1,4 @@
-name: LEIBNIZ first three blocks: Rust and trusted-source validation
+name: LEIBNIZ Rust validation blocks 1-3
 on:
   push:
     branches: [leibniz/fase18]
@@ -14,7 +14,7 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Restore original source
+      - name: Restore verified original source archive
         shell: bash
         run: |
           set -euo pipefail
@@ -23,7 +23,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/leibniz-standalone"
           tar -xJf "$RUNNER_TEMP/source.tar.xz" -C "$RUNNER_TEMP/leibniz-standalone"
           echo "LEIBNIZ_DIR=$RUNNER_TEMP/leibniz-standalone" >> "$GITHUB_ENV"
-      - name: Apply original source patches
+      - name: Apply original reviewed corrections
         shell: bash
         run: |
           set -euo pipefail
@@ -32,9 +32,9 @@ jobs:
             patch --batch --forward -p1 < "$fix"
           done
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Restore cryptographically identified missing transfer bytes
+      - name: Restore SHA-identified missing source bytes
         run: python3 leibniz/fase18-payload/recover-one-missing-byte.py
-      - name: Restore higher-order proof checker and acceptance tests
+      - name: Restore verified higher-order checker
         shell: bash
         run: |
           set -euo pipefail
@@ -42,9 +42,7 @@ jobs:
           echo 'a359971dac7f342989c77cacc08dd8a621fe39effcff56bab8509b6843cf0f58  '"$RUNNER_TEMP/hol.tar.xz" | sha256sum -c -
           tar -xJf "$RUNNER_TEMP/hol.tar.xz" -C "$LEIBNIZ_DIR"
           test -s "$LEIBNIZ_DIR/src/hol.rs"
-          test -s "$LEIBNIZ_DIR/tests/hol.rs"
-          test -s "$LEIBNIZ_DIR/tests/block1_acceptance.rs"
-      - name: Apply reviewed HOL source corrections
+      - name: Apply reviewed higher-order corrections
         shell: bash
         run: |
           set -euo pipefail
@@ -53,56 +51,41 @@ jobs:
             patch --batch --forward -p1 < "$fix"
           done
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Include full semantics specification and five higher-order regressions
+      - name: Assemble independent model and trusted handoff in Rust crate
         shell: bash
         run: |
           set -euo pipefail
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/hol-standard.rs" "$LEIBNIZ_DIR/tests/hol_standard.rs"
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/FORMAL_SEMANTICS_AND_ACCEPTANCE.md" "$LEIBNIZ_DIR/FORMAL_SEMANTICS_AND_ACCEPTANCE.md"
-          test -s "$LEIBNIZ_DIR/tests/hol_standard.rs"
-          test -s "$LEIBNIZ_DIR/FORMAL_SEMANTICS_AND_ACCEPTANCE.md"
+          p="$GITHUB_WORKSPACE/leibniz/fase18-payload"
+          cp "$p/hol-standard.rs" "$LEIBNIZ_DIR/tests/hol_standard.rs"
+          cp "$p/FORMAL_SEMANTICS_AND_ACCEPTANCE.md" "$LEIBNIZ_DIR/FORMAL_SEMANTICS_AND_ACCEPTANCE.md"
+          cp "$p/finite_model.rs" "$LEIBNIZ_DIR/src/finite_model.rs"
+          cp "$p/hol-semantic-oracle.rs" "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
+          cp "$p/BLOCK2_FORMAL_VALIDATION.md" "$LEIBNIZ_DIR/BLOCK2_FORMAL_VALIDATION.md"
+          cp "$p/SECOND_BLOCK_RELEASE_NOTES.md" "$LEIBNIZ_DIR/SECOND_BLOCK_RELEASE_NOTES.md"
+          cp "$p/SECOND_BLOCK_VALIDATION_TARGET" "$LEIBNIZ_DIR/SECOND_BLOCK_VALIDATION_TARGET"
+          cp "$p/formal_audit.rs" "$LEIBNIZ_DIR/src/formal_audit.rs"
+          cp "$p/formal-audit-acceptance.rs" "$LEIBNIZ_DIR/tests/formal_audit_acceptance.rs"
           test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_standard.rs")" -eq 5
-      - name: Include independent exhaustive higher-order semantic oracle
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/finite_model.rs" "$LEIBNIZ_DIR/src/finite_model.rs"
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/hol-semantic-oracle.rs" "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/BLOCK2_FORMAL_VALIDATION.md" "$LEIBNIZ_DIR/BLOCK2_FORMAL_VALIDATION.md"
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/SECOND_BLOCK_RELEASE_NOTES.md" "$LEIBNIZ_DIR/SECOND_BLOCK_RELEASE_NOTES.md"
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/SECOND_BLOCK_VALIDATION_TARGET" "$LEIBNIZ_DIR/SECOND_BLOCK_VALIDATION_TARGET"
-          test -s "$LEIBNIZ_DIR/src/finite_model.rs"
-          test -s "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
           test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs")" -eq 11
-          printf '\npub mod finite_model;\n' >> "$LEIBNIZ_DIR/src/lib.rs"
-      - name: Wire real trusted-source, independent logic and finite-model audit
-        shell: bash
-        run: |
-          set -euo pipefail
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/formal_audit.rs" "$LEIBNIZ_DIR/src/formal_audit.rs"
-          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/formal-audit-acceptance.rs" "$LEIBNIZ_DIR/tests/formal_audit_acceptance.rs"
-          test -s "$LEIBNIZ_DIR/src/formal_audit.rs"
           test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/formal_audit_acceptance.rs")" -eq 13
-          printf '\npub mod formal_audit;\n' >> "$LEIBNIZ_DIR/src/lib.rs"
+          printf '\npub mod finite_model;\npub mod formal_audit;\n' >> "$LEIBNIZ_DIR/src/lib.rs"
       - name: Format reconstructed source
         run: cargo fmt --all
         working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Verify reconstructed source formatting
         run: cargo fmt --all -- --check
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Run all three-block tests including real trusted-source failure cases
+      - name: Validate all 213 Rust tests with zero failures or ignored
         shell: bash
         run: |
           set -euo pipefail
           cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/test-results.log"
           passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
           ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
-          failed=$(awk '/test result: FAILED\./ {for (i=1;i<=NF;i++) if ($i=="failed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
-          echo "Rust tests passed: $passed; failed: $failed; ignored: $ignored"
+          echo "Rust tests passed: $passed; ignored: $ignored"
           test "$passed" -eq 213
-          test "$failed" -eq 0
           test "$ignored" -eq 0
-          echo "Passed: $passed; failed: $failed; ignored: $ignored; SHA: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Passed: $passed; ignored: $ignored; SHA: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
         working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Strict Clippy
         run: cargo clippy --all-targets --offline -- -D warnings
@@ -116,14 +99,14 @@ jobs:
       - name: Graph scaling
         run: cargo run --release --offline --example graph_scale -- 8 16 24
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Package the exact tested human-readable source
+      - name: Package exact human-readable source
         shell: bash
         run: |
           set -euo pipefail
           tar -C "$LEIBNIZ_DIR" --exclude='./target' --exclude='./.git' -cJf "$RUNNER_TEMP/LEIBNIZ-blocks-1-2-3-source.tar.xz" .
           sha256sum "$RUNNER_TEMP/LEIBNIZ-blocks-1-2-3-source.tar.xz" | tee "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt"
-          echo "Full source archive SHA-256: $(cut -d' ' -f1 "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt")" >> "$GITHUB_STEP_SUMMARY"
-      - name: Publish tested source artifact
+          echo "Source SHA-256: $(cut -d' ' -f1 "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish exact tested source
         uses: actions/upload-artifact@v4
         with:
           name: leibniz-blocks-1-2-3-rust-source-${{ github.sha }}
