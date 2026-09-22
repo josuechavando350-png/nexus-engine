@@ -1,8 +1,14 @@
-/** GAUSS native Némesis #89: actual Rust TFHE, not full Némesis certification. */
+/**
+ * GAUSS native entrypoint for Némesis #89. Only the byte-pinned executable
+ * copied into a private temporary directory is launched: the source path
+ * cannot be swapped between SHA-256 verification and process creation.
+ * This protects executable identity, NOT trusted key provenance or TFHE security.
+ */
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {existsSync,readFileSync} from 'node:fs';
-import {resolve} from 'node:path';
+import {readFileSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {tmpdir} from 'node:os';
+import {resolve,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 
 const DEFAULT_BINARY=fileURLToPath(new URL(`./native/fhe/target/release/nemesis-fhe${process.platform==='win32'?'.exe':''}`,import.meta.url));
@@ -30,14 +36,22 @@ function checkedCircuit(input){
 function invoke(binary,pin,args,stdin){
   if(typeof binary!=='string'||!binary||/[\x00-\x1f]/.test(binary))throw new TypeError('invalid binary path');
   if(typeof pin!=='string'||!/^[a-f0-9]{64}$/.test(pin))throw new TypeError('expectedBinarySha256 must be an independently trusted sha256');
-  if(!existsSync(binary))throw new Error('NEMESIS_89_NATIVE_BINARY_MISSING');
-  const location=resolve(binary),digest=hash(readFileSync(location));
+  let verifiedBytes;
+  try{verifiedBytes=readFileSync(resolve(binary));}catch{throw new Error('NEMESIS_89_NATIVE_BINARY_MISSING');}
+  if(verifiedBytes.byteLength>128*1024*1024)throw new Error('NEMESIS_89_NATIVE_BINARY_TOO_LARGE');
+  const digest=hash(verifiedBytes);
   if(digest!==pin)throw new Error('NEMESIS_89_BINARY_PIN_MISMATCH');
-  const run=spawnSync(location,args,{input:stdin,encoding:'utf8',timeout:240000,maxBuffer:1024*1024,shell:false,windowsHide:true});
-  if(run.error||run.status!==0)throw new Error('NEMESIS_89_NATIVE_EXECUTION_FAILED');
-  try{return {data:JSON.parse(run.stdout),binarySha256:digest};}catch{throw new Error('NEMESIS_89_NATIVE_INVALID_JSON');}
+  const dir=mkdtempSync(join(tmpdir(),'gauss-nemesis89-'));
+  try{
+    // The temp directory is private (0700). Never execute the mutable source path.
+    const executable=join(dir,process.platform==='win32'?'nemesis-fhe.exe':'nemesis-fhe');
+    writeFileSync(executable,verifiedBytes,{mode:0o700,flag:'wx'});
+    const run=spawnSync(executable,args,{input:stdin,encoding:'utf8',timeout:240000,maxBuffer:1024*1024,shell:false,windowsHide:true});
+    if(run.error||run.status!==0)throw new Error('NEMESIS_89_NATIVE_EXECUTION_FAILED');
+    try{return {data:JSON.parse(run.stdout),binarySha256:digest};}catch{throw new Error('NEMESIS_89_NATIVE_INVALID_JSON');}
+  }finally{rmSync(dir,{recursive:true,force:true});}
 }
-/** Caller supplies an out-of-band trusted SHA-256 of the exact compiled binary. */
+/** Caller MUST obtain the SHA-256 pin from an independently trusted build. */
 export function runGaussNemesis89(input){
   fields(input,'motor 89',['action','a','b','inputs','gates','outputs','binary','expectedBinarySha256'],['action','expectedBinarySha256']);
   const binary=input.binary??DEFAULT_BINARY;
