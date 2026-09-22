@@ -28,6 +28,13 @@ jobs:
           node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
           node gauss/nemesis/engine/scripts/smoke-100.mjs
           node --test gauss/nemesis/tests/*.test.mjs
+      - name: Restore and revalidate exact original archive bytes after test evidence changed
+        shell: bash
+        run: |
+          rm -f -- gauss/nemesis/engine/evidence/smoke-100-v17.json
+          python3 gauss/nemesis/scripts/import-source.py
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          test "$(find gauss/nemesis/engine/ -type f | wc -l)" -eq 297
       - name: Commit exactly the checked original source to the Némesis PR branch
         shell: bash
         run: |
