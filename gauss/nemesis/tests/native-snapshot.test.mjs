@@ -11,7 +11,9 @@ test('GAUSS #89 executes verified private binary snapshot rather than replaceabl
  const dir=mkdtempSync(join(tmpdir(),'gauss-nemesis89-snapshot-'));
  try{
   const binary=join(dir,'replaceable-bin'),marker=join(dir,'executed-path');
-  const script=`#!/bin/sh\nprintf '%s\\n' "$0" > '${marker}'\nprintf '%s\\n' '{"motor":89,"backend":"TFHE_BOOLEAN","sum":3,"verified":true}'\n`;
+  // Consume the subprocess's supplied stdin before exiting; otherwise the host
+  // may receive EPIPE while writing the final bytes, even if stdout is correct.
+  const script=`#!/bin/sh\ncat >/dev/null\nprintf '%s\\n' "$0" > '${marker}'\nprintf '%s\\n' '{"motor":89,"backend":"TFHE_BOOLEAN","sum":3,"verified":true}'\n`;
   writeFileSync(binary,script,{mode:0o700});
   const expectedBinarySha256=createHash('sha256').update(script).digest('hex');
   const result=runGaussNemesis89({action:'native-add-u8',a:1,b:2,binary,expectedBinarySha256});
