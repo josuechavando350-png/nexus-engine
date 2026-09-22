@@ -1,0 +1,9 @@
+--- a/tests/hol.rs
++++ b/tests/hol.rs
+@@ -251,5 +251,5 @@
+     let f=c("market_proposition",p());
+     let proof=D::Hypothesis(0);
+     assert!(check(&f,&proof).is_err());
+-    verify(&f,&[f.clone()],&proof,Budget::default()).unwrap();
++    verify(&f,std::slice::from_ref(&f),&proof,Budget::default()).unwrap();
+ }
