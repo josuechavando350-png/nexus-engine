@@ -31,15 +31,20 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
-      - name: Verify exact original ZIP, 297 files and original source-lock
+      - name: Verify pinned ZIP and existing reviewed source; import only when source is absent
         shell: bash
         run: |
           BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           test "$BRANCH" = 'feat/gauss-nemesis-rust-integration'
-          python3 gauss/nemesis/scripts/import-source.py
+          printf '%s  %s\n' 'dfb28dd86060dc31edae1b930a208adabb1c66606e26da88a49790fdbf5884c6' 'gauss/nemesis/import/GAUSS_NEMESIS_v19_fuente_para_subir_GitHub_NO_CERTIFICADO.zip' | sha256sum -c -
+          if test -f gauss/nemesis/engine/src/index.mjs; then
+            echo 'NEMESIS_ORIGINAL_ALREADY_IMPORTED; verify reviewed lock instead of overwriting files'
+          else
+            python3 gauss/nemesis/scripts/import-source.py
+          fi
           node gauss/nemesis/scripts/verify-source-lock.mjs
           test "$(find gauss/nemesis/engine/ -type f | wc -l)" -eq 297
-      - name: Commit only the byte-identical original source, without claiming certification
+      - name: Commit original sources only if absent, without claiming certification
         shell: bash
         run: |
           BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
@@ -55,7 +60,7 @@ jobs:
             git commit -m 'GAUSS: import 297 SHA-verified original Némesis source files (not certified)'
             git push origin "HEAD:${BRANCH}"
           fi
-      - name: Test original source; any failure leaves PR red and requires a reviewed fix
+      - name: Test reviewed source; any failure leaves PR red
         shell: bash
         run: |
           node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
