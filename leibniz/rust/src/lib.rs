@@ -18,6 +18,7 @@ pub mod schema;
 pub mod semantic_archive;
 pub mod semantics;
 pub mod sequential_ingest;
+pub mod source_policy;
 pub mod trusted_head;
 
 pub use reasoning::{
