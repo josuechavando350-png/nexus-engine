@@ -1,0 +1,36 @@
+name: GAUSS Nemesis 69 real ML-KEM storage
+on:
+  pull_request:
+    paths:
+      - 'gauss/nemesis/**'
+      - '.github/workflows/gauss-nemesis-mlkem69.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mlkem69:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.20.0'
+      - name: Require real native ML-KEM encapsulation and decapsulation, not a fallback
+        run: |
+          node -e "const c=require('node:crypto');if(typeof c.encapsulate!=='function'||typeof c.decapsulate!=='function')process.exit(1)"
+      - name: Verify imported source integrity before cryptographic tests
+        run: node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Run all original ML-KEM, Nash and QAOA tests without any skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-reporter=tap gauss/nemesis/engine/test/crypto-nash-qaoa.test.mjs | tee "$RUNNER_TEMP/nemesis69.tap"
+          grep -qx '# tests 8' "$RUNNER_TEMP/nemesis69.tap"
+          grep -qx '# pass 8' "$RUNNER_TEMP/nemesis69.tap"
+          grep -qx '# fail 0' "$RUNNER_TEMP/nemesis69.tap"
+          grep -qx '# skipped 0' "$RUNNER_TEMP/nemesis69.tap"
+      - name: Verify source was not mutated and checkout remains clean
+        run: |
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          test -z "$(git status --porcelain --untracked-files=no)"
