@@ -4,20 +4,25 @@ La integración conserva los identificadores originales de Némesis bajo `gauss:
 
 ## Entrada nativa operativa de #89
 
-El código del PR expone `runGaussNemesis('89', {action:'native-add-u8',a:255,b:255,expectedBinarySha256:'<SHA-256 CONFIABLE>'})` y `native-circuit` con `inputs`, `gates` y `outputs`. Rust recibe los bits privados exclusivamente por stdin. El hash del ejecutable se exige como pin de confianza aportado por quien lo llama; **calcularlo sobre el mismo binario en CI es una prueba de consistencia, no un certificado externo de procedencia**. El puente comprueba independientemente el resultado y se niega a continuar sin binario/pin o con datos y respuestas inválidos. Para otros IDs, la API falla explícitamente si falta la fuente original.
+La API `runGaussNemesis('89', {action:'native-add-u8',a:255,b:255,expectedBinarySha256:'<SHA-256 CONFIABLE>'})` y la acción `native-circuit` invocan el ejecutable Rust real. Los bits privados llegan por stdin; se requiere un hash confiable del ejecutable y las salidas se comprueban mediante un oráculo booleano local. Calcular SHA-256 del mismo binario durante CI es una prueba de consistencia, no una certificación externa de procedencia. El puente nunca reemplaza los restantes motores por stubs.
 
-El workflow `.github/workflows/gauss-nemesis-rust.yml` instala Rust/Cargo y ejecuta `cargo test --release` de TFHE, pruebas JS del adaptador, suma y circuito a través de la API pública de GAUSS. Guarda binario, Cargo.lock y evidencia de esa revisión como artefacto de CI. La primera ejecución exitosa de `rust-native` fue GitHub Actions #35746029691; el gate **gauss-integration falló correctamente por la fuente JavaScript aún ausente**. Los tests del #89 cubren funcionalidades booleanas acotadas; no certifican su seguridad criptográfica en producción ni el alcance completo del #89.
+Rust y Cargo 1.98.1 fueron instalados y probados en GitHub Actions; el job `rust-native` #35746029691 compiló `tfhe = 1.8.1`, pasó las cinco pruebas nativas y devolvió `255+255=510` y `[true,true,false]` con circuitos cifrados. La nueva revisión añade una prueba del #89 **a través de la API pública de GAUSS** y conserva como artefactos el binario, Cargo.lock y la evidencia; sus resultados deben verificarse en el run nuevo, no extrapolar el job anterior.
 
-## Pruebas y requisitos pendientes
+## Candado de identidad de fuente para los 100
+
+`source-lock.json` fija hashes calculados sobre el archivo Némesis v17 local: 100 archivos JavaScript bajo `engine/src/`, 31 pruebas, 130 ejemplos, el inventario de 100 ID y `package.json`. `node gauss/nemesis/scripts/verify-source-lock.mjs` bloquea ausencias o cualquier cambio de bytes. Esta comprobación **no verifica el alcance conceptual**: asegura que llega exactamente la versión auditada en local. El gate `gauss-integration` deliberadamente falla hasta que se importe `engine/` y pasen las pruebas completas sobre el mismo SHA.
+
+## Validación antes de fusionar
 
 ```bash
 node --test gauss/nemesis/tests/native-fhe.test.mjs
 cargo test --release --manifest-path gauss/nemesis/native/fhe/Cargo.toml
 node gauss/nemesis/scripts/verify-native-89.mjs
-# Los siguientes requieren transferir el código íntegro Némesis v17:
-node --test gauss/nemesis/tests/bridge.test.mjs
+# Lo siguiente requiere la fuente completa bajo gauss/nemesis/engine/:
+node gauss/nemesis/scripts/verify-source-lock.mjs
+node --test gauss/nemesis/tests/*.test.mjs
+node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
 node gauss/nemesis/engine/scripts/smoke-100.mjs
-node --test gauss/nemesis/engine/test/*.test.mjs
 ```
 
-La transferencia debe preservar el inventario, las pruebas, todos los archivos de `src/` y los ejemplos de Némesis, sin reemplazar funcionalidades por variantes reducidas. Aún falta evaluar el alcance original de todos los motores; en particular #81 no implementa todavía una firma por isogenias completa y #95 requiere una ceremonia Groth16 de confianza y prueba real. No se deben confundir 100 entradas registradas o 100 ejemplos con 100 motores certificados.
+La transferencia debe preservar inventario, fuentes, todas las pruebas y ejemplos. Aún faltan cubrir el alcance original del #81 (firma por isogenias), seguridad/alcance de producción #89 y ceremonia confiable y verificación real Groth16 #95. El motor #89 depende de la biblioteca Rust `tfhe`, por lo que no es independiente de terceros. No confundir un inventario de 100 IDs ni 100 ejemplos con 100 motores certificados.
