@@ -10,6 +10,9 @@ on:
     paths:
       - 'gauss/nemesis/import/GAUSS_NEMESIS_v19_fuente_para_subir_GitHub_NO_CERTIFICADO.zip'
       - '.github/workflows/gauss-nemesis-source-import.yml'
+concurrency:
+  group: gauss-nemesis-original-source-import-449
+  cancel-in-progress: false
 permissions:
   contents: write
 jobs:
@@ -28,38 +31,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22.16.0'
-      - name: Refuse other branches, wrong archive, changed bytes or unsafe ZIP entries
+      - name: Verify exact original ZIP, 297 files and original source-lock
         shell: bash
         run: |
           BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           test "$BRANCH" = 'feat/gauss-nemesis-rust-integration'
-          node --version
-          python3 gauss/nemesis/scripts/import-source.py
-          node gauss/nemesis/scripts/verify-source-lock.mjs
-      - name: Verify the imported original 100 examples and JavaScript test suite
-        shell: bash
-        run: |
-          node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
-          node gauss/nemesis/engine/scripts/smoke-100.mjs
-          node --test gauss/nemesis/tests/*.test.mjs
-      - name: Restore the exact 297 pinned files after tests generate or overwrite evidence
-        shell: bash
-        run: |
-          rm -rf -- gauss/nemesis/engine
           python3 gauss/nemesis/scripts/import-source.py
           node gauss/nemesis/scripts/verify-source-lock.mjs
           test "$(find gauss/nemesis/engine/ -type f | wc -l)" -eq 297
-      - name: Commit exactly the checked original source to the Némesis PR branch
+      - name: Commit only the byte-identical original source, without claiming certification
         shell: bash
         run: |
           BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
           test "$BRANCH" = 'feat/gauss-nemesis-rust-integration'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- gauss/nemesis/engine/
+          git add -f -- gauss/nemesis/engine/
           if git diff --cached --quiet; then
             echo 'NEMESIS_SOURCE_ALREADY_IMPORTED'
           else
-            git commit -m 'GAUSS: import complete SHA-verified original Némesis v17 source'
+            test "$(git diff --cached --name-only -- gauss/nemesis/engine/ | wc -l)" -eq 297
+            test "$(git diff --cached --name-only | wc -l)" -eq 297
+            git commit -m 'GAUSS: import 297 SHA-verified original Némesis source files (not certified)'
             git push origin "HEAD:${BRANCH}"
           fi
+      - name: Test original source; any failure leaves PR red and requires a reviewed fix
+        shell: bash
+        run: |
+          node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
+          node gauss/nemesis/engine/scripts/smoke-100.mjs
+          node --test gauss/nemesis/tests/*.test.mjs
