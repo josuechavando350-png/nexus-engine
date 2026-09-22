@@ -1,0 +1,6 @@
+import {object,array,number,integer} from './finite-tools.mjs';
+const wrap=x=>Math.atan2(Math.sin(x),Math.cos(x));
+export function filterSO2Invariant(input){object(input,'so2',['initialAngle','initialVariance','processVariance','measurementVariance','angularVelocity','dt','measurements'],['initialAngle','initialVariance','processVariance','measurementVariance','angularVelocity','dt','measurements']);
+ let a=wrap(number(input.initialAngle,'initialAngle')),p=number(input.initialVariance,'initialVariance',1e-15,1e9);const q=number(input.processVariance,'processVariance',0,1e9),r=number(input.measurementVariance,'measurementVariance',1e-15,1e9),omega=number(input.angularVelocity,'angularVelocity'),dt=number(input.dt,'dt',1e-8,1e6),ms=array(input.measurements,'measurements',1,100000);const history=[];
+ for(const [i,y] of ms.entries()){a=wrap(a+omega*dt);p+=q*dt;if(y!==null){number(y,`measurements[${i}]`);const e=wrap(y-a),k=p/(p+r);a=wrap(a+k*e);p=(1-k)*p;history.push({angle:a,variance:p,innovation:e,gain:k});}else history.push({angle:a,variance:p,innovation:null,gain:null});}
+ return {domain:'SO2_INVARIANT_SCALAR_KALMAN',history,finalAngle:a,finalVariance:p,note:'Wrapped SO(2) angle with scalar Gaussian local-error covariance; not general matrix Lie-group filtering.'};}

@@ -1,0 +1,26 @@
+{
+  "certificate": {
+    "statement": {
+      "beforeHash": "07d9d99077dd0de24c4dba20bc481805069b79f6e61daf62123cad07e8b2a315",
+      "afterHash": "edebc9373442e6f4a5331052e7121ce4526eb288666ae78a587fe060dc7daca0",
+      "invariantKeys": [
+        "safe"
+      ],
+      "context": "job",
+      "epoch": 7
+    },
+    "signature": "4hQ07Nbqvz09yEXsO/pm+o42qhArVd26tXfodaFJ/gyTfj+N3JnF5d9ZwmHz3IRXRnzhst1Iyx6wTqPXhNDDCQ==",
+    "algorithm": "Ed25519"
+  },
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA0c5HEGrBYtFJcLj/LLD/3xvKOJSitVwmL13CwKJrPIo=\n-----END PUBLIC KEY-----\n",
+  "before": {
+    "safe": true,
+    "count": 1
+  },
+  "after": {
+    "safe": true,
+    "count": 2
+  },
+  "context": "job",
+  "epoch": 7
+}

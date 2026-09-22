@@ -1,0 +1,19 @@
+{
+  "name": "nemesis-motors",
+  "version": "17.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Némesis: 100 original engine IDs; v17 secure stdin-only TFHE CLI and fail-closed Groth16 tool status, native verification pending",
+  "scripts": {
+    "test": "node --test",
+    "smoke:100": "node scripts/smoke-100.mjs",
+    "demo": "node scripts/demo-storage-privacy.mjs",
+    "verify:fhe": "node scripts/verify-native-fhe.mjs",
+    "verify:snark": "node scripts/verify-snark-95.mjs",
+    "verify:mlkem": "node scripts/verify-mlkem-69.mjs"
+  },
+  "engines": {
+    "node": ">=22.16.0"
+  },
+  "license": "UNLICENSED"
+}

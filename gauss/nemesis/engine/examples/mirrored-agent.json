@@ -1,0 +1,1 @@
+{"states":["idle","pending","done","error"],"initial":"idle","transitions":[{"from":"idle","action":"submit","to":"pending"},{"from":"pending","action":"approve","to":"done"},{"from":"pending","action":"reject","to":"error"}],"schedule":[{"time":0,"action":"submit"},{"time":10,"action":"approve"}],"forbiddenStates":["error"]}

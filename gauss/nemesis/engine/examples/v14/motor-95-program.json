@@ -1,0 +1,9 @@
+{
+  "witnessCount": 3,
+  "nodes": [
+    {"id":"n0","op":"mul","left":"w0","right":"w1"},
+    {"id":"n1","op":"sub","left":"n0","right":{"const":"3"}},
+    {"id":"n2","op":"select","cond":"w2","whenTrue":"n1","whenFalse":"w0"}
+  ],
+  "output":"n2"
+}

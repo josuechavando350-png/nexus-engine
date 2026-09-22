@@ -1,0 +1,16 @@
+{
+  "transitions": [
+    [
+      [
+        1
+      ]
+    ]
+  ],
+  "rewards": [
+    [
+      1
+    ]
+  ],
+  "discount": 0.5,
+  "tolerance": 1e-11
+}

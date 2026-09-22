@@ -1,0 +1,32 @@
+{
+  "action": "simulate",
+  "payload": {
+    "counts": [
+      10,
+      10
+    ],
+    "payoffs": [
+      [
+        1,
+        0
+      ],
+      [
+        0,
+        1
+      ]
+    ],
+    "mutation": [
+      [
+        0.99,
+        0.01
+      ],
+      [
+        0.01,
+        0.99
+      ]
+    ],
+    "generations": 10,
+    "replicates": 10,
+    "seed": 909
+  }
+}

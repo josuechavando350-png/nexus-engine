@@ -1,0 +1,20 @@
+{
+  "program": {
+    "variables": {
+      "phase": { "domain": ["READY", "REVIEW", "DONE"], "initial": "READY" },
+      "balance": { "domain": [0, 1, 2], "initial": 0 }
+    },
+    "commands": [
+      { "id": "submit", "guard": { "op": "EQ", "left": { "op": "VAR", "name": "phase" }, "right": { "op": "CONST", "value": "READY" } }, "updates": { "phase": { "op": "CONST", "value": "REVIEW" } } },
+      { "id": "approve", "guard": { "op": "EQ", "left": { "op": "VAR", "name": "phase" }, "right": { "op": "CONST", "value": "REVIEW" } }, "updates": { "phase": { "op": "CONST", "value": "DONE" }, "balance": { "op": "ADD", "left": { "op": "VAR", "name": "balance" }, "right": { "op": "CONST", "value": 1 } } } }
+    ],
+    "predicates": {
+      "safe": { "op": "LE", "left": { "op": "VAR", "name": "balance" }, "right": { "op": "CONST", "value": 1 } },
+      "done": { "op": "EQ", "left": { "op": "VAR", "name": "phase" }, "right": { "op": "CONST", "value": "DONE" } }
+    }
+  },
+  "properties": [
+    { "id": "safety", "required": true, "formula": { "op": "AG", "arg": { "op": "ATOM", "name": "safe" } } },
+    { "id": "eventually_done", "required": true, "formula": { "op": "AF", "arg": { "op": "ATOM", "name": "done" } } }
+  ]
+}

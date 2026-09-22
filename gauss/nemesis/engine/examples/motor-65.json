@@ -1,0 +1,17 @@
+{
+  "initial": [
+    10
+  ],
+  "target": [
+    2
+  ],
+  "quadratic": [
+    [
+      1
+    ]
+  ],
+  "learningRate": 0.1,
+  "momentum": 0,
+  "phase": 0,
+  "steps": 120
+}

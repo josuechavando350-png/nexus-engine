@@ -1,0 +1,9 @@
+{
+  "parameters": [
+    2,
+    4
+  ],
+  "initial": 0.371,
+  "transient": 250,
+  "samples": 256
+}

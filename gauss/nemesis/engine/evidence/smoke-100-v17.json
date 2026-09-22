@@ -1,0 +1,6899 @@
+{
+  "project": "NEMESIS",
+  "version": "17.0.0",
+  "node": "v22.16.0",
+  "executed": 100,
+  "successful": 99,
+  "matchedExpected": 100,
+  "expectedNegative": 1,
+  "meaning": "Only execution of the supplied examples; not closure of original scope",
+  "results": [
+    {
+      "id": 1,
+      "example": "examples/safe-finite-system.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "PASS",
+      "output": {
+        "engine": "NEMESIS_FORMAL_FINITE_CTL_V1",
+        "status": "PASS",
+        "scope": "ONLY_THE_SUPPLIED_FINITE_KRIPKE_STRUCTURE",
+        "modelSha256": "1548a37fad80d569402d5acdb39a8b9c3a890ba1c8302b76a42ed74c9abe3ed7",
+        "model": {
+          "states": [
+            "DONE",
+            "ERROR",
+            "REVIEW",
+            "START"
+          ],
+          "initialStates": [
+            "START"
+          ],
+          "atomicPropositions": [
+            "done",
+            "error",
+            "safe"
+          ],
+          "transitions": [
+            {
+              "from": "REVIEW",
+              "to": "DONE"
+            },
+            {
+              "from": "START",
+              "to": "REVIEW"
+            }
+          ],
+          "propositions": {
+            "DONE": [
+              "done",
+              "safe"
+            ],
+            "ERROR": [
+              "error"
+            ],
+            "REVIEW": [
+              "safe"
+            ],
+            "START": [
+              "safe"
+            ]
+          },
+          "deadlocks": [
+            "DONE",
+            "ERROR"
+          ],
+          "semantics": "CTL_TOTAL_KRIPKE_DEADLOCK_STUTTER"
+        },
+        "failedRequired": [],
+        "results": [
+          {
+            "id": "safety",
+            "required": true,
+            "holds": true,
+            "formula": {
+              "op": "AG",
+              "arg": {
+                "op": "NOT",
+                "arg": {
+                  "op": "ATOM",
+                  "name": "error"
+                }
+              }
+            },
+            "satisfyingStates": [
+              "DONE",
+              "REVIEW",
+              "START"
+            ],
+            "initialResults": [
+              {
+                "state": "START",
+                "satisfied": true,
+                "diagnostic": {
+                  "kind": "EXHAUSTIVE_STATE_SET",
+                  "state": "START"
+                }
+              }
+            ],
+            "subformulaEvidence": [
+              {
+                "nodeId": 0,
+                "op": "ATOM",
+                "name": "error",
+                "satisfyingStateIndices": [
+                  1
+                ]
+              },
+              {
+                "nodeId": 1,
+                "op": "NOT",
+                "satisfyingStateIndices": [
+                  0,
+                  2,
+                  3
+                ]
+              },
+              {
+                "nodeId": 2,
+                "op": "AG",
+                "satisfyingStateIndices": [
+                  0,
+                  2,
+                  3
+                ]
+              }
+            ]
+          },
+          {
+            "id": "can_finish",
+            "required": true,
+            "holds": true,
+            "formula": {
+              "op": "EF",
+              "arg": {
+                "op": "ATOM",
+                "name": "done"
+              }
+            },
+            "satisfyingStates": [
+              "DONE",
+              "REVIEW",
+              "START"
+            ],
+            "initialResults": [
+              {
+                "state": "START",
+                "satisfied": true,
+                "diagnostic": {
+                  "kind": "REACHABILITY_WITNESS",
+                  "path": [
+                    "START",
+                    "REVIEW",
+                    "DONE"
+                  ]
+                }
+              }
+            ],
+            "subformulaEvidence": [
+              {
+                "nodeId": 0,
+                "op": "ATOM",
+                "name": "done",
+                "satisfyingStateIndices": [
+                  0
+                ]
+              },
+              {
+                "nodeId": 1,
+                "op": "EF",
+                "satisfyingStateIndices": [
+                  0,
+                  2,
+                  3
+                ]
+              }
+            ]
+          }
+        ],
+        "note": "Exhaustive over this validated finite model, not a proof of arbitrary source code or a running deployment."
+      }
+    },
+    {
+      "id": 2,
+      "example": "examples/causal-confounding.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_CAUSAL_BINARY_DAG_V1",
+        "domain": "SUPPLIED_FULLY_OBSERVED_BINARY_DAG",
+        "treatment": "X",
+        "outcome": "Y",
+        "topologicalOrder": [
+          "Z",
+          "X",
+          "Y"
+        ],
+        "assignmentsEvaluated": 24,
+        "observational": {
+          "treatmentMass": [
+            "1/2",
+            "1/2"
+          ],
+          "outcomeGivenTreatment": [
+            "1/4",
+            "3/4"
+          ]
+        },
+        "interventional": {
+          "outcomeGivenDo": [
+            "1/2",
+            "1/2"
+          ],
+          "effectDifference": "0/1"
+        },
+        "assumptions": [
+          "Supplied DAG and complete CPTs are correct",
+          "All variables binary and fully observed",
+          "Truncated factorization holds; no unmodeled confounders"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "example": "examples/game-matching-pennies.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_FINITE_NASH_V1",
+        "players": 2,
+        "strategies": [
+          2,
+          2
+        ],
+        "pureEquilibria": [],
+        "interiorMixed": {
+          "rowStrategy": [
+            "1/2",
+            "1/2"
+          ],
+          "columnStrategy": [
+            "1/2",
+            "1/2"
+          ],
+          "rowPayoff": "0/1",
+          "columnPayoff": "0/1"
+        },
+        "mixedScope": "ALL_STRICTLY_INTERIOR_NONDEGENERATE_2X2_EQUILIBRIA",
+        "disclaimer": "All pure equilibria are exhaustive. Mixed equilibria for larger or degenerate games are not enumerated."
+      }
+    },
+    {
+      "id": 4,
+      "example": "examples/qaoa-two-vertices.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_LOCAL_QAOA_MAXCUT_V1",
+        "backend": "CLASSICAL_STATEVECTOR",
+        "vertices": 2,
+        "layers": 1,
+        "normalization": 1,
+        "expectedCut": 0.8535533905932737,
+        "maxCutByExhaustiveClassicalSearch": 1,
+        "optimalBitstrings": [
+          "01",
+          "10"
+        ],
+        "mostLikely": {
+          "bitstring": "01",
+          "probability": 0.42677669529663687,
+          "cutValue": 1
+        },
+        "distribution": [
+          {
+            "bitstring": "01",
+            "probability": 0.42677669529663687,
+            "cutValue": 1
+          },
+          {
+            "bitstring": "10",
+            "probability": 0.42677669529663687,
+            "cutValue": 1
+          },
+          {
+            "bitstring": "00",
+            "probability": 0.07322330470336312,
+            "cutValue": 0
+          },
+          {
+            "bitstring": "11",
+            "probability": 0.07322330470336312,
+            "cutValue": 0
+          }
+        ],
+        "measuredShots": 0,
+        "trainedAngles": false,
+        "disclaimer": "Ideal noiseless local statevector simulator. No quantum hardware, optimizer training, or guarantee of optimal MaxCut."
+      }
+    },
+    {
+      "id": 5,
+      "example": "examples/hmm-two-hidden-states.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_SHANNON_HIDDEN_MARKOV_V1",
+        "states": [
+          "S",
+          "T"
+        ],
+        "alphabet": [
+          "A",
+          "B"
+        ],
+        "observations": [
+          "A",
+          "B",
+          "A"
+        ],
+        "logLikelihood": -1.5604818682835897,
+        "likelihoodHistory": [
+          -2.6647608530038127,
+          -1.8694967136624001,
+          -1.786797876572407,
+          -1.5604818682835897
+        ],
+        "fitIterations": 3,
+        "initialEntropyBits": 0.24282988887899704,
+        "nextObservationEntropyBits": 0.9724776901735848,
+        "posteriorLastState": {
+          "S": 0.892929498596242,
+          "T": 0.10707050140375808
+        },
+        "predictedNextObservation": {
+          "A": 0.5973534502416514,
+          "B": 0.40264654975834857
+        },
+        "viterbi": {
+          "hiddenStates": [
+            "S",
+            "T",
+            "S"
+          ],
+          "logJointProbability": -1.9622297695859188
+        },
+        "fittedParameters": {
+          "initial": [
+            0.9598826690162414,
+            0.04011733098375866
+          ],
+          "transition": [
+            [
+              0.5968427012654753,
+              0.40315729873452455
+            ],
+            [
+              0.8220902843663495,
+              0.1779097156336504
+            ]
+          ],
+          "emission": [
+            [
+              0.786980904337589,
+              0.21301909566241084
+            ],
+            [
+              0.28669731795975445,
+              0.7133026820402456
+            ]
+          ]
+        },
+        "assumptions": [
+          "Hidden-state count and alphabet supplied by user",
+          "First-order stationary HMM",
+          "Baum-Welch finds local optima, not unique underlying structure"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "example": "examples/quantum-walk-discrete.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_QUANTUM_WALK_V1",
+        "mode": "DISCRETE_GROVER_FLIP_FLOP",
+        "vertices": 4,
+        "start": 0,
+        "steps": 9,
+        "probabilities": [
+          0,
+          0.4999999999999999,
+          0,
+          0.4999999999999999
+        ],
+        "norm": 0.9999999999999998,
+        "arcs": [
+          {
+            "u": 0,
+            "v": 1,
+            "re": 0,
+            "im": 0
+          },
+          {
+            "u": 0,
+            "v": 3,
+            "re": 0,
+            "im": 0
+          },
+          {
+            "u": 1,
+            "v": 0,
+            "re": 0.7071067811865475,
+            "im": 0
+          },
+          {
+            "u": 1,
+            "v": 2,
+            "re": 0,
+            "im": 0
+          },
+          {
+            "u": 2,
+            "v": 1,
+            "re": 0,
+            "im": 0
+          },
+          {
+            "u": 2,
+            "v": 3,
+            "re": 0,
+            "im": 0
+          },
+          {
+            "u": 3,
+            "v": 2,
+            "re": 0,
+            "im": 0
+          },
+          {
+            "u": 3,
+            "v": 0,
+            "re": 0.7071067811865475,
+            "im": 0
+          }
+        ],
+        "note": "Numerical classical simulation of a finite coined walk; no quantum hardware."
+      }
+    },
+    {
+      "id": 7,
+      "example": "examples/kalman-rts.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_LINEAR_KALMAN_RTS_V1",
+        "dimension": 1,
+        "observationDimension": 1,
+        "timeSteps": 4,
+        "missingObservations": 1,
+        "predicted": [
+          {
+            "mean": [
+              0
+            ],
+            "covariance": [
+              [
+                1
+              ]
+            ]
+          },
+          {
+            "mean": [
+              0.7999999999999999
+            ],
+            "covariance": [
+              [
+                0.30000000000000004
+              ]
+            ]
+          },
+          {
+            "mean": [
+              1.4545454545454546
+            ],
+            "covariance": [
+              [
+                0.2363636363636364
+              ]
+            ]
+          },
+          {
+            "mean": [
+              1.4545454545454546
+            ],
+            "covariance": [
+              [
+                0.3363636363636364
+              ]
+            ]
+          }
+        ],
+        "filtered": [
+          {
+            "mean": [
+              0.7999999999999999
+            ],
+            "covariance": [
+              [
+                0.2
+              ]
+            ]
+          },
+          {
+            "mean": [
+              1.4545454545454546
+            ],
+            "covariance": [
+              [
+                0.13636363636363638
+              ]
+            ]
+          },
+          {
+            "mean": [
+              1.4545454545454546
+            ],
+            "covariance": [
+              [
+                0.2363636363636364
+              ]
+            ]
+          },
+          {
+            "mean": [
+              2.3410852713178296
+            ],
+            "covariance": [
+              [
+                0.1434108527131783
+              ]
+            ]
+          }
+        ],
+        "smoothed": [
+          {
+            "mean": [
+              1.4759689922480619
+            ],
+            "covariance": [
+              [
+                0.11317829457364344
+              ]
+            ]
+          },
+          {
+            "mean": [
+              1.8139534883720931
+            ],
+            "covariance": [
+              [
+                0.1046511627906977
+              ]
+            ]
+          },
+          {
+            "mean": [
+              2.0775193798449614
+            ],
+            "covariance": [
+              [
+                0.1410852713178295
+              ]
+            ]
+          },
+          {
+            "mean": [
+              2.3410852713178296
+            ],
+            "covariance": [
+              [
+                0.1434108527131783
+              ]
+            ]
+          }
+        ],
+        "innovations": [
+          {
+            "residual": [
+              1
+            ],
+            "covariance": [
+              [
+                1.25
+              ]
+            ]
+          },
+          {
+            "residual": [
+              1.2000000000000002
+            ],
+            "covariance": [
+              [
+                0.55
+              ]
+            ]
+          },
+          null,
+          {
+            "residual": [
+              1.5454545454545454
+            ],
+            "covariance": [
+              [
+                0.5863636363636364
+              ]
+            ]
+          }
+        ],
+        "logLikelihood": -6.048297738006495,
+        "note": "Fixed-interval linear Gaussian smoothing, not physical reversal of time or general nonlinear inference."
+      }
+    },
+    {
+      "id": 8,
+      "example": "examples/zk-public-proof.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_PEDERSEN_OPENING_V1",
+        "verified": true,
+        "statement": "Knowledge of a Pedersen opening under discrete-log / Fiat–Shamir assumptions; no range proof or claim about external code."
+      }
+    },
+    {
+      "id": 9,
+      "example": "examples/bayes-event-stream.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_BINARY_BAYES_EVENT_STREAM_V1",
+        "priorTrue": "1/2",
+        "posteriorTrue": "6/7",
+        "posteriorFalse": "1/7",
+        "jointEvidenceProbability": "7/32",
+        "processedEvents": 2,
+        "timeline": [
+          {
+            "id": "test_A",
+            "time": 1,
+            "posteriorTrue": "3/4",
+            "predictiveProbability": "1/2"
+          },
+          {
+            "id": "test_B",
+            "time": 2,
+            "posteriorTrue": "6/7",
+            "predictiveProbability": "7/16"
+          }
+        ],
+        "assumptions": "Given hypothesis, evidence events are conditionally independent with supplied fixed likelihoods. Event time orders the audit only; no automatic drift, correlation or causal discovery."
+      }
+    },
+    {
+      "id": 10,
+      "example": "examples/mirrored-agent.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "CONSISTENT",
+      "output": {
+        "engine": "NEMESIS_MIRRORED_WORKER_AGENTS_V1",
+        "status": "CONSISTENT",
+        "actualWorkerThreads": 2,
+        "firstDivergenceStep": null,
+        "firstFailureStep": [],
+        "errors": [],
+        "replicas": [
+          {
+            "replica": 1,
+            "finalState": "done",
+            "trace": [
+              {
+                "step": 0,
+                "time": 0,
+                "action": "submit",
+                "before": "idle",
+                "after": "pending"
+              },
+              {
+                "step": 1,
+                "time": 10,
+                "action": "approve",
+                "before": "pending",
+                "after": "done"
+              }
+            ],
+            "digest": "03aba3b714d8d93e0c95747082991b16cda09f1d71dba13f42f3cc09ff29d5c3",
+            "forbiddenVisited": []
+          },
+          {
+            "replica": 2,
+            "finalState": "done",
+            "trace": [
+              {
+                "step": 0,
+                "time": 0,
+                "action": "submit",
+                "before": "idle",
+                "after": "pending"
+              },
+              {
+                "step": 1,
+                "time": 10,
+                "action": "approve",
+                "before": "pending",
+                "after": "done"
+              }
+            ],
+            "digest": "03aba3b714d8d93e0c95747082991b16cda09f1d71dba13f42f3cc09ff29d5c3",
+            "forbiddenVisited": []
+          }
+        ],
+        "note": "Agreement between two worker threads running the same interpreter is NOT independent implementation or proof of an external agent, host-code sandbox or Byzantine consensus."
+      }
+    },
+    {
+      "id": 11,
+      "example": "examples/selection-conditioning.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_SELECTION_CONDITIONING_V1",
+        "domain": "BINARY_KNOWN_SELECTION_MODEL",
+        "selectedProbabilityIfTrue": "2/5",
+        "selectedProbabilityIfFalse": "2/5",
+        "priorTrueAmongSelected": "1/2",
+        "positiveProbabilityAmongSelectedIfTrue": "1/2",
+        "positiveProbabilityAmongSelectedIfFalse": "1/2",
+        "populationPosteriorAfterPositive": "4/5",
+        "populationPosteriorAfterNegative": "1/5",
+        "naivePosteriorAfterPositive": "4/5",
+        "selectionAdjustedPosteriorAfterPositive": "1/2",
+        "naivePosteriorAfterNegative": "1/5",
+        "selectionAdjustedPosteriorAfterNegative": "1/2",
+        "note": "PriorTrue is the population prior; selected prior is calculated by Bayes, then observation likelihoods are conditioned on selection. Known selection probabilities are assumptions, not inferred human motives."
+      }
+    },
+    {
+      "id": 12,
+      "example": "examples/finite-tail-risk.json",
+      "executed": true,
+      "successful": false,
+      "expectedNegative": true,
+      "matchedExpected": true,
+      "status": "BREACH",
+      "output": {
+        "engine": "NEMESIS_FINITE_TAIL_RISK_V1",
+        "domain": "KNOWN_DISCRETE_LOSS_DISTRIBUTION",
+        "alpha": "9/10",
+        "expectedLoss": "11/2",
+        "valueAtRisk": 0,
+        "conditionalValueAtRisk": "55/1",
+        "probabilityStrictlyAboveVaR": "1/10",
+        "boundaryMassAtVaR": "0/1",
+        "maxCvar": "54/1",
+        "withinLimit": false,
+        "status": "BREACH",
+        "note": "Exact upper-tail CVaR for supplied finite distribution; excludes unmodelled catastrophes and unknown probabilities."
+      }
+    },
+    {
+      "id": 13,
+      "example": "examples/clock-intervals.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "PASS",
+      "output": {
+        "engine": "NEMESIS_CLOCK_DIFFERENCE_CONSTRAINTS_V1",
+        "status": "PASS",
+        "anchor": "a",
+        "offsets": [
+          {
+            "clock": "a",
+            "minimum": 0,
+            "maximum": 0,
+            "feasibleAssignment": 0
+          },
+          {
+            "clock": "b",
+            "minimum": 5,
+            "maximum": 7,
+            "feasibleAssignment": 7
+          },
+          {
+            "clock": "c",
+            "minimum": 8,
+            "maximum": 10,
+            "feasibleAssignment": 10
+          }
+        ],
+        "constraintCount": 3,
+        "note": "Integer static offset feasibility only; no NTP exchange, drift, Byzantine peers or physical synchronization."
+      }
+    },
+    {
+      "id": 14,
+      "example": "examples/finite-fuzzy.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "PASS",
+      "output": {
+        "engine": "NEMESIS_FINITE_SECOND_ORDER_FUZZY_V1",
+        "semantics": "GODEL_MIN_MAX_RESIDUUM_WITH_STANDARD_NEGATION",
+        "domainSize": 2,
+        "predicateInterpretations": 2,
+        "grade": "1/2",
+        "threshold": "1/2",
+        "meetsThreshold": true,
+        "status": "PASS",
+        "evaluatedNodes": 15,
+        "note": "Second-order quantifiers range only over supplied finite predicate interpretations; not general undecidable higher-order logic."
+      }
+    },
+    {
+      "id": 15,
+      "example": "examples/grammar-repair.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "REPAIRED",
+      "output": {
+        "engine": "NEMESIS_BOUNDED_AST_REPAIR_V1",
+        "status": "REPAIRED",
+        "expression": {
+          "op": "ADD",
+          "left": {
+            "op": "VAR",
+            "name": "x"
+          },
+          "right": {
+            "op": "CONST",
+            "value": 2
+          }
+        },
+        "edits": [
+          {
+            "path": "right",
+            "before": {
+              "op": "CONST",
+              "value": 1
+            },
+            "after": {
+              "op": "CONST",
+              "value": 2
+            }
+          }
+        ],
+        "editCount": 1,
+        "testedCandidates": 5,
+        "passedExamples": 3,
+        "note": "Repair passes only provided examples for a pure arithmetic AST; no proof of correctness for unseen inputs or general source code."
+      }
+    },
+    {
+      "id": 16,
+      "example": "examples/structural-chain.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_STRUCTURAL_ROBUSTNESS_V1",
+        "domain": "SUPPLIED_UNDIRECTED_SIMPLE_GRAPH",
+        "vertexCount": 4,
+        "edgeCount": 3,
+        "connected": true,
+        "components": [
+          [
+            "A",
+            "B",
+            "C",
+            "D"
+          ]
+        ],
+        "articulationPoints": [
+          "B",
+          "C"
+        ],
+        "bridges": [
+          {
+            "from": "A",
+            "to": "B"
+          },
+          {
+            "from": "B",
+            "to": "C"
+          },
+          {
+            "from": "C",
+            "to": "D"
+          }
+        ],
+        "terminalEdgeCut": {
+          "size": 1,
+          "edges": [
+            {
+              "from": "A",
+              "to": "B"
+            }
+          ]
+        },
+        "terminalVertexCut": {
+          "size": 1,
+          "vertices": [
+            "B"
+          ]
+        },
+        "note": "Exact on supplied graph only; edge/vertex failures assumed independently removable, not a prediction of physical reliability. null vertex cut for adjacent terminals means no internal-only separator."
+      }
+    },
+    {
+      "id": 17,
+      "example": "examples/cross-domain-ontology.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "PASS",
+      "output": {
+        "engine": "NEMESIS_CROSS_DOMAIN_ONTOLOGY_V1",
+        "domain": "FINITE_POSITIVE_CLASS_HIERARCHY",
+        "status": "PASS",
+        "consistent": true,
+        "inferredTypes": {
+          "record1": [
+            "SalesLead",
+            "Person",
+            "CRMContact",
+            "Human"
+          ]
+        },
+        "queries": [
+          {
+            "individual": "record1",
+            "class": "Human",
+            "entailed": true,
+            "witnessAssertedType": "SalesLead",
+            "notEntailedDoesNotMeanFalse": true
+          },
+          {
+            "individual": "record1",
+            "class": "Machine",
+            "entailed": false,
+            "witnessAssertedType": null,
+            "notEntailedDoesNotMeanFalse": true
+          }
+        ],
+        "contradictions": [],
+        "unsatisfiableClasses": [],
+        "note": "Open-world positive subclass entailment. Unsatisfiable classes do not imply ontology inconsistency unless instantiated; no OWL completeness, arbitrary rules or inferred identity."
+      }
+    },
+    {
+      "id": 18,
+      "example": "examples/reverse-ingestion.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "DRY_RUN",
+      "output": {
+        "engine": "NEMESIS_REVERSE_INGESTION_V1",
+        "domain": "BOUNDED_JSON_RECORD_RECONCILIATION",
+        "status": "DRY_RUN",
+        "sourceCount": 2,
+        "destinationCount": 2,
+        "plan": {
+          "version": 1,
+          "deleteMissing": false,
+          "operations": [
+            {
+              "kind": "UPDATE",
+              "id": "A",
+              "beforeHash": "499d00924e42a9341afd3b3dd933ce43a1b4bf74ed9c973f11f95ff2d4c2d1ee",
+              "afterHash": "6f4449e6ca5e4d3c9c6860fbcc8fd1627ac9642685535e09fda0283ea01bfa02",
+              "data": {
+                "count": 2,
+                "state": "ready"
+              }
+            },
+            {
+              "kind": "CREATE",
+              "id": "B",
+              "beforeHash": null,
+              "afterHash": "d4d88e4c57176803d3199935ad1ea6d95afbc5ddc0990c27a497d2ef7401389c",
+              "data": {
+                "count": 1
+              }
+            }
+          ]
+        },
+        "planHash": "d3f82b451fba90c718e679cbd4f5c8460bd44210d8d086da79fabf0d9af7583e",
+        "note": "No network access or external mutation. Deletion disabled by default. APPLY uses compare-and-swap on the supplied in-memory destination."
+      }
+    },
+    {
+      "id": 19,
+      "example": "examples/dark-data-catalog.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "engine": "NEMESIS_DARK_DATA_CATALOG_V1",
+        "domain": "EXPLICIT_LOCAL_BYTES_AND_EXACT_TOKEN_INDEX",
+        "documentCount": 3,
+        "uniqueBlobCount": 2,
+        "documents": [
+          {
+            "id": "note1",
+            "sha256": "de3f6f07f50b51ef92b450e3cbf38e19a7ad60ca2191ec616da884f6ffe8ce52",
+            "bytes": 32,
+            "encoding": "utf8",
+            "tags": [
+              "internal"
+            ],
+            "tokenCount": 5
+          },
+          {
+            "id": "note2",
+            "sha256": "de3f6f07f50b51ef92b450e3cbf38e19a7ad60ca2191ec616da884f6ffe8ce52",
+            "bytes": 32,
+            "encoding": "base64",
+            "tags": [
+              "archive"
+            ],
+            "tokenCount": 0
+          },
+          {
+            "id": "raw1",
+            "sha256": "054edec1d0211f624fed0cbca9d4f9400b0e491c43742af2c5b0abebf0c990d8",
+            "bytes": 4,
+            "encoding": "base64",
+            "tags": [
+              "binary"
+            ],
+            "tokenCount": 0
+          }
+        ],
+        "duplicates": [
+          {
+            "sha256": "de3f6f07f50b51ef92b450e3cbf38e19a7ad60ca2191ec616da884f6ffe8ce52",
+            "ids": [
+              "note1",
+              "note2"
+            ]
+          }
+        ],
+        "matches": [
+          "note1"
+        ],
+        "note": "No semantic inference, OCR, external discovery, storage, or automatic PII anonymization. Text search is exact NFKC lowercase token match; binary remains opaque."
+      }
+    },
+    {
+      "id": 20,
+      "example": "examples/certainty-contract.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "PASS",
+      "output": {
+        "engine": "NEMESIS_CERTAINTY_CONTRACT_V1",
+        "version": 1,
+        "contractHash": "245b4c76449fe5568174e8a1293ee616062184ce6139e7ae1a59ef1db4a283ef",
+        "artifactSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "observations": [
+          {
+            "metric": "errors",
+            "value": 0
+          },
+          {
+            "metric": "latency",
+            "value": 80
+          }
+        ],
+        "checks": [
+          {
+            "metric": "errors",
+            "op": "EQ",
+            "expected": 0,
+            "observed": 0,
+            "pass": true
+          },
+          {
+            "metric": "latency",
+            "op": "LTE",
+            "expected": 100,
+            "observed": 80,
+            "pass": true
+          }
+        ],
+        "status": "PASS",
+        "reportHash": "d68f323ad75cc55318e9a88813e51c340d6e5bcf0db8f4d60f356792d32ad291",
+        "note": "Measurements and artifact hash are assertions supplied by caller; this does not independently observe them."
+      }
+    },
+    {
+      "id": 21,
+      "example": "examples/information-simplex.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_PROBABILITY_SIMPLEX",
+        "klPtoQ": 0.14384103622589042,
+        "klQtoP": 0.13081203594113697,
+        "jensenShannonNats": 0.033822075568605205,
+        "totalVariation": 0.25,
+        "identical": false,
+        "note": "KL is directional and can be infinite. This finite-simplex computation does not construct a general non-Riemannian geometry."
+      }
+    },
+    {
+      "id": 22,
+      "example": "examples/lorenz96-equilibrium.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "model": "LORENZ_96",
+        "dimension": 6,
+        "forcing": 8,
+        "dt": 0.01,
+        "steps": 100,
+        "finalState": [
+          8,
+          8,
+          8,
+          8,
+          8,
+          8
+        ],
+        "finiteTimeLyapunovEstimate": 6.450649055837187,
+        "samples": [
+          {
+            "step": 0,
+            "time": 0,
+            "state": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "step": 20,
+            "time": 0.2,
+            "state": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "step": 40,
+            "time": 0.4,
+            "state": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "step": 60,
+            "time": 0.6,
+            "state": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "step": 80,
+            "time": 0.8,
+            "state": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ]
+          },
+          {
+            "step": 100,
+            "time": 1,
+            "state": [
+              8,
+              8,
+              8,
+              8,
+              8,
+              8
+            ]
+          }
+        ],
+        "note": "Numerical finite-time separation estimate with one tangent direction, not a certified Lyapunov exponent or invariant attractor proof."
+      }
+    },
+    {
+      "id": 23,
+      "example": "examples/ensemble-kalman.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "LINEAR_GAUSSIAN_STOCHASTIC_ENKF",
+        "seed": 1,
+        "members": 5,
+        "dimension": 1,
+        "steps": [
+          {
+            "priorMean": [
+              -0.0011316961485692278
+            ],
+            "posteriorMean": [
+              0.9396685793478072
+            ],
+            "posteriorCovariance": [
+              [
+                0.14661468706544015
+              ]
+            ],
+            "updated": true
+          },
+          {
+            "priorMean": [
+              0.9394964630053074
+            ],
+            "posteriorMean": [
+              1.029382212103143
+            ],
+            "posteriorCovariance": [
+              [
+                0.04664919219946441
+              ]
+            ],
+            "updated": true
+          },
+          {
+            "priorMean": [
+              1.029513062226145
+            ],
+            "posteriorMean": [
+              1.029513062226145
+            ],
+            "posteriorCovariance": [
+              [
+                0.046405863723159434
+              ]
+            ],
+            "updated": false
+          }
+        ],
+        "finalEnsemble": [
+          [
+            0.8036630309817041
+          ],
+          [
+            1.3092507985950463
+          ],
+          [
+            0.9469060907769492
+          ],
+          [
+            1.2005981037778388
+          ],
+          [
+            0.8871472869991867
+          ]
+        ],
+        "note": "Finite-sample stochastic EnKF approximation; perturbations are seeded, no claim of exact high-dimensional posterior."
+      }
+    },
+    {
+      "id": 24,
+      "example": "examples/pinn-poisson.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "ONE_DIMENSIONAL_POISSON_PINN_FIXED_HIDDEN_LAYER",
+        "boundaryResiduals": [
+          -2.9973246107317664e-13,
+          2.772226892489016e-13
+        ],
+        "rmsPDEResidual": 0.0000013606272589321171,
+        "predictions": [
+          {
+            "x": 0,
+            "value": -2.9973246107317664e-13,
+            "residual": 0.00001070111674783547
+          },
+          {
+            "x": 0.25,
+            "value": 0.18749999989040164,
+            "residual": -5.692054980688255e-7
+          },
+          {
+            "x": 0.5,
+            "value": 0.2500000000403051,
+            "residual": 2.965495138340657e-8
+          },
+          {
+            "x": 0.75,
+            "value": 0.18749999890340563,
+            "residual": -0.0000015723840558479196
+          },
+          {
+            "x": 1,
+            "value": 2.772226892489016e-13,
+            "residual": -0.000022830193638911922
+          }
+        ],
+        "hidden": [
+          {
+            "slope": 2.6796044806251302,
+            "bias": -1.2575817587785423
+          },
+          {
+            "slope": -5.666315384325571,
+            "bias": -1.8478777720592916
+          },
+          {
+            "slope": 1.3411796406144276,
+            "bias": -1.6043353672139347
+          },
+          {
+            "slope": -5.578673771698959,
+            "bias": 1.206260906998068
+          },
+          {
+            "slope": 5.164506055996753,
+            "bias": -1.3748700725845993
+          },
+          {
+            "slope": -3.3378738370956853,
+            "bias": 0.34274918446317315
+          },
+          {
+            "slope": 3.677089362987317,
+            "bias": -0.3868309478275478
+          },
+          {
+            "slope": -3.030112241511233,
+            "bias": -1.297188078518957
+          },
+          {
+            "slope": 2.6749250354478136,
+            "bias": -0.14528677193447948
+          },
+          {
+            "slope": -3.5890244581969455,
+            "bias": 0.049942655954509974
+          },
+          {
+            "slope": 4.050074068480171,
+            "bias": -1.320024951826781
+          },
+          {
+            "slope": -1.7184753000037745,
+            "bias": 1.8570618056692183
+          },
+          {
+            "slope": 2.3047620995203033,
+            "bias": 0.7341848057694733
+          },
+          {
+            "slope": -7.837810384226032,
+            "bias": -0.8680438785813749
+          },
+          {
+            "slope": 4.861376966931857,
+            "bias": -0.7731419275514781
+          },
+          {
+            "slope": -2.533943534945138,
+            "bias": 0.29349939012899995
+          },
+          {
+            "slope": 1.0277397060999647,
+            "bias": -0.23690547375008464
+          },
+          {
+            "slope": -7.754655122873373,
+            "bias": 1.4111543879844248
+          },
+          {
+            "slope": 2.227023983024992,
+            "bias": -0.4305919702164829
+          },
+          {
+            "slope": -7.727476342697628,
+            "bias": -1.8797439164482057
+          },
+          {
+            "slope": 4.85169896541629,
+            "bias": 1.926587958354503
+          },
+          {
+            "slope": -2.3385344279231504,
+            "bias": -0.47442390909418464
+          },
+          {
+            "slope": 1.850870631285943,
+            "bias": -1.377908221911639
+          },
+          {
+            "slope": -1.4557338032172993,
+            "bias": 1.4056683727540076
+          },
+          {
+            "slope": 2.910396515042521,
+            "bias": -1.7655311259441078
+          },
+          {
+            "slope": -1.4306481742532924,
+            "bias": 1.030496193561703
+          },
+          {
+            "slope": 3.8351488910848275,
+            "bias": -0.9376843716017902
+          },
+          {
+            "slope": -7.763498555053957,
+            "bias": 0.9048403226770461
+          },
+          {
+            "slope": 1.4928013948956504,
+            "bias": -1.4897382515482605
+          },
+          {
+            "slope": -1.665592232835479,
+            "bias": 1.749988487455994
+          },
+          {
+            "slope": 5.428514081635512,
+            "bias": -0.25551215512678027
+          },
+          {
+            "slope": -2.003597670351155,
+            "bias": -1.963793923612684
+          },
+          {
+            "slope": 6.00989192223642,
+            "bias": 1.4302742597647011
+          },
+          {
+            "slope": -4.86003034573514,
+            "bias": -1.6215119077824056
+          },
+          {
+            "slope": 7.711591736995615,
+            "bias": 1.364081144798547
+          },
+          {
+            "slope": -4.694324529846199,
+            "bias": -1.8919076449237764
+          }
+        ],
+        "outputWeights": [
+          0.21464432640245082,
+          -2.776062757861838,
+          0.0875520103665946,
+          -0.10134523198997143,
+          0.48880654085418607,
+          -0.0005415200700980624,
+          -0.003872678956632974,
+          -0.013887999279067758,
+          -0.06931820704473284,
+          -0.17070439169561413,
+          0.17501009178716095,
+          -0.14915671202236025,
+          -0.011471029236786104,
+          -0.8087833166232908,
+          0.19215560137882517,
+          -0.006779942097993526,
+          -0.024394788231797672,
+          -0.2284262515978091,
+          0.3592973033352945,
+          -0.00011107250687824372,
+          0.4668554336397409,
+          0.04568671663071417,
+          0.15097375143637196,
+          -0.2070138659875347,
+          0.6470284660521027,
+          0.5021034204630107,
+          0.0223390040011686,
+          -0.12973833000959387,
+          -0.008138764261648796,
+          0.00007764385555707847,
+          -0.408844457925308,
+          0.2544377469579171,
+          -0.021282859236662233,
+          -0.20637236926797262,
+          0.020850259247221996,
+          -0.11948114404963792,
+          -0.006484393885266414,
+          -0.15214048536912125
+        ],
+        "note": "Trainable linear readout of a nonlinear tanh network; single ODE BVP with known forcing, not arbitrary PDEs or end-to-end trained deep PINN."
+      }
+    },
+    {
+      "id": 25,
+      "example": "examples/information-diffusion.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_UNDIRECTED_GRAPH_DIFFUSION",
+        "nodes": [
+          "A",
+          "B",
+          "C"
+        ],
+        "initialMass": 1,
+        "finalMass": 1.0000000000000002,
+        "massError": 2.220446049250313e-16,
+        "finalValues": [
+          0.339097942688887,
+          0.33333332966829465,
+          0.3275687276428185
+        ],
+        "samples": [
+          {
+            "step": 0,
+            "values": [
+              1,
+              0,
+              0
+            ]
+          },
+          {
+            "step": 5,
+            "values": [
+              0.4988800000000001,
+              0.32992000000000005,
+              0.17120000000000002
+            ]
+          },
+          {
+            "step": 10,
+            "values": [
+              0.38703790080000006,
+              0.33329838080000007,
+              0.27966371840000004
+            ]
+          },
+          {
+            "step": 15,
+            "values": [
+              0.35092569833472004,
+              0.33333297541939205,
+              0.3157413262458881
+            ]
+          },
+          {
+            "step": 20,
+            "values": [
+              0.339097942688887,
+              0.33333332966829465,
+              0.3275687276428185
+            ]
+          }
+        ],
+        "note": "Deterministic graph Laplacian diffusion of supplied scalar data; no general fluid mechanics or Navier–Stokes."
+      }
+    },
+    {
+      "id": 26,
+      "example": "examples/stackelberg-three-stage.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_THREE_STAGE_PERFECT_INFORMATION_GAME",
+        "leader": "L1",
+        "follower1": "A1",
+        "follower2": "B1",
+        "payoffs": [
+          6,
+          4,
+          5
+        ],
+        "follower1Responses": [
+          {
+            "leader": "L0",
+            "follower1": "A1"
+          },
+          {
+            "leader": "L1",
+            "follower1": "A1"
+          }
+        ],
+        "follower2Responses": [
+          [
+            {
+              "leader": "L0",
+              "follower1": "A0",
+              "follower2": "B1"
+            },
+            {
+              "leader": "L0",
+              "follower1": "A1",
+              "follower2": "B0"
+            }
+          ],
+          [
+            {
+              "leader": "L1",
+              "follower1": "A0",
+              "follower2": "B0"
+            },
+            {
+              "leader": "L1",
+              "follower1": "A1",
+              "follower2": "B1"
+            }
+          ]
+        ],
+        "note": "Subgame-perfect backward induction for one leader and two sequential followers; not arbitrary multilayer or simultaneous game equilibria."
+      }
+    },
+    {
+      "id": 27,
+      "example": "examples/persistent-square.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "VIETORIS_RIPS_H0_H1_Z2",
+        "pointCount": 4,
+        "simplexCount": 14,
+        "intervals": [
+          {
+            "dimension": 0,
+            "birth": 0,
+            "death": 1,
+            "generatingSimplex": [
+              1
+            ]
+          },
+          {
+            "dimension": 0,
+            "birth": 0,
+            "death": 1,
+            "generatingSimplex": [
+              3
+            ]
+          },
+          {
+            "dimension": 0,
+            "birth": 0,
+            "death": 1,
+            "generatingSimplex": [
+              2
+            ]
+          },
+          {
+            "dimension": 0,
+            "birth": 0,
+            "death": null,
+            "generatingSimplex": [
+              0
+            ]
+          },
+          {
+            "dimension": 1,
+            "birth": 1,
+            "death": 1.4142135623730951,
+            "generatingSimplex": [
+              2,
+              3
+            ]
+          },
+          {
+            "dimension": 1,
+            "birth": 1.4142135623730951,
+            "death": 1.4142135623730951,
+            "generatingSimplex": [
+              0,
+              2
+            ]
+          },
+          {
+            "dimension": 1,
+            "birth": 1.4142135623730951,
+            "death": 1.4142135623730951,
+            "generatingSimplex": [
+              1,
+              3
+            ]
+          }
+        ],
+        "h0": [
+          {
+            "dimension": 0,
+            "birth": 0,
+            "death": 1,
+            "generatingSimplex": [
+              1
+            ]
+          },
+          {
+            "dimension": 0,
+            "birth": 0,
+            "death": 1,
+            "generatingSimplex": [
+              3
+            ]
+          },
+          {
+            "dimension": 0,
+            "birth": 0,
+            "death": 1,
+            "generatingSimplex": [
+              2
+            ]
+          },
+          {
+            "dimension": 0,
+            "birth": 0,
+            "death": null,
+            "generatingSimplex": [
+              0
+            ]
+          }
+        ],
+        "h1": [
+          {
+            "dimension": 1,
+            "birth": 1,
+            "death": 1.4142135623730951,
+            "generatingSimplex": [
+              2,
+              3
+            ]
+          },
+          {
+            "dimension": 1,
+            "birth": 1.4142135623730951,
+            "death": 1.4142135623730951,
+            "generatingSimplex": [
+              0,
+              2
+            ]
+          },
+          {
+            "dimension": 1,
+            "birth": 1.4142135623730951,
+            "death": 1.4142135623730951,
+            "generatingSimplex": [
+              1,
+              3
+            ]
+          }
+        ],
+        "note": "Rips filtration through triangles, H0/H1 only; null death denotes persistence beyond maxScale. Not a general high-dimensional TDA engine."
+      }
+    },
+    {
+      "id": 28,
+      "example": "examples/causal-irl.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_HORIZON_MAXENT_IRL_KNOWN_ACTION_TRANSITIONS",
+        "weights": [
+          2.537641423250671
+        ],
+        "empiricalFeatureCounts": [
+          1
+        ],
+        "expectedFeatureCounts": [
+          0.9875789856921897
+        ],
+        "gradientNorm": 0.009921656689195112,
+        "policy": [
+          {
+            "t": 0,
+            "states": [
+              {
+                "state": "START",
+                "actionProbabilities": {
+                  "LEFT": 0.9937894928460949,
+                  "RIGHT": 0.00621050715390516
+                }
+              },
+              {
+                "state": "GOOD",
+                "actionProbabilities": {
+                  "LEFT": 0.5,
+                  "RIGHT": 0.5
+                }
+              },
+              {
+                "state": "BAD",
+                "actionProbabilities": {
+                  "LEFT": 0.5,
+                  "RIGHT": 0.5
+                }
+              }
+            ]
+          },
+          {
+            "t": 1,
+            "states": [
+              {
+                "state": "START",
+                "actionProbabilities": {
+                  "LEFT": 0.5,
+                  "RIGHT": 0.5
+                }
+              },
+              {
+                "state": "GOOD",
+                "actionProbabilities": {
+                  "LEFT": 0.5,
+                  "RIGHT": 0.5
+                }
+              },
+              {
+                "state": "BAD",
+                "actionProbabilities": {
+                  "LEFT": 0.5,
+                  "RIGHT": 0.5
+                }
+              }
+            ]
+          }
+        ],
+        "note": "Causal action effects are assumed known in the supplied MDP. Rewards can be nonidentifiable under feature symmetries; no causal discovery from demonstrations."
+      }
+    },
+    {
+      "id": 29,
+      "example": "examples/multivariate-transfer-entropy.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "DISCRETE_CONDITIONAL_TRANSFER_ENTROPY_PLUGIN",
+        "samples": 11,
+        "lag": 1,
+        "sourceCount": 1,
+        "controlCount": 0,
+        "bits": 0.8290377707967044,
+        "note": "Plug-in conditional mutual information of categorical lagged series; finite-sample bias and hidden confounding preclude causal identification or significance claims."
+      }
+    },
+    {
+      "id": 30,
+      "example": "examples/scenario-robust.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "OPTIMAL_FINITE",
+      "output": {
+        "domain": "FINITE_SCENARIO_ROBUST_OPTIMIZATION",
+        "status": "OPTIMAL_FINITE",
+        "feasibleCount": 2,
+        "minimumMaxCost": {
+          "decision": "B",
+          "maximumCost": 5,
+          "maximumRegret": 3,
+          "costs": [
+            4,
+            5
+          ]
+        },
+        "minimumMaxRegret": {
+          "decision": "B",
+          "maximumCost": 5,
+          "maximumRegret": 3,
+          "costs": [
+            4,
+            5
+          ]
+        },
+        "scenarioBestFeasibleCosts": [
+          1,
+          5
+        ],
+        "scenarios": [
+          "calm",
+          "stress"
+        ],
+        "note": "Exhaustive finite candidate enumeration; scenarios and feasibility supplied explicitly, not a continuous robust solver or protection against unmodeled uncertainty."
+      }
+    },
+    {
+      "id": 31,
+      "example": "examples/local-contract.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "APPLIED_IN_MEMORY",
+      "output": {
+        "status": "APPLIED_IN_MEMORY",
+        "state": {
+          "balance": 9,
+          "nonce": 0
+        },
+        "hash": "0a97e449f878452344c0793812dec46aa3dc2d837c7d8ec56d3acf93c6ba3255"
+      }
+    },
+    {
+      "id": 32,
+      "example": "examples/dynamic-graph.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "IN_MEMORY_DYNAMIC_UNDIRECTED_GRAPH",
+        "vertexCount": 4,
+        "edgeCount": 2,
+        "components": [
+          [
+            "A",
+            "B",
+            "C"
+          ],
+          [
+            "D"
+          ]
+        ],
+        "degrees": {
+          "A": 1,
+          "B": 2,
+          "C": 1,
+          "D": 0
+        },
+        "shortestPaths": {
+          "A": 0,
+          "B": 1,
+          "C": 2,
+          "D": null
+        },
+        "updates": [
+          {
+            "kind": "add",
+            "edge": "B--C"
+          }
+        ],
+        "note": "Graph updates and full BFS recomputation in memory; not a distributed graph database or guaranteed sublinear dynamic algorithm."
+      }
+    },
+    {
+      "id": 33,
+      "example": "examples/empirical-mode.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_LINEAR_ENVELOPE_EMD",
+        "modes": [
+          [
+            0,
+            0.4096313921161928,
+            0.39981116370738545,
+            0.3242925571690377,
+            -0.17933344338730992,
+            -0.6995018874716576,
+            -0.8231779558910052,
+            -0.5601328789833827,
+            0.10173572877423967,
+            0.7515170700038621,
+            0.9793743540024843,
+            0.6813903556166602,
+            -0.028158593260164094,
+            -0.7299970472789883,
+            -1.0055346723968124,
+            -0.7384971328230664,
+            -0.03992070619632038,
+            0.6763769071374257,
+            0.9950034016251718,
+            0.6937032213578437,
+            -0.011799829433484371,
+            -0.7120648220738126,
+            -0.9981162523401406,
+            -0.6855101701061368,
+            0.03129878265186703,
+            0.734213903762871,
+            1.006373018973875,
+            0.7362905970456484,
+            0.03466928806442193,
+            -0.6823420524398047,
+            -0.9972270970990313,
+            -0.7073793019051641,
+            -0.005966556220296848,
+            0.6980948013465704,
+            0.9956530913984376,
+            0.677723839330711,
+            -0.0390289435870155,
+            -0.7384564018257421,
+            -1.0059491109834688,
+            -0.7283038486208515,
+            -0.02255119224023444,
+            0.6932121559903827,
+            1,
+            0.7210014063826173,
+            0.022551192240234386,
+            -0.6859097137521485,
+            -0.9940508890165312,
+            -0.6757571605472577,
+            0.039028943587015696,
+            0.736489723042289,
+            1.0043469086015624,
+            0.7269315449745999,
+            0.02759212411663753,
+            -0.6743959086233249,
+            -0.9595217671082874,
+            -0.7678662716368867,
+            -0.14990994726448587,
+            0.48343640863091475,
+            0.7198945268333156,
+            0.6728715104803362,
+            0.22817737528135656,
+            -0.20262292827062292,
+            -0.20919897760060252,
+            -6.938893903907228e-17
+          ],
+          [
+            0,
+            0.025943132604848727,
+            0.051886265209697566,
+            0.009879624353865149,
+            -0.03212701650196734,
+            -0.07413365735779975,
+            -0.11614029821363232,
+            -0.05175063825555999,
+            0.012639021702512382,
+            0.07702868166058467,
+            0.14141834161865718,
+            0.08137409723230377,
+            0.021329852845950403,
+            -0.03871439154040309,
+            -0.09875863592675653,
+            -0.1115546302229352,
+            -0.12435062451911377,
+            -0.13714661881529244,
+            -0.14994261311147103,
+            -0.10282416469204242,
+            -0.05570571627261403,
+            -0.00858726785318542,
+            0.03853118056624298,
+            0.06754049596033959,
+            0.09654981135443617,
+            0.12555912674853253,
+            0.15456844214262883,
+            0.13177583481687266,
+            0.10898322749111598,
+            0.0861906201653596,
+            0.06339801283960315,
+            0.013948508429752884,
+            -0.035500995980097386,
+            -0.08495050038994767,
+            -0.13440000479979802,
+            -0.1420611381890543,
+            -0.1497222715783108,
+            -0.1573834049675673,
+            -0.16504453835682367,
+            -0.12351854499315405,
+            -0.08199255162948424,
+            -0.04046655826581454,
+            0.0010594350978550965,
+            0.0425854284615248,
+            0.0841114218251946,
+            0.12563741518886434,
+            0.16716340855253387,
+            0.1539697569985834,
+            0.14077610544463312,
+            0.12758245389068268,
+            0.11438880233673225,
+            0.048593995814017854,
+            -0.017200810708696723,
+            -0.08299561723141133,
+            -0.14879042375412568,
+            -0.08430620245144492,
+            -0.019821981148764226,
+            0.04466224015391662,
+            0.10914646145659737,
+            0.07449042527959633,
+            0.03983438910259548,
+            0.005178352925594487,
+            -0.029477683251406483,
+            0
+          ],
+          [
+            0,
+            0.0012843573917162268,
+            0.0025687147834324536,
+            0.00032637444220867044,
+            -0.0019159658990150373,
+            -0.004158306240238885,
+            -0.006400646581462659,
+            -0.002443459566409695,
+            0.0015137274486434179,
+            0.00547091446369644,
+            0.009428101478749519,
+            0.0040622314585713575,
+            -0.001303638561606855,
+            -0.006669508581785077,
+            -0.012035378601963197,
+            -0.004544760542266047,
+            0.0029458575174311974,
+            0.010436475577128401,
+            0.017927093636825417,
+            0.017985650899120256,
+            0.018044208161415044,
+            0.01810276542370988,
+            0.018161322686004594,
+            0.018219879948299322,
+            0.018278437210594238,
+            0.01833699447288912,
+            0.01839555173518376,
+            0.015029230789598705,
+            0.011662909844013648,
+            0.008296588898428622,
+            0.004930267952843495,
+            0.0015639470072584226,
+            -0.0018023739383266554,
+            -0.0051686948839116485,
+            -0.008535015829496707,
+            -0.01190133677508186,
+            -0.015267657720666976,
+            -0.018633978666251962,
+            -0.022000299611837033,
+            -0.01665497080985443,
+            -0.0113096420078718,
+            -0.005964313205889232,
+            -0.000618984403906753,
+            0.004726344398075918,
+            0.010071673200058537,
+            0.015417002002040993,
+            0.020762330804023725,
+            0.016281742527638567,
+            0.011801154251253464,
+            0.007320565974868366,
+            0.002839977698483334,
+            -0.0016406105779017705,
+            -0.006121198854286773,
+            -0.010601787130671966,
+            -0.015082375407057242,
+            -0.008871446489228987,
+            -0.002660517571400742,
+            0.00355041134642754,
+            0.009761340264255822,
+            0.006763510189631745,
+            0.0037656801150076883,
+            0.0007678500403836539,
+            -0.0022299800342402815,
+            0
+          ]
+        ],
+        "residual": [
+          0,
+          0.3391989339562423,
+          0.6783978679124846,
+          0.5589745217148885,
+          0.43955117551729234,
+          0.3201278293196963,
+          0.20070448312210015,
+          0.15042527637535238,
+          0.10014606962860453,
+          0.049866862881856745,
+          -0.000412343864891097,
+          0.02047164364346467,
+          0.041355631151820546,
+          0.06223961866017645,
+          0.0831236061685322,
+          0.10250415996526761,
+          0.12188471376200295,
+          0.1412652675587383,
+          0.16064582135547378,
+          0.17557806200907855,
+          0.19051030266268335,
+          0.20544254331628814,
+          0.220374783969893,
+          0.23530702462349784,
+          0.25023926527710255,
+          0.2651715059307073,
+          0.28010374658431225,
+          0.2889967009708803,
+          0.29788965535744844,
+          0.3067826097440165,
+          0.3156755641305846,
+          0.3245685185171528,
+          0.33346147290372086,
+          0.3423544272902889,
+          0.3512473816768571,
+          0.3601403360634252,
+          0.3690332904499933,
+          0.37792624483656134,
+          0.38681919922312946,
+          0.39500428674386,
+          0.4031893742645905,
+          0.411374461785321,
+          0.41955954930605155,
+          0.42774463682678204,
+          0.43592972434751254,
+          0.44411481186824314,
+          0.4522998993889736,
+          0.46783963927103567,
+          0.48337937915309775,
+          0.4989191190351599,
+          0.514458858917222,
+          0.529998598799284,
+          0.545538338681346,
+          0.5610780785634082,
+          0.5766178184454703,
+          0.5679025918365606,
+          0.5591873652276508,
+          0.550472138618741,
+          0.5417569120098312,
+          0.35680658550843575,
+          0.17185625900704027,
+          -0.013094067494355209,
+          -0.19804439399575072,
+          -0.07710678118699993
+        ],
+        "sifts": [
+          3,
+          7,
+          21
+        ],
+        "maxReconstructionError": 2.220446049250313e-16,
+        "note": "Linear envelope extrema EMD, not cubic-spline EMD or a unique physical frequency decomposition."
+      }
+    },
+    {
+      "id": 34,
+      "example": "examples/dynamic-bayes.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_BINARY_JOINT_STATE_DBN",
+        "states": 2,
+        "symbols": 2,
+        "posterior": [
+          [
+            1,
+            0
+          ],
+          [
+            0.6666666666666667,
+            0.33333333333333337
+          ],
+          [
+            0.3076923076923077,
+            0.6923076923076923
+          ]
+        ],
+        "logLikelihood": -2.36872489549859,
+        "note": "Known joint Markov transition and emission tables, no learned structure or continuous-time inference."
+      }
+    },
+    {
+      "id": 35,
+      "example": "examples/stochastic-dp.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_HORIZON_STOCHASTIC_DP",
+        "states": [
+          "A",
+          "B"
+        ],
+        "values": [
+          [
+            4,
+            4
+          ],
+          [
+            2,
+            2
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "policies": [
+          [
+            "stay",
+            "switch"
+          ],
+          [
+            "stay",
+            "switch"
+          ]
+        ],
+        "discount": 1,
+        "horizon": 2,
+        "note": "Known tabular dynamics; finite horizon; not a model-free reinforcement learner."
+      }
+    },
+    {
+      "id": 36,
+      "example": "examples/cross-map.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_CONVERGENT_CROSS_MAPPING",
+        "direction": "y_manifold_predicts_x",
+        "skills": [
+          {
+            "librarySize": 30,
+            "queryCount": 69,
+            "correlation": 0.9997091080855495,
+            "meanSquaredError": 0.0002991996231544119
+          },
+          {
+            "librarySize": 70,
+            "queryCount": 29,
+            "correlation": 0.9998648519813218,
+            "meanSquaredError": 0.0001342626449521974
+          }
+        ],
+        "note": "Prediction/cross-map skill alone does not establish causality; autocorrelation, shared forcing and convergence must be evaluated separately."
+      }
+    },
+    {
+      "id": 37,
+      "example": "examples/spatiotemporal-field.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_GAUSSIAN_SPATIOTEMPORAL_FIELD",
+        "sample": [
+          2.6694611714023986,
+          0.5617625382534819,
+          1.2588178058184907
+        ],
+        "covariance": [
+          [
+            1.001,
+            0.6065306597126334,
+            0.7165313105737893
+          ],
+          [
+            0.6065306597126334,
+            1.001,
+            0.43459820850707825
+          ],
+          [
+            0.7165313105737893,
+            0.43459820850707825,
+            1.001
+          ]
+        ],
+        "seed": 2026,
+        "note": "One reproducible Gaussian draw under a user-specified covariance kernel; no learned geophysical process."
+      }
+    },
+    {
+      "id": 38,
+      "example": "examples/constrained-swarm.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "FEASIBLE_CANDIDATE",
+      "output": {
+        "domain": "BOUNDED_QUADRATIC_CONSTRAINED_PSO",
+        "status": "FEASIBLE_CANDIDATE",
+        "bestPoint": [
+          0.49764524856964837,
+          0.5023095471807717
+        ],
+        "bestCost": 0.500056083112059,
+        "iterations": 75,
+        "particles": 24,
+        "note": "Heuristic search; absence of a candidate is not a proof of infeasibility or global optimality."
+      }
+    },
+    {
+      "id": 39,
+      "example": "examples/paillier-public.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "PAILLIER_ADDITIVE_ONLY",
+        "ciphertext": "130824075697613431723119094400353297147173953188327210570487832996094420149572878825729206382121457493433986920578016195252887206670630366651425493950125679666979992010600212267177504281865452295802260450263019133032617384588886014783596855836251979513700681260813333520119643991629935690778709163994061320584868500463562990579424129585180607225883943120018850521976156865418737470547898256264924693618309333268240388857795871373987746568668412166683245164598242803609105060729439776176321058243837437434936844809334075379157671428724824256965581338861882820500808680544849243783729138339666078421682032681592711549946247293385168422674015720244630350722956726468322747983426957255256187716038261321615500539798397069219927657147786950978658491608383580624402728482412774123595202959196037599130250283245501762697339211108541145580151209446441949149897551869660860760556007373399312466169344411046377212077404141001648557305697668623280709854703109844066172505015388519410289613980798474766581706596975621610511247833205123572790759306343831062734496614506839445053183744681422157389572452635784570665335231806882227504248048605835992949279723638047923858351426433603909448807024821237667578806135519576470672678593551600340538496135"
+      }
+    },
+    {
+      "id": 40,
+      "example": "examples/invariant-safe.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_BOOLEAN_INDUCTIVE_INVARIANTS",
+        "initiated": true,
+        "inductive": true,
+        "provenByInduction": true,
+        "reachableStateCount": 2,
+        "reachableInvariantHolds": true,
+        "counterexample": null,
+        "witness": null,
+        "note": "Proof is over supplied Boolean transition DSL only, not arbitrary source code or external runtime behavior."
+      }
+    },
+    {
+      "id": 41,
+      "example": "examples/motor-41.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_MARKOV_CHAIN",
+        "stateCount": 2,
+        "communicatingClasses": [
+          [
+            0,
+            1
+          ]
+        ],
+        "recurrentClasses": [
+          {
+            "states": [
+              0,
+              1
+            ],
+            "period": 1
+          }
+        ],
+        "irreducible": true,
+        "aperiodic": true,
+        "ergodic": true,
+        "cesaroEstimate": [
+          0.49999999999999806,
+          0.49999999999999806
+        ],
+        "steps": 300,
+        "note": "Graph-theoretic ergodicity is proved only for the supplied finite transition matrix; Cesaro distribution is a numerical estimate."
+      }
+    },
+    {
+      "id": 42,
+      "example": "examples/motor-42.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "DISCRETE_LINEAR_SYSTEM",
+        "eigenvalues": [
+          [
+            0.5,
+            0
+          ],
+          [
+            0.25,
+            0
+          ]
+        ],
+        "spectralRadius": 0.5,
+        "asymptoticallyStable": true,
+        "lyapunovCandidate": [
+          [
+            1.3333333333333333,
+            0
+          ],
+          [
+            0,
+            1.0666666666666667
+          ]
+        ],
+        "lyapunovResidualMax": 5.551115123125783e-17,
+        "iterations": 1000,
+        "note": "Criterion is for exact 1×1 or 2×2 constant linear discrete dynamics; residual is numerical, not a nonlinear stability proof."
+      }
+    },
+    {
+      "id": 43,
+      "example": "examples/motor-43.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "QUORUM_CERTIFIED",
+      "output": {
+        "domain": "AUTHENTICATED_SINGLE_VIEW_TRANSCRIPT",
+        "replicaCount": 4,
+        "faultBound": 1,
+        "quorum": 3,
+        "equivocators": [],
+        "prepareTallies": [
+          {
+            "value": "one",
+            "count": 3
+          }
+        ],
+        "commitTallies": [
+          {
+            "value": "one",
+            "count": 3
+          }
+        ],
+        "certificate": {
+          "value": "one",
+          "count": 3
+        },
+        "status": "QUORUM_CERTIFIED",
+        "note": "Transcript analysis assumes authenticated, unique replica identities and <= f Byzantine nodes; quorum n-f ensures intersecting certificates under the claimed fault bound; no networking, leader-change, liveness or signature verification."
+      }
+    },
+    {
+      "id": 44,
+      "example": "examples/motor-44.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "CATEGORICAL_SIMPLEX_FISHER_RAO",
+        "distance": 1.5707963267948966,
+        "hellingerSquared": 0.2928932188134524,
+        "metricChart": [
+          [
+            4
+          ]
+        ],
+        "dimension": 1,
+        "note": "Exact Fisher-Rao geodesic on probability simplex; metric chart undefined at boundary."
+      }
+    },
+    {
+      "id": 45,
+      "example": "examples/motor-45.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "verified": true,
+        "domain": "SCHNORR_MODP14_RELATION_ONLY"
+      }
+    },
+    {
+      "id": 46,
+      "example": "examples/motor-46.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "LINEAR_GAUSSIAN_JOSEPH_CHOLESKY",
+        "history": [
+          {
+            "mean": [
+              0.5238095238095238
+            ],
+            "sqrtCov": [
+              [
+                0.7237468644557459
+              ]
+            ],
+            "innovation": [
+              1
+            ]
+          },
+          {
+            "mean": [
+              0.5238095238095238
+            ],
+            "sqrtCov": [
+              [
+                0.7898161329129229
+              ]
+            ],
+            "innovation": null
+          }
+        ],
+        "finalMean": [
+          0.5238095238095238
+        ],
+        "finalSqrtCov": [
+          [
+            0.7898161329129229
+          ]
+        ],
+        "note": "Cholesky factors recomputed each step; not an optimized high-velocity QR implementation."
+      }
+    },
+    {
+      "id": 47,
+      "example": "examples/motor-47.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "CONVERGED",
+      "output": {
+        "domain": "CATEGORICAL_KL_IPROJECTION_ONE_MOMENT",
+        "status": "CONVERGED",
+        "posterior": [
+          0.19999999998655704,
+          0.8000000000134428
+        ],
+        "dual": 1.386294361203909,
+        "expectedFeature": 0.8000000000134428,
+        "target": 0.8,
+        "kl": 0.1927447570403932,
+        "iterations": 28,
+        "note": "Known prior and a single linear equality constraint; no inference of causal-economic structure."
+      }
+    },
+    {
+      "id": 48,
+      "example": "examples/motor-48.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "LOGISTIC_MAP_PARAMETER_SWEEP",
+        "results": [
+          {
+            "r": 2,
+            "lyapunovEstimate": "-Infinity",
+            "periodEstimate": 1,
+            "orbitTail": [
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5,
+              0.5
+            ]
+          },
+          {
+            "r": 4,
+            "lyapunovEstimate": 0.6971730168580561,
+            "periodEstimate": null,
+            "orbitTail": [
+              0.45291280323800287,
+              0.9911311836043879,
+              0.03516064196541209,
+              0.13569748488796876,
+              0.46913470993219303,
+              0.9961893354761207,
+              0.015184573439063181,
+              0.05981600867414751,
+              0.2249522151217673,
+              0.6973948641343097,
+              0.8441410704535897,
+              0.5262676945082297,
+              0.9972400329008893,
+              0.011009398722890303,
+              0.0435527674506029,
+              0.16662369559198642
+            ]
+          }
+        ],
+        "note": "Finite-time Lyapunov and approximate period estimates; no rigorous global bifurcation or chaotic attractor certification."
+      }
+    },
+    {
+      "id": 49,
+      "example": "examples/motor-49.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_LINEAR_CHAIN_CRF",
+        "logPartition": 1.3862943611198906,
+        "marginals": [
+          [
+            0.5,
+            0.5
+          ],
+          [
+            0.5,
+            0.5
+          ]
+        ],
+        "mapPath": [
+          0,
+          0
+        ],
+        "mapLogScore": 0,
+        "note": "Exact inference for supplied finite unary and transition log potentials; no parameter training."
+      }
+    },
+    {
+      "id": 50,
+      "example": "examples/motor-50.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "verified": true,
+        "domain": "SIGNED_STATE_INVARIANT_CLAIM"
+      }
+    },
+    {
+      "id": 51,
+      "example": "examples/motor-51.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "ISING_FACTORIZED_MEAN_FIELD",
+        "means": [
+          0,
+          0.49999999999999994
+        ],
+        "probabilityPlus": [
+          0.5,
+          0.75
+        ],
+        "elbo": 1.530135397345781,
+        "residual": 0,
+        "fixedPointResidual": 0,
+        "contractionCertificate": {
+          "applicable": true,
+          "contractionFactor": 0,
+          "infinityNormErrorBound": 0,
+          "meaning": "Banach bound for the unique mean-field fixed point when max absolute row sum of J is below one; floating-point evaluation, not an interval-arithmetic formal certificate"
+        },
+        "iterations": 1,
+        "converged": true,
+        "note": "Product-family mean-field approximation, not the exact Ising marginals or partition function."
+      }
+    },
+    {
+      "id": 52,
+      "example": "examples/motor-52.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "COUPLED_LOGISTIC_MAP_LATTICE",
+        "final": [
+          0.8755911297724981,
+          0.6738990882338062,
+          0.2406125072149231
+        ],
+        "trajectory": [
+          [
+            0.6400000000000001,
+            0.84,
+            0.96
+          ],
+          [
+            0.5903644834454244,
+            0.21930544898927595,
+            0.7744414790586454
+          ],
+          [
+            0.35318002041535335,
+            0.7385515542550019,
+            0.8080534077295184
+          ],
+          [
+            0.983229906878123,
+            0.6584934723527907,
+            0.8134392042451056
+          ],
+          [
+            0.0026431228031336984,
+            0.49297563849452836,
+            0.000013898455128709151
+          ],
+          [
+            0.8755911297724981,
+            0.6738990882338062,
+            0.2406125072149231
+          ]
+        ],
+        "largestLyapunovEstimate": 0.6922127570403308,
+        "steps": 100,
+        "note": "Finite-time tangent growth of a particular initial condition; no proof of global strange attractor."
+      }
+    },
+    {
+      "id": 53,
+      "example": "examples/motor-53.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "CATEGORICAL_FISHER_RAO_RICCI",
+        "dimension": 1,
+        "metric": [
+          [
+            5.333333333333333
+          ]
+        ],
+        "ricci": [
+          [
+            0
+          ]
+        ],
+        "scalarCurvature": 0,
+        "sectionalCurvature": null,
+        "note": "Analytic curvature tensor contraction of interior categorical simplex only; no arbitrary learned information manifold."
+      }
+    },
+    {
+      "id": 54,
+      "example": "examples/motor-54.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "SO2_INVARIANT_SCALAR_KALMAN",
+        "history": [
+          {
+            "angle": -3.1302295574968277,
+            "variance": 0.00990099009900991,
+            "innovation": 0.02318530717958669,
+            "gain": 0.9900990099009901
+          }
+        ],
+        "finalAngle": -3.1302295574968277,
+        "finalVariance": 0.00990099009900991,
+        "note": "Wrapped SO(2) angle with scalar Gaussian local-error covariance; not general matrix Lie-group filtering."
+      }
+    },
+    {
+      "id": 55,
+      "example": "examples/motor-55.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "ONE_LAYER_SYMMETRIC_GCN",
+        "values": [
+          [
+            1.5
+          ],
+          [
+            1.5
+          ]
+        ],
+        "degree": [
+          2,
+          2
+        ],
+        "note": "One permutation-equivariant normalized graph convolution with supplied weights; no training, general CNN or attention."
+      }
+    },
+    {
+      "id": 56,
+      "example": "examples/motor-56.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "PERIODIC_STOCHASTIC_HEAT_EULER_MARUYAMA",
+        "final": [
+          0.3521650166000001,
+          0.32391749170000006,
+          0.32391749170000006
+        ],
+        "massInitial": 1,
+        "massFinal": 1.0000000000000002,
+        "cfl": 0.1,
+        "steps": 10,
+        "note": "Discrete 1D stochastic heat equation under independent Gaussian forcing, not a general SPDE solver."
+      }
+    },
+    {
+      "id": 57,
+      "example": "examples/motor-57.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "CONVERGED",
+      "output": {
+        "domain": "TWO_STATE_FINITE_HORIZON_MEAN_FIELD_GAME",
+        "status": "CONVERGED",
+        "policy": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "distribution": [
+          [
+            0.7,
+            0.3
+          ],
+          [
+            0.7,
+            0.3
+          ],
+          [
+            0.7,
+            0.3
+          ],
+          [
+            0.7,
+            0.3
+          ]
+        ],
+        "consistencyResidual": 0,
+        "policyOptimal": true,
+        "iterations": 1,
+        "note": "Damped fixed-point best response for an explicitly provided two-state congestion game; nonconvergence is reported, not suppressed."
+      }
+    },
+    {
+      "id": 58,
+      "example": "examples/motor-58.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "KNOWN_INVERTIBLE_NONLINEAR_ICA_MODEL",
+        "sources": [
+          [
+            -1.25,
+            0
+          ],
+          [
+            -0.9999999999999999,
+            0.8414709848078967
+          ],
+          [
+            -0.75,
+            0.9092974268256817
+          ],
+          [
+            -0.5,
+            0.14112000805986719
+          ],
+          [
+            -0.25,
+            -0.7568024953079282
+          ],
+          [
+            0,
+            -0.9589242746631385
+          ],
+          [
+            0.25,
+            -0.27941549819892586
+          ],
+          [
+            0.5,
+            0.6569865987187891
+          ],
+          [
+            0.75,
+            0.9893582466233819
+          ],
+          [
+            0.9999999999999999,
+            0.4121184852417567
+          ]
+        ],
+        "pearsonCorrelation": 0.05345350637036241,
+        "reconstructionMaxError": 0,
+        "note": "Known mixing law and coefficient supplied by caller; correlation is not a test of independence, and blind nonlinear ICA is not claimed."
+      }
+    },
+    {
+      "id": 59,
+      "example": "examples/motor-59.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_CANDIDATE_GP_EXPECTED_IMPROVEMENT",
+        "recommended": {
+          "x": [
+            1
+          ],
+          "mean": 0.00009592138696945529,
+          "std": 0.009999209151499013,
+          "expectedImprovement": 0.003941330154540836
+        },
+        "predictions": [
+          {
+            "x": [
+              0
+            ],
+            "mean": 0.9998418365542258,
+            "std": 0.009999209151499013,
+            "expectedImprovement": 0
+          },
+          {
+            "x": [
+              0.25
+            ],
+            "mean": 0.8089200656176357,
+            "std": 0.128668169773888,
+            "expectedImprovement": 2.5982159124288446e-12
+          },
+          {
+            "x": [
+              0.5
+            ],
+            "mean": 0.5492842410603828,
+            "std": 0.17469034676067363,
+            "expectedImprovement": 0.00003969182725243903
+          },
+          {
+            "x": [
+              0.75
+            ],
+            "mean": 0.26417836309884646,
+            "std": 0.1286681697738876,
+            "expectedImprovement": 0.0009463245063353583
+          },
+          {
+            "x": [
+              1
+            ],
+            "mean": 0.00009592138696945529,
+            "std": 0.009999209151499013,
+            "expectedImprovement": 0.003941330154540836
+          }
+        ],
+        "observedBest": 0,
+        "choleskyDiagonal": [
+          1.0000499987500624,
+          0.7951461143049422
+        ],
+        "note": "RBF Gaussian-process regression with fixed hyperparameters and EI on provided candidate set; neither continuous global optimum nor calibrated uncertainty guaranteed."
+      }
+    },
+    {
+      "id": 60,
+      "example": "examples/motor-60.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "SCALAR_CONTINUOUS_TIME_STOCHASTIC_LQR",
+        "initialRiccati": 0.7615941559473343,
+        "initialGain": 0.7615941559473343,
+        "noiseValueOffset": 0.017351184883601052,
+        "trajectory": [
+          {
+            "time": 0,
+            "riccati": 0.7615941559473343,
+            "gain": 0.7615941559473343
+          },
+          {
+            "time": 0.005,
+            "riccati": 0.7594862750560972,
+            "gain": 0.7594862750560972
+          },
+          {
+            "time": 0.01,
+            "riccati": 0.7573623242081551,
+            "gain": 0.7573623242081551
+          },
+          {
+            "time": 0.015,
+            "riccati": 0.7552222263455616,
+            "gain": 0.7552222263455616
+          },
+          {
+            "time": 0.02,
+            "riccati": 0.7530659048612424,
+            "gain": 0.7530659048612424
+          },
+          {
+            "time": 0.025,
+            "riccati": 0.7508932836168891,
+            "gain": 0.7508932836168891
+          },
+          {
+            "time": 0.03,
+            "riccati": 0.7487042869610627,
+            "gain": 0.7487042869610627
+          },
+          {
+            "time": 0.035,
+            "riccati": 0.7464988397475052,
+            "gain": 0.7464988397475052
+          },
+          {
+            "time": 0.04,
+            "riccati": 0.7442768673536573,
+            "gain": 0.7442768673536573
+          },
+          {
+            "time": 0.045,
+            "riccati": 0.7420382956993823,
+            "gain": 0.7420382956993823
+          },
+          {
+            "time": 0.05,
+            "riccati": 0.7397830512658923,
+            "gain": 0.7397830512658923
+          },
+          {
+            "time": 0.055,
+            "riccati": 0.7375110611148761,
+            "gain": 0.7375110611148761
+          },
+          {
+            "time": 0.06,
+            "riccati": 0.7352222529078273,
+            "gain": 0.7352222529078273
+          },
+          {
+            "time": 0.065,
+            "riccati": 0.732916554925569,
+            "gain": 0.732916554925569
+          },
+          {
+            "time": 0.07,
+            "riccati": 0.730593896087974,
+            "gain": 0.730593896087974
+          },
+          {
+            "time": 0.075,
+            "riccati": 0.7282542059738785,
+            "gain": 0.7282542059738785
+          },
+          {
+            "time": 0.08,
+            "riccati": 0.725897414841185,
+            "gain": 0.725897414841185
+          },
+          {
+            "time": 0.085,
+            "riccati": 0.7235234536471541,
+            "gain": 0.7235234536471541
+          },
+          {
+            "time": 0.09,
+            "riccati": 0.7211322540688804,
+            "gain": 0.7211322540688804
+          },
+          {
+            "time": 0.095,
+            "riccati": 0.7187237485239509,
+            "gain": 0.7187237485239509
+          },
+          {
+            "time": 0.1,
+            "riccati": 0.716297870191283,
+            "gain": 0.716297870191283
+          },
+          {
+            "time": 0.105,
+            "riccati": 0.7138545530321367,
+            "gain": 0.7138545530321367
+          },
+          {
+            "time": 0.11,
+            "riccati": 0.7113937318113012,
+            "gain": 0.7113937318113012
+          },
+          {
+            "time": 0.115,
+            "riccati": 0.7089153421184488,
+            "gain": 0.7089153421184488
+          },
+          {
+            "time": 0.12,
+            "riccati": 0.7064193203896557,
+            "gain": 0.7064193203896557
+          },
+          {
+            "time": 0.125,
+            "riccati": 0.7039056039290832,
+            "gain": 0.7039056039290832
+          },
+          {
+            "time": 0.13,
+            "riccati": 0.7013741309308167,
+            "gain": 0.7013741309308167
+          },
+          {
+            "time": 0.135,
+            "riccati": 0.6988248405008588,
+            "gain": 0.6988248405008588
+          },
+          {
+            "time": 0.14,
+            "riccati": 0.6962576726792711,
+            "gain": 0.6962576726792711
+          },
+          {
+            "time": 0.145,
+            "riccati": 0.6936725684624606,
+            "gain": 0.6936725684624606
+          },
+          {
+            "time": 0.15,
+            "riccati": 0.6910694698256074,
+            "gain": 0.6910694698256074
+          },
+          {
+            "time": 0.155,
+            "riccati": 0.6884483197452261,
+            "gain": 0.6884483197452261
+          },
+          {
+            "time": 0.16,
+            "riccati": 0.6858090622218601,
+            "gain": 0.6858090622218601
+          },
+          {
+            "time": 0.165,
+            "riccati": 0.6831516423028989,
+            "gain": 0.6831516423028989
+          },
+          {
+            "time": 0.17,
+            "riccati": 0.6804760061055178,
+            "gain": 0.6804760061055178
+          },
+          {
+            "time": 0.17500000000000002,
+            "riccati": 0.6777821008397312,
+            "gain": 0.6777821008397312
+          },
+          {
+            "time": 0.18,
+            "riccati": 0.6750698748315558,
+            "gain": 0.6750698748315558
+          },
+          {
+            "time": 0.185,
+            "riccati": 0.6723392775462766,
+            "gain": 0.6723392775462766
+          },
+          {
+            "time": 0.19,
+            "riccati": 0.6695902596118122,
+            "gain": 0.6695902596118122
+          },
+          {
+            "time": 0.195,
+            "riccati": 0.6668227728421694,
+            "gain": 0.6668227728421694
+          },
+          {
+            "time": 0.2,
+            "riccati": 0.6640367702609853,
+            "gain": 0.6640367702609853
+          },
+          {
+            "time": 0.20500000000000002,
+            "riccati": 0.6612322061251469,
+            "gain": 0.6612322061251469
+          },
+          {
+            "time": 0.21,
+            "riccati": 0.6584090359484837,
+            "gain": 0.6584090359484837
+          },
+          {
+            "time": 0.215,
+            "riccati": 0.6555672165255256,
+            "gain": 0.6555672165255256
+          },
+          {
+            "time": 0.22,
+            "riccati": 0.6527067059553201,
+            "gain": 0.6527067059553201
+          },
+          {
+            "time": 0.225,
+            "riccati": 0.6498274636652998,
+            "gain": 0.6498274636652998
+          },
+          {
+            "time": 0.23,
+            "riccati": 0.6469294504351956,
+            "gain": 0.6469294504351956
+          },
+          {
+            "time": 0.23500000000000001,
+            "riccati": 0.6440126284209858,
+            "gain": 0.6440126284209858
+          },
+          {
+            "time": 0.24,
+            "riccati": 0.6410769611788754,
+            "gain": 0.6410769611788754
+          },
+          {
+            "time": 0.245,
+            "riccati": 0.6381224136892953,
+            "gain": 0.6381224136892953
+          },
+          {
+            "time": 0.25,
+            "riccati": 0.6351489523809174,
+            "gain": 0.6351489523809174
+          },
+          {
+            "time": 0.255,
+            "riccati": 0.6321565451546726,
+            "gain": 0.6321565451546726
+          },
+          {
+            "time": 0.26,
+            "riccati": 0.6291451614077678,
+            "gain": 0.6291451614077678
+          },
+          {
+            "time": 0.265,
+            "riccati": 0.6261147720576911,
+            "gain": 0.6261147720576911
+          },
+          {
+            "time": 0.27,
+            "riccati": 0.6230653495661965,
+            "gain": 0.6230653495661965
+          },
+          {
+            "time": 0.275,
+            "riccati": 0.6199968679632614,
+            "gain": 0.6199968679632614
+          },
+          {
+            "time": 0.28,
+            "riccati": 0.6169093028710044,
+            "gain": 0.6169093028710044
+          },
+          {
+            "time": 0.28500000000000003,
+            "riccati": 0.6138026315275589,
+            "gain": 0.6138026315275589
+          },
+          {
+            "time": 0.29,
+            "riccati": 0.6106768328108885,
+            "gain": 0.6106768328108885
+          },
+          {
+            "time": 0.295,
+            "riccati": 0.6075318872625387,
+            "gain": 0.6075318872625387
+          },
+          {
+            "time": 0.3,
+            "riccati": 0.6043677771113134,
+            "gain": 0.6043677771113134
+          },
+          {
+            "time": 0.305,
+            "riccati": 0.601184486296866,
+            "gain": 0.601184486296866
+          },
+          {
+            "time": 0.31,
+            "riccati": 0.5979820004931974,
+            "gain": 0.5979820004931974
+          },
+          {
+            "time": 0.315,
+            "riccati": 0.5947603071320486,
+            "gain": 0.5947603071320486
+          },
+          {
+            "time": 0.32,
+            "riccati": 0.5915193954261795,
+            "gain": 0.5915193954261795
+          },
+          {
+            "time": 0.325,
+            "riccati": 0.588259256392522,
+            "gain": 0.588259256392522
+          },
+          {
+            "time": 0.33,
+            "riccati": 0.5849798828751991,
+            "gain": 0.5849798828751991
+          },
+          {
+            "time": 0.335,
+            "riccati": 0.5816812695683975,
+            "gain": 0.5816812695683975
+          },
+          {
+            "time": 0.34,
+            "riccati": 0.5783634130390838,
+            "gain": 0.5783634130390838
+          },
+          {
+            "time": 0.34500000000000003,
+            "riccati": 0.5750263117495538,
+            "gain": 0.5750263117495538
+          },
+          {
+            "time": 0.35000000000000003,
+            "riccati": 0.5716699660798035,
+            "gain": 0.5716699660798035
+          },
+          {
+            "time": 0.355,
+            "riccati": 0.5682943783497113,
+            "gain": 0.5682943783497113
+          },
+          {
+            "time": 0.36,
+            "riccati": 0.5648995528410197,
+            "gain": 0.5648995528410197
+          },
+          {
+            "time": 0.365,
+            "riccati": 0.5614854958191056,
+            "gain": 0.5614854958191056
+          },
+          {
+            "time": 0.37,
+            "riccati": 0.5580522155545277,
+            "gain": 0.5580522155545277
+          },
+          {
+            "time": 0.375,
+            "riccati": 0.55459972234434,
+            "gain": 0.55459972234434
+          },
+          {
+            "time": 0.38,
+            "riccati": 0.551128028533159,
+            "gain": 0.551128028533159
+          },
+          {
+            "time": 0.385,
+            "riccati": 0.547637148533974,
+            "gain": 0.547637148533974
+          },
+          {
+            "time": 0.39,
+            "riccati": 0.5441270988486883,
+            "gain": 0.5441270988486883
+          },
+          {
+            "time": 0.395,
+            "riccati": 0.5405978980883789,
+            "gain": 0.5405978980883789
+          },
+          {
+            "time": 0.4,
+            "riccati": 0.5370495669932648,
+            "gain": 0.5370495669932648
+          },
+          {
+            "time": 0.405,
+            "riccati": 0.5334821284523694,
+            "gain": 0.5334821284523694
+          },
+          {
+            "time": 0.41000000000000003,
+            "riccati": 0.5298956075228676,
+            "gain": 0.5298956075228676
+          },
+          {
+            "time": 0.41500000000000004,
+            "riccati": 0.5262900314491032,
+            "gain": 0.5262900314491032
+          },
+          {
+            "time": 0.42,
+            "riccati": 0.5226654296812674,
+            "gain": 0.5226654296812674
+          },
+          {
+            "time": 0.425,
+            "riccati": 0.5190218338937228,
+            "gain": 0.5190218338937228
+          },
+          {
+            "time": 0.43,
+            "riccati": 0.5153592780029644,
+            "gain": 0.5153592780029644
+          },
+          {
+            "time": 0.435,
+            "riccati": 0.5116777981852028,
+            "gain": 0.5116777981852028
+          },
+          {
+            "time": 0.44,
+            "riccati": 0.5079774328935587,
+            "gain": 0.5079774328935587
+          },
+          {
+            "time": 0.445,
+            "riccati": 0.5042582228748566,
+            "gain": 0.5042582228748566
+          },
+          {
+            "time": 0.45,
+            "riccati": 0.5005202111860051,
+            "gain": 0.5005202111860051
+          },
+          {
+            "time": 0.455,
+            "riccati": 0.49676344320995186,
+            "gain": 0.49676344320995186
+          },
+          {
+            "time": 0.46,
+            "riccati": 0.4929879666712011,
+            "gain": 0.4929879666712011
+          },
+          {
+            "time": 0.465,
+            "riccati": 0.4891938316508819,
+            "gain": 0.4891938316508819
+          },
+          {
+            "time": 0.47000000000000003,
+            "riccati": 0.48538109060135465,
+            "gain": 0.48538109060135465
+          },
+          {
+            "time": 0.47500000000000003,
+            "riccati": 0.48154979836034406,
+            "gain": 0.48154979836034406
+          },
+          {
+            "time": 0.48,
+            "riccati": 0.47770001216458685,
+            "gain": 0.47770001216458685
+          },
+          {
+            "time": 0.485,
+            "riccati": 0.47383179166298195,
+            "gain": 0.47383179166298195
+          },
+          {
+            "time": 0.49,
+            "riccati": 0.46994519892923153,
+            "gain": 0.46994519892923153
+          },
+          {
+            "time": 0.495,
+            "riccati": 0.4660402984739613,
+            "gain": 0.4660402984739613
+          },
+          {
+            "time": 0.5,
+            "riccati": 0.4621171572563079,
+            "gain": 0.4621171572563079
+          },
+          {
+            "time": 0.505,
+            "riccati": 0.458175844694963,
+            "gain": 0.458175844694963
+          },
+          {
+            "time": 0.51,
+            "riccati": 0.45421643267866063,
+            "gain": 0.45421643267866063
+          },
+          {
+            "time": 0.515,
+            "riccati": 0.45023899557609914,
+            "gain": 0.45023899557609914
+          },
+          {
+            "time": 0.52,
+            "riccati": 0.4462436102452838,
+            "gain": 0.4462436102452838
+          },
+          {
+            "time": 0.525,
+            "riccati": 0.4422303560422813,
+            "gain": 0.4422303560422813
+          },
+          {
+            "time": 0.53,
+            "riccati": 0.4381993148293735,
+            "gain": 0.4381993148293735
+          },
+          {
+            "time": 0.535,
+            "riccati": 0.43415057098260124,
+            "gain": 0.43415057098260124
+          },
+          {
+            "time": 0.54,
+            "riccati": 0.43008421139868586,
+            "gain": 0.43008421139868586
+          },
+          {
+            "time": 0.545,
+            "riccati": 0.4260003255013196,
+            "gain": 0.4260003255013196
+          },
+          {
+            "time": 0.55,
+            "riccati": 0.42189900524681384,
+            "gain": 0.42189900524681384
+          },
+          {
+            "time": 0.555,
+            "riccati": 0.4177803451290951,
+            "gain": 0.4177803451290951
+          },
+          {
+            "time": 0.56,
+            "riccati": 0.4136444421840395,
+            "gain": 0.4136444421840395
+          },
+          {
+            "time": 0.5650000000000001,
+            "riccati": 0.4094913959931353,
+            "gain": 0.4094913959931353
+          },
+          {
+            "time": 0.5700000000000001,
+            "riccati": 0.40532130868646465,
+            "gain": 0.40532130868646465
+          },
+          {
+            "time": 0.5750000000000001,
+            "riccati": 0.4011342849449958,
+            "gain": 0.4011342849449958
+          },
+          {
+            "time": 0.58,
+            "riccati": 0.39693043200217537,
+            "gain": 0.39693043200217537
+          },
+          {
+            "time": 0.585,
+            "riccati": 0.3927098596448137,
+            "gain": 0.3927098596448137
+          },
+          {
+            "time": 0.59,
+            "riccati": 0.38847268021325376,
+            "gain": 0.38847268021325376
+          },
+          {
+            "time": 0.595,
+            "riccati": 0.38421900860081604,
+            "gain": 0.38421900860081604
+          },
+          {
+            "time": 0.6,
+            "riccati": 0.3799489622525113,
+            "gain": 0.3799489622525113
+          },
+          {
+            "time": 0.605,
+            "riccati": 0.3756626611630135,
+            "gain": 0.3756626611630135
+          },
+          {
+            "time": 0.61,
+            "riccati": 0.3713602278738864,
+            "gain": 0.3713602278738864
+          },
+          {
+            "time": 0.615,
+            "riccati": 0.36704178747005567,
+            "gain": 0.36704178747005567
+          },
+          {
+            "time": 0.62,
+            "riccati": 0.36270746757552086,
+            "gain": 0.36270746757552086
+          },
+          {
+            "time": 0.625,
+            "riccati": 0.3583573983483007,
+            "gain": 0.3583573983483007
+          },
+          {
+            "time": 0.63,
+            "riccati": 0.3539917124746054,
+            "gain": 0.3539917124746054
+          },
+          {
+            "time": 0.635,
+            "riccati": 0.3496105451622308,
+            "gain": 0.3496105451622308
+          },
+          {
+            "time": 0.64,
+            "riccati": 0.3452140341331686,
+            "gain": 0.3452140341331686
+          },
+          {
+            "time": 0.645,
+            "riccati": 0.3408023196154285,
+            "gain": 0.3408023196154285
+          },
+          {
+            "time": 0.65,
+            "riccati": 0.3363755443340668,
+            "gain": 0.3363755443340668
+          },
+          {
+            "time": 0.655,
+            "riccati": 0.331933853501418,
+            "gain": 0.331933853501418
+          },
+          {
+            "time": 0.66,
+            "riccati": 0.3274773948065254,
+            "gain": 0.3274773948065254
+          },
+          {
+            "time": 0.665,
+            "riccati": 0.3230063184037671,
+            "gain": 0.3230063184037671
+          },
+          {
+            "time": 0.67,
+            "riccati": 0.31852077690067493,
+            "gain": 0.31852077690067493
+          },
+          {
+            "time": 0.675,
+            "riccati": 0.31402092534494314,
+            "gain": 0.31402092534494314
+          },
+          {
+            "time": 0.68,
+            "riccati": 0.3095069212106251,
+            "gain": 0.3095069212106251
+          },
+          {
+            "time": 0.685,
+            "riccati": 0.30497892438351637,
+            "gain": 0.30497892438351637
+          },
+          {
+            "time": 0.6900000000000001,
+            "riccati": 0.300437097145722,
+            "gain": 0.300437097145722
+          },
+          {
+            "time": 0.6950000000000001,
+            "riccati": 0.29588160415940834,
+            "gain": 0.29588160415940834
+          },
+          {
+            "time": 0.7000000000000001,
+            "riccati": 0.29131261244973844,
+            "gain": 0.29131261244973844
+          },
+          {
+            "time": 0.705,
+            "riccati": 0.28673029138699035,
+            "gain": 0.28673029138699035
+          },
+          {
+            "time": 0.71,
+            "riccati": 0.2821348126678599,
+            "gain": 0.2821348126678599
+          },
+          {
+            "time": 0.715,
+            "riccati": 0.2775263502959482,
+            "gain": 0.2775263502959482
+          },
+          {
+            "time": 0.72,
+            "riccati": 0.27290508056143525,
+            "gain": 0.27290508056143525
+          },
+          {
+            "time": 0.725,
+            "riccati": 0.2682711820199418,
+            "gain": 0.2682711820199418
+          },
+          {
+            "time": 0.73,
+            "riccati": 0.2636248354705813,
+            "gain": 0.2636248354705813
+          },
+          {
+            "time": 0.735,
+            "riccati": 0.2589662239332049,
+            "gain": 0.2589662239332049
+          },
+          {
+            "time": 0.74,
+            "riccati": 0.2542955326248431,
+            "gain": 0.2542955326248431
+          },
+          {
+            "time": 0.745,
+            "riccati": 0.24961294893534702,
+            "gain": 0.24961294893534702
+          },
+          {
+            "time": 0.75,
+            "riccati": 0.2449186624022337,
+            "gain": 0.2449186624022337
+          },
+          {
+            "time": 0.755,
+            "riccati": 0.2402128646847406,
+            "gain": 0.2402128646847406
+          },
+          {
+            "time": 0.76,
+            "riccati": 0.2354957495370937,
+            "gain": 0.2354957495370937
+          },
+          {
+            "time": 0.765,
+            "riccati": 0.2307675127809952,
+            "gain": 0.2307675127809952
+          },
+          {
+            "time": 0.77,
+            "riccati": 0.22602835227733656,
+            "gain": 0.22602835227733656
+          },
+          {
+            "time": 0.775,
+            "riccati": 0.22127846789714403,
+            "gain": 0.22127846789714403
+          },
+          {
+            "time": 0.78,
+            "riccati": 0.21651806149176298,
+            "gain": 0.21651806149176298
+          },
+          {
+            "time": 0.785,
+            "riccati": 0.21174733686228908,
+            "gain": 0.21174733686228908
+          },
+          {
+            "time": 0.79,
+            "riccati": 0.20696649972825396,
+            "gain": 0.20696649972825396
+          },
+          {
+            "time": 0.795,
+            "riccati": 0.20217575769557405,
+            "gain": 0.20217575769557405
+          },
+          {
+            "time": 0.8,
+            "riccati": 0.19737532022377136,
+            "gain": 0.19737532022377136
+          },
+          {
+            "time": 0.805,
+            "riccati": 0.19256539859247557,
+            "gain": 0.19256539859247557
+          },
+          {
+            "time": 0.81,
+            "riccati": 0.18774620586721752,
+            "gain": 0.18774620586721752
+          },
+          {
+            "time": 0.8150000000000001,
+            "riccati": 0.1829179568645242,
+            "gain": 0.1829179568645242
+          },
+          {
+            "time": 0.8200000000000001,
+            "riccati": 0.1780808681163259,
+            "gain": 0.1780808681163259
+          },
+          {
+            "time": 0.8250000000000001,
+            "riccati": 0.17323515783368718,
+            "gain": 0.17323515783368718
+          },
+          {
+            "time": 0.8300000000000001,
+            "riccati": 0.16838104586987285,
+            "gain": 0.16838104586987285
+          },
+          {
+            "time": 0.835,
+            "riccati": 0.16351875368276142,
+            "gain": 0.16351875368276142
+          },
+          {
+            "time": 0.84,
+            "riccati": 0.1586485042966184,
+            "gain": 0.1586485042966184
+          },
+          {
+            "time": 0.845,
+            "riccati": 0.15377052226324242,
+            "gain": 0.15377052226324242
+          },
+          {
+            "time": 0.85,
+            "riccati": 0.14888503362249775,
+            "gain": 0.14888503362249775
+          },
+          {
+            "time": 0.855,
+            "riccati": 0.1439922658622468,
+            "gain": 0.1439922658622468
+          },
+          {
+            "time": 0.86,
+            "riccati": 0.13909244787769712,
+            "gain": 0.13909244787769712
+          },
+          {
+            "time": 0.865,
+            "riccati": 0.13418580993017706,
+            "gain": 0.13418580993017706
+          },
+          {
+            "time": 0.87,
+            "riccati": 0.12927258360535582,
+            "gain": 0.12927258360535582
+          },
+          {
+            "time": 0.875,
+            "riccati": 0.12435300177092255,
+            "gain": 0.12435300177092255
+          },
+          {
+            "time": 0.88,
+            "riccati": 0.11942729853374089,
+            "gain": 0.11942729853374089
+          },
+          {
+            "time": 0.885,
+            "riccati": 0.11449570919649459,
+            "gain": 0.11449570919649459
+          },
+          {
+            "time": 0.89,
+            "riccati": 0.1095584702138412,
+            "gain": 0.1095584702138412
+          },
+          {
+            "time": 0.895,
+            "riccati": 0.10461581914809026,
+            "gain": 0.10461581914809026
+          },
+          {
+            "time": 0.9,
+            "riccati": 0.09966799462442341,
+            "gain": 0.09966799462442341
+          },
+          {
+            "time": 0.905,
+            "riccati": 0.09471523628567384,
+            "gain": 0.09471523628567384
+          },
+          {
+            "time": 0.91,
+            "riccati": 0.08975778474668293,
+            "gain": 0.08975778474668293
+          },
+          {
+            "time": 0.915,
+            "riccati": 0.08479588154825218,
+            "gain": 0.08479588154825218
+          },
+          {
+            "time": 0.92,
+            "riccati": 0.0798297691107088,
+            "gain": 0.0798297691107088
+          },
+          {
+            "time": 0.925,
+            "riccati": 0.07485969068710363,
+            "gain": 0.07485969068710363
+          },
+          {
+            "time": 0.93,
+            "riccati": 0.06988589031606048,
+            "gain": 0.06988589031606048
+          },
+          {
+            "time": 0.935,
+            "riccati": 0.06490861277429583,
+            "gain": 0.06490861277429583
+          },
+          {
+            "time": 0.9400000000000001,
+            "riccati": 0.05992810352882855,
+            "gain": 0.05992810352882855
+          },
+          {
+            "time": 0.9450000000000001,
+            "riccati": 0.05494460868889908,
+            "gain": 0.05494460868889908
+          },
+          {
+            "time": 0.9500000000000001,
+            "riccati": 0.04995837495761815,
+            "gain": 0.04995837495761815
+          },
+          {
+            "time": 0.9550000000000001,
+            "riccati": 0.04496964958336486,
+            "gain": 0.04496964958336486
+          },
+          {
+            "time": 0.96,
+            "riccati": 0.039978680310954536,
+            "gain": 0.039978680310954536
+          },
+          {
+            "time": 0.965,
+            "riccati": 0.03498571533259669,
+            "gain": 0.03498571533259669
+          },
+          {
+            "time": 0.97,
+            "riccati": 0.02999100323866361,
+            "gain": 0.02999100323866361
+          },
+          {
+            "time": 0.975,
+            "riccati": 0.024994792968290318,
+            "gain": 0.024994792968290318
+          },
+          {
+            "time": 0.98,
+            "riccati": 0.019997333759826687,
+            "gain": 0.019997333759826687
+          },
+          {
+            "time": 0.985,
+            "riccati": 0.014998875101162625,
+            "gain": 0.014998875101162625
+          },
+          {
+            "time": 0.99,
+            "riccati": 0.00999966667994737,
+            "gain": 0.00999966667994737
+          },
+          {
+            "time": 0.995,
+            "riccati": 0.0049999583337239535,
+            "gain": 0.0049999583337239535
+          },
+          {
+            "time": 1,
+            "riccati": 0,
+            "gain": 0
+          }
+        ],
+        "note": "Finite-horizon scalar linear dynamics dx=(a*x+b*u)dt+noise*dW, quadratic expected cost. Numerical RK4 solution; no unconstrained nonlinear control or general HJB."
+      }
+    },
+    {
+      "id": 61,
+      "example": "examples/motor-61.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "CATEGORICAL_LOCAL_DIFFERENTIAL_PRIVACY",
+        "epsilon": 1,
+        "mechanism": "k-ary randomized response",
+        "sampleCount": 3,
+        "report": [
+          "B",
+          "B",
+          "A"
+        ],
+        "reportedCounts": {
+          "A": 1,
+          "B": 2
+        },
+        "unbiasedEstimatedCounts": {
+          "A": 0.418023292393522,
+          "B": 2.581976707606478
+        },
+        "guarantee": "epsilon-LDP per independently randomized record; no composition budget inferred across calls"
+      }
+    },
+    {
+      "id": 62,
+      "example": "examples/motor-62.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "CAUSAL_TEMPORAL_GRAPH_ATTENTION_FORWARD",
+        "results": [
+          {
+            "node": 1,
+            "time": 1,
+            "embedding": [
+              3
+            ],
+            "attention": []
+          },
+          {
+            "node": 1,
+            "time": 2,
+            "embedding": [
+              1
+            ],
+            "attention": [
+              {
+                "source": 0,
+                "eventTime": 1,
+                "weight": 1
+              }
+            ]
+          }
+        ],
+        "trained": false
+      }
+    },
+    {
+      "id": 63,
+      "example": "examples/motor-63.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "LEAST_SQUARES_DYNAMIC_MODE_DECOMPOSITION",
+        "operator": [
+          [
+            1.9999999999904763
+          ]
+        ],
+        "rootMeanSquaredResidual": 2.5197381843893607e-11,
+        "forecast": [
+          [
+            15.99999999992381
+          ],
+          [
+            31.99999999969524
+          ]
+        ],
+        "assumption": "fixed linear snapshot operator; eigenmode extraction not included"
+      }
+    },
+    {
+      "id": 64,
+      "example": "examples/motor-64.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "EXACT_FINITE_BELIEF_TREE_POMDP",
+        "value": 6,
+        "action": 1,
+        "actionValues": [
+          5,
+          6
+        ],
+        "expandedNodes": 7,
+        "discount": 1,
+        "horizon": 3
+      }
+    },
+    {
+      "id": 65,
+      "example": "examples/motor-65.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "QUANTUM_INSPIRED_ROTATING_MOMENTUM",
+        "parameters": [
+          2.0000258339681434
+        ],
+        "history": [
+          {
+            "step": 1,
+            "objective": 25.919999999999995
+          },
+          {
+            "step": 120,
+            "objective": 3.3369695501642897e-10
+          }
+        ],
+        "quantumHardware": false,
+        "guarantee": "no quantum speedup claimed"
+      }
+    },
+    {
+      "id": 66,
+      "example": "examples/motor-66.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "CLAYTON_ARCHIMEDEAN_COPULA",
+        "jointCdf": 0.3333333333333333,
+        "kendallTau": 0.3333333333333333,
+        "bivariateUpperTail": 0.3333333333333333,
+        "dimension": 2
+      }
+    },
+    {
+      "id": 67,
+      "example": "examples/motor-67.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "POLYNOMIAL_COINTEGRATION_DIAGNOSTIC",
+        "coefficients": [
+          0.7500000030756342,
+          17.310882896221337,
+          74.91666666356602
+        ],
+        "centering": -0.5,
+        "scale": 8.65544144839919,
+        "residual": [
+          4.659455044020433e-9,
+          3.567294015738298e-9,
+          2.5578685836080695e-9,
+          1.6312498019033228e-9,
+          7.873381946410518e-10,
+          2.6261659513693303e-11,
+          -6.520366468976135e-10,
+          -1.247570935447584e-9,
+          -1.7603447588498966e-9,
+          -2.1903225899677636e-9,
+          -2.5375381795811336e-9,
+          -2.8019737641216125e-9,
+          -2.9836311199460397e-9,
+          -3.082513799768094e-9,
+          -3.09862133174299e-9,
+          -3.0319533550482447e-9,
+          -2.8825093423279213e-9,
+          -2.650290653605225e-9,
+          -2.3352981770585757e-9,
+          -1.9375221427253564e-9,
+          -1.4569678796760854e-9,
+          -8.936638096201932e-10,
+          -2.475388782841037e-10,
+          4.813216492038919e-10,
+          1.292946194553224e-9,
+          2.187363179473323e-9,
+          3.1646152365283342e-9,
+          4.224574468025821e-9,
+          5.367326139094075e-9,
+          6.592813406314235e-9
+        ],
+        "adfSlope": null,
+        "adfTStatistic": null,
+        "perfectFit": true
+      }
+    },
+    {
+      "id": 68,
+      "example": "examples/motor-68.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "REPLICATOR_MUTATOR_EXPECTED_DYNAMICS",
+        "distribution": [
+          0.2,
+          0.8
+        ],
+        "history": [
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ],
+          [
+            0.2,
+            0.8
+          ]
+        ],
+        "assumption": "mean field expected frequencies; no finite population sampling"
+      }
+    },
+    {
+      "id": 69,
+      "example": "examples/motor-69.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "EDUCATIONAL_LWE_ENCRYPTION_ROUNDTRIP",
+        "verified": true,
+        "byteLength": 2,
+        "plaintextSha256": "2689367b205c16ce32ed4200942b8b8b1e262dfc70d9bc9fbc77c49699a4f1df",
+        "security": "INSECURE_DEMONSTRATION_ONLY; 16-dimensional LWE is breakable; do not store real secrets"
+      }
+    },
+    {
+      "id": 70,
+      "example": "examples/motor-70.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "APPEND_ONLY_STREAM_RIPS_PERSISTENCE",
+        "snapshots": [
+          {
+            "count": 2,
+            "h0Alive": 1,
+            "h1Alive": 0,
+            "intervals": [
+              {
+                "dimension": 0,
+                "birth": 0,
+                "death": 1,
+                "generatingSimplex": [
+                  1
+                ]
+              },
+              {
+                "dimension": 0,
+                "birth": 0,
+                "death": null,
+                "generatingSimplex": [
+                  0
+                ]
+              }
+            ]
+          },
+          {
+            "count": 3,
+            "h0Alive": 1,
+            "h1Alive": 0,
+            "intervals": [
+              {
+                "dimension": 0,
+                "birth": 0,
+                "death": 1,
+                "generatingSimplex": [
+                  1
+                ]
+              },
+              {
+                "dimension": 0,
+                "birth": 0,
+                "death": 1,
+                "generatingSimplex": [
+                  2
+                ]
+              },
+              {
+                "dimension": 0,
+                "birth": 0,
+                "death": null,
+                "generatingSimplex": [
+                  0
+                ]
+              },
+              {
+                "dimension": 1,
+                "birth": 1.4142135623730951,
+                "death": 1.4142135623730951,
+                "generatingSimplex": [
+                  1,
+                  2
+                ]
+              }
+            ]
+          }
+        ],
+        "note": "bounded exact recomputation, not a distributed streaming approximation"
+      }
+    },
+    {
+      "id": 71,
+      "example": "examples/motor-71.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "FINITE_DISCRETE_INFORMATION_DIVERGENCES",
+        "entropy": 0.6931471805599453,
+        "crossEntropy": 0.6931471805599453,
+        "kl": 0,
+        "jensenShannon": 0,
+        "base": 2.718281828459045
+      }
+    },
+    {
+      "id": 72,
+      "example": "examples/motor-72.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "PERIODIC_FINITE_VOLUME_FOKKER_PLANCK",
+        "density": [
+          0.45118276565000004,
+          0.2231564544,
+          0.10250432555000001,
+          0.2231564544
+        ],
+        "initialMass": 1,
+        "finalMass": 1,
+        "maxMassDrift": 2.220446049250313e-16
+      }
+    },
+    {
+      "id": 73,
+      "example": "examples/motor-73.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "QUBIT_PAULI_COVARIANCE_TENSOR",
+        "bloch": [
+          1,
+          0,
+          0
+        ],
+        "purity": 1,
+        "linearEntropy": 0,
+        "l1Coherence": 1,
+        "covariance": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            1,
+            0
+          ],
+          [
+            0,
+            0,
+            1
+          ]
+        ],
+        "note": "qubit Pauli anticommutator covariance, not a general quantum tensor calculus"
+      }
+    },
+    {
+      "id": 74,
+      "example": "examples/motor-74.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "LINEAR_GAUSSIAN_PARTICLE_FILTER_GENETIC_REJUVENATION",
+        "history": [
+          {
+            "posteriorMean": 0.896481302572771,
+            "posteriorVariance": 0.07847729368316522,
+            "effectiveBeforeResampling": 154.50869854013106
+          },
+          {
+            "posteriorMean": 0.9436525217118629,
+            "posteriorVariance": 0.041123656839945996,
+            "effectiveBeforeResampling": 512.2948554732681
+          }
+        ],
+        "finalParticles": [
+          0.8385536916562815,
+          0.8119606074600787,
+          0.8290656225051029,
+          0.8124985147161006,
+          0.8124985147161006,
+          0.8724307823603261,
+          0.7830315811178757,
+          0.601517217294747,
+          0.6201326986153942,
+          0.7110619881954514,
+          0.46502483024575436,
+          0.8099651088817933,
+          0.8401709990790882,
+          1.0084715405162936,
+          0.8385410887172693,
+          0.8385410887172693,
+          0.8898719281174259,
+          0.7865037463702775,
+          0.7410353303807404,
+          0.700238710513089,
+          0.849354333315746,
+          0.849354333315746,
+          0.8735860945138496,
+          0.8954590013511108,
+          0.782016552291963,
+          0.8645463001273432,
+          0.8645463001273432,
+          0.8128228844005565,
+          0.7482448874998234,
+          0.8072995246772081,
+          0.8163211557125994,
+          0.8479610398581943,
+          1.1106679028190545,
+          1.1106679028190545,
+          0.9662763170236859,
+          1.1528546918284464,
+          0.8881190791739049,
+          0.8881190791739049,
+          0.9891204864841859,
+          1.0645421380505136,
+          1.1304186899600908,
+          1.1304186899600908,
+          0.8632126834960553,
+          1.0401806246704557,
+          1.1066187023846408,
+          1.1066187023846408,
+          0.9058671611966942,
+          0.9141530955776007,
+          0.9141530955776007,
+          0.9405094565404355,
+          1.0454492446570383,
+          0.968394199716787,
+          0.968394199716787,
+          0.864831681237122,
+          1.0531827845134447,
+          1.2031476808763595,
+          1.2031476808763595,
+          0.9301316220779992,
+          0.9970295106111134,
+          0.9438629466361566,
+          0.9438629466361566,
+          0.9700938840010169,
+          0.888791052687401,
+          0.9174862506015921,
+          0.9174862506015921,
+          0.7764035021332887,
+          0.8759130981914073,
+          0.8537708829866986,
+          0.3447894274205949,
+          0.7955641623534385,
+          0.8437416234043436,
+          0.9333564345065924,
+          0.9031354269364718,
+          0.9031354269364718,
+          0.7064543776145593,
+          0.9360855992760885,
+          0.6336623532653939,
+          0.8586157850473632,
+          0.7246167881195182,
+          0.7933719499170861,
+          1.1724285400491812,
+          1.1724285400491812,
+          1.13910481676699,
+          0.9501470988956527,
+          0.9693150227039334,
+          0.9693150227039334,
+          1.0695485029399445,
+          1.1329498289778284,
+          1.3293442917779195,
+          1.0677596319845595,
+          1.130931446025841,
+          1.130931446025841,
+          0.998775049017311,
+          0.6078073239595883,
+          0.7762736847810956,
+          0.39793839443659845,
+          1.0665122979024837,
+          1.0665122979024837,
+          1.221917486861102,
+          1.2900316508145904,
+          1.3541829630198658,
+          1.4283863948746942,
+          0.7546082835624747,
+          0.5804949236733788,
+          0.48910161543185904,
+          0.6337552197141159,
+          0.5701193876198282,
+          0.7080289939801225,
+          0.5253489378744739,
+          1.353011166569691,
+          1.175178432184163,
+          1.0305392106388758,
+          1.0305392106388758,
+          0.8605711619357052,
+          0.9177631685781429,
+          0.9561189915744638,
+          0.9561189915744638,
+          0.7111565516742793,
+          0.8832848313125139,
+          0.8280000952016029,
+          0.6225876390398618,
+          0.8056007673362027,
+          1.0543597623968952,
+          1.0543597623968952,
+          0.95619559693108,
+          0.95619559693108,
+          1.1133733274920363,
+          1.0097626828336272,
+          1.0097626828336272,
+          1.3966401424931012,
+          1.271429414345561,
+          0.7518743584926253,
+          0.6893987013795886,
+          0.9413294022957944,
+          0.9413294022957944,
+          0.9460941285063742,
+          0.8427796182340227,
+          0.8303932592285516,
+          0.8303932592285516,
+          0.7739103864297365,
+          1.1138901779153352,
+          0.8725751737276929,
+          0.8917779794909859,
+          0.8917779794909859,
+          0.9484719110601201,
+          0.9676490034634314,
+          0.7144963547775643,
+          0.6180863208960229,
+          0.7945168341576028,
+          0.36524342508040725,
+          1.2117416785400448,
+          1.2422999396404255,
+          1.2186350717442382,
+          1.2006273616575458,
+          1.3463987539035163,
+          0.7932968017173925,
+          0.7620666430168779,
+          0.6060987771131193,
+          1.2209096471785403,
+          1.417816100653445,
+          1.0440420637674297,
+          1.0440420637674297,
+          1.0659951707343263,
+          0.9595276622292894,
+          1.2219100673338485,
+          1.2219100673338485,
+          0.8517575021307644,
+          1.0304351947746773,
+          1.0304351947746773,
+          0.810733477164947,
+          0.855586161267942,
+          0.8211799365705242,
+          0.9699922246503486,
+          0.9699922246503486,
+          1.0173646546913009,
+          0.9275687467277748,
+          0.9696449886077325,
+          0.9696449886077325,
+          0.9714361693209355,
+          0.5283939006931172,
+          0.7640207817178364,
+          0.7640207817178364,
+          0.7593943910578592,
+          0.8201703808785951,
+          0.7059548838279506,
+          0.7995440506366452,
+          0.6633828011525299,
+          0.6541312976322061,
+          0.5736564354008324,
+          0.7286828381458609,
+          0.5740347375109764,
+          0.825820619206884,
+          0.6258250698444451,
+          0.6501814091493014,
+          0.5880169713521012,
+          1.1888368598662118,
+          1.1809761775639784,
+          1.1809761775639784,
+          1.0966438849046691,
+          1.0966438849046691,
+          0.9954739418620915,
+          0.93690945509845,
+          0.93690945509845,
+          0.7551784896454975,
+          0.8618507240071397,
+          0.967068396754536,
+          1.2888089325358922,
+          1.4613246445553558,
+          1.1801627622495539,
+          1.1801627622495539,
+          0.7407247109492527,
+          0.5237978699566459,
+          1.381351046208561,
+          0.8195700649330794,
+          0.4167458015014989,
+          1.2322243447890067,
+          1.2196393728201225,
+          1.2641639866576488,
+          1.115955525196953,
+          1.0707014328189062,
+          1.0122887523536646,
+          1.0122887523536646,
+          0.9870295893103967,
+          1.0346516509196415,
+          1.0346516509196415,
+          0.9329596530937867,
+          1.1015393092242745,
+          0.5511650386425959,
+          0.8018172326294523,
+          0.8018172326294523,
+          0.6298195087957512,
+          0.5365814912825694,
+          1.0764061631100652,
+          1.0764061631100652,
+          0.8783678770060289,
+          0.9200184259622619,
+          0.9200184259622619,
+          1.144164412127112,
+          1.0979288375409684,
+          0.745785184380733,
+          1.2363166979888438,
+          1.1431591573820303,
+          1.4749439882573745,
+          0.853980403446993,
+          1.1475893480662522,
+          1.0377570363612054,
+          1.0377570363612054,
+          0.9703043805885754,
+          0.9577636167865159,
+          0.9577636167865159,
+          0.9963525924476668,
+          0.9916122938353645,
+          0.9615890787120183,
+          0.9615890787120183,
+          0.9688763474845968,
+          0.9743195911346704,
+          0.9743195911346704,
+          0.8162019566587432,
+          0.8360905008934852,
+          0.7537840168578521,
+          0.8054492138864681,
+          0.8648600867425613,
+          0.8648600867425613,
+          1.3565943576596664,
+          1.1097437766988116,
+          1.1097437766988116,
+          1.1397257109497372,
+          1.26245950887852,
+          0.5978321473779693,
+          0.7726969798816005,
+          0.7564890333205916,
+          0.5735745421761924,
+          0.5782504420893323,
+          0.7984670530896371,
+          0.7534651751188305,
+          0.8525222755949606,
+          1.008772615589286,
+          1.008772615589286,
+          0.9534148724325349,
+          1.1500298326542089,
+          1.1060169922897858,
+          1.1060169922897858,
+          1.1280237378361755,
+          1.2880931757924734,
+          1.2438898177830233,
+          1.212140624058848,
+          1.3077346688985891,
+          0.8387213696065617,
+          0.9760770457583015,
+          0.8287965440509806,
+          0.8287965440509806,
+          0.9631006233848863,
+          0.9584998203134293,
+          0.5621294765325006,
+          0.6592584346308905,
+          0.6125576186217765,
+          0.8652327646093396,
+          0.8652327646093396,
+          1.0197812971511377,
+          0.8437671135479794,
+          0.9883689423001392,
+          0.9883689423001392,
+          1.0690391637258836,
+          0.890163708372319,
+          1.4517761292334619,
+          0.49086315531196595,
+          0.7438926257900906,
+          1.4099694855726534,
+          0.9523421456391543,
+          0.7955045946072917,
+          0.7955045946072917,
+          0.9972214628513586,
+          1.1314363735596547,
+          1.0105892461185775,
+          1.0105892461185775,
+          1.1759776650892109,
+          1.1669902947018562,
+          1.0874488922886372,
+          1.0874488922886372,
+          1.1030472124065052,
+          1.0663671191330264,
+          0.7913482792244594,
+          0.7913482792244594,
+          0.8955618498788321,
+          0.978320083159023,
+          1.0427043153278444,
+          1.0427043153278444,
+          1.06020907583935,
+          1.4927983692115891,
+          0.7928730152318654,
+          0.6777913519319947,
+          0.8735744040344232,
+          1.0624848601937527,
+          1.0624848601937527,
+          0.792858478740113,
+          0.7766063790005917,
+          0.9046088185129901,
+          1.0284661257115282,
+          1.0284661257115282,
+          1.007079283764059,
+          1.011633256328599,
+          1.011633256328599,
+          1.2809419857237283,
+          1.073565693420821,
+          1.0056998469887188,
+          1.0658230956950598,
+          1.0658230956950598,
+          1.0003644520635306,
+          1.056506769506251,
+          1.056506769506251,
+          0.9026573480405682,
+          0.989187702468684,
+          0.8539186610720048,
+          0.8539186610720048,
+          1.005921564123953,
+          0.9579651312407869,
+          0.8851202778660502,
+          0.8851202778660502,
+          1.0574008703916875,
+          1.4769659583146724,
+          0.39488317461029887,
+          0.7049004622400917,
+          0.5626140439114542,
+          0.9780924782702589,
+          0.8333283582730537,
+          0.9349492545681183,
+          0.9349492545681183,
+          0.7490377241987379,
+          0.873920522919819,
+          0.8314150211450467,
+          0.9923726037581374,
+          0.9923726037581374,
+          0.8586276959662119,
+          1.0143150569552575,
+          1.2392870111064787,
+          1.2252330180683801,
+          1.2252330180683801,
+          1.0742412846699048,
+          1.1109179506658737,
+          1.240482281653019,
+          1.2517721874703092,
+          1.447039752638438,
+          1.1225289957183677,
+          1.227367194270541,
+          1.0010995798512685,
+          1.0010995798512685,
+          1.2771115914723985,
+          1.147195422389417,
+          0.9008022690987108,
+          0.832336210754963,
+          1.152086673333733,
+          1.152086673333733,
+          1.059186253696522,
+          1.0717552357664586,
+          1.1614311103341157,
+          1.1614311103341157,
+          1.0655697609130734,
+          0.6712558771152846,
+          0.6792197550556192,
+          0.9868085558445638,
+          0.7899948044731632,
+          0.8933754608783119,
+          0.8933754608783119,
+          0.8364215389904284,
+          0.9415864764736848,
+          0.5917531805766141,
+          0.74636344888433,
+          0.7790778852907554,
+          0.7340865016816107,
+          0.7355917546156497,
+          0.8114479834121862,
+          0.7153383296087467,
+          0.7229931840817254,
+          1.0903780697529102,
+          1.1498905863332882,
+          1.0955653014885778,
+          1.0955653014885778,
+          1.16621087839914,
+          0.9163420443068261,
+          1.1608770327401179,
+          0.5246313446688143,
+          0.8726981569407254,
+          1.37450743960722,
+          1.3441205104638094,
+          0.7227799142047933,
+          0.8373643127872005,
+          0.6559363979227983,
+          0.7320383957903425,
+          1.1287975728194972,
+          0.9593321026737995,
+          0.5956843751375773,
+          0.8907365289193245,
+          0.9597088736763307,
+          0.9597088736763307,
+          1.0437873822617323,
+          0.849279381403013,
+          0.7854732745619809,
+          0.7315032744265731,
+          0.8513391819363838,
+          0.8513391819363838,
+          0.7170180728460338,
+          0.6916553963171715,
+          1.0100385131083267,
+          1.0100385131083267,
+          0.9493578647563078,
+          1.0491137887630142,
+          0.8348482514635267,
+          0.8348482514635267,
+          1.0111791432432033,
+          0.9970724027904789,
+          0.4428121664816558,
+          0.7463946535713846,
+          0.5877781445143392,
+          0.9585971460041094,
+          0.9967562571793095,
+          0.9967562571793095,
+          0.909806737965305,
+          1.1293261000981338,
+          0.9869291297281498,
+          0.9869291297281498,
+          0.9460040739836328,
+          1.0363685004733896,
+          1.0363685004733896,
+          0.8372588217498629,
+          0.9141614050901173,
+          0.9530466782106728,
+          0.9530466782106728,
+          0.992102131614581,
+          0.7979540610430347,
+          1.013247994176722,
+          1.013247994176722,
+          0.5993515830090407,
+          0.6504024655000552,
+          0.7766223601630211,
+          0.8181005913706135,
+          0.7449600789592912,
+          0.4811471688900937,
+          1.3164933850127432,
+          1.2733960295813533,
+          1.0510298659235975,
+          1.0510298659235975,
+          1.207602070141342,
+          1.2127979340976225,
+          1.3135640536048383,
+          1.2512393683678469,
+          1.1265247079115135,
+          1.1265247079115135,
+          1.0328143247792276,
+          1.0173435746031325,
+          1.0269802325929251,
+          1.0269802325929251,
+          1.159239751377576,
+          1.0320760900548518,
+          1.220036933135296,
+          1.3246911846872529,
+          1.164998717038803,
+          1.164998717038803,
+          1.1327785962225623,
+          0.499626680489552,
+          1.301348585015896,
+          1.2576428699089528,
+          1.0847962633354293,
+          1.0847962633354293,
+          1.205246811592528,
+          0.946632153581979,
+          1.125614348552594,
+          1.125614348552594,
+          0.8003512452557178,
+          0.7589420842369471,
+          0.8869276012153435,
+          0.7388528387528389,
+          0.5677398530808395,
+          0.8060647506581441,
+          0.7893476698707427,
+          0.9781545055313825,
+          0.9781545055313825,
+          0.8821764365760002,
+          0.966031684677223,
+          0.6906059657616417,
+          0.5675643398273965,
+          0.46096108670357433,
+          0.6811177389233953,
+          0.8091735366792333,
+          0.7960908676102044,
+          0.7529097140155754,
+          0.824990950329073,
+          0.9889907849640085,
+          0.9889907849640085,
+          0.7549314306584847,
+          0.7883233176615573,
+          0.8148389544773986,
+          1.0527086308986042,
+          1.0962295473102632,
+          1.0962295473102632,
+          0.8495044717968167,
+          1.0463981914961542,
+          1.1269599759931788,
+          1.1269599759931788,
+          0.9777672088983784,
+          1.0522763546372758,
+          1.1967265591195242,
+          1.1967265591195242,
+          1.0003636623419818,
+          1.100829533179306,
+          0.48370773450135685,
+          0.9235524104094875,
+          0.7065664668117257,
+          0.6330554316064738,
+          0.7455186409404427,
+          1.1847315559089304,
+          1.1205591587240538,
+          1.1061501860013023,
+          1.1245869525171874,
+          1.1245869525171874,
+          1.019772969374357,
+          0.9142337741130122,
+          0.9174932379935563,
+          0.9174932379935563,
+          0.818796208056711,
+          0.8543035199853507,
+          0.9705663609778108,
+          0.9705663609778108,
+          1.0218187977509632,
+          1.3020739488032234,
+          1.1475872010419947,
+          1.383653311954397,
+          1.288898339704962,
+          1.26593693701388,
+          0.848180952594659,
+          0.9529222136997608,
+          0.9529222136997608,
+          0.992238893859001,
+          0.9250484023718742,
+          0.9250484023718742,
+          0.8826903600042221,
+          0.9402999210560505,
+          1.0261268804347032,
+          1.0261268804347032,
+          0.7777244254433305,
+          0.8718118333830437,
+          0.8101395707438963,
+          0.8195120332499619,
+          0.8195120332499619,
+          1.053178793790237,
+          0.8828179724612771,
+          1.049017071261005,
+          1.049017071261005,
+          0.7418854590008576,
+          0.9420792772136477,
+          0.8126392574104491,
+          0.7955641637504676,
+          0.8631769509197718,
+          0.8631769509197718,
+          0.7833256163624363,
+          0.9798437529659183,
+          0.7758120426976092,
+          0.7215152083048646,
+          0.8574355088338375,
+          0.9260918529812563,
+          0.9260918529812563
+        ],
+        "seed": 3,
+        "warning": "genetic crossover/mutation alters the Bayesian target unless corrected; set both to zero for bootstrap filtering"
+      }
+    },
+    {
+      "id": 75,
+      "example": "examples/motor-75.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "SPATIOTEMPORAL_CAPSULE_ROUTING_FORWARD",
+        "outputs": [
+          [
+            0.9
+          ]
+        ],
+        "coupling": [
+          [
+            1
+          ],
+          [
+            1
+          ]
+        ],
+        "activation": [
+          0.9
+        ],
+        "temporalSpatialWeights": [
+          1,
+          1
+        ],
+        "trained": false
+      }
+    },
+    {
+      "id": 76,
+      "example": "examples/motor-76.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "POWER_LAW_LONG_MEMORY_RANDOM_WALK",
+        "positions": [
+          0,
+          1,
+          0,
+          -1,
+          -2,
+          -1,
+          -2,
+          -1,
+          0,
+          1,
+          0,
+          -1,
+          -2,
+          -3,
+          -4,
+          -5,
+          -6,
+          -7,
+          -8,
+          -9,
+          -10,
+          -11,
+          -12,
+          -11,
+          -12,
+          -13,
+          -14,
+          -13,
+          -14,
+          -13,
+          -14,
+          -15,
+          -14
+        ],
+        "lagExponent": 0.5,
+        "memoryWeight": 0.5,
+        "seed": 7
+      }
+    },
+    {
+      "id": 77,
+      "example": "examples/motor-77.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "BOUNDED_PERIODIC_3D_NAVIER_STOKES_FINITE_DIFFERENCE",
+        "velocity": [
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ],
+          [
+            1,
+            0,
+            0
+          ]
+        ],
+        "history": [
+          {
+            "step": 1,
+            "rmsVelocity": 1,
+            "pressureResidual": 0
+          },
+          {
+            "step": 2,
+            "rmsVelocity": 1,
+            "pressureResidual": 0
+          }
+        ],
+        "n": 4,
+        "limitations": "finite resolution explicit scheme, approximate pressure projection; no global smoothness guarantee"
+      }
+    },
+    {
+      "id": 78,
+      "example": "examples/motor-78.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "DFA1",
+        "fluctuations": [
+          {
+            "scale": 8,
+            "fluctuation": 0.4615621622629279
+          },
+          {
+            "scale": 16,
+            "fluctuation": 1.658782553605999
+          },
+          {
+            "scale": 32,
+            "fluctuation": 4.080803130785661
+          },
+          {
+            "scale": 64,
+            "fluctuation": 5.683513478265003
+          }
+        ],
+        "scalingExponent": 1.2165286923547411
+      }
+    },
+    {
+      "id": 79,
+      "example": "examples/motor-79.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "CLASSICAL_QUANTUM_BEHAVED_PARTICLE_SWARM",
+        "best": [
+          0.20000000000000004
+        ],
+        "objective": 7.703719777548943e-34,
+        "seed": 12,
+        "globallyOptimalCertified": false
+      }
+    },
+    {
+      "id": 80,
+      "example": "examples/motor-80.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "MONOTONE_FINITE_GRID_STOCHASTIC_HJB",
+        "values": [
+          0.9999999999999999,
+          0.9999999999999999,
+          0.9999999999999999
+        ],
+        "policies": [
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0
+          ]
+        ],
+        "grid": [
+          -1,
+          0,
+          1
+        ],
+        "controls": [
+          0
+        ],
+        "assumption": "known bounded scalar diffusion, reflecting boundaries, fixed grid and horizon"
+      }
+    },
+    {
+      "id": 81,
+      "example": "examples/motor-81.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "VELU_DEGREE_2_SMALL_PRIME_FIELD_NOT_SIGNATURE",
+        "source": {
+          "p": 5,
+          "a": 0,
+          "b": 1
+        },
+        "target": {
+          "p": 5,
+          "a": 0,
+          "b": 2
+        },
+        "kernel": {
+          "x": 4,
+          "y": 0
+        },
+        "images": [
+          null,
+          null,
+          {
+            "x": 3,
+            "y": 3
+          },
+          {
+            "x": 3,
+            "y": 2
+          }
+        ],
+        "warning": "Finite-field 2-isogeny arithmetic only; no signing, verification, post-quantum security or production use."
+      }
+    },
+    {
+      "id": 82,
+      "example": "examples/motor-82.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "PEEPHOLE_LSTM_FORWARD_INFERENCE",
+        "states": [
+          {
+            "hidden": [
+              0.18169974219452625
+            ],
+            "cell": [
+              0.3807970779778824
+            ]
+          },
+          {
+            "hidden": [
+              0.258118401869521
+            ],
+            "cell": [
+              0.5711956169668236
+            ]
+          }
+        ],
+        "finalHidden": [
+          0.258118401869521
+        ],
+        "finalCell": [
+          0.5711956169668236
+        ],
+        "trained": false
+      }
+    },
+    {
+      "id": 83,
+      "example": "examples/motor-83.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "ITERATIVE_TRUNCATED_SVD",
+        "components": [
+          {
+            "singularValue": 2,
+            "left": [
+              -7.612182549437525e-182,
+              1,
+              0
+            ],
+            "right": [
+              -1.522436509887505e-181,
+              1
+            ]
+          },
+          {
+            "singularValue": 1,
+            "left": [
+              1,
+              3.04487301977501e-181,
+              0
+            ],
+            "right": [
+              1,
+              1.522436509887505e-181
+            ]
+          }
+        ],
+        "frobeniusResidual": 0,
+        "rank": 2,
+        "note": "iterative approximation and deflation, not an exact full SVD or out-of-core memory map"
+      }
+    },
+    {
+      "id": 84,
+      "example": "examples/motor-84.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "DISCOUNTED_INFINITE_HORIZON_MDP",
+        "values": [
+          1.999999999992724
+        ],
+        "policy": [
+          0
+        ],
+        "iterations": 38,
+        "converged": true,
+        "bellmanErrorBound": 7.275957614183426e-12
+      }
+    },
+    {
+      "id": 85,
+      "example": "examples/motor-85.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "CONVERGED",
+      "output": {
+        "domain": "STRICTLY_FEASIBLE_CONVEX_QP_LOG_BARRIER",
+        "status": "CONVERGED",
+        "solution": [
+          0.9999999966666667
+        ],
+        "objective": -1,
+        "slacks": [
+          1.0000000033333332,
+          2.999999996666667
+        ],
+        "dualMultipliers": [
+          9.99999996666667e-10,
+          3.3333333370370365e-10
+        ],
+        "stationarityResidual": 5.999999889172362e-9,
+        "primalDualGap": 2.0000000089999994e-9,
+        "barrierDualityGapBound": 2.0000000089999994e-9,
+        "centralPathComplementarity": 2e-9,
+        "newtonSteps": 22,
+        "assumptions": "strictly feasible input, symmetric positive definite Hessian; no infeasibility detection"
+      }
+    },
+    {
+      "id": 86,
+      "example": "examples/motor-86.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "KURAMOTO_NETWORK_PHASE_SYNCHRONIZATION",
+        "phases": [
+          0,
+          0
+        ],
+        "order": {
+          "strength": 1,
+          "angle": 0
+        },
+        "history": [
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          },
+          {
+            "strength": 1,
+            "angle": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": 87,
+      "example": "examples/motor-87.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "EXPONENTIAL_HAWKES_POINT_PROCESS_LIKELIHOOD",
+        "logLikelihood": -6,
+        "compensator": 6,
+        "eventIntensities": [],
+        "branchingRatio": 0.5,
+        "stationaryUnderAssumptions": true,
+        "note": "fixed known kernel, no fit or exogenous covariates"
+      }
+    },
+    {
+      "id": 88,
+      "example": "examples/motor-88.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "CONVERGED",
+      "output": {
+        "domain": "BOUNDARY_CONSTRAINED_FINITE_MEAN_FIELD_GAME",
+        "status": "CONVERGED",
+        "policy": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "distribution": [
+          [
+            0.6,
+            0.4
+          ],
+          [
+            0.6,
+            0.4
+          ],
+          [
+            0.6,
+            0.4
+          ],
+          [
+            0.6,
+            0.4
+          ]
+        ],
+        "error": 0,
+        "iterations": 1
+      }
+    },
+    {
+      "id": 89,
+      "example": "examples/motor-89.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "SYMMETRIC_SOMEWHAT_HOMOMORPHIC_BITS_NOT_FHE",
+        "result": 1,
+        "ciphertext": "-48084707733404844693611192744191596075311375749695069336674095615048406502560522118653558097241318791190285591121058173327427530869532668802451694700918722026020636858104155006074545559802503803445341714218310837554639837530611720471285352645868612690385226357554585886595764222935340147136844622918077817295",
+        "noiseBound": "307",
+        "gateCount": 3,
+        "warning": "No bootstrapping, no public-key encryption, no audited security. Key is held only by this local demo and not exposed to the evaluator."
+      }
+    },
+    {
+      "id": 90,
+      "example": "examples/motor-90.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "LOGISTIC_STATISTICAL_PARAMETER_FISHER_GEOMETRY",
+        "probabilities": [
+          0.5,
+          0.5
+        ],
+        "fisher": [
+          [
+            0.625
+          ]
+        ],
+        "regularizedFisher": [
+          [
+            0.62500001
+          ]
+        ],
+        "naturalGradient": [
+          1.5999999744000002
+        ]
+      }
+    },
+    {
+      "id": 91,
+      "example": "examples/motor-91.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "ULAM_FINITE_PARTITION_NONLINEAR_ERGODICITY",
+        "stationaryEstimate": [
+          8.469042543424794e-29,
+          1.0586303179280994e-28,
+          1.6813540343563933e-28,
+          1,
+          0,
+          0,
+          0,
+          0
+        ],
+        "partitionTransition": [
+          [
+            0.53125,
+            0.46875,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.15625,
+            0.84375,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            1,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            0.15625,
+            0.84375,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0.53125,
+            0.46875,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ]
+        ],
+        "ergodicPartition": false,
+        "recurrentClasses": [
+          {
+            "states": [
+              3
+            ],
+            "period": 1
+          }
+        ],
+        "warning": "finite Ulam approximation cannot prove ergodicity of a continuous chaotic system"
+      }
+    },
+    {
+      "id": 92,
+      "example": "examples/motor-92.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "RANDOM_DIAGONAL_MEAN_SQUARE_LYAPUNOV",
+        "meanSquareRates": [
+          0.53
+        ],
+        "meanSquareStable": true,
+        "lyapunovDiagonal": [
+          2.127659574468085
+        ],
+        "note": "exact second moments for supplied random diagonal matrices; not nonlinear stochastic stability"
+      }
+    },
+    {
+      "id": 93,
+      "example": "examples/motor-93.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "AUTHENTICATED_LOCAL_RAFT_TRANSCRIPT_VALIDATION",
+        "valid": true,
+        "errors": [],
+        "quorum": 2,
+        "verifiedVotes": 2,
+        "verifiedEntries": 1,
+        "finalLogHash": "a516f4fb1a134db3f05d019fd75bc2b561596aaac3e74af96b73a7f00e955b62",
+        "limitations": "offline transcript only; no distributed Raft state machine, network or crash recovery"
+      }
+    },
+    {
+      "id": 94,
+      "example": "examples/motor-94.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "CHENTSOV_FISHER_MONOTONICITY_FINITE_CHANNEL",
+        "fisherBefore": 0.16000000000000003,
+        "fisherAfter": 0.05760000000000002,
+        "contractive": true,
+        "mappedDistribution": [
+          0.5,
+          0.5
+        ],
+        "mappedTangent": [
+          0.12000000000000002,
+          -0.12000000000000002
+        ]
+      }
+    },
+    {
+      "id": 95,
+      "example": "examples/motor-95.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "LINEAR_EXECUTION_NIZK_NOT_GENERAL_ZK_SNARK",
+        "statement": {
+          "coefficients": [
+            "2",
+            "3"
+          ],
+          "constant": "5",
+          "output": "52",
+          "commitments": [
+            "9846026343098546648550068467916242516830357821902975879828671615464584222572188727811945417310561789010685145097377030109193348430951261288197476031520621780368600828630634299397821707894792073491556440105660973383670079637963737692961622020976644153575376052078647326551976571735183442490688322961899619165697012962418119657548713951909483626028947884050952882637366179983585751205773505469240440502147998182707193781603422570109823116195411470697645010240932368978051343420537101260296674068316835788542345087593333839384647680797389411449736835822457190613083968415652275312386504788228880337244087881971310032706",
+            "25684588632502195368047133475399518636844212746964218348027181080288412565362123797233459286213262020328577975462624883146172964659477210238646676019230096154505064964424121059964275045778032558476777121467887017795412290527124370406927981981655384608724096225515021454612815334036717692564349477722270571734786976827959509969382443090166317442226405269791305920223615847183861867519826956160651461673611945774638999501727528884225081000379873627240325500181882776586733405841341625880888717934263644235667001639676847887159955160679999725676557689866917613641248759181855708538645582941921489462298146543940135136616"
+          ],
+          "context": "nemesis-example-95"
+        },
+        "proof": {
+          "T": [
+            "27550875085307686853842262066502586818951115692380585962377155004498744554419795227440294402659241059890516249228360466825301497214774518833829365397862922978419643093639668918184714086501859201244576141462330599671029558775017046651730373460710450362194090232664785210035194144706115763563655138974635434236443928224955762220522979628011260869066312023397065481003312853718175084798862753748631382536707248935262650737860508488782496905082200011515666216919993355364453044292984496584990146206054116054030175164036548261639915869460761320939479627300654622279134688704603417479013746044455990586280219109941354898130",
+            "21050249727396409280393164268967909169433626077406938007593031394610611406445456551757147857126023011445765118868740539919339714102286050527996459881372962131620660227750090191031003242345847578160382025766332232225063837717948575084517427373339970658261155275509596891977363726888836800209316093893517111240652153765525218547716533323861018219219462926945499961380853073094474641487681188258630749750514009683005872056966646463712936849644781149359271516556338485229417398458867183456460791549913159706964086418284098385633976215615776261105474558681288131645822193072315451354765714546668529867429510031960012158285"
+          ],
+          "Ty": "4381159261442152544163327570127600766574461076964585273819058096141224607474579053843906481789564024451874041001516284018636247962390431106491796474783011289996042445044748947612910521503476296919083660034215088623838527987440754288302502983542464415867831948092006814925643012466976145642457757764090656935474617982893181422168711402989748780826467352937298392056351720740032191117763280082186296631077539529870521701162435606910011378844586677681171626937616048865549980305787866456605344378022729218748189406076279565264288441639546481284637242430329773875112429530343254268580632364456426196503106937540054629043",
+          "z": [
+            "11326252305238629118857494439676567877354166184546502893608566540598467095079341126390388596458912540812582658617798596973927438396929821310091072302701331960646320893103375814086945948809556589327986672597630050500753345845611357818338706881548746756387466412953496448710322901998760761057001076121297156452346800394616503345130487052069994736507725727421673111227845516776768247209044039736634738786282470336900488690827653997501230849499649449976762141525123988718969621432541139656107326802491900419018536195394020693264678491873835095390568684750919091904199719365970961600200848993293215722235455227089504897857",
+            "4681886907425300535595750872399431086894689983003939533147978255448344041316750341227606235411769429981536820558541093941795748125908605780022879351667500193626271057913257279903084806654199789049118834772180876242753494131876587299017237247546067148003978934236416478876892308113190541528837161057511735292687091723238359433880099608338946882390938479810142909587009668361074923292686596763185496986496600350079397181792719674414659666460493749788060184534815173218533108668691598596562442283429732445405681792679786450943968151986762281970358446329657080428569991682712273225654044742450614522709310442030540790495"
+          ],
+          "w": [
+            "825408375881034237518521702045883597353286165481764239816030862775801760496550138300072229208643706110385398623958657016925569698063753756161390503394371946774719617279949653966124736459905513747476800838417508329965491146419554675401042720436299267631963549948165959355669898280865702962995902862810446517312974664977130234528412721200834336028429195513067781115761983108913132944782823644469439705383525575375527811811348730348869819827347773342160165971501089286659054182792134217871591624178856522271791693156530314833407919336813886901475156360582994615195532867608278880067496034220228411046719088655191311215",
+            "5965298943267410820531672095766148762974855940600495255009347401847530572670503535550420380424944780751316014291020957738060630517144647207426535797726802319788903043452603505034862086196940697918241935030211471568149799373857287533292111012848683822721880899155219104790587688953062134275213014315748655379439263738826781906857285648998301964825688120030833069295911724796738354062515769658516926488500238147148178079081983921357378935603986577007695912404945895616183108319412074035765213903859595876549274895363544704678319219119094494350546625923556714983414378066861269471205192057618958194872981345235416525452"
+          ]
+        },
+        "warning": "Proof of committed affine execution modulo q; proof grows linearly with input count. Not a zk-SNARK for arbitrary code; no audited implementation."
+      }
+    },
+    {
+      "id": 96,
+      "example": "examples/motor-96.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "SCALAR_CHOLESKY_SQUARE_ROOT_KALMAN",
+        "history": [
+          {
+            "mean": 0.4999999999999999,
+            "sqrtVariance": 0.7071067811865475,
+            "innovation": 1,
+            "gain": 0.4999999999999999
+          },
+          {
+            "mean": 0.4999999999999999,
+            "sqrtVariance": 0.7071067811865475,
+            "innovation": null,
+            "gain": 0
+          }
+        ],
+        "finalMean": 0.4999999999999999,
+        "finalSqrtVariance": 0.7071067811865475
+      }
+    },
+    {
+      "id": 97,
+      "example": "examples/motor-97.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": "CONVERGED",
+      "output": {
+        "domain": "MULTI_MOMENT_CATEGORICAL_VARIATIONAL_I_PROJECTION",
+        "status": "CONVERGED",
+        "posterior": [
+          0.11999999999999997,
+          0.2799999999999999,
+          0.18000000000000002,
+          0.4200000000000001
+        ],
+        "moments": [
+          0.7,
+          0.6000000000000001
+        ],
+        "target": [
+          0.7,
+          0.6
+        ],
+        "error": 1.1102230246251565e-16,
+        "dual": [
+          0.8472978603872037,
+          0.4054651081081648
+        ],
+        "iterations": 5,
+        "kl": 0.1024183920557408,
+        "note": "constraints supplied, no causal graph inferred"
+      }
+    },
+    {
+      "id": 98,
+      "example": "examples/motor-98.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "SUPERCRITICAL_HOPF_NORMAL_FORM_RK4",
+        "final": [
+          -0.9524130014467522,
+          -0.30481055544968744
+        ],
+        "radius": 1.000000000019179,
+        "theoreticalLimitCycleRadius": 1,
+        "originStable": false,
+        "history": [
+          {
+            "step": 1,
+            "radius": 0.10099481606703822
+          },
+          {
+            "step": 3000,
+            "radius": 1.000000000019179
+          }
+        ]
+      }
+    },
+    {
+      "id": 99,
+      "example": "examples/motor-99.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "SUPERVISED_FINITE_LINEAR_CHAIN_CRF_BIAS_TRAINING",
+        "bias": [
+          -2.1817653558382433,
+          2.181765355838241
+        ],
+        "transition": [
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ],
+        "predictions": [
+          [
+            1,
+            1
+          ],
+          [
+            1,
+            1,
+            1
+          ]
+        ],
+        "scope": "trains state biases with supplied fixed transition; no arbitrary neural feature network"
+      }
+    },
+    {
+      "id": 100,
+      "example": "examples/motor-100.json",
+      "executed": true,
+      "successful": true,
+      "expectedNegative": false,
+      "matchedExpected": true,
+      "status": null,
+      "output": {
+        "domain": "SIGNED_CHAINED_STATE_TRANSITION",
+        "verified": true,
+        "transitionHash": "4866e615f051a0bdc8f7247fac54aecaf41868ef17c5c8873afe8bae41d255ee"
+      }
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "points": [
+    {
+      "x": 0,
+      "y": 0,
+      "t": 0
+    },
+    {
+      "x": 1,
+      "y": 0,
+      "t": 0
+    },
+    {
+      "x": 0,
+      "y": 0,
+      "t": 1
+    }
+  ],
+  "spatialScale": 2,
+  "temporalScale": 3,
+  "variance": 1,
+  "nugget": 0.001,
+  "mean": 0,
+  "seed": 2026
+}

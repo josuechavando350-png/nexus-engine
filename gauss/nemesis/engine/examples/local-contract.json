@@ -1,0 +1,36 @@
+{
+  "contract": {
+    "name": "wallet",
+    "registers": [
+      "balance",
+      "nonce"
+    ],
+    "rules": [
+      {
+        "name": "debit",
+        "register": "balance",
+        "op": "GTE",
+        "value": 3,
+        "effect": {
+          "register": "balance",
+          "delta": -3
+        }
+      },
+      {
+        "name": "credit",
+        "register": "balance",
+        "op": "GTE",
+        "value": 0,
+        "effect": {
+          "register": "balance",
+          "delta": 1
+        }
+      }
+    ]
+  },
+  "initial": {
+    "balance": 12,
+    "nonce": 0
+  },
+  "rule": "debit"
+}

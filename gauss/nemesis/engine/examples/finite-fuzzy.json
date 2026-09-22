@@ -1,0 +1,1 @@
+{"domain":["a","b"],"predicates":{"Good":{"a":"1/2","b":"1/1"}},"predicateUniverse":[{"a":"0/1","b":"0/1"},{"a":"1/1","b":"1/1"}],"formula":{"op":"EXISTS_PRED","var":"P","arg":{"op":"FORALL","var":"x","arg":{"op":"AND","left":{"op":"APPLY","pred":"P","term":"x"},"right":{"op":"PRED","name":"Good","term":"x"}}}},"threshold":"1/2"}

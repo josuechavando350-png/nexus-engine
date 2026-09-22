@@ -1,0 +1,83 @@
+{
+  "sequence": [
+    [
+      1
+    ],
+    [
+      1
+    ]
+  ],
+  "weights": {
+    "input": {
+      "input": [
+        [
+          0
+        ]
+      ],
+      "hidden": [
+        [
+          0
+        ]
+      ],
+      "bias": [
+        0
+      ]
+    },
+    "forget": {
+      "input": [
+        [
+          0
+        ]
+      ],
+      "hidden": [
+        [
+          0
+        ]
+      ],
+      "bias": [
+        0
+      ]
+    },
+    "output": {
+      "input": [
+        [
+          0
+        ]
+      ],
+      "hidden": [
+        [
+          0
+        ]
+      ],
+      "bias": [
+        0
+      ]
+    },
+    "candidate": {
+      "input": [
+        [
+          1
+        ]
+      ],
+      "hidden": [
+        [
+          0
+        ]
+      ],
+      "bias": [
+        0
+      ]
+    },
+    "peepholes": [
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ]
+    ]
+  }
+}

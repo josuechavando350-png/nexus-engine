@@ -1,0 +1,1 @@
+{"variables":["x"],"expression":{"op":"ADD","left":{"op":"VAR","name":"x"},"right":{"op":"CONST","value":1}},"examples":[{"inputs":{"x":0},"expected":2},{"inputs":{"x":3},"expected":5},{"inputs":{"x":-4},"expected":-2}],"candidateConstants":[0,1,2,3],"maxEdits":1}

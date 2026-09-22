@@ -1,0 +1,69 @@
+{
+  "model": {
+    "states": [
+      "START",
+      "REVIEW",
+      "DONE"
+    ],
+    "initialStates": [
+      "START"
+    ],
+    "transitions": [
+      {
+        "from": "START",
+        "to": "REVIEW",
+        "action": "submit"
+      },
+      {
+        "from": "REVIEW",
+        "to": "DONE",
+        "action": "approve"
+      },
+      {
+        "from": "REVIEW",
+        "to": "START",
+        "action": "revise"
+      }
+    ],
+    "propositions": {
+      "START": [
+        "safe"
+      ],
+      "REVIEW": [
+        "safe"
+      ],
+      "DONE": [
+        "safe",
+        "done"
+      ]
+    },
+    "atomicPropositions": [
+      "done",
+      "safe"
+    ]
+  },
+  "properties": [
+    {
+      "id": "never_unsafe",
+      "required": true,
+      "formula": {
+        "op": "AG",
+        "arg": {
+          "op": "ATOM",
+          "name": "safe"
+        }
+      }
+    },
+    {
+      "id": "completion_possible",
+      "required": true,
+      "formula": {
+        "op": "EF",
+        "arg": {
+          "op": "ATOM",
+          "name": "done"
+        }
+      }
+    }
+  ]
+}

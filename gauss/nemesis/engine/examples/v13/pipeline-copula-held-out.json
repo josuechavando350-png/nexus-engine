@@ -1,0 +1,77 @@
+{
+  "tasks": [
+    {
+      "id": "trainData",
+      "motor": "66",
+      "input": {
+        "action": "sample",
+        "payload": {
+          "theta": 3,
+          "dimension": 3,
+          "count": 1600,
+          "seed": 139
+        }
+      }
+    },
+    {
+      "id": "heldOut",
+      "motor": "66",
+      "input": {
+        "action": "sample",
+        "payload": {
+          "theta": 3,
+          "dimension": 3,
+          "count": 8000,
+          "seed": 17
+        }
+      }
+    },
+    {
+      "id": "fit",
+      "motor": "66",
+      "input": {
+        "action": "fit",
+        "payload": {
+          "samples": {
+            "$ref": {
+              "taskId": "trainData",
+              "path": [
+                "samples"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "calibrate",
+      "motor": "66",
+      "input": {
+        "action": "calibrate",
+        "payload": {
+          "samples": {
+            "$ref": {
+              "taskId": "heldOut",
+              "path": [
+                "samples"
+              ]
+            }
+          },
+          "theta": {
+            "$ref": {
+              "taskId": "fit",
+              "path": [
+                "theta"
+              ]
+            }
+          },
+          "thresholds": [
+            0.05,
+            0.1,
+            0.3
+          ]
+        }
+      }
+    }
+  ]
+}

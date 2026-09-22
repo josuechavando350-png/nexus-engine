@@ -1,0 +1,26 @@
+{
+  "bits": [
+    1,
+    0
+  ],
+  "gates": [
+    {
+      "id": "and",
+      "op": "AND",
+      "left": "in0",
+      "right": "in1"
+    },
+    {
+      "id": "not_and",
+      "op": "NOT",
+      "left": "and"
+    },
+    {
+      "id": "result",
+      "op": "XOR",
+      "left": "not_and",
+      "right": "in1"
+    }
+  ],
+  "output": "result"
+}

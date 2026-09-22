@@ -1,0 +1,33 @@
+{
+  "variables": [
+    "safe",
+    "ready"
+  ],
+  "initial": [
+    true,
+    false
+  ],
+  "invariant": [
+    {
+      "variable": "safe",
+      "equals": true
+    }
+  ],
+  "rules": [
+    {
+      "name": "arm",
+      "guard": [
+        {
+          "variable": "safe",
+          "equals": true
+        }
+      ],
+      "assign": [
+        {
+          "variable": "ready",
+          "equals": true
+        }
+      ]
+    }
+  ]
+}

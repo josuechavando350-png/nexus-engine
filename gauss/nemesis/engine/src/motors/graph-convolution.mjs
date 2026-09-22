@@ -1,0 +1,8 @@
+import {object,array,vector,matrix,number,integer} from './finite-tools.mjs';
+export function graphConvolution(input){object(input,'gcn',['features','edges','weights','bias','activation'],['features','edges','weights']);const nodes=array(input.features,'features',1,256),n=nodes.length,dim=vector(nodes[0],'features[0]',1,64).length,X=nodes.map((r,i)=>vector(r,`features[${i}]`,dim,dim));
+ const W=array(input.weights,'weights',dim,dim).map((r,i)=>vector(r,`weights[${i}]`,1,64)),out=W[0].length;if(W.some(r=>r.length!==out))throw new TypeError('ragged weights');const bias=input.bias?vector(input.bias,'bias',out,out):Array(out).fill(0),act=input.activation??'relu';if(!['relu','identity','tanh'].includes(act))throw new TypeError('unknown activation');
+ const A=Array.from({length:n},(_,i)=>Array.from({length:n},(_,j)=>+(i===j)));const edges=array(input.edges,'edges',0,4096);for(const [t,e] of edges.entries()){const pair=array(e,`edges[${t}]`,2,2),a=integer(pair[0],'edge',0,n-1),b=integer(pair[1],'edge',0,n-1);if(a===b||A[a][b]!==0)throw new TypeError('duplicate edge or self loop');A[a][b]=A[b][a]=1;}
+ const degree=A.map(row=>row.reduce((a,b)=>a+b,0));
+ const projected=X.map(row=>Array.from({length:out},(_,k)=>row.reduce((sum,v,z)=>sum+v*W[z][k],0)));
+ const values=X.map((_,i)=>bias.map((b,k)=>{let v=b;for(let j=0;j<n;j++)if(A[i][j])v+=projected[j][k]/Math.sqrt(degree[i]*degree[j]);return act==='relu'?Math.max(0,v):act==='tanh'?Math.tanh(v):v;}));
+ if(values.flat().some(v=>!Number.isFinite(v)))throw new RangeError('nonfinite convolution');return {domain:'ONE_LAYER_SYMMETRIC_GCN',values,degree,note:'One permutation-equivariant normalized graph convolution with supplied weights; no training, general CNN or attention.'};}

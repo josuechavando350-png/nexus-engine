@@ -1,0 +1,11 @@
+{
+  "action": "evaluate",
+  "payload": {
+    "u": [
+      0.2,
+      0.4,
+      0.6
+    ],
+    "theta": 2
+  }
+}

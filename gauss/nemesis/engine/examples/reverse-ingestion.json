@@ -1,0 +1,1 @@
+{"source":[{"id":"A","data":{"count":2,"state":"ready"}},{"id":"B","data":{"count":1}}],"destination":[{"id":"A","data":{"count":1,"state":"ready"}},{"id":"Z","data":{"count":9}}]}

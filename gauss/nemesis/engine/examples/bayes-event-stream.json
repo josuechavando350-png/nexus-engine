@@ -1,0 +1,1 @@
+{"priorTrue":"1/2","events":[{"id":"test_B","time":2,"likelihoodIfTrue":"1/2","likelihoodIfFalse":"1/4"},{"id":"test_A","time":1,"likelihoodIfTrue":"3/4","likelihoodIfFalse":"1/4"}]}

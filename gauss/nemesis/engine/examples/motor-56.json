@@ -1,0 +1,12 @@
+{
+  "initial": [
+    1,
+    0,
+    0
+  ],
+  "diffusivity": 1,
+  "dt": 0.1,
+  "dx": 1,
+  "noise": 0,
+  "steps": 10
+}

@@ -1,0 +1,1 @@
+{"states":["START","GOOD","BAD"],"actions":["LEFT","RIGHT"],"transitions":[[[0,1,0],[0,0,1]],[[0,1,0],[0,1,0]],[[0,0,1],[0,0,1]]],"features":[[0],[1],[-1]],"demonstrations":[{"states":["START","GOOD","GOOD"],"actions":["LEFT","LEFT"]},{"states":["START","GOOD","GOOD"],"actions":["LEFT","RIGHT"]}],"horizon":2,"iterations":300}

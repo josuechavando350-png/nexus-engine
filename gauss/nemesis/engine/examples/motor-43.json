@@ -1,0 +1,41 @@
+{
+  "replicas": [
+    "a",
+    "b",
+    "c",
+    "d"
+  ],
+  "faults": 1,
+  "messages": [
+    {
+      "replica": "a",
+      "phase": "PREPARE",
+      "value": "one"
+    },
+    {
+      "replica": "a",
+      "phase": "COMMIT",
+      "value": "one"
+    },
+    {
+      "replica": "b",
+      "phase": "PREPARE",
+      "value": "one"
+    },
+    {
+      "replica": "b",
+      "phase": "COMMIT",
+      "value": "one"
+    },
+    {
+      "replica": "c",
+      "phase": "PREPARE",
+      "value": "one"
+    },
+    {
+      "replica": "c",
+      "phase": "COMMIT",
+      "value": "one"
+    }
+  ]
+}

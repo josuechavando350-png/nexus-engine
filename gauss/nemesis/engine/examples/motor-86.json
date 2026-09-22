@@ -1,0 +1,23 @@
+{
+  "phases": [
+    0,
+    0
+  ],
+  "frequencies": [
+    0,
+    0
+  ],
+  "adjacency": [
+    [
+      0,
+      1
+    ],
+    [
+      1,
+      0
+    ]
+  ],
+  "coupling": 1,
+  "dt": 0.01,
+  "steps": 100
+}

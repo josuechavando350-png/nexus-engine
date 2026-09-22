@@ -1,0 +1,12 @@
+{
+  "observations": [
+    1,
+    1
+  ],
+  "initialMean": 0,
+  "initialStd": 1,
+  "processStd": 0.1,
+  "measurementStd": 0.3,
+  "particles": 600,
+  "seed": 3
+}

@@ -1,0 +1,12 @@
+[package]
+name = "nemesis-fhe"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tfhe = { version = "=1.8.1", default-features = false, features = ["boolean"] }
+
+[profile.release]
+lto = "thin"
+

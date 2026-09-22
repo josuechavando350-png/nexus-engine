@@ -1,0 +1,22 @@
+{
+  "features": [
+    [
+      1
+    ],
+    [
+      2
+    ]
+  ],
+  "edges": [
+    [
+      0,
+      1
+    ]
+  ],
+  "weights": [
+    [
+      1
+    ]
+  ],
+  "activation": "identity"
+}

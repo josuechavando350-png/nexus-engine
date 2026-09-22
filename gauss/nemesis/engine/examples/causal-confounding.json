@@ -1,0 +1,8 @@
+{
+  "nodes": [
+    {"id": "Z", "parents": [], "probabilityTrue": {"": "1/2"}},
+    {"id": "X", "parents": ["Z"], "probabilityTrue": {"0": "1/4", "1": "3/4"}},
+    {"id": "Y", "parents": ["Z"], "probabilityTrue": {"0": "0", "1": "1"}}
+  ],
+  "treatment": "X", "outcome": "Y"
+}

@@ -1,0 +1,1 @@
+{"clocks":["a","b","c"],"anchor":"a","constraints":[{"id":"ab","from":"a","to":"b","min":5,"max":7},{"id":"bc","from":"b","to":"c","min":2,"max":3},{"id":"ac","from":"a","to":"c","min":8,"max":11}]}
