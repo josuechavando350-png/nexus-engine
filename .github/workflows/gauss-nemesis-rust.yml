@@ -1,0 +1,38 @@
+name: GAUSS Nemesis Rust native
+on:
+  pull_request:
+    paths:
+      - 'gauss/nemesis/**'
+      - '.github/workflows/gauss-nemesis-rust.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rust-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain on GitHub runner
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+          cargo --version
+      - name: Prove installed rustc can compile and run
+        shell: bash
+        run: |
+          printf '%s\n' '#[test] fn installed_rust_works() { assert_eq!(2 + 2, 4); }' > "$RUNNER_TEMP/nemesis-rust-smoke.rs"
+          rustc --edition 2021 --test "$RUNNER_TEMP/nemesis-rust-smoke.rs" -o "$RUNNER_TEMP/nemesis-rust-smoke"
+          "$RUNNER_TEMP/nemesis-rust-smoke"
+      - name: Validate native Némesis TFHE when all sources have landed
+        shell: bash
+        run: |
+          if test -f gauss/nemesis/engine/native/fhe/Cargo.toml && test -f gauss/nemesis/engine/native/fhe/src/lib.rs && test -f gauss/nemesis/engine/src/index.mjs; then
+            cargo test --release --manifest-path gauss/nemesis/engine/native/fhe/Cargo.toml
+            node --test gauss/nemesis/tests/*.test.mjs
+            node gauss/nemesis/engine/scripts/smoke-100.mjs
+          else
+            echo 'NEMESIS_NATIVE_NOT_TESTED: complete Némesis source is not yet committed under gauss/nemesis/engine/'
+          fi
