@@ -5,6 +5,7 @@ import {filterGaussNemesis96} from './kalman-96.mjs';
 import {verifyTwoIsogenyDualIdentity} from './isogeny-81-foundation.mjs';
 import {evaluateCyclicVelu} from './isogeny-81-cyclic.mjs';
 import {evaluatePublicVeluChain} from './isogeny-81-chain.mjs';
+import {verifyClaimedPublicVeluChain} from './isogeny-81-claim.mjs';
 
 const moduleUrl = new URL('./engine/src/index.mjs', import.meta.url);
 const incomplete = Object.freeze([81, 89, 95]);
@@ -32,11 +33,12 @@ export async function runGaussNemesis(id, input) {
   if (normalized === '89' && (input?.action === 'native-add-u8' || input?.action === 'native-circuit'))
     return runGaussNemesis89(input);
   const engine = await loadEngine();
-  if (normalized === '81' && ['verify-dual', 'evaluate-cyclic', 'evaluate-public-chain'].includes(input?.action)) {
+  if (normalized === '81' && ['verify-dual', 'evaluate-cyclic', 'evaluate-public-chain', 'verify-public-claim'].includes(input?.action)) {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 81: expected action and payload');
     if (input.action === 'verify-dual') return verifyTwoIsogenyDualIdentity(input.payload);
     if (input.action === 'evaluate-cyclic') return evaluateCyclicVelu(input.payload);
-    return evaluatePublicVeluChain(input.payload);
+    if (input.action === 'evaluate-public-chain') return evaluatePublicVeluChain(input.payload);
+    return verifyClaimedPublicVeluChain(input.payload);
   }
   if (normalized === '96' && input?.action === 'filter') {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor action: expected action and payload');
