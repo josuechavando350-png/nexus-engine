@@ -26,13 +26,12 @@ jobs:
           printf '%s\n' '#[test] fn installed_rust_works() { assert_eq!(2 + 2, 4); }' > "$RUNNER_TEMP/nemesis-rust-smoke.rs"
           rustc --edition 2021 --test "$RUNNER_TEMP/nemesis-rust-smoke.rs" -o "$RUNNER_TEMP/nemesis-rust-smoke"
           "$RUNNER_TEMP/nemesis-rust-smoke"
-      - name: Validate native Némesis TFHE when all sources have landed
+      - name: Require full Némesis source and execute Rust/JS gates
         shell: bash
         run: |
-          if test -f gauss/nemesis/engine/native/fhe/Cargo.toml && test -f gauss/nemesis/engine/native/fhe/src/lib.rs && test -f gauss/nemesis/engine/src/index.mjs; then
-            cargo test --release --manifest-path gauss/nemesis/engine/native/fhe/Cargo.toml
-            node --test gauss/nemesis/tests/*.test.mjs
-            node gauss/nemesis/engine/scripts/smoke-100.mjs
-          else
-            echo 'NEMESIS_NATIVE_NOT_TESTED: complete Némesis source is not yet committed under gauss/nemesis/engine/'
-          fi
+          test -f gauss/nemesis/engine/native/fhe/Cargo.toml || { echo 'NEMESIS_NATIVE_NOT_TESTED: Cargo.toml missing'; exit 1; }
+          test -f gauss/nemesis/engine/native/fhe/src/lib.rs || { echo 'NEMESIS_NATIVE_NOT_TESTED: Rust source missing'; exit 1; }
+          test -f gauss/nemesis/engine/src/index.mjs || { echo 'NEMESIS_INTEGRATION_NOT_TESTED: JavaScript source missing'; exit 1; }
+          cargo test --release --manifest-path gauss/nemesis/engine/native/fhe/Cargo.toml
+          node --test gauss/nemesis/tests/*.test.mjs
+          node gauss/nemesis/engine/scripts/smoke-100.mjs
