@@ -46,29 +46,12 @@ jobs:
           node gauss/nemesis/scripts/repair-import-lint.mjs "$RUNNER_TEMP/nemesis-lint-before.json"
           node gauss/nemesis/scripts/verify-source-lock.mjs
           pnpm lint
-      - name: Verify typecheck and NEXUS workspace tests
+      - name: Verify NEXUS TypeScript types before recording candidate
         shell: bash
         run: |
           set -euo pipefail
           pnpm typecheck
-          pnpm test
-      - name: Verify Némesis original suite and full GAUSS bridge in this repository
-        shell: bash
-        run: |
-          set -euo pipefail
-          node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
-          node gauss/nemesis/engine/scripts/smoke-100.mjs
-          node --test gauss/nemesis/tests/*.test.mjs
-          node gauss/nemesis/scripts/verify-source-lock.mjs
-      - name: Validate workspace build and invariant gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          pnpm security-hygiene
-          pnpm quality-gates
-          pnpm third-party-proof
-          pnpm build
-      - name: Commit only reviewed Némesis lint fixes and updated source lock after tests pass
+      - name: Commit only reviewed Némesis lint fixes locally for exact-SHA tests
         shell: bash
         run: |
           set -euo pipefail
@@ -86,4 +69,34 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'GAUSS Némesis: resolve imported lint errors without disabling rules (not certified)'
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Verify NEXUS workspace tests against clean committed candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain --untracked-files=no)"
+          pnpm test
+      - name: Verify Némesis original suite and full GAUSS bridge in this repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
+          node gauss/nemesis/engine/scripts/smoke-100.mjs
+          node --test gauss/nemesis/tests/*.test.mjs
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Validate workspace build and invariant gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm security-hygiene
+          pnpm quality-gates
+          pnpm third-party-proof
+          pnpm build
+      - name: Push validated candidate only after every required check succeeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH='feat/gauss-nemesis-rust-integration'
+          test "$GITHUB_REF_NAME" = "$BRANCH"
+          test -z "$(git status --porcelain --untracked-files=no)"
           git push origin "HEAD:$BRANCH"
