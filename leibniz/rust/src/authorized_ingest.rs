@@ -15,7 +15,9 @@ const MAX_RECORDS: usize = 4096;
 const MAX_LABEL: usize = 256;
 
 fn label(value: &str) -> Result<&str, String> {
-    if value.is_empty() || value.len() > MAX_LABEL || value.trim() != value
+    if value.is_empty()
+        || value.len() > MAX_LABEL
+        || value.trim() != value
         || value.chars().any(char::is_control)
     {
         return Err("empty, oversized, or control-character source field".into());
@@ -25,7 +27,10 @@ fn label(value: &str) -> Result<&str, String> {
 
 fn source_token(value: &str) -> Result<&str, String> {
     if value.len() > 128
-        || !value.as_bytes().first().is_some_and(u8::is_ascii_alphanumeric)
+        || !value
+            .as_bytes()
+            .first()
+            .is_some_and(u8::is_ascii_alphanumeric)
         || !value
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'))
@@ -36,13 +41,19 @@ fn source_token(value: &str) -> Result<&str, String> {
 }
 
 fn number(value: &str, nonnegative: bool) -> Result<f64, String> {
-    if value.is_empty() || value.len() > 64 || !value.bytes().all(|b| {
-        b.is_ascii_digit() || matches!(b, b'+' | b'-' | b'.' | b'e' | b'E')
-    }) {
+    if value.is_empty()
+        || value.len() > 64
+        || !value
+            .bytes()
+            .all(|b| b.is_ascii_digit() || matches!(b, b'+' | b'-' | b'.' | b'e' | b'E'))
+    {
         return Err("invalid decimal measurement".into());
     }
-    let parsed = value.parse::<f64>().map_err(|_| "invalid decimal measurement")?;
-    if !parsed.is_finite() || parsed == 0.0 && parsed.is_sign_negative()
+    let parsed = value
+        .parse::<f64>()
+        .map_err(|_| "invalid decimal measurement")?;
+    if !parsed.is_finite()
+        || parsed == 0.0 && parsed.is_sign_negative()
         || nonnegative && parsed < 0.0
     {
         return Err("nonfinite, signed-zero, or negative measurement".into());
@@ -59,7 +70,9 @@ fn unit(symbol: &str, dimension: &str, scale: &str) -> Result<Unit, String> {
     for term in dimension.split(',') {
         let (name, exponent) = term.split_once(':').ok_or("invalid dimension term")?;
         source_token(name)?;
-        let exponent = exponent.parse::<i16>().map_err(|_| "invalid dimension exponent")?;
+        let exponent = exponent
+            .parse::<i16>()
+            .map_err(|_| "invalid dimension exponent")?;
         terms.push((name.to_owned(), exponent));
         if terms.len() > 16 {
             return Err("too many base dimensions".into());
@@ -69,11 +82,17 @@ fn unit(symbol: &str, dimension: &str, scale: &str) -> Result<Unit, String> {
 }
 
 fn validity(from: &str, until: &str) -> Result<Validity, String> {
-    let start = from.parse::<i64>().map_err(|_| "invalid UTC start timestamp")?;
+    let start = from
+        .parse::<i64>()
+        .map_err(|_| "invalid UTC start timestamp")?;
     let end = if until == "*" {
         None
     } else {
-        Some(until.parse::<i64>().map_err(|_| "invalid UTC end timestamp")?)
+        Some(
+            until
+                .parse::<i64>()
+                .map_err(|_| "invalid UTC end timestamp")?,
+        )
     };
     Validity::new(start, end)
 }
@@ -81,11 +100,8 @@ fn validity(from: &str, until: &str) -> Result<Validity, String> {
 fn annotation(
     approved_source_id: &str,
     evidence_id: &str,
-    symbol: &str,
-    dimension: &str,
-    scale: &str,
-    start: &str,
-    end: &str,
+    unit_spec: (&str, &str, &str),
+    interval: (&str, &str),
     seen: &mut BTreeSet<String>,
 ) -> Result<Annotation, String> {
     source_token(evidence_id)?;
@@ -93,7 +109,11 @@ fn annotation(
     if !seen.insert(joined.clone()) {
         return Err("duplicate measurement evidence identifier".into());
     }
-    Annotation::new(unit(symbol, dimension, scale)?, validity(start, end)?, joined)
+    Annotation::new(
+        unit(unit_spec.0, unit_spec.1, unit_spec.2)?,
+        validity(interval.0, interval.1)?,
+        joined,
+    )
 }
 
 /// Exact tab-separated version-1 source format:
@@ -111,9 +131,7 @@ pub fn ingest_operator_tsv(
     approved_source_id: &str,
 ) -> Result<Vec<u8>, String> {
     source_token(approved_source_id)?;
-    if supplied.is_empty() || supplied.len() > MAX_INPUT_BYTES
-        || supplied != independently_pinned
-    {
+    if supplied.is_empty() || supplied.len() > MAX_INPUT_BYTES || supplied != independently_pinned {
         return Err("source differs from independently approved byte pin or exceeds limit".into());
     }
     let text = std::str::from_utf8(supplied).map_err(|_| "source is not UTF-8")?;
@@ -150,8 +168,13 @@ pub fn ingest_operator_tsv(
                 label(from)?;
                 label(to)?;
                 let parsed = number(rate, true)?;
-                let annotated = annotation(approved_source_id, id, symbol, dims, scale, start,
-                    end, &mut evidence)?;
+                let annotated = annotation(
+                    approved_source_id,
+                    id,
+                    (symbol, dims, scale),
+                    (start, end),
+                    &mut evidence,
+                )?;
                 graph.add_flow(Flow {
                     from_entity: (*from).into(),
                     to_entity: (*to).into(),
@@ -170,8 +193,13 @@ pub fn ingest_operator_tsv(
                     _ => return Err("invalid restriction category".into()),
                 };
                 let parsed = number(boundary, false)?;
-                let annotated = annotation(approved_source_id, id, symbol, dims, scale, start,
-                    end, &mut evidence)?;
+                let annotated = annotation(
+                    approved_source_id,
+                    id,
+                    (symbol, dims, scale),
+                    (start, end),
+                    &mut evidence,
+                )?;
                 graph.add_restriction(Restriction {
                     source_id: (*from).into(),
                     target_id: (*to).into(),
@@ -206,7 +234,10 @@ mod tests {
         assert_eq!(archive.snapshot.flows.len(), 2);
         assert_eq!(archive.snapshot.restrictions.len(), 1);
         assert_eq!(archive.snapshot.flows[0].rate, 2.5);
-        assert_eq!(archive.snapshot.flows[0].annotation.evidence_id, "operator-allowed/left-2026");
+        assert_eq!(
+            archive.snapshot.flows[0].annotation.evidence_id,
+            "operator-allowed/left-2026"
+        );
         assert_eq!(archive.snapshot.restrictions[0].boundary, 12.0);
         assert_eq!(archive.to_bytes().unwrap(), blob);
     }
@@ -222,11 +253,21 @@ mod tests {
     fn malformed_numeric_source_and_duplicate_evidence_fail_closed() {
         for value in ["NaN", "-1", "-0", "1,2", "1e999"] {
             let input = source(value);
-            assert!(ingest_operator_tsv(&input, &input, "operator-allowed").is_err(), "{value}");
+            assert!(
+                ingest_operator_tsv(&input, &input, "operator-allowed").is_err(),
+                "{value}"
+            );
         }
         let input = source("2.5");
-        let duplicate = String::from_utf8(input).unwrap().replace("right-2026", "left-2026");
-        assert!(ingest_operator_tsv(duplicate.as_bytes(), duplicate.as_bytes(), "operator-allowed").is_err());
+        let duplicate = String::from_utf8(input)
+            .unwrap()
+            .replace("right-2026", "left-2026");
+        assert!(ingest_operator_tsv(
+            duplicate.as_bytes(),
+            duplicate.as_bytes(),
+            "operator-allowed"
+        )
+        .is_err());
     }
     #[test]
     fn record_order_unknown_entities_and_invalid_dimension_are_refused() {
@@ -234,10 +275,18 @@ mod tests {
         for altered in [
             original.replace("ENTITY\tleft\tChannel\n", ""),
             original.replace("contacts:1,time:-1", "contacts:1,time:0"),
-            original.replace("ENTITY\tsource\tOrganization", "UNKNOWN\tsource\tOrganization"),
+            original.replace(
+                "ENTITY\tsource\tOrganization",
+                "UNKNOWN\tsource\tOrganization",
+            ),
             original.replace("\t100\t200\tleft-2026", "\t200\t100\tleft-2026"),
         ] {
-            assert!(ingest_operator_tsv(altered.as_bytes(), altered.as_bytes(), "operator-allowed").is_err());
+            assert!(ingest_operator_tsv(
+                altered.as_bytes(),
+                altered.as_bytes(),
+                "operator-allowed"
+            )
+            .is_err());
         }
     }
     #[test]
