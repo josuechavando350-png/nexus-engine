@@ -43,6 +43,9 @@ jobs:
           cargo --version
           rustfmt --version
           cargo clippy --version
+      - name: Format extracted Rust source
+        run: cargo fmt --all
+        working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Check formatting
         run: cargo fmt --all -- --check
         working-directory: ${{ env.LEIBNIZ_DIR }}
