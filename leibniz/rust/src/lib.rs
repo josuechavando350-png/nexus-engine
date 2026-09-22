@@ -1,11 +1,12 @@
 //! LEIBNIZ: standalone, offline, standard-library-only formal inference nucleus.
-//! No I/O, internet ingestion, GAUSS coupling, external API, or physical actuation.
+//! No I/O in the library, internet ingestion, external API, or physical actuation.
 //! The fixed-point reasoner supports finite positive Horn rules, typed n-ary facts,
 //! reified facts (facts about facts), source provenance and reproducible proofs.
 
 #![forbid(unsafe_code)]
 
 pub mod axioms;
+pub mod gauss_bridge;
 pub mod handoff;
 pub mod higher_order;
 pub mod persistence;
