@@ -17,9 +17,10 @@ const hash=bytes=>createHash('sha256').update(bytes).digest('hex');
 const plain=(v,name)=>{if(!v||typeof v!=='object'||Array.isArray(v)||Object.getPrototypeOf(v)!==Object.prototype)throw new TypeError(`${name} must be a plain object`);};
 function fields(v,name,allowed,required){plain(v,name);for(const key of Object.keys(v))if(!allowed.includes(key))throw new TypeError(`${name}: unsupported ${key}`);for(const key of required)if(!Object.hasOwn(v,key))throw new TypeError(`${name}: missing ${key}`);}
 function wire(n,size,name){if(!Number.isSafeInteger(n)||n<0||n>=size)throw new RangeError(`${name}: invalid or forward wire`);return n;}
-function gate(g,w){const a=w[g.a],b=w[g.b];switch(g.op){case'not':return !a;case'and':return a&&b;case'or':return a||b;case'xor':return a!==b;case'nand':return !(a&&b);case'nor':return !(a||b);case'xnor':return a===b;case'mux':return w[g.s]?a:b;default:throw new TypeError('unsupported gate');}}
+function gate(g,w){const a=w[g.a],b=w[g.b];switch(g.op){case'not':return !a;case'and':return a&&b;case'or':return a||b;case'xor':return a!==b;case'nand':return !(a&&b);case'nor':return !(a&&b);case'xnor':return a===b;case'mux':return w[g.s]?a:b;default:throw new TypeError('unsupported gate');}}
 function checkedCircuit(input){
-  if(!Array.isArray(input.inputs)||input.inputs.length<1||input.inputs.length>128||input.inputs.some(x=>typeof x!=='boolean'))throw new TypeError('inputs must be 1..128 booleans');
+  if(!Array.isArray(input.inputs)||input.inputs.length<1||input.inputs.some(x=>typeof x!=='boolean'))throw new TypeError('inputs must contain 1..128 booleans');
+  if(input.inputs.length>128)throw new RangeError('inputs must contain 1..128 booleans');
   if(!Array.isArray(input.gates)||input.gates.length>2048)throw new RangeError('gates must be an array <=2048');
   if(!Array.isArray(input.outputs)||input.outputs.length<1||input.outputs.length>128)throw new RangeError('outputs must contain 1..128 wires');
   const wires=[...input.inputs],encoded=[];
@@ -47,7 +48,13 @@ function invoke(binary,pin,args,stdin){
     const executable=join(dir,process.platform==='win32'?'nemesis-fhe.exe':'nemesis-fhe');
     writeFileSync(executable,verifiedBytes,{mode:0o700,flag:'wx'});
     const run=spawnSync(executable,args,{input:stdin,encoding:'utf8',timeout:240000,maxBuffer:1024*1024,shell:false,windowsHide:true});
-    if(run.error||run.status!==0)throw new Error('NEMESIS_89_NATIVE_EXECUTION_FAILED');
+    // Only a fixed, bounded OS error class or numeric status is exposed. Never log stderr, stdout, stdin or private witness bytes.
+    if(run.error||run.status!==0){
+      const code=run.error?.code;
+      const failure=/^(?:EACCES|ENOENT|ENOEXEC|E2BIG|ETIMEDOUT|EPIPE|ENOMEM)$/.test(code??'')?code:
+        Number.isInteger(run.status)&&run.status>=0&&run.status<=255?`EXIT_${run.status}`:'UNKNOWN';
+      throw new Error(`NEMESIS_89_NATIVE_EXECUTION_FAILED_${failure}`);
+    }
     try{return {data:JSON.parse(run.stdout),binarySha256:digest};}catch{throw new Error('NEMESIS_89_NATIVE_INVALID_JSON');}
   }finally{rmSync(dir,{recursive:true,force:true});}
 }
