@@ -45,6 +45,9 @@ jobs:
           node --test gauss/nemesis/tests/*.test.mjs
           node gauss/nemesis/engine/scripts/smoke-100.mjs
       - name: Verify source was not mutated and checkout remains clean
+        shell: bash
         run: |
+          set -euo pipefail
           node gauss/nemesis/scripts/verify-source-lock.mjs
+          git status --porcelain --untracked-files=no
           test -z "$(git status --porcelain --untracked-files=no)"
