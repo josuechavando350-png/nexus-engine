@@ -69,6 +69,8 @@ jobs:
           cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/finite_model.rs" "$LEIBNIZ_DIR/src/finite_model.rs"
           cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/hol-semantic-oracle.rs" "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
           cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/BLOCK2_FORMAL_VALIDATION.md" "$LEIBNIZ_DIR/BLOCK2_FORMAL_VALIDATION.md"
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/SECOND_BLOCK_RELEASE_NOTES.md" "$LEIBNIZ_DIR/SECOND_BLOCK_RELEASE_NOTES.md"
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/SECOND_BLOCK_VALIDATION_TARGET" "$LEIBNIZ_DIR/SECOND_BLOCK_VALIDATION_TARGET"
           test -s "$LEIBNIZ_DIR/src/finite_model.rs"
           test -s "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
           test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs")" -eq 11
