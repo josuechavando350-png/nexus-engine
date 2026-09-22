@@ -14,6 +14,10 @@ test('GAUSS executes #01 and #02 via actual Némesis code', async () => {
   const b=await runGaussNemesis('02',fixture('causal-confounding'));
   assert.ok(a&&typeof a==='object'); assert.ok(b&&typeof b==='object');
 });
+test('GAUSS exposes the native #89 path without silently accepting an unpinned binary',async()=>{
+  await assert.rejects(()=>runGaussNemesis('89',{action:'native-add-u8',a:1,b:2}),/expectedBinarySha256/);
+  assert.equal(gaussNemesisStatus().nativeFheEntryPresent,true);
+});
 test('GAUSS refuses unknown ID and never reports certification from inventory',async()=>{
   await assert.rejects(()=>runGaussNemesis(101,{}),/ID/);
   await assert.rejects(()=>runGaussNemesis('01;rm -rf /',{}),/ID/);
