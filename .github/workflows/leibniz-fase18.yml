@@ -1,22 +1,13 @@
 name: LEIBNIZ first-block Rust validation
-
 on:
   push:
-    branches:
-      - leibniz/fase18
-    paths:
-      - 'leibniz/fase18-payload/**'
-      - '.github/workflows/leibniz-fase18.yml'
+    branches: [leibniz/fase18]
+    paths: ['leibniz/fase18-payload/**', '.github/workflows/leibniz-fase18.yml']
   pull_request:
-    branches:
-      - main
-    paths:
-      - 'leibniz/fase18-payload/**'
-      - '.github/workflows/leibniz-fase18.yml'
-
+    branches: [main]
+    paths: ['leibniz/fase18-payload/**', '.github/workflows/leibniz-fase18.yml']
 permissions:
   contents: read
-
 jobs:
   rust-validation:
     runs-on: ubuntu-latest
@@ -46,6 +37,20 @@ jobs:
             patch --batch --forward -p1 < "$fix"
           done
         working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Inspect extension payload if corrupted
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import pathlib, hashlib
+          p=pathlib.Path('leibniz/fase18-payload/higher-order-b1.b64')
+          b=p.read_bytes()
+          allowed=b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\r\n'
+          bad=[(i,x) for i,x in enumerate(b) if x not in allowed]
+          print('EXTENSION_SOURCE_BYTES',len(b))
+          print('EXTENSION_SOURCE_SHA256',hashlib.sha256(b).hexdigest())
+          print('INVALID_BYTES',bad[:30], 'COUNT',len(bad))
+          print('SOURCE_TAIL_REPR',repr(b[-100:]))
+          PY
       - name: Restore full type-theoretic proof checker and block-one acceptance tests
         shell: bash
         run: |
