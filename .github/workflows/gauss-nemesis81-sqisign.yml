@@ -49,6 +49,12 @@ jobs:
           cp "$source_dir/build/apps/nexus81_p324_3" gauss/nemesis/native/isogeny81/bin/nexus81_p324_3
           echo "NEMESIS81_BINARY=$GITHUB_WORKSPACE/gauss/nemesis/native/isogeny81/bin/nexus81_p324_3" >> "$GITHUB_ENV"
           echo "NEMESIS81_SHA256=$(sha256sum gauss/nemesis/native/isogeny81/bin/nexus81_p324_3 | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Verify upstream published known-answer vectors and scheme selftests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake --build "$RUNNER_TEMP/sqisign81-src/build" --target sqisign_test_kat_p324_3 sqisign_test_scheme_p324_3 --parallel 2
+          ctest --test-dir "$RUNNER_TEMP/sqisign81-src/build" -R '^sqisign_p324_3_(KAT|SELFTEST)$' --output-on-failure
       - name: Prove real key generation, signing, verification and negative cases through GAUSS
         run: node --test gauss/nemesis/tests/sqisign-81.integration.mjs
       - name: Verify no committed native binary or upstream source was added
