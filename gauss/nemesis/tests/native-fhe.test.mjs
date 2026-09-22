@@ -22,7 +22,7 @@ test('GAUSS #89 detects false native answers and mismatched binary pin',()=>{
  if(process.platform==='win32')return;
  const dir=mkdtempSync(join(tmpdir(),'gauss-nemesis89-'));
  try{
-  const binary=join(dir,'forged');const content='#!/bin/sh\nprintf \'%s\\n\' \'{"motor":89,"backend":"TFHE_BOOLEAN","sum":999,"verified":true}\'\n';
+  const binary=join(dir,'forged');const content='#!/bin/sh\ncat >/dev/null\nprintf \'%s\\n\' \'{"motor":89,"backend":"TFHE_BOOLEAN","sum":999,"verified":true}\'\n';
   writeFileSync(binary,content);chmodSync(binary,0o700);
   const sha=createHash('sha256').update(content).digest('hex');
   assert.throws(()=>runGaussNemesis89({action:'native-add-u8',a:1,b:2,binary,expectedBinarySha256:pinned}),/PIN_MISMATCH/);
