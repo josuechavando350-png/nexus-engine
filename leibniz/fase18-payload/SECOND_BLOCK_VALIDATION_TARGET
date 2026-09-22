@@ -1,0 +1,7 @@
+rust_tests=200
+ignored_tests=0
+finite_standard_model_oracle_tests=11
+original_and_block1_tests=189
+rust_toolchain=stable
+branch=leibniz/fase18
+no_main_merge=true
