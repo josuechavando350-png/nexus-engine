@@ -1,0 +1,1 @@
+The second-block semantic interpreter evaluates standard finite models exhaustively within explicit limits; eleven tests compare its results against independently checked HOL certificates. All 189 earlier tests must be preserved and the new count must reach 200 green tests in GitHub Actions.
