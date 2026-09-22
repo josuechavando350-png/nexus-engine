@@ -42,14 +42,12 @@ jobs:
         run: |
           python3 - <<'PY'
           import pathlib, hashlib
-          p=pathlib.Path('leibniz/fase18-payload/higher-order-b1.b64')
-          b=p.read_bytes()
-          allowed=b'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=\r\n'
-          bad=[(i,x) for i,x in enumerate(b) if x not in allowed]
-          print('EXTENSION_SOURCE_BYTES',len(b))
-          print('EXTENSION_SOURCE_SHA256',hashlib.sha256(b).hexdigest())
-          print('INVALID_BYTES',bad[:30], 'COUNT',len(bad))
-          print('SOURCE_TAIL_REPR',repr(b[-100:]))
+          b=pathlib.Path('leibniz/fase18-payload/higher-order-b1.b64').read_bytes()
+          expect=['81fe5984188f','3e668c90d24f','d1843a8a188f','65223f8593be','d7db8317ece9','e6be4f6ccb8e','b8542d9a42c6','9b3dba0069a4','ae8c445f80a4','6e065bef06fc','51f4ae8b2051','6519415d5688']
+          print('LENGTH',len(b))
+          for i,digest in enumerate(expect,1):
+            actual=hashlib.sha256(b[:i*1000]).hexdigest()[:12]
+            print('PREFIX',i*1000,'EXPECTED',digest,'ACTUAL',actual,'MATCH',actual==digest)
           PY
       - name: Restore full type-theoretic proof checker and block-one acceptance tests
         shell: bash
