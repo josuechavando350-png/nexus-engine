@@ -1,4 +1,4 @@
-name: LEIBNIZ fase 18 Rust validation
+name: LEIBNIZ first-block Rust validation
 
 on:
   push:
@@ -46,6 +46,16 @@ jobs:
             patch --batch --forward -p1 < "$fix"
           done
         working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Restore full type-theoretic proof checker and block-one acceptance tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode "$GITHUB_WORKSPACE/leibniz/fase18-payload/higher-order-b1.b64" > "$RUNNER_TEMP/leibniz-hol-extension.tar.xz"
+          printf '%s  %s\n' 'a359971dac7f342989c77cacc08dd8a621fe39effcff56bab8509b6843cf0f58' "$RUNNER_TEMP/leibniz-hol-extension.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/leibniz-hol-extension.tar.xz" -C "$LEIBNIZ_DIR"
+          test -s "$LEIBNIZ_DIR/src/hol.rs"
+          test -s "$LEIBNIZ_DIR/tests/hol.rs"
+          test -s "$LEIBNIZ_DIR/tests/block1_acceptance.rs"
       - name: Show actual toolchain
         run: |
           rustc --version
@@ -58,8 +68,18 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Execute all Rust tests
-        run: cargo test --all-targets --offline
+      - name: Execute all original and new Rust tests with a counted gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/leibniz-tests.log"
+          passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-tests.log")
+          ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-tests.log")
+          echo "Rust tests actually passed: $passed; ignored: $ignored"
+          test "$passed" -ge 184
+          test "$ignored" -eq 0
+          echo "### LEIBNIZ standalone Rust test results" >> "$GITHUB_STEP_SUMMARY"
+          echo "Commit: $GITHUB_SHA; passed: $passed; ignored: $ignored" >> "$GITHUB_STEP_SUMMARY"
         working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Strict Clippy
         run: cargo clippy --all-targets --offline -- -D warnings
