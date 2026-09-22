@@ -1,4 +1,4 @@
-name: LEIBNIZ first- and second-block Rust validation
+name: LEIBNIZ first three blocks: Rust and trusted-source validation
 on:
   push:
     branches: [leibniz/fase18]
@@ -75,23 +75,34 @@ jobs:
           test -s "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
           test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs")" -eq 11
           printf '\npub mod finite_model;\n' >> "$LEIBNIZ_DIR/src/lib.rs"
-      - name: Format code
+      - name: Wire real trusted-source, independent logic and finite-model audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/formal_audit.rs" "$LEIBNIZ_DIR/src/formal_audit.rs"
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/formal-audit-acceptance.rs" "$LEIBNIZ_DIR/tests/formal_audit_acceptance.rs"
+          test -s "$LEIBNIZ_DIR/src/formal_audit.rs"
+          test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/formal_audit_acceptance.rs")" -eq 13
+          printf '\npub mod formal_audit;\n' >> "$LEIBNIZ_DIR/src/lib.rs"
+      - name: Format reconstructed source
         run: cargo fmt --all
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Verify formatting
+      - name: Verify reconstructed source formatting
         run: cargo fmt --all -- --check
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Run all original and both-block tests
+      - name: Run all three-block tests including real trusted-source failure cases
         shell: bash
         run: |
           set -euo pipefail
           cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/test-results.log"
           passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
           ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
-          echo "Rust tests passed: $passed; ignored: $ignored"
-          test "$passed" -eq 200
+          failed=$(awk '/test result: FAILED\./ {for (i=1;i<=NF;i++) if ($i=="failed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
+          echo "Rust tests passed: $passed; failed: $failed; ignored: $ignored"
+          test "$passed" -eq 213
+          test "$failed" -eq 0
           test "$ignored" -eq 0
-          echo "Passed: $passed; ignored: $ignored; SHA: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+          echo "Passed: $passed; failed: $failed; ignored: $ignored; SHA: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
         working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Strict Clippy
         run: cargo clippy --all-targets --offline -- -D warnings
@@ -109,15 +120,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          tar -C "$LEIBNIZ_DIR" --exclude='./target' --exclude='./.git' -cJf "$RUNNER_TEMP/LEIBNIZ-blocks-1-and-2-source.tar.xz" .
-          sha256sum "$RUNNER_TEMP/LEIBNIZ-blocks-1-and-2-source.tar.xz" | tee "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt"
+          tar -C "$LEIBNIZ_DIR" --exclude='./target' --exclude='./.git' -cJf "$RUNNER_TEMP/LEIBNIZ-blocks-1-2-3-source.tar.xz" .
+          sha256sum "$RUNNER_TEMP/LEIBNIZ-blocks-1-2-3-source.tar.xz" | tee "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt"
           echo "Full source archive SHA-256: $(cut -d' ' -f1 "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt")" >> "$GITHUB_STEP_SUMMARY"
       - name: Publish tested source artifact
         uses: actions/upload-artifact@v4
         with:
-          name: leibniz-blocks-1-and-2-rust-source-${{ github.sha }}
+          name: leibniz-blocks-1-2-3-rust-source-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/LEIBNIZ-blocks-1-and-2-source.tar.xz
+            ${{ runner.temp }}/LEIBNIZ-blocks-1-2-3-source.tar.xz
             ${{ runner.temp }}/LEIBNIZ-source-sha256.txt
           if-no-files-found: error
           retention-days: 14
