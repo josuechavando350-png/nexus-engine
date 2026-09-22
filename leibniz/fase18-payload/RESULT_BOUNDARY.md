@@ -1,0 +1,1 @@
+Do not equate the scoped first two validation blocks with completion of 50% of the full original manifesto. Certification requires exact code, executable checks, reproducible runs and original-requirement mapping.
