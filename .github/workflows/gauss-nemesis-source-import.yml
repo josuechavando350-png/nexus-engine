@@ -5,16 +5,24 @@ on:
       - feat/gauss-nemesis-rust-integration
     paths:
       - 'gauss/nemesis/import/GAUSS_NEMESIS_v19_fuente_para_subir_GitHub_NO_CERTIFICADO.zip'
+      - '.github/workflows/gauss-nemesis-source-import.yml'
+  pull_request:
+    paths:
+      - 'gauss/nemesis/import/GAUSS_NEMESIS_v19_fuente_para_subir_GitHub_NO_CERTIFICADO.zip'
+      - '.github/workflows/gauss-nemesis-source-import.yml'
 permissions:
   contents: write
 jobs:
   import-exact-release:
-    if: github.repository == 'josuechavando350-png/nexus-engine'
+    if: >-
+      github.repository == 'josuechavando350-png/nexus-engine' &&
+      (github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.head_ref || github.ref_name }}
           persist-credentials: true
       - name: Use required Node.js 22.16.0 for original Némesis (node:sqlite)
         uses: actions/setup-node@v4
@@ -23,7 +31,8 @@ jobs:
       - name: Refuse other branches, wrong archive, changed bytes or unsafe ZIP entries
         shell: bash
         run: |
-          test "$GITHUB_REF_NAME" = 'feat/gauss-nemesis-rust-integration'
+          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          test "$BRANCH" = 'feat/gauss-nemesis-rust-integration'
           node --version
           python3 gauss/nemesis/scripts/import-source.py
           node gauss/nemesis/scripts/verify-source-lock.mjs
@@ -36,8 +45,6 @@ jobs:
       - name: Restore the exact 297 pinned files after tests generate or overwrite evidence
         shell: bash
         run: |
-          # Original tests write evidence/ files; re-import *all* original bytes
-          # from the already SHA-256-pinned archive, never commit generated data.
           rm -rf -- gauss/nemesis/engine
           python3 gauss/nemesis/scripts/import-source.py
           node gauss/nemesis/scripts/verify-source-lock.mjs
@@ -45,6 +52,8 @@ jobs:
       - name: Commit exactly the checked original source to the Némesis PR branch
         shell: bash
         run: |
+          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          test "$BRANCH" = 'feat/gauss-nemesis-rust-integration'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- gauss/nemesis/engine/
@@ -52,5 +61,5 @@ jobs:
             echo 'NEMESIS_SOURCE_ALREADY_IMPORTED'
           else
             git commit -m 'GAUSS: import complete SHA-verified original Némesis v17 source'
-            git push origin "HEAD:${GITHUB_REF_NAME}"
+            git push origin "HEAD:${BRANCH}"
           fi
