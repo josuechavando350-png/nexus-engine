@@ -114,9 +114,12 @@ pub fn extract_with_trusted_head(
     independently_pinned_checkpoint: &[u8],
     trusted_head_bytes: &[u8],
 ) -> Result<Vec<u8>, String> {
-    verify_latest_checkpoint(checkpoint, independently_pinned_checkpoint, trusted_head_bytes)?
-        .archive_bytes()
-        .map(|bytes| bytes.to_vec())
+    let state = verify_latest_checkpoint(
+        checkpoint,
+        independently_pinned_checkpoint,
+        trusted_head_bytes,
+    )?;
+    Ok(state.archive_bytes()?.to_vec())
 }
 
 #[cfg(test)]
@@ -127,7 +130,10 @@ mod tests {
         format!("LEIBNIZ_SOURCE_V1\tapproved\nENTITY\tsource\tOrganization\nENTITY\t{to}\tChannel\nFLOW\tsource\t{to}\t{rate}\tcontacts/s\tcontacts:1,time:-1\t1\t100\t200\t{evidence}\n").into_bytes()
     }
     fn begin() -> Vec<u8> {
-        StreamState::initial("approved").unwrap().to_bytes().unwrap()
+        StreamState::initial("approved")
+            .unwrap()
+            .to_bytes()
+            .unwrap()
     }
     fn witness(state: &[u8]) -> Vec<u8> {
         TrustedHead::from_checkpoint(state, state)
@@ -146,8 +152,14 @@ mod tests {
         let archived = extract_with_trusted_head(&second, &second, &witness(&second)).unwrap();
         let archive = crate::semantic_archive::SemanticArchive::from_bytes(&archived).unwrap();
         assert_eq!(archive.snapshot.flows.len(), 2);
-        assert_eq!(archive.snapshot.flows[0].annotation.evidence_id, "approved/e1");
-        assert_eq!(archive.snapshot.flows[1].annotation.evidence_id, "approved/e2");
+        assert_eq!(
+            archive.snapshot.flows[0].annotation.evidence_id,
+            "approved/e1"
+        );
+        assert_eq!(
+            archive.snapshot.flows[1].annotation.evidence_id,
+            "approved/e2"
+        );
     }
 
     #[test]
@@ -164,9 +176,19 @@ mod tests {
     #[test]
     fn cross_source_and_forged_future_sequence_are_refused() {
         let initial = begin();
-        let head = TrustedHead { source_id: "other".into(), sequence: 0 }.to_bytes().unwrap();
+        let head = TrustedHead {
+            source_id: "other".into(),
+            sequence: 0,
+        }
+        .to_bytes()
+        .unwrap();
         assert!(verify_latest_checkpoint(&initial, &initial, &head).is_err());
-        let head = TrustedHead { source_id: "approved".into(), sequence: 5 }.to_bytes().unwrap();
+        let head = TrustedHead {
+            source_id: "approved".into(),
+            sequence: 5,
+        }
+        .to_bytes()
+        .unwrap();
         assert!(append(&initial, &head, &batch("3", "left", "e1"), 1).is_err());
     }
 
