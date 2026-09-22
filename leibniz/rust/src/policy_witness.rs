@@ -167,7 +167,11 @@ mod tests {
         .unwrap()
     }
 
-    fn append(policy_bytes: &[u8], policy_pin: &[u8], policy_head: &[u8]) -> Result<Vec<u8>, String> {
+    fn append(
+        policy_bytes: &[u8],
+        policy_pin: &[u8],
+        policy_head: &[u8],
+    ) -> Result<Vec<u8>, String> {
         let initial = StreamState::initial("approved")?.to_bytes()?;
         let checkpoint_head = TrustedHead::from_checkpoint(&initial, &initial)?.to_bytes()?;
         let batch = b"LEIBNIZ_SOURCE_V1\tapproved\nENTITY\tsource\tOrganization\nENTITY\tleft\tChannel\nFLOW\tsource\tleft\t3\tcontacts/s\tcontacts:1,time:-1\t1\t100\t200\tevidence-1\n";
@@ -230,7 +234,10 @@ mod tests {
         let mut corrupt = head.clone();
         *corrupt.last_mut().unwrap() ^= 1;
         assert!(append(&permitted, &permitted, &corrupt).is_err());
-        let wrong = String::from_utf8(head.clone()).unwrap().replacen("\tapproved\t", "\tother\t", 1);
+        let wrong =
+            String::from_utf8(head.clone())
+                .unwrap()
+                .replacen("\tapproved\t", "\tother\t", 1);
         assert!(PolicyWitness::from_bytes(wrong.as_bytes()).is_err());
         let length = permitted.len().to_string();
         let noncanonical = String::from_utf8(head).unwrap().replacen(
