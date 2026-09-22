@@ -1,0 +1,37 @@
+name: GAUSS Nemesis 95 real Groth16 proof
+on:
+  pull_request:
+    paths:
+      - 'gauss/nemesis/**'
+      - '.github/workflows/gauss-nemesis-groth16.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  groth16-test-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Verify immutable imported Némesis source before running cryptography
+        run: node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Install isolated exact-version test-only Circom and snarkjs tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools="$RUNNER_TEMP/nemesis95-tools"
+          npm install --prefix "$tools" --package-lock=false --ignore-scripts --no-audit --no-fund circom2@0.2.23 snarkjs@0.7.6
+          ln -s "$tools/node_modules/.bin/circom2" "$tools/node_modules/.bin/circom"
+          echo "$tools/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Generate actual Groth16 proof and reject tampering
+        shell: bash
+        run: |
+          set -euo pipefail
+          node gauss/nemesis/scripts/verify-groth16-e2e-ci.mjs
+      - name: Verify imported sources were not changed by the test
+        run: |
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          test -z "$(git status --porcelain --untracked-files=no)"
