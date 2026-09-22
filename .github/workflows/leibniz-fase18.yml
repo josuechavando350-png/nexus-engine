@@ -44,6 +44,15 @@ jobs:
           test -s "$LEIBNIZ_DIR/src/hol.rs"
           test -s "$LEIBNIZ_DIR/tests/hol.rs"
           test -s "$LEIBNIZ_DIR/tests/block1_acceptance.rs"
+      - name: Apply reviewed HOL source corrections
+        shell: bash
+        run: |
+          set -euo pipefail
+          for fix in "$GITHUB_WORKSPACE"/leibniz/fase18-payload/hol-fix-*.patch; do
+            test -f "$fix" || continue
+            patch --batch --forward -p1 < "$fix"
+          done
+        working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Format code
         run: cargo fmt --all
         working-directory: ${{ env.LEIBNIZ_DIR }}
