@@ -5,15 +5,11 @@ import {verifyClaimedPublicVeluChain} from '../isogeny-81-claim.mjs';
 import {runGaussNemesis} from '../bridge.mjs';
 
 const statement={p:11,a:1,b:0,points:[null,{x:0,y:0},{x:5,y:3}],steps:[{degree:2,generator:{x:0,y:0}}]};
-// Find a fully enumerated point on curve rather than relying on a fixture coincidence.
-const actualPoints=[];
-for(let x=0;x<11;x++)for(let y=0;y<11;y++)if((y*y-x*x*x-x)%11===0)actualPoints.push({x,y});
-statement.points=[null,{x:0,y:0},actualPoints.find(P=>P.y!==0)];
-const original=evaluatePublicVeluChain(statement);
-const claim={statement,expected:{target:original.target,degreeProduct:original.degreeProduct,images:original.images}};
+// Independently fixed F11 vector: a'=a-5*(3*0²+a)=7; phi(5,3)=(3,2).
+const claim={statement,expected:{target:{p:11,a:7,b:0},degreeProduct:'2',images:[null,null,{x:3,y:2}]}};
 const clone=x=>structuredClone(x);
 
-test('81 public claim independently replays actual chain and reports limited domain',()=>{
+test('81 public claim replays independently fixed F11 vector and reports limited domain',()=>{
   const result=verifyClaimedPublicVeluChain(claim);
   assert.equal(result.verified,true);
   assert.equal(result.pointsChecked,3);
