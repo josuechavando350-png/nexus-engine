@@ -1,0 +1,1 @@
+The independent finite-model interpreter consumes explicitly supplied closed formulas and typed constants. It has no network, GPU, shell, mutation of GAUSS, or externally asserted facts. Bounded exhaustion returns an error rather than proven or estimated. Formal verification of the entire unrestricted engine is outside this test suite.
