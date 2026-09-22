@@ -114,7 +114,9 @@ pub fn verify_latest_checkpoint(
     }
     let witness = TrustedHead::from_bytes(trusted_head_bytes)?;
     if witness.checkpoint_bytes != checkpoint {
-        return Err("checkpoint bytes differ from independently witnessed latest source head".into());
+        return Err(
+            "checkpoint bytes differ from independently witnessed latest source head".into(),
+        );
     }
     StreamState::from_bytes(checkpoint)
 }
@@ -212,7 +214,8 @@ mod tests {
     fn altered_history_at_the_same_sequence_cannot_replace_the_pinned_head() {
         let initial = begin();
         let first = append(&initial, &witness(&initial), &batch("3", "left", "e1"), 1).unwrap();
-        let alternate = append(&initial, &witness(&initial), &batch("99", "left", "e1"), 1).unwrap();
+        let alternate =
+            append(&initial, &witness(&initial), &batch("99", "left", "e1"), 1).unwrap();
         assert_eq!(
             StreamState::from_bytes(&first).unwrap().sequence(),
             StreamState::from_bytes(&alternate).unwrap().sequence()
@@ -226,11 +229,8 @@ mod tests {
     fn cross_source_and_forged_future_sequence_are_refused() {
         let initial = begin();
         for (source, sequence) in [("other", 0), ("approved", 5)] {
-            let mut forged = format!(
-                "{VERSION}\t{source}\t{sequence}\t{}\n",
-                initial.len()
-            )
-            .into_bytes();
+            let mut forged =
+                format!("{VERSION}\t{source}\t{sequence}\t{}\n", initial.len()).into_bytes();
             forged.extend_from_slice(&initial);
             assert!(verify_latest_checkpoint(&initial, &initial, &forged).is_err());
         }
