@@ -26,35 +26,36 @@ jobs:
           set -euo pipefail
           test -s leibniz/rust/Cargo.toml
           test -s leibniz/rust/src/gauss_bridge.rs
+          test -s leibniz/rust/src/authorized_ingest.rs
           test -s leibniz/rust/src/operational_gate.rs
           test -s leibniz/ORIGINAL_MANIFEST_GAP_MATRIX.md
           git diff --exit-code
       - name: Format without changing tracked source
         working-directory: leibniz/rust
         run: cargo fmt --all -- --check
-      - name: All 230 Rust tests in debug
+      - name: All 235 Rust tests in debug
         working-directory: leibniz/rust
         run: |
           set -euo pipefail
           cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/leibniz-debug.log"
           passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-debug.log")
           ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-debug.log")
-          test "$passed" -eq 230 && test "$ignored" -eq 0
+          test "$passed" -eq 235 && test "$ignored" -eq 0
           echo "LEIBNIZ Rust debug: $passed passed; $ignored ignored" >> "$GITHUB_STEP_SUMMARY"
       - name: Strict Clippy
         working-directory: leibniz/rust
         run: cargo clippy --all-targets --offline -- -D warnings
-      - name: Production build including real bridge executables
+      - name: Production build including real ingestion and bridge executables
         working-directory: leibniz/rust
         run: cargo build --release --offline --all-targets
-      - name: All 230 Rust tests in release
+      - name: All 235 Rust tests in release
         working-directory: leibniz/rust
         run: |
           set -euo pipefail
           cargo test --release --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/leibniz-release.log"
           passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-release.log")
           ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-release.log")
-          test "$passed" -eq 230 && test "$ignored" -eq 0
+          test "$passed" -eq 235 && test "$ignored" -eq 0
           echo "LEIBNIZ Rust release: $passed passed; $ignored ignored" >> "$GITHUB_STEP_SUMMARY"
       - name: Offline proof benchmark
         working-directory: leibniz/rust
@@ -84,6 +85,15 @@ jobs:
           node --test leibniz/fase18-payload/gauss_measured_linear_bridge.test.mjs
           git diff --exit-code -- gauss/ quantum/ walle/ runtime/ packages/
           echo 'Source-pinned two-edge Rust/GAUSS/Quantum tests executed; synthetic test origin only.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Exercise operator-authored TSV ingestion through LEIBNIZ, actual GAUSS and Quantum
+        env:
+          LEIBNIZ_BRIDGE_EXPORT_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/gauss_bridge_export
+          LEIBNIZ_AUTHORIZED_INGEST_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/ingest_authorized_source
+        run: |
+          set -euo pipefail
+          node --test leibniz/fase18-payload/authorized_ingest_bridge.test.mjs
+          git diff --exit-code -- gauss/ quantum/ walle/ runtime/ packages/
+          echo 'Operator-authored TEST records: typed ingestion -> Rust archive -> GAUSS solve + Quantum receipt; no external-source authenticity claim.' >> "$GITHUB_STEP_SUMMARY"
       - name: Package exact tested tracked Rust source
         run: |
           set -euo pipefail
@@ -96,6 +106,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/leibniz-replay"
           tar -xJf "$RUNNER_TEMP/LEIBNIZ-tested-source.tar.xz" -C "$RUNNER_TEMP/leibniz-replay"
           cmp leibniz/rust/src/gauss_bridge.rs "$RUNNER_TEMP/leibniz-replay/src/gauss_bridge.rs"
+          cmp leibniz/rust/src/authorized_ingest.rs "$RUNNER_TEMP/leibniz-replay/src/authorized_ingest.rs"
           cargo fmt --all --manifest-path "$RUNNER_TEMP/leibniz-replay/Cargo.toml" -- --check
           cargo test --all-targets --offline --manifest-path "$RUNNER_TEMP/leibniz-replay/Cargo.toml"
       - name: Publish tested source and digest
