@@ -1,0 +1,75 @@
+name: LEIBNIZ guarded operator distribution
+on:
+  push:
+    branches: [leibniz/fase18]
+    paths:
+      - 'leibniz/rust/**'
+      - 'leibniz/operator-bundle/**'
+      - '.github/workflows/leibniz-operator-bundle.yml'
+permissions:
+  contents: read
+jobs:
+  guarded-distribution:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Require tracked executable source, packaging script and regression
+        run: |
+          set -euo pipefail
+          test -s leibniz/rust/examples/guarded_append.rs
+          test -s leibniz/operator-bundle/build.sh
+          test -s leibniz/operator-bundle/bundle.test.mjs
+          git diff --exit-code
+      - name: Format, strict static analysis and real Rust debug tests
+        working-directory: leibniz/rust
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo clippy --all-targets --offline -- -D warnings
+          cargo test --all-targets --offline
+      - name: Build the sole deployable binary and test-only bootstrap executables
+        working-directory: leibniz/rust
+        run: |
+          set -euo pipefail
+          cargo build --release --offline --example guarded_append --example sequential_source --example trusted_head_source --example policy_witness_source
+      - name: Create new minimal executable distribution
+        run: |
+          set -euo pipefail
+          bash leibniz/operator-bundle/build.sh leibniz/rust/target/release/examples/guarded_append "$RUNNER_TEMP/leibniz-operator-bundle"
+      - name: Execute shipped binary, refuse revoked/same-revision policy and reject legacy package paths
+        env:
+          LEIBNIZ_OPERATOR_BUNDLE: ${{ runner.temp }}/leibniz-operator-bundle
+          LEIBNIZ_SEQUENTIAL_SOURCE_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/sequential_source
+          LEIBNIZ_TRUSTED_HEAD_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/trusted_head_source
+          LEIBNIZ_POLICY_WITNESS_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/policy_witness_source
+        run: |
+          set -euo pipefail
+          node --test leibniz/operator-bundle/bundle.test.mjs
+          git diff --exit-code -- leibniz/rust gauss/ quantum/ walle/ runtime/ packages/
+      - name: Package and re-test only distributed files after unpacking
+        env:
+          LEIBNIZ_SEQUENTIAL_SOURCE_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/sequential_source
+          LEIBNIZ_TRUSTED_HEAD_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/trusted_head_source
+          LEIBNIZ_POLICY_WITNESS_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/policy_witness_source
+        run: |
+          set -euo pipefail
+          tar -C "$RUNNER_TEMP" -czf "$RUNNER_TEMP/LEIBNIZ-guarded-operator.tar.gz" leibniz-operator-bundle
+          mkdir -m 700 "$RUNNER_TEMP/independent-extract"
+          tar -xzf "$RUNNER_TEMP/LEIBNIZ-guarded-operator.tar.gz" -C "$RUNNER_TEMP/independent-extract"
+          cmp "$RUNNER_TEMP/leibniz-operator-bundle/guarded_append" "$RUNNER_TEMP/independent-extract/leibniz-operator-bundle/guarded_append"
+          LEIBNIZ_OPERATOR_BUNDLE="$RUNNER_TEMP/independent-extract/leibniz-operator-bundle" node --test leibniz/operator-bundle/bundle.test.mjs
+          sha256sum "$RUNNER_TEMP/LEIBNIZ-guarded-operator.tar.gz" > "$RUNNER_TEMP/LEIBNIZ-guarded-operator.sha256"
+          echo 'Distribution contains only guarded append, readme and checksums; synthetic witnesses are not authenticated by CI.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish guarded executable and digest
+        uses: actions/upload-artifact@v4
+        with:
+          name: leibniz-guarded-operator-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/LEIBNIZ-guarded-operator.tar.gz
+            ${{ runner.temp }}/LEIBNIZ-guarded-operator.sha256
+          if-no-files-found: error
+          retention-days: 30
