@@ -1,0 +1,63 @@
+name: LEIBNIZ fase 18 Rust validation
+
+on:
+  push:
+    branches:
+      - leibniz/fase18
+    paths:
+      - 'leibniz/fase18-payload/**'
+      - '.github/workflows/leibniz-fase18.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'leibniz/fase18-payload/**'
+      - '.github/workflows/leibniz-fase18.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  rust-validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout exact commit
+        uses: actions/checkout@v4
+      - name: Install full Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - name: Restore complete isolated Rust crate and verify its exact bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat leibniz/fase18-payload/part-* | base64 --decode > "$RUNNER_TEMP/leibniz-fase18-src.tar.xz"
+          printf '%s  %s\n' '254038cdcd9b6c4fc6245b297aee51b8942193c8d5fbddcddc56c1bd969f633e' "$RUNNER_TEMP/leibniz-fase18-src.tar.xz" | sha256sum -c -
+          mkdir -p "$RUNNER_TEMP/leibniz-standalone"
+          tar -xJf "$RUNNER_TEMP/leibniz-fase18-src.tar.xz" -C "$RUNNER_TEMP/leibniz-standalone"
+          echo "LEIBNIZ_DIR=$RUNNER_TEMP/leibniz-standalone" >> "$GITHUB_ENV"
+      - name: Show actual toolchain
+        run: |
+          rustc --version
+          cargo --version
+          rustfmt --version
+          cargo clippy --version
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Execute all Rust tests
+        run: cargo test --all-targets --offline
+        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Strict Clippy
+        run: cargo clippy --all-targets --offline -- -D warnings
+        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Release build
+        run: cargo build --release --offline
+        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Benchmark
+        run: cargo run --release --offline --example benchmark -- 250 3
+        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Graph scaling
+        run: cargo run --release --offline --example graph_scale -- 8 16 24
+        working-directory: ${{ env.LEIBNIZ_DIR }}
