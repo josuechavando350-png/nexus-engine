@@ -33,10 +33,12 @@ jobs:
           node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
           node gauss/nemesis/engine/scripts/smoke-100.mjs
           node --test gauss/nemesis/tests/*.test.mjs
-      - name: Restore and revalidate exact original archive bytes after test evidence changed
+      - name: Restore the exact 297 pinned files after tests generate or overwrite evidence
         shell: bash
         run: |
-          rm -f -- gauss/nemesis/engine/evidence/smoke-100-v17.json
+          # Original tests write evidence/ files; re-import *all* original bytes
+          # from the already SHA-256-pinned archive, never commit generated data.
+          rm -rf -- gauss/nemesis/engine
           python3 gauss/nemesis/scripts/import-source.py
           node gauss/nemesis/scripts/verify-source-lock.mjs
           test "$(find gauss/nemesis/engine/ -type f | wc -l)" -eq 297
