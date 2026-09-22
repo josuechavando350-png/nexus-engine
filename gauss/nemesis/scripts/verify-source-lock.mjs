@@ -1,6 +1,7 @@
 /**
- * Refuse a partial/altered original Némesis v17 transfer. This only verifies
- * bytes and inventory; it is NOT certification of all conceptual motor scopes.
+ * Verify pinned Némesis source and reviewed test fixtures by byte digest.
+ * The original archive was verified separately at import. This check does NOT
+ * certify all 100 conceptual motors or cryptographic production security.
  */
 import {createHash} from 'node:crypto';
 import {readFileSync,readdirSync,lstatSync} from 'node:fs';
@@ -24,12 +25,12 @@ function digest(files){const hasher=createHash('sha256');for(const full of files
  }return hasher.digest('hex');}
 for(const [directory,extension] of [['src','.mjs'],['test','.test.mjs'],['examples','.json']]){
  const files=walk(directory,extension),expected=lock[directory];
- if(files.length!==expected.count||digest(files)!==expected.sha256)throw Error(`NEMESIS_SOURCE_TRANSFER_MISMATCH: ${directory}: ${files.length} files`);
+ if(files.length!==expected.count||digest(files)!==expected.sha256)throw Error(`NEMESIS_SOURCE_LOCK_MISMATCH: ${directory}: ${files.length} files`);
 }
 for(const filename of ['INVENTARIO_100.json','package.json']){
  const actual=createHash('sha256').update(readFileSync(join(root,filename))).digest('hex');
- if(actual!==lock[filename])throw Error('NEMESIS_SOURCE_TRANSFER_MISMATCH: '+filename);
+ if(actual!==lock[filename])throw Error('NEMESIS_SOURCE_LOCK_MISMATCH: '+filename);
 }
 const inventory=JSON.parse(readFileSync(join(root,'INVENTARIO_100.json'),'utf8'));
 if(!Array.isArray(inventory)||inventory.length!==100||new Set(inventory.map(x=>x.numero)).size!==100||inventory.some((x,i)=>x.numero!==i+1))throw Error('NEMESIS_INVENTORY_NOT_100');
-console.log(JSON.stringify({status:'PASS',scope:'EXACT_NEMESIS_SOURCE_TRANSFER_ONLY',src:lock.src.count,tests:lock.test.count,examples:lock.examples.count,certifiesAll100:false}));
+console.log(JSON.stringify({status:'PASS',scope:'REVIEWED_NEMESIS_SOURCE_LOCK_ONLY',src:lock.src.count,tests:lock.test.count,examples:lock.examples.count,reviewedChangesFromOrigin:lock.reviewedChangesFromOrigin??[],certifiesAll100:false}));
