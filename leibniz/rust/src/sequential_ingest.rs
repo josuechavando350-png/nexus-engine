@@ -22,8 +22,13 @@ pub struct StreamState {
 
 fn source_token(value: &str) -> Result<(), String> {
     if value.len() > 128
-        || !value.as_bytes().first().is_some_and(u8::is_ascii_alphanumeric)
-        || !value.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'))
+        || !value
+            .as_bytes()
+            .first()
+            .is_some_and(u8::is_ascii_alphanumeric)
+        || !value
+            .bytes()
+            .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'))
     {
         return Err("invalid sequential source identity".into());
     }
@@ -73,8 +78,13 @@ impl StreamState {
             self.source_id,
             self.sequence,
             self.archive_bytes.len()
-        ).into_bytes();
-        if bytes.len().checked_add(self.archive_bytes.len()).is_none_or(|n| n > MAX_STATE_BYTES) {
+        )
+        .into_bytes();
+        if bytes
+            .len()
+            .checked_add(self.archive_bytes.len())
+            .is_none_or(|n| n > MAX_STATE_BYTES)
+        {
             return Err("checkpoint exceeds maximum bytes".into());
         }
         bytes.extend_from_slice(&self.archive_bytes);
@@ -87,7 +97,11 @@ impl StreamState {
             return Err("noninitial stream checkpoint has no measurements".into());
         }
         let mut evidence = BTreeSet::new();
-        for annotation in archive.snapshot.flows.iter().map(|f| &f.annotation)
+        for annotation in archive
+            .snapshot
+            .flows
+            .iter()
+            .map(|f| &f.annotation)
             .chain(archive.snapshot.restrictions.iter().map(|r| &r.annotation))
         {
             if !annotation.evidence_id.starts_with(&prefix)
@@ -103,13 +117,15 @@ impl StreamState {
         if bytes.is_empty() || bytes.len() > MAX_STATE_BYTES {
             return Err("invalid bounded checkpoint length".into());
         }
-        let newline = bytes.iter().position(|byte| *byte == b'\n')
+        let newline = bytes
+            .iter()
+            .position(|byte| *byte == b'\n')
             .ok_or("checkpoint has no version header")?;
         if newline > 256 {
             return Err("checkpoint header is oversized".into());
         }
-        let header = std::str::from_utf8(&bytes[..newline])
-            .map_err(|_| "checkpoint header is not UTF-8")?;
+        let header =
+            std::str::from_utf8(&bytes[..newline]).map_err(|_| "checkpoint header is not UTF-8")?;
         let fields = header.split('\t').collect::<Vec<_>>();
         let [version, source_id, sequence, length] = fields.as_slice() else {
             return Err("invalid checkpoint header field count".into());
@@ -118,9 +134,14 @@ impl StreamState {
             return Err("unsupported checkpoint version".into());
         }
         source_token(source_id)?;
-        let seq = sequence.parse::<u64>().map_err(|_| "invalid checkpoint sequence")?;
-        let size = length.parse::<usize>().map_err(|_| "invalid checkpoint archive length")?;
-        if seq.to_string() != *sequence || size.to_string() != *length
+        let seq = sequence
+            .parse::<u64>()
+            .map_err(|_| "invalid checkpoint sequence")?;
+        let size = length
+            .parse::<usize>()
+            .map_err(|_| "invalid checkpoint archive length")?;
+        if seq.to_string() != *sequence
+            || size.to_string() != *length
             || bytes.len() - newline - 1 != size
         {
             return Err("noncanonical checkpoint header or archive length".into());
@@ -161,18 +182,28 @@ pub fn append_authorized_batch(
         &previous.source_id,
     )?;
     let batch = SemanticArchive::from_bytes(&batch_bytes)?;
-    let (mut graph, mut flow_annotations, mut restriction_annotations) =
-        if previous.sequence == 0 {
-            (Graph::new(), Vec::new(), Vec::new())
-        } else {
-            let old = SemanticArchive::from_bytes(&previous.archive_bytes)?;
-            (
-                old.graph,
-                old.snapshot.flows.iter().map(|f| f.annotation.clone()).collect(),
-                old.snapshot.restrictions.iter().map(|r| r.annotation.clone()).collect(),
-            )
-        };
-    let existing = graph.snapshot().entities.into_iter()
+    let (mut graph, mut flow_annotations, mut restriction_annotations) = if previous.sequence == 0 {
+        (Graph::new(), Vec::new(), Vec::new())
+    } else {
+        let old = SemanticArchive::from_bytes(&previous.archive_bytes)?;
+        (
+            old.graph,
+            old.snapshot
+                .flows
+                .iter()
+                .map(|f| f.annotation.clone())
+                .collect(),
+            old.snapshot
+                .restrictions
+                .iter()
+                .map(|r| r.annotation.clone())
+                .collect(),
+        )
+    };
+    let existing = graph
+        .snapshot()
+        .entities
+        .into_iter()
         .map(|entity| (entity.id.clone(), entity))
         .collect::<std::collections::BTreeMap<_, _>>();
     for entity in batch.snapshot.problem.entities {
@@ -182,8 +213,14 @@ pub fn append_authorized_batch(
             None => graph.add_entity(entity)?,
         }
     }
-    let mut evidence = flow_annotations.iter().map(|a: &crate::semantics::Annotation| a.evidence_id.clone())
-        .chain(restriction_annotations.iter().map(|a: &crate::semantics::Annotation| a.evidence_id.clone()))
+    let mut evidence = flow_annotations
+        .iter()
+        .map(|a: &crate::semantics::Annotation| a.evidence_id.clone())
+        .chain(
+            restriction_annotations
+                .iter()
+                .map(|a: &crate::semantics::Annotation| a.evidence_id.clone()),
+        )
         .collect::<BTreeSet<_>>();
     for flow in batch.snapshot.flows {
         if !evidence.insert(flow.annotation.evidence_id.clone()) {
@@ -213,7 +250,8 @@ pub fn append_authorized_batch(
         source_id: previous.source_id,
         sequence: next_sequence,
         archive_bytes: SemanticArchive::new(graph, snapshot)?.to_bytes()?,
-    }.to_bytes()
+    }
+    .to_bytes()
 }
 
 #[cfg(test)]
@@ -224,7 +262,10 @@ mod tests {
         format!("LEIBNIZ_SOURCE_V1\tapproved\nENTITY\tsource\tOrganization\nENTITY\t{name}\tChannel\nFLOW\tsource\t{name}\t{rate}\tcontacts/s\tcontacts:1,time:-1\t1\t100\t200\t{id}\n").into_bytes()
     }
     fn begin() -> Vec<u8> {
-        StreamState::initial("approved").unwrap().to_bytes().unwrap()
+        StreamState::initial("approved")
+            .unwrap()
+            .to_bytes()
+            .unwrap()
     }
     fn advance(previous: &[u8], input: &[u8], sequence: u64) -> Result<Vec<u8>, String> {
         append_authorized_batch(previous, previous, input, input, sequence)
@@ -240,8 +281,14 @@ mod tests {
         assert_eq!(archive.snapshot.flows.len(), 2);
         assert_eq!(archive.snapshot.flows[0].rate, 2.5);
         assert_eq!(archive.snapshot.flows[1].rate, 7.25);
-        assert_eq!(archive.snapshot.flows[0].annotation.evidence_id, "approved/left-1");
-        assert_eq!(archive.snapshot.flows[1].annotation.evidence_id, "approved/right-2");
+        assert_eq!(
+            archive.snapshot.flows[0].annotation.evidence_id,
+            "approved/left-1"
+        );
+        assert_eq!(
+            archive.snapshot.flows[1].annotation.evidence_id,
+            "approved/right-2"
+        );
         assert_eq!(state.to_bytes().unwrap(), second);
     }
 
@@ -269,7 +316,8 @@ mod tests {
         let first = advance(&begin(), &source("2.5", "left-1", "left"), 1).unwrap();
         assert!(advance(&first, &source("7.25", "left-1", "right"), 2).is_err());
         let malformed = String::from_utf8(source("7.25", "right-2", "right"))
-            .unwrap().replace("ENTITY\tsource\tOrganization", "ENTITY\tsource\tImpostor");
+            .unwrap()
+            .replace("ENTITY\tsource\tOrganization", "ENTITY\tsource\tImpostor");
         assert!(advance(&first, malformed.as_bytes(), 2).is_err());
     }
 
@@ -279,13 +327,11 @@ mod tests {
         let mut corrupted = first.clone();
         *corrupted.last_mut().unwrap() ^= 1;
         assert!(StreamState::from_bytes(&corrupted).is_err());
-        let foreign = String::from_utf8(first).unwrap_err();
-        let bytes = foreign.into_bytes();
-        let header_end = bytes.iter().position(|b| *b == b'\n').unwrap();
+        let header_end = first.iter().position(|b| *b == b'\n').unwrap();
         let mut forged = b"LEIBNIZ_STREAM_V1\tforeign\t1\t".to_vec();
-        forged.extend_from_slice(bytes[..header_end].split(|b| *b == b'\t').last().unwrap());
+        forged.extend_from_slice(first[..header_end].split(|b| *b == b'\t').last().unwrap());
         forged.push(b'\n');
-        forged.extend_from_slice(&bytes[header_end + 1..]);
+        forged.extend_from_slice(&first[header_end + 1..]);
         assert!(StreamState::from_bytes(&forged).is_err());
         assert!(StreamState::from_bytes(b"LEIBNIZ_STREAM_V1\tapproved\t01\t0\n").is_err());
     }
