@@ -42,7 +42,9 @@ fn write_new(path: &str, bytes: &[u8]) -> Result<(), String> {
     options.write(true).create_new(true);
     #[cfg(unix)]
     options.mode(0o600);
-    let mut file = options.open(path).map_err(|e| format!("cannot create checkpoint: {e}"))?;
+    let mut file = options
+        .open(path)
+        .map_err(|e| format!("cannot create checkpoint: {e}"))?;
     if let Err(error) = file.write_all(bytes).and_then(|()| file.sync_all()) {
         drop(file);
         let _ = fs::remove_file(path);
@@ -52,24 +54,47 @@ fn write_new(path: &str, bytes: &[u8]) -> Result<(), String> {
 }
 fn run() -> Result<(), String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
-    let [mode, state, state_pin, head, batch, batch_pin, sequence, policy, policy_pin, revision, as_of, output] = args.as_slice() else {
+    let [mode, state, state_pin, head, batch, batch_pin, sequence, policy, policy_pin, revision, as_of, output] =
+        args.as_slice()
+    else {
         return Err("expected append STATE STATE_PIN HEAD BATCH BATCH_PIN SEQUENCE POLICY POLICY_PIN MIN_REVISION AS_OF_UTC_MS OUT".into());
     };
-    if mode != "append" { return Err("only append is supported".into()); }
+    if mode != "append" {
+        return Err("only append is supported".into());
+    }
     for (left, right) in [
-        (state, state_pin), (batch, batch_pin), (policy, policy_pin),
-        (head, state), (head, state_pin), (head, policy), (head, policy_pin),
-        (policy, state), (policy_pin, state), (policy, batch), (policy_pin, batch_pin),
+        (state, state_pin),
+        (batch, batch_pin),
+        (policy, policy_pin),
+        (head, state),
+        (head, state_pin),
+        (head, policy),
+        (head, policy_pin),
+        (policy, state),
+        (policy_pin, state),
+        (policy, batch),
+        (policy_pin, batch_pin),
     ] {
         distinct(left, right)?;
     }
     let next = sequence.parse::<u64>().map_err(|_| "invalid sequence")?;
-    let min_revision = revision.parse::<u64>().map_err(|_| "invalid minimum revision")?;
-    let now = as_of.parse::<i64>().map_err(|_| "invalid UTC evaluation time")?;
+    let min_revision = revision
+        .parse::<u64>()
+        .map_err(|_| "invalid minimum revision")?;
+    let now = as_of
+        .parse::<i64>()
+        .map_err(|_| "invalid UTC evaluation time")?;
     let result = append_with_policy(
-        &read_regular(state)?, &read_regular(state_pin)?, &read_regular(head)?,
-        &read_regular(batch)?, &read_regular(batch_pin)?, next,
-        &read_regular(policy)?, &read_regular(policy_pin)?, min_revision, now,
+        &read_regular(state)?,
+        &read_regular(state_pin)?,
+        &read_regular(head)?,
+        &read_regular(batch)?,
+        &read_regular(batch_pin)?,
+        next,
+        &read_regular(policy)?,
+        &read_regular(policy_pin)?,
+        min_revision,
+        now,
     )?;
     write_new(output, &result)?;
     println!("LEIBNIZ: guarded batch accepted under operator-supplied policy; publish new independent head");
