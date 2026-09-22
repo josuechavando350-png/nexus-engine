@@ -9,4 +9,3 @@ tfhe = { version = "=1.8.1", default-features = false, features = ["boolean"] }
 
 [profile.release]
 lto = "thin"
-
