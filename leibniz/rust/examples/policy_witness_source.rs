@@ -66,8 +66,9 @@ fn run() -> Result<(), String> {
             write_new(output, &proposal.to_bytes()?)?;
             println!("LEIBNIZ: policy witness PROPOSED, not externally authorized or published");
         }
-        [mode, state, state_pin, state_head, batch, batch_pin, sequence,
-         policy, policy_pin, policy_head, at, output] if mode == "append" => {
+        [mode, state, state_pin, state_head, batch, batch_pin, sequence, policy, policy_pin, policy_head, at, output]
+            if mode == "append" =>
+        {
             for (left, right) in [
                 (state, state_pin),
                 (batch, batch_pin),
@@ -83,7 +84,9 @@ fn run() -> Result<(), String> {
                 distinct(left, right)?;
             }
             let next = sequence.parse::<u64>().map_err(|_| "invalid sequence")?;
-            let now = at.parse::<i64>().map_err(|_| "invalid as-of UTC milliseconds")?;
+            let now = at
+                .parse::<i64>()
+                .map_err(|_| "invalid as-of UTC milliseconds")?;
             let result = append_with_policy_witness(
                 &read_regular(state)?,
                 &read_regular(state_pin)?,
