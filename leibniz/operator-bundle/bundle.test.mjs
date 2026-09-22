@@ -1,12 +1,9 @@
-// This checks executable distribution and the REAL Rust guarded CLI using
-// synthetic inputs. It does not authenticate any policy issuer or custodian.
+// Only synthetic data. These tests neither authenticate an issuer nor attest
+// the independent custody of witnesses or provide a trustworthy clock.
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import {
-  copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync,
-  statSync, writeFileSync,
-} from 'node:fs';
+import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -15,93 +12,83 @@ const sequential = process.env.LEIBNIZ_SEQUENTIAL_SOURCE_BINARY;
 const trusted = process.env.LEIBNIZ_TRUSTED_HEAD_BINARY;
 const policyTool = process.env.LEIBNIZ_POLICY_WITNESS_BINARY;
 if (![bundle, sequential, trusted, policyTool].every((item) => typeof item === 'string' && item.length)) {
-  throw new Error('bundle plus three real test-only bootstrap binaries required');
+  throw new Error('bundle and real test-only bootstrap executables required');
 }
-const soleBinary = join(bundle, 'guarded_append');
+const binary = join(bundle, 'guarded_append');
 const root = mkdtempSync(join(tmpdir(), 'leibniz-operator-bundle-'));
 after(() => rmSync(root, { recursive: true, force: true }));
-let count = 0;
-const newPath = (name) => join(root, `${++count}-${name}`);
-const run = (binary, ...args) => execFileSync(binary, args, { encoding: 'utf8', timeout: 15_000 });
-function files(bytes) {
-  const value = newPath('input');
-  const pin = newPath('reference');
-  writeFileSync(value, bytes);
-  writeFileSync(pin, bytes);
-  return [value, pin];
+let counter = 0;
+const target = (name) => join(root, `${++counter}-${name}`);
+const run = (exe, ...args) => execFileSync(exe, args, { encoding: 'utf8', timeout: 15_000 });
+const policy = (status, revision = 3) =>
+  `LEIBNIZ_SOURCE_POLICY_V1\tapproved\t${revision}\t${status}\t1\t2\t100\t200\n`;
+const batch = 'LEIBNIZ_SOURCE_V1\tapproved\nENTITY\tsource\tOrganization\nENTITY\tleft\tChannel\nFLOW\tsource\tleft\t3\tcontacts/s\tcontacts:1,time:-1\t1\t100\t200\tevidence-1\n';
+function pair(contents) {
+  const value = target('value');
+  const reference = target('pin');
+  writeFileSync(value, contents);
+  writeFileSync(reference, contents);
+  return [value, reference];
 }
-function bootstrap() {
-  const state = newPath('state');
+function initial() {
+  const state = target('initial');
   run(sequential, 'init', 'approved', state);
-  const pin = newPath('state-pin');
+  const pin = target('state-pin');
   copyFileSync(state, pin);
-  const head = newPath('state-head');
+  const head = target('state-head');
   run(trusted, 'propose', state, pin, head);
   return [state, pin, head];
 }
-const batch = 'LEIBNIZ_SOURCE_V1\tapproved\nENTITY\tsource\tOrganization\nENTITY\tleft\tChannel\nFLOW\tsource\tleft\t3\tcontacts/s\tcontacts:1,time:-1\t1\t100\t200\tevidence-1\n';
-const policy = (status, revision = 3) =>
-  `LEIBNIZ_SOURCE_POLICY_V1\tapproved\t${revision}\t${status}\t1\t2\t100\t200\n`;
-function witness(policyPair) {
-  const head = newPath('policy-head');
-  run(policyTool, 'propose', ...policyPair, head);
+function witness([value, pin]) {
+  const head = target('policy-head');
+  run(policyTool, 'propose', value, pin, head);
   return head;
 }
-function args(state, input, policyPair, policyHead, output) {
-  return [...state, ...input, '1', ...policyPair, policyHead, '150', output];
-}
-function refused(...inputArgs) {
-  const output = newPath('refused-checkpoint');
-  assert.throws(() => run(soleBinary, ...inputArgs, output));
-  assert.equal(existsSync(output), false, 'rejected request created a checkpoint');
+const appendArgs = (state, input, policyPair, head) =>
+  [...state, ...input, '1', ...policyPair, head, '150'];
+function refused(...params) {
+  const output = target('refused');
+  assert.throws(() => run(binary, ...params, output));
+  assert.equal(existsSync(output), false, 'refused operation left an output');
 }
 
-test('distribution contains exactly the append-only binary, documentation and checksums', () => {
+test('only the guarded executable and verifiable documentation ship', () => {
   assert.deepEqual(readdirSync(bundle).sort(), ['README.txt', 'SHA256SUMS', 'guarded_append']);
-  assert.equal(statSync(soleBinary).isFile(), true);
-  assert.equal((statSync(soleBinary).mode & 0o777), 0o700);
-  run('sha256sum', '--check', '--status', join(bundle, 'SHA256SUMS'));
-  for (const forbidden of [
-    'policy_source', 'sequential_source', 'trusted_head_source',
-    'policy_witness_source', 'ingest_authorized_source', 'gauss_bridge_export',
-  ]) {
-    assert.equal(existsSync(join(bundle, forbidden)), false, `${forbidden} escaped into operator bundle`);
+  assert.equal(statSync(binary).isFile(), true);
+  assert.equal(statSync(binary).mode & 0o777, 0o700);
+  execFileSync('sha256sum', ['--check', '--status', 'SHA256SUMS'], { cwd: bundle });
+  for (const legacy of ['policy_source', 'sequential_source', 'trusted_head_source', 'policy_witness_source', 'ingest_authorized_source', 'gauss_bridge_export']) {
+    assert.equal(existsSync(join(bundle, legacy)), false, `${legacy} found in operator distribution`);
   }
-  assert.throws(() => run(soleBinary, 'propose'));
+  assert.throws(() => run(binary, 'propose'));
 });
 
-test('shipped Rust binary accepts current witnessed policy and rejects a replayed output', () => {
-  const state = bootstrap();
-  const input = files(batch);
-  const current = files(policy('ALLOW'));
+test('the shipped Rust executable appends one batch and refuses output replacement', () => {
+  const state = initial();
+  const input = pair(batch);
+  const current = pair(policy('ALLOW'));
   const head = witness(current);
-  const output = newPath('accepted-checkpoint');
-  assert.match(run(soleBinary, ...args(state, input, current, head, output)), /append accepted/u);
-  assert.equal(existsSync(output), true);
-  assert.equal((statSync(output).mode & 0o777), 0o600);
-  assert.throws(() => run(soleBinary, ...args(state, input, current, head, output)), /cannot create new checkpoint/u);
+  const output = target('accepted');
+  assert.match(run(binary, ...appendArgs(state, input, current, head), output), /append accepted/u);
+  assert.equal(statSync(output).mode & 0o777, 0o600);
+  assert.throws(() => run(binary, ...appendArgs(state, input, current, head), output));
 });
 
-test('latest revoked witness refuses old ALLOW policy even when its separate pin matches', () => {
-  const state = bootstrap();
-  const input = files(batch);
-  const oldAllow = files(policy('ALLOW', 3));
-  const revoked = files(policy('REVOKED', 4));
-  const latestHead = witness(revoked);
-  const oldHead = witness(oldAllow);
-  refused(...args(state, input, oldAllow, latestHead, '').slice(0, -1));
-  refused(...args(state, input, revoked, latestHead, '').slice(0, -1));
-  // An old witness is syntactically valid, but cannot be trusted as latest:
-  // the separate external authority must prevent its substitution.
-  assert.notEqual(oldHead, latestHead);
+test('the latest revocation witness denies stale approval and current revocation', () => {
+  const state = initial();
+  const input = pair(batch);
+  const oldAllow = pair(policy('ALLOW', 3));
+  const revoked = pair(policy('REVOKED', 4));
+  const latest = witness(revoked);
+  refused(...appendArgs(state, input, oldAllow, latest));
+  refused(...appendArgs(state, input, revoked, latest));
 });
 
-test('same-revision alternative permission cannot replace the exact witnessed bytes', () => {
-  const state = bootstrap();
-  const input = files(batch);
-  const alternate = files(policy('ALLOW', 4));
-  const revoked = files(policy('REVOKED', 4));
-  refused(...args(state, input, alternate, witness(revoked), '').slice(0, -1));
-  const [policyFile] = alternate;
-  refused(...args(state, input, [policyFile, policyFile], witness(alternate), '').slice(0, -1));
+test('same-revision alternative and same-file policy pin are refused', () => {
+  const state = initial();
+  const input = pair(batch);
+  const allowed = pair(policy('ALLOW', 4));
+  const revoked = pair(policy('REVOKED', 4));
+  refused(...appendArgs(state, input, allowed, witness(revoked)));
+  refused(...appendArgs(state, input, [allowed[0], allowed[0]], witness(allowed)));
 });
