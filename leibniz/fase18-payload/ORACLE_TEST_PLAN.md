@@ -1,0 +1,1 @@
+Oracle test dimensions: all unary predicates on one or two individuals; all predicate functionals over two individuals; lambda application and extensional equality; countermodel to an unsupported universal assertion; classical negation; bound caps. Test execution is mandatory and not replaced by this document.
