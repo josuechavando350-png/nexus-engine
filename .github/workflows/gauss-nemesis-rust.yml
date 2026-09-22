@@ -53,11 +53,16 @@ jobs:
   gauss-integration:
     needs: rust-native
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - name: Reject incomplete GAUSS-Némesis integration
+      - name: Reject incomplete or altered Némesis v17 source
         shell: bash
         run: |
           test -f gauss/nemesis/engine/src/index.mjs || { echo 'NEMESIS_INTEGRATION_NOT_TESTED: complete Némesis JS source is missing'; exit 1; }
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Check original GAUSS-to-Némesis bridge and all original JS tests
+        run: |
           node --test gauss/nemesis/tests/*.test.mjs
+          node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
           node gauss/nemesis/engine/scripts/smoke-100.mjs
