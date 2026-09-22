@@ -1,0 +1,1 @@
+Second-block formal semantics acceptance maps source finite_model.rs to test hol-semantic-oracle.rs, with eleven real Rust tests. CI must preserve all 189 prior tests. This ledger is not a 50% global-product metric; full original product features remain outside the standalone crate.
