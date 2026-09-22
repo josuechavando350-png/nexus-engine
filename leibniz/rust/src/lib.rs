@@ -18,6 +18,7 @@ pub mod schema;
 pub mod semantic_archive;
 pub mod semantics;
 pub mod sequential_ingest;
+pub mod trusted_head;
 
 pub use reasoning::{
     ArgumentKind, Atom, Decision, Fact, Graph, GraphArchive, Justification, Limits, Pattern,
