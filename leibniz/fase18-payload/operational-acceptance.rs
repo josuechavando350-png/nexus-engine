@@ -4,7 +4,7 @@ use nexus_leibniz::handoff::{
     HandoffLimits, Objective, CONTRACT_VERSION,
 };
 use nexus_leibniz::hol::{Derivation as D, Expr as E, Ty};
-use nexus_leibniz::operational_gate::audit_persisted_pinned;
+use nexus_leibniz::operational_gate::{audit_persisted_pinned, FormalCheck};
 use nexus_leibniz::schema::{Entity, Flow};
 use nexus_leibniz::semantic_archive::SemanticArchive;
 use nexus_leibniz::semantics::{Annotation, Dimension, SemanticSnapshot, Unit, Validity};
@@ -78,7 +78,9 @@ fn check(path: &Path, expected: &[u8], request: &GaussProblemV1,
          response: &GaussResponseV1, formal_limit: AuditLimits) -> Result<nexus_leibniz::formal_audit::ReadOnlyAudit, String> {
     let (claim, derivation) = theorem();
     audit_persisted_pinned(path, expected, request, response,
-        HandoffLimits::default(), &claim, Some(&derivation), formal_limit)
+        HandoffLimits::default(), FormalCheck {
+            proposition: &claim, certificate: Some(&derivation), limits: formal_limit,
+        })
 }
 fn baseline() -> (Scratch, Vec<u8>, GaussProblemV1, GaussResponseV1) {
     let source = fixture(2.0);
