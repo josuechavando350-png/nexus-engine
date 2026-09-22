@@ -16,10 +16,15 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: true
+      - name: Use required Node.js 22.16.0 for original Némesis (node:sqlite)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
       - name: Refuse other branches, wrong archive, changed bytes or unsafe ZIP entries
         shell: bash
         run: |
           test "$GITHUB_REF_NAME" = 'feat/gauss-nemesis-rust-integration'
+          node --version
           python3 gauss/nemesis/scripts/import-source.py
           node gauss/nemesis/scripts/verify-source-lock.mjs
       - name: Verify the imported original 100 examples and JavaScript test suite
