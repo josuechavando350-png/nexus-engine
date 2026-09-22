@@ -1,0 +1,42 @@
+name: GAUSS Nemesis source import (one archive)
+on:
+  push:
+    branches:
+      - feat/gauss-nemesis-rust-integration
+    paths:
+      - 'gauss/nemesis/import/GAUSS_NEMESIS_v19_fuente_para_subir_GitHub_NO_CERTIFICADO.zip'
+permissions:
+  contents: write
+jobs:
+  import-exact-release:
+    if: github.repository == 'josuechavando350-png/nexus-engine'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Refuse other branches, wrong archive, changed bytes or unsafe ZIP entries
+        shell: bash
+        run: |
+          test "$GITHUB_REF_NAME" = 'feat/gauss-nemesis-rust-integration'
+          python3 gauss/nemesis/scripts/import-source.py
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Verify the imported original 100 examples and JavaScript test suite
+        shell: bash
+        run: |
+          node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
+          node gauss/nemesis/engine/scripts/smoke-100.mjs
+          node --test gauss/nemesis/tests/*.test.mjs
+      - name: Commit exactly the checked original source to the Némesis PR branch
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- gauss/nemesis/engine/
+          if git diff --cached --quiet; then
+            echo 'NEMESIS_SOURCE_ALREADY_IMPORTED'
+          else
+            git commit -m 'GAUSS: import complete SHA-verified original Némesis v17 source'
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
