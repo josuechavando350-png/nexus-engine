@@ -35,10 +35,10 @@ jobs:
         run: |
           printf '255 255' | gauss/nemesis/native/fhe/target/release/nemesis-fhe --add-stdin
           printf '101' | gauss/nemesis/native/fhe/target/release/nemesis-fhe --circuit-stdin 'xor:0:1;mux:2:3:1;not:4' '3,4,5'
-      - name: Verify GAUSS public Némesis #89 entrypoint with actual TFHE binary
+      - name: Verify GAUSS public Némesis #89 entrypoint and immutable executable snapshot
         shell: bash
         run: |
-          node --test gauss/nemesis/tests/native-fhe.test.mjs
+          node --test gauss/nemesis/tests/native-fhe.test.mjs gauss/nemesis/tests/native-snapshot.test.mjs
           node gauss/nemesis/scripts/verify-native-89.mjs
       - name: Preserve exact tested binary, lockfile and evidence
         if: success()
@@ -50,8 +50,14 @@ jobs:
             gauss/nemesis/native/fhe/Cargo.lock
             gauss/nemesis/evidence/native-89-ci.json
           retention-days: 7
+  gauss-coexistence:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check GAUSS 1000-operator inventory is unchanged by Némesis
+        run: node --test gauss/nemesis/tests/gauss-registry.test.mjs
   gauss-integration:
-    needs: rust-native
+    needs: [rust-native, gauss-coexistence]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
@@ -61,7 +67,7 @@ jobs:
         run: |
           test -f gauss/nemesis/engine/src/index.mjs || { echo 'NEMESIS_INTEGRATION_NOT_TESTED: complete Némesis JS source is missing'; exit 1; }
           node gauss/nemesis/scripts/verify-source-lock.mjs
-      - name: Check original GAUSS-to-Némesis bridge and all original JS tests
+      - name: Check original GAUSS-to-Némesis bridge and original JS tests
         run: |
           node --test gauss/nemesis/tests/*.test.mjs
           node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
