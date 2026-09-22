@@ -2,13 +2,16 @@
   "schemaVersion": 1,
   "origin": "NEMESIS_v17_hardening_real_NO_CERTIFICADO.zip",
   "notACertification": true,
+  "reviewedChangesFromOrigin": [
+    "engine/test/native-fhe-adapter.test.mjs: fake backend drains stdin before returning invalid output to avoid Linux EPIPE race"
+  ],
   "src": {
     "count": 100,
     "sha256": "2ecdcc48046617c7ff7bb65a32b94bb29d933e7f181299fee04680d02f905bcb"
   },
   "test": {
     "count": 31,
-    "sha256": "4f51fc648caa3a7a050156b98acd49def75aaa0e20d9fdb0a9a926e7a92641b0"
+    "sha256": "83d4f607d5ef9682637da8cb0e5fd0afd2f9c2e60e0a1e044f462aade0c7651c"
   },
   "examples": {
     "count": 130,
