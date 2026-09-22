@@ -1,0 +1,1 @@
+Acceptance requires a completed green GitHub Actions run on the exact branch SHA with all 200 Rust tests passing, strict Clippy, release build, sample benchmarks, and uploaded source artifact. A green run does not prove infinite-domain higher-order validity or completion of half the entire product.
