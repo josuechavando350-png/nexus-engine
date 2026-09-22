@@ -26,6 +26,16 @@ fn separate_client_and_evaluator_processes_enforce_key_roles() {
     let input = path("input.ct");
     let output = path("output.ct");
     let wrong = path("wrong.ct");
+
+    // Force failure on the SECOND key write and prove the first secret is removed.
+    // The existing server artifact must not be overwritten or deleted.
+    fs::write(&server, b"pre-existing server artifact").unwrap();
+    let rejection = run(&["keygen", &client, &server], None);
+    assert!(!rejection.status.success(), "existing evaluator key must reject keygen");
+    assert!(!root.join("client.key").exists(), "keygen stranded a private key");
+    assert_eq!(fs::read(&server).unwrap(), b"pre-existing server artifact");
+    fs::remove_file(&server).unwrap();
+
     let status = run(&["keygen", &client, &server], None);
     assert!(status.status.success(), "key generation failed");
     assert!(status.stdout.is_empty(), "key material reached stdout");
