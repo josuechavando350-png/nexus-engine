@@ -10,9 +10,9 @@
 use nexus_leibniz::policy_witness::append_with_policy_witness;
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
-use std::path::Path;
 #[cfg(unix)]
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+use std::path::Path;
 
 const MAX_BYTES: u64 = 83 * 1024 * 1024;
 #[cfg(target_os = "linux")]
@@ -29,7 +29,9 @@ fn open_input(path: &str) -> Result<File, String> {
     let file = options
         .open(path)
         .map_err(|e| format!("cannot open input without following a final symlink: {e}"))?;
-    let metadata = file.metadata().map_err(|e| format!("cannot inspect opened input: {e}"))?;
+    let metadata = file
+        .metadata()
+        .map_err(|e| format!("cannot inspect opened input: {e}"))?;
     if !metadata.is_file() || metadata.len() > MAX_BYTES {
         return Err("input must be a bounded regular file".into());
     }
@@ -37,15 +39,20 @@ fn open_input(path: &str) -> Result<File, String> {
 }
 
 fn read_open_input(file: &mut File) -> Result<Vec<u8>, String> {
-    let before = file.metadata().map_err(|e| format!("cannot inspect opened input: {e}"))?;
+    let before = file
+        .metadata()
+        .map_err(|e| format!("cannot inspect opened input: {e}"))?;
     if !before.is_file() || before.len() > MAX_BYTES {
         return Err("input changed or exceeds maximum size".into());
     }
     let mut bytes = Vec::new();
-    file.take(MAX_BYTES + 1)
+    (&mut *file)
+        .take(MAX_BYTES + 1)
         .read_to_end(&mut bytes)
         .map_err(|e| format!("cannot read opened input: {e}"))?;
-    let after = file.metadata().map_err(|e| format!("cannot recheck opened input: {e}"))?;
+    let after = file
+        .metadata()
+        .map_err(|e| format!("cannot recheck opened input: {e}"))?;
     if bytes.len() as u64 > MAX_BYTES
         || bytes.len() as u64 != before.len()
         || bytes.len() as u64 != after.len()
@@ -59,9 +66,13 @@ fn read_open_input(file: &mut File) -> Result<Vec<u8>, String> {
 fn check_distinct_open_inputs(inputs: &[File]) -> Result<(), String> {
     #[cfg(unix)]
     for (index, left) in inputs.iter().enumerate() {
-        let first = left.metadata().map_err(|e| format!("cannot inspect input identity: {e}"))?;
+        let first = left
+            .metadata()
+            .map_err(|e| format!("cannot inspect input identity: {e}"))?;
         for right in &inputs[index + 1..] {
-            let second = right.metadata().map_err(|e| format!("cannot inspect input identity: {e}"))?;
+            let second = right
+                .metadata()
+                .map_err(|e| format!("cannot inspect input identity: {e}"))?;
             if first.dev() == second.dev() && first.ino() == second.ino() {
                 return Err("separately supplied inputs share a file descriptor identity".into());
             }
@@ -94,7 +105,9 @@ fn write_new(path: &str, bytes: &[u8]) -> Result<(), String> {
         if let Ok(directory) = File::open(parent) {
             let _ = directory.sync_all();
         }
-        return Err(format!("cannot persist checkpoint and directory entry: {error}"));
+        return Err(format!(
+            "cannot persist checkpoint and directory entry: {error}"
+        ));
     }
     Ok(())
 }
@@ -107,7 +120,14 @@ fn run() -> Result<(), String> {
         return Err("expected STATE STATE_PIN STATE_HEAD BATCH BATCH_PIN SEQUENCE POLICY POLICY_PIN POLICY_HEAD AS_OF_UTC_MS NEW_STATE".into());
     };
     let paths = [
-        state, state_pin, state_head, batch, batch_pin, policy, policy_pin, policy_head,
+        state,
+        state_pin,
+        state_head,
+        batch,
+        batch_pin,
+        policy,
+        policy_pin,
+        policy_head,
     ];
     let mut opened = paths
         .iter()
@@ -123,16 +143,8 @@ fn run() -> Result<(), String> {
         .parse::<i64>()
         .map_err(|_| "invalid as-of UTC milliseconds")?;
     let checkpoint = append_with_policy_witness(
-        &blobs[0],
-        &blobs[1],
-        &blobs[2],
-        &blobs[3],
-        &blobs[4],
-        next,
-        &blobs[5],
-        &blobs[6],
-        &blobs[7],
-        as_of,
+        &blobs[0], &blobs[1], &blobs[2], &blobs[3], &blobs[4], next, &blobs[5], &blobs[6],
+        &blobs[7], as_of,
     )?;
     write_new(output, &checkpoint)?;
     println!("LEIBNIZ: append accepted with both operator-supplied latest witnesses");
