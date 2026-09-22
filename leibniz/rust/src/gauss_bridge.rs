@@ -243,8 +243,10 @@ mod tests {
     #[test]
     fn measurement_budget_is_not_bypassed_by_bridge_export() {
         let original = sample(2.5, 7.25);
-        let mut limits = HandoffLimits::default();
-        limits.max_numeric_records = 1;
+        let limits = HandoffLimits {
+            max_numeric_records: 1,
+            ..HandoffLimits::default()
+        };
         assert!(export_measured_rate(&original, &original, &selection("left"), limits).is_err());
     }
 }
