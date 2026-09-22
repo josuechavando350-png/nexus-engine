@@ -24,7 +24,9 @@ fn read_source(path: &str) -> Result<Vec<u8>, String> {
 fn run() -> Result<(), String> {
     let args = std::env::args().skip(1).collect::<Vec<_>>();
     if args.len() != 8 {
-        return Err("expected ARCHIVE INDEPENDENT_PIN PROBLEM_ID UTC_MS FROM TO UNIT DIRECTION".into());
+        return Err(
+            "expected ARCHIVE INDEPENDENT_PIN PROBLEM_ID UTC_MS FROM TO UNIT DIRECTION".into(),
+        );
     }
     let source = Path::new(&args[0]);
     let pin = Path::new(&args[1]);
@@ -49,7 +51,9 @@ fn run() -> Result<(), String> {
     };
     let selected = RateSelection {
         problem_id: args[2].clone(),
-        as_of_utc_ms: args[3].parse().map_err(|_| "invalid UTC millisecond timestamp")?,
+        as_of_utc_ms: args[3]
+            .parse()
+            .map_err(|_| "invalid UTC millisecond timestamp")?,
         from_entity: args[4].clone(),
         to_entity: args[5].clone(),
         target_unit_symbol: args[6].clone(),
