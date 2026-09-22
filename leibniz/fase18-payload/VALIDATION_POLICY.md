@@ -1,0 +1,1 @@
+Strict CI acceptance: retain 189 preceding tests and add 11 semantic-oracle tests, require 200 passed, none ignored, strict Clippy, release build, two benchmark runs, and a source artifact. No main merge or next-block integration.
