@@ -44,10 +44,22 @@ jobs:
         run: |
           node --test gauss/nemesis/tests/*.test.mjs
           node gauss/nemesis/engine/scripts/smoke-100.mjs
-      - name: Verify source was not mutated and checkout remains clean
+      - name: Verify source integrity and allow only known regenerated smoke evidence
         shell: bash
         run: |
           set -euo pipefail
           node gauss/nemesis/scripts/verify-source-lock.mjs
+          git diff --check
           git status --porcelain --untracked-files=no
+          # These two tracked JSON files are output of the successful smoke tests;
+          # they may contain runtime-specific data. No source or other file may change.
+          while IFS= read -r path; do
+            [[ -z "$path" ]] && continue
+            case "$path" in
+              gauss/nemesis/engine/evidence/native-snark-95-verification.json|gauss/nemesis/engine/evidence/smoke-100-v17.json) ;;
+              *) echo "UNEXPECTED_TRACKED_MUTATION: $path" >&2; exit 1 ;;
+            esac
+          done < <(git diff --name-only)
+          test -z "$(git diff --cached --name-only)"
+          git restore -- gauss/nemesis/engine/evidence/native-snark-95-verification.json gauss/nemesis/engine/evidence/smoke-100-v17.json
           test -z "$(git status --porcelain --untracked-files=no)"
