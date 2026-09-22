@@ -11,6 +11,7 @@ pub mod gauss_bridge;
 pub mod handoff;
 pub mod higher_order;
 pub mod persistence;
+pub mod policy_witness;
 pub mod quantified;
 mod reasoning;
 #[path = "../models/schema.rs"]
