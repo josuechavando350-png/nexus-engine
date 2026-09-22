@@ -35,6 +35,21 @@ jobs:
         run: |
           printf '255 255' | gauss/nemesis/native/fhe/target/release/nemesis-fhe --add-stdin
           printf '101' | gauss/nemesis/native/fhe/target/release/nemesis-fhe --circuit-stdin 'xor:0:1;mux:2:3:1;not:4' '3,4,5'
+      - name: Verify GAUSS public Némesis #89 entrypoint with actual TFHE binary
+        shell: bash
+        run: |
+          node --test gauss/nemesis/tests/native-fhe.test.mjs
+          node gauss/nemesis/scripts/verify-native-89.mjs
+      - name: Preserve exact tested binary, lockfile and evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gauss-nemesis-89-native-${{ github.run_id }}
+          path: |
+            gauss/nemesis/native/fhe/target/release/nemesis-fhe
+            gauss/nemesis/native/fhe/Cargo.lock
+            gauss/nemesis/evidence/native-89-ci.json
+          retention-days: 7
   gauss-integration:
     needs: rust-native
     runs-on: ubuntu-24.04
