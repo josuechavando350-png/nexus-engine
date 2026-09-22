@@ -4,13 +4,19 @@
 //! witness, prevents concurrent forks, nor defeats compromise of all stores.
 use crate::sequential_ingest::{append_authorized_batch, StreamState};
 
-const VERSION: &str = "LEIBNIZ_TRUSTED_HEAD_V1";
-const MAX_HEAD_BYTES: usize = 256;
+const VERSION: &str = "LEIBNIZ_TRUSTED_HEAD_V2";
+const MAX_HEAD_BYTES: usize = 83 * 1024 * 1024;
+const MAX_HEADER_BYTES: usize = 256;
 
+/// Full, byte-exact latest checkpoint retained in a separate trust domain.
+/// A sequence-only witness cannot detect different histories at the same
+/// sequence. Keeping the actual bytes avoids pretending a weak checksum is
+/// a cryptographic commitment, at the cost of duplicate storage.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TrustedHead {
-    pub source_id: String,
-    pub sequence: u64,
+    source_id: String,
+    sequence: u64,
+    checkpoint_bytes: Vec<u8>,
 }
 
 impl TrustedHead {
@@ -22,17 +28,32 @@ impl TrustedHead {
         Ok(Self {
             source_id: state.source_id().to_owned(),
             sequence: state.sequence(),
+            checkpoint_bytes: checkpoint.to_vec(),
         })
     }
 
-    /// A canonical record. It becomes *trusted* only after the operator
-    /// publishes it to an independently protected, monotonic external store.
+    /// A canonical, byte-exact proposal. It becomes *trusted* only when an
+    /// independent, authenticated monotonic store accepts it atomically.
     pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
-        StreamState::initial(&self.source_id)?;
-        let bytes = format!("{VERSION}\t{}\t{}\n", self.source_id, self.sequence).into_bytes();
-        if bytes.len() > MAX_HEAD_BYTES {
+        let state = StreamState::from_bytes(&self.checkpoint_bytes)?;
+        if state.source_id() != self.source_id || state.sequence() != self.sequence {
+            return Err("trusted-head proposal does not match its checkpoint".into());
+        }
+        let mut bytes = format!(
+            "{VERSION}\t{}\t{}\t{}\n",
+            self.source_id,
+            self.sequence,
+            self.checkpoint_bytes.len()
+        )
+        .into_bytes();
+        if bytes
+            .len()
+            .checked_add(self.checkpoint_bytes.len())
+            .is_none_or(|size| size > MAX_HEAD_BYTES)
+        {
             return Err("trusted-head record exceeds byte limit".into());
         }
+        bytes.extend_from_slice(&self.checkpoint_bytes);
         Ok(bytes)
     }
 
@@ -40,34 +61,49 @@ impl TrustedHead {
         if bytes.is_empty() || bytes.len() > MAX_HEAD_BYTES {
             return Err("trusted-head record has invalid size".into());
         }
-        let text = std::str::from_utf8(bytes).map_err(|_| "trusted-head record is not UTF-8")?;
-        let fields = text.split('\t').collect::<Vec<_>>();
-        let [version, source_id, sequence] = fields.as_slice() else {
-            return Err("trusted-head record must have exactly three fields".into());
+        let newline = bytes
+            .iter()
+            .take(MAX_HEADER_BYTES + 1)
+            .position(|byte| *byte == b'\n')
+            .ok_or("trusted-head record has no bounded header")?;
+        let header = std::str::from_utf8(&bytes[..newline])
+            .map_err(|_| "trusted-head header is not UTF-8")?;
+        let fields = header.split('\t').collect::<Vec<_>>();
+        let [version, source_id, sequence_text, length_text] = fields.as_slice() else {
+            return Err("trusted-head header requires four fields".into());
         };
-        if *version != VERSION || !sequence.ends_with('\n') {
-            return Err("trusted-head version or line ending is invalid".into());
+        if *version != VERSION {
+            return Err("unsupported trusted-head version".into());
         }
-        let parsed = sequence
-            .strip_suffix('\n')
-            .ok_or("trusted-head record has no newline")?
+        let sequence = sequence_text
             .parse::<u64>()
             .map_err(|_| "trusted-head sequence is invalid")?;
-        let head = Self {
-            source_id: (*source_id).to_owned(),
-            sequence: parsed,
-        };
-        if head.to_bytes()?.as_slice() != bytes {
-            return Err("trusted-head record must be canonical".into());
+        let length = length_text
+            .parse::<usize>()
+            .map_err(|_| "trusted-head length is invalid")?;
+        if sequence.to_string() != *sequence_text
+            || length.to_string() != *length_text
+            || bytes.len() - newline - 1 != length
+        {
+            return Err("trusted-head header or payload length is noncanonical".into());
         }
-        Ok(head)
+        let checkpoint = &bytes[newline + 1..];
+        let state = StreamState::from_bytes(checkpoint)?;
+        if state.source_id() != *source_id || state.sequence() != sequence {
+            return Err("trusted-head source or sequence differs from bound checkpoint".into());
+        }
+        Ok(Self {
+            source_id: (*source_id).to_owned(),
+            sequence,
+            checkpoint_bytes: checkpoint.to_vec(),
+        })
     }
 }
 
-/// A previous state and its usual reference can BOTH be rolled back together;
-/// the separate witness must therefore identify the independently known latest
-/// source/sequence. An old witness also defeats this gate: caller must obtain
-/// it from a trustworthy monotonic authority on every operation.
+/// Both the previous state and ordinary pin may be replaced with an old or
+/// alternate valid checkpoint; the separately protected witness must match
+/// the exact latest bytes. The caller must fetch an authentic, current witness
+/// for EVERY operation. Compromising the witness also defeats this gate.
 pub fn verify_latest_checkpoint(
     checkpoint: &[u8],
     independently_pinned_checkpoint: &[u8],
@@ -76,12 +112,11 @@ pub fn verify_latest_checkpoint(
     if checkpoint.is_empty() || checkpoint != independently_pinned_checkpoint {
         return Err("checkpoint differs from independently pinned bytes".into());
     }
-    let state = StreamState::from_bytes(checkpoint)?;
-    let head = TrustedHead::from_bytes(trusted_head_bytes)?;
-    if state.source_id() != head.source_id || state.sequence() != head.sequence {
-        return Err("checkpoint is not the independently witnessed latest source head".into());
+    let witness = TrustedHead::from_bytes(trusted_head_bytes)?;
+    if witness.checkpoint_bytes != checkpoint {
+        return Err("checkpoint bytes differ from independently witnessed latest source head".into());
     }
-    Ok(state)
+    StreamState::from_bytes(checkpoint)
 }
 
 pub fn append_with_trusted_head(
@@ -147,7 +182,8 @@ mod tests {
 
     #[test]
     fn independently_current_witness_accepts_two_real_semantic_batches() {
-        let first = append(&begin(), &witness(&begin()), &batch("3", "left", "e1"), 1).unwrap();
+        let initial = begin();
+        let first = append(&initial, &witness(&initial), &batch("3", "left", "e1"), 1).unwrap();
         let second = append(&first, &witness(&first), &batch("8", "right", "e2"), 2).unwrap();
         let archived = extract_with_trusted_head(&second, &second, &witness(&second)).unwrap();
         let archive = crate::semantic_archive::SemanticArchive::from_bytes(&archived).unwrap();
@@ -168,28 +204,36 @@ mod tests {
         let first = append(&initial, &witness(&initial), &batch("3", "left", "e1"), 1).unwrap();
         let second = append(&first, &witness(&first), &batch("8", "right", "e2"), 2).unwrap();
         let latest_head = witness(&second);
-        // Both ordinary files match the obsolete first checkpoint byte-for-byte.
         assert!(append(&first, &latest_head, &batch("9", "other", "e3"), 2).is_err());
         assert!(extract_with_trusted_head(&first, &first, &latest_head).is_err());
     }
 
     #[test]
+    fn altered_history_at_the_same_sequence_cannot_replace_the_pinned_head() {
+        let initial = begin();
+        let first = append(&initial, &witness(&initial), &batch("3", "left", "e1"), 1).unwrap();
+        let alternate = append(&initial, &witness(&initial), &batch("99", "left", "e1"), 1).unwrap();
+        assert_eq!(
+            StreamState::from_bytes(&first).unwrap().sequence(),
+            StreamState::from_bytes(&alternate).unwrap().sequence()
+        );
+        assert_ne!(first, alternate);
+        assert!(verify_latest_checkpoint(&alternate, &alternate, &witness(&first)).is_err());
+        assert!(extract_with_trusted_head(&alternate, &alternate, &witness(&first)).is_err());
+    }
+
+    #[test]
     fn cross_source_and_forged_future_sequence_are_refused() {
         let initial = begin();
-        let head = TrustedHead {
-            source_id: "other".into(),
-            sequence: 0,
+        for (source, sequence) in [("other", 0), ("approved", 5)] {
+            let mut forged = format!(
+                "{VERSION}\t{source}\t{sequence}\t{}\n",
+                initial.len()
+            )
+            .into_bytes();
+            forged.extend_from_slice(&initial);
+            assert!(verify_latest_checkpoint(&initial, &initial, &forged).is_err());
         }
-        .to_bytes()
-        .unwrap();
-        assert!(verify_latest_checkpoint(&initial, &initial, &head).is_err());
-        let head = TrustedHead {
-            source_id: "approved".into(),
-            sequence: 5,
-        }
-        .to_bytes()
-        .unwrap();
-        assert!(append(&initial, &head, &batch("3", "left", "e1"), 1).is_err());
     }
 
     #[test]
@@ -198,13 +242,16 @@ mod tests {
         let head = witness(&initial);
         assert!(verify_latest_checkpoint(&initial, b"changed", &head).is_err());
         for forged in [
-            b"LEIBNIZ_TRUSTED_HEAD_V1\tapproved\t00\n".as_slice(),
-            b"LEIBNIZ_TRUSTED_HEAD_V1\tapproved\t0\r\n".as_slice(),
-            b"LEIBNIZ_TRUSTED_HEAD_V1\tapproved\t0\nextra".as_slice(),
-            b"LEIBNIZ_TRUSTED_HEAD_V2\tapproved\t0\n".as_slice(),
+            b"LEIBNIZ_TRUSTED_HEAD_V1\tapproved\t0\n".as_slice(),
+            b"LEIBNIZ_TRUSTED_HEAD_V2\tapproved\t00\t0\n".as_slice(),
+            b"LEIBNIZ_TRUSTED_HEAD_V2\tapproved\t0\t0\r\n".as_slice(),
+            b"LEIBNIZ_TRUSTED_HEAD_V2\tapproved\t0\t0\nextra".as_slice(),
         ] {
             assert!(verify_latest_checkpoint(&initial, &initial, forged).is_err());
         }
+        let mut tampered = head.clone();
+        *tampered.last_mut().unwrap() ^= 1;
+        assert!(verify_latest_checkpoint(&initial, &initial, &tampered).is_err());
     }
 
     #[test]
@@ -213,8 +260,8 @@ mod tests {
         let first = append(&initial, &witness(&initial), &batch("3", "left", "e1"), 1).unwrap();
         let second = append(&first, &witness(&first), &batch("8", "right", "e2"), 2).unwrap();
         // This is deliberately accepted to make the trust limitation explicit:
-        // the function cannot infer the existence of a higher head when ALL
-        // its externally supplied evidence has itself been rolled back.
+        // no computation can infer a higher head if its external witness was
+        // also replaced with an old but internally valid witness.
         assert!(verify_latest_checkpoint(&first, &first, &witness(&first)).is_ok());
         assert!(verify_latest_checkpoint(&first, &first, &witness(&second)).is_err());
     }
