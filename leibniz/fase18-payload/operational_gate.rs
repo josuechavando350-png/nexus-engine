@@ -10,6 +10,14 @@ use crate::hol::{Derivation, Expr};
 use crate::semantic_archive::SemanticArchive;
 use std::path::Path;
 
+/// Keep the closed mathematical proposition, independently checked proof, and
+/// computational budget together. None of them establish external facts.
+pub struct FormalCheck<'a> {
+    pub proposition: &'a Expr,
+    pub certificate: Option<&'a Derivation>,
+    pub limits: AuditLimits,
+}
+
 /// Replays a persisted archive only if it is EXACTLY the independently pinned,
 /// canonical source. Revalidates provenance, the response and the separate
 /// closed HOL certificate without mutating the archive or calling GAUSS.
@@ -24,9 +32,7 @@ pub fn audit_persisted_pinned(
     problem: &GaussProblemV1,
     response: &GaussResponseV1,
     handoff_limits: HandoffLimits,
-    proposition: &Expr,
-    certificate: Option<&Derivation>,
-    formal_limits: AuditLimits,
+    formal: FormalCheck<'_>,
 ) -> Result<ReadOnlyAudit, String> {
     if expected_canonical_bytes.is_empty() {
         return Err("independently pinned source bytes are required".into());
@@ -49,8 +55,8 @@ pub fn audit_persisted_pinned(
         problem,
         &archive,
         handoff_limits,
-        proposition,
-        certificate,
-        formal_limits,
+        formal.proposition,
+        formal.certificate,
+        formal.limits,
     )
 }
