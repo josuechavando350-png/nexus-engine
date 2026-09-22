@@ -49,7 +49,9 @@ fn write_new(path: &str, bytes: &[u8]) -> Result<(), String> {
     options.write(true).create_new(true);
     #[cfg(unix)]
     options.mode(0o600);
-    let mut output = options.open(path).map_err(|e| format!("cannot create output: {e}"))?;
+    let mut output = options
+        .open(path)
+        .map_err(|e| format!("cannot create output: {e}"))?;
     if let Err(e) = output.write_all(bytes).and_then(|()| output.sync_all()) {
         drop(output);
         let _ = fs::remove_file(path);
@@ -81,7 +83,9 @@ fn run() -> Result<(), String> {
             let head = read_regular(head_path)?;
             let batch = read_regular(batch_path)?;
             let batch_pin = read_regular(batch_pin_path)?;
-            let next = sequence.parse::<u64>().map_err(|_| "invalid next sequence")?;
+            let next = sequence
+                .parse::<u64>()
+                .map_err(|_| "invalid next sequence")?;
             let result = append_with_trusted_head(&state, &pin, &head, &batch, &batch_pin, next)?;
             write_new(output, &result)?;
             println!("LEIBNIZ: created sequence {next}; independently publish a new head before the next operation");
