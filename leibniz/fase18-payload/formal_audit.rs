@@ -10,7 +10,7 @@ use crate::handoff::{GaussProblemV1, GaussResponseV1, HandoffAssurance, HandoffL
 use crate::hol::{verify, Budget, Derivation, Expr};
 use crate::semantic_archive::SemanticArchive;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug)]
 pub struct AuditLimits {
     pub max_individuals: usize,
     pub max_domain: usize,
