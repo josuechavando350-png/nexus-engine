@@ -1,5 +1,6 @@
 /** GAUSS -> Némesis: namespaced, fail-closed access to the original 100 IDs. */
 import {existsSync} from 'node:fs';
+import {runGaussNemesis89} from './native-fhe.mjs';
 
 const moduleUrl = new URL('./engine/src/index.mjs', import.meta.url);
 const incomplete = Object.freeze([81, 89, 95]);
@@ -21,15 +22,17 @@ async function loadEngine() {
   return engine;
 }
 
-/** This is a call bridge, not a production certification for the conceptual scope. */
+/** Native #89 is usable in GAUSS before the complete JS source lands; other IDs never fall back to stubs. */
 export async function runGaussNemesis(id, input) {
   const normalized = normalizeId(id);
+  if (normalized === '89' && (input?.action === 'native-add-u8' || input?.action === 'native-circuit'))
+    return runGaussNemesis89(input);
   const engine = await loadEngine();
   return normalized === '01' ? engine.verifyFiniteSystem(input) : engine.runMotor(normalized, input);
 }
 
 export function gaussNemesisStatus() {
   return Object.freeze({namespace:'gauss:nemesis', sourcePresent:existsSync(moduleUrl), declaredEngineIds:100,
-    nativeOrOriginalScopeIncomplete:incomplete, certified:false,
+    nativeFheEntryPresent:true, nativeOrOriginalScopeIncomplete:incomplete, certified:false,
     caveat:'An executable registry and 100 example matches do not certify the original scope of every engine.'});
 }
