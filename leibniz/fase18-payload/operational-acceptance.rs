@@ -112,7 +112,8 @@ fn changed_and_rechecksummed_but_valid_archive_cannot_replace_pinned_source() {
 fn accidental_on_disk_corruption_is_an_error_not_a_counterexample() {
     let (path, expected, request, response) = baseline();
     let mut bytes = std::fs::read(path.path()).unwrap();
-    bytes[bytes.len() / 2] ^= 1;
+    let position = bytes.len() / 2;
+    bytes[position] ^= 1;
     std::fs::write(path.path(), &bytes).unwrap();
     assert!(check(path.path(), &expected, &request, &response, AuditLimits::default()).is_err());
 }
@@ -127,7 +128,8 @@ fn truncated_persisted_source_is_rejected_before_audit() {
 #[test]
 fn independently_pinned_bytes_must_match_exactly_even_if_archive_itself_is_valid() {
     let (path, mut expected, request, response) = baseline();
-    expected[expected.len() / 2] ^= 1;
+    let position = expected.len() / 2;
+    expected[position] ^= 1;
     assert!(check(path.path(), &expected, &request, &response, AuditLimits::default()).is_err());
 }
 
