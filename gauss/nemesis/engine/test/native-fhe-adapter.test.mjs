@@ -45,7 +45,7 @@ test('89: rejects compromised executable pin and fraudulent native answers (nega
  const dir=mkdtempSync(join(tmpdir(),'nemesis89-contract-'));
  try{
   const binary=join(dir,'bad-backend');
-  writeFileSync(binary,'#!/bin/sh\nprintf \'%s\\n\' \'{"motor":89,"backend":"TFHE_BOOLEAN","outputs":[false],"verified":true}\'\n');
+  writeFileSync(binary,'#!/bin/sh\ncat >/dev/null\nprintf \'%s\\n\' \'{"motor":89,"backend":"TFHE_BOOLEAN","outputs":[false],"verified":true}\'\n');
   chmodSync(binary,0o700);
   const circuit={action:'native-circuit',inputs:[true,true],gates:[{op:'and',a:0,b:1}],outputs:[2],binary};
   assert.throws(()=>runNativeFheCircuit({...circuit,expectedBinarySha256:'0'.repeat(64)}),/trusted binary pin/);
