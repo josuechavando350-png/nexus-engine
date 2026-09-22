@@ -28,6 +28,8 @@ jobs:
           test -s leibniz/rust/src/gauss_bridge.rs
           test -s leibniz/rust/src/authorized_ingest.rs
           test -s leibniz/rust/src/sequential_ingest.rs
+          test -s leibniz/rust/src/trusted_head.rs
+          test -s leibniz/rust/examples/trusted_head_source.rs
           test -s leibniz/rust/examples/sequential_source.rs
           test -s leibniz/rust/src/operational_gate.rs
           test -s leibniz/ORIGINAL_MANIFEST_GAP_MATRIX.md
@@ -35,29 +37,29 @@ jobs:
       - name: Format without changing tracked source
         working-directory: leibniz/rust
         run: cargo fmt --all -- --check
-      - name: All 240 Rust tests in debug
+      - name: All 245 Rust tests in debug
         working-directory: leibniz/rust
         run: |
           set -euo pipefail
           cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/leibniz-debug.log"
           passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-debug.log")
           ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-debug.log")
-          test "$passed" -eq 240 && test "$ignored" -eq 0
+          test "$passed" -eq 245 && test "$ignored" -eq 0
           echo "LEIBNIZ Rust debug: $passed passed; $ignored ignored" >> "$GITHUB_STEP_SUMMARY"
       - name: Strict Clippy
         working-directory: leibniz/rust
         run: cargo clippy --all-targets --offline -- -D warnings
-      - name: Production build including sequential source and bridge executables
+      - name: Production build including sequential, trusted-head and bridge executables
         working-directory: leibniz/rust
         run: cargo build --release --offline --all-targets
-      - name: All 240 Rust tests in release
+      - name: All 245 Rust tests in release
         working-directory: leibniz/rust
         run: |
           set -euo pipefail
           cargo test --release --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/leibniz-release.log"
           passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-release.log")
           ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-release.log")
-          test "$passed" -eq 240 && test "$ignored" -eq 0
+          test "$passed" -eq 245 && test "$ignored" -eq 0
           echo "LEIBNIZ Rust release: $passed passed; $ignored ignored" >> "$GITHUB_STEP_SUMMARY"
       - name: Offline proof benchmark
         working-directory: leibniz/rust
@@ -105,6 +107,16 @@ jobs:
           node --test leibniz/fase18-payload/sequential_ingest.test.mjs
           git diff --exit-code -- gauss/ quantum/ walle/ runtime/ packages/
           echo 'Two synthetic, manually submitted batches; no live source or source authentication claimed.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Reject simultaneous rollback of checkpoint and ordinary pin using separate latest-head witness
+        env:
+          LEIBNIZ_TRUSTED_HEAD_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/trusted_head_source
+          LEIBNIZ_BRIDGE_EXPORT_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/gauss_bridge_export
+          LEIBNIZ_SEQUENTIAL_SOURCE_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/sequential_source
+        run: |
+          set -euo pipefail
+          node --test leibniz/fase18-payload/trusted_head.test.mjs
+          git diff --exit-code -- gauss/ quantum/ walle/ runtime/ packages/
+          echo 'SYNTHETIC witness-gate test passed; external monotonic authority and authentication are NOT implemented.' >> "$GITHUB_STEP_SUMMARY"
       - name: Package exact tested tracked Rust source
         run: |
           set -euo pipefail
@@ -119,6 +131,7 @@ jobs:
           cmp leibniz/rust/src/gauss_bridge.rs "$RUNNER_TEMP/leibniz-replay/src/gauss_bridge.rs"
           cmp leibniz/rust/src/authorized_ingest.rs "$RUNNER_TEMP/leibniz-replay/src/authorized_ingest.rs"
           cmp leibniz/rust/src/sequential_ingest.rs "$RUNNER_TEMP/leibniz-replay/src/sequential_ingest.rs"
+          cmp leibniz/rust/src/trusted_head.rs "$RUNNER_TEMP/leibniz-replay/src/trusted_head.rs"
           cargo fmt --all --manifest-path "$RUNNER_TEMP/leibniz-replay/Cargo.toml" -- --check
           cargo test --all-targets --offline --manifest-path "$RUNNER_TEMP/leibniz-replay/Cargo.toml"
       - name: Publish tested source and digest
