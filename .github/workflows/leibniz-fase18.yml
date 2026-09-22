@@ -32,16 +32,8 @@ jobs:
             patch --batch --forward -p1 < "$fix"
           done
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Diagnose interrupted extension transfer
-        run: |
-          python3 - <<'PY'
-          import hashlib,pathlib
-          b=pathlib.Path('leibniz/fase18-payload/higher-order-b1.b64').read_bytes()
-          print('LENGTH',len(b))
-          print('GH_SEGMENT_9000_10100',b[9000:10100].decode())
-          expected=['3f38703fcd1b','9ad2d3d9b4eb','7aa38d321e2a','6727c756758d','9325040a5ee8','0e3b368dee66','fbbeb0845f4e','acc6e1587606','e8318ebea476','6e065bef06fc']
-          for n,d in zip(range(9100,10001,100),expected):print('PREFIX',n,hashlib.sha256(b[:n]).hexdigest()[:12]==d)
-          PY
+      - name: Restore cryptographically identified missing transfer bytes
+        run: python3 leibniz/fase18-payload/recover-one-missing-byte.py
       - name: Restore higher-order proof checker and acceptance tests
         shell: bash
         run: |
