@@ -138,7 +138,8 @@ function hash256(value,label){if(typeof value!=='string'||!/^[a-f0-9]{64}$/.test
  * Substrings such as "NOT OK!" and "not ZKey Ok!" must NEVER be accepted. */
 function toolConfirmed(output, result) {
   if (typeof output !== 'string') return false;
-  const lines=output.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
+  // snarkjs/logplease may color a genuine success line; remove only ANSI SGR escapes.
+  const lines=output.replace(/\u001b\[[0-9;]*m/g,'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean);
   const last=lines.at(-1);
   if (!last) return false;
   const expected=result==='groth16'?'OK!':'ZKey Ok!';

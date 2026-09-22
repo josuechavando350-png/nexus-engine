@@ -3,11 +3,12 @@
   "origin": "NEMESIS_v17_hardening_real_NO_CERTIFICADO.zip",
   "notACertification": true,
   "reviewedChangesFromOrigin": [
-    "engine/test/native-fhe-adapter.test.mjs: fake backend drains stdin before returning invalid output to avoid Linux EPIPE race"
+    "engine/test/native-fhe-adapter.test.mjs: fake backend drains stdin before returning invalid output to avoid Linux EPIPE race",
+    "engine/src/motors/execution-snark.mjs: strip ANSI SGR color sequences from snarkjs success output before strict, fail-closed result parsing"
   ],
   "src": {
     "count": 100,
-    "sha256": "2ecdcc48046617c7ff7bb65a32b94bb29d933e7f181299fee04680d02f905bcb"
+    "sha256": "c49a91ec125d249b29889268b6b29932d0cd8b8cfcebef92a0d511b9eba31bc4"
   },
   "test": {
     "count": 31,
