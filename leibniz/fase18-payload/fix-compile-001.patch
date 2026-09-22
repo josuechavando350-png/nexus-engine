@@ -1,0 +1,24 @@
+diff --git a/src/quantified.rs b/src/quantified.rs
+--- a/src/quantified.rs
++++ b/src/quantified.rs
+@@ -63,7 +63,7 @@
+             return Err(format!("quantified predicate {name} has incompatible arity"));
+         }
+         if let Some(previous) = &signature {
+-            if previous != arguments {
++            if *previous != arguments {
+                 return Err("quantified predicates must have identical argument signatures".into());
+             }
+         } else {
+diff --git a/src/reasoning.rs b/src/reasoning.rs
+--- a/src/reasoning.rs
++++ b/src/reasoning.rs
+@@ -567,7 +567,7 @@
+ 
+     fn validate_term_kind(&self, term: &Term, kind: &ArgumentKind) -> Result<(), String> {
+         match (term, kind) {
+-            (Term::Entity(id), ArgumentKind::AnyEntity) => self.require_entity(id),
++            (Term::Entity(id), ArgumentKind::AnyEntity) => self.require_entity(id).map(|_| ()),
+             (Term::Entity(id), ArgumentKind::EntityCategory(category)) => {
+                 let actual = &self.require_entity(id)?.category;
+                 if actual != category { return Err(format!("entity {id}: expected category {category}, got {actual}")); }
