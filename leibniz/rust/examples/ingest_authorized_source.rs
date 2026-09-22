@@ -51,7 +51,9 @@ fn run() -> Result<(), String> {
     options.write(true).create_new(true);
     #[cfg(unix)]
     options.mode(0o600);
-    let mut output = options.open(&args[3]).map_err(|e| format!("create archive: {e}"))?;
+    let mut output = options
+        .open(&args[3])
+        .map_err(|e| format!("create archive: {e}"))?;
     if let Err(error) = output.write_all(&archive).and_then(|()| output.sync_all()) {
         drop(output);
         let _ = fs::remove_file(&args[3]);
