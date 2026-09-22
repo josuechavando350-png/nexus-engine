@@ -1,0 +1,3 @@
+# Límite de evidencia
+
+Un modelo estándar finito completo de cardinalidad `n` puede refutar una fórmula de lógica de orden superior al evaluarla falsa, pero su evaluación verdadera no demuestra validez en todos los modelos. Los límites de cardinalidad, trabajo y profundidad son rechazos explícitos. La verificación de certificados de `hol` conserva un presupuesto distinto; ninguno de los dos produce predicciones físicas, estimaciones probabilísticas ni una firma criptográfica. La suite del segundo bloque es independiente: los resultados booleanos de `finite_model` se obtienen mediante la enumeración de todas las funciones acotadas, no mediante `hol::verify`.
