@@ -37,6 +37,15 @@ jobs:
           mkdir -p "$RUNNER_TEMP/leibniz-standalone"
           tar -xJf "$RUNNER_TEMP/leibniz-fase18-src.tar.xz" -C "$RUNNER_TEMP/leibniz-standalone"
           echo "LEIBNIZ_DIR=$RUNNER_TEMP/leibniz-standalone" >> "$GITHUB_ENV"
+      - name: Apply versioned real source fixes
+        shell: bash
+        run: |
+          set -euo pipefail
+          for fix in "$GITHUB_WORKSPACE"/leibniz/fase18-payload/fix-*.patch; do
+            test -f "$fix" || continue
+            patch --batch --forward -p1 < "$fix"
+          done
+        working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Show actual toolchain
         run: |
           rustc --version
