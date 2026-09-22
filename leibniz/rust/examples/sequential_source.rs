@@ -8,7 +8,6 @@ use std::fs::{self, OpenOptions};
 use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
-use std::path::Path;
 
 const MAX_INPUT_BYTES: u64 = 82 * 1024 * 1024;
 
@@ -47,7 +46,9 @@ fn write_new(path: &str, bytes: &[u8]) -> Result<(), String> {
     options.create_new(true).write(true);
     #[cfg(unix)]
     options.mode(0o600);
-    let mut output = options.open(path).map_err(|e| format!("create new checkpoint: {e}"))?;
+    let mut output = options
+        .open(path)
+        .map_err(|e| format!("create new checkpoint: {e}"))?;
     if let Err(error) = output.write_all(bytes).and_then(|()| output.sync_all()) {
         drop(output);
         let _ = fs::remove_file(path);
