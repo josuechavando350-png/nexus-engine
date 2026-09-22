@@ -6,7 +6,7 @@ use bincode::Options;
 use nemesis_fhe::{Circuit, Gate};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::{self, Read, Write};
 use std::os::unix::fs::OpenOptionsExt;
 use tfhe::boolean::gen_keys;
@@ -53,7 +53,13 @@ fn save(path: &str, bytes: &[u8]) -> Result<(), String> {
     // create_new rejects existing files and symlinks; 0600 prevents other local users reading keys.
     let mut file = OpenOptions::new().write(true).create_new(true).mode(0o600)
         .open(path).map_err(|_| "cannot create new artifact")?;
-    file.write_all(bytes).and_then(|_| file.sync_all()).map_err(|_| "cannot persist artifact".into())
+    if file.write_all(bytes).and_then(|_| file.sync_all()).is_err() {
+        // A short write or failed sync must not leave an apparently usable key or ciphertext.
+        drop(file);
+        let _ = fs::remove_file(path);
+        return Err("cannot persist artifact".into());
+    }
+    Ok(())
 }
 fn key_id(server: &ServerKey) -> Result<[u8; 32], String> {
     let bytes = serialize(server, MAX_KEY)?;
@@ -116,7 +122,14 @@ fn run() -> Result<(), String> {
             let client_bytes = serialize(&Envelope { version: VERSION, key_id: id, body: client }, MAX_KEY)?;
             let server_bytes = serialize(&Envelope { version: VERSION, key_id: id, body: server }, MAX_KEY)?;
             save(client_path, &client_bytes)?;
-            save(server_path, &server_bytes)?;
+            if let Err(error) = save(server_path, &server_bytes) {
+                // Do not strand a newly generated private key if the public evaluator key fails.
+                // Never remove a pre-existing client file: save() only succeeds for a new path.
+                if fs::remove_file(client_path).is_err() {
+                    return Err("cannot complete key pair or remove incomplete secret".into());
+                }
+                return Err(error);
+            }
             Ok(())
         }
         [_, "encrypt", client_path, ciphertext_path] => {
