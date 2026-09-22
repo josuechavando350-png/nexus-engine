@@ -1,0 +1,90 @@
+diff --git a/src/axioms.rs b/src/axioms.rs
+--- a/src/axioms.rs
++++ b/src/axioms.rs
+@@ -155,7 +155,7 @@
+     let mut rules = Vec::new();
+     for axiom in axioms {
+         let expanded = expand(axiom, &catalog)?;
+-        if rules.len().checked_add(expanded.len()).map_or(true, |total| total > MAX_AXIOMS) {
++        if rules.len().checked_add(expanded.len()).is_none_or(|total| total > MAX_AXIOMS) {
+             return Err("expanded ontology rule limit exceeded".into());
+         }
+         for rule in expanded {
+diff --git a/src/semantics.rs b/src/semantics.rs
+--- a/src/semantics.rs
++++ b/src/semantics.rs
+@@ -151,7 +151,7 @@
+     }
+ 
+     pub fn contains(&self, at_ms: i64) -> bool {
+-        at_ms >= self.start_ms && self.end_ms.map_or(true, |end| at_ms < end)
++        at_ms >= self.start_ms && self.end_ms.is_none_or(|end| at_ms < end)
+     }
+ }
+ 
+diff --git a/src/persistence.rs b/src/persistence.rs
+--- a/src/persistence.rs
++++ b/src/persistence.rs
+@@ -403,8 +403,7 @@
+ 
+     #[test]
+     fn writer_rejects_large_string_before_allocating_or_writing_partial_prefix() {
+-        let mut writer = Writer::default();
+-        writer.2 = 16;
++        let mut writer = Writer(Vec::new(), false, 16);
+         writer.0.resize(11, 0);
+         let before = writer.0.len();
+         assert!(writer.string("ab").unwrap_err().contains("payload exceeds"));
+@@ -414,8 +413,7 @@
+ 
+     #[test]
+     fn fixed_width_values_cannot_grow_a_full_archive_and_fail_closed() {
+-        let mut writer = Writer::default();
+-        writer.2 = 16;
++        let mut writer = Writer(Vec::new(), false, 16);
+         writer.0.resize(16, 0);
+         writer.u64(42);
+         assert!(writer.1);
+@@ -425,8 +423,7 @@
+ 
+     #[test]
+     fn exact_limit_is_accepted_and_next_byte_is_rejected() {
+-        let mut writer = Writer::default();
+-        writer.2 = 16;
++        let mut writer = Writer(Vec::new(), false, 16);
+         writer.0.resize(15, 0);
+         writer.byte(7);
+         assert!(!writer.1);
+diff --git a/src/semantic_archive.rs b/src/semantic_archive.rs
+--- a/src/semantic_archive.rs
++++ b/src/semantic_archive.rs
+@@ -339,8 +339,7 @@
+ 
+     #[test]
+     fn semantic_blob_is_rejected_before_prefix_or_payload_is_allocated() {
+-        let mut writer = Writer::default();
+-        writer.2 = 16;
++        let mut writer = Writer(Vec::new(), false, 16);
+         writer.0.resize(11, 0);
+         let original = writer.0.len();
+         assert!(writer.bytes(b"ab").unwrap_err().contains("payload exceeds"));
+@@ -350,8 +349,7 @@
+ 
+     #[test]
+     fn fixed_width_annotation_fields_never_exceed_archive_budget() {
+-        let mut writer = Writer::default();
+-        writer.2 = 16;
++        let mut writer = Writer(Vec::new(), false, 16);
+         writer.0.resize(15, 0);
+         writer.i64(10);
+         assert!(writer.1);
+@@ -361,8 +359,7 @@
+ 
+     #[test]
+     fn exact_capacity_accepts_last_byte_but_refuses_further_writes() {
+-        let mut writer = Writer::default();
+-        writer.2 = 16;
++        let mut writer = Writer(Vec::new(), false, 16);
+         writer.0.resize(15, 0);
+         writer.byte(42);
+         assert_eq!(writer.0.len(), 16);
