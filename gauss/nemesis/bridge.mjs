@@ -1,6 +1,7 @@
 /** GAUSS -> Némesis: namespaced, fail-closed access to the original 100 IDs. */
 import {existsSync} from 'node:fs';
 import {runGaussNemesis89} from './native-fhe.mjs';
+import {runGaussNemesis81Signature} from './native-sqisign-81.mjs';
 import {filterGaussNemesis96} from './kalman-96.mjs';
 import {verifyTwoIsogenyDualIdentity} from './isogeny-81-foundation.mjs';
 import {evaluateCyclicVelu} from './isogeny-81-cyclic.mjs';
@@ -27,11 +28,12 @@ async function loadEngine() {
   return engine;
 }
 
-/** Native #89 is usable in GAUSS before the complete JS source lands; other IDs never fall back to stubs. */
 export async function runGaussNemesis(id, input) {
   const normalized = normalizeId(id);
   if (normalized === '89' && (input?.action === 'native-add-u8' || input?.action === 'native-circuit'))
     return runGaussNemesis89(input);
+  if (normalized === '81' && ['sqisign-keygen', 'sqisign-sign', 'sqisign-verify'].includes(input?.action))
+    return runGaussNemesis81Signature(input);
   const engine = await loadEngine();
   if (normalized === '81' && ['verify-dual', 'evaluate-cyclic', 'evaluate-public-chain', 'verify-public-claim'].includes(input?.action)) {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 81: expected action and payload');

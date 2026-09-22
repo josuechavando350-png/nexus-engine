@@ -1,0 +1,55 @@
+name: GAUSS Nemesis 81 real SQIsign signing
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/gauss-nemesis81-sqisign.yml'
+      - 'gauss/nemesis/native/isogeny81/**'
+      - 'gauss/nemesis/native-sqisign-81.mjs'
+      - 'gauss/nemesis/bridge.mjs'
+      - 'gauss/nemesis/tests/sqisign-81*'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  real-signing:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Validate unprivileged JS transport before compiling crypto
+        run: node --test gauss/nemesis/tests/sqisign-81.test.mjs
+      - name: Fetch exact upstream SQIsign source and compile real NIST crypto API
+        shell: bash
+        env:
+          SQISIGN_UPSTREAM_COMMIT: 7358e8786e2990fbf68ec2171606966d16872ddc
+        run: |
+          set -euo pipefail
+          umask 077
+          source_dir="$RUNNER_TEMP/sqisign81-src"
+          mkdir -p "$source_dir"
+          git -C "$source_dir" init -q
+          git -C "$source_dir" remote add origin https://github.com/SQISign/the-sqisign.git
+          git -C "$source_dir" fetch --depth=1 origin "$SQISIGN_UPSTREAM_COMMIT"
+          git -C "$source_dir" checkout -q --detach FETCH_HEAD
+          test "$(git -C "$source_dir" rev-parse HEAD)" = "$SQISIGN_UPSTREAM_COMMIT"
+          cp gauss/nemesis/native/isogeny81/nexus81.c "$source_dir/apps/nexus81.c"
+          cat >> "$source_dir/apps/CMakeLists.txt" <<'CMAKE'
+          add_executable(nexus81_p324_3 nexus81.c)
+          target_link_libraries(nexus81_p324_3 PRIVATE sqisign_p324_3_nistapi)
+          target_include_directories(nexus81_p324_3 PRIVATE ../include)
+          target_compile_definitions(nexus81_p324_3 PUBLIC SQISIGN_VARIANT=p324_3)
+          CMAKE
+          cmake -S "$source_dir" -B "$source_dir/build" -DSQISIGN_BUILD_TYPE=ref -DCMAKE_BUILD_TYPE=Release -DENABLE_SIGN=ON -DENABLE_TESTS=OFF
+          cmake --build "$source_dir/build" --target nexus81_p324_3 --parallel 2
+          mkdir -p gauss/nemesis/native/isogeny81/bin
+          cp "$source_dir/build/apps/nexus81_p324_3" gauss/nemesis/native/isogeny81/bin/nexus81_p324_3
+          echo "NEMESIS81_BINARY=$GITHUB_WORKSPACE/gauss/nemesis/native/isogeny81/bin/nexus81_p324_3" >> "$GITHUB_ENV"
+          echo "NEMESIS81_SHA256=$(sha256sum gauss/nemesis/native/isogeny81/bin/nexus81_p324_3 | cut -d' ' -f1)" >> "$GITHUB_ENV"
+      - name: Prove real key generation, signing, verification and negative cases through GAUSS
+        run: node --test gauss/nemesis/tests/sqisign-81.integration.mjs
+      - name: Verify no committed native binary or upstream source was added
+        run: git diff --exit-code && test "$(git status --porcelain --untracked-files=normal | grep -v "^?? gauss/nemesis/native/isogeny81/bin/" | wc -l)" -eq 0
