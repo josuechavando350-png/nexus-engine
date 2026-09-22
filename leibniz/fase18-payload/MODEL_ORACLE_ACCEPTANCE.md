@@ -1,0 +1,1 @@
+The original core's 189 tests plus eleven new oracle tests must pass together. The semantic interpreter enumerates full finite functional domains and rejects resource exhaustion. A finite sample is not a universal validity proof.
