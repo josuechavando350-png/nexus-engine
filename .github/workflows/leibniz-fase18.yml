@@ -1,131 +1,66 @@
-name: LEIBNIZ four-block operational validation
+name: LEIBNIZ source-pinned four-block and manifest-bridge validation
 on:
   push:
     branches: [leibniz/fase18]
     paths:
       - 'leibniz/fase18-payload/**'
       - 'leibniz/rust/**'
+      - 'leibniz/ORIGINAL_MANIFEST_GAP_MATRIX.md'
       - '.github/workflows/leibniz-fase18.yml'
 permissions:
-  contents: write
+  contents: read
 jobs:
   rust-validation:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Select readable tracked source or reconstruct verified historical source
-        shell: bash
+      - name: Require directly tracked readable source
         run: |
           set -euo pipefail
-          if test -s leibniz/rust/Cargo.toml; then
-            echo "SOURCE_MODE=tracked" >> "$GITHUB_ENV"
-            echo "LEIBNIZ_DIR=$GITHUB_WORKSPACE/leibniz/rust" >> "$GITHUB_ENV"
-          else
-            echo "SOURCE_MODE=reconstructed" >> "$GITHUB_ENV"
-            echo "LEIBNIZ_DIR=$RUNNER_TEMP/leibniz-standalone" >> "$GITHUB_ENV"
-          fi
-      - name: Verify historical source archive before reconstruction
-        if: env.SOURCE_MODE == 'reconstructed'
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat leibniz/fase18-payload/part-* | base64 --decode > "$RUNNER_TEMP/source.tar.xz"
-          echo '254038cdcd9b6c4fc6245b297aee51b8942193c8d5fbddcddc56c1bd969f633e  '"$RUNNER_TEMP/source.tar.xz" | sha256sum -c -
-          mkdir -p "$LEIBNIZ_DIR"
-          tar -xJf "$RUNNER_TEMP/source.tar.xz" -C "$LEIBNIZ_DIR"
-      - name: Apply historical source corrections
-        if: env.SOURCE_MODE == 'reconstructed'
-        shell: bash
-        working-directory: ${{ env.LEIBNIZ_DIR }}
-        run: |
-          set -euo pipefail
-          for fix in "$GITHUB_WORKSPACE"/leibniz/fase18-payload/fix-*.patch; do
-            test -f "$fix" || continue
-            patch --batch --forward -p1 < "$fix"
-          done
-      - name: Restore SHA-identified transfer bytes once before tracking sources
-        if: env.SOURCE_MODE == 'reconstructed'
-        run: python3 leibniz/fase18-payload/recover-one-missing-byte.py
-      - name: Verify original higher-order archive
-        if: env.SOURCE_MODE == 'reconstructed'
-        shell: bash
-        run: |
-          set -euo pipefail
-          base64 --decode "$GITHUB_WORKSPACE/leibniz/fase18-payload/higher-order-b1.b64" > "$RUNNER_TEMP/hol.tar.xz"
-          echo 'a359971dac7f342989c77cacc08dd8a621fe39effcff56bab8509b6843cf0f58  '"$RUNNER_TEMP/hol.tar.xz" | sha256sum -c -
-          tar -xJf "$RUNNER_TEMP/hol.tar.xz" -C "$LEIBNIZ_DIR"
-          test -s "$LEIBNIZ_DIR/src/hol.rs"
-      - name: Apply reviewed higher-order corrections
-        if: env.SOURCE_MODE == 'reconstructed'
-        shell: bash
-        working-directory: ${{ env.LEIBNIZ_DIR }}
-        run: |
-          set -euo pipefail
-          for fix in "$GITHUB_WORKSPACE"/leibniz/fase18-payload/hol-fix-*.patch; do
-            test -f "$fix" || continue
-            patch --batch --forward -p1 < "$fix"
-          done
-      - name: Assemble all four independently checked blocks
-        if: env.SOURCE_MODE == 'reconstructed'
-        shell: bash
-        run: |
-          set -euo pipefail
-          p="$GITHUB_WORKSPACE/leibniz/fase18-payload"
-          cp "$p/hol-standard.rs" "$LEIBNIZ_DIR/tests/hol_standard.rs"
-          cp "$p/FORMAL_SEMANTICS_AND_ACCEPTANCE.md" "$LEIBNIZ_DIR/FORMAL_SEMANTICS_AND_ACCEPTANCE.md"
-          cp "$p/finite_model.rs" "$LEIBNIZ_DIR/src/finite_model.rs"
-          cp "$p/hol-semantic-oracle.rs" "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
-          cp "$p/BLOCK2_FORMAL_VALIDATION.md" "$LEIBNIZ_DIR/BLOCK2_FORMAL_VALIDATION.md"
-          cp "$p/SECOND_BLOCK_RELEASE_NOTES.md" "$LEIBNIZ_DIR/SECOND_BLOCK_RELEASE_NOTES.md"
-          cp "$p/SECOND_BLOCK_VALIDATION_TARGET" "$LEIBNIZ_DIR/SECOND_BLOCK_VALIDATION_TARGET"
-          cp "$p/formal_audit.rs" "$LEIBNIZ_DIR/src/formal_audit.rs"
-          cp "$p/formal-audit-acceptance.rs" "$LEIBNIZ_DIR/tests/formal_audit_acceptance.rs"
-          cp "$p/operational_gate.rs" "$LEIBNIZ_DIR/src/operational_gate.rs"
-          cp "$p/operational-acceptance.rs" "$LEIBNIZ_DIR/tests/operational_acceptance.rs"
-          cp "$p/gauss_bridge_fixture.rs" "$LEIBNIZ_DIR/examples/gauss_bridge_fixture.rs"
-          test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_standard.rs")" -eq 5
-          test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs")" -eq 11
-          test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/formal_audit_acceptance.rs")" -eq 13
-          test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/operational_acceptance.rs")" -eq 12
-          printf '\npub mod finite_model;\npub mod formal_audit;\npub mod operational_gate;\n' >> "$LEIBNIZ_DIR/src/lib.rs"
-      - name: Format source once during historical migration
-        if: env.SOURCE_MODE == 'reconstructed'
-        run: cargo fmt --all
-        working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Check checked-in or reconstructed formatting without altering it
+          test -s leibniz/rust/Cargo.toml
+          test -s leibniz/rust/src/gauss_bridge.rs
+          test -s leibniz/rust/src/operational_gate.rs
+          test -s leibniz/ORIGINAL_MANIFEST_GAP_MATRIX.md
+          git diff --exit-code
+      - name: Format without changing tracked source
+        working-directory: leibniz/rust
         run: cargo fmt --all -- --check
-        working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Require exactly 225 real passing Rust tests
-        shell: bash
-        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: All 230 Rust tests in debug
+        working-directory: leibniz/rust
         run: |
           set -euo pipefail
-          cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/test-results.log"
-          passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
-          ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
-          echo "Rust tests passed: $passed; ignored: $ignored"
-          test "$passed" -eq 225
-          test "$ignored" -eq 0
-          echo "225 Rust tests passed; ignored=0; checkout SHA=$GITHUB_SHA; source mode=$SOURCE_MODE" >> "$GITHUB_STEP_SUMMARY"
-      - name: Strict Clippy across all targets
+          cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/leibniz-debug.log"
+          passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-debug.log")
+          ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-debug.log")
+          test "$passed" -eq 230 && test "$ignored" -eq 0
+          echo "LEIBNIZ Rust debug: $passed passed; $ignored ignored" >> "$GITHUB_STEP_SUMMARY"
+      - name: Strict Clippy
+        working-directory: leibniz/rust
         run: cargo clippy --all-targets --offline -- -D warnings
-        working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Production release build
-        run: cargo build --release --offline
-        working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Run all 225 tests again in release mode
-        run: cargo test --release --all-targets --offline
-        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Production build including real bridge executables
+        working-directory: leibniz/rust
+        run: cargo build --release --offline --all-targets
+      - name: All 230 Rust tests in release
+        working-directory: leibniz/rust
+        run: |
+          set -euo pipefail
+          cargo test --release --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/leibniz-release.log"
+          passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-release.log")
+          ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-release.log")
+          test "$passed" -eq 230 && test "$ignored" -eq 0
+          echo "LEIBNIZ Rust release: $passed passed; $ignored ignored" >> "$GITHUB_STEP_SUMMARY"
       - name: Offline proof benchmark
+        working-directory: leibniz/rust
         run: cargo run --release --offline --example benchmark -- 250 3
-        working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Graph regression through 48 nodes; explicitly verify 64-node fail-closed budget
-        shell: bash
-        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Graph regression through 48 nodes and explicit 64-node abstention
+        working-directory: leibniz/rust
         run: |
           set -euo pipefail
           cargo run --release --offline --example graph_scale -- 8 16 24 32 48
@@ -135,53 +70,40 @@ jobs:
           set -e
           test "$result" -eq 1
           grep -q 'ABSTAIN: max_matches exhausted during unification' "$RUNNER_TEMP/graph-64.log"
-          echo 'Graph sizes 8..48 verified; size 64 correctly abstained on max_matches budget (not a proof).' >> "$GITHUB_STEP_SUMMARY"
-      - name: Produce a source-checked Rust synthetic measurement
-        shell: bash
-        working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Retain old genuine synthetic Rust -> GAUSS -> Quantum regression
         run: |
           set -euo pipefail
-          cargo run --release --offline --example gauss_bridge_fixture > "$RUNNER_TEMP/leibniz-synthetic-fixture.tsv"
-          grep -q '^LEIBNIZ_SYNTHETIC_RATE_V1' "$RUNNER_TEMP/leibniz-synthetic-fixture.tsv"
-      - name: Execute the real GAUSS solver and Quantum contributor without modifying either
-        shell: bash
+          leibniz/rust/target/release/examples/gauss_bridge_fixture > "$RUNNER_TEMP/leibniz-original-fixture.tsv"
+          LEIBNIZ_SYNTHETIC_FIXTURE="$RUNNER_TEMP/leibniz-original-fixture.tsv" node leibniz/fase18-payload/gauss_bridge_smoke.mjs
+      - name: Execute variable Rust archive and independent-pin bridge against real GAUSS and Quantum
+        env:
+          LEIBNIZ_BRIDGE_EXPORT_BINARY: ${{ github.workspace }}/leibniz/rust/target/release/examples/gauss_bridge_export
+          LEIBNIZ_BRIDGE_SOURCE_GENERATOR: ${{ github.workspace }}/leibniz/rust/target/release/examples/gauss_bridge_source
         run: |
           set -euo pipefail
-          LEIBNIZ_SYNTHETIC_FIXTURE="$RUNNER_TEMP/leibniz-synthetic-fixture.tsv" node leibniz/fase18-payload/gauss_bridge_smoke.mjs
-          git diff --exit-code -- gauss/ walle/ quantum/ runtime/ packages/
-      - name: Package exact readable source that passed this checkout
-        shell: bash
+          node --test leibniz/fase18-payload/gauss_measured_linear_bridge.test.mjs
+          git diff --exit-code -- gauss/ quantum/ walle/ runtime/ packages/
+          echo 'Source-pinned two-edge Rust/GAUSS/Quantum tests executed; synthetic test origin only.' >> "$GITHUB_STEP_SUMMARY"
+      - name: Package exact tested tracked Rust source
         run: |
           set -euo pipefail
-          tar -C "$LEIBNIZ_DIR" --exclude='./target' --exclude='./.git' -cJf "$RUNNER_TEMP/LEIBNIZ-four-block-source.tar.xz" .
-          sha256sum "$RUNNER_TEMP/LEIBNIZ-four-block-source.tar.xz" | tee "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt"
-      - name: Verify archive can build and pass tests from a clean unpacked directory
-        shell: bash
+          git diff --exit-code -- leibniz/rust
+          tar -C leibniz/rust --exclude='./target' --exclude='./.git' -cJf "$RUNNER_TEMP/LEIBNIZ-tested-source.tar.xz" .
+          sha256sum "$RUNNER_TEMP/LEIBNIZ-tested-source.tar.xz" | tee "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt"
+      - name: Re-test source extracted into clean directory
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/replayed-source"
-          tar -xJf "$RUNNER_TEMP/LEIBNIZ-four-block-source.tar.xz" -C "$RUNNER_TEMP/replayed-source"
-          cmp "$LEIBNIZ_DIR/src/operational_gate.rs" "$RUNNER_TEMP/replayed-source/src/operational_gate.rs"
-          cargo fmt --all --manifest-path "$RUNNER_TEMP/replayed-source/Cargo.toml" -- --check
-          cargo test --all-targets --offline --manifest-path "$RUNNER_TEMP/replayed-source/Cargo.toml" 2>&1 | tee "$RUNNER_TEMP/replay-test.log"
-          grep -q 'test result: ok' "$RUNNER_TEMP/replay-test.log"
-      - name: Publish complete tested Rust source and its digest
+          mkdir -p "$RUNNER_TEMP/leibniz-replay"
+          tar -xJf "$RUNNER_TEMP/LEIBNIZ-tested-source.tar.xz" -C "$RUNNER_TEMP/leibniz-replay"
+          cmp leibniz/rust/src/gauss_bridge.rs "$RUNNER_TEMP/leibniz-replay/src/gauss_bridge.rs"
+          cargo fmt --all --manifest-path "$RUNNER_TEMP/leibniz-replay/Cargo.toml" -- --check
+          cargo test --all-targets --offline --manifest-path "$RUNNER_TEMP/leibniz-replay/Cargo.toml"
+      - name: Publish tested source and digest
         uses: actions/upload-artifact@v4
         with:
-          name: leibniz-four-block-rust-source-${{ github.sha }}
+          name: leibniz-manifest-bridge-source-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/LEIBNIZ-four-block-source.tar.xz
+            ${{ runner.temp }}/LEIBNIZ-tested-source.tar.xz
             ${{ runner.temp }}/LEIBNIZ-source-sha256.txt
           if-no-files-found: error
           retention-days: 30
-      - name: Promote exact proven source to readable files on this branch only
-        if: env.SOURCE_MODE == 'reconstructed'
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$GITHUB_WORKSPACE/leibniz/rust"
-          tar -C "$LEIBNIZ_DIR" --exclude='./target' --exclude='./.git' -cf - . | tar -C "$GITHUB_WORKSPACE/leibniz/rust" -xf -
-          git add leibniz/rust
-          git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'feat(leibniz): track complete tested standalone Rust source without archive repair'
-          git push origin HEAD:leibniz/fase18
-          echo 'Readable source was committed to leibniz/fase18. Re-run CI on that commit for independent checkout confirmation.' >> "$GITHUB_STEP_SUMMARY"
