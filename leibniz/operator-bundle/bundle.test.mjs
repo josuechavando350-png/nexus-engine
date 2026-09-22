@@ -3,7 +3,10 @@
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { copyFileSync, existsSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import {
+  copyFileSync, existsSync, linkSync, lstatSync, mkdtempSync, readdirSync,
+  rmSync, statSync, symlinkSync, truncateSync, writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -91,4 +94,32 @@ test('same-revision alternative and same-file policy pin are refused', () => {
   const revoked = pair(policy('REVOKED', 4));
   refused(...appendArgs(state, input, allowed, witness(revoked)));
   refused(...appendArgs(state, input, [allowed[0], allowed[0]], witness(allowed)));
+});
+
+test('guarded descriptor opening refuses final symlinks, cross-role hardlinks and dangling output symlink', () => {
+  const state = initial();
+  const input = pair(batch);
+  const allowed = pair(policy('ALLOW'));
+  const head = witness(allowed);
+  const inputLink = target('input-symlink');
+  symlinkSync(input[0], inputLink);
+  refused(...appendArgs(state, [inputLink, input[1]], allowed, head));
+  const alias = target('policy-hardlink');
+  linkSync(allowed[0], alias);
+  refused(...appendArgs(state, input, [allowed[0], alias], head));
+  const output = target('dangling-output');
+  symlinkSync(target('nonexistent-target'), output);
+  assert.throws(() => run(binary, ...appendArgs(state, input, allowed, head), output));
+  assert.equal(lstatSync(output).isSymbolicLink(), true);
+});
+
+test('sparse oversized input fails before a checkpoint is created', () => {
+  const state = initial();
+  const input = pair(batch);
+  const allowed = pair(policy('ALLOW'));
+  const head = witness(allowed);
+  const oversized = target('oversized-batch');
+  writeFileSync(oversized, 'x');
+  truncateSync(oversized, 83 * 1024 * 1024 + 1);
+  refused(...appendArgs(state, [oversized, input[1]], allowed, head));
 });
