@@ -12,7 +12,7 @@ use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::OpenOptionsExt;
 
-const MAX_INPUT_BYTES: u64 = 82 * 1024 * 1024;
+const MAX_INPUT_BYTES: u64 = 83 * 1024 * 1024;
 
 fn read_regular(path: &str) -> Result<Vec<u8>, String> {
     let info = fs::symlink_metadata(path).map_err(|e| format!("cannot inspect input: {e}"))?;
