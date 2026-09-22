@@ -53,6 +53,15 @@ jobs:
             patch --batch --forward -p1 < "$fix"
           done
         working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Include full semantics specification and five higher-order regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/hol-standard.rs" "$LEIBNIZ_DIR/tests/hol_standard.rs"
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/FORMAL_SEMANTICS_AND_ACCEPTANCE.md" "$LEIBNIZ_DIR/FORMAL_SEMANTICS_AND_ACCEPTANCE.md"
+          test -s "$LEIBNIZ_DIR/tests/hol_standard.rs"
+          test -s "$LEIBNIZ_DIR/FORMAL_SEMANTICS_AND_ACCEPTANCE.md"
+          test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_standard.rs")" -eq 5
       - name: Format code
         run: cargo fmt --all
         working-directory: ${{ env.LEIBNIZ_DIR }}
@@ -67,7 +76,7 @@ jobs:
           passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
           ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
           echo "Rust tests passed: $passed; ignored: $ignored"
-          test "$passed" -ge 184
+          test "$passed" -eq 189
           test "$ignored" -eq 0
           echo "Passed: $passed; ignored: $ignored; SHA: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
         working-directory: ${{ env.LEIBNIZ_DIR }}
@@ -83,3 +92,19 @@ jobs:
       - name: Graph scaling
         run: cargo run --release --offline --example graph_scale -- 8 16 24
         working-directory: ${{ env.LEIBNIZ_DIR }}
+      - name: Package the exact certified human-readable source
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar -C "$LEIBNIZ_DIR" --exclude='./target' --exclude='./.git' -cJf "$RUNNER_TEMP/LEIBNIZ-first-block-certified-source.tar.xz" .
+          sha256sum "$RUNNER_TEMP/LEIBNIZ-first-block-certified-source.tar.xz" | tee "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt"
+          echo "Full source archive SHA-256: $(cut -d' ' -f1 "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Publish certified source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: leibniz-first-block-rust-source-${{ github.sha }}
+          path: |
+            ${{ runner.temp }}/LEIBNIZ-first-block-certified-source.tar.xz
+            ${{ runner.temp }}/LEIBNIZ-source-sha256.txt
+          if-no-files-found: error
+          retention-days: 14
