@@ -1,0 +1,12 @@
+diff --git a/tests/semantic_archive.rs b/tests/semantic_archive.rs
+--- a/tests/semantic_archive.rs
++++ b/tests/semantic_archive.rs
+@@ -96,7 +96,7 @@
+ fn semantic_archive_rejects_reordered_dimensions_with_recomputed_checksum() {
+     let mut source = archive();
+     source.snapshot.flows[0].annotation.unit.dimension =
+-        Dimension::new([("AA".into(), 1), ("BB".into(), -1)]).unwrap();
++        Dimension::new([("AA".into(), 1), ("BB".into(), 1), ("time".into(), -1)]).unwrap();
+     let bytes = source.to_bytes().unwrap();
+     assert!(SemanticArchive::from_bytes(&bytes).is_ok());
+     let mut reordered = bytes.clone();
