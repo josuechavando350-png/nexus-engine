@@ -329,7 +329,12 @@ mod tests {
         assert!(StreamState::from_bytes(&corrupted).is_err());
         let header_end = first.iter().position(|b| *b == b'\n').unwrap();
         let mut forged = b"LEIBNIZ_STREAM_V1\tforeign\t1\t".to_vec();
-        forged.extend_from_slice(first[..header_end].split(|b| *b == b'\t').next_back().unwrap());
+        forged.extend_from_slice(
+            first[..header_end]
+                .split(|b| *b == b'\t')
+                .next_back()
+                .unwrap(),
+        );
         forged.push(b'\n');
         forged.extend_from_slice(&first[header_end + 1..]);
         assert!(StreamState::from_bytes(&forged).is_err());
