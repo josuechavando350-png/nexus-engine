@@ -1,4 +1,4 @@
-name: LEIBNIZ first-block Rust validation
+name: LEIBNIZ first- and second-block Rust validation
 on:
   push:
     branches: [leibniz/fase18]
@@ -23,7 +23,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/leibniz-standalone"
           tar -xJf "$RUNNER_TEMP/source.tar.xz" -C "$RUNNER_TEMP/leibniz-standalone"
           echo "LEIBNIZ_DIR=$RUNNER_TEMP/leibniz-standalone" >> "$GITHUB_ENV"
-      - name: Apply source patches
+      - name: Apply original source patches
         shell: bash
         run: |
           set -euo pipefail
@@ -62,13 +62,24 @@ jobs:
           test -s "$LEIBNIZ_DIR/tests/hol_standard.rs"
           test -s "$LEIBNIZ_DIR/FORMAL_SEMANTICS_AND_ACCEPTANCE.md"
           test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_standard.rs")" -eq 5
+      - name: Include independent exhaustive higher-order semantic oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/finite_model.rs" "$LEIBNIZ_DIR/src/finite_model.rs"
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/hol-semantic-oracle.rs" "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
+          cp "$GITHUB_WORKSPACE/leibniz/fase18-payload/BLOCK2_FORMAL_VALIDATION.md" "$LEIBNIZ_DIR/BLOCK2_FORMAL_VALIDATION.md"
+          test -s "$LEIBNIZ_DIR/src/finite_model.rs"
+          test -s "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs"
+          test "$(grep -c '^#\[test\]' "$LEIBNIZ_DIR/tests/hol_semantic_oracle.rs")" -eq 11
+          printf '\npub mod finite_model;\n' >> "$LEIBNIZ_DIR/src/lib.rs"
       - name: Format code
         run: cargo fmt --all
         working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Verify formatting
         run: cargo fmt --all -- --check
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Run original and new tests
+      - name: Run all original and both-block tests
         shell: bash
         run: |
           set -euo pipefail
@@ -76,7 +87,7 @@ jobs:
           passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
           ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
           echo "Rust tests passed: $passed; ignored: $ignored"
-          test "$passed" -eq 189
+          test "$passed" -eq 200
           test "$ignored" -eq 0
           echo "Passed: $passed; ignored: $ignored; SHA: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
         working-directory: ${{ env.LEIBNIZ_DIR }}
@@ -92,19 +103,19 @@ jobs:
       - name: Graph scaling
         run: cargo run --release --offline --example graph_scale -- 8 16 24
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Package the exact certified human-readable source
+      - name: Package the exact tested human-readable source
         shell: bash
         run: |
           set -euo pipefail
-          tar -C "$LEIBNIZ_DIR" --exclude='./target' --exclude='./.git' -cJf "$RUNNER_TEMP/LEIBNIZ-first-block-certified-source.tar.xz" .
-          sha256sum "$RUNNER_TEMP/LEIBNIZ-first-block-certified-source.tar.xz" | tee "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt"
+          tar -C "$LEIBNIZ_DIR" --exclude='./target' --exclude='./.git' -cJf "$RUNNER_TEMP/LEIBNIZ-blocks-1-and-2-source.tar.xz" .
+          sha256sum "$RUNNER_TEMP/LEIBNIZ-blocks-1-and-2-source.tar.xz" | tee "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt"
           echo "Full source archive SHA-256: $(cut -d' ' -f1 "$RUNNER_TEMP/LEIBNIZ-source-sha256.txt")" >> "$GITHUB_STEP_SUMMARY"
-      - name: Publish certified source artifact
+      - name: Publish tested source artifact
         uses: actions/upload-artifact@v4
         with:
-          name: leibniz-first-block-rust-source-${{ github.sha }}
+          name: leibniz-blocks-1-and-2-rust-source-${{ github.sha }}
           path: |
-            ${{ runner.temp }}/LEIBNIZ-first-block-certified-source.tar.xz
+            ${{ runner.temp }}/LEIBNIZ-blocks-1-and-2-source.tar.xz
             ${{ runner.temp }}/LEIBNIZ-source-sha256.txt
           if-no-files-found: error
           retention-days: 14
