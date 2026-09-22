@@ -3,9 +3,6 @@ on:
   push:
     branches: [leibniz/fase18]
     paths: ['leibniz/fase18-payload/**', '.github/workflows/leibniz-fase18.yml']
-  pull_request:
-    branches: [main]
-    paths: ['leibniz/fase18-payload/**', '.github/workflows/leibniz-fase18.yml']
 permissions:
   contents: read
 jobs:
@@ -13,22 +10,20 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: Checkout exact commit
-        uses: actions/checkout@v4
-      - name: Install full Rust toolchain
-        uses: dtolnay/rust-toolchain@stable
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
-      - name: Restore complete isolated Rust crate and verify its exact bytes
+      - name: Restore original source
         shell: bash
         run: |
           set -euo pipefail
-          cat leibniz/fase18-payload/part-* | base64 --decode > "$RUNNER_TEMP/leibniz-fase18-src.tar.xz"
-          printf '%s  %s\n' '254038cdcd9b6c4fc6245b297aee51b8942193c8d5fbddcddc56c1bd969f633e' "$RUNNER_TEMP/leibniz-fase18-src.tar.xz" | sha256sum -c -
+          cat leibniz/fase18-payload/part-* | base64 --decode > "$RUNNER_TEMP/source.tar.xz"
+          echo '254038cdcd9b6c4fc6245b297aee51b8942193c8d5fbddcddc56c1bd969f633e  '"$RUNNER_TEMP/source.tar.xz" | sha256sum -c -
           mkdir -p "$RUNNER_TEMP/leibniz-standalone"
-          tar -xJf "$RUNNER_TEMP/leibniz-fase18-src.tar.xz" -C "$RUNNER_TEMP/leibniz-standalone"
+          tar -xJf "$RUNNER_TEMP/source.tar.xz" -C "$RUNNER_TEMP/leibniz-standalone"
           echo "LEIBNIZ_DIR=$RUNNER_TEMP/leibniz-standalone" >> "$GITHUB_ENV"
-      - name: Apply versioned real source fixes
+      - name: Apply source patches
         shell: bash
         run: |
           set -euo pipefail
@@ -37,52 +32,43 @@ jobs:
             patch --batch --forward -p1 < "$fix"
           done
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Inspect extension payload if corrupted
-        shell: bash
+      - name: Diagnose interrupted extension transfer
         run: |
           python3 - <<'PY'
-          import pathlib, hashlib
+          import hashlib,pathlib
           b=pathlib.Path('leibniz/fase18-payload/higher-order-b1.b64').read_bytes()
-          expect=['81fe5984188f','3e668c90d24f','d1843a8a188f','65223f8593be','d7db8317ece9','e6be4f6ccb8e','b8542d9a42c6','9b3dba0069a4','ae8c445f80a4','6e065bef06fc','51f4ae8b2051','6519415d5688']
           print('LENGTH',len(b))
-          for i,digest in enumerate(expect,1):
-            actual=hashlib.sha256(b[:i*1000]).hexdigest()[:12]
-            print('PREFIX',i*1000,'EXPECTED',digest,'ACTUAL',actual,'MATCH',actual==digest)
+          print('GH_SEGMENT_9000_10100',b[9000:10100].decode())
+          expected=['3f38703fcd1b','9ad2d3d9b4eb','7aa38d321e2a','6727c756758d','9325040a5ee8','0e3b368dee66','fbbeb0845f4e','acc6e1587606','e8318ebea476','6e065bef06fc']
+          for n,d in zip(range(9100,10001,100),expected):print('PREFIX',n,hashlib.sha256(b[:n]).hexdigest()[:12]==d)
           PY
-      - name: Restore full type-theoretic proof checker and block-one acceptance tests
+      - name: Restore higher-order proof checker and acceptance tests
         shell: bash
         run: |
           set -euo pipefail
-          base64 --decode "$GITHUB_WORKSPACE/leibniz/fase18-payload/higher-order-b1.b64" > "$RUNNER_TEMP/leibniz-hol-extension.tar.xz"
-          printf '%s  %s\n' 'a359971dac7f342989c77cacc08dd8a621fe39effcff56bab8509b6843cf0f58' "$RUNNER_TEMP/leibniz-hol-extension.tar.xz" | sha256sum -c -
-          tar -xJf "$RUNNER_TEMP/leibniz-hol-extension.tar.xz" -C "$LEIBNIZ_DIR"
+          base64 --decode "$GITHUB_WORKSPACE/leibniz/fase18-payload/higher-order-b1.b64" > "$RUNNER_TEMP/hol.tar.xz"
+          echo 'a359971dac7f342989c77cacc08dd8a621fe39effcff56bab8509b6843cf0f58  '"$RUNNER_TEMP/hol.tar.xz" | sha256sum -c -
+          tar -xJf "$RUNNER_TEMP/hol.tar.xz" -C "$LEIBNIZ_DIR"
           test -s "$LEIBNIZ_DIR/src/hol.rs"
           test -s "$LEIBNIZ_DIR/tests/hol.rs"
           test -s "$LEIBNIZ_DIR/tests/block1_acceptance.rs"
-      - name: Show actual toolchain
-        run: |
-          rustc --version
-          cargo --version
-          rustfmt --version
-          cargo clippy --version
-      - name: Format extracted Rust source
+      - name: Format code
         run: cargo fmt --all
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Check formatting
+      - name: Verify formatting
         run: cargo fmt --all -- --check
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Execute all original and new Rust tests with a counted gate
+      - name: Run original and new tests
         shell: bash
         run: |
           set -euo pipefail
-          cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/leibniz-tests.log"
-          passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-tests.log")
-          ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/leibniz-tests.log")
-          echo "Rust tests actually passed: $passed; ignored: $ignored"
+          cargo test --all-targets --offline 2>&1 | tee "$RUNNER_TEMP/test-results.log"
+          passed=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="passed;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
+          ignored=$(awk '/test result: ok\./ {for (i=1;i<=NF;i++) if ($i=="ignored;") total+=$(i-1)} END {print total+0}' "$RUNNER_TEMP/test-results.log")
+          echo "Rust tests passed: $passed; ignored: $ignored"
           test "$passed" -ge 184
           test "$ignored" -eq 0
-          echo "### LEIBNIZ standalone Rust test results" >> "$GITHUB_STEP_SUMMARY"
-          echo "Commit: $GITHUB_SHA; passed: $passed; ignored: $ignored" >> "$GITHUB_STEP_SUMMARY"
+          echo "Passed: $passed; ignored: $ignored; SHA: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
         working-directory: ${{ env.LEIBNIZ_DIR }}
       - name: Strict Clippy
         run: cargo clippy --all-targets --offline -- -D warnings
