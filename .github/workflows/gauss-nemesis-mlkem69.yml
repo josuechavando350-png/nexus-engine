@@ -10,7 +10,7 @@ permissions:
 jobs:
   mlkem69:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
@@ -30,6 +30,20 @@ jobs:
           grep -qx '# pass 8' "$RUNNER_TEMP/nemesis69.tap"
           grep -qx '# fail 0' "$RUNNER_TEMP/nemesis69.tap"
           grep -qx '# skipped 0' "$RUNNER_TEMP/nemesis69.tap"
+      - name: Prove all 401 original Némesis tests pass in one Node 24 run with zero skips
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=4 --test-reporter=tap gauss/nemesis/engine/test/*.test.mjs > "$RUNNER_TEMP/nemesis-all.tap"
+          grep -qx '# tests 401' "$RUNNER_TEMP/nemesis-all.tap" || { tail -n 35 "$RUNNER_TEMP/nemesis-all.tap"; exit 1; }
+          grep -qx '# pass 401' "$RUNNER_TEMP/nemesis-all.tap" || { tail -n 35 "$RUNNER_TEMP/nemesis-all.tap"; exit 1; }
+          grep -qx '# fail 0' "$RUNNER_TEMP/nemesis-all.tap" || { tail -n 35 "$RUNNER_TEMP/nemesis-all.tap"; exit 1; }
+          grep -qx '# skipped 0' "$RUNNER_TEMP/nemesis-all.tap" || { tail -n 35 "$RUNNER_TEMP/nemesis-all.tap"; exit 1; }
+          tail -n 12 "$RUNNER_TEMP/nemesis-all.tap"
+      - name: Run GAUSS integration audit and smoke all 100 registered engines
+        run: |
+          node --test gauss/nemesis/tests/*.test.mjs
+          node gauss/nemesis/engine/scripts/smoke-100.mjs
       - name: Verify source was not mutated and checkout remains clean
         run: |
           node gauss/nemesis/scripts/verify-source-lock.mjs
