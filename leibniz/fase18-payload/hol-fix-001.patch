@@ -1,0 +1,11 @@
+--- a/tests/hol.rs
++++ b/tests/hol.rs
+@@ -243,7 +243,7 @@
+     let goal=imp(E::False,p.clone());
+     check(&goal,&D::ImpIntro{assumption:E::False,body:Box::new(D::FalseElim{
+         contradiction:Box::new(D::Hypothesis(0)),conclusion:p.clone()})}).unwrap();
+-    assert!(check(&p,&D::FalseElim{contradiction:Box::new(D::EqualRefl(c("x",i()))),conclusion:p}).is_err());
++    assert!(check(&p,&D::FalseElim{contradiction:Box::new(D::EqualRefl(c("x",i()))),conclusion:p.clone()}).is_err());
+ }
+ 
+ #[test]
