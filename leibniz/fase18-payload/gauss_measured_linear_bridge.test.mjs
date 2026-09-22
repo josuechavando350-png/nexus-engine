@@ -33,8 +33,9 @@ test('actual Rust archive with TWO distinct rates drives real GAUSS and Quantum'
   assert.deepEqual(result.sourceRows.map((r) => r.value), [2.5, 7.25]);
   assert.deepEqual(result.sourceRows.map((r) => r.evidenceIds), [['synthetic:left'], ['synthetic:right']]);
   assert.equal(result.assurance, 'MEASURED_INPUT_NUMERIC_SOLVE_ONLY');
-  for (const digest of [result.sourceSha256, result.problemSha256, result.gaussReportSha256,
-    result.quantumReceiptSha256]) assert.match(digest, /^[a-f0-9]{64}$/u);
+  assert.match(result.sourceSha256, /^[a-f0-9]{64}$/u);
+  for (const digest of [result.problemSha256, result.gaussReportSha256,
+    result.quantumReceiptSha256]) assert.match(digest, /^sha256:[a-f0-9]{64}$/u);
 });
 
 test('changing measurements and operator-supplied matrix changes genuine numerical output', async () => {
