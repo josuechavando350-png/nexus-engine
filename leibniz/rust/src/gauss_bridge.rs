@@ -28,7 +28,10 @@ fn hex(value: &str) -> String {
 
 fn validate_token(token: &str) -> Result<(), String> {
     if token.len() > 256
-        || !token.as_bytes().first().is_some_and(u8::is_ascii_alphanumeric)
+        || !token
+            .as_bytes()
+            .first()
+            .is_some_and(u8::is_ascii_alphanumeric)
         || !token
             .bytes()
             .all(|b| b.is_ascii_alphanumeric() || matches!(b, b'.' | b'_' | b':' | b'-'))
@@ -97,7 +100,8 @@ pub fn export_measured_rate(
     if !measured.value.is_finite() || measured.value == 0.0 && measured.value.is_sign_negative() {
         return Err("bridge refuses nonfinite or negative-zero measurements".into());
     }
-    if measured.evidence_ids.is_empty() || measured.evidence_ids.len() > limits.max_numeric_records {
+    if measured.evidence_ids.is_empty() || measured.evidence_ids.len() > limits.max_numeric_records
+    {
         return Err("bridge measurement has no bounded evidence".into());
     }
     // Dimension names are hex-encoded before joining: no user string can
@@ -135,29 +139,49 @@ mod tests {
     fn sample(first: f64, second: f64) -> Vec<u8> {
         let mut graph = Graph::new();
         for id in ["source", "left", "right"] {
-            graph.add_entity(Entity {
-                id: id.into(), category: "Test".into(), attributes: HashMap::new(),
-            }).unwrap();
+            graph
+                .add_entity(Entity {
+                    id: id.into(),
+                    category: "Test".into(),
+                    attributes: HashMap::new(),
+                })
+                .unwrap();
         }
         for (to, rate) in [("left", first), ("right", second)] {
-            graph.add_flow(Flow {
-                from_entity: "source".into(), to_entity: to.into(), rate_of_transfer: rate,
-            }).unwrap();
+            graph
+                .add_flow(Flow {
+                    from_entity: "source".into(),
+                    to_entity: to.into(),
+                    rate_of_transfer: rate,
+                })
+                .unwrap();
         }
-        let unit = Unit::new("contacts/s", Dimension::new([
-            ("contacts".into(), 1), ("time".into(), -1),
-        ]).unwrap(), 1.0).unwrap();
-        let annotations = ["observation:left", "observation:right"].into_iter()
-            .map(|id| Annotation::new(unit.clone(), Validity::new(100, Some(200)).unwrap(), id).unwrap())
+        let unit = Unit::new(
+            "contacts/s",
+            Dimension::new([("contacts".into(), 1), ("time".into(), -1)]).unwrap(),
+            1.0,
+        )
+        .unwrap();
+        let annotations = ["observation:left", "observation:right"]
+            .into_iter()
+            .map(|id| {
+                Annotation::new(unit.clone(), Validity::new(100, Some(200)).unwrap(), id).unwrap()
+            })
             .collect();
         let snapshot = SemanticSnapshot::from_graph(&graph, annotations, vec![]).unwrap();
-        SemanticArchive::new(graph, snapshot).unwrap().to_bytes().unwrap()
+        SemanticArchive::new(graph, snapshot)
+            .unwrap()
+            .to_bytes()
+            .unwrap()
     }
     fn selection(to: &str) -> RateSelection {
         RateSelection {
-            problem_id: "measurement-42".into(), as_of_utc_ms: 150,
-            from_entity: "source".into(), to_entity: to.into(),
-            target_unit_symbol: "contacts/s".into(), direction: Direction::Maximize,
+            problem_id: "measurement-42".into(),
+            as_of_utc_ms: 150,
+            from_entity: "source".into(),
+            to_entity: to.into(),
+            target_unit_symbol: "contacts/s".into(),
+            direction: Direction::Maximize,
         }
     }
     fn run(bytes: &[u8], selected: &RateSelection) -> Result<String, String> {
@@ -179,8 +203,13 @@ mod tests {
     fn modified_measurement_cannot_reuse_previous_source_pin() {
         let original = sample(2.5, 7.25);
         let changed = sample(99.0, 7.25);
-        assert!(export_measured_rate(&changed, &original, &selection("left"),
-            HandoffLimits::default()).is_err());
+        assert!(export_measured_rate(
+            &changed,
+            &original,
+            &selection("left"),
+            HandoffLimits::default()
+        )
+        .is_err());
     }
     #[test]
     fn missing_expired_and_cross_edge_measurements_are_refused() {
@@ -199,10 +228,17 @@ mod tests {
         let mut bad = selection("left");
         bad.problem_id = "a\tforged".into();
         assert!(run(&original, &bad).is_err());
-        assert!(export_measured_rate(b"garbage", b"garbage", &selection("left"),
-            HandoffLimits::default()).is_err());
-        assert!(export_measured_rate(&original, b"", &selection("left"),
-            HandoffLimits::default()).is_err());
+        assert!(export_measured_rate(
+            b"garbage",
+            b"garbage",
+            &selection("left"),
+            HandoffLimits::default()
+        )
+        .is_err());
+        assert!(
+            export_measured_rate(&original, b"", &selection("left"), HandoffLimits::default())
+                .is_err()
+        );
     }
     #[test]
     fn measurement_budget_is_not_bypassed_by_bridge_export() {
