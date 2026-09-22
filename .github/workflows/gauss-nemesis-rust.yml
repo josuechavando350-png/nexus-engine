@@ -62,9 +62,14 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Use Némesis-required Node 22.16.0 (includes node:sqlite)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
       - name: Reject incomplete or altered Némesis v17 source
         shell: bash
         run: |
+          node --version
           test -f gauss/nemesis/engine/src/index.mjs || { echo 'NEMESIS_INTEGRATION_NOT_TESTED: complete Némesis JS source is missing'; exit 1; }
           node gauss/nemesis/scripts/verify-source-lock.mjs
       - name: Check original GAUSS-to-Némesis bridge and original JS tests
