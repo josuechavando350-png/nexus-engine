@@ -25,7 +25,8 @@ impl SourcePolicy {
     /// Canonical record, NOT a signed approval. Zero is never a policy revision.
     pub fn to_bytes(&self) -> Result<Vec<u8>, String> {
         StreamState::initial(&self.source_id)?;
-        if self.revision == 0 || self.min_sequence == 0
+        if self.revision == 0
+            || self.min_sequence == 0
             || self.max_sequence < self.min_sequence
             || self.valid_until_utc_ms <= self.valid_from_utc_ms
         {
@@ -34,9 +35,14 @@ impl SourcePolicy {
         let status = if self.allowed { "ALLOW" } else { "REVOKED" };
         let bytes = format!(
             "{VERSION}\t{}\t{}\t{status}\t{}\t{}\t{}\t{}\n",
-            self.source_id, self.revision, self.min_sequence, self.max_sequence,
-            self.valid_from_utc_ms, self.valid_until_utc_ms
-        ).into_bytes();
+            self.source_id,
+            self.revision,
+            self.min_sequence,
+            self.max_sequence,
+            self.valid_from_utc_ms,
+            self.valid_until_utc_ms
+        )
+        .into_bytes();
         if bytes.len() > MAX_POLICY_BYTES {
             return Err("source policy exceeds maximum bytes".into());
         }
@@ -48,12 +54,17 @@ impl SourcePolicy {
             return Err("missing or oversized source policy".into());
         }
         let text = std::str::from_utf8(raw).map_err(|_| "policy is not UTF-8")?;
-        let line = text.strip_suffix('\n').ok_or("policy needs canonical LF terminator")?;
+        let line = text
+            .strip_suffix('\n')
+            .ok_or("policy needs canonical LF terminator")?;
         let fields = line.split('\t').collect::<Vec<_>>();
-        let [version, source_id, revision, status, min, max, from, until] = fields.as_slice() else {
+        let [version, source_id, revision, status, min, max, from, until] = fields.as_slice()
+        else {
             return Err("source policy needs exactly eight fields".into());
         };
-        if *version != VERSION { return Err("unsupported source policy version".into()); }
+        if *version != VERSION {
+            return Err("unsupported source policy version".into());
+        }
         let policy = Self {
             source_id: (*source_id).into(),
             revision: revision.parse().map_err(|_| "invalid policy revision")?,
@@ -81,9 +92,15 @@ impl SourcePolicy {
 /// witness remain mandatory; policy is additional, never a replacement.
 #[allow(clippy::too_many_arguments)]
 pub fn append_with_policy(
-    checkpoint: &[u8], checkpoint_pin: &[u8], trusted_head: &[u8],
-    batch: &[u8], batch_pin: &[u8], next_sequence: u64,
-    policy_bytes: &[u8], policy_pin: &[u8], minimum_policy_revision: u64,
+    checkpoint: &[u8],
+    checkpoint_pin: &[u8],
+    trusted_head: &[u8],
+    batch: &[u8],
+    batch_pin: &[u8],
+    next_sequence: u64,
+    policy_bytes: &[u8],
+    policy_pin: &[u8],
+    minimum_policy_revision: u64,
     as_of_utc_ms: i64,
 ) -> Result<Vec<u8>, String> {
     let state = verify_latest_checkpoint(checkpoint, checkpoint_pin, trusted_head)?;
@@ -91,25 +108,44 @@ pub fn append_with_policy(
         return Err("policy differs from separately supplied reference".into());
     }
     let policy = SourcePolicy::from_bytes(policy_bytes)?;
-    if !policy.allowed || policy.revision < minimum_policy_revision
-        || minimum_policy_revision == 0 || policy.source_id != state.source_id()
-        || next_sequence < policy.min_sequence || next_sequence > policy.max_sequence
+    if !policy.allowed
+        || policy.revision < minimum_policy_revision
+        || minimum_policy_revision == 0
+        || policy.source_id != state.source_id()
+        || next_sequence < policy.min_sequence
+        || next_sequence > policy.max_sequence
         || as_of_utc_ms < policy.valid_from_utc_ms
         || as_of_utc_ms >= policy.valid_until_utc_ms
     {
         return Err("source is revoked, policy stale, or batch outside authorized window".into());
     }
-    let archive = SemanticArchive::from_bytes(&ingest_operator_tsv(
-        batch, batch_pin, state.source_id(),
-    )?)?;
-    for annotation in archive.snapshot.flows.iter().map(|row| &row.annotation)
-        .chain(archive.snapshot.restrictions.iter().map(|row| &row.annotation))
+    let archive =
+        SemanticArchive::from_bytes(&ingest_operator_tsv(batch, batch_pin, state.source_id())?)?;
+    for annotation in archive
+        .snapshot
+        .flows
+        .iter()
+        .map(|row| &row.annotation)
+        .chain(
+            archive
+                .snapshot
+                .restrictions
+                .iter()
+                .map(|row| &row.annotation),
+        )
     {
         if !annotation.validity.contains(as_of_utc_ms) {
             return Err("incoming measurement is not valid at policy evaluation time".into());
         }
     }
-    append_with_trusted_head(checkpoint, checkpoint_pin, trusted_head, batch, batch_pin, next_sequence)
+    append_with_trusted_head(
+        checkpoint,
+        checkpoint_pin,
+        trusted_head,
+        batch,
+        batch_pin,
+        next_sequence,
+    )
 }
 
 #[cfg(test)]
@@ -117,22 +153,52 @@ mod tests {
     use super::*;
     use crate::trusted_head::TrustedHead;
 
-    fn initial() -> Vec<u8> { StreamState::initial("approved").unwrap().to_bytes().unwrap() }
+    fn initial() -> Vec<u8> {
+        StreamState::initial("approved")
+            .unwrap()
+            .to_bytes()
+            .unwrap()
+    }
     fn witness(state: &[u8]) -> Vec<u8> {
-        TrustedHead::from_checkpoint(state, state).unwrap().to_bytes().unwrap()
+        TrustedHead::from_checkpoint(state, state)
+            .unwrap()
+            .to_bytes()
+            .unwrap()
     }
     fn batch() -> Vec<u8> {
         b"LEIBNIZ_SOURCE_V1\tapproved\nENTITY\tsource\tOrganization\nENTITY\tleft\tChannel\nFLOW\tsource\tleft\t3\tcontacts/s\tcontacts:1,time:-1\t1\t100\t200\tevidence-1\n".to_vec()
     }
     fn policy() -> SourcePolicy {
-        SourcePolicy { source_id: "approved".into(), revision: 3, allowed: true,
-            min_sequence: 1, max_sequence: 2, valid_from_utc_ms: 100, valid_until_utc_ms: 200 }
+        SourcePolicy {
+            source_id: "approved".into(),
+            revision: 3,
+            allowed: true,
+            min_sequence: 1,
+            max_sequence: 2,
+            valid_from_utc_ms: 100,
+            valid_until_utc_ms: 200,
+        }
     }
-    fn try_append(policy_bytes: &[u8], policy_pin: &[u8], floor: u64, at: i64) -> Result<Vec<u8>, String> {
+    fn try_append(
+        policy_bytes: &[u8],
+        policy_pin: &[u8],
+        floor: u64,
+        at: i64,
+    ) -> Result<Vec<u8>, String> {
         let previous = initial();
         let input = batch();
-        append_with_policy(&previous, &previous, &witness(&previous), &input, &input,
-            1, policy_bytes, policy_pin, floor, at)
+        append_with_policy(
+            &previous,
+            &previous,
+            &witness(&previous),
+            &input,
+            &input,
+            1,
+            policy_bytes,
+            policy_pin,
+            floor,
+            at,
+        )
     }
     #[test]
     fn active_policy_allows_real_semantic_append() {
@@ -142,7 +208,8 @@ mod tests {
     }
     #[test]
     fn revoked_source_and_policy_revision_rollback_are_rejected() {
-        let mut p = policy(); p.allowed = false;
+        let mut p = policy();
+        p.allowed = false;
         let revoked = p.to_bytes().unwrap();
         assert!(try_append(&revoked, &revoked, 3, 150).is_err());
         let old = policy().to_bytes().unwrap();
@@ -152,7 +219,8 @@ mod tests {
     #[test]
     fn wrong_source_or_changed_policy_pin_are_rejected() {
         let raw = policy().to_bytes().unwrap();
-        let mut wrong = policy(); wrong.source_id = "other".into();
+        let mut wrong = policy();
+        wrong.source_id = "other".into();
         let alien = wrong.to_bytes().unwrap();
         assert!(try_append(&alien, &alien, 3, 150).is_err());
         assert!(try_append(&raw, &alien, 3, 150).is_err());
@@ -160,17 +228,22 @@ mod tests {
     #[test]
     fn stale_policy_time_and_expired_observation_are_rejected() {
         let raw = policy().to_bytes().unwrap();
-        for at in [99, 200] { assert!(try_append(&raw, &raw, 3, at).is_err()); }
-        let mut p = policy(); p.valid_until_utc_ms = 300;
+        for at in [99, 200] {
+            assert!(try_append(&raw, &raw, 3, at).is_err());
+        }
+        let mut p = policy();
+        p.valid_until_utc_ms = 300;
         let extended = p.to_bytes().unwrap();
         assert!(try_append(&extended, &extended, 3, 200).is_err());
     }
     #[test]
     fn sequence_limits_and_noncanonical_policy_are_rejected() {
-        let mut p = policy(); p.min_sequence = 2;
+        let mut p = policy();
+        p.min_sequence = 2;
         let raw = p.to_bytes().unwrap();
         assert!(try_append(&raw, &raw, 3, 150).is_err());
-        let mut p = policy(); p.max_sequence = 0;
+        let mut p = policy();
+        p.max_sequence = 0;
         assert!(p.to_bytes().is_err());
         let raw = policy().to_bytes().unwrap();
         let noncanonical = String::from_utf8(raw).unwrap().replace("\t3\t", "\t03\t");
@@ -181,9 +254,31 @@ mod tests {
         let raw = policy().to_bytes().unwrap();
         let initial = initial();
         let input = batch();
-        assert!(append_with_policy(&initial, &initial, &witness(&initial), &input, &input,
-            2, &raw, &raw, 3, 150).is_err());
-        assert!(append_with_policy(&initial, b"changed", &witness(&initial), &input, &input,
-            1, &raw, &raw, 3, 150).is_err());
+        assert!(append_with_policy(
+            &initial,
+            &initial,
+            &witness(&initial),
+            &input,
+            &input,
+            2,
+            &raw,
+            &raw,
+            3,
+            150
+        )
+        .is_err());
+        assert!(append_with_policy(
+            &initial,
+            b"changed",
+            &witness(&initial),
+            &input,
+            &input,
+            1,
+            &raw,
+            &raw,
+            3,
+            150
+        )
+        .is_err());
     }
 }
