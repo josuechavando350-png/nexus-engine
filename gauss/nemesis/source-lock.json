@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "origin": "NEMESIS_v17_hardening_real_NO_CERTIFICADO.zip",
+  "notACertification": true,
+  "src": {
+    "count": 100,
+    "sha256": "2ecdcc48046617c7ff7bb65a32b94bb29d933e7f181299fee04680d02f905bcb"
+  },
+  "test": {
+    "count": 31,
+    "sha256": "4f51fc648caa3a7a050156b98acd49def75aaa0e20d9fdb0a9a926e7a92641b0"
+  },
+  "examples": {
+    "count": 130,
+    "sha256": "c97471a5f1add91ecb4f4fd0c29a0ffd762d1f4668ce0bb13722ab621b5c360f"
+  },
+  "INVENTARIO_100.json": "055d88110b882b45f7f5d37b64ef83e6e0a7c2dc534d73035b741d55189dc105",
+  "package.json": "2023f17c8b2bf248074050179739ebb4b049451d7a3371cc308590bf221c8fcd"
+}
