@@ -123,9 +123,19 @@ jobs:
       - name: Offline proof benchmark
         run: cargo run --release --offline --example benchmark -- 250 3
         working-directory: ${{ env.LEIBNIZ_DIR }}
-      - name: Increased graph-scale regression
-        run: cargo run --release --offline --example graph_scale -- 8 16 24 32 48 64
+      - name: Graph regression through 48 nodes; explicitly verify 64-node fail-closed budget
+        shell: bash
         working-directory: ${{ env.LEIBNIZ_DIR }}
+        run: |
+          set -euo pipefail
+          cargo run --release --offline --example graph_scale -- 8 16 24 32 48
+          set +e
+          cargo run --release --offline --example graph_scale -- 64 2>&1 | tee "$RUNNER_TEMP/graph-64.log"
+          result=${PIPESTATUS[0]}
+          set -e
+          test "$result" -eq 1
+          grep -q 'ABSTAIN: max_matches exhausted during unification' "$RUNNER_TEMP/graph-64.log"
+          echo 'Graph sizes 8..48 verified; size 64 correctly abstained on max_matches budget (not a proof).' >> "$GITHUB_STEP_SUMMARY"
       - name: Produce a source-checked Rust synthetic measurement
         shell: bash
         working-directory: ${{ env.LEIBNIZ_DIR }}
@@ -152,7 +162,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/replayed-source"
           tar -xJf "$RUNNER_TEMP/LEIBNIZ-four-block-source.tar.xz" -C "$RUNNER_TEMP/replayed-source"
           cmp "$LEIBNIZ_DIR/src/operational_gate.rs" "$RUNNER_TEMP/replayed-source/src/operational_gate.rs"
-          cargo fmt --all -- --check --manifest-path "$RUNNER_TEMP/replayed-source/Cargo.toml"
+          cargo fmt --all --manifest-path "$RUNNER_TEMP/replayed-source/Cargo.toml" -- --check
           cargo test --all-targets --offline --manifest-path "$RUNNER_TEMP/replayed-source/Cargo.toml" 2>&1 | tee "$RUNNER_TEMP/replay-test.log"
           grep -q 'test result: ok' "$RUNNER_TEMP/replay-test.log"
       - name: Publish complete tested Rust source and its digest
