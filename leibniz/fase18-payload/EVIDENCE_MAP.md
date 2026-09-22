@@ -1,0 +1,1 @@
+Evidence: .github/workflows/leibniz-fase18.yml requires 200/200 tests; leibniz/fase18-payload/finite_model.rs independently evaluates finite standard models; leibniz/fase18-payload/hol-semantic-oracle.rs contains 11 additional tests; GitHub Actions must publish exact tested sources.
