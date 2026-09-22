@@ -36,6 +36,9 @@ export default tseslint.config(
       "**/dist/**",
       "**/coverage/**",
       "*.ts",
+      // The 297 imported Némesis sources are byte-locked and run their own tests;
+      // root ESLint must not rewrite or reinterpret this immutable upstream snapshot.
+      "gauss/nemesis/engine/**",
     ],
   },
   js.configs.recommended,
