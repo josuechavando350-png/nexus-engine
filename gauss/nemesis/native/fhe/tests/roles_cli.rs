@@ -27,6 +27,14 @@ fn separate_client_and_evaluator_processes_enforce_key_roles() {
     let output = path("output.ct");
     let wrong = path("wrong.ct");
 
+    // Do not generate sensitive key material in a directory accessible to other users.
+    fs::set_permissions(&root, Permissions::from_mode(0o755)).unwrap();
+    let rejection = run(&["keygen", &client, &server], None);
+    assert!(!rejection.status.success(), "insecure parent accepted private key generation");
+    assert!(!root.join("client.key").exists());
+    assert!(!root.join("server.key").exists());
+    fs::set_permissions(&root, Permissions::from_mode(0o700)).unwrap();
+
     // Force failure on the SECOND key write and prove the first secret is removed.
     // The existing server artifact must not be overwritten or deleted.
     fs::write(&server, b"pre-existing server artifact").unwrap();
@@ -41,6 +49,12 @@ fn separate_client_and_evaluator_processes_enforce_key_roles() {
     assert!(status.stdout.is_empty(), "key material reached stdout");
     assert_eq!(fs::metadata(&client).unwrap().permissions().mode() & 0o777, 0o600);
     assert_eq!(fs::metadata(&server).unwrap().permissions().mode() & 0o777, 0o600);
+
+    fs::set_permissions(&root, Permissions::from_mode(0o755)).unwrap();
+    let rejection = run(&["encrypt", &client, &input], Some(b"101"));
+    assert!(!rejection.status.success(), "private key from exposed directory accepted");
+    assert!(!root.join("input.ct").exists());
+    fs::set_permissions(&root, Permissions::from_mode(0o700)).unwrap();
 
     // An accidentally exposed, linked or redirected client key must not be consumed.
     fs::set_permissions(&client, Permissions::from_mode(0o644)).unwrap();
@@ -86,6 +100,12 @@ fn separate_client_and_evaluator_processes_enforce_key_roles() {
         "xor:0:1;mux:2:3:0;not:4", "3,4,5"], None);
     assert!(status.status.success(), "ciphertext-only evaluation failed");
     assert!(status.stdout.is_empty(), "plaintext leaked from evaluator");
+
+    fs::set_permissions(&root, Permissions::from_mode(0o755)).unwrap();
+    let rejection = run(&["decrypt", &client, &output], None);
+    assert!(!rejection.status.success(), "decryption accepted private key from exposed directory");
+    assert!(rejection.stdout.is_empty(), "rejected decryption exposed plaintext");
+    fs::set_permissions(&root, Permissions::from_mode(0o700)).unwrap();
 
     fs::set_permissions(&client, Permissions::from_mode(0o640)).unwrap();
     let rejection = run(&["decrypt", &client, &output], None);
