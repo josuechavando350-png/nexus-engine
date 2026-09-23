@@ -8,6 +8,7 @@ import "./styles.css";
 import "./chrome.css";
 import "./enhancements.css";
 import "./client-feedback.css";
+import "./interior.css";
 import { canoTheme } from "./theme";
 import { site } from "./content";
 import { NexusBehavioralSignals } from "./NexusBehavioralSignals";
@@ -51,15 +52,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       </head>
       <body style={themeStyle}>
         <NexusBehavioralSignals />
-        <div className="cp-splash" aria-hidden="true">
-          <div className="cp-splash-inner">
-            <div className="cp-splash-logo-wrap">
-              <img className="cp-splash-logo" src="/media/logo-cano.png" alt="" />
-            </div>
-            <div className="cp-splash-line" />
-            <p>EXPERIENCIA DESDE DENTRO. DEFENSA DE FRENTE.</p>
-          </div>
-        </div>
         <a {...skipLink}>Saltar al contenido principal</a>
         {children}
       </body>
