@@ -52,7 +52,7 @@ jobs:
           node --check tournaments/cano-penal-zero/round1.mjs
           node --check walle/cano-tournament-round0-verify.mjs
           node --check walle/cano-tournament-round1-verify.mjs
-          node --test tournaments/cano-penal-zero/test-tournament-zero.mjs tournaments/cano-penal-zero/test-round0.mjs tournaments/cano-penal-zero/test-round1.mjs
+          node --test tournaments/cano-penal-zero/test-tournament-zero.mjs tournaments/cano-penal-zero/test-round0.mjs tournaments/cano-penal-zero/test-round1.mjs tournaments/cano-penal-zero/test-organic-goal-v1.mjs
 
       - name: Use Go 1.23
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
