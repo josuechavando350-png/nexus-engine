@@ -2,7 +2,7 @@
 #![cfg(unix)]
 use std::fs::{self, Permissions};
 use std::io::Write;
-use std::os::unix::fs::PermissionsExt;
+use std::os::unix::fs::{symlink, PermissionsExt};
 use std::process::{Command, Stdio};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -42,14 +42,56 @@ fn separate_client_and_evaluator_processes_enforce_key_roles() {
     assert_eq!(fs::metadata(&client).unwrap().permissions().mode() & 0o777, 0o600);
     assert_eq!(fs::metadata(&server).unwrap().permissions().mode() & 0o777, 0o600);
 
+    // An accidentally exposed, linked or redirected client key must not be consumed.
+    fs::set_permissions(&client, Permissions::from_mode(0o644)).unwrap();
+    let rejection = run(&["encrypt", &client, &input], Some(b"101"));
+    assert!(!rejection.status.success(), "world-readable private key accepted");
+    assert!(!root.join("input.ct").exists());
+    fs::set_permissions(&client, Permissions::from_mode(0o600)).unwrap();
+
+    let client_link = path("client-link.key");
+    symlink(&client, &client_link).unwrap();
+    let rejection = run(&["encrypt", &client_link, &input], Some(b"101"));
+    assert!(!rejection.status.success(), "symlink to private key accepted");
+    assert!(!root.join("input.ct").exists());
+    fs::remove_file(&client_link).unwrap();
+
+    let hardlink = path("client-hardlink.key");
+    fs::hard_link(&client, &hardlink).unwrap();
+    let rejection = run(&["encrypt", &client, &input], Some(b"101"));
+    assert!(!rejection.status.success(), "multiply linked private key accepted");
+    assert!(!root.join("input.ct").exists());
+    fs::remove_file(&hardlink).unwrap();
+
     let status = run(&["encrypt", &client, &input], Some(b"101"));
     assert!(status.status.success(), "client encryption failed");
     assert!(status.stdout.is_empty());
+
+    let server_link = path("server-link.key");
+    symlink(&server, &server_link).unwrap();
+    let rejection = run(&["evaluate", &server_link, &input, &path("reject-link.ct"), "", "0"], None);
+    assert!(!rejection.status.success(), "symlinked server key accepted");
+    assert!(!root.join("reject-link.ct").exists());
+    fs::remove_file(&server_link).unwrap();
+
+    let input_link = path("input-link.ct");
+    symlink(&input, &input_link).unwrap();
+    let rejection = run(&["evaluate", &server, &input_link, &path("reject-input.ct"), "", "0"], None);
+    assert!(!rejection.status.success(), "symlinked ciphertext accepted");
+    assert!(!root.join("reject-input.ct").exists());
+    fs::remove_file(&input_link).unwrap();
+
     // No client key is available in evaluator arguments or in its working directory.
     let status = run(&["evaluate", &server, &input, &output,
         "xor:0:1;mux:2:3:0;not:4", "3,4,5"], None);
     assert!(status.status.success(), "ciphertext-only evaluation failed");
     assert!(status.stdout.is_empty(), "plaintext leaked from evaluator");
+
+    fs::set_permissions(&client, Permissions::from_mode(0o640)).unwrap();
+    let rejection = run(&["decrypt", &client, &output], None);
+    assert!(!rejection.status.success(), "group-readable private key accepted for decryption");
+    assert!(rejection.stdout.is_empty(), "rejected decryption exposed plaintext");
+    fs::set_permissions(&client, Permissions::from_mode(0o600)).unwrap();
     let decrypted = run(&["decrypt", &client, &output], None);
     assert!(decrypted.status.success(), "client decryption failed");
     assert_eq!(decrypted.stdout, b"110\n");
