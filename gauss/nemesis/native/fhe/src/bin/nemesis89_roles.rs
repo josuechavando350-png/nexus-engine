@@ -6,9 +6,9 @@ use bincode::Options;
 use nemesis_fhe::{Circuit, Gate};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::io::{self, Read, Write};
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use tfhe::boolean::gen_keys;
 use tfhe::boolean::prelude::*;
 
@@ -36,15 +36,31 @@ fn serialize<T: Serialize>(value: &T, max: usize) -> Result<Vec<u8>, String> {
     if bytes.len() > max { return Err("artifact exceeds size budget".into()); }
     Ok(bytes)
 }
-fn read_file(path: &str, max: usize) -> Result<Vec<u8>, String> {
-    let file = File::open(path).map_err(|_| "cannot read artifact")?;
+fn read_file(path: &str, max: usize, private_key: bool) -> Result<Vec<u8>, String> {
+    // Do not follow symlinks, special devices or files replaced between validation and open.
+    // A private key must be single-linked and inaccessible to group and other users.
+    let before = fs::symlink_metadata(path).map_err(|_| "cannot read artifact")?;
+    if !before.file_type().is_file() || (private_key && before.nlink() != 1) {
+        return Err("unsafe artifact type or link count".into());
+    }
+    let mut options = OpenOptions::new();
+    options.read(true);
+    // Linux O_NOFOLLOW: reject even a symlink introduced after symlink_metadata().
+    #[cfg(target_os = "linux")]
+    options.custom_flags(0o400000);
+    let file = options.open(path).map_err(|_| "cannot read artifact")?;
+    let opened = file.metadata().map_err(|_| "cannot inspect artifact")?;
+    if !opened.file_type().is_file() || before.dev() != opened.dev() || before.ino() != opened.ino()
+        || (private_key && (opened.nlink() != 1 || opened.permissions().mode() & 0o077 != 0)) {
+        return Err("unsafe artifact permissions or identity".into());
+    }
     let mut bytes = Vec::new();
     file.take(max as u64 + 1).read_to_end(&mut bytes).map_err(|_| "cannot read artifact")?;
     if bytes.len() > max { return Err("artifact exceeds size budget".into()); }
     Ok(bytes)
 }
-fn load<T: DeserializeOwned>(path: &str, max: usize) -> Result<Envelope<T>, String> {
-    let bytes = read_file(path, max)?;
+fn load<T: DeserializeOwned>(path: &str, max: usize, private_key: bool) -> Result<Envelope<T>, String> {
+    let bytes = read_file(path, max, private_key)?;
     let envelope: Envelope<T> = codec().with_limit(max as u64).deserialize(&bytes).map_err(|_| "invalid artifact")?;
     if envelope.version != VERSION { return Err("unsupported artifact version".into()); }
     Ok(envelope)
@@ -53,10 +69,15 @@ fn save(path: &str, bytes: &[u8]) -> Result<(), String> {
     // create_new rejects existing files and symlinks; 0600 prevents other local users reading keys.
     let mut file = OpenOptions::new().write(true).create_new(true).mode(0o600)
         .open(path).map_err(|_| "cannot create new artifact")?;
+    let created = file.metadata().map_err(|_| "cannot inspect new artifact")?;
     if file.write_all(bytes).and_then(|_| file.sync_all()).is_err() {
-        // A short write or failed sync must not leave an apparently usable key or ciphertext.
+        // Do not unlink a different file substituted at the destination after creation.
         drop(file);
-        let _ = fs::remove_file(path);
+        if let Ok(current) = fs::symlink_metadata(path) {
+            if current.dev() == created.dev() && current.ino() == created.ino() {
+                let _ = fs::remove_file(path);
+            }
+        }
         return Err("cannot persist artifact".into());
     }
     Ok(())
@@ -134,16 +155,16 @@ fn run() -> Result<(), String> {
         }
         [_, "encrypt", client_path, ciphertext_path] => {
             let bits = read_bits()?; // Private values only via stdin, never process argv.
-            let client: Envelope<ClientKey> = load(client_path, MAX_KEY)?;
+            let client: Envelope<ClientKey> = load(client_path, MAX_KEY, true)?;
             let encrypted: Vec<Ciphertext> = bits.into_iter().map(|bit| client.body.encrypt(bit)).collect();
             let bytes = serialize(&Envelope { version: VERSION, key_id: client.key_id, body: encrypted }, MAX_CIPHERTEXT)?;
             save(ciphertext_path, &bytes)
         }
         [_, "evaluate", server_path, input_path, output_path, gates, outputs] => {
             // Evaluator has no secret-key path, deserializer or decrypt operation.
-            let server: Envelope<ServerKey> = load(server_path, MAX_KEY)?;
+            let server: Envelope<ServerKey> = load(server_path, MAX_KEY, false)?;
             if key_id(&server.body)? != server.key_id { return Err("server key identity mismatch".into()); }
-            let inputs: Envelope<Vec<Ciphertext>> = load(input_path, MAX_CIPHERTEXT)?;
+            let inputs: Envelope<Vec<Ciphertext>> = load(input_path, MAX_CIPHERTEXT, false)?;
             if server.key_id != inputs.key_id { return Err("ciphertext belongs to another key".into()); }
             let circuit = circuit(inputs.body.len(), gates, outputs)?;
             let evaluated = circuit.evaluate(&server.body, &inputs.body)?;
@@ -151,8 +172,8 @@ fn run() -> Result<(), String> {
             save(output_path, &bytes)
         }
         [_, "decrypt", client_path, output_path] => {
-            let client: Envelope<ClientKey> = load(client_path, MAX_KEY)?;
-            let output: Envelope<Vec<Ciphertext>> = load(output_path, MAX_CIPHERTEXT)?;
+            let client: Envelope<ClientKey> = load(client_path, MAX_KEY, true)?;
+            let output: Envelope<Vec<Ciphertext>> = load(output_path, MAX_CIPHERTEXT, false)?;
             if client.key_id != output.key_id || output.body.is_empty() || output.body.len() > MAX_OUTPUTS {
                 return Err("wrong key or invalid output count".into());
             }
