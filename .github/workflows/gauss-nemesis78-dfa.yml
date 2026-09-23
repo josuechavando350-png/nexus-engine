@@ -3,8 +3,10 @@ on:
   pull_request:
     paths:
       - 'gauss/nemesis/dfa-78.mjs'
+      - 'gauss/nemesis/dfa-78-reference.mjs'
       - 'gauss/nemesis/bridge.mjs'
       - 'gauss/nemesis/tests/dfa-78.test.mjs'
+      - 'gauss/nemesis/tests/dfa-78-reference.test.mjs'
       - '.github/workflows/gauss-nemesis78-dfa.yml'
   workflow_dispatch:
 permissions:
@@ -22,6 +24,7 @@ jobs:
         run: |
           node gauss/nemesis/scripts/verify-source-lock.mjs
           node --check gauss/nemesis/dfa-78.mjs
+          node --check gauss/nemesis/dfa-78-reference.mjs
           node --check gauss/nemesis/bridge.mjs
-      - name: Exercise mathematical invariants, original #78 and GAUSS bridge
-        run: node --test gauss/nemesis/tests/dfa-78.test.mjs
+      - name: Exercise original #78, multifractal and bounded Gaussian reference through GAUSS
+        run: node --test gauss/nemesis/tests/dfa-78.test.mjs gauss/nemesis/tests/dfa-78-reference.test.mjs
