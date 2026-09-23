@@ -6,18 +6,17 @@
  * implementation must be reviewed separately. Not a production certification.
  */
 import {spawnSync} from 'node:child_process';
-import {createHash} from 'node:crypto';
-import {readFileSync, writeFileSync, mkdtempSync, rmSync} from 'node:fs';
+import {writeFileSync, mkdtempSync, rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {join, resolve} from 'node:path';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {readPinnedNativeBinary} from './read-pinned-native.mjs';
 
 const DEFAULT_BINARY = fileURLToPath(new URL('./native/isogeny81/bin/nexus81_p324_3', import.meta.url));
 const PK_BYTES = 83;
 const SK_BYTES = 270;
 const SIGNATURE_BYTES = 200;
 const MAX_MESSAGE_BYTES = 65536;
-const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 
 function fields(value, allowed, required) {
   if (value === null || typeof value !== 'object' || Array.isArray(value) || Object.getPrototypeOf(value) !== Object.prototype)
@@ -43,12 +42,7 @@ function invoke(binary, pin, mode, stdin, expectedLength) {
     throw new TypeError('motor 81: invalid executable path');
   if (typeof pin !== 'string' || !/^[0-9a-f]{64}$/.test(pin))
     throw new TypeError('motor 81: a trusted expectedBinarySha256 is required');
-  let bytes;
-  try { bytes = readFileSync(resolve(binary)); }
-  catch { throw new Error('NEMESIS_81_NATIVE_BINARY_MISSING'); }
-  if (bytes.length > 128 * 1024 * 1024) throw new Error('NEMESIS_81_NATIVE_BINARY_TOO_LARGE');
-  const digest = hash(bytes);
-  if (digest !== pin) throw new Error('NEMESIS_81_BINARY_PIN_MISMATCH');
+  const {bytes,digest} = readPinnedNativeBinary(binary,pin,'NEMESIS_81_NATIVE');
   const dir = mkdtempSync(join(tmpdir(), 'gauss-nemesis81-'));
   try {
     const path = join(dir, 'nexus81');
