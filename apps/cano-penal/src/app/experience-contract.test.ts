@@ -34,6 +34,12 @@ describe("CANO organic integration contract", () => {
     }
   });
 
+  it("keeps the fixed header readable on pale and dark interior heroes", () => {
+    const chrome = readFileSync(new URL("./chrome.css", import.meta.url), "utf8");
+    expect(chrome).toContain("body:not(:has(.cp-hero)) .cp-header");
+    expect(chrome).toContain("background:#0c1116");
+  });
+
   it("replaces the inoperative homepage form and links into the acquisition routes", () => {
     const home = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
     const nav = readFileSync(new URL("./content.ts", import.meta.url), "utf8");
