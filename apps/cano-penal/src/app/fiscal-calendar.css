@@ -18,6 +18,12 @@
 .cp-cal-filter>span{font-size:.68rem;color:#aab6c0;letter-spacing:.13em;text-transform:uppercase}
 .cp-cal-filter select{appearance:none;border:1px solid #677480;border-radius:0;color:#eef1f3;background:#19222b;padding:1.1rem 2rem 1.1rem 1rem;cursor:pointer}
 .cp-cal-filter option{color:#fff;background:#1b252f}
+.cp-cal-disclaimer{display:grid;grid-template-columns:minmax(11rem,.36fr) minmax(0,1fr);gap:clamp(1.5rem,4vw,4rem);padding:clamp(1.6rem,3.2vw,3rem) clamp(2rem,4vw,4rem);background:#24313c;border-bottom:1px solid #778892;color:#e9f0f3}
+.cp-cal-disclaimer-label{display:grid;align-content:start;gap:.7rem}
+.cp-cal-disclaimer-label span{font-size:.65rem;text-transform:uppercase;letter-spacing:.17em;color:#b1c1cb}
+.cp-cal-disclaimer-label strong{font-weight:400;font-size:clamp(1.1rem,1.65vw,1.5rem);line-height:1.35}
+.cp-cal-disclaimer>p{margin:0;line-height:1.85;color:#d6e1e8;font-size:clamp(.88rem,1.05vw,1.02rem)}
+@media(max-width:730px){.cp-cal-disclaimer{grid-template-columns:1fr;gap:1.15rem;padding:1.7rem}}
 .cp-cal-workspace{display:grid;grid-template-columns:minmax(0,1.12fr) minmax(0,.88fr)}
 .cp-cal-monthly{border-right:1px solid #3b4651;padding:clamp(1.5rem,3vw,3rem)}
 .cp-cal-navigation{display:flex;justify-content:space-between;align-items:center;gap:1rem}
