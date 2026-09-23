@@ -1,0 +1,25 @@
+{
+  "action": "enumerate",
+  "payload": {
+    "rowPayoffs": [
+      [
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0"
+      ]
+    ],
+    "columnPayoffs": [
+      [
+        "0",
+        "0"
+      ],
+      [
+        "0",
+        "0"
+      ]
+    ]
+  }
+}

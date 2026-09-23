@@ -1,0 +1,6 @@
+{
+  "tasks": [
+    {"id":"select","motor":"64","input":{"transition":[[[1],[1]]],"observation":[[[1,0]],[[1,0]]],"rewards":[[1,2]],"belief":[1],"horizon":3}},
+    {"id":"forecast","motor":"63","input":{"snapshots":[[1],[2],[4]],"forecastSteps":{"$ref":{"taskId":"select","path":["action"]}}}}
+  ]
+}

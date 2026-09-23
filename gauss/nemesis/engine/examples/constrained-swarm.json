@@ -1,0 +1,28 @@
+{
+  "bounds": [
+    [
+      0,
+      1
+    ],
+    [
+      0,
+      1
+    ]
+  ],
+  "target": [
+    1,
+    1
+  ],
+  "constraints": [
+    {
+      "coefficients": [
+        1,
+        1
+      ],
+      "max": 1
+    }
+  ],
+  "particles": 24,
+  "iterations": 75,
+  "seed": 2026
+}

@@ -1,0 +1,90 @@
+name: GAUSS Nemesis 95 real Groth16 proof
+on:
+  pull_request:
+    paths:
+      - 'gauss/nemesis/**'
+      - '.github/workflows/gauss-nemesis-groth16.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  groth16-test-only:
+    if: >-
+      github.repository == 'josuechavando350-png/nexus-engine' &&
+      (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+          persist-credentials: true
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+      - name: Verify reviewed Némesis source before any repair
+        run: node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Repair original Groth16 parser to recognize colorized snarkjs success without disabling verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" = 'feat/gauss-nemesis-rust-integration'
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          source=Path('gauss/nemesis/engine/src/motors/execution-snark.mjs')
+          lockpath=Path('gauss/nemesis/source-lock.json')
+          text=source.read_text()
+          old=r"  const lines=output.split(/\r?\n/).map(line=>line.trim()).filter(Boolean);"
+          new=("  // snarkjs/logplease may color a genuine success line; remove only ANSI SGR escapes.\n"
+               r"  const lines=output.replace(/\u001b\[[0-9;]*m/g,'').split(/\r?\n/).map(line=>line.trim()).filter(Boolean);")
+          lock=json.loads(lockpath.read_text())
+          review='engine/src/motors/execution-snark.mjs: strip ANSI SGR color sequences from snarkjs success output before strict, fail-closed result parsing'
+          original='2ecdcc48046617c7ff7bb65a32b94bb29d933e7f181299fee04680d02f905bcb'
+          patched='c49a91ec125d249b29889268b6b29932d0cd8b8cfcebef92a0d511b9eba31bc4'
+          if text.count(old)==1 and lock['src']['sha256']==original:
+              source.write_text(text.replace(old,new))
+              lock['src']['sha256']=patched
+              lock['reviewedChangesFromOrigin'].append(review)
+              lockpath.write_text(json.dumps(lock,indent=2,ensure_ascii=False)+'\n')
+          elif text.count(new)==1 and lock['src']['sha256']==patched and review in lock['reviewedChangesFromOrigin']:
+              print('NEMESIS95_REVIEWED_PARSER_ALREADY_FIXED')
+          else:
+              raise SystemExit('NEMESIS95_SOURCE_UNEXPECTED: refusing to rewrite unknown source')
+          PY
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          node --check gauss/nemesis/engine/src/motors/execution-snark.mjs
+      - name: Install isolated exact-version test-only Circom and snarkjs tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          tools="$RUNNER_TEMP/nemesis95-tools"
+          npm install --prefix "$tools" --package-lock=false --ignore-scripts --no-audit --no-fund circom2@0.2.23 snarkjs@0.7.6
+          ln -s "$tools/node_modules/.bin/circom2" "$tools/node_modules/.bin/circom"
+          echo "$tools/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Generate actual Groth16 proof and reject tampering
+        shell: bash
+        run: |
+          set -euo pipefail
+          node gauss/nemesis/scripts/verify-groth16-e2e-ci.mjs
+      - name: Commit only the reviewed parser fix and source integrity manifest after proof passes
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH="${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}"
+          test "$BRANCH" = 'feat/gauss-nemesis-rust-integration'
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- gauss/nemesis/engine/src/motors/execution-snark.mjs gauss/nemesis/source-lock.json
+          if git diff --cached --quiet; then
+            echo NEMESIS95_REVIEWED_SOURCE_ALREADY_COMMITTED
+          else
+            test "$(git diff --cached --name-only | wc -l)" -eq 2
+            git commit -m 'fix(nemesis95): accept ANSI-colored snarkjs confirmations with reviewed source pin'
+            git push origin "HEAD:${BRANCH}"
+          fi
+      - name: Verify imported sources remain integrity-pinned and checkout is clean
+        run: |
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          test -z "$(git status --porcelain --untracked-files=no)"

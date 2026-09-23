@@ -1,0 +1,15 @@
+{
+  "action": "train",
+  "payload": {
+    "costs": [
+      0,
+      1,
+      1,
+      0
+    ],
+    "layers": 1,
+    "seed": 19,
+    "starts": 3,
+    "iterations": 100
+  }
+}

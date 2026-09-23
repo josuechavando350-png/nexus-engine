@@ -1,0 +1,1 @@
+{"nodes":["A","B","C"],"edges":[{"from":"A","to":"B","conductance":1},{"from":"B","to":"C","conductance":1}],"initial":[1,0,0],"diffusivity":1,"dt":0.2,"steps":20,"sampleEvery":5}

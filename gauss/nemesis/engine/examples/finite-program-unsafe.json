@@ -1,0 +1,20 @@
+{
+  "program": {
+    "variables": {
+      "phase": { "domain": ["READY", "DONE", "ERROR"], "initial": "READY" },
+      "credits": { "domain": [0, 1], "initial": 0 }
+    },
+    "commands": [
+      { "id": "approve", "guard": { "op": "EQ", "left": { "op": "VAR", "name": "phase" }, "right": { "op": "CONST", "value": "READY" } }, "updates": { "phase": { "op": "CONST", "value": "DONE" }, "credits": { "op": "CONST", "value": 1 } } },
+      { "id": "bypass", "guard": { "op": "EQ", "left": { "op": "VAR", "name": "phase" }, "right": { "op": "CONST", "value": "READY" } }, "updates": { "phase": { "op": "CONST", "value": "ERROR" } } }
+    ],
+    "predicates": {
+      "safe": { "op": "NE", "left": { "op": "VAR", "name": "phase" }, "right": { "op": "CONST", "value": "ERROR" } },
+      "done": { "op": "EQ", "left": { "op": "VAR", "name": "phase" }, "right": { "op": "CONST", "value": "DONE" } }
+    }
+  },
+  "properties": [
+    { "id": "safety", "required": true, "formula": { "op": "AG", "arg": { "op": "ATOM", "name": "safe" } } },
+    { "id": "some_progress", "required": true, "formula": { "op": "EF", "arg": { "op": "ATOM", "name": "done" } } }
+  ]
+}

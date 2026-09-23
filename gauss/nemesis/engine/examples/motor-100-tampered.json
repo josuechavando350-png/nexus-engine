@@ -1,0 +1,29 @@
+{
+  "certificate": {
+    "statement": {
+      "kind": "SIGNED_STATE_TRANSITION_V1",
+      "beforeHash": "e718744f65fcf657d5c4ddc726c61dee742f4b42a98fd07109d7b24f4d7e7092",
+      "afterHash": "7b575d314ff610227aef3d75242d21a3a05f547f70ae1b4ac5d795f63dbb1523",
+      "invariants": [
+        "safe"
+      ],
+      "context": "session",
+      "epoch": 4,
+      "previousHash": "root"
+    },
+    "signature": "oD7xs5o534bGnTHNRAdEg6hY7nEbGOwAehSoEmevTSGkzFMFarJnUN8th4KUlLgzxtuKpoZD7+Eybsl4Y27JDw==",
+    "algorithm": "Ed25519"
+  },
+  "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAMJhfTEHbmd4jNRXV7/lPGgWGbczpgt6xJI5N8AGTwA4=\n-----END PUBLIC KEY-----\n",
+  "before": {
+    "safe": true,
+    "n": 1
+  },
+  "after": {
+    "safe": true,
+    "n": 2
+  },
+  "context": "session",
+  "epoch": 5,
+  "previousHash": "root"
+}

@@ -1,0 +1,1 @@
+{"decisions":["A","B","C"],"scenarios":["calm","stress"],"objective":[[1,10],[4,5],[9,2]],"feasible":[[true,true],[true,true],[true,false]]}

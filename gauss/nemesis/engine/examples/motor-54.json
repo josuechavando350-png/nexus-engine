@@ -1,0 +1,11 @@
+{
+  "initialAngle": 3.13,
+  "initialVariance": 1,
+  "processVariance": 0,
+  "measurementVariance": 0.01,
+  "angularVelocity": 0,
+  "dt": 1,
+  "measurements": [
+    -3.13
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "motor": 95,
+  "backend": "GROTH16_BN254",
+  "startedAt": "2026-09-22T15:48:48.045Z",
+  "status": "BLOCKED_OR_FAILED",
+  "tests": {},
+  "error": "verification key differs from independently trusted pin",
+  "finishedAt": "2026-09-22T15:48:48.049Z"
+}

@@ -1,0 +1,1 @@
+{"alpha":"9/10","maxCvar":"54/1","scenarios":[{"id":"ordinary","loss":0,"probability":"9/10"},{"id":"bad","loss":10,"probability":"1/20"},{"id":"severe","loss":100,"probability":"1/20"}]}

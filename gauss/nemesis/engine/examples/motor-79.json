@@ -1,0 +1,14 @@
+{
+  "bounds": [
+    [
+      -2,
+      2
+    ]
+  ],
+  "target": [
+    0.2
+  ],
+  "particles": 32,
+  "iterations": 100,
+  "seed": 12
+}

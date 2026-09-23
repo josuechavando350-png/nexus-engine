@@ -1,0 +1,28 @@
+{
+  "action": "inferGraph",
+  "payload": {
+    "graph": {
+      "variables": [
+        2
+      ],
+      "factors": [
+        {
+          "scope": [
+            0
+          ],
+          "features": [
+            [
+              0
+            ],
+            [
+              1
+            ]
+          ]
+        }
+      ]
+    },
+    "weights": [
+      1.3862943611198906
+    ]
+  }
+}

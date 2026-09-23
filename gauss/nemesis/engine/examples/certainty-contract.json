@@ -1,0 +1,1 @@
+{"contract":{"id":"BuildGate","artifactSha256":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","predicates":[{"metric":"latency","op":"LTE","value":100},{"metric":"errors","op":"EQ","value":0}]},"observations":[{"metric":"latency","value":80},{"metric":"errors","value":0}]}

@@ -1,0 +1,794 @@
+[
+  {
+    "numero": 1,
+    "nombre": "Verificación Formal (Lógica de Autómatas)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/ctl.mjs",
+    "alcance": "Modelo CTL y DSL finitos, no código JS/TS arbitrario"
+  },
+  {
+    "numero": 2,
+    "nombre": "Inferencia Causal (Cálculo de Judea Pearl)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/causal.mjs",
+    "alcance": "DAG binario completo y conocido, sin aprendizaje estructural"
+  },
+  {
+    "numero": 3,
+    "nombre": "Teoría de Juegos / Equilibrio de Nash (Montecarlo Masivo)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/game.mjs",
+    "alcance": "Nash puro 2 jugadores 2–8 estrategias; mezcla interior 2x2 no degenerada | v11: Enumeración racional de familias de equilibrios mixtos, soportes desiguales y degeneración. Límite 5×5 y presupuesto de enumeración; no Monte Carlo de juegos masivos.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/nash-polytopes.mjs",
+      "pruebas": "test/crypto-nash-qaoa.test.mjs",
+      "capacidad": "Enumeración racional de familias de equilibrios mixtos, soportes desiguales y degeneración.",
+      "limite": "Límite 5×5 y presupuesto de enumeración; no Monte Carlo de juegos masivos."
+    }
+  },
+  {
+    "numero": 4,
+    "nombre": "Optimización Cuántica Local (QAOA Simulator)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/qaoa.mjs",
+    "alcance": "Simulación QAOA ideal MaxCut <=8 vértices, hasta 4 capas, sin entrenamiento/hardware | v11: Entrenamiento con gradiente por diferenciación automática, reinicios y Hamiltonianos diagonales. Simulación local hasta 10 qubits bajo presupuesto; sin óptimo global de ángulos ni QPU.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/qaoa-training.mjs",
+      "pruebas": "test/crypto-nash-qaoa.test.mjs",
+      "capacidad": "Entrenamiento con gradiente por diferenciación automática, reinicios y Hamiltonianos diagonales.",
+      "limite": "Simulación local hasta 10 qubits bajo presupuesto; sin óptimo global de ángulos ni QPU."
+    }
+  },
+  {
+    "numero": 5,
+    "nombre": "Entropía de Shannon y Variables Ocultas",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/hmm.mjs",
+    "alcance": "HMM de número de estados conocido, aprendizaje local de parámetros y entropía"
+  },
+  {
+    "numero": 6,
+    "nombre": "Caminatas Aleatorias Cuánticas",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/quantum-walk.mjs",
+    "alcance": "CTQW adyacencia ponderada y Grover coin/discrete flip-flop en grafos no dirigidos <=12 vertices"
+  },
+  {
+    "numero": 7,
+    "nombre": "Inversión Temporal (Kalman de Orden Superior)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/kalman.mjs",
+    "alcance": "Kalman lineal Gaussian multivariado y RTS de intervalo fijo, dimension <=6"
+  },
+  {
+    "numero": 8,
+    "nombre": "Validador Lógico Invariable (Zero-Knowledge Proofs Coherentes)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/zk-opening.mjs",
+    "alcance": "Pedersen en QR MODP14 y prueba de conocimiento de apertura; NO prueba de rango, circuito ni auditoria criptografica externa"
+  },
+  {
+    "numero": 9,
+    "nombre": "Actualización Bayesiana Asíncrona Continua",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/bayes-stream.mjs",
+    "alcance": "Bayes binario exacto con eventos condicionalmente independientes, deduplicacion y replay por tiempo"
+  },
+  {
+    "numero": 10,
+    "nombre": "Programador de Agentes Espejo",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/mirror-agent.mjs",
+    "alcance": "Dos Node worker_threads ejecutan FSM declarativa con comparacion de trazas, sin sandbox de codigo externo"
+  },
+  {
+    "numero": 11,
+    "nombre": "Filtro de Sesgo de Confirmación Humana",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/selection-bias.mjs",
+    "alcance": "Condicionamiento bayesiano exacto de evidencia binaria en muestra seleccionada con propensiones conocidas; no diagnostico cognitivo"
+  },
+  {
+    "numero": 12,
+    "nombre": "Motor de Aislamiento de Cisnes Negros",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/tail-risk.mjs",
+    "alcance": "VaR y CVaR exactos de pérdidas discretas finitas con probabilidades conocidas; no cubre cisnes negros no modelados"
+  },
+  {
+    "numero": 13,
+    "nombre": "Motor de Sincronización de Relojes de Redes Complejas (Chronos Engine)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/chronos.mjs",
+    "alcance": "Restricciones de diferencias de offsets enteros, cotas exactas, testigo de inconsistencia; no sincroniza relojes de red"
+  },
+  {
+    "numero": 14,
+    "nombre": "Resolvedor de Lógica Difusa de Segundo Orden",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/fuzzy-second-order.mjs",
+    "alcance": "Logica difusa Godel finita con cuantificacion sobre universo explicito de interpretaciones; no logica general"
+  },
+  {
+    "numero": 15,
+    "nombre": "Motor de Evolución Gramatical y Mutación de Código (Self-Healing Code)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/grammar-repair.mjs",
+    "alcance": "Busqueda exhaustiva acotada de 0-2 ediciones AST para expresiones enteras sobre ejemplos; no repara codigo fuente real"
+  },
+  {
+    "numero": 16,
+    "nombre": "Calculador de Robustez Estructural",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/structural-robustness.mjs",
+    "alcance": "Articulaciones, puentes y cortes mínimos s-t exactos en grafos simples no dirigidos <=12 nodos"
+  },
+  {
+    "numero": 17,
+    "nombre": "Motor de Ontología de Dominio Cruzado",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/cross-domain-ontology.mjs",
+    "alcance": "Cierre transitivo de subclases/equivalencias, inferencia positiva y conflicto de tipos en ontología finita"
+  },
+  {
+    "numero": 18,
+    "nombre": "Gestor de Fricción de Ingesta Inversa",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/reverse-ingestion.mjs",
+    "alcance": "Plan reverse-ETL determinista sobre registros JSON <=256, CAS y aplicación transaccional solo en memoria"
+  },
+  {
+    "numero": 19,
+    "nombre": "Motor de Ingesta de Dark Data",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/dark-data.mjs",
+    "alcance": "Catálogo bytes UTF-8/base64 local <=256 KiB/documento, SHA-256, deduplicación y búsqueda exacta en texto declarado"
+  },
+  {
+    "numero": 20,
+    "nombre": "Compilador de Contratos de Certeza Criptográfica",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/certainty-contract.mjs",
+    "alcance": "Contrato declarativo de predicados numéricos, hash SHA-256 y atestación Ed25519 verificable de reporte aportado"
+  },
+  {
+    "numero": 21,
+    "nombre": "Motor de Geometría de Información No-Riemanniana",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/information-geometry.mjs",
+    "alcance": "KL direccional, JS y variacion total en simplex finito; no geometria no riemanniana general"
+  },
+  {
+    "numero": 22,
+    "nombre": "Resolvedor de Atractores de Lorenz de Alta Dimensión",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/lorenz96.mjs",
+    "alcance": "ODE Lorenz-96 N=4..128 integrado RK4; estimador Lyapunov finito de una perturbacion, no prueba de atractor"
+  },
+  {
+    "numero": 23,
+    "nombre": "Filtro de Kalman Ensamblado de Alta Dimensión",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/ensemble-kalman.mjs",
+    "alcance": "EnKF estocastico lineal gaussiano con ensamble <=256, semilla y covarianzas definidas positivas"
+  },
+  {
+    "numero": 24,
+    "nombre": "Motor de Redes Neuronales Informadas por la Física (PINN)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/pinn-poisson.mjs",
+    "alcance": "Red tanh de capa oculta fija con readout aprendido mediante residuos PDE; Poisson 1D condiciones Dirichlet"
+  },
+  {
+    "numero": 25,
+    "nombre": "Simulador de Dinámica de Fluidos de Información",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/information-diffusion.mjs",
+    "alcance": "Difusion Laplaciana conservativa en grafo no dirigido <=128 nodos bajo cota Euler explicita"
+  },
+  {
+    "numero": 26,
+    "nombre": "Multilayer Stackelberg",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/stackelberg.mjs",
+    "alcance": "Induccion hacia atras 3 jugadores secuenciales juego finito de informacion perfecta"
+  },
+  {
+    "numero": 27,
+    "nombre": "Persistent-homology TDA",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/persistent-homology.mjs",
+    "alcance": "Homologia persistente Vietoris-Rips H0/H1 sobre <=16 puntos, filtracion a traves de triangulos en Z2"
+  },
+  {
+    "numero": 28,
+    "nombre": "Causal inverse reinforcement learning",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/causal-irl.mjs",
+    "alcance": "MaxEnt IRL tabular horizonte finito con dinamicas interventionales aportadas, no descubrimiento causal"
+  },
+  {
+    "numero": 29,
+    "nombre": "Multivariate transfer entropy",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/transfer-entropy.mjs",
+    "alcance": "Estimador plug-in de I(Xprev;Yactual|Yprev,Zprev) categorico multivariado sin prueba de causalidad"
+  },
+  {
+    "numero": 30,
+    "nombre": "Scenario-robust optimization",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/scenario-robust.mjs",
+    "alcance": "Enumeracion exacta de decisiones discretas minimax costo y minimax arrepentimiento bajo escenarios y restricciones explicitos"
+  },
+  {
+    "numero": 31,
+    "nombre": "Cryptographic local smart-contract compiler",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/local-contract-vm.mjs",
+    "alcance": "Compilador determinista de reglas de enteros a VM local con hash, guardias, aplicación in-memory, sin blockchain"
+  },
+  {
+    "numero": 32,
+    "nombre": "Large-scale dynamic graphs",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/dynamic-graphs.mjs",
+    "alcance": "Grafo no dirigido 1-10000 nodos, altas y bajas en memoria, componentes, grados y BFS recalculados"
+  },
+  {
+    "numero": 33,
+    "nombre": "Empirical mode decomposition",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/emd.mjs",
+    "alcance": "EMD de series finitas por cribado y envolventes lineales, reconstrucción numérica; no spline cúbico"
+  },
+  {
+    "numero": 34,
+    "nombre": "Dynamic Bayesian networks",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/dynamic-bayes.mjs",
+    "alcance": "Filtro forward exacto por enumeración de estados conjuntos binarios <=64, transición y emisión conocidas"
+  },
+  {
+    "numero": 35,
+    "nombre": "Stochastic dynamic programming",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/stochastic-dp.mjs",
+    "alcance": "MDP tabular de horizonte finito, dinámica conocida, Bellman exacto en aritmética de coma flotante"
+  },
+  {
+    "numero": 36,
+    "nombre": "Causal time series via convergent cross mapping",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/ccm.mjs",
+    "alcance": "CCM de series reales por embedding y proyección simplex, habilidad predictiva, NO prueba causal"
+  },
+  {
+    "numero": 37,
+    "nombre": "Spatiotemporal random fields",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/spatiotemporal-fields.mjs",
+    "alcance": "Muestreo de campo gaussiano finito con covarianza espacio-tiempo exponencial y Cholesky"
+  },
+  {
+    "numero": 38,
+    "nombre": "Constrained particle swarms",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/constrained-swarm.mjs",
+    "alcance": "PSO estocástico reproducible con objetivo cuadrático y restricciones lineales; heurístico, sin optimalidad garantizada"
+  },
+  {
+    "numero": 39,
+    "nombre": "Local homomorphic computing",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/paillier.mjs",
+    "alcance": "Paillier aditivo local con claves >=512 bits, aleatoriedad del SO; experimental, NO auditoría/seguridad producción"
+  },
+  {
+    "numero": 40,
+    "nombre": "Formal verification of state invariants",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/invariant.mjs",
+    "alcance": "Prueba exhaustiva de invariantes inductivos Boolean DSL <=12 variables, contraejemplos alcanzables"
+  },
+  {
+    "numero": 41,
+    "nombre": "Dynamic-network ergodicity",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/network-ergodicity.mjs",
+    "alcance": "P finite ≤128; communicating classes, period, Cesaro estimate"
+  },
+  {
+    "numero": 42,
+    "nombre": "Lyapunov stability evaluation",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/lyapunov-linear.mjs",
+    "alcance": "1×1 or 2×2 discrete linear constant system; spectral test and numerical Lyapunov certificate"
+  },
+  {
+    "numero": 43,
+    "nombre": "Byzantine replica consensus",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/byzantine-quorum.mjs",
+    "alcance": "authenticated identities assumed; single-view quorum transcript only, no distributed protocol"
+  },
+  {
+    "numero": 44,
+    "nombre": "Amari Fisher-Rao geometry",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/fisher-rao.mjs",
+    "alcance": "categorical simplex Fisher metric and distance"
+  },
+  {
+    "numero": 45,
+    "nombre": "Zero-knowledge execution proofs",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/zk-relation.mjs",
+    "alcance": "Schnorr/Fiat-Shamir sobre grupo QR MODP14 fijo; prueba relación logaritmo discreto, no ejecución arbitraria ni seguridad auditada"
+  },
+  {
+    "numero": 46,
+    "nombre": "High-velocity square-root Kalman",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/sqrt-kalman.mjs",
+    "alcance": "bounded multivariate Gaussian Kalman Joseph+Cholesky, no optimized QR | v11: Kalman multivariable de factores por QR Givens, sin formar covarianza en la actualización. Hasta 32 estados; comparte implementación con #96; faltan benchmarks de despliegue.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/factor-kalman.mjs",
+      "pruebas": "test/factor-and-svd.test.mjs",
+      "capacidad": "Kalman multivariable de factores por QR Givens, sin formar covarianza en la actualización.",
+      "limite": "Hasta 32 estados; comparte implementación con #96; faltan benchmarks de despliegue."
+    }
+  },
+  {
+    "numero": 47,
+    "nombre": "Causal-economic constrained variational inference",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/constrained-vi.mjs",
+    "alcance": "categorical single linear moment I-projection; no causal structure learning"
+  },
+  {
+    "numero": 48,
+    "nombre": "Nonlinear bifurcation systems",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/logistic-bifurcation.mjs",
+    "alcance": "logistic map finite-time Lyapunov and approximate periods"
+  },
+  {
+    "numero": 49,
+    "nombre": "Stochastic CRF",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/linear-crf.mjs",
+    "alcance": "exact finite linear-chain CRF inference, fixed potentials, no training | v11: CRF de grafos y factores generales finitos, inferencia exacta y aprendizaje de todos los pesos. Enumeración hasta 65536 configuraciones; no inferencia escalable para grafos grandes.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/graph-crf.mjs",
+      "pruebas": "test/expanded-engines.test.mjs",
+      "capacidad": "CRF de grafos y factores generales finitos, inferencia exacta y aprendizaje de todos los pesos.",
+      "limite": "Enumeración hasta 65536 configuraciones; no inferencia escalable para grafos grandes."
+    }
+  },
+  {
+    "numero": 50,
+    "nombre": "Strict cryptographic invariance signatures",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/invariance-signature.mjs",
+    "alcance": "Ed25519 signed state invariance claim under caller-owned trusted keys; no authenticity of measurements"
+  },
+  {
+    "numero": 51,
+    "nombre": "Mean-Field Inference",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/mean-field-ising.mjs",
+    "alcance": "local factorized Ising coordinate ascent, not exact Ising inference"
+  },
+  {
+    "numero": 52,
+    "nombre": "Strange Attractors and Spatiotemporal Chaos",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/coupled-chaos.mjs",
+    "alcance": "coupled logistic lattice and finite-time tangent growth"
+  },
+  {
+    "numero": 53,
+    "nombre": "Ricci Curvature Tensor for Information Manifolds",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/ricci-simplex.mjs",
+    "alcance": "analytic Ricci tensor of interior categorical Fisher simplex"
+  },
+  {
+    "numero": 54,
+    "nombre": "Invariant Group Kalman Filter (Lie Groups)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/so2-kalman.mjs",
+    "alcance": "scalar SO(2) local error angle Kalman, not arbitrary Lie groups"
+  },
+  {
+    "numero": 55,
+    "nombre": "CNNs on Non-Euclidean Graphs",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/graph-convolution.mjs",
+    "alcance": "one normalized symmetric graph convolution layer, supplied weights | v11: GCN multicapa con entrenamiento por retropropagación y clasificación de nodos. Grafos no dirigidos, tanh/lineal, hasta 8 capas bajo presupuesto; no entrenamiento distribuido.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/train-graph-network.mjs",
+      "pruebas": "test/neural-training.test.mjs",
+      "capacidad": "GCN multicapa con entrenamiento por retropropagación y clasificación de nodos.",
+      "limite": "Grafos no dirigidos, tanh/lineal, hasta 8 capas bajo presupuesto; no entrenamiento distribuido."
+    }
+  },
+  {
+    "numero": 56,
+    "nombre": "Stochastic PDE (SPDE)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/stochastic-heat.mjs",
+    "alcance": "1D periodic stochastic heat Euler-Maruyama"
+  },
+  {
+    "numero": 57,
+    "nombre": "Mean Field Games",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/finite-mean-field-game.mjs",
+    "alcance": "two-state finite-horizon congestion game fixed-point iteration; no convergence guarantee"
+  },
+  {
+    "numero": 58,
+    "nombre": "Nonlinear ICA",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/nonlinear-unmix.mjs",
+    "alcance": "known invertible triangular nonlinear mix; no blind nonlinear ICA"
+  },
+  {
+    "numero": 59,
+    "nombre": "Constrained Box Gaussian-Process Bayesian Optimizer",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/gp-box-optimizer.mjs",
+    "alcance": "RBF GP EI over supplied finite in-box candidates"
+  },
+  {
+    "numero": 60,
+    "nombre": "Continuous-Time Stochastic Optimal Control",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/continuous-lqr.mjs",
+    "alcance": "scalar finite-horizon continuous stochastic LQR via numerical Riccati"
+  },
+  {
+    "numero": 61,
+    "nombre": "Local Differential Privacy Ingestion Compiler",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Categorical k-ary randomized response with secure randomness and per-record epsilon; no budget manager across calls | v11: Ingesta LDP con libro SQLite transaccional, presupuesto por sujeto, idempotencia y composición. Identidad autenticada, protección contra rollback y control de acceso al archivo corresponden al integrador.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/privacy-ledger.mjs",
+      "pruebas": "test/privacy-accounting.test.mjs",
+      "capacidad": "Ingesta LDP con libro SQLite transaccional, presupuesto por sujeto, idempotencia y composición.",
+      "limite": "Identidad autenticada, protección contra rollback y control de acceso al archivo corresponden al integrador."
+    }
+  },
+  {
+    "numero": 62,
+    "nombre": "Temporal-Attention Dynamic Graphs (TGAT)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Causal time-filtered temporal attention forward on supplied features/weights; no learned TGAT"
+  },
+  {
+    "numero": 63,
+    "nombre": "Dynamic Mode Decomposition (DMD)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Least-squares linear DMD operator and finite forecast; no complete spectral eigenbasis or large-scale streaming"
+  },
+  {
+    "numero": 64,
+    "nombre": "Partially Observable Markov Decision Processes (POMDP)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Exact finite belief-tree Bellman planning for known POMDP <=6 states; horizon <=5"
+  },
+  {
+    "numero": 65,
+    "nombre": "Stochastic Gradient Descent with Quantum Momentum",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Classical quantum-inspired rotating-momentum optimizer for bounded quadratic; no quantum hardware"
+  },
+  {
+    "numero": 66,
+    "nombre": "Archimedean Copulas for Multivariate Risks",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Clayton Archimedean copula CDF, Kendall tau and bivariate upper tail for supplied theta"
+  },
+  {
+    "numero": 67,
+    "nombre": "Nonlinear Cointegration of Time Series",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Polynomial residual fit and ADF-like statistic without calibrated critical values or proof of cointegration"
+  },
+  {
+    "numero": 68,
+    "nombre": "Stochastic Evolutionary Games",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Finite replicator-mutator expected dynamics with supplied payoff/mutation; not finite-population sampling | v11: Dinámica estocástica Wright–Fisher, selección/mutación, replicados y momentos multinomiales. Modelo finito de generaciones no solapadas; no valida datos biológicos/económicos externos.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/finite-population-game.mjs",
+      "pruebas": "test/expanded-engines.test.mjs",
+      "capacidad": "Dinámica estocástica Wright–Fisher, selección/mutación, replicados y momentos multinomiales.",
+      "limite": "Modelo finito de generaciones no solapadas; no valida datos biológicos/económicos externos."
+    }
+  },
+  {
+    "numero": 69,
+    "nombre": "Lattice-Based Cryptography Storage Compiler",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Textbook 16-dimensional LWE Regev encryption/decryption educational ONLY: cryptographically insecure, NEVER protect real data | v11: Almacenamiento binario autenticado ML-KEM-768/HKDF-SHA256/AES-256-GCM con claves externas. Envelopes hasta 16 MiB; no KMS/despliegue. El modo legado sigue siendo LWE educativo, explícitamente inseguro.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/lattice-storage.mjs",
+      "pruebas": "test/crypto-nash-qaoa.test.mjs",
+      "capacidad": "Almacenamiento binario autenticado ML-KEM-768/HKDF-SHA256/AES-256-GCM con claves externas.",
+      "limite": "Envelopes hasta 16 MiB; no KMS/despliegue. El modo legado sigue siendo LWE educativo, explícitamente inseguro."
+    }
+  },
+  {
+    "numero": 70,
+    "nombre": "Persistent Homology of Dynamic Data Streams",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-61-70.mjs",
+    "alcance": "Exact bounded H0/H1 Rips persistence recomputed over append-only point stream"
+  },
+  {
+    "numero": 71,
+    "nombre": "Cross-Entropy and Kullback-Leibler Divergence",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Discrete Shannon entropy, cross entropy, KL, JS with explicit infinite support mismatch"
+  },
+  {
+    "numero": 72,
+    "nombre": "Fokker-Planck Equations",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Periodic 1D conservative finite-volume Fokker-Planck drift/diffusion with CFL guard"
+  },
+  {
+    "numero": 73,
+    "nombre": "Quantum Coherence Tensor in Hilbert Spaces",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Qubit density matrix physicality, Bloch, purity and Pauli covariance tensor"
+  },
+  {
+    "numero": 74,
+    "nombre": "Particle Filter with Genetic-Algorithm Resampling",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Seeded scalar bootstrap particle filter and optional heuristic genetic perturbation (bias disclosed)"
+  },
+  {
+    "numero": 75,
+    "nombre": "Spatiotemporal Capsule Networks",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Finite capsule dynamic routing forward for supplied transforms, without training"
+  },
+  {
+    "numero": 76,
+    "nombre": "Modelador de Caminatas Aleatorias con Memoria a Largo Plazo",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Finite power-law history self-interacting random walk with seeded RNG"
+  },
+  {
+    "numero": 77,
+    "nombre": "Resolvedor de Ecuaciones de Navier-Stokes para Datos Volumétricos",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Bounded periodic 3D Navier-Stokes explicit finite differences and approximate Jacobi projection"
+  },
+  {
+    "numero": 78,
+    "nombre": "Motor de Análisis de Fluctuaciones sin Tendencia (DFA)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "DFA1 window detrending and log-log scaling diagnostic, no statistical confidence guarantee"
+  },
+  {
+    "numero": 79,
+    "nombre": "Optimizador de Enjambres con Dinámica de Fluidos Cuánticos",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Classical QPSO box-constrained quadratic objective heuristic; no quantum computation or global certificate"
+  },
+  {
+    "numero": 80,
+    "nombre": "Resolvedor de Control Hamiltoniano-Jacobi-Bellman",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-71-80.mjs",
+    "alcance": "Monotone scalar finite-grid stochastic HJB finite horizon and reflecting boundaries"
+  },
+  {
+    "numero": 81,
+    "nombre": "Compilador de Firmas Criptográficas Post-Cuánticas Basadas en Isogenias",
+    "estado": "PRIMITIVA_ACOTADA_NO_CUMPLE_ESPECIFICACION",
+    "codigo": "src/motors/isogeny-2.mjs",
+    "alcance": "Exact Vélu degree-2 isogeny over prime fields p<=1009; no signature/key generation/verification or post-quantum security."
+  },
+  {
+    "numero": 82,
+    "nombre": "Motor de Redes de Memoria a Corto y Largo Plazo con Compuertas Neuronales Informadas (p-LSTM)",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-82-88.mjs",
+    "alcance": "Peephole LSTM forward inference with supplied weights, no training | v11: Entrenamiento BPTT de LSTM peephole con pérdidas físicas declarativas y datos supervisados. Derivadas por diferencias temporales; condiciones/modelo físico los aporta el llamador; no PINN PDE universal.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/physics-lstm.mjs",
+      "pruebas": "test/neural-training.test.mjs",
+      "capacidad": "Entrenamiento BPTT de LSTM peephole con pérdidas físicas declarativas y datos supervisados.",
+      "limite": "Derivadas por diferencias temporales; condiciones/modelo físico los aporta el llamador; no PINN PDE universal."
+    }
+  },
+  {
+    "numero": 83,
+    "nombre": "Filtro de Descomposición en Valores Singulares Dinámicos de Gran Escala",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-82-88.mjs",
+    "alcance": "Finite iterative truncated SVD by power method/deflation; approximate not out-of-core | v11: SVD Jacobi sobre matriz directa y subespacio derecho incremental con memoria acotada y cota de compresión. No conserva vectores izquierdos históricos; hasta 64 columnas; no benchmark out-of-core masivo.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/jacobi-svd.mjs",
+      "pruebas": "test/factor-and-svd.test.mjs",
+      "capacidad": "SVD Jacobi sobre matriz directa y subespacio derecho incremental con memoria acotada y cota de compresión.",
+      "limite": "No conserva vectores izquierdos históricos; hasta 64 columnas; no benchmark out-of-core masivo."
+    }
+  },
+  {
+    "numero": 84,
+    "nombre": "Motor de Procesos de Decisión de Markov de Horizonte Infinito",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-82-88.mjs",
+    "alcance": "Discounted finite-state infinite-horizon MDP value iteration with computable Bellman error bound | v11: Corrección: política greedy calculada sobre los valores efectivamente devueltos. No implementa MDP continuos/no descontados; corrección del modo descontado existente.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/batch-82-88.mjs",
+      "pruebas": "test/convergence-certificates.test.mjs",
+      "capacidad": "Corrección: política greedy calculada sobre los valores efectivamente devueltos.",
+      "limite": "No implementa MDP continuos/no descontados; corrección del modo descontado existente."
+    }
+  },
+  {
+    "numero": 85,
+    "nombre": "Resolvedor de Optimización Convexa Mediante Métodos de Punto Interior",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-82-88.mjs",
+    "alcance": "Strictly feasible convex quadratic program Newton log-barrier, not general conic optimization | v11: Corrección: multiplicadores duales y brecha primal-dual real; límite de iteraciones explícito. Sigue siendo QP fuertemente convexo con punto inicial estrictamente factible; no SOCP/SDP.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/batch-82-88.mjs",
+      "pruebas": "test/convergence-certificates.test.mjs",
+      "capacidad": "Corrección: multiplicadores duales y brecha primal-dual real; límite de iteraciones explícito.",
+      "limite": "Sigue siendo QP fuertemente convexo con punto inicial estrictamente factible; no SOCP/SDP."
+    }
+  },
+  {
+    "numero": 86,
+    "nombre": "Motor de Análisis de Sincronización de Fases en Redes Complejas",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-82-88.mjs",
+    "alcance": "Kuramoto phase network deterministic integration and order parameter"
+  },
+  {
+    "numero": 87,
+    "nombre": "Modelador de Procesos de Puntos de Hawkes Auto-Excitados",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-82-88.mjs",
+    "alcance": "Known exponential Hawkes point-process likelihood and compensator, no parameter estimation | v11: Hawkes multivariante: verosimilitud, ajuste mu/alpha/beta, simulación y errores estándar cuando son identificables. Kernel exponencial excitatorio con beta compartida y prehistoria vacía; incertidumbre asintótica no siempre disponible.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/hawkes-model.mjs",
+      "pruebas": "test/expanded-engines.test.mjs",
+      "capacidad": "Hawkes multivariante: verosimilitud, ajuste mu/alpha/beta, simulación y errores estándar cuando son identificables.",
+      "limite": "Kernel exponencial excitatorio con beta compartida y prehistoria vacía; incertidumbre asintótica no siempre disponible."
+    }
+  },
+  {
+    "numero": 88,
+    "nombre": "Resolvedor de Teoría de Juegos de Campo Medio con Restricciones de Frontera",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-82-88.mjs",
+    "alcance": "Two-state finite-horizon boundary-constrained mean-field game policy iteration with convergence status"
+  },
+  {
+    "numero": 89,
+    "nombre": "Compilador de Criptografía Homomórfica Totalmente Funcional (FHE)",
+    "estado": "PRIMITIVA_ACOTADA_NO_CUMPLE_ESPECIFICACION",
+    "codigo": "src/motors/leveled-he.mjs",
+    "alcance": "Symmetric DGHV-style somewhat homomorphic encryption of bits with XOR/AND/OR/NOT/NAND and tracked noise; no bootstrapping or unbounded depth; not FHE.",
+    "backend_nativo_v14": "src/motors/native-fhe-adapter.mjs"
+  },
+  {
+    "numero": 90,
+    "nombre": "Motor de Geometría Diferencial de Espacios de Parámetros",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Categorical logistic statistical manifold Fisher matrix and regularized natural gradient"
+  },
+  {
+    "numero": 91,
+    "nombre": "Motor de Ergodicidad en Sistemas No Lineales",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Ulam finite partition logistic map Markov ergodicity approximation, not continuum proof"
+  },
+  {
+    "numero": 92,
+    "nombre": "Evaluador de Estabilidad Estocástica de Lyapunov",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Exact mean-square Lyapunov condition for random diagonal finite matrices"
+  },
+  {
+    "numero": 93,
+    "nombre": "Validador de Consistencia por Consensus Raft Criptográfico Local",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Offline Ed25519 authenticated local Raft transcript validator; NOT consensus protocol or signed replication transport"
+  },
+  {
+    "numero": 94,
+    "nombre": "Motor de Geometría de la Información de Chentsov",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Finite categorical Chentsov Fisher contraction under stochastic channels"
+  },
+  {
+    "numero": 95,
+    "nombre": "Compilador de Pruebas de Conocimiento Cero No Interactivas (zk-SNARKs) de Ejecución",
+    "estado": "PRIMITIVA_ACOTADA_NO_CUMPLE_ESPECIFICACION",
+    "codigo": "src/motors/linear-execution-nizk.mjs",
+    "alcance": "Fiat-Shamir generalized Schnorr NIZK of committed affine execution over a prime field with 2–8 secret variables; not a general zk-SNARK or arbitrary code execution.",
+    "compilador_snark_v14": "src/motors/execution-snark.mjs"
+  },
+  {
+    "numero": 96,
+    "nombre": "Filtro de Kalman de Raíz Cuadrada por Factorización Cholesky",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Scalar factor-form Cholesky Kalman update; distinct bounded factor formulation of proposal #46 | v11: Modelo multivariable variable en el tiempo, canales ausentes, factores semidefinidos y ruido correlacionado. Innovación singular se rechaza; no filtro pseudoinverso para restricciones redundantes; benchmarks externos pendientes.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/factor-kalman.mjs",
+      "pruebas": "test/factor-and-svd.test.mjs",
+      "capacidad": "Modelo multivariable variable en el tiempo, canales ausentes, factores semidefinidos y ruido correlacionado.",
+      "limite": "Innovación singular se rechaza; no filtro pseudoinverso para restricciones redundantes; benchmarks externos pendientes."
+    }
+  },
+  {
+    "numero": 97,
+    "nombre": "Motor de Inferencia Variacional con Restricciones Causal-Económicas",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Categorical multi-moment KL variational projection with Newton optimizer; not causal discovery"
+  },
+  {
+    "numero": 98,
+    "nombre": "Resolvedor de Sistemas Dinámicos No Lineales con Bifurcación de Hopf",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Supercritical Hopf normal-form RK4 flow and limit-cycle diagnostic"
+  },
+  {
+    "numero": 99,
+    "nombre": "Motor de Campos Aleatorios Condicionales (CRF) Estocásticos",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Linear-chain CRF supervised unary-bias training with fixed supplied transition matrix | v11: Entrenamiento de potenciales CRF sobre grafos finitos; mismo núcleo explícito que #49. Límite exponencial de inferencia exacta; sin nuevos modelos implícitos ni entrenamiento masivo.",
+    "ampliacion_v11": {
+      "codigo": "src/motors/graph-crf.mjs",
+      "pruebas": "test/expanded-engines.test.mjs",
+      "capacidad": "Entrenamiento de potenciales CRF sobre grafos finitos; mismo núcleo explícito que #49.",
+      "limite": "Límite exponencial de inferencia exacta; sin nuevos modelos implícitos ni entrenamiento masivo."
+    }
+  },
+  {
+    "numero": 100,
+    "nombre": "Compilador Criptográfico de Firmas de Invariancia de Estado Estricta",
+    "estado": "IMPLEMENTACION_ACOTADA_PROBADA",
+    "codigo": "src/motors/batch-90-100.mjs",
+    "alcance": "Ed25519 signed and hash-linked state transition verification with context/epoch/replay binding; no source authentication"
+  }
+]

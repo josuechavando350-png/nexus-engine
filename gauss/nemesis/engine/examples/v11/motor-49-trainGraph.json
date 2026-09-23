@@ -1,0 +1,263 @@
+{
+  "action": "trainGraph",
+  "payload": {
+    "examples": [
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          1
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          1
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          1
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          1
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          1
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          1
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          1
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          1
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          0
+        ]
+      },
+      {
+        "graph": {
+          "variables": [
+            2
+          ],
+          "factors": [
+            {
+              "scope": [
+                0
+              ],
+              "features": [
+                [
+                  0
+                ],
+                [
+                  1
+                ]
+              ]
+            }
+          ]
+        },
+        "labels": [
+          0
+        ]
+      }
+    ],
+    "initialWeights": [
+      0
+    ],
+    "l2": 0,
+    "tolerance": 1e-09,
+    "iterations": 1000
+  }
+}

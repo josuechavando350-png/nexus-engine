@@ -1,0 +1,102 @@
+name: GAUSS Nemesis lint migration (guarded)
+on:
+  push:
+    branches:
+      - feat/gauss-nemesis-rust-integration
+    paths:
+      - 'gauss/nemesis/scripts/repair-import-lint.mjs'
+      - '.github/workflows/gauss-nemesis-lint-migrate.yml'
+concurrency:
+  group: gauss-nemesis-lint-migrate-449
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  guarded-lint-migration:
+    if: github.repository == 'josuechavando350-png/nexus-engine'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact Némesis integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/gauss-nemesis-rust-integration
+          persist-credentials: true
+      - name: Pin Node version used by the original Némesis suite
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Install pinned pnpm
+        shell: bash
+        run: |
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+          pnpm install --frozen-lockfile
+      - name: Verify imported source lock before any edits
+        run: node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Generate exact lint diagnostics and repair only the 63 known errors
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          pnpm exec eslint gauss/nemesis --format json > "$RUNNER_TEMP/nemesis-lint-before.json"
+          lint_status=$?
+          set -e
+          test "$lint_status" -eq 1
+          node gauss/nemesis/scripts/repair-import-lint.mjs "$RUNNER_TEMP/nemesis-lint-before.json"
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          pnpm lint
+      - name: Verify NEXUS TypeScript types before recording candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm typecheck
+      - name: Commit only reviewed Némesis lint fixes locally for exact-SHA tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH='feat/gauss-nemesis-rust-integration'
+          test "$GITHUB_REF_NAME" = "$BRANCH"
+          git diff --name-only | while IFS= read -r path; do
+            case "$path" in
+              gauss/nemesis/engine/src/*|gauss/nemesis/engine/test/*|gauss/nemesis/engine/scripts/smoke-100.mjs|gauss/nemesis/native-fhe.mjs|gauss/nemesis/source-lock.json) ;;
+              *) echo "Unexpected modified file: $path" >&2; exit 1 ;;
+            esac
+          done
+          test "$(git diff --name-only | wc -l)" -eq 40
+          git add -u -- gauss/nemesis/engine/src/ gauss/nemesis/engine/test/ gauss/nemesis/engine/scripts/smoke-100.mjs gauss/nemesis/native-fhe.mjs gauss/nemesis/source-lock.json
+          test "$(git diff --cached --name-only | wc -l)" -eq 40
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'GAUSS Némesis: resolve imported lint errors without disabling rules (not certified)'
+          test -z "$(git status --porcelain --untracked-files=no)"
+      - name: Verify NEXUS workspace tests against clean committed candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain --untracked-files=no)"
+          pnpm test
+      - name: Verify Némesis original suite and full GAUSS bridge in this repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
+          node gauss/nemesis/engine/scripts/smoke-100.mjs
+          node --test gauss/nemesis/tests/*.test.mjs
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Validate workspace build and invariant gates
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm security-hygiene
+          pnpm quality-gates
+          pnpm third-party-proof
+          pnpm build
+      - name: Push validated candidate only after every required check succeeds
+        shell: bash
+        run: |
+          set -euo pipefail
+          BRANCH='feat/gauss-nemesis-rust-integration'
+          test "$GITHUB_REF_NAME" = "$BRANCH"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          git push origin "HEAD:$BRANCH"

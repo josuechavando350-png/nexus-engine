@@ -1,0 +1,100 @@
+Verificación Formal (Lógica de Autómatas)
+Inferencia Causal (Cálculo de Judea Pearl)
+Teoría de Juegos / Equilibrio de Nash (Montecarlo Masivo)
+Optimización Cuántica Local (QAOA Simulator)
+Entropía de Shannon y Variables Ocultas
+Caminatas Aleatorias Cuánticas
+Inversión Temporal (Kalman de Orden Superior)
+Validador Lógico Invariable (Zero-Knowledge Proofs Coherentes)
+Actualización Bayesiana Asíncrona Continua
+Programador de Agentes Espejo
+Filtro de Sesgo de Confirmación Humana
+Motor de Aislamiento de Cisnes Negros
+Motor de Sincronización de Relojes de Redes Complejas (Chronos Engine)
+Resolvedor de Lógica Difusa de Segundo Orden
+Motor de Evolución Gramatical y Mutación de Código (Self-Healing Code)
+Calculador de Robustez Estructural
+Motor de Ontología de Dominio Cruzado
+Gestor de Fricción de Ingesta Inversa
+Motor de Ingesta de Dark Data
+Compilador de Contratos de Certeza Criptográfica
+Motor de Geometría de Información No-Riemanniana
+Resolvedor de Atractores de Lorenz de Alta Dimensión
+Filtro de Kalman Ensamblado de Alta Dimensión
+Motor de Redes Neuronales Informadas por la Física (PINN)
+Simulador de Dinámica de Fluidos de Información
+Multilayer Stackelberg
+Persistent-homology TDA
+Causal inverse reinforcement learning
+Multivariate transfer entropy
+Scenario-robust optimization
+Cryptographic local smart-contract compiler
+Large-scale dynamic graphs
+Empirical mode decomposition
+Dynamic Bayesian networks
+Stochastic dynamic programming
+Causal time series via convergent cross mapping
+Spatiotemporal random fields
+Constrained particle swarms
+Local homomorphic computing
+Formal verification of state invariants
+Dynamic-network ergodicity
+Lyapunov stability evaluation
+Byzantine replica consensus
+Amari Fisher-Rao geometry
+Zero-knowledge execution proofs
+High-velocity square-root Kalman
+Causal-economic constrained variational inference
+Nonlinear bifurcation systems
+Stochastic CRF
+Strict cryptographic invariance signatures
+Mean-Field Inference
+Strange Attractors and Spatiotemporal Chaos
+Ricci Curvature Tensor for Information Manifolds
+Invariant Group Kalman Filter (Lie Groups)
+CNNs on Non-Euclidean Graphs
+Stochastic PDE (SPDE)
+Mean Field Games
+Nonlinear ICA
+Constrained Box Gaussian-Process Bayesian Optimizer
+Continuous-Time Stochastic Optimal Control
+Local Differential Privacy Ingestion Compiler
+Temporal-Attention Dynamic Graphs (TGAT)
+Dynamic Mode Decomposition (DMD)
+Partially Observable Markov Decision Processes (POMDP)
+Stochastic Gradient Descent with Quantum Momentum
+Archimedean Copulas for Multivariate Risks
+Nonlinear Cointegration of Time Series
+Stochastic Evolutionary Games
+Lattice-Based Cryptography Storage Compiler
+Persistent Homology of Dynamic Data Streams
+Cross-Entropy and Kullback-Leibler Divergence
+Fokker-Planck Equations
+Quantum Coherence Tensor in Hilbert Spaces
+Particle Filter with Genetic-Algorithm Resampling
+Spatiotemporal Capsule Networks
+Modelador de Caminatas Aleatorias con Memoria a Largo Plazo
+Resolvedor de Ecuaciones de Navier-Stokes para Datos Volumétricos
+Motor de Análisis de Fluctuaciones sin Tendencia (DFA)
+Optimizador de Enjambres con Dinámica de Fluidos Cuánticos
+Resolvedor de Control Hamiltoniano-Jacobi-Bellman
+Compilador de Firmas Criptográficas Post-Cuánticas Basadas en Isogenias
+Motor de Redes de Memoria a Corto y Largo Plazo con Compuertas Neuronales Informadas (p-LSTM)
+Filtro de Descomposición en Valores Singulares Dinámicos de Gran Escala
+Motor de Procesos de Decisión de Markov de Horizonte Infinito
+Resolvedor de Optimización Convexa Mediante Métodos de Punto Interior
+Motor de Análisis de Sincronización de Fases en Redes Complejas
+Modelador de Procesos de Puntos de Hawkes Auto-Excitados
+Resolvedor de Teoría de Juegos de Campo Medio con Restricciones de Frontera
+Compilador de Criptografía Homomórfica Totalmente Funcional (FHE)
+Motor de Geometría Diferencial de Espacios de Parámetros
+Motor de Ergodicidad en Sistemas No Lineales
+Evaluador de Estabilidad Estocástica de Lyapunov
+Validador de Consistencia por Consensus Raft Criptográfico Local
+Motor de Geometría de la Información de Chentsov
+Compilador de Pruebas de Conocimiento Cero No Interactivas (zk-SNARKs) de Ejecución
+Filtro de Kalman de Raíz Cuadrada por Factorización Cholesky
+Motor de Inferencia Variacional con Restricciones Causal-Económicas
+Resolvedor de Sistemas Dinámicos No Lineales con Bifurcación de Hopf
+Motor de Campos Aleatorios Condicionales (CRF) Estocásticos
+Compilador Criptográfico de Firmas de Invariancia de Estado Estricta

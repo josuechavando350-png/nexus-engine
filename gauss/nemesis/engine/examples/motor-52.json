@@ -1,0 +1,11 @@
+{
+  "initial": [
+    0.2,
+    0.3,
+    0.4
+  ],
+  "r": 4,
+  "coupling": 0,
+  "steps": 100,
+  "sampleEvery": 20
+}

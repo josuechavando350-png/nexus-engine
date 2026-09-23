@@ -1,0 +1,6 @@
+{
+  "r": 2,
+  "bins": 8,
+  "samplesPerBin": 32,
+  "steps": 100
+}

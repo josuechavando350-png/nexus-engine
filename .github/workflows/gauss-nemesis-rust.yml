@@ -1,0 +1,95 @@
+name: GAUSS Nemesis Rust native
+on:
+  pull_request:
+    paths:
+      - 'gauss/nemesis/**'
+      - '.github/workflows/gauss-nemesis-rust.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  rust-native:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Rust toolchain on GitHub runner
+        shell: bash
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustc --version
+          cargo --version
+      - name: Prove installed rustc can compile and run
+        shell: bash
+        run: |
+          printf '%s\n' '#[test] fn installed_rust_works() { assert_eq!(2 + 2, 4); }' > "$RUNNER_TEMP/nemesis-rust-smoke.rs"
+          rustc --edition 2021 --test "$RUNNER_TEMP/nemesis-rust-smoke.rs" -o "$RUNNER_TEMP/nemesis-rust-smoke"
+          "$RUNNER_TEMP/nemesis-rust-smoke"
+      - name: Verify exact dependency lock captured from successful native Rust runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' '005a8f07f8d8f0d900bda94c9eb0527c43a8a150d53ad1b36eafda2a88467f41' 'gauss/nemesis/native/fhe/Cargo.lock' | sha256sum -c -
+      - name: Compile original Némesis 89 TFHE and run native tests with locked dependencies
+        shell: bash
+        run: |
+          cargo test --locked --release --manifest-path gauss/nemesis/native/fhe/Cargo.toml -- --test-threads=1
+          git diff --exit-code -- gauss/nemesis/native/fhe/Cargo.lock
+      - name: Real TFHE encrypted private-key custody, circuit and password rotation
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary="$PWD/gauss/nemesis/native/fhe/target/release/nemesis89_roles"
+          test -x "$binary"
+          NEMESIS89_ROLES_BINARY="$binary" \
+            NEMESIS89_ROLES_SHA256="$(sha256sum "$binary" | cut -d' ' -f1)" \
+            node gauss/nemesis/scripts/verify-fhe-89-sealed-ci.mjs
+      - name: Native FHE encrypted addition and Boolean circuit
+        shell: bash
+        run: |
+          printf '255 255' | gauss/nemesis/native/fhe/target/release/nemesis-fhe --add-stdin
+          printf '101' | gauss/nemesis/native/fhe/target/release/nemesis-fhe --circuit-stdin 'xor:0:1;mux:2:3:1;not:4' '3,4,5'
+      - name: Verify GAUSS public Némesis #89 entrypoint and immutable executable snapshot
+        shell: bash
+        run: |
+          node --test gauss/nemesis/tests/native-fhe.test.mjs gauss/nemesis/tests/native-snapshot.test.mjs
+          node gauss/nemesis/scripts/verify-native-89.mjs
+      - name: Preserve exact tested binary, lockfile and evidence
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gauss-nemesis-89-native-${{ github.run_id }}
+          path: |
+            gauss/nemesis/native/fhe/target/release/nemesis-fhe
+            gauss/nemesis/native/fhe/target/release/nemesis89_roles
+            gauss/nemesis/native/fhe/Cargo.lock
+            gauss/nemesis/evidence/native-89-ci.json
+          retention-days: 7
+  gauss-coexistence:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check GAUSS 1000-operator inventory is unchanged by Némesis
+        run: node --test gauss/nemesis/tests/gauss-registry.test.mjs
+  gauss-integration:
+    needs: [rust-native, gauss-coexistence]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Use Némesis-required Node 22.16.0 (includes node:sqlite)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Reject incomplete or altered Némesis v17 source
+        shell: bash
+        run: |
+          node --version
+          test -f gauss/nemesis/engine/src/index.mjs || { echo 'NEMESIS_INTEGRATION_NOT_TESTED: complete Némesis JS source is missing'; exit 1; }
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+      - name: Check original GAUSS-to-Némesis bridge and original JS tests
+        run: |
+          node --test gauss/nemesis/tests/*.test.mjs
+          node --test --test-concurrency=4 gauss/nemesis/engine/test/*.test.mjs
+          node gauss/nemesis/engine/scripts/smoke-100.mjs

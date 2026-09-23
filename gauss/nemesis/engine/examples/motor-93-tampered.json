@@ -1,0 +1,44 @@
+{
+  "replicas": [
+    {
+      "id": "a",
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEA2OHVHnAHvddKzTz9tRkc9uxDi6la1wIPlGKEEVS/Hzk=\n-----END PUBLIC KEY-----\n"
+    },
+    {
+      "id": "b",
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEAZj7ALrOtFNPjMQGMbhNCi/2Q3j3wZnQz1bfZWMNEf8Q=\n-----END PUBLIC KEY-----\n"
+    },
+    {
+      "id": "c",
+      "publicKey": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VwAyEADk3Xu1NrquQrmb4G8CR2zI4+Pbp7ihPiOM35pDJ9TDg=\n-----END PUBLIC KEY-----\n"
+    }
+  ],
+  "term": 2,
+  "leader": "a",
+  "votes": [
+    {
+      "term": 2,
+      "voter": "a",
+      "candidate": "a",
+      "signature": "w0tOUdbV8b8UkmrxnlIAOj0hbimrmazLn3RGM7e62q1cPSZ13zOdonM/813UsTOIOzFnwDl0QUw7CKJWrG9VDA=="
+    },
+    {
+      "term": 2,
+      "voter": "b",
+      "candidate": "a",
+      "signature": "oUSxwQ6GRP1ntH+fG/ab34t6gQBog2d++K/QccXTAxV/K/8KTj5DV1eEY8ELEQhj4GYjMShNS3p39DCfI+9PAg=="
+    }
+  ],
+  "entries": [
+    {
+      "index": 1,
+      "term": 2,
+      "payload": {
+        "altered": "true"
+      },
+      "previousHash": "GENESIS",
+      "signature": "0GrRb4LscCSszRP+w7DAhMBy7tEruevJknCGRnry/X5Ddtj3tIMIS7nGDYqTa/JFbxD9oZ2gSH4Y3CbgBlnTCg=="
+    }
+  ],
+  "commitIndex": 1
+}

@@ -1,0 +1,7 @@
+{
+  "events": [],
+  "baseline": 2,
+  "alpha": 0.5,
+  "beta": 1,
+  "horizon": 3
+}

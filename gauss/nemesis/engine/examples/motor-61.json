@@ -1,0 +1,13 @@
+{
+  "categories": [
+    "A",
+    "B"
+  ],
+  "responses": [
+    "A",
+    "B",
+    "A"
+  ],
+  "epsilon": 1,
+  "maxEpsilon": 1
+}

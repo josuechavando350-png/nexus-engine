@@ -1,0 +1,12 @@
+{
+  "F": 1,
+  "H": 1,
+  "Q": 0,
+  "R": 1,
+  "initialMean": 0,
+  "initialSqrtVariance": 1,
+  "observations": [
+    1,
+    null
+  ]
+}

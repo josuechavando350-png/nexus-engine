@@ -1,0 +1,22 @@
+{
+  "vertices": [
+    "A",
+    "B",
+    "C",
+    "D"
+  ],
+  "edges": [
+    {
+      "from": "A",
+      "to": "B"
+    }
+  ],
+  "updates": [
+    {
+      "kind": "add",
+      "from": "B",
+      "to": "C"
+    }
+  ],
+  "source": "A"
+}

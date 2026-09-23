@@ -1,0 +1,13 @@
+{
+  "mode": "prove",
+  "coefficients": [
+    "2",
+    "3"
+  ],
+  "constant": "5",
+  "context": "nemesis-example-95",
+  "witness": [
+    "7",
+    "11"
+  ]
+}
