@@ -132,7 +132,7 @@ export async function runCanoRound4({ round3Report, gate, protocol, plan, liveEv
       schemaVersion: 1,
       tournamentId: "CANO_PENAL_CDMX_ZERO",
       stage: "ROUND_4_LIVE_ORGANIC_FINAL",
-      status: "BLOCKED_LIVE_EVIDENCE_REQUIRED",
+      status: "BOOTSTRAP_LIVE_EVIDENCE_NOT_MATURE",
       round3ReportSha256: round3Report.reportSha256,
       finalistIds: round3Report.finalistIds,
       finalists,
@@ -149,12 +149,12 @@ export async function runCanoRound4({ round3Report, gate, protocol, plan, liveEv
         "ANONYMIZED_SIGNED_CLIENT_LEDGER_WITH_ORGANIC_ATTRIBUTION",
       ]),
       selectedStrategyId: null,
-      commercialWinnerStatus: "NOT_ELIGIBLE_LIVE_EVIDENCE_MISSING",
-      rankingWinnerStatus: "NOT_ELIGIBLE_QUERY_LEVEL_RANK_EVIDENCE_MISSING",
+      commercialWinnerStatus: "NOT_ELIGIBLE_MEASUREMENT_BOOTSTRAP",
+      rankingWinnerStatus: "NOT_ELIGIBLE_SEARCH_CONSOLE_BOOTSTRAP",
       gaussStatus: "NOT_EXECUTED_NO_LIVE_BINOMIAL_INPUT",
       axiomaStatus: "NOT_EXECUTED_NO_LIVE_BINOMIAL_INPUT",
       quantumStatus: "NOT_APPLICABLE_NO_ROUND4_ISING_TASK",
-      decisionBoundary: "NO_LIVE_DATA_NO_WINNER_NO_FORECAST_NO_PRODUCTION_MUTATION",
+      decisionBoundary: "RECENT_SEARCH_CONSOLE_IS_BOOTSTRAP_NOT_FAILURE_NO_WINNER_NO_FORECAST_NO_PRODUCTION_MUTATION",
     };
     return Object.freeze({ ...unsigned, reportSha256: sha256Canonical(unsigned) });
   }
