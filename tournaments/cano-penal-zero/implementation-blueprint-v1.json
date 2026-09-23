@@ -518,7 +518,19 @@
       "landing_page",
       "qualified_contact",
       "signed_matter_id_hash"
-    ]
+    ],
+    "rampTargets": {
+      "month1": "INDEXATION_VISIBILITY_AND_QUERY_DISCOVERY",
+      "month2": {
+        "minimumSignedOrganicClients": 1,
+        "zeroClientVerdict": "TRIGGER_IMMEDIATE_DIAGNOSIS_NOT_WAIT"
+      },
+      "month3": {
+        "minimumSignedOrganicClients": 1,
+        "targetSignedOrganicClients": 5,
+        "zeroClientVerdict": "TRIGGER_ESCALATED_DIAGNOSIS_AND_REPLAN"
+      }
+    }
   },
   "boundaries": [
     "NO_42_PAGES_FOR_42_QUERIES",
