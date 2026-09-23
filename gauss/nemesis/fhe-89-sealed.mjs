@@ -54,7 +54,7 @@ function saveNew(path,bytes){
     fsyncSync(fd);
   }catch{
     if(identity){const current=lstatSync(path,{throwIfNoEntry:false});
-      if(current?.dev===identity.dev&&current.ino===identity.ino){try{unlinkSync(path);}catch{}}}
+      if(current?.dev===identity.dev&&current.ino===identity.ino){try{unlinkSync(path);}catch{/* Cleanup is best-effort; preserve PERSIST error. */}}}
     reject('PERSIST');
   }finally{if(fd!==undefined)closeSync(fd);}
   return identity;
