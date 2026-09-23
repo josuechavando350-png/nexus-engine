@@ -26,10 +26,16 @@ jobs:
           printf '%s\n' '#[test] fn installed_rust_works() { assert_eq!(2 + 2, 4); }' > "$RUNNER_TEMP/nemesis-rust-smoke.rs"
           rustc --edition 2021 --test "$RUNNER_TEMP/nemesis-rust-smoke.rs" -o "$RUNNER_TEMP/nemesis-rust-smoke"
           "$RUNNER_TEMP/nemesis-rust-smoke"
-      - name: Compile original Némesis 89 TFHE and run native tests
+      - name: Verify exact dependency lock captured from successful native Rust runner
         shell: bash
         run: |
-          cargo test --release --manifest-path gauss/nemesis/native/fhe/Cargo.toml -- --test-threads=1
+          set -euo pipefail
+          printf '%s  %s\n' '005a8f07f8d8f0d900bda94c9eb0527c43a8a150d53ad1b36eafda2a88467f41' 'gauss/nemesis/native/fhe/Cargo.lock' | sha256sum -c -
+      - name: Compile original Némesis 89 TFHE and run native tests with locked dependencies
+        shell: bash
+        run: |
+          cargo test --locked --release --manifest-path gauss/nemesis/native/fhe/Cargo.toml -- --test-threads=1
+          git diff --exit-code -- gauss/nemesis/native/fhe/Cargo.lock
       - name: Native FHE encrypted addition and Boolean circuit
         shell: bash
         run: |
