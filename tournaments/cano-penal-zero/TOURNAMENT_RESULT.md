@@ -91,9 +91,18 @@
 
 ## Orden de construcción
 
-- **Wave 1 — BOFU core:** A02, A05, A08, A01. Existing/high-intent foundations and direct conversion paths.
+- **Wave 1 — BOFU core + calendario en paralelo:** A02, A05, A08, A01; y A10 (calendario fiscal interactivo) como producto paralelo que no retrasa las páginas de contratación.
 - **Wave 2 — Urgent and fiscal depth:** A03, A06, A07, A09. Expand distinct high-intent queries without duplicating hubs.
-- **Wave 3 — Authority expansion:** A04, A10, A11. Pre-crisis authority, fiscal utility and business/white-collar breadth.
+- **Wave 3 — Authority expansion:** A04, A11. Representantes, contadores y defensa penal empresarial.
+
+## Calendario fiscal interactivo (A10)
+
+- Se desarrolla desde la primera ola, en paralelo con las páginas de contratación; no es un PDF ni una página de relleno.
+- Acceso visible desde Inicio, navegación móvil y hub penal-fiscal.
+- Vista por mes/año y filtros por tipo de contribuyente o régimen solo cuando los datos oficiales lo permitan.
+- Cada vencimiento publicado debe enlazar su fuente oficial del SAT y mostrar la fecha de última verificación; fechas no verificadas no se publican.
+- Enlaces contextuales hacia la defensa penal-fiscal y contacto, sin confundir un vencimiento con un delito ni imponer un formulario para usar la herramienta.
+- Avisos opt-in solo si existe un envío funcional y consentimiento explícito.
 
 ## Gate de medición
 
