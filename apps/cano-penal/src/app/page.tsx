@@ -6,6 +6,7 @@ import { readCanoProgrammaticSeoPage } from "../programmatic-seo";
 import { homeHeroForAdExperience } from "./ad-context-copy";
 import { PageShell } from "./SiteChrome";
 import { HomeSplash } from "./HomeSplash";
+import { ContactForm } from "./ContactForm";
 import { areas, cases, site, trajectory } from "./content";
 
 export const runtime = "edge";
@@ -71,8 +72,8 @@ export default async function HomePage() {
         <div className="cp-wrap">
           <div className="cp-section-head"><div><p className="cp-eyebrow">Orientación inicial</p><h2>¿Cuál es tu <strong>situación?</strong></h2></div></div>
           <div className="cp-paths">
-            <article className="cp-path" tabIndex={0}><h3>Me llegó un citatorio</h3><p>De la Fiscalía o de un Juez. Lo que se hace antes de la primera audiencia define el resto del caso.</p><a className="cp-btn" target="_blank" rel="noopener noreferrer" href="https://wa.me/525560501901?text=Hola%20licenciado%2C%20me%20lleg%C3%B3%20un%20citatorio%20y%20necesito%20asesor%C3%ADa">Quiero asesoría</a></article>
-            <article className="cp-path" tabIndex={0}><h3>Detuvieron a alguien</h3><p>Atención inmediata, a cualquier hora. Las primeras horas son las que más pesan.</p><a className="cp-btn cp-btn-solid" target="_blank" rel="noopener noreferrer" href="https://wa.me/525560501901?text=Hola%20licenciado%2C%20detuvieron%20a%20un%20familiar%20y%20necesito%20ayuda%20urgente">Necesito ayuda ahora</a></article>
+            <article className="cp-path" tabIndex={0}><h3>Me llegó un citatorio</h3><p>De la Fiscalía o de un Juez. Lo que se hace antes de la primera audiencia define el resto del caso.</p><a className="cp-btn" target="_blank" rel="noopener noreferrer" href="/citatorio-ministerio-publico-cdmx">Quiero asesoría</a></article>
+            <article className="cp-path" tabIndex={0}><h3>Detuvieron a alguien</h3><p>Atención inmediata, a cualquier hora. Las primeras horas son las que más pesan.</p><a className="cp-btn cp-btn-solid" target="_blank" rel="noopener noreferrer" href="/detenido-cdmx">Necesito ayuda ahora</a></article>
             <article className="cp-path cp-path-victim" tabIndex={0}><h3>Fui víctima de un delito</h3><p>Asesoría, representación y protección a tus derechos</p><a className="cp-btn" target="_blank" rel="noopener noreferrer" href={site.whatsapp}>Quiero asesoría</a></article>
           </div>
         </div>
@@ -94,6 +95,8 @@ export default async function HomePage() {
 
       <section className="cp-section" id="areas"><div className="cp-wrap cp-areas-layout"><div className="cp-areas-intro"><h2>{areasHeading}</h2><p>{areasIntro}</p><Link className="cp-text-link" href="/#contacto">Hablemos de tu caso</Link></div><div className="cp-areas">{areas.map(([name, href], index) => <Link className="cp-area" key={href} href={href}><strong>{name}</strong><span>{areaDescriptions[index]}</span></Link>)}</div></div></section>
 
+      <section className="cp-organic-bridge" aria-labelledby="cp-fiscal-entry-title"><div className="cp-wrap cp-organic-bridge-grid"><div><p className="cp-eyebrow">Información y estrategia</p><h2 id="cp-fiscal-entry-title">Las obligaciones fiscales tienen contexto. <em>La defensa también.</em></h2></div><div><p>Consulta el calendario fiscal interactivo y conoce cuándo una comunicación de la autoridad merece revisión penal-fiscal. Las fechas no validadas no se presentan como vencimientos.</p><Link href="/herramientas/calendario-fiscal">Explorar calendario fiscal ↗</Link><Link href="/areas/delitos-fiscales-y-financieros">Defensa penal-fiscal ↗</Link><Link href="/diagnostico-penal">Solicitar diagnóstico penal ↗</Link></div></div></section>
+
       <section className="cp-section" id="casos"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Experiencia aplicada</p><h2><strong>Casos</strong></h2></div><Link className="cp-text-link" href="/casos">Ver todos los casos</Link></div><div className="cp-cases">{[cases[1], cases[4], cases[2]].map(([title, body]) => <article className="cp-case" tabIndex={0} key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
 
       <section className="cp-section"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Defensa presente</p><h2>En sala, en cada <strong>audiencia.</strong></h2></div></div><div className="cp-audiences">{audienceFiles.map(file => <img src={`/media/${file}`} alt="" tabIndex={0} key={file} />)}</div></div></section>
@@ -104,7 +107,7 @@ export default async function HomePage() {
         <div className="cp-contact-image" role="img" aria-label="Eduardo Cano en su escritorio" />
         <div className="cp-contact">
           <div><h2>En derecho penal cada minuto cuenta</h2><div className="cp-contact-details"><strong>World Trade Center Ciudad de México</strong><span>Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX</span><a className="cp-text-link cp-map-link" href="https://maps.app.goo.gl/zMjF2TQZvfMchowx8" target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a><a href={site.phoneHref}>{site.phoneDisplay}</a><a href={`mailto:${site.email}`}>{site.email}</a></div></div>
-          <div><form className="cp-form"><input aria-label="Nombre" name="nombre" placeholder="Nombre" /><input aria-label="Teléfono" name="telefono" placeholder="Teléfono" /><input className="full" aria-label="Correo" name="correo" type="email" placeholder="Correo" /><textarea className="full" aria-label="Mensaje" name="mensaje" placeholder="Mensaje" /></form><a className="cp-btn cp-btn-solid cp-contact-action" href="https://wa.me/525560501901" target="_blank" rel="noopener noreferrer">Enviar por WhatsApp</a></div>
+          <div><ContactForm compact /></div>
         </div>
         <div className="cp-map-panel">
           <iframe title="Ubicación de CANO Estrategia Penal en World Trade Center Ciudad de México" loading="lazy" referrerPolicy="no-referrer-when-downgrade" src="https://www.google.com/maps?q=Montecito%2038%2C%20N%C3%A1poles%2C%20Benito%20Ju%C3%A1rez%2C%20Ciudad%20de%20M%C3%A9xico&output=embed" />
