@@ -211,5 +211,50 @@
     "TINY_PENAL_FISCAL_EXPOSURE_DOES_NOT_PROVE_TINY_PENAL_FISCAL_MARKET",
     "NO_BID_OR_BUDGET_CHANGE_AUTHORIZED",
     "NO_PROVIDER_REPLAY_CLAIM_IN_CI"
-  ]
+  ],
+  "adDestinations90d": {
+    "activeCampaignAdRows": [
+      {
+        "finalUrls": [
+          "https://www.canopenal.com/"
+        ],
+        "clicks": 1371,
+        "impressions": 28351,
+        "costMxnMicros": 15497336100,
+        "primaryConversions": 2
+      },
+      {
+        "finalUrls": [
+          "https://www.canopenal.com/"
+        ],
+        "clicks": 1341,
+        "impressions": 27159,
+        "costMxnMicros": 15203904700,
+        "primaryConversions": 0
+      },
+      {
+        "finalUrls": [
+          "https://www.canopenal.com/"
+        ],
+        "clicks": 123,
+        "impressions": 1809,
+        "costMxnMicros": 1673840000,
+        "primaryConversions": 0
+      },
+      {
+        "finalUrls": [
+          "https://www.canopenal.com/"
+        ],
+        "clicks": 6,
+        "impressions": 159,
+        "costMxnMicros": 97530000,
+        "primaryConversions": 0
+      }
+    ],
+    "allActiveSearchAdFinalUrlsAreHomepage": true,
+    "reconcilesCampaignClicks": 2841,
+    "reconcilesCampaignImpressions": 57478,
+    "reconcilesCampaignCostMxnMicros": 32472610800,
+    "reconcilesPrimaryConversions": 2
+  }
 }
