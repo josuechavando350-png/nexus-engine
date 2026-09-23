@@ -113,6 +113,15 @@ function validateAdsEvidence(evidence, bytes, manifest) {
   assert.equal(institutional.configuredPositiveCriterion.matchType, "BROAD");
   assert.equal(institutional.observedCriteria.fiscaliaNegativeObserved, false);
 
+  const destinations = evidence.adDestinations90d;
+  assert.equal(destinations.allActiveSearchAdFinalUrlsAreHomepage, true);
+  assert.equal(destinations.activeCampaignAdRows.length, 4);
+  assert.equal(destinations.activeCampaignAdRows.reduce((sum, row) => sum + row.clicks, 0), c.clicks);
+  assert.equal(destinations.activeCampaignAdRows.reduce((sum, row) => sum + row.impressions, 0), c.impressions);
+  assert.equal(destinations.activeCampaignAdRows.reduce((sum, row) => sum + row.costMxnMicros, 0), c.costMxnMicros);
+  assert.equal(destinations.activeCampaignAdRows.reduce((sum, row) => sum + row.primaryConversions, 0), c.primaryConversions);
+  assert(destinations.activeCampaignAdRows.every((row) => row.finalUrls.length === 1 && row.finalUrls[0] === "https://www.canopenal.com/"));
+
   const taxFiscal = evidence.intentSlices90d.trueTaxFiscalObservedTerms;
   assert.equal(taxFiscal.length, 2);
   assert.equal(taxFiscal.reduce((sum, row) => sum + row.impressions, 0), 2);
@@ -280,6 +289,7 @@ export async function runCanoRound1({ round0Report, adsEvidence, adsBytes, adsMa
       fiscaliaLeakageCostMxnMicros90d: adsEvidence.institutionalLeakage90d.fiscaliaTerms.costMxnMicros,
       ministerioPublicoLeakageCostMxnMicros90d: adsEvidence.institutionalLeakage90d.ministerioPublicoTerms.costMxnMicros,
       configuredBroadMinisterioPublico: true,
+      allActiveSearchAdFinalUrlsAreHomepage: adsEvidence.adDestinations90d.allActiveSearchAdFinalUrlsAreHomepage,
       trueTaxFiscalObservedImpressions90d: adsEvidence.intentSlices90d.trueTaxFiscalObservedTerms.reduce((sum, row) => sum + row.impressions, 0),
     }),
     paidSearchPrerequisite: "QUERY_HYGIENE_AND_INTENT_ISOLATION_REQUIRED_BEFORE_ANY_NEW_PAID_SEARCH_TEST",
