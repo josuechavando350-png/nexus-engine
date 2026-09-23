@@ -36,6 +36,6 @@ export function readPinnedNativeBinary(path,expected,prefix){
     return {bytes:result,digest};
   }catch(error){
     if(error?.message?.startsWith(`${prefix}_BINARY_`))throw error;
-    throw new Error(`${prefix}_BINARY_UNSAFE`);
+    throw new Error(`${prefix}_BINARY_UNSAFE`,{cause:error});
   }finally{bytes?.fill(0);if(fd!==undefined)closeSync(fd);}
 }
