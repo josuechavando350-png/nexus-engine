@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { approvedCanoArea } from "../../../approved-programmatic-seo";
 import { readCanoProgrammaticSeoPage } from "../../../programmatic-seo";
 import { mergeSerpMetadata, readSerpMetadataOverride } from "../../../serp-metadata-control";
-import { InteriorCta, InteriorHero, EditorialParagraphs } from "../../InteriorSections";
+import { AreaExperience } from "../../AreaExperience";
 import { PageShell } from "../../SiteChrome";
 
 export function generateStaticParams() {
@@ -43,31 +43,10 @@ export default async function AreaPage({ params }: { params: Promise<{ slug: str
   const governed = await readCanoProgrammaticSeoPage(["areas", slug]);
   const heading = governed?.heading ?? approved.name;
   const paragraphs = governed?.distinctiveStatements ?? approved.paragraphs;
-  const [opening, ...detail] = paragraphs;
 
   return (
     <PageShell>
-      <InteriorHero
-        eyebrow="Área de práctica"
-        title={heading}
-        lead={opening}
-        marker="Defensa"
-      />
-
-      <section className="cp-interior-body">
-        <div className="cp-wrap cp-interior-story">
-          <div className="cp-interior-story-label">
-            <span>Enfoque CANO</span>
-            <h2>Leer el problema antes de mover el expediente.</h2>
-          </div>
-          <EditorialParagraphs paragraphs={detail} />
-        </div>
-      </section>
-
-      <InteriorCta
-        title="El momento de actuar cambia la estrategia."
-        copy="Si ya existe un requerimiento, citatorio, carpeta, audiencia o resolución, conviene revisar el punto exacto del procedimiento antes de tomar la siguiente decisión."
-      />
+      <AreaExperience slug={slug} heading={heading} paragraphs={paragraphs} />
     </PageShell>
   );
 }
