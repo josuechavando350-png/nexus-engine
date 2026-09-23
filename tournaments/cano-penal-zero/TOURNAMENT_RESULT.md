@@ -7,6 +7,8 @@
 - Activo transversal conservado: **S05 calendario fiscal interactivo**, como soporte de autoridad y adquisición precrisis.
 - Round 4: **BOOTSTRAP** porque Search Console fue configurado recientemente; no hay campeón comercial todavía.
 - Meta: **>=5 clientes orgánicos firmados/mes**; repetibilidad: **3 meses consecutivos >=5**.
+- **Mes 2:** al menos 1 cliente orgánico firmado; 0 activa diagnóstico inmediato.
+- **Mes 3:** debe seguir habiendo clientes orgánicos y el objetivo operativo ya es **5 clientes firmados**.
 
 ## Blueprint de activos
 
