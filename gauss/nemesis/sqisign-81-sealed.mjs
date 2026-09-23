@@ -50,7 +50,7 @@ function persist(path,data){
   }catch{
     if(fd!==undefined&&created){
       const current=lstatSync(path,{throwIfNoEntry:false});
-      if(current&&current.dev===created.dev&&current.ino===created.ino){try{unlinkSync(path);}catch{}}
+      if(current&&current.dev===created.dev&&current.ino===created.ino){try{unlinkSync(path);}catch{/* Cleanup is best-effort; preserve PERSIST_FAILED. */}}
     }
     fail('PERSIST_FAILED');
   }finally{if(fd!==undefined)closeSync(fd);text.fill(0);}
