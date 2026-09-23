@@ -14,13 +14,9 @@
   "assetCount": 11,
   "keywordCount": 42,
   "assignmentCoverage": {
-    "assignedQueryCount": 41,
-    "missingQueryIds": [
-      "K005"
-    ],
-    "duplicateAssignmentIds": [
-      "K005"
-    ]
+    "assignedQueryCount": 42,
+    "missingQueryIds": [],
+    "duplicateAssignmentIds": []
   },
   "assets": [
     {
@@ -33,6 +29,7 @@
         "K002",
         "K003",
         "K004",
+        "K005",
         "K006"
       ],
       "finalistDrivers": [
@@ -61,6 +58,12 @@
         {
           "id": "K004",
           "query": "defensa penal cdmx",
+          "target": "TOP5",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K005",
+          "query": "despacho penal cdmx",
           "target": "TOP5",
           "stage": "BOFU"
         },
