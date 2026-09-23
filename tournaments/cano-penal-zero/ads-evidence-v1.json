@@ -256,5 +256,23 @@
     "reconcilesCampaignImpressions": 57478,
     "reconcilesCampaignCostMxnMicros": 32472610800,
     "reconcilesPrimaryConversions": 2
-  }
+  },
+  "primaryConvertingSearchTerms90d": [
+    {
+      "query": "abogado penal",
+      "clicks": 1,
+      "impressions": 6,
+      "costMxnMicros": 16680000,
+      "primaryConversions": 1,
+      "allConversions": 1
+    },
+    {
+      "query": "abogado penalista",
+      "clicks": 3,
+      "impressions": 17,
+      "costMxnMicros": 70500000,
+      "primaryConversions": 1,
+      "allConversions": 1
+    }
+  ]
 }
