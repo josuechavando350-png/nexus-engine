@@ -10,6 +10,7 @@ import {runGaussNemesis95Pinned} from './groth16-95-pinned.mjs';
 import {filterGaussNemesis96} from './kalman-96.mjs';
 import {validatePeriodicFokkerPlanckDiffusion} from './fokker-planck-72-validation.mjs';
 import {simulateFullHistoryWalk} from './full-memory-76.mjs';
+import {validatePeriodicShearDecay} from './navier-stokes-77-validation.mjs';
 import {multifractalDFA} from './dfa-78.mjs';
 import {whiteNoiseDFAReference} from './dfa-78-reference.mjs';
 import {verifyTwoIsogenyDualIdentity} from './isogeny-81-foundation.mjs';
@@ -61,6 +62,10 @@ export async function runGaussNemesis(id, input) {
   if (normalized === '76' && input?.action === 'full-history') {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 76: expected action and payload');
     return simulateFullHistoryWalk(input.payload);
+  }
+  if (normalized === '77' && input?.action === 'validate-periodic-shear') {
+    if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 77: expected action and payload');
+    return validatePeriodicShearDecay(input.payload);
   }
   if (normalized === '78' && ['multifractal', 'white-noise-reference'].includes(input?.action)) {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 78: expected action and payload');

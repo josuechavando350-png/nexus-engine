@@ -1,0 +1,27 @@
+name: GAUSS Nemesis 77 manufactured convergence
+on:
+  pull_request:
+    paths:
+      - 'gauss/nemesis/navier-stokes-77-validation.mjs'
+      - 'gauss/nemesis/bridge.mjs'
+      - 'gauss/nemesis/tests/navier-stokes-77-validation.test.mjs'
+      - '.github/workflows/gauss-nemesis77-convergence.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  convergence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Verify source integrity and syntax
+        run: |
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          node --check gauss/nemesis/navier-stokes-77-validation.mjs
+          node --check gauss/nemesis/bridge.mjs
+      - name: Check manufactured shear convergence, original #77 and GAUSS dispatch
+        run: node --test gauss/nemesis/tests/navier-stokes-77-validation.test.mjs
