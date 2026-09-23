@@ -80,9 +80,8 @@ export function EditorialParagraphs({
 }) {
   return (
     <div className="cp-interior-editorial-list">
-      {paragraphs.map((paragraph, index) => (
+      {paragraphs.map((paragraph) => (
         <article className="cp-interior-editorial-row" key={paragraph}>
-          <span aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
           <p>{paragraph}</p>
         </article>
       ))}

@@ -103,14 +103,14 @@ export default async function HomePage() {
           </div>
           <div className="cp-route-index-columns">
             <div className="cp-route-index-group">
-              <p className="cp-route-index-group-title"><span>01</span> Procedimiento y defensa penal</p>
+              <p className="cp-route-index-group-title">Procedimiento y defensa penal</p>
               <Link href="/detenido-cdmx"><span>Detención en CDMX</span><span aria-hidden="true">↗</span></Link>
               <Link href="/citatorio-ministerio-publico-cdmx"><span>Citatorio del Ministerio Público</span><span aria-hidden="true">↗</span></Link>
               <Link href="/audiencia-inicial-control-detencion-cdmx"><span>Audiencia inicial y control de detención</span><span aria-hidden="true">↗</span></Link>
               <Link href="/diagnostico-penal"><span>Diagnóstico penal</span><span aria-hidden="true">↗</span></Link>
             </div>
             <div className="cp-route-index-group">
-              <p className="cp-route-index-group-title"><span>02</span> Defensa fiscal y empresarial</p>
+              <p className="cp-route-index-group-title">Defensa fiscal y empresarial</p>
               <Link href="/guias/requerimiento-sat-riesgo-penal"><span>Requerimientos del SAT y riesgo penal</span><span aria-hidden="true">↗</span></Link>
               <Link href="/guias/responsabilidad-penal-representante-legal-contador"><span>Representantes legales y contadores</span><span aria-hidden="true">↗</span></Link>
               <Link href="/guias/defensa-penal-empresa-delitos-financieros"><span>Defensa penal empresarial</span><span aria-hidden="true">↗</span></Link>

@@ -10,9 +10,9 @@ export const metadata: Metadata = {
 };
 
 const essentials = [
-  ["01", "Ubicación", "Identificar en qué lugar se encuentra la persona y qué autoridad intervino."],
-  ["02", "Situación", "Ubicar si existe una detención, traslado, citación o diligencia en curso."],
-  ["03", "Contacto", "Hablar directamente con el despacho para explicar el contexto general sin divulgar datos sensibles en formularios."],
+  [ "Ubicación", "Identificar en qué lugar se encuentra la persona y qué autoridad intervino."],
+  [ "Situación", "Ubicar si existe una detención, traslado, citación o diligencia en curso."],
+  [ "Contacto", "Hablar directamente con el despacho para explicar el contexto general sin divulgar datos sensibles en formularios."],
 ] as const;
 
 export default function DetenidoPage() {
@@ -35,14 +35,14 @@ export default function DetenidoPage() {
       <section className="cp-det-essentials">
         <div className="cp-wrap cp-det-essentials-grid">
           <div className="cp-det-title">
-            <span>Orientación inicial / 001</span>
+            <span>Orientación inicial</span>
             <h2>Primero, entendamos <strong>qué está pasando.</strong></h2>
             <p>No todas las detenciones tienen el mismo contexto. El siguiente paso depende de la autoridad, la etapa y los hechos.</p>
           </div>
           <div className="cp-det-steps">
-            {essentials.map(([number,title,copy])=>(
-              <article key={number}>
-                <span>{number}</span><div><h3>{title}</h3><p>{copy}</p></div>
+            {essentials.map(([title,copy])=>(
+              <article key={title}>
+                <div><h3>{title}</h3><p>{copy}</p></div>
               </article>
             ))}
           </div>

@@ -42,8 +42,8 @@ export default function DiagnosticoPage() {
       <section className="cp-dx-process">
         <div className="cp-wrap">
           <div className="cp-dx-heading"><p className="cp-eyebrow">En la consulta</p><h2>Una conversación<br/>con dirección.</h2></div>
-          <div className="cp-dx-steps">{steps.map(([title,copy],i)=>(
-            <article key={title}><span>0{i+1}</span><h3>{title}</h3><p>{copy}</p></article>
+          <div className="cp-dx-steps">{steps.map(([title,copy])=>(
+            <article key={title}><h3>{title}</h3><p>{copy}</p></article>
           ))}</div>
         </div>
       </section>
