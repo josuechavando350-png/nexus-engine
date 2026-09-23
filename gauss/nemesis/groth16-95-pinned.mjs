@@ -3,12 +3,14 @@
  * production-trusted multiparty ceremony. The original prover remains Circom/snarkjs.
  */
 import {createHash} from 'node:crypto';
-import {closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdtempSync, openSync, readSync, rmSync, writeSync} from 'node:fs';
+import {closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {isAbsolute, join} from 'node:path';
-import {compileExecutionCircuit, proveGroth16Execution, verifyGroth16Execution} from './engine/src/motors/execution-snark.mjs';
+import {canonicalSnarkJson, compileExecutionCircuit, proveGroth16Execution, verifyGroth16Execution} from './engine/src/motors/execution-snark.mjs';
 
 const MAX_ARTIFACT=512*1024*1024;
+// A BN254 Groth16 verification key is small; never parse unbounded or device-backed JSON.
+const MAX_VERIFICATION_KEY=1024*1024;
 const SHA=/^[a-f0-9]{64}$/;
 const fail=code=>{throw new Error(`NEMESIS_95_PINNED_${code}`);};
 function shape(v,allowed,required){
@@ -26,11 +28,11 @@ function toolchain(tools,proving){
   }
   return tools;
 }
-function snapshot(path,expected,directory,name){
-  digest(expected);
+function snapshot(path,expected,directory,name,limit=MAX_ARTIFACT){
+  if(expected!==undefined)digest(expected);
   if(typeof path!=='string'||!isAbsolute(path)||path.includes('\0'))fail('ARTIFACT_PATH');
   const before=lstatSync(path,{throwIfNoEntry:false});
-  if(!before?.isFile()||before.isSymbolicLink()||before.size<1||before.size>MAX_ARTIFACT)fail('ARTIFACT_TYPE_OR_SIZE');
+  if(!before?.isFile()||before.isSymbolicLink()||before.size<1||before.size>limit)fail('ARTIFACT_TYPE_OR_SIZE');
   let source,target;
   try{
     source=openSync(path,constants.O_RDONLY|(constants.O_NOFOLLOW??0)|(constants.O_NONBLOCK??0));
@@ -43,7 +45,7 @@ function snapshot(path,expected,directory,name){
     for(;;){
       const n=readSync(source,chunk,0,chunk.length,null);
       if(n===0)break;
-      total+=n;if(total>MAX_ARTIFACT||total>opened.size)fail('ARTIFACT_CHANGED');
+      total+=n;if(total>limit||total>opened.size)fail('ARTIFACT_CHANGED');
       h.update(chunk.subarray(0,n));
       let offset=0;
       while(offset<n){const wrote=writeSync(target,chunk,offset,n-offset);if(wrote<1)fail('ARTIFACT_WRITE');offset+=wrote;}
@@ -51,11 +53,24 @@ function snapshot(path,expected,directory,name){
     chunk.fill(0);
     const after=fstatSync(source);
     if(total!==opened.size||after.dev!==opened.dev||after.ino!==opened.ino||after.size!==opened.size)fail('ARTIFACT_CHANGED');
-    if(h.digest('hex')!==expected)fail('ARTIFACT_PIN_MISMATCH');
+    const actualHash=h.digest('hex');
+    if(expected!==undefined&&actualHash!==expected)fail('ARTIFACT_PIN_MISMATCH');
     fsyncSync(target);
     return copy;
   }catch(error){if(error?.message?.startsWith('NEMESIS_95_PINNED_'))throw error;fail('ARTIFACT_IO');}
   finally{if(source!==undefined)closeSync(source);if(target!==undefined)closeSync(target);}
+}
+function snapshotVerificationKey(path,expected,directory){
+  // The trust anchor identifies canonical JSON, not the file's whitespace or key ordering.
+  // Hash exactly the private snapshot passed to the verifier, never a mutable source path.
+  const copy=snapshot(path,undefined,directory,'verification_key.json',MAX_VERIFICATION_KEY);
+  let key;
+  try{key=JSON.parse(readFileSync(copy,'utf8'));}
+  catch{fail('VERIFICATION_KEY_JSON');}
+  if(!key||typeof key!=='object'||Array.isArray(key))fail('VERIFICATION_KEY_JSON');
+  if(createHash('sha256').update(canonicalSnarkJson(key)).digest('hex')!==expected)
+    fail('VERIFICATION_KEY_PIN_MISMATCH');
+  return copy;
 }
 export function runGaussNemesis95Pinned(input){
   shape(input,['action','program','witness','ptau','zkey','expectedPtauSha256','expectedZkeySha256',
@@ -87,9 +102,13 @@ export function runGaussNemesis95Pinned(input){
       'verificationKey','expectedProgramSha256','expectedVerificationKeySha256','tools']);
     digest(input.expectedVerificationKeySha256);
     const tools=toolchain(input.tools,false);
-    return verifyGroth16Execution({program:input.program,statement:input.statement,proof:input.proof,
-      verificationKey:input.verificationKey,expectedProgramSha256:programPin,
-      expectedVerificationKeySha256:input.expectedVerificationKeySha256,tools});
+    const dir=mkdtempSync(join(tmpdir(),'nemesis95-verification-'));
+    try{
+      const verificationKey=snapshotVerificationKey(input.verificationKey,input.expectedVerificationKeySha256,dir);
+      return verifyGroth16Execution({program:input.program,statement:input.statement,proof:input.proof,
+        verificationKey,expectedProgramSha256:programPin,
+        expectedVerificationKeySha256:input.expectedVerificationKeySha256,tools});
+    }finally{rmSync(dir,{recursive:true,force:true});}
   }
   fail('UNSUPPORTED_ACTION');
 }
