@@ -84,6 +84,8 @@ describe("CANO organic integration contract", () => {
     const route = readFileSync(new URL("./herramientas/calendario-fiscal/page.tsx", import.meta.url), "utf8");
     const sitemap = readFileSync(new URL("./sitemap.ts", import.meta.url), "utf8");
     expect(data).toContain("Object.freeze([])");
+    const calendar = readFileSync(new URL("./FiscalCalendar.tsx", import.meta.url), "utf8");
+    expect(calendar).toContain("https://www.sat.gob.mx/portal/public/calendario");
     expect(data).not.toContain("day: 17");
     expect(route).toContain("robots: { index: false, follow: false }");
     expect(sitemap).not.toContain('/herramientas/calendario-fiscal');

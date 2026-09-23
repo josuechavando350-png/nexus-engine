@@ -97,7 +97,7 @@ export function FiscalCalendar() {
                 <span className="cp-cal-verified">Fuente revisada: {event.verifiedOn}</span>
               </div>
             </article>
-          )):<div className="cp-cal-empty">Todavía no hay vencimientos fiscales certificados para mostrar. Consulta directamente al SAT o a tu asesor fiscal antes de actuar; no publicaremos fechas que no estén validadas.</div>}
+          )):<div className="cp-cal-empty"><p>Todavía no hay vencimientos fiscales certificados para mostrar. Consulta directamente al SAT o a tu asesor fiscal antes de actuar; no publicaremos fechas que no estén validadas.</p><a href="https://www.sat.gob.mx/portal/public/calendario" target="_blank" rel="noopener noreferrer">Consultar calendario oficial del SAT ↗</a></div>}
           <p className="cp-cal-legal">Las obligaciones dependen del régimen y de la situación de cada contribuyente. Este calendario es informativo; verifica siempre el plazo aplicable directamente en el SAT.</p>
         </div>
       </div>

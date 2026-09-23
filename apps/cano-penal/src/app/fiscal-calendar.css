@@ -57,6 +57,9 @@
 .cp-cal-entry a{display:inline-block;margin-top:.5rem;color:#e1eaf0;text-decoration:none;padding-bottom:.4rem;border-bottom:1px solid #8f9fac;font-size:.74rem;letter-spacing:.04em}
 .cp-cal-verified{display:block;margin-top:1rem}
 .cp-cal-empty{padding:3rem 0;color:#a6b3be;line-height:1.75}
+.cp-cal-empty p{margin:0 0 1.5rem}
+.cp-cal-empty a{display:inline-block;color:#ecf4f8;border-bottom:1px solid #8fa8b6;padding:.3rem 0;text-decoration:none;letter-spacing:.05em;font-size:.78rem;text-transform:uppercase}
+.cp-cal-empty a:focus-visible{outline:2px solid #ecf4f8;outline-offset:4px}
 .cp-cal-legal{padding-top:1.7rem;color:#83929f;font-size:.75rem;line-height:1.7}
 .cp-cal-bridge{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:3rem;padding:clamp(2rem,4vw,4rem);background:#e5e8e9;color:#172026}
 .cp-cal-bridge span{font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:#44535d}
