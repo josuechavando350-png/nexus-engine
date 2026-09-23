@@ -83,7 +83,7 @@ export function FiscalCalendar() {
         <div className="cp-cal-agenda">
           <div className="cp-cal-agenda-header">
             <span>Detalle del mes</span>
-            <strong>{String(displayed.length).padStart(2,"0")} referencias</strong>
+            <strong>{String(displayed.length)} referencias</strong>
           </div>
           {displayed.length ? displayed.map((event)=>(
             <article className="cp-cal-entry" key={event.id}>
