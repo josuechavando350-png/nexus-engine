@@ -99,3 +99,15 @@
  .cp-contact-form-full{grid-column:auto}
 }
 @media(prefers-reduced-motion:reduce){.cp-main a{transition:none}}
+
+
+/* Editorial fiscal discovery bridge on the homepage. */
+.cp-organic-bridge{padding:clamp(5rem,10vw,10rem) 0;background:#dce2e5;color:#111b22}
+.cp-organic-bridge-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr);gap:clamp(2.5rem,8vw,9rem);align-items:end}
+.cp-organic-bridge .cp-eyebrow{color:#485862}
+.cp-organic-bridge h2{max-width:17ch;font-size:clamp(2.5rem,5.4vw,6rem);font-weight:300;line-height:.97;letter-spacing:-.05em;text-transform:uppercase;margin:1.7rem 0 0}
+.cp-organic-bridge h2 em{font-style:normal;color:#627580}
+.cp-organic-bridge-grid>div:last-child{display:grid;align-content:end;gap:1.2rem}
+.cp-organic-bridge-grid p:not(.cp-eyebrow){color:#384b54;line-height:1.8;margin:0 0 .7rem}
+.cp-organic-bridge a{display:flex;justify-content:space-between;border-top:1px solid #8998a1;padding:1rem 0 .1rem;color:#16252d;text-decoration:none;font-size:.8rem;letter-spacing:.08em;text-transform:uppercase}
+@media(max-width:760px){.cp-organic-bridge-grid{grid-template-columns:1fr}.cp-organic-bridge h2{max-width:18ch}}
