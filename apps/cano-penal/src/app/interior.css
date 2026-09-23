@@ -199,6 +199,7 @@
 .cp-interior-cta-actions .cp-text-link{margin:0;color:#b9bec5}
 
 /* About */
+.cp-interior-aside:has(.cp-interior-portrait){padding-left:0;border-left:0}
 .cp-interior-portrait{
   position:relative;
   min-height:clamp(20rem,34vw,31rem);
