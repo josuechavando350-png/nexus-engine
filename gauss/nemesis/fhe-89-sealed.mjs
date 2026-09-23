@@ -8,8 +8,9 @@ import {spawnSync} from 'node:child_process';
 import {constants,closeSync,fstatSync,fsyncSync,lstatSync,mkdtempSync,openSync,readFileSync,rmSync,statfsSync,writeFileSync,writeSync,unlinkSync} from 'node:fs';
 import {dirname,isAbsolute,join} from 'node:path';
 import {tmpdir} from 'node:os';
+import {readPinnedNativeBinary} from './read-pinned-native.mjs';
 
-const MAX_KEY=256*1024*1024, MAX_VAULT=360*1024*1024, MAX_BINARY=128*1024*1024;
+const MAX_KEY=256*1024*1024, MAX_VAULT=360*1024*1024;
 const HEX=/^[a-f0-9]{64}$/;
 const sha=b=>createHash('sha256').update(b).digest('hex');
 const reject=code=>{throw new Error(`NEMESIS_89_SEALED_${code}`);};
@@ -145,8 +146,7 @@ export function runGaussNemesis89Sealed(input){
     let binaryBytes,clientBytes,serverBytes,blob;
     try{
       if(typeof input.binary!=='string'||!isAbsolute(input.binary)||input.binary.includes('\0'))reject('BINARY_PATH');
-      try{binaryBytes=readFileSync(input.binary);}catch{reject('BINARY_MISSING');}
-      if(binaryBytes.length<1||binaryBytes.length>MAX_BINARY||sha(binaryBytes)!==input.expectedBinarySha256)reject('BINARY_PIN');
+      binaryBytes=readPinnedNativeBinary(input.binary,input.expectedBinarySha256,'NEMESIS_89_SEALED').bytes;
       writeFileSync(snapshot,binaryBytes,{flag:'wx',mode:0o700});
       if(action==='sealed-keygen'){
         fields(input,['action','binary','expectedBinarySha256','vaultPath','serverPath','passphrase'],
