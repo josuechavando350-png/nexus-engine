@@ -1,0 +1,604 @@
+{
+  "schemaVersion": 1,
+  "portfolioId": "CANO_ORGANIC_KEYWORD_PORTFOLIO_V1",
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "siteId": "cano-penal",
+  "measurementDate": "2026-09-22",
+  "keywordCount": 42,
+  "clusterCount": 7,
+  "interpretation": "TARGET_PORTFOLIO_NOT_CURRENT_RANKING_CLAIM_AND_NOT_SEARCH_VOLUME_CLAIM",
+  "rankBuckets": {
+    "TOP3": 14,
+    "TOP5": 28
+  },
+  "keywords": [
+    {
+      "id": "K001",
+      "query": "abogado penalista cdmx",
+      "clusterId": "C1_GENERIC_PENAL_COMMERCIAL",
+      "theme": "generic_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S10",
+        "S13",
+        "S22"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K002",
+      "query": "abogado penal cdmx",
+      "clusterId": "C1_GENERIC_PENAL_COMMERCIAL",
+      "theme": "generic_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S10",
+        "S13",
+        "S22"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K003",
+      "query": "abogados penalistas cdmx",
+      "clusterId": "C1_GENERIC_PENAL_COMMERCIAL",
+      "theme": "generic_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S10",
+        "S13"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K004",
+      "query": "defensa penal cdmx",
+      "clusterId": "C1_GENERIC_PENAL_COMMERCIAL",
+      "theme": "generic_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S10",
+        "S13"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K005",
+      "query": "despacho penal cdmx",
+      "clusterId": "C1_GENERIC_PENAL_COMMERCIAL",
+      "theme": "generic_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S13",
+        "S15"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K006",
+      "query": "abogado penalista cerca de mi",
+      "clusterId": "C1_GENERIC_PENAL_COMMERCIAL",
+      "theme": "generic_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S10",
+        "S22"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K007",
+      "query": "abogado defraudacion fiscal cdmx",
+      "clusterId": "C2_PENAL_FISCAL_HIGH_INTENT",
+      "theme": "penal_fiscal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S01",
+        "S04"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K008",
+      "query": "abogado delitos fiscales cdmx",
+      "clusterId": "C2_PENAL_FISCAL_HIGH_INTENT",
+      "theme": "penal_fiscal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S01",
+        "S04"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K009",
+      "query": "abogado penal fiscal cdmx",
+      "clusterId": "C2_PENAL_FISCAL_HIGH_INTENT",
+      "theme": "penal_fiscal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S01",
+        "S04"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K010",
+      "query": "abogado penal tributario cdmx",
+      "clusterId": "C2_PENAL_FISCAL_HIGH_INTENT",
+      "theme": "penal_fiscal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K011",
+      "query": "defensa defraudacion fiscal",
+      "clusterId": "C2_PENAL_FISCAL_HIGH_INTENT",
+      "theme": "penal_fiscal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01",
+        "S04"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K012",
+      "query": "defensa delitos fiscales mexico",
+      "clusterId": "C2_PENAL_FISCAL_HIGH_INTENT",
+      "theme": "penal_fiscal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K013",
+      "query": "requerimiento sat abogado",
+      "clusterId": "C3_FISCAL_PRECRISIS",
+      "theme": "fiscal_precrisis",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S01",
+        "S05",
+        "S18"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K014",
+      "query": "carta invitacion sat abogado",
+      "clusterId": "C3_FISCAL_PRECRISIS",
+      "theme": "fiscal_precrisis",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01",
+        "S05",
+        "S18"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K015",
+      "query": "auditoria sat riesgo penal",
+      "clusterId": "C3_FISCAL_PRECRISIS",
+      "theme": "fiscal_precrisis",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01",
+        "S18"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K016",
+      "query": "cuando un problema fiscal se vuelve penal",
+      "clusterId": "C3_FISCAL_PRECRISIS",
+      "theme": "fiscal_precrisis",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S01",
+        "S18"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K017",
+      "query": "responsabilidad penal representante legal impuestos",
+      "clusterId": "C3_FISCAL_PRECRISIS",
+      "theme": "fiscal_precrisis",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01",
+        "S19"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K018",
+      "query": "contador responsabilidad penal fiscal",
+      "clusterId": "C3_FISCAL_PRECRISIS",
+      "theme": "fiscal_precrisis",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01",
+        "S19"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K019",
+      "query": "abogado para detenido cdmx",
+      "clusterId": "C4_URGENT_PROCEDURE",
+      "theme": "urgent_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S10",
+        "S23"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K020",
+      "query": "abogado detenido cdmx",
+      "clusterId": "C4_URGENT_PROCEDURE",
+      "theme": "urgent_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S10",
+        "S23"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K021",
+      "query": "abogado citatorio ministerio publico cdmx",
+      "clusterId": "C4_URGENT_PROCEDURE",
+      "theme": "urgent_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S09",
+        "S23"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K022",
+      "query": "me citaron al ministerio publico necesito abogado",
+      "clusterId": "C4_URGENT_PROCEDURE",
+      "theme": "urgent_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S09",
+        "S15"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K023",
+      "query": "abogado audiencia inicial cdmx",
+      "clusterId": "C4_URGENT_PROCEDURE",
+      "theme": "urgent_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S09",
+        "S10"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K024",
+      "query": "abogado control de detencion cdmx",
+      "clusterId": "C4_URGENT_PROCEDURE",
+      "theme": "urgent_penal",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S10"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K025",
+      "query": "cuanto cuesta un abogado penalista cdmx",
+      "clusterId": "C5_DIAGNOSTIC_FEES",
+      "theme": "diagnostic",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S15",
+        "S22"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K026",
+      "query": "honorarios abogado penalista cdmx",
+      "clusterId": "C5_DIAGNOSTIC_FEES",
+      "theme": "diagnostic",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S15",
+        "S22"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K027",
+      "query": "consulta abogado penalista cdmx",
+      "clusterId": "C5_DIAGNOSTIC_FEES",
+      "theme": "diagnostic",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S15",
+        "S22"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K028",
+      "query": "diagnostico penal abogado cdmx",
+      "clusterId": "C5_DIAGNOSTIC_FEES",
+      "theme": "diagnostic",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S15",
+        "S22"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K029",
+      "query": "segunda opinion abogado penalista cdmx",
+      "clusterId": "C5_DIAGNOSTIC_FEES",
+      "theme": "diagnostic",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S15"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K030",
+      "query": "asesoria penal cdmx precio",
+      "clusterId": "C5_DIAGNOSTIC_FEES",
+      "theme": "diagnostic",
+      "funnelStage": "BOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S15",
+        "S22"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K031",
+      "query": "calendario fiscal mexico",
+      "clusterId": "C6_FISCAL_CALENDAR_AUTHORITY",
+      "theme": "fiscal_calendar",
+      "funnelStage": "TOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S05",
+        "S06"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K032",
+      "query": "calendario fiscal 2026 mexico",
+      "clusterId": "C6_FISCAL_CALENDAR_AUTHORITY",
+      "theme": "fiscal_calendar",
+      "funnelStage": "TOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S05",
+        "S06"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K033",
+      "query": "calendario obligaciones fiscales sat",
+      "clusterId": "C6_FISCAL_CALENDAR_AUTHORITY",
+      "theme": "fiscal_calendar",
+      "funnelStage": "TOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S05",
+        "S06",
+        "S18"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K034",
+      "query": "fechas declaraciones sat",
+      "clusterId": "C6_FISCAL_CALENDAR_AUTHORITY",
+      "theme": "fiscal_calendar",
+      "funnelStage": "TOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S05",
+        "S06"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K035",
+      "query": "calendario fiscal personas morales",
+      "clusterId": "C6_FISCAL_CALENDAR_AUTHORITY",
+      "theme": "fiscal_calendar",
+      "funnelStage": "TOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S05",
+        "S06",
+        "S18"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K036",
+      "query": "calendario fiscal personas fisicas",
+      "clusterId": "C6_FISCAL_CALENDAR_AUTHORITY",
+      "theme": "fiscal_calendar",
+      "funnelStage": "TOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S05",
+        "S06",
+        "S18"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K037",
+      "query": "abogado delito fiscal empresa cdmx",
+      "clusterId": "C7_BUSINESS_ACCOUNTANT",
+      "theme": "business_accountant",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP3",
+      "candidateStrategyIds": [
+        "S01",
+        "S19"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K038",
+      "query": "defensa penal empresa cdmx",
+      "clusterId": "C7_BUSINESS_ACCOUNTANT",
+      "theme": "business_accountant",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S19"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K039",
+      "query": "abogado fraude empresarial cdmx",
+      "clusterId": "C7_BUSINESS_ACCOUNTANT",
+      "theme": "business_accountant",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S19"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K040",
+      "query": "abogado administracion fraudulenta cdmx",
+      "clusterId": "C7_BUSINESS_ACCOUNTANT",
+      "theme": "business_accountant",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S19"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K041",
+      "query": "abogado delitos financieros cdmx",
+      "clusterId": "C7_BUSINESS_ACCOUNTANT",
+      "theme": "business_accountant",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01",
+        "S19"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    },
+    {
+      "id": "K042",
+      "query": "abogado para contador problema fiscal penal",
+      "clusterId": "C7_BUSINESS_ACCOUNTANT",
+      "theme": "business_accountant",
+      "funnelStage": "MOFU",
+      "targetRankBucket": "TOP5",
+      "candidateStrategyIds": [
+        "S01",
+        "S19"
+      ],
+      "currentRankStatus": "UNVERIFIED_NO_GSC_OR_SERP_TRACKER",
+      "searchVolumeStatus": "UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED"
+    }
+  ]
+}
