@@ -1,0 +1,528 @@
+{
+  "schemaVersion": 1,
+  "blueprintId": "CANO_ORGANIC_IMPLEMENTATION_BLUEPRINT_V1",
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "status": "READY_FOR_IMPLEMENTATION_REVIEW_NOT_PRODUCTION_AUTHORITY",
+  "sourceFinalists": [
+    "S01",
+    "S10",
+    "S15"
+  ],
+  "supportingNonFinalistAssetStrategy": [
+    "S05"
+  ],
+  "assetCount": 11,
+  "keywordCount": 42,
+  "assignmentCoverage": {
+    "assignedQueryCount": 41,
+    "missingQueryIds": [
+      "K005"
+    ],
+    "duplicateAssignmentIds": [
+      "K005"
+    ]
+  },
+  "assets": [
+    {
+      "id": "A01",
+      "path": "/",
+      "mode": "STRENGTHEN_EXISTING",
+      "role": "GENERIC_PENAL_ENTRY",
+      "queryIds": [
+        "K001",
+        "K002",
+        "K003",
+        "K004",
+        "K006"
+      ],
+      "finalistDrivers": [
+        "S10",
+        "S15"
+      ],
+      "queries": [
+        {
+          "id": "K001",
+          "query": "abogado penalista cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K002",
+          "query": "abogado penal cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K003",
+          "query": "abogados penalistas cdmx",
+          "target": "TOP5",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K004",
+          "query": "defensa penal cdmx",
+          "target": "TOP5",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K006",
+          "query": "abogado penalista cerca de mi",
+          "target": "TOP5",
+          "stage": "BOFU"
+        }
+      ]
+    },
+    {
+      "id": "A02",
+      "path": "/areas/delitos-fiscales-y-financieros",
+      "mode": "STRENGTHEN_EXISTING",
+      "role": "PENAL_FISCAL_HUB",
+      "queryIds": [
+        "K007",
+        "K008",
+        "K009",
+        "K010",
+        "K011",
+        "K012"
+      ],
+      "finalistDrivers": [
+        "S01"
+      ],
+      "queries": [
+        {
+          "id": "K007",
+          "query": "abogado defraudacion fiscal cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K008",
+          "query": "abogado delitos fiscales cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K009",
+          "query": "abogado penal fiscal cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K010",
+          "query": "abogado penal tributario cdmx",
+          "target": "TOP5",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K011",
+          "query": "defensa defraudacion fiscal",
+          "target": "TOP5",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K012",
+          "query": "defensa delitos fiscales mexico",
+          "target": "TOP5",
+          "stage": "BOFU"
+        }
+      ]
+    },
+    {
+      "id": "A03",
+      "path": "/guias/requerimiento-sat-riesgo-penal",
+      "mode": "PROPOSED_NEW",
+      "role": "FISCAL_PRECRISIS",
+      "queryIds": [
+        "K013",
+        "K014",
+        "K015",
+        "K016"
+      ],
+      "finalistDrivers": [
+        "S01"
+      ],
+      "queries": [
+        {
+          "id": "K013",
+          "query": "requerimiento sat abogado",
+          "target": "TOP3",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K014",
+          "query": "carta invitacion sat abogado",
+          "target": "TOP5",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K015",
+          "query": "auditoria sat riesgo penal",
+          "target": "TOP5",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K016",
+          "query": "cuando un problema fiscal se vuelve penal",
+          "target": "TOP3",
+          "stage": "MOFU"
+        }
+      ]
+    },
+    {
+      "id": "A04",
+      "path": "/guias/responsabilidad-penal-representante-legal-contador",
+      "mode": "PROPOSED_NEW",
+      "role": "PROFESSIONAL_EXPOSURE",
+      "queryIds": [
+        "K017",
+        "K018",
+        "K042"
+      ],
+      "finalistDrivers": [
+        "S01"
+      ],
+      "queries": [
+        {
+          "id": "K017",
+          "query": "responsabilidad penal representante legal impuestos",
+          "target": "TOP5",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K018",
+          "query": "contador responsabilidad penal fiscal",
+          "target": "TOP5",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K042",
+          "query": "abogado para contador problema fiscal penal",
+          "target": "TOP5",
+          "stage": "MOFU"
+        }
+      ]
+    },
+    {
+      "id": "A05",
+      "path": "/detenido-cdmx",
+      "mode": "PROPOSED_NEW",
+      "role": "URGENT_DETENTION",
+      "queryIds": [
+        "K019",
+        "K020"
+      ],
+      "finalistDrivers": [
+        "S10"
+      ],
+      "queries": [
+        {
+          "id": "K019",
+          "query": "abogado para detenido cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K020",
+          "query": "abogado detenido cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        }
+      ]
+    },
+    {
+      "id": "A06",
+      "path": "/citatorio-ministerio-publico-cdmx",
+      "mode": "PROPOSED_NEW_SUPPORTING",
+      "role": "URGENT_CITATION",
+      "queryIds": [
+        "K021",
+        "K022"
+      ],
+      "finalistDrivers": [
+        "S10"
+      ],
+      "queries": [
+        {
+          "id": "K021",
+          "query": "abogado citatorio ministerio publico cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K022",
+          "query": "me citaron al ministerio publico necesito abogado",
+          "target": "TOP5",
+          "stage": "BOFU"
+        }
+      ]
+    },
+    {
+      "id": "A07",
+      "path": "/audiencia-inicial-control-detencion-cdmx",
+      "mode": "PROPOSED_NEW",
+      "role": "URGENT_PROCEDURE",
+      "queryIds": [
+        "K023",
+        "K024"
+      ],
+      "finalistDrivers": [
+        "S10"
+      ],
+      "queries": [
+        {
+          "id": "K023",
+          "query": "abogado audiencia inicial cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K024",
+          "query": "abogado control de detencion cdmx",
+          "target": "TOP5",
+          "stage": "BOFU"
+        }
+      ]
+    },
+    {
+      "id": "A08",
+      "path": "/diagnostico-penal",
+      "mode": "PROPOSED_NEW",
+      "role": "DIAGNOSTIC_CONVERSION",
+      "queryIds": [
+        "K027",
+        "K028",
+        "K029",
+        "K030"
+      ],
+      "finalistDrivers": [
+        "S15"
+      ],
+      "queries": [
+        {
+          "id": "K027",
+          "query": "consulta abogado penalista cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K028",
+          "query": "diagnostico penal abogado cdmx",
+          "target": "TOP3",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K029",
+          "query": "segunda opinion abogado penalista cdmx",
+          "target": "TOP5",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K030",
+          "query": "asesoria penal cdmx precio",
+          "target": "TOP5",
+          "stage": "BOFU"
+        }
+      ]
+    },
+    {
+      "id": "A09",
+      "path": "/guias/honorarios-abogado-penalista-cdmx",
+      "mode": "PROPOSED_NEW",
+      "role": "PRICE_INTENT",
+      "queryIds": [
+        "K025",
+        "K026"
+      ],
+      "finalistDrivers": [
+        "S15"
+      ],
+      "queries": [
+        {
+          "id": "K025",
+          "query": "cuanto cuesta un abogado penalista cdmx",
+          "target": "TOP5",
+          "stage": "BOFU"
+        },
+        {
+          "id": "K026",
+          "query": "honorarios abogado penalista cdmx",
+          "target": "TOP5",
+          "stage": "BOFU"
+        }
+      ]
+    },
+    {
+      "id": "A10",
+      "path": "/herramientas/calendario-fiscal",
+      "mode": "PROPOSED_NEW_INTERACTIVE_SUPPORT",
+      "role": "FISCAL_AUTHORITY_TOFU",
+      "queryIds": [
+        "K031",
+        "K032",
+        "K033",
+        "K034",
+        "K035",
+        "K036"
+      ],
+      "finalistDrivers": [
+        "S01"
+      ],
+      "supportingStrategy": "S05",
+      "queries": [
+        {
+          "id": "K031",
+          "query": "calendario fiscal mexico",
+          "target": "TOP5",
+          "stage": "TOFU"
+        },
+        {
+          "id": "K032",
+          "query": "calendario fiscal 2026 mexico",
+          "target": "TOP5",
+          "stage": "TOFU"
+        },
+        {
+          "id": "K033",
+          "query": "calendario obligaciones fiscales sat",
+          "target": "TOP5",
+          "stage": "TOFU"
+        },
+        {
+          "id": "K034",
+          "query": "fechas declaraciones sat",
+          "target": "TOP5",
+          "stage": "TOFU"
+        },
+        {
+          "id": "K035",
+          "query": "calendario fiscal personas morales",
+          "target": "TOP5",
+          "stage": "TOFU"
+        },
+        {
+          "id": "K036",
+          "query": "calendario fiscal personas fisicas",
+          "target": "TOP5",
+          "stage": "TOFU"
+        }
+      ]
+    },
+    {
+      "id": "A11",
+      "path": "/guias/defensa-penal-empresa-delitos-financieros",
+      "mode": "PROPOSED_NEW",
+      "role": "BUSINESS_WHITE_COLLAR",
+      "queryIds": [
+        "K037",
+        "K038",
+        "K039",
+        "K040",
+        "K041"
+      ],
+      "finalistDrivers": [
+        "S01"
+      ],
+      "queries": [
+        {
+          "id": "K037",
+          "query": "abogado delito fiscal empresa cdmx",
+          "target": "TOP3",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K038",
+          "query": "defensa penal empresa cdmx",
+          "target": "TOP5",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K039",
+          "query": "abogado fraude empresarial cdmx",
+          "target": "TOP5",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K040",
+          "query": "abogado administracion fraudulenta cdmx",
+          "target": "TOP5",
+          "stage": "MOFU"
+        },
+        {
+          "id": "K041",
+          "query": "abogado delitos financieros cdmx",
+          "target": "TOP5",
+          "stage": "MOFU"
+        }
+      ]
+    }
+  ],
+  "proofAssets": [
+    {
+      "path": "/acerca-de-mi",
+      "role": "TRAJECTORY_PROOF",
+      "action": "STRENGTHEN_AND_LINK_TO_FISCAL_AND_URGENT_ASSETS"
+    },
+    {
+      "path": "/casos",
+      "role": "CASE_PROOF",
+      "action": "PRIVACY_SAFE_LINKS_TO_RELEVANT_SERVICE_ASSETS"
+    }
+  ],
+  "buildWaves": [
+    {
+      "wave": 1,
+      "name": "BOFU core",
+      "assetIds": [
+        "A02",
+        "A05",
+        "A08",
+        "A01"
+      ],
+      "reason": "Existing/high-intent foundations and direct conversion paths."
+    },
+    {
+      "wave": 2,
+      "name": "Urgent and fiscal depth",
+      "assetIds": [
+        "A03",
+        "A06",
+        "A07",
+        "A09"
+      ],
+      "reason": "Expand distinct high-intent queries without duplicating hubs."
+    },
+    {
+      "wave": 3,
+      "name": "Authority expansion",
+      "assetIds": [
+        "A04",
+        "A10",
+        "A11"
+      ],
+      "reason": "Pre-crisis authority, fiscal utility and business/white-collar breadth."
+    }
+  ],
+  "measurement": {
+    "businessGoal": "AT_LEAST_5_ATTRIBUTABLE_SIGNED_ORGANIC_CLIENTS_PER_MONTH",
+    "repeatability": "3_CONSECUTIVE_MONTHS_AT_OR_ABOVE_5",
+    "bootstrapState": "SEARCH_CONSOLE_RECENTLY_CONFIGURED_DO_NOT_PENALIZE_LOW_DATA",
+    "highConfidenceGate": "99.9_PERCENT_WHEN_SAMPLE_SIZE_IS_SUFFICIENT",
+    "comparisonPower": "95_PERCENT",
+    "requiredChain": [
+      "query_or_cluster",
+      "impression",
+      "organic_click_or_session",
+      "landing_page",
+      "qualified_contact",
+      "signed_matter_id_hash"
+    ]
+  },
+  "boundaries": [
+    "NO_42_PAGES_FOR_42_QUERIES",
+    "NO_KEYWORD_CANNIBALIZATION_BY_DEFAULT",
+    "NO_FAKE_REVIEWS_OR_CASE_RESULTS",
+    "NO_PAID_TRAFFIC_REQUIRED_FOR_SUCCESS",
+    "NO_PRODUCTION_MUTATION_FROM_TOURNAMENT_BRANCH",
+    "NO_RANK_OR_5_CLIENT_GUARANTEE"
+  ]
+}
