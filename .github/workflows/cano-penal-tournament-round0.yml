@@ -1,0 +1,129 @@
+name: CANO Penal Tournament Round 0 Integrated
+
+on:
+  push:
+    paths:
+      - 'tournaments/cano-penal-zero/**'
+      - 'seo-avengers-200/scripts/local-mirror-e2e.sh'
+      - 'walle/cano-tournament-round0-verify.mjs'
+      - '.github/workflows/cano-penal-tournament-round0.yml'
+  pull_request:
+    paths:
+      - 'tournaments/cano-penal-zero/**'
+      - 'seo-avengers-200/scripts/local-mirror-e2e.sh'
+      - 'walle/cano-tournament-round0-verify.mjs'
+      - '.github/workflows/cano-penal-tournament-round0.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  round0:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact event head
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact source and pristine checkout
+        env:
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Use Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+
+      - name: Check Round 0 JavaScript
+        run: |
+          set -euo pipefail
+          node --check tournaments/cano-penal-zero/tournament-zero.mjs
+          node --check tournaments/cano-penal-zero/strategy-field.mjs
+          node --check tournaments/cano-penal-zero/round0.mjs
+          node --check walle/cano-tournament-round0-verify.mjs
+          node --test tournaments/cano-penal-zero/test-tournament-zero.mjs tournaments/cano-penal-zero/test-round0.mjs
+
+      - name: Use Go 1.23
+        uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+        with:
+          go-version: '1.23.x'
+          cache: false
+
+      - name: Use Python 3.12 for Avengers M001-M200
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+
+      - name: Install pinned M001-M200 dependencies
+        run: |
+          set -euo pipefail
+          python -m pip install --disable-pip-version-check             pytest==8.3.5             pytest-asyncio==1.0.0             httpx==0.28.1             beautifulsoup4==4.13.4             fastapi==0.116.1             pydantic==2.11.7             'uvicorn[standard]==0.35.0'
+
+      - name: Bind audit digest
+        run: |
+          set -euo pipefail
+          audit_sha="sha256:$(sha256sum tournaments/cano-penal-zero/audit-evidence.json | awk '{print $1}')"
+          printf 'CANO_AUDIT_SHA=%s\n' "$audit_sha" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/cano-round0/ranges"
+
+      - name: Execute M001-M200 against CANO audit binding
+        env:
+          WALLE_M200_SITE_ID: cano-penal
+          WALLE_SOURCE_REVISION: ${{ github.event.pull_request.head.sha || github.sha }}
+          WALLE_M200_TEXT: CANO Penal CDMX Round 0 market audit; controlled evidence-bound analysis only.
+          WALLE_M200_KEYWORD: defensa penal fiscal cdmx
+          WALLE_M200_INPUT_HASH: ${{ env.CANO_AUDIT_SHA }}
+          WALLE_M200_CONTENT_DIGEST: ${{ env.CANO_AUDIT_SHA }}
+          WALLE_M200_EVIDENCE_OUTPUT: ${{ runner.temp }}/cano-round0/m001-m200-source.json
+        run: |
+          set -euo pipefail
+          bash seo-avengers-200/scripts/local-mirror-e2e.sh
+
+      - name: Use Python 3.11 for remaining Avengers ranges
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+
+      - name: Execute and bind all 2,500 Avengers ranges
+        run: |
+          set -euo pipefail
+          python -m py_compile tournaments/cano-penal-zero/round0-avengers-all.py
+          python tournaments/cano-penal-zero/round0-avengers-all.py             --repo-root "$GITHUB_WORKSPACE"             --audit tournaments/cano-penal-zero/audit-evidence.json             --m200-evidence "$RUNNER_TEMP/cano-round0/m001-m200-source.json"             --evidence-dir "$RUNNER_TEMP/cano-round0/ranges"             --summary "$RUNNER_TEMP/cano-round0/avengers-summary.json"
+
+      - name: Run full GAUSS AXIOMA Quantum proof through WALLE
+        env:
+          WALLE_GAUSS_EVIDENCE_ROOT: ${{ runner.temp }}/cano-round0/gauss-foundation
+        run: |
+          set -euo pipefail
+          bash walle/adapters/gauss.sh
+
+      - name: Execute integrated CANO Round 0
+        run: |
+          set -euo pipefail
+          node tournaments/cano-penal-zero/round0.mjs             --avengers-summary "$RUNNER_TEMP/cano-round0/avengers-summary.json"             --out "$RUNNER_TEMP/cano-round0/round0-report.json"
+
+      - name: WALLE replay verification
+        run: |
+          set -euo pipefail
+          node walle/cano-tournament-round0-verify.mjs             --report "$RUNNER_TEMP/cano-round0/round0-report.json"             --audit tournaments/cano-penal-zero/audit-evidence.json             --manifest tournaments/cano-penal-zero/audit-manifest.json             --avengers-summary "$RUNNER_TEMP/cano-round0/avengers-summary.json"             --evidence-dir "$RUNNER_TEMP/cano-round0/ranges"             > "$RUNNER_TEMP/cano-round0/walle-receipt.json"
+          cat "$RUNNER_TEMP/cano-round0/walle-receipt.json"
+
+      - name: Assert no source mutation
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain=v1 --untracked-files=all)"
+
+      - name: Upload Round 0 evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: cano-round0-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: ${{ runner.temp }}/cano-round0
+          if-no-files-found: error
