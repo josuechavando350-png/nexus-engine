@@ -35,6 +35,8 @@ const visualRoutes = new Set([
   "/areas/corrupcion-y-administracion-publica", "/areas/despojo-y-defensa-de-victimas",
   "/areas/justicia-penal-para-adolescentes", "/areas/amparo-recursos-y-apelaciones",
   "/detenido-cdmx", "/diagnostico-penal", "/herramientas/calendario-fiscal",
+  "/guias/responsabilidad-penal-representante-legal-contador",
+  "/guias/requerimiento-sat-riesgo-penal",
 ]);
 const failures = [];
 const results = [];
@@ -119,16 +121,25 @@ for (const spec of [
           assert(await page.locator("main .cp-organic-bridge").count() === 0,
             "fiscal feature must remain in its own navigation section");
           if (spec.isMobile) {
-            await page.locator("header details.cp-mobile-nav summary").click({ timeout: 5000 });
+            const menu = page.locator("header details.cp-mobile-nav summary");
+            await menu.click({ timeout: 5000 });
             assert(await page.locator('header details.cp-mobile-nav nav a[href="/herramientas/calendario-fiscal"]').isVisible(),
               "mobile fiscal calendar link not accessible");
+            if (spec.name === "chromium-mobile") {
+              const menuProof = "chromium-mobile__home-menu.png";
+              await page.screenshot({ path: join(output, menuProof), fullPage: false, animations: "disabled" });
+              screenshotPaths.push(menuProof);
+            }
+            await menu.click();
+            assert(!(await page.locator("header details.cp-mobile-nav").evaluate(el => el.open)),
+              "mobile navigation failed to close");
           }
         }
-        const screenshot = visualRoutes.has(route) && !spec.name.startsWith("webkit");
+        const screenshot = visualRoutes.has(route) && (spec.name === "chromium-mobile" || spec.name === "chromium-desktop");
         if (screenshot) {
           if (route === "/") await page.locator(".cp-splash").waitFor({ state: "hidden", timeout: 5000 });
           const filename = spec.name + "__" + slug(route) + ".png";
-          await page.screenshot({ path: join(output, filename), fullPage: false, animations: "disabled" });
+          await page.screenshot({ path: join(output, filename), fullPage: true, animations: "disabled" });
           screenshotPaths.push(filename);
         }
         results.push({ label, status: "PASS", measurements });
