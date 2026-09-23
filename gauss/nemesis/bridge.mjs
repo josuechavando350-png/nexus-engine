@@ -2,6 +2,7 @@
 import {existsSync} from 'node:fs';
 import {runGaussNemesis89} from './native-fhe.mjs';
 import {runGaussNemesis81Signature} from './native-sqisign-81.mjs';
+import {runGaussNemesis81Sealed} from './sqisign-81-sealed.mjs';
 import {filterGaussNemesis96} from './kalman-96.mjs';
 import {verifyTwoIsogenyDualIdentity} from './isogeny-81-foundation.mjs';
 import {evaluateCyclicVelu} from './isogeny-81-cyclic.mjs';
@@ -32,6 +33,8 @@ export async function runGaussNemesis(id, input) {
   const normalized = normalizeId(id);
   if (normalized === '89' && (input?.action === 'native-add-u8' || input?.action === 'native-circuit'))
     return runGaussNemesis89(input);
+  if (normalized === '81' && ['sqisign-keygen-sealed', 'sqisign-sign-sealed'].includes(input?.action))
+    return runGaussNemesis81Sealed(input);
   if (normalized === '81' && ['sqisign-keygen', 'sqisign-sign', 'sqisign-verify'].includes(input?.action))
     return runGaussNemesis81Signature(input);
   const engine = await loadEngine();
