@@ -4,7 +4,6 @@ on:
   pull_request:
     paths:
       - "apps/cano-penal/**"
-      - ".github/workflows/cano-site-browser-qa.yml"
   workflow_dispatch:
 
 permissions:
