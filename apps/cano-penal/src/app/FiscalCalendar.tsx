@@ -45,6 +45,10 @@ export function FiscalCalendar() {
           </select>
         </label>
       </div>
+      <aside className="cp-cal-disclaimer" aria-labelledby="cp-cal-disclaimer-title">
+        <div className="cp-cal-disclaimer-label"><span>Información importante</span><strong id="cp-cal-disclaimer-title">Aviso de carácter informativo</strong></div>
+        <p>La información de este calendario es exclusivamente informativa y orientativa. Las fechas y obligaciones fiscales aplicables pueden variar según el régimen, la situación y las circunstancias particulares de cada contribuyente. Los plazos exactos y la atención de cada caso deben verificarse individualmente con la autoridad fiscal y un profesional competente. Esta herramienta no sustituye una asesoría fiscal o jurídica personalizada.</p>
+      </aside>
       <div className="cp-cal-workspace">
         <div className="cp-cal-monthly">
           <div className="cp-cal-navigation">
