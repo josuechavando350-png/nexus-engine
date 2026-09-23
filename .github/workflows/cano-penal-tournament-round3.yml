@@ -67,7 +67,7 @@ jobs:
             tournaments/cano-penal-zero/test-organic-goal-v1.mjs \
             tournaments/cano-penal-zero/test-round2.mjs \
             tournaments/cano-penal-zero/test-round3.mjs
-          python -m py_compile tournaments/cano-penal-zero/round2-avengers-organic.py
+          python -c 'compile(open("tournaments/cano-penal-zero/round2-avengers-organic.py", encoding="utf-8").read(), "round2-avengers-organic.py", "exec")'
 
       - name: Use Go 1.23
         uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
