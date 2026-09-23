@@ -10,7 +10,19 @@
     "minimumPerCalendarMonth": 5,
     "leadMetricDoesNotCount": true,
     "whatsappContactDoesNotCount": true,
-    "diagnosticPurchaseDoesNotCountUnlessItBecomesASignedClientMatter": true
+    "diagnosticPurchaseDoesNotCountUnlessItBecomesASignedClientMatter": true,
+    "rampTargets": {
+      "month1": "INDEXATION_VISIBILITY_AND_QUERY_DISCOVERY",
+      "month2": {
+        "minimumSignedOrganicClients": 1,
+        "zeroClientVerdict": "TRIGGER_IMMEDIATE_DIAGNOSIS_NOT_WAIT"
+      },
+      "month3": {
+        "minimumSignedOrganicClients": 1,
+        "targetSignedOrganicClients": 5,
+        "zeroClientVerdict": "TRIGGER_ESCALATED_DIAGNOSIS_AND_REPLAN"
+      }
+    }
   },
   "searchOutcome": {
     "objective": "BUILD_AND_DEFEND_A_PORTFOLIO_OF_COMMERCIALLY_RELEVANT_QUERIES_ACROSS_GOOGLE_TOP_3_AND_TOP_5",
@@ -38,7 +50,8 @@
     "championEligibility": "AT_LEAST_5_SIGNED_ORGANIC_CLIENTS_IN_A_MEASUREMENT_MONTH_WITH_VALID_ATTRIBUTION",
     "repeatabilityEvidence": "3_CONSECUTIVE_MONTHS_AT_OR_ABOVE_TARGET",
     "rankingGuaranteeAllowed": false,
-    "clientForecastAllowed": false
+    "clientForecastAllowed": false,
+    "operatingRamp": "MONTH2_AT_LEAST_1_SIGNED_ORGANIC_CLIENT_AND_MONTH3_CLIENTS_PRESENT_WITH_TARGET_5"
   },
   "hardBoundaries": [
     "NO_PAID_SEARCH_DEPENDENCY_FOR_CHAMPION_STRATEGY",
