@@ -83,6 +83,36 @@ describe("CANO organic integration contract", () => {
     expect(sitemap).not.toContain('/herramientas/calendario-fiscal');
   });
 
+  it("never renders decorative 01/02/03 labels across public editorial pages", () => {
+    const app = new URL("./", import.meta.url);
+    const pageFiles = [
+      "page.tsx",
+      "AreaExperience.tsx",
+      "InteriorSections.tsx",
+      "acerca-de-mi/page.tsx",
+      "casos/page.tsx",
+      "detenido-cdmx/page.tsx",
+      "diagnostico-penal/page.tsx",
+      "citatorio-ministerio-publico-cdmx/page.tsx",
+      "audiencia-inicial-control-detencion-cdmx/page.tsx",
+      "guias/requerimiento-sat-riesgo-penal/page.tsx",
+      "guias/responsabilidad-penal-representante-legal-contador/page.tsx",
+      "guias/defensa-penal-empresa-delitos-financieros/page.tsx",
+      "guias/honorarios-abogado-penalista-cdmx/page.tsx",
+    ];
+    for (const path of pageFiles) {
+      const page = readFileSync(new URL(path, app), "utf8");
+      expect(page, path).not.toMatch(/>(?:0[1-9]|00[1-9])(?:\\s*[\\/—-]|<)/);
+      expect(page, path).not.toMatch(/"(?:0[1-9])"\\s*,/);
+      expect(page, path).not.toMatch(/(?:0[1-9])\\s*[\\/—]\\s*(?:[A-ZÁÉÍÓÚ])/);
+      expect(page, path).not.toMatch(/0\\{i\\s*\\+\\s*1\\}/);
+    }
+    const interior = readFileSync(new URL("./interior.css", import.meta.url), "utf8");
+    expect(interior).not.toContain("decimal-leading-zero");
+    const routeIndex = readFileSync(new URL("./organic-core.css", import.meta.url), "utf8");
+    expect(routeIndex).toContain(".cp-route-index-group-title::before");
+  });
+
   it("provides a distinct composition for each approved practice area", () => {
     const page = readFileSync(new URL("./areas/[slug]/page.tsx", import.meta.url), "utf8");
     const experience = readFileSync(new URL("./AreaExperience.tsx", import.meta.url), "utf8");

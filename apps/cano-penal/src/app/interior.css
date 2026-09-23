@@ -140,16 +140,10 @@
 .cp-interior-editorial-list{border-top:1px solid rgba(232,237,243,.14)}
 .cp-interior-editorial-row{
   display:grid;
-  grid-template-columns:4rem minmax(0,1fr);
-  gap:clamp(1rem,3vw,2.5rem);
+  grid-template-columns:minmax(0,1fr);
+  gap:0;
   padding:clamp(2rem,4vw,3.5rem) 0;
   border-bottom:1px solid rgba(232,237,243,.12);
-}
-.cp-interior-editorial-row>span{
-  color:#666d75;
-  font-size:10px;
-  letter-spacing:.16em;
-  padding-top:.45rem;
 }
 .cp-interior-editorial-row p{
   max-width:48rem;
@@ -255,11 +249,12 @@
   line-height:1.55;
 }
 .cp-about-academics .cp-list li::before{
-  content:counter(list-item,decimal-leading-zero);
-  color:#626970;
-  font-size:10px;
-  letter-spacing:.12em;
-  padding-top:.25rem;
+  content:"";
+  display:block;
+  width:1.3rem;
+  height:1px;
+  background:#727e88;
+  margin-top:.7rem;
 }
 
 /* Cases */
@@ -278,11 +273,6 @@
   border-right:1px solid rgba(232,237,243,.14);
   border-bottom:1px solid rgba(232,237,243,.14);
   background:#0b0f14;
-}
-.cp-case-premium-index{
-  color:#60676e;
-  font-size:10px;
-  letter-spacing:.18em;
 }
 .cp-case-premium h2{
   max-width:17ch;

@@ -21,8 +21,7 @@
 .cp-sat-question-list{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #3e4c56}
 .cp-sat-question-list article{padding:2.2rem 2.5rem 4rem 0;margin-right:2rem;border-right:1px solid #34414c}
 .cp-sat-question-list article:last-child{border:0}
-.cp-sat-question-list span{color:#82919d;font-size:.74rem;letter-spacing:.16em}
-.cp-sat-question-list h3{font-weight:300;font-size:clamp(1.7rem,2.9vw,3.2rem);margin:3.5rem 0 1.2rem}
+.cp-sat-question-list h3{font-weight:300;font-size:clamp(1.7rem,2.9vw,3.2rem);margin:1.25rem 0 1.2rem}
 .cp-sat-question-list p{color:#a7b2bb;line-height:1.7}
 .cp-sat-next{padding:clamp(5rem,9vw,9rem) 0;background:#080b0e}
 .cp-sat-next>div{display:grid;grid-template-columns:1fr 1fr;gap:clamp(3rem,8vw,8rem);align-items:end}
@@ -50,8 +49,7 @@
 .cp-cit-content-grid>div:first-child>p{color:#46565f;line-height:1.8;max-width:27rem}
 .cp-cit-content a{display:inline-block;margin-top:2rem;color:#17242d;text-decoration:none;padding-bottom:.5rem;border-bottom:1px solid #6e7b82}
 .cp-cit-fields{border-top:1px solid #98a5ac}
-.cp-cit-fields article{display:grid;grid-template-columns:3rem minmax(0,1fr);gap:1.7rem;border-bottom:1px solid #a5b0b6;padding:2rem 0}
-.cp-cit-fields article>span{font-size:.7rem;color:#62717b}
+.cp-cit-fields article{display:block;border-bottom:1px solid #a5b0b6;padding:2rem 0}
 .cp-cit-fields h3{font-size:clamp(1.5rem,3vw,2.8rem);font-weight:300;margin:0 0 .9rem}
 .cp-cit-fields p{color:#44535d;line-height:1.7;margin:0}
 .cp-cit-contact{background:#111a20;padding:clamp(5rem,9vw,9rem) 0}
@@ -75,7 +73,7 @@
 .cp-aud-focus{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0;border-top:1px solid #46535e}
 .cp-aud-focus article{min-height:22rem;padding:2.5rem 2rem 2rem 0;margin-right:2rem;border-right:1px solid #35414c;display:flex;flex-direction:column}
 .cp-aud-focus article:last-child{border:0;margin:0}
-.cp-aud-focus b{font-weight:300;color:#9dabb7;font-size:.76rem}
+.cp-aud-focus article::before{content:"";display:block;width:3rem;height:1px;background:#8294a0;flex:0 0 1px}
 .cp-aud-focus h3{font-size:clamp(1.8rem,3vw,3rem);font-weight:300;margin:auto 0 1.25rem}
 .cp-aud-focus p{color:#9fadb9;line-height:1.7}
 .cp-aud-follow{padding:clamp(5rem,10vw,9rem) 0;background:#e5e9ea;color:#11181c}
@@ -106,8 +104,7 @@
 .cp-fee-factor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #47555e}
 .cp-fee-factor-grid>div{padding:2rem 2rem 3rem 0;margin-right:2rem;border-right:1px solid #37444e}
 .cp-fee-factor-grid>div:last-child{margin:0;border:0}
-.cp-fee-factor-grid b{font-weight:300;font-size:.73rem;color:#98a7b3}
-.cp-fee-factor-grid h3{font-size:clamp(1.8rem,3vw,3rem);font-weight:300;margin:3rem 0 1rem}
+.cp-fee-factor-grid h3{font-size:clamp(1.8rem,3vw,3rem);font-weight:300;margin:1.5rem 0 1rem}
 .cp-fee-factor-grid p{color:#aab7c0;line-height:1.8}
 .cp-fee-end{display:grid;grid-template-columns:1fr 1fr;gap:3rem;margin-top:4rem;border-top:1px solid #394651;padding-top:2rem}
 .cp-fee-end p{color:#94a4b0;line-height:1.7;max-width:35rem}
@@ -148,8 +145,7 @@
 .cp-biz-scope h2{font-size:clamp(2.8rem,5vw,5.5rem);font-weight:300;line-height:.95;text-transform:uppercase;letter-spacing:-.05em;margin:0 0 4rem}
 .cp-biz-scope h2 em{font-style:normal;color:#9babb8}
 .cp-biz-row-list{border-top:1px solid #485764}
-.cp-biz-row-list article{display:grid;grid-template-columns:3rem .9fr 1.1fr 2rem;align-items:center;gap:2rem;border-bottom:1px solid #374651;padding:2.4rem 0}
-.cp-biz-row-list article>span:first-child{color:#9babb8;font-size:.74rem}
+.cp-biz-row-list article{display:grid;grid-template-columns:.9fr 1.1fr 2rem;align-items:center;gap:2rem;border-bottom:1px solid #374651;padding:2.4rem 0}
 .cp-biz-row-list h3{font-size:clamp(1.5rem,2.9vw,3rem);font-weight:300;text-transform:uppercase;margin:0;line-height:1.05}
 .cp-biz-row-list p{color:#aab7c1;line-height:1.65;margin:0}
 .cp-biz-row-list article>span:last-child{font-size:2rem;color:#bdc8d0}
@@ -171,7 +167,7 @@
  .cp-sat-next>div,.cp-fee-end,.cp-pro-split{grid-template-columns:1fr}
  .cp-cit-contact>div>div{display:grid}
  .cp-pro-panel{min-height:31rem}
- .cp-biz-row-list article{grid-template-columns:2rem 1fr 1rem;gap:1rem}
- .cp-biz-row-list p{grid-column:2/-1}
+ .cp-biz-row-list article{grid-template-columns:1fr 1rem;gap:1rem}
+ .cp-biz-row-list p{grid-column:1/-1;grid-row:2} .cp-biz-row-list article>span:last-child{grid-column:2;grid-row:1;justify-self:end}
  .cp-fee-price-amount>strong{font-size:clamp(3.4rem,12vw,5rem)}
 }

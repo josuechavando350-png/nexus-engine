@@ -99,8 +99,7 @@
 .cp-aj-hero-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:clamp(3rem,9vw,10rem);align-items:end}
 .cp-aj-hero h1{font-size:clamp(3.2rem,7vw,8.2rem);font-weight:300;letter-spacing:-.065em;line-height:.92;text-transform:uppercase;max-width:15ch;margin:2rem 0 0}
 .cp-aj-hero aside{border-left:1px solid #a4aea7;padding:0 0 0 2.5rem}
-.cp-aj-hero aside>span{display:block;font:300 clamp(6rem,12vw,14rem)/.83 "Arial Narrow",Arial,sans-serif;color:#a6b2ab}
-.cp-aj-hero aside p{line-height:1.9;color:#4e5f58;font-size:1.05rem;margin:2.5rem 0 0}
+.cp-aj-hero aside p{line-height:1.9;color:#4e5f58;font-size:clamp(1.1rem,1.6vw,1.4rem);margin:0}
 .cp-aj-process{padding:clamp(7rem,11vw,11rem) 0;background:#1b2926;color:#eff0e9}
 .cp-aj-process-title{display:grid;grid-template-columns:.35fr 1fr;gap:clamp(2rem,7vw,8rem);border-bottom:1px solid #61726a;padding-bottom:3rem}
 .cp-aj-process-title span,.cp-aj-process-columns article span{font-size:.69rem;letter-spacing:.14em;text-transform:uppercase;color:#b8c6bb}
@@ -121,8 +120,7 @@
 .cp-aa-path-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;border-top:1px solid #8297a5}
 .cp-aa-path-grid>div{padding:2.5rem clamp(2rem,5vw,6rem) 0 0}
 .cp-aa-path-grid>div+div{border-left:1px solid #96a9b4;padding-left:clamp(2rem,5vw,6rem)}
-.cp-aa-path-grid span{font-size:.72rem;letter-spacing:.2em}
-.cp-aa-path h2{font-size:clamp(2.5rem,5vw,5.3rem);font-weight:300;line-height:1;letter-spacing:-.055em;text-transform:uppercase;margin:4rem 0 2rem;max-width:13ch}
+.cp-aa-path h2{font-size:clamp(2.5rem,5vw,5.3rem);font-weight:300;line-height:1;letter-spacing:-.055em;text-transform:uppercase;margin:1.25rem 0 2rem;max-width:13ch}
 .cp-aa-path p{line-height:1.9;color:#415763;font-size:1.06rem}
 .cp-aa-contact{background:#182b37;color:#e9f0f4;padding:clamp(5rem,9vw,9rem) 0}
 .cp-aa-contact>div{display:grid;grid-template-columns:1fr 1fr;gap:clamp(3rem,9vw,9rem);align-items:end}
