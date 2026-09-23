@@ -202,7 +202,7 @@ def main() -> None:
     parser.add_argument("--audit", required=True)
     parser.add_argument("--m200-evidence", required=True)
     parser.add_argument("--evidence-dir", required=True)
-    parser.add_argument("--summary", required=True)
+    parser.add_argument("--summary", required=True)\n    parser.add_argument("--engine-id", default="SEO_AVENGERS_2500_CANO_ROUND0")
     args = parser.parse_args()
 
     repo = Path(args.repo_root).resolve()
@@ -261,7 +261,7 @@ def main() -> None:
 
     unsigned = {
         "schemaVersion": 1,
-        "engineId": "SEO_AVENGERS_2500_CANO_ROUND0",
+        "engineId": args.engine_id,
         "siteId": "cano-penal",
         "auditSha256": audit_sha,
         "moduleCount": 2500,
