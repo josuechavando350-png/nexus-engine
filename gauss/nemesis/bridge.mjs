@@ -3,6 +3,7 @@ import {existsSync} from 'node:fs';
 import {runGaussNemesis89} from './native-fhe.mjs';
 import {runGaussNemesis81Signature} from './native-sqisign-81.mjs';
 import {runGaussNemesis81Sealed} from './sqisign-81-sealed.mjs';
+import {runGaussNemesis95Pinned} from './groth16-95-pinned.mjs';
 import {filterGaussNemesis96} from './kalman-96.mjs';
 import {verifyTwoIsogenyDualIdentity} from './isogeny-81-foundation.mjs';
 import {evaluateCyclicVelu} from './isogeny-81-cyclic.mjs';
@@ -37,6 +38,8 @@ export async function runGaussNemesis(id, input) {
     return runGaussNemesis81Sealed(input);
   if (normalized === '81' && ['sqisign-keygen', 'sqisign-sign', 'sqisign-verify'].includes(input?.action))
     return runGaussNemesis81Signature(input);
+  if (normalized === '95' && ['prove-pinned', 'verify-pinned'].includes(input?.action))
+    return runGaussNemesis95Pinned(input);
   const engine = await loadEngine();
   if (normalized === '81' && ['verify-dual', 'evaluate-cyclic', 'evaluate-public-chain', 'verify-public-claim'].includes(input?.action)) {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 81: expected action and payload');
