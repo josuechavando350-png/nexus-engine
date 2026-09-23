@@ -41,7 +41,7 @@ export function InteriorHero({
 export function InteriorCta({
   eyebrow = "Siguiente paso",
   title = "Tu caso merece una estrategia antes de una reacción.",
-  copy = "Cuéntanos qué está pasando. La primera decisión es entender bien el problema y actuar con tiempo.",
+  copy = "Cuéntame qué está pasando. La primera decisión es entender bien el problema y actuar con tiempo.",
 }: {
   eyebrow?: string;
   title?: string;
@@ -64,7 +64,7 @@ export function InteriorCta({
               Llamar {site.phoneDisplay}
             </a>
             <Link className="cp-text-link" href="/#contacto">
-              Ver datos de contacto
+              Contáctame
             </Link>
           </div>
         </div>

@@ -40,6 +40,19 @@ describe("CANO organic integration contract", () => {
     expect(chrome).toContain("background:#0c1116");
   });
 
+  it("uses the lawyer's first-person contact language requested by the client", () => {
+    const navigation = readFileSync(new URL("./content.ts", import.meta.url), "utf8");
+    const form = readFileSync(new URL("./ContactForm.tsx", import.meta.url), "utf8");
+    const cta = readFileSync(new URL("./InteriorSections.tsx", import.meta.url), "utf8");
+    const areas = readFileSync(new URL("./AreaExperience.tsx", import.meta.url), "utf8");
+    expect(navigation).toContain('["Contáctame", "/#contacto"]');
+    expect(form).toContain("Comunícate conmigo →");
+    expect(cta).toContain("Cuéntame qué está pasando.");
+    expect(cta).toContain("Contáctame");
+    expect(areas).not.toContain("Plantear el asunto al despacho");
+    expect(areas).not.toContain("Contactar al abogado");
+  });
+
   it("replaces the inoperative homepage form and links into the acquisition routes", () => {
     const home = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
     const nav = readFileSync(new URL("./content.ts", import.meta.url), "utf8");

@@ -25,11 +25,11 @@ export function AreaExperience({ slug, heading, paragraphs: p }: Props) {
       return <>
         <section className="cp-ap-hero"><div className="cp-wrap cp-ap-hero-grid"><div><p className="cp-area-overline">Patrimonio y prueba</p><h1>{heading}</h1></div><div className="cp-ap-hero-panel"><span>El punto de partida</span><p>{p[0]}</p></div></div></section>
         <section className="cp-ap-analysis"><div className="cp-wrap"><header><p className="cp-area-overline">Lectura del asunto</p><h2>Primero, distinguir los hechos.</h2></header><div className="cp-ap-analysis-grid"><article><span>Naturaleza de los hechos</span><p>{p[1]}</p></article><article><span>Alcance de la representación</span><p>{p[2]}</p></article></div></div></section>
-        <section className="cp-ap-contact"><div className="cp-wrap"><span>Defensa y representación</span><h2>Una estrategia parte del expediente, no de suposiciones.</h2><ContactLink>Plantear el asunto al despacho</ContactLink></div></section>
+        <section className="cp-ap-contact"><div className="cp-wrap"><span>Defensa y representación</span><h2>Una estrategia parte del expediente, no de suposiciones.</h2><ContactLink>Contáctame</ContactLink></div></section>
       </>;
     case "homicidio-y-delitos-violentos":
       return <>
-        <section className="cp-ah-hero"><img src="/media/audiencia-03.jpg" alt="" aria-hidden="true" /><div className="cp-ah-shade" /><div className="cp-wrap cp-ah-hero-inner"><p className="cp-area-overline">Atención penal</p><h1>{heading}</h1><p>{p[0]}</p><ContactLink>Contactar al abogado</ContactLink></div></section>
+        <section className="cp-ah-hero"><img src="/media/audiencia-03.jpg" alt="" aria-hidden="true" /><div className="cp-ah-shade" /><div className="cp-wrap cp-ah-hero-inner"><p className="cp-area-overline">Atención penal</p><h1>{heading}</h1><p>{p[0]}</p><ContactLink>Contáctame</ContactLink></div></section>
         <section className="cp-ah-evidence"><div className="cp-wrap cp-ah-evidence-grid"><div><span>El expediente</span><h2>La prueba, examinada a detalle.</h2></div><div><p>{p[1]}</p><p>{p[2]}</p></div></div></section>
         <section className="cp-ah-final"><div className="cp-wrap"><p className="cp-area-overline">Siguiente paso</p>{p.slice(3).map((paragraph) => <p key={paragraph}>{paragraph}</p>)}<a href={site.phoneHref}>Llamar al {site.phoneDisplay} →</a></div></section>
       </>;

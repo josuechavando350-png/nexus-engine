@@ -50,7 +50,7 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
       </label>
       <div className="cp-contact-form-full cp-contact-form-bottom">
         <p>Al continuar se abrirá WhatsApp con el mensaje preparado. No se envía ni se guarda este formulario en la web. Evita escribir datos sensibles del asunto.</p>
-        <button className="cp-btn cp-btn-solid" type="submit">Continuar a WhatsApp →</button>
+        <button className="cp-btn cp-btn-solid" type="submit">Comunícate conmigo →</button>
       </div>
       {prepared ? <p className="cp-contact-form-full" role="status">Si WhatsApp no se abrió, utiliza el botón flotante de contacto.</p> : null}
     </form>
