@@ -8,6 +8,7 @@ import {runGaussNemesis81Sealed} from './sqisign-81-sealed.mjs';
 import {runGaussNemesis81KeyRotation} from './sqisign-81-key-rotation.mjs';
 import {runGaussNemesis95Pinned} from './groth16-95-pinned.mjs';
 import {filterGaussNemesis96} from './kalman-96.mjs';
+import {multifractalDFA} from './dfa-78.mjs';
 import {verifyTwoIsogenyDualIdentity} from './isogeny-81-foundation.mjs';
 import {evaluateCyclicVelu} from './isogeny-81-cyclic.mjs';
 import {evaluatePublicVeluChain} from './isogeny-81-chain.mjs';
@@ -50,6 +51,10 @@ export async function runGaussNemesis(id, input) {
   if (normalized === '95' && ['prove-pinned', 'verify-pinned'].includes(input?.action))
     return runGaussNemesis95Pinned(input);
   const engine = await loadEngine();
+  if (normalized === '78' && input?.action === 'multifractal') {
+    if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 78: expected action and payload');
+    return multifractalDFA(input.payload);
+  }
   if (normalized === '81' && ['verify-dual', 'evaluate-cyclic', 'evaluate-public-chain', 'verify-public-claim'].includes(input?.action)) {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 81: expected action and payload');
     if (input.action === 'verify-dual') return verifyTwoIsogenyDualIdentity(input.payload);
