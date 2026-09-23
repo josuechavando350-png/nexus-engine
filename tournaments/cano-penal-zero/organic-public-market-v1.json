@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "CANO_ORGANIC_PUBLIC_MARKET_V1",
+  "siteId": "cano-penal",
+  "capturedOn": "2026-09-22",
+  "evidenceClass": "PUBLIC_WEB_SEARCH_OBSERVATIONS_NOT_GOOGLE_RANK_TRACKING",
+  "observations": [
+    {
+      "id": "O01",
+      "status": "OBSERVED",
+      "claim": "CANO has a publicly crawlable homepage positioned around abogado penalista CDMX and authority-insider experience.",
+      "url": "https://www.canopenal.com/"
+    },
+    {
+      "id": "O02",
+      "status": "OBSERVED",
+      "claim": "CANO has a dedicated publicly crawlable delitos fiscales y financieros page addressing defraudacion fiscal, SAT/UIF/Fiscalia, representatives and accountants.",
+      "url": "https://www.canopenal.com/areas/delitos-fiscales-y-financieros"
+    },
+    {
+      "id": "O03",
+      "status": "OBSERVED",
+      "claim": "CANO has a publicly crawlable trajectory page documenting Procuraduria Fiscal experience.",
+      "url": "https://www.canopenal.com/acerca-de-mi"
+    },
+    {
+      "id": "O04",
+      "status": "OBSERVED",
+      "claim": "CANO has a publicly crawlable cases page including a fiscal-crime defense example.",
+      "url": "https://www.canopenal.com/casos"
+    },
+    {
+      "id": "O05",
+      "status": "COMPETITOR_OBSERVED",
+      "claim": "Rendon Penalistas publishes a dedicated page for a family member at the Ministerio Publico, including audiencia inicial and urgent-defense information.",
+      "url": "https://www.rendonpenalistas.com/mi-familiar-esta-en-el-ministerio-publico.html"
+    },
+    {
+      "id": "O06",
+      "status": "COMPETITOR_OBSERVED",
+      "claim": "Abogados en CDMX publishes a dedicated detained-rights guide and a criminal-law specialty hub.",
+      "url": "https://abogadosencdmx.com/blog/derechos-detenido-cdmx/"
+    },
+    {
+      "id": "O07",
+      "status": "COMPETITOR_OBSERVED",
+      "claim": "Villalobos Penalistas publishes a detention-emergency oriented criminal-defense landing page.",
+      "url": "https://villalobospenalistas.com/"
+    },
+    {
+      "id": "O08",
+      "status": "NOT_OBSERVED_NOT_PROOF_OF_ABSENCE",
+      "claim": "This public-search cut did not surface a distinct CANO URL dedicated specifically to detenido, citatorio or audiencia inicial. Absence in this search is not proof that no such URL exists.",
+      "url": null
+    },
+    {
+      "id": "O09",
+      "status": "LIMIT",
+      "claim": "Exact Google positions Top 3/Top 5 are not established by this evidence because CANO Search Console or an authorized SERP tracker is not connected.",
+      "url": null
+    }
+  ],
+  "currentPublicContentDocuments": [
+    {
+      "document_id": "/",
+      "text": "CANO Estrategia Penal. Abogado penalista en CDMX. Experiencia desde dentro de la autoridad. Defensa penal, citatorio, detenido, victima, diagnostico y estrategia."
+    },
+    {
+      "document_id": "/areas/delitos-fiscales-y-financieros",
+      "text": "Delitos fiscales y financieros. Auditorias, requerimientos, SAT, UIF, Fiscalia, defraudacion fiscal, operaciones inexistentes, contrabando, lavado, representantes legales y contadores. Defensa temprana."
+    },
+    {
+      "document_id": "/acerca-de-mi",
+      "text": "Eduardo Cano. Experiencia desde 2006 en Delitos Fiscales y Financieros de la Procuraduria Fiscal de la Federacion y litigio penal acusatorio."
+    },
+    {
+      "document_id": "/casos",
+      "text": "Casos de defensa penal, incluyendo defensa en delito fiscal, homicidio, administracion fraudulenta, abuso sexual, despojo y corrupcion."
+    },
+    {
+      "document_id": "/areas/homicidio-y-delitos-violentos",
+      "text": "Homicidio y delitos violentos. Defensa ante detencion, primeras horas, cadena de custodia, periciales, testimonios y audiencias."
+    }
+  ],
+  "hardLimit": "NO_POSITION_OR_VOLUME_CLAIM_FROM_PUBLIC_WEB_SEARCH"
+}
