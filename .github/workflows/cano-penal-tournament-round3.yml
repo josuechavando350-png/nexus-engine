@@ -67,7 +67,8 @@ jobs:
             tournaments/cano-penal-zero/test-organic-goal-v1.mjs \
             tournaments/cano-penal-zero/test-organic-statistical-gate-v1.mjs \
             tournaments/cano-penal-zero/test-round2.mjs \
-            tournaments/cano-penal-zero/test-round3.mjs
+            tournaments/cano-penal-zero/test-round3.mjs \
+            tournaments/cano-penal-zero/test-round4-live-measurement-protocol-v1.mjs
           python -c 'compile(open("tournaments/cano-penal-zero/round2-avengers-organic.py", encoding="utf-8").read(), "round2-avengers-organic.py", "exec")'
 
       - name: Use Go 1.23
