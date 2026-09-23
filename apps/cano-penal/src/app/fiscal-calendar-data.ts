@@ -2,7 +2,7 @@
 export const SAT_SOURCES = {
   fisica: {
     title: "SAT · Pagos mensuales de personas físicas",
-    url: "https://wwwmat.sat.gob.mx/declaracion/33006/presenta-tu-declaracion-de-actividades-empresariales-y-servicios-profesionales,-arrendamiento-e-iva,-personas-fisicas-de-2025-en-adelante-(simulador)",
+    url: "https://wwwmatnp.sat.gob.mx/declaracion/26984/declaracion-mensual-en-el-servicio-de-declaraciones-y-pagos",
   },
   moral: {
     title: "SAT · Pagos provisionales o definitivos de personas morales",
@@ -10,7 +10,7 @@ export const SAT_SOURCES = {
   },
   relevante: {
     title: "SAT · Declaración informativa de operaciones relevantes",
-    url: "https://wwwmatnp.sat.gob.mx/declaracion/11315/declaracion-informativa-de-operaciones-relevantes",
+    url: "https://wwwmat.sat.gob.mx/declaracion/11315/declaracion-informativa-de-operaciones-relevantes",
   },
 } as const;
 
