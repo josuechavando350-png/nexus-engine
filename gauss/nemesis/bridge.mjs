@@ -1,6 +1,7 @@
 /** GAUSS -> Némesis: namespaced, fail-closed access to the original 100 IDs. */
 import {existsSync} from 'node:fs';
 import {runGaussNemesis89} from './native-fhe.mjs';
+import {runGaussNemesis89Sealed} from './fhe-89-sealed.mjs';
 import {runGaussNemesis81Signature} from './native-sqisign-81.mjs';
 import {runGaussNemesis81Sealed} from './sqisign-81-sealed.mjs';
 import {runGaussNemesis95Pinned} from './groth16-95-pinned.mjs';
@@ -34,6 +35,8 @@ export async function runGaussNemesis(id, input) {
   const normalized = normalizeId(id);
   if (normalized === '89' && (input?.action === 'native-add-u8' || input?.action === 'native-circuit'))
     return runGaussNemesis89(input);
+  if (normalized === '89' && ['sealed-keygen', 'sealed-encrypt', 'sealed-decrypt', 'sealed-rekey'].includes(input?.action))
+    return runGaussNemesis89Sealed(input);
   if (normalized === '81' && ['sqisign-keygen-sealed', 'sqisign-sign-sealed', 'sqisign-rekey-sealed'].includes(input?.action))
     return runGaussNemesis81Sealed(input);
   if (normalized === '81' && ['sqisign-keygen', 'sqisign-sign', 'sqisign-verify'].includes(input?.action))
