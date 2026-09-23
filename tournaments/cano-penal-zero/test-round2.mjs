@@ -2,55 +2,42 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-import { buildReadinessProfiles, buildRound2Problem } from "./round2.mjs";
+const goal=JSON.parse(await readFile(new URL("./organic-goal-v1.json",import.meta.url),"utf8"));
+const portfolio=JSON.parse(await readFile(new URL("./organic-keyword-portfolio-v1.json",import.meta.url),"utf8"));
+const market=JSON.parse(await readFile(new URL("./organic-public-market-v1.json",import.meta.url),"utf8"));
 
-const publicEvidence = JSON.parse(await readFile(new URL("./round2-public-evidence-v1.json", import.meta.url), "utf8"));
-const round1Fixture = {
-  adsFindings: {
-    primaryConversionAction: "WhatsApp - canopenal",
-    trackedPrimaryConversions90d: 2,
-  },
-};
-
-test("Round 2 public evidence contains exactly six role-balanced candidates", () => {
-  assert.deepStrictEqual(publicEvidence.sixCandidateSet, ["S01","S05","S10","S15","S18","S23"]);
-  assert.deepStrictEqual(publicEvidence.roleGroups, {
-    demandCapture: ["S01","S10"],
-    demandCreation: ["S05","S18"],
-    conversionInfrastructure: ["S15","S23"],
-  });
+test("Round 2 portfolio has exactly 42 unique targets split 14 Top3 and 28 Top5",()=>{
+  assert.equal(portfolio.keywordCount,42);
+  assert.equal(portfolio.keywords.length,42);
+  assert.equal(new Set(portfolio.keywords.map(x=>x.id)).size,42);
+  assert.equal(new Set(portfolio.keywords.map(x=>x.query)).size,42);
+  assert.deepStrictEqual(portfolio.rankBuckets,{TOP3:14,TOP5:28});
 });
 
-test("external professional interest promotes S18 only to test-ready, never to proven CANO demand", () => {
-  const row = publicEvidence.candidateEvidence.S18;
-  assert.equal(row.status, "SUPPORTED_EXTERNAL_AUDIENCE_TEST");
-  assert(row.facts.some((item) => item.kind === "PROFESSIONAL_MARKET"));
-  assert.match(row.boundary, /DOES_NOT_PROVE_CANO_SUBSCRIBER_DEMAND/);
+test("all target ranks and volumes remain unverified rather than fabricated",()=>{
+  for(const row of portfolio.keywords){
+    assert.equal(row.currentRankStatus,"UNVERIFIED_NO_GSC_OR_SERP_TRACKER");
+    assert.equal(row.searchVolumeStatus,"UNVERIFIED_RESEARCH_QUOTA_EXHAUSTED");
+  }
 });
 
-test("readiness dimensions remain raw and lexicographic rather than a hidden outcome score", () => {
-  const profiles = buildReadinessProfiles(round1Fixture, publicEvidence);
-  const byId = new Map(profiles.map((row) => [row.candidateId, row]));
-  assert.equal(byId.get("S23").firstPartyAdsBinding, 1);
-  assert.equal(byId.get("S15").firstPartyAdsBinding, 0);
-  assert.equal(byId.get("S01").ownedPublicAssetEvidence, 2);
-  assert.equal(byId.get("S10").explicitCompetitorCount, 1);
-  assert.equal(byId.get("S05").officialSourceEvidence, 2);
-  assert.equal(byId.get("S18").officialSourceEvidence, 1);
-  assert(byId.get("S23").lexicographicTestReadiness > byId.get("S15").lexicographicTestReadiness);
-  assert(byId.get("S01").lexicographicTestReadiness > byId.get("S10").lexicographicTestReadiness);
-  assert(byId.get("S05").lexicographicTestReadiness > byId.get("S18").lexicographicTestReadiness);
+test("organic business goal is five signed clients monthly, not leads or WhatsApps",()=>{
+  assert.equal(goal.acquisitionMode,"ORGANIC_FIRST");
+  assert.equal(goal.businessOutcome.minimumPerCalendarMonth,5);
+  assert.equal(goal.businessOutcome.leadMetricDoesNotCount,true);
+  assert.equal(goal.businessOutcome.whatsappContactDoesNotCount,true);
+  assert.equal(goal.certification.repeatabilityEvidence,"3_CONSECUTIVE_MONTHS_AT_OR_ABOVE_TARGET");
 });
 
-test("GAUSS Round 2 model uses raw evidence Pareto plus exactly three role-pair Ising constraints", () => {
-  const profiles = buildReadinessProfiles(round1Fixture, publicEvidence);
-  const problem = buildRound2Problem(profiles, publicEvidence.roleGroups);
-  assert.equal(problem.tasks.length, 2);
-  const pareto = problem.tasks.find((row) => row.layerId === "GAUSS.MATH.PARETO.002");
-  const ising = problem.tasks.find((row) => row.layerId === "GAUSS.PHYSICS.ISING_EXACT_GROUND.003");
-  assert.equal(pareto.input.points.length, 6);
-  assert.deepStrictEqual(pareto.input.objectives, ["MAX","MAX","MAX","MAX","MIN"]);
-  assert.equal(ising.input.fields.length, 6);
-  assert.equal(ising.input.couplings.length, 3);
-  assert(ising.input.couplings.every((edge) => edge.i < edge.j && edge.value > 0));
+test("public-search observations explicitly refuse Google rank claims",()=>{
+  assert.equal(market.evidenceClass,"PUBLIC_WEB_SEARCH_OBSERVATIONS_NOT_GOOGLE_RANK_TRACKING");
+  assert.equal(market.hardLimit,"NO_POSITION_OR_VOLUME_CLAIM_FROM_PUBLIC_WEB_SEARCH");
+  assert(market.observations.some(x=>x.id==="O09"&&x.status==="LIMIT"));
+});
+
+test("portfolio spans seven intended clusters and maps only Round0 survivor IDs",()=>{
+  const clusters=new Set(portfolio.keywords.map(x=>x.clusterId));
+  assert.equal(clusters.size,7);
+  const survivors=new Set(["S01","S04","S05","S06","S09","S10","S13","S15","S18","S19","S22","S23"]);
+  for(const row of portfolio.keywords)for(const id of row.candidateStrategyIds)assert(survivors.has(id));
 });
