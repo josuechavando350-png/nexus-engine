@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "siteId": "cano-penal",
+  "siteHostname": "canopenal.com",
+  "evidenceClass": "USER_SUPPLIED_MARKET_AUDIT",
+  "evidenceLabel": "cano-market-audit-combined-2026-09-22",
+  "evidenceSha256": "sha256:d55a43e64fa3069836360b9c4d31ff4b436b0cec2c9f0ada379766c1b5bfd5f3"
+}
