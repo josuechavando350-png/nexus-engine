@@ -137,6 +137,15 @@ jobs:
             --market tournaments/cano-penal-zero/organic-public-market-v1.json \
             --out "$RUNNER_TEMP/cano-round2/avengers-organic.json"
 
+      - name: Assert clean tree before GAUSS WALLE
+        run: |
+          set -euo pipefail
+          status="$(git status --porcelain=v1 --untracked-files=all)"
+          if [ -n "$status" ]; then
+            printf '%s\n' "$status"
+            exit 2
+          fi
+
       - name: Run GAUSS AXIOMA Quantum foundation proof through WALLE
         env:
           WALLE_GAUSS_EVIDENCE_ROOT: ${{ runner.temp }}/cano-round2/gauss-foundation
