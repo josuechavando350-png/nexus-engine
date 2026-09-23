@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
-import {mkdtempSync,writeFileSync,chmodSync,rmSync} from 'node:fs';
+import {mkdtempSync,writeFileSync,chmodSync,rmSync,symlinkSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {runGaussNemesis89} from '../native-fhe.mjs';
@@ -27,5 +27,16 @@ test('GAUSS #89 detects false native answers and mismatched binary pin',()=>{
   const sha=createHash('sha256').update(content).digest('hex');
   assert.throws(()=>runGaussNemesis89({action:'native-add-u8',a:1,b:2,binary,expectedBinarySha256:pinned}),/PIN_MISMATCH/);
   assert.throws(()=>runGaussNemesis89({action:'native-add-u8',a:1,b:2,binary,expectedBinarySha256:sha}),/SUM_MISMATCH/);
+ }finally{rmSync(dir,{recursive:true,force:true});}
+});
+test('GAUSS #89 public native route refuses nonregular and symlinked executable paths',()=>{
+ if(process.platform!=='linux')return;
+ const dir=mkdtempSync(join(tmpdir(),'gauss-nemesis89-filetypes-'));
+ try{
+  const original=join(dir,'regular');writeFileSync(original,'#!/bin/sh\nexit 0\n',{mode:0o700});
+  const link=join(dir,'link');symlinkSync(original,link);
+  const request={action:'native-add-u8',a:1,b:2,expectedBinarySha256:pinned};
+  assert.throws(()=>runGaussNemesis89({...request,binary:link}),/BINARY_UNSAFE/);
+  assert.throws(()=>runGaussNemesis89({...request,binary:'/dev/null'}),/BINARY_UNSAFE/);
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
