@@ -59,3 +59,11 @@ test("all active Search ad rows reconcile to the campaign and point to the homep
   assert.equal(rows.reduce((sum, row) => sum + row.costMxnMicros, 0), ads.campaign90d.costMxnMicros);
   assert.equal(rows.reduce((sum, row) => sum + row.primaryConversions, 0), ads.campaign90d.primaryConversions);
 });
+
+test("the two primary conversions are bound to two observed generic criminal-law search terms, not broad leakage", () => {
+  const rows = ads.primaryConvertingSearchTerms90d;
+  assert.deepStrictEqual(rows.map((row) => row.query), ["abogado penal","abogado penalista"]);
+  assert.equal(rows.reduce((sum, row) => sum + row.primaryConversions, 0), ads.campaign90d.primaryConversions);
+  assert(rows.every((row) => row.primaryConversions === 1));
+  assert.equal(ads.broadKeywordConcentration90d.combinedPrimaryConversions, 0);
+});
