@@ -80,8 +80,8 @@ function readVault(path){
   finally{if(fd!==undefined)closeSync(fd);}
 }
 export function runGaussNemesis81Sealed(input){
-  requireFields(input,['action','binary','expectedBinarySha256','keyPath','passphrase','messageBase64','expectedKeyId'],
-    ['action','expectedBinarySha256','keyPath','passphrase']);
+  requireFields(input,['action','binary','expectedBinarySha256','keyPath','passphrase','messageBase64','expectedKeyId','newKeyPath','newPassphrase'],
+    ['action','keyPath','passphrase']);
   const common={binary:input.binary,expectedBinarySha256:input.expectedBinarySha256};
   const pass=passphrase(input.passphrase);
   if(input.action==='sqisign-keygen-sealed'){
@@ -127,6 +127,45 @@ export function runGaussNemesis81Sealed(input){
       return {domain:'SQISIGN_P324_3_SEALED_LOCAL',signatureBase64:signed.signatureBase64,
         publicKeyBase64:record.publicKeyBase64,keyId:record.keyId,binarySha256:signed.binarySha256};
     }finally{derived?.fill(0);privateKey?.fill(0);salt.fill(0);iv.fill(0);tag.fill(0);ct.fill(0);}
+  }
+  if(input.action==='sqisign-rekey-sealed'){
+    // Rotation creates a NEW encrypted file. Never overwrite or delete the old key:
+    // a caller must verify the new key before retiring the old one.
+    requireFields(input,['action','keyPath','passphrase','newKeyPath','newPassphrase','expectedKeyId'],
+      ['action','keyPath','passphrase','newKeyPath','newPassphrase','expectedKeyId']);
+    if(typeof input.expectedKeyId!=='string'||! /^[a-f0-9]{64}$/.test(input.expectedKeyId))fail('INVALID_KEY_ID');
+    passphrase(input.newPassphrase);
+    if(input.newKeyPath===input.keyPath)fail('NEW_KEY_PATH_REQUIRED');
+    secureParent(input.newKeyPath);
+    if(lstatSync(input.newKeyPath,{throwIfNoEntry:false}))fail('FILE_EXISTS');
+    const record=readVault(input.keyPath);
+    if(record.keyId!==input.expectedKeyId)fail('KEY_ID_MISMATCH');
+    const salt=canonicalBase64(record.salt,16),iv=canonicalBase64(record.iv,12),tag=canonicalBase64(record.tag,16),ct=canonicalBase64(record.ciphertext,270);
+    let oldKey,newKey,privateKey,newSalt,newIv,newCiphertext,newTag;
+    try{
+      oldKey=derive(pass,salt);
+      const decipher=createDecipheriv('aes-256-gcm',oldKey,iv);
+      decipher.setAAD(aad(record.publicKeyBase64,record.keyId));decipher.setAuthTag(tag);
+      try{privateKey=Buffer.concat([decipher.update(ct),decipher.final()]);}
+      catch{fail('DECRYPT_FAILED');}
+      if(privateKey.length!==270)fail('INVALID_KEY_LENGTH');
+      newSalt=randomBytes(16);newIv=randomBytes(12);
+      newKey=derive(input.newPassphrase,newSalt);
+      const cipher=createCipheriv('aes-256-gcm',newKey,newIv);
+      cipher.setAAD(aad(record.publicKeyBase64,record.keyId));
+      newCiphertext=Buffer.concat([cipher.update(privateKey),cipher.final()]);
+      newTag=cipher.getAuthTag();
+      persist(input.newKeyPath,{version:VERSION,algorithm:'AES-256-GCM-SCRYPT-N32768',
+        keyId:record.keyId,publicKeyBase64:record.publicKeyBase64,
+        salt:newSalt.toString('base64'),iv:newIv.toString('base64'),
+        tag:newTag.toString('base64'),ciphertext:newCiphertext.toString('base64')});
+      return {domain:'SQISIGN_P324_3_SEALED_LOCAL',publicKeyBase64:record.publicKeyBase64,
+        keyId:record.keyId,rotated:true};
+    }finally{
+      oldKey?.fill(0);newKey?.fill(0);privateKey?.fill(0);
+      salt.fill(0);iv.fill(0);tag.fill(0);ct.fill(0);
+      newSalt?.fill(0);newIv?.fill(0);newCiphertext?.fill(0);newTag?.fill(0);
+    }
   }
   fail('UNSUPPORTED_ACTION');
 }
