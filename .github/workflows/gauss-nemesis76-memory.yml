@@ -1,0 +1,27 @@
+name: GAUSS Nemesis 76 full-history walk
+on:
+  pull_request:
+    paths:
+      - 'gauss/nemesis/full-memory-76.mjs'
+      - 'gauss/nemesis/bridge.mjs'
+      - 'gauss/nemesis/tests/full-memory-76.test.mjs'
+      - '.github/workflows/gauss-nemesis76-memory.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  full-history:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Verify source integrity and syntax
+        run: |
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          node --check gauss/nemesis/full-memory-76.mjs
+          node --check gauss/nemesis/bridge.mjs
+      - name: Check all-lag probabilities, original #76, GAUSS dispatch and cost bounds
+        run: node --test gauss/nemesis/tests/full-memory-76.test.mjs

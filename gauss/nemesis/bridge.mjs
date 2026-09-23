@@ -8,6 +8,7 @@ import {runGaussNemesis81Sealed} from './sqisign-81-sealed.mjs';
 import {runGaussNemesis81KeyRotation} from './sqisign-81-key-rotation.mjs';
 import {runGaussNemesis95Pinned} from './groth16-95-pinned.mjs';
 import {filterGaussNemesis96} from './kalman-96.mjs';
+import {simulateFullHistoryWalk} from './full-memory-76.mjs';
 import {multifractalDFA} from './dfa-78.mjs';
 import {whiteNoiseDFAReference} from './dfa-78-reference.mjs';
 import {verifyTwoIsogenyDualIdentity} from './isogeny-81-foundation.mjs';
@@ -52,6 +53,10 @@ export async function runGaussNemesis(id, input) {
   if (normalized === '95' && ['prove-pinned', 'verify-pinned'].includes(input?.action))
     return runGaussNemesis95Pinned(input);
   const engine = await loadEngine();
+  if (normalized === '76' && input?.action === 'full-history') {
+    if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 76: expected action and payload');
+    return simulateFullHistoryWalk(input.payload);
+  }
   if (normalized === '78' && ['multifractal', 'white-noise-reference'].includes(input?.action)) {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 78: expected action and payload');
     return input.action === 'multifractal' ? multifractalDFA(input.payload) : whiteNoiseDFAReference(input.payload);
