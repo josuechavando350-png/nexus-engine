@@ -81,5 +81,17 @@
     "NO_WINNER_FROM_PAID_TRAFFIC",
     "NO_100_PERCENT_CERTAINTY_CLAIM",
     "NO_PRODUCTION_MUTATION_FROM_MEASUREMENT_PROTOCOL"
-  ]
+  ],
+  "operatingRamp": {
+    "month1": "INDEXATION_VISIBILITY_AND_QUERY_DISCOVERY",
+    "month2": {
+      "minimumSignedOrganicClients": 1,
+      "zeroClientAction": "IMMEDIATE_DIAGNOSIS"
+    },
+    "month3": {
+      "minimumSignedOrganicClients": 1,
+      "targetSignedOrganicClients": 5,
+      "zeroClientAction": "ESCALATED_DIAGNOSIS_AND_REPLAN"
+    }
+  }
 }
