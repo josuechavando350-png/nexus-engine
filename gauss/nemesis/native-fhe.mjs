@@ -6,10 +6,11 @@
  */
 import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
-import {readFileSync,writeFileSync,mkdtempSync,rmSync} from 'node:fs';
+import {writeFileSync,mkdtempSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
-import {resolve,join} from 'node:path';
+import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {readPinnedNativeBinary} from './read-pinned-native.mjs';
 
 const DEFAULT_BINARY=fileURLToPath(new URL(`./native/fhe/target/release/nemesis-fhe${process.platform==='win32'?'.exe':''}`,import.meta.url));
 const ops=Object.freeze({not:['a'],and:['a','b'],or:['a','b'],xor:['a','b'],nand:['a','b'],nor:['a','b'],xnor:['a','b'],mux:['s','a','b']});
@@ -36,26 +37,24 @@ function checkedCircuit(input){
 function invoke(binary,pin,args,stdin){
   if(typeof binary!=='string'||!binary||Array.from(binary).some(char=>char.charCodeAt(0)<32))throw new TypeError('invalid binary path');
   if(typeof pin!=='string'||!/^[a-f0-9]{64}$/.test(pin))throw new TypeError('expectedBinarySha256 must be an independently trusted sha256');
-  let verifiedBytes;
-  try{verifiedBytes=readFileSync(resolve(binary));}catch{throw new Error('NEMESIS_89_NATIVE_BINARY_MISSING');}
-  if(verifiedBytes.byteLength>128*1024*1024)throw new Error('NEMESIS_89_NATIVE_BINARY_TOO_LARGE');
-  const digest=hash(verifiedBytes);
-  if(digest!==pin)throw new Error('NEMESIS_89_BINARY_PIN_MISMATCH');
-  const dir=mkdtempSync(join(tmpdir(),'gauss-nemesis89-'));
+  const {bytes:verifiedBytes,digest}=readPinnedNativeBinary(binary,pin,'NEMESIS_89_NATIVE');
   try{
-    // The temp directory is private (0700). Never execute the mutable source path.
-    const executable=join(dir,process.platform==='win32'?'nemesis-fhe.exe':'nemesis-fhe');
-    writeFileSync(executable,verifiedBytes,{mode:0o700,flag:'wx'});
-    const run=spawnSync(executable,args,{input:stdin,encoding:'utf8',timeout:240000,maxBuffer:1024*1024,shell:false,windowsHide:true});
-    // Only a fixed, bounded OS error class or numeric status is exposed. Never log stderr, stdout, stdin or private witness bytes.
-    if(run.error||run.status!==0){
-      const code=run.error?.code;
-      const failure=/^(?:EACCES|ENOENT|ENOEXEC|E2BIG|ETIMEDOUT|EPIPE|ENOMEM)$/.test(code??'')?code:
-        Number.isInteger(run.status)&&run.status>=0&&run.status<=255?`EXIT_${run.status}`:'UNKNOWN';
-      throw new Error(`NEMESIS_89_NATIVE_EXECUTION_FAILED_${failure}`);
-    }
-    try{return {data:JSON.parse(run.stdout),binarySha256:digest};}catch{throw new Error('NEMESIS_89_NATIVE_INVALID_JSON');}
-  }finally{rmSync(dir,{recursive:true,force:true});}
+    const dir=mkdtempSync(join(tmpdir(),'gauss-nemesis89-'));
+    try{
+      // The temp directory is private (0700). Never execute the mutable source path.
+      const executable=join(dir,process.platform==='win32'?'nemesis-fhe.exe':'nemesis-fhe');
+      writeFileSync(executable,verifiedBytes,{mode:0o700,flag:'wx'});
+      const run=spawnSync(executable,args,{input:stdin,encoding:'utf8',timeout:240000,maxBuffer:1024*1024,shell:false,windowsHide:true});
+      // Only a fixed, bounded OS error class or numeric status is exposed. Never log stderr, stdout, stdin or private witness bytes.
+      if(run.error||run.status!==0){
+        const code=run.error?.code;
+        const failure=/^(?:EACCES|ENOENT|ENOEXEC|E2BIG|ETIMEDOUT|EPIPE|ENOMEM)$/.test(code??'')?code:
+          Number.isInteger(run.status)&&run.status>=0&&run.status<=255?`EXIT_${run.status}`:'UNKNOWN';
+        throw new Error(`NEMESIS_89_NATIVE_EXECUTION_FAILED_${failure}`);
+      }
+      try{return {data:JSON.parse(run.stdout),binarySha256:digest};}catch{throw new Error('NEMESIS_89_NATIVE_INVALID_JSON');}
+    }finally{rmSync(dir,{recursive:true,force:true});}
+  }finally{verifiedBytes.fill(0);}
 }
 /** Caller MUST obtain the SHA-256 pin from an independently trusted build. */
 export function runGaussNemesis89(input){
