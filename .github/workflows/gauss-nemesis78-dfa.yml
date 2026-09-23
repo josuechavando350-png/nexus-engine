@@ -7,6 +7,7 @@ on:
       - 'gauss/nemesis/bridge.mjs'
       - 'gauss/nemesis/tests/dfa-78.test.mjs'
       - 'gauss/nemesis/tests/dfa-78-reference.test.mjs'
+      - 'gauss/nemesis/tests/dfa-78-inference.test.mjs'
       - '.github/workflows/gauss-nemesis78-dfa.yml'
   workflow_dispatch:
 permissions:
@@ -26,5 +27,5 @@ jobs:
           node --check gauss/nemesis/dfa-78.mjs
           node --check gauss/nemesis/dfa-78-reference.mjs
           node --check gauss/nemesis/bridge.mjs
-      - name: Exercise original #78, multifractal and bounded Gaussian reference through GAUSS
-        run: node --test gauss/nemesis/tests/dfa-78.test.mjs gauss/nemesis/tests/dfa-78-reference.test.mjs
+      - name: Exercise original #78, multifractal, Gaussian reference and rank inference through GAUSS
+        run: node --test gauss/nemesis/tests/dfa-78.test.mjs gauss/nemesis/tests/dfa-78-reference.test.mjs gauss/nemesis/tests/dfa-78-inference.test.mjs
