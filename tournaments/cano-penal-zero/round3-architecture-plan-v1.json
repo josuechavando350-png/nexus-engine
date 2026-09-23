@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "planId": "CANO_ROUND3_ARCHITECTURES_V1",
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "siteId": "cano-penal",
+  "status": "PROPOSED_NOT_LIVE",
+  "semifinalistInputIds": [
+    "S01",
+    "S04",
+    "S05",
+    "S09",
+    "S10",
+    "S15"
+  ],
+  "architectures": [
+    {
+      "strategyId": "S01",
+      "name": "Hub penal-fiscal dominante",
+      "role": "DIRECT_ORGANIC_ACQUISITION",
+      "primaryAsset": {
+        "path": "/areas/delitos-fiscales-y-financieros",
+        "mode": "STRENGTHEN_EXISTING"
+      },
+      "supportingAssets": [
+        {
+          "path": "/guias/defraudacion-fiscal",
+          "mode": "PROPOSED_DISTINCT_INTENT"
+        },
+        {
+          "path": "/guias/requerimiento-sat-riesgo-penal",
+          "mode": "PROPOSED_DISTINCT_INTENT"
+        },
+        {
+          "path": "/guias/responsabilidad-penal-representante-legal-contador",
+          "mode": "PROPOSED_DISTINCT_INTENT"
+        }
+      ],
+      "targetQueryIds": [
+        "K007",
+        "K008",
+        "K009",
+        "K010",
+        "K011",
+        "K012",
+        "K013",
+        "K014",
+        "K015",
+        "K016",
+        "K017",
+        "K018",
+        "K037",
+        "K041",
+        "K042"
+      ],
+      "conversionPath": "ORGANIC_QUERY_TO_FISCAL_HUB_OR_DISTINCT_GUIDE_TO_DIAGNOSTIC_OR_WHATSAPP",
+      "internalLinkPlan": [
+        "home -> fiscal hub",
+        "fiscal guides -> fiscal hub",
+        "cases -> fiscal hub",
+        "trajectory -> fiscal hub",
+        "fiscal hub -> diagnostic"
+      ],
+      "evidencePlan": [
+        "documented Procuraduria Fiscal trajectory",
+        "existing fiscal practice page",
+        "publishable fiscal case evidence only"
+      ],
+      "boundaries": [
+        "NO_DUPLICATE_FISCAL_LANDING",
+        "NO_UNVERIFIED_TAX_CRIME_CLAIM",
+        "NO_DOORWAY_CONTENT"
+      ]
+    },
+    {
+      "strategyId": "S04",
+      "name": "Diagnóstico de riesgo penal-fiscal",
+      "role": "DIRECT_ORGANIC_CONVERSION",
+      "primaryAsset": {
+        "path": "/diagnostico-penal-fiscal",
+        "mode": "PROPOSED_NEW"
+      },
+      "supportingAssets": [],
+      "targetQueryIds": [
+        "K007",
+        "K008",
+        "K009",
+        "K011"
+      ],
+      "conversionPath": "HIGH_INTENT_FISCAL_QUERY_TO_DIAGNOSTIC_SCOPE_TO_WHATSAPP",
+      "internalLinkPlan": [
+        "fiscal hub -> penal-fiscal diagnostic",
+        "penal-fiscal diagnostic -> fiscal hub",
+        "trajectory -> penal-fiscal diagnostic"
+      ],
+      "evidencePlan": [
+        "diagnostic scope",
+        "documented fiscal trajectory"
+      ],
+      "boundaries": [
+        "NO_CANNIBALIZATION_WITH_FISCAL_HUB",
+        "NO_AUTOMATIC_CRIMINAL_RISK_SCORE"
+      ]
+    },
+    {
+      "strategyId": "S05",
+      "name": "Calendario fiscal interactivo",
+      "role": "ORGANIC_AUTHORITY_AND_PRECRISIS_ACQUISITION",
+      "primaryAsset": {
+        "path": "/herramientas/calendario-fiscal",
+        "mode": "PROPOSED_NEW_INTERACTIVE"
+      },
+      "supportingAssets": [
+        {
+          "path": "/guias/requerimiento-sat-riesgo-penal",
+          "mode": "PROPOSED_DISTINCT_INTENT"
+        }
+      ],
+      "targetQueryIds": [
+        "K013",
+        "K014",
+        "K031",
+        "K032",
+        "K033",
+        "K034",
+        "K035",
+        "K036"
+      ],
+      "conversionPath": "FISCAL_UTILITY_QUERY_TO_INTERACTIVE_TOOL_TO_EDUCATIONAL_ESCALATION_TO_DIAGNOSTIC_WHEN_RELEVANT",
+      "internalLinkPlan": [
+        "calendar -> official-source explanation",
+        "calendar -> fiscal hub",
+        "fiscal hub -> calendar",
+        "calendar risk explainer -> diagnostic"
+      ],
+      "evidencePlan": [
+        "official SAT deadlines only",
+        "visible source and last-updated metadata"
+      ],
+      "boundaries": [
+        "NO_PDF_DEPENDENCY",
+        "NO_AUTOMATIC_CRIMINAL_ALARM",
+        "NO_STALE_DEADLINE_AS_FACT",
+        "NO_FORCED_LEAD_GATE"
+      ]
+    },
+    {
+      "strategyId": "S09",
+      "name": "Citatorio y audiencia inicial",
+      "role": "DIRECT_URGENT_ORGANIC_ACQUISITION",
+      "primaryAsset": {
+        "path": "/citatorio-ministerio-publico-cdmx",
+        "mode": "PROPOSED_NEW"
+      },
+      "supportingAssets": [
+        {
+          "path": "/audiencia-inicial-cdmx",
+          "mode": "PROPOSED_DISTINCT_INTENT"
+        }
+      ],
+      "targetQueryIds": [
+        "K021",
+        "K022",
+        "K023"
+      ],
+      "conversionPath": "URGENT_QUERY_TO_PROCEDURE_PAGE_TO_CONTEXTUAL_WHATSAPP",
+      "internalLinkPlan": [
+        "home -> citatorio",
+        "citatorio -> audiencia inicial",
+        "audiencia inicial -> diagnostic",
+        "trajectory -> citatorio"
+      ],
+      "evidencePlan": [
+        "current site citatorio pathway",
+        "documented accusatory-system experience"
+      ],
+      "boundaries": [
+        "NO_24_7_PROMISE_WITHOUT_OPERATIONS_PROOF",
+        "NO_GUARANTEED_PROCEDURAL_OUTCOME"
+      ]
+    },
+    {
+      "strategyId": "S10",
+      "name": "Detenido y control de detención",
+      "role": "DIRECT_URGENT_ORGANIC_ACQUISITION",
+      "primaryAsset": {
+        "path": "/detenido-cdmx",
+        "mode": "PROPOSED_NEW"
+      },
+      "supportingAssets": [
+        {
+          "path": "/audiencia-inicial-cdmx",
+          "mode": "PROPOSED_DISTINCT_INTENT"
+        }
+      ],
+      "targetQueryIds": [
+        "K001",
+        "K002",
+        "K003",
+        "K004",
+        "K006",
+        "K019",
+        "K020",
+        "K023",
+        "K024"
+      ],
+      "conversionPath": "GENERIC_OR_DETENTION_QUERY_TO_DETENTION_OR_HOME_PATH_TO_URGENT_WHATSAPP",
+      "internalLinkPlan": [
+        "home -> detenido",
+        "detenido -> audiencia inicial",
+        "audiencia inicial -> diagnostic",
+        "violent-crime pages -> detenido when relevant"
+      ],
+      "evidencePlan": [
+        "current detained pathway",
+        "documented criminal litigation experience"
+      ],
+      "boundaries": [
+        "NO_24_7_PROMISE_WITHOUT_OPERATIONS_PROOF",
+        "NO_EMERGENCY_OUTCOME_GUARANTEE",
+        "NO_LOCATION_DOORWAYS"
+      ]
+    },
+    {
+      "strategyId": "S15",
+      "name": "Diagnóstico penal y honorarios transparentes",
+      "role": "DIRECT_ORGANIC_CONVERSION",
+      "primaryAsset": {
+        "path": "/diagnostico-penal",
+        "mode": "PROPOSED_NEW"
+      },
+      "supportingAssets": [
+        {
+          "path": "/guias/honorarios-abogado-penalista-cdmx",
+          "mode": "PROPOSED_DISTINCT_INTENT"
+        }
+      ],
+      "targetQueryIds": [
+        "K005",
+        "K022",
+        "K025",
+        "K026",
+        "K027",
+        "K028",
+        "K029",
+        "K030"
+      ],
+      "conversionPath": "PRICE_OR_CONSULTATION_QUERY_TO_DIAGNOSTIC_SCOPE_TO_WHATSAPP_OR_BOOKING_CONTACT",
+      "internalLinkPlan": [
+        "home -> diagnostic",
+        "service pages -> diagnostic",
+        "diagnostic -> relevant practice area",
+        "cases -> diagnostic"
+      ],
+      "evidencePlan": [
+        "published MXN 2500 diagnostic offer",
+        "explicit separation between diagnosis and full defense"
+      ],
+      "boundaries": [
+        "NO_FULL_CASE_PRICE_IMPLIED_BY_DIAGNOSTIC_FEE",
+        "NO_UNVERIFIED_MARKET_PRICE_CLAIM"
+      ]
+    }
+  ],
+  "globalRequirements": {
+    "measurement": [
+      "landing_page",
+      "organic_source",
+      "query_or_landing_cluster",
+      "qualified_contact",
+      "signed_matter_anonymized_id",
+      "signed_date"
+    ],
+    "successTarget": "AT_LEAST_5_SIGNED_CLIENTS_ATTRIBUTABLE_TO_ORGANIC_PER_MONTH",
+    "repeatabilityTarget": "3_CONSECUTIVE_MONTHS_AT_OR_ABOVE_5",
+    "rankPortfolioTarget": "MEASURE_42_QUERY_PORTFOLIO_WITH_TOP3_AND_TOP5_BUCKETS",
+    "noProductionMutation": true
+  }
+}
