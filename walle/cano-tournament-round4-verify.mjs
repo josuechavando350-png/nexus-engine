@@ -40,22 +40,22 @@ async function verify(argv){
     liveEvidence:null,
   });
   assert.deepStrictEqual(claimed,replay,"Round4 replay mismatch");
-  assert.equal(replay.status,"BLOCKED_LIVE_EVIDENCE_REQUIRED");
+  assert.equal(replay.status,"BOOTSTRAP_LIVE_EVIDENCE_NOT_MATURE");
   assert.deepStrictEqual(replay.finalistIds,["S01","S10","S15"]);
   assert.equal(replay.requiredConfidence,0.999);
   assert.equal(replay.requiredComparisonPower,0.95);
   assert.equal(replay.minimumSignedOrganicClientsPerMonth,5);
   assert.equal(replay.repeatabilityMonths,3);
   assert.equal(replay.selectedStrategyId,null);
-  assert.equal(replay.commercialWinnerStatus,"NOT_ELIGIBLE_LIVE_EVIDENCE_MISSING");
-  assert.equal(replay.rankingWinnerStatus,"NOT_ELIGIBLE_QUERY_LEVEL_RANK_EVIDENCE_MISSING");
+  assert.equal(replay.commercialWinnerStatus,"NOT_ELIGIBLE_MEASUREMENT_BOOTSTRAP");
+  assert.equal(replay.rankingWinnerStatus,"NOT_ELIGIBLE_SEARCH_CONSOLE_BOOTSTRAP");
   assert.equal(replay.gaussStatus,"NOT_EXECUTED_NO_LIVE_BINOMIAL_INPUT");
   assert.equal(replay.quantumStatus,"NOT_APPLICABLE_NO_ROUND4_ISING_TASK");
 
   const receiptUnsigned={
     schemaVersion:1,
     engineId:"WALLE_CANO_TOURNAMENT_ROUND4_VERIFIER_V1",
-    status:"PASS_BLOCKED_AS_DESIGNED",
+    status:"PASS_BOOTSTRAP_AS_DESIGNED",
     round4ReportSha256:replay.reportSha256,
     round3ReportSha256:replay.round3ReportSha256,
     finalistIds:replay.finalistIds,
@@ -65,7 +65,7 @@ async function verify(argv){
     productionAuthority:false,
     adsMutationAuthority:false,
     liveEvidencePresent:false,
-    consensus:"REPLAY_VERIFIED_FINAL_BLOCKED_UNTIL_QUERY_LEVEL_RANK_AND_ATTRIBUTED_SIGNED_CLIENT_EVIDENCE_EXISTS",
+    consensus:"REPLAY_VERIFIED_SEARCH_CONSOLE_BOOTSTRAP_UNTIL_QUERY_LEVEL_RANK_AND_ATTRIBUTED_SIGNED_CLIENT_EVIDENCE_MATURES",
   };
   return Object.freeze({...receiptUnsigned,receiptSha256:sha256Canonical(receiptUnsigned)});
 }
