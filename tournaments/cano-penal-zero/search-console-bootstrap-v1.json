@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "policyId": "CANO_SEARCH_CONSOLE_BOOTSTRAP_V1",
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "purpose": "Prevent recently configured Search Console from being misread as evidence of weak organic demand or poor rankings.",
+  "states": [
+    {
+      "state": "BOOTSTRAP",
+      "meaning": "Search Console has been recently configured or has insufficient accumulated observations.",
+      "tournamentEffect": "COLLECT_AND_BUILD_NO_RANKING_WINNER_OR_PENALTY",
+      "allowedUses": [
+        "INDEXATION_CHECKS",
+        "EARLY_IMPRESSION_DIRECTION",
+        "QUERY_DISCOVERY",
+        "LANDING_DISCOVERY"
+      ],
+      "forbiddenUses": [
+        "DECLARE_STRATEGY_FAILURE",
+        "DECLARE_TOP3_TOP5_PORTFOLIO_WINNER",
+        "ESTIMATE_STABLE_CTR",
+        "INFER_TOTAL_MARKET_DEMAND"
+      ]
+    },
+    {
+      "state": "MEASURING",
+      "meaning": "Enough query/page observations exist to track directional portfolio movement, but client-rate statistical gates are not yet satisfied.",
+      "tournamentEffect": "COMPARE_DIRECTIONALLY_NO_STATISTICAL_CHAMPION",
+      "allowedUses": [
+        "QUERY_LEVEL_IMPRESSIONS",
+        "CLICKS",
+        "CTR",
+        "POSITION_TRENDS",
+        "LANDING_TRENDS"
+      ],
+      "forbiddenUses": [
+        "99_9_PERCENT_STRATEGY_SUPERIORITY_CLAIM_WITHOUT_REQUIRED_SAMPLE",
+        "SIGNED_CLIENT_CLAIM_WITHOUT_ATTRIBUTION"
+      ]
+    },
+    {
+      "state": "STATISTICAL",
+      "meaning": "Live organic sessions and signed-client attribution are sufficient for the configured 99.9 percent confidence and 95 percent power tests when applicable.",
+      "tournamentEffect": "ELIGIBLE_FOR_FINAL_STATISTICAL_COMPARISON",
+      "allowedUses": [
+        "WILSON_99_9_INTERVALS",
+        "POWERED_STRATEGY_COMPARISON",
+        "COMMERCIAL_TARGET_EVALUATION"
+      ],
+      "forbiddenUses": [
+        "100_PERCENT_CERTAINTY_CLAIM"
+      ]
+    }
+  ],
+  "freshnessRules": {
+    "preliminaryDataMayChange": true,
+    "ordinaryReportingLagDaysReference": "2_TO_3_DAYS_PER_GOOGLE_DOCUMENTATION",
+    "newlyAddedSiteDataAppearanceReference": "UP_TO_ONE_WEEK_PER_GOOGLE_DOCUMENTATION",
+    "lowFrequencyQueriesMayBeOmittedForPrivacy": true
+  },
+  "progressionRule": "DO_NOT_USE_A_FIXED_CALENDAR_WAIT_AS_THE_ONLY_GATE; ADVANCE_WHEN_OBSERVATIONS_ARE_SUFFICIENT_FOR_THE_INTENDED_ANALYSIS.",
+  "commercialRule": "THE_5_SIGNED_ORGANIC_CLIENT_TARGET_REMAINS_UNCHANGED; BOOTSTRAP ONLY DELAYS CERTAINTY, NOT THE BUSINESS_GOAL.",
+  "currentKnownState": {
+    "searchConsoleForCanoReportedByUser": "RECENTLY_CONFIGURED",
+    "tournamentState": "BOOTSTRAP",
+    "exactConfigurationDate": "UNSPECIFIED"
+  }
+}
