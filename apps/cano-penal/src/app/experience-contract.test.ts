@@ -44,6 +44,16 @@ describe("CANO organic integration contract", () => {
     expect(nav).toContain('["Calendario fiscal", "/herramientas/calendario-fiscal"]');
   });
 
+  it("displays the approved informative fiscal notice prominently", () => {
+    const calendar = readFileSync(new URL("./FiscalCalendar.tsx", import.meta.url), "utf8");
+    const stylesheet = readFileSync(new URL("./fiscal-calendar.css", import.meta.url), "utf8");
+    expect(calendar).toContain('className="cp-cal-disclaimer"');
+    expect(calendar).toContain("exclusivamente informativa y orientativa");
+    expect(calendar).toContain("plazos exactos y la atención de cada caso deben verificarse individualmente");
+    expect(calendar).toContain("no sustituye una asesoría fiscal o jurídica personalizada");
+    expect(stylesheet).toContain(".cp-cal-disclaimer{");
+  });
+
   it("keeps fiscal deadlines unlisted until evidence and fiscal approval exist", () => {
     const data = readFileSync(new URL("./fiscal-calendar-data.ts", import.meta.url), "utf8");
     const route = readFileSync(new URL("./herramientas/calendario-fiscal/page.tsx", import.meta.url), "utf8");
