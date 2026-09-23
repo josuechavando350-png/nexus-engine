@@ -24,3 +24,11 @@ test("two percent scenario requires 735 organic sessions for 99.9 percent probab
   const row=p.scenarioReference.rows.find(x=>x.signedClientRatePercent===2);
   assert.equal(row.sessionsFor99_9ProbabilityOfAtLeast5,735);
 });
+
+
+test("month two and three live operating ramp requires signed clients",()=>{
+  assert.equal(p.operatingRamp.month2.minimumSignedOrganicClients,1);
+  assert.equal(p.operatingRamp.month2.zeroClientAction,"IMMEDIATE_DIAGNOSIS");
+  assert.equal(p.operatingRamp.month3.minimumSignedOrganicClients,1);
+  assert.equal(p.operatingRamp.month3.targetSignedOrganicClients,5);
+});
