@@ -1,0 +1,90 @@
+name: CANO Site Browser QA
+
+on:
+  pull_request:
+    paths:
+      - "apps/cano-penal/**"
+      - ".github/workflows/cano-site-browser-qa.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  cano-site-browser-qa:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 65
+    env:
+      NEXUS_VALIDATED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CANO_QA_BASE: http://127.0.0.1:3000
+      CANO_QA_OUTPUT: artifacts/cano-browser-qa
+    steps:
+      - name: Checkout exact CANO source revision
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Assert exact source and pristine checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NEXUS_VALIDATED_SHA"
+          test -z "$(git status --porcelain)"
+
+      - name: Setup Node 24
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 24
+
+      - name: Enable pinned pnpm and install
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@10.15.0 --activate
+          pnpm install --frozen-lockfile
+
+      - name: Install real browser engines
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo rm -f /etc/apt/sources.list.d/google-chrome.list /etc/apt/sources.list.d/google-chrome.sources
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+          pnpm --filter @nexus/capture exec playwright install --with-deps chromium webkit
+
+      - name: Build exact CANO source
+        run: pnpm build
+
+      - name: Capture and verify 21 routes in real browsers
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$CANO_QA_OUTPUT"
+          pnpm --filter @nexus/cano-penal exec next start -H 127.0.0.1 -p 3000 > "$CANO_QA_OUTPUT/server.log" 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid" 2>/dev/null || true' EXIT
+          ready=0
+          for attempt in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:3000/ > /dev/null; then
+              ready=1
+              break
+            fi
+            if ! kill -0 "$server_pid" 2>/dev/null; then break; fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            tail -n 150 "$CANO_QA_OUTPUT/server.log"
+            exit 1
+          fi
+          node apps/cano-penal/scripts/browser-qa.mjs
+
+      - name: Preserve browser screenshots and report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cano-site-browser-qa
+          path: artifacts/cano-browser-qa/
+          retention-days: 7
+          if-no-files-found: warn
