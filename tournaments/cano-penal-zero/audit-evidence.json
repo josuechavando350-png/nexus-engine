@@ -1,0 +1,239 @@
+{
+  "schemaVersion": 1,
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "siteId": "cano-penal",
+  "siteHostname": "canopenal.com",
+  "market": {
+    "country": "Mexico",
+    "region": "Ciudad de México",
+    "language": "es-MX"
+  },
+  "cutoffDate": "2026-09-22",
+  "purpose": "Pre-tournament market evidence. No strategy winner, ranking promise, client forecast, legal outcome forecast, or production mutation.",
+  "signals": [
+    {
+      "id": "E01",
+      "status": "SUPPORTED_PUBLIC",
+      "topic": "GENERIC_PENAL_COMPETITION",
+      "claim": "El mercado digital de defensa penal genérica en CDMX muestra múltiples despachos con mensajes similares de urgencia, 24 horas, Ministerio Público y audiencias.",
+      "sources": [
+        {
+          "kind": "PUBLIC_COMPETITOR",
+          "url": "https://defensorpenal.mx/defensa-penal-cdmx/"
+        },
+        {
+          "kind": "USER_AUDIT",
+          "url": null
+        }
+      ]
+    },
+    {
+      "id": "E02",
+      "status": "SUPPORTED_PUBLIC",
+      "topic": "PENAL_FISCAL_COMPETITION",
+      "claim": "Sí existe competencia especializada penal-fiscal; no debe tratarse el nicho como vacío.",
+      "sources": [
+        {
+          "kind": "PUBLIC_COMPETITOR",
+          "url": "https://michelabogados.mx/"
+        },
+        {
+          "kind": "PUBLIC_COMPETITOR",
+          "url": "https://www.3cubicoabogados.com/"
+        },
+        {
+          "kind": "PUBLIC_COMPETITOR",
+          "url": "https://rysm.mx/"
+        },
+        {
+          "kind": "PUBLIC_COMPETITOR",
+          "url": "https://gmfirma-legal.com/"
+        }
+      ]
+    },
+    {
+      "id": "E03",
+      "status": "HYPOTHESIS_NEEDS_LIVE_SERP_ADS",
+      "topic": "PENAL_FISCAL_DIRECT_RESPONSE_GAP",
+      "claim": "La captación digital local/direct-response penal-fiscal parece menos desarrollada que el penal genérico, pero requiere SERP/Ads actuales para medirla.",
+      "sources": [
+        {
+          "kind": "USER_AUDIT",
+          "url": null
+        }
+      ]
+    },
+    {
+      "id": "E04",
+      "status": "SUPPORTED_FIRST_PARTY_PUBLIC",
+      "topic": "CANO_FISCAL_SERVICE_PAGE",
+      "claim": "CANO ya publica una página específica sobre delitos fiscales y financieros; crear otra URL equivalente podría fragmentar señales.",
+      "sources": [
+        {
+          "kind": "CANO_PUBLIC",
+          "url": "https://www.canopenal.com/areas/delitos-fiscales-y-financieros"
+        }
+      ]
+    },
+    {
+      "id": "E05",
+      "status": "SUPPORTED_FIRST_PARTY_PUBLIC",
+      "topic": "CANO_AUTHORITY_BACKGROUND",
+      "claim": "El sitio público de CANO presenta experiencia de Eduardo Cano dentro de la Procuraduría Fiscal y posterior litigio penal acusatorio.",
+      "sources": [
+        {
+          "kind": "CANO_PUBLIC",
+          "url": "https://www.canopenal.com/"
+        }
+      ]
+    },
+    {
+      "id": "E06",
+      "status": "SUPPORTED_OFFICIAL",
+      "topic": "CDMX_PROSECUTION_ACTIVITY",
+      "claim": "La FGJCDMX reportó reducción de incidencia de alto impacto junto con aumentos en vinculaciones y órdenes de aprehensión, por lo que menor incidencia no equivale por sí sola a menor actividad procesal.",
+      "sources": [
+        {
+          "kind": "OFFICIAL",
+          "url": "https://www.fgjcdmx.gob.mx/comunicacion/nota/CS2026-010"
+        },
+        {
+          "kind": "OFFICIAL",
+          "url": "https://www.fgjcdmx.gob.mx/comunicacion/nota/VE2026-006"
+        }
+      ]
+    },
+    {
+      "id": "E07",
+      "status": "SUPPORTED_OFFICIAL_NATIONAL",
+      "topic": "FISCAL_CRIMINAL_ENFORCEMENT",
+      "claim": "Existe actividad penal-fiscal nacional documentada por el SAT; no equivale a demanda comercial de CANO ni a casos de CDMX.",
+      "sources": [
+        {
+          "kind": "OFFICIAL",
+          "url": "https://www.sat.gob.mx/minisitio/Anticorrupcion/mecanismos.html"
+        }
+      ]
+    },
+    {
+      "id": "E08",
+      "status": "CONFLICTING_SECONDARY",
+      "topic": "CDMX_415_FISCAL_CASES",
+      "claim": "La cifra secundaria de 415 personas denunciadas en CDMX presenta inconsistencias internas y no debe usarse como dato duro hasta localizar la tabla primaria.",
+      "sources": [
+        {
+          "kind": "SECONDARY",
+          "url": "https://www.cronica.com.mx/metropoli/2026/05/14/denuncian-a-415-personas-en-5-anos-por-evadir-al-sat-en-cdmx-pero-solo-en-4-se-ejecuto-orden-de-aprehension/"
+        }
+      ]
+    },
+    {
+      "id": "E09",
+      "status": "SUPPORTED_PUBLIC",
+      "topic": "FISCAL_CALENDAR_EXISTING_MARKET",
+      "claim": "El calendario fiscal por sí mismo no es diferenciador: ya existen calendarios interactivos y recordatorios fiscales.",
+      "sources": [
+        {
+          "kind": "OFFICIAL",
+          "url": "https://wwwmat.sat.gob.mx/consulta/71908/conoce-la-aplicacion-sat-movil-en-su-version-2.0.0"
+        },
+        {
+          "kind": "PUBLIC_TOOL",
+          "url": "https://appleseedmexico.org/calendario-fiscal/"
+        },
+        {
+          "kind": "PUBLIC_TOOL",
+          "url": "https://rapidofactura.com/es/herramientas/calendario-fiscal"
+        }
+      ]
+    },
+    {
+      "id": "E10",
+      "status": "HYPOTHESIS",
+      "topic": "INTERACTIVE_FISCAL_PENAL_PREVENTION",
+      "claim": "Una herramienta que combine calendario fiscal, contexto preventivo y escalamiento a riesgo penal puede diferenciarse de un calendario fiscal simple; su utilidad comercial todavía no está demostrada.",
+      "sources": [
+        {
+          "kind": "USER_AUDIT",
+          "url": null
+        }
+      ]
+    },
+    {
+      "id": "E11",
+      "status": "SUPPORTED_OFFICIAL_GUIDANCE",
+      "topic": "LOCAL_PROFILE_ELIGIBILITY",
+      "claim": "La elegibilidad de una oficina/coworking para mostrar dirección en Google Business Profile depende de requisitos operativos y de señalización; debe verificarse antes de basar una estrategia local en esa dirección.",
+      "sources": [
+        {
+          "kind": "OFFICIAL_GUIDANCE",
+          "url": "https://support.google.com/business/answer/3038177?hl=es-419"
+        }
+      ]
+    },
+    {
+      "id": "E12",
+      "status": "NEEDS_FIRST_PARTY_CONFIRMATION",
+      "topic": "CANO_WTC_ELIGIBILITY_FACTS",
+      "claim": "Falta confirmar para CANO señalización permanente, recepción real de clientes y presencia de personal propio en la ubicación publicada del WTC.",
+      "sources": [
+        {
+          "kind": "CANO_PUBLIC",
+          "url": "https://www.canopenal.com/"
+        }
+      ]
+    },
+    {
+      "id": "E13",
+      "status": "UNAVAILABLE_CURRENT_RESEARCH",
+      "topic": "LIVE_PAID_SEARCH_AUCTION",
+      "claim": "No hay en este corte una medición actual verificable de anunciantes/CPC para términos penal-fiscales; no se debe declarar que el CPC es bajo o que nadie puja.",
+      "sources": [
+        {
+          "kind": "RESEARCH_LIMIT",
+          "url": null
+        }
+      ]
+    },
+    {
+      "id": "E14",
+      "status": "MISSING_FIRST_PARTY",
+      "topic": "GSC_CRM_OUTCOMES",
+      "claim": "Faltan datos first-party suficientes de Search Console y de contactos calificados/contratos atribuibles para estimar eficacia comercial de estrategias.",
+      "sources": [
+        {
+          "kind": "INTERNAL_GAP",
+          "url": null
+        }
+      ]
+    },
+    {
+      "id": "E15",
+      "status": "SUPPORTED_PUBLIC_REFERENCE_ONLY",
+      "topic": "MARKET_PRICING",
+      "claim": "Existen referencias públicas de precios de defensa penal, pero no constituyen una tarifa oficial ni una muestra representativa del mercado.",
+      "sources": [
+        {
+          "kind": "PUBLIC_REFERENCE",
+          "url": "https://abogadosencdmx.com/blog/cuanto-cobra-abogado-cdmx/"
+        },
+        {
+          "kind": "PUBLIC_COMPETITOR",
+          "url": "https://defensorpenal.mx/defensa-penal-cdmx/"
+        }
+      ]
+    },
+    {
+      "id": "E16",
+      "status": "SUPPORTED_FIRST_PARTY_PUBLIC",
+      "topic": "CANO_DIAGNOSTIC_PRICE",
+      "claim": "CANO publica un diagnóstico con honorarios de 2,500 MXN; debe presentarse claramente como diagnóstico y no como precio de la defensa completa.",
+      "sources": [
+        {
+          "kind": "CANO_PUBLIC",
+          "url": "https://www.canopenal.com/"
+        }
+      ]
+    }
+  ]
+}
