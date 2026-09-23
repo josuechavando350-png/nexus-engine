@@ -17,10 +17,15 @@ test('95: GAUSS pinned prover refuses forged trust anchors, changed setup, symli
     const ptau=join(dir,'test-only.ptau'),zkey=join(dir,'test-only.zkey');
     // Invalid fixtures are used EXCLUSIVELY for pre-execution rejection tests.
     writeFileSync(ptau,'NOT A REAL PTAU');writeFileSync(zkey,'NOT A REAL ZKEY');
+    // A bounded, regular, never-invoked fixture ensures the separate artifact
+    // checks are reached even when the Node executable exceeds the tool limit.
+    // The real positive Groth16 workflow invokes pinned Circom and snarkjs.
+    const tool=join(dir,'never-invoked-tool');
+    writeFileSync(tool,'#!/bin/sh\nexit 97\n',{mode:0o700});
     const request={action:'prove-pinned',program,witness:['1'],ptau,zkey,
       expectedProgramSha256,expectedPtauSha256:sha('NOT A REAL PTAU'),
       expectedZkeySha256:sha('NOT A REAL ZKEY'),trustedVerificationKeySha256:'a'.repeat(64),
-      tools:{circom:process.execPath,snarkjs:process.execPath,circomSha256:'b'.repeat(64),snarkjsSha256:'c'.repeat(64)}};
+      tools:{circom:tool,snarkjs:tool,circomSha256:'b'.repeat(64),snarkjsSha256:'c'.repeat(64)}};
     await assert.rejects(()=>runGaussNemesis(95,{...request,expectedProgramSha256:'0'.repeat(64)}),/PROGRAM_PIN_MISMATCH/);
     await assert.rejects(()=>runGaussNemesis(95,{...request,expectedPtauSha256:'0'.repeat(64)}),/ARTIFACT_PIN_MISMATCH/);
     await assert.rejects(()=>runGaussNemesis(95,{...request,expectedZkeySha256:'0'.repeat(64)}),/ARTIFACT_PIN_MISMATCH/);
