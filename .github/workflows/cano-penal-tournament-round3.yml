@@ -17,13 +17,14 @@ on:
       - 'walle/cano-tournament-round0-verify.mjs'
       - 'walle/cano-tournament-round1-verify.mjs'
       - 'walle/cano-tournament-round2-verify.mjs'
+      - 'walle/cano-tournament-round3-verify.mjs'
       - '.github/workflows/cano-penal-tournament-round3.yml'
 
 permissions:
   contents: read
 
 jobs:
-  round2:
+  round3:
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
@@ -214,7 +215,7 @@ jobs:
           set -euo pipefail
           test -z "$(git status --porcelain=v1 --untracked-files=all)"
 
-      - name: Upload Round 2 evidence
+      - name: Upload Round 3 evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
