@@ -72,8 +72,8 @@ export default async function HomePage() {
         <div className="cp-wrap">
           <div className="cp-section-head"><div><p className="cp-eyebrow">Orientación inicial</p><h2>¿Cuál es tu <strong>situación?</strong></h2></div></div>
           <div className="cp-paths">
-            <article className="cp-path" tabIndex={0}><h3>Me llegó un citatorio</h3><p>De la Fiscalía o de un Juez. Lo que se hace antes de la primera audiencia define el resto del caso.</p><a className="cp-btn" target="_blank" rel="noopener noreferrer" href="/citatorio-ministerio-publico-cdmx">Quiero asesoría</a></article>
-            <article className="cp-path" tabIndex={0}><h3>Detuvieron a alguien</h3><p>Atención inmediata, a cualquier hora. Las primeras horas son las que más pesan.</p><a className="cp-btn cp-btn-solid" target="_blank" rel="noopener noreferrer" href="/detenido-cdmx">Necesito ayuda ahora</a></article>
+            <article className="cp-path" tabIndex={0}><h3>Me llegó un citatorio</h3><p>De la Fiscalía o de un Juez. Lo que se hace antes de la primera audiencia define el resto del caso.</p><Link className="cp-btn" href="/citatorio-ministerio-publico-cdmx">Qué hacer ante un citatorio</Link></article>
+            <article className="cp-path" tabIndex={0}><h3>Detuvieron a alguien</h3><p>Atención inmediata, a cualquier hora. Las primeras horas son las que más pesan.</p><Link className="cp-btn cp-btn-solid" href="/detenido-cdmx">Necesito ayuda ahora</Link></article>
             <article className="cp-path cp-path-victim" tabIndex={0}><h3>Fui víctima de un delito</h3><p>Asesoría, representación y protección a tus derechos</p><a className="cp-btn" target="_blank" rel="noopener noreferrer" href={site.whatsapp}>Quiero asesoría</a></article>
           </div>
         </div>
