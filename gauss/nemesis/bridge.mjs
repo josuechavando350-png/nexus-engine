@@ -8,6 +8,7 @@ import {runGaussNemesis81Sealed} from './sqisign-81-sealed.mjs';
 import {runGaussNemesis81KeyRotation} from './sqisign-81-key-rotation.mjs';
 import {runGaussNemesis95Pinned} from './groth16-95-pinned.mjs';
 import {filterGaussNemesis96} from './kalman-96.mjs';
+import {validatePeriodicFokkerPlanckDiffusion} from './fokker-planck-72-validation.mjs';
 import {simulateFullHistoryWalk} from './full-memory-76.mjs';
 import {multifractalDFA} from './dfa-78.mjs';
 import {whiteNoiseDFAReference} from './dfa-78-reference.mjs';
@@ -53,6 +54,10 @@ export async function runGaussNemesis(id, input) {
   if (normalized === '95' && ['prove-pinned', 'verify-pinned'].includes(input?.action))
     return runGaussNemesis95Pinned(input);
   const engine = await loadEngine();
+  if (normalized === '72' && input?.action === 'validate-periodic-diffusion') {
+    if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 72: expected action and payload');
+    return validatePeriodicFokkerPlanckDiffusion(input.payload);
+  }
   if (normalized === '76' && input?.action === 'full-history') {
     if (Object.keys(input).sort().join(',') !== 'action,payload') throw new TypeError('motor 76: expected action and payload');
     return simulateFullHistoryWalk(input.payload);
