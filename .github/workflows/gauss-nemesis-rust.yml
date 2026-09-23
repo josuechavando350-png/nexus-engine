@@ -36,6 +36,15 @@ jobs:
         run: |
           cargo test --locked --release --manifest-path gauss/nemesis/native/fhe/Cargo.toml -- --test-threads=1
           git diff --exit-code -- gauss/nemesis/native/fhe/Cargo.lock
+      - name: Real TFHE encrypted private-key custody, circuit and password rotation
+        shell: bash
+        run: |
+          set -euo pipefail
+          binary="$PWD/gauss/nemesis/native/fhe/target/release/nemesis89_roles"
+          test -x "$binary"
+          NEMESIS89_ROLES_BINARY="$binary" \
+            NEMESIS89_ROLES_SHA256="$(sha256sum "$binary" | cut -d' ' -f1)" \
+            node gauss/nemesis/scripts/verify-fhe-89-sealed-ci.mjs
       - name: Native FHE encrypted addition and Boolean circuit
         shell: bash
         run: |
@@ -53,6 +62,7 @@ jobs:
           name: gauss-nemesis-89-native-${{ github.run_id }}
           path: |
             gauss/nemesis/native/fhe/target/release/nemesis-fhe
+            gauss/nemesis/native/fhe/target/release/nemesis89_roles
             gauss/nemesis/native/fhe/Cargo.lock
             gauss/nemesis/evidence/native-89-ci.json
           retention-days: 7
