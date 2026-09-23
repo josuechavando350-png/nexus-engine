@@ -15,7 +15,7 @@
 - Rol: GENERIC_PENAL_ENTRY
 - Modo: STRENGTHEN_EXISTING
 - Drivers: S10, S15
-- Queries: K001 abogado penalista cdmx [TOP3]; K002 abogado penal cdmx [TOP3]; K003 abogados penalistas cdmx [TOP5]; K004 defensa penal cdmx [TOP5]; K006 abogado penalista cerca de mi [TOP5]
+- Queries: K001 abogado penalista cdmx [TOP3]; K002 abogado penal cdmx [TOP3]; K003 abogados penalistas cdmx [TOP5]; K004 defensa penal cdmx [TOP5]; K005 despacho penal cdmx [TOP5]; K006 abogado penalista cerca de mi [TOP5]
 
 ### A02 — /areas/delitos-fiscales-y-financieros
 
