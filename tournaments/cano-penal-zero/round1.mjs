@@ -122,6 +122,12 @@ function validateAdsEvidence(evidence, bytes, manifest) {
   assert.equal(destinations.activeCampaignAdRows.reduce((sum, row) => sum + row.primaryConversions, 0), c.primaryConversions);
   assert(destinations.activeCampaignAdRows.every((row) => row.finalUrls.length === 1 && row.finalUrls[0] === "https://www.canopenal.com/"));
 
+  const convertingTerms = evidence.primaryConvertingSearchTerms90d;
+  assert.equal(convertingTerms.length, 2);
+  assert.deepStrictEqual(convertingTerms.map((row) => row.query), ["abogado penal","abogado penalista"]);
+  assert.equal(convertingTerms.reduce((sum, row) => sum + row.primaryConversions, 0), c.primaryConversions);
+  assert(convertingTerms.every((row) => row.primaryConversions === 1));
+
   const taxFiscal = evidence.intentSlices90d.trueTaxFiscalObservedTerms;
   assert.equal(taxFiscal.length, 2);
   assert.equal(taxFiscal.reduce((sum, row) => sum + row.impressions, 0), 2);
@@ -285,6 +291,7 @@ export async function runCanoRound1({ round0Report, adsEvidence, adsBytes, adsMa
       costMxnMicros90d: adsEvidence.campaign90d.costMxnMicros,
       trackedPrimaryConversions90d: adsEvidence.campaign90d.primaryConversions,
       primaryConversionAction: "WhatsApp - canopenal",
+      primaryConvertingSearchTerms90d: Object.freeze(adsEvidence.primaryConvertingSearchTerms90d.map((row) => row.query)),
       broadTwoKeywordCostSharePpm: adsEvidence.broadKeywordConcentration90d.shareOfCampaignCostPpm,
       fiscaliaLeakageCostMxnMicros90d: adsEvidence.institutionalLeakage90d.fiscaliaTerms.costMxnMicros,
       ministerioPublicoLeakageCostMxnMicros90d: adsEvidence.institutionalLeakage90d.ministerioPublicoTerms.costMxnMicros,
@@ -292,7 +299,7 @@ export async function runCanoRound1({ round0Report, adsEvidence, adsBytes, adsMa
       allActiveSearchAdFinalUrlsAreHomepage: adsEvidence.adDestinations90d.allActiveSearchAdFinalUrlsAreHomepage,
       trueTaxFiscalObservedImpressions90d: adsEvidence.intentSlices90d.trueTaxFiscalObservedTerms.reduce((sum, row) => sum + row.impressions, 0),
     }),
-    paidSearchPrerequisite: "QUERY_HYGIENE_AND_INTENT_ISOLATION_REQUIRED_BEFORE_ANY_NEW_PAID_SEARCH_TEST",
+    paidSearchPrerequisite: "PRESERVE_OBSERVED_CONVERTING_GENERIC_TERMS_WHILE_ENFORCING_QUERY_HYGIENE_AND_INTENT_ISOLATION_BEFORE_NEW_PAID_SEARCH_TESTS",
     penalFiscalPaidDemandStatus: "NOT_ESTABLISHED_BY_CURRENT_CAMPAIGN",
     selectedStrategyId: null,
     commercialWinnerStatus: "NOT_YET_ELIGIBLE",
