@@ -1,0 +1,26 @@
+# GAUSS / Némesis: límites de seguridad de los motores #81, #89 y #95
+
+Estado: **implementación y endurecimiento en curso; NO CERTIFICADOS PARA PRODUCCIÓN**. Némesis permanece integrado dentro de GAUSS. El cumplimiento de las pruebas funcionales no demuestra seguridad criptográfica ni el alcance original completo.
+
+## #81 — Firma basada en isogenias SQIsign
+
+- La generación, firma y verificación reales utilizan **SQIsign p324_3**, compilado desde una revisión upstream fijada por el workflow `gauss-nemesis81-sqisign.yml`. Este algoritmo y su código NO son una implementación criptográfica propia de GAUSS. El usuario debe establecer independientemente el hash confiable del binario.
+- `sqisign-keygen-sealed` crea una clave local nueva y devuelve únicamente la clave pública y su identificador SHA-256. La clave privada se cifra con AES-256-GCM, derivando una clave de una frase secreta proporcionada por el operador mediante scrypt (N=32768, r=8, p=1; sal aleatoria); el archivo nuevo usa permisos 0600 en un directorio privado. `sqisign-sign-sealed` comprueba el identificador, autentica y descifra antes de firmar, y devuelve únicamente firma y metadatos públicos.
+- La frase secreta viaja como argumento JavaScript dentro del proceso llamador: **no usar una interfaz de línea de comandos que la incluya en argv, registros o telemetría**. No existe HSM, protección ante compromisos del proceso/usuario anfitrión, rotación automática, copia de seguridad segura ni auditoría externa del custodio local. La API heredada `sqisign-keygen` todavía devuelve una clave privada base64 por compatibilidad: para custodiar claves use la nueva API y restrinja la antigua a pruebas/entornos controlados.
+- El identificador público debe registrarse mediante un canal confiable independiente. Cambiar una clave implica crear un archivo nuevo y distribuir/validar el nuevo identificador; no sobrescribir ni reutilizar un archivo existente. Una contraseña fija en CI es **exclusivamente una credencial de prueba**.
+
+## #89 — Evaluación TFHE
+
+- El motor Rust implementa la evaluación real de circuitos booleanos con `tfhe = 1.8.1` y otras dependencias Rust fijadas en `Cargo.toml`/`Cargo.lock`. No es un cifrado homomórfico escrito íntegramente por GAUSS. Su biblioteca original genera claves efímeras por invocación; el ejecutable `nemesis89_roles` separa procesos de cliente (generar, cifrar y descifrar) y evaluador (solo clave de servidor y ciphertexts).
+- Archivos nuevos se crean de manera exclusiva con permisos 0600; la lectura de clave privada rechaza permisos de grupo/otros usuarios, enlaces simbólicos y claves con múltiples enlaces físicos. La lectura de otros artefactos rechaza enlaces simbólicos y cambios de identidad de archivo. Se prueba el fallo de segunda escritura y la ausencia de una clave privada huérfana.
+- **Límites:** la clave privada local permanece en claro en el archivo 0600; no hay cifrado de claves en reposo, KMS/HSM, rotación, restauración, canal remoto autenticado ni prueba criptográfica de que un evaluador remoto ejecutó correctamente el circuito. Permisos POSIX y hashes de ejecutables no protegen de un usuario privilegiado ni de un ejecutable malicioso. El hash SHA-256 del servidor solo identifica bytes; no certifica procedencia de una clave confiable. El `verified:true` del CLI original indica coincidencia con un oráculo local, no una atestación remota.
+
+## #95 — Groth16
+
+- El compilador local transforma un circuito aritmético acotado a R1CS/Circom; la generación y verificación Groth16 reales continúan dependiendo de **Circom y snarkjs**, software externo. No se acepta un sustituto Schnorr ni una prueba simulada.
+- La entrada GAUSS `prove-pinned` exige programa, SHA-256 confiables de `.ptau`, `.zkey`, clave de verificación y ejecutables Circom/snarkjs. Copia los parámetros comprobados a un directorio privado, compara los hashes de los bytes copiados y rechaza alteraciones antes de invocar el probador. `verify-pinned` exige hashes externos de programa, clave de verificación y ejecutable de verificación.
+- **Límites:** los hashes deben obtenerse mediante un registro independiente, firmado y auditado. Un digest calculado por el propio probador o en el mismo workflow de CI NO demuestra procedencia ni una ceremonia confiable. CI crea una ceremonia efímera de un solo entorno **solo para pruebas**, nunca parámetros de producción. Faltan una ceremonia multiparte verificable con contribuciones independientes, transcript y verificación separada de integridad; también faltan custodia/rotación de secretos del probador, revisión de circuitos y revisión criptográfica independiente. La instalación y las dependencias transitivas de Circom/snarkjs siguen siendo externas.
+
+## Condición de cierre
+
+Mantener `gaussNemesisStatus().certified === false` y el PR en borrador hasta que existan pruebas positivas nativas sobre el SHA definitivo, revisión de seguridad de código y dependencias, políticas ejecutadas de custodia/rotación/recuperación y —si la independencia de software externo sigue siendo un requisito— implementaciones criptográficas propias revisadas independientemente y comprobadas con vectores interoperables. **No sustituir estas bibliotecas por criptografía casera para fabricar una etiqueta de independencia.** Vercel y CANO están fuera de este trabajo.
