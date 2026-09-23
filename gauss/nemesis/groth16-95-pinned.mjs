@@ -3,7 +3,7 @@
  * production-trusted multiparty ceremony. The original prover remains Circom/snarkjs.
  */
 import {createHash} from 'node:crypto';
-import {closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, writeSync} from 'node:fs';
+import {closeSync, constants, fstatSync, fsyncSync, lstatSync, mkdtempSync, openSync, readFileSync, readSync, rmSync, statSync, writeSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {isAbsolute, join} from 'node:path';
 import {canonicalSnarkJson, compileExecutionCircuit, proveGroth16Execution, verifyGroth16Execution} from './engine/src/motors/execution-snark.mjs';
@@ -11,6 +11,7 @@ import {canonicalSnarkJson, compileExecutionCircuit, proveGroth16Execution, veri
 const MAX_ARTIFACT=512*1024*1024;
 // A BN254 Groth16 verification key is small; never parse unbounded or device-backed JSON.
 const MAX_VERIFICATION_KEY=1024*1024;
+const MAX_TOOL_BYTES=64*1024*1024;
 const SHA=/^[a-f0-9]{64}$/;
 const fail=code=>{throw new Error(`NEMESIS_95_PINNED_${code}`);};
 function shape(v,allowed,required){
@@ -25,6 +26,11 @@ function toolchain(tools,proving){
   for(const name of proving?['circom','snarkjs']:['snarkjs']){
     if(typeof tools[name]!=='string'||!isAbsolute(tools[name]))fail('TOOL_MUST_BE_ABSOLUTE');
     digest(tools[`${name}Sha256`]);
+    // Reject FIFOs, devices and unbounded files before the upstream tool hashes
+    // the executable with readFileSync(). npm .bin symlinks remain supported.
+    const executable=statSync(tools[name],{throwIfNoEntry:false});
+    if(!executable?.isFile()||executable.size<1||executable.size>MAX_TOOL_BYTES)
+      fail('TOOL_TYPE_OR_SIZE');
   }
   return tools;
 }
