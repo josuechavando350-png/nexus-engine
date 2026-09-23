@@ -5,6 +5,7 @@ import {runGaussNemesis89Sealed} from './fhe-89-sealed.mjs';
 import {runGaussNemesis89Backup} from './fhe-89-backup.mjs';
 import {runGaussNemesis81Signature} from './native-sqisign-81.mjs';
 import {runGaussNemesis81Sealed} from './sqisign-81-sealed.mjs';
+import {runGaussNemesis81KeyRotation} from './sqisign-81-key-rotation.mjs';
 import {runGaussNemesis95Pinned} from './groth16-95-pinned.mjs';
 import {filterGaussNemesis96} from './kalman-96.mjs';
 import {verifyTwoIsogenyDualIdentity} from './isogeny-81-foundation.mjs';
@@ -42,6 +43,8 @@ export async function runGaussNemesis(id, input) {
     return runGaussNemesis89Backup(input);
   if (normalized === '81' && ['sqisign-keygen-sealed', 'sqisign-sign-sealed', 'sqisign-rekey-sealed'].includes(input?.action))
     return runGaussNemesis81Sealed(input);
+  if (normalized === '81' && ['sqisign-rotate-keypair-sealed', 'sqisign-verify-key-rotation'].includes(input?.action))
+    return runGaussNemesis81KeyRotation(input);
   if (normalized === '81' && ['sqisign-keygen', 'sqisign-sign', 'sqisign-verify'].includes(input?.action))
     return runGaussNemesis81Signature(input);
   if (normalized === '95' && ['prove-pinned', 'verify-pinned'].includes(input?.action))
