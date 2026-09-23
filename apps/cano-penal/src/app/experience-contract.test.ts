@@ -102,10 +102,10 @@ describe("CANO organic integration contract", () => {
     ];
     for (const path of pageFiles) {
       const page = readFileSync(new URL(path, app), "utf8");
-      expect(page, path).not.toMatch(/>(?:0[1-9]|00[1-9])(?:\\s*[\\/—-]|<)/);
-      expect(page, path).not.toMatch(/"(?:0[1-9])"\\s*,/);
-      expect(page, path).not.toMatch(/(?:0[1-9])\\s*[\\/—]\\s*(?:[A-ZÁÉÍÓÚ])/);
-      expect(page, path).not.toMatch(/0\\{i\\s*\\+\\s*1\\}/);
+      expect(page, path).not.toMatch(/>(?:0[1-9]|00[1-9])(?:\s*[\/—-]|<)/);
+      expect(page, path).not.toMatch(/"(?:0[1-9])"\s*,/);
+      expect(page, path).not.toMatch(/(?:0[1-9])\s*[\/—]\s*(?:[A-ZÁÉÍÓÚ])/);
+      expect(page, path).not.toMatch(/0\{i\s*\+\s*1\}/);
     }
     const interior = readFileSync(new URL("./interior.css", import.meta.url), "utf8");
     expect(interior).not.toContain("decimal-leading-zero");
