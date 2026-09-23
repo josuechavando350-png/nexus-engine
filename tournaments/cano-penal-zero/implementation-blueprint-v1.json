@@ -474,14 +474,15 @@
   "buildWaves": [
     {
       "wave": 1,
-      "name": "BOFU core",
+      "name": "BOFU core + calendario fiscal en paralelo",
       "assetIds": [
         "A02",
         "A05",
         "A08",
-        "A01"
+        "A01",
+        "A10"
       ],
-      "reason": "Existing/high-intent foundations and direct conversion paths."
+      "reason": "Prioritize direct-client acquisition while developing the interactive fiscal calendar as a parallel, non-blocking product stream."
     },
     {
       "wave": 2,
@@ -499,10 +500,9 @@
       "name": "Authority expansion",
       "assetIds": [
         "A04",
-        "A10",
         "A11"
       ],
-      "reason": "Pre-crisis authority, fiscal utility and business/white-collar breadth."
+      "reason": "Expand representative/accountant and business/white-collar authority."
     }
   ],
   "measurement": {
@@ -539,5 +539,38 @@
     "NO_PAID_TRAFFIC_REQUIRED_FOR_SUCCESS",
     "NO_PRODUCTION_MUTATION_FROM_TOURNAMENT_BRANCH",
     "NO_RANK_OR_5_CLIENT_GUARANTEE"
-  ]
+  ],
+  "calendarProduct": {
+    "assetId": "A10",
+    "strategyId": "S05",
+    "delivery": "PARALLEL_WITH_WAVE_1_NOT_A_BLOCKER_FOR_DIRECT_CLIENT_PAGES",
+    "format": "INTERACTIVE_WEB_PRODUCT_NOT_PDF",
+    "placement": [
+      "/herramientas/calendario-fiscal",
+      "HOME_PROMINENT_TOOL_ENTRY",
+      "FISCAL_HUB_INTERNAL_LINK",
+      "MOBILE_NAV_DISCOVERABLE"
+    ],
+    "features": [
+      "MONTH_AND_YEAR_NAVIGATION",
+      "FILTER_BY_PERSONA_OR_TAX_REGIME_WHEN_OFFICIAL_SOURCE_SUPPORTS",
+      "SOURCE_LINK_AND_LAST_VERIFIED_DATE_PER_DEADLINE",
+      "CONTEXTUAL_LINKS_TO_FISCAL_DEFENSE_AND_WHATSAPP",
+      "OPTIONAL_ALERTS_ONLY_WITH_EXPLICIT_OPT_IN_AND_FUNCTIONAL_DELIVERY"
+    ],
+    "publicationGates": [
+      "EACH_DISPLAYED_DEADLINE_VERIFIED_AGAINST_CURRENT_OFFICIAL_SAT_SOURCE",
+      "WITHHOLD_UNVERIFIED_OR_EXPIRED_DATES",
+      "LEGAL_REVIEW_OF_RISK_AND_GUIDANCE_COPY",
+      "NO_AUTOMATIC_CRIMINAL_RISK_SCORING",
+      "NO_FORCED_CONTACT_GATE"
+    ],
+    "measurement": [
+      "ORGANIC_LANDING_SESSIONS",
+      "CALENDAR_INTERACTIONS",
+      "FISCAL_HUB_CLICKTHROUGH",
+      "QUALIFIED_ORGANIC_CONTACTS",
+      "ATTRIBUTABLE_SIGNED_MATTERS"
+    ]
+  }
 }
