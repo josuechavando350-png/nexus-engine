@@ -72,14 +72,27 @@ export function whiteNoiseDFAReference(input) {
   return {
     domain: 'FINITE_SAMPLE_GAUSSIAN_WHITE_NOISE_REFERENCE',
     sampleCount: observed.sampleCount, replicates, seed, level, order: observed.order,
+    monteCarloResolution: 1 / (replicates + 1),
+    nullHypothesis: 'IID_GAUSSIAN_WHITE_NOISE',
     curves: observed.curves.map((curve, i) => {
       const sorted = samples[i].sort((a, b) => a - b);
+      // Under the iid Gaussian null, the observed and simulated exponents have
+      // exchangeable ranks. Count ties in both tails conservatively and include
+      // the observed statistic (+1), so an estimated p-value cannot be zero.
+      const atOrBelow = sorted.filter(value => value <= curve.scalingExponent).length;
+      const atOrAbove = sorted.filter(value => value >= curve.scalingExponent).length;
+      const lowerTailP = (atOrBelow + 1) / (replicates + 1);
+      const upperTailP = (atOrAbove + 1) / (replicates + 1);
+      const twoSidedP = Math.min(1, 2 * Math.min(lowerTailP, upperTailP));
       return {q: curve.q, observedExponent: curve.scalingExponent,
         whiteNoiseMedian: quantile(sorted, 0.5),
         whiteNoiseCentralInterval: [quantile(sorted, lower), quantile(sorted, 1 - lower)],
-        fractionOfNullExponentsAtOrBelowObserved:
-          sorted.filter(value => value <= curve.scalingExponent).length / replicates};
+        fractionOfNullExponentsAtOrBelowObserved: atOrBelow / replicates,
+        lowerTailMonteCarloPValue: lowerTailP,
+        upperTailMonteCarloPValue: upperTailP,
+        twoSidedMonteCarloPValue: twoSidedP,
+        bonferroniAdjustedPValue: Math.min(1, observed.curves.length * twoSidedP)};
     }),
-    limitations: 'Monte Carlo reference conditional on independent Gaussian samples and a seeded pseudorandom generator; NOT a confidence interval or bias correction for the observed process, and not evidence of causality or multifractality.'
+    limitations: 'Rank-based Monte Carlo p-values are conditional on independent Gaussian observations, exact model assumptions and seeded pseudorandom simulation; Bonferroni controls the family across requested q under this null. Simulated quantiles are NOT a confidence interval or bias correction for the observed process, nor evidence of causality or multifractality.'
   };
 }
