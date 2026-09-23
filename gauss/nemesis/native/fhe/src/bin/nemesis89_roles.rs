@@ -9,6 +9,7 @@ use sha2::{Digest, Sha256};
 use std::fs::{self, OpenOptions};
 use std::io::{self, Read, Write};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
+use std::path::Path;
 use tfhe::boolean::gen_keys;
 use tfhe::boolean::prelude::*;
 
@@ -36,9 +37,22 @@ fn serialize<T: Serialize>(value: &T, max: usize) -> Result<Vec<u8>, String> {
     if bytes.len() > max { return Err("artifact exceeds size budget".into()); }
     Ok(bytes)
 }
+fn verify_private_parent(path: &str) -> Result<(), String> {
+    let p = Path::new(path);
+    if !p.is_absolute() { return Err("private key requires absolute path".into()); }
+    let parent = p.parent().ok_or("private key requires parent directory")?;
+    let metadata = fs::symlink_metadata(parent).map_err(|_| "cannot inspect private key directory")?;
+    // The local private key must never be created or read from a group-writable,
+    // world-readable or symlinked parent. This does not protect against the same UID.
+    if !metadata.file_type().is_dir() || metadata.permissions().mode() & 0o077 != 0 {
+        return Err("unsafe private key directory".into());
+    }
+    Ok(())
+}
 fn read_file(path: &str, max: usize, private_key: bool) -> Result<Vec<u8>, String> {
     // Do not follow symlinks, special devices or files replaced between validation and open.
     // A private key must be single-linked and inaccessible to group and other users.
+    if private_key { verify_private_parent(path)?; }
     let before = fs::symlink_metadata(path).map_err(|_| "cannot read artifact")?;
     if !before.file_type().is_file() || (private_key && before.nlink() != 1) {
         return Err("unsafe artifact type or link count".into());
@@ -65,7 +79,7 @@ fn load<T: DeserializeOwned>(path: &str, max: usize, private_key: bool) -> Resul
     if envelope.version != VERSION { return Err("unsupported artifact version".into()); }
     Ok(envelope)
 }
-fn save(path: &str, bytes: &[u8]) -> Result<(), String> {
+fn save(path: &str, bytes: &[u8]) -> Result<(u64, u64), String> {
     // create_new rejects existing files and symlinks; 0600 prevents other local users reading keys.
     let mut file = OpenOptions::new().write(true).create_new(true).mode(0o600)
         .open(path).map_err(|_| "cannot create new artifact")?;
@@ -80,7 +94,7 @@ fn save(path: &str, bytes: &[u8]) -> Result<(), String> {
         }
         return Err("cannot persist artifact".into());
     }
-    Ok(())
+    Ok((created.dev(), created.ino()))
 }
 fn key_id(server: &ServerKey) -> Result<[u8; 32], String> {
     let bytes = serialize(server, MAX_KEY)?;
@@ -138,16 +152,20 @@ fn run() -> Result<(), String> {
     match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
         [_, "keygen", client_path, server_path] => {
             if client_path == server_path { return Err("keys require distinct files".into()); }
+            verify_private_parent(client_path)?;
             let (client, server) = gen_keys();
             let id = key_id(&server)?;
             let client_bytes = serialize(&Envelope { version: VERSION, key_id: id, body: client }, MAX_KEY)?;
             let server_bytes = serialize(&Envelope { version: VERSION, key_id: id, body: server }, MAX_KEY)?;
-            save(client_path, &client_bytes)?;
+            let client_identity = save(client_path, &client_bytes)?;
             if let Err(error) = save(server_path, &server_bytes) {
-                // Do not strand a newly generated private key if the public evaluator key fails.
-                // Never remove a pre-existing client file: save() only succeeds for a new path.
-                if fs::remove_file(client_path).is_err() {
-                    return Err("cannot complete key pair or remove incomplete secret".into());
+                // Do not strand an incomplete secret; do not unlink an artifact
+                // substituted for our private key during the failed pair write.
+                let owned = fs::symlink_metadata(client_path)
+                    .map(|m| m.file_type().is_file() && (m.dev(), m.ino()) == client_identity)
+                    .unwrap_or(false);
+                if !owned || fs::remove_file(client_path).is_err() {
+                    return Err("cannot complete key pair or safely remove incomplete secret".into());
                 }
                 return Err(error);
             }
@@ -158,7 +176,7 @@ fn run() -> Result<(), String> {
             let client: Envelope<ClientKey> = load(client_path, MAX_KEY, true)?;
             let encrypted: Vec<Ciphertext> = bits.into_iter().map(|bit| client.body.encrypt(bit)).collect();
             let bytes = serialize(&Envelope { version: VERSION, key_id: client.key_id, body: encrypted }, MAX_CIPHERTEXT)?;
-            save(ciphertext_path, &bytes)
+            save(ciphertext_path, &bytes).map(|_| ())
         }
         [_, "evaluate", server_path, input_path, output_path, gates, outputs] => {
             // Evaluator has no secret-key path, deserializer or decrypt operation.
@@ -169,7 +187,7 @@ fn run() -> Result<(), String> {
             let circuit = circuit(inputs.body.len(), gates, outputs)?;
             let evaluated = circuit.evaluate(&server.body, &inputs.body)?;
             let bytes = serialize(&Envelope { version: VERSION, key_id: server.key_id, body: evaluated }, MAX_CIPHERTEXT)?;
-            save(output_path, &bytes)
+            save(output_path, &bytes).map(|_| ())
         }
         [_, "decrypt", client_path, output_path] => {
             let client: Envelope<ClientKey> = load(client_path, MAX_KEY, true)?;
