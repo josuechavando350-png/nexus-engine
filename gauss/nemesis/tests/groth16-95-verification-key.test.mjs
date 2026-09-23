@@ -15,11 +15,14 @@ test('95: never hand an unbounded or mutable verification key to the Groth16 ver
   try{
     const vk=join(dir,'verification_key.json');
     writeFileSync(vk,JSON.stringify({testOnly:true}));
+    // Negative-only fixture is small and regular; it must never be invoked.
+    // Real positive Groth16 uses separately pinned snarkjs in its CI workflow.
+    const tool=join(dir,'never-invoked-tool');
+    writeFileSync(tool,'#!/bin/sh\nexit 97\n',{mode:0o700});
     const request={action:'verify-pinned',program,statement:{programSha256:'0'.repeat(64),verificationKeySha256:'0'.repeat(64),output:'1'},
       proof:{},verificationKey:vk,expectedProgramSha256:compileExecutionCircuit(program).programSha256,
       expectedVerificationKeySha256:hash(canonicalSnarkJson({testOnly:true})),
-      // No native backend is ever launched by any of these negative assertions.
-      tools:{snarkjs:process.execPath,snarkjsSha256:'0'.repeat(64)}};
+      tools:{snarkjs:tool,snarkjsSha256:'0'.repeat(64)}};
     const link=join(dir,'link.json');symlinkSync(vk,link);
     await assert.rejects(()=>runGaussNemesis(95,{...request,verificationKey:link}),/ARTIFACT_TYPE_OR_SIZE/);
     const huge=join(dir,'huge.json');writeFileSync(huge,'x'.repeat(1024*1024+1));
@@ -27,7 +30,6 @@ test('95: never hand an unbounded or mutable verification key to the Groth16 ver
     const invalid=join(dir,'invalid.json');writeFileSync(invalid,'{unparseable');
     await assert.rejects(()=>runGaussNemesis(95,{...request,verificationKey:invalid}),/VERIFICATION_KEY_JSON/);
     await assert.rejects(()=>runGaussNemesis(95,{...request,expectedVerificationKeySha256:'f'.repeat(64)}),/VERIFICATION_KEY_PIN_MISMATCH/);
-    const folder=join(dir,'folder');
     await assert.rejects(()=>runGaussNemesis(95,{...request,verificationKey:dir}),/ARTIFACT_TYPE_OR_SIZE/);
   }finally{rmSync(dir,{recursive:true,force:true});}
 });
