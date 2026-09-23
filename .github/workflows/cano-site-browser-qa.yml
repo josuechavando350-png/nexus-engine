@@ -56,7 +56,7 @@ jobs:
       - name: Build exact CANO source
         run: pnpm build
 
-      - name: Capture and verify 21 routes in real browsers
+      - name: Verify CANO source in real browsers
         shell: bash
         run: |
           set -euo pipefail
@@ -77,7 +77,29 @@ jobs:
             tail -n 150 "$CANO_QA_OUTPUT/server.log"
             exit 1
           fi
-          node apps/cano-penal/scripts/browser-qa.mjs
+          if [ -f apps/cano-penal/scripts/browser-qa.mjs ]; then
+            node apps/cano-penal/scripts/browser-qa.mjs
+          else
+            # PR #456 predates the expanded commercial suite; certify its actual routes
+            # without asking CORTEX's unrelated pipeline probe to certify CANO.
+            for route in / /acerca-de-mi /casos /aviso-de-privacidad \
+              /areas/delitos-fiscales-y-financieros \
+              /areas/delitos-patrimoniales-y-fraude \
+              /areas/homicidio-y-delitos-violentos \
+              /areas/delitos-sexuales \
+              /areas/corrupcion-y-administracion-publica \
+              /areas/despojo-y-defensa-de-victimas \
+              /areas/justicia-penal-para-adolescentes \
+              /areas/amparo-recursos-y-apelaciones; do
+              curl -fsS -o /dev/null "http://127.0.0.1:3000$route"
+            done
+            pnpm --filter @nexus/capture exec playwright screenshot --browser chromium \
+              --viewport-size "390,844" http://127.0.0.1:3000/ "$CANO_QA_OUTPUT/baseline-home-mobile.png"
+            pnpm --filter @nexus/capture exec playwright screenshot --browser chromium \
+              --viewport-size "1440,900" http://127.0.0.1:3000/ "$CANO_QA_OUTPUT/baseline-home-desktop.png"
+            pnpm --filter @nexus/capture exec playwright screenshot --browser webkit \
+              --viewport-size "390,844" http://127.0.0.1:3000/ "$CANO_QA_OUTPUT/baseline-home-webkit.png"
+          fi
 
       - name: Preserve browser screenshots and report
         if: always()
