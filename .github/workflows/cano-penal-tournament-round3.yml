@@ -65,6 +65,7 @@ jobs:
             tournaments/cano-penal-zero/test-round0.mjs \
             tournaments/cano-penal-zero/test-round1.mjs \
             tournaments/cano-penal-zero/test-organic-goal-v1.mjs \
+            tournaments/cano-penal-zero/test-organic-statistical-gate-v1.mjs \
             tournaments/cano-penal-zero/test-round2.mjs \
             tournaments/cano-penal-zero/test-round3.mjs
           python -c 'compile(open("tournaments/cano-penal-zero/round2-avengers-organic.py", encoding="utf-8").read(), "round2-avengers-organic.py", "exec")'
