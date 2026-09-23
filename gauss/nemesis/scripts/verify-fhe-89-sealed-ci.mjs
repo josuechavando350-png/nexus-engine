@@ -54,11 +54,35 @@ try{
   const link=join(root,'symlink.sealed');symlinkSync(vaultPath,link);
   await assert.rejects(()=>runGaussNemesis(89,{...common,action:'sealed-decrypt',
     vaultPath:link,serverKeySha256:created.serverKeySha256,outputPath}),/UNSAFE_FILE/);
+  const backupVaultPath=join(root,'recovery-client.sealed'),backupServerPath=join(root,'recovery-server.key');
+  const backupPassphrase='CI-only-separate-recovery-passphrase-not-production';
+  const backupRequest={...common,action:'sealed-backup',serverPath,
+    serverKeySha256:created.serverKeySha256,backupVaultPath,backupServerPath,backupPassphrase};
+  await assert.rejects(()=>runGaussNemesis(89,{...backupRequest,passphrase:'wrong-CI-only-secret-not-production'}),/DECRYPT/);
+  assert.equal(lstatSync(backupVaultPath,{throwIfNoEntry:false}),undefined,'failed backup must not strand vault');
+  assert.equal(lstatSync(backupServerPath,{throwIfNoEntry:false}),undefined,'failed backup must roll back public key');
+  const backup=await runGaussNemesis(89,backupRequest);
+  assert.equal(backup.backupReady,true);
+  assert.equal(backup.serverKeySha256,created.serverKeySha256);
+  assert.equal(backup.backupVaultSha256,hash(readFileSync(backupVaultPath)));
+  assert.equal(backup.backupServerSha256,hash(readFileSync(backupServerPath)));
+  assert.notEqual(readFileSync(backupVaultPath,'utf8'),stored,'backup must have fresh salt and nonce');
+  await assert.rejects(()=>runGaussNemesis(89,backupRequest),/DESTINATION_EXISTS/);
   const changed=JSON.parse(stored);
   changed.ciphertext=(changed.ciphertext[0]==='A'?'B':'A')+changed.ciphertext.slice(1);
   writeFileSync(vaultPath,JSON.stringify(changed));
   await assert.rejects(()=>runGaussNemesis(89,{...common,action:'sealed-decrypt',
     serverKeySha256:created.serverKeySha256,outputPath}),/DECRYPT/);
+  // Simulate loss of BOTH original key files: the backup must still decrypt
+  // the already-computed ciphertext and independently evaluate another circuit.
+  rmSync(vaultPath);rmSync(serverPath);
+  const recovered={...common,vaultPath:backupVaultPath,passphrase:backupPassphrase,
+    serverKeySha256:created.serverKeySha256};
+  assert.equal((await runGaussNemesis(89,{...recovered,action:'sealed-decrypt',outputPath})).bits,'110');
+  const recoveredOutput=join(root,'recovered-output.ct');
+  evaluate(backupServerPath,ciphertextPath,recoveredOutput);
+  assert.equal((await runGaussNemesis(89,{...recovered,action:'sealed-decrypt',outputPath:recoveredOutput})).bits,'110');
   console.log(JSON.stringify({motor:89,backend:'REAL_TFHE_RUST',sealedVault:'AES-256-GCM-SCRYPT',
-    encryptedCircuit:'PASS',rekey:'PASS',negativeCases:'PASS',scope:'LOCAL_LINUX_TMPFS_NOT_REMOTE_PRODUCTION_CERTIFICATION'}));
+    encryptedCircuit:'PASS',rekey:'PASS',recoveryAfterOriginalKeyLoss:'PASS',negativeCases:'PASS',
+    scope:'LOCAL_LINUX_TMPFS_NOT_REMOTE_PRODUCTION_CERTIFICATION'}));
 }finally{rmSync(root,{recursive:true,force:true});}
