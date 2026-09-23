@@ -32,3 +32,11 @@ test("repeatability requires three consecutive target months after initial champ
   assert.match(goal.certification.championEligibility, /AT_LEAST_5_SIGNED_ORGANIC_CLIENTS/);
   assert.equal(goal.certification.repeatabilityEvidence, "3_CONSECUTIVE_MONTHS_AT_OR_ABOVE_TARGET");
 });
+
+
+test("month 2 and month 3 operating ramp requires signed organic clients", () => {
+  assert.equal(goal.businessOutcome.rampTargets.month2.minimumSignedOrganicClients, 1);
+  assert.equal(goal.businessOutcome.rampTargets.month2.zeroClientVerdict, "TRIGGER_IMMEDIATE_DIAGNOSIS_NOT_WAIT");
+  assert.equal(goal.businessOutcome.rampTargets.month3.minimumSignedOrganicClients, 1);
+  assert.equal(goal.businessOutcome.rampTargets.month3.targetSignedOrganicClients, 5);
+});
