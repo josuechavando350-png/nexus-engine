@@ -3,6 +3,10 @@ name: NEXUS Real Browser Capture Validation
 on:
   pull_request:
     branches: [main]
+    # CANO-only PRs are certified by CANO Site Browser QA, not by CORTEX's probe.
+    # Mixed CANO/CORTEX diffs still run this workflow and remain rejected below.
+    paths-ignore:
+      - 'apps/cano-penal/**'
   push:
     branches: [main]
   workflow_dispatch:
