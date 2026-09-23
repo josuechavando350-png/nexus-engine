@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "CANO_GOOGLE_ADS_FIRST_PARTY_V1",
+  "siteId": "cano-penal",
+  "source": {
+    "provider": "GOOGLE_ADS",
+    "accessMode": "READ_ONLY_CONNECTED_ACCOUNT",
+    "connector": "Windsor.ai",
+    "accountName": "EDUARDO CANO | ESTRATEGIA PENAL",
+    "captureDate": "2026-09-22",
+    "providerReplayInCi": false
+  },
+  "windows": {
+    "last90DaysInclusive": {
+      "from": "2026-06-25",
+      "to": "2026-09-22"
+    },
+    "last30DaysInclusive": {
+      "from": "2026-08-24",
+      "to": "2026-09-22"
+    }
+  },
+  "campaign90d": {
+    "campaignName": "CL | Leads-Search | PENAL",
+    "status": "ENABLED",
+    "adGroupName": "PENAL",
+    "biddingStrategyType": "TARGET_SPEND",
+    "dailyBudgetMxnMicros": 328000000,
+    "clicks": 2841,
+    "impressions": 57478,
+    "costMxnMicros": 32472610800,
+    "primaryConversions": 2,
+    "allConversions": 2160
+  },
+  "campaign30d": {
+    "clicks": 961,
+    "impressions": 17508,
+    "costMxnMicros": 9933210900,
+    "primaryConversions": 2,
+    "allConversions": 712
+  },
+  "primaryConversionSemantics": {
+    "definition": "Google Ads conversions metric includes only actions configured to be included in conversions and used by conversion-based bidding.",
+    "observedPrimaryActions90d": [
+      {
+        "action": "WhatsApp - canopenal",
+        "category": "CONTACT",
+        "primaryConversions": 2,
+        "allConversions": 15
+      }
+    ],
+    "otherObservedActions90d": [
+      {
+        "action": "Local actions - Directions",
+        "primaryConversions": 0,
+        "allConversions": 787
+      },
+      {
+        "action": "Local actions - Other engagements",
+        "primaryConversions": 0,
+        "allConversions": 1243
+      },
+      {
+        "action": "Clicks to call",
+        "primaryConversions": 0,
+        "allConversions": 55
+      },
+      {
+        "action": "Local actions - Website visits",
+        "primaryConversions": 0,
+        "allConversions": 53
+      },
+      {
+        "action": "Conversation started",
+        "primaryConversions": 0,
+        "allConversions": 2
+      },
+      {
+        "action": "Enviar formulario de clientes potenciales (Carga de página canopenal.com/)",
+        "primaryConversions": 0,
+        "allConversions": 4
+      },
+      {
+        "action": "Clic telefono - canopenal",
+        "primaryConversions": 0,
+        "allConversions": 1
+      }
+    ],
+    "observedPrimaryActions30d": [
+      {
+        "action": "WhatsApp - canopenal",
+        "category": "CONTACT",
+        "primaryConversions": 2,
+        "allConversions": 15
+      }
+    ]
+  },
+  "broadKeywordConcentration90d": {
+    "keywords": [
+      {
+        "keyword": "abogados especialistas en derecho penal",
+        "matchType": "BROAD",
+        "clicks": 2515,
+        "impressions": 49320,
+        "costMxnMicros": 28076949400,
+        "primaryConversions": 0
+      },
+      {
+        "keyword": "especialistas en derecho penal",
+        "matchType": "BROAD",
+        "clicks": 181,
+        "impressions": 5385,
+        "costMxnMicros": 1828227000,
+        "primaryConversions": 0
+      }
+    ],
+    "combinedClicks": 2696,
+    "combinedImpressions": 54705,
+    "combinedCostMxnMicros": 29905176400,
+    "combinedPrimaryConversions": 0,
+    "shareOfCampaignClicksPpm": 948962,
+    "shareOfCampaignImpressionsPpm": 951755,
+    "shareOfCampaignCostPpm": 920935
+  },
+  "institutionalLeakage90d": {
+    "fiscaliaTerms": {
+      "uniqueSearchTerms": 181,
+      "clicks": 135,
+      "impressions": 1643,
+      "costMxnMicros": 1081130600,
+      "primaryConversions": 0,
+      "allConversions": 187
+    },
+    "ministerioPublicoTerms": {
+      "uniqueSearchTerms": 42,
+      "clicks": 30,
+      "impressions": 769,
+      "costMxnMicros": 292630000,
+      "primaryConversions": 0,
+      "allConversions": 55
+    },
+    "configuredPositiveCriterion": {
+      "keyword": "ministerio público",
+      "matchType": "BROAD"
+    },
+    "observedCriteria": {
+      "total": 124,
+      "positive": 75,
+      "negative": 49,
+      "fiscaliaNegativeObserved": false
+    }
+  },
+  "institutionalLeakage30d": {
+    "fiscaliaTerms": {
+      "uniqueSearchTerms": 75,
+      "clicks": 29,
+      "impressions": 410,
+      "costMxnMicros": 201481700,
+      "primaryConversions": 0,
+      "allConversions": 52
+    }
+  },
+  "intentSlices90d": {
+    "citatorio": {
+      "uniqueSearchTerms": 8,
+      "clicks": 0,
+      "impressions": 8,
+      "costMxnMicros": 0,
+      "primaryConversions": 0
+    },
+    "detention": {
+      "uniqueSearchTerms": 61,
+      "clicks": 3,
+      "impressions": 117,
+      "costMxnMicros": 43110000,
+      "primaryConversions": 0
+    },
+    "audiencia": {
+      "uniqueSearchTerms": 94,
+      "clicks": 4,
+      "impressions": 161,
+      "costMxnMicros": 50920000,
+      "primaryConversions": 0
+    },
+    "trueTaxFiscalObservedTerms": [
+      {
+        "query": "delito defraudación fiscal",
+        "clicks": 0,
+        "impressions": 1,
+        "costMxnMicros": 0,
+        "primaryConversions": 0
+      },
+      {
+        "query": "delito fiscal en mexico",
+        "clicks": 0,
+        "impressions": 1,
+        "costMxnMicros": 0,
+        "primaryConversions": 0
+      }
+    ]
+  },
+  "derived90d": {
+    "ctrPpm": 49428,
+    "averageCpcMxnMicros": 11429993,
+    "costPerTrackedPrimaryConversionMxnMicros": 16236305400
+  },
+  "interpretationBoundaries": [
+    "PRIMARY_CONVERSION_IS_ADS_TRACKED_ACTION_NOT_SIGNED_CLIENT",
+    "ALL_CONVERSIONS_MUST_NOT_BE_INTERPRETED_AS_LEADS",
+    "CURRENT_CAMPAIGN_EXPOSURE_IS_NOT_TOTAL_MARKET_DEMAND",
+    "TINY_PENAL_FISCAL_EXPOSURE_DOES_NOT_PROVE_TINY_PENAL_FISCAL_MARKET",
+    "NO_BID_OR_BUDGET_CHANGE_AUTHORIZED",
+    "NO_PROVIDER_REPLAY_CLAIM_IN_CI"
+  ],
+  "adDestinations90d": {
+    "activeCampaignAdRows": [
+      {
+        "finalUrls": [
+          "https://www.canopenal.com/"
+        ],
+        "clicks": 1371,
+        "impressions": 28351,
+        "costMxnMicros": 15497336100,
+        "primaryConversions": 2
+      },
+      {
+        "finalUrls": [
+          "https://www.canopenal.com/"
+        ],
+        "clicks": 1341,
+        "impressions": 27159,
+        "costMxnMicros": 15203904700,
+        "primaryConversions": 0
+      },
+      {
+        "finalUrls": [
+          "https://www.canopenal.com/"
+        ],
+        "clicks": 123,
+        "impressions": 1809,
+        "costMxnMicros": 1673840000,
+        "primaryConversions": 0
+      },
+      {
+        "finalUrls": [
+          "https://www.canopenal.com/"
+        ],
+        "clicks": 6,
+        "impressions": 159,
+        "costMxnMicros": 97530000,
+        "primaryConversions": 0
+      }
+    ],
+    "allActiveSearchAdFinalUrlsAreHomepage": true,
+    "reconcilesCampaignClicks": 2841,
+    "reconcilesCampaignImpressions": 57478,
+    "reconcilesCampaignCostMxnMicros": 32472610800,
+    "reconcilesPrimaryConversions": 2
+  },
+  "primaryConvertingSearchTerms90d": [
+    {
+      "query": "abogado penal",
+      "clicks": 1,
+      "impressions": 6,
+      "costMxnMicros": 16680000,
+      "primaryConversions": 1,
+      "allConversions": 1
+    },
+    {
+      "query": "abogado penalista",
+      "clicks": 3,
+      "impressions": 17,
+      "costMxnMicros": 70500000,
+      "primaryConversions": 1,
+      "allConversions": 1
+    }
+  ]
+}

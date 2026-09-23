@@ -7,6 +7,10 @@ GO_PID=""
 SITE_ID="${WALLE_M200_SITE_ID:-walle-proof-probe}"
 SOURCE_REVISION="${WALLE_SOURCE_REVISION:-abcdef1234567890}"
 EVIDENCE_OUTPUT="${WALLE_M200_EVIDENCE_OUTPUT:-}"
+INPUT_TEXT="${WALLE_M200_TEXT:-Walle controlled SEO Avengers proof input.}"
+KEYWORD="${WALLE_M200_KEYWORD:-controlled proof}"
+INPUT_HASH="${WALLE_M200_INPUT_HASH:-sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa}"
+CONTENT_DIGEST="${WALLE_M200_CONTENT_DIGEST:-sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb}"
 cleanup() {
   [[ -n "$GO_PID" ]] && kill "$GO_PID" 2>/dev/null || true
   [[ -n "$PY_PID" ]] && kill "$PY_PID" 2>/dev/null || true
@@ -26,6 +30,10 @@ if [[ ! "$SITE_ID" =~ ^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$ ]]; then
 fi
 if [[ ! "$SOURCE_REVISION" =~ ^[A-Za-z0-9][A-Za-z0-9._:/-]{0,199}$ ]]; then
   echo "invalid source revision" >&2
+  exit 2
+fi
+if [[ ! "$INPUT_HASH" =~ ^sha256:[0-9a-f]{64}$ || ! "$CONTENT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+  echo "invalid M001-M200 evidence binding digest" >&2
   exit 2
 fi
 if [[ -n "$EVIDENCE_OUTPUT" ]]; then
@@ -84,7 +92,7 @@ if ! curl -fsS http://127.0.0.1:8788/healthz >/dev/null; then
   exit 1
 fi
 
-OUTBOX_MODULE="$ROOT/scripts/seo-avengers-200-outbox.mjs" TMP_ROOT="$TMP" PROJECT_DIR="$PROJECT_DIR" SOURCE_REVISION="$SOURCE_REVISION" node --input-type=module <<'NODE'
+OUTBOX_MODULE="$ROOT/scripts/seo-avengers-200-outbox.mjs" TMP_ROOT="$TMP" PROJECT_DIR="$PROJECT_DIR" SOURCE_REVISION="$SOURCE_REVISION" INPUT_TEXT="$INPUT_TEXT" KEYWORD="$KEYWORD" node --input-type=module <<'NODE'
 import { pathToFileURL } from "node:url";
 const { enqueueSeoAvengersSection } = await import(pathToFileURL(process.env.OUTBOX_MODULE).href);
 const result = await enqueueSeoAvengersSection({
@@ -92,8 +100,8 @@ const result = await enqueueSeoAvengersSection({
   route: "/",
   sectionId: "hero",
   locale: "es-MX",
-  text: "Walle controlled SEO Avengers proof input.",
-  keyword: "controlled proof",
+  text: process.env.INPUT_TEXT,
+  keyword: process.env.KEYWORD,
   sourceRevision: process.env.SOURCE_REVISION
 });
 if (result.status !== "QUEUED") throw new Error(JSON.stringify(result));
@@ -159,14 +167,14 @@ assert by_id[39]['state']=='GATED' and by_id[39]['mode']=='consent-aware', by_id
 print('200/200 module contracts switched through Commander with policy-sensitive actions fail-closed: PASS')
 PY
 
-python - "$TMP/dispatch-request.json" "$SITE_ID" "$SOURCE_REVISION" <<'PY'
+python - "$TMP/dispatch-request.json" "$SITE_ID" "$SOURCE_REVISION" "$INPUT_HASH" "$CONTENT_DIGEST" <<'PY'
 import json, sys
 request={
   "jsonrpc":"2.0","id":2,"method":"seo.suite200.dispatch",
   "params":{
     "site_id":sys.argv[2],"enabled":True,"source_revision":sys.argv[3],
-    "input_hash":"sha256:" + "a"*64,
-    "payload":{"route":"/","content_digest":"sha256:" + "b"*64}
+    "input_hash":sys.argv[4],
+    "payload":{"route":"/","content_digest":sys.argv[5]}
   }
 }
 json.dump(request, open(sys.argv[1], 'w'))
@@ -221,13 +229,15 @@ PY
       --data-binary @"$TMP/job-requests/$(printf '%03d' "$module_id").json" \
       > "$TMP/job-results/$(printf '%03d' "$module_id").json"
   done
-  python - "$TMP/dispatch.json" "$TMP/job-results" "$EVIDENCE_OUTPUT" "$SOURCE_REVISION" <<'PY'
+  python - "$TMP/dispatch.json" "$TMP/job-results" "$EVIDENCE_OUTPUT" "$SOURCE_REVISION" "$INPUT_HASH" "$CONTENT_DIGEST" <<'PY'
 import json, pathlib, re, sys
 sha_re=re.compile(r'^sha256:[0-9a-f]{64}$')
 dispatch=json.load(open(sys.argv[1]))['result']
 job_root=pathlib.Path(sys.argv[2])
 out_path=pathlib.Path(sys.argv[3])
 source_revision=sys.argv[4]
+input_hash=sys.argv[5]
+content_digest=sys.argv[6]
 receipts={}
 policy_states={18:'ADVISORY',21:'ADVISORY',23:'ADVISORY',25:'ADVISORY',50:'ADVISORY'}
 for module_id in range(1,201):
@@ -258,6 +268,9 @@ assert len(receipts)==200 and set(receipts)=={f'M{i}' for i in range(1,201)}
 out={
   'schema_version':1,
   'source_revision':source_revision,
+  'audit_sha256':input_hash,
+  'input_hash':input_hash,
+  'content_digest':content_digest,
   'receipt_count':200,
   'receipts':receipts,
 }

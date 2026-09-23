@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexus.local/schemas/cano-round4-live-evidence-v1.schema.json",
+  "title": "CANO Round 4 Live Organic Evidence V1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "siteId",
+    "acquisitionMode",
+    "paidTrafficIncluded",
+    "measurementWindow",
+    "searchEvidence",
+    "attributionLedger",
+    "finalists"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "siteId": {
+      "const": "cano-penal"
+    },
+    "acquisitionMode": {
+      "const": "ORGANIC_ONLY"
+    },
+    "paidTrafficIncluded": {
+      "const": false
+    },
+    "measurementWindow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "startDate",
+        "endDate"
+      ],
+      "properties": {
+        "startDate": {
+          "type": "string",
+          "format": "date"
+        },
+        "endDate": {
+          "type": "string",
+          "format": "date"
+        }
+      }
+    },
+    "searchEvidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "property",
+        "queryLevelMeasurementComplete"
+      ],
+      "properties": {
+        "source": {
+          "const": "AUTHORIZED_FIRST_PARTY_OR_QUERY_LEVEL_TRACKER"
+        },
+        "property": {
+          "type": "string",
+          "minLength": 1
+        },
+        "queryLevelMeasurementComplete": {
+          "const": true
+        }
+      }
+    },
+    "attributionLedger": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "anonymized",
+        "completeForMeasurementWindow",
+        "signedClientDefinition"
+      ],
+      "properties": {
+        "anonymized": {
+          "const": true
+        },
+        "completeForMeasurementWindow": {
+          "const": true
+        },
+        "signedClientDefinition": {
+          "const": "NEW_MATTER_WITH_EXECUTED_ENGAGEMENT_OR_EQUIVALENT_FIRST_PARTY_SIGNED_STATUS"
+        }
+      }
+    },
+    "finalists": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "strategyId",
+          "organicSessions",
+          "qualifiedContacts",
+          "signedClients",
+          "portfolioTop3Queries",
+          "portfolioTop5Queries"
+        ],
+        "properties": {
+          "strategyId": {
+            "enum": [
+              "S01",
+              "S10",
+              "S15"
+            ]
+          },
+          "organicSessions": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "qualifiedContacts": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "signedClients": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "portfolioTop3Queries": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 14
+          },
+          "portfolioTop5Queries": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 42
+          }
+        }
+      }
+    }
+  },
+  "x-nexus-boundaries": [
+    "NO_CLIENT_NAMES",
+    "NO_CASE_NARRATIVES",
+    "NO_SENSITIVE_CASE_FACTS",
+    "NO_PAID_TRAFFIC_IN_PRIMARY_TOURNAMENT_EVIDENCE",
+    "NO_RANK_OR_CLIENT_VALUE_FABRICATION"
+  ]
+}

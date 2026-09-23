@@ -1,0 +1,8 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "CANO_GOOGLE_ADS_FIRST_PARTY_V1",
+  "siteId": "cano-penal",
+  "captureDate": "2026-09-22",
+  "evidenceSha256": "sha256:d1ec67ef8a8c2e7bfda6a910943d438ade322495177fca95458f0584c8231542",
+  "providerReplayInCi": false
+}

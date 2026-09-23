@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "gateId": "CANO_ORGANIC_STATISTICAL_GATE_V1",
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "measurementUnit": "ATTRIBUTABLE_ORGANIC_SESSIONS_TO_SIGNED_CLIENTS",
+  "commercialTarget": {
+    "minimumSignedClientsPerCalendarMonth": 5,
+    "repeatabilityMonths": 3,
+    "attributionRequired": true
+  },
+  "statisticalStandard": {
+    "highConfidenceProbability": 0.999,
+    "confidenceLabel": "99.9_PERCENT",
+    "comparisonPower": 0.95,
+    "comparisonAlphaTwoSided": 0.001,
+    "note": "Finite samples cannot provide 100% certainty. 99.9% is the tournament high-confidence gate; strategy comparisons additionally require 95% power."
+  },
+  "requiredFunnelEvidence": [
+    "GOOGLE_SEARCH_IMPRESSIONS_OR_AUTHORIZED_SERP_VISIBILITY",
+    "ORGANIC_CLICKS_OR_SESSIONS",
+    "QUALIFIED_ORGANIC_CONTACTS",
+    "SIGNED_CLIENTS_WITH_ANONYMIZED_ATTRIBUTION"
+  ],
+  "clientRateScenarioMatrix": [
+    {
+      "assumedSignedClientRatePpm": 10000,
+      "ratePercent": 1,
+      "organicSessionsForAtLeast5With999Probability": 1475,
+      "impressionsAt3PercentCtr": 49167,
+      "impressionsAt5PercentCtr": 29500,
+      "impressionsAt10PercentCtr": 14750,
+      "impressionsAt15PercentCtr": 9834
+    },
+    {
+      "assumedSignedClientRatePpm": 20000,
+      "ratePercent": 2,
+      "organicSessionsForAtLeast5With999Probability": 735,
+      "impressionsAt3PercentCtr": 24500,
+      "impressionsAt5PercentCtr": 14700,
+      "impressionsAt10PercentCtr": 7350,
+      "impressionsAt15PercentCtr": 4900
+    },
+    {
+      "assumedSignedClientRatePpm": 30000,
+      "ratePercent": 3,
+      "organicSessionsForAtLeast5With999Probability": 488,
+      "impressionsAt3PercentCtr": 16267,
+      "impressionsAt5PercentCtr": 9760,
+      "impressionsAt10PercentCtr": 4880,
+      "impressionsAt15PercentCtr": 3254
+    },
+    {
+      "assumedSignedClientRatePpm": 50000,
+      "ratePercent": 5,
+      "organicSessionsForAtLeast5With999Probability": 291,
+      "impressionsAt3PercentCtr": 9700,
+      "impressionsAt5PercentCtr": 5820,
+      "impressionsAt10PercentCtr": 2910,
+      "impressionsAt15PercentCtr": 1940
+    }
+  ],
+  "comparisonExamples": [
+    {
+      "baselineRatePercent": 1,
+      "candidateRatePercent": 2,
+      "sessionsPerStrategyFor999ConfidenceAnd95Power": 7194
+    },
+    {
+      "baselineRatePercent": 1,
+      "candidateRatePercent": 3,
+      "sessionsPerStrategyFor999ConfidenceAnd95Power": 2384
+    },
+    {
+      "baselineRatePercent": 2,
+      "candidateRatePercent": 4,
+      "sessionsPerStrategyFor999ConfidenceAnd95Power": 3541
+    },
+    {
+      "baselineRatePercent": 3,
+      "candidateRatePercent": 5,
+      "sessionsPerStrategyFor999ConfidenceAnd95Power": 4673
+    }
+  ],
+  "continuationRules": {
+    "doNotUseImpressionsAlone": true,
+    "doNotAssumeConversionRate": true,
+    "currentRateMustBeEstimatedFromFirstPartyOrganicAttribution": true,
+    "continueOrScaleWhen": [
+      "ATTRIBUTION_IS_COMPLETE_ENOUGH_TO_TRACE_SIGNED_CLIENTS_TO_ORGANIC",
+      "OBSERVED_CLIENT_RATE_OR_STRATEGY_UPLIFT_PASSES_99_9_PERCENT_CONFIDENCE_GATE_WHEN_SAMPLE_SIZE_IS_SUFFICIENT",
+      "STRATEGY_IS_NOT_DOMINATED_ON_SIGNED_CLIENTS_AND_PORTFOLIO_RANK_PROGRESS",
+      "NO_POLICY_OR_PRODUCTION_INTEGRITY_GATE_FAILS"
+    ],
+    "commercialCertification": [
+      "AT_LEAST_5_SIGNED_ORGANIC_CLIENTS_IN_A_CALENDAR_MONTH",
+      "THREE_CONSECUTIVE_MONTHS_AT_OR_ABOVE_5_FOR_REPEATABILITY"
+    ]
+  },
+  "interpretationBoundaries": [
+    "SCENARIO_MATRIX_IS_NOT_A_FORECAST",
+    "CTR_AND_CLIENT_RATE_MUST_BE_MEASURED_NOT_ASSUMED",
+    "IMPRESSIONS_ARE_NOT_CLIENTS",
+    "CLICKS_ARE_NOT_CLIENTS",
+    "WHATSAPP_CONTACTS_ARE_NOT_CLIENTS",
+    "RANKING_TARGETS_ARE_NOT_RANKING_GUARANTEES"
+  ]
+}

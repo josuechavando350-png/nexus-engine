@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "protocolId": "CANO_ROUND4_LIVE_ORGANIC_MEASUREMENT_V1",
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "status": "READY_WHEN_ROUND3_WALLE_PASSES",
+  "inputRequirement": "WALLE_VERIFIED_ROUND3_THREE_FINALISTS",
+  "objective": "Select the final organic architecture using live ranking, organic traffic and attributable signed-client evidence without paid-search dependency.",
+  "statisticalGateId": "CANO_ORGANIC_STATISTICAL_GATE_V1",
+  "googleMeasurement": {
+    "searchConsoleMetrics": [
+      "impressions",
+      "clicks",
+      "ctr",
+      "average_position"
+    ],
+    "averagePositionInterpretation": "AGGREGATED_AVERAGE_NOT_FIXED_RANK_CERTIFICATION",
+    "exactPortfolioRankEvidence": "AUTHORIZED_QUERY_LEVEL_SERP_TRACKER_OR_EQUIVALENT_REPEATABLE_QUERY_LEVEL_MEASUREMENT",
+    "portfolioQueryCount": 42,
+    "targetBuckets": {
+      "TOP3": 14,
+      "TOP5": 28
+    }
+  },
+  "attributionLedger": {
+    "requiredFields": [
+      "event_date",
+      "landing_page",
+      "organic_source",
+      "query_cluster",
+      "qualified_contact_id_hash",
+      "signed_matter_id_hash",
+      "signed_date"
+    ],
+    "prohibitedFields": [
+      "client_name_in_tournament_artifact",
+      "case_narrative_in_analytics",
+      "sensitive_case_facts"
+    ],
+    "signedClientDefinition": "NEW_MATTER_WITH_EXECUTED_ENGAGEMENT_OR_EQUIVALENT_FIRST_PARTY_SIGNED_STATUS"
+  },
+  "finalistIsolation": {
+    "principle": "MAP_EACH_FINALIST_TO_DISTINCT_PRIMARY_ASSETS_AND_QUERY_CLUSTERS_WHERE_POSSIBLE",
+    "crossLinkingAllowed": true,
+    "crossLinkingRule": "INTERNAL_LINKS_MAY_SUPPORT_SITE_AUTHORITY_BUT_ATTRIBUTION_MUST_PRESERVE_ENTRY_LANDING_AND_QUERY_CLUSTER",
+    "paidTrafficToFinalistAssets": "FORBIDDEN_FOR_PRIMARY_TOURNAMENT_EVIDENCE"
+  },
+  "decisionRules": {
+    "highConfidenceProbability": 0.999,
+    "comparisonPower": 0.95,
+    "minimumSignedOrganicClientsPerMonth": 5,
+    "championEligibility": "AT_LEAST_5_ATTRIBUTABLE_SIGNED_ORGANIC_CLIENTS_IN_A_CALENDAR_MONTH_AND_NO_INTEGRITY_GATE_FAILURE",
+    "statisticalPreference": "WHEN_COMPARING_CLIENT_RATES_USE_99_9_PERCENT_TWO_SIDED_CONFIDENCE_AND_95_PERCENT_POWER_WHEN_SAMPLE_SIZE_IS_SUFFICIENT",
+    "insufficientSample": "DO_NOT_DECLARE_STATISTICAL_WINNER",
+    "repeatabilityCertification": "3_CONSECUTIVE_MONTHS_AT_OR_ABOVE_5_ATTRIBUTABLE_SIGNED_ORGANIC_CLIENTS"
+  },
+  "scenarioReference": {
+    "note": "Not a forecast. Required sessions depend on the measured signed-client conversion rate.",
+    "rows": [
+      {
+        "signedClientRatePercent": 1,
+        "sessionsFor99_9ProbabilityOfAtLeast5": 1475
+      },
+      {
+        "signedClientRatePercent": 2,
+        "sessionsFor99_9ProbabilityOfAtLeast5": 735
+      },
+      {
+        "signedClientRatePercent": 3,
+        "sessionsFor99_9ProbabilityOfAtLeast5": 488
+      },
+      {
+        "signedClientRatePercent": 5,
+        "sessionsFor99_9ProbabilityOfAtLeast5": 291
+      }
+    ]
+  },
+  "winnerBoundary": [
+    "NO_WINNER_FROM_IMPRESSIONS_ONLY",
+    "NO_WINNER_FROM_RANKING_ONLY",
+    "NO_WINNER_FROM_WHATSAPP_OR_LEAD_COUNT_ONLY",
+    "NO_WINNER_FROM_PAID_TRAFFIC",
+    "NO_100_PERCENT_CERTAINTY_CLAIM",
+    "NO_PRODUCTION_MUTATION_FROM_MEASUREMENT_PROTOCOL"
+  ],
+  "operatingRamp": {
+    "month1": "INDEXATION_VISIBILITY_AND_QUERY_DISCOVERY",
+    "month2": {
+      "minimumSignedOrganicClients": 1,
+      "zeroClientAction": "IMMEDIATE_DIAGNOSIS"
+    },
+    "month3": {
+      "minimumSignedOrganicClients": 1,
+      "targetSignedOrganicClients": 5,
+      "zeroClientAction": "ESCALATED_DIAGNOSIS_AND_REPLAN"
+    }
+  }
+}
