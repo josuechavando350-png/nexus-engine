@@ -57,7 +57,7 @@ function createNew(path,bytes){
     return identity;
   }catch{
     if(identity){const current=lstatSync(path,{throwIfNoEntry:false});
-      if(current?.dev===identity.dev&&current.ino===identity.ino){try{unlinkSync(path);}catch{}}}
+      if(current?.dev===identity.dev&&current.ino===identity.ino){try{unlinkSync(path);}catch{/* Cleanup is best-effort; preserve PERSIST error. */}}}
     fail('PERSIST');
   }finally{if(fd!==undefined)closeSync(fd);}
 }
