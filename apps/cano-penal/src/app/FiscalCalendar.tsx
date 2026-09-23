@@ -12,10 +12,10 @@ const WEEKDAY_LABELS = ["lunes","martes","miércoles","jueves","viernes","sábad
 export function FiscalCalendar() {
   const [month, setMonth] = useState(8);
   const [audience, setAudience] = useState<Audience>("ambas");
-  const [selectedDay, setSelectedDay] = useState<number | null>(17);
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
   const events = useMemo(() => FISCAL_EVENTS.filter((event) =>
-    event.month === month && (audience === "ambas" || event.audience === audience)
+    event.month === month && Boolean(event.approvedBy && event.sourceEvidence && event.verifiedOn && event.sourceUrl) && (audience === "ambas" || event.audience === audience)
   ), [month, audience]);
   const daysInMonth = new Date(2026, month + 1, 0).getDate();
   const firstWeekday = (new Date(2026, month, 1).getDay() + 6) % 7;
@@ -25,7 +25,7 @@ export function FiscalCalendar() {
   function changeMonth(next: number) {
     const bounded = Math.max(0, Math.min(11, next));
     setMonth(bounded);
-    setSelectedDay(17);
+    setSelectedDay(null);
   }
 
   return (
@@ -34,11 +34,11 @@ export function FiscalCalendar() {
         <div>
           <span className="cp-cal-overline">Herramienta · 2026</span>
           <h2>El calendario, <em>con contexto.</em></h2>
-          <p>Selecciona un mes y un perfil. Cada fecha indica su fuente y lo que necesitas verificar antes de actuar.</p>
+          <p>Selecciona un mes y un perfil. Solo mostraremos plazos cuando cada obligación tenga fuente oficial comprobada y revisión fiscal aprobada.</p>
         </div>
         <label className="cp-cal-filter">
           <span>Perfil fiscal</span>
-          <select value={audience} onChange={(event) => {setAudience(event.target.value as Audience);setSelectedDay(17);}}>
+          <select value={audience} onChange={(event) => {setAudience(event.target.value as Audience);setSelectedDay(null);}}>
             <option value="ambas">Todos los perfiles</option>
             <option value="fisica">Persona física</option>
             <option value="moral">Persona moral</option>
@@ -74,7 +74,7 @@ export function FiscalCalendar() {
               ) : <span className="cp-cal-day" key={day}>{day}</span>;
             })}
           </div>
-          <p className="cp-cal-legend"><span aria-hidden="true" /> Fechas de referencia con fuente oficial. No son plazos personalizados.</p>
+          <p className="cp-cal-legend"><span aria-hidden="true" /> Solo destacaremos fechas verificadas. No son plazos personalizados.</p>
         </div>
         <div className="cp-cal-agenda">
           <div className="cp-cal-agenda-header">
@@ -90,10 +90,10 @@ export function FiscalCalendar() {
                 <p className="cp-cal-period">Periodo: {event.period}</p>
                 <p className="cp-cal-notice">{event.note}</p>
                 <a href={event.sourceUrl} rel="noopener noreferrer" target="_blank">Ver fuente oficial SAT ↗</a>
-                <span className="cp-cal-verified">Fuente revisada: 23 septiembre 2026</span>
+                <span className="cp-cal-verified">Fuente revisada: {event.verifiedOn}</span>
               </div>
             </article>
-          )):<div className="cp-cal-empty">No hay referencias para el filtro seleccionado. Puedes cambiar el día, el mes o el perfil.</div>}
+          )):<div className="cp-cal-empty">Todavía no hay vencimientos fiscales certificados para mostrar. Consulta directamente al SAT o a tu asesor fiscal antes de actuar; no publicaremos fechas que no estén validadas.</div>}
           <p className="cp-cal-legal">Las obligaciones dependen del régimen y de la situación de cada contribuyente. Este calendario es informativo; verifica siempre el plazo aplicable directamente en el SAT.</p>
         </div>
       </div>
