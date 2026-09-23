@@ -1,0 +1,27 @@
+name: GAUSS Nemesis 78 multifractal DFA
+on:
+  pull_request:
+    paths:
+      - 'gauss/nemesis/dfa-78.mjs'
+      - 'gauss/nemesis/bridge.mjs'
+      - 'gauss/nemesis/tests/dfa-78.test.mjs'
+      - '.github/workflows/gauss-nemesis78-dfa.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  dfa78:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.16.0'
+      - name: Validate source identity and syntax
+        run: |
+          node gauss/nemesis/scripts/verify-source-lock.mjs
+          node --check gauss/nemesis/dfa-78.mjs
+          node --check gauss/nemesis/bridge.mjs
+      - name: Exercise mathematical invariants, original #78 and GAUSS bridge
+        run: node --test gauss/nemesis/tests/dfa-78.test.mjs
