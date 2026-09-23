@@ -49,3 +49,13 @@ test("Round 1 receives the exact twelve structural survivors from canonical stra
   const ids = structuralShortlist([...field]).map((row) => row.id);
   assert.deepStrictEqual(ids, ["S01","S04","S05","S06","S09","S10","S13","S15","S18","S19","S22","S23"]);
 });
+
+test("all active Search ad rows reconcile to the campaign and point to the homepage", () => {
+  const rows = ads.adDestinations90d.activeCampaignAdRows;
+  assert.equal(ads.adDestinations90d.allActiveSearchAdFinalUrlsAreHomepage, true);
+  assert(rows.every((row) => row.finalUrls.length === 1 && row.finalUrls[0] === "https://www.canopenal.com/"));
+  assert.equal(rows.reduce((sum, row) => sum + row.clicks, 0), ads.campaign90d.clicks);
+  assert.equal(rows.reduce((sum, row) => sum + row.impressions, 0), ads.campaign90d.impressions);
+  assert.equal(rows.reduce((sum, row) => sum + row.costMxnMicros, 0), ads.campaign90d.costMxnMicros);
+  assert.equal(rows.reduce((sum, row) => sum + row.primaryConversions, 0), ads.campaign90d.primaryConversions);
+});
