@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "goalId": "CANO_ORGANIC_CLIENT_ENGINE_V1",
+  "tournamentId": "CANO_PENAL_CDMX_ZERO",
+  "effectiveFromStage": "ROUND_2",
+  "acquisitionMode": "ORGANIC_FIRST",
+  "paidSearchRole": "EVIDENCE_AND_OPTIONAL_CONTROL_ONLY",
+  "businessOutcome": {
+    "metric": "NEW_SIGNED_CLIENTS_ATTRIBUTABLE_TO_ORGANIC_SEARCH",
+    "minimumPerCalendarMonth": 5,
+    "leadMetricDoesNotCount": true,
+    "whatsappContactDoesNotCount": true,
+    "diagnosticPurchaseDoesNotCountUnlessItBecomesASignedClientMatter": true
+  },
+  "searchOutcome": {
+    "objective": "BUILD_AND_DEFEND_A_PORTFOLIO_OF_COMMERCIALLY_RELEVANT_QUERIES_ACROSS_GOOGLE_TOP_3_AND_TOP_5",
+    "singleKeywordVictoryInsufficient": true,
+    "requiredMeasurement": [
+      "keywordPortfolio",
+      "top3Count",
+      "top5Count",
+      "organicLandingPages",
+      "qualifiedOrganicContacts",
+      "signedOrganicClients"
+    ]
+  },
+  "attributionEvidence": {
+    "requiredForClientClaim": [
+      "FIRST_PARTY_ORGANIC_SESSION_OR_QUERY_EVIDENCE",
+      "ANONYMIZED_CRM_OR_SIGNED_MATTER_COUNT",
+      "ATTRIBUTION_WINDOW_AND_RULE"
+    ],
+    "missingEvidenceVerdict": "INSUFFICIENT_DATA",
+    "noInventedAttribution": true
+  },
+  "certification": {
+    "monthlyBusinessTarget": 5,
+    "championEligibility": "AT_LEAST_5_SIGNED_ORGANIC_CLIENTS_IN_A_MEASUREMENT_MONTH_WITH_VALID_ATTRIBUTION",
+    "repeatabilityEvidence": "3_CONSECUTIVE_MONTHS_AT_OR_ABOVE_TARGET",
+    "rankingGuaranteeAllowed": false,
+    "clientForecastAllowed": false
+  },
+  "hardBoundaries": [
+    "NO_PAID_SEARCH_DEPENDENCY_FOR_CHAMPION_STRATEGY",
+    "NO_COUNTING_LEADS_AS_CLIENTS",
+    "NO_COUNTING_WHATSAPP_CLICKS_AS_CLIENTS",
+    "NO_TOP3_TOP5_CLAIM_WITHOUT_SEARCH_EVIDENCE",
+    "NO_SIGNED_CLIENT_CLAIM_WITHOUT_FIRST_PARTY_ATTRIBUTION",
+    "NO_AUTONOMOUS_PRODUCTION_MUTATION"
+  ]
+}
