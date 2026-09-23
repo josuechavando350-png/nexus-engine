@@ -54,6 +54,25 @@ describe("CANO organic integration contract", () => {
     expect(stylesheet).toContain(".cp-cal-disclaimer{");
   });
 
+  it("makes all eight new consultation routes discoverable while leaving calendar in its section", () => {
+    const home = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
+    const nav = readFileSync(new URL("./content.ts", import.meta.url), "utf8");
+    const paths = [
+      "/detenido-cdmx",
+      "/citatorio-ministerio-publico-cdmx",
+      "/audiencia-inicial-control-detencion-cdmx",
+      "/diagnostico-penal",
+      "/guias/requerimiento-sat-riesgo-penal",
+      "/guias/responsabilidad-penal-representante-legal-contador",
+      "/guias/defensa-penal-empresa-delitos-financieros",
+      "/guias/honorarios-abogado-penalista-cdmx",
+    ];
+    expect(home).toContain('className="cp-route-index"');
+    for (const path of paths) expect(home).toContain('href="' + path + '"');
+    expect(home).not.toContain('className="cp-organic-bridge"');
+    expect(nav).toContain('["Calendario fiscal", "/herramientas/calendario-fiscal"]');
+  });
+
   it("keeps fiscal deadlines unlisted until evidence and fiscal approval exist", () => {
     const data = readFileSync(new URL("./fiscal-calendar-data.ts", import.meta.url), "utf8");
     const route = readFileSync(new URL("./herramientas/calendario-fiscal/page.tsx", import.meta.url), "utf8");
