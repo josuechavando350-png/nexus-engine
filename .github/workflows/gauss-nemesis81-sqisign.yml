@@ -6,6 +6,8 @@ on:
       - '.github/workflows/gauss-nemesis81-sqisign.yml'
       - 'gauss/nemesis/native/isogeny81/**'
       - 'gauss/nemesis/native-sqisign-81.mjs'
+      - 'gauss/nemesis/sqisign-81-sealed.mjs'
+      - 'gauss/nemesis/sqisign-81-key-rotation.mjs'
       - 'gauss/nemesis/bridge.mjs'
       - 'gauss/nemesis/tests/sqisign-81*'
   workflow_dispatch:
@@ -55,7 +57,7 @@ jobs:
           set -euo pipefail
           cmake --build "$RUNNER_TEMP/sqisign81-src/build" --target sqisign_test_kat_p324_3 sqisign_test_scheme_p324_3 --parallel 2
           ctest --test-dir "$RUNNER_TEMP/sqisign81-src/build" -R '^sqisign_p324_3_(KAT|SELFTEST)$' --output-on-failure
-      - name: Prove real key generation, signing, verification and negative cases through GAUSS
-        run: node --test gauss/nemesis/tests/sqisign-81.integration.mjs
+      - name: Prove real key generation, signing, verification and actual keypair rotation through GAUSS
+        run: node --test gauss/nemesis/tests/sqisign-81.integration.mjs gauss/nemesis/tests/sqisign-81-key-rotation.integration.mjs
       - name: Verify no committed native binary or upstream source was added
         run: git diff --exit-code && test "$(git status --porcelain --untracked-files=normal | grep -v "^?? gauss/nemesis/native/isogeny81/bin/" | wc -l)" -eq 0
