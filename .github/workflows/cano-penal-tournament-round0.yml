@@ -82,6 +82,8 @@ jobs:
           WALLE_M200_INPUT_HASH: ${{ env.CANO_AUDIT_SHA }}
           WALLE_M200_CONTENT_DIGEST: ${{ env.CANO_AUDIT_SHA }}
           WALLE_M200_EVIDENCE_OUTPUT: ${{ runner.temp }}/cano-round0/m001-m200-source.json
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/cano-round0/pycache-m200
         run: |
           set -euo pipefail
           bash seo-avengers-200/scripts/local-mirror-e2e.sh
@@ -92,6 +94,9 @@ jobs:
           python-version: '3.11'
 
       - name: Execute and bind all 2,500 Avengers ranges
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          PYTHONPYCACHEPREFIX: ${{ runner.temp }}/cano-round0/pycache-rest
         run: |
           set -euo pipefail
           python -m py_compile tournaments/cano-penal-zero/round0-avengers-all.py
