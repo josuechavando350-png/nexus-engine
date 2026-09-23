@@ -55,6 +55,8 @@ function noteFailure(label, error) {
 await mkdir(output, { recursive: true });
 for (const spec of [
   { name: "chromium-mobile", engine: chromium, viewport: { width: 390, height: 844 }, isMobile: true, routes },
+  { name: "chromium-tablet", engine: chromium, viewport: { width: 820, height: 1180 }, isMobile: false, routes },
+  { name: "chromium-laptop", engine: chromium, viewport: { width: 1024, height: 768 }, isMobile: false, routes },
   { name: "chromium-desktop", engine: chromium, viewport: { width: 1440, height: 900 }, isMobile: false, routes },
   { name: "webkit-mobile", engine: webkit, viewport: { width: 390, height: 844 }, isMobile: true,
     routes: ["/", "/detenido-cdmx", "/diagnostico-penal", "/areas/delitos-fiscales-y-financieros", "/herramientas/calendario-fiscal"] },
