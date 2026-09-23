@@ -33,7 +33,7 @@ test('81: real SQIsign p324_3 generates keys, signs, verifies and rejects tamper
   assert.equal((await runGaussNemesis(81,{...req,messageBase64:b64('GAUSS Némesis #81 genuine SQIsign signature')})).verified,true);
 });
 
-test('81: real sealed key never returns the private key and refuses tampering, wrong passphrase and unsafe files',async()=>{
+test('81: real sealed key, safe passphrase rotation and fail-closed custody',async()=>{
   const dir=mkdtempSync(join(tmpdir(),'nemesis81-real-vault-'));
   chmodSync(dir,0o700);
   try{
@@ -52,6 +52,21 @@ test('81: real sealed key never returns the private key and refuses tampering, w
     assert.equal(signed.keyId,created.keyId);
     assert.equal((await runGaussNemesis(81,{action:'sqisign-verify',...native,
       publicKeyBase64:created.publicKeyBase64,signatureBase64:signed.signatureBase64,messageBase64})).verified,true);
+    const rotatedPath=join(dir,'rotated.enc');
+    const newPassphrase='CI-only new passphrase for rewrap of real SQIsign key';
+    const rotated=await runGaussNemesis(81,{action:'sqisign-rekey-sealed',keyPath,
+      passphrase:common.passphrase,newKeyPath:rotatedPath,newPassphrase,expectedKeyId:created.keyId});
+    assert.equal(rotated.keyId,created.keyId);
+    assert.equal(rotated.publicKeyBase64,created.publicKeyBase64);
+    assert.equal(Object.hasOwn(rotated,'secretKeyBase64'),false);
+    assert.equal(lstatSync(rotatedPath).mode&0o777,0o600);
+    assert.equal(readFileSync(keyPath,'utf8'),sealed,'old key must remain unchanged until explicitly retired');
+    const rotatedSigned=await runGaussNemesis(81,{action:'sqisign-sign-sealed',...native,
+      keyPath:rotatedPath,passphrase:newPassphrase,messageBase64,expectedKeyId:created.keyId});
+    assert.equal((await runGaussNemesis(81,{action:'sqisign-verify',...native,
+      publicKeyBase64:created.publicKeyBase64,signatureBase64:rotatedSigned.signatureBase64,messageBase64})).verified,true);
+    await assert.rejects(()=>runGaussNemesis(81,{action:'sqisign-sign-sealed',...native,
+      keyPath:rotatedPath,passphrase:common.passphrase,messageBase64,expectedKeyId:created.keyId}),/DECRYPT_FAILED/);
     await assert.rejects(()=>runGaussNemesis(81,{action:'sqisign-sign-sealed',...common,
       passphrase:'wrong-CI-only-passphrase-not-real',messageBase64,expectedKeyId:created.keyId}),/DECRYPT_FAILED/);
     await assert.rejects(()=>runGaussNemesis(81,{action:'sqisign-sign-sealed',...common,
