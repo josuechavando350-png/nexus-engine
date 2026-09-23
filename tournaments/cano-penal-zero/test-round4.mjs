@@ -17,10 +17,10 @@ const round3={
 
 test("Round 4 starts blocked rather than inventing a winner without live evidence",async()=>{
   const report=await runCanoRound4({round3Report:round3,gate,protocol,plan,liveEvidence:null});
-  assert.equal(report.status,"BLOCKED_LIVE_EVIDENCE_REQUIRED");
+  assert.equal(report.status,"BOOTSTRAP_LIVE_EVIDENCE_NOT_MATURE");
   assert.deepStrictEqual(report.finalistIds,["S01","S10","S15"]);
   assert.equal(report.selectedStrategyId,null);
-  assert.equal(report.commercialWinnerStatus,"NOT_ELIGIBLE_LIVE_EVIDENCE_MISSING");
+  assert.equal(report.commercialWinnerStatus,"NOT_ELIGIBLE_MEASUREMENT_BOOTSTRAP");
   assert.equal(report.requiredConfidence,0.999);
   assert.equal(report.requiredComparisonPower,0.95);
 });
