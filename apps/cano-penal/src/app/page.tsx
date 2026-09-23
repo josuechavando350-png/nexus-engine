@@ -95,7 +95,30 @@ export default async function HomePage() {
 
       <section className="cp-section" id="areas"><div className="cp-wrap cp-areas-layout"><div className="cp-areas-intro"><h2>{areasHeading}</h2><p>{areasIntro}</p><Link className="cp-text-link" href="/#contacto">Hablemos de tu caso</Link></div><div className="cp-areas">{areas.map(([name, href], index) => <Link className="cp-area" key={href} href={href}><strong>{name}</strong><span>{areaDescriptions[index]}</span></Link>)}</div></div></section>
 
-      <section className="cp-organic-bridge" aria-labelledby="cp-fiscal-entry-title"><div className="cp-wrap cp-organic-bridge-grid"><div><p className="cp-eyebrow">Información y estrategia</p><h2 id="cp-fiscal-entry-title">Las obligaciones fiscales tienen contexto. <em>La defensa también.</em></h2></div><div><p>Consulta el calendario fiscal interactivo y conoce cuándo una comunicación de la autoridad merece revisión penal-fiscal. Las fechas no validadas no se presentan como vencimientos.</p><Link href="/herramientas/calendario-fiscal">Explorar calendario fiscal ↗</Link><Link href="/areas/delitos-fiscales-y-financieros">Defensa penal-fiscal ↗</Link><Link href="/diagnostico-penal">Solicitar diagnóstico penal ↗</Link></div></div></section>
+      <section className="cp-route-index" aria-labelledby="cp-route-index-title">
+        <div className="cp-wrap">
+          <div className="cp-route-index-heading">
+            <div><p className="cp-eyebrow">Orientación por situación</p><h2 id="cp-route-index-title">Cada asunto empieza <em>en un punto distinto.</em></h2></div>
+            <p>Explora información específica sobre tu situación y conoce las vías de atención del despacho. Cada consulta requiere analizar sus circunstancias particulares.</p>
+          </div>
+          <div className="cp-route-index-columns">
+            <div className="cp-route-index-group">
+              <p className="cp-route-index-group-title"><span>01</span> Procedimiento y defensa penal</p>
+              <Link href="/detenido-cdmx"><span>Detención en CDMX</span><span aria-hidden="true">↗</span></Link>
+              <Link href="/citatorio-ministerio-publico-cdmx"><span>Citatorio del Ministerio Público</span><span aria-hidden="true">↗</span></Link>
+              <Link href="/audiencia-inicial-control-detencion-cdmx"><span>Audiencia inicial y control de detención</span><span aria-hidden="true">↗</span></Link>
+              <Link href="/diagnostico-penal"><span>Diagnóstico penal</span><span aria-hidden="true">↗</span></Link>
+            </div>
+            <div className="cp-route-index-group">
+              <p className="cp-route-index-group-title"><span>02</span> Defensa fiscal y empresarial</p>
+              <Link href="/guias/requerimiento-sat-riesgo-penal"><span>Requerimientos del SAT y riesgo penal</span><span aria-hidden="true">↗</span></Link>
+              <Link href="/guias/responsabilidad-penal-representante-legal-contador"><span>Representantes legales y contadores</span><span aria-hidden="true">↗</span></Link>
+              <Link href="/guias/defensa-penal-empresa-delitos-financieros"><span>Defensa penal empresarial</span><span aria-hidden="true">↗</span></Link>
+              <Link href="/guias/honorarios-abogado-penalista-cdmx"><span>Honorarios de defensa penal</span><span aria-hidden="true">↗</span></Link>
+            </div>
+          </div>
+        </div>
+      </section>
 
       <section className="cp-section" id="casos"><div className="cp-wrap"><div className="cp-section-head"><div><p className="cp-eyebrow">Experiencia aplicada</p><h2><strong>Casos</strong></h2></div><Link className="cp-text-link" href="/casos">Ver todos los casos</Link></div><div className="cp-cases">{[cases[1], cases[4], cases[2]].map(([title, body]) => <article className="cp-case" tabIndex={0} key={title}><h3>{title}</h3><p>{body}</p></article>)}</div></div></section>
 
