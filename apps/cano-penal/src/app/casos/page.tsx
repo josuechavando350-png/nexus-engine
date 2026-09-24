@@ -15,15 +15,13 @@ export default function CasesPage() {
         eyebrow="Experiencia aplicada"
         title="Casos"
         lead="Una selección de asuntos que muestra cómo cambia la estrategia cuando cambian los hechos, la evidencia y la posición procesal."
-        marker="06"
       />
 
       <section className="cp-interior-body">
         <div className="cp-wrap">
           <div className="cp-cases-premium">
-            {cases.map(([title, body], index) => (
+            {cases.map(([title, body]) => (
               <article className="cp-case-premium" key={title}>
-                <span className="cp-case-premium-index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                 <h2>{title}</h2>
                 <p>{body}</p>
               </article>

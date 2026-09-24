@@ -16,7 +16,8 @@ export const nav = [
   ["Acerca de mí", "/acerca-de-mi"],
   ["Áreas", "/#areas"],
   ["Casos", "/casos"],
-  ["Contacto", "/#contacto"]
+  ["Calendario fiscal", "/herramientas/calendario-fiscal"],
+  ["Contáctame", "/#contacto"]
 ] as const;
 
 export const areas = [

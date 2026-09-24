@@ -1,0 +1,117 @@
+/* CANO bespoke commercial experiences — each route has its own art direction. */
+.cp-main a:focus-visible,.cp-main button:focus-visible,.cp-main select:focus-visible,.cp-main input:focus-visible{outline:2px solid #f3f5f7;outline-offset:4px}
+.cp-main button,.cp-main select{font:inherit}
+.cp-main a{transition:color .18s ease,border-color .18s ease,background-color .18s ease}
+.cp-main .cp-eyebrow{letter-spacing:.2em;font-size:.67rem}
+.cp-det-hero{position:relative;isolation:isolate;min-height:100svh;display:flex;align-items:flex-end;background:#090b0d;overflow:hidden}
+.cp-det-photo,.cp-det-photo img,.cp-det-hero::before{position:absolute;inset:0;width:100%;height:100%}
+.cp-det-photo{z-index:-2;width:58%;left:auto;right:0}
+.cp-det-photo img{object-fit:cover;object-position:60% 32%;filter:grayscale(1) contrast(1.08) brightness(.71)}
+.cp-det-hero::before{content:"";z-index:-1;background:linear-gradient(90deg,#080a0d 0%,#080a0d 35%,rgba(8,10,13,.77) 54%,rgba(8,10,13,.12) 100%),linear-gradient(0deg,rgba(8,10,13,.65),transparent 35%)}
+.cp-det-hero-content{padding-top:12rem;padding-bottom:clamp(5rem,10vw,10rem)}
+.cp-det-hero h1{max-width:12ch;margin:0;color:#f0f2f3;font-size:clamp(3.4rem,7.5vw,8.4rem);font-weight:300;letter-spacing:-.05em;line-height:.9;text-transform:uppercase}
+.cp-det-hero h1 em{font-style:normal;color:#a9b6c3}
+.cp-det-hero-content>p:not(.cp-eyebrow){max-width:39rem;margin:2.3rem 0;color:#ccd1d6;line-height:1.8;font-size:clamp(1.05rem,1.7vw,1.3rem)}
+.cp-det-actions{display:flex;gap:1rem;flex-wrap:wrap}
+.cp-det-phone{display:block;margin-top:2rem;color:#939ba3;font-size:.74rem;letter-spacing:.16em}
+.cp-det-vertical{position:absolute;right:2rem;bottom:7rem;writing-mode:vertical-rl;letter-spacing:.25em;font-size:10px;color:#aab1b9}
+.cp-det-essentials{padding:clamp(5rem,10vw,10rem) 0;background:#0e1217;border-bottom:1px solid #283039}
+.cp-det-essentials-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:clamp(3rem,8vw,8rem)}
+.cp-det-title>span,.cp-det-close .cp-eyebrow{font-size:.66rem;letter-spacing:.2em;color:#a1a9b2}
+.cp-det-title h2{max-width:13ch;font-size:clamp(2.5rem,5vw,5.2rem);line-height:.99;font-weight:300;margin:2rem 0;text-transform:uppercase;letter-spacing:-.04em}
+.cp-det-title h2 strong{font-weight:700}
+.cp-det-title>p{max-width:30rem;color:#9da6af;line-height:1.75}
+.cp-det-steps{border-top:1px solid #46505b}
+.cp-det-steps article{display:block;padding:2.3rem 0;border-bottom:1px solid #323a43}
+.cp-det-steps h3{margin:0 0 .65rem;font-size:clamp(1.4rem,2.4vw,2rem);font-weight:300}
+.cp-det-steps p{color:#aab2bb;line-height:1.7;margin:0}
+.cp-det-close{background:#07090b;padding:clamp(5rem,9vw,8rem) 0}
+.cp-det-close h2{max-width:14ch;font-size:clamp(2.8rem,6vw,6.5rem);line-height:.93;font-weight:300;letter-spacing:-.04em;margin:0 0 3rem;text-transform:uppercase}
+.cp-det-close>div>div{margin-left:auto;max-width:40rem;border-top:1px solid #38414a;padding-top:2rem}
+.cp-det-close p:not(.cp-eyebrow){font-size:1.13rem;color:#b7bec6;line-height:1.8}
+.cp-det-close a{display:inline-block;margin-top:1.2rem;text-decoration:none;border-bottom:1px solid #8896a3;padding-bottom:.4rem;color:#e0e5e9;font-size:.78rem;text-transform:uppercase;letter-spacing:.1em}
+
+/* Diagnosis: crisp editorial ivory-metal price instrument, not urgent-photo design. */
+.cp-dx-hero{background:radial-gradient(circle at 72% 18%,#242b30 0%,transparent 42%),#0c1014;padding:clamp(11rem,17vw,16rem) 0 clamp(6rem,10vw,10rem)}
+.cp-dx-hero-grid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(17rem,.8fr);gap:clamp(3rem,8vw,8rem);align-items:end}
+.cp-dx-lead-column h1{max-width:14ch;font-size:clamp(3rem,6.1vw,6.8rem);font-weight:300;line-height:.97;letter-spacing:-.055em;text-transform:uppercase;margin:0}
+.cp-dx-lead-column h1 em{font-style:normal;color:#adbac6}
+.cp-dx-lead-column>p:not(.cp-eyebrow){max-width:40rem;margin:2.3rem 0;color:#aeb7c0;line-height:1.85}
+.cp-dx-hero-links{display:flex;flex-wrap:wrap;gap:2rem}
+.cp-dx-hero-links a{font-size:.76rem;letter-spacing:.1em;text-transform:uppercase;color:#e4e9ed;text-decoration:none;border-bottom:1px solid #71808d;padding-bottom:.5rem}
+.cp-dx-price-panel{position:relative;border:1px solid #4d5964;padding:clamp(2rem,4vw,4rem);background:linear-gradient(150deg,rgba(255,255,255,.055),rgba(255,255,255,.008))}
+.cp-dx-price-panel::before{content:"";position:absolute;top:-1px;left:-1px;width:38%;height:2px;background:#e5ebf1}
+.cp-dx-price-top,.cp-dx-price-note{display:block;text-transform:uppercase;letter-spacing:.12em;font-size:.68rem;color:#b7c1c9}
+.cp-dx-price-panel strong{display:block;margin:1.7rem 0;font:300 clamp(3.3rem,5.3vw,6rem)/1 "Arial Narrow",Arial,sans-serif;white-space:nowrap;letter-spacing:-.06em}
+.cp-dx-price-panel strong small{font:400 .75rem/1 ui-sans-serif,system-ui,sans-serif;letter-spacing:.11em;vertical-align:top}
+.cp-dx-price-panel>p{color:#c4cbd2;font-size:.94rem;line-height:1.7}
+.cp-dx-price-rule{display:block;margin:2rem 0 1.5rem;height:1px;background:#424d58}
+.cp-dx-price-panel .cp-dx-price-note{line-height:1.65;color:#9ca8b3}
+.cp-dx-process{padding:clamp(5.5rem,11vw,10rem) 0;background:#e5e8e9;color:#11181c}
+.cp-dx-process .cp-eyebrow{color:#4d5961}
+.cp-dx-heading{display:flex;align-items:end;justify-content:space-between;margin-bottom:4rem}
+.cp-dx-heading h2{margin:0;font-size:clamp(2.7rem,5vw,5rem);font-weight:300;letter-spacing:-.055em;text-transform:uppercase;line-height:.97}
+.cp-dx-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border-top:1px solid #9fa9af}
+.cp-dx-steps article{padding:2rem 2rem 4rem 0;border-right:1px solid #a5afb5;margin-right:2rem}
+.cp-dx-steps article:last-child{border-right:0}
+.cp-dx-steps h3{margin:1rem 0 1.25rem;color:#11181c;font-size:clamp(1.7rem,2.7vw,2.7rem);font-weight:300;text-transform:uppercase}
+.cp-dx-steps p{color:#39474f;line-height:1.75}
+.cp-dx-form-section{background:#0b0f14;padding:clamp(6rem,10vw,10rem) 0}
+.cp-dx-form-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:clamp(3rem,8vw,8rem)}
+.cp-dx-form-grid h2{font-size:clamp(2.7rem,5vw,5.5rem);line-height:.96;letter-spacing:-.05em;font-weight:300;margin:0 0 2rem;text-transform:uppercase}
+.cp-dx-form-grid h2 em{font-style:normal;color:#9cabb8}
+.cp-dx-form-grid>div>p:not(.cp-eyebrow){max-width:32rem;color:#9facb8;line-height:1.75}
+.cp-contact-form-live{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;gap:2.25rem 1.5rem;border-top:1px solid #52606b;padding-top:2.5rem}
+.cp-contact-form-live label{display:grid;gap:.8rem}
+.cp-contact-form-live label span{font-size:.65rem;color:#b7c1c9;letter-spacing:.15em;text-transform:uppercase}
+.cp-contact-form-live input,.cp-contact-form-live select{border:0;border-bottom:1px solid #53606c;background:#0b0f14;color:#edf0f3;min-height:3.15rem;padding:.5rem 0;outline:0;width:100%;font-size:1rem}
+.cp-contact-form-live option{background:#0b0f14;color:#fff}
+.cp-contact-form-live input:focus,.cp-contact-form-live select:focus{border-bottom-color:#eff4f7}
+.cp-contact-form-full{grid-column:1/-1}
+.cp-contact-form-bottom{display:grid;gap:1.25rem}
+.cp-contact-form-bottom p{margin:0;font-size:.75rem;color:#8f9ca6;line-height:1.7}
+.cp-contact-form-bottom button{justify-self:start;cursor:pointer}
+.cp-contact-form-live-compact{grid-template-columns:1fr}
+@media(max-width:1000px){
+ .cp-det-photo{width:80%;opacity:.7}
+ .cp-det-hero::before{background:linear-gradient(90deg,#080a0d,rgba(8,10,13,.78) 65%,rgba(8,10,13,.28)),linear-gradient(0deg,#080a0d,transparent 50%)}
+ .cp-det-essentials-grid,.cp-dx-hero-grid,.cp-dx-form-grid{grid-template-columns:1fr}
+ .cp-dx-price-panel{max-width:38rem}
+}
+@media(max-width:680px){
+ .cp-det-hero{min-height:87svh}
+ .cp-det-photo{width:100%;opacity:.52}
+ .cp-det-hero-content{padding-top:10rem;padding-bottom:4rem}
+ .cp-det-hero h1{font-size:clamp(2.8rem,11.8vw,4.5rem)}
+ .cp-det-vertical{display:none}
+ .cp-det-actions{display:grid}
+ .cp-dx-hero{padding-top:9rem}
+ .cp-dx-lead-column h1{font-size:clamp(2.65rem,11vw,4rem)}
+ .cp-dx-price-panel strong{font-size:clamp(2.6rem,12vw,4rem)}
+ .cp-dx-heading{display:block}
+ .cp-dx-steps{grid-template-columns:1fr}
+ .cp-dx-steps article{margin:0;border:0;border-bottom:1px solid #a5afb5;padding:2rem 0}
+ .cp-dx-steps h3{margin:1.3rem 0}
+ .cp-contact-form-live{grid-template-columns:1fr}
+ .cp-contact-form-full{grid-column:auto}
+}
+@media(prefers-reduced-motion:reduce){.cp-main a{transition:none}}
+
+/* Homepage guide: bespoke editorial index for the eight commercial routes. */
+.cp-route-index{padding:clamp(6rem,10vw,11rem) 0;background:#0c151c;color:#eef2f4;border-top:1px solid #2f3d46}
+.cp-route-index-heading{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(16rem,.65fr);align-items:end;gap:clamp(2.5rem,7vw,8rem);padding-bottom:clamp(3.5rem,6vw,6rem)}
+.cp-route-index-heading .cp-eyebrow{color:#a7b8c5;margin:0 0 2rem}
+.cp-route-index h2{font-size:clamp(2.9rem,6.2vw,7rem);font-weight:300;line-height:.94;letter-spacing:-.058em;text-transform:uppercase;max-width:16ch;margin:0}
+.cp-route-index h2 em{font-style:normal;color:#8a9eac}
+.cp-route-index-heading>p{max-width:28rem;color:#b2c0c9;font-size:clamp(.98rem,1.3vw,1.12rem);line-height:1.85;margin:0 0 .25rem}
+.cp-route-index-columns{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(2.5rem,7vw,9rem)}
+.cp-route-index-group{border-top:1px solid #8da0ac}
+.cp-route-index-group-title{display:flex;align-items:center;gap:1.3rem;color:#b1c0ca;text-transform:uppercase;letter-spacing:.16em;font-size:.7rem;margin:1.7rem 0 2.4rem}
+.cp-route-index-group-title::before{content:"";display:block;flex:0 0 1.75rem;width:1.75rem;height:1px;background:#94a9b6}
+.cp-route-index-group>a{display:flex;align-items:center;justify-content:space-between;gap:1.5rem;min-height:6rem;border-bottom:1px solid #364752;color:#f0f4f6;text-decoration:none;padding:1.4rem 0;letter-spacing:-.015em;font-size:clamp(1.1rem,1.65vw,1.6rem);font-weight:300;line-height:1.32}
+.cp-route-index-group>a span:first-child{max-width:21ch}
+.cp-route-index-group>a span:last-child{color:#a1b5c2;font-size:1.5rem;transition:transform .2s ease}
+.cp-route-index-group>a:hover{color:#c4d7e3;border-color:#718997}
+.cp-route-index-group>a:hover span:last-child{transform:translate(3px,-3px)}
+@media(max-width:850px){.cp-route-index-heading,.cp-route-index-columns{grid-template-columns:1fr}.cp-route-index-heading{gap:2.5rem}.cp-route-index-group-title{margin:1.3rem 0 1.8rem}.cp-route-index-group>a{min-height:5.2rem}}
+@media(prefers-reduced-motion:reduce){.cp-route-index-group>a span:last-child{transition:none}}

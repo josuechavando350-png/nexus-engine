@@ -31,9 +31,9 @@ export default function AboutPage() {
           <div className="cp-about-academics">
             <p className="cp-eyebrow">Formación especializada</p>
             <h2>Preparación para asuntos complejos.</h2>
-            <ol className="cp-list">
+            <ul className="cp-list">
               {academics.map((item) => <li key={item}>{item}</li>)}
-            </ol>
+            </ul>
           </div>
         </div>
       </section>
