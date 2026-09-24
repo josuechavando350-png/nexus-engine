@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* global document, window */
 // Independently verify the CANO site. Never treats CORTEX's isolated probe as CANO evidence.
 import { createRequire } from "node:module";
 import { mkdir, writeFile } from "node:fs/promises";
