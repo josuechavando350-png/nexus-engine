@@ -1,10 +1,10 @@
 export const site = {
   name: "CANO | Estrategia Penal",
   lawyer: "Eduardo Cano",
-  phoneDisplay: "55 6050 1901",
-  phoneHref: "tel:5215560501901",
+  phoneDisplay: "+52 55 6050 1901",
+  phoneHref: "tel:+525560501901",
   email: "eduardo@canopenal.com",
-  whatsapp: "https://wa.me/5215560501901",
+  whatsapp: "https://wa.me/525560501901",
   facebook: "https://www.facebook.com/canopenal",
   instagram: "https://www.instagram.com/canopenal/",
   address: "World Trade Center Ciudad de México, Montecito 38, piso 28, oficina 16, colonia Nápoles, Benito Juárez, CDMX",
