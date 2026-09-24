@@ -1,0 +1,34 @@
+name: FORJA native deterministic repair
+on:
+  pull_request:
+    paths:
+      - 'forja/native-transform.mjs'
+      - 'forja/repair-agent.mjs'
+      - 'forja/verified-repair.mjs'
+      - 'forja/test-evidence.mjs'
+      - 'forja/test-event-reporter.mjs'
+      - 'forja/tests/native-repair.test.mjs'
+      - 'forja/NATIVE_REPAIR.md'
+      - 'forja/REPAIR_AGENT.md'
+      - 'forja/VERIFIED_REPAIR.md'
+      - '.github/workflows/forja-native-repair.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-repair:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify native repair syntax and the full bounded regression suite
+        run: |
+          node --check forja/native-transform.mjs
+          node --check forja/repair-agent.mjs
+          node --check forja/verified-repair.mjs
+          node --test forja/tests/*.test.mjs
