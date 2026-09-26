@@ -357,11 +357,14 @@ jobs:
           cp "$GITHUB_WORKSPACE/ci/nqc-t37/physical-contracts/foundry.toml" /tmp/nqc-t37-phase3/contracts/
           cp "$GITHUB_WORKSPACE/ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol" /tmp/nqc-t37-phase3/contracts/src/
           cp "$GITHUB_WORKSPACE/ci/nqc-t37/physical-contracts/src/T37PhysicalIntegration.sol" /tmp/nqc-t37-phase3/contracts/src/
-          echo "bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320  /tmp/nqc-t37-phase3/contracts/src/NqcFlashFundingExecutor.sol" | sha256sum -c -
 
           cd /tmp/nqc-t37-phase3/contracts
+          # T36's closeout source identity is the exact forge-fmt-normalized source
+          # used by its strict Foundry gate, so normalize before verifying the
+          # attested executor SHA rather than comparing the repository pre-format bytes.
           forge fmt
           forge fmt --check
+          echo "bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320  src/NqcFlashFundingExecutor.sol" | sha256sum -c -
           forge build --sizes 2>&1 | tee /tmp/nqc-t37-phase3/evidence/forge-build.txt
           for contract in T37SyntheticMarket T37MockFlashToken T37MockFundedStrategy T37MockAaveFlashPool T37MockBalancerVault T37FundingDriver; do
             forge inspect "$contract" bytecode > "/tmp/nqc-t37-phase3/${contract}.bytecode"
