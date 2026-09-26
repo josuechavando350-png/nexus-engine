@@ -85,11 +85,12 @@ jobs:
 
           block_tag=os.environ['PINNED_BLOCK_HEX']
           a=rpc(os.environ['EXECUTION_RPC'],'eth_getBlockByNumber',[block_tag,False])
-          b=rpc(os.environ['HEADER_RPC'],'eth_getBlockByNumber',[block_tag,False])
-          assert a and b
-          assert a['hash'].lower()==b['hash'].lower(), (a['hash'],b['hash'])
-          assert a['stateRoot'].lower()==b['stateRoot'].lower(), (a['stateRoot'],b['stateRoot'])
-          assert int(a['number'],16)==int(os.environ['PINNED_BLOCK_DEC'])
+          assert a
+          pin=json.load(open(os.path.join(os.environ['GITHUB_WORKSPACE'],'ci/nqc-t36/mainnet-block-20000000.json')))
+          assert int(a['number'],16)==pin['block_number']==int(os.environ['PINNED_BLOCK_DEC'])
+          assert a['hash'].lower()==pin['block_hash'].lower(), (a['hash'],pin['block_hash'])
+          assert a['stateRoot'].lower()==pin['state_root'].lower(), (a['stateRoot'],pin['state_root'])
+          assert int(a['timestamp'],16)==pin['timestamp'], (int(a['timestamp'],16),pin['timestamp'])
 
           codes={}
           for label,address in {
@@ -112,7 +113,7 @@ jobs:
               'block_hash':a['hash'].lower(),
               'state_root':a['stateRoot'].lower(),
               'timestamp':int(a['timestamp'],16),
-              'independent_header_provider_match':True,
+              'static_independent_canonical_anchor_match':True,
               'protocol_code':codes,
               'evidence_acquisition_uses_public_no_secret_rpc':True,
               'production_runtime_rpc_dependency':False,
@@ -163,7 +164,7 @@ jobs:
               'aave_v3_real_pool_callback_parity':True,
               'balancer_v2_real_vault_callback_parity':True,
               'nested_aave_balancer_reverse_repayment_parity':True,
-              'independent_header_provider_match':True,
+              'static_independent_canonical_anchor_match':True,
               'fork_test_sha256':fsha(ev/'fork-test.txt'),
               'canonical_crosscheck_sha256':fsha(ev/'canonical-crosscheck.json'),
               'tested_source_archive_sha256':fsha(ev/'fork-tested-source.tar.gz'),
@@ -173,7 +174,7 @@ jobs:
               'authority_issued':False,
               'live_market_evidence':False,
               'live_pnl_evidence':False,
-              'mainnet_fork_truth':'MEASURED_HISTORICAL',
+              'mainnet_fork_truth':'MEASURED_HISTORICAL_PINNED_CANONICAL',
               'formal_certification_status':'NOT_CERTIFIED',
           }
           payload=json.dumps(out,sort_keys=True,separators=(',',':')).encode()
