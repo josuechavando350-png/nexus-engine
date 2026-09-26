@@ -53,6 +53,15 @@ jobs:
           sha256sum Cargo.lock > ../evidence/upstream-cargo-lock.sha256
           git rev-parse HEAD > ../evidence/upstream-source-commit.txt
 
+      - name: Cache pinned Reth build products
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            /tmp/nqc-t35/reth/target
+          key: nqc-t35-reth-v2.5.2-rust1.98.1-${{ runner.os }}-${{ runner.arch }}-v1
+
       - name: Install observation-only ExEx observer
         shell: bash
         run: |
@@ -262,23 +271,35 @@ jobs:
           assert len(p)==1, len(p)
           PY
 
-          curl -fsS -H 'content-type: application/json'             --data '{"jsonrpc":"2.0","id":1,"method":"eth_accounts","params":[]}'             http://127.0.0.1:18546 > /tmp/nqc-t35/evidence/b-accounts.json
-          SENDER="$(python3 - <<'PY'
-          import json
-          a=json.load(open('/tmp/nqc-t35/evidence/b-accounts.json'))['result']
-          assert a
-          print(a[0])
-          PY
-          )"
+          python3 - <<'PY'
+          import json, urllib.request
 
-          curl -fsS -H 'content-type: application/json'             --data "{"jsonrpc":"2.0","id":1,"method":"eth_sendTransaction","params":[{"from":"$SENDER","to":"0x000000000000000000000000000000000000dEaD","value":"0x1","gas":"0x5208"}]}"             http://127.0.0.1:18546 > /tmp/nqc-t35/evidence/submission.json
-          TXHASH="$(python3 - <<'PY'
-          import json
-          x=json.load(open('/tmp/nqc-t35/evidence/submission.json'))
-          assert isinstance(x.get('result'),str) and x['result'].startswith('0x'), x
-          print(x['result'].lower())
+          def rpc(method, params):
+              payload=json.dumps({"jsonrpc":"2.0","id":1,"method":method,"params":params},separators=(",",":")).encode()
+              req=urllib.request.Request("http://127.0.0.1:18546",data=payload,headers={"content-type":"application/json"})
+              with urllib.request.urlopen(req,timeout=5) as r:
+                  body=json.loads(r.read().decode())
+              if body.get("error") is not None:
+                  raise RuntimeError(f"{method}: {body['error']}")
+              return body
+
+          accounts=rpc("eth_accounts",[])
+          open("/tmp/nqc-t35/evidence/b-accounts.json","w").write(json.dumps(accounts,sort_keys=True)+"\n")
+          values=accounts.get("result") or []
+          assert values, accounts
+          sender=values[0]
+          submission=rpc("eth_sendTransaction",[{
+              "from":sender,
+              "to":"0x000000000000000000000000000000000000dEaD",
+              "value":"0x1",
+              "gas":"0x5208"
+          }])
+          txhash=submission.get("result")
+          assert isinstance(txhash,str) and txhash.startswith("0x"), submission
+          open("/tmp/nqc-t35/evidence/submission.json","w").write(json.dumps(submission,sort_keys=True)+"\n")
+          open("/tmp/nqc-t35/evidence/submitted-tx-hash.txt","w").write(txhash.lower()+"\n")
           PY
-          )"
+          TXHASH="$(cat /tmp/nqc-t35/evidence/submitted-tx-hash.txt)"
 
           for i in $(seq 1 60); do
             if test -s /tmp/nqc-a-p2p.raw && grep -qi "$TXHASH" /tmp/nqc-a-p2p.raw; then break; fi
@@ -314,7 +335,6 @@ jobs:
 
           cp /tmp/nqc-a-p2p.raw /tmp/nqc-t35/evidence/p2p-raw.ndjson
           cp /tmp/nqc-a-exex.raw /tmp/nqc-t35/evidence/exex-raw.ndjson
-          printf '%s\n' "$TXHASH" > /tmp/nqc-t35/evidence/submitted-tx-hash.txt
 
           cleanup
           trap - EXIT
