@@ -61,6 +61,7 @@ jobs:
 
           mkdir -p examples/nqc-sensor-fabric/src examples/nqc-t35-observer/src
           base64 -d "$GITHUB_WORKSPACE/ci/nqc-t35/nqc-sensor-fabric.lib.rs.gz.b64" | gzip -d > examples/nqc-sensor-fabric/src/lib.rs
+          sed -i 's/use alloy::primitives::{keccak256, B256};/use alloy_primitives::{keccak256, B256};/' examples/nqc-sensor-fabric/src/lib.rs
           cp "$GITHUB_WORKSPACE/ci/nqc-t35/nqc-sensor-fabric.Cargo.toml" examples/nqc-sensor-fabric/Cargo.toml
           cp "$GITHUB_WORKSPACE/ci/nqc-t35/nqc-t35-observer.Cargo.toml" examples/nqc-t35-observer/Cargo.toml
           cp "$GITHUB_WORKSPACE/ci/nqc-t35/nqc-t35-observer.main.rs" examples/nqc-t35-observer/src/main.rs
