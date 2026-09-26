@@ -62,6 +62,19 @@ jobs:
           forge fmt
           forge fmt --check | tee /tmp/nqc-t36/evidence/forge-fmt.txt
           find /tmp/nqc-t36/source -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/nqc-t36/evidence/formatted-source-sha256.txt
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root=Path('/tmp/nqc-t36/source')
+          h=hashlib.sha256()
+          for p in sorted((p for p in root.rglob('*') if p.is_file()), key=lambda p:p.relative_to(root).as_posix()):
+              rel=p.relative_to(root).as_posix().encode()
+              data=p.read_bytes()
+              h.update(rel+b'\0'+hashlib.sha256(data).digest())
+          Path('/tmp/nqc-t36/evidence/tested-source-tree.sha256').write_text(h.hexdigest()+'\n')
+          PY
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -C /tmp/nqc-t36/source -cf - foundry.toml src test | gzip -n > /tmp/nqc-t36/evidence/tested-source.tar.gz
+          sha256sum /tmp/nqc-t36/evidence/tested-source.tar.gz > /tmp/nqc-t36/evidence/tested-source.tar.gz.sha256
           forge build --sizes 2>&1 | tee /tmp/nqc-t36/evidence/forge-build.txt
           forge test -vvv 2>&1 | tee /tmp/nqc-t36/evidence/forge-test.txt
           forge inspect NqcFlashFundingExecutor methodIdentifiers > /tmp/nqc-t36/evidence/method-identifiers.json
@@ -103,7 +116,9 @@ jobs:
               'scope':'LOCAL_DETERMINISTIC_PROTOCOL_CALLBACK_EVIDENCE',
               'foundry_version':(ev/'forge-version.txt').read_text().strip(),
               'foundry_release_asset_sha256':'cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b',
-              'source_tree_sha256':(ev/'source-tree.sha256').read_text().strip(),
+              'input_source_tree_sha256':(ev/'source-tree.sha256').read_text().strip(),
+              'tested_source_tree_sha256':(ev/'tested-source-tree.sha256').read_text().strip(),
+              'tested_source_archive_sha256':fsha(ev/'tested-source.tar.gz'),
               'forge_test_sha256':fsha(ev/'forge-test.txt'),
               'method_identifiers_sha256':fsha(ev/'method-identifiers.json'),
               'storage_layout_sha256':fsha(ev/'storage-layout.json'),
