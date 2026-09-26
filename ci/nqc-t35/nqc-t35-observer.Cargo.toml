@@ -1,0 +1,20 @@
+[package]
+name = "nqc-t35-observer"
+version = "0.0.0"
+publish = false
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+reth = { path = "../../bin/reth", default-features = false, features = ["dev"] }
+reth-exex.workspace = true
+reth-node-api.workspace = true
+reth-node-ethereum.workspace = true
+futures-util.workspace = true
+eyre.workspace = true
+alloy-consensus.workspace = true
+alloy-primitives.workspace = true
+nqc-sensor-fabric = { path = "../nqc-sensor-fabric" }
+
+[lints]
+workspace = true
