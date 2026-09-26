@@ -88,12 +88,14 @@ jobs:
           futures-util.workspace = true
           tokio.workspace = true
           eyre.workspace = true
+          alloy-consensus.workspace = true
 
           [lints]
           workspace = true
           ''')
 
           (p / "src/main.rs").write_text(r'''use futures_util::TryStreamExt;
+          use alloy_consensus::BlockHeader;
           use reth_exex::{ExExContext, ExExEvent, ExExNotification};
           use reth_node_api::FullNodeComponents;
           use reth_node_ethereum::EthereumNode;
@@ -147,9 +149,9 @@ jobs:
                       notification = ctx.notifications.try_next() => {
                           let Some(notification) = notification? else { break };
                           match &notification {
-                              ExExNotification::ChainCommitted { new } => write_exex("ChainCommitted", new.tip().number, new.tip().hash),
-                              ExExNotification::ChainReorged { new, .. } => write_exex("ChainReorged", new.tip().number, new.tip().hash),
-                              ExExNotification::ChainReverted { old } => write_exex("ChainReverted", old.tip().number, old.tip().hash),
+                              ExExNotification::ChainCommitted { new } => write_exex("ChainCommitted", new.tip().number(), new.tip().hash()),
+                              ExExNotification::ChainReorged { new, .. } => write_exex("ChainReorged", new.tip().number(), new.tip().hash()),
+                              ExExNotification::ChainReverted { old } => write_exex("ChainReverted", old.tip().number(), old.tip().hash()),
                           }
                           if let Some(committed) = notification.committed_chain() {
                               ctx.events.send(ExExEvent::FinishedHeight(committed.tip().num_hash()))?;
