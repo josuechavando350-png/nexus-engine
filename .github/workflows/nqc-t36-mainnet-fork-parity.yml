@@ -20,7 +20,7 @@ jobs:
     env:
       PINNED_BLOCK_DEC: "20000000"
       PINNED_BLOCK_HEX: "0x1312d00"
-      RPC_A: "https://ethereum-rpc.publicnode.com"
+      RPC_A: "https://eth.llamarpc.com"
       RPC_B: "https://eth.drpc.org"
       AAVE_V3_POOL: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fa4E2"
       BALANCER_V2_VAULT: "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
