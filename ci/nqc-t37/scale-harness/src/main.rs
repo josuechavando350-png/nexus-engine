@@ -146,7 +146,7 @@ fn simulate(cfg: Config, out_dir: &PathBuf) -> std::io::Result<Metrics> {
             }
             metrics.candidate_count += 1;
 
-            if candidate_seed % 20 == 0 {
+            if candidate_seed % 19 == 0 {
                 pending_generation_candidates += 1;
                 continue;
             }
