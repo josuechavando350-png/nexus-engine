@@ -299,10 +299,18 @@ jobs:
           values=accounts.get("result") or []
           assert values, accounts
           sender=values[0]
+          chain_id=rpc("eth_chainId",[])["result"]
+          nonce=rpc("eth_getTransactionCount",[sender,"pending"])["result"]
+          gas_price=rpc("eth_gasPrice",[])["result"]
           submission=rpc("eth_sendTransaction",[{
               "from":sender,
               "to":"0x000000000000000000000000000000000000dead",
-              "value":"0x1"
+              "value":"0x1",
+              "gas":"0x5208",
+              "gasPrice":gas_price,
+              "nonce":nonce,
+              "chainId":chain_id,
+              "type":"0x0"
           }])
           txhash=submission.get("result")
           assert isinstance(txhash,str) and txhash.startswith("0x"), submission
