@@ -184,8 +184,8 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp/nqc-t35/reth
-          cargo build --release -p nqc-t35-observer
-          BIN="$PWD/target/release/nqc-t35-observer"
+          cargo build -p nqc-t35-observer
+          BIN="$PWD/target/debug/nqc-t35-observer"
           test -x "$BIN"
           "$BIN" --version | tee /tmp/nqc-t35/evidence/observer-version.txt
           sha256sum "$BIN" > /tmp/nqc-t35/evidence/observer-binary.sha256
