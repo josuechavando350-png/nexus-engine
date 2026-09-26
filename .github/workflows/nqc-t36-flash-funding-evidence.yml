@@ -79,14 +79,14 @@ jobs:
             echo "Balancer receiveFlashLoan $(cast sig 'receiveFlashLoan(address[],uint256[],uint256[],bytes)')"
           } | tee /tmp/nqc-t36/evidence/protocol-selectors.txt
 
-          grep -q 'testNestedAaveBalancerFundingRepaysInReverseAndPreservesBaseline.*PASS' /tmp/nqc-t36/evidence/forge-test.txt
-          grep -q 'testPreexistingExecutorBalanceCannotSubsidizeMissingFeeOrProfit.*PASS' /tmp/nqc-t36/evidence/forge-test.txt
-          grep -q 'testObservedAaveFeeMustEqualPlanFee.*PASS' /tmp/nqc-t36/evidence/forge-test.txt
-          grep -q 'testObservedBalancerFeeMustEqualPlanFee.*PASS' /tmp/nqc-t36/evidence/forge-test.txt
-          grep -q 'testPayloadMutationIsRejectedBeforeBorrowing.*PASS' /tmp/nqc-t36/evidence/forge-test.txt
-          grep -q 'testExecutionIdentityCannotReplay.*PASS' /tmp/nqc-t36/evidence/forge-test.txt
-          grep -q 'testStrategyReturnDeclarationMustMatchObservedBalance.*PASS' /tmp/nqc-t36/evidence/forge-test.txt
-          grep -q 'testDuplicateLenderRejected.*PASS' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testNestedAaveBalancerFundingRepaysInReverseAndPreservesBaseline()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testPreexistingExecutorBalanceCannotSubsidizeMissingFeeOrProfit()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testObservedAaveFeeMustEqualPlanFee()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testObservedBalancerFeeMustEqualPlanFee()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testPayloadMutationIsRejectedBeforeBorrowing()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testExecutionIdentityCannotReplay()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testStrategyReturnDeclarationMustMatchObservedBalance()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testDuplicateLenderRejected()' /tmp/nqc-t36/evidence/forge-test.txt
 
           python3 - <<'PY'
           import hashlib,json
