@@ -1,0 +1,510 @@
+name: NQC T35 Reth Physical Evidence
+
+on:
+  push:
+    branches:
+      - nqc/t35-reth-physical-evidence-20260926
+    paths:
+      - .github/workflows/nqc-t35-reth-physical-evidence.yml
+      - .nqc-t35/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reth-physical-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pin inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-t35/evidence
+          cat > /tmp/nqc-t35/evidence/upstream-pin.json <<'EOF'
+          {
+            "release_tag": "v2.5.2",
+            "annotated_tag_object_sha": "d62e996e15a2fb67c190e9baaeeba79df5415346",
+            "source_commit_sha": "5a6940e351fed80458fe6c9da8581cbe4b8bd036",
+            "release_asset": "reth-v2.5.2-x86_64-unknown-linux-gnu.tar.gz",
+            "release_asset_sha256": "e360895ac51b351ff0c44573f0f619bb1e7c3ff2df55502af1190c14c9b5ef6d",
+            "release_asset_size_bytes": 51932647
+          }
+          EOF
+
+      - name: Install pinned Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup default 1.98.1
+          rustc -Vv | tee /tmp/nqc-t35/evidence/rustc.txt
+          cargo -V | tee /tmp/nqc-t35/evidence/cargo.txt
+
+      - name: Verify official upstream release asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o reth-release.tar.gz \
+            https://github.com/paradigmxyz/reth/releases/download/v2.5.2/reth-v2.5.2-x86_64-unknown-linux-gnu.tar.gz
+          test "$(stat -c %s reth-release.tar.gz)" = "51932647"
+          echo "e360895ac51b351ff0c44573f0f619bb1e7c3ff2df55502af1190c14c9b5ef6d  reth-release.tar.gz" | sha256sum -c -
+          sha256sum reth-release.tar.gz > evidence/upstream-release.sha256
+
+      - name: Checkout exact Reth source commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35
+          git clone --filter=blob:none https://github.com/paradigmxyz/reth.git reth
+          cd reth
+          git checkout --detach 5a6940e351fed80458fe6c9da8581cbe4b8bd036
+          test "$(git rev-parse HEAD)" = "5a6940e351fed80458fe6c9da8581cbe4b8bd036"
+          git status --porcelain=v1 > ../evidence/upstream-clean-status.txt
+          test ! -s ../evidence/upstream-clean-status.txt
+          sha256sum Cargo.lock > ../evidence/upstream-cargo-lock.sha256
+          git rev-parse HEAD > ../evidence/upstream-source-commit.txt
+
+      - name: Install observation-only P2P hook and ExEx capture binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35/reth
+          python3 - <<'PY'
+          from pathlib import Path
+
+          network = Path("crates/net/network/src/transactions/mod.rs")
+          s = network.read_text()
+          marker = "pub enum NetworkTransactionEvent<N: NetworkPrimitives = EthNetworkPrimitives> {"
+          if marker not in s:
+              raise SystemExit("NetworkTransactionEvent marker not found")
+
+          helper = r'''
+          // NQC T35 observation-only capture hook. It has no authority and does not mutate
+          // transaction processing. Enabled only when NQC_T35_P2P_RAW is explicitly set.
+          fn nqc_t35_monotonic_ns() -> u64 {
+              static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+              let origin = START.get_or_init(std::time::Instant::now);
+              u64::try_from(origin.elapsed().as_nanos()).unwrap_or(u64::MAX).saturating_add(1)
+          }
+
+          fn nqc_t35_capture_pooled_hashes(peer_id: &PeerId, msg: &NewPooledTransactionHashes) {
+              let Some(path) = std::env::var_os("NQC_T35_P2P_RAW") else { return };
+              let receive = nqc_t35_monotonic_ns();
+              let peer = format!("{peer_id:#}");
+              let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) else { return };
+              use std::io::Write as _;
+              for hash in msg.iter_hashes() {
+                  let decoded = nqc_t35_monotonic_ns();
+                  let tx_hash = format!("{hash:#x}");
+                  let ingested = nqc_t35_monotonic_ns();
+                  let recognized = nqc_t35_monotonic_ns();
+                  let _ = writeln!(
+                      file,
+                      "{{\"kind\":\"IncomingPooledTransactionHashes\",\"peer_id\":\"{}\",\"tx_hash\":\"{}\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
+                      peer, tx_hash, receive, decoded, ingested, recognized
+                  );
+              }
+          }
+
+          '''
+          s = s.replace(marker, helper + marker, 1)
+          needle = '''            NetworkTransactionEvent::IncomingPooledTransactionHashes { peer_id, msg } => {
+                          if !self.accepts_incoming_from(&peer_id) {'''
+          replacement = '''            NetworkTransactionEvent::IncomingPooledTransactionHashes { peer_id, msg } => {
+                          if !self.accepts_incoming_from(&peer_id) {'''
+          # Preserve fail-closed ingress policy: capture only after the peer is accepted.
+          if needle not in s:
+              raise SystemExit("incoming pooled hash arm marker not found")
+          s = s.replace(needle, replacement, 1)
+          after = '''                    return;
+                          }
+                          self.on_new_pooled_transaction_hashes(peer_id, msg)
+                      }'''
+          repl = '''                    return;
+                          }
+                          nqc_t35_capture_pooled_hashes(&peer_id, &msg);
+                          self.on_new_pooled_transaction_hashes(peer_id, msg)
+                      }'''
+          if after not in s:
+              raise SystemExit("pooled hash handler tail not found")
+          s = s.replace(after, repl, 1)
+          network.write_text(s)
+
+          root = Path("Cargo.toml")
+          rs = root.read_text()
+          member = '    "examples/nqc-t35-capture",\n'
+          anchor = '    "examples/network/",\n'
+          if member not in rs:
+              if anchor not in rs:
+                  raise SystemExit("workspace example anchor not found")
+              rs = rs.replace(anchor, anchor + member, 1)
+              root.write_text(rs)
+
+          crate = Path("examples/nqc-t35-capture")
+          (crate / "src").mkdir(parents=True, exist_ok=True)
+          (crate / "Cargo.toml").write_text(r'''[package]
+          name = "nqc-t35-capture"
+          version = "0.0.0"
+          publish = false
+          edition.workspace = true
+          license.workspace = true
+
+          [dependencies]
+          reth.workspace = true
+          reth-exex.workspace = true
+          reth-node-api.workspace = true
+          reth-node-ethereum.workspace = true
+          futures-util.workspace = true
+          eyre.workspace = true
+
+          [lints]
+          workspace = true
+          ''')
+          (crate / "src/main.rs").write_text(r'''use futures_util::TryStreamExt;
+          use reth_exex::{ExExContext, ExExEvent, ExExNotification};
+          use reth_node_api::FullNodeComponents;
+          use reth_node_ethereum::EthereumNode;
+          use std::io::Write as _;
+
+          fn monotonic_ns() -> u64 {
+              static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+              let origin = START.get_or_init(std::time::Instant::now);
+              u64::try_from(origin.elapsed().as_nanos()).unwrap_or(u64::MAX).saturating_add(1)
+          }
+
+          fn capture(kind: &str, number: u64, hash: impl core::fmt::Display) {
+              let Some(path) = std::env::var_os("NQC_T35_EXEX_RAW") else { return };
+              let receive = monotonic_ns();
+              let decoded = monotonic_ns();
+              let ingested = monotonic_ns();
+              let recognized = monotonic_ns();
+              let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) else { return };
+              let _ = writeln!(
+                  file,
+                  "{{\"notification_kind\":\"{}\",\"canonical_block_number\":{},\"canonical_block_hash\":\"{}\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
+                  kind, number, hash, receive, decoded, ingested, recognized
+              );
+          }
+
+          async fn nqc_exex<Node: FullNodeComponents>(mut ctx: ExExContext<Node>) -> eyre::Result<()> {
+              while let Some(notification) = ctx.notifications.try_next().await? {
+                  match &notification {
+                      ExExNotification::ChainCommitted { new } => capture("ChainCommitted", new.tip().number, new.tip().hash),
+                      ExExNotification::ChainReorged { new, .. } => capture("ChainReorged", new.tip().number, new.tip().hash),
+                      ExExNotification::ChainReverted { old } => capture("ChainReverted", old.tip().number, old.tip().hash),
+                  }
+                  if let Some(committed) = notification.committed_chain() {
+                      ctx.events.send(ExExEvent::FinishedHeight(committed.tip().num_hash()))?;
+                  }
+              }
+              Ok(())
+          }
+
+          fn main() -> eyre::Result<()> {
+              reth::cli::Cli::parse_args().run(async move |builder, _| {
+                  let handle = builder
+                      .node(EthereumNode::default())
+                      .install_exex("NQC-T35-Capture", async move |ctx| Ok(nqc_exex(ctx)))
+                      .launch_with_debug_capabilities()
+                      .await?;
+                  handle.wait_for_node_exit().await
+              })
+          }
+          ''')
+          PY
+
+          git diff --binary > /tmp/nqc-t35/evidence/nqc-t35-capture.patch
+          test -s /tmp/nqc-t35/evidence/nqc-t35-capture.patch
+          sha256sum /tmp/nqc-t35/evidence/nqc-t35-capture.patch > /tmp/nqc-t35/evidence/capture-patch.sha256
+          git diff --check
+          git diff --stat | tee /tmp/nqc-t35/evidence/capture-patch.stat
+
+      - name: Build content-addressed custom Reth ExEx capture binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35/reth
+          cargo build --release -p nqc-t35-capture
+          BIN="$PWD/target/release/nqc-t35-capture"
+          test -x "$BIN"
+          "$BIN" --version | tee /tmp/nqc-t35/evidence/capture-binary-version.txt
+          sha256sum "$BIN" > /tmp/nqc-t35/evidence/capture-binary.sha256
+          stat -c %s "$BIN" > /tmp/nqc-t35/evidence/capture-binary.size
+          git diff --binary | sha256sum | awk '{print $1}' > /tmp/nqc-t35/evidence/capture-source-tree.patch.sha256
+
+      - name: Launch two local physical Reth instances
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35/reth
+          BIN="$PWD/target/release/nqc-t35-capture"
+          rm -rf /tmp/nqc-a /tmp/nqc-b
+          rm -f /tmp/nqc-a.ipc /tmp/nqc-b.ipc /tmp/nqc-a-p2p.raw /tmp/nqc-a-exex.raw /tmp/nqc-b-exex.raw
+          mkdir -p /tmp/nqc-a /tmp/nqc-b
+
+          NQC_T35_EXEX_RAW=/tmp/nqc-b-exex.raw \
+          "$BIN" node --dev --dev.block-time 2s --datadir /tmp/nqc-b \
+            --ipcpath /tmp/nqc-b.ipc --http --http.addr 127.0.0.1 --http.port 18546 \
+            --http.api admin,eth,net,web3 --port 31304 --authrpc.port 18552 \
+            > /tmp/nqc-t35/evidence/reth-b.log 2>&1 &
+          echo $! > /tmp/nqc-t35/reth-b.pid
+
+          cleanup() {
+            kill "$(cat /tmp/nqc-t35/reth-a.pid 2>/dev/null)" 2>/dev/null || true
+            kill "$(cat /tmp/nqc-t35/reth-b.pid 2>/dev/null)" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          for i in $(seq 1 90); do
+            if curl -fsS -H 'content-type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"web3_clientVersion","params":[]}' \
+              http://127.0.0.1:18546 >/tmp/nqc-t35/evidence/b-client.json; then break; fi
+            sleep 1
+          done
+          test -s /tmp/nqc-t35/evidence/b-client.json
+
+          curl -fsS -H 'content-type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"admin_nodeInfo","params":[]}' \
+            http://127.0.0.1:18546 > /tmp/nqc-t35/evidence/b-nodeinfo.json
+          ENODE=$(python3 - <<'PY'
+          import json
+          x=json.load(open('/tmp/nqc-t35/evidence/b-nodeinfo.json'))
+          print(x['result']['enode'])
+          PY
+          )
+          test -n "$ENODE"
+
+          NQC_T35_P2P_RAW=/tmp/nqc-a-p2p.raw NQC_T35_EXEX_RAW=/tmp/nqc-a-exex.raw \
+          "$BIN" node --dev --dev.block-time 2s --datadir /tmp/nqc-a \
+            --ipcpath /tmp/nqc-a.ipc --http --http.addr 127.0.0.1 --http.port 18545 \
+            --http.api admin,eth,net,web3 --port 31303 --authrpc.port 18551 \
+            --trusted-peers "$ENODE" \
+            > /tmp/nqc-t35/evidence/reth-a.log 2>&1 &
+          echo $! > /tmp/nqc-t35/reth-a.pid
+
+          for i in $(seq 1 90); do
+            if curl -fsS -H 'content-type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"web3_clientVersion","params":[]}' \
+              http://127.0.0.1:18545 >/tmp/nqc-t35/evidence/a-client.json; then break; fi
+            sleep 1
+          done
+          test -s /tmp/nqc-t35/evidence/a-client.json
+
+          # Require an actual RLPx peer session, not just a listening socket.
+          for i in $(seq 1 60); do
+            curl -fsS -H 'content-type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"net_peerCount","params":[]}' \
+              http://127.0.0.1:18545 > /tmp/nqc-t35/evidence/a-peer-count.json || true
+            if python3 - <<'PY'
+          import json,sys
+          try:
+              x=json.load(open('/tmp/nqc-t35/evidence/a-peer-count.json'))['result']
+              sys.exit(0 if int(x,16) > 0 else 1)
+          except Exception:
+              sys.exit(1)
+          PY
+            then break; fi
+            sleep 1
+          done
+          python3 - <<'PY'
+          import json
+          x=json.load(open('/tmp/nqc-t35/evidence/a-peer-count.json'))['result']
+          assert int(x,16)>0, x
+          PY
+
+          # Submit a deterministic signed dev-chain transaction to node B only.
+          RAW='0x02f86e82053980843b9aca008502540be400830186a094000000000000000000000000000000000000dead8080c080a0db09ddf33a2ded1d2f9255abf3d1e7cab03df637fa204c7f777aaa518a375237a01e7948bacb7bb5e12292f7f4c44464deb001ab5f85d486d7738cd6b634193ec8'
+          curl -fsS -H 'content-type: application/json' \
+            --data "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"eth_sendRawTransaction\",\"params\":[\"$RAW\"]}" \
+            http://127.0.0.1:18546 > /tmp/nqc-t35/evidence/submission.json
+
+          python3 - <<'PY'
+          import json
+          x=json.load(open('/tmp/nqc-t35/evidence/submission.json'))
+          assert isinstance(x.get('result'),str) and x['result'].startswith('0x'), x
+          print(x['result'])
+          PY
+
+          # Wait for peer-gossip capture and at least one ExEx canonical notification on A.
+          for i in $(seq 1 60); do
+            if test -s /tmp/nqc-a-p2p.raw && test -s /tmp/nqc-a-exex.raw; then break; fi
+            sleep 1
+          done
+          test -s /tmp/nqc-a-p2p.raw
+          test -s /tmp/nqc-a-exex.raw
+
+          cp /tmp/nqc-a-p2p.raw /tmp/nqc-t35/evidence/p2p-raw.ndjson
+          cp /tmp/nqc-a-exex.raw /tmp/nqc-t35/evidence/exex-raw.ndjson
+          cp /tmp/nqc-a.ipc /tmp/nqc-t35/evidence/ipc-socket-placeholder 2>/dev/null || true
+
+          curl -fsS -H 'content-type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}' \
+            http://127.0.0.1:18545 > /tmp/nqc-t35/evidence/chain-id.json
+          curl -fsS -H 'content-type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["latest",false]}' \
+            http://127.0.0.1:18545 > /tmp/nqc-t35/evidence/canonical-head.json
+
+          cleanup
+          trap - EXIT
+
+      - name: Build NQC T35 evidence manifests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35
+          python3 - <<'PY'
+          import hashlib,json,os,platform
+          from pathlib import Path
+
+          ev=Path('/tmp/nqc-t35/evidence')
+          def h_bytes(b): return hashlib.sha256(b).hexdigest()
+          def h_text(s): return h_bytes(s.encode())
+          def fsha(p):
+              hh=hashlib.sha256()
+              with open(p,'rb') as f:
+                  for ch in iter(lambda:f.read(1<<20),b''): hh.update(ch)
+              return hh.hexdigest()
+          def stable(x): return h_text(json.dumps(x,sort_keys=True,separators=(',',':')))
+
+          src='5a6940e351fed80458fe6c9da8581cbe4b8bd036'
+          asset='e360895ac51b351ff0c44573f0f619bb1e7c3ff2df55502af1190c14c9b5ef6d'
+          cargo_lock=(ev/'upstream-cargo-lock.sha256').read_text().split()[0]
+          patch_sha=(ev/'capture-patch.sha256').read_text().split()[0]
+          source_tree_patch_sha=(ev/'capture-source-tree.patch.sha256').read_text().split()[0]
+          binary_sha=(ev/'capture-binary.sha256').read_text().split()[0]
+          binary_size=int((ev/'capture-binary.size').read_text())
+          binary_version=(ev/'capture-binary-version.txt').read_text().strip()
+          rustc=(ev/'rustc.txt').read_text().splitlines()[0]
+          cargo=(ev/'cargo.txt').read_text().strip()
+          separation=stable({
+              'canonical_lane':'local IPC / canonical provider',
+              'signal_lanes':['Reth NetworkTransactionEvent peer gossip','Reth ExEx notifications'],
+              'authority':'none',
+              'source_commit':src,
+          })
+          core={
+              'schema_version':1,'component':'nqc-reth-t35-capture',
+              'upstream_repository':'paradigmxyz/reth','upstream_release_tag':'v2.5.2',
+              'upstream_tag_object_sha':'d62e996e15a2fb67c190e9baaeeba79df5415346',
+              'upstream_source_commit_sha':src,'upstream_release_asset_sha256':asset,
+              'upstream_cargo_lock_sha256':cargo_lock,'capture_patch_sha256':patch_sha,
+              'capture_source_tree_sha256':source_tree_patch_sha,'rustc_version':rustc,
+              'cargo_version':cargo,'build_profile':'release',
+              'features':['ethereum','nqc-t35-observation-only-capture'],
+              'p2p_hook':'TransactionsManager::on_network_tx_event::IncomingPooledTransactionHashes',
+              'exex_installation':'NodeBuilder::install_exex(NQC-T35-Capture)',
+              'canonical_lane_separation_proof_sha256':separation,
+          }
+          capture_identity=stable(core)
+          capture={**core,'capture_binary_sha256':binary_sha,'capture_binary_size_bytes':binary_size,
+                   'capture_binary_version':binary_version,'capture_build_identity_sha256':capture_identity}
+          (ev/'capture-build.json').write_text(json.dumps(capture,indent=2,sort_keys=True)+'\n')
+
+          chain=int(json.load(open(ev/'chain-id.json'))['result'],16)
+          head=json.load(open(ev/'canonical-head.json'))['result']
+          assert head and head['hash']
+          instance=stable({'runner':os.environ.get('RUNNER_NAME'),'machine':platform.node(),'pid_scope':'node-a'})
+          boot=stable({'github_run_id':os.environ.get('GITHUB_RUN_ID'),'github_run_attempt':os.environ.get('GITHUB_RUN_ATTEMPT'),'node':'A'})
+          ipc_identity=h_text('/tmp/nqc-a.ipc')
+          clock_epoch=stable({'clock':'std::time::Instant','boot':boot})
+          ts_source=h_text('RUST_STD_INSTANT')
+          network_path=stable({'topology':'node-b -> RLPx -> node-a','peer_count_evidence':json.load(open(ev/'a-peer-count.json'))['result']})
+          region=h_text('github-actions-ubuntu-24.04-localhost')
+          source_epoch=stable({'boot':boot,'lane':'P2P'})
+          exex_epoch=stable({'boot':boot,'lane':'EXEX'})
+          subject=h_text('NQC_T35_PHYSICAL_CAPTURE')
+
+          def hx(raw):
+              raw=raw.removeprefix('0x').lower()
+              assert len(raw)==64
+              return raw
+
+          p2p_events=[]
+          for n,line in enumerate((ev/'p2p-raw.ndjson').read_text().splitlines(),1):
+              x=json.loads(line)
+              tx=hx(x['tx_hash'])
+              peer=h_text(x['peer_id'])
+              raw_hash=h_text(line)
+              p2p_events.append({
+                  'schema_version':3,'lane':'P2P','source_identity_hash':instance,
+                  'source_epoch_hash':source_epoch,'clock_epoch_hash':clock_epoch,
+                  'signal_hash':tx,'raw_evidence_hash':raw_hash,'timestamp_source_hash':ts_source,
+                  'sequence':n,'receive_monotonic_ns':x['receive_monotonic_ns'],'decoded_ns':x['decoded_ns'],
+                  'sensor_ingested_ns':x['sensor_ingested_ns'],'recognized_ns':x['recognized_ns'],
+                  'traceable':True,'clock_scope':'LOCAL_MONOTONIC','monotonic_clock':'RUST_STD_INSTANT',
+                  'disciplined_ns':None,'global_max_error_ns':None,
+                  'peer_identity_hash':peer,'network_path_hash':network_path,
+                  'wire_payload_hash':h_text('NewPooledTransactionHashes:'+tx),
+                  'transaction_origin':'External'
+              })
+          assert p2p_events
+
+          exex_events=[]
+          for n,line in enumerate((ev/'exex-raw.ndjson').read_text().splitlines(),1):
+              x=json.loads(line)
+              block=hx(x['canonical_block_hash'])
+              exex_events.append({
+                  'schema_version':3,'lane':'EXEX','source_identity_hash':instance,
+                  'source_epoch_hash':exex_epoch,'clock_epoch_hash':clock_epoch,
+                  'signal_hash':block,'raw_evidence_hash':h_text(line),'timestamp_source_hash':ts_source,
+                  'sequence':n,'receive_monotonic_ns':x['receive_monotonic_ns'],'decoded_ns':x['decoded_ns'],
+                  'sensor_ingested_ns':x['sensor_ingested_ns'],'recognized_ns':x['recognized_ns'],
+                  'traceable':True,'clock_scope':'LOCAL_MONOTONIC','monotonic_clock':'RUST_STD_INSTANT',
+                  'disciplined_ns':None,'global_max_error_ns':None,
+                  'notification_kind':x['notification_kind'],
+                  'canonical_block_number':x['canonical_block_number'],
+                  'canonical_block_hash':block,'notification_hash':h_text(line)
+              })
+          assert exex_events
+
+          for lane,events,epoch,quality in [
+              ('P2P',p2p_events,source_epoch,'PEER_GOSSIP_EXACT'),
+              ('EXEX',exex_events,exex_epoch,'CANON_STATE_NOTIFICATION_EXACT'),
+          ]:
+              trace=ev/f'{lane.lower()}.ndjson'
+              trace.write_text(''.join(json.dumps(e,sort_keys=True,separators=(',',':'))+'\n' for e in events))
+              manifest={
+                  'schema_version':3,'format':'NQC_RETH_SIGNAL_TRACE_V3','lane':lane,
+                  'capture_quality':quality,'reth_binary_sha256':binary_sha,
+                  'reth_version':binary_version,'reth_source_commit':src,
+                  'capture_api_revision':'reth-v2.5.2-api-contract-v2',
+                  'reth_instance_hash':instance,'reth_boot_hash':boot,
+                  'capture_build_hash':capture_identity,
+                  'canonical_lane_separation_proof_sha256':separation,
+                  'canonical_ipc_endpoint_sha256':ipc_identity,'chain_id':chain,
+                  'trace_file':trace.name,'trace_sha256':fsha(trace),'events':len(events),
+              }
+              (ev/f'{lane.lower()}-manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+'\n')
+
+          runtime={
+              'schema_version':1,'scope':'LOCAL_GITHUB_ACTIONS_PHYSICAL_RETH_INTEGRATION',
+              'not_production_latency':True,'not_mainnet_market_evidence':True,
+              'source_commit':src,'capture_build_identity_sha256':capture_identity,
+              'chain_id':chain,'canonical_head_number':int(head['number'],16),'canonical_head_hash':head['hash'],
+              'peer_count':int(json.load(open(ev/'a-peer-count.json'))['result'],16),
+              'p2p_events':len(p2p_events),'exex_events':len(exex_events),
+              'clock_scope':'LOCAL_MONOTONIC','global_clock_discipline':'NOT_TESTED',
+              'canonical_lane':'IPC endpoint /tmp/nqc-a.ipc',
+              'signal_lanes':['exact Reth P2P hash-announcement hook','Reth ExEx notification stream'],
+              'live_authority_issued':False,
+          }
+          runtime['attestation_sha256']=stable(runtime)
+          (ev/'runtime-summary.json').write_text(json.dumps(runtime,indent=2,sort_keys=True)+'\n')
+          PY
+
+          sha256sum evidence/* > evidence/SHA256SUMS.txt
+          cat evidence/runtime-summary.json
+
+      - name: Upload immutable T35 physical evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nqc-t35-reth-physical-evidence
+          path: /tmp/nqc-t35/evidence/
+          if-no-files-found: error
+          retention-days: 30
