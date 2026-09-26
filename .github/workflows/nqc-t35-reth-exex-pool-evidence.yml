@@ -301,7 +301,7 @@ jobs:
           sender=values[0]
           submission=rpc("eth_sendTransaction",[{
               "from":sender,
-              "to":"0x000000000000000000000000000000000000dEaD",
+              "to":"0x000000000000000000000000000000000000dead",
               "value":"0x1"
           }])
           txhash=submission.get("result")
