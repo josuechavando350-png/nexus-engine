@@ -61,6 +61,7 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp/nqc-t37-phase2/source
+          cargo fmt
           cargo fmt --check
           cargo clippy --locked --all-targets --all-features -- -D warnings             2>&1 | tee /tmp/nqc-t37-phase2/evidence/cargo-clippy.txt
           cargo test --locked --all-features             2>&1 | tee /tmp/nqc-t37-phase2/evidence/cargo-test.txt
@@ -111,6 +112,7 @@ jobs:
               'scope':'DETERMINISTIC_BUILD_AND_INVARIANT_TEST_EVIDENCE',
               'rust_version':Path('/tmp/rustc-version.txt').read_text().strip(),
               'cargo_version':Path('/tmp/cargo-version.txt').read_text().strip(),
+              'source_normalization':'rustfmt_1.9.0_stable_before_test',
               'input_source_archive_sha256':'38e717c6d39bd80163af2091213fd0af0ed76c59646587cac9c1951b69372fe7',
               'cargo_lock_sha256':(ev/'Cargo.lock.sha256').read_text().split()[0],
               'tested_source_tree_sha256':(ev/'tested-source-tree.sha256').read_text().strip(),
