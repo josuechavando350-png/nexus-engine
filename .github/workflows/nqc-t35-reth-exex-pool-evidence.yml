@@ -76,7 +76,12 @@ jobs:
           method_marker = "    fn on_network_tx_event(&mut self, event: NetworkTransactionEvent<N>) {"
           if method_marker not in ns:
               raise SystemExit("network transaction event method marker missing")
-          helper = r'''    fn nqc_t35_capture_peer_signal(peer_id: &PeerId, kind: &str, hash: &B256) {
+          helper = r'''    fn nqc_t35_capture_peer_signal(
+                  peer_id: &PeerId,
+                  kind: &str,
+                  hash: &B256,
+                  wire_payload_hash: &B256,
+              ) {
                   let Some(path) = std::env::var_os("NQC_T35_P2P_RAW") else { return };
                   static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
                   let origin = START.get_or_init(std::time::Instant::now);
@@ -89,8 +94,8 @@ jobs:
                   use std::io::Write as _;
                   let _ = writeln!(
                       file,
-                      "{{\"kind\":\"{}\",\"peer_id\":\"{:#}\",\"tx_hash\":\"{:#x}\",\"origin\":\"External\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
-                      kind, peer_id, hash, receive, decoded, ingested, recognized
+                      "{{\"kind\":\"{}\",\"peer_id_full\":\"{:#x}\",\"tx_hash\":\"{:#x}\",\"wire_payload_hash\":\"{:#x}\",\"wire_payload_hash_algorithm\":\"KECCAK256_RLP_ETH_MESSAGE_BODY\",\"origin\":\"External\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
+                      kind, peer_id, hash, wire_payload_hash, receive, decoded, ingested, recognized
                   );
               }
 
@@ -99,8 +104,15 @@ jobs:
 
           full_anchor = '''                // ensure we didn't receive any blob transactions as these are disallowed to be
           '''
-          full_insert = '''                for tx in &msg.0 {
-                    Self::nqc_t35_capture_peer_signal(&peer_id, "IncomingTransactions", tx.tx_hash());
+          full_insert = '''                let nqc_t35_wire_payload_hash =
+                    alloy_primitives::keccak256(alloy_rlp::encode(&msg));
+                for tx in &msg.0 {
+                    Self::nqc_t35_capture_peer_signal(
+                        &peer_id,
+                        "IncomingTransactions",
+                        tx.tx_hash(),
+                        &nqc_t35_wire_payload_hash,
+                    );
                 }
 
                 // ensure we didn't receive any blob transactions as these are disallowed to be
@@ -109,16 +121,6 @@ jobs:
               raise SystemExit("full transaction capture anchor missing")
           ns = ns.replace(full_anchor, full_insert, 1)
 
-          hash_anchor = '''                self.on_new_pooled_transaction_hashes(peer_id, msg)
-          '''
-          hash_insert = '''                for hash in msg.iter_hashes() {
-                    Self::nqc_t35_capture_peer_signal(&peer_id, "IncomingPooledTransactionHashes", hash);
-                }
-                self.on_new_pooled_transaction_hashes(peer_id, msg)
-          '''
-          if hash_anchor not in ns:
-              raise SystemExit("pooled hash capture anchor missing")
-          ns = ns.replace(hash_anchor, hash_insert, 1)
           network.write_text(ns)
 
           root = Path("Cargo.toml")
