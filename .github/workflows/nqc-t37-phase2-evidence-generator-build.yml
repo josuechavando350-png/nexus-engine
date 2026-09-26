@@ -6,7 +6,7 @@ on:
       - nqc/t37-unified-dryrun-evidence-20260926
     paths:
       - .github/workflows/nqc-t37-phase2-evidence-generator-build.yml
-      - ci/nqc-t37/unified-evidence-crate.tar.gz.b64
+      - ci/nqc-t37/unified-evidence-crate.parts/**
   workflow_dispatch:
 
 permissions:
@@ -37,7 +37,9 @@ jobs:
           set -euo pipefail
           rm -rf /tmp/nqc-t37-phase2
           mkdir -p /tmp/nqc-t37-phase2/source /tmp/nqc-t37-phase2/evidence
-          base64 -d ci/nqc-t37/unified-evidence-crate.tar.gz.b64 > /tmp/nqc-t37-phase2/source.tar.gz
+          cat ci/nqc-t37/unified-evidence-crate.parts/part-*.b64 > /tmp/nqc-t37-phase2/source.tar.gz.b64
+          test "$(wc -c < /tmp/nqc-t37-phase2/source.tar.gz.b64)" = "5912"
+          base64 -d /tmp/nqc-t37-phase2/source.tar.gz.b64 > /tmp/nqc-t37-phase2/source.tar.gz
           echo "38e717c6d39bd80163af2091213fd0af0ed76c59646587cac9c1951b69372fe7  /tmp/nqc-t37-phase2/source.tar.gz" | sha256sum -c -
           tar -xzf /tmp/nqc-t37-phase2/source.tar.gz -C /tmp/nqc-t37-phase2/source
           find /tmp/nqc-t37-phase2/source -type f -print0 | sort -z | xargs -0 sha256sum             > /tmp/nqc-t37-phase2/evidence/input-source-files.sha256
