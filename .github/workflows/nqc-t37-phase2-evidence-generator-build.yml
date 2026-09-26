@@ -38,7 +38,7 @@ jobs:
           rm -rf /tmp/nqc-t37-phase2
           mkdir -p /tmp/nqc-t37-phase2/source /tmp/nqc-t37-phase2/evidence
           base64 -d ci/nqc-t37/unified-evidence-crate.tar.gz.b64 > /tmp/nqc-t37-phase2/source.tar.gz
-          echo "9d41413f802f74263b78a11ad95616a94f2b4af4e7b9f4332f65e4afef5af374  /tmp/nqc-t37-phase2/source.tar.gz" | sha256sum -c -
+          echo "38e717c6d39bd80163af2091213fd0af0ed76c59646587cac9c1951b69372fe7  /tmp/nqc-t37-phase2/source.tar.gz" | sha256sum -c -
           tar -xzf /tmp/nqc-t37-phase2/source.tar.gz -C /tmp/nqc-t37-phase2/source
           find /tmp/nqc-t37-phase2/source -type f -print0 | sort -z | xargs -0 sha256sum             > /tmp/nqc-t37-phase2/evidence/input-source-files.sha256
           sha256sum /tmp/nqc-t37-phase2/source.tar.gz             > /tmp/nqc-t37-phase2/evidence/input-source-archive.sha256
@@ -109,7 +109,7 @@ jobs:
               'scope':'DETERMINISTIC_BUILD_AND_INVARIANT_TEST_EVIDENCE',
               'rust_version':Path('/tmp/rustc-version.txt').read_text().strip(),
               'cargo_version':Path('/tmp/cargo-version.txt').read_text().strip(),
-              'input_source_archive_sha256':'9d41413f802f74263b78a11ad95616a94f2b4af4e7b9f4332f65e4afef5af374',
+              'input_source_archive_sha256':'38e717c6d39bd80163af2091213fd0af0ed76c59646587cac9c1951b69372fe7',
               'cargo_lock_sha256':(ev/'Cargo.lock.sha256').read_text().split()[0],
               'tested_source_tree_sha256':(ev/'tested-source-tree.sha256').read_text().strip(),
               'cargo_test_sha256':fsha(ev/'cargo-test.txt'),
