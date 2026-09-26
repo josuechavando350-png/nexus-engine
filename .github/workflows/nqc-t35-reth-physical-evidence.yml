@@ -156,7 +156,7 @@ jobs:
           license.workspace = true
 
           [dependencies]
-          reth.workspace = true
+          reth = { workspace = true, default-features = false, features = ["dev"] }
           reth-exex.workspace = true
           reth-node-api.workspace = true
           reth-node-ethereum.workspace = true
