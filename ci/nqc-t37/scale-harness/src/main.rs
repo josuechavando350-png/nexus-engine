@@ -61,9 +61,9 @@ fn splitmix64(mut x: u64) -> u64 {
 
 fn tier(market: usize) -> u8 {
     match market % 10 {
-        0 => 0,       // hot 10%
-        1 | 2 => 1,   // warm 20%
-        _ => 2,       // cold 70%
+        0 => 0,     // hot 10%
+        1 | 2 => 1, // warm 20%
+        _ => 2,     // cold 70%
     }
 }
 
@@ -223,20 +223,40 @@ fn simulate(cfg: Config, out_dir: &PathBuf) -> std::io::Result<Metrics> {
     writeln!(w, "  \"warm_markets\": {},", metrics.warm_markets)?;
     writeln!(w, "  \"cold_markets\": {},", metrics.cold_markets)?;
     writeln!(w, "  \"observed_markets\": {},", metrics.observed_markets)?;
-    writeln!(w, "  \"observed_cold_markets\": {},", metrics.observed_cold_markets)?;
+    writeln!(
+        w,
+        "  \"observed_cold_markets\": {},",
+        metrics.observed_cold_markets
+    )?;
     writeln!(w, "  \"total_fanout\": {},", metrics.total_fanout)?;
     writeln!(w, "  \"max_fanout\": {},", metrics.max_fanout)?;
     writeln!(w, "  \"candidate_count\": {},", metrics.candidate_count)?;
     writeln!(w, "  \"exact_sim_pass\": {},", metrics.exact_sim_pass)?;
     writeln!(w, "  \"funding_pass\": {},", metrics.funding_pass)?;
     writeln!(w, "  \"durable_actions\": {},", metrics.durable_actions)?;
-    writeln!(w, "  \"canonical_outcomes\": {},", metrics.canonical_outcomes)?;
-    writeln!(w, "  \"synthetic_positive_outcomes\": {},", metrics.synthetic_positive_outcomes)?;
+    writeln!(
+        w,
+        "  \"canonical_outcomes\": {},",
+        metrics.canonical_outcomes
+    )?;
+    writeln!(
+        w,
+        "  \"synthetic_positive_outcomes\": {},",
+        metrics.synthetic_positive_outcomes
+    )?;
     writeln!(w, "  \"reorg_events\": {},", metrics.reorg_events)?;
-    writeln!(w, "  \"reorg_invalidated_pending\": {},", metrics.reorg_invalidated_pending)?;
+    writeln!(
+        w,
+        "  \"reorg_invalidated_pending\": {},",
+        metrics.reorg_invalidated_pending
+    )?;
     writeln!(w, "  \"dropped_signals\": {},", metrics.dropped_signals)?;
     writeln!(w, "  \"full_market_scans\": {},", metrics.full_market_scans)?;
-    writeln!(w, "  \"authority_issuance\": {},", metrics.authority_issuance)?;
+    writeln!(
+        w,
+        "  \"authority_issuance\": {},",
+        metrics.authority_issuance
+    )?;
     writeln!(w, "  \"bundles_written\": {},", metrics.bundles_written)?;
     writeln!(w, "  \"real_market_evidence\": false,")?;
     writeln!(w, "  \"live_pnl_evidence\": false,")?;
@@ -253,8 +273,14 @@ fn parse_args() -> (Config, PathBuf) {
     let mut args = env::args().skip(1);
     while let Some(arg) = args.next() {
         let value = match arg.as_str() {
-            "--markets" | "--active-markets" | "--surfaces-per-market" | "--signals" | "--shards"
-            | "--bundles" | "--seed" | "--out-dir" => args.next().expect("missing value"),
+            "--markets"
+            | "--active-markets"
+            | "--surfaces-per-market"
+            | "--signals"
+            | "--shards"
+            | "--bundles"
+            | "--seed"
+            | "--out-dir" => args.next().expect("missing value"),
             _ => panic!("unknown argument: {arg}"),
         };
         match arg.as_str() {
