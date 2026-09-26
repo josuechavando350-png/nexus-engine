@@ -71,6 +71,56 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
+          network = Path("crates/net/network/src/transactions/mod.rs")
+          ns = network.read_text()
+          method_marker = "    fn on_network_tx_event(&mut self, event: NetworkTransactionEvent<N>) {"
+          if method_marker not in ns:
+              raise SystemExit("network transaction event method marker missing")
+          helper = r'''    fn nqc_t35_capture_peer_signal(peer_id: &PeerId, kind: &str, hash: &B256) {
+        let Some(path) = std::env::var_os("NQC_T35_P2P_RAW") else { return };
+        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+        let origin = START.get_or_init(std::time::Instant::now);
+        let now = || u64::try_from(origin.elapsed().as_nanos()).unwrap_or(u64::MAX).saturating_add(1);
+        let receive = now();
+        let decoded = now();
+        let ingested = now();
+        let recognized = now();
+        let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) else { return };
+        use std::io::Write as _;
+        let _ = writeln!(
+            file,
+            "{{\"kind\":\"{}\",\"peer_id\":\"{:#}\",\"tx_hash\":\"{:#x}\",\"origin\":\"External\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
+            kind, peer_id, hash, receive, decoded, ingested, recognized
+        );
+    }
+
+'''
+          ns = ns.replace(method_marker, helper + method_marker, 1)
+
+          full_anchor = '''                // ensure we didn't receive any blob transactions as these are disallowed to be
+          '''
+          full_insert = '''                for tx in &msg.0 {
+                    Self::nqc_t35_capture_peer_signal(&peer_id, "IncomingTransactions", tx.tx_hash());
+                }
+
+                // ensure we didn't receive any blob transactions as these are disallowed to be
+          '''
+          if full_anchor not in ns:
+              raise SystemExit("full transaction capture anchor missing")
+          ns = ns.replace(full_anchor, full_insert, 1)
+
+          hash_anchor = '''                self.on_new_pooled_transaction_hashes(peer_id, msg)
+          '''
+          hash_insert = '''                for hash in msg.iter_hashes() {
+                    Self::nqc_t35_capture_peer_signal(&peer_id, "IncomingPooledTransactionHashes", hash);
+                }
+                self.on_new_pooled_transaction_hashes(peer_id, msg)
+          '''
+          if hash_anchor not in ns:
+              raise SystemExit("pooled hash capture anchor missing")
+          ns = ns.replace(hash_anchor, hash_insert, 1)
+          network.write_text(ns)
+
           root = Path("Cargo.toml")
           s = root.read_text()
           anchor = '    "examples/network/",\n'
@@ -94,9 +144,7 @@ jobs:
           reth-exex.workspace = true
           reth-node-api.workspace = true
           reth-node-ethereum.workspace = true
-          reth-transaction-pool.workspace = true
           futures-util.workspace = true
-          tokio.workspace = true
           eyre.workspace = true
           alloy-consensus.workspace = true
 
@@ -109,27 +157,12 @@ jobs:
           use reth_exex::{ExExContext, ExExEvent, ExExNotification};
           use reth_node_api::FullNodeComponents;
           use reth_node_ethereum::EthereumNode;
-          use reth_transaction_pool::TransactionPool;
           use std::io::Write as _;
 
           fn monotonic_ns() -> u64 {
               static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
               let origin = START.get_or_init(std::time::Instant::now);
               u64::try_from(origin.elapsed().as_nanos()).unwrap_or(u64::MAX).saturating_add(1)
-          }
-
-          fn write_tx(hash: impl core::fmt::Display, origin: impl core::fmt::Debug) {
-              let Some(path) = std::env::var_os("NQC_T35_P2P_RAW") else { return };
-              let receive = monotonic_ns();
-              let decoded = monotonic_ns();
-              let ingested = monotonic_ns();
-              let recognized = monotonic_ns();
-              let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(path) else { return };
-              let _ = writeln!(
-                  f,
-                  "{{\"kind\":\"RethTxPoolExternal\",\"tx_hash\":\"{}\",\"origin\":\"{:?}\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
-                  hash, origin, receive, decoded, ingested, recognized
-              );
           }
 
           fn write_exex(kind: &str, number: u64, hash: impl core::fmt::Display) {
@@ -147,26 +180,14 @@ jobs:
           }
 
           async fn observer<Node: FullNodeComponents>(mut ctx: ExExContext<Node>) -> eyre::Result<()> {
-              let mut txs = ctx.pool().new_transactions_listener();
-              loop {
-                  tokio::select! {
-                      event = txs.recv() => {
-                          let Some(event) = event else { break };
-                          if event.transaction.origin.is_external() {
-                              write_tx(event.transaction.hash(), event.transaction.origin);
-                          }
-                      }
-                      notification = ctx.notifications.try_next() => {
-                          let Some(notification) = notification? else { break };
-                          match &notification {
-                              ExExNotification::ChainCommitted { new } => write_exex("ChainCommitted", new.tip().number(), new.tip().hash()),
-                              ExExNotification::ChainReorged { new, .. } => write_exex("ChainReorged", new.tip().number(), new.tip().hash()),
-                              ExExNotification::ChainReverted { old } => write_exex("ChainReverted", old.tip().number(), old.tip().hash()),
-                          }
-                          if let Some(committed) = notification.committed_chain() {
-                              ctx.events.send(ExExEvent::FinishedHeight(committed.tip().num_hash()))?;
-                          }
-                      }
+              while let Some(notification) = ctx.notifications.try_next().await? {
+                  match &notification {
+                      ExExNotification::ChainCommitted { new } => write_exex("ChainCommitted", new.tip().number(), new.tip().hash()),
+                      ExExNotification::ChainReorged { new, .. } => write_exex("ChainReorged", new.tip().number(), new.tip().hash()),
+                      ExExNotification::ChainReverted { old } => write_exex("ChainReverted", old.tip().number(), old.tip().hash()),
+                  }
+                  if let Some(committed) = notification.committed_chain() {
+                      ctx.events.send(ExExEvent::FinishedHeight(committed.tip().num_hash()))?;
                   }
               }
               Ok(())
