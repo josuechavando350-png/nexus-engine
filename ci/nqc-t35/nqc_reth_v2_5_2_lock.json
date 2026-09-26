@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "component": "reth",
+  "release_tag": "v2.5.2",
+  "annotated_tag_object_sha": "d62e996e15a2fb67c190e9baaeeba79df5415346",
+  "source_commit_sha": "5a6940e351fed80458fe6c9da8581cbe4b8bd036",
+  "release_asset": "reth-v2.5.2-x86_64-unknown-linux-gnu.tar.gz",
+  "release_asset_sha256": "e360895ac51b351ff0c44573f0f619bb1e7c3ff2df55502af1190c14c9b5ef6d",
+  "release_asset_size_bytes": 51932647,
+  "release_asset_id": 541071432,
+  "pgp_signing_key_fingerprint": "50FB7CC55B2E8AFA59FE03B7AA5ED56A7FBF253E",
+  "upstream_repository": "paradigmxyz/reth",
+  "capture_contract": {
+    "p2p_quality": "PEER_GOSSIP_EXACT",
+    "exex_quality": "CANON_STATE_NOTIFICATION_EXACT",
+    "required_network_api": "reth-network-api@v2.5.2",
+    "required_exex_api": "reth-exex@v2.5.2",
+    "required_tx_origin": "External"
+  }
+}
