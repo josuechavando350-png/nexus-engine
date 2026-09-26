@@ -263,7 +263,7 @@ contract NqcFlashFundingExecutor {
 
     function _runCallback(CallbackEnvelope memory envelope) private {
         uint256 index = envelope.legIndex;
-        uint256 bit = 1 << index;
+        uint256 bit = 2 ** index;
         if ((enteredMask & bit) != 0) revert DuplicateCallback(index);
         enteredMask |= bit;
 
