@@ -199,7 +199,7 @@ jobs:
         run: |
           set -euo pipefail
           cd /tmp/nqc-t35/reth
-          BIN="$PWD/target/release/nqc-t35-observer"
+          BIN="$PWD/target/debug/nqc-t35-observer"
           rm -rf /tmp/nqc-a /tmp/nqc-b
           rm -f /tmp/nqc-a.ipc /tmp/nqc-b.ipc /tmp/nqc-a-p2p.raw /tmp/nqc-a-exex.raw
           mkdir -p /tmp/nqc-a /tmp/nqc-b
