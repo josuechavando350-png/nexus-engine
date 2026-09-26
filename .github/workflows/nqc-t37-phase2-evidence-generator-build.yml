@@ -1,0 +1,155 @@
+name: NQC T37 Phase2 Evidence Generator Build
+
+on:
+  push:
+    branches:
+      - nqc/t37-unified-dryrun-evidence-20260926
+    paths:
+      - .github/workflows/nqc-t37-phase2-evidence-generator-build.yml
+      - ci/nqc-t37/unified-evidence-crate.tar.gz.b64
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-evidence-generator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pin Rust 1.98.1 toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup default 1.98.1
+          rustup component add rustfmt clippy --toolchain 1.98.1
+          rustc -Vv | tee /tmp/rustc-version.txt
+          cargo -V | tee /tmp/cargo-version.txt
+          cargo fmt --version | tee /tmp/rustfmt-version.txt
+          cargo clippy --version | tee /tmp/clippy-version.txt
+
+      - name: Restore content-addressed T37 evidence generator snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/nqc-t37-phase2
+          mkdir -p /tmp/nqc-t37-phase2/source /tmp/nqc-t37-phase2/evidence
+          base64 -d ci/nqc-t37/unified-evidence-crate.tar.gz.b64 > /tmp/nqc-t37-phase2/source.tar.gz
+          echo "c5cc04e2ae674dc9d468aaad1778effadf4e56ae8554a9cd5df662c0686352c2  /tmp/nqc-t37-phase2/source.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/nqc-t37-phase2/source.tar.gz -C /tmp/nqc-t37-phase2/source
+          find /tmp/nqc-t37-phase2/source -type f -print0 | sort -z | xargs -0 sha256sum             > /tmp/nqc-t37-phase2/evidence/input-source-files.sha256
+          sha256sum /tmp/nqc-t37-phase2/source.tar.gz             > /tmp/nqc-t37-phase2/evidence/input-source-archive.sha256
+
+      - name: Generate and attest exact dependency lock
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t37-phase2/source
+          cargo generate-lockfile
+          test -s Cargo.lock
+          cp Cargo.lock /tmp/nqc-t37-phase2/evidence/Cargo.lock
+          sha256sum Cargo.lock | tee /tmp/nqc-t37-phase2/evidence/Cargo.lock.sha256
+          cargo metadata --locked --format-version 1 --no-deps             > /tmp/nqc-t37-phase2/evidence/cargo-metadata.json
+
+      - name: Format lint test and build exact snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t37-phase2/source
+          cargo fmt --check
+          cargo clippy --locked --all-targets --all-features -- -D warnings             2>&1 | tee /tmp/nqc-t37-phase2/evidence/cargo-clippy.txt
+          cargo test --locked --all-features             2>&1 | tee /tmp/nqc-t37-phase2/evidence/cargo-test.txt
+          cargo build --locked --release --all-features             2>&1 | tee /tmp/nqc-t37-phase2/evidence/cargo-build.txt
+
+      - name: Bind tested source tree and outputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t37-phase2/source
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root=Path('/tmp/nqc-t37-phase2/source')
+          h=hashlib.sha256()
+          files=[]
+          for p in root.rglob('*'):
+              if not p.is_file() or 'target' in p.parts:
+                  continue
+              files.append(p)
+          for p in sorted(files,key=lambda p:p.relative_to(root).as_posix()):
+              rel=p.relative_to(root).as_posix().encode()
+              data=p.read_bytes()
+              h.update(rel+b'\0'+hashlib.sha256(data).digest())
+          Path('/tmp/nqc-t37-phase2/evidence/tested-source-tree.sha256').write_text(h.hexdigest()+'\n')
+          PY
+          find target/release -maxdepth 1 -type f -print0 | sort -z | xargs -0 -r sha256sum             > /tmp/nqc-t37-phase2/evidence/release-output.sha256
+
+      - name: Attest Phase2 truth boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q 'test result: ok' /tmp/nqc-t37-phase2/evidence/cargo-test.txt
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          ev=Path('/tmp/nqc-t37-phase2/evidence')
+          def fsha(p):
+              h=hashlib.sha256()
+              with open(p,'rb') as f:
+                  for b in iter(lambda:f.read(1<<20),b''): h.update(b)
+              return h.hexdigest()
+          out={
+              'schema_version':1,
+              'tranche':'T37_PHYSICAL_UNIFIED_DRYRUN_EVIDENCE_GENERATOR',
+              'phase':'PHASE2_UNIFIED_EVIDENCE_GENERATOR_BUILD',
+              'status':'PASS',
+              'scope':'DETERMINISTIC_BUILD_AND_INVARIANT_TEST_EVIDENCE',
+              'rust_version':Path('/tmp/rustc-version.txt').read_text().strip(),
+              'cargo_version':Path('/tmp/cargo-version.txt').read_text().strip(),
+              'input_source_archive_sha256':'c5cc04e2ae674dc9d468aaad1778effadf4e56ae8554a9cd5df662c0686352c2',
+              'cargo_lock_sha256':(ev/'Cargo.lock.sha256').read_text().split()[0],
+              'tested_source_tree_sha256':(ev/'tested-source-tree.sha256').read_text().strip(),
+              'cargo_test_sha256':fsha(ev/'cargo-test.txt'),
+              'cargo_clippy_sha256':fsha(ev/'cargo-clippy.txt'),
+              'cargo_build_sha256':fsha(ev/'cargo-build.txt'),
+              'execution_identity_content_addressed':True,
+              'canonical_anchor_binding_enforced':True,
+              't35_component_gate_binding_enforced':True,
+              't36_component_gate_binding_enforced':True,
+              't37_scale_gate_binding_enforced':True,
+              'reorg_invalidation_enforced':True,
+              'synthetic_scale_live_promotion_blocked':True,
+              'authority_issued':False,
+              'secret_dependency':False,
+              'production_runtime_third_party_api_dependency':False,
+              'real_market_census':'NOT_TESTED',
+              'physical_unified_path':'NOT_TESTED',
+              'live_pnl_evidence':False,
+              'production_certification':'NOT_CERTIFIED',
+              'nqc_global_status':'NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION',
+          }
+          payload=json.dumps(out,sort_keys=True,separators=(',',':')).encode()
+          out['attestation_sha256']=hashlib.sha256(payload).hexdigest()
+          (ev/'phase2-summary.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(out,indent=2,sort_keys=True))
+          PY
+
+      - name: Finalize evidence manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t37-phase2
+          find evidence -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0             | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+          sha256sum evidence/SHA256SUMS.txt
+          cat evidence/phase2-summary.json
+
+      - name: Upload T37 Phase2 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nqc-t37-phase2-unified-evidence-generator-build
+          path: /tmp/nqc-t37-phase2/evidence/
+          if-no-files-found: error
+          retention-days: 30
