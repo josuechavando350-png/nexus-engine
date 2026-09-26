@@ -54,6 +54,7 @@ jobs:
           git rev-parse HEAD > ../evidence/upstream-source-commit.txt
 
       - name: Cache pinned Reth build products
+        id: reth-cache
         uses: actions/cache@v4
         with:
           path: |
@@ -203,6 +204,16 @@ jobs:
           stat -c %s "$BIN" > /tmp/nqc-t35/evidence/observer-binary.size
           git diff --binary | sha256sum | awk '{print $1}' > /tmp/nqc-t35/evidence/observer-source-patch.sha256
 
+      - name: Save pinned Reth build cache
+        if: steps.reth-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            /tmp/nqc-t35/reth/target
+          key: nqc-t35-reth-v2.5.2-rust1.98.1-${{ runner.os }}-${{ runner.arch }}-v1
+
       - name: Run physical two-node Reth P2P ExEx IPC experiment
         shell: bash
         run: |
@@ -291,8 +302,7 @@ jobs:
           submission=rpc("eth_sendTransaction",[{
               "from":sender,
               "to":"0x000000000000000000000000000000000000dEaD",
-              "value":"0x1",
-              "gas":"0x5208"
+              "value":"0x1"
           }])
           txhash=submission.get("result")
           assert isinstance(txhash,str) and txhash.startswith("0x"), submission
