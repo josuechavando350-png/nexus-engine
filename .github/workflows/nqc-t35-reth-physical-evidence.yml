@@ -112,8 +112,52 @@ jobs:
               }
           }
 
+          fn nqc_t35_capture_full_transactions<N: NetworkPrimitives>(
+              peer_id: &PeerId,
+              msg: &Transactions<N::BroadcastedTransaction>,
+          ) {
+              let Some(path) = std::env::var_os("NQC_T35_P2P_RAW") else { return };
+              let receive = nqc_t35_monotonic_ns();
+              let peer = format!("{peer_id:#}");
+              let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) else { return };
+              use std::io::Write as _;
+              for tx in &msg.0 {
+                  let decoded = nqc_t35_monotonic_ns();
+                  let tx_hash = format!("{:#x}", tx.tx_hash());
+                  let ingested = nqc_t35_monotonic_ns();
+                  let recognized = nqc_t35_monotonic_ns();
+                  let _ = writeln!(
+                      file,
+                      "{{\"kind\":\"IncomingTransactions\",\"peer_id\":\"{}\",\"tx_hash\":\"{}\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
+                      peer, tx_hash, receive, decoded, ingested, recognized
+                  );
+              }
+          }
+
           '''
           s = s.replace(marker, helper + marker, 1)
+
+          full_after = '''            NetworkTransactionEvent::IncomingTransactions { peer_id, msg } => {
+                  if !self.accepts_incoming_from(&peer_id) {
+                      trace!(target: "net::tx", peer_id=format!("{peer_id:#}"), policy=?self.config.ingress_policy, "Ignoring full transactions from peer blocked by ingress policy");
+                      return;
+                  }
+
+                  // ensure we didn't receive any blob transactions as these are disallowed to be
+          '''
+          full_repl = '''            NetworkTransactionEvent::IncomingTransactions { peer_id, msg } => {
+                  if !self.accepts_incoming_from(&peer_id) {
+                      trace!(target: "net::tx", peer_id=format!("{peer_id:#}"), policy=?self.config.ingress_policy, "Ignoring full transactions from peer blocked by ingress policy");
+                      return;
+                  }
+
+                  nqc_t35_capture_full_transactions::<N>(&peer_id, &msg);
+
+                  // ensure we didn't receive any blob transactions as these are disallowed to be
+          '''
+          if full_after not in s:
+              raise SystemExit("incoming full transaction arm marker not found")
+          s = s.replace(full_after, full_repl, 1)
           needle = '''            NetworkTransactionEvent::IncomingPooledTransactionHashes { peer_id, msg } => {
                           if !self.accepts_incoming_from(&peer_id) {'''
           replacement = '''            NetworkTransactionEvent::IncomingPooledTransactionHashes { peer_id, msg } => {
@@ -156,7 +200,7 @@ jobs:
           license.workspace = true
 
           [dependencies]
-          reth = { workspace = true, default-features = false, features = ["dev"] }
+          reth = { path = "../../bin/reth", default-features = false, features = ["dev"] }
           reth-exex.workspace = true
           reth-node-api.workspace = true
           reth-node-ethereum.workspace = true
@@ -219,6 +263,7 @@ jobs:
           ''')
           PY
 
+          git add -N examples/nqc-t35-capture/Cargo.toml examples/nqc-t35-capture/src/main.rs
           git diff --binary > /tmp/nqc-t35/evidence/nqc-t35-capture.patch
           test -s /tmp/nqc-t35/evidence/nqc-t35-capture.patch
           sha256sum /tmp/nqc-t35/evidence/nqc-t35-capture.patch > /tmp/nqc-t35/evidence/capture-patch.sha256
