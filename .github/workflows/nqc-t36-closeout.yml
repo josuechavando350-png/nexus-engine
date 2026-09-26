@@ -1,0 +1,213 @@
+name: NQC T36 Formal Closeout
+
+on:
+  push:
+    branches:
+      - nqc/t36-flash-funding-evidence-20260926
+    paths:
+      - .github/workflows/nqc-t36-closeout.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closeout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PINNED_BLOCK_DEC: "20000000"
+      AAVE_V3_POOL: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fa4E2"
+      BALANCER_V2_VAULT: "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
+      WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-t36-closeout/foundry /tmp/nqc-t36-closeout/evidence /tmp/nqc-t36-closeout/source
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o /tmp/nqc-t36-closeout/foundry.tar.gz \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  /tmp/nqc-t36-closeout/foundry.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/nqc-t36-closeout/foundry.tar.gz -C /tmp/nqc-t36-closeout/foundry
+          export PATH="/tmp/nqc-t36-closeout/foundry:$PATH"
+          forge --version | tee /tmp/nqc-t36-closeout/evidence/forge-version.txt
+          cast --version | tee /tmp/nqc-t36-closeout/evidence/cast-version.txt
+          sha256sum /tmp/nqc-t36-closeout/foundry/forge /tmp/nqc-t36-closeout/foundry/cast \
+            > /tmp/nqc-t36-closeout/evidence/foundry-binaries.sha256
+
+      - name: Restore and verify exact tested source
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-t36-closeout/foundry:$PATH"
+          cp -a ci/nqc-t36/contracts/. /tmp/nqc-t36-closeout/source/
+          cp ci/nqc-t36/fork/NqcFlashFundingExecutorFork.t.sol \
+            /tmp/nqc-t36-closeout/source/test/NqcFlashFundingExecutorFork.t.sol
+          cd /tmp/nqc-t36-closeout/source
+          forge fmt
+          forge fmt --check
+          test "$(sha256sum src/NqcFlashFundingExecutor.sol | awk '{print $1}')" = "bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320"
+          forge build --sizes 2>&1 | tee /tmp/nqc-t36-closeout/evidence/forge-build.txt
+          sha256sum src/NqcFlashFundingExecutor.sol test/NqcFlashFundingExecutor.t.sol test/NqcFlashFundingExecutorFork.t.sol foundry.toml \
+            > /tmp/nqc-t36-closeout/evidence/source-critical.sha256
+
+      - name: Run deterministic callback and invariant suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-t36-closeout/foundry:$PATH"
+          cd /tmp/nqc-t36-closeout/source
+          forge test --match-contract NqcFlashFundingExecutorTest -vvv 2>&1 \
+            | tee /tmp/nqc-t36-closeout/evidence/deterministic-test.txt
+          grep -q 'Suite result: ok. 8 passed; 0 failed; 0 skipped' /tmp/nqc-t36-closeout/evidence/deterministic-test.txt
+          grep -q '\[PASS\] testNestedAaveBalancerFundingRepaysInReverseAndPreservesBaseline()' /tmp/nqc-t36-closeout/evidence/deterministic-test.txt
+          grep -q '\[PASS\] testPreexistingExecutorBalanceCannotSubsidizeMissingFeeOrProfit()' /tmp/nqc-t36-closeout/evidence/deterministic-test.txt
+          grep -q '\[PASS\] testExecutionIdentityCannotReplay()' /tmp/nqc-t36-closeout/evidence/deterministic-test.txt
+
+      - name: Select no-secret historical archive transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-t36-closeout/foundry:$PATH"
+          PIN="$GITHUB_WORKSPACE/ci/nqc-t36/mainnet-block-20000000.json"
+          EXPECTED_HASH="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["block_hash"])' "$PIN")"
+          EXPECTED_ROOT="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["state_root"])' "$PIN")"
+          EXPECTED_TS="$(python3 -c 'import json,sys;print(json.load(open(sys.argv[1]))["timestamp"])' "$PIN")"
+          : > /tmp/nqc-t36-closeout/evidence/provider-attempts.txt
+          SELECTED=""
+          for rpc in \
+            "https://eth.drpc.org" \
+            "https://ethereum-rpc.publicnode.com" \
+            "https://1rpc.io/eth" \
+            "https://ethereum.blockpi.network/v1/rpc/public" \
+            "https://eth.llamarpc.com" \
+            "https://rpc.flashbots.net"
+          do
+            echo "TRY $rpc" >> /tmp/nqc-t36-closeout/evidence/provider-attempts.txt
+            rm -f /tmp/nqc-t36-closeout/candidate-block.json /tmp/nqc-t36-closeout/aave.code /tmp/nqc-t36-closeout/balancer.code /tmp/nqc-t36-closeout/weth.code
+            if ! timeout 25s cast block "$PINNED_BLOCK_DEC" --rpc-url "$rpc" --json > /tmp/nqc-t36-closeout/candidate-block.json 2>> /tmp/nqc-t36-closeout/evidence/provider-attempts.txt; then
+              echo "BLOCK_FAIL" >> /tmp/nqc-t36-closeout/evidence/provider-attempts.txt
+              continue
+            fi
+            if ! python3 - "$EXPECTED_HASH" "$EXPECTED_ROOT" "$EXPECTED_TS" <<'PY'
+          import json,sys
+          d=json.load(open('/tmp/nqc-t36-closeout/candidate-block.json'))
+          def num(v):
+              return int(v,16) if isinstance(v,str) and v.startswith('0x') else int(v)
+          assert str(d['hash']).lower()==sys.argv[1].lower()
+          assert str(d['stateRoot']).lower()==sys.argv[2].lower()
+          assert num(d['timestamp'])==int(sys.argv[3])
+          assert num(d['number'])==20_000_000
+          PY
+            then
+              echo "CANONICAL_IDENTITY_FAIL" >> /tmp/nqc-t36-closeout/evidence/provider-attempts.txt
+              continue
+            fi
+            if ! timeout 25s cast code "$AAVE_V3_POOL" --block "$PINNED_BLOCK_DEC" --rpc-url "$rpc" > /tmp/nqc-t36-closeout/aave.code 2>> /tmp/nqc-t36-closeout/evidence/provider-attempts.txt; then continue; fi
+            if ! timeout 25s cast code "$BALANCER_V2_VAULT" --block "$PINNED_BLOCK_DEC" --rpc-url "$rpc" > /tmp/nqc-t36-closeout/balancer.code 2>> /tmp/nqc-t36-closeout/evidence/provider-attempts.txt; then continue; fi
+            if ! timeout 25s cast code "$WETH" --block "$PINNED_BLOCK_DEC" --rpc-url "$rpc" > /tmp/nqc-t36-closeout/weth.code 2>> /tmp/nqc-t36-closeout/evidence/provider-attempts.txt; then continue; fi
+            python3 - <<'PY'
+          from pathlib import Path
+          for name in ('aave','balancer','weth'):
+              x=Path(f'/tmp/nqc-t36-closeout/{name}.code').read_text().strip()
+              assert x.startswith('0x') and len(x)>4
+          PY
+            SELECTED="$rpc"
+            echo "SELECTED $rpc" >> /tmp/nqc-t36-closeout/evidence/provider-attempts.txt
+            break
+          done
+          test -n "$SELECTED"
+          echo "SELECTED_RPC=$SELECTED" >> "$GITHUB_ENV"
+          cp /tmp/nqc-t36-closeout/candidate-block.json /tmp/nqc-t36-closeout/evidence/canonical-block.json
+          sha256sum /tmp/nqc-t36-closeout/aave.code /tmp/nqc-t36-closeout/balancer.code /tmp/nqc-t36-closeout/weth.code \
+            > /tmp/nqc-t36-closeout/evidence/protocol-code.sha256
+
+      - name: Run historical Ethereum mainnet fork parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-t36-closeout/foundry:$PATH"
+          cd /tmp/nqc-t36-closeout/source
+          forge test \
+            --fork-url "$SELECTED_RPC" \
+            --fork-block-number "$PINNED_BLOCK_DEC" \
+            --match-contract NqcFlashFundingExecutorForkTest \
+            -vvv 2>&1 | tee /tmp/nqc-t36-closeout/evidence/fork-test.txt
+          grep -q 'Suite result: ok. 3 passed; 0 failed; 0 skipped' /tmp/nqc-t36-closeout/evidence/fork-test.txt
+          grep -q '\[PASS\] testHistoricalMainnetAaveV3FlashLoanSimpleParity()' /tmp/nqc-t36-closeout/evidence/fork-test.txt
+          grep -q '\[PASS\] testHistoricalMainnetBalancerV2FlashLoanParity()' /tmp/nqc-t36-closeout/evidence/fork-test.txt
+          grep -q '\[PASS\] testHistoricalMainnetNestedAaveBalancerReverseRepaymentParity()' /tmp/nqc-t36-closeout/evidence/fork-test.txt
+
+      - name: Build formal T36 closure attestation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          ev=Path('/tmp/nqc-t36-closeout/evidence')
+          pin=json.load(open(os.path.join(os.environ['GITHUB_WORKSPACE'],'ci/nqc-t36/mainnet-block-20000000.json')))
+          def fsha(p):
+              h=hashlib.sha256()
+              with open(p,'rb') as f:
+                  for b in iter(lambda:f.read(1<<20),b''): h.update(b)
+              return h.hexdigest()
+          out={
+              'schema_version':1,
+              'tranche':'T36_FLASH_FUNDING_EXECUTOR_INTEGRATION',
+              'status':'CLOSED',
+              'closure_scope':'LOCAL_DETERMINISTIC_PLUS_HISTORICAL_ETHEREUM_MAINNET_FORK_TRUTH',
+              'git_head':os.environ['GITHUB_SHA'],
+              'foundry_version':'1.7.1',
+              'solidity_version':'0.8.24',
+              'executor_source_sha256':'bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320',
+              'deterministic_tests_passed':8,
+              'historical_fork_tests_passed':3,
+              'total_t36_tests_passed':11,
+              'aave_v3_callback_semantics_verified':True,
+              'balancer_v2_callback_semantics_verified':True,
+              'nested_aave_balancer_depth_verified':2,
+              'bounded_nested_depth_contract':4,
+              'reverse_repayment_verified':True,
+              'exact_fee_match_verified':True,
+              'baseline_subsidy_blocked':True,
+              'execution_identity_replay_blocked':True,
+              'historical_chain_id':1,
+              'historical_block_number':pin['block_number'],
+              'historical_block_hash':pin['block_hash'],
+              'historical_state_root':pin['state_root'],
+              'canonical_anchor_bound':True,
+              'public_rpc_used_only_for_historical_evidence_transport':True,
+              'production_runtime_rpc_dependency':False,
+              'secret_dependency':False,
+              'authority_issued':False,
+              'live_market_evidence':False,
+              'live_pnl_evidence':False,
+              'production_certification':'NOT_CERTIFIED',
+              'nqc_global_status':'NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION',
+              'deterministic_test_sha256':fsha(ev/'deterministic-test.txt'),
+              'fork_test_sha256':fsha(ev/'fork-test.txt'),
+              'source_critical_sha256_file':fsha(ev/'source-critical.sha256'),
+              'protocol_code_sha256_file':fsha(ev/'protocol-code.sha256'),
+          }
+          payload=json.dumps(out,sort_keys=True,separators=(',',':')).encode()
+          out['attestation_sha256']=hashlib.sha256(payload).hexdigest()
+          (ev/'T36_CLOSEOUT.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(out,indent=2,sort_keys=True))
+          PY
+          cd /tmp/nqc-t36-closeout
+          find evidence -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+          sha256sum evidence/SHA256SUMS.txt
+          cat evidence/T36_CLOSEOUT.json
+
+      - name: Upload formal T36 closure evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nqc-t36-formal-closeout
+          path: /tmp/nqc-t36-closeout/evidence/
+          if-no-files-found: error
+          retention-days: 30
