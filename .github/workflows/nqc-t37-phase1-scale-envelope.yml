@@ -6,7 +6,10 @@ on:
       - nqc/t37-unified-dryrun-evidence-20260926
     paths:
       - .github/workflows/nqc-t37-phase1-scale-envelope.yml
-      - ci/nqc-t37/**
+      - ci/nqc-t37/scale-harness/**
+      - ci/nqc-t37/verify_t37_phase1.py
+      - ci/nqc-t37/T37_CONTRACT.json
+      - ci/nqc-t37/T37_CONTRACT.md
   workflow_dispatch:
 
 permissions:
