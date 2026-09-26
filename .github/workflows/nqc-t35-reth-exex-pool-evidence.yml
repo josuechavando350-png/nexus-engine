@@ -77,24 +77,24 @@ jobs:
           if method_marker not in ns:
               raise SystemExit("network transaction event method marker missing")
           helper = r'''    fn nqc_t35_capture_peer_signal(peer_id: &PeerId, kind: &str, hash: &B256) {
-        let Some(path) = std::env::var_os("NQC_T35_P2P_RAW") else { return };
-        static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
-        let origin = START.get_or_init(std::time::Instant::now);
-        let now = || u64::try_from(origin.elapsed().as_nanos()).unwrap_or(u64::MAX).saturating_add(1);
-        let receive = now();
-        let decoded = now();
-        let ingested = now();
-        let recognized = now();
-        let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) else { return };
-        use std::io::Write as _;
-        let _ = writeln!(
-            file,
-            "{{\"kind\":\"{}\",\"peer_id\":\"{:#}\",\"tx_hash\":\"{:#x}\",\"origin\":\"External\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
-            kind, peer_id, hash, receive, decoded, ingested, recognized
-        );
-    }
+                  let Some(path) = std::env::var_os("NQC_T35_P2P_RAW") else { return };
+                  static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+                  let origin = START.get_or_init(std::time::Instant::now);
+                  let now = || u64::try_from(origin.elapsed().as_nanos()).unwrap_or(u64::MAX).saturating_add(1);
+                  let receive = now();
+                  let decoded = now();
+                  let ingested = now();
+                  let recognized = now();
+                  let Ok(mut file) = std::fs::OpenOptions::new().create(true).append(true).open(path) else { return };
+                  use std::io::Write as _;
+                  let _ = writeln!(
+                      file,
+                      "{{\"kind\":\"{}\",\"peer_id\":\"{:#}\",\"tx_hash\":\"{:#x}\",\"origin\":\"External\",\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{}}}",
+                      kind, peer_id, hash, receive, decoded, ingested, recognized
+                  );
+              }
 
-'''
+          '''
           ns = ns.replace(method_marker, helper + method_marker, 1)
 
           full_anchor = '''                // ensure we didn't receive any blob transactions as these are disallowed to be
