@@ -53,6 +53,7 @@ jobs:
           solc_version = "0.8.24"
           optimizer = true
           optimizer_runs = 200
+          via_ir = true
           fs_permissions = [{ access = "read-write", path = "../evidence" }]
           EOF
           sha256sum             ci/nqc-protocol-fork/parity/PftAaveLiquidationMathWitness.t.sol             ci/nqc-protocol-fork/parity/generate_aave_liquidation_math_parity.py             > "$NQC_LIQ_WORK/evidence/harness-source.sha256"
