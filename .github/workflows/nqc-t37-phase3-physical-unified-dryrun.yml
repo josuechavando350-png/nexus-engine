@@ -31,8 +31,11 @@ jobs:
           mkdir -p /tmp/nqc-t35/evidence
           rustup toolchain install 1.98.1 --profile minimal
           rustup default 1.98.1
+          rustup component add rustfmt clippy --toolchain 1.98.1
           rustc -Vv | tee /tmp/nqc-t35/evidence/rustc.txt
           cargo -V | tee /tmp/nqc-t35/evidence/cargo.txt
+          cargo fmt --version | tee /tmp/nqc-t35/evidence/rustfmt.txt
+          cargo clippy --version | tee /tmp/nqc-t35/evidence/clippy.txt
 
           cd /tmp/nqc-t35
           curl --fail --location --retry 5 --retry-all-errors \
