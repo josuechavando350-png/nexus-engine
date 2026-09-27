@@ -95,6 +95,7 @@ fn assert_reference_tx(
     success: bool,
     gas_used: u64,
     digest: B256,
+    output: &Bytes,
 ) -> Result<String, Error> {
     let transactions = field(reference, "transactions")?
         .as_array()
@@ -125,9 +126,18 @@ fn assert_reference_tx(
         )
         .into());
     }
+    let expected_output = bytes(text_field(expected, "execution_output")?)?;
+    if output != &expected_output {
+        return Err(format!(
+            "execution output mismatch {name}: reference=0x{} revm=0x{}",
+            hex::encode(expected_output),
+            hex::encode(output)
+        )
+        .into());
+    }
     println!(
-        "REVM_TX_PARITY_PASS name={} status={} gas_used={} logs_digest={}",
-        name, actual_status, gas_used, digest
+        "REVM_TX_PARITY_PASS name={} status={} gas_used={} logs_digest={} output_digest={}",
+        name, actual_status, gas_used, digest, keccak256(output)
     );
     Ok(name)
 }
@@ -171,6 +181,14 @@ async fn main() -> Result<(), Error> {
     let runtime_path = Path::new(&args[2]);
     let output_path = Path::new(&args[3]);
     let reference: Value = serde_json::from_slice(&fs::read(reference_path)?)?;
+    let provider_id = env::var("NQC_PFT_UPSTREAM_ID")?;
+    if text_field(&reference, "provider_id")? != provider_id {
+        return Err(format!(
+            "reference provider mismatch: reference={} runtime={provider_id}",
+            text_field(&reference, "provider_id")?
+        )
+        .into());
+    }
 
     let classification = text_field(&reference, "classification")?;
     if classification != "SYNTHETIC_TRANSACTIONS_OVER_IMMUTABLE_HISTORICAL_MAINNET_STATE" {
@@ -211,6 +229,10 @@ async fn main() -> Result<(), Error> {
     let helper = address(text_field(&reference, "helper")?)?;
     let runtime_text = fs::read_to_string(runtime_path)?;
     let runtime = bytes(runtime_text.trim())?;
+    let reference_runtime = bytes(text_field(&reference, "helper_runtime")?)?;
+    if runtime != reference_runtime {
+        return Err("injected helper runtime differs from reference runtime".into());
+    }
     let bytecode = Bytecode::new_raw_checked(runtime)
         .map_err(|error| format!("invalid injected helper runtime: {error}"))?;
     cache_db.insert_account_info(
@@ -286,12 +308,21 @@ async fn main() -> Result<(), Error> {
         let success = result.is_success();
         let gas_used = result.tx_gas_used();
         let digest = logs_digest(result.logs());
-        let name = assert_reference_tx(&reference, index, success, gas_used, digest)?;
+        let output = result.output().cloned().unwrap_or_default();
+        let name = assert_reference_tx(&reference, index, success, gas_used, digest, &output)?;
+        let spec_name = text_field(spec, "name")?;
+        if name != spec_name {
+            return Err(format!(
+                "transaction order/name mismatch at {index}: spec={spec_name} reference={name}"
+            )
+            .into());
+        }
         report_txs.push(json!({
             "name": name,
             "status": if success { 1u64 } else { 0u64 },
             "gas_used": gas_used,
             "ordered_logs_digest": format!("{digest:#x}"),
+            "execution_output": format!("0x{}", hex::encode(&output)),
         }));
     }
 
@@ -337,7 +368,6 @@ async fn main() -> Result<(), Error> {
     }
 
     source.ensure_canonical(anchor).await?;
-    let provider_id = env::var("NQC_PFT_UPSTREAM_ID")?;
     let report = json!({
         "schema_version": 1,
         "gate": "REVM_HISTORICAL_FORK_DIFFERENTIAL",
