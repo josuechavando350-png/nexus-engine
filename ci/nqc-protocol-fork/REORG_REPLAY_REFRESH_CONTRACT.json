@@ -22,7 +22,8 @@
       "hash",
       "timestamp",
       "base_fee_per_gas"
-    ]
+    ],
+    "replacement_relation": "SAME_HEIGHT_SAME_PARENT_DIRECT_SIBLING"
   },
   "aave_reconciler_deterministic_binding": {
     "head": "74383521b51444e89a75ca8502af0a9c9f124029",
