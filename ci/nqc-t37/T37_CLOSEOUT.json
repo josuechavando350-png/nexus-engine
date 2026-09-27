@@ -1,5 +1,5 @@
 {
-  "architecture_closure_attestation_sha256": "77077c0b2b108039fc9bfef15428957777ce2ee3d5b2fe7e32b62bafaf76938f",
+  "architecture_closure_attestation_sha256": "1eccbf1572e2fcb98e038912eace3eae1daee712f7dd1f2e3d7ab6d6109a0f11",
   "architecture_scale_envelope": {
     "max_affected_market_fanout": 24,
     "real_live_markets_target_min": 20000,
@@ -94,5 +94,6 @@
     "closeout_run_id": 36277058300,
     "status": "CLOSED"
   },
-  "tranche": "T37_PHYSICAL_UNIFIED_DRYRUN_EVIDENCE_GENERATOR"
+  "tranche": "T37_PHYSICAL_UNIFIED_DRYRUN_EVIDENCE_GENERATOR",
+  "closeout_workflow_revision": "4ce25736e8bdc28aa5efa4989282621f2ca26c34"
 }
