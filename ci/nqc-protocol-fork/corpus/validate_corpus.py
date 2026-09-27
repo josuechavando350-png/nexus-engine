@@ -16,6 +16,9 @@ HEX32 = re.compile(r"^0x[0-9a-fA-F]{64}$")
 HEX40 = re.compile(r"^[0-9a-f]{40}$")
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 CASE_ID = re.compile(r"^[a-z0-9][a-z0-9._-]{2,95}$")
+ADDRESS = re.compile(r"^0x[0-9a-fA-F]{40}$")
+HEX_QUANTITY = re.compile(r"^0x[0-9a-fA-F]+$")
+DECIMAL_UINT = re.compile(r"^[0-9]+$")
 ALLOWED_STATUS = {"PASS", "FAIL", "NOT_TESTED"}
 ALLOWED_FAMILY = {"liquidation", "backrun"}
 
@@ -193,6 +196,58 @@ for rel in cases:
     source_commit = fixture.get("source_commit", "")
     if not HEX40.fullmatch(source_commit):
         die(f"{rel}: source_commit must be full 40-hex SHA")
+    if source_commit != source_binding["physical_checkpoint"]:
+        die(
+            f"{rel}: source_commit must equal the physically recovered "
+            "checkpoint until source_binding is explicitly revised"
+        )
+
+    if family == "liquidation":
+        account = fixture.get("account")
+        if not isinstance(account, dict):
+            die(f"{rel}: liquidation fixture requires account identity")
+        observed = account.get("observed_liquidations")
+        total_logs = account.get("total_liquidation_log_count")
+        if not isinstance(observed, list) or not observed:
+            die(f"{rel}: liquidation fixture requires observed_liquidations")
+        if not isinstance(total_logs, int) or total_logs < len(observed):
+            die(f"{rel}: invalid total_liquidation_log_count")
+        seen_log_indexes = set()
+        for liquidation in observed:
+            if not isinstance(liquidation, dict):
+                die(f"{rel}: observed liquidation must be an object")
+            for key in ("borrower", "collateral_asset", "debt_asset", "liquidator"):
+                if not ADDRESS.fullmatch(liquidation.get(key, "")):
+                    die(f"{rel}: invalid liquidation address {key}")
+            for key in ("debt_to_cover", "liquidated_collateral_amount"):
+                if not DECIMAL_UINT.fullmatch(liquidation.get(key, "")):
+                    die(f"{rel}: invalid decimal uint {key}")
+            log_index = liquidation.get("log_index", "")
+            if not HEX_QUANTITY.fullmatch(log_index):
+                die(f"{rel}: invalid liquidation log_index")
+            if log_index.lower() in seen_log_indexes:
+                die(f"{rel}: duplicate liquidation log_index")
+            seen_log_indexes.add(log_index.lower())
+            if not isinstance(liquidation.get("receive_atoken"), bool):
+                die(f"{rel}: receive_atoken must be boolean")
+
+        provenance = fixture.get("provenance")
+        if not isinstance(provenance, dict):
+            die(f"{rel}: liquidation fixture requires discovery provenance")
+        tx_hash = provenance.get("transaction_hash", "")
+        if not HEX32.fullmatch(tx_hash):
+            die(f"{rel}: transaction_hash must be exact 32-byte hash")
+        if not HEX40.fullmatch(provenance.get("discovery_source_sha", "")):
+            die(f"{rel}: discovery_source_sha must be full 40-hex SHA")
+        for key in (
+            "discovery_artifact_sha256",
+            "candidate_discovery_sha256",
+            "provider_observations_sha256",
+        ):
+            if not SHA256.fullmatch(provenance.get(key, "")):
+                die(f"{rel}: {key} must be SHA-256")
+        if provenance.get("fixture_admitted") is not True:
+            die(f"{rel}: admitted corpus fixture must set fixture_admitted=true")
 
     provider = fixture.get("provider")
     if not isinstance(provider, dict):
