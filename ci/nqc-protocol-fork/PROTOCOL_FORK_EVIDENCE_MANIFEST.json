@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "gate": "EVIDENCE_MANIFEST_CONTENT_ADDRESSED",
+  "status": "NOT_TESTED_PENDING_REQUIRED_GATES",
+  "policy": {
+    "pass_requires_all_required_gates_pass": true,
+    "pass_requires_sha256_for_every_pass_entry": true,
+    "pass_requires_exact_head_binding": true,
+    "artifact_digest_algorithm": "sha256",
+    "missing_evidence_is": "NOT_TESTED",
+    "unexplained_mismatch_policy": "ZERO_REQUIRED"
+  },
+  "required_gates": [
+    "SOURCE_BINDING_COMPLETE",
+    "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK",
+    "AAVE_CANONICAL_STATE_PARITY",
+    "AAVE_LIQUIDATION_INTEGER_MATH_PARITY",
+    "V2_CANONICAL_STATE_AND_REORG_PARITY",
+    "RUST_SOLIDITY_ABI_ROUNDTRIP",
+    "REVM_HISTORICAL_FORK_DIFFERENTIAL",
+    "REORG_INVALIDATION_AND_REPLAY_REFRESH",
+    "EXECUTOR_CODE_IDENTITY_BINDING",
+    "PARITY_MISMATCH_LEDGER_OPEN_ZERO"
+  ],
+  "entries": {
+    "SOURCE_BINDING_COMPLETE": {
+      "status": "PASS",
+      "pr": 463,
+      "head": "5746612d36c4b0b848c484001a0bf6dda1a3ea52",
+      "workflow": "NQC T39 Protocol Fork Recovered Source Binding",
+      "workflow_run_id": 36297449966,
+      "artifact_id": 10923929772,
+      "artifact_sha256": "79c1d6f79f6db52e93d4fd997fe399728bb97b788260cbe6240ac4f67fd82fe4"
+    },
+    "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK": {
+      "status": "PENDING",
+      "pr": 491,
+      "head": "0707d07713895aced48aa90db4a8ec8f775006ab"
+    },
+    "AAVE_CANONICAL_STATE_PARITY": {
+      "status": "PENDING_CLOSEOUT_VALIDATION",
+      "pr": 493,
+      "head": "4a9fce41d76884c9197609f5dcdb6e2038229a68",
+      "bound_underlying_evidence": [
+        {
+          "label": "full_account_risk",
+          "workflow_run_id": 36341553888,
+          "artifact_id": 10940935416,
+          "artifact_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49"
+        },
+        {
+          "label": "exact_emode_zero_account_risk",
+          "workflow_run_id": 36341554012,
+          "artifact_id": 10939116521,
+          "artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c"
+        }
+      ]
+    },
+    "AAVE_LIQUIDATION_INTEGER_MATH_PARITY": {
+      "status": "PENDING",
+      "pr": 489,
+      "head": "86b7d8e53363e36f460e5e9c9fefb572f346b46b"
+    },
+    "V2_CANONICAL_STATE_AND_REORG_PARITY": {
+      "status": "PASS",
+      "pr": 482,
+      "head": "9ef84028e283410d3e5ea5e575aaf8ac172cc742",
+      "evidence": [
+        {
+          "label": "state_reimplementation",
+          "workflow_run_id": 36344423876,
+          "artifact_id": 10940487585,
+          "artifact_sha256": "02f3206841619bf707dac5ad34455011f39ab770b55a3707e2b63b8d6a46c474"
+        },
+        {
+          "label": "historical_state_quote",
+          "workflow_run_id": 36344423879,
+          "artifact_id": 10940902041,
+          "artifact_sha256": "05b99b00701a836b46928238d9a61b4649b7d605e48d0f1af57b4175e461731b"
+        },
+        {
+          "label": "historical_sync",
+          "workflow_run_id": 36344423777,
+          "artifact_id": 10940572482,
+          "artifact_sha256": "80603ceb6dc3e9655f19cb99407bfd88ff090e9b7c72f8282af4e7844f9ed69c"
+        },
+        {
+          "label": "real_historical_reorg",
+          "workflow_run_id": 36344423856,
+          "artifact_id": 10941895018,
+          "artifact_sha256": "fcff30bc1925927b82b3c7e35197a034dadf8c25a765f20e2c70f80c68370a3c"
+        }
+      ]
+    },
+    "RUST_SOLIDITY_ABI_ROUNDTRIP": {
+      "status": "PASS",
+      "pr": 475,
+      "head": "80789bf80265a4d4273df493ee5d85bb5cb020d2",
+      "workflow": "NQC T39 V2 Runtime ABI Roundtrip",
+      "workflow_run_id": 36334747344,
+      "artifact_id": 10936547635,
+      "artifact_sha256": "924263018ed49a4994871717fea4520514e577e637702f42ffbb5a5c96dccb3d"
+    },
+    "REVM_HISTORICAL_FORK_DIFFERENTIAL": {
+      "status": "PENDING",
+      "pr": 487,
+      "head": "cc517c6cf78d8c3639ac6c17376fe6f9ffbc5815"
+    },
+    "REORG_INVALIDATION_AND_REPLAY_REFRESH": {
+      "status": "PENDING",
+      "pr": 492,
+      "head": "18445cbe9af9c9deae2b90a07586580b7c546702"
+    },
+    "EXECUTOR_CODE_IDENTITY_BINDING": {
+      "status": "PASS",
+      "pr": 486,
+      "head": "a33375b7188efee3929dc40e1d71af3ff921be44",
+      "workflow": "NQC T39 Executor Code Identity Binding",
+      "workflow_run_id": 36348949749,
+      "artifact_id": 10942070074,
+      "artifact_sha256": "b0af760773f14fc9e927d3fa8c651e3f08e476c3a9d46fa18fab1004408b1a2b"
+    },
+    "PARITY_MISMATCH_LEDGER_OPEN_ZERO": {
+      "status": "PENDING",
+      "pr": 490,
+      "head": "1a829c5116a9819410acc1f4d0ec16a8eda56351",
+      "reason": "PFT-COMPAT-009_EXACT_HEAD_RERUN_PENDING"
+    }
+  },
+  "source_blockers": {
+    "PFT-SRC-001": "OPEN_PENDING_V2_EXECUTOR_HISTORICAL_FORK_AND_DIFFERENTIAL_AGGREGATION",
+    "PFT-SRC-002": "CLOSED",
+    "PFT-SRC-003": "OPEN_PENDING_HISTORICAL_RECONCILER_DEPENDENCY_BOUND_CLOSEOUT"
+  },
+  "truth_boundaries": {
+    "real_market_census": "NOT_TESTED",
+    "live_market_evidence": false,
+    "shadow": false,
+    "canary": false,
+    "live_pnl": false,
+    "production_authority": false,
+    "production_certification": "NOT_CERTIFIED"
+  },
+  "protocol_fork_truth": "NOT_CLOSED"
+}
