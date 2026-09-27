@@ -141,14 +141,14 @@ jobs:
             cd /tmp/nqc-pft/source
             git apply --check "$PATCH1"
             git apply "$PATCH1"
-            git apply --check "$PATCH2"
-            git apply "$PATCH2"
-            git apply --check "$PATCH3"
-            git apply "$PATCH3"
-            git apply --check "$PATCH4"
-            git apply "$PATCH4"
-            git apply --check "$PATCH5"
-            git apply "$PATCH5"
+            git apply --unidiff-zero --check "$PATCH2"
+            git apply --unidiff-zero "$PATCH2"
+            git apply --unidiff-zero --check "$PATCH3"
+            git apply --unidiff-zero "$PATCH3"
+            git apply --unidiff-zero --check "$PATCH4"
+            git apply --unidiff-zero "$PATCH4"
+            git apply --unidiff-zero --check "$PATCH5"
+            git apply --unidiff-zero "$PATCH5"
           )
           {
             sha256sum "$PATCH1"
