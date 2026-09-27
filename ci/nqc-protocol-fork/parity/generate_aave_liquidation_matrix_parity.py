@@ -13,7 +13,8 @@ REQUIRED = {
     "total_debt_base","health_factor_wad","liquidation_threshold_bps",
     "user_emode_category","reserve_liquidation_bonus_bps",
     "effective_liquidation_bonus_bps","liquidation_protocol_fee_bps",
-    "flash_loan_premium_bps","reference_flash_premium","observed_debt_to_cover",
+    "flash_loan_premium_bps","observed_callback_flash_premium",
+    "flash_loan_callback_observed","observed_debt_to_cover",
     "observed_collateral_to_liquidator",
 }
 
@@ -67,6 +68,8 @@ def load_witnesses(root, expected):
                 raise ValueError(f"case {index} fixture mismatch: {key}")
         if n(doc["health_factor_wad"])>=10**18:
             raise ValueError(f"case {index} is not liquidatable in transaction prestate")
+        if n(doc["flash_loan_callback_observed"])!=1:
+            raise ValueError(f"case {index} did not observe a deployed flash-loan callback")
         out.append(doc)
     return out
 
@@ -146,9 +149,9 @@ def generate(cases):
             f'    return Err(format!("case {i}: collateral integer mismatch: observed={{}} recovered={{}}", observed_collateral, available.collateral_to_liquidator).into());',
             "}",
             f"let premium = percent_mul_ceil_unbounded(observed_debt, {n(w['flash_loan_premium_bps'])}u32)?;",
-            f"let expected_premium = {rs(w['reference_flash_premium'])};",
-            "if premium != expected_premium {",
-            f'    return Err(format!("case {i}: flash premium mismatch: expected={{}} recovered={{}}", expected_premium, premium).into());',
+            f"let observed_callback_premium = {rs(w['observed_callback_flash_premium'])};",
+            "if premium != observed_callback_premium {",
+            f'    return Err(format!("case {i}: deployed callback flash premium mismatch: callback={{}} recovered={{}}", observed_callback_premium, premium).into());',
             "}",
             "cases += 1;",
             "exact_integer_checks += 4;",

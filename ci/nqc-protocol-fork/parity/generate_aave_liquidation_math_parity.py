@@ -13,7 +13,8 @@ REQUIRED={
     "debt_price_oracle_units","borrower_collateral_balance","borrower_variable_debt",
     "total_collateral_base","total_debt_base","health_factor_wad","liquidation_threshold_bps",
     "user_emode_category","reserve_liquidation_bonus_bps","effective_liquidation_bonus_bps",
-    "liquidation_protocol_fee_bps","flash_loan_premium_bps","reference_flash_premium",
+    "liquidation_protocol_fee_bps","flash_loan_premium_bps",
+    "observed_callback_flash_premium","flash_loan_callback_observed",
     "observed_debt_to_cover","observed_collateral_to_liquidator"
 }
 
@@ -41,6 +42,8 @@ def generate(w):
         raise ValueError("fixture is not liquidatable")
     if n(w["oracle_base_unit"])==0:
         raise ValueError("zero oracle base unit")
+    if n(w["flash_loan_callback_observed"])!=1:
+        raise ValueError("deployed flash-loan callback premium was not observed")
 
     return f'''use alloy::primitives::U256;
 use nqc_aave_math::{{
@@ -121,11 +124,11 @@ fn main() -> Result<(), Error> {{
         observed_debt,
         {n(w["flash_loan_premium_bps"])}u32,
     )?;
-    let expected_premium = {rs(w["reference_flash_premium"])};
-    if premium != expected_premium {{
+    let observed_callback_premium = {rs(w["observed_callback_flash_premium"])};
+    if premium != observed_callback_premium {{
         return Err(format!(
-            "flash premium integer mismatch: expected={{}} recovered={{}}",
-            expected_premium, premium
+            "flash premium integer mismatch: callback={{}} recovered={{}}",
+            observed_callback_premium, premium
         ).into());
     }}
 

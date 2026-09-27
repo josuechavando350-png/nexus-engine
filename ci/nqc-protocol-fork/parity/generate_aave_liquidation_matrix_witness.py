@@ -122,6 +122,13 @@ struct PftMatrixCollateralConfig {{
 interface PftMatrixPool {{
     function ADDRESSES_PROVIDER() external view returns (address);
     function FLASHLOAN_PREMIUM_TOTAL() external view returns (uint128);
+    function flashLoanSimple(
+        address receiverAddress,
+        address asset,
+        uint256 amount,
+        bytes calldata params,
+        uint16 referralCode
+    ) external;
     function getReserveData(address asset) external view returns (PftMatrixReserveData memory);
     function getUserEMode(address user) external view returns (uint256);
     function getEModeCategoryCollateralConfig(uint8 id)
@@ -157,6 +164,10 @@ contract PftAaveLiquidationMatrixWitnessTest {{
     PftMatrixPool private constant POOL =
         PftMatrixPool(address(uint160(0x00{POOL})));
 
+    error PftObservedFlashPremium(uint256 premium);
+    error PftPremiumProbeUnexpectedSuccess();
+    error PftPremiumProbeUnexpectedRevert(bytes32 digest, uint256 length);
+
     struct Observed {{
         uint256 index;
         bytes32 transactionHash;
@@ -170,6 +181,55 @@ contract PftAaveLiquidationMatrixWitnessTest {{
     }}
 
 {''.join(functions)}
+    function executeOperation(
+        address asset,
+        uint256 amount,
+        uint256 premium,
+        address initiator,
+        bytes calldata params
+    ) external returns (bool) {{
+        require(msg.sender == address(POOL), "PREMIUM_CALLBACK_SENDER");
+        require(initiator == address(this), "PREMIUM_CALLBACK_INITIATOR");
+        (address expectedAsset, uint256 expectedAmount) =
+            abi.decode(params, (address, uint256));
+        require(asset == expectedAsset, "PREMIUM_CALLBACK_ASSET");
+        require(amount == expectedAmount, "PREMIUM_CALLBACK_AMOUNT");
+        revert PftObservedFlashPremium(premium);
+    }}
+
+    function _observeFlashPremium(address asset, uint256 amount)
+        private
+        returns (uint256 premium)
+    {{
+        try POOL.flashLoanSimple(
+            address(this),
+            asset,
+            amount,
+            abi.encode(asset, amount),
+            0
+        ) {{
+            revert PftPremiumProbeUnexpectedSuccess();
+        }} catch (bytes memory reason) {{
+            if (reason.length != 36) {{
+                revert PftPremiumProbeUnexpectedRevert(
+                    keccak256(reason),
+                    reason.length
+                );
+            }}
+            bytes32 firstWord;
+            assembly {{
+                firstWord := mload(add(reason, 0x20))
+                premium := mload(add(reason, 0x24))
+            }}
+            if (bytes4(firstWord) != PftObservedFlashPremium.selector) {{
+                revert PftPremiumProbeUnexpectedRevert(
+                    keccak256(reason),
+                    reason.length
+                );
+            }}
+        }}
+    }}
+
     function _capture(Observed memory observed) private {{
         require(block.number == observed.blockNumber, "OBSERVED_BLOCK");
         require(blockhash(block.number - 1) == observed.parentHash, "OBSERVED_PARENT");
@@ -221,10 +281,8 @@ contract PftAaveLiquidationMatrixWitnessTest {{
         ) = POOL.getUserAccountData(observed.borrower);
 
         uint256 flashPremiumBps = uint256(POOL.FLASHLOAN_PREMIUM_TOTAL());
-        uint256 referenceFlashPremium =
-            observed.expectedDebtToCover == 0 || flashPremiumBps == 0
-                ? 0
-                : (observed.expectedDebtToCover * flashPremiumBps - 1) / 10_000 + 1;
+        uint256 observedCallbackFlashPremium =
+            _observeFlashPremium(observed.debtAsset, observed.expectedDebtToCover);
 
         require(baseUnit != 0, "ZERO_BASE_UNIT");
         require(collateralPrice != 0 && debtPrice != 0, "ZERO_PRICE");
@@ -263,7 +321,12 @@ contract PftAaveLiquidationMatrixWitnessTest {{
         vm.serializeUint(key, "effective_liquidation_bonus_bps", effectiveBonus);
         vm.serializeUint(key, "liquidation_protocol_fee_bps", protocolFeeBps);
         vm.serializeUint(key, "flash_loan_premium_bps", flashPremiumBps);
-        vm.serializeUint(key, "reference_flash_premium", referenceFlashPremium);
+        vm.serializeUint(
+            key,
+            "observed_callback_flash_premium",
+            observedCallbackFlashPremium
+        );
+        vm.serializeUint(key, "flash_loan_callback_observed", 1);
         vm.serializeUint(key, "observed_debt_to_cover", observed.expectedDebtToCover);
         string memory json = vm.serializeUint(
             key,
