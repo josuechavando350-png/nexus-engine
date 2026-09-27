@@ -2,7 +2,7 @@ diff --git a/crates/nqc-sim/src/lib.rs b/crates/nqc-sim/src/lib.rs
 index 6e896bf..0000000 100644
 --- a/crates/nqc-sim/src/lib.rs
 +++ b/crates/nqc-sim/src/lib.rs
-@@ -194 +194,8 @@ impl LocalEvmSimulator {
+@@ -194 +194,7 @@ impl LocalEvmSimulator {
 -                    env.set_blob_excess_gas_and_price(excess);
 +                    let base_fee_update_fraction =
 +                        if block.spec_id.is_enabled_in(SpecId::PRAGUE) {
