@@ -348,7 +348,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             /tmp/nqc-t35/reth/target
-          key: nqc-t37-reth-v2.5.2-exact-rust1.98.1-${{ runner.os }}-${{ runner.arch }}-v1
+          key: nqc-t35-reth-v2.5.2-rust1.98.1-${{ runner.os }}-${{ runner.arch }}-v1
 
       - name: Install pinned Foundry and compile exact T37 physical fixtures
         shell: bash
