@@ -15,6 +15,7 @@ sol! {
     interface IV2FactoryView {
         function allPairsLength() external view returns (uint256);
         function allPairs(uint256 index) external view returns (address);
+        function getPair(address tokenA, address tokenB) external view returns (address);
     }
 
     #[sol(rpc)]
@@ -159,6 +160,108 @@ impl V2CanonicalReader {
         })
     }
 
+    /// Reads an explicit fixture/route pair set from one exact canonical anchor.
+    ///
+    /// Every requested pair is re-bound to the configured factory through
+    /// getPair(token0, token1). This is intentionally separate from full
+    /// factory enumeration so historical route parity does not need to scan
+    /// the entire production factory.
+    pub async fn read_pairs_at(
+        &self,
+        spec: V2FactorySpec,
+        pair_addresses: &[Address],
+        anchor: CanonicalBlock,
+    ) -> Result<V2CanonicalSnapshot, V2StateError> {
+        validate_spec(spec)?;
+        if pair_addresses.is_empty() {
+            return Err(V2StateError::EmptyPairSelection);
+        }
+        if pair_addresses.len() as u64 > spec.max_pairs {
+            return Err(V2StateError::SelectedPairLimitExceeded {
+                observed: pair_addresses.len() as u64,
+                maximum: spec.max_pairs,
+            });
+        }
+
+        self.source.ensure_canonical(anchor).await?;
+        let block = BlockId::hash_canonical(anchor.hash);
+        let factory = IV2FactoryView::new(spec.factory, &self.provider);
+        let mut seen = HashSet::with_capacity(pair_addresses.len());
+        let mut pairs = Vec::with_capacity(pair_addresses.len());
+
+        for pair in pair_addresses.iter().copied() {
+            if pair == Address::ZERO {
+                return Err(V2StateError::ZeroSelectedPair);
+            }
+            if !seen.insert(pair) {
+                return Err(V2StateError::DuplicatePair(pair));
+            }
+
+            let contract = IV2PairView::new(pair, &self.provider);
+            let token0 = contract
+                .token0()
+                .block(block)
+                .call()
+                .await
+                .map_err(contract_error)?;
+            let token1 = contract
+                .token1()
+                .block(block)
+                .call()
+                .await
+                .map_err(contract_error)?;
+            if token0 == Address::ZERO || token1 == Address::ZERO || token0 == token1 {
+                return Err(V2StateError::InvalidPairIdentity(pair));
+            }
+
+            let canonical_pair = factory
+                .getPair(token0, token1)
+                .block(block)
+                .call()
+                .await
+                .map_err(contract_error)?;
+            if canonical_pair != pair {
+                return Err(V2StateError::PairNotFactoryMember {
+                    pair,
+                    factory: spec.factory,
+                    canonical_pair,
+                });
+            }
+
+            let reserves = contract
+                .getReserves()
+                .block(block)
+                .call()
+                .await
+                .map_err(contract_error)?;
+            pairs.push(V2PairState {
+                pair,
+                token0,
+                token1,
+                reserve0: U256::from(reserves.reserve0.to::<u128>()),
+                reserve1: U256::from(reserves.reserve1.to::<u128>()),
+                block_timestamp_last: reserves.blockTimestampLast,
+            });
+        }
+
+        pairs.sort_unstable_by_key(|pair| pair.pair);
+        let observed = self.source.canonical_block_at(anchor.number).await?;
+        if observed != anchor {
+            return Err(V2StateError::CanonicalChanged {
+                expected: anchor,
+                observed,
+            });
+        }
+
+        Ok(V2CanonicalSnapshot {
+            chain_id: self.chain_id,
+            anchor,
+            factory: spec.factory,
+            fee_bps: spec.fee_bps,
+            pairs,
+        })
+    }
+
     /// Re-enumerates the factory and pair reserves from exact canonical state.
     /// No previous branch delta is inverted or carried forward.
     pub async fn read_factory_at(
@@ -297,6 +400,18 @@ pub enum V2StateError {
     InvalidFeeBps(u32),
     #[error("expected chain id {expected}, connected source reports {actual}")]
     ChainIdMismatch { expected: u64, actual: u64 },
+    #[error("explicit V2 pair selection cannot be empty")]
+    EmptyPairSelection,
+    #[error("explicit V2 pair selection contains zero address")]
+    ZeroSelectedPair,
+    #[error("selected pair count {observed} exceeds configured maximum {maximum}")]
+    SelectedPairLimitExceeded { observed: u64, maximum: u64 },
+    #[error("pair {pair} is not bound to factory {factory}; getPair returned {canonical_pair}")]
+    PairNotFactoryMember {
+        pair: Address,
+        factory: Address,
+        canonical_pair: Address,
+    },
     #[error("factory returned zero pair at index {0}")]
     ZeroPair(u64),
     #[error("factory returned duplicate pair {0}")]
