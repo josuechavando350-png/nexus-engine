@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -15,6 +16,11 @@ PROVIDERS = [
     ("blastapi-public", "https://eth-mainnet.public.blastapi.io"),
     ("mevblocker-rpc", "https://rpc.mevblocker.io"),
 ]
+PROVIDER_MIN_INTERVAL = {
+    "blastapi-public": 0.35,
+    "mevblocker-rpc": 1.25,
+}
+MAX_RPC_ATTEMPTS = 12
 # Derived from keccak256(signature); rechecked by the generated Rust executable.
 # RPC web3_sha3 support is not required to observe Ethereum historical state.
 SELECTORS = {
@@ -29,25 +35,54 @@ SELECTORS = {
 }
 
 
+def retry_delay(attempt, retry_after=None):
+    if retry_after:
+        try:
+            return min(30.0, max(0.5, float(retry_after)))
+        except (TypeError, ValueError):
+            pass
+    return min(20.0, 0.75 * (2 ** max(0, attempt - 1)))
+
+
 def rpc(url, method, params, request_id):
     payload = json.dumps(dict(jsonrpc="2.0", id=request_id, method=method, params=params)).encode()
     request = urllib.request.Request(url, data=payload, headers={
         "content-type": "application/json", "accept": "application/json",
-        "user-agent": "nqc-protocol-fork-truth/aave-state-witness-v1",
+        "user-agent": "nqc-protocol-fork-truth/aave-reserve-parity-v2",
     })
-    for attempt in range(3):
+    for attempt in range(1, MAX_RPC_ATTEMPTS + 1):
         try:
-            with urllib.request.urlopen(request, timeout=25) as response:
+            with urllib.request.urlopen(request, timeout=45) as response:
                 body = json.loads(response.read())
             if body.get("id") != request_id or body.get("jsonrpc") != "2.0":
                 raise ValueError("RPC envelope mismatch")
             if "error" in body:
-                raise ValueError(f"RPC error: {body['error']}")
+                error = body["error"]
+                message = str(error.get("message", "")).lower() if isinstance(error, dict) else str(error).lower()
+                code = error.get("code") if isinstance(error, dict) else None
+                if code in (-32097, -32005, 429) or "rate limit" in message or "too many" in message:
+                    if attempt == MAX_RPC_ATTEMPTS:
+                        raise ValueError(f"RPC rate limit exhausted retry budget: {error}")
+                    delay = retry_delay(attempt)
+                    print(f"RPC_RETRY kind=json-rpc-rate-limit attempt={attempt} delay={delay}", flush=True)
+                    time.sleep(delay)
+                    continue
+                raise ValueError(f"RPC error: {error}")
             return body["result"]
-        except (OSError, TimeoutError):
-            if attempt == 2:
+        except urllib.error.HTTPError as exc:
+            retryable = exc.code == 429 or 500 <= exc.code <= 599
+            if not retryable or attempt == MAX_RPC_ATTEMPTS:
                 raise
-            time.sleep(1 + attempt)
+            retry_after = exc.headers.get("Retry-After") if exc.headers else None
+            delay = retry_delay(attempt, retry_after)
+            print(f"RPC_RETRY kind=http status={exc.code} attempt={attempt} delay={delay}", flush=True)
+            time.sleep(delay)
+        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError):
+            if attempt == MAX_RPC_ATTEMPTS:
+                raise
+            delay = retry_delay(attempt)
+            print(f"RPC_RETRY kind=transport attempt={attempt} delay={delay}", flush=True)
+            time.sleep(delay)
 
 
 def decode_words(value, count, label):
@@ -77,11 +112,12 @@ def collect(provider, lock, out):
     provider_id, url = provider
     trace = []
     serial = 0
+    min_interval = PROVIDER_MIN_INTERVAL[provider_id]
 
     def call(method, params):
         nonlocal serial
         serial += 1
-        time.sleep(0.25)
+        time.sleep(min_interval)
         result = rpc(url, method, params, serial)
         trace.append(dict(method=method, params=params, result=result))
         # Preserve partial evidence even if a later call fails.
