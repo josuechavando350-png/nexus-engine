@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
+  "status": "NOT_TESTED",
+  "scope": "POST_BUILD_TRUTH_PROTOCOL_AND_HISTORICAL_FORK_CERTIFICATION",
+  "source_of_truth": {
+    "architecture_closeout_commit": "0ffaf8a5829d2f0c0874702042c8e0b094b30915",
+    "build_truth_closeout_main_commit": "bc519fb90baf6629b5ce9b99ed69c4b5e05dcfe0",
+    "build_truth_closeout_attestation_sha256": "1bfc0007c988da7b0c3ab590c5fa8918b0d8cd0c4864537f2b5c744f924db22a"
+  },
+  "recovered_physical_source": {
+    "git_bundle_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+    "git_bundle_checkpoint_status": "PHYSICALLY_RECOVERED_EXTERNALLY_AND_DIGEST_RECORDED",
+    "checkpoint_archive_sha256": "50471b7e29fd55a8c110d4e29ddf38021bfa3e0006ca42c6d833db02c4fa188e",
+    "protocol_subset_archive_sha256": "f2850645b2d800732ebb9f09bf3dae48efb94b942bfccacd099dceab440ccb7e",
+    "documented_master_head": "dd5db84",
+    "documented_target_checkpoint": "4eba05d1fe15",
+    "documented_master_head_status": "NOT_PHYSICALLY_AVAILABLE",
+    "documented_target_checkpoint_status": "NOT_PHYSICALLY_AVAILABLE"
+  },
+  "physically_present_protocol_components": [
+    "contracts/src/NqcAaveV3Executor.sol",
+    "crates/nqc-aave-math",
+    "crates/nqc-aave-reader",
+    "crates/nqc-aave-market",
+    "crates/nqc-aave-opportunity",
+    "crates/nqc-v2-router",
+    "crates/nqc-sim",
+    "crates/nqc-state",
+    "crates/nqc-replay",
+    "crates/nqc-settlement"
+  ],
+  "documented_but_not_recovered_components": [
+    "contracts/src/NqcV2BackrunExecutor.sol",
+    "crates/nqc-v2-state",
+    "crates/nqc-aave-reconciler"
+  ],
+  "required_gates": [
+    "SOURCE_BINDING_COMPLETE",
+    "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK",
+    "AAVE_CANONICAL_STATE_PARITY",
+    "AAVE_LIQUIDATION_INTEGER_MATH_PARITY",
+    "V2_CANONICAL_STATE_AND_REORG_PARITY",
+    "RUST_SOLIDITY_ABI_ROUNDTRIP",
+    "REVM_HISTORICAL_FORK_DIFFERENTIAL",
+    "REORG_INVALIDATION_AND_REPLAY_REFRESH",
+    "EXECUTOR_CODE_IDENTITY_BINDING",
+    "PARITY_MISMATCH_LEDGER_OPEN_ZERO",
+    "EVIDENCE_MANIFEST_CONTENT_ADDRESSED"
+  ],
+  "parity_rules": {
+    "integer_semantics": "EXACT_NO_GUESSED_TOLERANCE",
+    "execution_status": "EXACT",
+    "revert_status": "EXACT",
+    "ordered_logs_digest": "EXACT",
+    "token_balance_deltas": "EXACT",
+    "flash_repayment": "EXACT",
+    "modeled_fee_accounting": "EXACT",
+    "relevant_final_state": "EXACT",
+    "gas_used": "EXACT_UNLESS_DETERMINISTIC_FRAMEWORK_DELTA_IS_PROVEN_AND_RECORDED",
+    "unexplained_mismatch_terminal_count": 0
+  },
+  "current_blockers": [
+    {
+      "id": "PFT-SRC-001",
+      "severity": "HARD",
+      "status": "OPEN",
+      "description": "The documented V2 production executor source is absent from the physically recovered checkpoint and current GitHub tree."
+    },
+    {
+      "id": "PFT-SRC-002",
+      "severity": "HARD",
+      "status": "OPEN",
+      "description": "The documented canonical nqc-v2-state implementation is absent from the physically recovered checkpoint and current GitHub tree."
+    },
+    {
+      "id": "PFT-SRC-003",
+      "severity": "HARD",
+      "status": "OPEN",
+      "description": "The documented nqc-aave-reconciler implementation is absent from the physically recovered checkpoint and current GitHub tree."
+    }
+  ],
+  "closeout_rule": "PROTOCOL_FORK_TRUTH_CLOSED may be issued only when every required gate is PASS on exact content-addressed source, all historical fixtures are block-hash pinned, and OPEN unexplained parity mismatches and OPEN hard source blockers are both zero.",
+  "truth_boundaries": {
+    "real_market_census": "NOT_TESTED",
+    "real_live_market_evidence": false,
+    "shadow_live_market_execution": false,
+    "canary_execution": false,
+    "live_pnl_evidence": false,
+    "production_authority_issued": false,
+    "production_certification": "NOT_CERTIFIED",
+    "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION"
+  }
+}
