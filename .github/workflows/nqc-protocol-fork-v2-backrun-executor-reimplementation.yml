@@ -1,0 +1,127 @@
+name: NQC T39 V2 Backrun Executor Reimplementation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-v2-backrun-executor-reimplementation.yml
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-v2-backrun-executor:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      NQC_BACKRUN_WORK: /tmp/nqc-v2-backrun-executor-reimplementation
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Prepare exact isolated Foundry source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_BACKRUN_WORK"
+          mkdir -p "$NQC_BACKRUN_WORK/src" "$NQC_BACKRUN_WORK/test" "$NQC_BACKRUN_WORK/evidence"
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol "$NQC_BACKRUN_WORK/src/"
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutor.t.sol "$NQC_BACKRUN_WORK/test/"
+          cat > "$NQC_BACKRUN_WORK/foundry.toml" <<'EOF'
+          [profile.default]
+          src = "src"
+          test = "test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          EOF
+          git rev-parse HEAD > "$NQC_BACKRUN_WORK/evidence/repository-source-sha.txt"
+          sha256sum \
+            ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol \
+            ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutor.t.sol \
+            ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/REIMPLEMENTATION_CONTRACT.json \
+            > "$NQC_BACKRUN_WORK/evidence/reimplementation-source.sha256"
+
+      - name: Install exact Foundry and solc
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$NQC_BACKRUN_WORK/foundry"
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o "$NQC_BACKRUN_WORK/foundry.tar.gz" \
+            "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  $NQC_BACKRUN_WORK/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$NQC_BACKRUN_WORK/foundry.tar.gz" -C "$NQC_BACKRUN_WORK/foundry"
+          export PATH="$NQC_BACKRUN_WORK/foundry:$PATH"
+          forge --version | tee "$NQC_BACKRUN_WORK/evidence/forge.txt"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o "$NQC_BACKRUN_WORK/solc-0.8.24" \
+            "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  $NQC_BACKRUN_WORK/solc-0.8.24" | sha256sum -c -
+          chmod +x "$NQC_BACKRUN_WORK/solc-0.8.24"
+          "$NQC_BACKRUN_WORK/solc-0.8.24" --version | tee "$NQC_BACKRUN_WORK/evidence/solc.txt"
+          "$NQC_BACKRUN_WORK/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
+
+      - name: Execute deterministic repair tests
+        shell: bash
+        working-directory: /tmp/nqc-v2-backrun-executor-reimplementation
+        run: |
+          set -euo pipefail
+          export PATH="$NQC_BACKRUN_WORK/foundry:$PATH"
+          forge test --use "$NQC_BACKRUN_WORK/solc-0.8.24" -vvvv 2>&1 \
+            | tee "$NQC_BACKRUN_WORK/evidence/forge-test.log"
+          grep -F "8 passed; 0 failed" "$NQC_BACKRUN_WORK/evidence/forge-test.log"
+          forge inspect NqcV2BackrunExecutor bytecode --use "$NQC_BACKRUN_WORK/solc-0.8.24" \
+            > "$NQC_BACKRUN_WORK/evidence/initcode.hex"
+          forge inspect NqcV2BackrunExecutor deployedBytecode --use "$NQC_BACKRUN_WORK/solc-0.8.24" \
+            > "$NQC_BACKRUN_WORK/evidence/runtime.hex"
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root=Path('/tmp/nqc-v2-backrun-executor-reimplementation/evidence')
+          src=Path('/tmp/nqc-v2-backrun-executor-reimplementation/src/NqcV2BackrunExecutor.sol').read_bytes()
+          runtime=(root/'runtime.hex').read_text().strip()
+          initcode=(root/'initcode.hex').read_text().strip()
+          def byte_len(value):
+              value=value[2:] if value.startswith('0x') else value
+              return len(bytes.fromhex(value))
+          result={
+              'schema_version':1,
+              'gate':'PFT_SRC_001_V2_BACKRUN_EXECUTOR_MEASURED_REIMPLEMENTATION',
+              'classification':'NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE',
+              'source_sha256':hashlib.sha256(src).hexdigest(),
+              'deterministic_tests_passed':8,
+              'deterministic_tests_failed':0,
+              'runtime_bytes':byte_len(runtime),
+              'initcode_bytes':byte_len(initcode),
+              'source_blocker':'OPEN_PENDING_ABI_HISTORICAL_FORK_CALLBACK_BASELINE_AND_REVM_PARITY',
+              'protocol_fork_truth':'NOT_CLOSED'
+          }
+          (root/'summary.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          PY
+          (
+            cd "$NQC_BACKRUN_WORK/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-v2-backrun-executor-reimplementation-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-v2-backrun-executor-reimplementation/evidence
+          if-no-files-found: error
+          retention-days: 30
