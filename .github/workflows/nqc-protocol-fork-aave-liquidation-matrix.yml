@@ -169,29 +169,9 @@ jobs:
           cargo run --locked --offline             --manifest-path "$NQC_MATRIX/source/Cargo.toml"             -p nqc-aave-math --example pft_liquidation_matrix             2>&1 | tee "$NQC_MATRIX/evidence/liquidation-matrix.log"
 
           test "$(grep -c '^AAVE_LIQUIDATION_MATRIX_PASS ' "$NQC_MATRIX/evidence/liquidation-matrix.log")" -eq 15
-          grep -E '^AAVE_LIQUIDATION_MATRIX_TOTAL cases=15 exact_integer_checks=60 deployed_callback_premium_checks=15 default_close_cap_matches=[1-9][0-9]* full_close_cap_matches=[1-9][0-9]* unexplained_mismatches=0
+          grep -E '^AAVE_LIQUIDATION_MATRIX_TOTAL cases=15 exact_integer_checks=60 deployed_callback_premium_checks=15 default_close_cap_matches=[1-9][0-9]* full_close_cap_matches=[1-9][0-9]* unexplained_mismatches=0$'             "$NQC_MATRIX/evidence/liquidation-matrix.log"
 
           printf '%s\n' 'PASS_ALL_15_HISTORICAL_LIQUIDATIONS_EXACT_INTEGER_MATH_WITH_DEPLOYED_FLASH_CALLBACK_PREMIUM'             > "$NQC_MATRIX/evidence/parity-status.txt"
-          printf '%s\n' 'PASS' > "$NQC_MATRIX/evidence/AAVE_LIQUIDATION_INTEGER_MATH_PARITY.txt"
-          printf '%s\n' '0' > "$NQC_MATRIX/evidence/unexplained-mismatch-count.txt"
-          printf '%s\n' 'NOT_CLOSED' > "$NQC_MATRIX/evidence/protocol-fork-truth.txt"
-          (
-            cd "$NQC_MATRIX/evidence"
-            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-            sha256sum -c SHA256SUMS
-          )
-
-      - name: Preserve complete liquidation matrix evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: nqc-t39-aave-liquidation-matrix-${{ github.event.pull_request.head.sha || github.sha }}
-          path: /tmp/nqc-aave-liquidation-matrix/evidence
-          if-no-files-found: error
-          retention-days: 30
-             "$NQC_MATRIX/evidence/liquidation-matrix.log"
-
-          printf '%s\n' 'PASS_ALL_15_HISTORICAL_LIQUIDATIONS_EXACT_INTEGER_MATH'             > "$NQC_MATRIX/evidence/parity-status.txt"
           printf '%s\n' 'PASS' > "$NQC_MATRIX/evidence/AAVE_LIQUIDATION_INTEGER_MATH_PARITY.txt"
           printf '%s\n' '0' > "$NQC_MATRIX/evidence/unexplained-mismatch-count.txt"
           printf '%s\n' 'NOT_CLOSED' > "$NQC_MATRIX/evidence/protocol-fork-truth.txt"
