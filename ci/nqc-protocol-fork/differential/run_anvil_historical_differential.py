@@ -172,28 +172,46 @@ def main():
     rpc(args.rpc,"evm_setNextBlockTimestamp",[next_timestamp])
     rpc(args.rpc,"anvil_setNextBlockBaseFeePerGas",[hex(1_000_000_000)])
 
+    tx_specs=[
+        {
+            "name":"setup_deposit","nonce":0,"to":WETH,
+            "data":"0xd0e30db0","value":SEED_WETH,
+        },
+        {
+            "name":"setup_seed_helper","nonce":1,"to":WETH,
+            "data":calldata("transfer(address,uint256)",HELPER,SEED_WETH),
+            "value":0,
+        },
+        {
+            "name":"flash_roundtrip","nonce":2,"to":HELPER,
+            "data":calldata("flashRoundTrip(address,uint256)",WETH,FLASH_WETH),
+            "value":0,
+        },
+        {
+            "name":"v2_swap","nonce":3,"to":HELPER,
+            "data":calldata(
+                "swapExact(address,address,address,uint256,uint256)",
+                PAIR,WETH,USDC,SWAP_WETH,swap_out
+            ),
+            "value":0,
+        },
+        {
+            "name":"v2_revert","nonce":4,"to":HELPER,
+            "data":calldata(
+                "swapExact(address,address,address,uint256,uint256)",
+                PAIR,WETH,USDC,SWAP_WETH,reserve0
+            ),
+            "value":0,
+        },
+    ]
     txs=[]
-    txs.append(("setup_deposit",send(
-        args.rpc,caller,0,WETH,"0xd0e30db0",SEED_WETH
-    )))
-    txs.append(("setup_seed_helper",send(
-        args.rpc,caller,1,WETH,calldata("transfer(address,uint256)",HELPER,SEED_WETH)
-    )))
-    txs.append(("flash_roundtrip",send(
-        args.rpc,caller,2,HELPER,calldata("flashRoundTrip(address,uint256)",WETH,FLASH_WETH)
-    )))
-    txs.append(("v2_swap",send(
-        args.rpc,caller,3,HELPER,calldata(
-            "swapExact(address,address,address,uint256,uint256)",
-            PAIR,WETH,USDC,SWAP_WETH,swap_out
-        )
-    )))
-    txs.append(("v2_revert",send(
-        args.rpc,caller,4,HELPER,calldata(
-            "swapExact(address,address,address,uint256,uint256)",
-            PAIR,WETH,USDC,SWAP_WETH,reserve0
-        )
-    )))
+    for spec in tx_specs:
+        txs.append((
+            spec["name"],
+            send(
+                args.rpc,caller,spec["nonce"],spec["to"],spec["data"],spec["value"]
+            ),
+        ))
 
     rpc(args.rpc,"anvil_mine",["0x1"])
 
@@ -309,6 +327,16 @@ def main():
             "reserve0":reserve0,"reserve1":reserve1,
             "block_timestamp_last":pair_ts_before,
         },
+        "transaction_specs":[
+            {
+                **spec,
+                "to":spec["to"].lower(),
+                "data":spec["data"].lower(),
+                "gas_limit":GAS_LIMIT,
+                "gas_price":GAS_PRICE,
+            }
+            for spec in tx_specs
+        ],
         "transactions":receipts,
         "flash":{
             "amount":amount,
