@@ -161,7 +161,7 @@ def code_sha256(raw, label):
     return hashlib.sha256(bytes.fromhex(raw[2:])).hexdigest()
 
 
-def collect(provider, out):
+def collect(provider, out, expected_identity):
     provider_id, url, min_interval = provider
     client = Client(provider_id, url, min_interval, out)
     if int(client.call("eth_chainId", []), 16) != 1:
@@ -233,8 +233,7 @@ def collect(provider, out):
         if premium_bps != 5:
             raise ValueError(f"flash premium changed: {premium_bps}")
 
-        cases.append(
-            {
+        case = {
                 **anchor,
                 "timestamp": int(block["timestamp"], 16),
                 "pool": POOL,
@@ -254,7 +253,13 @@ def collect(provider, out):
                 ),
                 "flash_loan_premium_bps": premium_bps,
             }
-        )
+        for key, expected in expected_identity.items():
+            if case.get(key) != expected:
+                raise ValueError(
+                    f"deployment baseline drift at block {anchor['block_number']} "
+                    f"field={key}: expected={expected} actual={case.get(key)}"
+                )
+        cases.append(case)
 
         after = client.call(
             "eth_getBlockByNumber", [hex(anchor["block_number"]), False]
@@ -278,12 +283,54 @@ def digest(value):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--baseline", type=Path, required=True)
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
+    baseline_raw = args.baseline.read_bytes()
+    baseline = json.loads(baseline_raw)
+    if baseline.get("schema_version") != 1:
+        raise ValueError("deployment baseline schema mismatch")
+    if baseline.get("classification") != "MEASURED_TWO_PROVIDER_CONTENT_ADDRESSED_BASELINE":
+        raise ValueError("deployment baseline classification mismatch")
+    if baseline.get("anchors") != ANCHORS:
+        raise ValueError("deployment baseline anchors drift from admitted anchors")
+    provenance = baseline.get("provenance", {})
+    if provenance.get("providers") != [item[0] for item in PROVIDERS]:
+        raise ValueError("deployment baseline provider set mismatch")
+    for key in ("head", "artifact_zip_sha256", "witness_attestation_sha256"):
+        value = provenance.get(key, "")
+        width = 40 if key == "head" else 64
+        if not isinstance(value, str) or not re.fullmatch(rf"[0-9a-f]{{{width}}}", value):
+            raise ValueError(f"invalid baseline provenance field {key}")
+    if int(provenance.get("workflow_run_id", 0)) <= 0 or int(provenance.get("artifact_id", 0)) <= 0:
+        raise ValueError("invalid baseline workflow/artifact provenance")
+    expected_identity = baseline.get("identity", {})
+    required_identity = {
+        "pool",
+        "pool_proxy_code_sha256",
+        "implementation",
+        "implementation_code_sha256",
+        "addresses_provider",
+        "addresses_provider_code_sha256",
+        "price_oracle",
+        "price_oracle_code_sha256",
+        "flash_loan_premium_bps",
+    }
+    if set(expected_identity) != required_identity:
+        raise ValueError("deployment baseline identity fields mismatch")
+    if expected_identity["pool"] != POOL:
+        raise ValueError("deployment baseline pool mismatch")
+    if expected_identity["addresses_provider"] != EXPECTED_PROVIDER:
+        raise ValueError("deployment baseline addresses provider mismatch")
+    if expected_identity["price_oracle"] != EXPECTED_ORACLE:
+        raise ValueError("deployment baseline oracle mismatch")
+    if expected_identity["flash_loan_premium_bps"] != 5:
+        raise ValueError("deployment baseline flash premium mismatch")
+
     observations = []
     for provider in PROVIDERS:
-        observation = collect(provider, args.out)
+        observation = collect(provider, args.out, expected_identity)
         observations.append(observation)
         (args.out / f"{provider[0]}-deployment-lock.json").write_text(
             json.dumps(observation, indent=2, sort_keys=True) + "\n"
@@ -311,8 +358,11 @@ def main():
         },
         "identity_rule": (
             "exact pool proxy bytecode + EIP-1967 implementation address/code + "
-            "addresses provider/oracle code + flash premium at every admitted anchor"
+            "addresses provider/oracle code + flash premium at every admitted anchor "
+            "must equal the measured content-addressed baseline"
         ),
+        "baseline_sha256": hashlib.sha256(baseline_raw).hexdigest(),
+        "baseline_provenance": provenance,
         "unexplained_mismatches": 0,
         "real_market_evidence": False,
         "protocol_fork_truth": "NOT_CLOSED",
