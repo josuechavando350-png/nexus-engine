@@ -25,7 +25,10 @@ SIGNATURES = [
 
 def rpc(url, method, params, request_id):
     payload = json.dumps(dict(jsonrpc="2.0", id=request_id, method=method, params=params)).encode()
-    request = urllib.request.Request(url, data=payload, headers={"content-type": "application/json"})
+    request = urllib.request.Request(url, data=payload, headers={
+        "content-type": "application/json", "accept": "application/json",
+        "user-agent": "nqc-protocol-fork-truth/aave-state-witness-v1",
+    })
     for attempt in range(3):
         try:
             with urllib.request.urlopen(request, timeout=25) as response:
