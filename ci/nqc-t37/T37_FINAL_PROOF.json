@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "tranche": "T37_PHYSICAL_UNIFIED_DRYRUN_EVIDENCE_GENERATOR",
+  "status": "ARCHITECTURE_CLOSED",
+  "closure_scope": "ARCHITECTURE_CONSTRUCTION_ONLY",
+  "validated_repository_head": "0ffaf8a5829d2f0c0874702042c8e0b094b30915",
+  "closeout_workflow_revision": "4ce25736e8bdc28aa5efa4989282621f2ca26c34",
+  "architecture_closeout_run_id": 36284525978,
+  "architecture_closeout_job_id": 108522635219,
+  "architecture_closeout_conclusion": "success",
+  "architecture_closeout_artifact_id": 10919464730,
+  "architecture_closeout_artifact_sha256": "323e48d6cb9bdda7026de4e9a0e2ccc335485bfcf50467ca17506fb58d8bde71",
+  "architecture_closeout_manifest_sha256": "ac43b77c0d1c48825ac202c95eff2c95f69e0740710aa3253bccd80682ba1604",
+  "phase3": {
+    "run_id": 36284058050,
+    "job_id": 108521319390,
+    "artifact_id": 10920320666,
+    "artifact_sha256": "8a3770ab997d1994400b44d4bd5a1d1ebc5c694fe170913d157c0e4dbafb4fa7",
+    "attestation_sha256": "43158bcc54ea27a38a91e9cb1f84a90c17fa40604e73545721f2b1400af59415",
+    "execution_bundle_fingerprint": "0xaf3b044f5eaebbaeb97d811b5271b9279035c178beab66aa407d5eb850954921"
+  },
+  "scale_capacity_evidence": {
+    "synthetic_markets": 50000,
+    "synthetic_active_markets": 25000,
+    "synthetic_surfaces": 250000,
+    "synthetic_signals": 1000000,
+    "max_affected_market_fanout": 24,
+    "full_market_scans": 0,
+    "dropped_signals": 0
+  },
+  "truth_boundaries": {
+    "real_market_census": "NOT_TESTED",
+    "real_live_market_evidence": false,
+    "live_pnl_evidence": false,
+    "production_latency_claim": "NONE",
+    "production_authority_issued": false,
+    "production_certification": "NOT_CERTIFIED",
+    "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION"
+  },
+  "construction_freeze_ready": true
+}
