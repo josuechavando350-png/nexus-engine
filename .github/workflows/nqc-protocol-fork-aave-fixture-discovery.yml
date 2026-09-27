@@ -31,13 +31,17 @@ jobs:
           set -euo pipefail
           test -z "$(git status --porcelain)"
           git diff --check
+          mkdir -p /tmp/nqc-pft-discovery
+          git rev-parse HEAD > /tmp/nqc-pft-discovery/preflight-source-sha.txt
           python3 - <<'PY'
           import json
           from pathlib import Path
 
+          root=Path(".")
           contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
           assert contract["status"] == "NOT_TESTED"
-          assert contract["recovered_physical_source"]["git_bundle_checkpoint"] == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
+          checkpoint=contract["recovered_physical_source"]["git_bundle_checkpoint"]
+          assert checkpoint == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
           assert {
               b["id"] for b in contract["current_blockers"]
               if b["severity"] == "HARD" and b["status"] == "OPEN"
@@ -45,8 +49,17 @@ jobs:
 
           corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
           assert corpus["status"] == "NOT_TESTED"
-          assert corpus["cases"] == []
           assert corpus["protocol_fork_truth"] == "NOT_CLOSED"
+          assert isinstance(corpus["cases"], list)
+
+          # Discovery remains valid after immutable fixtures are admitted.
+          # Admission is allowed only while every committed fixture is still
+          # NOT_TESTED and bound to the same physically recovered checkpoint.
+          for rel in corpus["cases"]:
+              fixture=json.loads((root/rel).read_text())
+              assert fixture["source_commit"] == checkpoint
+              assert fixture["result"]["status"] == "NOT_TESTED"
+              assert fixture["provenance"]["fixture_admitted"] is True
           PY
 
       - name: Discover exact Aave historical anchors across independent RPCs
