@@ -55,8 +55,8 @@ contract PftAaveExecutorHistoricalForkTest {
     address private constant POOL = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
     address private constant BORROWER = 0x5E0481cAD8BFF5453635F4770F44b2194DdF6e02;
     address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address private constant USDC = 0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eB48;
-    address private constant USDC_WETH_PAIR = 0xB4e16d0168e52D35CaCD2c6185b44281Ec28C9Dc;
+    address private constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    address private constant USDC_WETH_PAIR = 0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc;
 
     uint256 private constant DEBT_TO_COVER = 554_963_551_478;
     uint256 private constant COLLATERAL_TO_LIQUIDATOR = 368_144_715_101_196_997_895;
