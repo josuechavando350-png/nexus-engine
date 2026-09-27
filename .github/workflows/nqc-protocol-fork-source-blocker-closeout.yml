@@ -1,0 +1,67 @@
+name: NQC T39 Source Blocker Closeout Contracts
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-source-blocker-closeout.yml
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json
+      - ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  source-blocker-contracts:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Validate no source blocker can close without all measured evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+
+          sha=re.compile(r"^[0-9a-f]{64}$")
+          head=re.compile(r"^[0-9a-f]{40}$")
+
+          paths=[
+            Path("ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json"),
+            Path("ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json"),
+          ]
+          docs=[json.loads(p.read_text()) for p in paths]
+          assert {d["source_blocker"] for d in docs}=={"PFT-SRC-001","PFT-SRC-003"}
+
+          for d in docs:
+              assert d["classification"]=="NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE"
+              assert d["recovery_status"]=="RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS"
+              assert d["unexplained_mismatches"]==0
+              assert d["protocol_fork_truth"]=="NOT_CLOSED"
+              pending=[]
+              for name,item in d["evidence"].items():
+                  assert head.fullmatch(item["head"]), (d["source_blocker"],name,"bad head")
+                  if item["status"]=="PASS":
+                      assert sha.fullmatch(item["artifact_sha256"]), (d["source_blocker"],name,"missing sha256")
+                      assert int(item["artifact_id"])>0
+                      assert int(item["workflow_run_id"])>0
+                  else:
+                      pending.append(name)
+
+              if d["status"]=="CLOSED":
+                  assert not pending, (d["source_blocker"],"closed with pending evidence",pending)
+                  print(d["source_blocker"]+"_CLOSEOUT_PASS")
+              else:
+                  assert d["status"].startswith("NOT_TESTED_")
+                  assert pending
+                  print(d["source_blocker"]+"_CLOSEOUT_PENDING "+",".join(pending))
+          PY
+
+          sha256sum             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json             ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json             > /tmp/nqc-source-blocker-closeout.sha256
+          sha256sum -c /tmp/nqc-source-blocker-closeout.sha256
