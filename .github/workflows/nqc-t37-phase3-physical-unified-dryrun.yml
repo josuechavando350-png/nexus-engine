@@ -412,7 +412,7 @@ jobs:
           "$BIN" node --dev --dev.block-time 3600s --datadir /tmp/nqc-b \
             --disable-discovery --no-persist-peers --nat none \
             --ipcpath /tmp/nqc-b.ipc --http --http.addr 127.0.0.1 --http.port 18546 \
-            --http.api admin,eth,net,web3 --port 31304 --authrpc.port 18552 \
+            --http.api admin,debug,eth,net,web3 --port 31304 --authrpc.port 18552 \
             > "$EV/reth-b.log" 2>&1 &
           echo $! > /tmp/nqc-t37-phase3/b.pid
 
@@ -442,7 +442,7 @@ jobs:
           "$BIN" node --dev --dev.block-time 2s --datadir /tmp/nqc-a \
             --disable-discovery --trusted-only --trusted-peers "$ENODE" --no-persist-peers --nat none \
             --ipcpath /tmp/nqc-a.ipc --http --http.addr 127.0.0.1 --http.port 18545 \
-            --http.api admin,eth,net,web3 --port 31303 --authrpc.port 18551 \
+            --http.api admin,debug,eth,net,web3 --port 31303 --authrpc.port 18551 \
             > "$EV/reth-a.log" 2>&1 &
           echo $! > /tmp/nqc-t37-phase3/a.pid
 
@@ -729,7 +729,17 @@ jobs:
               receipt=rpc('eth_getTransactionReceipt',[primary['tx_hash']])
               if receipt is not None: break
               time.sleep(1)
-          assert receipt is not None and int(receipt['status'],16)==1, receipt
+          assert receipt is not None, receipt
+          if int(receipt['status'],16)!=1:
+              tx=rpc('eth_getTransactionByHash',[primary['tx_hash']])
+              trace=rpc('debug_traceTransaction',[primary['tx_hash'],{'tracer':'callTracer'}])
+              (ev/'primary-failed-transaction.json').write_text(
+                  json.dumps(tx,indent=2,sort_keys=True)+'\n'
+              )
+              (ev/'primary-failed-trace.json').write_text(
+                  json.dumps(trace,indent=2,sort_keys=True)+'\n'
+              )
+              raise RuntimeError(f"primary canonical transaction reverted: {json.dumps(trace,sort_keys=True)}")
           block=rpc('eth_getBlockByHash',[receipt['blockHash'],False])
           assert block and block['hash'].lower()==receipt['blockHash'].lower()
           (ev/'primary-canonical-receipt.json').write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
