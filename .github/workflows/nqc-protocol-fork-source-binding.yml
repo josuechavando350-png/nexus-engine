@@ -139,6 +139,10 @@ jobs:
           echo "323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720  $PATCH4" | sha256sum -c -
           echo "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664  $PATCH5" | sha256sum -c -
           echo "f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0  $PATCH6" | sha256sum -c -
+          PATCH7="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch"
+          REGRESSION7="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-repayment-regression.t.sol"
+          echo "bf3d8ad2f5f1ddbbf80cdb50ba60442e08dce2ef990f68a5f29ba48992ea1fae  $PATCH7" | sha256sum -c -
+          echo "e1e78e0132e21fecb9154a6c92af206062145dd01884ce9e2b9247f2c32d3bbd  $REGRESSION7" | sha256sum -c -
           (
             cd /tmp/nqc-pft/source
             git apply --check "$PATCH1"
@@ -153,6 +157,9 @@ jobs:
             git apply --unidiff-zero "$PATCH5"
             git apply --unidiff-zero --check "$PATCH6"
             git apply --unidiff-zero "$PATCH6"
+            git apply --unidiff-zero --check "$PATCH7"
+            git apply --unidiff-zero "$PATCH7"
+            cp "$REGRESSION7" contracts/test/PftRepaymentRegression.t.sol
           )
           {
             sha256sum "$PATCH1"
@@ -161,6 +168,8 @@ jobs:
             sha256sum "$PATCH4"
             sha256sum "$PATCH5"
             sha256sum "$PATCH6"
+            sha256sum "$PATCH7"
+            sha256sum "$REGRESSION7"
           } > /tmp/nqc-pft/evidence/compatibility-patches.sha256
           cat > /tmp/nqc-pft/evidence/compatibility-overlays.txt <<'EOF'
           PFT-COMPAT-001 LOSSLESS_UINT40_TO_U64
@@ -169,6 +178,7 @@ jobs:
           PFT-COMPAT-004 TEST_ONLY_WAD_IMPORT
           PFT-COMPAT-005 TEST_ONLY_NQC_AAVE_SYNC_DEV_DEPENDENCY
           PFT-COMPAT-006 REVM_SPEC_AWARE_BLOB_BASE_FEE_UPDATE_FRACTION
+          PFT-COMPAT-007 AAVE_REPAYMENT_PRIVATE_HELPER_STACK_LIFETIME
           EOF
 
       - name: Install exact Rust toolchain
@@ -250,9 +260,9 @@ jobs:
 
           forge build --force --offline --use /tmp/nqc-pft/solc-0.8.24 --sizes \
             2>&1 | tee /tmp/nqc-pft/evidence/forge-build.txt
-          forge test --offline --use /tmp/nqc-pft/solc-0.8.24 -vvv \
+          forge test --offline --use /tmp/nqc-pft/solc-0.8.24 --fuzz-seed 0x39 -vvv \
             2>&1 | tee /tmp/nqc-pft/evidence/forge-test.txt
-          forge inspect NqcAaveV3Executor methodIdentifiers \
+          forge inspect --offline --use /tmp/nqc-pft/solc-0.8.24 NqcAaveV3Executor methodIdentifiers \
             > /tmp/nqc-pft/evidence/aave-method-identifiers.json
           printf 'PASS\n' > /tmp/nqc-pft/evidence/forge-physical-build-pass.txt
 
@@ -287,7 +297,8 @@ jobs:
                   {"id":"PFT-COMPAT-003","sha256":"7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5"},
                   {"id":"PFT-COMPAT-004","sha256":"323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720"},
                   {"id":"PFT-COMPAT-005","sha256":"12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664"},
-                  {"id":"PFT-COMPAT-006","sha256":"f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0"}
+                  {"id":"PFT-COMPAT-006","sha256":"f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0"},
+                  {"id":"PFT-COMPAT-007","sha256":"bf3d8ad2f5f1ddbbf80cdb50ba60442e08dce2ef990f68a5f29ba48992ea1fae","regression_test_sha256":"e1e78e0132e21fecb9154a6c92af206062145dd01884ce9e2b9247f2c32d3bbd"}
               ],
               "compatibility_overlay_scope":"TEMP_BUILD_COPY_ONLY; RECOVERED_BYTES_IMMUTABLE",
               "rustfmt_1_98_1_exact_source_match":(

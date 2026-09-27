@@ -157,6 +157,27 @@
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0",
       "semantic_rationale": "This restores the intended spec-aware blob gas price derivation using REVM's own pinned EIP-4844 constants; no block identity, transaction, state, authority, or economic acceptance rule changes."
+    },
+    {
+      "id": "PFT-COMPAT-007",
+      "status": "LOCAL_DETERMINISTIC_TESTS_PASS_CI_PENDING",
+      "source": "contracts/src/NqcAaveV3Executor.sol",
+      "defect": "Pinned solc 0.8.24 legacy codegen fails Stack too deep at the LiquidationExecuted emission (job 108557144387).",
+      "repair": "Extract the unchanged repayment validation, approval and event emission into a private helper receiving CallbackContext, amount and premium.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "patch_sha256": "bf3d8ad2f5f1ddbbf80cdb50ba60442e08dce2ef990f68a5f29ba48992ea1fae",
+      "regression_test_sha256": "e1e78e0132e21fecb9154a6c92af206062145dd01884ce9e2b9247f2c32d3bbd",
+      "semantic_rationale": "Same checked arithmetic, revert payloads, approval order and event arguments; no external call added, no compiler/profile change. New deployed bytecode must be rebound and fork-certified.",
+      "local_validation": {
+        "solc": "0.8.24+commit.e11b9ed9",
+        "foundry": "1.7.1",
+        "original_tests_passed": 6,
+        "additional_fuzz_tests": 2,
+        "fuzz_runs_each": 256,
+        "fuzz_seed": "0x39",
+        "historical_fork_parity": "NOT_TESTED"
+      }
     }
   ],
   "certification_dependency_lock": {
