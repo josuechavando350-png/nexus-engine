@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   mismatch-ledger:
@@ -21,14 +22,53 @@ jobs:
           fetch-depth: 0
       - name: Validate ledger truthfulness
         shell: bash
+        env:
+          NQC_GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git diff --check
           python3 - <<'PY'
-          import json
+          import json,os,re,urllib.request
           from pathlib import Path
           p=Path("ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json")
           d=json.loads(p.read_text())
+          repo=os.environ["GITHUB_REPOSITORY"]
+          token=os.environ["NQC_GITHUB_TOKEN"]
+          sha40=re.compile(r"^[0-9a-f]{40}$")
+          sha256=re.compile(r"^[0-9a-f]{64}$")
+          if not token:
+              raise AssertionError("missing GitHub Actions token for mismatch-ledger attestation")
+
+          def verify_artifact(entry_id,ref):
+              head=ref["head"]
+              run_id=int(ref["workflow_run_id"])
+              artifact_id=int(ref["artifact_id"])
+              digest=ref["artifact_sha256"]
+              assert isinstance(ref.get("role"),str) and ref["role"], (entry_id,"missing role")
+              assert sha40.fullmatch(head), (entry_id,"bad head")
+              assert run_id>0 and artifact_id>0, (entry_id,"bad ids")
+              assert sha256.fullmatch(digest), (entry_id,"bad digest")
+              req=urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}",
+                  headers={
+                      "Authorization":f"Bearer {token}",
+                      "Accept":"application/vnd.github+json",
+                      "X-GitHub-Api-Version":"2022-11-28",
+                      "User-Agent":"nqc-parity-mismatch-ledger-v2",
+                  },
+              )
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  actual=json.loads(response.read())
+              assert int(actual["id"])==artifact_id, (entry_id,"artifact id mismatch")
+              assert actual.get("expired") is False, (entry_id,"artifact expired")
+              assert actual.get("digest")==f"sha256:{digest}", (
+                  entry_id,"artifact digest mismatch",actual.get("digest")
+              )
+              run=actual.get("workflow_run") or {}
+              assert int(run.get("id",0))==run_id, (entry_id,"run mismatch",run.get("id"))
+              assert run.get("head_sha")==head, (
+                  entry_id,"head mismatch",run.get("head_sha"),head
+              )
           assert d["schema_version"] == 1
           assert d["gate"] == "PARITY_MISMATCH_LEDGER_OPEN_ZERO"
           entries=d["entries"]
@@ -36,6 +76,22 @@ jobs:
           resolved=[x for x in semantic if x["status"]=="RESOLVED"]
           pending=[x for x in semantic if x["status"]!="RESOLVED"]
           unexplained=[x for x in pending if not x.get("explanation")]
+          for entry in semantic:
+              refs=entry.get("evidence_refs",[])
+              assert refs, (entry["id"],"semantic mismatch lacks content-addressed evidence")
+              roles=set()
+              for ref in refs:
+                  assert ref["role"] not in roles, (entry["id"],"duplicate evidence role",ref["role"])
+                  roles.add(ref["role"])
+                  verify_artifact(entry["id"],ref)
+              if entry["status"]=="RESOLVED":
+                  assert any(role.startswith("resolution_") for role in roles), (
+                      entry["id"],"resolved mismatch lacks resolution evidence"
+                  )
+                  verification=entry.get("verification",{})
+                  if "result" in verification:
+                      assert verification["result"]=="PASS", (entry["id"],"verification not PASS")
+
           counts=d["counts"]
           assert counts["detected_semantic_mismatches"] == len(semantic)
           assert counts["resolved_semantic_mismatches"] == len(resolved)
