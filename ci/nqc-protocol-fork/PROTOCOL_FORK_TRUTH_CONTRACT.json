@@ -10,7 +10,7 @@
   },
   "recovered_physical_source": {
     "git_bundle_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
-    "git_bundle_checkpoint_status": "PHYSICALLY_RECOVERED_AND_INSPECTED",
+    "git_bundle_checkpoint_status": "PHYSICALLY_RECOVERED_EXTERNALLY_AND_DIGEST_RECORDED",
     "checkpoint_archive_sha256": "50471b7e29fd55a8c110d4e29ddf38021bfa3e0006ca42c6d833db02c4fa188e",
     "protocol_subset_archive_sha256": "f2850645b2d800732ebb9f09bf3dae48efb94b942bfccacd099dceab440ccb7e",
     "documented_master_head": "dd5db84",
