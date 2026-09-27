@@ -43,7 +43,15 @@
     "FLASH_PRINCIPAL_UNCHANGED",
     "ONLY_MODELED_AAVE_FLASH_PREMIUM_ROUNDING_CHANGES"
   ],
-  "prior_evidence_correction": "PR481 debt/collateral liquidation integer evidence remains scoped evidence, but its 93149 flash-premium value was self-derived using the recovered half-up model and is not accepted as deployed premium parity.",
-  "status": "MEASURED_FAILURE_REPAIR_PENDING_EXACT_HEAD_RERUN",
-  "protocol_fork_truth": "NOT_CLOSED"
+  "prior_evidence_correction": "PR481 debt/collateral liquidation integer evidence remains scoped evidence, but its 93149 flash-premium value was self-derived using the recovered half-up model and is not accepted as deployed premium parity. Any witness that computes its own premium from bps is also non-independent for premium parity.",
+  "status": "MEASURED_FAILURE_REPAIR_PENDING_INDEPENDENT_CALLBACK_EXACT_HEAD_RERUN",
+  "protocol_fork_truth": "NOT_CLOSED",
+  "required_resolution_evidence": [
+    "DEPLOYED_FLASHLOANSIMPLE_CALLBACK_PREMIUM_OBSERVED_WITHOUT_SELF_DERIVED_PERCENTAGE_FORMULA",
+    "EXACT_ASSET_AMOUNT_INITIATOR_AND_POOL_CALLBACK_BINDING",
+    "TWO_PROVIDER_IDENTICAL_CALLBACK_PREMIUM_WITNESS",
+    "PATCHED_GENERATE_LIQUIDATION_OPPORTUNITIES_PATH_REGRESSION",
+    "ZERO_UNEXPLAINED_MISMATCH"
+  ],
+  "zero_capital_probe_semantics": "The historical premium probe must reach Pool.flashLoanSimple executeOperation for the exact debt asset and amount, then intentionally revert from the callback carrying the observed premium so no repayment capital or persistent token transfer is required."
 }

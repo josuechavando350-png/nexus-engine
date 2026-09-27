@@ -141,7 +141,7 @@ fn main() -> Result<(), Error> {{
         premium
     );
     println!(
-        "AAVE_LIQUIDATION_MATH_TOTAL exact_checks=4 emode_category={n(w["user_emode_category"])} effective_bonus_bps={n(w["effective_liquidation_bonus_bps"])} protocol_fee_bps={n(w["liquidation_protocol_fee_bps"])}"
+        "AAVE_LIQUIDATION_MATH_TOTAL exact_checks=4 deployed_callback_premium_checks=1 emode_category={n(w["user_emode_category"])} effective_bonus_bps={n(w["effective_liquidation_bonus_bps"])} protocol_fee_bps={n(w["liquidation_protocol_fee_bps"])}"
     );
     Ok(())
 }}
