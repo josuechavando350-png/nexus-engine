@@ -627,6 +627,63 @@ mod tests {
     }
 
     #[test]
+    fn deep_replacement_drops_multi_block_orphan_replay_state() {
+        let base = anchor(1, 100);
+        let orphan_101 = anchor(2, 101);
+        let orphan_102 = anchor(3, 102);
+        let canonical_102 = anchor(9, 102);
+
+        let initial = snapshot(base, vec![pair(1, 1_000, 2_000)]);
+        let branch_one = initial
+            .replay_sync_block(
+                orphan_101,
+                &[V2SyncUpdate {
+                    pair: addr(1),
+                    reserve0: U256::from(1_100u64),
+                    reserve1: U256::from(1_900u64),
+                }],
+            )
+            .ok()
+            .unwrap_or_else(|| unreachable!());
+        let branch_two = branch_one
+            .replay_sync_block(
+                orphan_102,
+                &[V2SyncUpdate {
+                    pair: addr(1),
+                    reserve0: U256::ZERO,
+                    reserve1: U256::ZERO,
+                }],
+            )
+            .ok()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(branch_two.anchor, orphan_102);
+        assert_eq!(
+            branch_two.routable_graph().ok().map(|graph| graph.pools().len()),
+            Some(0)
+        );
+
+        let orphan_hash = branch_two.snapshot_hash();
+        let canonical = snapshot(canonical_102, vec![pair(2, 3_000, 4_000)]);
+        let canonical_hash = canonical.snapshot_hash();
+        let mut current = Some(branch_two);
+        let committed = commit_snapshot(
+            &mut current,
+            canonical,
+            canonical_102,
+            canonical_102,
+        );
+        assert!(committed.is_ok());
+        assert_eq!(
+            current.as_ref().map(V2CanonicalSnapshot::snapshot_hash),
+            Some(canonical_hash)
+        );
+        assert_ne!(Some(orphan_hash), Some(canonical_hash));
+        let pairs = current.map(|state| state.pairs).unwrap_or_default();
+        assert_eq!(pairs.len(), 1);
+        assert_eq!(pairs[0].pair, addr(2));
+    }
+
+    #[test]
     fn explicit_fee_is_part_of_snapshot_and_quote_semantics() {
         let a = anchor(1, 100);
         let mut state = snapshot(a, vec![pair(1, 1_000_000, 2_000_000)]);
