@@ -55,14 +55,38 @@ jobs:
               },
           }
           expected_workflow={
-              ("PFT-SRC-001","reimplementation"):"NQC T39 V2 Backrun Executor Reimplementation",
-              ("PFT-SRC-001","abi_runtime"):"NQC T39 V2 Runtime ABI Roundtrip",
-              ("PFT-SRC-001","callback_authority_baseline"):"NQC T39 V2 Executor Authority Baseline Matrix",
-              ("PFT-SRC-001","code_identity"):"NQC T39 Executor Code Identity Binding",
-              ("PFT-SRC-001","historical_fork_execution"):"NQC T39 V2 Executor Historical Fork Execution",
-              ("PFT-SRC-001","revm_historical_fork_differential"):"NQC T39 REVM Historical Fork Differential",
-              ("PFT-SRC-003","deterministic_reimplementation"):"NQC T39 Aave Reconciler Reimplementation",
-              ("PFT-SRC-003","historical_canonical_rebuild"):"NQC T39 Aave Reconciler Historical Canonical Parity",
+              ("PFT-SRC-001","reimplementation"):(
+                  "NQC T39 V2 Backrun Executor Reimplementation",
+                  ".github/workflows/nqc-protocol-fork-v2-backrun-executor-reimplementation.yml",
+              ),
+              ("PFT-SRC-001","abi_runtime"):(
+                  "NQC T39 V2 Runtime ABI Roundtrip",
+                  ".github/workflows/nqc-protocol-fork-v2-abi-runtime-roundtrip.yml",
+              ),
+              ("PFT-SRC-001","callback_authority_baseline"):(
+                  "NQC T39 V2 Executor Authority Baseline Matrix",
+                  ".github/workflows/nqc-protocol-fork-v2-executor-authority-matrix.yml",
+              ),
+              ("PFT-SRC-001","code_identity"):(
+                  "NQC T39 Executor Code Identity Binding",
+                  ".github/workflows/nqc-protocol-fork-executor-code-identity.yml",
+              ),
+              ("PFT-SRC-001","historical_fork_execution"):(
+                  "NQC T39 V2 Executor Historical Fork Execution",
+                  ".github/workflows/nqc-protocol-fork-v2-executor-historical-fork.yml",
+              ),
+              ("PFT-SRC-001","revm_historical_fork_differential"):(
+                  "NQC T39 REVM Historical Fork Differential",
+                  ".github/workflows/nqc-protocol-fork-revm-historical-differential.yml",
+              ),
+              ("PFT-SRC-003","deterministic_reimplementation"):(
+                  "NQC T39 Aave Reconciler Reimplementation",
+                  ".github/workflows/nqc-protocol-fork-aave-reconciler-reimplementation.yml",
+              ),
+              ("PFT-SRC-003","historical_canonical_rebuild"):(
+                  "NQC T39 Aave Reconciler Historical Canonical Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-reconciler-historical-parity.yml",
+              ),
           }
 
           def api_get(path):
@@ -113,8 +137,12 @@ jobs:
               assert run_detail.get("conclusion")=="success", (
                   blocker,name,"workflow did not succeed",run_detail.get("conclusion")
               )
-              assert run_detail.get("name")==expected_workflow[(blocker,name)], (
-                  blocker,name,"workflow identity mismatch",run_detail.get("name")
+              expected_name,expected_path=expected_workflow[(blocker,name)]
+              assert run_detail.get("name")==expected_name, (
+                  blocker,name,"workflow name mismatch",run_detail.get("name"),expected_name
+              )
+              assert run_detail.get("path")==expected_path, (
+                  blocker,name,"workflow path mismatch",run_detail.get("path"),expected_path
               )
 
           paths=[
