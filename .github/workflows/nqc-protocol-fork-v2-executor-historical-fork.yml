@@ -1,0 +1,180 @@
+name: NQC T39 V2 Executor Historical Fork Execution
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-v2-executor-historical-fork.yml
+      - ci/nqc-protocol-fork/parity/PftV2ExecutorHistoricalFork.t.sol
+      - ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v2-executor-historical-fork:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      NQC_V2_EXEC_HIST: /tmp/nqc-v2-executor-historical
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Prepare exact isolated executor and witness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_V2_EXEC_HIST"
+          mkdir -p "$NQC_V2_EXEC_HIST/src" "$NQC_V2_EXEC_HIST/test" "$NQC_V2_EXEC_HIST/evidence" "$NQC_V2_EXEC_HIST/bin"
+          git rev-parse HEAD > "$NQC_V2_EXEC_HIST/evidence/repository-source-sha.txt"
+
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol "$NQC_V2_EXEC_HIST/src/"
+          cp ci/nqc-protocol-fork/parity/PftV2ExecutorHistoricalFork.t.sol "$NQC_V2_EXEC_HIST/test/"
+          cat > "$NQC_V2_EXEC_HIST/foundry.toml" <<'EOF'
+          [profile.default]
+          src = "src"
+          test = "test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          fs_permissions = [{ access = "read-write", path = "./evidence" }]
+          EOF
+
+          sha256sum             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/REIMPLEMENTATION_CONTRACT.json             ci/nqc-protocol-fork/parity/PftV2ExecutorHistoricalFork.t.sol             > "$NQC_V2_EXEC_HIST/evidence/input-source.sha256"
+
+      - name: Install exact Foundry and solc
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_V2_EXEC_HIST/foundry.tar.gz"             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  $NQC_V2_EXEC_HIST/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$NQC_V2_EXEC_HIST/foundry.tar.gz" -C "$NQC_V2_EXEC_HIST/bin"
+          export PATH="$NQC_V2_EXEC_HIST/bin:$PATH"
+          forge --version | tee "$NQC_V2_EXEC_HIST/evidence/forge.txt"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_V2_EXEC_HIST/solc-0.8.24"             "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  $NQC_V2_EXEC_HIST/solc-0.8.24" | sha256sum -c -
+          chmod +x "$NQC_V2_EXEC_HIST/solc-0.8.24"
+          "$NQC_V2_EXEC_HIST/solc-0.8.24" --version | tee "$NQC_V2_EXEC_HIST/evidence/solc.txt"
+          "$NQC_V2_EXEC_HIST/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
+
+          cd "$NQC_V2_EXEC_HIST"
+          forge build --force --offline --use "$NQC_V2_EXEC_HIST/solc-0.8.24"             2>&1 | tee "$NQC_V2_EXEC_HIST/evidence/forge-build.log"
+
+      - name: Execute real contracts over immutable historical state through two providers
+        shell: bash
+        working-directory: /tmp/nqc-v2-executor-historical
+        run: |
+          set -euo pipefail
+          export PATH="$NQC_V2_EXEC_HIST/bin:$PATH"
+
+          for entry in 'blastapi-public|https://eth-mainnet.public.blastapi.io|18621|0.35' 'mevblocker-rpc|https://rpc.mevblocker.io|18622|1.25'; do
+            IFS='|' read -r provider_id provider_url port min_interval <<< "$entry"
+            evidence="$NQC_V2_EXEC_HIST/evidence/$provider_id-execution.json"
+
+            NQC_PFT_PROXY_PORT="$port"             NQC_PFT_UPSTREAM_URL="$provider_url"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval"             NQC_PFT_MAX_ATTEMPTS=12             NQC_PFT_UPSTREAM_TIMEOUT_SECONDS=60             NQC_PFT_PROXY_LOG="$NQC_V2_EXEC_HIST/evidence/$provider_id-throttle.jsonl"               python3 "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py"               > "$NQC_V2_EXEC_HIST/evidence/$provider_id-throttle.log" 2>&1 &
+            proxy_pid=$!
+            trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT
+
+            ready=0
+            for _ in $(seq 1 150); do
+              if curl --silent --fail "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                ready=1; break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            PFT_RPC="http://127.0.0.1:$port" python3 - <<'PY'
+          import json, os, urllib.request
+          url=os.environ["PFT_RPC"]
+          payload=json.dumps({"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":[hex(25252136),False]}).encode()
+          req=urllib.request.Request(url,data=payload,headers={"content-type":"application/json"})
+          with urllib.request.urlopen(req,timeout=180) as response:
+              body=json.loads(response.read())
+          block=body["result"]
+          assert block["hash"].lower()=="0x49edc621ec5fe843353be319ae1a307be4e37d2a51111ccc07a2c8aae3ff6470"
+          assert block["parentHash"].lower()=="0x04a2465e3a87b1103521c1f54e568de209062f08742a0212da24d34eee4aac78"
+          PY
+
+            PFT_RPC_URL="http://127.0.0.1:$port"             PFT_EVIDENCE_PATH="$evidence"               forge test --offline --use "$NQC_V2_EXEC_HIST/solc-0.8.24"                 --match-contract PftV2ExecutorHistoricalForkTest -vvvv                 2>&1 | tee "$NQC_V2_EXEC_HIST/evidence/$provider_id-foundry.log"
+
+            grep -F '[PASS] testFork_V2ExecutorSettlesSyntheticBackrunOverHistoricalMainnetState()'               "$NQC_V2_EXEC_HIST/evidence/$provider_id-foundry.log"
+            test -s "$evidence"
+            python3 -m json.tool "$evidence" >/dev/null
+
+            kill "$proxy_pid"
+            wait "$proxy_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+
+      - name: Require exact provider consensus and profitable settlement
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("/tmp/nqc-v2-executor-historical/evidence")
+          left=json.loads((root/"blastapi-public-execution.json").read_text())
+          right=json.loads((root/"mevblocker-rpc-execution.json").read_text())
+          if left != right:
+              keys=sorted(k for k in set(left)|set(right) if left.get(k)!=right.get(k))
+              raise SystemExit(f"PROVIDER_DISSENT: V2 executor historical evidence differs at {keys}")
+          def integer(v):
+              return int(v,0) if isinstance(v,str) else int(v)
+          required=[
+              "block_hash","parent_hash","executor_runtime_keccak256","plan_hash",
+              "target_provenance","candidate_provenance","synthetic_target_weth_in",
+              "synthetic_target_usdc_out","flash_usdc","flash_premium","hop0_weth_out",
+              "hop1_usdc_out","realized_profit_usdc","operator_usdc_delta",
+              "ordered_logs_digest","ordered_log_count"
+          ]
+          for key in required:
+              if key not in left:
+                  raise SystemExit(f"missing evidence key: {key}")
+          if integer(left["realized_profit_usdc"]) <= 0:
+              raise SystemExit("non-positive historical-fork realized profit")
+          if integer(left["realized_profit_usdc"]) != integer(left["operator_usdc_delta"]):
+              raise SystemExit("operator delta differs from realized profit")
+          if str(left["target_provenance"]).lower() == str(left["candidate_provenance"]).lower():
+              raise SystemExit("provenance collision")
+          (root/"canonical-v2-executor-historical.json").write_text(
+              json.dumps(left,indent=2,sort_keys=True)+"\n"
+          )
+          print(
+              "V2_EXECUTOR_HISTORICAL_FORK_EXECUTION_PASS "
+              f"profit_usdc_units={integer(left['realized_profit_usdc'])} "
+              f"logs={integer(left['ordered_log_count'])}"
+          )
+          PY
+
+          printf '%s\n' 'PASS_HISTORICAL_V2_FORK_EXECUTION_SYNTHETIC_TARGET_OVER_REAL_STATE'             > "$NQC_V2_EXEC_HIST/evidence/gate-status.txt"
+          printf '%s\n' 'SYNTHETIC_TARGET_NOT_REAL_MARKET_PNL'             > "$NQC_V2_EXEC_HIST/evidence/truth-boundary.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_V2_EXEC_HIST/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_V2_EXEC_HIST/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve exact historical executor evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-v2-executor-historical-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-v2-executor-historical/evidence
+          if-no-files-found: error
+          retention-days: 30
