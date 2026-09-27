@@ -2,12 +2,7 @@ diff --git a/crates/nqc-aave-sync/Cargo.toml b/crates/nqc-aave-sync/Cargo.toml
 index 9999935..ceea52f 100644
 --- a/crates/nqc-aave-sync/Cargo.toml
 +++ b/crates/nqc-aave-sync/Cargo.toml
-@@ -9,5 +9,8 @@ alloy.workspace = true
- nqc-hot-state = { path = "../nqc-hot-state" }
- thiserror.workspace = true
- 
+@@ -11,0 +12,3 @@ thiserror.workspace = true
 +[dev-dependencies]
 +nqc-core = { path = "../nqc-core" }
 +
- [lints]
- workspace = true
