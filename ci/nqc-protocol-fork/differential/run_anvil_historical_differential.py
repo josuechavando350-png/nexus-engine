@@ -310,7 +310,7 @@ def main():
             ),
         },
         "caller":caller,
-        "caller_initial_balance":CALLER_BALANCE,
+        "caller_initial_balance":str(CALLER_BALANCE),
         "helper":HELPER,
         "helper_runtime":runtime,
         "gas_price":GAS_PRICE,
