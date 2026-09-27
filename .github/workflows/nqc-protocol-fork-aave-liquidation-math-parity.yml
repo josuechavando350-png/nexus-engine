@@ -1,0 +1,157 @@
+name: NQC T39 Aave Liquidation Integer Math Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-liquidation-math-parity.yml
+      - ci/nqc-protocol-fork/parity/PftAaveLiquidationMathWitness.t.sol
+      - ci/nqc-protocol-fork/parity/generate_aave_liquidation_math_parity.py
+      - ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  liquidation-integer-math:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      NQC_LIQ_WORK: /tmp/nqc-aave-liquidation-math
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable source and prepare harnesses
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_LIQ_WORK"
+          mkdir -p "$NQC_LIQ_WORK/foundry/src" "$NQC_LIQ_WORK/foundry/test" "$NQC_LIQ_WORK/evidence" "$NQC_LIQ_WORK/source"
+          git rev-parse HEAD > "$NQC_LIQ_WORK/evidence/repository-source-sha.txt"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_LIQ_WORK/source/"
+          python3 ci/nqc-protocol-fork/parity/prepare_reserve_parity.py "$NQC_LIQ_WORK/source"
+          cp ci/nqc-protocol-fork/parity/PftAaveLiquidationMathWitness.t.sol "$NQC_LIQ_WORK/foundry/test/"
+          cat > "$NQC_LIQ_WORK/foundry/foundry.toml" <<'EOF'
+          [profile.default]
+          src = "src"
+          test = "test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          fs_permissions = [{ access = "read-write", path = "../evidence" }]
+          EOF
+          sha256sum             ci/nqc-protocol-fork/parity/PftAaveLiquidationMathWitness.t.sol             ci/nqc-protocol-fork/parity/generate_aave_liquidation_math_parity.py             > "$NQC_LIQ_WORK/evidence/harness-source.sha256"
+
+      - name: Install exact Foundry solc and Rust
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$NQC_LIQ_WORK/foundry-bin"
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_LIQ_WORK/foundry.tar.gz"             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  $NQC_LIQ_WORK/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$NQC_LIQ_WORK/foundry.tar.gz" -C "$NQC_LIQ_WORK/foundry-bin"
+          export PATH="$NQC_LIQ_WORK/foundry-bin:$PATH"
+          forge --version | tee "$NQC_LIQ_WORK/evidence/forge.txt"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_LIQ_WORK/solc-0.8.24"             "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  $NQC_LIQ_WORK/solc-0.8.24" | sha256sum -c -
+          chmod +x "$NQC_LIQ_WORK/solc-0.8.24"
+          "$NQC_LIQ_WORK/solc-0.8.24" --version | tee "$NQC_LIQ_WORK/evidence/solc.txt"
+          "$NQC_LIQ_WORK/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
+
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_LIQ_WORK/evidence/rustc.txt"
+          cargo fetch --locked --manifest-path "$NQC_LIQ_WORK/source/Cargo.toml"
+
+      - name: Capture exact transaction pre-state witnesses from two providers
+        shell: bash
+        working-directory: /tmp/nqc-aave-liquidation-math/foundry
+        run: |
+          set -euo pipefail
+          export PATH="$NQC_LIQ_WORK/foundry-bin:$PATH"
+          for entry in 'blastapi-public|https://eth-mainnet.public.blastapi.io|18561|0.35' 'mevblocker-rpc|https://rpc.mevblocker.io|18562|1.25'; do
+            IFS='|' read -r provider_id provider_url port min_interval <<< "$entry"
+            witness="$NQC_LIQ_WORK/evidence/$provider_id-witness.json"
+
+            NQC_PFT_PROXY_PORT="$port"             NQC_PFT_UPSTREAM_URL="$provider_url"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval"             NQC_PFT_MAX_ATTEMPTS=12             NQC_PFT_UPSTREAM_TIMEOUT_SECONDS=60             NQC_PFT_PROXY_LOG="$NQC_LIQ_WORK/evidence/$provider_id-throttle.jsonl"               python3 "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py"               > "$NQC_LIQ_WORK/evidence/$provider_id-throttle.log" 2>&1 &
+            proxy_pid=$!
+            trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT
+
+            ready=0
+            for _ in $(seq 1 150); do
+              if curl --silent --fail "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                ready=1; break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            PFT_RPC_URL="http://127.0.0.1:$port"             PFT_WITNESS_PATH="$witness"               forge test --use "$NQC_LIQ_WORK/solc-0.8.24"                 --match-contract PftAaveLiquidationMathWitnessTest -vvvv                 2>&1 | tee "$NQC_LIQ_WORK/evidence/$provider_id-foundry.log"
+            test -s "$witness"
+            python3 -m json.tool "$witness" >/dev/null
+
+            kill "$proxy_pid"
+            wait "$proxy_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          ev=Path("/tmp/nqc-aave-liquidation-math/evidence")
+          left=json.loads((ev/"blastapi-public-witness.json").read_text())
+          right=json.loads((ev/"mevblocker-rpc-witness.json").read_text())
+          if left != right:
+              raise SystemExit("PROVIDER_DISSENT: transaction-prestate liquidation witness mismatch")
+          (ev/"canonical-liquidation-witness.json").write_text(
+              json.dumps(left,indent=2,sort_keys=True)+"\n"
+          )
+          PY
+          sha256sum "$NQC_LIQ_WORK/evidence/canonical-liquidation-witness.json"             > "$NQC_LIQ_WORK/evidence/canonical-liquidation-witness.sha256"
+
+      - name: Execute recovered Aave integer math against historical result
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-protocol-fork/parity/generate_aave_liquidation_math_parity.py             "$NQC_LIQ_WORK/evidence/canonical-liquidation-witness.json"             "$NQC_LIQ_WORK/source/crates/nqc-aave-math/examples/pft_liquidation_math_parity.rs"
+          cp "$NQC_LIQ_WORK/source/crates/nqc-aave-math/examples/pft_liquidation_math_parity.rs"             "$NQC_LIQ_WORK/evidence/"
+
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo run --locked --offline             --manifest-path "$NQC_LIQ_WORK/source/Cargo.toml"             -p nqc-aave-math --example pft_liquidation_math_parity             2>&1 | tee "$NQC_LIQ_WORK/evidence/liquidation-math-parity.log"
+
+          grep -F 'AAVE_LIQUIDATION_MATH_PARITY_PASS' "$NQC_LIQ_WORK/evidence/liquidation-math-parity.log"
+          grep -F 'AAVE_LIQUIDATION_MATH_TOTAL exact_checks=4' "$NQC_LIQ_WORK/evidence/liquidation-math-parity.log"
+          printf '%s\n' 'PASS_SINGLE_HISTORICAL_EMODE_LIQUIDATION_INTEGER_MATH'             > "$NQC_LIQ_WORK/evidence/parity-status.txt"
+          printf '%s\n' 'PARTIAL_PENDING_LARGE_CLOSE_FACTOR_AND_MULTI_PAIR_COVERAGE'             > "$NQC_LIQ_WORK/evidence/aave-liquidation-gate-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_LIQ_WORK/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_LIQ_WORK/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-liquidation-math-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-aave-liquidation-math/evidence
+          if-no-files-found: error
+          retention-days: 30
