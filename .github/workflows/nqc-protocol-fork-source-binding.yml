@@ -138,7 +138,7 @@ jobs:
           echo "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5  $PATCH3" | sha256sum -c -
           echo "323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720  $PATCH4" | sha256sum -c -
           echo "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664  $PATCH5" | sha256sum -c -
-          echo "f0858e30d7763bedbb140c4d4c23daa54cfa6659f02256275f9362e719d41e15  $PATCH6" | sha256sum -c -
+          echo "f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0  $PATCH6" | sha256sum -c -
           (
             cd /tmp/nqc-pft/source
             git apply --check "$PATCH1"
@@ -287,7 +287,7 @@ jobs:
                   {"id":"PFT-COMPAT-003","sha256":"7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5"},
                   {"id":"PFT-COMPAT-004","sha256":"323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720"},
                   {"id":"PFT-COMPAT-005","sha256":"12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664"},
-                  {"id":"PFT-COMPAT-006","sha256":"f0858e30d7763bedbb140c4d4c23daa54cfa6659f02256275f9362e719d41e15"}
+                  {"id":"PFT-COMPAT-006","sha256":"f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0"}
               ],
               "compatibility_overlay_scope":"TEMP_BUILD_COPY_ONLY; RECOVERED_BYTES_IMMUTABLE",
               "rustfmt_1_98_1_exact_source_match":(
