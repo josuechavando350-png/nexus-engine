@@ -44,9 +44,18 @@ jobs:
           cp ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol             "$NQC_EXEC_HIST/contracts/test/"
 
           patch="$NQC_EXEC_HIST/PFT-COMPAT-007-aave-stack-lifetime.patch"
-          git show HEAD:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch > "$patch"
-          test "$(git rev-parse HEAD:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch)" = "cc8fb4c9f26e934d8bcc3fb3df78acf990c5e505"
-          echo "bf3d8ad2f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720  $patch" | sha256sum -c -
+          blob="$(git rev-parse HEAD:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch)"
+          test "$blob" = "cc8fb4c9f26e934d8bcc3fb3df78acf990c5e505"
+          PATCH_OUT="$patch" PATCH_BLOB="$blob" python3 - <<'PY'
+          import hashlib, os, pathlib, subprocess
+          raw=subprocess.check_output(["git","cat-file","blob",os.environ["PATCH_BLOB"]])
+          actual=hashlib.sha256(raw).hexdigest()
+          expected="bf3d8ad2f5f1ddbbf80cdb50ba60442e08dce2ef990f68a5f29ba48992ea1fae"
+          if actual != expected:
+              raise SystemExit(f"compatibility patch SHA256 mismatch: {actual}")
+          pathlib.Path(os.environ["PATCH_OUT"]).write_bytes(raw)
+          print(f"PFT_COMPAT_007_SHA256_PASS {actual}")
+          PY
           (
             cd "$NQC_EXEC_HIST"
             git init -q
