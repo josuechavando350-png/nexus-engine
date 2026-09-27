@@ -15,6 +15,7 @@ sol! {
     interface IV2FactoryView {
         function allPairsLength() external view returns (uint256);
         function allPairs(uint256 index) external view returns (address);
+        function getPair(address tokenA, address tokenB) external view returns (address);
     }
 
     #[sol(rpc)]
@@ -76,6 +77,13 @@ impl V2PairState {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct V2SyncUpdate {
+    pub pair: Address,
+    pub reserve0: U256,
+    pub reserve1: U256,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct V2CanonicalSnapshot {
     pub chain_id: u64,
@@ -121,6 +129,45 @@ impl V2CanonicalSnapshot {
         keccak256(bytes)
     }
 
+    /// Replays canonical Uniswap V2 Sync events for exactly one next block.
+    ///
+    /// The caller must validate next_anchor against the canonical source before
+    /// invoking this pure transition. Multiple updates for one pair are applied
+    /// in log order; zero reserves are preserved as canonical dead liquidity.
+    pub fn replay_sync_block(
+        &self,
+        next_anchor: CanonicalBlock,
+        updates: &[V2SyncUpdate],
+    ) -> Result<Self, V2StateError> {
+        let expected_number = self
+            .anchor
+            .number
+            .checked_add(1)
+            .ok_or(V2StateError::BlockNumberOverflow)?;
+        if next_anchor.number != expected_number {
+            return Err(V2StateError::NonContiguousSyncReplay {
+                expected: expected_number,
+                actual: next_anchor.number,
+            });
+        }
+        let timestamp = u32::try_from(next_anchor.timestamp & u64::from(u32::MAX))
+            .map_err(|_| V2StateError::BlockTimestampOverflow)?;
+
+        let mut next = self.clone();
+        next.anchor = next_anchor;
+        for update in updates {
+            let pair = next
+                .pairs
+                .iter_mut()
+                .find(|pair| pair.pair == update.pair)
+                .ok_or(V2StateError::UnknownSyncPair(update.pair))?;
+            pair.reserve0 = update.reserve0;
+            pair.reserve1 = update.reserve1;
+            pair.block_timestamp_last = timestamp;
+        }
+        Ok(next)
+    }
+
     pub fn routable_graph(&self) -> Result<V2GraphSnapshot, V2StateError> {
         let pools = self
             .pairs
@@ -156,6 +203,108 @@ impl V2CanonicalReader {
             source: source.clone(),
             provider: source.provider(),
             chain_id: expected_chain_id,
+        })
+    }
+
+    /// Reads an explicit fixture/route pair set from one exact canonical anchor.
+    ///
+    /// Every requested pair is re-bound to the configured factory through
+    /// getPair(token0, token1). This is intentionally separate from full
+    /// factory enumeration so historical route parity does not need to scan
+    /// the entire production factory.
+    pub async fn read_pairs_at(
+        &self,
+        spec: V2FactorySpec,
+        pair_addresses: &[Address],
+        anchor: CanonicalBlock,
+    ) -> Result<V2CanonicalSnapshot, V2StateError> {
+        validate_spec(spec)?;
+        if pair_addresses.is_empty() {
+            return Err(V2StateError::EmptyPairSelection);
+        }
+        if pair_addresses.len() as u64 > spec.max_pairs {
+            return Err(V2StateError::SelectedPairLimitExceeded {
+                observed: pair_addresses.len() as u64,
+                maximum: spec.max_pairs,
+            });
+        }
+
+        self.source.ensure_canonical(anchor).await?;
+        let block = BlockId::hash_canonical(anchor.hash);
+        let factory = IV2FactoryView::new(spec.factory, &self.provider);
+        let mut seen = HashSet::with_capacity(pair_addresses.len());
+        let mut pairs = Vec::with_capacity(pair_addresses.len());
+
+        for pair in pair_addresses.iter().copied() {
+            if pair == Address::ZERO {
+                return Err(V2StateError::ZeroSelectedPair);
+            }
+            if !seen.insert(pair) {
+                return Err(V2StateError::DuplicatePair(pair));
+            }
+
+            let contract = IV2PairView::new(pair, &self.provider);
+            let token0 = contract
+                .token0()
+                .block(block)
+                .call()
+                .await
+                .map_err(contract_error)?;
+            let token1 = contract
+                .token1()
+                .block(block)
+                .call()
+                .await
+                .map_err(contract_error)?;
+            if token0 == Address::ZERO || token1 == Address::ZERO || token0 == token1 {
+                return Err(V2StateError::InvalidPairIdentity(pair));
+            }
+
+            let canonical_pair = factory
+                .getPair(token0, token1)
+                .block(block)
+                .call()
+                .await
+                .map_err(contract_error)?;
+            if canonical_pair != pair {
+                return Err(V2StateError::PairNotFactoryMember {
+                    pair,
+                    factory: spec.factory,
+                    canonical_pair,
+                });
+            }
+
+            let reserves = contract
+                .getReserves()
+                .block(block)
+                .call()
+                .await
+                .map_err(contract_error)?;
+            pairs.push(V2PairState {
+                pair,
+                token0,
+                token1,
+                reserve0: U256::from(reserves.reserve0.to::<u128>()),
+                reserve1: U256::from(reserves.reserve1.to::<u128>()),
+                block_timestamp_last: reserves.blockTimestampLast,
+            });
+        }
+
+        pairs.sort_unstable_by_key(|pair| pair.pair);
+        let observed = self.source.canonical_block_at(anchor.number).await?;
+        if observed != anchor {
+            return Err(V2StateError::CanonicalChanged {
+                expected: anchor,
+                observed,
+            });
+        }
+
+        Ok(V2CanonicalSnapshot {
+            chain_id: self.chain_id,
+            anchor,
+            factory: spec.factory,
+            fee_bps: spec.fee_bps,
+            pairs,
         })
     }
 
@@ -297,6 +446,18 @@ pub enum V2StateError {
     InvalidFeeBps(u32),
     #[error("expected chain id {expected}, connected source reports {actual}")]
     ChainIdMismatch { expected: u64, actual: u64 },
+    #[error("explicit V2 pair selection cannot be empty")]
+    EmptyPairSelection,
+    #[error("explicit V2 pair selection contains zero address")]
+    ZeroSelectedPair,
+    #[error("selected pair count {observed} exceeds configured maximum {maximum}")]
+    SelectedPairLimitExceeded { observed: u64, maximum: u64 },
+    #[error("pair {pair} is not bound to factory {factory}; getPair returned {canonical_pair}")]
+    PairNotFactoryMember {
+        pair: Address,
+        factory: Address,
+        canonical_pair: Address,
+    },
     #[error("factory returned zero pair at index {0}")]
     ZeroPair(u64),
     #[error("factory returned duplicate pair {0}")]
@@ -305,6 +466,14 @@ pub enum V2StateError {
     InvalidPairIdentity(Address),
     #[error("pair count {observed} exceeds configured maximum {maximum}")]
     PairLimitExceeded { observed: U256, maximum: u64 },
+    #[error("Sync update references pair not present in canonical snapshot: {0}")]
+    UnknownSyncPair(Address),
+    #[error("block number overflow while advancing V2 Sync replay")]
+    BlockNumberOverflow,
+    #[error("Sync replay must be contiguous: expected block {expected}, got {actual}")]
+    NonContiguousSyncReplay { expected: u64, actual: u64 },
+    #[error("block timestamp could not be represented as Uniswap V2 uint32")]
+    BlockTimestampOverflow,
     #[error("V2 canonical anchor changed during refresh: expected {expected:?}, observed {observed:?}")]
     CanonicalChanged {
         expected: CanonicalBlock,
@@ -397,6 +566,121 @@ mod tests {
         let result = commit_snapshot(&mut current, rebuilt, branch_b, moved_again);
         assert!(matches!(result, Err(V2StateError::CanonicalChanged { .. })));
         assert_eq!(current.as_ref().map(V2CanonicalSnapshot::snapshot_hash), Some(old_hash));
+    }
+
+    #[test]
+    fn sync_replay_preserves_zero_liquidity_death_and_revival() {
+        let a = anchor(1, 100);
+        let b = anchor(2, 101);
+        let c = anchor(3, 102);
+        let initial = snapshot(a, vec![pair(1, 100, 200)]);
+
+        let dead = initial.replay_sync_block(
+            b,
+            &[V2SyncUpdate {
+                pair: addr(1),
+                reserve0: U256::ZERO,
+                reserve1: U256::ZERO,
+            }],
+        );
+        assert!(dead.is_ok());
+        let dead = dead.ok().unwrap_or_else(|| unreachable!());
+        assert_eq!(dead.pairs[0].reserve0, U256::ZERO);
+        assert_eq!(dead.routable_graph().ok().map(|g| g.pools().len()), Some(0));
+
+        let revived = dead.replay_sync_block(
+            c,
+            &[V2SyncUpdate {
+                pair: addr(1),
+                reserve0: U256::from(300u64),
+                reserve1: U256::from(400u64),
+            }],
+        );
+        assert!(revived.is_ok());
+        let revived = revived.ok().unwrap_or_else(|| unreachable!());
+        assert_eq!(revived.routable_graph().ok().map(|g| g.pools().len()), Some(1));
+    }
+
+    #[test]
+    fn sync_replay_rejects_unknown_pair_and_noncontiguous_block() {
+        let a = anchor(1, 100);
+        let state = snapshot(a, vec![pair(1, 100, 200)]);
+
+        let unknown = state.replay_sync_block(
+            anchor(2, 101),
+            &[V2SyncUpdate {
+                pair: addr(9),
+                reserve0: U256::from(1u8),
+                reserve1: U256::from(2u8),
+            }],
+        );
+        assert!(matches!(unknown, Err(V2StateError::UnknownSyncPair(_))));
+
+        let skipped = state.replay_sync_block(anchor(3, 102), &[]);
+        assert!(matches!(
+            skipped,
+            Err(V2StateError::NonContiguousSyncReplay {
+                expected: 101,
+                actual: 102
+            })
+        ));
+    }
+
+    #[test]
+    fn deep_replacement_drops_multi_block_orphan_replay_state() {
+        let base = anchor(1, 100);
+        let orphan_101 = anchor(2, 101);
+        let orphan_102 = anchor(3, 102);
+        let canonical_102 = anchor(9, 102);
+
+        let initial = snapshot(base, vec![pair(1, 1_000, 2_000)]);
+        let branch_one = initial
+            .replay_sync_block(
+                orphan_101,
+                &[V2SyncUpdate {
+                    pair: addr(1),
+                    reserve0: U256::from(1_100u64),
+                    reserve1: U256::from(1_900u64),
+                }],
+            )
+            .ok()
+            .unwrap_or_else(|| unreachable!());
+        let branch_two = branch_one
+            .replay_sync_block(
+                orphan_102,
+                &[V2SyncUpdate {
+                    pair: addr(1),
+                    reserve0: U256::ZERO,
+                    reserve1: U256::ZERO,
+                }],
+            )
+            .ok()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(branch_two.anchor, orphan_102);
+        assert_eq!(
+            branch_two.routable_graph().ok().map(|graph| graph.pools().len()),
+            Some(0)
+        );
+
+        let orphan_hash = branch_two.snapshot_hash();
+        let canonical = snapshot(canonical_102, vec![pair(2, 3_000, 4_000)]);
+        let canonical_hash = canonical.snapshot_hash();
+        let mut current = Some(branch_two);
+        let committed = commit_snapshot(
+            &mut current,
+            canonical,
+            canonical_102,
+            canonical_102,
+        );
+        assert!(committed.is_ok());
+        assert_eq!(
+            current.as_ref().map(V2CanonicalSnapshot::snapshot_hash),
+            Some(canonical_hash)
+        );
+        assert_ne!(Some(orphan_hash), Some(canonical_hash));
+        let pairs = current.map(|state| state.pairs).unwrap_or_default();
+        assert_eq!(pairs.len(), 1);
+        assert_eq!(pairs[0].pair, addr(2));
     }
 
     #[test]

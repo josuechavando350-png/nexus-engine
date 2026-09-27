@@ -72,10 +72,13 @@
     {
       "id": "PFT-SRC-002",
       "severity": "HARD",
-      "status": "OPEN",
+      "status": "CLOSED",
       "description": "The documented canonical nqc-v2-state implementation is absent from the physically recovered checkpoint and current GitHub tree.",
       "recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
-      "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
+      "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE",
+      "resolution": "MEASURED_REIMPLEMENTATION_FULL_PARITY_EVIDENCE_PASS",
+      "closeout_evidence": "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json",
+      "unexplained_mismatches": 0
     },
     {
       "id": "PFT-SRC-003",

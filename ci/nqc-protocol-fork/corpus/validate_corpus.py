@@ -87,14 +87,23 @@ if manifest.get("protocol_fork_truth") != "NOT_CLOSED":
     die("protocol_fork_truth must remain NOT_CLOSED while hard source blockers are open")
 
 blockers = contract.get("current_blockers", [])
-open_hard = [
-    blocker
-    for blocker in blockers
-    if blocker.get("severity") == "HARD" and blocker.get("status") == "OPEN"
-]
 expected_blockers = {"PFT-SRC-001", "PFT-SRC-002", "PFT-SRC-003"}
-if {blocker.get("id") for blocker in open_hard} != expected_blockers:
-    die("hard source blocker set changed; corpus admission requires explicit review")
+by_id = {blocker.get("id"): blocker for blocker in blockers}
+if set(by_id) != expected_blockers or len(blockers) != 3:
+    die("hard source blocker identity set changed; corpus admission requires explicit review")
+if any(blocker.get("severity") != "HARD" for blocker in blockers):
+    die("source blocker severity changed; corpus admission requires explicit review")
+if by_id["PFT-SRC-001"].get("status") != "OPEN" or by_id["PFT-SRC-003"].get("status") != "OPEN":
+    die("unexpected source blocker transition; corpus admission requires explicit review")
+if by_id["PFT-SRC-002"].get("status") not in {"OPEN", "CLOSED"}:
+    die("invalid PFT-SRC-002 status")
+if by_id["PFT-SRC-002"].get("status") == "CLOSED":
+    closeout_path = ROOT / "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"
+    closeout = load(closeout_path)
+    if closeout.get("status") != "CLOSED" or closeout.get("unexplained_mismatches") != 0:
+        die("PFT-SRC-002 closed without valid zero-mismatch closeout evidence")
+
+open_hard = [blocker for blocker in blockers if blocker.get("status") == "OPEN"]
 
 source_binding = manifest.get("source_binding", {})
 if source_binding.get("physical_checkpoint") != "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9":

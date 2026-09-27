@@ -64,7 +64,20 @@ jobs:
           assert contract["status"] == "NOT_TESTED"
           assert contract["recovered_physical_source"]["git_bundle_checkpoint"] == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
           assert len(contract["current_blockers"]) == 3
-          assert all(b["status"] == "OPEN" for b in contract["current_blockers"])
+          blockers={b["id"]:b for b in contract["current_blockers"]}
+          assert set(blockers) == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+          assert blockers["PFT-SRC-001"]["status"] == "OPEN"
+          assert blockers["PFT-SRC-003"]["status"] == "OPEN"
+          if blockers["PFT-SRC-002"]["status"] == "CLOSED":
+              closeout=json.loads(Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"
+              ).read_text())
+              assert closeout["status"] == "CLOSED"
+              assert closeout["source_blocker"] == "PFT-SRC-002"
+              assert closeout["unexplained_mismatches"] == 0
+              assert closeout["protocol_fork_truth"] == "NOT_CLOSED"
+          else:
+              assert blockers["PFT-SRC-002"]["status"] == "OPEN"
 
           binding=json.loads(Path("ci/nqc-protocol-fork/recovered-source/SOURCE_BINDING.json").read_text())
           assert binding["physical_checkpoint"] == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"

@@ -71,10 +71,24 @@ jobs:
           assert recovered["documented_master_head_status"] == "NOT_PHYSICALLY_AVAILABLE"
           assert recovered["documented_target_checkpoint_status"] == "NOT_PHYSICALLY_AVAILABLE"
 
-          blockers=contract["current_blockers"]
-          assert len(blockers) == 3
-          assert {b["id"] for b in blockers} == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
-          assert all(b["severity"] == "HARD" and b["status"] == "OPEN" for b in blockers)
+          blockers={b["id"]:b for b in contract["current_blockers"]}
+          assert set(blockers) == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+          assert all(b["severity"] == "HARD" for b in blockers.values())
+          closeout_paths={
+              "PFT-SRC-001":Path("ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json"),
+              "PFT-SRC-002":Path("ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"),
+              "PFT-SRC-003":Path("ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json"),
+          }
+          for blocker_id,blocker in blockers.items():
+              assert blocker["status"] in {"OPEN","CLOSED"}, (blocker_id,blocker["status"])
+              if blocker["status"]=="CLOSED":
+                  closeout_path=closeout_paths[blocker_id]
+                  assert closeout_path.is_file(), (blocker_id,"closed without closeout file")
+                  closeout=json.loads(closeout_path.read_text())
+                  assert closeout["source_blocker"]==blocker_id
+                  assert closeout["status"]=="CLOSED"
+                  assert closeout["unexplained_mismatches"]==0
+                  assert closeout["protocol_fork_truth"]=="NOT_CLOSED"
 
           assert contract["parity_rules"]["unexplained_mismatch_terminal_count"] == 0
           truth=contract["truth_boundaries"]
@@ -96,18 +110,12 @@ jobs:
           test -f ci/nqc-t36/T36_CLOSEOUT.json
           test -f ci/nqc-t37/T37_CLOSEOUT.json
 
-          if git ls-files | grep -Eq '(^|/)NqcV2BackrunExecutor\.sol$'; then
-            echo "PFT-SRC-001 no longer matches tree; update census before proceeding" >&2
-            exit 1
-          fi
-          if git ls-files | grep -Eq '(^|/)nqc-v2-state(/|$)'; then
-            echo "PFT-SRC-002 no longer matches tree; update census before proceeding" >&2
-            exit 1
-          fi
-          if git ls-files | grep -Eq '(^|/)nqc-aave-reconciler(/|$)'; then
-            echo "PFT-SRC-003 no longer matches tree; update census before proceeding" >&2
-            exit 1
-          fi
+          # Recovery census checks only the immutable recovered-source namespace.
+          # Explicit measured reimplementations live under reimplementation/ and
+          # must not be mistaken for recovered historical bytes.
+          test ! -e ci/nqc-protocol-fork/recovered-source/contracts/src/NqcV2BackrunExecutor.sol
+          test ! -e ci/nqc-protocol-fork/recovered-source/crates/nqc-v2-state
+          test ! -e ci/nqc-protocol-fork/recovered-source/crates/nqc-aave-reconciler
 
           python3 - <<'PY'
           import json
@@ -135,17 +143,28 @@ jobs:
           cp ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json /tmp/nqc-pft-source-census/
           cp ci/nqc-protocol-fork/SOURCE_CENSUS.json /tmp/nqc-pft-source-census/
           sha256sum             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json             ci/nqc-protocol-fork/SOURCE_CENSUS.json             > /tmp/nqc-pft-source-census/source-census.sha256
-          cat > /tmp/nqc-pft-source-census/status.json <<'JSON'
-          {
-            "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
-            "source_census": "PASS",
-            "protocol_fork_truth": "BLOCKED",
-            "hard_source_blockers_open": 3,
-            "real_market_census": "NOT_TESTED",
-            "live_pnl_evidence": false,
-            "production_certification": "NOT_CERTIFIED"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
+          blockers=contract["current_blockers"]
+          open_count=sum(1 for b in blockers if b["status"]=="OPEN")
+          closed_count=sum(1 for b in blockers if b["status"]=="CLOSED")
+          status={
+              "tranche":"T39_PROTOCOL_FORK_TRUTH_55_TO_62",
+              "source_census":"PASS",
+              "historical_source_recovery_gaps":3,
+              "hard_source_blockers_open":open_count,
+              "hard_source_blockers_closed":closed_count,
+              "protocol_fork_truth":"BLOCKED_BY_SOURCE" if open_count else "SOURCE_BLOCKERS_CLOSED_OTHER_GATES_MAY_REMAIN",
+              "real_market_census":"NOT_TESTED",
+              "live_pnl_evidence":False,
+              "production_certification":"NOT_CERTIFIED",
           }
-          JSON
+          Path("/tmp/nqc-pft-source-census/status.json").write_text(
+              json.dumps(status,indent=2,sort_keys=True)+"\n"
+          )
+          PY
           sha256sum /tmp/nqc-pft-source-census/* > /tmp/nqc-pft-source-census/SHA256SUMS
           (cd /tmp/nqc-pft-source-census && sha256sum -c SHA256SUMS)
 
