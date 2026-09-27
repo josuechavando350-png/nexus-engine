@@ -1,0 +1,61 @@
+name: NQC T39 Aave Canonical State Parity Closeout
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-canonical-state-closeout.yml
+      - ci/nqc-protocol-fork/AAVE_CANONICAL_STATE_PARITY_CLOSEOUT.json
+      - ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.json
+      - ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closeout:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Validate exact evidence binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          closeout=json.loads(Path("ci/nqc-protocol-fork/AAVE_CANONICAL_STATE_PARITY_CLOSEOUT.json").read_text())
+          compat=json.loads(Path("ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.json").read_text())
+          assert closeout["gate"]=="AAVE_CANONICAL_STATE_PARITY"
+          assert closeout["status"]=="PASS"
+          assert closeout["providers"]==["blastapi-public","mevblocker-rpc"]
+          assert len(closeout["anchors"])==2
+          assert sum(x["users"] for x in closeout["anchors"])==15
+          ev=closeout["evidence"]
+          assert ev["recovered_user_meta"]["exact_comparisons"]==30
+          assert ev["reserve_index_scaled_balance"]["balance_parity_passes_per_provider"]==15
+          assert ev["reserve_index_scaled_balance"]["reserves_per_provider"]==12
+          assert ev["reserve_index_scaled_balance"]["positions_per_provider"]==45
+          assert ev["full_account_risk"]["users_per_provider"]==15
+          assert ev["full_account_risk"]["exact_integer_checks_per_provider"]==60
+          assert ev["full_account_risk"]["emode_users_per_provider"]==2
+          assert ev["full_account_risk"]["unexplained_mismatches"]==0
+          assert ev["exact_emode_zero_account_risk"]["users"]==13
+          assert ev["exact_emode_zero_account_risk"]["exact_integer_checks"]==39
+          assert closeout["unexplained_mismatches"]==0
+          assert compat["compatibility_id"]=="PFT-COMPAT-008"
+          assert compat["status"]=="RESOLVED_EXACT_TWO_PROVIDER_PARITY"
+          assert compat["source_bytes_modified"] is False
+          resolved=compat["resolved_verification"]
+          assert resolved["head"]=="7494e76f9e8b942f021468578de4ff19aef68dbd"
+          assert resolved["full_account_risk"]["workflow_run"]==36341553888
+          assert resolved["full_account_risk"]["unexplained_mismatches"]==0
+          assert closeout["protocol_fork_truth"]=="NOT_CLOSED"
+          print("AAVE_CANONICAL_STATE_PARITY_CLOSEOUT_PASS")
+          PY
+          sha256sum             ci/nqc-protocol-fork/AAVE_CANONICAL_STATE_PARITY_CLOSEOUT.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py             > /tmp/aave-canonical-state-closeout.sha256
+          sha256sum -c /tmp/aave-canonical-state-closeout.sha256
