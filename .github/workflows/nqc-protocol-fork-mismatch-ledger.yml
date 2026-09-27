@@ -50,6 +50,34 @@ jobs:
               },
           }
 
+          expected_producer={
+              ("PFT-MISMATCH-AAVE-ACCOUNTING-001","resolution_full_account_risk"):(
+                  "NQC T39 Aave Full Account Risk Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml",
+                  "success",
+              ),
+              ("PFT-MISMATCH-AAVE-ACCOUNTING-001","resolution_exact_account_risk"):(
+                  "NQC T39 Aave Account Risk Exact Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-account-risk-parity.yml",
+                  "success",
+              ),
+              ("PFT-MISMATCH-AAVE-FLASH-PREMIUM-001","observed_mismatch"):(
+                  "NQC T39 Aave Executor Historical Fork Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-executor-historical.yml",
+                  "failure",
+              ),
+              ("PFT-MISMATCH-AAVE-FLASH-PREMIUM-001","resolution_executor_historical"):(
+                  "NQC T39 Aave Executor Historical Fork Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-executor-historical.yml",
+                  "success",
+              ),
+              ("PFT-MISMATCH-AAVE-FLASH-PREMIUM-001","resolution_full_liquidation_matrix"):(
+                  "NQC T39 Aave Full Liquidation Integer Matrix",
+                  ".github/workflows/nqc-protocol-fork-aave-liquidation-matrix.yml",
+                  "success",
+              ),
+          }
+
           def api_get(path):
               req=urllib.request.Request(
                   f"https://api.github.com/repos/{repo}{path}",
@@ -64,11 +92,17 @@ jobs:
                   return json.loads(response.read())
 
           def verify_artifact(entry_id,ref):
+              role=ref.get("role")
+              assert isinstance(role,str) and role, (entry_id,"missing role")
+              producer_key=(entry_id,role)
+              assert producer_key in expected_producer, (
+                  entry_id,role,"no authoritative producer contract"
+              )
+              expected_name,expected_path,expected_conclusion=expected_producer[producer_key]
               head=ref["head"]
               run_id=int(ref["workflow_run_id"])
               artifact_id=int(ref["artifact_id"])
               digest=ref["artifact_sha256"]
-              assert isinstance(ref.get("role"),str) and ref["role"], (entry_id,"missing role")
               assert sha40.fullmatch(head), (entry_id,"bad head")
               assert run_id>0 and artifact_id>0, (entry_id,"bad ids")
               assert sha256.fullmatch(digest), (entry_id,"bad digest")
@@ -91,8 +125,15 @@ jobs:
               assert run_detail.get("status")=="completed", (
                   entry_id,"workflow not completed",run_detail.get("status")
               )
-              assert run_detail.get("conclusion")=="success", (
-                  entry_id,"workflow did not succeed",run_detail.get("conclusion")
+              assert run_detail.get("conclusion")==expected_conclusion, (
+                  entry_id,role,"unexpected workflow conclusion",
+                  run_detail.get("conclusion"),expected_conclusion
+              )
+              assert run_detail.get("name")==expected_name, (
+                  entry_id,role,"workflow name mismatch",run_detail.get("name"),expected_name
+              )
+              assert run_detail.get("path")==expected_path, (
+                  entry_id,role,"workflow path mismatch",run_detail.get("path"),expected_path
               )
           assert d["schema_version"] == 1
           assert d["gate"] == "PARITY_MISMATCH_LEDGER_OPEN_ZERO"
