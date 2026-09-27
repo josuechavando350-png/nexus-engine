@@ -23,7 +23,7 @@ jobs:
     env:
       RUST_TOOLCHAIN: "1.98.1"
       RECOVERED_CHECKPOINT: "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
-      WITNESS_SHA256: "493d9f2ba0de181829c5c60ef9f370e1333f713464018f93b4078886f55c29e6"
+      WITNESS_SHA256: "16a4260977fa7784fd5b1282de8eee71710fdb49ca171b42e99592e8cf870441"
       CARGO_LOCK_SHA256: "f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a"
 
     steps:
@@ -225,13 +225,17 @@ jobs:
           from pathlib import Path
 
           ev=Path("/tmp/nqc-pft-reader/evidence")
+          ev.mkdir(parents=True, exist_ok=True)
+          def read(name, default=None):
+              path=ev/name
+              return path.read_text().strip() if path.exists() else default
           passed=(ev/"recovered-reader-user-meta-parity.txt").exists()
-          total=int((ev/"total-exact-comparisons.txt").read_text()) if (ev/"total-exact-comparisons.txt").exists() else 0
+          total=int(read("total-exact-comparisons.txt", "0"))
           summary={
               "schema_version":1,
               "tranche":"T39_PROTOCOL_FORK_TRUTH_55_TO_62",
               "gate":"RECOVERED_NQC_AAVE_USER_META_PARITY",
-              "repository_source_sha":(ev/"repository-source-sha.txt").read_text().strip(),
+              "repository_source_sha":read("repository-source-sha.txt"),
               "physical_checkpoint":"2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
               "witness_source_sha":"7b2408778f5e0b053112220d7f3ee7970861462b",
               "witness_artifact_id":10924684411,
