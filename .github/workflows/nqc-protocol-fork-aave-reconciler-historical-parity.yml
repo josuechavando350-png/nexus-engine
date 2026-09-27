@@ -72,6 +72,27 @@ jobs:
           export CARGO_NET_OFFLINE=true
           cargo generate-lockfile --offline             --manifest-path "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/Cargo.toml"
 
+          python3 - <<'PYLOCK'
+          import hashlib, json, tomllib
+          from pathlib import Path
+          root=Path("/tmp/nqc-aave-reconciler-historical")
+          pinned=root/"recovered-source/Cargo.lock"
+          resolved=root/"reimplementation/nqc-aave-reconciler/Cargo.lock"
+          def external(path):
+              return {(p["name"],p["version"],p["source"],p.get("checksum"))
+                      for p in tomllib.loads(path.read_text())["package"] if "source" in p}
+          drift=external(resolved)-external(pinned)
+          if drift:
+              raise SystemExit(f"external dependency drift: {sorted(drift)}")
+          packet={"external_dependency_drift":0,"resolved_external_package_count":len(external(resolved)),"files":{}}
+          for name,source in [("recovered-Cargo.lock",pinned),("reconciler-Cargo.lock",resolved),
+                              ("reconciler-Cargo.toml",resolved.with_name("Cargo.toml"))]:
+              raw=source.read_bytes()
+              (root/"evidence"/name).write_bytes(raw)
+              packet["files"][name]=hashlib.sha256(raw).hexdigest()
+          (root/"evidence/dependency-binding.json").write_text(json.dumps(packet,indent=2,sort_keys=True)+"\n")
+          PYLOCK
+
           sha256sum             ci/nqc-protocol-fork/parity/aave-user-meta-witness.json             ci/nqc-protocol-fork/parity/generate_aave_reconciler_historical_parity.py             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py             ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/src/lib.rs             ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/HISTORICAL_PARITY_CONTRACT.json             > "$NQC_REC_HIST/evidence/input-source.sha256"
 
       - name: Execute deterministic deep replacement regression
@@ -79,8 +100,8 @@ jobs:
         run: |
           set -euo pipefail
           export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
-          cargo test --offline             --manifest-path "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/Cargo.toml"             deep_two_block_orphan_state_is_atomically_replaced -- --nocapture             2>&1 | tee "$NQC_REC_HIST/evidence/deep-replacement.log"
-          grep -F "1 passed; 0 failed" "$NQC_REC_HIST/evidence/deep-replacement.log"
+          cargo test --locked --offline             --manifest-path "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/Cargo.toml"             -- --nocapture             2>&1 | tee "$NQC_REC_HIST/evidence/deep-replacement.log"
+          grep -F "5 passed; 0 failed" "$NQC_REC_HIST/evidence/deep-replacement.log"
 
       - name: Generate and build exact historical reconciler probe
         shell: bash
@@ -89,7 +110,7 @@ jobs:
           python3 ci/nqc-protocol-fork/parity/generate_aave_reconciler_historical_parity.py             ci/nqc-protocol-fork/parity/aave-user-meta-witness.json             "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/examples/pft_historical_reconciler.rs"
           cp "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/examples/pft_historical_reconciler.rs"             "$NQC_REC_HIST/evidence/"
           export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
-          cargo build --offline             --manifest-path "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/Cargo.toml"             --example pft_historical_reconciler
+          cargo build --locked --offline             --manifest-path "$NQC_REC_HIST/reimplementation/nqc-aave-reconciler/Cargo.toml"             --example pft_historical_reconciler
 
       - name: Execute canonical rebuild parity against both providers
         shell: bash
