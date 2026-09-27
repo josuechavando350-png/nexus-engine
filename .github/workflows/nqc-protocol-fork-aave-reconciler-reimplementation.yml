@@ -77,12 +77,19 @@ jobs:
           before = tomllib.loads((root / "Cargo.lock.before").read_text())
           after = tomllib.loads((root / "Cargo.lock.after").read_text())
           def external(doc):
-              return sorted(
+              return {
                   (p["name"], p["version"], p.get("source"), p.get("checksum"))
                   for p in doc["package"] if p.get("source") is not None
-              )
-          if external(before) != external(after):
-              raise SystemExit("external dependency graph changed")
+              }
+          baseline = external(before)
+          resolved = external(after)
+          unexpected = sorted(resolved - baseline)
+          if unexpected:
+              raise SystemExit(f"new or changed external dependency tuples: {unexpected}")
+          (root / "dependency-pruning.txt").write_text(
+              f"baseline_external={len(baseline)}\nresolved_external={len(resolved)}\n"
+              f"pruned_external={len(baseline - resolved)}\nunexpected_external=0\n"
+          )
           PY
           grep -q 'test result: ok' "$NQC_RECON_WORK/evidence/cargo-test.log"
           printf '%s\n' 'NEW_SOURCE_DETERMINISTIC_TESTS_PASS_ONLY' > "$NQC_RECON_WORK/evidence/reimplementation-status.txt"
