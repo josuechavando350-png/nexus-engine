@@ -15,8 +15,8 @@ def generate(w):
         raise ValueError("V2 Sync witness attestation mismatch")
     if w["providers"] != ["blastapi-public","mevblocker-rpc"]:
         raise ValueError("provider lock mismatch")
-    if len(w["cases"]) != 2:
-        raise ValueError("expected two fixed Sync cases")
+    if len(w["cases"]) != 1:
+        raise ValueError("expected exactly one locked block with canonical Sync events")
 
     lines=[
       "use alloy::primitives::{Address, B256, U256};",
@@ -75,7 +75,7 @@ def generate(w):
           "}",
         ]
     lines += [
-      "assert_eq!(cases,2);",
+      "assert_eq!(cases,1);",
       "assert!(updates_total >= 2);",
       'println!("V2_SYNC_TOTAL upstream={} cases={} updates={}",upstream,cases,updates_total);',
       "Ok(())",
