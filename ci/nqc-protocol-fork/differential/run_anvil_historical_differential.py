@@ -118,7 +118,7 @@ def send(url,caller,nonce,to,data,value=0):
     }])
 
 
-def trace_output(url,tx_hash):
+def trace_result(url,tx_hash):
     trace=rpc(url,"debug_traceTransaction",[tx_hash,{
         "disableMemory":True,
         "disableStack":True,
@@ -137,9 +137,9 @@ def trace_output(url,tx_hash):
     if not re.fullmatch(r"[0-9a-f]*",raw) or len(raw)%2:
         raise ValueError("invalid debug trace returnValue hex")
     failed=trace.get("failed")
-    if failed is not None and bool(failed)==False and raw is None:
-        raise ValueError("invalid trace status")
-    return "0x"+raw
+    if not isinstance(failed,bool):
+        raise ValueError("debug trace failed flag is not boolean")
+    return "0x"+raw,failed
 
 
 def decode_event_words(log,count):
@@ -248,11 +248,14 @@ def main():
         if receipt is None:
             raise ValueError(f"missing receipt {name}")
         logs=normalized_logs(receipt)
-        execution_output=trace_output(args.rpc,tx_hash)
+        status=int(receipt["status"],16)
+        execution_output,trace_failed=trace_result(args.rpc,tx_hash)
+        if trace_failed!=(status==0):
+            raise ValueError(f"trace/receipt status mismatch {name}")
         receipts.append({
             "name":name,
             "transaction_hash":tx_hash.lower(),
-            "status":int(receipt["status"],16),
+            "status":status,
             "gas_used":int(receipt["gasUsed"],16),
             "logs":logs,
             "ordered_logs_digest":logs_digest(logs),
