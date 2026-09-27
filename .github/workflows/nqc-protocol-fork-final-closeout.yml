@@ -15,6 +15,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   final-closeout-contract:
@@ -29,11 +30,13 @@ jobs:
         shell: bash
         env:
           NQC_CLOSEOUT_RECEIPT: ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json
+          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_API_URL: ${{ github.api_url }}
         run: |
           set -euo pipefail
           git diff --check
           python3 - <<'PY'
-          import hashlib, json, os, re, subprocess
+          import hashlib, json, os, re, subprocess, urllib.error, urllib.request
           from pathlib import Path
 
           SHA40=re.compile(r'^[0-9a-f]{40}$')
@@ -88,6 +91,136 @@ jobs:
                   gate_status[gate]=manifest.get('status')
               else:
                   gate_status[gate]=manifest.get('entries',{}).get(gate,{}).get('status')
+
+          exact_head_workflow_requirements={
+              'SOURCE_BINDING_COMPLETE':[
+                  'NQC T39 Protocol Fork Recovered Source Binding',
+              ],
+              'AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK':[
+                  'NQC T39 Aave V3 Deployment Version Lock',
+              ],
+              'AAVE_CANONICAL_STATE_PARITY':[
+                  'NQC T39 Aave Canonical State Parity Closeout',
+              ],
+              'AAVE_LIQUIDATION_INTEGER_MATH_PARITY':[
+                  'NQC T39 Aave Liquidation Integer Math Parity',
+                  'NQC T39 Aave Full Liquidation Integer Matrix',
+              ],
+              'V2_CANONICAL_STATE_AND_REORG_PARITY':[
+                  'NQC T39 V2 State Reimplementation',
+                  'NQC T39 V2 Historical State Quote Parity',
+                  'NQC T39 V2 Historical Sync Parity',
+                  'NQC T39 V2 Real Historical Reorg Invalidation',
+              ],
+              'RUST_SOLIDITY_ABI_ROUNDTRIP':[
+                  'NQC T39 V2 Runtime ABI Roundtrip',
+              ],
+              'REVM_HISTORICAL_FORK_DIFFERENTIAL':[
+                  'NQC T39 REVM Historical Fork Differential',
+              ],
+              'REORG_INVALIDATION_AND_REPLAY_REFRESH':[
+                  'NQC T39 Reorg Invalidation Replay Refresh',
+              ],
+              'EXECUTOR_CODE_IDENTITY_BINDING':[
+                  'NQC T39 Executor Code Identity Binding',
+              ],
+              'PARITY_MISMATCH_LEDGER_OPEN_ZERO':[
+                  'NQC T39 Parity Mismatch Ledger',
+              ],
+              'EVIDENCE_MANIFEST_CONTENT_ADDRESSED':[
+                  'NQC T39 Content Addressed Evidence Manifest',
+              ],
+          }
+          support_workflows=[
+              'Build Verification',
+              'NQC T39 Source Blocker Closeout Contracts',
+          ]
+
+          exact_head_runs={}
+          exact_head_api_error=None
+          try:
+              token=os.environ.get('GITHUB_TOKEN','')
+              api=os.environ.get('GITHUB_API_URL','https://api.github.com').rstrip('/')
+              repository=os.environ.get('GITHUB_REPOSITORY','')
+              if not token or '/' not in repository:
+                  raise RuntimeError('missing GitHub runtime identity/token')
+
+              def github_json(path):
+                  req=urllib.request.Request(
+                      api+path,
+                      headers={
+                          'Authorization':'Bearer '+token,
+                          'Accept':'application/vnd.github+json',
+                          'X-GitHub-Api-Version':'2022-11-28',
+                          'User-Agent':'nqc-protocol-fork-final-closeout',
+                      },
+                  )
+                  with urllib.request.urlopen(req,timeout=30) as response:
+                      return json.loads(response.read())
+
+              runs_doc=github_json(
+                  f'/repos/{repository}/actions/runs?head_sha={head}&per_page=100'
+              )
+              successful={}
+              for run in runs_doc.get('workflow_runs',[]):
+                  if run.get('head_sha')!=head:
+                      continue
+                  if run.get('status')!='completed' or run.get('conclusion')!='success':
+                      continue
+                  name=run.get('name')
+                  if not isinstance(name,str):
+                      continue
+                  prior=successful.get(name)
+                  if prior is None or int(run.get('id',0))>int(prior.get('id',0)):
+                      successful[name]=run
+
+              required_names=sorted({
+                  name
+                  for names in exact_head_workflow_requirements.values()
+                  for name in names
+              } | set(support_workflows))
+              for name in required_names:
+                  run=successful.get(name)
+                  if run is None:
+                      continue
+                  run_id=int(run['id'])
+                  artifacts_doc=github_json(
+                      f'/repos/{repository}/actions/runs/{run_id}/artifacts?per_page=100'
+                  )
+                  artifacts=[]
+                  for artifact in artifacts_doc.get('artifacts',[]):
+                      item={
+                          'id':int(artifact['id']),
+                          'name':artifact['name'],
+                      }
+                      artifact_digest=artifact.get('digest')
+                      if artifact_digest is not None:
+                          if not re.fullmatch(r'sha256:[0-9a-f]{64}',artifact_digest):
+                              raise RuntimeError(
+                                  f'noncanonical artifact digest workflow={name} artifact={artifact.get("name")}'
+                              )
+                          item['digest']=artifact_digest
+                      artifacts.append(item)
+                  exact_head_runs[name]={
+                      'workflow_run_id':run_id,
+                      'event':run.get('event'),
+                      'head_sha':run.get('head_sha'),
+                      'artifacts':artifacts,
+                  }
+          except Exception as exc:
+              exact_head_api_error=f'{type(exc).__name__}: {exc}'
+
+          exact_head_missing={}
+          for gate,names in exact_head_workflow_requirements.items():
+              missing=[name for name in names if name not in exact_head_runs]
+              if missing:
+                  exact_head_missing[gate]=missing
+          missing_support=[name for name in support_workflows if name not in exact_head_runs]
+          exact_head_ci_ready=(
+              exact_head_api_error is None
+              and not exact_head_missing
+              and not missing_support
+          )
 
           blocker_paths={
             'PFT-SRC-001':Path('ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json'),
@@ -153,6 +286,12 @@ jobs:
           if not all_manifest_blockers: reasons.append('MANIFEST_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
           if not ledger_ready: reasons.append('MISMATCH_LEDGER_NOT_ZERO_PASS')
           if not truth_ready: reasons.append('TRUTH_CONTRACT_NOT_CLOSED_OR_COMPAT_NOT_RESOLVED')
+          if exact_head_api_error is not None:
+              reasons.append('EXACT_HEAD_ACTIONS_API_UNAVAILABLE')
+          if exact_head_missing:
+              reasons.append('EXACT_HEAD_REQUIRED_WORKFLOWS_NOT_ALL_SUCCESS')
+          if missing_support:
+              reasons.append('EXACT_HEAD_SUPPORT_WORKFLOWS_NOT_ALL_SUCCESS')
 
           ready=not reasons
           receipt={
@@ -171,6 +310,11 @@ jobs:
               'source_closeout_sha256':blocker_digests,
               'gate_status':dict(sorted(gate_status.items())),
               'source_blocker_status':dict(sorted(blocker_status.items())),
+              'exact_head_ci_ready':exact_head_ci_ready,
+              'exact_head_workflow_runs':dict(sorted(exact_head_runs.items())),
+              'exact_head_missing_required':exact_head_missing,
+              'exact_head_missing_support':missing_support,
+              'exact_head_api_error':exact_head_api_error,
               'reasons':reasons,
               'truth_boundaries':d['known_truth_boundaries'],
           }
