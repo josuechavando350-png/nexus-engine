@@ -59,20 +59,20 @@ contract PftAavePreTxWitnessTest {
         _selectTransactionFork(TX_MULTI, BLOCK_MULTI, PARENT_MULTI);
 
         address[14] memory borrowers = [
-            address(0xffeFa70b6dEAaB975eF15A6474Ce9c4214d82b02),
-            address(0x5e0481CaD8bffd5453635f4770F44B2194DDf6e02),
-            address(0x63FEdFa44b742D43c430f416dB596d7BeC8eD0B8),
-            address(0x0eCE0B16103922A4288f17832b83b3BfCDfB64F8),
-            address(0x9D36250d3C929B5C4f70fa4125aAB0951F8A250E),
-            address(0xC087195a816e1f247F1865189D76C6BE0aeD9982),
-            address(0x2B7C013fD7CD09D315Fc431030Db55d58FFAc21E),
-            address(0xA1025868e2A0455b9b17792fD434273884102D38),
-            address(0xf65db52A04372F8529Ec077844D2164AF432DE38),
-            address(0x84EE0a392652A008dEb77A2486D88AFda547fc40),
-            address(0x95368a0462B6CaaF86F0aFE41BDd48469B734a3F),
-            address(0x7F6e4c9cCAb9334CD205A06d0d3eDC2bE174F458),
-            address(0x01b55690Fe60653A0e14fE49A3E24Fd0b8fD8e7f),
-            address(0x95a46112679f65da65b81a544b5b86fF270DD865)
+            address(uint160(0x00ffefa70b6deaab975ef15a6474ce9c4214d82b02)),
+            address(uint160(0x005e0481cad8bff5453635f4770f44b2194ddf6e02)),
+            address(uint160(0x0063fedfa44b742d43c430f416db596d7bec8ed0b8)),
+            address(uint160(0x000ece0b16103922a4288f17832b83b3bfcdfb64f8)),
+            address(uint160(0x009d36250d3c929b5c4f70fa4125aab0951f8a250e)),
+            address(uint160(0x00c087195a816e1f247f1865189d76c6be0aed9982)),
+            address(uint160(0x002b7c013fd7cd09d315fc431030db55d58ffac21e)),
+            address(uint160(0x00a1025868e2a0455b9b17792fd434273884102d38)),
+            address(uint160(0x00f65db52a04372f8529ec077844d2164af432de38)),
+            address(uint160(0x0084ee0a392652a008deb77a2486d88afda547fc40)),
+            address(uint160(0x0095368a0462b6caaf86f0afe41bdd48469b734a3f)),
+            address(uint160(0x007f6e4c9ccab9334cd205a06d0d3edc2be174f458)),
+            address(uint160(0x0001b55690fe60653a0e14fe49a3e24fd0b8fd8e7f)),
+            address(uint160(0x0095a46112679f65da65b81a544b5b86ff270dd865))
         ];
 
         for (uint256 i = 0; i < borrowers.length; ++i) {
@@ -82,7 +82,7 @@ contract PftAavePreTxWitnessTest {
 
     function testFork_PreTxUsdcLiquidationIsEligible() public {
         _selectTransactionFork(TX_USDC, BLOCK_USDC, PARENT_USDC);
-        _assertLiquidatable(TX_USDC, address(0x8A47b469D1023F43DF528E0C020Aa212E962Ac27));
+        _assertLiquidatable(TX_USDC, address(uint160(0x008a47b469d1023f43df528e0c020aa212e962ac27)));
     }
 
     function _selectTransactionFork(bytes32 txHash, uint256 expectedBlock, bytes32 expectedParent) internal {
