@@ -12,7 +12,7 @@
     "SAME_HEIGHT_DIFFERENT_HASH_REJECTED",
     "OLD_REPLAY_ANCHOR_REJECTED_AFTER_REPLACEMENT_BRANCH"
   ],
-  "current_evidence_status": "NOT_TESTED",
+  "current_evidence_status": "DETERMINISTIC_TESTS_PASS_HISTORICAL_REORG_NOT_TESTED",
   "blocker_status": "OPEN",
   "blocker_close_requires": [
     "DETERMINISTIC_REIMPLEMENTATION_TESTS_PASS",
@@ -20,5 +20,15 @@
     "MULTI_BLOCK_REORG_PARITY_PASS",
     "ZERO_UNEXPLAINED_MISMATCH"
   ],
-  "protocol_fork_truth": "NOT_CLOSED"
+  "protocol_fork_truth": "NOT_CLOSED",
+  "deterministic_evidence": {
+    "source_head": "a4985a92e51b2c1557ed399654c734a5b738f3f0",
+    "workflow_run_id": 36332207614,
+    "tests_passed": 4,
+    "tests_failed": 0,
+    "rust_toolchain": "1.98.1",
+    "artifact_id": 10935996958,
+    "artifact_zip_sha256": "635cda74f0c7aa006afea4f0768a4497f11fc16d9861a550a5a4e101ce427157",
+    "external_dependency_drift": 0
+  }
 }
