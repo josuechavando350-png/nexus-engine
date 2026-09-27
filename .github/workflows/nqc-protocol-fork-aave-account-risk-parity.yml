@@ -40,6 +40,11 @@ jobs:
           (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
           cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_RISK_WORK/source/"
           python3 ci/nqc-protocol-fork/parity/prepare_reserve_parity.py "$NQC_RISK_WORK/source"
+          sha256sum ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py \
+            ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.json \
+            > "$NQC_RISK_WORK/evidence/PFT-COMPAT-008.sha256"
+          python3 ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py \
+            "$NQC_RISK_WORK/source"
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           rustup default "$RUST_TOOLCHAIN"
           rustc -Vv | tee "$NQC_RISK_WORK/evidence/rustc.txt"
