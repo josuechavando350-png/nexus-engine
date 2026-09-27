@@ -111,7 +111,7 @@
       "repair": "Return the validated ABI-decoded U256 directly.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
-      "patch_sha256": "a86ee8fb584d837fb9ec280a94b634c69f6d9416e2d7cac6f1e0e0f54c9ea3d8",
+      "patch_sha256": "3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7",
       "semantic_rationale": "ABI bytes and uint256 value are unchanged; only the generated Rust return-shape assumption is corrected."
     },
     {
@@ -122,15 +122,37 @@
       "repair": "Add nqc-core path dependency under dev-dependencies only.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
-      "patch_sha256": "485b32615b95cee95dd014ab18b3dc6205fcd834f5216d34552925d6a4a43f7d",
+      "patch_sha256": "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5",
       "semantic_rationale": "Production dependency graph and runtime code are unchanged; this only makes the already-authored historical tests physically compilable."
+    },
+    {
+      "id": "PFT-COMPAT-004",
+      "status": "UNDER_PHYSICAL_TEST",
+      "source": "crates/nqc-aave-math/src/lib.rs",
+      "defect": "Recovered nqc-aave-math unit tests call nqc_core::wad() without importing it into the test module.",
+      "repair": "Import nqc_core::wad inside the cfg(test) module only.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "patch_sha256": "323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720",
+      "semantic_rationale": "Production code is unchanged; this only resolves the already-authored historical test helper symbol."
+    },
+    {
+      "id": "PFT-COMPAT-005",
+      "status": "UNDER_PHYSICAL_TEST",
+      "source": "crates/nqc-aave-opportunity/Cargo.toml",
+      "defect": "Recovered nqc-aave-opportunity unit tests import nqc_aave_sync::ReserveConfigurationBits without declaring nqc-aave-sync as a dev-dependency.",
+      "repair": "Add nqc-aave-sync path dependency under dev-dependencies only.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "patch_sha256": "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664",
+      "semantic_rationale": "Production runtime dependencies and opportunity logic are unchanged; this only makes the existing historical test module link against its referenced test helper crate."
     }
   ],
   "certification_dependency_lock": {
     "physical_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
     "path": "ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock",
-    "sha256": "7f6332bba058655fadd7cf057340fcebab10e3bac4db1e267d5213642d29f1c8",
-    "origin": "GENERATED_FROM_RECOVERED_WRAPPER_WORKSPACE_THEN_UPDATED_DETERMINISTICALLY_FOR_PFT_COMPAT_003_DEV_DEPENDENCY",
+    "sha256": "f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a",
+    "origin": "GENERATED_FROM_RECOVERED_WRAPPER_WORKSPACE_THEN_UPDATED_DETERMINISTICALLY_FOR_PFT_COMPAT_003_AND_PFT_COMPAT_005_TEST_ONLY_DEV_DEPENDENCIES",
     "tracked_in_historical_checkpoint": false
   }
 }
