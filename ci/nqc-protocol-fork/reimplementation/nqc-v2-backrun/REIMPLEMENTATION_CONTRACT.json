@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "component": "NqcV2BackrunExecutor replacement",
+  "implementation": "NqcV2BackrunStrategyMeasured + certified T36 NqcFlashFundingExecutor composition",
+  "classification": "NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE",
+  "source_blocker": "PFT-SRC-001",
+  "source_recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+  "funding_boundary": {
+    "source": "ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol",
+    "historical_status": "T36_CLOSED",
+    "documented_formatted_source_sha256": "bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320",
+    "historical_fork_anchor": {
+      "chain_id": 1,
+      "block_number": 20000000,
+      "block_hash": "0xd24fd73f794058a3807db926d8898c6481e902b7edb91ce0d479d6760f276183"
+    }
+  },
+  "new_strategy_invariants": [
+    "ONLY_CERTIFIED_FUNDING_EXECUTOR_MAY_CALL_EXECUTE_FUNDED",
+    "TARGET_BLOCK_EQUALS_CURRENT_BLOCK",
+    "PARENT_HASH_EQUALS_BLOCKHASH_TARGET_MINUS_ONE",
+    "TARGET_AND_CANDIDATE_PROVENANCE_NONZERO_DISTINCT_AND_PLAN_BOUND",
+    "ALL_PAIR_IDENTITIES_AND_RESERVE_WITNESSES_VALIDATED_BEFORE_FIRST_TOKEN_EFFECT",
+    "EVERY_HOP_QUOTE_EQUALS_EXACT_CONSTANT_PRODUCT_INTEGER_QUOTE",
+    "NO_DUPLICATE_PAIR_OR_INTERMEDIATE_TOKEN_CYCLE",
+    "ROUTE_STARTS_AND_ENDS_IN_FUNDING_ASSET",
+    "PREEXISTING_BALANCES_CANNOT_SUBSIDIZE_FRESH_INPUT_OR_PROFIT",
+    "INPUT_AND_OUTPUT_TOKEN_DELTAS_MUST_EQUAL_PLAN_EXACTLY",
+    "EXECUTION_IDENTITY_SINGLE_USE",
+    "RETURNED_ASSET_UNITS_INCLUDE_PRINCIPAL_PLUS_POSITIVE_MINIMUM_PROFIT"
+  ],
+  "design_boundary": "Exact historical callback/ABI of missing NqcV2BackrunExecutor is unavailable; replacement uses a new content-addressed strategy ABI composed behind the already certified T36 funding coordinator.",
+  "current_evidence_status": "NOT_TESTED",
+  "blocker_status": "OPEN",
+  "blocker_close_requires": [
+    "DETERMINISTIC_FOUNDRY_TESTS_PASS",
+    "STRUCTURED_FUZZ_AND_STATEFUL_INVARIANTS_PASS",
+    "RUST_SOLIDITY_NEW_ABI_ROUNDTRIP_PASS",
+    "HISTORICAL_V2_FORK_EXECUTION_PASS",
+    "EXECUTOR_RUNTIME_CODE_IDENTITY_BOUND",
+    "ZERO_UNEXPLAINED_MISMATCH"
+  ],
+  "protocol_fork_truth": "NOT_CLOSED"
+}
