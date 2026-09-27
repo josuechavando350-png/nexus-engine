@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/nqc-protocol-fork-final-closeout.yml
       - ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
       - ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json
       - ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json
       - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json
@@ -34,8 +35,11 @@ jobs:
           from pathlib import Path
 
           d=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json").read_text())
+          truth=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
           assert d["schema_version"]==1
           assert d["closeout"]=="PROTOCOL_FORK_TRUTH"
+          assert truth["schema_version"]==1
+          assert set(truth["required_gates"])==set(d["required_gates"])
 
           required=d["required_gates"]
           expected={
@@ -71,9 +75,18 @@ jobs:
               assert ledger["status"]=="PASS"
               assert ledger["counts"]["open_total"]==0
               assert ledger["counts"]["unexplained_open"]==0
+              assert truth["status"]=="PROTOCOL_FORK_TRUTH_CLOSED"
+              assert all(b["status"]=="CLOSED" for b in truth["current_blockers"])
+              assert {b["id"] for b in truth["current_blockers"]}=={"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+              repairs={r["id"]:r for r in truth["measured_compatibility_repairs"]}
+              assert repairs["PFT-COMPAT-008"]["status"].startswith("RESOLVED")
+              assert repairs["PFT-COMPAT-009"]["status"].startswith("RESOLVED")
+              head=__import__("subprocess").check_output(["git","rev-parse","HEAD"],text=True).strip()
+              assert commit==head, (commit,head)
               print("PROTOCOL_FORK_TRUTH_CLOSED")
           else:
               assert d["status"]=="NOT_CLOSED"
+              assert truth["status"]!="PROTOCOL_FORK_TRUTH_CLOSED"
               assert not (all_gates and all_blockers and commit_ok), "close conditions satisfied but contract not closed"
               assert d["known_truth_boundaries"]["production_certification"]=="NOT_CERTIFIED"
               assert d["known_truth_boundaries"]["live_pnl_evidence"] is False
