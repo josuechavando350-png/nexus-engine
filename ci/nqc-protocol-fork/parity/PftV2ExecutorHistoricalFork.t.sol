@@ -99,6 +99,15 @@ contract PftV2ExecutorHistoricalForkTest {
         uint112 sushi1After;
     }
 
+    function _flashPremium(uint256 amount, uint256 premiumBps)
+        private
+        pure
+        returns (uint256)
+    {
+        if (amount == 0 || premiumBps == 0) return 0;
+        return (amount * premiumBps - 1) / 10_000 + 1;
+    }
+
     function _quote(uint256 amountIn, uint256 reserveIn, uint256 reserveOut)
         private
         pure
@@ -151,7 +160,7 @@ contract PftV2ExecutorHistoricalForkTest {
         c.wethOut = _quote(c.flashAmount, c.uni0, c.uni1);
         c.usdcOut = _quote(c.wethOut, c.sushi1, c.sushi0);
         uint256 premiumBps = uint256(PftV2ExecPool(AAVE_POOL).FLASHLOAN_PREMIUM_TOTAL());
-        c.premium = (c.flashAmount * premiumBps + 5_000) / 10_000;
+        c.premium = _flashPremium(c.flashAmount, premiumBps);
         require(c.usdcOut > c.flashAmount + c.premium, "SYNTHETIC_TARGET_NO_EDGE");
         c.expectedProfit = c.usdcOut - c.flashAmount - c.premium;
     }
