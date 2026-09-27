@@ -466,6 +466,14 @@ pub enum V2StateError {
     InvalidPairIdentity(Address),
     #[error("pair count {observed} exceeds configured maximum {maximum}")]
     PairLimitExceeded { observed: U256, maximum: u64 },
+    #[error("Sync update references pair not present in canonical snapshot: {0}")]
+    UnknownSyncPair(Address),
+    #[error("block number overflow while advancing V2 Sync replay")]
+    BlockNumberOverflow,
+    #[error("Sync replay must be contiguous: expected block {expected}, got {actual}")]
+    NonContiguousSyncReplay { expected: u64, actual: u64 },
+    #[error("block timestamp could not be represented as Uniswap V2 uint32")]
+    BlockTimestampOverflow,
     #[error("V2 canonical anchor changed during refresh: expected {expected:?}, observed {observed:?}")]
     CanonicalChanged {
         expected: CanonicalBlock,
