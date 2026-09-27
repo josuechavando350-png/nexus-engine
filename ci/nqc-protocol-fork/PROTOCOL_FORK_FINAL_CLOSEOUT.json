@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "closeout": "PROTOCOL_FORK_TRUTH",
+  "status": "NOT_CLOSED",
+  "certified_commit": null,
+  "required_gates": {
+    "SOURCE_BINDING_COMPLETE": "PASS",
+    "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK": "PENDING",
+    "AAVE_CANONICAL_STATE_PARITY": "PENDING_CLOSEOUT_VALIDATION",
+    "AAVE_LIQUIDATION_INTEGER_MATH_PARITY": "PENDING",
+    "V2_CANONICAL_STATE_AND_REORG_PARITY": "PASS",
+    "RUST_SOLIDITY_ABI_ROUNDTRIP": "PASS",
+    "REVM_HISTORICAL_FORK_DIFFERENTIAL": "PENDING",
+    "REORG_INVALIDATION_AND_REPLAY_REFRESH": "PENDING",
+    "EXECUTOR_CODE_IDENTITY_BINDING": "PASS",
+    "PARITY_MISMATCH_LEDGER_OPEN_ZERO": "PENDING",
+    "EVIDENCE_MANIFEST_CONTENT_ADDRESSED": "PENDING"
+  },
+  "source_blockers": {
+    "PFT-SRC-001": "OPEN",
+    "PFT-SRC-002": "CLOSED",
+    "PFT-SRC-003": "OPEN"
+  },
+  "hard_close_conditions": [
+    "EVERY_REQUIRED_GATE_PASS",
+    "EVERY_SOURCE_BLOCKER_CLOSED",
+    "ZERO_UNEXPLAINED_MISMATCHES",
+    "EXACT_HEAD_ALL_REQUIRED_CI_GREEN",
+    "CONTENT_ADDRESSED_EVIDENCE_MANIFEST_PASS",
+    "CERTIFIED_COMMIT_NON_NULL_AND_40_HEX"
+  ],
+  "known_truth_boundaries": {
+    "real_market_census": "NOT_TESTED",
+    "shadow": "NOT_TESTED",
+    "canary": "NOT_TESTED",
+    "live_pnl_evidence": false,
+    "production_authority": false,
+    "production_certification": "NOT_CERTIFIED"
+  },
+  "next_stage_after_close": "RETURN_TO_REAL_MARKET_CENSUS",
+  "note": "This closeout contract is intentionally NOT_CLOSED until all measured Protocol/Fork Truth gates and source blockers are resolved on one exact certified commit."
+}
