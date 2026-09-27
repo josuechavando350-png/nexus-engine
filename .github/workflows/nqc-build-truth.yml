@@ -382,12 +382,23 @@ jobs:
           (ev/"build-truth-summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True)+"\n")
           PY
 
-          find /tmp/nqc-build-truth/evidence -type f ! -name SHA256SUMS -print0             | sort -z | xargs -0 sha256sum             > /tmp/nqc-build-truth/evidence/SHA256SUMS
-          (cd / && sha256sum -c /tmp/nqc-build-truth/evidence/SHA256SUMS)
+          (
+            cd /tmp/nqc-build-truth/evidence
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
 
-          tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner             -cf "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar"             -C /tmp/nqc-build-truth/evidence .
+          tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner -cf "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar" -C /tmp/nqc-build-truth/evidence .
           gzip -n -9 "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar"
-          sha256sum "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar.gz"             | tee /tmp/nqc-build-truth/evidence/evidence-archive.sha256
+          sha256sum "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar.gz" > "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar.gz.sha256"
+
+          rm -rf /tmp/nqc-build-truth/reverify
+          mkdir -p /tmp/nqc-build-truth/reverify
+          tar -xzf "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar.gz" -C /tmp/nqc-build-truth/reverify
+          (
+            cd /tmp/nqc-build-truth/reverify
+            sha256sum -c SHA256SUMS
+          )
 
       - name: Attest Build Truth evidence on main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -403,5 +414,6 @@ jobs:
           path: |
             /tmp/nqc-build-truth/evidence/
             /tmp/nqc-build-truth-*.tar.gz
+            /tmp/nqc-build-truth-*.tar.gz.sha256
           if-no-files-found: error
           retention-days: 30
