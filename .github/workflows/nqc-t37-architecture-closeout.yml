@@ -36,6 +36,7 @@ jobs:
           t36=json.loads((root/'ci/nqc-t36/T36_CLOSEOUT.json').read_text())
           p1=json.loads((root/'ci/nqc-t37/evidence-index/T37_PHASE1_CLOSEOUT.json').read_text())
           p2=json.loads((root/'ci/nqc-t37/evidence-index/T37_PHASE2_CLOSEOUT.json').read_text())
+          p3=json.loads((root/'ci/nqc-t37/evidence-index/T37_PHASE3_CLOSEOUT.json').read_text())
 
           assert close['status']=='ARCHITECTURE_CLOSED'
           assert contract['status']=='ARCHITECTURE_CLOSED'
@@ -71,16 +72,25 @@ jobs:
           assert p2['reorg_invalidation_enforced'] is True
           assert p2['synthetic_scale_live_promotion_blocked'] is True
 
-          p3=close['phase3']
           assert p3['status']=='PASS'
+          assert p3['run_id']==36284058050
+          assert p3['job_id']==108521319390
+          assert p3['artifact_id']==10920320666
+          assert p3['artifact_sha256']=='8a3770ab997d1994400b44d4bd5a1d1ebc5c694fe170913d157c0e4dbafb4fa7'
+          assert p3['evidence_manifest_sha256']=='5ad012b10e746c95fdc7169becc8fa58087502dfe7a9ab88bdd0a33141d50104'
+          assert p3['attestation_sha256']=='43158bcc54ea27a38a91e9cb1f84a90c17fa40604e73545721f2b1400af59415'
           assert p3['scope']=='LOCAL_DEV_PHYSICAL_UNIFIED_NO_LIVE_AUTHORITY'
           assert p3['wire_action_submission']=='SUPPRESSED'
           assert p3['canonical_outcome']=='MEASURED_LOCAL_DEV_RECEIPT_AND_STATE_DELTA'
+          assert p3['stale_generation_blocked'] is True
           assert p3['production_authority_issued'] is False
           assert p3['real_market_census']=='NOT_TESTED'
           assert p3['real_live_market_evidence'] is False
           assert p3['live_pnl_evidence'] is False
           assert p3['production_latency_claim']=='NONE'
+
+          p3_close=close['phase3']
+          assert p3_close==p3
 
           # This closes architecture construction only. It must never self-promote
           # any downstream live-market, P&L, canary or production-certification gate.
@@ -115,6 +125,27 @@ jobs:
             actual="$(sha256sum "$out" | awk '{print $1}')"
             test "$actual" = "$expected"
             unzip -t "$out" >/dev/null
+            if test "$name" = "t37-phase3"; then
+              dir="/tmp/nqc-t37-closeout-artifacts/$name"
+              rm -rf "$dir"
+              mkdir -p "$dir"
+              unzip -q "$out" -d "$dir"
+              test -f "$dir/SHA256SUMS.txt"
+              sed 's#  evidence/#  #' "$dir/SHA256SUMS.txt" > "$dir/SHA256SUMS.artifact-root.txt"
+              (cd "$dir" && sha256sum -c SHA256SUMS.artifact-root.txt >/dev/null)
+              python3 - "$dir/phase3-summary.json" ci/nqc-t37/evidence-index/T37_PHASE3_CLOSEOUT.json <<'PY'
+import json,sys
+summary=json.load(open(sys.argv[1]))
+index=json.load(open(sys.argv[2]))
+assert summary['status']=='PASS'
+assert summary['attestation_sha256']==index['attestation_sha256']
+assert summary['execution_bundle_fingerprint']==index['execution_bundle_fingerprint']
+assert summary['canonical_outcome']==index['canonical_outcome']
+assert summary['production_authority_issued'] is False
+assert summary['real_market_census']=='NOT_TESTED'
+assert summary['live_pnl_evidence'] is False
+PY
+            fi
             printf 'PASS %s artifact_id=%s sha256=%s\n' "$name" "$artifact_id" "$actual"
           done < /tmp/artifacts.tsv
 
@@ -130,6 +161,7 @@ jobs:
           cp ci/nqc-t36/T36_CLOSEOUT.json /tmp/nqc-t37-closeout/
           cp ci/nqc-t37/evidence-index/T37_PHASE1_CLOSEOUT.json /tmp/nqc-t37-closeout/
           cp ci/nqc-t37/evidence-index/T37_PHASE2_CLOSEOUT.json /tmp/nqc-t37-closeout/
+          cp ci/nqc-t37/evidence-index/T37_PHASE3_CLOSEOUT.json /tmp/nqc-t37-closeout/
           find /tmp/nqc-t37-closeout -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0             | sort -z | xargs -0 sha256sum > /tmp/nqc-t37-closeout/SHA256SUMS.txt
           sha256sum /tmp/nqc-t37-closeout/SHA256SUMS.txt
 
