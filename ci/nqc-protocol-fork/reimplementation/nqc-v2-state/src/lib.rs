@@ -228,7 +228,7 @@ impl V2CanonicalReader {
                 token1,
                 reserve0: U256::from(reserves.reserve0.to::<u128>()),
                 reserve1: U256::from(reserves.reserve1.to::<u128>()),
-                block_timestamp_last: reserves.blockTimestampLast.to::<u32>(),
+                block_timestamp_last: reserves.blockTimestampLast,
             });
         }
         pairs.sort_unstable_by_key(|pair| pair.pair);
