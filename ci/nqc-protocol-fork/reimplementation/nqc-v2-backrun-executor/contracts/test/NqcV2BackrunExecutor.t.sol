@@ -7,6 +7,7 @@ interface Vm {
     function roll(uint256 newHeight) external;
     function setBlockhash(uint256 blockNumber, bytes32 blockHash) external;
     function expectRevert(bytes4 revertData) external;
+    function expectRevert(bytes calldata revertData) external;
 }
 
 contract PairWitnessMock is IUniswapV2PairWitnessMinimal {
@@ -131,7 +132,13 @@ contract NqcV2BackrunExecutorRepairTest {
             _executor();
         vm.roll(101);
         vm.setBlockhash(99, PARENT);
-        vm.expectRevert(NqcV2BackrunExecutor.WrongTargetBlock.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.WrongTargetBlock.selector,
+                uint256(100),
+                uint256(101)
+            )
+        );
         executor.validateForTest(_plan(pair0, pair1));
     }
 
@@ -143,7 +150,13 @@ contract NqcV2BackrunExecutorRepairTest {
             99,
             0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
         );
-        vm.expectRevert(NqcV2BackrunExecutor.ParentHashMismatch.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.ParentHashMismatch.selector,
+                PARENT,
+                bytes32(0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa)
+            )
+        );
         executor.validateForTest(_plan(pair0, pair1));
     }
 
@@ -153,7 +166,16 @@ contract NqcV2BackrunExecutorRepairTest {
         _pinTarget();
         NqcV2BackrunExecutor.ExecutionPlan memory plan = _plan(pair0, pair1);
         plan.hops[0].reserve0 += 1;
-        vm.expectRevert(NqcV2BackrunExecutor.ReserveWitnessMismatch.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.ReserveWitnessMismatch.selector,
+                uint256(0),
+                uint112(1_000_001),
+                uint112(2_000_000),
+                uint112(1_000_000),
+                uint112(2_000_000)
+            )
+        );
         executor.validateForTest(plan);
     }
 
@@ -163,7 +185,16 @@ contract NqcV2BackrunExecutorRepairTest {
         PairWitnessMock wrong = new PairWitnessMock(address(0xC3), TOKEN_B, 1_000_000, 2_000_000);
         PairWitnessMock pair1 = new PairWitnessMock(TOKEN_A, TOKEN_B, 3_000_000, 4_000_000);
         _pinTarget();
-        vm.expectRevert(NqcV2BackrunExecutor.PairIdentityMismatch.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.PairIdentityMismatch.selector,
+                uint256(0),
+                TOKEN_A,
+                TOKEN_B,
+                address(0xC3),
+                TOKEN_B
+            )
+        );
         executor.validateForTest(_plan(wrong, pair1));
     }
 
@@ -175,7 +206,13 @@ contract NqcV2BackrunExecutorRepairTest {
         plan.hops[1].pair = plan.hops[0].pair;
         plan.hops[1].reserve0 = plan.hops[0].reserve0;
         plan.hops[1].reserve1 = plan.hops[0].reserve1;
-        vm.expectRevert(NqcV2BackrunExecutor.DuplicateRoutePair.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.DuplicateRoutePair.selector,
+                uint256(0),
+                uint256(1)
+            )
+        );
         executor.validateForTest(plan);
     }
 
