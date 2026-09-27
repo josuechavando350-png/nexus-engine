@@ -15,12 +15,18 @@ PROVIDERS = [
     ("blastapi-public", "https://eth-mainnet.public.blastapi.io"),
     ("mevblocker-rpc", "https://rpc.mevblocker.io"),
 ]
-SIGNATURES = [
-    "getReserveAddressById(uint16)", "getReserveData(address)",
-    "ADDRESSES_PROVIDER()", "getPriceOracle()", "BASE_CURRENCY_UNIT()",
-    "getAssetPrice(address)", "getLiquidationGracePeriod(address)",
-    "scaledBalanceOf(address)",
-]
+# Derived from keccak256(signature); rechecked by the generated Rust executable.
+# RPC web3_sha3 support is not required to observe Ethereum historical state.
+SELECTORS = {
+    "getReserveAddressById(uint16)": "0x52751797",
+    "getReserveData(address)": "0x35ea6a75",
+    "ADDRESSES_PROVIDER()": "0x0542975c",
+    "getPriceOracle()": "0xfca513a8",
+    "BASE_CURRENCY_UNIT()": "0x8c89b64f",
+    "getAssetPrice(address)": "0xb3596f07",
+    "getLiquidationGracePeriod(address)": "0x5c9a8b18",
+    "scaledBalanceOf(address)": "0x1da24f3e",
+}
 
 
 def rpc(url, method, params, request_id):
@@ -85,12 +91,7 @@ def collect(provider, lock, out):
 
     if int(call("eth_chainId", []), 16) != 1:
         raise ValueError("wrong chain")
-    selectors = {}
-    for sig in SIGNATURES:
-        h = call("web3_sha3", ["0x" + sig.encode().hex()])
-        if not re.fullmatch(r"0x[0-9a-fA-F]{64}", h):
-            raise ValueError("invalid selector digest")
-        selectors[sig] = h[:10].lower()
+    selectors = SELECTORS.copy()
     cases = []
     pool = lock["pool"]
     for case in lock["cases"]:

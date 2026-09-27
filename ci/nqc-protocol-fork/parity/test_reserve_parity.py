@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from generate_reserve_parity import generate
-from reserve_balance_witness import LOCK, LOCK_SHA, PROVIDERS, active_ids, address, decode_words, digest, rpc
+from reserve_balance_witness import LOCK, LOCK_SHA, PROVIDERS, SELECTORS, active_ids, address, decode_words, digest, rpc
 
 
 def synthetic_witness():
@@ -23,7 +23,7 @@ def synthetic_witness():
                  for i in active_ids(m["user_configuration_raw"])]) for u, m in sorted(c["canonical_users"].items())]
         cases.append(dict(case_id=c["case_id"], block_number=c["block_number"], block_hash=c["block_hash"], timestamp=1,
                           addresses_provider=address(700), price_oracle=address(701), oracle_base_unit="100000000", reserves=reserves, users=users))
-    w = dict(pool=locked["pool"], locked_user_meta_sha256=LOCK_SHA, providers=[p[0] for p in PROVIDERS], cases=cases)
+    w = dict(pool=locked["pool"], locked_user_meta_sha256=LOCK_SHA, selectors=SELECTORS.copy(), providers=[p[0] for p in PROVIDERS], cases=cases)
     return seal(w)
 
 
@@ -64,6 +64,11 @@ class HarnessGuards(unittest.TestCase):
         w = synthetic_witness()
         w["cases"][0]["users"].append(copy.deepcopy(w["cases"][0]["users"][0]))
         with self.assertRaisesRegex(ValueError, "duplicate"): generate(seal(w))
+
+    def test_resealed_wrong_selector_rejected(self):
+        w = synthetic_witness()
+        w["selectors"]["scaledBalanceOf(address)"] = "0x00000000"
+        with self.assertRaisesRegex(ValueError, "selector"): generate(seal(w))
 
     def test_rpc_rejects_wrong_response_id(self):
         with patch("reserve_balance_witness.urllib.request.urlopen") as req:

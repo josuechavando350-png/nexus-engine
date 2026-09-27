@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from reserve_balance_witness import digest, PROVIDERS, LOCK, LOCK_SHA, active_ids
+from reserve_balance_witness import digest, PROVIDERS, LOCK, LOCK_SHA, SELECTORS, active_ids
 
 
 def generate(w):
@@ -13,6 +13,8 @@ def generate(w):
         raise ValueError("witness attestation mismatch")
     if w["providers"] != [p[0] for p in PROVIDERS] or len(w["cases"]) != 2:
         raise ValueError("witness coverage mismatch")
+    if w["selectors"] != SELECTORS:
+        raise ValueError("ABI selector mismatch")
     locked = json.loads(LOCK.read_text())
     if w["pool"] != locked["pool"] or w["locked_user_meta_sha256"] != LOCK_SHA:
         raise ValueError("witness provenance mismatch")
@@ -49,6 +51,9 @@ def generate(w):
         "let bootstrap = AaveMarketBootstrap::from_reth(&source, pool, 1).await?;",
         "let mut reserve_checks = 0u64; let mut position_checks = 0u64; let mut user_checks = 0u64;",
     ]
+    for signature, selector in SELECTORS.items():
+        byte_values = ",".join(str(v) for v in bytes.fromhex(selector[2:]))
+        lines.append(f'assert_eq!(&alloy::primitives::keccak256({json.dumps(signature)}.as_bytes()).as_slice()[..4], &[{byte_values}]);')
     expected_reserves = expected_positions = expected_users = 0
     for case in w["cases"]:
         lines += [
