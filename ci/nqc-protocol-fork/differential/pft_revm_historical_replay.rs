@@ -97,7 +97,7 @@ fn assert_reference_tx(
         .ok_or_else(|| format!("missing reference transaction {index}"))?;
     let name = text_field(expected, "name")?.to_string();
     let expected_status = u64_field(expected, "status")?;
-    let actual_status = u64::from(success);
+    let actual_status = if success { 1u64 } else { 0u64 };
     if actual_status != expected_status {
         return Err(format!(
             "status mismatch {name}: reference={expected_status} revm={actual_status}"
@@ -282,7 +282,7 @@ async fn main() -> Result<(), Error> {
         let name = assert_reference_tx(&reference, index, success, gas_used, digest)?;
         report_txs.push(json!({
             "name": name,
-            "status": u64::from(success),
+            "status": if success { 1u64 } else { 0u64 },
             "gas_used": gas_used,
             "ordered_logs_digest": format!("{digest:#x}"),
         }));
