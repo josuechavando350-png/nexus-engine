@@ -133,18 +133,7 @@ jobs:
               test -f "$dir/SHA256SUMS.txt"
               sed 's#  evidence/#  #' "$dir/SHA256SUMS.txt" > "$dir/SHA256SUMS.artifact-root.txt"
               (cd "$dir" && sha256sum -c SHA256SUMS.artifact-root.txt >/dev/null)
-              python3 - "$dir/phase3-summary.json" ci/nqc-t37/evidence-index/T37_PHASE3_CLOSEOUT.json <<'PY'
-import json,sys
-summary=json.load(open(sys.argv[1]))
-index=json.load(open(sys.argv[2]))
-assert summary['status']=='PASS'
-assert summary['attestation_sha256']==index['attestation_sha256']
-assert summary['execution_bundle_fingerprint']==index['execution_bundle_fingerprint']
-assert summary['canonical_outcome']==index['canonical_outcome']
-assert summary['production_authority_issued'] is False
-assert summary['real_market_census']=='NOT_TESTED'
-assert summary['live_pnl_evidence'] is False
-PY
+              python3 -c "import json,sys; summary=json.load(open(sys.argv[1])); index=json.load(open(sys.argv[2])); assert summary['status']=='PASS'; assert summary['attestation_sha256']==index['attestation_sha256']; assert summary['execution_bundle_fingerprint']==index['execution_bundle_fingerprint']; assert summary['canonical_outcome']==index['canonical_outcome']; assert summary['production_authority_issued'] is False; assert summary['real_market_census']=='NOT_TESTED'; assert summary['live_pnl_evidence'] is False" "$dir/phase3-summary.json" ci/nqc-t37/evidence-index/T37_PHASE3_CLOSEOUT.json
             fi
             printf 'PASS %s artifact_id=%s sha256=%s\n' "$name" "$artifact_id" "$actual"
           done < /tmp/artifacts.tsv
