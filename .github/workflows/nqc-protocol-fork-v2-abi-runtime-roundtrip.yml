@@ -1,0 +1,287 @@
+name: NQC T39 V2 Runtime ABI Roundtrip
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-v2-abi-runtime-roundtrip.yml
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/**
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/**
+      - ci/nqc-protocol-fork/locks/**
+      - ci/nqc-protocol-fork/recovered-source/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  v2-runtime-abi:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      WORK: /tmp/nqc-v2-abi-runtime
+      RPC_URL: http://127.0.0.1:8545
+      ANVIL_KEY: 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+      OPERATOR: 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Prepare exact sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$WORK"
+          mkdir -p "$WORK/foundry/src" "$WORK/bridge" "$WORK/evidence"
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol "$WORK/foundry/src/"
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/contracts/AbiRuntimeHarness.sol "$WORK/foundry/src/"
+          cp -a ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/Cargo.toml "$WORK/bridge/"
+          mkdir -p "$WORK/bridge/src"
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/src/main.rs "$WORK/bridge/src/"
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$WORK/bridge/Cargo.lock"
+          cat > "$WORK/foundry/foundry.toml" <<'EOF'
+          [profile.default]
+          src = "src"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          EOF
+          git rev-parse HEAD > "$WORK/evidence/repository-source-sha.txt"
+          sha256sum \
+            ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol \
+            ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/Cargo.toml \
+            ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/src/main.rs \
+            ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/contracts/AbiRuntimeHarness.sol \
+            ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/ABI_RUNTIME_CONTRACT.json \
+            > "$WORK/evidence/source.sha256"
+
+      - name: Install exact Rust Foundry and solc
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$WORK/evidence/rustc.txt"
+          cargo -V | tee "$WORK/evidence/cargo.txt"
+          cargo fetch --locked --manifest-path ci/nqc-protocol-fork/recovered-source/Cargo.toml
+
+          mkdir -p "$WORK/foundry-bin"
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o "$WORK/foundry.tar.gz" \
+            "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  $WORK/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$WORK/foundry.tar.gz" -C "$WORK/foundry-bin"
+          export PATH="$WORK/foundry-bin:$PATH"
+          forge --version | tee "$WORK/evidence/forge.txt"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o "$WORK/solc-0.8.24" \
+            "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  $WORK/solc-0.8.24" | sha256sum -c -
+          chmod +x "$WORK/solc-0.8.24"
+          "$WORK/solc-0.8.24" --version | tee "$WORK/evidence/solc.txt"
+          "$WORK/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
+
+      - name: Build bridge and verify dependency closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cp "$WORK/bridge/Cargo.lock" "$WORK/evidence/Cargo.lock.before"
+          cargo build --offline --manifest-path "$WORK/bridge/Cargo.toml"
+          cp "$WORK/bridge/Cargo.lock" "$WORK/evidence/Cargo.lock.after"
+          python3 - <<'PY'
+          import tomllib
+          from pathlib import Path
+          root=Path('/tmp/nqc-v2-abi-runtime/evidence')
+          before=tomllib.loads((root/'Cargo.lock.before').read_text())
+          after=tomllib.loads((root/'Cargo.lock.after').read_text())
+          def external(doc):
+              return {
+                  (p['name'],p['version'],p.get('source'),p.get('checksum'))
+                  for p in doc['package'] if p.get('source') is not None
+              }
+          base,resolved=external(before),external(after)
+          unexpected=sorted(resolved-base)
+          if unexpected:
+              raise SystemExit(f'unexpected external dependency tuples: {unexpected}')
+          (root/'dependency-closure.txt').write_text(
+              f'baseline_external={len(base)}\nresolved_external={len(resolved)}\n'
+              f'pruned_external={len(base-resolved)}\nunexpected_external=0\n'
+          )
+          PY
+
+      - name: Execute Rust Solidity runtime roundtrip on local EVM
+        shell: bash
+        working-directory: /tmp/nqc-v2-abi-runtime/foundry
+        run: |
+          set -euo pipefail
+          export PATH="$WORK/foundry-bin:$PATH"
+          anvil --silent --host 127.0.0.1 --port 8545 > "$WORK/evidence/anvil.log" 2>&1 &
+          ANVIL_PID=$!
+          trap 'kill "$ANVIL_PID" 2>/dev/null || true' EXIT
+          for _ in $(seq 1 100); do
+            if cast chain-id --rpc-url "$RPC_URL" >/dev/null 2>&1; then break; fi
+            sleep 0.1
+          done
+
+          forge build --use "$WORK/solc-0.8.24"
+          forge create src/AbiRuntimeHarness.sol:RuntimeFixture \
+            --use "$WORK/solc-0.8.24" \
+            --rpc-url "$RPC_URL" \
+            --private-key "$ANVIL_KEY" \
+            --broadcast \
+            --constructor-args "$OPERATOR" \
+            --json > "$WORK/evidence/deployment.json"
+
+          FIXTURE=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          text=Path('/tmp/nqc-v2-abi-runtime/evidence/deployment.json').read_text()
+          start=text.find('{')
+          if start < 0: raise SystemExit('deployment json missing')
+          obj=json.loads(text[start:])
+          value=obj.get('deployedTo') or obj.get('deployed_to')
+          if not value: raise SystemExit(f'deployed address missing: {obj}')
+          print(value)
+          PY
+          )
+
+          EXECUTOR=$(cast call "$FIXTURE" 'executor()(address)' --rpc-url "$RPC_URL")
+          TOKEN_A=$(cast call "$FIXTURE" 'tokenA()(address)' --rpc-url "$RPC_URL")
+          TOKEN_B=$(cast call "$FIXTURE" 'tokenB()(address)' --rpc-url "$RPC_URL")
+          PAIR0=$(cast call "$FIXTURE" 'pair0()(address)' --rpc-url "$RPC_URL")
+          PAIR1=$(cast call "$FIXTURE" 'pair1()(address)' --rpc-url "$RPC_URL")
+          POOL=$(cast call "$FIXTURE" 'pool()(address)' --rpc-url "$RPC_URL")
+          CHAIN_ID=$(cast chain-id --rpc-url "$RPC_URL")
+
+          printf '%s\n' "$FIXTURE" > "$WORK/evidence/fixture-address.txt"
+          printf '%s\n' "$EXECUTOR" > "$WORK/evidence/executor-address.txt"
+          printf '%s\n' "$TOKEN_A" > "$WORK/evidence/token-a.txt"
+          printf '%s\n' "$TOKEN_B" > "$WORK/evidence/token-b.txt"
+          printf '%s\n' "$PAIR0" > "$WORK/evidence/pair0.txt"
+          printf '%s\n' "$PAIR1" > "$WORK/evidence/pair1.txt"
+          printf '%s\n' "$POOL" > "$WORK/evidence/pool.txt"
+
+          CURRENT=$(cast block-number --rpc-url "$RPC_URL")
+          PREVIOUS=$((CURRENT - 1))
+          CALL_PARENT=$(cast block "$PREVIOUS" --json --rpc-url "$RPC_URL" | python3 -c 'import json,sys; print(json.load(sys.stdin)["hash"])')
+
+          export TOKEN_A TOKEN_B PAIR0 PAIR1 CHAIN_ID
+          export TARGET_BLOCK="$CURRENT" PARENT_HASH="$CALL_PARENT"
+          "$WORK/bridge/target/debug/nqc-v2-backrun-abi-runtime" encode > "$WORK/evidence/rust-call-plan.json"
+          CALLDATA=$(python3 -c 'import json; print(json.load(open("/tmp/nqc-v2-abi-runtime/evidence/rust-call-plan.json"))["calldata"])')
+          CALL_RETURN=$(cast call "$EXECUTOR" --from "$OPERATOR" --data "$CALLDATA" --rpc-url "$RPC_URL")
+          printf '%s\n' "$CALL_RETURN" > "$WORK/evidence/eth-call-return.hex"
+          "$WORK/bridge/target/debug/nqc-v2-backrun-abi-runtime" decode-return "$CALL_RETURN" \
+            > "$WORK/evidence/rust-return-decode.json"
+
+          TX_PARENT_BLOCK=$(cast block-number --rpc-url "$RPC_URL")
+          TX_PARENT_HASH=$(cast block "$TX_PARENT_BLOCK" --json --rpc-url "$RPC_URL" | python3 -c 'import json,sys; print(json.load(sys.stdin)["hash"])')
+          TX_TARGET=$((TX_PARENT_BLOCK + 1))
+          export TARGET_BLOCK="$TX_TARGET" PARENT_HASH="$TX_PARENT_HASH"
+          "$WORK/bridge/target/debug/nqc-v2-backrun-abi-runtime" encode > "$WORK/evidence/rust-tx-plan.json"
+          TX_CALLDATA=$(python3 -c 'import json; print(json.load(open("/tmp/nqc-v2-abi-runtime/evidence/rust-tx-plan.json"))["calldata"])')
+          EXPECTED_PLAN_HASH=$(python3 -c 'import json; print(json.load(open("/tmp/nqc-v2-abi-runtime/evidence/rust-tx-plan.json"))["plan_hash"])')
+          export EXPECTED_PLAN_HASH
+
+          cast send "$EXECUTOR" \
+            --from "$OPERATOR" \
+            --private-key "$ANVIL_KEY" \
+            --data "$TX_CALLDATA" \
+            --gas-limit 10000000 \
+            --rpc-url "$RPC_URL" \
+            --json > "$WORK/evidence/send.json"
+
+          TX_HASH=$(python3 - <<'PY'
+          import json
+          from pathlib import Path
+          obj=json.loads(Path('/tmp/nqc-v2-abi-runtime/evidence/send.json').read_text())
+          value=obj.get('transactionHash') or obj.get('transaction_hash')
+          if not value: raise SystemExit(f'transaction hash missing: {obj}')
+          print(value)
+          PY
+          )
+          cast receipt "$TX_HASH" --rpc-url "$RPC_URL" --json > "$WORK/evidence/receipt.json"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path('/tmp/nqc-v2-abi-runtime/evidence')
+          receipt=json.loads((root/'receipt.json').read_text())
+          executor=(root/'executor-address.txt').read_text().strip().lower()
+          logs=[x for x in receipt.get('logs',[]) if x.get('address','').lower()==executor and len(x.get('topics',[]))==4]
+          if len(logs)!=1:
+              raise SystemExit(f'expected one executor four-topic event, got {len(logs)}')
+          (root/'backrun-event.json').write_text(json.dumps({'topics':logs[0]['topics'],'data':logs[0]['data']},indent=2)+'\n')
+          PY
+
+          "$WORK/bridge/target/debug/nqc-v2-backrun-abi-runtime" decode-event "$WORK/evidence/backrun-event.json" \
+            > "$WORK/evidence/rust-event-decode.json"
+
+          OPERATOR_PROFIT=$(cast call "$TOKEN_A" 'balanceOf(address)(uint256)' "$OPERATOR" --rpc-url "$RPC_URL")
+          POOL_BALANCE=$(cast call "$TOKEN_A" 'balanceOf(address)(uint256)' "$POOL" --rpc-url "$RPC_URL")
+          EXECUTOR_BALANCE=$(cast call "$TOKEN_A" 'balanceOf(address)(uint256)' "$EXECUTOR" --rpc-url "$RPC_URL")
+          test "$OPERATOR_PROFIT" = "900"
+          test "$POOL_BALANCE" = "1000100"
+          test "$EXECUTOR_BALANCE" = "0"
+          printf '%s\n' "$OPERATOR_PROFIT" > "$WORK/evidence/operator-realized-profit.txt"
+          printf '%s\n' "$POOL_BALANCE" > "$WORK/evidence/pool-post-balance.txt"
+          printf '%s\n' "$EXECUTOR_BALANCE" > "$WORK/evidence/executor-post-balance.txt"
+          cast codehash "$EXECUTOR" --rpc-url "$RPC_URL" > "$WORK/evidence/executor-codehash.txt"
+
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          root=Path('/tmp/nqc-v2-abi-runtime/evidence')
+          plan=json.loads((root/'rust-tx-plan.json').read_text())
+          event=json.loads((root/'rust-event-decode.json').read_text())
+          ret=json.loads((root/'rust-return-decode.json').read_text())
+          summary={
+            'schema_version':1,
+            'scope_status':'PASS',
+            'scope':'V2_BACKRUN_RUNTIME_ABI_ONLY',
+            'rust_plan_to_solidity_decode':'PASS',
+            'rust_calldata_to_actual_executor_runtime':'PASS',
+            'executor_return_to_rust':'PASS',
+            'solidity_event_to_rust':'PASS',
+            'plan_hash_equal':plan['plan_hash'].lower()==event['plan_hash'].lower(),
+            'eth_call_realized_profit':ret['realized_profit'],
+            'transaction_realized_profit':event['realized_profit'],
+            'operator_balance_delta':(root/'operator-realized-profit.txt').read_text().strip(),
+            'pool_post_balance':(root/'pool-post-balance.txt').read_text().strip(),
+            'executor_post_balance':(root/'executor-post-balance.txt').read_text().strip(),
+            'global_rust_solidity_abi_gate':'PARTIAL_V2_BACKRUN_RUNTIME_ONLY',
+            'protocol_fork_truth':'NOT_CLOSED'
+          }
+          if not summary['plan_hash_equal']:
+              raise SystemExit('Rust/Solidity plan hash mismatch')
+          payload=json.dumps(summary,sort_keys=True,separators=(',',':')).encode()
+          summary['attestation_sha256']=hashlib.sha256(payload).hexdigest()
+          (root/'summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+'\n')
+          PY
+
+          (
+            cd "$WORK/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve runtime ABI evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-v2-runtime-abi-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-v2-abi-runtime/evidence
+          if-no-files-found: error
+          retention-days: 30
