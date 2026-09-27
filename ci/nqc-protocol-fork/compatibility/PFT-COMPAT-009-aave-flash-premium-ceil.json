@@ -15,9 +15,35 @@
     "recovered_half_up_model_units": "41863653",
     "mismatch_units": 1
   },
-  "repair": "AAVE_FLASH_PREMIUM_MODEL_USES_CEILING_PERCENTAGE_ROUNDING",
-  "patch": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch",
+  "root_cause": [
+    "RECOVERED_AAVE_OPPORTUNITY_MODELED_FLASH_PREMIUM_WITH_HALF_UP_PERCENTAGE_ROUNDING",
+    "DEPLOYED_AAVE_V3_FLASHLOANSIMPLE_CALLBACK_AT_THE_PINNED_HISTORICAL_STATE_CHARGED_CEILING_ROUNDING"
+  ],
+  "repair": "REPLACE_PERCENT_MUL_HALF_UP_WITH_PERCENT_MUL_CEIL_UNBOUNDED_FOR_AAVE_FLASH_LOAN_PREMIUM_MODEL_ONLY",
   "source_bytes_modified": false,
-  "status": "MEASURED_REPAIR_PENDING_FULL_MATRIX_RERUN",
+  "patch": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch",
+  "exact_witnesses": [
+    {
+      "principal_units": "83727306811",
+      "bps": 5,
+      "expected_premium_units": "41863654",
+      "source": "PR483_ACTUAL_AAVE_CALLBACK"
+    },
+    {
+      "principal_units": "186298226",
+      "bps": 5,
+      "expected_premium_units": "93150",
+      "source": "SUPERSEDES_PR481_SELF_DERIVED_HALF_UP_FLASH_PREMIUM_SUBCHECK"
+    }
+  ],
+  "preserved_semantics": [
+    "LIQUIDATION_DEBT_SIZING_UNCHANGED",
+    "COLLATERAL_TO_LIQUIDATOR_UNCHANGED",
+    "PROTOCOL_FEE_COLLATERAL_UNCHANGED",
+    "FLASH_PRINCIPAL_UNCHANGED",
+    "ONLY_MODELED_AAVE_FLASH_PREMIUM_ROUNDING_CHANGES"
+  ],
+  "prior_evidence_correction": "PR481 debt/collateral liquidation integer evidence remains scoped evidence, but its 93149 flash-premium value was self-derived using the recovered half-up model and is not accepted as deployed premium parity.",
+  "status": "MEASURED_FAILURE_REPAIR_PENDING_EXACT_HEAD_RERUN",
   "protocol_fork_truth": "NOT_CLOSED"
 }
