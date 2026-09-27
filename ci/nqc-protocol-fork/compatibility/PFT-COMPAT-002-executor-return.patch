@@ -2,15 +2,9 @@ diff --git a/crates/nqc-executor/src/lib.rs b/crates/nqc-executor/src/lib.rs
 index f03ce40..87fa1ed 100644
 --- a/crates/nqc-executor/src/lib.rs
 +++ b/crates/nqc-executor/src/lib.rs
-@@ -141,9 +141,8 @@ impl AtomicLiquidationPlan {
-     }
- 
-     pub fn decode_realized_profit(output: &[u8]) -> Result<U256, ExecutorPlanError> {
+@@ -144,3 +144,2 @@ impl AtomicLiquidationPlan {
 -        let decoded = INqcAaveV3Executor::executeCall::abi_decode_returns_validate(output)
 -            .map_err(|error| ExecutorPlanError::AbiDecode(error.to_string()))?;
 -        Ok(decoded.realizedProfitDebtAsset)
 +        INqcAaveV3Executor::executeCall::abi_decode_returns_validate(output)
 +            .map_err(|error| ExecutorPlanError::AbiDecode(error.to_string()))
-     }
- 
-     pub fn encode_execute_calldata(&self) -> Result<Bytes, ExecutorPlanError> {
