@@ -1,0 +1,21 @@
+[package]
+name = "nqc-v2-state-reimplementation"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+alloy = { version = "=2.5.0", default-features = false, features = ["contract", "sol-types"] }
+nqc-core = { path = "../../recovered-source/crates/nqc-core" }
+nqc-state = { path = "../../recovered-source/crates/nqc-state" }
+nqc-v2-router = { path = "../../recovered-source/crates/nqc-v2-router" }
+thiserror = "2"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"
