@@ -366,6 +366,12 @@ jobs:
               b=load(path)
               assert b['schema_version']==1
               assert b['source_blocker']==blocker_id
+              assert b['classification']=='NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE'
+              recovery=b.get('recovery_status',b.get('source_recovery_status'))
+              assert recovery in {
+                  'RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS',
+                  'EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS',
+              }, (blocker_id,'invalid recovery status',recovery)
               blocker_status[blocker_id]=b['status']
               blocker_digests[blocker_id]=digest(path)
               evidence=b.get('evidence',{})
