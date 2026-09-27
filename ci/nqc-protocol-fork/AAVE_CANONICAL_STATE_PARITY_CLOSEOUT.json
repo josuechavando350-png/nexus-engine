@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "gate": "AAVE_CANONICAL_STATE_PARITY",
+  "status": "PASS",
+  "classification": "EXACT_HISTORICAL_TWO_PROVIDER_PARITY_WITH_MEASURED_REPAIR_OVERLAY",
+  "anchors": [
+    {
+      "block_number": 25252136,
+      "block_hash": "0x49edc621ec5fe843353be319ae1a307be4e37d2a51111ccc07a2c8aae3ff6470",
+      "parent_hash": "0x04a2465e3a87b1103521c1f54e568de209062f08742a0212da24d34eee4aac78",
+      "users": 14
+    },
+    {
+      "block_number": 25437474,
+      "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+      "parent_hash": "0x033656168ee1dba1934f77171fe572c866282e97738b79434cb8c01b6e6f88f2",
+      "users": 1
+    }
+  ],
+  "providers": [
+    "blastapi-public",
+    "mevblocker-rpc"
+  ],
+  "evidence": {
+    "canonical_witness": {
+      "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+      "workflow_run_id": 36341553936,
+      "artifact_id": 10938888611,
+      "artifact_zip_sha256": "827731b7548a03ebf4c6803aa540bfbb74dc7f2d1d6299f5faa64c33f6949a54"
+    },
+    "recovered_user_meta": {
+      "head": "8ab16337f2c97726e1ac1abbf9a7c0390817f8ef",
+      "workflow_run_id": 36301076199,
+      "artifact_id": 10925198890,
+      "artifact_zip_sha256": "629df2b3287b9e03dbede0867615f3c657ae74f5c55c3824a81f5d78a5bc14ad",
+      "exact_comparisons": 30,
+      "dimensions": [
+        "userConfiguration",
+        "eMode"
+      ]
+    },
+    "reserve_index_scaled_balance": {
+      "head": "43996acef3791eb6f4d65c20b4ac9220fac1dd28",
+      "workflow_run_id": 36332718464,
+      "job_id": 108657622393,
+      "artifact_id": 10938075580,
+      "artifact_zip_sha256": "39552bd6c36605bd17ee76fee8dc5ed2e8e26b0b325f8d31de321ce708c42fea",
+      "reserves_per_provider": 12,
+      "positions_per_provider": 45,
+      "users_per_provider": 15,
+      "balance_parity_passes_per_provider": 15
+    },
+    "full_account_risk": {
+      "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+      "workflow_run_id": 36341553888,
+      "artifact_id": 10940935416,
+      "artifact_zip_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49",
+      "users_per_provider": 15,
+      "exact_integer_checks_per_provider": 60,
+      "emode_users_per_provider": 2,
+      "unexplained_mismatches": 0
+    },
+    "exact_emode_zero_account_risk": {
+      "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+      "workflow_run_id": 36341554012,
+      "artifact_id": 10939116521,
+      "artifact_zip_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c",
+      "users": 13,
+      "exact_integer_checks": 39,
+      "unexplained_mismatches": 0
+    },
+    "measured_semantic_repair": {
+      "compatibility_id": "PFT-COMPAT-008",
+      "source_bytes_modified": false,
+      "overlay": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py",
+      "status": "RESOLVED_EXACT_TWO_PROVIDER_PARITY"
+    }
+  },
+  "exact_dimensions": [
+    "USER_CONFIGURATION",
+    "EMODE_CATEGORY",
+    "RESERVE_CONFIGURATION",
+    "RESERVE_IDENTITY",
+    "TOKEN_IDENTITIES",
+    "LIQUIDITY_INDEX",
+    "VARIABLE_BORROW_INDEX",
+    "CURRENT_RATES",
+    "ORACLE_PRICE",
+    "RESERVE_TIMESTAMP",
+    "LIQUIDATION_GRACE_PERIOD",
+    "LIQUIDATION_BONUS",
+    "LIQUIDATION_PROTOCOL_FEE",
+    "FLASH_CONFIGURATION",
+    "ATOKEN_BALANCE",
+    "VARIABLE_DEBT_BALANCE",
+    "TOTAL_COLLATERAL_BASE",
+    "TOTAL_DEBT_BASE",
+    "CURRENT_LIQUIDATION_THRESHOLD",
+    "HEALTH_FACTOR"
+  ],
+  "unexplained_mismatches": 0,
+  "scope_boundary": "Closes AAVE_CANONICAL_STATE_PARITY only. Liquidation integer math, deployment/version identity, reorg reconciliation, REVM differential, source blockers and overall Protocol/Fork Truth are separate gates.",
+  "real_market_evidence": false,
+  "live_pnl_evidence": false,
+  "production_certification": "NOT_CERTIFIED",
+  "protocol_fork_truth": "NOT_CLOSED"
+}
