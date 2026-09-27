@@ -1,0 +1,213 @@
+name: NQC T38 Build Truth Closeout
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-build-truth-closeout.yml
+      - ci/nqc-build-truth/BUILD_TRUTH_CLOSEOUT.json
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/nqc-build-truth-closeout.yml
+      - ci/nqc-build-truth/BUILD_TRUTH_CLOSEOUT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+  attestations: read
+
+jobs:
+  closeout:
+    name: Build Truth formal closeout
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+
+    steps:
+      - name: Checkout exact closeout revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable closeout record and truth boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          mkdir -p /tmp/nqc-build-truth-closeout
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          path=Path("ci/nqc-build-truth/BUILD_TRUTH_CLOSEOUT.json")
+          close=json.loads(path.read_text())
+          att=close.pop("closeout_attestation_sha256")
+          payload=json.dumps(close,sort_keys=True,separators=(",",":")).encode()
+          assert hashlib.sha256(payload).hexdigest() == att
+          assert att == "1bfc0007c988da7b0c3ab590c5fa8918b0d8cd0c4864537f2b5c744f924db22a"
+
+          assert close["schema_version"] == 1
+          assert close["tranche"] == "T38_BUILD_TRUTH_49_TO_55"
+          assert close["status"] == "BUILD_TRUTH_CLOSED"
+          assert close["closure_scope"] == "POST_ARCHITECTURE_BUILD_CERTIFICATION_ONLY"
+          assert close["certified_source"]["source_sha"] == "72be6dacaeddbb159bf576a4d3a996a4d6230292"
+          assert close["certified_source"]["source_pr"] == 460
+          assert close["certified_source"]["source_pr_head_sha"] == "a53ee79a77a5e1aa1e4cee87113e6a62c7dc869f"
+          assert close["certified_source"]["architecture_closeout_commit"] == "0ffaf8a5829d2f0c0874702042c8e0b094b30915"
+          assert close["certified_source"]["architecture_closeout_attestation_sha256"] == "1eccbf1572e2fcb98e038912eace3eae1daee712f7dd1f2e3d7ab6d6109a0f11"
+
+          ev=close["evidence"]
+          assert ev["run_id"] == 36289445133
+          assert ev["job_id"] == 108536569893
+          assert ev["artifact_id"] == 10922007477
+          assert ev["artifact_zip_sha256"] == "f452148b2205f100e0e9c60a210662f92c4a4d5f6675d04cea8181b1c080ec4e"
+          assert ev["evidence_tar_sha256"] == "99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e"
+          assert ev["summary_sha256"] == "f09f19f2cd883f85dfd538c428f47d6037e182d4001d2aab27468dc7f0ef9efc"
+          assert ev["summary_attestation_sha256"] == "f47909f698817414be24de24974ed3a9970f2abe3caf3777a6f141b40c744fae"
+          assert ev["github_attestation_id"] == 50495697
+          assert ev["github_attestation_subject_digest"] == "sha256:99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e"
+          assert ev["rekor_log_index"] == 2969668134
+          assert ev["manifest_entries_verified"] == 55
+
+          assert close["toolchains"] == {
+              "rust":"1.98.1",
+              "foundry":"1.7.1",
+              "solc":"0.8.24+commit.e11b9ed9",
+          }
+          assert all(v == "PASS" for v in close["required_gate_results"].values())
+          assert close["t37_phase1_replay"]["seed"] == "5643366627959420673"
+          assert close["t37_phase1_replay"]["metrics_sha256"] == "94de6c927b4ee34569890c0d874a46ede9579ca2abf66f4bad45e5ca0c4265d6"
+          assert close["t37_phase1_replay"]["execution_records_sha256"] == "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192"
+          assert close["t37_phase1_replay"]["matches_architecture_closeout"] is True
+          assert all(close["independent_redownload_revalidation"].values())
+
+          truth=close["truth_boundaries"]
+          assert truth["real_market_census"] == "NOT_TESTED"
+          assert truth["real_live_market_evidence"] is False
+          assert truth["live_pnl_evidence"] is False
+          assert truth["production_authority_issued"] is False
+          assert truth["production_certification"] == "NOT_CERTIFIED"
+          assert truth["nqc_global_status"] == "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION"
+          assert close["next_gate"] == "PROTOCOL_FORK_TRUTH"
+
+          Path("/tmp/nqc-build-truth-closeout/closeout-record-check.txt").write_text(
+              "PASS BUILD_TRUTH_CLOSEOUT static record + self-attestation + truth boundaries\n"
+          )
+          PY
+
+      - name: Redownload and independently verify exact Build Truth artifact
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARTIFACT_ID=10922007477
+          EXPECTED_ZIP=f452148b2205f100e0e9c60a210662f92c4a4d5f6675d04cea8181b1c080ec4e
+          EXPECTED_TAR=99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e
+          EXPECTED_SUMMARY=f09f19f2cd883f85dfd538c428f47d6037e182d4001d2aab27468dc7f0ef9efc
+          SOURCE_SHA=72be6dacaeddbb159bf576a4d3a996a4d6230292
+
+          curl --fail --location --retry 5 --retry-all-errors \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/repos/$REPO/actions/artifacts/$ARTIFACT_ID/zip" \
+            -o /tmp/nqc-build-truth-closeout/build-truth.zip
+
+          echo "$EXPECTED_ZIP  /tmp/nqc-build-truth-closeout/build-truth.zip" | sha256sum -c -
+          mkdir -p /tmp/nqc-build-truth-closeout/artifact
+          unzip -q /tmp/nqc-build-truth-closeout/build-truth.zip -d /tmp/nqc-build-truth-closeout/artifact
+
+          TAR="/tmp/nqc-build-truth-closeout/artifact/nqc-build-truth-$SOURCE_SHA.tar.gz"
+          test -f "$TAR"
+          echo "$EXPECTED_TAR  $TAR" | sha256sum -c -
+
+          EXPECTED_FROM_FILE="$(awk '{print $1}' "$TAR.sha256")"
+          test "$EXPECTED_FROM_FILE" = "$EXPECTED_TAR"
+
+          mkdir -p /tmp/nqc-build-truth-closeout/evidence
+          tar -xzf "$TAR" -C /tmp/nqc-build-truth-closeout/evidence
+          (
+            cd /tmp/nqc-build-truth-closeout/evidence
+            test "$(wc -l < SHA256SUMS)" = "55"
+            sha256sum -c SHA256SUMS
+          )
+
+          echo "$EXPECTED_SUMMARY  /tmp/nqc-build-truth-closeout/evidence/build-truth-summary.json" | sha256sum -c -
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          root=Path("/tmp/nqc-build-truth-closeout/evidence")
+          summary=json.loads((root/"build-truth-summary.json").read_text())
+          att=summary.pop("attestation_sha256")
+          payload=json.dumps(summary,sort_keys=True,separators=(",",":")).encode()
+          assert hashlib.sha256(payload).hexdigest() == att
+          assert att == "f47909f698817414be24de24974ed3a9970f2abe3caf3777a6f141b40c744fae"
+          assert summary["status"] == "PASS"
+          assert summary["source_sha"] == "72be6dacaeddbb159bf576a4d3a996a4d6230292"
+          assert summary["rust_toolchain"] == "1.98.1"
+          assert summary["foundry_toolchain"] == "1.7.1"
+          assert summary["solc_toolchain"] == "0.8.24+commit.e11b9ed9"
+          assert summary["runtime_repeated_release_hashes_equal"] is True
+          assert summary["t37_scale_repeated_release_hashes_equal"] is True
+          assert summary["t37_unified_repeated_release_hashes_equal"] is True
+          assert summary["t36_repeated_forge_outputs_equal"] is True
+          assert summary["t37_physical_repeated_forge_outputs_equal"] is True
+          assert summary["dependency_provenance_present"] is True
+          assert summary["cyclonedx_sbom_present"] is True
+          assert summary["real_market_census"] == "NOT_TESTED"
+          assert summary["real_live_market_evidence"] is False
+          assert summary["live_pnl_evidence"] is False
+          assert summary["production_authority_issued"] is False
+          assert summary["production_certification"] == "NOT_CERTIFIED"
+          assert summary["nqc_global_status"] == "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION"
+
+          replay=(root/"t37-scale-replay.sha256").read_text().splitlines()
+          assert replay[0].split()[0] == "94de6c927b4ee34569890c0d874a46ede9579ca2abf66f4bad45e5ca0c4265d6"
+          assert replay[1].split()[0] == "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192"
+          assert (root/"source-sha.txt").read_text().strip() == "72be6dacaeddbb159bf576a4d3a996a4d6230292"
+          PY
+
+          sha256sum /tmp/nqc-build-truth-closeout/build-truth.zip "$TAR" \
+            > /tmp/nqc-build-truth-closeout/redownloaded-artifact.sha256
+
+      - name: Verify published GitHub build provenance
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE_SHA=72be6dacaeddbb159bf576a4d3a996a4d6230292
+          TAR="/tmp/nqc-build-truth-closeout/artifact/nqc-build-truth-$SOURCE_SHA.tar.gz"
+          gh attestation verify "$TAR" --repo "$REPO" \
+            | tee /tmp/nqc-build-truth-closeout/github-attestation-verify.txt
+          grep -q '99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e' \
+            /tmp/nqc-build-truth-closeout/github-attestation-verify.txt
+
+      - name: Emit formal Build Truth closeout packet
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp ci/nqc-build-truth/BUILD_TRUTH_CLOSEOUT.json /tmp/nqc-build-truth-closeout/
+          (
+            cd /tmp/nqc-build-truth-closeout
+            find . -maxdepth 1 -type f ! -name SHA256SUMS -print0 \
+              | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload Build Truth formal closeout evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-build-truth-formal-closeout
+          path: |
+            /tmp/nqc-build-truth-closeout/BUILD_TRUTH_CLOSEOUT.json
+            /tmp/nqc-build-truth-closeout/closeout-record-check.txt
+            /tmp/nqc-build-truth-closeout/redownloaded-artifact.sha256
+            /tmp/nqc-build-truth-closeout/github-attestation-verify.txt
+            /tmp/nqc-build-truth-closeout/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
