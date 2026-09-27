@@ -33,7 +33,23 @@
         "exact_account_risk_artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c",
         "result": "PASS"
       },
-      "status": "RESOLVED"
+      "status": "RESOLVED",
+      "evidence_refs": [
+        {
+          "role": "resolution_full_account_risk",
+          "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+          "workflow_run_id": 36341553888,
+          "artifact_id": 10940935416,
+          "artifact_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49"
+        },
+        {
+          "role": "resolution_exact_account_risk",
+          "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+          "workflow_run_id": 36341554012,
+          "artifact_id": 10939116521,
+          "artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c"
+        }
+      ]
     },
     {
       "id": "PFT-MISMATCH-AAVE-FLASH-PREMIUM-001",
@@ -62,7 +78,16 @@
         "pr_483_exact_head_rerun": "PENDING",
         "pr_489_full_liquidation_matrix": "PENDING"
       },
-      "status": "EXPLAINED_REPAIR_PENDING_EXACT_HEAD_PASS"
+      "status": "EXPLAINED_REPAIR_PENDING_EXACT_HEAD_PASS",
+      "evidence_refs": [
+        {
+          "role": "observed_mismatch",
+          "head": "ba35212c96a5a335a67c6ec587d620f6b4f8d012",
+          "workflow_run_id": 36349409719,
+          "artifact_id": 10941698957,
+          "artifact_sha256": "437a7ae1e633d1053cdba9aaeaada9352aca03299bb6929d8f08ee31b2bce3d1"
+        }
+      ]
     }
   ],
   "excluded_non_semantic_incidents": [
