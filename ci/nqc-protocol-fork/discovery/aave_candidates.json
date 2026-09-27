@@ -4,7 +4,13 @@
   "protocol": {
     "name": "Aave V3 Ethereum",
     "pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
-    "liquidation_call_topic0": "0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286"
+    "liquidation_call_topic0": "0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286",
+    "selectors": {
+      "ADDRESSES_PROVIDER": "0x0542975c",
+      "getPriceOracle": "0xfca513a8",
+      "FLASHLOAN_PREMIUM_TOTAL": "0x074b2e43",
+      "getReservesCount": "0x72218d04"
+    }
   },
   "discovery_policy": {
     "minimum_anchor_consensus_providers": 2,
