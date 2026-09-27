@@ -1,3 +1,4 @@
+# Exact integer oracle; no tolerance.
 name: NQC T39 Aave Account Risk Exact Parity
 
 on:
