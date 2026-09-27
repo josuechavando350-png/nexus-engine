@@ -11,7 +11,7 @@ from pathlib import Path
 SOCKET_PATH = Path(os.environ["NQC_PFT_IPC_SOCKET"])
 UPSTREAM_URL = os.environ["NQC_PFT_UPSTREAM_URL"]
 UPSTREAM_ID = os.environ["NQC_PFT_UPSTREAM_ID"]
-TIMEOUT = 30
+TIMEOUT = float(os.environ.get("NQC_PFT_BRIDGE_TIMEOUT_SECONDS", "30"))
 DECODER = json.JSONDecoder()
 
 
