@@ -5,6 +5,8 @@ on:
     paths:
       - .github/workflows/nqc-protocol-fork-source-binding.yml
       - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
       - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
       - ci/nqc-protocol-fork/SOURCE_CENSUS.json
   push:
@@ -13,6 +15,8 @@ on:
     paths:
       - .github/workflows/nqc-protocol-fork-source-binding.yml
       - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
       - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
       - ci/nqc-protocol-fork/SOURCE_CENSUS.json
   workflow_dispatch:
@@ -126,9 +130,13 @@ jobs:
           PATCH1="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-001-aave-u40.patch"
           PATCH2="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-002-executor-return.patch"
           PATCH3="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch"
+          PATCH4="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-004-math-test-wad-import.patch"
+          PATCH5="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch"
           echo "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca  $PATCH1" | sha256sum -c -
-          echo "a86ee8fb584d837fb9ec280a94b634c69f6d9416e2d7cac6f1e0e0f54c9ea3d8  $PATCH2" | sha256sum -c -
-          echo "485b32615b95cee95dd014ab18b3dc6205fcd834f5216d34552925d6a4a43f7d  $PATCH3" | sha256sum -c -
+          echo "3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7  $PATCH2" | sha256sum -c -
+          echo "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5  $PATCH3" | sha256sum -c -
+          echo "323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720  $PATCH4" | sha256sum -c -
+          echo "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664  $PATCH5" | sha256sum -c -
           (
             cd /tmp/nqc-pft/source
             git apply --check "$PATCH1"
@@ -137,16 +145,24 @@ jobs:
             git apply "$PATCH2"
             git apply --check "$PATCH3"
             git apply "$PATCH3"
+            git apply --check "$PATCH4"
+            git apply "$PATCH4"
+            git apply --check "$PATCH5"
+            git apply "$PATCH5"
           )
           {
             sha256sum "$PATCH1"
             sha256sum "$PATCH2"
             sha256sum "$PATCH3"
+            sha256sum "$PATCH4"
+            sha256sum "$PATCH5"
           } > /tmp/nqc-pft/evidence/compatibility-patches.sha256
           cat > /tmp/nqc-pft/evidence/compatibility-overlays.txt <<'EOF'
           PFT-COMPAT-001 LOSSLESS_UINT40_TO_U64
           PFT-COMPAT-002 ABI_SINGLE_RETURN_DIRECT_U256
           PFT-COMPAT-003 TEST_ONLY_NQC_CORE_DEV_DEPENDENCY
+          PFT-COMPAT-004 TEST_ONLY_WAD_IMPORT
+          PFT-COMPAT-005 TEST_ONLY_NQC_AAVE_SYNC_DEV_DEPENDENCY
           EOF
 
       - name: Install exact Rust toolchain
@@ -159,13 +175,13 @@ jobs:
           cargo -V | tee /tmp/nqc-pft/evidence/cargo.txt
           rustc -V | grep -F "1.98.1"
 
-      - name: Generate dependency lock and certify recovered Rust workspace
+      - name: Certify pinned dependency lock and recovered Rust workspace
         shell: bash
         working-directory: /tmp/nqc-pft/source
         run: |
           set -euo pipefail
           cp "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock" Cargo.lock
-          echo "7f6332bba058655fadd7cf057340fcebab10e3bac4db1e267d5213642d29f1c8  Cargo.lock" | sha256sum -c -
+          echo "f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a  Cargo.lock" | sha256sum -c -
           cargo fetch --locked
           cp Cargo.lock /tmp/nqc-pft/evidence/recovered-Cargo.lock
           sha256sum Cargo.lock | tee /tmp/nqc-pft/evidence/recovered-Cargo.lock.sha256
@@ -261,8 +277,10 @@ jobs:
               "source_hash_manifest_verified":exists("source-hash-manifest.txt"),
               "compatibility_overlays":[
                   {"id":"PFT-COMPAT-001","sha256":"9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca"},
-                  {"id":"PFT-COMPAT-002","sha256":"a86ee8fb584d837fb9ec280a94b634c69f6d9416e2d7cac6f1e0e0f54c9ea3d8"},
-                  {"id":"PFT-COMPAT-003","sha256":"485b32615b95cee95dd014ab18b3dc6205fcd834f5216d34552925d6a4a43f7d"}
+                  {"id":"PFT-COMPAT-002","sha256":"3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7"},
+                  {"id":"PFT-COMPAT-003","sha256":"7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5"},
+                  {"id":"PFT-COMPAT-004","sha256":"323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720"},
+                  {"id":"PFT-COMPAT-005","sha256":"12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664"}
               ],
               "compatibility_overlay_scope":"TEMP_BUILD_COPY_ONLY; RECOVERED_BYTES_IMMUTABLE",
               "rustfmt_1_98_1_exact_source_match":(
@@ -272,7 +290,7 @@ jobs:
               "rust_physical_build_pass":exists("rust-physical-build-pass.txt"),
               "cargo_lock_generated":False,
               "cargo_lock_pinned":exists("recovered-Cargo.lock"),
-              "cargo_lock_expected_sha256":"7f6332bba058655fadd7cf057340fcebab10e3bac4db1e267d5213642d29f1c8",
+              "cargo_lock_expected_sha256":"f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a",
               "cargo_lock_sha256":fsha("recovered-Cargo.lock"),
               "cargo_check_log_present":exists("cargo-check.txt"),
               "cargo_clippy_log_present":exists("cargo-clippy.txt"),
