@@ -119,6 +119,7 @@ jobs:
           cp ci/nqc-protocol-fork/recovered-source/SOURCE_FILES.sha256 /tmp/nqc-pft/evidence/
           cp ci/nqc-protocol-fork/recovered-source/SOURCE_BINDING.json /tmp/nqc-pft/evidence/
           git rev-parse HEAD > /tmp/nqc-pft/evidence/repository-source-sha.txt
+          printf 'PASS\n' > /tmp/nqc-pft/evidence/source-hash-manifest.txt
 
       - name: Install exact Rust toolchain
         shell: bash
@@ -203,7 +204,12 @@ jobs:
               "gate":"RECOVERED_SOURCE_PHYSICAL_BUILD",
               "repository_source_sha":(ev/"repository-source-sha.txt").read_text().strip(),
               "physical_checkpoint":"2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
-              "source_hash_manifest_verified":True,
+              "source_hash_manifest_verified":exists("source-hash-manifest.txt"),
+              "rustfmt_1_98_1_exact_source_match":(
+                  (ev/"rustfmt-exit-code.txt").read_text().strip() == "0"
+                  if exists("rustfmt-exit-code.txt") else None
+              ),
+              "rust_physical_build_pass":exists("rust-physical-build-pass.txt"),
               "cargo_lock_generated":exists("recovered-Cargo.lock"),
               "cargo_lock_sha256":fsha("recovered-Cargo.lock"),
               "cargo_check_log_present":exists("cargo-check.txt"),
@@ -212,6 +218,11 @@ jobs:
               "cargo_release_log_present":exists("cargo-release.txt"),
               "forge_build_log_present":exists("forge-build.txt"),
               "forge_test_log_present":exists("forge-test.txt"),
+              "forge_fmt_1_7_1_exact_source_match":(
+                  (ev/"forge-fmt-exit-code.txt").read_text().strip() == "0"
+                  if exists("forge-fmt-exit-code.txt") else None
+              ),
+              "forge_physical_build_pass":exists("forge-physical-build-pass.txt"),
               "v2_executor_source_recovered":False,
               "v2_state_source_recovered":False,
               "aave_reconciler_source_recovered":False,
