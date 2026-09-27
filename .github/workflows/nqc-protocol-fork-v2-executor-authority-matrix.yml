@@ -77,8 +77,8 @@ jobs:
           set -euo pipefail
           export PATH="$NQC_V2_AUTH/bin:$PATH"
           forge test --offline --use "$NQC_V2_AUTH/solc-0.8.24" -vvvv             2>&1 | tee "$NQC_V2_AUTH/evidence/forge-test.log"
-          grep -F "17 tests passed, 0 failed, 0 skipped (17 total tests)" "$NQC_V2_AUTH/evidence/forge-test.log"
-          test "$(grep -c '^\[PASS\] test' "$NQC_V2_AUTH/evidence/forge-test.log")" -eq 17
+          grep -F "18 tests passed, 0 failed, 0 skipped (18 total tests)" "$NQC_V2_AUTH/evidence/forge-test.log"
+          test "$(grep -c '^\[PASS\] test' "$NQC_V2_AUTH/evidence/forge-test.log")" -eq 18
           test "$(grep -c '^\[FAIL\]' "$NQC_V2_AUTH/evidence/forge-test.log" || true)" -eq 0
           printf '%s\n' 'PASS_CALLBACK_AUTHORITY_MATRIX' > "$NQC_V2_AUTH/evidence/callback-authority-status.txt"
           printf '%s\n' 'PASS_NONZERO_BASELINE_SUBSIDY_ATTACK' > "$NQC_V2_AUTH/evidence/baseline-subsidy-status.txt"
