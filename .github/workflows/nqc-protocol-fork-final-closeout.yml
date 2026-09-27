@@ -1,0 +1,84 @@
+name: NQC T39 Protocol Fork Final Closeout Contract
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-final-closeout.yml
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json
+      - ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json
+      - ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  final-closeout-contract:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Enforce fail-closed Protocol/Fork closeout semantics
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+
+          d=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json").read_text())
+          assert d["schema_version"]==1
+          assert d["closeout"]=="PROTOCOL_FORK_TRUTH"
+
+          required=d["required_gates"]
+          expected={
+            "SOURCE_BINDING_COMPLETE",
+            "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK",
+            "AAVE_CANONICAL_STATE_PARITY",
+            "AAVE_LIQUIDATION_INTEGER_MATH_PARITY",
+            "V2_CANONICAL_STATE_AND_REORG_PARITY",
+            "RUST_SOLIDITY_ABI_ROUNDTRIP",
+            "REVM_HISTORICAL_FORK_DIFFERENTIAL",
+            "REORG_INVALIDATION_AND_REPLAY_REFRESH",
+            "EXECUTOR_CODE_IDENTITY_BINDING",
+            "PARITY_MISMATCH_LEDGER_OPEN_ZERO",
+            "EVIDENCE_MANIFEST_CONTENT_ADDRESSED",
+          }
+          assert set(required)==expected
+
+          blockers=d["source_blockers"]
+          assert set(blockers)=={"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+
+          all_gates=all(v=="PASS" for v in required.values())
+          all_blockers=all(v=="CLOSED" for v in blockers.values())
+          commit=d["certified_commit"]
+          commit_ok=isinstance(commit,str) and re.fullmatch(r"[0-9a-f]{40}",commit) is not None
+
+          if d["status"]=="PROTOCOL_FORK_TRUTH_CLOSED":
+              assert all_gates
+              assert all_blockers
+              assert commit_ok
+              manifest=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json").read_text())
+              ledger=json.loads(Path("ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json").read_text())
+              assert manifest["status"]=="PASS"
+              assert ledger["status"]=="PASS"
+              assert ledger["counts"]["open_total"]==0
+              assert ledger["counts"]["unexplained_open"]==0
+              print("PROTOCOL_FORK_TRUTH_CLOSED")
+          else:
+              assert d["status"]=="NOT_CLOSED"
+              assert not (all_gates and all_blockers and commit_ok), "close conditions satisfied but contract not closed"
+              assert d["known_truth_boundaries"]["production_certification"]=="NOT_CERTIFIED"
+              assert d["known_truth_boundaries"]["live_pnl_evidence"] is False
+              print("PROTOCOL_FORK_TRUTH_NOT_CLOSED_FAIL_CLOSED")
+          PY
+
+          sha256sum ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json             > /tmp/nqc-pft-final-closeout.sha256
+          sha256sum -c /tmp/nqc-pft-final-closeout.sha256
