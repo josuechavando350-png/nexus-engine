@@ -58,26 +58,34 @@ fn require_stale_rejection(
 
 fn main() -> Result<(), Error> {
     let args: Vec<String> = env::args().collect();
-    if args.len() != 4 {
-        return Err("usage: pft_reorg_replay_refresh <provider-id> <timestamp> <base-fee-or-none>".into());
+    if args.len() != 6 {
+        return Err("usage: pft_reorg_replay_refresh <provider-id> <canonical-timestamp> <canonical-base-fee-or-none> <orphan-timestamp> <orphan-base-fee-or-none>".into());
     }
     let provider = &args[1];
-    let timestamp: u64 = args[2].parse()?;
-    let base_fee_per_gas = if args[3] == "none" {
+    let canonical_timestamp: u64 = args[2].parse()?;
+    let canonical_base_fee_per_gas = if args[3] == "none" {
         None
     } else {
         Some(args[3].parse::<u64>()?)
+    };
+    let orphan_timestamp: u64 = args[4].parse()?;
+    let orphan_base_fee_per_gas = if args[5] == "none" {
+        None
+    } else {
+        Some(args[5].parse::<u64>()?)
     };
 
     let canonical = CanonicalBlock {
         number: HEIGHT,
         hash: B256::from_str(CANONICAL_HASH)?,
-        timestamp,
-        base_fee_per_gas,
+        timestamp: canonical_timestamp,
+        base_fee_per_gas: canonical_base_fee_per_gas,
     };
     let orphan = CanonicalBlock {
+        number: HEIGHT,
         hash: B256::from_str(ORPHAN_HASH)?,
-        ..canonical
+        timestamp: orphan_timestamp,
+        base_fee_per_gas: orphan_base_fee_per_gas,
     };
 
     let (stale_fp, refreshed_fp) = require_stale_rejection(orphan, canonical, 0x31)?;
@@ -106,11 +114,15 @@ fn main() -> Result<(), Error> {
     }
 
     println!(
-        "REORG_REPLAY_REFRESH_PASS upstream={} height={} orphan={} canonical={} stale_fingerprint={:#x} refreshed_fingerprint={:#x} deep_replacements={} unexplained_mismatches=0",
+        "REORG_REPLAY_REFRESH_PASS upstream={} height={} orphan={} canonical={} orphan_timestamp={} canonical_timestamp={} orphan_base_fee={:?} canonical_base_fee={:?} stale_fingerprint={:#x} refreshed_fingerprint={:#x} deep_replacements={} unexplained_mismatches=0",
         provider,
         HEIGHT,
         ORPHAN_HASH,
         CANONICAL_HASH,
+        orphan.timestamp,
+        canonical.timestamp,
+        orphan.base_fee_per_gas,
+        canonical.base_fee_per_gas,
         stale_fp,
         refreshed_fp,
         deep_replacements,
