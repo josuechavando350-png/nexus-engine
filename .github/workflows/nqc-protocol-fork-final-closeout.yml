@@ -13,6 +13,10 @@ on:
       - ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   actions: read
@@ -72,7 +76,7 @@ jobs:
           assert authority['runtime_gate_authority']=='PROTOCOL_FORK_EVIDENCE_MANIFEST.json_PLUS_EXACT_HEAD_WORKFLOW_SUCCESS'
           assert authority['runtime_source_blocker_authority']=='PFT_SRC_CLOSEOUT_FILES'
           assert authority['runtime_compatibility_authority']=='PARITY_MISMATCH_LEDGER.json'
-          assert authority['final_status_authority']=='RUNTIME_CLOSEOUT_RECEIPT_BOUND_TO_GIT_HEAD_AND_TREE'
+          assert authority['final_status_authority']=='RUNTIME_CLOSEOUT_RECEIPT_BOUND_TO_GIT_HEAD_TREE_AND_RUN_ATTEMPT'
           assert truth['schema_version']==1
 
           expected={
@@ -626,13 +630,14 @@ jobs:
               print('PROTOCOL_FORK_TRUTH_CLOSED certified_commit='+head+' certified_tree='+tree)
           else:
               print('PROTOCOL_FORK_TRUTH_NOT_CLOSED_FAIL_CLOSED reasons='+','.join(reasons))
+              raise SystemExit(1)
           PY
 
       - name: Preserve exact-head closeout receipt
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nqc-protocol-fork-final-certificate-${{ github.event.pull_request.head.sha || github.sha }}
+          name: nqc-protocol-fork-final-certificate-${{ github.event.pull_request.head.sha || github.sha }}-attempt-${{ github.run_attempt }}
           path: |
             ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json
             ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json.sha256

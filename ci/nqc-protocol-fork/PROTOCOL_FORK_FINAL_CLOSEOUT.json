@@ -26,7 +26,9 @@
     "ZERO_UNEXPLAINED_MISMATCHES",
     "EXACT_HEAD_ALL_REQUIRED_CI_GREEN",
     "CONTENT_ADDRESSED_EVIDENCE_MANIFEST_PASS",
-    "RUNTIME_CERTIFICATE_BINDS_EXACT_GIT_HEAD_AND_TREE"
+    "RUNTIME_CERTIFICATE_BINDS_EXACT_GIT_HEAD_AND_TREE",
+    "NOT_CLOSED_RECEIPT_MUST_FAIL_WORKFLOW_JOB",
+    "SAME_HEAD_FAILED_CLOSEOUT_MAY_ONLY_BECOME_CLOSED_ON_RERUN_AFTER_PREREQUISITES_PASS"
   ],
   "known_truth_boundaries": {
     "real_market_census": "NOT_TESTED",
@@ -40,13 +42,13 @@
   "note": "This closeout contract is intentionally NOT_CLOSED until all measured Protocol/Fork Truth gates and source blockers are resolved on one exact certified commit.",
   "certification_binding": "RUNTIME_GIT_HEAD_AND_TREE_ARTIFACT",
   "tracked_closeout_semantics": "POLICY_ONLY; PROTOCOL_FORK_TRUTH_CLOSED MAY ONLY BE EMITTED BY THE RUNTIME CERTIFICATE ARTIFACT",
-  "certificate_artifact_name_template": "nqc-protocol-fork-final-certificate-<git-head>",
+  "certificate_artifact_name_template": "nqc-protocol-fork-final-certificate-<git-head>-attempt-<run-attempt>",
   "state_authority": {
     "tracked_required_gate_values": "CHECKPOINT_ONLY_NOT_CERTIFICATION_AUTHORITY",
     "tracked_source_blocker_values": "CHECKPOINT_ONLY_NOT_CERTIFICATION_AUTHORITY",
     "runtime_gate_authority": "PROTOCOL_FORK_EVIDENCE_MANIFEST.json_PLUS_EXACT_HEAD_WORKFLOW_SUCCESS",
     "runtime_source_blocker_authority": "PFT_SRC_CLOSEOUT_FILES",
     "runtime_compatibility_authority": "PARITY_MISMATCH_LEDGER.json",
-    "final_status_authority": "RUNTIME_CLOSEOUT_RECEIPT_BOUND_TO_GIT_HEAD_AND_TREE"
+    "final_status_authority": "RUNTIME_CLOSEOUT_RECEIPT_BOUND_TO_GIT_HEAD_TREE_AND_RUN_ATTEMPT"
   }
 }
