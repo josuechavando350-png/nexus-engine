@@ -1,0 +1,6 @@
+diff --git a/crates/nqc-aave-math/src/lib.rs b/crates/nqc-aave-math/src/lib.rs
+index cca13e7..2d08ae2 100644
+--- a/crates/nqc-aave-math/src/lib.rs
++++ b/crates/nqc-aave-math/src/lib.rs
+@@ -330,0 +331 @@ mod tests {
++    use nqc_core::wad;
