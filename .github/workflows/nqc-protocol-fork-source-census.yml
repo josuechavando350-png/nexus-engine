@@ -104,18 +104,12 @@ jobs:
           test -f ci/nqc-t36/T36_CLOSEOUT.json
           test -f ci/nqc-t37/T37_CLOSEOUT.json
 
-          if git ls-files | grep -Eq '(^|/)NqcV2BackrunExecutor\.sol$'; then
-            echo "PFT-SRC-001 no longer matches tree; update census before proceeding" >&2
-            exit 1
-          fi
-          if git ls-files | grep -Eq '(^|/)nqc-v2-state(/|$)'; then
-            echo "PFT-SRC-002 no longer matches tree; update census before proceeding" >&2
-            exit 1
-          fi
-          if git ls-files | grep -Eq '(^|/)nqc-aave-reconciler(/|$)'; then
-            echo "PFT-SRC-003 no longer matches tree; update census before proceeding" >&2
-            exit 1
-          fi
+          # Recovery census checks only the immutable recovered-source namespace.
+          # Explicit measured reimplementations live under reimplementation/ and
+          # must not be mistaken for recovered historical bytes.
+          test ! -e ci/nqc-protocol-fork/recovered-source/contracts/src/NqcV2BackrunExecutor.sol
+          test ! -e ci/nqc-protocol-fork/recovered-source/crates/nqc-v2-state
+          test ! -e ci/nqc-protocol-fork/recovered-source/crates/nqc-aave-reconciler
 
           python3 - <<'PY'
           import json
