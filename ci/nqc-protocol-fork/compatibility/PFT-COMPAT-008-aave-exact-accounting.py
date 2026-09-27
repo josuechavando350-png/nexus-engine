@@ -22,7 +22,7 @@ def patch_hot_state(root: Path):
     text = replace_once(
         text,
         "use nqc_core::{ray_mul_half_up, MathError};",
-        "use nqc_core::{checked_add, checked_mul, mul_div_ceil, mul_div_floor, ray_mul_half_up, wad, wad_div_half_up, MathError};",
+        "use nqc_core::{checked_add, checked_mul, mul_div_ceil, mul_div_floor, ray, ray_mul_half_up, wad, wad_div_half_up, MathError};",
         "hot-state imports",
     )
 
@@ -189,8 +189,12 @@ pub struct ProtocolAccountRisk {
                     runtime.last_update_timestamp,
                     current_timestamp,
                 )?;
-                let amount =
-                    ray_mul_half_up(position.scaled_atoken_balance, normalized_income_ray)?;
+                // TokenMath::getATokenBalance uses rayMulFloor, not half-up.
+                let amount = mul_div_floor(
+                    position.scaled_atoken_balance,
+                    normalized_income_ray,
+                    ray(),
+                )?;
                 // GenericLogic::_getUserBalanceInBaseCurrency: floor.
                 let value_base = mul_div_floor(amount, price, config.token_unit)?;
                 collateral_base = checked_add(collateral_base, value_base)?;
@@ -211,8 +215,12 @@ pub struct ProtocolAccountRisk {
                     runtime.last_update_timestamp,
                     current_timestamp,
                 )?;
-                let amount =
-                    ray_mul_half_up(position.scaled_variable_debt, normalized_debt_ray)?;
+                // TokenMath::getVTokenBalance uses rayMulCeil to avoid debt under-accounting.
+                let amount = mul_div_ceil(
+                    position.scaled_variable_debt,
+                    normalized_debt_ray,
+                    ray(),
+                )?;
                 // GenericLogic::_getUserDebtInBaseCurrency: mulDivCeil.
                 let value_base = mul_div_ceil(amount, price, config.token_unit)?;
                 debt_base = checked_add(debt_base, value_base)?;
