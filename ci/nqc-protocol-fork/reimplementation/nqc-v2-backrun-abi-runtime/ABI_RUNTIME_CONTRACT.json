@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "gate": "RUST_SOLIDITY_ABI_ROUNDTRIP",
+  "scope": "V2_BACKRUN_REIMPLEMENTATION_RUNTIME_PATH",
+  "classification": "NEW_REPAIR_RUNTIME_ABI_EVIDENCE",
+  "required_assertions": [
+    "RUST_PLAN_ABI_TO_SOLIDITY_EXECUTE_DECODE",
+    "RUST_EXECUTE_CALLDATA_TO_ACTUAL_EXECUTOR_RUNTIME",
+    "EXECUTOR_UINT256_RETURN_TO_RUST_INTERPRETATION",
+    "SOLIDITY_BACKRUNEXECUTED_LOG_TO_RUST_INTERPRETATION",
+    "RUST_PLAN_HASH_EQUALS_SOLIDITY_EVENT_PLAN_HASH",
+    "TARGET_PARENT_RESERVE_AND_PROVENANCE_FIELDS_SURVIVE_RUNTIME_ABI"
+  ],
+  "expected_runtime_profit": "900",
+  "expected_flash_principal": "100000",
+  "expected_flash_premium": "100",
+  "status": "NOT_TESTED",
+  "protocol_fork_truth": "NOT_CLOSED"
+}
