@@ -53,13 +53,14 @@ contract PftAaveExecutorHistoricalForkTest {
         0x04a2465e3a87b1103521c1f54e568de209062f08742a0212da24d34eee4aac78;
 
     address private constant POOL = 0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2;
-    address private constant BORROWER = 0x5E0481cAD8BFF5453635F4770F44b2194DdF6e02;
+    // Separate admitted log 0x86: the original large log 0x28 remains a rejection test.
+    address private constant BORROWER = address(bytes20(hex"c087195a816e1f247f1865189d76c6be0aed9982"));
     address private constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address private constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     address private constant USDC_WETH_PAIR = 0xB4e16d0168e52d35CaCD2c6185b44281Ec28C9Dc;
 
-    uint256 private constant DEBT_TO_COVER = 554_963_551_478;
-    uint256 private constant COLLATERAL_TO_LIQUIDATOR = 368_144_715_101_196_997_895;
+    uint256 private constant DEBT_TO_COVER = 83_727_306_811;
+    uint256 private constant COLLATERAL_TO_LIQUIDATOR = 55_541_963_846_157_253_734;
     uint256 private constant V2_FEE_BPS = 30;
 
     event PftExecutorHistoricalForkEvidence(
@@ -77,6 +78,52 @@ contract PftAaveExecutorHistoricalForkTest {
         uint256 operatorDelta;
         uint112 reserve0After;
         uint112 reserve1After;
+    }
+
+    function testFork_ExecutorRejectsOriginalUnprofitableRouteAtomically() public {
+        vm.createSelectFork(vm.envString("PFT_RPC_URL"), TX);
+        require(block.number == BLOCK_NUMBER, "BLOCK");
+        require(blockhash(BLOCK_NUMBER - 1) == PARENT_HASH, "PARENT");
+        PftExecPair pair = PftExecPair(USDC_WETH_PAIR);
+        require(pair.token0() == USDC && pair.token1() == WETH, "PAIR_TOKENS");
+        (uint112 r0, uint112 r1,) = pair.getReserves();
+        uint256 amountOut = _quote(r1, r0, 368_144_715_101_196_997_895);
+        uint256 repayment = 554_963_551_478 +
+            (554_963_551_478 * uint256(PftExecPool(POOL).FLASHLOAN_PREMIUM_TOTAL()) + 5_000) / 10_000;
+        require(amountOut < repayment, "ORIGINAL_ROUTE_MUST_HAVE_NO_EDGE");
+        NqcAaveV3Executor executor = new NqcAaveV3Executor(address(this), POOL);
+        NqcAaveV3Executor.ExecutionPlan memory plan = _plan(amountOut);
+        plan.borrower = 0x5E0481cAD8BFF5453635F4770F44b2194DdF6e02;
+        plan.debtToCover = 554_963_551_478;
+        plan.hops[0].amountIn = 368_144_715_101_196_997_895;
+        bytes32 beforeState = _rejectionState(plan.borrower, address(executor));
+        bytes memory expected = abi.encodeWithSelector(NqcAaveV3Executor.InsufficientProfit.selector, 1, 0);
+        try executor.execute(plan) returns (uint256) {
+            revert("LOSS_ROUTE_ACCEPTED");
+        } catch (bytes memory reason) {
+            require(keccak256(reason) == keccak256(expected), "WRONG_REJECTION");
+        }
+        require(_rejectionState(plan.borrower, address(executor)) == beforeState, "NONATOMIC_REJECTION");
+        string memory key = "negative";
+        vm.serializeBytes32(key, "transaction_hash", TX);
+        vm.serializeAddress(key, "borrower", plan.borrower);
+        vm.serializeUint(key, "pair_amount_out", amountOut);
+        vm.serializeUint(key, "required_repayment", repayment);
+        vm.serializeUint(key, "shortfall_before_gas", repayment - amountOut);
+        vm.serializeBytes32(key, "revert_data_keccak256", keccak256(expected));
+        vm.serializeBytes32(key, "state_before_and_after", beforeState);
+        string memory json = vm.serializeUint(key, "atomic_rejection_pass", 1);
+        vm.writeJson(json, string.concat(vm.envString("PFT_EVIDENCE_PATH"), ".negative.json"));
+    }
+
+    function _rejectionState(address borrower, address executor) private view returns (bytes32) {
+        (bool ok, bytes memory account) = POOL.staticcall(abi.encodeWithSignature("getUserAccountData(address)", borrower));
+        require(ok && account.length == 192, "ACCOUNT_STATE");
+        (uint112 r0, uint112 r1, uint32 ts) = PftExecPair(USDC_WETH_PAIR).getReserves();
+        return keccak256(abi.encode(account, r0, r1, ts,
+            PftExecToken(USDC).balanceOf(address(this)),
+            PftExecToken(USDC).balanceOf(executor),
+            PftExecToken(WETH).balanceOf(executor)));
     }
 
     function _quote(uint256 reserveIn, uint256 reserveOut, uint256 amountIn)

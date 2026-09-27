@@ -40,6 +40,22 @@ jobs:
           mkdir -p "$NQC_EXEC_HIST/contracts/src" "$NQC_EXEC_HIST/contracts/test" "$NQC_EXEC_HIST/evidence"
           git rev-parse HEAD > "$NQC_EXEC_HIST/evidence/repository-source-sha.txt"
           (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          python3 - <<'PYCODE'
+          import json
+          from pathlib import Path
+          case=json.loads(Path("ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json").read_text())
+          logs={x["log_index"]:x for x in case["account"]["observed_liquidations"]}
+          for index,borrower,debt,collateral in [
+              ("0x28","0x5e0481cad8bff5453635f4770f44b2194ddf6e02",554963551478,368144715101196997895),
+              ("0x86","0xc087195a816e1f247f1865189d76c6be0aed9982",83727306811,55541963846157253734),
+          ]:
+              x=logs[index]
+              assert x["borrower"] == borrower
+              assert int(x["debt_to_cover"]) == debt
+              assert int(x["liquidated_collateral_amount"]) == collateral
+              assert x["collateral_asset"] == "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+              assert x["debt_asset"] == "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
+          PYCODE
           cp ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol             "$NQC_EXEC_HIST/contracts/src/"
           cp ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol             "$NQC_EXEC_HIST/contracts/test/"
 
@@ -129,6 +145,8 @@ jobs:
 
             PFT_RPC_URL="http://127.0.0.1:$port"             PFT_EVIDENCE_PATH="$evidence"               forge test --offline --use "$NQC_EXEC_HIST/solc-0.8.24"                 --match-contract PftAaveExecutorHistoricalForkTest -vvvv                 2>&1 | tee "$NQC_EXEC_HIST/evidence/$provider_id-foundry.log"
             grep -F '[PASS] testFork_ExecutorSettlesHistoricalWethUsdcLiquidation()'               "$NQC_EXEC_HIST/evidence/$provider_id-foundry.log"
+            grep -F '[PASS] testFork_ExecutorRejectsOriginalUnprofitableRouteAtomically()' "$NQC_EXEC_HIST/evidence/$provider_id-foundry.log"
+            test -s "$evidence.negative.json"
             test -s "$evidence"
             python3 -m json.tool "$evidence" >/dev/null
 
@@ -146,6 +164,14 @@ jobs:
           if left != right:
               keys=sorted(k for k in set(left)|set(right) if left.get(k)!=right.get(k))
               raise SystemExit(f"PROVIDER_DISSENT: execution evidence differs at {keys}")
+          def integer(value):
+              return int(value, 0) if isinstance(value, str) else int(value)
+          nl=json.loads((ev/"blastapi-public-execution.json.negative.json").read_text())
+          nr=json.loads((ev/"mevblocker-rpc-execution.json.negative.json").read_text())
+          assert nl == nr, "negative-case provider dissent"
+          assert integer(nl["atomic_rejection_pass"]) == 1
+          assert integer(nl["shortfall_before_gas"]) > 0
+          (ev/"canonical-negative-execution.json").write_text(json.dumps(nl,indent=2,sort_keys=True)+"\n")
           required=[
               "realized_profit","flash_premium","pair_amount_out",
               "ordered_logs_digest","operator_usdc_delta",
@@ -155,7 +181,7 @@ jobs:
           for key in required:
               if key not in left:
                   raise SystemExit(f"missing execution evidence key {key}")
-          if int(left["realized_profit"],0) <= 0:
+          if integer(left["realized_profit"]) <= 0:
               raise SystemExit("non-positive realized profit")
           if left["realized_profit"] != left["operator_usdc_delta"]:
               raise SystemExit("operator delta mismatch")
