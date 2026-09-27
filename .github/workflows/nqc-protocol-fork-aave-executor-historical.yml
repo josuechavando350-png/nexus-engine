@@ -1,0 +1,171 @@
+name: NQC T39 Aave Executor Historical Fork Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-executor-historical.yml
+      - ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol
+      - ci/nqc-protocol-fork/recovered-source/contracts/**
+      - ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch
+      - ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  executor-historical-fork:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    env:
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      NQC_EXEC_HIST: /tmp/nqc-aave-executor-historical
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable source and prepare patched isolated executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_EXEC_HIST"
+          mkdir -p "$NQC_EXEC_HIST/contracts/src" "$NQC_EXEC_HIST/contracts/test" "$NQC_EXEC_HIST/evidence"
+          git rev-parse HEAD > "$NQC_EXEC_HIST/evidence/repository-source-sha.txt"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol             "$NQC_EXEC_HIST/contracts/src/"
+          cp ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol             "$NQC_EXEC_HIST/contracts/test/"
+
+          patch="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch"
+          echo "bf3d8ad2f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720  $patch" | sha256sum -c -
+          (
+            cd "$NQC_EXEC_HIST"
+            git init -q
+            git add contracts/src/NqcAaveV3Executor.sol
+            git -c user.name=nqc -c user.email=nqc@example.invalid commit -qm baseline
+            git apply --unidiff-zero "$patch"
+          )
+
+          cat > "$NQC_EXEC_HIST/contracts/foundry.toml" <<'EOF'
+          [profile.default]
+          src = "src"
+          test = "test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          fs_permissions = [{ access = "read-write", path = "../evidence" }]
+          EOF
+
+          sha256sum             ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch             ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol             > "$NQC_EXEC_HIST/evidence/input-source.sha256"
+
+      - name: Install exact Foundry and solc
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$NQC_EXEC_HIST/foundry-bin"
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_EXEC_HIST/foundry.tar.gz"             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  $NQC_EXEC_HIST/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$NQC_EXEC_HIST/foundry.tar.gz" -C "$NQC_EXEC_HIST/foundry-bin"
+          export PATH="$NQC_EXEC_HIST/foundry-bin:$PATH"
+          forge --version | tee "$NQC_EXEC_HIST/evidence/forge.txt"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_EXEC_HIST/solc-0.8.24"             "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  $NQC_EXEC_HIST/solc-0.8.24" | sha256sum -c -
+          chmod +x "$NQC_EXEC_HIST/solc-0.8.24"
+          "$NQC_EXEC_HIST/solc-0.8.24" --version | tee "$NQC_EXEC_HIST/evidence/solc.txt"
+          "$NQC_EXEC_HIST/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
+
+      - name: Build recovered executor test harness
+        shell: bash
+        working-directory: /tmp/nqc-aave-executor-historical/contracts
+        run: |
+          set -euo pipefail
+          export PATH="$NQC_EXEC_HIST/foundry-bin:$PATH"
+          forge build --force --offline --use "$NQC_EXEC_HIST/solc-0.8.24"             2>&1 | tee "$NQC_EXEC_HIST/evidence/forge-build.txt"
+          forge inspect --offline --use "$NQC_EXEC_HIST/solc-0.8.24"             NqcAaveV3Executor deployedBytecode             > "$NQC_EXEC_HIST/evidence/executor-deployed-bytecode.txt"
+          sha256sum "$NQC_EXEC_HIST/evidence/executor-deployed-bytecode.txt"             > "$NQC_EXEC_HIST/evidence/executor-deployed-bytecode.sha256"
+
+      - name: Execute identical historical liquidation through two providers
+        shell: bash
+        working-directory: /tmp/nqc-aave-executor-historical/contracts
+        run: |
+          set -euo pipefail
+          export PATH="$NQC_EXEC_HIST/foundry-bin:$PATH"
+          for entry in 'blastapi-public|https://eth-mainnet.public.blastapi.io|18581|0.35' 'mevblocker-rpc|https://rpc.mevblocker.io|18582|1.25'; do
+            IFS='|' read -r provider_id provider_url port min_interval <<< "$entry"
+            evidence="$NQC_EXEC_HIST/evidence/$provider_id-execution.json"
+
+            NQC_PFT_PROXY_PORT="$port"             NQC_PFT_UPSTREAM_URL="$provider_url"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval"             NQC_PFT_MAX_ATTEMPTS=12             NQC_PFT_UPSTREAM_TIMEOUT_SECONDS=60             NQC_PFT_PROXY_LOG="$NQC_EXEC_HIST/evidence/$provider_id-throttle.jsonl"               python3 "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py"               > "$NQC_EXEC_HIST/evidence/$provider_id-throttle.log" 2>&1 &
+            proxy_pid=$!
+            trap 'kill "$proxy_pid" 2>/dev/null || true' EXIT
+
+            ready=0
+            for _ in $(seq 1 150); do
+              if curl --silent --fail "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                ready=1; break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            PFT_RPC_URL="http://127.0.0.1:$port"             PFT_EVIDENCE_PATH="$evidence"               forge test --offline --use "$NQC_EXEC_HIST/solc-0.8.24"                 --match-contract PftAaveExecutorHistoricalForkTest -vvvv                 2>&1 | tee "$NQC_EXEC_HIST/evidence/$provider_id-foundry.log"
+            grep -F '[PASS] testFork_ExecutorSettlesHistoricalWethUsdcLiquidation()'               "$NQC_EXEC_HIST/evidence/$provider_id-foundry.log"
+            test -s "$evidence"
+            python3 -m json.tool "$evidence" >/dev/null
+
+            kill "$proxy_pid"
+            wait "$proxy_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          ev=Path("/tmp/nqc-aave-executor-historical/evidence")
+          left=json.loads((ev/"blastapi-public-execution.json").read_text())
+          right=json.loads((ev/"mevblocker-rpc-execution.json").read_text())
+          if left != right:
+              keys=sorted(k for k in set(left)|set(right) if left.get(k)!=right.get(k))
+              raise SystemExit(f"PROVIDER_DISSENT: execution evidence differs at {keys}")
+          required=[
+              "realized_profit","flash_premium","pair_amount_out",
+              "ordered_logs_digest","operator_usdc_delta",
+              "pair_reserve0_after","pair_reserve1_after",
+              "executor_runtime_keccak256",
+          ]
+          for key in required:
+              if key not in left:
+                  raise SystemExit(f"missing execution evidence key {key}")
+          if int(left["realized_profit"],0) <= 0:
+              raise SystemExit("non-positive realized profit")
+          if left["realized_profit"] != left["operator_usdc_delta"]:
+              raise SystemExit("operator delta mismatch")
+          (ev/"canonical-execution.json").write_text(
+              json.dumps(left,indent=2,sort_keys=True)+"\n"
+          )
+          PY
+
+          printf '%s\n' 'PASS_RECOVERED_AAVE_EXECUTOR_HISTORICAL_WETH_USDC_FORK'             > "$NQC_EXEC_HIST/evidence/parity-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_EXEC_HIST/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_EXEC_HIST/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve exact fork evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-executor-historical-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-aave-executor-historical/evidence
+          if-no-files-found: error
+          retention-days: 30
