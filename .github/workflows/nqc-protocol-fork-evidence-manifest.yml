@@ -1,0 +1,73 @@
+name: NQC T39 Content Addressed Evidence Manifest
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-evidence-manifest.yml
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  evidence-manifest:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Validate content-addressed gate registry without premature closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          python3 - <<'PY'
+          import json,re
+          from pathlib import Path
+
+          p=Path("ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json")
+          d=json.loads(p.read_text())
+          assert d["schema_version"]==1
+          assert d["gate"]=="EVIDENCE_MANIFEST_CONTENT_ADDRESSED"
+          required=d["required_gates"]
+          entries=d["entries"]
+          assert len(required)==len(set(required))
+          assert set(required)==set(entries)
+          sha=re.compile(r"^[0-9a-f]{64}$")
+          head=re.compile(r"^[0-9a-f]{40}$")
+
+          pending=[]
+          for gate in required:
+              item=entries[gate]
+              assert "status" in item
+              if "head" in item:
+                  assert head.fullmatch(item["head"]), (gate,"bad head")
+              if item["status"]=="PASS":
+                  refs=[]
+                  if "artifact_sha256" in item:
+                      refs.append(item["artifact_sha256"])
+                  refs += [x["artifact_sha256"] for x in item.get("evidence",[])]
+                  refs += [x["artifact_sha256"] for x in item.get("bound_underlying_evidence",[])]
+                  assert refs, (gate,"PASS without content-addressed artifact")
+                  assert all(sha.fullmatch(x) for x in refs), (gate,"bad sha256")
+              else:
+                  pending.append(gate)
+
+          blockers=d["source_blockers"]
+          assert blockers["PFT-SRC-002"]=="CLOSED"
+          if not pending:
+              assert d["status"]=="PASS"
+              assert all(v=="CLOSED" for v in blockers.values())
+              assert d["protocol_fork_truth"]=="NOT_CLOSED"
+              print("EVIDENCE_MANIFEST_CONTENT_ADDRESSED_PASS")
+          else:
+              assert d["status"].startswith("NOT_TESTED_")
+              assert d["protocol_fork_truth"]=="NOT_CLOSED"
+              print("EVIDENCE_MANIFEST_PENDING gates="+",".join(pending))
+          PY
+
+          sha256sum ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json             > /tmp/nqc-pft-evidence-manifest.sha256
+          sha256sum -c /tmp/nqc-pft-evidence-manifest.sha256
