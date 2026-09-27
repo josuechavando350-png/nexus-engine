@@ -32,7 +32,9 @@
     "t36_executor_normalized_sha256": "bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320",
     "t36_unit_test_normalized_sha256": "5af6f56a3b71e9f204be69615f65d9255831f6808c6ba50102b6b9df1de526b9",
     "t36_fork_test_normalized_sha256": "8b4d3b51a44dbd5724bf69019169a667685b62f88050790e6e0dd866fb1da88a",
-    "t36_foundry_toml_sha256": "b26286f7c58dbb6924f408bcb3c06fa38f525c6dc82d7fa438115c98b6ecc8fa"
+    "t36_foundry_toml_sha256": "b26286f7c58dbb6924f408bcb3c06fa38f525c6dc82d7fa438115c98b6ecc8fa",
+    "t37_phase1_metrics_sha256": "94de6c927b4ee34569890c0d874a46ede9579ca2abf66f4bad45e5ca0c4265d6",
+    "t37_phase1_execution_records_sha256": "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192"
   },
   "required_gates": [
     "PRISTINE_EXACT_SHA",
@@ -41,6 +43,7 @@
     "RUNTIME_FMT_CLIPPY_TEST_RELEASE_LOCKED_OFFLINE",
     "RUNTIME_OPTIONAL_ADAPTERS_LOCKED_OFFLINE",
     "T37_SCALE_FMT_CLIPPY_TEST_RELEASE_LOCKED_OFFLINE",
+    "T37_SCALE_POST_FREEZE_REPAIR_FULL_REPLAY_BYTE_EQUIVALENCE",
     "T37_UNIFIED_ATTESTED_SOURCE_AND_LOCK_REPLAY",
     "T37_UNIFIED_FMT_CLIPPY_TEST_RELEASE_LOCKED_OFFLINE",
     "T36_SOLIDITY_FORMAT_BUILD_UNIT_TEST_EXACT_SOLC_OFFLINE",
@@ -58,5 +61,13 @@
     "production_certification": "NOT_CERTIFIED",
     "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION"
   },
-  "closeout_rule": "BUILD_TRUTH_CLOSED may be issued only after this workflow passes on the exact source SHA and the uploaded evidence manifest is independently re-downloaded and SHA-256 revalidated."
+  "closeout_rule": "BUILD_TRUTH_CLOSED may be issued only after this workflow passes on the exact source SHA and the uploaded evidence manifest is independently re-downloaded and SHA-256 revalidated.",
+  "post_freeze_repairs": [
+    {
+      "path": "ci/nqc-t37/scale-harness/src/main.rs",
+      "classification": "BUILD_TRUTH_RUST_1_98_1_CLIPPY_COMPATIBILITY",
+      "semantics": "NO_ARCHITECTURE_CHANGE",
+      "required_proof": "FULL_PHASE1_REPLAY_BYTE_IDENTICAL_TO_T37_CLOSEOUT_METRICS_AND_EXECUTION_RECORDS"
+    }
+  ]
 }
