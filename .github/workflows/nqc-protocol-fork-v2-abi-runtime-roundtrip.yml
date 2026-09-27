@@ -48,6 +48,7 @@ jobs:
           mkdir -p "$WORK/bridge/src"
           cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-abi-runtime/src/main.rs "$WORK/bridge/src/"
           cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$WORK/bridge/Cargo.lock"
+          cp ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock "$WORK/evidence/Cargo.lock.baseline"
           cat > "$WORK/foundry/foundry.toml" <<'EOF'
           [profile.default]
           src = "src"
@@ -72,7 +73,7 @@ jobs:
           rustup default "$RUST_TOOLCHAIN"
           rustc -Vv | tee "$WORK/evidence/rustc.txt"
           cargo -V | tee "$WORK/evidence/cargo.txt"
-          cargo fetch --locked --manifest-path ci/nqc-protocol-fork/recovered-source/Cargo.toml
+          cargo fetch --manifest-path "$WORK/bridge/Cargo.toml"
 
           mkdir -p "$WORK/foundry-bin"
           curl --fail --location --retry 5 --retry-all-errors \
@@ -97,7 +98,7 @@ jobs:
         run: |
           set -euo pipefail
           export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
-          cp "$WORK/bridge/Cargo.lock" "$WORK/evidence/Cargo.lock.before"
+          cp "$WORK/evidence/Cargo.lock.baseline" "$WORK/evidence/Cargo.lock.before"
           cargo build --offline --manifest-path "$WORK/bridge/Cargo.toml"
           cp "$WORK/bridge/Cargo.lock" "$WORK/evidence/Cargo.lock.after"
           python3 - <<'PY'
