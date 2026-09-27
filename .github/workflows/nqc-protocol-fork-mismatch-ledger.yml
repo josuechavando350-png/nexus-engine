@@ -8,6 +8,10 @@ on:
       - ci/nqc-protocol-fork/compatibility/**
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   actions: read
@@ -182,3 +186,37 @@ jobs:
               )
           assert d["protocol_fork_truth"] == "NOT_CLOSED"
           PY
+
+      - name: Emit content-addressed mismatch-ledger evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          out=/tmp/nqc-pft-mismatch-ledger
+          rm -rf "$out"
+          mkdir -p "$out"
+          cp ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json "$out/"
+          git rev-parse HEAD > "$out/repository-source-sha.txt"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json").read_text())
+          Path("/tmp/nqc-pft-mismatch-ledger/ledger-status.txt").write_text(
+              str(d.get("status","MISSING"))+"\n"
+          )
+          PY
+          (
+            cd "$out"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve content-addressed mismatch-ledger evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-parity-mismatch-ledger-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft-mismatch-ledger
+          if-no-files-found: error
+          retention-days: 30
+

@@ -7,6 +7,10 @@ on:
       - ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
   actions: read
@@ -96,6 +100,30 @@ jobs:
               ("EXECUTOR_CODE_IDENTITY_BINDING","__primary__"):(
                   "NQC T39 Executor Code Identity Binding",
                   ".github/workflows/nqc-protocol-fork-executor-code-identity.yml",
+              ),
+              ("AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK","__primary__"):(
+                  "NQC T39 Aave V3 Deployment Version Lock",
+                  ".github/workflows/nqc-protocol-fork-aave-deployment-version-lock.yml",
+              ),
+              ("AAVE_LIQUIDATION_INTEGER_MATH_PARITY","__primary__"):(
+                  "NQC T39 Aave Full Liquidation Integer Matrix",
+                  ".github/workflows/nqc-protocol-fork-aave-liquidation-matrix.yml",
+              ),
+              ("AAVE_LIQUIDATION_INTEGER_MATH_PARITY","single_historical_liquidation"):(
+                  "NQC T39 Aave Liquidation Integer Math Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-liquidation-math-parity.yml",
+              ),
+              ("REVM_HISTORICAL_FORK_DIFFERENTIAL","__primary__"):(
+                  "NQC T39 REVM Historical Fork Differential",
+                  ".github/workflows/nqc-protocol-fork-revm-historical-differential.yml",
+              ),
+              ("REORG_INVALIDATION_AND_REPLAY_REFRESH","__primary__"):(
+                  "NQC T39 Reorg Invalidation Replay Refresh",
+                  ".github/workflows/nqc-protocol-fork-reorg-replay-refresh.yml",
+              ),
+              ("PARITY_MISMATCH_LEDGER_OPEN_ZERO","__primary__"):(
+                  "NQC T39 Parity Mismatch Ledger",
+                  ".github/workflows/nqc-protocol-fork-mismatch-ledger.yml",
               ),
           }
 
