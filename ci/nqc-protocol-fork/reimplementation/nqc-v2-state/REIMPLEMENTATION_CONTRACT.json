@@ -12,7 +12,7 @@
     "REORG_REPLACES_WHOLE_CANONICAL_SNAPSHOT_NOT_INVERSE_DELTAS",
     "FULL_CANONICAL_ANCHOR_REVALIDATED_BEFORE_COMMIT"
   ],
-  "current_evidence_status": "NOT_TESTED",
+  "current_evidence_status": "DETERMINISTIC_TESTS_PASS_HISTORICAL_V2_PARITY_NOT_TESTED",
   "blocker_status": "OPEN",
   "blocker_close_requires": [
     "DETERMINISTIC_REIMPLEMENTATION_TESTS_PASS",
@@ -22,5 +22,15 @@
     "ONE_AND_MULTI_BLOCK_REORG_PARITY_PASS",
     "ZERO_UNEXPLAINED_MISMATCH"
   ],
-  "protocol_fork_truth": "NOT_CLOSED"
+  "protocol_fork_truth": "NOT_CLOSED",
+  "deterministic_evidence": {
+    "source_head": "384c3298be76557c9cfe9694f1f98cf5e35350dd",
+    "workflow_run_id": 36332712543,
+    "tests_passed": 5,
+    "tests_failed": 0,
+    "rust_toolchain": "1.98.1",
+    "artifact_id": 10936236089,
+    "artifact_zip_sha256": "38190c2b8cf2e2d51833787dc9318902a0cf760a6bd0b297d3d9a7e56f343db4",
+    "external_dependency_drift": 0
+  }
 }
