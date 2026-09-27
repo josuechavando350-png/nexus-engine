@@ -155,7 +155,7 @@
       "repair": "Pass the EIP-4844 base-fee update fraction selected from the pinned SpecId: Cancun fraction before Prague, Prague fraction from Prague onward.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
-      "patch_sha256": "f0858e30d7763bedbb140c4d4c23daa54cfa6659f02256275f9362e719d41e15",
+      "patch_sha256": "f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0",
       "semantic_rationale": "This restores the intended spec-aware blob gas price derivation using REVM's own pinned EIP-4844 constants; no block identity, transaction, state, authority, or economic acceptance rule changes."
     }
   ],
