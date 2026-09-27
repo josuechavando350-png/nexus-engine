@@ -44,6 +44,10 @@ jobs:
           git rev-parse HEAD > "$NQC_LIQ_WORK/evidence/repository-source-sha.txt"
           (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
           cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_LIQ_WORK/source/"
+          patch --dry-run --silent -p1 -d "$NQC_LIQ_WORK/source" < \
+            ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch
+          patch --silent -p1 -d "$NQC_LIQ_WORK/source" < \
+            ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch
           python3 ci/nqc-protocol-fork/parity/prepare_reserve_parity.py "$NQC_LIQ_WORK/source"
           cp ci/nqc-protocol-fork/parity/PftAaveLiquidationMathWitness.t.sol "$NQC_LIQ_WORK/foundry/test/"
           cat > "$NQC_LIQ_WORK/foundry/foundry.toml" <<'EOF'
@@ -56,7 +60,7 @@ jobs:
           via_ir = true
           fs_permissions = [{ access = "read-write", path = "../evidence" }]
           EOF
-          sha256sum             ci/nqc-protocol-fork/parity/PftAaveLiquidationMathWitness.t.sol             ci/nqc-protocol-fork/parity/generate_aave_liquidation_math_parity.py             > "$NQC_LIQ_WORK/evidence/harness-source.sha256"
+          sha256sum             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json             ci/nqc-protocol-fork/parity/PftAaveLiquidationMathWitness.t.sol             ci/nqc-protocol-fork/parity/generate_aave_liquidation_math_parity.py             > "$NQC_LIQ_WORK/evidence/harness-source.sha256"
 
       - name: Install exact Foundry solc and Rust
         shell: bash
@@ -135,6 +139,9 @@ jobs:
           cp "$NQC_LIQ_WORK/source/crates/nqc-aave-math/examples/pft_liquidation_math_parity.rs"             "$NQC_LIQ_WORK/evidence/"
 
           export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo check --locked --offline \
+            --manifest-path "$NQC_LIQ_WORK/source/Cargo.toml" \
+            -p nqc-aave-opportunity
           cargo run --locked --offline             --manifest-path "$NQC_LIQ_WORK/source/Cargo.toml"             -p nqc-aave-math --example pft_liquidation_math_parity             2>&1 | tee "$NQC_LIQ_WORK/evidence/liquidation-math-parity.log"
 
           grep -F 'AAVE_LIQUIDATION_MATH_PARITY_PASS' "$NQC_LIQ_WORK/evidence/liquidation-math-parity.log"

@@ -49,7 +49,7 @@ use nqc_aave_math::{{
     AvailableCollateralInput,
     LiquidationSizingInput,
 }};
-use nqc_core::{{mul_div_ceil, mul_div_floor, percent_mul_half_up}};
+use nqc_core::{{mul_div_ceil, mul_div_floor, percent_mul_ceil_unbounded}};
 use std::str::FromStr;
 
 type Error = Box<dyn std::error::Error>;
@@ -117,7 +117,7 @@ fn main() -> Result<(), Error> {{
         ).into());
     }}
 
-    let premium = percent_mul_half_up(
+    let premium = percent_mul_ceil_unbounded(
         observed_debt,
         {n(w["flash_loan_premium_bps"])}u32,
     )?;
