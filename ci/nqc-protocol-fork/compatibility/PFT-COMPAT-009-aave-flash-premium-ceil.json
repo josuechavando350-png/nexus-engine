@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "compatibility_id": "PFT-COMPAT-009",
+  "classification": "MEASURED_PROTOCOL_SEMANTIC_REPAIR_APPLIED_ONLY_TO_ISOLATED_RECOVERED_SOURCE_COPY",
+  "source": "crates/nqc-aave-opportunity/src/lib.rs",
+  "measured_failure": {
+    "pr": 483,
+    "head": "ba35212c96a5a335a67c6ec587d620f6b4f8d012",
+    "workflow_run": 36349409719,
+    "artifact_id": 10941698957,
+    "artifact_zip_sha256": "437a7ae1e633d1053cdba9aaeaada9352aca03299bb6929d8f08ee31b2bce3d1",
+    "principal_units": "83727306811",
+    "deployed_flash_premium_bps": 5,
+    "actual_callback_premium_units": "41863654",
+    "recovered_half_up_model_units": "41863653",
+    "mismatch_units": 1
+  },
+  "repair": "AAVE_FLASH_PREMIUM_MODEL_USES_CEILING_PERCENTAGE_ROUNDING",
+  "patch": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch",
+  "source_bytes_modified": false,
+  "status": "MEASURED_REPAIR_PENDING_FULL_MATRIX_RERUN",
+  "protocol_fork_truth": "NOT_CLOSED"
+}
