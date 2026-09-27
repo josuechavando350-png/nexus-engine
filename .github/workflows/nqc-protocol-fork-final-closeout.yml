@@ -147,6 +147,12 @@ jobs:
           }
           support_workflows=[
               'Build Verification',
+              'NQC T39 Protocol Fork Source Census',
+              'NQC T39 Aave Canonical State Witness',
+              'NQC T39 Aave Reserve Balance Parity',
+              'NQC T39 Aave Full Account Risk Parity',
+              'NQC T39 Aave Account Risk Exact Parity',
+              'NQC T39 Aave Executor Historical Fork Parity',
               'NQC T39 Aave Reconciler Reimplementation',
               'NQC T39 Aave Reconciler Historical Canonical Parity',
               'NQC T39 V2 Backrun Executor Reimplementation',
@@ -156,6 +162,12 @@ jobs:
           ]
           workflow_paths={
               'Build Verification':'.github/workflows/build-verification.yml',
+              'NQC T39 Protocol Fork Source Census':'.github/workflows/nqc-protocol-fork-source-census.yml',
+              'NQC T39 Aave Canonical State Witness':'.github/workflows/nqc-protocol-fork-aave-state-witness.yml',
+              'NQC T39 Aave Reserve Balance Parity':'.github/workflows/nqc-protocol-fork-aave-reserve-parity.yml',
+              'NQC T39 Aave Full Account Risk Parity':'.github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml',
+              'NQC T39 Aave Account Risk Exact Parity':'.github/workflows/nqc-protocol-fork-aave-account-risk-parity.yml',
+              'NQC T39 Aave Executor Historical Fork Parity':'.github/workflows/nqc-protocol-fork-aave-executor-historical.yml',
               'NQC T39 Protocol Fork Recovered Source Binding':'.github/workflows/nqc-protocol-fork-source-binding.yml',
               'NQC T39 Aave V3 Deployment Version Lock':'.github/workflows/nqc-protocol-fork-aave-deployment-version-lock.yml',
               'NQC T39 Aave Canonical State Parity Closeout':'.github/workflows/nqc-protocol-fork-aave-canonical-state-closeout.yml',
