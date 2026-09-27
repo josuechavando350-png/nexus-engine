@@ -67,14 +67,6 @@ jobs:
           done
 
           cp ci/nqc-protocol-fork/differential/pft_revm_historical_replay.rs             "$NQC_DIFF/source/crates/nqc-sim/examples/pft_revm_historical_replay.rs"
-          cat >> "$NQC_DIFF/source/crates/nqc-sim/Cargo.toml" <<'EOF'
-
-          [dev-dependencies]
-          tokio.workspace = true
-          serde_json.workspace = true
-          hex.workspace = true
-          EOF
-
           sha256sum             ci/nqc-protocol-fork/differential/PftRevmForkHarness.sol             ci/nqc-protocol-fork/differential/run_anvil_historical_differential.py             ci/nqc-protocol-fork/differential/pft_revm_historical_replay.rs             > "$NQC_DIFF/evidence/differential-source.sha256"
 
       - name: Install pinned Rust Foundry and solc
@@ -125,6 +117,13 @@ jobs:
 
           cd "$NQC_DIFF/source"
           cargo fetch --locked
+          cat >> crates/nqc-sim/Cargo.toml <<'EOF'
+
+          [dev-dependencies]
+          tokio.workspace = true
+          serde_json.workspace = true
+          hex.workspace = true
+          EOF
           export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
           cargo generate-lockfile --offline
           cargo build --offline -p nqc-sim --example pft_revm_historical_replay             2>&1 | tee "$NQC_DIFF/evidence/revm-build.log"
