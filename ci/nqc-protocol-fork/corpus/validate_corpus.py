@@ -140,6 +140,20 @@ cases = manifest.get("cases")
 if not isinstance(cases, list):
     die("manifest cases must be a list")
 
+admission = manifest.get("admission")
+if cases:
+    if not isinstance(admission, dict):
+        die("non-empty corpus requires admission provenance")
+    if not HEX40.fullmatch(admission.get("discovery_source_sha", "")):
+        die("admission.discovery_source_sha must be full 40-hex SHA")
+    artifact_id = admission.get("discovery_artifact_id")
+    if not isinstance(artifact_id, int) or artifact_id <= 0:
+        die("admission.discovery_artifact_id must be a positive integer")
+    if not SHA256.fullmatch(admission.get("discovery_artifact_sha256", "")):
+        die("admission.discovery_artifact_sha256 must be SHA-256")
+    if admission.get("independently_redownloaded_and_sha256_revalidated") is not True:
+        die("corpus admission requires independent artifact re-download and SHA-256 revalidation")
+
 seen_ids = set()
 seen_anchors = set()
 coverage_pass = {class_id: 0 for class_id in flat_classes}
@@ -210,9 +224,13 @@ for rel in cases:
         total_logs = account.get("total_liquidation_log_count")
         if not isinstance(observed, list) or not observed:
             die(f"{rel}: liquidation fixture requires observed_liquidations")
-        if not isinstance(total_logs, int) or total_logs < len(observed):
-            die(f"{rel}: invalid total_liquidation_log_count")
+        if not isinstance(total_logs, int) or total_logs != len(observed):
+            die(
+                f"{rel}: total_liquidation_log_count must exactly equal the "
+                "complete observed liquidation set"
+            )
         seen_log_indexes = set()
+        ordered_log_indexes = []
         for liquidation in observed:
             if not isinstance(liquidation, dict):
                 die(f"{rel}: observed liquidation must be an object")
@@ -228,8 +246,20 @@ for rel in cases:
             if log_index.lower() in seen_log_indexes:
                 die(f"{rel}: duplicate liquidation log_index")
             seen_log_indexes.add(log_index.lower())
+            ordered_log_indexes.append(int(log_index, 16))
             if not isinstance(liquidation.get("receive_atoken"), bool):
                 die(f"{rel}: receive_atoken must be boolean")
+
+        if ordered_log_indexes != sorted(ordered_log_indexes):
+            die(f"{rel}: observed_liquidations must preserve canonical log order")
+
+        expected = fixture.get("expected")
+        if not isinstance(expected, dict):
+            die(f"{rel}: liquidation fixture requires expected receipt evidence")
+        if expected.get("receipt_status") != "0x1":
+            die(f"{rel}: admitted liquidation fixture must be a successful receipt")
+        if expected.get("liquidation_log_count") != total_logs:
+            die(f"{rel}: expected liquidation_log_count must equal observed count")
 
         provenance = fixture.get("provenance")
         if not isinstance(provenance, dict):
@@ -239,6 +269,14 @@ for rel in cases:
             die(f"{rel}: transaction_hash must be exact 32-byte hash")
         if not HEX40.fullmatch(provenance.get("discovery_source_sha", "")):
             die(f"{rel}: discovery_source_sha must be full 40-hex SHA")
+        if provenance.get("discovery_source_sha") != admission["discovery_source_sha"]:
+            die(f"{rel}: discovery_source_sha does not match manifest admission")
+        if provenance.get("discovery_artifact_id") != admission["discovery_artifact_id"]:
+            die(f"{rel}: discovery_artifact_id does not match manifest admission")
+        if provenance.get("discovery_artifact_sha256") != admission["discovery_artifact_sha256"]:
+            die(f"{rel}: discovery artifact digest does not match manifest admission")
+        if provenance.get("receipt_status", expected.get("receipt_status")) != "0x1":
+            die(f"{rel}: provenance receipt status must be successful")
         for key in (
             "discovery_artifact_sha256",
             "candidate_discovery_sha256",
@@ -257,14 +295,60 @@ for rel in cases:
     identity = provider.get("identity")
     if not isinstance(identity, str) or not identity.strip():
         die(f"{rel}: provider.identity required")
-    if not SHA256.fullmatch(provider.get("identity_sha256", "")):
+    identity_sha = provider.get("identity_sha256", "")
+    if not SHA256.fullmatch(identity_sha):
         die(f"{rel}: provider.identity_sha256 must be SHA-256")
+    if hashlib.sha256(identity.encode()).hexdigest() != identity_sha:
+        die(f"{rel}: provider.identity_sha256 does not hash provider.identity")
     if provider.get("historical_state_served") is not True:
         die(f"{rel}: provider must prove exact historical state was served")
+    if provider.get("kind") == "archive_rpc":
+        try:
+            identity_record = json.loads(identity)
+        except Exception as exc:
+            die(f"{rel}: archive_rpc provider.identity must be canonical JSON: {exc}")
+        if identity_record.get("block_hash", "").lower() != block_hash.lower():
+            die(f"{rel}: provider identity block hash does not match fixture")
+        consensus = identity_record.get("consensus_providers")
+        exact_state_providers = identity_record.get("exact_state_providers")
+        protocol_identity_providers = identity_record.get("protocol_identity_providers")
+        for label, values in (
+            ("consensus_providers", consensus),
+            ("exact_state_providers", exact_state_providers),
+            ("protocol_identity_providers", protocol_identity_providers),
+        ):
+            if not isinstance(values, list) or len(values) < 2 or len(values) != len(set(values)):
+                die(f"{rel}: provider identity {label} must contain >=2 unique providers")
+        if not set(exact_state_providers).issubset(set(consensus)):
+            die(f"{rel}: exact-state providers must be a subset of anchor consensus")
+        if not set(protocol_identity_providers).issubset(set(consensus)):
+            die(f"{rel}: protocol-identity providers must be a subset of anchor consensus")
 
     protocol = fixture.get("protocol")
     if not isinstance(protocol, dict) or not protocol:
         die(f"{rel}: non-empty protocol identity is required")
+    if family == "liquidation":
+        expected_selectors = {
+            "ADDRESSES_PROVIDER": "0x0542975c",
+            "FLASHLOAN_PREMIUM_TOTAL": "0x074b2e43",
+            "getPriceOracle": "0xfca513a8",
+            "getReservesCount": "0x72218d04",
+        }
+        if protocol.get("aave_pool", "").lower() != "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2":
+            die(f"{rel}: Aave pool identity mismatch")
+        for key in ("addresses_provider", "price_oracle"):
+            if not ADDRESS.fullmatch(protocol.get(key, "")):
+                die(f"{rel}: invalid protocol address {key}")
+        premium = protocol.get("flash_loan_premium_bps")
+        if not isinstance(premium, int) or not 0 <= premium <= 10_000:
+            die(f"{rel}: invalid flash_loan_premium_bps")
+        reserves_count = protocol.get("reserves_count")
+        if not isinstance(reserves_count, int) or not 1 <= reserves_count <= 128:
+            die(f"{rel}: invalid reserves_count")
+        if not HEX32.fullmatch(protocol.get("liquidation_call_topic0", "")):
+            die(f"{rel}: invalid LiquidationCall topic0")
+        if protocol.get("selectors") != expected_selectors:
+            die(f"{rel}: protocol ABI selector lock mismatch")
 
     result = fixture.get("result")
     if not isinstance(result, dict):
