@@ -40,6 +40,42 @@ jobs:
           if not token:
               raise AssertionError("missing GitHub Actions token for canonical-state attestation")
 
+          expected_producer={
+              "canonical_witness":(
+                  "NQC T39 Aave Canonical State Witness",
+                  ".github/workflows/nqc-protocol-fork-aave-state-witness.yml",
+              ),
+              "recovered_user_meta":(
+                  "NQC T39 Aave Recovered Reader Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-reader-parity.yml",
+              ),
+              "reserve_index_scaled_balance":(
+                  "NQC T39 Aave Reserve Balance Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-reserve-parity.yml",
+              ),
+              "full_account_risk":(
+                  "NQC T39 Aave Full Account Risk Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml",
+              ),
+              "exact_emode_zero_account_risk":(
+                  "NQC T39 Aave Account Risk Exact Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-account-risk-parity.yml",
+              ),
+          }
+
+          def api_get(path):
+              req=urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}{path}",
+                  headers={
+                      "Authorization":f"Bearer {token}",
+                      "Accept":"application/vnd.github+json",
+                      "X-GitHub-Api-Version":"2022-11-28",
+                      "User-Agent":"nqc-aave-canonical-state-closeout-v3",
+                  },
+              )
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  return json.loads(response.read())
+
           def verify_artifact(label,item):
               head=item["head"]
               run_id=int(item["workflow_run_id"])
@@ -48,17 +84,8 @@ jobs:
               assert sha40.fullmatch(head), (label,"bad head")
               assert run_id>0 and artifact_id>0, (label,"bad ids")
               assert sha256.fullmatch(digest), (label,"bad digest")
-              req=urllib.request.Request(
-                  f"https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}",
-                  headers={
-                      "Authorization":f"Bearer {token}",
-                      "Accept":"application/vnd.github+json",
-                      "X-GitHub-Api-Version":"2022-11-28",
-                      "User-Agent":"nqc-aave-canonical-state-closeout-v2",
-                  },
-              )
-              with urllib.request.urlopen(req,timeout=30) as response:
-                  actual=json.loads(response.read())
+              actual=api_get(f"/actions/artifacts/{artifact_id}")
+              run_detail=api_get(f"/actions/runs/{run_id}")
               assert int(actual["id"])==artifact_id, (label,"artifact id mismatch")
               assert actual.get("expired") is False, (label,"artifact expired")
               assert actual.get("digest")==f"sha256:{digest}", (
@@ -69,15 +96,34 @@ jobs:
               assert run.get("head_sha")==head, (
                   label,"head mismatch",run.get("head_sha"),head
               )
+              assert run_detail.get("head_sha")==head, (
+                  label,"run head mismatch",run_detail.get("head_sha"),head
+              )
+              assert run_detail.get("status")=="completed", (
+                  label,"workflow not completed",run_detail.get("status")
+              )
+              assert run_detail.get("conclusion")=="success", (
+                  label,"workflow did not succeed",run_detail.get("conclusion")
+              )
+              expected_name,expected_path=expected_producer[label]
+              assert run_detail.get("name")==expected_name, (
+                  label,"workflow name mismatch",run_detail.get("name"),expected_name
+              )
+              assert run_detail.get("path")==expected_path, (
+                  label,"workflow path mismatch",run_detail.get("path"),expected_path
+              )
           assert closeout["gate"]=="AAVE_CANONICAL_STATE_PARITY"
           assert closeout["status"]=="PASS"
           assert closeout["providers"]==["blastapi-public","mevblocker-rpc"]
           assert len(closeout["anchors"])==2
           assert sum(x["users"] for x in closeout["anchors"])==15
           ev=closeout["evidence"]
-          for label,item in ev.items():
-              if "artifact_id" in item:
-                  verify_artifact(label,item)
+          artifact_labels={label for label,item in ev.items() if "artifact_id" in item}
+          assert artifact_labels==set(expected_producer), (
+              "unexpected or incomplete Aave evidence producer set",sorted(artifact_labels)
+          )
+          for label in sorted(artifact_labels):
+              verify_artifact(label,ev[label])
           assert ev["recovered_user_meta"]["exact_comparisons"]==30
           assert ev["reserve_index_scaled_balance"]["balance_parity_passes_per_provider"]==15
           assert ev["reserve_index_scaled_balance"]["reserves_per_provider"]==12
