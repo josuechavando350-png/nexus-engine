@@ -1,0 +1,109 @@
+{
+  "cases": [],
+  "protocol_fork_truth": "NOT_CLOSED",
+  "provider_contract": {
+    "block_hash_pin_required": true,
+    "moving_head_selector_forbidden": true,
+    "must_serve_exact_historical_state": true,
+    "nearby_block_substitution_forbidden": true
+  },
+  "required_classes": {
+    "aave": [
+      {
+        "id": "ordinary_liquidation",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "emode_account",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "close_factor_boundary",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "multiple_collateral_debt_pairs",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "interest_index_sensitive",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "dust_boundary",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "liquidation_bonus_path",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "protocol_fee_path",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "oracle_dependent_valuation",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "flash_loan_premium_accounting",
+        "status": "NOT_TESTED"
+      }
+    ],
+    "token_execution": [
+      {
+        "id": "standard_erc20",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "fee_on_transfer_rejection",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "non_standard_erc20_behavior",
+        "status": "NOT_TESTED"
+      }
+    ],
+    "v2": [
+      {
+        "id": "single_hop_route",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "multi_hop_route",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "sync_reserve_update",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "zero_liquidity_death_revival",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "route_continuity",
+        "status": "NOT_TESTED"
+      },
+      {
+        "id": "reorged_reserve_state",
+        "status": "NOT_TESTED"
+      }
+    ]
+  },
+  "schema_version": 1,
+  "source_binding": {
+    "fixture_schema": "ci/nqc-protocol-fork/corpus/fixture.schema.json",
+    "physical_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+    "repository_head": "5746612d36c4b0b848c484001a0bf6dda1a3ea52"
+  },
+  "status": "NOT_TESTED",
+  "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
+  "truth_boundaries": {
+    "canary_execution": false,
+    "live_pnl_evidence": false,
+    "production_certification": "NOT_CERTIFIED",
+    "real_market_census": "NOT_TESTED",
+    "shadow_live_market_execution": false
+  }
+}
