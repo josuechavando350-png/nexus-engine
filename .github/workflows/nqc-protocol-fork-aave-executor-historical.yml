@@ -43,7 +43,9 @@ jobs:
           cp ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol             "$NQC_EXEC_HIST/contracts/src/"
           cp ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol             "$NQC_EXEC_HIST/contracts/test/"
 
-          patch="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch"
+          patch="$NQC_EXEC_HIST/PFT-COMPAT-007-aave-stack-lifetime.patch"
+          git show HEAD:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch > "$patch"
+          test "$(git rev-parse HEAD:ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch)" = "cc8fb4c9f26e934d8bcc3fb3df78acf990c5e505"
           echo "bf3d8ad2f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720  $patch" | sha256sum -c -
           (
             cd "$NQC_EXEC_HIST"
