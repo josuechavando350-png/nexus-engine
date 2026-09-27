@@ -25,73 +25,173 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Enforce fail-closed Protocol/Fork closeout semantics
+      - name: Enforce fail-closed runtime-bound Protocol/Fork certification
         shell: bash
+        env:
+          NQC_CLOSEOUT_RECEIPT: ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json
         run: |
           set -euo pipefail
           git diff --check
           python3 - <<'PY'
-          import json,re
+          import hashlib, json, os, re, subprocess
           from pathlib import Path
 
-          d=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json").read_text())
-          truth=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
-          assert d["schema_version"]==1
-          assert d["closeout"]=="PROTOCOL_FORK_TRUTH"
-          assert truth["schema_version"]==1
-          assert set(truth["required_gates"])==set(d["required_gates"])
+          SHA40=re.compile(r'^[0-9a-f]{40}$')
+          SHA256=re.compile(r'^[0-9a-f]{64}$')
 
-          required=d["required_gates"]
+          def load(path):
+              return json.loads(Path(path).read_text())
+
+          def digest(path):
+              return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+          head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
+          tree=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          assert SHA40.fullmatch(head) and SHA40.fullmatch(tree)
+
+          policy_path=Path('ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json')
+          truth_path=Path('ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json')
+          manifest_path=Path('ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json')
+          ledger_path=Path('ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json')
+
+          d=load(policy_path)
+          truth=load(truth_path)
+          manifest=load(manifest_path)
+          ledger=load(ledger_path)
+
+          assert d['schema_version']==1
+          assert d['closeout']=='PROTOCOL_FORK_TRUTH'
+          assert d['status']=='NOT_CLOSED'
+          assert d['certification_binding']=='RUNTIME_GIT_HEAD_AND_TREE_ARTIFACT'
+          assert truth['schema_version']==1
+
           expected={
-            "SOURCE_BINDING_COMPLETE",
-            "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK",
-            "AAVE_CANONICAL_STATE_PARITY",
-            "AAVE_LIQUIDATION_INTEGER_MATH_PARITY",
-            "V2_CANONICAL_STATE_AND_REORG_PARITY",
-            "RUST_SOLIDITY_ABI_ROUNDTRIP",
-            "REVM_HISTORICAL_FORK_DIFFERENTIAL",
-            "REORG_INVALIDATION_AND_REPLAY_REFRESH",
-            "EXECUTOR_CODE_IDENTITY_BINDING",
-            "PARITY_MISMATCH_LEDGER_OPEN_ZERO",
-            "EVIDENCE_MANIFEST_CONTENT_ADDRESSED",
+            'SOURCE_BINDING_COMPLETE',
+            'AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK',
+            'AAVE_CANONICAL_STATE_PARITY',
+            'AAVE_LIQUIDATION_INTEGER_MATH_PARITY',
+            'V2_CANONICAL_STATE_AND_REORG_PARITY',
+            'RUST_SOLIDITY_ABI_ROUNDTRIP',
+            'REVM_HISTORICAL_FORK_DIFFERENTIAL',
+            'REORG_INVALIDATION_AND_REPLAY_REFRESH',
+            'EXECUTOR_CODE_IDENTITY_BINDING',
+            'PARITY_MISMATCH_LEDGER_OPEN_ZERO',
+            'EVIDENCE_MANIFEST_CONTENT_ADDRESSED',
           }
-          assert set(required)==expected
+          assert set(d['required_gates'])==expected
+          assert set(truth['required_gates'])==expected
+          assert set(d['source_blockers'])=={'PFT-SRC-001','PFT-SRC-002','PFT-SRC-003'}
 
-          blockers=d["source_blockers"]
-          assert set(blockers)=={"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+          gate_status={}
+          for gate in expected:
+              if gate=='EVIDENCE_MANIFEST_CONTENT_ADDRESSED':
+                  gate_status[gate]=manifest.get('status')
+              else:
+                  gate_status[gate]=manifest.get('entries',{}).get(gate,{}).get('status')
 
-          all_gates=all(v=="PASS" for v in required.values())
-          all_blockers=all(v=="CLOSED" for v in blockers.values())
-          commit=d["certified_commit"]
-          commit_ok=isinstance(commit,str) and re.fullmatch(r"[0-9a-f]{40}",commit) is not None
+          blocker_paths={
+            'PFT-SRC-001':Path('ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json'),
+            'PFT-SRC-002':Path('ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json'),
+            'PFT-SRC-003':Path('ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json'),
+          }
+          blocker_status={}
+          blocker_digests={}
+          for blocker_id,path in blocker_paths.items():
+              if not path.is_file():
+                  blocker_status[blocker_id]='MISSING'
+                  continue
+              b=load(path)
+              assert b['schema_version']==1
+              assert b['source_blocker']==blocker_id
+              blocker_status[blocker_id]=b['status']
+              blocker_digests[blocker_id]=digest(path)
+              if b['status']=='CLOSED':
+                  assert b['protocol_fork_truth']=='NOT_CLOSED'
+                  assert int(b.get('unexplained_mismatches',0))==0
+                  evidence=b.get('evidence',{})
+                  assert evidence
+                  for name,item in evidence.items():
+                      assert SHA40.fullmatch(item['head']), (blocker_id,name,'bad head')
+                      assert int(item['workflow_run_id'])>0, (blocker_id,name,'bad workflow run')
+                      assert int(item['artifact_id'])>0, (blocker_id,name,'bad artifact id')
+                      artifact_sha=item.get('artifact_sha256') or item.get('artifact_zip_sha256')
+                      assert artifact_sha and SHA256.fullmatch(artifact_sha), (blocker_id,name,'bad artifact digest')
+                      if 'status' in item:
+                          assert item['status']=='PASS', (blocker_id,name,'evidence not PASS')
 
-          if d["status"]=="PROTOCOL_FORK_TRUTH_CLOSED":
-              assert all_gates
-              assert all_blockers
-              assert commit_ok
-              manifest=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json").read_text())
-              ledger=json.loads(Path("ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json").read_text())
-              assert manifest["status"]=="PASS"
-              assert ledger["status"]=="PASS"
-              assert ledger["counts"]["open_total"]==0
-              assert ledger["counts"]["unexplained_open"]==0
-              assert truth["status"]=="PROTOCOL_FORK_TRUTH_CLOSED"
-              assert all(b["status"]=="CLOSED" for b in truth["current_blockers"])
-              assert {b["id"] for b in truth["current_blockers"]}=={"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
-              repairs={r["id"]:r for r in truth["measured_compatibility_repairs"]}
-              assert repairs["PFT-COMPAT-008"]["status"].startswith("RESOLVED")
-              assert repairs["PFT-COMPAT-009"]["status"].startswith("RESOLVED")
-              head=__import__("subprocess").check_output(["git","rev-parse","HEAD"],text=True).strip()
-              assert commit==head, (commit,head)
-              print("PROTOCOL_FORK_TRUTH_CLOSED")
+          all_manifest_gates=all(v=='PASS' for v in gate_status.values())
+          all_policy_gates=all(v=='PASS' for v in d['required_gates'].values())
+          all_blockers=all(blocker_status.get(k)=='CLOSED' for k in blocker_paths)
+          all_policy_blockers=all(v=='CLOSED' for v in d['source_blockers'].values())
+          manifest_blockers=manifest.get('source_blockers',{})
+          all_manifest_blockers=set(manifest_blockers)==set(blocker_paths) and all(v=='CLOSED' for v in manifest_blockers.values())
+
+          ledger_ready=(
+              ledger.get('status')=='PASS' and
+              ledger.get('counts',{}).get('open_total')==0 and
+              ledger.get('counts',{}).get('unexplained_open')==0
+          )
+
+          truth_blockers={b['id']:b['status'] for b in truth.get('current_blockers',[])}
+          repairs={r['id']:r for r in truth.get('measured_compatibility_repairs',[])}
+          compat_ready=all(
+              repairs.get(k,{}).get('status','').startswith('RESOLVED')
+              for k in ('PFT-COMPAT-008','PFT-COMPAT-009')
+          )
+          truth_ready=(
+              truth.get('status')=='PROTOCOL_FORK_TRUTH_CLOSED' and
+              set(truth_blockers)==set(blocker_paths) and
+              all(v=='CLOSED' for v in truth_blockers.values()) and
+              compat_ready
+          )
+
+          reasons=[]
+          if not all_manifest_gates: reasons.append('MANIFEST_REQUIRED_GATES_NOT_ALL_PASS')
+          if not all_policy_gates: reasons.append('POLICY_REQUIRED_GATES_NOT_ALL_PASS')
+          if not all_blockers: reasons.append('AUTHORITATIVE_SOURCE_CLOSEOUTS_NOT_ALL_CLOSED')
+          if not all_policy_blockers: reasons.append('POLICY_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
+          if not all_manifest_blockers: reasons.append('MANIFEST_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
+          if not ledger_ready: reasons.append('MISMATCH_LEDGER_NOT_ZERO_PASS')
+          if not truth_ready: reasons.append('TRUTH_CONTRACT_NOT_CLOSED_OR_COMPAT_NOT_RESOLVED')
+
+          ready=not reasons
+          receipt={
+              'schema_version':1,
+              'closeout':'PROTOCOL_FORK_TRUTH',
+              'status':'PROTOCOL_FORK_TRUTH_CLOSED' if ready else 'NOT_CLOSED_FAIL_CLOSED',
+              'certified_commit':head,
+              'certified_tree':tree,
+              'repository':os.environ.get('GITHUB_REPOSITORY'),
+              'workflow_run_id':int(os.environ.get('GITHUB_RUN_ID','0') or 0),
+              'workflow_run_attempt':int(os.environ.get('GITHUB_RUN_ATTEMPT','0') or 0),
+              'policy_sha256':digest(policy_path),
+              'truth_contract_sha256':digest(truth_path),
+              'evidence_manifest_sha256':digest(manifest_path),
+              'mismatch_ledger_sha256':digest(ledger_path),
+              'source_closeout_sha256':blocker_digests,
+              'gate_status':dict(sorted(gate_status.items())),
+              'source_blocker_status':dict(sorted(blocker_status.items())),
+              'reasons':reasons,
+              'truth_boundaries':d['known_truth_boundaries'],
+          }
+
+          out=Path(os.environ['NQC_CLOSEOUT_RECEIPT'])
+          out.write_text(json.dumps(receipt,indent=2,sort_keys=True)+'\n')
+          out.with_suffix(out.suffix+'.sha256').write_text(hashlib.sha256(out.read_bytes()).hexdigest()+'  '+out.name+'\n')
+
+          if ready:
+              print('PROTOCOL_FORK_TRUTH_CLOSED certified_commit='+head+' certified_tree='+tree)
           else:
-              assert d["status"]=="NOT_CLOSED"
-              assert truth["status"]!="PROTOCOL_FORK_TRUTH_CLOSED"
-              assert not (all_gates and all_blockers and commit_ok), "close conditions satisfied but contract not closed"
-              assert d["known_truth_boundaries"]["production_certification"]=="NOT_CERTIFIED"
-              assert d["known_truth_boundaries"]["live_pnl_evidence"] is False
-              print("PROTOCOL_FORK_TRUTH_NOT_CLOSED_FAIL_CLOSED")
+              print('PROTOCOL_FORK_TRUTH_NOT_CLOSED_FAIL_CLOSED reasons='+','.join(reasons))
           PY
 
-          sha256sum ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json             > /tmp/nqc-pft-final-closeout.sha256
-          sha256sum -c /tmp/nqc-pft-final-closeout.sha256
+      - name: Preserve exact-head closeout receipt
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-protocol-fork-final-closeout-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json
+            ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json.sha256
+          if-no-files-found: error
+          retention-days: 90
