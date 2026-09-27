@@ -39,6 +39,30 @@ jobs:
           if not token:
               raise AssertionError("missing GitHub Actions token for mismatch-ledger attestation")
 
+          expected_resolution_roles={
+              "PFT-MISMATCH-AAVE-ACCOUNTING-001":{
+                  "resolution_full_account_risk",
+                  "resolution_exact_account_risk",
+              },
+              "PFT-MISMATCH-AAVE-FLASH-PREMIUM-001":{
+                  "resolution_executor_historical",
+                  "resolution_full_liquidation_matrix",
+              },
+          }
+
+          def api_get(path):
+              req=urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}{path}",
+                  headers={
+                      "Authorization":f"Bearer {token}",
+                      "Accept":"application/vnd.github+json",
+                      "X-GitHub-Api-Version":"2022-11-28",
+                      "User-Agent":"nqc-parity-mismatch-ledger-v3",
+                  },
+              )
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  return json.loads(response.read())
+
           def verify_artifact(entry_id,ref):
               head=ref["head"]
               run_id=int(ref["workflow_run_id"])
@@ -48,17 +72,7 @@ jobs:
               assert sha40.fullmatch(head), (entry_id,"bad head")
               assert run_id>0 and artifact_id>0, (entry_id,"bad ids")
               assert sha256.fullmatch(digest), (entry_id,"bad digest")
-              req=urllib.request.Request(
-                  f"https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}",
-                  headers={
-                      "Authorization":f"Bearer {token}",
-                      "Accept":"application/vnd.github+json",
-                      "X-GitHub-Api-Version":"2022-11-28",
-                      "User-Agent":"nqc-parity-mismatch-ledger-v2",
-                  },
-              )
-              with urllib.request.urlopen(req,timeout=30) as response:
-                  actual=json.loads(response.read())
+              actual=api_get(f"/actions/artifacts/{artifact_id}")
               assert int(actual["id"])==artifact_id, (entry_id,"artifact id mismatch")
               assert actual.get("expired") is False, (entry_id,"artifact expired")
               assert actual.get("digest")==f"sha256:{digest}", (
@@ -68,6 +82,17 @@ jobs:
               assert int(run.get("id",0))==run_id, (entry_id,"run mismatch",run.get("id"))
               assert run.get("head_sha")==head, (
                   entry_id,"head mismatch",run.get("head_sha"),head
+              )
+              run_detail=api_get(f"/actions/runs/{run_id}")
+              assert int(run_detail.get("id",0))==run_id, (entry_id,"run detail id mismatch")
+              assert run_detail.get("head_sha")==head, (
+                  entry_id,"run detail head mismatch",run_detail.get("head_sha"),head
+              )
+              assert run_detail.get("status")=="completed", (
+                  entry_id,"workflow not completed",run_detail.get("status")
+              )
+              assert run_detail.get("conclusion")=="success", (
+                  entry_id,"workflow did not succeed",run_detail.get("conclusion")
               )
           assert d["schema_version"] == 1
           assert d["gate"] == "PARITY_MISMATCH_LEDGER_OPEN_ZERO"
@@ -85,12 +110,18 @@ jobs:
                   roles.add(ref["role"])
                   verify_artifact(entry["id"],ref)
               if entry["status"]=="RESOLVED":
-                  assert any(role.startswith("resolution_") for role in roles), (
-                      entry["id"],"resolved mismatch lacks resolution evidence"
+                  required_roles=expected_resolution_roles.get(entry["id"])
+                  assert required_roles is not None, (
+                      entry["id"],"resolved mismatch has no declared resolution-role contract"
+                  )
+                  assert required_roles.issubset(roles), (
+                      entry["id"],"resolved mismatch lacks required resolution evidence",
+                      sorted(required_roles-roles)
                   )
                   verification=entry.get("verification",{})
-                  if "result" in verification:
-                      assert verification["result"]=="PASS", (entry["id"],"verification not PASS")
+                  assert verification.get("result")=="PASS", (
+                      entry["id"],"resolved mismatch verification not PASS"
+                  )
 
           counts=d["counts"]
           assert counts["detected_semantic_mismatches"] == len(semantic)
