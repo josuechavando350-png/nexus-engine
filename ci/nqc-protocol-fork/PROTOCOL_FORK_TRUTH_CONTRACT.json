@@ -90,5 +90,18 @@
     "production_authority_issued": false,
     "production_certification": "NOT_CERTIFIED",
     "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION"
-  }
+  },
+  "measured_compatibility_repairs": [
+    {
+      "id": "PFT-COMPAT-001",
+      "status": "UNDER_PHYSICAL_TEST",
+      "source": "crates/nqc-aave-market/src/lib.rs",
+      "defect": "Alloy 2.5.0 ABI uint40 values are Uint<40,1>, while recovered snapshot fields are u64.",
+      "repair": "Explicit lossless Uint<40,1> to u64 conversion on last_update_timestamp and liquidation_grace_period_until.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "patch_sha256": "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca",
+      "semantic_rationale": "Every uint40 value is exactly representable in u64; no truncation, rounding, unit conversion, branch, address, protocol constant, or authority semantics change."
+    }
+  ]
 }
