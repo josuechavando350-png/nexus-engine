@@ -63,21 +63,21 @@ jobs:
           set -euo pipefail
           for build in A B; do
             root="$NQC_ID/build-$build"
-            mkdir -p "$root/src" "$root/test" "$root/out-evidence"
-            cp ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol "$root/src/"
-            cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol "$root/src/"
-            cp ci/nqc-protocol-fork/parity/PftExecutorCodeIdentity.t.sol "$root/test/"
+            mkdir -p "$root/contracts/src" "$root/contracts/test" "$root/out-evidence"
+            cp ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol "$root/contracts/src/"
+            cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol "$root/contracts/src/"
+            cp ci/nqc-protocol-fork/parity/PftExecutorCodeIdentity.t.sol "$root/contracts/test/"
             (
               cd "$root"
               git init -q
-              git add src/NqcAaveV3Executor.sol
+              git add contracts/src/NqcAaveV3Executor.sol
               git -c user.name=nqc -c user.email=nqc@example.invalid commit -qm baseline
               git apply --unidiff-zero "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch"
             )
             cat > "$root/foundry.toml" <<'EOF'
           [profile.default]
-          src = "src"
-          test = "test"
+          src = "contracts/src"
+          test = "contracts/test"
           solc_version = "0.8.24"
           optimizer = true
           optimizer_runs = 200
