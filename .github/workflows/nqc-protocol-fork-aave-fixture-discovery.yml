@@ -42,10 +42,18 @@ jobs:
           assert contract["status"] == "NOT_TESTED"
           checkpoint=contract["recovered_physical_source"]["git_bundle_checkpoint"]
           assert checkpoint == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
-          assert {
-              b["id"] for b in contract["current_blockers"]
-              if b["severity"] == "HARD" and b["status"] == "OPEN"
-          } == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+          blockers={b["id"]:b for b in contract["current_blockers"]}
+          assert set(blockers) == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+          assert all(b["severity"] == "HARD" for b in blockers.values())
+          assert blockers["PFT-SRC-001"]["status"] == "OPEN"
+          assert blockers["PFT-SRC-003"]["status"] == "OPEN"
+          assert blockers["PFT-SRC-002"]["status"] in {"OPEN","CLOSED"}
+          if blockers["PFT-SRC-002"]["status"] == "CLOSED":
+              closeout=json.loads(Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"
+              ).read_text())
+              assert closeout["status"] == "CLOSED"
+              assert closeout["unexplained_mismatches"] == 0
 
           corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
           assert corpus["status"] == "NOT_TESTED"
