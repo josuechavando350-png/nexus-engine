@@ -1,0 +1,147 @@
+name: NQC T39 Executor Code Identity Binding
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-executor-code-identity.yml
+      - ci/nqc-protocol-fork/EXECUTOR_CODE_IDENTITY_CONTRACT.json
+      - ci/nqc-protocol-fork/parity/PftExecutorCodeIdentity.t.sol
+      - ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol
+      - ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  executor-code-identity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      NQC_ID: /tmp/nqc-executor-code-identity
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact inputs and install pinned toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_ID"
+          mkdir -p "$NQC_ID/bin" "$NQC_ID/evidence"
+          git rev-parse HEAD > "$NQC_ID/evidence/repository-source-sha.txt"
+
+          test "$(sha256sum ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch | cut -d' ' -f1)" =             "bf3d8ad2f5f1ddbbf80cdb50ba60442e08dce2ef990f68a5f29ba48992ea1fae"
+          sha256sum             ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol             ci/nqc-protocol-fork/EXECUTOR_CODE_IDENTITY_CONTRACT.json             ci/nqc-protocol-fork/parity/PftExecutorCodeIdentity.t.sol             > "$NQC_ID/evidence/input-source.sha256"
+
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_ID/foundry.tar.gz"             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  $NQC_ID/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$NQC_ID/foundry.tar.gz" -C "$NQC_ID/bin"
+          export PATH="$NQC_ID/bin:$PATH"
+          forge --version | tee "$NQC_ID/evidence/forge.txt"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_ID/solc-0.8.24"             "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  $NQC_ID/solc-0.8.24" | sha256sum -c -
+          chmod +x "$NQC_ID/solc-0.8.24"
+          "$NQC_ID/solc-0.8.24" --version | tee "$NQC_ID/evidence/solc.txt"
+          "$NQC_ID/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
+
+      - name: Prepare two clean identical source trees
+        shell: bash
+        run: |
+          set -euo pipefail
+          for build in A B; do
+            root="$NQC_ID/build-$build"
+            mkdir -p "$root/contracts/src" "$root/contracts/test" "$root/out-evidence"
+            cp ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol "$root/contracts/src/"
+            cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol "$root/contracts/src/"
+            cp ci/nqc-protocol-fork/parity/PftExecutorCodeIdentity.t.sol "$root/contracts/test/"
+            (
+              cd "$root"
+              git init -q
+              git add contracts/src/NqcAaveV3Executor.sol
+              git -c user.name=nqc -c user.email=nqc@example.invalid commit -qm baseline
+              git apply --unidiff-zero "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch"
+            )
+            cat > "$root/foundry.toml" <<'EOF'
+          [profile.default]
+          src = "contracts/src"
+          test = "contracts/test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          via_ir = false
+          fs_permissions = [{ access = "read-write", path = "./out-evidence" }]
+          EOF
+          done
+
+      - name: Compile twice and bind deployed runtime identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$NQC_ID/bin:$PATH"
+          for build in A B; do
+            root="$NQC_ID/build-$build"
+            (
+              cd "$root"
+              forge build --force --offline --use "$NQC_ID/solc-0.8.24"                 2>&1 | tee "$NQC_ID/evidence/build-$build.log"
+              forge inspect --offline --use "$NQC_ID/solc-0.8.24"                 NqcAaveV3Executor deployedBytecode                 > "$NQC_ID/evidence/aave-template-$build.hex"
+              forge inspect --offline --use "$NQC_ID/solc-0.8.24"                 NqcV2BackrunExecutor deployedBytecode                 > "$NQC_ID/evidence/v2-template-$build.hex"
+              PFT_IDENTITY_PATH="$root/out-evidence/runtime-identity.json"                 forge test --offline --use "$NQC_ID/solc-0.8.24"                   --match-contract PftExecutorCodeIdentityTest -vv                   2>&1 | tee "$NQC_ID/evidence/runtime-test-$build.log"
+            )
+            cp "$root/out-evidence/runtime-identity.json" "$NQC_ID/evidence/runtime-identity-$build.json"
+            grep -F "1 passed; 0 failed" "$NQC_ID/evidence/runtime-test-$build.log"
+          done
+
+          cmp "$NQC_ID/evidence/aave-template-A.hex" "$NQC_ID/evidence/aave-template-B.hex"
+          cmp "$NQC_ID/evidence/v2-template-A.hex" "$NQC_ID/evidence/v2-template-B.hex"
+          cmp "$NQC_ID/evidence/runtime-identity-A.json" "$NQC_ID/evidence/runtime-identity-B.json"
+
+          sha256sum             "$NQC_ID/evidence/aave-template-A.hex"             "$NQC_ID/evidence/v2-template-A.hex"             "$NQC_ID/evidence/runtime-identity-A.json"             > "$NQC_ID/evidence/code-identity.sha256"
+
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          root=Path("/tmp/nqc-executor-code-identity/evidence")
+          identity=json.loads((root/"runtime-identity-A.json").read_text())
+          for key in ("aave_runtime_keccak256","v2_runtime_keccak256"):
+              value=str(identity[key]).lower()
+              if not value.startswith("0x") or len(value)!=66 or int(value,16)==0:
+                  raise SystemExit(f"invalid {key}: {value}")
+          for key in ("aave_runtime_length","v2_runtime_length"):
+              if int(identity[key]) <= 0:
+                  raise SystemExit(f"invalid {key}")
+          print(
+              "EXECUTOR_CODE_IDENTITY_PASS "
+              f"aave={identity['aave_runtime_keccak256']} "
+              f"v2={identity['v2_runtime_keccak256']}"
+          )
+          PY
+
+          printf '%s\n' 'PASS_REPRODUCIBLE_EXECUTOR_CODE_IDENTITY' > "$NQC_ID/evidence/gate-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_ID/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_ID/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve exact identity evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-executor-code-identity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-executor-code-identity/evidence
+          if-no-files-found: error
+          retention-days: 30
