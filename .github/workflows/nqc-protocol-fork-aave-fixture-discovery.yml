@@ -1,0 +1,102 @@
+name: NQC T39 Aave Historical Fixture Discovery
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-fixture-discovery.yml
+      - ci/nqc-protocol-fork/discovery/**
+      - ci/nqc-protocol-fork/corpus/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aave-fixture-discovery:
+    name: Cross-provider Aave historical anchor discovery
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify source prerequisite and fail-closed boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --check
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
+          assert contract["status"] == "NOT_TESTED"
+          assert contract["recovered_physical_source"]["git_bundle_checkpoint"] == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
+          assert {
+              b["id"] for b in contract["current_blockers"]
+              if b["severity"] == "HARD" and b["status"] == "OPEN"
+          } == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+
+          corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
+          assert corpus["status"] == "NOT_TESTED"
+          assert corpus["cases"] == []
+          assert corpus["protocol_fork_truth"] == "NOT_CLOSED"
+          PY
+
+      - name: Discover exact Aave historical anchors across independent RPCs
+        shell: bash
+        env:
+          NQC_PFT_DISCOVERY_OUT: /tmp/nqc-pft-discovery
+        run: |
+          set -euo pipefail
+          mkdir -p "$NQC_PFT_DISCOVERY_OUT"
+          python3 ci/nqc-protocol-fork/discovery/discover_aave_fixtures.py \
+            | tee "$NQC_PFT_DISCOVERY_OUT/stdout-summary.json"
+
+      - name: Validate discovery remains non-admitting
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path("/tmp/nqc-pft-discovery")
+          summary=json.loads((root/"discovery-summary.json").read_text())
+          assert summary["fixture_admission"] == "NONE"
+          assert summary["candidate_count"] == 3
+          assert summary["aave_state_parity"] == "NOT_TESTED"
+          assert summary["aave_math_parity"] == "NOT_TESTED"
+          assert summary["revm_fork_parity"] == "NOT_TESTED"
+          assert summary["protocol_fork_truth"] == "NOT_CLOSED"
+          assert all(c["admission"] == "DISCOVERED_NOT_ADMITTED" for c in summary["candidates"])
+          assert all(c["parity_status"] == "NOT_TESTED" for c in summary["candidates"])
+
+          for path in sorted((root/"candidates").glob("*.json")):
+              candidate=json.loads(path.read_text())
+              assert candidate["result"]["status"] == "NOT_TESTED"
+              assert candidate["provenance"]["fixture_admitted"] is False
+              assert candidate["block_hash"].startswith("0x") and len(candidate["block_hash"]) == 66
+              assert candidate["parent_hash"].startswith("0x") and len(candidate["parent_hash"]) == 66
+          PY
+
+          (
+            cd /tmp/nqc-pft-discovery
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload discovery evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-fixture-discovery-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft-discovery/
+          if-no-files-found: error
+          retention-days: 30
