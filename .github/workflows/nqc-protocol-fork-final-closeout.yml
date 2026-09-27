@@ -508,11 +508,48 @@ jobs:
 
           truth_blocker_docs=truth.get('current_blockers',[])
           truth_blocker_ids={b.get('id') for b in truth_blocker_docs}
+          scope=truth.get('certification_scope',{})
+          aave_scope=scope.get('aave_v3',{})
+          v2_scope=scope.get('v2_execution_family',{})
+          expected_exclusions={
+              'ALL_EVM_CHAINS',
+              'ALL_AAVE_V3_DEPLOYMENTS',
+              'ALL_V2_COMPATIBLE_DEPLOYMENTS',
+              'REAL_MARKET_CENSUS',
+              'LIVE_MARKET_EDGE',
+              'LIVE_PNL',
+              'PRODUCTION_AUTHORITY',
+          }
+          scope_ready=(
+              scope.get('chain_id')==1
+              and scope.get('network')=='ethereum-mainnet'
+              and aave_scope.get('pool')=='0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2'
+              and aave_scope.get('addresses_provider')=='0x2f39d218133afab8f2b819b1066c7e434ad94e9e'
+              and aave_scope.get('price_oracle')=='0x54586be62e3c3580375ae3723c145253060ca0c2'
+              and {
+                  (x.get('block_number'),x.get('block_hash'))
+                  for x in aave_scope.get('admitted_historical_anchors',[])
+              }=={
+                  (25252136,'0x49edc621ec5fe843353be319ae1a307be4e37d2a51111ccc07a2c8aae3ff6470'),
+                  (25437474,'0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8'),
+              }
+              and v2_scope.get('semantics')=='UNISWAP_V2_COMPATIBLE_CONSTANT_PRODUCT'
+              and set(v2_scope.get('historical_execution_pairs',[]))=={
+                  '0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc',
+                  '0x397ff1542f962076d0bfe58ea045ffa2d347aca0',
+              }
+              and v2_scope.get('real_reorg_execution_height')==10500011
+              and v2_scope.get('real_reorg_canonical_hash')=='0xa1f5eb25631c2d47d91071fb0c6ff7d925a4a45e07fc1d3fe47d7a268d5ff0c1'
+              and v2_scope.get('real_reorg_orphan_hash')=='0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67'
+              and scope.get('execution_scope')=='RECOVERED_OR_EXPLICITLY_MEASURED_REIMPLEMENTED_COMPONENTS_EXERCISED_BY_REQUIRED_GATES'
+              and set(scope.get('excluded_claims',[]))==expected_exclusions
+          )
           truth_policy_ready=(
               truth_blocker_ids==set(blocker_paths)
               and all(b.get('severity')=='HARD' for b in truth_blocker_docs)
               and truth.get('parity_rules',{}).get('unexplained_mismatch_terminal_count')==0
               and truth.get('truth_boundaries',{}).get('production_certification')=='NOT_CERTIFIED'
+              and scope_ready
           )
 
           ledger_resolved_repairs={
@@ -564,6 +601,8 @@ jobs:
               'tracked_truth_contract_status':truth.get('status'),
               'ledger_resolved_repairs':sorted(ledger_resolved_repairs),
               'truth_policy_ready':truth_policy_ready,
+              'certification_scope_ready':scope_ready,
+              'certification_scope':scope,
               'required_evidence_heads':sorted(required_evidence_heads),
               'evidence_heads_not_ancestors':evidence_heads_not_ancestors,
               'evidence_ancestry_ready':evidence_ancestry_ready,
