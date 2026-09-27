@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   evidence-manifest:
@@ -21,11 +22,13 @@ jobs:
 
       - name: Validate content-addressed gate registry without premature closure
         shell: bash
+        env:
+          NQC_GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git diff --check
           python3 - <<'PY'
-          import json,re
+          import json,os,re,urllib.request
           from pathlib import Path
 
           p=Path("ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json")
@@ -39,20 +42,138 @@ jobs:
           sha=re.compile(r"^[0-9a-f]{64}$")
           head=re.compile(r"^[0-9a-f]{40}$")
 
+          repo=os.environ["GITHUB_REPOSITORY"]
+          token=os.environ["NQC_GITHUB_TOKEN"]
+          if not token:
+              raise AssertionError("missing GitHub Actions token for artifact attestation")
+
+          def api_get(path):
+              req=urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}{path}",
+                  headers={
+                      "Authorization":f"Bearer {token}",
+                      "Accept":"application/vnd.github+json",
+                      "X-GitHub-Api-Version":"2022-11-28",
+                      "User-Agent":"nqc-protocol-fork-evidence-manifest-v3",
+                  },
+              )
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  return json.loads(response.read())
+
+          expected_producer={
+              ("SOURCE_BINDING_COMPLETE","__primary__"):(
+                  "NQC T39 Protocol Fork Recovered Source Binding",
+                  ".github/workflows/nqc-protocol-fork-source-binding.yml",
+              ),
+              ("AAVE_CANONICAL_STATE_PARITY","full_account_risk"):(
+                  "NQC T39 Aave Full Account Risk Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml",
+              ),
+              ("AAVE_CANONICAL_STATE_PARITY","exact_emode_zero_account_risk"):(
+                  "NQC T39 Aave Account Risk Exact Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-account-risk-parity.yml",
+              ),
+              ("V2_CANONICAL_STATE_AND_REORG_PARITY","state_reimplementation"):(
+                  "NQC T39 V2 State Reimplementation",
+                  ".github/workflows/nqc-protocol-fork-v2-state-reimplementation.yml",
+              ),
+              ("V2_CANONICAL_STATE_AND_REORG_PARITY","historical_state_quote"):(
+                  "NQC T39 V2 Historical State Quote Parity",
+                  ".github/workflows/nqc-protocol-fork-v2-historical-parity.yml",
+              ),
+              ("V2_CANONICAL_STATE_AND_REORG_PARITY","historical_sync"):(
+                  "NQC T39 V2 Historical Sync Parity",
+                  ".github/workflows/nqc-protocol-fork-v2-sync-parity.yml",
+              ),
+              ("V2_CANONICAL_STATE_AND_REORG_PARITY","real_historical_reorg"):(
+                  "NQC T39 V2 Real Historical Reorg Invalidation",
+                  ".github/workflows/nqc-protocol-fork-v2-real-reorg.yml",
+              ),
+              ("RUST_SOLIDITY_ABI_ROUNDTRIP","__primary__"):(
+                  "NQC T39 V2 Runtime ABI Roundtrip",
+                  ".github/workflows/nqc-protocol-fork-v2-abi-runtime-roundtrip.yml",
+              ),
+              ("EXECUTOR_CODE_IDENTITY_BINDING","__primary__"):(
+                  "NQC T39 Executor Code Identity Binding",
+                  ".github/workflows/nqc-protocol-fork-executor-code-identity.yml",
+              ),
+          }
+
+          def artifact_refs(item):
+              refs=[]
+              if "artifact_id" in item:
+                  refs.append({
+                      "label":"__primary__",
+                      "artifact_id":item["artifact_id"],
+                      "workflow_run_id":item["workflow_run_id"],
+                      "artifact_sha256":item["artifact_sha256"],
+                      "head":item["head"],
+                  })
+              refs += item.get("evidence",[])
+              refs += item.get("bound_underlying_evidence",[])
+              return refs
+
+          verified_artifacts=0
+          def verify_artifact(gate,ref):
+              label=ref.get("label")
+              assert isinstance(label,str) and label, (gate,"evidence label missing")
+              producer_key=(gate,label)
+              assert producer_key in expected_producer, (
+                  gate,label,"no authoritative workflow producer mapping"
+              )
+              artifact_id=int(ref["artifact_id"])
+              workflow_run_id=int(ref["workflow_run_id"])
+              artifact_sha256=ref["artifact_sha256"]
+              artifact_head=ref["head"]
+              assert artifact_id>0 and workflow_run_id>0, (gate,"invalid artifact/run id")
+              assert sha.fullmatch(artifact_sha256), (gate,"bad artifact sha256")
+              assert head.fullmatch(artifact_head), (gate,"bad artifact head")
+              actual=api_get(f"/actions/artifacts/{artifact_id}")
+              assert int(actual["id"])==artifact_id, (gate,"artifact id mismatch")
+              assert actual.get("expired") is False, (gate,"artifact expired",artifact_id)
+              assert actual.get("digest")==f"sha256:{artifact_sha256}", (
+                  gate,"artifact digest mismatch",artifact_id,actual.get("digest")
+              )
+              run=actual.get("workflow_run") or {}
+              assert int(run.get("id",0))==workflow_run_id, (
+                  gate,"artifact workflow run mismatch",artifact_id,run.get("id")
+              )
+              assert run.get("head_sha")==artifact_head, (
+                  gate,"artifact head mismatch",artifact_id,run.get("head_sha"),artifact_head
+              )
+              run_detail=api_get(f"/actions/runs/{workflow_run_id}")
+              assert int(run_detail.get("id",0))==workflow_run_id, (
+                  gate,"workflow run id mismatch",workflow_run_id
+              )
+              assert run_detail.get("head_sha")==artifact_head, (
+                  gate,"workflow run head mismatch",run_detail.get("head_sha"),artifact_head
+              )
+              assert run_detail.get("status")=="completed", (
+                  gate,"workflow run not completed",run_detail.get("status")
+              )
+              assert run_detail.get("conclusion")=="success", (
+                  gate,"workflow run did not succeed",run_detail.get("conclusion")
+              )
+              expected_name,expected_path=expected_producer[producer_key]
+              assert run_detail.get("name")==expected_name, (
+                  gate,label,"workflow name mismatch",run_detail.get("name"),expected_name
+              )
+              assert run_detail.get("path")==expected_path, (
+                  gate,label,"workflow path mismatch",run_detail.get("path"),expected_path
+              )
+
           pending=[]
           for gate in required:
               item=entries[gate]
               assert "status" in item
               if "head" in item:
                   assert head.fullmatch(item["head"]), (gate,"bad head")
+              refs=artifact_refs(item)
+              for ref in refs:
+                  verify_artifact(gate,ref)
+                  verified_artifacts += 1
               if item["status"]=="PASS":
-                  refs=[]
-                  if "artifact_sha256" in item:
-                      refs.append(item["artifact_sha256"])
-                  refs += [x["artifact_sha256"] for x in item.get("evidence",[])]
-                  refs += [x["artifact_sha256"] for x in item.get("bound_underlying_evidence",[])]
                   assert refs, (gate,"PASS without content-addressed artifact")
-                  assert all(sha.fullmatch(x) for x in refs), (gate,"bad sha256")
               else:
                   pending.append(gate)
 
@@ -62,11 +183,11 @@ jobs:
               assert d["status"]=="PASS"
               assert all(v=="CLOSED" for v in blockers.values())
               assert d["protocol_fork_truth"]=="NOT_CLOSED"
-              print("EVIDENCE_MANIFEST_CONTENT_ADDRESSED_PASS")
+              print(f"EVIDENCE_MANIFEST_CONTENT_ADDRESSED_PASS verified_artifacts={verified_artifacts}")
           else:
               assert d["status"].startswith("NOT_TESTED_")
               assert d["protocol_fork_truth"]=="NOT_CLOSED"
-              print("EVIDENCE_MANIFEST_PENDING gates="+",".join(pending))
+              print("EVIDENCE_MANIFEST_PENDING gates="+",".join(pending)+f" verified_artifacts={verified_artifacts}")
           PY
 
           sha256sum ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json             > /tmp/nqc-pft-evidence-manifest.sha256

@@ -46,13 +46,15 @@
           "label": "full_account_risk",
           "workflow_run_id": 36341553888,
           "artifact_id": 10940935416,
-          "artifact_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49"
+          "artifact_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49",
+          "head": "7494e76f9e8b942f021468578de4ff19aef68dbd"
         },
         {
           "label": "exact_emode_zero_account_risk",
           "workflow_run_id": 36341554012,
           "artifact_id": 10939116521,
-          "artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c"
+          "artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c",
+          "head": "7494e76f9e8b942f021468578de4ff19aef68dbd"
         }
       ]
     },
@@ -70,25 +72,29 @@
           "label": "state_reimplementation",
           "workflow_run_id": 36344423876,
           "artifact_id": 10940487585,
-          "artifact_sha256": "02f3206841619bf707dac5ad34455011f39ab770b55a3707e2b63b8d6a46c474"
+          "artifact_sha256": "02f3206841619bf707dac5ad34455011f39ab770b55a3707e2b63b8d6a46c474",
+          "head": "9ef84028e283410d3e5ea5e575aaf8ac172cc742"
         },
         {
           "label": "historical_state_quote",
           "workflow_run_id": 36344423879,
           "artifact_id": 10940902041,
-          "artifact_sha256": "05b99b00701a836b46928238d9a61b4649b7d605e48d0f1af57b4175e461731b"
+          "artifact_sha256": "05b99b00701a836b46928238d9a61b4649b7d605e48d0f1af57b4175e461731b",
+          "head": "9ef84028e283410d3e5ea5e575aaf8ac172cc742"
         },
         {
           "label": "historical_sync",
           "workflow_run_id": 36344423777,
           "artifact_id": 10940572482,
-          "artifact_sha256": "80603ceb6dc3e9655f19cb99407bfd88ff090e9b7c72f8282af4e7844f9ed69c"
+          "artifact_sha256": "80603ceb6dc3e9655f19cb99407bfd88ff090e9b7c72f8282af4e7844f9ed69c",
+          "head": "9ef84028e283410d3e5ea5e575aaf8ac172cc742"
         },
         {
           "label": "real_historical_reorg",
           "workflow_run_id": 36344423856,
           "artifact_id": 10941895018,
-          "artifact_sha256": "fcff30bc1925927b82b3c7e35197a034dadf8c25a765f20e2c70f80c68370a3c"
+          "artifact_sha256": "fcff30bc1925927b82b3c7e35197a034dadf8c25a765f20e2c70f80c68370a3c",
+          "head": "9ef84028e283410d3e5ea5e575aaf8ac172cc742"
         }
       ]
     },
