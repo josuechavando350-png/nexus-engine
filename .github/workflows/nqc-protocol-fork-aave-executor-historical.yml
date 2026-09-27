@@ -7,6 +7,9 @@ on:
       - ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol
       - ci/nqc-protocol-fork/recovered-source/contracts/**
       - ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch
+      - ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch
+      - ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json
+      - ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json
       - ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py
   workflow_dispatch:
 
