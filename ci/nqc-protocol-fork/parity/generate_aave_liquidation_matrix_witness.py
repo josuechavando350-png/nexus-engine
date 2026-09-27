@@ -180,6 +180,32 @@ contract PftAaveLiquidationMatrixWitnessTest {{
         uint256 expectedCollateralToLiquidator;
     }}
 
+    struct Captured {{
+        uint16 collateralReserveId;
+        uint16 debtReserveId;
+        uint256 collateralConfiguration;
+        uint256 debtConfiguration;
+        address collateralAToken;
+        address debtVariableToken;
+        uint256 collateralUnit;
+        uint256 debtUnit;
+        uint256 reserveBonus;
+        uint256 effectiveBonus;
+        uint256 protocolFeeBps;
+        uint256 userEMode;
+        uint256 baseUnit;
+        uint256 collateralPrice;
+        uint256 debtPrice;
+        uint256 borrowerCollateral;
+        uint256 borrowerDebt;
+        uint256 totalCollateralBase;
+        uint256 totalDebtBase;
+        uint256 liquidationThreshold;
+        uint256 healthFactor;
+        uint256 flashPremiumBps;
+        uint256 observedCallbackFlashPremium;
+    }}
+
 {''.join(functions)}
     function executeOperation(
         address asset,
@@ -230,65 +256,85 @@ contract PftAaveLiquidationMatrixWitnessTest {{
         }}
     }}
 
-    function _capture(Observed memory observed) private {{
-        require(block.number == observed.blockNumber, "OBSERVED_BLOCK");
-        require(blockhash(block.number - 1) == observed.parentHash, "OBSERVED_PARENT");
-
-        PftMatrixReserveData memory collateral = POOL.getReserveData(observed.collateralAsset);
-        PftMatrixReserveData memory debt = POOL.getReserveData(observed.debtAsset);
+    function _loadReserveState(Observed memory observed)
+        private
+        view
+        returns (Captured memory c)
+    {{
+        PftMatrixReserveData memory collateral =
+            POOL.getReserveData(observed.collateralAsset);
+        PftMatrixReserveData memory debt =
+            POOL.getReserveData(observed.debtAsset);
         require(collateral.aTokenAddress != address(0), "NO_ATOKEN");
         require(debt.variableDebtTokenAddress != address(0), "NO_VTOKEN");
 
         uint256 collateralDecimals = (collateral.configuration >> 48) & 0xff;
         uint256 debtDecimals = (debt.configuration >> 48) & 0xff;
         require(collateralDecimals <= 77 && debtDecimals <= 77, "DECIMALS");
-        uint256 collateralUnit = 10 ** collateralDecimals;
-        uint256 debtUnit = 10 ** debtDecimals;
 
-        uint256 reserveBonus = (collateral.configuration >> 32) & 0xffff;
-        uint256 protocolFeeBps = (collateral.configuration >> 152) & 0xffff;
+        c.collateralReserveId = collateral.id;
+        c.debtReserveId = debt.id;
+        c.collateralConfiguration = collateral.configuration;
+        c.debtConfiguration = debt.configuration;
+        c.collateralAToken = collateral.aTokenAddress;
+        c.debtVariableToken = debt.variableDebtTokenAddress;
+        c.collateralUnit = 10 ** collateralDecimals;
+        c.debtUnit = 10 ** debtDecimals;
+        c.reserveBonus = (collateral.configuration >> 32) & 0xffff;
+        c.protocolFeeBps = (collateral.configuration >> 152) & 0xffff;
+        c.userEMode = POOL.getUserEMode(observed.borrower);
+        require(c.userEMode <= type(uint8).max, "EMODE_RANGE");
+        c.effectiveBonus = c.reserveBonus;
 
-        uint256 userEMode = POOL.getUserEMode(observed.borrower);
-        require(userEMode <= type(uint8).max, "EMODE_RANGE");
-        uint256 effectiveBonus = reserveBonus;
-        if (userEMode != 0) {{
+        if (c.userEMode != 0) {{
             PftMatrixCollateralConfig memory category =
-                POOL.getEModeCategoryCollateralConfig(uint8(userEMode));
-            uint128 bitmap = POOL.getEModeCategoryCollateralBitmap(uint8(userEMode));
-            if (collateral.id < 128 && (bitmap & (uint128(1) << collateral.id)) != 0) {{
-                effectiveBonus = category.liquidationBonus;
+                POOL.getEModeCategoryCollateralConfig(uint8(c.userEMode));
+            uint128 bitmap =
+                POOL.getEModeCategoryCollateralBitmap(uint8(c.userEMode));
+            if (
+                collateral.id < 128
+                    && (bitmap & (uint128(1) << collateral.id)) != 0
+            ) {{
+                c.effectiveBonus = category.liquidationBonus;
             }}
         }}
+    }}
 
-        address provider = POOL.ADDRESSES_PROVIDER();
-        PftMatrixOracle oracle =
-            PftMatrixOracle(PftMatrixProvider(provider).getPriceOracle());
-        uint256 baseUnit = oracle.BASE_CURRENCY_UNIT();
-        uint256 collateralPrice = oracle.getAssetPrice(observed.collateralAsset);
-        uint256 debtPrice = oracle.getAssetPrice(observed.debtAsset);
-        uint256 borrowerCollateral =
-            PftMatrixBalanceToken(collateral.aTokenAddress).balanceOf(observed.borrower);
-        uint256 borrowerDebt =
-            PftMatrixBalanceToken(debt.variableDebtTokenAddress).balanceOf(observed.borrower);
+    function _loadOracleAndAccountState(
+        Observed memory observed,
+        Captured memory c
+    ) private view returns (Captured memory) {{
+        PftMatrixOracle oracle = PftMatrixOracle(
+            PftMatrixProvider(POOL.ADDRESSES_PROVIDER()).getPriceOracle()
+        );
+        c.baseUnit = oracle.BASE_CURRENCY_UNIT();
+        c.collateralPrice = oracle.getAssetPrice(observed.collateralAsset);
+        c.debtPrice = oracle.getAssetPrice(observed.debtAsset);
+        c.borrowerCollateral =
+            PftMatrixBalanceToken(c.collateralAToken).balanceOf(observed.borrower);
+        c.borrowerDebt =
+            PftMatrixBalanceToken(c.debtVariableToken).balanceOf(observed.borrower);
 
         (
-            uint256 totalCollateralBase,
-            uint256 totalDebtBase,
+            c.totalCollateralBase,
+            c.totalDebtBase,
             ,
-            uint256 liquidationThreshold,
+            c.liquidationThreshold,
             ,
-            uint256 healthFactor
+            c.healthFactor
         ) = POOL.getUserAccountData(observed.borrower);
 
-        uint256 flashPremiumBps = uint256(POOL.FLASHLOAN_PREMIUM_TOTAL());
-        uint256 observedCallbackFlashPremium =
-            _observeFlashPremium(observed.debtAsset, observed.expectedDebtToCover);
+        require(c.baseUnit != 0, "ZERO_BASE_UNIT");
+        require(c.collateralPrice != 0 && c.debtPrice != 0, "ZERO_PRICE");
+        require(
+            c.borrowerDebt >= observed.expectedDebtToCover,
+            "EVENT_DEBT_GT_PRESTATE"
+        );
+        require(c.healthFactor < 1e18, "NOT_LIQUIDATABLE");
+        return c;
+    }}
 
-        require(baseUnit != 0, "ZERO_BASE_UNIT");
-        require(collateralPrice != 0 && debtPrice != 0, "ZERO_PRICE");
-        require(borrowerDebt >= observed.expectedDebtToCover, "EVENT_DEBT_GT_PRESTATE");
-        require(healthFactor < 1e18, "NOT_LIQUIDATABLE");
-
+    function _writeWitness(Observed memory observed, Captured memory c) private {{
         string memory key = string.concat("witness-", vm.toString(observed.index));
         vm.serializeUint(key, "case_index", observed.index);
         vm.serializeBytes32(key, "transaction_hash", observed.transactionHash);
@@ -299,35 +345,67 @@ contract PftAaveLiquidationMatrixWitnessTest {{
         vm.serializeAddress(key, "borrower", observed.borrower);
         vm.serializeAddress(key, "collateral_asset", observed.collateralAsset);
         vm.serializeAddress(key, "debt_asset", observed.debtAsset);
-        vm.serializeUint(key, "collateral_reserve_id", collateral.id);
-        vm.serializeUint(key, "debt_reserve_id", debt.id);
-        vm.serializeUint(key, "collateral_configuration", collateral.configuration);
-        vm.serializeUint(key, "debt_configuration", debt.configuration);
-        vm.serializeAddress(key, "collateral_atoken", collateral.aTokenAddress);
-        vm.serializeAddress(key, "debt_variable_token", debt.variableDebtTokenAddress);
-        vm.serializeUint(key, "collateral_unit", collateralUnit);
-        vm.serializeUint(key, "debt_unit", debtUnit);
-        vm.serializeUint(key, "oracle_base_unit", baseUnit);
-        vm.serializeUint(key, "collateral_price_oracle_units", collateralPrice);
-        vm.serializeUint(key, "debt_price_oracle_units", debtPrice);
-        vm.serializeUint(key, "borrower_collateral_balance", borrowerCollateral);
-        vm.serializeUint(key, "borrower_variable_debt", borrowerDebt);
-        vm.serializeUint(key, "total_collateral_base", totalCollateralBase);
-        vm.serializeUint(key, "total_debt_base", totalDebtBase);
-        vm.serializeUint(key, "health_factor_wad", healthFactor);
-        vm.serializeUint(key, "liquidation_threshold_bps", liquidationThreshold);
-        vm.serializeUint(key, "user_emode_category", userEMode);
-        vm.serializeUint(key, "reserve_liquidation_bonus_bps", reserveBonus);
-        vm.serializeUint(key, "effective_liquidation_bonus_bps", effectiveBonus);
-        vm.serializeUint(key, "liquidation_protocol_fee_bps", protocolFeeBps);
-        vm.serializeUint(key, "flash_loan_premium_bps", flashPremiumBps);
+        vm.serializeUint(key, "collateral_reserve_id", c.collateralReserveId);
+        vm.serializeUint(key, "debt_reserve_id", c.debtReserveId);
+        vm.serializeUint(
+            key,
+            "collateral_configuration",
+            c.collateralConfiguration
+        );
+        vm.serializeUint(key, "debt_configuration", c.debtConfiguration);
+        vm.serializeAddress(key, "collateral_atoken", c.collateralAToken);
+        vm.serializeAddress(key, "debt_variable_token", c.debtVariableToken);
+        vm.serializeUint(key, "collateral_unit", c.collateralUnit);
+        vm.serializeUint(key, "debt_unit", c.debtUnit);
+        vm.serializeUint(key, "oracle_base_unit", c.baseUnit);
+        vm.serializeUint(
+            key,
+            "collateral_price_oracle_units",
+            c.collateralPrice
+        );
+        vm.serializeUint(key, "debt_price_oracle_units", c.debtPrice);
+        vm.serializeUint(
+            key,
+            "borrower_collateral_balance",
+            c.borrowerCollateral
+        );
+        vm.serializeUint(key, "borrower_variable_debt", c.borrowerDebt);
+        vm.serializeUint(key, "total_collateral_base", c.totalCollateralBase);
+        vm.serializeUint(key, "total_debt_base", c.totalDebtBase);
+        vm.serializeUint(key, "health_factor_wad", c.healthFactor);
+        vm.serializeUint(
+            key,
+            "liquidation_threshold_bps",
+            c.liquidationThreshold
+        );
+        vm.serializeUint(key, "user_emode_category", c.userEMode);
+        vm.serializeUint(
+            key,
+            "reserve_liquidation_bonus_bps",
+            c.reserveBonus
+        );
+        vm.serializeUint(
+            key,
+            "effective_liquidation_bonus_bps",
+            c.effectiveBonus
+        );
+        vm.serializeUint(
+            key,
+            "liquidation_protocol_fee_bps",
+            c.protocolFeeBps
+        );
+        vm.serializeUint(key, "flash_loan_premium_bps", c.flashPremiumBps);
         vm.serializeUint(
             key,
             "observed_callback_flash_premium",
-            observedCallbackFlashPremium
+            c.observedCallbackFlashPremium
         );
         vm.serializeUint(key, "flash_loan_callback_observed", 1);
-        vm.serializeUint(key, "observed_debt_to_cover", observed.expectedDebtToCover);
+        vm.serializeUint(
+            key,
+            "observed_debt_to_cover",
+            observed.expectedDebtToCover
+        );
         string memory json = vm.serializeUint(
             key,
             "observed_collateral_to_liquidator",
@@ -340,6 +418,21 @@ contract PftAaveLiquidationMatrixWitnessTest {{
             ".json"
         );
         vm.writeJson(json, path);
+    }}
+
+    function _capture(Observed memory observed) private {{
+        require(block.number == observed.blockNumber, "OBSERVED_BLOCK");
+        require(
+            blockhash(block.number - 1) == observed.parentHash,
+            "OBSERVED_PARENT"
+        );
+
+        Captured memory c = _loadReserveState(observed);
+        c = _loadOracleAndAccountState(observed, c);
+        c.flashPremiumBps = uint256(POOL.FLASHLOAN_PREMIUM_TOTAL());
+        c.observedCallbackFlashPremium =
+            _observeFlashPremium(observed.debtAsset, observed.expectedDebtToCover);
+        _writeWitness(observed, c);
     }}
 }}
 '''

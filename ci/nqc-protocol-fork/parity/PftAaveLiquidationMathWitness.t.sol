@@ -218,8 +218,6 @@ contract PftAaveLiquidationMathWitnessTest {
         ) = POOL.getUserAccountData(BORROWER);
 
         uint256 flashPremiumBps = uint256(POOL.FLASHLOAN_PREMIUM_TOTAL());
-        uint256 observedCallbackFlashPremium =
-            _observeFlashPremium(DEBT, OBSERVED_DEBT_TO_COVER);
 
         require(baseUnit != 0, "ZERO_BASE_UNIT");
         require(collateralPrice != 0 && debtPrice != 0, "ZERO_PRICE");
@@ -260,7 +258,7 @@ contract PftAaveLiquidationMathWitnessTest {
         vm.serializeUint(
             key,
             "observed_callback_flash_premium",
-            observedCallbackFlashPremium
+            _observeFlashPremium(DEBT, OBSERVED_DEBT_TO_COVER)
         );
         vm.serializeUint(key, "flash_loan_callback_observed", 1);
         vm.serializeUint(key, "observed_debt_to_cover", OBSERVED_DEBT_TO_COVER);
