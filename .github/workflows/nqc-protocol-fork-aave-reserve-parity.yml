@@ -65,8 +65,14 @@ jobs:
             provider_id="${entry%%|*}"
             provider_url="${entry#*|}"
             socket="$NQC_RESERVE_WORK/$provider_id.ipc"
+            if test "$provider_id" = "mevblocker-rpc"; then
+              min_interval="1.25"
+            else
+              min_interval="0.35"
+            fi
             NQC_PFT_PROXY_PORT=18546 NQC_PFT_UPSTREAM_URL="$provider_url" \
-              NQC_PFT_UPSTREAM_ID="$provider_id" NQC_PFT_PROXY_LOG="$NQC_RESERVE_WORK/evidence/$provider_id-throttle.jsonl" \
+              NQC_PFT_UPSTREAM_ID="$provider_id" NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval" \
+              NQC_PFT_MAX_ATTEMPTS=12 NQC_PFT_PROXY_LOG="$NQC_RESERVE_WORK/evidence/$provider_id-throttle.jsonl" \
               python3 ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py > "$NQC_RESERVE_WORK/evidence/$provider_id-throttle.log" 2>&1 &
             throttle_pid=$!
             NQC_PFT_IPC_SOCKET="$socket" NQC_PFT_UPSTREAM_URL=http://127.0.0.1:18546 NQC_PFT_UPSTREAM_ID="$provider_id" \
