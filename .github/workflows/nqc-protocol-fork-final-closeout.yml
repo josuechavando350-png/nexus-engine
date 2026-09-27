@@ -99,6 +99,22 @@ jobs:
               else:
                   gate_status[gate]=manifest.get('entries',{}).get(gate,{}).get('status')
 
+          required_evidence_heads=set()
+          for gate,item in manifest.get('entries',{}).items():
+              if item.get('status')!='PASS':
+                  continue
+              item_head=item.get('head')
+              assert isinstance(item_head,str) and SHA40.fullmatch(item_head), (
+                  gate,'PASS manifest entry lacks exact head'
+              )
+              required_evidence_heads.add(item_head)
+              for ref in item.get('evidence',[])+item.get('bound_underlying_evidence',[]):
+                  ref_head=ref.get('head')
+                  assert isinstance(ref_head,str) and SHA40.fullmatch(ref_head), (
+                      gate,'nested evidence lacks exact head'
+                  )
+                  required_evidence_heads.add(ref_head)
+
           exact_head_workflow_requirements={
               'SOURCE_BINDING_COMPLETE':[
                   'NQC T39 Protocol Fork Recovered Source Binding',
@@ -331,12 +347,24 @@ jobs:
                   assert evidence
                   for name,item in evidence.items():
                       assert SHA40.fullmatch(item['head']), (blocker_id,name,'bad head')
+                      required_evidence_heads.add(item['head'])
                       assert int(item['workflow_run_id'])>0, (blocker_id,name,'bad workflow run')
                       assert int(item['artifact_id'])>0, (blocker_id,name,'bad artifact id')
                       artifact_sha=item.get('artifact_sha256') or item.get('artifact_zip_sha256')
                       assert artifact_sha and SHA256.fullmatch(artifact_sha), (blocker_id,name,'bad artifact digest')
                       if 'status' in item:
                           assert item['status']=='PASS', (blocker_id,name,'evidence not PASS')
+
+          evidence_heads_not_ancestors=[]
+          for evidence_head in sorted(required_evidence_heads):
+              result=subprocess.run(
+                  ['git','merge-base','--is-ancestor',evidence_head,head],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+              )
+              if result.returncode!=0:
+                  evidence_heads_not_ancestors.append(evidence_head)
+          evidence_ancestry_ready=not evidence_heads_not_ancestors
 
           all_manifest_gates=all(v=='PASS' for v in gate_status.values())
           all_policy_gates=all(v=='PASS' for v in d['required_gates'].values())
@@ -378,6 +406,7 @@ jobs:
           if not ledger_ready: reasons.append('MISMATCH_LEDGER_NOT_ZERO_PASS')
           if not compat_resolution_ready: reasons.append('COMPAT_REPAIRS_NOT_RESOLVED_IN_LEDGER')
           if not truth_policy_ready: reasons.append('TRUTH_POLICY_CONTRACT_INVALID')
+          if not evidence_ancestry_ready: reasons.append('EVIDENCE_HEAD_NOT_ANCESTOR_OF_CERTIFIED_HEAD')
           if exact_head_api_error is not None:
               reasons.append('EXACT_HEAD_ACTIONS_API_UNAVAILABLE')
           if exact_head_missing:
@@ -407,6 +436,9 @@ jobs:
               'tracked_truth_contract_status':truth.get('status'),
               'ledger_resolved_repairs':sorted(ledger_resolved_repairs),
               'truth_policy_ready':truth_policy_ready,
+              'required_evidence_heads':sorted(required_evidence_heads),
+              'evidence_heads_not_ancestors':evidence_heads_not_ancestors,
+              'evidence_ancestry_ready':evidence_ancestry_ready,
               'exact_head_ci_ready':exact_head_ci_ready,
               'exact_head_workflow_runs':dict(sorted(exact_head_runs.items())),
               'exact_head_latest_observed':dict(sorted(exact_head_latest.items())),
