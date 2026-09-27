@@ -60,10 +60,50 @@ jobs:
               with urllib.request.urlopen(req,timeout=30) as response:
                   return json.loads(response.read())
 
+          expected_producer={
+              ("SOURCE_BINDING_COMPLETE","__primary__"):(
+                  "NQC T39 Protocol Fork Recovered Source Binding",
+                  ".github/workflows/nqc-protocol-fork-source-binding.yml",
+              ),
+              ("AAVE_CANONICAL_STATE_PARITY","full_account_risk"):(
+                  "NQC T39 Aave Full Account Risk Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml",
+              ),
+              ("AAVE_CANONICAL_STATE_PARITY","exact_emode_zero_account_risk"):(
+                  "NQC T39 Aave Account Risk Exact Parity",
+                  ".github/workflows/nqc-protocol-fork-aave-account-risk-parity.yml",
+              ),
+              ("V2_CANONICAL_STATE_AND_REORG_PARITY","state_reimplementation"):(
+                  "NQC T39 V2 State Reimplementation",
+                  ".github/workflows/nqc-protocol-fork-v2-state-reimplementation.yml",
+              ),
+              ("V2_CANONICAL_STATE_AND_REORG_PARITY","historical_state_quote"):(
+                  "NQC T39 V2 Historical State Quote Parity",
+                  ".github/workflows/nqc-protocol-fork-v2-historical-parity.yml",
+              ),
+              ("V2_CANONICAL_STATE_AND_REORG_PARITY","historical_sync"):(
+                  "NQC T39 V2 Historical Sync Parity",
+                  ".github/workflows/nqc-protocol-fork-v2-sync-parity.yml",
+              ),
+              ("V2_CANONICAL_STATE_AND_REORG_PARITY","real_historical_reorg"):(
+                  "NQC T39 V2 Real Historical Reorg Invalidation",
+                  ".github/workflows/nqc-protocol-fork-v2-real-reorg.yml",
+              ),
+              ("RUST_SOLIDITY_ABI_ROUNDTRIP","__primary__"):(
+                  "NQC T39 V2 Runtime ABI Roundtrip",
+                  ".github/workflows/nqc-protocol-fork-v2-abi-runtime-roundtrip.yml",
+              ),
+              ("EXECUTOR_CODE_IDENTITY_BINDING","__primary__"):(
+                  "NQC T39 Executor Code Identity Binding",
+                  ".github/workflows/nqc-protocol-fork-executor-code-identity.yml",
+              ),
+          }
+
           def artifact_refs(item):
               refs=[]
               if "artifact_id" in item:
                   refs.append({
+                      "label":"__primary__",
                       "artifact_id":item["artifact_id"],
                       "workflow_run_id":item["workflow_run_id"],
                       "artifact_sha256":item["artifact_sha256"],
@@ -75,6 +115,12 @@ jobs:
 
           verified_artifacts=0
           def verify_artifact(gate,ref):
+              label=ref.get("label")
+              assert isinstance(label,str) and label, (gate,"evidence label missing")
+              producer_key=(gate,label)
+              assert producer_key in expected_producer, (
+                  gate,label,"no authoritative workflow producer mapping"
+              )
               artifact_id=int(ref["artifact_id"])
               workflow_run_id=int(ref["workflow_run_id"])
               artifact_sha256=ref["artifact_sha256"]
@@ -107,6 +153,13 @@ jobs:
               )
               assert run_detail.get("conclusion")=="success", (
                   gate,"workflow run did not succeed",run_detail.get("conclusion")
+              )
+              expected_name,expected_path=expected_producer[producer_key]
+              assert run_detail.get("name")==expected_name, (
+                  gate,label,"workflow name mismatch",run_detail.get("name"),expected_name
+              )
+              assert run_detail.get("path")==expected_path, (
+                  gate,label,"workflow path mismatch",run_detail.get("path"),expected_path
               )
 
           pending=[]
