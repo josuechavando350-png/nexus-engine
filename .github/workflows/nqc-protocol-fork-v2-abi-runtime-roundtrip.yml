@@ -230,9 +230,12 @@ jobs:
           "$WORK/bridge/target/debug/nqc-v2-backrun-abi-runtime" decode-event "$WORK/evidence/backrun-event.json" \
             > "$WORK/evidence/rust-event-decode.json"
 
-          OPERATOR_PROFIT=$(cast call "$TOKEN_A" 'balanceOf(address)(uint256)' "$OPERATOR" --rpc-url "$RPC_URL")
-          POOL_BALANCE=$(cast call "$TOKEN_A" 'balanceOf(address)(uint256)' "$POOL" --rpc-url "$RPC_URL")
-          EXECUTOR_BALANCE=$(cast call "$TOKEN_A" 'balanceOf(address)(uint256)' "$EXECUTOR" --rpc-url "$RPC_URL")
+          OPERATOR_PROFIT_HEX=$(cast call "$TOKEN_A" --data "$(cast calldata 'balanceOf(address)' "$OPERATOR")" --rpc-url "$RPC_URL")
+          POOL_BALANCE_HEX=$(cast call "$TOKEN_A" --data "$(cast calldata 'balanceOf(address)' "$POOL")" --rpc-url "$RPC_URL")
+          EXECUTOR_BALANCE_HEX=$(cast call "$TOKEN_A" --data "$(cast calldata 'balanceOf(address)' "$EXECUTOR")" --rpc-url "$RPC_URL")
+          OPERATOR_PROFIT=$(cast to-dec "$OPERATOR_PROFIT_HEX")
+          POOL_BALANCE=$(cast to-dec "$POOL_BALANCE_HEX")
+          EXECUTOR_BALANCE=$(cast to-dec "$EXECUTOR_BALANCE_HEX")
           test "$OPERATOR_PROFIT" = "900"
           test "$POOL_BALANCE" = "1000100"
           test "$EXECUTOR_BALANCE" = "0"
