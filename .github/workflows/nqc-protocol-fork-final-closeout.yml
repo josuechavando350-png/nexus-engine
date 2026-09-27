@@ -66,6 +66,13 @@ jobs:
           assert d['closeout']=='PROTOCOL_FORK_TRUTH'
           assert d['status']=='NOT_CLOSED'
           assert d['certification_binding']=='RUNTIME_GIT_HEAD_AND_TREE_ARTIFACT'
+          authority=d['state_authority']
+          assert authority['tracked_required_gate_values']=='CHECKPOINT_ONLY_NOT_CERTIFICATION_AUTHORITY'
+          assert authority['tracked_source_blocker_values']=='CHECKPOINT_ONLY_NOT_CERTIFICATION_AUTHORITY'
+          assert authority['runtime_gate_authority']=='PROTOCOL_FORK_EVIDENCE_MANIFEST.json_PLUS_EXACT_HEAD_WORKFLOW_SUCCESS'
+          assert authority['runtime_source_blocker_authority']=='PFT_SRC_CLOSEOUT_FILES'
+          assert authority['runtime_compatibility_authority']=='PARITY_MISMATCH_LEDGER.json'
+          assert authority['final_status_authority']=='RUNTIME_CLOSEOUT_RECEIPT_BOUND_TO_GIT_HEAD_AND_TREE'
           assert truth['schema_version']==1
 
           expected={
