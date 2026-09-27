@@ -1,0 +1,111 @@
+name: NQC T39 Aave Full Account Risk Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml
+      - ci/nqc-protocol-fork/parity/**
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  full-account-risk-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 70
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      NQC_FULL_RISK: /tmp/nqc-full-account-risk
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify immutable inputs and prepare repaired isolated source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_FULL_RISK"
+          mkdir -p "$NQC_FULL_RISK/source" "$NQC_FULL_RISK/evidence"
+          git rev-parse HEAD > "$NQC_FULL_RISK/evidence/repository-source-sha.txt"
+          test "$(sha256sum ci/nqc-protocol-fork/parity/aave-user-meta-witness.json | cut -d' ' -f1)" =             "16a4260977fa7784fd5b1282de8eee71710fdb49ca171b42e99592e8cf870441"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_FULL_RISK/source/"
+          python3 ci/nqc-protocol-fork/parity/prepare_reserve_parity.py "$NQC_FULL_RISK/source"
+          python3 ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py             "$NQC_FULL_RISK/source"
+          sha256sum             ci/nqc-protocol-fork/parity/aave-user-meta-witness.json             ci/nqc-protocol-fork/parity/generate_full_account_risk_parity.py             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.json             > "$NQC_FULL_RISK/evidence/input-source.sha256"
+
+          python3 ci/nqc-protocol-fork/parity/generate_full_account_risk_parity.py             ci/nqc-protocol-fork/parity/aave-user-meta-witness.json             "$NQC_FULL_RISK/source/crates/nqc-aave-market/examples/pft_full_account_risk.rs"
+          cp "$NQC_FULL_RISK/source/crates/nqc-aave-market/examples/pft_full_account_risk.rs"             "$NQC_FULL_RISK/evidence/"
+
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_FULL_RISK/evidence/rustc.txt"
+          cargo -V | tee "$NQC_FULL_RISK/evidence/cargo.txt"
+          cargo fetch --locked --manifest-path "$NQC_FULL_RISK/source/Cargo.toml"
+
+      - name: Build full recovered account-risk probe
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo build --locked --offline             --manifest-path "$NQC_FULL_RISK/source/Cargo.toml"             -p nqc-aave-market --example pft_full_account_risk
+
+      - name: Execute full account-risk parity against both independent providers
+        shell: bash
+        run: |
+          set -euo pipefail
+          for entry in 'blastapi-public|https://eth-mainnet.public.blastapi.io|18551|0.35' 'mevblocker-rpc|https://rpc.mevblocker.io|18552|1.25'; do
+            IFS='|' read -r provider_id provider_url port min_interval <<< "$entry"
+            socket="$NQC_FULL_RISK/$provider_id.ipc"
+
+            NQC_PFT_PROXY_PORT="$port"             NQC_PFT_UPSTREAM_URL="$provider_url"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval"             NQC_PFT_MAX_ATTEMPTS=12             NQC_PFT_PROXY_LOG="$NQC_FULL_RISK/evidence/$provider_id-throttle.jsonl"               python3 ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py               > "$NQC_FULL_RISK/evidence/$provider_id-throttle.log" 2>&1 &
+            throttle_pid=$!
+
+            NQC_PFT_IPC_SOCKET="$socket"             NQC_PFT_UPSTREAM_URL="http://127.0.0.1:$port"             NQC_PFT_UPSTREAM_ID="$provider_id"               python3 ci/nqc-protocol-fork/parity/ipc_http_bridge.py               > "$NQC_FULL_RISK/evidence/$provider_id-bridge.log" 2>&1 &
+            bridge_pid=$!
+            trap 'kill "$bridge_pid" "$throttle_pid" 2>/dev/null || true' EXIT
+
+            ready=0
+            for _ in $(seq 1 150); do
+              if test -S "$socket" && curl --silent --fail "http://127.0.0.1:$port/health" >/dev/null 2>&1; then
+                ready=1; break
+              fi
+              sleep 0.1
+            done
+            test "$ready" -eq 1
+
+            NQC_PFT_IPC_PATH="$socket" NQC_PFT_UPSTREAM_ID="$provider_id"               "$NQC_FULL_RISK/source/target/debug/examples/pft_full_account_risk"               2>&1 | tee "$NQC_FULL_RISK/evidence/$provider_id-full-account-risk.log"
+
+            test "$(grep -c '^FULL_ACCOUNT_RISK_PARITY_PASS ' "$NQC_FULL_RISK/evidence/$provider_id-full-account-risk.log")" -eq 15
+            grep -F "FULL_ACCOUNT_RISK_TOTAL upstream=$provider_id users=15 integer_checks=60 emode_users=2"               "$NQC_FULL_RISK/evidence/$provider_id-full-account-risk.log"
+
+            kill "$bridge_pid" "$throttle_pid"
+            wait "$bridge_pid" "$throttle_pid" 2>/dev/null || true
+            trap - EXIT
+          done
+
+          printf '%s\n' 'PASS_FULL_POSTBLOCK_ACCOUNT_RISK_INCLUDING_EMODE'             > "$NQC_FULL_RISK/evidence/parity-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_FULL_RISK/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_FULL_RISK/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-full-account-risk-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-full-account-risk/evidence
+          if-no-files-found: error
+          retention-days: 30
