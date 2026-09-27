@@ -67,6 +67,116 @@
         "liquidated_collateral_amount": "658442812",
         "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
         "receive_atoken": false
+      },
+      {
+        "log_index": "0x5f",
+        "borrower": "0x0ece0b16103922a4288f17832b83b3bfcdfb64f8",
+        "collateral_asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "debt_asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "debt_to_cover": "249711236398",
+        "liquidated_collateral_amount": "165516888810660562436",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0x72",
+        "borrower": "0x9d36250d3c929b5c4f70fa4125aab0951f8a250e",
+        "collateral_asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "debt_asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "debt_to_cover": "202385231046",
+        "liquidated_collateral_amount": "134147642962168783537",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0x86",
+        "borrower": "0xc087195a816e1f247f1865189d76c6be0aed9982",
+        "collateral_asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "debt_asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "debt_to_cover": "83727306811",
+        "liquidated_collateral_amount": "55541963846157253734",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0x9c",
+        "borrower": "0x2b7c013fd7cd09d315fc431030db55d58ffac21e",
+        "collateral_asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "debt_asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "debt_to_cover": "82562929713",
+        "liquidated_collateral_amount": "54725447898581047100",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0xab",
+        "borrower": "0xa1025868e2a0455b9b17792fd434273884102d38",
+        "collateral_asset": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "debt_asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "debt_to_cover": "71060190621",
+        "liquidated_collateral_amount": "123542274",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0xc0",
+        "borrower": "0xf65db52a04372f8529ec077844d2164af432de38",
+        "collateral_asset": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "debt_asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "debt_to_cover": "27264087783",
+        "liquidated_collateral_amount": "47362029",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0xdc",
+        "borrower": "0x84ee0a392652a008deb77a2486d88afda547fc40",
+        "collateral_asset": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+        "debt_asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "debt_to_cover": "38919634534",
+        "liquidated_collateral_amount": "67664048",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0xf3",
+        "borrower": "0x95368a0462b6caaf86f0afe41bdd48469b734a3f",
+        "collateral_asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "debt_asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "debt_to_cover": "34309811246",
+        "liquidated_collateral_amount": "22741680731049460660",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0x118",
+        "borrower": "0x7f6e4c9ccab9334cd205a06d0d3edc2be174f458",
+        "collateral_asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "debt_asset": "0xdac17f958d2ee523a2206206994597c13d831ec7",
+        "debt_to_cover": "21167685978",
+        "liquidated_collateral_amount": "14030644263101594144",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0x12c",
+        "borrower": "0x01b55690fe60653a0e14fe49a3e24fd0b8fd8e7f",
+        "collateral_asset": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",
+        "debt_asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "debt_to_cover": "20155415672",
+        "liquidated_collateral_amount": "13370445213119173343",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
+      },
+      {
+        "log_index": "0x145",
+        "borrower": "0x95a46112679f65da65b81a544b5b86ff270dd865",
+        "collateral_asset": "0xcd5fe23c85820f7b72d0926fc9b05b43e359b7ee",
+        "debt_asset": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+        "debt_to_cover": "20034094698",
+        "liquidated_collateral_amount": "12331067771051951895",
+        "liquidator": "0xbd32122bad41a09f2405bb374a83877d8245079c",
+        "receive_atoken": false
       }
     ]
   },
@@ -82,7 +192,8 @@
     "transaction_hash": "0xc953d5da04ee4dc9f421ac5418f05add5244d9816c50420bbf7bb6cbafc1150a",
     "candidate_discovery_sha256": "4a66d9f736e1811b25b1b9d7a4a1dda3e57229a465389b87e0d18a4845fc70e1",
     "provider_observations_sha256": "2cd7df5d409b9254d3db1b7e26d33bcec88e81a783405e5da8bf6e3d71ed0eb2",
-    "evidence_source": "cross-provider-consensus-receipt"
+    "evidence_source": "cross-provider-consensus-receipt",
+    "receipt_status": "0x1"
   },
   "result": {
     "status": "NOT_TESTED",
