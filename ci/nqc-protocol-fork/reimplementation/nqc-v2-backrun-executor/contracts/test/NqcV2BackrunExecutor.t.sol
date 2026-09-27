@@ -127,6 +127,22 @@ contract NqcV2BackrunExecutorRepairTest {
         require(digest == executor.hashPlan(plan), "HASH_MISMATCH");
     }
 
+    function testWrongChainFailsClosed() public {
+        (NqcV2BackrunExecutorHarness executor, PairWitnessMock pair0, PairWitnessMock pair1) =
+            _executor();
+        _pinTarget();
+        NqcV2BackrunExecutor.ExecutionPlan memory plan = _plan(pair0, pair1);
+        plan.chainId = block.chainid + 1;
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.WrongChain.selector,
+                plan.chainId,
+                block.chainid
+            )
+        );
+        executor.validateForTest(plan);
+    }
+
     function testWrongTargetBlockFailsClosed() public {
         (NqcV2BackrunExecutorHarness executor, PairWitnessMock pair0, PairWitnessMock pair1) =
             _executor();
@@ -233,6 +249,11 @@ contract NqcV2BackrunExecutorRepairTest {
         bytes32 expected = executor.hashPlan(base);
 
         NqcV2BackrunExecutor.ExecutionPlan memory mutated = _plan(pair0, pair1);
+
+        mutated.chainId += 1;
+        require(executor.hashPlan(mutated) != expected, "CHAIN_ID_NOT_BOUND");
+
+        mutated = _plan(pair0, pair1);
         mutated.targetBlock += 1;
         require(executor.hashPlan(mutated) != expected, "TARGET_BLOCK_NOT_BOUND");
 
@@ -249,8 +270,36 @@ contract NqcV2BackrunExecutorRepairTest {
         require(executor.hashPlan(mutated) != expected, "RESERVE1_NOT_BOUND");
 
         mutated = _plan(pair0, pair1);
+        mutated.flashAsset = address(0x4321);
+        require(executor.hashPlan(mutated) != expected, "FLASH_ASSET_NOT_BOUND");
+
+        mutated = _plan(pair0, pair1);
+        mutated.flashAmount += 1;
+        require(executor.hashPlan(mutated) != expected, "FLASH_AMOUNT_NOT_BOUND");
+
+        mutated = _plan(pair0, pair1);
+        mutated.minProfit += 1;
+        require(executor.hashPlan(mutated) != expected, "MIN_PROFIT_NOT_BOUND");
+
+        mutated = _plan(pair0, pair1);
         mutated.hops[0].pair = address(0x1234);
         require(executor.hashPlan(mutated) != expected, "PAIR_NOT_BOUND");
+
+        mutated = _plan(pair0, pair1);
+        mutated.hops[0].tokenIn = address(0x1235);
+        require(executor.hashPlan(mutated) != expected, "TOKEN_IN_NOT_BOUND");
+
+        mutated = _plan(pair0, pair1);
+        mutated.hops[0].tokenOut = address(0x1236);
+        require(executor.hashPlan(mutated) != expected, "TOKEN_OUT_NOT_BOUND");
+
+        mutated = _plan(pair0, pair1);
+        mutated.hops[0].amountIn += 1;
+        require(executor.hashPlan(mutated) != expected, "AMOUNT_IN_NOT_BOUND");
+
+        mutated = _plan(pair0, pair1);
+        mutated.hops[0].amountOut += 1;
+        require(executor.hashPlan(mutated) != expected, "AMOUNT_OUT_NOT_BOUND");
 
         mutated = _plan(pair0, pair1);
         mutated.targetProvenance =
