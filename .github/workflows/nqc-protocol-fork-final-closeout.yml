@@ -225,20 +225,35 @@ jobs:
               else:
                   raise RuntimeError('exact-head workflow pagination exceeded 2000 runs')
 
-              successful={}
+              latest={}
               for run in all_runs:
                   if run.get('head_sha')!=head:
-                      continue
-                  if run.get('status')!='completed' or run.get('conclusion')!='success':
                       continue
                   name=run.get('name')
                   if not isinstance(name,str) or name not in workflow_paths:
                       continue
                   if run.get('path')!=workflow_paths[name]:
                       continue
-                  prior=successful.get(name)
-                  if prior is None or int(run.get('id',0))>int(prior.get('id',0)):
-                      successful[name]=run
+                  rank=(int(run.get('id',0)),int(run.get('run_attempt',0) or 0))
+                  prior=latest.get(name)
+                  if prior is None:
+                      latest[name]=run
+                  else:
+                      prior_rank=(int(prior.get('id',0)),int(prior.get('run_attempt',0) or 0))
+                      if rank>prior_rank:
+                          latest[name]=run
+
+              exact_head_latest={
+                  name:{
+                      'workflow_run_id':int(run.get('id',0)),
+                      'run_attempt':int(run.get('run_attempt',0) or 0),
+                      'status':run.get('status'),
+                      'conclusion':run.get('conclusion'),
+                      'event':run.get('event'),
+                      'path':run.get('path'),
+                  }
+                  for name,run in latest.items()
+              }
 
               required_names=sorted({
                   name
@@ -246,8 +261,12 @@ jobs:
                   for name in names
               } | set(support_workflows))
               for name in required_names:
-                  run=successful.get(name)
-                  if run is None:
+                  run=latest.get(name)
+                  if (
+                      run is None
+                      or run.get('status')!='completed'
+                      or run.get('conclusion')!='success'
+                  ):
                       continue
                   run_id=int(run['id'])
                   artifacts_doc=github_json(
@@ -390,6 +409,7 @@ jobs:
               'truth_policy_ready':truth_policy_ready,
               'exact_head_ci_ready':exact_head_ci_ready,
               'exact_head_workflow_runs':dict(sorted(exact_head_runs.items())),
+              'exact_head_latest_observed':dict(sorted(exact_head_latest.items())),
               'exact_head_missing_required':exact_head_missing,
               'exact_head_missing_support':missing_support,
               'exact_head_api_error':exact_head_api_error,
