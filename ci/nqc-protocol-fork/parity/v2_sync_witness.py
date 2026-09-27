@@ -25,12 +25,13 @@ ANCHORS = [
         "block_hash": "0x49edc621ec5fe843353be319ae1a307be4e37d2a51111ccc07a2c8aae3ff6470",
         "parent_hash": "0x04a2465e3a87b1103521c1f54e568de209062f08742a0212da24d34eee4aac78",
     },
-    {
-        "block_number": 25_437_474,
-        "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
-        "parent_hash": "0x033656168ee1dba1934f77171fe572c866282e97738b79434cb8c01b6e6f88f2",
-    },
 ]
+
+NON_SYNC_LOCKED_ANCHOR = {
+    "block_number": 25_437_474,
+    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+    "reason": "NO_USDC_WETH_SYNC_EVENT_AT_THIS_LOCKED_BLOCK",
+}
 
 
 def collect(provider, out):
@@ -218,6 +219,11 @@ def main():
         "schema_version": 1,
         "gate": "V2_HISTORICAL_SYNC_TRANSITION_WITNESS",
         "providers": [p[0] for p in PROVIDERS],
+        "sync_fixture_selection": {
+            "included": [ANCHORS[0]],
+            "excluded_locked_anchor": NON_SYNC_LOCKED_ANCHOR,
+            "selection_rule": "LOCKED_BLOCK_MUST_CONTAIN_CANONICAL_USDC_WETH_SYNC_EVENT",
+        },
         **observations[0],
         "nqc_parity": "NOT_TESTED",
         "protocol_fork_truth": "NOT_CLOSED",
