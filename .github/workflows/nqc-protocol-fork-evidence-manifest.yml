@@ -75,7 +75,6 @@ jobs:
 
           verified_artifacts=0
           def verify_artifact(gate,ref):
-              nonlocal_verified = None
               artifact_id=int(ref["artifact_id"])
               workflow_run_id=int(ref["workflow_run_id"])
               artifact_sha256=ref["artifact_sha256"]
