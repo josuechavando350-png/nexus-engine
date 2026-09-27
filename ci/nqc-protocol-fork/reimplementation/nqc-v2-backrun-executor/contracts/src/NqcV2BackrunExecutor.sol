@@ -233,6 +233,14 @@ contract NqcV2BackrunExecutor {
             _swapExactOutput(hop, i);
         }
 
+        return _settleCallback(context, amount, premium);
+    }
+
+    function _settleCallback(
+        CallbackContext memory context,
+        uint256 amount,
+        uint256 premium
+    ) private returns (bool) {
         uint256 baseline = _baselineOf(context.baselines, context.plan.flashAsset);
         uint256 balance = _balanceOf(context.plan.flashAsset);
         uint256 repayment = amount + premium;
@@ -244,6 +252,7 @@ contract NqcV2BackrunExecutor {
         }
 
         _forceApprove(context.plan.flashAsset, address(pool), repayment);
+        uint256 realizedProfit = balance - baseline - repayment;
 
         emit BackrunExecuted(
             context.planHash,
@@ -254,7 +263,7 @@ contract NqcV2BackrunExecutor {
             context.plan.flashAsset,
             context.plan.flashAmount,
             premium,
-            balance - baseline - repayment
+            realizedProfit
         );
         return true;
     }
