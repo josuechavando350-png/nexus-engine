@@ -137,6 +137,7 @@ jobs:
                   found.append(index)
                   target_uncle=uncle
           assert len(found)==1 and target_uncle is not None, f"real orphan not uniquely rediscovered: {found}"
+          assert target_uncle["parentHash"].lower()==block["parentHash"].lower(), "orphan/canonical are not direct siblings"
           print(f"real_orphan_index={found[0]}")
 
           timestamp=int(block["timestamp"],16)
