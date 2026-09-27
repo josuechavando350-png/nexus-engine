@@ -100,6 +100,11 @@ jobs:
                   'NQC T39 Aave V3 Deployment Version Lock',
               ],
               'AAVE_CANONICAL_STATE_PARITY':[
+                  'NQC T39 Aave Recovered Reader Parity',
+                  'NQC T39 Aave Canonical State Witness',
+                  'NQC T39 Aave Reserve Balance Parity',
+                  'NQC T39 Aave Full Account Risk Parity',
+                  'NQC T39 Aave Account Risk Exact Parity',
                   'NQC T39 Aave Canonical State Parity Closeout',
               ],
               'AAVE_LIQUIDATION_INTEGER_MATH_PARITY':[
@@ -125,6 +130,8 @@ jobs:
                   'NQC T39 Executor Code Identity Binding',
               ],
               'PARITY_MISMATCH_LEDGER_OPEN_ZERO':[
+                  'NQC T39 Aave Executor Historical Fork Parity',
+                  'NQC T39 Aave Full Liquidation Integer Matrix',
                   'NQC T39 Parity Mismatch Ledger',
               ],
               'EVIDENCE_MANIFEST_CONTENT_ADDRESSED':[
@@ -133,6 +140,11 @@ jobs:
           }
           support_workflows=[
               'Build Verification',
+              'NQC T39 Aave Reconciler Reimplementation',
+              'NQC T39 Aave Reconciler Historical Canonical Parity',
+              'NQC T39 V2 Backrun Executor Reimplementation',
+              'NQC T39 V2 Executor Authority Baseline Matrix',
+              'NQC T39 V2 Executor Historical Fork Execution',
               'NQC T39 Source Blocker Closeout Contracts',
           ]
 
