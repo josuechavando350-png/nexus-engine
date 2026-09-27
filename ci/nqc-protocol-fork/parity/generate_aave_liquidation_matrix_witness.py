@@ -222,7 +222,9 @@ contract PftAaveLiquidationMatrixWitnessTest {{
 
         uint256 flashPremiumBps = uint256(POOL.FLASHLOAN_PREMIUM_TOTAL());
         uint256 referenceFlashPremium =
-            (observed.expectedDebtToCover * flashPremiumBps + 5_000) / 10_000;
+            observed.expectedDebtToCover == 0 || flashPremiumBps == 0
+                ? 0
+                : (observed.expectedDebtToCover * flashPremiumBps - 1) / 10_000 + 1;
 
         require(baseUnit != 0, "ZERO_BASE_UNIT");
         require(collateralPrice != 0 && debtPrice != 0, "ZERO_PRICE");
