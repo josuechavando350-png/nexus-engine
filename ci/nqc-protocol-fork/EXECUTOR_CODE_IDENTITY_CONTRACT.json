@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "gate": "EXECUTOR_CODE_IDENTITY_BINDING",
+  "status": "NOT_TESTED",
+  "classification": "CONTENT_ADDRESSED_DETERMINISTIC_EXECUTOR_RUNTIME_IDENTITY",
+  "executors": [
+    {
+      "id": "RECOVERED_AAVE_V3_EXECUTOR_WITH_PFT_COMPAT_007",
+      "source": "ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol",
+      "compatibility_patch": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch",
+      "source_classification": "RECOVERED_SOURCE_PLUS_MEASURED_COMPATIBILITY_PATCH"
+    },
+    {
+      "id": "MEASURED_V2_BACKRUN_EXECUTOR",
+      "source": "ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol",
+      "source_classification": "NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE"
+    }
+  ],
+  "compiler": {
+    "solc": "0.8.24+commit.e11b9ed9",
+    "optimizer": true,
+    "optimizer_runs": 200,
+    "via_ir": false
+  },
+  "binding_rule": "Two clean independent builds must produce byte-identical deployed-bytecode templates and identical runtime code hashes after deployment with the same immutable constructor values. Source SHA256, compatibility-patch SHA256, compiler binary SHA256, template bytecode SHA256, runtime keccak256 and runtime lengths are preserved in the evidence artifact.",
+  "constructor_binding": {
+    "operator": "0x1111111111111111111111111111111111111111",
+    "aave_v3_pool": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
+  },
+  "protocol_fork_truth": "NOT_CLOSED"
+}
