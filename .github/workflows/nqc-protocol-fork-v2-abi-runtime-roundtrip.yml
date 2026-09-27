@@ -142,8 +142,8 @@ jobs:
             --rpc-url "$RPC_URL" \
             --private-key "$ANVIL_KEY" \
             --broadcast \
-            --constructor-args "$OPERATOR" \
-            --json > "$WORK/evidence/deployment.json"
+            --json \
+            --constructor-args "$OPERATOR" > "$WORK/evidence/deployment.json"
 
           FIXTURE=$(python3 - <<'PY'
           import json
