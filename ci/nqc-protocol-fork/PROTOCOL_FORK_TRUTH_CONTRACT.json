@@ -72,13 +72,10 @@
     {
       "id": "PFT-SRC-002",
       "severity": "HARD",
-      "status": "CLOSED",
+      "status": "OPEN",
       "description": "The documented canonical nqc-v2-state implementation is absent from the physically recovered checkpoint and current GitHub tree.",
       "recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
-      "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE",
-      "resolution": "MEASURED_REIMPLEMENTATION_FULL_PARITY_EVIDENCE_PASS",
-      "closeout_evidence": "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json",
-      "unexplained_mismatches": 0
+      "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
     },
     {
       "id": "PFT-SRC-003",
@@ -202,5 +199,44 @@
     "archive_manifest_sha256": "a9d00327343a5a5340d0b3b04d023bc2018a1f6b7893ab556f45291553658527",
     "git_bundle_manifest_sha256": "1993658b6712547b41dce3768aa42fd67ec296c23c8043d2937fd530133007ae",
     "policy": "MISSING_COMPONENTS_MAY_ONLY_PROGRESS_AS_EXPLICIT_MEASURED_REIMPLEMENTATION_NOT_AS_RECOVERED_SOURCE"
+  },
+  "certification_scope": {
+    "chain_id": 1,
+    "network": "ethereum-mainnet",
+    "aave_v3": {
+      "pool": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+      "addresses_provider": "0x2f39d218133afab8f2b819b1066c7e434ad94e9e",
+      "price_oracle": "0x54586be62e3c3580375ae3723c145253060ca0c2",
+      "admitted_historical_anchors": [
+        {
+          "block_number": 25252136,
+          "block_hash": "0x49edc621ec5fe843353be319ae1a307be4e37d2a51111ccc07a2c8aae3ff6470"
+        },
+        {
+          "block_number": 25437474,
+          "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+        }
+      ]
+    },
+    "v2_execution_family": {
+      "semantics": "UNISWAP_V2_COMPATIBLE_CONSTANT_PRODUCT",
+      "historical_execution_pairs": [
+        "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+        "0x397ff1542f962076d0bfe58ea045ffa2d347aca0"
+      ],
+      "real_reorg_execution_height": 10500011,
+      "real_reorg_canonical_hash": "0xa1f5eb25631c2d47d91071fb0c6ff7d925a4a45e07fc1d3fe47d7a268d5ff0c1",
+      "real_reorg_orphan_hash": "0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67"
+    },
+    "execution_scope": "RECOVERED_OR_EXPLICITLY_MEASURED_REIMPLEMENTED_COMPONENTS_EXERCISED_BY_REQUIRED_GATES",
+    "excluded_claims": [
+      "ALL_EVM_CHAINS",
+      "ALL_AAVE_V3_DEPLOYMENTS",
+      "ALL_V2_COMPATIBLE_DEPLOYMENTS",
+      "REAL_MARKET_CENSUS",
+      "LIVE_MARKET_EDGE",
+      "LIVE_PNL",
+      "PRODUCTION_AUTHORITY"
+    ]
   }
 }
