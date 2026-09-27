@@ -118,6 +118,30 @@ def send(url,caller,nonce,to,data,value=0):
     }])
 
 
+def trace_output(url,tx_hash):
+    trace=rpc(url,"debug_traceTransaction",[tx_hash,{
+        "disableMemory":True,
+        "disableStack":True,
+        "disableStorage":True,
+    }])
+    if not isinstance(trace,dict):
+        raise ValueError("invalid debug trace result")
+    raw=trace.get("returnValue","")
+    if raw is None:
+        raw=""
+    if not isinstance(raw,str):
+        raise ValueError("debug trace returnValue is not text")
+    raw=raw.lower()
+    if raw.startswith("0x"):
+        raw=raw[2:]
+    if not re.fullmatch(r"[0-9a-f]*",raw) or len(raw)%2:
+        raise ValueError("invalid debug trace returnValue hex")
+    failed=trace.get("failed")
+    if failed is not None and bool(failed)==False and raw is None:
+        raise ValueError("invalid trace status")
+    return "0x"+raw
+
+
 def decode_event_words(log,count):
     data=log["data"]
     if not re.fullmatch(r"0x[0-9a-fA-F]{"+str(64*count)+r"}",data):
@@ -152,6 +176,9 @@ def main():
     rpc(args.rpc,"anvil_setNonce",[caller,"0x0"])
     rpc(args.rpc,"anvil_setCode",[caller,"0x"])
     rpc(args.rpc,"anvil_setCode",[HELPER,runtime])
+    installed_runtime=rpc(args.rpc,"eth_getCode",[HELPER,"latest"]).lower()
+    if installed_runtime!=runtime:
+        raise ValueError("helper runtime readback mismatch")
     rpc(args.rpc,"anvil_setNonce",[HELPER,"0x0"])
     rpc(args.rpc,"anvil_setBalance",[HELPER,"0x0"])
     rpc(args.rpc,"anvil_setAutomine",[False])
@@ -221,6 +248,7 @@ def main():
         if receipt is None:
             raise ValueError(f"missing receipt {name}")
         logs=normalized_logs(receipt)
+        execution_output=trace_output(args.rpc,tx_hash)
         receipts.append({
             "name":name,
             "transaction_hash":tx_hash.lower(),
@@ -228,6 +256,7 @@ def main():
             "gas_used":int(receipt["gasUsed"],16),
             "logs":logs,
             "ordered_logs_digest":logs_digest(logs),
+            "execution_output":execution_output,
         })
 
     expected_status=[1,1,1,1,0]
