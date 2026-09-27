@@ -1,0 +1,45 @@
+name: NQC T37 Phase3 Validator Gate
+
+on:
+  push:
+    branches:
+      - nqc/t37-unified-dryrun-evidence-20260926
+    paths:
+      - .github/workflows/nqc-t37-phase3-validator-gate.yml
+      - ci/nqc-t37/phase3-validator.rs
+      - ci/nqc-t37/unified-evidence-crate.parts/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validator-gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pin Rust and compile strict validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup default 1.98.1
+          rustup component add rustfmt clippy --toolchain 1.98.1
+          rm -rf /tmp/t37-validator
+          mkdir -p /tmp/t37-validator
+          cat ci/nqc-t37/unified-evidence-crate.parts/part-*.b64 > /tmp/t37-validator/source.tar.gz.b64
+          test "$(wc -c < /tmp/t37-validator/source.tar.gz.b64)" = "5912"
+          base64 -d /tmp/t37-validator/source.tar.gz.b64 > /tmp/t37-validator/source.tar.gz
+          echo "38e717c6d39bd80163af2091213fd0af0ed76c59646587cac9c1951b69372fe7  /tmp/t37-validator/source.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/t37-validator/source.tar.gz -C /tmp/t37-validator
+          cd /tmp/t37-validator
+          cargo generate-lockfile
+          echo "73f77c1774ad1af5b7527bbc3a6442f3d18d8e14f85c147a041a5a331cc2c0be  Cargo.lock" | sha256sum -c -
+          mkdir -p src/bin
+          cp "$GITHUB_WORKSPACE/ci/nqc-t37/phase3-validator.rs" src/bin/phase3-validator.rs
+          cargo fmt
+          cargo fmt --check
+          cargo clippy --locked --bin phase3-validator -- -D warnings
+          cargo build --locked --bin phase3-validator
+          echo "PASS T37 Phase3 validator gate"
