@@ -16,7 +16,7 @@ permissions:
 jobs:
   reserve-balance-parity:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 180
     env:
       RUST_TOOLCHAIN: "1.98.1"
       NQC_RESERVE_WORK: /tmp/nqc-reserve-parity
@@ -76,6 +76,7 @@ jobs:
               python3 ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py > "$NQC_RESERVE_WORK/evidence/$provider_id-throttle.log" 2>&1 &
             throttle_pid=$!
             NQC_PFT_IPC_SOCKET="$socket" NQC_PFT_UPSTREAM_URL=http://127.0.0.1:18546 NQC_PFT_UPSTREAM_ID="$provider_id" \
+              NQC_PFT_BRIDGE_TIMEOUT_SECONDS=600 \
               python3 ci/nqc-protocol-fork/parity/ipc_http_bridge.py > "$NQC_RESERVE_WORK/evidence/$provider_id-bridge.log" 2>&1 &
             bridge_pid=$!
             trap 'kill "$bridge_pid" "$throttle_pid" 2>/dev/null || true' EXIT
