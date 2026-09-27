@@ -5,6 +5,7 @@ on:
     paths:
       - .github/workflows/nqc-protocol-fork-aave-deployment-version-lock.yml
       - ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py
+      - ci/nqc-protocol-fork/parity/AAVE_V3_DEPLOYMENT_BASELINE.json
       - ci/nqc-protocol-fork/corpus/cases/aave-liquidation-*.json
   workflow_dispatch:
 
@@ -32,13 +33,13 @@ jobs:
           mkdir -p /tmp/nqc-aave-deployment-lock
           git rev-parse HEAD > /tmp/nqc-aave-deployment-lock/repository-source-sha.txt
           python3 -m py_compile ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py
-          sha256sum             ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             > /tmp/nqc-aave-deployment-lock/input-source.sha256
+          sha256sum             ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py             ci/nqc-protocol-fork/parity/AAVE_V3_DEPLOYMENT_BASELINE.json             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             > /tmp/nqc-aave-deployment-lock/input-source.sha256
 
       - name: Execute exact two-provider deployment and implementation lock
         shell: bash
         run: |
           set -euo pipefail
-          python3 -u ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py             --out /tmp/nqc-aave-deployment-lock             2>&1 | tee /tmp/nqc-aave-deployment-lock/deployment-lock.log
+          python3 -u ci/nqc-protocol-fork/parity/aave_deployment_version_lock.py             --out /tmp/nqc-aave-deployment-lock             --baseline ci/nqc-protocol-fork/parity/AAVE_V3_DEPLOYMENT_BASELINE.json             2>&1 | tee /tmp/nqc-aave-deployment-lock/deployment-lock.log
 
           grep -F 'AAVE_V3_DEPLOYMENT_VERSION_LOCK_PASS anchors=2 providers=2 unexplained_mismatches=0'             /tmp/nqc-aave-deployment-lock/deployment-lock.log
           test "$(grep -c '^AAVE_DEPLOYMENT_OBSERVATION ' /tmp/nqc-aave-deployment-lock/deployment-lock.log)" -eq 4
@@ -54,7 +55,14 @@ jobs:
           assert len(doc["cases"])==2
           assert doc["providers"]==["blastapi-public","mevblocker-rpc"]
           assert doc["unexplained_mismatches"]==0
+          baseline=Path("ci/nqc-protocol-fork/parity/AAVE_V3_DEPLOYMENT_BASELINE.json")
+          assert doc["baseline_sha256"]==hashlib.sha256(baseline.read_bytes()).hexdigest()
+          b=json.loads(baseline.read_text())
+          assert doc["baseline_provenance"]==b["provenance"]
+          identity=b["identity"]
           for case in doc["cases"]:
+              for key,value in identity.items():
+                  assert case[key]==value
               assert case["pool"]=="0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
               assert case["addresses_provider"]=="0x2f39d218133afab8f2b819b1066c7e434ad94e9e"
               assert case["price_oracle"]=="0x54586be62e3c3580375ae3723c145253060ca0c2"
