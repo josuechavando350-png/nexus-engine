@@ -2,7 +2,6 @@
   "schema_version": 1,
   "closeout": "PROTOCOL_FORK_TRUTH",
   "status": "NOT_CLOSED",
-  "certified_commit": null,
   "required_gates": {
     "SOURCE_BINDING_COMPLETE": "PASS",
     "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK": "PENDING",
@@ -27,7 +26,7 @@
     "ZERO_UNEXPLAINED_MISMATCHES",
     "EXACT_HEAD_ALL_REQUIRED_CI_GREEN",
     "CONTENT_ADDRESSED_EVIDENCE_MANIFEST_PASS",
-    "CERTIFIED_COMMIT_NON_NULL_AND_40_HEX"
+    "RUNTIME_CERTIFICATE_BINDS_EXACT_GIT_HEAD_AND_TREE"
   ],
   "known_truth_boundaries": {
     "real_market_census": "NOT_TESTED",
@@ -38,5 +37,8 @@
     "production_certification": "NOT_CERTIFIED"
   },
   "next_stage_after_close": "RETURN_TO_REAL_MARKET_CENSUS",
-  "note": "This closeout contract is intentionally NOT_CLOSED until all measured Protocol/Fork Truth gates and source blockers are resolved on one exact certified commit."
+  "note": "This closeout contract is intentionally NOT_CLOSED until all measured Protocol/Fork Truth gates and source blockers are resolved on one exact certified commit.",
+  "certification_binding": "RUNTIME_GIT_HEAD_AND_TREE_ARTIFACT",
+  "tracked_closeout_semantics": "POLICY_ONLY; PROTOCOL_FORK_TRUTH_CLOSED MAY ONLY BE EMITTED BY THE RUNTIME CERTIFICATE ARTIFACT",
+  "certificate_artifact_name_template": "nqc-protocol-fork-final-certificate-<git-head>"
 }
