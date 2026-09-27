@@ -179,6 +179,7 @@ jobs:
           workflow_paths={
               'Build Verification':'.github/workflows/build-verification.yml',
               'NQC T39 Protocol Fork Source Census':'.github/workflows/nqc-protocol-fork-source-census.yml',
+              'NQC T39 Aave Recovered Reader Parity':'.github/workflows/nqc-protocol-fork-aave-reader-parity.yml',
               'NQC T39 Aave Canonical State Witness':'.github/workflows/nqc-protocol-fork-aave-state-witness.yml',
               'NQC T39 Aave Reserve Balance Parity':'.github/workflows/nqc-protocol-fork-aave-reserve-parity.yml',
               'NQC T39 Aave Full Account Risk Parity':'.github/workflows/nqc-protocol-fork-aave-full-account-risk-parity.yml',
