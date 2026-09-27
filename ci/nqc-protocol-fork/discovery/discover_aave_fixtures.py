@@ -74,6 +74,29 @@ def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
+def selector(url: str, signature: str, request_id: int) -> str:
+    payload = "0x" + signature.encode().hex()
+    digest = rpc(url, "web3_sha3", [payload], request_id)
+    if not isinstance(digest, str) or len(digest) != 66 or not digest.startswith("0x"):
+        raise RuntimeError(f"invalid web3_sha3 result for {signature}")
+    return digest[:10].lower()
+
+
+def decode_abi_address(value: str, label: str) -> str:
+    if not isinstance(value, str) or not value.startswith("0x") or len(value) < 66:
+        raise RuntimeError(f"{label}: invalid ABI address return")
+    address = "0x" + value[-40:].lower()
+    if address == "0x" + "0" * 40:
+        raise RuntimeError(f"{label}: zero address")
+    return address
+
+
+def decode_abi_uint(value: str, label: str) -> int:
+    if not isinstance(value, str) or not value.startswith("0x"):
+        raise RuntimeError(f"{label}: invalid ABI integer return")
+    return int(value, 16)
+
+
 config = load_json(CONFIG)
 if config.get("schema_version") != 1:
     fail("candidate config schema_version must be 1")
@@ -116,6 +139,7 @@ for candidate in config.get("candidates", []):
             "provider_url_sha256": sha256_text(url),
             "rpc_ok": False,
             "exact_state_probe": False,
+            "protocol_identity_probe": False,
         }
         try:
             chain_id_hex = rpc(url, "eth_chainId", [], provider_index * 100 + 1)
@@ -196,6 +220,97 @@ for candidate in config.get("candidates", []):
             except Exception as exc:
                 observation["exact_state_probe_error"] = str(exc)
 
+            try:
+                addresses_provider_selector = selector(
+                    url, "ADDRESSES_PROVIDER()", provider_index * 100 + 6
+                )
+                if addresses_provider_selector != "0x0542975c":
+                    raise RuntimeError(
+                        "ADDRESSES_PROVIDER selector disagrees with canonical ABI"
+                    )
+                price_oracle_selector = selector(
+                    url, "getPriceOracle()", provider_index * 100 + 7
+                )
+                premium_selector = selector(
+                    url, "FLASHLOAN_PREMIUM_TOTAL()", provider_index * 100 + 8
+                )
+                reserves_count_selector = selector(
+                    url, "getReservesCount()", provider_index * 100 + 9
+                )
+                exact_block = {"blockHash": block_hash, "requireCanonical": True}
+
+                addresses_provider_raw = rpc(
+                    url,
+                    "eth_call",
+                    [{"to": pool, "data": addresses_provider_selector}, exact_block],
+                    provider_index * 100 + 10,
+                )
+                addresses_provider = decode_abi_address(
+                    addresses_provider_raw, "ADDRESSES_PROVIDER"
+                )
+                price_oracle_raw = rpc(
+                    url,
+                    "eth_call",
+                    [{"to": addresses_provider, "data": price_oracle_selector}, exact_block],
+                    provider_index * 100 + 11,
+                )
+                price_oracle = decode_abi_address(price_oracle_raw, "getPriceOracle")
+                premium_raw = rpc(
+                    url,
+                    "eth_call",
+                    [{"to": pool, "data": premium_selector}, exact_block],
+                    provider_index * 100 + 12,
+                )
+                reserves_count_raw = rpc(
+                    url,
+                    "eth_call",
+                    [{"to": pool, "data": reserves_count_selector}, exact_block],
+                    provider_index * 100 + 13,
+                )
+                flash_loan_premium_bps = decode_abi_uint(
+                    premium_raw, "FLASHLOAN_PREMIUM_TOTAL"
+                )
+                reserves_count = decode_abi_uint(
+                    reserves_count_raw, "getReservesCount"
+                )
+                if flash_loan_premium_bps > 10_000:
+                    raise RuntimeError("flash loan premium is outside basis-point domain")
+                if not 1 <= reserves_count <= 128:
+                    raise RuntimeError("reserve count outside expected Aave V3 domain")
+
+                provider_code = rpc(
+                    url,
+                    "eth_getCode",
+                    [addresses_provider, exact_block],
+                    provider_index * 100 + 14,
+                )
+                oracle_code = rpc(
+                    url,
+                    "eth_getCode",
+                    [price_oracle, exact_block],
+                    provider_index * 100 + 15,
+                )
+                if provider_code in ("0x", "0x0", "") or oracle_code in ("0x", "0x0", ""):
+                    raise RuntimeError("protocol identity contract code unavailable")
+
+                observation.update(
+                    {
+                        "protocol_identity_probe": True,
+                        "addresses_provider": addresses_provider,
+                        "price_oracle": price_oracle,
+                        "flash_loan_premium_bps": flash_loan_premium_bps,
+                        "reserves_count": reserves_count,
+                        "addresses_provider_selector": addresses_provider_selector,
+                        "price_oracle_selector": price_oracle_selector,
+                        "premium_selector": premium_selector,
+                        "reserves_count_selector": reserves_count_selector,
+                        "addresses_provider_code_sha256": sha256_text(provider_code.lower()),
+                        "price_oracle_code_sha256": sha256_text(oracle_code.lower()),
+                    }
+                )
+            except Exception as exc:
+                observation["protocol_identity_probe_error"] = str(exc)
+
             observation.update(
                 {
                     "rpc_ok": True,
@@ -231,6 +346,9 @@ for candidate in config.get("candidates", []):
             provider_health[provider_id]["rpc_successes"] += 1
         if observation["exact_state_probe"]:
             provider_health[provider_id]["exact_state_successes"] += 1
+        if observation["protocol_identity_probe"]:
+            provider_health[provider_id].setdefault("protocol_identity_successes", 0)
+            provider_health[provider_id]["protocol_identity_successes"] += 1
         if "error" in observation:
             provider_health[provider_id]["errors"].append(
                 {"case_id": case_id, "error": observation["error"]}
@@ -284,10 +402,39 @@ for candidate in config.get("candidates", []):
             f"{min_state}; errors={errors}"
         )
 
+    protocol_identity = [
+        item for item in consensus_observations if item["protocol_identity_probe"]
+    ]
+    if len(protocol_identity) < min_state:
+        errors = {
+            item["provider_id"]: item.get("protocol_identity_probe_error")
+            for item in consensus_observations
+            if not item["protocol_identity_probe"]
+        }
+        fail(
+            f"{case_id}: exact protocol identity providers {len(protocol_identity)} < "
+            f"{min_state}; errors={errors}"
+        )
+
+    identity_keys = [
+        (
+            item["addresses_provider"],
+            item["price_oracle"],
+            item["flash_loan_premium_bps"],
+            item["reserves_count"],
+        )
+        for item in protocol_identity
+    ]
+    protocol_key, protocol_count = Counter(identity_keys).most_common(1)[0]
+    if protocol_count < min_state or protocol_count != len(protocol_identity):
+        fail(f"{case_id}: protocol identity provider dissent")
+    addresses_provider, price_oracle, flash_loan_premium_bps, reserves_count = protocol_key
+
     block_number, block_hash, parent_hash, receipt_status = consensus_key
     provider_identity = {
         "consensus_providers": sorted(item["provider_id"] for item in consensus_observations),
         "exact_state_providers": sorted(item["provider_id"] for item in exact_state),
+        "protocol_identity_providers": sorted(item["provider_id"] for item in protocol_identity),
         "block_hash": block_hash,
     }
     provider_identity_text = json.dumps(
@@ -312,6 +459,10 @@ for candidate in config.get("candidates", []):
         },
         "protocol": {
             "aave_pool": pool,
+            "addresses_provider": addresses_provider,
+            "price_oracle": price_oracle,
+            "flash_loan_premium_bps": flash_loan_premium_bps,
+            "reserves_count": reserves_count,
             "liquidation_call_topic0": topic0,
         },
         "provenance": {
@@ -346,6 +497,11 @@ for candidate in config.get("candidates", []):
             "parent_hash": parent_hash,
             "anchor_consensus_providers": consensus_count,
             "exact_state_providers": len(exact_state),
+            "protocol_identity_providers": len(protocol_identity),
+            "addresses_provider": addresses_provider,
+            "price_oracle": price_oracle,
+            "flash_loan_premium_bps": flash_loan_premium_bps,
+            "reserves_count": reserves_count,
             "liquidation_log_count": max(
                 item["liquidation_log_count"] for item in consensus_observations
             ),
