@@ -40,6 +40,20 @@ jobs:
           mkdir -p "$NQC_EXEC_HIST/contracts/src" "$NQC_EXEC_HIST/contracts/test" "$NQC_EXEC_HIST/evidence"
           git rev-parse HEAD > "$NQC_EXEC_HIST/evidence/repository-source-sha.txt"
           (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          git apply --check --directory=ci/nqc-protocol-fork/recovered-source \
+            ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch
+          python3 - <<'PYFEE'
+          import json
+          from pathlib import Path
+          contract=json.loads(Path("ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json").read_text())
+          assert contract["measured_failure"]["actual_callback_premium_units"] == "41863654"
+          def ceil_bps(amount,bps):
+              return 0 if amount == 0 or bps == 0 else (amount*bps - 1)//10_000 + 1
+          assert ceil_bps(83_727_306_811,5) == 41_863_654
+          assert ceil_bps(186_298_226,5) == 93_150
+          assert (83_727_306_811*5 + 5_000)//10_000 == 41_863_653
+          print("PFT_COMPAT_009_MEASURED_ROUNDING_WITNESSES_PASS")
+          PYFEE
           python3 - <<'PYCODE'
           import json
           from pathlib import Path
@@ -90,7 +104,7 @@ jobs:
           fs_permissions = [{ access = "read-write", path = "../evidence" }]
           EOF
 
-          sha256sum             ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch             ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol             > "$NQC_EXEC_HIST/evidence/input-source.sha256"
+          sha256sum             ci/nqc-protocol-fork/recovered-source/contracts/src/NqcAaveV3Executor.sol             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json             ci/nqc-protocol-fork/parity/PftAaveExecutorHistoricalFork.t.sol             > "$NQC_EXEC_HIST/evidence/input-source.sha256"
 
       - name: Install exact Foundry and solc
         shell: bash
