@@ -646,24 +646,47 @@ jobs:
           chain_id=rpc('eth_chainId',[])
           gas_price=rpc('eth_gasPrice',[])
           base_nonce=int(rpc('eth_getTransactionCount',[sender,'pending']),16)
-          hashes=[]
-          for i in range(128):
-              if i==0:
-                  to=market
-                  data=touch
-                  gas='0x30d40'
-              else:
-                  to='0x000000000000000000000000000000000000dead'
-                  data='0x'
-                  gas='0x5208'
+
+          # Node B intentionally does not have the fixture contract in canonical state.
+          # Its eth_sendTransaction signer therefore cannot estimate the execution gas
+          # correctly for the primary signal. Sign that envelope locally from Reth's
+          # public dev account #1 with an explicit gas limit, then submit it through B.
+          # This preserves the required B -> P2P -> A path without any production secret.
+          import re,subprocess
+          cast='/tmp/nqc-t37-phase3/foundry/cast'
+          dev_mnemonic='test test test test test test test test test test test junk'
+          signal_private_key=subprocess.check_output(
+              [cast,'wallet','private-key',dev_mnemonic,'1'], text=True
+          ).strip()
+          derived_sender=subprocess.check_output(
+              [cast,'wallet','address',signal_private_key], text=True
+          ).strip()
+          assert derived_sender.lower()==sender.lower(), (derived_sender,sender)
+          send_out=subprocess.check_output([
+              cast,'send',
+              '--rpc-url',B,
+              '--private-key',signal_private_key,
+              '--legacy',
+              '--async',
+              '--gas-limit','200000',
+              '--gas-price',str(int(gas_price,16)),
+              '--nonce',str(base_nonce),
+              market,
+              '--data',touch,
+          ],text=True,stderr=subprocess.STDOUT)
+          matches=re.findall(r'0x[0-9a-fA-F]{64}',send_out)
+          assert matches, send_out
+          hashes=[matches[-1].lower()]
+
+          # Filler envelopes exist only to exercise bounded physical P2P recognition
+          # cardinality. They carry no action semantics and may use the dev RPC signer.
+          for i in range(1,128):
               txh=rpc('eth_sendTransaction',[{
                   'from':sender,
-                  'to':to,
-                  # Reth/Alloy TransactionRequest signing consumes the transaction input field.
-                  # Use the canonical RPC `input` spelling so calldata survives the dev signer.
-                  'input':data,
+                  'to':'0x000000000000000000000000000000000000dead',
+                  'input':'0x',
                   'value':'0x0',
-                  'gas':gas,
+                  'gas':'0x5208',
                   'gasPrice':gas_price,
                   'nonce':hex(base_nonce+i),
                   'chainId':chain_id,
