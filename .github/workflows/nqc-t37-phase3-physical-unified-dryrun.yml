@@ -905,6 +905,7 @@ jobs:
           assert t35_gate['capture_build_identity_sha256']=='c5a0d6ef791856e8b5c3a1786becc2fd3d839dd0d458f8b3fc7846f1e3de5ed2'
           assert t35_gate['physical_probe_attestation_sha256']=='01d2ee17cca0c8dbadc1a433dcda465165775cafbed2bd48699fbc9670fe2af8'
           assert t35_gate['capture_build_manifest_sha256']=='7b812e12964286baa2dd1138564e053d971202450b7cd15d1f08a8726aab6d1d'
+          assert t35_gate['toolchain_identity_sha256']=='dc52abd2089428b1484b91d88ffb3221d4fd3c513cb6f5a451f1143588397444'
           assert t35_gate['p2p_capture_quality']=='PEER_GOSSIP_EXACT'
           assert t35_gate['canonical_lane_separate_from_signal_lanes'] is True
           assert t35_gate['authority_issued'] is False
@@ -913,7 +914,7 @@ jobs:
           values={
               't35_subject_hash':'0x'+t35_gate['capture_build_identity_sha256'],
               't35_evidence_hash':'0x'+t35_gate['physical_probe_attestation_sha256'],
-              't35_toolchain_hash':'0x'+t35_gate['capture_build_manifest_sha256'],
+              't35_toolchain_hash':'0x'+t35_gate['toolchain_identity_sha256'],
               't36_subject_hash':'0xbbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320',
               't36_evidence_hash':'0x926dc79aedf908c29ed5f4307b492fb6e82d7b5da5e18881d040b90d0eb2f3b6',
               't36_toolchain_hash':'0xcf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b',
