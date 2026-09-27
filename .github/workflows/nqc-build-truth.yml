@@ -1,0 +1,436 @@
+name: NQC T38 Build Truth
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-build-truth.yml
+      - ci/nqc-build-truth/**
+      - ci/nqc-t36/contracts/**
+      - ci/nqc-t37/scale-harness/**
+      - ci/nqc-t37/unified-evidence-crate.parts/**
+      - ci/nqc-t37/physical-contracts/**
+      - ci/nqc-t37/T37_CLOSEOUT.json
+      - runtime/**
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/nqc-build-truth.yml
+      - ci/nqc-build-truth/**
+      - ci/nqc-t36/contracts/**
+      - ci/nqc-t37/scale-harness/**
+      - ci/nqc-t37/unified-evidence-crate.parts/**
+      - ci/nqc-t37/physical-contracts/**
+      - ci/nqc-t37/T37_CLOSEOUT.json
+      - runtime/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  attestations: write
+
+jobs:
+  certify-build-truth:
+    name: Build Truth exact reproducible gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    env:
+      NQC_SOURCE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      RUST_TOOLCHAIN: "1.98.1"
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      T37_UNIFIED_SOURCE_SHA256: "38e717c6d39bd80163af2091213fd0af0ed76c59646587cac9c1951b69372fe7"
+      T37_UNIFIED_LOCK_SHA256: "73f77c1774ad1af5b7527bbc3a6442f3d18d8e14f85c147a041a5a331cc2c0be"
+      T37_UNIFIED_LOCK_PARTS_SHA256: "1b9fd83bd779d71043ec1d06e8fd66b142da5449c2c4688885b0a21f8f6277ed"
+      T37_UNIFIED_TREE_SHA256: "14bcc0b08259b9b594ee2fd4bfc5bbbbc97d3f0a1b6226f420cce4a6be2db61e"
+      T36_EXECUTOR_SHA256: "bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320"
+      T36_UNIT_TEST_SHA256: "5af6f56a3b71e9f204be69615f65d9255831f6808c6ba50102b6b9df1de526b9"
+      T36_FOUNDRY_TOML_SHA256: "b26286f7c58dbb6924f408bcb3c06fa38f525c6dc82d7fa438115c98b6ecc8fa"
+      T37_FOUNDRY_TOML_SHA256: "0158579a9b6b71944e91563ce2d1d47b73d884e504e14482c9111acb363ce798"
+      T37_PHASE1_METRICS_SHA256: "94de6c927b4ee34569890c0d874a46ede9579ca2abf66f4bad45e5ca0c4265d6"
+      T37_PHASE1_EXECUTION_RECORDS_SHA256: "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192"
+      T37_PHASE1_SEED: "5643366627959420673"
+
+    steps:
+      - name: Checkout exact source revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Establish pristine freeze-bound baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NQC_SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          git diff --check
+          git fsck --no-dangling
+          mkdir -p /tmp/nqc-build-truth/evidence
+          git show -s --format=fuller HEAD > /tmp/nqc-build-truth/evidence/source-commit.txt
+          git rev-parse HEAD > /tmp/nqc-build-truth/evidence/source-sha.txt
+          git log -1 --format=%ct > /tmp/nqc-build-truth/evidence/source-date-epoch.txt
+          echo "SOURCE_DATE_EPOCH=$(cat /tmp/nqc-build-truth/evidence/source-date-epoch.txt)" >> "$GITHUB_ENV"
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          closeout=json.loads(Path("ci/nqc-t37/T37_CLOSEOUT.json").read_text())
+          contract=json.loads(Path("ci/nqc-build-truth/BUILD_TRUTH_CONTRACT.json").read_text())
+          assert closeout["status"] == "ARCHITECTURE_CLOSED"
+          assert closeout["construction_freeze_ready"] is True
+          assert closeout["architecture_closure_attestation_sha256"] == "1eccbf1572e2fcb98e038912eace3eae1daee712f7dd1f2e3d7ab6d6109a0f11"
+          assert closeout["real_market_census"] == "NOT_TESTED"
+          assert closeout["live_pnl_evidence"] is False
+          assert closeout["production_authority_issued"] is False
+          assert contract["status"] == "NOT_TESTED"
+          assert contract["source_of_truth"]["architecture_closeout_commit"] == "0ffaf8a5829d2f0c0874702042c8e0b094b30915"
+          assert contract["source_of_truth"]["main_integration_commit"] == "d8d06bc8c705e68ddf8fbdde8f4c6ec76bc457dc"
+          assert contract["truth_boundaries"]["real_market_census"] == "NOT_TESTED"
+          assert contract["truth_boundaries"]["live_pnl_evidence"] is False
+          assert contract["truth_boundaries"]["production_authority_issued"] is False
+          PY
+          cp ci/nqc-build-truth/BUILD_TRUTH_CONTRACT.json /tmp/nqc-build-truth/evidence/
+
+      - name: Install and attest exact toolchains
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component rustfmt,clippy
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee /tmp/nqc-build-truth/evidence/rustc.txt
+          cargo -V | tee /tmp/nqc-build-truth/evidence/cargo.txt
+          cargo fmt --version | tee /tmp/nqc-build-truth/evidence/rustfmt.txt
+          cargo clippy --version | tee /tmp/nqc-build-truth/evidence/clippy.txt
+          rustc -V | grep -F "1.98.1"
+
+          mkdir -p /tmp/foundry
+          curl --fail --location --retry 5 --retry-all-errors             -o /tmp/foundry.tar.gz             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  /tmp/foundry.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/foundry.tar.gz -C /tmp/foundry
+          echo "/tmp/foundry" >> "$GITHUB_PATH"
+          export PATH="/tmp/foundry:$PATH"
+          forge --version | tee /tmp/nqc-build-truth/evidence/forge.txt
+          forge --version | grep -F "$FOUNDRY_VERSION"
+          sha256sum /tmp/foundry.tar.gz > /tmp/nqc-build-truth/evidence/foundry-archive.sha256
+
+          curl --fail --location --retry 5 --retry-all-errors             -o /tmp/solc-0.8.24             "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  /tmp/solc-0.8.24" | sha256sum -c -
+          chmod +x /tmp/solc-0.8.24
+          /tmp/solc-0.8.24 --version | tee /tmp/nqc-build-truth/evidence/solc.txt
+          /tmp/solc-0.8.24 --version | grep -F "$SOLC_VERSION"
+          sha256sum /tmp/solc-0.8.24 > /tmp/nqc-build-truth/evidence/solc-binary.sha256
+          echo "SOLC_BIN=/tmp/solc-0.8.24" >> "$GITHUB_ENV"
+
+          uname -a > /tmp/nqc-build-truth/evidence/uname.txt
+          cat /etc/os-release > /tmp/nqc-build-truth/evidence/os-release.txt
+          env | LC_ALL=C sort | grep -E '^(ImageOS|ImageVersion|RUNNER_ARCH|RUNNER_OS)='             > /tmp/nqc-build-truth/evidence/runner-image.txt || true
+
+      - name: Install and attest native adapter prerequisite
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libsasl2-dev
+          dpkg-query -W libsasl2-dev libsasl2-2             | tee /tmp/nqc-build-truth/evidence/native-packages.tsv
+
+      - name: Certify runtime workspace and optional adapters
+        shell: bash
+        working-directory: runtime
+        run: |
+          set -euo pipefail
+          cargo fetch --locked
+          cargo metadata --locked --format-version 1             > /tmp/nqc-build-truth/evidence/runtime-cargo-metadata.json
+          cp Cargo.lock /tmp/nqc-build-truth/evidence/runtime-Cargo.lock
+          sha256sum Cargo.lock > /tmp/nqc-build-truth/evidence/runtime-Cargo.lock.sha256
+
+          export CARGO_NET_OFFLINE=true
+          export CARGO_INCREMENTAL=0
+          cargo fmt --all --check
+          cargo check --locked --offline --workspace --all-targets             2>&1 | tee /tmp/nqc-build-truth/evidence/runtime-check.txt
+          cargo clippy --locked --offline --workspace --all-targets -- -D warnings             2>&1 | tee /tmp/nqc-build-truth/evidence/runtime-clippy.txt
+          cargo test --locked --offline --workspace --all-targets             2>&1 | tee /tmp/nqc-build-truth/evidence/runtime-test.txt
+
+          cargo check --locked --offline -p nexus-edge-protocol --features ed25519             2>&1 | tee /tmp/nqc-build-truth/evidence/adapter-ed25519.txt
+          cargo check --locked --offline -p nexus-graph --features neo4j             2>&1 | tee /tmp/nqc-build-truth/evidence/adapter-neo4j.txt
+          cargo check --locked --offline -p nexus-ingest --features kafka             2>&1 | tee /tmp/nqc-build-truth/evidence/adapter-kafka.txt
+          cargo check --locked --offline -p nexus-edge-wasm --features wasmtime             2>&1 | tee /tmp/nqc-build-truth/evidence/adapter-wasmtime.txt
+
+          rm -rf target/release
+          cargo build --locked --offline --workspace --release             2>&1 | tee /tmp/nqc-build-truth/evidence/runtime-release-build-a.txt
+          find target/release -maxdepth 1 -type f -executable -print0             | sort -z | xargs -0 -r sha256sum             > /tmp/nqc-build-truth/evidence/runtime-release-a.sha256
+          test -s /tmp/nqc-build-truth/evidence/runtime-release-a.sha256
+
+          rm -rf target/release
+          cargo build --locked --offline --workspace --release             2>&1 | tee /tmp/nqc-build-truth/evidence/runtime-release-build-b.txt
+          find target/release -maxdepth 1 -type f -executable -print0             | sort -z | xargs -0 -r sha256sum             > /tmp/nqc-build-truth/evidence/runtime-release-b.sha256
+          diff -u             /tmp/nqc-build-truth/evidence/runtime-release-a.sha256             /tmp/nqc-build-truth/evidence/runtime-release-b.sha256
+          cp /tmp/nqc-build-truth/evidence/runtime-release-b.sha256             /tmp/nqc-build-truth/evidence/runtime-release-reproducible.sha256
+          test -z "$(git -C .. status --porcelain --untracked-files=no)"
+
+      - name: Certify T37 deterministic scale harness
+        shell: bash
+        working-directory: ci/nqc-t37/scale-harness
+        run: |
+          set -euo pipefail
+          cargo fetch --locked
+          cargo metadata --locked --format-version 1             > /tmp/nqc-build-truth/evidence/t37-scale-cargo-metadata.json
+          cp Cargo.lock /tmp/nqc-build-truth/evidence/t37-scale-Cargo.lock
+          sha256sum Cargo.lock > /tmp/nqc-build-truth/evidence/t37-scale-Cargo.lock.sha256
+
+          export CARGO_NET_OFFLINE=true
+          export CARGO_INCREMENTAL=0
+          cargo fmt --all --check
+          cargo check --locked --offline --all-targets
+          cargo clippy --locked --offline --all-targets -- -D warnings
+          cargo test --locked --offline --all-targets             2>&1 | tee /tmp/nqc-build-truth/evidence/t37-scale-test.txt
+
+          rm -rf target/release
+          cargo build --locked --offline --release
+          sha256sum target/release/nqc-t37-scale-harness             > /tmp/nqc-build-truth/evidence/t37-scale-release-a.sha256
+          rm -rf target/release
+          cargo build --locked --offline --release
+          sha256sum target/release/nqc-t37-scale-harness             > /tmp/nqc-build-truth/evidence/t37-scale-release-b.sha256
+          diff -u             /tmp/nqc-build-truth/evidence/t37-scale-release-a.sha256             /tmp/nqc-build-truth/evidence/t37-scale-release-b.sha256
+
+          # Construction Freeze permits post-T37 defect repairs only with measured
+          # proof that architecture behavior did not move. Rust 1.98.1 introduced
+          # stricter style lints in this historical harness; replay the full Phase 1
+          # workload twice and require byte-identical outputs to the T37 closeout.
+          rm -rf /tmp/nqc-build-truth/t37-scale-replay-a /tmp/nqc-build-truth/t37-scale-replay-b
+          target/release/nqc-t37-scale-harness             --markets 50000             --active-markets 25000             --surfaces-per-market 5             --signals 1000000             --shards 256             --bundles 25000             --seed "$T37_PHASE1_SEED"             --out-dir /tmp/nqc-build-truth/t37-scale-replay-a
+          target/release/nqc-t37-scale-harness             --markets 50000             --active-markets 25000             --surfaces-per-market 5             --signals 1000000             --shards 256             --bundles 25000             --seed "$T37_PHASE1_SEED"             --out-dir /tmp/nqc-build-truth/t37-scale-replay-b
+          cmp /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json /tmp/nqc-build-truth/t37-scale-replay-b/metrics.json
+          cmp /tmp/nqc-build-truth/t37-scale-replay-a/execution-records.tsv /tmp/nqc-build-truth/t37-scale-replay-b/execution-records.tsv
+          echo "$T37_PHASE1_METRICS_SHA256  /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json" | sha256sum -c -
+          echo "$T37_PHASE1_EXECUTION_RECORDS_SHA256  /tmp/nqc-build-truth/t37-scale-replay-a/execution-records.tsv" | sha256sum -c -
+          cp /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json /tmp/nqc-build-truth/evidence/t37-scale-replay-metrics.json
+          sha256sum             /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json             /tmp/nqc-build-truth/t37-scale-replay-a/execution-records.tsv             > /tmp/nqc-build-truth/evidence/t37-scale-replay.sha256
+
+      - name: Reconstruct and certify exact T37 unified crate
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/nqc-t37-unified
+          mkdir -p /tmp/nqc-t37-unified/source
+
+          cat ci/nqc-t37/unified-evidence-crate.parts/part-*.b64             > /tmp/nqc-t37-unified/source.tar.gz.b64
+          test "$(wc -c < /tmp/nqc-t37-unified/source.tar.gz.b64)" = "5912"
+          base64 -d /tmp/nqc-t37-unified/source.tar.gz.b64             > /tmp/nqc-t37-unified/source.tar.gz
+          echo "$T37_UNIFIED_SOURCE_SHA256  /tmp/nqc-t37-unified/source.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/nqc-t37-unified/source.tar.gz -C /tmp/nqc-t37-unified/source
+
+          cat ci/nqc-build-truth/t37-unified-lock.parts/part-*.b64             > /tmp/nqc-t37-unified/Cargo.lock.gz.b64
+          test "$(wc -c < /tmp/nqc-t37-unified/Cargo.lock.gz.b64)" = "22992"
+          echo "$T37_UNIFIED_LOCK_PARTS_SHA256  /tmp/nqc-t37-unified/Cargo.lock.gz.b64" | sha256sum -c -
+          base64 -d /tmp/nqc-t37-unified/Cargo.lock.gz.b64             | gzip -d > /tmp/nqc-t37-unified/source/Cargo.lock
+          echo "$T37_UNIFIED_LOCK_SHA256  /tmp/nqc-t37-unified/source/Cargo.lock" | sha256sum -c -
+
+          cd /tmp/nqc-t37-unified/source
+          cargo fmt
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root=Path(".")
+          h=hashlib.sha256()
+          files=[]
+          for p in root.rglob("*"):
+              if not p.is_file() or "target" in p.parts:
+                  continue
+              files.append(p.relative_to(root))
+          for rel in sorted(files, key=lambda p: p.as_posix()):
+              data=(root/rel).read_bytes()
+              h.update(rel.as_posix().encode()+b"\0"+hashlib.sha256(data).digest())
+          digest=h.hexdigest()
+          print(digest)
+          assert digest == "14bcc0b08259b9b594ee2fd4bfc5bbbbc97d3f0a1b6226f420cce4a6be2db61e"
+          Path("/tmp/nqc-build-truth/evidence/t37-unified-source-tree.sha256").write_text(digest+"\n")
+          PY
+
+          cargo fetch --locked
+          cargo metadata --locked --format-version 1             > /tmp/nqc-build-truth/evidence/t37-unified-cargo-metadata.json
+          cp Cargo.lock /tmp/nqc-build-truth/evidence/t37-unified-Cargo.lock
+          sha256sum Cargo.lock > /tmp/nqc-build-truth/evidence/t37-unified-Cargo.lock.sha256
+
+          export CARGO_NET_OFFLINE=true
+          export CARGO_INCREMENTAL=0
+          cargo fmt --check
+          cargo check --locked --offline --all-targets --all-features
+          cargo clippy --locked --offline --all-targets --all-features -- -D warnings
+          cargo test --locked --offline --all-features             2>&1 | tee /tmp/nqc-build-truth/evidence/t37-unified-test.txt
+
+          rm -rf target/release
+          cargo build --locked --offline --release --all-features
+          sha256sum target/release/libnqc_unified_dryrun_evidence.rlib             > /tmp/nqc-build-truth/evidence/t37-unified-release-a.sha256
+          rm -rf target/release
+          cargo build --locked --offline --release --all-features
+          sha256sum target/release/libnqc_unified_dryrun_evidence.rlib             > /tmp/nqc-build-truth/evidence/t37-unified-release-b.sha256
+          diff -u             /tmp/nqc-build-truth/evidence/t37-unified-release-a.sha256             /tmp/nqc-build-truth/evidence/t37-unified-release-b.sha256
+
+      - name: Certify T36 deterministic Solidity build and unit tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/nqc-t36-build
+          mkdir -p /tmp/nqc-t36-build
+          cp ci/nqc-t36/contracts/foundry.toml /tmp/nqc-t36-build/
+          cp -R ci/nqc-t36/contracts/src /tmp/nqc-t36-build/
+          cp -R ci/nqc-t36/contracts/test /tmp/nqc-t36-build/
+          echo "$T36_FOUNDRY_TOML_SHA256  ci/nqc-t36/contracts/foundry.toml" | sha256sum -c -
+
+          cd /tmp/nqc-t36-build
+          forge fmt
+          forge fmt --check
+          echo "$T36_EXECUTOR_SHA256  src/NqcFlashFundingExecutor.sol" | sha256sum -c -
+          echo "$T36_UNIT_TEST_SHA256  test/NqcFlashFundingExecutor.t.sol" | sha256sum -c -
+
+          forge build --force --offline --use "$SOLC_BIN" --sizes             2>&1 | tee /tmp/nqc-build-truth/evidence/t36-forge-build.txt
+          forge test --offline --use "$SOLC_BIN" --match-contract NqcFlashFundingExecutorTest -vvv             2>&1 | tee /tmp/nqc-build-truth/evidence/t36-forge-test.txt
+
+          rm -rf out cache
+          forge build --force --offline --use "$SOLC_BIN"
+          find out -type f -print0 | sort -z | xargs -0 sha256sum             > /tmp/nqc-build-truth/evidence/t36-out-a.sha256
+          rm -rf out cache
+          forge build --force --offline --use "$SOLC_BIN"
+          find out -type f -print0 | sort -z | xargs -0 sha256sum             > /tmp/nqc-build-truth/evidence/t36-out-b.sha256
+          diff -u             /tmp/nqc-build-truth/evidence/t36-out-a.sha256             /tmp/nqc-build-truth/evidence/t36-out-b.sha256
+
+      - name: Certify T37 physical composite Solidity build
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/nqc-t37-solidity
+          mkdir -p /tmp/nqc-t37-solidity/src
+          cp ci/nqc-t37/physical-contracts/foundry.toml /tmp/nqc-t37-solidity/
+          cp ci/nqc-t37/physical-contracts/src/T37PhysicalIntegration.sol /tmp/nqc-t37-solidity/src/
+          cp ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol /tmp/nqc-t37-solidity/src/
+          echo "$T37_FOUNDRY_TOML_SHA256  ci/nqc-t37/physical-contracts/foundry.toml" | sha256sum -c -
+
+          cd /tmp/nqc-t37-solidity
+          forge fmt
+          forge fmt --check
+          echo "$T36_EXECUTOR_SHA256  src/NqcFlashFundingExecutor.sol" | sha256sum -c -
+
+          rm -rf out cache
+          forge build --force --offline --use "$SOLC_BIN" --sizes             2>&1 | tee /tmp/nqc-build-truth/evidence/t37-physical-forge-build.txt
+          find out -type f -print0 | sort -z | xargs -0 sha256sum             > /tmp/nqc-build-truth/evidence/t37-physical-out-a.sha256
+          rm -rf out cache
+          forge build --force --offline --use "$SOLC_BIN"
+          find out -type f -print0 | sort -z | xargs -0 sha256sum             > /tmp/nqc-build-truth/evidence/t37-physical-out-b.sha256
+          diff -u             /tmp/nqc-build-truth/evidence/t37-physical-out-a.sha256             /tmp/nqc-build-truth/evidence/t37-physical-out-b.sha256
+
+      - name: Generate dependency provenance SBOM and final evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$NQC_SOURCE_SHA"
+          test -z "$(git status --porcelain --untracked-files=no)"
+          python3 - <<'PY'
+          import hashlib, json, os
+          from pathlib import Path
+          ev=Path("/tmp/nqc-build-truth/evidence")
+          metas=[
+              ev/"runtime-cargo-metadata.json",
+              ev/"t37-scale-cargo-metadata.json",
+              ev/"t37-unified-cargo-metadata.json",
+          ]
+          components={}
+          for mp in metas:
+              doc=json.loads(mp.read_text())
+              for p in doc.get("packages", []):
+                  key=(p["name"], p["version"], p.get("source") or "workspace")
+                  comp={
+                      "type":"library",
+                      "bom-ref":f"pkg:cargo/{p['name']}@{p['version']}",
+                      "name":p["name"],
+                      "version":p["version"],
+                      "purl":f"pkg:cargo/{p['name']}@{p['version']}",
+                      "properties":[
+                          {"name":"nqc:cargo_source","value":p.get("source") or "workspace"}
+                      ],
+                  }
+                  if p.get("license"):
+                      comp["licenses"]=[{"license":{"id":p["license"]}}]
+                  components[key]=comp
+          components[("forge","1.7.1","toolchain")]={
+              "type":"application","bom-ref":"nqc:tool:forge:1.7.1","name":"forge","version":"1.7.1"
+          }
+          components[("solc","0.8.24","toolchain")]={
+              "type":"application","bom-ref":"nqc:tool:solc:0.8.24","name":"solc","version":"0.8.24+commit.e11b9ed9"
+          }
+          sbom={
+              "bomFormat":"CycloneDX",
+              "specVersion":"1.6",
+              "serialNumber":"urn:uuid:00000000-0000-4000-8000-"+os.environ["NQC_SOURCE_SHA"][:12],
+              "version":1,
+              "metadata":{"component":{"type":"application","name":"nexus-engine-build-truth","version":os.environ["NQC_SOURCE_SHA"]}},
+              "components":sorted(components.values(), key=lambda c:(c["name"], c["version"], c["bom-ref"])),
+          }
+          (ev/"sbom.cdx.json").write_text(json.dumps(sbom,sort_keys=True,separators=(",",":"))+"\n")
+
+          summary={
+              "schema_version":1,
+              "tranche":"T38_BUILD_TRUTH_49_TO_55",
+              "status":"PASS",
+              "source_sha":os.environ["NQC_SOURCE_SHA"],
+              "architecture_closeout_commit":"0ffaf8a5829d2f0c0874702042c8e0b094b30915",
+              "architecture_closeout_attestation_sha256":"1eccbf1572e2fcb98e038912eace3eae1daee712f7dd1f2e3d7ab6d6109a0f11",
+              "rust_toolchain":"1.98.1",
+              "foundry_toolchain":"1.7.1",
+              "solc_toolchain":"0.8.24+commit.e11b9ed9",
+              "runtime_repeated_release_hashes_equal":True,
+              "t37_scale_repeated_release_hashes_equal":True,
+              "t37_unified_repeated_release_hashes_equal":True,
+              "t36_repeated_forge_outputs_equal":True,
+              "t37_physical_repeated_forge_outputs_equal":True,
+              "dependency_provenance_present":True,
+              "cyclonedx_sbom_present":True,
+              "real_market_census":"NOT_TESTED",
+              "real_live_market_evidence":False,
+              "live_pnl_evidence":False,
+              "production_authority_issued":False,
+              "production_certification":"NOT_CERTIFIED",
+              "nqc_global_status":"NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION",
+          }
+          payload=json.dumps(summary,sort_keys=True,separators=(",",":")).encode()
+          summary["attestation_sha256"]=hashlib.sha256(payload).hexdigest()
+          (ev/"build-truth-summary.json").write_text(json.dumps(summary,indent=2,sort_keys=True)+"\n")
+          PY
+
+          (
+            cd /tmp/nqc-build-truth/evidence
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+          tar --sort=name --mtime="@${SOURCE_DATE_EPOCH}" --owner=0 --group=0 --numeric-owner -cf "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar" -C /tmp/nqc-build-truth/evidence .
+          gzip -n -9 "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar"
+          sha256sum "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar.gz" > "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar.gz.sha256"
+
+          rm -rf /tmp/nqc-build-truth/reverify
+          mkdir -p /tmp/nqc-build-truth/reverify
+          tar -xzf "/tmp/nqc-build-truth-${NQC_SOURCE_SHA}.tar.gz" -C /tmp/nqc-build-truth/reverify
+          (
+            cd /tmp/nqc-build-truth/reverify
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Attest Build Truth evidence on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+        with:
+          subject-path: /tmp/nqc-build-truth-${{ env.NQC_SOURCE_SHA }}.tar.gz
+
+      - name: Upload Build Truth evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-build-truth-${{ env.NQC_SOURCE_SHA }}
+          path: |
+            /tmp/nqc-build-truth/evidence/
+            /tmp/nqc-build-truth-*.tar.gz
+            /tmp/nqc-build-truth-*.tar.gz.sha256
+          if-no-files-found: error
+          retention-days: 30

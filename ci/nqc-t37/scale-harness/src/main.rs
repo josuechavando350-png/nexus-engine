@@ -84,8 +84,10 @@ fn simulate(cfg: Config, out_dir: &PathBuf) -> std::io::Result<Metrics> {
     assert!(cfg.markets > 0 && cfg.shards > 0 && cfg.surfaces_per_market > 0);
 
     fs::create_dir_all(out_dir)?;
-    let mut metrics = Metrics::default();
-    metrics.surfaces = (cfg.markets * cfg.surfaces_per_market) as u64;
+    let mut metrics = Metrics {
+        surfaces: (cfg.markets * cfg.surfaces_per_market) as u64,
+        ..Metrics::default()
+    };
 
     for market in 0..cfg.markets {
         match tier(market) {
@@ -109,7 +111,7 @@ fn simulate(cfg: Config, out_dir: &PathBuf) -> std::io::Result<Metrics> {
     let mut execution_seq: u64 = 0;
 
     for signal_id in 0..cfg.signals {
-        if signal_id != 0 && signal_id % 10_000 == 0 {
+        if signal_id != 0 && signal_id.is_multiple_of(10_000) {
             metrics.reorg_events += 1;
             metrics.reorg_invalidated_pending += pending_generation_candidates;
             pending_generation_candidates = 0;
@@ -141,35 +143,35 @@ fn simulate(cfg: Config, out_dir: &PathBuf) -> std::io::Result<Metrics> {
                     ^ (market as u64).rotate_left(31)
                     ^ canonical_generation.rotate_left(7),
             );
-            if candidate_seed % 5 == 0 {
+            if candidate_seed.is_multiple_of(5) {
                 continue;
             }
             metrics.candidate_count += 1;
 
-            if candidate_seed % 19 == 0 {
+            if candidate_seed.is_multiple_of(19) {
                 pending_generation_candidates += 1;
                 continue;
             }
 
             let sim_seed = splitmix64(candidate_seed ^ 0x53494d5f45584143);
-            if sim_seed % 10 == 0 {
+            if sim_seed.is_multiple_of(10) {
                 continue;
             }
             metrics.exact_sim_pass += 1;
 
             let funding_seed = splitmix64(sim_seed ^ 0x46554e44494e475f);
-            if funding_seed % 20 == 0 {
+            if funding_seed.is_multiple_of(20) {
                 continue;
             }
             metrics.funding_pass += 1;
 
             let action_seed = splitmix64(funding_seed ^ 0x414354494f4e5f37);
-            if action_seed % 10 == 0 {
+            if action_seed.is_multiple_of(10) {
                 continue;
             }
             metrics.durable_actions += 1;
 
-            let included = splitmix64(action_seed ^ 0x43414e4f4e494341) % 5 != 0;
+            let included = !splitmix64(action_seed ^ 0x43414e4f4e494341).is_multiple_of(5);
             if included {
                 metrics.canonical_outcomes += 1;
             }
