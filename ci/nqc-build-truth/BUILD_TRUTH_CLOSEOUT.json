@@ -1,0 +1,70 @@
+{
+  "certified_source": {
+    "architecture_closeout_attestation_sha256": "1eccbf1572e2fcb98e038912eace3eae1daee712f7dd1f2e3d7ab6d6109a0f11",
+    "architecture_closeout_commit": "0ffaf8a5829d2f0c0874702042c8e0b094b30915",
+    "source_pr": 460,
+    "source_pr_head_sha": "a53ee79a77a5e1aa1e4cee87113e6a62c7dc869f",
+    "source_sha": "72be6dacaeddbb159bf576a4d3a996a4d6230292"
+  },
+  "closeout_attestation_sha256": "1bfc0007c988da7b0c3ab590c5fa8918b0d8cd0c4864537f2b5c744f924db22a",
+  "closure_scope": "POST_ARCHITECTURE_BUILD_CERTIFICATION_ONLY",
+  "evidence": {
+    "artifact_id": 10922007477,
+    "artifact_name": "nqc-build-truth-72be6dacaeddbb159bf576a4d3a996a4d6230292",
+    "artifact_zip_sha256": "f452148b2205f100e0e9c60a210662f92c4a4d5f6675d04cea8181b1c080ec4e",
+    "evidence_tar_sha256": "99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e",
+    "github_attestation_id": 50495697,
+    "github_attestation_subject_digest": "sha256:99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e",
+    "job_id": 108536569893,
+    "manifest_entries_verified": 55,
+    "rekor_log_index": 2969668134,
+    "run_id": 36289445133,
+    "summary_attestation_sha256": "f47909f698817414be24de24974ed3a9970f2abe3caf3777a6f141b40c744fae",
+    "summary_sha256": "f09f19f2cd883f85dfd538c428f47d6037e182d4001d2aab27468dc7f0ef9efc"
+  },
+  "independent_redownload_revalidation": {
+    "artifact_zip_sha256_match": true,
+    "evidence_tar_sha256_match": true,
+    "internal_sha256_manifest_verified": true,
+    "source_sha_match": true,
+    "summary_attestation_recomputed_match": true,
+    "truth_boundaries_rechecked": true
+  },
+  "next_gate": "PROTOCOL_FORK_TRUTH",
+  "required_gate_results": {
+    "cyclonedx_sbom": "PASS",
+    "dependency_provenance": "PASS",
+    "evidence_manifest": "PASS",
+    "github_build_provenance_attestation": "PASS",
+    "repeat_build_artifact_equivalence": "PASS",
+    "runtime_optional_adapters": "PASS",
+    "runtime_workspace": "PASS",
+    "t36_solidity_build_and_unit_tests": "PASS",
+    "t37_physical_composite_solidity_build": "PASS",
+    "t37_scale_full_phase1_replay": "PASS",
+    "t37_scale_harness": "PASS",
+    "t37_unified_crate": "PASS"
+  },
+  "schema_version": 1,
+  "status": "BUILD_TRUTH_CLOSED",
+  "t37_phase1_replay": {
+    "execution_records_sha256": "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192",
+    "matches_architecture_closeout": true,
+    "metrics_sha256": "94de6c927b4ee34569890c0d874a46ede9579ca2abf66f4bad45e5ca0c4265d6",
+    "seed": "5643366627959420673"
+  },
+  "toolchains": {
+    "foundry": "1.7.1",
+    "rust": "1.98.1",
+    "solc": "0.8.24+commit.e11b9ed9"
+  },
+  "tranche": "T38_BUILD_TRUTH_49_TO_55",
+  "truth_boundaries": {
+    "live_pnl_evidence": false,
+    "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION",
+    "production_authority_issued": false,
+    "production_certification": "NOT_CERTIFIED",
+    "real_live_market_evidence": false,
+    "real_market_census": "NOT_TESTED"
+  }
+}
