@@ -1,0 +1,62 @@
+name: NQC T39 Historical Corpus Contract
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-corpus-contract.yml
+      - ci/nqc-protocol-fork/corpus/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/nqc-protocol-fork-corpus-contract.yml
+      - ci/nqc-protocol-fork/corpus/**
+      - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  corpus-contract:
+    name: Immutable historical corpus contract
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Validate pristine source and corpus contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          git diff --check
+          mkdir -p /tmp/nqc-pft-corpus
+          python3 ci/nqc-protocol-fork/corpus/validate_corpus.py \
+            | tee /tmp/nqc-pft-corpus/validation-summary.json
+          git rev-parse HEAD > /tmp/nqc-pft-corpus/repository-source-sha.txt
+          sha256sum \
+            ci/nqc-protocol-fork/corpus/fixture.schema.json \
+            ci/nqc-protocol-fork/corpus/manifest.json \
+            ci/nqc-protocol-fork/corpus/validate_corpus.py \
+            > /tmp/nqc-pft-corpus/corpus-inputs.sha256
+          (
+            cd /tmp/nqc-pft-corpus
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Upload corpus contract evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-corpus-contract-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-pft-corpus/
+          if-no-files-found: error
+          retention-days: 30
