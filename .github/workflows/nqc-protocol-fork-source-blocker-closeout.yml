@@ -10,6 +10,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   source-blocker-contracts:
@@ -22,15 +23,54 @@ jobs:
 
       - name: Validate no source blocker can close without all measured evidence
         shell: bash
+        env:
+          NQC_GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           git diff --check
           python3 - <<'PY'
-          import json,re
+          import json,os,re,urllib.request
           from pathlib import Path
 
           sha=re.compile(r"^[0-9a-f]{64}$")
           head=re.compile(r"^[0-9a-f]{40}$")
+
+          repo=os.environ["GITHUB_REPOSITORY"]
+          token=os.environ["NQC_GITHUB_TOKEN"]
+          if not token:
+              raise AssertionError("missing GitHub Actions token for source-blocker attestation")
+
+          def verify_artifact(blocker,name,item):
+              artifact_id=int(item["artifact_id"])
+              workflow_run_id=int(item["workflow_run_id"])
+              artifact_sha256=item["artifact_sha256"]
+              artifact_head=item["head"]
+              assert artifact_id>0 and workflow_run_id>0
+              assert sha.fullmatch(artifact_sha256), (blocker,name,"missing sha256")
+              assert head.fullmatch(artifact_head), (blocker,name,"bad head")
+              req=urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}",
+                  headers={
+                      "Authorization":f"Bearer {token}",
+                      "Accept":"application/vnd.github+json",
+                      "X-GitHub-Api-Version":"2022-11-28",
+                      "User-Agent":"nqc-source-blocker-closeout-v2",
+                  },
+              )
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  actual=json.loads(response.read())
+              assert int(actual["id"])==artifact_id, (blocker,name,"artifact id mismatch")
+              assert actual.get("expired") is False, (blocker,name,"artifact expired")
+              assert actual.get("digest")==f"sha256:{artifact_sha256}", (
+                  blocker,name,"artifact digest mismatch",actual.get("digest")
+              )
+              run=actual.get("workflow_run") or {}
+              assert int(run.get("id",0))==workflow_run_id, (
+                  blocker,name,"workflow run mismatch",run.get("id")
+              )
+              assert run.get("head_sha")==artifact_head, (
+                  blocker,name,"workflow head mismatch",run.get("head_sha"),artifact_head
+              )
 
           paths=[
             Path("ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json"),
@@ -48,9 +88,7 @@ jobs:
               for name,item in d["evidence"].items():
                   assert head.fullmatch(item["head"]), (d["source_blocker"],name,"bad head")
                   if item["status"]=="PASS":
-                      assert sha.fullmatch(item["artifact_sha256"]), (d["source_blocker"],name,"missing sha256")
-                      assert int(item["artifact_id"])>0
-                      assert int(item["workflow_run_id"])>0
+                      verify_artifact(d["source_blocker"],name,item)
                   else:
                       pending.append(name)
 
