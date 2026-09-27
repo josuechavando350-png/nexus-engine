@@ -16,7 +16,13 @@
       "mevblocker-rpc"
     ],
     "including_block_number": 10500014,
-    "discovery_rule": "SCAN_ALL_UNCLES_IN_INCLUDED_BLOCK_AND_REQUIRE_EXACT_ORPHAN_HASH"
+    "discovery_rule": "SCAN_ALL_UNCLES_IN_INCLUDED_BLOCK_AND_REQUIRE_EXACT_ORPHAN_HASH",
+    "anchor_identity_fields": [
+      "number",
+      "hash",
+      "timestamp",
+      "base_fee_per_gas"
+    ]
   },
   "aave_reconciler_deterministic_binding": {
     "head": "74383521b51444e89a75ca8502af0a9c9f124029",
@@ -30,7 +36,7 @@
     ]
   },
   "required_runtime_checks": [
-    "REAL_ORPHAN_AND_CANONICAL_HASH_BINDING_RECONFIRMED_BY_TWO_ARCHIVAL_PROVIDERS",
+    "REAL_ORPHAN_AND_CANONICAL_FULL_ANCHOR_BINDING_RECONFIRMED_BY_TWO_ARCHIVAL_PROVIDERS",
     "OLD_REPLAY_CAPSULE_REJECTS_REAL_REPLACEMENT_HASH",
     "REFRESHED_REPLAY_CAPSULE_ACCEPTS_CANONICAL_HASH",
     "REORG_CHANGES_REPLAY_FINGERPRINT",
