@@ -89,7 +89,10 @@ contract PftAaveExecutorHistoricalForkTest {
         (uint112 r0, uint112 r1,) = pair.getReserves();
         uint256 amountOut = _quote(r1, r0, 368_144_715_101_196_997_895);
         uint256 repayment = 554_963_551_478 +
-            (554_963_551_478 * uint256(PftExecPool(POOL).FLASHLOAN_PREMIUM_TOTAL()) + 5_000) / 10_000;
+            _flashPremium(
+                554_963_551_478,
+                uint256(PftExecPool(POOL).FLASHLOAN_PREMIUM_TOTAL())
+            );
         require(amountOut < repayment, "ORIGINAL_ROUTE_MUST_HAVE_NO_EDGE");
         NqcAaveV3Executor executor = new NqcAaveV3Executor(address(this), POOL);
         NqcAaveV3Executor.ExecutionPlan memory plan = _plan(amountOut);
@@ -124,6 +127,15 @@ contract PftAaveExecutorHistoricalForkTest {
             PftExecToken(USDC).balanceOf(address(this)),
             PftExecToken(USDC).balanceOf(executor),
             PftExecToken(WETH).balanceOf(executor)));
+    }
+
+    function _flashPremium(uint256 amount, uint256 premiumBps)
+        private
+        pure
+        returns (uint256)
+    {
+        if (amount == 0 || premiumBps == 0) return 0;
+        return (amount * premiumBps - 1) / 10_000 + 1;
     }
 
     function _quote(uint256 reserveIn, uint256 reserveOut, uint256 amountIn)
@@ -257,7 +269,7 @@ contract PftAaveExecutorHistoricalForkTest {
         );
 
         uint256 premiumBps = uint256(PftExecPool(POOL).FLASHLOAN_PREMIUM_TOTAL());
-        uint256 flashPremium = (DEBT_TO_COVER * premiumBps + 5_000) / 10_000;
+        uint256 flashPremium = _flashPremium(DEBT_TO_COVER, premiumBps);
         require(amountOut > DEBT_TO_COVER + flashPremium, "NO_EDGE");
 
         RunEvidence memory e = _runExecutor(
