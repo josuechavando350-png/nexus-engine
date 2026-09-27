@@ -181,11 +181,26 @@ jobs:
         run: |
           set -euo pipefail
           SOURCE_SHA=72be6dacaeddbb159bf576a4d3a996a4d6230292
+          EXPECTED_TAR=99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e
           TAR="/tmp/nqc-build-truth-closeout/artifact/nqc-build-truth-$SOURCE_SHA.tar.gz"
-          gh attestation verify "$TAR" --repo "$REPO" \
-            | tee /tmp/nqc-build-truth-closeout/github-attestation-verify.txt
-          grep -q '99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e' \
-            /tmp/nqc-build-truth-closeout/github-attestation-verify.txt
+          gh attestation verify "$TAR" -R "$REPO" --format json \
+            > /tmp/nqc-build-truth-closeout/github-attestation-verify.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          doc=json.loads(Path("/tmp/nqc-build-truth-closeout/github-attestation-verify.json").read_text())
+          assert isinstance(doc,list) and doc
+          expected="99ac9cf2a4581818d647c7c6d6b329eeaadf9c0d6de345d592de0f87541ffa8e"
+          found=[]
+          for item in doc:
+              statement=item.get("verificationResult",{}).get("statement",{})
+              for subject in statement.get("subject",[]):
+                  digest=subject.get("digest",{}).get("sha256")
+                  if digest:
+                      found.append(digest)
+          assert expected in found, found
+          PY
 
       - name: Emit formal Build Truth closeout packet
         shell: bash
@@ -207,7 +222,7 @@ jobs:
             /tmp/nqc-build-truth-closeout/BUILD_TRUTH_CLOSEOUT.json
             /tmp/nqc-build-truth-closeout/closeout-record-check.txt
             /tmp/nqc-build-truth-closeout/redownloaded-artifact.sha256
-            /tmp/nqc-build-truth-closeout/github-attestation-verify.txt
+            /tmp/nqc-build-truth-closeout/github-attestation-verify.json
             /tmp/nqc-build-truth-closeout/SHA256SUMS
           if-no-files-found: error
           retention-days: 30
