@@ -47,6 +47,19 @@ jobs:
           if not token:
               raise AssertionError("missing GitHub Actions token for artifact attestation")
 
+          def api_get(path):
+              req=urllib.request.Request(
+                  f"https://api.github.com/repos/{repo}{path}",
+                  headers={
+                      "Authorization":f"Bearer {token}",
+                      "Accept":"application/vnd.github+json",
+                      "X-GitHub-Api-Version":"2022-11-28",
+                      "User-Agent":"nqc-protocol-fork-evidence-manifest-v3",
+                  },
+              )
+              with urllib.request.urlopen(req,timeout=30) as response:
+                  return json.loads(response.read())
+
           def artifact_refs(item):
               refs=[]
               if "artifact_id" in item:
@@ -70,18 +83,7 @@ jobs:
               assert artifact_id>0 and workflow_run_id>0, (gate,"invalid artifact/run id")
               assert sha.fullmatch(artifact_sha256), (gate,"bad artifact sha256")
               assert head.fullmatch(artifact_head), (gate,"bad artifact head")
-              url=f"https://api.github.com/repos/{repo}/actions/artifacts/{artifact_id}"
-              req=urllib.request.Request(
-                  url,
-                  headers={
-                      "Authorization":f"Bearer {token}",
-                      "Accept":"application/vnd.github+json",
-                      "X-GitHub-Api-Version":"2022-11-28",
-                      "User-Agent":"nqc-protocol-fork-evidence-manifest-v2",
-                  },
-              )
-              with urllib.request.urlopen(req,timeout=30) as response:
-                  actual=json.loads(response.read())
+              actual=api_get(f"/actions/artifacts/{artifact_id}")
               assert int(actual["id"])==artifact_id, (gate,"artifact id mismatch")
               assert actual.get("expired") is False, (gate,"artifact expired",artifact_id)
               assert actual.get("digest")==f"sha256:{artifact_sha256}", (
@@ -93,6 +95,19 @@ jobs:
               )
               assert run.get("head_sha")==artifact_head, (
                   gate,"artifact head mismatch",artifact_id,run.get("head_sha"),artifact_head
+              )
+              run_detail=api_get(f"/actions/runs/{workflow_run_id}")
+              assert int(run_detail.get("id",0))==workflow_run_id, (
+                  gate,"workflow run id mismatch",workflow_run_id
+              )
+              assert run_detail.get("head_sha")==artifact_head, (
+                  gate,"workflow run head mismatch",run_detail.get("head_sha"),artifact_head
+              )
+              assert run_detail.get("status")=="completed", (
+                  gate,"workflow run not completed",run_detail.get("status")
+              )
+              assert run_detail.get("conclusion")=="success", (
+                  gate,"workflow run did not succeed",run_detail.get("conclusion")
               )
 
           pending=[]
