@@ -341,6 +341,15 @@ jobs:
           sha256sum "$BIN" > /tmp/nqc-t35/evidence/capture-binary.sha256
           stat -c %s "$BIN" > /tmp/nqc-t35/evidence/capture-binary.size
 
+      - name: Persist pinned Reth build cache before physical execution
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            /tmp/nqc-t35/reth/target
+          key: nqc-t37-reth-v2.5.2-exact-rust1.98.1-${{ runner.os }}-${{ runner.arch }}-v1
+
       - name: Install pinned Foundry and compile exact T37 physical fixtures
         shell: bash
         run: |
