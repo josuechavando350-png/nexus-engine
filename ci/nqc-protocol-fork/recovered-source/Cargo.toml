@@ -1,0 +1,42 @@
+[workspace]
+members = [
+  "crates/nqc-core",
+  "crates/nqc-aave-math",
+  "crates/nqc-state",
+  "crates/nqc-hot-state",
+  "crates/nqc-aave-sync",
+  "crates/nqc-aave-reader",
+  "crates/nqc-aave-events",
+  "crates/nqc-aave-market",
+  "crates/nqc-aave-opportunity",
+  "crates/nqc-executor",
+  "crates/nqc-v2-router",
+  "crates/nqc-sim",
+  "crates/nqc-replay",
+  "crates/nqc-edge",
+  "crates/nqc-settlement",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[workspace.dependencies]
+alloy = { version = "=2.5.0", default-features = false, features = ["std"] }
+thiserror = "2"
+futures-util = "0.3"
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+revm = { version = "=43.0.2", default-features = false, features = ["std", "alloydb", "asyncdb", "secp256k1", "portable"] }
+serde_json = "1"
+hex = "0.4"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+all = "warn"
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"

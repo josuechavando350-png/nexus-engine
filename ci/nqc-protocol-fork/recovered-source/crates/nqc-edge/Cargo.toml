@@ -1,0 +1,13 @@
+[package]
+name = "nqc-edge"
+version.workspace = true
+edition.workspace = true
+publish.workspace = true
+
+[dependencies]
+alloy.workspace = true
+nqc-core = { path = "../nqc-core" }
+thiserror.workspace = true
+
+[lints]
+workspace = true
