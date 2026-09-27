@@ -19,3 +19,6 @@ all = "warn"
 unwrap_used = "deny"
 expect_used = "deny"
 panic = "deny"
+
+[dev-dependencies]
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
