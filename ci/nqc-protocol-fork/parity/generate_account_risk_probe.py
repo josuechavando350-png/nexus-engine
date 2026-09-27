@@ -130,7 +130,7 @@ def generate(witness):
 
     lines += [
         f'println!("ACCOUNT_RISK_TOTAL users={len(users)} checks={{}} mismatches={{}}", checks, mismatches);',
-        "if mismatches != 0 { return Err(format!("exact Aave account-risk mismatches: {}", mismatches).into()); }",
+        'if mismatches != 0 { return Err(format!("exact Aave account-risk mismatches: {}", mismatches).into()); }',
         "Ok(())",
         "}",
         "",
