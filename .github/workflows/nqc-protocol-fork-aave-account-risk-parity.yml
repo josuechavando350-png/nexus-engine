@@ -1,0 +1,87 @@
+name: NQC T39 Aave Account Risk Exact Parity
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-aave-account-risk-parity.yml
+      - ci/nqc-protocol-fork/parity/**
+      - ci/nqc-protocol-fork/recovered-source/**
+      - ci/nqc-protocol-fork/compatibility/**
+      - ci/nqc-protocol-fork/locks/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-account-risk-parity:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      NQC_RISK_WORK: /tmp/nqc-account-risk-parity
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify source identity and prepare exact recovered source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_RISK_WORK"
+          mkdir -p "$NQC_RISK_WORK/evidence" "$NQC_RISK_WORK/source"
+          git rev-parse HEAD > "$NQC_RISK_WORK/evidence/repository-source-sha.txt"
+          (cd ci/nqc-protocol-fork/recovered-source && sha256sum -c SOURCE_FILES.sha256)
+          cp -a ci/nqc-protocol-fork/recovered-source/. "$NQC_RISK_WORK/source/"
+          python3 ci/nqc-protocol-fork/parity/prepare_reserve_parity.py "$NQC_RISK_WORK/source"
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustup default "$RUST_TOOLCHAIN"
+          rustc -Vv | tee "$NQC_RISK_WORK/evidence/rustc.txt"
+          cargo fetch --locked --manifest-path "$NQC_RISK_WORK/source/Cargo.toml"
+
+      - name: Reacquire independent exact block-hash state
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -u ci/nqc-protocol-fork/parity/reserve_balance_witness.py             --out "$NQC_RISK_WORK/evidence"
+          sha256sum "$NQC_RISK_WORK/evidence/reserve-balance-witness.json"             > "$NQC_RISK_WORK/evidence/reserve-balance-witness.sha256"
+          python3 ci/nqc-protocol-fork/parity/generate_account_risk_probe.py             "$NQC_RISK_WORK/evidence/reserve-balance-witness.json"             "$NQC_RISK_WORK/source/crates/nqc-hot-state/examples/pft_account_risk_parity.rs"
+          cp "$NQC_RISK_WORK/source/crates/nqc-hot-state/examples/pft_account_risk_parity.rs"             "$NQC_RISK_WORK/evidence/"
+          sha256sum ci/nqc-protocol-fork/parity/generate_account_risk_probe.py             > "$NQC_RISK_WORK/evidence/account-risk-harness.sha256"
+
+      - name: Execute recovered account-risk math with exact integer oracle
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
+          cargo build --locked --offline             --manifest-path "$NQC_RISK_WORK/source/Cargo.toml"             -p nqc-hot-state --example pft_account_risk_parity
+          set +e
+          "$NQC_RISK_WORK/source/target/debug/examples/pft_account_risk_parity"             2>&1 | tee "$NQC_RISK_WORK/evidence/account-risk-parity.log"
+          rc=${PIPESTATUS[0]}
+          set -e
+          mismatch_count="$(grep -c '^RISK_MISMATCH ' "$NQC_RISK_WORK/evidence/account-risk-parity.log" || true)"
+          printf '%s\n' "$mismatch_count" > "$NQC_RISK_WORK/evidence/mismatch-count.txt"
+          grep '^ACCOUNT_RISK_TOTAL ' "$NQC_RISK_WORK/evidence/account-risk-parity.log"             | tee "$NQC_RISK_WORK/evidence/account-risk-total.txt"
+          if test "$rc" -ne 0; then
+            printf '%s\n' 'FAIL_EXACT_INTEGER_MISMATCH' > "$NQC_RISK_WORK/evidence/parity-status.txt"
+            printf '%s\n' 'NOT_CLOSED' > "$NQC_RISK_WORK/evidence/protocol-fork-truth.txt"
+            exit "$rc"
+          fi
+          test "$mismatch_count" -eq 0
+          test "$(grep -c '^ACCOUNT_RISK_PARITY_PASS ' "$NQC_RISK_WORK/evidence/account-risk-parity.log")" -eq 13
+          printf '%s\n' 'PASS_EMODE_ZERO_EXACT_ACCOUNT_RISK' > "$NQC_RISK_WORK/evidence/parity-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_RISK_WORK/evidence/protocol-fork-truth.txt"
+
+      - name: Preserve evidence including exact mismatches
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-aave-account-risk-parity-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-account-risk-parity/evidence
+          if-no-files-found: error
+          retention-days: 30
