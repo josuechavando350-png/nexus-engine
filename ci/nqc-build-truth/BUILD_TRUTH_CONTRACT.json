@@ -34,7 +34,8 @@
     "t36_fork_test_normalized_sha256": "8b4d3b51a44dbd5724bf69019169a667685b62f88050790e6e0dd866fb1da88a",
     "t36_foundry_toml_sha256": "b26286f7c58dbb6924f408bcb3c06fa38f525c6dc82d7fa438115c98b6ecc8fa",
     "t37_phase1_metrics_sha256": "94de6c927b4ee34569890c0d874a46ede9579ca2abf66f4bad45e5ca0c4265d6",
-    "t37_phase1_execution_records_sha256": "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192"
+    "t37_phase1_execution_records_sha256": "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192",
+    "t37_phase1_seed": "5643366627959420673"
   },
   "required_gates": [
     "PRISTINE_EXACT_SHA",
