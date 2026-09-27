@@ -39,6 +39,7 @@ jobs:
           cp -a ci/nqc-protocol-fork/reimplementation/nqc-v2-state "$NQC_V2_WORK/reimplementation/"
           declare -A patches=(
             [PFT-COMPAT-001-aave-u40.patch]=9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca
+            [PFT-COMPAT-002-executor-return.patch]=3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7
             [PFT-COMPAT-003-sync-devdep.patch]=7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5
             [PFT-COMPAT-005-opportunity-devdep.patch]=12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664
           )
