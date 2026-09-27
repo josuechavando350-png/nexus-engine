@@ -1,8 +1,10 @@
 """Adversarial harness checks. Synthetic values are never historical evidence."""
 import copy
+import io
 import json
+import urllib.error
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from generate_reserve_parity import generate
 from reserve_balance_witness import LOCK, LOCK_SHA, PROVIDERS, SELECTORS, active_ids, address, decode_words, digest, rpc
@@ -74,6 +76,19 @@ class HarnessGuards(unittest.TestCase):
         with patch("reserve_balance_witness.urllib.request.urlopen") as req:
             req.return_value.__enter__.return_value.read.return_value = b'{"jsonrpc":"2.0","id":2,"result":"0x1"}'
             with self.assertRaisesRegex(ValueError, "envelope"): rpc("https://example.invalid", "eth_chainId", [], 1)
+
+    def test_rpc_retries_http_429_then_succeeds(self):
+        throttled = urllib.error.HTTPError(
+            "https://example.invalid", 429, "Too Many Requests",
+            {"Retry-After": "0.5"}, io.BytesIO(b'{"error":"rate limited"}')
+        )
+        success = MagicMock()
+        success.__enter__.return_value.read.return_value = b'{"jsonrpc":"2.0","id":1,"result":"0x1"}'
+        with patch("reserve_balance_witness.urllib.request.urlopen", side_effect=[throttled, success]) as req, \
+             patch("reserve_balance_witness.time.sleep") as sleep:
+            self.assertEqual(rpc("https://example.invalid", "eth_chainId", [], 1), "0x1")
+            self.assertEqual(req.call_count, 2)
+            sleep.assert_called_once_with(0.5)
 
     def test_generated_program_is_recovered_code_execution(self):
         source = generate(synthetic_witness())
