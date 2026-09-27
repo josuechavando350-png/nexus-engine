@@ -132,11 +132,13 @@ jobs:
           PATCH3="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch"
           PATCH4="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-004-math-test-wad-import.patch"
           PATCH5="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch"
+          PATCH6="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-006-revm-blob-fee-fraction.patch"
           echo "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca  $PATCH1" | sha256sum -c -
           echo "3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7  $PATCH2" | sha256sum -c -
           echo "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5  $PATCH3" | sha256sum -c -
           echo "323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720  $PATCH4" | sha256sum -c -
           echo "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664  $PATCH5" | sha256sum -c -
+          echo "f0858e30d7763bedbb140c4d4c23daa54cfa6659f02256275f9362e719d41e15  $PATCH6" | sha256sum -c -
           (
             cd /tmp/nqc-pft/source
             git apply --check "$PATCH1"
@@ -149,6 +151,8 @@ jobs:
             git apply --unidiff-zero "$PATCH4"
             git apply --unidiff-zero --check "$PATCH5"
             git apply --unidiff-zero "$PATCH5"
+            git apply --unidiff-zero --check "$PATCH6"
+            git apply --unidiff-zero "$PATCH6"
           )
           {
             sha256sum "$PATCH1"
@@ -156,6 +160,7 @@ jobs:
             sha256sum "$PATCH3"
             sha256sum "$PATCH4"
             sha256sum "$PATCH5"
+            sha256sum "$PATCH6"
           } > /tmp/nqc-pft/evidence/compatibility-patches.sha256
           cat > /tmp/nqc-pft/evidence/compatibility-overlays.txt <<'EOF'
           PFT-COMPAT-001 LOSSLESS_UINT40_TO_U64
@@ -163,6 +168,7 @@ jobs:
           PFT-COMPAT-003 TEST_ONLY_NQC_CORE_DEV_DEPENDENCY
           PFT-COMPAT-004 TEST_ONLY_WAD_IMPORT
           PFT-COMPAT-005 TEST_ONLY_NQC_AAVE_SYNC_DEV_DEPENDENCY
+          PFT-COMPAT-006 REVM_SPEC_AWARE_BLOB_BASE_FEE_UPDATE_FRACTION
           EOF
 
       - name: Install exact Rust toolchain
@@ -280,7 +286,8 @@ jobs:
                   {"id":"PFT-COMPAT-002","sha256":"3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7"},
                   {"id":"PFT-COMPAT-003","sha256":"7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5"},
                   {"id":"PFT-COMPAT-004","sha256":"323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720"},
-                  {"id":"PFT-COMPAT-005","sha256":"12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664"}
+                  {"id":"PFT-COMPAT-005","sha256":"12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664"},
+                  {"id":"PFT-COMPAT-006","sha256":"f0858e30d7763bedbb140c4d4c23daa54cfa6659f02256275f9362e719d41e15"}
               ],
               "compatibility_overlay_scope":"TEMP_BUILD_COPY_ONLY; RECOVERED_BYTES_IMMUTABLE",
               "rustfmt_1_98_1_exact_source_match":(
