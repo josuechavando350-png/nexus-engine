@@ -146,6 +146,17 @@
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664",
       "semantic_rationale": "Production runtime dependencies and opportunity logic are unchanged; this only makes the existing historical test module link against its referenced test helper crate."
+    },
+    {
+      "id": "PFT-COMPAT-006",
+      "status": "UNDER_PHYSICAL_TEST",
+      "source": "crates/nqc-sim/src/lib.rs",
+      "defect": "Recovered REVM 43.0.2 integration calls BlockEnv::set_blob_excess_gas_and_price with the obsolete one-argument shape; the pinned API requires the spec-aware blob base-fee update fraction explicitly.",
+      "repair": "Pass the EIP-4844 base-fee update fraction selected from the pinned SpecId: Cancun fraction before Prague, Prague fraction from Prague onward.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "patch_sha256": "f0858e30d7763bedbb140c4d4c23daa54cfa6659f02256275f9362e719d41e15",
+      "semantic_rationale": "This restores the intended spec-aware blob gas price derivation using REVM's own pinned EIP-4844 constants; no block identity, transaction, state, authority, or economic acceptance rule changes."
     }
   ],
   "certification_dependency_lock": {
