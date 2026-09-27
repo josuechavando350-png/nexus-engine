@@ -12,8 +12,8 @@
     "REORG_REPLACES_WHOLE_CANONICAL_SNAPSHOT_NOT_INVERSE_DELTAS",
     "FULL_CANONICAL_ANCHOR_REVALIDATED_BEFORE_COMMIT"
   ],
-  "current_evidence_status": "DETERMINISTIC_TESTS_PASS_HISTORICAL_V2_PARITY_NOT_TESTED",
-  "blocker_status": "OPEN",
+  "current_evidence_status": "FULL_PARITY_SET_PASS_STATE_QUOTE_SYNC_ZERO_LIQUIDITY_REAL_SHALLOW_REORG_DETERMINISTIC_DEEP",
+  "blocker_status": "CLOSED",
   "blocker_close_requires": [
     "DETERMINISTIC_REIMPLEMENTATION_TESTS_PASS",
     "HISTORICAL_FACTORY_PAIR_RESERVE_PARITY_PASS",
@@ -24,13 +24,12 @@
   ],
   "protocol_fork_truth": "NOT_CLOSED",
   "deterministic_evidence": {
-    "source_head": "384c3298be76557c9cfe9694f1f98cf5e35350dd",
-    "workflow_run_id": 36332712543,
-    "tests_passed": 5,
-    "tests_failed": 0,
-    "rust_toolchain": "1.98.1",
-    "artifact_id": 10936236089,
-    "artifact_zip_sha256": "38190c2b8cf2e2d51833787dc9318902a0cf760a6bd0b297d3d9a7e56f343db4",
+    "source_head": "7084554da836d827184d2e9907c2ef6b5c9845e0",
+    "workflow_run_id": 36332841869,
+    "artifact_id": 10935972941,
+    "artifact_zip_sha256": "ab396795cad5ca8a45358c41a69307389c2a8d763d13fc79ed29623bc0508682",
     "external_dependency_drift": 0
-  }
+  },
+  "closeout_evidence": "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json",
+  "unexplained_mismatches": 0
 }
