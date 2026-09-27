@@ -24,5 +24,7 @@
   "production_latency_claim": "NONE",
   "scope": "LOCAL_DEV_PHYSICAL_TWO_RETH_NODES_GITHUB_RUNNER",
   "production_certification": "NOT_CERTIFIED",
-  "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION"
+  "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION",
+  "toolchain_identity_sha256": "dc52abd2089428b1484b91d88ffb3221d4fd3c513cb6f5a451f1143588397444",
+  "toolchain_identity_definition": "sha256(exact T35 artifact rustc.txt bytes || cargo.txt bytes)"
 }
