@@ -1,5 +1,8 @@
 {
-  "cases": [],
+  "cases": [
+    "ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json",
+    "ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json"
+  ],
   "protocol_fork_truth": "NOT_CLOSED",
   "provider_contract": {
     "block_hash_pin_required": true,
@@ -105,5 +108,11 @@
     "production_certification": "NOT_CERTIFIED",
     "real_market_census": "NOT_TESTED",
     "shadow_live_market_execution": false
+  },
+  "admission": {
+    "discovery_source_sha": "458a586cddd859e3fa65d2425fb24587472e32da",
+    "discovery_artifact_id": 10925157643,
+    "discovery_artifact_sha256": "f1a6158c8e71f090f9cfc173f8de075a5b6d34eda5494b0c77f1c3a694fd05ea",
+    "independently_redownloaded_and_sha256_revalidated": true
   }
 }
