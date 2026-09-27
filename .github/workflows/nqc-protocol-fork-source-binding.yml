@@ -151,7 +151,8 @@ jobs:
         working-directory: /tmp/nqc-pft/source
         run: |
           set -euo pipefail
-          cargo generate-lockfile
+          cp "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock" Cargo.lock
+          echo "302f5abf0f4a0351c37db6e744f6bf14bbbf7d04d20a4186b4d7452459f0ca8c  Cargo.lock" | sha256sum -c -
           cargo fetch --locked
           cp Cargo.lock /tmp/nqc-pft/evidence/recovered-Cargo.lock
           sha256sum Cargo.lock | tee /tmp/nqc-pft/evidence/recovered-Cargo.lock.sha256
@@ -253,7 +254,9 @@ jobs:
                   if exists("rustfmt-exit-code.txt") else None
               ),
               "rust_physical_build_pass":exists("rust-physical-build-pass.txt"),
-              "cargo_lock_generated":exists("recovered-Cargo.lock"),
+              "cargo_lock_generated":False,
+              "cargo_lock_pinned":exists("recovered-Cargo.lock"),
+              "cargo_lock_expected_sha256":"302f5abf0f4a0351c37db6e744f6bf14bbbf7d04d20a4186b4d7452459f0ca8c",
               "cargo_lock_sha256":fsha("recovered-Cargo.lock"),
               "cargo_check_log_present":exists("cargo-check.txt"),
               "cargo_clippy_log_present":exists("cargo-clippy.txt"),
