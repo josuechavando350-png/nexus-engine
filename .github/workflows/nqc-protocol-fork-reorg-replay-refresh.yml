@@ -137,15 +137,11 @@ jobs:
           left="$(grep '^REORG_REPLAY_REFRESH_PASS ' "$NQC_REORG_REPLAY/evidence/blastapi-public-replay.log" | sed -E 's/upstream=[^ ]+ //')"
           right="$(grep '^REORG_REPLAY_REFRESH_PASS ' "$NQC_REORG_REPLAY/evidence/mevblocker-rpc-replay.log" | sed -E 's/upstream=[^ ]+ //')"
           test "$left" = "$right"
-          printf '%s
-' "$left" > "$NQC_REORG_REPLAY/evidence/canonical-replay-refresh.txt"
+          echo "$left" > "$NQC_REORG_REPLAY/evidence/canonical-replay-refresh.txt"
 
-          printf '%s
-' 'PASS' > "$NQC_REORG_REPLAY/evidence/REORG_INVALIDATION_AND_REPLAY_REFRESH.txt"
-          printf '%s
-' '0' > "$NQC_REORG_REPLAY/evidence/unexplained-mismatch-count.txt"
-          printf '%s
-' 'NOT_CLOSED' > "$NQC_REORG_REPLAY/evidence/protocol-fork-truth.txt"
+          echo 'PASS' > "$NQC_REORG_REPLAY/evidence/REORG_INVALIDATION_AND_REPLAY_REFRESH.txt"
+          echo '0' > "$NQC_REORG_REPLAY/evidence/unexplained-mismatch-count.txt"
+          echo 'NOT_CLOSED' > "$NQC_REORG_REPLAY/evidence/protocol-fork-truth.txt"
           (
             cd "$NQC_REORG_REPLAY/evidence"
             find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
