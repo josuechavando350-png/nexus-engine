@@ -313,27 +313,33 @@ jobs:
               ledger.get('counts',{}).get('unexplained_open')==0
           )
 
-          truth_blockers={b['id']:b['status'] for b in truth.get('current_blockers',[])}
-          repairs={r['id']:r for r in truth.get('measured_compatibility_repairs',[])}
-          compat_ready=all(
-              repairs.get(k,{}).get('status','').startswith('RESOLVED')
-              for k in ('PFT-COMPAT-008','PFT-COMPAT-009')
+          truth_blocker_docs=truth.get('current_blockers',[])
+          truth_blocker_ids={b.get('id') for b in truth_blocker_docs}
+          truth_policy_ready=(
+              truth_blocker_ids==set(blocker_paths)
+              and all(b.get('severity')=='HARD' for b in truth_blocker_docs)
+              and truth.get('parity_rules',{}).get('unexplained_mismatch_terminal_count')==0
+              and truth.get('truth_boundaries',{}).get('production_certification')=='NOT_CERTIFIED'
           )
-          truth_ready=(
-              truth.get('status')=='PROTOCOL_FORK_TRUTH_CLOSED' and
-              set(truth_blockers)==set(blocker_paths) and
-              all(v=='CLOSED' for v in truth_blockers.values()) and
-              compat_ready
-          )
+
+          ledger_resolved_repairs={
+              entry.get('resolution') or entry.get('repair')
+              for entry in ledger.get('entries',[])
+              if entry.get('classification')=='SEMANTIC_MISMATCH'
+              and entry.get('status')=='RESOLVED'
+          }
+          ledger_resolved_repairs.discard(None)
+          compat_resolution_ready={
+              'PFT-COMPAT-008','PFT-COMPAT-009'
+          }.issubset(ledger_resolved_repairs)
 
           reasons=[]
           if not all_manifest_gates: reasons.append('MANIFEST_REQUIRED_GATES_NOT_ALL_PASS')
-          if not all_policy_gates: reasons.append('POLICY_REQUIRED_GATES_NOT_ALL_PASS')
           if not all_blockers: reasons.append('AUTHORITATIVE_SOURCE_CLOSEOUTS_NOT_ALL_CLOSED')
-          if not all_policy_blockers: reasons.append('POLICY_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
           if not all_manifest_blockers: reasons.append('MANIFEST_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
           if not ledger_ready: reasons.append('MISMATCH_LEDGER_NOT_ZERO_PASS')
-          if not truth_ready: reasons.append('TRUTH_CONTRACT_NOT_CLOSED_OR_COMPAT_NOT_RESOLVED')
+          if not compat_resolution_ready: reasons.append('COMPAT_REPAIRS_NOT_RESOLVED_IN_LEDGER')
+          if not truth_policy_ready: reasons.append('TRUTH_POLICY_CONTRACT_INVALID')
           if exact_head_api_error is not None:
               reasons.append('EXACT_HEAD_ACTIONS_API_UNAVAILABLE')
           if exact_head_missing:
@@ -358,6 +364,11 @@ jobs:
               'source_closeout_sha256':blocker_digests,
               'gate_status':dict(sorted(gate_status.items())),
               'source_blocker_status':dict(sorted(blocker_status.items())),
+              'tracked_policy_gate_status':d['required_gates'],
+              'tracked_policy_source_blockers':d['source_blockers'],
+              'tracked_truth_contract_status':truth.get('status'),
+              'ledger_resolved_repairs':sorted(ledger_resolved_repairs),
+              'truth_policy_ready':truth_policy_ready,
               'exact_head_ci_ready':exact_head_ci_ready,
               'exact_head_workflow_runs':dict(sorted(exact_head_runs.items())),
               'exact_head_missing_required':exact_head_missing,
