@@ -55,6 +55,8 @@ jobs:
           real=closeout["evidence"]["reorg"]["real_orphan"]
           bound=contract["real_historical_reorg_binding"]
           assert real["execution_height"]==bound["execution_height"]==10500011
+          assert bound["including_block_number"]==10500014
+          assert bound["discovery_rule"]=="SCAN_ALL_UNCLES_IN_INCLUDED_BLOCK_AND_REQUIRE_EXACT_ORPHAN_HASH"
           assert real["orphan_hash"]==bound["orphan_hash"]
           assert real["canonical_hash"]==bound["canonical_hash"]
           assert set(real["independently_verified_by"])==set(bound["providers"])
@@ -105,20 +107,36 @@ jobs:
 
             eval "$(PFT_RPC="http://127.0.0.1:$port" python3 - <<'PY'
           import json, os, urllib.request
-          payload=json.dumps({
-              "jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber",
-              "params":[hex(10500011),False]
-          }).encode()
-          req=urllib.request.Request(
-              os.environ["PFT_RPC"],data=payload,
-              headers={"content-type":"application/json"}
-          )
-          with urllib.request.urlopen(req,timeout=180) as response:
-              body=json.loads(response.read())
-          block=body["result"]
+          url=os.environ["PFT_RPC"]
+          serial=0
+          def rpc(method,params):
+              global serial
+              serial+=1
+              payload=json.dumps({"jsonrpc":"2.0","id":serial,"method":method,"params":params}).encode()
+              req=urllib.request.Request(url,data=payload,headers={"content-type":"application/json"})
+              with urllib.request.urlopen(req,timeout=180) as response:
+                  body=json.loads(response.read())
+              assert body.get("id")==serial and "error" not in body, body
+              return body["result"]
+
+          block=rpc("eth_getBlockByNumber",[hex(10500011),False])
           assert block is not None
           assert int(block["number"],16)==10500011
           assert block["hash"].lower()=="0xa1f5eb25631c2d47d91071fb0c6ff7d925a4a45e07fc1d3fe47d7a268d5ff0c1"
+
+          including=10500014
+          count=int(rpc("eth_getUncleCountByBlockNumber",[hex(including)]),16)
+          assert count>0
+          target="0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67"
+          found=[]
+          for index in range(count):
+              uncle=rpc("eth_getUncleByBlockNumberAndIndex",[hex(including),hex(index)])
+              if uncle is not None and uncle["hash"].lower()==target:
+                  assert int(uncle["number"],16)==10500011
+                  found.append(index)
+          assert len(found)==1, f"real orphan not uniquely rediscovered: {found}"
+          print(f"real_orphan_index={found[0]}")
+
           timestamp=int(block["timestamp"],16)
           basefee=block.get("baseFeePerGas")
           print(f"timestamp={timestamp}")
