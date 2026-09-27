@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import subprocess
 import sys
 import time
 import urllib.error
@@ -16,6 +17,9 @@ CONFIG = ROOT / "ci" / "nqc-protocol-fork" / "discovery" / "aave_candidates.json
 OUT = Path(os.environ.get("NQC_PFT_DISCOVERY_OUT", "/tmp/nqc-pft-discovery"))
 USER_AGENT = "nqc-protocol-fork-truth/1"
 REQUEST_TIMEOUT = 20
+SOURCE_SHA = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
+if len(SOURCE_SHA) != 40 or any(ch not in "0123456789abcdef" for ch in SOURCE_SHA):
+    raise SystemExit("checked-out source SHA is not a full lowercase 40-hex commit")
 
 
 def fail(message: str) -> None:
@@ -299,9 +303,7 @@ for candidate in config.get("candidates", []):
         "block_number": block_number,
         "block_hash": block_hash,
         "parent_hash": parent_hash,
-        "source_commit": os.environ.get(
-            "GITHUB_SHA", "0000000000000000000000000000000000000000"
-        ),
+        "source_commit": SOURCE_SHA,
         "provider": {
             "kind": "archive_rpc",
             "identity": provider_identity_text,
@@ -362,7 +364,7 @@ summary = {
     "schema_version": 1,
     "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
     "gate": "AAVE_HISTORICAL_FIXTURE_DISCOVERY",
-    "source_sha": os.environ.get("GITHUB_SHA"),
+    "source_sha": SOURCE_SHA,
     "chain_id": 1,
     "pool": pool,
     "minimum_anchor_consensus_providers": min_anchor,
