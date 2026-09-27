@@ -95,6 +95,27 @@ contract PftRevmForkHarness {
         return true;
     }
 
+    function stateProbe(address weth, address usdc, address pair)
+        external
+        view
+        returns (
+            uint256 helperWeth,
+            uint256 helperUsdc,
+            uint112 reserve0,
+            uint112 reserve1,
+            uint32 blockTimestampLast
+        )
+    {
+        helperWeth = IPftDiffToken(weth).balanceOf(address(this));
+        helperUsdc = IPftDiffToken(usdc).balanceOf(address(this));
+        (bool ok, bytes memory data) = pair.staticcall(
+            abi.encodeWithSignature("getReserves()")
+        );
+        if (!ok || data.length < 96) revert PairIdentity();
+        (reserve0, reserve1, blockTimestampLast) =
+            abi.decode(data, (uint112, uint112, uint32));
+    }
+
     function swapExact(
         address pair,
         address tokenIn,
