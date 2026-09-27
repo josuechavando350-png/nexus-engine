@@ -72,6 +72,26 @@ jobs:
             sha256sum -c SOURCE_FILES.sha256
           )
           cp -a ci/nqc-protocol-fork/recovered-source/. /tmp/nqc-pft-reader/source/
+
+          # Reproduce only the two already-measured test/dev manifest overlays
+          # that define the pinned certification lock. They are applied to the
+          # temporary copy only; immutable recovered bytes remain untouched.
+          PATCH3="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch"
+          PATCH5="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch"
+          echo "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5  $PATCH3" | sha256sum -c -
+          echo "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664  $PATCH5" | sha256sum -c -
+          (
+            cd /tmp/nqc-pft-reader/source
+            git apply --unidiff-zero --check "$PATCH3"
+            git apply --unidiff-zero "$PATCH3"
+            git apply --unidiff-zero --check "$PATCH5"
+            git apply --unidiff-zero "$PATCH5"
+          )
+          {
+            sha256sum "$PATCH3"
+            sha256sum "$PATCH5"
+          } > /tmp/nqc-pft-reader/evidence/lock-manifest-overlays.sha256
+
           git rev-parse HEAD > /tmp/nqc-pft-reader/evidence/repository-source-sha.txt
           sha256sum ci/nqc-protocol-fork/parity/aave-user-meta-witness.json \
             > /tmp/nqc-pft-reader/evidence/witness.sha256
@@ -249,6 +269,8 @@ jobs:
               "emode_exact":passed and total == 30,
               "transport":"RECOVERED_NQC_IPC_CLIENT_VIA_TEST_ONLY_UNIX_TO_HTTP_JSON_RPC_BRIDGE",
               "transport_bridge_modifies_recovered_source":False,
+              "temporary_lock_manifest_overlays":["PFT-COMPAT-003","PFT-COMPAT-005"],
+              "lock_manifest_overlays_modify_production_runtime":False,
               "scope_status":"PASS" if passed and total == 30 else "FAIL",
               "aave_state_parity":"PARTIAL_USER_META_ONLY" if passed and total == 30 else "NOT_TESTED",
               "aave_full_reserve_state_parity":"NOT_TESTED",
