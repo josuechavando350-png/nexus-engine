@@ -129,22 +129,28 @@ jobs:
           assert count>0
           target="0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67"
           found=[]
+          target_uncle=None
           for index in range(count):
               uncle=rpc("eth_getUncleByBlockNumberAndIndex",[hex(including),hex(index)])
               if uncle is not None and uncle["hash"].lower()==target:
                   assert int(uncle["number"],16)==10500011
                   found.append(index)
-          assert len(found)==1, f"real orphan not uniquely rediscovered: {found}"
+                  target_uncle=uncle
+          assert len(found)==1 and target_uncle is not None, f"real orphan not uniquely rediscovered: {found}"
           print(f"real_orphan_index={found[0]}")
 
           timestamp=int(block["timestamp"],16)
           basefee=block.get("baseFeePerGas")
+          orphan_timestamp=int(target_uncle["timestamp"],16)
+          orphan_basefee=target_uncle.get("baseFeePerGas")
           print(f"timestamp={timestamp}")
           print("basefee="+("none" if basefee is None else str(int(basefee,16))))
+          print(f"orphan_timestamp={orphan_timestamp}")
+          print("orphan_basefee="+("none" if orphan_basefee is None else str(int(orphan_basefee,16))))
           PY
           )"
 
-            "$bin" "$provider_id" "$timestamp" "$basefee"               2>&1 | tee "$NQC_REORG_REPLAY/evidence/$provider_id-replay.log"
+            "$bin" "$provider_id" "$timestamp" "$basefee" "$orphan_timestamp" "$orphan_basefee"               2>&1 | tee "$NQC_REORG_REPLAY/evidence/$provider_id-replay.log"
             grep -F "REORG_REPLAY_REFRESH_PASS upstream=$provider_id"               "$NQC_REORG_REPLAY/evidence/$provider_id-replay.log"
 
             kill "$proxy_pid"
