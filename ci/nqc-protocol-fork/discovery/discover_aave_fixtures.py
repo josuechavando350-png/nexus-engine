@@ -74,12 +74,42 @@ def sha256_text(value: str) -> str:
     return hashlib.sha256(value.encode()).hexdigest()
 
 
-def selector(url: str, signature: str, request_id: int) -> str:
-    payload = "0x" + signature.encode().hex()
-    digest = rpc(url, "web3_sha3", [payload], request_id)
-    if not isinstance(digest, str) or len(digest) != 66 or not digest.startswith("0x"):
-        raise RuntimeError(f"invalid web3_sha3 result for {signature}")
-    return digest[:10].lower()
+def exact_state_rpc(
+    url: str,
+    method: str,
+    leading_params: list,
+    block_hash: str,
+    block_number_hex: str,
+    request_id: int,
+):
+    # Prefer EIP-1898 exact block-hash state addressing. Some public providers
+    # expose historical state but reject EIP-1898 for eth_call. In that case,
+    # use the exact block number only while guarding it with the expected
+    # canonical hash both immediately before and after the state request.
+    try:
+        result = rpc(
+            url,
+            method,
+            leading_params + [{"blockHash": block_hash, "requireCanonical": True}],
+            request_id,
+        )
+        return result, "EIP1898_BLOCK_HASH"
+    except Exception as hash_error:
+        pre = rpc(url, "eth_getBlockByNumber", [block_number_hex, False], request_id + 1)
+        if not pre or pre.get("hash", "").lower() != block_hash.lower():
+            raise RuntimeError(
+                f"number guard pre-state mismatch after EIP-1898 failure: {hash_error}"
+            )
+        result = rpc(
+            url,
+            method,
+            leading_params + [block_number_hex],
+            request_id + 2,
+        )
+        post = rpc(url, "eth_getBlockByNumber", [block_number_hex, False], request_id + 3)
+        if not post or post.get("hash", "").lower() != block_hash.lower():
+            raise RuntimeError("number guard post-state mismatch")
+        return result, "BLOCK_NUMBER_WITH_PRE_POST_HASH_GUARD"
 
 
 def decode_abi_address(value: str, label: str) -> str:
@@ -106,6 +136,19 @@ if config.get("chain_id") != 1:
 protocol = config["protocol"]
 pool = protocol["pool"].lower()
 topic0 = protocol["liquidation_call_topic0"].lower()
+selectors = protocol.get("selectors", {})
+expected_selectors = {
+    "ADDRESSES_PROVIDER": "0x0542975c",
+    "getPriceOracle": "0xfca513a8",
+    "FLASHLOAN_PREMIUM_TOTAL": "0x074b2e43",
+    "getReservesCount": "0x72218d04",
+}
+if selectors != expected_selectors:
+    fail("Aave selector lock does not match the reviewed canonical ABI selector set")
+addresses_provider_selector = selectors["ADDRESSES_PROVIDER"]
+price_oracle_selector = selectors["getPriceOracle"]
+premium_selector = selectors["FLASHLOAN_PREMIUM_TOTAL"]
+reserves_count_selector = selectors["getReservesCount"]
 policy = config["discovery_policy"]
 min_anchor = int(policy["minimum_anchor_consensus_providers"])
 min_state = int(policy["minimum_exact_state_providers"])
@@ -221,51 +264,41 @@ for candidate in config.get("candidates", []):
                 observation["exact_state_probe_error"] = str(exc)
 
             try:
-                addresses_provider_selector = selector(
-                    url, "ADDRESSES_PROVIDER()", provider_index * 100 + 6
-                )
-                if addresses_provider_selector != "0x0542975c":
-                    raise RuntimeError(
-                        "ADDRESSES_PROVIDER selector disagrees with canonical ABI"
-                    )
-                price_oracle_selector = selector(
-                    url, "getPriceOracle()", provider_index * 100 + 7
-                )
-                premium_selector = selector(
-                    url, "FLASHLOAN_PREMIUM_TOTAL()", provider_index * 100 + 8
-                )
-                reserves_count_selector = selector(
-                    url, "getReservesCount()", provider_index * 100 + 9
-                )
-                exact_block = {"blockHash": block_hash, "requireCanonical": True}
-
-                addresses_provider_raw = rpc(
+                addresses_provider_raw, access_mode_1 = exact_state_rpc(
                     url,
                     "eth_call",
-                    [{"to": pool, "data": addresses_provider_selector}, exact_block],
-                    provider_index * 100 + 10,
+                    [{"to": pool, "data": addresses_provider_selector}],
+                    block_hash,
+                    block_number_hex,
+                    provider_index * 100 + 20,
                 )
                 addresses_provider = decode_abi_address(
                     addresses_provider_raw, "ADDRESSES_PROVIDER"
                 )
-                price_oracle_raw = rpc(
+                price_oracle_raw, access_mode_2 = exact_state_rpc(
                     url,
                     "eth_call",
-                    [{"to": addresses_provider, "data": price_oracle_selector}, exact_block],
-                    provider_index * 100 + 11,
+                    [{"to": addresses_provider, "data": price_oracle_selector}],
+                    block_hash,
+                    block_number_hex,
+                    provider_index * 100 + 30,
                 )
                 price_oracle = decode_abi_address(price_oracle_raw, "getPriceOracle")
-                premium_raw = rpc(
+                premium_raw, access_mode_3 = exact_state_rpc(
                     url,
                     "eth_call",
-                    [{"to": pool, "data": premium_selector}, exact_block],
-                    provider_index * 100 + 12,
+                    [{"to": pool, "data": premium_selector}],
+                    block_hash,
+                    block_number_hex,
+                    provider_index * 100 + 40,
                 )
-                reserves_count_raw = rpc(
+                reserves_count_raw, access_mode_4 = exact_state_rpc(
                     url,
                     "eth_call",
-                    [{"to": pool, "data": reserves_count_selector}, exact_block],
-                    provider_index * 100 + 13,
+                    [{"to": pool, "data": reserves_count_selector}],
+                    block_hash,
+                    block_number_hex,
+                    provider_index * 100 + 50,
                 )
                 flash_loan_premium_bps = decode_abi_uint(
                     premium_raw, "FLASHLOAN_PREMIUM_TOTAL"
@@ -278,24 +311,39 @@ for candidate in config.get("candidates", []):
                 if not 1 <= reserves_count <= 128:
                     raise RuntimeError("reserve count outside expected Aave V3 domain")
 
-                provider_code = rpc(
+                provider_code, access_mode_5 = exact_state_rpc(
                     url,
                     "eth_getCode",
-                    [addresses_provider, exact_block],
-                    provider_index * 100 + 14,
+                    [addresses_provider],
+                    block_hash,
+                    block_number_hex,
+                    provider_index * 100 + 60,
                 )
-                oracle_code = rpc(
+                oracle_code, access_mode_6 = exact_state_rpc(
                     url,
                     "eth_getCode",
-                    [price_oracle, exact_block],
-                    provider_index * 100 + 15,
+                    [price_oracle],
+                    block_hash,
+                    block_number_hex,
+                    provider_index * 100 + 70,
                 )
                 if provider_code in ("0x", "0x0", "") or oracle_code in ("0x", "0x0", ""):
                     raise RuntimeError("protocol identity contract code unavailable")
 
+                access_modes = sorted(
+                    {
+                        access_mode_1,
+                        access_mode_2,
+                        access_mode_3,
+                        access_mode_4,
+                        access_mode_5,
+                        access_mode_6,
+                    }
+                )
                 observation.update(
                     {
                         "protocol_identity_probe": True,
+                        "protocol_state_access_modes": access_modes,
                         "addresses_provider": addresses_provider,
                         "price_oracle": price_oracle,
                         "flash_loan_premium_bps": flash_loan_premium_bps,
@@ -464,6 +512,7 @@ for candidate in config.get("candidates", []):
             "flash_loan_premium_bps": flash_loan_premium_bps,
             "reserves_count": reserves_count,
             "liquidation_call_topic0": topic0,
+            "selectors": selectors,
         },
         "provenance": {
             "transaction_hash": tx_hash,
