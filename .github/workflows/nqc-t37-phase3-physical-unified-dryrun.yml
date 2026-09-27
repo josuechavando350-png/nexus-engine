@@ -659,7 +659,9 @@ jobs:
               txh=rpc('eth_sendTransaction',[{
                   'from':sender,
                   'to':to,
-                  'data':data,
+                  # Reth/Alloy TransactionRequest signing consumes the transaction input field.
+                  # Use the canonical RPC `input` spelling so calldata survives the dev signer.
+                  'input':data,
                   'value':'0x0',
                   'gas':gas,
                   'gasPrice':gas_price,
@@ -668,6 +670,12 @@ jobs:
                   'type':'0x0',
               }])
               hashes.append(txh.lower())
+          primary_tx=rpc('eth_getTransactionByHash',[hashes[0]])
+          assert primary_tx is not None, hashes[0]
+          assert primary_tx.get('input','').lower()==touch.lower(), primary_tx
+          (ev/'primary-submitted-transaction.json').write_text(
+              json.dumps(primary_tx,indent=2,sort_keys=True)+'\n'
+          )
           (ev/'submitted-tx-hashes.json').write_text(json.dumps(hashes,indent=2)+'\n')
           (ev/'primary-signal.json').write_text(json.dumps({
               'tx_hash':hashes[0].lower(),
