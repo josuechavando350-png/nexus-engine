@@ -65,19 +65,25 @@
       "id": "PFT-SRC-001",
       "severity": "HARD",
       "status": "OPEN",
-      "description": "The documented V2 production executor source is absent from the physically recovered checkpoint and current GitHub tree."
+      "description": "The documented V2 production executor source is absent from the physically recovered checkpoint and current GitHub tree.",
+      "recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+      "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
     },
     {
       "id": "PFT-SRC-002",
       "severity": "HARD",
       "status": "OPEN",
-      "description": "The documented canonical nqc-v2-state implementation is absent from the physically recovered checkpoint and current GitHub tree."
+      "description": "The documented canonical nqc-v2-state implementation is absent from the physically recovered checkpoint and current GitHub tree.",
+      "recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+      "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
     },
     {
       "id": "PFT-SRC-003",
       "severity": "HARD",
       "status": "OPEN",
-      "description": "The documented nqc-aave-reconciler implementation is absent from the physically recovered checkpoint and current GitHub tree."
+      "description": "The documented nqc-aave-reconciler implementation is absent from the physically recovered checkpoint and current GitHub tree.",
+      "recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+      "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
     }
   ],
   "closeout_rule": "PROTOCOL_FORK_TRUTH_CLOSED may be issued only when every required gate is PASS on exact content-addressed source, all historical fixtures are block-hash pinned, and OPEN unexplained parity mismatches and OPEN hard source blockers are both zero.",
@@ -186,5 +192,12 @@
     "sha256": "f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a",
     "origin": "GENERATED_FROM_RECOVERED_WRAPPER_WORKSPACE_THEN_UPDATED_DETERMINISTICALLY_FOR_PFT_COMPAT_003_AND_PFT_COMPAT_005_TEST_ONLY_DEV_DEPENDENCIES",
     "tracked_in_historical_checkpoint": false
+  },
+  "source_recovery_exhaustion": {
+    "status": "RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+    "evidence": "ci/nqc-protocol-fork/SOURCE_RECOVERY_EXHAUSTION.json",
+    "archive_manifest_sha256": "a9d00327343a5a5340d0b3b04d023bc2018a1f6b7893ab556f45291553658527",
+    "git_bundle_manifest_sha256": "1993658b6712547b41dce3768aa42fd67ec296c23c8043d2937fd530133007ae",
+    "policy": "MISSING_COMPONENTS_MAY_ONLY_PROGRESS_AS_EXPLICIT_MEASURED_REIMPLEMENTATION_NOT_AS_RECOVERED_SOURCE"
   }
 }
