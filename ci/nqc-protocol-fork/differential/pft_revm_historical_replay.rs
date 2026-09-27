@@ -43,7 +43,14 @@ fn u64_field(value: &Value, key: &str) -> Result<u64, Error> {
 }
 
 fn u256_value(value: &Value) -> Result<U256, Error> {
-    U256::from_str(&value.to_string()).map_err(Into::into)
+    match value {
+        Value::String(text) => U256::from_str(text).map_err(Into::into),
+        Value::Number(number) => number
+            .as_u64()
+            .map(U256::from)
+            .ok_or_else(|| "JSON U256 number is not an exact u64; encode it as a decimal string".into()),
+        _ => Err("JSON U256 value must be a decimal string or exact u64 number".into()),
+    }
 }
 
 fn u256_field(value: &Value, key: &str) -> Result<U256, Error> {
