@@ -25,7 +25,8 @@
     "solidity_files": [
       "contracts/src/NqcAaveV3Executor.sol",
       "contracts/test/NqcAaveV3Executor.t.sol"
-    ]
+    ],
+    "verification_scope": "RECOVERED_LIBRARY_ARTIFACT_INSPECTED_OUTSIDE_GITHUB_CI; SHA256 BOUND HERE; NOT YET VENDORED INTO REPOSITORY"
   },
   "source_recovery_findings": {
     "exact_checkpoint_archive_sha256": "50471b7e29fd55a8c110d4e29ddf38021bfa3e0006ca42c6d833db02c4fa188e",
