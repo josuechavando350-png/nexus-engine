@@ -50,6 +50,8 @@ jobs:
       T36_UNIT_TEST_SHA256: "5af6f56a3b71e9f204be69615f65d9255831f6808c6ba50102b6b9df1de526b9"
       T36_FOUNDRY_TOML_SHA256: "b26286f7c58dbb6924f408bcb3c06fa38f525c6dc82d7fa438115c98b6ecc8fa"
       T37_FOUNDRY_TOML_SHA256: "0158579a9b6b71944e91563ce2d1d47b73d884e504e14482c9111acb363ce798"
+      T37_PHASE1_METRICS_SHA256: "94de6c927b4ee34569890c0d874a46ede9579ca2abf66f4bad45e5ca0c4265d6"
+      T37_PHASE1_EXECUTION_RECORDS_SHA256: "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192"
 
     steps:
       - name: Checkout exact source revision
@@ -191,6 +193,20 @@ jobs:
           cargo build --locked --offline --release
           sha256sum target/release/nqc-t37-scale-harness             > /tmp/nqc-build-truth/evidence/t37-scale-release-b.sha256
           diff -u             /tmp/nqc-build-truth/evidence/t37-scale-release-a.sha256             /tmp/nqc-build-truth/evidence/t37-scale-release-b.sha256
+
+          # Construction Freeze permits post-T37 defect repairs only with measured
+          # proof that architecture behavior did not move. Rust 1.98.1 introduced
+          # stricter style lints in this historical harness; replay the full Phase 1
+          # workload twice and require byte-identical outputs to the T37 closeout.
+          rm -rf /tmp/nqc-build-truth/t37-scale-replay-a /tmp/nqc-build-truth/t37-scale-replay-b
+          target/release/nqc-t37-scale-harness --out-dir /tmp/nqc-build-truth/t37-scale-replay-a
+          target/release/nqc-t37-scale-harness --out-dir /tmp/nqc-build-truth/t37-scale-replay-b
+          cmp /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json /tmp/nqc-build-truth/t37-scale-replay-b/metrics.json
+          cmp /tmp/nqc-build-truth/t37-scale-replay-a/execution-records.tsv /tmp/nqc-build-truth/t37-scale-replay-b/execution-records.tsv
+          echo "$T37_PHASE1_METRICS_SHA256  /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json" | sha256sum -c -
+          echo "$T37_PHASE1_EXECUTION_RECORDS_SHA256  /tmp/nqc-build-truth/t37-scale-replay-a/execution-records.tsv" | sha256sum -c -
+          cp /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json /tmp/nqc-build-truth/evidence/t37-scale-replay-metrics.json
+          sha256sum             /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json             /tmp/nqc-build-truth/t37-scale-replay-a/execution-records.tsv             > /tmp/nqc-build-truth/evidence/t37-scale-replay.sha256
 
       - name: Reconstruct and certify exact T37 unified crate
         shell: bash
