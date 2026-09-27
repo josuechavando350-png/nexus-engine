@@ -302,7 +302,7 @@ def main():
             "gas_limit":int(mined["gasLimit"],16),
             "base_fee_per_gas":int(mined["baseFeePerGas"],16),
             "beneficiary":mined["miner"].lower(),
-            "difficulty":int(mined["difficulty"],16),
+            "difficulty":str(int(mined["difficulty"],16)),
             "prevrandao":(mined.get("mixHash") or mined.get("prevRandao")),
             "excess_blob_gas":(
                 int(mined["excessBlobGas"],16)
@@ -313,7 +313,7 @@ def main():
         "caller_initial_balance":str(CALLER_BALANCE),
         "helper":HELPER,
         "helper_runtime":runtime,
-        "gas_price":GAS_PRICE,
+        "gas_price":str(GAS_PRICE),
         "gas_limit_per_tx":GAS_LIMIT,
         "addresses":{"weth":WETH,"usdc":USDC,"pair":PAIR},
         "inputs":{
@@ -333,7 +333,8 @@ def main():
                 "to":spec["to"].lower(),
                 "data":spec["data"].lower(),
                 "gas_limit":GAS_LIMIT,
-                "gas_price":GAS_PRICE,
+                "gas_price":str(GAS_PRICE),
+                "value":str(spec["value"]),
             }
             for spec in tx_specs
         ],
