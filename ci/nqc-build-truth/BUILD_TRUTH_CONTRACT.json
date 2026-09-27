@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "tranche": "T38_BUILD_TRUTH_49_TO_55",
+  "status": "NOT_TESTED",
+  "scope": "POST_ARCHITECTURE_BUILD_CERTIFICATION_ONLY",
+  "source_of_truth": {
+    "architecture_closeout_commit": "0ffaf8a5829d2f0c0874702042c8e0b094b30915",
+    "architecture_closeout_attestation_sha256": "1eccbf1572e2fcb98e038912eace3eae1daee712f7dd1f2e3d7ab6d6109a0f11",
+    "main_integration_commit": "d8d06bc8c705e68ddf8fbdde8f4c6ec76bc457dc"
+  },
+  "toolchains": {
+    "rust": "1.98.1",
+    "foundry": "1.7.1",
+    "foundry_linux_amd64_archive_sha256": "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b",
+    "solc": "0.8.24+commit.e11b9ed9",
+    "solc_linux_amd64_sha256": "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+  },
+  "enumerated_build_units": [
+    "runtime",
+    "runtime_optional_adapters",
+    "ci/nqc-t37/scale-harness",
+    "ci/nqc-t37/unified-evidence-crate.parts",
+    "ci/nqc-t36/contracts",
+    "ci/nqc-t37/physical-contracts"
+  ],
+  "content_addressed_inputs": {
+    "t37_unified_source_archive_sha256": "38e717c6d39bd80163af2091213fd0af0ed76c59646587cac9c1951b69372fe7",
+    "t37_unified_lock_sha256": "73f77c1774ad1af5b7527bbc3a6442f3d18d8e14f85c147a041a5a331cc2c0be",
+    "t37_unified_lock_parts_concat_length": 22992,
+    "t37_unified_lock_parts_sha256": "1b9fd83bd779d71043ec1d06e8fd66b142da5449c2c4688885b0a21f8f6277ed",
+    "t37_unified_normalized_tested_source_tree_sha256": "14bcc0b08259b9b594ee2fd4bfc5bbbbc97d3f0a1b6226f420cce4a6be2db61e",
+    "t36_executor_normalized_sha256": "bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320",
+    "t36_unit_test_normalized_sha256": "5af6f56a3b71e9f204be69615f65d9255831f6808c6ba50102b6b9df1de526b9",
+    "t36_fork_test_normalized_sha256": "8b4d3b51a44dbd5724bf69019169a667685b62f88050790e6e0dd866fb1da88a",
+    "t36_foundry_toml_sha256": "b26286f7c58dbb6924f408bcb3c06fa38f525c6dc82d7fa438115c98b6ecc8fa"
+  },
+  "required_gates": [
+    "PRISTINE_EXACT_SHA",
+    "ARCHITECTURE_FREEZE_BINDING",
+    "EXACT_TOOLCHAIN_HASHES",
+    "RUNTIME_FMT_CLIPPY_TEST_RELEASE_LOCKED_OFFLINE",
+    "RUNTIME_OPTIONAL_ADAPTERS_LOCKED_OFFLINE",
+    "T37_SCALE_FMT_CLIPPY_TEST_RELEASE_LOCKED_OFFLINE",
+    "T37_UNIFIED_ATTESTED_SOURCE_AND_LOCK_REPLAY",
+    "T37_UNIFIED_FMT_CLIPPY_TEST_RELEASE_LOCKED_OFFLINE",
+    "T36_SOLIDITY_FORMAT_BUILD_UNIT_TEST_EXACT_SOLC_OFFLINE",
+    "T37_PHYSICAL_COMPOSITE_BUILD_EXACT_SOLC_OFFLINE",
+    "REPEAT_BUILD_ARTIFACT_EQUIVALENCE",
+    "DEPENDENCY_PROVENANCE",
+    "SBOM",
+    "EVIDENCE_MANIFEST"
+  ],
+  "truth_boundaries": {
+    "real_market_census": "NOT_TESTED",
+    "real_live_market_evidence": false,
+    "live_pnl_evidence": false,
+    "production_authority_issued": false,
+    "production_certification": "NOT_CERTIFIED",
+    "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION"
+  },
+  "closeout_rule": "BUILD_TRUTH_CLOSED may be issued only after this workflow passes on the exact source SHA and the uploaded evidence manifest is independently re-downloaded and SHA-256 revalidated."
+}
