@@ -4,6 +4,68 @@
   "additionalProperties": false,
   "properties": {
     "account": {
+      "additionalProperties": false,
+      "properties": {
+        "observed_liquidations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "borrower": {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              "collateral_asset": {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              "debt_asset": {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              "debt_to_cover": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "liquidated_collateral_amount": {
+                "type": "string",
+                "pattern": "^[0-9]+$"
+              },
+              "liquidator": {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]{40}$"
+              },
+              "log_index": {
+                "type": "string",
+                "pattern": "^0x[0-9a-fA-F]+$"
+              },
+              "receive_atoken": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "borrower",
+              "collateral_asset",
+              "debt_asset",
+              "debt_to_cover",
+              "liquidated_collateral_amount",
+              "liquidator",
+              "log_index",
+              "receive_atoken"
+            ]
+          }
+        },
+        "total_liquidation_log_count": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "observed_liquidations",
+        "total_liquidation_log_count"
+      ],
       "type": "object"
     },
     "block_hash": {
