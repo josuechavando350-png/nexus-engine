@@ -77,6 +77,13 @@ impl V2PairState {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct V2SyncUpdate {
+    pub pair: Address,
+    pub reserve0: U256,
+    pub reserve1: U256,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct V2CanonicalSnapshot {
     pub chain_id: u64,
@@ -120,6 +127,45 @@ impl V2CanonicalSnapshot {
             bytes.extend_from_slice(&pair.block_timestamp_last.to_be_bytes());
         }
         keccak256(bytes)
+    }
+
+    /// Replays canonical Uniswap V2 Sync events for exactly one next block.
+    ///
+    /// The caller must validate next_anchor against the canonical source before
+    /// invoking this pure transition. Multiple updates for one pair are applied
+    /// in log order; zero reserves are preserved as canonical dead liquidity.
+    pub fn replay_sync_block(
+        &self,
+        next_anchor: CanonicalBlock,
+        updates: &[V2SyncUpdate],
+    ) -> Result<Self, V2StateError> {
+        let expected_number = self
+            .anchor
+            .number
+            .checked_add(1)
+            .ok_or(V2StateError::BlockNumberOverflow)?;
+        if next_anchor.number != expected_number {
+            return Err(V2StateError::NonContiguousSyncReplay {
+                expected: expected_number,
+                actual: next_anchor.number,
+            });
+        }
+        let timestamp = u32::try_from(next_anchor.timestamp & u64::from(u32::MAX))
+            .map_err(|_| V2StateError::BlockTimestampOverflow)?;
+
+        let mut next = self.clone();
+        next.anchor = next_anchor;
+        for update in updates {
+            let pair = next
+                .pairs
+                .iter_mut()
+                .find(|pair| pair.pair == update.pair)
+                .ok_or(V2StateError::UnknownSyncPair(update.pair))?;
+            pair.reserve0 = update.reserve0;
+            pair.reserve1 = update.reserve1;
+            pair.block_timestamp_last = timestamp;
+        }
+        Ok(next)
     }
 
     pub fn routable_graph(&self) -> Result<V2GraphSnapshot, V2StateError> {
@@ -512,6 +558,64 @@ mod tests {
         let result = commit_snapshot(&mut current, rebuilt, branch_b, moved_again);
         assert!(matches!(result, Err(V2StateError::CanonicalChanged { .. })));
         assert_eq!(current.as_ref().map(V2CanonicalSnapshot::snapshot_hash), Some(old_hash));
+    }
+
+    #[test]
+    fn sync_replay_preserves_zero_liquidity_death_and_revival() {
+        let a = anchor(1, 100);
+        let b = anchor(2, 101);
+        let c = anchor(3, 102);
+        let initial = snapshot(a, vec![pair(1, 100, 200)]);
+
+        let dead = initial.replay_sync_block(
+            b,
+            &[V2SyncUpdate {
+                pair: addr(1),
+                reserve0: U256::ZERO,
+                reserve1: U256::ZERO,
+            }],
+        );
+        assert!(dead.is_ok());
+        let dead = dead.ok().unwrap_or_else(|| unreachable!());
+        assert_eq!(dead.pairs[0].reserve0, U256::ZERO);
+        assert_eq!(dead.routable_graph().ok().map(|g| g.pools().len()), Some(0));
+
+        let revived = dead.replay_sync_block(
+            c,
+            &[V2SyncUpdate {
+                pair: addr(1),
+                reserve0: U256::from(300u64),
+                reserve1: U256::from(400u64),
+            }],
+        );
+        assert!(revived.is_ok());
+        let revived = revived.ok().unwrap_or_else(|| unreachable!());
+        assert_eq!(revived.routable_graph().ok().map(|g| g.pools().len()), Some(1));
+    }
+
+    #[test]
+    fn sync_replay_rejects_unknown_pair_and_noncontiguous_block() {
+        let a = anchor(1, 100);
+        let state = snapshot(a, vec![pair(1, 100, 200)]);
+
+        let unknown = state.replay_sync_block(
+            anchor(2, 101),
+            &[V2SyncUpdate {
+                pair: addr(9),
+                reserve0: U256::from(1u8),
+                reserve1: U256::from(2u8),
+            }],
+        );
+        assert!(matches!(unknown, Err(V2StateError::UnknownSyncPair(_))));
+
+        let skipped = state.replay_sync_block(anchor(3, 102), &[]);
+        assert!(matches!(
+            skipped,
+            Err(V2StateError::NonContiguousSyncReplay {
+                expected: 101,
+                actual: 102
+            })
+        ));
     }
 
     #[test]
