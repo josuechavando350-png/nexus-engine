@@ -330,8 +330,35 @@ jobs:
             'PFT-SRC-002':Path('ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json'),
             'PFT-SRC-003':Path('ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json'),
           }
+          expected_blocker_evidence={
+              'PFT-SRC-001':{
+                  'reimplementation','abi_runtime','callback_authority_baseline',
+                  'code_identity','historical_fork_execution','revm_historical_fork_differential',
+              },
+              'PFT-SRC-002':{
+                  'deterministic_reimplementation','historical_state_quote','historical_sync','reorg',
+              },
+              'PFT-SRC-003':{
+                  'deterministic_reimplementation','historical_canonical_rebuild',
+              },
+          }
+          expected_blocker_workflow={
+              ('PFT-SRC-001','reimplementation'):'NQC T39 V2 Backrun Executor Reimplementation',
+              ('PFT-SRC-001','abi_runtime'):'NQC T39 V2 Runtime ABI Roundtrip',
+              ('PFT-SRC-001','callback_authority_baseline'):'NQC T39 V2 Executor Authority Baseline Matrix',
+              ('PFT-SRC-001','code_identity'):'NQC T39 Executor Code Identity Binding',
+              ('PFT-SRC-001','historical_fork_execution'):'NQC T39 V2 Executor Historical Fork Execution',
+              ('PFT-SRC-001','revm_historical_fork_differential'):'NQC T39 REVM Historical Fork Differential',
+              ('PFT-SRC-002','deterministic_reimplementation'):'NQC T39 V2 State Reimplementation',
+              ('PFT-SRC-002','historical_state_quote'):'NQC T39 V2 Historical State Quote Parity',
+              ('PFT-SRC-002','historical_sync'):'NQC T39 V2 Historical Sync Parity',
+              ('PFT-SRC-002','reorg'):'NQC T39 V2 Real Historical Reorg Invalidation',
+              ('PFT-SRC-003','deterministic_reimplementation'):'NQC T39 Aave Reconciler Reimplementation',
+              ('PFT-SRC-003','historical_canonical_rebuild'):'NQC T39 Aave Reconciler Historical Canonical Parity',
+          }
           blocker_status={}
           blocker_digests={}
+          source_artifact_errors=[]
           for blocker_id,path in blocker_paths.items():
               if not path.is_file():
                   blocker_status[blocker_id]='MISSING'
@@ -341,20 +368,74 @@ jobs:
               assert b['source_blocker']==blocker_id
               blocker_status[blocker_id]=b['status']
               blocker_digests[blocker_id]=digest(path)
+              evidence=b.get('evidence',{})
+              assert set(evidence)==expected_blocker_evidence[blocker_id], (
+                  blocker_id,'incomplete or unexpected evidence set',sorted(evidence)
+              )
+              if blocker_id=='PFT-SRC-002':
+                  assert set(b.get('closure_basis',[]))=={
+                      'DETERMINISTIC_REIMPLEMENTATION_TESTS_PASS',
+                      'HISTORICAL_FACTORY_PAIR_RESERVE_PARITY_PASS',
+                      'SYNC_UPDATE_PARITY_PASS',
+                      'ZERO_LIQUIDITY_DEATH_REVIVAL_PASS',
+                      'REAL_ONE_BLOCK_ORPHAN_INVALIDATION_PASS',
+                      'DETERMINISTIC_MULTI_BLOCK_REORG_REPLACEMENT_PASS',
+                      'ZERO_UNEXPLAINED_MISMATCH',
+                  }
+              if blocker_id=='PFT-SRC-003':
+                  assert set(b.get('required_historical_dimensions',[]))=={
+                      'EXACT_CANONICAL_ANCHOR',
+                      'FULL_MARKET_REBUILD',
+                      'USER_STATE_REBUILD',
+                      'SAME_HEIGHT_HASH_DRIFT_FAIL_CLOSED',
+                      'ORPHAN_STATE_REMOVAL',
+                      'OLD_REPLAY_CAPSULE_REJECTION',
+                      'DEPENDENCY_GRAPH_BOUND_TO_RESOLVED_CARGO_LOCK',
+                      'ZERO_UNEXPLAINED_MISMATCH',
+                  }
               if b['status']=='CLOSED':
                   assert b['protocol_fork_truth']=='NOT_CLOSED'
                   assert int(b.get('unexplained_mismatches',0))==0
-                  evidence=b.get('evidence',{})
-                  assert evidence
                   for name,item in evidence.items():
                       assert SHA40.fullmatch(item['head']), (blocker_id,name,'bad head')
                       required_evidence_heads.add(item['head'])
-                      assert int(item['workflow_run_id'])>0, (blocker_id,name,'bad workflow run')
-                      assert int(item['artifact_id'])>0, (blocker_id,name,'bad artifact id')
+                      run_id=int(item['workflow_run_id'])
+                      artifact_id=int(item['artifact_id'])
+                      assert run_id>0, (blocker_id,name,'bad workflow run')
+                      assert artifact_id>0, (blocker_id,name,'bad artifact id')
                       artifact_sha=item.get('artifact_sha256') or item.get('artifact_zip_sha256')
                       assert artifact_sha and SHA256.fullmatch(artifact_sha), (blocker_id,name,'bad artifact digest')
                       if 'status' in item:
                           assert item['status']=='PASS', (blocker_id,name,'evidence not PASS')
+                      if exact_head_api_error is None:
+                          try:
+                              actual=github_json(f'/repos/{repository}/actions/artifacts/{artifact_id}')
+                              run_detail=github_json(f'/repos/{repository}/actions/runs/{run_id}')
+                              if int(actual.get('id',0))!=artifact_id:
+                                  raise RuntimeError('artifact id mismatch')
+                              if actual.get('expired') is not False:
+                                  raise RuntimeError('artifact expired')
+                              if actual.get('digest')!=f'sha256:{artifact_sha}':
+                                  raise RuntimeError('artifact digest mismatch')
+                              producer=actual.get('workflow_run') or {}
+                              if int(producer.get('id',0))!=run_id:
+                                  raise RuntimeError('artifact producer run mismatch')
+                              if producer.get('head_sha')!=item['head']:
+                                  raise RuntimeError('artifact producer head mismatch')
+                              if run_detail.get('head_sha')!=item['head']:
+                                  raise RuntimeError('workflow run head mismatch')
+                              if run_detail.get('name')!=expected_blocker_workflow[(blocker_id,name)]:
+                                  raise RuntimeError('workflow producer identity mismatch')
+                              if run_detail.get('status')!='completed' or run_detail.get('conclusion')!='success':
+                                  raise RuntimeError('workflow producer not successful')
+                          except Exception as exc:
+                              source_artifact_errors.append(
+                                  f'{blocker_id}:{name}:{type(exc).__name__}:{exc}'
+                              )
+
+          source_artifact_attestation_ready=(
+              exact_head_api_error is None and not source_artifact_errors
+          )
 
           evidence_heads_not_ancestors=[]
           for evidence_head in sorted(required_evidence_heads):
@@ -408,6 +489,7 @@ jobs:
           if not compat_resolution_ready: reasons.append('COMPAT_REPAIRS_NOT_RESOLVED_IN_LEDGER')
           if not truth_policy_ready: reasons.append('TRUTH_POLICY_CONTRACT_INVALID')
           if not evidence_ancestry_ready: reasons.append('EVIDENCE_HEAD_NOT_ANCESTOR_OF_CERTIFIED_HEAD')
+          if not source_artifact_attestation_ready: reasons.append('SOURCE_BLOCKER_ARTIFACT_ATTESTATION_FAILED')
           if exact_head_api_error is not None:
               reasons.append('EXACT_HEAD_ACTIONS_API_UNAVAILABLE')
           if exact_head_missing:
@@ -440,6 +522,8 @@ jobs:
               'required_evidence_heads':sorted(required_evidence_heads),
               'evidence_heads_not_ancestors':evidence_heads_not_ancestors,
               'evidence_ancestry_ready':evidence_ancestry_ready,
+              'source_artifact_attestation_ready':source_artifact_attestation_ready,
+              'source_artifact_errors':source_artifact_errors,
               'exact_head_ci_ready':exact_head_ci_ready,
               'exact_head_workflow_runs':dict(sorted(exact_head_runs.items())),
               'exact_head_latest_observed':dict(sorted(exact_head_latest.items())),
