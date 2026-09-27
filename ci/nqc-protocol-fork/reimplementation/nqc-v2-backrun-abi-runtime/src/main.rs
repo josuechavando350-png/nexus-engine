@@ -1,5 +1,5 @@
 use alloy::{
-    primitives::{keccak256, Address, B256, Bytes, U256},
+    primitives::{keccak256, Address, B256, Uint, U256},
     sol,
     sol_types::{SolCall, SolValue},
 };
@@ -81,6 +81,10 @@ fn parse_hex(value: &str, label: &str) -> Vec<u8> {
         .unwrap_or_else(|error| fail(format!("{label}: invalid hex: {error}")))
 }
 
+fn u112(value: u64) -> Uint<112, 2> {
+    Uint::<112, 2>::from_limbs([value, 0])
+}
+
 fn plan() -> ExecutionPlanAbi {
     let token_a = parse_address("TOKEN_A");
     let token_b = parse_address("TOKEN_B");
@@ -94,8 +98,8 @@ fn plan() -> ExecutionPlanAbi {
             tokenOut: token_b,
             amountIn: U256::from(100_000u64),
             amountOut: U256::from(180_000u64),
-            reserve0: 1_000_000u64.into(),
-            reserve1: 2_000_000u64.into(),
+            reserve0: u112(1_000_000),
+            reserve1: u112(2_000_000),
         },
         HopWitnessAbi {
             pair: pair1,
@@ -103,8 +107,8 @@ fn plan() -> ExecutionPlanAbi {
             tokenOut: token_a,
             amountIn: U256::from(180_000u64),
             amountOut: U256::from(101_000u64),
-            reserve0: 3_000_000u64.into(),
-            reserve1: 4_000_000u64.into(),
+            reserve0: u112(3_000_000),
+            reserve1: u112(4_000_000),
         },
     ];
 
