@@ -1,0 +1,56 @@
+name: NQC T39 Parity Mismatch Ledger
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-mismatch-ledger.yml
+      - ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json
+      - ci/nqc-protocol-fork/compatibility/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  mismatch-ledger:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+      - name: Validate ledger truthfulness
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path("ci/nqc-protocol-fork/PARITY_MISMATCH_LEDGER.json")
+          d=json.loads(p.read_text())
+          assert d["schema_version"] == 1
+          assert d["gate"] == "PARITY_MISMATCH_LEDGER_OPEN_ZERO"
+          entries=d["entries"]
+          semantic=[x for x in entries if x["classification"]=="SEMANTIC_MISMATCH"]
+          resolved=[x for x in semantic if x["status"]=="RESOLVED"]
+          pending=[x for x in semantic if x["status"]!="RESOLVED"]
+          unexplained=[x for x in pending if not x.get("explanation")]
+          counts=d["counts"]
+          assert counts["detected_semantic_mismatches"] == len(semantic)
+          assert counts["resolved_semantic_mismatches"] == len(resolved)
+          assert counts["open_total"] == len(pending)
+          assert counts["unexplained_open"] == len(unexplained)
+          assert counts["explained_repair_pending"] == len(pending)-len(unexplained)
+          if counts["open_total"] == 0:
+              assert d["status"] == "PASS"
+              print("PARITY_MISMATCH_LEDGER_OPEN_ZERO_PASS")
+          else:
+              assert d["status"].startswith("NOT_TESTED_")
+              print(
+                  "PARITY_MISMATCH_LEDGER_PENDING "
+                  f"open_total={counts['open_total']} "
+                  f"unexplained_open={counts['unexplained_open']}"
+              )
+          assert d["protocol_fork_truth"] == "NOT_CLOSED"
+          PY
