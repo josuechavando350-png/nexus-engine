@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "gate": "AAVE_RECONCILER_HISTORICAL_CANONICAL_REBUILD_PARITY",
+  "source_blocker": "PFT-SRC-003",
+  "classification": "MEASURED_REIMPLEMENTATION_HISTORICAL_PARITY_NOT_RECOVERED_SOURCE",
+  "locked_user_witness_sha256": "16a4260977fa7784fd5b1282de8eee71710fdb49ca171b42e99592e8cf870441",
+  "real_orphan_source_provenance": {
+    "evidence_pr": 482,
+    "workflow_run_id": 36342992023,
+    "artifact_id": 10939117736,
+    "artifact_zip_sha256": "8778899794de93c72d9d2f0525eb222155842ddaa0ae14e5a8af67baee483da6",
+    "height": 10500011,
+    "orphan_hash": "0xb4e222da7f14708b71c9cf64a68e40017e5b49870d840d343412a5f899474f67",
+    "canonical_hash": "0xa1f5eb25631c2d47d91071fb0c6ff7d925a4a45e07fc1d3fe47d7a268d5ff0c1",
+    "scope": "REAL_GENERIC_CANONICAL_SOURCE_HASH_INVALIDATION; AAVE_V3_NOT_DEPLOYED_AT_THIS_HEIGHT"
+  },
+  "required_runtime_checks": [
+    "REAL_HISTORICAL_ORPHAN_HASH_REJECTED_BY_RETH_IPC_SOURCE",
+    "TWO_AAVE_HISTORICAL_ANCHORS_REBUILT_FROM_CANONICAL_STATE",
+    "CONTAMINATED_PREVIOUS_STATE_ATOMICALLY_REPLACED",
+    "15_TRACKED_USERS_PRESENT",
+    "60_EXACT_INTEGER_ACCOUNT_RISK_CHECKS",
+    "TWO_INDEPENDENT_PROVIDERS_IDENTICAL_PASS_COUNTS",
+    "DETERMINISTIC_TWO_BLOCK_ORPHAN_BRANCH_REPLACEMENT_PASS"
+  ],
+  "current_status": "NOT_TESTED",
+  "blocker_status": "OPEN",
+  "protocol_fork_truth": "NOT_CLOSED"
+}
