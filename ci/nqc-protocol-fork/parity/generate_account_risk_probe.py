@@ -72,6 +72,7 @@ def generate(witness):
             f"        last_update_timestamp: {int(r['last_update_timestamp'])},",
             "    },",
             ")?;",
+            f"state.configure_protocol_price(addr({q(r['asset'])})?, uint({q(r['price_oracle_units'])})?, uint({q(case['oracle_base_unit'])})?)?;",
         ]
 
     for user in users:
@@ -104,10 +105,14 @@ def generate(witness):
         lines += [
             "{",
             f"let user = addr({q(user['user'])})?;",
+            "let protocol = state.account_protocol_risk_at(user, timestamp)?;",
             "let risk = state.account_risk_at(user, timestamp)?;",
-            "let collateral_base = risk.collateral_usd_wad * base_unit / wad;",
-            "let debt_base = risk.debt_usd_wad * base_unit / wad;",
-            "let hf = risk.health_factor_wad.unwrap_or(U256::MAX);",
+            "let collateral_base = protocol.collateral_base;",
+            "let debt_base = protocol.debt_base;",
+            "let hf = protocol.health_factor_wad.unwrap_or(U256::MAX);",
+            "assert_eq!(risk.health_factor_wad, protocol.health_factor_wad);",
+            "assert_eq!(risk.collateral_usd_wad * base_unit / wad, collateral_base);",
+            "assert_eq!(risk.debt_usd_wad * base_unit / wad, debt_base);",
             f"let expected_collateral = uint({q(meta['total_collateral_base'])})?;",
             f"let expected_debt = uint({q(meta['total_debt_base'])})?;",
             f"let expected_hf = uint({q(meta['health_factor_wad'])})?;",
