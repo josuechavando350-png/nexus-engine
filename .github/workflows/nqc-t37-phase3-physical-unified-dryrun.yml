@@ -504,25 +504,47 @@ jobs:
               assert text.startswith('0x') and len(text)>4, name
               return text
 
+          import subprocess
+          cast='/tmp/nqc-t37-phase3/foundry/cast'
+          dev_mnemonic='test test test test test test test test test test test junk'
+          dev_private_key=subprocess.check_output(
+              [cast,'wallet','private-key',dev_mnemonic,'0'], text=True
+          ).strip()
+          derived_deployer=subprocess.check_output(
+              [cast,'wallet','address',dev_private_key], text=True
+          ).strip()
+          assert derived_deployer.lower()==deployer.lower(), (derived_deployer,deployer)
+          (ev/'dev-fixture-signer.json').write_text(json.dumps({
+              'mnemonic_source':'RETH_V2_5_2_DEFAULT_DEV_MNEMONIC_PUBLIC_TEST_FIXTURE',
+              'derivation_path':"m/44'/60'/0'/0/0",
+              'derived_address':derived_deployer,
+              'production_secret':False,
+              'production_authority':False,
+          },indent=2,sort_keys=True)+'\n')
+
           def deploy(name,args_hex=''):
-              nonce=rpc(A,'eth_getTransactionCount',[deployer,'pending'])
               data=bytecode(name)+args_hex
-              request={
-                  'from':deployer,
-                  'data':data,
-                  'value':'0x0',
-                  'gas':'0x989680',
-                  'gasPrice':gas_price,
-                  'nonce':nonce,
-                  'chainId':chain_id,
-                  'type':'0x0',
-              }
-              # Contract creation is represented by an absent `to` field. Reth's dev signer
-              # rejects an explicit JSON null here as an invalid transaction request.
-              txh=rpc(A,'eth_sendTransaction',[request])
-              receipt=wait_receipt(txh)
-              address=receipt['contractAddress']
-              assert address and int(address,16)!=0, (name,receipt)
+              # Sign locally from Reth's documented public dev mnemonic and submit the raw
+              # envelope. This bypasses eth_sendTransaction's dev-signer request builder for
+              # CREATE while keeping production keys/secrets entirely out of the experiment.
+              result=subprocess.check_output([
+                  cast,'send',
+                  '--rpc-url',A,
+                  '--private-key',dev_private_key,
+                  '--legacy',
+                  '--json',
+                  '--gas-limit','10000000',
+                  '--create',data,
+              ], text=True)
+              receipt=json.loads(result)
+              status=receipt.get('status')
+              if isinstance(status,str):
+                  assert int(status,16)==1, receipt
+              else:
+                  assert status in (1,True), receipt
+              txh=receipt.get('transactionHash') or receipt.get('transaction_hash')
+              address=receipt.get('contractAddress') or receipt.get('contract_address')
+              assert txh and address and int(address,16)!=0, (name,receipt)
               return {'name':name,'tx_hash':txh,'address':address,'receipt':receipt}
 
           deployments={}
