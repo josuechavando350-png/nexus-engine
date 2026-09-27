@@ -297,6 +297,54 @@ mod tests {
     }
 
     #[test]
+    fn deep_two_block_orphan_state_is_atomically_replaced() {
+        let user = addr(10);
+        let orphan_asset_one = addr(1);
+        let orphan_asset_two = addr(2);
+        let canonical_asset = addr(3);
+
+        let branch_a = anchor(1, 100);
+        let branch_b = anchor(2, 101);
+        let branch_c = anchor(3, 102);
+        let canonical_c = anchor(9, 102);
+
+        let mut current = AaveHotState::new();
+        configure(&mut current, orphan_asset_one, 0);
+        set_position(&mut current, user, orphan_asset_one, 10, 4);
+
+        let mut orphan_next = AaveHotState::new();
+        configure(&mut orphan_next, orphan_asset_two, 1);
+        set_position(&mut orphan_next, user, orphan_asset_two, 20, 5);
+        assert!(commit_rebuild(&mut current, orphan_next, branch_b, branch_b).is_ok());
+
+        let mut orphan_deep = AaveHotState::new();
+        configure(&mut orphan_deep, orphan_asset_two, 1);
+        set_position(&mut orphan_deep, user, orphan_asset_two, 30, 6);
+        assert!(commit_rebuild(&mut current, orphan_deep, branch_c, branch_c).is_ok());
+        let orphan_hash = current
+            .account_snapshot_at(user, branch_c.timestamp)
+            .ok()
+            .flatten()
+            .map(|snapshot| snapshot.snapshot_hash());
+        assert!(orphan_hash.is_some());
+
+        let mut canonical = AaveHotState::new();
+        configure(&mut canonical, canonical_asset, 2);
+        set_position(&mut canonical, user, canonical_asset, 40, 7);
+        assert!(commit_rebuild(&mut current, canonical, canonical_c, canonical_c).is_ok());
+
+        let rebuilt = current
+            .account_snapshot_at(user, canonical_c.timestamp)
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| unreachable!());
+        assert_eq!(rebuilt.reserves.len(), 1);
+        assert_eq!(rebuilt.reserves[0].asset, canonical_asset);
+        assert_ne!(Some(rebuilt.snapshot_hash()), orphan_hash);
+        assert_ne!(branch_a.hash, canonical_c.hash);
+    }
+
+    #[test]
     fn old_replay_capsule_rejects_replacement_branch() {
         let branch_a = anchor(1, 100);
         let branch_b = anchor(2, 100);
