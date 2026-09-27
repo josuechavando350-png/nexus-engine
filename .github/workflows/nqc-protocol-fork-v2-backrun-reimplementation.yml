@@ -1,0 +1,80 @@
+name: NQC T39 V2 Backrun Reimplementation
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-v2-backrun-reimplementation.yml
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun/**
+      - ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol
+      - ci/nqc-t36/T36_CLOSEOUT.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-v2-backrun:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      NQC_BACKRUN_WORK: /tmp/nqc-v2-backrun-reimplementation
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify source identity and prepare evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_BACKRUN_WORK"
+          mkdir -p "$NQC_BACKRUN_WORK/evidence"
+          cp -a ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun/contracts "$NQC_BACKRUN_WORK/contracts"
+          sha256sum ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun/contracts/src/NqcV2BackrunStrategyMeasured.sol                     ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun/contracts/test/NqcV2BackrunStrategyMeasured.t.sol                     ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun/REIMPLEMENTATION_CONTRACT.json             > "$NQC_BACKRUN_WORK/evidence/reimplementation-source.sha256"
+          sha256sum ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol             > "$NQC_BACKRUN_WORK/evidence/t36-funding-source.sha256"
+          grep -q 'Status: \*\*CLOSED\*\*' ci/nqc-t36/T36_CLOSEOUT.md
+          grep -q 'bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320'             ci/nqc-t36/T36_CLOSEOUT.md
+          git rev-parse HEAD > "$NQC_BACKRUN_WORK/evidence/repo-head.txt"
+
+      - name: Install pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd "$NQC_BACKRUN_WORK"
+          curl --fail --location --retry 5 --retry-all-errors             -o foundry.tar.gz             https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  foundry.tar.gz" | sha256sum -c -
+          mkdir -p foundry
+          tar -xzf foundry.tar.gz -C foundry
+          ./foundry/forge --version | tee evidence/forge-version.txt
+          ./foundry/cast --version | tee evidence/cast-version.txt
+          sha256sum foundry/forge foundry/cast > evidence/foundry-binaries.sha256
+
+      - name: Build and execute deterministic backrun safety tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="$NQC_BACKRUN_WORK/foundry:$PATH"
+          cd "$NQC_BACKRUN_WORK/contracts"
+          forge build --sizes 2>&1 | tee "$NQC_BACKRUN_WORK/evidence/forge-build.txt"
+          forge test -vvv 2>&1 | tee "$NQC_BACKRUN_WORK/evidence/forge-test.txt"
+          forge inspect NqcV2BackrunStrategyMeasured methodIdentifiers             > "$NQC_BACKRUN_WORK/evidence/method-identifiers.json"
+          grep -q '8 passed; 0 failed' "$NQC_BACKRUN_WORK/evidence/forge-test.txt"
+          for test_name in             testExactTwoHopBackrunReturnsFreshPrincipalAndProfitPreservingBaseline             testWrongTargetBlockRejectsBeforeEffects             testWrongParentHashRejectsBeforeEffects             testReserveWitnessMutationByOneRejectsBeforeEffects             testPreexistingBalanceCannotSubsidizeMinProfitShortfall             testExecutionIdentityCannotReplay             testDuplicatePairReverseDirectionRejects             testPlanHashBindsTargetAndCandidateProvenance
+          do
+            grep -q "\[PASS\] $test_name()" "$NQC_BACKRUN_WORK/evidence/forge-test.txt"
+          done
+          printf '%s\n' 'NEW_SOURCE_DETERMINISTIC_TESTS_PASS_ONLY'             > "$NQC_BACKRUN_WORK/evidence/reimplementation-status.txt"
+          printf '%s\n' 'OPEN_PENDING_FUZZ_ABI_HISTORICAL_FORK_CODE_IDENTITY'             > "$NQC_BACKRUN_WORK/evidence/PFT-SRC-001-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_BACKRUN_WORK/evidence/protocol-fork-truth.txt"
+
+      - name: Preserve evidence including failures
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-v2-backrun-reimplementation-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-v2-backrun-reimplementation/evidence
+          if-no-files-found: error
+          retention-days: 30
