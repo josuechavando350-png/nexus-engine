@@ -52,6 +52,7 @@ jobs:
       T37_FOUNDRY_TOML_SHA256: "0158579a9b6b71944e91563ce2d1d47b73d884e504e14482c9111acb363ce798"
       T37_PHASE1_METRICS_SHA256: "94de6c927b4ee34569890c0d874a46ede9579ca2abf66f4bad45e5ca0c4265d6"
       T37_PHASE1_EXECUTION_RECORDS_SHA256: "833c02e604f0560dc82dc07170c9ff1b881a6cee37c4700eadda36fe2e74a192"
+      T37_PHASE1_SEED: "5643366627959420673"
 
     steps:
       - name: Checkout exact source revision
@@ -199,8 +200,8 @@ jobs:
           # stricter style lints in this historical harness; replay the full Phase 1
           # workload twice and require byte-identical outputs to the T37 closeout.
           rm -rf /tmp/nqc-build-truth/t37-scale-replay-a /tmp/nqc-build-truth/t37-scale-replay-b
-          target/release/nqc-t37-scale-harness --out-dir /tmp/nqc-build-truth/t37-scale-replay-a
-          target/release/nqc-t37-scale-harness --out-dir /tmp/nqc-build-truth/t37-scale-replay-b
+          target/release/nqc-t37-scale-harness             --markets 50000             --active-markets 25000             --surfaces-per-market 5             --signals 1000000             --shards 256             --bundles 25000             --seed "$T37_PHASE1_SEED"             --out-dir /tmp/nqc-build-truth/t37-scale-replay-a
+          target/release/nqc-t37-scale-harness             --markets 50000             --active-markets 25000             --surfaces-per-market 5             --signals 1000000             --shards 256             --bundles 25000             --seed "$T37_PHASE1_SEED"             --out-dir /tmp/nqc-build-truth/t37-scale-replay-b
           cmp /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json /tmp/nqc-build-truth/t37-scale-replay-b/metrics.json
           cmp /tmp/nqc-build-truth/t37-scale-replay-a/execution-records.tsv /tmp/nqc-build-truth/t37-scale-replay-b/execution-records.tsv
           echo "$T37_PHASE1_METRICS_SHA256  /tmp/nqc-build-truth/t37-scale-replay-a/metrics.json" | sha256sum -c -
