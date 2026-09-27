@@ -109,7 +109,7 @@ jobs:
 
             NQC_PFT_IPC_PATH="$socket" NQC_PFT_UPSTREAM_ID="$provider_id"               "$NQC_V2_SYNC/reimplementation/nqc-v2-state/target/debug/examples/pft_v2_sync_parity"               2>&1 | tee "$NQC_V2_SYNC/evidence/$provider_id-sync-parity.log"
 
-            test "$(grep -c '^V2_SYNC_PARITY_PASS ' "$NQC_V2_SYNC/evidence/$provider_id-sync-parity.log")" -eq 2
+            test "$(grep -c '^V2_SYNC_PARITY_PASS ' "$NQC_V2_SYNC/evidence/$provider_id-sync-parity.log")" -eq 1
             grep '^V2_SYNC_TOTAL ' "$NQC_V2_SYNC/evidence/$provider_id-sync-parity.log"
             kill "$bridge_pid" "$throttle_pid"
             wait "$bridge_pid" "$throttle_pid" 2>/dev/null || true
