@@ -1,6 +1,6 @@
 # NQC Tranche 37 — Physical Unified Dry-Run & Evidence Generator
 
-Status: **IN PROGRESS**
+Status: **ARCHITECTURE CLOSED — CONSTRUCTION FREEZE READY**
 
 T37 is the architecture-close tranche. It must prove that the unified NQC path can preserve identity, canonical-truth separation, deterministic replay, funding safety, durable-action semantics and evidence generation at the scale required by the production objective.
 
@@ -65,7 +65,7 @@ execution compatibility state
 evidence provenance
 ```
 
-The real-market census gate is downstream in T37 and remains **NOT TESTED** until those records are physically enumerated from blockchain state/evidence.
+The real-market census gate is downstream in the production-certification program and remains **NOT TESTED** until those records are physically enumerated from blockchain state/evidence.
 
 ## Economic scope
 
@@ -78,3 +78,15 @@ NQC remains:
 `NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION`
 
 until the downstream build, fork, canary, resilience and economic-evidence gates are satisfied.
+
+
+## Architecture closeout
+
+The T37 construction boundary is closed only at the architecture level. The closeout is supported by:
+
+- Phase 1 deterministic capacity gate: **PASS** at 50,000 synthetic markets, 250,000 surfaces and 1,000,000 signals, with zero full-market scans, zero dropped signals and complete cold-market observability.
+- Phase 2 unified evidence generator build/invariant gate: **PASS** with content-addressed execution identity, canonical-anchor binding and reorg invalidation enforcement.
+- Phase 3 local-dev physical unified dry-run: **PASS** across exact Reth peer-gossip capture, physical Sensor Fabric recognition, exact anchored simulation, T36-bound funding semantics, durable Action Fence/WAL, canonical receipt/state delta and content-addressed evidence generation.
+- Production authority remained **suppressed / not issued**.
+
+This is **Construction Freeze readiness**, not production certification. Real 20,000–25,000-market census, live P&L, canary performance, production latency and target-admission evidence remain separate downstream gates.
