@@ -1,0 +1,118 @@
+name: NQC T37 Phase1 Deterministic Scale Envelope
+
+on:
+  push:
+    branches:
+      - nqc/t37-unified-dryrun-evidence-20260926
+    paths:
+      - .github/workflows/nqc-t37-phase1-scale-envelope.yml
+      - ci/nqc-t37/scale-harness/**
+      - ci/nqc-t37/verify_t37_phase1.py
+      - ci/nqc-t37/T37_CONTRACT.json
+      - ci/nqc-t37/T37_CONTRACT.md
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deterministic-scale-envelope:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pin Rust 1.98.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup default 1.98.1
+          rustup component add rustfmt --toolchain 1.98.1
+          rustc -Vv
+          cargo -V
+          cargo fmt --version
+
+      - name: Build and unit-test dependency-free Rust harness
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd ci/nqc-t37/scale-harness
+          cargo fmt --check
+          cargo test --locked
+          cargo build --release --locked
+          sha256sum target/release/nqc-t37-scale-harness | tee /tmp/t37-harness.sha256
+
+      - name: Execute 50k market 250k surface 1M signal stress twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN="$GITHUB_WORKSPACE/ci/nqc-t37/scale-harness/target/release/nqc-t37-scale-harness"
+          rm -rf /tmp/nqc-t37
+          mkdir -p /tmp/nqc-t37/run-a /tmp/nqc-t37/run-b
+          "$BIN" \
+            --markets 50000 \
+            --active-markets 25000 \
+            --surfaces-per-market 5 \
+            --signals 1000000 \
+            --shards 256 \
+            --bundles 25000 \
+            --seed 5643366627959420673 \
+            --out-dir /tmp/nqc-t37/run-a
+          "$BIN" \
+            --markets 50000 \
+            --active-markets 25000 \
+            --surfaces-per-market 5 \
+            --signals 1000000 \
+            --shards 256 \
+            --bundles 25000 \
+            --seed 5643366627959420673 \
+            --out-dir /tmp/nqc-t37/run-b
+          cmp /tmp/nqc-t37/run-a/metrics.json /tmp/nqc-t37/run-b/metrics.json
+          cmp /tmp/nqc-t37/run-a/execution-records.tsv /tmp/nqc-t37/run-b/execution-records.tsv
+
+      - name: Generate content-addressed EvidenceBundles and enforce truth boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-t37/evidence-a /tmp/nqc-t37/evidence-b
+          python3 ci/nqc-t37/verify_t37_phase1.py \
+            --run-a /tmp/nqc-t37/run-a \
+            --run-b /tmp/nqc-t37/run-b \
+            --out-dir /tmp/nqc-t37/evidence-a | tee /tmp/nqc-t37/verify-a.log
+          python3 ci/nqc-t37/verify_t37_phase1.py \
+            --run-a /tmp/nqc-t37/run-a \
+            --run-b /tmp/nqc-t37/run-b \
+            --out-dir /tmp/nqc-t37/evidence-b | tee /tmp/nqc-t37/verify-b.log
+          cmp /tmp/nqc-t37/evidence-a/execution-evidence-bundles.ndjson \
+              /tmp/nqc-t37/evidence-b/execution-evidence-bundles.ndjson
+          cmp /tmp/nqc-t37/evidence-a/phase1-summary.json \
+              /tmp/nqc-t37/evidence-b/phase1-summary.json
+          grep -q '"real_market_census": "NOT_TESTED"' /tmp/nqc-t37/evidence-a/phase1-summary.json
+          grep -q '"physical_unified_path": "NOT_TESTED"' /tmp/nqc-t37/evidence-a/phase1-summary.json
+          grep -q '"authority_issuance": 0' /tmp/nqc-t37/evidence-a/phase1-summary.json
+          grep -q '"full_market_scans": 0' /tmp/nqc-t37/evidence-a/phase1-summary.json
+
+      - name: Finalize evidence manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-t37/evidence
+          cp -a /tmp/nqc-t37/evidence-a/. /tmp/nqc-t37/evidence/
+          cp /tmp/t37-harness.sha256 /tmp/nqc-t37/evidence/harness-binary.sha256
+          cp ci/nqc-t37/T37_CONTRACT.json /tmp/nqc-t37/evidence/
+          cp ci/nqc-t37/T37_CONTRACT.md /tmp/nqc-t37/evidence/
+          cp /tmp/nqc-t37/verify-a.log /tmp/nqc-t37/evidence/verify.log
+          cd /tmp/nqc-t37
+          find evidence -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0 \
+            | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+          sha256sum evidence/SHA256SUMS.txt
+          cat evidence/phase1-summary.json
+
+      - name: Upload T37 Phase1 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nqc-t37-phase1-deterministic-scale-envelope
+          path: /tmp/nqc-t37/evidence/
+          if-no-files-found: error
+          retention-days: 30

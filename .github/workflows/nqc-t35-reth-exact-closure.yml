@@ -1,0 +1,753 @@
+name: NQC T35 Exact Reth Physical Closure
+
+on:
+  push:
+    branches:
+      - nqc/t35-reth-physical-evidence-20260926
+    paths:
+      - .github/workflows/nqc-t35-reth-exact-closure.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-physical-closure:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Pin Rust and verify exact upstream Reth
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-t35/evidence
+          rustup toolchain install 1.98.1 --profile minimal
+          rustup default 1.98.1
+          rustc -Vv | tee /tmp/nqc-t35/evidence/rustc.txt
+          cargo -V | tee /tmp/nqc-t35/evidence/cargo.txt
+
+          cd /tmp/nqc-t35
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o reth-release.tar.gz \
+            https://github.com/paradigmxyz/reth/releases/download/v2.5.2/reth-v2.5.2-x86_64-unknown-linux-gnu.tar.gz
+          echo "e360895ac51b351ff0c44573f0f619bb1e7c3ff2df55502af1190c14c9b5ef6d  reth-release.tar.gz" | sha256sum -c -
+          test "$(stat -c %s reth-release.tar.gz)" = "51932647"
+          sha256sum reth-release.tar.gz > evidence/upstream-release.sha256
+
+          git clone --filter=blob:none https://github.com/paradigmxyz/reth.git reth
+          cd reth
+          git checkout --detach 5a6940e351fed80458fe6c9da8581cbe4b8bd036
+          test "$(git rev-parse HEAD)" = "5a6940e351fed80458fe6c9da8581cbe4b8bd036"
+          test -z "$(git status --porcelain=v1)"
+          sha256sum Cargo.lock > ../evidence/upstream-cargo-lock.sha256
+          git rev-parse HEAD > ../evidence/upstream-source-commit.txt
+
+      - name: Restore pinned Reth build cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            /tmp/nqc-t35/reth/target
+          key: nqc-t35-reth-v2.5.2-rust1.98.1-${{ runner.os }}-${{ runner.arch }}-v1
+
+      - name: Install exact P2P ingress and Sensor Fabric ExEx instrumentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35/reth
+
+          mkdir -p examples/nqc-sensor-fabric/src examples/nqc-t35-observer/src
+          base64 -d "$GITHUB_WORKSPACE/ci/nqc-t35/nqc-sensor-fabric.lib.rs.gz.b64" | gzip -d > examples/nqc-sensor-fabric/src/lib.rs
+          sed -i 's/use alloy::primitives::{keccak256, B256};/use alloy_primitives::{keccak256, B256};/' examples/nqc-sensor-fabric/src/lib.rs
+          cp "$GITHUB_WORKSPACE/ci/nqc-t35/nqc-sensor-fabric.Cargo.toml" examples/nqc-sensor-fabric/Cargo.toml
+          cp "$GITHUB_WORKSPACE/ci/nqc-t35/nqc-t35-observer.Cargo.toml" examples/nqc-t35-observer/Cargo.toml
+          cp "$GITHUB_WORKSPACE/ci/nqc-t35/nqc-t35-observer.main.rs" examples/nqc-t35-observer/src/main.rs
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root=Path("Cargo.toml")
+          s=root.read_text()
+          anchor='    "examples/network/",\n'
+          for member in ('    "examples/nqc-sensor-fabric",\n','    "examples/nqc-t35-observer",\n'):
+              if member not in s:
+                  if anchor not in s:
+                      raise SystemExit("workspace anchor missing")
+                  s=s.replace(anchor,anchor+member,1)
+                  anchor=member
+          root.write_text(s)
+
+          net_manifest=Path("crates/net/network/Cargo.toml")
+          nm=net_manifest.read_text()
+          dep='nqc-sensor-fabric = { path = "../../../examples/nqc-sensor-fabric" }\n'
+          if dep not in nm:
+              marker='[dependencies]\n'
+              if marker not in nm:
+                  raise SystemExit("reth-network dependency marker missing")
+              nm=nm.replace(marker,marker+dep,1)
+          net_manifest.write_text(nm)
+
+          network=Path("crates/net/network/src/transactions/mod.rs")
+          ns=network.read_text()
+          import_anchor='use rayon::iter::{IntoParallelIterator, ParallelIterator};\n'
+          sensor_import='''use nqc_sensor_fabric::{
+              ClockStamp, SensorEpochKey, SensorFabric, SensorFabricPolicy, SensorIdentity,
+              SensorObservation, SensorSourceClass, SignalKey, SignalKind,
+          };
+          '''
+          if sensor_import not in ns:
+              if import_anchor not in ns:
+                  raise SystemExit("network import anchor missing")
+              ns=ns.replace(import_anchor,import_anchor+sensor_import,1)
+
+          method_marker="    fn on_network_tx_event(&mut self, event: NetworkTransactionEvent<N>) {"
+          if method_marker not in ns:
+              raise SystemExit("network transaction event marker missing")
+
+          helper=r'''    fn nqc_t35_capture_peer_signal(
+                  peer_id: &PeerId,
+                  kind: &str,
+                  hash: &B256,
+                  wire_payload_hash: &B256,
+              ) {
+                  let Some(path) = std::env::var_os("NQC_T35_P2P_RAW") else { return };
+
+                  fn monotonic_ns() -> u64 {
+                      static START: std::sync::OnceLock<std::time::Instant> = std::sync::OnceLock::new();
+                      let origin = START.get_or_init(std::time::Instant::now);
+                      u64::try_from(origin.elapsed().as_nanos())
+                          .unwrap_or(u64::MAX)
+                          .saturating_add(1)
+                  }
+                  fn seed_hash(label: &[u8], env_name: &str) -> B256 {
+                      let seed = std::env::var(env_name).unwrap_or_else(|_| "UNSET".to_string());
+                      let mut bytes = Vec::with_capacity(label.len() + seed.len() + 1);
+                      bytes.extend_from_slice(label);
+                      bytes.push(0);
+                      bytes.extend_from_slice(seed.as_bytes());
+                      alloy_primitives::keccak256(bytes)
+                  }
+                  fn policy() -> SensorFabricPolicy {
+                      SensorFabricPolicy {
+                          max_signals: 8192,
+                          max_observations_per_signal: 8,
+                          max_comparable_clock_error_ns: 100_000,
+                          hard_max_clock_error_ns: 1_000_000,
+                          min_regions_for_cross_region_claim: 2,
+                          recognition_shards: 64,
+                          wave_capacity: 8192,
+                          max_per_chain: 8192,
+                          max_per_kind: 8192,
+                      }
+                  }
+
+                  static FABRIC: std::sync::OnceLock<parking_lot::Mutex<SensorFabric>> =
+                      std::sync::OnceLock::new();
+                  static SEQUENCE: std::sync::atomic::AtomicU64 =
+                      std::sync::atomic::AtomicU64::new(0);
+
+                  let receive = monotonic_ns();
+                  let decoded = monotonic_ns();
+                  let sequence = SEQUENCE
+                      .fetch_add(1, std::sync::atomic::Ordering::Relaxed)
+                      .saturating_add(1);
+
+                  let chain_id = std::env::var("NQC_T35_CHAIN_ID")
+                      .ok()
+                      .and_then(|value| value.parse::<u64>().ok())
+                      .unwrap_or(1337);
+                  let region_hash = seed_hash(b"NQC_T35_REGION", "NQC_T35_REGION_SEED");
+                  let instance_hash = seed_hash(b"NQC_T35_INSTANCE", "NQC_T35_INSTANCE_SEED");
+                  let boot_hash = seed_hash(b"NQC_T35_BOOT", "NQC_T35_BOOT_SEED");
+                  let source_epoch_hash =
+                      seed_hash(b"NQC_T35_P2P_SOURCE_EPOCH", "NQC_T35_BOOT_SEED");
+                  let clock_epoch_hash =
+                      seed_hash(b"NQC_T35_CLOCK_EPOCH", "NQC_T35_BOOT_SEED");
+
+                  let peer_text = format!("{peer_id:#x}");
+                  let peer_identity_hash = alloy_primitives::keccak256(peer_text.as_bytes());
+                  let mut path_bytes = Vec::with_capacity(peer_text.len() + 64);
+                  path_bytes.extend_from_slice(b"NQC_T35_RETH_PEER_GOSSIP_PATH_V1");
+                  path_bytes.extend_from_slice(instance_hash.as_slice());
+                  path_bytes.extend_from_slice(peer_text.as_bytes());
+                  let network_path_hash = alloy_primitives::keccak256(path_bytes);
+
+                  let signal = SignalKey {
+                      chain_id,
+                      kind: SignalKind::PendingTransaction,
+                      payload_hash: *hash,
+                      subject_hash: *hash,
+                  };
+                  let observation = SensorObservation {
+                      sensor_epoch: SensorEpochKey {
+                          sensor: SensorIdentity {
+                              region_hash,
+                              instance_hash,
+                              source_class: SensorSourceClass::LocalRethP2p,
+                          },
+                          boot_hash,
+                          source_epoch_hash,
+                          clock_epoch_hash,
+                      },
+                      sequence,
+                      signal,
+                      clock: ClockStamp {
+                          monotonic_ns: receive,
+                          disciplined_ns: None,
+                          max_error_ns: 0,
+                          traceable: false,
+                      },
+                      network_path_hash,
+                      raw_evidence_hash: *wire_payload_hash,
+                  };
+                  let sensor_observation_hash = observation.fingerprint();
+
+                  let fabric = FABRIC.get_or_init(|| {
+                      parking_lot::Mutex::new(
+                          SensorFabric::new(policy()).expect("NQC T35 Sensor Fabric policy"),
+                      )
+                  });
+                  let mut fabric = fabric.lock();
+                  fabric.ingest(observation).expect("NQC T35 P2P Sensor Fabric ingest");
+                  let sensor_ingested = monotonic_ns();
+                  let wave = fabric
+                      .plan_recognition_wave()
+                      .expect("NQC T35 P2P recognition wave");
+                  let ticket = wave
+                      .shards
+                      .iter()
+                      .flat_map(|shard| shard.tickets.iter())
+                      .find(|ticket| ticket.key == signal)
+                      .copied()
+                      .expect("NQC T35 P2P recognition ticket");
+                  let recognition_ticket_hash = ticket.fingerprint();
+                  drop(fabric);
+                  let recognized = monotonic_ns();
+
+                  let mut source_bytes = Vec::with_capacity(peer_text.len() + 96);
+                  source_bytes.extend_from_slice(b"NQC_T35_P2P_SENSOR_SOURCE_V1");
+                  source_bytes.extend_from_slice(region_hash.as_slice());
+                  source_bytes.extend_from_slice(instance_hash.as_slice());
+                  source_bytes.extend_from_slice(peer_text.as_bytes());
+                  let source_identity_hash = alloy_primitives::keccak256(source_bytes);
+                  let timestamp_source_hash =
+                      alloy_primitives::keccak256(b"RUST_STD_INSTANT_PROCESS_LOCAL_V1");
+
+                  let Ok(mut file) = std::fs::OpenOptions::new()
+                      .create(true)
+                      .append(true)
+                      .open(path)
+                  else {
+                      return
+                  };
+                  use std::io::Write as _;
+                  let _ = writeln!(
+                      file,
+                      "{{\"schema_version\":3,\"lane\":\"P2P\",\"capture_point\":\"RETH_TRANSACTIONS_MANAGER_INCOMING_TRANSACTIONS\",\"source_identity_hash\":\"{:#x}\",\"source_epoch_hash\":\"{:#x}\",\"clock_epoch_hash\":\"{:#x}\",\"signal_hash\":\"{:#x}\",\"raw_evidence_hash\":\"{:#x}\",\"timestamp_source_hash\":\"{:#x}\",\"sequence\":{},\"receive_monotonic_ns\":{},\"decoded_ns\":{},\"sensor_ingested_ns\":{},\"recognized_ns\":{},\"traceable\":true,\"timestamp_provenance_traceable\":true,\"sensor_clock_traceable\":false,\"clock_scope\":\"LOCAL_MONOTONIC\",\"monotonic_clock\":\"RUST_STD_INSTANT\",\"disciplined_ns\":null,\"global_max_error_ns\":null,\"recognition_stage\":\"NQC_SENSOR_FABRIC\",\"sensor_observation_hash\":\"{:#x}\",\"recognition_ticket_hash\":\"{:#x}\",\"peer_id_full\":\"{}\",\"peer_identity_hash\":\"{:#x}\",\"network_path_hash\":\"{:#x}\",\"wire_payload_hash\":\"{:#x}\",\"wire_payload_hash_algorithm\":\"KECCAK256_RLP_ETH_MESSAGE_BODY\",\"transaction_origin\":\"External\",\"tx_hash\":\"{:#x}\",\"message_kind\":\"{}\"}}",
+                      source_identity_hash,
+                      source_epoch_hash,
+                      clock_epoch_hash,
+                      signal.fingerprint(),
+                      wire_payload_hash,
+                      timestamp_source_hash,
+                      sequence,
+                      receive,
+                      decoded,
+                      sensor_ingested,
+                      recognized,
+                      sensor_observation_hash,
+                      recognition_ticket_hash,
+                      peer_text,
+                      peer_identity_hash,
+                      network_path_hash,
+                      wire_payload_hash,
+                      hash,
+                      kind,
+                  );
+              }
+
+          '''
+          ns=ns.replace(method_marker,helper+method_marker,1)
+
+          anchor='''                // ensure we didn't receive any blob transactions as these are disallowed to be
+          '''
+          insertion='''                let nqc_t35_wire_payload_hash =
+                      alloy_primitives::keccak256(alloy_rlp::encode(&msg));
+                  for tx in &msg.0 {
+                      Self::nqc_t35_capture_peer_signal(
+                          &peer_id,
+                          "IncomingTransactions",
+                          tx.tx_hash(),
+                          &nqc_t35_wire_payload_hash,
+                      );
+                  }
+
+                  // ensure we didn't receive any blob transactions as these are disallowed to be
+          '''
+          if anchor not in ns:
+              raise SystemExit("full transaction ingress anchor missing")
+          ns=ns.replace(anchor,insertion,1)
+          network.write_text(ns)
+          PY
+
+          git add -N \
+            examples/nqc-sensor-fabric/Cargo.toml \
+            examples/nqc-sensor-fabric/src/lib.rs \
+            examples/nqc-t35-observer/Cargo.toml \
+            examples/nqc-t35-observer/src/main.rs
+          git diff --check
+          git diff --binary > /tmp/nqc-t35/evidence/nqc-t35-capture.patch
+          test -s /tmp/nqc-t35/evidence/nqc-t35-capture.patch
+          sha256sum /tmp/nqc-t35/evidence/nqc-t35-capture.patch > /tmp/nqc-t35/evidence/capture-patch.sha256
+
+          python3 - <<'PY'
+          import hashlib, os
+          from pathlib import Path
+          root=Path(".")
+          h=hashlib.sha256()
+          files=[]
+          for p in root.rglob("*"):
+              if not p.is_file():
+                  continue
+              rel=p.relative_to(root)
+              if ".git" in rel.parts or "target" in rel.parts:
+                  continue
+              files.append(rel)
+          for rel in sorted(files, key=lambda p: p.as_posix()):
+              data=(root/rel).read_bytes()
+              h.update(rel.as_posix().encode()+b"\0")
+              h.update(hashlib.sha256(data).digest())
+          Path("/tmp/nqc-t35/evidence/capture-source-tree.sha256").write_text(h.hexdigest()+"\n")
+          PY
+
+      - name: Build exact pinned capture binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35/reth
+          cargo build -p nqc-t35-observer
+          BIN="$PWD/target/debug/nqc-t35-observer"
+          test -x "$BIN"
+          "$BIN" --version | tee /tmp/nqc-t35/evidence/capture-binary-version.txt
+          sha256sum "$BIN" > /tmp/nqc-t35/evidence/capture-binary.sha256
+          stat -c %s "$BIN" > /tmp/nqc-t35/evidence/capture-binary.size
+
+      - name: Run exact two-node P2P ExEx IPC experiment and attest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35/reth
+          BIN="$PWD/target/debug/nqc-t35-observer"
+          EV=/tmp/nqc-t35/evidence
+          rm -rf /tmp/nqc-a /tmp/nqc-b
+          rm -f /tmp/nqc-a.ipc /tmp/nqc-b.ipc /tmp/nqc-a-p2p.raw /tmp/nqc-a-exex.raw /tmp/nqc-b-exex.raw
+          mkdir -p /tmp/nqc-a /tmp/nqc-b
+
+          cleanup() {
+            test -f /tmp/nqc-t35/a.pid && kill "$(cat /tmp/nqc-t35/a.pid)" 2>/dev/null || true
+            test -f /tmp/nqc-t35/b.pid && kill "$(cat /tmp/nqc-t35/b.pid)" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+
+          NQC_T35_CHAIN_ID=1337 \
+          NQC_T35_REGION_SEED=github-runner \
+          NQC_T35_INSTANCE_SEED=node-b \
+          NQC_T35_BOOT_SEED=node-b-boot \
+          NQC_T35_EXEX_RAW=/tmp/nqc-b-exex.raw \
+          "$BIN" node --dev --dev.block-time 10s --datadir /tmp/nqc-b \
+            --disable-discovery --no-persist-peers --nat none \
+            --ipcpath /tmp/nqc-b.ipc --http --http.addr 127.0.0.1 --http.port 18546 \
+            --http.api admin,eth,net,web3 --port 31304 --authrpc.port 18552 \
+            > "$EV/reth-b.log" 2>&1 &
+          echo $! > /tmp/nqc-t35/b.pid
+
+          for i in $(seq 1 120); do
+            curl -fsS -H 'content-type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"web3_clientVersion","params":[]}' \
+              http://127.0.0.1:18546 > "$EV/b-client.json" && break
+            sleep 1
+          done
+          test -s "$EV/b-client.json"
+
+          curl -fsS -H 'content-type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"admin_nodeInfo","params":[]}' \
+            http://127.0.0.1:18546 > "$EV/b-nodeinfo.json"
+          ENODE="$(python3 - <<'PY'
+          import json
+          print(json.load(open('/tmp/nqc-t35/evidence/b-nodeinfo.json'))['result']['enode'])
+          PY
+          )"
+          test -n "$ENODE"
+
+          NQC_T35_CHAIN_ID=1337 \
+          NQC_T35_REGION_SEED=github-runner \
+          NQC_T35_INSTANCE_SEED=node-a \
+          NQC_T35_BOOT_SEED=node-a-boot \
+          NQC_T35_P2P_RAW=/tmp/nqc-a-p2p.raw \
+          NQC_T35_EXEX_RAW=/tmp/nqc-a-exex.raw \
+          "$BIN" node --dev --dev.block-time 10s --datadir /tmp/nqc-a \
+            --disable-discovery --trusted-only --trusted-peers "$ENODE" --no-persist-peers --nat none \
+            --ipcpath /tmp/nqc-a.ipc --http --http.addr 127.0.0.1 --http.port 18545 \
+            --http.api admin,eth,net,web3 --port 31303 --authrpc.port 18551 \
+            > "$EV/reth-a.log" 2>&1 &
+          echo $! > /tmp/nqc-t35/a.pid
+
+          for i in $(seq 1 120); do
+            curl -fsS -H 'content-type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"web3_clientVersion","params":[]}' \
+              http://127.0.0.1:18545 > "$EV/a-client.json" && break
+            sleep 1
+          done
+          test -s "$EV/a-client.json"
+
+          for i in $(seq 1 90); do
+            curl -fsS -H 'content-type: application/json' \
+              --data '{"jsonrpc":"2.0","id":1,"method":"net_peerCount","params":[]}' \
+              http://127.0.0.1:18545 > "$EV/a-peer-count.json" || true
+            python3 - <<'PY' && break || true
+          import json
+          x=json.load(open('/tmp/nqc-t35/evidence/a-peer-count.json'))
+          assert int(x['result'],16)==1
+          PY
+            sleep 1
+          done
+          python3 - <<'PY'
+          import json
+          assert int(json.load(open('/tmp/nqc-t35/evidence/a-peer-count.json'))['result'],16)==1
+          PY
+
+          curl -fsS -H 'content-type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"admin_peers","params":[]}' \
+            http://127.0.0.1:18545 > "$EV/a-peers.json"
+          python3 - <<'PY'
+          import json
+          peers=json.load(open('/tmp/nqc-t35/evidence/a-peers.json'))['result']
+          assert len(peers)==1, len(peers)
+          PY
+
+          python3 - <<'PY'
+          import json, urllib.request
+          from pathlib import Path
+
+          def rpc(method, params):
+              data=json.dumps({"jsonrpc":"2.0","id":1,"method":method,"params":params},separators=(",",":")).encode()
+              req=urllib.request.Request("http://127.0.0.1:18546",data=data,headers={"content-type":"application/json"})
+              with urllib.request.urlopen(req,timeout=10) as r:
+                  body=json.loads(r.read().decode())
+              if body.get("error") is not None:
+                  raise RuntimeError(f"{method}: {body['error']}")
+              return body["result"]
+
+          accounts=rpc("eth_accounts",[])
+          assert accounts
+          sender=accounts[0]
+          chain_id=rpc("eth_chainId",[])
+          base_nonce=int(rpc("eth_getTransactionCount",[sender,"pending"]),16)
+          gas_price=rpc("eth_gasPrice",[])
+          hashes=[]
+          for i in range(128):
+              txh=rpc("eth_sendTransaction",[{
+                  "from":sender,
+                  "to":"0x000000000000000000000000000000000000dead",
+                  "value":"0x1",
+                  "gas":"0x5208",
+                  "gasPrice":gas_price,
+                  "nonce":hex(base_nonce+i),
+                  "chainId":chain_id,
+                  "type":"0x0"
+              }])
+              assert isinstance(txh,str) and txh.startswith("0x")
+              hashes.append(txh.lower())
+          Path('/tmp/nqc-t35/evidence/submitted-tx-hashes.json').write_text(json.dumps(hashes,indent=2)+"\n")
+          PY
+
+          for i in $(seq 1 120); do
+            count=0
+            test -f /tmp/nqc-a-p2p.raw && count="$(wc -l < /tmp/nqc-a-p2p.raw)"
+            if test "$count" -ge 64; then break; fi
+            sleep 1
+          done
+          test -s /tmp/nqc-a-p2p.raw
+          test "$(wc -l < /tmp/nqc-a-p2p.raw)" -ge 64
+
+          python3 - <<'PY'
+          import json
+          submitted=set(json.load(open('/tmp/nqc-t35/evidence/submitted-tx-hashes.json')))
+          observed=set()
+          for line in open('/tmp/nqc-a-p2p.raw'):
+              event=json.loads(line)
+              observed.add(event['tx_hash'].lower())
+              assert event['capture_point']=='RETH_TRANSACTIONS_MANAGER_INCOMING_TRANSACTIONS'
+              assert event['recognition_stage']=='NQC_SENSOR_FABRIC'
+              assert event['transaction_origin']=='External'
+          overlap=submitted & observed
+          assert len(overlap)>=64, (len(overlap),len(observed))
+          open('/tmp/nqc-t35/evidence/p2p-submitted-overlap.json','w').write(
+              json.dumps({"submitted":len(submitted),"observed":len(observed),"overlap":len(overlap)},sort_keys=True)+"\n"
+          )
+          PY
+
+          for i in $(seq 1 60); do
+            test -s /tmp/nqc-a-exex.raw && break
+            sleep 1
+          done
+          test -s /tmp/nqc-a-exex.raw
+
+          test -S /tmp/nqc-a.ipc
+          python3 - <<'PY'
+          import json,socket
+          s=socket.socket(socket.AF_UNIX,socket.SOCK_STREAM)
+          s.settimeout(5)
+          s.connect('/tmp/nqc-a.ipc')
+          s.sendall(b'{"jsonrpc":"2.0","id":35,"method":"eth_chainId","params":[]}\n')
+          data=s.recv(65536)
+          s.close()
+          obj=json.loads(data.decode().strip().splitlines()[0])
+          assert obj.get('id')==35 and isinstance(obj.get('result'),str)
+          open('/tmp/nqc-t35/evidence/ipc-chain-id.json','w').write(json.dumps(obj,sort_keys=True)+"\n")
+          PY
+
+          curl -fsS -H 'content-type: application/json' \
+            --data '{"jsonrpc":"2.0","id":1,"method":"eth_getBlockByNumber","params":["latest",false]}' \
+            http://127.0.0.1:18545 > "$EV/canonical-head.json"
+
+          cp /tmp/nqc-a-p2p.raw "$EV/p2p-raw.ndjson"
+          cp /tmp/nqc-a-exex.raw "$EV/exex-raw.ndjson"
+
+          python3 - <<'PY'
+          import hashlib,json,os
+          from pathlib import Path
+          ev=Path('/tmp/nqc-t35/evidence')
+
+          def sha_bytes(data): return hashlib.sha256(data).hexdigest()
+          def fsha(p):
+              h=hashlib.sha256()
+              with open(p,'rb') as f:
+                  for b in iter(lambda:f.read(1<<20),b''): h.update(b)
+              return h.hexdigest()
+          def stable(x): return sha_bytes(json.dumps(x,sort_keys=True,separators=(',',':')).encode())
+          def h64(x):
+              if isinstance(x,str) and x.startswith('0x'): x=x[2:]
+              assert isinstance(x,str) and len(x)==64 and all(c in '0123456789abcdefABCDEF' for c in x), x
+              return x.lower()
+
+          src='5a6940e351fed80458fe6c9da8581cbe4b8bd036'
+          binary_sha=(ev/'capture-binary.sha256').read_text().split()[0]
+          binary_size=int((ev/'capture-binary.size').read_text().strip())
+          binary_version=(ev/'capture-binary-version.txt').read_text().strip()
+          patch_sha=(ev/'capture-patch.sha256').read_text().split()[0]
+          source_tree_sha=(ev/'capture-source-tree.sha256').read_text().strip()
+          lock_sha=(ev/'upstream-cargo-lock.sha256').read_text().split()[0]
+          rustc=(ev/'rustc.txt').read_text().strip()
+          cargo=(ev/'cargo.txt').read_text().strip()
+          chain_id=int(json.load(open(ev/'ipc-chain-id.json'))['result'],16)
+
+          separation={
+              'schema_version':1,
+              'canonical_lane':'RETH_AF_UNIX_JSON_RPC',
+              'canonical_ipc_path':'/tmp/nqc-a.ipc',
+              'p2p_signal_capture':'TransactionsManager::on_network_tx_event::IncomingTransactions',
+              'exex_signal_capture':'ExExContext.notifications',
+              'signal_lanes_are_noncanonical':True,
+              'signal_lanes_can_mutate_canonical_truth':False,
+              'authority_issued':False,
+          }
+          (ev/'canonical-lane-separation-proof.json').write_text(json.dumps(separation,sort_keys=True,separators=(',',':'))+"\n")
+          separation_sha=fsha(ev/'canonical-lane-separation-proof.json')
+
+          core={
+              'schema_version':1,
+              'component':'nqc-reth-t35-capture',
+              'upstream_repository':'paradigmxyz/reth',
+              'upstream_release_tag':'v2.5.2',
+              'upstream_tag_object_sha':'d62e996e15a2fb67c190e9baaeeba79df5415346',
+              'upstream_source_commit_sha':src,
+              'upstream_release_asset_sha256':'e360895ac51b351ff0c44573f0f619bb1e7c3ff2df55502af1190c14c9b5ef6d',
+              'upstream_cargo_lock_sha256':lock_sha,
+              'capture_patch_sha256':patch_sha,
+              'capture_source_tree_sha256':source_tree_sha,
+              'rustc_version':rustc,
+              'cargo_version':cargo,
+              'build_profile':'debug',
+              'features':['dev','exact-p2p-ingress','nqc-sensor-fabric','exex'],
+              'p2p_hook':'TransactionsManager::on_network_tx_event/IncomingTransactions before pool import',
+              'exex_installation':'NodeBuilder::install_exex NQC-T35-Observer',
+              'canonical_lane_separation_proof_sha256':separation_sha,
+          }
+          build={**core,
+              'capture_binary_sha256':binary_sha,
+              'capture_binary_size_bytes':binary_size,
+              'capture_binary_version':binary_version,
+              'capture_build_identity_sha256':stable(core),
+          }
+          (ev/'capture-build-manifest.json').write_text(json.dumps(build,indent=2,sort_keys=True)+"\n")
+
+          peer_doc=json.load(open(ev/'a-peers.json'))['result']
+          assert len(peer_doc)==1
+          runtime_identity=stable({
+              'client':json.load(open(ev/'a-client.json'))['result'],
+              'peer':peer_doc[0],
+              'chain_id':chain_id,
+              'source_commit':src,
+          })
+          boot_identity=stable({
+              'runtime_identity':runtime_identity,
+              'canonical_head':json.load(open(ev/'canonical-head.json')).get('result',{}).get('hash'),
+          })
+          ipc_endpoint_sha=sha_bytes(str(Path('/tmp/nqc-a.ipc').resolve()).encode())
+
+          def normalize_common(x,lane):
+              out={
+                  'schema_version':3,
+                  'lane':lane,
+                  'source_identity_hash':h64(x['source_identity_hash']),
+                  'source_epoch_hash':h64(x['source_epoch_hash']),
+                  'clock_epoch_hash':h64(x['clock_epoch_hash']),
+                  'signal_hash':h64(x['signal_hash']),
+                  'raw_evidence_hash':h64(x['raw_evidence_hash']),
+                  'timestamp_source_hash':h64(x['timestamp_source_hash']),
+                  'sequence':int(x['sequence']),
+                  'receive_monotonic_ns':int(x['receive_monotonic_ns']),
+                  'decoded_ns':int(x['decoded_ns']),
+                  'sensor_ingested_ns':int(x['sensor_ingested_ns']),
+                  'recognized_ns':int(x['recognized_ns']),
+                  'traceable':bool(x['traceable']),
+                  'clock_scope':x['clock_scope'],
+                  'monotonic_clock':x['monotonic_clock'],
+                  'disciplined_ns':x.get('disciplined_ns'),
+                  'global_max_error_ns':x.get('global_max_error_ns'),
+                  'recognition_stage':x['recognition_stage'],
+                  'sensor_observation_hash':h64(x['sensor_observation_hash']),
+                  'recognition_ticket_hash':h64(x['recognition_ticket_hash']),
+              }
+              return out
+
+          p2p=[]
+          for line in (ev/'p2p-raw.ndjson').read_text().splitlines():
+              x=json.loads(line)
+              o=normalize_common(x,'P2P')
+              o.update({
+                  'peer_identity_hash':h64(x['peer_identity_hash']),
+                  'network_path_hash':h64(x['network_path_hash']),
+                  'wire_payload_hash':h64(x['wire_payload_hash']),
+                  'transaction_origin':'External',
+                  'tx_hash':h64(x['tx_hash']),
+                  'capture_point':x['capture_point'],
+              })
+              p2p.append(o)
+          assert len(p2p)>=64
+
+          exex=[]
+          for line in (ev/'exex-raw.ndjson').read_text().splitlines():
+              x=json.loads(line)
+              o=normalize_common(x,'EXEX')
+              o.update({
+                  'notification_kind':x['notification_kind'],
+                  'canonical_block_number':int(x['canonical_block_number']),
+                  'canonical_block_hash':h64(x['canonical_block_hash']),
+                  'notification_hash':h64(x['notification_hash']),
+                  'capture_point':x['capture_point'],
+              })
+              exex.append(o)
+          assert exex
+
+          for lane,events,quality in [
+              ('p2p',p2p,'PEER_GOSSIP_EXACT'),
+              ('exex',exex,'CANON_STATE_NOTIFICATION_EXACT'),
+          ]:
+              trace=ev/f'{lane}.ndjson'
+              trace.write_text(''.join(json.dumps(e,sort_keys=True,separators=(',',':'))+"\n" for e in events))
+              manifest={
+                  'schema_version':3,
+                  'format':'NQC_RETH_SIGNAL_TRACE_V3',
+                  'lane':lane.upper(),
+                  'capture_quality':quality,
+                  'reth_binary_sha256':binary_sha,
+                  'reth_version':binary_version,
+                  'reth_source_commit':src,
+                  'capture_api_revision':'reth-v2.5.2-exact-ingress-exex+nqc-sensor-fabric-v1',
+                  'reth_instance_hash':runtime_identity,
+                  'reth_boot_hash':boot_identity,
+                  'capture_build_hash':build['capture_build_identity_sha256'],
+                  'canonical_lane_separation_proof_sha256':separation_sha,
+                  'canonical_ipc_endpoint_sha256':ipc_endpoint_sha,
+                  'chain_id':chain_id,
+                  'trace_file':trace.name,
+                  'trace_sha256':fsha(trace),
+                  'events':len(events),
+              }
+              (ev/f'{lane}-manifest.json').write_text(json.dumps(manifest,indent=2,sort_keys=True)+"\n")
+
+          summary={
+              'schema_version':3,
+              'scope':'LOCAL_DEV_PHYSICAL_TWO_RETH_NODES_GITHUB_RUNNER',
+              'reth_source_commit':src,
+              'capture_build_identity_sha256':build['capture_build_identity_sha256'],
+              'chain_id':chain_id,
+              'connected_peer_count':1,
+              'p2p_capture_quality':'PEER_GOSSIP_EXACT',
+              'p2p_events':len(p2p),
+              'exex_capture_quality':'CANON_STATE_NOTIFICATION_EXACT',
+              'exex_events':len(exex),
+              'sensor_recognition':'NQC_SENSOR_FABRIC_PHYSICAL',
+              'canonical_ipc_roundtrip':True,
+              'canonical_lane_separate_from_signal_lanes':True,
+              'authority_issued':False,
+              'production_latency_claim':'NONE',
+              'mainnet_market_evidence':False,
+              'phc_ptp_global_clock':'NOT_TESTED',
+          }
+          summary['attestation_sha256']=stable(summary)
+          (ev/'runtime-summary.json').write_text(json.dumps(summary,indent=2,sort_keys=True)+"\n")
+          PY
+
+          base64 -d "$GITHUB_WORKSPACE/ci/nqc-t35/reth-physical-probe.py.gz.b64" | gzip -d > /tmp/nqc-t35/reth_physical_probe.py
+          chmod +x /tmp/nqc-t35/reth_physical_probe.py
+          python3 /tmp/nqc-t35/reth_physical_probe.py \
+            --reth "$BIN" \
+            --release-pin "$GITHUB_WORKSPACE/ci/nqc-t35/nqc_reth_v2_5_2_lock.json" \
+            --capture-build "$EV/capture-build-manifest.json" \
+            --ipc /tmp/nqc-a.ipc \
+            --p2p-evidence "$EV/p2p-manifest.json" \
+            --exex-evidence "$EV/exex-manifest.json" \
+            --hard-max-clock-error-ns 100000 \
+            --json --output "$EV/physical-probe-result.json" | tee "$EV/physical-probe.stdout.json"
+
+          python3 - <<'PY'
+          import json
+          r=json.load(open('/tmp/nqc-t35/evidence/physical-probe-result.json'))
+          assert r['physical_reth_p2p_exex_ready'] is True, r
+          assert r['p2p_tap_evidence']['status']=='MEASURED'
+          assert r['exex_tap_evidence']['status']=='MEASURED'
+          assert r['canonical_ipc']['status']=='MEASURED'
+          print('PASS strict T35 physical closure gate')
+          print('P2P samples',r['p2p_tap_evidence']['recognition_latency']['samples'])
+          print('P2P p99 ns',r['p2p_tap_evidence']['recognition_latency']['p99_ns'])
+          print('ExEx samples',r['exex_tap_evidence']['recognition_latency']['samples'])
+          PY
+
+          cleanup
+          trap - EXIT
+
+      - name: Finalize evidence hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t35
+          find evidence -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+          sha256sum evidence/SHA256SUMS.txt
+          cat evidence/runtime-summary.json
+          cat evidence/physical-probe-result.json
+
+      - name: Upload exact T35 closure evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nqc-t35-exact-physical-closure-evidence
+          path: /tmp/nqc-t35/evidence/
+          if-no-files-found: error
+          retention-days: 30

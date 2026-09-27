@@ -1,0 +1,12 @@
+[package]
+name = "nqc-sensor-fabric"
+version = "0.1.0-t35"
+publish = false
+edition = "2021"
+
+[dependencies]
+alloy-primitives.workspace = true
+thiserror.workspace = true
+
+[lints]
+workspace = true

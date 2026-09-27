@@ -1,0 +1,160 @@
+name: NQC T36 Flash Funding Executor Evidence
+
+on:
+  push:
+    branches:
+      - nqc/t36-flash-funding-evidence-20260926
+    paths:
+      - .github/workflows/nqc-t36-flash-funding-evidence.yml
+      - ci/nqc-t36/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  foundry-exact-callbacks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore exact T36 source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-t36/source /tmp/nqc-t36/evidence
+          cp -a ci/nqc-t36/contracts/. /tmp/nqc-t36/source/
+          find /tmp/nqc-t36/source -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/nqc-t36/evidence/source-sha256.txt
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root=Path('/tmp/nqc-t36/source')
+          h=hashlib.sha256()
+          for p in sorted((p for p in root.rglob('*') if p.is_file()), key=lambda p:p.relative_to(root).as_posix()):
+              rel=p.relative_to(root).as_posix().encode()
+              data=p.read_bytes()
+              h.update(rel+b'\0'+hashlib.sha256(data).digest())
+          Path('/tmp/nqc-t36/evidence/source-tree.sha256').write_text(h.hexdigest()+'\n')
+          PY
+
+      - name: Install pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t36
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o foundry.tar.gz \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  foundry.tar.gz" | sha256sum -c -
+          mkdir -p /tmp/nqc-t36/foundry
+          tar -xzf foundry.tar.gz -C /tmp/nqc-t36/foundry
+          /tmp/nqc-t36/foundry/forge --version | tee /tmp/nqc-t36/evidence/forge-version.txt
+          /tmp/nqc-t36/foundry/cast --version | tee /tmp/nqc-t36/evidence/cast-version.txt
+          sha256sum /tmp/nqc-t36/foundry/forge /tmp/nqc-t36/foundry/cast > /tmp/nqc-t36/evidence/foundry-binaries.sha256
+
+      - name: Format build and test exact Aave Balancer callback coordinator
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-t36/foundry:$PATH"
+          cd /tmp/nqc-t36/source
+          forge fmt
+          forge fmt --check | tee /tmp/nqc-t36/evidence/forge-fmt.txt
+          find /tmp/nqc-t36/source -type f -print0 | sort -z | xargs -0 sha256sum > /tmp/nqc-t36/evidence/formatted-source-sha256.txt
+          python3 - <<'PY'
+          import hashlib
+          from pathlib import Path
+          root=Path('/tmp/nqc-t36/source')
+          h=hashlib.sha256()
+          for p in sorted((p for p in root.rglob('*') if p.is_file()), key=lambda p:p.relative_to(root).as_posix()):
+              rel=p.relative_to(root).as_posix().encode()
+              data=p.read_bytes()
+              h.update(rel+b'\0'+hashlib.sha256(data).digest())
+          Path('/tmp/nqc-t36/evidence/tested-source-tree.sha256').write_text(h.hexdigest()+'\n')
+          PY
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner -C /tmp/nqc-t36/source -cf - foundry.toml src test | gzip -n > /tmp/nqc-t36/evidence/tested-source.tar.gz
+          sha256sum /tmp/nqc-t36/evidence/tested-source.tar.gz > /tmp/nqc-t36/evidence/tested-source.tar.gz.sha256
+          forge build --sizes 2>&1 | tee /tmp/nqc-t36/evidence/forge-build.txt
+          forge test -vvv 2>&1 | tee /tmp/nqc-t36/evidence/forge-test.txt
+          forge inspect NqcFlashFundingExecutor methodIdentifiers > /tmp/nqc-t36/evidence/method-identifiers.json
+          forge inspect NqcFlashFundingExecutor storageLayout > /tmp/nqc-t36/evidence/storage-layout.json
+
+      - name: Verify protocol selectors and evidence invariants
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-t36/foundry:$PATH"
+          {
+            echo "Aave flashLoanSimple $(cast sig 'flashLoanSimple(address,address,uint256,bytes,uint16)')"
+            echo "Aave executeOperation $(cast sig 'executeOperation(address,uint256,uint256,address,bytes)')"
+            echo "Balancer flashLoan $(cast sig 'flashLoan(address,address[],uint256[],bytes)')"
+            echo "Balancer receiveFlashLoan $(cast sig 'receiveFlashLoan(address[],uint256[],uint256[],bytes)')"
+          } | tee /tmp/nqc-t36/evidence/protocol-selectors.txt
+
+          grep -q '\[PASS\] testNestedAaveBalancerFundingRepaysInReverseAndPreservesBaseline()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testPreexistingExecutorBalanceCannotSubsidizeMissingFeeOrProfit()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testObservedAaveFeeMustEqualPlanFee()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testObservedBalancerFeeMustEqualPlanFee()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testPayloadMutationIsRejectedBeforeBorrowing()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testExecutionIdentityCannotReplay()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testStrategyReturnDeclarationMustMatchObservedBalance()' /tmp/nqc-t36/evidence/forge-test.txt
+          grep -q '\[PASS\] testDuplicateLenderRejected()' /tmp/nqc-t36/evidence/forge-test.txt
+
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          ev=Path('/tmp/nqc-t36/evidence')
+          def fsha(p):
+              h=hashlib.sha256()
+              with open(p,'rb') as f:
+                  for b in iter(lambda:f.read(1<<20),b''): h.update(b)
+              return h.hexdigest()
+          out={
+              'schema_version':1,
+              'tranche':'FLASH_FUNDING_EXECUTOR_36',
+              'scope':'LOCAL_DETERMINISTIC_PROTOCOL_CALLBACK_EVIDENCE',
+              'foundry_version':(ev/'forge-version.txt').read_text().strip(),
+              'foundry_release_asset_sha256':'cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b',
+              'input_source_tree_sha256':(ev/'source-tree.sha256').read_text().strip(),
+              'tested_source_tree_sha256':(ev/'tested-source-tree.sha256').read_text().strip(),
+              'tested_source_archive_sha256':fsha(ev/'tested-source.tar.gz'),
+              'forge_test_sha256':fsha(ev/'forge-test.txt'),
+              'method_identifiers_sha256':fsha(ev/'method-identifiers.json'),
+              'storage_layout_sha256':fsha(ev/'storage-layout.json'),
+              'aave_v3_exact_callback_semantics':True,
+              'balancer_v2_exact_callback_semantics':True,
+              'bounded_nested_depth':4,
+              'reverse_repayment_verified':True,
+              'exact_fee_match_verified':True,
+              'baseline_subsidy_blocked':True,
+              'execution_identity_replay_blocked':True,
+              'authority_issued':False,
+              'rpc_dependency':False,
+              'secret_dependency':False,
+              'mainnet_fork_truth':'NOT_TESTED',
+              'live_market_evidence':False,
+              'formal_certification_status':'NOT_CERTIFIED'
+          }
+          payload=json.dumps(out,sort_keys=True,separators=(',',':')).encode()
+          out['attestation_sha256']=hashlib.sha256(payload).hexdigest()
+          (ev/'runtime-summary.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(out,indent=2,sort_keys=True))
+          PY
+
+      - name: Finalize evidence hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t36
+          find evidence -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+          sha256sum evidence/SHA256SUMS.txt
+          cat evidence/runtime-summary.json
+
+      - name: Upload T36 deterministic executor evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nqc-t36-flash-funding-executor-evidence
+          path: /tmp/nqc-t36/evidence/
+          if-no-files-found: error
+          retention-days: 30

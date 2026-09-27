@@ -1,0 +1,245 @@
+name: NQC T36 Historical Mainnet Fork Parity
+
+on:
+  push:
+    branches:
+      - nqc/t36-flash-funding-evidence-20260926
+    paths:
+      - .github/workflows/nqc-t36-mainnet-fork-parity.yml
+      - ci/nqc-t36/fork/**
+      - ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dual-provider-historical-fork:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PINNED_BLOCK_DEC: "20000000"
+      PINNED_BLOCK_HEX: "0x1312d00"
+      RPC_A: "https://eth.llamarpc.com"
+      RPC_B: "https://eth.drpc.org"
+      AAVE_V3_POOL: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fa4E2"
+      BALANCER_V2_VAULT: "0xBA12222222228d8Ba445958a75a0704d566BF2C8"
+      WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pinned Foundry 1.7.1
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-t36-fork/foundry /tmp/nqc-t36-fork/evidence /tmp/nqc-t36-fork/source
+          curl --fail --location --retry 5 --retry-all-errors \
+            -o /tmp/nqc-t36-fork/foundry.tar.gz \
+            https://github.com/foundry-rs/foundry/releases/download/v1.7.1/foundry_v1.7.1_linux_amd64.tar.gz
+          echo "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b  /tmp/nqc-t36-fork/foundry.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/nqc-t36-fork/foundry.tar.gz -C /tmp/nqc-t36-fork/foundry
+          /tmp/nqc-t36-fork/foundry/forge --version | tee /tmp/nqc-t36-fork/evidence/forge-version.txt
+          sha256sum /tmp/nqc-t36-fork/foundry/forge /tmp/nqc-t36-fork/foundry/cast \
+            > /tmp/nqc-t36-fork/evidence/foundry-binaries.sha256
+
+      - name: Restore exact executor plus fork test
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp -a ci/nqc-t36/contracts/. /tmp/nqc-t36-fork/source/
+          cp ci/nqc-t36/fork/NqcFlashFundingExecutorFork.t.sol \
+            /tmp/nqc-t36-fork/source/test/NqcFlashFundingExecutorFork.t.sol
+          export PATH="/tmp/nqc-t36-fork/foundry:$PATH"
+          cd /tmp/nqc-t36-fork/source
+          forge fmt
+          forge fmt --check
+          forge build --sizes 2>&1 | tee /tmp/nqc-t36-fork/evidence/forge-build.txt
+          tar --sort=name --mtime='UTC 1970-01-01' --owner=0 --group=0 --numeric-owner \
+            -C /tmp/nqc-t36-fork/source -cf - foundry.toml src test \
+            | gzip -n > /tmp/nqc-t36-fork/evidence/fork-tested-source.tar.gz
+          sha256sum /tmp/nqc-t36-fork/evidence/fork-tested-source.tar.gz \
+            > /tmp/nqc-t36-fork/evidence/fork-tested-source.tar.gz.sha256
+
+      - name: Cross-check historical canonical block and protocol code
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib,json,os,time,urllib.request
+          from pathlib import Path
+
+          ev=Path('/tmp/nqc-t36-fork/evidence')
+          endpoints={'A':os.environ['RPC_A'],'B':os.environ['RPC_B']}
+          block_tag=os.environ['PINNED_BLOCK_HEX']
+          addresses={
+              'aave_v3_pool':os.environ['AAVE_V3_POOL'],
+              'balancer_v2_vault':os.environ['BALANCER_V2_VAULT'],
+              'weth':os.environ['WETH'],
+          }
+
+          def rpc(url,method,params):
+              body=json.dumps({'jsonrpc':'2.0','id':36,'method':method,'params':params},
+                              separators=(',',':')).encode()
+              last=None
+              for attempt in range(6):
+                  try:
+                      req=urllib.request.Request(url,data=body,headers={'content-type':'application/json','user-agent':'NQC-T36-evidence'})
+                      with urllib.request.urlopen(req,timeout=30) as r:
+                          out=json.loads(r.read().decode())
+                      if out.get('error') is not None:
+                          raise RuntimeError(out['error'])
+                      return out['result']
+                  except Exception as e:
+                      last=e
+                      time.sleep(min(8,2**attempt))
+              raise RuntimeError(f'{method} failed at {url}: {last}')
+
+          docs={}
+          for name,url in endpoints.items():
+              block=rpc(url,'eth_getBlockByNumber',[block_tag,False])
+              assert block and int(block['number'],16)==int(os.environ['PINNED_BLOCK_DEC'])
+              chain=rpc(url,'eth_chainId',[])
+              assert int(chain,16)==1
+              codes={}
+              for label,address in addresses.items():
+                  code=rpc(url,'eth_getCode',[address,block_tag])
+                  assert isinstance(code,str) and code.startswith('0x') and len(code)>4, (name,label)
+                  codes[label]={
+                      'address':address,
+                      'code_sha256':hashlib.sha256(bytes.fromhex(code[2:])).hexdigest(),
+                      'code_bytes':(len(code)-2)//2,
+                  }
+              docs[name]={
+                  'provider_label':name,
+                  'chain_id':1,
+                  'block_number':int(block['number'],16),
+                  'block_hash':block['hash'].lower(),
+                  'state_root':block['stateRoot'].lower(),
+                  'timestamp':int(block['timestamp'],16),
+                  'protocol_code':codes,
+              }
+              (ev/f'provider-{name.lower()}-canonical.json').write_text(
+                  json.dumps(docs[name],indent=2,sort_keys=True)+'\n'
+              )
+
+          a,b=docs['A'],docs['B']
+          assert a['block_hash']==b['block_hash'], (a['block_hash'],b['block_hash'])
+          assert a['state_root']==b['state_root'], (a['state_root'],b['state_root'])
+          for label in addresses:
+              assert a['protocol_code'][label]['code_sha256']==b['protocol_code'][label]['code_sha256'], label
+
+          cross={
+              'schema_version':1,
+              'chain_id':1,
+              'block_number':a['block_number'],
+              'block_hash':a['block_hash'],
+              'state_root':a['state_root'],
+              'timestamp':a['timestamp'],
+              'dual_provider_identity_match':True,
+              'protocol_code_identity_match':True,
+              'providers_are_evidence_acquisition_only':True,
+              'runtime_rpc_dependency':False,
+              'secret_dependency':False,
+              'protocol_code':a['protocol_code'],
+          }
+          (ev/'canonical-crosscheck.json').write_text(json.dumps(cross,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(cross,indent=2,sort_keys=True))
+          PY
+
+      - name: Execute exact fork parity through provider A
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-t36-fork/foundry:$PATH"
+          export ETH_RPC_URL="$RPC_A"
+          cd /tmp/nqc-t36-fork/source
+          forge test \
+            --fork-url "$RPC_A" \
+            --fork-block-number "$PINNED_BLOCK_DEC" \
+            --match-contract NqcFlashFundingExecutorForkTest \
+            -vvv 2>&1 | tee /tmp/nqc-t36-fork/evidence/fork-provider-a-test.txt
+
+      - name: Execute exact fork parity through provider B
+        shell: bash
+        run: |
+          set -euo pipefail
+          export PATH="/tmp/nqc-t36-fork/foundry:$PATH"
+          export ETH_RPC_URL="$RPC_B"
+          cd /tmp/nqc-t36-fork/source
+          forge test \
+            --fork-url "$RPC_B" \
+            --fork-block-number "$PINNED_BLOCK_DEC" \
+            --match-contract NqcFlashFundingExecutorForkTest \
+            -vvv 2>&1 | tee /tmp/nqc-t36-fork/evidence/fork-provider-b-test.txt
+
+      - name: Attest historical fork parity
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -q '\[PASS\] testHistoricalMainnetAaveV3FlashLoanSimpleParity()' /tmp/nqc-t36-fork/evidence/fork-provider-a-test.txt
+          grep -q '\[PASS\] testHistoricalMainnetBalancerV2FlashLoanParity()' /tmp/nqc-t36-fork/evidence/fork-provider-a-test.txt
+          grep -q '\[PASS\] testHistoricalMainnetNestedAaveBalancerReverseRepaymentParity()' /tmp/nqc-t36-fork/evidence/fork-provider-a-test.txt
+          grep -q '\[PASS\] testHistoricalMainnetAaveV3FlashLoanSimpleParity()' /tmp/nqc-t36-fork/evidence/fork-provider-b-test.txt
+          grep -q '\[PASS\] testHistoricalMainnetBalancerV2FlashLoanParity()' /tmp/nqc-t36-fork/evidence/fork-provider-b-test.txt
+          grep -q '\[PASS\] testHistoricalMainnetNestedAaveBalancerReverseRepaymentParity()' /tmp/nqc-t36-fork/evidence/fork-provider-b-test.txt
+
+          python3 - <<'PY'
+          import hashlib,json
+          from pathlib import Path
+          ev=Path('/tmp/nqc-t36-fork/evidence')
+          def fsha(p):
+              h=hashlib.sha256()
+              with open(p,'rb') as f:
+                  for b in iter(lambda:f.read(1<<20),b''): h.update(b)
+              return h.hexdigest()
+
+          canonical=json.load(open(ev/'canonical-crosscheck.json'))
+          out={
+              'schema_version':1,
+              'tranche':'FLASH_FUNDING_EXECUTOR_36',
+              'scope':'HISTORICAL_ETHEREUM_MAINNET_FORK_PARITY',
+              'chain_id':1,
+              'block_number':canonical['block_number'],
+              'block_hash':canonical['block_hash'],
+              'state_root':canonical['state_root'],
+              'aave_v3_real_pool_callback_parity':True,
+              'balancer_v2_real_vault_callback_parity':True,
+              'nested_aave_balancer_reverse_repayment_parity':True,
+              'dual_provider_canonical_identity_match':True,
+              'dual_provider_protocol_code_identity_match':True,
+              'provider_a_test_sha256':fsha(ev/'fork-provider-a-test.txt'),
+              'provider_b_test_sha256':fsha(ev/'fork-provider-b-test.txt'),
+              'canonical_crosscheck_sha256':fsha(ev/'canonical-crosscheck.json'),
+              'tested_source_archive_sha256':fsha(ev/'fork-tested-source.tar.gz'),
+              'rpc_used_for_evidence_acquisition':True,
+              'runtime_rpc_dependency':False,
+              'secret_dependency':False,
+              'authority_issued':False,
+              'live_market_evidence':False,
+              'live_pnl_evidence':False,
+              'mainnet_fork_truth':'MEASURED_DUAL_PROVIDER_HISTORICAL',
+              'formal_certification_status':'NOT_CERTIFIED',
+          }
+          payload=json.dumps(out,sort_keys=True,separators=(',',':')).encode()
+          out['attestation_sha256']=hashlib.sha256(payload).hexdigest()
+          (ev/'fork-runtime-summary.json').write_text(json.dumps(out,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(out,indent=2,sort_keys=True))
+          PY
+
+      - name: Finalize fork evidence hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-t36-fork
+          find evidence -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0 \
+            | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS.txt
+          sha256sum evidence/SHA256SUMS.txt
+          cat evidence/fork-runtime-summary.json
+
+      - name: Upload T36 historical fork parity evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nqc-t36-historical-mainnet-fork-parity
+          path: /tmp/nqc-t36-fork/evidence/
+          if-no-files-found: error
+          retention-days: 30

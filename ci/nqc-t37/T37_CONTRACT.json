@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "tranche": "T37_PHYSICAL_UNIFIED_DRYRUN_EVIDENCE_GENERATOR",
+  "status": "ARCHITECTURE_CLOSED",
+  "baseline_t36_branch_head": "23fbecbbd0f92c7ac5f2b2fe21eed6c786b2e265",
+  "scale_targets": {
+    "real_live_markets_target_min": 20000,
+    "real_live_markets_target_nominal": 25000,
+    "synthetic_market_stress_min": 50000,
+    "synthetic_surfaces_min": 250000,
+    "synthetic_signals_min": 1000000,
+    "synthetic_active_markets_min": 25000,
+    "cold_market_observability_required": 1,
+    "full_market_scans_per_signal_max": 0
+  },
+  "required_invariants": {
+    "deterministic_replay": true,
+    "content_addressed_evidence": true,
+    "reorg_invalidation": true,
+    "canonical_signal_lane_separation": true,
+    "authority_issuance_max": 0,
+    "secret_dependency": false,
+    "production_runtime_third_party_api_dependency": false
+  },
+  "truth_boundaries": {
+    "synthetic_scale_is_live_market_evidence": false,
+    "synthetic_economics_is_live_pnl_evidence": false,
+    "real_market_census": "NOT_TESTED",
+    "live_pnl_evidence": false,
+    "production_certification": "NOT_CERTIFIED"
+  },
+  "nqc_global_status": "NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION",
+  "t36_closeout_evidence_head": "62764b7a1eecd3a320ac68e4027332edc513a989",
+  "architecture_closeout_basis": {
+    "phase1_scale_envelope": "PASS",
+    "phase2_unified_evidence_generator": "PASS",
+    "phase3_local_dev_physical_unified_dryrun": "PASS",
+    "construction_freeze_ready": true
+  }
+}

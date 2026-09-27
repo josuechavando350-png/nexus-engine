@@ -1,0 +1,163 @@
+name: NQC T37 Architecture Closeout
+
+on:
+  push:
+    branches:
+      - nqc/t37-unified-dryrun-evidence-20260926
+    paths:
+      - ci/nqc-t37/T37_CLOSEOUT.json
+      - ci/nqc-t37/T37_CONTRACT.json
+      - ci/nqc-t37/T37_CONTRACT.md
+  workflow_dispatch:
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  architecture-closeout:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify immutable closure records and truth boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+
+          root=Path('.')
+          close=json.loads((root/'ci/nqc-t37/T37_CLOSEOUT.json').read_text())
+          contract=json.loads((root/'ci/nqc-t37/T37_CONTRACT.json').read_text())
+          t35=json.loads((root/'ci/nqc-t37/upstream-attestations/T35_EXACT_CLOSURE.json').read_text())
+          t36=json.loads((root/'ci/nqc-t36/T36_CLOSEOUT.json').read_text())
+          p1=json.loads((root/'ci/nqc-t37/evidence-index/T37_PHASE1_CLOSEOUT.json').read_text())
+          p2=json.loads((root/'ci/nqc-t37/evidence-index/T37_PHASE2_CLOSEOUT.json').read_text())
+          p3=json.loads((root/'ci/nqc-t37/evidence-index/T37_PHASE3_CLOSEOUT.json').read_text())
+
+          assert close['status']=='ARCHITECTURE_CLOSED'
+          assert contract['status']=='ARCHITECTURE_CLOSED'
+          assert close['production_certification']=='NOT_CERTIFIED'
+          assert close['nqc_global_status']=='NOT_CERTIFIED / ACCELERATION_EVIDENCE_NOT_TARGET_ADMISSION'
+          assert close['real_market_census']=='NOT_TESTED'
+          assert close['real_live_market_evidence'] is False
+          assert close['live_pnl_evidence'] is False
+          assert close['production_authority_issued'] is False
+          assert close['construction_freeze_ready'] is True
+
+          assert t35['status']=='CLOSED'
+          assert t35['physical_probe_attestation_sha256']=='01d2ee17cca0c8dbadc1a433dcda465165775cafbed2bd48699fbc9670fe2af8'
+          assert t35['toolchain_identity_sha256']=='dc52abd2089428b1484b91d88ffb3221d4fd3c513cb6f5a451f1143588397444'
+          assert t35['authority_issued'] is False
+
+          assert t36['status']=='CLOSED'
+          assert t36['closeout_attestation_sha256']=='926dc79aedf908c29ed5f4307b492fb6e82d7b5da5e18881d040b90d0eb2f3b6'
+          assert t36['executor_source_sha256']=='bbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320'
+          assert t36['authority_issued'] is False
+
+          assert p1['status']=='PASS'
+          assert p1['attestation_sha256']=='214f4794b257815decb09350bec2dca2ac86bd70fc64779e3a33cbf45df17e86'
+          assert p1['markets']==50000 and p1['surfaces']==250000 and p1['signals']==1000000
+          assert p1['full_market_scans']==0 and p1['dropped_signals']==0
+          assert p1['cold_market_observability_complete'] is True
+          assert p1['authority_issuance']==0
+          assert p1['real_market_census']=='NOT_TESTED'
+
+          assert p2['status']=='PASS'
+          assert p2['attestation_sha256']=='ccbf62959f77cd682b86df6c87f6ec4ba45b29eabc1715ddfcea9e5e5837c66b'
+          assert p2['execution_identity_content_addressed'] is True
+          assert p2['reorg_invalidation_enforced'] is True
+          assert p2['synthetic_scale_live_promotion_blocked'] is True
+
+          assert p3['status']=='PASS'
+          assert p3['run_id']==36284058050
+          assert p3['job_id']==108521319390
+          assert p3['artifact_id']==10920320666
+          assert p3['artifact_sha256']=='8a3770ab997d1994400b44d4bd5a1d1ebc5c694fe170913d157c0e4dbafb4fa7'
+          assert p3['evidence_manifest_sha256']=='5ad012b10e746c95fdc7169becc8fa58087502dfe7a9ab88bdd0a33141d50104'
+          assert p3['attestation_sha256']=='43158bcc54ea27a38a91e9cb1f84a90c17fa40604e73545721f2b1400af59415'
+          assert p3['scope']=='LOCAL_DEV_PHYSICAL_UNIFIED_NO_LIVE_AUTHORITY'
+          assert p3['wire_action_submission']=='SUPPRESSED'
+          assert p3['canonical_outcome']=='MEASURED_LOCAL_DEV_RECEIPT_AND_STATE_DELTA'
+          assert p3['stale_generation_blocked'] is True
+          assert p3['production_authority_issued'] is False
+          assert p3['real_market_census']=='NOT_TESTED'
+          assert p3['real_live_market_evidence'] is False
+          assert p3['live_pnl_evidence'] is False
+          assert p3['production_latency_claim']=='NONE'
+
+          p3_close=close['phase3']
+          assert p3_close==p3
+
+          # This closes architecture construction only. It must never self-promote
+          # any downstream live-market, P&L, canary or production-certification gate.
+          print('PASS T37 architecture closure truth-boundary verifier')
+          PY
+
+      - name: Download and hash-verify all closure artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY' > /tmp/artifacts.tsv
+          import json
+          c=json.load(open('ci/nqc-t37/T37_CLOSEOUT.json'))
+          records=[
+            ('t35',10915848936,'5069828d655407f8ae12e980d19ab8a1b7e2150d3ea10aeac72bdad3f7c9957b'),
+            ('t36',10917518552,'e26edaf2181bd622f64c5fd4478f8f9c27702de08f04d1bf565b31f8e87886b6'),
+            ('t37-phase1',10918475121,'d236346a6643b424986cb350360a0b864cece64b1dc3b738b200314b955e67d8'),
+            ('t37-phase2',10918422444,'b39f7e6f68f44b5802ba6da75e528b20f5989a70abb1bbaf0c66b330008b728b'),
+            ('t37-phase3',int(c['phase3']['artifact_id']),c['phase3']['artifact_sha256']),
+          ]
+          for row in records:
+              print(*row,sep='\t')
+          PY
+
+          mkdir -p /tmp/nqc-t37-closeout-artifacts
+          while IFS=$'\t' read -r name artifact_id expected; do
+            out="/tmp/nqc-t37-closeout-artifacts/$name.zip"
+            curl --fail --location --retry 5 --retry-all-errors               -H "Authorization: Bearer $GH_TOKEN"               -H "Accept: application/vnd.github+json"               -H "X-GitHub-Api-Version: 2022-11-28"               "https://api.github.com/repos/$REPO/actions/artifacts/$artifact_id/zip"               -o "$out"
+            actual="$(sha256sum "$out" | awk '{print $1}')"
+            test "$actual" = "$expected"
+            unzip -t "$out" >/dev/null
+            if test "$name" = "t37-phase3"; then
+              dir="/tmp/nqc-t37-closeout-artifacts/$name"
+              rm -rf "$dir"
+              mkdir -p "$dir"
+              unzip -q "$out" -d "$dir"
+              test -f "$dir/SHA256SUMS.txt"
+              sed 's#  evidence/#  #' "$dir/SHA256SUMS.txt" > "$dir/SHA256SUMS.artifact-root.txt"
+              (cd "$dir" && sha256sum -c SHA256SUMS.artifact-root.txt >/dev/null)
+              python3 -c "import json,sys; summary=json.load(open(sys.argv[1])); index=json.load(open(sys.argv[2])); assert summary['status']=='PASS'; assert summary['attestation_sha256']==index['attestation_sha256']; assert summary['execution_bundle_fingerprint']==index['execution_bundle_fingerprint']; assert summary['canonical_outcome']==index['canonical_outcome']; assert summary['production_authority_issued'] is False; assert summary['real_market_census']=='NOT_TESTED'; assert summary['live_pnl_evidence'] is False" "$dir/phase3-summary.json" ci/nqc-t37/evidence-index/T37_PHASE3_CLOSEOUT.json
+            fi
+            printf 'PASS %s artifact_id=%s sha256=%s\n' "$name" "$artifact_id" "$actual"
+          done < /tmp/artifacts.tsv
+
+      - name: Emit architecture closeout attestation
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-t37-closeout
+          cp ci/nqc-t37/T37_CLOSEOUT.json /tmp/nqc-t37-closeout/
+          cp ci/nqc-t37/T37_CONTRACT.json /tmp/nqc-t37-closeout/
+          cp ci/nqc-t37/T37_CONTRACT.md /tmp/nqc-t37-closeout/
+          cp ci/nqc-t37/upstream-attestations/T35_EXACT_CLOSURE.json /tmp/nqc-t37-closeout/
+          cp ci/nqc-t36/T36_CLOSEOUT.json /tmp/nqc-t37-closeout/
+          cp ci/nqc-t37/evidence-index/T37_PHASE1_CLOSEOUT.json /tmp/nqc-t37-closeout/
+          cp ci/nqc-t37/evidence-index/T37_PHASE2_CLOSEOUT.json /tmp/nqc-t37-closeout/
+          cp ci/nqc-t37/evidence-index/T37_PHASE3_CLOSEOUT.json /tmp/nqc-t37-closeout/
+          find /tmp/nqc-t37-closeout -maxdepth 1 -type f ! -name SHA256SUMS.txt -print0             | sort -z | xargs -0 sha256sum > /tmp/nqc-t37-closeout/SHA256SUMS.txt
+          sha256sum /tmp/nqc-t37-closeout/SHA256SUMS.txt
+
+      - name: Upload T37 architecture closeout evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: nqc-t37-architecture-closeout
+          path: /tmp/nqc-t37-closeout/
+          if-no-files-found: error
+          retention-days: 30

@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "chain_id": 1,
+  "block_number": 20000000,
+  "block_hash": "0xd24fd73f794058a3807db926d8898c6481e902b7edb91ce0d479d6760f276183",
+  "state_root": "0x68421c2c599dc31396a09772a073fb421c4bd25ef1462914ef13e5dfa2d31c23",
+  "timestamp": 1717281407,
+  "source": "https://etherscan.io/block/20000000",
+  "purpose": "Static independent canonical anchor for T36 historical fork evidence; not a production runtime dependency."
+}
