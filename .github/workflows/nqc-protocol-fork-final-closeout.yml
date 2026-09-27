@@ -343,18 +343,54 @@ jobs:
               },
           }
           expected_blocker_workflow={
-              ('PFT-SRC-001','reimplementation'):'NQC T39 V2 Backrun Executor Reimplementation',
-              ('PFT-SRC-001','abi_runtime'):'NQC T39 V2 Runtime ABI Roundtrip',
-              ('PFT-SRC-001','callback_authority_baseline'):'NQC T39 V2 Executor Authority Baseline Matrix',
-              ('PFT-SRC-001','code_identity'):'NQC T39 Executor Code Identity Binding',
-              ('PFT-SRC-001','historical_fork_execution'):'NQC T39 V2 Executor Historical Fork Execution',
-              ('PFT-SRC-001','revm_historical_fork_differential'):'NQC T39 REVM Historical Fork Differential',
-              ('PFT-SRC-002','deterministic_reimplementation'):'NQC T39 V2 State Reimplementation',
-              ('PFT-SRC-002','historical_state_quote'):'NQC T39 V2 Historical State Quote Parity',
-              ('PFT-SRC-002','historical_sync'):'NQC T39 V2 Historical Sync Parity',
-              ('PFT-SRC-002','reorg'):'NQC T39 V2 Real Historical Reorg Invalidation',
-              ('PFT-SRC-003','deterministic_reimplementation'):'NQC T39 Aave Reconciler Reimplementation',
-              ('PFT-SRC-003','historical_canonical_rebuild'):'NQC T39 Aave Reconciler Historical Canonical Parity',
+              ('PFT-SRC-001','reimplementation'):(
+                  'NQC T39 V2 Backrun Executor Reimplementation',
+                  '.github/workflows/nqc-protocol-fork-v2-backrun-executor-reimplementation.yml',
+              ),
+              ('PFT-SRC-001','abi_runtime'):(
+                  'NQC T39 V2 Runtime ABI Roundtrip',
+                  '.github/workflows/nqc-protocol-fork-v2-abi-runtime-roundtrip.yml',
+              ),
+              ('PFT-SRC-001','callback_authority_baseline'):(
+                  'NQC T39 V2 Executor Authority Baseline Matrix',
+                  '.github/workflows/nqc-protocol-fork-v2-executor-authority-matrix.yml',
+              ),
+              ('PFT-SRC-001','code_identity'):(
+                  'NQC T39 Executor Code Identity Binding',
+                  '.github/workflows/nqc-protocol-fork-executor-code-identity.yml',
+              ),
+              ('PFT-SRC-001','historical_fork_execution'):(
+                  'NQC T39 V2 Executor Historical Fork Execution',
+                  '.github/workflows/nqc-protocol-fork-v2-executor-historical-fork.yml',
+              ),
+              ('PFT-SRC-001','revm_historical_fork_differential'):(
+                  'NQC T39 REVM Historical Fork Differential',
+                  '.github/workflows/nqc-protocol-fork-revm-historical-differential.yml',
+              ),
+              ('PFT-SRC-002','deterministic_reimplementation'):(
+                  'NQC T39 V2 State Reimplementation',
+                  '.github/workflows/nqc-protocol-fork-v2-state-reimplementation.yml',
+              ),
+              ('PFT-SRC-002','historical_state_quote'):(
+                  'NQC T39 V2 Historical State Quote Parity',
+                  '.github/workflows/nqc-protocol-fork-v2-historical-parity.yml',
+              ),
+              ('PFT-SRC-002','historical_sync'):(
+                  'NQC T39 V2 Historical Sync Parity',
+                  '.github/workflows/nqc-protocol-fork-v2-sync-parity.yml',
+              ),
+              ('PFT-SRC-002','reorg'):(
+                  'NQC T39 V2 Real Historical Reorg Invalidation',
+                  '.github/workflows/nqc-protocol-fork-v2-real-reorg.yml',
+              ),
+              ('PFT-SRC-003','deterministic_reimplementation'):(
+                  'NQC T39 Aave Reconciler Reimplementation',
+                  '.github/workflows/nqc-protocol-fork-aave-reconciler-reimplementation.yml',
+              ),
+              ('PFT-SRC-003','historical_canonical_rebuild'):(
+                  'NQC T39 Aave Reconciler Historical Canonical Parity',
+                  '.github/workflows/nqc-protocol-fork-aave-reconciler-historical-parity.yml',
+              ),
           }
           blocker_status={}
           blocker_digests={}
@@ -430,8 +466,11 @@ jobs:
                                   raise RuntimeError('artifact producer head mismatch')
                               if run_detail.get('head_sha')!=item['head']:
                                   raise RuntimeError('workflow run head mismatch')
-                              if run_detail.get('name')!=expected_blocker_workflow[(blocker_id,name)]:
-                                  raise RuntimeError('workflow producer identity mismatch')
+                              expected_name,expected_path=expected_blocker_workflow[(blocker_id,name)]
+                              if run_detail.get('name')!=expected_name:
+                                  raise RuntimeError('workflow producer name mismatch')
+                              if run_detail.get('path')!=expected_path:
+                                  raise RuntimeError('workflow producer path mismatch')
                               if run_detail.get('status')!='completed' or run_detail.get('conclusion')!='success':
                                   raise RuntimeError('workflow producer not successful')
                           except Exception as exc:
