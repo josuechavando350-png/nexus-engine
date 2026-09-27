@@ -10,7 +10,7 @@ from pathlib import Path
 from reserve_balance_witness import PROVIDERS, PROVIDER_MIN_INTERVAL, rpc, digest
 
 FACTORY = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f"
-ROUTER = "0x7a250d5630b4cf539739df2c5dacab4c659f2488d"
+ROUTER = "0x7a250d5630b4cf539739df2c5dacb4c659f2488d"
 USDC = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48"
 WETH = "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
 DAI = "0x6b175474e89094c44da98b954eedeac495271d0f"
