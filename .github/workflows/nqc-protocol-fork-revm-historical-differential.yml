@@ -66,6 +66,7 @@ jobs:
             fi
           done
 
+          mkdir -p "$NQC_DIFF/source/crates/nqc-sim/examples"
           cp ci/nqc-protocol-fork/differential/pft_revm_historical_replay.rs             "$NQC_DIFF/source/crates/nqc-sim/examples/pft_revm_historical_replay.rs"
           sha256sum             ci/nqc-protocol-fork/differential/PftRevmForkHarness.sol             ci/nqc-protocol-fork/differential/run_anvil_historical_differential.py             ci/nqc-protocol-fork/differential/pft_revm_historical_replay.rs             > "$NQC_DIFF/evidence/differential-source.sha256"
 
