@@ -11,6 +11,7 @@ on:
       - ci/nqc-t37/unified-evidence-crate.parts/**
       - ci/nqc-t36/contracts/src/NqcFlashFundingExecutor.sol
       - ci/nqc-t35/**
+      - ci/nqc-t37/upstream-attestations/T35_EXACT_CLOSURE.json
   workflow_dispatch:
 
 permissions:
@@ -499,7 +500,9 @@ jobs:
               data=bytecode(name)+args_hex
               txh=rpc(A,'eth_sendTransaction',[{
                   'from':deployer,
+                  'to':None,
                   'data':data,
+                  'value':'0x0',
                   'gas':'0x989680',
                   'gasPrice':gas_price,
                   'nonce':nonce,
@@ -892,14 +895,25 @@ jobs:
               'live_pnl_evidence':False,
           },indent=2,sort_keys=True)+'\n')
 
-          t35_binary=fsha('/tmp/nqc-t35/reth/target/debug/nqc-t35-observer')
-          t35_toolchain=sha((Path('/tmp/nqc-t35/evidence/rustc.txt').read_text()+Path('/tmp/nqc-t35/evidence/cargo.txt').read_text()).encode())
+          # Bind T37 to the immutable, independently closed T35 evidence rather than
+          # to this run's timestamp-bearing debug binary. The T35 closeout file itself
+          # is repository evidence derived from successful exact-closure run 36272462608.
+          t35_closeout_path=Path(os.environ['GITHUB_WORKSPACE'])/'ci/nqc-t37/upstream-attestations/T35_EXACT_CLOSURE.json'
+          t35_gate=json.load(open(t35_closeout_path))
+          assert t35_gate['status']=='CLOSED'
+          assert t35_gate['component_gate']=='T35_PHYSICAL_SIGNAL_PATH'
+          assert t35_gate['capture_build_identity_sha256']=='c5a0d6ef791856e8b5c3a1786becc2fd3d839dd0d458f8b3fc7846f1e3de5ed2'
+          assert t35_gate['physical_probe_attestation_sha256']=='01d2ee17cca0c8dbadc1a433dcda465165775cafbed2bd48699fbc9670fe2af8'
+          assert t35_gate['capture_build_manifest_sha256']=='7b812e12964286baa2dd1138564e053d971202450b7cd15d1f08a8726aab6d1d'
+          assert t35_gate['p2p_capture_quality']=='PEER_GOSSIP_EXACT'
+          assert t35_gate['canonical_lane_separate_from_signal_lanes'] is True
+          assert t35_gate['authority_issued'] is False
           t37_toolchain=sha(b'rustc 1.98.1 48a229cea T37_PHASE1_SCALE_HARNESS')
 
           values={
-              't35_subject_hash':hx(t35_binary),
-              't35_evidence_hash':'0x0e69193c4bdbd036d4e6adfe719563f2b0fdec8ab2734291c45823f5ec418d90',
-              't35_toolchain_hash':hx(t35_toolchain),
+              't35_subject_hash':'0x'+t35_gate['capture_build_identity_sha256'],
+              't35_evidence_hash':'0x'+t35_gate['physical_probe_attestation_sha256'],
+              't35_toolchain_hash':'0x'+t35_gate['capture_build_manifest_sha256'],
               't36_subject_hash':'0xbbb5962171f2c1da5067e21ac705a627a35028fdafe5c9403f601bb813d39320',
               't36_evidence_hash':'0x926dc79aedf908c29ed5f4307b492fb6e82d7b5da5e18881d040b90d0eb2f3b6',
               't36_toolchain_hash':'0xcf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b',
