@@ -56,6 +56,48 @@ fn require_stale_rejection(
     Ok((stale.fingerprint, refreshed.fingerprint))
 }
 
+fn require_anchor_identity_fingerprint_binding(anchor: CanonicalBlock) -> Result<u64, Error> {
+    let baseline = context(anchor, 0x70);
+    let baseline_fp = baseline.fingerprint();
+    let mut checked = 0u64;
+
+    let mut number = baseline;
+    number.anchor.number = number.anchor.number.checked_add(1).ok_or("anchor number overflow")?;
+    if number.fingerprint() == baseline_fp {
+        return Err("anchor number omitted from replay fingerprint".into());
+    }
+    checked += 1;
+
+    let mut hash = baseline;
+    hash.anchor.hash = B256::with_last_byte(0x7a);
+    if hash.anchor.hash == baseline.anchor.hash {
+        hash.anchor.hash = B256::with_last_byte(0x7b);
+    }
+    if hash.fingerprint() == baseline_fp {
+        return Err("anchor hash omitted from replay fingerprint".into());
+    }
+    checked += 1;
+
+    let mut timestamp = baseline;
+    timestamp.anchor.timestamp = timestamp.anchor.timestamp.checked_add(1).ok_or("anchor timestamp overflow")?;
+    if timestamp.fingerprint() == baseline_fp {
+        return Err("anchor timestamp omitted from replay fingerprint".into());
+    }
+    checked += 1;
+
+    let mut base_fee = baseline;
+    base_fee.anchor.base_fee_per_gas = match baseline.anchor.base_fee_per_gas {
+        Some(value) => Some(value.checked_add(1).ok_or("base fee overflow")?),
+        None => Some(1),
+    };
+    if base_fee.fingerprint() == baseline_fp {
+        return Err("anchor base fee omitted from replay fingerprint".into());
+    }
+    checked += 1;
+
+    Ok(checked)
+}
+
 fn main() -> Result<(), Error> {
     let args: Vec<String> = env::args().collect();
     if args.len() != 6 {
@@ -89,6 +131,10 @@ fn main() -> Result<(), Error> {
     };
 
     let (stale_fp, refreshed_fp) = require_stale_rejection(orphan, canonical, 0x31)?;
+    let anchor_identity_dimensions = require_anchor_identity_fingerprint_binding(canonical)?;
+    if anchor_identity_dimensions != 4 {
+        return Err("anchor identity dimension count mismatch".into());
+    }
 
     let mut deep_replacements = 0u64;
     for (offset, (old_hash, new_hash)) in [(0x41u8, 0x51u8), (0x42u8, 0x52u8)]
@@ -114,7 +160,7 @@ fn main() -> Result<(), Error> {
     }
 
     println!(
-        "REORG_REPLAY_REFRESH_PASS upstream={} height={} orphan={} canonical={} orphan_timestamp={} canonical_timestamp={} orphan_base_fee={:?} canonical_base_fee={:?} stale_fingerprint={:#x} refreshed_fingerprint={:#x} deep_replacements={} unexplained_mismatches=0",
+        "REORG_REPLAY_REFRESH_PASS upstream={} height={} orphan={} canonical={} orphan_timestamp={} canonical_timestamp={} orphan_base_fee={:?} canonical_base_fee={:?} stale_fingerprint={:#x} refreshed_fingerprint={:#x} anchor_identity_dimensions={} deep_replacements={} unexplained_mismatches=0",
         provider,
         HEIGHT,
         ORPHAN_HASH,
@@ -125,6 +171,7 @@ fn main() -> Result<(), Error> {
         canonical.base_fee_per_gas,
         stale_fp,
         refreshed_fp,
+        anchor_identity_dimensions,
         deep_replacements,
     );
     Ok(())
