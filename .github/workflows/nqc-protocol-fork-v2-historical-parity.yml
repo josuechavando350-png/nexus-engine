@@ -116,7 +116,7 @@ jobs:
             NQC_PFT_PROXY_PORT=18547             NQC_PFT_UPSTREAM_URL="$provider_url"             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_MIN_INTERVAL_SECONDS="$min_interval"             NQC_PFT_MAX_ATTEMPTS=12             NQC_PFT_PROXY_LOG="$NQC_V2_HIST/evidence/$provider_id-throttle.jsonl"               python3 ci/nqc-protocol-fork/parity/http_rpc_throttle_proxy.py               > "$NQC_V2_HIST/evidence/$provider_id-throttle.log" 2>&1 &
             throttle_pid=$!
 
-            NQC_PFT_IPC_SOCKET="$socket"             NQC_PFT_UPSTREAM_URL=http://127.0.0.1:18547             NQC_PFT_UPSTREAM_ID="$provider_id"               python3 ci/nqc-protocol-fork/parity/ipc_http_bridge.py               > "$NQC_V2_HIST/evidence/$provider_id-bridge.log" 2>&1 &
+            NQC_PFT_IPC_SOCKET="$socket"             NQC_PFT_UPSTREAM_URL=http://127.0.0.1:18547             NQC_PFT_UPSTREAM_ID="$provider_id"             NQC_PFT_BRIDGE_TIMEOUT_SECONDS=180               python3 ci/nqc-protocol-fork/parity/ipc_http_bridge.py               > "$NQC_V2_HIST/evidence/$provider_id-bridge.log" 2>&1 &
             bridge_pid=$!
             trap 'kill "$bridge_pid" "$throttle_pid" 2>/dev/null || true' EXIT
 
