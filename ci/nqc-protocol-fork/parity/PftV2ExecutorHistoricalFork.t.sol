@@ -70,6 +70,10 @@ contract PftV2ExecutorHistoricalForkTest {
 
     uint256 private constant FEE_BPS = 30;
     uint256 private constant MAX_FLASH_USDC = 500_000 * 1e6;
+    address private constant CODE_IDENTITY_OPERATOR =
+        0x1111111111111111111111111111111111111111;
+    bytes32 private constant CODE_IDENTITY_RUNTIME_KECCAK =
+        0x9e672984ce86f35f70343837ea2069427a133aa18c4fc3cf7977c6029236f39f;
 
     struct Cycle {
         uint112 uni0;
@@ -286,6 +290,9 @@ contract PftV2ExecutorHistoricalForkTest {
         vm.serializeAddress(key, "sushiswap_pair", SUSHI_USDC_WETH);
         vm.serializeAddress(key, "executor", e.executor);
         vm.serializeBytes32(key, "executor_runtime_keccak256", keccak256(e.executor.code));
+        vm.serializeAddress(key, "executor_operator", NqcV2BackrunExecutor(e.executor).operator());
+        vm.serializeAddress(key, "executor_pool", address(NqcV2BackrunExecutor(e.executor).pool()));
+        vm.serializeBytes32(key, "code_identity_runtime_keccak256", CODE_IDENTITY_RUNTIME_KECCAK);
         vm.serializeBytes32(key, "plan_hash", e.planHash);
         vm.serializeBytes32(key, "target_provenance", e.targetProvenance);
         vm.serializeBytes32(key, "candidate_provenance", e.candidateProvenance);
@@ -317,6 +324,16 @@ contract PftV2ExecutorHistoricalForkTest {
 
         PftV2ExecPair uni = _pair(UNI_USDC_WETH);
         PftV2ExecPair sushi = _pair(SUSHI_USDC_WETH);
+
+        // Rebuild the exact PR486 constructor-bound runtime in the same compiler/source-unit
+        // layout. The historical execution instance intentionally uses address(this) as operator,
+        // so its immutable-bound runtime hash must differ while the canonical identity remains exact.
+        NqcV2BackrunExecutor identityReference =
+            new NqcV2BackrunExecutor(CODE_IDENTITY_OPERATOR, AAVE_POOL);
+        require(
+            keccak256(address(identityReference).code) == CODE_IDENTITY_RUNTIME_KECCAK,
+            "CODE_IDENTITY_RUNTIME"
+        );
 
         Cycle memory c;
         (c.targetWethIn, c.targetUsdcOut) = _createSyntheticTarget(uni);
