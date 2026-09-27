@@ -261,6 +261,14 @@ def main():
     if helper_usdc!=swap_out:
         raise ValueError("helper USDC final balance mismatch")
 
+    probe_calldata=calldata("stateProbe(address,address,address)",WETH,USDC,PAIR)
+    final_probe_output=eth_call(args.rpc,HELPER,probe_calldata)
+    if not re.fullmatch(r"0x[0-9a-fA-F]{320}",final_probe_output):
+        raise ValueError("final stateProbe ABI shape mismatch")
+    probe_words=[int(final_probe_output[i:i+64],16) for i in range(2,len(final_probe_output),64)]
+    if probe_words != [helper_weth,helper_usdc,reserve0_after,reserve1_after,pair_ts_after]:
+        raise ValueError("stateProbe disagrees with direct final-state reads")
+
     evidence={
         "schema_version":1,
         "classification":"SYNTHETIC_TRANSACTIONS_OVER_IMMUTABLE_HISTORICAL_MAINNET_STATE",
@@ -319,6 +327,8 @@ def main():
             "pair_reserve0":reserve0_after,
             "pair_reserve1":reserve1_after,
             "pair_timestamp_last":pair_ts_after,
+            "probe_calldata":probe_calldata.lower(),
+            "probe_output":final_probe_output.lower(),
         },
         "protocol_fork_truth":"NOT_CLOSED",
         "real_market_evidence":False,
