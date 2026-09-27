@@ -28,7 +28,7 @@
   ],
   "source_bytes_modified": false,
   "repair_overlay": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py",
-  "status": "NOT_TESTED_PENDING_SECOND_HISTORICAL_RERUN",
+  "status": "RESOLVED_EXACT_TWO_PROVIDER_PARITY",
   "protocol_fork_truth": "NOT_CLOSED",
   "measured_failure_after_first_repair": {
     "head": "011ae80b92415cd9bf626961850660fab794ad86",
@@ -38,5 +38,29 @@
     "checks": 39,
     "mismatches": 21,
     "improvement_from_initial_mismatches": 13
+  },
+  "resolved_verification": {
+    "head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+    "full_account_risk": {
+      "workflow_run": 36341553888,
+      "artifact_id": 10940935416,
+      "artifact_sha256": "de97034024643d11f52f7e28a0b2b52f56919adeed5294c84cea542538fcfa49",
+      "providers": [
+        "blastapi-public",
+        "mevblocker-rpc"
+      ],
+      "users_per_provider": 15,
+      "exact_integer_checks_per_provider": 60,
+      "emode_users_per_provider": 2,
+      "unexplained_mismatches": 0
+    },
+    "exact_emode_zero_account_risk": {
+      "workflow_run": 36341554012,
+      "artifact_id": 10939116521,
+      "artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c",
+      "users": 13,
+      "exact_integer_checks": 39,
+      "unexplained_mismatches": 0
+    }
   }
 }
