@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "source_blocker": "PFT-SRC-003",
+  "component": "nqc-aave-reconciler",
+  "classification": "NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE",
+  "recovery_status": "RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
+  "status": "NOT_TESTED_PENDING_DEPENDENCY_BOUND_HISTORICAL_CLOSEOUT",
+  "evidence": {
+    "deterministic_reimplementation": {
+      "pr": 472,
+      "head": "74383521b51444e89a75ca8502af0a9c9f124029",
+      "workflow_run_id": 36332415928,
+      "artifact_id": 10936091837,
+      "artifact_sha256": "96f875e9f0ec6d81c9fa64854d817a22d74a460ee2db5138f5700e918e590698",
+      "status": "PASS"
+    },
+    "historical_canonical_rebuild": {
+      "pr": 484,
+      "head": "e6adfe592047ab0ea6e3ed95d3113f7d38887f8e",
+      "status": "PENDING"
+    }
+  },
+  "required_historical_dimensions": [
+    "EXACT_CANONICAL_ANCHOR",
+    "FULL_MARKET_REBUILD",
+    "USER_STATE_REBUILD",
+    "SAME_HEIGHT_HASH_DRIFT_FAIL_CLOSED",
+    "ORPHAN_STATE_REMOVAL",
+    "OLD_REPLAY_CAPSULE_REJECTION",
+    "DEPENDENCY_GRAPH_BOUND_TO_RESOLVED_CARGO_LOCK",
+    "ZERO_UNEXPLAINED_MISMATCH"
+  ],
+  "close_condition": "historical_canonical_rebuild=PASS AND exact dependency graph content-addressed AND unexplained_mismatches=0",
+  "unexplained_mismatches": 0,
+  "protocol_fork_truth": "NOT_CLOSED"
+}
