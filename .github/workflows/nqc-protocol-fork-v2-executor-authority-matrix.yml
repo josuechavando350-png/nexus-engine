@@ -1,0 +1,99 @@
+name: NQC T39 V2 Executor Authority Baseline Matrix
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-v2-executor-authority-matrix.yml
+      - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authority-baseline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      SOLC_VERSION: "0.8.24+commit.e11b9ed9"
+      SOLC_SHA256: "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+      NQC_V2_AUTH: /tmp/nqc-v2-executor-authority
+
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify measured source and prepare isolated Foundry tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          test -z "$(git status --porcelain)"
+          rm -rf "$NQC_V2_AUTH"
+          mkdir -p "$NQC_V2_AUTH/src" "$NQC_V2_AUTH/test" "$NQC_V2_AUTH/evidence"
+          git rev-parse HEAD > "$NQC_V2_AUTH/evidence/repository-source-sha.txt"
+
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol             "$NQC_V2_AUTH/src/"
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutor.t.sol             "$NQC_V2_AUTH/test/"
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutorAuthorityMatrix.t.sol             "$NQC_V2_AUTH/test/"
+
+          cat > "$NQC_V2_AUTH/foundry.toml" <<'EOF'
+          [profile.default]
+          src = "src"
+          test = "test"
+          solc_version = "0.8.24"
+          optimizer = true
+          optimizer_runs = 200
+          EOF
+
+          sha256sum             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutor.t.sol             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutorAuthorityMatrix.t.sol             > "$NQC_V2_AUTH/evidence/input-source.sha256"
+
+      - name: Install exact Foundry and solc
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$NQC_V2_AUTH/bin"
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_V2_AUTH/foundry.tar.gz"             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  $NQC_V2_AUTH/foundry.tar.gz" | sha256sum -c -
+          tar -xzf "$NQC_V2_AUTH/foundry.tar.gz" -C "$NQC_V2_AUTH/bin"
+          export PATH="$NQC_V2_AUTH/bin:$PATH"
+          forge --version | tee "$NQC_V2_AUTH/evidence/forge.txt"
+          forge --version | grep -F "$FOUNDRY_VERSION"
+
+          curl --fail --location --retry 5 --retry-all-errors             -o "$NQC_V2_AUTH/solc-0.8.24"             "https://binaries.soliditylang.org/linux-amd64/solc-linux-amd64-v0.8.24+commit.e11b9ed9"
+          echo "$SOLC_SHA256  $NQC_V2_AUTH/solc-0.8.24" | sha256sum -c -
+          chmod +x "$NQC_V2_AUTH/solc-0.8.24"
+          "$NQC_V2_AUTH/solc-0.8.24" --version | tee "$NQC_V2_AUTH/evidence/solc.txt"
+          "$NQC_V2_AUTH/solc-0.8.24" --version | grep -F "$SOLC_VERSION"
+
+      - name: Execute callback authority and baseline subsidy matrix
+        shell: bash
+        working-directory: /tmp/nqc-v2-executor-authority
+        run: |
+          set -euo pipefail
+          export PATH="$NQC_V2_AUTH/bin:$PATH"
+          forge test --offline --use "$NQC_V2_AUTH/solc-0.8.24" -vvvv             2>&1 | tee "$NQC_V2_AUTH/evidence/forge-test.log"
+          grep -F "17 passed; 0 failed" "$NQC_V2_AUTH/evidence/forge-test.log"
+          test "$(grep -c '^\[PASS\] test' "$NQC_V2_AUTH/evidence/forge-test.log")" -eq 17
+          printf '%s\n' 'PASS_CALLBACK_AUTHORITY_MATRIX' > "$NQC_V2_AUTH/evidence/callback-authority-status.txt"
+          printf '%s\n' 'PASS_NONZERO_BASELINE_SUBSIDY_ATTACK' > "$NQC_V2_AUTH/evidence/baseline-subsidy-status.txt"
+          printf '%s\n' 'OPEN_PENDING_HISTORICAL_FORK_AND_REVM_DIFFERENTIAL' > "$NQC_V2_AUTH/evidence/PFT-SRC-001-status.txt"
+          printf '%s\n' 'NOT_CLOSED' > "$NQC_V2_AUTH/evidence/protocol-fork-truth.txt"
+          (
+            cd "$NQC_V2_AUTH/evidence"
+            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+            sha256sum -c SHA256SUMS
+          )
+
+      - name: Preserve exact matrix evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t39-v2-executor-authority-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-v2-executor-authority/evidence
+          if-no-files-found: error
+          retention-days: 30
