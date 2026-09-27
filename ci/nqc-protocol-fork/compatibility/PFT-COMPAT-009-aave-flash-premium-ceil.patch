@@ -1,15 +1,15 @@
 diff --git a/crates/nqc-aave-opportunity/src/lib.rs b/crates/nqc-aave-opportunity/src/lib.rs
 --- a/crates/nqc-aave-opportunity/src/lib.rs
 +++ b/crates/nqc-aave-opportunity/src/lib.rs
-@@
--use nqc_core::{
+@@ -7,3 +7,4 @@
+ use nqc_core::{
 -    checked_add, checked_sub, mul_div_ceil, mul_div_floor, percent_mul_half_up, wad, MathError,
--};
-+use nqc_core::{
 +    checked_add, checked_sub, mul_div_ceil, mul_div_floor, percent_mul_ceil_unbounded, wad,
 +    MathError,
-+};
-@@
+ };
+@@ -183,7 +184,7 @@
+             }
+ 
 -            let flash_loan_premium = percent_mul_half_up(
 +            let flash_loan_premium = percent_mul_ceil_unbounded(
                  available.debt_to_liquidate,
