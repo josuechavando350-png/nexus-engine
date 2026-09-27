@@ -14,7 +14,9 @@
     "providers": [
       "blastapi-public",
       "mevblocker-rpc"
-    ]
+    ],
+    "including_block_number": 10500014,
+    "discovery_rule": "SCAN_ALL_UNCLES_IN_INCLUDED_BLOCK_AND_REQUIRE_EXACT_ORPHAN_HASH"
   },
   "aave_reconciler_deterministic_binding": {
     "head": "74383521b51444e89a75ca8502af0a9c9f124029",
