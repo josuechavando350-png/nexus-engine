@@ -498,9 +498,8 @@ jobs:
           def deploy(name,args_hex=''):
               nonce=rpc(A,'eth_getTransactionCount',[deployer,'pending'])
               data=bytecode(name)+args_hex
-              txh=rpc(A,'eth_sendTransaction',[{
+              request={
                   'from':deployer,
-                  'to':None,
                   'data':data,
                   'value':'0x0',
                   'gas':'0x989680',
@@ -508,7 +507,10 @@ jobs:
                   'nonce':nonce,
                   'chainId':chain_id,
                   'type':'0x0',
-              }])
+              }
+              # Contract creation is represented by an absent `to` field. Reth's dev signer
+              # rejects an explicit JSON null here as an invalid transaction request.
+              txh=rpc(A,'eth_sendTransaction',[request])
               receipt=wait_receipt(txh)
               address=receipt['contractAddress']
               assert address and int(address,16)!=0, (name,receipt)
