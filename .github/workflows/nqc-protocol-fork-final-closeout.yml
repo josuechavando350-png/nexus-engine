@@ -147,6 +147,30 @@ jobs:
               'NQC T39 V2 Executor Historical Fork Execution',
               'NQC T39 Source Blocker Closeout Contracts',
           ]
+          workflow_paths={
+              'Build Verification':'.github/workflows/build-verification.yml',
+              'NQC T39 Protocol Fork Recovered Source Binding':'.github/workflows/nqc-protocol-fork-source-binding.yml',
+              'NQC T39 Aave V3 Deployment Version Lock':'.github/workflows/nqc-protocol-fork-aave-deployment-version-lock.yml',
+              'NQC T39 Aave Canonical State Parity Closeout':'.github/workflows/nqc-protocol-fork-aave-canonical-state-closeout.yml',
+              'NQC T39 Aave Liquidation Integer Math Parity':'.github/workflows/nqc-protocol-fork-aave-liquidation-math-parity.yml',
+              'NQC T39 Aave Full Liquidation Integer Matrix':'.github/workflows/nqc-protocol-fork-aave-liquidation-matrix.yml',
+              'NQC T39 V2 State Reimplementation':'.github/workflows/nqc-protocol-fork-v2-state-reimplementation.yml',
+              'NQC T39 V2 Historical State Quote Parity':'.github/workflows/nqc-protocol-fork-v2-historical-parity.yml',
+              'NQC T39 V2 Historical Sync Parity':'.github/workflows/nqc-protocol-fork-v2-sync-parity.yml',
+              'NQC T39 V2 Real Historical Reorg Invalidation':'.github/workflows/nqc-protocol-fork-v2-real-reorg.yml',
+              'NQC T39 V2 Runtime ABI Roundtrip':'.github/workflows/nqc-protocol-fork-v2-abi-runtime-roundtrip.yml',
+              'NQC T39 REVM Historical Fork Differential':'.github/workflows/nqc-protocol-fork-revm-historical-differential.yml',
+              'NQC T39 Reorg Invalidation Replay Refresh':'.github/workflows/nqc-protocol-fork-reorg-replay-refresh.yml',
+              'NQC T39 Executor Code Identity Binding':'.github/workflows/nqc-protocol-fork-executor-code-identity.yml',
+              'NQC T39 Parity Mismatch Ledger':'.github/workflows/nqc-protocol-fork-mismatch-ledger.yml',
+              'NQC T39 Content Addressed Evidence Manifest':'.github/workflows/nqc-protocol-fork-evidence-manifest.yml',
+              'NQC T39 Aave Reconciler Reimplementation':'.github/workflows/nqc-protocol-fork-aave-reconciler-reimplementation.yml',
+              'NQC T39 Aave Reconciler Historical Canonical Parity':'.github/workflows/nqc-protocol-fork-aave-reconciler-historical-parity.yml',
+              'NQC T39 V2 Backrun Executor Reimplementation':'.github/workflows/nqc-protocol-fork-v2-backrun-executor-reimplementation.yml',
+              'NQC T39 V2 Executor Authority Baseline Matrix':'.github/workflows/nqc-protocol-fork-v2-executor-authority-matrix.yml',
+              'NQC T39 V2 Executor Historical Fork Execution':'.github/workflows/nqc-protocol-fork-v2-executor-historical-fork.yml',
+              'NQC T39 Source Blocker Closeout Contracts':'.github/workflows/nqc-protocol-fork-source-blocker-closeout.yml',
+          }
 
           exact_head_runs={}
           exact_head_api_error=None
@@ -170,17 +194,28 @@ jobs:
                   with urllib.request.urlopen(req,timeout=30) as response:
                       return json.loads(response.read())
 
-              runs_doc=github_json(
-                  f'/repos/{repository}/actions/runs?head_sha={head}&per_page=100'
-              )
+              all_runs=[]
+              for page in range(1,21):
+                  runs_doc=github_json(
+                      f'/repos/{repository}/actions/runs?head_sha={head}&per_page=100&page={page}'
+                  )
+                  batch=runs_doc.get('workflow_runs',[])
+                  all_runs.extend(batch)
+                  if len(batch)<100:
+                      break
+              else:
+                  raise RuntimeError('exact-head workflow pagination exceeded 2000 runs')
+
               successful={}
-              for run in runs_doc.get('workflow_runs',[]):
+              for run in all_runs:
                   if run.get('head_sha')!=head:
                       continue
                   if run.get('status')!='completed' or run.get('conclusion')!='success':
                       continue
                   name=run.get('name')
-                  if not isinstance(name,str):
+                  if not isinstance(name,str) or name not in workflow_paths:
+                      continue
+                  if run.get('path')!=workflow_paths[name]:
                       continue
                   prior=successful.get(name)
                   if prior is None or int(run.get('id',0))>int(prior.get('id',0)):
@@ -217,6 +252,7 @@ jobs:
                       'workflow_run_id':run_id,
                       'event':run.get('event'),
                       'head_sha':run.get('head_sha'),
+                      'path':run.get('path'),
                       'artifacts':artifacts,
                   }
           except Exception as exc:
