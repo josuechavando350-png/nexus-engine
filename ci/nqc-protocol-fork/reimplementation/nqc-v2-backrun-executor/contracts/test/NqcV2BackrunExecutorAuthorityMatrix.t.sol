@@ -257,7 +257,12 @@ contract NqcV2BackrunExecutorAuthorityMatrixTest {
 
     function testDirectCallbackFromNonPoolFailsClosed() public {
         Fixture memory f = _fixture();
-        vm.expectRevert(NqcV2BackrunExecutor.InvalidCallbackSender.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.InvalidCallbackSender.selector,
+                address(this)
+            )
+        );
         f.executor.executeOperation(
             address(f.tokenA),
             100,
@@ -282,21 +287,37 @@ contract NqcV2BackrunExecutorAuthorityMatrixTest {
     function testWrongInitiatorFailsClosedInsideActivePlan() public {
         Fixture memory f = _fixture();
         f.pool.setMode(PftFlashPool.Mode.WrongInitiator);
-        vm.expectRevert(NqcV2BackrunExecutor.InvalidInitiator.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.InvalidInitiator.selector,
+                address(0xBAD)
+            )
+        );
         f.executor.execute(_plan(f, 110, 5));
     }
 
     function testWrongFlashAssetFailsClosedInsideActivePlan() public {
         Fixture memory f = _fixture();
         f.pool.setMode(PftFlashPool.Mode.WrongAsset);
-        vm.expectRevert(NqcV2BackrunExecutor.InvalidFlashAsset.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.InvalidFlashAsset.selector,
+                address(f.tokenB)
+            )
+        );
         f.executor.execute(_plan(f, 110, 5));
     }
 
     function testWrongFlashPrincipalFailsClosedInsideActivePlan() public {
         Fixture memory f = _fixture();
         f.pool.setMode(PftFlashPool.Mode.WrongAmount);
-        vm.expectRevert(NqcV2BackrunExecutor.InvalidFlashPrincipal.selector);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                NqcV2BackrunExecutor.InvalidFlashPrincipal.selector,
+                uint256(100),
+                uint256(101)
+            )
+        );
         f.executor.execute(_plan(f, 110, 5));
     }
 
