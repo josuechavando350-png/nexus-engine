@@ -102,6 +102,35 @@
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca",
       "semantic_rationale": "Every uint40 value is exactly representable in u64; no truncation, rounding, unit conversion, branch, address, protocol constant, or authority semantics change."
+    },
+    {
+      "id": "PFT-COMPAT-002",
+      "status": "UNDER_PHYSICAL_TEST",
+      "source": "crates/nqc-executor/src/lib.rs",
+      "defect": "Alloy 2.5.0 decodes the named single uint256 execute return directly as U256; recovered code incorrectly dereferenced it as a generated return struct.",
+      "repair": "Return the validated ABI-decoded U256 directly.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "patch_sha256": "a86ee8fb584d837fb9ec280a94b634c69f6d9416e2d7cac6f1e0e0f54c9ea3d8",
+      "semantic_rationale": "ABI bytes and uint256 value are unchanged; only the generated Rust return-shape assumption is corrected."
+    },
+    {
+      "id": "PFT-COMPAT-003",
+      "status": "UNDER_PHYSICAL_TEST",
+      "source": "crates/nqc-aave-sync/Cargo.toml",
+      "defect": "Recovered nqc-aave-sync unit tests import nqc_core::{ray,wad} without declaring nqc-core as a dev-dependency.",
+      "repair": "Add nqc-core path dependency under dev-dependencies only.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "patch_sha256": "485b32615b95cee95dd014ab18b3dc6205fcd834f5216d34552925d6a4a43f7d",
+      "semantic_rationale": "Production dependency graph and runtime code are unchanged; this only makes the already-authored historical tests physically compilable."
     }
-  ]
+  ],
+  "certification_dependency_lock": {
+    "physical_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+    "path": "ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock",
+    "sha256": "7f6332bba058655fadd7cf057340fcebab10e3bac4db1e267d5213642d29f1c8",
+    "origin": "GENERATED_FROM_RECOVERED_WRAPPER_WORKSPACE_THEN_UPDATED_DETERMINISTICALLY_FOR_PFT_COMPAT_003_DEV_DEPENDENCY",
+    "tracked_in_historical_checkpoint": false
+  }
 }

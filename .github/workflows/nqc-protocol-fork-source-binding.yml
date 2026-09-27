@@ -121,20 +121,33 @@ jobs:
           git rev-parse HEAD > /tmp/nqc-pft/evidence/repository-source-sha.txt
           printf 'PASS\n' > /tmp/nqc-pft/evidence/source-hash-manifest.txt
 
-          # PFT-COMPAT-001 is a measured compile defect in the recovered
-          # historical source under its own pinned Alloy 2.5.0 ABI types:
-          # uint40 is Uint<40,1>, while the snapshot model stores u64.
-          # The overlay is lossless (40 bits always fit u64), touches exactly
-          # two assignments, and is applied only to the temporary build copy.
-          PATCH="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-001-aave-u40.patch"
-          echo "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca  $PATCH" | sha256sum -c -
+          # Measured compatibility repairs are applied only to the temporary
+          # build copy. Immutable recovered bytes remain hash-identical.
+          PATCH1="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-001-aave-u40.patch"
+          PATCH2="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-002-executor-return.patch"
+          PATCH3="$GITHUB_WORKSPACE/ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch"
+          echo "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca  $PATCH1" | sha256sum -c -
+          echo "a86ee8fb584d837fb9ec280a94b634c69f6d9416e2d7cac6f1e0e0f54c9ea3d8  $PATCH2" | sha256sum -c -
+          echo "485b32615b95cee95dd014ab18b3dc6205fcd834f5216d34552925d6a4a43f7d  $PATCH3" | sha256sum -c -
           (
             cd /tmp/nqc-pft/source
-            git apply --check "$PATCH"
-            git apply "$PATCH"
+            git apply --check "$PATCH1"
+            git apply "$PATCH1"
+            git apply --check "$PATCH2"
+            git apply "$PATCH2"
+            git apply --check "$PATCH3"
+            git apply "$PATCH3"
           )
-          sha256sum "$PATCH" > /tmp/nqc-pft/evidence/compatibility-patch.sha256
-          printf 'PFT-COMPAT-001 LOSSLESS_UINT40_TO_U64\n' > /tmp/nqc-pft/evidence/compatibility-overlay.txt
+          {
+            sha256sum "$PATCH1"
+            sha256sum "$PATCH2"
+            sha256sum "$PATCH3"
+          } > /tmp/nqc-pft/evidence/compatibility-patches.sha256
+          cat > /tmp/nqc-pft/evidence/compatibility-overlays.txt <<'EOF'
+          PFT-COMPAT-001 LOSSLESS_UINT40_TO_U64
+          PFT-COMPAT-002 ABI_SINGLE_RETURN_DIRECT_U256
+          PFT-COMPAT-003 TEST_ONLY_NQC_CORE_DEV_DEPENDENCY
+          EOF
 
       - name: Install exact Rust toolchain
         shell: bash
@@ -152,7 +165,7 @@ jobs:
         run: |
           set -euo pipefail
           cp "$GITHUB_WORKSPACE/ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock" Cargo.lock
-          echo "302f5abf0f4a0351c37db6e744f6bf14bbbf7d04d20a4186b4d7452459f0ca8c  Cargo.lock" | sha256sum -c -
+          echo "7f6332bba058655fadd7cf057340fcebab10e3bac4db1e267d5213642d29f1c8  Cargo.lock" | sha256sum -c -
           cargo fetch --locked
           cp Cargo.lock /tmp/nqc-pft/evidence/recovered-Cargo.lock
           sha256sum Cargo.lock | tee /tmp/nqc-pft/evidence/recovered-Cargo.lock.sha256
@@ -246,9 +259,12 @@ jobs:
               "repository_source_sha":(ev/"repository-source-sha.txt").read_text().strip(),
               "physical_checkpoint":"2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
               "source_hash_manifest_verified":exists("source-hash-manifest.txt"),
-              "compatibility_overlay_id":"PFT-COMPAT-001",
-              "compatibility_overlay_sha256":"9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca",
-              "compatibility_overlay_scope":"TWO_LOSSLESS_UINT40_TO_U64_ASSIGNMENTS_IN_TEMP_BUILD_COPY_ONLY",
+              "compatibility_overlays":[
+                  {"id":"PFT-COMPAT-001","sha256":"9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca"},
+                  {"id":"PFT-COMPAT-002","sha256":"a86ee8fb584d837fb9ec280a94b634c69f6d9416e2d7cac6f1e0e0f54c9ea3d8"},
+                  {"id":"PFT-COMPAT-003","sha256":"485b32615b95cee95dd014ab18b3dc6205fcd834f5216d34552925d6a4a43f7d"}
+              ],
+              "compatibility_overlay_scope":"TEMP_BUILD_COPY_ONLY; RECOVERED_BYTES_IMMUTABLE",
               "rustfmt_1_98_1_exact_source_match":(
                   (ev/"rustfmt-exit-code.txt").read_text().strip() == "0"
                   if exists("rustfmt-exit-code.txt") else None
@@ -256,7 +272,7 @@ jobs:
               "rust_physical_build_pass":exists("rust-physical-build-pass.txt"),
               "cargo_lock_generated":False,
               "cargo_lock_pinned":exists("recovered-Cargo.lock"),
-              "cargo_lock_expected_sha256":"302f5abf0f4a0351c37db6e744f6bf14bbbf7d04d20a4186b4d7452459f0ca8c",
+              "cargo_lock_expected_sha256":"7f6332bba058655fadd7cf057340fcebab10e3bac4db1e267d5213642d29f1c8",
               "cargo_lock_sha256":fsha("recovered-Cargo.lock"),
               "cargo_check_log_present":exists("cargo-check.txt"),
               "cargo_clippy_log_present":exists("cargo-clippy.txt"),
