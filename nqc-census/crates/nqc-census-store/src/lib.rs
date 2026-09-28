@@ -12,9 +12,11 @@ use std::io::{ErrorKind, Read, Write};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 
+const STORE_CONFIG_MAGIC: &[u8] = b"NQC-CENSUS-STORE-V1";
 const ARTIFACT_MAGIC: &[u8] = b"NQC-CENSUS-ARTIFACT-V1";
 const CHECKPOINT_MAGIC: &[u8] = b"NQC-CENSUS-CHECKPOINT-V1";
 const SCOPE_DOMAIN: &[u8] = b"NQC-CENSUS-RANGE-SCOPE-V1";
+const STORE_SCHEMA_VERSION: u16 = 1;
 const ARTIFACT_SCHEMA_VERSION: u16 = 1;
 const CHECKPOINT_SCHEMA_VERSION: u16 = 1;
 const MIN_CHUNK_SIZE: usize = 64;
@@ -291,6 +293,11 @@ impl CensusStore {
         fs::create_dir_all(root.join("objects/sha256"))?;
         fs::create_dir_all(root.join("checkpoints"))?;
         fs::create_dir_all(root.join("tmp"))?;
+        atomic_write_once(
+            &root,
+            &root.join("STORE_CONFIG"),
+            &encode_store_config(chunk_size)?,
+        )?;
         sync_directory(&root)?;
         Ok(Self { root, chunk_size })
     }
@@ -300,13 +307,13 @@ impl CensusStore {
         if !root.join("objects/sha256").is_dir()
             || !root.join("checkpoints").is_dir()
             || !root.join("tmp").is_dir()
+            || !root.join("STORE_CONFIG").is_file()
         {
             return Err(StoreError::StoreLayoutMissing);
         }
-        Ok(Self {
-            root,
-            chunk_size: MIN_CHUNK_SIZE,
-        })
+        let config = fs::read(root.join("STORE_CONFIG"))?;
+        let chunk_size = decode_store_config(&config)?;
+        Ok(Self { root, chunk_size })
     }
 
     pub fn root(&self) -> &Path {
@@ -430,11 +437,31 @@ impl CensusStore {
     ) -> Result<CommittedCheckpoint, StoreError> {
         self.verify_artifact(checkpoint.artifact())?;
         let scope_id = checkpoint.scope().id();
-        let existing = self.load_scope_checkpoints(scope_id)?;
-        validate_next_checkpoint(&existing, checkpoint)?;
-
         let bytes = encode_checkpoint(checkpoint)?;
         let checkpoint_digest = ArtifactDigest(hash_bytes(&bytes));
+        let existing = self.load_scope_checkpoints(scope_id)?;
+
+        if let Some((existing_digest, existing_checkpoint)) = existing
+            .iter()
+            .find(|(_, item)| item.sequence() == checkpoint.sequence())
+        {
+            if *existing_digest != checkpoint_digest || existing_checkpoint != checkpoint {
+                return Err(StoreError::CheckpointConflict(checkpoint.sequence()));
+            }
+            let scope_dir = self.scope_dir(scope_id);
+            atomic_replace(
+                &self.root,
+                &scope_dir.join("HEAD"),
+                format!("{}\n", checkpoint_digest.to_hex()).as_bytes(),
+            )?;
+            return Ok(CommittedCheckpoint {
+                scope_id,
+                checkpoint_digest,
+                sequence: checkpoint.sequence(),
+            });
+        }
+
+        validate_next_checkpoint(&existing, checkpoint)?;
         self.put_object(checkpoint_digest, &bytes)?;
         if fault == CommitFault::AfterCheckpointObject {
             return Err(StoreError::InjectedCrash(fault));
@@ -654,6 +681,7 @@ pub enum StoreError {
         reference: u64,
         checkpoint: u64,
     },
+    CheckpointConflict(u64),
     SequenceMismatch {
         expected: u64,
         actual: u64,
@@ -717,6 +745,9 @@ impl Display for StoreError {
                 formatter,
                 "reference/checkpoint sequence mismatch {reference} != {checkpoint}"
             ),
+            Self::CheckpointConflict(sequence) => {
+                write!(formatter, "checkpoint sequence {sequence} already has different content")
+            }
             Self::SequenceMismatch { expected, actual } => {
                 write!(formatter, "checkpoint sequence mismatch expected {expected}, got {actual}")
             }
@@ -840,6 +871,31 @@ fn validate_checkpoint_chain(
         previous = Some(current);
     }
     Ok(())
+}
+
+fn encode_store_config(chunk_size: usize) -> Result<Vec<u8>, StoreError> {
+    let chunk_size = u32::try_from(chunk_size).map_err(|_| StoreError::LengthOverflow)?;
+    let mut output = Vec::new();
+    output.extend_from_slice(STORE_CONFIG_MAGIC);
+    output.extend_from_slice(&STORE_SCHEMA_VERSION.to_be_bytes());
+    output.extend_from_slice(&chunk_size.to_be_bytes());
+    Ok(output)
+}
+
+fn decode_store_config(bytes: &[u8]) -> Result<usize, StoreError> {
+    let mut reader = Reader::new(bytes);
+    reader.require_magic(STORE_CONFIG_MAGIC, "store config magic")?;
+    let version = reader.u16()?;
+    if version != STORE_SCHEMA_VERSION {
+        return Err(StoreError::CorruptArtifact("store config schema version"));
+    }
+    let chunk_size =
+        usize::try_from(reader.u32()?).map_err(|_| StoreError::LengthOverflow)?;
+    reader.finish("store config trailing bytes")?;
+    if !(MIN_CHUNK_SIZE..=MAX_CHUNK_SIZE).contains(&chunk_size) {
+        return Err(StoreError::InvalidChunkSize(chunk_size));
+    }
+    Ok(chunk_size)
 }
 
 fn encode_manifest(manifest: &ArtifactManifest) -> Result<Vec<u8>, StoreError> {
