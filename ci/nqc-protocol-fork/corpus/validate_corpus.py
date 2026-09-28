@@ -87,7 +87,7 @@ if manifest.get("protocol_fork_truth") != "NOT_CLOSED":
     die("corpus is scoped evidence and must not claim global Protocol/Fork closure")
 
 contract_status = contract.get("status")
-if contract_status not in {"NOT_TESTED", "PROTOCOL_FORK_TRUTH_CLOSED"}:
+if contract_status not in {"NOT_TESTED", "RUNTIME_CLOSEOUT_CANDIDATE_READY"}:
     die("truth contract status is invalid for corpus validation")
 
 blockers = contract.get("current_blockers", [])
@@ -116,7 +116,7 @@ for blocker_id, blocker in by_id.items():
             die(f"{blocker_id}: closed without valid zero-mismatch closeout evidence")
 
 open_hard = [blocker for blocker in blockers if blocker.get("status") == "OPEN"]
-if contract_status == "PROTOCOL_FORK_TRUTH_CLOSED" and open_hard:
+if contract_status == "RUNTIME_CLOSEOUT_CANDIDATE_READY" and open_hard:
     die("closure candidate cannot retain OPEN hard source blockers")
 
 source_binding = manifest.get("source_binding", {})
@@ -423,12 +423,18 @@ else:
 if open_hard and manifest["status"] == "PASS":
     die("corpus cannot be globally PASS while hard source blockers remain open")
 
-if contract_status == "PROTOCOL_FORK_TRUTH_CLOSED":
+if contract_status == "RUNTIME_CLOSEOUT_CANDIDATE_READY":
     if manifest["status"] != "PASS":
         die("closure candidate requires corpus manifest PASS")
     not_pass = sorted(class_id for class_id, status in class_status.items() if status != "PASS")
     if not_pass:
         die(f"closure candidate requires every required class PASS: {not_pass}")
+else:
+    if manifest["status"] != "NOT_TESTED":
+        die("corpus manifest may advance to PASS only with runtime closeout candidate readiness")
+    advanced = sorted(class_id for class_id, status in class_status.items() if status != "NOT_TESTED")
+    if advanced:
+        die(f"required classes may advance only with runtime closeout candidate readiness: {advanced}")
 
 summary = {
     "schema_version": 1,
