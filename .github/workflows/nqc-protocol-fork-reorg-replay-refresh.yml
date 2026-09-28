@@ -61,6 +61,9 @@ jobs:
           from pathlib import Path
           contract=json.loads(Path("ci/nqc-protocol-fork/REORG_REPLAY_REFRESH_CONTRACT.json").read_text())
           closeout=json.loads(Path("ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json").read_text())
+          aave_closeout=json.loads(Path(
+              "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json"
+          ).read_text())
           assert contract["gate"]=="REORG_INVALIDATION_AND_REPLAY_REFRESH"
           assert closeout["source_blocker"]=="PFT-SRC-002"
           assert closeout["status"]=="CLOSED"
@@ -75,10 +78,15 @@ jobs:
           assert set(real["independently_verified_by"])==set(bound["providers"])
           assert closeout["evidence"]["reorg"]["deterministic_deep_replacement_blocks"]==2
           aave=contract["aave_reconciler_deterministic_binding"]
-          assert aave["head"]=="e6adfe592047ab0ea6e3ed95d3113f7d38887f8e"
-          assert aave["workflow_run_id"]==36349722000
-          assert aave["artifact_id"]==10941793422
-          assert aave["artifact_zip_sha256"]=="1f5f6651ed13bf1b992d713068ed764eb857320108432c9978539a461e2052cc"
+          assert aave_closeout["source_blocker"]=="PFT-SRC-003"
+          assert aave_closeout["status"]=="CLOSED"
+          assert aave_closeout["unexplained_mismatches"]==0
+          deterministic=aave_closeout["evidence"]["deterministic_reimplementation"]
+          assert aave["head"]==deterministic["head"]=="e6adfe592047ab0ea6e3ed95d3113f7d38887f8e"
+          assert aave["workflow_run_id"]==deterministic["workflow_run_id"]==36349722000
+          assert aave["artifact_id"]==deterministic["artifact_id"]==10941793422
+          deterministic_sha=deterministic.get("artifact_sha256") or deterministic.get("artifact_zip_sha256")
+          assert aave["artifact_zip_sha256"]==deterministic_sha=="1f5f6651ed13bf1b992d713068ed764eb857320108432c9978539a461e2052cc"
           overlays=contract["build_compatibility_overlays"]
           assert [x["id"] for x in overlays]==["PFT-COMPAT-003","PFT-COMPAT-005"]
           assert overlays[0]["sha256"]=="7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5"
@@ -87,7 +95,7 @@ jobs:
           print("REORG_REPLAY_EVIDENCE_BINDINGS_PASS")
           PY
 
-          sha256sum             ci/nqc-protocol-fork/REORG_REPLAY_REFRESH_CONTRACT.json             ci/nqc-protocol-fork/parity/pft_reorg_replay_refresh.rs             ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch             ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock             > "$NQC_REORG_REPLAY/evidence/input-source.sha256"
+          sha256sum             ci/nqc-protocol-fork/REORG_REPLAY_REFRESH_CONTRACT.json             ci/nqc-protocol-fork/parity/pft_reorg_replay_refresh.rs             ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json             ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch             ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock             > "$NQC_REORG_REPLAY/evidence/input-source.sha256"
 
       - name: Build exact recovered replay harness
         shell: bash
