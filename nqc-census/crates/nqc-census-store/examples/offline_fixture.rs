@@ -18,10 +18,8 @@ fn run() -> Result<(), String> {
         return Err("unexpected extra arguments".to_owned());
     }
 
-    let chain = ChainDomain::new(1, hash(0x11)?, hash(0x12)?)
-        .map_err(|error| error.to_string())?;
-    let scope =
-        RangeScope::new(chain, hash(0x21)?, 1).map_err(|error| error.to_string())?;
+    let chain = ChainDomain::new(1, hash(0x11)?, hash(0x12)?).map_err(|error| error.to_string())?;
+    let scope = RangeScope::new(chain, hash(0x21)?, 1).map_err(|error| error.to_string())?;
     let store = CensusStore::create(&root, 64).map_err(|error| error.to_string())?;
 
     let first_artifact = store
