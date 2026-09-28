@@ -778,7 +778,6 @@ fn admission_identity_is_bound_to_the_exact_declared_universe() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn later_admission_cannot_rewrite_deployment_creation_history() -> TestResult {
     let capabilities = all_capabilities(true)?;
