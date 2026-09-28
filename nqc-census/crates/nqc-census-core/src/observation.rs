@@ -364,10 +364,8 @@ impl RawLogEnvelope {
     pub fn digest(&self) -> Result<ObservationDigest, ObservationError> {
         let data_len =
             u32::try_from(self.data.len()).map_err(|_| ObservationError::PayloadTooLarge)?;
-        let topic_count =
-            u8::try_from(self.topics.len()).map_err(|_| ObservationError::TooManyLogTopics(
-                self.topics.len(),
-            ))?;
+        let topic_count = u8::try_from(self.topics.len())
+            .map_err(|_| ObservationError::TooManyLogTopics(self.topics.len()))?;
 
         let mut hasher = Sha256::new();
         hasher.update(RAW_LOG_DOMAIN);
@@ -396,12 +394,7 @@ impl CensusObservation<RawLogEnvelope> {
     ) -> Result<Self, ObservationError> {
         let raw_payload_digest = payload.digest()?;
         Ok(Self {
-            envelope: ObservationEnvelope::new(
-                anchor,
-                semantics,
-                provenance,
-                raw_payload_digest,
-            ),
+            envelope: ObservationEnvelope::new(anchor, semantics, provenance, raw_payload_digest),
             payload,
         })
     }
