@@ -81,27 +81,79 @@
       ]
     },
     {
-      "case_id": "aave-liquidation-default-close-candidate-2024-05-93e1",
-      "transaction_hash": "0x93e1e6dfd1faca0a9c04e52fdd754637f07ed469d336c267b4b9eedcc1775268",
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-bc34",
+      "transaction_hash": "0xbc34c100101a2e0b9e7cfa1fed70bfeab7000110b99238aa68e8bbbf29834f96",
       "expected_receipt_status": "0x1",
       "expected_pool_liquidation_log": true,
       "class_tags": [
         "ordinary_liquidation",
         "default_close_factor_candidate",
-        "large_debt_position",
+        "post_v3_3_large_position",
         "interest_index_sensitive",
         "standard_erc20"
       ]
     },
     {
-      "case_id": "aave-liquidation-default-close-candidate-2026-02-3a5b",
-      "transaction_hash": "0x3a5b032dae2682795a96d5474ca90b39edc0850ce32cab606359713db638f2ca",
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-8f0a",
+      "transaction_hash": "0x8f0ab391fcf8c1454f9665460a5d675a0821b4a53e01301c17bc239ac2fcad65",
       "expected_receipt_status": "0x1",
       "expected_pool_liquidation_log": true,
       "class_tags": [
         "ordinary_liquidation",
         "default_close_factor_candidate",
-        "large_debt_position",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-d314",
+      "transaction_hash": "0xd314919adb617fe633f8b2bcd092fb8f58755d4e1e0a538da9ccd29103eec198",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-ee19",
+      "transaction_hash": "0xee197f76ac1949675f32887132514e8e9aaf69ac7e1fa709a979c78828647ccb",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-c3a4",
+      "transaction_hash": "0xc3a4bf252ece2eac54f25ff05acbbe1be9ef8448a5fd1c6241b3db2027923093",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-09-ea2e",
+      "transaction_hash": "0xea2e1b49f0f6edf54e1ca285aac21f20581b491637da7faeebec8f65cff54abe",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "post_v3_3_large_position",
         "interest_index_sensitive",
         "standard_erc20"
       ]
