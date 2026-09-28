@@ -777,3 +777,55 @@ fn admission_identity_is_bound_to_the_exact_declared_universe() -> TestResult {
     );
     Ok(())
 }
+
+
+#[test]
+fn later_admission_cannot_rewrite_deployment_creation_history() -> TestResult {
+    let capabilities = all_capabilities(true)?;
+    let mut registry = registry_with_profile(
+        1,
+        ProxyKind::Transparent,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        capabilities.clone(),
+    )?;
+    let first = registry.admit(
+        binding(
+            1,
+            300,
+            ProxyKind::Transparent,
+            0x61,
+            0x51,
+            0x52,
+            0x53,
+            0x54,
+            DeploymentLifeState::Active,
+            capabilities.clone(),
+        )?,
+        None,
+    )?;
+
+    let rewritten_origin = DeploymentBinding::new(
+        deployment()?,
+        root()?,
+        anchor(121, 0x45)?,
+        anchor(350, 0x46)?,
+        ProxyKind::Transparent,
+        address(0x61)?,
+        hash(0x52)?,
+        ObservationSemantics::new(hash(0x51)?, hash(0x53)?),
+        hash(0x54)?,
+        1,
+        DeploymentLifeState::Paused,
+        capabilities,
+        vec![EvidenceRef::Artifact(hash(0xa2)?)],
+    )?;
+
+    assert_eq!(
+        registry.admit(rewritten_origin, Some(first.id())),
+        Err(DeploymentRegistryError::CreationAnchorChanged)
+    );
+    Ok(())
+}
