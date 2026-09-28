@@ -130,7 +130,7 @@ jobs:
           set -euo pipefail
           rm -rf "$NQC_CENSUS"
           mkdir -p "$NQC_CENSUS"
-          python3 -u ci/nqc-market-census/uniswap_v2_census.py             --out "$NQC_CENSUS"             --provider blastapi-public=https://eth-mainnet.public.blastapi.io             --provider mevblocker-rpc=https://rpc.mevblocker.io             --minimum-counted 25001             --collection-target 26000             --batch-pairs 40             2>&1 | tee "$NQC_CENSUS/census.log"
+          python3 -u ci/nqc-market-census/uniswap_v2_census.py             --out "$NQC_CENSUS"             --provider blastapi-public=https://eth-mainnet.public.blastapi.io             --provider mevblocker-rpc=https://rpc.mevblocker.io             --minimum-counted 25001             --collection-target 26000             --batch-pairs 20             2>&1 | tee "$NQC_CENSUS/census.log"
 
       - name: Validate census artifact fail closed
         shell: bash
