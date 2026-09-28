@@ -80,7 +80,8 @@ jobs:
           assert authority['runtime_compatibility_authority']=='PARITY_MISMATCH_LEDGER.json'
           assert authority['final_status_authority']=='RUNTIME_CLOSEOUT_RECEIPT_BOUND_TO_GIT_HEAD_TREE_AND_RUN_ATTEMPT'
           assert truth['schema_version']==1
-          assert truth.get('status_authority')=='CANDIDATE_CONTRACT_REQUIRES_RUNTIME_CLOSEOUT_RECEIPT_FOR_EFFECTIVE_CLOSURE'
+          assert truth.get('runtime_closeout_candidate_status')=='RUNTIME_CLOSEOUT_CANDIDATE_READY'
+          assert truth.get('status_authority')=='TRACKED_CONTRACT_MAY_ONLY_REACH_RUNTIME_CLOSEOUT_CANDIDATE_READY; PROTOCOL_FORK_TRUTH_CLOSED_IS_RUNTIME_RECEIPT_ONLY'
 
           expected={
             'SOURCE_BINDING_COMPLETE',
@@ -555,8 +556,8 @@ jobs:
               and scope.get('execution_scope')=='RECOVERED_OR_EXPLICITLY_MEASURED_REIMPLEMENTED_COMPONENTS_EXERCISED_BY_REQUIRED_GATES'
               and set(scope.get('excluded_claims',[]))==expected_exclusions
           )
-          truth_contract_closed=(
-              truth.get('status')=='PROTOCOL_FORK_TRUTH_CLOSED'
+          truth_contract_candidate_ready=(
+              truth.get('status')=='RUNTIME_CLOSEOUT_CANDIDATE_READY'
               and truth_blocker_ids==set(blocker_paths)
               and all(
                   b.get('severity')=='HARD' and b.get('status')=='CLOSED'
@@ -564,7 +565,7 @@ jobs:
               )
           )
           truth_policy_ready=(
-              truth_contract_closed
+              truth_contract_candidate_ready
               and truth.get('parity_rules',{}).get('unexplained_mismatch_terminal_count')==0
               and truth.get('truth_boundaries',{}).get('production_certification')=='NOT_CERTIFIED'
               and scope_ready
@@ -616,7 +617,9 @@ jobs:
           # source, including mismatch-ledger resolution evidence, has joined
           # the required evidence-head set.
           evidence_heads_not_ancestors=[]
+          ancestry_checked_heads=set()
           for evidence_head in sorted(required_evidence_heads):
+              ancestry_checked_heads.add(evidence_head)
               result=subprocess.run(
                   ['git','merge-base','--is-ancestor',evidence_head,head],
                   stdout=subprocess.DEVNULL,
@@ -624,9 +627,10 @@ jobs:
               )
               if result.returncode!=0:
                   evidence_heads_not_ancestors.append(evidence_head)
+          assert ancestry_checked_heads==required_evidence_heads
           evidence_ancestry_ready=not evidence_heads_not_ancestors
 
-          assert ledger_evidence_heads.issubset(required_evidence_heads)
+          assert ledger_evidence_heads.issubset(ancestry_checked_heads)
           compat_resolution_ready={
               'PFT-COMPAT-008','PFT-COMPAT-009'
           }.issubset(ledger_resolved_repairs)
@@ -673,7 +677,8 @@ jobs:
               'tracked_policy_source_blockers':d['source_blockers'],
               'tracked_truth_contract_status':truth.get('status'),
               'tracked_truth_status_authority':truth.get('status_authority'),
-              'truth_contract_closed':truth_contract_closed,
+              'truth_contract_candidate_ready':truth_contract_candidate_ready,
+              'truth_contract_closed':False,
               'truth_contract_blocker_status':{
                   b.get('id'):b.get('status') for b in truth_blocker_docs
               },
@@ -685,6 +690,7 @@ jobs:
               'certification_scope_ready':scope_ready,
               'certification_scope':scope,
               'required_evidence_heads':sorted(required_evidence_heads),
+              'ancestry_checked_heads':sorted(ancestry_checked_heads),
               'evidence_heads_not_ancestors':evidence_heads_not_ancestors,
               'evidence_ancestry_ready':evidence_ancestry_ready,
               'source_artifact_attestation_ready':source_artifact_attestation_ready,
