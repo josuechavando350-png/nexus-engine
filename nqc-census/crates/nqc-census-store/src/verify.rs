@@ -148,6 +148,13 @@ impl Verifier<'_> {
         let mut out = Vec::new();
         for fan in self.names(kind_dir)? {
             let fan_dir = kind_dir.join(&fan);
+            let canonical_fan = fan.len() == 2
+                && fan
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte));
+            if !canonical_fan {
+                return Err(self.fail(&fan_dir, StoreError::InvalidObjectName(fan_dir.clone())));
+            }
             self.dir(&fan_dir)?;
             for name in self.names(&fan_dir)? {
                 let path = fan_dir.join(&name);

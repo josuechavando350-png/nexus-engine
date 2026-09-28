@@ -91,7 +91,10 @@ fn fixture_verifies_copies_verify_identically_and_tamper_fails() -> TestResult {
 
 #[test]
 fn every_class_of_referenced_object_tamper_is_detected_by_the_binary() -> TestResult {
-    let cases: [(&str, Damage); 7] = [
+    let cases: [(&str, Damage); 8] = [
+        ("empty-non-canonical-fanout", |root| {
+            Ok(fs::create_dir(root.join("objects/chunks/zz"))?)
+        }),
         ("manifest", |root| {
             let artifacts = support::files_under(&root.join("objects/artifacts"))?;
             flip_last_byte(artifacts.first().ok_or("no manifest")?)

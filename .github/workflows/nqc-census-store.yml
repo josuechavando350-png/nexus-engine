@@ -290,10 +290,11 @@ jobs:
           s=$(fresh hole);       rm "$(find "$s/streams" -path '*checkpoints/00000000000000000001' | head -1)"; expect_fail catalog-hole "$s"
           s=$(fresh unknown);    echo x > "$s/objects/UNKNOWN";                                  expect_fail unknown-entry "$s"
           s=$(fresh symlink);    ln -s /etc/hostname "$s/tmp/link.stage";                        expect_fail symlink "$s"
+          s=$(fresh fanout);     mkdir "$s/objects/chunks/zz";                                   expect_fail bad-fanout "$s"
           s=$(fresh range);                                                                      expect_fail range-beyond "$s" --require-range "$scope:100:140"
           set +e; env -i "$verifier" >/dev/null 2>&1; usage=$?; set -e
           test "$usage" -eq 2
-          echo RMC_004_TAMPER_MATRIX_PASS cases=11
+          echo RMC_004_TAMPER_MATRIX_PASS cases=12
 
       - name: Durability syscall-ordering gate
         shell: bash

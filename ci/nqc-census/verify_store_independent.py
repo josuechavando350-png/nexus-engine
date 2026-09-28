@@ -409,6 +409,8 @@ def verify(root, ranges):
         require_dir(base, device)
         for fan in names(base):
             fan_dir = os.path.join(base, fan)
+            if len(fan) != 2 or any(c not in "0123456789abcdef" for c in fan):
+                raise Fail("INVALID_OBJECT_NAME", fan_dir, "fan-out name")
             require_dir(fan_dir, device)
             for name in names(fan_dir):
                 ident = hex32(name)
