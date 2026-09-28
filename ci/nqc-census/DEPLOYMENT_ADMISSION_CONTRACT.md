@@ -115,6 +115,7 @@ current active record as a derived index only.
 
 For an existing deployment identity:
 
+- the original creation anchor is immutable across every later epoch;
 - every later observation must advance block height;
 - every transition explicitly names the admission it supersedes;
 - semantic fingerprint changes require a strictly larger semantics version;
@@ -168,7 +169,8 @@ The test suite must prove at least:
 16. wrong-chain anchors rejected;
 17. missing admission evidence rejected;
 18. identical deployment evidence under a different universe produces a distinct
-    admission identity.
+    admission identity;
+19. no later epoch may rewrite the deployment creation anchor.
 
 ## Deliberate non-claims
 
