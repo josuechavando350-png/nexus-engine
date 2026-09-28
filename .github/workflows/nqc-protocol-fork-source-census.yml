@@ -57,7 +57,7 @@ jobs:
           contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
           assert contract["schema_version"] == 1
           assert contract["tranche"] == "T39_PROTOCOL_FORK_TRUTH_55_TO_62"
-          assert contract["status"] in {"NOT_TESTED","PROTOCOL_FORK_TRUTH_CLOSED"}
+          assert contract["status"] in {"NOT_TESTED","RUNTIME_CLOSEOUT_CANDIDATE_READY"}
           assert contract["scope"] == "POST_BUILD_TRUTH_PROTOCOL_AND_HISTORICAL_FORK_CERTIFICATION"
           assert contract["source_of_truth"]["build_truth_closeout_main_commit"] == "bc519fb90baf6629b5ce9b99ed69c4b5e05dcfe0"
           assert contract["source_of_truth"]["build_truth_closeout_attestation_sha256"] == "1bfc0007c988da7b0c3ab590c5fa8918b0d8cd0c4864537f2b5c744f924db22a"
@@ -90,9 +90,9 @@ jobs:
                   assert closeout["unexplained_mismatches"]==0
                   assert closeout["protocol_fork_truth"]=="NOT_CLOSED"
 
-          if contract["status"]=="PROTOCOL_FORK_TRUTH_CLOSED":
+          if contract["status"]=="RUNTIME_CLOSEOUT_CANDIDATE_READY":
               assert all(b["status"]=="CLOSED" for b in blockers.values())
-              assert contract.get("status_authority")=="CANDIDATE_CONTRACT_REQUIRES_RUNTIME_CLOSEOUT_RECEIPT_FOR_EFFECTIVE_CLOSURE"
+              assert contract.get("runtime_closeout_candidate_status")=="RUNTIME_CLOSEOUT_CANDIDATE_READY"\n              assert contract.get("status_authority")=="TRACKED_CONTRACT_MAY_ONLY_REACH_RUNTIME_CLOSEOUT_CANDIDATE_READY; PROTOCOL_FORK_TRUTH_CLOSED_IS_RUNTIME_RECEIPT_ONLY"
 
           assert contract["parity_rules"]["unexplained_mismatch_terminal_count"] == 0
           truth=contract["truth_boundaries"]
@@ -125,10 +125,11 @@ jobs:
           import json
           from pathlib import Path
 
+          contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
           census=json.loads(Path("ci/nqc-protocol-fork/SOURCE_CENSUS.json").read_text())
           assert census["github_main"] == "bc519fb90baf6629b5ce9b99ed69c4b5e05dcfe0"
           assert census["classification"] == "SOURCE_CENSUS_COMPLETE_WITH_HARD_RECOVERY_GAPS"
-          if contract["status"]=="PROTOCOL_FORK_TRUTH_CLOSED":
+          if contract["status"]=="RUNTIME_CLOSEOUT_CANDIDATE_READY":
               assert census["protocol_fork_truth_status"] == "SOURCE_GAPS_CLOSED_BY_MEASURED_REIMPLEMENTATION_EVIDENCE_RUNTIME_CERTIFICATION_PENDING"
           else:
               assert census["protocol_fork_truth_status"] == "BLOCKED_PENDING_SOURCE_RECOVERY_OR_MEASURED_DEFECT_REPAIR"
@@ -166,8 +167,8 @@ jobs:
               "protocol_fork_truth":(
                   "BLOCKED_BY_SOURCE" if open_count
                   else (
-                      "PROTOCOL_FORK_TRUTH_CLOSED_CANDIDATE_RUNTIME_REQUIRED"
-                      if contract["status"]=="PROTOCOL_FORK_TRUTH_CLOSED"
+                      "RUNTIME_CLOSEOUT_CANDIDATE_READY_RECEIPT_REQUIRED"
+                      if contract["status"]=="RUNTIME_CLOSEOUT_CANDIDATE_READY"
                       else "SOURCE_BLOCKERS_CLOSED_OTHER_GATES_MAY_REMAIN"
                   )
               ),
