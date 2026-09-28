@@ -61,18 +61,30 @@ jobs:
           assert sum(len(case["canonical_users"]) for case in witness["cases"]) == 15
 
           contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
-          assert contract["status"] == "NOT_TESTED"
+          assert contract["status"] in {"NOT_TESTED","RUNTIME_CLOSEOUT_CANDIDATE_READY"}
           blockers={b["id"]:b for b in contract["current_blockers"]}
           assert set(blockers) == {"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
-          assert blockers["PFT-SRC-001"]["status"] == "OPEN"
-          assert blockers["PFT-SRC-003"]["status"] == "OPEN"
-          assert blockers["PFT-SRC-002"]["status"] in {"OPEN","CLOSED"}
-          if blockers["PFT-SRC-002"]["status"] == "CLOSED":
-              closeout=json.loads(Path(
+          closeout_paths={
+              "PFT-SRC-001":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json"
+              ),
+              "PFT-SRC-002":Path(
                   "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"
-              ).read_text())
-              assert closeout["status"] == "CLOSED"
-              assert closeout["unexplained_mismatches"] == 0
+              ),
+              "PFT-SRC-003":Path(
+                  "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json"
+              ),
+          }
+          for blocker_id,blocker in blockers.items():
+              assert blocker["status"] in {"OPEN","CLOSED"}
+              if blocker["status"] == "CLOSED":
+                  closeout=json.loads(closeout_paths[blocker_id].read_text())
+                  assert closeout["source_blocker"] == blocker_id
+                  assert closeout["status"] == "CLOSED"
+                  assert closeout["unexplained_mismatches"] == 0
+                  assert closeout["protocol_fork_truth"] == "NOT_CLOSED"
+          if contract["status"] == "RUNTIME_CLOSEOUT_CANDIDATE_READY":
+              assert all(b["status"] == "CLOSED" for b in blockers.values())
           PY
 
           (
