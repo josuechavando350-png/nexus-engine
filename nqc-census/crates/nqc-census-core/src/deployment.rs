@@ -26,7 +26,6 @@ const ALL_CAPABILITIES: [AdapterCapability; 10] = [
 pub enum DiscoveryRootKind {
     AaveAddressesProvider,
     V2Factory,
-    ProtocolRegistry,
 }
 
 impl DiscoveryRootKind {
@@ -34,7 +33,6 @@ impl DiscoveryRootKind {
         match self {
             Self::AaveAddressesProvider => 1,
             Self::V2Factory => 2,
-            Self::ProtocolRegistry => 3,
         }
     }
 
@@ -45,7 +43,6 @@ impl DiscoveryRootKind {
                 ProtocolFamily::AaveV2 | ProtocolFamily::AaveV3 | ProtocolFamily::AaveV4
             ),
             Self::V2Factory => protocol == ProtocolFamily::UniswapV2,
-            Self::ProtocolRegistry => true,
         }
     }
 }
@@ -575,6 +572,7 @@ impl AdmissionId {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AdmissionRecord {
     id: AdmissionId,
+    universe_id: UniverseId,
     binding: DeploymentBinding,
     supersedes: Option<AdmissionId>,
 }
@@ -582,6 +580,10 @@ pub struct AdmissionRecord {
 impl AdmissionRecord {
     pub const fn id(&self) -> AdmissionId {
         self.id
+    }
+
+    pub const fn universe_id(&self) -> UniverseId {
+        self.universe_id
     }
 
     pub const fn binding(&self) -> &DeploymentBinding {
@@ -702,9 +704,10 @@ impl DeploymentRegistry {
             .ok_or(DeploymentRegistryError::UnsupportedDeploymentSemantics)?;
         validate_profile(profile, &binding)?;
 
+        let universe_id = self.universe.id();
         let id = AdmissionId(domain_hash(
             ADMISSION_DOMAIN,
-            &canonical_admission_bytes(&binding, supersedes),
+            &canonical_admission_bytes(universe_id, &binding, supersedes),
         ));
         if let Some(existing) = self.records.get(&id) {
             if existing.binding() == &binding && existing.supersedes() == supersedes {
@@ -745,6 +748,7 @@ impl DeploymentRegistry {
 
         let record = AdmissionRecord {
             id,
+            universe_id,
             binding,
             supersedes,
         };
@@ -929,11 +933,13 @@ fn canonical_universe_bytes(
 }
 
 fn canonical_admission_bytes(
+    universe_id: UniverseId,
     binding: &DeploymentBinding,
     supersedes: Option<AdmissionId>,
 ) -> Vec<u8> {
     let binding_bytes = binding.canonical_bytes();
     let mut out = Vec::new();
+    out.extend_from_slice(universe_id.as_bytes());
     out.extend_from_slice(&(binding_bytes.len() as u32).to_be_bytes());
     out.extend_from_slice(&binding_bytes);
     match supersedes {
