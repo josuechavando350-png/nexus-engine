@@ -1,0 +1,121 @@
+name: NQC RMC-003 Observation Stage Core
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-observation-pipeline.yml
+      - .github/workflows/nqc-census-identity.yml
+      - ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md
+      - nqc-census/crates/nqc-census-core/src/lib.rs
+      - nqc-census/crates/nqc-census-core/src/observation.rs
+      - nqc-census/crates/nqc-census-core/src/pipeline.rs
+      - nqc-census/crates/nqc-census-core/src/capability.rs
+      - nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  observation-stage-core:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RMC002_PARENT: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
+      RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority and exact scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$PFT_CERTIFIED_COMMIT" HEAD
+          git merge-base --is-ancestor "$RMC001_MERGE" HEAD
+          git merge-base --is-ancestor "$RMC002_PARENT" HEAD
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            test "${{ github.event.pull_request.base.sha }}" = "$RMC002_PARENT"
+          fi
+
+          python3 - <<'PY'
+          import subprocess
+          expected={
+              ".github/workflows/nqc-census-observation-pipeline.yml",
+              ".github/workflows/nqc-census-identity.yml",
+              "ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md",
+              "nqc-census/crates/nqc-census-core/src/lib.rs",
+              "nqc-census/crates/nqc-census-core/src/observation.rs",
+              "nqc-census/crates/nqc-census-core/src/pipeline.rs",
+              "nqc-census/crates/nqc-census-core/src/capability.rs",
+              "nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs",
+          }
+          changed=set(subprocess.check_output(
+              ["git","diff","--name-only","0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb...HEAD"],
+              text=True,
+          ).splitlines())
+          assert changed==expected, (
+              f"RMC-003 scope mismatch missing={sorted(expected-changed)} "
+              f"extra={sorted(changed-expected)}"
+          )
+          print("RMC_003_SCOPE_PASS files=8")
+          PY
+
+          git diff --check "$RMC002_PARENT"...HEAD
+
+      - name: Verify RMC-001 identity authority unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "$RMC001_MERGE" HEAD --             ci/nqc-census/IDENTITY_CONTRACT.md             ci/nqc-census/identity-vectors.json             nqc-census/rust-toolchain.toml             nqc-census/crates/nqc-census-core/Cargo.toml             nqc-census/crates/nqc-census-core/src/identity.rs             nqc-census/crates/nqc-census-core/tests/identity.rs
+          echo RMC_003_RMC001_IDENTITY_IMMUTABLE_PASS
+
+      - name: Verify Protocol Fork Truth untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source             ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility             ci/nqc-protocol-fork/locks             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+          echo RMC_003_PROTOCOL_FORK_IMMUTABLE_PASS
+
+      - name: Verify provider signer and network free core
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -nE 'reqwest|alloy-provider|tokio|std::net|TcpStream|UdpSocket|process::Command|std::env::var|signer|private.?key|secret|http://|https://'             nqc-census/crates/nqc-census-core/src             nqc-census/crates/nqc-census-core/tests
+          echo RMC_003_NO_IO_BOUNDARY_PASS
+
+      - name: Verify contract surface statically
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(grep -c 'Self::Markets' nqc-census/crates/nqc-census-core/src/pipeline.rs)" -ge 26
+          grep -F 'pub const ALL: [Self; 13]' nqc-census/crates/nqc-census-core/src/pipeline.rs
+          grep -F '"UNKNOWN"' nqc-census/crates/nqc-census-core/src/pipeline.rs
+          grep -F '"UNSUPPORTED_CAPABILITY"' nqc-census/crates/nqc-census-core/src/pipeline.rs
+          grep -F 'state_root: Hash32' nqc-census/crates/nqc-census-core/src/observation.rs
+          grep -F 'transaction_hash: Hash32' nqc-census/crates/nqc-census-core/src/observation.rs
+          grep -F 'log_index: u32' nqc-census/crates/nqc-census-core/src/observation.rs
+          grep -F 'pub struct CapabilityMatrix' nqc-census/crates/nqc-census-core/src/capability.rs
+          echo RMC_003_STATIC_CONTRACT_PASS
+
+      - name: Rust format lint test and build locked
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo --version
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --locked --test observation_pipeline -- --nocapture
+          cargo test --workspace --all-targets --locked
+          cargo build --workspace --all-targets --locked
+          echo RMC_003_OBSERVATION_STAGE_CORE_PASS

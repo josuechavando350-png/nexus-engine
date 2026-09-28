@@ -37,28 +37,16 @@ jobs:
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
             test "${{ github.event.pull_request.base.sha }}" = "$CERTIFIED_BASE"
           fi
-          python3 - <<'PY'
-          import subprocess
-          expected = {
-              ".github/workflows/nqc-census-identity.yml",
-              "ci/nqc-census/IDENTITY_CONTRACT.md",
-              "ci/nqc-census/identity-vectors.json",
-              "nqc-census/Cargo.lock",
-              "nqc-census/Cargo.toml",
-              "nqc-census/crates/nqc-census-core/Cargo.toml",
-              "nqc-census/crates/nqc-census-core/src/identity.rs",
-              "nqc-census/crates/nqc-census-core/src/lib.rs",
-              "nqc-census/crates/nqc-census-core/tests/identity.rs",
-              "nqc-census/rust-toolchain.toml",
-          }
-          changed = set(subprocess.check_output(
-              ["git", "diff", "--name-only", "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf...HEAD"],
-              text=True,
-          ).splitlines())
-          assert changed == expected, f"scope mismatch missing={sorted(expected-changed)} extra={sorted(changed-expected)}"
-          print("RMC_001_SCOPE_PASS files=10")
-          PY
-          git diff --check "$CERTIFIED_BASE"...HEAD
+          git merge-base --is-ancestor cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d HEAD
+          git diff --quiet cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d HEAD -- \
+            ci/nqc-census/IDENTITY_CONTRACT.md \
+            ci/nqc-census/identity-vectors.json \
+            nqc-census/rust-toolchain.toml \
+            nqc-census/crates/nqc-census-core/Cargo.toml \
+            nqc-census/crates/nqc-census-core/src/identity.rs \
+            nqc-census/crates/nqc-census-core/tests/identity.rs
+          echo RMC_001_IDENTITY_BYTES_IMMUTABLE_PASS
+          git diff --check cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d...HEAD
 
       - name: Verify dependency and no-I/O boundary
         shell: bash
