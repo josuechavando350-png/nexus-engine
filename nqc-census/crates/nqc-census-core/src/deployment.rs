@@ -441,16 +441,14 @@ impl DeploymentBinding {
             ProxyKind::Direct if implementation_address != deployment.address() => {
                 return Err(DeploymentRegistryError::DirectImplementationMismatch)
             }
+            ProxyKind::Direct if implementation_code_hash != semantics.code_hash() => {
+                return Err(DeploymentRegistryError::DirectCodeHashMismatch)
+            }
             ProxyKind::Direct => {}
             _ if implementation_address == deployment.address() => {
                 return Err(DeploymentRegistryError::ProxyImplementationMustDiffer)
             }
             _ => {}
-        }
-        if life_state == DeploymentLifeState::Removed
-            && capabilities.iter().any(|(_, supported)| supported)
-        {
-            return Err(DeploymentRegistryError::RemovedDeploymentHasCapabilities);
         }
         evidence_refs.sort_unstable();
         evidence_refs.dedup();
@@ -779,8 +777,8 @@ pub enum DeploymentRegistryError {
     AnchorChainMismatch,
     CreationAfterObservation,
     DirectImplementationMismatch,
+    DirectCodeHashMismatch,
     ProxyImplementationMustDiffer,
-    RemovedDeploymentHasCapabilities,
     MissingAdmissionEvidence,
     UndeclaredUniverseScope,
     ConflictingSemanticsProfile,
@@ -836,12 +834,11 @@ impl Display for DeploymentRegistryError {
             }
             Self::DirectImplementationMismatch => formatter
                 .write_str("direct deployment implementation must equal deployment address"),
+            Self::DirectCodeHashMismatch => formatter
+                .write_str("direct deployment runtime and implementation code hashes must match"),
             Self::ProxyImplementationMustDiffer => formatter.write_str(
                 "proxy implementation address must differ from proxy deployment address",
             ),
-            Self::RemovedDeploymentHasCapabilities => {
-                formatter.write_str("removed deployment cannot retain supported capabilities")
-            }
             Self::MissingAdmissionEvidence => {
                 formatter.write_str("deployment admission requires content-addressed evidence")
             }
