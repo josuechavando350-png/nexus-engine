@@ -394,6 +394,13 @@ def run(args: argparse.Namespace) -> None:
                 for row in rows:
                     scanned += 1
                     factory_scanned += 1
+                    if scanned % 1000 == 0:
+                        print(
+                            "REAL_MARKET_CENSUS_PROGRESS "
+                            f"scanned={scanned} counted={counted} zero_reserve={zero_reserve} "
+                            f"unobservable={unobservable} code_mismatch={code_mismatch}",
+                            flush=True,
+                        )
                     if not row.get("observable"):
                         unobservable += 1
                         continue
