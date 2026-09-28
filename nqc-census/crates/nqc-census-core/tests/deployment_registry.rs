@@ -506,21 +506,8 @@ fn lifecycle_transition_preserves_history_without_forcing_semantics_bump() -> Te
 }
 
 #[test]
-fn removed_deployment_is_terminal_and_has_no_capabilities() -> TestResult {
-    assert!(binding(
-        1,
-        300,
-        ProxyKind::Transparent,
-        0x61,
-        0x51,
-        0x52,
-        0x53,
-        0x54,
-        DeploymentLifeState::Removed,
-        all_capabilities(true)?,
-    )
-    .is_err());
-    let none = all_capabilities(false)?;
+fn removed_deployment_is_terminal_but_preserves_adapter_support_for_history() -> TestResult {
+    let capabilities = all_capabilities(true)?;
     let mut registry = registry_with_profile(
         1,
         ProxyKind::Transparent,
@@ -528,7 +515,7 @@ fn removed_deployment_is_terminal_and_has_no_capabilities() -> TestResult {
         0x52,
         0x53,
         0x54,
-        none.clone(),
+        capabilities.clone(),
     )?;
     let removed = registry.admit(
         binding(
@@ -541,10 +528,16 @@ fn removed_deployment_is_terminal_and_has_no_capabilities() -> TestResult {
             0x53,
             0x54,
             DeploymentLifeState::Removed,
-            none,
+            capabilities.clone(),
         )?,
         None,
     )?;
+    assert!(registry
+        .record(removed.id())
+        .expect("removed record")
+        .binding()
+        .capabilities()
+        .supports(AdapterCapability::StateReconstruction));
     let later = binding(
         1,
         350,
@@ -555,7 +548,7 @@ fn removed_deployment_is_terminal_and_has_no_capabilities() -> TestResult {
         0x53,
         0x54,
         DeploymentLifeState::Removed,
-        all_capabilities(false)?,
+        capabilities,
     )?;
     assert_eq!(
         registry.admit(later, Some(removed.id())),
@@ -580,6 +573,26 @@ fn direct_and_proxy_bindings_are_explicit_not_guessed() -> TestResult {
         capabilities.clone(),
     )
     .is_err());
+
+    let direct = DeploymentBinding::new(
+        deployment()?,
+        root()?,
+        anchor(120, 0x41)?,
+        anchor(300, 0x42)?,
+        ProxyKind::Direct,
+        deployment()?.address(),
+        hash(0x99)?,
+        ObservationSemantics::new(hash(0x51)?, hash(0x53)?),
+        hash(0x54)?,
+        1,
+        DeploymentLifeState::Active,
+        capabilities.clone(),
+        vec![EvidenceRef::Artifact(hash(0xa1)?)],
+    );
+    assert_eq!(
+        direct,
+        Err(DeploymentRegistryError::DirectCodeHashMismatch)
+    );
     assert!(matches!(
         DeploymentBinding::new(
             deployment()?,
