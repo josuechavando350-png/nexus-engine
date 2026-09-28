@@ -276,50 +276,7 @@ jobs:
             --example pft_default_close_candidate \
             2>&1 | tee "$NQC_DEFAULT_CLOSE/evidence/default-close-classification.log"
 
-          grep -E '^AAVE_DEFAULT_CLOSE_CANDIDATE_PASS candidates=[1-9][0-9]* exact_default_close_matches=[1-9][0-9]* unexplained_mismatches=0        shell: bash
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import json
-          from pathlib import Path
-
-          root=Path("/tmp/nqc-pft-discovery")
-          summary=json.loads((root/"discovery-summary.json").read_text())
-          assert summary["fixture_admission"] == "NONE"
-          config=json.loads(
-              Path("ci/nqc-protocol-fork/discovery/aave_candidates.json").read_text()
-          )
-          assert summary["candidate_count"] == len(config["candidates"])
-          assert summary["aave_state_parity"] == "NOT_TESTED"
-          assert summary["aave_math_parity"] == "NOT_TESTED"
-          assert summary["revm_fork_parity"] == "NOT_TESTED"
-          assert summary["protocol_fork_truth"] == "NOT_CLOSED"
-          assert all(c["admission"] == "DISCOVERED_NOT_ADMITTED" for c in summary["candidates"])
-          assert all(c["parity_status"] == "NOT_TESTED" for c in summary["candidates"])
-
-          for path in sorted((root/"candidates").glob("*.json")):
-              candidate=json.loads(path.read_text())
-              assert candidate["result"]["status"] == "NOT_TESTED"
-              assert candidate["provenance"]["fixture_admitted"] is False
-              assert candidate["block_hash"].startswith("0x") and len(candidate["block_hash"]) == 66
-              assert candidate["parent_hash"].startswith("0x") and len(candidate["parent_hash"]) == 66
-          PY
-
-          (
-            cd /tmp/nqc-pft-discovery
-            find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
-            sha256sum -c SHA256SUMS
-          )
-
-      - name: Upload discovery evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: nqc-t39-aave-fixture-discovery-${{ github.event.pull_request.head.sha || github.sha }}
-          path: /tmp/nqc-pft-discovery/
-          if-no-files-found: error
-          retention-days: 30
- \
+          grep -E '^AAVE_DEFAULT_CLOSE_CANDIDATE_PASS candidates=[1-9][0-9]* exact_default_close_matches=[1-9][0-9]* unexplained_mismatches=0$' \
             "$NQC_DEFAULT_CLOSE/evidence/default-close-classification.log"
           printf '%s\n' 'PASS_EXACT_HISTORICAL_DEFAULT_CLOSE_FACTOR_CANDIDATE' \
             > "$NQC_DEFAULT_CLOSE/evidence/default-close-candidate-status.txt"
