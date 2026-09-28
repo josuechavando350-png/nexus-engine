@@ -67,7 +67,7 @@ jobs:
           corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
           head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
           out=Path("/tmp/nqc-pft-corpus/external-coverage.json")
-          if contract["status"]!="PROTOCOL_FORK_TRUTH_CLOSED":
+          if contract["status"]!="RUNTIME_CLOSEOUT_CANDIDATE_READY":
               out.write_text(json.dumps({
                   "status":"DEFERRED_UNTIL_CLOSURE_CANDIDATE",
                   "head":head,
