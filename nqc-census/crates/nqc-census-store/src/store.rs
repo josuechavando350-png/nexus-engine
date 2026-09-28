@@ -259,6 +259,20 @@ impl Store {
         fanout_path(&self.root, ARTIFACTS_DIR, id.as_bytes())
     }
 
+    fn require_object_fanout(
+        &self,
+        kind: &str,
+        id: &[u8; 32],
+    ) -> Result<PathBuf, StoreError> {
+        let objects = self.root.join(OBJECTS_DIR);
+        require_dir(&objects, self.device)?;
+        let kind_dir = objects.join(kind);
+        require_dir(&kind_dir, self.device)?;
+        let fanout = kind_dir.join(canonical::hex(&id[..1]));
+        require_dir(&fanout, self.device)?;
+        Ok(fanout)
+    }
+
     // ----------------------------------------------------------------- CAS
 
     /// Stores `bytes` and returns their identity. Identical bytes deduplicate;
@@ -306,6 +320,7 @@ impl Store {
     }
 
     pub fn contains_artifact(&self, id: &ArtifactId) -> Result<bool, StoreError> {
+        self.require_object_fanout(ARTIFACTS_DIR, id.as_bytes())?;
         Ok(read_bounded(
             &self.manifest_path(id),
             self.manifest_limit(),
@@ -346,6 +361,7 @@ impl Store {
         &self,
         id: &ArtifactId,
     ) -> Result<(Vec<u8>, Vec<u8>, Manifest), StoreError> {
+        self.require_object_fanout(ARTIFACTS_DIR, id.as_bytes())?;
         let manifest_bytes = read_bounded(
             &self.manifest_path(id),
             self.manifest_limit(),
@@ -368,6 +384,7 @@ impl Store {
             })?;
         let mut logical = Vec::with_capacity(capacity);
         for entry in &manifest.chunks {
+            self.require_object_fanout(CHUNKS_DIR, entry.id.as_bytes())?;
             let frame = read_bounded(
                 &self.chunk_path(&entry.id),
                 self.config.max_frame_bytes(),
@@ -501,6 +518,21 @@ impl Store {
         Ok(Some(checkpoint))
     }
 
+    fn prove_checkpoint_durable(
+        &self,
+        stream: &Path,
+        checkpoint: &Checkpoint,
+    ) -> Result<(), StoreError> {
+        for artifact in checkpoint.evidence() {
+            self.verify_artifact_durable(artifact)?;
+        }
+        let catalog = stream.join(CHECKPOINTS_DIR);
+        let path = catalog.join(checkpoint_name(checkpoint.sequence()));
+        sync_file(&path)?;
+        sync_dir(&catalog)?;
+        Ok(())
+    }
+
     /// Appends `checkpoint` to its stream.
     ///
     /// * an identical checkpoint already at this sequence is an idempotent
@@ -529,13 +561,23 @@ impl Store {
 
         self.validate_head(&stream, scope, scope_id)?;
 
+        // HEAD is cache only. Before adding or reusing authority, re-walk the
+        // authoritative catalog from sequence 0, revalidate referenced evidence,
+        // and establish the durability barrier for every committed checkpoint.
+        let recovery = self.recover(scope, RecoveryMode::Full)?;
+        if sequence > recovery.resume.next_sequence {
+            return Err(StoreError::SequenceGap { requested: sequence });
+        }
+
         if let Some(existing) = read_bounded(&catalog.join(&name), CHECKPOINT_LIMIT, "checkpoint")?
         {
             if existing != bytes {
                 return Err(StoreError::SequenceConflict { sequence });
             }
-            sync_file(&catalog.join(&name))?;
-            sync_dir(&catalog)?;
+            // The full recovery above revalidated the chain and its evidence.
+            // Re-establish this exact entry's durability too, covering a writer
+            // that linked it and died before its directory fsync.
+            self.prove_checkpoint_durable(&stream, checkpoint)?;
             self.advance_head(&stream, scope_id, sequence, id)?;
             return Ok(CommitOutcome::AlreadyCommitted(id));
         }
@@ -620,7 +662,11 @@ impl Store {
     /// Derives the resume point from the authoritative catalog and repairs the
     /// HEAD cache idempotently. A HEAD that is ahead of, or contradicts, the
     /// catalog is never trusted or silently overwritten: recovery fails closed.
-    pub fn recover(&self, scope: &StreamScope, mode: RecoveryMode) -> Result<Recovery, StoreError> {
+    pub fn recover(
+        &self,
+        scope: &StreamScope,
+        _mode: RecoveryMode,
+    ) -> Result<Recovery, StoreError> {
         let Some(stream) = self.registered_stream(scope)? else {
             return Ok(Recovery {
                 resume: ResumePoint::genesis(scope)?,
@@ -642,30 +688,18 @@ impl Store {
             _ => None,
         };
 
+        // Until an authenticated skip structure exists, even "accelerated"
+        // recovery must prove the authoritative prefix from sequence 0. HEAD is
+        // advisory cache only and can never suppress validation of earlier
+        // checkpoints or their evidence.
         let mut walked = 0_u64;
-        let start = match (mode, valid_head) {
-            (RecoveryMode::Accelerated, Some(record)) => {
-                let checkpoint = Self::read_checkpoint(&stream, scope, record.sequence)?.ok_or(
-                    StoreError::HeadAheadOfAuthority {
-                        head_sequence: record.sequence,
-                    },
-                )?;
-                if checkpoint.id()? != record.checkpoint_id {
-                    return Err(StoreError::HeadConflictsWithAuthority);
-                }
-                walked += 1;
-                Some(checkpoint)
-            }
-            _ => {
-                let genesis = Self::read_checkpoint(&stream, scope, 0)?;
-                walked += u64::from(genesis.is_some());
-                genesis
-            }
-        };
+        let start = Self::read_checkpoint(&stream, scope, 0)?;
+        walked += u64::from(start.is_some());
 
         let tip = match start {
             None => None,
             Some(mut current) => loop {
+                self.prove_checkpoint_durable(&stream, &current)?;
                 if let Some(record) = valid_head {
                     if record.sequence == current.sequence()
                         && record.checkpoint_id != current.id()?
