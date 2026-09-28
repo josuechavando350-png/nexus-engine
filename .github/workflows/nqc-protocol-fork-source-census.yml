@@ -92,7 +92,7 @@ jobs:
 
           if contract["status"]=="RUNTIME_CLOSEOUT_CANDIDATE_READY":
               assert all(b["status"]=="CLOSED" for b in blockers.values())
-              assert contract.get("runtime_closeout_candidate_status")=="RUNTIME_CLOSEOUT_CANDIDATE_READY"
+              assert contract.get("runtime_closeout_candidate_target")=="RUNTIME_CLOSEOUT_CANDIDATE_READY"
               assert contract.get("status_authority")=="TRACKED_CONTRACT_MAY_ONLY_REACH_RUNTIME_CLOSEOUT_CANDIDATE_READY; PROTOCOL_FORK_TRUTH_CLOSED_IS_RUNTIME_RECEIPT_ONLY"
 
           assert contract["parity_rules"]["unexplained_mismatch_terminal_count"] == 0
@@ -130,10 +130,14 @@ jobs:
           census=json.loads(Path("ci/nqc-protocol-fork/SOURCE_CENSUS.json").read_text())
           assert census["github_main"] == "bc519fb90baf6629b5ce9b99ed69c4b5e05dcfe0"
           assert census["classification"] == "SOURCE_CENSUS_COMPLETE_WITH_HARD_RECOVERY_GAPS"
+          # SOURCE_CENSUS.json is immutable historical recovery evidence.
+          # Current closure state is derived from the truth contract and blocker closeouts,
+          # not by rewriting the original census finding.
+          assert census["protocol_fork_truth_status"] == "BLOCKED_PENDING_SOURCE_RECOVERY_OR_MEASURED_DEFECT_REPAIR"
           if contract["status"]=="RUNTIME_CLOSEOUT_CANDIDATE_READY":
-              assert census["protocol_fork_truth_status"] == "SOURCE_GAPS_CLOSED_BY_MEASURED_REIMPLEMENTATION_EVIDENCE_RUNTIME_CERTIFICATION_PENDING"
-          else:
-              assert census["protocol_fork_truth_status"] == "BLOCKED_PENDING_SOURCE_RECOVERY_OR_MEASURED_DEFECT_REPAIR"
+              blockers={b["id"]:b for b in contract["current_blockers"]}
+              assert set(blockers)=={"PFT-SRC-001","PFT-SRC-002","PFT-SRC-003"}
+              assert all(b["status"]=="CLOSED" for b in blockers.values())
           assert census["physical_git_bundle"]["checkpoint_head"] == "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9"
           assert census["physical_git_bundle"]["verification_scope"].startswith("RECOVERED_LIBRARY_ARTIFACT_INSPECTED_OUTSIDE_GITHUB_CI")
           assert len(census["exact_absences_verified"]) == 6
