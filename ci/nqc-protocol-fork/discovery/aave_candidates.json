@@ -81,15 +81,27 @@
       ]
     },
     {
-      "case_id": "aave-liquidation-default-close-candidate-2025-04-5a50",
-      "transaction_hash": "0x5a5088f209fd231f5e7bd1f507444a201baf0294fbc2c366415e630fc46c13d9",
+      "case_id": "aave-liquidation-default-close-candidate-2024-05-93e1",
+      "transaction_hash": "0x93e1e6dfd1faca0a9c04e52fdd754637f07ed469d336c267b4b9eedcc1775268",
       "expected_receipt_status": "0x1",
       "expected_pool_liquidation_log": true,
-      "expected_direct_to_pool": true,
       "class_tags": [
         "ordinary_liquidation",
         "default_close_factor_candidate",
-        "max_uint_debt_to_cover",
+        "large_debt_position",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2026-02-3a5b",
+      "transaction_hash": "0x3a5b032dae2682795a96d5474ca90b39edc0850ce32cab606359713db638f2ca",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "large_debt_position",
         "interest_index_sensitive",
         "standard_erc20"
       ]
