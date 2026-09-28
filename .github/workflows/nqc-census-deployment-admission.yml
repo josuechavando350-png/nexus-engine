@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      RMC005_STACK_PARENT: 88835643854ebeeb14ea42fd9a1db2522dd7429b
+      RMC005_STACK_PARENT: 870d948d5092c01c372f4694b27dfc2eb1b42cd0
       RMC004_PARENT: be257a473cffd8c4f16fd6a2513411ce2d6153be
       RMC003_MERGE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
       RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
@@ -56,7 +56,7 @@ jobs:
               "nqc-census/crates/nqc-census-core/tests/deployment_registry.rs",
           }
           changed = set(subprocess.check_output(
-              ["git", "diff", "--name-only", "88835643854ebeeb14ea42fd9a1db2522dd7429b...HEAD"],
+              ["git", "diff", "--name-only", "870d948d5092c01c372f4694b27dfc2eb1b42cd0...HEAD"],
               text=True,
           ).splitlines())
           assert changed == expected, (
