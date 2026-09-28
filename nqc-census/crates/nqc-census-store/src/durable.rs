@@ -163,11 +163,15 @@ impl Disk<'_> {
     pub(crate) fn ensure_dir(&self, parent: &Path, name: &str) -> Result<PathBuf, StoreError> {
         let path = parent.join(name);
         match fs::create_dir(&path) {
-            Ok(()) => sync_dir(parent)?,
+            Ok(()) => {}
             Err(error) if error.kind() == ErrorKind::AlreadyExists => {}
             Err(error) => return Err(StoreError::io("mkdir", &path, &error)),
         }
         require_dir(&path, self.device)?;
+        // An existing directory may have been created by a writer that died
+        // before fsyncing its parent. Adopting it as authority must establish
+        // the same durability barrier as the original creator.
+        sync_dir(parent)?;
         Ok(path)
     }
 
