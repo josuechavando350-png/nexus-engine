@@ -548,9 +548,16 @@ jobs:
               and scope.get('execution_scope')=='RECOVERED_OR_EXPLICITLY_MEASURED_REIMPLEMENTED_COMPONENTS_EXERCISED_BY_REQUIRED_GATES'
               and set(scope.get('excluded_claims',[]))==expected_exclusions
           )
+          truth_contract_closed=(
+              truth.get('status')=='PROTOCOL_FORK_TRUTH_CLOSED'
+              and truth_blocker_ids==set(blocker_paths)
+              and all(
+                  b.get('severity')=='HARD' and b.get('status')=='CLOSED'
+                  for b in truth_blocker_docs
+              )
+          )
           truth_policy_ready=(
-              truth_blocker_ids==set(blocker_paths)
-              and all(b.get('severity')=='HARD' for b in truth_blocker_docs)
+              truth_contract_closed
               and truth.get('parity_rules',{}).get('unexplained_mismatch_terminal_count')==0
               and truth.get('truth_boundaries',{}).get('production_certification')=='NOT_CERTIFIED'
               and scope_ready
@@ -603,6 +610,10 @@ jobs:
               'tracked_policy_gate_status':d['required_gates'],
               'tracked_policy_source_blockers':d['source_blockers'],
               'tracked_truth_contract_status':truth.get('status'),
+              'truth_contract_closed':truth_contract_closed,
+              'truth_contract_blocker_status':{
+                  b.get('id'):b.get('status') for b in truth_blocker_docs
+              },
               'ledger_resolved_repairs':sorted(ledger_resolved_repairs),
               'truth_policy_ready':truth_policy_ready,
               'certification_scope_ready':scope_ready,

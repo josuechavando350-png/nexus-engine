@@ -184,6 +184,35 @@
         "fuzz_seed": "0x39",
         "historical_fork_parity": "NOT_TESTED"
       }
+    },
+    {
+      "id": "PFT-COMPAT-008",
+      "status": "RESOLVED_EXACT_TWO_PROVIDER_PARITY",
+      "classification": "MEASURED_PROTOCOL_SEMANTIC_REPAIR",
+      "source": "recovered Aave market/hot-state accounting overlay",
+      "defect": "Recovered accounting used normalized USD, floor debt valuation, truncated threshold averaging, and half-up token balance math that diverged from deployed Aave semantics.",
+      "repair": "Preserve oracle-native base units; collateral floor; debt ceil; untruncated weighted-threshold health factor; aToken ray floor; variable-debt ray ceil.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "evidence_head": "7494e76f9e8b942f021468578de4ff19aef68dbd",
+      "evidence_runs": [
+        36341553888,
+        36341554012
+      ],
+      "unexplained_mismatches": 0
+    },
+    {
+      "id": "PFT-COMPAT-009",
+      "status": "MEASURED_FAILURE_REPAIR_PENDING_INDEPENDENT_CALLBACK_EXACT_HEAD_RERUN",
+      "classification": "MEASURED_PROTOCOL_SEMANTIC_REPAIR",
+      "source": "crates/nqc-aave-opportunity/src/lib.rs",
+      "defect": "Recovered opportunity model used half-up flash-premium rounding while deployed Aave V3 flashLoanSimple callback uses ceiling semantics at the pinned historical state.",
+      "repair": "Use percent_mul_ceil_unbounded only for modeled Aave flash-loan premium.",
+      "source_bytes_preserved": true,
+      "applied_only_to_temporary_build_copy": true,
+      "measured_failure_head": "ba35212c96a5a335a67c6ec587d620f6b4f8d012",
+      "measured_failure_run": 36349409719,
+      "required_resolution": "INDEPENDENT_DEPLOYED_CALLBACK_PREMIUM_PLUS_REAL_OPPORTUNITY_PATH_REGRESSION_AND_ZERO_UNEXPLAINED_MISMATCH"
     }
   ],
   "certification_dependency_lock": {
