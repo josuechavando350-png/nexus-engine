@@ -1,0 +1,207 @@
+name: Temporary Claude Audit Snapshot
+
+on:
+  push:
+    branches:
+      - tmp/claude-snapshot-rmc004-20260928
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Checkout audited head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: 005ee957f590e076e743e09041c310e48ab1dd41
+          fetch-depth: 0
+
+      - name: Build self-contained audit snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "005ee957f590e076e743e09041c310e48ab1dd41"
+          rm -rf /tmp/nexus-claude
+          mkdir -p /tmp/nexus-claude/nexus-engine-rmc004-005ee957
+
+          git archive --format=tar HEAD             | tar -x -C /tmp/nexus-claude/nexus-engine-rmc004-005ee957
+
+          cat > /tmp/nexus-claude/nexus-engine-rmc004-005ee957/SNAPSHOT_METADATA.md <<'EOF'
+          # Snapshot metadata
+
+          Repository: josuechavando350-png/nexus-engine
+          Audit target: RMC-004 durable CAS/checkpoints/offline verifier
+          PR: #512
+          Exact head SHA: 005ee957f590e076e743e09041c310e48ab1dd41
+          RMC-003 parent: 765dc30fdd178a4960ade1e106669eb0b023fbeb
+          Protocol/Fork certified commit: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+          Protocol/Fork certified tree: ef3498da528f85cdb9fdd82222d64773a557f853
+          Snapshot purpose: independent adversarial review only.
+          This snapshot is not production authority and must not be used to claim Census certification.
+          EOF
+
+          cat > /tmp/nexus-claude/nexus-engine-rmc004-005ee957/CLAUDE_AUDIT_PROMPT.md <<'EOF'
+          # Independent adversarial audit request
+
+          You are acting as an independent senior distributed-systems / storage / Rust / DeFi infrastructure auditor.
+
+          Do NOT assume the implementation is correct because CI passes.
+          Do NOT optimize for politeness.
+          Do NOT rewrite the project or propose broad refactors unless a concrete defect requires one.
+          Do NOT treat comments, docs, tests, or intended invariants as proof.
+          Treat the repository bytes in this snapshot as the only implementation evidence.
+
+          ## Target
+
+          Audit PR #512 / RMC-004 at exact SHA:
+
+          005ee957f590e076e743e09041c310e48ab1dd41
+
+          Parent:
+
+          765dc30fdd178a4960ade1e106669eb0b023fbeb
+
+          Protocol/Fork Truth must remain immutable at:
+
+          certified_commit=5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+          certified_tree=ef3498da528f85cdb9fdd82222d64773a557f853
+
+          RMC-004's intended responsibility is ONLY durable CAS evidence, append-only range checkpoints, crash-safe resume, and an offline verifier.
+
+          Start by reading:
+
+          - ci/nqc-census/DURABLE_EVIDENCE_CONTRACT.md
+          - nqc-census/crates/nqc-census-store/src/lib.rs
+          - nqc-census/crates/nqc-census-store/src/bin/nqc-census-store-verify.rs
+          - nqc-census/crates/nqc-census-store/tests/durable_store.rs
+          - nqc-census/crates/nqc-census-store/examples/offline_fixture.rs
+          - .github/workflows/nqc-census-durable-evidence.yml
+          - nqc-census/Cargo.toml
+          - nqc-census/Cargo.lock
+
+          Then inspect upstream identity / observation / pipeline contracts as needed.
+
+          ## Required attack surface
+
+          Try to falsify every one of these claims:
+
+          1. CAS objects cannot become authoritative while partially written.
+          2. Identical logical bytes deterministically produce identical artifact identity.
+          3. Compression cannot alter logical bytes.
+          4. RLE decoding cannot overflow, truncate, amplify beyond expected size, or accept malformed streams.
+          5. Stored/raw chunk digests cannot be confused.
+          6. Manifest corruption cannot be accepted.
+          7. CAS deduplication cannot overwrite different bytes under an existing identity.
+          8. Store configuration cannot silently change across restart.
+          9. Checkpoint sequence cannot gap, overlap, duplicate ambiguously, or reorder.
+          10. Parent-hash linkage cannot be bypassed.
+          11. previous_checkpoint linkage cannot be bypassed.
+          12. A crash after object write but before durable reference cannot advance progress.
+          13. A crash after durable reference but before HEAD update recovers correctly.
+          14. HEAD corruption/loss cannot destroy authority because it is rebuildable.
+          15. Same-sequence retry is idempotent only for exact identical content.
+          16. Same-sequence different content fails closed.
+          17. Orphan CAS objects cannot be mistaken for committed checkpoints.
+          18. Tampered .ref files fail closed.
+          19. Missing .ref files cannot produce a false contiguous range.
+          20. A partial range cannot satisfy a larger completion request.
+          21. Scope IDs cannot collide logically across chain/fork/deployment/namespace boundaries.
+          22. Filesystem semantics assumed by hard_link/rename/fsync are sufficient for the stated durability claim.
+          23. Cross-platform/Linux filesystem behavior cannot produce an unsafe success state under the actual CI/production assumptions.
+          24. Concurrent writers cannot create split-brain or inconsistent checkpoint authority.
+          25. Two processes racing on the same sequence cannot both believe incompatible content committed.
+          26. TOCTOU between validation and publication cannot invalidate the checkpoint chain.
+          27. Symlink/path traversal/hard-link attacks cannot escape the intended store root under realistic threat assumptions.
+          28. Object-path derivation cannot be abused.
+          29. Integer conversions / lengths / sequence increments cannot overflow into unsafe acceptance.
+          30. Store reopening cannot use a wrong chunk size or schema version.
+          31. Offline verifier actually verifies all authoritative bytes required for its PASS.
+          32. Offline verifier cannot be tricked by stale HEAD.
+          33. Offline verifier cannot PASS with corrupted unreferenced or referenced content in a way that violates the contract.
+          34. The GitHub Actions gate actually tests the intended exact-head code and exact PR scope.
+          35. The workflow cannot accidentally rely on network/runtime state while claiming offline verification.
+          36. Cargo.lock / dependency changes do not weaken reproducibility.
+          37. Tests are not tautological replicas of implementation logic where an independent check is required.
+          38. Negative evidence is preserved and no silent skip exists in the storage layer.
+          39. Crash recovery cannot accidentally accept a stale fork/range after reorg semantics are later connected.
+          40. The design is sufficient as a durable evidence substrate for the next Census stage without prematurely claiming market completeness.
+
+          ## Required output format
+
+          Produce exactly these sections:
+
+          ### A. VERDICT
+          One of:
+          - PASS
+          - PASS_WITH_NON_BLOCKING_FINDINGS
+          - BLOCKED
+
+          Do not use PASS if any correctness, durability, evidence-integrity, or fail-closed defect remains.
+
+          ### B. BLOCKING FINDINGS
+          For every blocker:
+          - ID: CLAUDE-RMC004-BLOCK-###
+          - severity: CRITICAL | HIGH
+          - exact file and line/range
+          - concrete failing scenario
+          - why existing tests/CI do not catch it
+          - smallest correct fix
+          - exact regression test that must be added
+
+          ### C. NON-BLOCKING FINDINGS
+          Same structure with MEDIUM | LOW.
+
+          ### D. INVARIANT MATRIX
+          For each of the 40 attack-surface items:
+          - PASS / FAIL / NOT_PROVEN
+          - exact supporting code/test evidence
+          - any residual assumption
+
+          ### E. CONCURRENCY / CRASH MATRIX
+          Enumerate interleavings for:
+          - two concurrent artifact writers;
+          - two concurrent checkpoint writers same sequence/same bytes;
+          - same sequence/different bytes;
+          - adjacent sequences racing;
+          - crash before fsync;
+          - crash after file fsync;
+          - crash after hard-link;
+          - crash after ref publication;
+          - crash during HEAD replace;
+          - restart with orphan objects;
+          - restart with missing/stale HEAD;
+          - restart with corrupt ref.
+
+          ### F. ADVERSARIAL TESTS TO ADD
+          Give compilable/testable Rust test designs, not generic prose.
+
+          ### G. CLAIMS THAT ARE TOO STRONG
+          Quote only the minimum relevant project wording and explain why the implementation proves less than the claim, if applicable.
+
+          ### H. FINAL MERGE RECOMMENDATION
+          State MERGE or DO_NOT_MERGE and list the exact conditions.
+
+          ## Important independence rule
+
+          Do not ask what ChatGPT intended.
+          Infer behavior from the code.
+          If an invariant is not actually proven, mark NOT_PROVEN.
+          If you are uncertain, identify the missing evidence rather than inventing confidence.
+          EOF
+
+          (
+            cd /tmp/nexus-claude
+            sha256sum nexus-engine-rmc004-005ee957/SNAPSHOT_METADATA.md                       nexus-engine-rmc004-005ee957/CLAUDE_AUDIT_PROMPT.md               > nexus-engine-rmc004-005ee957/AUDIT_FILES.sha256
+          )
+
+      - name: Upload snapshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nexus-engine-claude-rmc004-005ee957
+          path: /tmp/nexus-claude/nexus-engine-rmc004-005ee957
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 6
