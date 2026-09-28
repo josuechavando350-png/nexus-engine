@@ -34,6 +34,8 @@ jobs:
         shell: bash
         env:
           NQC_CLOSEOUT_RECEIPT: ${{ runner.temp }}/nqc-protocol-fork-final-closeout.json
+          NQC_CERTIFICATION_PR_NUMBER: ${{ github.event.pull_request.number || 0 }}
+          NQC_CERTIFICATION_HEAD_REF: ${{ github.head_ref || github.ref_name }}
           GITHUB_TOKEN: ${{ github.token }}
           GITHUB_API_URL: ${{ github.api_url }}
         run: |
@@ -237,6 +239,11 @@ jobs:
                   with urllib.request.urlopen(req,timeout=30) as response:
                       return json.loads(response.read())
 
+              expected_pr_number=int(os.environ.get('NQC_CERTIFICATION_PR_NUMBER','0') or 0)
+              expected_head_ref=os.environ.get('NQC_CERTIFICATION_HEAD_REF','')
+              if expected_pr_number<=0 or not expected_head_ref:
+                  raise RuntimeError('final closeout must run in pull_request context')
+
               all_runs=[]
               for page in range(1,21):
                   runs_doc=github_json(
@@ -252,6 +259,14 @@ jobs:
               latest={}
               for run in all_runs:
                   if run.get('head_sha')!=head:
+                      continue
+                  if run.get('head_branch')!=expected_head_ref:
+                      continue
+                  run_prs=run.get('pull_requests') or []
+                  if expected_pr_number not in {
+                      int(item.get('number',0) or 0)
+                      for item in run_prs
+                  }:
                       continue
                   name=run.get('name')
                   if not isinstance(name,str) or name not in workflow_paths:
@@ -603,6 +618,8 @@ jobs:
               'certified_commit':head,
               'certified_tree':tree,
               'repository':os.environ.get('GITHUB_REPOSITORY'),
+              'certification_pr_number':int(os.environ.get('NQC_CERTIFICATION_PR_NUMBER','0') or 0),
+              'certification_head_ref':os.environ.get('NQC_CERTIFICATION_HEAD_REF'),
               'workflow_run_id':int(os.environ.get('GITHUB_RUN_ID','0') or 0),
               'workflow_run_attempt':int(os.environ.get('GITHUB_RUN_ATTEMPT','0') or 0),
               'policy_sha256':digest(policy_path),
