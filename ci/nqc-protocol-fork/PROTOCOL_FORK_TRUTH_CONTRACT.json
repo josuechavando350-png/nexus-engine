@@ -2,6 +2,7 @@
   "schema_version": 1,
   "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
   "status": "NOT_TESTED",
+  "runtime_closeout_candidate_status": "RUNTIME_CLOSEOUT_CANDIDATE_READY",
   "scope": "POST_BUILD_TRUTH_PROTOCOL_AND_HISTORICAL_FORK_CERTIFICATION",
   "source_of_truth": {
     "architecture_closeout_commit": "0ffaf8a5829d2f0c0874702042c8e0b094b30915",
@@ -86,7 +87,7 @@
       "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
     }
   ],
-  "closeout_rule": "PROTOCOL_FORK_TRUTH_CLOSED may be issued only when every required gate is PASS on exact content-addressed source, all historical fixtures are block-hash pinned, and OPEN unexplained parity mismatches and OPEN hard source blockers are both zero.",
+  "closeout_rule": "The tracked contract may only become RUNTIME_CLOSEOUT_CANDIDATE_READY after every required gate is PASS on exact content-addressed source, all historical fixtures are block-hash pinned, and OPEN unexplained parity mismatches and OPEN hard source blockers are both zero. PROTOCOL_FORK_TRUTH_CLOSED may only be issued by the runtime closeout receipt.",
   "truth_boundaries": {
     "real_market_census": "NOT_TESTED",
     "real_live_market_evidence": false,
@@ -303,5 +304,5 @@
       "PRODUCTION_AUTHORITY"
     ]
   },
-  "status_authority": "CANDIDATE_CONTRACT_REQUIRES_RUNTIME_CLOSEOUT_RECEIPT_FOR_EFFECTIVE_CLOSURE"
+  "status_authority": "TRACKED_CONTRACT_MAY_ONLY_REACH_RUNTIME_CLOSEOUT_CANDIDATE_READY; PROTOCOL_FORK_TRUTH_CLOSED_IS_RUNTIME_RECEIPT_ONLY"
 }
