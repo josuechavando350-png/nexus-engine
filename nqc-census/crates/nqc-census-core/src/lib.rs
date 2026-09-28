@@ -5,6 +5,7 @@
 //! no RPC, signing, routing, pricing, capital allocation, or execution.
 
 pub mod capability;
+pub mod deployment;
 pub mod identity;
 pub mod observation;
 pub mod pipeline;
@@ -13,6 +14,13 @@ pub use capability::{
     AdapterCapability, AdapterDeclaration, CapabilityError, CapabilityMatrix, CapabilityScope,
     UnsupportedCapability,
 };
+pub use deployment::{
+    AdmissionId, AdmissionOutcome, AdmissionRecord, BlockWindow, CapabilityAdmission,
+    DeclaredUniverse, DeploymentBinding, DeploymentLifeState, DeploymentRegistry,
+    DeploymentRegistryError, DiscoveryRoot, DiscoveryRootKind, ProxyKind,
+    SupportedSemanticsProfile, UniverseId, UniverseScope,
+};
+
 pub use identity::{
     count_identities, reconcile_aliases, ActionSurfaceId, ActionSurfaceKey, Address, AliasEvidence,
     CanonicalMarketKey, ChainDomain, DeploymentKey, DeploymentSemanticsVersion, Hash32,
