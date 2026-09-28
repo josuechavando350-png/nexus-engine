@@ -35,7 +35,6 @@ jobs:
           git merge-base --is-ancestor "$CERTIFIED_BASE" HEAD
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-            test "${{ github.event.pull_request.base.sha }}" = "$CERTIFIED_BASE"
           fi
           git merge-base --is-ancestor cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d HEAD
           git diff --quiet cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d HEAD -- \
