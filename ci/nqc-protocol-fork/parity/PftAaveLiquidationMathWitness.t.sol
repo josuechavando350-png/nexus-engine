@@ -404,4 +404,4 @@ contract PftAaveLiquidationMathWitnessTest {
             _observeFlashPremium(DEBT, OBSERVED_DEBT_TO_COVER);
         _writeWitness(captured, output);
     }
-}}
+}
