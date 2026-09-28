@@ -39,15 +39,22 @@ Each scope binds:
 No wildcard chain, protocol, deployment source or unbounded time range exists in
 the core contract. Duplicate chain/protocol scopes fail closed.
 
-Discovery roots are protocol-compatible:
+Discovery roots are protocol-compatible and deliberately narrow:
 
-- Aave V2/V3/V4 may use an Aave AddressesProvider or explicit protocol registry.
-- Uniswap V2 may use a V2 factory or explicit protocol registry.
+- Aave V2/V3/V4 use an explicit Aave AddressesProvider root.
+- Uniswap V2 uses an explicit V2 factory root.
+- generic "registry" authority is not accepted by this core; new protocol families
+  must add a typed root with its own reconciliation contract.
 - a mismatched root kind is rejected before discovery data can enter the registry.
 
 The universe ID is deterministic and independent of input ordering.
 
 ## Admission rules
+
+Every admission identity is domain-separated and includes the exact
+`DeclaredUniverse::id`; the same deployment observation admitted under a
+different universe contract therefore cannot silently reuse the same admission
+identity.
 
 A deployment may be admitted only when all of the following are explicit:
 
@@ -159,7 +166,9 @@ The test suite must prove at least:
 14. removed state is terminal while historical adapter support remains explicit;
 15. direct/proxy address and direct-code-identity invariants;
 16. wrong-chain anchors rejected;
-17. missing admission evidence rejected.
+17. missing admission evidence rejected;
+18. identical deployment evidence under a different universe produces a distinct
+    admission identity.
 
 ## Deliberate non-claims
 
