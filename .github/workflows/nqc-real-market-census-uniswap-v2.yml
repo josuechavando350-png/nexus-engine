@@ -40,10 +40,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -rf "$NQC_CENSUS"
+          mkdir -p "$NQC_CENSUS"
           test "$(git show -s --format=%T "$PROTOCOL_CERTIFIED_HEAD")" = "$PROTOCOL_CERTIFIED_TREE"
           git merge-base --is-ancestor "$PROTOCOL_CERTIFIED_HEAD" HEAD
           python3 - <<'PY'
-          import json, os, urllib.request, zipfile, io
+          import json, os, urllib.request
           from pathlib import Path
 
           contract=json.loads(Path("ci/nqc-market-census/REAL_MARKET_CENSUS_CONTRACT.json").read_text())
@@ -74,19 +76,27 @@ jobs:
           assert artifact["workflow_run"]["head_sha"]==p["certified_commit"]
           assert artifact["digest"]==f"sha256:{p['artifact_sha256']}"
 
-          req=urllib.request.Request(
-              f"https://api.github.com/repos/{repo}/actions/artifacts/{p['artifact_id']}/zip",
-              headers=headers,
-          )
-          with urllib.request.urlopen(req,timeout=60) as r:
-              archive=r.read()
+          print("PROTOCOL_FORK_METADATA_PASS")
+          PY
+          curl --fail --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -o "$NQC_CENSUS/protocol-closeout.zip" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$PROTOCOL_CLOSEOUT_ARTIFACT/zip"
+          python3 - <<'PY'
+          import os, zipfile
+          from pathlib import Path
           found=False
-          with zipfile.ZipFile(io.BytesIO(archive)) as z:
+          with zipfile.ZipFile(Path(os.environ["NQC_CENSUS"])/"protocol-closeout.zip") as z:
               for name in z.namelist():
                   if name.endswith("/"): continue
                   try: raw=z.read(name).decode()
                   except UnicodeDecodeError: continue
-                  if "PROTOCOL_FORK_TRUTH_CLOSED" in raw and p["certified_commit"] in raw and p["certified_tree"] in raw:
+                  if (
+                      "PROTOCOL_FORK_TRUTH_CLOSED" in raw
+                      and os.environ["PROTOCOL_CERTIFIED_HEAD"] in raw
+                      and os.environ["PROTOCOL_CERTIFIED_TREE"] in raw
+                  ):
                       found=True
                       break
           assert found, "runtime closure literal not found in certified artifact"
