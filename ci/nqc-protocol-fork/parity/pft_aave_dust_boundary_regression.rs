@@ -72,9 +72,9 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
         valuation_timestamp: anchor.timestamp,
         e_mode_category: 0,
         risk: AccountRisk {
-            collateral_usd_wad: U256::from(3_000u64) * wad(),
-            weighted_collateral_usd_wad: U256::from(2_425u64) * wad(),
-            debt_usd_wad: U256::from(2_500u64) * wad(),
+            collateral_usd_wad: U256::from(4_000u64) * wad(),
+            weighted_collateral_usd_wad: U256::from(3_104u64) * wad(),
+            debt_usd_wad: U256::from(3_200u64) * wad(),
             health_factor_wad: Some(U256::from(970_000_000_000_000_000u64)),
         },
         reserves: vec![
@@ -83,7 +83,7 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
                 reserve_id: 0,
                 token_unit: wad(),
                 price_usd_wad: wad(),
-                atoken_balance: U256::from(3_000u64) * wad(),
+                atoken_balance: U256::from(4_000u64) * wad(),
                 variable_debt: U256::ZERO,
                 collateral_enabled: true,
             },
@@ -93,7 +93,7 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
                 token_unit: wad(),
                 price_usd_wad: wad(),
                 atoken_balance: U256::ZERO,
-                variable_debt: U256::from(1_500u64) * wad(),
+                variable_debt: U256::from(2_500u64) * wad(),
                 collateral_enabled: false,
             },
             AccountReserveExposure {
@@ -102,7 +102,7 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
                 token_unit: wad(),
                 price_usd_wad: wad(),
                 atoken_balance: U256::ZERO,
-                variable_debt: U256::from(1_000u64) * wad(),
+                variable_debt: U256::from(700u64) * wad(),
                 collateral_enabled: false,
             },
         ],
@@ -116,7 +116,7 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
     .expect("strict Aave policy must evaluate");
     assert!(
         strict.is_empty(),
-        "remaining $250 selected-reserve debt must be rejected by the $1,000 dust boundary"
+        "remaining $900 selected-reserve debt must be rejected by the $1,000 dust boundary"
     );
 
     let relaxed = LiquidationOpportunityPolicy {
@@ -128,5 +128,5 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
         .expect("$1 control policy must evaluate");
     assert_eq!(control.len(), 1);
     assert_eq!(control[0].debt_asset, debt);
-    assert_eq!(control[0].debt_to_liquidate, U256::from(1_250u64) * wad());
+    assert_eq!(control[0].debt_to_liquidate, U256::from(1_600u64) * wad());
 }
