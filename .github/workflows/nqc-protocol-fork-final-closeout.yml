@@ -581,6 +581,26 @@ jobs:
               and scope_ready
           )
 
+          compatibility_docs=truth.get('measured_compatibility_repairs',[])
+          compatibility_ids={item.get('id') for item in compatibility_docs}
+          compatibility_status={
+              item.get('id'):item.get('status')
+              for item in compatibility_docs
+          }
+          expected_compatibility_ids={
+              'PFT-COMPAT-001','PFT-COMPAT-002','PFT-COMPAT-003',
+              'PFT-COMPAT-004','PFT-COMPAT-005','PFT-COMPAT-006',
+              'PFT-COMPAT-007','PFT-COMPAT-008','PFT-COMPAT-009',
+          }
+          all_compatibility_repairs_resolved=(
+              compatibility_ids==expected_compatibility_ids
+              and all(
+                  isinstance(compatibility_status[item],str)
+                  and compatibility_status[item].startswith('RESOLVED')
+                  for item in expected_compatibility_ids
+              )
+          )
+
           ledger_resolved_repairs={
               entry.get('resolution') or entry.get('repair')
               for entry in ledger.get('entries',[])
@@ -600,6 +620,7 @@ jobs:
           if not all_manifest_blockers: reasons.append('MANIFEST_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
           if not ledger_ready: reasons.append('MISMATCH_LEDGER_NOT_ZERO_PASS')
           if not compat_resolution_ready: reasons.append('COMPAT_REPAIRS_NOT_RESOLVED_IN_LEDGER')
+          if not all_compatibility_repairs_resolved: reasons.append('TRUTH_CONTRACT_COMPATIBILITY_REPAIRS_NOT_ALL_RESOLVED')
           if not truth_policy_ready: reasons.append('TRUTH_POLICY_CONTRACT_INVALID')
           if not evidence_ancestry_ready: reasons.append('EVIDENCE_HEAD_NOT_ANCESTOR_OF_CERTIFIED_HEAD')
           if not source_artifact_attestation_ready: reasons.append('SOURCE_BLOCKER_ARTIFACT_ATTESTATION_FAILED')
@@ -638,6 +659,8 @@ jobs:
                   b.get('id'):b.get('status') for b in truth_blocker_docs
               },
               'ledger_resolved_repairs':sorted(ledger_resolved_repairs),
+              'compatibility_repair_status':dict(sorted(compatibility_status.items())),
+              'all_compatibility_repairs_resolved':all_compatibility_repairs_resolved,
               'truth_policy_ready':truth_policy_ready,
               'certification_scope_ready':scope_ready,
               'certification_scope':scope,
