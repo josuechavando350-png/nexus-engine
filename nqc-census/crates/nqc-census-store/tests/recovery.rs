@@ -511,7 +511,6 @@ fn forge_head(scope_id: &[u8; 32], sequence: u64, checkpoint_id: &[u8; 32]) -> V
     sealed
 }
 
-
 #[test]
 fn accelerated_recovery_cannot_skip_a_broken_prefix_behind_valid_head() -> TestResult {
     let (dir, scope) = fresh("head-cannot-skip-prefix")?;
@@ -538,7 +537,10 @@ fn exact_retry_revalidates_referenced_evidence() -> TestResult {
         store.commit(&scope, &checkpoint)?,
         CommitOutcome::Created(_)
     ));
-    let evidence = *checkpoint.evidence().first().ok_or("checkpoint has no evidence")?;
+    let evidence = *checkpoint
+        .evidence()
+        .first()
+        .ok_or("checkpoint has no evidence")?;
     fs::remove_file(manifest_path(&store, &evidence))?;
     assert!(
         store.commit(&scope, &checkpoint).is_err(),
