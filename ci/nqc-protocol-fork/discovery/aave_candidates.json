@@ -79,6 +79,20 @@
       "class_tags": [
         "ordinary_liquidation"
       ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-candidate-2025-04-5a50",
+      "transaction_hash": "0x5a5088f209fd231f5e7bd1f507444a201baf0294fbc2c366415e630fc46c13d9",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "expected_direct_to_pool": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "max_uint_debt_to_cover",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
     }
   ]
 }
