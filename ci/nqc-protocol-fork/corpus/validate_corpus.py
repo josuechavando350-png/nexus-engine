@@ -84,7 +84,11 @@ if manifest.get("tranche") != "T39_PROTOCOL_FORK_TRUTH_55_TO_62":
 if manifest.get("status") not in ALLOWED_STATUS:
     die("manifest status must be PASS, FAIL, or NOT_TESTED")
 if manifest.get("protocol_fork_truth") != "NOT_CLOSED":
-    die("protocol_fork_truth must remain NOT_CLOSED while hard source blockers are open")
+    die("corpus is scoped evidence and must not claim global Protocol/Fork closure")
+
+contract_status = contract.get("status")
+if contract_status not in {"NOT_TESTED", "PROTOCOL_FORK_TRUTH_CLOSED"}:
+    die("truth contract status is invalid for corpus validation")
 
 blockers = contract.get("current_blockers", [])
 expected_blockers = {"PFT-SRC-001", "PFT-SRC-002", "PFT-SRC-003"}
@@ -93,17 +97,27 @@ if set(by_id) != expected_blockers or len(blockers) != 3:
     die("hard source blocker identity set changed; corpus admission requires explicit review")
 if any(blocker.get("severity") != "HARD" for blocker in blockers):
     die("source blocker severity changed; corpus admission requires explicit review")
-if by_id["PFT-SRC-001"].get("status") != "OPEN" or by_id["PFT-SRC-003"].get("status") != "OPEN":
-    die("unexpected source blocker transition; corpus admission requires explicit review")
-if by_id["PFT-SRC-002"].get("status") not in {"OPEN", "CLOSED"}:
-    die("invalid PFT-SRC-002 status")
-if by_id["PFT-SRC-002"].get("status") == "CLOSED":
-    closeout_path = ROOT / "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json"
-    closeout = load(closeout_path)
-    if closeout.get("status") != "CLOSED" or closeout.get("unexplained_mismatches") != 0:
-        die("PFT-SRC-002 closed without valid zero-mismatch closeout evidence")
+closeout_paths = {
+    "PFT-SRC-001": ROOT / "ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json",
+    "PFT-SRC-002": ROOT / "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json",
+    "PFT-SRC-003": ROOT / "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json",
+}
+for blocker_id, blocker in by_id.items():
+    status = blocker.get("status")
+    if status not in {"OPEN", "CLOSED"}:
+        die(f"{blocker_id}: invalid source blocker status {status!r}")
+    if status == "CLOSED":
+        closeout = load(closeout_paths[blocker_id])
+        if (
+            closeout.get("source_blocker") != blocker_id
+            or closeout.get("status") != "CLOSED"
+            or closeout.get("unexplained_mismatches") != 0
+        ):
+            die(f"{blocker_id}: closed without valid zero-mismatch closeout evidence")
 
 open_hard = [blocker for blocker in blockers if blocker.get("status") == "OPEN"]
+if contract_status == "PROTOCOL_FORK_TRUTH_CLOSED" and open_hard:
+    die("closure candidate cannot retain OPEN hard source blockers")
 
 source_binding = manifest.get("source_binding", {})
 if source_binding.get("physical_checkpoint") != "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9":
@@ -144,6 +158,18 @@ for domain, expected in EXPECTED_CLASSES.items():
             die(f"duplicate class id {entry['id']}")
         flat_classes.add(entry["id"])
         class_status[entry["id"]] = status
+
+external_coverage = manifest.get("external_gate_coverage")
+if not isinstance(external_coverage, dict) or set(external_coverage) != flat_classes:
+    die("external_gate_coverage must define every required class exactly once")
+for class_id, workflows in external_coverage.items():
+    if (
+        not isinstance(workflows, list)
+        or not workflows
+        or len(workflows) != len(set(workflows))
+        or any(not isinstance(name, str) or not name.strip() for name in workflows)
+    ):
+        die(f"external_gate_coverage.{class_id} must be a non-empty unique workflow list")
 
 cases = manifest.get("cases")
 if not isinstance(cases, list):
@@ -385,13 +411,24 @@ if not cases:
         die("empty corpus cannot advance any class beyond NOT_TESTED")
 else:
     for class_id, status in class_status.items():
-        if status == "PASS" and coverage_pass[class_id] == 0:
-            die(f"class {class_id} marked PASS without a passing executed fixture")
+        if (
+            status == "PASS"
+            and coverage_pass[class_id] == 0
+            and not external_coverage.get(class_id)
+        ):
+            die(f"class {class_id} marked PASS without fixture or external gate coverage")
         if status == "FAIL" and coverage_any[class_id] == 0:
             die(f"class {class_id} marked FAIL without a represented fixture")
 
 if open_hard and manifest["status"] == "PASS":
     die("corpus cannot be globally PASS while hard source blockers remain open")
+
+if contract_status == "PROTOCOL_FORK_TRUTH_CLOSED":
+    if manifest["status"] != "PASS":
+        die("closure candidate requires corpus manifest PASS")
+    not_pass = sorted(class_id for class_id, status in class_status.items() if status != "PASS")
+    if not_pass:
+        die(f"closure candidate requires every required class PASS: {not_pass}")
 
 summary = {
     "schema_version": 1,
@@ -405,7 +442,11 @@ summary = {
     "required_class_count": len(flat_classes),
     "represented_class_count": sum(1 for value in coverage_any.values() if value),
     "passing_class_count": sum(1 for value in coverage_pass.values() if value),
-    "open_hard_source_blockers": sorted(expected_blockers),
+    "open_hard_source_blockers": sorted(
+        blocker["id"] for blocker in open_hard
+    ),
+    "truth_contract_status": contract_status,
+    "external_gate_coverage": external_coverage,
     "manifest_sha256": hashlib.sha256(MANIFEST.read_bytes()).hexdigest(),
     "schema_sha256": hashlib.sha256(SCHEMA.read_bytes()).hexdigest(),
 }

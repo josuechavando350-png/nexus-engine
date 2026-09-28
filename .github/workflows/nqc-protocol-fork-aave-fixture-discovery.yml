@@ -75,7 +75,16 @@ jobs:
                   assert closeout["unexplained_mismatches"] == 0
 
           corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
-          assert corpus["status"] == "NOT_TESTED"
+          if contract["status"]=="PROTOCOL_FORK_TRUTH_CLOSED":
+              assert corpus["status"]=="PASS"
+              statuses=[
+                  item["status"]
+                  for domain in corpus["required_classes"].values()
+                  for item in domain
+              ]
+              assert statuses and all(status=="PASS" for status in statuses)
+          else:
+              assert corpus["status"]=="NOT_TESTED"
           assert corpus["protocol_fork_truth"] == "NOT_CLOSED"
           assert isinstance(corpus["cases"], list)
 

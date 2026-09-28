@@ -114,5 +114,73 @@
     "discovery_artifact_id": 10925157643,
     "discovery_artifact_sha256": "f1a6158c8e71f090f9cfc173f8de075a5b6d34eda5494b0c77f1c3a694fd05ea",
     "independently_redownloaded_and_sha256_revalidated": true
+  },
+  "external_gate_coverage": {
+    "ordinary_liquidation": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "emode_account": [
+      "NQC T39 Aave Full Account Risk Parity",
+      "NQC T39 Aave Account Risk Exact Parity"
+    ],
+    "close_factor_boundary": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "multiple_collateral_debt_pairs": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "interest_index_sensitive": [
+      "NQC T39 Aave Reserve Balance Parity",
+      "NQC T39 Aave Full Account Risk Parity"
+    ],
+    "dust_boundary": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "liquidation_bonus_path": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "protocol_fee_path": [
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "oracle_dependent_valuation": [
+      "NQC T39 Aave Full Account Risk Parity",
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "flash_loan_premium_accounting": [
+      "NQC T39 Aave Executor Historical Fork Parity",
+      "NQC T39 Aave Full Liquidation Integer Matrix"
+    ],
+    "standard_erc20": [
+      "NQC T39 Aave Executor Historical Fork Parity",
+      "NQC T39 V2 Executor Historical Fork Execution"
+    ],
+    "fee_on_transfer_rejection": [
+      "NQC T39 V2 Executor Authority Baseline Matrix"
+    ],
+    "non_standard_erc20_behavior": [
+      "NQC T39 V2 Executor Authority Baseline Matrix"
+    ],
+    "single_hop_route": [
+      "NQC T39 Protocol Fork Recovered Source Binding"
+    ],
+    "multi_hop_route": [
+      "NQC T39 Protocol Fork Recovered Source Binding",
+      "NQC T39 V2 Executor Historical Fork Execution"
+    ],
+    "sync_reserve_update": [
+      "NQC T39 V2 Historical Sync Parity"
+    ],
+    "zero_liquidity_death_revival": [
+      "NQC T39 V2 Historical Sync Parity",
+      "NQC T39 V2 State Reimplementation"
+    ],
+    "route_continuity": [
+      "NQC T39 V2 Backrun Executor Reimplementation",
+      "NQC T39 V2 Executor Historical Fork Execution"
+    ],
+    "reorged_reserve_state": [
+      "NQC T39 V2 Real Historical Reorg Invalidation",
+      "NQC T39 Reorg Invalidation Replay Refresh"
+    ]
   }
 }
