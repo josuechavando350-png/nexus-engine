@@ -25,7 +25,7 @@ jobs:
       RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
       PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
-      DEPLOYMENT_TESTS_EXPECTED: "13"
+      DEPLOYMENT_TESTS_EXPECTED: "14"
 
     steps:
       - name: Checkout exact head
