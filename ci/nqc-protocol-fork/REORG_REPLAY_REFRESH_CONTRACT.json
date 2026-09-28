@@ -45,5 +45,19 @@
     "ZERO_UNEXPLAINED_MISMATCH"
   ],
   "truth_boundary": "Historical reorg evidence proves canonical invalidation/replay refresh semantics; it is not live-market or production-authority evidence.",
-  "protocol_fork_truth": "NOT_CLOSED"
+  "protocol_fork_truth": "NOT_CLOSED",
+  "build_compatibility_overlays": [
+    {
+      "id": "PFT-COMPAT-003",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch",
+      "sha256": "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5",
+      "scope": "TEST_ONLY_DEV_DEPENDENCY_LOCK_ALIGNMENT"
+    },
+    {
+      "id": "PFT-COMPAT-005",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch",
+      "sha256": "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664",
+      "scope": "TEST_ONLY_DEV_DEPENDENCY_LOCK_ALIGNMENT"
+    }
+  ]
 }
