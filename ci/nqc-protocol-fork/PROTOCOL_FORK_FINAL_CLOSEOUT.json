@@ -4,16 +4,16 @@
   "status": "NOT_CLOSED",
   "required_gates": {
     "SOURCE_BINDING_COMPLETE": "PASS",
-    "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK": "PENDING",
-    "AAVE_CANONICAL_STATE_PARITY": "PENDING_CLOSEOUT_VALIDATION",
-    "AAVE_LIQUIDATION_INTEGER_MATH_PARITY": "PENDING",
+    "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK": "PASS",
+    "AAVE_CANONICAL_STATE_PARITY": "PASS",
+    "AAVE_LIQUIDATION_INTEGER_MATH_PARITY": "PASS",
     "V2_CANONICAL_STATE_AND_REORG_PARITY": "PASS",
     "RUST_SOLIDITY_ABI_ROUNDTRIP": "PASS",
-    "REVM_HISTORICAL_FORK_DIFFERENTIAL": "PENDING",
-    "REORG_INVALIDATION_AND_REPLAY_REFRESH": "PENDING",
+    "REVM_HISTORICAL_FORK_DIFFERENTIAL": "PASS",
+    "REORG_INVALIDATION_AND_REPLAY_REFRESH": "PASS",
     "EXECUTOR_CODE_IDENTITY_BINDING": "PASS",
-    "PARITY_MISMATCH_LEDGER_OPEN_ZERO": "PENDING",
-    "EVIDENCE_MANIFEST_CONTENT_ADDRESSED": "PENDING"
+    "PARITY_MISMATCH_LEDGER_OPEN_ZERO": "PASS",
+    "EVIDENCE_MANIFEST_CONTENT_ADDRESSED": "PASS"
   },
   "source_blockers": {
     "PFT-SRC-001": "CLOSED",
@@ -39,7 +39,7 @@
     "production_certification": "NOT_CERTIFIED"
   },
   "next_stage_after_close": "RETURN_TO_REAL_MARKET_CENSUS",
-  "note": "This closeout contract is intentionally NOT_CLOSED until all measured Protocol/Fork Truth gates and source blockers are resolved on one exact certified commit.",
+  "note": "All tracked Protocol/Fork gates are promoted to PASS; final status remains NOT_CLOSED until the exact-head runtime certificate emits PROTOCOL_FORK_TRUTH_CLOSED.",
   "certification_binding": "RUNTIME_GIT_HEAD_AND_TREE_ARTIFACT",
   "tracked_closeout_semantics": "POLICY_ONLY; PROTOCOL_FORK_TRUTH_CLOSED MAY ONLY BE EMITTED BY THE RUNTIME CERTIFICATE ARTIFACT",
   "certificate_artifact_name_template": "nqc-protocol-fork-final-certificate-<git-head>-attempt-<run-attempt>",

@@ -15,83 +15,83 @@
     "aave": [
       {
         "id": "ordinary_liquidation",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "emode_account",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "close_factor_boundary",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "multiple_collateral_debt_pairs",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "interest_index_sensitive",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "dust_boundary",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "liquidation_bonus_path",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "protocol_fee_path",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "oracle_dependent_valuation",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "flash_loan_premium_accounting",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       }
     ],
     "token_execution": [
       {
         "id": "standard_erc20",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "fee_on_transfer_rejection",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "non_standard_erc20_behavior",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       }
     ],
     "v2": [
       {
         "id": "single_hop_route",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "multi_hop_route",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "sync_reserve_update",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "zero_liquidity_death_revival",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "route_continuity",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       },
       {
         "id": "reorged_reserve_state",
-        "status": "NOT_TESTED"
+        "status": "PASS"
       }
     ]
   },
@@ -101,7 +101,7 @@
     "physical_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
     "repository_head": "5746612d36c4b0b848c484001a0bf6dda1a3ea52"
   },
-  "status": "NOT_TESTED",
+  "status": "PASS",
   "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
   "truth_boundaries": {
     "canary_execution": false,

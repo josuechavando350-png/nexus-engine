@@ -63,8 +63,8 @@
     "evidence_source": "cross-provider-consensus-receipt-and-exact-default-close-classification"
   },
   "result": {
-    "status": "NOT_TESTED",
-    "evidence_sha256": null,
+    "status": "PASS",
+    "evidence_sha256": "62f36749c2b9643e69de8db29aa86dad1869e775f61f456f3b8f52fbed06b835",
     "failure_artifact": null
   }
 }

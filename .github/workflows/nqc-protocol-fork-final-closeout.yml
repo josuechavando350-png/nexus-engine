@@ -544,6 +544,7 @@ jobs:
               }=={
                   (25252136,'0x49edc621ec5fe843353be319ae1a307be4e37d2a51111ccc07a2c8aae3ff6470'),
                   (25437474,'0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8'),
+                  (25939131,'0x7001a6baa0589021cd01d1cdd43366b27281f349024e131c341dc443060fdfe2'),
               }
               and v2_scope.get('semantics')=='UNISWAP_V2_COMPATIBLE_CONSTANT_PRODUCT'
               and set(v2_scope.get('historical_execution_pairs',[]))=={

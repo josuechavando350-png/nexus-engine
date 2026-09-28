@@ -55,7 +55,7 @@ jobs:
 
           root=Path("/tmp/nqc-pft-aave-state")
           summary=json.loads((root/"summary.json").read_text())
-          assert summary["case_count"] == 2
+          assert summary["case_count"] == 3
           assert summary["fixture_mutation"] is False
           assert summary["aave_state_parity"] == "NOT_TESTED"
           assert summary["aave_math_parity"] == "NOT_TESTED"

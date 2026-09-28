@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
-  "status": "NOT_TESTED",
+  "status": "RUNTIME_CLOSEOUT_CANDIDATE_READY",
   "runtime_closeout_candidate_target": "RUNTIME_CLOSEOUT_CANDIDATE_READY",
   "scope": "POST_BUILD_TRUTH_PROTOCOL_AND_HISTORICAL_FORK_CERTIFICATION",
   "source_of_truth": {
@@ -239,7 +239,7 @@
     },
     {
       "id": "PFT-COMPAT-009",
-      "status": "MEASURED_FAILURE_REPAIR_PENDING_INDEPENDENT_CALLBACK_EXACT_HEAD_RERUN",
+      "status": "RESOLVED_EXACT_TWO_PROVIDER_CALLBACK_AND_FULL_MATRIX_PARITY",
       "classification": "MEASURED_PROTOCOL_SEMANTIC_REPAIR",
       "source": "crates/nqc-aave-opportunity/src/lib.rs",
       "defect": "Recovered opportunity model used half-up flash-premium rounding while deployed Aave V3 flashLoanSimple callback uses ceiling semantics at the pinned historical state.",
@@ -248,7 +248,30 @@
       "applied_only_to_temporary_build_copy": true,
       "measured_failure_head": "ba35212c96a5a335a67c6ec587d620f6b4f8d012",
       "measured_failure_run": 36349409719,
-      "required_resolution": "INDEPENDENT_DEPLOYED_CALLBACK_PREMIUM_PLUS_REAL_OPPORTUNITY_PATH_REGRESSION_AND_ZERO_UNEXPLAINED_MISMATCH"
+      "required_resolution": "SATISFIED_EXACT_TWO_PROVIDER_CALLBACK_AND_FULL_MATRIX_PARITY",
+      "unexplained_mismatches": 0,
+      "resolution_evidence": {
+        "executor_historical": {
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320408,
+          "artifact_id": 10955334368,
+          "artifact_sha256": "2b44677bce9d36c9588bf03932884f15c381054ca1e378e7540264c02d404a03"
+        },
+        "full_liquidation_matrix": {
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320492,
+          "artifact_id": 10956166857,
+          "artifact_sha256": "62f36749c2b9643e69de8db29aa86dad1869e775f61f456f3b8f52fbed06b835"
+        },
+        "matrix_summary": {
+          "cases": 16,
+          "exact_integer_checks": 64,
+          "deployed_callback_premium_checks": 16,
+          "default_close_cap_matches": 1,
+          "full_close_cap_matches": 1,
+          "unexplained_mismatches": 0
+        }
+      }
     }
   ],
   "certification_dependency_lock": {
@@ -280,6 +303,10 @@
         {
           "block_number": 25437474,
           "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+        },
+        {
+          "block_number": 25939131,
+          "block_hash": "0x7001a6baa0589021cd01d1cdd43366b27281f349024e131c341dc443060fdfe2"
         }
       ]
     },

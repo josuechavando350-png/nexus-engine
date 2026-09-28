@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "gate": "PARITY_MISMATCH_LEDGER_OPEN_ZERO",
-  "status": "NOT_TESTED_PENDING_EXPLAINED_REPAIR_RERUN",
+  "status": "PASS",
   "counts": {
     "detected_semantic_mismatches": 2,
-    "resolved_semantic_mismatches": 1,
-    "explained_repair_pending": 1,
+    "resolved_semantic_mismatches": 2,
+    "explained_repair_pending": 0,
     "unexplained_open": 0,
-    "open_total": 1
+    "open_total": 0
   },
   "entries": [
     {
@@ -75,10 +75,26 @@
         "LIQUIDATION_DEBT_AND_COLLATERAL_MATH_UNCHANGED"
       ],
       "verification": {
-        "pr_483_exact_head_rerun": "PENDING",
-        "pr_489_full_liquidation_matrix": "PENDING"
+        "result": "PASS",
+        "executor_historical": {
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320408,
+          "artifact_id": 10955334368,
+          "artifact_sha256": "2b44677bce9d36c9588bf03932884f15c381054ca1e378e7540264c02d404a03"
+        },
+        "full_liquidation_matrix": {
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320492,
+          "artifact_id": 10956166857,
+          "artifact_sha256": "62f36749c2b9643e69de8db29aa86dad1869e775f61f456f3b8f52fbed06b835"
+        },
+        "exact_integer_checks": 64,
+        "deployed_callback_premium_checks": 16,
+        "default_close_cap_matches": 1,
+        "full_close_cap_matches": 1,
+        "unexplained_mismatches": 0
       },
-      "status": "EXPLAINED_REPAIR_PENDING_EXACT_HEAD_PASS",
+      "status": "RESOLVED",
       "evidence_refs": [
         {
           "role": "observed_mismatch",
@@ -86,6 +102,20 @@
           "workflow_run_id": 36349409719,
           "artifact_id": 10941698957,
           "artifact_sha256": "437a7ae1e633d1053cdba9aaeaada9352aca03299bb6929d8f08ee31b2bce3d1"
+        },
+        {
+          "role": "resolution_executor_historical",
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320408,
+          "artifact_id": 10955334368,
+          "artifact_sha256": "2b44677bce9d36c9588bf03932884f15c381054ca1e378e7540264c02d404a03"
+        },
+        {
+          "role": "resolution_full_liquidation_matrix",
+          "head": "a441c81c462e003cd56d4033fee30af2060ceae3",
+          "workflow_run_id": 36389320492,
+          "artifact_id": 10956166857,
+          "artifact_sha256": "62f36749c2b9643e69de8db29aa86dad1869e775f61f456f3b8f52fbed06b835"
         }
       ]
     }
