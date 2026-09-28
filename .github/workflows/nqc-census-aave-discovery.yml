@@ -1,0 +1,169 @@
+name: NQC RMC-006 Aave Discovery Reconciliation
+
+on:
+  pull_request:
+    paths:
+      - ci/nqc-census/AAVE_DISCOVERY_CONTRACT.md
+      - ci/nqc-census/aave_discovery_reconcile.py
+      - ci/nqc-census/test_aave_discovery_reconcile.py
+      - .github/workflows/nqc-census-aave-discovery.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aave-discovery-reconciliation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      RMC005_PARENT: 5e856c3dc78902b055ed9878c117d3c1469a8fda
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      AAVE_ADDRESSES_PROVIDER: "0x2f39d218133afab8f2b819b1066c7e434ad94e9e"
+      AAVE_POOL: "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
+      FOUNDRY_VERSION: "1.7.1"
+      FOUNDRY_SHA256: "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b"
+      EVIDENCE: /tmp/nqc-rmc006-aave-discovery
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact scope and prerequisite lineage
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$PFT_CERTIFIED_COMMIT" HEAD
+          git merge-base --is-ancestor "$RMC005_PARENT" HEAD
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            test "${{ github.event.pull_request.base.sha }}" = "$RMC005_PARENT"
+          fi
+          python3 - <<'PY'
+          import subprocess
+          expected = {
+              ".github/workflows/nqc-census-aave-discovery.yml",
+              "ci/nqc-census/AAVE_DISCOVERY_CONTRACT.md",
+              "ci/nqc-census/aave_discovery_reconcile.py",
+              "ci/nqc-census/test_aave_discovery_reconcile.py",
+          }
+          changed = set(subprocess.check_output(
+              ["git","diff","--name-only","5e856c3dc78902b055ed9878c117d3c1469a8fda...HEAD"],
+              text=True,
+          ).splitlines())
+          assert changed == expected, (
+              f"RMC-006 scope mismatch missing={sorted(expected-changed)} "
+              f"extra={sorted(changed-expected)}"
+          )
+          print("RMC_006_SCOPE_PASS files=4")
+          PY
+          git diff --check "$RMC005_PARENT"...HEAD
+
+      - name: Verify upstream truth layers unchanged
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source             ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility             ci/nqc-protocol-fork/locks             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+          git diff --quiet "$RMC005_PARENT" HEAD --             nqc-census             ci/nqc-census/IDENTITY_CONTRACT.md             ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md             ci/nqc-census/STORE_CONTRACT.md             ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md
+          echo RMC_006_UPSTREAM_IMMUTABILITY_PASS
+
+      - name: Static and unit validation
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile             ci/nqc-census/aave_discovery_reconcile.py             ci/nqc-census/test_aave_discovery_reconcile.py
+          python3 ci/nqc-census/test_aave_discovery_reconcile.py
+          ! grep -nE 'subgraph|graphql|etherscan|covalent|alchemy|infura|moralis|dune'             ci/nqc-census/aave_discovery_reconcile.py
+          grep -F 'RMC-GAP-004' ci/nqc-census/AAVE_DISCOVERY_CONTRACT.md
+          grep -F 'does not claim global Aave completeness' ci/nqc-census/AAVE_DISCOVERY_CONTRACT.md
+          echo RMC_006_STATIC_PASS
+
+      - name: Install pinned Foundry selector authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-rmc006-foundry
+          curl --fail --location --retry 5 --retry-all-errors             -o /tmp/nqc-rmc006-foundry.tar.gz             "https://github.com/foundry-rs/foundry/releases/download/v${FOUNDRY_VERSION}/foundry_v${FOUNDRY_VERSION}_linux_amd64.tar.gz"
+          echo "$FOUNDRY_SHA256  /tmp/nqc-rmc006-foundry.tar.gz" | sha256sum -c -
+          tar -xzf /tmp/nqc-rmc006-foundry.tar.gz -C /tmp/nqc-rmc006-foundry
+          echo "/tmp/nqc-rmc006-foundry" >> "$GITHUB_PATH"
+          /tmp/nqc-rmc006-foundry/cast --version | grep -F "$FOUNDRY_VERSION"
+
+      - name: Derive selectors and topics from exact signatures
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "GET_POOL=$(/tmp/nqc-rmc006-foundry/cast sig 'getPool()')"
+            echo "GET_CONFIG=$(/tmp/nqc-rmc006-foundry/cast sig 'getPoolConfigurator()')"
+            echo "ADDRESSES_PROVIDER=$(/tmp/nqc-rmc006-foundry/cast sig 'ADDRESSES_PROVIDER()')"
+            echo "RESERVES_COUNT=$(/tmp/nqc-rmc006-foundry/cast sig 'getReservesCount()')"
+            echo "RESERVE_BY_ID=$(/tmp/nqc-rmc006-foundry/cast sig 'getReserveAddressById(uint16)')"
+            echo "RESERVES_LIST=$(/tmp/nqc-rmc006-foundry/cast sig 'getReservesList()')"
+            echo "CONFIG_UPDATED=$(/tmp/nqc-rmc006-foundry/cast keccak 'PoolConfiguratorUpdated(address,address)')"
+            echo "RESERVE_INIT=$(/tmp/nqc-rmc006-foundry/cast keccak 'ReserveInitialized(address,address,address,address,address)')"
+            echo "RESERVE_DROP=$(/tmp/nqc-rmc006-foundry/cast keccak 'ReserveDropped(address)')"
+          } | tee /tmp/rmc006-selectors.env
+          cat /tmp/rmc006-selectors.env >> "$GITHUB_ENV"
+          test "$(grep -Ec '^(GET_POOL|GET_CONFIG|ADDRESSES_PROVIDER|RESERVES_COUNT|RESERVE_BY_ID|RESERVES_LIST)=0x[0-9a-f]{8}$' /tmp/rmc006-selectors.env)" -eq 6
+          test "$(grep -Ec '^(CONFIG_UPDATED|RESERVE_INIT|RESERVE_DROP)=0x[0-9a-f]{64}$' /tmp/rmc006-selectors.env)" -eq 3
+          echo RMC_006_SELECTOR_AUTHORITY_PASS
+
+      - name: Execute two-provider exact Aave discovery reconciliation
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$EVIDENCE"
+          mkdir -p "$EVIDENCE"
+          python3 -u ci/nqc-census/aave_discovery_reconcile.py             --out "$EVIDENCE"             --addresses-provider "$AAVE_ADDRESSES_PROVIDER"             --expected-pool "$AAVE_POOL"             --provider blastapi-public=https://eth-mainnet.public.blastapi.io             --provider mevblocker-rpc=https://rpc.mevblocker.io             --provider-min-interval blastapi-public=0.35             --provider-min-interval mevblocker-rpc=1.25             --timeout 90             --attempts 10             --log-chunk 250000             --get-pool "$GET_POOL"             --get-pool-configurator "$GET_CONFIG"             --addresses-provider "$ADDRESSES_PROVIDER"             --reserves-count "$RESERVES_COUNT"             --reserve-by-id "$RESERVE_BY_ID"             --reserves-list "$RESERVES_LIST"             --pool-configurator-updated-topic "$CONFIG_UPDATED"             --reserve-initialized-topic "$RESERVE_INIT"             --reserve-dropped-topic "$RESERVE_DROP"             2>&1 | tee "$EVIDENCE/run.log"
+
+      - name: Verify discovery evidence fail closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          root=Path("/tmp/nqc-rmc006-aave-discovery")
+          summary=json.loads((root/"summary.json").read_text())
+          assert summary["gate"]=="RMC_006_AAVE_DISCOVERY_RECONCILIATION"
+          assert summary["status"]=="PASS"
+          assert summary["chain_id"]==1
+          assert summary["addresses_provider"]=="0x2f39d218133afab8f2b819b1066c7e434ad94e9e"
+          assert summary["pool"]=="0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2"
+          assert len(summary["provider_ids"])>=2
+          rec=summary["reconciliation"]
+          assert rec["unexplained_delta_count"]==0
+          assert rec["source_a_count_id"]==rec["source_b_reserves_list"]==rec["source_c_event_active"]
+          assert rec["union_count"]==rec["intersection_count"]==summary["current_active_count"]
+          ledger=json.loads((root/"mismatch-ledger.json").read_text())
+          assert ledger["open_unexplained_count"]==0
+          rows=[json.loads(line) for line in (root/"markets.ndjson").read_text().splitlines()]
+          assert len(rows)==summary["historical_market_count"]
+          assert sum(row["active_at_anchor"] for row in rows)==summary["current_active_count"]
+          assert hashlib.sha256((root/"markets.ndjson").read_bytes()).hexdigest()==summary["market_records_sha256"]
+          assert summary["truth_boundaries"]["global_aave_deployment_completeness"]=="NOT_PROVEN"
+          assert summary["truth_boundaries"]["borrower_census"]=="NOT_TESTED"
+          assert summary["truth_boundaries"]["pnl"]=="NOT_TESTED"
+          print(
+              "RMC_006_EVIDENCE_PASS "
+              f"active={summary['current_active_count']} "
+              f"historical={summary['historical_market_count']}"
+          )
+          PY
+          (cd "$EVIDENCE" && sha256sum -c SHA256SUMS)
+          grep -F 'RMC_006_AAVE_DISCOVERY_PASS' "$EVIDENCE/run.log"
+
+      - name: Preserve content-addressed Aave discovery evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc006-aave-discovery-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-rmc006-aave-discovery
+          if-no-files-found: error
+          retention-days: 90
