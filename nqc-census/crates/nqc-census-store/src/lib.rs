@@ -423,6 +423,22 @@ impl CensusStore {
         Ok(())
     }
 
+    pub fn artifact_chunk_codecs(
+        &self,
+        artifact: ArtifactRef,
+    ) -> Result<Vec<ChunkCodec>, StoreError> {
+        let manifest_bytes = self.read_object(artifact.manifest_digest())?;
+        let manifest = decode_manifest(&manifest_bytes)?;
+        if manifest.payload_digest != artifact.payload_digest()
+            || manifest.original_len != artifact.original_len()
+            || u32::try_from(manifest.chunks.len()).map_err(|_| StoreError::LengthOverflow)?
+                != artifact.chunk_count()
+        {
+            return Err(StoreError::ArtifactReferenceMismatch);
+        }
+        Ok(manifest.chunks.iter().map(|chunk| chunk.codec).collect())
+    }
+
     pub fn commit_checkpoint(
         &self,
         checkpoint: &RangeCheckpoint,
