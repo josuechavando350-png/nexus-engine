@@ -114,9 +114,13 @@
       "artifact_sha256": "924263018ed49a4994871717fea4520514e577e637702f42ffbb5a5c96dccb3d"
     },
     "REVM_HISTORICAL_FORK_DIFFERENTIAL": {
-      "status": "PENDING",
+      "status": "PASS",
       "pr": 487,
-      "head": "cc517c6cf78d8c3639ac6c17376fe6f9ffbc5815"
+      "head": "36e32b6f548ab3c3c25b20322fa96e496689778e",
+      "workflow": "NQC T39 REVM Historical Fork Differential",
+      "workflow_run_id": 36356263106,
+      "artifact_id": 10946275997,
+      "artifact_sha256": "31f8fe2abc247708c37ac48e47c35519348d809140687eeb33ccb60460b6a0b0"
     },
     "REORG_INVALIDATION_AND_REPLAY_REFRESH": {
       "status": "PENDING",
@@ -140,9 +144,9 @@
     }
   },
   "source_blockers": {
-    "PFT-SRC-001": "OPEN_PENDING_V2_EXECUTOR_HISTORICAL_FORK_AND_DIFFERENTIAL_AGGREGATION",
+    "PFT-SRC-001": "CLOSED",
     "PFT-SRC-002": "CLOSED",
-    "PFT-SRC-003": "OPEN_PENDING_HISTORICAL_RECONCILER_DEPENDENCY_BOUND_CLOSEOUT"
+    "PFT-SRC-003": "CLOSED"
   },
   "truth_boundaries": {
     "real_market_census": "NOT_TESTED",

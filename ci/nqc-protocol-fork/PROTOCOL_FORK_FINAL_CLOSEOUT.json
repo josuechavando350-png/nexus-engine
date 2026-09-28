@@ -16,9 +16,9 @@
     "EVIDENCE_MANIFEST_CONTENT_ADDRESSED": "PENDING"
   },
   "source_blockers": {
-    "PFT-SRC-001": "OPEN",
+    "PFT-SRC-001": "CLOSED",
     "PFT-SRC-002": "CLOSED",
-    "PFT-SRC-003": "OPEN"
+    "PFT-SRC-003": "CLOSED"
   },
   "hard_close_conditions": [
     "EVERY_REQUIRED_GATE_PASS",

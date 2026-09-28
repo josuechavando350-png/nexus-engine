@@ -4,7 +4,7 @@
   "component": "NqcV2BackrunExecutor.sol",
   "classification": "NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE",
   "recovery_status": "RECOVERY_EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
-  "status": "NOT_TESTED_PENDING_REVM_DIFFERENTIAL",
+  "status": "CLOSED",
   "evidence": {
     "reimplementation": {
       "pr": 474,
@@ -48,8 +48,11 @@
     },
     "revm_historical_fork_differential": {
       "pr": 487,
-      "head": "cc517c6cf78d8c3639ac6c17376fe6f9ffbc5815",
-      "status": "PENDING"
+      "head": "36e32b6f548ab3c3c25b20322fa96e496689778e",
+      "workflow_run_id": 36356263106,
+      "artifact_id": 10946275997,
+      "artifact_sha256": "31f8fe2abc247708c37ac48e47c35519348d809140687eeb33ccb60460b6a0b0",
+      "status": "PASS"
     }
   },
   "close_condition": "historical_fork_execution=PASS AND revm_historical_fork_differential=PASS AND all bound evidence content-addressed AND unexplained_mismatches=0",

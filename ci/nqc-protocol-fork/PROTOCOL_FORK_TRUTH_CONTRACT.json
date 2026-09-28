@@ -64,7 +64,7 @@
     {
       "id": "PFT-SRC-001",
       "severity": "HARD",
-      "status": "OPEN",
+      "status": "CLOSED",
       "description": "The documented V2 production executor source is absent from the physically recovered checkpoint and current GitHub tree.",
       "recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
       "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
@@ -72,7 +72,7 @@
     {
       "id": "PFT-SRC-002",
       "severity": "HARD",
-      "status": "OPEN",
+      "status": "CLOSED",
       "description": "The documented canonical nqc-v2-state implementation is absent from the physically recovered checkpoint and current GitHub tree.",
       "recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
       "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
@@ -80,7 +80,7 @@
     {
       "id": "PFT-SRC-003",
       "severity": "HARD",
-      "status": "OPEN",
+      "status": "CLOSED",
       "description": "The documented nqc-aave-reconciler implementation is absent from the physically recovered checkpoint and current GitHub tree.",
       "recovery_status": "EXHAUSTED_OVER_AVAILABLE_PHYSICAL_CORPUS",
       "required_resolution": "MEASURED_REIMPLEMENTATION_AND_FULL_PARITY_EVIDENCE"
