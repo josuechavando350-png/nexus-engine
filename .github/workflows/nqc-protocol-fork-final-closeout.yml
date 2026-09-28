@@ -78,6 +78,7 @@ jobs:
           assert authority['runtime_compatibility_authority']=='PARITY_MISMATCH_LEDGER.json'
           assert authority['final_status_authority']=='RUNTIME_CLOSEOUT_RECEIPT_BOUND_TO_GIT_HEAD_TREE_AND_RUN_ATTEMPT'
           assert truth['schema_version']==1
+          assert truth.get('status_authority')=='CANDIDATE_CONTRACT_REQUIRES_RUNTIME_CLOSEOUT_RECEIPT_FOR_EFFECTIVE_CLOSURE'
 
           expected={
             'SOURCE_BINDING_COMPLETE',
@@ -576,7 +577,9 @@ jobs:
 
           reasons=[]
           if not all_manifest_gates: reasons.append('MANIFEST_REQUIRED_GATES_NOT_ALL_PASS')
+          if not all_policy_gates: reasons.append('TRACKED_POLICY_GATES_NOT_ALL_PASS')
           if not all_blockers: reasons.append('AUTHORITATIVE_SOURCE_CLOSEOUTS_NOT_ALL_CLOSED')
+          if not all_policy_blockers: reasons.append('TRACKED_POLICY_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
           if not all_manifest_blockers: reasons.append('MANIFEST_SOURCE_BLOCKERS_NOT_ALL_CLOSED')
           if not ledger_ready: reasons.append('MISMATCH_LEDGER_NOT_ZERO_PASS')
           if not compat_resolution_ready: reasons.append('COMPAT_REPAIRS_NOT_RESOLVED_IN_LEDGER')
@@ -610,6 +613,7 @@ jobs:
               'tracked_policy_gate_status':d['required_gates'],
               'tracked_policy_source_blockers':d['source_blockers'],
               'tracked_truth_contract_status':truth.get('status'),
+              'tracked_truth_status_authority':truth.get('status_authority'),
               'truth_contract_closed':truth_contract_closed,
               'truth_contract_blocker_status':{
                   b.get('id'):b.get('status') for b in truth_blocker_docs
