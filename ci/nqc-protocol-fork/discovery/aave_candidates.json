@@ -79,6 +79,18 @@
       "class_tags": [
         "ordinary_liquidation"
       ]
+    },
+    {
+      "case_id": "aave-liquidation-default-close-cap-candidate-2026-07-6241",
+      "transaction_hash": "0x62416631c26baf463a5acd676b9e6c5ef2b5ad50afc8ccc73bc4071c5ac9a8ea",
+      "expected_receipt_status": "0x1",
+      "expected_pool_liquidation_log": true,
+      "class_tags": [
+        "ordinary_liquidation",
+        "close_factor_boundary_candidate",
+        "interest_index_sensitive",
+        "standard_erc20"
+      ]
     }
   ]
 }
