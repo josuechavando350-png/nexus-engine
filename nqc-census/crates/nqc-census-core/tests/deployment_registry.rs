@@ -264,7 +264,7 @@ fn undeclared_chain_protocol_and_root_fail_closed() -> TestResult {
     )?;
     candidate = DeploymentBinding::new(
         candidate.deployment().clone(),
-        DiscoveryRoot::new(DiscoveryRootKind::ProtocolRegistry, address(0x62)?),
+        DiscoveryRoot::new(DiscoveryRootKind::AaveAddressesProvider, address(0x62)?),
         candidate.creation_anchor().clone(),
         candidate.observation_anchor().clone(),
         candidate.proxy_kind(),
@@ -713,6 +713,67 @@ fn semantics_version_cannot_move_backward_even_when_fingerprint_is_unchanged() -
     assert_eq!(
         registry.admit(rollback, Some(first.id())),
         Err(DeploymentRegistryError::NonMonotonicSemanticsVersion)
+    );
+    Ok(())
+}
+
+
+#[test]
+fn admission_identity_is_bound_to_the_exact_declared_universe() -> TestResult {
+    let capabilities = all_capabilities(true)?;
+    let candidate = binding(
+        1,
+        300,
+        ProxyKind::Transparent,
+        0x61,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        DeploymentLifeState::Active,
+        capabilities.clone(),
+    )?;
+
+    let mut first = registry_with_profile(
+        1,
+        ProxyKind::Transparent,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        capabilities.clone(),
+    )?;
+    let first_id = first.admit(candidate.clone(), None)?.id();
+
+    let alternate_scope = UniverseScope::new(
+        chain(0x12)?,
+        ProtocolFamily::AaveV3,
+        vec![root()?],
+        BlockWindow::new(110, 190)?,
+        BlockWindow::new(110, 900)?,
+    )?;
+    let alternate_universe = DeclaredUniverse::new(vec![alternate_scope])?;
+    let mut second = DeploymentRegistry::new(alternate_universe);
+    second.declare_supported_semantics(profile(
+        1,
+        ProxyKind::Transparent,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        capabilities,
+    )?)?;
+    let second_id = second.admit(candidate, None)?.id();
+
+    assert_ne!(first.universe().id(), second.universe().id());
+    assert_ne!(first_id, second_id);
+    assert_eq!(
+        first.record(first_id).map(|record| record.universe_id()),
+        Some(first.universe().id())
+    );
+    assert_eq!(
+        second.record(second_id).map(|record| record.universe_id()),
+        Some(second.universe().id())
     );
     Ok(())
 }
