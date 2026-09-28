@@ -725,6 +725,9 @@ impl DeploymentRegistry {
             {
                 return Err(DeploymentRegistryError::NonMonotonicObservation);
             }
+            if binding.semantics_version() < previous.binding().semantics_version() {
+                return Err(DeploymentRegistryError::NonMonotonicSemanticsVersion);
+            }
             let semantic_change =
                 binding.semantics_fingerprint() != previous.binding().semantics_fingerprint();
             if semantic_change
@@ -793,6 +796,7 @@ pub enum DeploymentRegistryError {
     },
     UnexpectedSupersedes,
     NonMonotonicObservation,
+    NonMonotonicSemanticsVersion,
     SemanticChangeRequiresVersionIncrease,
     RemovedDeploymentIsTerminal,
     AdmissionHashCollision,
@@ -878,6 +882,9 @@ impl Display for DeploymentRegistryError {
             }
             Self::NonMonotonicObservation => {
                 formatter.write_str("deployment observations must advance block height")
+            }
+            Self::NonMonotonicSemanticsVersion => {
+                formatter.write_str("semantics version must never decrease")
             }
             Self::SemanticChangeRequiresVersionIncrease => formatter
                 .write_str("semantic fingerprint changed without increasing semantics version"),
