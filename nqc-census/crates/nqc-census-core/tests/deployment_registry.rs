@@ -651,7 +651,6 @@ fn wrong_chain_anchor_and_missing_evidence_fail_closed() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn semantics_version_cannot_move_backward_even_when_fingerprint_is_unchanged() -> TestResult {
     let capabilities = all_capabilities(true)?;
