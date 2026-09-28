@@ -230,7 +230,9 @@ fn exact_supported_binding_is_admitted_and_retry_is_idempotent() -> TestResult {
         AdmissionOutcome::AlreadyAdmitted(first.id())
     );
     assert_eq!(
-        registry.active_record(&deployment()?).map(|record| record.id()),
+        registry
+            .active_record(&deployment()?)
+            .map(|record| record.id()),
         Some(first.id())
     );
     Ok(())
@@ -336,15 +338,8 @@ fn capability_state_is_exhaustive_and_must_match_profile() -> TestResult {
         Err(DeploymentRegistryError::IncompleteCapabilityState)
     );
     let supported = all_capabilities(true)?;
-    let mut registry = registry_with_profile(
-        1,
-        ProxyKind::Transparent,
-        0x51,
-        0x52,
-        0x53,
-        0x54,
-        supported,
-    )?;
+    let mut registry =
+        registry_with_profile(1, ProxyKind::Transparent, 0x51, 0x52, 0x53, 0x54, supported)?;
     let candidate = binding(
         1,
         300,
