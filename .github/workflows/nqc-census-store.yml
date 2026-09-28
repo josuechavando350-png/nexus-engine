@@ -25,7 +25,7 @@ jobs:
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
       PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
       RUST_TOOLCHAIN: "1.98.1"
-      STORE_TESTS_EXPECTED: "63"
+      STORE_TESTS_EXPECTED: "66"
       GOLDEN_EVIDENCE_ROOT: 66347fd573ba57847f53df5b70c57cf1be17393562831ef67e1e26e8de6cc28a
       CARGO_TARGET_DIR: /tmp/nqc-rmc004-target
       EVIDENCE: /tmp/nqc-rmc004-evidence
@@ -291,10 +291,16 @@ jobs:
           s=$(fresh unknown);    echo x > "$s/objects/UNKNOWN";                                  expect_fail unknown-entry "$s"
           s=$(fresh symlink);    ln -s /etc/hostname "$s/tmp/link.stage";                        expect_fail symlink "$s"
           s=$(fresh fanout);     mkdir "$s/objects/chunks/zz";                                   expect_fail bad-fanout "$s"
+          s=$(fresh abandoned-symlink)
+          abandoned="$s/streams/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          mkdir "$abandoned"
+          mkdir /tmp/rmc004-empty-external || true
+          ln -s /tmp/rmc004-empty-external "$abandoned/checkpoints"
+          expect_fail abandoned-checkpoints-symlink "$s"
           s=$(fresh range);                                                                      expect_fail range-beyond "$s" --require-range "$scope:100:140"
           set +e; env -i "$verifier" >/dev/null 2>&1; usage=$?; set -e
           test "$usage" -eq 2
-          echo RMC_004_TAMPER_MATRIX_PASS cases=12
+          echo RMC_004_TAMPER_MATRIX_PASS cases=13
 
       - name: Durability syscall-ordering gate
         shell: bash
@@ -302,11 +308,26 @@ jobs:
           set -euo pipefail
           fixture="$CARGO_TARGET_DIR/release/examples/rmc004_fixture"
           rm -rf /tmp/rmc004-trace && mkdir -p /tmp/rmc004-trace
-          strace -f -y -qq -e trace=linkat,link,rename,renameat,renameat2,fsync,fdatasync \
+          strace -f -y -qq -e trace=linkat,link,rename,renameat,renameat2,mkdir,mkdirat,fsync,fdatasync \
             -o "$EVIDENCE/durability.trace" "$fixture" /tmp/rmc004-trace/store >/dev/null
           python3 ci/nqc-census/check_durability_trace.py \
             --store /tmp/rmc004-trace/store --trace "$EVIDENCE/durability.trace" \
             | tee "$EVIDENCE/durability.txt"
+
+          # Regression for the audit finding that link(2) was previously ignored.
+          cat > "$EVIDENCE/bad-link.trace" <<'EOF'
+          100 fsync(3</tmp/rmc004-synthetic/tmp/cp.stage>) = 0
+          100 link("/tmp/rmc004-synthetic/tmp/cp.stage", "/tmp/rmc004-synthetic/streams/aa/checkpoints/00000000000000000000") = 0
+          EOF
+          set +e
+          python3 ci/nqc-census/check_durability_trace.py \
+            --store /tmp/rmc004-synthetic --trace "$EVIDENCE/bad-link.trace" \
+            >"$EVIDENCE/bad-link.out" 2>"$EVIDENCE/bad-link.err"
+          bad_link_rc=$?
+          set -e
+          test "$bad_link_rc" -eq 1
+          grep -F 'DURABILITY_TRACE=FAIL rule=R2' "$EVIDENCE/bad-link.err"
+          echo RMC_004_LINK_SYSCALL_REGRESSION_PASS
 
       - name: Mutation gate
         shell: bash
