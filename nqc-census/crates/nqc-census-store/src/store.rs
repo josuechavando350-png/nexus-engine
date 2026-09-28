@@ -259,11 +259,7 @@ impl Store {
         fanout_path(&self.root, ARTIFACTS_DIR, id.as_bytes())
     }
 
-    fn require_object_fanout(
-        &self,
-        kind: &str,
-        id: &[u8; 32],
-    ) -> Result<PathBuf, StoreError> {
+    fn require_object_fanout(&self, kind: &str, id: &[u8; 32]) -> Result<PathBuf, StoreError> {
         let objects = self.root.join(OBJECTS_DIR);
         require_dir(&objects, self.device)?;
         let kind_dir = objects.join(kind);
@@ -566,7 +562,9 @@ impl Store {
         // and establish the durability barrier for every committed checkpoint.
         let recovery = self.recover(scope, RecoveryMode::Full)?;
         if sequence > recovery.resume.next_sequence {
-            return Err(StoreError::SequenceGap { requested: sequence });
+            return Err(StoreError::SequenceGap {
+                requested: sequence,
+            });
         }
 
         if let Some(existing) = read_bounded(&catalog.join(&name), CHECKPOINT_LIMIT, "checkpoint")?
