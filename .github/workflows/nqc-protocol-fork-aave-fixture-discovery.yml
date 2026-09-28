@@ -58,21 +58,15 @@ jobs:
               ),
           }
 
-          if contract["status"] == "PROTOCOL_FORK_TRUTH_CLOSED":
-              assert all(b["status"] == "CLOSED" for b in blockers.values())
-              for blocker_id,path in closeout_paths.items():
-                  closeout=json.loads(path.read_text())
+          for blocker_id,blocker in blockers.items():
+              assert blocker["status"] in {"OPEN","CLOSED"}
+              if blocker["status"] == "CLOSED":
+                  closeout=json.loads(closeout_paths[blocker_id].read_text())
                   assert closeout["source_blocker"] == blocker_id
                   assert closeout["status"] == "CLOSED"
                   assert closeout["unexplained_mismatches"] == 0
-          else:
-              assert blockers["PFT-SRC-001"]["status"] == "OPEN"
-              assert blockers["PFT-SRC-003"]["status"] == "OPEN"
-              assert blockers["PFT-SRC-002"]["status"] in {"OPEN","CLOSED"}
-              if blockers["PFT-SRC-002"]["status"] == "CLOSED":
-                  closeout=json.loads(closeout_paths["PFT-SRC-002"].read_text())
-                  assert closeout["status"] == "CLOSED"
-                  assert closeout["unexplained_mismatches"] == 0
+          if contract["status"] == "PROTOCOL_FORK_TRUTH_CLOSED":
+              assert all(b["status"] == "CLOSED" for b in blockers.values())
 
           corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
           if contract["status"]=="PROTOCOL_FORK_TRUTH_CLOSED":

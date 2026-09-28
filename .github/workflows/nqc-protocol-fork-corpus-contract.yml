@@ -60,16 +60,17 @@ jobs:
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, os, urllib.request
+          import json, os, subprocess, urllib.request
           from pathlib import Path
 
           contract=json.loads(Path("ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json").read_text())
           corpus=json.loads(Path("ci/nqc-protocol-fork/corpus/manifest.json").read_text())
+          head=subprocess.check_output(["git","rev-parse","HEAD"],text=True).strip()
           out=Path("/tmp/nqc-pft-corpus/external-coverage.json")
           if contract["status"]!="PROTOCOL_FORK_TRUTH_CLOSED":
               out.write_text(json.dumps({
                   "status":"DEFERRED_UNTIL_CLOSURE_CANDIDATE",
-                  "head":os.environ["GITHUB_SHA"],
+                  "head":head,
               },indent=2,sort_keys=True)+"\n")
               raise SystemExit(0)
 
@@ -103,7 +104,6 @@ jobs:
 
           token=os.environ["NQC_GITHUB_TOKEN"]
           repo=os.environ["GITHUB_REPOSITORY"]
-          head=os.environ.get("GITHUB_HEAD_SHA") or os.environ["GITHUB_SHA"]
           api=os.environ.get("GITHUB_API_URL","https://api.github.com").rstrip("/")
           def get(path):
               req=urllib.request.Request(
