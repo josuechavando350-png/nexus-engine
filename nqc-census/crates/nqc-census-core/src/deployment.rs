@@ -290,24 +290,6 @@ impl CapabilityAdmission {
         Ok(Self { states })
     }
 
-    pub fn all_supported() -> Self {
-        Self {
-            states: ALL_CAPABILITIES
-                .into_iter()
-                .map(|capability| (capability, true))
-                .collect(),
-        }
-    }
-
-    pub fn none_supported() -> Self {
-        Self {
-            states: ALL_CAPABILITIES
-                .into_iter()
-                .map(|capability| (capability, false))
-                .collect(),
-        }
-    }
-
     pub fn supports(&self, capability: AdapterCapability) -> bool {
         self.states.get(&capability).copied().unwrap_or(false)
     }
@@ -721,6 +703,9 @@ impl DeploymentRegistry {
             if previous.binding().life_state() == DeploymentLifeState::Removed {
                 return Err(DeploymentRegistryError::RemovedDeploymentIsTerminal);
             }
+            if binding.creation_anchor() != previous.binding().creation_anchor() {
+                return Err(DeploymentRegistryError::CreationAnchorChanged);
+            }
             if binding.observation_anchor().block_number()
                 <= previous.binding().observation_anchor().block_number()
             {
@@ -797,6 +782,7 @@ pub enum DeploymentRegistryError {
         actual: Option<AdmissionId>,
     },
     UnexpectedSupersedes,
+    CreationAnchorChanged,
     NonMonotonicObservation,
     NonMonotonicSemanticsVersion,
     SemanticChangeRequiresVersionIncrease,
@@ -880,6 +866,9 @@ impl Display for DeploymentRegistryError {
             }
             Self::UnexpectedSupersedes => {
                 formatter.write_str("first admission cannot supersede another record")
+            }
+            Self::CreationAnchorChanged => {
+                formatter.write_str("deployment creation anchor is immutable across admission epochs")
             }
             Self::NonMonotonicObservation => {
                 formatter.write_str("deployment observations must advance block height")
