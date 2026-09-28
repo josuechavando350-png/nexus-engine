@@ -426,7 +426,7 @@ def verify(root, ranges):
             raise Fail("DIGEST_MISMATCH", path, "chunk id")
         if encode_frame(raw, cfg) != frame:
             raise Fail("NON_CANONICAL", path, "chunk frame")
-        chunks[ident] = (domain(b"NQC-CENSUS-STORE-FRAME-V1", frame), raw)
+        chunks[ident] = (domain(b"NQC-CENSUS-STORE-FRAME-V1", frame), raw, len(frame))
         stored += len(frame)
 
     artifacts, used_chunks, logical_total = set(), set(), 0
@@ -437,9 +437,15 @@ def verify(root, ranges):
             raise Fail("FOREIGN_CONFIG", path, "manifest policy")
         if f[2] != ident:
             raise Fail("DIGEST_MISMATCH", path, "manifest artifact id")
+        declared_len = uint(f[3], 8, path, "logical length")
+        if declared_len > cfg.max_artifact:
+            raise Fail("OBJECT_TOO_LARGE", path, "logical artifact exceeds sealed maximum")
         rows = f[4]
         if not rows or len(rows) % 72:
             raise Fail("MALFORMED", path, "chunk table")
+        row_count = len(rows) // 72
+        if row_count > cfg.max_chunks:
+            raise Fail("OBJECT_TOO_LARGE", path, "chunk count exceeds sealed maximum")
         logical = bytearray()
         for i in range(0, len(rows), 72):
             row = rows[i:i + 72]
@@ -449,10 +455,14 @@ def verify(root, ranges):
                 raise Fail("CHUNK_MISSING", path, cid.hex())
             if int.from_bytes(row[32:36], "big") != len(entry[1]):
                 raise Fail("MALFORMED", path, "raw length")
+            if int.from_bytes(row[36:40], "big") != entry[2]:
+                raise Fail("MALFORMED", path, "stored length")
+            if len(logical) + len(entry[1]) > declared_len or len(logical) + len(entry[1]) > cfg.max_artifact:
+                raise Fail("OBJECT_TOO_LARGE", path, "logical reconstruction exceeds sealed maximum")
             logical += entry[1]
             used_chunks.add(cid)
         logical = bytes(logical)
-        if uint(f[3], 8, path, "logical length") != len(logical) or sha256(logical) != ident:
+        if declared_len != len(logical) or sha256(logical) != ident:
             raise Fail("DIGEST_MISMATCH", path, "artifact")
         if encode_manifest(logical, cfg) != data:
             raise Fail("NON_CANONICAL", path, "artifact manifest")
@@ -474,9 +484,17 @@ def verify(root, ranges):
                 raise Fail("UNEXPECTED_ENTRY", os.path.join(stream, entry), "unexpected")
         catalog = os.path.join(stream, "checkpoints")
         if "SCOPE" not in entries:
-            if entries == [] or (entries == ["checkpoints"] and not names(catalog)):
+            if entries == []:
                 abandoned += 1
                 continue
+            if entries == ["checkpoints"]:
+                # Even an abandoned registration carries a path boundary:
+                # validate it before listing so an empty external symlink can
+                # never be treated as harmless.
+                require_dir(catalog, device)
+                if not names(catalog):
+                    abandoned += 1
+                    continue
             raise Fail("STREAM_NOT_REGISTERED", stream, "no SCOPE")
         scope = decode_scope(read_file(os.path.join(stream, "SCOPE"), SMALL_LIMIT), stream)
         if scope["id"] != sid:
