@@ -79,10 +79,11 @@ class Provider:
 
 
 class Rpc:
-    def __init__(self, provider: Provider, timeout: int, max_attempts: int):
+    def __init__(self, provider: Provider, timeout: int, max_attempts: int, max_batch_calls: int):
         self.provider = provider
         self.timeout = timeout
         self.max_attempts = max_attempts
+        self.max_batch_calls = max_batch_calls
         self.next_id = 1
         self.http_requests = 0
         self.rpc_calls = 0
@@ -136,6 +137,11 @@ class Rpc:
     def batch(self, calls: list[tuple[str, list[Any]]]) -> list[dict[str, Any]]:
         if not calls:
             return []
+        if len(calls) > self.max_batch_calls:
+            output: list[dict[str, Any]] = []
+            for start in range(0, len(calls), self.max_batch_calls):
+                output.extend(self.batch(calls[start:start + self.max_batch_calls]))
+            return output
         payload = []
         ids = []
         for method, params in calls:
@@ -336,7 +342,7 @@ def run(args: argparse.Namespace) -> None:
         providers.append(Provider(provider_id.strip(), url.strip()))
     if len(providers) != 2 or len({p.provider_id for p in providers}) != 2:
         raise CensusError("exactly two distinct providers are required")
-    rpcs = [Rpc(provider, args.timeout, args.max_attempts) for provider in providers]
+    rpcs = [Rpc(provider, args.timeout, args.max_attempts, args.rpc_batch_size) for provider in providers]
 
     args.output.mkdir(parents=True, exist_ok=True)
     anchor = get_anchor(rpcs)
@@ -567,9 +573,12 @@ def main() -> None:
     parser.add_argument("--chunk-size", type=int, default=100)
     parser.add_argument("--timeout", type=int, default=90)
     parser.add_argument("--max-attempts", type=int, default=6)
+    parser.add_argument("--rpc-batch-size", type=int, default=100)
     args = parser.parse_args()
     if args.chunk_size < 1 or args.chunk_size > 250:
         raise CensusError("chunk-size must be 1..250")
+    if args.rpc_batch_size < 1 or args.rpc_batch_size > 500:
+        raise CensusError("rpc-batch-size must be 1..500")
     run(args)
 
 
