@@ -532,12 +532,15 @@ fn removed_deployment_is_terminal_but_preserves_adapter_support_for_history() ->
         )?,
         None,
     )?;
-    assert!(registry
-        .record(removed.id())
-        .expect("removed record")
-        .binding()
-        .capabilities()
-        .supports(AdapterCapability::StateReconstruction));
+    assert_eq!(
+        registry
+            .record(removed.id())
+            .map(|record| record
+                .binding()
+                .capabilities()
+                .supports(AdapterCapability::StateReconstruction)),
+        Some(true)
+    );
     let later = binding(
         1,
         350,
