@@ -51,11 +51,7 @@ fn strategy(byte: u8) -> Result<StrategySemanticsKey, IdentityError> {
     StrategySemanticsKey::new(1, 1, hash(byte)?)
 }
 
-fn anchor(
-    block: u64,
-    block_hash: u8,
-    parent_hash: u8,
-) -> Result<ObservationAnchor, IdentityError> {
+fn anchor(block: u64, block_hash: u8, parent_hash: u8) -> Result<ObservationAnchor, IdentityError> {
     ObservationAnchor::new(block, hash(block_hash)?, hash(parent_hash)?)
 }
 
@@ -114,12 +110,7 @@ fn golden_state_and_action_ids() -> Result<(), IdentityError> {
         "4ec4e78450f2937538f90078b765fd492a7fa87f0bff8a049ab7b36cd9447eb4"
     );
 
-    let action = ActionSurfaceKey::new(
-        market_id,
-        address(0xaa)?,
-        address(0xbb)?,
-        strategy(0xcc)?,
-    )?;
+    let action = ActionSurfaceKey::new(market_id, address(0xaa)?, address(0xbb)?, strategy(0xcc)?)?;
     assert_eq!(
         action.id()?.to_hex(),
         "5939d808b0a1c4545ae0f69264b25c2d98794a8ddbc59e76343c358021074489"
@@ -149,8 +140,7 @@ fn chain_deployment_and_protocol_domains_prevent_false_aliases() -> Result<(), I
         CanonicalMarketKey::aave_pool(deployment(ProtocolFamily::AaveV3, 0x33, 0x44, 0x23)?)?;
     let redeployed =
         CanonicalMarketKey::aave_pool(deployment(ProtocolFamily::AaveV3, 0x33, 0x45, 0x22)?)?;
-    let v4 =
-        CanonicalMarketKey::aave_pool(deployment(ProtocolFamily::AaveV4, 0x33, 0x44, 0x22)?)?;
+    let v4 = CanonicalMarketKey::aave_pool(deployment(ProtocolFamily::AaveV4, 0x33, 0x44, 0x22)?)?;
 
     let mut ids = std::collections::BTreeSet::new();
     for market in [base, forked, redeployed, v4] {
@@ -230,10 +220,8 @@ fn wrappers_and_underlyings_remain_distinct_contract_identities() -> Result<(), 
 #[test]
 fn action_orientation_is_semantic() -> Result<(), IdentityError> {
     let market = aave_reserve()?.id()?;
-    let forward =
-        ActionSurfaceKey::new(market, address(0xaa)?, address(0xbb)?, strategy(0xcc)?)?;
-    let reverse =
-        ActionSurfaceKey::new(market, address(0xbb)?, address(0xaa)?, strategy(0xcc)?)?;
+    let forward = ActionSurfaceKey::new(market, address(0xaa)?, address(0xbb)?, strategy(0xcc)?)?;
+    let reverse = ActionSurfaceKey::new(market, address(0xbb)?, address(0xaa)?, strategy(0xcc)?)?;
     assert_ne!(forward.id()?, reverse.id()?);
     Ok(())
 }
@@ -256,7 +244,10 @@ fn alias_reconciliation_is_idempotent_and_conflicts_fail_closed() -> Result<(), 
         AliasEvidence::new(locator, target, hash(0xb1)?),
         AliasEvidence::new(locator, other, hash(0xb2)?),
     ];
-    assert_eq!(reconcile_aliases(&conflict), Err(IdentityError::AliasConflict));
+    assert_eq!(
+        reconcile_aliases(&conflict),
+        Err(IdentityError::AliasConflict)
+    );
     Ok(())
 }
 
@@ -304,8 +295,14 @@ fn action_for_absent_market_is_rejected() -> Result<(), IdentityError> {
 
 #[test]
 fn invalid_zero_overflow_protocol_and_v2_inputs_fail_closed() -> Result<(), IdentityError> {
-    assert_eq!(Address::new([0; 20]), Err(IdentityError::ZeroValue("address")));
-    assert_eq!(Hash32::new([0; 32]), Err(IdentityError::ZeroValue("hash32")));
+    assert_eq!(
+        Address::new([0; 20]),
+        Err(IdentityError::ZeroValue("address"))
+    );
+    assert_eq!(
+        Hash32::new([0; 32]),
+        Err(IdentityError::ZeroValue("hash32"))
+    );
     assert_eq!(
         ChainDomain::parse(
             "18446744073709551616",
@@ -316,12 +313,7 @@ fn invalid_zero_overflow_protocol_and_v2_inputs_fail_closed() -> Result<(), Iden
     );
 
     assert_eq!(
-        CanonicalMarketKey::aave_pool(deployment(
-            ProtocolFamily::UniswapV2,
-            0x33,
-            0x44,
-            0x22
-        )?),
+        CanonicalMarketKey::aave_pool(deployment(ProtocolFamily::UniswapV2, 0x33, 0x44, 0x22)?),
         Err(IdentityError::ProtocolMarketMismatch)
     );
 
