@@ -44,14 +44,20 @@ impl Display for IdentityError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidHexLength { expected, actual } => {
-                write!(f, "invalid hex length: expected {expected} bytes, got {actual}")
+                write!(
+                    f,
+                    "invalid hex length: expected {expected} bytes, got {actual}"
+                )
             }
             Self::InvalidHexCharacter { index } => write!(f, "invalid hex character at {index}"),
             Self::InvalidInteger => f.write_str("invalid or overflowing integer"),
             Self::ZeroValue(name) => write!(f, "{name} must not be zero"),
             Self::UnknownSchemaVersion(v) => write!(f, "unknown identity schema version {v}"),
             Self::UnexpectedObjectKind { expected, actual } => {
-                write!(f, "unexpected object kind {actual:#04x}; expected {expected:#04x}")
+                write!(
+                    f,
+                    "unexpected object kind {actual:#04x}; expected {expected:#04x}"
+                )
             }
             Self::MalformedEncoding(reason) => write!(f, "malformed encoding: {reason}"),
             Self::FieldTooLarge => f.write_str("canonical field exceeds u32 length"),
@@ -432,7 +438,10 @@ impl CanonicalMarketKey {
     }
 
     pub fn id(&self) -> Result<MarketId, IdentityError> {
-        Ok(MarketId(domain_hash(MARKET_DOMAIN, &self.canonical_bytes()?)))
+        Ok(MarketId(domain_hash(
+            MARKET_DOMAIN,
+            &self.canonical_bytes()?,
+        )))
     }
 }
 
@@ -692,7 +701,9 @@ pub fn reconcile_aliases(
     let mut out = BTreeMap::new();
     for alias in aliases {
         match out.get(&alias.source) {
-            Some(existing) if existing != &alias.target => return Err(IdentityError::AliasConflict),
+            Some(existing) if existing != &alias.target => {
+                return Err(IdentityError::AliasConflict)
+            }
             Some(_) => {}
             None => {
                 out.insert(alias.source, alias.target);
@@ -710,11 +721,7 @@ pub struct MigrationEvidence {
 }
 
 impl MigrationEvidence {
-    pub fn new(
-        from: MarketId,
-        to: MarketId,
-        evidence_hash: Hash32,
-    ) -> Result<Self, IdentityError> {
+    pub fn new(from: MarketId, to: MarketId, evidence_hash: Hash32) -> Result<Self, IdentityError> {
         if from == to {
             return Err(IdentityError::MigrationSelfReference);
         }
