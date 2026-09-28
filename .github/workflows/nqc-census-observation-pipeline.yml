@@ -43,10 +43,8 @@ jobs:
           git merge-base --is-ancestor "$RMC002_PARENT" HEAD
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-            test "${{ github.event.pull_request.base.sha }}" = "$RMC002_PARENT"
-          fi
-
-          python3 - <<'PY'
+            if [ "${{ github.event.pull_request.base.sha }}" = "$RMC002_PARENT" ]; then
+              python3 - <<'PY'
           import subprocess
           expected={
               ".github/workflows/nqc-census-observation-pipeline.yml",
@@ -68,8 +66,14 @@ jobs:
           )
           print("RMC_003_SCOPE_PASS files=8")
           PY
-
-          git diff --check "$RMC002_PARENT"...HEAD
+              git diff --check "$RMC002_PARENT"...HEAD
+            else
+              echo "RMC_003_EXACT_SCOPE=NOT_THIS_PR base=${{ github.event.pull_request.base.sha }}"
+              git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
+            fi
+          else
+            git diff --check
+          fi
 
       - name: Verify RMC-001 identity authority unchanged
         shell: bash

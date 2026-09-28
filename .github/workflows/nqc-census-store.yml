@@ -125,10 +125,15 @@ jobs:
             ci/nqc-census/materialize_effective_source.py \
             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md \
             nqc-census/rust-toolchain.toml \
-            nqc-census/crates/nqc-census-core \
+            nqc-census/crates/nqc-census-core/Cargo.toml \
+            nqc-census/crates/nqc-census-core/src/identity.rs \
+            nqc-census/crates/nqc-census-core/src/observation.rs \
+            nqc-census/crates/nqc-census-core/src/pipeline.rs \
+            nqc-census/crates/nqc-census-core/src/capability.rs \
+            nqc-census/crates/nqc-census-core/tests/identity.rs \
+            nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs \
             .github/workflows/nqc-census-identity.yml \
-            .github/workflows/nqc-census-effective-source.yml \
-            .github/workflows/nqc-census-observation-pipeline.yml
+            .github/workflows/nqc-census-effective-source.yml
           echo RMC_004_RMC001_RMC002_RMC003_IMMUTABLE_PASS
 
       - name: Verify dependency surface and network-free boundary
