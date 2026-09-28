@@ -1,0 +1,148 @@
+name: NQC RMC-004 Durable Evidence Store
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-durable-evidence.yml
+      - ci/nqc-census/DURABLE_EVIDENCE_CONTRACT.md
+      - nqc-census/Cargo.toml
+      - nqc-census/Cargo.lock
+      - nqc-census/crates/nqc-census-store/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  durable-evidence-store:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      RMC003_PARENT: 765dc30fdd178a4960ade1e106669eb0b023fbeb
+      RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority and exact scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$PFT_CERTIFIED_COMMIT" HEAD
+          git merge-base --is-ancestor "$RMC001_MERGE" HEAD
+          git merge-base --is-ancestor "$RMC003_PARENT" HEAD
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            test "${{ github.event.pull_request.base.sha }}" = "$RMC003_PARENT"
+          fi
+
+          python3 - <<'PY'
+          import subprocess
+          expected={
+              ".github/workflows/nqc-census-durable-evidence.yml",
+              "ci/nqc-census/DURABLE_EVIDENCE_CONTRACT.md",
+              "nqc-census/Cargo.toml",
+              "nqc-census/Cargo.lock",
+              "nqc-census/crates/nqc-census-store/Cargo.toml",
+              "nqc-census/crates/nqc-census-store/src/lib.rs",
+              "nqc-census/crates/nqc-census-store/src/bin/nqc-census-store-verify.rs",
+              "nqc-census/crates/nqc-census-store/tests/durable_store.rs",
+              "nqc-census/crates/nqc-census-store/examples/offline_fixture.rs",
+          }
+          changed=set(subprocess.check_output(
+              ["git","diff","--name-only","765dc30fdd178a4960ade1e106669eb0b023fbeb...HEAD"],
+              text=True,
+          ).splitlines())
+          assert changed==expected, (
+              f"RMC-004 scope mismatch missing={sorted(expected-changed)} "
+              f"extra={sorted(changed-expected)}"
+          )
+          print("RMC_004_SCOPE_PASS files=9")
+          PY
+          git diff --check "$RMC003_PARENT"...HEAD
+
+      - name: Verify previous Census and Protocol authorities untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "$RMC001_MERGE" HEAD --             ci/nqc-census/IDENTITY_CONTRACT.md             ci/nqc-census/identity-vectors.json             nqc-census/rust-toolchain.toml             nqc-census/crates/nqc-census-core/Cargo.toml             nqc-census/crates/nqc-census-core/src/identity.rs             nqc-census/crates/nqc-census-core/tests/identity.rs
+
+          git diff --quiet "$RMC003_PARENT" HEAD --             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md             nqc-census/crates/nqc-census-core/src/lib.rs             nqc-census/crates/nqc-census-core/src/observation.rs             nqc-census/crates/nqc-census-core/src/pipeline.rs             nqc-census/crates/nqc-census-core/src/capability.rs             nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs
+
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source             ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility             ci/nqc-protocol-fork/locks             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+          echo RMC_004_UPSTREAM_IMMUTABILITY_PASS
+
+      - name: Verify store contract statically
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'NQC-CENSUS-ARTIFACT-V1' nqc-census/crates/nqc-census-store/src/lib.rs
+          grep -F 'NQC-CENSUS-CHECKPOINT-V1' nqc-census/crates/nqc-census-store/src/lib.rs
+          grep -F 'NQC-CENSUS-RANGE-SCOPE-V1' nqc-census/crates/nqc-census-store/src/lib.rs
+          grep -F 'AfterCheckpointObject' nqc-census/crates/nqc-census-store/src/lib.rs
+          grep -F 'AfterDurableReference' nqc-census/crates/nqc-census-store/src/lib.rs
+          grep -F 'sync_all' nqc-census/crates/nqc-census-store/src/lib.rs
+          grep -F 'hard_link' nqc-census/crates/nqc-census-store/src/lib.rs
+          grep -F 'UNPROFITABLE_AFTER_GAS' nqc-census/crates/nqc-census-core/src/pipeline.rs
+          echo RMC_004_STATIC_CONTRACT_PASS
+
+      - name: Rust locked verification
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo --version
+          cargo fetch --locked
+          export CARGO_NET_OFFLINE=true
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked --offline -- -D warnings
+          cargo test --workspace --all-targets --locked --offline
+          cargo build --workspace --all-targets --locked --offline
+          echo RMC_004_RUST_PASS
+
+      - name: Prove offline verifier and second-copy replay
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          export CARGO_NET_OFFLINE=true
+          rm -rf /tmp/rmc-004-store /tmp/rmc-004-store-copy
+
+          fixture="$(
+            cargo run --quiet --locked --offline -p nqc-census-store               --example offline_fixture -- /tmp/rmc-004-store
+          )"
+          echo "$fixture"
+          echo "$fixture" | grep -F 'RMC_STORE_FIXTURE_PASS'
+          scope="$(printf '%s\n' "$fixture" | sed -n 's/.*scope=\([0-9a-f]\{64\}\).*/\1/p')"
+          test -n "$scope"
+
+          cargo run --quiet --locked --offline -p nqc-census-store             --bin nqc-census-store-verify --             /tmp/rmc-004-store "$scope" 100 119             | tee /tmp/rmc-004-verify.log
+          grep -F 'RMC_STORE_VERIFY_PASS' /tmp/rmc-004-verify.log
+
+          cp -a /tmp/rmc-004-store /tmp/rmc-004-store-copy
+          cargo run --quiet --locked --offline -p nqc-census-store             --bin nqc-census-store-verify --             /tmp/rmc-004-store-copy "$scope" 100 119             | tee /tmp/rmc-004-copy-verify.log
+          grep -F 'RMC_STORE_VERIFY_PASS' /tmp/rmc-004-copy-verify.log
+
+          printf 'tampered\n' >             "/tmp/rmc-004-store-copy/checkpoints/$scope/00000000000000000002.ref"
+          set +e
+          cargo run --quiet --locked --offline -p nqc-census-store             --bin nqc-census-store-verify --             /tmp/rmc-004-store-copy "$scope" 100 119             >/tmp/rmc-004-tamper.out 2>/tmp/rmc-004-tamper.err
+          rc=$?
+          set -e
+          test "$rc" -ne 0
+          grep -F 'RMC_STORE_VERIFY_FAIL' /tmp/rmc-004-tamper.err
+          echo RMC_004_OFFLINE_VERIFIER_PASS
+
+      - name: Verify source remains pristine
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -z "$(git status --porcelain)"
+          echo RMC_004_SOURCE_PRISTINE_PASS
