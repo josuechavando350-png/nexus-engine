@@ -16,7 +16,7 @@ import subprocess
 import sys
 
 TRACE = ["strace", "-f", "-y", "-qq", "-e",
-         "trace=linkat,link,rename,renameat,renameat2,fsync,fdatasync"]
+         "trace=linkat,link,rename,renameat,renameat2,mkdir,mkdirat,fsync,fdatasync"]
 
 # (id, file, original, replacement, oracle)
 MUTANTS = [
@@ -77,6 +77,13 @@ MUTANTS = [
     ("M14_verifier_unknown_entries_allowed", "verify.rs",
      "            if !expected.contains(&name.as_str()) {",
      "            if false && !expected.contains(&name.as_str()) {", "tests"),
+    ("M15_adopted_directory_parent_fsync_skipped", "durable.rs",
+     "        // An existing directory may have been created by a writer that died\n"
+     "        // before fsyncing its parent. Adopting it as authority must establish\n"
+     "        // the same durability barrier as the original creator.\n"
+     "        sync_dir(parent)?;\n"
+     "        Ok(path)",
+     "        Ok(path)", "trace"),
 ]
 
 
