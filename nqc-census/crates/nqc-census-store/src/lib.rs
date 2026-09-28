@@ -329,16 +329,14 @@ impl CensusStore {
         let mut chunks = Vec::new();
 
         for raw in bytes.chunks(self.chunk_size) {
-            let raw_len =
-                u32::try_from(raw.len()).map_err(|_| StoreError::LengthOverflow)?;
+            let raw_len = u32::try_from(raw.len()).map_err(|_| StoreError::LengthOverflow)?;
             let rle = encode_rle(raw);
             let (codec, stored) = if rle.len() < raw.len() {
                 (ChunkCodec::RunLength, rle)
             } else {
                 (ChunkCodec::Raw, raw.to_vec())
             };
-            let stored_len =
-                u32::try_from(stored.len()).map_err(|_| StoreError::LengthOverflow)?;
+            let stored_len = u32::try_from(stored.len()).map_err(|_| StoreError::LengthOverflow)?;
             let raw_digest = ArtifactDigest(hash_bytes(raw));
             let stored_digest = ArtifactDigest(hash_bytes(&stored));
             self.put_object(stored_digest, &stored)?;
@@ -351,12 +349,10 @@ impl CensusStore {
             });
         }
 
-        let original_len =
-            u64::try_from(bytes.len()).map_err(|_| StoreError::LengthOverflow)?;
+        let original_len = u64::try_from(bytes.len()).map_err(|_| StoreError::LengthOverflow)?;
         let manifest = ArtifactManifest {
             original_len,
-            chunk_size: u32::try_from(self.chunk_size)
-                .map_err(|_| StoreError::LengthOverflow)?,
+            chunk_size: u32::try_from(self.chunk_size).map_err(|_| StoreError::LengthOverflow)?,
             payload_digest,
             chunks,
         };
@@ -413,7 +409,9 @@ impl CensusStore {
             return Err(StoreError::CorruptArtifact("artifact length mismatch"));
         }
         if ArtifactDigest(hash_bytes(&output)) != manifest.payload_digest {
-            return Err(StoreError::CorruptArtifact("artifact payload digest mismatch"));
+            return Err(StoreError::CorruptArtifact(
+                "artifact payload digest mismatch",
+            ));
         }
         Ok(output)
     }
@@ -607,7 +605,9 @@ impl CensusStore {
         if !path.exists() {
             return Ok(None);
         }
-        Ok(Some(ArtifactDigest::parse_hex(read_trimmed(&path)?.as_str())?))
+        Ok(Some(ArtifactDigest::parse_hex(
+            read_trimmed(&path)?.as_str(),
+        )?))
     }
 
     fn put_object(&self, digest: ArtifactDigest, bytes: &[u8]) -> Result<(), StoreError> {
@@ -905,8 +905,7 @@ fn decode_store_config(bytes: &[u8]) -> Result<usize, StoreError> {
     if version != STORE_SCHEMA_VERSION {
         return Err(StoreError::CorruptArtifact("store config schema version"));
     }
-    let chunk_size =
-        usize::try_from(reader.u32()?).map_err(|_| StoreError::LengthOverflow)?;
+    let chunk_size = usize::try_from(reader.u32()?).map_err(|_| StoreError::LengthOverflow)?;
     reader.finish("store config trailing bytes")?;
     if !(MIN_CHUNK_SIZE..=MAX_CHUNK_SIZE).contains(&chunk_size) {
         return Err(StoreError::InvalidChunkSize(chunk_size));
@@ -1065,8 +1064,7 @@ fn decode_rle(bytes: &[u8], expected_len: u32) -> Result<Vec<u8>, StoreError> {
     if bytes.len() % 2 != 0 {
         return Err(StoreError::CorruptArtifact("odd RLE byte length"));
     }
-    let expected =
-        usize::try_from(expected_len).map_err(|_| StoreError::LengthOverflow)?;
+    let expected = usize::try_from(expected_len).map_err(|_| StoreError::LengthOverflow)?;
     let mut output = Vec::with_capacity(expected);
     for pair in bytes.chunks_exact(2) {
         let count = pair[0];
@@ -1078,7 +1076,9 @@ fn decode_rle(bytes: &[u8], expected_len: u32) -> Result<Vec<u8>, StoreError> {
             .checked_add(usize::from(count))
             .ok_or(StoreError::LengthOverflow)?;
         if new_len > expected {
-            return Err(StoreError::CorruptArtifact("RLE expands beyond expected length"));
+            return Err(StoreError::CorruptArtifact(
+                "RLE expands beyond expected length",
+            ));
         }
         output.resize(new_len, pair[1]);
     }
