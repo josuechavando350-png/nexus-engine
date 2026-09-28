@@ -31,9 +31,9 @@ def rs(v):
     return f'U256::from_str("{n(v)}")?'
 
 
-def fixtures(multi_path, single_path):
+def fixtures(*paths):
     expected=[]
-    for path in (multi_path,single_path):
+    for path in paths:
         doc=json.loads(path.read_text())
         for event in doc["account"]["observed_liquidations"]:
             expected.append({
@@ -46,8 +46,8 @@ def fixtures(multi_path, single_path):
                 "observed_debt_to_cover":int(event["debt_to_cover"]),
                 "observed_collateral_to_liquidator":int(event["liquidated_collateral_amount"]),
             })
-    if len(expected)!=15:
-        raise ValueError(f"expected 15 fixture liquidations, got {len(expected)}")
+    if len(expected)!=16:
+        raise ValueError(f"expected 16 fixture liquidations, got {len(expected)}")
     return expected
 
 
@@ -161,7 +161,7 @@ def generate(cases):
             "}",
         ]
     lines += [
-        "if cases != 15 || exact_integer_checks != 60 || deployed_callback_premium_checks != 15 {",
+        "if cases != 16 || exact_integer_checks != 64 || deployed_callback_premium_checks != 16 {",
         '    return Err(format!("matrix count mismatch cases={} checks={} callback_premiums={}", cases, exact_integer_checks, deployed_callback_premium_checks).into());',
         "}",
         "if default_close_cap_matches == 0 {",
@@ -183,9 +183,10 @@ if __name__=="__main__":
     ap.add_argument("--witness-dir",type=Path,required=True)
     ap.add_argument("--multi",type=Path,required=True)
     ap.add_argument("--single",type=Path,required=True)
+    ap.add_argument("--boundary",type=Path,required=True)
     ap.add_argument("--output",type=Path,required=True)
     args=ap.parse_args()
-    expected=fixtures(args.multi,args.single)
+    expected=fixtures(args.multi,args.single,args.boundary)
     cases=load_witnesses(args.witness_dir,expected)
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(generate(cases))

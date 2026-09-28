@@ -185,13 +185,13 @@
     "liquidation_log_count": 14
   },
   "provenance": {
-    "discovery_source_sha": "458a586cddd859e3fa65d2425fb24587472e32da",
-    "discovery_artifact_id": 10925157643,
-    "discovery_artifact_sha256": "f1a6158c8e71f090f9cfc173f8de075a5b6d34eda5494b0c77f1c3a694fd05ea",
+    "discovery_source_sha": "93948f754a3330e52f46cfb985afe373a65be7f5",
+    "discovery_artifact_id": 10955228275,
+    "discovery_artifact_sha256": "cce779341a3331701b2a12859d73b065636f8134234e630990aedfd64d7fd698",
     "fixture_admitted": true,
     "transaction_hash": "0xc953d5da04ee4dc9f421ac5418f05add5244d9816c50420bbf7bb6cbafc1150a",
-    "candidate_discovery_sha256": "4a66d9f736e1811b25b1b9d7a4a1dda3e57229a465389b87e0d18a4845fc70e1",
-    "provider_observations_sha256": "2cd7df5d409b9254d3db1b7e26d33bcec88e81a783405e5da8bf6e3d71ed0eb2",
+    "candidate_discovery_sha256": "3de7fcab1a414567a93ed1db76e5b39f42cd06b4d0c8a5856fdc1eb51a2e6712",
+    "provider_observations_sha256": "a2ede5cc3ee629dc802b85304ba4bf403d0ae90ad002cb56a20da8e9cc969ef3",
     "evidence_source": "cross-provider-consensus-receipt",
     "receipt_status": "0x1"
   },

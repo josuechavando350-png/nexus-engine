@@ -64,7 +64,7 @@ jobs:
           cp ci/nqc-protocol-fork/parity/pft_aave_dust_boundary_regression.rs \
             "$NQC_MATRIX/source/crates/nqc-aave-opportunity/tests/pft_aave_dust_boundary_regression.rs"
 
-          python3 ci/nqc-protocol-fork/parity/generate_aave_liquidation_matrix_witness.py             --multi ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             --single ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             --output "$NQC_MATRIX/foundry/test/PftAaveLiquidationMatrixWitness.t.sol"
+          python3 ci/nqc-protocol-fork/parity/generate_aave_liquidation_matrix_witness.py             --multi ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             --single ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             --boundary ci/nqc-protocol-fork/corpus/cases/aave-liquidation-default-close-2026-09-bc34.json             --output "$NQC_MATRIX/foundry/test/PftAaveLiquidationMatrixWitness.t.sol"
 
           cat > "$NQC_MATRIX/foundry/foundry.toml" <<'EOF'
           [profile.default]
@@ -77,7 +77,7 @@ jobs:
           fs_permissions = [{ access = "read-write", path = "../evidence" }]
           EOF
 
-          sha256sum             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json             ci/nqc-protocol-fork/parity/generate_aave_liquidation_matrix_witness.py             ci/nqc-protocol-fork/parity/generate_aave_liquidation_matrix_parity.py             ci/nqc-protocol-fork/parity/pft_compat_009_opportunity_regression.rs             ci/nqc-protocol-fork/parity/pft_aave_dust_boundary_regression.rs             "$NQC_MATRIX/foundry/test/PftAaveLiquidationMatrixWitness.t.sol"             > "$NQC_MATRIX/evidence/input-source.sha256"
+          sha256sum             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             ci/nqc-protocol-fork/corpus/cases/aave-liquidation-default-close-2026-09-bc34.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.json             ci/nqc-protocol-fork/parity/generate_aave_liquidation_matrix_witness.py             ci/nqc-protocol-fork/parity/generate_aave_liquidation_matrix_parity.py             ci/nqc-protocol-fork/parity/pft_compat_009_opportunity_regression.rs             ci/nqc-protocol-fork/parity/pft_aave_dust_boundary_regression.rs             "$NQC_MATRIX/foundry/test/PftAaveLiquidationMatrixWitness.t.sol"             > "$NQC_MATRIX/evidence/input-source.sha256"
 
       - name: Install pinned Foundry solc and Rust
         shell: bash
@@ -102,7 +102,7 @@ jobs:
           rustc -Vv | tee "$NQC_MATRIX/evidence/rustc.txt"
           cargo fetch --locked --manifest-path "$NQC_MATRIX/source/Cargo.toml"
 
-      - name: Capture all 15 transaction-prestate liquidation witnesses from both providers
+      - name: Capture all 16 transaction-prestate liquidation witnesses from both providers
         shell: bash
         working-directory: /tmp/nqc-aave-liquidation-matrix/foundry
         run: |
@@ -126,9 +126,9 @@ jobs:
             test "$ready" -eq 1
 
             PFT_RPC_URL="http://127.0.0.1:$port"             PFT_WITNESS_DIR="$NQC_MATRIX/evidence/$provider_id"               forge test --use "$NQC_MATRIX/solc-0.8.24"                 --match-contract PftAaveLiquidationMatrixWitnessTest -vvvv                 2>&1 | tee "$NQC_MATRIX/evidence/$provider_id-foundry.log"
-            grep -F "2 tests passed, 0 failed, 0 skipped (2 total tests)"               "$NQC_MATRIX/evidence/$provider_id-foundry.log"
-            test "$(find "$NQC_MATRIX/evidence/$provider_id" -maxdepth 1 -name '*.json' | wc -l)" -eq 15
-            for index in $(seq 0 14); do
+            grep -F "3 tests passed, 0 failed, 0 skipped (3 total tests)"               "$NQC_MATRIX/evidence/$provider_id-foundry.log"
+            test "$(find "$NQC_MATRIX/evidence/$provider_id" -maxdepth 1 -name '*.json' | wc -l)" -eq 16
+            for index in $(seq 0 15); do
               test -s "$NQC_MATRIX/evidence/$provider_id/$index.json"
               python3 -m json.tool "$NQC_MATRIX/evidence/$provider_id/$index.json" >/dev/null
             done
@@ -142,7 +142,7 @@ jobs:
           import json
           from pathlib import Path
           root=Path("/tmp/nqc-aave-liquidation-matrix/evidence")
-          for index in range(15):
+          for index in range(16):
               left=json.loads((root/"blastapi-public"/f"{index}.json").read_text())
               right=json.loads((root/"mevblocker-rpc"/f"{index}.json").read_text())
               if left != right:
@@ -151,14 +151,14 @@ jobs:
               (root/"canonical"/f"{index}.json").write_text(
                   json.dumps(left,indent=2,sort_keys=True)+"\n"
               )
-          print("AAVE_LIQUIDATION_MATRIX_TWO_PROVIDER_WITNESS_PASS cases=15")
+          print("AAVE_LIQUIDATION_MATRIX_TWO_PROVIDER_WITNESS_PASS cases=16")
           PY
 
       - name: Execute recovered integer math over complete admitted corpus
         shell: bash
         run: |
           set -euo pipefail
-          python3 ci/nqc-protocol-fork/parity/generate_aave_liquidation_matrix_parity.py             --witness-dir "$NQC_MATRIX/evidence/canonical"             --multi ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             --single ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             --output "$NQC_MATRIX/source/crates/nqc-aave-math/examples/pft_liquidation_matrix.rs"
+          python3 ci/nqc-protocol-fork/parity/generate_aave_liquidation_matrix_parity.py             --witness-dir "$NQC_MATRIX/evidence/canonical"             --multi ci/nqc-protocol-fork/corpus/cases/aave-liquidation-multiasset-2026-06-c953.json             --single ci/nqc-protocol-fork/corpus/cases/aave-liquidation-usdc-2026-a36f.json             --boundary ci/nqc-protocol-fork/corpus/cases/aave-liquidation-default-close-2026-09-bc34.json             --output "$NQC_MATRIX/source/crates/nqc-aave-math/examples/pft_liquidation_matrix.rs"
           cp "$NQC_MATRIX/source/crates/nqc-aave-math/examples/pft_liquidation_matrix.rs"             "$NQC_MATRIX/evidence/"
 
           export CARGO_NET_OFFLINE=true CARGO_INCREMENTAL=0
@@ -178,10 +178,10 @@ jobs:
           printf '%s\n' 'PASS_AAVE_DUST_BOUNDARY' > "$NQC_MATRIX/evidence/dust-boundary-status.txt"
           cargo run --locked --offline             --manifest-path "$NQC_MATRIX/source/Cargo.toml"             -p nqc-aave-math --example pft_liquidation_matrix             2>&1 | tee "$NQC_MATRIX/evidence/liquidation-matrix.log"
 
-          test "$(grep -c '^AAVE_LIQUIDATION_MATRIX_PASS ' "$NQC_MATRIX/evidence/liquidation-matrix.log")" -eq 15
-          grep -E '^AAVE_LIQUIDATION_MATRIX_TOTAL cases=15 exact_integer_checks=60 deployed_callback_premium_checks=15 default_close_cap_matches=[1-9][0-9]* full_close_cap_matches=[1-9][0-9]* unexplained_mismatches=0$'             "$NQC_MATRIX/evidence/liquidation-matrix.log"
+          test "$(grep -c '^AAVE_LIQUIDATION_MATRIX_PASS ' "$NQC_MATRIX/evidence/liquidation-matrix.log")" -eq 16
+          grep -E '^AAVE_LIQUIDATION_MATRIX_TOTAL cases=16 exact_integer_checks=64 deployed_callback_premium_checks=16 default_close_cap_matches=[1-9][0-9]* full_close_cap_matches=[1-9][0-9]* unexplained_mismatches=0$'             "$NQC_MATRIX/evidence/liquidation-matrix.log"
 
-          printf '%s\n' 'PASS_ALL_15_HISTORICAL_LIQUIDATIONS_EXACT_INTEGER_MATH_WITH_DEPLOYED_FLASH_CALLBACK_PREMIUM'             > "$NQC_MATRIX/evidence/parity-status.txt"
+          printf '%s\n' 'PASS_ALL_16_HISTORICAL_LIQUIDATIONS_EXACT_INTEGER_MATH_WITH_DEPLOYED_FLASH_CALLBACK_PREMIUM'             > "$NQC_MATRIX/evidence/parity-status.txt"
           printf '%s\n' 'PASS' > "$NQC_MATRIX/evidence/AAVE_LIQUIDATION_INTEGER_MATH_PARITY.txt"
           printf '%s\n' '0' > "$NQC_MATRIX/evidence/unexplained-mismatch-count.txt"
           printf '%s\n' 'NOT_CLOSED' > "$NQC_MATRIX/evidence/protocol-fork-truth.txt"

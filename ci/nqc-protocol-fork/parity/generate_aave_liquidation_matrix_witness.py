@@ -50,27 +50,23 @@ def observed_expr(case, event, index):
         }})"""
 
 
-def generate(multi, single):
+def generate(cases):
     all_cases = []
-    for case in (multi, single):
+    for case in cases:
         for event in case["account"]["observed_liquidations"]:
             all_cases.append((case, event))
-    if len(all_cases) != 15:
-        raise ValueError(f"expected exactly 15 admitted liquidations, got {len(all_cases)}")
-
-    by_tx = [(multi, list(range(0, len(multi["account"]["observed_liquidations"]))))]
-    by_tx.append((single, [len(multi["account"]["observed_liquidations"])]))
+    if len(all_cases) != 16:
+        raise ValueError(f"expected exactly 16 admitted liquidations, got {len(all_cases)}")
 
     functions = []
     global_index = 0
-    for case in (multi, single):
+    for fixture_index, case in enumerate(cases):
         calls = []
         for event in case["account"]["observed_liquidations"]:
             calls.append(f"        _capture({observed_expr(case, event, global_index)});")
             global_index += 1
-        suffix = "Multiasset" if len(case["account"]["observed_liquidations"]) > 1 else "Single"
         functions.append(f"""
-    function testFork_Capture{suffix}LiquidationMatrix() public {{
+    function testFork_CaptureFixture{fixture_index}LiquidationMatrix() public {{
         vm.createSelectFork(vm.envString("PFT_RPC_URL"), {b32(case["provenance"]["transaction_hash"])});
         require(block.number == {int(case["block_number"])}, "PRETX_BLOCK");
         require(blockhash(block.number - 1) == {b32(case["parent_hash"])}, "PRETX_PARENT");
@@ -442,9 +438,11 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("--multi", type=Path, required=True)
     ap.add_argument("--single", type=Path, required=True)
+    ap.add_argument("--boundary", type=Path, required=True)
     ap.add_argument("--output", type=Path, required=True)
     args = ap.parse_args()
     multi = load_case(args.multi)
     single = load_case(args.single)
+    boundary = load_case(args.boundary)
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(generate(multi, single))
+    args.output.write_text(generate([multi, single, boundary]))
