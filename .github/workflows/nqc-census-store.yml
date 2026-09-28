@@ -29,6 +29,7 @@ jobs:
       GOLDEN_EVIDENCE_ROOT: 66347fd573ba57847f53df5b70c57cf1be17393562831ef67e1e26e8de6cc28a
       CARGO_TARGET_DIR: /tmp/nqc-rmc004-target
       EVIDENCE: /tmp/nqc-rmc004-evidence
+      PYTHONDONTWRITEBYTECODE: "1"
 
     steps:
       - name: Checkout exact head
