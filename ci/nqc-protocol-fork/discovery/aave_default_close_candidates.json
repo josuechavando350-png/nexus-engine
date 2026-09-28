@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "chain_id": 1,
+  "protocol": {
+    "name": "Aave V3 Ethereum",
+    "pool": "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2",
+    "liquidation_call_topic0": "0xe413a321e8681d831f4dbccbca790d2952b56f977908e45be37335533e005286"
+  },
+  "policy": {
+    "minimum_anchor_consensus_providers": 2,
+    "required_liquidation_logs_per_candidate": 1,
+    "fixture_admission": "FORBIDDEN_BY_DISCOVERY_PROBE"
+  },
+  "providers": [
+    {
+      "id": "blastapi-public",
+      "url": "https://eth-mainnet.public.blastapi.io"
+    },
+    {
+      "id": "mevblocker-rpc",
+      "url": "https://rpc.mevblocker.io"
+    },
+    {
+      "id": "drpc-public",
+      "url": "https://eth.drpc.org"
+    }
+  ],
+  "candidates": [
+    {
+      "case_id": "aave-default-close-candidate-2026-621f",
+      "transaction_hash": "0x621fc8e20740936ecc01dadb6af47a544c88946a00664dd321e6d46b2a9dbfdc",
+      "expected_receipt_status": "0x1",
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "historical_mainnet"
+      ]
+    },
+    {
+      "case_id": "aave-default-close-candidate-2026-e239",
+      "transaction_hash": "0xe2391ea418e16d70196ca3d77dfc836cca1096eebf65e423d52ad867b416478f",
+      "expected_receipt_status": "0x1",
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "historical_mainnet"
+      ]
+    },
+    {
+      "case_id": "aave-default-close-candidate-2025-17db",
+      "transaction_hash": "0x17db41fd0cd26d2b36b0f845680600ff4053c225ff06fdcb3f2b11ec500d8872",
+      "expected_receipt_status": "0x1",
+      "class_tags": [
+        "ordinary_liquidation",
+        "default_close_factor_candidate",
+        "historical_mainnet"
+      ]
+    }
+  ]
+}
