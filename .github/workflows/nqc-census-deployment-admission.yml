@@ -44,9 +44,8 @@ jobs:
           done
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-            test "${{ github.event.pull_request.base.sha }}" = "$RMC005_STACK_PARENT"
-          fi
-          python3 - <<'PY'
+            if [ "${{ github.event.pull_request.base.sha }}" = "$RMC005_STACK_PARENT" ]; then
+              python3 - <<'PY'
           import subprocess
           expected = {
               ".github/workflows/nqc-census-deployment-admission.yml",
@@ -65,7 +64,14 @@ jobs:
           )
           print("RMC_005_SCOPE_PASS files=5")
           PY
-          git diff --check "$RMC005_STACK_PARENT"...HEAD
+              git diff --check "$RMC005_STACK_PARENT"...HEAD
+            else
+              echo "RMC_005_EXACT_SCOPE=NOT_THIS_PR base=${{ github.event.pull_request.base.sha }}"
+              git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
+            fi
+          else
+            git diff --check
+          fi
 
       - name: Verify previous truth layers are untouched
         shell: bash
