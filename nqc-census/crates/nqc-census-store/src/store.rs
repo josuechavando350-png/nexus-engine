@@ -265,7 +265,11 @@ impl Store {
         let kind_dir = objects.join(kind);
         require_dir(&kind_dir, self.device)?;
         let fanout = kind_dir.join(canonical::hex(&id[..1]));
-        require_dir(&fanout, self.device)?;
+        match fs::symlink_metadata(&fanout) {
+            Ok(_) => require_dir(&fanout, self.device)?,
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
+            Err(error) => return Err(StoreError::io("stat", &fanout, &error)),
+        }
         Ok(fanout)
     }
 
