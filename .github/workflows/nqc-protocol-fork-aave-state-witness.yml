@@ -10,6 +10,10 @@ on:
       - ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json
   workflow_dispatch:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
