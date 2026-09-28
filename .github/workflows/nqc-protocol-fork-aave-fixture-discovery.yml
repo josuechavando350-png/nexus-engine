@@ -12,6 +12,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
 jobs:
   aave-fixture-discovery:
     name: Cross-provider Aave historical anchor discovery
@@ -103,7 +107,6 @@ jobs:
             | tee "$NQC_PFT_DISCOVERY_OUT/stdout-summary.json"
 
       - name: Classify exact default close-factor candidates
-        if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
           NQC_DEFAULT_CLOSE: /tmp/nqc-aave-default-close
