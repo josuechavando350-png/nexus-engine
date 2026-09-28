@@ -33,12 +33,16 @@
       "artifact_sha256": "79c1d6f79f6db52e93d4fd997fe399728bb97b788260cbe6240ac4f67fd82fe4"
     },
     "AAVE_V3_DEPLOYMENT_AND_VERSION_LOCK": {
-      "status": "PENDING",
+      "status": "PASS",
       "pr": 491,
-      "head": "0707d07713895aced48aa90db4a8ec8f775006ab"
+      "head": "0707d07713895aced48aa90db4a8ec8f775006ab",
+      "workflow": "NQC T39 Aave V3 Deployment Version Lock",
+      "workflow_run_id": 36352647365,
+      "artifact_id": 10944401114,
+      "artifact_sha256": "3285da231807166fd7e202301987ae90712f4e1edee890d5a28514fd2a9fb882"
     },
     "AAVE_CANONICAL_STATE_PARITY": {
-      "status": "PENDING_CLOSEOUT_VALIDATION",
+      "status": "PASS",
       "pr": 493,
       "head": "4a9fce41d76884c9197609f5dcdb6e2038229a68",
       "bound_underlying_evidence": [
@@ -56,7 +60,9 @@
           "artifact_sha256": "d1242e9acff2a1a2eba8fef7d7957b40af247e55107ed35bb508f7ebc6f6eb8c",
           "head": "7494e76f9e8b942f021468578de4ff19aef68dbd"
         }
-      ]
+      ],
+      "closeout": "ci/nqc-protocol-fork/AAVE_CANONICAL_STATE_PARITY_CLOSEOUT.json",
+      "closeout_status": "PASS"
     },
     "AAVE_LIQUIDATION_INTEGER_MATH_PARITY": {
       "status": "PENDING",
