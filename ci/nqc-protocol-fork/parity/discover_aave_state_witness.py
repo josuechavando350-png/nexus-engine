@@ -12,6 +12,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
 CORPUS = ROOT / "ci" / "nqc-protocol-fork" / "corpus" / "manifest.json"
+TRUTH = ROOT / "ci" / "nqc-protocol-fork" / "PROTOCOL_FORK_TRUTH_CONTRACT.json"
 DISCOVERY = ROOT / "ci" / "nqc-protocol-fork" / "discovery" / "aave_candidates.json"
 OUT = Path(os.environ.get("NQC_PFT_AAVE_STATE_OUT", "/tmp/nqc-pft-aave-state"))
 REQUEST_TIMEOUT = 20
@@ -235,9 +236,28 @@ def read_user_state(
 
 
 corpus = load(CORPUS)
+truth = load(TRUTH)
 discovery = load(DISCOVERY)
-if corpus.get("schema_version") != 1 or corpus.get("status") != "NOT_TESTED":
-    fail("corpus must be schema v1 and remain NOT_TESTED")
+if corpus.get("schema_version") != 1:
+    fail("corpus must be schema v1")
+truth_status = truth.get("status")
+if truth_status == "NOT_TESTED":
+    if corpus.get("status") != "NOT_TESTED":
+        fail("NOT_TESTED truth requires NOT_TESTED corpus")
+    required_fixture_status = "NOT_TESTED"
+elif truth_status == "RUNTIME_CLOSEOUT_CANDIDATE_READY":
+    if corpus.get("status") != "PASS":
+        fail("closeout-candidate truth requires PASS corpus")
+    class_statuses = [
+        item.get("status")
+        for domain in corpus.get("required_classes", {}).values()
+        for item in domain
+    ]
+    if not class_statuses or any(status != "PASS" for status in class_statuses):
+        fail("closeout-candidate truth requires every corpus class PASS")
+    required_fixture_status = "PASS"
+else:
+    fail(f"unsupported truth contract status {truth_status!r}")
 if corpus.get("protocol_fork_truth") != "NOT_CLOSED":
     fail("Protocol/Fork Truth must remain NOT_CLOSED")
 if not corpus.get("cases"):
@@ -271,8 +291,11 @@ for case_index, rel in enumerate(corpus["cases"], start=1):
     fixture = load(ROOT / rel)
     if fixture.get("strategy_family") != "liquidation":
         continue
-    if fixture["result"]["status"] != "NOT_TESTED":
-        fail(f"{rel}: witness discovery requires NOT_TESTED fixture")
+    if fixture["result"]["status"] != required_fixture_status:
+        fail(
+            f"{rel}: fixture status {fixture['result']['status']!r} does not match "
+            f"truth phase requirement {required_fixture_status!r}"
+        )
     if fixture["source_commit"] != corpus["source_binding"]["physical_checkpoint"]:
         fail(f"{rel}: fixture/source checkpoint mismatch")
 
@@ -423,7 +446,7 @@ for case_index, rel in enumerate(corpus["cases"], start=1):
         "borrower_count": len(borrowers),
         "canonical_users": consensus_users,
         "provider_observations": provider_observations,
-        "fixture_result": "NOT_TESTED",
+        "fixture_result": fixture["result"]["status"],
         "nqc_reader_parity": "NOT_TESTED",
         "nqc_math_parity": "NOT_TESTED",
         "protocol_fork_truth": "NOT_CLOSED",
