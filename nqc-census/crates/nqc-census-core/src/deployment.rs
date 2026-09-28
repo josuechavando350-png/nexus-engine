@@ -867,9 +867,8 @@ impl Display for DeploymentRegistryError {
             Self::UnexpectedSupersedes => {
                 formatter.write_str("first admission cannot supersede another record")
             }
-            Self::CreationAnchorChanged => {
-                formatter.write_str("deployment creation anchor is immutable across admission epochs")
-            }
+            Self::CreationAnchorChanged => formatter
+                .write_str("deployment creation anchor is immutable across admission epochs"),
             Self::NonMonotonicObservation => {
                 formatter.write_str("deployment observations must advance block height")
             }
