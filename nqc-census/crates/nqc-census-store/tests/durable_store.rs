@@ -77,12 +77,10 @@ fn artifact_roundtrip_compresses_and_deduplicates() -> TestResult {
     assert_eq!(first, second);
     assert_eq!(count_files(&temp.path().join("objects"))?, object_count);
     assert_eq!(store.read_artifact(first)?, bytes);
-    assert!(
-        store
-            .artifact_chunk_codecs(first)?
-            .iter()
-            .all(|codec| *codec == ChunkCodec::RunLength)
-    );
+    assert!(store
+        .artifact_chunk_codecs(first)?
+        .iter()
+        .all(|codec| *codec == ChunkCodec::RunLength));
 
     let reopened = CensusStore::open(temp.path())?;
     assert_eq!(reopened.read_artifact(first)?, bytes);
@@ -255,7 +253,10 @@ fn crash_after_checkpoint_object_leaves_no_committed_range_and_retry_succeeds() 
 
     let committed = store.commit_checkpoint(&checkpoint)?;
     assert_eq!(committed.sequence, 1);
-    assert_eq!(store.verify_range(scope.id(), 200, 209)?.checkpoint_count, 1);
+    assert_eq!(
+        store.verify_range(scope.id(), 200, 209)?.checkpoint_count,
+        1
+    );
     Ok(())
 }
 
@@ -286,7 +287,10 @@ fn crash_after_durable_reference_is_recovered_idempotently() -> TestResult {
     assert_eq!(store.cached_head(scope.id())?, None);
 
     let retried = store.commit_checkpoint(&checkpoint)?;
-    assert_eq!(store.cached_head(scope.id())?, Some(retried.checkpoint_digest));
+    assert_eq!(
+        store.cached_head(scope.id())?,
+        Some(retried.checkpoint_digest)
+    );
     assert_eq!(store.rebuild_head(scope.id())?, retried.checkpoint_digest);
     Ok(())
 }
