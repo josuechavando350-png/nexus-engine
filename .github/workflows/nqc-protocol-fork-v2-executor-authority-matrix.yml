@@ -5,7 +5,6 @@ on:
     paths:
       - .github/workflows/nqc-protocol-fork-v2-executor-authority-matrix.yml
       - ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/**
-      - ci/nqc-protocol-fork/parity/PftTokenExecutionRegression.t.sol
   workflow_dispatch:
 
 permissions:
@@ -41,7 +40,7 @@ jobs:
           cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol             "$NQC_V2_AUTH/src/"
           cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutor.t.sol             "$NQC_V2_AUTH/test/"
           cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutorAuthorityMatrix.t.sol             "$NQC_V2_AUTH/test/"
-          cp ci/nqc-protocol-fork/parity/PftTokenExecutionRegression.t.sol             "$NQC_V2_AUTH/test/"
+          cp ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/PftTokenExecutionRegression.t.sol             "$NQC_V2_AUTH/test/"
 
           cat > "$NQC_V2_AUTH/foundry.toml" <<'EOF'
           [profile.default]
@@ -52,7 +51,7 @@ jobs:
           optimizer_runs = 200
           EOF
 
-          sha256sum             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutor.t.sol             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutorAuthorityMatrix.t.sol             ci/nqc-protocol-fork/parity/PftTokenExecutionRegression.t.sol             > "$NQC_V2_AUTH/evidence/input-source.sha256"
+          sha256sum             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutor.t.sol             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/NqcV2BackrunExecutorAuthorityMatrix.t.sol             ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/contracts/test/PftTokenExecutionRegression.t.sol             > "$NQC_V2_AUTH/evidence/input-source.sha256"
 
       - name: Install exact Foundry and solc
         shell: bash
