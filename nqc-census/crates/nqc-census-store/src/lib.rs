@@ -1061,12 +1061,13 @@ fn encode_rle(bytes: &[u8]) -> Vec<u8> {
 }
 
 fn decode_rle(bytes: &[u8], expected_len: u32) -> Result<Vec<u8>, StoreError> {
-    if bytes.len() % 2 != 0 {
+    let (pairs, remainder) = bytes.as_chunks::<2>();
+    if !remainder.is_empty() {
         return Err(StoreError::CorruptArtifact("odd RLE byte length"));
     }
     let expected = usize::try_from(expected_len).map_err(|_| StoreError::LengthOverflow)?;
     let mut output = Vec::with_capacity(expected);
-    for pair in bytes.chunks_exact(2) {
+    for pair in pairs {
         let count = pair[0];
         if count == 0 {
             return Err(StoreError::CorruptArtifact("zero RLE count"));
