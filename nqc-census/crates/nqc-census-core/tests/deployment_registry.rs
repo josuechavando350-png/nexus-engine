@@ -717,7 +717,6 @@ fn semantics_version_cannot_move_backward_even_when_fingerprint_is_unchanged() -
     Ok(())
 }
 
-
 #[test]
 fn admission_identity_is_bound_to_the_exact_declared_universe() -> TestResult {
     let capabilities = all_capabilities(true)?;
