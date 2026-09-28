@@ -707,6 +707,17 @@ impl DeploymentRegistry {
             .ok_or(DeploymentRegistryError::UnsupportedDeploymentSemantics)?;
         validate_profile(profile, &binding)?;
 
+        let id = AdmissionId(domain_hash(
+            ADMISSION_DOMAIN,
+            &canonical_admission_bytes(&binding, supersedes),
+        ));
+        if let Some(existing) = self.records.get(&id) {
+            if existing.binding() == &binding && existing.supersedes() == supersedes {
+                return Ok(AdmissionOutcome::AlreadyAdmitted(id));
+            }
+            return Err(DeploymentRegistryError::AdmissionHashCollision);
+        }
+
         let active = self.active_record(binding.deployment()).cloned();
         if let Some(previous) = &active {
             if previous.binding().life_state() == DeploymentLifeState::Removed {
@@ -732,17 +743,6 @@ impl DeploymentRegistry {
             }
         } else if supersedes.is_some() {
             return Err(DeploymentRegistryError::UnexpectedSupersedes);
-        }
-
-        let id = AdmissionId(domain_hash(
-            ADMISSION_DOMAIN,
-            &canonical_admission_bytes(&binding, supersedes),
-        ));
-        if let Some(existing) = self.records.get(&id) {
-            if existing.binding() == &binding && existing.supersedes() == supersedes {
-                return Ok(AdmissionOutcome::AlreadyAdmitted(id));
-            }
-            return Err(DeploymentRegistryError::AdmissionHashCollision);
         }
 
         let record = AdmissionRecord {
