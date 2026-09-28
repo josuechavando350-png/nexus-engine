@@ -100,73 +100,103 @@
   "measured_compatibility_repairs": [
     {
       "id": "PFT-COMPAT-001",
-      "status": "UNDER_PHYSICAL_TEST",
+      "status": "RESOLVED_PHYSICAL_BUILD_TEST_EXACT_HEAD_REVALIDATION_REQUIRED",
       "source": "crates/nqc-aave-market/src/lib.rs",
       "defect": "Alloy 2.5.0 ABI uint40 values are Uint<40,1>, while recovered snapshot fields are u64.",
       "repair": "Explicit lossless Uint<40,1> to u64 conversion on last_update_timestamp and liquidation_grace_period_until.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca",
-      "semantic_rationale": "Every uint40 value is exactly representable in u64; no truncation, rounding, unit conversion, branch, address, protocol constant, or authority semantics change."
+      "semantic_rationale": "Every uint40 value is exactly representable in u64; no truncation, rounding, unit conversion, branch, address, protocol constant, or authority semantics change.",
+      "resolution_evidence": [
+        "SOURCE_BINDING_COMPLETE",
+        "REVM_HISTORICAL_FORK_DIFFERENTIAL"
+      ]
     },
     {
       "id": "PFT-COMPAT-002",
-      "status": "UNDER_PHYSICAL_TEST",
+      "status": "RESOLVED_PHYSICAL_BUILD_TEST_EXACT_HEAD_REVALIDATION_REQUIRED",
       "source": "crates/nqc-executor/src/lib.rs",
       "defect": "Alloy 2.5.0 decodes the named single uint256 execute return directly as U256; recovered code incorrectly dereferenced it as a generated return struct.",
       "repair": "Return the validated ABI-decoded U256 directly.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7",
-      "semantic_rationale": "ABI bytes and uint256 value are unchanged; only the generated Rust return-shape assumption is corrected."
+      "semantic_rationale": "ABI bytes and uint256 value are unchanged; only the generated Rust return-shape assumption is corrected.",
+      "resolution_evidence": [
+        "SOURCE_BINDING_COMPLETE",
+        "REVM_HISTORICAL_FORK_DIFFERENTIAL"
+      ]
     },
     {
       "id": "PFT-COMPAT-003",
-      "status": "UNDER_PHYSICAL_TEST",
+      "status": "RESOLVED_TEST_ONLY_DEV_DEPENDENCY_BUILD_REORG_EXACT_HEAD_REVALIDATION_REQUIRED",
       "source": "crates/nqc-aave-sync/Cargo.toml",
       "defect": "Recovered nqc-aave-sync unit tests import nqc_core::{ray,wad} without declaring nqc-core as a dev-dependency.",
       "repair": "Add nqc-core path dependency under dev-dependencies only.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5",
-      "semantic_rationale": "Production dependency graph and runtime code are unchanged; this only makes the already-authored historical tests physically compilable."
+      "semantic_rationale": "Production dependency graph and runtime code are unchanged; this only makes the already-authored historical tests physically compilable.",
+      "resolution_evidence": [
+        "SOURCE_BINDING_COMPLETE",
+        "REORG_INVALIDATION_AND_REPLAY_REFRESH"
+      ]
     },
     {
       "id": "PFT-COMPAT-004",
-      "status": "UNDER_PHYSICAL_TEST",
+      "status": "RESOLVED_TEST_ONLY_IMPORT_BUILD_TEST_EXACT_HEAD_REVALIDATION_REQUIRED",
       "source": "crates/nqc-aave-math/src/lib.rs",
       "defect": "Recovered nqc-aave-math unit tests call nqc_core::wad() without importing it into the test module.",
       "repair": "Import nqc_core::wad inside the cfg(test) module only.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720",
-      "semantic_rationale": "Production code is unchanged; this only resolves the already-authored historical test helper symbol."
+      "semantic_rationale": "Production code is unchanged; this only resolves the already-authored historical test helper symbol.",
+      "resolution_evidence": [
+        "SOURCE_BINDING_COMPLETE",
+        "AAVE_LIQUIDATION_INTEGER_MATH_PARITY"
+      ]
     },
     {
       "id": "PFT-COMPAT-005",
-      "status": "UNDER_PHYSICAL_TEST",
+      "status": "RESOLVED_TEST_ONLY_DEV_DEPENDENCY_BUILD_REORG_EXACT_HEAD_REVALIDATION_REQUIRED",
       "source": "crates/nqc-aave-opportunity/Cargo.toml",
       "defect": "Recovered nqc-aave-opportunity unit tests import nqc_aave_sync::ReserveConfigurationBits without declaring nqc-aave-sync as a dev-dependency.",
       "repair": "Add nqc-aave-sync path dependency under dev-dependencies only.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664",
-      "semantic_rationale": "Production runtime dependencies and opportunity logic are unchanged; this only makes the existing historical test module link against its referenced test helper crate."
+      "semantic_rationale": "Production runtime dependencies and opportunity logic are unchanged; this only makes the existing historical test module link against its referenced test helper crate.",
+      "resolution_evidence": [
+        "SOURCE_BINDING_COMPLETE",
+        "REORG_INVALIDATION_AND_REPLAY_REFRESH"
+      ]
     },
     {
       "id": "PFT-COMPAT-006",
-      "status": "UNDER_PHYSICAL_TEST",
+      "status": "RESOLVED_REVM_SPEC_COMPATIBILITY_DIFFERENTIAL_PASS_EXACT_HEAD_REVALIDATION_REQUIRED",
       "source": "crates/nqc-sim/src/lib.rs",
       "defect": "Recovered REVM 43.0.2 integration calls BlockEnv::set_blob_excess_gas_and_price with the obsolete one-argument shape; the pinned API requires the spec-aware blob base-fee update fraction explicitly.",
       "repair": "Pass the EIP-4844 base-fee update fraction selected from the pinned SpecId: Cancun fraction before Prague, Prague fraction from Prague onward.",
       "source_bytes_preserved": true,
       "applied_only_to_temporary_build_copy": true,
       "patch_sha256": "f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0",
-      "semantic_rationale": "This restores the intended spec-aware blob gas price derivation using REVM's own pinned EIP-4844 constants; no block identity, transaction, state, authority, or economic acceptance rule changes."
+      "semantic_rationale": "This restores the intended spec-aware blob gas price derivation using REVM's own pinned EIP-4844 constants; no block identity, transaction, state, authority, or economic acceptance rule changes.",
+      "resolution_evidence": [
+        "SOURCE_BINDING_COMPLETE",
+        "REVM_HISTORICAL_FORK_DIFFERENTIAL"
+      ],
+      "historical_evidence": {
+        "head": "36e32b6f548ab3c3c25b20322fa96e496689778e",
+        "workflow_run_id": 36356263106,
+        "artifact_id": 10946275997,
+        "artifact_sha256": "31f8fe2abc247708c37ac48e47c35519348d809140687eeb33ccb60460b6a0b0"
+      }
     },
     {
       "id": "PFT-COMPAT-007",
-      "status": "LOCAL_DETERMINISTIC_TESTS_PASS_CI_PENDING",
+      "status": "RESOLVED_PHYSICAL_BUILD_CODE_IDENTITY_HISTORICAL_REVALIDATION_REQUIRED",
       "source": "contracts/src/NqcAaveV3Executor.sol",
       "defect": "Pinned solc 0.8.24 legacy codegen fails Stack too deep at the LiquidationExecuted emission (job 108557144387).",
       "repair": "Extract the unchanged repayment validation, approval and event emission into a private helper receiving CallbackContext, amount and premium.",
@@ -183,7 +213,12 @@
         "fuzz_runs_each": 256,
         "fuzz_seed": "0x39",
         "historical_fork_parity": "NOT_TESTED"
-      }
+      },
+      "resolution_evidence": [
+        "SOURCE_BINDING_COMPLETE",
+        "EXECUTOR_CODE_IDENTITY_BINDING",
+        "AAVE_EXECUTOR_HISTORICAL_FORK_PARITY"
+      ]
     },
     {
       "id": "PFT-COMPAT-008",
