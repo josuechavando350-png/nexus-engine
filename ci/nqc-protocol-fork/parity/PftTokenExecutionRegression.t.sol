@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "../reimplementation/nqc-v2-backrun-executor/contracts/src/NqcV2BackrunExecutor.sol";
+import "../src/NqcV2BackrunExecutor.sol";
 
 interface PftTokenVm {
     function roll(uint256 newHeight) external;

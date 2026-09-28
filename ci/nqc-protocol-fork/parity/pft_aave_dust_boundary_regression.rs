@@ -44,6 +44,7 @@ fn reserve(asset: Address, reserve_id: u16, flash: bool) -> MarketReserve {
 fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
     let collateral = Address::repeat_byte(1);
     let debt = Address::repeat_byte(2);
+    let other_debt = Address::repeat_byte(3);
     let anchor = CanonicalBlock {
         number: 25_252_136,
         hash: B256::repeat_byte(0x55),
@@ -62,6 +63,7 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
         reserves: vec![
             reserve(collateral, 0, false),
             reserve(debt, 1, true),
+            reserve(other_debt, 2, false),
         ],
         emode_categories: Vec::new(),
     };
@@ -70,9 +72,9 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
         valuation_timestamp: anchor.timestamp,
         e_mode_category: 0,
         risk: AccountRisk {
-            collateral_usd_wad: U256::from(2_000u64) * wad(),
-            weighted_collateral_usd_wad: U256::from(1_455u64) * wad(),
-            debt_usd_wad: U256::from(1_500u64) * wad(),
+            collateral_usd_wad: U256::from(3_000u64) * wad(),
+            weighted_collateral_usd_wad: U256::from(2_425u64) * wad(),
+            debt_usd_wad: U256::from(2_500u64) * wad(),
             health_factor_wad: Some(U256::from(970_000_000_000_000_000u64)),
         },
         reserves: vec![
@@ -81,7 +83,7 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
                 reserve_id: 0,
                 token_unit: wad(),
                 price_usd_wad: wad(),
-                atoken_balance: U256::from(2_000u64) * wad(),
+                atoken_balance: U256::from(3_000u64) * wad(),
                 variable_debt: U256::ZERO,
                 collateral_enabled: true,
             },
@@ -92,6 +94,15 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
                 price_usd_wad: wad(),
                 atoken_balance: U256::ZERO,
                 variable_debt: U256::from(1_500u64) * wad(),
+                collateral_enabled: false,
+            },
+            AccountReserveExposure {
+                asset: other_debt,
+                reserve_id: 2,
+                token_unit: wad(),
+                price_usd_wad: wad(),
+                atoken_balance: U256::ZERO,
+                variable_debt: U256::from(1_000u64) * wad(),
                 collateral_enabled: false,
             },
         ],
@@ -105,7 +116,7 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
     .expect("strict Aave policy must evaluate");
     assert!(
         strict.is_empty(),
-        "remaining $750 debt must be rejected by the $1,000 dust boundary"
+        "remaining $250 selected-reserve debt must be rejected by the $1,000 dust boundary"
     );
 
     let relaxed = LiquidationOpportunityPolicy {
@@ -116,5 +127,6 @@ fn pft_aave_dust_boundary_rejects_sub_1000_leftover() {
     let control = generate_liquidation_opportunities(&market, &account, relaxed)
         .expect("$1 control policy must evaluate");
     assert_eq!(control.len(), 1);
-    assert_eq!(control[0].debt_to_liquidate, U256::from(750u64) * wad());
+    assert_eq!(control[0].debt_asset, debt);
+    assert_eq!(control[0].debt_to_liquidate, U256::from(1_250u64) * wad());
 }
