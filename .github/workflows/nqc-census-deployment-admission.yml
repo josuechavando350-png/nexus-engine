@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
+      RMC005_STACK_PARENT: 88835643854ebeeb14ea42fd9a1db2522dd7429b
       RMC004_PARENT: be257a473cffd8c4f16fd6a2513411ce2d6153be
       RMC003_MERGE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
       RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
@@ -38,12 +39,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
-          for ancestor in "$PFT_CERTIFIED_COMMIT" "$RMC001_MERGE" "$RMC002_MERGE" "$RMC003_MERGE" "$RMC004_PARENT"; do
+          for ancestor in "$PFT_CERTIFIED_COMMIT" "$RMC001_MERGE" "$RMC002_MERGE" "$RMC003_MERGE" "$RMC004_PARENT" "$RMC005_STACK_PARENT"; do
             git merge-base --is-ancestor "$ancestor" HEAD
           done
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-            test "${{ github.event.pull_request.base.sha }}" = "$RMC004_PARENT"
+            test "${{ github.event.pull_request.base.sha }}" = "$RMC005_STACK_PARENT"
           fi
           python3 - <<'PY'
           import subprocess
@@ -55,7 +56,7 @@ jobs:
               "nqc-census/crates/nqc-census-core/tests/deployment_registry.rs",
           }
           changed = set(subprocess.check_output(
-              ["git", "diff", "--name-only", "be257a473cffd8c4f16fd6a2513411ce2d6153be...HEAD"],
+              ["git", "diff", "--name-only", "88835643854ebeeb14ea42fd9a1db2522dd7429b...HEAD"],
               text=True,
           ).splitlines())
           assert changed == expected, (
@@ -64,7 +65,7 @@ jobs:
           )
           print("RMC_005_SCOPE_PASS files=5")
           PY
-          git diff --check "$RMC004_PARENT"...HEAD
+          git diff --check "$RMC005_STACK_PARENT"...HEAD
 
       - name: Verify previous truth layers are untouched
         shell: bash
