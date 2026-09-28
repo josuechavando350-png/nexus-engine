@@ -6,7 +6,7 @@ use nqc_census_core::{
     StateAnchor, SupportedSemanticsProfile, UniverseScope,
 };
 
-type TestResult = Result<(), Box<dyn std::error::Error>>;
+type TestResult<T = ()> = Result<T, Box<dyn std::error::Error>>;
 
 fn hash(byte: u8) -> Result<Hash32, nqc_census_core::IdentityError> {
     Hash32::new([byte; 32])
@@ -16,18 +16,18 @@ fn address(byte: u8) -> Result<Address, nqc_census_core::IdentityError> {
     Address::new([byte; 20])
 }
 
-fn chain(lineage: u8) -> TestResult {
+fn chain(lineage: u8) -> TestResult<ChainDomain> {
     Ok(ChainDomain::new(1, hash(0x11)?, hash(lineage)?)?)
 }
 
-fn root() -> TestResult {
+fn root() -> TestResult<DiscoveryRoot> {
     Ok(DiscoveryRoot::new(
         DiscoveryRootKind::AaveAddressesProvider,
         address(0x21)?,
     ))
 }
 
-fn universe() -> TestResult {
+fn universe() -> TestResult<DeclaredUniverse> {
     let scope = UniverseScope::new(
         chain(0x12)?,
         ProtocolFamily::AaveV3,
@@ -38,7 +38,7 @@ fn universe() -> TestResult {
     Ok(DeclaredUniverse::new(vec![scope])?)
 }
 
-fn deployment() -> TestResult {
+fn deployment() -> TestResult<DeploymentKey> {
     Ok(DeploymentKey::new(
         chain(0x12)?,
         ProtocolFamily::AaveV3,
@@ -47,7 +47,7 @@ fn deployment() -> TestResult {
     ))
 }
 
-fn anchor(block: u64, byte: u8) -> TestResult {
+fn anchor(block: u64, byte: u8) -> TestResult<StateAnchor> {
     Ok(StateAnchor::new(
         chain(0x12)?,
         block,
@@ -81,7 +81,7 @@ fn profile(
     config: u8,
     oracle: u8,
     capabilities: CapabilityAdmission,
-) -> TestResult {
+) -> TestResult<SupportedSemanticsProfile> {
     Ok(SupportedSemanticsProfile::new(
         CapabilityScope::new(chain(0x12)?, ProtocolFamily::AaveV3, version)?,
         proxy_kind,
@@ -105,7 +105,7 @@ fn binding(
     oracle: u8,
     life_state: DeploymentLifeState,
     capabilities: CapabilityAdmission,
-) -> TestResult {
+) -> TestResult<DeploymentBinding> {
     Ok(DeploymentBinding::new(
         deployment()?,
         root()?,
@@ -131,7 +131,7 @@ fn registry_with_profile(
     config: u8,
     oracle: u8,
     capabilities: CapabilityAdmission,
-) -> TestResult {
+) -> TestResult<DeploymentRegistry> {
     let mut registry = DeploymentRegistry::new(universe()?);
     registry.declare_supported_semantics(profile(
         version,
