@@ -504,17 +504,6 @@ jobs:
               exact_head_api_error is None and not source_artifact_errors
           )
 
-          evidence_heads_not_ancestors=[]
-          for evidence_head in sorted(required_evidence_heads):
-              result=subprocess.run(
-                  ['git','merge-base','--is-ancestor',evidence_head,head],
-                  stdout=subprocess.DEVNULL,
-                  stderr=subprocess.DEVNULL,
-              )
-              if result.returncode!=0:
-                  evidence_heads_not_ancestors.append(evidence_head)
-          evidence_ancestry_ready=not evidence_heads_not_ancestors
-
           all_manifest_gates=all(v=='PASS' for v in gate_status.values())
           all_policy_gates=all(v=='PASS' for v in d['required_gates'].values())
           all_blockers=all(blocker_status.get(k)=='CLOSED' for k in blocker_paths)
@@ -622,6 +611,22 @@ jobs:
                   )
                   ledger_evidence_heads.add(ref_head)
                   required_evidence_heads.add(ref_head)
+
+          # Ancestry must be evaluated only after every authoritative evidence
+          # source, including mismatch-ledger resolution evidence, has joined
+          # the required evidence-head set.
+          evidence_heads_not_ancestors=[]
+          for evidence_head in sorted(required_evidence_heads):
+              result=subprocess.run(
+                  ['git','merge-base','--is-ancestor',evidence_head,head],
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+              )
+              if result.returncode!=0:
+                  evidence_heads_not_ancestors.append(evidence_head)
+          evidence_ancestry_ready=not evidence_heads_not_ancestors
+
+          assert ledger_evidence_heads.issubset(required_evidence_heads)
           compat_resolution_ready={
               'PFT-COMPAT-008','PFT-COMPAT-009'
           }.issubset(ledger_resolved_repairs)
