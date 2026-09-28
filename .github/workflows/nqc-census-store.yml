@@ -1,0 +1,375 @@
+name: NQC RMC-004 Durable Evidence Store
+
+on:
+  pull_request:
+    paths:
+      - nqc-census/**
+      - ci/nqc-census/STORE_CONTRACT.md
+      - ci/nqc-census/verify_store_independent.py
+      - ci/nqc-census/check_durability_trace.py
+      - ci/nqc-census/store_mutation_gate.py
+      - .github/workflows/nqc-census-store.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  durable-evidence-store:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 75
+    env:
+      RMC004_BASE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
+      RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
+      RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      STORE_TESTS_EXPECTED: "66"
+      GOLDEN_EVIDENCE_ROOT: 66347fd573ba57847f53df5b70c57cf1be17393562831ef67e1e26e8de6cc28a
+      CARGO_TARGET_DIR: /tmp/nqc-rmc004-target
+      EVIDENCE: /tmp/nqc-rmc004-evidence
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority lineage and exact RMC-004 scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          for ancestor in "$PFT_CERTIFIED_COMMIT" "$RMC001_MERGE" "$RMC002_MERGE" "$RMC004_BASE"; do
+            git merge-base --is-ancestor "$ancestor" HEAD
+          done
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+          fi
+          echo "head=$(git rev-parse HEAD) base_assumption=$RMC004_BASE"
+
+          if [ "${{ github.event_name }}" = "pull_request" ] && \
+             [ "${{ github.event.pull_request.base.sha }}" != "$RMC004_BASE" ]; then
+            # A later PR builds on RMC-004; its own gate owns its scope. The
+            # behavioural gates below keep running as regression gates.
+            echo "RMC_004_EXACT_SCOPE=NOT_THIS_PR base=${{ github.event.pull_request.base.sha }}"
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          import subprocess
+          expected = {
+              ".github/workflows/nqc-census-store.yml",
+              "ci/nqc-census/STORE_CONTRACT.md",
+              "ci/nqc-census/check_durability_trace.py",
+              "ci/nqc-census/store_mutation_gate.py",
+              "ci/nqc-census/verify_store_independent.py",
+              "nqc-census/Cargo.lock",
+              "nqc-census/Cargo.toml",
+              "nqc-census/crates/nqc-census-store/Cargo.toml",
+              "nqc-census/crates/nqc-census-store/examples/rmc004_fixture.rs",
+              "nqc-census/crates/nqc-census-store/src/bin/nqc-census-store-verify.rs",
+              "nqc-census/crates/nqc-census-store/src/canonical.rs",
+              "nqc-census/crates/nqc-census-store/src/checkpoint.rs",
+              "nqc-census/crates/nqc-census-store/src/chunker.rs",
+              "nqc-census/crates/nqc-census-store/src/codec.rs",
+              "nqc-census/crates/nqc-census-store/src/config.rs",
+              "nqc-census/crates/nqc-census-store/src/durable.rs",
+              "nqc-census/crates/nqc-census-store/src/error.rs",
+              "nqc-census/crates/nqc-census-store/src/fault.rs",
+              "nqc-census/crates/nqc-census-store/src/lib.rs",
+              "nqc-census/crates/nqc-census-store/src/object.rs",
+              "nqc-census/crates/nqc-census-store/src/scope.rs",
+              "nqc-census/crates/nqc-census-store/src/store.rs",
+              "nqc-census/crates/nqc-census-store/src/verify.rs",
+              "nqc-census/crates/nqc-census-store/tests/cas.rs",
+              "nqc-census/crates/nqc-census-store/tests/checkpoints.rs",
+              "nqc-census/crates/nqc-census-store/tests/concurrency.rs",
+              "nqc-census/crates/nqc-census-store/tests/offline_verifier.rs",
+              "nqc-census/crates/nqc-census-store/tests/recovery.rs",
+              "nqc-census/crates/nqc-census-store/tests/support/mod.rs",
+          }
+          changed = set(subprocess.check_output(
+              ["git", "diff", "--name-only", "765dc30fdd178a4960ade1e106669eb0b023fbeb...HEAD"],
+              text=True,
+          ).splitlines())
+          assert changed == expected, (
+              f"RMC-004 scope mismatch missing={sorted(expected - changed)} "
+              f"extra={sorted(changed - expected)}"
+          )
+          print(f"RMC_004_SCOPE_PASS files={len(expected)}")
+          PY
+          git diff --check "$RMC004_BASE"...HEAD
+
+      - name: Verify upstream authorities are byte-identical
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+            ci/nqc-protocol-fork/recovered-source \
+            ci/nqc-protocol-fork/reimplementation \
+            ci/nqc-protocol-fork/compatibility \
+            ci/nqc-protocol-fork/locks \
+            ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json \
+            ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json \
+            ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json
+          echo RMC_004_PROTOCOL_FORK_IMMUTABLE_PASS
+          git diff --quiet "$RMC004_BASE" HEAD -- \
+            ci/nqc-census/IDENTITY_CONTRACT.md \
+            ci/nqc-census/identity-vectors.json \
+            ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md \
+            ci/nqc-census/effective-source-profile.json \
+            ci/nqc-census/materialize_effective_source.py \
+            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md \
+            nqc-census/rust-toolchain.toml \
+            nqc-census/crates/nqc-census-core \
+            .github/workflows/nqc-census-identity.yml \
+            .github/workflows/nqc-census-effective-source.yml \
+            .github/workflows/nqc-census-observation-pipeline.yml
+          echo RMC_004_RMC001_RMC002_RMC003_IMMUTABLE_PASS
+
+      - name: Verify dependency surface and network-free boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import subprocess, tomllib
+          def packages(rev):
+              lock = subprocess.check_output(["git", "show", f"{rev}:nqc-census/Cargo.lock"])
+              return {(p["name"], p["version"], p.get("source"), p.get("checksum"))
+                      for p in tomllib.loads(lock.decode())["package"]}
+          base, head = packages("765dc30fdd178a4960ade1e106669eb0b023fbeb"), packages("HEAD")
+          added = head - base
+          assert base <= head, f"packages removed or changed: {sorted(base - head)}"
+          assert {p[0] for p in added} == {"nqc-census-store"}, f"unexpected packages {sorted(added)}"
+          assert all(p[2] is None for p in added), "new package with an external source"
+          manifest = tomllib.load(open("nqc-census/crates/nqc-census-store/Cargo.toml", "rb"))
+          assert set(manifest["dependencies"]) == {"nqc-census-core", "sha2"}, manifest["dependencies"]
+          assert "dev-dependencies" not in manifest and "build-dependencies" not in manifest
+          print(f"RMC_004_NO_NEW_EXTERNAL_DEPENDENCY_PASS packages={len(head)}")
+          PY
+          grep -F 'sha2 = "=0.10.9"' nqc-census/Cargo.toml
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          # Code lines only: documentation that states the absence of a secret or
+          # signer is not a use of one. Tests may spawn processes and read the
+          # child-process marker variable; they may not touch the network.
+          production = re.compile(
+              r"reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket|process::Command|"
+              r"env::var|signer|private.?key|secret|http://|https://|\bunsafe\b")
+          network = re.compile(r"reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket|http://|https://")
+          crate = Path("nqc-census/crates/nqc-census-store")
+          checks = [(crate / "src", production), (crate / "examples", production),
+                    (crate / "tests", network)]
+          violations = []
+          for root, pattern in checks:
+              for path in sorted(root.rglob("*.rs")):
+                  for number, line in enumerate(path.read_text().splitlines(), 1):
+                      if line.strip().startswith("//"):
+                          continue
+                      if pattern.search(line):
+                          violations.append(f"{path}:{number}: {line.strip()}")
+          for script in ("verify_store_independent.py", "check_durability_trace.py"):
+              for number, line in enumerate(Path("ci/nqc-census", script).read_text().splitlines(), 1):
+                  if re.match(r"\s*(import|from)\s+(socket|http|urllib|requests|ssl|ftplib|smtplib)\b", line):
+                      violations.append(f"{script}:{number}: {line.strip()}")
+          assert not violations, "\n".join(violations)
+          print("RMC_004_NO_IO_AUTHORITY_BOUNDARY_PASS")
+          PY
+
+      - name: Install exact Rust toolchain and tracing tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          cd nqc-census
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo -V
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq strace >/dev/null
+          strace -V | head -1
+          mkdir -p "$EVIDENCE"
+
+      - name: Rust format, lint, test and build locked
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --workspace --all-targets --locked --no-fail-fast 2>&1 | tee "$EVIDENCE/cargo-test.log"
+          cargo build --workspace --all-targets --locked
+          count=$(cargo test --locked -p nqc-census-store -- --list 2>/dev/null | grep -c ': test$')
+          echo "store_tests=$count expected=$STORE_TESTS_EXPECTED"
+          test "$count" = "$STORE_TESTS_EXPECTED"
+          grep -E '^test result: ok\.' "$EVIDENCE/cargo-test.log" | tee "$EVIDENCE/test-results.txt"
+          ! grep -E '^test result: FAILED|[1-9][0-9]* failed' "$EVIDENCE/cargo-test.log"
+          echo RMC_004_LOCKED_RUST_GATES_PASS
+
+      - name: Deterministic fixture, dual verification, relocation and golden root
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd nqc-census
+          cargo build --locked --release -p nqc-census-store --bin nqc-census-store-verify --example rmc004_fixture
+          fixture="$CARGO_TARGET_DIR/release/examples/rmc004_fixture"
+          verifier="$CARGO_TARGET_DIR/release/nqc-census-store-verify"
+          cd ..
+          rm -rf /tmp/rmc004-a /tmp/rmc004-b /tmp/rmc004-relocated
+          mkdir -p /tmp/rmc004-a /tmp/rmc004-b
+          "$fixture" /tmp/rmc004-a/store | tee "$EVIDENCE/fixture.txt"
+          "$fixture" /tmp/rmc004-b/store >/dev/null
+          diff -r /tmp/rmc004-a/store /tmp/rmc004-b/store
+          echo RMC_004_FIXTURE_BYTE_DETERMINISTIC_PASS
+          scope=$(grep -m1 '^scope=' "$EVIDENCE/fixture.txt" | cut -d= -f2)
+
+          env -i "$verifier" --store /tmp/rmc004-a/store --require-range "$scope:100:139" \
+            | tee "$EVIDENCE/rust-verify.txt"
+          python3 ci/nqc-census/verify_store_independent.py --store /tmp/rmc004-a/store \
+            --require-range "$scope:100:139" --expect-root "$GOLDEN_EVIDENCE_ROOT" \
+            | tee "$EVIDENCE/python-verify.txt"
+          rust_root=$(grep '^evidence_root=' "$EVIDENCE/rust-verify.txt" | cut -d= -f2)
+          python_root=$(grep '^evidence_root=' "$EVIDENCE/python-verify.txt" | cut -d= -f2)
+          test "$rust_root" = "$GOLDEN_EVIDENCE_ROOT"
+          test "$python_root" = "$GOLDEN_EVIDENCE_ROOT"
+
+          cp -a /tmp/rmc004-a/store /tmp/rmc004-relocated
+          env -i "$verifier" --store /tmp/rmc004-relocated --require-range "$scope:100:139" \
+            | grep -Fx "evidence_root=$GOLDEN_EVIDENCE_ROOT"
+          python3 ci/nqc-census/verify_store_independent.py --store /tmp/rmc004-relocated \
+            --expect-root "$GOLDEN_EVIDENCE_ROOT" >/dev/null
+          echo RMC_004_DUAL_VERIFIER_GOLDEN_ROOT_PASS root=$GOLDEN_EVIDENCE_ROOT
+
+          # The verifier makes no network syscalls and runs without a network.
+          strace -f -qq -e trace=%network -o "$EVIDENCE/verifier-network.trace" \
+            env -i "$verifier" --store /tmp/rmc004-relocated >/dev/null
+          test ! -s "$EVIDENCE/verifier-network.trace"
+          sudo unshare --net -- env -i "$verifier" --store /tmp/rmc004-relocated >/dev/null
+          sudo unshare --net -- python3 ci/nqc-census/verify_store_independent.py \
+            --store /tmp/rmc004-relocated --expect-root "$GOLDEN_EVIDENCE_ROOT" >/dev/null
+          echo RMC_004_OFFLINE_NO_NETWORK_PASS
+
+      - name: Tamper matrix fails closed in both verifiers
+        shell: bash
+        run: |
+          set -euo pipefail
+          verifier="$CARGO_TARGET_DIR/release/nqc-census-store-verify"
+          scope=$(grep -m1 '^scope=' "$EVIDENCE/fixture.txt" | cut -d= -f2)
+          expect_fail() {
+            local label="$1" store="$2"; shift 2
+            set +e
+            env -i "$verifier" --store "$store" "$@" >/dev/null 2>"$EVIDENCE/tamper-$label-rust.err"
+            local rust=$?
+            python3 ci/nqc-census/verify_store_independent.py --store "$store" "$@" \
+              >/dev/null 2>"$EVIDENCE/tamper-$label-python.err"
+            local python=$?
+            set -e
+            test "$rust" -eq 1 || { echo "rust accepted $label ($rust)"; exit 1; }
+            test "$python" -eq 1 || { echo "python accepted $label ($python)"; exit 1; }
+            echo "TAMPER_REJECTED label=$label $(cut -d' ' -f2 "$EVIDENCE/tamper-$label-rust.err")"
+          }
+          fresh() {
+            rm -rf "/tmp/rmc004-t/$1"; mkdir -p /tmp/rmc004-t
+            cp -a /tmp/rmc004-a/store "/tmp/rmc004-t/$1"
+            chmod -R u+w "/tmp/rmc004-t/$1"
+            echo "/tmp/rmc004-t/$1"
+          }
+          flip() {
+            python3 -c 'import sys; p=sys.argv[1]; b=bytearray(open(p,"rb").read()); b[-1]^=1; open(p,"wb").write(b)' "$1"
+          }
+          s=$(fresh chunk);      flip "$(find "$s/objects/chunks" -type f | sort | head -1)";   expect_fail chunk "$s"
+          s=$(fresh manifest);   flip "$(find "$s/objects/artifacts" -type f | sort | head -1)"; expect_fail manifest "$s"
+          s=$(fresh checkpoint); flip "$(find "$s/streams" -path '*checkpoints/*' -type f | sort | head -1)"; expect_fail checkpoint "$s"
+          s=$(fresh scope);      flip "$(find "$s/streams" -name SCOPE | sort | head -1)";       expect_fail scope "$s"
+          s=$(fresh config);     flip "$s/STORE";                                                expect_fail config "$s"
+          s=$(fresh head);       flip "$(find "$s/streams" -name HEAD | sort | head -1)";        expect_fail head "$s"
+          s=$(fresh removed);    rm "$(find "$s/objects/artifacts" -type f | sort | head -1)";   expect_fail removed-artifact "$s"
+          s=$(fresh hole);       rm "$(find "$s/streams" -path '*checkpoints/00000000000000000001' | head -1)"; expect_fail catalog-hole "$s"
+          s=$(fresh unknown);    echo x > "$s/objects/UNKNOWN";                                  expect_fail unknown-entry "$s"
+          s=$(fresh symlink);    ln -s /etc/hostname "$s/tmp/link.stage";                        expect_fail symlink "$s"
+          s=$(fresh fanout);     mkdir "$s/objects/chunks/zz";                                   expect_fail bad-fanout "$s"
+          s=$(fresh abandoned-symlink)
+          abandoned="$s/streams/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          mkdir "$abandoned"
+          mkdir /tmp/rmc004-empty-external || true
+          ln -s /tmp/rmc004-empty-external "$abandoned/checkpoints"
+          expect_fail abandoned-checkpoints-symlink "$s"
+          s=$(fresh max-artifact)
+          python3 - "$s" <<'PY'
+          import importlib.util, pathlib, sys
+          root=pathlib.Path(sys.argv[1])
+          module_path=pathlib.Path("ci/nqc-census/verify_store_independent.py")
+          spec=importlib.util.spec_from_file_location("rmc004_independent", module_path)
+          mod=importlib.util.module_from_spec(spec); spec.loader.exec_module(mod)
+          store_path=root/"STORE"
+          fields=mod.parse(store_path.read_bytes(),"config",[[1,2,3,4,5,6,7]],str(store_path))
+          fields[6]=(1).to_bytes(8,"big")
+          body=mod.tlv("config",[(tag,fields[tag]) for tag in range(1,7)])
+          new_id=mod.domain(b"NQC-CENSUS-STORE-CONFIG-V1",body)
+          fields[7]=new_id
+          store_path.write_bytes(mod.tlv("config",[(tag,fields[tag]) for tag in range(1,8)]))
+          for manifest in sorted((root/"objects"/"artifacts").glob("*/*")):
+              mf=mod.parse(manifest.read_bytes(),"manifest",[[1,2,3,4]],str(manifest))
+              mf[1]=new_id
+              manifest.write_bytes(mod.tlv("manifest",[(tag,mf[tag]) for tag in range(1,5)]))
+          PY
+          expect_fail max-artifact "$s"
+          s=$(fresh range);                                                                      expect_fail range-beyond "$s" --require-range "$scope:100:140"
+          set +e; env -i "$verifier" >/dev/null 2>&1; usage=$?; set -e
+          test "$usage" -eq 2
+          echo RMC_004_TAMPER_MATRIX_PASS cases=14
+
+      - name: Durability syscall-ordering gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          fixture="$CARGO_TARGET_DIR/release/examples/rmc004_fixture"
+          rm -rf /tmp/rmc004-trace && mkdir -p /tmp/rmc004-trace
+          strace -f -y -qq -e trace=linkat,link,rename,renameat,renameat2,mkdir,mkdirat,fsync,fdatasync \
+            -o "$EVIDENCE/durability.trace" "$fixture" /tmp/rmc004-trace/store >/dev/null
+          python3 ci/nqc-census/check_durability_trace.py \
+            --store /tmp/rmc004-trace/store --trace "$EVIDENCE/durability.trace" \
+            | tee "$EVIDENCE/durability.txt"
+
+          # Regression for the audit finding that link(2) was previously ignored.
+          cat > "$EVIDENCE/bad-link.trace" <<'EOF'
+          100 fsync(3</tmp/rmc004-synthetic/tmp/cp.stage>) = 0
+          100 link("/tmp/rmc004-synthetic/tmp/cp.stage", "/tmp/rmc004-synthetic/streams/aa/checkpoints/00000000000000000000") = 0
+          EOF
+          set +e
+          python3 ci/nqc-census/check_durability_trace.py \
+            --store /tmp/rmc004-synthetic --trace "$EVIDENCE/bad-link.trace" \
+            >"$EVIDENCE/bad-link.out" 2>"$EVIDENCE/bad-link.err"
+          bad_link_rc=$?
+          set -e
+          test "$bad_link_rc" -eq 1
+          grep -F 'DURABILITY_TRACE=FAIL rule=R2' "$EVIDENCE/bad-link.err"
+          echo RMC_004_LINK_SYSCALL_REGRESSION_PASS
+
+      - name: Mutation gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/store_mutation_gate.py --workspace nqc-census --scratch /tmp/rmc004-mutation \
+            | tee "$EVIDENCE/mutation.txt"
+
+      - name: Clean tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git status --porcelain
+          test -z "$(git status --porcelain)"
+          echo RMC_004_DURABLE_EVIDENCE_STORE_PASS
+
+      - name: Preserve CI receipt (not the evidence authority)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc-004-store-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-rmc004-evidence
+          if-no-files-found: warn
+          retention-days: 30
