@@ -225,11 +225,7 @@ impl DeclaredUniverse {
         self.scopes.values()
     }
 
-    pub fn scope(
-        &self,
-        chain: &ChainDomain,
-        protocol: ProtocolFamily,
-    ) -> Option<&UniverseScope> {
+    pub fn scope(&self, chain: &ChainDomain, protocol: ProtocolFamily) -> Option<&UniverseScope> {
         self.scopes.get(&(chain.clone(), protocol))
     }
 }
@@ -280,9 +276,7 @@ pub struct CapabilityAdmission {
 }
 
 impl CapabilityAdmission {
-    pub fn new(
-        entries: Vec<(AdapterCapability, bool)>,
-    ) -> Result<Self, DeploymentRegistryError> {
+    pub fn new(entries: Vec<(AdapterCapability, bool)>) -> Result<Self, DeploymentRegistryError> {
         let mut states = BTreeMap::new();
         for (capability, supported) in entries {
             if states.insert(capability, supported).is_some() {
@@ -676,7 +670,10 @@ impl DeploymentRegistry {
     ) -> Result<AdmissionOutcome, DeploymentRegistryError> {
         let scope = self
             .universe
-            .scope(binding.deployment().chain(), binding.deployment().protocol())
+            .scope(
+                binding.deployment().chain(),
+                binding.deployment().protocol(),
+            )
             .ok_or(DeploymentRegistryError::UndeclaredUniverseScope)?;
 
         if !scope.discovery_roots().contains(&binding.discovery_root()) {
@@ -764,7 +761,10 @@ impl DeploymentRegistry {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeploymentRegistryError {
     ZeroBlockWindow,
-    InvalidBlockWindow { first: u64, last: u64 },
+    InvalidBlockWindow {
+        first: u64,
+        last: u64,
+    },
     EmptyDiscoveryRoots,
     DiscoveryRootProtocolMismatch,
     CreationWindowAfterObservationWindow,
@@ -809,8 +809,9 @@ impl Display for DeploymentRegistryError {
             Self::DiscoveryRootProtocolMismatch => {
                 formatter.write_str("discovery root is incompatible with protocol family")
             }
-            Self::CreationWindowAfterObservationWindow => formatter
-                .write_str("creation window cannot extend beyond observation window"),
+            Self::CreationWindowAfterObservationWindow => {
+                formatter.write_str("creation window cannot extend beyond observation window")
+            }
             Self::EmptyUniverse => formatter.write_str("declared universe cannot be empty"),
             Self::DuplicateUniverseScope => {
                 formatter.write_str("duplicate chain/protocol universe scope")
@@ -818,9 +819,8 @@ impl Display for DeploymentRegistryError {
             Self::DuplicateCapabilityState => {
                 formatter.write_str("duplicate capability admission state")
             }
-            Self::IncompleteCapabilityState => {
-                formatter.write_str("every adapter capability must be explicitly supported or unsupported")
-            }
+            Self::IncompleteCapabilityState => formatter
+                .write_str("every adapter capability must be explicitly supported or unsupported"),
             Self::ZeroSemanticsVersion => {
                 formatter.write_str("protocol semantics version must not be zero")
             }
@@ -832,10 +832,12 @@ impl Display for DeploymentRegistryError {
             }
             Self::DirectImplementationMismatch => formatter
                 .write_str("direct deployment implementation must equal deployment address"),
-            Self::ProxyImplementationMustDiffer => formatter
-                .write_str("proxy implementation address must differ from proxy deployment address"),
-            Self::RemovedDeploymentHasCapabilities => formatter
-                .write_str("removed deployment cannot retain supported capabilities"),
+            Self::ProxyImplementationMustDiffer => formatter.write_str(
+                "proxy implementation address must differ from proxy deployment address",
+            ),
+            Self::RemovedDeploymentHasCapabilities => {
+                formatter.write_str("removed deployment cannot retain supported capabilities")
+            }
             Self::MissingAdmissionEvidence => {
                 formatter.write_str("deployment admission requires content-addressed evidence")
             }
@@ -859,9 +861,8 @@ impl Display for DeploymentRegistryError {
             }
             Self::SemanticsFingerprintMismatch => formatter
                 .write_str("observed code/config/proxy fingerprint is not explicitly supported"),
-            Self::CapabilityStateMismatch => {
-                formatter.write_str("observed deployment capability state differs from admitted profile")
-            }
+            Self::CapabilityStateMismatch => formatter
+                .write_str("observed deployment capability state differs from admitted profile"),
             Self::UpgradeEvidenceRequired { expected, actual } => {
                 write!(
                     formatter,
