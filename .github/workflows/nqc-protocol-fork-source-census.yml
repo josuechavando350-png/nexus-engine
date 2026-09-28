@@ -92,7 +92,8 @@ jobs:
 
           if contract["status"]=="RUNTIME_CLOSEOUT_CANDIDATE_READY":
               assert all(b["status"]=="CLOSED" for b in blockers.values())
-              assert contract.get("runtime_closeout_candidate_status")=="RUNTIME_CLOSEOUT_CANDIDATE_READY"\n              assert contract.get("status_authority")=="TRACKED_CONTRACT_MAY_ONLY_REACH_RUNTIME_CLOSEOUT_CANDIDATE_READY; PROTOCOL_FORK_TRUTH_CLOSED_IS_RUNTIME_RECEIPT_ONLY"
+              assert contract.get("runtime_closeout_candidate_status")=="RUNTIME_CLOSEOUT_CANDIDATE_READY"
+              assert contract.get("status_authority")=="TRACKED_CONTRACT_MAY_ONLY_REACH_RUNTIME_CLOSEOUT_CANDIDATE_READY; PROTOCOL_FORK_TRUTH_CLOSED_IS_RUNTIME_RECEIPT_ONLY"
 
           assert contract["parity_rules"]["unexplained_mismatch_terminal_count"] == 0
           truth=contract["truth_boundaries"]
