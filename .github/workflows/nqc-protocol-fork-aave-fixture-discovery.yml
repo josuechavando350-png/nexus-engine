@@ -113,7 +113,7 @@ jobs:
           root=Path("/tmp/nqc-pft-discovery")
           summary=json.loads((root/"discovery-summary.json").read_text())
           assert summary["fixture_admission"] == "NONE"
-          assert summary["candidate_count"] == 3
+          assert summary["candidate_count"] == 4
           assert summary["aave_state_parity"] == "NOT_TESTED"
           assert summary["aave_math_parity"] == "NOT_TESTED"
           assert summary["revm_fork_parity"] == "NOT_TESTED"
