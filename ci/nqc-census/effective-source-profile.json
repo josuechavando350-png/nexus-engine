@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "authority": "NQC_RMC_CERTIFIED_EFFECTIVE_SOURCE_PROFILE_V1",
+  "protocol_fork_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
+  "protocol_fork_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
+  "rmc_parent_commit": "cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d",
+  "recovered_checkpoint": "2b640ccdeadeb8bf7b0ffc0e07ce861305cf11b9",
+  "recovered_source": {
+    "path": "ci/nqc-protocol-fork/recovered-source",
+    "git_tree_sha": "f86574d0b4f0a32aee2647c747138a72986d845b"
+  },
+  "reimplementations": [
+    {
+      "id": "PFT-SRC-001",
+      "path": "ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor",
+      "destination": "reimplementation/nqc-v2-backrun-executor",
+      "git_tree_sha": "d3eb0811fe9aa426bd41d4d1d6cc8b4db7aab07b",
+      "closeout_path": "ci/nqc-protocol-fork/reimplementation/nqc-v2-backrun-executor/PFT-SRC-001-CLOSEOUT.json",
+      "closeout_git_blob_sha": "574a4eb6725b25f09f260026d933622bc9b91791"
+    },
+    {
+      "id": "PFT-SRC-002",
+      "path": "ci/nqc-protocol-fork/reimplementation/nqc-v2-state",
+      "destination": "reimplementation/nqc-v2-state",
+      "git_tree_sha": "3bba15bb708e20fec19c0673d28910f3c57ce68c",
+      "closeout_path": "ci/nqc-protocol-fork/reimplementation/nqc-v2-state/PFT-SRC-002-CLOSEOUT.json",
+      "closeout_git_blob_sha": "b19cab23ad624b92466f9f51d10422e14881675b"
+    },
+    {
+      "id": "PFT-SRC-003",
+      "path": "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler",
+      "destination": "reimplementation/nqc-aave-reconciler",
+      "git_tree_sha": "394e97a053efe1b6f276f7e4682ec7a351e03aa5",
+      "closeout_path": "ci/nqc-protocol-fork/reimplementation/nqc-aave-reconciler/PFT-SRC-003-CLOSEOUT.json",
+      "closeout_git_blob_sha": "3abaff47bb80b3ef5d4e27025878b716e60b6469"
+    }
+  ],
+  "pinned_lock": {
+    "path": "ci/nqc-protocol-fork/locks/recovered-2b640cc-Cargo.lock",
+    "git_blob_sha": "7c36c6d40daaeb5ecfcfb938600979b91be024c2",
+    "sha256": "f32e4cf8ef1896ac982082583ebfda0e65d45a490ffc4dd6bf58be2077d8984a"
+  },
+  "overlays": [
+    {
+      "id": "PFT-COMPAT-001",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-001-aave-u40.patch",
+      "git_blob_sha": "1510f4595702adfb9548da5b628e32a58cb6427d",
+      "sha256": "9dbea652b4555e6240f694a4ceb9b3eb8354d12dcaaf6ec2e3a254a7ab3463ca",
+      "mode": "git_apply"
+    },
+    {
+      "id": "PFT-COMPAT-002",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-002-executor-return.patch",
+      "git_blob_sha": "4c185d4bc11c0aee8283ea31467e609453e950ad",
+      "sha256": "3c41e00641b4715471f17933749c8059b0c84aa9c8d4b85ec16c25f155623ba7",
+      "mode": "git_apply_unidiff_zero"
+    },
+    {
+      "id": "PFT-COMPAT-003",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-003-sync-devdep.patch",
+      "git_blob_sha": "2b39f9bcc2bc6f8defbab9ce10255d05a74c595a",
+      "sha256": "7076c8d5c6f4ba737c7e5a8e030bcb2a32a50642969d35d3156082ddf1eea3a5",
+      "mode": "git_apply_unidiff_zero"
+    },
+    {
+      "id": "PFT-COMPAT-004",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-004-math-test-wad-import.patch",
+      "git_blob_sha": "20d544793950698e496049f0c2f9371a6dc78637",
+      "sha256": "323f7879f5f101147ba7d1b26a63f82a2060d46e779302d92874dc89e7a14720",
+      "mode": "git_apply_unidiff_zero"
+    },
+    {
+      "id": "PFT-COMPAT-005",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-005-opportunity-devdep.patch",
+      "git_blob_sha": "58b2f40569c60a2b5bc2cfd8eae7bf59b3bc41bb",
+      "sha256": "12c23465ce52ffa71f6bb45737e2b56f866d4d4a56dcad22ffd31f81d2a73664",
+      "mode": "git_apply_unidiff_zero"
+    },
+    {
+      "id": "PFT-COMPAT-006",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-006-revm-blob-fee-fraction.patch",
+      "git_blob_sha": "b2bd74ef5c0c5d97dffb47eb858ea8e771ca970e",
+      "sha256": "f83b44b92ed52faec14cc4ed119b7addcb618c4d5520afa31c266e950d4820c0",
+      "mode": "git_apply_unidiff_zero"
+    },
+    {
+      "id": "PFT-COMPAT-007",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-aave-stack-lifetime.patch",
+      "git_blob_sha": "cc8fb4c9f26e934d8bcc3fb3df78acf990c5e505",
+      "sha256": "bf3d8ad2f5f1ddbbf80cdb50ba60442e08dce2ef990f68a5f29ba48992ea1fae",
+      "mode": "git_apply_unidiff_zero"
+    },
+    {
+      "id": "PFT-COMPAT-007-REGRESSION",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-007-repayment-regression.t.sol",
+      "git_blob_sha": "d52a3f5ea601f338f23a64d395a12a61de259a23",
+      "sha256": "e1e78e0132e21fecb9154a6c92af206062145dd01884ce9e2b9247f2c32d3bbd",
+      "mode": "copy",
+      "destination": "contracts/test/PftRepaymentRegression.t.sol"
+    },
+    {
+      "id": "PFT-COMPAT-008",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py",
+      "git_blob_sha": "ba93020c5c6f4cd42ad178e246e7885360d8fa15",
+      "sha256": "01d9cab64a4363e9d3e30245559c2cd677918ffe2c11c9db90f89e1a05c6f65a",
+      "mode": "python_root_arg"
+    },
+    {
+      "id": "PFT-COMPAT-009",
+      "path": "ci/nqc-protocol-fork/compatibility/PFT-COMPAT-009-aave-flash-premium-ceil.patch",
+      "git_blob_sha": "69e15afe3c67c29dfbbee86a1ab57bacbc9c87e6",
+      "sha256": "7402f320dc7c3173d8ef3472c54f58eeaac2153cb61d97bb0ccc000f95db1a13",
+      "mode": "git_apply"
+    }
+  ],
+  "toolchains": {
+    "rust": "1.98.1",
+    "foundry": "1.7.1",
+    "foundry_linux_amd64_archive_sha256": "cf7e688ed0c4c48adffca788b496076e31060b67ac5afe1e43dbb5499c20c88b",
+    "solc": "0.8.24+commit.e11b9ed9",
+    "solc_linux_amd64_sha256": "fb03a29a517452b9f12bcf459ef37d0a543765bb3bbc911e70a87d6a37c30d5f"
+  },
+  "truth_boundaries": {
+    "real_market_census": "NOT_CERTIFIED_BY_THIS_PROFILE",
+    "market_existence": "NOT_PROVEN",
+    "borrower_completeness": "NOT_PROVEN",
+    "capital_feasibility": "NOT_PROVEN",
+    "live_pnl": "NOT_PROVEN",
+    "production_authority": false
+  }
+}
