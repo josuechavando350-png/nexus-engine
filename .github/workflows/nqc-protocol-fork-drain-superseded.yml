@@ -1,0 +1,127 @@
+name: NQC T39 Drain Superseded Protocol Runs
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-protocol-fork-drain-superseded.yml
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+
+concurrency:
+  group: nqc-t39-drain-superseded
+  cancel-in-progress: true
+
+jobs:
+  drain:
+    runs-on: ubuntu-slim
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+      CURRENT_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      CURRENT_RUN_ID: ${{ github.run_id }}
+      GITHUB_REPOSITORY: ${{ github.repository }}
+      GITHUB_API_URL: ${{ github.api_url }}
+    steps:
+      - name: Cancel superseded Protocol/PFT workflow runs
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          api = os.environ["GITHUB_API_URL"].rstrip("/")
+          repo = os.environ["GITHUB_REPOSITORY"]
+          token = os.environ["GH_TOKEN"]
+          current_sha = os.environ["CURRENT_SHA"]
+          current_run_id = int(os.environ["CURRENT_RUN_ID"])
+          prefixes = ("nqc/protocol-fork-", "nqc/pft-")
+
+          headers = {
+              "Authorization": f"Bearer {token}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28",
+              "User-Agent": "nqc-t39-drain-superseded",
+          }
+
+          def get(path):
+              req = urllib.request.Request(api + path, headers=headers)
+              with urllib.request.urlopen(req, timeout=30) as response:
+                  return json.loads(response.read())
+
+          runs = []
+          for status in ("queued", "in_progress"):
+              page = 1
+              while True:
+                  doc = get(
+                      f"/repos/{repo}/actions/runs"
+                      f"?status={status}&per_page=100&page={page}"
+                  )
+                  batch = doc.get("workflow_runs", [])
+                  runs.extend(batch)
+                  if len(batch) < 100:
+                      break
+                  page += 1
+                  if page > 20:
+                      raise SystemExit("refusing to scan more than 2000 runs per status")
+
+          candidates = {}
+          for run in runs:
+              run_id = int(run["id"])
+              branch = run.get("head_branch") or ""
+              sha = run.get("head_sha") or ""
+              status = run.get("status")
+              if run_id == current_run_id or sha == current_sha:
+                  continue
+              if status not in {"queued", "in_progress"}:
+                  continue
+              if not branch.startswith(prefixes):
+                  continue
+              candidates[run_id] = {
+                  "id": run_id,
+                  "name": run.get("name"),
+                  "status": status,
+                  "head_branch": branch,
+                  "head_sha": sha,
+              }
+
+          cancelled = []
+          raced = []
+          failed = []
+          for run_id in sorted(candidates):
+              url = f"{api}/repos/{repo}/actions/runs/{run_id}/cancel"
+              req = urllib.request.Request(
+                  url,
+                  data=b"",
+                  headers=headers,
+                  method="POST",
+              )
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as response:
+                      if response.status != 202:
+                          failed.append({"id": run_id, "status": response.status})
+                      else:
+                          cancelled.append(run_id)
+              except urllib.error.HTTPError as exc:
+                  if exc.code in {409, 422}:
+                      raced.append({"id": run_id, "http": exc.code})
+                  else:
+                      failed.append({"id": run_id, "http": exc.code})
+
+          report = {
+              "current_sha": current_sha,
+              "candidate_count": len(candidates),
+              "cancel_requested": len(cancelled),
+              "already_finished_or_raced": len(raced),
+              "failed": failed,
+          }
+          print(json.dumps(report, indent=2, sort_keys=True))
+          if failed:
+              raise SystemExit("one or more superseded Protocol/PFT runs could not be cancelled")
+          print("NQC_T39_SUPERSEDED_RUN_DRAIN_PASS")
+          PY
