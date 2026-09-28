@@ -103,13 +103,7 @@ fn stage_domain() -> Result<StageDomain, IdentityError> {
 #[test]
 fn observation_preserves_full_anchor_raw_log_and_provenance() -> TestResult {
     let state_anchor = anchor(100, 0x61, 0x60, 1_700_000_000, 0x62)?;
-    let observed = observation(
-        state_anchor.clone(),
-        0x63,
-        0x64,
-        0x65,
-        vec![1, 2, 3, 4],
-    )?;
+    let observed = observation(state_anchor.clone(), 0x63, 0x64, 0x65, vec![1, 2, 3, 4])?;
 
     assert_eq!(observed.envelope().anchor(), &state_anchor);
     assert_eq!(observed.envelope().anchor().chain().chain_id(), 1);
@@ -148,9 +142,7 @@ fn decoding_preserves_original_observation_envelope_and_digest() -> TestResult {
         vec![5, 6, 7],
     )?;
     let original = observed.envelope().clone();
-    let decoded = observed.map_payload(|raw| {
-        Ok::<usize, ObservationError>(raw.data().len())
-    })?;
+    let decoded = observed.map_payload(|raw| Ok::<usize, ObservationError>(raw.data().len()))?;
 
     assert_eq!(decoded.envelope(), &original);
     assert_eq!(*decoded.payload(), 3);
@@ -161,14 +153,10 @@ fn decoding_preserves_original_observation_envelope_and_digest() -> TestResult {
 fn observation_digest_changes_when_authoritative_inputs_change() -> TestResult {
     let base_anchor = anchor(102, 0x81, 0x80, 1_700_000_002, 0x82)?;
     let base = observation(base_anchor.clone(), 0x83, 0x84, 0x85, vec![8])?;
-    let changed_payload =
-        observation(base_anchor.clone(), 0x83, 0x84, 0x85, vec![9])?;
-    let changed_code =
-        observation(base_anchor.clone(), 0x86, 0x84, 0x85, vec![8])?;
-    let changed_config =
-        observation(base_anchor.clone(), 0x83, 0x87, 0x85, vec![8])?;
-    let changed_provenance =
-        observation(base_anchor, 0x83, 0x84, 0x88, vec![8])?;
+    let changed_payload = observation(base_anchor.clone(), 0x83, 0x84, 0x85, vec![9])?;
+    let changed_code = observation(base_anchor.clone(), 0x86, 0x84, 0x85, vec![8])?;
+    let changed_config = observation(base_anchor.clone(), 0x83, 0x87, 0x85, vec![8])?;
+    let changed_provenance = observation(base_anchor, 0x83, 0x84, 0x88, vec![8])?;
 
     let base_digest = base.envelope().digest();
     assert_ne!(base_digest, changed_payload.envelope().digest());
@@ -233,13 +221,7 @@ fn joins_reject_different_block_hash_timestamp_and_state_root() -> TestResult {
 #[test]
 fn same_state_join_allows_distinct_contract_semantics() -> TestResult {
     let state_anchor = anchor(104, 0xa1, 0xa0, 1_700_000_005, 0xa2)?;
-    let left = observation(
-        state_anchor.clone(),
-        0xa3,
-        0xa4,
-        0xa5,
-        vec![1],
-    )?;
+    let left = observation(state_anchor.clone(), 0xa3, 0xa4, 0xa5, vec![1])?;
     let right = observation(state_anchor, 0xa6, 0xa7, 0xa8, vec![2])?;
     require_same_anchor(&left, &right)?;
     Ok(())
@@ -274,10 +256,7 @@ fn pipeline_stage_contract_has_exact_thirteen_ordered_stages() {
         CensusStage::ALL[5].code(),
         "MARKETS_LIQUIDATABLE_OR_ACTIONABLE"
     );
-    assert_eq!(
-        CensusStage::ALL[12].code(),
-        "MARKETS_SHADOW_ELIGIBLE"
-    );
+    assert_eq!(CensusStage::ALL[12].code(), "MARKETS_SHADOW_ELIGIBLE");
 }
 
 #[test]
@@ -399,10 +378,7 @@ fn rejection_records_preserve_negatives_and_are_order_deterministic() -> TestRes
     assert_eq!(left_rejections.len(), 1);
     assert_eq!(right_rejections.len(), 1);
     assert_eq!(left_rejections[0].id(), right_rejections[0].id());
-    assert_eq!(
-        left_rejections[0].reason().code(),
-        "UNPROFITABLE_AFTER_GAS"
-    );
+    assert_eq!(left_rejections[0].reason().code(), "UNPROFITABLE_AFTER_GAS");
     assert_eq!(left_rejections[0].evidence_refs().len(), 2);
     Ok(())
 }
@@ -527,11 +503,8 @@ fn capability_matrix_rejects_implicit_or_conflicting_support() -> TestResult {
         scope.clone(),
         vec![AdapterCapability::MarketDiscovery],
     )?;
-    let second = AdapterDeclaration::new(
-        hash(0x43)?,
-        scope,
-        vec![AdapterCapability::MarketDiscovery],
-    )?;
+    let second =
+        AdapterDeclaration::new(hash(0x43)?, scope, vec![AdapterCapability::MarketDiscovery])?;
     let mut matrix = CapabilityMatrix::default();
     matrix.declare(first)?;
     assert_eq!(
