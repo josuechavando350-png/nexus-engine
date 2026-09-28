@@ -2,7 +2,7 @@
   "schema_version": 1,
   "tranche": "T39_PROTOCOL_FORK_TRUTH_55_TO_62",
   "status": "NOT_TESTED",
-  "runtime_closeout_candidate_status": "RUNTIME_CLOSEOUT_CANDIDATE_READY",
+  "runtime_closeout_candidate_target": "RUNTIME_CLOSEOUT_CANDIDATE_READY",
   "scope": "POST_BUILD_TRUTH_PROTOCOL_AND_HISTORICAL_FORK_CERTIFICATION",
   "source_of_truth": {
     "architecture_closeout_commit": "0ffaf8a5829d2f0c0874702042c8e0b094b30915",
