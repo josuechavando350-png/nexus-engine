@@ -32,14 +32,6 @@
       "url": "https://eth-mainnet.public.blastapi.io"
     },
     {
-      "id": "publicnode-ethereum",
-      "url": "https://ethereum-rpc.publicnode.com"
-    },
-    {
-      "id": "llamarpc-ethereum",
-      "url": "https://eth.llamarpc.com"
-    },
-    {
       "id": "1rpc-ethereum",
       "url": "https://1rpc.io/eth"
     }
