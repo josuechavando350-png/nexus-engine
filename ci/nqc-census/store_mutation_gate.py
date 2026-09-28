@@ -56,8 +56,17 @@ MUTANTS = [
      "            Some(expected) if next.first_block() == expected => {}",
      "            Some(_) if next.first_block() > self.last_block() => {}", "tests"),
     ("M12_head_contradiction_ignored", "store.rs",
-     "        if checkpoint.id()? != head.checkpoint_id {\n            return Err(StoreError::HeadConflictsWithAuthority);",
-     "        if false && checkpoint.id()? != head.checkpoint_id {\n            return Err(StoreError::HeadConflictsWithAuthority);",
+     "                    if record.sequence == current.sequence()\n"
+     "                        && record.checkpoint_id != current.id()?\n"
+     "                    {\n"
+     "                        return Err(StoreError::HeadConflictsWithAuthority);\n"
+     "                    }",
+     "                    if false\n"
+     "                        && record.sequence == current.sequence()\n"
+     "                        && record.checkpoint_id != current.id()?\n"
+     "                    {\n"
+     "                        return Err(StoreError::HeadConflictsWithAuthority);\n"
+     "                    }",
      "tests"),
     # The STORE seal and the canonical re-encoding comparison are mutually
     # redundant (removing either alone is an equivalent mutant), so this mutant
