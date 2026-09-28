@@ -1,6 +1,4 @@
-use crate::{
-    ActionSurfaceId, ChainDomain, Hash32, MarketId, ObservationDigest, ProtocolFamily,
-};
+use crate::{ActionSurfaceId, ChainDomain, Hash32, MarketId, ObservationDigest, ProtocolFamily};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fmt::{Display, Formatter};
@@ -252,7 +250,10 @@ impl CensusUnitId {
     }
 
     pub fn from_action_surface(action_surface_id: ActionSurfaceId) -> Self {
-        Self(domain_hash(UNIT_ACTION_DOMAIN, action_surface_id.as_bytes()))
+        Self(domain_hash(
+            UNIT_ACTION_DOMAIN,
+            action_surface_id.as_bytes(),
+        ))
     }
 
     pub fn from_scoped_hash(namespace: u16, hash: Hash32) -> Result<Self, PipelineError> {
