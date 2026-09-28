@@ -650,3 +650,60 @@ fn wrong_chain_anchor_and_missing_evidence_fail_closed() -> TestResult {
     );
     Ok(())
 }
+
+
+#[test]
+fn semantics_version_cannot_move_backward_even_when_fingerprint_is_unchanged() -> TestResult {
+    let capabilities = all_capabilities(true)?;
+    let mut registry = DeploymentRegistry::new(universe()?);
+    registry.declare_supported_semantics(profile(
+        2,
+        ProxyKind::Transparent,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        capabilities.clone(),
+    )?)?;
+    registry.declare_supported_semantics(profile(
+        1,
+        ProxyKind::Transparent,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        capabilities.clone(),
+    )?)?;
+    let first = registry.admit(
+        binding(
+            2,
+            300,
+            ProxyKind::Transparent,
+            0x61,
+            0x51,
+            0x52,
+            0x53,
+            0x54,
+            DeploymentLifeState::Active,
+            capabilities.clone(),
+        )?,
+        None,
+    )?;
+    let rollback = binding(
+        1,
+        350,
+        ProxyKind::Transparent,
+        0x61,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        DeploymentLifeState::Paused,
+        capabilities,
+    )?;
+    assert_eq!(
+        registry.admit(rollback, Some(first.id())),
+        Err(DeploymentRegistryError::NonMonotonicSemanticsVersion)
+    );
+    Ok(())
+}
