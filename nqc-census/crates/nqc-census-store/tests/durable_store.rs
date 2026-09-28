@@ -119,7 +119,7 @@ fn store_config_persists_chunking_across_restart() -> TestResult {
 fn tampered_cas_object_fails_closed() -> TestResult {
     let temp = TestDir::new("tamper")?;
     let store = CensusStore::create(temp.path(), 64)?;
-    let artifact = store.put_artifact(&vec![0x55; 128])?;
+    let artifact = store.put_artifact(&[0x55; 128])?;
     fs::write(store.object_path(artifact.manifest_digest()), b"tampered")?;
 
     assert!(matches!(
