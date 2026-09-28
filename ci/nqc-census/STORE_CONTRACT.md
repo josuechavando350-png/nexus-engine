@@ -149,7 +149,10 @@ Write-once publication: write the bytes to a unique `tmp/` file created with
 final name is compared byte for byte: identical bytes are made durable (file and
 directory fsync, covering a writer that died before its own directory fsync) and
 reported as already present; different bytes are an `ObjectConflict` and nothing
-is overwritten. HEAD uses the same staging with `rename(2)` and a directory fsync.
+is overwritten. Creating **or adopting** an existing directory also fsyncs its
+parent after validating that the directory is local, same-device and not a
+symlink; another writer's `EEXIST` is never treated as proof that its directory
+entry was durable. HEAD uses the same staging with `rename(2)` and a directory fsync.
 
 Ordering guarantees:
 
@@ -245,12 +248,14 @@ committed history.
 
 ## 9. Recovery and range certification
 
-`recover(scope, Accelerated)` validates HEAD against the checkpoint it names and
-link-validates every checkpoint after it; `recover(scope, Full)` ignores HEAD for
-authority and walks from sequence 0. Both repair an absent, corrupt or stale HEAD
-idempotently (a second recovery writes nothing) and fail closed on a contradicting
-or ahead HEAD. The accelerated mode trusts the prefix before a proven HEAD; the
-full mode and the offline verifier certify that prefix.
+Both `recover(scope, Accelerated)` and `recover(scope, Full)` walk the
+authoritative checkpoint prefix from sequence 0, revalidate every referenced
+artifact, and re-establish checkpoint/catalog durability before publishing or
+repairing HEAD. The mode name is retained for API compatibility, but no prefix is
+trusted through HEAD: an authenticated skip structure does not exist yet, so HEAD
+cannot suppress validation of earlier authority. Both modes repair an absent,
+corrupt or stale HEAD idempotently and fail closed on a contradicting or ahead
+HEAD.
 
 `certify_range(scope, first, last)` walks from sequence 0, re-proves every link,
 fully verifies every referenced artifact, and succeeds only if the contiguous chain
