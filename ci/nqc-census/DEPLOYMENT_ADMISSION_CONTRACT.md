@@ -96,7 +96,10 @@ here. Unknown versions never inherit support from a nearby version.
 Every D03 `AdapterCapability` receives an explicit boolean state. Partial maps
 are invalid. Absence is never interpreted as support.
 
-A removed deployment must expose no supported capabilities.
+Lifecycle is orthogonal to adapter support. A removed deployment may retain
+historical discovery/reconstruction capabilities so old evidence remains
+interpretable, but the `Removed` lifecycle state is terminal for that
+`DeploymentKey` and downstream actionability must reject it.
 
 ## Lifecycle and upgrades
 
@@ -120,7 +123,8 @@ failure. A first admission with a predecessor is also invalid.
 
 Proxy handling is explicit:
 
-- `Direct`: implementation address equals deployment address.
+- `Direct`: implementation address equals deployment address and the runtime
+  code hash equals the implementation code hash.
 - proxy kinds: implementation address must differ from deployment address.
 - no proxy implementation is guessed from bytecode shape.
 
@@ -152,8 +156,8 @@ The test suite must prove at least:
 11. semantic upgrade requires explicit predecessor;
 12. semantic upgrade requires version increase;
 13. lifecycle history retains prior epochs;
-14. removed state is terminal and capability-free;
-15. direct/proxy address invariants;
+14. removed state is terminal while historical adapter support remains explicit;
+15. direct/proxy address and direct-code-identity invariants;
 16. wrong-chain anchors rejected;
 17. missing admission evidence rejected.
 
