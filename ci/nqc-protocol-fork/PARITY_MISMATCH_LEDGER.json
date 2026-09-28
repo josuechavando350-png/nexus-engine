@@ -75,7 +75,15 @@
         "LIQUIDATION_DEBT_AND_COLLATERAL_MATH_UNCHANGED"
       ],
       "verification": {
-        "pr_483_exact_head_rerun": "PENDING",
+        "pr_483_exact_head_rerun": {
+          "pr": 483,
+          "head": "cc0f7a9c11d7b8bef45ccb337e35ba14310d4b20",
+          "workflow_run_id": 36356835866,
+          "artifact_id": 10946646317,
+          "artifact_sha256": "3bdc71bbf35d8c8f13fa4c8e551b32fc613a55d3f93d86f54e77817e4aadcdda",
+          "measured_flash_premium_units": "41863654",
+          "result": "PASS"
+        },
         "pr_489_full_liquidation_matrix": "PENDING"
       },
       "status": "EXPLAINED_REPAIR_PENDING_EXACT_HEAD_PASS",
@@ -86,6 +94,13 @@
           "workflow_run_id": 36349409719,
           "artifact_id": 10941698957,
           "artifact_sha256": "437a7ae1e633d1053cdba9aaeaada9352aca03299bb6929d8f08ee31b2bce3d1"
+        },
+        {
+          "role": "resolution_executor_historical",
+          "head": "cc0f7a9c11d7b8bef45ccb337e35ba14310d4b20",
+          "workflow_run_id": 36356835866,
+          "artifact_id": 10946646317,
+          "artifact_sha256": "3bdc71bbf35d8c8f13fa4c8e551b32fc613a55d3f93d86f54e77817e4aadcdda"
         }
       ]
     }
