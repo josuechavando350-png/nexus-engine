@@ -510,3 +510,40 @@ fn forge_head(scope_id: &[u8; 32], sequence: u64, checkpoint_id: &[u8; 32]) -> V
     field(&mut sealed, 4, &seal);
     sealed
 }
+
+
+#[test]
+fn accelerated_recovery_cannot_skip_a_broken_prefix_behind_valid_head() -> TestResult {
+    let (dir, scope) = fresh("head-cannot-skip-prefix")?;
+    let store = Store::open(dir.path(), &small_config()?)?;
+    // fresh() committed sequences 0 and 1 and HEAD points at sequence 1.
+    let first = checkpoint_path(&store, &scope, 0)?;
+    fs::remove_file(&first)?;
+    assert!(matches!(
+        store.recover(&scope, RecoveryMode::Accelerated),
+        Err(StoreError::HeadAheadOfAuthority { head_sequence: 1 })
+            | Err(StoreError::HeadConflictsWithAuthority)
+    ));
+    assert!(verify_store(dir.path(), &VerifyRequest::default()).is_err());
+    Ok(())
+}
+
+#[test]
+fn exact_retry_revalidates_referenced_evidence() -> TestResult {
+    let (dir, scope) = fresh("retry-revalidates-evidence")?;
+    let store = Store::open(dir.path(), &small_config()?)?;
+    let resume = store.resume(&scope)?;
+    let checkpoint = next_checkpoint(&store, &scope, &resume, 119)?;
+    assert!(matches!(
+        store.commit(&scope, &checkpoint)?,
+        CommitOutcome::Created(_)
+    ));
+    let evidence = *checkpoint.evidence().first().ok_or("checkpoint has no evidence")?;
+    fs::remove_file(manifest_path(&store, &evidence))?;
+    assert!(
+        store.commit(&scope, &checkpoint).is_err(),
+        "idempotent retry accepted missing referenced evidence"
+    );
+    assert!(verify_store(dir.path(), &VerifyRequest::default()).is_err());
+    Ok(())
+}
