@@ -589,10 +589,7 @@ fn direct_and_proxy_bindings_are_explicit_not_guessed() -> TestResult {
         capabilities.clone(),
         vec![EvidenceRef::Artifact(hash(0xa1)?)],
     );
-    assert_eq!(
-        direct,
-        Err(DeploymentRegistryError::DirectCodeHashMismatch)
-    );
+    assert_eq!(direct, Err(DeploymentRegistryError::DirectCodeHashMismatch));
     assert!(matches!(
         DeploymentBinding::new(
             deployment()?,
