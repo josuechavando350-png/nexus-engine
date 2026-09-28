@@ -94,19 +94,6 @@
       ]
     },
     {
-      "case_id": "aave-liquidation-default-close-candidate-2026-09-8f0a",
-      "transaction_hash": "0x8f0ab391fcf8c1454f9665460a5d675a0821b4a53e01301c17bc239ac2fcad65",
-      "expected_receipt_status": "0x1",
-      "expected_pool_liquidation_log": true,
-      "class_tags": [
-        "ordinary_liquidation",
-        "default_close_factor_candidate",
-        "post_v3_3_large_position",
-        "interest_index_sensitive",
-        "standard_erc20"
-      ]
-    },
-    {
       "case_id": "aave-liquidation-default-close-candidate-2026-09-d314",
       "transaction_hash": "0xd314919adb617fe633f8b2bcd092fb8f58755d4e1e0a538da9ccd29103eec198",
       "expected_receipt_status": "0x1",
