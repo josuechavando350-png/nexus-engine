@@ -82,7 +82,7 @@ jobs:
           export PATH="$NQC_BACKRUN_WORK/foundry:$PATH"
           forge test --use "$NQC_BACKRUN_WORK/solc-0.8.24" -vvvv 2>&1 \
             | tee "$NQC_BACKRUN_WORK/evidence/forge-test.log"
-          grep -F "8 passed; 0 failed" "$NQC_BACKRUN_WORK/evidence/forge-test.log"
+          grep -F "9 passed; 0 failed" "$NQC_BACKRUN_WORK/evidence/forge-test.log"
           forge inspect NqcV2BackrunExecutor bytecode --use "$NQC_BACKRUN_WORK/solc-0.8.24" \
             > "$NQC_BACKRUN_WORK/evidence/initcode.hex"
           forge inspect NqcV2BackrunExecutor deployedBytecode --use "$NQC_BACKRUN_WORK/solc-0.8.24" \
@@ -102,7 +102,7 @@ jobs:
               'gate':'PFT_SRC_001_V2_BACKRUN_EXECUTOR_MEASURED_REIMPLEMENTATION',
               'classification':'NEW_MEASURED_REIMPLEMENTATION_NOT_RECOVERED_SOURCE',
               'source_sha256':hashlib.sha256(src).hexdigest(),
-              'deterministic_tests_passed':8,
+              'deterministic_tests_passed':9,
               'deterministic_tests_failed':0,
               'runtime_bytes':byte_len(runtime),
               'initcode_bytes':byte_len(initcode),
