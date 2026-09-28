@@ -507,21 +507,19 @@ fn lifecycle_transition_preserves_history_without_forcing_semantics_bump() -> Te
 
 #[test]
 fn removed_deployment_is_terminal_and_has_no_capabilities() -> TestResult {
-    assert!(matches!(
-        binding(
-            1,
-            300,
-            ProxyKind::Transparent,
-            0x61,
-            0x51,
-            0x52,
-            0x53,
-            0x54,
-            DeploymentLifeState::Removed,
-            all_capabilities(true)?,
-        ),
-        Err(_)
-    ));
+    assert!(binding(
+        1,
+        300,
+        ProxyKind::Transparent,
+        0x61,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        DeploymentLifeState::Removed,
+        all_capabilities(true)?,
+    )
+    .is_err());
     let none = all_capabilities(false)?;
     let mut registry = registry_with_profile(
         1,
@@ -569,21 +567,19 @@ fn removed_deployment_is_terminal_and_has_no_capabilities() -> TestResult {
 #[test]
 fn direct_and_proxy_bindings_are_explicit_not_guessed() -> TestResult {
     let capabilities = all_capabilities(true)?;
-    assert!(matches!(
-        binding(
-            1,
-            300,
-            ProxyKind::Direct,
-            0x61,
-            0x51,
-            0x52,
-            0x53,
-            0x54,
-            DeploymentLifeState::Active,
-            capabilities.clone(),
-        ),
-        Err(_)
-    ));
+    assert!(binding(
+        1,
+        300,
+        ProxyKind::Direct,
+        0x61,
+        0x51,
+        0x52,
+        0x53,
+        0x54,
+        DeploymentLifeState::Active,
+        capabilities.clone(),
+    )
+    .is_err());
     assert!(matches!(
         DeploymentBinding::new(
             deployment()?,
