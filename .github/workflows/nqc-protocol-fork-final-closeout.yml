@@ -608,6 +608,20 @@ jobs:
               and entry.get('status')=='RESOLVED'
           }
           ledger_resolved_repairs.discard(None)
+
+          ledger_evidence_heads=set()
+          for entry in ledger.get('entries',[]):
+              if entry.get('classification')!='SEMANTIC_MISMATCH':
+                  continue
+              refs=entry.get('evidence_refs',[])
+              assert refs, (entry.get('id'),'semantic mismatch lacks evidence refs')
+              for ref in refs:
+                  ref_head=ref.get('head')
+                  assert isinstance(ref_head,str) and SHA40.fullmatch(ref_head), (
+                      entry.get('id'),'ledger evidence lacks exact head'
+                  )
+                  ledger_evidence_heads.add(ref_head)
+                  required_evidence_heads.add(ref_head)
           compat_resolution_ready={
               'PFT-COMPAT-008','PFT-COMPAT-009'
           }.issubset(ledger_resolved_repairs)
@@ -659,6 +673,7 @@ jobs:
                   b.get('id'):b.get('status') for b in truth_blocker_docs
               },
               'ledger_resolved_repairs':sorted(ledger_resolved_repairs),
+              'ledger_evidence_heads':sorted(ledger_evidence_heads),
               'compatibility_repair_status':dict(sorted(compatibility_status.items())),
               'all_compatibility_repairs_resolved':all_compatibility_repairs_resolved,
               'truth_policy_ready':truth_policy_ready,
