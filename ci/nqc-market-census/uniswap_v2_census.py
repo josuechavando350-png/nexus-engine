@@ -38,6 +38,8 @@ def word(n): return f"{n:064x}"
 class Rpc:
     def __init__(self,pid,url,timeout,retries):
         self.id,self.url,self.timeout,self.retries=pid,url,timeout,retries
+        self.min_interval={"blastapi-public":0.35,"mevblocker-rpc":1.25}.get(pid,0.5)
+        self.last_request=0.0
         self.seq=1; self.http_requests=0; self.rpc_calls=0
     def post(self,payload):
         req=urllib.request.Request(self.url,data=json.dumps(payload,separators=(",",":")).encode(),
@@ -45,6 +47,9 @@ class Rpc:
         last=None
         for attempt in range(self.retries):
             try:
+                wait=self.min_interval-(time.monotonic()-self.last_request)
+                if wait>0: time.sleep(wait)
+                self.last_request=time.monotonic()
                 self.http_requests+=1
                 with urllib.request.urlopen(req,timeout=self.timeout) as r:
                     return json.loads(r.read().decode())
@@ -65,15 +70,28 @@ class Rpc:
             i=self.seq; self.seq+=1; ids.append(i)
             req.append({"jsonrpc":"2.0","id":i,"method":method,"params":params})
         self.rpc_calls+=len(calls)
-        d=self.post(req)
-        if not isinstance(d,list): raise CensusError(f"{self.id}: non-list batch")
-        by={x.get("id"):x for x in d if isinstance(x,dict)}
-        out=[]
-        for i in ids:
-            x=by.get(i)
-            if x is None or x.get("error") is not None: raise CensusError(f"{self.id}: batch id {i} failure {x}")
-            out.append(x.get("result"))
-        return out
+        last_error=None
+        for attempt in range(self.retries):
+            d=self.post(req)
+            if not isinstance(d,list): raise CensusError(f"{self.id}: non-list batch")
+            by={x.get("id"):x for x in d if isinstance(x,dict)}
+            throttled=False; out=[]
+            for i in ids:
+                x=by.get(i)
+                if x is None:
+                    raise CensusError(f"{self.id}: missing batch id {i}")
+                err=x.get("error")
+                if err is not None:
+                    code=err.get("code") if isinstance(err,dict) else None
+                    msg=str(err).lower()
+                    if code==429 or "rate" in msg or "capacity" in msg or "too many" in msg:
+                        throttled=True; last_error=x; break
+                    raise CensusError(f"{self.id}: batch id {i} failure {x}")
+                out.append(x.get("result"))
+            if not throttled: return out
+            if attempt+1<self.retries:
+                time.sleep(min(12.0,1.0*(2**attempt)))
+        raise CensusError(f"{self.id}: throttled batch exhausted retries {last_error}")
 
 def exact_anchor(ps):
     finalized=[]
