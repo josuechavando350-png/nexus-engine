@@ -168,6 +168,7 @@ jobs:
           }
           support_workflows=[
               'Build Verification',
+              'NQC T39 Historical Corpus Contract',
               'NQC T39 Protocol Fork Source Census',
               'NQC T39 Aave Canonical State Witness',
               'NQC T39 Aave Reserve Balance Parity',
@@ -183,6 +184,7 @@ jobs:
           ]
           workflow_paths={
               'Build Verification':'.github/workflows/build-verification.yml',
+              'NQC T39 Historical Corpus Contract':'.github/workflows/nqc-protocol-fork-corpus-contract.yml',
               'NQC T39 Protocol Fork Source Census':'.github/workflows/nqc-protocol-fork-source-census.yml',
               'NQC T39 Aave Recovered Reader Parity':'.github/workflows/nqc-protocol-fork-aave-reader-parity.yml',
               'NQC T39 Aave Canonical State Witness':'.github/workflows/nqc-protocol-fork-aave-state-witness.yml',
