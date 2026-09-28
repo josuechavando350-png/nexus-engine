@@ -1,0 +1,103 @@
+name: NQC RMC-005 Deployment Registry Admission
+
+on:
+  pull_request:
+    paths:
+      - nqc-census/crates/nqc-census-core/src/deployment.rs
+      - nqc-census/crates/nqc-census-core/src/lib.rs
+      - nqc-census/crates/nqc-census-core/tests/deployment_registry.rs
+      - ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md
+      - .github/workflows/nqc-census-deployment-admission.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deployment-admission:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      RMC005_STACK_PARENT: 870d948d5092c01c372f4694b27dfc2eb1b42cd0
+      RMC004_PARENT: be257a473cffd8c4f16fd6a2513411ce2d6153be
+      RMC003_MERGE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
+      RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
+      RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      DEPLOYMENT_TESTS_EXPECTED: "15"
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify stacked dependency lineage and exact scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          for ancestor in "$PFT_CERTIFIED_COMMIT" "$RMC001_MERGE" "$RMC002_MERGE" "$RMC003_MERGE" "$RMC004_PARENT" "$RMC005_STACK_PARENT"; do
+            git merge-base --is-ancestor "$ancestor" HEAD
+          done
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            test "${{ github.event.pull_request.base.sha }}" = "$RMC005_STACK_PARENT"
+          fi
+          python3 - <<'PY'
+          import subprocess
+          expected = {
+              ".github/workflows/nqc-census-deployment-admission.yml",
+              "ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md",
+              "nqc-census/crates/nqc-census-core/src/deployment.rs",
+              "nqc-census/crates/nqc-census-core/src/lib.rs",
+              "nqc-census/crates/nqc-census-core/tests/deployment_registry.rs",
+          }
+          changed = set(subprocess.check_output(
+              ["git", "diff", "--name-only", "870d948d5092c01c372f4694b27dfc2eb1b42cd0...HEAD"],
+              text=True,
+          ).splitlines())
+          assert changed == expected, (
+              f"RMC-005 scope mismatch missing={sorted(expected-changed)} "
+              f"extra={sorted(changed-expected)}"
+          )
+          print("RMC_005_SCOPE_PASS files=5")
+          PY
+          git diff --check "$RMC005_STACK_PARENT"...HEAD
+
+      - name: Verify previous truth layers are untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source             ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility             ci/nqc-protocol-fork/locks             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+          git diff --quiet "$RMC004_PARENT" HEAD --             ci/nqc-census/IDENTITY_CONTRACT.md             ci/nqc-census/identity-vectors.json             ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md             ci/nqc-census/effective-source-profile.json             ci/nqc-census/materialize_effective_source.py             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md             ci/nqc-census/STORE_CONTRACT.md             nqc-census/crates/nqc-census-store
+          echo RMC_005_UPSTREAM_IMMUTABILITY_PASS
+
+      - name: Verify provider-free admission boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -nE 'reqwest|alloy-provider|tokio|std::net|TcpStream|UdpSocket|process::Command|std::env::var|signer|private.?key|secret|http://|https://'             nqc-census/crates/nqc-census-core/src/deployment.rs
+          grep -F 'RMC-GAP-003' ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md
+          grep -F 'RMC-GAP-027' ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md
+          grep -F 'does not query a chain' ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md
+          echo RMC_005_NO_IO_AUTHORITY_BOUNDARY_PASS
+
+      - name: Rust format lint test and build locked
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustc --version
+          cargo --version
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          cargo test --locked -p nqc-census-core --test deployment_registry -- --nocapture
+          count=$(cargo test --locked -p nqc-census-core --test deployment_registry -- --list 2>/dev/null | grep -c ': test$')
+          echo "deployment_tests=$count expected=$DEPLOYMENT_TESTS_EXPECTED"
+          test "$count" = "$DEPLOYMENT_TESTS_EXPECTED"
+          cargo test --workspace --all-targets --locked
+          cargo build --workspace --all-targets --locked
+          echo RMC_005_DEPLOYMENT_ADMISSION_PASS
