@@ -278,7 +278,6 @@ fn golden_fixture_evidence_root_is_byte_stable() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn artifact_reads_reject_symlinked_intermediate_fanout_directory() -> TestResult {
     let dir = TempDir::new("fs-symlink-artifact-parent")?;
@@ -291,7 +290,10 @@ fn artifact_reads_reject_symlinked_intermediate_fanout_directory() -> TestResult
             .and_then(|name| name.to_str())
             .ok_or("non-utf8 manifest name")?,
     )?;
-    let fanout = manifest.parent().ok_or("manifest has no parent")?.to_path_buf();
+    let fanout = manifest
+        .parent()
+        .ok_or("manifest has no parent")?
+        .to_path_buf();
     let saved = dir.join("saved-fanout");
     fs::rename(&fanout, &saved)?;
     std::os::unix::fs::symlink(&saved, &fanout)?;
