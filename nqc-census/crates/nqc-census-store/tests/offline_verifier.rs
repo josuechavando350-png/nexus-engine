@@ -285,11 +285,12 @@ fn artifact_reads_reject_symlinked_intermediate_fanout_directory() -> TestResult
     let (store, _) = build_fixture(&dir.join("store"))?;
     let manifests = support::files_under(&store.root().join("objects/artifacts"))?;
     let manifest = manifests.first().ok_or("no manifest")?;
-    let artifact_id = manifest
-        .file_name()
-        .and_then(|name| name.to_str())
-        .ok_or("non-utf8 manifest name")?
-        .parse::<nqc_census_store::ArtifactId>()?;
+    let artifact_id = nqc_census_store::ArtifactId::parse_hex(
+        manifest
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or("non-utf8 manifest name")?,
+    )?;
     let fanout = manifest.parent().ok_or("manifest has no parent")?.to_path_buf();
     let saved = dir.join("saved-fanout");
     fs::rename(&fanout, &saved)?;
