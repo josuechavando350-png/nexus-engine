@@ -289,3 +289,5 @@ jobs:
           path: /tmp/nqc-v2-abi-runtime/evidence
           if-no-files-found: error
           retention-days: 30
+
+# exact-head certification trigger: T39 Protocol/Fork closeout

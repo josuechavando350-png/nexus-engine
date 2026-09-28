@@ -258,3 +258,5 @@ jobs:
           path: /tmp/nqc-revm-historical-differential/evidence
           if-no-files-found: error
           retention-days: 30
+
+# exact-head certification trigger: T39 Protocol/Fork closeout

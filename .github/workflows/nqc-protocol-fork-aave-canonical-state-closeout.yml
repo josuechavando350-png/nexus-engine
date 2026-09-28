@@ -147,3 +147,5 @@ jobs:
           PY
           sha256sum             ci/nqc-protocol-fork/AAVE_CANONICAL_STATE_PARITY_CLOSEOUT.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.json             ci/nqc-protocol-fork/compatibility/PFT-COMPAT-008-aave-exact-accounting.py             > /tmp/aave-canonical-state-closeout.sha256
           sha256sum -c /tmp/aave-canonical-state-closeout.sha256
+
+# exact-head certification trigger: T39 Protocol/Fork closeout
