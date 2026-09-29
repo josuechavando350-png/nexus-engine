@@ -53,18 +53,12 @@ pub fn run_factory_boundary(
     let transport = CurlTransport::new(60, 10);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
     let profile = ChainProfile::mainnet()?;
-    let (bootstrap, chain, _) =
-        run_bootstrap(&acquisition, &providers, &profile, ANCHOR_NUMBER)?;
+    let (bootstrap, chain, _) = run_bootstrap(&acquisition, &providers, &profile, ANCHOR_NUMBER)?;
     let factory = Address::parse_hex(FACTORY)?;
 
     let mut results = Vec::new();
     for provider in providers.iter() {
-        results.push(provider_boundary(
-            &acquisition,
-            provider,
-            &chain,
-            factory,
-        )?);
+        results.push(provider_boundary(&acquisition, provider, &chain, factory)?);
     }
     let agreement = agree("rmc007-v2-factory-boundary", &results)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
