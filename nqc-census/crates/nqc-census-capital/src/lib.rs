@@ -2556,6 +2556,14 @@ impl CapitalCertificationContext {
                 "admitted evidence catalog is empty",
             ));
         }
+        for authority in &stages {
+            let authority_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256);
+            if !admitted_evidence.contains(&authority_evidence) {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "upstream stage artifact is not present in admitted evidence catalog",
+                ));
+            }
+        }
 
         let mut hasher = Sha256::new();
         hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V3");
