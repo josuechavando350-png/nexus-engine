@@ -434,7 +434,6 @@ fn source_artifact_exposes_full_capital_semantics() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
     let ledger = ledger()?;
@@ -449,7 +448,10 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
         .ok_or("missing upstream authority artifact")?;
     let text = std::str::from_utf8(&upstream.bytes)?;
     for stage in ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"] {
-        assert!(text.contains(stage), "missing upstream authority stage {stage}");
+        assert!(
+            text.contains(stage),
+            "missing upstream authority stage {stage}"
+        );
     }
     assert!(text.contains("\"unresolved_mismatch_count\":0"));
     assert!(text.contains("\"unknown_failure_count\":0"));
@@ -481,7 +483,11 @@ fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestRe
         .ok_or("upstream authority lacks artifact digest")?
         + needle.len();
     let mut authority_bytes = authority_text.into_bytes();
-    authority_bytes[offset] = if authority_bytes[offset] == b'1' { b'2' } else { b'1' };
+    authority_bytes[offset] = if authority_bytes[offset] == b'1' {
+        b'2'
+    } else {
+        b'1'
+    };
     bundle.files[authority_index].bytes = authority_bytes;
     bundle.files[authority_index].sha256 = {
         use sha2::{Digest, Sha256};

@@ -202,11 +202,12 @@ pub fn verify_capital_artifact_bundle(
         ));
     }
 
-    let authority_file = by_name
-        .get(CAPITAL_UPSTREAM_AUTHORITY_FILE)
-        .ok_or(CapitalError::InvalidCanonical(
-            "missing upstream authority artifact",
-        ))?;
+    let authority_file =
+        by_name
+            .get(CAPITAL_UPSTREAM_AUTHORITY_FILE)
+            .ok_or(CapitalError::InvalidCanonical(
+                "missing upstream authority artifact",
+            ))?;
     let authority = parse_upstream_authority(authority_file.bytes.as_slice())?;
     let authority_commitment = hex(authority.commitment().as_bytes());
 
@@ -665,12 +666,9 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
             "unsupported upstream authority schema",
         ));
     }
-    let stages = parsed
-        .get("stages")
-        .and_then(Json::as_array)
-        .ok_or(CapitalError::InvalidUpstreamAuthority(
-            "upstream authority stages missing",
-        ))?;
+    let stages = parsed.get("stages").and_then(Json::as_array).ok_or(
+        CapitalError::InvalidUpstreamAuthority("upstream authority stages missing"),
+    )?;
     if stages.len() != UpstreamCensusStage::ALL.len() {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "upstream authority stage count differs",
@@ -696,12 +694,9 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
                 .map_err(|_| CapitalError::InvalidUpstreamAuthority("artifact sha256 missing"))?,
         )
         .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid artifact sha256"))?;
-        let admitted = row
-            .get("admitted")
-            .and_then(Json::as_bool)
-            .ok_or(CapitalError::InvalidUpstreamAuthority(
-                "upstream admitted flag missing",
-            ))?;
+        let admitted = row.get("admitted").and_then(Json::as_bool).ok_or(
+            CapitalError::InvalidUpstreamAuthority("upstream admitted flag missing"),
+        )?;
         authorities.push(UpstreamStageAuthority::new(
             stage,
             code_commit,
@@ -716,9 +711,9 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
     let authority = CapitalCertificationContext::new(authorities)?;
     let declared_commitment = parsed
         .str_field("upstream_authority_commitment")
-        .map_err(|_| CapitalError::InvalidUpstreamAuthority(
-            "upstream authority commitment missing",
-        ))?;
+        .map_err(|_| {
+            CapitalError::InvalidUpstreamAuthority("upstream authority commitment missing")
+        })?;
     validate_digest_hex(declared_commitment)?;
     if declared_commitment != hex(authority.commitment().as_bytes()) {
         return Err(CapitalError::InvalidUpstreamAuthority(
