@@ -655,7 +655,8 @@ mod tests {
     }
 
     #[test]
-    fn repeated_request_responses_are_replayed_in_recorded_byte_order() -> Result<(), nqc_census_chain::ChainError> {
+    fn repeated_request_responses_are_replayed_in_recorded_byte_order(
+    ) -> Result<(), nqc_census_chain::ChainError> {
         let provider = ProviderSpec::new(
             0x0777,
             "replay-provider",
