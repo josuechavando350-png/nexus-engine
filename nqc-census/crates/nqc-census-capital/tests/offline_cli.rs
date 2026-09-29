@@ -207,6 +207,7 @@ fn offline_verifier_binary_accepts_exact_export() -> TestResult {
     assert!(stdout.contains("RMC_011_OFFLINE_VERIFY=PASS"));
     assert!(stdout.contains("sources=1"));
     assert!(stdout.contains("requirements=1"));
+    assert!(stdout.contains("results=1"));
     assert!(stdout.contains("feasible=1"));
     assert!(stdout.contains("rejected=0"));
     Ok(())
