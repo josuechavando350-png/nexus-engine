@@ -34,6 +34,10 @@ pub struct UpstreamAuthorityLockEntry {
     pub code_tree: GitObjectId,
     pub artifact_sha256: Hash32,
     pub observation_anchor: StateAnchor,
+    pub unresolved_mismatch_count: u64,
+    pub unknown_failure_count: u64,
+    pub coverage_complete: bool,
+    pub admitted: bool,
 }
 
 impl From<&UpstreamStageAuthority> for UpstreamAuthorityLockEntry {
@@ -44,6 +48,10 @@ impl From<&UpstreamStageAuthority> for UpstreamAuthorityLockEntry {
             code_tree: authority.code_tree,
             artifact_sha256: authority.artifact_sha256,
             observation_anchor: authority.observation_anchor.clone(),
+            unresolved_mismatch_count: authority.unresolved_mismatch_count,
+            unknown_failure_count: authority.unknown_failure_count,
+            coverage_complete: authority.coverage_complete,
+            admitted: authority.admitted,
         }
     }
 }
@@ -84,6 +92,16 @@ impl UpstreamAuthorityLock {
                 "authority lock stages do not share one exact observation anchor",
             ));
         }
+        if entries.iter().any(|entry| {
+            entry.unresolved_mismatch_count != 0
+                || entry.unknown_failure_count != 0
+                || !entry.coverage_complete
+                || !entry.admitted
+        }) {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "authority lock contains a non-certifiable upstream stage",
+            ));
+        }
 
         let mut hasher = Sha256::new();
         hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-LOCK-V1");
@@ -102,6 +120,10 @@ impl UpstreamAuthorityLock {
             hasher.update(entry.code_tree.as_bytes());
             hasher.update(entry.artifact_sha256.as_bytes());
             hash_anchor(&mut hasher, &entry.observation_anchor);
+            hasher.update(entry.unresolved_mismatch_count.to_be_bytes());
+            hasher.update(entry.unknown_failure_count.to_be_bytes());
+            hasher.update([u8::from(entry.coverage_complete)]);
+            hasher.update([u8::from(entry.admitted)]);
         }
         let digest: [u8; 32] = hasher.finalize().into();
         let commitment = Hash32::new(digest).map_err(|_| {
@@ -137,6 +159,10 @@ impl UpstreamAuthorityLock {
                 || locked.code_tree != observed.code_tree
                 || locked.artifact_sha256 != observed.artifact_sha256
                 || locked.observation_anchor != observed.observation_anchor
+                || locked.unresolved_mismatch_count != observed.unresolved_mismatch_count
+                || locked.unknown_failure_count != observed.unknown_failure_count
+                || locked.coverage_complete != observed.coverage_complete
+                || locked.admitted != observed.admitted
             {
                 return Err(CapitalError::InvalidUpstreamAuthority(
                     "upstream authority differs from external lock",
@@ -168,6 +194,16 @@ impl UpstreamAuthorityLock {
                             "observation_anchor",
                             authority_lock_anchor_json(&entry.observation_anchor),
                         ),
+                        (
+                            "unresolved_mismatch_count",
+                            Json::uint(entry.unresolved_mismatch_count),
+                        ),
+                        (
+                            "unknown_failure_count",
+                            Json::uint(entry.unknown_failure_count),
+                        ),
+                        ("coverage_complete", Json::Bool(entry.coverage_complete)),
+                        ("admitted", Json::Bool(entry.admitted)),
                     ])
                 })),
             ),
@@ -230,12 +266,30 @@ impl UpstreamAuthorityLock {
                 parse_authority_lock_anchor(row.get("observation_anchor").ok_or(
                     CapitalError::InvalidCanonical("authority lock observation anchor missing"),
                 )?)?;
+            let unresolved_mismatch_count = lock_u64(row, "unresolved_mismatch_count")?;
+            let unknown_failure_count = lock_u64(row, "unknown_failure_count")?;
+            let coverage_complete = row
+                .get("coverage_complete")
+                .and_then(Json::as_bool)
+                .ok_or(CapitalError::InvalidCanonical(
+                    "authority lock coverage flag missing",
+                ))?;
+            let admitted = row
+                .get("admitted")
+                .and_then(Json::as_bool)
+                .ok_or(CapitalError::InvalidCanonical(
+                    "authority lock admitted flag missing",
+                ))?;
             entries.push(UpstreamAuthorityLockEntry {
                 stage,
                 code_commit,
                 code_tree,
                 artifact_sha256,
                 observation_anchor,
+                unresolved_mismatch_count,
+                unknown_failure_count,
+                coverage_complete,
+                admitted,
             });
         }
         let lock = Self::new(entries)?;
