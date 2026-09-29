@@ -5,6 +5,7 @@
 //! evidence layer and reconciles semantically independent discovery surfaces.
 
 mod interface;
+pub mod live;
 mod reconcile;
 
 pub use interface::{
