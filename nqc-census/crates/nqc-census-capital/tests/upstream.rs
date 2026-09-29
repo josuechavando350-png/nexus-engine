@@ -64,6 +64,16 @@ fn sha256_plain(bytes: &[u8]) -> String {
     hex::plain(&digest)
 }
 
+fn protocol_contract_locator(namespace: u16, contract: Address) -> Hash32 {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-PROTOCOL-CONTRACT-LOCATOR-V1");
+    hasher.update([0]);
+    hasher.update(namespace.to_be_bytes());
+    hasher.update(contract.as_bytes());
+    let digest: [u8; 32] = hasher.finalize().into();
+    Hash32::new(digest).unwrap_or_else(|_| unreachable!())
+}
+
 fn d08_manifest(states: &[u8], tokens: &[u8], facts: &[u8]) -> Vec<u8> {
     format!(
         concat!(
@@ -205,6 +215,16 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
             CapitalClass::FlashSwap
         ]
     );
+    for source in &imported.sources {
+        let expected = match source.class() {
+            CapitalClass::ProtocolNativeFlashLoan => {
+                protocol_contract_locator(0x1103, address(90))
+            }
+            CapitalClass::FlashSwap => protocol_contract_locator(0x1302, pair),
+            _ => unreachable!(),
+        };
+        assert_eq!(source.provider_locator_hash(), expected);
+    }
     Ok(())
 }
 
