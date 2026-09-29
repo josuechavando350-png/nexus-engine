@@ -3063,7 +3063,7 @@ fn upstream_authority_commitment(
     consumption_receipts: &BTreeMap<UpstreamCensusStage, UpstreamConsumptionReceipt>,
 ) -> Result<Hash32, CapitalError> {
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V5");
+    hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V6");
     hasher.update([0]);
     for authority in stages {
         hasher.update([authority.stage.tag()]);
