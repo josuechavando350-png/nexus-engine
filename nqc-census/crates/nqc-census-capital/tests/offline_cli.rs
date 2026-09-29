@@ -1,7 +1,7 @@
 use nqc_census_capital::{
     artifacts::{export_capital_artifacts, ArtifactProvenance, CAPITAL_SOURCES_FILE},
     Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
-    CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalProviderKind, CapitalRequirement,
+    CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind, CapitalRequirement,
     CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
@@ -75,6 +75,7 @@ fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
