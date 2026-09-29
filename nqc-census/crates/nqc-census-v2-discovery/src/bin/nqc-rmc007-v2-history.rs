@@ -1,7 +1,15 @@
 use nqc_census_v2_discovery::history::run_pair_history;
 use std::{env, error::Error, fs, path::PathBuf};
 
-fn parse_args() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf, PathBuf), Box<dyn Error>> {
+struct Args {
+    providers: PathBuf,
+    current: PathBuf,
+    boundary: PathBuf,
+    store: PathBuf,
+    out: PathBuf,
+}
+
+fn parse_args() -> Result<Args, Box<dyn Error>> {
     let mut providers = None;
     let mut current = None;
     let mut boundary = None;
@@ -21,22 +29,27 @@ fn parse_args() -> Result<(PathBuf, PathBuf, PathBuf, PathBuf, PathBuf), Box<dyn
             _ => return Err(format!("unknown argument {flag}").into()),
         }
     }
-    Ok((
-        providers.ok_or("--providers is required")?,
-        current.ok_or("--current is required")?,
-        boundary.ok_or("--boundary is required")?,
-        store.ok_or("--store is required")?,
-        out.ok_or("--out is required")?,
-    ))
+    Ok(Args {
+        providers: providers.ok_or("--providers is required")?,
+        current: current.ok_or("--current is required")?,
+        boundary: boundary.ok_or("--boundary is required")?,
+        store: store.ok_or("--store is required")?,
+        out: out.ok_or("--out is required")?,
+    })
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (providers, current, boundary, store, out) = parse_args()?;
-    let report = run_pair_history(&providers, &current, &boundary, &store)?;
-    if let Some(parent) = out.parent() {
+    let args = parse_args()?;
+    let report = run_pair_history(
+        &args.providers,
+        &args.current,
+        &args.boundary,
+        &args.store,
+    )?;
+    if let Some(parent) = args.out.parent() {
         fs::create_dir_all(parent)?;
     }
-    fs::write(&out, report.canonical()?)?;
+    fs::write(&args.out, report.canonical()?)?;
     let summary = report.get("summary").ok_or("history summary missing")?;
     let count = summary
         .get("event_count")
