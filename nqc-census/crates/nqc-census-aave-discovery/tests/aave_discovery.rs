@@ -353,6 +353,9 @@ fn drop_without_initialization_fails_closed() -> TestResult {
 fn conflicting_second_initialization_for_same_asset_fails_closed() -> TestResult {
     let first = init(120, 1)?;
     let mut second = init(130, 1)?;
+    second.block_hash = hash(0x7b)?;
+    second.transaction_hash = hash(0x7c)?;
+    second.log_index = 77;
     second.a_token = address(0x7a)?;
     let result = reconcile(
         &admission()?,
