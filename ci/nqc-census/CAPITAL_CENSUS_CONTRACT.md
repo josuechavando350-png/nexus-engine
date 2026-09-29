@@ -144,7 +144,7 @@ At minimum:
 
 - source identity is deterministic and collision-resistant across chain/provider/asset/class
 - same bytes under different capital classes do not alias
-- zero and overflow amount/cap edge cases fail correctly; public enum/struct construction cannot bypass the same fee, ratio, repayment-deadline, collateral, utilization, or temporary-lock validations enforced by canonical decode
+- zero and overflow amount/cap edge cases fail correctly; public enum/struct construction cannot bypass the same fee, ratio, repayment-deadline, collateral, utilization, temporary-lock, or nonzero-evidence validations enforced by canonical decode
 - atomic source cannot silently become persistent debt
 - persistent debt cannot pass without collateral/solvency semantics
 - collateral and temporary-lock dependencies are aggregated across all distinct sources used by one candidate; one declared leg cannot be reused to satisfy multiple source dependencies
