@@ -20,6 +20,9 @@ pub enum CapitalImportRejectionReason {
     StateNotReconstructable,
     TokenExecutionCompatibilityBlocked,
     FlashLoanDisabled,
+    ReserveInactiveOrPaused,
+    V2LiquidityUnavailable,
+    FeeSemanticsUnsupported,
     FlashSwapReserveUnavailable,
 }
 
@@ -30,6 +33,9 @@ impl CapitalImportRejectionReason {
             Self::StateNotReconstructable => "STATE_NOT_RECONSTRUCTABLE",
             Self::TokenExecutionCompatibilityBlocked => "TOKEN_EXECUTION_COMPATIBILITY_BLOCKED",
             Self::FlashLoanDisabled => "FLASH_LOAN_DISABLED",
+            Self::ReserveInactiveOrPaused => "RESERVE_INACTIVE_OR_PAUSED",
+            Self::V2LiquidityUnavailable => "V2_LIQUIDITY_UNAVAILABLE",
+            Self::FeeSemanticsUnsupported => "FEE_SEMANTICS_UNSUPPORTED",
             Self::FlashSwapReserveUnavailable => "FLASH_SWAP_RESERVE_UNAVAILABLE",
         }
     }
@@ -102,6 +108,15 @@ fn bool_field(row: &Json, key: &'static str) -> Result<bool, CapitalError> {
         .ok_or(CapitalError::InvalidCanonical("D08 field is not boolean"))
 }
 
+fn u64_field(row: &Json, key: &'static str) -> Result<u64, CapitalError> {
+    field(row, key)?
+        .as_i64()
+        .and_then(|value| u64::try_from(value).ok())
+        .ok_or(CapitalError::InvalidCanonical(
+            "D08 field is not a nonnegative integer",
+        ))
+}
+
 fn array<'a>(row: &'a Json, key: &'static str) -> Result<&'a [Json], CapitalError> {
     field(row, key)?
         .as_array()
@@ -130,7 +145,21 @@ fn token_compatibility(bytes: &[u8]) -> Result<BTreeMap<Address, bool>, CapitalE
         let token = Address::parse_hex(text(&row, "token")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid D08 token address"))?;
         let execution = field(&row, "execution_compatibility")?;
-        let compatible = text(execution, "status")? == "PROVEN_COMPATIBLE";
+        let blockers = array(execution, "blockers")?;
+        let compatible = match text(execution, "status")? {
+            "PROVEN_COMPATIBLE" if blockers.is_empty() => true,
+            "BLOCKED" if !blockers.is_empty() => false,
+            "PROVEN_COMPATIBLE" | "BLOCKED" => {
+                return Err(CapitalError::InvalidCanonical(
+                    "D08 token compatibility status contradicts blockers",
+                ))
+            }
+            _ => {
+                return Err(CapitalError::InvalidCanonical(
+                    "unknown D08 token compatibility status",
+                ))
+            }
+        };
         if tokens.insert(token, compatible).is_some() {
             return Err(CapitalError::InvalidCanonical(
                 "duplicate D08 token admission",
@@ -245,6 +274,11 @@ pub fn import_d08_capital_sources(
     let mut candidate_keys = BTreeSet::new();
 
     for row in parse_jsonl(state_manifest_jsonl)? {
+        if u64_field(&row, "schema_version")? != 1 {
+            return Err(CapitalError::InvalidCanonical(
+                "unsupported D08 market-state schema",
+            ));
+        }
         let protocol = text(&row, "protocol")?;
         let market_id = text(&row, "market_id")?.to_owned();
         match protocol {
@@ -292,6 +326,17 @@ pub fn import_d08_capital_sources(
                 }
 
                 let facts = field(&row, "protocol_facts")?;
+                if !bool_field(facts, "active")? || bool_field(facts, "paused")? {
+                    push_rejection(
+                        &mut rejections,
+                        &mut outcomes,
+                        protocol,
+                        &market_id,
+                        asset,
+                        CapitalImportRejectionReason::ReserveInactiveOrPaused,
+                    );
+                    continue;
+                }
                 if !bool_field(facts, "flash_loan_enabled")? {
                     push_rejection(
                         &mut rejections,
@@ -348,6 +393,48 @@ pub fn import_d08_capital_sources(
                             &market_id,
                             asset,
                             CapitalImportRejectionReason::StateNotReconstructable,
+                        );
+                    }
+                    continue;
+                }
+                let fee = field(&row, "fee_semantics")?;
+                if u64_field(fee, "swap_fee_bps")? != 30
+                    || text(fee, "basis")?
+                        != "EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME"
+                {
+                    for token in [token0, token1] {
+                        let asset = CapitalAsset::Token(token);
+                        if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
+                            return Err(CapitalError::InvalidCanonical(
+                                "duplicate D08 capital source candidate",
+                            ));
+                        }
+                        push_rejection(
+                            &mut rejections,
+                            &mut outcomes,
+                            protocol,
+                            &market_id,
+                            asset,
+                            CapitalImportRejectionReason::FeeSemanticsUnsupported,
+                        );
+                    }
+                    continue;
+                }
+                if text(&row, "liquidity_state")? != "LIQUID" {
+                    for token in [token0, token1] {
+                        let asset = CapitalAsset::Token(token);
+                        if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
+                            return Err(CapitalError::InvalidCanonical(
+                                "duplicate D08 capital source candidate",
+                            ));
+                        }
+                        push_rejection(
+                            &mut rejections,
+                            &mut outcomes,
+                            protocol,
+                            &market_id,
+                            asset,
+                            CapitalImportRejectionReason::V2LiquidityUnavailable,
                         );
                     }
                     continue;

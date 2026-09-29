@@ -281,3 +281,83 @@ fn d08_import_rejects_duplicate_capital_candidates() -> TestResult {
     );
     Ok(())
 }
+
+
+#[test]
+fn current_d08_blocked_token_semantics_admit_no_capital_source() -> TestResult {
+    let asset = address(20);
+    let tokens = format!(
+        "{{\"behavior\":{{\"fee_on_transfer\":\"UNPROVEN\",\"rebasing\":\"UNPROVEN\",\"transfer_hooks\":\"UNPROVEN\",\"upgradeable\":\"UNPROVEN\"}},\"execution_compatibility\":{{\"blockers\":[\"FEE_ON_TRANSFER_UNPROVEN\",\"REBASING_UNPROVEN\",\"TRANSFER_HOOKS_UNPROVEN\",\"UPGRADEABLE_UNPROVEN\"],\"status\":\"BLOCKED\"}},\"token\":\"{}\"}}\n",
+        asset.to_hex()
+    );
+    let states = format!(
+        "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+        asset.to_hex()
+    );
+    let imported = import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &context())?;
+    assert!(imported.sources.is_empty());
+    assert_eq!(imported.rejected_count, 1);
+    assert_eq!(
+        imported.rejections[0].reason,
+        CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked
+    );
+    assert!(imported.is_conserved());
+    Ok(())
+}
+
+#[test]
+fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
+    let token0 = address(30);
+    let token1 = address(31);
+    let pair = address(32);
+    let tokens = format!("{}\n{}\n", token_row(token0, true), token_row(token1, true));
+    let bad_fee = format!(
+        "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":25}},\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n",
+        pair.to_hex(), token0.to_hex(), token1.to_hex()
+    );
+    let fee_import =
+        import_d08_capital_sources(bad_fee.as_bytes(), tokens.as_bytes(), &context())?;
+    assert_eq!(fee_import.sources.len(), 0);
+    assert_eq!(fee_import.rejected_count, 2);
+    assert!(fee_import
+        .rejections
+        .iter()
+        .all(|row| row.reason == CapitalImportRejectionReason::FeeSemanticsUnsupported));
+
+    let no_liquidity = bad_fee.replace(
+        "\"swap_fee_bps\":25",
+        "\"swap_fee_bps\":30",
+    ).replace(
+        "\"liquidity_state\":\"LIQUID\"",
+        "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
+    );
+    let liquidity_import =
+        import_d08_capital_sources(no_liquidity.as_bytes(), tokens.as_bytes(), &context())?;
+    assert_eq!(liquidity_import.sources.len(), 0);
+    assert_eq!(liquidity_import.rejected_count, 2);
+    assert!(liquidity_import
+        .rejections
+        .iter()
+        .all(|row| row.reason == CapitalImportRejectionReason::V2LiquidityUnavailable));
+    Ok(())
+}
+
+#[test]
+fn d08_import_rejects_inactive_or_paused_aave_reserve() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    for (active, paused) in [(false, false), (true, true)] {
+        let states = format!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":{},\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":{}}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+            asset.to_hex(), active, paused
+        );
+        let imported =
+            import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &context())?;
+        assert_eq!(imported.sources.len(), 0);
+        assert_eq!(
+            imported.rejections[0].reason,
+            CapitalImportRejectionReason::ReserveInactiveOrPaused
+        );
+    }
+    Ok(())
+}
