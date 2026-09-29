@@ -399,7 +399,14 @@ fn parse_authority_lock_anchor(value: &Json) -> Result<StateAnchor, CapitalError
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UpstreamReplayVerification {
+    pub d08_candidate_count: usize,
     pub d08_source_count: usize,
+    pub d08_rejected_count: usize,
+    pub d09_borrower_count: usize,
+    pub d09_below_one_count: usize,
+    pub d09_not_below_one_count: usize,
+    pub d09_unavailable_count: usize,
+    pub d09_blocked_count: usize,
     pub d09_requirement_count: usize,
     pub d08_receipt: UpstreamConsumptionReceipt,
     pub d09_receipt: UpstreamConsumptionReceipt,
@@ -491,7 +498,14 @@ pub fn verify_upstream_consumption_by_replay(
     }
 
     Ok(UpstreamReplayVerification {
+        d08_candidate_count: d08_import.candidate_count,
         d08_source_count: d08_import.sources.len(),
+        d08_rejected_count: d08_import.rejected_count,
+        d09_borrower_count: d09_import.borrower_count,
+        d09_below_one_count: d09_import.below_one_count,
+        d09_not_below_one_count: d09_import.not_below_one_count,
+        d09_unavailable_count: d09_import.unavailable_count,
+        d09_blocked_count: d09_import.blocked_count,
         d09_requirement_count: d09_import.requirements_certified,
         d08_receipt,
         d09_receipt,
@@ -515,7 +529,14 @@ pub struct RealSourceCloseout {
     pub requirement_count: usize,
     pub feasible_count: usize,
     pub rejected_count: usize,
+    pub d08_candidate_count: usize,
     pub d08_source_count: usize,
+    pub d08_rejected_count: usize,
+    pub d09_borrower_count: usize,
+    pub d09_below_one_count: usize,
+    pub d09_not_below_one_count: usize,
+    pub d09_unavailable_count: usize,
+    pub d09_blocked_count: usize,
     pub d09_requirement_count: usize,
     pub d08_authority_artifact_sha256: Hash32,
     pub d08_coverage_commitment: Hash32,
@@ -568,8 +589,36 @@ impl RealSourceCloseout {
                 Json::uint(closeout_count(self.rejected_count)?),
             ),
             (
+                "d08_candidate_count",
+                Json::uint(closeout_count(self.d08_candidate_count)?),
+            ),
+            (
                 "d08_source_count",
                 Json::uint(closeout_count(self.d08_source_count)?),
+            ),
+            (
+                "d08_rejected_count",
+                Json::uint(closeout_count(self.d08_rejected_count)?),
+            ),
+            (
+                "d09_borrower_count",
+                Json::uint(closeout_count(self.d09_borrower_count)?),
+            ),
+            (
+                "d09_below_one_count",
+                Json::uint(closeout_count(self.d09_below_one_count)?),
+            ),
+            (
+                "d09_not_below_one_count",
+                Json::uint(closeout_count(self.d09_not_below_one_count)?),
+            ),
+            (
+                "d09_unavailable_count",
+                Json::uint(closeout_count(self.d09_unavailable_count)?),
+            ),
+            (
+                "d09_blocked_count",
+                Json::uint(closeout_count(self.d09_blocked_count)?),
             ),
             (
                 "d09_requirement_count",
@@ -750,7 +799,14 @@ pub fn verify_real_source_closeout_for_code(
         requirement_count: verified.capital.requirement_count,
         feasible_count: verified.capital.feasible_count,
         rejected_count: verified.capital.rejection_count,
+        d08_candidate_count: verified.upstream.d08_candidate_count,
         d08_source_count: verified.upstream.d08_source_count,
+        d08_rejected_count: verified.upstream.d08_rejected_count,
+        d09_borrower_count: verified.upstream.d09_borrower_count,
+        d09_below_one_count: verified.upstream.d09_below_one_count,
+        d09_not_below_one_count: verified.upstream.d09_not_below_one_count,
+        d09_unavailable_count: verified.upstream.d09_unavailable_count,
+        d09_blocked_count: verified.upstream.d09_blocked_count,
         d09_requirement_count: verified.upstream.d09_requirement_count,
         d08_authority_artifact_sha256: verified
             .upstream
