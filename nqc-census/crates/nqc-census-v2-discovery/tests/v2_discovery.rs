@@ -13,11 +13,17 @@ use nqc_census_v2_discovery::{
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
 fn hash(byte: u8) -> Hash32 {
-    Hash32::new([byte; 32]).expect("nonzero test hash")
+    match Hash32::new([byte; 32]) {
+        Ok(value) => value,
+        Err(error) => unreachable!("test hash helper received zero byte: {error}"),
+    }
 }
 
 fn address(byte: u8) -> Address {
-    Address::new([byte; 20]).expect("nonzero test address")
+    match Address::new([byte; 20]) {
+        Ok(value) => value,
+        Err(error) => unreachable!("test address helper received zero byte: {error}"),
+    }
 }
 
 fn admission() -> Result<nqc_census_core::AdmissionRecord, Box<dyn std::error::Error>> {
