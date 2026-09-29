@@ -13,7 +13,7 @@ use nqc_census_core::{
 use sha2::{Digest, Sha256};
 use std::{
     cmp::Ordering,
-    collections::{BTreeMap, BTreeSet},
+    collections::{BTreeMap, BTreeSet, VecDeque},
     fmt::{Display, Formatter},
 };
 
@@ -168,6 +168,7 @@ pub struct Amount256([u8; 32]);
 
 impl Amount256 {
     pub const ZERO: Self = Self([0; 32]);
+    pub const MAX: Self = Self([0xff; 32]);
 
     pub const fn from_be_bytes(bytes: [u8; 32]) -> Self {
         Self(bytes)
@@ -1675,6 +1676,7 @@ pub enum FeasibilityRejection {
     RepaymentRequirementMissing,
     CollateralRequirementUnfunded,
     TemporaryLockUnfunded,
+    AllocationInvariantViolation,
 }
 
 impl FeasibilityRejection {
@@ -1689,6 +1691,7 @@ impl FeasibilityRejection {
             Self::RepaymentRequirementMissing => "REPAYMENT_REQUIREMENT_MISSING",
             Self::CollateralRequirementUnfunded => "COLLATERAL_REQUIREMENT_UNFUNDED",
             Self::TemporaryLockUnfunded => "TEMPORARY_LOCK_UNFUNDED",
+            Self::AllocationInvariantViolation => "ALLOCATION_INVARIANT_VIOLATION",
         }
     }
 
@@ -1703,6 +1706,7 @@ impl FeasibilityRejection {
             Self::RepaymentRequirementMissing => 7,
             Self::CollateralRequirementUnfunded => 8,
             Self::TemporaryLockUnfunded => 9,
+            Self::AllocationInvariantViolation => 10,
         }
     }
 }
@@ -1841,104 +1845,336 @@ fn add_obligation(
     Ok(())
 }
 
-pub fn evaluate_capital_feasibility(
+#[derive(Debug, Clone)]
+struct ResidualEdge {
+    to: usize,
+    reverse: usize,
+    capacity: Amount256,
+}
+
+#[derive(Debug)]
+struct FundingSolution {
+    allocations: Vec<SourceAllocation>,
+    unmet_leg: Option<(usize, Amount256)>,
+}
+
+fn add_residual_edge(
+    graph: &mut [Vec<ResidualEdge>],
+    from: usize,
+    to: usize,
+    capacity: Amount256,
+) -> usize {
+    let forward = graph[from].len();
+    let reverse = graph[to].len();
+    graph[from].push(ResidualEdge {
+        to,
+        reverse,
+        capacity,
+    });
+    graph[to].push(ResidualEdge {
+        to: from,
+        reverse: forward,
+        capacity: Amount256::ZERO,
+    });
+    forward
+}
+
+fn source_can_fund_leg(
+    requirement: &CapitalRequirement,
+    source: &CapitalSource,
+    leg: &CapitalRequirementLeg,
+    allow_operator_owned: bool,
+    require_anchor: bool,
+    require_atomicity: bool,
+) -> bool {
+    if source.asset() != leg.asset() || !leg.allowed_classes().contains(&source.class()) {
+        return false;
+    }
+    if require_anchor && source.anchor() != requirement.anchor() {
+        return false;
+    }
+    if require_atomicity && !requirement.atomicity().accepts(source.repayment()) {
+        return false;
+    }
+    if !allow_operator_owned && source.provider_kind().is_operator_owned() {
+        return false;
+    }
+
+    // Collateral and lock funding must come from a source that does not recursively
+    // require the same kind of pre-funded resource. This deliberately fails closed
+    // instead of accepting circular capital dependencies.
+    if leg.kind() == RequirementKind::Collateral
+        && !matches!(source.collateral(), CollateralRequirement::None)
+    {
+        return false;
+    }
+    if leg.kind() == RequirementKind::TemporaryLock
+        && !matches!(source.temporary_lock(), TemporaryLock::None)
+    {
+        return false;
+    }
+    true
+}
+
+fn run_residual_flow(
+    graph: &mut [Vec<ResidualEdge>],
+    source: usize,
+    sink: usize,
+) -> Result<(), CapitalError> {
+    loop {
+        let mut parent = vec![None::<(usize, usize)>; graph.len()];
+        let mut visited = vec![false; graph.len()];
+        let mut queue = VecDeque::new();
+        visited[source] = true;
+        queue.push_back(source);
+
+        while let Some(node) = queue.pop_front() {
+            if node == sink {
+                break;
+            }
+            for (edge_index, edge) in graph[node].iter().enumerate() {
+                if edge.capacity.is_zero() || visited[edge.to] {
+                    continue;
+                }
+                visited[edge.to] = true;
+                parent[edge.to] = Some((node, edge_index));
+                queue.push_back(edge.to);
+                if edge.to == sink {
+                    break;
+                }
+            }
+        }
+
+        if !visited[sink] {
+            return Ok(());
+        }
+
+        let mut bottleneck = Amount256::MAX;
+        let mut node = sink;
+        while node != source {
+            let (previous, edge_index) = parent[node].ok_or(CapitalError::InvalidCanonical(
+                "residual flow path lacks predecessor",
+            ))?;
+            bottleneck = bottleneck.min(graph[previous][edge_index].capacity);
+            node = previous;
+        }
+        if bottleneck.is_zero() {
+            return Err(CapitalError::InvalidCanonical(
+                "residual flow produced zero bottleneck",
+            ));
+        }
+
+        node = sink;
+        while node != source {
+            let (previous, edge_index) = parent[node].ok_or(CapitalError::InvalidCanonical(
+                "residual flow update lacks predecessor",
+            ))?;
+            let (to, reverse, forward_capacity) = {
+                let edge = &graph[previous][edge_index];
+                (edge.to, edge.reverse, edge.capacity)
+            };
+            if to != node {
+                return Err(CapitalError::InvalidCanonical(
+                    "residual flow predecessor points to another node",
+                ));
+            }
+            graph[previous][edge_index].capacity = forward_capacity.checked_sub(bottleneck)?;
+            let reverse_capacity = graph[to][reverse].capacity.checked_add(bottleneck)?;
+            graph[to][reverse].capacity = reverse_capacity;
+            node = previous;
+        }
+    }
+}
+
+fn solve_funding(
     requirement: &CapitalRequirement,
     sources: &[CapitalSource],
-) -> CapitalFeasibility {
-    if sources
+) -> Result<FundingSolution, CapitalError> {
+    let mut ordered = sources.iter().collect::<Vec<_>>();
+    ordered.sort_by_key(|source| source.id());
+
+    let funding_legs = requirement
+        .legs()
         .iter()
-        .any(|source| source.anchor() != requirement.anchor())
-    {
-        let same_anchor_exists = sources
-            .iter()
-            .any(|source| source.anchor() == requirement.anchor());
-        if !same_anchor_exists {
-            return rejected(requirement, FeasibilityRejection::AnchorMismatch, None);
+        .enumerate()
+        .filter(|(_, leg)| {
+            !matches!(
+                leg.kind(),
+                RequirementKind::Repayment | RequirementKind::FundingFee
+            )
+        })
+        .collect::<Vec<_>>();
+
+    if funding_legs.is_empty() {
+        return Ok(FundingSolution {
+            allocations: Vec::new(),
+            unmet_leg: None,
+        });
+    }
+
+    let source_count = ordered.len();
+    let leg_count = funding_legs.len();
+    let source_node = |index: usize| 1 + index;
+    let leg_node = |index: usize| 1 + source_count + index;
+    let super_source = 0_usize;
+    let sink = 1 + source_count + leg_count;
+    let mut graph = vec![Vec::<ResidualEdge>::new(); sink + 1];
+    let mut source_leg_edges = vec![vec![None::<usize>; leg_count]; source_count];
+    let mut leg_sink_edges = Vec::with_capacity(leg_count);
+
+    for (source_index, source) in ordered.iter().enumerate() {
+        if source.provider_kind().is_operator_owned() || source.anchor() != requirement.anchor() {
+            continue;
+        }
+        let capacity = source.effective_capacity()?;
+        if capacity.is_zero() {
+            continue;
+        }
+        add_residual_edge(
+            &mut graph,
+            super_source,
+            source_node(source_index),
+            capacity,
+        );
+
+        for (leg_index, (_, leg)) in funding_legs.iter().enumerate() {
+            if !source_can_fund_leg(requirement, source, leg, false, true, true) {
+                continue;
+            }
+            let edge_capacity = capacity.min(leg.amount());
+            if edge_capacity.is_zero() {
+                continue;
+            }
+            source_leg_edges[source_index][leg_index] = Some(add_residual_edge(
+                &mut graph,
+                source_node(source_index),
+                leg_node(leg_index),
+                edge_capacity,
+            ));
         }
     }
 
-    let mut ordered = sources.iter().collect::<Vec<_>>();
-    ordered.sort_by_key(|source| source.id());
-    let mut remaining = ordered
-        .iter()
-        .map(|source| source.effective_capacity().unwrap_or(Amount256::ZERO))
-        .collect::<Vec<_>>();
-    let mut allocations = Vec::new();
-    let mut used_sources = BTreeSet::new();
+    for (leg_index, (_, leg)) in funding_legs.iter().enumerate() {
+        let edge_index = add_residual_edge(
+            &mut graph,
+            leg_node(leg_index),
+            sink,
+            leg.amount(),
+        );
+        leg_sink_edges.push(edge_index);
+    }
 
-    for leg in requirement.legs() {
-        if matches!(
-            leg.kind(),
-            RequirementKind::Repayment | RequirementKind::FundingFee
-        ) {
-            continue;
-        }
-        let mut need = leg.amount();
-        let mut any_asset_class = false;
-        let mut any_atomic = false;
-        let mut compatible_foreign_anchor = false;
-        let mut operator_owned_capacity = Amount256::ZERO;
-        for (index, source) in ordered.iter().enumerate() {
-            if source.asset() != leg.asset() || !leg.allowed_classes().contains(&source.class()) {
+    run_residual_flow(&mut graph, super_source, sink)?;
+
+    let mut allocations = Vec::new();
+    for (leg_index, (_, leg)) in funding_legs.iter().enumerate() {
+        for (source_index, source) in ordered.iter().enumerate() {
+            let Some(edge_index) = source_leg_edges[source_index][leg_index] else {
+                continue;
+            };
+            let forward = &graph[source_node(source_index)][edge_index];
+            let flow = graph[forward.to][forward.reverse].capacity;
+            if flow.is_zero() {
                 continue;
             }
-            if source.anchor() != requirement.anchor() {
-                compatible_foreign_anchor = true;
-                continue;
-            }
-            any_asset_class = true;
-            if !requirement.atomicity().accepts(source.repayment()) {
-                continue;
-            }
-            any_atomic = true;
-            if source.provider_kind().is_operator_owned() {
-                operator_owned_capacity = operator_owned_capacity
-                    .checked_add(remaining[index])
-                    .unwrap_or(Amount256::from_be_bytes([0xff; 32]));
-                continue;
-            }
-            if remaining[index].is_zero() {
-                continue;
-            }
-            let take = remaining[index].min(need);
-            if take.is_zero() {
-                continue;
-            }
-            remaining[index] = remaining[index]
-                .checked_sub(take)
-                .unwrap_or(Amount256::ZERO);
-            need = need.checked_sub(take).unwrap_or(Amount256::ZERO);
             allocations.push(SourceAllocation {
                 source_id: source.id(),
                 leg_kind: leg.kind(),
-                amount: take,
+                amount: flow,
             });
-            used_sources.insert(index);
-            if need.is_zero() {
-                break;
-            }
-        }
-
-        if !need.is_zero() {
-            let reason = if operator_owned_capacity >= need {
-                FeasibilityRejection::OperatorOwnedCapitalRequired
-            } else if !any_asset_class && compatible_foreign_anchor {
-                FeasibilityRejection::AnchorMismatch
-            } else if leg.kind() == RequirementKind::Gas {
-                FeasibilityRejection::MissingGasFunding
-            } else if any_asset_class && !any_atomic {
-                FeasibilityRejection::AtomicityMismatch
-            } else if any_asset_class {
-                FeasibilityRejection::InsufficientCapacity
-            } else {
-                FeasibilityRejection::NoCompatibleSource
-            };
-            return rejected(requirement, reason, Some(leg.kind()));
         }
     }
 
-    for index in used_sources {
-        let source = ordered[index];
+    let unmet_leg = funding_legs
+        .iter()
+        .enumerate()
+        .find_map(|(leg_index, (requirement_index, _))| {
+            let remaining = graph[leg_node(leg_index)][leg_sink_edges[leg_index]].capacity;
+            (!remaining.is_zero()).then_some((*requirement_index, remaining))
+        });
+
+    Ok(FundingSolution {
+        allocations,
+        unmet_leg,
+    })
+}
+
+fn classify_unmet_leg(
+    requirement: &CapitalRequirement,
+    leg: &CapitalRequirementLeg,
+    unmet: Amount256,
+    sources: &[CapitalSource],
+) -> Result<FeasibilityRejection, CapitalError> {
+    let mut same_anchor_class = false;
+    let mut same_anchor_atomic = false;
+    let mut foreign_anchor = false;
+    let mut operator_capacity = Amount256::ZERO;
+
+    for source in sources {
+        if !source_can_fund_leg(requirement, source, leg, true, false, false) {
+            continue;
+        }
+        if source.anchor() != requirement.anchor() {
+            foreign_anchor = true;
+            continue;
+        }
+        same_anchor_class = true;
+        if !requirement.atomicity().accepts(source.repayment()) {
+            continue;
+        }
+        same_anchor_atomic = true;
+        if source.provider_kind().is_operator_owned() {
+            operator_capacity = operator_capacity
+                .checked_add(source.effective_capacity()?)
+                .unwrap_or(Amount256::MAX);
+        }
+    }
+
+    if operator_capacity >= unmet {
+        return Ok(FeasibilityRejection::OperatorOwnedCapitalRequired);
+    }
+    if !same_anchor_class && foreign_anchor {
+        return Ok(FeasibilityRejection::AnchorMismatch);
+    }
+    if leg.kind() == RequirementKind::Gas {
+        return Ok(FeasibilityRejection::MissingGasFunding);
+    }
+    if same_anchor_class && !same_anchor_atomic {
+        return Ok(FeasibilityRejection::AtomicityMismatch);
+    }
+    if same_anchor_atomic {
+        return Ok(FeasibilityRejection::InsufficientCapacity);
+    }
+    Ok(FeasibilityRejection::NoCompatibleSource)
+}
+
+pub fn evaluate_capital_feasibility_checked(
+    requirement: &CapitalRequirement,
+    sources: &[CapitalSource],
+) -> Result<CapitalFeasibility, CapitalError> {
+    let solution = solve_funding(requirement, sources)?;
+    if let Some((leg_index, unmet)) = solution.unmet_leg {
+        let leg = requirement
+            .legs()
+            .get(leg_index)
+            .ok_or(CapitalError::InvalidCanonical(
+                "funding solution references missing requirement leg",
+            ))?;
+        let reason = classify_unmet_leg(requirement, leg, unmet, sources)?;
+        return Ok(rejected(requirement, reason, Some(leg.kind())));
+    }
+
+    let allocations = solution.allocations;
+    let used_source_ids = allocations
+        .iter()
+        .map(|allocation| allocation.source_id)
+        .collect::<BTreeSet<_>>();
+
+    for source_id in used_source_ids {
+        let source = sources
+            .iter()
+            .find(|source| source.id() == source_id)
+            .ok_or(CapitalError::MissingSourceForAllocation)?;
         if !matches!(
             source.repayment(),
             RepaymentSemantics::Persistent(_) | RepaymentSemantics::NoRepayment
@@ -1947,36 +2183,49 @@ pub fn evaluate_capital_feasibility(
             RequirementKind::Repayment,
             source.repayment_asset(),
         ) {
-            return rejected(
+            return Ok(rejected(
                 requirement,
                 FeasibilityRejection::RepaymentRequirementMissing,
                 Some(RequirementKind::Repayment),
-            );
+            ));
         }
         if let CollateralRequirement::Required { asset, amount, .. } = source.collateral() {
             if !has_sufficient_leg(requirement, RequirementKind::Collateral, asset, amount) {
-                return rejected(
+                return Ok(rejected(
                     requirement,
                     FeasibilityRejection::CollateralRequirementUnfunded,
                     Some(RequirementKind::Collateral),
-                );
+                ));
             }
         }
         if let TemporaryLock::Required { asset, amount, .. } = source.temporary_lock() {
             if !has_sufficient_leg(requirement, RequirementKind::TemporaryLock, asset, amount) {
-                return rejected(
+                return Ok(rejected(
                     requirement,
                     FeasibilityRejection::TemporaryLockUnfunded,
                     Some(RequirementKind::TemporaryLock),
-                );
+                ));
             }
         }
     }
 
-    CapitalFeasibility::Feasible {
+    Ok(CapitalFeasibility::Feasible {
         requirement_id: requirement.id(),
         allocations,
-    }
+    })
+}
+
+pub fn evaluate_capital_feasibility(
+    requirement: &CapitalRequirement,
+    sources: &[CapitalSource],
+) -> CapitalFeasibility {
+    evaluate_capital_feasibility_checked(requirement, sources).unwrap_or_else(|_| {
+        rejected(
+            requirement,
+            FeasibilityRejection::AllocationInvariantViolation,
+            None,
+        )
+    })
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -2260,7 +2509,7 @@ impl CapitalCensusLedger {
         self.results.clear();
         let sources = self.sources.values().cloned().collect::<Vec<_>>();
         for requirement in self.requirements.values() {
-            let result = evaluate_capital_feasibility(requirement, &sources);
+            let result = evaluate_capital_feasibility_checked(requirement, &sources)?;
             self.results.insert(requirement.id(), result);
         }
         self.validate_allocations()

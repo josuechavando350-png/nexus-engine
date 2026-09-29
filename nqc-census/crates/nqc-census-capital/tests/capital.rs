@@ -1374,3 +1374,127 @@ fn collateralized_borrowing_can_bind_full_persistent_risk_semantics() -> TestRes
     ));
     Ok(())
 }
+
+
+#[test]
+fn allocation_engine_reroutes_scarce_source_instead_of_greedy_false_negative() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let flash_swap = source(
+        CapitalClass::FlashSwap,
+        token,
+        100,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let atomic = source(
+        CapitalClass::AtomicFlashLiquidity,
+        token,
+        100,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    let (scarce_class, other_class) = if flash_swap.id() < atomic.id() {
+        (CapitalClass::FlashSwap, CapitalClass::AtomicFlashLiquidity)
+    } else {
+        (CapitalClass::AtomicFlashLiquidity, CapitalClass::FlashSwap)
+    };
+
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(70)),
+        anchor(100),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![scarce_class, other_class],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::ProtocolFee,
+                token,
+                Amount256::from_u128(100),
+                vec![scarce_class],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(200),
+                vec![scarce_class, other_class],
+            )?,
+        ],
+        evidence(),
+    )?;
+
+    let result = nqc_census_capital::evaluate_capital_feasibility_checked(
+        &requirement,
+        &[flash_swap, atomic],
+    )?;
+    assert!(matches!(result, CapitalFeasibility::Feasible { .. }));
+    Ok(())
+}
+
+#[test]
+fn collateral_requirement_cannot_be_funded_circularly_by_collateralized_source() -> TestResult {
+    let borrowed = CapitalAsset::Token(address(20));
+    let collateral_asset = CapitalAsset::Token(address(21));
+    let terms = PersistentDebtTerms {
+        interest_model_hash: hash(41),
+        liquidation_model_hash: hash(42),
+        solvency_model_hash: hash(43),
+        oracle_risk_hash: hash(44),
+        liquidity_withdrawal_risk_hash: hash(45),
+        facility_disappearance_risk_hash: hash(46),
+    };
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::CollateralizedBorrowing,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        source_contract: Some(address(13)),
+        asset: collateral_asset,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: borrowed,
+        repayment: RepaymentSemantics::Persistent(terms),
+        collateral: CollateralRequirement::Required {
+            asset: collateral_asset,
+            amount: Amount256::from_u128(100),
+            liquidation_conditions_hash: hash(47),
+        },
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::CollateralLiquidation,
+            CapitalFailureMode::OracleRisk,
+        ],
+        evidence: evidence(),
+    })?;
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(71)),
+        anchor(100),
+        RequiredAtomicity::Flexible,
+        false,
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::Collateral,
+            collateral_asset,
+            Amount256::from_u128(100),
+            vec![CapitalClass::CollateralizedBorrowing],
+        )?],
+        evidence(),
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::NoCompatibleSource,
+            failed_leg: Some(RequirementKind::Collateral),
+            ..
+        }
+    ));
+    Ok(())
+}
