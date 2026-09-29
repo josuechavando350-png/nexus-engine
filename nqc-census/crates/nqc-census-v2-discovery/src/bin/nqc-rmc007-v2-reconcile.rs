@@ -1,9 +1,16 @@
-//! Offline RMC-007 closeout from the merged store. Needs no network.
+//! Offline RMC-007 closeout. Needs no network.
+//!
+//! Stages come either as records (`--records DIR`) replayed here from one
+//! store holding all their evidence, or as extracts (`--extracts DIR`) each
+//! replayed beforehand from its own store by `nqc-rmc007-v2-replay`; then
+//! `--store` holds the surface evidence only and receives the closeout.
 
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::{ProviderSet, ProviderSpec};
 use nqc_census_store::Store;
-use nqc_census_v2_discovery::closeout::{reconcile_offline, write_closeout, Inputs};
+use nqc_census_v2_discovery::closeout::{
+    reconcile_extracts, reconcile_offline, write_closeout, Inputs,
+};
 use nqc_census_v2_discovery::stage::V2Plan;
 use std::collections::BTreeMap;
 use std::{env, error::Error, fs, path::PathBuf};
@@ -34,18 +41,47 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     let current = Json::parse(&fs::read(one("--current")?)?)?;
     let boundary = Json::parse(&fs::read(one("--boundary")?)?)?;
-    let mut paths: Vec<PathBuf> = fs::read_dir(one("--records")?)?
-        .map(|entry| entry.map(|entry| entry.path()))
-        .collect::<Result<_, _>>()?;
-    paths.sort();
-    let records = paths
-        .iter()
-        .filter(|path| {
-            path.extension()
-                .is_some_and(|extension| extension == "json")
-        })
-        .map(|path| Ok(Json::parse(&fs::read(path)?)?))
-        .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
+    let json_files = |dir: String| -> Result<Vec<Json>, Box<dyn Error>> {
+        let mut paths: Vec<PathBuf> = fs::read_dir(dir)?
+            .map(|entry| entry.map(|entry| entry.path()))
+            .collect::<Result<_, _>>()?;
+        paths.sort();
+        paths
+            .iter()
+            .filter(|path| {
+                path.extension()
+                    .is_some_and(|extension| extension == "json")
+            })
+            .map(|path| Ok(Json::parse(&fs::read(path)?)?))
+            .collect()
+    };
+    let (records, extracts) = match (
+        flags.contains_key("--records"),
+        flags.contains_key("--extracts"),
+    ) {
+        (true, false) => (json_files(one("--records")?)?, None),
+        (false, true) => {
+            let extracts = json_files(one("--extracts")?)?;
+            let records = extracts
+                .iter()
+                .map(|extract| {
+                    extract
+                        .get("record")
+                        .cloned()
+                        .ok_or("extract without record")
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            (records, Some(extracts))
+        }
+        _ => return Err("exactly one of --records and --extracts is required".into()),
+    };
+    let stage_stores = match &extracts {
+        Some(extracts) => extracts
+            .iter()
+            .map(|extract| extract.get("store").cloned().ok_or("extract without store"))
+            .collect::<Result<Vec<_>, _>>()?,
+        None => Vec::new(),
+    };
     let store = Store::open_existing(&PathBuf::from(one("--store")?))?;
     let plan = V2Plan::mainnet()?;
     let inputs = Inputs {
@@ -56,8 +92,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         current: &current,
         boundary: &boundary,
         records: &records,
+        stage_stores: &stage_stores,
     };
-    let (reconciliation, admission, agreement) = reconcile_offline(&inputs)?;
+    let (reconciliation, admission, agreement) = match extracts {
+        Some(extracts) => reconcile_extracts(&inputs, extracts)?,
+        None => reconcile_offline(&inputs)?,
+    };
     let report = write_closeout(
         &inputs,
         &reconciliation,

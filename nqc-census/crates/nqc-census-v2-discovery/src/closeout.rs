@@ -1,10 +1,16 @@
-//! Offline RMC-007 closeout: replay every live report and stage record from
-//! the merged store, reconcile, admit, and write deterministic artifacts.
+//! Offline RMC-007 closeout: replay every live report and stage record,
+//! reconcile, admit, and write deterministic artifacts.
+//!
+//! Stage records are replayed either here, from one store holding every
+//! stage's evidence (`reconcile_offline`), or beforehand, one stage per store,
+//! into extracts (`verify::stage_extract`) that `reconcile_extracts` checks
+//! and binds to the current-surface anchor. Both paths reconcile the same
+//! replayed data with the same checks.
 
 use crate::boundary::factory_boundary_with;
 use crate::live::current_surface_with;
 use crate::stage::{canonical_sha256, V2Plan};
-use crate::verify::{admit, reconcile_surfaces, replay_stage, surfaces};
+use crate::verify::{admit, extract_stages, reconcile_surfaces, replay_stage, surfaces};
 use nqc_census_chain::{
     acquire::Acquisition,
     job::add_manifest_exchanges,
@@ -116,13 +122,13 @@ pub struct Inputs<'a> {
     pub current: &'a Json,
     pub boundary: &'a Json,
     pub records: &'a [Json],
+    /// RMC-004 verification summary of each stage's own store, in record
+    /// order, when stages were replayed one store at a time; empty otherwise.
+    pub stage_stores: &'a [Json],
 }
 
-/// Replays, agrees, reconciles and admits. Fails closed on any provider
-/// mismatch, finding or unexplained delta.
-pub fn reconcile_offline(
-    inputs: &Inputs<'_>,
-) -> Result<(crate::Reconciliation, Json, Json), ChainError> {
+/// Replays the current-surface and boundary reports; returns their manifests.
+fn replay_reports(inputs: &Inputs<'_>) -> Result<Vec<ArtifactId>, ChainError> {
     let surface_specs: Vec<ProviderSpec> = inputs.surface_providers.iter().cloned().collect();
     let current_manifests = report_manifests(inputs.current, &["provider_manifests"])?;
     let replay = replay_transport(inputs.store, &surface_specs, &current_manifests)?;
@@ -147,16 +153,64 @@ pub fn reconcile_offline(
         ));
     }
 
+    Ok(current_manifests
+        .into_iter()
+        .chain(boundary_manifests)
+        .collect())
+}
+
+/// Replays, agrees, reconciles and admits. Fails closed on any provider
+/// mismatch, finding or unexplained delta.
+pub fn reconcile_offline(
+    inputs: &Inputs<'_>,
+) -> Result<(crate::Reconciliation, Json, Json), ChainError> {
+    let report_manifests = replay_reports(inputs)?;
+    let mut stages = Vec::with_capacity(inputs.records.len());
+    for record in inputs.records {
+        let rows = replay_stage(inputs.store, inputs.stage_providers, inputs.plan, record)?;
+        stages.push((record.clone(), rows));
+    }
+    reconcile_stages(inputs, &report_manifests, stages)
+}
+
+/// As `reconcile_offline`, from stages already replayed one store at a time.
+/// `extracts` must be in the order of `inputs.records`, each naming exactly
+/// its record, and every extract must carry the current-surface chain domain
+/// and observation anchor.
+pub fn reconcile_extracts(
+    inputs: &Inputs<'_>,
+    extracts: Vec<Json>,
+) -> Result<(crate::Reconciliation, Json, Json), ChainError> {
+    let report_manifests = replay_reports(inputs)?;
+    let stages = extract_stages(inputs.current, inputs.stage_providers, extracts)?;
+    if stages.len() != inputs.records.len() {
+        return Err(ChainError::Evidence(
+            "extracts and records differ in number".into(),
+        ));
+    }
+    for ((record, _), expected) in stages.iter().zip(inputs.records) {
+        if !record.same_as(expected)? {
+            return Err(ChainError::Evidence(
+                "an extract names another record".into(),
+            ));
+        }
+    }
+    reconcile_stages(inputs, &report_manifests, stages)
+}
+
+fn reconcile_stages(
+    inputs: &Inputs<'_>,
+    report_manifests: &[ArtifactId],
+    stages: Vec<(Json, Vec<Json>)>,
+) -> Result<(crate::Reconciliation, Json, Json), ChainError> {
     let facts = required(inputs.current, "facts")?;
     let pair_count = number(facts, "pair_count")?;
     let first_block = number(inputs.boundary, "first_code_block")?;
-    let mut stages = Vec::with_capacity(inputs.records.len());
     let mut evidence: BTreeSet<EvidenceRef> = BTreeSet::new();
-    for id in current_manifests.iter().chain(&boundary_manifests) {
+    for id in report_manifests {
         evidence.insert(id.evidence_ref()?);
     }
-    for record in inputs.records {
-        let rows = replay_stage(inputs.store, inputs.stage_providers, inputs.plan, record)?;
+    for (record, _) in &stages {
         for id in record
             .get("manifests")
             .and_then(Json::as_array)
@@ -170,9 +224,8 @@ pub fn reconcile_offline(
                 .evidence_ref()?,
             );
         }
-        stages.push((record.clone(), rows));
     }
-    let agreed = surfaces(inputs.plan, pair_count, first_block, &stages)?;
+    let agreed = surfaces(inputs.plan, pair_count, first_block, stages)?;
     let agreement = agreed.agreement.clone();
     let (record, admission_report) = admit(
         inputs.plan.factory,
@@ -294,10 +347,16 @@ pub fn write_closeout(
     let first_block = number(inputs.boundary, "first_code_block")?;
     let mut files: Vec<(String, Vec<u8>)> = Vec::new();
 
+    if !inputs.stage_stores.is_empty() && inputs.stage_stores.len() != inputs.records.len() {
+        return Err(ChainError::Evidence(
+            "stage store summaries do not match the records".into(),
+        ));
+    }
     let stage_rows: Vec<Json> = inputs
         .records
         .iter()
-        .map(|record| {
+        .enumerate()
+        .map(|(position, record)| {
             let parameters = record.get("parameters").cloned().unwrap_or(Json::Null);
             Ok(Json::object([
                 ("stage", Json::string(record.str_field("stage")?)),
@@ -311,6 +370,14 @@ pub fn write_closeout(
                     Json::string(record.str_field("data_sha256")?),
                 ),
                 ("record_sha256", Json::string(canonical_sha256(record)?)),
+                (
+                    "stage_store",
+                    inputs
+                        .stage_stores
+                        .get(position)
+                        .cloned()
+                        .unwrap_or(Json::Null),
+                ),
             ]))
         })
         .collect::<Result<_, ChainError>>()?;

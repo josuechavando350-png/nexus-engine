@@ -11,9 +11,12 @@ use nqc_census_chain::testkit::{Faults, SimChain, SimLog, SimNetwork, SimProvide
 use nqc_census_chain::transport::RetryPolicy;
 use nqc_census_chain::ChainError;
 use nqc_census_core::{Address, CallOutcome, ChainDomain, StateAnchor};
+use nqc_census_store::verify::{verify_store, VerifyRequest};
 use nqc_census_store::{Store, StoreConfig};
 use nqc_census_v2_discovery::stage::{pair_created_stage, pairs_stage, V2Plan};
-use nqc_census_v2_discovery::verify::{admit, reconcile_surfaces, replay_stage, surfaces};
+use nqc_census_v2_discovery::verify::{
+    admit, extract_stages, reconcile_surfaces, replay_stage, stage_extract, surfaces,
+};
 use sha2::{Digest, Sha256};
 use std::error::Error;
 use std::sync::{Arc, Mutex};
@@ -283,7 +286,7 @@ fn verify(
             replay_stage(&run.store, &run.specs, &run.plan, record)?,
         ));
     }
-    let agreed = surfaces(&run.plan, pair_count, CREATION, &stages)?;
+    let agreed = surfaces(&run.plan, pair_count, CREATION, stages)?;
     let (current, boundary) = reports(run)?;
     let (record, _) = admit(
         factory(),
@@ -466,5 +469,159 @@ fn a_gap_between_pair_created_partitions_is_rejected() -> TestResult {
     assert_eq!(removed.0.str_field("stage")?, "PAIR_CREATED");
     let error = verify(&run, PAIRS).err().ok_or("gap accepted")?;
     assert!(error.to_string().contains("gap or overlap"), "{error}");
+    Ok(())
+}
+
+/// Extracts of every record, each replayed from the run's store.
+fn extracts(run: &Run) -> Result<Vec<Json>, Box<dyn Error>> {
+    let report = verify_store(&run.root, &VerifyRequest::default()).map_err(|f| f.to_string())?;
+    let summary = Json::object([
+        ("stage_artifact", Json::string("synthetic")),
+        ("evidence_root", Json::string(report.evidence_root)),
+    ]);
+    let mut out = Vec::new();
+    for (record, _) in &run.records {
+        out.push(stage_extract(
+            &run.store,
+            &run.specs,
+            &run.plan,
+            record,
+            summary.clone(),
+        )?);
+    }
+    Ok(out)
+}
+
+fn with_field(value: &Json, key: &str, replacement: Json) -> Result<Json, Box<dyn Error>> {
+    let members = value.as_object().ok_or("not an object")?;
+    Ok(Json::Object(
+        members
+            .iter()
+            .map(|(name, field)| {
+                let field = if name == key {
+                    replacement.clone()
+                } else {
+                    field.clone()
+                };
+                (name.clone(), field)
+            })
+            .collect(),
+    ))
+}
+
+#[test]
+fn per_store_extracts_reproduce_the_replayed_stages_and_reconcile() -> TestResult {
+    let run = run(&Variant::default(), Faults::default(), &Variant::default())?;
+    let (current, boundary) = reports(&run)?;
+    let stages = extract_stages(&current, &run.specs, extracts(&run)?)?;
+    assert_eq!(stages.len(), run.records.len());
+    for ((record, rows), (expected, _)) in stages.iter().zip(&run.records) {
+        assert!(record.same_as(expected)?);
+        let replayed = replay_stage(&run.store, &run.specs, &run.plan, expected)?;
+        assert_eq!(
+            Json::Array(rows.clone()).canonical()?,
+            Json::Array(replayed).canonical()?
+        );
+    }
+    let agreed = surfaces(&run.plan, PAIRS, CREATION, stages)?;
+    let (record, _) = admit(
+        factory(),
+        &current,
+        &boundary,
+        vec![nqc_census_core::EvidenceRef::Artifact(
+            nqc_census_core::Hash32::new([7; 32])?,
+        )],
+    )?;
+    let (reconciliation, findings) = reconcile_surfaces(&record, agreed)?;
+    assert!(findings.is_empty());
+    assert!(reconciliation.certifiable());
+    assert_eq!(reconciliation.summary.intersection_count, 12);
+    Ok(())
+}
+
+#[test]
+fn a_tampered_or_foreign_extract_is_rejected() -> TestResult {
+    let run = run(&Variant::default(), Faults::default(), &Variant::default())?;
+    let (current, _) = reports(&run)?;
+    let original = extracts(&run)?;
+    let reject = |extracts: Vec<Json>, current: &Json, specs: &[ProviderSpec], needle: &str| {
+        match extract_stages(current, specs, extracts) {
+            Err(error) if error.to_string().contains(needle) => Ok(()),
+            Err(error) => Err(format!("expected {needle}, got {error}")),
+            Ok(_) => Err(format!("accepted, expected {needle}")),
+        }
+    };
+    // A dropped row, even with the extract's own digest rewritten.
+    let pairs = original
+        .iter()
+        .position(|extract| {
+            extract
+                .get("record")
+                .and_then(|record| record.get("stage"))
+                .and_then(Json::as_str)
+                == Some("PAIRS")
+        })
+        .ok_or("no PAIRS extract")?;
+    let rows = original[pairs]
+        .get("rows")
+        .and_then(Json::as_array)
+        .ok_or("rows")?;
+    let fewer = Json::Array(rows[1..].to_vec());
+    let mut tampered = original.clone();
+    tampered[pairs] = with_field(&original[pairs], "rows", fewer)?;
+    reject(tampered, &current, &run.specs, "row count")?;
+    let mut changed = rows.to_vec();
+    changed[0] = with_field(&rows[0], "get_pair", Json::string(address(0xee).to_hex()))?;
+    let digest = nqc_census_v2_discovery::stage::stage_data_sha256(&changed)?;
+    let mut tampered = original.clone();
+    tampered[pairs] = with_field(
+        &with_field(&original[pairs], "rows", Json::Array(changed))?,
+        "data_sha256",
+        Json::string(digest),
+    )?;
+    reject(tampered, &current, &run.specs, "data digest")?;
+    // A record other than the one the extract was made for.
+    let record = original[pairs].get("record").ok_or("record")?;
+    let parameters = record.get("parameters").ok_or("parameters")?;
+    let moved = with_field(
+        record,
+        "parameters",
+        with_field(parameters, "partition", Json::uint(1))?,
+    )?;
+    let mut tampered = original.clone();
+    tampered[pairs] = with_field(&original[pairs], "record", moved)?;
+    reject(tampered, &current, &run.specs, "record digest")?;
+    // Another chain, another anchor, an undeclared provider.
+    let domain = original[0].get("chain_domain").ok_or("domain")?;
+    let foreign = with_field(
+        domain,
+        "genesis_hash",
+        Json::string(nqc_census_core::Hash32::new([9; 32])?.to_hex()),
+    )?;
+    let mut tampered = original.clone();
+    tampered[0] = with_field(&original[0], "chain_domain", foreign)?;
+    reject(tampered, &current, &run.specs, "chain domain differs")?;
+    let bootstrap = current.get("bootstrap").ok_or("bootstrap")?;
+    let other_anchor = with_field(
+        &current,
+        "bootstrap",
+        with_field(
+            bootstrap,
+            "anchor",
+            Json::object([("anchor", anchor_record(&run.anchors.0))]),
+        )?,
+    )?;
+    reject(
+        original.clone(),
+        &other_anchor,
+        &run.specs,
+        "anchor differs",
+    )?;
+    reject(
+        original,
+        &current,
+        &run.specs[1..],
+        "not a declared provider",
+    )?;
     Ok(())
 }

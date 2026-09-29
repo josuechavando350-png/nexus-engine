@@ -12,7 +12,8 @@
 //!   duplicate pair or token tuple, and ordinals exactly `1..=allPairsLength`.
 
 use crate::stage::{
-    index_partition, pair_created_stage, pairs_stage, stage_data_sha256, V2Plan, STAGE_SCHEMA,
+    canonical_sha256, index_partition, pair_created_stage, pairs_stage, stage_data_sha256, V2Plan,
+    STAGE_SCHEMA,
 };
 use crate::{
     admission, decode_pair_created, reconcile, CurrentPair, DirectLookupProof, PairCreatedProof,
@@ -114,6 +115,166 @@ pub fn replay_stage(
         return Err(ChainError::Evidence("stage data digest differs".into()));
     }
     Ok(rows)
+}
+
+/// Schema of a per-stage replay extract.
+pub const EXTRACT_SCHEMA: &str = "nqc-rmc-007-v2-stage-extract-v1";
+
+/// Replays one stage record from a store holding its evidence (normally the
+/// stage's own store) and returns the extract the reconciler consumes: the
+/// record, its replayed rows, and the chain domain and anchor replayed from
+/// the record's own bootstrap and anchor manifests. `store` summarises the
+/// RMC-004 verification of that store and is carried as is.
+pub fn stage_extract(
+    store: &Store,
+    providers: &[ProviderSpec],
+    plan: &V2Plan,
+    record: &Json,
+    store_summary: Json,
+) -> Result<Json, ChainError> {
+    let rows = replay_stage(store, providers, plan, record)?;
+    let provider = owner(providers, record)?;
+    let ids = manifests(record)?;
+    let [bootstrap_id, anchor_id, ..] = ids.as_slice() else {
+        return Err(ChainError::Evidence(
+            "record lacks bootstrap and anchor manifests".into(),
+        ));
+    };
+    let mut replay = ReplayTransport::new();
+    for id in [bootstrap_id, anchor_id] {
+        add_manifest_exchanges(&mut replay, store, &store.get_artifact(id)?, provider)?;
+    }
+    let acquisition = Acquisition::new(store, &replay, RetryPolicy::none());
+    let (facts, bootstrap) = acquisition.bootstrap(provider, &plan.profile)?;
+    let (anchor, anchor_output) =
+        acquisition.resolve_anchor(provider, &facts.chain, plan.anchor_number)?;
+    if bootstrap.manifest_id().to_hex() != bootstrap_id.to_hex()
+        || anchor_output.manifest_id().to_hex() != anchor_id.to_hex()
+    {
+        return Err(ChainError::Evidence(
+            "replayed bootstrap or anchor is not the record's".into(),
+        ));
+    }
+    if anchor.block_hash() != plan.anchor_hash {
+        return Err(ChainError::Evidence(
+            "stage anchor differs from the declared observation anchor".into(),
+        ));
+    }
+    Ok(Json::object([
+        ("schema", Json::string(EXTRACT_SCHEMA)),
+        ("record_sha256", Json::string(canonical_sha256(record)?)),
+        ("record", record.clone()),
+        ("chain_domain", bootstrap.result_json()?),
+        ("anchor", anchor_output.result_json()?),
+        ("store", store_summary),
+        ("row_count", Json::uint(rows.len() as u64)),
+        ("data_sha256", Json::string(stage_data_sha256(&rows)?)),
+        ("rows", Json::Array(rows)),
+    ]))
+}
+
+fn hex64(value: &str) -> bool {
+    value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit())
+}
+
+/// Checks one extract and returns its record and rows. Every digest is
+/// recomputed; nothing in the extract is taken on its word except that it
+/// was produced by the exact-head replay of its stage.
+pub fn verify_extract(
+    providers: &[ProviderSpec],
+    extract: Json,
+) -> Result<(Json, Vec<Json>), ChainError> {
+    let Json::Object(members) = extract else {
+        return Err(ChainError::Evidence("extract is not an object".into()));
+    };
+    let count = members.len();
+    let mut fields: BTreeMap<String, Json> = members.into_iter().collect();
+    if fields.len() != count {
+        return Err(ChainError::Evidence("extract repeats a field".into()));
+    }
+    if fields.get("schema").and_then(Json::as_str) != Some(EXTRACT_SCHEMA) {
+        return Err(ChainError::Evidence("not an RMC-007 stage extract".into()));
+    }
+    let record = fields
+        .remove("record")
+        .ok_or_else(|| ChainError::Evidence("extract without record".into()))?;
+    let Some(Json::Array(rows)) = fields.remove("rows") else {
+        return Err(ChainError::Evidence("extract without rows".into()));
+    };
+    let extract = Json::Object(fields.into_iter().collect());
+    if record.get("schema").and_then(Json::as_str) != Some(STAGE_SCHEMA) {
+        return Err(ChainError::Evidence("not an RMC-007 stage record".into()));
+    }
+    owner(providers, &record)?;
+    manifests(&record)?;
+    if canonical_sha256(&record)? != extract.str_field("record_sha256")? {
+        return Err(ChainError::Evidence("extract record digest differs".into()));
+    }
+    if rows.len() as u64 != number(&record, "row_count")?
+        || rows.len() as u64 != number(&extract, "row_count")?
+    {
+        return Err(ChainError::Evidence("extract row count differs".into()));
+    }
+    let digest = stage_data_sha256(&rows)?;
+    if digest != record.str_field("data_sha256")? || digest != extract.str_field("data_sha256")? {
+        return Err(ChainError::Evidence("extract data digest differs".into()));
+    }
+    let root = extract
+        .get("store")
+        .ok_or_else(|| ChainError::Evidence("extract without store".into()))?
+        .str_field("evidence_root")?;
+    if !hex64(root) {
+        return Err(ChainError::Evidence(
+            "extract store evidence root is not a digest".into(),
+        ));
+    }
+    Ok((record, rows))
+}
+
+/// Verifies every extract and binds all of them to the agreed chain domain
+/// and observation anchor of the current-surface report.
+pub fn extract_stages(
+    current: &Json,
+    providers: &[ProviderSpec],
+    extracts: Vec<Json>,
+) -> Result<Vec<(Json, Vec<Json>)>, ChainError> {
+    let bootstrap = current
+        .get("bootstrap")
+        .ok_or_else(|| ChainError::Evidence("current report without bootstrap".into()))?;
+    let domain = bootstrap
+        .get("chain_domain")
+        .ok_or_else(|| ChainError::Evidence("current report without chain domain".into()))?;
+    let anchor = bootstrap
+        .get("anchor")
+        .and_then(|anchor| anchor.get("anchor"))
+        .ok_or_else(|| ChainError::Evidence("current report without anchor".into()))?;
+    let mut out = Vec::with_capacity(extracts.len());
+    for extract in extracts {
+        let staged = extract
+            .get("chain_domain")
+            .ok_or_else(|| ChainError::Evidence("extract without chain domain".into()))?;
+        for key in ["chain_id", "genesis_hash", "fork_lineage"] {
+            let (Some(left), Some(right)) = (staged.get(key), domain.get(key)) else {
+                return Err(ChainError::Evidence(format!("chain domain without {key}")));
+            };
+            if !left.same_as(right)? {
+                return Err(ChainError::Evidence(
+                    "stage chain domain differs from the current surface".into(),
+                ));
+            }
+        }
+        let staged_anchor = extract
+            .get("anchor")
+            .and_then(|value| value.get("anchor"))
+            .ok_or_else(|| ChainError::Evidence("extract without anchor".into()))?;
+        if !staged_anchor.same_as(anchor)? {
+            return Err(ChainError::Evidence(
+                "stage anchor differs from the current-surface anchor".into(),
+            ));
+        }
+        out.push(verify_extract(providers, extract)?);
+    }
+    Ok(out)
 }
 
 fn optional_address(row: &Json, key: &str) -> Result<Option<Address>, ChainError> {
@@ -253,13 +414,14 @@ fn finding(class: &str, detail: Vec<(&str, Json)>) -> Json {
     Json::object(members)
 }
 
-/// Agrees and decodes the replayed stages of both provider classes.
+/// Agrees and decodes the replayed stages of both provider classes. Takes
+/// the stages by value: the rows move into the agreement tables uncopied.
 #[allow(clippy::too_many_lines)]
 pub fn surfaces(
     plan: &V2Plan,
     pair_count: u64,
     first_block: u64,
-    stages: &[(Json, Vec<Json>)],
+    stages: Vec<(Json, Vec<Json>)>,
 ) -> Result<Surfaces, ChainError> {
     let label = |record: &Json| -> Result<String, ChainError> {
         Ok(record
@@ -271,14 +433,17 @@ pub fn surfaces(
     // Surface B: per log provider, block partitions that tile
     // [factory boundary, anchor] and link by parent hash; then the two
     // providers' complete log sets are agreed exactly.
-    let mut partitions_b: BTreeMap<String, Vec<(&Json, &Vec<Json>)>> = BTreeMap::new();
+    let mut partitions_b: BTreeMap<String, Vec<(Json, Vec<Json>)>> = BTreeMap::new();
+    let mut pair_stages = Vec::new();
     let mut log_ranges = Vec::new();
     for (record, rows) in stages {
-        if record.str_field("stage")? == "PAIR_CREATED" {
-            partitions_b
-                .entry(label(record)?)
+        match record.str_field("stage")? {
+            "PAIR_CREATED" => partitions_b
+                .entry(label(&record)?)
                 .or_default()
-                .push((record, rows));
+                .push((record, rows)),
+            "PAIRS" => pair_stages.push((record, rows)),
+            other => return Err(ChainError::Evidence(format!("unknown stage {other}"))),
         }
     }
     let mut logs = Vec::new();
@@ -321,8 +486,8 @@ pub fn surfaces(
                     .to_owned(),
             );
             expected_first = number(parameters, "last_block")? + 1;
-            provider_logs.extend(rows.iter().cloned());
-            provider_ranges.extend(log_window_evidence(record)?);
+            provider_ranges.extend(log_window_evidence(&record)?);
+            provider_logs.extend(rows);
         }
         if expected_first != plan.anchor_number + 1 {
             return Err(ChainError::Evidence(format!(
@@ -345,10 +510,7 @@ pub fn surfaces(
     let mut by_provider: BTreeMap<String, BTreeMap<u64, Json>> = BTreeMap::new();
     let mut job_ranges: BTreeMap<String, Vec<(u64, u64, EvidenceRef)>> = BTreeMap::new();
     let mut partitions_seen: BTreeMap<String, (u64, BTreeSet<u64>)> = BTreeMap::new();
-    for (record, rows) in stages {
-        if record.str_field("stage")? != "PAIRS" {
-            continue;
-        }
+    for (record, rows) in pair_stages {
         let parameters = record
             .get("parameters")
             .ok_or_else(|| ChainError::Evidence("parameters".into()))?;
@@ -357,11 +519,11 @@ pub fn surfaces(
                 "PAIRS stage used another pair count".into(),
             ));
         }
-        let provider = label(record)?;
+        let provider = label(&record)?;
         job_ranges
             .entry(provider.clone())
             .or_default()
-            .extend(pair_job_evidence(record)?);
+            .extend(pair_job_evidence(&record)?);
         let partitions = number(parameters, "partitions")?;
         let entry = partitions_seen
             .entry(provider.clone())
@@ -373,7 +535,7 @@ pub fn surfaces(
         }
         let table = by_provider.entry(provider).or_default();
         for row in rows {
-            if table.insert(number(row, "index")?, row.clone()).is_some() {
+            if table.insert(number(&row, "index")?, row).is_some() {
                 return Err(ChainError::Evidence("duplicate enumeration index".into()));
             }
         }

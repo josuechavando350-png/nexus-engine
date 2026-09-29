@@ -64,36 +64,79 @@ Both surfaces and the creation boundary are exact-anchor, multi-provider:
 
 ## Public RPC load
 
-The workflow joins the repository-wide concurrency group
-`nqc-census-public-rpc` (`cancel-in-progress: false`): at most one live
-Census acquisition runs at a time and a running one is never cancelled. Each
-stage matrix is bounded (`max-parallel: 6`, providers interleaved). Run
-36526877390 showed the need: with 20 of this workflow's jobs loading the same
-endpoints, one blastapi PairCreated partition exhausted the shared public
-capacity (HTTP 429 "compute units per second") across four attempts.
-Transient failures (rate limit, transport, "temporarily unavailable") are
-retried by the chain layer and then by up to ten attempts resuming from
-committed RMC-004 checkpoints. A retry never masks missing data: a range
-that cannot be acquired fails the stage, and a semantic disagreement fails
-closed without retry. Stage evidence is uploaded even when a stage fails,
-named by stage, provider, partition, exact head and run id, so failed
-partitions can be re-run alone ("re-run failed jobs") and the reconciler
-consumes the latest artifact of each.
+Live acquisition runs only from a `workflow_dispatch` on the exact branch
+head without `stages_run_id`, in the repository-wide concurrency group
+`nqc-census-public-rpc` (`cancel-in-progress: false`). At most one live
+Census acquisition runs at a time, and a running one is never cancelled.
+
+GitHub keeps one pending run per group, and a newer pending run replaces
+the older. So the runs that use no RPC stay out of the group, each in its
+own group:
+- a `pull_request` run, which runs the gate only;
+- an offline replay of an earlier acquisition (`stages_run_id` set).
+
+Each stage matrix is bounded (`max-parallel: 6`, providers interleaved).
+Run 36526877390 showed the need. With 20 of this workflow's jobs loading
+the same endpoints, one blastapi PairCreated partition exhausted the shared
+public capacity (HTTP 429 "compute units per second") across four attempts.
+
+Retries:
+- Transient failures (rate limit, transport, "temporarily unavailable") are
+  retried by the chain layer, then by up to ten attempts that resume from
+  committed RMC-004 checkpoints.
+- A retry never masks missing data: a range that cannot be acquired fails
+  the stage.
+- A semantic disagreement fails closed without retry.
+
+Stage evidence is uploaded even when a stage fails. Its name carries stage,
+provider, partition, exact head, run id and attempt. A failed partition can
+be re-run alone ("re-run failed jobs"), and the replay consumes each stage's
+latest attempt.
 
 ## Offline reconciliation
 
-`nqc-rmc007-v2-merge` merges every stage store into one RMC-004 store.
-`nqc-rmc007-v2-reconcile` then runs with no network namespace and:
+The stages of one acquisition hold about 20 GB of evidence: 48 stage stores
+from run 36589054151, the largest 1.3 GB compressed. Merging them on one
+runner exhausted its disk; that run's reconcile job failed twice while
+downloading. The stores are therefore never merged.
 
-1. replays the surface and boundary reports and every stage record from the
-   merged store (`ReplayTransport`), requiring each replayed record to be
-   byte-identical to the recorded one;
-2. per provider, requires the `pair-created` partitions to tile
+**Replay, one job per stage** (`nqc-rmc007-v2-replay`, no network
+namespace). Each job:
+- downloads only its own stage artifact, the latest attempt;
+- verifies the store (RMC-004) before and after;
+- replays the record from that store, and the replayed record must be
+  byte-identical to the recorded one;
+- replays the record's bootstrap and anchor manifests;
+- writes an extract: the record and its sha256, the replayed rows and
+  their digest, the replayed chain domain and anchor, and the store's
+  evidence root. The replay may not move the evidence root.
+
+**Reconcile** (`nqc-rmc007-v2-reconcile --extracts`, no network namespace).
+It holds only the surface store and the 48 extracts, and:
+
+1. replays the surface and boundary reports from the surface store;
+2. recomputes every extract's record and data digests and row count, and
+   requires every extract's chain domain and anchor to equal the
+   current-surface anchor;
+3. per provider, requires the `pair-created` partitions to tile
    `[boundary, anchor]` exactly and to link by parent hash, and the `pairs`
    partitions to cover `0..N` exactly;
-3. requires both stage providers to return identical logs and identical rows
+4. requires both stage providers to return identical logs and identical rows
    (any disagreement is a consensus failure — fail closed);
-4. reconciles A, B and C.
+5. reconciles A, B and C.
+
+The reconciler trusts one thing without recomputing it: that each extract
+was produced by the exact-head replay job of the same workflow run. Every
+extract names the stage artifact it replayed and that store's evidence
+root, and `extract-selection.json` lists every attempt. A dispatch with
+`stages_run_id` replays an earlier acquisition. It first checks through the
+GitHub API that the run is this workflow's, and that its surface, 16
+PairCreated and 32 pairs jobs all succeeded. The run's jobs and artifacts
+are recorded.
+
+`nqc-rmc007-v2-merge` and the merged-store path (`--records`) remain for
+acquisitions small enough for one disk. Both paths feed the same checks the
+same replayed data.
 
 PASS requires, with `N = allPairsLength` at the anchor:
 
@@ -124,7 +167,9 @@ admitted; every downstream capability stays `false` until its own node.
 
 ## Closeout artifacts
 
-Written twice from the merged store and compared byte for byte:
+Written twice offline and compared byte for byte (`v2-discovery-run.json`
+names each stage's own store summary when stages were replayed one store at a
+time):
 
 - `v2-discovery-run.json`
 - `v2-pair-manifest.jsonl` (one row per pair: D01 key, index, ordinal,
