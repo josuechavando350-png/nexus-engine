@@ -9,6 +9,7 @@ use nqc_census_chain::{
     job::{chain_read_semantics, JobSpec},
     json::Json,
     provider::{ProviderSet, ProviderSpec},
+    rpc::RpcCall,
     transport::{CurlTransport, RetryPolicy},
     ChainError,
 };
@@ -27,6 +28,9 @@ const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f457
 const ADDRESSES_PROVIDER: &str = "0x2f39d218133afab8f2b819b1066c7e434ad94e9e";
 const POOL: &str = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2";
 const POOL_IMPLEMENTATION: &str = "0x728a138a4823392c2efa55e028d434f526fe03cf";
+const PRICE_ORACLE: &str = "0x54586be62e3c3580375ae3723c145253060ca0c2";
+const IMPLEMENTATION_SLOT: &str =
+    "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc";
 
 const PROVIDER_CODE_SHA256: &str =
     "e5416052b67aa0475bffe5707510a1981ffcc131d9b49066d51f6e25eb6c5c9f";
@@ -34,6 +38,8 @@ const POOL_PROXY_CODE_SHA256: &str =
     "bf8a408a1f5440c167d91fa2d972deb23bb4d809e8dd089009885ec88a826f88";
 const POOL_IMPLEMENTATION_CODE_SHA256: &str =
     "fbd5bf315821d290d18b3a06cafb2f69457075388eae50b6134f490cf83cb049";
+const PRICE_ORACLE_CODE_SHA256: &str =
+    "dc8079e555204e0b2d7dc8382d6ebd71901f0b43e5940463e22b75b810a37728";
 
 const CURRENT_NAMESPACE: u16 = 0x0601;
 
@@ -71,6 +77,25 @@ fn optional_address(word: &[u8; 32]) -> Result<Json, ChainError> {
     Ok(match abi::decode_address(word)? {
         Some(raw) => Json::string(Address::new(raw)?.to_hex()),
         None => Json::Null,
+    })
+}
+
+fn storage_address(value: &Json, label: &'static str) -> Result<Address, ChainError> {
+    let encoded = value
+        .as_str()
+        .ok_or_else(|| ChainError::Evidence(format!("{label} storage value is not hex")))?;
+    let bytes = hex::decode_data(encoded)?;
+    let word = <[u8; 32]>::try_from(bytes.as_slice())
+        .map_err(|_| ChainError::Evidence(format!("{label} storage value is not one word")))?;
+    let raw = abi::decode_address(&word)?
+        .ok_or_else(|| ChainError::Evidence(format!("{label} storage address is zero")))?;
+    Ok(Address::new(raw)?)
+}
+
+fn uint64(bytes: &[u8], label: &'static str) -> Result<u64, ChainError> {
+    let word = abi::single_word(bytes)?;
+    abi::decode_u64(&word).map_err(|error| {
+        ChainError::Evidence(format!("{label} is not a canonical uint64: {error}"))
     })
 }
 
@@ -135,6 +160,7 @@ fn provider_current_facts(
     let addresses_provider = Address::parse_hex(ADDRESSES_PROVIDER)?;
     let pool = Address::parse_hex(POOL)?;
     let implementation = Address::parse_hex(POOL_IMPLEMENTATION)?;
+    let expected_oracle = Address::parse_hex(PRICE_ORACLE)?;
     let deployment = DeploymentKey::new(
         chain.clone(),
         ProtocolFamily::AaveV3,
@@ -190,7 +216,11 @@ fn provider_current_facts(
             .map_err(|error| ChainError::Evidence(error.to_string()))?;
 
         let provider_scan = CodeScan::new(provider_code.payload().code());
-        for selector in [interface.get_pool, interface.get_pool_configurator] {
+        for selector in [
+            interface.get_pool,
+            interface.get_pool_configurator,
+            interface.get_price_oracle,
+        ] {
             if !provider_scan.has_selector(selector) {
                 return Err(ChainError::Evidence(
                     "AddressesProvider runtime lacks required selector".into(),
@@ -212,11 +242,19 @@ fn provider_current_facts(
                 (pool, abi::encode_call(interface.addresses_provider, &[])),
                 (pool, abi::encode_call(interface.reserves_count, &[])),
                 (pool, abi::encode_call(interface.reserves_list, &[])),
+                (
+                    addresses_provider,
+                    abi::encode_call(interface.get_price_oracle, &[]),
+                ),
+                (
+                    pool,
+                    abi::encode_call(interface.flashloan_premium_total, &[]),
+                ),
             ],
             anchor,
             semantics,
         )?;
-        if calls.len() != 5 {
+        if calls.len() != 7 {
             return Err(ChainError::Evidence(
                 "current-surface base call count differs".into(),
             ));
@@ -252,6 +290,47 @@ fn provider_current_facts(
                 reserve_count
             )));
         }
+        let price_oracle = required_address(returned(&calls[5])?, "getPriceOracle")?;
+        if price_oracle != expected_oracle {
+            return Err(ChainError::Evidence(
+                "AddressesProvider getPriceOracle differs from certified oracle".into(),
+            ));
+        }
+        let flash_loan_premium_bps =
+            uint64(returned(&calls[6])?, "FLASHLOAN_PREMIUM_TOTAL")?;
+        if flash_loan_premium_bps != 5 {
+            return Err(ChainError::Evidence(format!(
+                "FLASHLOAN_PREMIUM_TOTAL changed: expected 5, got {flash_loan_premium_bps}"
+            )));
+        }
+
+        let before_slot = ctx.header_by_number(anchor.block_number())?;
+        if before_slot.envelope().anchor().block_hash() != anchor.block_hash() {
+            return Err(ChainError::Evidence(
+                "implementation-slot pre-guard anchor changed".into(),
+            ));
+        }
+        let implementation_word = ctx.raw_result(&RpcCall::new(
+            "eth_getStorageAt",
+            Json::array([
+                Json::string(pool.to_hex()),
+                Json::string(IMPLEMENTATION_SLOT),
+                Json::string(hex::quantity(anchor.block_number())),
+            ]),
+        ))?;
+        let observed_implementation =
+            storage_address(&implementation_word, "EIP-1967 implementation")?;
+        let after_slot = ctx.header_by_number(anchor.block_number())?;
+        if after_slot.envelope().anchor().block_hash() != anchor.block_hash() {
+            return Err(ChainError::Evidence(
+                "implementation-slot post-guard anchor changed".into(),
+            ));
+        }
+        if observed_implementation != implementation {
+            return Err(ChainError::Evidence(
+                "EIP-1967 implementation differs from certified implementation".into(),
+            ));
+        }
 
         let configurator_code = ctx.code(configurator, anchor, chain_semantics)?;
         if configurator_code.payload().is_absent() {
@@ -260,6 +339,39 @@ fn provider_current_facts(
             ));
         }
         let configurator_hash = sha256_plain(configurator_code.payload().code());
+        let oracle_code = ctx.code(price_oracle, anchor, chain_semantics)?;
+        let oracle_hash = require_sha256(
+            "price oracle",
+            oracle_code.payload().code(),
+            PRICE_ORACLE_CODE_SHA256,
+        )?;
+        let oracle_calls = ctx.calls(
+            &[
+                (price_oracle, abi::encode_call(interface.base_currency, &[])),
+                (
+                    price_oracle,
+                    abi::encode_call(interface.base_currency_unit, &[]),
+                ),
+            ],
+            anchor,
+            semantics,
+        )?;
+        if oracle_calls.len() != 2 {
+            return Err(ChainError::Evidence(
+                "oracle configuration call count differs".into(),
+            ));
+        }
+        let base_currency_word = abi::single_word(returned(&oracle_calls[0])?)?;
+        let base_currency = match abi::decode_address(&base_currency_word)? {
+            Some(raw) => Json::string(Address::new(raw)?.to_hex()),
+            None => Json::Null,
+        };
+        let base_currency_unit = uint64(returned(&oracle_calls[1])?, "BASE_CURRENCY_UNIT")?;
+        if base_currency_unit == 0 {
+            return Err(ChainError::Evidence(
+                "oracle BASE_CURRENCY_UNIT is zero".into(),
+            ));
+        }
 
         let mut address_requests = Vec::with_capacity(usize::from(reserve_count));
         for reserve_id in 0..reserve_count {
@@ -327,6 +439,18 @@ fn provider_current_facts(
                 Json::string(addresses_provider.to_hex()),
             ),
             ("pool_configurator", Json::string(configurator.to_hex())),
+            ("pool_implementation", Json::string(observed_implementation.to_hex())),
+            (
+                "eip1967_implementation_slot",
+                Json::string(IMPLEMENTATION_SLOT),
+            ),
+            ("price_oracle", Json::string(price_oracle.to_hex())),
+            (
+                "flash_loan_premium_bps",
+                Json::uint(flash_loan_premium_bps),
+            ),
+            ("oracle_base_currency", base_currency),
+            ("oracle_base_currency_unit", Json::uint(base_currency_unit)),
             ("reserve_count", Json::uint(u64::from(reserve_count))),
             (
                 "reserves_list",
@@ -344,6 +468,7 @@ fn provider_current_facts(
                     ("pool_proxy", Json::string(pool_hash)),
                     ("pool_implementation", Json::string(implementation_hash)),
                     ("pool_configurator", Json::string(configurator_hash)),
+                    ("price_oracle", Json::string(oracle_hash)),
                 ]),
             ),
         ]))
@@ -381,6 +506,36 @@ pub fn run_current_surface(
     }
     let agreement = agree("rmc006-aave-current-surface", &results)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
+    let facts = agreement.result;
+    let configuration_sha256 = sha256_plain(&facts.canonical()?);
+    let runtime_hashes = facts
+        .get("runtime_sha256")
+        .ok_or_else(|| ChainError::Evidence("current facts lack runtime hashes".into()))?;
+    let oracle_configuration = Json::object([
+        (
+            "price_oracle",
+            Json::string(facts.str_field("price_oracle")?),
+        ),
+        (
+            "price_oracle_runtime_sha256",
+            Json::string(runtime_hashes.str_field("price_oracle")?),
+        ),
+        (
+            "base_currency",
+            facts
+                .get("oracle_base_currency")
+                .cloned()
+                .ok_or_else(|| ChainError::Evidence("oracle base currency missing".into()))?,
+        ),
+        (
+            "base_currency_unit",
+            facts
+                .get("oracle_base_currency_unit")
+                .cloned()
+                .ok_or_else(|| ChainError::Evidence("oracle base unit missing".into()))?,
+        ),
+    ]);
+    let oracle_configuration_sha256 = sha256_plain(&oracle_configuration.canonical()?);
 
     Ok(Json::object([
         (
@@ -389,7 +544,20 @@ pub fn run_current_surface(
         ),
         ("status", Json::string("CURRENT_SURFACE_PASS")),
         ("bootstrap", bootstrap),
-        ("facts", agreement.result),
+        ("facts", facts),
+        (
+            "admission_fingerprint",
+            Json::object([
+                (
+                    "configuration_sha256",
+                    Json::string(configuration_sha256),
+                ),
+                (
+                    "oracle_configuration_sha256",
+                    Json::string(oracle_configuration_sha256),
+                ),
+            ]),
+        ),
         (
             "provider_manifests",
             Json::array(results.iter().map(|result| {

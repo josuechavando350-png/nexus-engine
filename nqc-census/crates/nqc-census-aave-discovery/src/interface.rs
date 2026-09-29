@@ -9,6 +9,10 @@ const RESERVES_LIST: &str = "getReservesList()";
 const RESERVE_DATA: &str = "getReserveData(address)";
 const GET_POOL: &str = "getPool()";
 const GET_POOL_CONFIGURATOR: &str = "getPoolConfigurator()";
+const GET_PRICE_ORACLE: &str = "getPriceOracle()";
+const FLASHLOAN_PREMIUM_TOTAL: &str = "FLASHLOAN_PREMIUM_TOTAL()";
+const BASE_CURRENCY: &str = "BASE_CURRENCY()";
+const BASE_CURRENCY_UNIT: &str = "BASE_CURRENCY_UNIT()";
 const RESERVE_INITIALIZED: &str = "ReserveInitialized(address,address,address,address,address)";
 const RESERVE_DROPPED: &str = "ReserveDropped(address)";
 
@@ -21,6 +25,10 @@ pub struct AaveDiscoveryInterface {
     pub reserve_data: [u8; 4],
     pub get_pool: [u8; 4],
     pub get_pool_configurator: [u8; 4],
+    pub get_price_oracle: [u8; 4],
+    pub flashloan_premium_total: [u8; 4],
+    pub base_currency: [u8; 4],
+    pub base_currency_unit: [u8; 4],
     pub reserve_initialized_topic: [u8; 32],
     pub reserve_dropped_topic: [u8; 32],
 }
@@ -34,6 +42,10 @@ pub fn aave_interface() -> AaveDiscoveryInterface {
         reserve_data: abi::selector(RESERVE_DATA),
         get_pool: abi::selector(GET_POOL),
         get_pool_configurator: abi::selector(GET_POOL_CONFIGURATOR),
+        get_price_oracle: abi::selector(GET_PRICE_ORACLE),
+        flashloan_premium_total: abi::selector(FLASHLOAN_PREMIUM_TOTAL),
+        base_currency: abi::selector(BASE_CURRENCY),
+        base_currency_unit: abi::selector(BASE_CURRENCY_UNIT),
         reserve_initialized_topic: abi::event_topic(RESERVE_INITIALIZED),
         reserve_dropped_topic: abi::event_topic(RESERVE_DROPPED),
     }
