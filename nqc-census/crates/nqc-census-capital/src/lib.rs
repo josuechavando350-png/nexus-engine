@@ -2393,41 +2393,44 @@ pub struct UpstreamStageAuthority {
     pub admitted: bool,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpstreamStageAuthoritySpec {
+    pub stage: UpstreamCensusStage,
+    pub code_commit: GitObjectId,
+    pub code_tree: GitObjectId,
+    pub artifact_sha256: Hash32,
+    pub observation_anchor: StateAnchor,
+    pub unresolved_mismatch_count: u64,
+    pub unknown_failure_count: u64,
+    pub admitted: bool,
+}
+
 impl UpstreamStageAuthority {
-    pub fn new(
-        stage: UpstreamCensusStage,
-        code_commit: GitObjectId,
-        code_tree: GitObjectId,
-        artifact_sha256: Hash32,
-        observation_anchor: StateAnchor,
-        unresolved_mismatch_count: u64,
-        unknown_failure_count: u64,
-        admitted: bool,
-    ) -> Result<Self, CapitalError> {
-        if unresolved_mismatch_count != 0 {
+    pub fn new(spec: UpstreamStageAuthoritySpec) -> Result<Self, CapitalError> {
+        if spec.unresolved_mismatch_count != 0 {
             return Err(CapitalError::InvalidUpstreamAuthority(
                 "unresolved mismatch count is nonzero",
             ));
         }
-        if unknown_failure_count != 0 {
+        if spec.unknown_failure_count != 0 {
             return Err(CapitalError::InvalidUpstreamAuthority(
                 "UNKNOWN failure count is nonzero",
             ));
         }
-        if !admitted {
+        if !spec.admitted {
             return Err(CapitalError::InvalidUpstreamAuthority(
                 "upstream artifact is not admitted",
             ));
         }
         Ok(Self {
-            stage,
-            code_commit,
-            code_tree,
-            artifact_sha256,
-            observation_anchor,
-            unresolved_mismatch_count,
-            unknown_failure_count,
-            admitted,
+            stage: spec.stage,
+            code_commit: spec.code_commit,
+            code_tree: spec.code_tree,
+            artifact_sha256: spec.artifact_sha256,
+            observation_anchor: spec.observation_anchor,
+            unresolved_mismatch_count: spec.unresolved_mismatch_count,
+            unknown_failure_count: spec.unknown_failure_count,
+            admitted: spec.admitted,
         })
     }
 }

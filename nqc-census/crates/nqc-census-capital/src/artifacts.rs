@@ -3,7 +3,7 @@ use crate::{
     CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement, CapitalSource,
     CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock, UpstreamCensusStage,
-    UpstreamStageAuthority,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
@@ -737,16 +737,16 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
         let observation_anchor = parse_anchor_json(row.get("observation_anchor").ok_or(
             CapitalError::InvalidUpstreamAuthority("observation anchor missing"),
         )?)?;
-        authorities.push(UpstreamStageAuthority::new(
+        authorities.push(UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
             stage,
             code_commit,
             code_tree,
             artifact_sha256,
             observation_anchor,
-            json_u64(row, "unresolved_mismatch_count")?,
-            json_u64(row, "unknown_failure_count")?,
+            unresolved_mismatch_count: json_u64(row, "unresolved_mismatch_count")?,
+            unknown_failure_count: json_u64(row, "unknown_failure_count")?,
             admitted,
-        )?);
+        })?);
     }
 
     let authority = CapitalCertificationContext::new(authorities)?;
