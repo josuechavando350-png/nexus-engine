@@ -1291,18 +1291,27 @@ impl CapitalSource {
     }
 
     pub fn effective_capacity(&self) -> Result<Amount256, CapitalError> {
-        let mut capacity = self.maximum_available;
+        // Each field is an independent upper bound on the same executable draw.
+        // Do not apply utilization to an already-capped amount or subtract the
+        // reserve floor after utilization: either would compound independent
+        // constraints and understate capacity.
+        let observed = self.maximum_available;
+        let utilization_capacity =
+            apply_utilization(observed, self.utilization.max_utilization_bps)?;
+        let reserve_capacity = if observed <= self.utilization.min_remaining {
+            Amount256::ZERO
+        } else {
+            observed.checked_sub(self.utilization.min_remaining)?
+        };
+
+        let mut capacity = observed.min(utilization_capacity).min(reserve_capacity);
         if let Some(cap) = self.caps.protocol_cap {
             capacity = capacity.min(cap);
         }
         if let Some(cap) = self.caps.market_cap {
             capacity = capacity.min(cap);
         }
-        capacity = apply_utilization(capacity, self.utilization.max_utilization_bps)?;
-        if capacity <= self.utilization.min_remaining {
-            return Ok(Amount256::ZERO);
-        }
-        capacity.checked_sub(self.utilization.min_remaining)
+        Ok(capacity)
     }
 
     pub fn canonical_encode(&self) -> Vec<u8> {
