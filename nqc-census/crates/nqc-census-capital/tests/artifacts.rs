@@ -150,7 +150,7 @@ fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
 fn capital_artifacts_are_deterministic_and_complete() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -190,7 +190,7 @@ fn capital_artifacts_are_deterministic_and_complete() -> TestResult {
 fn jsonl_records_carry_exact_anchor_and_provenance() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -232,7 +232,7 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
     source_only.evaluate_all()?;
 
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -311,7 +311,7 @@ fn blocked_source_bundle_roundtrips_offline_and_preserves_execution_rejection() 
     ledger.evaluate_all()?;
 
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -341,34 +341,24 @@ fn blocked_source_bundle_roundtrips_offline_and_preserves_execution_rejection() 
 }
 
 #[test]
-fn artifact_hashes_change_when_provenance_changes() -> TestResult {
+fn artifact_export_rejects_wall_clock_or_arbitrary_generation_time() -> TestResult {
     let ledger = ledger()?;
-    let a = export_capital_artifacts(
-        &ledger,
-        &authority_for(&ledger)?,
-        &ArtifactProvenance::new(
-            "A",
-            "0123456789abcdef0123456789abcdef01234567",
-            "89abcdef0123456789abcdef0123456789abcdef",
-        )?,
+    let authority = authority_for(&ledger)?;
+    let arbitrary = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let b = export_capital_artifacts(
-        &ledger,
-        &authority_for(&ledger)?,
-        &ArtifactProvenance::new(
-            "B",
-            "0123456789abcdef0123456789abcdef01234567",
-            "89abcdef0123456789abcdef0123456789abcdef",
-        )?,
+    assert!(export_capital_artifacts(&ledger, &authority, &arbitrary).is_err());
+
+    let anchored = ArtifactProvenance::for_anchor(
+        authority.observation_anchor(),
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    assert_ne!(
-        a.file(CAPITAL_SUMMARY_FILE)
-            .ok_or("missing summary A")?
-            .sha256,
-        b.file(CAPITAL_SUMMARY_FILE)
-            .ok_or("missing summary B")?
-            .sha256
-    );
+    let first = export_capital_artifacts(&ledger, &authority, &anchored)?;
+    let second = export_capital_artifacts(&ledger, &authority, &anchored)?;
+    assert_eq!(first, second);
     Ok(())
 }
 
@@ -376,7 +366,7 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
 fn synthetic_ledger_cannot_export_evidentiary_artifacts() -> TestResult {
     let ledger = CapitalCensusLedger::synthetic_fixture();
     let provenance = ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -388,7 +378,7 @@ fn synthetic_ledger_cannot_export_evidentiary_artifacts() -> TestResult {
 fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -408,7 +398,7 @@ fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
 fn offline_artifact_verifier_rejects_tampered_bytes() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -432,7 +422,7 @@ fn offline_artifact_verifier_rejects_tampered_bytes() -> TestResult {
 fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -460,7 +450,7 @@ fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResul
 fn offline_artifact_verifier_rejects_noncanonical_jsonl() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -535,7 +525,7 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
         &ledger,
         &authority_for(&ledger)?,
         &ArtifactProvenance::new(
-            "t",
+            "2023-11-14T22:13:20Z",
             "0123456789abcdef0123456789abcdef01234567",
             "89abcdef0123456789abcdef0123456789abcdef",
         )?,
@@ -560,19 +550,19 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
 #[test]
 fn artifact_provenance_requires_exact_git_object_ids() -> TestResult {
     assert!(ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "not-a-commit",
         "89abcdef0123456789abcdef0123456789abcdef"
     )
     .is_err());
     assert!(ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "not-a-tree"
     )
     .is_err());
     assert!(ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef"
     )
@@ -584,7 +574,7 @@ fn artifact_provenance_requires_exact_git_object_ids() -> TestResult {
 fn source_artifact_exposes_full_capital_semantics() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -622,7 +612,7 @@ fn source_artifact_exposes_full_capital_semantics() -> TestResult {
 fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -658,7 +648,7 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
 fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
@@ -720,7 +710,7 @@ fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestRe
 fn offline_verifier_rejects_rehashed_feasibility_allocation_substitution() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
