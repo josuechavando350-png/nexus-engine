@@ -227,13 +227,14 @@ fn d08_import_rejects_v2_reserve_without_strict_flash_swap_headroom() -> TestRes
         &d08_facts(),
         &context(),
     )?;
-    assert_eq!(imported.sources.len(), 1);
-    assert_eq!(imported.rejections.len(), 1);
-    assert_eq!(
-        imported.rejections[0].reason,
-        CapitalImportRejectionReason::FlashSwapReserveUnavailable
-    );
-    assert_eq!(imported.rejections[0].asset, CapitalAsset::Token(token0));
+    assert_eq!(imported.sources.len(), 2);
+    assert_eq!(imported.rejections.len(), 0);
+    let zero_capacity = imported
+        .sources
+        .iter()
+        .find(|source| source.asset() == CapitalAsset::Token(token0))
+        .ok_or("missing zero-capacity V2 source")?;
+    assert_eq!(zero_capacity.effective_capacity()?, Amount256::ZERO);
     Ok(())
 }
 
