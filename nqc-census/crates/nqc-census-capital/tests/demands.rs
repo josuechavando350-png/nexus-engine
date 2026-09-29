@@ -148,6 +148,7 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
     assert_eq!(imported.unavailable_count, 0);
     assert_eq!(imported.blocked_count, 1);
     assert_eq!(imported.requirements_certified, 0);
+    assert!(imported.requirements.is_empty());
     assert!(imported.is_conserved());
     assert_eq!(
         imported.borrowers[0].blocker,
@@ -190,9 +191,11 @@ fn borrower_with_unavailable_account_data_is_explicitly_blocked() -> TestResult 
     assert_eq!(imported.blocked_count, 1);
     assert!(imported.is_conserved());
     assert_eq!(imported.requirements_certified, 0);
+    assert!(imported.requirements.is_empty());
     let receipt = imported.consumption_receipt()?;
     assert_eq!(receipt.stage(), UpstreamCensusStage::Rmc009PositionUniverse);
     assert_eq!(receipt.coverage_commitment(), imported.coverage_commitment);
+    assert_eq!(receipt.output_count(), 0);
     Ok(())
 }
 
