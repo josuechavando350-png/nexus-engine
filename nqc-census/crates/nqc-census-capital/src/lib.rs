@@ -2800,7 +2800,7 @@ impl CapitalCensusLedger {
         }
         self.validate_settlements()?;
         let summary = self.summary()?;
-        if summary.source_count == 0 || summary.requirement_count == 0 {
+        if summary.source_count == 0 {
             return Err(CapitalError::EmptyCapitalCensus);
         }
         let commitment = self.commitment()?;
