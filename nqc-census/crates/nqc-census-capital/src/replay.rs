@@ -435,6 +435,228 @@ pub struct CapitalReplayVerification {
     pub upstream_authority_lock_commitment: Hash32,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RealSourceCloseout {
+    pub generated_at: String,
+    pub observation_anchor: StateAnchor,
+    pub code_commit: String,
+    pub code_tree: String,
+    pub source_count: usize,
+    pub requirement_count: usize,
+    pub feasible_count: usize,
+    pub rejected_count: usize,
+    pub d08_source_count: usize,
+    pub d09_requirement_count: usize,
+    pub zero_own_capital_proven: bool,
+    pub capital_commitment: String,
+    pub upstream_authority_commitment: String,
+    pub upstream_authority_lock_commitment: Hash32,
+    pub upstream_authority_lock_sha256: Hash32,
+    pub closeout_commitment: Hash32,
+}
+
+impl RealSourceCloseout {
+    fn payload_json(&self) -> Result<Json, CapitalError> {
+        Ok(Json::object([
+            ("schema_version", Json::uint(1)),
+            ("status", Json::string("RMC_011_REAL_SOURCE_CLOSEOUT_PASS")),
+            ("generated_at", Json::string(self.generated_at.clone())),
+            (
+                "generated_at_basis",
+                Json::string("OBSERVATION_ANCHOR_BLOCK_TIMESTAMP"),
+            ),
+            (
+                "observation_anchor",
+                authority_lock_anchor_json(&self.observation_anchor),
+            ),
+            ("code_commit", Json::string(self.code_commit.clone())),
+            ("code_tree", Json::string(self.code_tree.clone())),
+            (
+                "source_count",
+                Json::uint(closeout_count(self.source_count)?),
+            ),
+            (
+                "requirement_count",
+                Json::uint(closeout_count(self.requirement_count)?),
+            ),
+            (
+                "feasible_count",
+                Json::uint(closeout_count(self.feasible_count)?),
+            ),
+            (
+                "rejected_count",
+                Json::uint(closeout_count(self.rejected_count)?),
+            ),
+            (
+                "d08_source_count",
+                Json::uint(closeout_count(self.d08_source_count)?),
+            ),
+            (
+                "d09_requirement_count",
+                Json::uint(closeout_count(self.d09_requirement_count)?),
+            ),
+            (
+                "zero_own_capital_proven",
+                Json::Bool(self.zero_own_capital_proven),
+            ),
+            ("real_source_certification", Json::Bool(true)),
+            (
+                "opportunity_level_capital_feasibility_claimed",
+                Json::Bool(self.requirement_count > 0),
+            ),
+            ("portfolio_concurrent_capacity_claimed", Json::Bool(false)),
+            ("profitability_claimed", Json::Bool(false)),
+            ("shadow_eligibility_claimed", Json::Bool(false)),
+            ("canary_claimed", Json::Bool(false)),
+            ("real_pnl_claimed", Json::Bool(false)),
+            (
+                "capital_commitment",
+                Json::string(self.capital_commitment.clone()),
+            ),
+            (
+                "upstream_authority_commitment",
+                Json::string(self.upstream_authority_commitment.clone()),
+            ),
+            (
+                "upstream_authority_lock_commitment",
+                Json::string(self.upstream_authority_lock_commitment.to_hex()),
+            ),
+            (
+                "upstream_authority_lock_sha256",
+                Json::string(self.upstream_authority_lock_sha256.to_hex()),
+            ),
+            (
+                "non_claims",
+                Json::array(
+                    [
+                        "PORTFOLIO_CONCURRENT_CAPACITY_NOT_CERTIFIED",
+                        "PROFITABILITY_NOT_CERTIFIED",
+                        "SHADOW_NOT_CERTIFIED",
+                        "CANARY_NOT_CERTIFIED",
+                        "REAL_PNL_NOT_CERTIFIED",
+                    ]
+                    .into_iter()
+                    .chain(
+                        (self.requirement_count == 0)
+                            .then_some("OPPORTUNITY_LEVEL_CAPITAL_FEASIBILITY_NOT_CERTIFIED"),
+                    )
+                    .map(Json::string),
+                ),
+            ),
+        ]))
+    }
+
+    pub fn canonical_json(&self) -> Result<Vec<u8>, CapitalError> {
+        let payload = self.payload_json()?;
+        let commitment = real_source_closeout_commitment(&payload)?;
+        if commitment != self.closeout_commitment {
+            return Err(CapitalError::CanonicalDigestMismatch);
+        }
+        let payload_bytes = payload
+            .canonical()
+            .map_err(|_| CapitalError::InvalidCanonical("real-source closeout JSON"))?;
+        let payload_text = std::str::from_utf8(&payload_bytes)
+            .map_err(|_| CapitalError::InvalidCanonical("real-source closeout is not UTF-8"))?;
+        let closing = payload_text
+            .strip_suffix('}')
+            .ok_or(CapitalError::InvalidCanonical("real-source closeout object malformed"))?;
+        let mut out = closing.as_bytes().to_vec();
+        out.extend_from_slice(
+            format!(
+                ",\"closeout_commitment\":\"{}\"}}",
+                self.closeout_commitment.to_hex()
+            )
+            .as_bytes(),
+        );
+        let parsed = Json::parse(&out)
+            .map_err(|_| CapitalError::InvalidCanonical("real-source closeout JSON"))?;
+        parsed
+            .canonical()
+            .map_err(|_| CapitalError::InvalidCanonical("real-source closeout JSON"))
+    }
+}
+
+fn closeout_count(value: usize) -> Result<u64, CapitalError> {
+    u64::try_from(value)
+        .map_err(|_| CapitalError::InvalidCanonical("real-source closeout count overflow"))
+}
+
+fn real_source_closeout_commitment(payload: &Json) -> Result<Hash32, CapitalError> {
+    let bytes = payload
+        .canonical()
+        .map_err(|_| CapitalError::InvalidCanonical("real-source closeout payload"))?;
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-REAL-SOURCE-CLOSEOUT-V1");
+    hasher.update([0]);
+    hasher.update(
+        u64::try_from(bytes.len())
+            .map_err(|_| CapitalError::InvalidCanonical("closeout payload length overflow"))?
+            .to_be_bytes(),
+    );
+    hasher.update(&bytes);
+    let digest: [u8; 32] = hasher.finalize().into();
+    Hash32::new(digest)
+        .map_err(|_| CapitalError::InvalidCanonical("zero real-source closeout commitment"))
+}
+
+fn sha256_hash32(bytes: &[u8]) -> Result<Hash32, CapitalError> {
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    Hash32::new(digest).map_err(|_| CapitalError::InvalidCanonical("zero SHA-256 digest"))
+}
+
+pub fn verify_real_source_closeout_for_code(
+    bundle: &CapitalArtifactBundle,
+    expected_code_commit: &str,
+    expected_code_tree: &str,
+    authority_lock: &UpstreamAuthorityLock,
+    d08: D08ReplayInputs<'_>,
+    d09: D09ReplayInputs<'_>,
+) -> Result<RealSourceCloseout, CapitalError> {
+    let verified = verify_capital_bundle_with_upstream_replay_for_code(
+        bundle,
+        expected_code_commit,
+        expected_code_tree,
+        authority_lock,
+        d08,
+        d09,
+    )?;
+    if verified.capital.source_count != verified.upstream.d08_source_count
+        || verified.capital.requirement_count != verified.upstream.d09_requirement_count
+    {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "real-source replay counts differ from capital artifacts",
+        ));
+    }
+    if verified.capital.requirement_count == 0 && verified.capital.zero_own_capital_proven {
+        return Err(CapitalError::InvalidCanonical(
+            "zero-own-capital cannot be proven without a certified requirement",
+        ));
+    }
+
+    let lock_bytes = authority_lock.canonical_json()?;
+    let lock_sha256 = sha256_hash32(&lock_bytes)?;
+    let mut closeout = RealSourceCloseout {
+        generated_at: verified.capital.generated_at,
+        observation_anchor: verified.capital.observation_anchor,
+        code_commit: verified.capital.code_commit,
+        code_tree: verified.capital.code_tree,
+        source_count: verified.capital.source_count,
+        requirement_count: verified.capital.requirement_count,
+        feasible_count: verified.capital.feasible_count,
+        rejected_count: verified.capital.rejection_count,
+        d08_source_count: verified.upstream.d08_source_count,
+        d09_requirement_count: verified.upstream.d09_requirement_count,
+        zero_own_capital_proven: verified.capital.zero_own_capital_proven,
+        capital_commitment: verified.capital.capital_commitment,
+        upstream_authority_commitment: verified.capital.upstream_authority_commitment,
+        upstream_authority_lock_commitment: verified.upstream_authority_lock_commitment,
+        upstream_authority_lock_sha256: lock_sha256,
+        closeout_commitment: lock_sha256,
+    };
+    closeout.closeout_commitment = real_source_closeout_commitment(&closeout.payload_json()?)?;
+    Ok(closeout)
+}
+
 /// Verifies the self-contained D11 bundle against an exact code identity,
 /// requires every RMC-006..RMC-010 authority identity to equal an external
 /// immutable lock, and independently replays the exact RMC-008/RMC-009 bytes.
