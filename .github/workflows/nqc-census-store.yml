@@ -120,26 +120,42 @@ jobs:
             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json \
             ci/nqc-protocol-fork/PROTOCOL_FORK_EVIDENCE_MANIFEST.json
           echo RMC_004_PROTOCOL_FORK_IMMUTABLE_PASS
-          git diff --quiet "$RMC004_BASE" HEAD -- \
-            ci/nqc-census/IDENTITY_CONTRACT.md \
-            ci/nqc-census/identity-vectors.json \
-            ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md \
-            ci/nqc-census/effective-source-profile.json \
-            ci/nqc-census/materialize_effective_source.py \
-            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md \
-            nqc-census/rust-toolchain.toml \
-            nqc-census/crates/nqc-census-core/Cargo.toml \
-            nqc-census/crates/nqc-census-core/src/identity.rs \
-            nqc-census/crates/nqc-census-core/src/pipeline.rs \
-            nqc-census/crates/nqc-census-core/src/capability.rs \
-            nqc-census/crates/nqc-census-core/tests/identity.rs \
-            nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs \
-            .github/workflows/nqc-census-identity.yml \
+          upstream_paths=(
+            ci/nqc-census/IDENTITY_CONTRACT.md
+            ci/nqc-census/identity-vectors.json
+            ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md
+            ci/nqc-census/effective-source-profile.json
+            ci/nqc-census/materialize_effective_source.py
+            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md
+            nqc-census/rust-toolchain.toml
+            nqc-census/crates/nqc-census-core/Cargo.toml
+            nqc-census/crates/nqc-census-core/src/identity.rs
+            nqc-census/crates/nqc-census-core/src/pipeline.rs
+            nqc-census/crates/nqc-census-core/src/capability.rs
+            nqc-census/crates/nqc-census-core/tests/identity.rs
+            nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs
+            .github/workflows/nqc-census-identity.yml
             .github/workflows/nqc-census-effective-source.yml
-          git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" HEAD
-          git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
-            nqc-census/crates/nqc-census-core/src/observation.rs
-          echo RMC_004_RMC001_RMC002_RMC003_IMMUTABLE_PASS
+          )
+
+          if [ "${{ github.event_name }}" = "pull_request" ] && \
+             [ "${{ github.event.pull_request.base.sha }}" != "$RMC004_BASE" ]; then
+            # Later Census nodes may legitimately inherit post-RMC-004 upstream
+            # authorities. Prove this PR did not mutate any of them instead of
+            # incorrectly comparing the accumulated later tree to RMC-004.
+            later_base="${{ github.event.pull_request.base.sha }}"
+            git merge-base --is-ancestor "$RMC004_BASE" "$later_base"
+            git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" "$later_base"
+            git diff --quiet "$later_base" HEAD -- "${upstream_paths[@]}" \
+              nqc-census/crates/nqc-census-core/src/observation.rs
+            echo "RMC_004_LATER_PR_UPSTREAM_IMMUTABLE_PASS base=$later_base"
+          else
+            git diff --quiet "$RMC004_BASE" HEAD -- "${upstream_paths[@]}"
+            git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" HEAD
+            git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
+              nqc-census/crates/nqc-census-core/src/observation.rs
+            echo RMC_004_RMC001_RMC002_RMC003_IMMUTABLE_PASS
+          fi
 
       - name: Verify dependency surface and network-free boundary
         shell: bash
