@@ -73,6 +73,8 @@ No floating-point representation is permitted for protocol-governed integer amou
 
 ## Required candidate requirement fields
 
+The D09 borrower-demand boundary MUST preserve the exact account risk state needed by later liquidation sizing rather than only a boolean health-factor classification: user configuration, eMode category when available, all six `getUserAccountData` integers, configuration divergences, and exact supply/debt positions. For every borrower with a boolean `health_factor_below_one`, D11 MUST recompute that boolean from the preserved health-factor WAD and reject contradictions. These exact fields are included in the D09 demand coverage commitment even while liquidatability remains unclaimed.
+
 Every candidate capital requirement MUST enumerate all required funding legs, including:
 
 - liquidation / action principal
