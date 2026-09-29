@@ -5,7 +5,7 @@ use nqc_census_capital::{
     CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
-    UtilizationConstraints,
+    UpstreamStageAuthoritySpec, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use std::{
@@ -48,20 +48,20 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
                 "offline CLI test authority index overflow",
             )
         })?;
-        stages.push(UpstreamStageAuthority::new(
+        stages.push(UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
             stage,
-            GitObjectId::parse_hex(&format!("{ordinal:040x}"))?,
-            GitObjectId::parse_hex(&format!("{:040x}", ordinal + 10))?,
-            hash(u8::try_from(ordinal + 20).map_err(|_| {
+            code_commit: GitObjectId::parse_hex(&format!("{ordinal:040x}"))?,
+            code_tree: GitObjectId::parse_hex(&format!("{:040x}", ordinal + 10))?,
+            artifact_sha256: hash(u8::try_from(ordinal + 20).map_err(|_| {
                 nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
                     "offline CLI test artifact ordinal overflow",
                 )
             })?),
-            anchor(),
-            0,
-            0,
-            true,
-        )?);
+            observation_anchor: anchor(),
+            unresolved_mismatch_count: 0,
+            unknown_failure_count: 0,
+            admitted: true,
+        })?);
     }
     CapitalCertificationContext::new(stages)
 }

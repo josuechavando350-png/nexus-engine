@@ -5,7 +5,7 @@ use nqc_census_capital::{
     CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, PersistentDebtTerms, RepaymentSemantics,
     RequiredAtomicity, RequirementKind, RoundingMode, TemporaryLock, UpstreamCensusStage,
-    UpstreamStageAuthority, UtilizationConstraints,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -42,16 +42,16 @@ fn certification_context() -> Result<CapitalCertificationContext, nqc_census_cap
         let nibble = u8::try_from(index + 1).map_err(|_| {
             nqc_census_capital::CapitalError::InvalidUpstreamAuthority("test stage index overflow")
         })?;
-        stages.push(UpstreamStageAuthority::new(
+        stages.push(UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
             stage,
-            GitObjectId::parse_hex(&format!("{nibble:040x}"))?,
-            GitObjectId::parse_hex(&format!("{:040x}", u64::from(nibble) + 10))?,
-            hash(nibble.saturating_add(20)),
-            anchor(100),
-            0,
-            0,
-            true,
-        )?);
+            code_commit: GitObjectId::parse_hex(&format!("{nibble:040x}"))?,
+            code_tree: GitObjectId::parse_hex(&format!("{:040x}", u64::from(nibble) + 10))?,
+            artifact_sha256: hash(nibble.saturating_add(20)),
+            observation_anchor: anchor(100),
+            unresolved_mismatch_count: 0,
+            unknown_failure_count: 0,
+            admitted: true,
+        })?);
     }
     CapitalCertificationContext::new(stages)
 }
@@ -1210,16 +1210,16 @@ fn upstream_authority_rejects_mismatch_unknown_or_unadmitted_stage() -> TestResu
     let tree = GitObjectId::parse_hex("2222222222222222222222222222222222222222")?;
     for (mismatch, unknown, admitted) in [(1, 0, true), (0, 1, true), (0, 0, false)] {
         assert!(matches!(
-            UpstreamStageAuthority::new(
-                UpstreamCensusStage::Rmc008StateAdmission,
-                commit,
-                tree,
-                hash(33),
-                anchor(100),
-                mismatch,
-                unknown,
+            UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
+                stage: UpstreamCensusStage::Rmc008StateAdmission,
+                code_commit: commit,
+                code_tree: tree,
+                artifact_sha256: hash(33),
+                observation_anchor: anchor(100),
+                unresolved_mismatch_count: mismatch,
+                unknown_failure_count: unknown,
                 admitted,
-            ),
+            }),
             Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
                 _
             ))
@@ -1732,16 +1732,16 @@ fn certification_context_rejects_mixed_upstream_anchors() -> TestResult {
         } else {
             anchor(100)
         };
-        stages.push(UpstreamStageAuthority::new(
+        stages.push(UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
             stage,
-            GitObjectId::parse_hex(&format!("{value:040x}"))?,
-            GitObjectId::parse_hex(&format!("{:040x}", u64::from(value) + 10))?,
-            hash(value.saturating_add(20)),
-            stage_anchor,
-            0,
-            0,
-            true,
-        )?);
+            code_commit: GitObjectId::parse_hex(&format!("{value:040x}"))?,
+            code_tree: GitObjectId::parse_hex(&format!("{:040x}", u64::from(value) + 10))?,
+            artifact_sha256: hash(value.saturating_add(20)),
+            observation_anchor: stage_anchor,
+            unresolved_mismatch_count: 0,
+            unknown_failure_count: 0,
+            admitted: true,
+        })?);
     }
     assert!(matches!(
         CapitalCertificationContext::new(stages),
@@ -1783,16 +1783,16 @@ fn evidentiary_ledger_cannot_certify_against_a_different_anchor() -> TestResult 
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
         let value = u8::try_from(index + 1)?;
-        stages.push(UpstreamStageAuthority::new(
+        stages.push(UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
             stage,
-            GitObjectId::parse_hex(&format!("{value:040x}"))?,
-            GitObjectId::parse_hex(&format!("{:040x}", u64::from(value) + 10))?,
-            hash(value.saturating_add(20)),
-            anchor(101),
-            0,
-            0,
-            true,
-        )?);
+            code_commit: GitObjectId::parse_hex(&format!("{value:040x}"))?,
+            code_tree: GitObjectId::parse_hex(&format!("{:040x}", u64::from(value) + 10))?,
+            artifact_sha256: hash(value.saturating_add(20)),
+            observation_anchor: anchor(101),
+            unresolved_mismatch_count: 0,
+            unknown_failure_count: 0,
+            admitted: true,
+        })?);
     }
     let authority = CapitalCertificationContext::new(stages)?;
     assert!(matches!(
