@@ -156,7 +156,7 @@ impl Display for CapitalError {
                 f.write_str("synthetic capital ledger cannot be certified as real evidence")
             }
             Self::EmptyCapitalCensus => {
-                f.write_str("capital census certification requires sources and requirements")
+                f.write_str("capital census certification requires at least one observed source")
             }
             Self::SettlementRequirementMismatch => {
                 f.write_str("candidate settlement requirements differ from source obligations")
