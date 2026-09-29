@@ -8,8 +8,8 @@ mod interface;
 mod reconcile;
 
 pub use interface::{
-    aave_interface, decode_reserve_dropped, decode_reserve_initialized, AaveDiscoveryInterface,
-    ReserveDroppedEvent, ReserveInitializedEvent,
+    aave_interface, decode_reserve_dropped, decode_reserve_initialized, verify_pool_runtime,
+    AaveDiscoveryInterface, ReserveDroppedEvent, ReserveInitializedEvent,
 };
 pub use reconcile::{
     reconcile, CurrentReserve, Delta, DeltaKind, Reconciliation, ReconciliationSummary,
