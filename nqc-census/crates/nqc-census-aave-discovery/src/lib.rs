@@ -12,8 +12,8 @@ pub use interface::{
     ReserveDroppedEvent, ReserveInitializedEvent,
 };
 pub use reconcile::{
-    reconcile, CurrentReserve, Delta, DeltaKind, ReserveDropProof, ReserveInitProof,
-    ReserveManifest, Reconciliation, ReconciliationSummary,
+    reconcile, CurrentReserve, Delta, DeltaKind, Reconciliation, ReconciliationSummary,
+    ReserveDropProof, ReserveInitProof, ReserveManifest,
 };
 
 use std::fmt::{Display, Formatter};

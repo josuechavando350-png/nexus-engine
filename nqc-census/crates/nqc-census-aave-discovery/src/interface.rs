@@ -8,8 +8,7 @@ const RESERVE_BY_ID: &str = "getReserveAddressById(uint16)";
 const RESERVE_DATA: &str = "getReserveData(address)";
 const GET_POOL: &str = "getPool()";
 const GET_POOL_CONFIGURATOR: &str = "getPoolConfigurator()";
-const RESERVE_INITIALIZED: &str =
-    "ReserveInitialized(address,address,address,address,address)";
+const RESERVE_INITIALIZED: &str = "ReserveInitialized(address,address,address,address,address)";
 const RESERVE_DROPPED: &str = "ReserveDropped(address)";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -92,8 +91,7 @@ fn topic_address(topic: &Hash32) -> Result<Address, DiscoveryError> {
 }
 
 fn word_address(word: &[u8; 32], field: &'static str) -> Result<Address, DiscoveryError> {
-    let value = abi::decode_address(word)?
-        .ok_or(DiscoveryError::InvalidReserve(field))?;
+    let value = abi::decode_address(word)?.ok_or(DiscoveryError::InvalidReserve(field))?;
     Ok(Address::new(value)?)
 }
 

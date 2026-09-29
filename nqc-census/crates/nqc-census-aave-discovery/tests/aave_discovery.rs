@@ -1,13 +1,13 @@
+use nqc_census_aave_discovery::{
+    aave_interface, decode_reserve_dropped, decode_reserve_initialized, reconcile, CurrentReserve,
+    DeltaKind, ReserveDropProof, ReserveInitProof,
+};
 use nqc_census_chain::abi;
 use nqc_census_core::{
     AdapterCapability, Address, BlockWindow, CapabilityAdmission, CapabilityScope, ChainDomain,
     DeclaredUniverse, DeploymentBinding, DeploymentKey, DeploymentLifeState, DeploymentRegistry,
     DiscoveryRoot, DiscoveryRootKind, EvidenceRef, Hash32, ObservationSemantics, ProtocolFamily,
     ProxyKind, RawLogEnvelope, StateAnchor, SupportedSemanticsProfile, UniverseScope,
-};
-use nqc_census_aave_discovery::{
-    aave_interface, decode_reserve_dropped, decode_reserve_initialized, reconcile, CurrentReserve,
-    DeltaKind, ReserveDropProof, ReserveInitProof,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -65,8 +65,7 @@ fn admission() -> Result<nqc_census_core::AdmissionRecord, Box<dyn std::error::E
         1_700_000_000,
         hash(11)?,
     )?;
-    let observation =
-        StateAnchor::new(chain, 500, hash(12)?, hash(13)?, 1_700_010_000, hash(14)?)?;
+    let observation = StateAnchor::new(chain, 500, hash(12)?, hash(13)?, 1_700_010_000, hash(14)?)?;
     let binding = DeploymentBinding::new(
         deployment,
         root,
