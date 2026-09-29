@@ -64,7 +64,13 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             admitted: true,
         })?);
     }
-    CapitalCertificationContext::new(stages, evidence())
+    let mut admitted_evidence = evidence();
+    admitted_evidence.extend(
+        stages
+            .iter()
+            .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
+    );
+    CapitalCertificationContext::new(stages, admitted_evidence)
 }
 
 fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
