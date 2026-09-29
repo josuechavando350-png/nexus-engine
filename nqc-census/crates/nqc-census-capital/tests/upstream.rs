@@ -200,6 +200,9 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
     assert_eq!(imported.admitted_count, 3);
     assert_eq!(imported.rejected_count, 0);
     assert!(imported.is_conserved());
+    let receipt = imported.consumption_receipt()?;
+    assert_eq!(receipt.stage(), UpstreamCensusStage::Rmc008StateAdmission);
+    assert_eq!(receipt.coverage_commitment(), imported.coverage_commitment);
 
     let mut classes = imported
         .sources

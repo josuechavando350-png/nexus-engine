@@ -8,7 +8,8 @@
 //! liquidation sizing semantics are certified downstream.
 
 use crate::{
-    Amount256, CapitalError, CapitalEvidenceRef, UpstreamCensusStage, UpstreamStageAuthority,
+    Amount256, CapitalError, CapitalEvidenceRef, UpstreamCensusStage, UpstreamConsumptionReceipt,
+    UpstreamStageAuthority,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, Hash32, StateAnchor};
@@ -61,6 +62,7 @@ pub struct D09DemandImport {
     pub blocked_count: usize,
     pub requirements_certified: usize,
     pub coverage_commitment: Hash32,
+    authority_artifact_sha256: Hash32,
 }
 
 impl D09DemandImport {
@@ -69,6 +71,14 @@ impl D09DemandImport {
             == self.below_one_count + self.not_below_one_count + self.unavailable_count
             && self.blocked_count == self.borrower_count
             && self.requirements_certified == 0
+    }
+
+    pub fn consumption_receipt(&self) -> Result<UpstreamConsumptionReceipt, CapitalError> {
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc009PositionUniverse,
+            self.authority_artifact_sha256,
+            self.coverage_commitment,
+        )
     }
 }
 
@@ -503,5 +513,6 @@ pub fn import_d09_borrower_demands(
         blocked_count,
         requirements_certified: 0,
         coverage_commitment,
+        authority_artifact_sha256: authority.artifact_sha256,
     })
 }

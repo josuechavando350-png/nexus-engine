@@ -3,7 +3,8 @@ use crate::{
     CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement, CapitalSource,
     CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock, UpstreamCensusStage,
-    UpstreamStageAuthority, UpstreamStageAuthoritySpec, CAPITAL_SCHEMA_VERSION,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    CAPITAL_SCHEMA_VERSION,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
@@ -717,7 +718,7 @@ fn upstream_authority_json(
     provenance: &ArtifactProvenance,
 ) -> Json {
     Json::object([
-        ("schema_version", Json::uint(4)),
+        ("schema_version", Json::uint(5)),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -736,6 +737,22 @@ fn upstream_authority_json(
                     .copied()
                     .map(evidence_ref_json),
             ),
+        ),
+        (
+            "consumption_receipts",
+            Json::array(authority.consumption_receipts().map(|receipt| {
+                Json::object([
+                    ("stage", Json::string(receipt.stage().code())),
+                    (
+                        "authority_artifact_sha256",
+                        Json::string(receipt.authority_artifact_sha256().to_hex()),
+                    ),
+                    (
+                        "coverage_commitment",
+                        Json::string(receipt.coverage_commitment().to_hex()),
+                    ),
+                ])
+            })),
         ),
         (
             "stages",
@@ -771,7 +788,7 @@ fn parse_upstream_authority(
     let parsed = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid upstream authority JSON"))?;
     require_canonical_json(bytes, &parsed)?;
-    if json_u64(&parsed, "schema_version")? != 4 {
+    if json_u64(&parsed, "schema_version")? != 5 {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "unsupported upstream authority schema",
         ));
@@ -838,7 +855,48 @@ fn parse_upstream_authority(
         admitted_evidence.push(parse_evidence_ref_json(row)?);
     }
 
-    let authority = CapitalCertificationContext::new(authorities, admitted_evidence)?;
+    let receipt_rows = parsed
+        .get("consumption_receipts")
+        .and_then(Json::as_array)
+        .ok_or(CapitalError::InvalidUpstreamAuthority(
+            "upstream consumption receipts missing",
+        ))?;
+    let mut consumption_receipts = Vec::with_capacity(receipt_rows.len());
+    for row in receipt_rows {
+        let stage = UpstreamCensusStage::parse_code(row.str_field("stage").map_err(|_| {
+            CapitalError::InvalidUpstreamAuthority("consumption receipt stage missing")
+        })?)?;
+        let authority_artifact_sha256 =
+            Hash32::parse_hex(row.str_field("authority_artifact_sha256").map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt authority artifact missing",
+                )
+            })?)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "invalid consumption receipt authority artifact",
+                )
+            })?;
+        let coverage_commitment =
+            Hash32::parse_hex(row.str_field("coverage_commitment").map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt coverage commitment missing",
+                )
+            })?)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "invalid consumption receipt coverage commitment",
+                )
+            })?;
+        consumption_receipts.push(UpstreamConsumptionReceipt::new(
+            stage,
+            authority_artifact_sha256,
+            coverage_commitment,
+        )?);
+    }
+
+    let authority = CapitalCertificationContext::new(authorities, admitted_evidence)?
+        .with_consumption_receipts(consumption_receipts)?;
     let declared_commitment = parsed
         .str_field("upstream_authority_commitment")
         .map_err(|_| {

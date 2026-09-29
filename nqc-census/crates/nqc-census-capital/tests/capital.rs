@@ -5,7 +5,8 @@ use nqc_census_capital::{
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, PersistentDebtTerms, RepaymentSemantics,
     RequiredAtomicity, RequirementKind, RoundingMode, TemporaryLock, UpstreamCensusStage,
-    UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -60,7 +61,32 @@ fn certification_context() -> Result<CapitalCertificationContext, nqc_census_cap
             .iter()
             .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
     );
-    CapitalCertificationContext::new(stages, admitted_evidence)
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-008 authority missing",
+        ))?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-009 authority missing",
+        ))?
+        .artifact_sha256;
+    CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc008StateAdmission,
+            d08_artifact,
+            hash(80),
+        )?,
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc009PositionUniverse,
+            d09_artifact,
+            hash(81),
+        )?,
+    ])
 }
 
 fn source(
@@ -1095,6 +1121,87 @@ fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult 
     assert!(matches!(
         ledger.certify(&certification_context()?),
         Err(nqc_census_capital::CapitalError::NonEvidentiaryLedger)
+    ));
+    Ok(())
+}
+
+#[test]
+fn evidentiary_certification_requires_consumed_d08_and_d09_receipts() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let external = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(external)?;
+    ledger.evaluate_all()?;
+
+    let context = certification_context()?;
+    let bare = CapitalCertificationContext::new(
+        context.stages().to_vec(),
+        context.admitted_evidence().copied().collect(),
+    )?;
+    assert!(matches!(
+        ledger.certify(&bare),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> TestResult {
+    let context = certification_context()?;
+    let stages = context.stages().to_vec();
+    let admitted_evidence = context.admitted_evidence().copied().collect::<Vec<_>>();
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or("missing RMC-008 authority")?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or("missing RMC-009 authority")?
+        .artifact_sha256;
+
+    let wrong_authority =
+        CapitalCertificationContext::new(stages.clone(), admitted_evidence.clone())?
+            .with_consumption_receipts(vec![
+                UpstreamConsumptionReceipt::new(
+                    UpstreamCensusStage::Rmc008StateAdmission,
+                    hash(90),
+                    hash(80),
+                )?,
+                UpstreamConsumptionReceipt::new(
+                    UpstreamCensusStage::Rmc009PositionUniverse,
+                    d09_artifact,
+                    hash(81),
+                )?,
+            ]);
+    assert!(matches!(
+        wrong_authority,
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+
+    let duplicate = CapitalCertificationContext::new(stages, admitted_evidence)?
+        .with_consumption_receipts(vec![
+            UpstreamConsumptionReceipt::new(
+                UpstreamCensusStage::Rmc008StateAdmission,
+                d08_artifact,
+                hash(80),
+            )?,
+            UpstreamConsumptionReceipt::new(
+                UpstreamCensusStage::Rmc008StateAdmission,
+                d08_artifact,
+                hash(82),
+            )?,
+        ]);
+    assert!(matches!(
+        duplicate,
+        Err(CapitalError::InvalidUpstreamAuthority(_))
     ));
     Ok(())
 }

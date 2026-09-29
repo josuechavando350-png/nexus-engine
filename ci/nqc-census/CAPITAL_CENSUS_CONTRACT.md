@@ -92,6 +92,8 @@ A source may be used only when:
 
 - every consumed upstream byte is bound through the upstream stage's admitted evidence manifest; for RMC-008 the authority artifact digest identifies `evidence-manifest.json`, whose exact code commit/tree and per-file SHA-256/size entries MUST match `market-state-manifest.jsonl`, `token-admission.jsonl`, and `pool-and-factory-facts.json` before import
 - the same byte-binding rule applies to RMC-009: its authority artifact digest identifies `evidence-manifest.json`; the manifest and `account-summary.json` must name the exact admitted code commit/tree, and the manifest SHA-256/size entries for `account-manifest.jsonl` and `account-summary.json` must match before borrower demand import
+- the verified RMC-008 source import and RMC-009 borrower-demand import MUST each emit a deterministic consumption receipt binding their coverage commitment to the exact admitted upstream authority artifact; final certification MUST bind both receipts into the upstream-authority commitment
+- merely listing an admitted RMC-008 or RMC-009 authority is insufficient: certification MUST fail if either consumed-input receipt is absent, duplicated, references the wrong stage, or references a different authority artifact
 - deployment/source identity is admitted
 - the observation is pinned to the same canonical block context required by the candidate
 - executable capacity, not merely observed capacity, is sufficient at the requested size
@@ -156,6 +158,7 @@ Foundation artifacts MUST encode `real_source_certification=false` until every r
 RMC-011 may be certified only when:
 
 - all upstream inputs used by the final run are exact-head admitted artifacts
+- exact RMC-008 and RMC-009 consumption receipts are present and their coverage commitments are bound into `capital-upstream-authority.json` and its commitment
 - every source used for feasibility has reproducible evidence
 - zero unexplained source mismatches remain
 - zero UNKNOWN failure reasons remain

@@ -11,7 +11,7 @@ use crate::{
         UNISWAP_V2_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource, UpstreamCensusStage,
-    UpstreamStageAuthority,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority,
 };
 use nqc_census_chain::{hex, json::Json};
 use nqc_census_core::{Address, Hash32, StateAnchor};
@@ -67,6 +67,7 @@ pub struct D08CapitalImport {
     pub coverage_commitment: Hash32,
     pub sources: Vec<CapitalSource>,
     pub rejections: Vec<CapitalImportRejection>,
+    authority_artifact_sha256: Option<Hash32>,
 }
 
 impl D08CapitalImport {
@@ -74,6 +75,19 @@ impl D08CapitalImport {
         self.candidate_count == self.admitted_count + self.rejected_count
             && self.admitted_count == self.sources.len()
             && self.rejected_count == self.rejections.len()
+    }
+
+    pub fn consumption_receipt(&self) -> Result<UpstreamConsumptionReceipt, CapitalError> {
+        let authority_artifact_sha256 =
+            self.authority_artifact_sha256
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
+                    "D08 import is not bound to an admitted authority artifact",
+                ))?;
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc008StateAdmission,
+            authority_artifact_sha256,
+            self.coverage_commitment,
+        )
     }
 }
 
@@ -430,12 +444,14 @@ pub fn import_d08_capital_sources(
         authority,
         context,
     )?;
-    import_d08_capital_sources_unbound(
+    let mut imported = import_d08_capital_sources_unbound(
         state_manifest_jsonl,
         token_admission_jsonl,
         pool_and_factory_facts_json,
         context,
-    )
+    )?;
+    imported.authority_artifact_sha256 = Some(authority.artifact_sha256);
+    Ok(imported)
 }
 
 fn import_d08_capital_sources_unbound(
@@ -695,5 +711,6 @@ fn import_d08_capital_sources_unbound(
         coverage_commitment,
         sources,
         rejections,
+        authority_artifact_sha256: None,
     })
 }
