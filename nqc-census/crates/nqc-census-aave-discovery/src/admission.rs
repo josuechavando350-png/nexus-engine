@@ -6,12 +6,7 @@ use nqc_census_core::{
     ProxyKind, StateAnchor, SupportedSemanticsProfile, UniverseScope,
 };
 use nqc_census_store::{ArtifactId, Store, StoreConfig};
-use std::{
-    collections::BTreeSet,
-    error::Error,
-    fs,
-    path::Path,
-};
+use std::{collections::BTreeSet, error::Error, fs, path::Path};
 
 const ADDRESSES_PROVIDER: &str = "0x2f39d218133afab8f2b819b1066c7e434ad94e9e";
 const POOL: &str = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2";
@@ -193,18 +188,18 @@ pub fn run_admission(
     }
 
     let deployment_instance = hash_text(history.str_field("deployment_instance")?)?;
-    let deployment =
-        DeploymentKey::new(chain.clone(), ProtocolFamily::AaveV3, pool, deployment_instance);
-    let root = DiscoveryRoot::new(
-        DiscoveryRootKind::AaveAddressesProvider,
-        addresses_provider,
+    let deployment = DeploymentKey::new(
+        chain.clone(),
+        ProtocolFamily::AaveV3,
+        pool,
+        deployment_instance,
     );
+    let root = DiscoveryRoot::new(DiscoveryRootKind::AaveAddressesProvider, addresses_provider);
 
     let runtime_hashes = required(facts, "runtime_sha256")?;
     let deployment_code_hash = hash_text(runtime_hashes.str_field("pool_proxy")?)?;
     let implementation_address = Address::parse_hex(facts.str_field("pool_implementation")?)?;
-    let implementation_code_hash =
-        hash_text(runtime_hashes.str_field("pool_implementation")?)?;
+    let implementation_code_hash = hash_text(runtime_hashes.str_field("pool_implementation")?)?;
     let fingerprint = required(&current, "admission_fingerprint")?;
     let configuration_hash = hash_text(fingerprint.str_field("configuration_sha256")?)?;
     let oracle_configuration_hash =
@@ -278,14 +273,8 @@ pub fn run_admission(
             "deployment_instance",
             Json::string(deployment_instance.to_hex()),
         ),
-        (
-            "creation_block",
-            Json::uint(creation.block_number()),
-        ),
-        (
-            "observation_block",
-            Json::uint(observation.block_number()),
-        ),
+        ("creation_block", Json::uint(creation.block_number())),
+        ("observation_block", Json::uint(observation.block_number())),
         (
             "proxy_kind",
             Json::string("EXPLICIT_OTHER_EIP1967_EVIDENCED"),
@@ -310,7 +299,10 @@ pub fn run_admission(
             "oracle_configuration_hash",
             Json::string(oracle_configuration_hash.to_hex()),
         ),
-        ("semantics_version", Json::uint(u64::from(SEMANTICS_VERSION))),
+        (
+            "semantics_version",
+            Json::uint(u64::from(SEMANTICS_VERSION)),
+        ),
         ("evidence_ref_count", Json::uint(evidence_count as u64)),
         (
             "capability_state",

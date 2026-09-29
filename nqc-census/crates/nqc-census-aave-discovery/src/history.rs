@@ -279,13 +279,14 @@ pub fn run_history(
     let pool = Address::parse_hex(POOL)?;
     let (pool_creation, pool_boundary, pool_boundary_manifests) =
         agreed_boundary(&acquisition, &providers, &chain, pool, "pool")?;
-    let (configurator_creation, configurator_boundary, configurator_boundary_manifests) = agreed_boundary(
-        &acquisition,
-        &providers,
-        &chain,
-        configurator,
-        "pool-configurator",
-    )?;
+    let (configurator_creation, configurator_boundary, configurator_boundary_manifests) =
+        agreed_boundary(
+            &acquisition,
+            &providers,
+            &chain,
+            configurator,
+            "pool-configurator",
+        )?;
     if configurator_creation.block_number() < pool_creation.block_number() {
         return Err(
             ChainError::Evidence("PoolConfigurator code predates Pool proxy code".into()).into(),
