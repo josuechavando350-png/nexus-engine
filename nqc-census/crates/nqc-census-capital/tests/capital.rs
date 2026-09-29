@@ -1375,7 +1375,6 @@ fn collateralized_borrowing_can_bind_full_persistent_risk_semantics() -> TestRes
     Ok(())
 }
 
-
 #[test]
 fn allocation_engine_reroutes_scarce_source_instead_of_greedy_false_negative() -> TestResult {
     let token = CapitalAsset::Token(address(20));

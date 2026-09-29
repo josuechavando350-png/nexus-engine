@@ -2055,12 +2055,7 @@ fn solve_funding(
     }
 
     for (leg_index, (_, leg)) in funding_legs.iter().enumerate() {
-        let edge_index = add_residual_edge(
-            &mut graph,
-            leg_node(leg_index),
-            sink,
-            leg.amount(),
-        );
+        let edge_index = add_residual_edge(&mut graph, leg_node(leg_index), sink, leg.amount());
         leg_sink_edges.push(edge_index);
     }
 
@@ -2085,13 +2080,14 @@ fn solve_funding(
         }
     }
 
-    let unmet_leg = funding_legs
-        .iter()
-        .enumerate()
-        .find_map(|(leg_index, (requirement_index, _))| {
-            let remaining = graph[leg_node(leg_index)][leg_sink_edges[leg_index]].capacity;
-            (!remaining.is_zero()).then_some((*requirement_index, remaining))
-        });
+    let unmet_leg =
+        funding_legs
+            .iter()
+            .enumerate()
+            .find_map(|(leg_index, (requirement_index, _))| {
+                let remaining = graph[leg_node(leg_index)][leg_sink_edges[leg_index]].capacity;
+                (!remaining.is_zero()).then_some((*requirement_index, remaining))
+            });
 
     Ok(FundingSolution {
         allocations,
