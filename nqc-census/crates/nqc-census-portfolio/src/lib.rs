@@ -98,11 +98,16 @@ pub enum SharedResourceKind {
     CollateralAsset,
     FlashPool,
     DexLiquidity,
+    RouteLiquidity,
     OracleMovement,
     ProtocolCap,
     BlockSlot,
     BuilderSlot,
-    Custom(u16),
+    NonceLane,
+    PrivateRelaySlot,
+    RpcQuota,
+    BridgeLiquidity,
+    Custom,
 }
 
 impl SharedResourceKind {
@@ -114,11 +119,16 @@ impl SharedResourceKind {
             Self::CollateralAsset => 4,
             Self::FlashPool => 5,
             Self::DexLiquidity => 6,
-            Self::OracleMovement => 7,
-            Self::ProtocolCap => 8,
-            Self::BlockSlot => 9,
-            Self::BuilderSlot => 10,
-            Self::Custom(value) => 0x8000 | (value & 0x7fff),
+            Self::RouteLiquidity => 7,
+            Self::OracleMovement => 8,
+            Self::ProtocolCap => 9,
+            Self::BlockSlot => 10,
+            Self::BuilderSlot => 11,
+            Self::NonceLane => 12,
+            Self::PrivateRelaySlot => 13,
+            Self::RpcQuota => 14,
+            Self::BridgeLiquidity => 15,
+            Self::Custom => 0xffff,
         }
     }
 }
