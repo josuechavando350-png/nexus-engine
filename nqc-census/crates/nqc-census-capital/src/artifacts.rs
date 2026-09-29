@@ -3,7 +3,7 @@ use crate::{
     CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement, CapitalSource,
     CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock, UpstreamCensusStage,
-    UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec, CAPITAL_SCHEMA_VERSION,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
@@ -816,7 +816,10 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
 
 fn metadata(provenance: &ArtifactProvenance) -> Vec<(&'static str, Json)> {
     vec![
-        ("schema_version", Json::uint(1)),
+        (
+            "schema_version",
+            Json::uint(u64::from(CAPITAL_SCHEMA_VERSION)),
+        ),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -1310,6 +1313,11 @@ fn _type_fence(
 }
 
 fn record_provenance(record: &Json) -> Result<ArtifactProvenance, CapitalError> {
+    if json_u64(record, "schema_version")? != u64::from(CAPITAL_SCHEMA_VERSION) {
+        return Err(CapitalError::InvalidCanonical(
+            "unsupported capital record schema",
+        ));
+    }
     ArtifactProvenance::new(
         record
             .str_field("generated_at")
