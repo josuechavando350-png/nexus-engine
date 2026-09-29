@@ -157,7 +157,13 @@ struct ReplayFixture {
 fn authority_lock(
     context: &CapitalCertificationContext,
 ) -> Result<UpstreamAuthorityLock, nqc_census_capital::CapitalError> {
-    UpstreamAuthorityLock::from_context(context)
+    UpstreamAuthorityLock::new(
+        context
+            .stages()
+            .iter()
+            .map(UpstreamAuthorityLockEntry::from)
+            .collect(),
+    )
 }
 
 fn replay_context() -> Result<ReplayFixture, Box<dyn std::error::Error>> {
@@ -426,6 +432,10 @@ fn authority_lock_roundtrips_canonically_and_rejects_unconsumed_stage_substituti
     let bytes = lock.canonical_json()?;
     let decoded = UpstreamAuthorityLock::parse_json(&bytes)?;
     assert_eq!(decoded, lock);
+
+    let text = String::from_utf8(bytes.clone())?;
+    let with_unknown_field = text.replacen("{", "{\"ignored\":1,", 1).into_bytes();
+    assert!(UpstreamAuthorityLock::parse_json(&with_unknown_field).is_err());
 
     let mut forged_entries = fixture
         .context
