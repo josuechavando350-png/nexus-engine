@@ -61,11 +61,17 @@ impl Display for CapitalError {
             Self::InvalidRatio => f.write_str("invalid exact ratio"),
             Self::MissingEvidence => f.write_str("real capital record requires evidence"),
             Self::EmptyFailureModes => f.write_str("capital source must enumerate failure modes"),
-            Self::UnknownFailureMode => f.write_str("UNKNOWN capital failure mode cannot be admitted"),
-            Self::MissingAllowedClass => f.write_str("requirement leg has no allowed capital class"),
+            Self::UnknownFailureMode => {
+                f.write_str("UNKNOWN capital failure mode cannot be admitted")
+            }
+            Self::MissingAllowedClass => {
+                f.write_str("requirement leg has no allowed capital class")
+            }
             Self::DuplicateAllowedClass => f.write_str("requirement leg repeats a capital class"),
             Self::DuplicateLeg => f.write_str("duplicate capital requirement leg"),
-            Self::GasLegMustUseNativeAsset => f.write_str("gas funding leg must use native gas asset"),
+            Self::GasLegMustUseNativeAsset => {
+                f.write_str("gas funding leg must use native gas asset")
+            }
             Self::GasLegMustAllowGasFunding => {
                 f.write_str("gas funding leg must permit GAS_FUNDING capital")
             }
@@ -84,23 +90,25 @@ impl Display for CapitalError {
             Self::TemporaryLockSemanticsRequired => {
                 f.write_str("temporary-lock capital requires explicit lock semantics")
             }
-            Self::InvalidCanonical(reason) => write!(f, "invalid canonical capital bytes: {reason}"),
+            Self::InvalidCanonical(reason) => {
+                write!(f, "invalid canonical capital bytes: {reason}")
+            }
             Self::CanonicalDigestMismatch => f.write_str("canonical capital digest mismatch"),
             Self::WrongCanonicalType => f.write_str("canonical capital object has wrong type"),
             Self::AnchorMismatch => f.write_str("capital source and requirement anchors differ"),
             Self::AmountUnderflow => f.write_str("capital amount underflow"),
             Self::InsufficientCapacity => f.write_str("insufficient capital capacity"),
             Self::MissingGasFunding => f.write_str("required native gas funding is absent"),
-            Self::AtomicityMismatch => f.write_str("capital source does not satisfy required atomicity"),
-            Self::RepaymentRequirementMissing => {
-                f.write_str("capital source repayment asset is not represented by candidate requirements")
+            Self::AtomicityMismatch => {
+                f.write_str("capital source does not satisfy required atomicity")
             }
+            Self::RepaymentRequirementMissing => f.write_str(
+                "capital source repayment asset is not represented by candidate requirements",
+            ),
             Self::CollateralRequirementUnfunded => {
                 f.write_str("capital source collateral requirement is unfunded")
             }
-            Self::TemporaryLockUnfunded => {
-                f.write_str("capital source temporary lock is unfunded")
-            }
+            Self::TemporaryLockUnfunded => f.write_str("capital source temporary lock is unfunded"),
             Self::NoCompatibleSource => f.write_str("no compatible capital source"),
         }
     }
@@ -157,7 +165,11 @@ impl Amount256 {
     }
 
     pub fn min(self, rhs: Self) -> Self {
-        if self <= rhs { self } else { rhs }
+        if self <= rhs {
+            self
+        } else {
+            rhs
+        }
     }
 }
 
@@ -251,9 +263,9 @@ impl CapitalAsset {
     fn decode(reader: &mut Reader<'_>) -> Result<Self, CapitalError> {
         match reader.u8()? {
             1 => Ok(Self::NativeGas),
-            2 => Ok(Self::Token(Address::new(reader.array::<20>()?).map_err(|_| {
-                CapitalError::InvalidCanonical("invalid token address")
-            })?)),
+            2 => Ok(Self::Token(Address::new(reader.array::<20>()?).map_err(
+                |_| CapitalError::InvalidCanonical("invalid token address"),
+            )?)),
             _ => Err(CapitalError::InvalidCanonical("unknown capital asset")),
         }
     }
@@ -530,10 +542,7 @@ pub struct UtilizationConstraints {
 }
 
 impl UtilizationConstraints {
-    pub fn new(
-        max_utilization_bps: u16,
-        min_remaining: Amount256,
-    ) -> Result<Self, CapitalError> {
+    pub fn new(max_utilization_bps: u16, min_remaining: Amount256) -> Result<Self, CapitalError> {
         if max_utilization_bps > 10_000 {
             return Err(CapitalError::InvalidBasisPoints(max_utilization_bps));
         }
@@ -755,8 +764,10 @@ impl CapitalSource {
             }
             _ => {}
         }
-        if matches!(spec.class, CapitalClass::CollateralizedBorrowing | CapitalClass::PersistentDebt)
-            && matches!(spec.collateral, CollateralRequirement::None)
+        if matches!(
+            spec.class,
+            CapitalClass::CollateralizedBorrowing | CapitalClass::PersistentDebt
+        ) && matches!(spec.collateral, CollateralRequirement::None)
         {
             return Err(CapitalError::CollateralSemanticsRequired);
         }
@@ -858,7 +869,11 @@ impl CapitalSource {
                 Address::new(reader.array::<20>()?)
                     .map_err(|_| CapitalError::InvalidCanonical("invalid source contract"))?,
             ),
-            _ => return Err(CapitalError::InvalidCanonical("invalid source contract marker")),
+            _ => {
+                return Err(CapitalError::InvalidCanonical(
+                    "invalid source contract marker",
+                ))
+            }
         };
         let asset = CapitalAsset::decode(&mut reader)?;
         let maximum_available = Amount256::from_be_bytes(reader.array::<32>()?);
@@ -1189,8 +1204,10 @@ impl CapitalRequirement {
             legs,
             evidence,
         };
-        requirement.id =
-            CapitalRequirementId(domain_hash(REQUIREMENT_DOMAIN, &requirement.content_bytes()));
+        requirement.id = CapitalRequirementId(domain_hash(
+            REQUIREMENT_DOMAIN,
+            &requirement.content_bytes(),
+        ));
         Ok(requirement)
     }
 
@@ -1308,7 +1325,10 @@ pub fn evaluate_capital_feasibility(
     requirement: &CapitalRequirement,
     sources: &[CapitalSource],
 ) -> CapitalFeasibility {
-    if sources.iter().any(|source| source.anchor() != requirement.anchor()) {
+    if sources
+        .iter()
+        .any(|source| source.anchor() != requirement.anchor())
+    {
         let same_anchor_exists = sources
             .iter()
             .any(|source| source.anchor() == requirement.anchor());
@@ -1380,7 +1400,11 @@ pub fn evaluate_capital_feasibility(
 
     for index in used_sources {
         let source = ordered[index];
-        if !has_leg(requirement, RequirementKind::Repayment, source.repayment_asset()) {
+        if !has_leg(
+            requirement,
+            RequirementKind::Repayment,
+            source.repayment_asset(),
+        ) {
             return rejected(
                 requirement,
                 FeasibilityRejection::RepaymentRequirementMissing,
@@ -1466,7 +1490,9 @@ fn apply_utilization(amount: Amount256, bps: u16) -> Result<Amount256, CapitalEr
     let value = u128::from_be_bytes(low);
     let scaled = value
         .checked_mul(u128::from(bps))
-        .ok_or(CapitalError::InvalidCanonical("utilization multiplication overflow"))?
+        .ok_or(CapitalError::InvalidCanonical(
+            "utilization multiplication overflow",
+        ))?
         / 10_000_u128;
     Ok(Amount256::from_u128(scaled))
 }
@@ -1514,7 +1540,9 @@ fn decode_optional_amount(reader: &mut Reader<'_>) -> Result<Option<Amount256>, 
     match reader.u8()? {
         0 => Ok(None),
         1 => Ok(Some(Amount256::from_be_bytes(reader.array::<32>()?))),
-        _ => Err(CapitalError::InvalidCanonical("invalid optional amount marker")),
+        _ => Err(CapitalError::InvalidCanonical(
+            "invalid optional amount marker",
+        )),
     }
 }
 
@@ -1526,7 +1554,11 @@ fn envelope(magic: &[u8], content: &[u8]) -> Vec<u8> {
     let mut out = Vec::with_capacity(magic.len() + 2 + 4 + content.len() + 32);
     out.extend_from_slice(magic);
     out.extend_from_slice(&CAPITAL_SCHEMA_VERSION.to_be_bytes());
-    out.extend_from_slice(&u32::try_from(content.len()).unwrap_or(u32::MAX).to_be_bytes());
+    out.extend_from_slice(
+        &u32::try_from(content.len())
+            .unwrap_or(u32::MAX)
+            .to_be_bytes(),
+    );
     out.extend_from_slice(content);
     out.extend_from_slice(&domain_hash(magic, content));
     out
