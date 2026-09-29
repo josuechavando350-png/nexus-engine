@@ -296,8 +296,7 @@ fn provider_current_facts(
                 "AddressesProvider getPriceOracle differs from certified oracle".into(),
             ));
         }
-        let flash_loan_premium_bps =
-            uint64(returned(&calls[6])?, "FLASHLOAN_PREMIUM_TOTAL")?;
+        let flash_loan_premium_bps = uint64(returned(&calls[6])?, "FLASHLOAN_PREMIUM_TOTAL")?;
         if flash_loan_premium_bps != 5 {
             return Err(ChainError::Evidence(format!(
                 "FLASHLOAN_PREMIUM_TOTAL changed: expected 5, got {flash_loan_premium_bps}"
@@ -439,16 +438,16 @@ fn provider_current_facts(
                 Json::string(addresses_provider.to_hex()),
             ),
             ("pool_configurator", Json::string(configurator.to_hex())),
-            ("pool_implementation", Json::string(observed_implementation.to_hex())),
+            (
+                "pool_implementation",
+                Json::string(observed_implementation.to_hex()),
+            ),
             (
                 "eip1967_implementation_slot",
                 Json::string(IMPLEMENTATION_SLOT),
             ),
             ("price_oracle", Json::string(price_oracle.to_hex())),
-            (
-                "flash_loan_premium_bps",
-                Json::uint(flash_loan_premium_bps),
-            ),
+            ("flash_loan_premium_bps", Json::uint(flash_loan_premium_bps)),
             ("oracle_base_currency", base_currency),
             ("oracle_base_currency_unit", Json::uint(base_currency_unit)),
             ("reserve_count", Json::uint(u64::from(reserve_count))),
@@ -548,10 +547,7 @@ pub fn run_current_surface(
         (
             "admission_fingerprint",
             Json::object([
-                (
-                    "configuration_sha256",
-                    Json::string(configuration_sha256),
-                ),
+                ("configuration_sha256", Json::string(configuration_sha256)),
                 (
                     "oracle_configuration_sha256",
                     Json::string(oracle_configuration_sha256),
