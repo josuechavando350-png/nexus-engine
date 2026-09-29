@@ -2079,9 +2079,7 @@ fn settlement_leg_allows_class(
     class: CapitalClass,
 ) -> bool {
     requirement.legs().iter().any(|leg| {
-        leg.kind() == kind
-            && leg.asset() == asset
-            && leg.allowed_classes().contains(&class)
+        leg.kind() == kind && leg.asset() == asset && leg.allowed_classes().contains(&class)
     })
 }
 
