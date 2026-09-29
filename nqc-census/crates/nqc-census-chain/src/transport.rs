@@ -147,6 +147,39 @@ impl Transport for ReplayTransport {
     }
 }
 
+/// Fault injection for resume verification: forwards the first `limit`
+/// requests, then fails every request as a transport failure (a crash).
+pub struct InterruptAfter<'a> {
+    inner: &'a dyn Transport,
+    remaining: std::sync::atomic::AtomicU64,
+}
+
+impl<'a> InterruptAfter<'a> {
+    pub fn new(inner: &'a dyn Transport, limit: u64) -> Self {
+        Self {
+            inner,
+            remaining: std::sync::atomic::AtomicU64::new(limit),
+        }
+    }
+}
+
+impl Transport for InterruptAfter<'_> {
+    fn post(&self, provider: &ProviderSpec, body: &[u8]) -> Result<HttpReply, ChainError> {
+        use std::sync::atomic::Ordering;
+        if self
+            .remaining
+            .fetch_update(Ordering::SeqCst, Ordering::SeqCst, |n| n.checked_sub(1))
+            .is_err()
+        {
+            return Err(ChainError::Transport {
+                provider: provider.label().to_owned(),
+                reason: "injected interruption".into(),
+            });
+        }
+        self.inner.post(provider, body)
+    }
+}
+
 /// Deterministic retry schedule; timing never affects evidence content.
 #[derive(Debug, Clone)]
 pub struct RetryPolicy {

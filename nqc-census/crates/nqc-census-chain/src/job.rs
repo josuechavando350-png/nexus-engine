@@ -821,11 +821,23 @@ pub fn replay_from_manifest(
     manifest: &[u8],
     provider: &ProviderSpec,
 ) -> Result<ReplayTransport, ChainError> {
+    let mut replay = ReplayTransport::new();
+    add_manifest_exchanges(&mut replay, store, manifest, provider)?;
+    Ok(replay)
+}
+
+/// Adds every exchange a manifest names to `replay` (for whole-run replays
+/// across many jobs of one provider).
+pub fn add_manifest_exchanges(
+    replay: &mut ReplayTransport,
+    store: &Store,
+    manifest: &[u8],
+    provider: &ProviderSpec,
+) -> Result<(), ChainError> {
     let document = Json::parse(manifest)?;
     if document.get("schema").and_then(Json::as_str) != Some(JOB_MANIFEST_SCHEMA) {
         return Err(ChainError::Evidence("not a job manifest".into()));
     }
-    let mut replay = ReplayTransport::new();
     for exchange in document
         .get("exchanges")
         .and_then(Json::as_array)
@@ -837,7 +849,7 @@ pub fn replay_from_manifest(
         };
         replay.record(provider.namespace(), &fetch("request")?, fetch("response")?);
     }
-    Ok(replay)
+    Ok(())
 }
 
 /// Runs a job function against a transport and returns its output.

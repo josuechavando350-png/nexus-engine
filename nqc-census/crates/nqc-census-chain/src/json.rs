@@ -120,6 +120,11 @@ impl Json {
         Ok(out)
     }
 
+    /// Semantic equality: equal canonical bytes (object member order ignored).
+    pub fn same_as(&self, other: &Self) -> Result<bool, ChainError> {
+        Ok(self.canonical()? == other.canonical()?)
+    }
+
     pub fn canonical_string(&self) -> Result<String, ChainError> {
         String::from_utf8(self.canonical()?).map_err(|_| ChainError::Json("non-utf8 output"))
     }

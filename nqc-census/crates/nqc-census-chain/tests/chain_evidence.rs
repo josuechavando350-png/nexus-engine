@@ -1,5 +1,6 @@
 use nqc_census_chain::abi;
 use nqc_census_chain::acquire::{raw_log_semantics, Acquisition};
+use nqc_census_chain::bootstrap::{run_bootstrap, verify_bootstrap};
 use nqc_census_chain::boundary::earliest_code_body;
 use nqc_census_chain::consensus::{agree, agree_logs, ProviderResult};
 use nqc_census_chain::ethereum::{verify_mainnet_header, ChainProfile};
@@ -471,6 +472,62 @@ fn bootstrap_derives_one_chain_domain_and_rejects_wrong_genesis() -> TestResult 
     assert!(matches!(
         acquisition.bootstrap(&fixture.a, &wrong),
         Err(ChainError::Config(_))
+    ));
+    std::fs::remove_dir_all(root)?;
+    Ok(())
+}
+
+#[test]
+fn bootstrap_report_replays_offline_and_rejects_tampering() -> TestResult {
+    let fixture = fixture(Faults::default())?;
+    let profile = fixture.chain.lock().map_err(|_| "poisoned")?.profile()?;
+    let providers = ProviderSet::new(vec![fixture.a.clone(), fixture.b.clone()])?;
+    let (root, store) = temp_store("bootstrap-report")?;
+    let acquisition = Acquisition::new(&store, &fixture.network, fast_retry());
+    let (report, chain, anchor) = run_bootstrap(&acquisition, &providers, &profile, BASE + 300)?;
+    assert_eq!(anchor.block_number(), BASE + 300);
+
+    // Offline: no network at all, only the store.
+    let (replayed_chain, replayed_anchor) =
+        verify_bootstrap(&store, &providers, &profile, &report)?;
+    assert_eq!((replayed_chain, replayed_anchor), (chain, anchor.clone()));
+    let reparsed = Json::parse(&report.canonical()?)?;
+    verify_bootstrap(&store, &providers, &profile, &reparsed)?;
+
+    let forged = report.canonical_string()?.replace(
+        &anchor.block_hash().to_hex(),
+        &Hash32::new([0x5a; 32])?.to_hex(),
+    );
+    assert!(matches!(
+        verify_bootstrap(
+            &store,
+            &providers,
+            &profile,
+            &Json::parse(forged.as_bytes())?
+        ),
+        Err(ChainError::Evidence(_))
+    ));
+    let substituted = ProviderSet::new(vec![
+        fixture.a.clone(),
+        SimProvider::spec(B, "sim-substitute", 1_000, 3)?,
+    ])?;
+    assert!(matches!(
+        verify_bootstrap(&store, &substituted, &profile, &report),
+        Err(ChainError::Evidence(_))
+    ));
+    let (empty_root, empty) = temp_store("bootstrap-empty")?;
+    assert!(verify_bootstrap(&empty, &providers, &profile, &report).is_err());
+    std::fs::remove_dir_all(empty_root)?;
+    std::fs::remove_dir_all(root)?;
+
+    let mut forked = Faults::default();
+    forked.forked_headers.insert(BASE + 300);
+    let forked_fixture = crate::fixture(forked)?;
+    let (root, store) = temp_store("bootstrap-fork")?;
+    let acquisition = Acquisition::new(&store, &forked_fixture.network, fast_retry());
+    assert!(matches!(
+        run_bootstrap(&acquisition, &providers, &profile, BASE + 300),
+        Err(ChainError::Consensus(_))
     ));
     std::fs::remove_dir_all(root)?;
     Ok(())

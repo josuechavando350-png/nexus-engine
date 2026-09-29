@@ -8,6 +8,7 @@
 //! have lost its code (self-destruct through its own code or a delegate) is a
 //! separate claim the caller must establish and report.
 
+use crate::acquire::anchor_record;
 use crate::error::ChainError;
 use crate::hex;
 use crate::job::{chain_read_semantics, JobContext};
@@ -38,6 +39,7 @@ pub fn earliest_code_body(
                 ("block", Json::uint(number)),
                 ("hash", Json::string(anchor.block_hash().to_hex())),
                 ("parent_hash", Json::string(anchor.parent_hash().to_hex())),
+                ("anchor", anchor_record(&anchor)),
                 ("code_len", Json::uint(code.payload().code().len() as u64)),
                 (
                     "code_sha256",

@@ -103,13 +103,16 @@ Resume and verification:
 The monotonicity of code presence is a separate claim for callers, e.g. a
 self-destruct-free code closure.
 
-## 4. Adversarial tests (`tests/chain_evidence.rs`, 21)
+## 4. Adversarial tests (`tests/chain_evidence.rs`, 22)
 
 - JSON, hex, JSON-RPC, ABI and bytecode strictness;
 - error classes never become observations;
 - the real mainnet header 25,437,474 re-hashes exactly, and tampered, unknown,
   missing and padded fields are rejected;
 - bootstrap agreement, and a wrong genesis is rejected;
+- a bootstrap report (`bootstrap.rs`) replays offline from the store alone;
+  a forged anchor, a substituted provider, or a missing store is rejected,
+  and a provider on a forked anchor fails consensus;
 - a point job resumes by replay with zero network requests;
 - window-checkpointed scans are certified;
 - an omitted log is an UNEXPLAINED mismatch, not a vote;
@@ -145,7 +148,8 @@ Exact-head CI passes:
 - scope and immutability of Protocol/Fork and RMC-001..005 (including
   RMC-003.1);
 - the dependency and boundary gates;
-- fmt, clippy and the 21 tests;
+- fmt, clippy and the 22 tests;
 - a live bootstrap on every declared provider that agrees on the chain domain
   and the 25,437,474 anchor;
-- offline replay of that bootstrap from the store.
+- offline replay of that bootstrap from the store (`verify_bootstrap`, the
+  same library path the tests exercise; reports compare by canonical bytes).

@@ -10,6 +10,7 @@
 
 pub mod abi;
 pub mod acquire;
+pub mod bootstrap;
 pub mod boundary;
 pub mod catalog;
 pub mod consensus;
