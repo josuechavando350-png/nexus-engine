@@ -1,0 +1,111 @@
+use nqc_census_capital::{
+    artifacts::{
+        CapitalArtifactBundle, CapitalArtifactFile, CAPITAL_EVIDENCE_MANIFEST_FILE,
+        CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE, CAPITAL_REQUIREMENTS_FILE,
+        CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE, CAPITAL_UPSTREAM_AUTHORITY_FILE,
+    },
+    replay::{
+        verify_capital_bundle_with_upstream_replay_for_code, D08ReplayInputs, D09ReplayInputs,
+    },
+};
+use sha2::{Digest, Sha256};
+use std::{env, error::Error, fs, path::PathBuf};
+
+const CAPITAL_FILES: [&str; 7] = [
+    CAPITAL_SOURCES_FILE,
+    CAPITAL_REQUIREMENTS_FILE,
+    CAPITAL_FEASIBILITY_FILE,
+    CAPITAL_REJECTION_LEDGER_FILE,
+    CAPITAL_SUMMARY_FILE,
+    CAPITAL_UPSTREAM_AUTHORITY_FILE,
+    CAPITAL_EVIDENCE_MANIFEST_FILE,
+];
+
+struct Args {
+    capital_dir: PathBuf,
+    d08_dir: PathBuf,
+    d09_dir: PathBuf,
+    expected_code_commit: String,
+    expected_code_tree: String,
+}
+
+fn parse_args() -> Result<Args, Box<dyn Error>> {
+    let args = env::args().skip(1).collect::<Vec<_>>();
+    if args.len() != 10
+        || args[0] != "--capital-dir"
+        || args[2] != "--d08-dir"
+        || args[4] != "--d09-dir"
+        || args[6] != "--expected-code-commit"
+        || args[8] != "--expected-code-tree"
+    {
+        return Err(
+            "usage: nqc-rmc011-upstream-replay-verify --capital-dir <dir> --d08-dir <dir> --d09-dir <dir> --expected-code-commit <sha> --expected-code-tree <sha>"
+                .into(),
+        );
+    }
+    Ok(Args {
+        capital_dir: PathBuf::from(&args[1]),
+        d08_dir: PathBuf::from(&args[3]),
+        d09_dir: PathBuf::from(&args[5]),
+        expected_code_commit: args[7].clone(),
+        expected_code_tree: args[9].clone(),
+    })
+}
+
+fn sha256(bytes: &[u8]) -> [u8; 32] {
+    let digest = Sha256::digest(bytes);
+    let mut out = [0_u8; 32];
+    out.copy_from_slice(&digest);
+    out
+}
+
+fn main() -> Result<(), Box<dyn Error>> {
+    let args = parse_args()?;
+    let mut files = Vec::with_capacity(CAPITAL_FILES.len());
+    for name in CAPITAL_FILES {
+        let bytes = fs::read(args.capital_dir.join(name))?;
+        files.push(CapitalArtifactFile {
+            name,
+            sha256: sha256(&bytes),
+            bytes,
+        });
+    }
+    let bundle = CapitalArtifactBundle { files };
+
+    let d08_state = fs::read(args.d08_dir.join("market-state-manifest.jsonl"))?;
+    let d08_tokens = fs::read(args.d08_dir.join("token-admission.jsonl"))?;
+    let d08_facts = fs::read(args.d08_dir.join("pool-and-factory-facts.json"))?;
+    let d08_manifest = fs::read(args.d08_dir.join("evidence-manifest.json"))?;
+
+    let d09_accounts = fs::read(args.d09_dir.join("account-manifest.jsonl"))?;
+    let d09_summary = fs::read(args.d09_dir.join("account-summary.json"))?;
+    let d09_manifest = fs::read(args.d09_dir.join("evidence-manifest.json"))?;
+
+    let verified = verify_capital_bundle_with_upstream_replay_for_code(
+        &bundle,
+        &args.expected_code_commit,
+        &args.expected_code_tree,
+        D08ReplayInputs {
+            state_manifest_jsonl: &d08_state,
+            token_admission_jsonl: &d08_tokens,
+            pool_and_factory_facts_json: &d08_facts,
+            evidence_manifest_json: &d08_manifest,
+        },
+        D09ReplayInputs {
+            account_manifest_jsonl: &d09_accounts,
+            account_summary_json: &d09_summary,
+            evidence_manifest_json: &d09_manifest,
+        },
+    )?;
+
+    println!(
+        "RMC_011_UPSTREAM_REPLAY_VERIFY=PASS sources={} requirements={} d08_sources={} d09_requirements={} capital_commitment={} upstream_authority_commitment={}",
+        verified.capital.source_count,
+        verified.capital.requirement_count,
+        verified.upstream.d08_source_count,
+        verified.upstream.d09_requirement_count,
+        verified.capital.capital_commitment,
+        verified.capital.upstream_authority_commitment,
+    );
+    Ok(())
+}
