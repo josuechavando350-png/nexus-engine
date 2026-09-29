@@ -29,9 +29,10 @@ permissions:
 # cancelled while running. GitHub keeps at most one pending run per group, so
 # a newer pending run replaces an older one. RMC-007 therefore acquires only
 # from a workflow_dispatch on the exact branch head without stages_run_id,
-# inside the group. A pull_request run (gate only) and an offline replay of
-# an earlier acquisition (stages_run_id set; no RPC) run in their own groups
-# and can never displace another node's pending acquisition.
+# inside the group. Pull requests replay the pinned successful acquisition
+# 36589054151 entirely offline, so every exact head proves reconciliation
+# against the real stage evidence without consuming RPC capacity. Explicit
+# workflow_dispatch with stages_run_id does the same for another acquisition.
 concurrency:
   group: >-
     ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.stages_run_id == ''
@@ -146,9 +147,8 @@ jobs:
           mkdir -p /tmp/nqc-rmc007-plan
           head="$(git rev-parse HEAD)"
           if [ "${{ github.event_name }}" != workflow_dispatch ]; then
-            echo "mode=verify" >> "$GITHUB_OUTPUT"
-            echo "RMC007_NO_ACQUISITION event=${{ github.event_name }} head=$head (acquisition runs only from workflow_dispatch)"
-            exit 0
+            STAGES_RUN_ID=36589054151
+            echo "RMC007_PR_OFFLINE_REPLAY acquisition_run=$STAGES_RUN_ID replay_head=$head"
           fi
           if [ -z "$STAGES_RUN_ID" ]; then
             echo "mode=acquire" >> "$GITHUB_OUTPUT"
