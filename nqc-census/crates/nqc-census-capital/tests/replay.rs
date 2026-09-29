@@ -449,9 +449,7 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     assert!(closeout_text.contains("\"status\":\"RMC_011_REAL_SOURCE_CLOSEOUT_PASS\""));
     assert!(closeout_text.contains("\"real_source_certification\":true"));
     assert!(closeout_text.contains("\"zero_own_capital_proven\":false"));
-    assert!(closeout_text.contains(
-        "\"opportunity_level_capital_feasibility_claimed\":false"
-    ));
+    assert!(closeout_text.contains("\"opportunity_level_capital_feasibility_claimed\":false"));
     assert!(closeout_text.contains("\"profitability_claimed\":false"));
     Ok(())
 }
