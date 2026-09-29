@@ -1106,6 +1106,43 @@ impl CapitalSource {
         {
             return Err(CapitalError::OwnershipProviderMismatch);
         }
+
+        match spec.fee_model {
+            FeeModel::BasisPoints { bps, .. } if bps > 10_000 => {
+                return Err(CapitalError::InvalidBasisPoints(bps))
+            }
+            FeeModel::ExactRatio { denominator: 0, .. } => {
+                return Err(CapitalError::InvalidRatio)
+            }
+            _ => {}
+        }
+        if matches!(spec.repayment, RepaymentSemantics::DeadlineBlocks(0)) {
+            return Err(CapitalError::ZeroValue("repayment_deadline_blocks"));
+        }
+        if let CollateralRequirement::Required { amount, .. } = spec.collateral {
+            if amount.is_zero() {
+                return Err(CapitalError::ZeroValue("collateral_amount"));
+            }
+        }
+        if spec.utilization.max_utilization_bps > 10_000 {
+            return Err(CapitalError::InvalidBasisPoints(
+                spec.utilization.max_utilization_bps,
+            ));
+        }
+        if let TemporaryLock::Required {
+            amount,
+            release,
+            ..
+        } = spec.temporary_lock
+        {
+            if amount.is_zero() {
+                return Err(CapitalError::ZeroValue("temporary_lock_amount"));
+            }
+            if matches!(release, LockRelease::DeadlineBlocks(0)) {
+                return Err(CapitalError::ZeroValue("lock_deadline_blocks"));
+            }
+        }
+
         if spec.failure_modes.is_empty() {
             return Err(CapitalError::EmptyFailureModes);
         }
