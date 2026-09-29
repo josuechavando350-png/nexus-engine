@@ -244,6 +244,7 @@ pub fn verify_capital_artifact_bundle(
             .as_slice(),
     )?;
 
+    let mut reconstructed = CapitalCensusLedger::evidentiary();
     let mut source_ids = BTreeSet::new();
     let mut source_key_ids = BTreeSet::new();
     for record in &sources {
@@ -282,6 +283,7 @@ pub fn verify_capital_artifact_bundle(
                 "duplicate source key in artifacts",
             ));
         }
+        reconstructed.register_source(decoded)?;
     }
 
     let mut requirement_ids = BTreeSet::new();
@@ -310,6 +312,7 @@ pub fn verify_capital_artifact_bundle(
                 "duplicate requirement id in artifacts",
             ));
         }
+        reconstructed.register_requirement(decoded)?;
     }
 
     let mut feasibility_ids = BTreeSet::new();
@@ -449,6 +452,30 @@ pub fn verify_capital_artifact_bundle(
         return Err(CapitalError::InvalidCanonical(
             "summary/manifest/upstream authority commitment mismatch",
         ));
+    }
+
+    reconstructed.evaluate_all()?;
+    let provenance = record_provenance(&summary)?;
+    let regenerated = export_capital_artifacts(&reconstructed, &authority, &provenance)?;
+    if regenerated.files.len() != bundle.files.len() {
+        return Err(CapitalError::InvalidCanonical(
+            "regenerated capital artifact file count differs",
+        ));
+    }
+    for expected_file in &regenerated.files {
+        let observed_file = by_name
+            .get(expected_file.name)
+            .ok_or(CapitalError::InvalidCanonical(
+                "regenerated artifact missing from bundle",
+            ))?;
+        if observed_file.bytes != expected_file.bytes || observed_file.sha256 != expected_file.sha256
+        {
+            return Err(CapitalError::CanonicalDigestMismatch);
+        }
+    }
+    let regenerated_certificate = reconstructed.certify(&authority)?;
+    if regenerated_certificate.commitment.to_hex() != capital_commitment {
+        return Err(CapitalError::CanonicalDigestMismatch);
     }
 
     Ok(CapitalArtifactVerification {

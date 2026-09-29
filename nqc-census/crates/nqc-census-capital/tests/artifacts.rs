@@ -521,3 +521,66 @@ fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestRe
     assert!(verify_capital_artifact_bundle(&bundle).is_err());
     Ok(())
 }
+
+
+#[test]
+fn offline_verifier_rejects_rehashed_feasibility_allocation_substitution() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+
+    let feasibility_index = bundle
+        .files
+        .iter()
+        .position(|file| file.name == CAPITAL_FEASIBILITY_FILE)
+        .ok_or("missing feasibility artifact")?;
+    let old_sha = bundle.files[feasibility_index].sha256_hex();
+    let feasibility_text = String::from_utf8(bundle.files[feasibility_index].bytes.clone())?;
+    let needle = "\"amount\":\"";
+    let offset = feasibility_text
+        .find(needle)
+        .ok_or("feasibility artifact lacks allocation amount")?
+        + needle.len();
+    let mut feasibility_bytes = feasibility_text.into_bytes();
+    feasibility_bytes[offset] = if feasibility_bytes[offset] == b'0' {
+        b'1'
+    } else {
+        b'0'
+    };
+    bundle.files[feasibility_index].bytes = feasibility_bytes;
+    bundle.files[feasibility_index].sha256 = {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(&bundle.files[feasibility_index].bytes);
+        let mut out = [0_u8; 32];
+        out.copy_from_slice(&digest);
+        out
+    };
+    let new_sha = bundle.files[feasibility_index].sha256_hex();
+    assert_ne!(old_sha, new_sha);
+
+    let manifest_index = bundle
+        .files
+        .iter()
+        .position(|file| file.name == CAPITAL_EVIDENCE_MANIFEST_FILE)
+        .ok_or("missing evidence manifest")?;
+    let manifest_text = String::from_utf8(bundle.files[manifest_index].bytes.clone())?;
+    let rewritten = manifest_text.replacen(&old_sha, &new_sha, 1);
+    if rewritten == manifest_text {
+        return Err("feasibility digest was not present in manifest".into());
+    }
+    bundle.files[manifest_index].bytes = rewritten.into_bytes();
+    bundle.files[manifest_index].sha256 = {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(&bundle.files[manifest_index].bytes);
+        let mut out = [0_u8; 32];
+        out.copy_from_slice(&digest);
+        out
+    };
+
+    assert!(verify_capital_artifact_bundle(&bundle).is_err());
+    Ok(())
+}
