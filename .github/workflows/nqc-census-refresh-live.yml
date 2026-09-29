@@ -15,9 +15,13 @@ permissions:
   contents: read
   actions: read
 
+# RMC-010 is only unblocked after the certified A0/A1 upstream runs exist.
+# At that point it owns the remaining delta/canonicality reads.  A dedicated
+# group avoids GitHub's "one pending run per concurrency group" replacement
+# semantics from silently cancelling this certification behind another node.
 concurrency:
-  group: nqc-census-public-rpc
-  cancel-in-progress: false
+  group: nqc-rmc010-live-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 env:
   RUST_TOOLCHAIN: "1.98.1"
