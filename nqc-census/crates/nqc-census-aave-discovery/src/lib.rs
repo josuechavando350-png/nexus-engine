@@ -5,6 +5,7 @@
 //! admission, and nqc-census-chain owns acquisition/replay.
 
 mod interface;
+pub mod live;
 mod reconcile;
 
 pub use interface::{

@@ -24,6 +24,7 @@ jobs:
       PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
       RUST_TOOLCHAIN: "1.98.1"
       D06_TESTS_EXPECTED: "10"
+      D06_EVIDENCE: /tmp/nqc-rmc006-evidence
 
     steps:
       - name: Checkout exact head
@@ -71,3 +72,28 @@ jobs:
           cargo test --workspace --all-targets --locked
           cargo build --workspace --all-targets --locked
           echo RMC006_RECONCILIATION_CORE_PASS
+
+      - name: Live exact-anchor current surface
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$D06_EVIDENCE"
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-current
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          target/release/nqc-rmc006-aave-current \
+            --providers ../ci/nqc-census/rpc-providers.json \
+            --store "$D06_EVIDENCE/store" \
+            --out "$D06_EVIDENCE/aave-current-surface.json" | tee "$D06_EVIDENCE/current.log"
+          grep -F "RMC006_CURRENT_SURFACE_PASS providers=3" "$D06_EVIDENCE/current.log"
+          target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/store-verify.log"
+
+      - name: Preserve D06 current-surface evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc006-current-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-rmc006-evidence
+          if-no-files-found: warn
+          retention-days: 30
