@@ -236,6 +236,12 @@ pub fn verify_capital_artifact_bundle(
             CapitalError::InvalidCanonical("source canonical record missing")
         })?)?;
         let decoded = CapitalSource::decode_canonical(&encoded)?;
+        let provenance = record_provenance(record)?;
+        if canonical(&source_record(&decoded, &provenance))? != canonical(record)? {
+            return Err(CapitalError::InvalidCanonical(
+                "source readable fields differ from canonical record",
+            ));
+        }
         if record
             .str_field("source_id")
             .map_err(|_| CapitalError::InvalidCanonical("source id missing"))?
@@ -262,6 +268,12 @@ pub fn verify_capital_artifact_bundle(
             CapitalError::InvalidCanonical("requirement canonical record missing")
         })?)?;
         let decoded = CapitalRequirement::decode_canonical(&encoded)?;
+        let provenance = record_provenance(record)?;
+        if canonical(&requirement_record(&decoded, &provenance))? != canonical(record)? {
+            return Err(CapitalError::InvalidCanonical(
+                "requirement readable fields differ from canonical record",
+            ));
+        }
         if record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("requirement id missing"))?
@@ -417,6 +429,8 @@ pub fn verify_capital_artifact_bundle(
         .str_field("upstream_authority_commitment")
         .map_err(|_| CapitalError::InvalidCanonical("upstream commitment missing"))?
         .to_owned();
+    validate_digest_hex(&capital_commitment)?;
+    validate_digest_hex(&upstream_authority_commitment)?;
     if manifest
         .str_field("capital_commitment")
         .map_err(|_| CapitalError::InvalidCanonical("manifest capital commitment missing"))?
@@ -797,6 +811,20 @@ fn _type_fence(
 }
 
 
+fn record_provenance(record: &Json) -> Result<ArtifactProvenance, CapitalError> {
+    ArtifactProvenance::new(
+        record
+            .str_field("generated_at")
+            .map_err(|_| CapitalError::InvalidCanonical("record generated_at missing"))?,
+        record
+            .str_field("code_commit")
+            .map_err(|_| CapitalError::InvalidCanonical("record code_commit missing"))?,
+        record
+            .str_field("code_tree")
+            .map_err(|_| CapitalError::InvalidCanonical("record code_tree missing"))?,
+    )
+}
+
 fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     if !bytes.is_empty() && !bytes.ends_with(b"\n") {
         return Err(CapitalError::InvalidCanonical(
@@ -882,4 +910,14 @@ fn hex_nibble(byte: u8) -> Result<u8, CapitalError> {
             "non-canonical capital hex digit",
         )),
     }
+}
+
+
+fn validate_digest_hex(text: &str) -> Result<(), CapitalError> {
+    if text.len() != 64 || decode_plain_hex(text)?.len() != 32 {
+        return Err(CapitalError::InvalidCanonical(
+            "capital commitment must be 32-byte hex",
+        ));
+    }
+    Ok(())
 }
