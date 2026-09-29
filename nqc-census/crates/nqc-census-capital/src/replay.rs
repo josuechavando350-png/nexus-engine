@@ -1,4 +1,8 @@
 use crate::{
+    artifacts::{
+        parse_upstream_authority, verify_capital_artifact_bundle_for_code, CapitalArtifactBundle,
+        CapitalArtifactVerification, CAPITAL_UPSTREAM_AUTHORITY_FILE,
+    },
     demands::import_d09_borrower_demands,
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
     CapitalCertificationContext, CapitalError, CapitalEvidenceRef, UpstreamCensusStage,
@@ -123,4 +127,33 @@ pub fn verify_upstream_consumption_by_replay(
         d08_receipt,
         d09_receipt,
     })
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapitalReplayVerification {
+    pub capital: CapitalArtifactVerification,
+    pub upstream: UpstreamReplayVerification,
+}
+
+/// Verifies the self-contained D11 bundle against an exact code identity and
+/// then independently replays the exact RMC-008/RMC-009 consumed bytes.
+/// Both proofs are required for a real-source closeout.
+pub fn verify_capital_bundle_with_upstream_replay_for_code(
+    bundle: &CapitalArtifactBundle,
+    expected_code_commit: &str,
+    expected_code_tree: &str,
+    d08: D08ReplayInputs<'_>,
+    d09: D09ReplayInputs<'_>,
+) -> Result<CapitalReplayVerification, CapitalError> {
+    let capital =
+        verify_capital_artifact_bundle_for_code(bundle, expected_code_commit, expected_code_tree)?;
+    let authority_file = bundle
+        .file(CAPITAL_UPSTREAM_AUTHORITY_FILE)
+        .ok_or(CapitalError::InvalidCanonical(
+            "capital bundle lacks upstream authority file",
+        ))?;
+    let (context, _) = parse_upstream_authority(&authority_file.bytes)?;
+    let upstream = verify_upstream_consumption_by_replay(&context, d08, d09)?;
+    Ok(CapitalReplayVerification { capital, upstream })
 }
