@@ -1876,9 +1876,7 @@ pub fn evaluate_capital_feasibility(
         let mut compatible_foreign_anchor = false;
         let mut operator_owned_capacity = Amount256::ZERO;
         for (index, source) in ordered.iter().enumerate() {
-            if source.asset() != leg.asset()
-                || !leg.allowed_classes().contains(&source.class())
-            {
+            if source.asset() != leg.asset() || !leg.allowed_classes().contains(&source.class()) {
                 continue;
             }
             if source.anchor() != requirement.anchor() {

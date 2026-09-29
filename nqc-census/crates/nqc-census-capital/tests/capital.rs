@@ -1210,7 +1210,6 @@ fn git_object_ids_are_exact_lowercase_sha1_hex_width() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn compatible_source_at_foreign_anchor_is_classified_as_anchor_mismatch() -> TestResult {
     let token = CapitalAsset::Token(address(20));
@@ -1310,7 +1309,6 @@ fn multiple_operator_sources_are_aggregated_before_zero_own_capital_rejection() 
     ));
     Ok(())
 }
-
 
 #[test]
 fn zero_own_capital_claim_requires_at_least_one_feasible_requirement() -> TestResult {

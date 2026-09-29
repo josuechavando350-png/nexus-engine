@@ -1,9 +1,8 @@
 use nqc_census_capital::{
     artifacts::{
         export_capital_artifacts, verify_capital_artifact_bundle, ArtifactProvenance,
-        CAPITAL_EVIDENCE_MANIFEST_FILE,
-        CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE, CAPITAL_REQUIREMENTS_FILE,
-        CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
+        CAPITAL_EVIDENCE_MANIFEST_FILE, CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE,
+        CAPITAL_REQUIREMENTS_FILE, CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
     },
     Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalProviderKind, CapitalRequirement,
@@ -176,12 +175,20 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
     let a = export_capital_artifacts(
         &ledger,
         &authority()?,
-        &ArtifactProvenance::new("A", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef")?,
+        &ArtifactProvenance::new(
+            "A",
+            "0123456789abcdef0123456789abcdef01234567",
+            "89abcdef0123456789abcdef0123456789abcdef",
+        )?,
     )?;
     let b = export_capital_artifacts(
         &ledger,
         &authority()?,
-        &ArtifactProvenance::new("B", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef")?,
+        &ArtifactProvenance::new(
+            "B",
+            "0123456789abcdef0123456789abcdef01234567",
+            "89abcdef0123456789abcdef0123456789abcdef",
+        )?,
     )?;
     assert_ne!(
         a.file(CAPITAL_SUMMARY_FILE)
@@ -197,11 +204,14 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
 #[test]
 fn synthetic_ledger_cannot_export_evidentiary_artifacts() -> TestResult {
     let ledger = CapitalCensusLedger::synthetic_fixture();
-    let provenance = ArtifactProvenance::new("t", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef")?;
+    let provenance = ArtifactProvenance::new(
+        "t",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
     assert!(export_capital_artifacts(&ledger, &authority()?, &provenance).is_err());
     Ok(())
 }
-
 
 #[test]
 fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
@@ -225,7 +235,11 @@ fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
 #[test]
 fn offline_artifact_verifier_rejects_tampered_bytes() -> TestResult {
     let ledger = ledger()?;
-    let provenance = ArtifactProvenance::new("t", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef")?;
+    let provenance = ArtifactProvenance::new(
+        "t",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
     let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
     let sources = bundle
         .files
@@ -245,7 +259,11 @@ fn offline_artifact_verifier_rejects_tampered_bytes() -> TestResult {
 #[test]
 fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResult {
     let ledger = ledger()?;
-    let provenance = ArtifactProvenance::new("t", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef")?;
+    let provenance = ArtifactProvenance::new(
+        "t",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
     let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
     let manifest = bundle
         .files
@@ -253,11 +271,7 @@ fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResul
         .find(|file| file.name == CAPITAL_EVIDENCE_MANIFEST_FILE)
         .ok_or("missing manifest")?;
     let text = String::from_utf8(manifest.bytes.clone())?;
-    let tampered = text.replacen(
-        "\"sha256\":\"",
-        "\"sha256\":\"00",
-        1,
-    );
+    let tampered = text.replacen("\"sha256\":\"", "\"sha256\":\"00", 1);
     manifest.bytes = tampered.into_bytes();
     manifest.sha256 = {
         use sha2::{Digest, Sha256};
@@ -273,7 +287,11 @@ fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResul
 #[test]
 fn offline_artifact_verifier_rejects_noncanonical_jsonl() -> TestResult {
     let ledger = ledger()?;
-    let provenance = ArtifactProvenance::new("t", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef")?;
+    let provenance = ArtifactProvenance::new(
+        "t",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
     let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
     let sources = bundle
         .files
@@ -291,7 +309,6 @@ fn offline_artifact_verifier_rejects_noncanonical_jsonl() -> TestResult {
     assert!(verify_capital_artifact_bundle(&bundle).is_err());
     Ok(())
 }
-
 
 #[test]
 fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
@@ -344,7 +361,11 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
     let bundle = export_capital_artifacts(
         &ledger,
         &authority()?,
-        &ArtifactProvenance::new("t", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef")?,
+        &ArtifactProvenance::new(
+            "t",
+            "0123456789abcdef0123456789abcdef01234567",
+            "89abcdef0123456789abcdef0123456789abcdef",
+        )?,
     )?;
     let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
     let text = std::str::from_utf8(&summary.bytes)?;
@@ -354,15 +375,28 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn artifact_provenance_requires_exact_git_object_ids() -> TestResult {
-    assert!(ArtifactProvenance::new("t", "not-a-commit", "89abcdef0123456789abcdef0123456789abcdef").is_err());
-    assert!(ArtifactProvenance::new("t", "0123456789abcdef0123456789abcdef01234567", "not-a-tree").is_err());
-    assert!(ArtifactProvenance::new("t", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef").is_ok());
+    assert!(ArtifactProvenance::new(
+        "t",
+        "not-a-commit",
+        "89abcdef0123456789abcdef0123456789abcdef"
+    )
+    .is_err());
+    assert!(ArtifactProvenance::new(
+        "t",
+        "0123456789abcdef0123456789abcdef01234567",
+        "not-a-tree"
+    )
+    .is_err());
+    assert!(ArtifactProvenance::new(
+        "t",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef"
+    )
+    .is_ok());
     Ok(())
 }
-
 
 #[test]
 fn source_artifact_exposes_full_capital_semantics() -> TestResult {
@@ -390,7 +424,10 @@ fn source_artifact_exposes_full_capital_semantics() -> TestResult {
         "\"failure_modes\"",
         "\"evidence_refs\"",
     ] {
-        assert!(text.contains(field), "missing source artifact field {field}");
+        assert!(
+            text.contains(field),
+            "missing source artifact field {field}"
+        );
     }
     Ok(())
 }

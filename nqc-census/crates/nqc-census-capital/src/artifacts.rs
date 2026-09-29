@@ -1,8 +1,8 @@
 use crate::{
     Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
     CapitalClass, CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement,
-    CapitalSource, CollateralRequirement, FeeModel, FeasibilityRejection, GitObjectId,
-    LockRelease, RepaymentSemantics, RequirementKind, TemporaryLock,
+    CapitalSource, CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
+    RepaymentSemantics, RequirementKind, TemporaryLock,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::StateAnchor;
@@ -140,12 +140,9 @@ pub fn verify_capital_artifact_bundle(
         .map_err(|_| CapitalError::InvalidCanonical("invalid evidence manifest JSON"))?;
     require_canonical_json(manifest_file.bytes.as_slice(), &manifest)?;
 
-    let manifest_artifacts = manifest
-        .get("artifacts")
-        .and_then(Json::as_array)
-        .ok_or(CapitalError::InvalidCanonical(
-            "evidence manifest artifacts missing",
-        ))?;
+    let manifest_artifacts = manifest.get("artifacts").and_then(Json::as_array).ok_or(
+        CapitalError::InvalidCanonical("evidence manifest artifacts missing"),
+    )?;
     if manifest_artifacts.len() != DATA_FILES.len() {
         return Err(CapitalError::InvalidCanonical(
             "evidence manifest artifact count",
@@ -157,13 +154,11 @@ pub fn verify_capital_artifact_bundle(
             .str_field("name")
             .map_err(|_| CapitalError::InvalidCanonical("manifest artifact name"))?;
         if !DATA_FILES.contains(&name) || !listed.insert(name.to_owned()) {
-            return Err(CapitalError::InvalidCanonical(
-                "manifest artifact name set",
-            ));
+            return Err(CapitalError::InvalidCanonical("manifest artifact name set"));
         }
-        let file = by_name
-            .get(name)
-            .ok_or(CapitalError::InvalidCanonical("manifest references missing file"))?;
+        let file = by_name.get(name).ok_or(CapitalError::InvalidCanonical(
+            "manifest references missing file",
+        ))?;
         if entry
             .str_field("sha256")
             .map_err(|_| CapitalError::InvalidCanonical("manifest artifact sha256"))?
@@ -182,10 +177,9 @@ pub fn verify_capital_artifact_bundle(
         }
     }
 
-    let non_claims = manifest
-        .get("non_claims")
-        .and_then(Json::as_array)
-        .ok_or(CapitalError::InvalidCanonical("manifest non-claims missing"))?;
+    let non_claims = manifest.get("non_claims").and_then(Json::as_array).ok_or(
+        CapitalError::InvalidCanonical("manifest non-claims missing"),
+    )?;
     let expected_non_claims = [
         "PROFITABILITY_NOT_TESTED",
         "SHADOW_NOT_TESTED",
@@ -214,14 +208,18 @@ pub fn verify_capital_artifact_bundle(
     let requirements = parse_jsonl(
         by_name
             .get(CAPITAL_REQUIREMENTS_FILE)
-            .ok_or(CapitalError::InvalidCanonical("missing capital requirements"))?
+            .ok_or(CapitalError::InvalidCanonical(
+                "missing capital requirements",
+            ))?
             .bytes
             .as_slice(),
     )?;
     let feasibility = parse_jsonl(
         by_name
             .get(CAPITAL_FEASIBILITY_FILE)
-            .ok_or(CapitalError::InvalidCanonical("missing capital feasibility"))?
+            .ok_or(CapitalError::InvalidCanonical(
+                "missing capital feasibility",
+            ))?
             .bytes
             .as_slice(),
     )?;
@@ -235,9 +233,11 @@ pub fn verify_capital_artifact_bundle(
 
     let mut source_ids = BTreeSet::new();
     for record in &sources {
-        let encoded = decode_plain_hex(record.str_field("canonical_record").map_err(|_| {
-            CapitalError::InvalidCanonical("source canonical record missing")
-        })?)?;
+        let encoded = decode_plain_hex(
+            record
+                .str_field("canonical_record")
+                .map_err(|_| CapitalError::InvalidCanonical("source canonical record missing"))?,
+        )?;
         let decoded = CapitalSource::decode_canonical(&encoded)?;
         let provenance = record_provenance(record)?;
         if canonical(&source_record(&decoded, &provenance))? != canonical(record)? {
@@ -311,12 +311,9 @@ pub fn verify_capital_artifact_bundle(
             .map_err(|_| CapitalError::InvalidCanonical("feasibility status missing"))?
         {
             "FEASIBLE" => {
-                let allocations = record
-                    .get("allocations")
-                    .and_then(Json::as_array)
-                    .ok_or(CapitalError::InvalidCanonical(
-                        "feasible allocations missing",
-                    ))?;
+                let allocations = record.get("allocations").and_then(Json::as_array).ok_or(
+                    CapitalError::InvalidCanonical("feasible allocations missing"),
+                )?;
                 for allocation in allocations {
                     let source_id = allocation.str_field("source_id").map_err(|_| {
                         CapitalError::InvalidCanonical("allocation source id missing")
@@ -336,17 +333,9 @@ pub fn verify_capital_artifact_bundle(
                 let failed_leg = nullable_string(record.get("failed_leg").ok_or(
                     CapitalError::InvalidCanonical("rejection failed_leg missing"),
                 )?)?;
-                rejected.insert((
-                    requirement_id.to_owned(),
-                    reason.to_owned(),
-                    failed_leg,
-                ));
+                rejected.insert((requirement_id.to_owned(), reason.to_owned(), failed_leg));
             }
-            _ => {
-                return Err(CapitalError::InvalidCanonical(
-                    "unknown feasibility status",
-                ))
-            }
+            _ => return Err(CapitalError::InvalidCanonical("unknown feasibility status")),
         }
     }
     if feasibility_ids != requirement_ids {
@@ -361,16 +350,10 @@ pub fn verify_capital_artifact_bundle(
         let reason = record
             .str_field("reason")
             .map_err(|_| CapitalError::InvalidCanonical("rejection reason missing"))?;
-        let failed_leg = nullable_string(
-            record
-                .get("failed_leg")
-                .ok_or(CapitalError::InvalidCanonical("rejection failed_leg missing"))?,
-        )?;
-        rejection_rows.insert((
-            requirement_id.to_owned(),
-            reason.to_owned(),
-            failed_leg,
-        ));
+        let failed_leg = nullable_string(record.get("failed_leg").ok_or(
+            CapitalError::InvalidCanonical("rejection failed_leg missing"),
+        )?)?;
+        rejection_rows.insert((requirement_id.to_owned(), reason.to_owned(), failed_leg));
     }
     if rejection_rows != rejected {
         return Err(CapitalError::InvalidCanonical(
@@ -541,9 +524,13 @@ pub fn export_capital_artifacts(
         ),
         (
             "sources_by_class",
-            Json::object(certificate.summary.sources_by_class.iter().map(
-                |(class, count)| (class.code(), Json::uint(u64_count(*count))),
-            )),
+            Json::object(
+                certificate
+                    .summary
+                    .sources_by_class
+                    .iter()
+                    .map(|(class, count)| (class.code(), Json::uint(u64_count(*count)))),
+            ),
         ),
         ("unexplained_capital_failure_count", Json::uint(0)),
         ("profitability_claimed", Json::Bool(false)),
@@ -673,10 +660,7 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
                 ),
             ]),
         ),
-        (
-            "protocol_cap",
-            optional_amount_json(caps.protocol_cap),
-        ),
+        ("protocol_cap", optional_amount_json(caps.protocol_cap)),
         ("market_cap", optional_amount_json(caps.market_cap)),
         (
             "same_block_atomicity",
@@ -685,7 +669,10 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
                 RepaymentSemantics::AtomicSameTransaction | RepaymentSemantics::SameBlock
             )),
         ),
-        ("temporary_lock", temporary_lock_json(source.temporary_lock())),
+        (
+            "temporary_lock",
+            temporary_lock_json(source.temporary_lock()),
+        ),
         (
             "failure_modes",
             Json::array(
@@ -777,9 +764,7 @@ fn repayment_json(repayment: RepaymentSemantics) -> Json {
                 Json::string(terms.facility_disappearance_risk_hash.to_hex()),
             ),
         ]),
-        RepaymentSemantics::NoRepayment => {
-            Json::object([("kind", Json::string("NO_REPAYMENT"))])
-        }
+        RepaymentSemantics::NoRepayment => Json::object([("kind", Json::string("NO_REPAYMENT"))]),
     }
 }
 
@@ -875,7 +860,13 @@ fn requirement_record(requirement: &CapitalRequirement, provenance: &ArtifactPro
         ),
         (
             "evidence_refs",
-            Json::array(requirement.evidence().iter().copied().map(evidence_ref_json)),
+            Json::array(
+                requirement
+                    .evidence()
+                    .iter()
+                    .copied()
+                    .map(evidence_ref_json),
+            ),
         ),
         (
             "canonical_record",
@@ -1018,7 +1009,6 @@ fn _type_fence(
 ) {
 }
 
-
 fn record_provenance(record: &Json) -> Result<ArtifactProvenance, CapitalError> {
     ArtifactProvenance::new(
         record
@@ -1119,7 +1109,6 @@ fn hex_nibble(byte: u8) -> Result<u8, CapitalError> {
         )),
     }
 }
-
 
 fn validate_digest_hex(text: &str) -> Result<(), CapitalError> {
     if text.len() != 64 || decode_plain_hex(text)?.len() != 32 {
