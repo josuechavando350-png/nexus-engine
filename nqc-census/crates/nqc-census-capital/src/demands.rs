@@ -173,13 +173,9 @@ fn parse_account_risk(account: &Json) -> Result<Option<AaveAccountRiskSnapshot>,
         ));
     }
     let amount = |index: usize| -> Result<Amount256, CapitalError> {
-        Amount256::parse_decimal(
-            items[index]
-                .as_str()
-                .ok_or(CapitalError::InvalidCanonical(
-                    "RMC-009 account_data value is not decimal text",
-                ))?,
-        )
+        Amount256::parse_decimal(items[index].as_str().ok_or(CapitalError::InvalidCanonical(
+            "RMC-009 account_data value is not decimal text",
+        ))?)
     };
     Ok(Some(AaveAccountRiskSnapshot {
         total_collateral_base: amount(0)?,
