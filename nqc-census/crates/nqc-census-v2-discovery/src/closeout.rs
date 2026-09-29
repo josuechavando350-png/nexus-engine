@@ -13,16 +13,18 @@ use crate::stage::{canonical_sha256, V2Plan};
 use crate::verify::{admit, extract_stages, reconcile_surfaces, replay_stage, surfaces};
 use nqc_census_chain::{
     acquire::Acquisition,
-    job::add_manifest_exchanges,
+    job::JOB_MANIFEST_SCHEMA,
     json::Json,
     provider::{ProviderSet, ProviderSpec},
-    transport::{ReplayTransport, RetryPolicy},
+    transport::{HttpReply, RetryPolicy, Transport},
     ChainError,
 };
 use nqc_census_core::EvidenceRef;
 use nqc_census_store::{ArtifactId, Store};
-use std::collections::BTreeSet;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
+use std::sync::Mutex;
 
 const SCHEMA_VERSION: u64 = 1;
 const SCOPE: &str = "ETHEREUM_MAINNET_UNISWAP_V2_DECLARED_FACTORY_ONLY";
@@ -84,15 +86,51 @@ fn report_manifests(report: &Json, keys: &[&str]) -> Result<Vec<ArtifactId>, Cha
     Ok(out)
 }
 
+/// Recorded response bytes keyed by provider namespace and request digest.
+///
+/// A public RPC may answer the same JSON-RPC request with different bytes that
+/// parse to the same JSON value (for example key order or trailing whitespace).
+/// A map that keeps only one response per request therefore cannot reproduce
+/// every job manifest byte-for-byte. Preserve every recorded occurrence in the
+/// order the report executed its jobs, just as RMC-006 does for history replay.
+type Occurrences = BTreeMap<(u16, [u8; 32]), VecDeque<Vec<u8>>>;
+
+struct SequencedReplay {
+    queues: Mutex<Occurrences>,
+}
+
+impl Transport for SequencedReplay {
+    fn post(&self, provider: &ProviderSpec, body: &[u8]) -> Result<HttpReply, ChainError> {
+        let key = (provider.namespace(), Sha256::digest(body).into());
+        let mut queues = self
+            .queues
+            .lock()
+            .map_err(|_| ChainError::Replay("replay state is poisoned"))?;
+        queues
+            .get_mut(&key)
+            .and_then(VecDeque::pop_front)
+            .map(|body| HttpReply { status: 200, body })
+            .ok_or(ChainError::Replay(
+                "request was never recorded, or not that many times",
+            ))
+    }
+}
+
 fn replay_transport(
     store: &Store,
     providers: &[ProviderSpec],
     manifests: &[ArtifactId],
-) -> Result<ReplayTransport, ChainError> {
-    let mut replay = ReplayTransport::new();
+) -> Result<SequencedReplay, ChainError> {
+    let mut queues = Occurrences::new();
     for id in manifests {
         let bytes = store.get_artifact(id)?;
         let manifest = Json::parse(&bytes)?;
+        if manifest.get("schema").and_then(Json::as_str) != Some(JOB_MANIFEST_SCHEMA) {
+            return Err(ChainError::Evidence(format!(
+                "{} is not a job manifest",
+                id.to_hex()
+            )));
+        }
         let descriptor = manifest
             .get("job")
             .and_then(|job| job.get("provider"))
@@ -106,9 +144,26 @@ fn replay_transport(
         let owner = owner.ok_or_else(|| {
             ChainError::Evidence("manifest provider is not a declared provider".into())
         })?;
-        add_manifest_exchanges(&mut replay, store, &bytes, owner)?;
+        for exchange in manifest
+            .get("exchanges")
+            .and_then(Json::as_array)
+            .ok_or_else(|| ChainError::Evidence("manifest without exchanges".into()))?
+        {
+            let request = store.get_artifact(&ArtifactId::parse_hex(
+                exchange.str_field("request")?,
+            )?)?;
+            let response = store.get_artifact(&ArtifactId::parse_hex(
+                exchange.str_field("response")?,
+            )?)?;
+            queues
+                .entry((owner.namespace(), Sha256::digest(&request).into()))
+                .or_default()
+                .push_back(response);
+        }
     }
-    Ok(replay)
+    Ok(SequencedReplay {
+        queues: Mutex::new(queues),
+    })
 }
 
 /// Inputs of the offline closeout.
@@ -582,7 +637,13 @@ fn sha2_digest(bytes: &[u8]) -> [u8; 32] {
 
 #[cfg(test)]
 mod tests {
-    use super::rfc3339;
+    use super::{rfc3339, Occurrences, SequencedReplay};
+    use nqc_census_chain::{
+        provider::{PinningMode, ProviderSpec},
+        transport::Transport,
+    };
+    use sha2::{Digest, Sha256};
+    use std::{collections::VecDeque, sync::Mutex};
 
     #[test]
     fn rfc3339_matches_independent_reference_values() {
@@ -593,5 +654,34 @@ mod tests {
         ] {
             assert_eq!(rfc3339(timestamp), expected);
         }
+    }
+
+    #[test]
+    fn repeated_request_responses_are_replayed_in_recorded_byte_order() {
+        let provider = ProviderSpec::new(
+            0x0777,
+            "replay-provider",
+            "replay://provider",
+            "independent-operator",
+            0,
+            1,
+            1,
+            PinningMode::Eip1898,
+        )
+        .unwrap();
+        let request = br#"{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}"#;
+        let first = br#"{"jsonrpc":"2.0","id":1,"result":"0x1"}"#.to_vec();
+        let second = b"{\"result\":\"0x1\",\"id\":1,\"jsonrpc\":\"2.0\"}\n".to_vec();
+
+        let key = (provider.namespace(), Sha256::digest(request).into());
+        let mut queues = Occurrences::new();
+        queues.insert(key, VecDeque::from([first.clone(), second.clone()]));
+        let replay = SequencedReplay {
+            queues: Mutex::new(queues),
+        };
+
+        assert_eq!(replay.post(&provider, request).unwrap().body, first);
+        assert_eq!(replay.post(&provider, request).unwrap().body, second);
+        assert!(replay.post(&provider, request).is_err());
     }
 }
