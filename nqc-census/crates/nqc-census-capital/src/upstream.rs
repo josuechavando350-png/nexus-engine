@@ -422,8 +422,10 @@ fn verify_d08_artifact_binding(
     }
 
     let manifest_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256);
-    if !context.evidence.contains(&manifest_evidence) {
-        return Err(CapitalError::UnresolvedEvidenceRef);
+    if context.evidence.as_slice() != [manifest_evidence] {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "D08 import evidence must be exactly its admitted authority artifact",
+        ));
     }
     Ok(())
 }
