@@ -35,8 +35,6 @@ fn anchor() -> StateAnchor {
 fn context() -> D08CapitalImportContext {
     D08CapitalImportContext {
         anchor: anchor(),
-        aave_provider_locator_hash: hash(91),
-        uniswap_v2_provider_locator_hash: hash(92),
         evidence: vec![
             CapitalEvidenceRef::Artifact(hash(93)),
             CapitalEvidenceRef::Artifact(hash(94)),
