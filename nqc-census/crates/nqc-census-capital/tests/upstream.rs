@@ -42,7 +42,12 @@ fn context() -> D08CapitalImportContext {
 
 fn token_row(token: Address, compatible: bool) -> String {
     format!(
-        "{{\"execution_compatibility\":{{\"blockers\":[],\"status\":\"{}\"}},\"token\":\"{}\"}}",
+        "{{\"execution_compatibility\":{{\"blockers\":{},\"status\":\"{}\"}},\"token\":\"{}\"}}",
+        if compatible {
+            "[]"
+        } else {
+            "[\"FEE_ON_TRANSFER_UNPROVEN\"]"
+        },
         if compatible {
             "PROVEN_COMPATIBLE"
         } else {
@@ -87,11 +92,11 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
     let states = format!(
         concat!(
             "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
-            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"10000\",",
-            "\"flash_loan_enabled\":true}},\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
-            "{{\"factory_membership\":true,\"market_id\":\"m-v2\",\"pair\":\"{}\",",
-            "\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],",
-            "\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+            "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
+            "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
+            "\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
         ),
         aave_asset.to_hex(),
         pair.to_hex(),
@@ -131,8 +136,8 @@ fn d08_import_fails_closed_on_unproven_token_compatibility() -> TestResult {
     let states = format!(
         concat!(
             "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
-            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"10000\",",
-            "\"flash_loan_enabled\":true}},\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
         ),
         asset.to_hex()
     );
@@ -158,11 +163,11 @@ fn d08_import_preserves_zero_aave_capacity_but_rejects_disabled_flash() -> TestR
     let states = format!(
         concat!(
             "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m0\",",
-            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"0\",",
-            "\"flash_loan_enabled\":true}},\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"0\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
             "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m1\",",
-            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"10\",",
-            "\"flash_loan_enabled\":false}},\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10\",",
+            "\"flash_loan_enabled\":false,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
         ),
         enabled.to_hex(),
         disabled.to_hex()
@@ -186,9 +191,9 @@ fn d08_import_rejects_v2_reserve_without_strict_flash_swap_headroom() -> TestRes
     let tokens = format!("{}\n{}\n", token_row(token0, true), token_row(token1, true));
     let states = format!(
         concat!(
-            "{{\"factory_membership\":true,\"market_id\":\"m-v2\",\"pair\":\"{}\",",
-            "\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"1\",\"2\",1],",
-            "\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
+            "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
+            "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
+            "\"reserves\":[\"1\",\"2\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
         ),
         pair.to_hex(),
         token0.to_hex(),
@@ -211,8 +216,8 @@ fn d08_import_requires_token_admission_row_for_every_source_asset() -> TestResul
     let states = format!(
         concat!(
             "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
-            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"10000\",",
-            "\"flash_loan_enabled\":true}},\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
         ),
         asset.to_hex()
     );
@@ -235,16 +240,16 @@ fn d08_import_coverage_is_order_independent_and_conserved() -> TestResult {
     let aave = format!(
         concat!(
             "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
-            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"10000\",",
-            "\"flash_loan_enabled\":true}},\"stage_state_reconstructable\":\"ADVANCE\"}}"
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}"
         ),
         aave_asset.to_hex()
     );
     let v2 = format!(
         concat!(
-            "{{\"factory_membership\":true,\"market_id\":\"m-v2\",\"pair\":\"{}\",",
-            "\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],",
-            "\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}"
+            "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
+            "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
+            "\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}"
         ),
         pair.to_hex(),
         token0.to_hex(),
@@ -270,8 +275,8 @@ fn d08_import_rejects_duplicate_capital_candidates() -> TestResult {
     let row = format!(
         concat!(
             "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
-            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"10000\",",
-            "\"flash_loan_enabled\":true}},\"stage_state_reconstructable\":\"ADVANCE\"}}"
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}"
         ),
         asset.to_hex()
     );
