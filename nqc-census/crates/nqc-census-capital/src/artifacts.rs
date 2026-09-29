@@ -264,6 +264,9 @@ pub fn verify_capital_artifact_bundle(
     let (authority, authority_provenance) =
         parse_upstream_authority(authority_file.bytes.as_slice())?;
     let manifest_provenance = provenance_fields(&manifest, "manifest provenance missing")?;
+    require_generated_at_basis(&manifest)?;
+    manifest_provenance.validate_anchor(authority.observation_anchor())?;
+    require_observation_anchor(&manifest, authority.observation_anchor())?;
     if authority_provenance != manifest_provenance {
         return Err(CapitalError::InvalidCanonical(
             "upstream authority/manifest provenance mismatch",
@@ -315,6 +318,7 @@ pub fn verify_capital_artifact_bundle(
         )?;
         let decoded = CapitalSource::decode_canonical(&encoded)?;
         let provenance = record_provenance(record)?;
+        provenance.validate_anchor(decoded.anchor())?;
         if canonical(&source_record(&decoded, &provenance))? != canonical(record)? {
             return Err(CapitalError::InvalidCanonical(
                 "source readable fields differ from canonical record",
@@ -353,6 +357,7 @@ pub fn verify_capital_artifact_bundle(
         })?)?;
         let decoded = CapitalRequirement::decode_canonical(&encoded)?;
         let provenance = record_provenance(record)?;
+        provenance.validate_anchor(decoded.anchor())?;
         if canonical(&requirement_record(&decoded, &provenance))? != canonical(record)? {
             return Err(CapitalError::InvalidCanonical(
                 "requirement readable fields differ from canonical record",
@@ -378,7 +383,9 @@ pub fn verify_capital_artifact_bundle(
     let mut feasibility_ids = BTreeSet::new();
     let mut rejected = BTreeSet::new();
     for record in &feasibility {
-        record_provenance(record)?;
+        let provenance = record_provenance(record)?;
+        provenance.validate_anchor(authority.observation_anchor())?;
+        require_observation_anchor(record, authority.observation_anchor())?;
         let requirement_id = record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("feasibility requirement id missing"))?;
@@ -427,7 +434,9 @@ pub fn verify_capital_artifact_bundle(
 
     let mut rejection_rows = BTreeSet::new();
     for record in &rejections {
-        record_provenance(record)?;
+        let provenance = record_provenance(record)?;
+        provenance.validate_anchor(authority.observation_anchor())?;
+        require_observation_anchor(record, authority.observation_anchor())?;
         let requirement_id = record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("rejection requirement id missing"))?;
@@ -487,7 +496,11 @@ pub fn verify_capital_artifact_bundle(
         ));
     }
 
-    for key in ["generated_at", "code_commit", "code_tree"] {
+    let summary_provenance_checked = summary_provenance(&summary)?;
+    summary_provenance_checked.validate_anchor(authority.observation_anchor())?;
+    require_observation_anchor(&summary, authority.observation_anchor())?;
+
+    for key in ["generated_at", "generated_at_basis", "code_commit", "code_tree"] {
         if summary
             .str_field(key)
             .map_err(|_| CapitalError::InvalidCanonical("summary provenance missing"))?
