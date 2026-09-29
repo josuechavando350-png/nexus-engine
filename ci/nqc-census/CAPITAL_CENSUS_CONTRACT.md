@@ -114,7 +114,8 @@ Feasibility MUST fail closed on:
 - unknown fee semantics
 - unknown repayment semantics
 - unknown protocol / market cap
-- collateral requirement not funded
+- collateral requirement not funded, including the aggregate collateral required by every distinct source allocated to the candidate
+- temporary-lock requirement not funded, including the aggregate lock amount required by every distinct source allocated to the candidate
 - gas funding absent
 - non-atomic requirement where atomicity is required
 - persistent-debt solvency model absent
@@ -143,6 +144,7 @@ At minimum:
 - zero and overflow amount/cap edge cases fail correctly
 - atomic source cannot silently become persistent debt
 - persistent debt cannot pass without collateral/solvency semantics
+- collateral and temporary-lock dependencies are aggregated across all distinct sources used by one candidate; one declared leg cannot be reused to satisfy multiple source dependencies
 - gas funding is independently required when execution needs native gas
 - insufficient source capacity fails closed
 - incompatible repayment asset/semantics fails closed
