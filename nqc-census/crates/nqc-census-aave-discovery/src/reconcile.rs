@@ -289,6 +289,7 @@ pub fn reconcile(
     assets.extend(inits.keys().copied());
 
     let deployment = binding.deployment().clone();
+    let union_count = assets.len();
     let mut reserves = Vec::new();
     let mut deltas = Vec::new();
     for asset in assets {
@@ -400,7 +401,7 @@ pub fn reconcile(
         summary: ReconciliationSummary {
             source_a_count,
             source_b_count,
-            union_count: assets.len(),
+            union_count,
             intersection_count,
             getter_only_count,
             event_only_count,
