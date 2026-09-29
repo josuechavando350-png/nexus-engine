@@ -1655,14 +1655,14 @@ fn checked_feasibility_rejects_duplicate_source_capacity() -> TestResult {
     let requirement = requirement(
         vec![
             CapitalRequirementLeg::new(
-                RequirementKind::Principal,
+                RequirementKind::ActionPrincipal,
                 token,
                 Amount256::from_u128(1_500),
                 vec![CapitalClass::FlashSwap],
             )?,
             repayment_leg(token)?,
         ],
-        RequiredAtomicity::AtomicSameTransaction,
+        RequiredAtomicity::SameTransaction,
         false,
     )?;
 
