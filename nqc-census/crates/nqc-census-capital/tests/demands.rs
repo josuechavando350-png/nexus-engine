@@ -75,8 +75,13 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
         &anchor(),
     )?;
     assert_eq!(imported.borrowers.len(), 1);
+    assert_eq!(imported.borrower_count, 1);
     assert_eq!(imported.below_one_count, 1);
+    assert_eq!(imported.not_below_one_count, 0);
+    assert_eq!(imported.unavailable_count, 0);
+    assert_eq!(imported.blocked_count, 1);
     assert_eq!(imported.requirements_certified, 0);
+    assert!(imported.is_conserved());
     assert_eq!(
         imported.borrowers[0].blocker,
         Some(DemandBlockerReason::LiquidatabilityNotCertifiedByRmc009)
@@ -109,6 +114,9 @@ fn borrower_with_unavailable_account_data_is_explicitly_blocked() -> TestResult 
         imported.borrowers[0].blocker,
         Some(DemandBlockerReason::AccountDataUnavailable)
     );
+    assert_eq!(imported.unavailable_count, 1);
+    assert_eq!(imported.blocked_count, 1);
+    assert!(imported.is_conserved());
     assert_eq!(imported.requirements_certified, 0);
     Ok(())
 }
@@ -190,5 +198,76 @@ fn d09_import_rejects_duplicate_accounts_and_noncanonical_amounts() -> TestResul
         &anchor()
     )
     .is_err());
+    Ok(())
+}
+
+
+#[test]
+fn healthy_borrower_is_explicitly_blocked_and_conserved() -> TestResult {
+    let account = format!("0x{}", "48".repeat(20));
+    let manifest = format!(
+        concat!(
+            "{{\"account\":\"{}\",\"classification\":\"POSITION_HOLDER\",",
+            "\"debt_positions\":[{}],\"health_factor_below_one\":false,",
+            "\"supply_positions\":[]}}\n"
+        ),
+        account,
+        position(20, 30, "10")
+    );
+    let imported = import_d09_borrower_demands(
+        manifest.as_bytes(),
+        &summary("RMC_009_PASS_CANDIDATE", true),
+        &anchor(),
+    )?;
+    assert_eq!(imported.borrower_count, 1);
+    assert_eq!(imported.not_below_one_count, 1);
+    assert_eq!(
+        imported.borrowers[0].blocker,
+        Some(DemandBlockerReason::HealthFactorNotBelowOne)
+    );
+    assert!(imported.is_conserved());
+    Ok(())
+}
+
+#[test]
+fn d09_demand_coverage_commitment_is_input_order_independent() -> TestResult {
+    let account_a = format!("0x{}", "49".repeat(20));
+    let account_b = format!("0x{}", "50".repeat(20));
+    let row_a = format!(
+        concat!(
+            "{{\"account\":\"{}\",\"classification\":\"POSITION_HOLDER\",",
+            "\"debt_positions\":[{}],\"health_factor_below_one\":true,",
+            "\"supply_positions\":[]}}"
+        ),
+        account_a,
+        position(20, 30, "10")
+    );
+    let row_b = format!(
+        concat!(
+            "{{\"account\":\"{}\",\"classification\":\"POSITION_HOLDER\",",
+            "\"debt_positions\":[{}],\"health_factor_below_one\":null,",
+            "\"supply_positions\":[]}}"
+        ),
+        account_b,
+        position(21, 31, "20")
+    );
+    let first = format!("{row_a}\n{row_b}\n");
+    let second = format!("{row_b}\n{row_a}\n");
+    let a = import_d09_borrower_demands(
+        first.as_bytes(),
+        &summary("RMC_009_PASS_CANDIDATE", true),
+        &anchor(),
+    )?;
+    let b = import_d09_borrower_demands(
+        second.as_bytes(),
+        &summary("RMC_009_PASS_CANDIDATE", true),
+        &anchor(),
+    )?;
+    assert!(a.is_conserved());
+    assert!(b.is_conserved());
+    assert_eq!(a.borrower_count, 2);
+    assert_eq!(a.below_one_count, 1);
+    assert_eq!(a.unavailable_count, 1);
+    assert_eq!(a.coverage_commitment, b.coverage_commitment);
     Ok(())
 }

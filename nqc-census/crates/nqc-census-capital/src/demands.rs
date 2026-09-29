@@ -9,12 +9,14 @@
 
 use crate::{Amount256, CapitalError};
 use nqc_census_chain::json::Json;
-use nqc_census_core::{Address, StateAnchor};
+use nqc_census_core::{Address, Hash32, StateAnchor};
+use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum DemandBlockerReason {
     AccountDataUnavailable,
+    HealthFactorNotBelowOne,
     LiquidatabilityNotCertifiedByRmc009,
 }
 
@@ -22,6 +24,7 @@ impl DemandBlockerReason {
     pub const fn code(self) -> &'static str {
         match self {
             Self::AccountDataUnavailable => "ACCOUNT_DATA_UNAVAILABLE",
+            Self::HealthFactorNotBelowOne => "HEALTH_FACTOR_NOT_BELOW_ONE",
             Self::LiquidatabilityNotCertifiedByRmc009 => "LIQUIDATABILITY_NOT_CERTIFIED_BY_RMC009",
         }
     }
@@ -48,8 +51,22 @@ pub struct BorrowerDemandCandidate {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct D09DemandImport {
     pub borrowers: Vec<BorrowerDemandCandidate>,
+    pub borrower_count: usize,
     pub below_one_count: usize,
+    pub not_below_one_count: usize,
+    pub unavailable_count: usize,
+    pub blocked_count: usize,
     pub requirements_certified: usize,
+    pub coverage_commitment: Hash32,
+}
+
+impl D09DemandImport {
+    pub const fn is_conserved(&self) -> bool {
+        self.borrower_count
+            == self.below_one_count + self.not_below_one_count + self.unavailable_count
+            && self.blocked_count == self.borrower_count
+            && self.requirements_certified == 0
+    }
 }
 
 fn required<'a>(value: &'a Json, key: &'static str) -> Result<&'a Json, CapitalError> {
@@ -186,6 +203,79 @@ fn verify_summary(summary: &Json, anchor: &StateAnchor) -> Result<(), CapitalErr
     Ok(())
 }
 
+fn hash_len_prefixed(hasher: &mut Sha256, value: &[u8]) {
+    hasher.update(u64::try_from(value.len()).unwrap_or(u64::MAX).to_be_bytes());
+    hasher.update(value);
+}
+
+fn hash_position(hasher: &mut Sha256, position: &PositionAmount) {
+    hash_len_prefixed(hasher, position.market_id.as_bytes());
+    hasher.update(position.asset.as_bytes());
+    hasher.update(position.token.as_bytes());
+    hasher.update(position.scaled.as_be_bytes());
+    hasher.update(position.balance.as_be_bytes());
+}
+
+fn demand_coverage_commitment(
+    borrowers: &[BorrowerDemandCandidate],
+    anchor: &StateAnchor,
+) -> Result<Hash32, CapitalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-D09-DEMAND-COVERAGE-V1");
+    hasher.update([0]);
+    hasher.update(anchor.chain().chain_id().to_be_bytes());
+    hasher.update(anchor.chain().genesis_hash().as_bytes());
+    hasher.update(anchor.chain().fork_lineage().as_bytes());
+    hasher.update(anchor.block_number().to_be_bytes());
+    hasher.update(anchor.block_hash().as_bytes());
+    hasher.update(anchor.parent_hash().as_bytes());
+    hasher.update(anchor.timestamp().to_be_bytes());
+    hasher.update(anchor.state_root().as_bytes());
+    hasher.update(
+        u64::try_from(borrowers.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+
+    for borrower in borrowers {
+        hasher.update(borrower.account.as_bytes());
+        match borrower.health_factor_below_one {
+            None => hasher.update([0]),
+            Some(false) => hasher.update([1]),
+            Some(true) => hasher.update([2]),
+        }
+        let blocker = borrower
+            .blocker
+            .ok_or(CapitalError::InvalidCanonical(
+                "RMC-009 borrower classification lacks blocker",
+            ))?;
+        hash_len_prefixed(&mut hasher, blocker.code().as_bytes());
+
+        hasher.update(
+            u64::try_from(borrower.supply_positions.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        for position in &borrower.supply_positions {
+            hash_position(&mut hasher, position);
+        }
+        hasher.update(
+            u64::try_from(borrower.debt_positions.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        for position in &borrower.debt_positions {
+            hash_position(&mut hasher, position);
+        }
+    }
+
+    let digest = hasher.finalize();
+    let mut bytes = [0_u8; 32];
+    bytes.copy_from_slice(&digest);
+    Hash32::new(bytes)
+        .map_err(|_| CapitalError::InvalidCanonical("zero RMC-009 demand coverage commitment"))
+}
+
 pub fn import_d09_borrower_demands(
     account_manifest_jsonl: &[u8],
     account_summary_json: &[u8],
@@ -198,6 +288,8 @@ pub fn import_d09_borrower_demands(
     let mut borrowers = Vec::new();
     let mut seen_accounts = BTreeSet::new();
     let mut below_one_count = 0_usize;
+    let mut not_below_one_count = 0_usize;
+    let mut unavailable_count = 0_usize;
     for row in parse_jsonl(account_manifest_jsonl)? {
         let account = Address::parse_hex(text(&row, "account")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid RMC-009 account"))?;
@@ -219,7 +311,14 @@ pub fn import_d09_borrower_demands(
             }
         };
         let blocker = match below {
-            None => Some(DemandBlockerReason::AccountDataUnavailable),
+            None => {
+                unavailable_count = unavailable_count
+                    .checked_add(1)
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "unavailable borrower count overflow",
+                    ))?;
+                Some(DemandBlockerReason::AccountDataUnavailable)
+            }
             Some(true) => {
                 below_one_count =
                     below_one_count
@@ -229,7 +328,14 @@ pub fn import_d09_borrower_demands(
                         ))?;
                 Some(DemandBlockerReason::LiquidatabilityNotCertifiedByRmc009)
             }
-            Some(false) => None,
+            Some(false) => {
+                not_below_one_count = not_below_one_count
+                    .checked_add(1)
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "not-below-one borrower count overflow",
+                    ))?;
+                Some(DemandBlockerReason::HealthFactorNotBelowOne)
+            }
         };
         borrowers.push(BorrowerDemandCandidate {
             account,
@@ -240,13 +346,31 @@ pub fn import_d09_borrower_demands(
         });
     }
     borrowers.sort_by_key(|candidate| candidate.account);
+    let borrower_count = borrowers.len();
+    let blocked_count = borrowers
+        .iter()
+        .filter(|candidate| candidate.blocker.is_some())
+        .count();
+    if borrower_count != below_one_count + not_below_one_count + unavailable_count
+        || blocked_count != borrower_count
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "RMC-009 borrower demand classification is not conserved",
+        ));
+    }
+    let coverage_commitment = demand_coverage_commitment(&borrowers, anchor)?;
 
     // Deliberately zero: RMC-009 says, in its own closeout contract,
     // LIQUIDATABILITY_NOT_CLAIMED. A later exact liquidation-sizing bridge
     // must remove the blocker before any CapitalRequirement is constructed.
     Ok(D09DemandImport {
         borrowers,
+        borrower_count,
         below_one_count,
+        not_below_one_count,
+        unavailable_count,
+        blocked_count,
         requirements_certified: 0,
+        coverage_commitment,
     })
 }
