@@ -79,7 +79,17 @@ For every over-subscribed resource, the report MUST include:
 - exact aggregate claim;
 - deterministically ordered claimant requirement ids.
 
-The report commitment MUST be independent of input ordering.
+The report commitment MUST be independent of input ordering and MUST bind
+the full evaluated candidate set, exact capital-source observation ids, exact
+shared-resource observation ids, candidate claims, and feasibility outcomes.
+A conflict-free report is not allowed to collapse to a count-only commitment.
+
+The engine MUST also emit deterministic contention components. Two candidates
+belong to the same component whenever they share any capital-source key or
+shared-resource key. Components with no edge between them are independent and
+may be solved in parallel by downstream portfolio optimization. Construction
+must be near-linear in claims (union-find / equivalent), rather than an
+all-pairs O(n^2) scan, so millions of positions remain tractable.
 
 ## Multichain invariant
 
