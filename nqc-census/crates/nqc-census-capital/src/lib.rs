@@ -1156,6 +1156,13 @@ impl CapitalSource {
         if spec.evidence.is_empty() {
             return Err(CapitalError::MissingEvidence);
         }
+        if spec.evidence.iter().any(
+            |reference| matches!(reference, CapitalEvidenceRef::Observation(digest) if *digest == [0; 32]),
+        ) {
+            return Err(CapitalError::InvalidCanonical(
+                "zero observation evidence digest",
+            ));
+        }
 
         match (spec.class, spec.repayment) {
             (
@@ -1781,6 +1788,13 @@ impl CapitalRequirement {
         evidence.dedup();
         if evidence.is_empty() {
             return Err(CapitalError::MissingEvidence);
+        }
+        if evidence.iter().any(
+            |reference| matches!(reference, CapitalEvidenceRef::Observation(digest) if *digest == [0; 32]),
+        ) {
+            return Err(CapitalError::InvalidCanonical(
+                "zero observation evidence digest",
+            ));
         }
         let gas_present = legs.iter().any(|leg| leg.kind == RequirementKind::Gas);
         if requires_native_gas && !gas_present {
