@@ -873,7 +873,10 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
                 .map(|amount| Json::string(amount.to_hex()))
                 .unwrap_or(Json::Null),
         ),
-        ("execution_eligible", Json::Bool(source.execution_eligible())),
+        (
+            "execution_eligible",
+            Json::Bool(source.execution_eligible()),
+        ),
         (
             "execution_blockers",
             Json::array(
