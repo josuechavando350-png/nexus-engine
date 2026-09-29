@@ -5,6 +5,7 @@
 //! evidence layer and reconciles semantically independent discovery surfaces.
 
 pub mod boundary;
+pub mod history;
 mod interface;
 pub mod live;
 mod reconcile;
