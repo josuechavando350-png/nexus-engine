@@ -11,7 +11,8 @@ use crate::{
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, Hash32, StateAnchor};
-use std::collections::BTreeMap;
+use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CapitalImportRejectionReason {
@@ -54,8 +55,34 @@ pub struct D08CapitalImportContext {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct D08CapitalImport {
+    pub candidate_count: usize,
+    pub admitted_count: usize,
+    pub rejected_count: usize,
+    pub coverage_commitment: Hash32,
     pub sources: Vec<CapitalSource>,
     pub rejections: Vec<CapitalImportRejection>,
+}
+
+impl D08CapitalImport {
+    pub const fn is_conserved(&self) -> bool {
+        self.candidate_count == self.admitted_count + self.rejected_count
+            && self.admitted_count == self.sources.len()
+            && self.rejected_count == self.rejections.len()
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+struct ImportOutcome {
+    protocol: String,
+    market_id: String,
+    asset: CapitalAsset,
+    result: ImportOutcomeResult,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+enum ImportOutcomeResult {
+    Admitted([u8; 32]),
+    Rejected(CapitalImportRejectionReason),
 }
 
 fn field<'a>(row: &'a Json, key: &'static str) -> Result<&'a Json, CapitalError> {
@@ -124,6 +151,7 @@ fn compatible(tokens: &BTreeMap<Address, bool>, token: Address) -> Result<bool, 
 
 fn push_rejection(
     rejections: &mut Vec<CapitalImportRejection>,
+    outcomes: &mut Vec<ImportOutcome>,
     protocol: &str,
     market_id: &str,
     asset: CapitalAsset,
@@ -135,6 +163,75 @@ fn push_rejection(
         asset,
         reason,
     });
+    outcomes.push(ImportOutcome {
+        protocol: protocol.to_owned(),
+        market_id: market_id.to_owned(),
+        asset,
+        result: ImportOutcomeResult::Rejected(reason),
+    });
+}
+
+fn push_source(
+    sources: &mut Vec<CapitalSource>,
+    outcomes: &mut Vec<ImportOutcome>,
+    protocol: &str,
+    market_id: &str,
+    asset: CapitalAsset,
+    source: CapitalSource,
+) {
+    outcomes.push(ImportOutcome {
+        protocol: protocol.to_owned(),
+        market_id: market_id.to_owned(),
+        asset,
+        result: ImportOutcomeResult::Admitted(*source.id().as_bytes()),
+    });
+    sources.push(source);
+}
+
+fn write_len_prefixed(hasher: &mut Sha256, value: &[u8]) {
+    hasher.update(
+        u64::try_from(value.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    hasher.update(value);
+}
+
+fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, CapitalError> {
+    outcomes.sort();
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-D08-CAPITAL-IMPORT-COVERAGE-V1");
+    hasher.update([0]);
+    hasher.update(
+        u64::try_from(outcomes.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for outcome in outcomes {
+        write_len_prefixed(&mut hasher, outcome.protocol.as_bytes());
+        write_len_prefixed(&mut hasher, outcome.market_id.as_bytes());
+        match outcome.asset {
+            CapitalAsset::NativeGas => hasher.update([0]),
+            CapitalAsset::Token(address) => {
+                hasher.update([1]);
+                hasher.update(address.as_bytes());
+            }
+        }
+        match outcome.result {
+            ImportOutcomeResult::Admitted(source_id) => {
+                hasher.update([1]);
+                hasher.update(source_id);
+            }
+            ImportOutcomeResult::Rejected(reason) => {
+                hasher.update([2]);
+                write_len_prefixed(&mut hasher, reason.code().as_bytes());
+            }
+        }
+    }
+    let digest = hasher.finalize();
+    let mut bytes = [0_u8; 32];
+    bytes.copy_from_slice(&digest);
+    Hash32::new(bytes).map_err(|_| CapitalError::InvalidCanonical("zero D08 coverage commitment"))
 }
 
 pub fn import_d08_capital_sources(
@@ -148,6 +245,8 @@ pub fn import_d08_capital_sources(
     let tokens = token_compatibility(token_admission_jsonl)?;
     let mut sources = Vec::new();
     let mut rejections = Vec::new();
+    let mut outcomes = Vec::new();
+    let mut candidate_keys = BTreeSet::new();
 
     for row in parse_jsonl(state_manifest_jsonl)? {
         let protocol = text(&row, "protocol")?;
@@ -157,9 +256,15 @@ pub fn import_d08_capital_sources(
                 let asset_address = Address::parse_hex(text(&row, "asset")?)
                     .map_err(|_| CapitalError::InvalidCanonical("invalid Aave asset"))?;
                 let asset = CapitalAsset::Token(asset_address);
+                if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
+                    return Err(CapitalError::InvalidCanonical(
+                        "duplicate D08 capital source candidate",
+                    ));
+                }
                 if text(&row, "lifecycle")? != "CURRENT" {
                     push_rejection(
                         &mut rejections,
+                        &mut outcomes,
                         protocol,
                         &market_id,
                         asset,
@@ -170,6 +275,7 @@ pub fn import_d08_capital_sources(
                 if text(&row, "stage_state_reconstructable")? != "ADVANCE" {
                     push_rejection(
                         &mut rejections,
+                        &mut outcomes,
                         protocol,
                         &market_id,
                         asset,
@@ -180,6 +286,7 @@ pub fn import_d08_capital_sources(
                 if !compatible(&tokens, asset_address)? {
                     push_rejection(
                         &mut rejections,
+                        &mut outcomes,
                         protocol,
                         &market_id,
                         asset,
@@ -192,6 +299,7 @@ pub fn import_d08_capital_sources(
                 if !bool_field(facts, "flash_loan_enabled")? {
                     push_rejection(
                         &mut rejections,
+                        &mut outcomes,
                         protocol,
                         &market_id,
                         asset,
@@ -200,18 +308,24 @@ pub fn import_d08_capital_sources(
                     continue;
                 }
                 let available = Amount256::parse_decimal(text(facts, "available_liquidity")?)?;
-                sources.push(
-                    AaveV3FlashObservation {
-                        anchor: context.anchor.clone(),
-                        pool: context.aave_pool,
-                        asset: asset_address,
-                        available_underlying: available,
-                        premium_total_bps: context.aave_premium_total_bps,
-                        flash_loan_enabled: true,
-                        provider_locator_hash: context.aave_provider_locator_hash,
-                        evidence: context.evidence.clone(),
-                    }
-                    .into_capital_source()?,
+                let source = AaveV3FlashObservation {
+                    anchor: context.anchor.clone(),
+                    pool: context.aave_pool,
+                    asset: asset_address,
+                    available_underlying: available,
+                    premium_total_bps: context.aave_premium_total_bps,
+                    flash_loan_enabled: true,
+                    provider_locator_hash: context.aave_provider_locator_hash,
+                    evidence: context.evidence.clone(),
+                }
+                .into_capital_source()?;
+                push_source(
+                    &mut sources,
+                    &mut outcomes,
+                    protocol,
+                    &market_id,
+                    asset,
+                    source,
                 );
             }
             "UNISWAP_V2" => {
@@ -225,11 +339,18 @@ pub fn import_d08_capital_sources(
                     || !bool_field(&row, "factory_membership")?
                 {
                     for token in [token0, token1] {
+                        let asset = CapitalAsset::Token(token);
+                        if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
+                            return Err(CapitalError::InvalidCanonical(
+                                "duplicate D08 capital source candidate",
+                            ));
+                        }
                         push_rejection(
                             &mut rejections,
+                            &mut outcomes,
                             protocol,
                             &market_id,
-                            CapitalAsset::Token(token),
+                            asset,
                             CapitalImportRejectionReason::StateNotReconstructable,
                         );
                     }
@@ -244,9 +365,15 @@ pub fn import_d08_capital_sources(
 
                 for (token, reserve) in [(token0, &reserves[0]), (token1, &reserves[1])] {
                     let asset = CapitalAsset::Token(token);
+                    if !candidate_keys.insert((protocol.to_owned(), market_id.clone(), asset)) {
+                        return Err(CapitalError::InvalidCanonical(
+                            "duplicate D08 capital source candidate",
+                        ));
+                    }
                     if !compatible(&tokens, token)? {
                         push_rejection(
                             &mut rejections,
+                            &mut outcomes,
                             protocol,
                             &market_id,
                             asset,
@@ -261,6 +388,7 @@ pub fn import_d08_capital_sources(
                     if reserve_amount <= Amount256::from_u128(1) {
                         push_rejection(
                             &mut rejections,
+                            &mut outcomes,
                             protocol,
                             &market_id,
                             asset,
@@ -268,16 +396,22 @@ pub fn import_d08_capital_sources(
                         );
                         continue;
                     }
-                    sources.push(
-                        UniswapV2FlashSwapObservation {
-                            anchor: context.anchor.clone(),
-                            pair,
-                            asset: token,
-                            reserve: reserve_amount,
-                            provider_locator_hash: context.uniswap_v2_provider_locator_hash,
-                            evidence: context.evidence.clone(),
-                        }
-                        .into_capital_source()?,
+                    let source = UniswapV2FlashSwapObservation {
+                        anchor: context.anchor.clone(),
+                        pair,
+                        asset: token,
+                        reserve: reserve_amount,
+                        provider_locator_hash: context.uniswap_v2_provider_locator_hash,
+                        evidence: context.evidence.clone(),
+                    }
+                    .into_capital_source()?;
+                    push_source(
+                        &mut sources,
+                        &mut outcomes,
+                        protocol,
+                        &market_id,
+                        asset,
+                        source,
                     );
                 }
             }
@@ -304,7 +438,20 @@ pub fn import_d08_capital_sources(
             ))
     });
     sources.sort_by_key(CapitalSource::id);
+    let candidate_count = candidate_keys.len();
+    let admitted_count = sources.len();
+    let rejected_count = rejections.len();
+    if outcomes.len() != candidate_count || candidate_count != admitted_count + rejected_count {
+        return Err(CapitalError::InvalidCanonical(
+            "D08 capital source classification is not conserved",
+        ));
+    }
+    let coverage_commitment = coverage_commitment(&mut outcomes)?;
     Ok(D08CapitalImport {
+        candidate_count,
+        admitted_count,
+        rejected_count,
+        coverage_commitment,
         sources,
         rejections,
     })

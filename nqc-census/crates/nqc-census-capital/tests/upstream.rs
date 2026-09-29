@@ -102,6 +102,10 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
     let imported = import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &context())?;
     assert_eq!(imported.sources.len(), 3);
     assert!(imported.rejections.is_empty());
+    assert_eq!(imported.candidate_count, 3);
+    assert_eq!(imported.admitted_count, 3);
+    assert_eq!(imported.rejected_count, 0);
+    assert!(imported.is_conserved());
 
     let mut classes = imported
         .sources
@@ -213,5 +217,68 @@ fn d08_import_requires_token_admission_row_for_every_source_asset() -> TestResul
         asset.to_hex()
     );
     assert!(import_d08_capital_sources(states.as_bytes(), b"", &context()).is_err());
+    Ok(())
+}
+
+
+#[test]
+fn d08_import_coverage_is_order_independent_and_conserved() -> TestResult {
+    let aave_asset = address(20);
+    let token0 = address(30);
+    let token1 = address(31);
+    let pair = address(32);
+    let tokens = format!(
+        "{}\n{}\n{}\n",
+        token_row(aave_asset, true),
+        token_row(token0, true),
+        token_row(token1, false)
+    );
+    let aave = format!(
+        concat!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true}},\"stage_state_reconstructable\":\"ADVANCE\"}}"
+        ),
+        aave_asset.to_hex()
+    );
+    let v2 = format!(
+        concat!(
+            "{{\"factory_membership\":true,\"market_id\":\"m-v2\",\"pair\":\"{}\",",
+            "\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],",
+            "\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}"
+        ),
+        pair.to_hex(),
+        token0.to_hex(),
+        token1.to_hex()
+    );
+    let first = format!("{aave}\n{v2}\n");
+    let second = format!("{v2}\n{aave}\n");
+    let a = import_d08_capital_sources(first.as_bytes(), tokens.as_bytes(), &context())?;
+    let b = import_d08_capital_sources(second.as_bytes(), tokens.as_bytes(), &context())?;
+    assert!(a.is_conserved());
+    assert!(b.is_conserved());
+    assert_eq!(a.candidate_count, 3);
+    assert_eq!(a.admitted_count, 2);
+    assert_eq!(a.rejected_count, 1);
+    assert_eq!(a.coverage_commitment, b.coverage_commitment);
+    Ok(())
+}
+
+#[test]
+fn d08_import_rejects_duplicate_capital_candidates() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    let row = format!(
+        concat!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true}},\"stage_state_reconstructable\":\"ADVANCE\"}}"
+        ),
+        asset.to_hex()
+    );
+    let duplicate = format!("{row}\n{row}\n");
+    assert!(
+        import_d08_capital_sources(duplicate.as_bytes(), tokens.as_bytes(), &context()).is_err()
+    );
     Ok(())
 }
