@@ -553,7 +553,9 @@ impl RealSourceCloseout {
             .map_err(|_| CapitalError::InvalidCanonical("real-source closeout is not UTF-8"))?;
         let closing = payload_text
             .strip_suffix('}')
-            .ok_or(CapitalError::InvalidCanonical("real-source closeout object malformed"))?;
+            .ok_or(CapitalError::InvalidCanonical(
+                "real-source closeout object malformed",
+            ))?;
         let mut out = closing.as_bytes().to_vec();
         out.extend_from_slice(
             format!(
