@@ -243,6 +243,78 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
 }
 
 #[test]
+fn blocked_source_bundle_roundtrips_offline_and_preserves_execution_rejection() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?
+    .with_execution_blockers(vec!["TOKEN_SEMANTICS_UNPROVEN".to_owned()])?;
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(50)),
+        anchor(),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::ActionPrincipal,
+            token,
+            Amount256::from_u128(100),
+            vec![CapitalClass::FlashSwap],
+        )?],
+        evidence(),
+    )?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(source)?;
+    ledger.register_requirement(requirement)?;
+    ledger.evaluate_all()?;
+
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let verified = verify_capital_artifact_bundle(&bundle)?;
+    assert_eq!(verified.source_count, 1);
+    assert_eq!(verified.requirement_count, 1);
+    assert_eq!(verified.feasibility_count, 1);
+    assert_eq!(verified.rejection_count, 1);
+
+    let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
+    let source_text = std::str::from_utf8(&sources.bytes)?;
+    assert!(source_text.contains("\"execution_eligible\":false"));
+    assert!(source_text.contains("\"TOKEN_SEMANTICS_UNPROVEN\""));
+    assert!(source_text.contains(&format!(
+        "\"executable_capacity\":\"{}\"",
+        Amount256::ZERO.to_hex()
+    )));
+
+    let rejections = bundle
+        .file(CAPITAL_REJECTION_LEDGER_FILE)
+        .ok_or("missing rejection ledger")?;
+    let rejection_text = std::str::from_utf8(&rejections.bytes)?;
+    assert!(rejection_text.contains("\"reason\":\"EXECUTION_BLOCKED\""));
+    Ok(())
+}
+
+#[test]
 fn artifact_hashes_change_when_provenance_changes() -> TestResult {
     let ledger = ledger()?;
     let a = export_capital_artifacts(
