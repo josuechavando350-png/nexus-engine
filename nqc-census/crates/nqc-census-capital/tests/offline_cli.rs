@@ -156,9 +156,11 @@ fn artifact_dir(suffix: &str) -> PathBuf {
 fn write_bundle(directory: &Path) -> TestResult {
     let _ = fs::remove_dir_all(directory);
     fs::create_dir_all(directory)?;
+    let ledger = ledger()?;
+    let authority = authority_for(&ledger)?;
     let bundle = export_capital_artifacts(
-        &ledger()?,
-        &authority_for(&ledger)?,
+        &ledger,
+        &authority,
         &ArtifactProvenance::new("2026-09-29T00:00:00Z", CODE_COMMIT, CODE_TREE)?,
     )?;
     for file in bundle.files {
