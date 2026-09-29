@@ -14,8 +14,8 @@ use nqc_census_chain::{
     ChainError,
 };
 use nqc_census_core::{
-    Address, CallOutcome, CensusObservation, ContractCallEnvelope, DeploymentKey, Hash32,
-    ObservationSemantics, ProtocolFamily,
+    Address, CallOutcome, CensusObservation, ContractCallEnvelope, Hash32, ObservationSemantics,
+    ProtocolFamily,
 };
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
@@ -161,12 +161,6 @@ fn provider_current_facts(
     let pool = Address::parse_hex(POOL)?;
     let implementation = Address::parse_hex(POOL_IMPLEMENTATION)?;
     let expected_oracle = Address::parse_hex(PRICE_ORACLE)?;
-    let deployment = DeploymentKey::new(
-        chain.clone(),
-        ProtocolFamily::AaveV3,
-        pool,
-        Hash32::parse_hex(&format!("0x{POOL_IMPLEMENTATION_CODE_SHA256}"))?,
-    );
     let interface = aave_interface();
     let spec = JobSpec::new(
         "rmc006-aave-current-surface",
@@ -181,7 +175,7 @@ fn provider_current_facts(
             ),
         ]),
     )?;
-    let output = acquisition.point(provider, chain, Some(deployment), &spec, anchor, |ctx| {
+    let output = acquisition.point(provider, chain, None, &spec, anchor, |ctx| {
         let chain_semantics = chain_read_semantics()?;
         let code = ctx.codes(
             &[addresses_provider, pool, implementation],

@@ -433,8 +433,20 @@ pub fn run_history(
                 members.push(("asset".into(), Json::string(decoded.asset.to_hex())));
                 members.push(("a_token".into(), Json::string(decoded.a_token.to_hex())));
                 members.push((
+                    "stable_debt_token".into(),
+                    decoded
+                        .stable_debt_token
+                        .map_or(Json::Null, |address| Json::string(address.to_hex())),
+                ));
+                members.push((
                     "variable_debt_token".into(),
                     Json::string(decoded.variable_debt_token.to_hex()),
+                ));
+                members.push((
+                    "interest_rate_strategy".into(),
+                    decoded
+                        .interest_rate_strategy
+                        .map_or(Json::Null, |address| Json::string(address.to_hex())),
                 ));
             }
         } else if topic0.as_bytes() == &interface.reserve_dropped_topic {

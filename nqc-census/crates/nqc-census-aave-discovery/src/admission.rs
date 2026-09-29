@@ -1,9 +1,10 @@
 use nqc_census_chain::{json::Json, ChainError};
 use nqc_census_core::{
-    AdapterCapability, Address, BlockWindow, CapabilityAdmission, CapabilityScope, ChainDomain,
-    DeclaredUniverse, DeploymentBinding, DeploymentKey, DeploymentLifeState, DeploymentRegistry,
-    DiscoveryRoot, DiscoveryRootKind, EvidenceRef, Hash32, ObservationSemantics, ProtocolFamily,
-    ProxyKind, StateAnchor, SupportedSemanticsProfile, UniverseScope,
+    AdapterCapability, Address, AdmissionRecord, BlockWindow, CapabilityAdmission, CapabilityScope,
+    ChainDomain, DeclaredUniverse, DeploymentBinding, DeploymentKey, DeploymentLifeState,
+    DeploymentRegistry, DiscoveryRoot, DiscoveryRootKind, EvidenceRef, Hash32,
+    ObservationSemantics, ProtocolFamily, ProxyKind, StateAnchor, SupportedSemanticsProfile,
+    UniverseScope,
 };
 use nqc_census_store::{ArtifactId, Store, StoreConfig};
 use std::{collections::BTreeSet, error::Error, fs, path::Path};
@@ -11,6 +12,12 @@ use std::{collections::BTreeSet, error::Error, fs, path::Path};
 const ADDRESSES_PROVIDER: &str = "0x2f39d218133afab8f2b819b1066c7e434ad94e9e";
 const POOL: &str = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2";
 const SEMANTICS_VERSION: u32 = 1;
+
+#[derive(Debug, Clone)]
+pub struct MaterializedAdmission {
+    pub report: Json,
+    pub record: AdmissionRecord,
+}
 
 fn required<'a>(value: &'a Json, key: &str) -> Result<&'a Json, ChainError> {
     value
@@ -155,30 +162,28 @@ fn evidence_refs(
         .collect()
 }
 
-pub fn run_admission(
-    current_path: &Path,
-    history_path: &Path,
-    store_path: &Path,
-) -> Result<Json, Box<dyn Error>> {
-    let current = Json::parse(&fs::read(current_path)?)?;
-    let history = Json::parse(&fs::read(history_path)?)?;
+pub fn materialize_admission(
+    current: &Json,
+    history: &Json,
+    store: &Store,
+) -> Result<MaterializedAdmission, Box<dyn Error>> {
     if current.get("status").and_then(Json::as_str) != Some("CURRENT_SURFACE_PASS") {
         return Err(ChainError::Evidence("current report is not PASS".into()).into());
     }
     if history.get("status").and_then(Json::as_str) != Some("HISTORY_RECONCILIATION_PASS") {
         return Err(ChainError::Evidence("history report is not reconciled".into()).into());
     }
-    if number(required(&history, "summary")?, "unexplained_delta_count")? != 0 {
+    if number(required(history, "summary")?, "unexplained_delta_count")? != 0 {
         return Err(ChainError::Evidence("history has unexplained deltas".into()).into());
     }
 
-    let chain = chain_domain(&current)?;
-    if chain_domain(&history)? != chain {
+    let chain = chain_domain(current)?;
+    if chain_domain(history)? != chain {
         return Err(ChainError::Evidence("current/history chain domains differ".into()).into());
     }
-    let creation = creation_anchor(&history, &chain)?;
-    let observation = observation_anchor(&current, &chain)?;
-    let facts = required(&current, "facts")?;
+    let creation = creation_anchor(history, &chain)?;
+    let observation = observation_anchor(current, &chain)?;
+    let facts = required(current, "facts")?;
     let pool = Address::parse_hex(facts.str_field("pool")?)?;
     let addresses_provider = Address::parse_hex(facts.str_field("addresses_provider")?)?;
     if pool != Address::parse_hex(POOL)?
@@ -200,7 +205,7 @@ pub fn run_admission(
     let deployment_code_hash = hash_text(runtime_hashes.str_field("pool_proxy")?)?;
     let implementation_address = Address::parse_hex(facts.str_field("pool_implementation")?)?;
     let implementation_code_hash = hash_text(runtime_hashes.str_field("pool_implementation")?)?;
-    let fingerprint = required(&current, "admission_fingerprint")?;
+    let fingerprint = required(current, "admission_fingerprint")?;
     let configuration_hash = hash_text(fingerprint.str_field("configuration_sha256")?)?;
     let oracle_configuration_hash =
         hash_text(fingerprint.str_field("oracle_configuration_sha256")?)?;
@@ -224,8 +229,7 @@ pub fn run_admission(
         oracle_configuration_hash,
         capability_state.clone(),
     );
-    let store = Store::open(store_path, &StoreConfig::standard())?;
-    let evidence = evidence_refs(&store, &current, &history)?;
+    let evidence = evidence_refs(store, current, history)?;
     let evidence_count = evidence.len();
 
     let binding = DeploymentBinding::new(
@@ -250,12 +254,13 @@ pub fn run_admission(
     let admission_id = outcome.id();
     let record = registry
         .record(admission_id)
-        .ok_or_else(|| ChainError::Evidence("admission record disappeared".into()))?;
+        .ok_or_else(|| ChainError::Evidence("admission record disappeared".into()))?
+        .clone();
     if record.binding().deployment() != &deployment {
         return Err(ChainError::Evidence("admission deployment identity changed".into()).into());
     }
 
-    Ok(Json::object([
+    let report = Json::object([
         (
             "schema",
             Json::string("nqc-rmc-006-aave-deployment-admission-v1"),
@@ -315,5 +320,18 @@ pub fn run_admission(
             "remaining_blocker",
             Json::string("NONE_WITHIN_DECLARED_RMC006_DEPLOYMENT_SCOPE"),
         ),
-    ]))
+    ]);
+
+    Ok(MaterializedAdmission { report, record })
+}
+
+pub fn run_admission(
+    current_path: &Path,
+    history_path: &Path,
+    store_path: &Path,
+) -> Result<Json, Box<dyn Error>> {
+    let current = Json::parse(&fs::read(current_path)?)?;
+    let history = Json::parse(&fs::read(history_path)?)?;
+    let store = Store::open(store_path, &StoreConfig::standard())?;
+    Ok(materialize_admission(&current, &history, &store)?.report)
 }
