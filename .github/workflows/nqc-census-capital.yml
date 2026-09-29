@@ -45,38 +45,15 @@ jobs:
           grep -Fx 'fa6b8a7a994fe71c2a5bff29b5dd016f0ed437bef3007822e68e8e8069cbff91  crates/nqc-core/src/lib.rs' "$SOURCE_LIST"
           (
             cd "$PFT_ROOT"
-            grep -E 'crates/(nqc-aave-math|nqc-core)/(Cargo.toml|src/lib.rs)        shell: bash
-        run: |
-          set -euo pipefail
-          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction'             nqc-census/crates/nqc-census-capital ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
-
-      - name: Locked Rust gates
-        working-directory: nqc-census
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo fmt --all -- --check
-          cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
-          cargo test --locked -p nqc-census-capital
-          cargo test --locked --workspace
-          cargo build --release --locked -p nqc-census-capital
-
-      - name: Verify required capital classes are represented
-        shell: bash
-        run: |
-          set -euo pipefail
-          for class in             ProtocolNativeFlashLoan             AtomicFlashLiquidity             FlashSwap             TransientCredit             CollateralizedBorrowing             PersistentDebt             InventoryRequirement             GasFunding             BondOrStake             SolverOrBuilderDeposit             IntraBlockTemporaryLock
-          do
-            grep -F "$class" nqc-census/crates/nqc-census-capital/src/lib.rs
-          done
- SOURCE_FILES.sha256 | sha256sum -c -
+            grep -E '  crates/(nqc-aave-math|nqc-core)/(Cargo.toml|src/lib.rs)$' SOURCE_FILES.sha256 | sha256sum -c -
           )
 
       - name: Verify no execution authority
         shell: bash
         run: |
           set -euo pipefail
-          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction'             nqc-census/crates/nqc-census-capital ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction' \
+            nqc-census/crates/nqc-census-capital ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
 
       - name: Locked Rust gates
         working-directory: nqc-census
@@ -93,7 +70,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for class in             ProtocolNativeFlashLoan             AtomicFlashLiquidity             FlashSwap             TransientCredit             CollateralizedBorrowing             PersistentDebt             InventoryRequirement             GasFunding             BondOrStake             SolverOrBuilderDeposit             IntraBlockTemporaryLock
+          for class in \
+            ProtocolNativeFlashLoan \
+            AtomicFlashLiquidity \
+            FlashSwap \
+            TransientCredit \
+            CollateralizedBorrowing \
+            PersistentDebt \
+            InventoryRequirement \
+            GasFunding \
+            BondOrStake \
+            SolverOrBuilderDeposit \
+            IntraBlockTemporaryLock
           do
             grep -F "$class" nqc-census/crates/nqc-census-capital/src/lib.rs
           done
