@@ -8,8 +8,8 @@
 //! liquidation sizing semantics are certified downstream.
 
 use crate::{
-    Amount256, CapitalError, CapitalEvidenceRef, UpstreamCensusStage,
-    UpstreamConsumptionReceipt, UpstreamStageAuthority,
+    Amount256, CapitalError, CapitalEvidenceRef, UpstreamCensusStage, UpstreamConsumptionReceipt,
+    UpstreamStageAuthority,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, Hash32, StateAnchor};
