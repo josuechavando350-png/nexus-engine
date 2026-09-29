@@ -1610,3 +1610,113 @@ fn stable_source_key_does_not_alias_different_asset_or_class() -> TestResult {
     assert_ne!(base.key_id(), different_class.key_id());
     Ok(())
 }
+
+
+#[test]
+fn collateral_leg_rejects_source_that_requires_temporary_lock() -> TestResult {
+    let collateral_asset = CapitalAsset::Token(address(21));
+    let lock_asset = CapitalAsset::Token(address(22));
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::InventoryRequirement,
+        anchor: anchor(100),
+        provider_namespace: 61,
+        provider_locator_hash: hash(62),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        source_contract: Some(address(63)),
+        asset: collateral_asset,
+        maximum_available: Amount256::from_u128(500),
+        fee_model: FeeModel::None,
+        repayment_asset: collateral_asset,
+        repayment: RepaymentSemantics::NoRepayment,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::Required {
+            asset: lock_asset,
+            amount: Amount256::from_u128(50),
+            release: nqc_census_capital::LockRelease::EndOfTransaction,
+        },
+        failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+        evidence: evidence(),
+    })?;
+
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(81)),
+        anchor(100),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::Collateral,
+            collateral_asset,
+            Amount256::from_u128(100),
+            vec![CapitalClass::InventoryRequirement],
+        )?],
+        evidence(),
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::NoCompatibleSource,
+            failed_leg: Some(RequirementKind::Collateral),
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn temporary_lock_leg_rejects_source_that_requires_collateral() -> TestResult {
+    let lock_asset = CapitalAsset::Token(address(22));
+    let collateral_asset = CapitalAsset::Token(address(21));
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::InventoryRequirement,
+        anchor: anchor(100),
+        provider_namespace: 71,
+        provider_locator_hash: hash(72),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        source_contract: Some(address(73)),
+        asset: lock_asset,
+        maximum_available: Amount256::from_u128(500),
+        fee_model: FeeModel::None,
+        repayment_asset: lock_asset,
+        repayment: RepaymentSemantics::NoRepayment,
+        collateral: CollateralRequirement::Required {
+            asset: collateral_asset,
+            amount: Amount256::from_u128(50),
+            liquidation_conditions_hash: hash(74),
+        },
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::CollateralLiquidation,
+            CapitalFailureMode::OracleRisk,
+        ],
+        evidence: evidence(),
+    })?;
+
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(82)),
+        anchor(100),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::TemporaryLock,
+            lock_asset,
+            Amount256::from_u128(100),
+            vec![CapitalClass::InventoryRequirement],
+        )?],
+        evidence(),
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::NoCompatibleSource,
+            failed_leg: Some(RequirementKind::TemporaryLock),
+            ..
+        }
+    ));
+    Ok(())
+}

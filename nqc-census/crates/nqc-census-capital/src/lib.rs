@@ -1901,16 +1901,15 @@ fn source_can_fund_leg(
         return false;
     }
 
-    // Collateral and lock funding must come from a source that does not recursively
-    // require the same kind of pre-funded resource. This deliberately fails closed
-    // instead of accepting circular capital dependencies.
-    if leg.kind() == RequirementKind::Collateral
-        && !matches!(source.collateral(), CollateralRequirement::None)
-    {
-        return false;
-    }
-    if leg.kind() == RequirementKind::TemporaryLock
-        && !matches!(source.temporary_lock(), TemporaryLock::None)
+    // Collateral and lock funding are pre-funded resources. A source used to
+    // satisfy either leg must itself be free of both collateral and temporary-lock
+    // dependencies. This deliberately fails closed on cross-kind cycles such as
+    // "borrow collateral using a source that itself needs a lock" or the inverse.
+    if matches!(
+        leg.kind(),
+        RequirementKind::Collateral | RequirementKind::TemporaryLock
+    ) && (!matches!(source.collateral(), CollateralRequirement::None)
+        || !matches!(source.temporary_lock(), TemporaryLock::None))
     {
         return false;
     }
