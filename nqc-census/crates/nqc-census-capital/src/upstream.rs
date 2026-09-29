@@ -10,8 +10,8 @@ use crate::{
         AaveV3FlashObservation, UniswapV2FlashSwapObservation, AAVE_V3_PROVIDER_NAMESPACE,
         UNISWAP_V2_PROVIDER_NAMESPACE,
     },
-    Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource,
-    UpstreamCensusStage, UpstreamConsumptionReceipt, UpstreamStageAuthority,
+    Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource, UpstreamCensusStage,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority,
 };
 use nqc_census_chain::{hex, json::Json};
 use nqc_census_core::{Address, Hash32, StateAnchor};
@@ -78,11 +78,11 @@ impl D08CapitalImport {
     }
 
     pub fn consumption_receipt(&self) -> Result<UpstreamConsumptionReceipt, CapitalError> {
-        let authority_artifact_sha256 = self.authority_artifact_sha256.ok_or(
-            CapitalError::InvalidUpstreamAuthority(
-                "D08 import is not bound to an admitted authority artifact",
-            ),
-        )?;
+        let authority_artifact_sha256 =
+            self.authority_artifact_sha256
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
+                    "D08 import is not bound to an admitted authority artifact",
+                ))?;
         UpstreamConsumptionReceipt::new(
             UpstreamCensusStage::Rmc008StateAdmission,
             authority_artifact_sha256,
