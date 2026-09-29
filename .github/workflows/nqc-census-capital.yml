@@ -1,0 +1,107 @@
+name: NQC RMC-011 Capital Census
+
+on:
+  pull_request:
+    paths:
+      - "nqc-census/crates/nqc-census-capital/**"
+      - "nqc-census/Cargo.toml"
+      - "nqc-census/Cargo.lock"
+      - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/capital-census-scope.json"
+      - "ci/nqc-census/rmc011-pft-math-bridge/**"
+      - ".github/workflows/nqc-census-capital.yml"
+  push:
+    branches:
+      - "nqc/rmc-011-capital-census-foundation-20260929"
+
+permissions:
+  contents: read
+
+jobs:
+  rmc-011-capital-foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Verify exact head identity
+        shell: bash
+        env:
+          EXACT_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXACT_HEAD"
+
+      - name: Verify authority declaration
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F '"stage": "RMC-011"' ci/nqc-census/capital-census-scope.json
+          grep -F '"authority_parent": "8ebf6860e0a16964f5293df0ef40695b303b286d"' ci/nqc-census/capital-census-scope.json
+          grep -F '"pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf"' ci/nqc-census/capital-census-scope.json
+          grep -F 'Zero-own-capital is a constraint to prove' ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+
+      - name: Verify certified PFT liquidation math binding
+        shell: bash
+        run: |
+          set -euo pipefail
+          PFT_ROOT=ci/nqc-protocol-fork/recovered-source
+          SOURCE_LIST="$PFT_ROOT/SOURCE_FILES.sha256"
+          grep -Fx 'bbca084daa16fb3906347272f22ec7cb6b51e28e486a05610f52fff6273c1dc6  crates/nqc-aave-math/Cargo.toml' "$SOURCE_LIST"
+          grep -Fx 'a780dd8a8ec962685d6a1a632a9977c60c2b63dde958be359a57c87cc6d171cc  crates/nqc-aave-math/src/lib.rs' "$SOURCE_LIST"
+          grep -Fx '8ed3f089c5f4fa344686a6c9489ec5cdde612f9deb962b4aec387f600fdb4f9a  crates/nqc-core/Cargo.toml' "$SOURCE_LIST"
+          grep -Fx 'fa6b8a7a994fe71c2a5bff29b5dd016f0ed437bef3007822e68e8e8069cbff91  crates/nqc-core/src/lib.rs' "$SOURCE_LIST"
+          (
+            cd "$PFT_ROOT"
+            grep -E '  crates/(nqc-aave-math|nqc-core)/(Cargo.toml|src/lib.rs)$' SOURCE_FILES.sha256 | sha256sum -c -
+          )
+
+      - name: Verify no execution authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction' \
+            nqc-census/crates/nqc-census-capital ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+
+      - name: Certified PFT math bridge gates
+        working-directory: ci/nqc-census/rmc011-pft-math-bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustfmt --edition 2021 --check src/lib.rs
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
+
+      - name: Locked Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-capital
+          cargo test --locked --workspace
+          cargo build --release --locked -p nqc-census-capital
+
+      - name: Verify required capital classes are represented
+        shell: bash
+        run: |
+          set -euo pipefail
+          for class in \
+            ProtocolNativeFlashLoan \
+            AtomicFlashLiquidity \
+            FlashSwap \
+            TransientCredit \
+            CollateralizedBorrowing \
+            PersistentDebt \
+            InventoryRequirement \
+            GasFunding \
+            BondOrStake \
+            SolverOrBuilderDeposit \
+            IntraBlockTemporaryLock
+          do
+            grep -F "$class" nqc-census/crates/nqc-census-capital/src/lib.rs
+          done

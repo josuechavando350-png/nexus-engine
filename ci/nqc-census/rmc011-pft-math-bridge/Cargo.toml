@@ -1,0 +1,18 @@
+[package]
+name = "nqc-rmc011-pft-math-bridge"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+alloy = { version = "=2.5.0", default-features = false, features = ["std"] }
+pft-nqc-aave-math = { package = "nqc-aave-math", path = "../../nqc-protocol-fork/recovered-source/crates/nqc-aave-math" }
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "deny"
+panic = "deny"

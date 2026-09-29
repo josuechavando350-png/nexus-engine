@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "stage": "RMC-011",
+  "name": "CAPITAL_CENSUS",
+  "authority_parent": "8ebf6860e0a16964f5293df0ef40695b303b286d",
+  "pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
+  "pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
+  "owner_lane": "parallel-disjoint",
+  "claims": {
+    "capital_source_model": true,
+    "capital_requirement_model": true,
+    "capital_feasibility_model": true,
+    "real_source_certification": false,
+    "profitability": false,
+    "shadow_execution": false,
+    "canary": false,
+    "real_pnl": false
+  },
+  "required_classes": [
+    "PROTOCOL_NATIVE_FLASH_LOAN",
+    "ATOMIC_FLASH_LIQUIDITY",
+    "FLASH_SWAP",
+    "TRANSIENT_CREDIT",
+    "COLLATERALIZED_BORROWING",
+    "PERSISTENT_DEBT",
+    "INVENTORY_REQUIREMENT",
+    "GAS_FUNDING",
+    "BOND_OR_STAKE",
+    "SOLVER_OR_BUILDER_DEPOSIT",
+    "INTRA_BLOCK_TEMPORARY_LOCK"
+  ]
+}

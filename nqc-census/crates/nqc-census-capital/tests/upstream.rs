@@ -1,0 +1,621 @@
+use nqc_census_capital::{
+    upstream::{
+        import_d08_capital_sources as import_d08_capital_sources_bound,
+        CapitalImportRejectionReason, D08CapitalImport, D08CapitalImportContext,
+    },
+    Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, GitObjectId,
+    UpstreamCensusStage, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+};
+use nqc_census_chain::hex;
+use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
+use sha2::{Digest, Sha256};
+
+type TestResult = Result<(), Box<dyn std::error::Error>>;
+
+fn hash(byte: u8) -> Hash32 {
+    Hash32::new([byte; 32]).unwrap_or_else(|_| unreachable!())
+}
+
+fn address(byte: u8) -> Address {
+    Address::new([byte; 20]).unwrap_or_else(|_| unreachable!())
+}
+
+fn anchor() -> StateAnchor {
+    StateAnchor::new(
+        ChainDomain::new(1, hash(1), hash(2)).unwrap_or_else(|_| unreachable!()),
+        25_437_474,
+        hash(3),
+        hash(4),
+        1_700_000_000,
+        hash(5),
+    )
+    .unwrap_or_else(|_| unreachable!())
+}
+
+fn context() -> D08CapitalImportContext {
+    D08CapitalImportContext {
+        anchor: anchor(),
+        evidence: vec![
+            CapitalEvidenceRef::Artifact(hash(93)),
+            CapitalEvidenceRef::Artifact(hash(94)),
+        ],
+    }
+}
+
+fn d08_facts() -> Vec<u8> {
+    let mut out = String::from("{\"aave_pool\":{\"pool\":\"");
+    out.push_str(&address(90).to_hex());
+    out.push_str("\",\"scalars\":{\"FLASHLOAN_PREMIUM_TOTAL()\":{\"data\":\"0x");
+    out.push_str(&"00".repeat(31));
+    out.push_str("05\",\"status\":\"RETURNED\"}}}}");
+    out.into_bytes()
+}
+
+const D08_CODE_COMMIT: &str = "1111111111111111111111111111111111111111";
+const D08_CODE_TREE: &str = "2222222222222222222222222222222222222222";
+
+fn sha256_hash(bytes: &[u8]) -> Hash32 {
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    Hash32::new(digest).unwrap_or_else(|_| unreachable!())
+}
+
+fn sha256_plain(bytes: &[u8]) -> String {
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    hex::plain(&digest)
+}
+
+fn protocol_contract_locator(namespace: u16, contract: Address) -> Hash32 {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-PROTOCOL-CONTRACT-LOCATOR-V1");
+    hasher.update([0]);
+    hasher.update(namespace.to_be_bytes());
+    hasher.update(contract.as_bytes());
+    let digest: [u8; 32] = hasher.finalize().into();
+    Hash32::new(digest).unwrap_or_else(|_| unreachable!())
+}
+
+fn d08_manifest(states: &[u8], tokens: &[u8], facts: &[u8]) -> Vec<u8> {
+    format!(
+        concat!(
+            "{{\"artifacts\":[",
+            "{{\"bytes\":{},\"path\":\"market-state-manifest.jsonl\",\"sha256\":\"{}\"}},",
+            "{{\"bytes\":{},\"path\":\"token-admission.jsonl\",\"sha256\":\"{}\"}},",
+            "{{\"bytes\":{},\"path\":\"pool-and-factory-facts.json\",\"sha256\":\"{}\"}}",
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+        ),
+        states.len(),
+        sha256_plain(states),
+        tokens.len(),
+        sha256_plain(tokens),
+        facts.len(),
+        sha256_plain(facts),
+        D08_CODE_COMMIT,
+        D08_CODE_TREE,
+    )
+    .into_bytes()
+}
+
+fn d08_authority(manifest: &[u8]) -> Result<UpstreamStageAuthority, CapitalError> {
+    UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
+        stage: UpstreamCensusStage::Rmc008StateAdmission,
+        code_commit: GitObjectId::parse_hex(D08_CODE_COMMIT)?,
+        code_tree: GitObjectId::parse_hex(D08_CODE_TREE)?,
+        artifact_sha256: sha256_hash(manifest),
+        observation_anchor: anchor(),
+        unresolved_mismatch_count: 0,
+        unknown_failure_count: 0,
+        coverage_complete: true,
+        admitted: true,
+    })
+}
+
+fn import_d08_capital_sources(
+    states: &[u8],
+    tokens: &[u8],
+    facts: &[u8],
+    context: &D08CapitalImportContext,
+) -> Result<D08CapitalImport, CapitalError> {
+    let manifest = d08_manifest(states, tokens, facts);
+    let authority = d08_authority(&manifest)?;
+    let mut bound_context = context.clone();
+    bound_context
+        .evidence
+        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256));
+    import_d08_capital_sources_bound(states, tokens, facts, &manifest, &authority, &bound_context)
+}
+
+fn token_row(token: Address, compatible: bool) -> String {
+    format!(
+        "{{\"execution_compatibility\":{{\"blockers\":{},\"status\":\"{}\"}},\"token\":\"{}\"}}",
+        if compatible {
+            "[]"
+        } else {
+            "[\"FEE_ON_TRANSFER_UNPROVEN\"]"
+        },
+        if compatible {
+            "PROVEN_COMPATIBLE"
+        } else {
+            "BLOCKED"
+        },
+        token.to_hex()
+    )
+}
+
+#[test]
+fn amount256_decimal_parser_is_exact_and_rejects_overflow() -> TestResult {
+    assert_eq!(Amount256::parse_decimal("0")?, Amount256::ZERO);
+    assert_eq!(Amount256::parse_decimal("10")?, Amount256::from_u128(10));
+    assert!(Amount256::parse_decimal("").is_err());
+    assert!(Amount256::parse_decimal("01").is_err());
+    assert!(Amount256::parse_decimal("-1").is_err());
+    assert!(Amount256::parse_decimal(
+        "115792089237316195423570985008687907853269984665640564039457584007913129639936"
+    )
+    .is_err());
+    assert_eq!(
+        Amount256::parse_decimal(
+            "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        )?,
+        Amount256::MAX
+    );
+    Ok(())
+}
+
+#[test]
+fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> TestResult {
+    let aave_asset = address(20);
+    let token0 = address(30);
+    let token1 = address(31);
+    let pair = address(32);
+    let tokens = format!(
+        "{}\n{}\n{}\n",
+        token_row(aave_asset, true),
+        token_row(token0, true),
+        token_row(token1, true)
+    );
+    let states = format!(
+        concat!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+            "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
+            "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
+            "\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
+        ),
+        aave_asset.to_hex(),
+        pair.to_hex(),
+        token0.to_hex(),
+        token1.to_hex()
+    );
+
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert_eq!(imported.sources.len(), 3);
+    assert!(imported.rejections.is_empty());
+    assert_eq!(imported.candidate_count, 3);
+    assert_eq!(imported.admitted_count, 3);
+    assert_eq!(imported.rejected_count, 0);
+    assert!(imported.is_conserved());
+
+    let mut classes = imported
+        .sources
+        .iter()
+        .map(|source| source.class())
+        .collect::<Vec<_>>();
+    classes.sort();
+    assert_eq!(
+        classes,
+        vec![
+            CapitalClass::ProtocolNativeFlashLoan,
+            CapitalClass::FlashSwap,
+            CapitalClass::FlashSwap
+        ]
+    );
+    for source in &imported.sources {
+        let expected = match source.class() {
+            CapitalClass::ProtocolNativeFlashLoan => protocol_contract_locator(0x1103, address(90)),
+            CapitalClass::FlashSwap => protocol_contract_locator(0x1302, pair),
+            _ => unreachable!(),
+        };
+        assert_eq!(source.provider_locator_hash(), expected);
+    }
+    Ok(())
+}
+
+#[test]
+fn d08_import_fails_closed_on_unproven_token_compatibility() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, false));
+    let states = format!(
+        concat!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
+        ),
+        asset.to_hex()
+    );
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert!(imported.sources.is_empty());
+    assert_eq!(imported.rejections.len(), 1);
+    assert_eq!(
+        imported.rejections[0].reason,
+        CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked
+    );
+    Ok(())
+}
+
+#[test]
+fn d08_import_preserves_zero_aave_capacity_but_rejects_disabled_flash() -> TestResult {
+    let enabled = address(20);
+    let disabled = address(21);
+    let tokens = format!(
+        "{}\n{}\n",
+        token_row(enabled, true),
+        token_row(disabled, true)
+    );
+    let states = format!(
+        concat!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m0\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"0\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m1\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10\",",
+            "\"flash_loan_enabled\":false,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
+        ),
+        enabled.to_hex(),
+        disabled.to_hex()
+    );
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert_eq!(imported.sources.len(), 1);
+    assert_eq!(imported.sources[0].effective_capacity()?, Amount256::ZERO);
+    assert_eq!(imported.rejections.len(), 1);
+    assert_eq!(
+        imported.rejections[0].reason,
+        CapitalImportRejectionReason::FlashLoanDisabled
+    );
+    Ok(())
+}
+
+#[test]
+fn d08_import_rejects_v2_reserve_without_strict_flash_swap_headroom() -> TestResult {
+    let token0 = address(30);
+    let token1 = address(31);
+    let pair = address(32);
+    let tokens = format!("{}\n{}\n", token_row(token0, true), token_row(token1, true));
+    let states = format!(
+        concat!(
+            "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
+            "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
+            "\"reserves\":[\"1\",\"2\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n"
+        ),
+        pair.to_hex(),
+        token0.to_hex(),
+        token1.to_hex()
+    );
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert_eq!(imported.sources.len(), 2);
+    assert_eq!(imported.rejections.len(), 0);
+    let zero_capacity = imported
+        .sources
+        .iter()
+        .find(|source| source.asset() == CapitalAsset::Token(token0))
+        .ok_or("missing zero-capacity V2 source")?;
+    assert_eq!(zero_capacity.effective_capacity()?, Amount256::ZERO);
+    Ok(())
+}
+
+#[test]
+fn d08_import_requires_token_admission_row_for_every_source_asset() -> TestResult {
+    let asset = address(20);
+    let states = format!(
+        concat!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n"
+        ),
+        asset.to_hex()
+    );
+    assert!(import_d08_capital_sources(states.as_bytes(), b"", &d08_facts(), &context()).is_err());
+    Ok(())
+}
+
+#[test]
+fn d08_import_coverage_is_order_independent_and_conserved() -> TestResult {
+    let aave_asset = address(20);
+    let token0 = address(30);
+    let token1 = address(31);
+    let pair = address(32);
+    let tokens = format!(
+        "{}\n{}\n{}\n",
+        token_row(aave_asset, true),
+        token_row(token0, true),
+        token_row(token1, false)
+    );
+    let aave = format!(
+        concat!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}"
+        ),
+        aave_asset.to_hex()
+    );
+    let v2 = format!(
+        concat!(
+            "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":30}},",
+            "\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",",
+            "\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}"
+        ),
+        pair.to_hex(),
+        token0.to_hex(),
+        token1.to_hex()
+    );
+    let first = format!("{aave}\n{v2}\n");
+    let second = format!("{v2}\n{aave}\n");
+    let a = import_d08_capital_sources(
+        first.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    let b = import_d08_capital_sources(
+        second.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert!(a.is_conserved());
+    assert!(b.is_conserved());
+    assert_eq!(a.candidate_count, 3);
+    assert_eq!(a.admitted_count, 2);
+    assert_eq!(a.rejected_count, 1);
+    assert_eq!(a.coverage_commitment, b.coverage_commitment);
+    Ok(())
+}
+
+#[test]
+fn d08_import_rejects_duplicate_capital_candidates() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    let row = format!(
+        concat!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",",
+            "\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",",
+            "\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}"
+        ),
+        asset.to_hex()
+    );
+    let duplicate = format!("{row}\n{row}\n");
+    assert!(import_d08_capital_sources(
+        duplicate.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context()
+    )
+    .is_err());
+    Ok(())
+}
+
+#[test]
+fn current_d08_blocked_token_semantics_admit_no_capital_source() -> TestResult {
+    let asset = address(20);
+    let tokens = format!(
+        "{{\"behavior\":{{\"fee_on_transfer\":\"UNPROVEN\",\"rebasing\":\"UNPROVEN\",\"transfer_hooks\":\"UNPROVEN\",\"upgradeable\":\"UNPROVEN\"}},\"execution_compatibility\":{{\"blockers\":[\"FEE_ON_TRANSFER_UNPROVEN\",\"REBASING_UNPROVEN\",\"TRANSFER_HOOKS_UNPROVEN\",\"UPGRADEABLE_UNPROVEN\"],\"status\":\"BLOCKED\"}},\"token\":\"{}\"}}\n",
+        asset.to_hex()
+    );
+    let states = format!(
+        "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+        asset.to_hex()
+    );
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert!(imported.sources.is_empty());
+    assert_eq!(imported.rejected_count, 1);
+    assert_eq!(
+        imported.rejections[0].reason,
+        CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked
+    );
+    assert!(imported.is_conserved());
+    Ok(())
+}
+
+#[test]
+fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
+    let token0 = address(30);
+    let token1 = address(31);
+    let pair = address(32);
+    let tokens = format!("{}\n{}\n", token_row(token0, true), token_row(token1, true));
+    let bad_fee = format!(
+        "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":25}},\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n",
+        pair.to_hex(), token0.to_hex(), token1.to_hex()
+    );
+    let fee_import = import_d08_capital_sources(
+        bad_fee.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert_eq!(fee_import.sources.len(), 0);
+    assert_eq!(fee_import.rejected_count, 2);
+    assert!(fee_import
+        .rejections
+        .iter()
+        .all(|row| row.reason == CapitalImportRejectionReason::FeeSemanticsUnsupported));
+
+    let no_liquidity = bad_fee
+        .replace("\"swap_fee_bps\":25", "\"swap_fee_bps\":30")
+        .replace(
+            "\"liquidity_state\":\"LIQUID\"",
+            "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
+        );
+    let liquidity_import = import_d08_capital_sources(
+        no_liquidity.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert_eq!(liquidity_import.sources.len(), 0);
+    assert_eq!(liquidity_import.rejected_count, 2);
+    assert!(liquidity_import
+        .rejections
+        .iter()
+        .all(|row| row.reason == CapitalImportRejectionReason::V2LiquidityUnavailable));
+    Ok(())
+}
+
+#[test]
+fn d08_import_rejects_inactive_or_paused_aave_reserve() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    for (active, paused) in [(false, false), (true, true)] {
+        let states = format!(
+            "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":{},\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":{}}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+            asset.to_hex(), active, paused
+        );
+        let imported = import_d08_capital_sources(
+            states.as_bytes(),
+            tokens.as_bytes(),
+            &d08_facts(),
+            &context(),
+        )?;
+        assert_eq!(imported.sources.len(), 0);
+        assert_eq!(
+            imported.rejections[0].reason,
+            CapitalImportRejectionReason::ReserveInactiveOrPaused
+        );
+    }
+    Ok(())
+}
+
+#[test]
+fn d08_import_binds_aave_pool_and_flash_fee_to_closeout_facts() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    let states = format!(
+        "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+        asset.to_hex()
+    );
+    let exact = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    assert_eq!(exact.sources.len(), 1);
+    assert_eq!(
+        exact.sources[0]
+            .quote_fee(Amount256::from_u128(10_000))?
+            .ok_or("missing Aave fee quote")?
+            .amount,
+        Amount256::from_u128(5)
+    );
+
+    let wrong_fee = String::from_utf8(d08_facts())?.replace(
+        &format!("{}05", "00".repeat(31)),
+        &format!("{}06", "00".repeat(31)),
+    );
+    let changed = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        wrong_fee.as_bytes(),
+        &context(),
+    )?;
+    assert_eq!(
+        changed.sources[0]
+            .quote_fee(Amount256::from_u128(10_000))?
+            .ok_or("missing changed Aave fee quote")?
+            .amount,
+        Amount256::from_u128(6)
+    );
+
+    let malformed = String::from_utf8(d08_facts())?
+        .replace("\"status\":\"RETURNED\"", "\"status\":\"REVERTED\"");
+    assert!(import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        malformed.as_bytes(),
+        &context(),
+    )
+    .is_err());
+    Ok(())
+}
+
+#[test]
+fn d08_evidentiary_import_rejects_consumed_artifact_substitution() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    let states = format!(
+        "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+        asset.to_hex()
+    );
+    let facts = d08_facts();
+    let manifest = d08_manifest(states.as_bytes(), tokens.as_bytes(), &facts);
+    let authority = d08_authority(&manifest)?;
+    let mut bound_context = context();
+    bound_context
+        .evidence
+        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256));
+
+    let tampered_states = states.replace("\"10000\"", "\"10001\"");
+    assert!(import_d08_capital_sources_bound(
+        tampered_states.as_bytes(),
+        tokens.as_bytes(),
+        &facts,
+        &manifest,
+        &authority,
+        &bound_context,
+    )
+    .is_err());
+    Ok(())
+}
+
+#[test]
+fn d08_evidentiary_import_rejects_manifest_not_named_by_authority() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    let states = format!(
+        "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+        asset.to_hex()
+    );
+    let facts = d08_facts();
+    let manifest = d08_manifest(states.as_bytes(), tokens.as_bytes(), &facts);
+    let mut authority = d08_authority(&manifest)?;
+    authority.artifact_sha256 = hash(250);
+    let mut bound_context = context();
+    bound_context
+        .evidence
+        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256));
+
+    assert!(import_d08_capital_sources_bound(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &facts,
+        &manifest,
+        &authority,
+        &bound_context,
+    )
+    .is_err());
+    Ok(())
+}
