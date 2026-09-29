@@ -1152,6 +1152,63 @@ fn evidentiary_certification_requires_consumed_d08_and_d09_receipts() -> TestRes
 }
 
 #[test]
+fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> TestResult {
+    let context = certification_context()?;
+    let stages = context.stages().to_vec();
+    let admitted_evidence = context.admitted_evidence().copied().collect::<Vec<_>>();
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or("missing RMC-008 authority")?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or("missing RMC-009 authority")?
+        .artifact_sha256;
+
+    let wrong_authority = CapitalCertificationContext::new(
+        stages.clone(),
+        admitted_evidence.clone(),
+    )?
+    .with_consumption_receipts(vec![
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc008StateAdmission,
+            hash(90),
+            hash(80),
+        )?,
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc009PositionUniverse,
+            d09_artifact,
+            hash(81),
+        )?,
+    ]);
+    assert!(matches!(
+        wrong_authority,
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+
+    let duplicate = CapitalCertificationContext::new(stages, admitted_evidence)?
+        .with_consumption_receipts(vec![
+            UpstreamConsumptionReceipt::new(
+                UpstreamCensusStage::Rmc008StateAdmission,
+                d08_artifact,
+                hash(80),
+            )?,
+            UpstreamConsumptionReceipt::new(
+                UpstreamCensusStage::Rmc008StateAdmission,
+                d08_artifact,
+                hash(82),
+            )?,
+        ]);
+    assert!(matches!(
+        duplicate,
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
 fn evidentiary_ledger_requires_nonempty_source_census() -> TestResult {
     let ledger = CapitalCensusLedger::evidentiary();
     assert!(matches!(
