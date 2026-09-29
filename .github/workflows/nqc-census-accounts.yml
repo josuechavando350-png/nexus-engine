@@ -127,6 +127,39 @@ jobs:
             echo "RMC009_INPUTS_VERIFIED; live acquisition runs only from workflow_dispatch on the exact head (not certified by this run)"
           fi
 
+  dispatch-certification:
+    needs: inputs
+    if: ${{ github.event_name == 'pull_request' && needs.inputs.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Dispatch exact-head live certification once
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          observed=$(gh api "repos/$repo/git/ref/heads/$HEAD_REF" --jq .object.sha)
+          test "$observed" = "$HEAD_SHA" || {
+            echo "branch moved: PR head=$HEAD_SHA branch=$observed; refusing stale certification dispatch"
+            exit 1
+          }
+          existing=$(gh api "repos/$repo/actions/workflows/nqc-census-accounts.yml/runs?event=workflow_dispatch&branch=$HEAD_REF&per_page=30" \
+            --jq "[.workflow_runs[] | select(.head_sha == \"$HEAD_SHA\" and (.status == \"queued\" or .status == \"in_progress\" or .conclusion == \"success\"))] | length")
+          if [ "$existing" != 0 ]; then
+            echo "RMC009_CERTIFICATION_ALREADY_PRESENT head=$HEAD_SHA count=$existing"
+            exit 0
+          fi
+          gh api --method POST "repos/$repo/actions/workflows/nqc-census-accounts.yml/dispatches" \
+            -f ref="$HEAD_REF"
+          echo "RMC009_CERTIFICATION_DISPATCHED head=$HEAD_SHA ref=$HEAD_REF"
+
   index:
     needs: inputs
     if: needs.inputs.outputs.acquire == 'true'
