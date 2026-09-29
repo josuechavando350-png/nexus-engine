@@ -1021,7 +1021,10 @@ impl CapitalSource {
         }
 
         match (spec.class, spec.repayment) {
-            (CapitalClass::PersistentDebt, RepaymentSemantics::Persistent(_)) => {}
+            (
+                CapitalClass::PersistentDebt | CapitalClass::CollateralizedBorrowing,
+                RepaymentSemantics::Persistent(_),
+            ) => {}
             (CapitalClass::PersistentDebt, _) => {
                 return Err(CapitalError::PersistentDebtTermsRequired)
             }

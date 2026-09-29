@@ -1325,3 +1325,53 @@ fn zero_own_capital_claim_requires_at_least_one_feasible_requirement() -> TestRe
     assert!(!summary.proves_zero_own_capital());
     Ok(())
 }
+
+
+#[test]
+fn collateralized_borrowing_can_bind_full_persistent_risk_semantics() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let collateral = CapitalAsset::Token(address(21));
+    let terms = PersistentDebtTerms {
+        interest_model_hash: hash(31),
+        liquidation_model_hash: hash(32),
+        solvency_model_hash: hash(33),
+        oracle_risk_hash: hash(34),
+        liquidity_withdrawal_risk_hash: hash(35),
+        facility_disappearance_risk_hash: hash(36),
+    };
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::CollateralizedBorrowing,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::Persistent(terms),
+        collateral: CollateralRequirement::Required {
+            asset: collateral,
+            amount: Amount256::from_u128(250),
+            liquidation_conditions_hash: hash(37),
+        },
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::CollateralLiquidation,
+            CapitalFailureMode::OracleRisk,
+            CapitalFailureMode::LiquidityWithdrawal,
+            CapitalFailureMode::FacilityDisappearance,
+        ],
+        evidence: evidence(),
+    })?;
+
+    assert_eq!(source.class(), CapitalClass::CollateralizedBorrowing);
+    assert!(matches!(
+        source.repayment(),
+        RepaymentSemantics::Persistent(_)
+    ));
+    Ok(())
+}
