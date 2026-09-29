@@ -107,7 +107,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nqc-rmc007-current-\${{ github.event.pull_request.head.sha || github.sha }}
+          name: nqc-rmc007-current-${{ github.event.pull_request.head.sha || github.sha }}
           path: /tmp/nqc-rmc007-evidence
           if-no-files-found: warn
           retention-days: 30

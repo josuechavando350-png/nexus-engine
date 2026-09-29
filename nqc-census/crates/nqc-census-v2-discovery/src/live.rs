@@ -20,8 +20,7 @@ use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path};
 
 const ANCHOR_NUMBER: u64 = 25_437_474;
-const ANCHOR_HASH: &str =
-    "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
+const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
 const FACTORY: &str = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f";
 const CURRENT_NAMESPACE: u16 = 0x0701;
 
@@ -29,9 +28,7 @@ fn sha256_plain(bytes: &[u8]) -> String {
     hex::plain(&Sha256::digest(bytes))
 }
 
-fn returned(
-    observation: &CensusObservation<ContractCallEnvelope>,
-) -> Result<&[u8], ChainError> {
+fn returned(observation: &CensusObservation<ContractCallEnvelope>) -> Result<&[u8], ChainError> {
     match observation.payload().outcome() {
         CallOutcome::Returned(bytes) => Ok(bytes),
         CallOutcome::Reverted(_) => Err(ChainError::Evidence(
