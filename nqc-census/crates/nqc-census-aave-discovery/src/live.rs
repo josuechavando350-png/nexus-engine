@@ -211,11 +211,12 @@ fn provider_current_facts(
                 ),
                 (pool, abi::encode_call(interface.addresses_provider, &[])),
                 (pool, abi::encode_call(interface.reserves_count, &[])),
+                (pool, abi::encode_call(interface.reserves_list, &[])),
             ],
             anchor,
             semantics,
         )?;
-        if calls.len() != 4 {
+        if calls.len() != 5 {
             return Err(ChainError::Evidence(
                 "current-surface base call count differs".into(),
             ));
