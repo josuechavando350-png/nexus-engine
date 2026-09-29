@@ -1167,22 +1167,20 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
         .ok_or("missing RMC-009 authority")?
         .artifact_sha256;
 
-    let wrong_authority = CapitalCertificationContext::new(
-        stages.clone(),
-        admitted_evidence.clone(),
-    )?
-    .with_consumption_receipts(vec![
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc008StateAdmission,
-            hash(90),
-            hash(80),
-        )?,
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc009PositionUniverse,
-            d09_artifact,
-            hash(81),
-        )?,
-    ]);
+    let wrong_authority =
+        CapitalCertificationContext::new(stages.clone(), admitted_evidence.clone())?
+            .with_consumption_receipts(vec![
+                UpstreamConsumptionReceipt::new(
+                    UpstreamCensusStage::Rmc008StateAdmission,
+                    hash(90),
+                    hash(80),
+                )?,
+                UpstreamConsumptionReceipt::new(
+                    UpstreamCensusStage::Rmc009PositionUniverse,
+                    d09_artifact,
+                    hash(81),
+                )?,
+            ]);
     assert!(matches!(
         wrong_authority,
         Err(CapitalError::InvalidUpstreamAuthority(_))
