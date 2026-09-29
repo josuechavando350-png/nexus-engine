@@ -4,11 +4,10 @@ use nqc_census_capital::{
         CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE, CAPITAL_REQUIREMENTS_FILE,
         CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
     },
-    Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalClass,
-    CapitalEvidenceRef, CapitalFailureMode, CapitalProviderKind, CapitalRequirement,
-    CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
-    CollateralRequirement, FeeModel, RepaymentSemantics, RequiredAtomicity, RequirementKind,
-    TemporaryLock, UtilizationConstraints,
+    Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalClass, CapitalEvidenceRef,
+    CapitalFailureMode, CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg,
+    CapitalSource, CapitalSourceSpec, CapitalTargetId, CollateralRequirement, FeeModel,
+    RepaymentSemantics, RequiredAtomicity, RequirementKind, TemporaryLock, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -150,8 +149,12 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
         &ArtifactProvenance::new("B", "commit-a", "tree-a")?,
     )?;
     assert_ne!(
-        a.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary A")?.sha256,
-        b.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary B")?.sha256
+        a.file(CAPITAL_SUMMARY_FILE)
+            .ok_or("missing summary A")?
+            .sha256,
+        b.file(CAPITAL_SUMMARY_FILE)
+            .ok_or("missing summary B")?
+            .sha256
     );
     Ok(())
 }

@@ -106,14 +106,15 @@ pub fn export_capital_artifacts(
         CapitalArtifactFile::new(CAPITAL_REQUIREMENTS_FILE, jsonl(&requirement_records)?);
     let feasibility =
         CapitalArtifactFile::new(CAPITAL_FEASIBILITY_FILE, jsonl(&feasibility_records)?);
-    let rejections = CapitalArtifactFile::new(
-        CAPITAL_REJECTION_LEDGER_FILE,
-        jsonl(&rejection_records)?,
-    );
+    let rejections =
+        CapitalArtifactFile::new(CAPITAL_REJECTION_LEDGER_FILE, jsonl(&rejection_records)?);
 
     let summary_json = Json::object([
         ("schema_version", Json::uint(1)),
-        ("generated_at", Json::string(provenance.generated_at.clone())),
+        (
+            "generated_at",
+            Json::string(provenance.generated_at.clone()),
+        ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
         (
@@ -158,7 +159,10 @@ pub fn export_capital_artifacts(
     let listed = [&sources, &requirements, &feasibility, &rejections, &summary];
     let manifest_json = Json::object([
         ("schema_version", Json::uint(1)),
-        ("generated_at", Json::string(provenance.generated_at.clone())),
+        (
+            "generated_at",
+            Json::string(provenance.generated_at.clone()),
+        ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
         (
@@ -206,7 +210,10 @@ pub fn export_capital_artifacts(
 fn metadata(provenance: &ArtifactProvenance) -> Vec<(&'static str, Json)> {
     vec![
         ("schema_version", Json::uint(1)),
-        ("generated_at", Json::string(provenance.generated_at.clone())),
+        (
+            "generated_at",
+            Json::string(provenance.generated_at.clone()),
+        ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
     ]
@@ -222,10 +229,7 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
             "provider_namespace",
             Json::uint(u64::from(source.provider_namespace())),
         ),
-        (
-            "provider_kind",
-            Json::string(source.provider_kind().code()),
-        ),
+        ("provider_kind", Json::string(source.provider_kind().code())),
         (
             "provider_locator_hash",
             Json::string(source.provider_locator_hash().to_hex()),
@@ -244,10 +248,7 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
     Json::object(fields)
 }
 
-fn requirement_record(
-    requirement: &CapitalRequirement,
-    provenance: &ArtifactProvenance,
-) -> Json {
+fn requirement_record(requirement: &CapitalRequirement, provenance: &ArtifactProvenance) -> Json {
     let mut fields = metadata(provenance);
     fields.extend([
         ("requirement_id", Json::string(requirement.id().to_hex())),
@@ -256,10 +257,7 @@ fn requirement_record(
             Json::string(hex(requirement.target().as_bytes())),
         ),
         ("anchor", anchor_json(requirement.anchor())),
-        (
-            "atomicity",
-            Json::string(requirement.atomicity().code()),
-        ),
+        ("atomicity", Json::string(requirement.atomicity().code())),
         (
             "requires_native_gas",
             Json::Bool(requirement.requires_native_gas()),
@@ -290,10 +288,7 @@ fn requirement_record(
     Json::object(fields)
 }
 
-fn feasibility_record(
-    result: &CapitalFeasibility,
-    provenance: &ArtifactProvenance,
-) -> Json {
+fn feasibility_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance) -> Json {
     let mut fields = metadata(provenance);
     match result {
         CapitalFeasibility::Feasible {
@@ -336,10 +331,7 @@ fn feasibility_record(
     Json::object(fields)
 }
 
-fn rejection_record(
-    result: &CapitalFeasibility,
-    provenance: &ArtifactProvenance,
-) -> Json {
+fn rejection_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance) -> Json {
     match result {
         CapitalFeasibility::Rejected {
             requirement_id,
