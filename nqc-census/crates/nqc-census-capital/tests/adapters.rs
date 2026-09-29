@@ -1,6 +1,7 @@
 use nqc_census_capital::{
     adapters::{
-        AaveV3FlashObservation, BalancerV2FlashObservation, UniswapV2FlashSwapObservation,
+        AaveV3FlashObservation, BalancerV2FlashObservation, ExternalGasSponsorObservation,
+        UniswapV2FlashSwapObservation,
         AAVE_V3_PROVIDER_NAMESPACE, BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V2_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, RoundingMode,
@@ -202,5 +203,57 @@ fn uniswap_v2_flash_swap_requires_evidence() -> TestResult {
     .into_capital_source();
 
     assert!(matches!(result, Err(CapitalError::MissingEvidence)));
+    Ok(())
+}
+
+
+#[test]
+fn external_gas_sponsor_is_non_operator_native_gas_capital() -> TestResult {
+    let source = ExternalGasSponsorObservation {
+        anchor: anchor(),
+        provider_namespace: 0x2201,
+        provider_locator_hash: hash(50),
+        sponsor_contract: Some(address(51)),
+        maximum_native_gas: Amount256::from_u128(1_000),
+        fee_model: nqc_census_capital::FeeModel::None,
+        fee_asset: CapitalAsset::NativeGas,
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    assert_eq!(source.class(), CapitalClass::GasFunding);
+    assert_eq!(source.asset(), CapitalAsset::NativeGas);
+    assert_eq!(
+        source.repayment(),
+        nqc_census_capital::RepaymentSemantics::NoRepayment
+    );
+    assert_eq!(source.effective_capacity()?, Amount256::from_u128(1_000));
+    assert!(source.quote_fee(Amount256::from_u128(100))?.is_none());
+    Ok(())
+}
+
+#[test]
+fn external_gas_sponsor_can_charge_evidence_bound_fee_without_principal_repayment() -> TestResult {
+    let fee_asset = CapitalAsset::Token(address(52));
+    let source = ExternalGasSponsorObservation {
+        anchor: anchor(),
+        provider_namespace: 0x2201,
+        provider_locator_hash: hash(50),
+        sponsor_contract: Some(address(51)),
+        maximum_native_gas: Amount256::from_u128(1_000),
+        fee_model: nqc_census_capital::FeeModel::Fixed {
+            asset: fee_asset,
+            amount: Amount256::from_u128(7),
+        },
+        fee_asset,
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    let quote = source
+        .quote_fee(Amount256::from_u128(100))?
+        .ok_or("missing sponsor fee quote")?;
+    assert_eq!(quote.asset, fee_asset);
+    assert_eq!(quote.amount, Amount256::from_u128(7));
     Ok(())
 }

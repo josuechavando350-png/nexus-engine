@@ -559,6 +559,7 @@ pub enum RepaymentSemantics {
     SameBlock,
     DeadlineBlocks(u32),
     Persistent(PersistentDebtTerms),
+    NoRepayment,
 }
 
 impl RepaymentSemantics {
@@ -583,6 +584,7 @@ impl RepaymentSemantics {
                     writer.bytes(hash.as_bytes());
                 }
             }
+            Self::NoRepayment => writer.u8(5),
         }
     }
 
@@ -605,6 +607,7 @@ impl RepaymentSemantics {
                 liquidity_withdrawal_risk_hash: nonzero_hash(reader.array::<32>()?)?,
                 facility_disappearance_risk_hash: nonzero_hash(reader.array::<32>()?)?,
             })),
+            5 => Ok(Self::NoRepayment),
             _ => Err(CapitalError::InvalidCanonical(
                 "unknown repayment semantics",
             )),
@@ -1314,10 +1317,15 @@ impl RequiredAtomicity {
 
     fn accepts(self, repayment: RepaymentSemantics) -> bool {
         match self {
-            Self::SameTransaction => matches!(repayment, RepaymentSemantics::AtomicSameTransaction),
+            Self::SameTransaction => matches!(
+                repayment,
+                RepaymentSemantics::AtomicSameTransaction | RepaymentSemantics::NoRepayment
+            ),
             Self::SameBlock => matches!(
                 repayment,
-                RepaymentSemantics::AtomicSameTransaction | RepaymentSemantics::SameBlock
+                RepaymentSemantics::AtomicSameTransaction
+                    | RepaymentSemantics::SameBlock
+                    | RepaymentSemantics::NoRepayment
             ),
             Self::Flexible => true,
         }
@@ -1653,7 +1661,10 @@ pub fn derive_settlement_obligations(
             .copied()
             .ok_or(CapitalError::MissingSourceForAllocation)?;
 
-        if !matches!(source.repayment(), RepaymentSemantics::Persistent(_)) {
+        if !matches!(
+            source.repayment(),
+            RepaymentSemantics::Persistent(_) | RepaymentSemantics::NoRepayment
+        ) {
             add_obligation(
                 &mut totals,
                 RequirementKind::Repayment,

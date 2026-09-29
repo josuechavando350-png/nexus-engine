@@ -152,3 +152,44 @@ impl UniswapV2FlashSwapObservation {
         })
     }
 }
+
+
+#[derive(Debug, Clone)]
+pub struct ExternalGasSponsorObservation {
+    pub anchor: StateAnchor,
+    pub provider_namespace: u16,
+    pub provider_locator_hash: Hash32,
+    pub sponsor_contract: Option<Address>,
+    pub maximum_native_gas: Amount256,
+    pub fee_model: FeeModel,
+    pub fee_asset: CapitalAsset,
+    pub evidence: Vec<CapitalEvidenceRef>,
+}
+
+impl ExternalGasSponsorObservation {
+    pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::GasFunding,
+            anchor: self.anchor,
+            provider_namespace: self.provider_namespace,
+            provider_locator_hash: self.provider_locator_hash,
+            provider_kind: CapitalProviderKind::ExternalSponsor,
+            source_contract: self.sponsor_contract,
+            asset: CapitalAsset::NativeGas,
+            maximum_available: self.maximum_native_gas,
+            fee_model: self.fee_model,
+            repayment_asset: self.fee_asset,
+            repayment: RepaymentSemantics::NoRepayment,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![
+                CapitalFailureMode::SourceUnavailable,
+                CapitalFailureMode::CapacityChanged,
+                CapitalFailureMode::FeeChanged,
+            ],
+            evidence: self.evidence,
+        })
+    }
+}

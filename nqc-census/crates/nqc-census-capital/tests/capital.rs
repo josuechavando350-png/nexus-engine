@@ -1047,3 +1047,89 @@ fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
     ));
     Ok(())
 }
+
+
+#[test]
+fn no_repayment_gas_source_needs_no_principal_repayment_leg() -> TestResult {
+    let gas = CapitalRequirementLeg::new(
+        RequirementKind::Gas,
+        CapitalAsset::NativeGas,
+        Amount256::from_u128(10),
+        vec![CapitalClass::GasFunding],
+    )?;
+    let requirement = requirement(vec![gas], RequiredAtomicity::SameTransaction, true)?;
+    let sponsor = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::GasFunding,
+        anchor: anchor(100),
+        provider_namespace: 88,
+        provider_locator_hash: hash(89),
+        provider_kind: CapitalProviderKind::ExternalSponsor,
+        source_contract: Some(address(90)),
+        asset: CapitalAsset::NativeGas,
+        maximum_available: Amount256::from_u128(100),
+        fee_model: FeeModel::None,
+        repayment_asset: CapitalAsset::NativeGas,
+        repayment: RepaymentSemantics::NoRepayment,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+        evidence: evidence(),
+    })?;
+    let sources = vec![sponsor];
+    let result = evaluate_capital_feasibility(&requirement, &sources);
+    assert!(matches!(result, CapitalFeasibility::Feasible { .. }));
+    assert!(nqc_census_capital::derive_settlement_obligations(&result, &sources)?.is_empty());
+    nqc_census_capital::validate_settlement_requirements(&requirement, &result, &sources)?;
+    Ok(())
+}
+
+#[test]
+fn no_repayment_gas_sponsor_fee_must_still_be_declared() -> TestResult {
+    let fee_asset = CapitalAsset::Token(address(91));
+    let gas = CapitalRequirementLeg::new(
+        RequirementKind::Gas,
+        CapitalAsset::NativeGas,
+        Amount256::from_u128(10),
+        vec![CapitalClass::GasFunding],
+    )?;
+    let funding_fee = CapitalRequirementLeg::new(
+        RequirementKind::FundingFee,
+        fee_asset,
+        Amount256::from_u128(3),
+        vec![CapitalClass::GasFunding],
+    )?;
+    let requirement = requirement(
+        vec![gas, funding_fee],
+        RequiredAtomicity::SameTransaction,
+        true,
+    )?;
+    let sponsor = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::GasFunding,
+        anchor: anchor(100),
+        provider_namespace: 88,
+        provider_locator_hash: hash(89),
+        provider_kind: CapitalProviderKind::ExternalSponsor,
+        source_contract: Some(address(90)),
+        asset: CapitalAsset::NativeGas,
+        maximum_available: Amount256::from_u128(100),
+        fee_model: FeeModel::Fixed {
+            asset: fee_asset,
+            amount: Amount256::from_u128(3),
+        },
+        repayment_asset: fee_asset,
+        repayment: RepaymentSemantics::NoRepayment,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::FeeChanged],
+        evidence: evidence(),
+    })?;
+    let sources = vec![sponsor];
+    let result = evaluate_capital_feasibility(&requirement, &sources);
+    assert!(matches!(result, CapitalFeasibility::Feasible { .. }));
+    nqc_census_capital::validate_settlement_requirements(&requirement, &result, &sources)?;
+    Ok(())
+}
