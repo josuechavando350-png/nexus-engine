@@ -1,6 +1,7 @@
 use nqc_census_capital::{
     evaluate_capital_feasibility, Amount256, CapitalAsset, CapitalCaps, CapitalClass,
-    CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalRequirement,
+    CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalProviderKind,
+    CapitalRequirement,
     CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, PersistentDebtTerms, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UtilizationConstraints,
@@ -45,6 +46,7 @@ fn source(
         anchor: anchor(100),
         provider_namespace: 11,
         provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
         source_contract: Some(address(13)),
         asset,
         maximum_available: Amount256::from_u128(maximum),
@@ -196,6 +198,7 @@ fn unknown_source_failure_mode_is_never_admitted() -> TestResult {
         anchor: anchor(100),
         provider_namespace: 11,
         provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
         source_contract: Some(address(13)),
         asset,
         maximum_available: Amount256::from_u128(100),
@@ -311,6 +314,7 @@ fn protocol_cap_limits_effective_capacity() -> TestResult {
         anchor: anchor(100),
         provider_namespace: 11,
         provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -354,6 +358,7 @@ fn mismatched_anchor_fails_closed() -> TestResult {
         anchor: anchor(101),
         provider_namespace: 11,
         provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -454,6 +459,7 @@ fn zero_capacity_and_amount_edges_fail() -> TestResult {
         anchor: anchor(100),
         provider_namespace: 11,
         provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::ZERO,
@@ -475,5 +481,49 @@ fn zero_capacity_and_amount_edges_fail() -> TestResult {
         vec![CapitalClass::FlashSwap],
     )
     .is_err());
+    Ok(())
+}
+
+
+#[test]
+fn zero_own_capital_policy_rejects_operator_treasury_source() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::InventoryRequirement],
+    )?;
+    let req = requirement(
+        vec![principal, repayment_leg(token)?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let operator = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::InventoryRequirement,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::OperatorTreasury,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+        evidence: evidence(),
+    })?;
+    assert!(matches!(
+        evaluate_capital_feasibility(&req, &[operator]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::OperatorOwnedCapitalRequired,
+            ..
+        }
+    ));
     Ok(())
 }

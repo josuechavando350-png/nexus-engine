@@ -46,6 +46,7 @@ pub enum CapitalError {
     AmountUnderflow,
     InsufficientCapacity,
     MissingGasFunding,
+    OperatorOwnedCapitalRequired,
     AtomicityMismatch,
     RepaymentRequirementMissing,
     CollateralRequirementUnfunded,
@@ -99,6 +100,9 @@ impl Display for CapitalError {
             Self::AmountUnderflow => f.write_str("capital amount underflow"),
             Self::InsufficientCapacity => f.write_str("insufficient capital capacity"),
             Self::MissingGasFunding => f.write_str("required native gas funding is absent"),
+            Self::OperatorOwnedCapitalRequired => {
+                f.write_str("zero-own-capital policy forbids operator treasury funding")
+            }
             Self::AtomicityMismatch => {
                 f.write_str("capital source does not satisfy required atomicity")
             }
@@ -240,6 +244,64 @@ impl CapitalClass {
             .into_iter()
             .find(|class| class.tag() == tag)
             .ok_or(CapitalError::InvalidCanonical("unknown capital class"))
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CapitalProviderKind {
+    ProtocolContract,
+    DexLiquidityPool,
+    ExternalSponsor,
+    ExternalCreditFacility,
+    OperatorTreasury,
+    BuilderOrSolver,
+    OtherExternal,
+}
+
+impl CapitalProviderKind {
+    const ALL: [Self; 7] = [
+        Self::ProtocolContract,
+        Self::DexLiquidityPool,
+        Self::ExternalSponsor,
+        Self::ExternalCreditFacility,
+        Self::OperatorTreasury,
+        Self::BuilderOrSolver,
+        Self::OtherExternal,
+    ];
+
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::ProtocolContract => "PROTOCOL_CONTRACT",
+            Self::DexLiquidityPool => "DEX_LIQUIDITY_POOL",
+            Self::ExternalSponsor => "EXTERNAL_SPONSOR",
+            Self::ExternalCreditFacility => "EXTERNAL_CREDIT_FACILITY",
+            Self::OperatorTreasury => "OPERATOR_TREASURY",
+            Self::BuilderOrSolver => "BUILDER_OR_SOLVER",
+            Self::OtherExternal => "OTHER_EXTERNAL",
+        }
+    }
+
+    const fn tag(self) -> u8 {
+        match self {
+            Self::ProtocolContract => 1,
+            Self::DexLiquidityPool => 2,
+            Self::ExternalSponsor => 3,
+            Self::ExternalCreditFacility => 4,
+            Self::OperatorTreasury => 5,
+            Self::BuilderOrSolver => 6,
+            Self::OtherExternal => 7,
+        }
+    }
+
+    fn from_tag(tag: u8) -> Result<Self, CapitalError> {
+        Self::ALL
+            .into_iter()
+            .find(|kind| kind.tag() == tag)
+            .ok_or(CapitalError::InvalidCanonical("unknown capital provider kind"))
+    }
+
+    pub const fn is_operator_owned(self) -> bool {
+        matches!(self, Self::OperatorTreasury)
     }
 }
 
@@ -698,6 +760,7 @@ pub struct CapitalSource {
     anchor: StateAnchor,
     provider_namespace: u16,
     provider_locator_hash: Hash32,
+    provider_kind: CapitalProviderKind,
     source_contract: Option<Address>,
     asset: CapitalAsset,
     maximum_available: Amount256,
@@ -718,6 +781,7 @@ pub struct CapitalSourceSpec {
     pub anchor: StateAnchor,
     pub provider_namespace: u16,
     pub provider_locator_hash: Hash32,
+    pub provider_kind: CapitalProviderKind,
     pub source_contract: Option<Address>,
     pub asset: CapitalAsset,
     pub maximum_available: Amount256,
@@ -783,6 +847,7 @@ impl CapitalSource {
             anchor: spec.anchor,
             provider_namespace: spec.provider_namespace,
             provider_locator_hash: spec.provider_locator_hash,
+            provider_kind: spec.provider_kind,
             source_contract: spec.source_contract,
             asset: spec.asset,
             maximum_available: spec.maximum_available,
@@ -810,6 +875,10 @@ impl CapitalSource {
 
     pub const fn anchor(&self) -> &StateAnchor {
         &self.anchor
+    }
+
+    pub const fn provider_kind(&self) -> CapitalProviderKind {
+        self.provider_kind
     }
 
     pub const fn asset(&self) -> CapitalAsset {
@@ -863,6 +932,7 @@ impl CapitalSource {
         let anchor = decode_anchor(&mut reader)?;
         let provider_namespace = reader.u16()?;
         let provider_locator_hash = nonzero_hash(reader.array::<32>()?)?;
+        let provider_kind = CapitalProviderKind::from_tag(reader.u8()?)?;
         let source_contract = match reader.u8()? {
             0 => None,
             1 => Some(
@@ -904,6 +974,7 @@ impl CapitalSource {
             anchor,
             provider_namespace,
             provider_locator_hash,
+            provider_kind,
             source_contract,
             asset,
             maximum_available,
@@ -928,6 +999,7 @@ impl CapitalSource {
         encode_anchor(&self.anchor, &mut writer);
         writer.u16(self.provider_namespace);
         writer.bytes(self.provider_locator_hash.as_bytes());
+        writer.u8(self.provider_kind.tag());
         match self.source_contract {
             None => writer.u8(0),
             Some(address) => {
@@ -1295,6 +1367,7 @@ pub enum FeasibilityRejection {
     NoCompatibleSource,
     InsufficientCapacity,
     MissingGasFunding,
+    OperatorOwnedCapitalRequired,
     AtomicityMismatch,
     RepaymentRequirementMissing,
     CollateralRequirementUnfunded,
@@ -1356,6 +1429,13 @@ pub fn evaluate_capital_feasibility(
                 || !leg.allowed_classes().contains(&source.class())
             {
                 continue;
+            }
+            if source.provider_kind().is_operator_owned() {
+                return rejected(
+                    requirement,
+                    FeasibilityRejection::OperatorOwnedCapitalRequired,
+                    Some(leg.kind()),
+                );
             }
             any_asset_class = true;
             if !requirement.atomicity().accepts(source.repayment()) {
