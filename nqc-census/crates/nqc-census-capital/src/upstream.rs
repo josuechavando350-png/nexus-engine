@@ -6,7 +6,10 @@
 //! compatibility is explicitly proven.
 
 use crate::{
-    adapters::{AaveV3FlashObservation, UniswapV2FlashSwapObservation},
+    adapters::{
+        AaveV3FlashObservation, UniswapV2FlashSwapObservation, AAVE_V3_PROVIDER_NAMESPACE,
+        UNISWAP_V2_PROVIDER_NAMESPACE,
+    },
     Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource, UpstreamCensusStage,
     UpstreamStageAuthority,
 };
@@ -53,8 +56,6 @@ pub struct CapitalImportRejection {
 #[derive(Debug, Clone)]
 pub struct D08CapitalImportContext {
     pub anchor: StateAnchor,
-    pub aave_provider_locator_hash: Hash32,
-    pub uniswap_v2_provider_locator_hash: Hash32,
     pub evidence: Vec<CapitalEvidenceRef>,
 }
 
@@ -223,6 +224,20 @@ fn push_source(
 fn write_len_prefixed(hasher: &mut Sha256, value: &[u8]) {
     hasher.update(u64::try_from(value.len()).unwrap_or(u64::MAX).to_be_bytes());
     hasher.update(value);
+}
+
+fn protocol_contract_locator_hash(
+    provider_namespace: u16,
+    source_contract: Address,
+) -> Result<Hash32, CapitalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-PROTOCOL-CONTRACT-LOCATOR-V1");
+    hasher.update([0]);
+    hasher.update(provider_namespace.to_be_bytes());
+    hasher.update(source_contract.as_bytes());
+    let digest: [u8; 32] = hasher.finalize().into();
+    Hash32::new(digest)
+        .map_err(|_| CapitalError::InvalidCanonical("zero protocol contract locator hash"))
 }
 
 fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, CapitalError> {
@@ -502,7 +517,10 @@ fn import_d08_capital_sources_unbound(
                     available_underlying: available,
                     premium_total_bps: aave_premium_total_bps,
                     flash_loan_enabled: true,
-                    provider_locator_hash: context.aave_provider_locator_hash,
+                    provider_locator_hash: protocol_contract_locator_hash(
+                        AAVE_V3_PROVIDER_NAMESPACE,
+                        aave_pool,
+                    )?,
                     evidence: context.evidence.clone(),
                 }
                 .into_capital_source()?;
@@ -619,7 +637,10 @@ fn import_d08_capital_sources_unbound(
                         pair,
                         asset: token,
                         reserve: reserve_amount,
-                        provider_locator_hash: context.uniswap_v2_provider_locator_hash,
+                        provider_locator_hash: protocol_contract_locator_hash(
+                            UNISWAP_V2_PROVIDER_NAMESPACE,
+                            pair,
+                        )?,
                         evidence: context.evidence.clone(),
                     }
                     .into_capital_source()?;
