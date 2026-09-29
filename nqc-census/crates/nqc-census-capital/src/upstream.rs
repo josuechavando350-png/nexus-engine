@@ -14,7 +14,7 @@ use crate::{
     UpstreamConsumptionReceipt, UpstreamStageAuthority,
 };
 use nqc_census_chain::{hex, json::Json};
-use nqc_census_core::{Address, Hash32, StateAnchor};
+use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -135,6 +135,29 @@ fn array<'a>(row: &'a Json, key: &'static str) -> Result<&'a [Json], CapitalErro
     field(row, key)?
         .as_array()
         .ok_or(CapitalError::InvalidCanonical("D08 field is not array"))
+}
+
+fn d08_hash(row: &Json, key: &'static str) -> Result<Hash32, CapitalError> {
+    Hash32::parse_hex(text(row, key)?)
+        .map_err(|_| CapitalError::InvalidCanonical("invalid D08 anchor hash"))
+}
+
+fn d08_observation_anchor(row: &Json) -> Result<StateAnchor, CapitalError> {
+    let chain = ChainDomain::new(
+        u64_field(row, "chain_id")?,
+        d08_hash(row, "genesis_hash")?,
+        d08_hash(row, "fork_lineage")?,
+    )
+    .map_err(|_| CapitalError::InvalidCanonical("invalid D08 chain domain"))?;
+    StateAnchor::new(
+        chain,
+        u64_field(row, "block_number")?,
+        d08_hash(row, "block_hash")?,
+        d08_hash(row, "parent_hash")?,
+        u64_field(row, "timestamp")?,
+        d08_hash(row, "state_root")?,
+    )
+    .map_err(|_| CapitalError::InvalidCanonical("invalid D08 observation anchor"))
 }
 
 fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
@@ -377,6 +400,10 @@ fn verify_d08_artifact_binding(
         return Err(CapitalError::InvalidUpstreamAuthority(
             "D08 evidence manifest code identity mismatch",
         ));
+    }
+    let manifest_anchor = d08_observation_anchor(field(&manifest, "observation_anchor")?)?;
+    if manifest_anchor != authority.observation_anchor || manifest_anchor != context.anchor {
+        return Err(CapitalError::AnchorMismatch);
     }
 
     let expected: [(&str, &[u8]); 3] = [
