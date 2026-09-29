@@ -569,6 +569,20 @@ fn authority_lock_rejects_anchor_substitution_and_mixed_stage_anchors() -> TestR
 }
 
 #[test]
+fn authority_lock_rejects_non_certifiable_upstream_stage_truth() -> TestResult {
+    let fixture = replay_context()?;
+    let mut entries = fixture
+        .context
+        .stages()
+        .iter()
+        .map(UpstreamAuthorityLockEntry::from)
+        .collect::<Vec<_>>();
+    entries[0].unresolved_mismatch_count = 1;
+    assert!(UpstreamAuthorityLock::new(entries).is_err());
+    Ok(())
+}
+
+#[test]
 fn bundle_replay_rejects_self_consistent_but_externally_unlocked_d06_authority() -> TestResult {
     let fixture = replay_context()?;
     let lock = authority_lock(&fixture.context)?;
