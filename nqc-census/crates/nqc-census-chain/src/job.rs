@@ -494,6 +494,40 @@ impl<'a> JobContext<'a> {
         anchor: &StateAnchor,
         semantics: ObservationSemantics,
     ) -> Result<Vec<CensusObservation<ContractCallEnvelope>>, ChainError> {
+        self.calls_in_context(requests, CallContext::static_read(), anchor, semantics)
+    }
+
+    fn call_object(target: Address, data: &[u8], context: &CallContext) -> Json {
+        let mut members = vec![
+            ("to", Json::string(target.to_hex())),
+            ("data", Json::string(hex::encode(data))),
+        ];
+        if let Some(caller) = context.caller() {
+            members.push(("from", Json::string(caller.to_hex())));
+        }
+        let value = context.value();
+        if value.iter().any(|byte| *byte != 0) {
+            let first = value.iter().position(|byte| *byte != 0).unwrap_or(31);
+            let digits = hex::plain(&value[first..]);
+            let trimmed = digits.trim_start_matches('0');
+            members.push(("value", Json::string(format!("0x{trimmed}"))));
+        }
+        if let Some(gas) = context.gas_limit() {
+            members.push(("gas", Json::string(hex::quantity(gas))));
+        }
+        Json::object(members)
+    }
+
+    /// Calls at one anchor under an explicit call context (e.g. an admin-only
+    /// proxy getter read with `from` = the proxy admin). The context is bound
+    /// into every CONTRACT_CALL observation.
+    pub fn calls_in_context(
+        &mut self,
+        requests: &[(Address, Vec<u8>)],
+        context: CallContext,
+        anchor: &StateAnchor,
+        semantics: ObservationSemantics,
+    ) -> Result<Vec<CensusObservation<ContractCallEnvelope>>, ChainError> {
         let mut out = Vec::with_capacity(requests.len());
         for chunk in requests.chunks(self.provider().max_batch()) {
             self.guard(anchor)?;
@@ -503,10 +537,7 @@ impl<'a> JobContext<'a> {
                     RpcCall::new(
                         "eth_call",
                         Json::array([
-                            Json::object([
-                                ("to", Json::string(target.to_hex())),
-                                ("data", Json::string(hex::encode(data))),
-                            ]),
+                            Self::call_object(*target, data, &context),
                             self.block_parameter(anchor),
                         ]),
                     )
@@ -530,12 +561,7 @@ impl<'a> JobContext<'a> {
                     anchor.clone(),
                     semantics,
                     self.provenance(ProvenanceAuthority::ContractCall, exchange)?,
-                    ContractCallEnvelope::new(
-                        *target,
-                        CallContext::static_read(),
-                        data.clone(),
-                        outcome,
-                    )?,
+                    ContractCallEnvelope::new(*target, context, data.clone(), outcome)?,
                 )?;
                 self.record(&observation)?;
                 out.push(observation);

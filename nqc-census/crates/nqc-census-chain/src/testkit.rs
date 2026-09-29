@@ -46,6 +46,7 @@ struct CodeSpan {
 #[derive(Debug, Clone)]
 struct CallRule {
     target: Address,
+    caller: Option<Address>,
     calldata: Vec<u8>,
     from: u64,
     until: Option<u64>,
@@ -286,6 +287,28 @@ impl SimChain {
     ) {
         self.calls.push(CallRule {
             target,
+            caller: None,
+            calldata,
+            from,
+            until,
+            outcome,
+        });
+    }
+
+    /// Like `set_call`, but the rule only answers calls made from `caller`
+    /// (e.g. admin-only proxy getters).
+    pub fn set_call_from(
+        &mut self,
+        target: Address,
+        caller: Address,
+        calldata: Vec<u8>,
+        from: u64,
+        until: Option<u64>,
+        outcome: CallOutcome,
+    ) {
+        self.calls.push(CallRule {
+            target,
+            caller: Some(caller),
             calldata,
             from,
             until,
@@ -314,12 +337,22 @@ impl SimChain {
             .unwrap_or_default()
     }
 
-    fn call_at(&self, target: &Address, calldata: &[u8], number: u64) -> CallOutcome {
+    fn call_at(
+        &self,
+        target: &Address,
+        caller: Option<&Address>,
+        calldata: &[u8],
+        number: u64,
+    ) -> CallOutcome {
         self.calls
             .iter()
             .rev()
             .find(|rule| {
                 rule.target == *target
+                    && rule
+                        .caller
+                        .as_ref()
+                        .is_none_or(|expected| Some(expected) == caller)
                     && rule.calldata == calldata
                     && number >= rule.from
                     && rule.until.is_none_or(|until| number < until)
@@ -475,9 +508,16 @@ impl SimProvider {
                 let call = params.first().ok_or(ChainError::Rpc("call object"))?;
                 let target = Address::new(hex::decode_fixed::<20>(call.str_field("to")?)?)?;
                 let data = hex::decode_data(call.str_field("data")?)?;
+                let caller = call
+                    .get("from")
+                    .and_then(Json::as_str)
+                    .map(hex::decode_fixed::<20>)
+                    .transpose()?
+                    .map(Address::new)
+                    .transpose()?;
                 match params.get(1).and_then(|p| Self::resolve_block(&chain, p)) {
                     Some(number) if archive_ok(number) => {
-                        match chain.call_at(&target, &data, number) {
+                        match chain.call_at(&target, caller.as_ref(), &data, number) {
                             CallOutcome::Returned(bytes) => {
                                 Self::ok(&id, Json::string(hex::encode(&bytes)))
                             }

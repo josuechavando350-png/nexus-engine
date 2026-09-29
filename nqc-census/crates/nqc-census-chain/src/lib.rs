@@ -19,6 +19,7 @@ pub mod evm;
 pub mod hex;
 pub mod job;
 pub mod json;
+pub mod merge;
 pub mod provider;
 pub mod rpc;
 pub mod testkit;

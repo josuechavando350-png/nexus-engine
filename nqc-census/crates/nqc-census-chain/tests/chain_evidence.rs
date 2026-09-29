@@ -805,3 +805,154 @@ fn consensus_requires_two_distinct_providers_and_identical_results() -> TestResu
     assert_eq!(mismatch.reason, "RESULTS_DIFFER");
     Ok(())
 }
+
+#[test]
+fn admin_context_calls_are_bound_into_observations() -> TestResult {
+    let fixture = fixture(Faults::default())?;
+    let admin = address(0xad)?;
+    let selector = abi::encode_call(abi::selector("implementation()"), &[]);
+    fixture.chain.lock().map_err(|_| "poisoned")?.set_call_from(
+        address(0xc0)?,
+        admin,
+        selector.clone(),
+        BASE,
+        None,
+        CallOutcome::Returned(abi::address_word(&[0x11; 20]).to_vec()),
+    );
+    let (root, store) = temp_store("context")?;
+    let acquisition = Acquisition::new(&store, &fixture.network, fast_retry());
+    let chain = domain(&acquisition, &fixture)?;
+    let (anchor, _) = acquisition.resolve_anchor(&fixture.a, &chain, BASE + 300)?;
+    let spec = JobSpec::new(
+        "test-context",
+        1,
+        0x0f05,
+        Json::object([("n", Json::uint(1))]),
+    )?;
+    let target = address(0xc0)?;
+    acquisition.point(&fixture.a, &chain, None, &spec, &anchor, |ctx| {
+        let semantics = chain_read_semantics()?;
+        let anonymous = ctx.call(target, selector.clone(), &anchor, semantics)?;
+        assert_eq!(
+            anonymous.payload().outcome(),
+            &CallOutcome::Reverted(Vec::new())
+        );
+        let context = nqc_census_core::CallContext::new(Some(admin), [0; 32], None);
+        let admin_call = ctx
+            .calls_in_context(&[(target, selector.clone())], context, &anchor, semantics)?
+            .remove(0);
+        assert_eq!(admin_call.payload().context().caller(), Some(admin));
+        assert_eq!(
+            abi::decode_address(&abi::single_word(admin_call.payload().outcome().output())?)?,
+            Some([0x11; 20])
+        );
+        assert_ne!(
+            anonymous.envelope().digest(),
+            admin_call.envelope().digest()
+        );
+        Ok(Json::Null)
+    })?;
+    std::fs::remove_dir_all(root)?;
+    Ok(())
+}
+
+fn partition_scan(
+    acquisition: &Acquisition<'_>,
+    provider: &ProviderSpec,
+    chain: &ChainDomain,
+    first: u64,
+    last: u64,
+) -> Result<
+    (
+        nqc_census_chain::acquire::ScanOutcome,
+        nqc_census_core::StateAnchor,
+        nqc_census_core::StateAnchor,
+    ),
+    Box<dyn Error>,
+> {
+    let (origin, _) = acquisition.resolve_anchor(provider, chain, first)?;
+    let (end, _) = acquisition.resolve_anchor(provider, chain, last)?;
+    let outcome = acquisition.scan(
+        provider,
+        chain,
+        None,
+        "test-thing-scan",
+        1,
+        0x0f01,
+        &filter()?,
+        &origin,
+        last,
+        50,
+        |log| raw_log_semantics(&log.log.emitter(), "test-thing-scan"),
+    )?;
+    Ok((outcome, origin, end))
+}
+
+#[test]
+fn partitioned_scans_merge_and_link_by_parent_hash() -> TestResult {
+    use nqc_census_chain::acquire::{partition_plan, verify_partition_linkage};
+    use nqc_census_chain::merge::merge_store;
+    let fixture = fixture(Faults::default())?;
+    let plan = partition_plan(BASE, BASE + 399, 2)?;
+    assert_eq!(plan, vec![(BASE, BASE + 199), (BASE + 200, BASE + 399)]);
+    let (root_one, one) = temp_store("part-one")?;
+    let (root_two, two) = temp_store("part-two")?;
+    let (root_merged, merged) = temp_store("merged")?;
+    let chain = domain(
+        &Acquisition::new(&one, &fixture.network, fast_retry()),
+        &fixture,
+    )?;
+    let first = partition_scan(
+        &Acquisition::new(&one, &fixture.network, fast_retry()),
+        &fixture.a,
+        &chain,
+        plan[0].0,
+        plan[0].1,
+    )?;
+    let second = partition_scan(
+        &Acquisition::new(&two, &fixture.network, fast_retry()),
+        &fixture.a,
+        &chain,
+        plan[1].0,
+        plan[1].1,
+    )?;
+    let report_one = merge_store(&one, &merged, &[])?;
+    let report_two = merge_store(&two, &merged, &[])?;
+    assert_eq!(report_one.streams + report_two.streams, 2);
+    assert!(
+        merge_store(&one, &merged, &[])?.checkpoints > 0,
+        "re-merge is idempotent"
+    );
+    let mut logs = first.0.logs()?;
+    logs.extend(second.0.logs()?);
+    assert_eq!(logs.len(), 4);
+    verify_partition_linkage(BASE, BASE + 399, &[first.clone(), second.clone()])?;
+    assert!(verify_partition_linkage(BASE, BASE + 399, std::slice::from_ref(&first)).is_err());
+    assert!(verify_partition_linkage(BASE, BASE + 399, &[second.clone(), first.clone()]).is_err());
+
+    // A reorg between the two partitions breaks the boundary linkage.
+    fixture
+        .chain
+        .lock()
+        .map_err(|_| "poisoned")?
+        .reorg_from(BASE + 150, 0x61)?;
+    let (root_three, three) = temp_store("part-three")?;
+    let reorged = partition_scan(
+        &Acquisition::new(&three, &fixture.network, fast_retry()),
+        &fixture.a,
+        &chain,
+        plan[1].0,
+        plan[1].1,
+    )?;
+    assert!(matches!(
+        verify_partition_linkage(BASE, BASE + 399, &[first, reorged]),
+        Err(ChainError::NonCanonical {
+            what: "partition boundary",
+            ..
+        })
+    ));
+    for root in [root_one, root_two, root_merged, root_three] {
+        std::fs::remove_dir_all(root)?;
+    }
+    Ok(())
+}

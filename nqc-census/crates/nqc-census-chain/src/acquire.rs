@@ -260,6 +260,67 @@ impl<'a> Acquisition<'a> {
     }
 }
 
+/// Deterministic split of `[first, last]` into `parts` contiguous partitions
+/// for parallel acquisition. Each partition is its own RMC-004 stream.
+pub fn partition_plan(first: u64, last: u64, parts: u64) -> Result<Vec<(u64, u64)>, ChainError> {
+    if parts == 0 || first > last {
+        return Err(ChainError::Config("invalid partition plan".into()));
+    }
+    let blocks = last - first + 1;
+    let parts = parts.min(blocks);
+    let size = blocks.div_ceil(parts);
+    let mut plan = Vec::with_capacity(parts as usize);
+    let mut start = first;
+    while start <= last {
+        let end = start.saturating_add(size - 1).min(last);
+        plan.push((start, end));
+        start = end + 1;
+    }
+    Ok(plan)
+}
+
+/// Proves that certified partition scans tile `[first, last]` without gaps or
+/// overlaps and that every partition's first block extends the previous
+/// partition's last block by parent hash.
+pub fn verify_partition_linkage(
+    first: u64,
+    last: u64,
+    partitions: &[(ScanOutcome, StateAnchor, StateAnchor)],
+) -> Result<(), ChainError> {
+    let mut expected_first = first;
+    let mut previous_last: Option<&StateAnchor> = None;
+    for (outcome, partition_first, partition_last) in partitions {
+        if outcome.certified_first != expected_first
+            || partition_first.block_number() != expected_first
+            || partition_last.block_number() != outcome.certified_last
+        {
+            return Err(ChainError::Evidence(
+                "partitions leave a gap or overlap".into(),
+            ));
+        }
+        if let Some(previous) = previous_last {
+            if partition_first.parent_hash() != previous.block_hash() {
+                return Err(ChainError::NonCanonical {
+                    what: "partition boundary",
+                    detail: format!(
+                        "block {} does not extend block {}",
+                        partition_first.block_number(),
+                        previous.block_number()
+                    ),
+                });
+            }
+        }
+        expected_first = outcome.certified_last + 1;
+        previous_last = Some(partition_last);
+    }
+    if expected_first != last + 1 {
+        return Err(ChainError::Evidence(
+            "partitions do not reach the end of the range".into(),
+        ));
+    }
+    Ok(())
+}
+
 /// A completed, RMC-004-certified scan.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScanOutcome {

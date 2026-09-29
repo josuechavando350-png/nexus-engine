@@ -92,12 +92,18 @@ Resume and verification:
 - EVM bytecode scan that skips push data and the Solidity metadata tail
   (selector/topic/PUSH20/opcode presence as evidence, not proof);
 - earliest-code boundary search with predecessor proof;
-- batched and windowed `eth_getLogs` honoring provider limits.
+- batched and windowed `eth_getLogs` honoring provider limits;
+- explicit call contexts (caller, value, gas) for context-dependent getters;
+- deterministic range partitioning for parallel runners. Each partition is its
+  own RMC-004 stream; partitions must tile the range and each partition's first
+  header must extend the previous partition's last header;
+- store merge that re-commits every certified stream through the destination
+  store's own `commit` (never file copies), plus named unanchored manifests.
 
 The monotonicity of code presence is a separate claim for callers, e.g. a
 self-destruct-free code closure.
 
-## 4. Adversarial tests (`tests/chain_evidence.rs`, 19)
+## 4. Adversarial tests (`tests/chain_evidence.rs`, 21)
 
 - JSON, hex, JSON-RPC, ABI and bytecode strictness;
 - error classes never become observations;
@@ -113,7 +119,11 @@ self-destruct-free code closure.
 - a range hole is never certified;
 - the earliest-code boundary has its predecessor proof;
 - archive gaps and rate limits are typed;
-- consensus needs two distinct providers.
+- consensus needs two distinct providers;
+- admin-context calls (`from` = proxy admin) bind their context into the
+  observation;
+- partitioned scans merge through RMC-004 and must link by parent hash; a
+  reorg between partitions breaks the linkage.
 
 `testkit` is a synthetic JSON-RPC chain with keccak-valid headers. It is
 never evidence.
@@ -135,7 +145,7 @@ Exact-head CI passes:
 - scope and immutability of Protocol/Fork and RMC-001..005 (including
   RMC-003.1);
 - the dependency and boundary gates;
-- fmt, clippy and the 19 tests;
+- fmt, clippy and the 21 tests;
 - a live bootstrap on every declared provider that agrees on the chain domain
   and the 25,437,474 anchor;
 - offline replay of that bootstrap from the store.
