@@ -18,6 +18,9 @@ pub const CAPITAL_SUMMARY_FILE: &str = "capital-census-summary.json";
 pub const CAPITAL_UPSTREAM_AUTHORITY_FILE: &str = "capital-upstream-authority.json";
 pub const CAPITAL_EVIDENCE_MANIFEST_FILE: &str = "capital-evidence-manifest.json";
 
+const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 4;
+const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 2;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtifactProvenance {
     pub generated_at: String,
@@ -145,6 +148,11 @@ pub fn verify_capital_artifact_bundle(
     let manifest = Json::parse(&manifest_file.bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid evidence manifest JSON"))?;
     require_canonical_json(manifest_file.bytes.as_slice(), &manifest)?;
+    if json_u64(&manifest, "schema_version")? != CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION {
+        return Err(CapitalError::InvalidCanonical(
+            "unsupported capital evidence manifest schema",
+        ));
+    }
 
     let manifest_artifacts = manifest.get("artifacts").and_then(Json::as_array).ok_or(
         CapitalError::InvalidCanonical("evidence manifest artifacts missing"),
@@ -187,6 +195,7 @@ pub fn verify_capital_artifact_bundle(
         CapitalError::InvalidCanonical("manifest non-claims missing"),
     )?;
     let expected_non_claims = [
+        "REAL_SOURCE_CERTIFICATION_NOT_TESTED",
         "PORTFOLIO_CONCURRENT_CAPACITY_NOT_TESTED",
         "PROFITABILITY_NOT_TESTED",
         "SHADOW_NOT_TESTED",
@@ -422,6 +431,15 @@ pub fn verify_capital_artifact_bundle(
     if json_u64(&summary, "unexplained_capital_failure_count")? != 0 {
         return Err(CapitalError::UnknownFailureMode);
     }
+    if summary
+        .get("real_source_certification")
+        .and_then(Json::as_bool)
+        != Some(false)
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "capital artifacts claim real source certification",
+        ));
+    }
     if summary.get("profitability_claimed").and_then(Json::as_bool) != Some(false) {
         return Err(CapitalError::InvalidCanonical(
             "capital artifacts claim profitability",
@@ -560,7 +578,10 @@ pub fn export_capital_artifacts(
     );
 
     let summary_json = Json::object([
-        ("schema_version", Json::uint(3)),
+        (
+            "schema_version",
+            Json::uint(CAPITAL_SUMMARY_SCHEMA_VERSION),
+        ),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -609,6 +630,7 @@ pub fn export_capital_artifacts(
             "feasibility_scope",
             Json::string("PER_REQUIREMENT_INDEPENDENT"),
         ),
+        ("real_source_certification", Json::Bool(false)),
         ("portfolio_concurrent_capacity_claimed", Json::Bool(false)),
         (
             "sources_by_class",
@@ -634,7 +656,10 @@ pub fn export_capital_artifacts(
         &upstream_authority,
     ];
     let manifest_json = Json::object([
-        ("schema_version", Json::uint(1)),
+        (
+            "schema_version",
+            Json::uint(CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION),
+        ),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -665,6 +690,7 @@ pub fn export_capital_artifacts(
         (
             "non_claims",
             Json::array([
+                Json::string("REAL_SOURCE_CERTIFICATION_NOT_TESTED"),
                 Json::string("PORTFOLIO_CONCURRENT_CAPACITY_NOT_TESTED"),
                 Json::string("PROFITABILITY_NOT_TESTED"),
                 Json::string("SHADOW_NOT_TESTED"),
@@ -1360,7 +1386,7 @@ fn record_provenance(record: &Json) -> Result<ArtifactProvenance, CapitalError> 
 }
 
 fn summary_provenance(summary: &Json) -> Result<ArtifactProvenance, CapitalError> {
-    if json_u64(summary, "schema_version")? != 3 {
+    if json_u64(summary, "schema_version")? != CAPITAL_SUMMARY_SCHEMA_VERSION {
         return Err(CapitalError::InvalidCanonical(
             "unsupported capital summary schema",
         ));
