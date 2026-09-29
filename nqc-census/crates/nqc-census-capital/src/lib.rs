@@ -23,7 +23,7 @@ pub const CAPITAL_SCHEMA_VERSION: u16 = 3;
 
 const SOURCE_MAGIC: &[u8] = b"NQC-CAP-SOURCE";
 const REQUIREMENT_MAGIC: &[u8] = b"NQC-CAP-REQUIREMENT";
-const SOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-KEY-V2";
+const SOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-KEY-V1";
 const SOURCE_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-ID-V2";
 const REQUIREMENT_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-REQUIREMENT-ID-V1";
 const LEDGER_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-LEDGER-COMMITMENT-V2";
@@ -156,7 +156,7 @@ impl Display for CapitalError {
                 f.write_str("synthetic capital ledger cannot be certified as real evidence")
             }
             Self::EmptyCapitalCensus => {
-                f.write_str("capital census certification requires sources and requirements")
+                f.write_str("capital census certification requires at least one observed source")
             }
             Self::SettlementRequirementMismatch => {
                 f.write_str("candidate settlement requirements differ from source obligations")
@@ -1414,7 +1414,6 @@ impl CapitalSource {
         writer.u16(self.provider_namespace);
         writer.bytes(self.provider_locator_hash.as_bytes());
         writer.u8(self.provider_kind.tag());
-        writer.u8(self.ownership.tag());
         match self.source_contract {
             None => writer.u8(0),
             Some(address) => {
@@ -2167,6 +2166,22 @@ fn solve_funding(
     requirement: &CapitalRequirement,
     sources: &[CapitalSource],
 ) -> Result<FundingSolution, CapitalError> {
+    // Raw feasibility callers must not be able to manufacture capacity by
+    // passing the same observed source more than once, or by passing multiple
+    // observed states for one stable source key. The ledger already enforces
+    // this invariant at registration; enforce it here too so the public
+    // checked evaluator is independently fail-closed.
+    let mut source_ids = BTreeSet::new();
+    let mut source_keys = BTreeSet::new();
+    for source in sources {
+        if !source_ids.insert(source.id()) {
+            return Err(CapitalError::DuplicateSource);
+        }
+        if !source_keys.insert(source.key_id()) {
+            return Err(CapitalError::ConflictingSourceState);
+        }
+    }
+
     let mut ordered = sources.iter().collect::<Vec<_>>();
     ordered.sort_by_key(|source| source.id());
 
@@ -2898,7 +2913,7 @@ impl CapitalCensusLedger {
         }
         self.validate_settlements()?;
         let summary = self.summary()?;
-        if summary.source_count == 0 || summary.requirement_count == 0 {
+        if summary.source_count == 0 {
             return Err(CapitalError::EmptyCapitalCensus);
         }
         let commitment = self.commitment()?;

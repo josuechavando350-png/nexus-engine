@@ -125,6 +125,7 @@ Target deterministic artifacts:
 - `capital-feasibility.jsonl`
 - `capital-rejection-ledger.jsonl`
 - `capital-census-summary.json`
+- `capital-upstream-authority.json`
 - `capital-evidence-manifest.json`
 
 Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence.
@@ -150,6 +151,8 @@ At minimum:
 
 ## Certification gate
 
+Foundation artifacts MUST encode `real_source_certification=false` until every real source class used by feasibility has a semantic admission path that proves the source terms from content-addressed evidence. An admitted artifact hash alone is not proof that arbitrary source semantics (especially external gas funding, credit, collateral facilities, builder deposits, or persistent debt risk terms) were present in that artifact.
+
 RMC-011 may be certified only when:
 
 - all upstream inputs used by the final run are exact-head admitted artifacts
@@ -159,6 +162,8 @@ RMC-011 may be certified only when:
 - full rerun is deterministic
 - offline verifier passes
 - no downstream profitability, Shadow, Canary, or P&L claim is inferred from capital feasibility alone
+
+RMC-009 explicitly does not certify liquidatability. Therefore a fully admitted upstream run may legitimately contain zero actionable capital requirements. In that case RMC-011 MAY certify the observed capital-source census and the conserved D09 demand-import coverage with `requirement_count = 0`, but it MUST report `zero_own_capital_proven = false` and MUST NOT claim opportunity-level capital feasibility. A non-empty source census remains mandatory.
 
 Capital feasibility proves funding availability and constraints for each requirement independently. It does NOT prove that multiple individually feasible requirements can be funded concurrently from shared capital sources.
 

@@ -842,6 +842,38 @@ fn source_key_is_stable_across_state_refreshes() -> TestResult {
 }
 
 #[test]
+fn source_key_is_stable_across_ownership_changes() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let make = |ownership| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::TransientCredit,
+            anchor: anchor(100),
+            provider_namespace: 77,
+            provider_locator_hash: hash(78),
+            provider_kind: CapitalProviderKind::BuilderOrSolver,
+            ownership,
+            source_contract: Some(address(79)),
+            asset: token,
+            maximum_available: Amount256::from_u128(1_000),
+            fee_model: FeeModel::basis_points(5)?,
+            repayment_asset: token,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+            evidence: evidence(),
+        })
+    };
+    let external = make(CapitalOwnership::External)?;
+    let operator_owned = make(CapitalOwnership::OperatorOwned)?;
+    assert_eq!(external.key_id(), operator_owned.key_id());
+    assert_ne!(external.id(), operator_owned.id());
+    Ok(())
+}
+
+#[test]
 fn repayment_obligation_does_not_double_count_initial_capital() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
@@ -1068,12 +1100,36 @@ fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult 
 }
 
 #[test]
-fn evidentiary_ledger_requires_nonempty_census() -> TestResult {
+fn evidentiary_ledger_requires_nonempty_source_census() -> TestResult {
     let ledger = CapitalCensusLedger::evidentiary();
     assert!(matches!(
         ledger.certify(&certification_context()?),
         Err(nqc_census_capital::CapitalError::EmptyCapitalCensus)
     ));
+    Ok(())
+}
+
+#[test]
+fn evidentiary_source_census_can_certify_without_actionable_requirements() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let external = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(external)?;
+    ledger.evaluate_all()?;
+    let certificate = ledger.certify(&certification_context()?)?;
+
+    assert_eq!(certificate.summary.source_count, 1);
+    assert_eq!(certificate.summary.requirement_count, 0);
+    assert_eq!(certificate.summary.feasible_count, 0);
+    assert_eq!(certificate.summary.rejected_count, 0);
+    assert!(!certificate.summary.proves_zero_own_capital());
     Ok(())
 }
 
@@ -1678,6 +1734,57 @@ fn collateral_requirement_cannot_be_funded_circularly_by_collateralized_source()
             failed_leg: Some(RequirementKind::Collateral),
             ..
         }
+    ));
+    Ok(())
+}
+
+#[test]
+fn checked_feasibility_rejects_duplicate_source_capacity() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let second_state = source(
+        CapitalClass::FlashSwap,
+        token,
+        2_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    assert_eq!(first.key_id(), second_state.key_id());
+    assert_ne!(first.id(), second_state.id());
+
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(1_500),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            repayment_leg(token)?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+
+    let duplicate_id = nqc_census_capital::evaluate_capital_feasibility_checked(
+        &requirement,
+        &[first.clone(), first.clone()],
+    );
+    assert!(matches!(duplicate_id, Err(CapitalError::DuplicateSource)));
+
+    let duplicate_key = nqc_census_capital::evaluate_capital_feasibility_checked(
+        &requirement,
+        &[first, second_state],
+    );
+    assert!(matches!(
+        duplicate_key,
+        Err(CapitalError::ConflictingSourceState)
     ));
     Ok(())
 }

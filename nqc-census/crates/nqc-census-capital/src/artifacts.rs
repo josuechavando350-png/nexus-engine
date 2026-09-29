@@ -18,6 +18,9 @@ pub const CAPITAL_SUMMARY_FILE: &str = "capital-census-summary.json";
 pub const CAPITAL_UPSTREAM_AUTHORITY_FILE: &str = "capital-upstream-authority.json";
 pub const CAPITAL_EVIDENCE_MANIFEST_FILE: &str = "capital-evidence-manifest.json";
 
+const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 4;
+const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 2;
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtifactProvenance {
     pub generated_at: String,
@@ -145,6 +148,11 @@ pub fn verify_capital_artifact_bundle(
     let manifest = Json::parse(&manifest_file.bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid evidence manifest JSON"))?;
     require_canonical_json(manifest_file.bytes.as_slice(), &manifest)?;
+    if json_u64(&manifest, "schema_version")? != CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION {
+        return Err(CapitalError::InvalidCanonical(
+            "unsupported capital evidence manifest schema",
+        ));
+    }
 
     let manifest_artifacts = manifest.get("artifacts").and_then(Json::as_array).ok_or(
         CapitalError::InvalidCanonical("evidence manifest artifacts missing"),
@@ -187,6 +195,7 @@ pub fn verify_capital_artifact_bundle(
         CapitalError::InvalidCanonical("manifest non-claims missing"),
     )?;
     let expected_non_claims = [
+        "REAL_SOURCE_CERTIFICATION_NOT_TESTED",
         "PORTFOLIO_CONCURRENT_CAPACITY_NOT_TESTED",
         "PROFITABILITY_NOT_TESTED",
         "SHADOW_NOT_TESTED",
@@ -211,7 +220,14 @@ pub fn verify_capital_artifact_bundle(
             .ok_or(CapitalError::InvalidCanonical(
                 "missing upstream authority artifact",
             ))?;
-    let authority = parse_upstream_authority(authority_file.bytes.as_slice())?;
+    let (authority, authority_provenance) =
+        parse_upstream_authority(authority_file.bytes.as_slice())?;
+    let manifest_provenance = provenance_fields(&manifest, "manifest provenance missing")?;
+    if authority_provenance != manifest_provenance {
+        return Err(CapitalError::InvalidCanonical(
+            "upstream authority/manifest provenance mismatch",
+        ));
+    }
     let authority_commitment = hex(authority.commitment().as_bytes());
 
     let sources = parse_jsonl(
@@ -321,6 +337,7 @@ pub fn verify_capital_artifact_bundle(
     let mut feasibility_ids = BTreeSet::new();
     let mut rejected = BTreeSet::new();
     for record in &feasibility {
+        record_provenance(record)?;
         let requirement_id = record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("feasibility requirement id missing"))?;
@@ -369,6 +386,7 @@ pub fn verify_capital_artifact_bundle(
 
     let mut rejection_rows = BTreeSet::new();
     for record in &rejections {
+        record_provenance(record)?;
         let requirement_id = record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("rejection requirement id missing"))?;
@@ -412,6 +430,15 @@ pub fn verify_capital_artifact_bundle(
     }
     if json_u64(&summary, "unexplained_capital_failure_count")? != 0 {
         return Err(CapitalError::UnknownFailureMode);
+    }
+    if summary
+        .get("real_source_certification")
+        .and_then(Json::as_bool)
+        != Some(false)
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "capital artifacts claim real source certification",
+        ));
     }
     if summary.get("profitability_claimed").and_then(Json::as_bool) != Some(false) {
         return Err(CapitalError::InvalidCanonical(
@@ -458,7 +485,7 @@ pub fn verify_capital_artifact_bundle(
     }
 
     reconstructed.evaluate_all()?;
-    let provenance = record_provenance(&summary)?;
+    let provenance = summary_provenance(&summary)?;
     let regenerated = export_capital_artifacts(&reconstructed, &authority, &provenance)?;
     if regenerated.files.len() != bundle.files.len() {
         return Err(CapitalError::InvalidCanonical(
@@ -547,11 +574,11 @@ pub fn export_capital_artifacts(
         CapitalArtifactFile::new(CAPITAL_REJECTION_LEDGER_FILE, jsonl(&rejection_records)?);
     let upstream_authority = CapitalArtifactFile::new(
         CAPITAL_UPSTREAM_AUTHORITY_FILE,
-        canonical(&upstream_authority_json(authority))?,
+        canonical(&upstream_authority_json(authority, provenance))?,
     );
 
     let summary_json = Json::object([
-        ("schema_version", Json::uint(3)),
+        ("schema_version", Json::uint(CAPITAL_SUMMARY_SCHEMA_VERSION)),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -600,6 +627,7 @@ pub fn export_capital_artifacts(
             "feasibility_scope",
             Json::string("PER_REQUIREMENT_INDEPENDENT"),
         ),
+        ("real_source_certification", Json::Bool(false)),
         ("portfolio_concurrent_capacity_claimed", Json::Bool(false)),
         (
             "sources_by_class",
@@ -625,7 +653,10 @@ pub fn export_capital_artifacts(
         &upstream_authority,
     ];
     let manifest_json = Json::object([
-        ("schema_version", Json::uint(1)),
+        (
+            "schema_version",
+            Json::uint(CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION),
+        ),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -656,6 +687,7 @@ pub fn export_capital_artifacts(
         (
             "non_claims",
             Json::array([
+                Json::string("REAL_SOURCE_CERTIFICATION_NOT_TESTED"),
                 Json::string("PORTFOLIO_CONCURRENT_CAPACITY_NOT_TESTED"),
                 Json::string("PROFITABILITY_NOT_TESTED"),
                 Json::string("SHADOW_NOT_TESTED"),
@@ -680,9 +712,18 @@ pub fn export_capital_artifacts(
     })
 }
 
-fn upstream_authority_json(authority: &CapitalCertificationContext) -> Json {
+fn upstream_authority_json(
+    authority: &CapitalCertificationContext,
+    provenance: &ArtifactProvenance,
+) -> Json {
     Json::object([
-        ("schema_version", Json::uint(3)),
+        ("schema_version", Json::uint(4)),
+        (
+            "generated_at",
+            Json::string(provenance.generated_at.clone()),
+        ),
+        ("code_commit", Json::string(provenance.code_commit.clone())),
+        ("code_tree", Json::string(provenance.code_tree.clone())),
         (
             "upstream_authority_commitment",
             Json::string(hex(authority.commitment().as_bytes())),
@@ -724,15 +765,18 @@ fn upstream_authority_json(authority: &CapitalCertificationContext) -> Json {
     ])
 }
 
-fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext, CapitalError> {
+fn parse_upstream_authority(
+    bytes: &[u8],
+) -> Result<(CapitalCertificationContext, ArtifactProvenance), CapitalError> {
     let parsed = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid upstream authority JSON"))?;
     require_canonical_json(bytes, &parsed)?;
-    if json_u64(&parsed, "schema_version")? != 3 {
+    if json_u64(&parsed, "schema_version")? != 4 {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "unsupported upstream authority schema",
         ));
     }
+    let provenance = provenance_fields(&parsed, "upstream authority provenance missing")?;
     let stages = parsed.get("stages").and_then(Json::as_array).ok_or(
         CapitalError::InvalidUpstreamAuthority("upstream authority stages missing"),
     )?;
@@ -806,12 +850,12 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
             "upstream authority commitment mismatch",
         ));
     }
-    if canonical(&upstream_authority_json(&authority))? != bytes {
+    if canonical(&upstream_authority_json(&authority, &provenance))? != bytes {
         return Err(CapitalError::InvalidCanonical(
             "upstream authority artifact is not normalized",
         ));
     }
-    Ok(authority)
+    Ok((authority, provenance))
 }
 
 fn metadata(provenance: &ArtifactProvenance) -> Vec<(&'static str, Json)> {
@@ -1333,23 +1377,39 @@ fn _type_fence(
 ) {
 }
 
+fn provenance_fields(
+    record: &Json,
+    missing_field_error: &'static str,
+) -> Result<ArtifactProvenance, CapitalError> {
+    ArtifactProvenance::new(
+        record
+            .str_field("generated_at")
+            .map_err(|_| CapitalError::InvalidCanonical(missing_field_error))?,
+        record
+            .str_field("code_commit")
+            .map_err(|_| CapitalError::InvalidCanonical(missing_field_error))?,
+        record
+            .str_field("code_tree")
+            .map_err(|_| CapitalError::InvalidCanonical(missing_field_error))?,
+    )
+}
+
 fn record_provenance(record: &Json) -> Result<ArtifactProvenance, CapitalError> {
     if json_u64(record, "schema_version")? != u64::from(CAPITAL_SCHEMA_VERSION) {
         return Err(CapitalError::InvalidCanonical(
             "unsupported capital record schema",
         ));
     }
-    ArtifactProvenance::new(
-        record
-            .str_field("generated_at")
-            .map_err(|_| CapitalError::InvalidCanonical("record generated_at missing"))?,
-        record
-            .str_field("code_commit")
-            .map_err(|_| CapitalError::InvalidCanonical("record code_commit missing"))?,
-        record
-            .str_field("code_tree")
-            .map_err(|_| CapitalError::InvalidCanonical("record code_tree missing"))?,
-    )
+    provenance_fields(record, "record provenance missing")
+}
+
+fn summary_provenance(summary: &Json) -> Result<ArtifactProvenance, CapitalError> {
+    if json_u64(summary, "schema_version")? != CAPITAL_SUMMARY_SCHEMA_VERSION {
+        return Err(CapitalError::InvalidCanonical(
+            "unsupported capital summary schema",
+        ));
+    }
+    provenance_fields(summary, "summary provenance missing")
 }
 
 fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
