@@ -4,6 +4,7 @@
 //! observations, D04 owns durable evidence/checkpoints, D05 owns deployment
 //! admission, and nqc-census-chain owns acquisition/replay.
 
+pub mod admission;
 pub mod history;
 mod interface;
 pub mod live;

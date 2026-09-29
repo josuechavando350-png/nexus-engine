@@ -106,6 +106,22 @@ jobs:
           target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/history-store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/history-store-verify.log"
 
+      - name: Materialize D05 deployment admission
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-admission
+          target/release/nqc-rmc006-aave-admission \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --history "$D06_EVIDENCE/aave-history.json" \
+            --store "$D06_EVIDENCE/store" \
+            --out "$D06_EVIDENCE/aave-admission.json" | tee "$D06_EVIDENCE/admission.log"
+          grep -F "RMC006_D05_ADMISSION_PASS" "$D06_EVIDENCE/admission.log"
+          grep -F '"status":"D05_ADMISSION_MATERIALIZED"' "$D06_EVIDENCE/aave-admission.json"
+          target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/admission-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/admission-store-verify.log"
+
       - name: Preserve D06 current-surface evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

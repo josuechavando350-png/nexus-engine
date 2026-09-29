@@ -173,7 +173,7 @@ fn agreed_boundary(
     chain: &nqc_census_core::ChainDomain,
     account: Address,
     label: &str,
-) -> Result<(StateAnchor, Json), ChainError> {
+) -> Result<(StateAnchor, Json, Vec<String>), ChainError> {
     let mut results = Vec::new();
     for provider in providers.iter() {
         results.push(boundary_result(
@@ -191,7 +191,7 @@ fn agreed_boundary(
         .get("boundary")
         .ok_or_else(|| ChainError::Evidence("earliest-code boundary missing".into()))?;
     let anchor = anchor_from_result(chain, boundary, "anchor")?;
-    Ok((anchor, agreement.result))
+    Ok((anchor, agreement.result, agreement.manifests))
 }
 
 fn stable_deployment_instance(pool: Address, creation: &StateAnchor) -> Result<Hash32, ChainError> {
@@ -277,9 +277,9 @@ pub fn run_history(
     }
 
     let pool = Address::parse_hex(POOL)?;
-    let (pool_creation, pool_boundary) =
+    let (pool_creation, pool_boundary, pool_boundary_manifests) =
         agreed_boundary(&acquisition, &providers, &chain, pool, "pool")?;
-    let (configurator_creation, configurator_boundary) = agreed_boundary(
+    let (configurator_creation, configurator_boundary, configurator_boundary_manifests) = agreed_boundary(
         &acquisition,
         &providers,
         &chain,
@@ -452,7 +452,23 @@ pub fn run_history(
         ),
         ("bootstrap", bootstrap),
         ("pool_boundary", pool_boundary),
+        (
+            "pool_boundary_manifests",
+            Json::array(
+                pool_boundary_manifests
+                    .iter()
+                    .map(|manifest| Json::string(manifest.clone())),
+            ),
+        ),
         ("pool_configurator_boundary", configurator_boundary),
+        (
+            "pool_configurator_boundary_manifests",
+            Json::array(
+                configurator_boundary_manifests
+                    .iter()
+                    .map(|manifest| Json::string(manifest.clone())),
+            ),
+        ),
         (
             "deployment_instance",
             Json::string(deployment.deployment_instance().to_hex()),
