@@ -232,6 +232,7 @@ pub fn verify_capital_artifact_bundle(
     )?;
 
     let mut source_ids = BTreeSet::new();
+    let mut source_key_ids = BTreeSet::new();
     for record in &sources {
         let encoded = decode_plain_hex(
             record
@@ -261,6 +262,11 @@ pub fn verify_capital_artifact_bundle(
         if !source_ids.insert(decoded.id().to_hex()) {
             return Err(CapitalError::InvalidCanonical(
                 "duplicate source id in artifacts",
+            ));
+        }
+        if !source_key_ids.insert(decoded.key_id().to_hex()) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate source key in artifacts",
             ));
         }
     }

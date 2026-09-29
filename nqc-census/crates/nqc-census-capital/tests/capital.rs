@@ -1522,3 +1522,92 @@ fn collateral_requirement_cannot_be_funded_circularly_by_collateralized_source()
     ));
     Ok(())
 }
+
+
+#[test]
+fn ledger_rejects_multiple_states_for_same_stable_source_key() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+    let second = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(2_000),
+        fee_model: FeeModel::basis_points(30)?,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::CapacityChanged,
+            CapitalFailureMode::FeeChanged,
+        ],
+        evidence: evidence(),
+    })?;
+
+    assert_eq!(first.key_id(), second.key_id());
+    assert_ne!(first.id(), second.id());
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(first)?;
+    assert!(matches!(
+        ledger.register_source(second),
+        Err(nqc_census_capital::CapitalError::ConflictingSourceState)
+    ));
+    Ok(())
+}
+
+#[test]
+fn stable_source_key_does_not_alias_different_asset_or_class() -> TestResult {
+    let token_a = CapitalAsset::Token(address(20));
+    let token_b = CapitalAsset::Token(address(21));
+    let base = source(
+        CapitalClass::FlashSwap,
+        token_a,
+        1_000,
+        token_a,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let different_asset = source(
+        CapitalClass::FlashSwap,
+        token_b,
+        1_000,
+        token_b,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let different_class = source(
+        CapitalClass::AtomicFlashLiquidity,
+        token_a,
+        1_000,
+        token_a,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    assert_ne!(base.key_id(), different_asset.key_id());
+    assert_ne!(base.key_id(), different_class.key_id());
+    Ok(())
+}

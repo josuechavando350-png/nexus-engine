@@ -58,6 +58,7 @@ pub enum CapitalError {
     TemporaryLockUnfunded,
     NoCompatibleSource,
     DuplicateSource,
+    ConflictingSourceState,
     DuplicateRequirement,
     MissingSourceForAllocation,
     OperatorOwnedAllocation,
@@ -131,6 +132,9 @@ impl Display for CapitalError {
             Self::TemporaryLockUnfunded => f.write_str("capital source temporary lock is unfunded"),
             Self::NoCompatibleSource => f.write_str("no compatible capital source"),
             Self::DuplicateSource => f.write_str("duplicate capital source id"),
+            Self::ConflictingSourceState => {
+                f.write_str("same capital source key has multiple observed states in one census")
+            }
             Self::DuplicateRequirement => f.write_str("duplicate capital requirement id"),
             Self::MissingSourceForAllocation => {
                 f.write_str("feasibility allocation references an unknown capital source")
@@ -2446,6 +2450,7 @@ pub struct CapitalCensusCertificate {
 pub struct CapitalCensusLedger {
     mode: CapitalLedgerMode,
     sources: BTreeMap<CapitalSourceId, CapitalSource>,
+    source_keys: BTreeMap<CapitalSourceKeyId, CapitalSourceId>,
     requirements: BTreeMap<CapitalRequirementId, CapitalRequirement>,
     results: BTreeMap<CapitalRequirementId, CapitalFeasibility>,
 }
@@ -2461,6 +2466,7 @@ impl CapitalCensusLedger {
         Self {
             mode: CapitalLedgerMode::SyntheticFixture,
             sources: BTreeMap::new(),
+            source_keys: BTreeMap::new(),
             requirements: BTreeMap::new(),
             results: BTreeMap::new(),
         }
@@ -2470,6 +2476,7 @@ impl CapitalCensusLedger {
         Self {
             mode: CapitalLedgerMode::Evidentiary,
             sources: BTreeMap::new(),
+            source_keys: BTreeMap::new(),
             requirements: BTreeMap::new(),
             results: BTreeMap::new(),
         }
@@ -2483,6 +2490,10 @@ impl CapitalCensusLedger {
         if self.sources.contains_key(&source.id()) {
             return Err(CapitalError::DuplicateSource);
         }
+        if self.source_keys.contains_key(&source.key_id()) {
+            return Err(CapitalError::ConflictingSourceState);
+        }
+        self.source_keys.insert(source.key_id(), source.id());
         self.sources.insert(source.id(), source);
         Ok(())
     }
