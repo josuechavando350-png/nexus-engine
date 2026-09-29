@@ -3,7 +3,8 @@ use crate::{
     CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement, CapitalSource,
     CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock, UpstreamCensusStage,
-    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    UpstreamConsumptionKind, UpstreamConsumptionReceipt, UpstreamStageAuthority,
+    UpstreamStageAuthoritySpec,
     CAPITAL_SCHEMA_VERSION,
 };
 use nqc_census_chain::json::Json;
@@ -21,7 +22,7 @@ pub const CAPITAL_EVIDENCE_MANIFEST_FILE: &str = "capital-evidence-manifest.json
 
 const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 5;
 const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 3;
-const UPSTREAM_AUTHORITY_SCHEMA_VERSION: u64 = 7;
+const UPSTREAM_AUTHORITY_SCHEMA_VERSION: u64 = 8;
 const GENERATED_AT_BASIS: &str = "OBSERVATION_ANCHOR_BLOCK_TIMESTAMP";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -842,6 +843,7 @@ fn upstream_authority_json(
             Json::array(authority.consumption_receipts().map(|receipt| {
                 Json::object([
                     ("stage", Json::string(receipt.stage().code())),
+                    ("output_kind", Json::string(receipt.output_kind().code())),
                     (
                         "authority_artifact_sha256",
                         Json::string(receipt.authority_artifact_sha256().to_hex()),
@@ -970,6 +972,13 @@ pub(crate) fn parse_upstream_authority(
         let stage = UpstreamCensusStage::parse_code(row.str_field("stage").map_err(|_| {
             CapitalError::InvalidUpstreamAuthority("consumption receipt stage missing")
         })?)?;
+        let output_kind = UpstreamConsumptionKind::parse_code(
+            row.str_field("output_kind").map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt output kind missing",
+                )
+            })?,
+        )?;
         let authority_artifact_sha256 =
             Hash32::parse_hex(row.str_field("authority_artifact_sha256").map_err(|_| {
                 CapitalError::InvalidUpstreamAuthority(
@@ -1006,6 +1015,7 @@ pub(crate) fn parse_upstream_authority(
             })?;
         consumption_receipts.push(UpstreamConsumptionReceipt::from_parts(
             stage,
+            output_kind,
             authority_artifact_sha256,
             coverage_commitment,
             output_count,
