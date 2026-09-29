@@ -913,6 +913,24 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
                 .map(|amount| Json::string(amount.to_hex()))
                 .unwrap_or(Json::Null),
         ),
+        (
+            "executable_capacity",
+            source
+                .executable_capacity()
+                .map(|amount| Json::string(amount.to_hex()))
+                .unwrap_or(Json::Null),
+        ),
+        ("execution_eligible", Json::Bool(source.execution_eligible())),
+        (
+            "execution_blockers",
+            Json::array(
+                source
+                    .execution_blockers()
+                    .iter()
+                    .cloned()
+                    .map(Json::string),
+            ),
+        ),
         ("fee_model", fee_model_json(source.fee_model())),
         (
             "repayment_asset",
