@@ -955,6 +955,20 @@ impl CapitalFailureMode {
     }
 }
 
+fn validate_execution_blocker_code(code: &str) -> Result<(), CapitalError> {
+    if code.is_empty()
+        || code.len() > 128
+        || !code
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_')
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "invalid execution blocker code",
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CapitalEvidenceRef {
     Observation([u8; 32]),
@@ -1052,6 +1066,7 @@ pub struct CapitalSource {
     caps: CapitalCaps,
     temporary_lock: TemporaryLock,
     failure_modes: Vec<CapitalFailureMode>,
+    execution_blockers: Vec<String>,
     evidence: Vec<CapitalEvidenceRef>,
 }
 
@@ -1147,6 +1162,7 @@ impl CapitalSource {
             caps: spec.caps,
             temporary_lock: spec.temporary_lock,
             failure_modes: spec.failure_modes,
+            execution_blockers: Vec::new(),
             evidence: spec.evidence,
         };
         source.key_id =
@@ -1235,6 +1251,36 @@ impl CapitalSource {
         &self.failure_modes
     }
 
+    pub fn execution_blockers(&self) -> &[String] {
+        &self.execution_blockers
+    }
+
+    pub fn execution_eligible(&self) -> bool {
+        self.execution_blockers.is_empty()
+    }
+
+    pub fn with_execution_blockers(
+        mut self,
+        mut blockers: Vec<String>,
+    ) -> Result<Self, CapitalError> {
+        for blocker in &blockers {
+            validate_execution_blocker_code(blocker)?;
+        }
+        blockers.sort();
+        blockers.dedup();
+        self.execution_blockers = blockers;
+        self.id = CapitalSourceId(domain_hash(SOURCE_DOMAIN, &self.content_bytes()));
+        Ok(self)
+    }
+
+    pub fn executable_capacity(&self) -> Result<Amount256, CapitalError> {
+        if self.execution_eligible() {
+            self.effective_capacity()
+        } else {
+            Ok(Amount256::ZERO)
+        }
+    }
+
     pub fn evidence(&self) -> &[CapitalEvidenceRef] {
         &self.evidence
     }
@@ -1303,6 +1349,32 @@ impl CapitalSource {
         for _ in 0..evidence_count {
             evidence.push(CapitalEvidenceRef::decode(&mut reader)?);
         }
+        let execution_blockers = if reader.remaining() == 0 {
+            Vec::new()
+        } else {
+            if reader.u8()? != 0xe1 {
+                return Err(CapitalError::InvalidCanonical(
+                    "unknown capital source extension",
+                ));
+            }
+            let blocker_count = usize::from(reader.u16()?);
+            let mut blockers = Vec::with_capacity(blocker_count);
+            for _ in 0..blocker_count {
+                let length = usize::from(reader.u16()?);
+                let bytes = reader.take(length)?;
+                let blocker = std::str::from_utf8(bytes)
+                    .map_err(|_| CapitalError::InvalidCanonical("execution blocker is not UTF-8"))?
+                    .to_owned();
+                validate_execution_blocker_code(&blocker)?;
+                blockers.push(blocker);
+            }
+            if blockers.windows(2).any(|pair| pair[0] >= pair[1]) {
+                return Err(CapitalError::InvalidCanonical(
+                    "execution blockers are not strictly sorted",
+                ));
+            }
+            blockers
+        };
         reader.finish()?;
         Self::new(CapitalSourceSpec {
             class,
@@ -1326,7 +1398,8 @@ impl CapitalSource {
             temporary_lock,
             failure_modes,
             evidence,
-        })
+        })?
+        .with_execution_blockers(execution_blockers)
     }
 
     fn key_content_bytes(&self) -> Vec<u8> {
@@ -1382,6 +1455,14 @@ impl CapitalSource {
         writer.u16(u16::try_from(self.evidence.len()).unwrap_or(u16::MAX));
         for evidence in &self.evidence {
             evidence.encode(&mut writer);
+        }
+        if !self.execution_blockers.is_empty() {
+            writer.u8(0xe1);
+            writer.u16(u16::try_from(self.execution_blockers.len()).unwrap_or(u16::MAX));
+            for blocker in &self.execution_blockers {
+                writer.u16(u16::try_from(blocker.len()).unwrap_or(u16::MAX));
+                writer.bytes(blocker.as_bytes());
+            }
         }
         writer.0
     }
@@ -2114,7 +2195,7 @@ fn solve_funding(
         if source.ownership().is_operator_owned() || source.anchor() != requirement.anchor() {
             continue;
         }
-        let capacity = source.effective_capacity()?;
+        let capacity = source.executable_capacity()?;
         if capacity.is_zero() {
             continue;
         }
@@ -2209,7 +2290,7 @@ fn classify_unmet_leg(
         same_anchor_atomic = true;
         if source.ownership().is_operator_owned() {
             operator_capacity = operator_capacity
-                .checked_add(source.effective_capacity()?)
+                .checked_add(source.executable_capacity()?)
                 .unwrap_or(Amount256::MAX);
         }
     }
@@ -3264,6 +3345,10 @@ impl<'a> Reader<'a> {
 
     fn u64(&mut self) -> Result<u64, CapitalError> {
         Ok(u64::from_be_bytes(self.array::<8>()?))
+    }
+
+    fn remaining(&self) -> usize {
+        self.bytes.len().saturating_sub(self.offset)
     }
 
     fn finish(self) -> Result<(), CapitalError> {
