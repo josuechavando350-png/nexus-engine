@@ -234,6 +234,21 @@ fn provider_current_facts(
             ));
         }
         let reserve_count = uint16(returned(&calls[3])?, "getReservesCount")?;
+        let reserves_list = abi::decode_address_array(returned(&calls[4])?)?
+            .into_iter()
+            .map(|value| {
+                value
+                    .ok_or_else(|| ChainError::Evidence("getReservesList returned zero address".into()))
+                    .and_then(|bytes| Address::new(bytes).map_err(ChainError::from))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if reserves_list.len() != usize::from(reserve_count) {
+            return Err(ChainError::Evidence(format!(
+                "getReservesList count {} differs from getReservesCount {}",
+                reserves_list.len(),
+                reserve_count
+            )));
+        }
 
         let configurator_code = ctx.code(configurator, anchor, chain_semantics)?;
         if configurator_code.payload().is_absent() {
@@ -258,15 +273,27 @@ fn provider_current_facts(
         for call in &address_calls {
             assets.push(required_address(returned(call)?, "getReserveAddressById")?);
         }
-        if assets
+        let by_id_set = assets
             .iter()
             .copied()
-            .collect::<std::collections::BTreeSet<_>>()
-            .len()
-            != assets.len()
-        {
+            .collect::<std::collections::BTreeSet<_>>();
+        if by_id_set.len() != assets.len() {
             return Err(ChainError::Evidence(
                 "duplicate reserve address in current enumeration".into(),
+            ));
+        }
+        let list_set = reserves_list
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>();
+        if list_set.len() != reserves_list.len() {
+            return Err(ChainError::Evidence(
+                "duplicate reserve address in getReservesList".into(),
+            ));
+        }
+        if by_id_set != list_set {
+            return Err(ChainError::Evidence(
+                "getReserveAddressById and getReservesList disagree".into(),
             ));
         }
 
@@ -298,6 +325,10 @@ fn provider_current_facts(
             ),
             ("pool_configurator", Json::string(configurator.to_hex())),
             ("reserve_count", Json::uint(u64::from(reserve_count))),
+            (
+                "reserves_list",
+                Json::array(reserves_list.iter().map(|asset| Json::string(asset.to_hex()))),
+            ),
             ("reserves", Json::Array(reserves)),
             (
                 "runtime_sha256",
