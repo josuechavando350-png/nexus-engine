@@ -258,6 +258,7 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
     assert_eq!(verified.source_count, 1);
     assert_eq!(verified.requirement_count, 0);
     assert_eq!(verified.feasibility_count, 0);
+    assert_eq!(verified.feasible_count, 0);
     assert_eq!(verified.rejection_count, 0);
 
     let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
@@ -319,6 +320,7 @@ fn blocked_source_bundle_roundtrips_offline_and_preserves_execution_rejection() 
     assert_eq!(verified.source_count, 1);
     assert_eq!(verified.requirement_count, 1);
     assert_eq!(verified.feasibility_count, 1);
+    assert_eq!(verified.feasible_count, 0);
     assert_eq!(verified.rejection_count, 1);
 
     let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
@@ -395,6 +397,7 @@ fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
     assert_eq!(verified.source_count, 1);
     assert_eq!(verified.requirement_count, 1);
     assert_eq!(verified.feasibility_count, 1);
+    assert_eq!(verified.feasible_count, 1);
     assert_eq!(verified.rejection_count, 0);
     assert!(!verified.capital_commitment.is_empty());
     assert!(!verified.upstream_authority_commitment.is_empty());
