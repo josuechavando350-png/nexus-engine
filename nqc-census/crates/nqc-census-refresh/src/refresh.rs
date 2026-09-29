@@ -8,6 +8,7 @@ use nqc_census_accounts::plan::AccountPlan;
 use nqc_census_accounts::replay::replay_account_stage;
 use nqc_census_accounts::verify::{verify_accounts, VerifyInputs};
 use nqc_census_chain::{json::Json, provider::ProviderSpec, ChainError};
+use nqc_census_state::v2_verify::ReplayedStage;
 use nqc_census_store::Store;
 use std::collections::BTreeSet;
 
@@ -118,6 +119,34 @@ pub fn reconcile_incremental(
             other => return Err(ChainError::Evidence(format!("unexpected stage {other}"))),
         }
     }
+    reconcile_incremental_replayed(
+        target,
+        base,
+        candidates,
+        canonical,
+        index,
+        tokens,
+        state,
+        records.len(),
+    )
+}
+
+/// Reconciles stages that have already been replayed and independently bound
+/// to the target plan. This is the live-CI path when each stage store is
+/// verified in isolation and only compact replay extracts meet on the
+/// reconciler runner.
+#[allow(clippy::too_many_arguments)]
+pub fn reconcile_incremental_replayed(
+    target: &AccountPlan,
+    base: &BaseCensus,
+    candidates: &Candidates,
+    canonical: Vec<ReplayedStage>,
+    index: Vec<ReplayedStage>,
+    tokens: Vec<ReplayedStage>,
+    state: Vec<ReplayedStage>,
+    records: usize,
+) -> Result<(Reconciled, Json), ChainError> {
+    let delta = delta_plan(target, base)?;
     let canonicality = verify_canonicality(&canonical, base)?;
     let (delta_candidates, facts) = derive_candidates(&index, &delta)?;
     let refreshed = refreshed_candidates(&base.candidates, &delta_candidates);
@@ -160,8 +189,8 @@ pub fn reconcile_incremental(
             candidates: refreshed,
             index: facts,
             outcome,
-            records: records.len(),
+            records,
         },
         mode,
     ))
-}
+
