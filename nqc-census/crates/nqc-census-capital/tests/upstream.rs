@@ -111,7 +111,7 @@ fn import_d08_capital_sources(
     let authority = d08_authority(&manifest)?;
     let mut bound_context = context.clone();
     bound_context.evidence.push(CapitalEvidenceRef::Artifact(
-        authority.artifact_sha256.clone(),
+        authority.artifact_sha256,
     ));
     import_d08_capital_sources_bound(states, tokens, facts, &manifest, &authority, &bound_context)
 }
@@ -559,7 +559,7 @@ fn d08_evidentiary_import_rejects_consumed_artifact_substitution() -> TestResult
     let authority = d08_authority(&manifest)?;
     let mut bound_context = context();
     bound_context.evidence.push(CapitalEvidenceRef::Artifact(
-        authority.artifact_sha256.clone(),
+        authority.artifact_sha256,
     ));
 
     let tampered_states = states.replace("\"10000\"", "\"10001\"");
@@ -589,7 +589,7 @@ fn d08_evidentiary_import_rejects_manifest_not_named_by_authority() -> TestResul
     authority.artifact_sha256 = hash(250);
     let mut bound_context = context();
     bound_context.evidence.push(CapitalEvidenceRef::Artifact(
-        authority.artifact_sha256.clone(),
+        authority.artifact_sha256,
     ));
 
     assert!(import_d08_capital_sources_bound(
