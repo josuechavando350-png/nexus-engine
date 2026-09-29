@@ -444,6 +444,35 @@ fn authority_lock_roundtrips_canonically_and_rejects_unconsumed_stage_substituti
 }
 
 #[test]
+fn authority_lock_rejects_anchor_substitution_and_mixed_stage_anchors() -> TestResult {
+    let fixture = replay_context()?;
+    let mut entries = fixture
+        .context
+        .stages()
+        .iter()
+        .map(UpstreamAuthorityLockEntry::from)
+        .collect::<Vec<_>>();
+    let shifted_anchor = StateAnchor::new(
+        ChainDomain::new(1, hash(1), hash(2))?,
+        25_437_474,
+        hash(3),
+        hash(4),
+        1_700_000_001,
+        hash(5),
+    )?;
+
+    entries[0].observation_anchor = shifted_anchor.clone();
+    assert!(UpstreamAuthorityLock::new(entries.clone()).is_err());
+
+    for entry in &mut entries {
+        entry.observation_anchor = shifted_anchor.clone();
+    }
+    let shifted_lock = UpstreamAuthorityLock::new(entries)?;
+    assert!(shifted_lock.verify(&fixture.context).is_err());
+    Ok(())
+}
+
+#[test]
 fn bundle_replay_rejects_self_consistent_but_externally_unlocked_d06_authority() -> TestResult {
     let fixture = replay_context()?;
     let lock = authority_lock(&fixture.context)?;
