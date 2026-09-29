@@ -17,8 +17,7 @@ use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, error::Error, fs, path::Path};
 
 const ANCHOR_NUMBER: u64 = 25_437_474;
-const ANCHOR_HASH: &str =
-    "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
+const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
 const FACTORY: &str = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f";
 const ENUMERATION_PROVIDER: &str = "blastapi-public";
 const ENUMERATION_NAMESPACE: u16 = 0x0704;
@@ -42,9 +41,7 @@ fn selected_provider<'a>(
         .ok_or_else(|| ChainError::Config(format!("required provider {label} is not declared")))
 }
 
-fn returned(
-    observation: &CensusObservation<ContractCallEnvelope>,
-) -> Result<&[u8], ChainError> {
+fn returned(observation: &CensusObservation<ContractCallEnvelope>) -> Result<&[u8], ChainError> {
     match observation.payload().outcome() {
         CallOutcome::Returned(bytes) => Ok(bytes),
         CallOutcome::Reverted(_) => Err(ChainError::Evidence(
@@ -140,41 +137,33 @@ pub fn run_enumeration(
                 ("anchor", Json::uint(ANCHOR_NUMBER)),
             ]),
         )?;
-        let output = acquisition.point(
-            provider,
-            &chain,
-            None,
-            &spec,
-            &anchor,
-            |ctx| {
-                let requests = (first_index..=last_index)
-                    .map(|index| {
-                        (
-                            factory,
-                            abi::encode_call(interface.all_pairs, &[abi::uint_word(index)]),
-                        )
-                    })
-                    .collect::<Vec<_>>();
-                let observations = ctx.calls(&requests, &anchor, semantics)?;
-                if observations.len() != requests.len() {
-                    return Err(ChainError::Evidence(
-                        "allPairs partition response count differs".into(),
-                    ));
-                }
-                let pairs = observations
-                    .iter()
-                    .map(|observation| {
-                        decode_pair(returned(observation)?)
-                            .map(|pair| Json::string(pair.to_hex()))
-                    })
-                    .collect::<Result<Vec<_>, _>>()?;
-                Ok(Json::object([
-                    ("first_index", Json::uint(first_index)),
-                    ("last_index", Json::uint(last_index)),
-                    ("pairs", Json::Array(pairs)),
-                ]))
-            },
-        )?;
+        let output = acquisition.point(provider, &chain, None, &spec, &anchor, |ctx| {
+            let requests = (first_index..=last_index)
+                .map(|index| {
+                    (
+                        factory,
+                        abi::encode_call(interface.all_pairs, &[abi::uint_word(index)]),
+                    )
+                })
+                .collect::<Vec<_>>();
+            let observations = ctx.calls(&requests, &anchor, semantics)?;
+            if observations.len() != requests.len() {
+                return Err(ChainError::Evidence(
+                    "allPairs partition response count differs".into(),
+                ));
+            }
+            let pairs = observations
+                .iter()
+                .map(|observation| {
+                    decode_pair(returned(observation)?).map(|pair| Json::string(pair.to_hex()))
+                })
+                .collect::<Result<Vec<_>, _>>()?;
+            Ok(Json::object([
+                ("first_index", Json::uint(first_index)),
+                ("last_index", Json::uint(last_index)),
+                ("pairs", Json::Array(pairs)),
+            ]))
+        })?;
         let manifest = output.manifest_id().to_hex();
         let result = output.result_json()?;
         let pairs = result
@@ -184,10 +173,9 @@ pub fn run_enumeration(
         let expected_partition = usize::try_from(last_index - first_index + 1)
             .map_err(|_| ChainError::Evidence("enumeration partition length overflow".into()))?;
         if pairs.len() != expected_partition {
-            return Err(ChainError::Evidence(
-                "enumeration partition has wrong pair count".into(),
-            )
-            .into());
+            return Err(
+                ChainError::Evidence("enumeration partition has wrong pair count".into()).into(),
+            );
         }
         for (offset, pair_value) in pairs.iter().enumerate() {
             let offset = u64::try_from(offset)
@@ -248,10 +236,7 @@ pub fn run_enumeration(
         ("factory", Json::string(factory.to_hex())),
         ("pair_count", Json::uint(observed_count)),
         ("partition_size", Json::uint(PARTITION_SIZE)),
-        (
-            "partition_count",
-            Json::uint(manifests.len() as u64),
-        ),
+        ("partition_count", Json::uint(manifests.len() as u64)),
         ("first_pair", Json::string(expected_first.to_hex())),
         ("last_pair", Json::string(expected_last.to_hex())),
         (
