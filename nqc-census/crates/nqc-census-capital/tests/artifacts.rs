@@ -362,3 +362,35 @@ fn artifact_provenance_requires_exact_git_object_ids() -> TestResult {
     assert!(ArtifactProvenance::new("t", "0123456789abcdef0123456789abcdef01234567", "89abcdef0123456789abcdef0123456789abcdef").is_ok());
     Ok(())
 }
+
+
+#[test]
+fn source_artifact_exposes_full_capital_semantics() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
+    let text = std::str::from_utf8(&sources.bytes)?;
+    for field in [
+        "\"source_contract\"",
+        "\"effective_capacity\"",
+        "\"fee_model\"",
+        "\"repayment_asset\"",
+        "\"repayment_semantics\"",
+        "\"collateral_required\"",
+        "\"utilization_constraints\"",
+        "\"protocol_cap\"",
+        "\"market_cap\"",
+        "\"same_block_atomicity\"",
+        "\"temporary_lock\"",
+        "\"failure_modes\"",
+        "\"evidence_refs\"",
+    ] {
+        assert!(text.contains(field), "missing source artifact field {field}");
+    }
+    Ok(())
+}

@@ -1,7 +1,8 @@
 use crate::{
-    Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext, CapitalClass,
-    CapitalError, CapitalFeasibility, CapitalRequirement, CapitalSource, FeasibilityRejection,
-    GitObjectId, RequirementKind,
+    Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
+    CapitalClass, CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement,
+    CapitalSource, CollateralRequirement, FeeModel, FeasibilityRejection, GitObjectId,
+    LockRelease, RepaymentSemantics, RequirementKind, TemporaryLock,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::StateAnchor;
@@ -612,6 +613,8 @@ fn metadata(provenance: &ArtifactProvenance) -> Vec<(&'static str, Json)> {
 
 fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Json {
     let mut fields = metadata(provenance);
+    let utilization = source.utilization();
+    let caps = source.caps();
     fields.extend([
         ("source_id", Json::string(source.id().to_hex())),
         ("source_key_id", Json::string(source.key_id().to_hex())),
@@ -625,10 +628,70 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
             "provider_locator_hash",
             Json::string(source.provider_locator_hash().to_hex()),
         ),
+        (
+            "source_contract",
+            source
+                .source_contract()
+                .map(|address| Json::string(address.to_hex()))
+                .unwrap_or(Json::Null),
+        ),
         ("asset", Json::string(source.asset().code())),
         (
             "maximum_available",
             Json::string(source.maximum_available().to_hex()),
+        ),
+        (
+            "effective_capacity",
+            source
+                .effective_capacity()
+                .map(|amount| Json::string(amount.to_hex()))
+                .unwrap_or(Json::Null),
+        ),
+        ("fee_model", fee_model_json(source.fee_model())),
+        (
+            "repayment_asset",
+            Json::string(source.repayment_asset().code()),
+        ),
+        ("repayment_semantics", repayment_json(source.repayment())),
+        ("collateral_required", collateral_json(source.collateral())),
+        (
+            "utilization_constraints",
+            Json::object([
+                (
+                    "max_utilization_bps",
+                    Json::uint(u64::from(utilization.max_utilization_bps)),
+                ),
+                (
+                    "min_remaining",
+                    Json::string(utilization.min_remaining.to_hex()),
+                ),
+            ]),
+        ),
+        (
+            "protocol_cap",
+            optional_amount_json(caps.protocol_cap),
+        ),
+        ("market_cap", optional_amount_json(caps.market_cap)),
+        (
+            "same_block_atomicity",
+            Json::Bool(matches!(
+                source.repayment(),
+                RepaymentSemantics::AtomicSameTransaction | RepaymentSemantics::SameBlock
+            )),
+        ),
+        ("temporary_lock", temporary_lock_json(source.temporary_lock())),
+        (
+            "failure_modes",
+            Json::array(
+                source
+                    .failure_modes()
+                    .iter()
+                    .map(|mode| Json::string(mode.code())),
+            ),
+        ),
+        (
+            "evidence_refs",
+            Json::array(source.evidence().iter().copied().map(evidence_ref_json)),
         ),
         ("anchor", anchor_json(source.anchor())),
         (
@@ -637,6 +700,139 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
         ),
     ]);
     Json::object(fields)
+}
+
+fn optional_amount_json(amount: Option<Amount256>) -> Json {
+    amount
+        .map(|value| Json::string(value.to_hex()))
+        .unwrap_or(Json::Null)
+}
+
+fn fee_model_json(model: FeeModel) -> Json {
+    match model {
+        FeeModel::None => Json::object([("kind", Json::string("NONE"))]),
+        FeeModel::BasisPoints { bps, rounding } => Json::object([
+            ("kind", Json::string("BASIS_POINTS")),
+            ("bps", Json::uint(u64::from(bps))),
+            ("rounding", Json::string(rounding.code())),
+        ]),
+        FeeModel::Fixed { asset, amount } => Json::object([
+            ("kind", Json::string("FIXED")),
+            ("asset", Json::string(asset.code())),
+            ("amount", Json::string(amount.to_hex())),
+        ]),
+        FeeModel::ExactRatio {
+            numerator,
+            denominator,
+            rounding,
+        } => Json::object([
+            ("kind", Json::string("EXACT_RATIO")),
+            ("numerator", Json::uint(numerator)),
+            ("denominator", Json::uint(denominator)),
+            ("rounding", Json::string(rounding.code())),
+        ]),
+    }
+}
+
+fn repayment_json(repayment: RepaymentSemantics) -> Json {
+    match repayment {
+        RepaymentSemantics::AtomicSameTransaction => {
+            Json::object([("kind", Json::string("ATOMIC_SAME_TRANSACTION"))])
+        }
+        RepaymentSemantics::SameBlock => Json::object([("kind", Json::string("SAME_BLOCK"))]),
+        RepaymentSemantics::DeadlineBlocks(blocks) => Json::object([
+            ("kind", Json::string("DEADLINE_BLOCKS")),
+            ("blocks", Json::uint(u64::from(blocks))),
+        ]),
+        RepaymentSemantics::Persistent(terms) => Json::object([
+            ("kind", Json::string("PERSISTENT")),
+            (
+                "interest_model_hash",
+                Json::string(terms.interest_model_hash.to_hex()),
+            ),
+            (
+                "liquidation_model_hash",
+                Json::string(terms.liquidation_model_hash.to_hex()),
+            ),
+            (
+                "solvency_model_hash",
+                Json::string(terms.solvency_model_hash.to_hex()),
+            ),
+            (
+                "oracle_risk_hash",
+                Json::string(terms.oracle_risk_hash.to_hex()),
+            ),
+            (
+                "liquidity_withdrawal_risk_hash",
+                Json::string(terms.liquidity_withdrawal_risk_hash.to_hex()),
+            ),
+            (
+                "facility_disappearance_risk_hash",
+                Json::string(terms.facility_disappearance_risk_hash.to_hex()),
+            ),
+        ]),
+        RepaymentSemantics::NoRepayment => {
+            Json::object([("kind", Json::string("NO_REPAYMENT"))])
+        }
+    }
+}
+
+fn collateral_json(collateral: CollateralRequirement) -> Json {
+    match collateral {
+        CollateralRequirement::None => Json::object([("required", Json::Bool(false))]),
+        CollateralRequirement::Required {
+            asset,
+            amount,
+            liquidation_conditions_hash,
+        } => Json::object([
+            ("required", Json::Bool(true)),
+            ("asset", Json::string(asset.code())),
+            ("amount", Json::string(amount.to_hex())),
+            (
+                "liquidation_conditions_hash",
+                Json::string(liquidation_conditions_hash.to_hex()),
+            ),
+        ]),
+    }
+}
+
+fn temporary_lock_json(lock: TemporaryLock) -> Json {
+    match lock {
+        TemporaryLock::None => Json::object([("required", Json::Bool(false))]),
+        TemporaryLock::Required {
+            asset,
+            amount,
+            release,
+        } => {
+            let release = match release {
+                LockRelease::EndOfTransaction => Json::string("END_OF_TRANSACTION"),
+                LockRelease::EndOfBlock => Json::string("END_OF_BLOCK"),
+                LockRelease::DeadlineBlocks(blocks) => Json::object([
+                    ("kind", Json::string("DEADLINE_BLOCKS")),
+                    ("blocks", Json::uint(u64::from(blocks))),
+                ]),
+            };
+            Json::object([
+                ("required", Json::Bool(true)),
+                ("asset", Json::string(asset.code())),
+                ("amount", Json::string(amount.to_hex())),
+                ("release", release),
+            ])
+        }
+    }
+}
+
+fn evidence_ref_json(reference: CapitalEvidenceRef) -> Json {
+    match reference {
+        CapitalEvidenceRef::Observation(digest) => Json::object([
+            ("kind", Json::string("OBSERVATION")),
+            ("digest", Json::string(hex(&digest))),
+        ]),
+        CapitalEvidenceRef::Artifact(hash) => Json::object([
+            ("kind", Json::string("ARTIFACT")),
+            ("sha256", Json::string(hash.to_hex())),
+        ]),
+    }
 }
 
 fn requirement_record(requirement: &CapitalRequirement, provenance: &ArtifactProvenance) -> Json {

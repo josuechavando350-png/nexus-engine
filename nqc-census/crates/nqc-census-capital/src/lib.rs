@@ -412,6 +412,14 @@ pub enum RoundingMode {
 }
 
 impl RoundingMode {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Floor => "FLOOR",
+            Self::Ceil => "CEIL",
+            Self::HalfUp => "HALF_UP",
+        }
+    }
+
     const fn tag(self) -> u8 {
         match self {
             Self::Floor => 1,
@@ -826,6 +834,24 @@ impl CapitalFailureMode {
         Self::Unknown,
     ];
 
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::SourceUnavailable => "SOURCE_UNAVAILABLE",
+            Self::CapacityChanged => "CAPACITY_CHANGED",
+            Self::FeeChanged => "FEE_CHANGED",
+            Self::ProtocolCapReached => "PROTOCOL_CAP_REACHED",
+            Self::MarketCapReached => "MARKET_CAP_REACHED",
+            Self::RepaymentFailure => "REPAYMENT_FAILURE",
+            Self::CallbackOrHookRevert => "CALLBACK_OR_HOOK_REVERT",
+            Self::CollateralLiquidation => "COLLATERAL_LIQUIDATION",
+            Self::OracleRisk => "ORACLE_RISK",
+            Self::LiquidityWithdrawal => "LIQUIDITY_WITHDRAWAL",
+            Self::FacilityDisappearance => "FACILITY_DISAPPEARANCE",
+            Self::NonAtomicRequirement => "NON_ATOMIC_REQUIREMENT",
+            Self::Unknown => "UNKNOWN",
+        }
+    }
+
     const fn tag(self) -> u8 {
         match self {
             Self::SourceUnavailable => 1,
@@ -1104,8 +1130,20 @@ impl CapitalSource {
         self.collateral
     }
 
+    pub const fn utilization(&self) -> UtilizationConstraints {
+        self.utilization
+    }
+
+    pub const fn caps(&self) -> CapitalCaps {
+        self.caps
+    }
+
     pub const fn temporary_lock(&self) -> TemporaryLock {
         self.temporary_lock
+    }
+
+    pub fn failure_modes(&self) -> &[CapitalFailureMode] {
+        &self.failure_modes
     }
 
     pub fn evidence(&self) -> &[CapitalEvidenceRef] {
