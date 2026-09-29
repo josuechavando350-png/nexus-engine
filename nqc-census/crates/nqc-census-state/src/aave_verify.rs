@@ -831,6 +831,18 @@ pub fn verify_aave(inputs: &AaveInputs<'_>) -> Result<AaveOutcome, ChainError> {
             "scalars",
             pool_row.get("scalars").cloned().unwrap_or(Json::Null),
         ),
+        // The raw authoritative getter, named explicitly for downstream
+        // capital accounting: never inferred, never defaulted.
+        (
+            "flashloan_premium_total",
+            pool_row
+                .get("scalars")
+                .and_then(|scalars| scalars.get("FLASHLOAN_PREMIUM_TOTAL()"))
+                .cloned()
+                .unwrap_or_else(|| {
+                    Json::object([("status", Json::string("NOT_EXPOSED_BY_IMPLEMENTATION"))])
+                }),
+        ),
     ]);
     Ok(AaveOutcome {
         state_rows,
