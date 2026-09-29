@@ -993,6 +993,9 @@ pub(crate) fn parse_upstream_authority(
 
     let authority = CapitalCertificationContext::new(authorities, admitted_evidence)?
         .with_consumption_receipts(consumption_receipts)?;
+    provenance.validate_anchor(authority.observation_anchor())?;
+    require_generated_at_basis(&parsed)?;
+    require_observation_anchor(&parsed, authority.observation_anchor())?;
     let declared_commitment = parsed
         .str_field("upstream_authority_commitment")
         .map_err(|_| {
@@ -1542,6 +1545,36 @@ fn _type_fence(
 ) {
 }
 
+fn require_generated_at_basis(record: &Json) -> Result<(), CapitalError> {
+    if record
+        .str_field("generated_at_basis")
+        .map_err(|_| CapitalError::InvalidCanonical("generated_at basis missing"))?
+        != GENERATED_AT_BASIS
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "generated_at basis is not observation anchor timestamp",
+        ));
+    }
+    Ok(())
+}
+
+fn require_observation_anchor(
+    record: &Json,
+    expected: &StateAnchor,
+) -> Result<(), CapitalError> {
+    let observed = parse_anchor_json(
+        record
+            .get("observation_anchor")
+            .ok_or(CapitalError::InvalidCanonical(
+                "artifact observation anchor missing",
+            ))?,
+    )?;
+    if &observed != expected {
+        return Err(CapitalError::AnchorMismatch);
+    }
+    Ok(())
+}
+
 fn provenance_fields(
     record: &Json,
     missing_field_error: &'static str,
@@ -1565,6 +1598,7 @@ fn record_provenance(record: &Json) -> Result<ArtifactProvenance, CapitalError> 
             "unsupported capital record schema",
         ));
     }
+    require_generated_at_basis(record)?;
     provenance_fields(record, "record provenance missing")
 }
 
@@ -1574,6 +1608,7 @@ fn summary_provenance(summary: &Json) -> Result<ArtifactProvenance, CapitalError
             "unsupported capital summary schema",
         ));
     }
+    require_generated_at_basis(summary)?;
     provenance_fields(summary, "summary provenance missing")
 }
 
