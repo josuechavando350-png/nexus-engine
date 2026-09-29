@@ -20,6 +20,9 @@ jobs:
     timeout-minutes: 75
     env:
       RMC004_BASE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
+      # RMC-003.1 advanced the observation module additively; its bytes are
+      # pinned to that authority commit instead of the RMC-004 base.
+      RMC003_TYPED_AUTHORITY: 5e032b2a601a2368334477e6ad9ee5c5b7ba219a
       RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
       RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
@@ -127,13 +130,15 @@ jobs:
             nqc-census/rust-toolchain.toml \
             nqc-census/crates/nqc-census-core/Cargo.toml \
             nqc-census/crates/nqc-census-core/src/identity.rs \
-            nqc-census/crates/nqc-census-core/src/observation.rs \
             nqc-census/crates/nqc-census-core/src/pipeline.rs \
             nqc-census/crates/nqc-census-core/src/capability.rs \
             nqc-census/crates/nqc-census-core/tests/identity.rs \
             nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs \
             .github/workflows/nqc-census-identity.yml \
             .github/workflows/nqc-census-effective-source.yml
+          git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" HEAD
+          git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core/src/observation.rs
           echo RMC_004_RMC001_RMC002_RMC003_IMMUTABLE_PASS
 
       - name: Verify dependency surface and network-free boundary
