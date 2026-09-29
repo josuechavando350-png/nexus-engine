@@ -17,7 +17,7 @@ permissions:
 jobs:
   v2-discovery:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 180
     env:
       D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
