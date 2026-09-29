@@ -1,4 +1,7 @@
-use crate::{aave_interface, decode_reserve_dropped, decode_reserve_initialized};
+use crate::{
+    aave_interface, decode_reserve_dropped, decode_reserve_initialized,
+    lineage::discover_configurator_lineage,
+};
 use nqc_census_chain::{
     acquire::{anchor_from_result, raw_log_semantics, Acquisition, ScanOutcome},
     bootstrap::run_bootstrap,
@@ -29,7 +32,8 @@ const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f457
 const POOL: &str = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2";
 const CURRENT_CONFIGURATOR: &str = "0x64b761d848206f447fe2dd461b0c635ec39ebb27";
 const BOUNDARY_NAMESPACE: u16 = 0x0602;
-const HISTORY_NAMESPACE: u16 = 0x0603;
+const RESERVE_INIT_NAMESPACE: u16 = 0x0605;
+const RESERVE_DROP_NAMESPACE: u16 = 0x0606;
 const CHECKPOINT_SPAN: u64 = 1_000_000;
 
 #[derive(Debug, Clone)]
@@ -209,33 +213,29 @@ fn scan_history(
     provider: &ProviderSpec,
     chain: &nqc_census_core::ChainDomain,
     deployment: &DeploymentKey,
-    configurator: Address,
+    configurators: &[Address],
     origin: &StateAnchor,
+    topic: [u8; 32],
+    family: &'static str,
+    namespace: u16,
 ) -> Result<ScanOutcome, ChainError> {
-    let interface = aave_interface();
-    let filter = LogFilter::new(
-        vec![configurator],
-        vec![
-            interface.reserve_initialized_topic,
-            interface.reserve_dropped_topic,
-        ],
-    )?;
+    let filter = LogFilter::new(configurators.to_vec(), vec![topic])?;
     acquisition.scan(
         provider,
         chain,
         Some(deployment.clone()),
-        "rmc006-aave-reserve-lifecycle",
+        family,
         1,
-        HISTORY_NAMESPACE,
+        namespace,
         &filter,
         origin,
         ANCHOR_NUMBER,
         CHECKPOINT_SPAN,
-        |claimed| raw_log_semantics(&claimed.log.emitter(), "rmc006-aave-reserve-lifecycle"),
+        |claimed| raw_log_semantics(&claimed.log.emitter(), family),
     )
 }
 
-fn scan_record(provider: &str, scan: &ScanOutcome) -> Result<Json, ChainError> {
+fn scan_record(provider: &str, kind: &str, scan: &ScanOutcome) -> Result<Json, ChainError> {
     let mut windows = Vec::with_capacity(scan.windows.len());
     for window in &scan.windows {
         let result = window.result_json()?;
@@ -252,6 +252,7 @@ fn scan_record(provider: &str, scan: &ScanOutcome) -> Result<Json, ChainError> {
     }
     Ok(Json::object([
         ("provider", Json::string(provider)),
+        ("kind", Json::string(kind)),
         ("certified_first", Json::uint(scan.certified_first)),
         ("certified_last", Json::uint(scan.certified_last)),
         ("commitment", Json::string(scan.commitment.clone())),
@@ -277,6 +278,15 @@ pub fn run_history(
     }
 
     let pool = Address::parse_hex(POOL)?;
+    let addresses_provider = Address::parse_hex("0x2f39d218133afab8f2b819b1066c7e434ad94e9e")?;
+    let (provider_creation, provider_boundary, provider_boundary_manifests) =
+        agreed_boundary(
+            &acquisition,
+            &providers,
+            &chain,
+            addresses_provider,
+            "addresses-provider",
+        )?;
     let (pool_creation, pool_boundary, pool_boundary_manifests) =
         agreed_boundary(&acquisition, &providers, &chain, pool, "pool")?;
     let (configurator_creation, configurator_boundary, configurator_boundary_manifests) =
@@ -293,28 +303,87 @@ pub fn run_history(
         );
     }
 
+    let lineage = discover_configurator_lineage(
+        &acquisition,
+        &providers,
+        &chain,
+        addresses_provider,
+        &provider_creation,
+        &anchor,
+        configurator,
+    )?;
+    if !lineage.configurators.contains(&configurator) {
+        return Err(ChainError::Evidence(
+            "current configurator is absent from certified lineage".into(),
+        )
+        .into());
+    }
+
     let deployment = DeploymentKey::new(
         chain.clone(),
         ProtocolFamily::AaveV3,
         pool,
         stable_deployment_instance(pool, &pool_creation)?,
     );
+    let interface = aave_interface();
     let mut scans = Vec::new();
     let mut per_provider = Vec::new();
     for provider in providers.iter() {
-        let scan = scan_history(
+        let initialized = scan_history(
             &acquisition,
             provider,
             &chain,
             &deployment,
-            configurator,
-            &configurator_creation,
+            &lineage.configurators,
+            &provider_creation,
+            interface.reserve_initialized_topic,
+            "rmc006-aave-reserve-initialized",
+            RESERVE_INIT_NAMESPACE,
         )?;
-        per_provider.push((provider.label().to_owned(), scan.logs()?));
-        scans.push((provider.label().to_owned(), scan));
+        let dropped = scan_history(
+            &acquisition,
+            provider,
+            &chain,
+            &deployment,
+            &lineage.configurators,
+            &provider_creation,
+            interface.reserve_dropped_topic,
+            "rmc006-aave-reserve-dropped",
+            RESERVE_DROP_NAMESPACE,
+        )?;
+        let mut combined = initialized.logs()?;
+        combined.extend(dropped.logs()?);
+        combined.sort_by_key(|record| {
+            (
+                record.get("block").and_then(Json::as_i64).unwrap_or(-1),
+                record.get("log_index").and_then(Json::as_i64).unwrap_or(-1),
+            )
+        });
+        if combined.windows(2).any(|pair| {
+            pair[0].get("block") == pair[1].get("block")
+                && pair[0].get("log_index") == pair[1].get("log_index")
+        }) {
+            return Err(ChainError::Evidence(
+                "duplicate reserve-event coordinates after topic merge".into(),
+            )
+            .into());
+        }
+        per_provider.push((provider.label().to_owned(), combined));
+        scans.push((
+            provider.label().to_owned(),
+            "RESERVE_INITIALIZED".to_owned(),
+            initialized,
+        ));
+        scans.push((
+            provider.label().to_owned(),
+            "RESERVE_DROPPED".to_owned(),
+            dropped,
+        ));
     }
     let logs = agree_logs("rmc006-aave-reserve-lifecycle", &per_provider)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
+
+    let interface = aave_interface();
 
     let interface = aave_interface();
     let mut lifecycle = BTreeMap::<Address, &'static str>::new();
@@ -440,18 +509,24 @@ pub fn run_history(
 
     let scan_records = scans
         .iter()
-        .map(|(provider, scan)| scan_record(provider, scan))
+        .map(|(provider, kind, scan)| scan_record(provider, kind, scan))
         .collect::<Result<Vec<_>, _>>()?;
     Ok(Json::object([
         (
             "schema",
             Json::string("nqc-rmc-006-aave-history-reconciliation-v1"),
         ),
-        (
-            "status",
-            Json::string("HISTORY_RECONCILIATION_PASS_PROXY_LINEAGE_PENDING"),
-        ),
+        ("status", Json::string("HISTORY_RECONCILIATION_PASS")),
         ("bootstrap", bootstrap),
+        ("addresses_provider_boundary", provider_boundary),
+        (
+            "addresses_provider_boundary_manifests",
+            Json::array(
+                provider_boundary_manifests
+                    .iter()
+                    .map(|manifest| Json::string(manifest.clone())),
+            ),
+        ),
         ("pool_boundary", pool_boundary),
         (
             "pool_boundary_manifests",
@@ -473,6 +548,25 @@ pub fn run_history(
         (
             "deployment_instance",
             Json::string(deployment.deployment_instance().to_hex()),
+        ),
+        (
+            "configurators",
+            Json::array(
+                lineage
+                    .configurators
+                    .iter()
+                    .map(|address| Json::string(address.to_hex())),
+            ),
+        ),
+        ("configurator_updates", Json::Array(lineage.updates.clone())),
+        (
+            "configurator_lineage_manifests",
+            Json::array(
+                lineage
+                    .manifests
+                    .iter()
+                    .map(|manifest| Json::string(manifest.clone())),
+            ),
         ),
         ("reserve_events", Json::Array(event_records)),
         (
@@ -506,16 +600,21 @@ pub fn run_history(
                     Json::uint(historical_union.len() as u64),
                 ),
                 ("active_event_count", Json::uint(event_active.len() as u64)),
+                (
+                    "configurator_count",
+                    Json::uint(lineage.configurators.len() as u64),
+                ),
+                (
+                    "configurator_update_count",
+                    Json::uint(lineage.updates.len() as u64),
+                ),
                 ("unexplained_delta_count", Json::uint(0)),
             ]),
         ),
         ("scan_evidence", Json::Array(scan_records)),
         (
             "open_blockers",
-            Json::array([
-                Json::string("D05_ADMISSION_NOT_YET_MATERIALIZED"),
-                Json::string("ADDRESSES_PROVIDER_PROXY_LINEAGE_NOT_YET_CERTIFIED"),
-            ]),
+            Json::array([Json::string("D05_ADMISSION_NOT_YET_MATERIALIZED")]),
         ),
         (
             "non_claims",

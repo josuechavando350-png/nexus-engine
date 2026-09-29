@@ -19,7 +19,7 @@
       "operator": "dRPC public endpoint",
       "min_interval_ms": 350,
       "max_batch": 1,
-      "log_window": 2000,
+      "log_window": 9000,
       "pinning": "EIP1898_BLOCK_HASH"
     }
   ]

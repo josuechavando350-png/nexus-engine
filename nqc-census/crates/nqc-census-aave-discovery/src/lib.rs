@@ -7,6 +7,7 @@
 pub mod admission;
 pub mod history;
 mod interface;
+mod lineage;
 pub mod live;
 mod reconcile;
 

@@ -124,8 +124,10 @@ fn evidence_refs(
     }
 
     for key in [
+        "addresses_provider_boundary_manifests",
         "pool_boundary_manifests",
         "pool_configurator_boundary_manifests",
+        "configurator_lineage_manifests",
     ] {
         for value in required(history, key)?
             .as_array()
@@ -163,9 +165,7 @@ pub fn run_admission(
     if current.get("status").and_then(Json::as_str) != Some("CURRENT_SURFACE_PASS") {
         return Err(ChainError::Evidence("current report is not PASS".into()).into());
     }
-    if history.get("status").and_then(Json::as_str)
-        != Some("HISTORY_RECONCILIATION_PASS_PROXY_LINEAGE_PENDING")
-    {
+    if history.get("status").and_then(Json::as_str) != Some("HISTORY_RECONCILIATION_PASS") {
         return Err(ChainError::Evidence("history report is not reconciled".into()).into());
     }
     if number(required(&history, "summary")?, "unexplained_delta_count")? != 0 {
@@ -313,7 +313,7 @@ pub fn run_admission(
         ),
         (
             "remaining_blocker",
-            Json::string("ADDRESSES_PROVIDER_PROXY_LINEAGE_NOT_YET_CERTIFIED"),
+            Json::string("NONE_WITHIN_DECLARED_RMC006_DEPLOYMENT_SCOPE"),
         ),
     ]))
 }
