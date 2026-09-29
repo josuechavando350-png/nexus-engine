@@ -22,8 +22,34 @@ use std::{error::Error, fs, path::Path};
 
 use crate::{aave_interface, verify_pool_runtime};
 
-const ANCHOR_NUMBER: u64 = 25_437_474;
-const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
+/// The declared observation anchor (`aave-discovery-scope.json`).
+pub const DECLARED_ANCHOR_NUMBER: u64 = 25_437_474;
+pub const DECLARED_ANCHOR_HASH: &str =
+    "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
+
+/// The anchor a run observes: the declared one unless both `number` and
+/// `hash` name another (a later anchor for an incremental refresh). Giving
+/// only one of them is refused.
+pub fn anchor_from_flags(
+    number: Option<&str>,
+    hash: Option<&str>,
+) -> Result<(u64, Hash32), ChainError> {
+    match (number, hash) {
+        (None, None) => Ok((
+            DECLARED_ANCHOR_NUMBER,
+            Hash32::parse_hex(DECLARED_ANCHOR_HASH)?,
+        )),
+        (Some(number), Some(hash)) => Ok((
+            number
+                .parse()
+                .map_err(|_| ChainError::Config(format!("invalid anchor number {number}")))?,
+            Hash32::parse_hex(hash)?,
+        )),
+        _ => Err(ChainError::Config(
+            "--anchor-number and --anchor-hash go together".into(),
+        )),
+    }
+}
 const ADDRESSES_PROVIDER: &str = "0x2f39d218133afab8f2b819b1066c7e434ad94e9e";
 const POOL: &str = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2";
 const POOL_IMPLEMENTATION: &str = "0x728a138a4823392c2efa55e028d434f526fe03cf";
@@ -538,6 +564,7 @@ fn provider_current_facts(
 pub fn run_current_surface(
     providers_path: &Path,
     store_path: &Path,
+    (anchor_number, anchor_hash): (u64, Hash32),
 ) -> Result<Json, Box<dyn Error>> {
     let providers = ProviderSet::parse(&fs::read(providers_path)?)?;
     let store = Store::create(store_path, StoreConfig::standard())?;
@@ -545,8 +572,8 @@ pub fn run_current_surface(
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
     let profile = ChainProfile::mainnet()?;
     let (bootstrap, chain, anchor) =
-        run_bootstrap(&acquisition, &providers, &profile, ANCHOR_NUMBER)?;
-    if anchor.block_hash() != Hash32::parse_hex(ANCHOR_HASH)? {
+        run_bootstrap(&acquisition, &providers, &profile, anchor_number)?;
+    if anchor.block_hash() != anchor_hash {
         return Err(ChainError::Evidence("D06 observation anchor hash differs".into()).into());
     }
 
@@ -700,4 +727,29 @@ pub fn run_current_surface(
             Json::string("NOT_PROVEN_DISTINCT_DECLARED_OPERATORS"),
         ),
     ]))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn anchor_flags_default_to_the_declared_anchor_and_go_together() -> Result<(), ChainError> {
+        assert_eq!(
+            anchor_from_flags(None, None)?,
+            (
+                DECLARED_ANCHOR_NUMBER,
+                Hash32::parse_hex(DECLARED_ANCHOR_HASH)?
+            )
+        );
+        let other = "0x".to_owned() + &"ab".repeat(32);
+        assert_eq!(
+            anchor_from_flags(Some("25500000"), Some(&other))?,
+            (25_500_000, Hash32::parse_hex(&other)?)
+        );
+        assert!(anchor_from_flags(Some("25500000"), None).is_err());
+        assert!(anchor_from_flags(None, Some(&other)).is_err());
+        assert!(anchor_from_flags(Some("later"), Some(&other)).is_err());
+        Ok(())
+    }
 }

@@ -3,6 +3,7 @@
 //! reports and evidence roots. Needs no network.
 
 use nqc_census_aave_discovery::history::HistoryPlan;
+use nqc_census_aave_discovery::live::anchor_from_flags;
 use nqc_census_aave_discovery::resume::resume_check;
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::ProviderSet;
@@ -16,13 +17,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut store = None;
     let mut work = None;
     let mut out = None;
+    let mut anchor_number = None;
+    let mut anchor_hash = None;
     let mut args = env::args().skip(1);
     while let Some(flag) = args.next() {
-        let value = PathBuf::from(
-            args.next()
-                .ok_or_else(|| format!("missing value for {flag}"))?,
-        );
+        let text = args
+            .next()
+            .ok_or_else(|| format!("missing value for {flag}"))?;
+        let value = PathBuf::from(&text);
         match flag.as_str() {
+            "--anchor-number" => anchor_number = Some(text),
+            "--anchor-hash" => anchor_hash = Some(text),
             "--providers" => providers = Some(value),
             "--current" => current = Some(value),
             "--history" => history = Some(value),
@@ -39,7 +44,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let report = resume_check(
         &store,
         &providers,
-        &HistoryPlan::mainnet()?,
+        &HistoryPlan::mainnet_at(anchor_from_flags(
+            anchor_number.as_deref(),
+            anchor_hash.as_deref(),
+        )?)?,
         &current,
         &history,
         &work.ok_or("--work is required")?,

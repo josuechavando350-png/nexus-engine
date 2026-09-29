@@ -48,12 +48,15 @@ pub struct HistoryPlan {
 
 impl HistoryPlan {
     pub fn mainnet() -> Result<Self, ChainError> {
+        Self::mainnet_at(crate::live::anchor_from_flags(None, None)?)
+    }
+
+    /// The declared deployment observed at another anchor.
+    pub fn mainnet_at((anchor_number, anchor_hash): (u64, Hash32)) -> Result<Self, ChainError> {
         Ok(Self {
             profile: ChainProfile::mainnet()?,
-            anchor_number: 25_437_474,
-            anchor_hash: Hash32::parse_hex(
-                "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
-            )?,
+            anchor_number,
+            anchor_hash,
             addresses_provider: Address::parse_hex("0x2f39d218133afab8f2b819b1066c7e434ad94e9e")?,
             pool: Address::parse_hex("0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2")?,
             boundary_floor: 1,
@@ -99,6 +102,18 @@ fn current_surface(report: &Json, plan: &HistoryPlan) -> Result<CurrentSurface, 
     {
         return Err(ChainError::Evidence(
             "current report deployment differs from the declared plan".into(),
+        ));
+    }
+    let anchor = report
+        .get("bootstrap")
+        .and_then(|bootstrap| bootstrap.get("anchor"))
+        .and_then(|anchor| anchor.get("anchor"))
+        .ok_or_else(|| ChainError::Evidence("current report names no anchor".into()))?;
+    if number(anchor, "number")? != plan.anchor_number
+        || anchor.str_field("hash")? != plan.anchor_hash.to_hex()
+    {
+        return Err(ChainError::Evidence(
+            "current report was observed at another anchor than the history plan".into(),
         ));
     }
     let count = usize::try_from(number(facts, "reserve_count")?)
@@ -748,21 +763,17 @@ pub fn history_with(
     ]))
 }
 
-/// Live run on the declared mainnet plan.
+/// Live run on the declared deployment at `plan`'s anchor.
 pub fn run_history(
     providers_path: &Path,
     current_path: &Path,
     store_path: &Path,
+    plan: &HistoryPlan,
 ) -> Result<Json, Box<dyn Error>> {
     let providers = ProviderSet::parse(&fs::read(providers_path)?)?;
     let current = Json::parse(&fs::read(current_path)?)?;
     let store = Store::create(store_path, StoreConfig::standard())?;
     let transport = CurlTransport::new(90, 10);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
-    Ok(history_with(
-        &acquisition,
-        &providers,
-        &HistoryPlan::mainnet()?,
-        &current,
-    )?)
+    Ok(history_with(&acquisition, &providers, plan, &current)?)
 }

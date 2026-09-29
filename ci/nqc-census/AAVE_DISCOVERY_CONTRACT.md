@@ -97,9 +97,13 @@ inferred from absence.
 
 ## Public RPC load
 
-The workflow joins the repository-wide concurrency group
-`nqc-census-public-rpc` (`cancel-in-progress: false`): at most one live
-Census acquisition runs at a time and a running one is never cancelled.
+Live acquisition runs only from a `workflow_dispatch` on the exact branch
+head, in the repository-wide concurrency group `nqc-census-public-rpc`
+(`cancel-in-progress: false`). At most one live Census acquisition runs at a
+time, and a running one is never cancelled. GitHub keeps one pending run per
+group and a newer pending run replaces an older one. So a `pull_request` run
+executes every gate except the live acquisition, in its own per-ref group,
+and certifies nothing.
 Log windows follow what each endpoint actually serves. mevblocker's window is
 its documented 10,000 blocks: at 250,000 blocks it answered `-32603 service
 temporarily unavailable` for about half of the windows (probe run
@@ -112,6 +116,26 @@ checkpoints; it is never read as an empty range. Evidence, with an index of
 every file's sha256, is uploaded even when the run fails, under a name
 carrying the exact head, run id and attempt.
 
+## Anchors
+
+A run observes the declared anchor unless a dispatch names another block by
+number and canonical hash, given together (`anchor_number`, `anchor_hash`).
+The later anchor is for an incremental refresh (RMC-010).
+
+The same checks apply at any anchor:
+- Three providers must agree on the anchor header and the current surface.
+- The history must run to that anchor.
+- The history step refuses a current-surface report observed at another
+  anchor.
+
+At the declared anchor the measured reserve count (67) is required. At any
+other anchor, the reserve count read from the three-provider current surface
+must be reproduced exactly by the history reconciliation and the closeout.
+
+A Pool implementation other than the Protocol/Fork certified one fails
+closed at any anchor. The evidence artifact is named by anchor, exact head,
+run and attempt.
+
 ## Crash/resume equivalence (offline, no network)
 
 `nqc-rmc006-aave-resume-check` runs inside a network namespace with no
@@ -122,7 +146,9 @@ then:
    byte-identical to the live report.
 2. Repeats into fresh stores crashed after 1, ⅓, ½, ⅔ and all-but-one of the
    recorded requests. Each is resumed; the report and the RMC-004 evidence
-   root must be identical to the clean replay.
+   root must be identical to the clean replay. The five cases share nothing
+   (each has its own store and transport) and run concurrently. Every one is
+   checked and reported in cut order.
 
 A tampered report, or a report missing a manifest, is rejected.
 

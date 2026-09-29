@@ -241,8 +241,31 @@ fn deployment() -> Result<Deployment, Box<dyn Error>> {
 
 fn current_report(deployment: &Deployment, dropped: &[u64]) -> Json {
     let count = deployment.reserves.len() as u64 + dropped.len() as u64;
+    let anchor = BASE + LENGTH - 1;
     Json::object([
         ("status", Json::string("CURRENT_SURFACE_PASS")),
+        (
+            "bootstrap",
+            Json::object([(
+                "anchor",
+                Json::object([(
+                    "anchor",
+                    Json::object([
+                        ("number", Json::uint(anchor)),
+                        (
+                            "hash",
+                            Json::string(
+                                deployment
+                                    .sim
+                                    .hash_of(anchor)
+                                    .map(|hash| hash.to_hex())
+                                    .unwrap_or_default(),
+                            ),
+                        ),
+                    ]),
+                )]),
+            )]),
+        ),
         (
             "facts",
             Json::object([
@@ -811,5 +834,33 @@ fn repeated_requests_answered_in_other_bytes_replay_in_recorded_order() -> TestR
             .unwrap_or(0)
             > 0
     }));
+    Ok(())
+}
+
+#[test]
+fn a_current_surface_from_another_anchor_is_refused() -> TestResult {
+    let deployment = deployment()?;
+    let harness = harness(deployment.sim.clone(), Faults::default())?;
+    let current = current_report(&deployment, &[]);
+    let earlier = deployment
+        .sim
+        .hash_of(BASE + LENGTH - 2)
+        .ok_or("earlier block")?
+        .to_hex();
+    let hash = deployment
+        .sim
+        .hash_of(BASE + LENGTH - 1)
+        .ok_or("anchor")?
+        .to_hex();
+    let moved = Json::parse(
+        current
+            .canonical_string()?
+            .replace(&hash, &earlier)
+            .as_bytes(),
+    )?;
+    expect_error(
+        run(&harness, &moved),
+        "another anchor than the history plan",
+    )?;
     Ok(())
 }

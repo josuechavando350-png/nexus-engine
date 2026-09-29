@@ -525,8 +525,10 @@ pub fn resume_check(
     ];
     cuts.sort_unstable();
     cuts.dedup();
-    let mut interruptions = Vec::with_capacity(cuts.len());
-    for cut in cuts {
+    // Every interruption replays into its own fresh store through its own
+    // transport, so the cases are independent and run concurrently; each is
+    // checked exactly as before and reported in cut order.
+    let interrupted = |cut: u64| -> Result<Json, ChainError> {
         let path = work.join(format!("interrupted-{cut}"));
         let replay = recorded.transport(&BTreeSet::new());
         let crashed = InterruptAfter::new(&replay, cut);
@@ -554,7 +556,7 @@ pub fn resume_check(
                 "resume after interruption at {cut} produced a different evidence root"
             )));
         }
-        interruptions.push(Json::object([
+        Ok(Json::object([
             ("interrupted_after_requests", Json::uint(cut)),
             (
                 "committed_jobs_at_interruption",
@@ -568,8 +570,23 @@ pub fn resume_check(
             ),
             ("resumed_report_identical", Json::Bool(true)),
             ("evidence_root", Json::string(root)),
-        ]));
-    }
+        ]))
+    };
+    let outcomes: Vec<Result<Json, ChainError>> = std::thread::scope(|scope| {
+        let workers: Vec<_> = cuts
+            .iter()
+            .map(|&cut| scope.spawn(move || interrupted(cut)))
+            .collect();
+        workers
+            .into_iter()
+            .map(|worker| {
+                worker.join().unwrap_or_else(|_| {
+                    Err(ChainError::Evidence("an interruption case panicked".into()))
+                })
+            })
+            .collect()
+    });
+    let interruptions = outcomes.into_iter().collect::<Result<Vec<_>, _>>()?;
     Ok(Json::object([
         ("schema", Json::string(RESUME_SCHEMA)),
         ("status", Json::string("RESUME_EQUIVALENCE_PASS")),
