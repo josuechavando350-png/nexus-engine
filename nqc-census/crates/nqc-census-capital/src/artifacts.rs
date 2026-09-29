@@ -718,7 +718,7 @@ fn upstream_authority_json(
     provenance: &ArtifactProvenance,
 ) -> Json {
     Json::object([
-        ("schema_version", Json::uint(5)),
+        ("schema_version", Json::uint(6)),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -750,6 +750,11 @@ fn upstream_authority_json(
                     (
                         "coverage_commitment",
                         Json::string(receipt.coverage_commitment().to_hex()),
+                    ),
+                    ("output_count", Json::uint(receipt.output_count())),
+                    (
+                        "output_set_commitment",
+                        Json::string(receipt.output_set_commitment().to_hex()),
                     ),
                 ])
             })),
@@ -788,7 +793,7 @@ fn parse_upstream_authority(
     let parsed = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid upstream authority JSON"))?;
     require_canonical_json(bytes, &parsed)?;
-    if json_u64(&parsed, "schema_version")? != 5 {
+    if json_u64(&parsed, "schema_version")? != 6 {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "unsupported upstream authority schema",
         ));
@@ -888,10 +893,24 @@ fn parse_upstream_authority(
                     "invalid consumption receipt coverage commitment",
                 )
             })?;
-        consumption_receipts.push(UpstreamConsumptionReceipt::new(
+        let output_count = json_u64(row, "output_count")?;
+        let output_set_commitment =
+            Hash32::parse_hex(row.str_field("output_set_commitment").map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt output-set commitment missing",
+                )
+            })?)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "invalid consumption receipt output-set commitment",
+                )
+            })?;
+        consumption_receipts.push(UpstreamConsumptionReceipt::from_parts(
             stage,
             authority_artifact_sha256,
             coverage_commitment,
+            output_count,
+            output_set_commitment,
         )?);
     }
 
