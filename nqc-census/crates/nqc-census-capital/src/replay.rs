@@ -7,6 +7,7 @@ use crate::{
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
     CapitalCertificationContext, CapitalError, CapitalEvidenceRef, GitObjectId,
     UpstreamCensusStage, UpstreamConsumptionReceipt, UpstreamStageAuthority,
+    UpstreamStageAuthoritySpec,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
@@ -137,6 +138,27 @@ impl UpstreamAuthorityLock {
 
     pub fn entries(&self) -> &[UpstreamAuthorityLockEntry] {
         &self.entries
+    }
+
+    pub fn certification_context(&self) -> Result<CapitalCertificationContext, CapitalError> {
+        let mut stages = Vec::with_capacity(self.entries.len());
+        let mut admitted_evidence = Vec::with_capacity(self.entries.len());
+        for entry in &self.entries {
+            let authority = UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
+                stage: entry.stage,
+                code_commit: entry.code_commit,
+                code_tree: entry.code_tree,
+                artifact_sha256: entry.artifact_sha256,
+                observation_anchor: entry.observation_anchor.clone(),
+                unresolved_mismatch_count: entry.unresolved_mismatch_count,
+                unknown_failure_count: entry.unknown_failure_count,
+                coverage_complete: entry.coverage_complete,
+                admitted: entry.admitted,
+            })?;
+            admitted_evidence.push(CapitalEvidenceRef::Artifact(entry.artifact_sha256));
+            stages.push(authority);
+        }
+        CapitalCertificationContext::new(stages, admitted_evidence)
     }
 
     pub const fn commitment(&self) -> Hash32 {
