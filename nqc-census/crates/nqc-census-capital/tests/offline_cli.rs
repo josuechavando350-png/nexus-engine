@@ -161,7 +161,7 @@ fn write_bundle(directory: &Path) -> TestResult {
     let bundle = export_capital_artifacts(
         &ledger,
         &authority,
-        &ArtifactProvenance::new("2026-09-29T00:00:00Z", CODE_COMMIT, CODE_TREE)?,
+        &ArtifactProvenance::new("2023-11-14T22:13:20Z", CODE_COMMIT, CODE_TREE)?,
     )?;
     for file in bundle.files {
         fs::write(directory.join(file.name), file.bytes)?;

@@ -138,7 +138,7 @@ Target deterministic artifacts:
 - `capital-upstream-authority.json`
 - `capital-evidence-manifest.json`
 
-Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence.
+Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence. `generated_at` is evidence time, not wall-clock time: it MUST equal the exact observation-anchor block timestamp and MUST carry `generated_at_basis=OBSERVATION_ANCHOR_BLOCK_TIMESTAMP`, so identical evidence and code regenerate byte-identical artifacts.
 
 ## Required tests
 
@@ -157,7 +157,7 @@ At minimum:
 - protocol and market caps bind maximum executable size
 - stale/mismatched anchors fail
 - unknown failure reason cannot pass certification
-- deterministic canonical encode/decode and tamper rejection; offline verification reports total feasibility records, feasible requirements, and rejected requirements as distinct conserved counts
+- deterministic canonical encode/decode and tamper rejection; offline verification reports total feasibility records, feasible requirements, and rejected requirements as distinct conserved counts; arbitrary or wall-clock artifact generation times and mismatched artifact anchors are rejected
 - evidence refs are required for admitted real sources
 - synthetic fixtures are explicitly non-evidentiary
 
