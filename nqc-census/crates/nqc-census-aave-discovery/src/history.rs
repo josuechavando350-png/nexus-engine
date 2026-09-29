@@ -318,6 +318,12 @@ pub fn run_history(
         )
         .into());
     }
+    if lineage.creation_block != configurator_creation.block_number() {
+        return Err(ChainError::Evidence(
+            "PoolConfigurator ProxyCreated block differs from earliest-code boundary".into(),
+        )
+        .into());
+    }
 
     let deployment = DeploymentKey::new(
         chain.clone(),
@@ -567,6 +573,10 @@ pub fn run_history(
                     .iter()
                     .map(|manifest| Json::string(manifest.clone())),
             ),
+        ),
+        (
+            "configurator_lineage_scan_evidence",
+            Json::Array(lineage.scan_evidence.clone()),
         ),
         ("reserve_events", Json::Array(event_records)),
         (
