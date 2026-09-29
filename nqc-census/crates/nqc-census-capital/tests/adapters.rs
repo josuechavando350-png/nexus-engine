@@ -1,8 +1,7 @@
 use nqc_census_capital::{
     adapters::{
         AaveV3FlashObservation, BalancerV2FlashObservation, UniswapV2FlashSwapObservation,
-        AAVE_V3_PROVIDER_NAMESPACE, BALANCER_V2_PROVIDER_NAMESPACE,
-        UNISWAP_V2_PROVIDER_NAMESPACE,
+        AAVE_V3_PROVIDER_NAMESPACE, BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V2_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, RoundingMode,
 };
@@ -142,7 +141,6 @@ fn adapter_records_roundtrip_through_generic_capital_source() -> TestResult {
     assert_ne!(source.fee_model(), floor);
     Ok(())
 }
-
 
 #[test]
 fn uniswap_v2_flash_swap_binds_strict_reserve_capacity_and_fee() -> TestResult {

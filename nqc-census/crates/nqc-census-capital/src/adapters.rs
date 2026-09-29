@@ -104,7 +104,6 @@ impl BalancerV2FlashObservation {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct UniswapV2FlashSwapObservation {
     pub anchor: StateAnchor,
