@@ -1562,6 +1562,105 @@ fn missing_funding_fee_is_rejected_during_feasibility() -> TestResult {
 }
 
 #[test]
+fn repayment_leg_must_allow_the_actual_allocated_source_class() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::GasFunding],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let source = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn funding_fee_leg_must_allow_the_actual_fee_source_class() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(1_000),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(1_000),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::FundingFee,
+                token,
+                Amount256::from_u128(1),
+                vec![CapitalClass::FlashSwap],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::ProtocolNativeFlashLoan,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(10_000),
+        fee_model: FeeModel::basis_points_with_rounding(5, RoundingMode::HalfUp)?,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
 fn no_repayment_gas_source_needs_no_principal_repayment_leg() -> TestResult {
     let gas = CapitalRequirementLeg::new(
         RequirementKind::Gas,
