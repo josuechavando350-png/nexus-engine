@@ -1560,23 +1560,32 @@ fn apply_utilization(amount: Amount256, bps: u16) -> Result<Amount256, CapitalEr
     if bps == 0 {
         return Ok(Amount256::ZERO);
     }
-    // Exact base-256 long division is intentionally avoided here. Utilization haircut is
-    // represented conservatively for values that fit u128; larger values must use 100%.
-    if amount.0[..16].iter().any(|byte| *byte != 0) {
-        return Err(CapitalError::InvalidCanonical(
-            "sub-100% utilization on >u128 capacity requires protocol-specific integer arithmetic",
-        ));
+
+    // Exact integer floor(amount * bps / 10_000) across the full 256-bit domain.
+    // This streams the base-256 digits while carrying only the division remainder,
+    // so no intermediate 256-bit multiplication can overflow.
+    let numerator = u32::from(bps);
+    let denominator = 10_000_u32;
+    let mut remainder = 0_u32;
+    let mut out = [0_u8; 32];
+    for (index, byte) in amount.0.iter().copied().enumerate() {
+        let expanded = remainder
+            .checked_mul(256)
+            .and_then(|value| value.checked_add(u32::from(byte) * numerator))
+            .ok_or(CapitalError::InvalidCanonical(
+                "utilization arithmetic overflow",
+            ))?;
+        let quotient_digit = expanded / denominator;
+        if quotient_digit > 255 {
+            return Err(CapitalError::InvalidCanonical(
+                "utilization quotient digit overflow",
+            ));
+        }
+        out[index] = u8::try_from(quotient_digit)
+            .map_err(|_| CapitalError::InvalidCanonical("utilization quotient conversion"))?;
+        remainder = expanded % denominator;
     }
-    let mut low = [0_u8; 16];
-    low.copy_from_slice(&amount.0[16..]);
-    let value = u128::from_be_bytes(low);
-    let scaled = value
-        .checked_mul(u128::from(bps))
-        .ok_or(CapitalError::InvalidCanonical(
-            "utilization multiplication overflow",
-        ))?
-        / 10_000_u128;
-    Ok(Amount256::from_u128(scaled))
+    Ok(Amount256::from_be_bytes(out))
 }
 
 fn encode_anchor(anchor: &StateAnchor, writer: &mut Writer) {
