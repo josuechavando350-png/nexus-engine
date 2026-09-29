@@ -1,0 +1,206 @@
+name: NQC Census Chain Evidence Layer
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-chain-evidence.yml
+      - ci/nqc-census/CHAIN_EVIDENCE_CONTRACT.md
+      - ci/nqc-census/rpc-providers.json
+      - nqc-census/Cargo.toml
+      - nqc-census/Cargo.lock
+      - nqc-census/crates/nqc-census-chain/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chain-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      CHAIN_BASE: b5b5ef5c32203f0eaeb1238c32a0aa160affeb78
+      RMC003_TYPED_AUTHORITY: 5e032b2a601a2368334477e6ad9ee5c5b7ba219a
+      RMC005_MERGE: 5e856c3dc78902b055ed9878c117d3c1469a8fda
+      RMC004_MERGE: ad6cb0366b42d4acc835545f3ba6c68324cadd89
+      RMC003_MERGE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
+      RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
+      RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      CHAIN_TESTS_EXPECTED: "19"
+      CENSUS_ANCHOR: "25437474"
+      CENSUS_ANCHOR_HASH: "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+      EVIDENCE: /tmp/nqc-chain-evidence
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority lineage and exact scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE"
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          for ancestor in "$PFT_CERTIFIED_COMMIT" "$RMC001_MERGE" "$RMC002_MERGE" "$RMC003_MERGE" \
+                          "$RMC004_MERGE" "$RMC005_MERGE" "$RMC003_TYPED_AUTHORITY" "$CHAIN_BASE"; do
+            git merge-base --is-ancestor "$ancestor" HEAD
+          done
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            if [ "${{ github.event.pull_request.base.sha }}" = "$CHAIN_BASE" ]; then
+              python3 - <<'PY'
+          import subprocess
+          changed = set(subprocess.check_output(
+              ["git", "diff", "--name-only", "b5b5ef5c32203f0eaeb1238c32a0aa160affeb78...HEAD"],
+              text=True).splitlines())
+          fixed = {
+              ".github/workflows/nqc-census-chain-evidence.yml",
+              ".github/workflows/nqc-census-store.yml",
+              "ci/nqc-census/CHAIN_EVIDENCE_CONTRACT.md",
+              "ci/nqc-census/rpc-providers.json",
+              "nqc-census/Cargo.toml",
+              "nqc-census/Cargo.lock",
+          }
+          crate = {p for p in changed if p.startswith("nqc-census/crates/nqc-census-chain/")}
+          assert changed == fixed | crate, (
+              f"chain-evidence scope mismatch extra={sorted(changed - fixed - crate)} "
+              f"missing={sorted(fixed - changed)}")
+          print(f"CHAIN_EVIDENCE_SCOPE_PASS files={len(changed)} crate_files={len(crate)}")
+          PY
+              git diff --check "$CHAIN_BASE"...HEAD
+            else
+              echo "CHAIN_EVIDENCE_EXACT_SCOPE=NOT_THIS_PR base=${{ github.event.pull_request.base.sha }}"
+              git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
+            fi
+          fi
+          git rev-parse HEAD > "$EVIDENCE/head.txt"
+          git rev-parse 'HEAD^{tree}' > "$EVIDENCE/tree.txt"
+
+      - name: Verify Protocol/Fork and RMC-001..005 authorities untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+            ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
+            ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks \
+            ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json \
+            ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+          git diff --quiet "$RMC001_MERGE" HEAD -- \
+            ci/nqc-census/IDENTITY_CONTRACT.md ci/nqc-census/identity-vectors.json \
+            nqc-census/rust-toolchain.toml nqc-census/crates/nqc-census-core/Cargo.toml \
+            nqc-census/crates/nqc-census-core/src/identity.rs nqc-census/crates/nqc-census-core/tests/identity.rs
+          git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- nqc-census/crates/nqc-census-core
+          git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
+            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md ci/nqc-census/TYPED_OBSERVATION_CONTRACT.md \
+            ci/nqc-census/typed-observation-vectors.json ci/nqc-census/typed_observation_vectors.py \
+            ci/nqc-census/STORE_CONTRACT.md ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md \
+            ci/nqc-census/EFFECTIVE_SOURCE_CONTRACT.md ci/nqc-census/effective-source-profile.json \
+            nqc-census/crates/nqc-census-store
+          echo CHAIN_EVIDENCE_UPSTREAM_IMMUTABLE_PASS
+
+      - name: Verify dependency surface and authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re, subprocess, tomllib
+          from pathlib import Path
+          def packages(rev):
+              lock = subprocess.check_output(["git", "show", f"{rev}:nqc-census/Cargo.lock"])
+              return {(p["name"], p["version"], p.get("source"), p.get("checksum"))
+                      for p in tomllib.loads(lock.decode())["package"]}
+          base, head = packages("b5b5ef5c32203f0eaeb1238c32a0aa160affeb78"), packages("HEAD")
+          assert base <= head, f"packages removed or changed: {sorted(base - head)}"
+          added = head - base
+          assert all(p[2] is None for p in added), f"external package added: {sorted(added)}"
+          manifest = tomllib.load(open("nqc-census/crates/nqc-census-chain/Cargo.toml", "rb"))
+          assert set(manifest["dependencies"]) == {"nqc-census-core", "nqc-census-store", "sha2"}, manifest
+          assert "dev-dependencies" not in manifest and "build-dependencies" not in manifest
+          forbidden = re.compile(
+              r"signer|private.?key|secret|mnemonic|eth_send|eth_sign|personal_|sendRawTransaction|"
+              r"reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket|\bunsafe\b")
+          violations = []
+          for path in sorted(Path("nqc-census/crates/nqc-census-chain").rglob("*.rs")):
+              for number, line in enumerate(path.read_text().splitlines(), 1):
+                  if line.strip().startswith("//"):
+                      continue
+                  if forbidden.search(line):
+                      violations.append(f"{path}:{number}: {line.strip()}")
+                  if "process::Command" in line or "Command::new" in line:
+                      if path.name != "transport.rs":
+                          violations.append(f"{path}:{number}: process spawn outside transport.rs")
+          assert not violations, "\n".join(violations)
+          print(f"CHAIN_EVIDENCE_BOUNDARY_PASS added_local_packages={sorted(p[0] for p in added)}")
+          PY
+
+      - name: Rust format lint test and build locked
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          count=$(cargo test --locked -p nqc-census-chain --test chain_evidence -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$CHAIN_TESTS_EXPECTED"
+          cargo test --locked -p nqc-census-chain -- --nocapture 2>&1 | tee "$EVIDENCE/chain-tests.log"
+          grep -F "test result: ok. $CHAIN_TESTS_EXPECTED passed" "$EVIDENCE/chain-tests.log"
+          cargo test --workspace --all-targets --locked
+          cargo build --workspace --all-targets --locked
+          cargo build --release --locked -p nqc-census-chain --bin nqc-census-chain
+
+      - name: Live multi-provider bootstrap and anchor agreement
+        shell: bash
+        run: |
+          set -euo pipefail
+          BIN=nqc-census/target/release/nqc-census-chain
+          "$BIN" bootstrap --providers ci/nqc-census/rpc-providers.json --store "$EVIDENCE/store" \
+            --anchor "$CENSUS_ANCHOR" --out "$EVIDENCE/bootstrap-report.json" 2>&1 | tee "$EVIDENCE/bootstrap.log"
+          grep -F "CHAIN_BOOTSTRAP_PASS providers=3" "$EVIDENCE/bootstrap.log"
+          python3 - <<'PY'
+          import json, os
+          report = json.load(open(os.environ["EVIDENCE"] + "/bootstrap-report.json"))
+          assert report["chain_domain"]["genesis_hash"] == "0xd4e56740f876aef8c010b86a40d5f56745a118d0906a34e69aec8c0db1cb8fa3"
+          assert report["chain_domain"]["lineage_hash"] == "0x4985f5ca3d2afbec36529aa96f74de3cc10a2a4a6c44f2157a57d2c6059a11bb"
+          assert report["anchor"]["anchor"]["hash"] == os.environ["CENSUS_ANCHOR_HASH"]
+          assert report["infrastructure_independence"] == "NOT_PROVEN_DISTINCT_DECLARED_OPERATORS"
+          print("CHAIN_EVIDENCE_LIVE_REPORT", json.dumps(report, sort_keys=True))
+          PY
+
+      - name: Offline replay verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          nqc-census/target/release/nqc-census-chain verify --providers ci/nqc-census/rpc-providers.json \
+            --store "$EVIDENCE/store" --report "$EVIDENCE/bootstrap-report.json" 2>&1 | tee "$EVIDENCE/verify.log"
+          grep -F "CHAIN_OFFLINE_VERIFY_PASS providers=3" "$EVIDENCE/verify.log"
+          (cd nqc-census && cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify)
+          nqc-census/target/release/nqc-census-store-verify --store "$EVIDENCE/store" 2>&1 | tee "$EVIDENCE/store-verify.log"
+          echo CHAIN_EVIDENCE_LAYER_PASS | tee "$EVIDENCE/status.txt"
+
+      - name: Seal evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE"
+          cd "$EVIDENCE"
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS
+          wc -l SHA256SUMS
+
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-census-chain-evidence-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-chain-evidence
+          if-no-files-found: error
+          retention-days: 30
