@@ -1,7 +1,7 @@
 use crate::{
-    Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext,
-    CapitalClass, CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement,
-    CapitalSource, CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
+    Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext, CapitalClass,
+    CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement, CapitalSource,
+    CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock,
 };
 use nqc_census_chain::json::Json;
