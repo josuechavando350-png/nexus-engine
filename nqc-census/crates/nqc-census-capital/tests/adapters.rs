@@ -1,8 +1,8 @@
 use nqc_census_capital::{
     adapters::{
         AaveV3FlashObservation, BalancerV2FlashObservation, ExternalGasSponsorObservation,
-        UniswapV2FlashSwapObservation,
-        AAVE_V3_PROVIDER_NAMESPACE, BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V2_PROVIDER_NAMESPACE,
+        UniswapV2FlashSwapObservation, AAVE_V3_PROVIDER_NAMESPACE, BALANCER_V2_PROVIDER_NAMESPACE,
+        UNISWAP_V2_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, RoundingMode,
 };
@@ -205,7 +205,6 @@ fn uniswap_v2_flash_swap_requires_evidence() -> TestResult {
     assert!(matches!(result, Err(CapitalError::MissingEvidence)));
     Ok(())
 }
-
 
 #[test]
 fn external_gas_sponsor_is_non_operator_native_gas_capital() -> TestResult {

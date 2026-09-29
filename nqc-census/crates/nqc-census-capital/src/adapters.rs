@@ -153,7 +153,6 @@ impl UniswapV2FlashSwapObservation {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct ExternalGasSponsorObservation {
     pub anchor: StateAnchor,

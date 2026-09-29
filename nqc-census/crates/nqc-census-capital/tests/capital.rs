@@ -1048,7 +1048,6 @@ fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn no_repayment_gas_source_needs_no_principal_repayment_leg() -> TestResult {
     let gas = CapitalRequirementLeg::new(
