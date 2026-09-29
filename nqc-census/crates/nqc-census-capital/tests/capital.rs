@@ -271,11 +271,7 @@ fn execution_blocked_gas_is_not_misclassified_as_missing() -> TestResult {
         Amount256::from_u128(50),
         vec![CapitalClass::GasFunding],
     )?;
-    let required = requirement(
-        vec![gas_leg],
-        RequiredAtomicity::SameTransaction,
-        true,
-    )?;
+    let required = requirement(vec![gas_leg], RequiredAtomicity::SameTransaction, true)?;
 
     assert_eq!(
         evaluate_capital_feasibility(&required, &[blocked]),
