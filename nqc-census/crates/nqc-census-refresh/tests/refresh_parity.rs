@@ -519,6 +519,7 @@ fn close(reconciled: &Reconciled, mode: Json, dir: &Path) -> Result<Json, Box<dy
             code_tree: &"b".repeat(40),
             pins: &[],
             store_evidence_root: "root",
+            stage_stores: Vec::new(),
             record_manifests: Vec::new(),
             mode,
         },
