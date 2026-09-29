@@ -806,7 +806,6 @@ fn ledger_commitment_changes_with_observed_capacity() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn fee_quotes_are_integer_exact_across_full_uint256_domain() -> TestResult {
     let token = CapitalAsset::Token(address(20));
@@ -837,9 +836,7 @@ fn fee_quotes_are_integer_exact_across_full_uint256_domain() -> TestResult {
 fn fee_quote_rejects_uint256_overflow() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let maximum = Amount256::from_be_bytes([0xff; 32]);
-    assert!(FeeModel::exact_ratio(2, 1)?
-        .quote(maximum, token)
-        .is_err());
+    assert!(FeeModel::exact_ratio(2, 1)?.quote(maximum, token).is_err());
     Ok(())
 }
 

@@ -2138,7 +2138,6 @@ impl Writer {
     fn u64(&mut self, value: u64) {
         self.bytes(&value.to_be_bytes());
     }
-
 }
 
 struct Reader<'a> {
