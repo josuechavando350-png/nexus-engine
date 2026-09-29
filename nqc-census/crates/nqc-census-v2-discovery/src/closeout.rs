@@ -149,12 +149,10 @@ fn replay_transport(
             .and_then(Json::as_array)
             .ok_or_else(|| ChainError::Evidence("manifest without exchanges".into()))?
         {
-            let request = store.get_artifact(&ArtifactId::parse_hex(
-                exchange.str_field("request")?,
-            )?)?;
-            let response = store.get_artifact(&ArtifactId::parse_hex(
-                exchange.str_field("response")?,
-            )?)?;
+            let request =
+                store.get_artifact(&ArtifactId::parse_hex(exchange.str_field("request")?)?)?;
+            let response =
+                store.get_artifact(&ArtifactId::parse_hex(exchange.str_field("response")?)?)?;
             queues
                 .entry((owner.namespace(), Sha256::digest(&request).into()))
                 .or_default()
