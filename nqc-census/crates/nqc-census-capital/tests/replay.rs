@@ -451,6 +451,12 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     assert!(closeout_text.contains("\"real_source_certification\":true"));
     assert!(closeout_text.contains("\"zero_own_capital_proven\":false"));
     assert!(closeout_text.contains("\"opportunity_level_capital_feasibility_claimed\":false"));
+    assert!(closeout_text.contains("\"d08_authority_artifact_sha256\""));
+    assert!(closeout_text.contains("\"d08_coverage_commitment\""));
+    assert!(closeout_text.contains("\"d08_output_set_commitment\""));
+    assert!(closeout_text.contains("\"d09_authority_artifact_sha256\""));
+    assert!(closeout_text.contains("\"d09_coverage_commitment\""));
+    assert!(closeout_text.contains("\"d09_output_set_commitment\""));
     assert!(closeout_text.contains("\"profitability_claimed\":false"));
 
     verify_real_source_closeout_bytes_for_code(
@@ -494,6 +500,12 @@ fn closeout_opportunity_claim_requires_at_least_one_feasible_requirement() {
         rejected_count: 1,
         d08_source_count: 1,
         d09_requirement_count: 1,
+        d08_authority_artifact_sha256: hash(24),
+        d08_coverage_commitment: hash(25),
+        d08_output_set_commitment: hash(26),
+        d09_authority_artifact_sha256: hash(27),
+        d09_coverage_commitment: hash(28),
+        d09_output_set_commitment: hash(29),
         zero_own_capital_proven: false,
         capital_commitment: hash(30).to_hex(),
         upstream_authority_commitment: hash(31).to_hex(),
