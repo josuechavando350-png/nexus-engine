@@ -126,6 +126,26 @@ then:
 
 A tampered report, or a report missing a manifest, is rejected.
 
+Public providers answer the same request with different bytes of the same
+JSON value: key order, or a trailing newline. D06 run 36616344742 recorded
+45 such requests, all on mevblocker, within one job and across jobs. A
+transport keyed by request alone serves one byte form to every job, so that
+run's replay could not reproduce the jobs that saw the other form. The
+replay therefore:
+
+- answers each request with its next recorded occurrence, in the order the
+  reconstruction runs its jobs (bootstrap and anchor per provider, the three
+  earliest-code searches, the lineage windows, the reserve windows);
+- takes that order from the report, whose job lists must name exactly
+  `replay_manifests`;
+- fails when a request is made more often than it was recorded;
+- after an interruption, first sets aside the occurrences of the jobs the
+  store has committed, because the chain layer replays those from their own
+  manifests, not through the transport.
+
+The resume report counts the requests recorded with differing responses and,
+for each interruption, the jobs already committed.
+
 ## Closeout
 
 - Artifacts carry:

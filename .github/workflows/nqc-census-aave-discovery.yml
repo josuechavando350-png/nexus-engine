@@ -36,7 +36,7 @@ jobs:
       PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
       RUST_TOOLCHAIN: "1.98.1"
       D06_TESTS_EXPECTED: "21"
-      D06_HISTORY_TESTS_EXPECTED: "9"
+      D06_HISTORY_TESTS_EXPECTED: "10"
       D06_EVIDENCE: /tmp/nqc-rmc006-evidence
 
     steps:

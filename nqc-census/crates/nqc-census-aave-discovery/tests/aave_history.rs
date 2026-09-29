@@ -6,10 +6,11 @@ use nqc_census_aave_discovery::history::{history_with, HistoryPlan};
 use nqc_census_aave_discovery::resume::resume_check;
 use nqc_census_chain::abi;
 use nqc_census_chain::acquire::Acquisition;
+use nqc_census_chain::job::add_manifest_exchanges;
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::{ProviderSet, ProviderSpec};
 use nqc_census_chain::testkit::{Faults, SimChain, SimLog, SimNetwork, SimProvider};
-use nqc_census_chain::transport::RetryPolicy;
+use nqc_census_chain::transport::{HttpReply, ReplayTransport, RetryPolicy, Transport};
 use nqc_census_chain::ChainError;
 use nqc_census_core::Address;
 use nqc_census_store::{Store, StoreConfig};
@@ -705,5 +706,110 @@ fn crash_resume_replay_is_byte_identical_and_tamper_is_detected() -> TestResult 
         &harness.root.join("resume-starved"),
     )
     .is_err());
+    Ok(())
+}
+
+/// A provider that answers every repeat of an identical request with the same
+/// JSON value in other bytes (a trailing newline on every second answer), as
+/// public endpoints were measured to do (D06 run 36616344742).
+struct Reformatting<'a> {
+    inner: &'a SimNetwork,
+    seen: Mutex<std::collections::BTreeMap<(u16, Vec<u8>), u64>>,
+}
+
+impl Transport for Reformatting<'_> {
+    fn post(&self, provider: &ProviderSpec, body: &[u8]) -> Result<HttpReply, ChainError> {
+        let mut reply = self.inner.post(provider, body)?;
+        let mut seen = self
+            .seen
+            .lock()
+            .map_err(|_| ChainError::Replay("poisoned"))?;
+        let count = seen
+            .entry((provider.namespace(), body.to_vec()))
+            .or_insert(0);
+        if *count % 2 == 1 {
+            reply.body.push(b'\n');
+        }
+        *count += 1;
+        Ok(reply)
+    }
+}
+
+#[test]
+fn repeated_requests_answered_in_other_bytes_replay_in_recorded_order() -> TestResult {
+    let deployment = deployment()?;
+    let current = current_report(&deployment, &[]);
+    let harness = harness(deployment.sim.clone(), Faults::default())?;
+    let store = Store::create(&harness.root.join("store"), StoreConfig::standard())?;
+    let provider = Reformatting {
+        inner: &harness.network,
+        seen: Mutex::new(std::collections::BTreeMap::new()),
+    };
+    let report = history_with(
+        &Acquisition::new(&store, &provider, RetryPolicy::none()),
+        &harness.providers,
+        &harness.plan,
+        &current,
+    )?;
+
+    // A replay keyed by request alone answers every repeat with one of the
+    // recorded byte forms, so some job cannot reproduce: the live failure.
+    let mut keyed = ReplayTransport::new();
+    for id in report
+        .get("replay_manifests")
+        .and_then(Json::as_array)
+        .ok_or("manifests")?
+    {
+        let id = nqc_census_store::ArtifactId::parse_hex(id.as_str().ok_or("id")?)?;
+        let bytes = store.get_artifact(&id)?;
+        let manifest = Json::parse(&bytes)?;
+        let descriptor = manifest
+            .get("job")
+            .and_then(|job| job.get("provider"))
+            .ok_or("provider")?;
+        let owner = harness
+            .providers
+            .iter()
+            .find(|provider| provider.descriptor().same_as(descriptor).unwrap_or(false))
+            .ok_or("owner")?;
+        add_manifest_exchanges(&mut keyed, &store, &bytes, owner)?;
+    }
+    let fresh = Store::create(&harness.root.join("keyed"), StoreConfig::standard())?;
+    let keyed_report = history_with(
+        &Acquisition::new(&fresh, &keyed, RetryPolicy::none()),
+        &harness.providers,
+        &harness.plan,
+        &current,
+    )?;
+    assert!(!keyed_report.same_as(&report)?);
+
+    // Replaying each request's recorded occurrences in order reproduces the
+    // report, clean and after every interruption.
+    let check = resume_check(
+        &store,
+        &harness.providers,
+        &harness.plan,
+        &current,
+        &report,
+        &harness.root.join("resume"),
+    )?;
+    assert_eq!(check.str_field("status")?, "RESUME_EQUIVALENCE_PASS");
+    assert!(
+        check
+            .get("requests_recorded_with_differing_responses")
+            .and_then(Json::as_i64)
+            .ok_or("conflicts")?
+            > 0
+    );
+    let interruptions = check
+        .get("interruptions")
+        .and_then(Json::as_array)
+        .ok_or("cuts")?;
+    assert!(interruptions.iter().any(|cut| {
+        cut.get("committed_jobs_at_interruption")
+            .and_then(Json::as_i64)
+            .unwrap_or(0)
+            > 0
+    }));
     Ok(())
 }

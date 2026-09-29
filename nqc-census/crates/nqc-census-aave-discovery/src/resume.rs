@@ -5,59 +5,250 @@
 //! a fresh RMC-004 store, and again into fresh stores that are crashed after a
 //! fixed number of requests and resumed. Every run must reproduce the live
 //! report byte-for-byte and the same store evidence root.
+//!
+//! Public providers answer the same request with different bytes of the same
+//! JSON value (key order, a trailing newline; 45 such requests in D06 run
+//! 36616344742). A transport keyed by request alone can return only one of
+//! them, so a job that saw the other cannot be reproduced. The replay here
+//! answers every request with its next recorded occurrence, in the order the
+//! reconstruction runs its jobs, and a resumed run first sets aside the
+//! occurrences of the jobs its store already committed (those are replayed
+//! from their own manifests by the chain layer, not through the transport).
 
 use crate::history::{history_with, HistoryPlan};
 use nqc_census_chain::{
     acquire::Acquisition,
-    job::add_manifest_exchanges,
+    catalog::committed_checkpoints,
+    job::JOB_MANIFEST_SCHEMA,
     json::Json,
     provider::ProviderSet,
-    transport::{InterruptAfter, ReplayTransport, RetryPolicy},
+    transport::{HttpReply, InterruptAfter, RetryPolicy, Transport},
     ChainError,
 };
-use nqc_census_store::{verify, ArtifactId, Store, StoreConfig};
+use nqc_census_store::{verify, ArtifactId, Store, StoreConfig, StreamScope};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::path::Path;
+use std::sync::Mutex;
 
 pub const RESUME_SCHEMA: &str = "nqc-rmc-006-aave-resume-equivalence-v1";
 
-/// Replay transport over exactly the exchanges `history` names.
-pub fn replay_transport(
-    store: &Store,
-    providers: &ProviderSet,
-    history: &Json,
-) -> Result<(ReplayTransport, u64), ChainError> {
-    let mut replay = ReplayTransport::new();
-    let mut manifests = 0_u64;
-    for id in history
-        .get("replay_manifests")
+fn manifest_list(value: Option<&Json>, what: &str) -> Result<Vec<String>, ChainError> {
+    value
         .and_then(Json::as_array)
-        .ok_or_else(|| ChainError::Evidence("history report lists no replay manifests".into()))?
-    {
-        let id = ArtifactId::parse_hex(
+        .ok_or_else(|| ChainError::Evidence(format!("history report lists no {what}")))?
+        .iter()
+        .map(|id| {
             id.as_str()
-                .ok_or_else(|| ChainError::Evidence("replay manifest id is not text".into()))?,
-        )?;
-        let bytes = store.get_artifact(&id)?;
-        let manifest = Json::parse(&bytes)?;
-        let descriptor = manifest
-            .get("job")
-            .and_then(|job| job.get("provider"))
-            .ok_or_else(|| ChainError::Evidence("manifest names no provider".into()))?;
-        let mut owner = None;
-        for provider in providers.iter() {
-            if provider.descriptor().same_as(descriptor)? {
-                owner = Some(provider);
+                .map(str::to_owned)
+                .ok_or_else(|| ChainError::Evidence(format!("{what} entry is not text")))
+        })
+        .collect()
+}
+
+/// Manifests of `history` in the order the reconstruction runs their jobs:
+/// bootstrap and anchor per provider, the AddressesProvider, Pool and
+/// PoolConfigurator earliest-code searches, the lineage scan windows, then
+/// the reserve scan windows. Only the relative order of one provider's jobs
+/// matters. The list must name exactly the report's `replay_manifests`.
+pub fn execution_order(history: &Json) -> Result<Vec<String>, ChainError> {
+    let mut order = Vec::new();
+    for record in history
+        .get("bootstrap")
+        .and_then(|bootstrap| bootstrap.get("providers"))
+        .and_then(Json::as_array)
+        .ok_or_else(|| ChainError::Evidence("history report without bootstrap".into()))?
+    {
+        order.push(record.str_field("bootstrap_manifest")?.to_owned());
+        order.push(record.str_field("anchor_manifest")?.to_owned());
+    }
+    for key in [
+        "addresses_provider_boundary_manifests",
+        "pool_boundary_manifests",
+        "pool_configurator_boundary_manifests",
+        "configurator_lineage_manifests",
+    ] {
+        order.extend(manifest_list(history.get(key), key)?);
+    }
+    for scan in history
+        .get("scan_evidence")
+        .and_then(Json::as_array)
+        .ok_or_else(|| ChainError::Evidence("history report without scan evidence".into()))?
+    {
+        for window in scan
+            .get("windows")
+            .and_then(Json::as_array)
+            .ok_or_else(|| ChainError::Evidence("scan evidence without windows".into()))?
+        {
+            order.push(window.str_field("manifest")?.to_owned());
+        }
+    }
+    let mut named = order.clone();
+    named.sort();
+    named.dedup();
+    if named != manifest_list(history.get("replay_manifests"), "replay manifests")? {
+        return Err(ChainError::Evidence(
+            "the report's jobs do not name exactly its replay manifests".into(),
+        ));
+    }
+    Ok(order)
+}
+
+/// One recorded job: its manifest, provider namespace and exchanges, in the
+/// order the job made them.
+struct RecordedJob {
+    manifest: String,
+    namespace: u16,
+    exchanges: Vec<([u8; 32], Vec<u8>)>,
+}
+
+/// Recorded responses per (provider namespace, request digest), in order.
+type Occurrences = BTreeMap<(u16, [u8; 32]), VecDeque<Vec<u8>>>;
+
+/// Every job the live history run recorded, in execution order.
+pub struct RecordedRun {
+    jobs: Vec<RecordedJob>,
+}
+
+impl RecordedRun {
+    /// Reads exactly the manifests `history` names from the live store.
+    pub fn from_history(
+        store: &Store,
+        providers: &ProviderSet,
+        history: &Json,
+    ) -> Result<Self, ChainError> {
+        let mut jobs = Vec::new();
+        for manifest in execution_order(history)? {
+            let document = Json::parse(&store.get_artifact(&ArtifactId::parse_hex(&manifest)?)?)?;
+            if document.get("schema").and_then(Json::as_str) != Some(JOB_MANIFEST_SCHEMA) {
+                return Err(ChainError::Evidence(format!(
+                    "{manifest} is not a job manifest"
+                )));
+            }
+            let descriptor = document
+                .get("job")
+                .and_then(|job| job.get("provider"))
+                .ok_or_else(|| ChainError::Evidence("manifest names no provider".into()))?;
+            let mut owner = None;
+            for provider in providers.iter() {
+                if provider.descriptor().same_as(descriptor)? {
+                    owner = Some(provider);
+                }
+            }
+            let provider = owner.ok_or_else(|| {
+                ChainError::Evidence("manifest provider is not in the declared provider set".into())
+            })?;
+            let mut exchanges = Vec::new();
+            for exchange in document
+                .get("exchanges")
+                .and_then(Json::as_array)
+                .ok_or_else(|| ChainError::Evidence("manifest without exchanges".into()))?
+            {
+                let fetch = |key: &str| -> Result<Vec<u8>, ChainError> {
+                    Ok(store.get_artifact(&ArtifactId::parse_hex(exchange.str_field(key)?)?)?)
+                };
+                exchanges.push((Sha256::digest(fetch("request")?).into(), fetch("response")?));
+            }
+            jobs.push(RecordedJob {
+                manifest,
+                namespace: provider.namespace(),
+                exchanges,
+            });
+        }
+        Ok(Self { jobs })
+    }
+
+    /// Recorded exchanges, counted once per job that made them.
+    pub fn exchanges(&self) -> u64 {
+        self.jobs.iter().map(|job| job.exchanges.len() as u64).sum()
+    }
+
+    /// Distinct manifests.
+    pub fn manifests(&self) -> u64 {
+        self.jobs
+            .iter()
+            .map(|job| job.manifest.as_str())
+            .collect::<BTreeSet<_>>()
+            .len() as u64
+    }
+
+    /// A fresh replay over every job except those whose manifest is in
+    /// `committed`.
+    pub fn transport(&self, committed: &BTreeSet<String>) -> SequencedReplay {
+        let mut queues = Occurrences::new();
+        for job in &self.jobs {
+            if committed.contains(&job.manifest) {
+                continue;
+            }
+            for (request, response) in &job.exchanges {
+                queues
+                    .entry((job.namespace, *request))
+                    .or_default()
+                    .push_back(response.clone());
             }
         }
-        let provider = owner.ok_or_else(|| {
-            ChainError::Evidence("manifest provider is not in the declared provider set".into())
-        })?;
-        add_manifest_exchanges(&mut replay, store, &bytes, provider)?;
-        manifests += 1;
+        SequencedReplay {
+            queues: Mutex::new(queues),
+        }
     }
-    Ok((replay, manifests))
+}
+
+/// Answers each request with its next recorded occurrence and fails when a
+/// request is made more often than it was recorded.
+pub struct SequencedReplay {
+    queues: Mutex<Occurrences>,
+}
+
+impl Transport for SequencedReplay {
+    fn post(
+        &self,
+        provider: &nqc_census_chain::provider::ProviderSpec,
+        body: &[u8],
+    ) -> Result<HttpReply, ChainError> {
+        let key = (provider.namespace(), Sha256::digest(body).into());
+        let mut queues = self
+            .queues
+            .lock()
+            .map_err(|_| ChainError::Replay("replay state is poisoned"))?;
+        queues
+            .get_mut(&key)
+            .and_then(VecDeque::pop_front)
+            .map(|body| HttpReply { status: 200, body })
+            .ok_or(ChainError::Replay(
+                "request was never recorded, or not that many times",
+            ))
+    }
+}
+
+/// Every evidence artifact of every checkpoint committed in the store at
+/// `path`, read through the documented layout (`streams/<scope>/SCOPE`) and
+/// certified by the store.
+fn committed_evidence(path: &Path) -> Result<BTreeSet<String>, ChainError> {
+    let store = Store::open_existing(path)?;
+    let streams = path.join("streams");
+    let mut out = BTreeSet::new();
+    let entries = match std::fs::read_dir(&streams) {
+        Ok(entries) => entries,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(out),
+        Err(error) => {
+            return Err(ChainError::Evidence(format!(
+                "{}: {error}",
+                streams.display()
+            )))
+        }
+    };
+    for entry in entries {
+        let stream = entry
+            .map_err(|error| ChainError::Evidence(format!("{}: {error}", streams.display())))?
+            .path();
+        let bytes = std::fs::read(stream.join("SCOPE"))
+            .map_err(|error| ChainError::Evidence(format!("{}: {error}", stream.display())))?;
+        let scope = StreamScope::decode(&bytes)?;
+        for checkpoint in committed_checkpoints(&store, &scope)? {
+            out.extend(checkpoint.evidence().iter().map(ArtifactId::to_hex));
+        }
+    }
+    Ok(out)
 }
 
 /// A request the live run recorded more than once with different response
@@ -272,8 +463,10 @@ pub fn resume_check(
     history: &Json,
     work: &Path,
 ) -> Result<Json, ChainError> {
-    let (replay, manifests) = replay_transport(live_store, providers, history)?;
-    let exchanges = replay.len() as u64;
+    let recorded = RecordedRun::from_history(live_store, providers, history)?;
+    let conflicts = exchange_conflicts(live_store, providers, history)?;
+    let manifests = recorded.manifests();
+    let exchanges = recorded.exchanges();
     if exchanges < 3 {
         return Err(ChainError::Evidence(
             "too few recorded exchanges to interrupt".into(),
@@ -283,12 +476,16 @@ pub fn resume_check(
         .map_err(|error| ChainError::Config(format!("{}: {error}", work.display())))?;
 
     let clean = work.join("clean");
-    let replayed = replay_run(&clean, &replay, providers, plan, current)?;
+    let replayed = replay_run(
+        &clean,
+        &recorded.transport(&BTreeSet::new()),
+        providers,
+        plan,
+        current,
+    )?;
     if !replayed.same_as(history)? {
-        // Say exactly why: requests recorded with conflicting responses (a
-        // provider answering the same request differently in two jobs), and
+        // Say exactly why: requests recorded with differing responses, and
         // where the reports differ. The detail is also kept on disk.
-        let conflicts = exchange_conflicts(live_store, providers, history)?;
         let differences = json_differences(history, &replayed, 40);
         let diagnostics = Json::object([
             (
@@ -331,13 +528,21 @@ pub fn resume_check(
     let mut interruptions = Vec::with_capacity(cuts.len());
     for cut in cuts {
         let path = work.join(format!("interrupted-{cut}"));
+        let replay = recorded.transport(&BTreeSet::new());
         let crashed = InterruptAfter::new(&replay, cut);
         if replay_run(&path, &crashed, providers, plan, current).is_ok() {
             return Err(ChainError::Evidence(format!(
                 "a run interrupted after {cut} requests still completed"
             )));
         }
-        let resumed = replay_run(&path, &replay, providers, plan, current)?;
+        let committed = committed_evidence(&path)?;
+        let resumed = replay_run(
+            &path,
+            &recorded.transport(&committed),
+            providers,
+            plan,
+            current,
+        )?;
         if !resumed.same_as(history)? {
             return Err(ChainError::Evidence(format!(
                 "resume after interruption at {cut} differs from the live report"
@@ -351,6 +556,16 @@ pub fn resume_check(
         }
         interruptions.push(Json::object([
             ("interrupted_after_requests", Json::uint(cut)),
+            (
+                "committed_jobs_at_interruption",
+                Json::uint(
+                    recorded
+                        .jobs
+                        .iter()
+                        .filter(|job| committed.contains(&job.manifest))
+                        .count() as u64,
+                ),
+            ),
             ("resumed_report_identical", Json::Bool(true)),
             ("evidence_root", Json::string(root)),
         ]));
@@ -360,6 +575,14 @@ pub fn resume_check(
         ("status", Json::string("RESUME_EQUIVALENCE_PASS")),
         ("replay_manifests", Json::uint(manifests)),
         ("recorded_exchanges", Json::uint(exchanges)),
+        (
+            "requests_recorded_with_differing_responses",
+            Json::uint(conflicts.len() as u64),
+        ),
+        (
+            "replay_order",
+            Json::string("RECORDED_OCCURRENCE_ORDER_PER_REQUEST"),
+        ),
         ("clean_replay_report_identical", Json::Bool(true)),
         ("clean_evidence_root", Json::string(clean_root)),
         ("interruptions", Json::Array(interruptions)),
