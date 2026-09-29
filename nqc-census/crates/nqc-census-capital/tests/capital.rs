@@ -1611,7 +1611,6 @@ fn stable_source_key_does_not_alias_different_asset_or_class() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn collateral_leg_rejects_source_that_requires_temporary_lock() -> TestResult {
     let collateral_asset = CapitalAsset::Token(address(21));
