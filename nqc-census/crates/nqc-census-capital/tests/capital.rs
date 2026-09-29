@@ -1326,7 +1326,6 @@ fn zero_own_capital_claim_requires_at_least_one_feasible_requirement() -> TestRe
     Ok(())
 }
 
-
 #[test]
 fn collateralized_borrowing_can_bind_full_persistent_risk_semantics() -> TestResult {
     let token = CapitalAsset::Token(address(20));
