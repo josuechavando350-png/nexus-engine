@@ -33,7 +33,7 @@ pub use identity::{
 pub use keccak::keccak256;
 pub use observation::{
     peek_observation_class, require_same_anchor, AnchorMismatchField, BlockHeaderEnvelope,
-    CallContext, CallOutcome, CensusObservation, ContractCallEnvelope, HeaderEncoding,
+    CallContext, CallOutcome, CensusObservation, ContractCallEnvelope, HeaderEncoding, LogTopic,
     ObservationClass, ObservationDigest, ObservationEnvelope, ObservationError, ObservationPayload,
     ObservationProvenance, ObservationSemantics, ProvenanceAuthority, RawLogEnvelope,
     RuntimeCodeEnvelope, StateAnchor, TYPED_OBSERVATION_SCHEMA_VERSION,
