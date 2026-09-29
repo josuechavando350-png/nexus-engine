@@ -6,6 +6,7 @@ on:
       - .github/workflows/nqc-census-aave-discovery.yml
       - ci/nqc-census/AAVE_DISCOVERY_CONTRACT.md
       - ci/nqc-census/aave-discovery-scope.json
+      - ci/nqc-census/aave-history-providers.json
       - nqc-census/Cargo.toml
       - nqc-census/Cargo.lock
       - nqc-census/crates/nqc-census-aave-discovery/**
@@ -17,7 +18,7 @@ permissions:
 jobs:
   aave-discovery:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       D06_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
@@ -89,6 +90,21 @@ jobs:
           grep -F "RMC006_CURRENT_SURFACE_PASS providers=3" "$D06_EVIDENCE/current.log"
           target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/store-verify.log"
+
+      - name: Live cross-provider historical reserve reconciliation
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-history
+          target/release/nqc-rmc006-aave-history \
+            --providers ../ci/nqc-census/aave-history-providers.json \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --store "$D06_EVIDENCE/store" \
+            --out "$D06_EVIDENCE/aave-history.json" | tee "$D06_EVIDENCE/history.log"
+          grep -F "RMC006_HISTORY_RECONCILIATION_PASS providers=2 current=67" "$D06_EVIDENCE/history.log"
+          target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/history-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/history-store-verify.log"
 
       - name: Preserve D06 current-surface evidence
         if: always()
