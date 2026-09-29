@@ -6,7 +6,9 @@ use nqc_census_chain::{
     hex,
     job::{chain_read_semantics, JobSpec},
     json::Json,
-    Acquisition, ChainError, ChainProfile, CurlTransport, ProviderSet, RetryPolicy,
+    provider::{ProviderSet, ProviderSpec},
+    transport::{CurlTransport, RetryPolicy},
+    Acquisition, ChainError, ChainProfile,
 };
 use nqc_census_core::{
     Address, CallOutcome, CensusObservation, ContractCallEnvelope, DeploymentKey, Hash32,
@@ -124,7 +126,7 @@ fn current_semantics() -> Result<ObservationSemantics, ChainError> {
 
 fn provider_current_facts(
     acquisition: &Acquisition<'_>,
-    provider: &nqc_census_chain::ProviderSpec,
+    provider: &ProviderSpec,
     chain: &nqc_census_core::ChainDomain,
     anchor: &nqc_census_core::StateAnchor,
 ) -> Result<ProviderResult, ChainError> {
