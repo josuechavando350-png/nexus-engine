@@ -200,10 +200,7 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
             .health_factor_wad,
         Amount256::from_u128(999_999_999_999_999_999)
     );
-    assert_eq!(
-        imported.borrowers[0].user_configuration,
-        Amount256::ZERO
-    );
+    assert_eq!(imported.borrowers[0].user_configuration, Amount256::ZERO);
     Ok(())
 }
 
