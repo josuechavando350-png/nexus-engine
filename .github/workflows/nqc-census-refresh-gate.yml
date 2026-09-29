@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - .github/workflows/nqc-census-refresh-gate.yml
+      - .github/workflows/nqc-census-refresh-live.yml
+      - .github/workflows/nqc-census-refresh-anchor.yml
+      - ci/nqc-census/refresh-inputs.json
       - ci/nqc-census/REFRESH_PARITY_CONTRACT.md
       - nqc-census/Cargo.toml
       - nqc-census/Cargo.lock
