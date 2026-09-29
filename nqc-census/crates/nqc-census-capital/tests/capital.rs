@@ -1240,6 +1240,7 @@ fn git_object_ids_are_exact_lowercase_sha1_hex_width() -> TestResult {
     let valid = GitObjectId::parse_hex("0123456789abcdef0123456789abcdef01234567")?;
     assert_eq!(valid.to_hex(), "0123456789abcdef0123456789abcdef01234567");
     assert!(GitObjectId::parse_hex("abc").is_err());
+    assert!(GitObjectId::parse_hex("0000000000000000000000000000000000000000").is_err());
     assert!(GitObjectId::parse_hex("0123456789ABCDEF0123456789ABCDEF01234567").is_err());
     Ok(())
 }

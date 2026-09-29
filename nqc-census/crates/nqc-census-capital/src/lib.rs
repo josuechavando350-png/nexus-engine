@@ -2321,6 +2321,9 @@ impl GitObjectId {
             let low = hex_nibble(raw[index * 2 + 1])?;
             bytes[index] = (high << 4) | low;
         }
+        if bytes == [0; 20] {
+            return Err(CapitalError::InvalidGitObjectId);
+        }
         Ok(Self(bytes))
     }
 
