@@ -279,21 +279,6 @@ impl CapitalClass {
         }
     }
 
-    pub const fn code(self) -> &'static str {
-        match self {
-            Self::ActionPrincipal => "ACTION_PRINCIPAL",
-            Self::Gas => "GAS",
-            Self::ProtocolFee => "PROTOCOL_FEE",
-            Self::FundingFee => "FUNDING_FEE",
-            Self::BuilderOrSolverDeposit => "BUILDER_OR_SOLVER_DEPOSIT",
-            Self::Inventory => "INVENTORY",
-            Self::Collateral => "COLLATERAL",
-            Self::PersistentDebtPrincipal => "PERSISTENT_DEBT_PRINCIPAL",
-            Self::Repayment => "REPAYMENT",
-            Self::TemporaryLock => "TEMPORARY_LOCK",
-        }
-    }
-
     const fn tag(self) -> u8 {
         match self {
             Self::ProtocolNativeFlashLoan => 1,
@@ -1309,6 +1294,21 @@ impl RequirementKind {
         Self::Repayment,
         Self::TemporaryLock,
     ];
+
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::ActionPrincipal => "ACTION_PRINCIPAL",
+            Self::Gas => "GAS",
+            Self::ProtocolFee => "PROTOCOL_FEE",
+            Self::FundingFee => "FUNDING_FEE",
+            Self::BuilderOrSolverDeposit => "BUILDER_OR_SOLVER_DEPOSIT",
+            Self::Inventory => "INVENTORY",
+            Self::Collateral => "COLLATERAL",
+            Self::PersistentDebtPrincipal => "PERSISTENT_DEBT_PRINCIPAL",
+            Self::Repayment => "REPAYMENT",
+            Self::TemporaryLock => "TEMPORARY_LOCK",
+        }
+    }
 
     const fn tag(self) -> u8 {
         match self {
