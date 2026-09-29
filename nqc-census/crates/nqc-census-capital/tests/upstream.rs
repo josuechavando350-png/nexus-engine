@@ -398,8 +398,15 @@ fn d08_import_coverage_is_order_independent_and_conserved() -> TestResult {
     assert!(a.is_conserved());
     assert!(b.is_conserved());
     assert_eq!(a.candidate_count, 3);
-    assert_eq!(a.admitted_count, 2);
-    assert_eq!(a.rejected_count, 1);
+    assert_eq!(a.admitted_count, 3);
+    assert_eq!(a.rejected_count, 0);
+    assert_eq!(
+        a.sources
+            .iter()
+            .filter(|source| !source.execution_eligible())
+            .count(),
+        1
+    );
     assert_eq!(a.coverage_commitment, b.coverage_commitment);
     Ok(())
 }
