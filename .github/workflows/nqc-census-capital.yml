@@ -1,0 +1,60 @@
+name: NQC RMC-011 Capital Census
+
+on:
+  pull_request:
+    paths:
+      - "nqc-census/crates/nqc-census-capital/**"
+      - "nqc-census/Cargo.toml"
+      - "nqc-census/Cargo.lock"
+      - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/capital-census-scope.json"
+      - ".github/workflows/nqc-census-capital.yml"
+  push:
+    branches:
+      - "nqc/rmc-011-capital-census-foundation-20260929"
+
+permissions:
+  contents: read
+
+jobs:
+  rmc-011-capital-foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@v4
+
+      - name: Verify authority declaration
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F '"stage": "RMC-011"' ci/nqc-census/capital-census-scope.json
+          grep -F '"authority_parent": "8ebf6860e0a16964f5293df0ef40695b303b286d"' ci/nqc-census/capital-census-scope.json
+          grep -F '"pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf"' ci/nqc-census/capital-census-scope.json
+          grep -F 'Zero-own-capital is a constraint to prove' ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+
+      - name: Verify no execution authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction'             nqc-census/crates/nqc-census-capital ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+
+      - name: Locked Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-capital
+          cargo test --locked --workspace
+          cargo build --release --locked -p nqc-census-capital
+
+      - name: Verify required capital classes are represented
+        shell: bash
+        run: |
+          set -euo pipefail
+          for class in             ProtocolNativeFlashLoan             AtomicFlashLiquidity             FlashSwap             TransientCredit             CollateralizedBorrowing             PersistentDebt             InventoryRequirement             GasFunding             BondOrStake             SolverOrBuilderDeposit             IntraBlockTemporaryLock
+          do
+            grep -F "$class" nqc-census/crates/nqc-census-capital/src/lib.rs
+          done
