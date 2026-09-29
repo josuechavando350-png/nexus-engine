@@ -383,8 +383,6 @@ pub fn run_history(
     let logs = agree_logs("rmc006-aave-reserve-lifecycle", &per_provider)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
 
-
-    let interface = aave_interface();
     let mut lifecycle = BTreeMap::<Address, &'static str>::new();
     let mut latest_init = BTreeMap::<Address, LatestInit>::new();
     let mut event_records = Vec::with_capacity(logs.len());
