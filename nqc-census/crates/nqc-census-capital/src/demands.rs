@@ -338,11 +338,12 @@ fn verify_d09_artifact_binding(
         ("account-manifest.jsonl", account_manifest_jsonl),
         ("account-summary.json", account_summary_json),
     ];
-    let artifacts = required(&manifest, "artifacts")?
-        .as_array()
-        .ok_or(CapitalError::InvalidCanonical(
-            "RMC-009 evidence artifacts are not array",
-        ))?;
+    let artifacts =
+        required(&manifest, "artifacts")?
+            .as_array()
+            .ok_or(CapitalError::InvalidCanonical(
+                "RMC-009 evidence artifacts are not array",
+            ))?;
     let mut seen_paths = BTreeSet::new();
     let mut verified_paths = BTreeSet::new();
     for entry in artifacts {
@@ -363,9 +364,8 @@ fn verify_d09_artifact_binding(
             return Err(CapitalError::CanonicalDigestMismatch);
         }
         if number(entry, "bytes")?
-            != u64::try_from(bytes.len()).map_err(|_| {
-                CapitalError::InvalidCanonical("RMC-009 artifact length overflow")
-            })?
+            != u64::try_from(bytes.len())
+                .map_err(|_| CapitalError::InvalidCanonical("RMC-009 artifact length overflow"))?
         {
             return Err(CapitalError::InvalidCanonical(
                 "RMC-009 evidence artifact length mismatch",

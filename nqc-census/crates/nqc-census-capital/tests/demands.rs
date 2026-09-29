@@ -357,7 +357,6 @@ fn d09_import_refuses_schema_or_v2_scope_drift() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn d09_evidentiary_import_rejects_account_artifact_substitution() -> TestResult {
     let account = format!("0x{}", "51".repeat(20));
