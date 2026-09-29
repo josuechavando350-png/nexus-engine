@@ -51,6 +51,7 @@ Every admitted capital source record MUST bind:
 - asset
 - block-pinned observation anchor
 - maximum_available
+- zero-capacity sources remain explicit census records rather than disappearing; zero means observed-but-unavailable at that anchor
 - fee model
 - repayment semantics
 - collateral_required

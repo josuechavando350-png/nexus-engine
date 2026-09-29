@@ -473,7 +473,7 @@ fn requirement_roundtrip_and_cross_type_rejection() -> TestResult {
 }
 
 #[test]
-fn zero_capacity_and_amount_edges_fail() -> TestResult {
+fn zero_capacity_source_is_preserved_but_zero_requirement_amount_is_invalid() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let zero_source = CapitalSource::new(CapitalSourceSpec {
         class: CapitalClass::FlashSwap,
@@ -491,10 +491,35 @@ fn zero_capacity_and_amount_edges_fail() -> TestResult {
         utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
         caps: CapitalCaps::none(),
         temporary_lock: TemporaryLock::None,
-        failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+        failure_modes: vec![
+            CapitalFailureMode::SourceUnavailable,
+            CapitalFailureMode::CapacityChanged,
+        ],
         evidence: evidence(),
-    });
-    assert!(zero_source.is_err());
+    })?;
+    assert_eq!(zero_source.effective_capacity()?, Amount256::ZERO);
+
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(1),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            repayment_leg(token)?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    assert!(matches!(
+        evaluate_capital_feasibility(&requirement, &[zero_source]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::InsufficientCapacity,
+            ..
+        }
+    ));
+
     assert!(CapitalRequirementLeg::new(
         RequirementKind::ActionPrincipal,
         token,

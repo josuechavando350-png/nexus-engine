@@ -1004,9 +1004,6 @@ impl CapitalSource {
         if spec.provider_namespace == 0 {
             return Err(CapitalError::ZeroValue("provider_namespace"));
         }
-        if spec.maximum_available.is_zero() {
-            return Err(CapitalError::ZeroValue("maximum_available"));
-        }
         if spec.failure_modes.is_empty() {
             return Err(CapitalError::EmptyFailureModes);
         }
