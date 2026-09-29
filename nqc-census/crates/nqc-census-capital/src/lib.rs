@@ -1969,8 +1969,12 @@ impl CapitalCensusSummary {
         self.requirement_count == self.feasible_count + self.rejected_count
     }
 
-    pub const fn proves_zero_own_capital(&self) -> bool {
+    pub const fn uses_zero_operator_capital(&self) -> bool {
         self.operator_owned_sources_used == 0
+    }
+
+    pub const fn proves_zero_own_capital(&self) -> bool {
+        self.feasible_count > 0 && self.uses_zero_operator_capital()
     }
 }
 
@@ -2352,7 +2356,7 @@ impl CapitalCensusLedger {
                 "capital feasibility result conservation failed",
             ));
         }
-        if !summary.proves_zero_own_capital() {
+        if !summary.uses_zero_operator_capital() {
             return Err(CapitalError::OperatorOwnedAllocation);
         }
         Ok(summary)

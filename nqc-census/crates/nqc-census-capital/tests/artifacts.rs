@@ -291,3 +291,65 @@ fn offline_artifact_verifier_rejects_noncanonical_jsonl() -> TestResult {
     assert!(verify_capital_artifact_bundle(&bundle).is_err());
     Ok(())
 }
+
+
+#[test]
+fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(10),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(50)),
+        anchor(),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+        ],
+        evidence(),
+    )?;
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(source)?;
+    ledger.register_requirement(requirement)?;
+    ledger.evaluate_all()?;
+
+    let bundle = export_capital_artifacts(
+        &ledger,
+        &authority()?,
+        &ArtifactProvenance::new("t", "c", "r")?,
+    )?;
+    let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
+    let text = std::str::from_utf8(&summary.bytes)?;
+    assert!(text.contains("\"feasible_count\":0"));
+    assert!(text.contains("\"rejected_count\":1"));
+    assert!(text.contains("\"zero_own_capital_proven\":false"));
+    Ok(())
+}

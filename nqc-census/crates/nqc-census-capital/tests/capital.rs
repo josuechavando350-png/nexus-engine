@@ -1310,3 +1310,20 @@ fn multiple_operator_sources_are_aggregated_before_zero_own_capital_rejection() 
     ));
     Ok(())
 }
+
+
+#[test]
+fn zero_own_capital_claim_requires_at_least_one_feasible_requirement() -> TestResult {
+    let summary = nqc_census_capital::CapitalCensusSummary {
+        source_count: 1,
+        requirement_count: 1,
+        feasible_count: 0,
+        rejected_count: 1,
+        operator_owned_sources_observed: 0,
+        operator_owned_sources_used: 0,
+        sources_by_class: std::collections::BTreeMap::new(),
+    };
+    assert!(summary.uses_zero_operator_capital());
+    assert!(!summary.proves_zero_own_capital());
+    Ok(())
+}
