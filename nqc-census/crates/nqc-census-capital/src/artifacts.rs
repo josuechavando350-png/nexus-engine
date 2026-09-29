@@ -585,6 +585,7 @@ pub fn export_capital_artifacts(
     authority: &CapitalCertificationContext,
     provenance: &ArtifactProvenance,
 ) -> Result<CapitalArtifactBundle, CapitalError> {
+    provenance.validate_anchor(authority.observation_anchor())?;
     let certificate = ledger.certify(authority)?;
 
     let source_records = ledger
@@ -597,12 +598,16 @@ pub fn export_capital_artifacts(
         .collect::<Vec<_>>();
     let feasibility_records = ledger
         .results()
-        .map(|result| feasibility_record(result, provenance))
+        .map(|result| feasibility_record(result, provenance, authority.observation_anchor()))
         .collect::<Vec<_>>();
     let rejection_records = ledger
         .results()
         .filter_map(|result| match result {
-            CapitalFeasibility::Rejected { .. } => Some(rejection_record(result, provenance)),
+            CapitalFeasibility::Rejected { .. } => Some(rejection_record(
+                result,
+                provenance,
+                authority.observation_anchor(),
+            )),
             CapitalFeasibility::Feasible { .. } => None,
         })
         .collect::<Vec<_>>();
@@ -624,6 +629,11 @@ pub fn export_capital_artifacts(
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
+        ),
+        ("generated_at_basis", Json::string(GENERATED_AT_BASIS)),
+        (
+            "observation_anchor",
+            anchor_json(authority.observation_anchor()),
         ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
@@ -703,6 +713,11 @@ pub fn export_capital_artifacts(
             "generated_at",
             Json::string(provenance.generated_at.clone()),
         ),
+        ("generated_at_basis", Json::string(GENERATED_AT_BASIS)),
+        (
+            "observation_anchor",
+            anchor_json(authority.observation_anchor()),
+        ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
         (
@@ -759,10 +774,18 @@ fn upstream_authority_json(
     provenance: &ArtifactProvenance,
 ) -> Json {
     Json::object([
-        ("schema_version", Json::uint(6)),
+        (
+            "schema_version",
+            Json::uint(UPSTREAM_AUTHORITY_SCHEMA_VERSION),
+        ),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
+        ),
+        ("generated_at_basis", Json::string(GENERATED_AT_BASIS)),
+        (
+            "observation_anchor",
+            anchor_json(authority.observation_anchor()),
         ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
@@ -834,7 +857,7 @@ pub(crate) fn parse_upstream_authority(
     let parsed = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid upstream authority JSON"))?;
     require_canonical_json(bytes, &parsed)?;
-    if json_u64(&parsed, "schema_version")? != 6 {
+    if json_u64(&parsed, "schema_version")? != UPSTREAM_AUTHORITY_SCHEMA_VERSION {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "unsupported upstream authority schema",
         ));
