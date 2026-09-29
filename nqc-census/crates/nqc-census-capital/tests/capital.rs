@@ -941,7 +941,6 @@ fn evidentiary_ledger_certifies_only_after_evaluation() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn settlement_obligations_separate_principal_repayment_from_funding_fee() -> TestResult {
     let token = CapitalAsset::Token(address(20));

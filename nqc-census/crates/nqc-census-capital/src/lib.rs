@@ -1716,7 +1716,10 @@ fn add_obligation(
     asset: CapitalAsset,
     amount: Amount256,
 ) -> Result<(), CapitalError> {
-    let current = totals.get(&(kind, asset)).copied().unwrap_or(Amount256::ZERO);
+    let current = totals
+        .get(&(kind, asset))
+        .copied()
+        .unwrap_or(Amount256::ZERO);
     totals.insert((kind, asset), current.checked_add(amount)?);
     Ok(())
 }
@@ -2090,12 +2093,12 @@ impl CapitalCensusLedger {
             if !matches!(result, CapitalFeasibility::Feasible { .. }) {
                 continue;
             }
-            let requirement = self
-                .requirements
-                .get(requirement_id)
-                .ok_or(CapitalError::InvalidCanonical(
-                    "feasibility result lacks registered requirement",
-                ))?;
+            let requirement =
+                self.requirements
+                    .get(requirement_id)
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "feasibility result lacks registered requirement",
+                    ))?;
             validate_settlement_requirements(requirement, result, &sources)?;
         }
         Ok(())
