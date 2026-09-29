@@ -81,7 +81,7 @@ fn d08_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
             "\"observation_anchor\":{{\"block_hash\":\"{}\",\"block_number\":{},",
             "\"chain_id\":{},\"fork_lineage\":\"{}\",\"genesis_hash\":\"{}\",",
             "\"parent_hash\":\"{}\",\"state_root\":\"{}\",\"timestamp\":{}}},",
-            "\"schema_version\":1}}"
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",\"schema_version\":1}}"
         ),
         states.len(),
         sha256_plain(&states),
