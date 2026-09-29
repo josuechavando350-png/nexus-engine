@@ -160,16 +160,12 @@ fn lineage_body(
                 ("fromBlock", Json::string(hex::quantity(start))),
                 ("toBlock", Json::string(hex::quantity(end))),
                 ("address", Json::string(root.to_hex())),
-                (
-                    "topics",
-                    Json::array([Json::string(topic.clone())]),
-                ),
+                ("topics", Json::array([Json::string(topic.clone())])),
             ])]),
         ))?;
-        for item in result
-            .as_array()
-            .ok_or(ChainError::Rpc("configurator lineage logs result is not an array"))?
-        {
+        for item in result.as_array().ok_or(ChainError::Rpc(
+            "configurator lineage logs result is not an array",
+        ))? {
             updates.push(parse_update(ctx, root, &topic, item, start, end)?);
         }
         if end == last {
@@ -178,22 +174,17 @@ fn lineage_body(
         start = end + 1;
     }
     updates.sort_by_key(|update| (update.block, update.transaction_index, update.log_index));
-    if updates.windows(2).any(|pair| {
-        (pair[0].block, pair[0].log_index) == (pair[1].block, pair[1].log_index)
-    }) {
+    if updates
+        .windows(2)
+        .any(|pair| (pair[0].block, pair[0].log_index) == (pair[1].block, pair[1].log_index))
+    {
         return Err(ChainError::Evidence(
             "duplicate configurator update coordinates".into(),
         ));
     }
     Ok(Json::object([
-        (
-            "range",
-            Json::array([Json::uint(first), Json::uint(last)]),
-        ),
-        (
-            "updates",
-            Json::array(updates.iter().map(Update::json)),
-        ),
+        ("range", Json::array([Json::uint(first), Json::uint(last)])),
+        ("updates", Json::array(updates.iter().map(Update::json))),
     ]))
 }
 
@@ -222,13 +213,7 @@ fn provider_lineage(
         ]),
     )?;
     let output = acquisition.unanchored(provider, Some(chain.clone()), &spec, |ctx| {
-        lineage_body(
-            ctx,
-            provider,
-            root,
-            origin.block_number(),
-            last,
-        )
+        lineage_body(ctx, provider, root, origin.block_number(), last)
     })?;
     Ok(ProviderResult {
         provider: provider.label().to_owned(),

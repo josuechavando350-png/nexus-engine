@@ -279,14 +279,13 @@ pub fn run_history(
 
     let pool = Address::parse_hex(POOL)?;
     let addresses_provider = Address::parse_hex("0x2f39d218133afab8f2b819b1066c7e434ad94e9e")?;
-    let (provider_creation, provider_boundary, provider_boundary_manifests) =
-        agreed_boundary(
-            &acquisition,
-            &providers,
-            &chain,
-            addresses_provider,
-            "addresses-provider",
-        )?;
+    let (provider_creation, provider_boundary, provider_boundary_manifests) = agreed_boundary(
+        &acquisition,
+        &providers,
+        &chain,
+        addresses_provider,
+        "addresses-provider",
+    )?;
     let (pool_creation, pool_boundary, pool_boundary_manifests) =
         agreed_boundary(&acquisition, &providers, &chain, pool, "pool")?;
     let (configurator_creation, configurator_boundary, configurator_boundary_manifests) =
