@@ -109,9 +109,13 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let closeout_bytes = closeout.canonical_json()?;
     fs::write(&args.closeout_path, &closeout_bytes)?;
+    let closeout_sha256 = sha256(&closeout_bytes)
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
 
     println!(
-        "RMC_011_REAL_SOURCE_CLOSEOUT=PASS sources={} requirements={} feasible={} rejected={} d08_sources={} d09_requirements={} zero_own_capital_proven={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={} closeout_commitment={} closeout_path={}",
+        "RMC_011_REAL_SOURCE_CLOSEOUT=PASS sources={} requirements={} feasible={} rejected={} d08_sources={} d09_requirements={} zero_own_capital_proven={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={} upstream_authority_lock_sha256={} closeout_commitment={} closeout_sha256={} closeout_path={}",
         closeout.source_count,
         closeout.requirement_count,
         closeout.feasible_count,
@@ -122,7 +126,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         closeout.capital_commitment,
         closeout.upstream_authority_commitment,
         closeout.upstream_authority_lock_commitment.to_hex(),
+        closeout.upstream_authority_lock_sha256.to_hex(),
         closeout.closeout_commitment.to_hex(),
+        closeout_sha256,
         args.closeout_path.display(),
     );
     Ok(())
