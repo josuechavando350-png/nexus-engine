@@ -5,7 +5,7 @@ use nqc_census_capital::{
         verify_capital_bundle_with_upstream_replay_for_code,
         verify_real_source_closeout_bytes_for_code, verify_real_source_closeout_for_code,
         verify_upstream_consumption_by_replay, D08ReplayInputs, D09ReplayInputs,
-        UpstreamAuthorityLock, UpstreamAuthorityLockEntry,
+        RealSourceCloseout, UpstreamAuthorityLock, UpstreamAuthorityLockEntry,
     },
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
     CapitalCensusLedger, CapitalCertificationContext, CapitalEvidenceRef, GitObjectId,
@@ -479,6 +479,36 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     )
     .is_err());
     Ok(())
+}
+
+#[test]
+fn closeout_opportunity_claim_requires_at_least_one_feasible_requirement() {
+    let rejected_only = RealSourceCloseout {
+        generated_at: "2023-11-14T22:13:20Z".to_owned(),
+        observation_anchor: anchor(),
+        code_commit: "7777777777777777777777777777777777777777".to_owned(),
+        code_tree: "8888888888888888888888888888888888888888".to_owned(),
+        source_count: 1,
+        requirement_count: 1,
+        feasible_count: 0,
+        rejected_count: 1,
+        d08_source_count: 1,
+        d09_requirement_count: 1,
+        zero_own_capital_proven: false,
+        capital_commitment: hash(30).to_hex(),
+        upstream_authority_commitment: hash(31).to_hex(),
+        upstream_authority_lock_commitment: hash(32),
+        upstream_authority_lock_sha256: hash(33),
+        closeout_commitment: hash(34),
+    };
+    assert!(!rejected_only.opportunity_level_capital_feasibility_claimed());
+
+    let mut one_feasible = rejected_only;
+    one_feasible.requirement_count = 2;
+    one_feasible.feasible_count = 1;
+    one_feasible.rejected_count = 1;
+    one_feasible.d09_requirement_count = 2;
+    assert!(one_feasible.opportunity_level_capital_feasibility_claimed());
 }
 
 #[test]
