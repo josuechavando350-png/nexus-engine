@@ -297,7 +297,9 @@ impl CapitalProviderKind {
         Self::ALL
             .into_iter()
             .find(|kind| kind.tag() == tag)
-            .ok_or(CapitalError::InvalidCanonical("unknown capital provider kind"))
+            .ok_or(CapitalError::InvalidCanonical(
+                "unknown capital provider kind",
+            ))
     }
 
     pub const fn is_operator_owned(self) -> bool {

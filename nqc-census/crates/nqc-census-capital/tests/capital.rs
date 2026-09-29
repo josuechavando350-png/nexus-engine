@@ -1,8 +1,7 @@
 use nqc_census_capital::{
     evaluate_capital_feasibility, Amount256, CapitalAsset, CapitalCaps, CapitalClass,
     CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalProviderKind,
-    CapitalRequirement,
-    CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
+    CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, PersistentDebtTerms, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UtilizationConstraints,
 };
