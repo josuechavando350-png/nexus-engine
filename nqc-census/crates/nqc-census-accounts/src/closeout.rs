@@ -210,8 +210,10 @@ pub fn write_closeout(
             Json::string("OBSERVATION_ANCHOR_BLOCK_TIMESTAMP"),
         ),
         ("scope", Json::string(SCOPE)),
-        ("code_commit", Json::string(context.code_commit)),
-        ("code_tree", Json::string(context.code_tree)),
+        // Code identity is provenance, not census content. It is retained in
+        // evidence-manifest.json below so full and incremental paths can be
+        // byte-identical even when different exact-head binaries produce the
+        // same verified census.
         (
             "anchor",
             Json::object([
