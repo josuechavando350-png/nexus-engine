@@ -458,7 +458,7 @@ pub fn verify_capital_artifact_bundle(
     }
 
     reconstructed.evaluate_all()?;
-    let provenance = record_provenance(&summary)?;
+    let provenance = summary_provenance(&summary)?;
     let regenerated = export_capital_artifacts(&reconstructed, &authority, &provenance)?;
     if regenerated.files.len() != bundle.files.len() {
         return Err(CapitalError::InvalidCanonical(
@@ -1312,23 +1312,39 @@ fn _type_fence(
 ) {
 }
 
+fn provenance_fields(
+    record: &Json,
+    missing_field_error: &'static str,
+) -> Result<ArtifactProvenance, CapitalError> {
+    ArtifactProvenance::new(
+        record
+            .str_field("generated_at")
+            .map_err(|_| CapitalError::InvalidCanonical(missing_field_error))?,
+        record
+            .str_field("code_commit")
+            .map_err(|_| CapitalError::InvalidCanonical(missing_field_error))?,
+        record
+            .str_field("code_tree")
+            .map_err(|_| CapitalError::InvalidCanonical(missing_field_error))?,
+    )
+}
+
 fn record_provenance(record: &Json) -> Result<ArtifactProvenance, CapitalError> {
     if json_u64(record, "schema_version")? != u64::from(CAPITAL_SCHEMA_VERSION) {
         return Err(CapitalError::InvalidCanonical(
             "unsupported capital record schema",
         ));
     }
-    ArtifactProvenance::new(
-        record
-            .str_field("generated_at")
-            .map_err(|_| CapitalError::InvalidCanonical("record generated_at missing"))?,
-        record
-            .str_field("code_commit")
-            .map_err(|_| CapitalError::InvalidCanonical("record code_commit missing"))?,
-        record
-            .str_field("code_tree")
-            .map_err(|_| CapitalError::InvalidCanonical("record code_tree missing"))?,
-    )
+    provenance_fields(record, "record provenance missing")
+}
+
+fn summary_provenance(summary: &Json) -> Result<ArtifactProvenance, CapitalError> {
+    if json_u64(summary, "schema_version")? != 3 {
+        return Err(CapitalError::InvalidCanonical(
+            "unsupported capital summary schema",
+        ));
+    }
+    provenance_fields(summary, "summary provenance missing")
 }
 
 fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
