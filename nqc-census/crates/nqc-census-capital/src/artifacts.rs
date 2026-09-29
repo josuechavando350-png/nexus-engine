@@ -19,8 +19,10 @@ pub const CAPITAL_SUMMARY_FILE: &str = "capital-census-summary.json";
 pub const CAPITAL_UPSTREAM_AUTHORITY_FILE: &str = "capital-upstream-authority.json";
 pub const CAPITAL_EVIDENCE_MANIFEST_FILE: &str = "capital-evidence-manifest.json";
 
-const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 4;
-const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 2;
+const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 5;
+const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 3;
+const UPSTREAM_AUTHORITY_SCHEMA_VERSION: u64 = 7;
+const GENERATED_AT_BASIS: &str = "OBSERVATION_ANCHOR_BLOCK_TIMESTAMP";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtifactProvenance {
@@ -51,6 +53,43 @@ impl ArtifactProvenance {
             code_tree,
         })
     }
+
+    pub fn for_anchor(
+        anchor: &StateAnchor,
+        code_commit: impl Into<String>,
+        code_tree: impl Into<String>,
+    ) -> Result<Self, CapitalError> {
+        Self::new(rfc3339(anchor.timestamp()), code_commit, code_tree)
+    }
+
+    fn validate_anchor(&self, anchor: &StateAnchor) -> Result<(), CapitalError> {
+        if self.generated_at != rfc3339(anchor.timestamp()) {
+            return Err(CapitalError::InvalidCanonical(
+                "artifact generated_at must equal observation anchor timestamp",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn rfc3339(timestamp: u64) -> String {
+    let days = timestamp / 86_400;
+    let seconds = timestamp % 86_400;
+    let z = days + 719_468;
+    let era = z / 146_097;
+    let doe = z % 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + u64::from(month <= 2);
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        seconds / 3_600,
+        (seconds % 3_600) / 60,
+        seconds % 60
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
