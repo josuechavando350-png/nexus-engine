@@ -1,0 +1,62 @@
+name: NQC RMC-010 Refresh Anchor Proposal
+
+# Proposes the later anchor A1 of an incremental refresh: the lowest block
+# every declared census provider reports as `finalized`, with the hash all of
+# them return for it. It proposes only. Every census run at A1 re-verifies
+# the anchor header on its own providers before observing anything.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nqc-rmc010-anchor-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  propose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Finalized block agreed by every declared provider
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, time, urllib.request
+
+          providers = json.load(open("ci/nqc-census/rpc-providers.json"))["providers"]
+
+          def call(provider, method, params):
+              body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
+              for attempt in range(6):
+                  try:
+                      request = urllib.request.Request(provider["url"], data=body,
+                                                       headers={"content-type": "application/json"})
+                      with urllib.request.urlopen(request, timeout=30) as response:
+                          reply = json.load(response)
+                      if "result" in reply and reply["result"] is not None:
+                          return reply["result"]
+                      print(f"{provider['label']} {method}: {reply.get('error')}")
+                  except Exception as error:  # transport failure: retry, never read as empty
+                      print(f"{provider['label']} {method}: {error}")
+                  time.sleep(2 ** attempt)
+              raise SystemExit(f"{provider['label']} did not answer {method}")
+
+          finalized = {p["label"]: int(call(p, "eth_getBlockByNumber", ["finalized", False])["number"], 16)
+                       for p in providers}
+          print("RMC010_FINALIZED " + json.dumps(finalized, sort_keys=True))
+          number = min(finalized.values())
+          hashes = {p["label"]: call(p, "eth_getBlockByNumber", [hex(number), False])["hash"] for p in providers}
+          print("RMC010_HASHES " + json.dumps(hashes, sort_keys=True))
+          if len(set(hashes.values())) != 1:
+              raise SystemExit("providers disagree on the finalized block hash: no anchor proposed")
+          print(f"RMC010_ANCHOR_PROPOSAL number={number} hash={next(iter(hashes.values()))}")
+          PY
