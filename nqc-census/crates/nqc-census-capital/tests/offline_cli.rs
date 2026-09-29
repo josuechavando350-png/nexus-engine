@@ -4,8 +4,8 @@ use nqc_census_capital::{
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind,
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
-    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
-    UpstreamStageAuthoritySpec, UtilizationConstraints,
+    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamConsumptionReceipt,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use std::{
@@ -70,7 +70,32 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             .iter()
             .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
     );
-    CapitalCertificationContext::new(stages, admitted_evidence)
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-008 authority missing",
+        ))?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-009 authority missing",
+        ))?
+        .artifact_sha256;
+    CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc008StateAdmission,
+            d08_artifact,
+            hash(80),
+        )?,
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc009PositionUniverse,
+            d09_artifact,
+            hash(81),
+        )?,
+    ])
 }
 
 fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
