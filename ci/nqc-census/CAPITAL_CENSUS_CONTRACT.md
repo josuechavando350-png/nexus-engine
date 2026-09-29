@@ -95,7 +95,9 @@ A source may be used only when:
 - the same byte-binding rule applies to RMC-009: its authority artifact digest identifies `evidence-manifest.json`; the manifest and `account-summary.json` must name the exact admitted code commit/tree, and the manifest SHA-256/size entries for `account-manifest.jsonl` and `account-summary.json` must match before borrower demand import
 - the verified RMC-008 source import and RMC-009 borrower-demand import MUST each emit a deterministic consumption receipt binding their coverage commitment to the exact admitted upstream authority artifact
 - each receipt MUST also bind the exact consumed output set: sorted source IDs for RMC-008 and sorted certified requirement IDs for RMC-009, together with an exact output count; final certification MUST recompute those sets from the ledger and reject any missing, extra, substituted, or duplicated output
-- merely listing an admitted RMC-008 or RMC-009 authority is insufficient: certification MUST fail if either consumed-input receipt is absent, duplicated, references the wrong stage, references a different authority artifact, or does not equal the ledger output set
+- D08 source evidence MUST be deterministic: every source imported from RMC-008 binds exactly the admitted RMC-008 authority artifact, whose evidence manifest transitively binds every consumed D08 file; arbitrary caller-supplied extra evidence MUST NOT change source identity
+- real-source certification requires replay of the exact consumed RMC-008 and RMC-009 bytes through the same deterministic importers and exact equality with the committed consumption receipts; internal consistency of a D11 artifact bundle alone is insufficient proof of upstream consumption
+- merely listing an admitted RMC-008 or RMC-009 authority is insufficient: certification MUST fail if either consumed-input receipt is absent, duplicated, references the wrong stage, references a different authority artifact, does not equal the ledger output set, or cannot be reproduced from the consumed upstream bytes
 - deployment/source identity is admitted
 - the observation is pinned to the same canonical block context required by the candidate
 - executable capacity, not merely observed capacity, is sufficient at the requested size
@@ -172,6 +174,7 @@ RMC-011 may be certified only when:
 - zero UNKNOWN failure reasons remain
 - full rerun is deterministic
 - offline verifier passes
+- exact upstream-consumption replay passes for RMC-008 and RMC-009; without the consumed upstream bytes, the result remains an internally consistent D11 bundle but MUST NOT claim real-source certification
 - no downstream profitability, Shadow, Canary, or P&L claim is inferred from capital feasibility alone
 
 RMC-009 explicitly does not certify liquidatability. Therefore a fully admitted upstream run may legitimately contain zero actionable capital requirements. In that case RMC-011 MAY certify the observed capital-source census and the conserved D09 demand-import coverage with `requirement_count = 0`, but it MUST report `zero_own_capital_proven = false` and MUST NOT claim opportunity-level capital feasibility. A non-empty source census remains mandatory.
