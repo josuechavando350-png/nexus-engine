@@ -25,8 +25,7 @@ use std::{
 };
 
 const ANCHOR_NUMBER: u64 = 25_437_474;
-const ANCHOR_HASH: &str =
-    "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
+const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
 const POOL: &str = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2";
 const CURRENT_CONFIGURATOR: &str = "0x64b761d848206f447fe2dd461b0c635ec39ebb27";
 const BOUNDARY_NAMESPACE: u16 = 0x0602;
@@ -177,7 +176,13 @@ fn agreed_boundary(
 ) -> Result<(StateAnchor, Json), ChainError> {
     let mut results = Vec::new();
     for provider in providers.iter() {
-        results.push(boundary_result(acquisition, provider, chain, account, label)?);
+        results.push(boundary_result(
+            acquisition,
+            provider,
+            chain,
+            account,
+            label,
+        )?);
     }
     let agreement = agree(&format!("rmc006-{label}-earliest-code"), &results)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
@@ -282,10 +287,9 @@ pub fn run_history(
         "pool-configurator",
     )?;
     if configurator_creation.block_number() < pool_creation.block_number() {
-        return Err(ChainError::Evidence(
-            "PoolConfigurator code predates Pool proxy code".into(),
-        )
-        .into());
+        return Err(
+            ChainError::Evidence("PoolConfigurator code predates Pool proxy code".into()).into(),
+        );
     }
 
     let deployment = DeploymentKey::new(
@@ -456,7 +460,11 @@ pub fn run_history(
         ("reserve_events", Json::Array(event_records)),
         (
             "event_active",
-            Json::array(event_active.iter().map(|asset| Json::string(asset.to_hex()))),
+            Json::array(
+                event_active
+                    .iter()
+                    .map(|asset| Json::string(asset.to_hex())),
+            ),
         ),
         (
             "historical_dropped",
@@ -480,10 +488,7 @@ pub fn run_history(
                     "historical_market_count",
                     Json::uint(historical_union.len() as u64),
                 ),
-                (
-                    "active_event_count",
-                    Json::uint(event_active.len() as u64),
-                ),
+                ("active_event_count", Json::uint(event_active.len() as u64)),
                 ("unexplained_delta_count", Json::uint(0)),
             ]),
         ),
