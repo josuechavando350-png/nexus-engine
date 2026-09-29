@@ -238,7 +238,9 @@ fn provider_current_facts(
             .into_iter()
             .map(|value| {
                 value
-                    .ok_or_else(|| ChainError::Evidence("getReservesList returned zero address".into()))
+                    .ok_or_else(|| {
+                        ChainError::Evidence("getReservesList returned zero address".into())
+                    })
                     .and_then(|bytes| Address::new(bytes).map_err(ChainError::from))
             })
             .collect::<Result<Vec<_>, _>>()?;
@@ -327,7 +329,11 @@ fn provider_current_facts(
             ("reserve_count", Json::uint(u64::from(reserve_count))),
             (
                 "reserves_list",
-                Json::array(reserves_list.iter().map(|asset| Json::string(asset.to_hex()))),
+                Json::array(
+                    reserves_list
+                        .iter()
+                        .map(|asset| Json::string(asset.to_hex())),
+                ),
             ),
             ("reserves", Json::Array(reserves)),
             (
