@@ -787,7 +787,7 @@ fn upstream_authority_json(
     ])
 }
 
-fn parse_upstream_authority(
+pub(crate) fn parse_upstream_authority(
     bytes: &[u8],
 ) -> Result<(CapitalCertificationContext, ArtifactProvenance), CapitalError> {
     let parsed = Json::parse(bytes)
