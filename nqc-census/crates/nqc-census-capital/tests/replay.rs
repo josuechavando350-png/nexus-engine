@@ -420,7 +420,11 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     )?;
     assert_eq!(verified.capital.source_count, 1);
     assert_eq!(verified.capital.requirement_count, 0);
+    assert_eq!(verified.upstream.d08_candidate_count, 1);
     assert_eq!(verified.upstream.d08_source_count, 1);
+    assert_eq!(verified.upstream.d08_rejected_count, 0);
+    assert_eq!(verified.upstream.d09_borrower_count, 0);
+    assert_eq!(verified.upstream.d09_blocked_count, 0);
     assert_eq!(verified.upstream.d09_requirement_count, 0);
     assert_eq!(
         verified.upstream_authority_lock_commitment,
@@ -451,6 +455,10 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     assert!(closeout_text.contains("\"real_source_certification\":true"));
     assert!(closeout_text.contains("\"zero_own_capital_proven\":false"));
     assert!(closeout_text.contains("\"opportunity_level_capital_feasibility_claimed\":false"));
+    assert!(closeout_text.contains("\"d08_candidate_count\":1"));
+    assert!(closeout_text.contains("\"d08_rejected_count\":0"));
+    assert!(closeout_text.contains("\"d09_borrower_count\":0"));
+    assert!(closeout_text.contains("\"d09_blocked_count\":0"));
     assert!(closeout_text.contains("\"d08_authority_artifact_sha256\""));
     assert!(closeout_text.contains("\"d08_coverage_commitment\""));
     assert!(closeout_text.contains("\"d08_output_set_commitment\""));
@@ -498,7 +506,14 @@ fn closeout_opportunity_claim_requires_at_least_one_feasible_requirement() {
         requirement_count: 1,
         feasible_count: 0,
         rejected_count: 1,
+        d08_candidate_count: 1,
         d08_source_count: 1,
+        d08_rejected_count: 0,
+        d09_borrower_count: 1,
+        d09_below_one_count: 1,
+        d09_not_below_one_count: 0,
+        d09_unavailable_count: 0,
+        d09_blocked_count: 1,
         d09_requirement_count: 1,
         d08_authority_artifact_sha256: hash(24),
         d08_coverage_commitment: hash(25),
