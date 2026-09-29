@@ -4,7 +4,7 @@ use nqc_census_capital::{
         DemandBlockerReason,
     },
     Amount256, CapitalError, CapitalEvidenceRef, GitObjectId, UpstreamCensusStage,
-    UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    UpstreamConsumptionKind, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
 };
 use nqc_census_chain::hex;
 use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
@@ -263,8 +263,10 @@ fn borrower_with_unavailable_account_data_is_explicitly_blocked() -> TestResult 
     assert!(imported.requirements.is_empty());
     let receipt = imported.consumption_receipt()?;
     assert_eq!(receipt.stage(), UpstreamCensusStage::Rmc009PositionUniverse);
+    assert_eq!(receipt.output_kind(), UpstreamConsumptionKind::DemandCandidates);
     assert_eq!(receipt.coverage_commitment(), imported.coverage_commitment);
-    assert_eq!(receipt.output_count(), 0);
+    assert_eq!(receipt.output_count(), 1);
+    assert_eq!(imported.demand_candidate_ids().len(), 1);
     Ok(())
 }
 
