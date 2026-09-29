@@ -406,7 +406,6 @@ impl CapitalProviderKind {
                 "unknown capital provider kind",
             ))
     }
-
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
