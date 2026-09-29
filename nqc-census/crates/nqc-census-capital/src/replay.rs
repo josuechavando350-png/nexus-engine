@@ -653,6 +653,29 @@ pub fn verify_real_source_closeout_for_code(
     Ok(closeout)
 }
 
+pub fn verify_real_source_closeout_bytes_for_code(
+    closeout_bytes: &[u8],
+    bundle: &CapitalArtifactBundle,
+    expected_code_commit: &str,
+    expected_code_tree: &str,
+    authority_lock: &UpstreamAuthorityLock,
+    d08: D08ReplayInputs<'_>,
+    d09: D09ReplayInputs<'_>,
+) -> Result<RealSourceCloseout, CapitalError> {
+    let closeout = verify_real_source_closeout_for_code(
+        bundle,
+        expected_code_commit,
+        expected_code_tree,
+        authority_lock,
+        d08,
+        d09,
+    )?;
+    if closeout.canonical_json()? != closeout_bytes {
+        return Err(CapitalError::CanonicalDigestMismatch);
+    }
+    Ok(closeout)
+}
+
 /// Verifies the self-contained D11 bundle against an exact code identity,
 /// requires every RMC-006..RMC-010 authority identity to equal an external
 /// immutable lock, and independently replays the exact RMC-008/RMC-009 bytes.
