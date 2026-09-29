@@ -7,7 +7,7 @@
 //! refusing to fabricate a liquidation capital requirement until exact
 //! liquidation sizing semantics are certified downstream.
 
-use crate::{Amount256, CapitalAsset, CapitalError};
+use crate::{Amount256, CapitalError};
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, StateAnchor};
 use std::collections::BTreeSet;
