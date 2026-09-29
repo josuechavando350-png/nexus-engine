@@ -507,15 +507,12 @@ fn verify_d09_artifact_binding(
         ));
     }
 
-    let summary = Json::parse(account_summary_json)
-        .map_err(|_| CapitalError::InvalidCanonical("RMC-009 summary JSON parse failed"))?;
-    if text(&summary, "code_commit")? != authority.code_commit.to_hex()
-        || text(&summary, "code_tree")? != authority.code_tree.to_hex()
-    {
-        return Err(CapitalError::InvalidUpstreamAuthority(
-            "RMC-009 summary code identity mismatch",
-        ));
-    }
+    // D09 deliberately keeps code identity out of census-content artifacts so
+    // FULL_CENSUS and INCREMENTAL_REFRESH can remain byte-identical at the
+    // same anchor. The content-addressed evidence manifest above is the
+    // provenance authority for code commit/tree and binds these exact summary
+    // bytes, so requiring code identity inside account-summary.json would
+    // reject the real D09 closeout format.
     Ok(())
 }
 
