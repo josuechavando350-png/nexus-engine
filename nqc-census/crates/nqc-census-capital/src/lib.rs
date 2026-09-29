@@ -3472,6 +3472,11 @@ impl CapitalCensusLedger {
             .ok_or(CapitalError::InvalidUpstreamAuthority(
                 "RMC-008 consumption receipt missing",
             ))?;
+        if d08.output_kind() != UpstreamConsumptionKind::CapitalSources {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "RMC-008 consumption receipt does not describe capital sources",
+            ));
+        }
         let (source_count, source_set_commitment) =
             source_output_set_commitment(self.sources.values())?;
         if d08.output_count != source_count || d08.output_set_commitment != source_set_commitment {
@@ -3486,14 +3491,30 @@ impl CapitalCensusLedger {
             .ok_or(CapitalError::InvalidUpstreamAuthority(
                 "RMC-009 consumption receipt missing",
             ))?;
-        let (requirement_count, requirement_set_commitment) =
-            requirement_output_set_commitment(self.requirements.values())?;
-        if d09.output_count != requirement_count
-            || d09.output_set_commitment != requirement_set_commitment
-        {
-            return Err(CapitalError::InvalidUpstreamAuthority(
-                "capital requirement ledger does not equal the consumed RMC-009 requirement set",
-            ));
+        match d09.output_kind() {
+            UpstreamConsumptionKind::DemandCandidates => {
+                if !self.requirements.is_empty() {
+                    return Err(CapitalError::InvalidUpstreamAuthority(
+                        "nonempty D11 requirements require an explicit demand-derivation proof",
+                    ));
+                }
+            }
+            UpstreamConsumptionKind::CapitalRequirements => {
+                let (requirement_count, requirement_set_commitment) =
+                    requirement_output_set_commitment(self.requirements.values())?;
+                if d09.output_count != requirement_count
+                    || d09.output_set_commitment != requirement_set_commitment
+                {
+                    return Err(CapitalError::InvalidUpstreamAuthority(
+                        "capital requirement ledger does not equal the explicitly bound requirement set",
+                    ));
+                }
+            }
+            UpstreamConsumptionKind::CapitalSources => {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "RMC-009 consumption receipt has an invalid output kind",
+                ));
+            }
         }
         Ok(())
     }
