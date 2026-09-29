@@ -13,7 +13,7 @@ use nqc_census_chain::{
     ChainError,
 };
 use nqc_census_core::{
-    Address, CallOutcome, CensusObservation, ContractCallEnvelope, RuntimeCodeEnvelope, StateAnchor,
+    Address, CallOutcome, CensusObservation, ContractCallEnvelope, StateAnchor,
 };
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
