@@ -1633,6 +1633,56 @@ fn collateral_requirement_cannot_be_funded_circularly_by_collateralized_source()
 }
 
 #[test]
+fn checked_feasibility_rejects_duplicate_source_capacity() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let second_state = source(
+        CapitalClass::FlashSwap,
+        token,
+        2_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    assert_eq!(first.key_id(), second_state.key_id());
+    assert_ne!(first.id(), second_state.id());
+
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::Principal,
+                token,
+                Amount256::from_u128(1_500),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            repayment_leg(token)?,
+        ],
+        RequiredAtomicity::AtomicSameTransaction,
+        false,
+    )?;
+
+    let duplicate_id = nqc_census_capital::evaluate_capital_feasibility_checked(
+        &requirement,
+        &[first.clone(), first.clone()],
+    )
+    .expect_err("duplicate source id must fail closed");
+    assert!(matches!(duplicate_id, CapitalError::DuplicateSource));
+
+    let duplicate_key = nqc_census_capital::evaluate_capital_feasibility_checked(
+        &requirement,
+        &[first, second_state],
+    )
+    .expect_err("multiple states for one source key must fail closed");
+    assert!(matches!(duplicate_key, CapitalError::DuplicateSourceKey));
+    Ok(())
+}
+
+#[test]
 fn ledger_rejects_multiple_states_for_same_stable_source_key() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let first = CapitalSource::new(CapitalSourceSpec {

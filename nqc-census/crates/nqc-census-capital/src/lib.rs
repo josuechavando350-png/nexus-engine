@@ -2077,6 +2077,22 @@ fn solve_funding(
     requirement: &CapitalRequirement,
     sources: &[CapitalSource],
 ) -> Result<FundingSolution, CapitalError> {
+    // Raw feasibility callers must not be able to manufacture capacity by
+    // passing the same observed source more than once, or by passing multiple
+    // observed states for one stable source key. The ledger already enforces
+    // this invariant at registration; enforce it here too so the public
+    // checked evaluator is independently fail-closed.
+    let mut source_ids = BTreeSet::new();
+    let mut source_keys = BTreeSet::new();
+    for source in sources {
+        if !source_ids.insert(source.id()) {
+            return Err(CapitalError::DuplicateSource);
+        }
+        if !source_keys.insert(source.key_id()) {
+            return Err(CapitalError::DuplicateSourceKey);
+        }
+    }
+
     let mut ordered = sources.iter().collect::<Vec<_>>();
     ordered.sort_by_key(|source| source.id());
 
