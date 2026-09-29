@@ -157,7 +157,7 @@ At minimum:
 - protocol and market caps bind maximum executable size
 - stale/mismatched anchors fail
 - unknown failure reason cannot pass certification
-- deterministic canonical encode/decode and tamper rejection
+- deterministic canonical encode/decode and tamper rejection; offline verification reports total feasibility records, feasible requirements, and rejected requirements as distinct conserved counts
 - evidence refs are required for admitted real sources
 - synthetic fixtures are explicitly non-evidentiary
 

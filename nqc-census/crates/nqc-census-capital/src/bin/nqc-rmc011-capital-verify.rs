@@ -67,10 +67,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         &args.expected_code_tree,
     )?;
     println!(
-        "RMC_011_OFFLINE_VERIFY=PASS sources={} requirements={} feasible={} rejected={} commitment={} upstream={}",
+        "RMC_011_OFFLINE_VERIFY=PASS sources={} requirements={} results={} feasible={} rejected={} commitment={} upstream={}",
         verified.source_count,
         verified.requirement_count,
         verified.feasibility_count,
+        verified.feasible_count,
         verified.rejection_count,
         verified.capital_commitment,
         verified.upstream_authority_commitment,
