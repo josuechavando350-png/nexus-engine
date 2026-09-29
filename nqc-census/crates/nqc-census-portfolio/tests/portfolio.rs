@@ -452,3 +452,46 @@ fn commitment_binds_observed_capacity_even_without_conflicts() -> TestResult {
     assert_ne!(low.commitment(), high.commitment());
     Ok(())
 }
+
+
+#[test]
+fn contention_graph_decomposes_into_independent_components() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let shared = source(anchor.clone(), 30, 500, CapitalOwnership::External)?;
+    let isolated = source(anchor.clone(), 31, 500, CapitalOwnership::External)?;
+    let a = requirement(anchor.clone(), 40, 50)?;
+    let b = requirement(anchor.clone(), 41, 50)?;
+    let c_req = requirement(anchor.clone(), 42, 50)?;
+    let fa = evaluate_capital_feasibility(&a, std::slice::from_ref(&shared));
+    let fb = evaluate_capital_feasibility(&b, std::slice::from_ref(&shared));
+    let fc = evaluate_capital_feasibility(&c_req, std::slice::from_ref(&isolated));
+
+    let report = evaluate_portfolio(
+        &[
+            PortfolioCandidate::new(a.id(), anchor.clone(), vec![])?,
+            PortfolioCandidate::new(b.id(), anchor.clone(), vec![])?,
+            PortfolioCandidate::new(c_req.id(), anchor, vec![])?,
+        ],
+        &[a.clone(), b.clone(), c_req.clone()],
+        &[fa, fb, fc],
+        &[shared, isolated],
+        &[],
+    )?;
+
+    assert!(report.simultaneously_feasible());
+    assert_eq!(report.components().len(), 2);
+    let sizes = report
+        .components()
+        .iter()
+        .map(|component| component.candidates.len())
+        .collect::<Vec<_>>();
+    assert_eq!(sizes, vec![2, 1]);
+    assert!(report.components().iter().any(|component| {
+        component.candidates.contains(&a.id()) && component.candidates.contains(&b.id())
+    }));
+    assert!(report
+        .components()
+        .iter()
+        .any(|component| component.candidates == vec![c_req.id()]));
+    Ok(())
+}
