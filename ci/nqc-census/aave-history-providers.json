@@ -14,12 +14,12 @@
     },
     {
       "namespace": 260,
-      "label": "blockreq-public",
-      "url": "https://ethereum-rpc.blockreq.com/v1/rpc/public",
-      "operator": "BlockReq public archive RPC",
-      "min_interval_ms": 500,
-      "max_batch": 10,
-      "log_window": 10000,
+      "label": "drpc-public",
+      "url": "https://eth.drpc.org",
+      "operator": "dRPC public endpoint",
+      "min_interval_ms": 600,
+      "max_batch": 3,
+      "log_window": 5000,
       "pinning": "EIP1898_BLOCK_HASH"
     }
   ]
