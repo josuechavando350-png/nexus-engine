@@ -4,8 +4,8 @@ use nqc_census_capital::{
         CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE, CAPITAL_REQUIREMENTS_FILE,
         CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
     },
-    Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalClass, CapitalEvidenceRef,
-    CapitalCertificationContext, CapitalFailureMode, CapitalProviderKind, CapitalRequirement,
+    Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
+    CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalProviderKind, CapitalRequirement,
     CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
@@ -42,10 +42,11 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
 fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
-        let value = u64::try_from(index + 1)
-            .map_err(|_| nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+        let value = u64::try_from(index + 1).map_err(|_| {
+            nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
                 "test authority index overflow",
-            ))?;
+            )
+        })?;
         stages.push(UpstreamStageAuthority::new(
             stage,
             GitObjectId::parse_hex(&format!("{value:040x}"))?,

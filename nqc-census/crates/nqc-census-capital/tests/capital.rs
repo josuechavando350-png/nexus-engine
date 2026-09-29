@@ -34,13 +34,13 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
 }
 
-fn certification_context() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
+fn certification_context() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError>
+{
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
-        let nibble = u8::try_from(index + 1)
-            .map_err(|_| nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
-                "test stage index overflow",
-            ))?;
+        let nibble = u8::try_from(index + 1).map_err(|_| {
+            nqc_census_capital::CapitalError::InvalidUpstreamAuthority("test stage index overflow")
+        })?;
         stages.push(UpstreamStageAuthority::new(
             stage,
             GitObjectId::parse_hex(&format!("{nibble:040x}"))?,
@@ -1153,25 +1153,26 @@ fn no_repayment_gas_sponsor_fee_must_still_be_declared() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResult {
     let context = certification_context()?;
     assert_eq!(context.stages().len(), 5);
 
-    let incomplete = CapitalCertificationContext::new(
-        context.stages()[..4].to_vec(),
-    );
+    let incomplete = CapitalCertificationContext::new(context.stages()[..4].to_vec());
     assert!(matches!(
         incomplete,
-        Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(_))
+        Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            _
+        ))
     ));
 
     let mut duplicate = context.stages().to_vec();
     duplicate[4] = duplicate[3].clone();
     assert!(matches!(
         CapitalCertificationContext::new(duplicate),
-        Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(_))
+        Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            _
+        ))
     ));
     Ok(())
 }
@@ -1191,7 +1192,9 @@ fn upstream_authority_rejects_mismatch_unknown_or_unadmitted_stage() -> TestResu
                 unknown,
                 admitted,
             ),
-            Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(_))
+            Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            _
+        ))
         ));
     }
     Ok(())
@@ -1200,10 +1203,7 @@ fn upstream_authority_rejects_mismatch_unknown_or_unadmitted_stage() -> TestResu
 #[test]
 fn git_object_ids_are_exact_lowercase_sha1_hex_width() -> TestResult {
     let valid = GitObjectId::parse_hex("0123456789abcdef0123456789abcdef01234567")?;
-    assert_eq!(
-        valid.to_hex(),
-        "0123456789abcdef0123456789abcdef01234567"
-    );
+    assert_eq!(valid.to_hex(), "0123456789abcdef0123456789abcdef01234567");
     assert!(GitObjectId::parse_hex("abc").is_err());
     assert!(GitObjectId::parse_hex("0123456789ABCDEF0123456789ABCDEF01234567").is_err());
     Ok(())
