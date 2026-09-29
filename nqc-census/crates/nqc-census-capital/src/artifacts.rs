@@ -90,6 +90,8 @@ pub struct CapitalArtifactVerification {
     pub rejection_count: usize,
     pub capital_commitment: String,
     pub upstream_authority_commitment: String,
+    pub code_commit: String,
+    pub code_tree: String,
 }
 
 pub fn verify_capital_artifact_bundle(
@@ -488,7 +490,25 @@ pub fn verify_capital_artifact_bundle(
         rejection_count: rejected_count,
         capital_commitment,
         upstream_authority_commitment,
+        code_commit: provenance.code_commit,
+        code_tree: provenance.code_tree,
     })
+}
+
+pub fn verify_capital_artifact_bundle_for_code(
+    bundle: &CapitalArtifactBundle,
+    expected_code_commit: &str,
+    expected_code_tree: &str,
+) -> Result<CapitalArtifactVerification, CapitalError> {
+    GitObjectId::parse_hex(expected_code_commit)?;
+    GitObjectId::parse_hex(expected_code_tree)?;
+    let verified = verify_capital_artifact_bundle(bundle)?;
+    if verified.code_commit != expected_code_commit || verified.code_tree != expected_code_tree {
+        return Err(CapitalError::InvalidCanonical(
+            "capital artifacts do not match expected exact code identity",
+        ));
+    }
+    Ok(verified)
 }
 
 pub fn export_capital_artifacts(

@@ -131,8 +131,8 @@ fn write_bundle(directory: &Path) -> TestResult {
         &authority()?,
         &ArtifactProvenance::new(
             "2026-09-29T00:00:00Z",
-            "0123456789abcdef0123456789abcdef01234567",
-            "89abcdef0123456789abcdef0123456789abcdef",
+            CODE_COMMIT,
+            CODE_TREE,
         )?,
     )?;
     for file in bundle.files {
@@ -141,11 +141,26 @@ fn write_bundle(directory: &Path) -> TestResult {
     Ok(())
 }
 
-fn verifier(directory: &Path) -> std::io::Result<std::process::Output> {
+const CODE_COMMIT: &str = "0123456789abcdef0123456789abcdef01234567";
+const CODE_TREE: &str = "89abcdef0123456789abcdef0123456789abcdef";
+
+fn verifier_with_identity(
+    directory: &Path,
+    code_commit: &str,
+    code_tree: &str,
+) -> std::io::Result<std::process::Output> {
     Command::new(env!("CARGO_BIN_EXE_nqc-rmc011-capital-verify"))
         .arg("--dir")
         .arg(directory)
+        .arg("--expected-code-commit")
+        .arg(code_commit)
+        .arg("--expected-code-tree")
+        .arg(code_tree)
         .output()
+}
+
+fn verifier(directory: &Path) -> std::io::Result<std::process::Output> {
+    verifier_with_identity(directory, CODE_COMMIT, CODE_TREE)
 }
 
 #[test]
@@ -184,6 +199,21 @@ fn offline_verifier_binary_rejects_tampered_artifact() -> TestResult {
     fs::write(&source_path, bytes)?;
 
     let output = verifier(&directory)?;
+    let _ = fs::remove_dir_all(&directory);
+    assert!(!output.status.success());
+    Ok(())
+}
+
+
+#[test]
+fn offline_verifier_binary_rejects_wrong_exact_code_identity() -> TestResult {
+    let directory = artifact_dir("wrong-code-identity");
+    write_bundle(&directory)?;
+    let output = verifier_with_identity(
+        &directory,
+        "1123456789abcdef0123456789abcdef01234567",
+        CODE_TREE,
+    )?;
     let _ = fs::remove_dir_all(&directory);
     assert!(!output.status.success());
     Ok(())
