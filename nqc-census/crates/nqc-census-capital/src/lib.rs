@@ -1111,9 +1111,7 @@ impl CapitalSource {
             FeeModel::BasisPoints { bps, .. } if bps > 10_000 => {
                 return Err(CapitalError::InvalidBasisPoints(bps))
             }
-            FeeModel::ExactRatio { denominator: 0, .. } => {
-                return Err(CapitalError::InvalidRatio)
-            }
+            FeeModel::ExactRatio { denominator: 0, .. } => return Err(CapitalError::InvalidRatio),
             _ => {}
         }
         if matches!(spec.repayment, RepaymentSemantics::DeadlineBlocks(0)) {
@@ -1130,9 +1128,7 @@ impl CapitalSource {
             ));
         }
         if let TemporaryLock::Required {
-            amount,
-            release,
-            ..
+            amount, release, ..
         } = spec.temporary_lock
         {
             if amount.is_zero() {
