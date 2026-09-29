@@ -58,12 +58,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let base = read_base(&PathBuf::from(flag("--base")?))?;
     let delta = delta_plan(&target, &base)?;
     let extracts = json_files(&flag("--extracts")?)?;
-    let staged = extract_stages(
-        &index_providers,
-        &index_providers,
-        &delta,
-        extracts,
-    )?;
+    let staged = extract_stages(&index_providers, &index_providers, &delta, extracts)?;
     let mut index = Vec::with_capacity(staged.len());
     for (record, stage) in staged {
         if record.str_field("stage")? != "ACCOUNT_INDEX" {
