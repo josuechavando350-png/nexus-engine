@@ -24,15 +24,15 @@ fn anchor() -> StateAnchor {
 
 fn summary(status: &str, liquidatability_nonclaim: bool) -> Vec<u8> {
     let nonclaims = if liquidatability_nonclaim {
-        "[\"LIQUIDATABILITY_NOT_CLAIMED\",\"PROFITABILITY_NOT_CLAIMED\"]"
+        "[\"LIQUIDATABILITY_NOT_CLAIMED\",\"PROFITABILITY_NOT_CLAIMED\",\"EXECUTION_NOT_CLAIMED\",\"ORACLE_FRESHNESS_NOT_ASSUMED\",\"POSITIONS_OUTSIDE_D06_NOT_CLAIMED\"]"
     } else {
-        "[\"PROFITABILITY_NOT_CLAIMED\"]"
+        "[\"PROFITABILITY_NOT_CLAIMED\",\"EXECUTION_NOT_CLAIMED\"]"
     };
     format!(
         concat!(
             "{{\"all_tokens_conserved\":true,\"anchor\":{{\"hash\":\"{}\",\"number\":25437474}},",
-            "\"blocking_findings\":[],\"non_claims\":{},\"status\":\"{}\",",
-            "\"unexplained_mismatches\":0}}"
+            "\"blocking_findings\":[],\"non_claims\":{},\"schema_version\":1,\"status\":\"{}\",",
+            "\"unexplained_mismatches\":0,\"uniswap_v2\":{{\"reason\":\"Uniswap V2 pairs carry no borrower, debt or collateral positions; no account universe is claimed or fabricated for them\",\"status\":\"NOT_APPLICABLE\"}}}}"
         ),
         anchor().block_hash().to_hex(),
         nonclaims,
@@ -268,5 +268,18 @@ fn d09_demand_coverage_commitment_is_input_order_independent() -> TestResult {
     assert_eq!(a.below_one_count, 1);
     assert_eq!(a.unavailable_count, 1);
     assert_eq!(a.coverage_commitment, b.coverage_commitment);
+    Ok(())
+}
+
+
+#[test]
+fn d09_import_refuses_schema_or_v2_scope_drift() -> TestResult {
+    let exact = String::from_utf8(summary("RMC_009_PASS_CANDIDATE", true))?;
+    let wrong_schema = exact.replace("\"schema_version\":1", "\"schema_version\":2");
+    assert!(import_d09_borrower_demands(b"", wrong_schema.as_bytes(), &anchor()).is_err());
+
+    let fabricated_v2 =
+        exact.replace("\"status\":\"NOT_APPLICABLE\"}}", "\"status\":\"APPLICABLE\"}}");
+    assert!(import_d09_borrower_demands(b"", fabricated_v2.as_bytes(), &anchor()).is_err());
     Ok(())
 }

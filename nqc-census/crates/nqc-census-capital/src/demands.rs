@@ -157,6 +157,11 @@ fn parse_positions(account: &Json, key: &'static str) -> Result<Vec<PositionAmou
 }
 
 fn verify_summary(summary: &Json, anchor: &StateAnchor) -> Result<(), CapitalError> {
+    if number(summary, "schema_version")? != 1 {
+        return Err(CapitalError::InvalidCanonical(
+            "unsupported RMC-009 account-summary schema",
+        ));
+    }
     if text(summary, "status")? != "RMC_009_PASS_CANDIDATE" {
         return Err(CapitalError::InvalidCanonical(
             "RMC-009 summary is not PASS candidate",
@@ -192,12 +197,24 @@ fn verify_summary(summary: &Json, anchor: &StateAnchor) -> Result<(), CapitalErr
             .ok_or(CapitalError::InvalidCanonical(
                 "RMC-009 non-claims are not array",
             ))?;
-    if !non_claims
-        .iter()
-        .any(|value| value.as_str() == Some("LIQUIDATABILITY_NOT_CLAIMED"))
-    {
+    for required_non_claim in [
+        "LIQUIDATABILITY_NOT_CLAIMED",
+        "PROFITABILITY_NOT_CLAIMED",
+        "EXECUTION_NOT_CLAIMED",
+    ] {
+        if !non_claims
+            .iter()
+            .any(|value| value.as_str() == Some(required_non_claim))
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "RMC-009 downstream boundary disappeared",
+            ));
+        }
+    }
+    let v2 = required(summary, "uniswap_v2")?;
+    if text(v2, "status")? != "NOT_APPLICABLE" {
         return Err(CapitalError::InvalidCanonical(
-            "RMC-009 liquidatability boundary disappeared",
+            "RMC-009 fabricated a Uniswap V2 account universe",
         ));
     }
     Ok(())
@@ -297,6 +314,11 @@ pub fn import_d09_borrower_demands(
         let debt_positions = parse_positions(&row, "debt_positions")?;
         if debt_positions.is_empty() {
             continue;
+        }
+        if text(&row, "classification")? != "POSITION_HOLDER" {
+            return Err(CapitalError::InvalidCanonical(
+                "RMC-009 borrower classification is not POSITION_HOLDER",
+            ));
         }
         let supply_positions = parse_positions(&row, "supply_positions")?;
         let below = match required(&row, "health_factor_below_one")? {
