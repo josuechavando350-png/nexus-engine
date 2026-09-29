@@ -6,6 +6,7 @@ use crate::{
 use nqc_census_chain::json::Json;
 use nqc_census_core::StateAnchor;
 use sha2::{Digest, Sha256};
+use std::collections::{BTreeMap, BTreeSet};
 
 pub const CAPITAL_SOURCES_FILE: &str = "capital-sources.jsonl";
 pub const CAPITAL_REQUIREMENTS_FILE: &str = "capital-requirements.jsonl";
@@ -74,6 +75,370 @@ impl CapitalArtifactBundle {
     pub fn file(&self, name: &str) -> Option<&CapitalArtifactFile> {
         self.files.iter().find(|file| file.name == name)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapitalArtifactVerification {
+    pub source_count: usize,
+    pub requirement_count: usize,
+    pub feasibility_count: usize,
+    pub rejection_count: usize,
+    pub capital_commitment: String,
+    pub upstream_authority_commitment: String,
+}
+
+pub fn verify_capital_artifact_bundle(
+    bundle: &CapitalArtifactBundle,
+) -> Result<CapitalArtifactVerification, CapitalError> {
+    const DATA_FILES: [&str; 5] = [
+        CAPITAL_SOURCES_FILE,
+        CAPITAL_REQUIREMENTS_FILE,
+        CAPITAL_FEASIBILITY_FILE,
+        CAPITAL_REJECTION_LEDGER_FILE,
+        CAPITAL_SUMMARY_FILE,
+    ];
+    const ALL_FILES: [&str; 6] = [
+        CAPITAL_SOURCES_FILE,
+        CAPITAL_REQUIREMENTS_FILE,
+        CAPITAL_FEASIBILITY_FILE,
+        CAPITAL_REJECTION_LEDGER_FILE,
+        CAPITAL_SUMMARY_FILE,
+        CAPITAL_EVIDENCE_MANIFEST_FILE,
+    ];
+
+    if bundle.files.len() != ALL_FILES.len() {
+        return Err(CapitalError::InvalidCanonical(
+            "capital artifact bundle file count",
+        ));
+    }
+    let mut by_name = BTreeMap::new();
+    for file in &bundle.files {
+        if by_name.insert(file.name, file).is_some() {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate capital artifact file name",
+            ));
+        }
+        if file.sha256 != sha256(&file.bytes) {
+            return Err(CapitalError::CanonicalDigestMismatch);
+        }
+    }
+    for name in ALL_FILES {
+        if !by_name.contains_key(name) {
+            return Err(CapitalError::InvalidCanonical(
+                "capital artifact bundle missing required file",
+            ));
+        }
+    }
+
+    let manifest_file = by_name
+        .get(CAPITAL_EVIDENCE_MANIFEST_FILE)
+        .ok_or(CapitalError::InvalidCanonical("missing evidence manifest"))?;
+    let manifest = Json::parse(&manifest_file.bytes)
+        .map_err(|_| CapitalError::InvalidCanonical("invalid evidence manifest JSON"))?;
+    require_canonical_json(manifest_file.bytes.as_slice(), &manifest)?;
+
+    let manifest_artifacts = manifest
+        .get("artifacts")
+        .and_then(Json::as_array)
+        .ok_or(CapitalError::InvalidCanonical(
+            "evidence manifest artifacts missing",
+        ))?;
+    if manifest_artifacts.len() != DATA_FILES.len() {
+        return Err(CapitalError::InvalidCanonical(
+            "evidence manifest artifact count",
+        ));
+    }
+    let mut listed = BTreeSet::new();
+    for entry in manifest_artifacts {
+        let name = entry
+            .str_field("name")
+            .map_err(|_| CapitalError::InvalidCanonical("manifest artifact name"))?;
+        if !DATA_FILES.contains(&name) || !listed.insert(name.to_owned()) {
+            return Err(CapitalError::InvalidCanonical(
+                "manifest artifact name set",
+            ));
+        }
+        let file = by_name
+            .get(name)
+            .ok_or(CapitalError::InvalidCanonical("manifest references missing file"))?;
+        if entry
+            .str_field("sha256")
+            .map_err(|_| CapitalError::InvalidCanonical("manifest artifact sha256"))?
+            != file.sha256_hex()
+        {
+            return Err(CapitalError::CanonicalDigestMismatch);
+        }
+        let size = json_u64(entry, "size_bytes")?;
+        if size
+            != u64::try_from(file.bytes.len())
+                .map_err(|_| CapitalError::InvalidCanonical("artifact size overflow"))?
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "manifest artifact size mismatch",
+            ));
+        }
+    }
+
+    let non_claims = manifest
+        .get("non_claims")
+        .and_then(Json::as_array)
+        .ok_or(CapitalError::InvalidCanonical("manifest non-claims missing"))?;
+    let expected_non_claims = [
+        "PROFITABILITY_NOT_TESTED",
+        "SHADOW_NOT_TESTED",
+        "CANARY_NOT_TESTED",
+        "REAL_PNL_NOT_TESTED",
+    ];
+    if non_claims.len() != expected_non_claims.len()
+        || !expected_non_claims.iter().all(|expected| {
+            non_claims
+                .iter()
+                .any(|value| value.as_str() == Some(*expected))
+        })
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "manifest non-claims changed",
+        ));
+    }
+
+    let sources = parse_jsonl(
+        by_name
+            .get(CAPITAL_SOURCES_FILE)
+            .ok_or(CapitalError::InvalidCanonical("missing capital sources"))?
+            .bytes
+            .as_slice(),
+    )?;
+    let requirements = parse_jsonl(
+        by_name
+            .get(CAPITAL_REQUIREMENTS_FILE)
+            .ok_or(CapitalError::InvalidCanonical("missing capital requirements"))?
+            .bytes
+            .as_slice(),
+    )?;
+    let feasibility = parse_jsonl(
+        by_name
+            .get(CAPITAL_FEASIBILITY_FILE)
+            .ok_or(CapitalError::InvalidCanonical("missing capital feasibility"))?
+            .bytes
+            .as_slice(),
+    )?;
+    let rejections = parse_jsonl(
+        by_name
+            .get(CAPITAL_REJECTION_LEDGER_FILE)
+            .ok_or(CapitalError::InvalidCanonical("missing rejection ledger"))?
+            .bytes
+            .as_slice(),
+    )?;
+
+    let mut source_ids = BTreeSet::new();
+    for record in &sources {
+        let encoded = decode_plain_hex(record.str_field("canonical_record").map_err(|_| {
+            CapitalError::InvalidCanonical("source canonical record missing")
+        })?)?;
+        let decoded = CapitalSource::decode_canonical(&encoded)?;
+        if record
+            .str_field("source_id")
+            .map_err(|_| CapitalError::InvalidCanonical("source id missing"))?
+            != decoded.id().to_hex()
+            || record
+                .str_field("source_key_id")
+                .map_err(|_| CapitalError::InvalidCanonical("source key id missing"))?
+                != decoded.key_id().to_hex()
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "source record identity mismatch",
+            ));
+        }
+        if !source_ids.insert(decoded.id().to_hex()) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate source id in artifacts",
+            ));
+        }
+    }
+
+    let mut requirement_ids = BTreeSet::new();
+    for record in &requirements {
+        let encoded = decode_plain_hex(record.str_field("canonical_record").map_err(|_| {
+            CapitalError::InvalidCanonical("requirement canonical record missing")
+        })?)?;
+        let decoded = CapitalRequirement::decode_canonical(&encoded)?;
+        if record
+            .str_field("requirement_id")
+            .map_err(|_| CapitalError::InvalidCanonical("requirement id missing"))?
+            != decoded.id().to_hex()
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "requirement record identity mismatch",
+            ));
+        }
+        if !requirement_ids.insert(decoded.id().to_hex()) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate requirement id in artifacts",
+            ));
+        }
+    }
+
+    let mut feasibility_ids = BTreeSet::new();
+    let mut rejected = BTreeSet::new();
+    for record in &feasibility {
+        let requirement_id = record
+            .str_field("requirement_id")
+            .map_err(|_| CapitalError::InvalidCanonical("feasibility requirement id missing"))?;
+        if !requirement_ids.contains(requirement_id)
+            || !feasibility_ids.insert(requirement_id.to_owned())
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "feasibility requirement identity mismatch",
+            ));
+        }
+        match record
+            .str_field("status")
+            .map_err(|_| CapitalError::InvalidCanonical("feasibility status missing"))?
+        {
+            "FEASIBLE" => {
+                let allocations = record
+                    .get("allocations")
+                    .and_then(Json::as_array)
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "feasible allocations missing",
+                    ))?;
+                for allocation in allocations {
+                    let source_id = allocation.str_field("source_id").map_err(|_| {
+                        CapitalError::InvalidCanonical("allocation source id missing")
+                    })?;
+                    if !source_ids.contains(source_id) {
+                        return Err(CapitalError::MissingSourceForAllocation);
+                    }
+                    validate_amount_hex(allocation.str_field("amount").map_err(|_| {
+                        CapitalError::InvalidCanonical("allocation amount missing")
+                    })?)?;
+                }
+            }
+            "REJECTED" => {
+                let reason = record
+                    .str_field("reason")
+                    .map_err(|_| CapitalError::InvalidCanonical("rejection reason missing"))?;
+                let failed_leg = nullable_string(record.get("failed_leg").ok_or(
+                    CapitalError::InvalidCanonical("rejection failed_leg missing"),
+                )?)?;
+                rejected.insert((
+                    requirement_id.to_owned(),
+                    reason.to_owned(),
+                    failed_leg,
+                ));
+            }
+            _ => {
+                return Err(CapitalError::InvalidCanonical(
+                    "unknown feasibility status",
+                ))
+            }
+        }
+    }
+    if feasibility_ids != requirement_ids {
+        return Err(CapitalError::UnevaluatedRequirement);
+    }
+
+    let mut rejection_rows = BTreeSet::new();
+    for record in &rejections {
+        let requirement_id = record
+            .str_field("requirement_id")
+            .map_err(|_| CapitalError::InvalidCanonical("rejection requirement id missing"))?;
+        let reason = record
+            .str_field("reason")
+            .map_err(|_| CapitalError::InvalidCanonical("rejection reason missing"))?;
+        let failed_leg = nullable_string(
+            record
+                .get("failed_leg")
+                .ok_or(CapitalError::InvalidCanonical("rejection failed_leg missing"))?,
+        )?;
+        rejection_rows.insert((
+            requirement_id.to_owned(),
+            reason.to_owned(),
+            failed_leg,
+        ));
+    }
+    if rejection_rows != rejected {
+        return Err(CapitalError::InvalidCanonical(
+            "rejection ledger differs from feasibility",
+        ));
+    }
+
+    let summary_file = by_name
+        .get(CAPITAL_SUMMARY_FILE)
+        .ok_or(CapitalError::InvalidCanonical("missing capital summary"))?;
+    let summary = Json::parse(&summary_file.bytes)
+        .map_err(|_| CapitalError::InvalidCanonical("invalid capital summary JSON"))?;
+    require_canonical_json(summary_file.bytes.as_slice(), &summary)?;
+
+    let source_count = usize_json(&summary, "source_count")?;
+    let requirement_count = usize_json(&summary, "requirement_count")?;
+    let feasible_count = usize_json(&summary, "feasible_count")?;
+    let rejected_count = usize_json(&summary, "rejected_count")?;
+    if source_count != sources.len()
+        || requirement_count != requirements.len()
+        || feasibility.len() != requirement_count
+        || rejected_count != rejections.len()
+        || feasible_count
+            .checked_add(rejected_count)
+            .ok_or(CapitalError::InvalidCanonical("summary count overflow"))?
+            != requirement_count
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "capital summary counts differ from artifacts",
+        ));
+    }
+    if json_u64(&summary, "unexplained_capital_failure_count")? != 0 {
+        return Err(CapitalError::UnknownFailureMode);
+    }
+    if summary.get("profitability_claimed").and_then(Json::as_bool) != Some(false) {
+        return Err(CapitalError::InvalidCanonical(
+            "capital artifacts claim profitability",
+        ));
+    }
+
+    for key in ["generated_at", "code_commit", "code_tree"] {
+        if summary
+            .str_field(key)
+            .map_err(|_| CapitalError::InvalidCanonical("summary provenance missing"))?
+            != manifest
+                .str_field(key)
+                .map_err(|_| CapitalError::InvalidCanonical("manifest provenance missing"))?
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "summary/manifest provenance mismatch",
+            ));
+        }
+    }
+    let capital_commitment = summary
+        .str_field("capital_commitment")
+        .map_err(|_| CapitalError::InvalidCanonical("capital commitment missing"))?
+        .to_owned();
+    let upstream_authority_commitment = summary
+        .str_field("upstream_authority_commitment")
+        .map_err(|_| CapitalError::InvalidCanonical("upstream commitment missing"))?
+        .to_owned();
+    if manifest
+        .str_field("capital_commitment")
+        .map_err(|_| CapitalError::InvalidCanonical("manifest capital commitment missing"))?
+        != capital_commitment
+        || manifest
+            .str_field("upstream_authority_commitment")
+            .map_err(|_| CapitalError::InvalidCanonical("manifest upstream commitment missing"))?
+            != upstream_authority_commitment
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "summary/manifest commitment mismatch",
+        ));
+    }
+
+    Ok(CapitalArtifactVerification {
+        source_count,
+        requirement_count,
+        feasibility_count,
+        rejection_count,
+        capital_commitment,
+        upstream_authority_commitment,
+    })
 }
 
 pub fn export_capital_artifacts(
@@ -429,4 +794,92 @@ fn _type_fence(
     _reason: FeasibilityRejection,
     _kind: RequirementKind,
 ) {
+}
+
+
+fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
+    if !bytes.is_empty() && !bytes.ends_with(b"\n") {
+        return Err(CapitalError::InvalidCanonical(
+            "capital JSONL must end with newline",
+        ));
+    }
+    let mut records = Vec::new();
+    for line in bytes.split(|byte| *byte == b'\n') {
+        if line.is_empty() {
+            continue;
+        }
+        let parsed = Json::parse(line)
+            .map_err(|_| CapitalError::InvalidCanonical("invalid capital JSONL record"))?;
+        require_canonical_json(line, &parsed)?;
+        records.push(parsed);
+    }
+    Ok(records)
+}
+
+fn require_canonical_json(bytes: &[u8], value: &Json) -> Result<(), CapitalError> {
+    if canonical(value)? != bytes {
+        return Err(CapitalError::InvalidCanonical(
+            "non-canonical capital artifact JSON",
+        ));
+    }
+    Ok(())
+}
+
+fn json_u64(value: &Json, key: &str) -> Result<u64, CapitalError> {
+    value
+        .get(key)
+        .and_then(Json::as_i64)
+        .and_then(|number| u64::try_from(number).ok())
+        .ok_or(CapitalError::InvalidCanonical(
+            "capital artifact integer field",
+        ))
+}
+
+fn usize_json(value: &Json, key: &str) -> Result<usize, CapitalError> {
+    usize::try_from(json_u64(value, key)?)
+        .map_err(|_| CapitalError::InvalidCanonical("capital artifact count overflow"))
+}
+
+fn nullable_string(value: &Json) -> Result<Option<String>, CapitalError> {
+    match value {
+        Json::Null => Ok(None),
+        Json::String(text) => Ok(Some(text.clone())),
+        _ => Err(CapitalError::InvalidCanonical(
+            "expected string or null in capital artifact",
+        )),
+    }
+}
+
+fn decode_plain_hex(text: &str) -> Result<Vec<u8>, CapitalError> {
+    if text.len() % 2 != 0 {
+        return Err(CapitalError::InvalidCanonical("odd-length capital hex"));
+    }
+    let mut out = Vec::with_capacity(text.len() / 2);
+    let bytes = text.as_bytes();
+    for pair in bytes.chunks_exact(2) {
+        let high = hex_nibble(pair[0])?;
+        let low = hex_nibble(pair[1])?;
+        out.push((high << 4) | low);
+    }
+    Ok(out)
+}
+
+fn validate_amount_hex(text: &str) -> Result<(), CapitalError> {
+    if text.len() != 64 {
+        return Err(CapitalError::InvalidCanonical(
+            "capital amount must be uint256 hex",
+        ));
+    }
+    let _ = decode_plain_hex(text)?;
+    Ok(())
+}
+
+fn hex_nibble(byte: u8) -> Result<u8, CapitalError> {
+    match byte {
+        b'0'..=b'9' => Ok(byte - b'0'),
+        b'a'..=b'f' => Ok(byte - b'a' + 10),
+        _ => Err(CapitalError::InvalidCanonical(
+            "non-canonical capital hex digit",
+        )),
+    }
 }

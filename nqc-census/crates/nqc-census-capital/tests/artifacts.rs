@@ -1,6 +1,7 @@
 use nqc_census_capital::{
     artifacts::{
-        export_capital_artifacts, ArtifactProvenance, CAPITAL_EVIDENCE_MANIFEST_FILE,
+        export_capital_artifacts, verify_capital_artifact_bundle, ArtifactProvenance,
+        CAPITAL_EVIDENCE_MANIFEST_FILE,
         CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE, CAPITAL_REQUIREMENTS_FILE,
         CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
     },
@@ -198,5 +199,95 @@ fn synthetic_ledger_cannot_export_evidentiary_artifacts() -> TestResult {
     let ledger = CapitalCensusLedger::synthetic_fixture();
     let provenance = ArtifactProvenance::new("t", "c", "r")?;
     assert!(export_capital_artifacts(&ledger, &authority()?, &provenance).is_err());
+    Ok(())
+}
+
+
+#[test]
+fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let verified = verify_capital_artifact_bundle(&bundle)?;
+    assert_eq!(verified.source_count, 1);
+    assert_eq!(verified.requirement_count, 1);
+    assert_eq!(verified.feasibility_count, 1);
+    assert_eq!(verified.rejection_count, 0);
+    assert!(!verified.capital_commitment.is_empty());
+    assert!(!verified.upstream_authority_commitment.is_empty());
+    Ok(())
+}
+
+#[test]
+fn offline_artifact_verifier_rejects_tampered_bytes() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new("t", "c", "r")?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let sources = bundle
+        .files
+        .iter_mut()
+        .find(|file| file.name == CAPITAL_SOURCES_FILE)
+        .ok_or("missing sources")?;
+    let index = sources
+        .bytes
+        .iter()
+        .position(|byte| *byte == b'a')
+        .ok_or("source artifact has no mutable byte")?;
+    sources.bytes[index] = b'b';
+    assert!(verify_capital_artifact_bundle(&bundle).is_err());
+    Ok(())
+}
+
+#[test]
+fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new("t", "c", "r")?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let manifest = bundle
+        .files
+        .iter_mut()
+        .find(|file| file.name == CAPITAL_EVIDENCE_MANIFEST_FILE)
+        .ok_or("missing manifest")?;
+    let text = String::from_utf8(manifest.bytes.clone())?;
+    let tampered = text.replacen(
+        "\"sha256\":\"",
+        "\"sha256\":\"00",
+        1,
+    );
+    manifest.bytes = tampered.into_bytes();
+    manifest.sha256 = {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(&manifest.bytes);
+        let mut out = [0_u8; 32];
+        out.copy_from_slice(&digest);
+        out
+    };
+    assert!(verify_capital_artifact_bundle(&bundle).is_err());
+    Ok(())
+}
+
+#[test]
+fn offline_artifact_verifier_rejects_noncanonical_jsonl() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new("t", "c", "r")?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let sources = bundle
+        .files
+        .iter_mut()
+        .find(|file| file.name == CAPITAL_SOURCES_FILE)
+        .ok_or("missing sources")?;
+    sources.bytes.insert(0, b' ');
+    sources.sha256 = {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(&sources.bytes);
+        let mut out = [0_u8; 32];
+        out.copy_from_slice(&digest);
+        out
+    };
+    assert!(verify_capital_artifact_bundle(&bundle).is_err());
     Ok(())
 }
