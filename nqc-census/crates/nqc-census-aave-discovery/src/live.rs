@@ -91,6 +91,36 @@ fn storage_address(value: &Json, label: &'static str) -> Result<Address, ChainEr
     Ok(Address::new(raw)?)
 }
 
+fn guarded_storage_address(
+    ctx: &mut nqc_census_chain::job::JobContext<'_>,
+    target: Address,
+    anchor: &nqc_census_core::StateAnchor,
+    label: &'static str,
+) -> Result<Address, ChainError> {
+    let before = ctx.header_by_number(anchor.block_number())?;
+    if before.envelope().anchor().block_hash() != anchor.block_hash() {
+        return Err(ChainError::Evidence(format!(
+            "{label} pre-guard anchor changed"
+        )));
+    }
+    let value = ctx.raw_result(&RpcCall::new(
+        "eth_getStorageAt",
+        Json::array([
+            Json::string(target.to_hex()),
+            Json::string(IMPLEMENTATION_SLOT),
+            Json::string(hex::quantity(anchor.block_number())),
+        ]),
+    ))?;
+    let observed = storage_address(&value, label)?;
+    let after = ctx.header_by_number(anchor.block_number())?;
+    if after.envelope().anchor().block_hash() != anchor.block_hash() {
+        return Err(ChainError::Evidence(format!(
+            "{label} post-guard anchor changed"
+        )));
+    }
+    Ok(observed)
+}
+
 fn uint64(bytes: &[u8], label: &'static str) -> Result<u64, ChainError> {
     let word = abi::single_word(bytes)?;
     abi::decode_u64(&word).map_err(|error| {
@@ -296,28 +326,8 @@ fn provider_current_facts(
             )));
         }
 
-        let before_slot = ctx.header_by_number(anchor.block_number())?;
-        if before_slot.envelope().anchor().block_hash() != anchor.block_hash() {
-            return Err(ChainError::Evidence(
-                "implementation-slot pre-guard anchor changed".into(),
-            ));
-        }
-        let implementation_word = ctx.raw_result(&RpcCall::new(
-            "eth_getStorageAt",
-            Json::array([
-                Json::string(pool.to_hex()),
-                Json::string(IMPLEMENTATION_SLOT),
-                Json::string(hex::quantity(anchor.block_number())),
-            ]),
-        ))?;
         let observed_implementation =
-            storage_address(&implementation_word, "EIP-1967 implementation")?;
-        let after_slot = ctx.header_by_number(anchor.block_number())?;
-        if after_slot.envelope().anchor().block_hash() != anchor.block_hash() {
-            return Err(ChainError::Evidence(
-                "implementation-slot post-guard anchor changed".into(),
-            ));
-        }
+            guarded_storage_address(ctx, pool, anchor, "Pool EIP-1967 implementation")?;
         if observed_implementation != implementation {
             return Err(ChainError::Evidence(
                 "EIP-1967 implementation differs from certified implementation".into(),
@@ -327,10 +337,35 @@ fn provider_current_facts(
         let configurator_code = ctx.code(configurator, anchor, chain_semantics)?;
         if configurator_code.payload().is_absent() {
             return Err(ChainError::Evidence(
-                "PoolConfigurator has no runtime code".into(),
+                "PoolConfigurator proxy has no runtime code".into(),
             ));
         }
         let configurator_hash = sha256_plain(configurator_code.payload().code());
+        let configurator_implementation = guarded_storage_address(
+            ctx,
+            configurator,
+            anchor,
+            "PoolConfigurator EIP-1967 implementation",
+        )?;
+        let configurator_implementation_code =
+            ctx.code(configurator_implementation, anchor, chain_semantics)?;
+        if configurator_implementation_code.payload().is_absent() {
+            return Err(ChainError::Evidence(
+                "PoolConfigurator implementation has no runtime code".into(),
+            ));
+        }
+        let configurator_implementation_hash =
+            sha256_plain(configurator_implementation_code.payload().code());
+        let configurator_scan = CodeScan::new(configurator_implementation_code.payload().code());
+        if configurator_scan.truncated_push()
+            || !configurator_scan.has_word(&interface.reserve_initialized_topic)
+            || !configurator_scan.has_word(&interface.reserve_dropped_topic)
+        {
+            return Err(ChainError::Evidence(
+                "PoolConfigurator implementation lacks declared reserve lifecycle topics".into(),
+            ));
+        }
+
         let oracle_code = ctx.code(price_oracle, anchor, chain_semantics)?;
         let oracle_hash = require_sha256(
             "price oracle",
@@ -432,6 +467,10 @@ fn provider_current_facts(
             ),
             ("pool_configurator", Json::string(configurator.to_hex())),
             (
+                "pool_configurator_implementation",
+                Json::string(configurator_implementation.to_hex()),
+            ),
+            (
                 "pool_implementation",
                 Json::string(observed_implementation.to_hex()),
             ),
@@ -460,6 +499,10 @@ fn provider_current_facts(
                     ("pool_proxy", Json::string(pool_hash)),
                     ("pool_implementation", Json::string(implementation_hash)),
                     ("pool_configurator", Json::string(configurator_hash)),
+                    (
+                        "pool_configurator_implementation",
+                        Json::string(configurator_implementation_hash),
+                    ),
                     ("price_oracle", Json::string(oracle_hash)),
                 ]),
             ),
@@ -499,10 +542,86 @@ pub fn run_current_surface(
     let agreement = agree("rmc006-aave-current-surface", &results)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
     let facts = agreement.result;
-    let configuration_sha256 = sha256_plain(&facts.canonical()?);
     let runtime_hashes = facts
         .get("runtime_sha256")
         .ok_or_else(|| ChainError::Evidence("current facts lack runtime hashes".into()))?;
+    let interface = aave_interface();
+    let configuration_binding = Json::object([
+        (
+            "addresses_provider",
+            Json::string(facts.str_field("addresses_provider")?),
+        ),
+        ("pool", Json::string(facts.str_field("pool")?)),
+        (
+            "pool_configurator",
+            Json::string(facts.str_field("pool_configurator")?),
+        ),
+        (
+            "pool_implementation",
+            Json::string(facts.str_field("pool_implementation")?),
+        ),
+        (
+            "pool_configurator_implementation",
+            Json::string(facts.str_field("pool_configurator_implementation")?),
+        ),
+        (
+            "eip1967_implementation_slot",
+            Json::string(IMPLEMENTATION_SLOT),
+        ),
+        ("runtime_sha256", runtime_hashes.clone()),
+        (
+            "discovery_selectors",
+            Json::object([
+                (
+                    "addresses_provider",
+                    Json::string(hex::encode(&interface.addresses_provider)),
+                ),
+                (
+                    "reserves_count",
+                    Json::string(hex::encode(&interface.reserves_count)),
+                ),
+                (
+                    "reserve_by_id",
+                    Json::string(hex::encode(&interface.reserve_by_id)),
+                ),
+                (
+                    "reserves_list",
+                    Json::string(hex::encode(&interface.reserves_list)),
+                ),
+                (
+                    "reserve_data",
+                    Json::string(hex::encode(&interface.reserve_data)),
+                ),
+                ("get_pool", Json::string(hex::encode(&interface.get_pool))),
+                (
+                    "get_pool_configurator",
+                    Json::string(hex::encode(&interface.get_pool_configurator)),
+                ),
+            ]),
+        ),
+        (
+            "lifecycle_topics",
+            Json::object([
+                (
+                    "proxy_created",
+                    Json::string(hex::encode(&interface.proxy_created_topic)),
+                ),
+                (
+                    "pool_configurator_updated",
+                    Json::string(hex::encode(&interface.pool_configurator_updated_topic)),
+                ),
+                (
+                    "reserve_initialized",
+                    Json::string(hex::encode(&interface.reserve_initialized_topic)),
+                ),
+                (
+                    "reserve_dropped",
+                    Json::string(hex::encode(&interface.reserve_dropped_topic)),
+                ),
+            ]),
+        ),
+    ]);
+    let configuration_sha256 = sha256_plain(&configuration_binding.canonical()?);
     let oracle_configuration = Json::object([
         (
             "price_oracle",
