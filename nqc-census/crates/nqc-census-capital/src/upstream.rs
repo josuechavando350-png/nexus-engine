@@ -9,7 +9,7 @@ use crate::{
     adapters::{AaveV3FlashObservation, UniswapV2FlashSwapObservation},
     Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource,
 };
-use nqc_census_chain::json::Json;
+use nqc_census_chain::{hex, json::Json};
 use nqc_census_core::{Address, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
@@ -52,8 +52,6 @@ pub struct CapitalImportRejection {
 #[derive(Debug, Clone)]
 pub struct D08CapitalImportContext {
     pub anchor: StateAnchor,
-    pub aave_pool: Address,
-    pub aave_premium_total_bps: u16,
     pub aave_provider_locator_hash: Hash32,
     pub uniswap_v2_provider_locator_hash: Hash32,
     pub evidence: Vec<CapitalEvidenceRef>,
@@ -259,14 +257,44 @@ fn coverage_commitment(outcomes: &mut [ImportOutcome]) -> Result<Hash32, Capital
     Hash32::new(bytes).map_err(|_| CapitalError::InvalidCanonical("zero D08 coverage commitment"))
 }
 
+fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
+    let root = Json::parse(bytes)
+        .map_err(|_| CapitalError::InvalidCanonical("D08 pool facts JSON parse failed"))?;
+    let aave = field(&root, "aave_pool")?;
+    let pool = Address::parse_hex(text(aave, "pool")?)
+        .map_err(|_| CapitalError::InvalidCanonical("invalid D08 Aave pool address"))?;
+    let scalars = field(aave, "scalars")?;
+    let premium = field(scalars, "FLASHLOAN_PREMIUM_TOTAL()")?;
+    if text(premium, "status")? != "RETURNED" {
+        return Err(CapitalError::InvalidCanonical(
+            "D08 Aave flash premium was not returned",
+        ));
+    }
+    let encoded = hex::decode_data(text(premium, "data")?)
+        .map_err(|_| CapitalError::InvalidCanonical("invalid D08 Aave flash premium bytes"))?;
+    if encoded.len() != 32 || encoded[..30].iter().any(|byte| *byte != 0) {
+        return Err(CapitalError::InvalidCanonical(
+            "D08 Aave flash premium is not canonical uint16",
+        ));
+    }
+    let value = u16::from_be_bytes([encoded[30], encoded[31]]);
+    if value > 10_000 {
+        return Err(CapitalError::InvalidBasisPoints(value));
+    }
+    Ok((pool, value))
+}
+
 pub fn import_d08_capital_sources(
     state_manifest_jsonl: &[u8],
     token_admission_jsonl: &[u8],
+    pool_and_factory_facts_json: &[u8],
     context: &D08CapitalImportContext,
 ) -> Result<D08CapitalImport, CapitalError> {
     if context.evidence.is_empty() {
         return Err(CapitalError::MissingEvidence);
     }
+    let (aave_pool, aave_premium_total_bps) =
+        d08_aave_flash_terms(pool_and_factory_facts_json)?;
     let tokens = token_compatibility(token_admission_jsonl)?;
     let mut sources = Vec::new();
     let mut rejections = Vec::new();
@@ -351,10 +379,10 @@ pub fn import_d08_capital_sources(
                 let available = Amount256::parse_decimal(text(facts, "available_liquidity")?)?;
                 let source = AaveV3FlashObservation {
                     anchor: context.anchor.clone(),
-                    pool: context.aave_pool,
+                    pool: aave_pool,
                     asset: asset_address,
                     available_underlying: available,
-                    premium_total_bps: context.aave_premium_total_bps,
+                    premium_total_bps: aave_premium_total_bps,
                     flash_loan_enabled: true,
                     provider_locator_hash: context.aave_provider_locator_hash,
                     evidence: context.evidence.clone(),
