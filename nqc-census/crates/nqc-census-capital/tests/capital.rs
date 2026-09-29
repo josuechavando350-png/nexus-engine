@@ -1209,3 +1209,104 @@ fn git_object_ids_are_exact_lowercase_sha1_hex_width() -> TestResult {
     assert!(GitObjectId::parse_hex("0123456789ABCDEF0123456789ABCDEF01234567").is_err());
     Ok(())
 }
+
+
+#[test]
+fn compatible_source_at_foreign_anchor_is_classified_as_anchor_mismatch() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let req = requirement(
+        vec![principal, repayment_leg(token)?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+
+    let foreign = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(101),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+
+    let unrelated_same_anchor = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        CapitalAsset::Token(address(21)),
+        1_000,
+        CapitalAsset::Token(address(21)),
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    assert!(matches!(
+        evaluate_capital_feasibility(&req, &[unrelated_same_anchor, foreign]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::AnchorMismatch,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn multiple_operator_sources_are_aggregated_before_zero_own_capital_rejection() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(150),
+        vec![CapitalClass::InventoryRequirement],
+    )?;
+    let req = requirement(
+        vec![principal, repayment_leg(token)?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+
+    let operator = |namespace, locator, contract| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::InventoryRequirement,
+            anchor: anchor(100),
+            provider_namespace: namespace,
+            provider_locator_hash: hash(locator),
+            provider_kind: CapitalProviderKind::OperatorTreasury,
+            source_contract: Some(address(contract)),
+            asset: token,
+            maximum_available: Amount256::from_u128(100),
+            fee_model: FeeModel::None,
+            repayment_asset: token,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+            evidence: evidence(),
+        })
+    };
+
+    assert!(matches!(
+        evaluate_capital_feasibility(&req, &[operator(31, 32, 33)?, operator(41, 42, 43)?]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::OperatorOwnedCapitalRequired,
+            ..
+        }
+    ));
+    Ok(())
+}

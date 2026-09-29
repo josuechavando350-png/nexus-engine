@@ -1835,12 +1835,16 @@ pub fn evaluate_capital_feasibility(
         let mut need = leg.amount();
         let mut any_asset_class = false;
         let mut any_atomic = false;
+        let mut compatible_foreign_anchor = false;
         let mut operator_owned_capacity = Amount256::ZERO;
         for (index, source) in ordered.iter().enumerate() {
-            if source.anchor() != requirement.anchor()
-                || source.asset() != leg.asset()
+            if source.asset() != leg.asset()
                 || !leg.allowed_classes().contains(&source.class())
             {
+                continue;
+            }
+            if source.anchor() != requirement.anchor() {
+                compatible_foreign_anchor = true;
                 continue;
             }
             any_asset_class = true;
@@ -1849,10 +1853,9 @@ pub fn evaluate_capital_feasibility(
             }
             any_atomic = true;
             if source.provider_kind().is_operator_owned() {
-                let capacity = remaining[index];
-                if capacity > operator_owned_capacity {
-                    operator_owned_capacity = capacity;
-                }
+                operator_owned_capacity = operator_owned_capacity
+                    .checked_add(remaining[index])
+                    .unwrap_or(Amount256::from_be_bytes([0xff; 32]));
                 continue;
             }
             if remaining[index].is_zero() {
@@ -1880,6 +1883,8 @@ pub fn evaluate_capital_feasibility(
         if !need.is_zero() {
             let reason = if operator_owned_capacity >= need {
                 FeasibilityRejection::OperatorOwnedCapitalRequired
+            } else if !any_asset_class && compatible_foreign_anchor {
+                FeasibilityRejection::AnchorMismatch
             } else if leg.kind() == RequirementKind::Gas {
                 FeasibilityRejection::MissingGasFunding
             } else if any_asset_class && !any_atomic {
