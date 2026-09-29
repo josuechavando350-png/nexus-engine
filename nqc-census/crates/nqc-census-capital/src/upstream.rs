@@ -368,7 +368,7 @@ fn verify_d08_artifact_binding(
         ));
     }
 
-    let manifest_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone());
+    let manifest_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256);
     if !context.evidence.contains(&manifest_evidence) {
         return Err(CapitalError::UnresolvedEvidenceRef);
     }
