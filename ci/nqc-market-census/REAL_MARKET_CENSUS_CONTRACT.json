@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "stage": "REAL_MARKET_CENSUS",
+  "status": "NOT_TESTED",
+  "prerequisite": {
+    "protocol_fork_truth": "PROTOCOL_FORK_TRUTH_CLOSED",
+    "certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
+    "certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
+    "workflow_run_id": 36391596253,
+    "artifact_id": 10965696122,
+    "artifact_sha256": "d2fcd411f1cd4501655e0b6c94529c07ecd0bc1fb78fc96e953e2a411392cbf6"
+  },
+  "scope": {
+    "chain_id": 1,
+    "network": "ethereum-mainnet",
+    "census_kind": "REAL_LIVE_OBSERVATION_COHORT",
+    "minimum_counted_markets": 25001,
+    "collection_target_markets": 26000,
+    "protocol_universes": [
+      {
+        "id": "uniswap-v2-ethereum",
+        "protocol_semantics": "UNISWAP_V2_CONSTANT_PRODUCT_30_BPS",
+        "factory": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+        "certified_reference_pair": "0xb4e16d0168e52d35cacd2c6185b44281ec28c9dc",
+        "fee_bps": 30,
+        "enumeration": "FACTORY_ALL_PAIRS_ASCENDING_INDEX"
+      }
+    ]
+  },
+  "required_market_fields": [
+    "chain_id",
+    "protocol_semantics",
+    "market_address",
+    "code_identity",
+    "asset_identities",
+    "canonical_state_anchor",
+    "lifecycle_activity_status",
+    "signal_observability",
+    "simulation_support_state",
+    "funding_compatibility_state",
+    "execution_compatibility_state",
+    "evidence_provenance"
+  ],
+  "count_rule": {
+    "exact_two_provider_consensus": true,
+    "exact_canonical_anchor": true,
+    "nonzero_runtime_code": true,
+    "canonical_pair_code_identity_required": true,
+    "distinct_nonzero_assets": true,
+    "both_reserves_nonzero": true,
+    "signal_observability_required": true,
+    "simulation_support_required": true,
+    "funding_and_execution_state_must_be_explicit": true,
+    "funding_or_execution_support_required_for_census_count": false,
+    "reason": "Census measures real observable markets. Funding/execution compatibility is bound but may remain UNCLASSIFIED until Shadow; no executable or profitable claim is made here."
+  },
+  "truth_boundaries": {
+    "shadow_execution": "NOT_TESTED",
+    "canary_execution": "NOT_TESTED",
+    "live_pnl_evidence": false,
+    "production_authority_issued": false,
+    "production_certification": "NOT_CERTIFIED"
+  },
+  "close_condition": "status may become PASS only after >=25001 real markets satisfy every census count rule on one exact finalized canonical anchor with two-provider byte-for-byte field consensus and content-addressed evidence."
+}

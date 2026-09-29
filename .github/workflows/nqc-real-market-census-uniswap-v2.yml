@@ -1,0 +1,192 @@
+name: NQC T40 Real Market Census Uniswap V2
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-real-market-census-uniswap-v2.yml
+      - ci/nqc-market-census/**
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  real-market-census:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      NQC_CENSUS: /tmp/nqc-real-market-census
+      PROTOCOL_CERTIFIED_HEAD: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PROTOCOL_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      PROTOCOL_CLOSEOUT_RUN: "36391596253"
+      PROTOCOL_CLOSEOUT_ARTIFACT: "10965696122"
+      PROTOCOL_CLOSEOUT_SHA256: d2fcd411f1cd4501655e0b6c94529c07ecd0bc1fb78fc96e953e2a411392cbf6
+
+    steps:
+      - name: Checkout exact census revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify Protocol/Fork runtime closure prerequisite
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$NQC_CENSUS"
+          mkdir -p "$NQC_CENSUS"
+          test "$(git show -s --format=%T "$PROTOCOL_CERTIFIED_HEAD")" = "$PROTOCOL_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$PROTOCOL_CERTIFIED_HEAD" HEAD
+          python3 - <<'PY'
+          import json, os, urllib.request
+          from pathlib import Path
+
+          contract=json.loads(Path("ci/nqc-market-census/REAL_MARKET_CENSUS_CONTRACT.json").read_text())
+          p=contract["prerequisite"]
+          assert p["protocol_fork_truth"]=="PROTOCOL_FORK_TRUTH_CLOSED"
+          assert p["certified_commit"]==os.environ["PROTOCOL_CERTIFIED_HEAD"]
+          assert p["certified_tree"]==os.environ["PROTOCOL_CERTIFIED_TREE"]
+          assert str(p["workflow_run_id"])==os.environ["PROTOCOL_CLOSEOUT_RUN"]
+          assert str(p["artifact_id"])==os.environ["PROTOCOL_CLOSEOUT_ARTIFACT"]
+          assert p["artifact_sha256"]==os.environ["PROTOCOL_CLOSEOUT_SHA256"]
+
+          repo=os.environ["GITHUB_REPOSITORY"]
+          token=os.environ["GH_TOKEN"]
+          headers={"Authorization":f"Bearer {token}","Accept":"application/vnd.github+json","User-Agent":"nqc-t40-census"}
+
+          def get(path):
+              req=urllib.request.Request(f"https://api.github.com/repos/{repo}{path}",headers=headers)
+              with urllib.request.urlopen(req,timeout=60) as r:
+                  return json.loads(r.read().decode())
+
+          run=get(f"/actions/runs/{p['workflow_run_id']}")
+          assert run["conclusion"]=="success"
+          assert run["head_sha"]==p["certified_commit"]
+
+          artifact=get(f"/actions/artifacts/{p['artifact_id']}")
+          assert artifact["expired"] is False
+          assert artifact["workflow_run"]["id"]==p["workflow_run_id"]
+          assert artifact["workflow_run"]["head_sha"]==p["certified_commit"]
+          assert artifact["digest"]==f"sha256:{p['artifact_sha256']}"
+
+          print("PROTOCOL_FORK_METADATA_PASS")
+          PY
+          curl --fail --location --retry 3 \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Accept: application/vnd.github+json" \
+            -o "$NQC_CENSUS/protocol-closeout.zip" \
+            "https://api.github.com/repos/$GITHUB_REPOSITORY/actions/artifacts/$PROTOCOL_CLOSEOUT_ARTIFACT/zip"
+          python3 - <<'PY'
+          import os, zipfile
+          from pathlib import Path
+          found=False
+          with zipfile.ZipFile(Path(os.environ["NQC_CENSUS"])/"protocol-closeout.zip") as z:
+              for name in z.namelist():
+                  if name.endswith("/"): continue
+                  try: raw=z.read(name).decode()
+                  except UnicodeDecodeError: continue
+                  if (
+                      "PROTOCOL_FORK_TRUTH_CLOSED" in raw
+                      and os.environ["PROTOCOL_CERTIFIED_HEAD"] in raw
+                      and os.environ["PROTOCOL_CERTIFIED_TREE"] in raw
+                  ):
+                      found=True
+                      break
+          assert found, "runtime closure literal not found in certified artifact"
+          print("PROTOCOL_FORK_PREREQUISITE_PASS")
+          PY
+
+      - name: Validate census source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          python3 -m py_compile ci/nqc-market-census/uniswap_v2_census.py
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          d=json.loads(Path("ci/nqc-market-census/REAL_MARKET_CENSUS_CONTRACT.json").read_text())
+          assert d["stage"]=="REAL_MARKET_CENSUS"
+          assert d["status"]=="NOT_TESTED"
+          assert d["scope"]["chain_id"]==1
+          assert d["scope"]["minimum_counted_markets"]==25001
+          assert d["scope"]["collection_target_markets"]==26000
+          assert len(d["required_market_fields"])==12
+          assert d["truth_boundaries"]["shadow_execution"]=="NOT_TESTED"
+          assert d["truth_boundaries"]["canary_execution"]=="NOT_TESTED"
+          assert d["truth_boundaries"]["live_pnl_evidence"] is False
+          PY
+
+      - name: Enumerate exact real mainnet market cohort
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$NQC_CENSUS"
+          mkdir -p "$NQC_CENSUS"
+          python3 -u ci/nqc-market-census/uniswap_v2_census.py             --out "$NQC_CENSUS"             --provider blastapi-public=https://eth-mainnet.public.blastapi.io             --provider mevblocker-rpc=https://rpc.mevblocker.io             --minimum-counted 25001             --collection-target 26000             --batch-pairs 20             2>&1 | tee "$NQC_CENSUS/census.log"
+
+      - name: Validate census artifact fail closed
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+
+          root=Path("/tmp/nqc-real-market-census")
+          contract=json.loads(Path("ci/nqc-market-census/REAL_MARKET_CENSUS_CONTRACT.json").read_text())
+          summary=json.loads((root/"summary.json").read_text())
+          assert summary["gate"]=="REAL_MARKET_CENSUS"
+          assert summary["status"]=="PASS"
+          assert summary["chain_id"]==1
+          assert summary["provider_count"]>=2
+          assert summary["counted_real_live_markets"]>=contract["scope"]["minimum_counted_markets"]
+          assert summary["counted_real_live_markets"]>=25001
+          assert summary["factory_total_pairs"]>=summary["pairs_scanned"]>=summary["counted_real_live_markets"]
+          assert summary["funding_compatibility_state"]=="UNCLASSIFIED_AT_CENSUS_STAGE"
+          assert summary["execution_compatibility_state"]=="UNCLASSIFIED_AT_CENSUS_STAGE"
+          assert summary["shadow_execution"]=="NOT_TESTED"
+          assert summary["canary_execution"]=="NOT_TESTED"
+          assert summary["live_pnl_evidence"] is False
+          assert summary["production_authority_issued"] is False
+          assert summary["production_certification"]=="NOT_CERTIFIED"
+          anchor=summary["canonical_anchor"]
+          assert len(anchor["hash"])==66 and len(anchor["parent_hash"])==66
+
+          required=set(contract["required_market_fields"])
+          seen=set(); count=0
+          with (root/"markets.ndjson").open() as f:
+              for line in f:
+                  row=json.loads(line)
+                  assert required.issubset(row)
+                  assert row["counted_toward_real_market_census"] is True
+                  assert row["canonical_state_anchor"]==anchor
+                  assert row["signal_observability"].startswith("PASS_")
+                  assert row["simulation_support_state"].startswith("PASS_")
+                  assert row["funding_compatibility_state"]=="UNCLASSIFIED_AT_CENSUS_STAGE"
+                  assert row["execution_compatibility_state"]=="UNCLASSIFIED_AT_CENSUS_STAGE"
+                  market=row["market_address"]
+                  assert market not in seen
+                  seen.add(market); count+=1
+          assert count==summary["counted_real_live_markets"]
+          digest=hashlib.sha256((root/"markets.ndjson").read_bytes()).hexdigest()
+          assert digest==summary["market_records_sha256"]
+          print(f"REAL_MARKET_CENSUS_ARTIFACT_PASS counted={count}")
+          PY
+          (cd "$NQC_CENSUS" && sha256sum -c SHA256SUMS)
+
+      - name: Preserve real market census evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-t40-real-market-census-${{ github.event.pull_request.head.sha || github.sha }}
+          path: /tmp/nqc-real-market-census
+          if-no-files-found: error
+          retention-days: 90
