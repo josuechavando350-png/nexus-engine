@@ -137,8 +137,9 @@ Target deterministic artifacts:
 - `capital-census-summary.json`
 - `capital-upstream-authority.json`
 - `capital-evidence-manifest.json`
+- `capital-real-source-closeout.json` (only after external authority locking plus exact upstream replay passes)
 
-Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence. `generated_at` is evidence time, not wall-clock time: it MUST equal the exact observation-anchor block timestamp and MUST carry `generated_at_basis=OBSERVATION_ANCHOR_BLOCK_TIMESTAMP`, so identical evidence and code regenerate byte-identical artifacts.
+Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence. `generated_at` is evidence time, not wall-clock time: it MUST equal the exact observation-anchor block timestamp and MUST carry `generated_at_basis=OBSERVATION_ANCHOR_BLOCK_TIMESTAMP`, so identical evidence and code regenerate byte-identical artifacts. The ordinary D11 bundle remains explicitly `real_source_certification=false`; only the separate closeout produced by the external-lock + exact-replay verifier may assert `real_source_certification=true`.
 
 ## Required tests
 
@@ -175,6 +176,8 @@ RMC-011 may be certified only when:
 - full rerun is deterministic
 - offline verifier passes
 - the D11 upstream authority equals the external RMC-006..RMC-010 authority lock exactly, and exact upstream-consumption replay passes for RMC-008 and RMC-009; without the external lock or consumed upstream bytes, the result remains internally consistent only and MUST NOT claim real-source certification
+- a deterministic `capital-real-source-closeout.json` is generated from that combined proof and binds the D11 capital commitment, upstream-authority commitment, external-lock commitment and SHA-256, exact observation anchor, source/requirement counts, and zero-own-capital truth
+- if the certified requirement set is empty, the real-source closeout MUST keep `zero_own_capital_proven=false` and MUST explicitly refuse any opportunity-level capital-feasibility claim
 - no downstream profitability, Shadow, Canary, or P&L claim is inferred from capital feasibility alone
 
 RMC-009 explicitly does not certify liquidatability. Therefore a fully admitted upstream run may legitimately contain zero actionable capital requirements. In that case RMC-011 MAY certify the observed capital-source census and the conserved D09 demand-import coverage with `requirement_count = 0`, but it MUST report `zero_own_capital_proven = false` and MUST NOT claim opportunity-level capital feasibility. A non-empty source census remains mandatory.
