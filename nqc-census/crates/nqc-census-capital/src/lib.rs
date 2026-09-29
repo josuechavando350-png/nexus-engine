@@ -2185,7 +2185,6 @@ impl<'a> Reader<'a> {
         Ok(u64::from_be_bytes(self.array::<8>()?))
     }
 
-
     fn finish(self) -> Result<(), CapitalError> {
         if self.offset == self.bytes.len() {
             Ok(())
