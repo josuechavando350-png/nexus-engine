@@ -59,6 +59,8 @@ pub enum CapitalError {
     MissingSourceForAllocation,
     OperatorOwnedAllocation,
     UnevaluatedRequirement,
+    NonEvidentiaryLedger,
+    EmptyCapitalCensus,
 }
 
 impl Display for CapitalError {
@@ -131,6 +133,12 @@ impl Display for CapitalError {
             }
             Self::UnevaluatedRequirement => {
                 f.write_str("capital ledger contains requirement without feasibility result")
+            }
+            Self::NonEvidentiaryLedger => {
+                f.write_str("synthetic capital ledger cannot be certified as real evidence")
+            }
+            Self::EmptyCapitalCensus => {
+                f.write_str("capital census certification requires sources and requirements")
             }
         }
     }
@@ -1763,14 +1771,55 @@ impl CapitalCensusSummary {
     }
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum CapitalLedgerMode {
+    SyntheticFixture,
+    Evidentiary,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapitalCensusCertificate {
+    pub commitment: CapitalCensusCommitment,
+    pub summary: CapitalCensusSummary,
+}
+
+#[derive(Debug)]
 pub struct CapitalCensusLedger {
+    mode: CapitalLedgerMode,
     sources: BTreeMap<CapitalSourceId, CapitalSource>,
     requirements: BTreeMap<CapitalRequirementId, CapitalRequirement>,
     results: BTreeMap<CapitalRequirementId, CapitalFeasibility>,
 }
 
+impl Default for CapitalCensusLedger {
+    fn default() -> Self {
+        Self::synthetic_fixture()
+    }
+}
+
 impl CapitalCensusLedger {
+    pub fn synthetic_fixture() -> Self {
+        Self {
+            mode: CapitalLedgerMode::SyntheticFixture,
+            sources: BTreeMap::new(),
+            requirements: BTreeMap::new(),
+            results: BTreeMap::new(),
+        }
+    }
+
+    pub fn evidentiary() -> Self {
+        Self {
+            mode: CapitalLedgerMode::Evidentiary,
+            sources: BTreeMap::new(),
+            requirements: BTreeMap::new(),
+            results: BTreeMap::new(),
+        }
+    }
+
+    pub const fn mode(&self) -> CapitalLedgerMode {
+        self.mode
+    }
+
     pub fn register_source(&mut self, source: CapitalSource) -> Result<(), CapitalError> {
         if self.sources.contains_key(&source.id()) {
             return Err(CapitalError::DuplicateSource);
@@ -1846,6 +1895,21 @@ impl CapitalCensusLedger {
         }
 
         Ok(CapitalCensusCommitment(finalize_sha256(hasher)))
+    }
+
+    pub fn certify(&self) -> Result<CapitalCensusCertificate, CapitalError> {
+        if self.mode != CapitalLedgerMode::Evidentiary {
+            return Err(CapitalError::NonEvidentiaryLedger);
+        }
+        let summary = self.summary()?;
+        if summary.source_count == 0 || summary.requirement_count == 0 {
+            return Err(CapitalError::EmptyCapitalCensus);
+        }
+        let commitment = self.commitment()?;
+        Ok(CapitalCensusCertificate {
+            commitment,
+            summary,
+        })
     }
 
     pub fn summary(&self) -> Result<CapitalCensusSummary, CapitalError> {

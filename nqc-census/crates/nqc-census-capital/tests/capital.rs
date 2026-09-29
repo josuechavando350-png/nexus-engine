@@ -878,3 +878,61 @@ fn fee_rounding_matches_protocol_integer_semantics() -> TestResult {
     assert_eq!(balancer_like.amount, Amount256::from_u128(2));
     Ok(())
 }
+
+
+#[test]
+fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult {
+    let ledger = CapitalCensusLedger::synthetic_fixture();
+    assert!(matches!(
+        ledger.certify(),
+        Err(nqc_census_capital::CapitalError::NonEvidentiaryLedger)
+    ));
+    Ok(())
+}
+
+#[test]
+fn evidentiary_ledger_requires_nonempty_census() -> TestResult {
+    let ledger = CapitalCensusLedger::evidentiary();
+    assert!(matches!(
+        ledger.certify(),
+        Err(nqc_census_capital::CapitalError::EmptyCapitalCensus)
+    ));
+    Ok(())
+}
+
+#[test]
+fn evidentiary_ledger_certifies_only_after_evaluation() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let req = requirement(
+        vec![principal, repayment_leg(token)?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let external = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(external)?;
+    ledger.register_requirement(req)?;
+    assert!(matches!(
+        ledger.certify(),
+        Err(nqc_census_capital::CapitalError::UnevaluatedRequirement)
+    ));
+    ledger.evaluate_all()?;
+    let certificate = ledger.certify()?;
+    assert!(certificate.summary.is_conserved());
+    assert!(certificate.summary.proves_zero_own_capital());
+    assert_eq!(certificate.summary.feasible_count, 1);
+    Ok(())
+}
