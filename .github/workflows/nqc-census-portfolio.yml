@@ -1,0 +1,60 @@
+name: NQC RMC-012 Portfolio Capacity
+
+on:
+  pull_request:
+    paths:
+      - "nqc-census/crates/nqc-census-portfolio/**"
+      - "nqc-census/crates/nqc-census-capital/**"
+      - "nqc-census/Cargo.toml"
+      - "nqc-census/Cargo.lock"
+      - "ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md"
+      - ".github/workflows/nqc-census-portfolio.yml"
+  push:
+    branches:
+      - "nqc/rmc-012-portfolio-capacity-conflict-20260929"
+
+permissions:
+  contents: read
+
+env:
+  RUST_TOOLCHAIN: "1.98.1"
+
+jobs:
+  rmc-012-portfolio:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify stacked authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F 'RMC-012 — Portfolio Capacity and Conflict Contract' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F 'isolated feasibility is not portfolio feasibility' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F 'Chain identity is part of every shared-resource key' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+
+      - name: Verify no execution or network authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction|reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket'             nqc-census/crates/nqc-census-portfolio ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+
+      - name: Exact Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --locked -p nqc-census-portfolio --all-targets -- -D warnings
+          cargo test --locked -p nqc-census-portfolio -- --nocapture
+          cargo test --locked -p nqc-census-capital
+          cargo test --locked --workspace
+          cargo build --release --locked -p nqc-census-portfolio
+          echo RMC012_PORTFOLIO_FOUNDATION_PASS
