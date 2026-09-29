@@ -22,9 +22,7 @@ impl DemandBlockerReason {
     pub const fn code(self) -> &'static str {
         match self {
             Self::AccountDataUnavailable => "ACCOUNT_DATA_UNAVAILABLE",
-            Self::LiquidatabilityNotCertifiedByRmc009 => {
-                "LIQUIDATABILITY_NOT_CERTIFIED_BY_RMC009"
-            }
+            Self::LiquidatabilityNotCertifiedByRmc009 => "LIQUIDATABILITY_NOT_CERTIFIED_BY_RMC009",
         }
     }
 }
@@ -157,11 +155,9 @@ fn verify_summary(summary: &Json, anchor: &StateAnchor) -> Result<(), CapitalErr
             "RMC-009 has unexplained mismatches",
         ));
     }
-    let findings = required(summary, "blocking_findings")?
-        .as_array()
-        .ok_or(CapitalError::InvalidCanonical(
-            "RMC-009 blocking findings are not array",
-        ))?;
+    let findings = required(summary, "blocking_findings")?.as_array().ok_or(
+        CapitalError::InvalidCanonical("RMC-009 blocking findings are not array"),
+    )?;
     if !findings.is_empty() {
         return Err(CapitalError::InvalidCanonical(
             "RMC-009 has blocking findings",
@@ -173,11 +169,12 @@ fn verify_summary(summary: &Json, anchor: &StateAnchor) -> Result<(), CapitalErr
     {
         return Err(CapitalError::AnchorMismatch);
     }
-    let non_claims = required(summary, "non_claims")?
-        .as_array()
-        .ok_or(CapitalError::InvalidCanonical(
-            "RMC-009 non-claims are not array",
-        ))?;
+    let non_claims =
+        required(summary, "non_claims")?
+            .as_array()
+            .ok_or(CapitalError::InvalidCanonical(
+                "RMC-009 non-claims are not array",
+            ))?;
     if !non_claims
         .iter()
         .any(|value| value.as_str() == Some("LIQUIDATABILITY_NOT_CLAIMED"))
@@ -205,9 +202,7 @@ pub fn import_d09_borrower_demands(
         let account = Address::parse_hex(text(&row, "account")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid RMC-009 account"))?;
         if !seen_accounts.insert(account) {
-            return Err(CapitalError::InvalidCanonical(
-                "duplicate RMC-009 account",
-            ));
+            return Err(CapitalError::InvalidCanonical("duplicate RMC-009 account"));
         }
         let debt_positions = parse_positions(&row, "debt_positions")?;
         if debt_positions.is_empty() {
@@ -226,11 +221,12 @@ pub fn import_d09_borrower_demands(
         let blocker = match below {
             None => Some(DemandBlockerReason::AccountDataUnavailable),
             Some(true) => {
-                below_one_count = below_one_count
-                    .checked_add(1)
-                    .ok_or(CapitalError::InvalidCanonical(
-                        "below-one borrower count overflow",
-                    ))?;
+                below_one_count =
+                    below_one_count
+                        .checked_add(1)
+                        .ok_or(CapitalError::InvalidCanonical(
+                            "below-one borrower count overflow",
+                        ))?;
                 Some(DemandBlockerReason::LiquidatabilityNotCertifiedByRmc009)
             }
             Some(false) => None,

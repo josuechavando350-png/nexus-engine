@@ -69,8 +69,11 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
         position(20, 30, "500"),
         position(21, 31, "900")
     );
-    let imported =
-        import_d09_borrower_demands(manifest.as_bytes(), &summary("RMC_009_PASS_CANDIDATE", true), &anchor())?;
+    let imported = import_d09_borrower_demands(
+        manifest.as_bytes(),
+        &summary("RMC_009_PASS_CANDIDATE", true),
+        &anchor(),
+    )?;
     assert_eq!(imported.borrowers.len(), 1);
     assert_eq!(imported.below_one_count, 1);
     assert_eq!(imported.requirements_certified, 0);
@@ -127,18 +130,13 @@ fn non_borrowers_are_not_capital_demand_candidates() -> TestResult {
 
 #[test]
 fn d09_import_refuses_non_pass_or_missing_liquidatability_boundary() -> TestResult {
-    assert!(import_d09_borrower_demands(
-        b"",
-        &summary("RMC_009_BLOCKED", true),
-        &anchor()
-    )
-    .is_err());
-    assert!(import_d09_borrower_demands(
-        b"",
-        &summary("RMC_009_PASS_CANDIDATE", false),
-        &anchor()
-    )
-    .is_err());
+    assert!(
+        import_d09_borrower_demands(b"", &summary("RMC_009_BLOCKED", true), &anchor()).is_err()
+    );
+    assert!(
+        import_d09_borrower_demands(b"", &summary("RMC_009_PASS_CANDIDATE", false), &anchor())
+            .is_err()
+    );
     Ok(())
 }
 
@@ -153,12 +151,9 @@ fn d09_import_refuses_wrong_anchor() -> TestResult {
         hash(5),
     )
     .unwrap_or_else(|_| unreachable!());
-    assert!(import_d09_borrower_demands(
-        b"",
-        &summary("RMC_009_PASS_CANDIDATE", true),
-        &other
-    )
-    .is_err());
+    assert!(
+        import_d09_borrower_demands(b"", &summary("RMC_009_PASS_CANDIDATE", true), &other).is_err()
+    );
     Ok(())
 }
 
