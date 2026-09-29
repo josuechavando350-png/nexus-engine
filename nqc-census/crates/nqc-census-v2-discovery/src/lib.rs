@@ -4,6 +4,7 @@
 //! checkpoint authority. It consumes D01/D03/D04/D05 plus the shared chain
 //! evidence layer and reconciles semantically independent discovery surfaces.
 
+pub mod boundary;
 mod interface;
 pub mod live;
 mod reconcile;

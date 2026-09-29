@@ -103,6 +103,20 @@ jobs:
           target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/store-verify.log"
 
+      - name: Prove V2 factory creation boundary
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-boundary
+          target/release/nqc-rmc007-v2-boundary \
+            --providers ../ci/nqc-census/rpc-providers.json \
+            --store "$D07_EVIDENCE/store" \
+            --out "$D07_EVIDENCE/v2-factory-boundary.json" | tee "$D07_EVIDENCE/boundary.log"
+          grep -F "RMC007_FACTORY_BOUNDARY_PASS providers=3" "$D07_EVIDENCE/boundary.log"
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/boundary-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/boundary-store-verify.log"
+
       - name: Preserve D07 current-surface evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
