@@ -10,6 +10,35 @@ on:
       - ci/nqc-census/state-providers.json
       - nqc-census/crates/nqc-census-accounts/**
   workflow_dispatch:
+    inputs:
+      anchor_number:
+        description: "Optional alternate D06-certified anchor number"
+        required: false
+        default: ""
+      anchor_hash:
+        description: "Canonical hash of anchor_number"
+        required: false
+        default: ""
+      d06_run_id:
+        description: "Exact successful RMC-006 workflow run at the alternate anchor"
+        required: false
+        default: ""
+      d06_artifact_id:
+        description: "Exact GitHub artifact id of the RMC-006 evidence"
+        required: false
+        default: ""
+      d06_artifact_name:
+        description: "Exact RMC-006 evidence artifact name"
+        required: false
+        default: ""
+      d06_artifact_digest:
+        description: "Exact GitHub artifact digest (sha256:...)"
+        required: false
+        default: ""
+      d06_code_commit:
+        description: "Exact RMC-006 run head SHA"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -41,19 +70,64 @@ jobs:
       d06_run: ${{ steps.pins.outputs.d06_run }}
       d06_artifact: ${{ steps.pins.outputs.d06_artifact }}
       acquire: ${{ steps.decide.outputs.acquire }}
+      anchor_number: ${{ steps.pins.outputs.anchor_number }}
+      anchor_hash: ${{ steps.pins.outputs.anchor_hash }}
+      dynamic: ${{ steps.pins.outputs.dynamic }}
     steps:
       - name: Checkout exact head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
 
-      - name: Read pinned sources and verify their upstream identity
+      - name: Read exact D06 source identity
         id: pins
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
+          ALT_ANCHOR_NUMBER: ${{ inputs.anchor_number }}
+          ALT_ANCHOR_HASH: ${{ inputs.anchor_hash }}
+          ALT_D06_RUN: ${{ inputs.d06_run_id }}
+          ALT_D06_ARTIFACT_ID: ${{ inputs.d06_artifact_id }}
+          ALT_D06_ARTIFACT_NAME: ${{ inputs.d06_artifact_name }}
+          ALT_D06_ARTIFACT_DIGEST: ${{ inputs.d06_artifact_digest }}
+          ALT_D06_COMMIT: ${{ inputs.d06_code_commit }}
         run: |
           set -euo pipefail
+          values=("$ALT_ANCHOR_NUMBER" "$ALT_ANCHOR_HASH" "$ALT_D06_RUN" "$ALT_D06_ARTIFACT_ID" "$ALT_D06_ARTIFACT_NAME" "$ALT_D06_ARTIFACT_DIGEST" "$ALT_D06_COMMIT")
+          supplied=0
+          for value in "${values[@]}"; do
+            if [ -n "$value" ]; then supplied=$((supplied + 1)); fi
+          done
+          if [ "$supplied" != 0 ] && [ "$supplied" != 7 ]; then
+            echo "alternate-anchor dispatch must supply all seven anchor/D06 identity fields; supplied=$supplied"
+            exit 1
+          fi
+
+          if [ "$supplied" = 7 ]; then
+            test "${{ github.event_name }}" = workflow_dispatch
+            [[ "$ALT_ANCHOR_NUMBER" =~ ^[0-9]+$ ]]
+            [[ "$ALT_ANCHOR_HASH" =~ ^0x[0-9a-fA-F]{64}$ ]]
+            [[ "$ALT_D06_COMMIT" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$ALT_D06_ARTIFACT_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]
+            head=$(gh api "repos/${{ github.repository }}/actions/runs/$ALT_D06_RUN" --jq .head_sha)
+            conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$ALT_D06_RUN" --jq .conclusion)
+            observed=$(gh api "repos/${{ github.repository }}/actions/artifacts/$ALT_D06_ARTIFACT_ID" --jq .digest)
+            name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$ALT_D06_ARTIFACT_ID" --jq .name)
+            run=$(gh api "repos/${{ github.repository }}/actions/artifacts/$ALT_D06_ARTIFACT_ID" --jq .workflow_run.id)
+            test "$head" = "$ALT_D06_COMMIT" || { echo "D06 run head $head != $ALT_D06_COMMIT"; exit 1; }
+            test "$conclusion" = success || { echo "D06 run $ALT_D06_RUN concluded $conclusion"; exit 1; }
+            test "$run" = "$ALT_D06_RUN" || { echo "artifact belongs to run $run, not $ALT_D06_RUN"; exit 1; }
+            test "$observed" = "$ALT_D06_ARTIFACT_DIGEST" || { echo "artifact digest $observed != $ALT_D06_ARTIFACT_DIGEST"; exit 1; }
+            test "$name" = "$ALT_D06_ARTIFACT_NAME" || { echo "artifact name $name != $ALT_D06_ARTIFACT_NAME"; exit 1; }
+            echo "d06_run=$ALT_D06_RUN" >> "$GITHUB_OUTPUT"
+            echo "d06_artifact=$ALT_D06_ARTIFACT_NAME" >> "$GITHUB_OUTPUT"
+            echo "anchor_number=$ALT_ANCHOR_NUMBER" >> "$GITHUB_OUTPUT"
+            echo "anchor_hash=$ALT_ANCHOR_HASH" >> "$GITHUB_OUTPUT"
+            echo "dynamic=true" >> "$GITHUB_OUTPUT"
+            echo "RMC009_DYNAMIC_D06_PINNED run=$ALT_D06_RUN commit=$ALT_D06_COMMIT artifact=$ALT_D06_ARTIFACT_ID digest=$ALT_D06_ARTIFACT_DIGEST anchor=$ALT_ANCHOR_NUMBER"
+            exit 0
+          fi
+
           status=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/account-inputs.json"))["status"])')
           if [ "$status" != "PINNED" ]; then
             python3 -c 'import json; d=json.load(open("ci/nqc-census/account-inputs.json")); print("RMC009_BLOCKED", d["status"], "-", d.get("blocked_reason", ""))'
@@ -62,11 +136,18 @@ jobs:
           python3 - <<'PY' > /tmp/nqc-rmc009-sources.txt
           import json
           pins = json.load(open("ci/nqc-census/account-inputs.json"))
+          anchor = pins["expected_anchor"]
+          print("ANCHOR", anchor["block_number"], anchor["block_hash"])
           for source in pins["sources"]:
-              print(source["node"].lower(), source["workflow_run_id"], source["artifact_id"],
+              print("SOURCE", source["node"].lower(), source["workflow_run_id"], source["artifact_id"],
                     source["artifact"], source["code_commit"], source["artifact_digest"])
           PY
-          while read -r node run artifact_id artifact commit digest; do
+          read -r _ anchor_number anchor_hash < <(grep '^ANCHOR ' /tmp/nqc-rmc009-sources.txt)
+          echo "anchor_number=$anchor_number" >> "$GITHUB_OUTPUT"
+          echo "anchor_hash=$anchor_hash" >> "$GITHUB_OUTPUT"
+          echo "dynamic=false" >> "$GITHUB_OUTPUT"
+          while read -r kind node run artifact_id artifact commit digest; do
+            [ "$kind" = SOURCE ] || continue
             head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
             conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
             observed=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
@@ -88,23 +169,74 @@ jobs:
           github-token: ${{ github.token }}
           path: /tmp/nqc-rmc009-inputs/d06
 
-      - name: Verify every pinned digest and keep only pinned files
+      - name: Verify every digest and materialize immutable run-local pins
         shell: bash
+        env:
+          DYNAMIC: ${{ steps.pins.outputs.dynamic }}
+          ANCHOR_NUMBER: ${{ steps.pins.outputs.anchor_number }}
+          ANCHOR_HASH: ${{ steps.pins.outputs.anchor_hash }}
+          D06_RUN: ${{ steps.pins.outputs.d06_run }}
+          D06_ARTIFACT: ${{ steps.pins.outputs.d06_artifact }}
+          ALT_D06_ARTIFACT_ID: ${{ inputs.d06_artifact_id }}
+          ALT_D06_ARTIFACT_DIGEST: ${{ inputs.d06_artifact_digest }}
+          ALT_D06_COMMIT: ${{ inputs.d06_code_commit }}
         run: |
           set -euo pipefail
           python3 - <<'PY'
           import hashlib, json, os, shutil
-          pins = json.load(open("ci/nqc-census/account-inputs.json"))
           root = os.environ["D09_INPUTS"]
           keep = "/tmp/nqc-rmc009-pinned"
-          for entry in pins["files"]:
-              source = os.path.join(root, entry["path"])
-              digest = hashlib.sha256(open(source, "rb").read()).hexdigest()
-              assert digest == entry["sha256"], f"{entry['path']}: {digest} != pinned {entry['sha256']}"
-              target = os.path.join(keep, entry["path"])
-              os.makedirs(os.path.dirname(target), exist_ok=True)
-              shutil.copyfile(source, target)
-              print(f"RMC009_INPUT_PINNED role={entry['role']} sha256={digest}")
+          os.makedirs(keep, exist_ok=True)
+
+          if os.environ["DYNAMIC"] == "true":
+              specs = [
+                  ("d06_current_surface", "d06/aave-current-surface.json"),
+                  ("d06_deployment_manifest", "d06/closeout/aave-deployment-manifest.jsonl"),
+                  ("d06_reserve_manifest", "d06/closeout/aave-reserve-manifest.jsonl"),
+                  ("d06_history", "d06/aave-history.json"),
+              ]
+              files = []
+              for role, path in specs:
+                  source = os.path.join(root, path)
+                  data = open(source, "rb").read()
+                  digest = hashlib.sha256(data).hexdigest()
+                  target = os.path.join(keep, path)
+                  os.makedirs(os.path.dirname(target), exist_ok=True)
+                  shutil.copyfile(source, target)
+                  files.append({"role": role, "path": path, "sha256": digest})
+                  print(f"RMC009_DYNAMIC_FILE_PINNED role={role} sha256={digest}")
+              pins = {
+                  "schema_version": 1,
+                  "status": "PINNED",
+                  "expected_anchor": {
+                      "block_number": int(os.environ["ANCHOR_NUMBER"]),
+                      "block_hash": os.environ["ANCHOR_HASH"],
+                  },
+                  "sources": [{
+                      "node": "D06",
+                      "workflow_run_id": int(os.environ["D06_RUN"]),
+                      "artifact_id": int(os.environ["ALT_D06_ARTIFACT_ID"]),
+                      "artifact": os.environ["D06_ARTIFACT"],
+                      "code_commit": os.environ["ALT_D06_COMMIT"],
+                      "artifact_digest": os.environ["ALT_D06_ARTIFACT_DIGEST"],
+                  }],
+                  "files": files,
+              }
+          else:
+              pins = json.load(open("ci/nqc-census/account-inputs.json"))
+              for entry in pins["files"]:
+                  source = os.path.join(root, entry["path"])
+                  data = open(source, "rb").read()
+                  digest = hashlib.sha256(data).hexdigest()
+                  assert digest == entry["sha256"], f"{entry['path']}: {digest} != pinned {entry['sha256']}"
+                  target = os.path.join(keep, entry["path"])
+                  os.makedirs(os.path.dirname(target), exist_ok=True)
+                  shutil.copyfile(source, target)
+                  print(f"RMC009_INPUT_PINNED role={entry['role']} sha256={digest}")
+
+          with open(os.path.join(keep, "account-inputs.json"), "w") as handle:
+              json.dump(pins, handle, indent=2, sort_keys=True)
+              handle.write("\n")
           PY
 
       - name: Preserve pinned inputs
@@ -206,7 +338,8 @@ jobs:
             if target/release/nqc-rmc009-account-stage index \
                 --partition "${{ matrix.partition }}" --partitions "$INDEX_PARTITIONS" \
                 --providers ../ci/nqc-census/account-index-providers.json --label "${{ matrix.provider }}" \
-                --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+                --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
                 --store "$D09_EVIDENCE/store" --out "$D09_EVIDENCE/record.json" \
                 > "$D09_EVIDENCE/stage.log" 2> "$D09_EVIDENCE/stage-attempt-$attempt.err"; then
               echo "RMC009_ATTEMPT_PASS attempt=$attempt"
@@ -292,7 +425,8 @@ jobs:
           sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
             target/release/nqc-rmc009-account-replay \
             --providers ../ci/nqc-census/account-index-providers.json \
-            --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+            --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
             --record "$stage/record.json" --store "$stage/store" \
             --stage-artifact "$chosen" \
             --out "$D09_EVIDENCE/extract.json" | tee "$D09_EVIDENCE/replay.log"
@@ -359,7 +493,8 @@ jobs:
           sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
             target/release/nqc-rmc009-account-candidates \
             --providers ../ci/nqc-census/account-index-providers.json \
-            --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+            --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
             --extracts "$D09_EVIDENCE/index-extracts" \
             --out "$D09_EVIDENCE/candidate-accounts.jsonl" | tee "$D09_EVIDENCE/candidates.log"
           grep -F "RMC009_CANDIDATES_PASS" "$D09_EVIDENCE/candidates.log"
@@ -431,7 +566,8 @@ jobs:
           for attempt in 1 2 3 4 5 6 7 8 9 10; do
             if target/release/nqc-rmc009-account-stage "${args[@]}" \
                 --providers ../ci/nqc-census/state-providers.json --label "${{ matrix.provider }}" \
-                --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+                --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
                 --store "$D09_EVIDENCE/store" --out "$D09_EVIDENCE/record.json" \
                 > "$D09_EVIDENCE/stage.log" 2> "$D09_EVIDENCE/stage-attempt-$attempt.err"; then
               echo "RMC009_ATTEMPT_PASS attempt=$attempt"
@@ -527,7 +663,8 @@ jobs:
           sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
             target/release/nqc-rmc009-account-replay "${with[@]}" \
             --providers ../ci/nqc-census/state-providers.json \
-            --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+            --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
             --record "$stage/record.json" --store "$stage/store" \
             --stage-artifact "$chosen" \
             --out "$D09_EVIDENCE/extract.json" | tee "$D09_EVIDENCE/replay.log"
@@ -612,7 +749,8 @@ jobs:
               target/release/nqc-rmc009-account-reconcile \
               --index-providers ../ci/nqc-census/account-index-providers.json \
               --state-providers ../ci/nqc-census/state-providers.json \
-              --pins ../ci/nqc-census/account-inputs.json --pin-root "$D09_INPUTS" \
+              --pins "$D09_INPUTS/account-inputs.json" --pin-root "$D09_INPUTS" \
+                --anchor-number "${{ needs.inputs.outputs.anchor_number }}" --anchor-hash "${{ needs.inputs.outputs.anchor_hash }}" \
               --candidates /tmp/nqc-rmc009-candidates/candidate-accounts.jsonl \
               --extracts "$D09_EVIDENCE/extracts" \
               --out-dir "$D09_EVIDENCE/$out" \
