@@ -321,6 +321,7 @@ pub fn verify_capital_artifact_bundle(
     let mut feasibility_ids = BTreeSet::new();
     let mut rejected = BTreeSet::new();
     for record in &feasibility {
+        record_provenance(record)?;
         let requirement_id = record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("feasibility requirement id missing"))?;
@@ -369,6 +370,7 @@ pub fn verify_capital_artifact_bundle(
 
     let mut rejection_rows = BTreeSet::new();
     for record in &rejections {
+        record_provenance(record)?;
         let requirement_id = record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("rejection requirement id missing"))?;
