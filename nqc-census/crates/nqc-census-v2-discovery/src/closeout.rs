@@ -655,7 +655,7 @@ mod tests {
     }
 
     #[test]
-    fn repeated_request_responses_are_replayed_in_recorded_byte_order() {
+    fn repeated_request_responses_are_replayed_in_recorded_byte_order() -> Result<(), nqc_census_chain::ChainError> {
         let provider = ProviderSpec::new(
             0x0777,
             "replay-provider",
@@ -665,8 +665,7 @@ mod tests {
             1,
             1,
             PinningMode::Eip1898,
-        )
-        .unwrap();
+        )?;
         let request = br#"{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}"#;
         let first = br#"{"jsonrpc":"2.0","id":1,"result":"0x1"}"#.to_vec();
         let second = b"{\"result\":\"0x1\",\"id\":1,\"jsonrpc\":\"2.0\"}\n".to_vec();
@@ -678,8 +677,9 @@ mod tests {
             queues: Mutex::new(queues),
         };
 
-        assert_eq!(replay.post(&provider, request).unwrap().body, first);
-        assert_eq!(replay.post(&provider, request).unwrap().body, second);
+        assert_eq!(replay.post(&provider, request)?.body, first);
+        assert_eq!(replay.post(&provider, request)?.body, second);
         assert!(replay.post(&provider, request).is_err());
+        Ok(())
     }
 }
