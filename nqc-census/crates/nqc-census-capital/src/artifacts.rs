@@ -490,7 +490,7 @@ pub fn export_capital_artifacts(
         ),
         (
             "upstream_authority_commitment",
-            Json::string(certificate.upstream_authority_commitment.to_hex()),
+            Json::string(hex(certificate.upstream_authority_commitment.as_bytes())),
         ),
         (
             "source_count",
@@ -552,7 +552,7 @@ pub fn export_capital_artifacts(
         ),
         (
             "upstream_authority_commitment",
-            Json::string(certificate.upstream_authority_commitment.to_hex()),
+            Json::string(hex(certificate.upstream_authority_commitment.as_bytes())),
         ),
         (
             "artifacts",
