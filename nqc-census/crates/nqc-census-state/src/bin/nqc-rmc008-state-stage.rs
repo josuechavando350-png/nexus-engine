@@ -13,7 +13,7 @@ use nqc_census_chain::transport::{CurlTransport, RetryPolicy};
 use nqc_census_state::aave_stage::aave_state_stage;
 use nqc_census_state::inputs::{pinned, verify_pins, D06Inputs, D07Inputs};
 use nqc_census_state::stage::AnchorPlan;
-use nqc_census_state::v2_stage::{v2_factory_stage, v2_state_stage, V2Plan};
+use nqc_census_state::v2_stage::{factory_samples, v2_factory_stage, v2_state_stage, V2Plan};
 use nqc_census_store::{Store, StoreConfig};
 use std::collections::BTreeMap;
 use std::{env, error::Error, fs, path::PathBuf};
@@ -72,13 +72,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
         "v2-factory" => {
             let (d07, plan) = v2(V2Plan::mainnet()?.job_size)?;
-            let first = d07.pairs.first().ok_or("no admitted pair")?.pair;
-            let last = d07.pairs.last().ok_or("no admitted pair")?.pair;
-            let samples = if first == last {
-                vec![first]
-            } else {
-                vec![first, last]
-            };
+            let samples = factory_samples(&d07.pairs);
+            if samples.is_empty() {
+                return Err("no admitted pair".into());
+            }
             v2_factory_stage(&acquisition, &provider, &plan, &samples)?
         }
         "v2-state" => {
