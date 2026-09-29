@@ -5,6 +5,7 @@
 //! admission, and nqc-census-chain owns acquisition/replay.
 
 pub mod admission;
+pub mod closeout;
 pub mod history;
 mod interface;
 mod lineage;

@@ -106,6 +106,19 @@ jobs:
           target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/history-store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/history-store-verify.log"
 
+      - name: Verify crash/resume replay equivalence
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          target/release/nqc-rmc006-aave-history \
+            --providers ../ci/nqc-census/aave-history-providers.json \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --store "$D06_EVIDENCE/store" \
+            --out "$D06_EVIDENCE/aave-history-resumed.json" | tee "$D06_EVIDENCE/history-resumed.log"
+          cmp "$D06_EVIDENCE/aave-history.json" "$D06_EVIDENCE/aave-history-resumed.json"
+          echo RMC006_RESUME_EQUIVALENCE_PASS
+
       - name: Materialize D05 deployment admission
         working-directory: nqc-census
         shell: bash
@@ -121,6 +134,28 @@ jobs:
           grep -F '"status":"D05_ADMISSION_MATERIALIZED"' "$D06_EVIDENCE/aave-admission.json"
           target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/admission-store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/admission-store-verify.log"
+
+      - name: Build deterministic D06 closeout artifacts
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-closeout
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TREE_SHA="$(git show -s --format=%T HEAD)"
+          target/release/nqc-rmc006-aave-closeout \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --history "$D06_EVIDENCE/aave-history.json" \
+            --store "$D06_EVIDENCE/store" \
+            --out-dir "$D06_EVIDENCE/closeout" \
+            --code-commit "$HEAD_SHA" \
+            --code-tree "$TREE_SHA" | tee "$D06_EVIDENCE/closeout.log"
+          grep -F "RMC006_CLOSEOUT_PASS reserves=67 unexplained=0 mismatches=0" "$D06_EVIDENCE/closeout.log"
+          grep -F '"unexplained_delta_count":0' "$D06_EVIDENCE/closeout/aave-discovery-summary.json"
+          grep -F '"provider_mismatch_count":0' "$D06_EVIDENCE/closeout/aave-discovery-summary.json"
+          test -s "$D06_EVIDENCE/closeout/evidence-manifest.json"
+          target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/final-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/final-store-verify.log"
 
       - name: Preserve D06 current-surface evidence
         if: always()
