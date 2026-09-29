@@ -539,6 +539,12 @@ pub fn export_capital_artifacts(
             "zero_own_capital_proven",
             Json::Bool(certificate.summary.proves_zero_own_capital()),
         ),
+        (
+            "sources_by_class",
+            Json::object(certificate.summary.sources_by_class.iter().map(
+                |(class, count)| (class.code(), Json::uint(u64_count(*count))),
+            )),
+        ),
         ("unexplained_capital_failure_count", Json::uint(0)),
         ("profitability_claimed", Json::Bool(false)),
     ]);
@@ -866,6 +872,10 @@ fn requirement_record(requirement: &CapitalRequirement, provenance: &ArtifactPro
                     ),
                 ])
             })),
+        ),
+        (
+            "evidence_refs",
+            Json::array(requirement.evidence().iter().copied().map(evidence_ref_json)),
         ),
         (
             "canonical_record",
