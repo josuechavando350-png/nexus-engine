@@ -2627,8 +2627,7 @@ impl UpstreamConsumptionReceipt {
     ) -> Result<Self, CapitalError> {
         if !matches!(
             stage,
-            UpstreamCensusStage::Rmc008StateAdmission
-                | UpstreamCensusStage::Rmc009PositionUniverse
+            UpstreamCensusStage::Rmc008StateAdmission | UpstreamCensusStage::Rmc009PositionUniverse
         ) {
             return Err(CapitalError::InvalidUpstreamAuthority(
                 "only RMC-008 and RMC-009 may issue capital consumption receipts",
@@ -2796,11 +2795,11 @@ impl CapitalCertificationContext {
             UpstreamCensusStage::Rmc008StateAdmission,
             UpstreamCensusStage::Rmc009PositionUniverse,
         ] {
-            let receipt = by_stage.get(&required).ok_or(
-                CapitalError::InvalidUpstreamAuthority(
+            let receipt = by_stage
+                .get(&required)
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
                     "RMC-008 and RMC-009 consumption receipts are required",
-                ),
-            )?;
+                ))?;
             let authority = self
                 .stages
                 .iter()
