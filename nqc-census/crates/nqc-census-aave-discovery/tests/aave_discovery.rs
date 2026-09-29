@@ -286,3 +286,189 @@ fn reserve_dropped_decoder_is_strict() -> TestResult {
     assert_eq!(decode_reserve_dropped(configurator, &log)?.asset, asset);
     Ok(())
 }
+
+
+#[test]
+fn same_asset_with_two_current_ids_fails_closed() -> TestResult {
+    let result = reconcile(
+        &admission()?,
+        vec![current(0, 1)?, current(1, 1)?],
+        vec![init(120, 1)?],
+        vec![],
+    );
+    assert!(result.is_err());
+    Ok(())
+}
+
+#[test]
+fn exact_duplicate_current_rows_do_not_create_two_markets() -> TestResult {
+    let row = current(0, 1)?;
+    let report = reconcile(
+        &admission()?,
+        vec![row.clone(), row],
+        vec![init(120, 1)?],
+        vec![],
+    )?;
+    assert!(report.certifiable());
+    assert_eq!(report.summary.source_a_count, 1);
+    assert_eq!(report.summary.union_count, 1);
+    assert_eq!(report.reserves.len(), 1);
+    Ok(())
+}
+
+#[test]
+fn duplicate_drop_provider_observation_is_deduplicated() -> TestResult {
+    let dropped = drop(140, 1)?;
+    let report = reconcile(
+        &admission()?,
+        vec![],
+        vec![init(120, 1)?],
+        vec![dropped.clone(), dropped],
+    )?;
+    assert!(report.certifiable());
+    assert_eq!(report.summary.duplicate_observations, 1);
+    assert_eq!(report.summary.deprecated_or_removed_count, 1);
+    Ok(())
+}
+
+#[test]
+fn drop_at_or_before_initialization_fails_closed() -> TestResult {
+    let result = reconcile(
+        &admission()?,
+        vec![],
+        vec![init(120, 1)?],
+        vec![drop(120, 1)?],
+    );
+    assert!(result.is_err());
+    Ok(())
+}
+
+#[test]
+fn drop_without_initialization_fails_closed() -> TestResult {
+    let result = reconcile(&admission()?, vec![], vec![], vec![drop(140, 1)?]);
+    assert!(result.is_err());
+    Ok(())
+}
+
+#[test]
+fn conflicting_second_initialization_for_same_asset_fails_closed() -> TestResult {
+    let first = init(120, 1)?;
+    let mut second = init(130, 1)?;
+    second.a_token = address(0x7a)?;
+    let result = reconcile(
+        &admission()?,
+        vec![current(0, 1)?],
+        vec![first, second],
+        vec![],
+    );
+    assert!(result.is_err());
+    Ok(())
+}
+
+#[test]
+fn distinct_asset_addresses_produce_distinct_market_ids() -> TestResult {
+    let report = reconcile(
+        &admission()?,
+        vec![current(0, 1)?, current(1, 2)?],
+        vec![init(120, 1)?, init(130, 2)?],
+        vec![],
+    )?;
+    assert_eq!(report.reserves.len(), 2);
+    assert_ne!(report.reserves[0].market_id, report.reserves[1].market_id);
+    Ok(())
+}
+
+#[test]
+fn evidence_from_getter_and_history_is_merged_without_duplicates() -> TestResult {
+    let shared = EvidenceRef::Artifact(hash(0x44)?);
+    let mut getter = current(0, 1)?;
+    getter.evidence = vec![shared];
+    let mut initialized = init(120, 1)?;
+    initialized.evidence = vec![shared, EvidenceRef::Artifact(hash(0x45)?)];
+    let report = reconcile(&admission()?, vec![getter], vec![initialized], vec![])?;
+    assert_eq!(report.reserves[0].evidence.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn reserve_initialized_allows_zero_optional_v3_addresses() -> TestResult {
+    let configurator = address(0x90)?;
+    let interface = aave_interface();
+    let asset = address(1)?;
+    let a_token = address(2)?;
+    let variable = address(4)?;
+    let mut topic0 = [0_u8; 32];
+    topic0.copy_from_slice(&interface.reserve_initialized_topic);
+    let mut topic1 = [0_u8; 32];
+    topic1[12..].copy_from_slice(asset.as_bytes());
+    let mut topic2 = [0_u8; 32];
+    topic2[12..].copy_from_slice(a_token.as_bytes());
+    let log = RawLogEnvelope::new(
+        configurator,
+        hash(0x35)?,
+        1,
+        4,
+        vec![
+            Hash32::new(topic0)?,
+            Hash32::new(topic1)?,
+            Hash32::new(topic2)?,
+        ],
+        [
+            [0_u8; 32].as_slice(),
+            abi::address_word(variable.as_bytes()).as_slice(),
+            [0_u8; 32].as_slice(),
+        ]
+        .concat(),
+        false,
+    )?;
+    let decoded = decode_reserve_initialized(configurator, &log)?;
+    assert_eq!(decoded.stable_debt_token, None);
+    assert_eq!(decoded.interest_rate_strategy, None);
+    assert_eq!(decoded.variable_debt_token, variable);
+    Ok(())
+}
+
+#[test]
+fn reserve_event_wrong_emitter_is_rejected() -> TestResult {
+    let configurator = address(0x90)?;
+    let wrong = address(0x91)?;
+    let interface = aave_interface();
+    let asset = address(1)?;
+    let mut topic0 = [0_u8; 32];
+    topic0.copy_from_slice(&interface.reserve_dropped_topic);
+    let mut topic1 = [0_u8; 32];
+    topic1[12..].copy_from_slice(asset.as_bytes());
+    let log = RawLogEnvelope::new(
+        wrong,
+        hash(0x36)?,
+        1,
+        5,
+        vec![Hash32::new(topic0)?, Hash32::new(topic1)?],
+        vec![],
+        false,
+    )?;
+    assert!(decode_reserve_dropped(configurator, &log).is_err());
+    Ok(())
+}
+
+#[test]
+fn reserve_event_noncanonical_indexed_address_is_rejected() -> TestResult {
+    let configurator = address(0x90)?;
+    let interface = aave_interface();
+    let mut topic0 = [0_u8; 32];
+    topic0.copy_from_slice(&interface.reserve_dropped_topic);
+    let mut malformed = [0_u8; 32];
+    malformed[0] = 1;
+    malformed[12..].copy_from_slice(address(1)?.as_bytes());
+    let log = RawLogEnvelope::new(
+        configurator,
+        hash(0x37)?,
+        1,
+        6,
+        vec![Hash32::new(topic0)?, Hash32::new(malformed)?],
+        vec![],
+        false,
+    )?;
+    assert!(decode_reserve_dropped(configurator, &log).is_err());
+    Ok(())
+}
