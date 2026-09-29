@@ -736,6 +736,38 @@ fn source_key_is_stable_across_state_refreshes() -> TestResult {
 }
 
 #[test]
+fn source_key_is_stable_across_ownership_changes() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let make = |ownership| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::TransientCredit,
+            anchor: anchor(100),
+            provider_namespace: 77,
+            provider_locator_hash: hash(78),
+            provider_kind: CapitalProviderKind::BuilderOrSolver,
+            ownership,
+            source_contract: Some(address(79)),
+            asset: token,
+            maximum_available: Amount256::from_u128(1_000),
+            fee_model: FeeModel::basis_points(5)?,
+            repayment_asset: token,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+            evidence: evidence(),
+        })
+    };
+    let external = make(CapitalOwnership::External)?;
+    let operator_owned = make(CapitalOwnership::OperatorOwned)?;
+    assert_eq!(external.key_id(), operator_owned.key_id());
+    assert_ne!(external.id(), operator_owned.id());
+    Ok(())
+}
+
+#[test]
 fn repayment_obligation_does_not_double_count_initial_capital() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
