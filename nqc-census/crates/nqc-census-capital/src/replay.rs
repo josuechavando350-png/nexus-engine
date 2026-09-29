@@ -69,6 +69,21 @@ impl UpstreamAuthorityLock {
                 ));
             }
         }
+        let observation_anchor = entries
+            .first()
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "authority lock is empty",
+            ))?
+            .observation_anchor
+            .clone();
+        if entries
+            .iter()
+            .any(|entry| entry.observation_anchor != observation_anchor)
+        {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "authority lock stages do not share one exact observation anchor",
+            ));
+        }
 
         let mut hasher = Sha256::new();
         hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-LOCK-V1");
@@ -114,6 +129,10 @@ impl UpstreamAuthorityLock {
 
     pub const fn commitment(&self) -> Hash32 {
         self.commitment
+    }
+
+    pub fn observation_anchor(&self) -> &StateAnchor {
+        &self.entries[0].observation_anchor
     }
 
     pub fn verify(&self, context: &CapitalCertificationContext) -> Result<(), CapitalError> {
