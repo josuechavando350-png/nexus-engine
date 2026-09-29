@@ -6,12 +6,7 @@ use nqc_census_chain::{json::Json, ChainError};
 use nqc_census_core::{Address, EvidenceRef, Hash32};
 use nqc_census_store::{ArtifactId, Store, StoreConfig};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeMap,
-    error::Error,
-    fs,
-    path::Path,
-};
+use std::{collections::BTreeMap, error::Error, fs, path::Path};
 
 const SCHEMA_VERSION: u64 = 1;
 const SCOPE: &str = "ETHEREUM_MAINNET_AAVE_V3_DECLARED_DEPLOYMENT_ONLY";
