@@ -382,9 +382,18 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
     )?;
     let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
     let text = std::str::from_utf8(&summary.bytes)?;
+    assert!(text.contains("\"schema_version\":4"));
     assert!(text.contains("\"feasible_count\":0"));
     assert!(text.contains("\"rejected_count\":1"));
     assert!(text.contains("\"zero_own_capital_proven\":false"));
+    assert!(text.contains("\"real_source_certification\":false"));
+
+    let manifest = bundle
+        .file(CAPITAL_EVIDENCE_MANIFEST_FILE)
+        .ok_or("missing evidence manifest")?;
+    let manifest_text = std::str::from_utf8(&manifest.bytes)?;
+    assert!(manifest_text.contains("\"schema_version\":2"));
+    assert!(manifest_text.contains("REAL_SOURCE_CERTIFICATION_NOT_TESTED"));
     Ok(())
 }
 
