@@ -208,6 +208,7 @@ fn stable_deployment_instance(pool: Address, creation: &StateAnchor) -> Result<H
     Ok(Hash32::new(hasher.finalize().into())?)
 }
 
+#[allow(clippy::too_many_arguments)]
 fn scan_history(
     acquisition: &Acquisition<'_>,
     provider: &ProviderSpec,
@@ -382,7 +383,6 @@ pub fn run_history(
     let logs = agree_logs("rmc006-aave-reserve-lifecycle", &per_provider)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
 
-    let interface = aave_interface();
 
     let interface = aave_interface();
     let mut lifecycle = BTreeMap::<Address, &'static str>::new();
