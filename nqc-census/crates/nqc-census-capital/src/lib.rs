@@ -2206,8 +2206,7 @@ fn settlement_class_amounts_assignable(
 
         if class_source_edges
             .iter()
-            .enumerate()
-            .any(|(index, edge)| !graph[super_source][*edge].capacity.is_zero())
+            .any(|edge| !graph[super_source][*edge].capacity.is_zero())
         {
             return Ok(false);
         }
