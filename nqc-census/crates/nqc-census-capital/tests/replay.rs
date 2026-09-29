@@ -77,7 +77,11 @@ fn d08_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
             "{{\"bytes\":{},\"path\":\"market-state-manifest.jsonl\",\"sha256\":\"{}\"}},",
             "{{\"bytes\":{},\"path\":\"token-admission.jsonl\",\"sha256\":\"{}\"}},",
             "{{\"bytes\":{},\"path\":\"pool-and-factory-facts.json\",\"sha256\":\"{}\"}}",
-            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"observation_anchor\":{{\"block_hash\":\"{}\",\"block_number\":{},",
+            "\"chain_id\":{},\"fork_lineage\":\"{}\",\"genesis_hash\":\"{}\",",
+            "\"parent_hash\":\"{}\",\"state_root\":\"{}\",\"timestamp\":{}}},",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",\"schema_version\":1}}"
         ),
         states.len(),
         sha256_plain(&states),
@@ -87,6 +91,14 @@ fn d08_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
         sha256_plain(&facts),
         D08_CODE_COMMIT,
         D08_CODE_TREE,
+        anchor().block_hash().to_hex(),
+        anchor().block_number(),
+        anchor().chain().chain_id(),
+        anchor().chain().fork_lineage().to_hex(),
+        anchor().chain().genesis_hash().to_hex(),
+        anchor().parent_hash().to_hex(),
+        anchor().state_root().to_hex(),
+        anchor().timestamp(),
     )
     .into_bytes();
     (states, tokens, facts, manifest)
@@ -97,15 +109,14 @@ fn d09_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     let summary = format!(
         concat!(
             "{{\"all_tokens_conserved\":true,\"anchor\":{{\"hash\":\"{}\",\"number\":25437474}},",
-            "\"blocking_findings\":[],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"anchor_timestamp\":1700000000,\"blocking_findings\":[],",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",",
             "\"non_claims\":[\"LIQUIDATABILITY_NOT_CLAIMED\",\"PROFITABILITY_NOT_CLAIMED\",",
             "\"EXECUTION_NOT_CLAIMED\",\"ORACLE_FRESHNESS_NOT_ASSUMED\",\"POSITIONS_OUTSIDE_D06_NOT_CLAIMED\"],",
             "\"schema_version\":1,\"status\":\"RMC_009_PASS_CANDIDATE\",\"unexplained_mismatches\":0,",
             "\"uniswap_v2\":{{\"reason\":\"not applicable\",\"status\":\"NOT_APPLICABLE\"}}}}"
         ),
         anchor().block_hash().to_hex(),
-        D09_CODE_COMMIT,
-        D09_CODE_TREE,
     )
     .into_bytes();
     let manifest = format!(
@@ -113,7 +124,8 @@ fn d09_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
             "{{\"artifacts\":[",
             "{{\"bytes\":{},\"path\":\"account-manifest.jsonl\",\"sha256\":\"{}\"}},",
             "{{\"bytes\":{},\"path\":\"account-summary.json\",\"sha256\":\"{}\"}}",
-            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",\"schema_version\":1}}"
         ),
         accounts.len(),
         sha256_plain(&accounts),
