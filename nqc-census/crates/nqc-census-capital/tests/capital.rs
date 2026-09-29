@@ -1193,8 +1193,8 @@ fn upstream_authority_rejects_mismatch_unknown_or_unadmitted_stage() -> TestResu
                 admitted,
             ),
             Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
-            _
-        ))
+                _
+            ))
         ));
     }
     Ok(())
