@@ -113,16 +113,6 @@ impl UpstreamAuthorityLock {
         })
     }
 
-    pub fn from_context(context: &CapitalCertificationContext) -> Result<Self, CapitalError> {
-        Self::new(
-            context
-                .stages()
-                .iter()
-                .map(UpstreamAuthorityLockEntry::from)
-                .collect(),
-        )
-    }
-
     pub fn entries(&self) -> &[UpstreamAuthorityLockEntry] {
         &self.entries
     }
@@ -260,6 +250,11 @@ impl UpstreamAuthorityLock {
             })?;
         if declared != lock.commitment.to_hex() {
             return Err(CapitalError::CanonicalDigestMismatch);
+        }
+        if lock.canonical_json()? != bytes {
+            return Err(CapitalError::InvalidCanonical(
+                "upstream authority lock contains unknown or non-normalized fields",
+            ));
         }
         Ok(lock)
     }
