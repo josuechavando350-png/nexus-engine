@@ -14,7 +14,7 @@ use nqc_census_chain::{
     ChainError,
 };
 use nqc_census_state::{
-    replay::owner,
+    replay::{manifests, owner},
     stage::{sha256_plain, AnchorPlan},
     v2_verify::ReplayedStage,
 };
@@ -148,7 +148,7 @@ pub fn verify_canonicality_extract(
         ReplayedStage {
             provider: provider.label().to_owned(),
             parameters,
-            manifests: crate::canonical::manifests_for_record_for_extract(&record)?,
+            manifests: manifests(&record)?,
             rows,
         },
         store,
