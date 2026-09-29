@@ -54,7 +54,13 @@ fn certification_context() -> Result<CapitalCertificationContext, nqc_census_cap
             admitted: true,
         })?);
     }
-    CapitalCertificationContext::new(stages, evidence())
+    let mut admitted_evidence = evidence();
+    admitted_evidence.extend(
+        stages
+            .iter()
+            .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
+    );
+    CapitalCertificationContext::new(stages, admitted_evidence)
 }
 
 fn source(
@@ -1221,6 +1227,24 @@ fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResul
 }
 
 #[test]
+fn certification_context_requires_every_stage_artifact_in_evidence_catalog() -> TestResult {
+    let context = certification_context()?;
+    let stages = context.stages().to_vec();
+    let mut admitted_evidence = evidence();
+    admitted_evidence.extend(
+        stages
+            .iter()
+            .skip(1)
+            .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
+    );
+    assert!(matches!(
+        CapitalCertificationContext::new(stages, admitted_evidence),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
 fn upstream_authority_rejects_mismatch_unknown_or_unadmitted_stage() -> TestResult {
     let commit = GitObjectId::parse_hex("1111111111111111111111111111111111111111")?;
     let tree = GitObjectId::parse_hex("2222222222222222222222222222222222222222")?;
@@ -1827,7 +1851,13 @@ fn evidentiary_ledger_cannot_certify_against_a_different_anchor() -> TestResult 
             admitted: true,
         })?);
     }
-    let authority = CapitalCertificationContext::new(stages, evidence())?;
+    let mut admitted_evidence = evidence();
+    admitted_evidence.extend(
+        stages
+            .iter()
+            .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
+    );
+    let authority = CapitalCertificationContext::new(stages, admitted_evidence)?;
     assert!(matches!(
         ledger.certify(&authority),
         Err(nqc_census_capital::CapitalError::AnchorMismatch)
@@ -1878,8 +1908,13 @@ fn certification_rejects_evidence_not_admitted_by_upstream_authority() -> TestRe
             admitted: true,
         })?);
     }
-    let authority =
-        CapitalCertificationContext::new(stages, vec![CapitalEvidenceRef::Artifact(hash(98))])?;
+    let mut admitted_evidence = vec![CapitalEvidenceRef::Artifact(hash(98))];
+    admitted_evidence.extend(
+        stages
+            .iter()
+            .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
+    );
+    let authority = CapitalCertificationContext::new(stages, admitted_evidence)?;
     assert!(matches!(
         ledger.certify(&authority),
         Err(nqc_census_capital::CapitalError::UnresolvedEvidenceRef)
