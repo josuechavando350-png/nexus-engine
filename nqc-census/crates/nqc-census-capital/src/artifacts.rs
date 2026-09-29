@@ -578,10 +578,7 @@ pub fn export_capital_artifacts(
     );
 
     let summary_json = Json::object([
-        (
-            "schema_version",
-            Json::uint(CAPITAL_SUMMARY_SCHEMA_VERSION),
-        ),
+        ("schema_version", Json::uint(CAPITAL_SUMMARY_SCHEMA_VERSION)),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
