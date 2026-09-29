@@ -23,7 +23,7 @@ pub const CAPITAL_SCHEMA_VERSION: u16 = 2;
 
 const SOURCE_MAGIC: &[u8] = b"NQC-CAP-SOURCE";
 const REQUIREMENT_MAGIC: &[u8] = b"NQC-CAP-REQUIREMENT";
-const SOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-KEY-V2";
+const SOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-KEY-V1";
 const SOURCE_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-ID-V2";
 const REQUIREMENT_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-REQUIREMENT-ID-V1";
 const LEDGER_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-LEDGER-COMMITMENT-V2";
@@ -1336,7 +1336,6 @@ impl CapitalSource {
         writer.u16(self.provider_namespace);
         writer.bytes(self.provider_locator_hash.as_bytes());
         writer.u8(self.provider_kind.tag());
-        writer.u8(self.ownership.tag());
         match self.source_contract {
             None => writer.u8(0),
             Some(address) => {
