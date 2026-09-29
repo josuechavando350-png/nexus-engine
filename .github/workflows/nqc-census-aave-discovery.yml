@@ -10,6 +10,8 @@ on:
       - nqc-census/Cargo.toml
       - nqc-census/Cargo.lock
       - nqc-census/crates/nqc-census-aave-discovery/**
+      - nqc-census/crates/nqc-census-core/**
+      - nqc-census/crates/nqc-census-chain/**
   workflow_dispatch:
 
 permissions:
@@ -21,10 +23,14 @@ jobs:
     timeout-minutes: 90
     env:
       D06_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      # RMC-003.2 (zero-permitting log topic words) is the upstream authority
+      # for nqc-census-core and nqc-census-chain.
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
       PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
       RUST_TOOLCHAIN: "1.98.1"
       D06_TESTS_EXPECTED: "21"
+      D06_HISTORY_TESTS_EXPECTED: "9"
       D06_EVIDENCE: /tmp/nqc-rmc006-evidence
 
     steps:
@@ -40,12 +46,16 @@ jobs:
           set -euo pipefail
           test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
           git merge-base --is-ancestor "$D06_BASE" HEAD
+          git merge-base --is-ancestor "$D06_BASE" "$RMC003_2_AUTHORITY"
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
             git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
           fi
           git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
-          git diff --quiet "$D06_BASE" HEAD --             nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store             nqc-census/crates/nqc-census-chain
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store \
+            nqc-census/crates/nqc-census-chain
           echo RMC006_UPSTREAM_IMMUTABLE_PASS
 
       - name: Verify authority boundary
@@ -69,6 +79,8 @@ jobs:
           cargo clippy --workspace --all-targets --locked -- -D warnings
           count=$(cargo test --locked -p nqc-census-aave-discovery --test aave_discovery -- --list 2>/dev/null | grep -c ': test$')
           test "$count" = "$D06_TESTS_EXPECTED"
+          count=$(cargo test --locked -p nqc-census-aave-discovery --test aave_history -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D06_HISTORY_TESTS_EXPECTED"
           cargo test --locked -p nqc-census-aave-discovery -- --nocapture
           cargo test --workspace --all-targets --locked
           cargo build --workspace --all-targets --locked
@@ -103,20 +115,47 @@ jobs:
             --store "$D06_EVIDENCE/store" \
             --out "$D06_EVIDENCE/aave-history.json" | tee "$D06_EVIDENCE/history.log"
           grep -F "RMC006_HISTORY_RECONCILIATION_PASS providers=2 current=67" "$D06_EVIDENCE/history.log"
+          python3 - "$D06_EVIDENCE/aave-history.json" <<'PY'
+          import json, sys
+          history = json.load(open(sys.argv[1]))
+          lineage = history["lineage"]
+          print("RMC006_HISTORY_SUMMARY " + json.dumps(history["summary"], sort_keys=True))
+          print("RMC006_CONFIGURATOR_WINDOWS " + json.dumps(lineage["configurator_windows"], sort_keys=True))
+          for key in ("pool_proxy_creation", "pool_configurator_proxy_creation"):
+              print(f"RMC006_{key.upper()} " + json.dumps(lineage[key], sort_keys=True))
+          for key in ("pool_implementation_updates", "pool_configurator_implementation_updates", "pool_configurator_replacements"):
+              for update in lineage[key]:
+                  print(f"RMC006_{key.upper()} " + json.dumps(update, sort_keys=True))
+          print(f"RMC006_REPLAY_MANIFESTS count={len(history['replay_manifests'])}")
+          assert history["summary"]["unexplained_delta_count"] == 0
+          assert history["summary"]["provider_mismatch_count"] == 0
+          PY
           target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/history-store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/history-store-verify.log"
 
-      - name: Verify crash/resume replay equivalence
+      - name: Verify crash/resume replay equivalence offline
         working-directory: nqc-census
         shell: bash
         run: |
           set -euo pipefail
-          target/release/nqc-rmc006-aave-history \
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-resume-check
+          # The check runs in a network namespace with no interfaces: prove it.
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside the offline namespace"
+            exit 1
+          fi
+          echo RMC006_OFFLINE_NAMESPACE_HAS_NO_NETWORK
+          sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
+            target/release/nqc-rmc006-aave-resume-check \
             --providers ../ci/nqc-census/aave-history-providers.json \
             --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --history "$D06_EVIDENCE/aave-history.json" \
             --store "$D06_EVIDENCE/store" \
-            --out "$D06_EVIDENCE/aave-history-resumed.json" | tee "$D06_EVIDENCE/history-resumed.log"
-          cmp "$D06_EVIDENCE/aave-history.json" "$D06_EVIDENCE/aave-history-resumed.json"
+            --work "$D06_EVIDENCE/resume-work" \
+            --out "$D06_EVIDENCE/aave-resume-equivalence.json" | tee "$D06_EVIDENCE/resume.log"
+          grep -F "RMC006_RESUME_EQUIVALENCE_PASS" "$D06_EVIDENCE/resume.log"
+          grep -F '"status":"RESUME_EQUIVALENCE_PASS"' "$D06_EVIDENCE/aave-resume-equivalence.json"
+          rm -rf "$D06_EVIDENCE/resume-work"
           echo RMC006_RESUME_EQUIVALENCE_PASS
 
       - name: Materialize D05 deployment admission
@@ -151,6 +190,16 @@ jobs:
             --code-commit "$HEAD_SHA" \
             --code-tree "$TREE_SHA" | tee "$D06_EVIDENCE/closeout.log"
           grep -F "RMC006_CLOSEOUT_PASS reserves=67 unexplained=0 mismatches=0" "$D06_EVIDENCE/closeout.log"
+          target/release/nqc-rmc006-aave-closeout \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --history "$D06_EVIDENCE/aave-history.json" \
+            --store "$D06_EVIDENCE/store" \
+            --out-dir "$D06_EVIDENCE/closeout-rerun" \
+            --code-commit "$HEAD_SHA" \
+            --code-tree "$TREE_SHA" > "$D06_EVIDENCE/closeout-rerun.log"
+          diff -r "$D06_EVIDENCE/closeout" "$D06_EVIDENCE/closeout-rerun"
+          echo RMC006_DETERMINISTIC_CLOSEOUT_PASS
+          (cd "$D06_EVIDENCE/closeout" && sha256sum * | tee ../closeout-SHA256SUMS)
           grep -F '"unexplained_delta_count":0' "$D06_EVIDENCE/closeout/aave-discovery-summary.json"
           grep -F '"provider_mismatch_count":0' "$D06_EVIDENCE/closeout/aave-discovery-summary.json"
           test -s "$D06_EVIDENCE/closeout/evidence-manifest.json"

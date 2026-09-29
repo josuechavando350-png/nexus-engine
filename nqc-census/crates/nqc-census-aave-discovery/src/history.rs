@@ -1,6 +1,9 @@
+//! Cross-provider reconstruction of the complete reserve lifecycle history
+//! and its reconciliation with the exact-anchor current surface.
+
 use crate::{
     aave_interface, decode_reserve_dropped, decode_reserve_initialized,
-    lineage::discover_configurator_lineage,
+    lineage::{coordinate, discover_lineage, raw_log, Coordinate, Lineage, LineageExpectation},
 };
 use nqc_census_chain::{
     acquire::{anchor_from_result, raw_log_semantics, Acquisition, ScanOutcome},
@@ -8,16 +11,13 @@ use nqc_census_chain::{
     boundary::earliest_code_body,
     consensus::{agree, agree_logs, ProviderResult},
     ethereum::ChainProfile,
-    hex,
     job::{JobSpec, LogFilter},
     json::Json,
     provider::{ProviderSet, ProviderSpec},
     transport::{CurlTransport, RetryPolicy},
     ChainError,
 };
-use nqc_census_core::{
-    Address, DeploymentKey, Hash32, ProtocolFamily, RawLogEnvelope, StateAnchor,
-};
+use nqc_census_core::{Address, ChainDomain, DeploymentKey, Hash32, ProtocolFamily, StateAnchor};
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
 use std::{
@@ -27,27 +27,50 @@ use std::{
     path::Path,
 };
 
-const ANCHOR_NUMBER: u64 = 25_437_474;
-const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
-const POOL: &str = "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2";
-const CURRENT_CONFIGURATOR: &str = "0x64b761d848206f447fe2dd461b0c635ec39ebb27";
 const BOUNDARY_NAMESPACE: u16 = 0x0602;
 const RESERVE_INIT_NAMESPACE: u16 = 0x0605;
 const RESERVE_DROP_NAMESPACE: u16 = 0x0606;
-const CHECKPOINT_SPAN: u64 = 1_000_000;
+pub const HISTORY_SCHEMA: &str = "nqc-rmc-006-aave-history-reconciliation-v2";
 
+/// What the history reconstruction is bound to. `mainnet()` is the declared
+/// RMC-006 deployment; tests bind a synthetic chain.
 #[derive(Debug, Clone)]
-struct CurrentReserve {
-    reserve_id: u16,
-    asset: Address,
-    a_token: Address,
-    variable_debt_token: Address,
+pub struct HistoryPlan {
+    pub profile: ChainProfile,
+    pub anchor_number: u64,
+    pub anchor_hash: Hash32,
+    pub addresses_provider: Address,
+    pub pool: Address,
+    /// Lower bound of every earliest-code search.
+    pub boundary_floor: u64,
+    pub checkpoint_span: u64,
 }
 
+impl HistoryPlan {
+    pub fn mainnet() -> Result<Self, ChainError> {
+        Ok(Self {
+            profile: ChainProfile::mainnet()?,
+            anchor_number: 25_437_474,
+            anchor_hash: Hash32::parse_hex(
+                "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+            )?,
+            addresses_provider: Address::parse_hex("0x2f39d218133afab8f2b819b1066c7e434ad94e9e")?,
+            pool: Address::parse_hex("0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2")?,
+            boundary_floor: 1,
+            checkpoint_span: 1_000_000,
+        })
+    }
+}
+
+/// The exact-anchor current surface, as agreed by the current-surface run.
 #[derive(Debug, Clone)]
-struct LatestInit {
-    a_token: Address,
-    variable_debt_token: Address,
+struct CurrentSurface {
+    configurator: Address,
+    configurator_implementation: Address,
+    pool_implementation: Address,
+    /// Reserve id slots `0..getReservesCount()`; `None` is a dropped slot.
+    slots: Vec<Option<Address>>,
+    tokens: BTreeMap<Address, (Address, Address)>,
 }
 
 fn number(value: &Json, key: &str) -> Result<u64, ChainError> {
@@ -62,10 +85,7 @@ fn address_field(value: &Json, key: &str) -> Result<Address, ChainError> {
     Ok(Address::parse_hex(value.str_field(key)?)?)
 }
 
-fn current_report(path: &Path) -> Result<(Address, Address, Vec<CurrentReserve>), ChainError> {
-    let bytes = fs::read(path)
-        .map_err(|error| ChainError::Config(format!("read current report: {error}")))?;
-    let report = Json::parse(&bytes)?;
+fn current_surface(report: &Json, plan: &HistoryPlan) -> Result<CurrentSurface, ChainError> {
     if report.get("status").and_then(Json::as_str) != Some("CURRENT_SURFACE_PASS") {
         return Err(ChainError::Evidence(
             "current-surface report is not PASS".into(),
@@ -74,80 +94,84 @@ fn current_report(path: &Path) -> Result<(Address, Address, Vec<CurrentReserve>)
     let facts = report
         .get("facts")
         .ok_or_else(|| ChainError::Evidence("current report has no facts".into()))?;
-    if facts.str_field("pool")? != POOL {
-        return Err(ChainError::Evidence(
-            "current report Pool differs from declared Pool".into(),
-        ));
-    }
-    let configurator = address_field(facts, "pool_configurator")?;
-    let configurator_implementation = address_field(facts, "pool_configurator_implementation")?;
-    if configurator != Address::parse_hex(CURRENT_CONFIGURATOR)? {
-        return Err(ChainError::Evidence(
-            "current PoolConfigurator differs from declared exact-anchor value".into(),
-        ));
-    }
-    let rows = facts
-        .get("reserves")
-        .and_then(Json::as_array)
-        .ok_or_else(|| ChainError::Evidence("current report has no reserves".into()))?;
-    let mut reserves = Vec::with_capacity(rows.len());
-    for row in rows {
-        reserves.push(CurrentReserve {
-            reserve_id: u16::try_from(number(row, "reserve_id")?)
-                .map_err(|_| ChainError::Evidence("reserve id exceeds u16".into()))?,
-            asset: address_field(row, "asset")?,
-            a_token: address_field(row, "a_token")?,
-            variable_debt_token: address_field(row, "variable_debt_token")?,
-        });
-    }
-    reserves.sort_by_key(|reserve| reserve.reserve_id);
-    if reserves
-        .iter()
-        .enumerate()
-        .any(|(index, reserve)| usize::from(reserve.reserve_id) != index)
+    if address_field(facts, "pool")? != plan.pool
+        || address_field(facts, "addresses_provider")? != plan.addresses_provider
     {
         return Err(ChainError::Evidence(
-            "current reserve ids are not contiguous".into(),
+            "current report deployment differs from the declared plan".into(),
         ));
     }
-    Ok((configurator, configurator_implementation, reserves))
-}
-
-fn raw_log(value: &Json) -> Result<RawLogEnvelope, ChainError> {
-    let emitter = address_field(value, "emitter")?;
-    let transaction_hash = Hash32::parse_hex(value.str_field("transaction_hash")?)?;
-    let transaction_index = u32::try_from(number(value, "transaction_index")?)
-        .map_err(|_| ChainError::Evidence("transaction index exceeds u32".into()))?;
-    let log_index = u32::try_from(number(value, "log_index")?)
-        .map_err(|_| ChainError::Evidence("log index exceeds u32".into()))?;
-    let topics = value
-        .get("topics")
+    let count = usize::try_from(number(facts, "reserve_count")?)
+        .map_err(|_| ChainError::Evidence("reserve count exceeds usize".into()))?;
+    let mut slots: Vec<Option<Option<Address>>> = vec![None; count];
+    let mut tokens = BTreeMap::new();
+    for row in facts
+        .get("reserves")
         .and_then(Json::as_array)
-        .ok_or_else(|| ChainError::Evidence("log topics missing".into()))?
-        .iter()
-        .map(|topic| {
-            topic
-                .as_str()
-                .ok_or_else(|| ChainError::Evidence("log topic is not a string".into()))
-                .and_then(|text| Hash32::parse_hex(text).map_err(ChainError::from))
+        .ok_or_else(|| ChainError::Evidence("current report has no reserves".into()))?
+    {
+        let id = usize::try_from(number(row, "reserve_id")?)
+            .map_err(|_| ChainError::Evidence("reserve id exceeds usize".into()))?;
+        let asset = address_field(row, "asset")?;
+        let slot = slots
+            .get_mut(id)
+            .ok_or_else(|| ChainError::Evidence("reserve id beyond getReservesCount".into()))?;
+        if slot.replace(Some(asset)).is_some() {
+            return Err(ChainError::Evidence("duplicate current reserve id".into()));
+        }
+        if tokens
+            .insert(
+                asset,
+                (
+                    address_field(row, "a_token")?,
+                    address_field(row, "variable_debt_token")?,
+                ),
+            )
+            .is_some()
+        {
+            return Err(ChainError::Evidence(
+                "duplicate current reserve asset".into(),
+            ));
+        }
+    }
+    for id in facts
+        .get("dropped_reserve_ids")
+        .and_then(Json::as_array)
+        .unwrap_or_default()
+    {
+        let id = id
+            .as_i64()
+            .and_then(|id| usize::try_from(id).ok())
+            .ok_or_else(|| ChainError::Evidence("dropped reserve id is not an integer".into()))?;
+        let slot = slots
+            .get_mut(id)
+            .ok_or_else(|| ChainError::Evidence("dropped id beyond getReservesCount".into()))?;
+        if slot.replace(None).is_some() {
+            return Err(ChainError::Evidence(
+                "dropped id is also a current reserve".into(),
+            ));
+        }
+    }
+    let slots = slots
+        .into_iter()
+        .map(|slot| {
+            slot.ok_or_else(|| ChainError::Evidence("reserve id slot is unaccounted".into()))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    let data = hex::decode_data(value.str_field("data")?)?;
-    Ok(RawLogEnvelope::new(
-        emitter,
-        transaction_hash,
-        transaction_index,
-        log_index,
-        topics,
-        data,
-        false,
-    )?)
+    Ok(CurrentSurface {
+        configurator: address_field(facts, "pool_configurator")?,
+        configurator_implementation: address_field(facts, "pool_configurator_implementation")?,
+        pool_implementation: address_field(facts, "pool_implementation")?,
+        slots,
+        tokens,
+    })
 }
 
 fn boundary_result(
     acquisition: &Acquisition<'_>,
     provider: &ProviderSpec,
-    chain: &nqc_census_core::ChainDomain,
+    chain: &ChainDomain,
+    plan: &HistoryPlan,
     account: Address,
     label: &str,
 ) -> Result<ProviderResult, ChainError> {
@@ -158,12 +182,12 @@ fn boundary_result(
         Json::object([
             ("account", Json::string(account.to_hex())),
             ("label", Json::string(label)),
-            ("lo", Json::uint(1)),
-            ("hi", Json::uint(ANCHOR_NUMBER)),
+            ("lo", Json::uint(plan.boundary_floor)),
+            ("hi", Json::uint(plan.anchor_number)),
         ]),
     )?;
     let output = acquisition.unanchored(provider, Some(chain.clone()), &spec, |ctx| {
-        earliest_code_body(ctx, account, 1, ANCHOR_NUMBER)
+        earliest_code_body(ctx, account, plan.boundary_floor, plan.anchor_number)
     })?;
     Ok(ProviderResult {
         provider: provider.label().to_owned(),
@@ -175,7 +199,8 @@ fn boundary_result(
 fn agreed_boundary(
     acquisition: &Acquisition<'_>,
     providers: &ProviderSet,
-    chain: &nqc_census_core::ChainDomain,
+    chain: &ChainDomain,
+    plan: &HistoryPlan,
     account: Address,
     label: &str,
 ) -> Result<(StateAnchor, Json, Vec<String>), ChainError> {
@@ -185,6 +210,7 @@ fn agreed_boundary(
             acquisition,
             provider,
             chain,
+            plan,
             account,
             label,
         )?);
@@ -210,13 +236,14 @@ fn stable_deployment_instance(pool: Address, creation: &StateAnchor) -> Result<H
 }
 
 #[allow(clippy::too_many_arguments)]
-fn scan_history(
+fn scan_reserve_events(
     acquisition: &Acquisition<'_>,
     provider: &ProviderSpec,
-    chain: &nqc_census_core::ChainDomain,
+    chain: &ChainDomain,
     deployment: &DeploymentKey,
     configurators: &[Address],
     origin: &StateAnchor,
+    plan: &HistoryPlan,
     topic: [u8; 32],
     family: &'static str,
     namespace: u16,
@@ -231,8 +258,8 @@ fn scan_history(
         namespace,
         &filter,
         origin,
-        ANCHOR_NUMBER,
-        CHECKPOINT_SPAN,
+        plan.anchor_number,
+        plan.checkpoint_span,
         |claimed| raw_log_semantics(&claimed.log.emitter(), family),
     )
 }
@@ -262,359 +289,402 @@ fn scan_record(provider: &str, kind: &str, scan: &ScanOutcome) -> Result<Json, C
     ]))
 }
 
-pub fn run_history(
-    providers_path: &Path,
-    current_path: &Path,
-    store_path: &Path,
-) -> Result<Json, Box<dyn Error>> {
-    let providers = ProviderSet::parse(&fs::read(providers_path)?)?;
-    let (configurator, configurator_implementation, current_reserves) =
-        current_report(current_path)?;
-    let store = Store::create(store_path, StoreConfig::standard())?;
-    let transport = CurlTransport::new(90, 10);
-    let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
-    let profile = ChainProfile::mainnet()?;
+fn strings(values: &[String]) -> Json {
+    Json::array(values.iter().map(|value| Json::string(value.clone())))
+}
+
+fn addresses<'a>(values: impl IntoIterator<Item = &'a Address>) -> Json {
+    Json::array(
+        values
+            .into_iter()
+            .map(|address| Json::string(address.to_hex())),
+    )
+}
+
+/// Replays the agreed lifecycle in canonical order and checks every event
+/// against the configurator the Pool trusted at that point. Reserve ids are
+/// assigned as Aave V3 `_addReserveToList` does: the first empty slot below
+/// the count, otherwise the next id; a drop empties its slot.
+struct Lifecycle {
+    records: Vec<Json>,
+    active: BTreeMap<Address, usize>,
+    dropped: BTreeSet<Address>,
+    slots: Vec<Option<Address>>,
+    latest_init: BTreeMap<Address, (Address, Address)>,
+    init_count: u64,
+    drop_count: u64,
+}
+
+fn replay_lifecycle(logs: &[Json], lineage: &Lineage) -> Result<Lifecycle, ChainError> {
+    let interface = aave_interface();
+    let mut ordered: Vec<(Coordinate, &Json)> = logs
+        .iter()
+        .map(|record| Ok((coordinate(record)?, record)))
+        .collect::<Result<_, ChainError>>()?;
+    ordered.sort_by_key(|(coordinate, _)| *coordinate);
+    let mut state = Lifecycle {
+        records: Vec::with_capacity(ordered.len()),
+        active: BTreeMap::new(),
+        dropped: BTreeSet::new(),
+        slots: Vec::new(),
+        latest_init: BTreeMap::new(),
+        init_count: 0,
+        drop_count: 0,
+    };
+    for (position, record) in ordered {
+        let raw = raw_log(record)?;
+        let configurator = lineage.configurator_at(position).ok_or_else(|| {
+            ChainError::Evidence("reserve event outside every configurator window".into())
+        })?;
+        if raw.emitter() != configurator {
+            return Err(ChainError::Evidence(format!(
+                "reserve event at block {} emitted by {} while the Pool trusted {}",
+                position.0,
+                raw.emitter().to_hex(),
+                configurator.to_hex()
+            )));
+        }
+        let topic0 = *raw
+            .topics()
+            .first()
+            .ok_or_else(|| ChainError::Evidence("reserve lifecycle log has no topic0".into()))?
+            .as_bytes();
+        let mut output = vec![
+            ("block", Json::uint(position.0)),
+            ("block_hash", Json::string(record.str_field("block_hash")?)),
+            (
+                "transaction_hash",
+                Json::string(record.str_field("transaction_hash")?),
+            ),
+            ("transaction_index", Json::uint(u64::from(position.1))),
+            ("log_index", Json::uint(u64::from(position.2))),
+            ("configurator", Json::string(configurator.to_hex())),
+        ];
+        if topic0 == interface.reserve_initialized_topic {
+            let decoded = decode_reserve_initialized(configurator, &raw)
+                .map_err(|error| ChainError::Evidence(error.to_string()))?;
+            if state.active.contains_key(&decoded.asset) {
+                return Err(ChainError::Evidence(format!(
+                    "reserve {} initialized while already active",
+                    decoded.asset.to_hex()
+                )));
+            }
+            let slot = match state.slots.iter().position(Option::is_none) {
+                Some(free) => free,
+                None => {
+                    state.slots.push(None);
+                    state.slots.len() - 1
+                }
+            };
+            state.slots[slot] = Some(decoded.asset);
+            state.active.insert(decoded.asset, slot);
+            state.dropped.remove(&decoded.asset);
+            state.latest_init.insert(
+                decoded.asset,
+                (decoded.a_token, decoded.variable_debt_token),
+            );
+            state.init_count += 1;
+            output.extend([
+                ("kind", Json::string("RESERVE_INITIALIZED")),
+                ("asset", Json::string(decoded.asset.to_hex())),
+                ("simulated_reserve_id", Json::uint(slot as u64)),
+                ("a_token", Json::string(decoded.a_token.to_hex())),
+                (
+                    "stable_debt_token",
+                    decoded
+                        .stable_debt_token
+                        .map_or(Json::Null, |address| Json::string(address.to_hex())),
+                ),
+                (
+                    "variable_debt_token",
+                    Json::string(decoded.variable_debt_token.to_hex()),
+                ),
+                (
+                    "interest_rate_strategy",
+                    decoded
+                        .interest_rate_strategy
+                        .map_or(Json::Null, |address| Json::string(address.to_hex())),
+                ),
+            ]);
+        } else if topic0 == interface.reserve_dropped_topic {
+            let decoded = decode_reserve_dropped(configurator, &raw)
+                .map_err(|error| ChainError::Evidence(error.to_string()))?;
+            let slot = state.active.remove(&decoded.asset).ok_or_else(|| {
+                ChainError::Evidence(format!(
+                    "reserve {} dropped without active predecessor",
+                    decoded.asset.to_hex()
+                ))
+            })?;
+            state.slots[slot] = None;
+            state.dropped.insert(decoded.asset);
+            state.drop_count += 1;
+            output.extend([
+                ("kind", Json::string("RESERVE_DROPPED")),
+                ("asset", Json::string(decoded.asset.to_hex())),
+                ("simulated_reserve_id", Json::uint(slot as u64)),
+            ]);
+        } else {
+            return Err(ChainError::Evidence(
+                "reserve lifecycle scan returned an undeclared topic".into(),
+            ));
+        }
+        state.records.push(Json::object(output));
+    }
+    Ok(state)
+}
+
+/// Reconciles the replayed lifecycle with the exact-anchor surface. Every
+/// difference is an unexplained delta.
+fn lifecycle_deltas(lifecycle: &Lifecycle, current: &CurrentSurface) -> Vec<Json> {
+    let delta = |class: &str, detail: Vec<(&str, Json)>| {
+        let mut members = vec![
+            ("class", Json::string(class)),
+            ("status", Json::string("UNEXPLAINED")),
+        ];
+        members.extend(detail);
+        Json::object(members)
+    };
+    let mut deltas = Vec::new();
+    let current_assets: BTreeSet<Address> = current.slots.iter().flatten().copied().collect();
+    let event_active: BTreeSet<Address> = lifecycle.active.keys().copied().collect();
+    for asset in current_assets.difference(&event_active) {
+        deltas.push(delta(
+            "CURRENT_ONLY",
+            vec![("asset", Json::string(asset.to_hex()))],
+        ));
+    }
+    for asset in event_active.difference(&current_assets) {
+        deltas.push(delta(
+            "EVENT_ACTIVE_ONLY",
+            vec![("asset", Json::string(asset.to_hex()))],
+        ));
+    }
+    if lifecycle.slots.len() != current.slots.len() {
+        deltas.push(delta(
+            "RESERVE_COUNT_MISMATCH",
+            vec![
+                ("simulated", Json::uint(lifecycle.slots.len() as u64)),
+                ("current", Json::uint(current.slots.len() as u64)),
+            ],
+        ));
+    }
+    for (id, (simulated, observed)) in lifecycle.slots.iter().zip(&current.slots).enumerate() {
+        if simulated != observed {
+            let show = |slot: &Option<Address>| {
+                slot.map_or(Json::Null, |address| Json::string(address.to_hex()))
+            };
+            deltas.push(delta(
+                "RESERVE_ID_SLOT_MISMATCH",
+                vec![
+                    ("reserve_id", Json::uint(id as u64)),
+                    ("simulated", show(simulated)),
+                    ("current", show(observed)),
+                ],
+            ));
+        }
+    }
+    for (asset, tokens) in &current.tokens {
+        if let Some(initialized) = lifecycle.latest_init.get(asset) {
+            if initialized != tokens {
+                deltas.push(delta(
+                    "TOKEN_IDENTITY_MISMATCH",
+                    vec![("asset", Json::string(asset.to_hex()))],
+                ));
+            }
+        }
+    }
+    deltas
+}
+
+/// Reconstructs and reconciles the complete history through `acquisition`.
+/// Transport-agnostic: live runs use curl, verification replays the store.
+pub fn history_with(
+    acquisition: &Acquisition<'_>,
+    providers: &ProviderSet,
+    plan: &HistoryPlan,
+    current_report: &Json,
+) -> Result<Json, ChainError> {
+    let current = current_surface(current_report, plan)?;
     let (bootstrap, chain, anchor) =
-        run_bootstrap(&acquisition, &providers, &profile, ANCHOR_NUMBER)?;
-    if anchor.block_hash() != Hash32::parse_hex(ANCHOR_HASH)? {
-        return Err(ChainError::Evidence("D06 history anchor hash differs".into()).into());
+        run_bootstrap(acquisition, providers, &plan.profile, plan.anchor_number)?;
+    if anchor.block_hash() != plan.anchor_hash {
+        return Err(ChainError::Evidence(
+            "D06 history anchor hash differs".into(),
+        ));
+    }
+    let mut replay_manifests = Vec::new();
+    for record in bootstrap
+        .get("providers")
+        .and_then(Json::as_array)
+        .ok_or_else(|| ChainError::Evidence("bootstrap report without providers".into()))?
+    {
+        replay_manifests.push(record.str_field("bootstrap_manifest")?.to_owned());
+        replay_manifests.push(record.str_field("anchor_manifest")?.to_owned());
     }
 
-    let pool = Address::parse_hex(POOL)?;
-    let addresses_provider = Address::parse_hex("0x2f39d218133afab8f2b819b1066c7e434ad94e9e")?;
     let (provider_creation, provider_boundary, provider_boundary_manifests) = agreed_boundary(
-        &acquisition,
-        &providers,
+        acquisition,
+        providers,
         &chain,
-        addresses_provider,
+        plan,
+        plan.addresses_provider,
         "addresses-provider",
     )?;
     let (pool_creation, pool_boundary, pool_boundary_manifests) =
-        agreed_boundary(&acquisition, &providers, &chain, pool, "pool")?;
+        agreed_boundary(acquisition, providers, &chain, plan, plan.pool, "pool")?;
     let (configurator_creation, configurator_boundary, configurator_boundary_manifests) =
         agreed_boundary(
-            &acquisition,
-            &providers,
+            acquisition,
+            providers,
             &chain,
-            configurator,
+            plan,
+            current.configurator,
             "pool-configurator",
         )?;
-    if configurator_creation.block_number() < pool_creation.block_number() {
-        return Err(
-            ChainError::Evidence("PoolConfigurator code predates Pool proxy code".into()).into(),
-        );
+    if pool_creation.block_number() < provider_creation.block_number()
+        || configurator_creation.block_number() < pool_creation.block_number()
+    {
+        return Err(ChainError::Evidence(
+            "Pool or PoolConfigurator code predates its AddressesProvider or Pool".into(),
+        ));
+    }
+    for manifests in [
+        &provider_boundary_manifests,
+        &pool_boundary_manifests,
+        &configurator_boundary_manifests,
+    ] {
+        replay_manifests.extend(manifests.iter().cloned());
     }
 
-    let lineage = discover_configurator_lineage(
-        &acquisition,
-        &providers,
+    let lineage = discover_lineage(
+        acquisition,
+        providers,
         &chain,
-        addresses_provider,
+        LineageExpectation {
+            root: plan.addresses_provider,
+            pool: plan.pool,
+            pool_implementation: current.pool_implementation,
+            pool_creation_block: pool_creation.block_number(),
+            configurator: current.configurator,
+            configurator_implementation: current.configurator_implementation,
+            configurator_creation_block: configurator_creation.block_number(),
+        },
         &provider_creation,
         &anchor,
-        (configurator, configurator_implementation),
+        plan.checkpoint_span,
     )?;
-    if !lineage.configurators.contains(&configurator) {
-        return Err(ChainError::Evidence(
-            "current configurator is absent from certified lineage".into(),
-        )
-        .into());
-    }
-    if lineage.creation_block != configurator_creation.block_number() {
-        return Err(ChainError::Evidence(
-            "PoolConfigurator ProxyCreated block differs from earliest-code boundary".into(),
-        )
-        .into());
-    }
+    replay_manifests.extend(lineage.manifests.iter().cloned());
 
     let deployment = DeploymentKey::new(
         chain.clone(),
         ProtocolFamily::AaveV3,
-        pool,
-        stable_deployment_instance(pool, &pool_creation)?,
+        plan.pool,
+        stable_deployment_instance(plan.pool, &pool_creation)?,
     );
     let interface = aave_interface();
+    let configurators = lineage.configurator_addresses();
     let mut scans = Vec::new();
     let mut per_provider = Vec::new();
     for provider in providers.iter() {
-        let initialized = scan_history(
-            &acquisition,
+        let initialized = scan_reserve_events(
+            acquisition,
             provider,
             &chain,
             &deployment,
-            &lineage.configurators,
+            &configurators,
             &provider_creation,
+            plan,
             interface.reserve_initialized_topic,
             "rmc006-aave-reserve-initialized",
             RESERVE_INIT_NAMESPACE,
         )?;
-        let dropped = scan_history(
-            &acquisition,
+        let dropped = scan_reserve_events(
+            acquisition,
             provider,
             &chain,
             &deployment,
-            &lineage.configurators,
+            &configurators,
             &provider_creation,
+            plan,
             interface.reserve_dropped_topic,
             "rmc006-aave-reserve-dropped",
             RESERVE_DROP_NAMESPACE,
         )?;
         let mut combined = initialized.logs()?;
         combined.extend(dropped.logs()?);
-        combined.sort_by_key(|record| {
-            (
-                record.get("block").and_then(Json::as_i64).unwrap_or(-1),
-                record.get("log_index").and_then(Json::as_i64).unwrap_or(-1),
-            )
-        });
-        if combined.windows(2).any(|pair| {
-            pair[0].get("block") == pair[1].get("block")
-                && pair[0].get("log_index") == pair[1].get("log_index")
-        }) {
-            return Err(ChainError::Evidence(
-                "duplicate reserve-event coordinates after topic merge".into(),
-            )
-            .into());
-        }
         per_provider.push((provider.label().to_owned(), combined));
-        scans.push((
-            provider.label().to_owned(),
-            "RESERVE_INITIALIZED".to_owned(),
-            initialized,
-        ));
-        scans.push((
-            provider.label().to_owned(),
-            "RESERVE_DROPPED".to_owned(),
-            dropped,
-        ));
+        for (kind, scan) in [
+            ("RESERVE_INITIALIZED", &initialized),
+            ("RESERVE_DROPPED", &dropped),
+        ] {
+            replay_manifests.extend(
+                scan.windows
+                    .iter()
+                    .map(|window| window.manifest_id().to_hex()),
+            );
+            scans.push(scan_record(provider.label(), kind, scan)?);
+        }
     }
     let logs = agree_logs("rmc006-aave-reserve-lifecycle", &per_provider)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
-
-    let mut lifecycle = BTreeMap::<Address, &'static str>::new();
-    let mut latest_init = BTreeMap::<Address, LatestInit>::new();
-    let mut event_records = Vec::with_capacity(logs.len());
-    let mut init_count = 0_u64;
-    let mut drop_count = 0_u64;
-    for record in &logs {
-        let raw = raw_log(record)?;
-        let topic0 = raw
-            .topics()
-            .first()
-            .ok_or_else(|| ChainError::Evidence("reserve lifecycle log has no topic0".into()))?;
-        let mut output = Json::object([
-            ("block", Json::uint(number(record, "block")?)),
-            ("block_hash", Json::string(record.str_field("block_hash")?)),
-            (
-                "transaction_hash",
-                Json::string(record.str_field("transaction_hash")?),
-            ),
-            ("log_index", Json::uint(number(record, "log_index")?)),
-        ]);
-        if topic0.as_bytes() == &interface.reserve_initialized_topic {
-            let decoded = decode_reserve_initialized(configurator, &raw)
-                .map_err(|error| ChainError::Evidence(error.to_string()))?;
-            if lifecycle.get(&decoded.asset) == Some(&"ACTIVE") {
-                return Err(ChainError::Evidence(format!(
-                    "reserve {} initialized while already active",
-                    decoded.asset.to_hex()
-                ))
-                .into());
-            }
-            lifecycle.insert(decoded.asset, "ACTIVE");
-            latest_init.insert(
-                decoded.asset,
-                LatestInit {
-                    a_token: decoded.a_token,
-                    variable_debt_token: decoded.variable_debt_token,
-                },
-            );
-            init_count += 1;
-            if let Json::Object(ref mut members) = output {
-                members.push(("kind".into(), Json::string("RESERVE_INITIALIZED")));
-                members.push(("asset".into(), Json::string(decoded.asset.to_hex())));
-                members.push(("a_token".into(), Json::string(decoded.a_token.to_hex())));
-                members.push((
-                    "stable_debt_token".into(),
-                    decoded
-                        .stable_debt_token
-                        .map_or(Json::Null, |address| Json::string(address.to_hex())),
-                ));
-                members.push((
-                    "variable_debt_token".into(),
-                    Json::string(decoded.variable_debt_token.to_hex()),
-                ));
-                members.push((
-                    "interest_rate_strategy".into(),
-                    decoded
-                        .interest_rate_strategy
-                        .map_or(Json::Null, |address| Json::string(address.to_hex())),
-                ));
-            }
-        } else if topic0.as_bytes() == &interface.reserve_dropped_topic {
-            let decoded = decode_reserve_dropped(configurator, &raw)
-                .map_err(|error| ChainError::Evidence(error.to_string()))?;
-            if lifecycle.get(&decoded.asset) != Some(&"ACTIVE") {
-                return Err(ChainError::Evidence(format!(
-                    "reserve {} dropped without active predecessor",
-                    decoded.asset.to_hex()
-                ))
-                .into());
-            }
-            lifecycle.insert(decoded.asset, "DROPPED");
-            drop_count += 1;
-            if let Json::Object(ref mut members) = output {
-                members.push(("kind".into(), Json::string("RESERVE_DROPPED")));
-                members.push(("asset".into(), Json::string(decoded.asset.to_hex())));
-            }
-        } else {
-            return Err(ChainError::Evidence(
-                "reserve lifecycle scan returned undeclared topic".into(),
-            )
-            .into());
-        }
-        event_records.push(output);
-    }
-
-    let current_by_asset: BTreeMap<_, _> = current_reserves
-        .iter()
-        .map(|reserve| (reserve.asset, reserve))
-        .collect();
-    let current_set: BTreeSet<_> = current_by_asset.keys().copied().collect();
-    let event_active: BTreeSet<_> = lifecycle
-        .iter()
-        .filter_map(|(asset, state)| (*state == "ACTIVE").then_some(*asset))
-        .collect();
-    let historical_union: BTreeSet<_> = lifecycle.keys().copied().collect();
-    let historical_dropped: BTreeSet<_> = lifecycle
-        .iter()
-        .filter_map(|(asset, state)| (*state == "DROPPED").then_some(*asset))
-        .collect();
-
-    let mut mismatches = Vec::new();
-    for asset in current_set.difference(&event_active) {
-        mismatches.push(Json::object([
-            ("class", Json::string("CURRENT_ONLY")),
-            ("asset", Json::string(asset.to_hex())),
-        ]));
-    }
-    for asset in event_active.difference(&current_set) {
-        mismatches.push(Json::object([
-            ("class", Json::string("EVENT_ACTIVE_ONLY")),
-            ("asset", Json::string(asset.to_hex())),
-        ]));
-    }
-    for (asset, current) in &current_by_asset {
-        if let Some(initialized) = latest_init.get(asset) {
-            if current.a_token != initialized.a_token
-                || current.variable_debt_token != initialized.variable_debt_token
-            {
-                mismatches.push(Json::object([
-                    ("class", Json::string("TOKEN_IDENTITY_MISMATCH")),
-                    ("asset", Json::string(asset.to_hex())),
-                ]));
-            }
-        }
-    }
-    if !mismatches.is_empty() {
+    let lifecycle = replay_lifecycle(&logs, &lineage)?;
+    let deltas = lifecycle_deltas(&lifecycle, &current);
+    if !deltas.is_empty() {
+        let detail = Json::Array(deltas).canonical_string()?;
         return Err(ChainError::Evidence(format!(
-            "history/current reconciliation has {} unexplained mismatches",
-            mismatches.len()
-        ))
-        .into());
+            "history/current reconciliation has unexplained deltas: {detail}"
+        )));
     }
 
-    let scan_records = scans
-        .iter()
-        .map(|(provider, kind, scan)| scan_record(provider, kind, scan))
-        .collect::<Result<Vec<_>, _>>()?;
+    replay_manifests.sort();
+    replay_manifests.dedup();
+    let historical: BTreeSet<Address> = lifecycle
+        .active
+        .keys()
+        .chain(&lifecycle.dropped)
+        .copied()
+        .collect();
+    let configurator_lineage_manifests = lineage.manifests.clone();
     Ok(Json::object([
-        (
-            "schema",
-            Json::string("nqc-rmc-006-aave-history-reconciliation-v1"),
-        ),
+        ("schema", Json::string(HISTORY_SCHEMA)),
         ("status", Json::string("HISTORY_RECONCILIATION_PASS")),
         ("bootstrap", bootstrap),
         ("addresses_provider_boundary", provider_boundary),
         (
             "addresses_provider_boundary_manifests",
-            Json::array(
-                provider_boundary_manifests
-                    .iter()
-                    .map(|manifest| Json::string(manifest.clone())),
-            ),
+            strings(&provider_boundary_manifests),
         ),
         ("pool_boundary", pool_boundary),
-        (
-            "pool_boundary_manifests",
-            Json::array(
-                pool_boundary_manifests
-                    .iter()
-                    .map(|manifest| Json::string(manifest.clone())),
-            ),
-        ),
+        ("pool_boundary_manifests", strings(&pool_boundary_manifests)),
         ("pool_configurator_boundary", configurator_boundary),
         (
             "pool_configurator_boundary_manifests",
-            Json::array(
-                configurator_boundary_manifests
-                    .iter()
-                    .map(|manifest| Json::string(manifest.clone())),
-            ),
+            strings(&configurator_boundary_manifests),
         ),
         (
             "deployment_instance",
             Json::string(deployment.deployment_instance().to_hex()),
         ),
-        (
-            "configurators",
-            Json::array(
-                lineage
-                    .configurators
-                    .iter()
-                    .map(|address| Json::string(address.to_hex())),
-            ),
-        ),
-        (
-            "pool_configurator_proxy_creation",
-            lineage.proxy_creation.clone(),
-        ),
-        (
-            "pool_configurator_implementation_updates",
-            Json::Array(lineage.implementation_updates.clone()),
-        ),
-        (
-            "pool_configurator_current_implementation",
-            Json::string(lineage.current_implementation.to_hex()),
-        ),
+        ("configurators", addresses(&configurators)),
+        ("lineage", lineage.json()),
         (
             "configurator_lineage_manifests",
-            Json::array(
-                lineage
-                    .manifests
-                    .iter()
-                    .map(|manifest| Json::string(manifest.clone())),
-            ),
+            strings(&configurator_lineage_manifests),
         ),
         (
             "configurator_lineage_scan_evidence",
             Json::Array(lineage.scan_evidence.clone()),
         ),
-        ("reserve_events", Json::Array(event_records)),
+        ("reserve_events", Json::Array(lifecycle.records.clone())),
+        ("event_active", addresses(lifecycle.active.keys())),
+        ("historical_dropped", addresses(&lifecycle.dropped)),
         (
-            "event_active",
+            "simulated_reserve_slots",
             Json::array(
-                event_active
+                lifecycle
+                    .slots
                     .iter()
-                    .map(|asset| Json::string(asset.to_hex())),
-            ),
-        ),
-        (
-            "historical_dropped",
-            Json::array(
-                historical_dropped
-                    .iter()
-                    .map(|asset| Json::string(asset.to_hex())),
+                    .map(|slot| slot.map_or(Json::Null, |address| Json::string(address.to_hex()))),
             ),
         ),
         (
@@ -623,32 +693,49 @@ pub fn run_history(
                 ("provider_count", Json::uint(providers.len() as u64)),
                 (
                     "current_reserve_count",
-                    Json::uint(current_reserves.len() as u64),
+                    Json::uint(current.slots.iter().flatten().count() as u64),
                 ),
-                ("reserve_initialized_count", Json::uint(init_count)),
-                ("reserve_dropped_count", Json::uint(drop_count)),
+                (
+                    "reserve_id_slot_count",
+                    Json::uint(current.slots.len() as u64),
+                ),
+                (
+                    "reserve_initialized_count",
+                    Json::uint(lifecycle.init_count),
+                ),
+                ("reserve_dropped_count", Json::uint(lifecycle.drop_count)),
                 (
                     "historical_market_count",
-                    Json::uint(historical_union.len() as u64),
+                    Json::uint(historical.len() as u64),
                 ),
-                ("active_event_count", Json::uint(event_active.len() as u64)),
                 (
-                    "configurator_count",
-                    Json::uint(lineage.configurators.len() as u64),
+                    "active_event_count",
+                    Json::uint(lifecycle.active.len() as u64),
                 ),
-                ("configurator_proxy_creation_count", Json::uint(1)),
+                ("configurator_count", Json::uint(configurators.len() as u64)),
+                (
+                    "configurator_replacement_count",
+                    Json::uint(lineage.configurator_replacements.len() as u64),
+                ),
+                (
+                    "pool_implementation_update_count",
+                    Json::uint(lineage.pool_implementation_updates.len() as u64),
+                ),
                 (
                     "configurator_implementation_update_count",
-                    Json::uint(lineage.implementation_updates.len() as u64),
+                    Json::uint(lineage.configurator_implementation_updates.len() as u64),
                 ),
+                ("lineage_log_count", Json::uint(lineage.log_count)),
+                (
+                    "lineage_zero_topic_log_count",
+                    Json::uint(lineage.zero_topic_log_count),
+                ),
+                ("provider_mismatch_count", Json::uint(0)),
                 ("unexplained_delta_count", Json::uint(0)),
             ]),
         ),
-        ("scan_evidence", Json::Array(scan_records)),
-        (
-            "open_blockers",
-            Json::array([Json::string("D05_ADMISSION_NOT_YET_MATERIALIZED")]),
-        ),
+        ("scan_evidence", Json::Array(scans)),
+        ("replay_manifests", strings(&replay_manifests)),
         (
             "non_claims",
             Json::array([
@@ -659,4 +746,23 @@ pub fn run_history(
             ]),
         ),
     ]))
+}
+
+/// Live run on the declared mainnet plan.
+pub fn run_history(
+    providers_path: &Path,
+    current_path: &Path,
+    store_path: &Path,
+) -> Result<Json, Box<dyn Error>> {
+    let providers = ProviderSet::parse(&fs::read(providers_path)?)?;
+    let current = Json::parse(&fs::read(current_path)?)?;
+    let store = Store::create(store_path, StoreConfig::standard())?;
+    let transport = CurlTransport::new(90, 10);
+    let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
+    Ok(history_with(
+        &acquisition,
+        &providers,
+        &HistoryPlan::mainnet()?,
+        &current,
+    )?)
 }

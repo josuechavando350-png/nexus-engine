@@ -1,6 +1,6 @@
 use crate::DiscoveryError;
 use nqc_census_chain::{abi, evm::CodeScan};
-use nqc_census_core::{Address, Hash32, RawLogEnvelope};
+use nqc_census_core::{Address, LogTopic, RawLogEnvelope};
 
 const ADDRESSES_PROVIDER: &str = "ADDRESSES_PROVIDER()";
 const RESERVES_COUNT: &str = "getReservesCount()";
@@ -11,6 +11,9 @@ const GET_POOL: &str = "getPool()";
 const GET_POOL_CONFIGURATOR: &str = "getPoolConfigurator()";
 const PROXY_CREATED: &str = "ProxyCreated(bytes32,address,address)";
 const POOL_CONFIGURATOR_UPDATED: &str = "PoolConfiguratorUpdated(address,address)";
+const POOL_UPDATED: &str = "PoolUpdated(address,address)";
+const ADDRESS_SET: &str = "AddressSet(bytes32,address,address)";
+const ADDRESS_SET_AS_PROXY: &str = "AddressSetAsProxy(bytes32,address,address,address)";
 const GET_PRICE_ORACLE: &str = "getPriceOracle()";
 const FLASHLOAN_PREMIUM_TOTAL: &str = "FLASHLOAN_PREMIUM_TOTAL()";
 const BASE_CURRENCY: &str = "BASE_CURRENCY()";
@@ -29,6 +32,9 @@ pub struct AaveDiscoveryInterface {
     pub get_pool_configurator: [u8; 4],
     pub proxy_created_topic: [u8; 32],
     pub pool_configurator_updated_topic: [u8; 32],
+    pub pool_updated_topic: [u8; 32],
+    pub address_set_topic: [u8; 32],
+    pub address_set_as_proxy_topic: [u8; 32],
     pub get_price_oracle: [u8; 4],
     pub flashloan_premium_total: [u8; 4],
     pub base_currency: [u8; 4],
@@ -48,6 +54,9 @@ pub fn aave_interface() -> AaveDiscoveryInterface {
         get_pool_configurator: abi::selector(GET_POOL_CONFIGURATOR),
         proxy_created_topic: abi::event_topic(PROXY_CREATED),
         pool_configurator_updated_topic: abi::event_topic(POOL_CONFIGURATOR_UPDATED),
+        pool_updated_topic: abi::event_topic(POOL_UPDATED),
+        address_set_topic: abi::event_topic(ADDRESS_SET),
+        address_set_as_proxy_topic: abi::event_topic(ADDRESS_SET_AS_PROXY),
         get_price_oracle: abi::selector(GET_PRICE_ORACLE),
         flashloan_premium_total: abi::selector(FLASHLOAN_PREMIUM_TOTAL),
         base_currency: abi::selector(BASE_CURRENCY),
@@ -100,7 +109,7 @@ pub struct ReserveDroppedEvent {
     pub asset: Address,
 }
 
-fn topic_address(topic: &Hash32) -> Result<Address, DiscoveryError> {
+fn topic_address(topic: &LogTopic) -> Result<Address, DiscoveryError> {
     let bytes = topic.as_bytes();
     if bytes[..12].iter().any(|byte| *byte != 0) {
         return Err(DiscoveryError::InvalidInterface(

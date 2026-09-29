@@ -8,9 +8,10 @@ pub mod admission;
 pub mod closeout;
 pub mod history;
 mod interface;
-mod lineage;
+pub mod lineage;
 pub mod live;
 mod reconcile;
+pub mod resume;
 
 pub use interface::{
     aave_interface, decode_reserve_dropped, decode_reserve_initialized, verify_pool_runtime,

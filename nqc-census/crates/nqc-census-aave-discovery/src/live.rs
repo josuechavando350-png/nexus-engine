@@ -306,13 +306,6 @@ fn provider_current_facts(
                     .and_then(|bytes| Address::new(bytes).map_err(ChainError::from))
             })
             .collect::<Result<Vec<_>, _>>()?;
-        if reserves_list.len() != usize::from(reserve_count) {
-            return Err(ChainError::Evidence(format!(
-                "getReservesList count {} differs from getReservesCount {}",
-                reserves_list.len(),
-                reserve_count
-            )));
-        }
         let price_oracle = required_address(returned(&calls[5])?, "getPriceOracle")?;
         if price_oracle != expected_oracle {
             return Err(ChainError::Evidence(
@@ -402,18 +395,52 @@ fn provider_current_facts(
             ));
         }
         let address_calls = ctx.calls(&address_requests, anchor, semantics)?;
-        let mut assets = Vec::with_capacity(address_calls.len());
+        // A dropped reserve leaves a zero id slot below getReservesCount;
+        // getReservesList skips it. History must explain every such slot.
+        let mut slots = Vec::with_capacity(address_calls.len());
         for call in &address_calls {
-            assets.push(required_address(returned(call)?, "getReserveAddressById")?);
+            let word = abi::single_word(returned(call)?)?;
+            slots.push(match abi::decode_address(&word)? {
+                Some(raw) => Some(Address::new(raw)?),
+                None => None,
+            });
         }
+        let assets: Vec<(u16, Address)> = slots
+            .iter()
+            .enumerate()
+            .filter_map(|(id, slot)| slot.map(|asset| (id, asset)))
+            .map(|(id, asset)| {
+                u16::try_from(id)
+                    .map(|id| (id, asset))
+                    .map_err(|_| ChainError::Evidence("reserve id exceeds uint16".into()))
+            })
+            .collect::<Result<_, _>>()?;
+        let dropped_ids: Vec<u64> = slots
+            .iter()
+            .enumerate()
+            .filter(|(_, slot)| slot.is_none())
+            .map(|(id, _)| id as u64)
+            .collect();
         let by_id_set = assets
             .iter()
-            .copied()
+            .map(|(_, asset)| *asset)
             .collect::<std::collections::BTreeSet<_>>();
         if by_id_set.len() != assets.len() {
             return Err(ChainError::Evidence(
                 "duplicate reserve address in current enumeration".into(),
             ));
+        }
+        if reserves_list.len() != assets.len()
+            || reserves_list
+                .iter()
+                .zip(&assets)
+                .any(|(listed, (_, slot))| listed != slot)
+        {
+            return Err(ChainError::Evidence(format!(
+                "getReservesList ({} entries) is not the non-empty id slots of getReservesCount {} in id order",
+                reserves_list.len(),
+                reserve_count
+            )));
         }
         let list_set = reserves_list
             .iter()
@@ -432,7 +459,7 @@ fn provider_current_facts(
 
         let data_requests: Vec<_> = assets
             .iter()
-            .map(|asset| {
+            .map(|(_, asset)| {
                 (
                     pool,
                     abi::encode_call(
@@ -444,10 +471,8 @@ fn provider_current_facts(
             .collect();
         let data_calls = ctx.calls(&data_requests, anchor, semantics)?;
         let mut reserves = Vec::with_capacity(data_calls.len());
-        for (index, (asset, call)) in assets.iter().zip(&data_calls).enumerate() {
-            let reserve_id = u16::try_from(index)
-                .map_err(|_| ChainError::Evidence("reserve index exceeds uint16".into()))?;
-            reserves.push(reserve_record(reserve_id, *asset, returned(call)?)?);
+        for ((reserve_id, asset), call) in assets.iter().zip(&data_calls) {
+            reserves.push(reserve_record(*reserve_id, *asset, returned(call)?)?);
         }
 
         Ok(Json::object([
@@ -474,6 +499,10 @@ fn provider_current_facts(
             ("oracle_base_currency", base_currency),
             ("oracle_base_currency_unit", Json::uint(base_currency_unit)),
             ("reserve_count", Json::uint(u64::from(reserve_count))),
+            (
+                "dropped_reserve_ids",
+                Json::array(dropped_ids.iter().map(|id| Json::uint(*id))),
+            ),
             (
                 "reserves_list",
                 Json::array(

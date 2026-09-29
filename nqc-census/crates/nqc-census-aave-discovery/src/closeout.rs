@@ -58,6 +58,28 @@ fn evidence_array(evidence: &[EvidenceRef]) -> Json {
     Json::array(evidence.iter().copied().map(evidence_json))
 }
 
+/// RFC 3339 UTC time of a Unix timestamp (proleptic Gregorian calendar).
+fn rfc3339(timestamp: u64) -> String {
+    let days = timestamp / 86_400;
+    let seconds = timestamp % 86_400;
+    // Howard Hinnant's civil_from_days, shifted to 0000-03-01.
+    let z = days + 719_468;
+    let era = z / 146_097;
+    let doe = z % 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + u64::from(month <= 2);
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        seconds / 3_600,
+        (seconds % 3_600) / 60,
+        seconds % 60
+    )
+}
+
 fn sha256(bytes: &[u8]) -> String {
     let digest: [u8; 32] = Sha256::digest(bytes).into();
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
@@ -224,10 +246,16 @@ pub fn run_closeout(
     let bootstrap = required(&current, "bootstrap")?;
     let anchor = required(required(bootstrap, "anchor")?, "anchor")?;
     let chain_domain = required(bootstrap, "chain_domain")?.clone();
+    // Artifacts are dated by the observation anchor, never by the wall clock,
+    // so a rerun on the same evidence is byte-identical.
+    let generated_at = rfc3339(number(anchor, "timestamp")?);
+    let generated_at_basis = "OBSERVATION_ANCHOR_BLOCK_TIMESTAMP";
 
     let run = Json::object([
         ("schema_version", Json::uint(SCHEMA_VERSION)),
         ("status", Json::string("RMC_006_PASS_CANDIDATE")),
+        ("generated_at", Json::string(generated_at.clone())),
+        ("generated_at_basis", Json::string(generated_at_basis)),
         ("scope", Json::string(SCOPE)),
         ("code_commit", Json::string(code_commit)),
         ("code_tree", Json::string(code_tree)),
@@ -256,6 +284,8 @@ pub fn run_closeout(
                 Json::uint(number(anchor, "number")?),
             ]),
         ),
+        ("history_summary", required(&history, "summary")?.clone()),
+        ("lineage", required(&history, "lineage")?.clone()),
         (
             "non_claims",
             Json::array([
@@ -410,6 +440,8 @@ pub fn run_closeout(
     let summary = Json::object([
         ("schema_version", Json::uint(SCHEMA_VERSION)),
         ("status", Json::string("RMC_006_PASS_CANDIDATE")),
+        ("generated_at", Json::string(generated_at.clone())),
+        ("generated_at_basis", Json::string(generated_at_basis)),
         ("code_commit", Json::string(code_commit)),
         ("code_tree", Json::string(code_tree)),
         ("declared_universe_id", Json::string(universe_id)),
@@ -417,6 +449,14 @@ pub fn run_closeout(
         ("chain_id", Json::uint(1)),
         ("protocol", Json::string("AaveV3")),
         ("deployment_count", Json::uint(1)),
+        (
+            "configurator_count",
+            required(required(&history, "summary")?, "configurator_count")?.clone(),
+        ),
+        (
+            "historical_market_count",
+            required(required(&history, "summary")?, "historical_market_count")?.clone(),
+        ),
         (
             "reserve_union_count",
             Json::uint(reconciliation.summary.union_count as u64),
@@ -476,6 +516,8 @@ pub fn run_closeout(
     let evidence_manifest = Json::object([
         ("schema_version", Json::uint(SCHEMA_VERSION)),
         ("status", Json::string("CONTENT_ADDRESSED")),
+        ("generated_at", Json::string(generated_at)),
+        ("generated_at_basis", Json::string(generated_at_basis)),
         ("code_commit", Json::string(code_commit)),
         ("code_tree", Json::string(code_tree)),
         ("artifacts", Json::Array(manifest_entries)),
@@ -509,4 +551,22 @@ pub fn run_closeout(
         ),
         ("artifact_count", Json::uint((files.len() + 1) as u64)),
     ]))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::rfc3339;
+
+    #[test]
+    fn rfc3339_matches_independent_reference_values() {
+        // Reference values from Python's datetime in UTC.
+        for (timestamp, expected) in [
+            (0, "1970-01-01T00:00:00Z"),
+            (951_782_400, "2000-02-29T00:00:00Z"),
+            (1_782_906_587, "2026-07-01T11:49:47Z"),
+            (4_102_444_799, "2099-12-31T23:59:59Z"),
+        ] {
+            assert_eq!(rfc3339(timestamp), expected);
+        }
+    }
 }
