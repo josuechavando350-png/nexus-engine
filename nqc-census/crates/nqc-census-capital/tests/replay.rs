@@ -2,7 +2,8 @@ use nqc_census_capital::{
     artifacts::{export_capital_artifacts, ArtifactProvenance},
     demands::import_d09_borrower_demands,
     replay::{
-        verify_capital_bundle_with_upstream_replay_for_code, verify_real_source_closeout_for_code,
+        verify_capital_bundle_with_upstream_replay_for_code,
+        verify_real_source_closeout_bytes_for_code, verify_real_source_closeout_for_code,
         verify_upstream_consumption_by_replay, D08ReplayInputs, D09ReplayInputs,
         UpstreamAuthorityLock, UpstreamAuthorityLockEntry,
     },
@@ -451,6 +452,32 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     assert!(closeout_text.contains("\"zero_own_capital_proven\":false"));
     assert!(closeout_text.contains("\"opportunity_level_capital_feasibility_claimed\":false"));
     assert!(closeout_text.contains("\"profitability_claimed\":false"));
+
+    verify_real_source_closeout_bytes_for_code(
+        &first,
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        d08_replay,
+        d09_replay,
+    )?;
+    let mut tampered = first;
+    let index = tampered
+        .iter()
+        .position(|byte| *byte == b'P')
+        .ok_or("closeout fixture has no mutable byte")?;
+    tampered[index] = b'F';
+    assert!(verify_real_source_closeout_bytes_for_code(
+        &tampered,
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        d08_replay,
+        d09_replay,
+    )
+    .is_err());
     Ok(())
 }
 
