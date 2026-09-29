@@ -6,10 +6,14 @@ name: NQC RMC-010 Refresh Anchor Proposal
 # the anchor header on its own providers before observing anything.
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-refresh-anchor.yml
   workflow_dispatch:
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: nqc-rmc010-anchor-${{ github.run_id }}
@@ -18,7 +22,7 @@ concurrency:
 jobs:
   propose:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 245
     steps:
       - name: Checkout exact head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -26,11 +30,12 @@ jobs:
           ref: ${{ github.sha }}
 
       - name: Finalized block agreed by every declared provider
+        id: anchor
         shell: bash
         run: |
           set -euo pipefail
           python3 - <<'PY'
-          import json, time, urllib.request
+          import json, os, time, urllib.request
 
           providers = json.load(open("ci/nqc-census/rpc-providers.json"))["providers"]
 
@@ -58,5 +63,52 @@ jobs:
           print("RMC010_HASHES " + json.dumps(hashes, sort_keys=True))
           if len(set(hashes.values())) != 1:
               raise SystemExit("providers disagree on the finalized block hash: no anchor proposed")
-          print(f"RMC010_ANCHOR_PROPOSAL number={number} hash={next(iter(hashes.values()))}")
+          block_hash = next(iter(hashes.values()))
+          print(f"RMC010_ANCHOR_PROPOSAL number={number} hash={block_hash}")
+          with open(os.environ["GITHUB_OUTPUT"], "a") as output:
+              output.write(f"number={number}\n")
+              output.write(f"hash={block_hash}\n")
           PY
+
+      - name: Dispatch and wait for D06 at A1
+        id: d06
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          A1_NUMBER: ${{ steps.anchor.outputs.number }}
+          A1_HASH: ${{ steps.anchor.outputs.hash }}
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          branch="nqc/rmc-006-aave-reconciled-discovery-20260929"
+          workflow="nqc-census-aave-discovery.yml"
+          before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '[.workflow_runs[].id]')
+          gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
+            -f ref="$branch" \
+            -f "inputs[anchor_number]=$A1_NUMBER" \
+            -f "inputs[anchor_hash]=$A1_HASH"
+          run_id=""
+          for attempt in $(seq 1 60); do
+            run_id=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" \
+              --jq --argjson before "$before" '[.workflow_runs[] | select((.id as $id | $before | index($id) | not))][0].id // empty')
+            if [ -n "$run_id" ]; then break; fi
+            sleep 5
+          done
+          test -n "$run_id" || { echo "D06 dispatch created no discoverable run"; exit 1; }
+          echo "RMC010_D06_A1_DISPATCH run=$run_id anchor=$A1_NUMBER hash=$A1_HASH"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+          for attempt in $(seq 1 480); do
+            status=$(gh api "repos/$repo/actions/runs/$run_id" --jq .status)
+            conclusion=$(gh api "repos/$repo/actions/runs/$run_id" --jq '.conclusion // ""')
+            if [ "$status" = completed ]; then
+              test "$conclusion" = success || {
+                echo "D06 A1 run $run_id concluded $conclusion"
+                exit 1
+              }
+              echo "RMC010_D06_A1_PASS run=$run_id anchor=$A1_NUMBER hash=$A1_HASH"
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "D06 A1 run $run_id did not finish within 240 minutes"
+          exit 1
