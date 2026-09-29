@@ -994,12 +994,36 @@ fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult 
 }
 
 #[test]
-fn evidentiary_ledger_requires_nonempty_census() -> TestResult {
+fn evidentiary_ledger_requires_nonempty_source_census() -> TestResult {
     let ledger = CapitalCensusLedger::evidentiary();
     assert!(matches!(
         ledger.certify(&certification_context()?),
         Err(nqc_census_capital::CapitalError::EmptyCapitalCensus)
     ));
+    Ok(())
+}
+
+#[test]
+fn evidentiary_source_census_can_certify_without_actionable_requirements() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let external = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(external)?;
+    ledger.evaluate_all()?;
+    let certificate = ledger.certify(&certification_context()?)?;
+
+    assert_eq!(certificate.summary.source_count, 1);
+    assert_eq!(certificate.summary.requirement_count, 0);
+    assert_eq!(certificate.summary.feasible_count, 0);
+    assert_eq!(certificate.summary.rejected_count, 0);
+    assert!(!certificate.summary.proves_zero_own_capital());
     Ok(())
 }
 
