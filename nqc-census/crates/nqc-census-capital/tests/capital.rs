@@ -504,6 +504,57 @@ fn protocol_cap_limits_effective_capacity() -> TestResult {
 }
 
 #[test]
+fn utilization_reserve_and_absolute_caps_are_independent_upper_bounds() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let make = |protocol_cap, utilization_bps, min_remaining| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::AtomicFlashLiquidity,
+            anchor: anchor(100),
+            provider_namespace: 11,
+            provider_locator_hash: hash(12),
+            provider_kind: CapitalProviderKind::ProtocolContract,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(address(13)),
+            asset: token,
+            maximum_available: Amount256::from_u128(1_000),
+            fee_model: FeeModel::None,
+            repayment_asset: token,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(
+                utilization_bps,
+                Amount256::from_u128(min_remaining),
+            )?,
+            caps: CapitalCaps {
+                protocol_cap: Some(Amount256::from_u128(protocol_cap)),
+                market_cap: None,
+            },
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![CapitalFailureMode::CapacityChanged],
+            evidence: evidence(),
+        })
+    };
+
+    // Independent bounds are: observed=1000, utilization=800,
+    // reserve-floor=900, protocol-cap=900. The result is 800, not 620.
+    let utilization_limited = make(900, 8_000, 100)?;
+    assert_eq!(
+        utilization_limited.effective_capacity()?,
+        Amount256::from_u128(800)
+    );
+
+    // An absolute cap of 400 remains 400 even though utilization is 50% of
+    // the observed 1000 and a reserve floor of 100 must remain.
+    let cap_limited = make(400, 5_000, 100)?;
+    assert_eq!(cap_limited.effective_capacity()?, Amount256::from_u128(400));
+
+    // A reserve floor at or above observed liquidity closes the source.
+    let reserve_limited = make(1_000, 10_000, 1_000)?;
+    assert_eq!(reserve_limited.effective_capacity()?, Amount256::ZERO);
+    Ok(())
+}
+
+#[test]
 fn mismatched_anchor_fails_closed() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
