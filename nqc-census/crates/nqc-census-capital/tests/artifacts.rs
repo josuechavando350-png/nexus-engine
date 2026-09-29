@@ -5,9 +5,11 @@ use nqc_census_capital::{
         CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
     },
     Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalClass, CapitalEvidenceRef,
-    CapitalFailureMode, CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg,
-    CapitalSource, CapitalSourceSpec, CapitalTargetId, CollateralRequirement, FeeModel,
-    RepaymentSemantics, RequiredAtomicity, RequirementKind, TemporaryLock, UtilizationConstraints,
+    CapitalCertificationContext, CapitalFailureMode, CapitalProviderKind, CapitalRequirement,
+    CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
+    CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
+    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
+    UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -35,6 +37,30 @@ fn anchor() -> StateAnchor {
 
 fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
+}
+
+fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
+    let mut stages = Vec::new();
+    for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
+        let value = u64::try_from(index + 1)
+            .map_err(|_| nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+                "test authority index overflow",
+            ))?;
+        stages.push(UpstreamStageAuthority::new(
+            stage,
+            GitObjectId::parse_hex(&format!("{value:040x}"))?,
+            GitObjectId::parse_hex(&format!("{:040x}", value + 10))?,
+            hash(u8::try_from(value + 20).map_err(|_| {
+                nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+                    "test authority artifact overflow",
+                )
+            })?),
+            0,
+            0,
+            true,
+        )?);
+    }
+    CapitalCertificationContext::new(stages)
 }
 
 fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
@@ -94,8 +120,9 @@ fn capital_artifacts_are_deterministic_and_complete() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let first = export_capital_artifacts(&ledger, &provenance)?;
-    let second = export_capital_artifacts(&ledger, &provenance)?;
+    let authority = authority()?;
+    let first = export_capital_artifacts(&ledger, &authority, &provenance)?;
+    let second = export_capital_artifacts(&ledger, &authority, &provenance)?;
     assert_eq!(first, second);
 
     for name in [
@@ -131,7 +158,7 @@ fn jsonl_records_carry_exact_anchor_and_provenance() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
     let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
     let text = std::str::from_utf8(&sources.bytes)?;
     assert!(text.contains("\"block_number\":25437474"));
@@ -146,10 +173,12 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
     let ledger = ledger()?;
     let a = export_capital_artifacts(
         &ledger,
+        &authority()?,
         &ArtifactProvenance::new("A", "commit-a", "tree-a")?,
     )?;
     let b = export_capital_artifacts(
         &ledger,
+        &authority()?,
         &ArtifactProvenance::new("B", "commit-a", "tree-a")?,
     )?;
     assert_ne!(
@@ -167,6 +196,6 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
 fn synthetic_ledger_cannot_export_evidentiary_artifacts() -> TestResult {
     let ledger = CapitalCensusLedger::synthetic_fixture();
     let provenance = ArtifactProvenance::new("t", "c", "r")?;
-    assert!(export_capital_artifacts(&ledger, &provenance).is_err());
+    assert!(export_capital_artifacts(&ledger, &authority()?, &provenance).is_err());
     Ok(())
 }

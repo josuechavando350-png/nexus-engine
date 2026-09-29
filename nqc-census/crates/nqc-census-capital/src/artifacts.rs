@@ -1,6 +1,7 @@
 use crate::{
-    Amount256, CapitalAsset, CapitalCensusLedger, CapitalClass, CapitalError, CapitalFeasibility,
-    CapitalRequirement, CapitalSource, FeasibilityRejection, RequirementKind,
+    Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext, CapitalClass,
+    CapitalError, CapitalFeasibility, CapitalRequirement, CapitalSource, FeasibilityRejection,
+    RequirementKind,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::StateAnchor;
@@ -77,9 +78,10 @@ impl CapitalArtifactBundle {
 
 pub fn export_capital_artifacts(
     ledger: &CapitalCensusLedger,
+    authority: &CapitalCertificationContext,
     provenance: &ArtifactProvenance,
 ) -> Result<CapitalArtifactBundle, CapitalError> {
-    let certificate = ledger.certify()?;
+    let certificate = ledger.certify(authority)?;
 
     let source_records = ledger
         .sources()
@@ -120,6 +122,10 @@ pub fn export_capital_artifacts(
         (
             "capital_commitment",
             Json::string(certificate.commitment.to_hex()),
+        ),
+        (
+            "upstream_authority_commitment",
+            Json::string(certificate.upstream_authority_commitment.to_hex()),
         ),
         (
             "source_count",
@@ -168,6 +174,10 @@ pub fn export_capital_artifacts(
         (
             "capital_commitment",
             Json::string(certificate.commitment.to_hex()),
+        ),
+        (
+            "upstream_authority_commitment",
+            Json::string(certificate.upstream_authority_commitment.to_hex()),
         ),
         (
             "artifacts",

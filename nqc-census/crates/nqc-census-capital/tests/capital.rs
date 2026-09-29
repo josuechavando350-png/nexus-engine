@@ -34,6 +34,26 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
 }
 
+fn certification_context() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
+    let mut stages = Vec::new();
+    for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
+        let nibble = u8::try_from(index + 1)
+            .map_err(|_| nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+                "test stage index overflow",
+            ))?;
+        stages.push(UpstreamStageAuthority::new(
+            stage,
+            GitObjectId::parse_hex(&format!("{nibble:040x}"))?,
+            GitObjectId::parse_hex(&format!("{:040x}", u64::from(nibble) + 10))?,
+            hash(nibble.saturating_add(20)),
+            0,
+            0,
+            true,
+        )?);
+    }
+    CapitalCertificationContext::new(stages)
+}
+
 fn source(
     class: CapitalClass,
     asset: CapitalAsset,
@@ -889,7 +909,7 @@ fn fee_rounding_matches_protocol_integer_semantics() -> TestResult {
 fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult {
     let ledger = CapitalCensusLedger::synthetic_fixture();
     assert!(matches!(
-        ledger.certify(),
+        ledger.certify(&certification_context()?),
         Err(nqc_census_capital::CapitalError::NonEvidentiaryLedger)
     ));
     Ok(())
@@ -899,7 +919,7 @@ fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult 
 fn evidentiary_ledger_requires_nonempty_census() -> TestResult {
     let ledger = CapitalCensusLedger::evidentiary();
     assert!(matches!(
-        ledger.certify(),
+        ledger.certify(&certification_context()?),
         Err(nqc_census_capital::CapitalError::EmptyCapitalCensus)
     ));
     Ok(())
@@ -937,11 +957,11 @@ fn evidentiary_ledger_certifies_only_after_evaluation() -> TestResult {
     ledger.register_source(external)?;
     ledger.register_requirement(req)?;
     assert!(matches!(
-        ledger.certify(),
+        ledger.certify(&certification_context()?),
         Err(nqc_census_capital::CapitalError::UnevaluatedRequirement)
     ));
     ledger.evaluate_all()?;
-    let certificate = ledger.certify()?;
+    let certificate = ledger.certify(&certification_context()?)?;
     assert!(certificate.summary.is_conserved());
     assert!(certificate.summary.proves_zero_own_capital());
     assert_eq!(certificate.summary.feasible_count, 1);
@@ -1042,7 +1062,7 @@ fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
     ledger.register_requirement(req)?;
     ledger.evaluate_all()?;
     assert!(matches!(
-        ledger.certify(),
+        ledger.certify(&certification_context()?),
         Err(CapitalError::SettlementRequirementMismatch)
     ));
     Ok(())
@@ -1130,5 +1150,61 @@ fn no_repayment_gas_sponsor_fee_must_still_be_declared() -> TestResult {
     let result = evaluate_capital_feasibility(&requirement, &sources);
     assert!(matches!(result, CapitalFeasibility::Feasible { .. }));
     nqc_census_capital::validate_settlement_requirements(&requirement, &result, &sources)?;
+    Ok(())
+}
+
+
+#[test]
+fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResult {
+    let context = certification_context()?;
+    assert_eq!(context.stages().len(), 5);
+
+    let incomplete = CapitalCertificationContext::new(
+        context.stages()[..4].to_vec(),
+    );
+    assert!(matches!(
+        incomplete,
+        Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(_))
+    ));
+
+    let mut duplicate = context.stages().to_vec();
+    duplicate[4] = duplicate[3].clone();
+    assert!(matches!(
+        CapitalCertificationContext::new(duplicate),
+        Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn upstream_authority_rejects_mismatch_unknown_or_unadmitted_stage() -> TestResult {
+    let commit = GitObjectId::parse_hex("1111111111111111111111111111111111111111")?;
+    let tree = GitObjectId::parse_hex("2222222222222222222222222222222222222222")?;
+    for (mismatch, unknown, admitted) in [(1, 0, true), (0, 1, true), (0, 0, false)] {
+        assert!(matches!(
+            UpstreamStageAuthority::new(
+                UpstreamCensusStage::Rmc008StateAdmission,
+                commit,
+                tree,
+                hash(33),
+                mismatch,
+                unknown,
+                admitted,
+            ),
+            Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(_))
+        ));
+    }
+    Ok(())
+}
+
+#[test]
+fn git_object_ids_are_exact_lowercase_sha1_hex_width() -> TestResult {
+    let valid = GitObjectId::parse_hex("0123456789abcdef0123456789abcdef01234567")?;
+    assert_eq!(
+        valid.to_hex(),
+        "0123456789abcdef0123456789abcdef01234567"
+    );
+    assert!(GitObjectId::parse_hex("abc").is_err());
+    assert!(GitObjectId::parse_hex("0123456789ABCDEF0123456789ABCDEF01234567").is_err());
     Ok(())
 }

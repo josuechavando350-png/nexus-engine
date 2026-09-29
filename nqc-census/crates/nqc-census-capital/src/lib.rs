@@ -66,6 +66,8 @@ pub enum CapitalError {
     EmptyCapitalCensus,
     SettlementRequirementMismatch,
     RejectedFeasibilityHasNoObligations,
+    InvalidGitObjectId,
+    InvalidUpstreamAuthority(&'static str),
 }
 
 impl Display for CapitalError {
@@ -150,6 +152,10 @@ impl Display for CapitalError {
             }
             Self::RejectedFeasibilityHasNoObligations => {
                 f.write_str("rejected capital feasibility has no settlement obligations")
+            }
+            Self::InvalidGitObjectId => f.write_str("invalid 40-hex git object id"),
+            Self::InvalidUpstreamAuthority(reason) => {
+                write!(f, "invalid upstream capital authority: {reason}")
             }
         }
     }
@@ -1969,9 +1975,180 @@ pub enum CapitalLedgerMode {
     Evidentiary,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct GitObjectId([u8; 20]);
+
+impl GitObjectId {
+    pub fn parse_hex(value: &str) -> Result<Self, CapitalError> {
+        if value.len() != 40 {
+            return Err(CapitalError::InvalidGitObjectId);
+        }
+        let mut bytes = [0_u8; 20];
+        let raw = value.as_bytes();
+        for index in 0..20 {
+            let high = hex_nibble(raw[index * 2])?;
+            let low = hex_nibble(raw[index * 2 + 1])?;
+            bytes[index] = (high << 4) | low;
+        }
+        Ok(Self(bytes))
+    }
+
+    pub const fn as_bytes(&self) -> &[u8; 20] {
+        &self.0
+    }
+
+    pub fn to_hex(&self) -> String {
+        hex_encode(&self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum UpstreamCensusStage {
+    Rmc006DiscoveryAave,
+    Rmc007DiscoveryV2,
+    Rmc008StateAdmission,
+    Rmc009PositionUniverse,
+    Rmc010IncrementalParity,
+}
+
+impl UpstreamCensusStage {
+    pub const ALL: [Self; 5] = [
+        Self::Rmc006DiscoveryAave,
+        Self::Rmc007DiscoveryV2,
+        Self::Rmc008StateAdmission,
+        Self::Rmc009PositionUniverse,
+        Self::Rmc010IncrementalParity,
+    ];
+
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::Rmc006DiscoveryAave => "RMC-006",
+            Self::Rmc007DiscoveryV2 => "RMC-007",
+            Self::Rmc008StateAdmission => "RMC-008",
+            Self::Rmc009PositionUniverse => "RMC-009",
+            Self::Rmc010IncrementalParity => "RMC-010",
+        }
+    }
+
+    const fn tag(self) -> u8 {
+        match self {
+            Self::Rmc006DiscoveryAave => 6,
+            Self::Rmc007DiscoveryV2 => 7,
+            Self::Rmc008StateAdmission => 8,
+            Self::Rmc009PositionUniverse => 9,
+            Self::Rmc010IncrementalParity => 10,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct UpstreamStageAuthority {
+    pub stage: UpstreamCensusStage,
+    pub code_commit: GitObjectId,
+    pub code_tree: GitObjectId,
+    pub artifact_sha256: Hash32,
+    pub unresolved_mismatch_count: u64,
+    pub unknown_failure_count: u64,
+    pub admitted: bool,
+}
+
+impl UpstreamStageAuthority {
+    pub fn new(
+        stage: UpstreamCensusStage,
+        code_commit: GitObjectId,
+        code_tree: GitObjectId,
+        artifact_sha256: Hash32,
+        unresolved_mismatch_count: u64,
+        unknown_failure_count: u64,
+        admitted: bool,
+    ) -> Result<Self, CapitalError> {
+        if unresolved_mismatch_count != 0 {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "unresolved mismatch count is nonzero",
+            ));
+        }
+        if unknown_failure_count != 0 {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "UNKNOWN failure count is nonzero",
+            ));
+        }
+        if !admitted {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "upstream artifact is not admitted",
+            ));
+        }
+        Ok(Self {
+            stage,
+            code_commit,
+            code_tree,
+            artifact_sha256,
+            unresolved_mismatch_count,
+            unknown_failure_count,
+            admitted,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapitalCertificationContext {
+    stages: Vec<UpstreamStageAuthority>,
+    commitment: Hash32,
+}
+
+impl CapitalCertificationContext {
+    pub fn new(mut stages: Vec<UpstreamStageAuthority>) -> Result<Self, CapitalError> {
+        stages.sort_by_key(|authority| authority.stage);
+        if stages.len() != UpstreamCensusStage::ALL.len() {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "exactly RMC-006 through RMC-010 authorities are required",
+            ));
+        }
+        for (expected, observed) in UpstreamCensusStage::ALL.into_iter().zip(&stages) {
+            if observed.stage != expected {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "required upstream stage is missing or duplicated",
+                ));
+            }
+            if observed.unresolved_mismatch_count != 0
+                || observed.unknown_failure_count != 0
+                || !observed.admitted
+            {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "upstream stage is not certifiable",
+                ));
+            }
+        }
+
+        let mut hasher = Sha256::new();
+        hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V1");
+        hasher.update([0]);
+        for authority in &stages {
+            hasher.update([authority.stage.tag()]);
+            hasher.update(authority.code_commit.as_bytes());
+            hasher.update(authority.code_tree.as_bytes());
+            hasher.update(authority.artifact_sha256.as_bytes());
+            hasher.update(authority.unresolved_mismatch_count.to_be_bytes());
+            hasher.update(authority.unknown_failure_count.to_be_bytes());
+            hasher.update([u8::from(authority.admitted)]);
+        }
+        let commitment = Hash32::new(finalize_sha256(hasher))
+            .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero authority commitment"))?;
+        Ok(Self { stages, commitment })
+    }
+
+    pub const fn commitment(&self) -> Hash32 {
+        self.commitment
+    }
+
+    pub fn stages(&self) -> &[UpstreamStageAuthority] {
+        &self.stages
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapitalCensusCertificate {
     pub commitment: CapitalCensusCommitment,
+    pub upstream_authority_commitment: Hash32,
     pub summary: CapitalCensusSummary,
 }
 
@@ -2101,7 +2278,10 @@ impl CapitalCensusLedger {
         Ok(CapitalCensusCommitment(finalize_sha256(hasher)))
     }
 
-    pub fn certify(&self) -> Result<CapitalCensusCertificate, CapitalError> {
+    pub fn certify(
+        &self,
+        authority: &CapitalCertificationContext,
+    ) -> Result<CapitalCensusCertificate, CapitalError> {
         if self.mode != CapitalLedgerMode::Evidentiary {
             return Err(CapitalError::NonEvidentiaryLedger);
         }
@@ -2116,6 +2296,7 @@ impl CapitalCensusLedger {
         let commitment = self.commitment()?;
         Ok(CapitalCensusCertificate {
             commitment,
+            upstream_authority_commitment: authority.commitment(),
             summary,
         })
     }
@@ -2473,6 +2654,14 @@ fn finalize_sha256(hasher: Sha256) -> [u8; 32] {
     let mut out = [0_u8; 32];
     out.copy_from_slice(&digest);
     out
+}
+
+fn hex_nibble(byte: u8) -> Result<u8, CapitalError> {
+    match byte {
+        b'0'..=b'9' => Ok(byte - b'0'),
+        b'a'..=b'f' => Ok(byte - b'a' + 10),
+        _ => Err(CapitalError::InvalidGitObjectId),
+    }
 }
 
 fn hex_encode(bytes: &[u8]) -> String {
