@@ -109,7 +109,8 @@ fn d09_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     let summary = format!(
         concat!(
             "{{\"all_tokens_conserved\":true,\"anchor\":{{\"hash\":\"{}\",\"number\":25437474}},",
-            "\"blocking_findings\":[],",
+            "\"anchor_timestamp\":1700000000,\"blocking_findings\":[],",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",",
             "\"non_claims\":[\"LIQUIDATABILITY_NOT_CLAIMED\",\"PROFITABILITY_NOT_CLAIMED\",",
             "\"EXECUTION_NOT_CLAIMED\",\"ORACLE_FRESHNESS_NOT_ASSUMED\",\"POSITIONS_OUTSIDE_D06_NOT_CLAIMED\"],",
             "\"schema_version\":1,\"status\":\"RMC_009_PASS_CANDIDATE\",\"unexplained_mismatches\":0,",
@@ -123,7 +124,8 @@ fn d09_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
             "{{\"artifacts\":[",
             "{{\"bytes\":{},\"path\":\"account-manifest.jsonl\",\"sha256\":\"{}\"}},",
             "{{\"bytes\":{},\"path\":\"account-summary.json\",\"sha256\":\"{}\"}}",
-            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",\"schema_version\":1}}"
         ),
         accounts.len(),
         sha256_plain(&accounts),
