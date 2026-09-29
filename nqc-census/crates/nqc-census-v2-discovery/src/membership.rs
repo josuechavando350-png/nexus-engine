@@ -20,8 +20,7 @@ use sha2::{Digest, Sha256};
 use std::{error::Error, fs, path::Path};
 
 const ANCHOR_NUMBER: u64 = 25_437_474;
-const ANCHOR_HASH: &str =
-    "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
+const ANCHOR_HASH: &str = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
 const FACTORY: &str = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f";
 const HISTORY_PROVIDER: &str = "mevblocker-rpc";
 const MEMBERSHIP_PROVIDER: &str = "blastapi-public";
@@ -56,9 +55,7 @@ fn selected_provider<'a>(
         .ok_or_else(|| ChainError::Config(format!("required provider {label} is not declared")))
 }
 
-fn returned(
-    observation: &CensusObservation<ContractCallEnvelope>,
-) -> Result<&[u8], ChainError> {
+fn returned(observation: &CensusObservation<ContractCallEnvelope>) -> Result<&[u8], ChainError> {
     match observation.payload().outcome() {
         CallOutcome::Returned(bytes) => Ok(bytes),
         CallOutcome::Reverted(_) => Err(ChainError::Evidence(
@@ -74,11 +71,7 @@ fn required_address(bytes: &[u8], label: &'static str) -> Result<Address, ChainE
     Ok(Address::new(raw)?)
 }
 
-fn expected_count(
-    current: &Json,
-    history: &Json,
-    enumeration: &Json,
-) -> Result<u64, ChainError> {
+fn expected_count(current: &Json, history: &Json, enumeration: &Json) -> Result<u64, ChainError> {
     if current.get("status").and_then(Json::as_str) != Some("CURRENT_SURFACE_PASS")
         || history.get("status").and_then(Json::as_str) != Some("PAIR_CREATED_HISTORY_PASS")
         || enumeration.get("status").and_then(Json::as_str)
@@ -359,10 +352,7 @@ pub fn run_membership(
         ("pair_count", Json::uint(expected)),
         ("get_pair_verified_count", Json::uint(checked)),
         ("runtime_code_verified_count", Json::uint(checked)),
-        (
-            "partition_count",
-            Json::uint(manifests.len() as u64),
-        ),
+        ("partition_count", Json::uint(manifests.len() as u64)),
         (
             "runtime_sequence_commitment",
             Json::string(hex::plain(&runtime_commitment.finalize())),
