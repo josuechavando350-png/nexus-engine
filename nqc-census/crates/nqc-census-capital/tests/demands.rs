@@ -40,13 +40,10 @@ fn summary(status: &str, liquidatability_nonclaim: bool) -> Vec<u8> {
     format!(
         concat!(
             "{{\"all_tokens_conserved\":true,\"anchor\":{{\"hash\":\"{}\",\"number\":25437474}},",
-            "\"blocking_findings\":[],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
-            "\"non_claims\":{},\"schema_version\":1,\"status\":\"{}\",",
+            "\"blocking_findings\":[],\"non_claims\":{},\"schema_version\":1,\"status\":\"{}\",",
             "\"unexplained_mismatches\":0,\"uniswap_v2\":{{\"reason\":\"Uniswap V2 pairs carry no borrower, debt or collateral positions; no account universe is claimed or fabricated for them\",\"status\":\"NOT_APPLICABLE\"}}}}"
         ),
         anchor().block_hash().to_hex(),
-        D09_CODE_COMMIT,
-        D09_CODE_TREE,
         nonclaims,
         status
     )
