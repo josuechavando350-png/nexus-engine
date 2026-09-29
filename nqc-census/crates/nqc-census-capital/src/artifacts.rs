@@ -500,7 +500,12 @@ pub fn verify_capital_artifact_bundle(
     summary_provenance_checked.validate_anchor(authority.observation_anchor())?;
     require_observation_anchor(&summary, authority.observation_anchor())?;
 
-    for key in ["generated_at", "generated_at_basis", "code_commit", "code_tree"] {
+    for key in [
+        "generated_at",
+        "generated_at_basis",
+        "code_commit",
+        "code_tree",
+    ] {
         if summary
             .str_field(key)
             .map_err(|_| CapitalError::InvalidCanonical("summary provenance missing"))?
@@ -1558,17 +1563,10 @@ fn require_generated_at_basis(record: &Json) -> Result<(), CapitalError> {
     Ok(())
 }
 
-fn require_observation_anchor(
-    record: &Json,
-    expected: &StateAnchor,
-) -> Result<(), CapitalError> {
-    let observed = parse_anchor_json(
-        record
-            .get("observation_anchor")
-            .ok_or(CapitalError::InvalidCanonical(
-                "artifact observation anchor missing",
-            ))?,
-    )?;
+fn require_observation_anchor(record: &Json, expected: &StateAnchor) -> Result<(), CapitalError> {
+    let observed = parse_anchor_json(record.get("observation_anchor").ok_or(
+        CapitalError::InvalidCanonical("artifact observation anchor missing"),
+    )?)?;
     if &observed != expected {
         return Err(CapitalError::AnchorMismatch);
     }
