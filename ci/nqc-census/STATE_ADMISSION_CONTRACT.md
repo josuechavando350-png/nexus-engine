@@ -137,16 +137,22 @@ anchor when the source exposes `latestRoundData`, otherwise
 
 ## 5. Public RPC load
 
-The live workflow joins the repository-wide concurrency group
-`nqc-census-public-rpc` (`cancel-in-progress: false`): at most one live
-Census acquisition runs at a time and a running one is never cancelled.
-Within the run the stage matrix is bounded (`max-parallel: 6`, providers
-interleaved). Transient provider failures (rate limit, "temporarily
+Live acquisition runs only from a `workflow_dispatch` on the exact branch
+head, in the repository-wide concurrency group `nqc-census-public-rpc`
+(`cancel-in-progress: false`): at most one live Census acquisition runs at a
+time and a running one is never cancelled. GitHub keeps one pending run per
+group, and a newer pending run replaces an older one, so a `pull_request` run
+of the live workflow never enters the group: it verifies the pinned inputs
+through the GitHub API only (no RPC), stops at `RMC008_BLOCKED` while they
+are not pinned, and certifies nothing. Within an acquisition the stage
+matrix is bounded (`max-parallel: 6`, providers interleaved). Transient provider failures (rate limit, "temporarily
 unavailable", transport) are retried by the chain layer and then by up to ten
 resumable attempts from committed RMC-004 checkpoints; a semantic
 disagreement is never retried, it fails closed. Stage evidence is uploaded
-even when a stage fails, under names carrying stage, provider, exact head and
-run id. The fast gate (`nqc-census-state-gate.yml`) runs no RPC and is not in
+even when a stage fails, under names carrying stage, provider, exact head,
+run id and attempt; re-running a failed stage adds evidence beside the failed
+attempt's, and the reconciler consumes each stage's latest attempt and lists
+every attempt in `stage-selection.json`. The fast gate (`nqc-census-state-gate.yml`) runs no RPC and is not in
 the group.
 
 ## 6. Closeout

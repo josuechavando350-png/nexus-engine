@@ -17,13 +17,16 @@ permissions:
   contents: read
   actions: read
 
-# Every live Census workflow that loads the shared public RPC endpoints joins
-# one repository-wide group: at most one runs at a time and none is cancelled
-# while running. GitHub keeps at most one pending run per group, so a third
-# trigger replaces the older pending one (visible as cancelled, re-dispatch
-# it); a running acquisition is never interrupted.
+# Every live Census acquisition that loads the shared public RPC endpoints
+# joins one repository-wide group: at most one runs at a time and none is
+# cancelled while running. GitHub keeps at most one pending run per group, so
+# a newer pending run replaces an older one. RMC-008 therefore acquires only
+# from a workflow_dispatch on the exact branch head, inside the group; a
+# pull_request run verifies the pinned inputs through the GitHub API (no RPC)
+# in its own per-ref group, so it can never displace another node's pending
+# acquisition.
 concurrency:
-  group: nqc-census-public-rpc
+  group: ${{ github.event_name == 'workflow_dispatch' && 'nqc-census-public-rpc' || format('nqc-rmc008-inputs-{0}', github.ref) }}
   cancel-in-progress: false
 
 env:
@@ -43,6 +46,7 @@ jobs:
     outputs:
       d06_run: ${{ steps.pins.outputs.d06_run }}
       d07_run: ${{ steps.pins.outputs.d07_run }}
+      acquire: ${{ steps.decide.outputs.acquire }}
     steps:
       - name: Checkout exact head
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
@@ -126,8 +130,22 @@ jobs:
           overwrite: true
           retention-days: 30
 
+      - name: Decide whether this run acquires
+        id: decide
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" = workflow_dispatch ]; then
+            echo "acquire=true" >> "$GITHUB_OUTPUT"
+            echo "RMC008_ACQUISITION head=$(git rev-parse HEAD) group=nqc-census-public-rpc"
+          else
+            echo "acquire=false" >> "$GITHUB_OUTPUT"
+            echo "RMC008_INPUTS_VERIFIED; live acquisition runs only from workflow_dispatch on the exact head (not certified by this run)"
+          fi
+
   stage:
     needs: inputs
+    if: needs.inputs.outputs.acquire == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 350
     strategy:
@@ -192,14 +210,16 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: d08-stage-${{ matrix.stage }}-${{ matrix.provider }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          # Stage, provider, exact head, run and attempt: re-running a failed
+          # stage adds its evidence next to the failed attempt's, never over it.
+          name: d08-stage-${{ matrix.stage }}-${{ matrix.provider }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/nqc-rmc008-evidence
           if-no-files-found: error
-          overwrite: true
           retention-days: 30
 
   reconcile:
-    needs: stage
+    needs: [inputs, stage]
+    if: needs.inputs.outputs.acquire == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     steps:
@@ -224,7 +244,7 @@ jobs:
       - name: Fetch every stage
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          pattern: d08-stage-*-${{ github.run_id }}
+          pattern: d08-stage-*-${{ github.run_id }}-*
           path: /tmp/nqc-rmc008-stages
 
       - name: Merge stage stores through RMC-004 commit
@@ -235,14 +255,36 @@ jobs:
           mkdir -p "$D08_EVIDENCE/records"
           cargo build --release --locked -p nqc-census-state --bin nqc-rmc008-state-merge --bin nqc-rmc008-state-reconcile
           cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          # Each stage consumes its latest attempt of this run (every earlier,
+          # failed attempt stays listed in stage-selection.json and retained).
+          python3 - /tmp/nqc-rmc008-stages "$D08_EVIDENCE/stage-selection.json" > /tmp/nqc-rmc008-selected.txt <<'PY'
+          import json, os, re, sys
+          root, out = sys.argv[1:3]
+          attempts = {}
+          for name in sorted(os.listdir(root)):
+              match = re.fullmatch(r"(d08-stage-.+-[0-9a-f]{40}-[0-9]+)-([0-9]+)", name)
+              assert match, f"unexpected stage artifact {name}"
+              attempts.setdefault(match.group(1), []).append(
+                  {"attempt": int(match.group(2)), "artifact": name,
+                   "record": os.path.exists(os.path.join(root, name, "record.json"))})
+          selection = []
+          for key in sorted(attempts):
+              latest = max(attempts[key], key=lambda item: item["attempt"])
+              assert latest["record"], f"{key}: latest attempt {latest['attempt']} has no stage record"
+              selection.append({"stage": key, "selected": latest["artifact"], "attempts": attempts[key]})
+              print(latest["artifact"])
+          with open(out, "w") as handle:
+              json.dump(selection, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          PY
           args=()
           count=0
-          for stage in /tmp/nqc-rmc008-stages/d08-stage-*; do
-            name=$(basename "$stage")
+          while read -r name; do
+            stage="/tmp/nqc-rmc008-stages/$name"
             cp "$stage/record.json" "$D08_EVIDENCE/records/$name.json"
             args+=(--from "$stage/store" --record "$stage/record.json")
             count=$((count + 1))
-          done
+          done < /tmp/nqc-rmc008-selected.txt
           test "$count" = 36
           target/release/nqc-rmc008-state-merge --into "$D08_EVIDENCE/store" "${args[@]}" | tee "$D08_EVIDENCE/merge.log"
           target/release/nqc-census-store-verify --store "$D08_EVIDENCE/store" > "$D08_EVIDENCE/merged-store-verify.log"
@@ -321,11 +363,11 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nqc-rmc008-closeout-${{ github.event.pull_request.head.sha || github.sha }}
-          overwrite: true
+          name: nqc-rmc008-closeout-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             /tmp/nqc-rmc008-evidence/closeout
             /tmp/nqc-rmc008-evidence/*.log
             /tmp/nqc-rmc008-evidence/closeout-SHA256SUMS
+            /tmp/nqc-rmc008-evidence/stage-selection.json
           if-no-files-found: warn
           retention-days: 30

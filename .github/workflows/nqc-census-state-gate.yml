@@ -97,4 +97,3 @@ jobs:
           cargo test --locked -p nqc-census-state -- --nocapture
           cargo test --workspace --all-targets --locked
           echo RMC008_CORE_PASS
-
