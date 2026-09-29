@@ -97,15 +97,13 @@ fn d09_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>) {
     let summary = format!(
         concat!(
             "{{\"all_tokens_conserved\":true,\"anchor\":{{\"hash\":\"{}\",\"number\":25437474}},",
-            "\"blocking_findings\":[],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"blocking_findings\":[],",
             "\"non_claims\":[\"LIQUIDATABILITY_NOT_CLAIMED\",\"PROFITABILITY_NOT_CLAIMED\",",
             "\"EXECUTION_NOT_CLAIMED\",\"ORACLE_FRESHNESS_NOT_ASSUMED\",\"POSITIONS_OUTSIDE_D06_NOT_CLAIMED\"],",
             "\"schema_version\":1,\"status\":\"RMC_009_PASS_CANDIDATE\",\"unexplained_mismatches\":0,",
             "\"uniswap_v2\":{{\"reason\":\"not applicable\",\"status\":\"NOT_APPLICABLE\"}}}}"
         ),
         anchor().block_hash().to_hex(),
-        D09_CODE_COMMIT,
-        D09_CODE_TREE,
     )
     .into_bytes();
     let manifest = format!(
