@@ -2375,6 +2375,8 @@ pub fn evaluate_capital_feasibility_checked(
         .map(|allocation| allocation.source_id)
         .collect::<BTreeSet<_>>();
 
+    let mut source_dependencies =
+        BTreeMap::<(RequirementKind, CapitalAsset), Amount256>::new();
     for source_id in used_source_ids {
         let source = sources
             .iter()
@@ -2395,23 +2397,37 @@ pub fn evaluate_capital_feasibility_checked(
             ));
         }
         if let CollateralRequirement::Required { asset, amount, .. } = source.collateral() {
-            if !has_sufficient_leg(requirement, RequirementKind::Collateral, asset, amount) {
-                return Ok(rejected(
-                    requirement,
-                    FeasibilityRejection::CollateralRequirementUnfunded,
-                    Some(RequirementKind::Collateral),
-                ));
-            }
+            add_obligation(
+                &mut source_dependencies,
+                RequirementKind::Collateral,
+                asset,
+                amount,
+            )?;
         }
         if let TemporaryLock::Required { asset, amount, .. } = source.temporary_lock() {
-            if !has_sufficient_leg(requirement, RequirementKind::TemporaryLock, asset, amount) {
-                return Ok(rejected(
-                    requirement,
-                    FeasibilityRejection::TemporaryLockUnfunded,
-                    Some(RequirementKind::TemporaryLock),
-                ));
-            }
+            add_obligation(
+                &mut source_dependencies,
+                RequirementKind::TemporaryLock,
+                asset,
+                amount,
+            )?;
         }
+    }
+
+    for ((kind, asset), required_amount) in source_dependencies {
+        if declared_leg_total(requirement, kind, asset)? >= required_amount {
+            continue;
+        }
+        let reason = match kind {
+            RequirementKind::Collateral => FeasibilityRejection::CollateralRequirementUnfunded,
+            RequirementKind::TemporaryLock => FeasibilityRejection::TemporaryLockUnfunded,
+            _ => {
+                return Err(CapitalError::InvalidCanonical(
+                    "unexpected aggregated source dependency kind",
+                ))
+            }
+        };
+        return Ok(rejected(requirement, reason, Some(kind)));
     }
 
     Ok(CapitalFeasibility::Feasible {
@@ -3323,16 +3339,20 @@ fn has_leg(requirement: &CapitalRequirement, kind: RequirementKind, asset: Capit
         .any(|leg| leg.kind() == kind && leg.asset() == asset)
 }
 
-fn has_sufficient_leg(
+fn declared_leg_total(
     requirement: &CapitalRequirement,
     kind: RequirementKind,
     asset: CapitalAsset,
-    amount: Amount256,
-) -> bool {
-    requirement
+) -> Result<Amount256, CapitalError> {
+    let mut total = Amount256::ZERO;
+    for leg in requirement
         .legs()
         .iter()
-        .any(|leg| leg.kind() == kind && leg.asset() == asset && leg.amount() >= amount)
+        .filter(|leg| leg.kind() == kind && leg.asset() == asset)
+    {
+        total = total.checked_add(leg.amount())?;
+    }
+    Ok(total)
 }
 
 fn rejected(
