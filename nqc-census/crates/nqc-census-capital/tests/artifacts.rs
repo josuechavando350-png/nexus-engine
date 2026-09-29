@@ -236,7 +236,8 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&source_only, &authority_for(&source_only)?, &provenance)?;
+    let bundle =
+        export_capital_artifacts(&source_only, &authority_for(&source_only)?, &provenance)?;
     assert!(bundle
         .file(CAPITAL_REQUIREMENTS_FILE)
         .ok_or("missing requirements")?
