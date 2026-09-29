@@ -1896,6 +1896,9 @@ impl CapitalCensusLedger {
         if self.mode != CapitalLedgerMode::Evidentiary {
             return Err(CapitalError::NonEvidentiaryLedger);
         }
+        if self.results.len() != self.requirements.len() {
+            return Err(CapitalError::UnevaluatedRequirement);
+        }
         let summary = self.summary()?;
         if summary.source_count == 0 || summary.requirement_count == 0 {
             return Err(CapitalError::EmptyCapitalCensus);
