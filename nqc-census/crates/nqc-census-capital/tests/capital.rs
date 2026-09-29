@@ -1722,7 +1722,6 @@ fn temporary_lock_leg_rejects_source_that_requires_collateral() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn certification_context_rejects_mixed_upstream_anchors() -> TestResult {
     let mut stages = Vec::new();
@@ -1746,7 +1745,9 @@ fn certification_context_rejects_mixed_upstream_anchors() -> TestResult {
     }
     assert!(matches!(
         CapitalCertificationContext::new(stages),
-        Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(_))
+        Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            _
+        ))
     ));
     Ok(())
 }

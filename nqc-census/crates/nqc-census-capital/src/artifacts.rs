@@ -678,10 +678,7 @@ fn upstream_authority_json(authority: &CapitalCertificationContext) -> Json {
                         "artifact_sha256",
                         Json::string(stage.artifact_sha256.to_hex()),
                     ),
-                    (
-                        "observation_anchor",
-                        anchor_json(&stage.observation_anchor),
-                    ),
+                    ("observation_anchor", anchor_json(&stage.observation_anchor)),
                     (
                         "unresolved_mismatch_count",
                         Json::uint(stage.unresolved_mismatch_count),
@@ -737,11 +734,9 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
         let admitted = row.get("admitted").and_then(Json::as_bool).ok_or(
             CapitalError::InvalidUpstreamAuthority("upstream admitted flag missing"),
         )?;
-        let observation_anchor = parse_anchor_json(
-            row.get("observation_anchor").ok_or(
-                CapitalError::InvalidUpstreamAuthority("observation anchor missing"),
-            )?,
-        )?;
+        let observation_anchor = parse_anchor_json(row.get("observation_anchor").ok_or(
+            CapitalError::InvalidUpstreamAuthority("observation anchor missing"),
+        )?)?;
         authorities.push(UpstreamStageAuthority::new(
             stage,
             code_commit,
