@@ -293,8 +293,7 @@ pub fn import_d08_capital_sources(
     if context.evidence.is_empty() {
         return Err(CapitalError::MissingEvidence);
     }
-    let (aave_pool, aave_premium_total_bps) =
-        d08_aave_flash_terms(pool_and_factory_facts_json)?;
+    let (aave_pool, aave_premium_total_bps) = d08_aave_flash_terms(pool_and_factory_facts_json)?;
     let tokens = token_compatibility(token_admission_jsonl)?;
     let mut sources = Vec::new();
     let mut rejections = Vec::new();
