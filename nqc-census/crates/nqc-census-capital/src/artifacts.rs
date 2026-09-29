@@ -1077,12 +1077,12 @@ fn nullable_string(value: &Json) -> Result<Option<String>, CapitalError> {
 }
 
 fn decode_plain_hex(text: &str) -> Result<Vec<u8>, CapitalError> {
-    if text.len() % 2 != 0 {
+    if !text.len().is_multiple_of(2) {
         return Err(CapitalError::InvalidCanonical("odd-length capital hex"));
     }
     let mut out = Vec::with_capacity(text.len() / 2);
     let bytes = text.as_bytes();
-    for pair in bytes.chunks_exact(2) {
+    for pair in bytes.as_chunks::<2>().0 {
         let high = hex_nibble(pair[0])?;
         let low = hex_nibble(pair[1])?;
         out.push((high << 4) | low);
