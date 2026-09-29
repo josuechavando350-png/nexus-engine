@@ -186,10 +186,10 @@ fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String
     Ok(tokens)
 }
 
-fn execution_blockers<'a>(
-    tokens: &'a BTreeMap<Address, Vec<String>>,
+fn execution_blockers(
+    tokens: &BTreeMap<Address, Vec<String>>,
     token: Address,
-) -> Result<&'a [String], CapitalError> {
+) -> Result<&[String], CapitalError> {
     tokens
         .get(&token)
         .map(Vec::as_slice)
