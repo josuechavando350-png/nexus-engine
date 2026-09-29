@@ -463,12 +463,14 @@ pub fn verify_capital_artifact_bundle(
         ));
     }
     for expected_file in &regenerated.files {
-        let observed_file = by_name
-            .get(expected_file.name)
-            .ok_or(CapitalError::InvalidCanonical(
-                "regenerated artifact missing from bundle",
-            ))?;
-        if observed_file.bytes != expected_file.bytes || observed_file.sha256 != expected_file.sha256
+        let observed_file =
+            by_name
+                .get(expected_file.name)
+                .ok_or(CapitalError::InvalidCanonical(
+                    "regenerated artifact missing from bundle",
+                ))?;
+        if observed_file.bytes != expected_file.bytes
+            || observed_file.sha256 != expected_file.sha256
         {
             return Err(CapitalError::CanonicalDigestMismatch);
         }

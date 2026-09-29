@@ -522,7 +522,6 @@ fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestRe
     Ok(())
 }
 
-
 #[test]
 fn offline_verifier_rejects_rehashed_feasibility_allocation_substitution() -> TestResult {
     let ledger = ledger()?;
