@@ -18,8 +18,8 @@
       "url": "https://eth.drpc.org",
       "operator": "dRPC public endpoint",
       "min_interval_ms": 600,
-      "max_batch": 2,
-      "log_window": 5000,
+      "max_batch": 1,
+      "log_window": 4000,
       "pinning": "EIP1898_BLOCK_HASH"
     }
   ]
