@@ -1933,3 +1933,33 @@ fn zero_own_capital_rejects_operator_owned_builder_source() -> TestResult {
     ));
     Ok(())
 }
+
+#[test]
+fn operator_treasury_cannot_claim_external_ownership() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let result = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::InventoryRequirement,
+        anchor: anchor(100),
+        provider_namespace: 88,
+        provider_locator_hash: hash(89),
+        provider_kind: CapitalProviderKind::OperatorTreasury,
+        ownership: CapitalOwnership::External,
+        source_contract: None,
+        asset,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: asset,
+        repayment: RepaymentSemantics::NoRepayment,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+        evidence: evidence(),
+    });
+    assert!(matches!(
+        result,
+        Err(nqc_census_capital::CapitalError::OwnershipProviderMismatch)
+    ));
+    Ok(())
+}
