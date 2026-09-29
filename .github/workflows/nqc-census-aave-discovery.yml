@@ -109,11 +109,27 @@ jobs:
         run: |
           set -euo pipefail
           cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-history
-          target/release/nqc-rmc006-aave-history \
-            --providers ../ci/nqc-census/aave-history-providers.json \
-            --current "$D06_EVIDENCE/aave-current-surface.json" \
-            --store "$D06_EVIDENCE/store" \
-            --out "$D06_EVIDENCE/aave-history.json" | tee "$D06_EVIDENCE/history.log"
+          # A public provider outage outlasting the per-request retry budget
+          # aborts the run; the next attempt resumes from the RMC-004
+          # checkpoints already committed, so only unfinished windows are
+          # re-acquired. The result is verified offline below either way.
+          for attempt in 1 2 3 4; do
+            if target/release/nqc-rmc006-aave-history \
+                --providers ../ci/nqc-census/aave-history-providers.json \
+                --current "$D06_EVIDENCE/aave-current-surface.json" \
+                --store "$D06_EVIDENCE/store" \
+                --out "$D06_EVIDENCE/aave-history.json" \
+                > "$D06_EVIDENCE/history.log" 2> "$D06_EVIDENCE/history-attempt-$attempt.err"; then
+              echo "RMC006_HISTORY_ATTEMPT_PASS attempt=$attempt"
+              break
+            fi
+            echo "RMC006_HISTORY_ATTEMPT_FAILED attempt=$attempt $(tail -n 1 "$D06_EVIDENCE/history-attempt-$attempt.err")"
+            if [ "$attempt" = 4 ]; then
+              exit 1
+            fi
+            sleep 120
+          done
+          cat "$D06_EVIDENCE/history.log"
           grep -F "RMC006_HISTORY_RECONCILIATION_PASS providers=2 current=67" "$D06_EVIDENCE/history.log"
           python3 - "$D06_EVIDENCE/aave-history.json" <<'PY'
           import json, sys

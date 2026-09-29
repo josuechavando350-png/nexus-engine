@@ -9,7 +9,7 @@
       "operator": "MEV Blocker public RPC",
       "min_interval_ms": 1250,
       "max_batch": 100,
-      "log_window": 3000000,
+      "log_window": 250000,
       "pinning": "EIP1898_BLOCK_HASH"
     },
     {
