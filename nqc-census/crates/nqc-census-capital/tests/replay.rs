@@ -531,6 +531,11 @@ fn authority_lock_roundtrips_canonically_and_rejects_unconsumed_stage_substituti
     let decoded = UpstreamAuthorityLock::parse_json(&bytes)?;
     assert_eq!(decoded, lock);
 
+    let rebuilt_context = decoded.certification_context()?.with_consumption_receipts(
+        fixture.context.consumption_receipts().copied().collect(),
+    )?;
+    assert_eq!(rebuilt_context, fixture.context);
+
     let text = String::from_utf8(bytes.clone())?;
     let with_unknown_field = text.replacen("{", "{\"ignored\":1,", 1).into_bytes();
     assert!(UpstreamAuthorityLock::parse_json(&with_unknown_field).is_err());
