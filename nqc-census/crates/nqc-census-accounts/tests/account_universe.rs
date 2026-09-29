@@ -419,6 +419,7 @@ fn closeout(reconciled: &Reconciled, dir: &std::path::Path) -> Result<Json, Box<
             pins: &[],
             store_evidence_root: "root",
             record_manifests: Vec::new(),
+            mode: nqc_census_accounts::closeout::full_census_mode(&reconciled.index),
         },
         reconciled,
     )

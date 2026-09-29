@@ -84,6 +84,18 @@ pub struct CloseoutContext<'a> {
     pub pins: &'a [PinnedFile],
     pub store_evidence_root: &'a str,
     pub record_manifests: Vec<String>,
+    /// How this census was acquired (`FULL_CENSUS` or an incremental
+    /// refresh and its base). Kept out of the census artifacts, which must be
+    /// byte-identical whichever way the same anchor was reached.
+    pub mode: Json,
+}
+
+/// `mode` of a full census from `index`.
+pub fn full_census_mode(index: &IndexFacts) -> Json {
+    Json::object([
+        ("mode", Json::string("FULL_CENSUS")),
+        ("index", index.json()),
+    ])
 }
 
 fn jsonl(rows: impl IntoIterator<Item = Json>) -> Result<Vec<u8>, ChainError> {
@@ -159,7 +171,6 @@ pub fn write_closeout(
         ("code_commit", Json::string(context.code_commit)),
         ("code_tree", Json::string(context.code_tree)),
         ("anchor_timestamp", Json::uint(outcome.anchor_timestamp)),
-        ("stage_records", Json::uint(reconciled.records as u64)),
         (
             "candidates_sha256",
             Json::string(reconciled.candidates.digest()),
@@ -209,6 +220,16 @@ pub fn write_closeout(
         ),
     ]);
     files.push(("account-summary.json".into(), summary.canonical()?));
+    // Provenance: how the anchor was reached. Not a census artifact.
+    let provenance = Json::object([
+        ("schema_version", Json::uint(SCHEMA_VERSION)),
+        ("acquisition", context.mode.clone()),
+        ("stage_records", Json::uint(reconciled.records as u64)),
+    ]);
+    files.push((
+        "acquisition-provenance.json".into(),
+        provenance.canonical()?,
+    ));
     let mut entries = Vec::new();
     for (name, bytes) in &files {
         std::fs::write(out_dir.join(name), bytes)?;

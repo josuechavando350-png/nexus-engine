@@ -599,7 +599,6 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
             "indexed_pairs",
             Json::uint(inputs.candidates.pair_count() as u64),
         ),
-        ("index", inputs.index.json()),
         ("state_verified_accounts", Json::uint(rows.len() as u64)),
         (
             "stale_accounts",

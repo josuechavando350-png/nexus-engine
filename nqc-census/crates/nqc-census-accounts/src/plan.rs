@@ -64,8 +64,11 @@ pub struct AccountPlan {
     pub anchor: AnchorPlan,
     pub pool: Address,
     pub reserves: Vec<ReserveTokens>,
-    /// First indexed block: the earliest reserve initialization.
+    /// Earliest reserve initialization: where a full index starts.
     pub first_block: u64,
+    /// First block this plan indexes: `first_block` for a full census, the
+    /// block after a certified base anchor for an incremental refresh.
+    pub index_start: u64,
     /// Blocks per resumable index job (a global grid from `first_block`).
     pub job_span: u64,
     /// Accounts per resumable state job.
@@ -98,6 +101,7 @@ impl AccountPlan {
             pool,
             reserves,
             first_block,
+            index_start: first_block,
             job_span,
             job_accounts,
         };
@@ -169,10 +173,23 @@ impl AccountPlan {
         hex::plain(&digest.finalize())
     }
 
-    /// The global index job grid over `[first_block, anchor]`.
+    /// The same plan indexing only `[start, anchor]` (an incremental refresh
+    /// from a certified base anchor `start - 1`). `start == anchor + 1` is an
+    /// empty index.
+    pub fn with_index_start(mut self, start: u64) -> Result<Self, ChainError> {
+        if start < self.first_block || start > self.anchor.number.saturating_add(1) {
+            return Err(ChainError::Config(
+                "index start outside [first_block, anchor + 1]".into(),
+            ));
+        }
+        self.index_start = start;
+        Ok(self)
+    }
+
+    /// The index job grid over `[index_start, anchor]`.
     pub fn job_ranges(&self) -> Vec<(u64, u64)> {
         let mut ranges = Vec::new();
-        let mut start = self.first_block;
+        let mut start = self.index_start;
         while start <= self.anchor.number {
             let end = start
                 .saturating_add(self.job_span - 1)

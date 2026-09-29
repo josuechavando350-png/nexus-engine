@@ -7,7 +7,9 @@
 //! Performs no network access: every record is replayed from the store.
 
 use nqc_census_accounts::candidates::Candidates;
-use nqc_census_accounts::closeout::{reconcile_offline, write_closeout, CloseoutContext};
+use nqc_census_accounts::closeout::{
+    full_census_mode, reconcile_offline, write_closeout, CloseoutContext,
+};
 use nqc_census_accounts::inputs::mainnet_plan;
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::ProviderSet;
@@ -95,6 +97,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             pins: &pins,
             store_evidence_root: &report.evidence_root,
             record_manifests,
+            mode: full_census_mode(&reconciled.index),
         },
         &reconciled,
     )?;

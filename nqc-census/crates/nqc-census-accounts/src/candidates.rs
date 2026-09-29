@@ -155,6 +155,7 @@ fn provider_rows<'a>(
         if stage.parameters.str_field("tokens_sha256")? != plan.tokens_digest()
             || number(&stage.parameters, "anchor")? != plan.anchor.number
             || number(&stage.parameters, "job_span")? != plan.job_span
+            || number(&stage.parameters, "index_start")? != plan.index_start
         {
             return Err(ChainError::Evidence(
                 "index stage was run for another plan".into(),

@@ -168,6 +168,17 @@ Written twice offline, with no network namespace, and compared byte for byte:
 `candidate-accounts.jsonl`, `account-metrics.json`, `account-summary.json`
 and `evidence-manifest.json`.
 
+These are the census artifacts, except `evidence-manifest.json`. They depend
+only on the anchor, so they must be byte-identical whether the anchor was
+reached by a full census or by an incremental refresh from a certified base.
+The provenance is mode-dependent and kept out of them:
+- how the anchor was reached (mode, index log counts, record count) goes in
+  `acquisition-provenance.json`;
+- which records and store support it goes in `evidence-manifest.json`.
+
+The plan's `index_start` defaults to the earliest reserve initialization. An
+incremental refresh sets it to the block after its certified base anchor.
+
 `generated_at` is the anchor block timestamp. An independent Python pass,
 `recount_account_universe.py`:
 - re-sums every scaled balance per token against the supply;

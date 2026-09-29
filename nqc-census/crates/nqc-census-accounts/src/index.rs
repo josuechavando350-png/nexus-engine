@@ -150,6 +150,7 @@ pub fn account_index_stage(
         ("pool", Json::string(plan.pool.to_hex())),
         ("tokens_sha256", Json::string(plan.tokens_digest())),
         ("first_block", Json::uint(plan.first_block)),
+        ("index_start", Json::uint(plan.index_start)),
         ("anchor", Json::uint(plan.anchor.number)),
         ("job_span", Json::uint(plan.job_span)),
         ("jobs", Json::uint(jobs.len() as u64)),
