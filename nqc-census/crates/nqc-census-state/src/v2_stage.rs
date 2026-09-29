@@ -88,6 +88,16 @@ pub struct PairInput {
     pub token1: Address,
 }
 
+/// The pairs a `V2_FACTORY` stage samples: the first and the last admitted
+/// pair (one when they coincide).
+pub fn factory_samples(pairs: &[PairInput]) -> Vec<Address> {
+    match (pairs.first(), pairs.last()) {
+        (Some(first), Some(last)) if first.pair != last.pair => vec![first.pair, last.pair],
+        (Some(first), _) => vec![first.pair],
+        _ => Vec::new(),
+    }
+}
+
 /// Digest binding a stage to the exact admitted pair list it read.
 pub fn pairs_digest(pairs: &[PairInput]) -> String {
     let mut digest = Sha256::new();

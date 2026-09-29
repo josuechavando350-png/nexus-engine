@@ -34,8 +34,8 @@ env:
   PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
   RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
   RUST_TOOLCHAIN: "1.98.1"
-  D08_TESTS_EXPECTED_V2: "5"
-  D08_TESTS_EXPECTED_AAVE: "5"
+  D08_TESTS_EXPECTED_V2: "6"
+  D08_TESTS_EXPECTED_AAVE: "6"
   D08_INPUTS: /tmp/nqc-rmc008-inputs
   D08_EVIDENCE: /tmp/nqc-rmc008-evidence
 
@@ -217,8 +217,102 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  reconcile:
+  replay:
     needs: [inputs, stage]
+    if: needs.inputs.outputs.acquire == 'true'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      # Offline: no RPC. Each job holds one stage store only; stage stores are
+      # never gathered on one runner (RMC-007 run 36589054151 lost its whole
+      # reconcile to one failed download among 49 concurrent ones).
+      max-parallel: 12
+      matrix:
+        stage: [aave, v2-factory, v2-state-0, v2-state-1, v2-state-2, v2-state-3, v2-state-4, v2-state-5, v2-state-6, v2-state-7, v2-state-8, v2-state-9, v2-state-10, v2-state-11, v2-state-12, v2-state-13, v2-state-14, v2-state-15]
+        provider: [blastapi-public, mevblocker-rpc]
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install exact Rust toolchain and build the replay
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo build --release --locked -p nqc-census-state --bin nqc-rmc008-state-replay
+
+      - name: Fetch pinned inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d08-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc008-inputs
+
+      - name: Fetch this stage's evidence (every attempt)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d08-stage-${{ matrix.stage }}-${{ matrix.provider }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
+          path: /tmp/nqc-rmc008-stage
+
+      - name: Offline replay of the stage from its own store (no network)
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D08_EVIDENCE"
+          # The latest attempt of this stage; every attempt is listed.
+          chosen=$(python3 - /tmp/nqc-rmc008-stage "$D08_EVIDENCE/selection.json" <<'PY'
+          import json, os, re, sys
+          root, out = sys.argv[1:3]
+          found = []
+          for name in sorted(os.listdir(root)):
+              match = re.fullmatch(r"d08-stage-.+-[0-9a-f]{40}-[0-9]+-([0-9]+)", name)
+              assert match, f"unexpected stage artifact {name}"
+              found.append({"attempt": int(match.group(1)), "artifact": name,
+                            "record": os.path.exists(os.path.join(root, name, "record.json"))})
+          latest = max(found, key=lambda item: item["attempt"])
+          assert latest["record"], f"latest attempt {latest['attempt']} has no stage record"
+          json.dump({"selected": latest["artifact"], "attempts": found}, open(out, "w"), indent=2, sort_keys=True)
+          print(latest["artifact"])
+          PY
+          )
+          stage="/tmp/nqc-rmc008-stage/$chosen"
+          # Artifact upload drops empty directories. Restore the store's
+          # documented, always-present directories (STORE_CONTRACT.md: tmp/
+          # is staging only); the store is verified before any replay.
+          mkdir -p "$stage/store/tmp" "$stage/store/objects/chunks" "$stage/store/objects/artifacts" "$stage/store/streams"
+          for stream in "$stage"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside the offline namespace"
+            exit 1
+          fi
+          sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
+            target/release/nqc-rmc008-state-replay \
+            --providers ../ci/nqc-census/state-providers.json \
+            --pins ../ci/nqc-census/state-inputs.json --pin-root "$D08_INPUTS" \
+            --record "$stage/record.json" --store "$stage/store" \
+            --stage-artifact "$chosen" \
+            --out "$D08_EVIDENCE/extract.json" | tee "$D08_EVIDENCE/replay.log"
+          grep -F "RMC008_REPLAY_PASS stage=" "$D08_EVIDENCE/replay.log"
+          sha256sum "$D08_EVIDENCE/extract.json" | tee "$D08_EVIDENCE/SHA256SUMS"
+
+      - name: Preserve the stage extract (also on failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d08-extract-${{ matrix.stage }}-${{ matrix.provider }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc008-evidence
+          if-no-files-found: warn
+          retention-days: 30
+
+  reconcile:
+    needs: [inputs, replay]
     if: needs.inputs.outputs.acquire == 'true'
     runs-on: ubuntu-24.04
     timeout-minutes: 240
@@ -241,61 +335,45 @@ jobs:
           name: d08-inputs-${{ github.run_id }}
           path: /tmp/nqc-rmc008-inputs
 
-      - name: Fetch every stage
+      - name: Fetch every stage extract
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          pattern: d08-stage-*-${{ github.run_id }}-*
-          path: /tmp/nqc-rmc008-stages
+          pattern: d08-extract-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
+          path: /tmp/nqc-rmc008-extracts
 
-      - name: Merge stage stores through RMC-004 commit
+      - name: Select the latest extract of every stage
         working-directory: nqc-census
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p "$D08_EVIDENCE/records"
-          cargo build --release --locked -p nqc-census-state --bin nqc-rmc008-state-merge --bin nqc-rmc008-state-reconcile
-          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          mkdir -p "$D08_EVIDENCE/extracts"
+          cargo build --release --locked -p nqc-census-state --bin nqc-rmc008-state-reconcile
           # Each stage consumes its latest attempt of this run (every earlier,
-          # failed attempt stays listed in stage-selection.json and retained).
-          python3 - /tmp/nqc-rmc008-stages "$D08_EVIDENCE/stage-selection.json" > /tmp/nqc-rmc008-selected.txt <<'PY'
-          import json, os, re, sys
-          root, out = sys.argv[1:3]
+          # failed attempt stays listed in extract-selection.json and retained).
+          python3 - /tmp/nqc-rmc008-extracts "$D08_EVIDENCE/extract-selection.json" "$D08_EVIDENCE/extracts" <<'PY'
+          import json, os, re, shutil, sys
+          root, out, into = sys.argv[1:4]
           attempts = {}
           for name in sorted(os.listdir(root)):
-              match = re.fullmatch(r"(d08-stage-.+-[0-9a-f]{40}-[0-9]+)-([0-9]+)", name)
-              assert match, f"unexpected stage artifact {name}"
+              match = re.fullmatch(r"(d08-extract-.+-[0-9a-f]{40}-[0-9]+)-([0-9]+)", name)
+              assert match, f"unexpected extract artifact {name}"
               attempts.setdefault(match.group(1), []).append(
                   {"attempt": int(match.group(2)), "artifact": name,
-                   "record": os.path.exists(os.path.join(root, name, "record.json"))})
+                   "extract": os.path.exists(os.path.join(root, name, "extract.json"))})
           selection = []
           for key in sorted(attempts):
               latest = max(attempts[key], key=lambda item: item["attempt"])
-              assert latest["record"], f"{key}: latest attempt {latest['attempt']} has no stage record"
+              assert latest["extract"], f"{key}: latest attempt {latest['attempt']} has no extract"
+              shutil.copyfile(os.path.join(root, latest["artifact"], "extract.json"),
+                              os.path.join(into, latest["artifact"] + ".json"))
               selection.append({"stage": key, "selected": latest["artifact"], "attempts": attempts[key]})
-              print(latest["artifact"])
+          assert len(selection) == 36, len(selection)
           with open(out, "w") as handle:
               json.dump(selection, handle, indent=2, sort_keys=True)
               handle.write("\n")
+          print(f"RMC008_EXTRACTS_SELECTED count={len(selection)}")
           PY
-          args=()
-          count=0
-          while read -r name; do
-            stage="/tmp/nqc-rmc008-stages/$name"
-            # Artifact upload drops empty directories. Restore the store's
-            # documented, always-present directories (STORE_CONTRACT.md: tmp/
-            # is staging only); the merge then verifies every source.
-            mkdir -p "$stage/store/tmp" "$stage/store/objects/chunks" "$stage/store/objects/artifacts" "$stage/store/streams"
-            for stream in "$stage"/store/streams/*/; do
-              if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
-            done
-            cp "$stage/record.json" "$D08_EVIDENCE/records/$name.json"
-            args+=(--from "$stage/store" --record "$stage/record.json")
-            count=$((count + 1))
-          done < /tmp/nqc-rmc008-selected.txt
-          test "$count" = 36
-          target/release/nqc-rmc008-state-merge --into "$D08_EVIDENCE/store" "${args[@]}" | tee "$D08_EVIDENCE/merge.log"
-          target/release/nqc-census-store-verify --store "$D08_EVIDENCE/store" > "$D08_EVIDENCE/merged-store-verify.log"
-          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D08_EVIDENCE/merged-store-verify.log"
+          rm -rf /tmp/nqc-rmc008-extracts
 
       - name: Offline replay, verification and closeout (no network)
         working-directory: nqc-census
@@ -314,8 +392,7 @@ jobs:
               target/release/nqc-rmc008-state-reconcile \
               --providers ../ci/nqc-census/state-providers.json \
               --pins ../ci/nqc-census/state-inputs.json --pin-root "$D08_INPUTS" \
-              --records "$D08_EVIDENCE/records" \
-              --store "$D08_EVIDENCE/store" \
+              --extracts "$D08_EVIDENCE/extracts" \
               --out-dir "$D08_EVIDENCE/$out" \
               --code-commit "$HEAD_SHA" \
               --code-tree "$TREE_SHA" | tee "$D08_EVIDENCE/$out.log"
@@ -326,8 +403,6 @@ jobs:
           grep -F " unexplained=0 unknown=0 " "$D08_EVIDENCE/closeout.log"
           (cd "$D08_EVIDENCE/closeout" && sha256sum * | tee ../closeout-SHA256SUMS)
           cat "$D08_EVIDENCE/closeout/state-summary.json"; echo
-          target/release/nqc-census-store-verify --store "$D08_EVIDENCE/store" > "$D08_EVIDENCE/final-store-verify.log"
-          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D08_EVIDENCE/final-store-verify.log"
 
       - name: Independent recount of the closeout
         shell: bash
@@ -375,6 +450,6 @@ jobs:
             /tmp/nqc-rmc008-evidence/closeout
             /tmp/nqc-rmc008-evidence/*.log
             /tmp/nqc-rmc008-evidence/closeout-SHA256SUMS
-            /tmp/nqc-rmc008-evidence/stage-selection.json
+            /tmp/nqc-rmc008-evidence/extract-selection.json
           if-no-files-found: warn
           retention-days: 30

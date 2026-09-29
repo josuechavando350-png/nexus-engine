@@ -241,6 +241,17 @@ fn untrusted_row(signature: &str, outcome: &Untrusted) -> (String, Json) {
     }
 }
 
+/// The reserves an `AAVE_STATE` record names: asset and reserve id, in plan
+/// order.
+pub fn reserves_json(plan: &AavePlan) -> Json {
+    Json::array(plan.reserves.iter().map(|reserve| {
+        Json::object([
+            ("asset", address_json(reserve.asset)),
+            ("reserve_id", Json::uint(u64::from(reserve.reserve_id))),
+        ])
+    }))
+}
+
 /// Every state fact the D08 Aave adapter needs, from one provider.
 pub fn aave_state_stage(
     acquisition: &Acquisition<'_>,
@@ -248,12 +259,7 @@ pub fn aave_state_stage(
     plan: &AavePlan,
 ) -> Result<(Json, Vec<Json>), ChainError> {
     let (chain, anchor, mut manifests) = stage_anchor(acquisition, provider, &plan.anchor)?;
-    let reserves_json = Json::array(plan.reserves.iter().map(|reserve| {
-        Json::object([
-            ("asset", address_json(reserve.asset)),
-            ("reserve_id", Json::uint(u64::from(reserve.reserve_id))),
-        ])
-    }));
+    let reserves_json = reserves_json(plan);
     let spec = JobSpec::new(
         AAVE_STATE_FAMILY,
         1,

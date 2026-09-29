@@ -152,8 +152,34 @@ disagreement is never retried, it fails closed. Stage evidence is uploaded
 even when a stage fails, under names carrying stage, provider, exact head,
 run id and attempt; re-running a failed stage adds evidence beside the failed
 attempt's, and the reconciler consumes each stage's latest attempt and lists
-every attempt in `stage-selection.json`. The fast gate (`nqc-census-state-gate.yml`) runs no RPC and is not in
-the group.
+every attempt in `extract-selection.json`. The fast gate
+(`nqc-census-state-gate.yml`) runs no RPC and is not in the group.
+
+Stage stores are never gathered on one runner. RMC-007 run 36589054151
+showed why: a reconcile that downloaded all 49 stage artifacts at once
+failed with "Artifact download failed after 5 retries".
+
+**Replay, one offline job per stage** (`nqc-rmc008-state-replay`, no network
+namespace). Each job:
+- downloads that stage's artifact only;
+- restores the store's documented empty directories, which artifact upload
+  drops (`tmp/`, which only holds staging files, `objects/chunks`,
+  `objects/artifacts`, `streams`, and each stream's `checkpoints`);
+- verifies the store before and after;
+- replays the record byte-for-byte against the pinned plans;
+- writes an extract: the record and its sha256, the replayed rows and their
+  digest, and the store's evidence root.
+
+**Reconcile** (`nqc-rmc008-state-reconcile --extracts`) holds extracts only.
+It recomputes every digest and requires every record to name exactly the
+reconciler's plans:
+- Aave: pool, implementation, addresses provider, oracle and reserves;
+- V2: factory, pair count, pair-list digest and job size;
+- factory samples must be admitted pairs;
+- the anchor.
+
+It then runs the same `observation_anchor`, `verify_aave` and `verify_v2`.
+`reconcile_offline` and `reconcile_extracts` share `reconcile_replayed`.
 
 ## 6. Closeout
 
@@ -163,7 +189,8 @@ Written twice offline (no network namespace) and compared byte for byte:
 `rejection-ledger.jsonl`, `stage-metrics.json`, `pool-and-factory-facts.json`,
 `field-basis.json`,
 `state-summary.json`, `evidence-manifest.json` (input pins, stage manifests,
-store evidence root, artifact digests). `generated_at` is the anchor block
+store evidence root, or each stage's own store summary when stages were
+replayed one store at a time, artifact digests). `generated_at` is the anchor block
 timestamp.
 
 Both the summary and the evidence manifest carry one canonical
