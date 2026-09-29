@@ -495,6 +495,12 @@ pub struct RealSourceCloseout {
     pub rejected_count: usize,
     pub d08_source_count: usize,
     pub d09_requirement_count: usize,
+    pub d08_authority_artifact_sha256: Hash32,
+    pub d08_coverage_commitment: Hash32,
+    pub d08_output_set_commitment: Hash32,
+    pub d09_authority_artifact_sha256: Hash32,
+    pub d09_coverage_commitment: Hash32,
+    pub d09_output_set_commitment: Hash32,
     pub zero_own_capital_proven: bool,
     pub capital_commitment: String,
     pub upstream_authority_commitment: String,
@@ -546,6 +552,30 @@ impl RealSourceCloseout {
             (
                 "d09_requirement_count",
                 Json::uint(closeout_count(self.d09_requirement_count)?),
+            ),
+            (
+                "d08_authority_artifact_sha256",
+                Json::string(self.d08_authority_artifact_sha256.to_hex()),
+            ),
+            (
+                "d08_coverage_commitment",
+                Json::string(self.d08_coverage_commitment.to_hex()),
+            ),
+            (
+                "d08_output_set_commitment",
+                Json::string(self.d08_output_set_commitment.to_hex()),
+            ),
+            (
+                "d09_authority_artifact_sha256",
+                Json::string(self.d09_authority_artifact_sha256.to_hex()),
+            ),
+            (
+                "d09_coverage_commitment",
+                Json::string(self.d09_coverage_commitment.to_hex()),
+            ),
+            (
+                "d09_output_set_commitment",
+                Json::string(self.d09_output_set_commitment.to_hex()),
             ),
             (
                 "zero_own_capital_proven",
@@ -700,6 +730,18 @@ pub fn verify_real_source_closeout_for_code(
         rejected_count: verified.capital.rejection_count,
         d08_source_count: verified.upstream.d08_source_count,
         d09_requirement_count: verified.upstream.d09_requirement_count,
+        d08_authority_artifact_sha256: verified
+            .upstream
+            .d08_receipt
+            .authority_artifact_sha256(),
+        d08_coverage_commitment: verified.upstream.d08_receipt.coverage_commitment(),
+        d08_output_set_commitment: verified.upstream.d08_receipt.output_set_commitment(),
+        d09_authority_artifact_sha256: verified
+            .upstream
+            .d09_receipt
+            .authority_artifact_sha256(),
+        d09_coverage_commitment: verified.upstream.d09_receipt.coverage_commitment(),
+        d09_output_set_commitment: verified.upstream.d09_receipt.output_set_commitment(),
         zero_own_capital_proven: verified.capital.zero_own_capital_proven,
         capital_commitment: verified.capital.capital_commitment,
         upstream_authority_commitment: verified.capital.upstream_authority_commitment,
