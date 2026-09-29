@@ -347,6 +347,28 @@ pub enum CapitalAsset {
 }
 
 impl CapitalAsset {
+    pub fn quote(
+        self,
+        drawn_amount: Amount256,
+        default_asset: CapitalAsset,
+    ) -> Result<Option<FeeQuote>, CapitalError> {
+        match self {
+            Self::None => Ok(None),
+            Self::BasisPoints(bps) => Ok(Some(FeeQuote {
+                asset: default_asset,
+                amount: mul_div_u64(drawn_amount, u64::from(bps), 10_000)?,
+            })),
+            Self::Fixed { asset, amount } => Ok(Some(FeeQuote { asset, amount })),
+            Self::ExactRatio {
+                numerator,
+                denominator,
+            } => Ok(Some(FeeQuote {
+                asset: default_asset,
+                amount: mul_div_u64(drawn_amount, numerator, denominator)?,
+            })),
+        }
+    }
+
     fn encode(self, writer: &mut Writer) {
         match self {
             Self::NativeGas => writer.u8(1),
@@ -377,8 +399,8 @@ pub enum FeeModel {
         amount: Amount256,
     },
     ExactRatio {
-        numerator: u128,
-        denominator: u128,
+        numerator: u64,
+        denominator: u64,
     },
 }
 
@@ -390,7 +412,7 @@ impl FeeModel {
         Ok(Self::BasisPoints(value))
     }
 
-    pub fn exact_ratio(numerator: u128, denominator: u128) -> Result<Self, CapitalError> {
+    pub fn exact_ratio(numerator: u64, denominator: u64) -> Result<Self, CapitalError> {
         if denominator == 0 {
             return Err(CapitalError::InvalidRatio);
         }
@@ -417,8 +439,8 @@ impl FeeModel {
                 denominator,
             } => {
                 writer.u8(4);
-                writer.u128(numerator);
-                writer.u128(denominator);
+                writer.u64(numerator);
+                writer.u64(denominator);
             }
         }
     }
@@ -431,10 +453,16 @@ impl FeeModel {
                 asset: CapitalAsset::decode(reader)?,
                 amount: Amount256::from_be_bytes(reader.array::<32>()?),
             }),
-            4 => Self::exact_ratio(reader.u128()?, reader.u128()?),
+            4 => Self::exact_ratio(reader.u64()?, reader.u64()?),
             _ => Err(CapitalError::InvalidCanonical("unknown fee model")),
         }
     }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct FeeQuote {
+    pub asset: CapitalAsset,
+    pub amount: Amount256,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -939,6 +967,14 @@ impl CapitalSource {
 
     pub const fn asset(&self) -> CapitalAsset {
         self.asset
+    }
+
+    pub const fn fee_model(&self) -> FeeModel {
+        self.fee_model
+    }
+
+    pub fn quote_fee(&self, drawn_amount: Amount256) -> Result<Option<FeeQuote>, CapitalError> {
+        self.fee_model.quote(drawn_amount, self.repayment_asset)
     }
 
     pub const fn repayment_asset(&self) -> CapitalAsset {
@@ -1888,37 +1924,64 @@ fn apply_utilization(amount: Amount256, bps: u16) -> Result<Amount256, CapitalEr
     if bps > 10_000 {
         return Err(CapitalError::InvalidBasisPoints(bps));
     }
-    if bps == 10_000 {
-        return Ok(amount);
+    mul_div_u64(amount, u64::from(bps), 10_000)
+}
+
+fn mul_div_u64(
+    amount: Amount256,
+    numerator: u64,
+    denominator: u64,
+) -> Result<Amount256, CapitalError> {
+    if denominator == 0 {
+        return Err(CapitalError::InvalidRatio);
     }
-    if bps == 0 {
+    if numerator == 0 || amount.is_zero() {
         return Ok(Amount256::ZERO);
     }
 
-    // Exact integer floor(amount * bps / 10_000) across the full 256-bit domain.
-    // This streams the base-256 digits while carrying only the division remainder,
-    // so no intermediate 256-bit multiplication can overflow.
-    let numerator = u32::from(bps);
-    let denominator = 10_000_u32;
-    let mut remainder = 0_u32;
-    let mut out = [0_u8; 32];
-    for (index, byte) in amount.0.iter().copied().enumerate() {
-        let expanded = remainder
-            .checked_mul(256)
-            .and_then(|value| value.checked_add(u32::from(byte) * numerator))
-            .ok_or(CapitalError::InvalidCanonical(
-                "utilization arithmetic overflow",
-            ))?;
-        let quotient_digit = expanded / denominator;
-        if quotient_digit > 255 {
+    // Multiply the 256-bit amount by a 64-bit numerator into a 320-bit
+    // intermediate, then divide that exact intermediate by a 64-bit
+    // denominator. No floating point and no truncation before the final floor.
+    let mut product = [0_u8; 40];
+    let mut carry = 0_u128;
+    for index in (0..32).rev() {
+        let expanded = u128::from(amount.0[index]) * u128::from(numerator) + carry;
+        product[index + 8] = u8::try_from(expanded & 0xff)
+            .map_err(|_| CapitalError::InvalidCanonical("fee multiplication conversion"))?;
+        carry = expanded >> 8;
+    }
+    for index in (0..8).rev() {
+        product[index] = u8::try_from(carry & 0xff)
+            .map_err(|_| CapitalError::InvalidCanonical("fee carry conversion"))?;
+        carry >>= 8;
+    }
+    if carry != 0 {
+        return Err(CapitalError::InvalidCanonical(
+            "fee multiplication overflow",
+        ));
+    }
+
+    let divisor = u128::from(denominator);
+    let mut quotient = [0_u8; 40];
+    let mut remainder = 0_u128;
+    for (index, byte) in product.iter().copied().enumerate() {
+        let expanded = remainder * 256 + u128::from(byte);
+        let digit = expanded / divisor;
+        if digit > 255 {
             return Err(CapitalError::InvalidCanonical(
-                "utilization quotient digit overflow",
+                "fee quotient digit overflow",
             ));
         }
-        out[index] = u8::try_from(quotient_digit)
-            .map_err(|_| CapitalError::InvalidCanonical("utilization quotient conversion"))?;
-        remainder = expanded % denominator;
+        quotient[index] = u8::try_from(digit)
+            .map_err(|_| CapitalError::InvalidCanonical("fee quotient conversion"))?;
+        remainder = expanded % divisor;
     }
+
+    if quotient[..8].iter().any(|byte| *byte != 0) {
+        return Err(CapitalError::InvalidCanonical("fee result exceeds uint256"));
+    }
+    let mut out = [0_u8; 32];
+    out.copy_from_slice(&quotient[8..]);
     Ok(Amount256::from_be_bytes(out))
 }
 
@@ -2076,9 +2139,6 @@ impl Writer {
         self.bytes(&value.to_be_bytes());
     }
 
-    fn u128(&mut self, value: u128) {
-        self.bytes(&value.to_be_bytes());
-    }
 }
 
 struct Reader<'a> {
@@ -2126,9 +2186,6 @@ impl<'a> Reader<'a> {
         Ok(u64::from_be_bytes(self.array::<8>()?))
     }
 
-    fn u128(&mut self) -> Result<u128, CapitalError> {
-        Ok(u128::from_be_bytes(self.array::<16>()?))
-    }
 
     fn finish(self) -> Result<(), CapitalError> {
         if self.offset == self.bytes.len() {

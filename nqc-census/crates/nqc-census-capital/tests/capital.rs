@@ -805,3 +805,55 @@ fn ledger_commitment_changes_with_observed_capacity() -> TestResult {
     assert_ne!(first.commitment()?, second.commitment()?);
     Ok(())
 }
+
+
+#[test]
+fn fee_quotes_are_integer_exact_across_full_uint256_domain() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let bps = FeeModel::basis_points(5)?
+        .quote(Amount256::from_u128(10_000), token)?
+        .ok_or("missing bps fee quote")?;
+    assert_eq!(bps.asset, token);
+    assert_eq!(bps.amount, Amount256::from_u128(5));
+
+    let ratio = FeeModel::exact_ratio(3, 1_000)?
+        .quote(Amount256::from_u128(10_000), token)?
+        .ok_or("missing ratio fee quote")?;
+    assert_eq!(ratio.amount, Amount256::from_u128(30));
+
+    let mut maximum = [0xff_u8; 32];
+    maximum[0] = 0x80;
+    let half = FeeModel::exact_ratio(1, 2)?
+        .quote(Amount256::from_be_bytes(maximum), token)?
+        .ok_or("missing full-width fee quote")?;
+    let mut expected = [0_u8; 32];
+    expected[0] = 0x40;
+    expected[1..].fill(0xff);
+    assert_eq!(half.amount, Amount256::from_be_bytes(expected));
+    Ok(())
+}
+
+#[test]
+fn fee_quote_rejects_uint256_overflow() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let maximum = Amount256::from_be_bytes([0xff; 32]);
+    assert!(FeeModel::exact_ratio(2, 1)?
+        .quote(maximum, token)
+        .is_err());
+    Ok(())
+}
+
+#[test]
+fn fixed_fee_preserves_explicit_fee_asset() -> TestResult {
+    let borrowed = CapitalAsset::Token(address(20));
+    let fee_asset = CapitalAsset::Token(address(21));
+    let quote = FeeModel::Fixed {
+        asset: fee_asset,
+        amount: Amount256::from_u128(77),
+    }
+    .quote(Amount256::from_u128(1_000), borrowed)?
+    .ok_or("missing fixed fee quote")?;
+    assert_eq!(quote.asset, fee_asset);
+    assert_eq!(quote.amount, Amount256::from_u128(77));
+    Ok(())
+}
