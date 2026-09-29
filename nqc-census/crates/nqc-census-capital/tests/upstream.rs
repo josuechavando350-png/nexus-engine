@@ -43,7 +43,7 @@ fn d08_facts() -> Vec<u8> {
     out.push_str(&address(90).to_hex());
     out.push_str("\",\"scalars\":{\"FLASHLOAN_PREMIUM_TOTAL()\":{\"data\":\"0x");
     out.push_str(&"00".repeat(31));
-    out.push_str("05\",\"status\":\"RETURNED\"}}}}}");
+    out.push_str("05\",\"status\":\"RETURNED\"}}}}");
     out.into_bytes()
 }
 
