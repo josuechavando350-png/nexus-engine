@@ -627,8 +627,10 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
             "missing upstream authority stage {stage}"
         );
     }
-    assert!(text.contains("\"schema_version\":7"));
+    assert!(text.contains("\"schema_version\":8"));
     assert!(text.contains("\"consumption_receipts\""));
+    assert!(text.contains("\"output_kind\":\"CAPITAL_SOURCES\""));
+    assert!(text.contains("\"output_kind\":\"CAPITAL_REQUIREMENTS\""));
     assert!(text.contains("\"coverage_commitment\""));
     assert!(text.contains("\"output_count\""));
     assert!(text.contains("\"output_set_commitment\""));
