@@ -555,7 +555,10 @@ pub fn run_history(
                     .map(|address| Json::string(address.to_hex())),
             ),
         ),
-        ("configurator_updates", Json::Array(lineage.updates.clone())),
+        (
+            "pool_configurator_proxy_creation",
+            Json::Array(lineage.updates.clone()),
+        ),
         (
             "configurator_lineage_manifests",
             Json::array(
@@ -602,7 +605,7 @@ pub fn run_history(
                     Json::uint(lineage.configurators.len() as u64),
                 ),
                 (
-                    "configurator_update_count",
+                    "configurator_proxy_creation_count",
                     Json::uint(lineage.updates.len() as u64),
                 ),
                 ("unexplained_delta_count", Json::uint(0)),

@@ -10,22 +10,23 @@ use nqc_census_chain::{
     ChainError,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
-use std::collections::BTreeSet;
 
 const LINEAGE_NAMESPACE: u16 = 0x0604;
+const POOL_CONFIGURATOR_ID: &str =
+    "0x504f4f4c5f434f4e464947555241544f52000000000000000000000000000000";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-struct Update {
+struct ProxyCreation {
     block: u64,
     transaction_index: u64,
     log_index: u64,
     block_hash: Hash32,
     transaction_hash: Hash32,
-    old: Option<Address>,
-    new: Address,
+    proxy: Address,
+    implementation: Address,
 }
 
-impl Update {
+impl ProxyCreation {
     fn json(&self) -> Json {
         Json::object([
             ("block", Json::uint(self.block)),
@@ -36,12 +37,12 @@ impl Update {
             ),
             ("transaction_index", Json::uint(self.transaction_index)),
             ("log_index", Json::uint(self.log_index)),
+            ("id", Json::string(POOL_CONFIGURATOR_ID)),
+            ("proxy", Json::string(self.proxy.to_hex())),
             (
-                "old",
-                self.old
-                    .map_or(Json::Null, |address| Json::string(address.to_hex())),
+                "implementation",
+                Json::string(self.implementation.to_hex()),
             ),
-            ("new", Json::string(self.new.to_hex())),
         ])
     }
 }
@@ -57,86 +58,90 @@ fn quantity(value: &Json, key: &str) -> Result<u64, ChainError> {
     hex::decode_quantity_u64(value.str_field(key)?)
 }
 
-fn indexed_address(text: &str) -> Result<Option<Address>, ChainError> {
+fn indexed_address(text: &str, label: &'static str) -> Result<Address, ChainError> {
     let word = hex::decode_fixed::<32>(text)?;
     if word[..12].iter().any(|byte| *byte != 0) {
-        return Err(ChainError::Evidence(
-            "indexed configurator address has non-canonical padding".into(),
-        ));
+        return Err(ChainError::Evidence(format!(
+            "{label} has non-canonical indexed-address padding"
+        )));
     }
     if word[12..].iter().all(|byte| *byte == 0) {
-        return Ok(None);
+        return Err(ChainError::Evidence(format!("{label} is zero")));
     }
     let mut address = [0_u8; 20];
     address.copy_from_slice(&word[12..]);
-    Ok(Some(Address::new(address)?))
+    Ok(Address::new(address)?)
 }
 
-fn parse_update(
+fn parse_creation(
     ctx: &mut JobContext<'_>,
     root: Address,
     expected_topic: &str,
     item: &Json,
     first: u64,
     last: u64,
-) -> Result<Update, ChainError> {
+) -> Result<ProxyCreation, ChainError> {
     if Address::parse_hex(item.str_field("address")?)? != root {
         return Err(ChainError::Evidence(
-            "PoolConfiguratorUpdated emitter differs from AddressesProvider".into(),
+            "ProxyCreated emitter differs from AddressesProvider".into(),
         ));
     }
     if item.get("removed").and_then(Json::as_bool) != Some(false) {
         return Err(ChainError::Evidence(
-            "removed or malformed PoolConfiguratorUpdated log".into(),
+            "removed or malformed ProxyCreated log".into(),
         ));
     }
     if item.str_field("data")? != "0x" {
         return Err(ChainError::Evidence(
-            "PoolConfiguratorUpdated has non-empty data".into(),
+            "ProxyCreated has non-empty data".into(),
         ));
     }
     let topics = item
         .get("topics")
         .and_then(Json::as_array)
-        .ok_or_else(|| ChainError::Evidence("configurator update topics missing".into()))?;
-    if topics.len() != 3 || topics[0].as_str() != Some(expected_topic) {
+        .ok_or_else(|| ChainError::Evidence("ProxyCreated topics missing".into()))?;
+    if topics.len() != 4
+        || topics[0].as_str() != Some(expected_topic)
+        || topics[1].as_str() != Some(POOL_CONFIGURATOR_ID)
+    {
         return Err(ChainError::Evidence(
-            "PoolConfiguratorUpdated topic layout differs".into(),
+            "PoolConfigurator ProxyCreated topic layout differs".into(),
         ));
     }
-    let old = indexed_address(
-        topics[1]
-            .as_str()
-            .ok_or_else(|| ChainError::Evidence("old configurator topic is not hex".into()))?,
-    )?;
-    let new = indexed_address(
+    let proxy = indexed_address(
         topics[2]
             .as_str()
-            .ok_or_else(|| ChainError::Evidence("new configurator topic is not hex".into()))?,
-    )?
-    .ok_or_else(|| ChainError::Evidence("new configurator is zero".into()))?;
+            .ok_or_else(|| ChainError::Evidence("ProxyCreated proxy topic is not hex".into()))?,
+        "PoolConfigurator proxy",
+    )?;
+    let implementation = indexed_address(
+        topics[3].as_str().ok_or_else(|| {
+            ChainError::Evidence("ProxyCreated implementation topic is not hex".into())
+        })?,
+        "PoolConfigurator initial implementation",
+    )?;
     let block = quantity(item, "blockNumber")?;
     if block < first || block > last {
         return Err(ChainError::Evidence(
-            "configurator update lies outside requested range".into(),
+            "PoolConfigurator ProxyCreated lies outside requested range".into(),
         ));
     }
     let block_hash = Hash32::parse_hex(item.str_field("blockHash")?)?;
     let header = ctx.header_by_number(block)?;
     if header.envelope().anchor().block_hash() != block_hash {
         return Err(ChainError::NonCanonical {
-            what: "PoolConfiguratorUpdated",
+            what: "PoolConfigurator ProxyCreated",
             detail: format!("block {block} hash differs from canonical header"),
         });
     }
-    Ok(Update {
+    Ok(ProxyCreation {
         block,
         transaction_index: quantity(item, "transactionIndex")?,
         log_index: quantity(item, "logIndex")?,
         block_hash,
         transaction_hash: Hash32::parse_hex(item.str_field("transactionHash")?)?,
-        old,
-        new,
+        proxy,
+        implementation,
     })
 }
 
@@ -147,8 +152,8 @@ fn lineage_body(
     first: u64,
     last: u64,
 ) -> Result<Json, ChainError> {
-    let topic = hex::encode(&aave_interface().pool_configurator_updated_topic);
-    let mut updates = Vec::new();
+    let topic = hex::encode(&aave_interface().proxy_created_topic);
+    let mut creations = Vec::new();
     let mut start = first;
     loop {
         let end = start
@@ -160,31 +165,39 @@ fn lineage_body(
                 ("fromBlock", Json::string(hex::quantity(start))),
                 ("toBlock", Json::string(hex::quantity(end))),
                 ("address", Json::string(root.to_hex())),
-                ("topics", Json::array([Json::string(topic.clone())])),
+                (
+                    "topics",
+                    Json::array([
+                        Json::string(topic.clone()),
+                        Json::string(POOL_CONFIGURATOR_ID),
+                    ]),
+                ),
             ])]),
         ))?;
         for item in result.as_array().ok_or(ChainError::Rpc(
-            "configurator lineage logs result is not an array",
+            "PoolConfigurator ProxyCreated logs result is not an array",
         ))? {
-            updates.push(parse_update(ctx, root, &topic, item, start, end)?);
+            creations.push(parse_creation(ctx, root, &topic, item, start, end)?);
         }
         if end == last {
             break;
         }
         start = end + 1;
     }
-    updates.sort_by_key(|update| (update.block, update.transaction_index, update.log_index));
-    if updates
-        .windows(2)
-        .any(|pair| (pair[0].block, pair[0].log_index) == (pair[1].block, pair[1].log_index))
-    {
+    creations.sort_by_key(|event| (event.block, event.transaction_index, event.log_index));
+    if creations.windows(2).any(|pair| {
+        (pair[0].block, pair[0].log_index) == (pair[1].block, pair[1].log_index)
+    }) {
         return Err(ChainError::Evidence(
-            "duplicate configurator update coordinates".into(),
+            "duplicate PoolConfigurator ProxyCreated coordinates".into(),
         ));
     }
     Ok(Json::object([
         ("range", Json::array([Json::uint(first), Json::uint(last)])),
-        ("updates", Json::array(updates.iter().map(Update::json))),
+        (
+            "proxy_creations",
+            Json::array(creations.iter().map(ProxyCreation::json)),
+        ),
     ]))
 }
 
@@ -197,7 +210,7 @@ fn provider_lineage(
     last: u64,
 ) -> Result<ProviderResult, ChainError> {
     let spec = JobSpec::new(
-        "rmc006-aave-configurator-lineage",
+        "rmc006-aave-configurator-proxy-lineage",
         1,
         LINEAGE_NAMESPACE,
         Json::object([
@@ -206,9 +219,11 @@ fn provider_lineage(
             ("last", Json::uint(last)),
             (
                 "topic0",
-                Json::string(hex::encode(
-                    &aave_interface().pool_configurator_updated_topic,
-                )),
+                Json::string(hex::encode(&aave_interface().proxy_created_topic)),
+            ),
+            (
+                "pool_configurator_id",
+                Json::string(POOL_CONFIGURATOR_ID),
             ),
         ]),
     )?;
@@ -242,61 +257,30 @@ pub fn discover_configurator_lineage(
             observation.block_number(),
         )?);
     }
-    let agreement = agree("rmc006-aave-configurator-lineage", &results)?
+    let agreement = agree("rmc006-aave-configurator-proxy-lineage", &results)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
-    let updates = agreement
+    let creations = agreement
         .result
-        .get("updates")
+        .get("proxy_creations")
         .and_then(Json::as_array)
-        .ok_or_else(|| ChainError::Evidence("agreed configurator updates missing".into()))?;
-    if updates.is_empty() {
-        return Err(ChainError::Evidence(
-            "AddressesProvider emitted no PoolConfiguratorUpdated event".into(),
-        ));
+        .ok_or_else(|| ChainError::Evidence("agreed ProxyCreated evidence missing".into()))?;
+    if creations.len() != 1 {
+        return Err(ChainError::Evidence(format!(
+            "expected exactly one PoolConfigurator ProxyCreated event, got {}",
+            creations.len()
+        )));
     }
-
-    let mut configurators = BTreeSet::new();
-    let mut active = None;
-    for (index, update) in updates.iter().enumerate() {
-        let old = match update
-            .get("old")
-            .ok_or_else(|| ChainError::Evidence("configurator lineage old field missing".into()))?
-        {
-            Json::Null => None,
-            Json::String(value) => Some(Address::parse_hex(value)?),
-            _ => {
-                return Err(ChainError::Evidence(
-                    "configurator lineage old field has wrong type".into(),
-                ))
-            }
-        };
-        let new = Address::parse_hex(update.str_field("new")?)?;
-        if index == 0 {
-            if old.is_some() {
-                return Err(ChainError::Evidence(
-                    "first configurator update does not start from zero".into(),
-                ));
-            }
-        } else if old != active {
-            return Err(ChainError::Evidence(
-                "configurator update chain has a broken predecessor".into(),
-            ));
-        }
-        if let Some(old) = old {
-            configurators.insert(old);
-        }
-        configurators.insert(new);
-        active = Some(new);
-    }
-    if active != Some(expected_current) {
+    let creation = &creations[0];
+    let proxy = Address::parse_hex(creation.str_field("proxy")?)?;
+    if proxy != expected_current {
         return Err(ChainError::Evidence(
-            "configurator lineage tip differs from exact-anchor getter".into(),
+            "PoolConfigurator ProxyCreated proxy differs from exact-anchor getter".into(),
         ));
     }
 
     Ok(ConfiguratorLineage {
-        configurators: configurators.into_iter().collect(),
-        updates: updates.to_vec(),
+        configurators: vec![proxy],
+        updates: creations.to_vec(),
         manifests: agreement.manifests,
     })
 }

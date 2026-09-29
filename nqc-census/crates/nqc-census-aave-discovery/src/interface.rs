@@ -9,6 +9,7 @@ const RESERVES_LIST: &str = "getReservesList()";
 const RESERVE_DATA: &str = "getReserveData(address)";
 const GET_POOL: &str = "getPool()";
 const GET_POOL_CONFIGURATOR: &str = "getPoolConfigurator()";
+const PROXY_CREATED: &str = "ProxyCreated(bytes32,address,address)";
 const POOL_CONFIGURATOR_UPDATED: &str = "PoolConfiguratorUpdated(address,address)";
 const GET_PRICE_ORACLE: &str = "getPriceOracle()";
 const FLASHLOAN_PREMIUM_TOTAL: &str = "FLASHLOAN_PREMIUM_TOTAL()";
@@ -26,6 +27,7 @@ pub struct AaveDiscoveryInterface {
     pub reserve_data: [u8; 4],
     pub get_pool: [u8; 4],
     pub get_pool_configurator: [u8; 4],
+    pub proxy_created_topic: [u8; 32],
     pub pool_configurator_updated_topic: [u8; 32],
     pub get_price_oracle: [u8; 4],
     pub flashloan_premium_total: [u8; 4],
@@ -44,6 +46,7 @@ pub fn aave_interface() -> AaveDiscoveryInterface {
         reserve_data: abi::selector(RESERVE_DATA),
         get_pool: abi::selector(GET_POOL),
         get_pool_configurator: abi::selector(GET_POOL_CONFIGURATOR),
+        proxy_created_topic: abi::event_topic(PROXY_CREATED),
         pool_configurator_updated_topic: abi::event_topic(POOL_CONFIGURATOR_UPDATED),
         get_price_oracle: abi::selector(GET_PRICE_ORACLE),
         flashloan_premium_total: abi::selector(FLASHLOAN_PREMIUM_TOTAL),
