@@ -176,11 +176,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
 
     println!(
-        "RMC_011_CAPITAL_BUILD=PASS sources={} requirements={} feasible={} rejected={} zero_own_capital_proven={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={} closeout_commitment={} closeout_sha256={} output_dir={}",
+        "RMC_011_CAPITAL_BUILD=PASS sources={} requirements={} feasible={} rejected={} d08_candidates={} d08_admitted={} d08_rejected={} d09_borrowers={} d09_below_one={} d09_blocked={} zero_own_capital_proven={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={} closeout_commitment={} closeout_sha256={} output_dir={}",
         closeout.source_count,
         closeout.requirement_count,
         closeout.feasible_count,
         closeout.rejected_count,
+        closeout.d08_candidate_count,
+        closeout.d08_source_count,
+        closeout.d08_rejected_count,
+        closeout.d09_borrower_count,
+        closeout.d09_below_one_count,
+        closeout.d09_blocked_count,
         closeout.zero_own_capital_proven,
         closeout.capital_commitment,
         closeout.upstream_authority_commitment,
