@@ -1,0 +1,100 @@
+name: NQC RMC-008 State Admission Gate
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-state.yml
+      - .github/workflows/nqc-census-state-gate.yml
+      - ci/nqc-census/STATE_ADMISSION_CONTRACT.md
+      - ci/nqc-census/state-inputs.json
+      - ci/nqc-census/state-providers.json
+      - nqc-census/Cargo.toml
+      - nqc-census/Cargo.lock
+      - nqc-census/crates/nqc-census-state/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+  PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+  RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+  RUST_TOOLCHAIN: "1.98.1"
+  D08_TESTS_EXPECTED_V2: "5"
+  D08_TESTS_EXPECTED_AAVE: "5"
+  D08_INPUTS: /tmp/nqc-rmc008-inputs
+  D08_EVIDENCE: /tmp/nqc-rmc008-evidence
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority and upstream immutability
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$PFT_CERTIFIED_COMMIT" HEAD
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+            ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
+            ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE="${{ github.event.pull_request.base.sha }}"
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            git diff --check "$BASE"...HEAD
+            # RMC-008 adds a crate; it never changes the identity, observation,
+            # store or chain authorities, nor any other census node.
+            changed=$(git diff --name-only "$BASE"...HEAD -- nqc-census/crates \
+              | grep -v '^nqc-census/crates/nqc-census-state/' || true)
+            test -z "$changed" || { echo "RMC-008 touches another crate: $changed"; exit 1; }
+          fi
+          echo RMC008_UPSTREAM_IMMUTABLE_PASS
+
+      - name: Verify no transaction path or network client
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          root = Path("nqc-census/crates/nqc-census-state")
+          forbidden = re.compile(
+              r"private.?key|mnemonic|eth_send|eth_sign|personal_|sendRawTransaction|"
+              r"reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket|\bunsafe\b|f32|f64")
+          violations = []
+          for path in root.rglob("*.rs"):
+              for number, line in enumerate(path.read_text().splitlines(), 1):
+                  if line.strip().startswith("//"):
+                      continue
+                  if forbidden.search(line):
+                      violations.append(f"{path}:{number}: {line.strip()}")
+          assert not violations, "\n".join(violations)
+          print("RMC008_BOUNDARY_PASS no floating point, network client or transaction path")
+          PY
+
+      - name: Locked Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          count=$(cargo test --locked -p nqc-census-state --test v2_state -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D08_TESTS_EXPECTED_V2"
+          count=$(cargo test --locked -p nqc-census-state --test aave_state -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D08_TESTS_EXPECTED_AAVE"
+          cargo test --locked -p nqc-census-state -- --nocapture
+          cargo test --workspace --all-targets --locked
+          echo RMC008_CORE_PASS
+

@@ -1,0 +1,331 @@
+name: NQC RMC-008 State Oracle Token Admission
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-state.yml
+      - .github/workflows/nqc-census-state-gate.yml
+      - ci/nqc-census/STATE_ADMISSION_CONTRACT.md
+      - ci/nqc-census/state-inputs.json
+      - ci/nqc-census/state-providers.json
+      - nqc-census/Cargo.toml
+      - nqc-census/Cargo.lock
+      - nqc-census/crates/nqc-census-state/**
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+# Every live Census workflow that loads the shared public RPC endpoints joins
+# one repository-wide group: at most one runs at a time and none is cancelled
+# while running. GitHub keeps at most one pending run per group, so a third
+# trigger replaces the older pending one (visible as cancelled, re-dispatch
+# it); a running acquisition is never interrupted.
+concurrency:
+  group: nqc-census-public-rpc
+  cancel-in-progress: false
+
+env:
+  PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+  PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+  RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+  RUST_TOOLCHAIN: "1.98.1"
+  D08_TESTS_EXPECTED_V2: "5"
+  D08_TESTS_EXPECTED_AAVE: "5"
+  D08_INPUTS: /tmp/nqc-rmc008-inputs
+  D08_EVIDENCE: /tmp/nqc-rmc008-evidence
+
+jobs:
+  inputs:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    outputs:
+      d06_run: ${{ steps.pins.outputs.d06_run }}
+      d07_run: ${{ steps.pins.outputs.d07_run }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Read pinned sources and verify their upstream identity
+        id: pins
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          status=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/state-inputs.json"))["status"])')
+          if [ "$status" != "PINNED" ]; then
+            python3 -c 'import json; d=json.load(open("ci/nqc-census/state-inputs.json")); print("RMC008_BLOCKED", d["status"], "-", d.get("blocked_reason", ""))'
+            exit 1
+          fi
+          python3 - <<'PY' > /tmp/nqc-rmc008-sources.txt
+          import json
+          pins = json.load(open("ci/nqc-census/state-inputs.json"))
+          for source in pins["sources"]:
+              print(source["node"].lower(), source["workflow_run_id"], source["artifact_id"],
+                    source["artifact"], source["code_commit"], source["artifact_digest"])
+          PY
+          while read -r node run artifact_id artifact commit digest; do
+            head=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .head_sha)
+            conclusion=$(gh api "repos/${{ github.repository }}/actions/runs/$run" --jq .conclusion)
+            observed=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .digest)
+            name=$(gh api "repos/${{ github.repository }}/actions/artifacts/$artifact_id" --jq .name)
+            test "$head" = "$commit" || { echo "$node run $run head $head is not pinned $commit"; exit 1; }
+            test "$conclusion" = success || { echo "$node run $run concluded $conclusion"; exit 1; }
+            test "$observed" = "$digest" || { echo "$node artifact digest $observed is not pinned $digest"; exit 1; }
+            test "$name" = "$artifact" || { echo "$node artifact name $name is not pinned $artifact"; exit 1; }
+            echo "RMC008_UPSTREAM_PINNED node=$node run=$run commit=$commit artifact=$artifact_id digest=$digest"
+            echo "${node}_run=$run" >> "$GITHUB_OUTPUT"
+            echo "${node}_artifact=$artifact" >> "$GITHUB_OUTPUT"
+          done < /tmp/nqc-rmc008-sources.txt
+
+      - name: Fetch admitted D06 outputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ steps.pins.outputs.d06_artifact }}
+          run-id: ${{ steps.pins.outputs.d06_run }}
+          github-token: ${{ github.token }}
+          path: /tmp/nqc-rmc008-inputs/d06
+
+      - name: Fetch admitted D07 outputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ steps.pins.outputs.d07_artifact }}
+          run-id: ${{ steps.pins.outputs.d07_run }}
+          github-token: ${{ github.token }}
+          path: /tmp/nqc-rmc008-inputs/d07
+
+      - name: Verify every pinned digest and keep only pinned files
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import hashlib, json, os, shutil
+          pins = json.load(open("ci/nqc-census/state-inputs.json"))
+          root = os.environ["D08_INPUTS"]
+          keep = "/tmp/nqc-rmc008-pinned"
+          for entry in pins["files"]:
+              source = os.path.join(root, entry["path"])
+              digest = hashlib.sha256(open(source, "rb").read()).hexdigest()
+              assert digest == entry["sha256"], f"{entry['path']}: {digest} != pinned {entry['sha256']}"
+              target = os.path.join(keep, entry["path"])
+              os.makedirs(os.path.dirname(target), exist_ok=True)
+              shutil.copyfile(source, target)
+              print(f"RMC008_INPUT_PINNED role={entry['role']} sha256={digest}")
+          PY
+
+      - name: Preserve pinned inputs
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d08-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc008-pinned
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  stage:
+    needs: inputs
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        stage: [aave, v2-factory, v2-state-0, v2-state-1, v2-state-2, v2-state-3, v2-state-4, v2-state-5, v2-state-6, v2-state-7, v2-state-8, v2-state-9, v2-state-10, v2-state-11, v2-state-12, v2-state-13, v2-state-14, v2-state-15]
+        provider: [blastapi-public, mevblocker-rpc]
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch pinned inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d08-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc008-inputs
+
+      - name: Acquire one stage (resumable)
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D08_EVIDENCE"
+          cargo build --release --locked -p nqc-census-state --bin nqc-rmc008-state-stage
+          stage="${{ matrix.stage }}"
+          case "$stage" in
+            v2-state-*) args=(v2-state --partition "${stage#v2-state-}" --partitions 16) ;;
+            *) args=("$stage") ;;
+          esac
+          # A public-provider outage longer than the per-request retry budget
+          # aborts a run; the next attempt resumes from committed RMC-004
+          # checkpoints. Everything is re-verified offline in reconcile.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if target/release/nqc-rmc008-state-stage "${args[@]}" \
+                --providers ../ci/nqc-census/state-providers.json --label "${{ matrix.provider }}" \
+                --pins ../ci/nqc-census/state-inputs.json --pin-root "$D08_INPUTS" \
+                --store "$D08_EVIDENCE/store" --out "$D08_EVIDENCE/record.json" \
+                > "$D08_EVIDENCE/stage.log" 2> "$D08_EVIDENCE/stage-attempt-$attempt.err"; then
+              echo "RMC008_ATTEMPT_PASS attempt=$attempt"
+              break
+            fi
+            echo "RMC008_ATTEMPT_FAILED attempt=$attempt $(tail -n 1 "$D08_EVIDENCE/stage-attempt-$attempt.err")"
+            if [ "$attempt" = 10 ]; then
+              exit 1
+            fi
+            sleep 240
+          done
+          cat "$D08_EVIDENCE/stage.log"
+          grep -F "RMC008_STAGE_PASS" "$D08_EVIDENCE/stage.log"
+
+      - name: Preserve stage evidence (also on failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d08-stage-${{ matrix.stage }}-${{ matrix.provider }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: /tmp/nqc-rmc008-evidence
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  reconcile:
+    needs: stage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch pinned inputs
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d08-inputs-${{ github.run_id }}
+          path: /tmp/nqc-rmc008-inputs
+
+      - name: Fetch every stage
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d08-stage-*-${{ github.run_id }}
+          path: /tmp/nqc-rmc008-stages
+
+      - name: Merge stage stores through RMC-004 commit
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D08_EVIDENCE/records"
+          cargo build --release --locked -p nqc-census-state --bin nqc-rmc008-state-merge --bin nqc-rmc008-state-reconcile
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          args=()
+          count=0
+          for stage in /tmp/nqc-rmc008-stages/d08-stage-*; do
+            name=$(basename "$stage")
+            cp "$stage/record.json" "$D08_EVIDENCE/records/$name.json"
+            args+=(--from "$stage/store" --record "$stage/record.json")
+            count=$((count + 1))
+          done
+          test "$count" = 36
+          target/release/nqc-rmc008-state-merge --into "$D08_EVIDENCE/store" "${args[@]}" | tee "$D08_EVIDENCE/merge.log"
+          target/release/nqc-census-store-verify --store "$D08_EVIDENCE/store" > "$D08_EVIDENCE/merged-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D08_EVIDENCE/merged-store-verify.log"
+
+      - name: Offline replay, verification and closeout (no network)
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside the offline namespace"
+            exit 1
+          fi
+          echo RMC008_OFFLINE_NAMESPACE_HAS_NO_NETWORK
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TREE_SHA="$(git show -s --format=%T HEAD)"
+          for out in closeout closeout-rerun; do
+            sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
+              target/release/nqc-rmc008-state-reconcile \
+              --providers ../ci/nqc-census/state-providers.json \
+              --pins ../ci/nqc-census/state-inputs.json --pin-root "$D08_INPUTS" \
+              --records "$D08_EVIDENCE/records" \
+              --store "$D08_EVIDENCE/store" \
+              --out-dir "$D08_EVIDENCE/$out" \
+              --code-commit "$HEAD_SHA" \
+              --code-tree "$TREE_SHA" | tee "$D08_EVIDENCE/$out.log"
+          done
+          diff -r "$D08_EVIDENCE/closeout" "$D08_EVIDENCE/closeout-rerun"
+          echo RMC008_DETERMINISTIC_CLOSEOUT_PASS
+          grep -F "RMC008_CLOSEOUT_PASS" "$D08_EVIDENCE/closeout.log"
+          grep -F " unexplained=0 unknown=0 " "$D08_EVIDENCE/closeout.log"
+          (cd "$D08_EVIDENCE/closeout" && sha256sum * | tee ../closeout-SHA256SUMS)
+          cat "$D08_EVIDENCE/closeout/state-summary.json"; echo
+          target/release/nqc-census-store-verify --store "$D08_EVIDENCE/store" > "$D08_EVIDENCE/final-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D08_EVIDENCE/final-store-verify.log"
+
+      - name: Independent recount of the closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - "$D08_EVIDENCE/closeout" <<'PY'
+          import collections, hashlib, json, os, sys
+          root = sys.argv[1]
+          def rows(name):
+              with open(os.path.join(root, name)) as handle:
+                  return [json.loads(line) for line in handle if line.strip()]
+          states = rows("market-state-manifest.jsonl")
+          mismatches = rows("mismatch-ledger.jsonl")
+          rejections = rows("rejection-ledger.jsonl")
+          summary = json.load(open(os.path.join(root, "state-summary.json")))
+          evidence = json.load(open(os.path.join(root, "evidence-manifest.json")))
+          assert all(m["classification"] != "UNEXPLAINED" for m in mismatches), "unexplained mismatch"
+          assert all(r["reason"] != "UNKNOWN" for r in rejections), "UNKNOWN rejection"
+          protocols = collections.Counter(s["protocol"] for s in states)
+          assert protocols["AAVE_V3"] == summary["aave_markets"]
+          assert protocols["UNISWAP_V2"] == summary["v2_markets"]
+          for artifact in evidence["artifacts"]:
+              data = open(os.path.join(root, artifact["path"]), "rb").read()
+              assert hashlib.sha256(data).hexdigest() == artifact["sha256"], artifact["path"]
+          # Integer re-derivation of every V2 excess from the manifest.
+          for s in states:
+              if s["protocol"] != "UNISWAP_V2" or not isinstance(s["reserves"], list):
+                  continue
+              for side in (0, 1):
+                  balance = s[f"balance{side}"]
+                  if isinstance(balance, str):
+                      excess = int(balance) - int(s["reserves"][side])
+                      recorded = s[f"balance{side}_minus_reserve{side}"]
+                      assert (recorded is None) == (excess < 0), s["pair"]
+                      assert recorded is None or int(recorded) == excess, s["pair"]
+          print(f"RMC008_INDEPENDENT_RECOUNT_PASS markets={len(states)} rejections={len(rejections)} mismatches={len(mismatches)} {dict(protocols)}")
+          PY
+
+      - name: Preserve D08 closeout
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc008-closeout-${{ github.event.pull_request.head.sha || github.sha }}
+          overwrite: true
+          path: |
+            /tmp/nqc-rmc008-evidence/closeout
+            /tmp/nqc-rmc008-evidence/*.log
+            /tmp/nqc-rmc008-evidence/closeout-SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 30
