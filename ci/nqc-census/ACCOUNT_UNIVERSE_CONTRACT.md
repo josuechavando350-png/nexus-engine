@@ -193,7 +193,11 @@ reached by a full census or by an incremental refresh from a certified base.
 The provenance is mode-dependent and kept out of them:
 - how the anchor was reached (mode, index log counts, record count) goes in
   `acquisition-provenance.json`;
-- which records and store support it goes in `evidence-manifest.json`.
+- exact producer code commit/tree, input pins, records and store support go
+  in `evidence-manifest.json`. Code identity is deliberately not copied
+  into `account-summary.json`, because it is provenance rather than census
+  state and would make a correct full/incremental parity proof impossible
+  across distinct exact-head producers.
 
 The plan's `index_start` defaults to the earliest reserve initialization. An
 incremental refresh sets it to the block after its certified base anchor.
