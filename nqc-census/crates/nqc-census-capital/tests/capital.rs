@@ -264,7 +264,7 @@ fn source_constructor_rejects_public_semantic_bypasses() -> TestResult {
         Err(CapitalError::ZeroValue("temporary_lock_amount"))
     ));
 
-    let mut invalid = base;
+    let mut invalid = base.clone();
     invalid.temporary_lock = TemporaryLock::Required {
         asset: token,
         amount: Amount256::from_u128(1),
@@ -273,6 +273,40 @@ fn source_constructor_rejects_public_semantic_bypasses() -> TestResult {
     assert!(matches!(
         CapitalSource::new(invalid),
         Err(CapitalError::ZeroValue("lock_deadline_blocks"))
+    ));
+
+    let mut invalid = base;
+    invalid.evidence = vec![CapitalEvidenceRef::Observation([0; 32])];
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::InvalidCanonical(
+            "zero observation evidence digest"
+        ))
+    ));
+    Ok(())
+}
+
+#[test]
+fn requirement_constructor_rejects_zero_observation_evidence() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(1),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    assert!(matches!(
+        CapitalRequirement::new(
+            CapitalTargetId::from_hash(hash(50)),
+            anchor(100),
+            RequiredAtomicity::SameTransaction,
+            false,
+            vec![principal],
+            vec![CapitalEvidenceRef::Observation([0; 32])],
+        ),
+        Err(CapitalError::InvalidCanonical(
+            "zero observation evidence digest"
+        ))
     ));
     Ok(())
 }
