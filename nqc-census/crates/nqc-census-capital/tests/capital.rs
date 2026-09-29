@@ -181,6 +181,103 @@ fn source_id_is_deterministic_and_class_separated() -> TestResult {
 }
 
 #[test]
+fn source_constructor_rejects_public_semantic_bypasses() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let base = CapitalSourceSpec {
+        class: CapitalClass::AtomicFlashLiquidity,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    };
+
+    let mut invalid = base.clone();
+    invalid.fee_model = FeeModel::BasisPoints {
+        bps: 10_001,
+        rounding: RoundingMode::Floor,
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::InvalidBasisPoints(10_001))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.fee_model = FeeModel::ExactRatio {
+        numerator: 1,
+        denominator: 0,
+        rounding: RoundingMode::Floor,
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::InvalidRatio)
+    ));
+
+    let mut invalid = base.clone();
+    invalid.repayment = RepaymentSemantics::DeadlineBlocks(0);
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::ZeroValue("repayment_deadline_blocks"))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.collateral = CollateralRequirement::Required {
+        asset: token,
+        amount: Amount256::ZERO,
+        liquidation_conditions_hash: hash(31),
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::ZeroValue("collateral_amount"))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.utilization = UtilizationConstraints {
+        max_utilization_bps: 10_001,
+        min_remaining: Amount256::ZERO,
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::InvalidBasisPoints(10_001))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.temporary_lock = TemporaryLock::Required {
+        asset: token,
+        amount: Amount256::ZERO,
+        release: nqc_census_capital::LockRelease::EndOfTransaction,
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::ZeroValue("temporary_lock_amount"))
+    ));
+
+    let mut invalid = base;
+    invalid.temporary_lock = TemporaryLock::Required {
+        asset: token,
+        amount: Amount256::from_u128(1),
+        release: nqc_census_capital::LockRelease::DeadlineBlocks(0),
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::ZeroValue("lock_deadline_blocks"))
+    ));
+    Ok(())
+}
+
+#[test]
 fn source_canonical_roundtrip_and_tamper_rejection() -> TestResult {
     let asset = CapitalAsset::Token(address(20));
     let source = source(
