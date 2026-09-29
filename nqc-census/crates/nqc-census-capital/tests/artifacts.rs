@@ -182,6 +182,67 @@ fn jsonl_records_carry_exact_anchor_and_provenance() -> TestResult {
 }
 
 #[test]
+fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+    let mut source_only = CapitalCensusLedger::evidentiary();
+    source_only.register_source(source)?;
+    source_only.evaluate_all()?;
+
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&source_only, &authority()?, &provenance)?;
+    assert!(bundle
+        .file(CAPITAL_REQUIREMENTS_FILE)
+        .ok_or("missing requirements")?
+        .bytes
+        .is_empty());
+    assert!(bundle
+        .file(CAPITAL_FEASIBILITY_FILE)
+        .ok_or("missing feasibility")?
+        .bytes
+        .is_empty());
+    assert!(bundle
+        .file(CAPITAL_REJECTION_LEDGER_FILE)
+        .ok_or("missing rejection ledger")?
+        .bytes
+        .is_empty());
+
+    let verified = verify_capital_artifact_bundle(&bundle)?;
+    assert_eq!(verified.source_count, 1);
+    assert_eq!(verified.requirement_count, 0);
+    assert_eq!(verified.feasibility_count, 0);
+    assert_eq!(verified.rejection_count, 0);
+
+    let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
+    let summary_text = std::str::from_utf8(&summary.bytes)?;
+    assert!(summary_text.contains("\"zero_own_capital_proven\":false"));
+    Ok(())
+}
+
+#[test]
 fn artifact_hashes_change_when_provenance_changes() -> TestResult {
     let ledger = ledger()?;
     let a = export_capital_artifacts(
