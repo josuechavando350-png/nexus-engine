@@ -21,7 +21,7 @@ Create a reproducible, block-pinned, evidence-backed Capital Census that answers
 5. Can the candidate be funded atomically without operator-owned principal?
 6. What non-principal funding remains required, including gas, builder deposits, bonds/stakes, and temporarily locked balances?
 
-Zero-own-capital is a constraint to prove, never an assumption.
+Zero-own-capital is a constraint to prove, never an assumption. Provider kind/class MUST NOT be used as a proxy for economic ownership; every admitted source carries explicit ownership, and any `OPERATOR_OWNED` source is ineligible for zero-own-capital feasibility regardless of provider kind or capital class.
 
 ## Required capital classes
 
@@ -48,6 +48,7 @@ Every admitted capital source record MUST bind:
 - canonical source identity
 - chain/domain
 - provider/protocol
+- capital_ownership (`EXTERNAL` or `OPERATOR_OWNED`), independently of provider kind/class
 - asset
 - block-pinned observation anchor
 - maximum_available
