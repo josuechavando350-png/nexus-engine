@@ -2095,6 +2095,8 @@ pub fn validate_settlement_requirements(
         );
     }
 
+    let mut required_by_class =
+        BTreeMap::<(RequirementKind, CapitalAsset, CapitalClass), Amount256>::new();
     for (source_id, drawn) in drawn_by_source {
         let source = by_id
             .get(&source_id)
@@ -2103,39 +2105,114 @@ pub fn validate_settlement_requirements(
         if !matches!(
             source.repayment(),
             RepaymentSemantics::Persistent(_) | RepaymentSemantics::NoRepayment
-        ) && !settlement_leg_allows_class(
-            requirement,
-            RequirementKind::Repayment,
-            source.repayment_asset(),
-            source.class(),
         ) {
-            return Err(CapitalError::SettlementRequirementMismatch);
+            add_class_obligation(
+                &mut required_by_class,
+                RequirementKind::Repayment,
+                source.repayment_asset(),
+                source.class(),
+                drawn,
+            )?;
         }
         if let Some(fee) = source.quote_fee(drawn)? {
-            if !fee.amount.is_zero()
-                && !settlement_leg_allows_class(
-                    requirement,
+            if !fee.amount.is_zero() {
+                add_class_obligation(
+                    &mut required_by_class,
                     RequirementKind::FundingFee,
                     fee.asset,
                     source.class(),
-                )
-            {
-                return Err(CapitalError::SettlementRequirementMismatch);
+                    fee.amount,
+                )?;
             }
         }
+    }
+    if !settlement_class_amounts_assignable(requirement, &required_by_class)? {
+        return Err(CapitalError::SettlementRequirementMismatch);
     }
     Ok(())
 }
 
-fn settlement_leg_allows_class(
-    requirement: &CapitalRequirement,
+fn add_class_obligation(
+    totals: &mut BTreeMap<(RequirementKind, CapitalAsset, CapitalClass), Amount256>,
     kind: RequirementKind,
     asset: CapitalAsset,
     class: CapitalClass,
-) -> bool {
-    requirement.legs().iter().any(|leg| {
-        leg.kind() == kind && leg.asset() == asset && leg.allowed_classes().contains(&class)
-    })
+    amount: Amount256,
+) -> Result<(), CapitalError> {
+    let current = totals
+        .get(&(kind, asset, class))
+        .copied()
+        .unwrap_or(Amount256::ZERO);
+    totals.insert((kind, asset, class), current.checked_add(amount)?);
+    Ok(())
+}
+
+fn settlement_class_amounts_assignable(
+    requirement: &CapitalRequirement,
+    required_by_class: &BTreeMap<(RequirementKind, CapitalAsset, CapitalClass), Amount256>,
+) -> Result<bool, CapitalError> {
+    let groups = required_by_class
+        .keys()
+        .map(|(kind, asset, _)| (*kind, *asset))
+        .collect::<BTreeSet<_>>();
+
+    for (kind, asset) in groups {
+        let class_obligations = required_by_class
+            .iter()
+            .filter_map(|((required_kind, required_asset, class), amount)| {
+                (*required_kind == kind && *required_asset == asset).then_some((*class, *amount))
+            })
+            .collect::<Vec<_>>();
+        let legs = requirement
+            .legs()
+            .iter()
+            .filter(|leg| leg.kind() == kind && leg.asset() == asset)
+            .collect::<Vec<_>>();
+
+        let class_count = class_obligations.len();
+        let leg_count = legs.len();
+        let class_node = |index: usize| 1 + index;
+        let leg_node = |index: usize| 1 + class_count + index;
+        let super_source = 0_usize;
+        let sink = 1 + class_count + leg_count;
+        let mut graph = vec![Vec::<ResidualEdge>::new(); sink + 1];
+        let mut class_source_edges = Vec::with_capacity(class_count);
+
+        for (class_index, (class, amount)) in class_obligations.iter().enumerate() {
+            let edge_index =
+                add_residual_edge(&mut graph, super_source, class_node(class_index), *amount);
+            class_source_edges.push(edge_index);
+            for (leg_index, leg) in legs.iter().enumerate() {
+                if !leg.allowed_classes().contains(class) {
+                    continue;
+                }
+                let capacity = (*amount).min(leg.amount());
+                if capacity.is_zero() {
+                    continue;
+                }
+                add_residual_edge(
+                    &mut graph,
+                    class_node(class_index),
+                    leg_node(leg_index),
+                    capacity,
+                );
+            }
+        }
+        for (leg_index, leg) in legs.iter().enumerate() {
+            add_residual_edge(&mut graph, leg_node(leg_index), sink, leg.amount());
+        }
+
+        run_residual_flow(&mut graph, super_source, sink)?;
+
+        if class_source_edges
+            .iter()
+            .enumerate()
+            .any(|(index, edge)| !graph[super_source][*edge].capacity.is_zero())
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 fn add_obligation(
