@@ -79,6 +79,7 @@ jobs:
         run: |
           set -euo pipefail
           rm -rf "$D06_EVIDENCE"
+          mkdir -p "$D06_EVIDENCE"
           cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-current
           cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
           target/release/nqc-rmc006-aave-current \
