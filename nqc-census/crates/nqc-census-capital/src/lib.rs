@@ -2017,7 +2017,70 @@ pub fn validate_settlement_requirements(
     if declared != required {
         return Err(CapitalError::SettlementRequirementMismatch);
     }
+
+    let allocations = match feasibility {
+        CapitalFeasibility::Feasible { allocations, .. } => allocations,
+        CapitalFeasibility::Rejected { .. } => {
+            return Err(CapitalError::RejectedFeasibilityHasNoObligations)
+        }
+    };
+    let by_id = sources
+        .iter()
+        .map(|source| (source.id(), source))
+        .collect::<BTreeMap<_, _>>();
+    let mut drawn_by_source = BTreeMap::<CapitalSourceId, Amount256>::new();
+    for allocation in allocations {
+        let current = drawn_by_source
+            .get(&allocation.source_id)
+            .copied()
+            .unwrap_or(Amount256::ZERO);
+        drawn_by_source.insert(
+            allocation.source_id,
+            current.checked_add(allocation.amount)?,
+        );
+    }
+
+    for (source_id, drawn) in drawn_by_source {
+        let source = by_id
+            .get(&source_id)
+            .copied()
+            .ok_or(CapitalError::MissingSourceForAllocation)?;
+        if !matches!(
+            source.repayment(),
+            RepaymentSemantics::Persistent(_) | RepaymentSemantics::NoRepayment
+        ) && !settlement_leg_allows_class(
+            requirement,
+            RequirementKind::Repayment,
+            source.repayment_asset(),
+            source.class(),
+        ) {
+            return Err(CapitalError::SettlementRequirementMismatch);
+        }
+        if let Some(fee) = source.quote_fee(drawn)? {
+            if !fee.amount.is_zero()
+                && !settlement_leg_allows_class(
+                    requirement,
+                    RequirementKind::FundingFee,
+                    fee.asset,
+                    source.class(),
+                )
+            {
+                return Err(CapitalError::SettlementRequirementMismatch);
+            }
+        }
+    }
     Ok(())
+}
+
+fn settlement_leg_allows_class(
+    requirement: &CapitalRequirement,
+    kind: RequirementKind,
+    asset: CapitalAsset,
+    class: CapitalClass,
+) -> bool {
+    requirement.legs().iter().any(|leg| {
+        leg.kind() == kind && leg.asset() == asset && leg.allowed_classes().contains(&class)
+    })
 }
 
 fn add_obligation(
