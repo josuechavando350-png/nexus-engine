@@ -157,12 +157,31 @@ Load limits:
   never retried.
 
 Every stage artifact is uploaded even on failure. Its name carries stage,
-provider, partition, exact head, run id and attempt. The reconciler consumes
+provider, partition, exact head, run id and attempt. The replay consumes
 the latest attempt of each stage and lists every attempt.
+
+Stage stores are never gathered on one runner. RMC-007 run 36589054151
+showed why: a reconcile that downloaded all 49 stage artifacts at once
+failed with "Artifact download failed after 5 retries". Instead:
+- **replay, one offline job per stage** (`nqc-rmc009-account-replay`, no
+  network namespace). It downloads that stage's artifact only and restores
+  the store's documented empty directories, which artifact upload drops.
+  It verifies the store before and after, and replays the record
+  byte-for-byte (state records with the candidates). It then replays the
+  record's bootstrap and anchor manifests and writes an extract: the record
+  and its sha256, the replayed rows and their digest, the chain domain and
+  anchor, and the store's evidence root.
+- **candidates** are derived from the index extracts, and the
+  **reconciler** holds extracts only. Both recompute every digest and require
+  one chain domain, the plan's anchor, and the plan's pool and token digest in
+  every record. They then run the same derivation and verification as before
+  (`reconcile_extracts` and `reconcile_offline` share it).
 
 ## 6. Closeout
 
-Written twice offline, with no network namespace, and compared byte for byte:
+Written twice offline, with no network namespace, and compared byte for byte
+(`evidence-manifest.json` lists each stage's own store summary when stages
+were replayed one store at a time):
 `account-manifest.jsonl`, `token-conservation.jsonl`, `reserve-tokens.jsonl`,
 `configuration-divergences.jsonl`, `mismatch-ledger.jsonl`,
 `candidate-accounts.jsonl`, `account-metrics.json`, `account-summary.json`

@@ -5,8 +5,9 @@
 
 use nqc_census_accounts::candidates::{derive_candidates, Candidates};
 use nqc_census_accounts::closeout::{
-    reconcile_offline, write_closeout, CloseoutContext, Reconciled,
+    reconcile_extracts, reconcile_offline, write_closeout, CloseoutContext, Reconciled,
 };
+use nqc_census_accounts::extract::{extract_stages, stage_extract};
 use nqc_census_accounts::index::account_index_stage;
 use nqc_census_accounts::plan::{balance_transfer_topic, mint_topic, AccountPlan, ReserveTokens};
 use nqc_census_accounts::replay::replay_account_stage;
@@ -418,6 +419,7 @@ fn closeout(reconciled: &Reconciled, dir: &std::path::Path) -> Result<Json, Box<
             code_tree: &"b".repeat(40),
             pins: &[],
             store_evidence_root: "root",
+            stage_stores: Vec::new(),
             record_manifests: Vec::new(),
             mode: nqc_census_accounts::closeout::full_census_mode(&reconciled.index),
         },
@@ -702,5 +704,181 @@ fn declared_provider_files_parse_as_two_distinct_providers() -> TestResult {
         let found: Vec<&str> = set.iter().map(ProviderSpec::label).collect();
         assert_eq!(found, labels, "{file}");
     }
+    Ok(())
+}
+
+/// Extracts of every record, each replayed from the run's store.
+fn extracts(
+    run: &Run,
+    records: &[Json],
+    candidates: &Candidates,
+) -> Result<Vec<Json>, Box<dyn Error>> {
+    let report = nqc_census_store::verify::verify_store(
+        &run.root,
+        &nqc_census_store::verify::VerifyRequest::default(),
+    )
+    .map_err(|failure| failure.to_string())?;
+    let summary = Json::object([
+        ("stage_artifact", Json::string("synthetic")),
+        ("evidence_root", Json::string(report.evidence_root)),
+    ]);
+    let mut out = Vec::new();
+    for record in records {
+        let (specs, with) = match record.str_field("stage")? {
+            "ACCOUNT_INDEX" => (&run.index_specs, None),
+            "ACCOUNT_STATE" => (&run.state_specs, Some(candidates)),
+            _ => (&run.state_specs, None),
+        };
+        out.push(stage_extract(
+            &run.store,
+            specs,
+            &run.plan,
+            with,
+            record,
+            summary.clone(),
+        )?);
+    }
+    Ok(out)
+}
+
+fn with_field(value: &Json, key: &str, replacement: Json) -> Result<Json, Box<dyn Error>> {
+    let members = value.as_object().ok_or("not an object")?;
+    Ok(Json::Object(
+        members
+            .iter()
+            .map(|(name, field)| {
+                let field = if name == key {
+                    replacement.clone()
+                } else {
+                    field.clone()
+                };
+                (name.clone(), field)
+            })
+            .collect(),
+    ))
+}
+
+#[test]
+fn per_store_extracts_reconcile_to_the_same_census() -> TestResult {
+    let run = prepare(&Setup::clean(), "extracts")?;
+    let (records, candidates) = run.full()?;
+    let merged = run.reconcile(&records, &candidates)?;
+    let (from_extracts, extract_records) = reconcile_extracts(
+        &run.index_specs,
+        &run.state_specs,
+        &run.plan,
+        &candidates,
+        extracts(&run, &records, &candidates)?,
+    )?;
+    assert_eq!(extract_records.len(), records.len());
+    for (left, right) in extract_records.iter().zip(&records) {
+        assert!(left.same_as(right)?);
+    }
+    let first = temp_root("extracts-merged")?;
+    let second = temp_root("extracts-split")?;
+    closeout(&merged, &first)?;
+    closeout(&from_extracts, &second)?;
+    let mut names: Vec<_> = std::fs::read_dir(&first)?
+        .map(|entry| entry.map(|entry| entry.file_name()))
+        .collect::<Result<_, _>>()?;
+    names.sort();
+    assert!(names.len() >= 9);
+    for name in names {
+        assert_eq!(
+            std::fs::read(first.join(&name))?,
+            std::fs::read(second.join(&name))?,
+            "{name:?}"
+        );
+    }
+    let _ = std::fs::remove_dir_all(first);
+    let _ = std::fs::remove_dir_all(second);
+    Ok(())
+}
+
+#[test]
+fn a_foreign_or_tampered_account_extract_is_refused() -> TestResult {
+    let run = prepare(&Setup::clean(), "extract-tamper")?;
+    let (records, candidates) = run.full()?;
+    let original = extracts(&run, &records, &candidates)?;
+    let reject = |extracts: Vec<Json>, plan: &AccountPlan, needle: &str| match extract_stages(
+        &run.index_specs,
+        &run.state_specs,
+        plan,
+        extracts,
+    ) {
+        Err(error) if error.to_string().contains(needle) => Ok(()),
+        Err(error) => Err(format!("expected {needle}, got {error}")),
+        Ok(_) => Err(format!("accepted, expected {needle}")),
+    };
+    // A changed row, even with the extract's own digest rewritten.
+    let rows = original[0]
+        .get("rows")
+        .and_then(Json::as_array)
+        .ok_or("rows")?;
+    let mut changed = rows.to_vec();
+    changed[0] = with_field(&rows[0], "log_count", Json::uint(999))?;
+    let digest = nqc_census_accounts::stage::data_digest(&changed)?;
+    let mut tampered = original.clone();
+    tampered[0] = with_field(
+        &with_field(&original[0], "rows", Json::Array(changed))?,
+        "data_sha256",
+        Json::string(digest),
+    )?;
+    reject(tampered, &run.plan, "data digest")?;
+    // A record swapped under the extract.
+    let mut tampered = original.clone();
+    tampered[0] = with_field(
+        &original[0],
+        "record",
+        original[1].get("record").ok_or("record")?.clone(),
+    )?;
+    reject(tampered, &run.plan, "record digest")?;
+    // Extracts of two chains, or of another anchor, or for another plan.
+    let domain = original[1].get("chain_domain").ok_or("domain")?;
+    let foreign = with_field(
+        domain,
+        "genesis_hash",
+        Json::string("0x".to_owned() + &"9".repeat(64)),
+    )?;
+    let mut tampered = original.clone();
+    tampered[1] = with_field(&original[1], "chain_domain", foreign)?;
+    reject(tampered, &run.plan, "different chain domains")?;
+    let mut other_anchor = run.plan.clone();
+    other_anchor.anchor = AnchorPlan {
+        number: run.plan.anchor.number - 1,
+        ..run.plan.anchor.clone()
+    };
+    reject(
+        original.clone(),
+        &other_anchor,
+        "differs from the plan anchor",
+    )?;
+    let other_plan = run
+        .plan
+        .clone()
+        .with_index_start(run.plan.index_start + 1)?;
+    let record = original[0].get("record").ok_or("record")?;
+    let parameters = record.get("parameters").ok_or("parameters")?;
+    let moved = with_field(
+        record,
+        "parameters",
+        with_field(parameters, "tokens_sha256", Json::string("0".repeat(64)))?,
+    )?;
+    let mut tampered = original.clone();
+    tampered[0] = with_field(
+        &with_field(&original[0], "record", moved.clone())?,
+        "record_sha256",
+        Json::string(nqc_census_state::stage::sha256_plain(&moved.canonical()?)),
+    )?;
+    reject(tampered, &run.plan, "another plan")?;
+    // A plan the index stages were not run for is refused downstream.
+    assert!(reconcile_extracts(
+        &run.index_specs,
+        &run.state_specs,
+        &other_plan,
+        &candidates,
+        original,
+    )
+    .is_err());
     Ok(())
 }

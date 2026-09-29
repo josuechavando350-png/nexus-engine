@@ -17,6 +17,7 @@
 
 pub mod candidates;
 pub mod closeout;
+pub mod extract;
 pub mod index;
 pub mod inputs;
 pub mod plan;

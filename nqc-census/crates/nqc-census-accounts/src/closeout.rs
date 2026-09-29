@@ -1,6 +1,7 @@
 //! RMC-009 offline reconciliation and deterministic closeout.
 
 use crate::candidates::{derive_candidates, Candidates, IndexFacts};
+use crate::extract::extract_stages;
 use crate::plan::AccountPlan;
 use crate::replay::replay_account_stage;
 use crate::verify::{verify_accounts, AccountOutcome, VerifyInputs};
@@ -55,14 +56,52 @@ pub fn reconcile_offline(
             .collect::<Result<Vec<ReplayedStage>, ChainError>>()
     };
     let index = replay(index_providers, &index_records, None)?;
+    let tokens = replay(state_providers, &token_records, None)?;
+    let state = replay(state_providers, &state_records, Some(candidates))?;
+    reconcile_replayed(plan, candidates, index, tokens, state, records.len())
+}
+
+/// As `reconcile_offline`, from stages replayed one store at a time
+/// (`extract::stage_extract`). Returns the extracts' records too.
+pub fn reconcile_extracts(
+    index_providers: &[ProviderSpec],
+    state_providers: &[ProviderSpec],
+    plan: &AccountPlan,
+    candidates: &Candidates,
+    extracts: Vec<Json>,
+) -> Result<(Reconciled, Vec<Json>), ChainError> {
+    let (mut index, mut tokens, mut state, mut records) =
+        (Vec::new(), Vec::new(), Vec::new(), Vec::new());
+    for (record, stage) in extract_stages(index_providers, state_providers, plan, extracts)? {
+        match record.str_field("stage")? {
+            "ACCOUNT_INDEX" => index.push(stage),
+            "ACCOUNT_TOKENS" => tokens.push(stage),
+            "ACCOUNT_STATE" => state.push(stage),
+            other => return Err(ChainError::Evidence(format!("unexpected stage {other}"))),
+        }
+        records.push(record);
+    }
+    let count = records.len();
+    Ok((
+        reconcile_replayed(plan, candidates, index, tokens, state, count)?,
+        records,
+    ))
+}
+
+fn reconcile_replayed(
+    plan: &AccountPlan,
+    candidates: &Candidates,
+    index: Vec<ReplayedStage>,
+    tokens: Vec<ReplayedStage>,
+    state: Vec<ReplayedStage>,
+    records: usize,
+) -> Result<Reconciled, ChainError> {
     let (derived, facts) = derive_candidates(&index, plan)?;
     if derived != *candidates {
         return Err(ChainError::Evidence(
             "candidates differ from the replayed index".into(),
         ));
     }
-    let tokens = replay(state_providers, &token_records, None)?;
-    let state = replay(state_providers, &state_records, Some(candidates))?;
     let outcome = verify_accounts(VerifyInputs {
         plan,
         candidates,
@@ -74,7 +113,7 @@ pub fn reconcile_offline(
         candidates: derived,
         index: facts,
         outcome,
-        records: records.len(),
+        records,
     })
 }
 
@@ -83,6 +122,9 @@ pub struct CloseoutContext<'a> {
     pub code_tree: &'a str,
     pub pins: &'a [PinnedFile],
     pub store_evidence_root: &'a str,
+    /// RMC-004 summary of each stage's own store, when stages were replayed
+    /// one store at a time (then `store_evidence_root` says so); else empty.
+    pub stage_stores: Vec<Json>,
     pub record_manifests: Vec<String>,
     /// How this census was acquired (`FULL_CENSUS` or an incremental
     /// refresh and its base). Kept out of the census artifacts, which must be
@@ -264,6 +306,7 @@ pub fn write_closeout(
                 ])
             })),
         ),
+        ("stage_stores", Json::Array(context.stage_stores.clone())),
         (
             "stage_manifests",
             Json::array(

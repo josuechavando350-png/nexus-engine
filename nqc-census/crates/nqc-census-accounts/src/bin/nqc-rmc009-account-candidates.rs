@@ -1,15 +1,18 @@
 //! Agreed candidate accounts from replayed `ACCOUNT_INDEX` records.
 //!
-//! `--providers F --pins F --pin-root DIR --records DIR --store DIR --out F`
+//! `--providers F --pins F --pin-root DIR (--records DIR --store DIR | --extracts DIR) --out F`
 //!
 //! `--anchor-number N --anchor-hash H` select another anchor than the
 //! declared one (the D06 inputs must be at it); `--index-start S` indexes only
 //! `[S, anchor]`.
 //!
-//! Performs no network access: every record is replayed from the store and
-//! the providers must have returned identical logs.
+//! Performs no network access. `--records` replays every record from one
+//! store; `--extracts` takes index stages already replayed one store at a
+//! time by `nqc-rmc009-account-replay`. Either way the providers must have
+//! returned identical logs.
 
 use nqc_census_accounts::candidates::derive_candidates;
+use nqc_census_accounts::extract::extract_stages;
 use nqc_census_accounts::inputs::{anchor_from_flags, plan_at};
 use nqc_census_accounts::replay::replay_account_stage;
 use nqc_census_chain::json::Json;
@@ -53,17 +56,40 @@ fn main() -> Result<(), Box<dyn Error>> {
     if let Some(start) = flags.get("--index-start") {
         plan = plan.with_index_start(start.parse()?)?;
     }
-    let store = Store::open(&PathBuf::from(flag("--store")?), &StoreConfig::standard())?;
-    let mut paths: Vec<PathBuf> = fs::read_dir(flag("--records")?)?
-        .map(|entry| entry.map(|entry| entry.path()))
-        .collect::<Result<_, _>>()?;
-    paths.sort();
+    let json_paths = |dir: String| -> Result<Vec<PathBuf>, Box<dyn Error>> {
+        let mut paths: Vec<PathBuf> = fs::read_dir(dir)?
+            .map(|entry| entry.map(|entry| entry.path()))
+            .collect::<Result<_, _>>()?;
+        paths.sort();
+        Ok(paths)
+    };
     let mut stages = Vec::new();
-    for path in &paths {
-        let record = Json::parse(&fs::read(path)?)?;
-        stages.push(replay_account_stage(
-            &store, &providers, &plan, None, &record,
-        )?);
+    match (
+        flags.contains_key("--records"),
+        flags.contains_key("--extracts"),
+    ) {
+        (true, false) => {
+            let store = Store::open(&PathBuf::from(flag("--store")?), &StoreConfig::standard())?;
+            for path in &json_paths(flag("--records")?)? {
+                let record = Json::parse(&fs::read(path)?)?;
+                stages.push(replay_account_stage(
+                    &store, &providers, &plan, None, &record,
+                )?);
+            }
+        }
+        (false, true) => {
+            let mut extracts = Vec::new();
+            for path in &json_paths(flag("--extracts")?)? {
+                extracts.push(Json::parse(&fs::read(path)?)?);
+            }
+            for (record, stage) in extract_stages(&providers, &[], &plan, extracts)? {
+                if record.str_field("stage")? != "ACCOUNT_INDEX" {
+                    return Err("candidates take ACCOUNT_INDEX extracts only".into());
+                }
+                stages.push(stage);
+            }
+        }
+        _ => return Err("exactly one of --records and --extracts is required".into()),
     }
     let (candidates, facts) = derive_candidates(&stages, &plan)?;
     fs::write(PathBuf::from(flag("--out")?), candidates.to_jsonl()?)?;
