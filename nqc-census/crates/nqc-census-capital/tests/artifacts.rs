@@ -40,7 +40,9 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
 }
 
-fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
+fn authority_for(
+    ledger: &CapitalCensusLedger,
+) -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
         let value = u64::try_from(index + 1).map_err(|_| {
@@ -85,15 +87,11 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
         ))?
         .artifact_sha256;
     CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc008StateAdmission,
-            d08_artifact,
-            hash(80),
-        )?,
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc009PositionUniverse,
+        UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+        UpstreamConsumptionReceipt::for_requirements(
             d09_artifact,
             hash(81),
+            ledger.requirements(),
         )?,
     ])
 }
@@ -156,7 +154,7 @@ fn capital_artifacts_are_deterministic_and_complete() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let authority = authority()?;
+    let authority = authority_for(&ledger)?;
     let first = export_capital_artifacts(&ledger, &authority, &provenance)?;
     let second = export_capital_artifacts(&ledger, &authority, &provenance)?;
     assert_eq!(first, second);
@@ -196,7 +194,7 @@ fn jsonl_records_carry_exact_anchor_and_provenance() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
     let text = std::str::from_utf8(&sources.bytes)?;
     assert!(text.contains("\"block_number\":25437474"));
@@ -238,7 +236,8 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&source_only, &authority()?, &provenance)?;
+    let bundle =
+        export_capital_artifacts(&source_only, &authority_for(&source_only)?, &provenance)?;
     assert!(bundle
         .file(CAPITAL_REQUIREMENTS_FILE)
         .ok_or("missing requirements")?
@@ -315,7 +314,7 @@ fn blocked_source_bundle_roundtrips_offline_and_preserves_execution_rejection() 
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let verified = verify_capital_artifact_bundle(&bundle)?;
     assert_eq!(verified.source_count, 1);
     assert_eq!(verified.requirement_count, 1);
@@ -344,7 +343,7 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
     let ledger = ledger()?;
     let a = export_capital_artifacts(
         &ledger,
-        &authority()?,
+        &authority_for(&ledger)?,
         &ArtifactProvenance::new(
             "A",
             "0123456789abcdef0123456789abcdef01234567",
@@ -353,7 +352,7 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
     )?;
     let b = export_capital_artifacts(
         &ledger,
-        &authority()?,
+        &authority_for(&ledger)?,
         &ArtifactProvenance::new(
             "B",
             "0123456789abcdef0123456789abcdef01234567",
@@ -379,7 +378,7 @@ fn synthetic_ledger_cannot_export_evidentiary_artifacts() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    assert!(export_capital_artifacts(&ledger, &authority()?, &provenance).is_err());
+    assert!(export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance).is_err());
     Ok(())
 }
 
@@ -391,7 +390,7 @@ fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let verified = verify_capital_artifact_bundle(&bundle)?;
     assert_eq!(verified.source_count, 1);
     assert_eq!(verified.requirement_count, 1);
@@ -410,7 +409,7 @@ fn offline_artifact_verifier_rejects_tampered_bytes() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let sources = bundle
         .files
         .iter_mut()
@@ -434,7 +433,7 @@ fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResul
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let manifest = bundle
         .files
         .iter_mut()
@@ -462,7 +461,7 @@ fn offline_artifact_verifier_rejects_noncanonical_jsonl() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let sources = bundle
         .files
         .iter_mut()
@@ -531,7 +530,7 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
 
     let bundle = export_capital_artifacts(
         &ledger,
-        &authority()?,
+        &authority_for(&ledger)?,
         &ArtifactProvenance::new(
             "t",
             "0123456789abcdef0123456789abcdef01234567",
@@ -586,7 +585,7 @@ fn source_artifact_exposes_full_capital_semantics() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
     let text = std::str::from_utf8(&sources.bytes)?;
     for field in [
@@ -624,7 +623,7 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let upstream = bundle
         .file(CAPITAL_UPSTREAM_AUTHORITY_FILE)
         .ok_or("missing upstream authority artifact")?;
@@ -635,9 +634,11 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
             "missing upstream authority stage {stage}"
         );
     }
-    assert!(text.contains("\"schema_version\":5"));
+    assert!(text.contains("\"schema_version\":6"));
     assert!(text.contains("\"consumption_receipts\""));
     assert!(text.contains("\"coverage_commitment\""));
+    assert!(text.contains("\"output_count\""));
+    assert!(text.contains("\"output_set_commitment\""));
     assert!(text.contains("\"generated_at\":\"2026-09-29T00:00:00Z\""));
     assert!(text.contains("\"code_commit\":\"0123456789abcdef0123456789abcdef01234567\""));
     assert!(text.contains("\"code_tree\":\"89abcdef0123456789abcdef0123456789abcdef\""));
@@ -658,7 +659,7 @@ fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestRe
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
 
     let authority_index = bundle
         .files
@@ -720,7 +721,7 @@ fn offline_verifier_rejects_rehashed_feasibility_allocation_substitution() -> Te
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
 
     let feasibility_index = bundle
         .files

@@ -36,8 +36,9 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
 }
 
-fn certification_context() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError>
-{
+fn certification_context_for(
+    ledger: &CapitalCensusLedger,
+) -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
         let nibble = u8::try_from(index + 1).map_err(|_| {
@@ -76,15 +77,11 @@ fn certification_context() -> Result<CapitalCertificationContext, nqc_census_cap
         ))?
         .artifact_sha256;
     CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc008StateAdmission,
-            d08_artifact,
-            hash(80),
-        )?,
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc009PositionUniverse,
+        UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+        UpstreamConsumptionReceipt::for_requirements(
             d09_artifact,
             hash(81),
+            ledger.requirements(),
         )?,
     ])
 }
@@ -1170,7 +1167,7 @@ fn fee_rounding_matches_protocol_integer_semantics() -> TestResult {
 fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult {
     let ledger = CapitalCensusLedger::synthetic_fixture();
     assert!(matches!(
-        ledger.certify(&certification_context()?),
+        ledger.certify(&certification_context_for(&ledger)?),
         Err(nqc_census_capital::CapitalError::NonEvidentiaryLedger)
     ));
     Ok(())
@@ -1190,7 +1187,7 @@ fn evidentiary_certification_requires_consumed_d08_and_d09_receipts() -> TestRes
     ledger.register_source(external)?;
     ledger.evaluate_all()?;
 
-    let context = certification_context()?;
+    let context = certification_context_for(&ledger)?;
     let bare = CapitalCertificationContext::new(
         context.stages().to_vec(),
         context.admitted_evidence().copied().collect(),
@@ -1204,7 +1201,8 @@ fn evidentiary_certification_requires_consumed_d08_and_d09_receipts() -> TestRes
 
 #[test]
 fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> TestResult {
-    let context = certification_context()?;
+    let ledger = CapitalCensusLedger::evidentiary();
+    let context = certification_context_for(&ledger)?;
     let stages = context.stages().to_vec();
     let admitted_evidence = context.admitted_evidence().copied().collect::<Vec<_>>();
     let d08_artifact = stages
@@ -1221,15 +1219,11 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
     let wrong_authority =
         CapitalCertificationContext::new(stages.clone(), admitted_evidence.clone())?
             .with_consumption_receipts(vec![
-                UpstreamConsumptionReceipt::new(
-                    UpstreamCensusStage::Rmc008StateAdmission,
-                    hash(90),
-                    hash(80),
-                )?,
-                UpstreamConsumptionReceipt::new(
-                    UpstreamCensusStage::Rmc009PositionUniverse,
+                UpstreamConsumptionReceipt::for_sources(hash(90), hash(80), ledger.sources())?,
+                UpstreamConsumptionReceipt::for_requirements(
                     d09_artifact,
                     hash(81),
+                    ledger.requirements(),
                 )?,
             ]);
     assert!(matches!(
@@ -1239,16 +1233,8 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
 
     let duplicate = CapitalCertificationContext::new(stages, admitted_evidence)?
         .with_consumption_receipts(vec![
-            UpstreamConsumptionReceipt::new(
-                UpstreamCensusStage::Rmc008StateAdmission,
-                d08_artifact,
-                hash(80),
-            )?,
-            UpstreamConsumptionReceipt::new(
-                UpstreamCensusStage::Rmc008StateAdmission,
-                d08_artifact,
-                hash(82),
-            )?,
+            UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+            UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(82), ledger.sources())?,
         ]);
     assert!(matches!(
         duplicate,
@@ -1258,10 +1244,90 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
 }
 
 #[test]
+fn certification_rejects_source_or_requirement_sets_not_consumed_upstream() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    let mut admitted = CapitalCensusLedger::evidentiary();
+    admitted.register_source(first.clone())?;
+    admitted.evaluate_all()?;
+    let authority = certification_context_for(&admitted)?;
+
+    let second = source(
+        CapitalClass::AtomicFlashLiquidity,
+        token,
+        2_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let mut extra_source = CapitalCensusLedger::evidentiary();
+    extra_source.register_source(first.clone())?;
+    extra_source.register_source(second)?;
+    extra_source.evaluate_all()?;
+    assert!(matches!(
+        extra_source.certify(&authority),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+
+    let req = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            repayment_leg(token)?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let mut extra_requirement = CapitalCensusLedger::evidentiary();
+    extra_requirement.register_source(first)?;
+    extra_requirement.register_requirement(req)?;
+    extra_requirement.evaluate_all()?;
+    assert!(matches!(
+        extra_requirement.certify(&authority),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn consumed_output_set_commitment_is_order_independent() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let second = source(
+        CapitalClass::AtomicFlashLiquidity,
+        token,
+        2_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let left = UpstreamConsumptionReceipt::for_sources(hash(23), hash(80), [&first, &second])?;
+    let right = UpstreamConsumptionReceipt::for_sources(hash(23), hash(80), [&second, &first])?;
+    assert_eq!(left.output_count(), 2);
+    assert_eq!(left.output_set_commitment(), right.output_set_commitment());
+    Ok(())
+}
+
+#[test]
 fn evidentiary_ledger_requires_nonempty_source_census() -> TestResult {
     let ledger = CapitalCensusLedger::evidentiary();
     assert!(matches!(
-        ledger.certify(&certification_context()?),
+        ledger.certify(&certification_context_for(&ledger)?),
         Err(nqc_census_capital::CapitalError::EmptyCapitalCensus)
     ));
     Ok(())
@@ -1281,7 +1347,7 @@ fn evidentiary_source_census_can_certify_without_actionable_requirements() -> Te
     let mut ledger = CapitalCensusLedger::evidentiary();
     ledger.register_source(external)?;
     ledger.evaluate_all()?;
-    let certificate = ledger.certify(&certification_context()?)?;
+    let certificate = ledger.certify(&certification_context_for(&ledger)?)?;
 
     assert_eq!(certificate.summary.source_count, 1);
     assert_eq!(certificate.summary.requirement_count, 0);
@@ -1323,11 +1389,11 @@ fn evidentiary_ledger_certifies_only_after_evaluation() -> TestResult {
     ledger.register_source(external)?;
     ledger.register_requirement(req)?;
     assert!(matches!(
-        ledger.certify(&certification_context()?),
+        ledger.certify(&certification_context_for(&ledger)?),
         Err(nqc_census_capital::CapitalError::UnevaluatedRequirement)
     ));
     ledger.evaluate_all()?;
-    let certificate = ledger.certify(&certification_context()?)?;
+    let certificate = ledger.certify(&certification_context_for(&ledger)?)?;
     assert!(certificate.summary.is_conserved());
     assert!(certificate.summary.proves_zero_own_capital());
     assert_eq!(certificate.summary.feasible_count, 1);
@@ -1429,7 +1495,7 @@ fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
     ledger.register_requirement(req)?;
     ledger.evaluate_all()?;
     assert!(matches!(
-        ledger.certify(&certification_context()?),
+        ledger.certify(&certification_context_for(&ledger)?),
         Err(CapitalError::SettlementRequirementMismatch)
     ));
     Ok(())
@@ -1524,7 +1590,8 @@ fn no_repayment_gas_sponsor_fee_must_still_be_declared() -> TestResult {
 
 #[test]
 fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResult {
-    let context = certification_context()?;
+    let ledger = CapitalCensusLedger::evidentiary();
+    let context = certification_context_for(&ledger)?;
     assert_eq!(context.stages().len(), 5);
 
     let incomplete = CapitalCertificationContext::new(context.stages()[..4].to_vec(), evidence());
@@ -1548,7 +1615,8 @@ fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResul
 
 #[test]
 fn certification_context_requires_every_stage_artifact_in_evidence_catalog() -> TestResult {
-    let context = certification_context()?;
+    let ledger = CapitalCensusLedger::evidentiary();
+    let context = certification_context_for(&ledger)?;
     let stages = context.stages().to_vec();
     let mut admitted_evidence = evidence();
     admitted_evidence.extend(

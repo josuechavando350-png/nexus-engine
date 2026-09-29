@@ -74,10 +74,10 @@ impl D09DemandImport {
     }
 
     pub fn consumption_receipt(&self) -> Result<UpstreamConsumptionReceipt, CapitalError> {
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc009PositionUniverse,
+        UpstreamConsumptionReceipt::for_requirements(
             self.authority_artifact_sha256,
             self.coverage_commitment,
+            std::iter::empty::<&crate::CapitalRequirement>(),
         )
     }
 }

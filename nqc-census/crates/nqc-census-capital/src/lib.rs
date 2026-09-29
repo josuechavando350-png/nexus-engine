@@ -2626,13 +2626,94 @@ pub struct UpstreamConsumptionReceipt {
     stage: UpstreamCensusStage,
     authority_artifact_sha256: Hash32,
     coverage_commitment: Hash32,
+    output_count: u64,
+    output_set_commitment: Hash32,
+}
+
+fn consumed_id_set_commitment(
+    domain: &[u8],
+    ids: impl IntoIterator<Item = [u8; 32]>,
+) -> Result<(u64, Hash32), CapitalError> {
+    let mut ids = ids.into_iter().collect::<Vec<_>>();
+    ids.sort_unstable();
+    if ids.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "consumed output set contains duplicate identifiers",
+        ));
+    }
+    let count = u64::try_from(ids.len())
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("consumed output count exceeds u64"))?;
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    hasher.update([0]);
+    hasher.update(count.to_be_bytes());
+    for id in ids {
+        hasher.update(id);
+    }
+    let commitment = Hash32::new(finalize_sha256(hasher)).map_err(|_| {
+        CapitalError::InvalidUpstreamAuthority("zero consumed output set commitment")
+    })?;
+    Ok((count, commitment))
+}
+
+fn source_output_set_commitment<'a>(
+    sources: impl IntoIterator<Item = &'a CapitalSource>,
+) -> Result<(u64, Hash32), CapitalError> {
+    consumed_id_set_commitment(
+        b"NQC-RMC011-D08-SOURCE-SET-V1",
+        sources.into_iter().map(|source| *source.id().as_bytes()),
+    )
+}
+
+fn requirement_output_set_commitment<'a>(
+    requirements: impl IntoIterator<Item = &'a CapitalRequirement>,
+) -> Result<(u64, Hash32), CapitalError> {
+    consumed_id_set_commitment(
+        b"NQC-RMC011-D09-REQUIREMENT-SET-V1",
+        requirements
+            .into_iter()
+            .map(|requirement| *requirement.id().as_bytes()),
+    )
 }
 
 impl UpstreamConsumptionReceipt {
-    pub fn new(
+    pub fn for_sources<'a>(
+        authority_artifact_sha256: Hash32,
+        coverage_commitment: Hash32,
+        sources: impl IntoIterator<Item = &'a CapitalSource>,
+    ) -> Result<Self, CapitalError> {
+        let (output_count, output_set_commitment) = source_output_set_commitment(sources)?;
+        Self::from_parts(
+            UpstreamCensusStage::Rmc008StateAdmission,
+            authority_artifact_sha256,
+            coverage_commitment,
+            output_count,
+            output_set_commitment,
+        )
+    }
+
+    pub fn for_requirements<'a>(
+        authority_artifact_sha256: Hash32,
+        coverage_commitment: Hash32,
+        requirements: impl IntoIterator<Item = &'a CapitalRequirement>,
+    ) -> Result<Self, CapitalError> {
+        let (output_count, output_set_commitment) =
+            requirement_output_set_commitment(requirements)?;
+        Self::from_parts(
+            UpstreamCensusStage::Rmc009PositionUniverse,
+            authority_artifact_sha256,
+            coverage_commitment,
+            output_count,
+            output_set_commitment,
+        )
+    }
+
+    pub(crate) fn from_parts(
         stage: UpstreamCensusStage,
         authority_artifact_sha256: Hash32,
         coverage_commitment: Hash32,
+        output_count: u64,
+        output_set_commitment: Hash32,
     ) -> Result<Self, CapitalError> {
         if !matches!(
             stage,
@@ -2646,6 +2727,8 @@ impl UpstreamConsumptionReceipt {
             stage,
             authority_artifact_sha256,
             coverage_commitment,
+            output_count,
+            output_set_commitment,
         })
     }
 
@@ -2660,6 +2743,14 @@ impl UpstreamConsumptionReceipt {
     pub const fn coverage_commitment(self) -> Hash32 {
         self.coverage_commitment
     }
+
+    pub const fn output_count(self) -> u64 {
+        self.output_count
+    }
+
+    pub const fn output_set_commitment(self) -> Hash32 {
+        self.output_set_commitment
+    }
 }
 
 fn upstream_authority_commitment(
@@ -2668,7 +2759,7 @@ fn upstream_authority_commitment(
     consumption_receipts: &BTreeMap<UpstreamCensusStage, UpstreamConsumptionReceipt>,
 ) -> Result<Hash32, CapitalError> {
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V4");
+    hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V5");
     hasher.update([0]);
     for authority in stages {
         hasher.update([authority.stage.tag()]);
@@ -2705,6 +2796,8 @@ fn upstream_authority_commitment(
         hasher.update([receipt.stage.tag()]);
         hasher.update(receipt.authority_artifact_sha256.as_bytes());
         hasher.update(receipt.coverage_commitment.as_bytes());
+        hasher.update(receipt.output_count.to_be_bytes());
+        hasher.update(receipt.output_set_commitment.as_bytes());
     }
     Hash32::new(finalize_sha256(hasher))
         .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero authority commitment"))
@@ -3050,6 +3143,7 @@ impl CapitalCensusLedger {
                 "RMC-008 and RMC-009 consumption receipts are required for certification",
             ));
         }
+        self.validate_consumed_output_bindings(authority)?;
         self.validate_settlements()?;
         let summary = self.summary()?;
         if summary.source_count == 0 {
@@ -3061,6 +3155,42 @@ impl CapitalCensusLedger {
             upstream_authority_commitment: authority.commitment(),
             summary,
         })
+    }
+
+    fn validate_consumed_output_bindings(
+        &self,
+        authority: &CapitalCertificationContext,
+    ) -> Result<(), CapitalError> {
+        let d08 = authority
+            .consumption_receipts
+            .get(&UpstreamCensusStage::Rmc008StateAdmission)
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "RMC-008 consumption receipt missing",
+            ))?;
+        let (source_count, source_set_commitment) =
+            source_output_set_commitment(self.sources.values())?;
+        if d08.output_count != source_count || d08.output_set_commitment != source_set_commitment {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "capital source ledger does not equal the consumed RMC-008 source set",
+            ));
+        }
+
+        let d09 = authority
+            .consumption_receipts
+            .get(&UpstreamCensusStage::Rmc009PositionUniverse)
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "RMC-009 consumption receipt missing",
+            ))?;
+        let (requirement_count, requirement_set_commitment) =
+            requirement_output_set_commitment(self.requirements.values())?;
+        if d09.output_count != requirement_count
+            || d09.output_set_commitment != requirement_set_commitment
+        {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "capital requirement ledger does not equal the consumed RMC-009 requirement set",
+            ));
+        }
+        Ok(())
     }
 
     pub fn summary(&self) -> Result<CapitalCensusSummary, CapitalError> {
