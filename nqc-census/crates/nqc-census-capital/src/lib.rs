@@ -1889,7 +1889,10 @@ pub fn evaluate_capital_feasibility(
 
     for index in used_sources {
         let source = ordered[index];
-        if !has_leg(
+        if !matches!(
+            source.repayment(),
+            RepaymentSemantics::Persistent(_) | RepaymentSemantics::NoRepayment
+        ) && !has_leg(
             requirement,
             RequirementKind::Repayment,
             source.repayment_asset(),
