@@ -115,12 +115,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         .collect::<String>();
 
     println!(
-        "RMC_011_REAL_SOURCE_CLOSEOUT=PASS sources={} requirements={} feasible={} rejected={} d08_sources={} d09_requirements={} zero_own_capital_proven={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={} upstream_authority_lock_sha256={} closeout_commitment={} closeout_sha256={} closeout_path={}",
+        "RMC_011_REAL_SOURCE_CLOSEOUT=PASS sources={} requirements={} feasible={} rejected={} d08_candidates={} d08_admitted={} d08_rejected={} d09_borrowers={} d09_below_one={} d09_blocked={} d09_requirements={} zero_own_capital_proven={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={} upstream_authority_lock_sha256={} closeout_commitment={} closeout_sha256={} closeout_path={}",
         closeout.source_count,
         closeout.requirement_count,
         closeout.feasible_count,
         closeout.rejected_count,
+        closeout.d08_candidate_count,
         closeout.d08_source_count,
+        closeout.d08_rejected_count,
+        closeout.d09_borrower_count,
+        closeout.d09_below_one_count,
+        closeout.d09_blocked_count,
         closeout.d09_requirement_count,
         closeout.zero_own_capital_proven,
         closeout.capital_commitment,
