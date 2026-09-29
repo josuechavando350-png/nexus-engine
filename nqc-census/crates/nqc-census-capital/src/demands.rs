@@ -692,7 +692,12 @@ pub fn import_d09_borrower_demands(
         .iter()
         .map(|borrower| demand_candidate_id(borrower, anchor))
         .collect::<Result<Vec<_>, _>>()?;
-    if demand_candidate_ids.windows(2).any(|pair| pair[0] == pair[1]) {
+    let mut unique_candidate_ids = BTreeSet::new();
+    if demand_candidate_ids
+        .iter()
+        .copied()
+        .any(|candidate_id| !unique_candidate_ids.insert(candidate_id))
+    {
         return Err(CapitalError::InvalidCanonical(
             "duplicate RMC-009 demand candidate id",
         ));
