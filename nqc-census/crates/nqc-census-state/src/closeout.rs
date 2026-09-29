@@ -9,7 +9,7 @@ use crate::aave_verify::{verify_aave, AaveInputs, AaveOutcome};
 use crate::inputs::{D06Inputs, D07Inputs, PinnedFile};
 use crate::model::{MismatchLedger, StateAdmission, TokenAdmission};
 use crate::replay::{replay_stage, StagePlans};
-use crate::stage::{sha256_plain, AnchorPlan};
+use crate::stage::{observation_anchor, sha256_plain, AnchorPlan};
 use crate::v2_verify::{verify_v2, ReplayedStage, V2Inputs, V2Outcome};
 use nqc_census_chain::{json::Json, provider::ProviderSpec, ChainError};
 use nqc_census_core::{CensusStage, EvidenceRef, RejectionRecord, StageDomain, StageLedger};
@@ -227,6 +227,8 @@ pub struct Verified {
     pub v2: V2Outcome,
     pub records: usize,
     pub anchor_timestamp: u64,
+    /// The one canonical anchor every replayed stage was pinned to.
+    pub observation_anchor: Json,
 }
 
 /// Replays every record and verifies both adapters.
@@ -266,6 +268,13 @@ pub fn reconcile_offline(
     // Every stage is pinned to the same verified anchor; its timestamp comes
     // from the replayed header, never from configuration.
     let anchor_timestamp = anchor_timestamp(&aave_stages)?;
+    let parameters: Vec<&Json> = aave_stages
+        .iter()
+        .chain(&factory)
+        .chain(&state)
+        .map(|stage| &stage.parameters)
+        .collect();
+    let observation_anchor = observation_anchor(&parameters, anchor)?;
     let aave = verify_aave(&AaveInputs {
         deployment: d06.deployment.clone(),
         pool: d06.deployment.address(),
@@ -286,6 +295,7 @@ pub fn reconcile_offline(
         v2,
         records: records.len(),
         anchor_timestamp,
+        observation_anchor,
     })
 }
 
@@ -536,6 +546,7 @@ pub fn write_closeout(
         ("code_commit", Json::string(context.code_commit)),
         ("code_tree", Json::string(context.code_tree)),
         ("anchor_timestamp", Json::uint(verified.anchor_timestamp)),
+        ("observation_anchor", verified.observation_anchor.clone()),
         ("stage_records", Json::uint(verified.records as u64)),
         (
             "aave_markets",
@@ -595,6 +606,7 @@ pub fn write_closeout(
         ("generated_at", Json::string(generated_at)),
         ("code_commit", Json::string(context.code_commit)),
         ("code_tree", Json::string(context.code_tree)),
+        ("observation_anchor", verified.observation_anchor.clone()),
         (
             "store_evidence_root",
             Json::string(context.store_evidence_root),

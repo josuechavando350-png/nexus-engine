@@ -164,7 +164,18 @@ Written twice offline (no network namespace) and compared byte for byte:
 `field-basis.json`,
 `state-summary.json`, `evidence-manifest.json` (input pins, stage manifests,
 store evidence root, artifact digests). `generated_at` is the anchor block
-timestamp. An independent Python pass recounts markets, re-derives every V2
+timestamp.
+
+Both the summary and the evidence manifest carry one canonical
+`observation_anchor` — `chain_id`, `genesis_hash`, `fork_lineage`,
+`block_number`, `block_hash`, `parent_hash`, `timestamp`, `state_root` —
+taken from the replayed stage records: every stage record names its chain
+domain and verified anchor block, all of them must be identical, and the
+block must be the declared anchor; otherwise reconciliation fails.
+`pool-and-factory-facts.json` names the raw `FLASHLOAN_PREMIUM_TOTAL()`
+getter outcome as `flashloan_premium_total` (status `NOT_EXPOSED_BY_IMPLEMENTATION`
+when the implementation's selectors do not include it); it is never
+decoded, inferred or defaulted here. An independent Python pass recounts markets, re-derives every V2
 balance excess and re-hashes every artifact.
 
 PASS requires zero unexplained mismatches, zero `UNKNOWN` rejections,

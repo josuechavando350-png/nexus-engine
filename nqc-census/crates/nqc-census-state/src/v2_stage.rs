@@ -11,12 +11,12 @@
 //! explicit status. Nothing is assumed about a token that did not answer.
 
 use crate::stage::{
-    address_json, index_partition, record, sha256_plain, stage_anchor, untrusted_call,
+    address_json, chain_json, index_partition, record, sha256_plain, stage_anchor, untrusted_call,
     untrusted_calls, AnchorPlan, Untrusted,
 };
 use nqc_census_chain::{
     abi,
-    acquire::Acquisition,
+    acquire::{anchor_record, Acquisition},
     hex,
     job::{chain_read_semantics, JobSpec},
     json::Json,
@@ -292,6 +292,8 @@ pub fn v2_factory_stage(
     let parameters = Json::object([
         ("factory", address_json(plan.factory)),
         ("anchor", Json::uint(plan.anchor.number)),
+        ("anchor_block", anchor_record(&anchor)),
+        ("chain_domain", chain_json(&chain)),
         (
             "samples",
             Json::array(samples.iter().map(|pair| address_json(*pair))),
@@ -430,6 +432,8 @@ pub fn v2_state_stage(
         ("partitions", Json::uint(partitions)),
         ("job_size", Json::uint(plan.job_size as u64)),
         ("anchor", Json::uint(plan.anchor.number)),
+        ("anchor_block", anchor_record(&anchor)),
+        ("chain_domain", chain_json(&chain)),
         (
             "gas_bound",
             Json::uint(untrusted_call().gas_limit().unwrap_or(0)),
