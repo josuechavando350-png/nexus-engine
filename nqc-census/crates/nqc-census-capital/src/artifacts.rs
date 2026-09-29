@@ -863,35 +863,31 @@ fn parse_upstream_authority(
         ))?;
     let mut consumption_receipts = Vec::with_capacity(receipt_rows.len());
     for row in receipt_rows {
-        let stage = UpstreamCensusStage::parse_code(
-            row.str_field("stage").map_err(|_| {
-                CapitalError::InvalidUpstreamAuthority("consumption receipt stage missing")
-            })?,
-        )?;
-        let authority_artifact_sha256 = Hash32::parse_hex(
-            row.str_field("authority_artifact_sha256").map_err(|_| {
+        let stage = UpstreamCensusStage::parse_code(row.str_field("stage").map_err(|_| {
+            CapitalError::InvalidUpstreamAuthority("consumption receipt stage missing")
+        })?)?;
+        let authority_artifact_sha256 =
+            Hash32::parse_hex(row.str_field("authority_artifact_sha256").map_err(|_| {
                 CapitalError::InvalidUpstreamAuthority(
                     "consumption receipt authority artifact missing",
                 )
-            })?,
-        )
-        .map_err(|_| {
-            CapitalError::InvalidUpstreamAuthority(
-                "invalid consumption receipt authority artifact",
-            )
-        })?;
-        let coverage_commitment = Hash32::parse_hex(
-            row.str_field("coverage_commitment").map_err(|_| {
+            })?)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "invalid consumption receipt authority artifact",
+                )
+            })?;
+        let coverage_commitment =
+            Hash32::parse_hex(row.str_field("coverage_commitment").map_err(|_| {
                 CapitalError::InvalidUpstreamAuthority(
                     "consumption receipt coverage commitment missing",
                 )
-            })?,
-        )
-        .map_err(|_| {
-            CapitalError::InvalidUpstreamAuthority(
-                "invalid consumption receipt coverage commitment",
-            )
-        })?;
+            })?)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "invalid consumption receipt coverage commitment",
+                )
+            })?;
         consumption_receipts.push(UpstreamConsumptionReceipt::new(
             stage,
             authority_artifact_sha256,
