@@ -9,7 +9,7 @@ use crate::{
     UpstreamCensusStage, UpstreamConsumptionReceipt, UpstreamStageAuthority,
 };
 use nqc_census_chain::json::Json;
-use nqc_census_core::Hash32;
+use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 
 #[derive(Debug, Clone, Copy)]
@@ -27,12 +27,13 @@ pub struct D09ReplayInputs<'a> {
     pub evidence_manifest_json: &'a [u8],
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UpstreamAuthorityLockEntry {
     pub stage: UpstreamCensusStage,
     pub code_commit: GitObjectId,
     pub code_tree: GitObjectId,
     pub artifact_sha256: Hash32,
+    pub observation_anchor: StateAnchor,
 }
 
 impl From<&UpstreamStageAuthority> for UpstreamAuthorityLockEntry {
@@ -42,6 +43,7 @@ impl From<&UpstreamStageAuthority> for UpstreamAuthorityLockEntry {
             code_commit: authority.code_commit,
             code_tree: authority.code_tree,
             artifact_sha256: authority.artifact_sha256,
+            observation_anchor: authority.observation_anchor.clone(),
         }
     }
 }
@@ -84,6 +86,7 @@ impl UpstreamAuthorityLock {
             hasher.update(entry.code_commit.as_bytes());
             hasher.update(entry.code_tree.as_bytes());
             hasher.update(entry.artifact_sha256.as_bytes());
+            hash_anchor(&mut hasher, &entry.observation_anchor);
         }
         let digest: [u8; 32] = hasher.finalize().into();
         let commitment = Hash32::new(digest).map_err(|_| {
@@ -124,6 +127,7 @@ impl UpstreamAuthorityLock {
                 || locked.code_commit != observed.code_commit
                 || locked.code_tree != observed.code_tree
                 || locked.artifact_sha256 != observed.artifact_sha256
+                || locked.observation_anchor != observed.observation_anchor
             {
                 return Err(CapitalError::InvalidUpstreamAuthority(
                     "upstream authority differs from external lock",
@@ -150,6 +154,10 @@ impl UpstreamAuthorityLock {
                         (
                             "artifact_sha256",
                             Json::string(entry.artifact_sha256.to_hex()),
+                        ),
+                        (
+                            "observation_anchor",
+                            authority_lock_anchor_json(&entry.observation_anchor),
                         ),
                     ])
                 })),
@@ -212,11 +220,17 @@ impl UpstreamAuthorityLock {
             .map_err(|_| {
                 CapitalError::InvalidCanonical("invalid authority lock artifact digest")
             })?;
+            let observation_anchor = parse_authority_lock_anchor(
+                row.get("observation_anchor").ok_or(CapitalError::InvalidCanonical(
+                    "authority lock observation anchor missing",
+                ))?,
+            )?;
             entries.push(UpstreamAuthorityLockEntry {
                 stage,
                 code_commit,
                 code_tree,
                 artifact_sha256,
+                observation_anchor,
             });
         }
         let lock = Self::new(entries)?;
@@ -230,6 +244,73 @@ impl UpstreamAuthorityLock {
         }
         Ok(lock)
     }
+}
+
+fn hash_anchor(hasher: &mut Sha256, anchor: &StateAnchor) {
+    hasher.update(anchor.chain().chain_id().to_be_bytes());
+    hasher.update(anchor.chain().genesis_hash().as_bytes());
+    hasher.update(anchor.chain().fork_lineage().as_bytes());
+    hasher.update(anchor.block_number().to_be_bytes());
+    hasher.update(anchor.block_hash().as_bytes());
+    hasher.update(anchor.parent_hash().as_bytes());
+    hasher.update(anchor.timestamp().to_be_bytes());
+    hasher.update(anchor.state_root().as_bytes());
+}
+
+fn authority_lock_anchor_json(anchor: &StateAnchor) -> Json {
+    Json::object([
+        ("chain_id", Json::uint(anchor.chain().chain_id())),
+        (
+            "genesis_hash",
+            Json::string(anchor.chain().genesis_hash().to_hex()),
+        ),
+        (
+            "fork_lineage",
+            Json::string(anchor.chain().fork_lineage().to_hex()),
+        ),
+        ("block_number", Json::uint(anchor.block_number())),
+        ("block_hash", Json::string(anchor.block_hash().to_hex())),
+        ("parent_hash", Json::string(anchor.parent_hash().to_hex())),
+        ("timestamp", Json::uint(anchor.timestamp())),
+        ("state_root", Json::string(anchor.state_root().to_hex())),
+    ])
+}
+
+fn lock_u64(value: &Json, key: &'static str) -> Result<u64, CapitalError> {
+    value
+        .get(key)
+        .and_then(Json::as_i64)
+        .and_then(|number| u64::try_from(number).ok())
+        .ok_or(CapitalError::InvalidCanonical(
+            "authority lock anchor integer missing",
+        ))
+}
+
+fn lock_hash(value: &Json, key: &'static str) -> Result<Hash32, CapitalError> {
+    Hash32::parse_hex(
+        value
+            .str_field(key)
+            .map_err(|_| CapitalError::InvalidCanonical("authority lock anchor hash missing"))?,
+    )
+    .map_err(|_| CapitalError::InvalidCanonical("invalid authority lock anchor hash"))
+}
+
+fn parse_authority_lock_anchor(value: &Json) -> Result<StateAnchor, CapitalError> {
+    let chain = ChainDomain::new(
+        lock_u64(value, "chain_id")?,
+        lock_hash(value, "genesis_hash")?,
+        lock_hash(value, "fork_lineage")?,
+    )
+    .map_err(|_| CapitalError::InvalidCanonical("invalid authority lock chain domain"))?;
+    StateAnchor::new(
+        chain,
+        lock_u64(value, "block_number")?,
+        lock_hash(value, "block_hash")?,
+        lock_hash(value, "parent_hash")?,
+        lock_u64(value, "timestamp")?,
+        lock_hash(value, "state_root")?,
+    )
+    .map_err(|_| CapitalError::InvalidCanonical("invalid authority lock observation anchor"))
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
