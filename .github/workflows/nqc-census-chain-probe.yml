@@ -1,0 +1,28 @@
+name: NQC Census chain capability probe (design evidence)
+
+on:
+  push:
+    branches:
+      - nqc/census-chain-probe-20260929
+    paths:
+      - .github/workflows/nqc-census-chain-probe.yml
+      - ci/nqc-census/probe/**
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Probe public providers (read-only)
+        run: python3 -u ci/nqc-census/probe/chain_capability_probe.py /tmp/nqc-chain-probe
+      - name: Preserve probe evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-census-chain-probe-${{ github.sha }}
+          path: /tmp/nqc-chain-probe
+          retention-days: 30
