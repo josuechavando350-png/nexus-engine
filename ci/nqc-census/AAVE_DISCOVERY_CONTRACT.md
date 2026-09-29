@@ -95,6 +95,23 @@ inferred from absence.
 - D05 admission is materialised from the observed code, configuration and
   oracle fingerprints, with every manifest as an evidence reference.
 
+## Public RPC load
+
+The workflow joins the repository-wide concurrency group
+`nqc-census-public-rpc` (`cancel-in-progress: false`): at most one live
+Census acquisition runs at a time and a running one is never cancelled.
+Log windows follow what each endpoint actually serves. mevblocker's window is
+its documented 10,000 blocks: at 250,000 blocks it answered `-32603 service
+temporarily unavailable` for about half of the windows (probe run
+36588018889), and because the chain layer retries a whole batch when any item
+is transient, D06 runs 36524919359 and 36526056098 exhausted their retry
+budget. At 10,000 blocks, batched 100 per request, the same three filters
+over the same range came back with zero failed items (probe run 36589205446).
+A transient failure is retried and then resumed from committed RMC-004
+checkpoints; it is never read as an empty range. Evidence, with an index of
+every file's sha256, is uploaded even when the run fails, under a name
+carrying the exact head, run id and attempt.
+
 ## Crash/resume equivalence (offline, no network)
 
 `nqc-rmc006-aave-resume-check` runs inside a network namespace with no

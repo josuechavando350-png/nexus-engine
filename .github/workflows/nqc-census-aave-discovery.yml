@@ -17,6 +17,12 @@ on:
 permissions:
   contents: read
 
+# Live Census acquisitions share constrained public RPC endpoints: one at a
+# time across the repository, and a running acquisition is never cancelled.
+concurrency:
+  group: nqc-census-public-rpc
+  cancel-in-progress: false
+
 jobs:
   aave-discovery:
     runs-on: ubuntu-24.04
@@ -222,11 +228,46 @@ jobs:
           target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/final-store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/final-store-verify.log"
 
-      - name: Preserve D06 current-surface evidence
+      - name: Index D06 evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D06_EVIDENCE"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          python3 - "$D06_EVIDENCE" "$HEAD_SHA" "$(git show -s --format=%T HEAD)" <<'PY'
+          import hashlib, json, os, sys
+          root, head, tree = sys.argv[1:4]
+          files = []
+          for base, _, names in os.walk(root):
+              for name in names:
+                  path = os.path.join(base, name)
+                  rel = os.path.relpath(path, root)
+                  if rel == "evidence-index.json":
+                      continue
+                  with open(path, "rb") as handle:
+                      files.append({"path": rel, "sha256": hashlib.sha256(handle.read()).hexdigest(),
+                                    "size": os.path.getsize(path)})
+          files.sort(key=lambda item: item["path"])
+          index = {"schema": "nqc-rmc006-evidence-index-v1", "code_commit": head, "code_tree": tree,
+                   "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+                   "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+                   "job_status": os.environ["JOB_STATUS"], "files": files}
+          with open(os.path.join(root, "evidence-index.json"), "w") as handle:
+              json.dump(index, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          print(f"RMC006_EVIDENCE_INDEX files={len(files)} status={index['job_status']}")
+          PY
+        env:
+          JOB_STATUS: ${{ job.status }}
+
+      - name: Preserve D06 evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nqc-rmc006-current-${{ github.event.pull_request.head.sha || github.sha }}
+          # Stage, exact head, run and attempt: a re-run never overwrites the
+          # evidence of the attempt it follows.
+          name: nqc-rmc006-evidence-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: /tmp/nqc-rmc006-evidence
           if-no-files-found: warn
           retention-days: 30

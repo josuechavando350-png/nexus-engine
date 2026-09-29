@@ -9,7 +9,8 @@
       "operator": "MEV Blocker public RPC",
       "min_interval_ms": 1250,
       "max_batch": 100,
-      "log_window": 250000,
+      "log_window": 10000,
+      "log_window_basis": "Provider-documented 10,000-block eth_getLogs window. Probe run 36588018889 measured -32603 'service temporarily unavailable' for about half of the 250,000-block windows (random, fast), which with whole-batch retry exhausted D06 runs 36524919359 and 36526056098; probe run 36589205446 scanned the same lineage, ReserveInitialized and ReserveDropped filters over 16,291,000..25,437,474 in 915 windows each, batched 100 per request, with zero failed items.",
       "pinning": "EIP1898_BLOCK_HASH"
     },
     {
