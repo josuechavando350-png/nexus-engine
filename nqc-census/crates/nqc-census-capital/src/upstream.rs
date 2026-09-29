@@ -189,11 +189,7 @@ fn push_source(
 }
 
 fn write_len_prefixed(hasher: &mut Sha256, value: &[u8]) {
-    hasher.update(
-        u64::try_from(value.len())
-            .unwrap_or(u64::MAX)
-            .to_be_bytes(),
-    );
+    hasher.update(u64::try_from(value.len()).unwrap_or(u64::MAX).to_be_bytes());
     hasher.update(value);
 }
 

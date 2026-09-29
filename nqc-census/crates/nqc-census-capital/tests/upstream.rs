@@ -220,7 +220,6 @@ fn d08_import_requires_token_admission_row_for_every_source_asset() -> TestResul
     Ok(())
 }
 
-
 #[test]
 fn d08_import_coverage_is_order_independent_and_conserved() -> TestResult {
     let aave_asset = address(20);
