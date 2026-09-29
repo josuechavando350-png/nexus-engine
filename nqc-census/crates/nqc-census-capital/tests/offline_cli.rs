@@ -57,6 +57,7 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
                     "offline CLI test artifact ordinal overflow",
                 )
             })?),
+            anchor(),
             0,
             0,
             true,

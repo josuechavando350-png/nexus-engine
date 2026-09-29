@@ -6,7 +6,7 @@ use crate::{
     UpstreamStageAuthority,
 };
 use nqc_census_chain::json::Json;
-use nqc_census_core::{Hash32, StateAnchor};
+use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -531,7 +531,7 @@ pub fn export_capital_artifacts(
     );
 
     let summary_json = Json::object([
-        ("schema_version", Json::uint(1)),
+        ("schema_version", Json::uint(2)),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -679,6 +679,10 @@ fn upstream_authority_json(authority: &CapitalCertificationContext) -> Json {
                         Json::string(stage.artifact_sha256.to_hex()),
                     ),
                     (
+                        "observation_anchor",
+                        anchor_json(&stage.observation_anchor),
+                    ),
+                    (
                         "unresolved_mismatch_count",
                         Json::uint(stage.unresolved_mismatch_count),
                     ),
@@ -697,7 +701,7 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
     let parsed = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid upstream authority JSON"))?;
     require_canonical_json(bytes, &parsed)?;
-    if json_u64(&parsed, "schema_version")? != 1 {
+    if json_u64(&parsed, "schema_version")? != 2 {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "unsupported upstream authority schema",
         ));
@@ -733,11 +737,17 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
         let admitted = row.get("admitted").and_then(Json::as_bool).ok_or(
             CapitalError::InvalidUpstreamAuthority("upstream admitted flag missing"),
         )?;
+        let observation_anchor = parse_anchor_json(
+            row.get("observation_anchor").ok_or(
+                CapitalError::InvalidUpstreamAuthority("observation anchor missing"),
+            )?,
+        )?;
         authorities.push(UpstreamStageAuthority::new(
             stage,
             code_commit,
             code_tree,
             artifact_sha256,
+            observation_anchor,
             json_u64(row, "unresolved_mismatch_count")?,
             json_u64(row, "unknown_failure_count")?,
             admitted,
@@ -1114,6 +1124,49 @@ fn rejection_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance
         }
         CapitalFeasibility::Feasible { .. } => Json::Null,
     }
+}
+
+fn parse_anchor_json(value: &Json) -> Result<StateAnchor, CapitalError> {
+    let chain = ChainDomain::new(
+        json_u64(value, "chain_id")?,
+        Hash32::parse_hex(
+            value
+                .str_field("genesis_hash")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("genesis hash missing"))?,
+        )
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid genesis hash"))?,
+        Hash32::parse_hex(
+            value
+                .str_field("fork_lineage")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("fork lineage missing"))?,
+        )
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid fork lineage"))?,
+    )
+    .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid chain domain"))?;
+    StateAnchor::new(
+        chain,
+        json_u64(value, "block_number")?,
+        Hash32::parse_hex(
+            value
+                .str_field("block_hash")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("block hash missing"))?,
+        )
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid block hash"))?,
+        Hash32::parse_hex(
+            value
+                .str_field("parent_hash")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("parent hash missing"))?,
+        )
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid parent hash"))?,
+        json_u64(value, "timestamp")?,
+        Hash32::parse_hex(
+            value
+                .str_field("state_root")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("state root missing"))?,
+        )
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid state root"))?,
+    )
+    .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid observation anchor"))
 }
 
 fn anchor_json(anchor: &StateAnchor) -> Json {

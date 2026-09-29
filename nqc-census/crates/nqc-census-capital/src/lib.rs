@@ -2387,6 +2387,7 @@ pub struct UpstreamStageAuthority {
     pub code_commit: GitObjectId,
     pub code_tree: GitObjectId,
     pub artifact_sha256: Hash32,
+    pub observation_anchor: StateAnchor,
     pub unresolved_mismatch_count: u64,
     pub unknown_failure_count: u64,
     pub admitted: bool,
@@ -2398,6 +2399,7 @@ impl UpstreamStageAuthority {
         code_commit: GitObjectId,
         code_tree: GitObjectId,
         artifact_sha256: Hash32,
+        observation_anchor: StateAnchor,
         unresolved_mismatch_count: u64,
         unknown_failure_count: u64,
         admitted: bool,
@@ -2422,6 +2424,7 @@ impl UpstreamStageAuthority {
             code_commit,
             code_tree,
             artifact_sha256,
+            observation_anchor,
             unresolved_mismatch_count,
             unknown_failure_count,
             admitted,
@@ -2432,6 +2435,7 @@ impl UpstreamStageAuthority {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapitalCertificationContext {
     stages: Vec<UpstreamStageAuthority>,
+    observation_anchor: StateAnchor,
     commitment: Hash32,
 }
 
@@ -2458,22 +2462,42 @@ impl CapitalCertificationContext {
                 ));
             }
         }
+        let observation_anchor = stages
+            .first()
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "upstream authority stages are empty",
+            ))?
+            .observation_anchor
+            .clone();
+        if stages
+            .iter()
+            .any(|authority| authority.observation_anchor != observation_anchor)
+        {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "upstream stages do not share one exact observation anchor",
+            ));
+        }
 
         let mut hasher = Sha256::new();
-        hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V1");
+        hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V2");
         hasher.update([0]);
         for authority in &stages {
             hasher.update([authority.stage.tag()]);
             hasher.update(authority.code_commit.as_bytes());
             hasher.update(authority.code_tree.as_bytes());
             hasher.update(authority.artifact_sha256.as_bytes());
+            encode_anchor_into_hasher(&authority.observation_anchor, &mut hasher);
             hasher.update(authority.unresolved_mismatch_count.to_be_bytes());
             hasher.update(authority.unknown_failure_count.to_be_bytes());
             hasher.update([u8::from(authority.admitted)]);
         }
         let commitment = Hash32::new(finalize_sha256(hasher))
             .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero authority commitment"))?;
-        Ok(Self { stages, commitment })
+        Ok(Self {
+            stages,
+            observation_anchor,
+            commitment,
+        })
     }
 
     pub const fn commitment(&self) -> Hash32 {
@@ -2482,6 +2506,10 @@ impl CapitalCertificationContext {
 
     pub fn stages(&self) -> &[UpstreamStageAuthority] {
         &self.stages
+    }
+
+    pub const fn observation_anchor(&self) -> &StateAnchor {
+        &self.observation_anchor
     }
 }
 
@@ -2634,6 +2662,17 @@ impl CapitalCensusLedger {
         }
         if self.results.len() != self.requirements.len() {
             return Err(CapitalError::UnevaluatedRequirement);
+        }
+        if self
+            .sources
+            .values()
+            .any(|source| source.anchor() != authority.observation_anchor())
+            || self
+                .requirements
+                .values()
+                .any(|requirement| requirement.anchor() != authority.observation_anchor())
+        {
+            return Err(CapitalError::AnchorMismatch);
         }
         self.validate_settlements()?;
         let summary = self.summary()?;
@@ -2887,6 +2926,17 @@ fn encode_chain(chain: &ChainDomain, writer: &mut Writer) {
     writer.u64(chain.chain_id());
     writer.bytes(chain.genesis_hash().as_bytes());
     writer.bytes(chain.fork_lineage().as_bytes());
+}
+
+fn encode_anchor_into_hasher(anchor: &StateAnchor, hasher: &mut Sha256) {
+    hasher.update(anchor.chain().chain_id().to_be_bytes());
+    hasher.update(anchor.chain().genesis_hash().as_bytes());
+    hasher.update(anchor.chain().fork_lineage().as_bytes());
+    hasher.update(anchor.block_number().to_be_bytes());
+    hasher.update(anchor.block_hash().as_bytes());
+    hasher.update(anchor.parent_hash().as_bytes());
+    hasher.update(anchor.timestamp().to_be_bytes());
+    hasher.update(anchor.state_root().as_bytes());
 }
 
 fn encode_anchor(anchor: &StateAnchor, writer: &mut Writer) {
