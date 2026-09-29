@@ -12,8 +12,8 @@ pub use interface::{
     V2FactoryInterface,
 };
 pub use reconcile::{
-    reconcile, CurrentPair, Delta, DeltaKind, DirectLookupProof, PairCreatedProof,
-    PairManifest, Reconciliation, ReconciliationSummary, RuntimeCodeProof,
+    reconcile, CurrentPair, Delta, DeltaKind, DirectLookupProof, PairCreatedProof, PairManifest,
+    Reconciliation, ReconciliationSummary, RuntimeCodeProof,
 };
 
 use std::fmt::{Display, Formatter};
@@ -43,7 +43,9 @@ impl Display for DiscoveryError {
             }
             Self::ConflictingCreationLog => formatter.write_str("conflicting PairCreated log"),
             Self::ConflictingDirectLookup => formatter.write_str("conflicting getPair proof"),
-            Self::DirectLookupMismatch => formatter.write_str("getPair disagrees with discovered pair"),
+            Self::DirectLookupMismatch => {
+                formatter.write_str("getPair disagrees with discovered pair")
+            }
             Self::Admission(reason) => write!(formatter, "deployment admission rejected: {reason}"),
             Self::Core(reason) => write!(formatter, "core error: {reason}"),
             Self::Chain(reason) => write!(formatter, "chain error: {reason}"),

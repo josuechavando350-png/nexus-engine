@@ -127,7 +127,9 @@ fn validate_pair(
     token1: Address,
 ) -> Result<(), DiscoveryError> {
     if token0 >= token1 {
-        return Err(DiscoveryError::InvalidPair("token ordering is not canonical"));
+        return Err(DiscoveryError::InvalidPair(
+            "token ordering is not canonical",
+        ));
     }
     if pair == root || pair == token0 || pair == token1 {
         return Err(DiscoveryError::InvalidPair(
@@ -320,7 +322,9 @@ pub fn reconcile(
         return Err(DiscoveryError::Admission("not a Uniswap V2 deployment"));
     }
     if binding.discovery_root().kind() != DiscoveryRootKind::V2Factory {
-        return Err(DiscoveryError::Admission("discovery root is not a V2 factory"));
+        return Err(DiscoveryError::Admission(
+            "discovery root is not a V2 factory",
+        ));
     }
     if !binding
         .capabilities()
@@ -341,13 +345,7 @@ pub fn reconcile(
                 return Err(DiscoveryError::ConflictingEnumerationIndex);
             }
         }
-        let entry = insert_identity(
-            &mut by_pair,
-            root,
-            item.pair,
-            item.token0,
-            item.token1,
-        )?;
+        let entry = insert_identity(&mut by_pair, root, item.pair, item.token0, item.token1)?;
         if entry.current_index.is_some_and(|index| index != item.index) {
             return Err(DiscoveryError::ConflictingEnumerationIndex);
         }
@@ -369,13 +367,7 @@ pub fn reconcile(
             continue;
         }
         seen_logs.insert(coordinate, identity);
-        let entry = insert_identity(
-            &mut by_pair,
-            root,
-            event.pair,
-            event.token0,
-            event.token1,
-        )?;
+        let entry = insert_identity(&mut by_pair, root, event.pair, event.token0, event.token1)?;
         if entry.creation.is_some() {
             return Err(DiscoveryError::ConflictingCreationLog);
         }
@@ -455,8 +447,14 @@ pub fn reconcile(
         }
     }
 
-    let source_a_count = by_pair.values().filter(|pair| pair.current_index.is_some()).count();
-    let source_b_count = by_pair.values().filter(|pair| pair.creation.is_some()).count();
+    let source_a_count = by_pair
+        .values()
+        .filter(|pair| pair.current_index.is_some())
+        .count();
+    let source_b_count = by_pair
+        .values()
+        .filter(|pair| pair.creation.is_some())
+        .count();
     let source_c_count = by_pair
         .values()
         .filter(|pair| pair.direct_lookup_verified)

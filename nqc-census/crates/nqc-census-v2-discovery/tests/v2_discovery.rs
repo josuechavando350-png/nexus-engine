@@ -23,12 +23,7 @@ fn address(byte: u8) -> Address {
 fn admission() -> Result<nqc_census_core::AdmissionRecord, Box<dyn std::error::Error>> {
     let chain = ChainDomain::new(1, hash(1), hash(2))?;
     let factory = address(0x90);
-    let deployment = DeploymentKey::new(
-        chain.clone(),
-        ProtocolFamily::UniswapV2,
-        factory,
-        hash(3),
-    );
+    let deployment = DeploymentKey::new(chain.clone(), ProtocolFamily::UniswapV2, factory, hash(3));
     let root = DiscoveryRoot::new(DiscoveryRootKind::V2Factory, factory);
     let scope = UniverseScope::new(
         chain.clone(),
@@ -52,11 +47,7 @@ fn admission() -> Result<nqc_census_core::AdmissionRecord, Box<dyn std::error::E
         (AdapterCapability::EconomicClassification, false),
     ])?;
     let semantics = ObservationSemantics::new(hash(4), hash(5));
-    let capability_scope = CapabilityScope::new(
-        chain.clone(),
-        ProtocolFamily::UniswapV2,
-        1,
-    )?;
+    let capability_scope = CapabilityScope::new(chain.clone(), ProtocolFamily::UniswapV2, 1)?;
     registry.declare_supported_semantics(SupportedSemanticsProfile::new(
         capability_scope,
         ProxyKind::Direct,
@@ -66,9 +57,15 @@ fn admission() -> Result<nqc_census_core::AdmissionRecord, Box<dyn std::error::E
         hash(6),
         capabilities.clone(),
     ))?;
-    let creation = StateAnchor::new(chain.clone(), 100, hash(10), hash(9), 1_700_000_000, hash(11))?;
-    let observation =
-        StateAnchor::new(chain, 500, hash(12), hash(13), 1_700_010_000, hash(14))?;
+    let creation = StateAnchor::new(
+        chain.clone(),
+        100,
+        hash(10),
+        hash(9),
+        1_700_000_000,
+        hash(11),
+    )?;
+    let observation = StateAnchor::new(chain, 500, hash(12), hash(13), 1_700_010_000, hash(14))?;
     let binding = DeploymentBinding::new(
         deployment.clone(),
         root,
@@ -85,7 +82,10 @@ fn admission() -> Result<nqc_census_core::AdmissionRecord, Box<dyn std::error::E
         vec![EvidenceRef::Artifact(hash(7))],
     )?;
     let id = registry.admit(binding, None)?.id();
-    Ok(registry.record(id).ok_or("admission record missing")?.clone())
+    Ok(registry
+        .record(id)
+        .ok_or("admission record missing")?
+        .clone())
 }
 
 fn pair(index: u64, pair: u8, token0: u8, token1: u8) -> CurrentPair {

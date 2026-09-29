@@ -34,12 +34,16 @@ pub fn factory_interface() -> V2FactoryInterface {
 /// caller must additionally execute the selectors and reconcile their results.
 pub fn verify_factory_runtime(code: &[u8]) -> Result<(), DiscoveryError> {
     if code.is_empty() {
-        return Err(DiscoveryError::InvalidInterface("factory has no runtime code"));
+        return Err(DiscoveryError::InvalidInterface(
+            "factory has no runtime code",
+        ));
     }
     let declared = factory_interface();
     let scan = CodeScan::new(code);
     if scan.truncated_push() {
-        return Err(DiscoveryError::InvalidInterface("runtime has truncated PUSH data"));
+        return Err(DiscoveryError::InvalidInterface(
+            "runtime has truncated PUSH data",
+        ));
     }
     for selector in [
         declared.all_pairs_length,
@@ -88,7 +92,9 @@ pub fn decode_pair_created(
         return Err(DiscoveryError::InvalidInterface("removed PairCreated log"));
     }
     if log.emitter() != factory {
-        return Err(DiscoveryError::InvalidInterface("wrong PairCreated emitter"));
+        return Err(DiscoveryError::InvalidInterface(
+            "wrong PairCreated emitter",
+        ));
     }
     let topics = log.topics();
     if topics.len() != 3 {
