@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_AWAITING_CERTIFIED_UPSTREAM",
+  "blocked_reason": "D06 (PR 521) has no exact-head certified closeout yet; RMC-009 consumes only pinned, certified D06 artifacts",
+  "expected_anchor": {
+    "block_number": 25437474,
+    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+  },
+  "sources": [],
+  "files": []
+}

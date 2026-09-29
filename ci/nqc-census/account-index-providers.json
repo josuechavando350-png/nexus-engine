@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "purpose": "RMC009_ACCOUNT_INDEX_LOG_HINTS",
+  "measured_by": "design probe run 36590720390 (nqc/census-chain-probe-20260929, account_probe_v9.py)",
+  "independence": {
+    "claim": "DISTINCT_DECLARED_OPERATORS_ONLY",
+    "infrastructure_independence": "NOT_PROVEN"
+  },
+  "providers": [
+    {
+      "namespace": 258,
+      "label": "mevblocker-rpc",
+      "url": "https://rpc.mevblocker.io",
+      "operator": "MEV Blocker public RPC",
+      "min_interval_ms": 1250,
+      "max_batch": 4,
+      "log_window": 10000,
+      "log_window_basis": "Documented 10,000-block window; probe run 36589205446 scanned 915 such windows per filter with zero failed items. Probe run 36590720390 measured up to about 8,500 account logs (5.4 MB) per window, so a batch carries at most four windows.",
+      "pinning": "EIP1898_BLOCK_HASH"
+    },
+    {
+      "namespace": 260,
+      "label": "tenderly-public",
+      "url": "https://gateway.tenderly.co/public/mainnet",
+      "operator": "Tenderly public gateway",
+      "min_interval_ms": 250,
+      "max_batch": 1,
+      "log_window": 5000,
+      "log_window_basis": "Probe run 36590720390 served 10,000-block account-log windows (1,937 logs) in 0.6 s; half of that window bounds the densest measured windows below about 4,300 logs per response. Batching is not supported.",
+      "pinning": "NUMBER_WITH_HASH_GUARDS"
+    }
+  ]
+}
