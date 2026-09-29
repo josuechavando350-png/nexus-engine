@@ -300,10 +300,11 @@ fn upstream_replay_rejects_forged_committed_output_set() -> TestResult {
     ) = replay_context()?;
     let stages = context.stages().to_vec();
     let admitted_evidence = context.admitted_evidence().copied().collect::<Vec<_>>();
-    let d08_authority = stages
+    let d08_artifact = stages
         .iter()
         .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
-        .ok_or("missing D08 authority")?;
+        .ok_or("missing D08 authority")?
+        .artifact_sha256;
     let d09_receipt = context
         .consumption_receipts()
         .copied()
@@ -312,9 +313,9 @@ fn upstream_replay_rejects_forged_committed_output_set() -> TestResult {
     let forged = CapitalCertificationContext::new(stages, admitted_evidence)?
         .with_consumption_receipts(vec![
             UpstreamConsumptionReceipt::for_sources(
-                d08_authority.artifact_sha256,
+                d08_artifact,
                 hash(250),
-                std::iter::empty(),
+                std::iter::empty::<&nqc_census_capital::CapitalSource>(),
             )?,
             d09_receipt,
         ])?;
