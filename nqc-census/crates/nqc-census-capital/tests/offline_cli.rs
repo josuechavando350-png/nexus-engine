@@ -1,8 +1,8 @@
 use nqc_census_capital::{
     artifacts::{export_capital_artifacts, ArtifactProvenance, CAPITAL_SOURCES_FILE},
     Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
-    CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind, CapitalRequirement,
-    CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
+    CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind,
+    CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
     UpstreamStageAuthoritySpec, UtilizationConstraints,
