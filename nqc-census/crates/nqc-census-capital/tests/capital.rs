@@ -441,8 +441,18 @@ fn exact_gas_and_flash_sources_can_be_feasible() -> TestResult {
         vec![
             principal,
             gas,
-            repayment_leg(token)?,
-            repayment_leg(CapitalAsset::NativeGas)?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(500),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                CapitalAsset::NativeGas,
+                Amount256::from_u128(5),
+                vec![CapitalClass::GasFunding],
+            )?,
         ],
         RequiredAtomicity::SameTransaction,
         true,
@@ -561,7 +571,15 @@ fn mismatched_anchor_fails_closed() -> TestResult {
         vec![CapitalClass::FlashSwap],
     )?;
     let req = requirement(
-        vec![principal, repayment_leg(token)?],
+        vec![
+            principal,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+        ],
         RequiredAtomicity::SameTransaction,
         false,
     )?;
