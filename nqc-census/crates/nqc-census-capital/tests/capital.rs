@@ -441,8 +441,18 @@ fn exact_gas_and_flash_sources_can_be_feasible() -> TestResult {
         vec![
             principal,
             gas,
-            repayment_leg(token)?,
-            repayment_leg(CapitalAsset::NativeGas)?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(500),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                CapitalAsset::NativeGas,
+                Amount256::from_u128(5),
+                vec![CapitalClass::GasFunding],
+            )?,
         ],
         RequiredAtomicity::SameTransaction,
         true,
@@ -561,7 +571,15 @@ fn mismatched_anchor_fails_closed() -> TestResult {
         vec![CapitalClass::FlashSwap],
     )?;
     let req = requirement(
-        vec![principal, repayment_leg(token)?],
+        vec![
+            principal,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+        ],
         RequiredAtomicity::SameTransaction,
         false,
     )?;
@@ -1463,7 +1481,7 @@ fn settlement_obligations_separate_principal_repayment_from_funding_fee() -> Tes
 }
 
 #[test]
-fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
+fn wrong_settlement_amount_is_rejected_during_feasibility_not_certification() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
         RequirementKind::ActionPrincipal,
@@ -1495,8 +1513,68 @@ fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
     ledger.register_requirement(req)?;
     ledger.evaluate_all()?;
     assert!(matches!(
-        ledger.certify(&certification_context_for(&ledger)?),
-        Err(CapitalError::SettlementRequirementMismatch)
+        ledger.results().next(),
+        Some(CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        })
+    ));
+    let certificate = ledger.certify(&certification_context_for(&ledger)?)?;
+    assert_eq!(certificate.summary.feasible_count, 0);
+    assert_eq!(certificate.summary.rejected_count, 1);
+    Ok(())
+}
+
+#[test]
+fn missing_funding_fee_is_rejected_during_feasibility() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(1_000),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(1_000),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::ProtocolNativeFlashLoan,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(10_000),
+        fee_model: FeeModel::basis_points_with_rounding(5, RoundingMode::HalfUp)?,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        }
     ));
     Ok(())
 }
