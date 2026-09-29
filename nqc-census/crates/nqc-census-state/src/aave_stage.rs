@@ -6,7 +6,9 @@
 //! entry point the deployed version does not have; every present getter is
 //! called and kept as an exact outcome.
 
-use crate::stage::{address_json, record, sha256_plain, stage_anchor, untrusted_call, AnchorPlan};
+use crate::stage::{
+    address_json, chain_json, record, sha256_plain, stage_anchor, untrusted_call, AnchorPlan,
+};
 use crate::stage::{untrusted_calls, Untrusted};
 use crate::v2_stage::{
     address_field, decimals_field, uint_field, untrusted_decimals_field, untrusted_uint_field,
@@ -733,6 +735,7 @@ pub fn aave_state_stage(
         ("oracle", address_json(plan.oracle)),
         ("anchor", Json::uint(plan.anchor.number)),
         ("anchor_block", anchor_record(&anchor)),
+        ("chain_domain", chain_json(&chain)),
         ("reserves", reserves_json),
         (
             "gas_bound",

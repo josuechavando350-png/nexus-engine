@@ -257,6 +257,64 @@ pub fn outcome_parts(value: &Json) -> Result<(bool, Vec<u8>), ChainError> {
     }
 }
 
+/// A chain domain as canonical JSON.
+pub fn chain_json(chain: &ChainDomain) -> Json {
+    Json::object([
+        ("chain_id", Json::uint(chain.chain_id())),
+        ("genesis_hash", Json::string(chain.genesis_hash().to_hex())),
+        ("fork_lineage", Json::string(chain.fork_lineage().to_hex())),
+    ])
+}
+
+/// The one observation anchor every stage was pinned to, from the stages'
+/// replayed `chain_domain` and `anchor_block` parameters. Every stage must
+/// name the same chain domain and the same verified block, and the block
+/// must be the declared anchor.
+pub fn observation_anchor(parameters: &[&Json], declared: &AnchorPlan) -> Result<Json, ChainError> {
+    let mut seen = std::collections::BTreeSet::new();
+    let mut first = None;
+    for parameter in parameters {
+        let chain = parameter
+            .get("chain_domain")
+            .ok_or_else(|| ChainError::Evidence("stage record names no chain domain".into()))?;
+        let block = parameter
+            .get("anchor_block")
+            .ok_or_else(|| ChainError::Evidence("stage record names no anchor block".into()))?;
+        seen.insert((chain.canonical_string()?, block.canonical_string()?));
+        first.get_or_insert((chain, block));
+    }
+    let (Some((chain, block)), 1) = (first, seen.len()) else {
+        return Err(ChainError::Evidence(
+            "stage records disagree on the observation anchor (or there is none)".into(),
+        ));
+    };
+    let number = block
+        .get("number")
+        .and_then(Json::as_i64)
+        .and_then(|value| u64::try_from(value).ok());
+    if number != Some(declared.number) || block.str_field("hash")? != declared.hash.to_hex() {
+        return Err(ChainError::Evidence(
+            "stage anchor is not the declared observation anchor".into(),
+        ));
+    }
+    let field = |value: &Json, key: &str| {
+        value
+            .get(key)
+            .cloned()
+            .ok_or_else(|| ChainError::Evidence(format!("anchor field {key} missing")))
+    };
+    Ok(Json::object([
+        ("chain_id", field(chain, "chain_id")?),
+        ("genesis_hash", field(chain, "genesis_hash")?),
+        ("fork_lineage", field(chain, "fork_lineage")?),
+        ("block_number", field(block, "number")?),
+        ("block_hash", field(block, "hash")?),
+        ("parent_hash", field(block, "parent_hash")?),
+        ("timestamp", field(block, "timestamp")?),
+        ("state_root", field(block, "state_root")?),
+    ]))
+}
+
 pub fn address_json(address: Address) -> Json {
     Json::string(address.to_hex())
 }
@@ -276,6 +334,62 @@ mod tests {
         );
         assert_eq!(index_partition(2, 3, 4)?, None);
         assert!(index_partition(2, 4, 4).is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn one_observation_anchor_binds_every_stage() -> Result<(), ChainError> {
+        let declared = AnchorPlan::mainnet()?;
+        let block = |hash: &str| {
+            Json::object([
+                ("number", Json::uint(declared.number)),
+                ("hash", Json::string(hash)),
+                (
+                    "parent_hash",
+                    Json::string(format!("0x{}", "11".repeat(32))),
+                ),
+                ("timestamp", Json::uint(1_782_906_587)),
+                ("state_root", Json::string(format!("0x{}", "22".repeat(32)))),
+            ])
+        };
+        let chain = |id: u64| {
+            Json::object([
+                ("chain_id", Json::uint(id)),
+                (
+                    "genesis_hash",
+                    Json::string(format!("0x{}", "33".repeat(32))),
+                ),
+                (
+                    "fork_lineage",
+                    Json::string(format!("0x{}", "44".repeat(32))),
+                ),
+            ])
+        };
+        let stage = |chain: Json, block: Json| {
+            Json::object([("chain_domain", chain), ("anchor_block", block)])
+        };
+        let good = stage(chain(1), block(&declared.hash.to_hex()));
+        let anchor = observation_anchor(&[&good, &good], &declared)?;
+        assert_eq!(anchor.get("chain_id").and_then(Json::as_i64), Some(1));
+        assert_eq!(anchor.str_field("block_hash")?, declared.hash.to_hex());
+        for key in [
+            "genesis_hash",
+            "fork_lineage",
+            "block_number",
+            "parent_hash",
+            "timestamp",
+            "state_root",
+        ] {
+            assert!(anchor.get(key).is_some(), "{key}");
+        }
+        // Another chain domain, another block, no stage, a missing field.
+        let other_chain = stage(chain(10), block(&declared.hash.to_hex()));
+        assert!(observation_anchor(&[&good, &other_chain], &declared).is_err());
+        let other_block = stage(chain(1), block(&format!("0x{}", "55".repeat(32))));
+        assert!(observation_anchor(&[&other_block], &declared).is_err());
+        assert!(observation_anchor(&[], &declared).is_err());
+        let bare = Json::object([("anchor_block", block(&declared.hash.to_hex()))]);
+        assert!(observation_anchor(&[&bare], &declared).is_err());
         Ok(())
     }
 
