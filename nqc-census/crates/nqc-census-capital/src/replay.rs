@@ -290,18 +290,12 @@ impl UpstreamAuthorityLock {
                 )?)?;
             let unresolved_mismatch_count = lock_u64(row, "unresolved_mismatch_count")?;
             let unknown_failure_count = lock_u64(row, "unknown_failure_count")?;
-            let coverage_complete = row
-                .get("coverage_complete")
-                .and_then(Json::as_bool)
-                .ok_or(CapitalError::InvalidCanonical(
-                    "authority lock coverage flag missing",
-                ))?;
-            let admitted = row
-                .get("admitted")
-                .and_then(Json::as_bool)
-                .ok_or(CapitalError::InvalidCanonical(
-                    "authority lock admitted flag missing",
-                ))?;
+            let coverage_complete = row.get("coverage_complete").and_then(Json::as_bool).ok_or(
+                CapitalError::InvalidCanonical("authority lock coverage flag missing"),
+            )?;
+            let admitted = row.get("admitted").and_then(Json::as_bool).ok_or(
+                CapitalError::InvalidCanonical("authority lock admitted flag missing"),
+            )?;
             entries.push(UpstreamAuthorityLockEntry {
                 stage,
                 code_commit,
@@ -808,16 +802,10 @@ pub fn verify_real_source_closeout_for_code(
         d09_unavailable_count: verified.upstream.d09_unavailable_count,
         d09_blocked_count: verified.upstream.d09_blocked_count,
         d09_requirement_count: verified.upstream.d09_requirement_count,
-        d08_authority_artifact_sha256: verified
-            .upstream
-            .d08_receipt
-            .authority_artifact_sha256(),
+        d08_authority_artifact_sha256: verified.upstream.d08_receipt.authority_artifact_sha256(),
         d08_coverage_commitment: verified.upstream.d08_receipt.coverage_commitment(),
         d08_output_set_commitment: verified.upstream.d08_receipt.output_set_commitment(),
-        d09_authority_artifact_sha256: verified
-            .upstream
-            .d09_receipt
-            .authority_artifact_sha256(),
+        d09_authority_artifact_sha256: verified.upstream.d09_receipt.authority_artifact_sha256(),
         d09_coverage_commitment: verified.upstream.d09_receipt.coverage_commitment(),
         d09_output_set_commitment: verified.upstream.d09_receipt.output_set_commitment(),
         zero_own_capital_proven: verified.capital.zero_own_capital_proven,
