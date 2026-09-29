@@ -21,6 +21,8 @@ jobs:
     env:
       CHAIN_BASE: b5b5ef5c32203f0eaeb1238c32a0aa160affeb78
       RMC003_TYPED_AUTHORITY: 5e032b2a601a2368334477e6ad9ee5c5b7ba219a
+      # RMC-003.2 additively advanced nqc-census-core (log topic words).
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
       RMC005_MERGE: 5e856c3dc78902b055ed9878c117d3c1469a8fda
       RMC004_MERGE: ad6cb0366b42d4acc835545f3ba6c68324cadd89
       RMC003_MERGE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
@@ -96,7 +98,9 @@ jobs:
             ci/nqc-census/IDENTITY_CONTRACT.md ci/nqc-census/identity-vectors.json \
             nqc-census/rust-toolchain.toml nqc-census/crates/nqc-census-core/Cargo.toml \
             nqc-census/crates/nqc-census-core/src/identity.rs nqc-census/crates/nqc-census-core/tests/identity.rs
-          git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- nqc-census/crates/nqc-census-core
+          git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" "$RMC003_2_AUTHORITY"
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- nqc-census/crates/nqc-census-core
           git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md ci/nqc-census/TYPED_OBSERVATION_CONTRACT.md \
             ci/nqc-census/typed-observation-vectors.json ci/nqc-census/typed_observation_vectors.py \

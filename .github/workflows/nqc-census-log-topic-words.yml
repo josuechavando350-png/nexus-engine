@@ -1,0 +1,283 @@
+name: NQC RMC-003.2 Log Topic Words
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-log-topic-words.yml
+      - ci/nqc-census/LOG_TOPIC_WORD_CONTRACT.md
+      - ci/nqc-census/log_topic_word_vectors.py
+      - ci/nqc-census/log-topic-word-vectors.json
+      - ci/nqc-census/typed_observation_vectors.py
+      - ci/nqc-census/typed-observation-vectors.json
+      - nqc-census/crates/nqc-census-core/**
+      - nqc-census/crates/nqc-census-chain/src/job.rs
+      - nqc-census/crates/nqc-census-chain/tests/log_topic_words.rs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  log-topic-words:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      RMC003_2_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      RMC003_TYPED_AUTHORITY: 5e032b2a601a2368334477e6ad9ee5c5b7ba219a
+      RMC005_MERGE: 5e856c3dc78902b055ed9878c117d3c1469a8fda
+      RMC004_MERGE: ad6cb0366b42d4acc835545f3ba6c68324cadd89
+      RMC003_MERGE: 765dc30fdd178a4960ade1e106669eb0b023fbeb
+      RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
+      RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      CORE_TOPIC_TESTS_EXPECTED: "9"
+      CHAIN_TOPIC_TESTS_EXPECTED: "2"
+      TYPED_TESTS_EXPECTED: "14"
+      PIPELINE_TESTS_EXPECTED: "17"
+      EVIDENCE: /tmp/nqc-rmc003-2-evidence
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority lineage and exact scope
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE"
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          for ancestor in "$PFT_CERTIFIED_COMMIT" "$RMC001_MERGE" "$RMC002_MERGE" "$RMC003_MERGE" \
+                          "$RMC004_MERGE" "$RMC005_MERGE" "$RMC003_TYPED_AUTHORITY" "$RMC003_2_BASE" \
+                          "$RMC003_2_AUTHORITY"; do
+            git merge-base --is-ancestor "$ancestor" HEAD
+          done
+          git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" "$RMC003_2_AUTHORITY"
+          git merge-base --is-ancestor "$RMC003_2_BASE" "$RMC003_2_AUTHORITY"
+          python3 - <<'PY'
+          import os, subprocess
+          content = {
+              "ci/nqc-census/LOG_TOPIC_WORD_CONTRACT.md",
+              "ci/nqc-census/log_topic_word_vectors.py",
+              "ci/nqc-census/log-topic-word-vectors.json",
+              "nqc-census/crates/nqc-census-core/src/lib.rs",
+              "nqc-census/crates/nqc-census-core/src/observation.rs",
+              "nqc-census/crates/nqc-census-core/tests/log_topic_words.rs",
+              "nqc-census/crates/nqc-census-chain/src/job.rs",
+              "nqc-census/crates/nqc-census-chain/tests/log_topic_words.rs",
+          }
+          def names(*rev):
+              return set(subprocess.check_output(["git", "diff", "--name-only", *rev], text=True).splitlines())
+          authority = names(os.environ["RMC003_2_BASE"], os.environ["RMC003_2_AUTHORITY"])
+          assert authority == content, f"authority commit scope missing={sorted(content - authority)} extra={sorted(authority - content)}"
+          drift = names(os.environ["RMC003_2_AUTHORITY"], "HEAD", "--", *sorted(content))
+          assert not drift, f"authority content drifted after the pinned commit: {sorted(drift)}"
+          print(f"RMC_003_2_AUTHORITY_SCOPE_PASS files={len(content)}")
+          PY
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            if [ "${{ github.event.pull_request.base.sha }}" = "$RMC003_2_BASE" ]; then
+              python3 - <<'PY'
+          import subprocess
+          expected = {
+              ".github/workflows/nqc-census-log-topic-words.yml",
+              ".github/workflows/nqc-census-store.yml",
+              ".github/workflows/nqc-census-chain-evidence.yml",
+              "ci/nqc-census/LOG_TOPIC_WORD_CONTRACT.md",
+              "ci/nqc-census/log_topic_word_vectors.py",
+              "ci/nqc-census/log-topic-word-vectors.json",
+              "nqc-census/crates/nqc-census-core/src/lib.rs",
+              "nqc-census/crates/nqc-census-core/src/observation.rs",
+              "nqc-census/crates/nqc-census-core/tests/log_topic_words.rs",
+              "nqc-census/crates/nqc-census-chain/src/job.rs",
+              "nqc-census/crates/nqc-census-chain/tests/log_topic_words.rs",
+          }
+          changed = set(subprocess.check_output(
+              ["git", "diff", "--name-only", "8ebf6860e0a16964f5293df0ef40695b303b286d...HEAD"],
+              text=True).splitlines())
+          assert changed == expected, (
+              f"RMC-003.2 scope mismatch missing={sorted(expected - changed)} "
+              f"extra={sorted(changed - expected)}")
+          print(f"RMC_003_2_SCOPE_PASS files={len(expected)}")
+          PY
+              git diff --check "$RMC003_2_BASE"...HEAD
+            else
+              echo "RMC_003_2_EXACT_SCOPE=NOT_THIS_PR base=${{ github.event.pull_request.base.sha }}"
+              git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
+            fi
+          fi
+          git rev-parse HEAD > "$EVIDENCE/head.txt"
+          git rev-parse 'HEAD^{tree}' > "$EVIDENCE/tree.txt"
+
+      - name: Verify Protocol/Fork and RMC-001..005 authorities untouched
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+            ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
+            ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks \
+            ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json \
+            ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
+          git diff --quiet "$RMC001_MERGE" HEAD -- \
+            ci/nqc-census/IDENTITY_CONTRACT.md ci/nqc-census/identity-vectors.json \
+            nqc-census/rust-toolchain.toml nqc-census/crates/nqc-census-core/Cargo.toml \
+            nqc-census/crates/nqc-census-core/src/identity.rs nqc-census/crates/nqc-census-core/tests/identity.rs
+          git diff --quiet "$RMC003_2_BASE" HEAD -- \
+            ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md \
+            ci/nqc-census/TYPED_OBSERVATION_CONTRACT.md \
+            ci/nqc-census/typed_observation_vectors.py \
+            ci/nqc-census/typed-observation-vectors.json \
+            ci/nqc-census/STORE_CONTRACT.md \
+            ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md \
+            ci/nqc-census/CHAIN_EVIDENCE_CONTRACT.md \
+            nqc-census/Cargo.toml nqc-census/Cargo.lock \
+            nqc-census/crates/nqc-census-store \
+            nqc-census/crates/nqc-census-core/src/pipeline.rs \
+            nqc-census/crates/nqc-census-core/src/capability.rs \
+            nqc-census/crates/nqc-census-core/src/deployment.rs \
+            nqc-census/crates/nqc-census-core/src/keccak.rs \
+            nqc-census/crates/nqc-census-core/src/rlp.rs \
+            nqc-census/crates/nqc-census-core/tests/observation_pipeline.rs \
+            nqc-census/crates/nqc-census-core/tests/typed_observations.rs \
+            nqc-census/crates/nqc-census-core/tests/deployment_registry.rs \
+            nqc-census/crates/nqc-census-chain/tests/chain_evidence.rs
+          test -z "$(git diff --name-only "$RMC003_2_BASE" HEAD -- nqc-census/crates/nqc-census-chain \
+            | grep -vxF -e nqc-census/crates/nqc-census-chain/src/job.rs \
+                        -e nqc-census/crates/nqc-census-chain/tests/log_topic_words.rs)"
+          echo RMC_003_2_UPSTREAM_IMMUTABLE_PASS
+
+      - name: Verify hash invariants and preserved encodings
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re, subprocess
+          def source(rev, path="nqc-census/crates/nqc-census-core/src/observation.rs"):
+              return subprocess.check_output(["git", "show", f"{rev}:{path}"], text=True)
+          def block(text, signature):
+              start = text.index(signature)
+              depth, i = 0, text.index("{", start)
+              while True:
+                  if text[i] == "{":
+                      depth += 1
+                  elif text[i] == "}":
+                      depth -= 1
+                      if depth == 0:
+                          return text[start:i + 1]
+                  i += 1
+          rmc003, base, head = source("765dc30fdd178a4960ade1e106669eb0b023fbeb"), source("8ebf6860e0a16964f5293df0ef40695b303b286d"), source("HEAD")
+          # Legacy RMC-003 digest code, exactly as the RMC-003.1 gate requires.
+          for signature in ("pub fn digest(&self) -> Result<ObservationDigest, ObservationError>",
+                            "fn digest_observation(", "pub fn from_raw_log(", "impl ObservationEnvelope {"):
+              assert block(rmc003, signature) == block(head, signature), signature
+          # The canonical LOG encoder is byte-for-byte the RMC-003.1 encoder.
+          signature = "fn canonical_payload_bytes(&self) -> Result<Vec<u8>, ObservationError>"
+          log_impl = "impl ObservationPayload for RawLogEnvelope {"
+          assert block(block(base, log_impl), signature) == block(block(head, log_impl), signature)
+          # Topic words are distinct from hashes; hash fields stay Hash32.
+          assert "pub struct LogTopic([u8; 32]);" in head
+          assert "    topics: Vec<LogTopic>," in head
+          assert "    transaction_hash: Hash32," in head
+          assert "impl TryFrom<LogTopic> for Hash32" in head
+          assert not re.search(r"impl\s+From<LogTopic>\s+for\s+Hash32", head)
+          assert "Self::new(topic.0)" in block(head, "impl TryFrom<LogTopic> for Hash32")
+          identity = source("HEAD", "nqc-census/crates/nqc-census-core/src/identity.rs")
+          assert 'return Err(IdentityError::ZeroValue("hash32"));' in identity
+          job = source("HEAD", "nqc-census/crates/nqc-census-chain/src/job.rs")
+          decoder = block(job, "fn decode_log(")
+          assert "LogTopic::new(hex::decode_fixed::<32>(text)?)" in decoder
+          assert 'Hash32::new(hex::decode_fixed::<32>(item.str_field("transactionHash")?)?)?' in decoder
+          assert 'Hash32::new(hex::decode_fixed::<32>(item.str_field("blockHash")?)?)?' in decoder
+          print("RMC_003_2_HASH_INVARIANTS_AND_ENCODING_PRESERVED_PASS")
+          PY
+          ! grep -R -nE 'reqwest|alloy-provider|tokio|std::net|TcpStream|UdpSocket|process::Command|std::env::var|signer|private.?key|secret|http://|https://|eth_send|sendRawTransaction' \
+            nqc-census/crates/nqc-census-core/src nqc-census/crates/nqc-census-core/tests
+          ! grep -niE 'aave|uniswap|\breserve|liquidat|profit|\bpnl\b' \
+            nqc-census/crates/nqc-census-core/tests/log_topic_words.rs \
+            nqc-census/crates/nqc-census-chain/tests/log_topic_words.rs \
+            ci/nqc-census/log_topic_word_vectors.py
+          echo RMC_003_2_GENERIC_NO_IO_PASS
+
+      - name: Regenerate vectors independently
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-census/typed_observation_vectors.py --check ci/nqc-census/typed-observation-vectors.json
+          python3 ci/nqc-census/log_topic_word_vectors.py --check ci/nqc-census/log-topic-word-vectors.json
+          python3 ci/nqc-census/log_topic_word_vectors.py --write "$EVIDENCE/vectors-run-1.json"
+          python3 ci/nqc-census/log_topic_word_vectors.py --write "$EVIDENCE/vectors-run-2.json"
+          cmp "$EVIDENCE/vectors-run-1.json" "$EVIDENCE/vectors-run-2.json"
+          cmp "$EVIDENCE/vectors-run-1.json" ci/nqc-census/log-topic-word-vectors.json
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          vectors = json.loads(Path("ci/nqc-census/log-topic-word-vectors.json").read_text())
+          rust = Path("nqc-census/crates/nqc-census-core/tests/log_topic_words.rs").read_text()
+          pinned = []
+          for vector in vectors["zero_topic_vectors"]:
+              pinned += [vector["raw_payload_digest"], vector["observation_digest"], vector["canonical_observation_sha256"]]
+          shared = vectors["unchanged_rmc003_1_log_vector"]
+          pinned += [shared["raw_payload_digest"], shared["observation_digest"], shared["canonical_observation_sha256"]]
+          legacy = vectors["legacy_raw_log_vectors"][0]
+          pinned += [legacy["raw_payload_digest"], legacy["observation_digest"]]
+          missing = [value for value in pinned if value not in rust]
+          assert not missing, f"Rust golden constants disagree with independent vectors: {missing}"
+          assert vectors["purpose"] == "SYNTHETIC_LOG_TOPIC_WORD_VECTORS_NOT_CHAIN_EVIDENCE"
+          print(f"RMC_003_2_RUST_PYTHON_GOLDEN_AGREEMENT_PASS values={len(pinned)}")
+          PY
+
+      - name: Rust format lint test and build locked
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          check_count() {
+            local package="$1" test="$2" expected="$3"
+            local count
+            count=$(cargo test --locked -p "$package" --test "$test" -- --list 2>/dev/null | grep -c ': test$')
+            echo "$package/$test tests=$count expected=$expected"
+            test "$count" = "$expected"
+          }
+          check_count nqc-census-core log_topic_words "$CORE_TOPIC_TESTS_EXPECTED"
+          check_count nqc-census-chain log_topic_words "$CHAIN_TOPIC_TESTS_EXPECTED"
+          check_count nqc-census-core typed_observations "$TYPED_TESTS_EXPECTED"
+          check_count nqc-census-core observation_pipeline "$PIPELINE_TESTS_EXPECTED"
+          for run in 1 2; do
+            cargo test --locked -p nqc-census-core --test log_topic_words 2>&1 | tee "$EVIDENCE/core-topic-tests-run-$run.log"
+            grep -F "test result: ok. $CORE_TOPIC_TESTS_EXPECTED passed" "$EVIDENCE/core-topic-tests-run-$run.log"
+            cargo test --locked -p nqc-census-chain --test log_topic_words 2>&1 | tee "$EVIDENCE/chain-topic-tests-run-$run.log"
+            grep -F "test result: ok. $CHAIN_TOPIC_TESTS_EXPECTED passed" "$EVIDENCE/chain-topic-tests-run-$run.log"
+          done
+          cargo test --workspace --all-targets --locked 2>&1 | tee "$EVIDENCE/workspace-tests.log"
+          ! grep -E "test result: FAILED|panicked" "$EVIDENCE/workspace-tests.log"
+          cargo build --workspace --all-targets --locked
+          echo RMC_003_2_LOG_TOPIC_WORDS_PASS | tee "$EVIDENCE/status.txt"
+
+      - name: Seal evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$EVIDENCE"
+          cd "$EVIDENCE"
+          find . -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Preserve evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc003-2-log-topic-words-${{ github.event.pull_request.head.sha || github.sha }}
+          path: ${{ env.EVIDENCE }}
+          if-no-files-found: error
+          retention-days: 30
