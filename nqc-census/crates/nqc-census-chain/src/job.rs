@@ -24,8 +24,9 @@ use crate::rpc::{self, ErrorClass, Reply, RpcCall};
 use crate::transport::{Exchange, ReplayTransport, RetryPolicy, RpcClient, Transport};
 use nqc_census_core::{
     Address, BlockHeaderEnvelope, CallContext, CallOutcome, CensusObservation, ChainDomain,
-    ContractCallEnvelope, DeploymentKey, Hash32, ObservationPayload, ObservationProvenance,
-    ObservationSemantics, ProvenanceAuthority, RawLogEnvelope, RuntimeCodeEnvelope, StateAnchor,
+    ContractCallEnvelope, DeploymentKey, Hash32, LogTopic, ObservationPayload,
+    ObservationProvenance, ObservationSemantics, ProvenanceAuthority, RawLogEnvelope,
+    RuntimeCodeEnvelope, StateAnchor,
 };
 use nqc_census_store::{ArtifactId, Checkpoint, Store, StreamKind, StreamScope};
 use sha2::{Digest, Sha256};
@@ -750,14 +751,16 @@ fn decode_log(item: &Json, exchange: usize) -> Result<ClaimedLog, ChainError> {
             let text = topic
                 .as_str()
                 .ok_or(ChainError::Rpc("topic not a string"))?;
-            Ok(Hash32::new(hex::decode_fixed::<32>(text)?)?)
+            // A topic is an ABI word and may be all zero (e.g. an indexed
+            // zero address); transaction and block hashes stay nonzero.
+            Ok(LogTopic::new(hex::decode_fixed::<32>(text)?))
         })
         .collect::<Result<Vec<_>, ChainError>>()?;
     let quantity_u32 = |key: &str| -> Result<u32, ChainError> {
         u32::try_from(hex::decode_quantity_u64(item.str_field(key)?)?)
             .map_err(|_| ChainError::Rpc("log index exceeds u32"))
     };
-    let log = RawLogEnvelope::new(
+    let log = RawLogEnvelope::with_topics(
         Address::new(hex::decode_fixed::<20>(item.str_field("address")?)?)?,
         Hash32::new(hex::decode_fixed::<32>(item.str_field("transactionHash")?)?)?,
         quantity_u32("transactionIndex")?,
