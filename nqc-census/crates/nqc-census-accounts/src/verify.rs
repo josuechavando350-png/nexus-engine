@@ -36,6 +36,8 @@ pub struct AccountOutcome {
     /// (for example stable debt the universe does not cover).
     pub findings: Vec<String>,
     pub metrics: Json,
+    pub anchor_number: u64,
+    pub anchor_hash: String,
     pub anchor_timestamp: u64,
     pub conserved: bool,
 }
@@ -643,6 +645,8 @@ pub fn verify_accounts(inputs: VerifyInputs<'_>) -> Result<AccountOutcome, Chain
         mismatches,
         findings,
         metrics,
+        anchor_number: plan.anchor.number,
+        anchor_hash: plan.anchor.hash.to_hex(),
         anchor_timestamp,
         conserved,
     })

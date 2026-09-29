@@ -170,6 +170,13 @@ pub fn write_closeout(
         ("scope", Json::string(SCOPE)),
         ("code_commit", Json::string(context.code_commit)),
         ("code_tree", Json::string(context.code_tree)),
+        (
+            "anchor",
+            Json::object([
+                ("number", Json::uint(outcome.anchor_number)),
+                ("hash", Json::string(outcome.anchor_hash.clone())),
+            ]),
+        ),
         ("anchor_timestamp", Json::uint(outcome.anchor_timestamp)),
         (
             "candidates_sha256",
