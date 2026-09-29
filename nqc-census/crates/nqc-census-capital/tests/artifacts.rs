@@ -418,6 +418,7 @@ fn source_artifact_exposes_full_capital_semantics() -> TestResult {
     let text = std::str::from_utf8(&sources.bytes)?;
     for field in [
         "\"source_contract\"",
+        "\"capital_ownership\"",
         "\"effective_capacity\"",
         "\"fee_model\"",
         "\"repayment_asset\"",
