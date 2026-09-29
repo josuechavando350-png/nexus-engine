@@ -80,8 +80,7 @@ fn current_report(path: &Path) -> Result<(Address, Address, Vec<CurrentReserve>)
         ));
     }
     let configurator = address_field(facts, "pool_configurator")?;
-    let configurator_implementation =
-        address_field(facts, "pool_configurator_implementation")?;
+    let configurator_implementation = address_field(facts, "pool_configurator_implementation")?;
     if configurator != Address::parse_hex(CURRENT_CONFIGURATOR)? {
         return Err(ChainError::Evidence(
             "current PoolConfigurator differs from declared exact-anchor value".into(),

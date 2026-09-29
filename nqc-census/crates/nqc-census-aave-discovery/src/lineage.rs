@@ -157,10 +157,7 @@ fn indexed_address(topic: &Hash32, label: &'static str) -> Result<Address, Chain
         .ok_or_else(|| ChainError::Evidence(format!("{label} is zero")))
 }
 
-fn parse_proxy_creation(
-    root: Address,
-    record: &Json,
-) -> Result<Option<ProxyCreation>, ChainError> {
+fn parse_proxy_creation(root: Address, record: &Json) -> Result<Option<ProxyCreation>, ChainError> {
     let log = raw_log(record)?;
     if log.emitter() != root || !log.data().is_empty() {
         return Err(ChainError::Evidence(
