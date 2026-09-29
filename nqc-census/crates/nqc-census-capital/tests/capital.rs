@@ -1669,18 +1669,16 @@ fn checked_feasibility_rejects_duplicate_source_capacity() -> TestResult {
     let duplicate_id = nqc_census_capital::evaluate_capital_feasibility_checked(
         &requirement,
         &[first.clone(), first.clone()],
-    )
-    .expect_err("duplicate source id must fail closed");
-    assert!(matches!(duplicate_id, CapitalError::DuplicateSource));
+    );
+    assert!(matches!(duplicate_id, Err(CapitalError::DuplicateSource)));
 
     let duplicate_key = nqc_census_capital::evaluate_capital_feasibility_checked(
         &requirement,
         &[first, second_state],
-    )
-    .expect_err("multiple states for one source key must fail closed");
+    );
     assert!(matches!(
         duplicate_key,
-        CapitalError::ConflictingSourceState
+        Err(CapitalError::ConflictingSourceState)
     ));
     Ok(())
 }
