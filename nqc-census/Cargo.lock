@@ -88,6 +88,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "nqc-census-portfolio"
+version = "0.1.0"
+dependencies = [
+ "nqc-census-capital",
+ "nqc-census-core",
+ "sha2",
+]
+
+[[package]]
 name = "nqc-census-store"
 version = "0.1.0"
 dependencies = [
