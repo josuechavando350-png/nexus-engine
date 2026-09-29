@@ -2843,8 +2843,45 @@ impl UpstreamStageAuthority {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum UpstreamConsumptionKind {
+    CapitalSources,
+    DemandCandidates,
+    CapitalRequirements,
+}
+
+impl UpstreamConsumptionKind {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::CapitalSources => "CAPITAL_SOURCES",
+            Self::DemandCandidates => "DEMAND_CANDIDATES",
+            Self::CapitalRequirements => "CAPITAL_REQUIREMENTS",
+        }
+    }
+
+    const fn tag(self) -> u8 {
+        match self {
+            Self::CapitalSources => 1,
+            Self::DemandCandidates => 2,
+            Self::CapitalRequirements => 3,
+        }
+    }
+
+    pub fn parse_code(value: &str) -> Result<Self, CapitalError> {
+        match value {
+            "CAPITAL_SOURCES" => Ok(Self::CapitalSources),
+            "DEMAND_CANDIDATES" => Ok(Self::DemandCandidates),
+            "CAPITAL_REQUIREMENTS" => Ok(Self::CapitalRequirements),
+            _ => Err(CapitalError::InvalidUpstreamAuthority(
+                "unknown upstream consumption output kind",
+            )),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct UpstreamConsumptionReceipt {
     stage: UpstreamCensusStage,
+    output_kind: UpstreamConsumptionKind,
     authority_artifact_sha256: Hash32,
     coverage_commitment: Hash32,
     output_count: u64,
@@ -2917,6 +2954,7 @@ impl UpstreamConsumptionReceipt {
         let (output_count, output_set_commitment) = source_output_set_commitment(sources)?;
         Self::from_parts(
             UpstreamCensusStage::Rmc008StateAdmission,
+            UpstreamConsumptionKind::CapitalSources,
             authority_artifact_sha256,
             coverage_commitment,
             output_count,
@@ -2933,6 +2971,7 @@ impl UpstreamConsumptionReceipt {
             d09_demand_output_set_commitment(demand_candidate_ids)?;
         Self::from_parts(
             UpstreamCensusStage::Rmc009PositionUniverse,
+            UpstreamConsumptionKind::DemandCandidates,
             authority_artifact_sha256,
             coverage_commitment,
             output_count,
@@ -2949,6 +2988,7 @@ impl UpstreamConsumptionReceipt {
             requirement_output_set_commitment(requirements)?;
         Self::from_parts(
             UpstreamCensusStage::Rmc009PositionUniverse,
+            UpstreamConsumptionKind::CapitalRequirements,
             authority_artifact_sha256,
             coverage_commitment,
             output_count,
@@ -2958,21 +2998,33 @@ impl UpstreamConsumptionReceipt {
 
     pub(crate) fn from_parts(
         stage: UpstreamCensusStage,
+        output_kind: UpstreamConsumptionKind,
         authority_artifact_sha256: Hash32,
         coverage_commitment: Hash32,
         output_count: u64,
         output_set_commitment: Hash32,
     ) -> Result<Self, CapitalError> {
-        if !matches!(
-            stage,
-            UpstreamCensusStage::Rmc008StateAdmission | UpstreamCensusStage::Rmc009PositionUniverse
-        ) {
+        let kind_is_valid = matches!(
+            (stage, output_kind),
+            (
+                UpstreamCensusStage::Rmc008StateAdmission,
+                UpstreamConsumptionKind::CapitalSources
+            ) | (
+                UpstreamCensusStage::Rmc009PositionUniverse,
+                UpstreamConsumptionKind::DemandCandidates
+            ) | (
+                UpstreamCensusStage::Rmc009PositionUniverse,
+                UpstreamConsumptionKind::CapitalRequirements
+            )
+        );
+        if !kind_is_valid {
             return Err(CapitalError::InvalidUpstreamAuthority(
-                "only RMC-008 and RMC-009 may issue capital consumption receipts",
+                "upstream consumption output kind is invalid for stage",
             ));
         }
         Ok(Self {
             stage,
+            output_kind,
             authority_artifact_sha256,
             coverage_commitment,
             output_count,
@@ -2982,6 +3034,10 @@ impl UpstreamConsumptionReceipt {
 
     pub const fn stage(self) -> UpstreamCensusStage {
         self.stage
+    }
+
+    pub const fn output_kind(self) -> UpstreamConsumptionKind {
+        self.output_kind
     }
 
     pub const fn authority_artifact_sha256(self) -> Hash32 {
@@ -3042,6 +3098,7 @@ fn upstream_authority_commitment(
     );
     for receipt in consumption_receipts.values() {
         hasher.update([receipt.stage.tag()]);
+        hasher.update([receipt.output_kind.tag()]);
         hasher.update(receipt.authority_artifact_sha256.as_bytes());
         hasher.update(receipt.coverage_commitment.as_bytes());
         hasher.update(receipt.output_count.to_be_bytes());
