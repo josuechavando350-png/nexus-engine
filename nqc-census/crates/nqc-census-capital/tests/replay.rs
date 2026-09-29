@@ -143,19 +143,18 @@ fn authority(
     })
 }
 
-fn replay_context() -> Result<
-    (
-        CapitalCertificationContext,
-        Vec<u8>,
-        Vec<u8>,
-        Vec<u8>,
-        Vec<u8>,
-        Vec<u8>,
-        Vec<u8>,
-        Vec<u8>,
-    ),
-    Box<dyn std::error::Error>,
-> {
+struct ReplayFixture {
+    context: CapitalCertificationContext,
+    d08_states: Vec<u8>,
+    d08_tokens: Vec<u8>,
+    d08_facts: Vec<u8>,
+    d08_manifest: Vec<u8>,
+    d09_accounts: Vec<u8>,
+    d09_summary: Vec<u8>,
+    d09_manifest: Vec<u8>,
+}
+
+fn replay_context() -> Result<ReplayFixture, Box<dyn std::error::Error>> {
     let (d08_states, d08_tokens, d08_facts, d08_manifest) = d08_fixture();
     let (d09_accounts, d09_summary, d09_manifest) = d09_fixture();
     let d08 = authority(
@@ -210,7 +209,7 @@ fn replay_context() -> Result<
             d09_import.consumption_receipt()?,
         ])?;
 
-    Ok((
+    Ok(ReplayFixture {
         context,
         d08_states,
         d08_tokens,
@@ -219,12 +218,13 @@ fn replay_context() -> Result<
         d09_accounts,
         d09_summary,
         d09_manifest,
-    ))
+    })
 }
 
 #[test]
 fn exact_upstream_bytes_replay_to_committed_receipts() -> TestResult {
-    let (
+    let fixture = replay_context()?;
+    let ReplayFixture {
         context,
         d08_states,
         d08_tokens,
@@ -233,7 +233,7 @@ fn exact_upstream_bytes_replay_to_committed_receipts() -> TestResult {
         d09_accounts,
         d09_summary,
         d09_manifest,
-    ) = replay_context()?;
+    } = fixture;
     let verified = verify_upstream_consumption_by_replay(
         &context,
         D08ReplayInputs {
@@ -255,7 +255,8 @@ fn exact_upstream_bytes_replay_to_committed_receipts() -> TestResult {
 
 #[test]
 fn upstream_replay_rejects_consumed_byte_substitution() -> TestResult {
-    let (
+    let fixture = replay_context()?;
+    let ReplayFixture {
         context,
         mut d08_states,
         d08_tokens,
@@ -264,7 +265,7 @@ fn upstream_replay_rejects_consumed_byte_substitution() -> TestResult {
         d09_accounts,
         d09_summary,
         d09_manifest,
-    ) = replay_context()?;
+    } = fixture;
     let index = d08_states
         .windows(b"10000".len())
         .position(|window| window == b"10000")
@@ -291,7 +292,8 @@ fn upstream_replay_rejects_consumed_byte_substitution() -> TestResult {
 
 #[test]
 fn upstream_replay_rejects_forged_committed_output_set() -> TestResult {
-    let (
+    let fixture = replay_context()?;
+    let ReplayFixture {
         context,
         d08_states,
         d08_tokens,
@@ -300,7 +302,7 @@ fn upstream_replay_rejects_forged_committed_output_set() -> TestResult {
         d09_accounts,
         d09_summary,
         d09_manifest,
-    ) = replay_context()?;
+    } = fixture;
     let stages = context.stages().to_vec();
     let admitted_evidence = context.admitted_evidence().copied().collect::<Vec<_>>();
     let d08_artifact = stages
