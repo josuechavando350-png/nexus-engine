@@ -1219,11 +1219,7 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
     let wrong_authority =
         CapitalCertificationContext::new(stages.clone(), admitted_evidence.clone())?
             .with_consumption_receipts(vec![
-                UpstreamConsumptionReceipt::for_sources(
-                    hash(90),
-                    hash(80),
-                    ledger.sources(),
-                )?,
+                UpstreamConsumptionReceipt::for_sources(hash(90), hash(80), ledger.sources())?,
                 UpstreamConsumptionReceipt::for_requirements(
                     d09_artifact,
                     hash(81),
@@ -1237,16 +1233,8 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
 
     let duplicate = CapitalCertificationContext::new(stages, admitted_evidence)?
         .with_consumption_receipts(vec![
-            UpstreamConsumptionReceipt::for_sources(
-                d08_artifact,
-                hash(80),
-                ledger.sources(),
-            )?,
-            UpstreamConsumptionReceipt::for_sources(
-                d08_artifact,
-                hash(82),
-                ledger.sources(),
-            )?,
+            UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+            UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(82), ledger.sources())?,
         ]);
     assert!(matches!(
         duplicate,
@@ -1328,16 +1316,8 @@ fn consumed_output_set_commitment_is_order_independent() -> TestResult {
         token,
         RepaymentSemantics::AtomicSameTransaction,
     )?;
-    let left = UpstreamConsumptionReceipt::for_sources(
-        hash(23),
-        hash(80),
-        [&first, &second],
-    )?;
-    let right = UpstreamConsumptionReceipt::for_sources(
-        hash(23),
-        hash(80),
-        [&second, &first],
-    )?;
+    let left = UpstreamConsumptionReceipt::for_sources(hash(23), hash(80), [&first, &second])?;
+    let right = UpstreamConsumptionReceipt::for_sources(hash(23), hash(80), [&second, &first])?;
     assert_eq!(left.output_count(), 2);
     assert_eq!(left.output_set_commitment(), right.output_set_commitment());
     Ok(())
