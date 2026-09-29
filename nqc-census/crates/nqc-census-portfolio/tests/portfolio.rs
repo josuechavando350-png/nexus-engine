@@ -389,3 +389,66 @@ fn report_commitment_is_independent_of_input_order() -> TestResult {
     assert_eq!(left.commitment(), right.commitment());
     Ok(())
 }
+
+
+#[test]
+fn commitment_binds_candidate_identity_even_without_conflicts() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let funding = source(anchor.clone(), 30, 500, CapitalOwnership::External)?;
+    let a = requirement(anchor.clone(), 40, 50)?;
+    let b = requirement(anchor.clone(), 41, 50)?;
+    let fa = evaluate_capital_feasibility(&a, std::slice::from_ref(&funding));
+    let fb = evaluate_capital_feasibility(&b, std::slice::from_ref(&funding));
+
+    let one = evaluate_portfolio(
+        &[PortfolioCandidate::new(a.id(), anchor.clone(), vec![])?],
+        std::slice::from_ref(&a),
+        std::slice::from_ref(&fa),
+        std::slice::from_ref(&funding),
+        &[],
+    )?;
+    let two = evaluate_portfolio(
+        &[PortfolioCandidate::new(b.id(), anchor, vec![])?],
+        &[b],
+        &[fb],
+        &[funding],
+        &[],
+    )?;
+    assert!(one.simultaneously_feasible());
+    assert!(two.simultaneously_feasible());
+    assert_ne!(one.commitment(), two.commitment());
+    Ok(())
+}
+
+#[test]
+fn commitment_binds_observed_capacity_even_without_conflicts() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let source_100 = source(anchor.clone(), 30, 100, CapitalOwnership::External)?;
+    let source_200 = source(anchor.clone(), 30, 200, CapitalOwnership::External)?;
+    assert_eq!(source_100.key_id(), source_200.key_id());
+    assert_ne!(source_100.id(), source_200.id());
+
+    let req = requirement(anchor.clone(), 40, 50)?;
+    let f100 = evaluate_capital_feasibility(&req, std::slice::from_ref(&source_100));
+    let f200 = evaluate_capital_feasibility(&req, std::slice::from_ref(&source_200));
+    let candidate = PortfolioCandidate::new(req.id(), anchor, vec![])?;
+
+    let low = evaluate_portfolio(
+        std::slice::from_ref(&candidate),
+        std::slice::from_ref(&req),
+        &[f100],
+        &[source_100],
+        &[],
+    )?;
+    let high = evaluate_portfolio(
+        &[candidate],
+        &[req],
+        &[f200],
+        &[source_200],
+        &[],
+    )?;
+    assert!(low.simultaneously_feasible());
+    assert!(high.simultaneously_feasible());
+    assert_ne!(low.commitment(), high.commitment());
+    Ok(())
+}
