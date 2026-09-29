@@ -9,6 +9,7 @@ use nqc_census_core::{Address, Hash32, StateAnchor};
 pub const AAVE_V3_PROVIDER_NAMESPACE: u16 = 0x1103;
 pub const BALANCER_V2_PROVIDER_NAMESPACE: u16 = 0x1202;
 pub const UNISWAP_V2_PROVIDER_NAMESPACE: u16 = 0x1302;
+pub const UNISWAP_V3_PROVIDER_NAMESPACE: u16 = 0x1303;
 
 #[derive(Debug, Clone)]
 pub struct AaveV3FlashObservation {
@@ -145,6 +146,54 @@ impl UniswapV2FlashSwapObservation {
             failure_modes: vec![
                 CapitalFailureMode::SourceUnavailable,
                 CapitalFailureMode::CapacityChanged,
+                CapitalFailureMode::RepaymentFailure,
+                CapitalFailureMode::CallbackOrHookRevert,
+            ],
+            evidence: self.evidence,
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct UniswapV3FlashObservation {
+    pub anchor: StateAnchor,
+    pub pool: Address,
+    pub asset: Address,
+    pub available_pool_balance: Amount256,
+    pub fee_pips: u32,
+    pub provider_locator_hash: Hash32,
+    pub evidence: Vec<CapitalEvidenceRef>,
+}
+
+impl UniswapV3FlashObservation {
+    pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
+        if self.fee_pips > 1_000_000 {
+            return Err(CapitalError::InvalidRatio);
+        }
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::AtomicFlashLiquidity,
+            anchor: self.anchor,
+            provider_namespace: UNISWAP_V3_PROVIDER_NAMESPACE,
+            provider_locator_hash: self.provider_locator_hash,
+            provider_kind: CapitalProviderKind::DexLiquidityPool,
+            source_contract: Some(self.pool),
+            asset: CapitalAsset::Token(self.asset),
+            maximum_available: self.available_pool_balance,
+            fee_model: FeeModel::exact_ratio_with_rounding(
+                u64::from(self.fee_pips),
+                1_000_000,
+                RoundingMode::Ceil,
+            )?,
+            repayment_asset: CapitalAsset::Token(self.asset),
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![
+                CapitalFailureMode::SourceUnavailable,
+                CapitalFailureMode::CapacityChanged,
+                CapitalFailureMode::FeeChanged,
                 CapitalFailureMode::RepaymentFailure,
                 CapitalFailureMode::CallbackOrHookRevert,
             ],

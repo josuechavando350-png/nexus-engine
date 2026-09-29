@@ -1,8 +1,9 @@
 use nqc_census_capital::{
     adapters::{
         AaveV3FlashObservation, BalancerV2FlashObservation, ExternalGasSponsorObservation,
-        UniswapV2FlashSwapObservation, AAVE_V3_PROVIDER_NAMESPACE, BALANCER_V2_PROVIDER_NAMESPACE,
-        UNISWAP_V2_PROVIDER_NAMESPACE,
+        UniswapV2FlashSwapObservation, UniswapV3FlashObservation, AAVE_V3_PROVIDER_NAMESPACE,
+        BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V2_PROVIDER_NAMESPACE,
+        UNISWAP_V3_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, RoundingMode,
 };
@@ -254,5 +255,73 @@ fn external_gas_sponsor_can_charge_evidence_bound_fee_without_principal_repaymen
         .ok_or("missing sponsor fee quote")?;
     assert_eq!(quote.asset, fee_asset);
     assert_eq!(quote.amount, Amount256::from_u128(7));
+    Ok(())
+}
+
+
+#[test]
+fn uniswap_v3_flash_binds_pool_balance_and_ceil_fee() -> TestResult {
+    let asset = address(60);
+    let source = UniswapV3FlashObservation {
+        anchor: anchor(),
+        pool: address(61),
+        asset,
+        available_pool_balance: Amount256::from_u128(1_000_000),
+        fee_pips: 500,
+        provider_locator_hash: hash(62),
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    assert_eq!(source.class(), CapitalClass::AtomicFlashLiquidity);
+    assert_eq!(source.asset(), CapitalAsset::Token(asset));
+    assert_eq!(
+        source.effective_capacity()?,
+        Amount256::from_u128(1_000_000)
+    );
+    let exact = source
+        .quote_fee(Amount256::from_u128(2_000))?
+        .ok_or("missing Uniswap V3 fee quote")?;
+    assert_eq!(exact.amount, Amount256::from_u128(1));
+
+    let rounded = source
+        .quote_fee(Amount256::from_u128(1))?
+        .ok_or("missing Uniswap V3 rounded fee quote")?;
+    assert_eq!(rounded.amount, Amount256::from_u128(1));
+    assert_eq!(UNISWAP_V3_PROVIDER_NAMESPACE, 0x1303);
+    Ok(())
+}
+
+#[test]
+fn uniswap_v3_zero_balance_remains_an_observed_source() -> TestResult {
+    let source = UniswapV3FlashObservation {
+        anchor: anchor(),
+        pool: address(61),
+        asset: address(60),
+        available_pool_balance: Amount256::ZERO,
+        fee_pips: 3_000,
+        provider_locator_hash: hash(62),
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    assert_eq!(source.effective_capacity()?, Amount256::ZERO);
+    Ok(())
+}
+
+#[test]
+fn uniswap_v3_rejects_impossible_fee_scale() -> TestResult {
+    let result = UniswapV3FlashObservation {
+        anchor: anchor(),
+        pool: address(61),
+        asset: address(60),
+        available_pool_balance: Amount256::from_u128(100),
+        fee_pips: 1_000_001,
+        provider_locator_hash: hash(62),
+        evidence: evidence(),
+    }
+    .into_capital_source();
+
+    assert!(matches!(result, Err(CapitalError::InvalidRatio)));
     Ok(())
 }
