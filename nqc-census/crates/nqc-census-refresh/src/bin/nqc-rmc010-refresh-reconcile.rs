@@ -107,12 +107,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         canonical.push(stage);
     }
 
-    let delta_staged = extract_stages(
-        &index_providers,
-        &state_providers,
-        &delta,
-        delta_extracts,
-    )?;
+    let delta_staged = extract_stages(&index_providers, &state_providers, &delta, delta_extracts)?;
     let mut index = Vec::new();
     for (record, stage) in delta_staged {
         if record.str_field("stage")? != "ACCOUNT_INDEX" {
@@ -122,12 +117,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         index.push(stage);
     }
 
-    let state_staged = extract_stages(
-        &index_providers,
-        &state_providers,
-        &target,
-        state_extracts,
-    )?;
+    let state_staged = extract_stages(&index_providers, &state_providers, &target, state_extracts)?;
     let mut tokens = Vec::new();
     let mut state = Vec::new();
     for (record, replayed) in state_staged {
