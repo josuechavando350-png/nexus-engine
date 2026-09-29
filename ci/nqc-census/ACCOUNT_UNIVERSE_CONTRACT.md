@@ -33,8 +33,17 @@ Validation:
   with zero unexplained deltas and zero provider mismatches, and the declared
   anchor.
 
-While `status` is not `PINNED`, the live workflow stops at `RMC009_BLOCKED`.
-"Latest successful artifact" is never consumed.
+While `status` is not `PINNED`, the default live workflow stops at
+`RMC009_BLOCKED`. "Latest successful artifact" is never consumed.
+
+For RMC-010's later-anchor full census, `workflow_dispatch` also accepts an
+explicit alternate anchor plus the complete D06 run/artifact identity
+(run id, artifact id/name/digest and D06 exact-head commit). All seven fields
+are required together. The workflow verifies that identity through the GitHub
+API, downloads only that artifact, hashes the four consumed D06 files, and
+materializes a run-local `account-inputs.json`. Every stage, replay and
+closeout consumes that immutable run-local pin file and is explicitly bound to
+the supplied anchor. This path never resolves a "latest" run or artifact.
 
 ## 2. Completeness basis
 
