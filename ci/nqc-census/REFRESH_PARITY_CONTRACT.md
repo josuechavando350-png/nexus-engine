@@ -94,17 +94,50 @@ Not yet covered here, and owned by the nodes they belong to:
 
 ## 6. Live certification
 
-Blocked. A live refresh needs:
-- certified RMC-006 and RMC-009 closeouts at A0;
-- an RMC-006 run at A1, for the target plan;
-- a second anchor declared for both the full and the incremental path.
+The live workflow is `.github/workflows/nqc-census-refresh-live.yml`. It is
+fail-closed until `ci/nqc-census/refresh-inputs.json` pins all three
+content-addressed upstreams:
 
-Synthetic tests prove implementation behavior only. They are not chain
-evidence.
+- a certified RMC-009 closeout at the base anchor A0;
+- a certified RMC-006 run at the declared target anchor A1, which defines the
+  target account plan;
+- a certified full RMC-009 closeout at the same A1.
+
+Every pinned workflow run must be successful at the pinned commit, every
+artifact name and GitHub artifact digest must match, and every target D06 file
+used to construct the A1 account plan is pinned by SHA-256.
+
+The incremental path then acquires only what differs from the full path:
+
+1. `BASE_CANONICALITY` is acquired independently on both state providers at
+   A1 and replayed offline from each stage's own verified RMC-004 store.
+2. The account index over `(A0, A1]` is acquired on both index providers,
+   partitioned exactly as RMC-009, then replayed offline one store at a time.
+3. Base candidates union the replayed delta candidates must be byte-identical
+   to the certified full-A1 candidate file.
+4. Only after that identity is proven, the incremental verifier consumes the
+   full census's already replayed A1 token/state extracts. This deliberately
+   holds the time-dependent A1 observation constant between the two
+   reconciliation paths, so parity cannot be defeated by chain movement
+   between two separate state acquisitions.
+5. RMC-009's verifier and closeout run unchanged for the incremental result.
+   The closeout is run twice and must be deterministic.
+6. `census_parity` requires every census artifact to be byte-identical to
+   the certified full-A1 closeout. Only the two documented provenance
+   artifacts are excluded.
+7. The final parity report, incremental evidence manifest, full evidence
+   manifest, exact commit/tree and all upstream identities are hashed into a
+   retained RMC-010 certification record.
+
+Synthetic tests remain implementation evidence only. A live certification is
+valid only when that exact-head workflow succeeds and its final artifact is
+retained.
 
 ## 7. Non-claims
 
 Not claimed:
 - lifecycle refresh for RMC-006 and RMC-007;
-- live parity;
+- an independent duplicate acquisition of the A1 token/account state (the
+  parity proof intentionally shares the certified replayed A1 state evidence
+  after candidate identity is established);
 - liquidatability, profitability or execution.
