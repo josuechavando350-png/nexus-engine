@@ -526,3 +526,38 @@ fn zero_own_capital_policy_rejects_operator_treasury_source() -> TestResult {
     ));
     Ok(())
 }
+
+
+#[test]
+fn utilization_math_handles_full_256_bit_capacity_exactly() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let mut bytes = [0_u8; 32];
+    bytes[0] = 0x80;
+    let maximum = Amount256::from_be_bytes(bytes);
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::AtomicFlashLiquidity,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: maximum,
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(5_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+    let mut expected = [0_u8; 32];
+    expected[0] = 0x40;
+    assert_eq!(
+        source.effective_capacity()?,
+        Amount256::from_be_bytes(expected)
+    );
+    Ok(())
+}
