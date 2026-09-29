@@ -210,13 +210,8 @@ pub fn run_closeout(
     let binding_evidence = admission.record.binding().evidence_refs().to_vec();
     let current_proofs = current_reserves(&current, &binding_evidence)?;
     let (init_proofs, drop_proofs) = lifecycle_proofs(&history, &binding_evidence)?;
-    let reconciliation = reconcile(
-        &admission.record,
-        current_proofs,
-        init_proofs,
-        drop_proofs,
-    )
-    .map_err(|error| ChainError::Evidence(error.to_string()))?;
+    let reconciliation = reconcile(&admission.record, current_proofs, init_proofs, drop_proofs)
+        .map_err(|error| ChainError::Evidence(error.to_string()))?;
     if !reconciliation.certifiable() {
         return Err(ChainError::Evidence(format!(
             "reconciliation has {} unexplained deltas",
@@ -244,10 +239,7 @@ pub fn run_closeout(
         ("declared_universe_id", Json::string(universe_id.clone())),
         ("admission_id", Json::string(admission_id.clone())),
         ("chain_domain", chain_domain.clone()),
-        (
-            "observation_anchor",
-            anchor.clone(),
-        ),
+        ("observation_anchor", anchor.clone()),
         (
             "history_range",
             Json::array([
@@ -292,18 +284,12 @@ pub fn run_closeout(
     let deployment_manifest = jsonl([Json::object([
         ("schema_version", Json::uint(SCHEMA_VERSION)),
         ("admission", admission.report.clone()),
-        (
-            "pool",
-            Json::string(facts.str_field("pool")?),
-        ),
+        ("pool", Json::string(facts.str_field("pool")?)),
         (
             "addresses_provider",
             Json::string(facts.str_field("addresses_provider")?),
         ),
-        (
-            "evidence_refs",
-            evidence_array(&binding_evidence),
-        ),
+        ("evidence_refs", evidence_array(&binding_evidence)),
     ])])?;
     persist(
         out_dir,
@@ -476,7 +462,10 @@ pub fn run_closeout(
         ("admission_rejection_count", Json::uint(0)),
         ("deduplication", Json::string("PASS")),
         ("canonicalization", Json::string("PASS")),
-        ("evidence_verification", Json::string("PASS_PENDING_FINAL_STORE_VERIFY")),
+        (
+            "evidence_verification",
+            Json::string("PASS_PENDING_FINAL_STORE_VERIFY"),
+        ),
         ("blocking_findings", Json::uint(0)),
         ("unexplained_findings", Json::uint(0)),
     ]);
