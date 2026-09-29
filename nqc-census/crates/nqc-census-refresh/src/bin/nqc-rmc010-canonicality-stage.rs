@@ -51,8 +51,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let store = Store::create(&PathBuf::from(flag("--store")?), StoreConfig::standard())?;
     let transport = CurlTransport::new(180, 15);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
-    let (record, rows) =
-        base_canonicality_stage(&acquisition, &provider, &plan.anchor, &base)?;
+    let (record, rows) = base_canonicality_stage(&acquisition, &provider, &plan.anchor, &base)?;
     fs::write(flag("--out")?, record.canonical()?)?;
     println!(
         "RMC010_CANONICALITY_STAGE_PASS provider={} rows={} base={} target={} data_sha256={}",
