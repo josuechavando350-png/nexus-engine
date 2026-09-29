@@ -17,7 +17,7 @@ permissions:
 jobs:
   v2-discovery:
     runs-on: ubuntu-24.04
-    timeout-minutes: 180
+    timeout-minutes: 360
     env:
       D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
@@ -147,6 +147,24 @@ jobs:
           grep -F "RMC007_FULL_ENUMERATION_PASS provider=blastapi-public" "$D07_EVIDENCE/enumeration.log"
           target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/enumeration-store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/enumeration-store-verify.log"
+
+      - name: Direct getPair and runtime verification
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-membership
+          target/release/nqc-rmc007-v2-membership \
+            --providers ../ci/nqc-census/rpc-providers.json \
+            --current "$D07_EVIDENCE/v2-current-surface.json" \
+            --boundary "$D07_EVIDENCE/v2-factory-boundary.json" \
+            --history "$D07_EVIDENCE/v2-pair-created-history.json" \
+            --enumeration "$D07_EVIDENCE/v2-full-enumeration.json" \
+            --store "$D07_EVIDENCE/store" \
+            --out "$D07_EVIDENCE/v2-membership-runtime.json" | tee "$D07_EVIDENCE/membership.log"
+          grep -F "RMC007_DIRECT_MEMBERSHIP_RUNTIME_PASS provider=blastapi-public" "$D07_EVIDENCE/membership.log"
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/membership-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/membership-store-verify.log"
 
       - name: Preserve D07 current-surface evidence
         if: always()

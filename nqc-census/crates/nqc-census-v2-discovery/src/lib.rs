@@ -9,6 +9,7 @@ pub mod enumeration;
 pub mod history;
 mod interface;
 pub mod live;
+pub mod membership;
 mod reconcile;
 
 pub use interface::{
