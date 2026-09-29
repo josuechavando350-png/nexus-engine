@@ -1219,15 +1219,15 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
     let wrong_authority =
         CapitalCertificationContext::new(stages.clone(), admitted_evidence.clone())?
             .with_consumption_receipts(vec![
-                UpstreamConsumptionReceipt::new(
-                    UpstreamCensusStage::Rmc008StateAdmission,
+                UpstreamConsumptionReceipt::for_sources(
                     hash(90),
                     hash(80),
+                    ledger.sources(),
                 )?,
-                UpstreamConsumptionReceipt::new(
-                    UpstreamCensusStage::Rmc009PositionUniverse,
+                UpstreamConsumptionReceipt::for_requirements(
                     d09_artifact,
                     hash(81),
+                    ledger.requirements(),
                 )?,
             ]);
     assert!(matches!(
@@ -1237,15 +1237,15 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
 
     let duplicate = CapitalCertificationContext::new(stages, admitted_evidence)?
         .with_consumption_receipts(vec![
-            UpstreamConsumptionReceipt::new(
-                UpstreamCensusStage::Rmc008StateAdmission,
+            UpstreamConsumptionReceipt::for_sources(
                 d08_artifact,
                 hash(80),
+                ledger.sources(),
             )?,
-            UpstreamConsumptionReceipt::new(
-                UpstreamCensusStage::Rmc008StateAdmission,
+            UpstreamConsumptionReceipt::for_sources(
                 d08_artifact,
                 hash(82),
+                ledger.sources(),
             )?,
         ]);
     assert!(matches!(
