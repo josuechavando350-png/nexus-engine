@@ -1837,6 +1837,123 @@ fn funding_fee_leg_must_allow_the_actual_fee_source_class() -> TestResult {
 }
 
 #[test]
+fn settlement_class_amounts_cannot_be_swapped_between_source_classes() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(200),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(200),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let flash_swap = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let flash_loan = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &requirement,
+            &[flash_swap, flash_loan],
+        )?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn settlement_leg_can_split_exact_amount_across_authorized_source_classes() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(200),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(300),
+                vec![
+                    CapitalClass::FlashSwap,
+                    CapitalClass::ProtocolNativeFlashLoan,
+                ],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let flash_swap = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let flash_loan = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &requirement,
+            &[flash_swap, flash_loan],
+        )?,
+        CapitalFeasibility::Feasible { .. }
+    ));
+    Ok(())
+}
+
+#[test]
 fn no_repayment_gas_source_needs_no_principal_repayment_leg() -> TestResult {
     let gas = CapitalRequirementLeg::new(
         RequirementKind::Gas,
