@@ -15,7 +15,6 @@ use nqc_census_chain::{
 };
 use nqc_census_core::{
     Address, CallOutcome, CensusObservation, ContractCallEnvelope, Hash32, ObservationSemantics,
-    ProtocolFamily,
 };
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
