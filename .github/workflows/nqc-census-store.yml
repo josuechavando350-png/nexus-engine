@@ -23,6 +23,9 @@ jobs:
       # RMC-003.1 advanced the observation module additively; its bytes are
       # pinned to that authority commit instead of the RMC-004 base.
       RMC003_TYPED_AUTHORITY: 5e032b2a601a2368334477e6ad9ee5c5b7ba219a
+      # RMC-003.2 (zero-permitting log topic words) advanced it again,
+      # additively; the RMC-003.1 authority must be its ancestor.
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
       RMC002_MERGE: 0d90ee7a7d439d2c658209c8fe176a8dda6bcbcb
       RMC001_MERGE: cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
@@ -137,7 +140,9 @@ jobs:
             .github/workflows/nqc-census-identity.yml \
             .github/workflows/nqc-census-effective-source.yml
           git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" HEAD
-          git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
+          git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" "$RMC003_2_AUTHORITY"
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
             nqc-census/crates/nqc-census-core/src/observation.rs
           echo RMC_004_RMC001_RMC002_RMC003_IMMUTABLE_PASS
 
