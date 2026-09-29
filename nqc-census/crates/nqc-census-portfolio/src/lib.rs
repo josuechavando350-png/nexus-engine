@@ -381,11 +381,18 @@ pub struct CapitalBlockedCandidate {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PortfolioComponent {
+    pub candidates: Vec<CapitalRequirementId>,
+    pub resources: Vec<ConflictResource>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PortfolioReport {
     candidate_count: usize,
     capital_feasible_count: usize,
     capital_rejected: Vec<CapitalBlockedCandidate>,
     conflicts: Vec<PortfolioConflict>,
+    components: Vec<PortfolioComponent>,
     commitment: [u8; 32],
 }
 
@@ -404,6 +411,14 @@ impl PortfolioReport {
 
     pub fn conflicts(&self) -> &[PortfolioConflict] {
         &self.conflicts
+    }
+
+    /// Independent contention components. Candidates in different components
+    /// share no declared capital source or shared resource, so a downstream
+    /// optimizer may solve the components independently without losing an
+    /// exact cross-component constraint.
+    pub fn components(&self) -> &[PortfolioComponent] {
+        &self.components
     }
 
     pub const fn commitment(&self) -> &[u8; 32] {
@@ -569,10 +584,13 @@ pub fn evaluate_portfolio(
         }
     }
 
+    let components =
+        contention_components(&source_claims, &shared_claims, &capital_rejected, candidates);
+
     let mut conflicts = Vec::new();
-    for (key, aggregate) in source_claims {
+    for (key, aggregate) in &source_claims {
         let source = source_by_key
-            .get(&key)
+            .get(key)
             .copied()
             .ok_or(PortfolioError::MissingSource)?;
         let capacity = source
@@ -580,25 +598,25 @@ pub fn evaluate_portfolio(
             .map_err(|_| PortfolioError::AmountOverflow)?;
         if aggregate.claimed > capacity {
             conflicts.push(PortfolioConflict {
-                resource: ConflictResource::CapitalSource(key),
+                resource: ConflictResource::CapitalSource(*key),
                 capacity,
                 claimed: aggregate.claimed,
-                claimants: aggregate.claimants.into_iter().collect(),
+                claimants: aggregate.claimants.iter().copied().collect(),
             });
         }
     }
-    for (key, aggregate) in shared_claims {
+    for (key, aggregate) in &shared_claims {
         let resource = resources
-            .get(&key)
+            .get(key)
             .copied()
             .ok_or(PortfolioError::MissingResource)?;
         let capacity = resource.limit().capacity();
         if aggregate.claimed > capacity {
             conflicts.push(PortfolioConflict {
-                resource: ConflictResource::Shared(key),
+                resource: ConflictResource::Shared(*key),
                 capacity,
                 claimed: aggregate.claimed,
-                claimants: aggregate.claimants.into_iter().collect(),
+                claimants: aggregate.claimants.iter().copied().collect(),
             });
         }
     }
@@ -619,8 +637,140 @@ pub fn evaluate_portfolio(
         capital_feasible_count,
         capital_rejected,
         conflicts,
+        components,
         commitment,
     })
+}
+
+
+fn contention_components(
+    source_claims: &BTreeMap<CapitalSourceKeyId, Aggregate>,
+    shared_claims: &BTreeMap<SharedResourceKeyId, Aggregate>,
+    rejected: &[CapitalBlockedCandidate],
+    candidates: &[PortfolioCandidate],
+) -> Vec<PortfolioComponent> {
+    let rejected_ids = rejected
+        .iter()
+        .map(|entry| entry.requirement_id)
+        .collect::<BTreeSet<_>>();
+    let mut ids = candidates
+        .iter()
+        .map(PortfolioCandidate::requirement_id)
+        .filter(|id| !rejected_ids.contains(id))
+        .collect::<Vec<_>>();
+    ids.sort_unstable();
+    ids.dedup();
+    if ids.is_empty() {
+        return Vec::new();
+    }
+
+    let index = ids
+        .iter()
+        .copied()
+        .enumerate()
+        .map(|(position, id)| (id, position))
+        .collect::<BTreeMap<_, _>>();
+    let mut parent = (0..ids.len()).collect::<Vec<_>>();
+    let mut rank = vec![0_u8; ids.len()];
+
+    for aggregate in source_claims.values() {
+        union_claimants(&index, &aggregate.claimants, &mut parent, &mut rank);
+    }
+    for aggregate in shared_claims.values() {
+        union_claimants(&index, &aggregate.claimants, &mut parent, &mut rank);
+    }
+
+    let mut grouped = BTreeMap::<usize, PortfolioComponent>::new();
+    for (position, id) in ids.iter().copied().enumerate() {
+        let root = find_root(&mut parent, position);
+        grouped
+            .entry(root)
+            .or_insert_with(|| PortfolioComponent {
+                candidates: Vec::new(),
+                resources: Vec::new(),
+            })
+            .candidates
+            .push(id);
+    }
+
+    for (key, aggregate) in source_claims {
+        if let Some(first) = aggregate.claimants.iter().next() {
+            if let Some(position) = index.get(first).copied() {
+                let root = find_root(&mut parent, position);
+                if let Some(component) = grouped.get_mut(&root) {
+                    component
+                        .resources
+                        .push(ConflictResource::CapitalSource(*key));
+                }
+            }
+        }
+    }
+    for (key, aggregate) in shared_claims {
+        if let Some(first) = aggregate.claimants.iter().next() {
+            if let Some(position) = index.get(first).copied() {
+                let root = find_root(&mut parent, position);
+                if let Some(component) = grouped.get_mut(&root) {
+                    component.resources.push(ConflictResource::Shared(*key));
+                }
+            }
+        }
+    }
+
+    let mut components = grouped.into_values().collect::<Vec<_>>();
+    for component in &mut components {
+        component.candidates.sort_unstable();
+        component.resources.sort_unstable();
+        component.resources.dedup();
+    }
+    components.sort_by_key(|component| component.candidates[0]);
+    components
+}
+
+fn union_claimants(
+    index: &BTreeMap<CapitalRequirementId, usize>,
+    claimants: &BTreeSet<CapitalRequirementId>,
+    parent: &mut [usize],
+    rank: &mut [u8],
+) {
+    let mut positions = claimants
+        .iter()
+        .filter_map(|id| index.get(id).copied());
+    let Some(first) = positions.next() else {
+        return;
+    };
+    for position in positions {
+        union(parent, rank, first, position);
+    }
+}
+
+fn find_root(parent: &mut [usize], node: usize) -> usize {
+    let mut root = node;
+    while parent[root] != root {
+        root = parent[root];
+    }
+    let mut current = node;
+    while parent[current] != current {
+        let next = parent[current];
+        parent[current] = root;
+        current = next;
+    }
+    root
+}
+
+fn union(parent: &mut [usize], rank: &mut [u8], left: usize, right: usize) {
+    let left_root = find_root(parent, left);
+    let right_root = find_root(parent, right);
+    if left_root == right_root {
+        return;
+    }
+    if rank[left_root] < rank[right_root] {
+        parent[left_root] = right_root;
+    } else if rank[left_root] > rank[right_root] {
+        parent[right_root] = left_root;
+    } else {
+        parent[right_root] = left_root;
+        rank[left_root] = rank[left_root].saturating_add(1);
+    }
 }
 
 fn feasibility_id(result: &CapitalFeasibility) -> CapitalRequirementId {
