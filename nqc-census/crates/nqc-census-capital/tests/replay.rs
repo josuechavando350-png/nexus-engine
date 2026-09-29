@@ -345,7 +345,8 @@ fn upstream_replay_rejects_forged_committed_output_set() -> TestResult {
 
 #[test]
 fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestResult {
-    let (
+    let fixture = replay_context()?;
+    let ReplayFixture {
         context,
         d08_states,
         d08_tokens,
@@ -354,7 +355,7 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
         d09_accounts,
         d09_summary,
         d09_manifest,
-    ) = replay_context()?;
+    } = fixture;
     let d08_authority = context
         .stages()
         .iter()
