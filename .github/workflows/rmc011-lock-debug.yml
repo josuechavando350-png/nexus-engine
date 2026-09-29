@@ -1,8 +1,9 @@
 name: RMC011 Lock Debug
 on:
-  push:
-    branches:
-      - "nqc/rmc-011-capital-census-foundation-20260929"
+  pull_request:
+    paths:
+      - "ci/nqc-census/rmc011-pft-math-bridge/**"
+      - ".github/workflows/rmc011-lock-debug.yml"
 
 permissions:
   contents: read
