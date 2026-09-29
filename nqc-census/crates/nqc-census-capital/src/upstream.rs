@@ -27,9 +27,7 @@ impl CapitalImportRejectionReason {
         match self {
             Self::HistoricalNoActiveState => "HISTORICAL_NO_ACTIVE_STATE",
             Self::StateNotReconstructable => "STATE_NOT_RECONSTRUCTABLE",
-            Self::TokenExecutionCompatibilityBlocked => {
-                "TOKEN_EXECUTION_COMPATIBILITY_BLOCKED"
-            }
+            Self::TokenExecutionCompatibilityBlocked => "TOKEN_EXECUTION_COMPATIBILITY_BLOCKED",
             Self::FlashLoanDisabled => "FLASH_LOAN_DISABLED",
             Self::FlashSwapReserveUnavailable => "FLASH_SWAP_RESERVE_UNAVAILABLE",
         }
@@ -115,10 +113,7 @@ fn token_compatibility(bytes: &[u8]) -> Result<BTreeMap<Address, bool>, CapitalE
     Ok(tokens)
 }
 
-fn compatible(
-    tokens: &BTreeMap<Address, bool>,
-    token: Address,
-) -> Result<bool, CapitalError> {
+fn compatible(tokens: &BTreeMap<Address, bool>, token: Address) -> Result<bool, CapitalError> {
     tokens
         .get(&token)
         .copied()
@@ -259,11 +254,9 @@ pub fn import_d08_capital_sources(
                         );
                         continue;
                     }
-                    let reserve_text = reserve
-                        .as_str()
-                        .ok_or(CapitalError::InvalidCanonical(
-                            "V2 reserve amount is not decimal text",
-                        ))?;
+                    let reserve_text = reserve.as_str().ok_or(CapitalError::InvalidCanonical(
+                        "V2 reserve amount is not decimal text",
+                    ))?;
                     let reserve_amount = Amount256::parse_decimal(reserve_text)?;
                     if reserve_amount <= Amount256::from_u128(1) {
                         push_rejection(

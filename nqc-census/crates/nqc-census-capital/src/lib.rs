@@ -204,9 +204,8 @@ impl Amount256 {
             let mut carry = u16::from(digit - b'0');
             for byte in out.iter_mut().rev() {
                 let expanded = u16::from(*byte) * 10 + carry;
-                *byte = u8::try_from(expanded & 0xff).map_err(|_| {
-                    CapitalError::InvalidCanonical("decimal amount conversion")
-                })?;
+                *byte = u8::try_from(expanded & 0xff)
+                    .map_err(|_| CapitalError::InvalidCanonical("decimal amount conversion"))?;
                 carry = expanded >> 8;
             }
             if carry != 0 {

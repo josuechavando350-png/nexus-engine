@@ -1,8 +1,6 @@
 use nqc_census_capital::{
-    upstream::{
-        import_d08_capital_sources, CapitalImportRejectionReason, D08CapitalImportContext,
-    },
-    Amount256, CapitalAsset, CapitalEvidenceRef, CapitalClass,
+    upstream::{import_d08_capital_sources, CapitalImportRejectionReason, D08CapitalImportContext},
+    Amount256, CapitalAsset, CapitalClass, CapitalEvidenceRef,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -45,7 +43,11 @@ fn context() -> D08CapitalImportContext {
 fn token_row(token: Address, compatible: bool) -> String {
     format!(
         "{{\"execution_compatibility\":{{\"blockers\":[],\"status\":\"{}\"}},\"token\":\"{}\"}}",
-        if compatible { "PROVEN_COMPATIBLE" } else { "BLOCKED" },
+        if compatible {
+            "PROVEN_COMPATIBLE"
+        } else {
+            "BLOCKED"
+        },
         token.to_hex()
     )
 }
@@ -177,11 +179,7 @@ fn d08_import_rejects_v2_reserve_without_strict_flash_swap_headroom() -> TestRes
     let token0 = address(30);
     let token1 = address(31);
     let pair = address(32);
-    let tokens = format!(
-        "{}\n{}\n",
-        token_row(token0, true),
-        token_row(token1, true)
-    );
+    let tokens = format!("{}\n{}\n", token_row(token0, true), token_row(token1, true));
     let states = format!(
         concat!(
             "{{\"factory_membership\":true,\"market_id\":\"m-v2\",\"pair\":\"{}\",",
