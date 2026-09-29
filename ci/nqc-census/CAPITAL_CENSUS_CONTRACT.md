@@ -105,7 +105,7 @@ A source may be used only when:
 - fee/cap semantics are explicit
 - repayment can be satisfied under the candidate's execution semantics
 - exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
-- settlement legs must authorize the actual capital-source classes that generated those obligations; matching only kind, asset, and amount is insufficient
+- settlement legs must authorize the actual capital-source classes that generated those obligations, and the declared settlement amounts must be exactly assignable across those authorized classes; matching only aggregate kind, asset, and amount is insufficient
 - atomicity/collateral requirements are compatible
 - no unresolved source mismatch remains
 
@@ -153,7 +153,7 @@ At minimum:
 - gas funding is independently required when execution needs native gas, and the `requires_native_gas` flag must equal the presence of a native-gas requirement leg in both directions
 - insufficient source capacity fails closed
 - incompatible repayment asset/semantics fails closed
-- exact repayment/funding-fee settlement mismatch, including source-class provenance mismatch, is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification
+- exact repayment/funding-fee settlement mismatch, including source-class provenance or per-class amount-assignment mismatch, is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification
 - protocol and market caps bind maximum executable size
 - stale/mismatched anchors fail
 - unknown failure reason cannot pass certification
