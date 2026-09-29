@@ -1,7 +1,7 @@
 use nqc_census_capital::{
     evaluate_capital_feasibility, Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger,
     CapitalCertificationContext, CapitalClass, CapitalError, CapitalEvidenceRef,
-    CapitalFailureMode, CapitalFeasibility, CapitalProviderKind, CapitalRequirement,
+    CapitalFailureMode, CapitalFeasibility, CapitalOwnership, CapitalProviderKind, CapitalRequirement,
     CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, PersistentDebtTerms, RepaymentSemantics,
     RequiredAtomicity, RequirementKind, RoundingMode, TemporaryLock, UpstreamCensusStage,
@@ -70,6 +70,7 @@ fn source(
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset,
         maximum_available: Amount256::from_u128(maximum),
@@ -222,6 +223,7 @@ fn unknown_source_failure_mode_is_never_admitted() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset,
         maximum_available: Amount256::from_u128(100),
@@ -338,6 +340,7 @@ fn protocol_cap_limits_effective_capacity() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -382,6 +385,7 @@ fn mismatched_anchor_fails_closed() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -483,6 +487,7 @@ fn zero_capacity_source_is_preserved_but_zero_requirement_amount_is_invalid() ->
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::ZERO,
@@ -552,6 +557,7 @@ fn zero_own_capital_policy_rejects_operator_treasury_source() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::OperatorTreasury,
+        ownership: CapitalOwnership::OperatorOwned,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -587,6 +593,7 @@ fn utilization_math_handles_full_256_bit_capacity_exactly() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: maximum,
@@ -642,6 +649,7 @@ fn ledger_proves_no_operator_owned_capital_was_used() -> TestResult {
         provider_namespace: 77,
         provider_locator_hash: hash(78),
         provider_kind: CapitalProviderKind::OperatorTreasury,
+        ownership: CapitalOwnership::OperatorOwned,
         source_contract: Some(address(79)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -679,6 +687,7 @@ fn source_key_is_stable_across_state_refreshes() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -698,6 +707,7 @@ fn source_key_is_stable_across_state_refreshes() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(2_000),
@@ -780,6 +790,7 @@ fn ledger_commitment_is_registration_order_independent() -> TestResult {
         provider_namespace: 21,
         provider_locator_hash: hash(22),
         provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(23)),
         asset: token,
         maximum_available: Amount256::from_u128(50),
@@ -832,6 +843,7 @@ fn ledger_commitment_changes_with_observed_capacity() -> TestResult {
             provider_namespace: 11,
             provider_locator_hash: hash(12),
             provider_kind: CapitalProviderKind::DexLiquidityPool,
+            ownership: CapitalOwnership::External,
             source_contract: Some(address(13)),
             asset: token,
             maximum_available: Amount256::from_u128(maximum),
@@ -1028,6 +1040,7 @@ fn settlement_obligations_separate_principal_repayment_from_funding_fee() -> Tes
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(10_000),
@@ -1111,6 +1124,7 @@ fn no_repayment_gas_source_needs_no_principal_repayment_leg() -> TestResult {
         provider_namespace: 88,
         provider_locator_hash: hash(89),
         provider_kind: CapitalProviderKind::ExternalSponsor,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(90)),
         asset: CapitalAsset::NativeGas,
         maximum_available: Amount256::from_u128(100),
@@ -1158,6 +1172,7 @@ fn no_repayment_gas_sponsor_fee_must_still_be_declared() -> TestResult {
         provider_namespace: 88,
         provider_locator_hash: hash(89),
         provider_kind: CapitalProviderKind::ExternalSponsor,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(90)),
         asset: CapitalAsset::NativeGas,
         maximum_available: Amount256::from_u128(100),
@@ -1266,6 +1281,7 @@ fn compatible_source_at_foreign_anchor_is_classified_as_anchor_mismatch() -> Tes
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -1320,6 +1336,7 @@ fn multiple_operator_sources_are_aggregated_before_zero_own_capital_rejection() 
             provider_namespace: namespace,
             provider_locator_hash: hash(locator),
             provider_kind: CapitalProviderKind::OperatorTreasury,
+            ownership: CapitalOwnership::OperatorOwned,
             source_contract: Some(address(contract)),
             asset: token,
             maximum_available: Amount256::from_u128(100),
@@ -1379,6 +1396,7 @@ fn collateralized_borrowing_can_bind_full_persistent_risk_semantics() -> TestRes
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -1488,6 +1506,7 @@ fn collateral_requirement_cannot_be_funded_circularly_by_collateralized_source()
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: collateral_asset,
         maximum_available: Amount256::from_u128(1_000),
@@ -1542,6 +1561,7 @@ fn ledger_rejects_multiple_states_for_same_stable_source_key() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(1_000),
@@ -1561,6 +1581,7 @@ fn ledger_rejects_multiple_states_for_same_stable_source_key() -> TestResult {
         provider_namespace: 11,
         provider_locator_hash: hash(12),
         provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(13)),
         asset: token,
         maximum_available: Amount256::from_u128(2_000),
@@ -1631,6 +1652,7 @@ fn collateral_leg_rejects_source_that_requires_temporary_lock() -> TestResult {
         provider_namespace: 61,
         provider_locator_hash: hash(62),
         provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(63)),
         asset: collateral_asset,
         maximum_available: Amount256::from_u128(500),
@@ -1684,6 +1706,7 @@ fn temporary_lock_leg_rejects_source_that_requires_collateral() -> TestResult {
         provider_namespace: 71,
         provider_locator_hash: hash(72),
         provider_kind: CapitalProviderKind::ExternalCreditFacility,
+        ownership: CapitalOwnership::External,
         source_contract: Some(address(73)),
         asset: lock_asset,
         maximum_available: Amount256::from_u128(500),
@@ -1860,6 +1883,53 @@ fn certification_rejects_evidence_not_admitted_by_upstream_authority() -> TestRe
     assert!(matches!(
         ledger.certify(&authority),
         Err(nqc_census_capital::CapitalError::UnresolvedEvidenceRef)
+    ));
+    Ok(())
+}
+
+#[test]
+fn zero_own_capital_rejects_operator_owned_builder_source() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::TransientCredit,
+        anchor: anchor(100),
+        provider_namespace: 77,
+        provider_locator_hash: hash(78),
+        provider_kind: CapitalProviderKind::BuilderOrSolver,
+        ownership: CapitalOwnership::OperatorOwned,
+        source_contract: Some(address(79)),
+        asset,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::basis_points(5)?,
+        repayment_asset: asset,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+        evidence: evidence(),
+    })?;
+    let req = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                asset,
+                Amount256::from_u128(100),
+                vec![CapitalClass::TransientCredit],
+            )?,
+            repayment_leg(asset)?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+
+    assert!(matches!(
+        evaluate_capital_feasibility(&req, &[source]),
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::OperatorOwnedCapitalRequired,
+            ..
+        }
     ));
     Ok(())
 }
