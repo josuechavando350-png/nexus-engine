@@ -8,8 +8,8 @@
 //! liquidation sizing semantics are certified downstream.
 
 use crate::{
-    Amount256, CapitalError, CapitalEvidenceRef, UpstreamCensusStage, UpstreamConsumptionReceipt,
-    UpstreamStageAuthority,
+    Amount256, CapitalError, CapitalEvidenceRef, CapitalRequirement, UpstreamCensusStage,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, Hash32, StateAnchor};
@@ -61,6 +61,7 @@ pub struct D09DemandImport {
     pub unavailable_count: usize,
     pub blocked_count: usize,
     pub requirements_certified: usize,
+    pub requirements: Vec<CapitalRequirement>,
     pub coverage_commitment: Hash32,
     authority_artifact_sha256: Hash32,
 }
@@ -70,6 +71,7 @@ impl D09DemandImport {
         self.borrower_count
             == self.below_one_count + self.not_below_one_count + self.unavailable_count
             && self.blocked_count == self.borrower_count
+            && self.requirements_certified == self.requirements.len()
             && self.requirements_certified == 0
     }
 
@@ -77,7 +79,7 @@ impl D09DemandImport {
         UpstreamConsumptionReceipt::for_requirements(
             self.authority_artifact_sha256,
             self.coverage_commitment,
-            std::iter::empty::<&crate::CapitalRequirement>(),
+            self.requirements.iter(),
         )
     }
 }
@@ -512,6 +514,7 @@ pub fn import_d09_borrower_demands(
         unavailable_count,
         blocked_count,
         requirements_certified: 0,
+        requirements: Vec::new(),
         coverage_commitment,
         authority_artifact_sha256: authority.artifact_sha256,
     })
