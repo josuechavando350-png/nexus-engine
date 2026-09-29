@@ -569,8 +569,14 @@ fn ledger_proves_no_operator_owned_capital_was_used() -> TestResult {
         Amount256::from_u128(100),
         vec![CapitalClass::FlashSwap],
     )?;
+    let exact_repayment = CapitalRequirementLeg::new(
+        RequirementKind::Repayment,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
     let req = requirement(
-        vec![principal, repayment_leg(token)?],
+        vec![principal, exact_repayment],
         RequiredAtomicity::SameTransaction,
         false,
     )?;
@@ -932,5 +938,106 @@ fn evidentiary_ledger_certifies_only_after_evaluation() -> TestResult {
     assert!(certificate.summary.is_conserved());
     assert!(certificate.summary.proves_zero_own_capital());
     assert_eq!(certificate.summary.feasible_count, 1);
+    Ok(())
+}
+
+
+#[test]
+fn settlement_obligations_separate_principal_repayment_from_funding_fee() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(1_000),
+        vec![CapitalClass::ProtocolNativeFlashLoan],
+    )?;
+    let repayment = CapitalRequirementLeg::new(
+        RequirementKind::Repayment,
+        token,
+        Amount256::from_u128(1_000),
+        vec![CapitalClass::ProtocolNativeFlashLoan],
+    )?;
+    let fee = CapitalRequirementLeg::new(
+        RequirementKind::FundingFee,
+        token,
+        Amount256::from_u128(1),
+        vec![CapitalClass::ProtocolNativeFlashLoan],
+    )?;
+    let req = requirement(
+        vec![principal, repayment, fee],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::ProtocolNativeFlashLoan,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(10_000),
+        fee_model: FeeModel::basis_points_with_rounding(5, RoundingMode::HalfUp)?,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+    let sources = vec![source];
+    let result = evaluate_capital_feasibility(&req, &sources);
+    let obligations = nqc_census_capital::derive_settlement_obligations(&result, &sources)?;
+    assert_eq!(obligations.len(), 2);
+    assert!(obligations.iter().any(|obligation| {
+        obligation.kind == RequirementKind::Repayment
+            && obligation.amount == Amount256::from_u128(1_000)
+    }));
+    assert!(obligations.iter().any(|obligation| {
+        obligation.kind == RequirementKind::FundingFee
+            && obligation.amount == Amount256::from_u128(1)
+    }));
+    nqc_census_capital::validate_settlement_requirements(&req, &result, &sources)?;
+    Ok(())
+}
+
+#[test]
+fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let wrong_repayment = CapitalRequirementLeg::new(
+        RequirementKind::Repayment,
+        token,
+        Amount256::from_u128(99),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let req = requirement(
+        vec![principal, wrong_repayment],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let external = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(external)?;
+    ledger.register_requirement(req)?;
+    ledger.evaluate_all()?;
+    assert!(matches!(
+        ledger.certify(),
+        Err(CapitalError::SettlementRequirementMismatch)
+    ));
     Ok(())
 }

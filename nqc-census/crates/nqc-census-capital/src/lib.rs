@@ -63,6 +63,8 @@ pub enum CapitalError {
     UnevaluatedRequirement,
     NonEvidentiaryLedger,
     EmptyCapitalCensus,
+    SettlementRequirementMismatch,
+    RejectedFeasibilityHasNoObligations,
 }
 
 impl Display for CapitalError {
@@ -141,6 +143,12 @@ impl Display for CapitalError {
             }
             Self::EmptyCapitalCensus => {
                 f.write_str("capital census certification requires sources and requirements")
+            }
+            Self::SettlementRequirementMismatch => {
+                f.write_str("candidate settlement requirements differ from source obligations")
+            }
+            Self::RejectedFeasibilityHasNoObligations => {
+                f.write_str("rejected capital feasibility has no settlement obligations")
             }
         }
     }
@@ -1605,6 +1613,114 @@ pub enum CapitalFeasibility {
     },
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CapitalObligation {
+    pub kind: RequirementKind,
+    pub asset: CapitalAsset,
+    pub amount: Amount256,
+}
+
+pub fn derive_settlement_obligations(
+    feasibility: &CapitalFeasibility,
+    sources: &[CapitalSource],
+) -> Result<Vec<CapitalObligation>, CapitalError> {
+    let allocations = match feasibility {
+        CapitalFeasibility::Feasible { allocations, .. } => allocations,
+        CapitalFeasibility::Rejected { .. } => {
+            return Err(CapitalError::RejectedFeasibilityHasNoObligations)
+        }
+    };
+    let by_id = sources
+        .iter()
+        .map(|source| (source.id(), source))
+        .collect::<BTreeMap<_, _>>();
+    let mut drawn_by_source = BTreeMap::<CapitalSourceId, Amount256>::new();
+    for allocation in allocations {
+        let current = drawn_by_source
+            .get(&allocation.source_id)
+            .copied()
+            .unwrap_or(Amount256::ZERO);
+        drawn_by_source.insert(
+            allocation.source_id,
+            current.checked_add(allocation.amount)?,
+        );
+    }
+
+    let mut totals = BTreeMap::<(RequirementKind, CapitalAsset), Amount256>::new();
+    for (source_id, drawn) in drawn_by_source {
+        let source = by_id
+            .get(&source_id)
+            .copied()
+            .ok_or(CapitalError::MissingSourceForAllocation)?;
+
+        if !matches!(source.repayment(), RepaymentSemantics::Persistent(_)) {
+            add_obligation(
+                &mut totals,
+                RequirementKind::Repayment,
+                source.repayment_asset(),
+                drawn,
+            )?;
+        }
+        if let Some(fee) = source.quote_fee(drawn)? {
+            if !fee.amount.is_zero() {
+                add_obligation(
+                    &mut totals,
+                    RequirementKind::FundingFee,
+                    fee.asset,
+                    fee.amount,
+                )?;
+            }
+        }
+    }
+
+    Ok(totals
+        .into_iter()
+        .map(|((kind, asset), amount)| CapitalObligation {
+            kind,
+            asset,
+            amount,
+        })
+        .collect())
+}
+
+pub fn validate_settlement_requirements(
+    requirement: &CapitalRequirement,
+    feasibility: &CapitalFeasibility,
+    sources: &[CapitalSource],
+) -> Result<(), CapitalError> {
+    let obligations = derive_settlement_obligations(feasibility, sources)?;
+    let mut declared = BTreeMap::<(RequirementKind, CapitalAsset), Amount256>::new();
+    for leg in requirement.legs() {
+        if !matches!(
+            leg.kind(),
+            RequirementKind::Repayment | RequirementKind::FundingFee
+        ) {
+            continue;
+        }
+        add_obligation(&mut declared, leg.kind(), leg.asset(), leg.amount())?;
+    }
+
+    let required = obligations
+        .into_iter()
+        .map(|obligation| ((obligation.kind, obligation.asset), obligation.amount))
+        .collect::<BTreeMap<_, _>>();
+    if declared != required {
+        return Err(CapitalError::SettlementRequirementMismatch);
+    }
+    Ok(())
+}
+
+fn add_obligation(
+    totals: &mut BTreeMap<(RequirementKind, CapitalAsset), Amount256>,
+    kind: RequirementKind,
+    asset: CapitalAsset,
+    amount: Amount256,
+) -> Result<(), CapitalError> {
+    let current = totals.get(&(kind, asset)).copied().unwrap_or(Amount256::ZERO);
+    totals.insert((kind, asset), current.checked_add(amount)?);
+    Ok(())
+}
+
 pub fn evaluate_capital_feasibility(
     requirement: &CapitalRequirement,
     sources: &[CapitalSource],
@@ -1631,7 +1747,10 @@ pub fn evaluate_capital_feasibility(
     let mut used_sources = BTreeSet::new();
 
     for leg in requirement.legs() {
-        if leg.kind() == RequirementKind::Repayment {
+        if matches!(
+            leg.kind(),
+            RequirementKind::Repayment | RequirementKind::FundingFee
+        ) {
             continue;
         }
         let mut need = leg.amount();
@@ -1901,6 +2020,7 @@ impl CapitalCensusLedger {
         if self.results.len() != self.requirements.len() {
             return Err(CapitalError::UnevaluatedRequirement);
         }
+        self.validate_settlements()?;
         let summary = self.summary()?;
         if summary.source_count == 0 || summary.requirement_count == 0 {
             return Err(CapitalError::EmptyCapitalCensus);
@@ -1962,6 +2082,23 @@ impl CapitalCensusLedger {
             return Err(CapitalError::OperatorOwnedAllocation);
         }
         Ok(summary)
+    }
+
+    fn validate_settlements(&self) -> Result<(), CapitalError> {
+        let sources = self.sources.values().cloned().collect::<Vec<_>>();
+        for (requirement_id, result) in &self.results {
+            if !matches!(result, CapitalFeasibility::Feasible { .. }) {
+                continue;
+            }
+            let requirement = self
+                .requirements
+                .get(requirement_id)
+                .ok_or(CapitalError::InvalidCanonical(
+                    "feasibility result lacks registered requirement",
+                ))?;
+            validate_settlement_requirements(requirement, result, &sources)?;
+        }
+        Ok(())
     }
 
     fn validate_allocations(&self) -> Result<(), CapitalError> {
