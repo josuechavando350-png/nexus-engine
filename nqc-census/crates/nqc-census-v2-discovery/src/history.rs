@@ -15,12 +15,7 @@ use nqc_census_core::{
 };
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
-use std::{
-    collections::BTreeSet,
-    error::Error,
-    fs,
-    path::Path,
-};
+use std::{collections::BTreeSet, error::Error, fs, path::Path};
 
 const ANCHOR_NUMBER: u64 = 25_437_474;
 const FACTORY: &str = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f";
@@ -46,9 +41,7 @@ fn selected_provider<'a>(
         .ok_or_else(|| ChainError::Config(format!("required provider {label} is not declared")))
 }
 
-fn event_record(
-    observation: &CensusObservation<RawLogEnvelope>,
-) -> Result<Json, ChainError> {
+fn event_record(observation: &CensusObservation<RawLogEnvelope>) -> Result<Json, ChainError> {
     let decoded = decode_pair_created(Address::parse_hex(FACTORY)?, observation.payload())
         .map_err(|error| ChainError::Evidence(error.to_string()))?;
     let anchor = observation.envelope().anchor();
@@ -167,8 +160,14 @@ fn validate_history(
             "history_sha256",
             Json::string(hex::plain(&digest.finalize())),
         ),
-        ("first_event", first.ok_or_else(|| ChainError::Evidence("missing first event".into()))?),
-        ("last_event", last.ok_or_else(|| ChainError::Evidence("missing last event".into()))?),
+        (
+            "first_event",
+            first.ok_or_else(|| ChainError::Evidence("missing first event".into()))?,
+        ),
+        (
+            "last_event",
+            last.ok_or_else(|| ChainError::Evidence("missing last event".into()))?,
+        ),
     ]))
 }
 
@@ -181,7 +180,10 @@ pub fn run_pair_history(
     let providers = ProviderSet::parse(&fs::read(providers_path)?)?;
     let current = Json::parse(&fs::read(current_path)?)?;
     let boundary = Json::parse(&fs::read(boundary_path)?)?;
-    let expected_count = number(current.get("facts").ok_or("current facts missing")?, "pair_count")?;
+    let expected_count = number(
+        current.get("facts").ok_or("current facts missing")?,
+        "pair_count",
+    )?;
     let first_code_block = number(&boundary, "first_code_block")?;
     if first_code_block == 0 || first_code_block > ANCHOR_NUMBER {
         return Err(ChainError::Evidence("invalid V2 factory boundary".into()).into());
@@ -228,7 +230,10 @@ pub fn run_pair_history(
     let summary = validate_history(&scan, expected_count)?;
 
     Ok(Json::object([
-        ("schema", Json::string("nqc-rmc-007-v2-pair-created-history-v1")),
+        (
+            "schema",
+            Json::string("nqc-rmc-007-v2-pair-created-history-v1"),
+        ),
         ("status", Json::string("PAIR_CREATED_HISTORY_PASS")),
         ("bootstrap", bootstrap),
         ("factory", Json::string(factory.to_hex())),
