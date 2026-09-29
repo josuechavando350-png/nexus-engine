@@ -111,10 +111,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let d08_receipt = d08_import.consumption_receipt()?;
     let d09_receipt = d09_import.consumption_receipt()?;
-    let context = context_without_receipts.with_consumption_receipts(vec![
-        d08_receipt,
-        d09_receipt,
-    ])?;
+    let context =
+        context_without_receipts.with_consumption_receipts(vec![d08_receipt, d09_receipt])?;
 
     let mut ledger = CapitalCensusLedger::evidentiary();
     for source in d08_import.sources {
