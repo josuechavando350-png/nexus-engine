@@ -82,10 +82,14 @@ jobs:
           PY
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
-            if [ "${{ github.event.pull_request.base.sha }}" = "$RMC003_2_BASE" ]; then
-              python3 - <<'PY'
-          import subprocess
-          expected = {
+            git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
+            BASE_SHA="${{ github.event.pull_request.base.sha }}" python3 - <<'PY'
+          import os, subprocess
+          # Paths RMC-003.2 governs. A PR that introduces the authority must
+          # change exactly the declared files among them; a PR whose base
+          # already contains it must leave them untouched (and any other file
+          # is outside this gate).
+          declared = {
               ".github/workflows/nqc-census-log-topic-words.yml",
               ".github/workflows/nqc-census-store.yml",
               ".github/workflows/nqc-census-chain-evidence.yml",
@@ -98,19 +102,21 @@ jobs:
               "nqc-census/crates/nqc-census-chain/src/job.rs",
               "nqc-census/crates/nqc-census-chain/tests/log_topic_words.rs",
           }
-          changed = set(subprocess.check_output(
-              ["git", "diff", "--name-only", "8ebf6860e0a16964f5293df0ef40695b303b286d...HEAD"],
-              text=True).splitlines())
+          def governed(path):
+              return (path in declared
+                      or path.startswith("nqc-census/crates/nqc-census-core/")
+                      or path.startswith("nqc-census/crates/nqc-census-chain/"))
+          base = os.environ["BASE_SHA"]
+          changed = {path for path in subprocess.check_output(
+              ["git", "diff", "--name-only", f"{base}...HEAD"], text=True).splitlines() if governed(path)}
+          introduces = subprocess.run(
+              ["git", "merge-base", "--is-ancestor", os.environ["RMC003_2_AUTHORITY"], base]).returncode != 0
+          expected = declared if introduces else set()
           assert changed == expected, (
-              f"RMC-003.2 scope mismatch missing={sorted(expected - changed)} "
-              f"extra={sorted(changed - expected)}")
-          print(f"RMC_003_2_SCOPE_PASS files={len(expected)}")
+              f"RMC-003.2 governed scope mismatch introduces={introduces} "
+              f"missing={sorted(expected - changed)} extra={sorted(changed - expected)}")
+          print(f"RMC_003_2_SCOPE_PASS introduces_authority={introduces} governed_files={len(changed)}")
           PY
-              git diff --check "$RMC003_2_BASE"...HEAD
-            else
-              echo "RMC_003_2_EXACT_SCOPE=NOT_THIS_PR base=${{ github.event.pull_request.base.sha }}"
-              git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
-            fi
           fi
           git rev-parse HEAD > "$EVIDENCE/head.txt"
           git rev-parse 'HEAD^{tree}' > "$EVIDENCE/tree.txt"
