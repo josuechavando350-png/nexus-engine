@@ -5,6 +5,7 @@
 //! and fail-closed feasibility semantics consumed by later protocol adapters.
 
 pub mod adapters;
+pub mod artifacts;
 
 use nqc_census_core::{
     Address, CensusUnitId, ChainDomain, EvidenceRef, Hash32, ObservationDigest, StateAnchor,
@@ -176,6 +177,10 @@ impl Amount256 {
         &self.0
     }
 
+    pub fn to_hex(&self) -> String {
+        hex_encode(&self.0)
+    }
+
     pub fn is_zero(self) -> bool {
         self.0 == [0; 32]
     }
@@ -274,6 +279,21 @@ impl CapitalClass {
         }
     }
 
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::ActionPrincipal => "ACTION_PRINCIPAL",
+            Self::Gas => "GAS",
+            Self::ProtocolFee => "PROTOCOL_FEE",
+            Self::FundingFee => "FUNDING_FEE",
+            Self::BuilderOrSolverDeposit => "BUILDER_OR_SOLVER_DEPOSIT",
+            Self::Inventory => "INVENTORY",
+            Self::Collateral => "COLLATERAL",
+            Self::PersistentDebtPrincipal => "PERSISTENT_DEBT_PRINCIPAL",
+            Self::Repayment => "REPAYMENT",
+            Self::TemporaryLock => "TEMPORARY_LOCK",
+        }
+    }
+
     const fn tag(self) -> u8 {
         match self {
             Self::ProtocolNativeFlashLoan => 1,
@@ -365,6 +385,13 @@ pub enum CapitalAsset {
 }
 
 impl CapitalAsset {
+    pub fn code(self) -> String {
+        match self {
+            Self::NativeGas => "NATIVE_GAS".to_owned(),
+            Self::Token(address) => format!("TOKEN:{}", address.to_hex()),
+        }
+    }
+
     fn encode(self, writer: &mut Writer) {
         match self {
             Self::NativeGas => writer.u8(1),
@@ -1042,12 +1069,28 @@ impl CapitalSource {
         &self.anchor
     }
 
+    pub const fn provider_namespace(&self) -> u16 {
+        self.provider_namespace
+    }
+
+    pub const fn provider_locator_hash(&self) -> Hash32 {
+        self.provider_locator_hash
+    }
+
     pub const fn provider_kind(&self) -> CapitalProviderKind {
         self.provider_kind
     }
 
+    pub const fn source_contract(&self) -> Option<Address> {
+        self.source_contract
+    }
+
     pub const fn asset(&self) -> CapitalAsset {
         self.asset
+    }
+
+    pub const fn maximum_available(&self) -> Amount256 {
+        self.maximum_available
     }
 
     pub const fn fee_model(&self) -> FeeModel {
@@ -1298,6 +1341,14 @@ pub enum RequiredAtomicity {
 }
 
 impl RequiredAtomicity {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::SameTransaction => "SAME_TRANSACTION",
+            Self::SameBlock => "SAME_BLOCK",
+            Self::Flexible => "FLEXIBLE",
+        }
+    }
+
     const fn tag(self) -> u8 {
         match self {
             Self::SameTransaction => 1,
@@ -1496,8 +1547,16 @@ impl CapitalRequirement {
         self.atomicity
     }
 
+    pub const fn requires_native_gas(&self) -> bool {
+        self.requires_native_gas
+    }
+
     pub fn legs(&self) -> &[CapitalRequirementLeg] {
         &self.legs
+    }
+
+    pub fn evidence(&self) -> &[CapitalEvidenceRef] {
+        &self.evidence
     }
 
     pub fn canonical_encode(&self) -> Vec<u8> {
@@ -1981,6 +2040,18 @@ impl CapitalCensusLedger {
 
     pub fn result(&self, id: CapitalRequirementId) -> Option<&CapitalFeasibility> {
         self.results.get(&id)
+    }
+
+    pub fn sources(&self) -> impl Iterator<Item = &CapitalSource> {
+        self.sources.values()
+    }
+
+    pub fn requirements(&self) -> impl Iterator<Item = &CapitalRequirement> {
+        self.requirements.values()
+    }
+
+    pub fn results(&self) -> impl Iterator<Item = &CapitalFeasibility> {
+        self.results.values()
     }
 
     pub fn commitment(&self) -> Result<CapitalCensusCommitment, CapitalError> {
