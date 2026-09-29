@@ -465,7 +465,10 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
             "missing upstream authority stage {stage}"
         );
     }
-    assert!(text.contains("\"schema_version\":3"));
+    assert!(text.contains("\"schema_version\":4"));
+    assert!(text.contains("\"generated_at\":\"2026-09-29T00:00:00Z\""));
+    assert!(text.contains("\"code_commit\":\"0123456789abcdef0123456789abcdef01234567\""));
+    assert!(text.contains("\"code_tree\":\"89abcdef0123456789abcdef0123456789abcdef\""));
     assert!(text.contains("\"observation_anchor\""));
     assert!(text.contains("\"admitted_evidence_refs\""));
     assert!(text.contains("\"unresolved_mismatch_count\":0"));
