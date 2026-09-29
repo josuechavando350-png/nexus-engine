@@ -1523,7 +1523,6 @@ fn collateral_requirement_cannot_be_funded_circularly_by_collateralized_source()
     Ok(())
 }
 
-
 #[test]
 fn ledger_rejects_multiple_states_for_same_stable_source_key() -> TestResult {
     let token = CapitalAsset::Token(address(20));
