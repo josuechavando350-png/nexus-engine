@@ -312,8 +312,7 @@ pub fn run_history(
         addresses_provider,
         &provider_creation,
         &anchor,
-        configurator,
-        configurator_implementation,
+        (configurator, configurator_implementation),
     )?;
     if !lineage.configurators.contains(&configurator) {
         return Err(ChainError::Evidence(

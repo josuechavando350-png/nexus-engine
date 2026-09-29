@@ -265,9 +265,9 @@ pub fn discover_configurator_lineage(
     root: Address,
     origin: &StateAnchor,
     observation: &StateAnchor,
-    expected_proxy: Address,
-    expected_current_implementation: Address,
+    expected: (Address, Address),
 ) -> Result<ConfiguratorLineage, ChainError> {
+    let (expected_proxy, expected_current_implementation) = expected;
     let mut per_provider = Vec::new();
     let mut scans = Vec::new();
     let mut manifests = Vec::new();
