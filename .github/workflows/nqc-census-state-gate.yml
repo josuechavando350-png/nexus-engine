@@ -47,15 +47,25 @@ jobs:
           git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
             ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
             ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
+          # The identity, observation, store and chain authorities are pinned
+          # to RMC-003.2 on every head, whatever the PR base.
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store \
+            nqc-census/crates/nqc-census-chain
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE="${{ github.event.pull_request.base.sha }}"
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
             git diff --check "$BASE"...HEAD
-            # RMC-008 adds a crate; it never changes the identity, observation,
-            # store or chain authorities, nor any other census node.
-            changed=$(git diff --name-only "$BASE"...HEAD -- nqc-census/crates \
+            # One census node per PR: a PR that changes nqc-census-state changes
+            # no other crate, and a later node's PR (which runs this gate
+            # because it touches the workspace manifest) leaves RMC-008 as is.
+            state=$(git diff --name-only "$BASE"...HEAD -- nqc-census/crates/nqc-census-state)
+            others=$(git diff --name-only "$BASE"...HEAD -- nqc-census/crates \
               | grep -v '^nqc-census/crates/nqc-census-state/' || true)
-            test -z "$changed" || { echo "RMC-008 touches another crate: $changed"; exit 1; }
+            if [ -n "$state" ] && [ -n "$others" ]; then
+              echo "RMC-008 change touches another crate: $others"
+              exit 1
+            fi
           fi
           echo RMC008_UPSTREAM_IMMUTABLE_PASS
 
