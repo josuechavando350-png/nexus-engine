@@ -2106,6 +2106,200 @@ fn stable_source_key_does_not_alias_different_asset_or_class() -> TestResult {
 }
 
 #[test]
+fn collateral_dependencies_are_aggregated_across_all_used_sources() -> TestResult {
+    let principal_asset = CapitalAsset::Token(address(20));
+    let collateral_asset = CapitalAsset::Token(address(21));
+    let make_credit = |namespace: u16, locator: u8| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::TransientCredit,
+            anchor: anchor(100),
+            provider_namespace: namespace,
+            provider_locator_hash: hash(locator),
+            provider_kind: CapitalProviderKind::ExternalCreditFacility,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(address(locator)),
+            asset: principal_asset,
+            maximum_available: Amount256::from_u128(50),
+            fee_model: FeeModel::None,
+            repayment_asset: principal_asset,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::Required {
+                asset: collateral_asset,
+                amount: Amount256::from_u128(75),
+                liquidation_conditions_hash: hash(locator.saturating_add(20)),
+            },
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![
+                CapitalFailureMode::CollateralLiquidation,
+                CapitalFailureMode::RepaymentFailure,
+            ],
+            evidence: evidence(),
+        })
+    };
+    let first = make_credit(101, 31)?;
+    let second = make_credit(102, 32)?;
+    let collateral_funder = source(
+        CapitalClass::FlashSwap,
+        collateral_asset,
+        150,
+        collateral_asset,
+        RepaymentSemantics::NoRepayment,
+    )?;
+
+    let make_requirement = |collateral_amount| {
+        CapitalRequirement::new(
+            CapitalTargetId::from_hash(hash(91)),
+            anchor(100),
+            RequiredAtomicity::SameTransaction,
+            false,
+            vec![
+                CapitalRequirementLeg::new(
+                    RequirementKind::ActionPrincipal,
+                    principal_asset,
+                    Amount256::from_u128(100),
+                    vec![CapitalClass::TransientCredit],
+                )?,
+                CapitalRequirementLeg::new(
+                    RequirementKind::Collateral,
+                    collateral_asset,
+                    Amount256::from_u128(collateral_amount),
+                    vec![CapitalClass::FlashSwap],
+                )?,
+                CapitalRequirementLeg::new(
+                    RequirementKind::Repayment,
+                    principal_asset,
+                    Amount256::from_u128(100),
+                    vec![CapitalClass::TransientCredit],
+                )?,
+            ],
+            evidence(),
+        )
+    };
+
+    let underfunded = make_requirement(100)?;
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &underfunded,
+            &[first.clone(), second.clone(), collateral_funder.clone()],
+        )?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::CollateralRequirementUnfunded,
+            failed_leg: Some(RequirementKind::Collateral),
+            ..
+        }
+    ));
+
+    let sufficient = make_requirement(150)?;
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &sufficient,
+            &[first, second, collateral_funder],
+        )?,
+        CapitalFeasibility::Feasible { .. }
+    ));
+    Ok(())
+}
+
+#[test]
+fn temporary_lock_dependencies_are_aggregated_across_all_used_sources() -> TestResult {
+    let principal_asset = CapitalAsset::Token(address(20));
+    let lock_asset = CapitalAsset::Token(address(22));
+    let make_credit = |namespace: u16, locator: u8| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::TransientCredit,
+            anchor: anchor(100),
+            provider_namespace: namespace,
+            provider_locator_hash: hash(locator),
+            provider_kind: CapitalProviderKind::ExternalCreditFacility,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(address(locator)),
+            asset: principal_asset,
+            maximum_available: Amount256::from_u128(50),
+            fee_model: FeeModel::None,
+            repayment_asset: principal_asset,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::Required {
+                asset: lock_asset,
+                amount: Amount256::from_u128(75),
+                release: nqc_census_capital::LockRelease::EndOfTransaction,
+            },
+            failure_modes: vec![
+                CapitalFailureMode::SourceUnavailable,
+                CapitalFailureMode::RepaymentFailure,
+            ],
+            evidence: evidence(),
+        })
+    };
+    let first = make_credit(111, 41)?;
+    let second = make_credit(112, 42)?;
+    let lock_funder = source(
+        CapitalClass::FlashSwap,
+        lock_asset,
+        150,
+        lock_asset,
+        RepaymentSemantics::NoRepayment,
+    )?;
+
+    let make_requirement = |lock_amount| {
+        CapitalRequirement::new(
+            CapitalTargetId::from_hash(hash(92)),
+            anchor(100),
+            RequiredAtomicity::SameTransaction,
+            false,
+            vec![
+                CapitalRequirementLeg::new(
+                    RequirementKind::ActionPrincipal,
+                    principal_asset,
+                    Amount256::from_u128(100),
+                    vec![CapitalClass::TransientCredit],
+                )?,
+                CapitalRequirementLeg::new(
+                    RequirementKind::TemporaryLock,
+                    lock_asset,
+                    Amount256::from_u128(lock_amount),
+                    vec![CapitalClass::FlashSwap],
+                )?,
+                CapitalRequirementLeg::new(
+                    RequirementKind::Repayment,
+                    principal_asset,
+                    Amount256::from_u128(100),
+                    vec![CapitalClass::TransientCredit],
+                )?,
+            ],
+            evidence(),
+        )
+    };
+
+    let underfunded = make_requirement(100)?;
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &underfunded,
+            &[first.clone(), second.clone(), lock_funder.clone()],
+        )?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::TemporaryLockUnfunded,
+            failed_leg: Some(RequirementKind::TemporaryLock),
+            ..
+        }
+    ));
+
+    let sufficient = make_requirement(150)?;
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &sufficient,
+            &[first, second, lock_funder],
+        )?,
+        CapitalFeasibility::Feasible { .. }
+    ));
+    Ok(())
+}
+
+#[test]
 fn collateral_leg_rejects_source_that_requires_temporary_lock() -> TestResult {
     let collateral_asset = CapitalAsset::Token(address(21));
     let lock_asset = CapitalAsset::Token(address(22));
