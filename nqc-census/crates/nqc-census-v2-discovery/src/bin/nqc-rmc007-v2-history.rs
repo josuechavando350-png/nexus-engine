@@ -40,12 +40,7 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args = parse_args()?;
-    let report = run_pair_history(
-        &args.providers,
-        &args.current,
-        &args.boundary,
-        &args.store,
-    )?;
+    let report = run_pair_history(&args.providers, &args.current, &args.boundary, &args.store)?;
     if let Some(parent) = args.out.parent() {
         fs::create_dir_all(parent)?;
     }
