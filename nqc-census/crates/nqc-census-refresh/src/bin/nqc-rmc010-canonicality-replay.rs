@@ -60,14 +60,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ]);
     let extract = {
         let store = Store::open_existing(&root)?;
-        stage_extract(
-            &store,
-            &providers,
-            &plan.anchor,
-            &base,
-            &record,
-            summary,
-        )?
+        stage_extract(&store, &providers, &plan.anchor, &base, &record, summary)?
     };
     let after =
         verify_store(&root, &VerifyRequest::default()).map_err(|failure| failure.to_string())?;
