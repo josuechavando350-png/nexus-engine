@@ -382,7 +382,7 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
 
     const CODE_COMMIT: &str = "7777777777777777777777777777777777777777";
     const CODE_TREE: &str = "8888888888888888888888888888888888888888";
-    let provenance = ArtifactProvenance::new("2026-09-29T00:00:00Z", CODE_COMMIT, CODE_TREE)?;
+    let provenance = ArtifactProvenance::new("2023-11-14T22:13:20Z", CODE_COMMIT, CODE_TREE)?;
     let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
     let verified = verify_capital_bundle_with_upstream_replay_for_code(
         &bundle,
