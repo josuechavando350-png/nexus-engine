@@ -1,3 +1,5 @@
+pub mod adapters;
+
 //! Protocol-agnostic, evidence-bound capital semantics for RMC-011.
 //!
 //! This crate deliberately does not discover live liquidity or make profitability claims.
