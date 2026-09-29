@@ -16,7 +16,6 @@
 
 pub mod base;
 pub mod canonical;
-pub mod extract;
 pub mod canonical_extract;
 pub mod parity;
 pub mod refresh;
