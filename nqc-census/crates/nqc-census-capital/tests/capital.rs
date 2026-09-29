@@ -1,8 +1,7 @@
 use nqc_census_capital::{
-    evaluate_capital_feasibility, Amount256, CapitalAsset, CapitalCaps, CapitalClass,
-    CapitalCensusLedger, CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility,
-    CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg, CapitalSource,
-    CapitalSourceSpec, CapitalTargetId,
+    evaluate_capital_feasibility, Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger,
+    CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalProviderKind,
+    CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, PersistentDebtTerms, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UtilizationConstraints,
 };
@@ -560,7 +559,6 @@ fn utilization_math_handles_full_256_bit_capacity_exactly() -> TestResult {
     );
     Ok(())
 }
-
 
 #[test]
 fn ledger_proves_no_operator_owned_capital_was_used() -> TestResult {
