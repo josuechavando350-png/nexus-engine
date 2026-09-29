@@ -606,7 +606,10 @@ pub fn evaluate_portfolio(
     capital_rejected.sort_by_key(|entry| entry.requirement_id);
     conflicts.sort_by_key(|conflict| conflict.resource);
     let commitment = report_commitment(
-        candidates.len(),
+        candidates,
+        &feasibility_map,
+        &source_by_id,
+        &resources,
         capital_feasible_count,
         &capital_rejected,
         &conflicts,
@@ -668,14 +671,102 @@ fn encode_evidence(evidence: &[CapitalEvidenceRef], out: &mut Vec<u8>) {
 }
 
 fn report_commitment(
-    candidate_count: usize,
+    candidates: &[PortfolioCandidate],
+    feasibility: &BTreeMap<CapitalRequirementId, &CapitalFeasibility>,
+    sources: &BTreeMap<CapitalSourceId, &CapitalSource>,
+    resources: &BTreeMap<SharedResourceKeyId, &SharedResource>,
     capital_feasible_count: usize,
     rejected: &[CapitalBlockedCandidate],
     conflicts: &[PortfolioConflict],
 ) -> [u8; 32] {
     let mut hasher = Sha256::new();
     hasher.update(PORTFOLIO_COMMITMENT_DOMAIN);
-    hasher.update(u64::try_from(candidate_count).unwrap_or(u64::MAX).to_be_bytes());
+
+    // Bind every observed source state, not only sources that happened to
+    // conflict. A capacity or fee-state change therefore changes the proof
+    // even when the candidate set remains feasible.
+    hasher.update(u64::try_from(sources.len()).unwrap_or(u64::MAX).to_be_bytes());
+    for (id, source) in sources {
+        hasher.update(id.as_bytes());
+        hasher.update(source.key_id().as_bytes());
+    }
+
+    // Bind every shared-resource observation by stable key and observed id.
+    hasher.update(
+        u64::try_from(resources.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for (key, resource) in resources {
+        hasher.update(key.as_bytes());
+        hasher.update(resource.id().as_bytes());
+    }
+
+    let mut ordered_candidates = candidates.iter().collect::<Vec<_>>();
+    ordered_candidates.sort_by_key(|candidate| candidate.requirement_id());
+    hasher.update(
+        u64::try_from(ordered_candidates.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for candidate in ordered_candidates {
+        hasher.update(candidate.requirement_id().as_bytes());
+        encode_anchor_hash(candidate.anchor(), &mut hasher);
+        hasher.update(
+            u64::try_from(candidate.claims().len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        for claim in candidate.claims() {
+            hasher.update(claim.resource_key.as_bytes());
+            hasher.update(claim.amount.as_be_bytes());
+        }
+
+        if let Some(result) = feasibility.get(&candidate.requirement_id()) {
+            match result {
+                CapitalFeasibility::Feasible { allocations, .. } => {
+                    hasher.update([1]);
+                    let mut ordered = allocations.iter().collect::<Vec<_>>();
+                    ordered.sort_by_key(|allocation| {
+                        (
+                            allocation.source_id,
+                            allocation.leg_kind.code(),
+                            allocation.amount,
+                        )
+                    });
+                    hasher.update(
+                        u64::try_from(ordered.len())
+                            .unwrap_or(u64::MAX)
+                            .to_be_bytes(),
+                    );
+                    for allocation in ordered {
+                        hasher.update(allocation.source_id.as_bytes());
+                        hasher.update(allocation.leg_kind.code().as_bytes());
+                        hasher.update([0]);
+                        hasher.update(allocation.amount.as_be_bytes());
+                    }
+                }
+                CapitalFeasibility::Rejected { reason, failed_leg, .. } => {
+                    hasher.update([2]);
+                    hasher.update(reason.code().as_bytes());
+                    hasher.update([0]);
+                    match failed_leg {
+                        Some(kind) => {
+                            hasher.update([1]);
+                            hasher.update(kind.code().as_bytes());
+                            hasher.update([0]);
+                        }
+                        None => hasher.update([0]),
+                    }
+                }
+            }
+        } else {
+            // evaluate_portfolio rejects this condition before commitment,
+            // but keep the commitment format explicitly total.
+            hasher.update([0]);
+        }
+    }
+
     hasher.update(
         u64::try_from(capital_feasible_count)
             .unwrap_or(u64::MAX)
@@ -709,6 +800,17 @@ fn report_commitment(
         }
     }
     hasher.finalize().into()
+}
+
+fn encode_anchor_hash(anchor: &StateAnchor, hasher: &mut Sha256) {
+    hasher.update(anchor.chain().chain_id().to_be_bytes());
+    hasher.update(anchor.chain().genesis_hash().as_bytes());
+    hasher.update(anchor.chain().fork_lineage().as_bytes());
+    hasher.update(anchor.block_number().to_be_bytes());
+    hasher.update(anchor.block_hash().as_bytes());
+    hasher.update(anchor.parent_hash().as_bytes());
+    hasher.update(anchor.timestamp().to_be_bytes());
+    hasher.update(anchor.state_root().as_bytes());
 }
 
 fn domain_hash(domain: &[u8], bytes: &[u8]) -> [u8; 32] {
