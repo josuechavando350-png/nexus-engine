@@ -615,7 +615,6 @@ fn ledger_proves_no_operator_owned_capital_was_used() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn source_key_is_stable_across_state_refreshes() -> TestResult {
     let token = CapitalAsset::Token(address(20));

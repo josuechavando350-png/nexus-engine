@@ -1717,17 +1717,18 @@ impl CapitalCensusLedger {
             let encoded = source.canonical_encode();
             hasher.update(source.key_id().as_bytes());
             hasher.update(source.id().as_bytes());
-            hasher.update(u64::try_from(encoded.len()).unwrap_or(u64::MAX).to_be_bytes());
+            hasher.update(
+                u64::try_from(encoded.len())
+                    .unwrap_or(u64::MAX)
+                    .to_be_bytes(),
+            );
             hasher.update(domain_hash(b"NQC-RMC011-SOURCE-RECORD-V1", &encoded));
         }
         for requirement in self.requirements.values() {
             let encoded = requirement.canonical_encode();
             hasher.update(requirement.id().as_bytes());
             hasher.update(u64::try_from(encoded.len()).unwrap_or(u64::MAX).to_be_bytes());
-            hasher.update(domain_hash(
-                b"NQC-RMC011-REQUIREMENT-RECORD-V1",
-                &encoded,
-            ));
+            hasher.update(domain_hash(b"NQC-RMC011-REQUIREMENT-RECORD-V1", &encoded));
         }
         for result in self.results.values() {
             let encoded = encode_feasibility(result);
