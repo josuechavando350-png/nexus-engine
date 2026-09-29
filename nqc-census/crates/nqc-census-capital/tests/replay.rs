@@ -1,11 +1,14 @@
 use nqc_census_capital::{
+    artifacts::{export_capital_artifacts, ArtifactProvenance},
     demands::import_d09_borrower_demands,
     replay::{
+        verify_capital_bundle_with_upstream_replay_for_code,
         verify_upstream_consumption_by_replay, D08ReplayInputs, D09ReplayInputs,
     },
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
-    CapitalCertificationContext, CapitalEvidenceRef, GitObjectId, UpstreamCensusStage,
-    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    CapitalCensusLedger, CapitalCertificationContext, CapitalEvidenceRef, GitObjectId,
+    UpstreamCensusStage, UpstreamConsumptionReceipt, UpstreamStageAuthority,
+    UpstreamStageAuthoritySpec,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
@@ -335,5 +338,73 @@ fn upstream_replay_rejects_forged_committed_output_set() -> TestResult {
         },
     )
     .is_err());
+    Ok(())
+}
+
+
+#[test]
+fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestResult {
+    let (
+        context,
+        d08_states,
+        d08_tokens,
+        d08_facts,
+        d08_manifest,
+        d09_accounts,
+        d09_summary,
+        d09_manifest,
+    ) = replay_context()?;
+    let d08_authority = context
+        .stages()
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or("missing D08 authority")?;
+    let d08_context = D08CapitalImportContext {
+        anchor: anchor(),
+        evidence: vec![CapitalEvidenceRef::Artifact(d08_authority.artifact_sha256)],
+    };
+    let imported = import_d08_capital_sources(
+        &d08_states,
+        &d08_tokens,
+        &d08_facts,
+        &d08_manifest,
+        d08_authority,
+        &d08_context,
+    )?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    for source in imported.sources {
+        ledger.register_source(source)?;
+    }
+    ledger.evaluate_all()?;
+
+    const CODE_COMMIT: &str = "7777777777777777777777777777777777777777";
+    const CODE_TREE: &str = "8888888888888888888888888888888888888888";
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        CODE_COMMIT,
+        CODE_TREE,
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
+    let verified = verify_capital_bundle_with_upstream_replay_for_code(
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        D08ReplayInputs {
+            state_manifest_jsonl: &d08_states,
+            token_admission_jsonl: &d08_tokens,
+            pool_and_factory_facts_json: &d08_facts,
+            evidence_manifest_json: &d08_manifest,
+        },
+        D09ReplayInputs {
+            account_manifest_jsonl: &d09_accounts,
+            account_summary_json: &d09_summary,
+            evidence_manifest_json: &d09_manifest,
+        },
+    )?;
+    assert_eq!(verified.capital.source_count, 1);
+    assert_eq!(verified.capital.requirement_count, 0);
+    assert_eq!(verified.upstream.d08_source_count, 1);
+    assert_eq!(verified.upstream.d09_requirement_count, 0);
     Ok(())
 }
