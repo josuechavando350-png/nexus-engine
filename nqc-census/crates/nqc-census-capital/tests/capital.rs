@@ -179,6 +179,82 @@ fn source_canonical_roundtrip_and_tamper_rejection() -> TestResult {
 }
 
 #[test]
+fn execution_blockers_preserve_observed_capacity_and_stable_source_key() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let observed = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let key = observed.key_id();
+    let unblocked_id = observed.id();
+    let blocked = observed.with_execution_blockers(vec![
+        "TRANSFER_HOOKS_UNPROVEN".to_owned(),
+        "FEE_ON_TRANSFER_UNPROVEN".to_owned(),
+    ])?;
+
+    assert_eq!(blocked.key_id(), key);
+    assert_ne!(blocked.id(), unblocked_id);
+    assert_eq!(blocked.maximum_available(), Amount256::from_u128(1_000));
+    assert_eq!(blocked.effective_capacity()?, Amount256::from_u128(1_000));
+    assert_eq!(blocked.executable_capacity()?, Amount256::ZERO);
+    assert!(!blocked.execution_eligible());
+    assert_eq!(
+        blocked.execution_blockers(),
+        &[
+            "FEE_ON_TRANSFER_UNPROVEN".to_owned(),
+            "TRANSFER_HOOKS_UNPROVEN".to_owned(),
+        ]
+    );
+
+    let encoded = blocked.canonical_encode();
+    let decoded = CapitalSource::decode_canonical(&encoded)?;
+    assert_eq!(decoded, blocked);
+    assert!(source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?
+    .with_execution_blockers(vec!["not-canonical".to_owned()])
+    .is_err());
+    Ok(())
+}
+
+#[test]
+fn execution_blocked_liquidity_is_not_misclassified_as_insufficient_capacity() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let blocked = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?
+    .with_execution_blockers(vec!["FEE_ON_TRANSFER_UNPROVEN".to_owned()])?;
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        asset,
+        Amount256::from_u128(500),
+        vec![CapitalClass::ProtocolNativeFlashLoan],
+    )?;
+    let required = requirement(vec![principal], RequiredAtomicity::SameTransaction, false)?;
+
+    assert_eq!(
+        evaluate_capital_feasibility(&required, &[blocked]),
+        CapitalFeasibility::Rejected {
+            requirement_id: required.id(),
+            reason: nqc_census_capital::FeasibilityRejection::ExecutionBlocked,
+            failed_leg: Some(RequirementKind::ActionPrincipal),
+        }
+    );
+    Ok(())
+}
+
+#[test]
 fn persistent_debt_cannot_hide_missing_risk_terms() -> TestResult {
     let asset = CapitalAsset::Token(address(20));
     let result = source(
