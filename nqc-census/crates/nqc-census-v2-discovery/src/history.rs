@@ -10,9 +10,7 @@ use nqc_census_chain::{
     transport::{CurlTransport, RetryPolicy},
     ChainError,
 };
-use nqc_census_core::{
-    Address, CensusObservation, ObservationClass, RawLogEnvelope, StateAnchor,
-};
+use nqc_census_core::{Address, CensusObservation, ObservationClass, RawLogEnvelope, StateAnchor};
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
 use std::{collections::BTreeSet, error::Error, fs, path::Path};
