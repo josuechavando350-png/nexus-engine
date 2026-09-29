@@ -855,7 +855,6 @@ fn fixed_fee_preserves_explicit_fee_asset() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn fee_rounding_matches_protocol_integer_semantics() -> TestResult {
     let token = CapitalAsset::Token(address(20));
@@ -878,7 +877,6 @@ fn fee_rounding_matches_protocol_integer_semantics() -> TestResult {
     assert_eq!(balancer_like.amount, Amount256::from_u128(2));
     Ok(())
 }
-
 
 #[test]
 fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult {

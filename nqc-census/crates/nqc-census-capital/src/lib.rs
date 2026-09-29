@@ -466,12 +466,7 @@ impl FeeModel {
             Self::None => Ok(None),
             Self::BasisPoints { bps, rounding } => Ok(Some(FeeQuote {
                 asset: default_asset,
-                amount: mul_div_u64_round(
-                    drawn_amount,
-                    u64::from(bps),
-                    10_000,
-                    rounding,
-                )?,
+                amount: mul_div_u64_round(drawn_amount, u64::from(bps), 10_000, rounding)?,
             })),
             Self::Fixed { asset, amount } => Ok(Some(FeeQuote { asset, amount })),
             Self::ExactRatio {
