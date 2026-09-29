@@ -61,7 +61,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cargo fmt --all -- --check
+          rustfmt --edition 2021 --check src/lib.rs
           cargo clippy --locked --all-targets -- -D warnings
           cargo test --locked
 

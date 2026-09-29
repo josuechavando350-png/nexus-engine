@@ -7,8 +7,8 @@
 
 use crate::{
     adapters::{AaveV3FlashObservation, UniswapV2FlashSwapObservation},
-    Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource,
-    UpstreamCensusStage, UpstreamStageAuthority,
+    Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource, UpstreamCensusStage,
+    UpstreamStageAuthority,
 };
 use nqc_census_chain::{hex, json::Json};
 use nqc_census_core::{Address, Hash32, StateAnchor};

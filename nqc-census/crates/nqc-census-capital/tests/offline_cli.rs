@@ -129,11 +129,7 @@ fn write_bundle(directory: &Path) -> TestResult {
     let bundle = export_capital_artifacts(
         &ledger()?,
         &authority()?,
-        &ArtifactProvenance::new(
-            "2026-09-29T00:00:00Z",
-            CODE_COMMIT,
-            CODE_TREE,
-        )?,
+        &ArtifactProvenance::new("2026-09-29T00:00:00Z", CODE_COMMIT, CODE_TREE)?,
     )?;
     for file in bundle.files {
         fs::write(directory.join(file.name), file.bytes)?;
@@ -203,7 +199,6 @@ fn offline_verifier_binary_rejects_tampered_artifact() -> TestResult {
     assert!(!output.status.success());
     Ok(())
 }
-
 
 #[test]
 fn offline_verifier_binary_rejects_wrong_exact_code_identity() -> TestResult {

@@ -110,17 +110,10 @@ fn import_d08_capital_sources(
     let manifest = d08_manifest(states, tokens, facts);
     let authority = d08_authority(&manifest)?;
     let mut bound_context = context.clone();
-    bound_context
-        .evidence
-        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone()));
-    import_d08_capital_sources_bound(
-        states,
-        tokens,
-        facts,
-        &manifest,
-        &authority,
-        &bound_context,
-    )
+    bound_context.evidence.push(CapitalEvidenceRef::Artifact(
+        authority.artifact_sha256.clone(),
+    ));
+    import_d08_capital_sources_bound(states, tokens, facts, &manifest, &authority, &bound_context)
 }
 
 fn token_row(token: Address, compatible: bool) -> String {
@@ -553,7 +546,6 @@ fn d08_import_binds_aave_pool_and_flash_fee_to_closeout_facts() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn d08_evidentiary_import_rejects_consumed_artifact_substitution() -> TestResult {
     let asset = address(20);
@@ -566,9 +558,9 @@ fn d08_evidentiary_import_rejects_consumed_artifact_substitution() -> TestResult
     let manifest = d08_manifest(states.as_bytes(), tokens.as_bytes(), &facts);
     let authority = d08_authority(&manifest)?;
     let mut bound_context = context();
-    bound_context
-        .evidence
-        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone()));
+    bound_context.evidence.push(CapitalEvidenceRef::Artifact(
+        authority.artifact_sha256.clone(),
+    ));
 
     let tampered_states = states.replace("\"10000\"", "\"10001\"");
     assert!(import_d08_capital_sources_bound(
@@ -596,9 +588,9 @@ fn d08_evidentiary_import_rejects_manifest_not_named_by_authority() -> TestResul
     let mut authority = d08_authority(&manifest)?;
     authority.artifact_sha256 = hash(250);
     let mut bound_context = context();
-    bound_context
-        .evidence
-        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone()));
+    bound_context.evidence.push(CapitalEvidenceRef::Artifact(
+        authority.artifact_sha256.clone(),
+    ));
 
     assert!(import_d08_capital_sources_bound(
         states.as_bytes(),
