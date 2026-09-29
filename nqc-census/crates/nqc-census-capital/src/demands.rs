@@ -76,6 +76,7 @@ pub struct D09DemandImport {
     pub blocked_count: usize,
     pub requirements_certified: usize,
     pub requirements: Vec<CapitalRequirement>,
+    demand_candidate_ids: Vec<Hash32>,
     pub coverage_commitment: Hash32,
     authority_artifact_sha256: Hash32,
 }
@@ -87,13 +88,18 @@ impl D09DemandImport {
             && self.blocked_count == self.borrower_count
             && self.requirements_certified == self.requirements.len()
             && self.requirements_certified == 0
+            && self.demand_candidate_ids.len() == self.borrowers.len()
+    }
+
+    pub fn demand_candidate_ids(&self) -> &[Hash32] {
+        &self.demand_candidate_ids
     }
 
     pub fn consumption_receipt(&self) -> Result<UpstreamConsumptionReceipt, CapitalError> {
-        UpstreamConsumptionReceipt::for_requirements(
+        UpstreamConsumptionReceipt::for_d09_demand_candidates(
             self.authority_artifact_sha256,
             self.coverage_commitment,
-            self.requirements.iter(),
+            self.demand_candidate_ids.iter().copied(),
         )
     }
 }
@@ -360,13 +366,7 @@ fn hash_position(hasher: &mut Sha256, position: &PositionAmount) {
     hasher.update(position.balance.as_be_bytes());
 }
 
-fn demand_coverage_commitment(
-    borrowers: &[BorrowerDemandCandidate],
-    anchor: &StateAnchor,
-) -> Result<Hash32, CapitalError> {
-    let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-D09-DEMAND-COVERAGE-V1");
-    hasher.update([0]);
+fn hash_demand_anchor(hasher: &mut Sha256, anchor: &StateAnchor) {
     hasher.update(anchor.chain().chain_id().to_be_bytes());
     hasher.update(anchor.chain().genesis_hash().as_bytes());
     hasher.update(anchor.chain().fork_lineage().as_bytes());
@@ -375,72 +375,100 @@ fn demand_coverage_commitment(
     hasher.update(anchor.parent_hash().as_bytes());
     hasher.update(anchor.timestamp().to_be_bytes());
     hasher.update(anchor.state_root().as_bytes());
+}
+
+fn hash_borrower_candidate(
+    hasher: &mut Sha256,
+    borrower: &BorrowerDemandCandidate,
+) -> Result<(), CapitalError> {
+    hasher.update(borrower.account.as_bytes());
+    match borrower.health_factor_below_one {
+        None => hasher.update([0]),
+        Some(false) => hasher.update([1]),
+        Some(true) => hasher.update([2]),
+    }
+    let blocker = borrower.blocker.ok_or(CapitalError::InvalidCanonical(
+        "RMC-009 borrower classification lacks blocker",
+    ))?;
+    hash_len_prefixed(hasher, blocker.code().as_bytes());
+    hasher.update(borrower.user_configuration.as_be_bytes());
+    hash_optional_amount(hasher, borrower.emode_category);
+    match &borrower.account_risk {
+        None => hasher.update([0]),
+        Some(risk) => {
+            hasher.update([1]);
+            for value in [
+                risk.total_collateral_base,
+                risk.total_debt_base,
+                risk.available_borrows_base,
+                risk.current_liquidation_threshold,
+                risk.ltv,
+                risk.health_factor_wad,
+            ] {
+                hasher.update(value.as_be_bytes());
+            }
+        }
+    }
+    hasher.update(
+        u64::try_from(borrower.configuration_divergences.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for divergence in &borrower.configuration_divergences {
+        hash_len_prefixed(hasher, divergence.as_bytes());
+    }
+    hasher.update(
+        u64::try_from(borrower.supply_positions.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for position in &borrower.supply_positions {
+        hash_position(hasher, position);
+    }
+    hasher.update(
+        u64::try_from(borrower.debt_positions.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for position in &borrower.debt_positions {
+        hash_position(hasher, position);
+    }
+    Ok(())
+}
+
+fn demand_candidate_id(
+    borrower: &BorrowerDemandCandidate,
+    anchor: &StateAnchor,
+) -> Result<Hash32, CapitalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-D09-DEMAND-CANDIDATE-V1");
+    hasher.update([0]);
+    hash_demand_anchor(&mut hasher, anchor);
+    hash_borrower_candidate(&mut hasher, borrower)?;
+    let digest: [u8; 32] = hasher.finalize().into();
+    Hash32::new(digest)
+        .map_err(|_| CapitalError::InvalidCanonical("zero RMC-009 demand candidate id"))
+}
+
+fn demand_coverage_commitment(
+    borrowers: &[BorrowerDemandCandidate],
+    anchor: &StateAnchor,
+) -> Result<Hash32, CapitalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-D09-DEMAND-COVERAGE-V1");
+    hasher.update([0]);
+    hash_demand_anchor(&mut hasher, anchor);
     hasher.update(
         u64::try_from(borrowers.len())
             .unwrap_or(u64::MAX)
             .to_be_bytes(),
     );
-
     for borrower in borrowers {
-        hasher.update(borrower.account.as_bytes());
-        match borrower.health_factor_below_one {
-            None => hasher.update([0]),
-            Some(false) => hasher.update([1]),
-            Some(true) => hasher.update([2]),
-        }
-        let blocker = borrower.blocker.ok_or(CapitalError::InvalidCanonical(
-            "RMC-009 borrower classification lacks blocker",
-        ))?;
-        hash_len_prefixed(&mut hasher, blocker.code().as_bytes());
-        hasher.update(borrower.user_configuration.as_be_bytes());
-        hash_optional_amount(&mut hasher, borrower.emode_category);
-        match &borrower.account_risk {
-            None => hasher.update([0]),
-            Some(risk) => {
-                hasher.update([1]);
-                for value in [
-                    risk.total_collateral_base,
-                    risk.total_debt_base,
-                    risk.available_borrows_base,
-                    risk.current_liquidation_threshold,
-                    risk.ltv,
-                    risk.health_factor_wad,
-                ] {
-                    hasher.update(value.as_be_bytes());
-                }
-            }
-        }
-        hasher.update(
-            u64::try_from(borrower.configuration_divergences.len())
-                .unwrap_or(u64::MAX)
-                .to_be_bytes(),
-        );
-        for divergence in &borrower.configuration_divergences {
-            hash_len_prefixed(&mut hasher, divergence.as_bytes());
-        }
-
-        hasher.update(
-            u64::try_from(borrower.supply_positions.len())
-                .unwrap_or(u64::MAX)
-                .to_be_bytes(),
-        );
-        for position in &borrower.supply_positions {
-            hash_position(&mut hasher, position);
-        }
-        hasher.update(
-            u64::try_from(borrower.debt_positions.len())
-                .unwrap_or(u64::MAX)
-                .to_be_bytes(),
-        );
-        for position in &borrower.debt_positions {
-            hash_position(&mut hasher, position);
-        }
+        hash_borrower_candidate(&mut hasher, borrower)?;
     }
 
-    let digest = hasher.finalize();
-    let mut bytes = [0_u8; 32];
-    bytes.copy_from_slice(&digest);
-    Hash32::new(bytes)
+    let digest: [u8; 32] = hasher.finalize().into();
+    Hash32::new(digest)
         .map_err(|_| CapitalError::InvalidCanonical("zero RMC-009 demand coverage commitment"))
 }
 
@@ -660,6 +688,15 @@ pub fn import_d09_borrower_demands(
         ));
     }
     let coverage_commitment = demand_coverage_commitment(&borrowers, anchor)?;
+    let demand_candidate_ids = borrowers
+        .iter()
+        .map(|borrower| demand_candidate_id(borrower, anchor))
+        .collect::<Result<Vec<_>, _>>()?;
+    if demand_candidate_ids.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(CapitalError::InvalidCanonical(
+            "duplicate RMC-009 demand candidate id",
+        ));
+    }
 
     // Deliberately zero: RMC-009 says, in its own closeout contract,
     // LIQUIDATABILITY_NOT_CLAIMED. A later exact liquidation-sizing bridge
@@ -673,6 +710,7 @@ pub fn import_d09_borrower_demands(
         blocked_count,
         requirements_certified: 0,
         requirements: Vec::new(),
+        demand_candidate_ids,
         coverage_commitment,
         authority_artifact_sha256: authority.artifact_sha256,
     })
