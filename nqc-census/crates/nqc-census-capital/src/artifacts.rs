@@ -839,6 +839,7 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
             Json::uint(u64::from(source.provider_namespace())),
         ),
         ("provider_kind", Json::string(source.provider_kind().code())),
+        ("capital_ownership", Json::string(source.ownership().code())),
         (
             "provider_locator_hash",
             Json::string(source.provider_locator_hash().to_hex()),
