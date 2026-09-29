@@ -14,13 +14,13 @@
     },
     {
       "namespace": 260,
-      "label": "drpc-public",
-      "url": "https://eth.drpc.org",
-      "operator": "dRPC public endpoint",
-      "min_interval_ms": 350,
+      "label": "tenderly-public",
+      "url": "https://gateway.tenderly.co/public/mainnet",
+      "operator": "Tenderly public gateway",
+      "min_interval_ms": 250,
       "max_batch": 1,
-      "log_window": 9000,
-      "pinning": "EIP1898_BLOCK_HASH"
+      "log_window": 3000000,
+      "pinning": "NUMBER_WITH_HASH_GUARDS"
     }
   ]
 }
