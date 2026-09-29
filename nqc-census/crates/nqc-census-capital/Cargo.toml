@@ -6,8 +6,6 @@ rust-version.workspace = true
 publish.workspace = true
 
 [dependencies]
-alloy = { version = "=2.5.0", default-features = false, features = ["std"] }
-pft-nqc-aave-math = { package = "nqc-aave-math", path = "../../../ci/nqc-protocol-fork/recovered-source/crates/nqc-aave-math" }
 nqc-census-core = { path = "../nqc-census-core" }
 nqc-census-chain = { path = "../nqc-census-chain" }
 sha2.workspace = true
