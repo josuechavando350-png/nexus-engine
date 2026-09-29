@@ -566,6 +566,14 @@ fn incremental_refresh_equals_a_full_census_byte_for_byte() -> TestResult {
     let incremental = run.refresh(&target, &base, &dirs.0[2])?;
     let report = census_parity(&dirs.0[1], &dirs.0[2])?;
     assert_eq!(report.str_field("status")?, "FULL_INCREMENTAL_PARITY_PASS");
+    // Producer code identity is provenance, not census state. It remains in
+    // the evidence manifest and must not leak into the byte-compared summary.
+    let summary = Json::parse(&std::fs::read(dirs.0[1].join("account-summary.json"))?)?;
+    assert!(summary.get("code_commit").is_none());
+    assert!(summary.get("code_tree").is_none());
+    let evidence = Json::parse(&std::fs::read(dirs.0[1].join("evidence-manifest.json"))?)?;
+    assert_eq!(evidence.str_field("code_commit")?, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+    assert_eq!(evidence.str_field("code_tree")?, "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb");
     // The target state is what both saw: the new reserve, new accounts, the
     // repaid debt and the new flags.
     for reconciled in [&full, &incremental] {
