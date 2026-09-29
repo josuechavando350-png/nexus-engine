@@ -43,8 +43,15 @@ jobs:
               body = json.dumps({"jsonrpc": "2.0", "id": 1, "method": method, "params": params}).encode()
               for attempt in range(6):
                   try:
-                      request = urllib.request.Request(provider["url"], data=body,
-                                                       headers={"content-type": "application/json"})
+                      request = urllib.request.Request(
+                          provider["url"],
+                          data=body,
+                          headers={
+                              "content-type": "application/json",
+                              "accept": "application/json",
+                              "user-agent": "nqc-census-chain/1",
+                          },
+                      )
                       with urllib.request.urlopen(request, timeout=30) as response:
                           reply = json.load(response)
                       if "result" in reply and reply["result"] is not None:
