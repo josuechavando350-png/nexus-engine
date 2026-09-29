@@ -6,6 +6,10 @@ name: NQC RMC-010 Refresh Anchor Proposal
 # the anchor header on its own providers before observing anything.
 
 on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-refresh-anchor.yml
+      - ci/nqc-census/rpc-providers.json
   workflow_dispatch:
 
 permissions:
