@@ -408,7 +408,7 @@ pub fn import_d09_borrower_demands(
     let summary = Json::parse(account_summary_json)
         .map_err(|_| CapitalError::InvalidCanonical("RMC-009 summary JSON parse failed"))?;
     verify_summary(&summary, anchor)?;
-    let demand_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone());
+    let demand_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256);
 
     let mut borrowers = Vec::new();
     let mut seen_accounts = BTreeSet::new();
@@ -473,7 +473,7 @@ pub fn import_d09_borrower_demands(
             debt_positions,
             health_factor_below_one: below,
             blocker,
-            evidence: vec![demand_evidence.clone()],
+            evidence: vec![demand_evidence],
         });
     }
     borrowers.sort_by_key(|candidate| candidate.account);
