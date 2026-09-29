@@ -1,7 +1,7 @@
 use crate::{
     Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext, CapitalClass,
     CapitalError, CapitalFeasibility, CapitalRequirement, CapitalSource, FeasibilityRejection,
-    RequirementKind,
+    GitObjectId, RequirementKind,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::StateAnchor;
@@ -36,6 +36,8 @@ impl ArtifactProvenance {
                 "artifact provenance fields must be nonempty",
             ));
         }
+        GitObjectId::parse_hex(&code_commit)?;
+        GitObjectId::parse_hex(&code_tree)?;
         Ok(Self {
             generated_at,
             code_commit,
