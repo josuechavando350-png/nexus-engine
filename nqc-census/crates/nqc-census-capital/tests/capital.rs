@@ -389,11 +389,7 @@ fn native_gas_flag_and_gas_leg_must_match_exactly() -> TestResult {
     )?;
 
     assert!(matches!(
-        requirement(
-            vec![gas.clone()],
-            RequiredAtomicity::SameTransaction,
-            false,
-        ),
+        requirement(vec![gas.clone()], RequiredAtomicity::SameTransaction, false,),
         Err(CapitalError::NativeGasLegWithoutRequirementFlag)
     ));
 
@@ -404,11 +400,7 @@ fn native_gas_flag_and_gas_leg_must_match_exactly() -> TestResult {
         vec![CapitalClass::FlashSwap],
     )?;
     assert!(matches!(
-        requirement(
-            vec![principal],
-            RequiredAtomicity::SameTransaction,
-            true,
-        ),
+        requirement(vec![principal], RequiredAtomicity::SameTransaction, true,),
         Err(CapitalError::NativeGasRequiredButMissing)
     ));
     Ok(())
