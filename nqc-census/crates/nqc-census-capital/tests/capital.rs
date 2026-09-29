@@ -614,3 +614,195 @@ fn ledger_proves_no_operator_owned_capital_was_used() -> TestResult {
     assert_eq!(summary.feasible_count, 1);
     Ok(())
 }
+
+
+#[test]
+fn source_key_is_stable_across_state_refreshes() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+    let second = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(101),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(2_000),
+        fee_model: FeeModel::basis_points(30)?,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(9_000, Amount256::from_u128(10))?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![
+            CapitalFailureMode::CapacityChanged,
+            CapitalFailureMode::FeeChanged,
+        ],
+        evidence: evidence(),
+    })?;
+    assert_eq!(first.key_id(), second.key_id());
+    assert_ne!(first.id(), second.id());
+    Ok(())
+}
+
+#[test]
+fn repayment_obligation_does_not_double_count_initial_capital() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let repayment = CapitalRequirementLeg::new(
+        RequirementKind::Repayment,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let req = requirement(
+        vec![principal, repayment],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let only_exact_principal = source(
+        CapitalClass::FlashSwap,
+        token,
+        100,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    assert!(matches!(
+        evaluate_capital_feasibility(&req, &[only_exact_principal]),
+        CapitalFeasibility::Feasible { .. }
+    ));
+    Ok(())
+}
+
+#[test]
+fn ledger_commitment_is_registration_order_independent() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let req = requirement(
+        vec![principal, repayment_leg(token)?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let primary = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let spare = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::AtomicFlashLiquidity,
+        anchor: anchor(100),
+        provider_namespace: 21,
+        provider_locator_hash: hash(22),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        source_contract: Some(address(23)),
+        asset: token,
+        maximum_available: Amount256::from_u128(50),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+
+    let mut first = CapitalCensusLedger::default();
+    first.register_source(primary.clone())?;
+    first.register_source(spare.clone())?;
+    first.register_requirement(req.clone())?;
+    first.evaluate_all()?;
+
+    let mut second = CapitalCensusLedger::default();
+    second.register_source(spare)?;
+    second.register_source(primary)?;
+    second.register_requirement(req)?;
+    second.evaluate_all()?;
+
+    assert_eq!(first.commitment()?, second.commitment()?);
+    Ok(())
+}
+
+#[test]
+fn ledger_commitment_changes_with_observed_capacity() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(10),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let req = requirement(
+        vec![principal, repayment_leg(token)?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+
+    let make_source = |maximum| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::FlashSwap,
+            anchor: anchor(100),
+            provider_namespace: 11,
+            provider_locator_hash: hash(12),
+            provider_kind: CapitalProviderKind::DexLiquidityPool,
+            source_contract: Some(address(13)),
+            asset: token,
+            maximum_available: Amount256::from_u128(maximum),
+            fee_model: FeeModel::None,
+            repayment_asset: token,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![CapitalFailureMode::CapacityChanged],
+            evidence: evidence(),
+        })
+    };
+
+    let mut first = CapitalCensusLedger::default();
+    first.register_source(make_source(100)?)?;
+    first.register_requirement(req.clone())?;
+    first.evaluate_all()?;
+
+    let mut second = CapitalCensusLedger::default();
+    second.register_source(make_source(200)?)?;
+    second.register_requirement(req)?;
+    second.evaluate_all()?;
+
+    assert_ne!(first.commitment()?, second.commitment()?);
+    Ok(())
+}

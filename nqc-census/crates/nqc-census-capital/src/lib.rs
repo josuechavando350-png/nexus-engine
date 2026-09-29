@@ -18,8 +18,10 @@ pub const CAPITAL_SCHEMA_VERSION: u16 = 1;
 
 const SOURCE_MAGIC: &[u8] = b"NQC-CAP-SOURCE";
 const REQUIREMENT_MAGIC: &[u8] = b"NQC-CAP-REQUIREMENT";
+const SOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-KEY-V1";
 const SOURCE_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-ID-V1";
 const REQUIREMENT_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-REQUIREMENT-ID-V1";
+const LEDGER_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-LEDGER-COMMITMENT-V1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CapitalError {
@@ -56,6 +58,7 @@ pub enum CapitalError {
     DuplicateRequirement,
     MissingSourceForAllocation,
     OperatorOwnedAllocation,
+    UnevaluatedRequirement,
 }
 
 impl Display for CapitalError {
@@ -126,6 +129,9 @@ impl Display for CapitalError {
             Self::OperatorOwnedAllocation => {
                 f.write_str("feasible allocation uses operator-owned capital")
             }
+            Self::UnevaluatedRequirement => {
+                f.write_str("capital ledger contains requirement without feasibility result")
+            }
         }
     }
 }
@@ -154,6 +160,21 @@ impl Amount256 {
 
     pub fn is_zero(self) -> bool {
         self.0 == [0; 32]
+    }
+
+    pub fn checked_add(self, rhs: Self) -> Result<Self, CapitalError> {
+        let mut out = [0_u8; 32];
+        let mut carry = 0_u16;
+        for index in (0..32).rev() {
+            let sum = u16::from(self.0[index]) + u16::from(rhs.0[index]) + carry;
+            out[index] = u8::try_from(sum & 0xff)
+                .map_err(|_| CapitalError::InvalidCanonical("amount addition conversion"))?;
+            carry = sum >> 8;
+        }
+        if carry != 0 {
+            return Err(CapitalError::InvalidCanonical("amount addition overflow"));
+        }
+        Ok(Self(out))
     }
 
     pub fn checked_sub(self, rhs: Self) -> Result<Self, CapitalError> {
@@ -755,6 +776,19 @@ impl From<ObservationDigest> for CapitalEvidenceRef {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CapitalSourceKeyId([u8; 32]);
+
+impl CapitalSourceKeyId {
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+
+    pub fn to_hex(&self) -> String {
+        hex_encode(&self.0)
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CapitalSourceId([u8; 32]);
 
 impl CapitalSourceId {
@@ -770,6 +804,7 @@ impl CapitalSourceId {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapitalSource {
     id: CapitalSourceId,
+    key_id: CapitalSourceKeyId,
     class: CapitalClass,
     anchor: StateAnchor,
     provider_namespace: u16,
@@ -857,6 +892,7 @@ impl CapitalSource {
 
         let mut source = Self {
             id: CapitalSourceId([0; 32]),
+            key_id: CapitalSourceKeyId([0; 32]),
             class: spec.class,
             anchor: spec.anchor,
             provider_namespace: spec.provider_namespace,
@@ -875,12 +911,18 @@ impl CapitalSource {
             failure_modes: spec.failure_modes,
             evidence: spec.evidence,
         };
+        source.key_id =
+            CapitalSourceKeyId(domain_hash(SOURCE_KEY_DOMAIN, &source.key_content_bytes()));
         source.id = CapitalSourceId(domain_hash(SOURCE_DOMAIN, &source.content_bytes()));
         Ok(source)
     }
 
     pub const fn id(&self) -> CapitalSourceId {
         self.id
+    }
+
+    pub const fn key_id(&self) -> CapitalSourceKeyId {
+        self.key_id
     }
 
     pub const fn class(&self) -> CapitalClass {
@@ -1005,6 +1047,25 @@ impl CapitalSource {
             failure_modes,
             evidence,
         })
+    }
+
+    fn key_content_bytes(&self) -> Vec<u8> {
+        let mut writer = Writer::default();
+        encode_chain(self.anchor.chain(), &mut writer);
+        writer.u8(self.class.tag());
+        writer.u16(self.provider_namespace);
+        writer.bytes(self.provider_locator_hash.as_bytes());
+        writer.u8(self.provider_kind.tag());
+        match self.source_contract {
+            None => writer.u8(0),
+            Some(address) => {
+                writer.u8(1);
+                writer.bytes(address.as_bytes());
+            }
+        }
+        self.asset.encode(&mut writer);
+        self.repayment_asset.encode(&mut writer);
+        writer.0
     }
 
     fn content_bytes(&self) -> Vec<u8> {
@@ -1388,6 +1449,36 @@ pub enum FeasibilityRejection {
     TemporaryLockUnfunded,
 }
 
+impl FeasibilityRejection {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::AnchorMismatch => "ANCHOR_MISMATCH",
+            Self::NoCompatibleSource => "NO_COMPATIBLE_SOURCE",
+            Self::InsufficientCapacity => "INSUFFICIENT_CAPACITY",
+            Self::MissingGasFunding => "MISSING_GAS_FUNDING",
+            Self::OperatorOwnedCapitalRequired => "OPERATOR_OWNED_CAPITAL_REQUIRED",
+            Self::AtomicityMismatch => "ATOMICITY_MISMATCH",
+            Self::RepaymentRequirementMissing => "REPAYMENT_REQUIREMENT_MISSING",
+            Self::CollateralRequirementUnfunded => "COLLATERAL_REQUIREMENT_UNFUNDED",
+            Self::TemporaryLockUnfunded => "TEMPORARY_LOCK_UNFUNDED",
+        }
+    }
+
+    const fn tag(self) -> u8 {
+        match self {
+            Self::AnchorMismatch => 1,
+            Self::NoCompatibleSource => 2,
+            Self::InsufficientCapacity => 3,
+            Self::MissingGasFunding => 4,
+            Self::OperatorOwnedCapitalRequired => 5,
+            Self::AtomicityMismatch => 6,
+            Self::RepaymentRequirementMissing => 7,
+            Self::CollateralRequirementUnfunded => 8,
+            Self::TemporaryLockUnfunded => 9,
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SourceAllocation {
     pub source_id: CapitalSourceId,
@@ -1434,6 +1525,9 @@ pub fn evaluate_capital_feasibility(
     let mut used_sources = BTreeSet::new();
 
     for leg in requirement.legs() {
+        if leg.kind() == RequirementKind::Repayment {
+            continue;
+        }
         let mut need = leg.amount();
         let mut any_asset_class = false;
         let mut any_atomic = false;
@@ -1534,6 +1628,19 @@ pub fn evaluate_capital_feasibility(
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct CapitalCensusCommitment([u8; 32]);
+
+impl CapitalCensusCommitment {
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+
+    pub fn to_hex(&self) -> String {
+        hex_encode(&self.0)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapitalCensusSummary {
     pub source_count: usize,
@@ -1594,6 +1701,41 @@ impl CapitalCensusLedger {
 
     pub fn result(&self, id: CapitalRequirementId) -> Option<&CapitalFeasibility> {
         self.results.get(&id)
+    }
+
+    pub fn commitment(&self) -> Result<CapitalCensusCommitment, CapitalError> {
+        if self.results.len() != self.requirements.len() {
+            return Err(CapitalError::UnevaluatedRequirement);
+        }
+        self.validate_allocations()?;
+
+        let mut hasher = Sha256::new();
+        hasher.update(LEDGER_DOMAIN);
+        hasher.update([0]);
+
+        for source in self.sources.values() {
+            let encoded = source.canonical_encode();
+            hasher.update(source.key_id().as_bytes());
+            hasher.update(source.id().as_bytes());
+            hasher.update(u64::try_from(encoded.len()).unwrap_or(u64::MAX).to_be_bytes());
+            hasher.update(domain_hash(b"NQC-RMC011-SOURCE-RECORD-V1", &encoded));
+        }
+        for requirement in self.requirements.values() {
+            let encoded = requirement.canonical_encode();
+            hasher.update(requirement.id().as_bytes());
+            hasher.update(u64::try_from(encoded.len()).unwrap_or(u64::MAX).to_be_bytes());
+            hasher.update(domain_hash(
+                b"NQC-RMC011-REQUIREMENT-RECORD-V1",
+                &encoded,
+            ));
+        }
+        for result in self.results.values() {
+            let encoded = encode_feasibility(result);
+            hasher.update(u64::try_from(encoded.len()).unwrap_or(u64::MAX).to_be_bytes());
+            hasher.update(encoded);
+        }
+
+        Ok(CapitalCensusCommitment(finalize_sha256(hasher)))
     }
 
     pub fn summary(&self) -> Result<CapitalCensusSummary, CapitalError> {
@@ -1666,6 +1808,42 @@ impl CapitalCensusLedger {
     }
 }
 
+fn encode_feasibility(result: &CapitalFeasibility) -> Vec<u8> {
+    let mut writer = Writer::default();
+    match result {
+        CapitalFeasibility::Feasible {
+            requirement_id,
+            allocations,
+        } => {
+            writer.u8(1);
+            writer.bytes(requirement_id.as_bytes());
+            writer.u32(u32::try_from(allocations.len()).unwrap_or(u32::MAX));
+            for allocation in allocations {
+                writer.bytes(allocation.source_id.as_bytes());
+                writer.u8(allocation.leg_kind.tag());
+                writer.bytes(allocation.amount.as_be_bytes());
+            }
+        }
+        CapitalFeasibility::Rejected {
+            requirement_id,
+            reason,
+            failed_leg,
+        } => {
+            writer.u8(2);
+            writer.bytes(requirement_id.as_bytes());
+            writer.u8(reason.tag());
+            match failed_leg {
+                None => writer.u8(0),
+                Some(kind) => {
+                    writer.u8(1);
+                    writer.u8(kind.tag());
+                }
+            }
+        }
+    }
+    writer.0
+}
+
 fn has_leg(requirement: &CapitalRequirement, kind: RequirementKind, asset: CapitalAsset) -> bool {
     requirement
         .legs()
@@ -1735,10 +1913,14 @@ fn apply_utilization(amount: Amount256, bps: u16) -> Result<Amount256, CapitalEr
     Ok(Amount256::from_be_bytes(out))
 }
 
+fn encode_chain(chain: &ChainDomain, writer: &mut Writer) {
+    writer.u64(chain.chain_id());
+    writer.bytes(chain.genesis_hash().as_bytes());
+    writer.bytes(chain.fork_lineage().as_bytes());
+}
+
 fn encode_anchor(anchor: &StateAnchor, writer: &mut Writer) {
-    writer.u64(anchor.chain().chain_id());
-    writer.bytes(anchor.chain().genesis_hash().as_bytes());
-    writer.bytes(anchor.chain().fork_lineage().as_bytes());
+    encode_chain(anchor.chain(), writer);
     writer.u64(anchor.block_number());
     writer.bytes(anchor.block_hash().as_bytes());
     writer.bytes(anchor.parent_hash().as_bytes());
@@ -1841,6 +2023,10 @@ fn domain_hash(domain: &[u8], payload: &[u8]) -> [u8; 32] {
     hasher.update(domain);
     hasher.update([0]);
     hasher.update(payload);
+    finalize_sha256(hasher)
+}
+
+fn finalize_sha256(hasher: Sha256) -> [u8; 32] {
     let digest = hasher.finalize();
     let mut out = [0_u8; 32];
     out.copy_from_slice(&digest);
