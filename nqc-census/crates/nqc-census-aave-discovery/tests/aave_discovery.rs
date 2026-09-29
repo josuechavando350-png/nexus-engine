@@ -287,7 +287,6 @@ fn reserve_dropped_decoder_is_strict() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn same_asset_with_two_current_ids_fails_closed() -> TestResult {
     let result = reconcile(
