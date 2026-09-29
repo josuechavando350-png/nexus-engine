@@ -195,15 +195,20 @@ fn hex_quantities_and_data_are_strict() -> TestResult {
 }
 
 #[test]
-fn rpc_ids_are_content_derived_and_replies_strict() -> TestResult {
+fn rpc_ids_are_positional_and_replies_strict() -> TestResult {
     let call = RpcCall::new("eth_blockNumber", Json::array([]));
     let same = RpcCall::new("eth_blockNumber", Json::array([]));
     let other = RpcCall::new("eth_chainId", Json::array([]));
-    assert_eq!(call.id()?, same.id()?);
-    assert_ne!(call.id()?, other.id()?);
-    assert!(call.id()? < (1 << 53));
     assert_eq!(call.request_bytes()?, same.request_bytes()?);
-    let id = call.id()?;
+    assert_eq!(
+        String::from_utf8(call.request_bytes()?)?,
+        "{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\",\"params\":[]}"
+    );
+    assert_ne!(call.content_key()?, other.content_key()?);
+    let batch_bytes = String::from_utf8(rpc::batch_request_bytes(&[other.clone(), call.clone()])?)?;
+    assert!(batch_bytes.starts_with("[{\"id\":1,\"jsonrpc\":\"2.0\",\"method\":\"eth_chainId\""));
+    assert!(batch_bytes.contains("{\"id\":2,\"jsonrpc\":\"2.0\",\"method\":\"eth_blockNumber\""));
+    let id = rpc::SINGLE_ID;
 
     let good = format!("{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":\"0x1\"}}");
     assert_eq!(
@@ -215,6 +220,7 @@ fn rpc_ids_are_content_derived_and_replies_strict() -> TestResult {
             "{{\"jsonrpc\":\"2.0\",\"id\":{},\"result\":\"0x1\"}}",
             id + 1
         ),
+        format!("{{\"jsonrpc\":\"2.0\",\"id\":\"{id}\",\"result\":\"0x1\"}}"),
         format!("{{\"jsonrpc\":\"1.0\",\"id\":{id},\"result\":\"0x1\"}}"),
         format!("{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":1,\"error\":{{\"code\":1}}}}"),
         format!("{{\"jsonrpc\":\"2.0\",\"id\":{id}}}"),
@@ -223,14 +229,13 @@ fn rpc_ids_are_content_derived_and_replies_strict() -> TestResult {
         assert!(rpc::parse_reply(bad.as_bytes(), id).is_err(), "{bad}");
     }
 
-    let ids = [other.id()?, id];
-    let batch = format!(
-        "[{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":\"0x1\"}},{{\"jsonrpc\":\"2.0\",\"id\":{},\"result\":\"0x2\"}}]",
-        other.id()?
-    );
+    let ids = rpc::batch_ids(2);
+    let batch = "[{\"jsonrpc\":\"2.0\",\"id\":2,\"result\":\"0x1\"},{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x2\"}]";
     assert_eq!(rpc::parse_batch_reply(batch.as_bytes(), &ids)?.len(), 2);
-    let missing = format!("[{{\"jsonrpc\":\"2.0\",\"id\":{id},\"result\":\"0x1\"}}]");
+    let missing = "[{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x1\"}]";
     assert!(rpc::parse_batch_reply(missing.as_bytes(), &ids).is_err());
+    let repeated = "[{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x1\"},{\"jsonrpc\":\"2.0\",\"id\":1,\"result\":\"0x1\"}]";
+    assert!(rpc::parse_batch_reply(repeated.as_bytes(), &ids).is_err());
     assert!(rpc::batch_request_bytes(&[call.clone(), same]).is_err());
     Ok(())
 }

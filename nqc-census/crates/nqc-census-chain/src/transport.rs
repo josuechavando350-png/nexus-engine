@@ -287,9 +287,8 @@ impl<'a> RpcClient<'a> {
     /// exchange so a job can record it; only rate limiting is retried here.
     pub fn call(&self, call: &RpcCall) -> Result<(Reply, Exchange), ChainError> {
         let request = call.request_bytes()?;
-        let id = call.id()?;
         self.post_with_retry(&request, |reply| {
-            let parsed = rpc::parse_reply(&reply.body, id)?;
+            let parsed = rpc::parse_reply(&reply.body, rpc::SINGLE_ID)?;
             if let Reply::Error(error) = &parsed {
                 if rpc::classify(error) == ErrorClass::RateLimited {
                     return Ok(Attempt::Retry(error.message.clone()));
@@ -309,10 +308,7 @@ impl<'a> RpcClient<'a> {
     /// Replies are returned in call order.
     pub fn batch(&self, calls: &[RpcCall]) -> Result<(Vec<Reply>, Exchange), ChainError> {
         let request = rpc::batch_request_bytes(calls)?;
-        let ids = calls
-            .iter()
-            .map(RpcCall::id)
-            .collect::<Result<Vec<_>, _>>()?;
+        let ids = rpc::batch_ids(calls.len());
         self.post_with_retry(&request, |reply| {
             let parsed = rpc::parse_batch_reply(&reply.body, &ids)?;
             let mut ordered = Vec::with_capacity(ids.len());

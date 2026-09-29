@@ -50,8 +50,10 @@ Remote JSON-RPC providers are transports, never authorities.
 
 A job is a pure function of the replies it receives.
 
-- Request ids are content-derived (sha256 of method and canonical params,
-  below 2^53), so every rerun sends identical request bytes.
+- Request ids are positional (1 for a single call, 1..=n in call order for a
+  batch). Batch composition is deterministic, so every rerun sends identical
+  request bytes. Positional ids are used because a live provider did not echo
+  large JSON numbers exactly. Duplicate calls in one batch are rejected.
 - Every well-formed reply is recorded before it is interpreted.
 - Every typed observation stores
   `provenance = (authority, provider namespace, provider locator, sha256(request),

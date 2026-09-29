@@ -1,9 +1,9 @@
 //! JSON-RPC 2.0 requests and strict reply parsing.
 //!
-//! Request ids are derived from the request content, never from a counter, so
-//! an interrupted and resumed acquisition produces byte-identical request
-//! artifacts. Replies must carry `jsonrpc: "2.0"`, the expected id, and exactly
-//! one of `result` or `error`.
+//! Request ids are positional (1 for a single call, 1..=n in a batch) and never
+//! a running counter, so an interrupted and resumed acquisition produces
+//! byte-identical request artifacts. Replies must carry `jsonrpc: "2.0"`, the
+//! expected id, and exactly one of `result` or `error`.
 
 use crate::error::ChainError;
 use crate::hex;
@@ -33,43 +33,52 @@ impl RpcCall {
         &self.params
     }
 
-    /// Content-derived id below 2^53 so every JSON implementation keeps it exact.
-    pub fn id(&self) -> Result<u64, ChainError> {
+    /// Digest of method and canonical params, used to reject duplicate
+    /// members of one batch.
+    pub fn content_key(&self) -> Result<[u8; 32], ChainError> {
         let mut hasher = Sha256::new();
-        hasher.update(b"NQC-CENSUS-RPC-ID-V1");
+        hasher.update(b"NQC-CENSUS-RPC-CALL-V1");
         hasher.update([0]);
         hasher.update(self.method.as_bytes());
         hasher.update([0]);
         hasher.update(self.params.canonical()?);
-        let digest = hasher.finalize();
-        let mut bytes = [0_u8; 8];
-        bytes[1..].copy_from_slice(&digest[..7]);
-        Ok(u64::from_be_bytes(bytes) & ((1 << 53) - 1))
+        Ok(hasher.finalize().into())
     }
 
-    fn envelope(&self) -> Result<Json, ChainError> {
-        Ok(Json::object([
-            ("id", Json::uint(self.id()?)),
+    fn envelope(&self, id: u64) -> Json {
+        Json::object([
+            ("id", Json::uint(id)),
             ("jsonrpc", Json::string("2.0")),
             ("method", Json::string(self.method.clone())),
             ("params", self.params.clone()),
-        ]))
+        ])
     }
 
+    /// Canonical single request. Its id is always [`SINGLE_ID`].
     pub fn request_bytes(&self) -> Result<Vec<u8>, ChainError> {
-        self.envelope()?.canonical()
+        self.envelope(SINGLE_ID).canonical()
     }
 }
 
-/// Canonical batch request; calls must have distinct ids.
+/// Id of every single request. Ids are small positional integers because
+/// some providers do not echo large JSON numbers exactly; determinism comes
+/// from deterministic call composition, not from the id.
+pub const SINGLE_ID: u64 = 1;
+
+/// Ids of a batch of `len` calls: `1..=len` in call order.
+pub fn batch_ids(len: usize) -> Vec<u64> {
+    (1..=len as u64).collect()
+}
+
+/// Canonical batch request with positional ids; duplicate calls are rejected.
 pub fn batch_request_bytes(calls: &[RpcCall]) -> Result<Vec<u8>, ChainError> {
-    let mut ids = std::collections::BTreeSet::new();
+    let mut keys = std::collections::BTreeSet::new();
     let mut items = Vec::with_capacity(calls.len());
-    for call in calls {
-        if !ids.insert(call.id()?) {
+    for (call, id) in calls.iter().zip(batch_ids(calls.len())) {
+        if !keys.insert(call.content_key()?) {
             return Err(ChainError::Rpc("duplicate call in batch"));
         }
-        items.push(call.envelope()?);
+        items.push(call.envelope(id));
     }
     Json::Array(items).canonical()
 }
