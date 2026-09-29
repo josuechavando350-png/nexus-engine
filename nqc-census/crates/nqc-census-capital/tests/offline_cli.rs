@@ -40,7 +40,9 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
 }
 
-fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
+fn authority_for(
+    ledger: &CapitalCensusLedger,
+) -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
         let ordinal = u64::try_from(index + 1).map_err(|_| {
@@ -85,15 +87,11 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
         ))?
         .artifact_sha256;
     CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc008StateAdmission,
-            d08_artifact,
-            hash(80),
-        )?,
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc009PositionUniverse,
+        UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+        UpstreamConsumptionReceipt::for_requirements(
             d09_artifact,
             hash(81),
+            ledger.requirements(),
         )?,
     ])
 }
@@ -160,7 +158,7 @@ fn write_bundle(directory: &Path) -> TestResult {
     fs::create_dir_all(directory)?;
     let bundle = export_capital_artifacts(
         &ledger()?,
-        &authority()?,
+        &authority_for(&ledger)?,
         &ArtifactProvenance::new("2026-09-29T00:00:00Z", CODE_COMMIT, CODE_TREE)?,
     )?;
     for file in bundle.files {
