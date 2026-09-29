@@ -23,3 +23,7 @@ jobs:
           echo '=== RMC011_LOCK_DIFF_BEGIN ==='
           diff -u /tmp/Cargo.lock.before Cargo.lock || true
           echo '=== RMC011_LOCK_DIFF_END ==='
+          echo '=== RMC011_LOCK_BASE64_BEGIN ==='
+          base64 -w0 Cargo.lock
+          echo
+          echo '=== RMC011_LOCK_BASE64_END ==='
