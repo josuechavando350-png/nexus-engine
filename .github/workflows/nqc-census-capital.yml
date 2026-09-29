@@ -8,6 +8,7 @@ on:
       - "nqc-census/Cargo.lock"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
+      - "ci/nqc-census/rmc011-pft-math-bridge/**"
       - ".github/workflows/nqc-census-capital.yml"
   push:
     branches:
@@ -19,7 +20,7 @@ permissions:
 jobs:
   rmc-011-capital-foundation:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - name: Checkout exact head
         uses: actions/checkout@v4
@@ -54,6 +55,15 @@ jobs:
           set -euo pipefail
           ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction' \
             nqc-census/crates/nqc-census-capital ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+
+      - name: Certified PFT math bridge gates
+        working-directory: ci/nqc-census/rmc011-pft-math-bridge
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo fmt --all -- --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked
 
       - name: Locked Rust gates
         working-directory: nqc-census
