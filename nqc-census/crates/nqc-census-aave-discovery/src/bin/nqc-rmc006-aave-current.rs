@@ -32,9 +32,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         fs::create_dir_all(parent)?;
     }
     fs::write(&out, bytes)?;
-    let facts = report
-        .get("facts")
-        .ok_or("current report missing facts")?;
+    let facts = report.get("facts").ok_or("current report missing facts")?;
     let reserves = facts
         .get("reserve_count")
         .and_then(nqc_census_chain::json::Json::as_i64)
