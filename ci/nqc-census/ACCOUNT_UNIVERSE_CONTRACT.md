@@ -81,9 +81,14 @@ in RMC-004, and emits a record that the reconciler replays byte for byte.
   - Each job emits its candidate pairs and a digest of every log.
   - Logs are not bound to headers, because nothing is concluded from them:
     completeness comes from section 2.
-  - Providers are mevblocker (10,000-block windows, 4 per request) and
-    tenderly (5,000-block windows, batch 1). Probe run 36590720390 found no
-    other keyless endpoint serving these logs over this range.
+  - Providers are mevblocker and tenderly, both on 5,000-block log windows
+    for this census. MEV Blocker documents/accepts larger ranges, but live run
+    36636132821 proved that a 10,000-block account-log request can exceed its
+    10,000-result cap; the failing response suggested a 7,447-block maximum
+    at that density. The 5,000-block bound is therefore an observed safety
+    limit, not a convenience retry. A failed range is never read as empty.
+    Probe run 36590720390 found no other keyless endpoint serving these logs
+    over this range.
 - **Candidates (offline).** Every index record is replayed. Both providers'
   partitions must tile the grid, and both providers must return identical
   logs for every job. Any difference fails closed; there is no union across
