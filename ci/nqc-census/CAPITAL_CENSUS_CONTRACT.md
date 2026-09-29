@@ -53,6 +53,8 @@ Every admitted capital source record MUST bind:
 - block-pinned observation anchor
 - maximum_available
 - zero-capacity sources remain explicit census records rather than disappearing; zero means observed-but-unavailable at that anchor
+- observed/effective capacity and executable capacity are distinct: upstream execution blockers MUST NOT erase observed liquidity, but executable capacity MUST be zero while any blocker remains
+- execution blocker codes are preserved exactly; blocker-state changes alter the observation-specific source ID but MUST NOT alter the stable source key
 - fee model
 - repayment semantics
 - collateral_required
@@ -60,6 +62,7 @@ Every admitted capital source record MUST bind:
 - utilization_constraints
 - protocol_caps
 - market_caps
+- utilization limits, minimum-remaining reserves, protocol caps, market caps, and observed availability are independent upper bounds on the same executable draw; effective capacity is their minimum and MUST NOT compound them by scaling a cap or subtracting a reserve floor after scaling
 - same_block_atomicity
 - temporary_lock semantics
 - failure modes
@@ -90,9 +93,12 @@ A source may be used only when:
 
 - every consumed upstream byte is bound through the upstream stage's admitted evidence manifest; for RMC-008 the authority artifact digest identifies `evidence-manifest.json`, whose exact code commit/tree and per-file SHA-256/size entries MUST match `market-state-manifest.jsonl`, `token-admission.jsonl`, and `pool-and-factory-facts.json` before import
 - the same byte-binding rule applies to RMC-009: its authority artifact digest identifies `evidence-manifest.json`; the manifest and `account-summary.json` must name the exact admitted code commit/tree, and the manifest SHA-256/size entries for `account-manifest.jsonl` and `account-summary.json` must match before borrower demand import
+- the verified RMC-008 source import and RMC-009 borrower-demand import MUST each emit a deterministic consumption receipt binding their coverage commitment to the exact admitted upstream authority artifact; final certification MUST bind both receipts into the upstream-authority commitment
+- merely listing an admitted RMC-008 or RMC-009 authority is insufficient: certification MUST fail if either consumed-input receipt is absent, duplicated, references the wrong stage, or references a different authority artifact
 - deployment/source identity is admitted
 - the observation is pinned to the same canonical block context required by the candidate
-- available capacity is sufficient at the requested size
+- executable capacity, not merely observed capacity, is sufficient at the requested size
+- no execution blocker remains on any allocated source
 - fee/cap semantics are explicit
 - repayment can be satisfied under the candidate's execution semantics
 - atomicity/collateral requirements are compatible
@@ -101,6 +107,7 @@ A source may be used only when:
 Feasibility MUST fail closed on:
 
 - insufficient capacity
+- observed capital blocked from execution by unresolved upstream semantics
 - unsupported asset
 - stale or mismatched observation
 - unknown fee semantics
@@ -152,6 +159,7 @@ Foundation artifacts MUST encode `real_source_certification=false` until every r
 RMC-011 may be certified only when:
 
 - all upstream inputs used by the final run are exact-head admitted artifacts
+- exact RMC-008 and RMC-009 consumption receipts are present and their coverage commitments are bound into `capital-upstream-authority.json` and its commitment
 - every source used for feasibility has reproducible evidence
 - zero unexplained source mismatches remain
 - zero UNKNOWN failure reasons remain

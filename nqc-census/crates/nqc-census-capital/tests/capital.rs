@@ -5,7 +5,8 @@ use nqc_census_capital::{
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, PersistentDebtTerms, RepaymentSemantics,
     RequiredAtomicity, RequirementKind, RoundingMode, TemporaryLock, UpstreamCensusStage,
-    UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -60,7 +61,32 @@ fn certification_context() -> Result<CapitalCertificationContext, nqc_census_cap
             .iter()
             .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
     );
-    CapitalCertificationContext::new(stages, admitted_evidence)
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-008 authority missing",
+        ))?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-009 authority missing",
+        ))?
+        .artifact_sha256;
+    CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc008StateAdmission,
+            d08_artifact,
+            hash(80),
+        )?,
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc009PositionUniverse,
+            d09_artifact,
+            hash(81),
+        )?,
+    ])
 }
 
 fn source(
@@ -175,6 +201,112 @@ fn source_canonical_roundtrip_and_tamper_rejection() -> TestResult {
     let index = tampered.len() / 2;
     tampered[index] ^= 0x01;
     assert!(CapitalSource::decode_canonical(&tampered).is_err());
+    Ok(())
+}
+
+#[test]
+fn execution_blockers_preserve_observed_capacity_and_stable_source_key() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let observed = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let key = observed.key_id();
+    let unblocked_id = observed.id();
+    let blocked = observed.with_execution_blockers(vec![
+        "TRANSFER_HOOKS_UNPROVEN".to_owned(),
+        "FEE_ON_TRANSFER_UNPROVEN".to_owned(),
+    ])?;
+
+    assert_eq!(blocked.key_id(), key);
+    assert_ne!(blocked.id(), unblocked_id);
+    assert_eq!(blocked.maximum_available(), Amount256::from_u128(1_000));
+    assert_eq!(blocked.effective_capacity()?, Amount256::from_u128(1_000));
+    assert_eq!(blocked.executable_capacity()?, Amount256::ZERO);
+    assert!(!blocked.execution_eligible());
+    assert_eq!(
+        blocked.execution_blockers(),
+        &[
+            "FEE_ON_TRANSFER_UNPROVEN".to_owned(),
+            "TRANSFER_HOOKS_UNPROVEN".to_owned(),
+        ]
+    );
+
+    let encoded = blocked.canonical_encode();
+    let decoded = CapitalSource::decode_canonical(&encoded)?;
+    assert_eq!(decoded, blocked);
+    assert!(source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?
+    .with_execution_blockers(vec!["not-canonical".to_owned()])
+    .is_err());
+    Ok(())
+}
+
+#[test]
+fn execution_blocked_liquidity_is_not_misclassified_as_insufficient_capacity() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let blocked = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?
+    .with_execution_blockers(vec!["FEE_ON_TRANSFER_UNPROVEN".to_owned()])?;
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        asset,
+        Amount256::from_u128(500),
+        vec![CapitalClass::ProtocolNativeFlashLoan],
+    )?;
+    let required = requirement(vec![principal], RequiredAtomicity::SameTransaction, false)?;
+
+    assert_eq!(
+        evaluate_capital_feasibility(&required, &[blocked]),
+        CapitalFeasibility::Rejected {
+            requirement_id: required.id(),
+            reason: nqc_census_capital::FeasibilityRejection::ExecutionBlocked,
+            failed_leg: Some(RequirementKind::ActionPrincipal),
+        }
+    );
+    Ok(())
+}
+
+#[test]
+fn execution_blocked_gas_is_not_misclassified_as_missing() -> TestResult {
+    let gas = CapitalAsset::NativeGas;
+    let blocked = source(
+        CapitalClass::GasFunding,
+        gas,
+        100,
+        gas,
+        RepaymentSemantics::NoRepayment,
+    )?
+    .with_execution_blockers(vec!["SPONSOR_POLICY_UNPROVEN".to_owned()])?;
+    let gas_leg = CapitalRequirementLeg::new(
+        RequirementKind::Gas,
+        gas,
+        Amount256::from_u128(50),
+        vec![CapitalClass::GasFunding],
+    )?;
+    let required = requirement(vec![gas_leg], RequiredAtomicity::SameTransaction, true)?;
+
+    assert_eq!(
+        evaluate_capital_feasibility(&required, &[blocked]),
+        CapitalFeasibility::Rejected {
+            requirement_id: required.id(),
+            reason: nqc_census_capital::FeasibilityRejection::ExecutionBlocked,
+            failed_leg: Some(RequirementKind::Gas),
+        }
+    );
     Ok(())
 }
 
@@ -368,6 +500,57 @@ fn protocol_cap_limits_effective_capacity() -> TestResult {
     spec.caps.market_cap = Some(Amount256::from_u128(300));
     let lower = CapitalSource::new(spec)?;
     assert_eq!(lower.effective_capacity()?, Amount256::from_u128(300));
+    Ok(())
+}
+
+#[test]
+fn utilization_reserve_and_absolute_caps_are_independent_upper_bounds() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let make = |protocol_cap, utilization_bps, min_remaining| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::AtomicFlashLiquidity,
+            anchor: anchor(100),
+            provider_namespace: 11,
+            provider_locator_hash: hash(12),
+            provider_kind: CapitalProviderKind::ProtocolContract,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(address(13)),
+            asset: token,
+            maximum_available: Amount256::from_u128(1_000),
+            fee_model: FeeModel::None,
+            repayment_asset: token,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(
+                utilization_bps,
+                Amount256::from_u128(min_remaining),
+            )?,
+            caps: CapitalCaps {
+                protocol_cap: Some(Amount256::from_u128(protocol_cap)),
+                market_cap: None,
+            },
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![CapitalFailureMode::CapacityChanged],
+            evidence: evidence(),
+        })
+    };
+
+    // Independent bounds are: observed=1000, utilization=800,
+    // reserve-floor=900, protocol-cap=900. The result is 800, not 620.
+    let utilization_limited = make(900, 8_000, 100)?;
+    assert_eq!(
+        utilization_limited.effective_capacity()?,
+        Amount256::from_u128(800)
+    );
+
+    // An absolute cap of 400 remains 400 even though utilization is 50% of
+    // the observed 1000 and a reserve floor of 100 must remain.
+    let cap_limited = make(400, 5_000, 100)?;
+    assert_eq!(cap_limited.effective_capacity()?, Amount256::from_u128(400));
+
+    // A reserve floor at or above observed liquidity closes the source.
+    let reserve_limited = make(1_000, 10_000, 1_000)?;
+    assert_eq!(reserve_limited.effective_capacity()?, Amount256::ZERO);
     Ok(())
 }
 
@@ -989,6 +1172,87 @@ fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult 
     assert!(matches!(
         ledger.certify(&certification_context()?),
         Err(nqc_census_capital::CapitalError::NonEvidentiaryLedger)
+    ));
+    Ok(())
+}
+
+#[test]
+fn evidentiary_certification_requires_consumed_d08_and_d09_receipts() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let external = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(external)?;
+    ledger.evaluate_all()?;
+
+    let context = certification_context()?;
+    let bare = CapitalCertificationContext::new(
+        context.stages().to_vec(),
+        context.admitted_evidence().copied().collect(),
+    )?;
+    assert!(matches!(
+        ledger.certify(&bare),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> TestResult {
+    let context = certification_context()?;
+    let stages = context.stages().to_vec();
+    let admitted_evidence = context.admitted_evidence().copied().collect::<Vec<_>>();
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or("missing RMC-008 authority")?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or("missing RMC-009 authority")?
+        .artifact_sha256;
+
+    let wrong_authority =
+        CapitalCertificationContext::new(stages.clone(), admitted_evidence.clone())?
+            .with_consumption_receipts(vec![
+                UpstreamConsumptionReceipt::new(
+                    UpstreamCensusStage::Rmc008StateAdmission,
+                    hash(90),
+                    hash(80),
+                )?,
+                UpstreamConsumptionReceipt::new(
+                    UpstreamCensusStage::Rmc009PositionUniverse,
+                    d09_artifact,
+                    hash(81),
+                )?,
+            ]);
+    assert!(matches!(
+        wrong_authority,
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+
+    let duplicate = CapitalCertificationContext::new(stages, admitted_evidence)?
+        .with_consumption_receipts(vec![
+            UpstreamConsumptionReceipt::new(
+                UpstreamCensusStage::Rmc008StateAdmission,
+                d08_artifact,
+                hash(80),
+            )?,
+            UpstreamConsumptionReceipt::new(
+                UpstreamCensusStage::Rmc008StateAdmission,
+                d08_artifact,
+                hash(82),
+            )?,
+        ]);
+    assert!(matches!(
+        duplicate,
+        Err(CapitalError::InvalidUpstreamAuthority(_))
     ));
     Ok(())
 }

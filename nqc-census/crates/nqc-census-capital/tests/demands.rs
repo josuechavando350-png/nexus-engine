@@ -190,6 +190,9 @@ fn borrower_with_unavailable_account_data_is_explicitly_blocked() -> TestResult 
     assert_eq!(imported.blocked_count, 1);
     assert!(imported.is_conserved());
     assert_eq!(imported.requirements_certified, 0);
+    let receipt = imported.consumption_receipt()?;
+    assert_eq!(receipt.stage(), UpstreamCensusStage::Rmc009PositionUniverse);
+    assert_eq!(receipt.coverage_commitment(), imported.coverage_commitment);
     Ok(())
 }
 

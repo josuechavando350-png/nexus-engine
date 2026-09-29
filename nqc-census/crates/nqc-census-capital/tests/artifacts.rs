@@ -9,8 +9,8 @@ use nqc_census_capital::{
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind,
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
-    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
-    UpstreamStageAuthoritySpec, UtilizationConstraints,
+    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamConsumptionReceipt,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -70,7 +70,32 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             .iter()
             .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
     );
-    CapitalCertificationContext::new(stages, admitted_evidence)
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-008 authority missing",
+        ))?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-009 authority missing",
+        ))?
+        .artifact_sha256;
+    CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc008StateAdmission,
+            d08_artifact,
+            hash(80),
+        )?,
+        UpstreamConsumptionReceipt::new(
+            UpstreamCensusStage::Rmc009PositionUniverse,
+            d09_artifact,
+            hash(81),
+        )?,
+    ])
 }
 
 fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
@@ -239,6 +264,78 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
     let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
     let summary_text = std::str::from_utf8(&summary.bytes)?;
     assert!(summary_text.contains("\"zero_own_capital_proven\":false"));
+    Ok(())
+}
+
+#[test]
+fn blocked_source_bundle_roundtrips_offline_and_preserves_execution_rejection() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?
+    .with_execution_blockers(vec!["TOKEN_SEMANTICS_UNPROVEN".to_owned()])?;
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(50)),
+        anchor(),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::ActionPrincipal,
+            token,
+            Amount256::from_u128(100),
+            vec![CapitalClass::FlashSwap],
+        )?],
+        evidence(),
+    )?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(source)?;
+    ledger.register_requirement(requirement)?;
+    ledger.evaluate_all()?;
+
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let verified = verify_capital_artifact_bundle(&bundle)?;
+    assert_eq!(verified.source_count, 1);
+    assert_eq!(verified.requirement_count, 1);
+    assert_eq!(verified.feasibility_count, 1);
+    assert_eq!(verified.rejection_count, 1);
+
+    let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
+    let source_text = std::str::from_utf8(&sources.bytes)?;
+    assert!(source_text.contains("\"execution_eligible\":false"));
+    assert!(source_text.contains("\"TOKEN_SEMANTICS_UNPROVEN\""));
+    assert!(source_text.contains(&format!(
+        "\"executable_capacity\":\"{}\"",
+        Amount256::ZERO.to_hex()
+    )));
+
+    let rejections = bundle
+        .file(CAPITAL_REJECTION_LEDGER_FILE)
+        .ok_or("missing rejection ledger")?;
+    let rejection_text = std::str::from_utf8(&rejections.bytes)?;
+    assert!(rejection_text.contains("\"reason\":\"EXECUTION_BLOCKED\""));
     Ok(())
 }
 
@@ -496,6 +593,9 @@ fn source_artifact_exposes_full_capital_semantics() -> TestResult {
         "\"source_contract\"",
         "\"capital_ownership\"",
         "\"effective_capacity\"",
+        "\"executable_capacity\"",
+        "\"execution_eligible\"",
+        "\"execution_blockers\"",
         "\"fee_model\"",
         "\"repayment_asset\"",
         "\"repayment_semantics\"",
@@ -535,7 +635,9 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
             "missing upstream authority stage {stage}"
         );
     }
-    assert!(text.contains("\"schema_version\":4"));
+    assert!(text.contains("\"schema_version\":5"));
+    assert!(text.contains("\"consumption_receipts\""));
+    assert!(text.contains("\"coverage_commitment\""));
     assert!(text.contains("\"generated_at\":\"2026-09-29T00:00:00Z\""));
     assert!(text.contains("\"code_commit\":\"0123456789abcdef0123456789abcdef01234567\""));
     assert!(text.contains("\"code_tree\":\"89abcdef0123456789abcdef0123456789abcdef\""));

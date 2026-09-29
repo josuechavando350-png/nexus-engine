@@ -19,7 +19,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-pub const CAPITAL_SCHEMA_VERSION: u16 = 2;
+pub const CAPITAL_SCHEMA_VERSION: u16 = 3;
 
 const SOURCE_MAGIC: &[u8] = b"NQC-CAP-SOURCE";
 const REQUIREMENT_MAGIC: &[u8] = b"NQC-CAP-REQUIREMENT";
@@ -955,6 +955,20 @@ impl CapitalFailureMode {
     }
 }
 
+fn validate_execution_blocker_code(code: &str) -> Result<(), CapitalError> {
+    if code.is_empty()
+        || code.len() > 128
+        || !code
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_')
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "invalid execution blocker code",
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CapitalEvidenceRef {
     Observation([u8; 32]),
@@ -1052,6 +1066,7 @@ pub struct CapitalSource {
     caps: CapitalCaps,
     temporary_lock: TemporaryLock,
     failure_modes: Vec<CapitalFailureMode>,
+    execution_blockers: Vec<String>,
     evidence: Vec<CapitalEvidenceRef>,
 }
 
@@ -1147,6 +1162,7 @@ impl CapitalSource {
             caps: spec.caps,
             temporary_lock: spec.temporary_lock,
             failure_modes: spec.failure_modes,
+            execution_blockers: Vec::new(),
             evidence: spec.evidence,
         };
         source.key_id =
@@ -1235,23 +1251,67 @@ impl CapitalSource {
         &self.failure_modes
     }
 
+    pub fn execution_blockers(&self) -> &[String] {
+        &self.execution_blockers
+    }
+
+    pub fn execution_eligible(&self) -> bool {
+        self.execution_blockers.is_empty()
+    }
+
+    pub fn with_execution_blockers(
+        mut self,
+        mut blockers: Vec<String>,
+    ) -> Result<Self, CapitalError> {
+        for blocker in &blockers {
+            validate_execution_blocker_code(blocker)?;
+        }
+        blockers.sort();
+        blockers.dedup();
+        if blockers.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many execution blocker codes",
+            ));
+        }
+        self.execution_blockers = blockers;
+        self.id = CapitalSourceId(domain_hash(SOURCE_DOMAIN, &self.content_bytes()));
+        Ok(self)
+    }
+
+    pub fn executable_capacity(&self) -> Result<Amount256, CapitalError> {
+        if self.execution_eligible() {
+            self.effective_capacity()
+        } else {
+            Ok(Amount256::ZERO)
+        }
+    }
+
     pub fn evidence(&self) -> &[CapitalEvidenceRef] {
         &self.evidence
     }
 
     pub fn effective_capacity(&self) -> Result<Amount256, CapitalError> {
-        let mut capacity = self.maximum_available;
+        // Each field is an independent upper bound on the same executable draw.
+        // Do not apply utilization to an already-capped amount or subtract the
+        // reserve floor after utilization: either would compound independent
+        // constraints and understate capacity.
+        let observed = self.maximum_available;
+        let utilization_capacity =
+            apply_utilization(observed, self.utilization.max_utilization_bps)?;
+        let reserve_capacity = if observed <= self.utilization.min_remaining {
+            Amount256::ZERO
+        } else {
+            observed.checked_sub(self.utilization.min_remaining)?
+        };
+
+        let mut capacity = observed.min(utilization_capacity).min(reserve_capacity);
         if let Some(cap) = self.caps.protocol_cap {
             capacity = capacity.min(cap);
         }
         if let Some(cap) = self.caps.market_cap {
             capacity = capacity.min(cap);
         }
-        capacity = apply_utilization(capacity, self.utilization.max_utilization_bps)?;
-        if capacity <= self.utilization.min_remaining {
-            return Ok(Amount256::ZERO);
-        }
-        capacity.checked_sub(self.utilization.min_remaining)
+        Ok(capacity)
     }
 
     pub fn canonical_encode(&self) -> Vec<u8> {
@@ -1303,6 +1363,32 @@ impl CapitalSource {
         for _ in 0..evidence_count {
             evidence.push(CapitalEvidenceRef::decode(&mut reader)?);
         }
+        let execution_blockers = if reader.remaining() == 0 {
+            Vec::new()
+        } else {
+            if reader.u8()? != 0xe1 {
+                return Err(CapitalError::InvalidCanonical(
+                    "unknown capital source extension",
+                ));
+            }
+            let blocker_count = usize::from(reader.u16()?);
+            let mut blockers = Vec::with_capacity(blocker_count);
+            for _ in 0..blocker_count {
+                let length = usize::from(reader.u16()?);
+                let bytes = reader.take(length)?;
+                let blocker = std::str::from_utf8(bytes)
+                    .map_err(|_| CapitalError::InvalidCanonical("execution blocker is not UTF-8"))?
+                    .to_owned();
+                validate_execution_blocker_code(&blocker)?;
+                blockers.push(blocker);
+            }
+            if blockers.windows(2).any(|pair| pair[0] >= pair[1]) {
+                return Err(CapitalError::InvalidCanonical(
+                    "execution blockers are not strictly sorted",
+                ));
+            }
+            blockers
+        };
         reader.finish()?;
         Self::new(CapitalSourceSpec {
             class,
@@ -1326,7 +1412,8 @@ impl CapitalSource {
             temporary_lock,
             failure_modes,
             evidence,
-        })
+        })?
+        .with_execution_blockers(execution_blockers)
     }
 
     fn key_content_bytes(&self) -> Vec<u8> {
@@ -1381,6 +1468,14 @@ impl CapitalSource {
         writer.u16(u16::try_from(self.evidence.len()).unwrap_or(u16::MAX));
         for evidence in &self.evidence {
             evidence.encode(&mut writer);
+        }
+        if !self.execution_blockers.is_empty() {
+            writer.u8(0xe1);
+            writer.u16(u16::try_from(self.execution_blockers.len()).unwrap_or(u16::MAX));
+            for blocker in &self.execution_blockers {
+                writer.u16(u16::try_from(blocker.len()).unwrap_or(u16::MAX));
+                writer.bytes(blocker.as_bytes());
+            }
         }
         writer.0
     }
@@ -1765,6 +1860,7 @@ pub enum FeasibilityRejection {
     CollateralRequirementUnfunded,
     TemporaryLockUnfunded,
     AllocationInvariantViolation,
+    ExecutionBlocked,
 }
 
 impl FeasibilityRejection {
@@ -1780,6 +1876,7 @@ impl FeasibilityRejection {
             Self::CollateralRequirementUnfunded => "COLLATERAL_REQUIREMENT_UNFUNDED",
             Self::TemporaryLockUnfunded => "TEMPORARY_LOCK_UNFUNDED",
             Self::AllocationInvariantViolation => "ALLOCATION_INVARIANT_VIOLATION",
+            Self::ExecutionBlocked => "EXECUTION_BLOCKED",
         }
     }
 
@@ -1795,6 +1892,7 @@ impl FeasibilityRejection {
             Self::CollateralRequirementUnfunded => 8,
             Self::TemporaryLockUnfunded => 9,
             Self::AllocationInvariantViolation => 10,
+            Self::ExecutionBlocked => 11,
         }
     }
 }
@@ -2129,7 +2227,7 @@ fn solve_funding(
         if source.ownership().is_operator_owned() || source.anchor() != requirement.anchor() {
             continue;
         }
-        let capacity = source.effective_capacity()?;
+        let capacity = source.executable_capacity()?;
         if capacity.is_zero() {
             continue;
         }
@@ -2208,6 +2306,7 @@ fn classify_unmet_leg(
     let mut same_anchor_atomic = false;
     let mut foreign_anchor = false;
     let mut operator_capacity = Amount256::ZERO;
+    let mut execution_blocked_capacity = Amount256::ZERO;
 
     for source in sources {
         if !source_can_fund_leg(requirement, source, leg, true, false, false) {
@@ -2226,6 +2325,10 @@ fn classify_unmet_leg(
             operator_capacity = operator_capacity
                 .checked_add(source.effective_capacity()?)
                 .unwrap_or(Amount256::MAX);
+        } else if !source.execution_eligible() {
+            execution_blocked_capacity = execution_blocked_capacity
+                .checked_add(source.effective_capacity()?)
+                .unwrap_or(Amount256::MAX);
         }
     }
 
@@ -2234,6 +2337,9 @@ fn classify_unmet_leg(
     }
     if !same_anchor_class && foreign_anchor {
         return Ok(FeasibilityRejection::AnchorMismatch);
+    }
+    if execution_blocked_capacity >= unmet {
+        return Ok(FeasibilityRejection::ExecutionBlocked);
     }
     if leg.kind() == RequirementKind::Gas {
         return Ok(FeasibilityRejection::MissingGasFunding);
@@ -2515,11 +2621,101 @@ impl UpstreamStageAuthority {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UpstreamConsumptionReceipt {
+    stage: UpstreamCensusStage,
+    authority_artifact_sha256: Hash32,
+    coverage_commitment: Hash32,
+}
+
+impl UpstreamConsumptionReceipt {
+    pub fn new(
+        stage: UpstreamCensusStage,
+        authority_artifact_sha256: Hash32,
+        coverage_commitment: Hash32,
+    ) -> Result<Self, CapitalError> {
+        if !matches!(
+            stage,
+            UpstreamCensusStage::Rmc008StateAdmission | UpstreamCensusStage::Rmc009PositionUniverse
+        ) {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "only RMC-008 and RMC-009 may issue capital consumption receipts",
+            ));
+        }
+        Ok(Self {
+            stage,
+            authority_artifact_sha256,
+            coverage_commitment,
+        })
+    }
+
+    pub const fn stage(self) -> UpstreamCensusStage {
+        self.stage
+    }
+
+    pub const fn authority_artifact_sha256(self) -> Hash32 {
+        self.authority_artifact_sha256
+    }
+
+    pub const fn coverage_commitment(self) -> Hash32 {
+        self.coverage_commitment
+    }
+}
+
+fn upstream_authority_commitment(
+    stages: &[UpstreamStageAuthority],
+    admitted_evidence: &BTreeSet<CapitalEvidenceRef>,
+    consumption_receipts: &BTreeMap<UpstreamCensusStage, UpstreamConsumptionReceipt>,
+) -> Result<Hash32, CapitalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V4");
+    hasher.update([0]);
+    for authority in stages {
+        hasher.update([authority.stage.tag()]);
+        hasher.update(authority.code_commit.as_bytes());
+        hasher.update(authority.code_tree.as_bytes());
+        hasher.update(authority.artifact_sha256.as_bytes());
+        encode_anchor_into_hasher(&authority.observation_anchor, &mut hasher);
+        hasher.update(authority.unresolved_mismatch_count.to_be_bytes());
+        hasher.update(authority.unknown_failure_count.to_be_bytes());
+        hasher.update([u8::from(authority.coverage_complete)]);
+        hasher.update([u8::from(authority.admitted)]);
+    }
+    hasher.update(
+        u64::try_from(admitted_evidence.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for evidence in admitted_evidence {
+        let mut writer = Writer::default();
+        evidence.encode(&mut writer);
+        hasher.update(
+            u64::try_from(writer.0.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        hasher.update(&writer.0);
+    }
+    hasher.update(
+        u64::try_from(consumption_receipts.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for receipt in consumption_receipts.values() {
+        hasher.update([receipt.stage.tag()]);
+        hasher.update(receipt.authority_artifact_sha256.as_bytes());
+        hasher.update(receipt.coverage_commitment.as_bytes());
+    }
+    Hash32::new(finalize_sha256(hasher))
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero authority commitment"))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapitalCertificationContext {
     stages: Vec<UpstreamStageAuthority>,
     observation_anchor: StateAnchor,
     admitted_evidence: BTreeSet<CapitalEvidenceRef>,
+    consumption_receipts: BTreeMap<UpstreamCensusStage, UpstreamConsumptionReceipt>,
     commitment: Hash32,
 }
 
@@ -2580,43 +2776,74 @@ impl CapitalCertificationContext {
             }
         }
 
-        let mut hasher = Sha256::new();
-        hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V3");
-        hasher.update([0]);
-        for authority in &stages {
-            hasher.update([authority.stage.tag()]);
-            hasher.update(authority.code_commit.as_bytes());
-            hasher.update(authority.code_tree.as_bytes());
-            hasher.update(authority.artifact_sha256.as_bytes());
-            encode_anchor_into_hasher(&authority.observation_anchor, &mut hasher);
-            hasher.update(authority.unresolved_mismatch_count.to_be_bytes());
-            hasher.update(authority.unknown_failure_count.to_be_bytes());
-            hasher.update([u8::from(authority.coverage_complete)]);
-            hasher.update([u8::from(authority.admitted)]);
-        }
-        hasher.update(
-            u64::try_from(admitted_evidence.len())
-                .unwrap_or(u64::MAX)
-                .to_be_bytes(),
-        );
-        for evidence in &admitted_evidence {
-            let mut writer = Writer::default();
-            evidence.encode(&mut writer);
-            hasher.update(
-                u64::try_from(writer.0.len())
-                    .unwrap_or(u64::MAX)
-                    .to_be_bytes(),
-            );
-            hasher.update(&writer.0);
-        }
-        let commitment = Hash32::new(finalize_sha256(hasher))
-            .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero authority commitment"))?;
+        let consumption_receipts = BTreeMap::new();
+        let commitment =
+            upstream_authority_commitment(&stages, &admitted_evidence, &consumption_receipts)?;
         Ok(Self {
             stages,
             observation_anchor,
             admitted_evidence,
+            consumption_receipts,
             commitment,
         })
+    }
+
+    pub fn with_consumption_receipts(
+        mut self,
+        receipts: Vec<UpstreamConsumptionReceipt>,
+    ) -> Result<Self, CapitalError> {
+        let mut by_stage = BTreeMap::new();
+        for receipt in receipts {
+            if by_stage.insert(receipt.stage(), receipt).is_some() {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "duplicate upstream consumption receipt",
+                ));
+            }
+        }
+        for required in [
+            UpstreamCensusStage::Rmc008StateAdmission,
+            UpstreamCensusStage::Rmc009PositionUniverse,
+        ] {
+            let receipt = by_stage
+                .get(&required)
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
+                    "RMC-008 and RMC-009 consumption receipts are required",
+                ))?;
+            let authority = self
+                .stages
+                .iter()
+                .find(|authority| authority.stage == required)
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt stage authority is missing",
+                ))?;
+            if receipt.authority_artifact_sha256() != authority.artifact_sha256 {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt does not bind the admitted stage artifact",
+                ));
+            }
+        }
+        if by_stage.len() != 2 {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "unexpected upstream consumption receipt",
+            ));
+        }
+        self.consumption_receipts = by_stage;
+        self.commitment = upstream_authority_commitment(
+            &self.stages,
+            &self.admitted_evidence,
+            &self.consumption_receipts,
+        )?;
+        Ok(self)
+    }
+
+    fn has_required_consumption_receipts(&self) -> bool {
+        self.consumption_receipts.len() == 2
+            && self
+                .consumption_receipts
+                .contains_key(&UpstreamCensusStage::Rmc008StateAdmission)
+            && self
+                .consumption_receipts
+                .contains_key(&UpstreamCensusStage::Rmc009PositionUniverse)
     }
 
     pub const fn commitment(&self) -> Hash32 {
@@ -2633,6 +2860,10 @@ impl CapitalCertificationContext {
 
     pub fn admitted_evidence(&self) -> impl Iterator<Item = &CapitalEvidenceRef> {
         self.admitted_evidence.iter()
+    }
+
+    pub fn consumption_receipts(&self) -> impl Iterator<Item = &UpstreamConsumptionReceipt> {
+        self.consumption_receipts.values()
     }
 
     pub fn admits_evidence(&self, reference: &CapitalEvidenceRef) -> bool {
@@ -2813,6 +3044,11 @@ impl CapitalCensusLedger {
                 .any(|reference| !authority.admits_evidence(reference))
         }) {
             return Err(CapitalError::UnresolvedEvidenceRef);
+        }
+        if !authority.has_required_consumption_receipts() {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "RMC-008 and RMC-009 consumption receipts are required for certification",
+            ));
         }
         self.validate_settlements()?;
         let summary = self.summary()?;
@@ -3279,6 +3515,10 @@ impl<'a> Reader<'a> {
 
     fn u64(&mut self) -> Result<u64, CapitalError> {
         Ok(u64::from_be_bytes(self.array::<8>()?))
+    }
+
+    fn remaining(&self) -> usize {
+        self.bytes.len().saturating_sub(self.offset)
     }
 
     fn finish(self) -> Result<(), CapitalError> {
