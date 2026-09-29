@@ -2375,8 +2375,7 @@ pub fn evaluate_capital_feasibility_checked(
         .map(|allocation| allocation.source_id)
         .collect::<BTreeSet<_>>();
 
-    let mut source_dependencies =
-        BTreeMap::<(RequirementKind, CapitalAsset), Amount256>::new();
+    let mut source_dependencies = BTreeMap::<(RequirementKind, CapitalAsset), Amount256>::new();
     for source_id in used_source_ids {
         let source = sources
             .iter()
