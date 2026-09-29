@@ -2,8 +2,9 @@ use nqc_census_capital::{
     artifacts::{export_capital_artifacts, ArtifactProvenance},
     demands::import_d09_borrower_demands,
     replay::{
-        verify_capital_bundle_with_upstream_replay_for_code, verify_upstream_consumption_by_replay,
-        D08ReplayInputs, D09ReplayInputs, UpstreamAuthorityLock, UpstreamAuthorityLockEntry,
+        verify_capital_bundle_with_upstream_replay_for_code, verify_real_source_closeout_for_code,
+        verify_upstream_consumption_by_replay, D08ReplayInputs, D09ReplayInputs,
+        UpstreamAuthorityLock, UpstreamAuthorityLockEntry,
     },
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
     CapitalCensusLedger, CapitalCertificationContext, CapitalEvidenceRef, GitObjectId,
@@ -397,22 +398,24 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     let provenance = ArtifactProvenance::new("2023-11-14T22:13:20Z", CODE_COMMIT, CODE_TREE)?;
     let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
     let lock = authority_lock(&context)?;
+    let d08_replay = D08ReplayInputs {
+        state_manifest_jsonl: &d08_states,
+        token_admission_jsonl: &d08_tokens,
+        pool_and_factory_facts_json: &d08_facts,
+        evidence_manifest_json: &d08_manifest,
+    };
+    let d09_replay = D09ReplayInputs {
+        account_manifest_jsonl: &d09_accounts,
+        account_summary_json: &d09_summary,
+        evidence_manifest_json: &d09_manifest,
+    };
     let verified = verify_capital_bundle_with_upstream_replay_for_code(
         &bundle,
         CODE_COMMIT,
         CODE_TREE,
         &lock,
-        D08ReplayInputs {
-            state_manifest_jsonl: &d08_states,
-            token_admission_jsonl: &d08_tokens,
-            pool_and_factory_facts_json: &d08_facts,
-            evidence_manifest_json: &d08_manifest,
-        },
-        D09ReplayInputs {
-            account_manifest_jsonl: &d09_accounts,
-            account_summary_json: &d09_summary,
-            evidence_manifest_json: &d09_manifest,
-        },
+        d08_replay,
+        d09_replay,
     )?;
     assert_eq!(verified.capital.source_count, 1);
     assert_eq!(verified.capital.requirement_count, 0);
@@ -422,6 +425,34 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
         verified.upstream_authority_lock_commitment,
         lock.commitment()
     );
+
+    let closeout = verify_real_source_closeout_for_code(
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        d08_replay,
+        d09_replay,
+    )?;
+    let first = closeout.canonical_json()?;
+    let second = verify_real_source_closeout_for_code(
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        d08_replay,
+        d09_replay,
+    )?
+    .canonical_json()?;
+    assert_eq!(first, second);
+    let closeout_text = std::str::from_utf8(&first)?;
+    assert!(closeout_text.contains("\"status\":\"RMC_011_REAL_SOURCE_CLOSEOUT_PASS\""));
+    assert!(closeout_text.contains("\"real_source_certification\":true"));
+    assert!(closeout_text.contains("\"zero_own_capital_proven\":false"));
+    assert!(closeout_text.contains(
+        "\"opportunity_level_capital_feasibility_claimed\":false"
+    ));
+    assert!(closeout_text.contains("\"profitability_claimed\":false"));
     Ok(())
 }
 
