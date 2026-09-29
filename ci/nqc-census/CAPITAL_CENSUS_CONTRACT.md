@@ -121,6 +121,7 @@ Target deterministic artifacts:
 - `capital-feasibility.jsonl`
 - `capital-rejection-ledger.jsonl`
 - `capital-census-summary.json`
+- `capital-upstream-authority.json`
 - `capital-evidence-manifest.json`
 
 Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence.
