@@ -347,28 +347,6 @@ pub enum CapitalAsset {
 }
 
 impl CapitalAsset {
-    pub fn quote(
-        self,
-        drawn_amount: Amount256,
-        default_asset: CapitalAsset,
-    ) -> Result<Option<FeeQuote>, CapitalError> {
-        match self {
-            Self::None => Ok(None),
-            Self::BasisPoints(bps) => Ok(Some(FeeQuote {
-                asset: default_asset,
-                amount: mul_div_u64(drawn_amount, u64::from(bps), 10_000)?,
-            })),
-            Self::Fixed { asset, amount } => Ok(Some(FeeQuote { asset, amount })),
-            Self::ExactRatio {
-                numerator,
-                denominator,
-            } => Ok(Some(FeeQuote {
-                asset: default_asset,
-                amount: mul_div_u64(drawn_amount, numerator, denominator)?,
-            })),
-        }
-    }
-
     fn encode(self, writer: &mut Writer) {
         match self {
             Self::NativeGas => writer.u8(1),
@@ -391,9 +369,38 @@ impl CapitalAsset {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RoundingMode {
+    Floor,
+    Ceil,
+    HalfUp,
+}
+
+impl RoundingMode {
+    const fn tag(self) -> u8 {
+        match self {
+            Self::Floor => 1,
+            Self::Ceil => 2,
+            Self::HalfUp => 3,
+        }
+    }
+
+    fn from_tag(tag: u8) -> Result<Self, CapitalError> {
+        match tag {
+            1 => Ok(Self::Floor),
+            2 => Ok(Self::Ceil),
+            3 => Ok(Self::HalfUp),
+            _ => Err(CapitalError::InvalidCanonical("unknown rounding mode")),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FeeModel {
     None,
-    BasisPoints(u16),
+    BasisPoints {
+        bps: u16,
+        rounding: RoundingMode,
+    },
     Fixed {
         asset: CapitalAsset,
         amount: Amount256,
@@ -401,33 +408,82 @@ pub enum FeeModel {
     ExactRatio {
         numerator: u64,
         denominator: u64,
+        rounding: RoundingMode,
     },
 }
 
 impl FeeModel {
     pub fn basis_points(value: u16) -> Result<Self, CapitalError> {
+        Self::basis_points_with_rounding(value, RoundingMode::Floor)
+    }
+
+    pub fn basis_points_with_rounding(
+        value: u16,
+        rounding: RoundingMode,
+    ) -> Result<Self, CapitalError> {
         if value > 10_000 {
             return Err(CapitalError::InvalidBasisPoints(value));
         }
-        Ok(Self::BasisPoints(value))
+        Ok(Self::BasisPoints {
+            bps: value,
+            rounding,
+        })
     }
 
     pub fn exact_ratio(numerator: u64, denominator: u64) -> Result<Self, CapitalError> {
+        Self::exact_ratio_with_rounding(numerator, denominator, RoundingMode::Floor)
+    }
+
+    pub fn exact_ratio_with_rounding(
+        numerator: u64,
+        denominator: u64,
+        rounding: RoundingMode,
+    ) -> Result<Self, CapitalError> {
         if denominator == 0 {
             return Err(CapitalError::InvalidRatio);
         }
         Ok(Self::ExactRatio {
             numerator,
             denominator,
+            rounding,
         })
+    }
+
+    pub fn quote(
+        self,
+        drawn_amount: Amount256,
+        default_asset: CapitalAsset,
+    ) -> Result<Option<FeeQuote>, CapitalError> {
+        match self {
+            Self::None => Ok(None),
+            Self::BasisPoints { bps, rounding } => Ok(Some(FeeQuote {
+                asset: default_asset,
+                amount: mul_div_u64_round(
+                    drawn_amount,
+                    u64::from(bps),
+                    10_000,
+                    rounding,
+                )?,
+            })),
+            Self::Fixed { asset, amount } => Ok(Some(FeeQuote { asset, amount })),
+            Self::ExactRatio {
+                numerator,
+                denominator,
+                rounding,
+            } => Ok(Some(FeeQuote {
+                asset: default_asset,
+                amount: mul_div_u64_round(drawn_amount, numerator, denominator, rounding)?,
+            })),
+        }
     }
 
     fn encode(self, writer: &mut Writer) {
         match self {
             Self::None => writer.u8(1),
-            Self::BasisPoints(value) => {
+            Self::BasisPoints { bps, rounding } => {
                 writer.u8(2);
-                writer.u16(value);
+                writer.u16(bps);
+                writer.u8(rounding.tag());
             }
             Self::Fixed { asset, amount } => {
                 writer.u8(3);
@@ -437,10 +493,12 @@ impl FeeModel {
             Self::ExactRatio {
                 numerator,
                 denominator,
+                rounding,
             } => {
                 writer.u8(4);
                 writer.u64(numerator);
                 writer.u64(denominator);
+                writer.u8(rounding.tag());
             }
         }
     }
@@ -448,12 +506,19 @@ impl FeeModel {
     fn decode(reader: &mut Reader<'_>) -> Result<Self, CapitalError> {
         match reader.u8()? {
             1 => Ok(Self::None),
-            2 => Self::basis_points(reader.u16()?),
+            2 => Self::basis_points_with_rounding(
+                reader.u16()?,
+                RoundingMode::from_tag(reader.u8()?)?,
+            ),
             3 => Ok(Self::Fixed {
                 asset: CapitalAsset::decode(reader)?,
                 amount: Amount256::from_be_bytes(reader.array::<32>()?),
             }),
-            4 => Self::exact_ratio(reader.u64()?, reader.u64()?),
+            4 => Self::exact_ratio_with_rounding(
+                reader.u64()?,
+                reader.u64()?,
+                RoundingMode::from_tag(reader.u8()?)?,
+            ),
             _ => Err(CapitalError::InvalidCanonical("unknown fee model")),
         }
     }
@@ -1924,13 +1989,14 @@ fn apply_utilization(amount: Amount256, bps: u16) -> Result<Amount256, CapitalEr
     if bps > 10_000 {
         return Err(CapitalError::InvalidBasisPoints(bps));
     }
-    mul_div_u64(amount, u64::from(bps), 10_000)
+    mul_div_u64_round(amount, u64::from(bps), 10_000, RoundingMode::Floor)
 }
 
-fn mul_div_u64(
+fn mul_div_u64_round(
     amount: Amount256,
     numerator: u64,
     denominator: u64,
+    rounding: RoundingMode,
 ) -> Result<Amount256, CapitalError> {
     if denominator == 0 {
         return Err(CapitalError::InvalidRatio);
@@ -1941,7 +2007,8 @@ fn mul_div_u64(
 
     // Multiply the 256-bit amount by a 64-bit numerator into a 320-bit
     // intermediate, then divide that exact intermediate by a 64-bit
-    // denominator. No floating point and no truncation before the final floor.
+    // denominator. Rounding is applied only after the exact quotient and
+    // remainder are known.
     let mut product = [0_u8; 40];
     let mut carry = 0_u128;
     for index in (0..32).rev() {
@@ -1982,7 +2049,21 @@ fn mul_div_u64(
     }
     let mut out = [0_u8; 32];
     out.copy_from_slice(&quotient[8..]);
-    Ok(Amount256::from_be_bytes(out))
+    let floor = Amount256::from_be_bytes(out);
+
+    let round_up = match rounding {
+        RoundingMode::Floor => false,
+        RoundingMode::Ceil => remainder != 0,
+        RoundingMode::HalfUp => {
+            let threshold = u128::from(denominator / 2 + denominator % 2);
+            remainder >= threshold
+        }
+    };
+    if round_up {
+        floor.checked_add(Amount256::from_u128(1))
+    } else {
+        Ok(floor)
+    }
 }
 
 fn encode_chain(chain: &ChainDomain, writer: &mut Writer) {

@@ -3,7 +3,7 @@ use nqc_census_capital::{
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalProviderKind,
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, PersistentDebtTerms, RepaymentSemantics, RequiredAtomicity,
-    RequirementKind, TemporaryLock, UtilizationConstraints,
+    RequirementKind, RoundingMode, TemporaryLock, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -825,9 +825,9 @@ fn fee_quotes_are_integer_exact_across_full_uint256_domain() -> TestResult {
     let half = FeeModel::exact_ratio(1, 2)?
         .quote(Amount256::from_be_bytes(maximum), token)?
         .ok_or("missing full-width fee quote")?;
-    let mut expected = [0_u8; 32];
+    let mut expected = [0xff_u8; 32];
     expected[0] = 0x40;
-    expected[1..].fill(0xff);
+    expected[1] = 0x7f;
     assert_eq!(half.amount, Amount256::from_be_bytes(expected));
     Ok(())
 }
@@ -852,5 +852,29 @@ fn fixed_fee_preserves_explicit_fee_asset() -> TestResult {
     .ok_or("missing fixed fee quote")?;
     assert_eq!(quote.asset, fee_asset);
     assert_eq!(quote.amount, Amount256::from_u128(77));
+    Ok(())
+}
+
+
+#[test]
+fn fee_rounding_matches_protocol_integer_semantics() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+
+    // Aave-style percentage math uses half-up rounding.
+    let aave_like = FeeModel::basis_points_with_rounding(5, RoundingMode::HalfUp)?
+        .quote(Amount256::from_u128(1_000), token)?
+        .ok_or("missing half-up quote")?;
+    assert_eq!(aave_like.amount, Amount256::from_u128(1));
+
+    let floor = FeeModel::basis_points(5)?
+        .quote(Amount256::from_u128(1_000), token)?
+        .ok_or("missing floor quote")?;
+    assert_eq!(floor.amount, Amount256::ZERO);
+
+    // Balancer-style fixed-point fee math rounds a non-zero remainder upward.
+    let balancer_like = FeeModel::exact_ratio_with_rounding(1, 1_000, RoundingMode::Ceil)?
+        .quote(Amount256::from_u128(1_001), token)?
+        .ok_or("missing ceil quote")?;
+    assert_eq!(balancer_like.amount, Amount256::from_u128(2));
     Ok(())
 }
