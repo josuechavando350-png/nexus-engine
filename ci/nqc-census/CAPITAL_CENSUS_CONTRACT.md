@@ -103,6 +103,7 @@ A source may be used only when:
 - fee/cap semantics are explicit
 - repayment can be satisfied under the candidate's execution semantics
 - exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
+- settlement legs must authorize the actual capital-source classes that generated those obligations; matching only kind, asset, and amount is insufficient
 - atomicity/collateral requirements are compatible
 - no unresolved source mismatch remains
 
@@ -114,7 +115,7 @@ Feasibility MUST fail closed on:
 - stale or mismatched observation
 - unknown fee semantics
 - unknown repayment semantics
-- settlement requirement mismatch, including wrong repayment amount, wrong settlement asset, missing funding fee, or an extra settlement leg
+- settlement requirement mismatch, including wrong repayment amount, wrong settlement asset, missing funding fee, an extra settlement leg, or a settlement leg that does not authorize the allocated source class
 - unknown protocol / market cap
 - collateral requirement not funded, including the aggregate collateral required by every distinct source allocated to the candidate
 - temporary-lock requirement not funded, including the aggregate lock amount required by every distinct source allocated to the candidate
@@ -150,7 +151,7 @@ At minimum:
 - gas funding is independently required when execution needs native gas
 - insufficient source capacity fails closed
 - incompatible repayment asset/semantics fails closed
-- exact repayment/funding-fee settlement mismatch is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification
+- exact repayment/funding-fee settlement mismatch, including source-class provenance mismatch, is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification
 - protocol and market caps bind maximum executable size
 - stale/mismatched anchors fail
 - unknown failure reason cannot pass certification
