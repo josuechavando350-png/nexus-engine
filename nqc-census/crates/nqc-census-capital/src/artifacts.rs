@@ -741,12 +741,9 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
                 .map_err(|_| CapitalError::InvalidUpstreamAuthority("artifact sha256 missing"))?,
         )
         .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid artifact sha256"))?;
-        let coverage_complete = row
-            .get("coverage_complete")
-            .and_then(Json::as_bool)
-            .ok_or(CapitalError::InvalidUpstreamAuthority(
-                "upstream coverage-complete flag missing",
-            ))?;
+        let coverage_complete = row.get("coverage_complete").and_then(Json::as_bool).ok_or(
+            CapitalError::InvalidUpstreamAuthority("upstream coverage-complete flag missing"),
+        )?;
         let admitted = row.get("admitted").and_then(Json::as_bool).ok_or(
             CapitalError::InvalidUpstreamAuthority("upstream admitted flag missing"),
         )?;
