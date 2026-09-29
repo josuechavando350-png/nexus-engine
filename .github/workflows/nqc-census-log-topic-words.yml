@@ -142,7 +142,7 @@ jobs:
             ci/nqc-census/STORE_CONTRACT.md \
             ci/nqc-census/DEPLOYMENT_ADMISSION_CONTRACT.md \
             ci/nqc-census/CHAIN_EVIDENCE_CONTRACT.md \
-            nqc-census/Cargo.toml nqc-census/Cargo.lock \
+            nqc-census/crates/nqc-census-chain/Cargo.toml \
             nqc-census/crates/nqc-census-store \
             nqc-census/crates/nqc-census-core/src/pipeline.rs \
             nqc-census/crates/nqc-census-core/src/capability.rs \
