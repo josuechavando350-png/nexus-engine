@@ -532,7 +532,7 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
     )?;
     let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
     let text = std::str::from_utf8(&summary.bytes)?;
-    assert!(text.contains("\"schema_version\":4"));
+    assert!(text.contains("\"schema_version\":5"));
     assert!(text.contains("\"feasible_count\":0"));
     assert!(text.contains("\"rejected_count\":1"));
     assert!(text.contains("\"zero_own_capital_proven\":false"));
@@ -542,7 +542,7 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
         .file(CAPITAL_EVIDENCE_MANIFEST_FILE)
         .ok_or("missing evidence manifest")?;
     let manifest_text = std::str::from_utf8(&manifest.bytes)?;
-    assert!(manifest_text.contains("\"schema_version\":2"));
+    assert!(manifest_text.contains("\"schema_version\":3"));
     assert!(manifest_text.contains("REAL_SOURCE_CERTIFICATION_NOT_TESTED"));
     Ok(())
 }
@@ -627,12 +627,12 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
             "missing upstream authority stage {stage}"
         );
     }
-    assert!(text.contains("\"schema_version\":6"));
+    assert!(text.contains("\"schema_version\":7"));
     assert!(text.contains("\"consumption_receipts\""));
     assert!(text.contains("\"coverage_commitment\""));
     assert!(text.contains("\"output_count\""));
     assert!(text.contains("\"output_set_commitment\""));
-    assert!(text.contains("\"generated_at\":\"2026-09-29T00:00:00Z\""));
+    assert!(text.contains("\"generated_at\":\"2023-11-14T22:13:20Z\""));
     assert!(text.contains("\"code_commit\":\"0123456789abcdef0123456789abcdef01234567\""));
     assert!(text.contains("\"code_tree\":\"89abcdef0123456789abcdef0123456789abcdef\""));
     assert!(text.contains("\"observation_anchor\""));
