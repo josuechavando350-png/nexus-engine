@@ -83,10 +83,10 @@ impl D08CapitalImport {
                 .ok_or(CapitalError::InvalidUpstreamAuthority(
                     "D08 import is not bound to an admitted authority artifact",
                 ))?;
-        UpstreamConsumptionReceipt::new(
-            UpstreamCensusStage::Rmc008StateAdmission,
+        UpstreamConsumptionReceipt::for_sources(
             authority_artifact_sha256,
             self.coverage_commitment,
+            self.sources.iter(),
         )
     }
 }
