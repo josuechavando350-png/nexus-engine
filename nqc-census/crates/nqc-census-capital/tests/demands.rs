@@ -205,6 +205,36 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
 }
 
 #[test]
+fn d09_import_rejects_health_factor_classification_that_contradicts_exact_account_data() -> TestResult {
+    let account = format!("0x{}", "54".repeat(20));
+    let row = format!(
+        concat!(
+            "{{\"account\":\"{}\",\"classification\":\"POSITION_HOLDER\",",
+            "\"debt_positions\":[{}],\"health_factor_below_one\":true,",
+            "\"supply_positions\":[]}}\n"
+        ),
+        account,
+        position(20, 30, "10")
+    );
+    let exact = exact_account_fixture(row.as_bytes());
+    let contradictory = String::from_utf8(exact)?
+        .replace("999999999999999999", "1000000000000000000");
+    let summary = summary("RMC_009_PASS_CANDIDATE", true);
+    let evidence_manifest = d09_evidence_manifest(contradictory.as_bytes(), &summary);
+    let authority = d09_authority(&evidence_manifest)?;
+
+    assert!(import_d09_borrower_demands_bound(
+        contradictory.as_bytes(),
+        &summary,
+        &evidence_manifest,
+        &authority,
+        &anchor(),
+    )
+    .is_err());
+    Ok(())
+}
+
+#[test]
 fn borrower_with_unavailable_account_data_is_explicitly_blocked() -> TestResult {
     let account = format!("0x{}", "45".repeat(20));
     let manifest = format!(
