@@ -17,8 +17,8 @@ permissions:
   actions: write
 
 concurrency:
-  group: nqc-rmc010-anchor-${{ github.run_id }}
-  cancel-in-progress: false
+  group: nqc-rmc010-anchor-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   propose:
