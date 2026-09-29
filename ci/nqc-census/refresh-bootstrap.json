@@ -1,0 +1,6 @@
+{
+  "schema_version": 1,
+  "status": "REQUEST_D06_A1",
+  "d06_ref": "nqc/rmc-006-aave-reconciled-discovery-20260929",
+  "purpose": "One-shot dispatch of RMC-006 at the provider-agreed finalized A1 proposed by the exact D10 head"
+}
