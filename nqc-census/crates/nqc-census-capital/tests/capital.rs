@@ -483,7 +483,6 @@ fn zero_capacity_and_amount_edges_fail() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn zero_own_capital_policy_rejects_operator_treasury_source() -> TestResult {
     let token = CapitalAsset::Token(address(20));
@@ -526,7 +525,6 @@ fn zero_own_capital_policy_rejects_operator_treasury_source() -> TestResult {
     ));
     Ok(())
 }
-
 
 #[test]
 fn utilization_math_handles_full_256_bit_capacity_exactly() -> TestResult {
