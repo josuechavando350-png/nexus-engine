@@ -36,6 +36,7 @@ pub enum CapitalError {
     MissingEvidence,
     EmptyFailureModes,
     UnknownFailureMode,
+    OwnershipProviderMismatch,
     MissingAllowedClass,
     DuplicateAllowedClass,
     DuplicateLeg,
@@ -84,6 +85,9 @@ impl Display for CapitalError {
             Self::EmptyFailureModes => f.write_str("capital source must enumerate failure modes"),
             Self::UnknownFailureMode => {
                 f.write_str("UNKNOWN capital failure mode cannot be admitted")
+            }
+            Self::OwnershipProviderMismatch => {
+                f.write_str("operator treasury cannot be classified as externally owned capital")
             }
             Self::MissingAllowedClass => {
                 f.write_str("requirement leg has no allowed capital class")
@@ -1077,6 +1081,11 @@ impl CapitalSource {
     pub fn new(mut spec: CapitalSourceSpec) -> Result<Self, CapitalError> {
         if spec.provider_namespace == 0 {
             return Err(CapitalError::ZeroValue("provider_namespace"));
+        }
+        if spec.provider_kind == CapitalProviderKind::OperatorTreasury
+            && spec.ownership != CapitalOwnership::OperatorOwned
+        {
+            return Err(CapitalError::OwnershipProviderMismatch);
         }
         if spec.failure_modes.is_empty() {
             return Err(CapitalError::EmptyFailureModes);
