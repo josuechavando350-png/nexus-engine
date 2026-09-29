@@ -7,8 +7,10 @@
 pub mod capability;
 pub mod deployment;
 pub mod identity;
+pub mod keccak;
 pub mod observation;
 pub mod pipeline;
+mod rlp;
 
 pub use capability::{
     AdapterCapability, AdapterDeclaration, CapabilityError, CapabilityMatrix, CapabilityScope,
@@ -28,10 +30,13 @@ pub use identity::{
     ObservationAnchor, ProtocolFamily, SourceLocator, StrategySemanticsKey,
     IDENTITY_SCHEMA_VERSION,
 };
+pub use keccak::keccak256;
 pub use observation::{
-    require_same_anchor, AnchorMismatchField, CensusObservation, ObservationDigest,
-    ObservationEnvelope, ObservationError, ObservationProvenance, ObservationSemantics,
-    ProvenanceAuthority, RawLogEnvelope, StateAnchor,
+    peek_observation_class, require_same_anchor, AnchorMismatchField, BlockHeaderEnvelope,
+    CallContext, CallOutcome, CensusObservation, ContractCallEnvelope, HeaderEncoding,
+    ObservationClass, ObservationDigest, ObservationEnvelope, ObservationError, ObservationPayload,
+    ObservationProvenance, ObservationSemantics, ProvenanceAuthority, RawLogEnvelope,
+    RuntimeCodeEnvelope, StateAnchor, TYPED_OBSERVATION_SCHEMA_VERSION,
 };
 pub use pipeline::{
     BlockerId, CensusStage, CensusUnitId, CensusUnitKind, EvidenceBasis, EvidenceRef,
