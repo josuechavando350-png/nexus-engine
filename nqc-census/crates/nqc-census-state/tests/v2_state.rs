@@ -12,6 +12,7 @@ use nqc_census_core::{
     keccak256, Address, CallOutcome, CanonicalMarketKey, CensusStage, DeploymentKey, Hash32,
     ProtocolFamily, RejectionReason,
 };
+use nqc_census_state::extract::{extract_stages, stage_extract};
 use nqc_census_state::replay::{replay_stage, StagePlans};
 use nqc_census_state::stage::AnchorPlan;
 use nqc_census_state::v2_math::{create2_address, pair_salt};
@@ -506,5 +507,109 @@ fn replay_rejects_a_tampered_record_and_is_deterministic() -> TestResult {
         aave: None,
     };
     assert!(replay_stage(&run.store, &run.specs, &wrong, record).is_err());
+    Ok(())
+}
+
+fn store_summary(run_root: &std::path::Path) -> Result<Json, Box<dyn Error>> {
+    let report = nqc_census_store::verify::verify_store(
+        run_root,
+        &nqc_census_store::verify::VerifyRequest::default(),
+    )
+    .map_err(|failure| failure.to_string())?;
+    Ok(Json::object([
+        ("stage_artifact", Json::string("synthetic")),
+        ("evidence_root", Json::string(report.evidence_root)),
+    ]))
+}
+
+fn with_field(value: &Json, key: &str, replacement: Json) -> Result<Json, Box<dyn Error>> {
+    let members = value.as_object().ok_or("not an object")?;
+    Ok(Json::Object(
+        members
+            .iter()
+            .map(|(name, field)| {
+                let field = if name == key {
+                    replacement.clone()
+                } else {
+                    field.clone()
+                };
+                (name.clone(), field)
+            })
+            .collect(),
+    ))
+}
+
+#[test]
+fn per_store_extracts_verify_like_replay_and_bind_to_the_pair_list() -> TestResult {
+    let run = run(&Variant::default(), &Variant::default())?;
+    let plans = StagePlans {
+        v2: Some(&run.plan),
+        pairs: &run.pairs,
+        aave: None,
+    };
+    let summary = store_summary(&run.root)?;
+    let extracts = run
+        .records
+        .iter()
+        .map(|record| stage_extract(&run.store, &run.specs, &plans, record, summary.clone()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let stages = extract_stages(&run.specs, &plans, &run.plan.anchor, extracts.clone())?;
+    let (mut factory_stages, mut state_stages) = (Vec::new(), Vec::new());
+    for (record, stage) in stages {
+        match record.str_field("stage")? {
+            "V2_FACTORY" => factory_stages.push(stage),
+            _ => state_stages.push(stage),
+        }
+    }
+    let from_extracts = verify_v2(&V2Inputs {
+        deployment: run.deployment.clone(),
+        admitted_factory_sha256: nqc_census_chain::hex::plain(&Sha256::digest(factory_code())),
+        declared_init_code_hash: keccak256(&init_code()),
+        pairs: &run.pairs,
+        factory: factory_stages,
+        state: state_stages,
+    })?;
+    assert_eq!(from_extracts.state_rows, verify(&run)?.state_rows);
+
+    // A changed row, even with the extract's own digest rewritten.
+    let position = run
+        .records
+        .iter()
+        .position(|record| record.str_field("stage").ok() == Some("V2_STATE"))
+        .ok_or("state record")?;
+    let rows = extracts[position]
+        .get("rows")
+        .and_then(Json::as_array)
+        .ok_or("rows")?;
+    let mut changed = rows.to_vec();
+    changed.pop();
+    let mut tampered = extracts.clone();
+    tampered[position] = with_field(&extracts[position], "rows", Json::Array(changed))?;
+    assert!(
+        extract_stages(&run.specs, &plans, &run.plan.anchor, tampered)
+            .err()
+            .ok_or("tampered extract accepted")?
+            .to_string()
+            .contains("row count")
+    );
+    // A pair list other than the one the stages were acquired for.
+    let mut shifted = run.pairs.clone();
+    shifted.swap(0, 1);
+    let wrong = StagePlans {
+        v2: Some(&run.plan),
+        pairs: &shifted,
+        aave: None,
+    };
+    assert!(
+        extract_stages(&run.specs, &wrong, &run.plan.anchor, extracts.clone())
+            .err()
+            .ok_or("foreign pair list accepted")?
+            .to_string()
+            .contains("another plan")
+    );
+    // Another anchor.
+    let mut other = run.plan.anchor.clone();
+    other.number -= 1;
+    assert!(extract_stages(&run.specs, &plans, &other, extracts).is_err());
     Ok(())
 }

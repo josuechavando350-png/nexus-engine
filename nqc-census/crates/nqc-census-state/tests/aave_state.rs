@@ -21,6 +21,7 @@ use nqc_census_state::aave_stage::{
     POOL_SCALARS, RESERVE_GETTERS,
 };
 use nqc_census_state::aave_verify::{verify_aave, AaveInputs, AaveOutcome, AdmittedReserve};
+use nqc_census_state::extract::{extract_stages, stage_extract};
 use nqc_census_state::replay::{replay_stage, StagePlans};
 use nqc_census_state::stage::AnchorPlan;
 use nqc_census_state::uint::U256;
@@ -907,5 +908,59 @@ fn a_halt_seen_by_one_provider_only_fails_closed() -> TestResult {
     let run = run(&Variant::default(), &[], &[(A, source, "decimals()")])?;
     let error = verify(&run).err().ok_or("disagreement must fail")?;
     assert!(error.to_string().contains("different"), "{error}");
+    Ok(())
+}
+
+fn store_summary(run_root: &std::path::Path) -> Result<Json, Box<dyn Error>> {
+    let report = nqc_census_store::verify::verify_store(
+        run_root,
+        &nqc_census_store::verify::VerifyRequest::default(),
+    )
+    .map_err(|failure| failure.to_string())?;
+    Ok(Json::object([
+        ("stage_artifact", Json::string("synthetic")),
+        ("evidence_root", Json::string(report.evidence_root)),
+    ]))
+}
+
+#[test]
+fn aave_extracts_bind_to_the_admitted_reserves_and_addresses() -> TestResult {
+    let run = run(&Variant::default(), &[], &[])?;
+    let plans = StagePlans {
+        v2: None,
+        pairs: &[],
+        aave: Some(&run.plan),
+    };
+    let summary = store_summary(&run.root)?;
+    let extracts = run
+        .records
+        .iter()
+        .map(|record| stage_extract(&run.store, &run.specs, &plans, record, summary.clone()))
+        .collect::<Result<Vec<_>, _>>()?;
+    let stages = extract_stages(&run.specs, &plans, &run.plan.anchor, extracts.clone())?;
+    assert_eq!(stages.len(), 2);
+    // Reserves other than the admitted ones, or another oracle.
+    let mut fewer = run.plan.clone();
+    fewer.reserves.pop();
+    let wrong = StagePlans {
+        v2: None,
+        pairs: &[],
+        aave: Some(&fewer),
+    };
+    assert!(
+        extract_stages(&run.specs, &wrong, &run.plan.anchor, extracts.clone())
+            .err()
+            .ok_or("foreign reserves accepted")?
+            .to_string()
+            .contains("another plan")
+    );
+    let mut moved = run.plan.clone();
+    moved.oracle = pool();
+    let wrong = StagePlans {
+        v2: None,
+        pairs: &[],
+        aave: Some(&moved),
+    };
+    assert!(extract_stages(&run.specs, &wrong, &run.plan.anchor, extracts).is_err());
     Ok(())
 }

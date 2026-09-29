@@ -6,6 +6,7 @@
 //! so a rerun on the same evidence is byte-identical.
 
 use crate::aave_verify::{verify_aave, AaveInputs, AaveOutcome};
+use crate::extract::extract_stages;
 use crate::inputs::{D06Inputs, D07Inputs, PinnedFile};
 use crate::model::{MismatchLedger, StateAdmission, TokenAdmission};
 use crate::replay::{replay_stage, StagePlans};
@@ -231,7 +232,8 @@ pub struct Verified {
     pub observation_anchor: Json,
 }
 
-/// Replays every record and verifies both adapters.
+/// Replays every record from one store holding all their evidence, then
+/// verifies (`reconcile_replayed`).
 pub fn reconcile_offline(
     store: &Store,
     providers: &[ProviderSpec],
@@ -248,13 +250,52 @@ pub fn reconcile_offline(
         pairs: &d07.pairs,
         aave: Some(&aave_plan),
     };
-    let mut by_stage: BTreeMap<String, Vec<ReplayedStage>> = BTreeMap::new();
+    let mut stages = Vec::with_capacity(records.len());
     for record in records {
-        let replayed = replay_stage(store, providers, &plans, record)?;
-        by_stage
-            .entry(record.str_field("stage")?.to_owned())
-            .or_default()
-            .push(replayed);
+        stages.push((
+            record.str_field("stage")?.to_owned(),
+            replay_stage(store, providers, &plans, record)?,
+        ));
+    }
+    reconcile_replayed(anchor, d06, d07, stages)
+}
+
+/// As `reconcile_offline`, from stages replayed one store at a time
+/// (`extract::stage_extract`). Returns the extracts' records too.
+pub fn reconcile_extracts(
+    providers: &[ProviderSpec],
+    anchor: &AnchorPlan,
+    d06: &D06Inputs,
+    d07: &D07Inputs,
+    v2_job_size: usize,
+    extracts: Vec<Json>,
+) -> Result<(Verified, Vec<Json>), ChainError> {
+    let aave_plan = d06.plan(anchor.clone());
+    let v2_plan = d07.plan(anchor.clone(), v2_job_size);
+    let plans = StagePlans {
+        v2: Some(&v2_plan),
+        pairs: &d07.pairs,
+        aave: Some(&aave_plan),
+    };
+    let mut stages = Vec::with_capacity(extracts.len());
+    let mut records = Vec::with_capacity(extracts.len());
+    for (record, stage) in extract_stages(providers, &plans, anchor, extracts)? {
+        stages.push((record.str_field("stage")?.to_owned(), stage));
+        records.push(record);
+    }
+    Ok((reconcile_replayed(anchor, d06, d07, stages)?, records))
+}
+
+fn reconcile_replayed(
+    anchor: &AnchorPlan,
+    d06: &D06Inputs,
+    d07: &D07Inputs,
+    stages: Vec<(String, ReplayedStage)>,
+) -> Result<Verified, ChainError> {
+    let records = stages.len();
+    let mut by_stage: BTreeMap<String, Vec<ReplayedStage>> = BTreeMap::new();
+    for (name, stage) in stages {
+        by_stage.entry(name).or_default().push(stage);
     }
     let take = |stage: &str, by_stage: &mut BTreeMap<String, Vec<ReplayedStage>>| {
         by_stage.remove(stage).unwrap_or_default()
@@ -293,7 +334,7 @@ pub fn reconcile_offline(
     Ok(Verified {
         aave,
         v2,
-        records: records.len(),
+        records,
         anchor_timestamp,
         observation_anchor,
     })
@@ -413,6 +454,9 @@ pub struct CloseoutContext<'a> {
     pub code_tree: &'a str,
     pub pins: &'a [PinnedFile],
     pub store_evidence_root: &'a str,
+    /// RMC-004 summary of each stage's own store, when stages were replayed
+    /// one store at a time (then `store_evidence_root` says so); else empty.
+    pub stage_stores: Vec<Json>,
     pub record_manifests: Vec<String>,
 }
 
@@ -611,6 +655,7 @@ pub fn write_closeout(
             "store_evidence_root",
             Json::string(context.store_evidence_root),
         ),
+        ("stage_stores", Json::Array(context.stage_stores.clone())),
         (
             "inputs",
             Json::array(context.pins.iter().map(|pin| {
