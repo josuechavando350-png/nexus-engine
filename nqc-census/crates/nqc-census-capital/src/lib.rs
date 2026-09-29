@@ -19,14 +19,14 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-pub const CAPITAL_SCHEMA_VERSION: u16 = 1;
+pub const CAPITAL_SCHEMA_VERSION: u16 = 2;
 
 const SOURCE_MAGIC: &[u8] = b"NQC-CAP-SOURCE";
 const REQUIREMENT_MAGIC: &[u8] = b"NQC-CAP-REQUIREMENT";
-const SOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-KEY-V1";
-const SOURCE_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-ID-V1";
+const SOURCE_KEY_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-KEY-V2";
+const SOURCE_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-SOURCE-ID-V2";
 const REQUIREMENT_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-REQUIREMENT-ID-V1";
-const LEDGER_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-LEDGER-COMMITMENT-V1";
+const LEDGER_DOMAIN: &[u8] = b"NQC-RMC011-CAPITAL-LEDGER-COMMITMENT-V2";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CapitalError {
@@ -121,7 +121,7 @@ impl Display for CapitalError {
             Self::InsufficientCapacity => f.write_str("insufficient capital capacity"),
             Self::MissingGasFunding => f.write_str("required native gas funding is absent"),
             Self::OperatorOwnedCapitalRequired => {
-                f.write_str("zero-own-capital policy forbids operator treasury funding")
+                f.write_str("zero-own-capital policy forbids operator-owned funding")
             }
             Self::AtomicityMismatch => {
                 f.write_str("capital source does not satisfy required atomicity")
@@ -407,8 +407,39 @@ impl CapitalProviderKind {
             ))
     }
 
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CapitalOwnership {
+    External,
+    OperatorOwned,
+}
+
+impl CapitalOwnership {
+    pub const fn code(self) -> &'static str {
+        match self {
+            Self::External => "EXTERNAL",
+            Self::OperatorOwned => "OPERATOR_OWNED",
+        }
+    }
+
+    const fn tag(self) -> u8 {
+        match self {
+            Self::External => 1,
+            Self::OperatorOwned => 2,
+        }
+    }
+
+    fn from_tag(tag: u8) -> Result<Self, CapitalError> {
+        match tag {
+            1 => Ok(Self::External),
+            2 => Ok(Self::OperatorOwned),
+            _ => Err(CapitalError::InvalidCanonical("unknown capital ownership")),
+        }
+    }
+
     pub const fn is_operator_owned(self) -> bool {
-        matches!(self, Self::OperatorTreasury)
+        matches!(self, Self::OperatorOwned)
     }
 }
 
@@ -1006,6 +1037,7 @@ pub struct CapitalSource {
     provider_namespace: u16,
     provider_locator_hash: Hash32,
     provider_kind: CapitalProviderKind,
+    ownership: CapitalOwnership,
     source_contract: Option<Address>,
     asset: CapitalAsset,
     maximum_available: Amount256,
@@ -1027,6 +1059,7 @@ pub struct CapitalSourceSpec {
     pub provider_namespace: u16,
     pub provider_locator_hash: Hash32,
     pub provider_kind: CapitalProviderKind,
+    pub ownership: CapitalOwnership,
     pub source_contract: Option<Address>,
     pub asset: CapitalAsset,
     pub maximum_available: Amount256,
@@ -1094,6 +1127,7 @@ impl CapitalSource {
             provider_namespace: spec.provider_namespace,
             provider_locator_hash: spec.provider_locator_hash,
             provider_kind: spec.provider_kind,
+            ownership: spec.ownership,
             source_contract: spec.source_contract,
             asset: spec.asset,
             maximum_available: spec.maximum_available,
@@ -1139,6 +1173,10 @@ impl CapitalSource {
 
     pub const fn provider_kind(&self) -> CapitalProviderKind {
         self.provider_kind
+    }
+
+    pub const fn ownership(&self) -> CapitalOwnership {
+        self.ownership
     }
 
     pub const fn source_contract(&self) -> Option<Address> {
@@ -1221,6 +1259,7 @@ impl CapitalSource {
         let provider_namespace = reader.u16()?;
         let provider_locator_hash = nonzero_hash(reader.array::<32>()?)?;
         let provider_kind = CapitalProviderKind::from_tag(reader.u8()?)?;
+        let ownership = CapitalOwnership::from_tag(reader.u8()?)?;
         let source_contract = match reader.u8()? {
             0 => None,
             1 => Some(
@@ -1263,6 +1302,7 @@ impl CapitalSource {
             provider_namespace,
             provider_locator_hash,
             provider_kind,
+            ownership,
             source_contract,
             asset,
             maximum_available,
@@ -1288,6 +1328,7 @@ impl CapitalSource {
         writer.u16(self.provider_namespace);
         writer.bytes(self.provider_locator_hash.as_bytes());
         writer.u8(self.provider_kind.tag());
+        writer.u8(self.ownership.tag());
         match self.source_contract {
             None => writer.u8(0),
             Some(address) => {
@@ -1307,6 +1348,7 @@ impl CapitalSource {
         writer.u16(self.provider_namespace);
         writer.bytes(self.provider_locator_hash.as_bytes());
         writer.u8(self.provider_kind.tag());
+        writer.u8(self.ownership.tag());
         match self.source_contract {
             None => writer.u8(0),
             Some(address) => {
@@ -1935,7 +1977,7 @@ fn source_can_fund_leg(
     if require_atomicity && !requirement.atomicity().accepts(source.repayment()) {
         return false;
     }
-    if !allow_operator_owned && source.provider_kind().is_operator_owned() {
+    if !allow_operator_owned && source.ownership().is_operator_owned() {
         return false;
     }
 
@@ -2061,7 +2103,7 @@ fn solve_funding(
     let mut leg_sink_edges = Vec::with_capacity(leg_count);
 
     for (source_index, source) in ordered.iter().enumerate() {
-        if source.provider_kind().is_operator_owned() || source.anchor() != requirement.anchor() {
+        if source.ownership().is_operator_owned() || source.anchor() != requirement.anchor() {
             continue;
         }
         let capacity = source.effective_capacity()?;
@@ -2157,7 +2199,7 @@ fn classify_unmet_leg(
             continue;
         }
         same_anchor_atomic = true;
-        if source.provider_kind().is_operator_owned() {
+        if source.ownership().is_operator_owned() {
             operator_capacity = operator_capacity
                 .checked_add(source.effective_capacity()?)
                 .unwrap_or(Amount256::MAX);
@@ -2760,7 +2802,7 @@ impl CapitalCensusLedger {
         let mut operator_owned_sources_observed = 0_usize;
         for source in self.sources.values() {
             *sources_by_class.entry(source.class()).or_insert(0) += 1;
-            if source.provider_kind().is_operator_owned() {
+            if source.ownership().is_operator_owned() {
                 operator_owned_sources_observed += 1;
             }
         }
@@ -2777,7 +2819,7 @@ impl CapitalCensusLedger {
                             .sources
                             .get(&allocation.source_id)
                             .ok_or(CapitalError::MissingSourceForAllocation)?;
-                        if source.provider_kind().is_operator_owned() {
+                        if source.ownership().is_operator_owned() {
                             operator_owned_sources_used += 1;
                         }
                     }
@@ -2831,7 +2873,7 @@ impl CapitalCensusLedger {
                         .sources
                         .get(&allocation.source_id)
                         .ok_or(CapitalError::MissingSourceForAllocation)?;
-                    if source.provider_kind().is_operator_owned() {
+                    if source.ownership().is_operator_owned() {
                         return Err(CapitalError::OperatorOwnedAllocation);
                     }
                 }
