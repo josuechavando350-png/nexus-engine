@@ -281,6 +281,13 @@ jobs:
           count=0
           while read -r name; do
             stage="/tmp/nqc-rmc008-stages/$name"
+            # Artifact upload drops empty directories. Restore the store's
+            # documented, always-present directories (STORE_CONTRACT.md: tmp/
+            # is staging only); the merge then verifies every source.
+            mkdir -p "$stage/store/tmp" "$stage/store/objects/chunks" "$stage/store/objects/artifacts" "$stage/store/streams"
+            for stream in "$stage"/store/streams/*/; do
+              if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+            done
             cp "$stage/record.json" "$D08_EVIDENCE/records/$name.json"
             args+=(--from "$stage/store" --record "$stage/record.json")
             count=$((count + 1))
