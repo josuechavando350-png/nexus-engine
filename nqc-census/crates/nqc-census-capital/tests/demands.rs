@@ -271,15 +271,16 @@ fn d09_demand_coverage_commitment_is_input_order_independent() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn d09_import_refuses_schema_or_v2_scope_drift() -> TestResult {
     let exact = String::from_utf8(summary("RMC_009_PASS_CANDIDATE", true))?;
     let wrong_schema = exact.replace("\"schema_version\":1", "\"schema_version\":2");
     assert!(import_d09_borrower_demands(b"", wrong_schema.as_bytes(), &anchor()).is_err());
 
-    let fabricated_v2 =
-        exact.replace("\"status\":\"NOT_APPLICABLE\"}}", "\"status\":\"APPLICABLE\"}}");
+    let fabricated_v2 = exact.replace(
+        "\"status\":\"NOT_APPLICABLE\"}}",
+        "\"status\":\"APPLICABLE\"}}",
+    );
     assert!(import_d09_borrower_demands(b"", fabricated_v2.as_bytes(), &anchor()).is_err());
     Ok(())
 }
