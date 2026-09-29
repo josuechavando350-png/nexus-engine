@@ -102,6 +102,7 @@ A source may be used only when:
 - no execution blocker remains on any allocated source
 - fee/cap semantics are explicit
 - repayment can be satisfied under the candidate's execution semantics
+- exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
 - atomicity/collateral requirements are compatible
 - no unresolved source mismatch remains
 
@@ -113,6 +114,7 @@ Feasibility MUST fail closed on:
 - stale or mismatched observation
 - unknown fee semantics
 - unknown repayment semantics
+- settlement requirement mismatch, including wrong repayment amount, wrong settlement asset, missing funding fee, or an extra settlement leg
 - unknown protocol / market cap
 - collateral requirement not funded, including the aggregate collateral required by every distinct source allocated to the candidate
 - temporary-lock requirement not funded, including the aggregate lock amount required by every distinct source allocated to the candidate
@@ -148,6 +150,7 @@ At minimum:
 - gas funding is independently required when execution needs native gas
 - insufficient source capacity fails closed
 - incompatible repayment asset/semantics fails closed
+- exact repayment/funding-fee settlement mismatch is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification
 - protocol and market caps bind maximum executable size
 - stale/mismatched anchors fail
 - unknown failure reason cannot pass certification
