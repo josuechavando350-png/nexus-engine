@@ -168,7 +168,7 @@ pub fn run_admission(
     {
         return Err(ChainError::Evidence("history report is not reconciled".into()).into());
     }
-    if number(required(history, "summary")?, "unexplained_delta_count")? != 0 {
+    if number(required(&history, "summary")?, "unexplained_delta_count")? != 0 {
         return Err(ChainError::Evidence("history has unexplained deltas".into()).into());
     }
 
