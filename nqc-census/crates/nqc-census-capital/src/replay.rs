@@ -450,6 +450,10 @@ pub struct RealSourceCloseout {
 }
 
 impl RealSourceCloseout {
+    pub const fn opportunity_level_capital_feasibility_claimed(&self) -> bool {
+        self.feasible_count > 0
+    }
+
     fn payload_json(&self) -> Result<Json, CapitalError> {
         Ok(Json::object([
             ("schema_version", Json::uint(1)),
@@ -496,7 +500,7 @@ impl RealSourceCloseout {
             ("real_source_certification", Json::Bool(true)),
             (
                 "opportunity_level_capital_feasibility_claimed",
-                Json::Bool(self.requirement_count > 0),
+                Json::Bool(self.opportunity_level_capital_feasibility_claimed()),
             ),
             ("portfolio_concurrent_capacity_claimed", Json::Bool(false)),
             ("profitability_claimed", Json::Bool(false)),
@@ -531,7 +535,7 @@ impl RealSourceCloseout {
                     ]
                     .into_iter()
                     .chain(
-                        (self.requirement_count == 0)
+                        (!self.opportunity_level_capital_feasibility_claimed())
                             .then_some("OPPORTUNITY_LEVEL_CAPITAL_FEASIBILITY_NOT_CERTIFIED"),
                     )
                     .map(Json::string),
