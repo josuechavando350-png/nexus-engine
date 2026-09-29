@@ -104,9 +104,9 @@ fn init(block: u64, asset: u8) -> Result<ReserveInitProof, nqc_census_core::Iden
         log_index: u32::from(asset),
         asset: address(asset)?,
         a_token: address(asset + 20)?,
-        stable_debt_token: address(asset + 40)?,
+        stable_debt_token: Some(address(asset + 40)?),
         variable_debt_token: address(asset + 60)?,
-        interest_rate_strategy: address(asset + 80)?,
+        interest_rate_strategy: Some(address(asset + 80)?),
         evidence: vec![EvidenceRef::Artifact(hash(0x40 + asset)?)],
     })
 }
@@ -259,7 +259,9 @@ fn reserve_initialized_decoder_is_strict() -> TestResult {
     let decoded = decode_reserve_initialized(configurator, &log)?;
     assert_eq!(decoded.asset, asset);
     assert_eq!(decoded.a_token, a_token);
+    assert_eq!(decoded.stable_debt_token, Some(stable));
     assert_eq!(decoded.variable_debt_token, variable);
+    assert_eq!(decoded.interest_rate_strategy, Some(strategy));
     Ok(())
 }
 

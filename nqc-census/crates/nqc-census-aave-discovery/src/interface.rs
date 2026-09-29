@@ -72,9 +72,9 @@ pub fn verify_pool_runtime(code: &[u8]) -> Result<(), DiscoveryError> {
 pub struct ReserveInitializedEvent {
     pub asset: Address,
     pub a_token: Address,
-    pub stable_debt_token: Address,
+    pub stable_debt_token: Option<Address>,
     pub variable_debt_token: Address,
-    pub interest_rate_strategy: Address,
+    pub interest_rate_strategy: Option<Address>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -94,9 +94,15 @@ fn topic_address(topic: &Hash32) -> Result<Address, DiscoveryError> {
     Ok(Address::new(address)?)
 }
 
+fn word_address_optional(word: &[u8; 32]) -> Result<Option<Address>, DiscoveryError> {
+    Ok(match abi::decode_address(word)? {
+        Some(value) => Some(Address::new(value)?),
+        None => None,
+    })
+}
+
 fn word_address(word: &[u8; 32], field: &'static str) -> Result<Address, DiscoveryError> {
-    let value = abi::decode_address(word)?.ok_or(DiscoveryError::InvalidReserve(field))?;
-    Ok(Address::new(value)?)
+    word_address_optional(word)?.ok_or(DiscoveryError::InvalidReserve(field))
 }
 
 pub fn decode_reserve_initialized(
@@ -126,9 +132,9 @@ pub fn decode_reserve_initialized(
     Ok(ReserveInitializedEvent {
         asset,
         a_token,
-        stable_debt_token: word_address(&words[0], "zero stable debt token")?,
+        stable_debt_token: word_address_optional(&words[0])?,
         variable_debt_token: word_address(&words[1], "zero variable debt token")?,
-        interest_rate_strategy: word_address(&words[2], "zero interest rate strategy")?,
+        interest_rate_strategy: word_address_optional(&words[2])?,
     })
 }
 

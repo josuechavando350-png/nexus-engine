@@ -21,9 +21,9 @@ pub struct ReserveInitProof {
     pub log_index: u32,
     pub asset: Address,
     pub a_token: Address,
-    pub stable_debt_token: Address,
+    pub stable_debt_token: Option<Address>,
     pub variable_debt_token: Address,
-    pub interest_rate_strategy: Address,
+    pub interest_rate_strategy: Option<Address>,
     pub evidence: Vec<EvidenceRef>,
 }
 
