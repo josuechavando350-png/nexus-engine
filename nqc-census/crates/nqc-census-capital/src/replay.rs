@@ -92,9 +92,7 @@ pub fn verify_upstream_consumption_by_replay(
         ));
     }
     let d08_receipt = d08_import.consumption_receipt()?;
-    if d08_receipt
-        != expected_receipt(context, UpstreamCensusStage::Rmc008StateAdmission)?
-    {
+    if d08_receipt != expected_receipt(context, UpstreamCensusStage::Rmc008StateAdmission)? {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "replayed RMC-008 receipt differs from committed receipt",
         ));
@@ -113,9 +111,7 @@ pub fn verify_upstream_consumption_by_replay(
         ));
     }
     let d09_receipt = d09_import.consumption_receipt()?;
-    if d09_receipt
-        != expected_receipt(context, UpstreamCensusStage::Rmc009PositionUniverse)?
-    {
+    if d09_receipt != expected_receipt(context, UpstreamCensusStage::Rmc009PositionUniverse)? {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "replayed RMC-009 receipt differs from committed receipt",
         ));
@@ -128,7 +124,6 @@ pub fn verify_upstream_consumption_by_replay(
         d09_receipt,
     })
 }
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapitalReplayVerification {
@@ -148,11 +143,12 @@ pub fn verify_capital_bundle_with_upstream_replay_for_code(
 ) -> Result<CapitalReplayVerification, CapitalError> {
     let capital =
         verify_capital_artifact_bundle_for_code(bundle, expected_code_commit, expected_code_tree)?;
-    let authority_file = bundle
-        .file(CAPITAL_UPSTREAM_AUTHORITY_FILE)
-        .ok_or(CapitalError::InvalidCanonical(
-            "capital bundle lacks upstream authority file",
-        ))?;
+    let authority_file =
+        bundle
+            .file(CAPITAL_UPSTREAM_AUTHORITY_FILE)
+            .ok_or(CapitalError::InvalidCanonical(
+                "capital bundle lacks upstream authority file",
+            ))?;
     let (context, _) = parse_upstream_authority(&authority_file.bytes)?;
     let upstream = verify_upstream_consumption_by_replay(&context, d08, d09)?;
     Ok(CapitalReplayVerification { capital, upstream })
