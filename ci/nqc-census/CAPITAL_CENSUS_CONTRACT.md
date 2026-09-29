@@ -62,6 +62,7 @@ Every admitted capital source record MUST bind:
 - utilization_constraints
 - protocol_caps
 - market_caps
+- utilization limits, minimum-remaining reserves, protocol caps, market caps, and observed availability are independent upper bounds on the same executable draw; effective capacity is their minimum and MUST NOT compound them by scaling a cap or subtracting a reserve floor after scaling
 - same_block_atomicity
 - temporary_lock semantics
 - failure modes
