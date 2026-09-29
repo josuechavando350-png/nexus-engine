@@ -1,9 +1,10 @@
 use nqc_census_capital::{
     evaluate_capital_feasibility, Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger,
-    CapitalClass, CapitalError, CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalProviderKind,
-    CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
-    CollateralRequirement, FeeModel, PersistentDebtTerms, RepaymentSemantics, RequiredAtomicity,
-    RequirementKind, RoundingMode, TemporaryLock, UtilizationConstraints,
+    CapitalClass, CapitalError, CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility,
+    CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg, CapitalSource,
+    CapitalSourceSpec, CapitalTargetId, CollateralRequirement, FeeModel, PersistentDebtTerms,
+    RepaymentSemantics, RequiredAtomicity, RequirementKind, RoundingMode, TemporaryLock,
+    UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
