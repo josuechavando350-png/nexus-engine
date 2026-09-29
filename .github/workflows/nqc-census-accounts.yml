@@ -22,7 +22,10 @@ permissions:
 # so it can never displace another node's pending acquisition.
 concurrency:
   group: ${{ github.event_name == 'workflow_dispatch' && 'nqc-census-public-rpc' || format('nqc-rmc009-inputs-{0}', github.ref) }}
-  cancel-in-progress: false
+  # A newly certified exact head supersedes an older RMC-009 acquisition.
+  # This node is serialized deliberately with D08/D06/D10, so a new dispatch
+  # is never issued while another node's live certification should survive.
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
 
 env:
   RUST_TOOLCHAIN: "1.98.1"
