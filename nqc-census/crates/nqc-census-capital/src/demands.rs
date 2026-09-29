@@ -7,7 +7,9 @@
 //! refusing to fabricate a liquidation capital requirement until exact
 //! liquidation sizing semantics are certified downstream.
 
-use crate::{Amount256, CapitalError};
+use crate::{
+    Amount256, CapitalError, CapitalEvidenceRef, UpstreamCensusStage, UpstreamStageAuthority,
+};
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
@@ -46,6 +48,7 @@ pub struct BorrowerDemandCandidate {
     pub debt_positions: Vec<PositionAmount>,
     pub health_factor_below_one: Option<bool>,
     pub blocker: Option<DemandBlockerReason>,
+    pub evidence: Vec<CapitalEvidenceRef>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -291,14 +294,121 @@ fn demand_coverage_commitment(
         .map_err(|_| CapitalError::InvalidCanonical("zero RMC-009 demand coverage commitment"))
 }
 
+fn verify_d09_artifact_binding(
+    account_manifest_jsonl: &[u8],
+    account_summary_json: &[u8],
+    evidence_manifest_json: &[u8],
+    authority: &UpstreamStageAuthority,
+    anchor: &StateAnchor,
+) -> Result<(), CapitalError> {
+    if authority.stage != UpstreamCensusStage::Rmc009PositionUniverse
+        || authority.unresolved_mismatch_count != 0
+        || authority.unknown_failure_count != 0
+        || !authority.coverage_complete
+        || !authority.admitted
+    {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "RMC-009 authority is not certifiable",
+        ));
+    }
+    if &authority.observation_anchor != anchor {
+        return Err(CapitalError::AnchorMismatch);
+    }
+
+    let manifest_digest: [u8; 32] = Sha256::digest(evidence_manifest_json).into();
+    if &manifest_digest != authority.artifact_sha256.as_bytes() {
+        return Err(CapitalError::CanonicalDigestMismatch);
+    }
+    let manifest = Json::parse(evidence_manifest_json)
+        .map_err(|_| CapitalError::InvalidCanonical("RMC-009 evidence manifest parse failed"))?;
+    if number(&manifest, "schema_version")? != 1 {
+        return Err(CapitalError::InvalidCanonical(
+            "unsupported RMC-009 evidence manifest schema",
+        ));
+    }
+    if text(&manifest, "code_commit")? != authority.code_commit.to_hex()
+        || text(&manifest, "code_tree")? != authority.code_tree.to_hex()
+    {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "RMC-009 evidence manifest code identity mismatch",
+        ));
+    }
+
+    let expected: [(&str, &[u8]); 2] = [
+        ("account-manifest.jsonl", account_manifest_jsonl),
+        ("account-summary.json", account_summary_json),
+    ];
+    let artifacts = required(&manifest, "artifacts")?
+        .as_array()
+        .ok_or(CapitalError::InvalidCanonical(
+            "RMC-009 evidence artifacts are not array",
+        ))?;
+    let mut seen_paths = BTreeSet::new();
+    let mut verified_paths = BTreeSet::new();
+    for entry in artifacts {
+        let path = text(entry, "path")?;
+        if !seen_paths.insert(path.to_owned()) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate RMC-009 evidence artifact path",
+            ));
+        }
+        let Some((_, bytes)) = expected
+            .iter()
+            .find(|(expected_path, _)| *expected_path == path)
+        else {
+            continue;
+        };
+        let digest: [u8; 32] = Sha256::digest(*bytes).into();
+        if text(entry, "sha256")? != nqc_census_chain::hex::plain(&digest) {
+            return Err(CapitalError::CanonicalDigestMismatch);
+        }
+        if number(entry, "bytes")?
+            != u64::try_from(bytes.len()).map_err(|_| {
+                CapitalError::InvalidCanonical("RMC-009 artifact length overflow")
+            })?
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "RMC-009 evidence artifact length mismatch",
+            ));
+        }
+        verified_paths.insert(path.to_owned());
+    }
+    if verified_paths.len() != expected.len() {
+        return Err(CapitalError::InvalidCanonical(
+            "RMC-009 evidence manifest is missing a consumed artifact",
+        ));
+    }
+
+    let summary = Json::parse(account_summary_json)
+        .map_err(|_| CapitalError::InvalidCanonical("RMC-009 summary JSON parse failed"))?;
+    if text(&summary, "code_commit")? != authority.code_commit.to_hex()
+        || text(&summary, "code_tree")? != authority.code_tree.to_hex()
+    {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "RMC-009 summary code identity mismatch",
+        ));
+    }
+    Ok(())
+}
+
 pub fn import_d09_borrower_demands(
     account_manifest_jsonl: &[u8],
     account_summary_json: &[u8],
+    evidence_manifest_json: &[u8],
+    authority: &UpstreamStageAuthority,
     anchor: &StateAnchor,
 ) -> Result<D09DemandImport, CapitalError> {
+    verify_d09_artifact_binding(
+        account_manifest_jsonl,
+        account_summary_json,
+        evidence_manifest_json,
+        authority,
+        anchor,
+    )?;
     let summary = Json::parse(account_summary_json)
         .map_err(|_| CapitalError::InvalidCanonical("RMC-009 summary JSON parse failed"))?;
     verify_summary(&summary, anchor)?;
+    let demand_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone());
 
     let mut borrowers = Vec::new();
     let mut seen_accounts = BTreeSet::new();
@@ -363,6 +473,7 @@ pub fn import_d09_borrower_demands(
             debt_positions,
             health_factor_below_one: below,
             blocker,
+            evidence: vec![demand_evidence.clone()],
         });
     }
     borrowers.sort_by_key(|candidate| candidate.account);

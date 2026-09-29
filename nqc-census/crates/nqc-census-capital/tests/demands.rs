@@ -1,8 +1,14 @@
 use nqc_census_capital::{
-    demands::{import_d09_borrower_demands, DemandBlockerReason},
-    Amount256,
+    demands::{
+        import_d09_borrower_demands as import_d09_borrower_demands_bound, D09DemandImport,
+        DemandBlockerReason,
+    },
+    Amount256, CapitalError, CapitalEvidenceRef, GitObjectId, UpstreamCensusStage,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec,
 };
+use nqc_census_chain::hex;
 use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
+use sha2::{Digest, Sha256};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -22,6 +28,9 @@ fn anchor() -> StateAnchor {
     .unwrap_or_else(|_| unreachable!())
 }
 
+const D09_CODE_COMMIT: &str = "3333333333333333333333333333333333333333";
+const D09_CODE_TREE: &str = "4444444444444444444444444444444444444444";
+
 fn summary(status: &str, liquidatability_nonclaim: bool) -> Vec<u8> {
     let nonclaims = if liquidatability_nonclaim {
         "[\"LIQUIDATABILITY_NOT_CLAIMED\",\"PROFITABILITY_NOT_CLAIMED\",\"EXECUTION_NOT_CLAIMED\",\"ORACLE_FRESHNESS_NOT_ASSUMED\",\"POSITIONS_OUTSIDE_D06_NOT_CLAIMED\"]"
@@ -31,14 +40,72 @@ fn summary(status: &str, liquidatability_nonclaim: bool) -> Vec<u8> {
     format!(
         concat!(
             "{{\"all_tokens_conserved\":true,\"anchor\":{{\"hash\":\"{}\",\"number\":25437474}},",
-            "\"blocking_findings\":[],\"non_claims\":{},\"schema_version\":1,\"status\":\"{}\",",
+            "\"blocking_findings\":[],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"non_claims\":{},\"schema_version\":1,\"status\":\"{}\",",
             "\"unexplained_mismatches\":0,\"uniswap_v2\":{{\"reason\":\"Uniswap V2 pairs carry no borrower, debt or collateral positions; no account universe is claimed or fabricated for them\",\"status\":\"NOT_APPLICABLE\"}}}}"
         ),
         anchor().block_hash().to_hex(),
+        D09_CODE_COMMIT,
+        D09_CODE_TREE,
         nonclaims,
         status
     )
     .into_bytes()
+}
+
+fn sha256_hash(bytes: &[u8]) -> Hash32 {
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    Hash32::new(digest).unwrap_or_else(|_| unreachable!())
+}
+
+fn d09_evidence_manifest(accounts: &[u8], summary: &[u8]) -> Vec<u8> {
+    let account_digest: [u8; 32] = Sha256::digest(accounts).into();
+    let summary_digest: [u8; 32] = Sha256::digest(summary).into();
+    format!(
+        concat!(
+            "{{\"artifacts\":[",
+            "{{\"bytes\":{},\"path\":\"account-manifest.jsonl\",\"sha256\":\"{}\"}},",
+            "{{\"bytes\":{},\"path\":\"account-summary.json\",\"sha256\":\"{}\"}}",
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+        ),
+        accounts.len(),
+        hex::plain(&account_digest),
+        summary.len(),
+        hex::plain(&summary_digest),
+        D09_CODE_COMMIT,
+        D09_CODE_TREE,
+    )
+    .into_bytes()
+}
+
+fn d09_authority(evidence_manifest: &[u8]) -> Result<UpstreamStageAuthority, CapitalError> {
+    UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
+        stage: UpstreamCensusStage::Rmc009PositionUniverse,
+        code_commit: GitObjectId::parse_hex(D09_CODE_COMMIT)?,
+        code_tree: GitObjectId::parse_hex(D09_CODE_TREE)?,
+        artifact_sha256: sha256_hash(evidence_manifest),
+        observation_anchor: anchor(),
+        unresolved_mismatch_count: 0,
+        unknown_failure_count: 0,
+        coverage_complete: true,
+        admitted: true,
+    })
+}
+
+fn import_d09_borrower_demands(
+    account_manifest_jsonl: &[u8],
+    account_summary_json: &[u8],
+    anchor: &StateAnchor,
+) -> Result<D09DemandImport, CapitalError> {
+    let evidence_manifest = d09_evidence_manifest(account_manifest_jsonl, account_summary_json);
+    let authority = d09_authority(&evidence_manifest)?;
+    import_d09_borrower_demands_bound(
+        account_manifest_jsonl,
+        account_summary_json,
+        &evidence_manifest,
+        &authority,
+        anchor,
+    )
 }
 
 fn position(asset_byte: u8, token_byte: u8, balance: &str) -> String {
@@ -86,6 +153,11 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
         imported.borrowers[0].blocker,
         Some(DemandBlockerReason::LiquidatabilityNotCertifiedByRmc009)
     );
+    assert_eq!(imported.borrowers[0].evidence.len(), 1);
+    assert!(matches!(
+        imported.borrowers[0].evidence[0],
+        CapitalEvidenceRef::Artifact(_)
+    ));
     assert_eq!(
         imported.borrowers[0].debt_positions[0].balance,
         Amount256::from_u128(500)
@@ -282,5 +354,52 @@ fn d09_import_refuses_schema_or_v2_scope_drift() -> TestResult {
         "\"status\":\"APPLICABLE\"}}",
     );
     assert!(import_d09_borrower_demands(b"", fabricated_v2.as_bytes(), &anchor()).is_err());
+    Ok(())
+}
+
+
+#[test]
+fn d09_evidentiary_import_rejects_account_artifact_substitution() -> TestResult {
+    let account = format!("0x{}", "51".repeat(20));
+    let accounts = format!(
+        concat!(
+            "{{\"account\":\"{}\",\"classification\":\"POSITION_HOLDER\",",
+            "\"debt_positions\":[{}],\"health_factor_below_one\":true,",
+            "\"supply_positions\":[]}}\n"
+        ),
+        account,
+        position(20, 30, "10")
+    );
+    let summary = summary("RMC_009_PASS_CANDIDATE", true);
+    let evidence_manifest = d09_evidence_manifest(accounts.as_bytes(), &summary);
+    let authority = d09_authority(&evidence_manifest)?;
+    let tampered = accounts.replace("\"10\"", "\"11\"");
+
+    assert!(import_d09_borrower_demands_bound(
+        tampered.as_bytes(),
+        &summary,
+        &evidence_manifest,
+        &authority,
+        &anchor(),
+    )
+    .is_err());
+    Ok(())
+}
+
+#[test]
+fn d09_evidentiary_import_rejects_manifest_not_named_by_authority() -> TestResult {
+    let summary = summary("RMC_009_PASS_CANDIDATE", true);
+    let evidence_manifest = d09_evidence_manifest(b"", &summary);
+    let mut authority = d09_authority(&evidence_manifest)?;
+    authority.artifact_sha256 = hash(252);
+
+    assert!(import_d09_borrower_demands_bound(
+        b"",
+        &summary,
+        &evidence_manifest,
+        &authority,
+        &anchor(),
+    )
+    .is_err());
     Ok(())
 }
