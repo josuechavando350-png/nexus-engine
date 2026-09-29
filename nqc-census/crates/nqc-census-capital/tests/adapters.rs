@@ -258,7 +258,6 @@ fn external_gas_sponsor_can_charge_evidence_bound_fee_without_principal_repaymen
     Ok(())
 }
 
-
 #[test]
 fn uniswap_v3_flash_binds_pool_balance_and_ceil_fee() -> TestResult {
     let asset = address(60);
