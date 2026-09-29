@@ -2,8 +2,8 @@ use nqc_census_capital::{
     artifacts::{export_capital_artifacts, ArtifactProvenance},
     demands::import_d09_borrower_demands,
     replay::{
-        verify_capital_bundle_with_upstream_replay_for_code,
-        verify_upstream_consumption_by_replay, D08ReplayInputs, D09ReplayInputs,
+        verify_capital_bundle_with_upstream_replay_for_code, verify_upstream_consumption_by_replay,
+        D08ReplayInputs, D09ReplayInputs,
     },
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
     CapitalCensusLedger, CapitalCertificationContext, CapitalEvidenceRef, GitObjectId,
@@ -341,7 +341,6 @@ fn upstream_replay_rejects_forged_committed_output_set() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestResult {
     let (
@@ -380,11 +379,7 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
 
     const CODE_COMMIT: &str = "7777777777777777777777777777777777777777";
     const CODE_TREE: &str = "8888888888888888888888888888888888888888";
-    let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
-        CODE_COMMIT,
-        CODE_TREE,
-    )?;
+    let provenance = ArtifactProvenance::new("2026-09-29T00:00:00Z", CODE_COMMIT, CODE_TREE)?;
     let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
     let verified = verify_capital_bundle_with_upstream_replay_for_code(
         &bundle,
