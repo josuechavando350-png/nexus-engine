@@ -1802,7 +1802,6 @@ fn evidentiary_ledger_cannot_certify_against_a_different_anchor() -> TestResult 
     Ok(())
 }
 
-
 #[test]
 fn certification_rejects_evidence_not_admitted_by_upstream_authority() -> TestResult {
     let token = CapitalAsset::Token(address(20));
@@ -1845,10 +1844,8 @@ fn certification_rejects_evidence_not_admitted_by_upstream_authority() -> TestRe
             admitted: true,
         })?);
     }
-    let authority = CapitalCertificationContext::new(
-        stages,
-        vec![CapitalEvidenceRef::Artifact(hash(98))],
-    )?;
+    let authority =
+        CapitalCertificationContext::new(stages, vec![CapitalEvidenceRef::Artifact(hash(98))])?;
     assert!(matches!(
         ledger.certify(&authority),
         Err(nqc_census_capital::CapitalError::UnresolvedEvidenceRef)

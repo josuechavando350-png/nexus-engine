@@ -669,7 +669,12 @@ fn upstream_authority_json(authority: &CapitalCertificationContext) -> Json {
         ),
         (
             "admitted_evidence_refs",
-            Json::array(authority.admitted_evidence().copied().map(evidence_ref_json)),
+            Json::array(
+                authority
+                    .admitted_evidence()
+                    .copied()
+                    .map(evidence_ref_json),
+            ),
         ),
         (
             "stages",
@@ -1024,13 +1029,13 @@ fn parse_evidence_ref_json(value: &Json) -> Result<CapitalEvidenceRef, CapitalEr
         .map_err(|_| CapitalError::InvalidUpstreamAuthority("evidence kind missing"))?
     {
         "OBSERVATION" => {
-            let text = value
-                .str_field("digest")
-                .map_err(|_| CapitalError::InvalidUpstreamAuthority("observation digest missing"))?;
+            let text = value.str_field("digest").map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority("observation digest missing")
+            })?;
             let bytes = decode_plain_hex(text)?;
-            let digest: [u8; 32] = bytes
-                .try_into()
-                .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid observation digest"))?;
+            let digest: [u8; 32] = bytes.try_into().map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority("invalid observation digest")
+            })?;
             if digest == [0; 32] {
                 return Err(CapitalError::InvalidUpstreamAuthority(
                     "zero observation digest",
@@ -1038,14 +1043,14 @@ fn parse_evidence_ref_json(value: &Json) -> Result<CapitalEvidenceRef, CapitalEr
             }
             Ok(CapitalEvidenceRef::Observation(digest))
         }
-        "ARTIFACT" => Ok(CapitalEvidenceRef::Artifact(
-            Hash32::parse_hex(
-                value
-                    .str_field("sha256")
-                    .map_err(|_| CapitalError::InvalidUpstreamAuthority("artifact digest missing"))?,
-            )
-            .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid artifact digest"))?,
-        )),
+        "ARTIFACT" => {
+            Ok(CapitalEvidenceRef::Artifact(
+                Hash32::parse_hex(value.str_field("sha256").map_err(|_| {
+                    CapitalError::InvalidUpstreamAuthority("artifact digest missing")
+                })?)
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid artifact digest"))?,
+            ))
+        }
         _ => Err(CapitalError::InvalidUpstreamAuthority(
             "unknown evidence reference kind",
         )),
