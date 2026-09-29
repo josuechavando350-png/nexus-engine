@@ -531,7 +531,7 @@ pub fn export_capital_artifacts(
     );
 
     let summary_json = Json::object([
-        ("schema_version", Json::uint(2)),
+        ("schema_version", Json::uint(3)),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
@@ -696,6 +696,7 @@ fn upstream_authority_json(authority: &CapitalCertificationContext) -> Json {
                         "unknown_failure_count",
                         Json::uint(stage.unknown_failure_count),
                     ),
+                    ("coverage_complete", Json::Bool(stage.coverage_complete)),
                     ("admitted", Json::Bool(stage.admitted)),
                 ])
             })),
@@ -707,7 +708,7 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
     let parsed = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid upstream authority JSON"))?;
     require_canonical_json(bytes, &parsed)?;
-    if json_u64(&parsed, "schema_version")? != 2 {
+    if json_u64(&parsed, "schema_version")? != 3 {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "unsupported upstream authority schema",
         ));
@@ -740,6 +741,12 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
                 .map_err(|_| CapitalError::InvalidUpstreamAuthority("artifact sha256 missing"))?,
         )
         .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid artifact sha256"))?;
+        let coverage_complete = row
+            .get("coverage_complete")
+            .and_then(Json::as_bool)
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "upstream coverage-complete flag missing",
+            ))?;
         let admitted = row.get("admitted").and_then(Json::as_bool).ok_or(
             CapitalError::InvalidUpstreamAuthority("upstream admitted flag missing"),
         )?;
@@ -754,6 +761,7 @@ fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext,
             observation_anchor,
             unresolved_mismatch_count: json_u64(row, "unresolved_mismatch_count")?,
             unknown_failure_count: json_u64(row, "unknown_failure_count")?,
+            coverage_complete,
             admitted,
         })?);
     }

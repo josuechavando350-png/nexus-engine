@@ -60,6 +60,7 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             observation_anchor: anchor(),
             unresolved_mismatch_count: 0,
             unknown_failure_count: 0,
+            coverage_complete: true,
             admitted: true,
         })?);
     }
@@ -455,7 +456,7 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
             "missing upstream authority stage {stage}"
         );
     }
-    assert!(text.contains("\"schema_version\":2"));
+    assert!(text.contains("\"schema_version\":3"));
     assert!(text.contains("\"observation_anchor\""));
     assert!(text.contains("\"admitted_evidence_refs\""));
     assert!(text.contains("\"unresolved_mismatch_count\":0"));

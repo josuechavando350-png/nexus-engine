@@ -60,6 +60,7 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             observation_anchor: anchor(),
             unresolved_mismatch_count: 0,
             unknown_failure_count: 0,
+            coverage_complete: true,
             admitted: true,
         })?);
     }

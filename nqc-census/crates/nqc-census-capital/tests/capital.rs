@@ -50,6 +50,7 @@ fn certification_context() -> Result<CapitalCertificationContext, nqc_census_cap
             observation_anchor: anchor(100),
             unresolved_mismatch_count: 0,
             unknown_failure_count: 0,
+            coverage_complete: true,
             admitted: true,
         })?);
     }
@@ -1208,7 +1209,12 @@ fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResul
 fn upstream_authority_rejects_mismatch_unknown_or_unadmitted_stage() -> TestResult {
     let commit = GitObjectId::parse_hex("1111111111111111111111111111111111111111")?;
     let tree = GitObjectId::parse_hex("2222222222222222222222222222222222222222")?;
-    for (mismatch, unknown, admitted) in [(1, 0, true), (0, 1, true), (0, 0, false)] {
+    for (mismatch, unknown, coverage_complete, admitted) in [
+        (1, 0, true, true),
+        (0, 1, true, true),
+        (0, 0, false, true),
+        (0, 0, true, false),
+    ] {
         assert!(matches!(
             UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
                 stage: UpstreamCensusStage::Rmc008StateAdmission,
@@ -1218,6 +1224,7 @@ fn upstream_authority_rejects_mismatch_unknown_or_unadmitted_stage() -> TestResu
                 observation_anchor: anchor(100),
                 unresolved_mismatch_count: mismatch,
                 unknown_failure_count: unknown,
+                coverage_complete,
                 admitted,
             }),
             Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
@@ -1740,6 +1747,7 @@ fn certification_context_rejects_mixed_upstream_anchors() -> TestResult {
             observation_anchor: stage_anchor,
             unresolved_mismatch_count: 0,
             unknown_failure_count: 0,
+            coverage_complete: true,
             admitted: true,
         })?);
     }
@@ -1791,6 +1799,7 @@ fn evidentiary_ledger_cannot_certify_against_a_different_anchor() -> TestResult 
             observation_anchor: anchor(101),
             unresolved_mismatch_count: 0,
             unknown_failure_count: 0,
+            coverage_complete: true,
             admitted: true,
         })?);
     }
@@ -1841,6 +1850,7 @@ fn certification_rejects_evidence_not_admitted_by_upstream_authority() -> TestRe
             observation_anchor: anchor(100),
             unresolved_mismatch_count: 0,
             unknown_failure_count: 0,
+            coverage_complete: true,
             admitted: true,
         })?);
     }

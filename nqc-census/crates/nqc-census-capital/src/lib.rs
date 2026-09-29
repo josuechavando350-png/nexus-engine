@@ -2394,6 +2394,7 @@ pub struct UpstreamStageAuthority {
     pub observation_anchor: StateAnchor,
     pub unresolved_mismatch_count: u64,
     pub unknown_failure_count: u64,
+    pub coverage_complete: bool,
     pub admitted: bool,
 }
 
@@ -2406,6 +2407,7 @@ pub struct UpstreamStageAuthoritySpec {
     pub observation_anchor: StateAnchor,
     pub unresolved_mismatch_count: u64,
     pub unknown_failure_count: u64,
+    pub coverage_complete: bool,
     pub admitted: bool,
 }
 
@@ -2421,6 +2423,11 @@ impl UpstreamStageAuthority {
                 "UNKNOWN failure count is nonzero",
             ));
         }
+        if !spec.coverage_complete {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "upstream stage coverage is incomplete",
+            ));
+        }
         if !spec.admitted {
             return Err(CapitalError::InvalidUpstreamAuthority(
                 "upstream artifact is not admitted",
@@ -2434,6 +2441,7 @@ impl UpstreamStageAuthority {
             observation_anchor: spec.observation_anchor,
             unresolved_mismatch_count: spec.unresolved_mismatch_count,
             unknown_failure_count: spec.unknown_failure_count,
+            coverage_complete: spec.coverage_complete,
             admitted: spec.admitted,
         })
     }
@@ -2466,6 +2474,7 @@ impl CapitalCertificationContext {
             }
             if observed.unresolved_mismatch_count != 0
                 || observed.unknown_failure_count != 0
+                || !observed.coverage_complete
                 || !observed.admitted
             {
                 return Err(CapitalError::InvalidUpstreamAuthority(
@@ -2496,7 +2505,7 @@ impl CapitalCertificationContext {
         }
 
         let mut hasher = Sha256::new();
-        hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V2");
+        hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V3");
         hasher.update([0]);
         for authority in &stages {
             hasher.update([authority.stage.tag()]);
@@ -2506,6 +2515,7 @@ impl CapitalCertificationContext {
             encode_anchor_into_hasher(&authority.observation_anchor, &mut hasher);
             hasher.update(authority.unresolved_mismatch_count.to_be_bytes());
             hasher.update(authority.unknown_failure_count.to_be_bytes());
+            hasher.update([u8::from(authority.coverage_complete)]);
             hasher.update([u8::from(authority.admitted)]);
         }
         hasher.update(
