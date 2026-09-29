@@ -6,6 +6,7 @@
 
 pub mod adapters;
 pub mod artifacts;
+pub mod upstream;
 
 use nqc_census_core::{
     Address, CensusUnitId, ChainDomain, EvidenceRef, Hash32, ObservationDigest, StateAnchor,
@@ -182,6 +183,39 @@ impl Amount256 {
         let mut bytes = [0_u8; 32];
         bytes[16..].copy_from_slice(&value.to_be_bytes());
         Self(bytes)
+    }
+
+    pub fn parse_decimal(value: &str) -> Result<Self, CapitalError> {
+        if value.is_empty() {
+            return Err(CapitalError::InvalidCanonical("empty decimal amount"));
+        }
+        if value.len() > 1 && value.as_bytes().first() == Some(&b'0') {
+            return Err(CapitalError::InvalidCanonical(
+                "non-canonical decimal amount",
+            ));
+        }
+        let mut out = [0_u8; 32];
+        for digit in value.bytes() {
+            if !digit.is_ascii_digit() {
+                return Err(CapitalError::InvalidCanonical(
+                    "decimal amount contains non-digit",
+                ));
+            }
+            let mut carry = u16::from(digit - b'0');
+            for byte in out.iter_mut().rev() {
+                let expanded = u16::from(*byte) * 10 + carry;
+                *byte = u8::try_from(expanded & 0xff).map_err(|_| {
+                    CapitalError::InvalidCanonical("decimal amount conversion")
+                })?;
+                carry = expanded >> 8;
+            }
+            if carry != 0 {
+                return Err(CapitalError::InvalidCanonical(
+                    "decimal amount exceeds uint256",
+                ));
+            }
+        }
+        Ok(Self(out))
     }
 
     pub const fn as_be_bytes(&self) -> &[u8; 32] {
