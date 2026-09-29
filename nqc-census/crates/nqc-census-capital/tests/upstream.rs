@@ -217,9 +217,7 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
     );
     for source in &imported.sources {
         let expected = match source.class() {
-            CapitalClass::ProtocolNativeFlashLoan => {
-                protocol_contract_locator(0x1103, address(90))
-            }
+            CapitalClass::ProtocolNativeFlashLoan => protocol_contract_locator(0x1103, address(90)),
             CapitalClass::FlashSwap => protocol_contract_locator(0x1302, pair),
             _ => unreachable!(),
         };
