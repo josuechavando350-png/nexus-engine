@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "DECLARED_NOT_YET_CERTIFIED",
+  "chain": "ethereum-mainnet",
+  "chain_id": 1,
+  "protocol": "AaveV3",
+  "discovery_root_kind": "AaveAddressesProvider",
+  "addresses_provider": "0x2f39d218133afab8f2b819b1066c7e434ad94e9e",
+  "pool": "0x87870bca3f3fd6335c3f4ce8392d69350b4fa4e2",
+  "observation_anchor": {
+    "block_number": 25437474,
+    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+  },
+  "excluded_claims": [
+    "ALL_AAVE",
+    "ALL_AAVE_V3",
+    "ALL_ETHEREUM_LENDING",
+    "GLOBAL_MARKET_CENSUS",
+    "PROFITABILITY"
+  ]
+}

@@ -1,0 +1,338 @@
+name: NQC RMC-006 Aave Discovery
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-aave-discovery.yml
+      - ci/nqc-census/AAVE_DISCOVERY_CONTRACT.md
+      - ci/nqc-census/aave-discovery-scope.json
+      - ci/nqc-census/aave-history-providers.json
+      - nqc-census/Cargo.toml
+      - nqc-census/Cargo.lock
+      - nqc-census/crates/nqc-census-aave-discovery/**
+      - nqc-census/crates/nqc-census-core/**
+      - nqc-census/crates/nqc-census-chain/**
+  workflow_dispatch:
+    inputs:
+      anchor_number:
+        description: >-
+          Observe the declared deployment at this block instead of the
+          declared anchor (give anchor_hash too; both empty = declared anchor).
+        required: false
+        default: ""
+      anchor_hash:
+        description: The canonical hash of anchor_number.
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+# Live Census acquisitions share constrained public RPC endpoints: one at a
+# time across the repository, and a running acquisition is never cancelled.
+# GitHub keeps one pending run per group and a newer pending run replaces an
+# older one, so RMC-006 acquires only from a workflow_dispatch on the exact
+# branch head, inside the group; a pull_request run runs every gate except
+# the live acquisition, in its own per-ref group.
+concurrency:
+  group: ${{ github.event_name == 'workflow_dispatch' && 'nqc-census-public-rpc' || format('nqc-rmc006-gate-{0}', github.ref) }}
+  cancel-in-progress: false
+
+jobs:
+  aave-discovery:
+    runs-on: ubuntu-24.04
+    # The offline crash/resume matrix replays the whole history eleven times
+    # in sequence; run 36619916268 spent over an hour in it.
+    timeout-minutes: 240
+    env:
+      D06_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      # RMC-003.2 (zero-permitting log topic words) is the upstream authority
+      # for nqc-census-core and nqc-census-chain.
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D06_TESTS_EXPECTED: "21"
+      D06_HISTORY_TESTS_EXPECTED: "11"
+      D06_EVIDENCE: /tmp/nqc-rmc006-evidence
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority and upstream immutability
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$D06_BASE" HEAD
+          git merge-base --is-ancestor "$D06_BASE" "$RMC003_2_AUTHORITY"
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
+          fi
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store \
+            nqc-census/crates/nqc-census-chain
+          echo RMC006_UPSTREAM_IMMUTABLE_PASS
+
+      - name: Verify authority boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RInE 'private.?key|mnemonic|eth_send|eth_sign|sendRawTransaction|reqwest|hyper|tokio|std::net|unsafe'             nqc-census/crates/nqc-census-aave-discovery --include='*.rs'; then
+            echo "forbidden execution/network authority in D06"
+            exit 1
+          fi
+          echo RMC006_BOUNDARY_PASS
+
+      - name: Locked Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          count=$(cargo test --locked -p nqc-census-aave-discovery --test aave_discovery -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D06_TESTS_EXPECTED"
+          count=$(cargo test --locked -p nqc-census-aave-discovery --test aave_history -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D06_HISTORY_TESTS_EXPECTED"
+          cargo test --locked -p nqc-census-aave-discovery -- --nocapture
+          cargo test --workspace --all-targets --locked
+          cargo build --workspace --all-targets --locked
+          echo RMC006_RECONCILIATION_CORE_PASS
+
+      - name: Decide whether this run acquires, and at which anchor
+        id: anchor
+        shell: bash
+        env:
+          ANCHOR_NUMBER: ${{ github.event.inputs.anchor_number }}
+          ANCHOR_HASH: ${{ github.event.inputs.anchor_hash }}
+        run: |
+          set -euo pipefail
+          if [ "${{ github.event_name }}" != workflow_dispatch ]; then
+            echo "acquire=false" >> "$GITHUB_OUTPUT"
+            echo "RMC006_NO_ACQUISITION event=${{ github.event_name }}: live acquisition runs only from workflow_dispatch (this run certifies nothing)"
+            exit 0
+          fi
+          if [ -z "$ANCHOR_NUMBER" ] && [ -z "$ANCHOR_HASH" ]; then
+            # The declared anchor, with its measured reserve count.
+            number=25437474
+            {
+              echo "ANCHOR_ARGS="
+              echo "EXPECTED_RESERVES=67"
+            } >> "$GITHUB_ENV"
+          elif [[ "$ANCHOR_NUMBER" =~ ^[0-9]+$ ]] && [[ "$ANCHOR_HASH" =~ ^0x[0-9a-f]{64}$ ]]; then
+            number="$ANCHOR_NUMBER"
+            # The reserve count is read from the three-provider current surface
+            # and must then be reproduced by the history and the closeout.
+            echo "ANCHOR_ARGS=--anchor-number $ANCHOR_NUMBER --anchor-hash $ANCHOR_HASH" >> "$GITHUB_ENV"
+          else
+            echo "anchor_number and anchor_hash must both be empty, or a block number and its 0x-prefixed lowercase hash"
+            exit 1
+          fi
+          echo "acquire=true" >> "$GITHUB_OUTPUT"
+          echo "number=$number" >> "$GITHUB_OUTPUT"
+          echo "RMC006_ACQUISITION head=$(git rev-parse HEAD) anchor=$number group=nqc-census-public-rpc"
+
+      - name: Live exact-anchor current surface
+        if: steps.anchor.outputs.acquire == 'true'
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf "$D06_EVIDENCE"
+          mkdir -p "$D06_EVIDENCE"
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-current
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          # shellcheck disable=SC2086 # ANCHOR_ARGS is validated digits and hex.
+          target/release/nqc-rmc006-aave-current $ANCHOR_ARGS \
+            --providers ../ci/nqc-census/rpc-providers.json \
+            --store "$D06_EVIDENCE/store" \
+            --out "$D06_EVIDENCE/aave-current-surface.json" | tee "$D06_EVIDENCE/current.log"
+          grep -F "RMC006_CURRENT_SURFACE_PASS providers=3" "$D06_EVIDENCE/current.log"
+          grep -E " anchor=${{ steps.anchor.outputs.number }}$" "$D06_EVIDENCE/current.log"
+          observed=$(sed -n 's/.* reserves=\([0-9]*\) .*/\1/p' "$D06_EVIDENCE/current.log")
+          if [ -z "${EXPECTED_RESERVES:-}" ]; then
+            echo "EXPECTED_RESERVES=$observed" >> "$GITHUB_ENV"
+          else
+            test "$observed" = "$EXPECTED_RESERVES"
+          fi
+          target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/store-verify.log"
+
+      - name: Live cross-provider historical reserve reconciliation
+        if: steps.anchor.outputs.acquire == 'true'
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-history
+          # A public provider outage outlasting the per-request retry budget
+          # aborts the run; the next attempt resumes from the RMC-004
+          # checkpoints already committed, so only unfinished windows are
+          # re-acquired. The result is verified offline below either way.
+          for attempt in 1 2 3 4; do
+            # shellcheck disable=SC2086 # ANCHOR_ARGS is validated digits and hex.
+            if target/release/nqc-rmc006-aave-history $ANCHOR_ARGS \
+                --providers ../ci/nqc-census/aave-history-providers.json \
+                --current "$D06_EVIDENCE/aave-current-surface.json" \
+                --store "$D06_EVIDENCE/store" \
+                --out "$D06_EVIDENCE/aave-history.json" \
+                > "$D06_EVIDENCE/history.log" 2> "$D06_EVIDENCE/history-attempt-$attempt.err"; then
+              echo "RMC006_HISTORY_ATTEMPT_PASS attempt=$attempt"
+              break
+            fi
+            echo "RMC006_HISTORY_ATTEMPT_FAILED attempt=$attempt $(tail -n 1 "$D06_EVIDENCE/history-attempt-$attempt.err")"
+            if [ "$attempt" = 4 ]; then
+              exit 1
+            fi
+            sleep 120
+          done
+          cat "$D06_EVIDENCE/history.log"
+          grep -F "RMC006_HISTORY_RECONCILIATION_PASS providers=2 current=$EXPECTED_RESERVES " "$D06_EVIDENCE/history.log"
+          python3 - "$D06_EVIDENCE/aave-history.json" <<'PY'
+          import json, sys
+          history = json.load(open(sys.argv[1]))
+          lineage = history["lineage"]
+          print("RMC006_HISTORY_SUMMARY " + json.dumps(history["summary"], sort_keys=True))
+          print("RMC006_CONFIGURATOR_WINDOWS " + json.dumps(lineage["configurator_windows"], sort_keys=True))
+          for key in ("pool_proxy_creation", "pool_configurator_proxy_creation"):
+              print(f"RMC006_{key.upper()} " + json.dumps(lineage[key], sort_keys=True))
+          for key in ("pool_implementation_updates", "pool_configurator_implementation_updates", "pool_configurator_replacements"):
+              for update in lineage[key]:
+                  print(f"RMC006_{key.upper()} " + json.dumps(update, sort_keys=True))
+          print(f"RMC006_REPLAY_MANIFESTS count={len(history['replay_manifests'])}")
+          assert history["summary"]["unexplained_delta_count"] == 0
+          assert history["summary"]["provider_mismatch_count"] == 0
+          PY
+          target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/history-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/history-store-verify.log"
+
+      - name: Verify crash/resume replay equivalence offline
+        if: steps.anchor.outputs.acquire == 'true'
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-resume-check
+          # The check runs in a network namespace with no interfaces: prove it.
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside the offline namespace"
+            exit 1
+          fi
+          echo RMC006_OFFLINE_NAMESPACE_HAS_NO_NETWORK
+          # shellcheck disable=SC2086 # ANCHOR_ARGS is validated digits and hex.
+          sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
+            target/release/nqc-rmc006-aave-resume-check $ANCHOR_ARGS \
+            --providers ../ci/nqc-census/aave-history-providers.json \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --history "$D06_EVIDENCE/aave-history.json" \
+            --store "$D06_EVIDENCE/store" \
+            --work "$D06_EVIDENCE/resume-work" \
+            --out "$D06_EVIDENCE/aave-resume-equivalence.json" | tee "$D06_EVIDENCE/resume.log"
+          grep -F "RMC006_RESUME_EQUIVALENCE_PASS" "$D06_EVIDENCE/resume.log"
+          grep -F '"status":"RESUME_EQUIVALENCE_PASS"' "$D06_EVIDENCE/aave-resume-equivalence.json"
+          rm -rf "$D06_EVIDENCE/resume-work"
+          echo RMC006_RESUME_EQUIVALENCE_PASS
+
+      - name: Materialize D05 deployment admission
+        if: steps.anchor.outputs.acquire == 'true'
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-admission
+          target/release/nqc-rmc006-aave-admission \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --history "$D06_EVIDENCE/aave-history.json" \
+            --store "$D06_EVIDENCE/store" \
+            --out "$D06_EVIDENCE/aave-admission.json" | tee "$D06_EVIDENCE/admission.log"
+          grep -F "RMC006_D05_ADMISSION_PASS" "$D06_EVIDENCE/admission.log"
+          grep -F '"status":"D05_ADMISSION_MATERIALIZED"' "$D06_EVIDENCE/aave-admission.json"
+          target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/admission-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/admission-store-verify.log"
+
+      - name: Build deterministic D06 closeout artifacts
+        if: steps.anchor.outputs.acquire == 'true'
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          cargo build --release --locked -p nqc-census-aave-discovery --bin nqc-rmc006-aave-closeout
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TREE_SHA="$(git show -s --format=%T HEAD)"
+          target/release/nqc-rmc006-aave-closeout \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --history "$D06_EVIDENCE/aave-history.json" \
+            --store "$D06_EVIDENCE/store" \
+            --out-dir "$D06_EVIDENCE/closeout" \
+            --code-commit "$HEAD_SHA" \
+            --code-tree "$TREE_SHA" | tee "$D06_EVIDENCE/closeout.log"
+          grep -F "RMC006_CLOSEOUT_PASS reserves=$EXPECTED_RESERVES unexplained=0 mismatches=0" "$D06_EVIDENCE/closeout.log"
+          target/release/nqc-rmc006-aave-closeout \
+            --current "$D06_EVIDENCE/aave-current-surface.json" \
+            --history "$D06_EVIDENCE/aave-history.json" \
+            --store "$D06_EVIDENCE/store" \
+            --out-dir "$D06_EVIDENCE/closeout-rerun" \
+            --code-commit "$HEAD_SHA" \
+            --code-tree "$TREE_SHA" > "$D06_EVIDENCE/closeout-rerun.log"
+          diff -r "$D06_EVIDENCE/closeout" "$D06_EVIDENCE/closeout-rerun"
+          echo RMC006_DETERMINISTIC_CLOSEOUT_PASS
+          (cd "$D06_EVIDENCE/closeout" && sha256sum * | tee ../closeout-SHA256SUMS)
+          grep -F '"unexplained_delta_count":0' "$D06_EVIDENCE/closeout/aave-discovery-summary.json"
+          grep -F '"provider_mismatch_count":0' "$D06_EVIDENCE/closeout/aave-discovery-summary.json"
+          test -s "$D06_EVIDENCE/closeout/evidence-manifest.json"
+          target/release/nqc-census-store-verify --store "$D06_EVIDENCE/store" | tee "$D06_EVIDENCE/final-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D06_EVIDENCE/final-store-verify.log"
+
+      - name: Index D06 evidence
+        if: always() && steps.anchor.outputs.acquire == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D06_EVIDENCE"
+          HEAD_SHA="$(git rev-parse HEAD)"
+          python3 - "$D06_EVIDENCE" "$HEAD_SHA" "$(git show -s --format=%T HEAD)" <<'PY'
+          import hashlib, json, os, sys
+          root, head, tree = sys.argv[1:4]
+          files = []
+          for base, _, names in os.walk(root):
+              for name in names:
+                  path = os.path.join(base, name)
+                  rel = os.path.relpath(path, root)
+                  if rel == "evidence-index.json":
+                      continue
+                  with open(path, "rb") as handle:
+                      files.append({"path": rel, "sha256": hashlib.sha256(handle.read()).hexdigest(),
+                                    "size": os.path.getsize(path)})
+          files.sort(key=lambda item: item["path"])
+          index = {"schema": "nqc-rmc006-evidence-index-v1", "code_commit": head, "code_tree": tree,
+                   "workflow_run_id": os.environ["GITHUB_RUN_ID"],
+                   "workflow_run_attempt": os.environ["GITHUB_RUN_ATTEMPT"],
+                   "job_status": os.environ["JOB_STATUS"], "files": files}
+          with open(os.path.join(root, "evidence-index.json"), "w") as handle:
+              json.dump(index, handle, indent=2, sort_keys=True)
+              handle.write("\n")
+          print(f"RMC006_EVIDENCE_INDEX files={len(files)} status={index['job_status']}")
+          PY
+        env:
+          JOB_STATUS: ${{ job.status }}
+
+      - name: Preserve D06 evidence
+        if: always() && steps.anchor.outputs.acquire == 'true'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          # Stage, exact head, run and attempt: a re-run never overwrites the
+          # evidence of the attempt it follows.
+          name: nqc-rmc006-evidence-${{ steps.anchor.outputs.number }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc006-evidence
+          if-no-files-found: warn
+          retention-days: 30
