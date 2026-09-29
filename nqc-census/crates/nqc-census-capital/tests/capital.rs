@@ -380,6 +380,33 @@ fn unknown_source_failure_mode_is_never_admitted() -> TestResult {
 }
 
 #[test]
+fn native_gas_flag_and_gas_leg_must_match_exactly() -> TestResult {
+    let gas = CapitalRequirementLeg::new(
+        RequirementKind::Gas,
+        CapitalAsset::NativeGas,
+        Amount256::from_u128(5),
+        vec![CapitalClass::GasFunding],
+    )?;
+
+    assert!(matches!(
+        requirement(vec![gas.clone()], RequiredAtomicity::SameTransaction, false,),
+        Err(CapitalError::NativeGasLegWithoutRequirementFlag)
+    ));
+
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        CapitalAsset::Token(address(20)),
+        Amount256::from_u128(1),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    assert!(matches!(
+        requirement(vec![principal], RequiredAtomicity::SameTransaction, true,),
+        Err(CapitalError::NativeGasRequiredButMissing)
+    ));
+    Ok(())
+}
+
+#[test]
 fn gas_is_independent_and_required() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(

@@ -148,7 +148,7 @@ At minimum:
 - atomic source cannot silently become persistent debt
 - persistent debt cannot pass without collateral/solvency semantics
 - collateral and temporary-lock dependencies are aggregated across all distinct sources used by one candidate; one declared leg cannot be reused to satisfy multiple source dependencies
-- gas funding is independently required when execution needs native gas
+- gas funding is independently required when execution needs native gas, and the `requires_native_gas` flag must equal the presence of a native-gas requirement leg in both directions
 - insufficient source capacity fails closed
 - incompatible repayment asset/semantics fails closed
 - exact repayment/funding-fee settlement mismatch, including source-class provenance mismatch, is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification

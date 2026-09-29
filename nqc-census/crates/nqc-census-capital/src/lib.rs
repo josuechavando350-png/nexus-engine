@@ -43,6 +43,7 @@ pub enum CapitalError {
     GasLegMustUseNativeAsset,
     GasLegMustAllowGasFunding,
     NativeGasRequiredButMissing,
+    NativeGasLegWithoutRequirementFlag,
     PersistentDebtTermsRequired,
     PersistentTermsOnNonPersistentSource,
     CollateralSemanticsRequired,
@@ -102,6 +103,9 @@ impl Display for CapitalError {
             }
             Self::NativeGasRequiredButMissing => {
                 f.write_str("candidate requires native gas but no gas leg exists")
+            }
+            Self::NativeGasLegWithoutRequirementFlag => {
+                f.write_str("candidate declares a native gas leg but requires_native_gas is false")
             }
             Self::PersistentDebtTermsRequired => {
                 f.write_str("persistent debt requires explicit risk semantics")
@@ -1744,6 +1748,9 @@ impl CapitalRequirement {
         let gas_present = legs.iter().any(|leg| leg.kind == RequirementKind::Gas);
         if requires_native_gas && !gas_present {
             return Err(CapitalError::NativeGasRequiredButMissing);
+        }
+        if !requires_native_gas && gas_present {
+            return Err(CapitalError::NativeGasLegWithoutRequirementFlag);
         }
 
         let mut requirement = Self {
