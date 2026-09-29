@@ -5,6 +5,7 @@ use nqc_census_core::{Address, Hash32, RawLogEnvelope};
 const ADDRESSES_PROVIDER: &str = "ADDRESSES_PROVIDER()";
 const RESERVES_COUNT: &str = "getReservesCount()";
 const RESERVE_BY_ID: &str = "getReserveAddressById(uint16)";
+const RESERVES_LIST: &str = "getReservesList()";
 const RESERVE_DATA: &str = "getReserveData(address)";
 const GET_POOL: &str = "getPool()";
 const GET_POOL_CONFIGURATOR: &str = "getPoolConfigurator()";
@@ -16,6 +17,7 @@ pub struct AaveDiscoveryInterface {
     pub addresses_provider: [u8; 4],
     pub reserves_count: [u8; 4],
     pub reserve_by_id: [u8; 4],
+    pub reserves_list: [u8; 4],
     pub reserve_data: [u8; 4],
     pub get_pool: [u8; 4],
     pub get_pool_configurator: [u8; 4],
@@ -28,6 +30,7 @@ pub fn aave_interface() -> AaveDiscoveryInterface {
         addresses_provider: abi::selector(ADDRESSES_PROVIDER),
         reserves_count: abi::selector(RESERVES_COUNT),
         reserve_by_id: abi::selector(RESERVE_BY_ID),
+        reserves_list: abi::selector(RESERVES_LIST),
         reserve_data: abi::selector(RESERVE_DATA),
         get_pool: abi::selector(GET_POOL),
         get_pool_configurator: abi::selector(GET_POOL_CONFIGURATOR),
@@ -53,6 +56,7 @@ pub fn verify_pool_runtime(code: &[u8]) -> Result<(), DiscoveryError> {
         declared.addresses_provider,
         declared.reserves_count,
         declared.reserve_by_id,
+        declared.reserves_list,
         declared.reserve_data,
     ] {
         if !scan.has_selector(selector) {
