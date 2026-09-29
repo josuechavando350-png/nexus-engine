@@ -10,7 +10,7 @@ use nqc_census_core::{
 use sha2::{Digest, Sha256};
 use std::{
     cmp::Ordering,
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     fmt::{Display, Formatter},
 };
 
@@ -52,6 +52,10 @@ pub enum CapitalError {
     CollateralRequirementUnfunded,
     TemporaryLockUnfunded,
     NoCompatibleSource,
+    DuplicateSource,
+    DuplicateRequirement,
+    MissingSourceForAllocation,
+    OperatorOwnedAllocation,
 }
 
 impl Display for CapitalError {
@@ -114,6 +118,14 @@ impl Display for CapitalError {
             }
             Self::TemporaryLockUnfunded => f.write_str("capital source temporary lock is unfunded"),
             Self::NoCompatibleSource => f.write_str("no compatible capital source"),
+            Self::DuplicateSource => f.write_str("duplicate capital source id"),
+            Self::DuplicateRequirement => f.write_str("duplicate capital requirement id"),
+            Self::MissingSourceForAllocation => {
+                f.write_str("feasibility allocation references an unknown capital source")
+            }
+            Self::OperatorOwnedAllocation => {
+                f.write_str("feasible allocation uses operator-owned capital")
+            }
         }
     }
 }
@@ -1516,6 +1528,138 @@ pub fn evaluate_capital_feasibility(
     CapitalFeasibility::Feasible {
         requirement_id: requirement.id(),
         allocations,
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CapitalCensusSummary {
+    pub source_count: usize,
+    pub requirement_count: usize,
+    pub feasible_count: usize,
+    pub rejected_count: usize,
+    pub operator_owned_sources_observed: usize,
+    pub operator_owned_sources_used: usize,
+    pub sources_by_class: BTreeMap<CapitalClass, usize>,
+}
+
+impl CapitalCensusSummary {
+    pub const fn is_conserved(&self) -> bool {
+        self.requirement_count == self.feasible_count + self.rejected_count
+    }
+
+    pub const fn proves_zero_own_capital(&self) -> bool {
+        self.operator_owned_sources_used == 0
+    }
+}
+
+#[derive(Debug, Default)]
+pub struct CapitalCensusLedger {
+    sources: BTreeMap<CapitalSourceId, CapitalSource>,
+    requirements: BTreeMap<CapitalRequirementId, CapitalRequirement>,
+    results: BTreeMap<CapitalRequirementId, CapitalFeasibility>,
+}
+
+impl CapitalCensusLedger {
+    pub fn register_source(&mut self, source: CapitalSource) -> Result<(), CapitalError> {
+        if self.sources.contains_key(&source.id()) {
+            return Err(CapitalError::DuplicateSource);
+        }
+        self.sources.insert(source.id(), source);
+        Ok(())
+    }
+
+    pub fn register_requirement(
+        &mut self,
+        requirement: CapitalRequirement,
+    ) -> Result<(), CapitalError> {
+        if self.requirements.contains_key(&requirement.id()) {
+            return Err(CapitalError::DuplicateRequirement);
+        }
+        self.requirements.insert(requirement.id(), requirement);
+        Ok(())
+    }
+
+    pub fn evaluate_all(&mut self) -> Result<(), CapitalError> {
+        self.results.clear();
+        let sources = self.sources.values().cloned().collect::<Vec<_>>();
+        for requirement in self.requirements.values() {
+            let result = evaluate_capital_feasibility(requirement, &sources);
+            self.results.insert(requirement.id(), result);
+        }
+        self.validate_allocations()
+    }
+
+    pub fn result(&self, id: CapitalRequirementId) -> Option<&CapitalFeasibility> {
+        self.results.get(&id)
+    }
+
+    pub fn summary(&self) -> Result<CapitalCensusSummary, CapitalError> {
+        self.validate_allocations()?;
+        let mut sources_by_class = BTreeMap::new();
+        let mut operator_owned_sources_observed = 0_usize;
+        for source in self.sources.values() {
+            *sources_by_class.entry(source.class()).or_insert(0) += 1;
+            if source.provider_kind().is_operator_owned() {
+                operator_owned_sources_observed += 1;
+            }
+        }
+
+        let mut feasible_count = 0_usize;
+        let mut rejected_count = 0_usize;
+        let mut operator_owned_sources_used = 0_usize;
+        for result in self.results.values() {
+            match result {
+                CapitalFeasibility::Feasible { allocations, .. } => {
+                    feasible_count += 1;
+                    for allocation in allocations {
+                        let source = self
+                            .sources
+                            .get(&allocation.source_id)
+                            .ok_or(CapitalError::MissingSourceForAllocation)?;
+                        if source.provider_kind().is_operator_owned() {
+                            operator_owned_sources_used += 1;
+                        }
+                    }
+                }
+                CapitalFeasibility::Rejected { .. } => rejected_count += 1,
+            }
+        }
+
+        let summary = CapitalCensusSummary {
+            source_count: self.sources.len(),
+            requirement_count: self.requirements.len(),
+            feasible_count,
+            rejected_count,
+            operator_owned_sources_observed,
+            operator_owned_sources_used,
+            sources_by_class,
+        };
+        if !summary.is_conserved() {
+            return Err(CapitalError::InvalidCanonical(
+                "capital feasibility result conservation failed",
+            ));
+        }
+        if !summary.proves_zero_own_capital() {
+            return Err(CapitalError::OperatorOwnedAllocation);
+        }
+        Ok(summary)
+    }
+
+    fn validate_allocations(&self) -> Result<(), CapitalError> {
+        for result in self.results.values() {
+            if let CapitalFeasibility::Feasible { allocations, .. } = result {
+                for allocation in allocations {
+                    let source = self
+                        .sources
+                        .get(&allocation.source_id)
+                        .ok_or(CapitalError::MissingSourceForAllocation)?;
+                    if source.provider_kind().is_operator_owned() {
+                        return Err(CapitalError::OperatorOwnedAllocation);
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 }
 

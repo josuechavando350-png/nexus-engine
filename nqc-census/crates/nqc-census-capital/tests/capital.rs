@@ -1,7 +1,8 @@
 use nqc_census_capital::{
     evaluate_capital_feasibility, Amount256, CapitalAsset, CapitalCaps, CapitalClass,
-    CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalProviderKind,
-    CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
+    CapitalCensusLedger, CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility,
+    CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg, CapitalSource,
+    CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, PersistentDebtTerms, RepaymentSemantics, RequiredAtomicity,
     RequirementKind, TemporaryLock, UtilizationConstraints,
 };
@@ -557,5 +558,61 @@ fn utilization_math_handles_full_256_bit_capacity_exactly() -> TestResult {
         source.effective_capacity()?,
         Amount256::from_be_bytes(expected)
     );
+    Ok(())
+}
+
+
+#[test]
+fn ledger_proves_no_operator_owned_capital_was_used() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    let req = requirement(
+        vec![principal, repayment_leg(token)?],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let external = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let operator = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::InventoryRequirement,
+        anchor: anchor(100),
+        provider_namespace: 77,
+        provider_locator_hash: hash(78),
+        provider_kind: CapitalProviderKind::OperatorTreasury,
+        source_contract: Some(address(79)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::SourceUnavailable],
+        evidence: evidence(),
+    })?;
+
+    let mut ledger = CapitalCensusLedger::default();
+    ledger.register_source(external)?;
+    ledger.register_source(operator)?;
+    ledger.register_requirement(req)?;
+    ledger.evaluate_all()?;
+    let summary = ledger.summary()?;
+    assert!(summary.is_conserved());
+    assert!(summary.proves_zero_own_capital());
+    assert_eq!(summary.operator_owned_sources_observed, 1);
+    assert_eq!(summary.operator_owned_sources_used, 0);
+    assert_eq!(summary.feasible_count, 1);
     Ok(())
 }
