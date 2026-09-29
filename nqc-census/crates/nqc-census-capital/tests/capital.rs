@@ -914,8 +914,14 @@ fn evidentiary_ledger_certifies_only_after_evaluation() -> TestResult {
         Amount256::from_u128(100),
         vec![CapitalClass::FlashSwap],
     )?;
+    let exact_repayment = CapitalRequirementLeg::new(
+        RequirementKind::Repayment,
+        token,
+        Amount256::from_u128(100),
+        vec![CapitalClass::FlashSwap],
+    )?;
     let req = requirement(
-        vec![principal, repayment_leg(token)?],
+        vec![principal, exact_repayment],
         RequiredAtomicity::SameTransaction,
         false,
     )?;
