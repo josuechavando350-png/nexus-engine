@@ -1861,6 +1861,7 @@ pub enum FeasibilityRejection {
     TemporaryLockUnfunded,
     AllocationInvariantViolation,
     ExecutionBlocked,
+    SettlementRequirementMismatch,
 }
 
 impl FeasibilityRejection {
@@ -1877,6 +1878,7 @@ impl FeasibilityRejection {
             Self::TemporaryLockUnfunded => "TEMPORARY_LOCK_UNFUNDED",
             Self::AllocationInvariantViolation => "ALLOCATION_INVARIANT_VIOLATION",
             Self::ExecutionBlocked => "EXECUTION_BLOCKED",
+            Self::SettlementRequirementMismatch => "SETTLEMENT_REQUIREMENT_MISMATCH",
         }
     }
 
@@ -1893,6 +1895,7 @@ impl FeasibilityRejection {
             Self::TemporaryLockUnfunded => 9,
             Self::AllocationInvariantViolation => 10,
             Self::ExecutionBlocked => 11,
+            Self::SettlementRequirementMismatch => 12,
         }
     }
 }
@@ -2429,10 +2432,19 @@ pub fn evaluate_capital_feasibility_checked(
         return Ok(rejected(requirement, reason, Some(kind)));
     }
 
-    Ok(CapitalFeasibility::Feasible {
+    let feasible = CapitalFeasibility::Feasible {
         requirement_id: requirement.id(),
         allocations,
-    })
+    };
+    match validate_settlement_requirements(requirement, &feasible, sources) {
+        Ok(()) => Ok(feasible),
+        Err(CapitalError::SettlementRequirementMismatch) => Ok(rejected(
+            requirement,
+            FeasibilityRejection::SettlementRequirementMismatch,
+            None,
+        )),
+        Err(error) => Err(error),
+    }
 }
 
 pub fn evaluate_capital_feasibility(
