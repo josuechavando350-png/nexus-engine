@@ -2,8 +2,10 @@
 
 use crate::base::BaseCensus;
 use crate::canonical::{replay_canonicality, verify_canonicality};
+use crate::extract::verify_canonicality_extract;
 use nqc_census_accounts::candidates::{derive_candidates, Candidates};
 use nqc_census_accounts::closeout::Reconciled;
+use nqc_census_accounts::extract::extract_stages;
 use nqc_census_accounts::plan::AccountPlan;
 use nqc_census_accounts::replay::replay_account_stage;
 use nqc_census_accounts::verify::{verify_accounts, VerifyInputs};
@@ -193,4 +195,112 @@ pub fn reconcile_incremental_replayed(
         },
         mode,
     ))
+}
+
+
+/// Result of reconciling an incremental refresh from independently replayed
+/// per-stage extracts. The records and stage stores are retained for the
+/// content-addressed closeout provenance.
+pub struct ExtractReconciliation {
+    pub reconciled: Reconciled,
+    pub mode: Json,
+    pub records: Vec<Json>,
+    pub stage_stores: Vec<Json>,
+}
+
+/// As reconcile_incremental, but consumes the small verified extracts
+/// produced by replaying each live stage from its own RMC-004 store.
+///
+/// This is the production path used when the complete set of mainnet stage
+/// stores is too large to gather onto one runner.
+pub fn reconcile_incremental_extracts(
+    providers: &Providers<'_>,
+    target: &AccountPlan,
+    base: &BaseCensus,
+    canonical_extracts: Vec<Json>,
+    account_extracts: Vec<Json>,
+) -> Result<ExtractReconciliation, ChainError> {
+    let delta = delta_plan(target, base)?;
+
+    let mut canonical = Vec::new();
+    let mut records = Vec::new();
+    let mut stage_stores = Vec::new();
+    for extract in canonical_extracts {
+        let (record, stage, store) =
+            verify_canonicality_extract(providers.canonicality, &target.anchor, base, extract)?;
+        canonical.push(stage);
+        records.push(record);
+        stage_stores.push(store);
+    }
+    let canonicality = verify_canonicality(&canonical, base)?;
+
+    let mut index = Vec::new();
+    let mut tokens = Vec::new();
+    let mut state = Vec::new();
+    for extract in &account_extracts {
+        stage_stores.push(
+            extract
+                .get("store")
+                .cloned()
+                .ok_or_else(|| ChainError::Evidence("account extract without store".into()))?,
+        );
+    }
+    for (record, stage) in extract_stages(
+        providers.index,
+        providers.state,
+        target,
+        account_extracts,
+    )? {
+        match record.str_field("stage")? {
+            "ACCOUNT_INDEX" => index.push(stage),
+            "ACCOUNT_TOKENS" => tokens.push(stage),
+            "ACCOUNT_STATE" => state.push(stage),
+            other => return Err(ChainError::Evidence(format!("unexpected stage {other}"))),
+        }
+        records.push(record);
+    }
+
+    let (delta_candidates, facts) = derive_candidates(&index, &delta)?;
+    let refreshed = refreshed_candidates(&base.candidates, &delta_candidates);
+    let outcome = verify_accounts(VerifyInputs {
+        plan: target,
+        candidates: &refreshed,
+        index: &facts,
+        tokens,
+        state,
+    })?;
+    let mode = Json::object([
+        ("mode", Json::string("INCREMENTAL_REFRESH")),
+        (
+            "base",
+            Json::object([
+                ("anchor_number", Json::uint(base.anchor_number)),
+                ("anchor_hash", Json::string(base.anchor_hash.to_hex())),
+                ("candidates_sha256", Json::string(base.candidates.digest())),
+                (
+                    "accounts",
+                    Json::uint(base.candidates.accounts.len() as u64),
+                ),
+            ]),
+        ),
+        ("base_canonicality", canonicality),
+        ("index_start", Json::uint(delta.index_start)),
+        ("delta_index", facts.json()),
+        (
+            "delta_accounts",
+            Json::uint(delta_candidates.accounts.len() as u64),
+        ),
+    ]);
+    let reconciled = Reconciled {
+        candidates: refreshed,
+        index: facts,
+        outcome,
+        records: records.len(),
+    };
+    Ok(ExtractReconciliation {
+        reconciled,
+        mode,
+        records,
+        stage_stores,
+    })
 }
