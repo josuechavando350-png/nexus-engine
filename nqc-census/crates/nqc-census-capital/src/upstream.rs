@@ -381,17 +381,6 @@ pub fn import_d08_capital_sources(
                         "V2 reserve amount is not decimal text",
                     ))?;
                     let reserve_amount = Amount256::parse_decimal(reserve_text)?;
-                    if reserve_amount <= Amount256::from_u128(1) {
-                        push_rejection(
-                            &mut rejections,
-                            &mut outcomes,
-                            protocol,
-                            &market_id,
-                            asset,
-                            CapitalImportRejectionReason::FlashSwapReserveUnavailable,
-                        );
-                        continue;
-                    }
                     let source = UniswapV2FlashSwapObservation {
                         anchor: context.anchor.clone(),
                         pair,

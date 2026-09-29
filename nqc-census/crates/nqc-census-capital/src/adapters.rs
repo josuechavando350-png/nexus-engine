@@ -118,15 +118,19 @@ pub struct UniswapV2FlashSwapObservation {
 impl UniswapV2FlashSwapObservation {
     pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
         let one = Amount256::from_u128(1);
-        if self.reserve <= one {
-            return Err(CapitalError::NoCompatibleSource);
-        }
 
-        // Uniswap V2 requires amountOut < reserve, so the largest same-token
-        // flash-swap draw is reserve - 1 base unit. For same-token repayment,
-        // the exact extra amount required by the 0.3% invariant is
-        // ceil(amount_out * 3 / 997).
-        let maximum_available = self.reserve.checked_sub(one)?;
+        // Uniswap V2 requires amountOut < reserve. A reserve that cannot
+        // support a positive draw is still an observed source at this exact
+        // anchor; preserve it with zero capacity rather than erasing it from
+        // the Capital Census.
+        let maximum_available = if self.reserve <= one {
+            Amount256::ZERO
+        } else {
+            self.reserve.checked_sub(one)?
+        };
+
+        // For same-token repayment, the exact extra amount required by the
+        // 0.3% invariant is ceil(amount_out * 3 / 997).
         CapitalSource::new(CapitalSourceSpec {
             class: CapitalClass::FlashSwap,
             anchor: self.anchor,

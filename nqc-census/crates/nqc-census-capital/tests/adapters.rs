@@ -175,9 +175,9 @@ fn uniswap_v2_flash_swap_binds_strict_reserve_capacity_and_fee() -> TestResult {
 }
 
 #[test]
-fn uniswap_v2_flash_swap_rejects_reserve_that_cannot_satisfy_strict_output_bound() -> TestResult {
+fn uniswap_v2_flash_swap_preserves_zero_capacity_observations() -> TestResult {
     for reserve in [Amount256::ZERO, Amount256::from_u128(1)] {
-        let result = UniswapV2FlashSwapObservation {
+        let source = UniswapV2FlashSwapObservation {
             anchor: anchor(),
             pair: address(41),
             asset: address(40),
@@ -185,8 +185,9 @@ fn uniswap_v2_flash_swap_rejects_reserve_that_cannot_satisfy_strict_output_bound
             provider_locator_hash: hash(42),
             evidence: evidence(),
         }
-        .into_capital_source();
-        assert!(matches!(result, Err(CapitalError::NoCompatibleSource)));
+        .into_capital_source()?;
+        assert_eq!(source.class(), CapitalClass::FlashSwap);
+        assert_eq!(source.effective_capacity()?, Amount256::ZERO);
     }
     Ok(())
 }
