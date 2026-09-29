@@ -147,6 +147,8 @@ At minimum:
 
 ## Certification gate
 
+Foundation artifacts MUST encode `real_source_certification=false` until every real source class used by feasibility has a semantic admission path that proves the source terms from content-addressed evidence. An admitted artifact hash alone is not proof that arbitrary source semantics (especially external gas funding, credit, collateral facilities, builder deposits, or persistent debt risk terms) were present in that artifact.
+
 RMC-011 may be certified only when:
 
 - all upstream inputs used by the final run are exact-head admitted artifacts
