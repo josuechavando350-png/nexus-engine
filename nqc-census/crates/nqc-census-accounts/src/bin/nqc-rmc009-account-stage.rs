@@ -4,13 +4,17 @@
 //! `tokens --providers F --label L --pins F --pin-root DIR --store DIR --out F`
 //! `state --candidates F --partition K --partitions P --providers F --label L --pins F --pin-root DIR --store DIR --out F`
 //!
+//! `--anchor-number N --anchor-hash H` select another anchor than the
+//! declared one (the D06 inputs must be at it); `--index-start S` indexes only
+//! `[S, anchor]`.
+//!
 //! Inputs are the admitted D06 outputs, refused unless every file matches
 //! its pinned sha256; `--candidates` must be the output of
 //! `nqc-rmc009-account-candidates`.
 
 use nqc_census_accounts::candidates::Candidates;
 use nqc_census_accounts::index::account_index_stage;
-use nqc_census_accounts::inputs::mainnet_plan;
+use nqc_census_accounts::inputs::{anchor_from_flags, plan_at};
 use nqc_census_accounts::state::account_state_stage;
 use nqc_census_accounts::tokens::account_tokens_stage;
 use nqc_census_chain::acquire::Acquisition;
@@ -50,7 +54,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         &PathBuf::from(flag("--pins")?),
         &PathBuf::from(flag("--pin-root")?),
     )?;
-    let plan = mainnet_plan(&pins)?;
+    let mut plan = plan_at(
+        &pins,
+        anchor_from_flags(
+            flags.get("--anchor-number").map(String::as_str),
+            flags.get("--anchor-hash").map(String::as_str),
+        )?,
+    )?;
+    if let Some(start) = flags.get("--index-start") {
+        plan = plan.with_index_start(start.parse()?)?;
+    }
     let store = Store::create(&PathBuf::from(flag("--store")?), StoreConfig::standard())?;
     let transport = CurlTransport::new(180, 15);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());

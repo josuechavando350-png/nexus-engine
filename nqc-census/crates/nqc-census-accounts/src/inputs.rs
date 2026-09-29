@@ -156,13 +156,36 @@ impl AccountInputs {
     }
 }
 
-/// The mainnet plan from the pinned D06 inputs (roles `d06_current_surface`,
-/// `d06_deployment_manifest`, `d06_reserve_manifest`, `d06_history`).
-pub fn mainnet_plan(
+/// The declared census anchor (the mainnet observation anchor) unless both
+/// `--anchor-number` and `--anchor-hash` are given; one without the other is
+/// refused.
+pub fn anchor_from_flags(
+    number: Option<&str>,
+    hash: Option<&str>,
+) -> Result<AnchorPlan, ChainError> {
+    match (number, hash) {
+        (None, None) => AnchorPlan::mainnet(),
+        (Some(number), Some(hash)) => Ok(AnchorPlan {
+            profile: nqc_census_chain::ethereum::ChainProfile::mainnet()?,
+            number: number
+                .parse()
+                .map_err(|_| ChainError::Config("anchor number is not an integer".into()))?,
+            hash: nqc_census_core::Hash32::parse_hex(hash)?,
+        }),
+        _ => Err(ChainError::Config(
+            "--anchor-number and --anchor-hash go together".into(),
+        )),
+    }
+}
+
+/// The plan at `anchor` from the pinned D06 inputs (roles
+/// `d06_current_surface`, `d06_deployment_manifest`, `d06_reserve_manifest`,
+/// `d06_history`), which must have been acquired at that anchor.
+pub fn plan_at(
     pins: &[nqc_census_state::inputs::PinnedFile],
+    anchor: AnchorPlan,
 ) -> Result<AccountPlan, ChainError> {
     use nqc_census_state::inputs::pinned;
-    let anchor = AnchorPlan::mainnet()?;
     let inputs = AccountInputs::read(
         pinned(pins, "d06_current_surface")?,
         pinned(pins, "d06_deployment_manifest")?,
@@ -175,4 +198,33 @@ pub fn mainnet_plan(
         crate::plan::MAINNET_JOB_SPAN,
         crate::plan::MAINNET_JOB_ACCOUNTS,
     )
+}
+
+/// The plan at the declared mainnet anchor.
+pub fn mainnet_plan(
+    pins: &[nqc_census_state::inputs::PinnedFile],
+) -> Result<AccountPlan, ChainError> {
+    plan_at(pins, AnchorPlan::mainnet()?)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn anchor_flags_default_to_the_declared_anchor_and_go_together() -> Result<(), ChainError> {
+        let declared = AnchorPlan::mainnet()?;
+        let default = anchor_from_flags(None, None)?;
+        assert_eq!(
+            (default.number, default.hash),
+            (declared.number, declared.hash)
+        );
+        let hash = "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8";
+        let explicit = anchor_from_flags(Some("25437474"), Some(hash))?;
+        assert_eq!(explicit.number, 25_437_474);
+        assert!(anchor_from_flags(Some("25437474"), None).is_err());
+        assert!(anchor_from_flags(None, Some(hash)).is_err());
+        assert!(anchor_from_flags(Some("x"), Some(hash)).is_err());
+        Ok(())
+    }
 }

@@ -4,13 +4,16 @@
 //!  --candidates F --records DIR --store DIR --out-dir DIR
 //!  --code-commit SHA --code-tree SHA`
 //!
+//! `--anchor-number N --anchor-hash H` select another anchor than the
+//! declared one.
+//!
 //! Performs no network access: every record is replayed from the store.
 
 use nqc_census_accounts::candidates::Candidates;
 use nqc_census_accounts::closeout::{
     full_census_mode, reconcile_offline, write_closeout, CloseoutContext,
 };
-use nqc_census_accounts::inputs::mainnet_plan;
+use nqc_census_accounts::inputs::{anchor_from_flags, plan_at};
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::ProviderSet;
 use nqc_census_state::inputs::verify_pins;
@@ -47,7 +50,13 @@ fn main() -> Result<(), Box<dyn Error>> {
         &PathBuf::from(flag("--pins")?),
         &PathBuf::from(flag("--pin-root")?),
     )?;
-    let plan = mainnet_plan(&pins)?;
+    let plan = plan_at(
+        &pins,
+        anchor_from_flags(
+            flags.get("--anchor-number").map(String::as_str),
+            flags.get("--anchor-hash").map(String::as_str),
+        )?,
+    )?;
     let candidates = Candidates::from_jsonl(&fs::read(flag("--candidates")?)?)?;
     let mut paths: Vec<PathBuf> = fs::read_dir(flag("--records")?)?
         .map(|entry| entry.map(|entry| entry.path()))
