@@ -111,7 +111,12 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
         token1.to_hex()
     );
 
-    let imported = import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
     assert_eq!(imported.sources.len(), 3);
     assert!(imported.rejections.is_empty());
     assert_eq!(imported.candidate_count, 3);
@@ -148,7 +153,12 @@ fn d08_import_fails_closed_on_unproven_token_compatibility() -> TestResult {
         ),
         asset.to_hex()
     );
-    let imported = import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
     assert!(imported.sources.is_empty());
     assert_eq!(imported.rejections.len(), 1);
     assert_eq!(
@@ -179,7 +189,12 @@ fn d08_import_preserves_zero_aave_capacity_but_rejects_disabled_flash() -> TestR
         enabled.to_hex(),
         disabled.to_hex()
     );
-    let imported = import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
     assert_eq!(imported.sources.len(), 1);
     assert_eq!(imported.sources[0].effective_capacity()?, Amount256::ZERO);
     assert_eq!(imported.rejections.len(), 1);
@@ -206,7 +221,12 @@ fn d08_import_rejects_v2_reserve_without_strict_flash_swap_headroom() -> TestRes
         token0.to_hex(),
         token1.to_hex()
     );
-    let imported = import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
     assert_eq!(imported.sources.len(), 1);
     assert_eq!(imported.rejections.len(), 1);
     assert_eq!(
@@ -264,8 +284,18 @@ fn d08_import_coverage_is_order_independent_and_conserved() -> TestResult {
     );
     let first = format!("{aave}\n{v2}\n");
     let second = format!("{v2}\n{aave}\n");
-    let a = import_d08_capital_sources(first.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
-    let b = import_d08_capital_sources(second.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+    let a = import_d08_capital_sources(
+        first.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
+    let b = import_d08_capital_sources(
+        second.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
     assert!(a.is_conserved());
     assert!(b.is_conserved());
     assert_eq!(a.candidate_count, 3);
@@ -288,9 +318,13 @@ fn d08_import_rejects_duplicate_capital_candidates() -> TestResult {
         asset.to_hex()
     );
     let duplicate = format!("{row}\n{row}\n");
-    assert!(
-        import_d08_capital_sources(duplicate.as_bytes(), tokens.as_bytes(), &d08_facts(), &context()).is_err()
-    );
+    assert!(import_d08_capital_sources(
+        duplicate.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context()
+    )
+    .is_err());
     Ok(())
 }
 
@@ -305,7 +339,12 @@ fn current_d08_blocked_token_semantics_admit_no_capital_source() -> TestResult {
         "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
         asset.to_hex()
     );
-    let imported = import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+    let imported = import_d08_capital_sources(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
     assert!(imported.sources.is_empty());
     assert_eq!(imported.rejected_count, 1);
     assert_eq!(
@@ -326,7 +365,12 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
         "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":25}},\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n",
         pair.to_hex(), token0.to_hex(), token1.to_hex()
     );
-    let fee_import = import_d08_capital_sources(bad_fee.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+    let fee_import = import_d08_capital_sources(
+        bad_fee.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
     assert_eq!(fee_import.sources.len(), 0);
     assert_eq!(fee_import.rejected_count, 2);
     assert!(fee_import
@@ -340,8 +384,12 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
             "\"liquidity_state\":\"LIQUID\"",
             "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
         );
-    let liquidity_import =
-        import_d08_capital_sources(no_liquidity.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+    let liquidity_import = import_d08_capital_sources(
+        no_liquidity.as_bytes(),
+        tokens.as_bytes(),
+        &d08_facts(),
+        &context(),
+    )?;
     assert_eq!(liquidity_import.sources.len(), 0);
     assert_eq!(liquidity_import.rejected_count, 2);
     assert!(liquidity_import
@@ -360,8 +408,12 @@ fn d08_import_rejects_inactive_or_paused_aave_reserve() -> TestResult {
             "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":{},\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":{}}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
             asset.to_hex(), active, paused
         );
-        let imported =
-            import_d08_capital_sources(states.as_bytes(), tokens.as_bytes(), &d08_facts(), &context())?;
+        let imported = import_d08_capital_sources(
+            states.as_bytes(),
+            tokens.as_bytes(),
+            &d08_facts(),
+            &context(),
+        )?;
         assert_eq!(imported.sources.len(), 0);
         assert_eq!(
             imported.rejections[0].reason,
@@ -370,7 +422,6 @@ fn d08_import_rejects_inactive_or_paused_aave_reserve() -> TestResult {
     }
     Ok(())
 }
-
 
 #[test]
 fn d08_import_binds_aave_pool_and_flash_fee_to_closeout_facts() -> TestResult {
@@ -395,8 +446,10 @@ fn d08_import_binds_aave_pool_and_flash_fee_to_closeout_facts() -> TestResult {
         Amount256::from_u128(5)
     );
 
-    let wrong_fee = String::from_utf8(d08_facts())?
-        .replace(&format!("{}05", "00".repeat(31)), &format!("{}06", "00".repeat(31)));
+    let wrong_fee = String::from_utf8(d08_facts())?.replace(
+        &format!("{}05", "00".repeat(31)),
+        &format!("{}06", "00".repeat(31)),
+    );
     let changed = import_d08_capital_sources(
         states.as_bytes(),
         tokens.as_bytes(),
@@ -411,10 +464,8 @@ fn d08_import_binds_aave_pool_and_flash_fee_to_closeout_facts() -> TestResult {
         Amount256::from_u128(6)
     );
 
-    let malformed = String::from_utf8(d08_facts())?.replace(
-        "\"status\":\"RETURNED\"",
-        "\"status\":\"REVERTED\"",
-    );
+    let malformed = String::from_utf8(d08_facts())?
+        .replace("\"status\":\"RETURNED\"", "\"status\":\"REVERTED\"");
     assert!(import_d08_capital_sources(
         states.as_bytes(),
         tokens.as_bytes(),
