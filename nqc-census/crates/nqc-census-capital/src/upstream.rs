@@ -8,6 +8,7 @@
 use crate::{
     adapters::{AaveV3FlashObservation, UniswapV2FlashSwapObservation},
     Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource,
+    UpstreamCensusStage, UpstreamStageAuthority,
 };
 use nqc_census_chain::{hex, json::Json};
 use nqc_census_core::{Address, Hash32, StateAnchor};
@@ -284,7 +285,121 @@ fn d08_aave_flash_terms(bytes: &[u8]) -> Result<(Address, u16), CapitalError> {
     Ok((pool, value))
 }
 
+fn verify_d08_artifact_binding(
+    state_manifest_jsonl: &[u8],
+    token_admission_jsonl: &[u8],
+    pool_and_factory_facts_json: &[u8],
+    evidence_manifest_json: &[u8],
+    authority: &UpstreamStageAuthority,
+    context: &D08CapitalImportContext,
+) -> Result<(), CapitalError> {
+    if authority.stage != UpstreamCensusStage::Rmc008StateAdmission
+        || authority.unresolved_mismatch_count != 0
+        || authority.unknown_failure_count != 0
+        || !authority.coverage_complete
+        || !authority.admitted
+    {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "RMC-008 authority is not certifiable",
+        ));
+    }
+    if authority.observation_anchor != context.anchor {
+        return Err(CapitalError::AnchorMismatch);
+    }
+
+    let manifest_digest: [u8; 32] = Sha256::digest(evidence_manifest_json).into();
+    if &manifest_digest != authority.artifact_sha256.as_bytes() {
+        return Err(CapitalError::CanonicalDigestMismatch);
+    }
+    let manifest = Json::parse(evidence_manifest_json)
+        .map_err(|_| CapitalError::InvalidCanonical("D08 evidence manifest JSON parse failed"))?;
+    if u64_field(&manifest, "schema_version")? != 1 {
+        return Err(CapitalError::InvalidCanonical(
+            "unsupported D08 evidence manifest schema",
+        ));
+    }
+    if text(&manifest, "code_commit")? != authority.code_commit.to_hex()
+        || text(&manifest, "code_tree")? != authority.code_tree.to_hex()
+    {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "D08 evidence manifest code identity mismatch",
+        ));
+    }
+
+    let expected: [(&str, &[u8]); 3] = [
+        ("market-state-manifest.jsonl", state_manifest_jsonl),
+        ("token-admission.jsonl", token_admission_jsonl),
+        ("pool-and-factory-facts.json", pool_and_factory_facts_json),
+    ];
+    let artifacts = array(&manifest, "artifacts")?;
+    let mut seen_paths = BTreeSet::new();
+    let mut verified_paths = BTreeSet::new();
+    for entry in artifacts {
+        let path = text(entry, "path")?;
+        if !seen_paths.insert(path.to_owned()) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate D08 evidence manifest artifact path",
+            ));
+        }
+        let Some((_, bytes)) = expected
+            .iter()
+            .find(|(expected_path, _)| *expected_path == path)
+        else {
+            continue;
+        };
+        let digest: [u8; 32] = Sha256::digest(*bytes).into();
+        if text(entry, "sha256")? != hex::plain(&digest) {
+            return Err(CapitalError::CanonicalDigestMismatch);
+        }
+        let declared_bytes = u64_field(entry, "bytes")?;
+        if declared_bytes
+            != u64::try_from(bytes.len())
+                .map_err(|_| CapitalError::InvalidCanonical("D08 artifact length overflow"))?
+        {
+            return Err(CapitalError::InvalidCanonical(
+                "D08 evidence manifest artifact length mismatch",
+            ));
+        }
+        verified_paths.insert(path.to_owned());
+    }
+    if verified_paths.len() != expected.len() {
+        return Err(CapitalError::InvalidCanonical(
+            "D08 evidence manifest is missing a consumed artifact",
+        ));
+    }
+
+    let manifest_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone());
+    if !context.evidence.contains(&manifest_evidence) {
+        return Err(CapitalError::UnresolvedEvidenceRef);
+    }
+    Ok(())
+}
+
 pub fn import_d08_capital_sources(
+    state_manifest_jsonl: &[u8],
+    token_admission_jsonl: &[u8],
+    pool_and_factory_facts_json: &[u8],
+    evidence_manifest_json: &[u8],
+    authority: &UpstreamStageAuthority,
+    context: &D08CapitalImportContext,
+) -> Result<D08CapitalImport, CapitalError> {
+    verify_d08_artifact_binding(
+        state_manifest_jsonl,
+        token_admission_jsonl,
+        pool_and_factory_facts_json,
+        evidence_manifest_json,
+        authority,
+        context,
+    )?;
+    import_d08_capital_sources_unbound(
+        state_manifest_jsonl,
+        token_admission_jsonl,
+        pool_and_factory_facts_json,
+        context,
+    )
+}
+
+fn import_d08_capital_sources_unbound(
     state_manifest_jsonl: &[u8],
     token_admission_jsonl: &[u8],
     pool_and_factory_facts_json: &[u8],

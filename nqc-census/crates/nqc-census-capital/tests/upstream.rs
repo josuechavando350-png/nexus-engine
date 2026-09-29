@@ -1,8 +1,14 @@
 use nqc_census_capital::{
-    upstream::{import_d08_capital_sources, CapitalImportRejectionReason, D08CapitalImportContext},
-    Amount256, CapitalAsset, CapitalClass, CapitalEvidenceRef,
+    upstream::{
+        import_d08_capital_sources as import_d08_capital_sources_bound,
+        CapitalImportRejectionReason, D08CapitalImport, D08CapitalImportContext,
+    },
+    Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, GitObjectId,
+    UpstreamCensusStage, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
 };
+use nqc_census_chain::hex;
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
+use sha2::{Digest, Sha256};
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
 
@@ -45,6 +51,76 @@ fn d08_facts() -> Vec<u8> {
     out.push_str(&"00".repeat(31));
     out.push_str("05\",\"status\":\"RETURNED\"}}}}");
     out.into_bytes()
+}
+
+const D08_CODE_COMMIT: &str = "1111111111111111111111111111111111111111";
+const D08_CODE_TREE: &str = "2222222222222222222222222222222222222222";
+
+fn sha256_hash(bytes: &[u8]) -> Hash32 {
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    Hash32::new(digest).unwrap_or_else(|_| unreachable!())
+}
+
+fn sha256_plain(bytes: &[u8]) -> String {
+    let digest: [u8; 32] = Sha256::digest(bytes).into();
+    hex::plain(&digest)
+}
+
+fn d08_manifest(states: &[u8], tokens: &[u8], facts: &[u8]) -> Vec<u8> {
+    format!(
+        concat!(
+            "{{\"artifacts\":[",
+            "{{\"bytes\":{},\"path\":\"market-state-manifest.jsonl\",\"sha256\":\"{}\"}},",
+            "{{\"bytes\":{},\"path\":\"token-admission.jsonl\",\"sha256\":\"{}\"}},",
+            "{{\"bytes\":{},\"path\":\"pool-and-factory-facts.json\",\"sha256\":\"{}\"}}",
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+        ),
+        states.len(),
+        sha256_plain(states),
+        tokens.len(),
+        sha256_plain(tokens),
+        facts.len(),
+        sha256_plain(facts),
+        D08_CODE_COMMIT,
+        D08_CODE_TREE,
+    )
+    .into_bytes()
+}
+
+fn d08_authority(manifest: &[u8]) -> Result<UpstreamStageAuthority, CapitalError> {
+    UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
+        stage: UpstreamCensusStage::Rmc008StateAdmission,
+        code_commit: GitObjectId::parse_hex(D08_CODE_COMMIT)?,
+        code_tree: GitObjectId::parse_hex(D08_CODE_TREE)?,
+        artifact_sha256: sha256_hash(manifest),
+        observation_anchor: anchor(),
+        unresolved_mismatch_count: 0,
+        unknown_failure_count: 0,
+        coverage_complete: true,
+        admitted: true,
+    })
+}
+
+fn import_d08_capital_sources(
+    states: &[u8],
+    tokens: &[u8],
+    facts: &[u8],
+    context: &D08CapitalImportContext,
+) -> Result<D08CapitalImport, CapitalError> {
+    let manifest = d08_manifest(states, tokens, facts);
+    let authority = d08_authority(&manifest)?;
+    let mut bound_context = context.clone();
+    bound_context
+        .evidence
+        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone()));
+    import_d08_capital_sources_bound(
+        states,
+        tokens,
+        facts,
+        &manifest,
+        &authority,
+        &bound_context,
+    )
 }
 
 fn token_row(token: Address, compatible: bool) -> String {
@@ -472,6 +548,65 @@ fn d08_import_binds_aave_pool_and_flash_fee_to_closeout_facts() -> TestResult {
         tokens.as_bytes(),
         malformed.as_bytes(),
         &context(),
+    )
+    .is_err());
+    Ok(())
+}
+
+
+#[test]
+fn d08_evidentiary_import_rejects_consumed_artifact_substitution() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    let states = format!(
+        "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+        asset.to_hex()
+    );
+    let facts = d08_facts();
+    let manifest = d08_manifest(states.as_bytes(), tokens.as_bytes(), &facts);
+    let authority = d08_authority(&manifest)?;
+    let mut bound_context = context();
+    bound_context
+        .evidence
+        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone()));
+
+    let tampered_states = states.replace("\"10000\"", "\"10001\"");
+    assert!(import_d08_capital_sources_bound(
+        tampered_states.as_bytes(),
+        tokens.as_bytes(),
+        &facts,
+        &manifest,
+        &authority,
+        &bound_context,
+    )
+    .is_err());
+    Ok(())
+}
+
+#[test]
+fn d08_evidentiary_import_rejects_manifest_not_named_by_authority() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    let states = format!(
+        "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+        asset.to_hex()
+    );
+    let facts = d08_facts();
+    let manifest = d08_manifest(states.as_bytes(), tokens.as_bytes(), &facts);
+    let mut authority = d08_authority(&manifest)?;
+    authority.artifact_sha256 = hash(250);
+    let mut bound_context = context();
+    bound_context
+        .evidence
+        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256.clone()));
+
+    assert!(import_d08_capital_sources_bound(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &facts,
+        &manifest,
+        &authority,
+        &bound_context,
     )
     .is_err());
     Ok(())

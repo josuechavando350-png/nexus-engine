@@ -87,6 +87,7 @@ A candidate is NOT capital-feasible merely because liquidation principal can be 
 
 A source may be used only when:
 
+- every consumed upstream byte is bound through the upstream stage's admitted evidence manifest; for RMC-008 the authority artifact digest identifies `evidence-manifest.json`, whose exact code commit/tree and per-file SHA-256/size entries MUST match `market-state-manifest.jsonl`, `token-admission.jsonl`, and `pool-and-factory-facts.json` before import
 - deployment/source identity is admitted
 - the observation is pinned to the same canonical block context required by the candidate
 - available capacity is sufficient at the requested size
