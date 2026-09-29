@@ -62,7 +62,7 @@ fn address_field(value: &Json, key: &str) -> Result<Address, ChainError> {
     Ok(Address::parse_hex(value.str_field(key)?)?)
 }
 
-fn current_report(path: &Path) -> Result<(Address, Vec<CurrentReserve>), ChainError> {
+fn current_report(path: &Path) -> Result<(Address, Address, Vec<CurrentReserve>), ChainError> {
     let bytes = fs::read(path)
         .map_err(|error| ChainError::Config(format!("read current report: {error}")))?;
     let report = Json::parse(&bytes)?;
@@ -80,6 +80,8 @@ fn current_report(path: &Path) -> Result<(Address, Vec<CurrentReserve>), ChainEr
         ));
     }
     let configurator = address_field(facts, "pool_configurator")?;
+    let configurator_implementation =
+        address_field(facts, "pool_configurator_implementation")?;
     if configurator != Address::parse_hex(CURRENT_CONFIGURATOR)? {
         return Err(ChainError::Evidence(
             "current PoolConfigurator differs from declared exact-anchor value".into(),
@@ -109,7 +111,7 @@ fn current_report(path: &Path) -> Result<(Address, Vec<CurrentReserve>), ChainEr
             "current reserve ids are not contiguous".into(),
         ));
     }
-    Ok((configurator, reserves))
+    Ok((configurator, configurator_implementation, reserves))
 }
 
 fn raw_log(value: &Json) -> Result<RawLogEnvelope, ChainError> {
@@ -267,7 +269,8 @@ pub fn run_history(
     store_path: &Path,
 ) -> Result<Json, Box<dyn Error>> {
     let providers = ProviderSet::parse(&fs::read(providers_path)?)?;
-    let (configurator, current_reserves) = current_report(current_path)?;
+    let (configurator, configurator_implementation, current_reserves) =
+        current_report(current_path)?;
     let store = Store::create(store_path, StoreConfig::standard())?;
     let transport = CurlTransport::new(90, 10);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
@@ -311,6 +314,7 @@ pub fn run_history(
         &provider_creation,
         &anchor,
         configurator,
+        configurator_implementation,
     )?;
     if !lineage.configurators.contains(&configurator) {
         return Err(ChainError::Evidence(
@@ -575,7 +579,15 @@ pub fn run_history(
         ),
         (
             "pool_configurator_proxy_creation",
-            Json::Array(lineage.updates.clone()),
+            lineage.proxy_creation.clone(),
+        ),
+        (
+            "pool_configurator_implementation_updates",
+            Json::Array(lineage.implementation_updates.clone()),
+        ),
+        (
+            "pool_configurator_current_implementation",
+            Json::string(lineage.current_implementation.to_hex()),
         ),
         (
             "configurator_lineage_manifests",
@@ -626,9 +638,10 @@ pub fn run_history(
                     "configurator_count",
                     Json::uint(lineage.configurators.len() as u64),
                 ),
+                ("configurator_proxy_creation_count", Json::uint(1)),
                 (
-                    "configurator_proxy_creation_count",
-                    Json::uint(lineage.updates.len() as u64),
+                    "configurator_implementation_update_count",
+                    Json::uint(lineage.implementation_updates.len() as u64),
                 ),
                 ("unexplained_delta_count", Json::uint(0)),
             ]),

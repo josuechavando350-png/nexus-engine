@@ -356,15 +356,6 @@ fn provider_current_facts(
         }
         let configurator_implementation_hash =
             sha256_plain(configurator_implementation_code.payload().code());
-        let configurator_scan = CodeScan::new(configurator_implementation_code.payload().code());
-        if configurator_scan.truncated_push()
-            || !configurator_scan.has_word(&interface.reserve_initialized_topic)
-            || !configurator_scan.has_word(&interface.reserve_dropped_topic)
-        {
-            return Err(ChainError::Evidence(
-                "PoolConfigurator implementation lacks declared reserve lifecycle topics".into(),
-            ));
-        }
 
         let oracle_code = ctx.code(price_oracle, anchor, chain_semantics)?;
         let oracle_hash = require_sha256(

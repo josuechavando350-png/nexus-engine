@@ -12,7 +12,7 @@ use nqc_census_core::{Address, ChainDomain, Hash32, RawLogEnvelope, StateAnchor}
 
 const LINEAGE_NAMESPACE: u16 = 0x0604;
 const CHECKPOINT_SPAN: u64 = 1_000_000;
-const FAMILY: &str = "rmc006-aave-configurator-proxy-lineage";
+const FAMILY: &str = "rmc006-aave-configurator-lineage";
 const POOL_CONFIGURATOR_ID: &str =
     "0x504f4f4c5f434f4e464947555241544f52000000000000000000000000000000";
 
@@ -28,6 +28,10 @@ struct ProxyCreation {
 }
 
 impl ProxyCreation {
+    fn coordinate(&self) -> (u64, u64, u64) {
+        (self.block, self.transaction_index, self.log_index)
+    }
+
     fn json(&self) -> Json {
         Json::object([
             ("block", Json::uint(self.block)),
@@ -45,10 +49,48 @@ impl ProxyCreation {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct ImplementationUpdate {
+    block: u64,
+    transaction_index: u64,
+    log_index: u64,
+    block_hash: Hash32,
+    transaction_hash: Hash32,
+    old: Option<Address>,
+    new: Address,
+}
+
+impl ImplementationUpdate {
+    fn coordinate(&self) -> (u64, u64, u64) {
+        (self.block, self.transaction_index, self.log_index)
+    }
+
+    fn json(&self) -> Json {
+        Json::object([
+            ("block", Json::uint(self.block)),
+            ("block_hash", Json::string(self.block_hash.to_hex())),
+            (
+                "transaction_hash",
+                Json::string(self.transaction_hash.to_hex()),
+            ),
+            ("transaction_index", Json::uint(self.transaction_index)),
+            ("log_index", Json::uint(self.log_index)),
+            (
+                "old",
+                self.old
+                    .map_or(Json::Null, |address| Json::string(address.to_hex())),
+            ),
+            ("new", Json::string(self.new.to_hex())),
+        ])
+    }
+}
+
 #[derive(Debug, Clone)]
 pub struct ConfiguratorLineage {
     pub configurators: Vec<Address>,
-    pub updates: Vec<Json>,
+    pub proxy_creation: Json,
+    pub implementation_updates: Vec<Json>,
+    pub current_implementation: Address,
     pub manifests: Vec<String>,
     pub scan_evidence: Vec<Json>,
     pub creation_block: u64,
@@ -72,12 +114,12 @@ fn raw_log(value: &Json) -> Result<RawLogEnvelope, ChainError> {
     let topics = value
         .get("topics")
         .and_then(Json::as_array)
-        .ok_or_else(|| ChainError::Evidence("ProxyCreated topics missing".into()))?
+        .ok_or_else(|| ChainError::Evidence("lineage topics missing".into()))?
         .iter()
         .map(|topic| {
             topic
                 .as_str()
-                .ok_or_else(|| ChainError::Evidence("ProxyCreated topic is not text".into()))
+                .ok_or_else(|| ChainError::Evidence("lineage topic is not text".into()))
                 .and_then(|text| Hash32::parse_hex(text).map_err(ChainError::from))
         })
         .collect::<Result<Vec<_>, _>>()?;
@@ -92,7 +134,10 @@ fn raw_log(value: &Json) -> Result<RawLogEnvelope, ChainError> {
     )?)
 }
 
-fn indexed_address(topic: &Hash32, label: &'static str) -> Result<Address, ChainError> {
+fn indexed_optional_address(
+    topic: &Hash32,
+    label: &'static str,
+) -> Result<Option<Address>, ChainError> {
     let word = topic.as_bytes();
     if word[..12].iter().any(|byte| *byte != 0) {
         return Err(ChainError::Evidence(format!(
@@ -100,14 +145,22 @@ fn indexed_address(topic: &Hash32, label: &'static str) -> Result<Address, Chain
         )));
     }
     if word[12..].iter().all(|byte| *byte == 0) {
-        return Err(ChainError::Evidence(format!("{label} is zero")));
+        return Ok(None);
     }
     let mut address = [0_u8; 20];
     address.copy_from_slice(&word[12..]);
-    Ok(Address::new(address)?)
+    Ok(Some(Address::new(address)?))
 }
 
-fn parse_creation(root: Address, record: &Json) -> Result<Option<ProxyCreation>, ChainError> {
+fn indexed_address(topic: &Hash32, label: &'static str) -> Result<Address, ChainError> {
+    indexed_optional_address(topic, label)?
+        .ok_or_else(|| ChainError::Evidence(format!("{label} is zero")))
+}
+
+fn parse_proxy_creation(
+    root: Address,
+    record: &Json,
+) -> Result<Option<ProxyCreation>, ChainError> {
     let log = raw_log(record)?;
     if log.emitter() != root || !log.data().is_empty() {
         return Err(ChainError::Evidence(
@@ -115,8 +168,7 @@ fn parse_creation(root: Address, record: &Json) -> Result<Option<ProxyCreation>,
         ));
     }
     let topics = log.topics();
-    let expected_topic = aave_interface().proxy_created_topic;
-    if topics.len() != 4 || topics[0].as_bytes() != &expected_topic {
+    if topics.len() != 4 || topics[0].as_bytes() != &aave_interface().proxy_created_topic {
         return Err(ChainError::Evidence(
             "ProxyCreated topic layout differs".into(),
         ));
@@ -135,6 +187,35 @@ fn parse_creation(root: Address, record: &Json) -> Result<Option<ProxyCreation>,
     }))
 }
 
+fn parse_implementation_update(
+    root: Address,
+    record: &Json,
+) -> Result<ImplementationUpdate, ChainError> {
+    let log = raw_log(record)?;
+    if log.emitter() != root || !log.data().is_empty() {
+        return Err(ChainError::Evidence(
+            "PoolConfiguratorUpdated canonical payload differs from declared root/layout".into(),
+        ));
+    }
+    let topics = log.topics();
+    if topics.len() != 3
+        || topics[0].as_bytes() != &aave_interface().pool_configurator_updated_topic
+    {
+        return Err(ChainError::Evidence(
+            "PoolConfiguratorUpdated topic layout differs".into(),
+        ));
+    }
+    Ok(ImplementationUpdate {
+        block: number(record, "block")?,
+        transaction_index: u64::from(log.transaction_index()),
+        log_index: u64::from(log.log_index()),
+        block_hash: Hash32::parse_hex(record.str_field("block_hash")?)?,
+        transaction_hash: log.transaction_hash(),
+        old: indexed_optional_address(&topics[1], "old PoolConfigurator implementation")?,
+        new: indexed_address(&topics[2], "new PoolConfigurator implementation")?,
+    })
+}
+
 fn scan_lineage(
     acquisition: &Acquisition<'_>,
     provider: &ProviderSpec,
@@ -143,7 +224,14 @@ fn scan_lineage(
     origin: &StateAnchor,
     last: u64,
 ) -> Result<ScanOutcome, ChainError> {
-    let filter = LogFilter::new(vec![root], vec![aave_interface().proxy_created_topic])?;
+    let interface = aave_interface();
+    let filter = LogFilter::new(
+        vec![root],
+        vec![
+            interface.proxy_created_topic,
+            interface.pool_configurator_updated_topic,
+        ],
+    )?;
     acquisition.scan(
         provider,
         chain,
@@ -180,7 +268,8 @@ pub fn discover_configurator_lineage(
     root: Address,
     origin: &StateAnchor,
     observation: &StateAnchor,
-    expected_current: Address,
+    expected_proxy: Address,
+    expected_current_implementation: Address,
 ) -> Result<ConfiguratorLineage, ChainError> {
     let mut per_provider = Vec::new();
     let mut scans = Vec::new();
@@ -206,21 +295,30 @@ pub fn discover_configurator_lineage(
 
     let logs = agree_logs(FAMILY, &per_provider)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
+    let interface = aave_interface();
     let mut creations = Vec::new();
+    let mut updates = Vec::new();
     for record in &logs {
-        if let Some(creation) = parse_creation(root, record)? {
-            creations.push(creation);
+        let raw = raw_log(record)?;
+        let topic0 = raw
+            .topics()
+            .first()
+            .ok_or_else(|| ChainError::Evidence("lineage log has no topic0".into()))?;
+        if topic0.as_bytes() == &interface.proxy_created_topic {
+            if let Some(creation) = parse_proxy_creation(root, record)? {
+                creations.push(creation);
+            }
+        } else if topic0.as_bytes() == &interface.pool_configurator_updated_topic {
+            updates.push(parse_implementation_update(root, record)?);
+        } else {
+            return Err(ChainError::Evidence(
+                "lineage scan returned undeclared topic".into(),
+            ));
         }
     }
-    creations.sort_by_key(|event| (event.block, event.transaction_index, event.log_index));
-    if creations
-        .windows(2)
-        .any(|pair| (pair[0].block, pair[0].log_index) == (pair[1].block, pair[1].log_index))
-    {
-        return Err(ChainError::Evidence(
-            "duplicate PoolConfigurator ProxyCreated coordinates".into(),
-        ));
-    }
+
+    creations.sort_by_key(ProxyCreation::coordinate);
+    updates.sort_by_key(ImplementationUpdate::coordinate);
     if creations.len() != 1 {
         return Err(ChainError::Evidence(format!(
             "expected exactly one PoolConfigurator ProxyCreated event, got {}",
@@ -228,9 +326,45 @@ pub fn discover_configurator_lineage(
         )));
     }
     let creation = &creations[0];
-    if creation.proxy != expected_current {
+    if creation.proxy != expected_proxy {
         return Err(ChainError::Evidence(
-            "PoolConfigurator ProxyCreated proxy differs from exact-anchor getter".into(),
+            "PoolConfigurator proxy differs from exact-anchor getter".into(),
+        ));
+    }
+    if updates.is_empty() {
+        return Err(ChainError::Evidence(
+            "PoolConfigurator implementation update history is empty".into(),
+        ));
+    }
+
+    let mut current = creation.implementation;
+    for (index, update) in updates.iter().enumerate() {
+        if update.coordinate() <= creation.coordinate() {
+            return Err(ChainError::Evidence(
+                "PoolConfiguratorUpdated does not follow ProxyCreated".into(),
+            ));
+        }
+        match update.old {
+            None if index == 0 && update.new == creation.implementation => {}
+            Some(old) if old == current => {
+                if update.new == current {
+                    return Err(ChainError::Evidence(
+                        "PoolConfiguratorUpdated is a no-op".into(),
+                    ));
+                }
+                current = update.new;
+            }
+            _ => {
+                return Err(ChainError::Evidence(
+                    "PoolConfigurator implementation lineage is discontinuous".into(),
+                ))
+            }
+        }
+    }
+    if current != expected_current_implementation {
+        return Err(ChainError::Evidence(
+            "latest PoolConfigurator implementation differs from exact-anchor EIP-1967 state"
+                .into(),
         ));
     }
 
@@ -241,7 +375,9 @@ pub fn discover_configurator_lineage(
 
     Ok(ConfiguratorLineage {
         configurators: vec![creation.proxy],
-        updates: creations.iter().map(ProxyCreation::json).collect(),
+        proxy_creation: creation.json(),
+        implementation_updates: updates.iter().map(ImplementationUpdate::json).collect(),
+        current_implementation: current,
         manifests,
         scan_evidence,
         creation_block: creation.block,
