@@ -10,6 +10,7 @@ on:
     paths:
       - .github/workflows/nqc-census-refresh-anchor.yml
       - ci/nqc-census/rpc-providers.json
+      - ci/nqc-census/refresh-bootstrap.json
   workflow_dispatch:
 
 permissions:
@@ -87,26 +88,25 @@ jobs:
           A1_HASH: ${{ steps.anchor.outputs.hash }}
         run: |
           set -euo pipefail
-          repo="${{ github.repository }}"
-          branch="nqc/rmc-006-aave-reconciled-discovery-20260929"
-          workflow="nqc-census-aave-discovery.yml"
-          run_id=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" \
-            --jq '[.workflow_runs[] | select(.status == "pending" or .status == "queued" or .status == "in_progress")][0].id // empty')
-          if [ -n "$run_id" ]; then
-            echo "RMC010_D06_A1_REUSE_ACTIVE run=$run_id"
-          else
-            before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
-            gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
-              -f ref="$branch" \
-              -f "inputs[anchor_number]=$A1_NUMBER" \
-              -f "inputs[anchor_hash]=$A1_HASH"
-            for attempt in $(seq 1 60); do
-              after=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
-              run_id=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -n 1)
-              if [ -n "$run_id" ]; then break; fi
-              sleep 5
-            done
+          bootstrap=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["status"])')
+          if [ "$bootstrap" != REQUEST_D06_A1 ]; then
+            echo "RMC010_D06_BOOTSTRAP_STANDING_DOWN status=$bootstrap"
+            exit 0
           fi
+          repo="${{ github.repository }}"
+          branch=$(python3 -c 'import json; print(json.load(open("ci/nqc-census/refresh-bootstrap.json"))["d06_ref"])')
+          workflow="nqc-census-aave-discovery.yml"
+          before=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
+          gh api --method POST "repos/$repo/actions/workflows/$workflow/dispatches" \
+            -f ref="$branch" \
+            -f "inputs[anchor_number]=$A1_NUMBER" \
+            -f "inputs[anchor_hash]=$A1_HASH"
+          for attempt in $(seq 1 60); do
+            after=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" --jq '.workflow_runs[].id' | sort -n)
+            run_id=$(comm -13 <(printf '%s\n' "$before") <(printf '%s\n' "$after") | head -n 1)
+            if [ -n "$run_id" ]; then break; fi
+            sleep 5
+          done
           test -n "$run_id" || { echo "D06 dispatch created no discoverable run"; exit 1; }
           echo "RMC010_D06_A1_DISPATCH run=$run_id anchor=$A1_NUMBER hash=$A1_HASH"
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
