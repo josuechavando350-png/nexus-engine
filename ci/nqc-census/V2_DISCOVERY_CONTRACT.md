@@ -62,6 +62,24 @@ Both surfaces and the creation boundary are exact-anchor, multi-provider:
 - Each stage emits a small record: `{schema, stage, provider, parameters,
   manifests, row_count, data_sha256}`.
 
+## Public RPC load
+
+The workflow joins the repository-wide concurrency group
+`nqc-census-public-rpc` (`cancel-in-progress: false`): at most one live
+Census acquisition runs at a time and a running one is never cancelled. Each
+stage matrix is bounded (`max-parallel: 6`, providers interleaved). Run
+36526877390 showed the need: with 20 of this workflow's jobs loading the same
+endpoints, one blastapi PairCreated partition exhausted the shared public
+capacity (HTTP 429 "compute units per second") across four attempts.
+Transient failures (rate limit, transport, "temporarily unavailable") are
+retried by the chain layer and then by up to ten attempts resuming from
+committed RMC-004 checkpoints. A retry never masks missing data: a range
+that cannot be acquired fails the stage, and a semantic disagreement fails
+closed without retry. Stage evidence is uploaded even when a stage fails,
+named by stage, provider, partition, exact head and run id, so failed
+partitions can be re-run alone ("re-run failed jobs") and the reconciler
+consumes the latest artifact of each.
+
 ## Offline reconciliation
 
 `nqc-rmc007-v2-merge` merges every stage store into one RMC-004 store.

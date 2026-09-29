@@ -24,6 +24,15 @@ permissions:
   contents: read
   actions: read
 
+# Every live Census workflow that loads the shared public RPC endpoints joins
+# one repository-wide group: at most one runs at a time and a running one is
+# never cancelled. GitHub keeps at most one pending run per group, so a third
+# trigger replaces the older pending one (visible as cancelled; re-dispatch
+# it).
+concurrency:
+  group: nqc-census-public-rpc
+  cancel-in-progress: false
+
 jobs:
   gate:
     runs-on: ubuntu-24.04
@@ -155,10 +164,11 @@ jobs:
           target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/store-verify.log"
           grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/store-verify.log"
 
-      - name: Preserve surface evidence
+      - name: Preserve surface evidence (also on failure)
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: d07-surface-${{ github.run_id }}
+          name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-evidence
           if-no-files-found: error
           overwrite: true
@@ -173,10 +183,10 @@ jobs:
       fail-fast: false
       # Public endpoints share capacity across every caller; bounded
       # parallelism keeps this workflow from exhausting it by itself.
-      max-parallel: 8
+      max-parallel: 6
       matrix:
-        provider: [blastapi-public, mevblocker-rpc]
         partition: [0, 1, 2, 3, 4, 5, 6, 7]
+        provider: [blastapi-public, mevblocker-rpc]
     env:
       D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
       RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
@@ -204,7 +214,7 @@ jobs:
       - name: Fetch surface evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: d07-surface-${{ github.run_id }}
+          name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
 
       - name: PairCreated block partition
@@ -232,10 +242,11 @@ jobs:
           cat "$D07_EVIDENCE/stage.log"
           grep -F "RMC007_STAGE_PASS stage=PAIR_CREATED" "$D07_EVIDENCE/stage.log"
 
-      - name: Preserve partition evidence
+      - name: Preserve partition evidence (also on failure)
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.run_id }}
+          name: d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-evidence
           if-no-files-found: error
           overwrite: true
@@ -248,10 +259,10 @@ jobs:
     timeout-minutes: 350
     strategy:
       fail-fast: false
-      max-parallel: 8
+      max-parallel: 6
       matrix:
-        provider: [blastapi-public, mevblocker-rpc]
         partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        provider: [blastapi-public, mevblocker-rpc]
     env:
       D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
       RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
@@ -279,7 +290,7 @@ jobs:
       - name: Fetch surface evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: d07-surface-${{ github.run_id }}
+          name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
 
       - name: allPairs, pair runtime and getPair index partition
@@ -307,10 +318,11 @@ jobs:
           cat "$D07_EVIDENCE/stage.log"
           grep -F "RMC007_STAGE_PASS stage=PAIRS" "$D07_EVIDENCE/stage.log"
 
-      - name: Preserve partition evidence
+      - name: Preserve partition evidence (also on failure)
+        if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.run_id }}
+          name: d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-evidence
           if-no-files-found: error
           overwrite: true
