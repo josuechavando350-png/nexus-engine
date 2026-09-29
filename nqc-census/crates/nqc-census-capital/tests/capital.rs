@@ -1256,6 +1256,94 @@ fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> T
 }
 
 #[test]
+fn certification_rejects_source_or_requirement_sets_not_consumed_upstream() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    let mut admitted = CapitalCensusLedger::evidentiary();
+    admitted.register_source(first.clone())?;
+    admitted.evaluate_all()?;
+    let authority = certification_context_for(&admitted)?;
+
+    let second = source(
+        CapitalClass::AtomicFlashLiquidity,
+        token,
+        2_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let mut extra_source = CapitalCensusLedger::evidentiary();
+    extra_source.register_source(first.clone())?;
+    extra_source.register_source(second)?;
+    extra_source.evaluate_all()?;
+    assert!(matches!(
+        extra_source.certify(&authority),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+
+    let req = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            repayment_leg(token)?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let mut extra_requirement = CapitalCensusLedger::evidentiary();
+    extra_requirement.register_source(first)?;
+    extra_requirement.register_requirement(req)?;
+    extra_requirement.evaluate_all()?;
+    assert!(matches!(
+        extra_requirement.certify(&authority),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn consumed_output_set_commitment_is_order_independent() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let second = source(
+        CapitalClass::AtomicFlashLiquidity,
+        token,
+        2_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let left = UpstreamConsumptionReceipt::for_sources(
+        hash(23),
+        hash(80),
+        [&first, &second],
+    )?;
+    let right = UpstreamConsumptionReceipt::for_sources(
+        hash(23),
+        hash(80),
+        [&second, &first],
+    )?;
+    assert_eq!(left.output_count(), 2);
+    assert_eq!(left.output_set_commitment(), right.output_set_commitment());
+    Ok(())
+}
+
+#[test]
 fn evidentiary_ledger_requires_nonempty_source_census() -> TestResult {
     let ledger = CapitalCensusLedger::evidentiary();
     assert!(matches!(
