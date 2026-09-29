@@ -282,7 +282,6 @@ fn d08_import_rejects_duplicate_capital_candidates() -> TestResult {
     Ok(())
 }
 
-
 #[test]
 fn current_d08_blocked_token_semantics_admit_no_capital_source() -> TestResult {
     let asset = address(20);
@@ -315,8 +314,7 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
         "{{\"factory_membership\":true,\"fee_semantics\":{{\"basis\":\"EXPLICIT_CONFIGURATION_BOUND_TO_ADMITTED_PAIR_RUNTIME\",\"protocol_fee_enabled\":false,\"swap_fee_bps\":25}},\"liquidity_state\":\"LIQUID\",\"market_id\":\"m-v2\",\"pair\":\"{}\",\"protocol\":\"UNISWAP_V2\",\"reserves\":[\"5000\",\"7000\",1],\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\",\"token0\":\"{}\",\"token1\":\"{}\"}}\n",
         pair.to_hex(), token0.to_hex(), token1.to_hex()
     );
-    let fee_import =
-        import_d08_capital_sources(bad_fee.as_bytes(), tokens.as_bytes(), &context())?;
+    let fee_import = import_d08_capital_sources(bad_fee.as_bytes(), tokens.as_bytes(), &context())?;
     assert_eq!(fee_import.sources.len(), 0);
     assert_eq!(fee_import.rejected_count, 2);
     assert!(fee_import
@@ -324,13 +322,12 @@ fn d08_import_rejects_noncanonical_fee_or_liquidity_semantics() -> TestResult {
         .iter()
         .all(|row| row.reason == CapitalImportRejectionReason::FeeSemanticsUnsupported));
 
-    let no_liquidity = bad_fee.replace(
-        "\"swap_fee_bps\":25",
-        "\"swap_fee_bps\":30",
-    ).replace(
-        "\"liquidity_state\":\"LIQUID\"",
-        "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
-    );
+    let no_liquidity = bad_fee
+        .replace("\"swap_fee_bps\":25", "\"swap_fee_bps\":30")
+        .replace(
+            "\"liquidity_state\":\"LIQUID\"",
+            "\"liquidity_state\":\"ZERO_LIQUIDITY_NOT_ROUTABLE\"",
+        );
     let liquidity_import =
         import_d08_capital_sources(no_liquidity.as_bytes(), tokens.as_bytes(), &context())?;
     assert_eq!(liquidity_import.sources.len(), 0);
