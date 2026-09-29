@@ -43,10 +43,24 @@ pub struct PositionAmount {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct AaveAccountRiskSnapshot {
+    pub total_collateral_base: Amount256,
+    pub total_debt_base: Amount256,
+    pub available_borrows_base: Amount256,
+    pub current_liquidation_threshold: Amount256,
+    pub ltv: Amount256,
+    pub health_factor_wad: Amount256,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BorrowerDemandCandidate {
     pub account: Address,
     pub supply_positions: Vec<PositionAmount>,
     pub debt_positions: Vec<PositionAmount>,
+    pub user_configuration: Amount256,
+    pub emode_category: Option<Amount256>,
+    pub account_risk: Option<AaveAccountRiskSnapshot>,
+    pub configuration_divergences: Vec<String>,
     pub health_factor_below_one: Option<bool>,
     pub blocker: Option<DemandBlockerReason>,
     pub evidence: Vec<CapitalEvidenceRef>,
@@ -131,6 +145,76 @@ fn parse_position(row: &Json) -> Result<PositionAmount, CapitalError> {
         scaled: Amount256::parse_decimal(text(row, "scaled")?)?,
         balance: Amount256::parse_decimal(text(row, "balance")?)?,
     })
+}
+
+fn parse_optional_decimal(value: &Json) -> Result<Option<Amount256>, CapitalError> {
+    match value {
+        Json::String(value) => Ok(Some(Amount256::parse_decimal(value)?)),
+        Json::Null | Json::Object(_) => Ok(None),
+        _ => Err(CapitalError::InvalidCanonical(
+            "RMC-009 optional uint256 field is malformed",
+        )),
+    }
+}
+
+fn parse_account_risk(account: &Json) -> Result<Option<AaveAccountRiskSnapshot>, CapitalError> {
+    let value = required(account, "account_data")?;
+    let Some(items) = value.as_array() else {
+        return match value {
+            Json::Null | Json::Object(_) => Ok(None),
+            _ => Err(CapitalError::InvalidCanonical(
+                "RMC-009 account_data is malformed",
+            )),
+        };
+    };
+    if items.len() != 6 {
+        return Err(CapitalError::InvalidCanonical(
+            "RMC-009 account_data does not contain six fields",
+        ));
+    }
+    let amount = |index: usize| -> Result<Amount256, CapitalError> {
+        Amount256::parse_decimal(
+            items[index]
+                .as_str()
+                .ok_or(CapitalError::InvalidCanonical(
+                    "RMC-009 account_data value is not decimal text",
+                ))?,
+        )
+    };
+    Ok(Some(AaveAccountRiskSnapshot {
+        total_collateral_base: amount(0)?,
+        total_debt_base: amount(1)?,
+        available_borrows_base: amount(2)?,
+        current_liquidation_threshold: amount(3)?,
+        ltv: amount(4)?,
+        health_factor_wad: amount(5)?,
+    }))
+}
+
+fn parse_configuration_divergences(account: &Json) -> Result<Vec<String>, CapitalError> {
+    let values = required(account, "configuration_divergences")?
+        .as_array()
+        .ok_or(CapitalError::InvalidCanonical(
+            "RMC-009 configuration divergences are not array",
+        ))?;
+    let mut out = values
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .map(ToOwned::to_owned)
+                .ok_or(CapitalError::InvalidCanonical(
+                    "RMC-009 configuration divergence is not text",
+                ))
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    out.sort();
+    if out.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(CapitalError::InvalidCanonical(
+            "duplicate RMC-009 configuration divergence",
+        ));
+    }
+    Ok(out)
 }
 
 fn parse_positions(account: &Json, key: &'static str) -> Result<Vec<PositionAmount>, CapitalError> {
@@ -240,6 +324,16 @@ fn hash_len_prefixed(hasher: &mut Sha256, value: &[u8]) {
     hasher.update(value);
 }
 
+fn hash_optional_amount(hasher: &mut Sha256, value: Option<Amount256>) {
+    match value {
+        None => hasher.update([0]),
+        Some(value) => {
+            hasher.update([1]);
+            hasher.update(value.as_be_bytes());
+        }
+    }
+}
+
 fn hash_position(hasher: &mut Sha256, position: &PositionAmount) {
     hash_len_prefixed(hasher, position.market_id.as_bytes());
     hasher.update(position.asset.as_bytes());
@@ -280,6 +374,32 @@ fn demand_coverage_commitment(
             "RMC-009 borrower classification lacks blocker",
         ))?;
         hash_len_prefixed(&mut hasher, blocker.code().as_bytes());
+        hasher.update(borrower.user_configuration.as_be_bytes());
+        hash_optional_amount(&mut hasher, borrower.emode_category);
+        match &borrower.account_risk {
+            None => hasher.update([0]),
+            Some(risk) => {
+                hasher.update([1]);
+                for value in [
+                    risk.total_collateral_base,
+                    risk.total_debt_base,
+                    risk.available_borrows_base,
+                    risk.current_liquidation_threshold,
+                    risk.ltv,
+                    risk.health_factor_wad,
+                ] {
+                    hasher.update(value.as_be_bytes());
+                }
+            }
+        }
+        hasher.update(
+            u64::try_from(borrower.configuration_divergences.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        for divergence in &borrower.configuration_divergences {
+            hash_len_prefixed(&mut hasher, divergence.as_bytes());
+        }
 
         hasher.update(
             u64::try_from(borrower.supply_positions.len())
@@ -443,6 +563,10 @@ pub fn import_d09_borrower_demands(
             ));
         }
         let supply_positions = parse_positions(&row, "supply_positions")?;
+        let user_configuration = Amount256::parse_decimal(text(&row, "configuration")?)?;
+        let emode_category = parse_optional_decimal(required(&row, "emode")?)?;
+        let account_risk = parse_account_risk(&row)?;
+        let configuration_divergences = parse_configuration_divergences(&row)?;
         let below = match required(&row, "health_factor_below_one")? {
             Json::Bool(value) => Some(*value),
             Json::Null => None,
@@ -452,6 +576,18 @@ pub fn import_d09_borrower_demands(
                 ))
             }
         };
+        if let Some(expected_below) = below {
+            let risk = account_risk.as_ref().ok_or(CapitalError::InvalidCanonical(
+                "RMC-009 health-factor classification lacks exact account_data",
+            ))?;
+            let actual_below =
+                risk.health_factor_wad < Amount256::from_u128(1_000_000_000_000_000_000);
+            if actual_below != expected_below {
+                return Err(CapitalError::InvalidCanonical(
+                    "RMC-009 health-factor classification contradicts account_data",
+                ));
+            }
+        }
         let blocker =
             match below {
                 None => {
@@ -483,6 +619,10 @@ pub fn import_d09_borrower_demands(
             account,
             supply_positions,
             debt_positions,
+            user_configuration,
+            emode_category,
+            account_risk,
+            configuration_divergences,
             health_factor_below_one: below,
             blocker,
             evidence: vec![demand_evidence],
