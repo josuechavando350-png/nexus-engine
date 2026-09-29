@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED_AWAITING_CERTIFIED_UPSTREAM",
+  "blocked_reason": "RMC-010 live parity requires certified D09 at A0, certified D06 and full D09 at the declared A1; pin exact run/artifact identities and file digests before acquisition",
+  "base_anchor": {
+    "block_number": 25437474,
+    "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8"
+  },
+  "target_anchor": null,
+  "sources": [],
+  "target_d06_files": []
+}
