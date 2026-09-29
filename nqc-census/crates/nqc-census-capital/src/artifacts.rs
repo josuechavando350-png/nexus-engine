@@ -1009,6 +1009,7 @@ fn metadata(provenance: &ArtifactProvenance) -> Vec<(&'static str, Json)> {
             "generated_at",
             Json::string(provenance.generated_at.clone()),
         ),
+        ("generated_at_basis", Json::string(GENERATED_AT_BASIS)),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
     ]
@@ -1342,8 +1343,13 @@ fn requirement_record(requirement: &CapitalRequirement, provenance: &ArtifactPro
     Json::object(fields)
 }
 
-fn feasibility_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance) -> Json {
+fn feasibility_record(
+    result: &CapitalFeasibility,
+    provenance: &ArtifactProvenance,
+    anchor: &StateAnchor,
+) -> Json {
     let mut fields = metadata(provenance);
+    fields.push(("observation_anchor", anchor_json(anchor)));
     match result {
         CapitalFeasibility::Feasible {
             requirement_id,
@@ -1385,7 +1391,11 @@ fn feasibility_record(result: &CapitalFeasibility, provenance: &ArtifactProvenan
     Json::object(fields)
 }
 
-fn rejection_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance) -> Json {
+fn rejection_record(
+    result: &CapitalFeasibility,
+    provenance: &ArtifactProvenance,
+    anchor: &StateAnchor,
+) -> Json {
     match result {
         CapitalFeasibility::Rejected {
             requirement_id,
@@ -1394,6 +1404,7 @@ fn rejection_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance
         } => {
             let mut fields = metadata(provenance);
             fields.extend([
+                ("observation_anchor", anchor_json(anchor)),
                 ("requirement_id", Json::string(requirement_id.to_hex())),
                 ("reason", Json::string(reason.code())),
                 (
