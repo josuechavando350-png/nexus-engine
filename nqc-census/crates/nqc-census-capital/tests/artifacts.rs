@@ -145,6 +145,7 @@ fn capital_artifacts_are_deterministic_and_complete() -> TestResult {
     let text = std::str::from_utf8(&manifest.bytes)?;
     assert!(text.contains(CAPITAL_SOURCES_FILE));
     assert!(text.contains(CAPITAL_SUMMARY_FILE));
+    assert!(text.contains("PORTFOLIO_CONCURRENT_CAPACITY_NOT_TESTED"));
     assert!(text.contains("REAL_PNL_NOT_TESTED"));
 
     let summary = first.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;

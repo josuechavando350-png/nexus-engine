@@ -153,4 +153,8 @@ RMC-011 may be certified only when:
 - offline verifier passes
 - no downstream profitability, Shadow, Canary, or P&L claim is inferred from capital feasibility alone
 
-Capital feasibility proves funding availability and constraints. It does NOT prove positive net EV, capture probability, or realized P&L.
+Capital feasibility proves funding availability and constraints for each requirement independently. It does NOT prove that multiple individually feasible requirements can be funded concurrently from shared capital sources.
+
+Portfolio-wide simultaneous capacity, source collision, and cross-candidate capital contention remain downstream non-claims until an explicit conflict-set / portfolio-capacity layer certifies them.
+
+Capital feasibility does NOT prove positive net EV, capture probability, or realized P&L.

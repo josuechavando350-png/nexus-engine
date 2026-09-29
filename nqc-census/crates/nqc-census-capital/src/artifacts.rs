@@ -185,6 +185,7 @@ pub fn verify_capital_artifact_bundle(
         CapitalError::InvalidCanonical("manifest non-claims missing"),
     )?;
     let expected_non_claims = [
+        "PORTFOLIO_CONCURRENT_CAPACITY_NOT_TESTED",
         "PROFITABILITY_NOT_TESTED",
         "SHADOW_NOT_TESTED",
         "CANARY_NOT_TESTED",
@@ -576,6 +577,11 @@ pub fn export_capital_artifacts(
             Json::Bool(certificate.summary.proves_zero_own_capital()),
         ),
         (
+            "feasibility_scope",
+            Json::string("PER_REQUIREMENT_INDEPENDENT"),
+        ),
+        ("portfolio_concurrent_capacity_claimed", Json::Bool(false)),
+        (
             "sources_by_class",
             Json::object(
                 certificate
@@ -630,6 +636,7 @@ pub fn export_capital_artifacts(
         (
             "non_claims",
             Json::array([
+                Json::string("PORTFOLIO_CONCURRENT_CAPACITY_NOT_TESTED"),
                 Json::string("PROFITABILITY_NOT_TESTED"),
                 Json::string("SHADOW_NOT_TESTED"),
                 Json::string("CANARY_NOT_TESTED"),
