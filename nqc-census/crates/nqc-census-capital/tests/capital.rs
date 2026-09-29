@@ -63,7 +63,9 @@ fn source(
     })
 }
 
-fn repayment_leg(asset: CapitalAsset) -> Result<CapitalRequirementLeg, nqc_census_capital::CapitalError> {
+fn repayment_leg(
+    asset: CapitalAsset,
+) -> Result<CapitalRequirementLeg, nqc_census_capital::CapitalError> {
     CapitalRequirementLeg::new(
         RequirementKind::Repayment,
         asset,
@@ -230,7 +232,12 @@ fn gas_is_independent_and_required() -> TestResult {
         vec![CapitalClass::GasFunding],
     )?;
     let req = requirement(
-        vec![principal, gas, repayment_leg(token)?, repayment_leg(CapitalAsset::NativeGas)?],
+        vec![
+            principal,
+            gas,
+            repayment_leg(token)?,
+            repayment_leg(CapitalAsset::NativeGas)?,
+        ],
         RequiredAtomicity::SameTransaction,
         true,
     )?;
@@ -268,7 +275,12 @@ fn exact_gas_and_flash_sources_can_be_feasible() -> TestResult {
         vec![CapitalClass::GasFunding],
     )?;
     let req = requirement(
-        vec![principal, gas, repayment_leg(token)?, repayment_leg(CapitalAsset::NativeGas)?],
+        vec![
+            principal,
+            gas,
+            repayment_leg(token)?,
+            repayment_leg(CapitalAsset::NativeGas)?,
+        ],
         RequiredAtomicity::SameTransaction,
         true,
     )?;
