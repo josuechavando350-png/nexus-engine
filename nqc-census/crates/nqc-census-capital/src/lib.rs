@@ -1847,6 +1847,7 @@ pub enum FeasibilityRejection {
     CollateralRequirementUnfunded,
     TemporaryLockUnfunded,
     AllocationInvariantViolation,
+    ExecutionBlocked,
 }
 
 impl FeasibilityRejection {
@@ -1862,6 +1863,7 @@ impl FeasibilityRejection {
             Self::CollateralRequirementUnfunded => "COLLATERAL_REQUIREMENT_UNFUNDED",
             Self::TemporaryLockUnfunded => "TEMPORARY_LOCK_UNFUNDED",
             Self::AllocationInvariantViolation => "ALLOCATION_INVARIANT_VIOLATION",
+            Self::ExecutionBlocked => "EXECUTION_BLOCKED",
         }
     }
 
@@ -1877,6 +1879,7 @@ impl FeasibilityRejection {
             Self::CollateralRequirementUnfunded => 8,
             Self::TemporaryLockUnfunded => 9,
             Self::AllocationInvariantViolation => 10,
+            Self::ExecutionBlocked => 11,
         }
     }
 }
@@ -2274,6 +2277,7 @@ fn classify_unmet_leg(
     let mut same_anchor_atomic = false;
     let mut foreign_anchor = false;
     let mut operator_capacity = Amount256::ZERO;
+    let mut execution_blocked_capacity = Amount256::ZERO;
 
     for source in sources {
         if !source_can_fund_leg(requirement, source, leg, true, false, false) {
@@ -2292,6 +2296,10 @@ fn classify_unmet_leg(
             operator_capacity = operator_capacity
                 .checked_add(source.executable_capacity()?)
                 .unwrap_or(Amount256::MAX);
+        } else if !source.execution_eligible() {
+            execution_blocked_capacity = execution_blocked_capacity
+                .checked_add(source.effective_capacity()?)
+                .unwrap_or(Amount256::MAX);
         }
     }
 
@@ -2303,6 +2311,9 @@ fn classify_unmet_leg(
     }
     if leg.kind() == RequirementKind::Gas {
         return Ok(FeasibilityRejection::MissingGasFunding);
+    }
+    if execution_blocked_capacity >= unmet {
+        return Ok(FeasibilityRejection::ExecutionBlocked);
     }
     if same_anchor_class && !same_anchor_atomic {
         return Ok(FeasibilityRejection::AtomicityMismatch);
