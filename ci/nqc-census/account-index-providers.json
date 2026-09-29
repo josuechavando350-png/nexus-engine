@@ -14,8 +14,8 @@
       "operator": "MEV Blocker public RPC",
       "min_interval_ms": 1250,
       "max_batch": 4,
-      "log_window": 5000,
-      "log_window_basis": "Run 36636132821 falsified the prior 10,000-block assumption: one historical account-log request exceeded mevblocker's 10,000-result cap and the endpoint proposed a 7,447-block maximum range. Use 5,000 blocks, below that observed bound; a failed range still fails closed and is never read as empty.",
+      "log_window": 2500,
+      "log_window_basis": "Provider accepts at most 10,000 returned logs. Live run 36636132821 proved a 10,000-block request can exceed that result cap and the provider suggested a 7,447-block maximum for the failing density. Use 2,500 blocks (one third of that observed maximum) so bursts substantially denser than the failed range still remain bounded; four windows may still be transported in one JSON-RPC batch. A failed range is never read as empty.",
       "pinning": "EIP1898_BLOCK_HASH"
     },
     {
