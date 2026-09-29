@@ -11,9 +11,18 @@ on:
       - nqc-census/crates/nqc-census-v2-discovery/**
       - ci/nqc-census/v2-discovery-providers.json
   workflow_dispatch:
+    inputs:
+      stages_run_id:
+        description: >-
+          Replay and reconcile the stage evidence of an earlier run of this
+          workflow instead of re-acquiring it (every record is still replayed
+          byte-for-byte from its evidence by the exact-head binaries).
+        required: false
+        default: ""
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   gate:
@@ -98,6 +107,7 @@ jobs:
 
   surface:
     needs: gate
+    if: ${{ github.event.inputs.stages_run_id == '' || github.event.inputs.stages_run_id == null }}
     runs-on: ubuntu-24.04
     timeout-minutes: 60
     env:
@@ -148,17 +158,22 @@ jobs:
       - name: Preserve surface evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: d07-surface-${{ github.run_id }}-${{ github.run_attempt }}
+          name: d07-surface-${{ github.run_id }}
           path: /tmp/nqc-rmc007-evidence
           if-no-files-found: error
+          overwrite: true
           retention-days: 30
 
   pair-created:
     needs: surface
+    if: ${{ github.event.inputs.stages_run_id == '' || github.event.inputs.stages_run_id == null }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 240
+    timeout-minutes: 350
     strategy:
       fail-fast: false
+      # Public endpoints share capacity across every caller; bounded
+      # parallelism keeps this workflow from exhausting it by itself.
+      max-parallel: 8
       matrix:
         provider: [blastapi-public, mevblocker-rpc]
         partition: [0, 1, 2, 3, 4, 5, 6, 7]
@@ -189,7 +204,7 @@ jobs:
       - name: Fetch surface evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: d07-surface-${{ github.run_id }}-${{ github.run_attempt }}
+          name: d07-surface-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
 
       - name: PairCreated block partition
@@ -202,17 +217,17 @@ jobs:
           # A public-provider outage longer than the per-request retry budget
           # aborts a run; the next attempt resumes from committed RMC-004
           # checkpoints. Everything is re-verified offline in the reconcile job.
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
             if target/release/nqc-rmc007-v2-stage pair-created --providers ../ci/nqc-census/v2-discovery-providers.json --label "${{ matrix.provider }}" --boundary /tmp/nqc-rmc007-surface/v2-factory-boundary.json --partition "${{ matrix.partition }}" --partitions 8 --store "$D07_EVIDENCE/store" --out "$D07_EVIDENCE/record.json" \
                 > "$D07_EVIDENCE/stage.log" 2> "$D07_EVIDENCE/stage-attempt-$attempt.err"; then
               echo "RMC007_ATTEMPT_PASS stage attempt=$attempt"
               break
             fi
             echo "RMC007_ATTEMPT_FAILED stage attempt=$attempt $(tail -n 1 "$D07_EVIDENCE/stage-attempt-$attempt.err")"
-            if [ "$attempt" = 4 ]; then
+            if [ "$attempt" = 10 ]; then
               exit 1
             fi
-            sleep 120
+            sleep 240
           done
           cat "$D07_EVIDENCE/stage.log"
           grep -F "RMC007_STAGE_PASS stage=PAIR_CREATED" "$D07_EVIDENCE/stage.log"
@@ -220,17 +235,20 @@ jobs:
       - name: Preserve partition evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-evidence
           if-no-files-found: error
+          overwrite: true
           retention-days: 30
 
   pairs:
     needs: surface
+    if: ${{ github.event.inputs.stages_run_id == '' || github.event.inputs.stages_run_id == null }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 300
+    timeout-minutes: 350
     strategy:
       fail-fast: false
+      max-parallel: 8
       matrix:
         provider: [blastapi-public, mevblocker-rpc]
         partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
@@ -261,7 +279,7 @@ jobs:
       - name: Fetch surface evidence
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          name: d07-surface-${{ github.run_id }}-${{ github.run_attempt }}
+          name: d07-surface-${{ github.run_id }}
           path: /tmp/nqc-rmc007-surface
 
       - name: allPairs, pair runtime and getPair index partition
@@ -274,17 +292,17 @@ jobs:
           # A public-provider outage longer than the per-request retry budget
           # aborts a run; the next attempt resumes from committed RMC-004
           # checkpoints. Everything is re-verified offline in the reconcile job.
-          for attempt in 1 2 3 4; do
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
             if target/release/nqc-rmc007-v2-stage pairs --providers ../ci/nqc-census/v2-discovery-providers.json --label "${{ matrix.provider }}" --current /tmp/nqc-rmc007-surface/v2-current-surface.json --partition "${{ matrix.partition }}" --partitions 16 --store "$D07_EVIDENCE/store" --out "$D07_EVIDENCE/record.json" \
                 > "$D07_EVIDENCE/stage.log" 2> "$D07_EVIDENCE/stage-attempt-$attempt.err"; then
               echo "RMC007_ATTEMPT_PASS stage attempt=$attempt"
               break
             fi
             echo "RMC007_ATTEMPT_FAILED stage attempt=$attempt $(tail -n 1 "$D07_EVIDENCE/stage-attempt-$attempt.err")"
-            if [ "$attempt" = 4 ]; then
+            if [ "$attempt" = 10 ]; then
               exit 1
             fi
-            sleep 120
+            sleep 240
           done
           cat "$D07_EVIDENCE/stage.log"
           grep -F "RMC007_STAGE_PASS stage=PAIRS" "$D07_EVIDENCE/stage.log"
@@ -292,13 +310,18 @@ jobs:
       - name: Preserve partition evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.run_id }}
           path: /tmp/nqc-rmc007-evidence
           if-no-files-found: error
+          overwrite: true
           retention-days: 30
 
   reconcile:
-    needs: [surface, pair-created, pairs]
+    needs: [gate, surface, pair-created, pairs]
+    if: >-
+      ${{ always() && needs.gate.result == 'success' && (
+        (github.event.inputs.stages_run_id != '' && github.event.inputs.stages_run_id != null) ||
+        (needs.surface.result == 'success' && needs.pair-created.result == 'success' && needs.pairs.result == 'success')) }}
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     env:
@@ -328,8 +351,18 @@ jobs:
       - name: Fetch every stage
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
-          pattern: d07-*-${{ github.run_id }}-${{ github.run_attempt }}
+          pattern: d07-*-${{ github.event.inputs.stages_run_id || github.run_id }}
           path: /tmp/nqc-rmc007-stages
+          run-id: ${{ github.event.inputs.stages_run_id || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Record the acquisition run
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "RMC007_ACQUISITION_RUN=${{ github.event.inputs.stages_run_id || github.run_id }}"
+          echo "RMC007_RECONCILE_RUN=${{ github.run_id }}"
+          ls /tmp/nqc-rmc007-stages | sort
 
       - name: Merge partition stores through RMC-004 commit
         working-directory: nqc-census
@@ -394,6 +427,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: nqc-rmc007-closeout-${{ github.event.pull_request.head.sha || github.sha }}
+          overwrite: true
           path: |
             /tmp/nqc-rmc007-evidence/closeout
             /tmp/nqc-rmc007-evidence/*.log
