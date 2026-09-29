@@ -6,6 +6,7 @@
 
 pub mod adapters;
 pub mod artifacts;
+pub mod demands;
 pub mod upstream;
 
 use nqc_census_core::{
