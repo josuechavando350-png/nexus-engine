@@ -3,7 +3,7 @@ use nqc_census_capital::{
     demands::import_d09_borrower_demands,
     replay::{
         verify_capital_bundle_with_upstream_replay_for_code, verify_upstream_consumption_by_replay,
-        D08ReplayInputs, D09ReplayInputs,
+        D08ReplayInputs, D09ReplayInputs, UpstreamAuthorityLock, UpstreamAuthorityLockEntry,
     },
     upstream::{import_d08_capital_sources, D08CapitalImportContext},
     CapitalCensusLedger, CapitalCertificationContext, CapitalEvidenceRef, GitObjectId,
@@ -152,6 +152,18 @@ struct ReplayFixture {
     d09_accounts: Vec<u8>,
     d09_summary: Vec<u8>,
     d09_manifest: Vec<u8>,
+}
+
+fn authority_lock(
+    context: &CapitalCertificationContext,
+) -> Result<UpstreamAuthorityLock, nqc_census_capital::CapitalError> {
+    UpstreamAuthorityLock::new(
+        context
+            .stages()
+            .iter()
+            .map(UpstreamAuthorityLockEntry::from)
+            .collect(),
+    )
 }
 
 fn replay_context() -> Result<ReplayFixture, Box<dyn std::error::Error>> {
@@ -384,10 +396,12 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     const CODE_TREE: &str = "8888888888888888888888888888888888888888";
     let provenance = ArtifactProvenance::new("2023-11-14T22:13:20Z", CODE_COMMIT, CODE_TREE)?;
     let bundle = export_capital_artifacts(&ledger, &context, &provenance)?;
+    let lock = authority_lock(&context)?;
     let verified = verify_capital_bundle_with_upstream_replay_for_code(
         &bundle,
         CODE_COMMIT,
         CODE_TREE,
+        &lock,
         D08ReplayInputs {
             state_manifest_jsonl: &d08_states,
             token_admission_jsonl: &d08_tokens,
@@ -404,5 +418,160 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     assert_eq!(verified.capital.requirement_count, 0);
     assert_eq!(verified.upstream.d08_source_count, 1);
     assert_eq!(verified.upstream.d09_requirement_count, 0);
+    assert_eq!(
+        verified.upstream_authority_lock_commitment,
+        lock.commitment()
+    );
+    Ok(())
+}
+
+#[test]
+fn authority_lock_roundtrips_canonically_and_rejects_unconsumed_stage_substitution() -> TestResult {
+    let fixture = replay_context()?;
+    let lock = authority_lock(&fixture.context)?;
+    let bytes = lock.canonical_json()?;
+    let decoded = UpstreamAuthorityLock::parse_json(&bytes)?;
+    assert_eq!(decoded, lock);
+
+    let text = String::from_utf8(bytes.clone())?;
+    let with_unknown_field = text.replacen("{", "{\"ignored\":1,", 1).into_bytes();
+    assert!(UpstreamAuthorityLock::parse_json(&with_unknown_field).is_err());
+
+    let mut forged_entries = fixture
+        .context
+        .stages()
+        .iter()
+        .map(UpstreamAuthorityLockEntry::from)
+        .collect::<Vec<_>>();
+    let d06 = forged_entries
+        .iter_mut()
+        .find(|entry| entry.stage == UpstreamCensusStage::Rmc006DiscoveryAave)
+        .ok_or("missing D06 lock entry")?;
+    d06.artifact_sha256 = hash(240);
+    let forged_lock = UpstreamAuthorityLock::new(forged_entries)?;
+    assert!(forged_lock.verify(&fixture.context).is_err());
+    Ok(())
+}
+
+#[test]
+fn authority_lock_rejects_anchor_substitution_and_mixed_stage_anchors() -> TestResult {
+    let fixture = replay_context()?;
+    let mut entries = fixture
+        .context
+        .stages()
+        .iter()
+        .map(UpstreamAuthorityLockEntry::from)
+        .collect::<Vec<_>>();
+    let shifted_anchor = StateAnchor::new(
+        ChainDomain::new(1, hash(1), hash(2))?,
+        25_437_474,
+        hash(3),
+        hash(4),
+        1_700_000_001,
+        hash(5),
+    )?;
+
+    entries[0].observation_anchor = shifted_anchor.clone();
+    assert!(UpstreamAuthorityLock::new(entries.clone()).is_err());
+
+    for entry in &mut entries {
+        entry.observation_anchor = shifted_anchor.clone();
+    }
+    let shifted_lock = UpstreamAuthorityLock::new(entries)?;
+    assert!(shifted_lock.verify(&fixture.context).is_err());
+    Ok(())
+}
+
+#[test]
+fn authority_lock_rejects_non_certifiable_upstream_stage_truth() -> TestResult {
+    let fixture = replay_context()?;
+    let mut entries = fixture
+        .context
+        .stages()
+        .iter()
+        .map(UpstreamAuthorityLockEntry::from)
+        .collect::<Vec<_>>();
+    entries[0].unresolved_mismatch_count = 1;
+    assert!(UpstreamAuthorityLock::new(entries).is_err());
+    Ok(())
+}
+
+#[test]
+fn bundle_replay_rejects_self_consistent_but_externally_unlocked_d06_authority() -> TestResult {
+    let fixture = replay_context()?;
+    let lock = authority_lock(&fixture.context)?;
+    let mut stages = fixture.context.stages().to_vec();
+    let d06 = stages
+        .iter_mut()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc006DiscoveryAave)
+        .ok_or("missing D06 authority")?;
+    d06.artifact_sha256 = hash(241);
+
+    let admitted_evidence = stages
+        .iter()
+        .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256))
+        .collect::<Vec<_>>();
+    let d08_receipt = fixture
+        .context
+        .consumption_receipts()
+        .copied()
+        .find(|receipt| receipt.stage() == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or("missing D08 receipt")?;
+    let d09_receipt = fixture
+        .context
+        .consumption_receipts()
+        .copied()
+        .find(|receipt| receipt.stage() == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or("missing D09 receipt")?;
+    let forged_context = CapitalCertificationContext::new(stages, admitted_evidence)?
+        .with_consumption_receipts(vec![d08_receipt, d09_receipt])?;
+
+    let d08_authority = forged_context
+        .stages()
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or("missing D08 authority")?;
+    let d08_context = D08CapitalImportContext {
+        anchor: anchor(),
+        evidence: vec![CapitalEvidenceRef::Artifact(d08_authority.artifact_sha256)],
+    };
+    let imported = import_d08_capital_sources(
+        &fixture.d08_states,
+        &fixture.d08_tokens,
+        &fixture.d08_facts,
+        &fixture.d08_manifest,
+        d08_authority,
+        &d08_context,
+    )?;
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    for source in imported.sources {
+        ledger.register_source(source)?;
+    }
+    ledger.evaluate_all()?;
+
+    const CODE_COMMIT: &str = "7777777777777777777777777777777777777777";
+    const CODE_TREE: &str = "8888888888888888888888888888888888888888";
+    let exact_anchor = anchor();
+    let provenance = ArtifactProvenance::for_anchor(&exact_anchor, CODE_COMMIT, CODE_TREE)?;
+    let bundle = export_capital_artifacts(&ledger, &forged_context, &provenance)?;
+
+    assert!(verify_capital_bundle_with_upstream_replay_for_code(
+        &bundle,
+        CODE_COMMIT,
+        CODE_TREE,
+        &lock,
+        D08ReplayInputs {
+            state_manifest_jsonl: &fixture.d08_states,
+            token_admission_jsonl: &fixture.d08_tokens,
+            pool_and_factory_facts_json: &fixture.d08_facts,
+            evidence_manifest_json: &fixture.d08_manifest,
+        },
+        D09ReplayInputs {
+            account_manifest_jsonl: &fixture.d09_accounts,
+            account_summary_json: &fixture.d09_summary,
+            evidence_manifest_json: &fixture.d09_manifest,
+        },
+    )
+    .is_err());
     Ok(())
 }

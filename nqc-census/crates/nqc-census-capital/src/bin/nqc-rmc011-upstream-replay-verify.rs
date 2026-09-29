@@ -6,6 +6,7 @@ use nqc_census_capital::{
     },
     replay::{
         verify_capital_bundle_with_upstream_replay_for_code, D08ReplayInputs, D09ReplayInputs,
+        UpstreamAuthorityLock,
     },
 };
 use sha2::{Digest, Sha256};
@@ -25,21 +26,23 @@ struct Args {
     capital_dir: PathBuf,
     d08_dir: PathBuf,
     d09_dir: PathBuf,
+    authority_lock: PathBuf,
     expected_code_commit: String,
     expected_code_tree: String,
 }
 
 fn parse_args() -> Result<Args, Box<dyn Error>> {
     let args = env::args().skip(1).collect::<Vec<_>>();
-    if args.len() != 10
+    if args.len() != 12
         || args[0] != "--capital-dir"
         || args[2] != "--d08-dir"
         || args[4] != "--d09-dir"
-        || args[6] != "--expected-code-commit"
-        || args[8] != "--expected-code-tree"
+        || args[6] != "--authority-lock"
+        || args[8] != "--expected-code-commit"
+        || args[10] != "--expected-code-tree"
     {
         return Err(
-            "usage: nqc-rmc011-upstream-replay-verify --capital-dir <dir> --d08-dir <dir> --d09-dir <dir> --expected-code-commit <sha> --expected-code-tree <sha>"
+            "usage: nqc-rmc011-upstream-replay-verify --capital-dir <dir> --d08-dir <dir> --d09-dir <dir> --authority-lock <json> --expected-code-commit <sha> --expected-code-tree <sha>"
                 .into(),
         );
     }
@@ -47,8 +50,9 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
         capital_dir: PathBuf::from(&args[1]),
         d08_dir: PathBuf::from(&args[3]),
         d09_dir: PathBuf::from(&args[5]),
-        expected_code_commit: args[7].clone(),
-        expected_code_tree: args[9].clone(),
+        authority_lock: PathBuf::from(&args[7]),
+        expected_code_commit: args[9].clone(),
+        expected_code_tree: args[11].clone(),
     })
 }
 
@@ -80,11 +84,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let d09_accounts = fs::read(args.d09_dir.join("account-manifest.jsonl"))?;
     let d09_summary = fs::read(args.d09_dir.join("account-summary.json"))?;
     let d09_manifest = fs::read(args.d09_dir.join("evidence-manifest.json"))?;
+    let authority_lock = UpstreamAuthorityLock::parse_json(&fs::read(&args.authority_lock)?)?;
 
     let verified = verify_capital_bundle_with_upstream_replay_for_code(
         &bundle,
         &args.expected_code_commit,
         &args.expected_code_tree,
+        &authority_lock,
         D08ReplayInputs {
             state_manifest_jsonl: &d08_state,
             token_admission_jsonl: &d08_tokens,
@@ -99,13 +105,14 @@ fn main() -> Result<(), Box<dyn Error>> {
     )?;
 
     println!(
-        "RMC_011_UPSTREAM_REPLAY_VERIFY=PASS sources={} requirements={} d08_sources={} d09_requirements={} capital_commitment={} upstream_authority_commitment={}",
+        "RMC_011_UPSTREAM_REPLAY_VERIFY=PASS sources={} requirements={} d08_sources={} d09_requirements={} capital_commitment={} upstream_authority_commitment={} upstream_authority_lock_commitment={}",
         verified.capital.source_count,
         verified.capital.requirement_count,
         verified.upstream.d08_source_count,
         verified.upstream.d09_requirement_count,
         verified.capital.capital_commitment,
         verified.capital.upstream_authority_commitment,
+        verified.upstream_authority_lock_commitment.to_hex(),
     );
     Ok(())
 }
