@@ -662,7 +662,7 @@ pub fn export_capital_artifacts(
 
 fn upstream_authority_json(authority: &CapitalCertificationContext) -> Json {
     Json::object([
-        ("schema_version", Json::uint(1)),
+        ("schema_version", Json::uint(2)),
         (
             "upstream_authority_commitment",
             Json::string(hex(authority.commitment().as_bytes())),
