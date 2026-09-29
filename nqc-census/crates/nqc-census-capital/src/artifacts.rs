@@ -1,5 +1,5 @@
 use crate::{
-    Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
+    Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext,
     CapitalClass, CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement,
     CapitalSource, CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock,
@@ -434,8 +434,8 @@ pub fn verify_capital_artifact_bundle(
     Ok(CapitalArtifactVerification {
         source_count,
         requirement_count,
-        feasibility_count,
-        rejection_count,
+        feasibility_count: feasibility.len(),
+        rejection_count: rejected_count,
         capital_commitment,
         upstream_authority_commitment,
     })
