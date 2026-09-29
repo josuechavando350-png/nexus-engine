@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Probe public providers (read-only)
-        run: python3 -u ci/nqc-census/probe/chain_capability_probe_v3.py
+        run: python3 -u ci/nqc-census/probe/chain_capability_probe_v4.py
       - name: Preserve probe evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
