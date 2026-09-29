@@ -206,17 +206,27 @@ pub fn run_current_surface(
     let store = Store::create(store_path, StoreConfig::standard())?;
     let transport = CurlTransport::new(60, 10);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
+    Ok(current_surface_with(&acquisition, &providers)?)
+}
+
+/// The exact-anchor factory surface through `acquisition` (live or replay).
+pub fn current_surface_with(
+    acquisition: &Acquisition<'_>,
+    providers: &ProviderSet,
+) -> Result<Json, ChainError> {
     let profile = ChainProfile::mainnet()?;
     let (bootstrap, chain, anchor) =
-        run_bootstrap(&acquisition, &providers, &profile, ANCHOR_NUMBER)?;
+        run_bootstrap(acquisition, providers, &profile, ANCHOR_NUMBER)?;
     if anchor.block_hash().to_hex() != ANCHOR_HASH {
-        return Err(ChainError::Evidence("D07 observation anchor hash differs".into()).into());
+        return Err(ChainError::Evidence(
+            "D07 observation anchor hash differs".into(),
+        ));
     }
 
     let mut results = Vec::new();
     for provider in providers.iter() {
         results.push(provider_current_facts(
-            &acquisition,
+            acquisition,
             provider,
             &chain,
             &anchor,

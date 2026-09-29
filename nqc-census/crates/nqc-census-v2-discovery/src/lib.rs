@@ -4,13 +4,14 @@
 //! checkpoint authority. It consumes D01/D03/D04/D05 plus the shared chain
 //! evidence layer and reconciles semantically independent discovery surfaces.
 
+pub mod admission;
 pub mod boundary;
-pub mod enumeration;
-pub mod history;
+pub mod closeout;
 mod interface;
 pub mod live;
-pub mod membership;
 mod reconcile;
+pub mod stage;
+pub mod verify;
 
 pub use interface::{
     decode_pair_created, factory_interface, verify_factory_runtime, PairCreatedEvent,
@@ -18,7 +19,7 @@ pub use interface::{
 };
 pub use reconcile::{
     reconcile, CurrentPair, Delta, DeltaKind, DirectLookupProof, PairCreatedProof, PairManifest,
-    Reconciliation, ReconciliationSummary, RuntimeCodeProof,
+    Reconciliation, ReconciliationSummary, RuntimeCallProof,
 };
 
 use std::fmt::{Display, Formatter};

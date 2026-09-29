@@ -9,21 +9,24 @@ on:
       - nqc-census/Cargo.toml
       - nqc-census/Cargo.lock
       - nqc-census/crates/nqc-census-v2-discovery/**
+      - ci/nqc-census/v2-discovery-providers.json
   workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  v2-discovery:
+  gate:
     runs-on: ubuntu-24.04
-    timeout-minutes: 360
+    timeout-minutes: 45
     env:
       D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
       PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
       PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
       RUST_TOOLCHAIN: "1.98.1"
-      D07_TESTS_EXPECTED: "10"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "8"
       D07_EVIDENCE: /tmp/nqc-rmc007-evidence
 
     steps:
@@ -33,18 +36,24 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
           fetch-depth: 0
 
-      - name: Verify authority and exact scope
+      - name: Verify authority and upstream immutability
         shell: bash
         run: |
           set -euo pipefail
           test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
           git merge-base --is-ancestor "$D07_BASE" HEAD
+          git merge-base --is-ancestor "$D07_BASE" "$RMC003_2_AUTHORITY"
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
             git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
           fi
-          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD --             ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation             ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
-          git diff --quiet "$D07_BASE" HEAD --             nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store             nqc-census/crates/nqc-census-chain
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+            ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
+            ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store \
+            nqc-census/crates/nqc-census-chain
           echo RMC007_UPSTREAM_IMMUTABLE_PASS
 
       - name: Verify no authority duplication or transaction path
@@ -80,97 +89,315 @@ jobs:
           cargo clippy --workspace --all-targets --locked -- -D warnings
           count=$(cargo test --locked -p nqc-census-v2-discovery --test v2_discovery -- --list 2>/dev/null | grep -c ': test$')
           test "$count" = "$D07_TESTS_EXPECTED"
+          count=$(cargo test --locked -p nqc-census-v2-discovery --test v2_pipeline -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D07_PIPELINE_TESTS_EXPECTED"
           cargo test --locked -p nqc-census-v2-discovery -- --nocapture
           cargo test --workspace --all-targets --locked
           cargo build --workspace --all-targets --locked
           echo RMC007_RECONCILIATION_CORE_PASS
 
+  surface:
+    needs: gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "8"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
 
-      - name: Live exact-anchor V2 current surface
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Live exact-anchor factory surface and creation boundary (3 providers)
         working-directory: nqc-census
         shell: bash
         run: |
           set -euo pipefail
-          rm -rf "$D07_EVIDENCE"
           mkdir -p "$D07_EVIDENCE"
-          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-current
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-current --bin nqc-rmc007-v2-boundary
           cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
           target/release/nqc-rmc007-v2-current \
             --providers ../ci/nqc-census/rpc-providers.json \
             --store "$D07_EVIDENCE/store" \
             --out "$D07_EVIDENCE/v2-current-surface.json" | tee "$D07_EVIDENCE/current.log"
           grep -F "RMC007_CURRENT_SURFACE_PASS providers=3" "$D07_EVIDENCE/current.log"
-          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/store-verify.log"
-          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/store-verify.log"
-
-      - name: Prove V2 factory creation boundary
-        working-directory: nqc-census
-        shell: bash
-        run: |
-          set -euo pipefail
-          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-boundary
           target/release/nqc-rmc007-v2-boundary \
             --providers ../ci/nqc-census/rpc-providers.json \
             --store "$D07_EVIDENCE/store" \
             --out "$D07_EVIDENCE/v2-factory-boundary.json" | tee "$D07_EVIDENCE/boundary.log"
           grep -F "RMC007_FACTORY_BOUNDARY_PASS providers=3" "$D07_EVIDENCE/boundary.log"
-          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/boundary-store-verify.log"
-          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/boundary-store-verify.log"
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/store-verify.log"
 
-      - name: Reconstruct complete PairCreated history
+      - name: Preserve surface evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d07-surface-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  pair-created:
+    needs: surface
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [blastapi-public, mevblocker-rpc]
+        partition: [0, 1, 2, 3, 4, 5, 6, 7]
+    env:
+      D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "8"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch surface evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d07-surface-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-surface
+
+      - name: PairCreated block partition
         working-directory: nqc-census
         shell: bash
         run: |
           set -euo pipefail
-          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-history
-          target/release/nqc-rmc007-v2-history \
-            --providers ../ci/nqc-census/rpc-providers.json \
-            --current "$D07_EVIDENCE/v2-current-surface.json" \
-            --boundary "$D07_EVIDENCE/v2-factory-boundary.json" \
-            --store "$D07_EVIDENCE/store" \
-            --out "$D07_EVIDENCE/v2-pair-created-history.json" | tee "$D07_EVIDENCE/history.log"
-          grep -F "RMC007_PAIR_CREATED_HISTORY_PASS provider=mevblocker-rpc" "$D07_EVIDENCE/history.log"
-          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/history-store-verify.log"
-          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/history-store-verify.log"
+          mkdir -p "$D07_EVIDENCE"
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-stage
+          # A public-provider outage longer than the per-request retry budget
+          # aborts a run; the next attempt resumes from committed RMC-004
+          # checkpoints. Everything is re-verified offline in the reconcile job.
+          for attempt in 1 2 3 4; do
+            if target/release/nqc-rmc007-v2-stage pair-created --providers ../ci/nqc-census/v2-discovery-providers.json --label "${{ matrix.provider }}" --boundary /tmp/nqc-rmc007-surface/v2-factory-boundary.json --partition "${{ matrix.partition }}" --partitions 8 --store "$D07_EVIDENCE/store" --out "$D07_EVIDENCE/record.json" \
+                > "$D07_EVIDENCE/stage.log" 2> "$D07_EVIDENCE/stage-attempt-$attempt.err"; then
+              echo "RMC007_ATTEMPT_PASS stage attempt=$attempt"
+              break
+            fi
+            echo "RMC007_ATTEMPT_FAILED stage attempt=$attempt $(tail -n 1 "$D07_EVIDENCE/stage-attempt-$attempt.err")"
+            if [ "$attempt" = 4 ]; then
+              exit 1
+            fi
+            sleep 120
+          done
+          cat "$D07_EVIDENCE/stage.log"
+          grep -F "RMC007_STAGE_PASS stage=PAIR_CREATED" "$D07_EVIDENCE/stage.log"
 
-      - name: Full allPairs enumeration
+      - name: Preserve partition evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  pairs:
+    needs: surface
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    strategy:
+      fail-fast: false
+      matrix:
+        provider: [blastapi-public, mevblocker-rpc]
+        partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+    env:
+      D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "8"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch surface evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d07-surface-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-surface
+
+      - name: allPairs, pair runtime and getPair index partition
         working-directory: nqc-census
         shell: bash
         run: |
           set -euo pipefail
-          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-enumeration
-          target/release/nqc-rmc007-v2-enumeration \
-            --providers ../ci/nqc-census/rpc-providers.json \
-            --current "$D07_EVIDENCE/v2-current-surface.json" \
-            --store "$D07_EVIDENCE/store" \
-            --out "$D07_EVIDENCE/v2-full-enumeration.json" | tee "$D07_EVIDENCE/enumeration.log"
-          grep -F "RMC007_FULL_ENUMERATION_PASS provider=blastapi-public" "$D07_EVIDENCE/enumeration.log"
-          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/enumeration-store-verify.log"
-          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/enumeration-store-verify.log"
+          mkdir -p "$D07_EVIDENCE"
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-stage
+          # A public-provider outage longer than the per-request retry budget
+          # aborts a run; the next attempt resumes from committed RMC-004
+          # checkpoints. Everything is re-verified offline in the reconcile job.
+          for attempt in 1 2 3 4; do
+            if target/release/nqc-rmc007-v2-stage pairs --providers ../ci/nqc-census/v2-discovery-providers.json --label "${{ matrix.provider }}" --current /tmp/nqc-rmc007-surface/v2-current-surface.json --partition "${{ matrix.partition }}" --partitions 16 --store "$D07_EVIDENCE/store" --out "$D07_EVIDENCE/record.json" \
+                > "$D07_EVIDENCE/stage.log" 2> "$D07_EVIDENCE/stage-attempt-$attempt.err"; then
+              echo "RMC007_ATTEMPT_PASS stage attempt=$attempt"
+              break
+            fi
+            echo "RMC007_ATTEMPT_FAILED stage attempt=$attempt $(tail -n 1 "$D07_EVIDENCE/stage-attempt-$attempt.err")"
+            if [ "$attempt" = 4 ]; then
+              exit 1
+            fi
+            sleep 120
+          done
+          cat "$D07_EVIDENCE/stage.log"
+          grep -F "RMC007_STAGE_PASS stage=PAIRS" "$D07_EVIDENCE/stage.log"
 
-      - name: Direct getPair and runtime verification
+      - name: Preserve partition evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+  reconcile:
+    needs: [surface, pair-created, pairs]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "8"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch every stage
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d07-*-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-stages
+
+      - name: Merge partition stores through RMC-004 commit
         working-directory: nqc-census
         shell: bash
         run: |
           set -euo pipefail
-          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-membership
-          target/release/nqc-rmc007-v2-membership \
-            --providers ../ci/nqc-census/rpc-providers.json \
-            --current "$D07_EVIDENCE/v2-current-surface.json" \
-            --boundary "$D07_EVIDENCE/v2-factory-boundary.json" \
-            --history "$D07_EVIDENCE/v2-pair-created-history.json" \
-            --enumeration "$D07_EVIDENCE/v2-full-enumeration.json" \
-            --store "$D07_EVIDENCE/store" \
-            --out "$D07_EVIDENCE/v2-membership-runtime.json" | tee "$D07_EVIDENCE/membership.log"
-          grep -F "RMC007_DIRECT_MEMBERSHIP_RUNTIME_PASS provider=blastapi-public" "$D07_EVIDENCE/membership.log"
-          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/membership-store-verify.log"
-          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/membership-store-verify.log"
+          mkdir -p "$D07_EVIDENCE/records"
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-merge --bin nqc-rmc007-v2-reconcile
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          surface=$(ls -d /tmp/nqc-rmc007-stages/d07-surface-*)
+          cp "$surface/v2-current-surface.json" "$surface/v2-factory-boundary.json" "$D07_EVIDENCE/"
+          args=(--from "$surface/store")
+          count=0
+          for stage in /tmp/nqc-rmc007-stages/d07-stage-*; do
+            name=$(basename "$stage")
+            cp "$stage/record.json" "$D07_EVIDENCE/records/$name.json"
+            args+=(--from "$stage/store" --record "$stage/record.json")
+            count=$((count + 1))
+          done
+          test "$count" = 48
+          target/release/nqc-rmc007-v2-merge --into "$D07_EVIDENCE/store" "${args[@]}" | tee "$D07_EVIDENCE/merge.log"
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" > "$D07_EVIDENCE/merged-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/merged-store-verify.log"
+          grep -E "^(streams|ranges_certified|evidence_root)=" "$D07_EVIDENCE/merged-store-verify.log"
 
-      - name: Preserve D07 current-surface evidence
+      - name: Offline replay, reconciliation and closeout (no network)
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside the offline namespace"
+            exit 1
+          fi
+          echo RMC007_OFFLINE_NAMESPACE_HAS_NO_NETWORK
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TREE_SHA="$(git show -s --format=%T HEAD)"
+          for out in closeout closeout-rerun; do
+            sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
+              target/release/nqc-rmc007-v2-reconcile \
+              --surface-providers ../ci/nqc-census/rpc-providers.json \
+              --stage-providers ../ci/nqc-census/v2-discovery-providers.json \
+              --current "$D07_EVIDENCE/v2-current-surface.json" \
+              --boundary "$D07_EVIDENCE/v2-factory-boundary.json" \
+              --records "$D07_EVIDENCE/records" \
+              --store "$D07_EVIDENCE/store" \
+              --out-dir "$D07_EVIDENCE/$out" \
+              --code-commit "$HEAD_SHA" \
+              --code-tree "$TREE_SHA" | tee "$D07_EVIDENCE/$out.log"
+          done
+          diff -r "$D07_EVIDENCE/closeout" "$D07_EVIDENCE/closeout-rerun"
+          echo RMC007_DETERMINISTIC_CLOSEOUT_PASS
+          grep -F "RMC007_CLOSEOUT_PASS pairs=514624 unexplained=0 mismatches=0" "$D07_EVIDENCE/closeout.log"
+          (cd "$D07_EVIDENCE/closeout" && sha256sum * | tee ../closeout-SHA256SUMS)
+          cat "$D07_EVIDENCE/closeout/v2-discovery-summary.json"; echo
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" > "$D07_EVIDENCE/final-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/final-store-verify.log"
+          grep -E "^(streams|evidence_root)=" "$D07_EVIDENCE/final-store-verify.log"
+
+      - name: Preserve D07 closeout
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: nqc-rmc007-current-${{ github.event.pull_request.head.sha || github.sha }}
-          path: /tmp/nqc-rmc007-evidence
+          name: nqc-rmc007-closeout-${{ github.event.pull_request.head.sha || github.sha }}
+          path: |
+            /tmp/nqc-rmc007-evidence/closeout
+            /tmp/nqc-rmc007-evidence/*.log
+            /tmp/nqc-rmc007-evidence/*.json
+            /tmp/nqc-rmc007-evidence/closeout-SHA256SUMS
           if-no-files-found: warn
           retention-days: 30

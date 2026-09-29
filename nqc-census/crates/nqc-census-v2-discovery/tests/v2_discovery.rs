@@ -7,7 +7,7 @@ use nqc_census_core::{
 };
 use nqc_census_v2_discovery::{
     decode_pair_created, factory_interface, reconcile, CurrentPair, DeltaKind, DirectLookupProof,
-    PairCreatedProof, RuntimeCodeProof,
+    PairCreatedProof, RuntimeCallProof,
 };
 
 type TestResult = Result<(), Box<dyn std::error::Error>>;
@@ -128,10 +128,14 @@ fn lookup(pair: u8, token0: u8, token1: u8) -> DirectLookupProof {
     }
 }
 
-fn runtime(pair: u8) -> RuntimeCodeProof {
-    RuntimeCodeProof {
+/// The pair's own token0()/token1() answers; fixtures use pair 10 for
+/// tokens (1, 2) and pair 11 for tokens (3, 4).
+fn runtime(pair: u8) -> RuntimeCallProof {
+    let (token0, token1) = if pair == 10 { (1, 2) } else { (3, 4) };
+    RuntimeCallProof {
         pair: address(pair),
-        code_hash: hash(0x60 + pair),
+        token0: address(token0),
+        token1: address(token1),
         evidence: vec![EvidenceRef::Artifact(hash(0x70 + pair))],
     }
 }
@@ -257,7 +261,7 @@ fn missing_runtime_code_is_an_unexplained_delta() -> TestResult {
     assert!(report
         .deltas
         .iter()
-        .any(|delta| delta.kind == DeltaKind::RuntimeCodeMissing));
+        .any(|delta| delta.kind == DeltaKind::RuntimeCallMissing));
     Ok(())
 }
 
@@ -309,5 +313,24 @@ fn paircreated_decoder_is_strict() -> TestResult {
     assert_eq!(decoded.ordinal, 1);
     assert_eq!(decoded.token0, token0);
     assert_eq!(decoded.token1, token1);
+    Ok(())
+}
+
+#[test]
+fn runtime_call_with_other_tokens_is_an_unexplained_delta() -> TestResult {
+    let mut wrong = runtime(10);
+    wrong.token1 = address(9);
+    let report = reconcile(
+        &admission()?,
+        vec![pair(0, 10, 1, 2)],
+        vec![event(0, 10, 1, 2)],
+        vec![lookup(10, 1, 2)],
+        vec![wrong],
+    )?;
+    assert!(!report.certifiable());
+    assert!(report
+        .deltas
+        .iter()
+        .any(|delta| delta.kind == DeltaKind::RuntimeIdentityMismatch));
     Ok(())
 }

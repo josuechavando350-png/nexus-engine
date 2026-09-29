@@ -52,13 +52,21 @@ pub fn run_factory_boundary(
     let store = Store::open(store_path, &StoreConfig::standard())?;
     let transport = CurlTransport::new(60, 10);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());
+    Ok(factory_boundary_with(&acquisition, &providers)?)
+}
+
+/// The factory's earliest-code boundary through `acquisition` (live or replay).
+pub fn factory_boundary_with(
+    acquisition: &Acquisition<'_>,
+    providers: &ProviderSet,
+) -> Result<Json, ChainError> {
     let profile = ChainProfile::mainnet()?;
-    let (bootstrap, chain, _) = run_bootstrap(&acquisition, &providers, &profile, ANCHOR_NUMBER)?;
+    let (bootstrap, chain, _) = run_bootstrap(acquisition, providers, &profile, ANCHOR_NUMBER)?;
     let factory = Address::parse_hex(FACTORY)?;
 
     let mut results = Vec::new();
     for provider in providers.iter() {
-        results.push(provider_boundary(&acquisition, provider, &chain, factory)?);
+        results.push(provider_boundary(acquisition, provider, &chain, factory)?);
     }
     let agreement = agree("rmc007-v2-factory-boundary", &results)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;

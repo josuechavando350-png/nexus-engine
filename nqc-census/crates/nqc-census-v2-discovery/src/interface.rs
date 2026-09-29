@@ -1,6 +1,6 @@
 use crate::DiscoveryError;
 use nqc_census_chain::{abi, evm::CodeScan};
-use nqc_census_core::{Address, Hash32, RawLogEnvelope};
+use nqc_census_core::{Address, LogTopic, RawLogEnvelope};
 
 const ALL_PAIRS_LENGTH: &str = "allPairsLength()";
 const ALL_PAIRS: &str = "allPairs(uint256)";
@@ -72,7 +72,7 @@ pub struct PairCreatedEvent {
     pub ordinal: u64,
 }
 
-fn topic_address(topic: &Hash32) -> Result<Address, DiscoveryError> {
+fn topic_address(topic: &LogTopic) -> Result<Address, DiscoveryError> {
     let bytes = topic.as_bytes();
     if bytes[..12].iter().any(|byte| *byte != 0) {
         return Err(DiscoveryError::InvalidInterface(

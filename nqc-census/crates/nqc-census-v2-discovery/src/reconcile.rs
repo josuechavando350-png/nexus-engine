@@ -37,10 +37,13 @@ pub struct DirectLookupProof {
     pub evidence: Vec<EvidenceRef>,
 }
 
+/// The pair's own `token0()`/`token1()` answered at the observation anchor:
+/// code executes at the pair address and holds this token identity.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct RuntimeCodeProof {
+pub struct RuntimeCallProof {
     pub pair: Address,
-    pub code_hash: Hash32,
+    pub token0: Address,
+    pub token1: Address,
     pub evidence: Vec<EvidenceRef>,
 }
 
@@ -49,7 +52,8 @@ pub enum DeltaKind {
     EnumerationOnly,
     EventOnly,
     DirectLookupMissing,
-    RuntimeCodeMissing,
+    RuntimeCallMissing,
+    RuntimeIdentityMismatch,
 }
 
 impl DeltaKind {
@@ -58,7 +62,8 @@ impl DeltaKind {
             Self::EnumerationOnly => "ENUMERATION_ONLY",
             Self::EventOnly => "EVENT_ONLY",
             Self::DirectLookupMissing => "DIRECT_LOOKUP_MISSING",
-            Self::RuntimeCodeMissing => "RUNTIME_CODE_MISSING",
+            Self::RuntimeCallMissing => "RUNTIME_CALL_MISSING",
+            Self::RuntimeIdentityMismatch => "RUNTIME_IDENTITY_MISMATCH",
         }
     }
 }
@@ -78,7 +83,7 @@ pub struct PairManifest {
     pub token1: Address,
     pub current_index: Option<u64>,
     pub creation: Option<PairCreatedProof>,
-    pub runtime_code_hash: Option<Hash32>,
+    pub runtime_verified: bool,
     pub direct_lookup_verified: bool,
     pub sources: BTreeSet<&'static str>,
     pub evidence: Vec<EvidenceRef>,
@@ -114,7 +119,7 @@ struct BuildPair {
     token1: Address,
     current_index: Option<u64>,
     creation: Option<PairCreatedProof>,
-    runtime_code_hash: Option<Hash32>,
+    runtime_verified: bool,
     direct_lookup_verified: bool,
     sources: BTreeSet<&'static str>,
     evidence: Vec<EvidenceRef>,
@@ -159,7 +164,7 @@ fn insert_identity(
         token1,
         current_index: None,
         creation: None,
-        runtime_code_hash: None,
+        runtime_verified: false,
         direct_lookup_verified: false,
         sources: BTreeSet::new(),
         evidence: Vec::new(),
@@ -227,11 +232,7 @@ impl Reconciliation {
                     pair.current_index.map_or(Json::Null, Json::uint),
                 ),
                 ("creation", creation),
-                (
-                    "runtime_code_hash",
-                    pair.runtime_code_hash
-                        .map_or(Json::Null, |hash| Json::string(hash.to_hex())),
-                ),
+                ("runtime_verified", Json::Bool(pair.runtime_verified)),
                 (
                     "direct_lookup_verified",
                     Json::Bool(pair.direct_lookup_verified),
@@ -315,7 +316,7 @@ pub fn reconcile(
     current: Vec<CurrentPair>,
     events: Vec<PairCreatedProof>,
     lookups: Vec<DirectLookupProof>,
-    runtime: Vec<RuntimeCodeProof>,
+    runtime: Vec<RuntimeCallProof>,
 ) -> Result<Reconciliation, DiscoveryError> {
     let binding = admission.binding();
     if binding.deployment().protocol() != ProtocolFamily::UniswapV2 {
@@ -396,10 +397,10 @@ pub fn reconcile(
         by_tokens.insert(key, proof);
     }
 
-    let mut by_runtime = BTreeMap::<Address, RuntimeCodeProof>::new();
+    let mut by_runtime = BTreeMap::<Address, RuntimeCallProof>::new();
     for proof in runtime {
         if let Some(existing) = by_runtime.insert(proof.pair, proof.clone()) {
-            if existing.code_hash != proof.code_hash {
+            if (existing.token0, existing.token1) != (proof.token0, proof.token1) {
                 return Err(DiscoveryError::ConflictingPairIdentity);
             }
         }
@@ -422,15 +423,22 @@ pub fn reconcile(
                 status: "UNEXPLAINED",
             });
         }
-        if let Some(code) = by_runtime.get(&entry.pair) {
-            entry.runtime_code_hash = Some(code.code_hash);
-            merge_evidence(&mut entry.evidence, &code.evidence);
-        } else {
-            deltas.push(Delta {
-                kind: DeltaKind::RuntimeCodeMissing,
+        match by_runtime.get(&entry.pair) {
+            Some(call) if (call.token0, call.token1) == (entry.token0, entry.token1) => {
+                entry.runtime_verified = true;
+                entry.sources.insert("PAIR_RUNTIME_CALLS");
+                merge_evidence(&mut entry.evidence, &call.evidence);
+            }
+            Some(_) => deltas.push(Delta {
+                kind: DeltaKind::RuntimeIdentityMismatch,
                 pair: entry.pair,
                 status: "UNEXPLAINED",
-            });
+            }),
+            None => deltas.push(Delta {
+                kind: DeltaKind::RuntimeCallMissing,
+                pair: entry.pair,
+                status: "UNEXPLAINED",
+            }),
         }
         match (entry.current_index, entry.creation.is_some()) {
             (Some(_), false) => deltas.push(Delta {
@@ -487,7 +495,7 @@ pub fn reconcile(
             token1: entry.token1,
             current_index: entry.current_index,
             creation: entry.creation,
-            runtime_code_hash: entry.runtime_code_hash,
+            runtime_verified: entry.runtime_verified,
             direct_lookup_verified: entry.direct_lookup_verified,
             sources: entry.sources,
             evidence: entry.evidence,
