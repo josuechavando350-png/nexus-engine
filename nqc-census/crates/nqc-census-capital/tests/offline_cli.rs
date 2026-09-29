@@ -63,7 +63,7 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             admitted: true,
         })?);
     }
-    CapitalCertificationContext::new(stages)
+    CapitalCertificationContext::new(stages, evidence())
 }
 
 fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {

@@ -63,7 +63,7 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             admitted: true,
         })?);
     }
-    CapitalCertificationContext::new(stages)
+    CapitalCertificationContext::new(stages, evidence())
 }
 
 fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
@@ -457,6 +457,7 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
     }
     assert!(text.contains("\"schema_version\":2"));
     assert!(text.contains("\"observation_anchor\""));
+    assert!(text.contains("\"admitted_evidence_refs\""));
     assert!(text.contains("\"unresolved_mismatch_count\":0"));
     assert!(text.contains("\"unknown_failure_count\":0"));
     assert!(text.contains("\"admitted\":true"));

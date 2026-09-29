@@ -53,7 +53,7 @@ fn certification_context() -> Result<CapitalCertificationContext, nqc_census_cap
             admitted: true,
         })?);
     }
-    CapitalCertificationContext::new(stages)
+    CapitalCertificationContext::new(stages, evidence())
 }
 
 fn source(
@@ -1185,7 +1185,7 @@ fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResul
     let context = certification_context()?;
     assert_eq!(context.stages().len(), 5);
 
-    let incomplete = CapitalCertificationContext::new(context.stages()[..4].to_vec());
+    let incomplete = CapitalCertificationContext::new(context.stages()[..4].to_vec(), evidence());
     assert!(matches!(
         incomplete,
         Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
@@ -1196,7 +1196,7 @@ fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResul
     let mut duplicate = context.stages().to_vec();
     duplicate[4] = duplicate[3].clone();
     assert!(matches!(
-        CapitalCertificationContext::new(duplicate),
+        CapitalCertificationContext::new(duplicate, evidence()),
         Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
             _
         ))
@@ -1744,7 +1744,7 @@ fn certification_context_rejects_mixed_upstream_anchors() -> TestResult {
         })?);
     }
     assert!(matches!(
-        CapitalCertificationContext::new(stages),
+        CapitalCertificationContext::new(stages, evidence()),
         Err(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
             _
         ))
@@ -1794,10 +1794,64 @@ fn evidentiary_ledger_cannot_certify_against_a_different_anchor() -> TestResult 
             admitted: true,
         })?);
     }
-    let authority = CapitalCertificationContext::new(stages)?;
+    let authority = CapitalCertificationContext::new(stages, evidence())?;
     assert!(matches!(
         ledger.certify(&authority),
         Err(nqc_census_capital::CapitalError::AnchorMismatch)
+    ));
+    Ok(())
+}
+
+
+#[test]
+fn certification_rejects_evidence_not_admitted_by_upstream_authority() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let source = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            repayment_leg(token)?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(source)?;
+    ledger.register_requirement(requirement)?;
+    ledger.evaluate_all()?;
+
+    let mut stages = Vec::new();
+    for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
+        let value = u8::try_from(index + 1)?;
+        stages.push(UpstreamStageAuthority::new(UpstreamStageAuthoritySpec {
+            stage,
+            code_commit: GitObjectId::parse_hex(&format!("{value:040x}"))?,
+            code_tree: GitObjectId::parse_hex(&format!("{:040x}", u64::from(value) + 10))?,
+            artifact_sha256: hash(value.saturating_add(20)),
+            observation_anchor: anchor(100),
+            unresolved_mismatch_count: 0,
+            unknown_failure_count: 0,
+            admitted: true,
+        })?);
+    }
+    let authority = CapitalCertificationContext::new(
+        stages,
+        vec![CapitalEvidenceRef::Artifact(hash(98))],
+    )?;
+    assert!(matches!(
+        ledger.certify(&authority),
+        Err(nqc_census_capital::CapitalError::UnresolvedEvidenceRef)
     ));
     Ok(())
 }

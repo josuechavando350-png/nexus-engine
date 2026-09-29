@@ -71,6 +71,7 @@ pub enum CapitalError {
     RejectedFeasibilityHasNoObligations,
     InvalidGitObjectId,
     InvalidUpstreamAuthority(&'static str),
+    UnresolvedEvidenceRef,
 }
 
 impl Display for CapitalError {
@@ -162,6 +163,9 @@ impl Display for CapitalError {
             Self::InvalidGitObjectId => f.write_str("invalid 40-hex git object id"),
             Self::InvalidUpstreamAuthority(reason) => {
                 write!(f, "invalid upstream capital authority: {reason}")
+            }
+            Self::UnresolvedEvidenceRef => {
+                f.write_str("capital evidence reference is not admitted by upstream authority")
             }
         }
     }
@@ -2439,11 +2443,15 @@ impl UpstreamStageAuthority {
 pub struct CapitalCertificationContext {
     stages: Vec<UpstreamStageAuthority>,
     observation_anchor: StateAnchor,
+    admitted_evidence: BTreeSet<CapitalEvidenceRef>,
     commitment: Hash32,
 }
 
 impl CapitalCertificationContext {
-    pub fn new(mut stages: Vec<UpstreamStageAuthority>) -> Result<Self, CapitalError> {
+    pub fn new(
+        mut stages: Vec<UpstreamStageAuthority>,
+        admitted_evidence: Vec<CapitalEvidenceRef>,
+    ) -> Result<Self, CapitalError> {
         stages.sort_by_key(|authority| authority.stage);
         if stages.len() != UpstreamCensusStage::ALL.len() {
             return Err(CapitalError::InvalidUpstreamAuthority(
@@ -2480,6 +2488,12 @@ impl CapitalCertificationContext {
                 "upstream stages do not share one exact observation anchor",
             ));
         }
+        let admitted_evidence = admitted_evidence.into_iter().collect::<BTreeSet<_>>();
+        if admitted_evidence.is_empty() {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "admitted evidence catalog is empty",
+            ));
+        }
 
         let mut hasher = Sha256::new();
         hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V2");
@@ -2494,11 +2508,27 @@ impl CapitalCertificationContext {
             hasher.update(authority.unknown_failure_count.to_be_bytes());
             hasher.update([u8::from(authority.admitted)]);
         }
+        hasher.update(
+            u64::try_from(admitted_evidence.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        for evidence in &admitted_evidence {
+            let mut writer = Writer::default();
+            evidence.encode(&mut writer);
+            hasher.update(
+                u64::try_from(writer.0.len())
+                    .unwrap_or(u64::MAX)
+                    .to_be_bytes(),
+            );
+            hasher.update(&writer.0);
+        }
         let commitment = Hash32::new(finalize_sha256(hasher))
             .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero authority commitment"))?;
         Ok(Self {
             stages,
             observation_anchor,
+            admitted_evidence,
             commitment,
         })
     }
@@ -2513,6 +2543,14 @@ impl CapitalCertificationContext {
 
     pub const fn observation_anchor(&self) -> &StateAnchor {
         &self.observation_anchor
+    }
+
+    pub fn admitted_evidence(&self) -> impl Iterator<Item = &CapitalEvidenceRef> {
+        self.admitted_evidence.iter()
+    }
+
+    pub fn admits_evidence(&self, reference: &CapitalEvidenceRef) -> bool {
+        self.admitted_evidence.contains(reference)
     }
 }
 
@@ -2676,6 +2714,19 @@ impl CapitalCensusLedger {
                 .any(|requirement| requirement.anchor() != authority.observation_anchor())
         {
             return Err(CapitalError::AnchorMismatch);
+        }
+        if self.sources.values().any(|source| {
+            source
+                .evidence()
+                .iter()
+                .any(|reference| !authority.admits_evidence(reference))
+        }) || self.requirements.values().any(|requirement| {
+            requirement
+                .evidence()
+                .iter()
+                .any(|reference| !authority.admits_evidence(reference))
+        }) {
+            return Err(CapitalError::UnresolvedEvidenceRef);
         }
         self.validate_settlements()?;
         let summary = self.summary()?;
