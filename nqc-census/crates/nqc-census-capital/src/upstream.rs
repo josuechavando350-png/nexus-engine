@@ -211,7 +211,11 @@ fn push_source(
         protocol: protocol.to_owned(),
         market_id: market_id.to_owned(),
         asset,
-        result: ImportOutcomeResult::Admitted(*source.id().as_bytes()),
+        // Coverage commits to the stable source identity, not the observation-specific
+        // source id. Re-serialization of the same admitted D08 facts changes the
+        // evidence-manifest digest (and therefore CapitalSourceId), but must not
+        // change candidate coverage.
+        result: ImportOutcomeResult::Admitted(*source.key_id().as_bytes()),
     });
     sources.push(source);
 }
