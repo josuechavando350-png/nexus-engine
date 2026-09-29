@@ -6,9 +6,6 @@ name: NQC RMC-010 Refresh Anchor Proposal
 # the anchor header on its own providers before observing anything.
 
 on:
-  pull_request:
-    paths:
-      - .github/workflows/nqc-census-refresh-anchor.yml
   workflow_dispatch:
 
 permissions:
@@ -90,7 +87,7 @@ jobs:
           branch="nqc/rmc-006-aave-reconciled-discovery-20260929"
           workflow="nqc-census-aave-discovery.yml"
           run_id=$(gh api "repos/$repo/actions/workflows/$workflow/runs?event=workflow_dispatch&branch=$branch&per_page=100" \
-            --jq '[.workflow_runs[] | select(.status == "queued" or .status == "in_progress")][0].id // empty')
+            --jq '[.workflow_runs[] | select(.status == "pending" or .status == "queued" or .status == "in_progress")][0].id // empty')
           if [ -n "$run_id" ]; then
             echo "RMC010_D06_A1_REUSE_ACTIVE run=$run_id"
           else
