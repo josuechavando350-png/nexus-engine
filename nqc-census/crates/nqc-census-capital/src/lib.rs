@@ -1,10 +1,10 @@
-pub mod adapters;
-
 //! Protocol-agnostic, evidence-bound capital semantics for RMC-011.
 //!
 //! This crate deliberately does not discover live liquidity or make profitability claims.
 //! It defines exact integer capital sources, candidate requirements, deterministic identities,
 //! and fail-closed feasibility semantics consumed by later protocol adapters.
+
+pub mod adapters;
 
 use nqc_census_core::{
     Address, CensusUnitId, ChainDomain, EvidenceRef, Hash32, ObservationDigest, StateAnchor,

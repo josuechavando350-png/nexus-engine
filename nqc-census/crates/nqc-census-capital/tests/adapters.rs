@@ -3,7 +3,7 @@ use nqc_census_capital::{
         AaveV3FlashObservation, BalancerV2FlashObservation, AAVE_V3_PROVIDER_NAMESPACE,
         BALANCER_V2_PROVIDER_NAMESPACE,
     },
-    Amount256, CapitalAsset, CapitalClass, CapitalEvidenceRef, CapitalError, RoundingMode,
+    Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, RoundingMode,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
