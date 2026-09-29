@@ -1,6 +1,6 @@
 use crate::keccak::keccak256;
 use crate::rlp;
-use crate::{Address, ChainDomain, Hash32};
+use crate::{Address, ChainDomain, Hash32, IdentityError};
 use sha2::{Digest, Sha256};
 use std::fmt::{Display, Formatter};
 
@@ -365,24 +365,127 @@ impl<T> CensusObservation<T> {
     }
 }
 
+/// One EVM log topic: a 32-byte ABI word.
+///
+/// Unlike `Hash32` (block, transaction, code and configuration hashes, which
+/// are never zero), a topic may legitimately be all zero: an indexed zero
+/// address, zero amount or zero `bytes32` argument. The two types never alias:
+/// a topic becomes a hash only through `Hash32::try_from`, which rejects zero,
+/// and nothing converts a hash field into a topic implicitly.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct LogTopic([u8; 32]);
+
+impl LogTopic {
+    pub const ZERO: Self = Self([0; 32]);
+
+    pub const fn new(bytes: [u8; 32]) -> Self {
+        Self(bytes)
+    }
+
+    /// Strict `0x`-optional, 64-digit hexadecimal parser.
+    pub fn parse_hex(value: &str) -> Result<Self, IdentityError> {
+        let raw = value
+            .strip_prefix("0x")
+            .or_else(|| value.strip_prefix("0X"))
+            .unwrap_or(value);
+        if raw.len() != 64 {
+            return Err(IdentityError::InvalidHexLength {
+                expected: 32,
+                actual: raw.len() / 2,
+            });
+        }
+        let digit = |index: usize| -> Result<u8, IdentityError> {
+            let value = raw.as_bytes()[index];
+            match value {
+                b'0'..=b'9' => Ok(value - b'0'),
+                b'a'..=b'f' => Ok(value - b'a' + 10),
+                b'A'..=b'F' => Ok(value - b'A' + 10),
+                _ => Err(IdentityError::InvalidHexCharacter { index }),
+            }
+        };
+        let mut out = [0_u8; 32];
+        for (index, byte) in out.iter_mut().enumerate() {
+            *byte = (digit(index * 2)? << 4) | digit(index * 2 + 1)?;
+        }
+        Ok(Self(out))
+    }
+
+    pub const fn as_bytes(&self) -> &[u8; 32] {
+        &self.0
+    }
+
+    pub fn is_zero(&self) -> bool {
+        self.0 == [0; 32]
+    }
+
+    pub fn to_hex(&self) -> String {
+        format!("0x{}", hex_encode(&self.0))
+    }
+}
+
+/// Every hash is a valid topic (e.g. an event signature as topic 0).
+impl From<Hash32> for LogTopic {
+    fn from(hash: Hash32) -> Self {
+        Self(*hash.as_bytes())
+    }
+}
+
+/// A topic is a hash only if it is nonzero.
+impl TryFrom<LogTopic> for Hash32 {
+    type Error = IdentityError;
+
+    fn try_from(topic: LogTopic) -> Result<Self, Self::Error> {
+        Self::new(topic.0)
+    }
+}
+
+/// Byte comparison with a hash, e.g. topic 0 against an event signature.
+impl PartialEq<Hash32> for LogTopic {
+    fn eq(&self, other: &Hash32) -> bool {
+        &self.0 == other.as_bytes()
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RawLogEnvelope {
     emitter: Address,
     transaction_hash: Hash32,
     transaction_index: u32,
     log_index: u32,
-    topics: Vec<Hash32>,
+    topics: Vec<LogTopic>,
     data: Vec<u8>,
     removed: bool,
 }
 
 impl RawLogEnvelope {
+    /// Log whose topics are all nonzero hashes (the RMC-003 constructor).
     pub fn new(
         emitter: Address,
         transaction_hash: Hash32,
         transaction_index: u32,
         log_index: u32,
         topics: Vec<Hash32>,
+        data: Vec<u8>,
+        removed: bool,
+    ) -> Result<Self, ObservationError> {
+        Self::with_topics(
+            emitter,
+            transaction_hash,
+            transaction_index,
+            log_index,
+            topics.into_iter().map(LogTopic::from).collect(),
+            data,
+            removed,
+        )
+    }
+
+    /// Log with arbitrary topic words, including all-zero topics.
+    pub fn with_topics(
+        emitter: Address,
+        transaction_hash: Hash32,
+        transaction_index: u32,
+        log_index: u32,
+        topics: Vec<LogTopic>,
         data: Vec<u8>,
         removed: bool,
     ) -> Result<Self, ObservationError> {
@@ -419,7 +522,7 @@ impl RawLogEnvelope {
         self.log_index
     }
 
-    pub fn topics(&self) -> &[Hash32] {
+    pub fn topics(&self) -> &[LogTopic] {
         &self.topics
     }
 
@@ -605,12 +708,12 @@ impl ObservationPayload for RawLogEnvelope {
         let topic_count = usize::from(reader.u8()?);
         let mut topics = Vec::with_capacity(topic_count.min(4));
         for _ in 0..topic_count {
-            topics.push(reader.hash()?);
+            topics.push(LogTopic::new(reader.array()?));
         }
         let data = reader.length_prefixed()?.to_vec();
         let removed = reader.flag()?;
         reader.finish()?;
-        Self::new(
+        Self::with_topics(
             emitter,
             transaction_hash,
             transaction_index,
