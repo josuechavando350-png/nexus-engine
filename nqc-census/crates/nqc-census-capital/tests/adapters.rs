@@ -1,7 +1,8 @@
 use nqc_census_capital::{
     adapters::{
-        AaveV3FlashObservation, BalancerV2FlashObservation, AAVE_V3_PROVIDER_NAMESPACE,
-        BALANCER_V2_PROVIDER_NAMESPACE,
+        AaveV3FlashObservation, BalancerV2FlashObservation, UniswapV2FlashSwapObservation,
+        AAVE_V3_PROVIDER_NAMESPACE, BALANCER_V2_PROVIDER_NAMESPACE,
+        UNISWAP_V2_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, RoundingMode,
 };
@@ -139,5 +140,69 @@ fn adapter_records_roundtrip_through_generic_capital_source() -> TestResult {
     // Keep the protocol-specific rounding mode part of the canonical source identity.
     let floor = nqc_census_capital::FeeModel::basis_points_with_rounding(5, RoundingMode::Floor)?;
     assert_ne!(source.fee_model(), floor);
+    Ok(())
+}
+
+
+#[test]
+fn uniswap_v2_flash_swap_binds_strict_reserve_capacity_and_fee() -> TestResult {
+    let asset = address(40);
+    let source = UniswapV2FlashSwapObservation {
+        anchor: anchor(),
+        pair: address(41),
+        asset,
+        reserve: Amount256::from_u128(10_000),
+        provider_locator_hash: hash(42),
+        evidence: evidence(),
+    }
+    .into_capital_source()?;
+
+    assert_eq!(source.class(), CapitalClass::FlashSwap);
+    assert_eq!(source.asset(), CapitalAsset::Token(asset));
+    assert_eq!(source.effective_capacity()?, Amount256::from_u128(9_999));
+
+    let quote = source
+        .quote_fee(Amount256::from_u128(997))?
+        .ok_or("missing Uniswap V2 fee quote")?;
+    assert_eq!(quote.amount, Amount256::from_u128(3));
+
+    let rounded = source
+        .quote_fee(Amount256::from_u128(1_000))?
+        .ok_or("missing Uniswap V2 rounded fee quote")?;
+    assert_eq!(rounded.amount, Amount256::from_u128(4));
+    assert_eq!(UNISWAP_V2_PROVIDER_NAMESPACE, 0x1302);
+    Ok(())
+}
+
+#[test]
+fn uniswap_v2_flash_swap_rejects_reserve_that_cannot_satisfy_strict_output_bound() -> TestResult {
+    for reserve in [Amount256::ZERO, Amount256::from_u128(1)] {
+        let result = UniswapV2FlashSwapObservation {
+            anchor: anchor(),
+            pair: address(41),
+            asset: address(40),
+            reserve,
+            provider_locator_hash: hash(42),
+            evidence: evidence(),
+        }
+        .into_capital_source();
+        assert!(matches!(result, Err(CapitalError::NoCompatibleSource)));
+    }
+    Ok(())
+}
+
+#[test]
+fn uniswap_v2_flash_swap_requires_evidence() -> TestResult {
+    let result = UniswapV2FlashSwapObservation {
+        anchor: anchor(),
+        pair: address(41),
+        asset: address(40),
+        reserve: Amount256::from_u128(10_000),
+        provider_locator_hash: hash(42),
+        evidence: Vec::new(),
+    }
+    .into_capital_source();
+
+    assert!(matches!(result, Err(CapitalError::MissingEvidence)));
     Ok(())
 }

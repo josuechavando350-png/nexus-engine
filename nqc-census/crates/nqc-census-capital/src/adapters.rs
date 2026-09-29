@@ -8,6 +8,7 @@ use nqc_census_core::{Address, Hash32, StateAnchor};
 
 pub const AAVE_V3_PROVIDER_NAMESPACE: u16 = 0x1103;
 pub const BALANCER_V2_PROVIDER_NAMESPACE: u16 = 0x1202;
+pub const UNISWAP_V2_PROVIDER_NAMESPACE: u16 = 0x1302;
 
 #[derive(Debug, Clone)]
 pub struct AaveV3FlashObservation {
@@ -95,6 +96,56 @@ impl BalancerV2FlashObservation {
                 CapitalFailureMode::SourceUnavailable,
                 CapitalFailureMode::CapacityChanged,
                 CapitalFailureMode::FeeChanged,
+                CapitalFailureMode::RepaymentFailure,
+                CapitalFailureMode::CallbackOrHookRevert,
+            ],
+            evidence: self.evidence,
+        })
+    }
+}
+
+
+#[derive(Debug, Clone)]
+pub struct UniswapV2FlashSwapObservation {
+    pub anchor: StateAnchor,
+    pub pair: Address,
+    pub asset: Address,
+    pub reserve: Amount256,
+    pub provider_locator_hash: Hash32,
+    pub evidence: Vec<CapitalEvidenceRef>,
+}
+
+impl UniswapV2FlashSwapObservation {
+    pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
+        let one = Amount256::from_u128(1);
+        if self.reserve <= one {
+            return Err(CapitalError::NoCompatibleSource);
+        }
+
+        // Uniswap V2 requires amountOut < reserve, so the largest same-token
+        // flash-swap draw is reserve - 1 base unit. For same-token repayment,
+        // the exact extra amount required by the 0.3% invariant is
+        // ceil(amount_out * 3 / 997).
+        let maximum_available = self.reserve.checked_sub(one)?;
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::FlashSwap,
+            anchor: self.anchor,
+            provider_namespace: UNISWAP_V2_PROVIDER_NAMESPACE,
+            provider_locator_hash: self.provider_locator_hash,
+            provider_kind: CapitalProviderKind::DexLiquidityPool,
+            source_contract: Some(self.pair),
+            asset: CapitalAsset::Token(self.asset),
+            maximum_available,
+            fee_model: FeeModel::exact_ratio_with_rounding(3, 997, RoundingMode::Ceil)?,
+            repayment_asset: CapitalAsset::Token(self.asset),
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![
+                CapitalFailureMode::SourceUnavailable,
+                CapitalFailureMode::CapacityChanged,
                 CapitalFailureMode::RepaymentFailure,
                 CapitalFailureMode::CallbackOrHookRevert,
             ],
