@@ -2089,7 +2089,7 @@ fn solve_funding(
             return Err(CapitalError::DuplicateSource);
         }
         if !source_keys.insert(source.key_id()) {
-            return Err(CapitalError::DuplicateSourceKey);
+            return Err(CapitalError::ConflictingSourceState);
         }
     }
 

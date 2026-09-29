@@ -1678,7 +1678,7 @@ fn checked_feasibility_rejects_duplicate_source_capacity() -> TestResult {
         &[first, second_state],
     )
     .expect_err("multiple states for one source key must fail closed");
-    assert!(matches!(duplicate_key, CapitalError::DuplicateSourceKey));
+    assert!(matches!(duplicate_key, CapitalError::ConflictingSourceState));
     Ok(())
 }
 
