@@ -199,41 +199,37 @@ impl UpstreamAuthorityLock {
                 "unsupported upstream authority lock schema",
             ));
         }
-        let rows = parsed
-            .get("stages")
-            .and_then(Json::as_array)
-            .ok_or(CapitalError::InvalidCanonical(
-                "upstream authority lock stages missing",
-            ))?;
+        let rows =
+            parsed
+                .get("stages")
+                .and_then(Json::as_array)
+                .ok_or(CapitalError::InvalidCanonical(
+                    "upstream authority lock stages missing",
+                ))?;
         let mut entries = Vec::with_capacity(rows.len());
         for row in rows {
-            let stage = UpstreamCensusStage::parse_code(
-                row.str_field("stage")
-                    .map_err(|_| CapitalError::InvalidCanonical("authority lock stage missing"))?,
-            )?;
-            let code_commit = GitObjectId::parse_hex(
-                row.str_field("code_commit").map_err(|_| {
+            let stage =
+                UpstreamCensusStage::parse_code(row.str_field("stage").map_err(|_| {
+                    CapitalError::InvalidCanonical("authority lock stage missing")
+                })?)?;
+            let code_commit =
+                GitObjectId::parse_hex(row.str_field("code_commit").map_err(|_| {
                     CapitalError::InvalidCanonical("authority lock code commit missing")
-                })?,
-            )?;
-            let code_tree = GitObjectId::parse_hex(
-                row.str_field("code_tree").map_err(|_| {
-                    CapitalError::InvalidCanonical("authority lock code tree missing")
-                })?,
-            )?;
-            let artifact_sha256 = Hash32::parse_hex(
-                row.str_field("artifact_sha256").map_err(|_| {
+                })?)?;
+            let code_tree = GitObjectId::parse_hex(row.str_field("code_tree").map_err(|_| {
+                CapitalError::InvalidCanonical("authority lock code tree missing")
+            })?)?;
+            let artifact_sha256 =
+                Hash32::parse_hex(row.str_field("artifact_sha256").map_err(|_| {
                     CapitalError::InvalidCanonical("authority lock artifact digest missing")
-                })?,
-            )
-            .map_err(|_| {
-                CapitalError::InvalidCanonical("invalid authority lock artifact digest")
-            })?;
-            let observation_anchor = parse_authority_lock_anchor(
-                row.get("observation_anchor").ok_or(CapitalError::InvalidCanonical(
-                    "authority lock observation anchor missing",
-                ))?,
-            )?;
+                })?)
+                .map_err(|_| {
+                    CapitalError::InvalidCanonical("invalid authority lock artifact digest")
+                })?;
+            let observation_anchor =
+                parse_authority_lock_anchor(row.get("observation_anchor").ok_or(
+                    CapitalError::InvalidCanonical("authority lock observation anchor missing"),
+                )?)?;
             entries.push(UpstreamAuthorityLockEntry {
                 stage,
                 code_commit,
@@ -245,9 +241,7 @@ impl UpstreamAuthorityLock {
         let lock = Self::new(entries)?;
         let declared = parsed
             .str_field("authority_lock_commitment")
-            .map_err(|_| {
-                CapitalError::InvalidCanonical("authority lock commitment missing")
-            })?;
+            .map_err(|_| CapitalError::InvalidCanonical("authority lock commitment missing"))?;
         if declared != lock.commitment.to_hex() {
             return Err(CapitalError::CanonicalDigestMismatch);
         }
