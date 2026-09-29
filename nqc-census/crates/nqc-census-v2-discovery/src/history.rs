@@ -11,7 +11,7 @@ use nqc_census_chain::{
     ChainError,
 };
 use nqc_census_core::{
-    Address, CensusObservation, Hash32, ObservationClass, RawLogEnvelope, StateAnchor,
+    Address, CensusObservation, ObservationClass, RawLogEnvelope, StateAnchor,
 };
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
