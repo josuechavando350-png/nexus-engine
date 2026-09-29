@@ -2641,9 +2641,8 @@ fn consumed_id_set_commitment(
             "consumed output set contains duplicate identifiers",
         ));
     }
-    let count = u64::try_from(ids.len()).map_err(|_| {
-        CapitalError::InvalidUpstreamAuthority("consumed output count exceeds u64")
-    })?;
+    let count = u64::try_from(ids.len())
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("consumed output count exceeds u64"))?;
     let mut hasher = Sha256::new();
     hasher.update(domain);
     hasher.update([0]);
@@ -3170,9 +3169,7 @@ impl CapitalCensusLedger {
             ))?;
         let (source_count, source_set_commitment) =
             source_output_set_commitment(self.sources.values())?;
-        if d08.output_count != source_count
-            || d08.output_set_commitment != source_set_commitment
-        {
+        if d08.output_count != source_count || d08.output_set_commitment != source_set_commitment {
             return Err(CapitalError::InvalidUpstreamAuthority(
                 "capital source ledger does not equal the consumed RMC-008 source set",
             ));
