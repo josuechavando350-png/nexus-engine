@@ -633,6 +633,35 @@ fn d08_evidentiary_import_rejects_consumed_artifact_substitution() -> TestResult
 }
 
 #[test]
+fn d08_evidentiary_import_rejects_manifest_anchor_substitution() -> TestResult {
+    let asset = address(20);
+    let tokens = format!("{}\n", token_row(asset, true));
+    let states = format!(
+        "{{\"asset\":\"{}\",\"lifecycle\":\"CURRENT\",\"market_id\":\"m-aave\",\"protocol\":\"AAVE_V3\",\"protocol_facts\":{{\"active\":true,\"available_liquidity\":\"10000\",\"flash_loan_enabled\":true,\"paused\":false}},\"schema_version\":1,\"stage_state_reconstructable\":\"ADVANCE\"}}\n",
+        asset.to_hex()
+    );
+    let facts = d08_facts();
+    let exact = String::from_utf8(d08_manifest(states.as_bytes(), tokens.as_bytes(), &facts))?;
+    let forged = exact
+        .replace("\"block_number\":25437474", "\"block_number\":25437475")
+        .into_bytes();
+    let authority = d08_authority(&forged)?;
+    let mut bound_context = context();
+    bound_context.evidence = vec![CapitalEvidenceRef::Artifact(authority.artifact_sha256)];
+
+    assert!(import_d08_capital_sources_bound(
+        states.as_bytes(),
+        tokens.as_bytes(),
+        &facts,
+        &forged,
+        &authority,
+        &bound_context,
+    )
+    .is_err());
+    Ok(())
+}
+
+#[test]
 fn d08_evidentiary_import_rejects_manifest_not_named_by_authority() -> TestResult {
     let asset = address(20);
     let tokens = format!("{}\n", token_row(asset, true));
