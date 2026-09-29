@@ -2,10 +2,11 @@ use crate::{
     Amount256, CapitalAsset, CapitalCensusLedger, CapitalCertificationContext, CapitalClass,
     CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement, CapitalSource,
     CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
-    RepaymentSemantics, RequirementKind, TemporaryLock,
+    RepaymentSemantics, RequirementKind, TemporaryLock, UpstreamCensusStage,
+    UpstreamStageAuthority,
 };
 use nqc_census_chain::json::Json;
-use nqc_census_core::StateAnchor;
+use nqc_census_core::{Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -14,6 +15,7 @@ pub const CAPITAL_REQUIREMENTS_FILE: &str = "capital-requirements.jsonl";
 pub const CAPITAL_FEASIBILITY_FILE: &str = "capital-feasibility.jsonl";
 pub const CAPITAL_REJECTION_LEDGER_FILE: &str = "capital-rejection-ledger.jsonl";
 pub const CAPITAL_SUMMARY_FILE: &str = "capital-census-summary.json";
+pub const CAPITAL_UPSTREAM_AUTHORITY_FILE: &str = "capital-upstream-authority.json";
 pub const CAPITAL_EVIDENCE_MANIFEST_FILE: &str = "capital-evidence-manifest.json";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -93,19 +95,21 @@ pub struct CapitalArtifactVerification {
 pub fn verify_capital_artifact_bundle(
     bundle: &CapitalArtifactBundle,
 ) -> Result<CapitalArtifactVerification, CapitalError> {
-    const DATA_FILES: [&str; 5] = [
+    const DATA_FILES: [&str; 6] = [
         CAPITAL_SOURCES_FILE,
         CAPITAL_REQUIREMENTS_FILE,
         CAPITAL_FEASIBILITY_FILE,
         CAPITAL_REJECTION_LEDGER_FILE,
         CAPITAL_SUMMARY_FILE,
+        CAPITAL_UPSTREAM_AUTHORITY_FILE,
     ];
-    const ALL_FILES: [&str; 6] = [
+    const ALL_FILES: [&str; 7] = [
         CAPITAL_SOURCES_FILE,
         CAPITAL_REQUIREMENTS_FILE,
         CAPITAL_FEASIBILITY_FILE,
         CAPITAL_REJECTION_LEDGER_FILE,
         CAPITAL_SUMMARY_FILE,
+        CAPITAL_UPSTREAM_AUTHORITY_FILE,
         CAPITAL_EVIDENCE_MANIFEST_FILE,
     ];
 
@@ -197,6 +201,14 @@ pub fn verify_capital_artifact_bundle(
             "manifest non-claims changed",
         ));
     }
+
+    let authority_file = by_name
+        .get(CAPITAL_UPSTREAM_AUTHORITY_FILE)
+        .ok_or(CapitalError::InvalidCanonical(
+            "missing upstream authority artifact",
+        ))?;
+    let authority = parse_upstream_authority(authority_file.bytes.as_slice())?;
+    let authority_commitment = hex(authority.commitment().as_bytes());
 
     let sources = parse_jsonl(
         by_name
@@ -431,9 +443,10 @@ pub fn verify_capital_artifact_bundle(
             .str_field("upstream_authority_commitment")
             .map_err(|_| CapitalError::InvalidCanonical("manifest upstream commitment missing"))?
             != upstream_authority_commitment
+        || upstream_authority_commitment != authority_commitment
     {
         return Err(CapitalError::InvalidCanonical(
-            "summary/manifest commitment mismatch",
+            "summary/manifest/upstream authority commitment mismatch",
         ));
     }
 
@@ -481,6 +494,10 @@ pub fn export_capital_artifacts(
         CapitalArtifactFile::new(CAPITAL_FEASIBILITY_FILE, jsonl(&feasibility_records)?);
     let rejections =
         CapitalArtifactFile::new(CAPITAL_REJECTION_LEDGER_FILE, jsonl(&rejection_records)?);
+    let upstream_authority = CapitalArtifactFile::new(
+        CAPITAL_UPSTREAM_AUTHORITY_FILE,
+        canonical(&upstream_authority_json(authority))?,
+    );
 
     let summary_json = Json::object([
         ("schema_version", Json::uint(1)),
@@ -543,7 +560,14 @@ pub fn export_capital_artifacts(
     ]);
     let summary = CapitalArtifactFile::new(CAPITAL_SUMMARY_FILE, canonical(&summary_json)?);
 
-    let listed = [&sources, &requirements, &feasibility, &rejections, &summary];
+    let listed = [
+        &sources,
+        &requirements,
+        &feasibility,
+        &rejections,
+        &summary,
+        &upstream_authority,
+    ];
     let manifest_json = Json::object([
         ("schema_version", Json::uint(1)),
         (
@@ -593,9 +617,120 @@ pub fn export_capital_artifacts(
             feasibility,
             rejections,
             summary,
+            upstream_authority,
             manifest,
         ],
     })
+}
+
+fn upstream_authority_json(authority: &CapitalCertificationContext) -> Json {
+    Json::object([
+        ("schema_version", Json::uint(1)),
+        (
+            "upstream_authority_commitment",
+            Json::string(hex(authority.commitment().as_bytes())),
+        ),
+        (
+            "stages",
+            Json::array(authority.stages().iter().map(|stage| {
+                Json::object([
+                    ("stage", Json::string(stage.stage.code())),
+                    ("code_commit", Json::string(stage.code_commit.to_hex())),
+                    ("code_tree", Json::string(stage.code_tree.to_hex())),
+                    (
+                        "artifact_sha256",
+                        Json::string(stage.artifact_sha256.to_hex()),
+                    ),
+                    (
+                        "unresolved_mismatch_count",
+                        Json::uint(stage.unresolved_mismatch_count),
+                    ),
+                    (
+                        "unknown_failure_count",
+                        Json::uint(stage.unknown_failure_count),
+                    ),
+                    ("admitted", Json::Bool(stage.admitted)),
+                ])
+            })),
+        ),
+    ])
+}
+
+fn parse_upstream_authority(bytes: &[u8]) -> Result<CapitalCertificationContext, CapitalError> {
+    let parsed = Json::parse(bytes)
+        .map_err(|_| CapitalError::InvalidCanonical("invalid upstream authority JSON"))?;
+    require_canonical_json(bytes, &parsed)?;
+    if json_u64(&parsed, "schema_version")? != 1 {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "unsupported upstream authority schema",
+        ));
+    }
+    let stages = parsed
+        .get("stages")
+        .and_then(Json::as_array)
+        .ok_or(CapitalError::InvalidUpstreamAuthority(
+            "upstream authority stages missing",
+        ))?;
+    if stages.len() != UpstreamCensusStage::ALL.len() {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "upstream authority stage count differs",
+        ));
+    }
+
+    let mut authorities = Vec::with_capacity(stages.len());
+    for row in stages {
+        let stage = UpstreamCensusStage::parse_code(
+            row.str_field("stage")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("stage code missing"))?,
+        )?;
+        let code_commit = GitObjectId::parse_hex(
+            row.str_field("code_commit")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("code commit missing"))?,
+        )?;
+        let code_tree = GitObjectId::parse_hex(
+            row.str_field("code_tree")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("code tree missing"))?,
+        )?;
+        let artifact_sha256 = Hash32::parse_hex(
+            row.str_field("artifact_sha256")
+                .map_err(|_| CapitalError::InvalidUpstreamAuthority("artifact sha256 missing"))?,
+        )
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("invalid artifact sha256"))?;
+        let admitted = row
+            .get("admitted")
+            .and_then(Json::as_bool)
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "upstream admitted flag missing",
+            ))?;
+        authorities.push(UpstreamStageAuthority::new(
+            stage,
+            code_commit,
+            code_tree,
+            artifact_sha256,
+            json_u64(row, "unresolved_mismatch_count")?,
+            json_u64(row, "unknown_failure_count")?,
+            admitted,
+        )?);
+    }
+
+    let authority = CapitalCertificationContext::new(authorities)?;
+    let declared_commitment = parsed
+        .str_field("upstream_authority_commitment")
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority(
+            "upstream authority commitment missing",
+        ))?;
+    validate_digest_hex(declared_commitment)?;
+    if declared_commitment != hex(authority.commitment().as_bytes()) {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "upstream authority commitment mismatch",
+        ));
+    }
+    if canonical(&upstream_authority_json(&authority))? != bytes {
+        return Err(CapitalError::InvalidCanonical(
+            "upstream authority artifact is not normalized",
+        ));
+    }
+    Ok(authority)
 }
 
 fn metadata(provenance: &ArtifactProvenance) -> Vec<(&'static str, Json)> {

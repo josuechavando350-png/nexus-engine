@@ -2324,6 +2324,19 @@ impl UpstreamCensusStage {
         }
     }
 
+    pub fn parse_code(value: &str) -> Result<Self, CapitalError> {
+        match value {
+            "RMC-006" => Ok(Self::Rmc006DiscoveryAave),
+            "RMC-007" => Ok(Self::Rmc007DiscoveryV2),
+            "RMC-008" => Ok(Self::Rmc008StateAdmission),
+            "RMC-009" => Ok(Self::Rmc009PositionUniverse),
+            "RMC-010" => Ok(Self::Rmc010IncrementalParity),
+            _ => Err(CapitalError::InvalidUpstreamAuthority(
+                "unknown upstream stage code",
+            )),
+        }
+    }
+
     const fn tag(self) -> u8 {
         match self {
             Self::Rmc006DiscoveryAave => 6,

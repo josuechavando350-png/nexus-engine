@@ -3,6 +3,7 @@ use nqc_census_capital::{
         export_capital_artifacts, verify_capital_artifact_bundle, ArtifactProvenance,
         CAPITAL_EVIDENCE_MANIFEST_FILE, CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE,
         CAPITAL_REQUIREMENTS_FILE, CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
+        CAPITAL_UPSTREAM_AUTHORITY_FILE,
     },
     Amount256, CapitalAsset, CapitalCaps, CapitalCensusLedger, CapitalCertificationContext,
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalProviderKind, CapitalRequirement,
@@ -132,6 +133,7 @@ fn capital_artifacts_are_deterministic_and_complete() -> TestResult {
         CAPITAL_FEASIBILITY_FILE,
         CAPITAL_REJECTION_LEDGER_FILE,
         CAPITAL_SUMMARY_FILE,
+        CAPITAL_UPSTREAM_AUTHORITY_FILE,
         CAPITAL_EVIDENCE_MANIFEST_FILE,
     ] {
         assert!(first.file(name).is_some(), "missing artifact {name}");
@@ -429,5 +431,87 @@ fn source_artifact_exposes_full_capital_semantics() -> TestResult {
             "missing source artifact field {field}"
         );
     }
+    Ok(())
+}
+
+
+#[test]
+fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let upstream = bundle
+        .file(CAPITAL_UPSTREAM_AUTHORITY_FILE)
+        .ok_or("missing upstream authority artifact")?;
+    let text = std::str::from_utf8(&upstream.bytes)?;
+    for stage in ["RMC-006", "RMC-007", "RMC-008", "RMC-009", "RMC-010"] {
+        assert!(text.contains(stage), "missing upstream authority stage {stage}");
+    }
+    assert!(text.contains("\"unresolved_mismatch_count\":0"));
+    assert!(text.contains("\"unknown_failure_count\":0"));
+    assert!(text.contains("\"admitted\":true"));
+    verify_capital_artifact_bundle(&bundle)?;
+    Ok(())
+}
+
+#[test]
+fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestResult {
+    let ledger = ledger()?;
+    let provenance = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+
+    let authority_index = bundle
+        .files
+        .iter()
+        .position(|file| file.name == CAPITAL_UPSTREAM_AUTHORITY_FILE)
+        .ok_or("missing upstream authority artifact")?;
+    let old_sha = bundle.files[authority_index].sha256_hex();
+    let authority_text = String::from_utf8(bundle.files[authority_index].bytes.clone())?;
+    let needle = "\"artifact_sha256\":\"0x";
+    let offset = authority_text
+        .find(needle)
+        .ok_or("upstream authority lacks artifact digest")?
+        + needle.len();
+    let mut authority_bytes = authority_text.into_bytes();
+    authority_bytes[offset] = if authority_bytes[offset] == b'1' { b'2' } else { b'1' };
+    bundle.files[authority_index].bytes = authority_bytes;
+    bundle.files[authority_index].sha256 = {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(&bundle.files[authority_index].bytes);
+        let mut out = [0_u8; 32];
+        out.copy_from_slice(&digest);
+        out
+    };
+    let new_sha = bundle.files[authority_index].sha256_hex();
+    assert_ne!(old_sha, new_sha);
+
+    let manifest_index = bundle
+        .files
+        .iter()
+        .position(|file| file.name == CAPITAL_EVIDENCE_MANIFEST_FILE)
+        .ok_or("missing evidence manifest")?;
+    let manifest_text = String::from_utf8(bundle.files[manifest_index].bytes.clone())?;
+    let rewritten = manifest_text.replacen(&old_sha, &new_sha, 1);
+    if rewritten == manifest_text {
+        return Err("authority digest was not present in manifest".into());
+    }
+    bundle.files[manifest_index].bytes = rewritten.into_bytes();
+    bundle.files[manifest_index].sha256 = {
+        use sha2::{Digest, Sha256};
+        let digest = Sha256::digest(&bundle.files[manifest_index].bytes);
+        let mut out = [0_u8; 32];
+        out.copy_from_slice(&digest);
+        out
+    };
+
+    assert!(verify_capital_artifact_bundle(&bundle).is_err());
     Ok(())
 }

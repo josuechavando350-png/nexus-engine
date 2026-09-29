@@ -2,16 +2,18 @@ use nqc_census_capital::artifacts::{
     verify_capital_artifact_bundle, CapitalArtifactBundle, CapitalArtifactFile,
     CAPITAL_EVIDENCE_MANIFEST_FILE, CAPITAL_FEASIBILITY_FILE, CAPITAL_REJECTION_LEDGER_FILE,
     CAPITAL_REQUIREMENTS_FILE, CAPITAL_SOURCES_FILE, CAPITAL_SUMMARY_FILE,
+    CAPITAL_UPSTREAM_AUTHORITY_FILE,
 };
 use sha2::{Digest, Sha256};
 use std::{env, error::Error, fs, path::PathBuf};
 
-const FILES: [&str; 6] = [
+const FILES: [&str; 7] = [
     CAPITAL_SOURCES_FILE,
     CAPITAL_REQUIREMENTS_FILE,
     CAPITAL_FEASIBILITY_FILE,
     CAPITAL_REJECTION_LEDGER_FILE,
     CAPITAL_SUMMARY_FILE,
+    CAPITAL_UPSTREAM_AUTHORITY_FILE,
     CAPITAL_EVIDENCE_MANIFEST_FILE,
 ];
 
