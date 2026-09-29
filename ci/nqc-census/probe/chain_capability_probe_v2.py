@@ -77,9 +77,9 @@ def headers(rpc):
     for number in HEADER_BLOCKS:
         block, error = rpc.call("eth_getBlockByNumber", [hex(number), False])
         if isinstance(block, dict):
-            shapes[number] = sorted(k for k in block if k not in ("transactions", "uncles", "withdrawals"))
+            shapes[str(number)] = sorted(k for k in block if k not in ("transactions", "uncles", "withdrawals"))
         else:
-            shapes[number] = {"error": error}
+            shapes[str(number)] = {"error": error}
     head, _ = rpc.call("eth_blockNumber", [])
     if head:
         block, _ = rpc.call("eth_getBlockByNumber", [hex(int(head, 16) - 100), False])
