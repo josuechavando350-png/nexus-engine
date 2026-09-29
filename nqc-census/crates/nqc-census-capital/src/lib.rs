@@ -2890,10 +2890,21 @@ fn requirement_output_set_commitment<'a>(
     requirements: impl IntoIterator<Item = &'a CapitalRequirement>,
 ) -> Result<(u64, Hash32), CapitalError> {
     consumed_id_set_commitment(
-        b"NQC-RMC011-D09-REQUIREMENT-SET-V1",
+        b"NQC-RMC011-D11-REQUIREMENT-SET-V1",
         requirements
             .into_iter()
             .map(|requirement| *requirement.id().as_bytes()),
+    )
+}
+
+fn d09_demand_output_set_commitment(
+    demand_candidate_ids: impl IntoIterator<Item = Hash32>,
+) -> Result<(u64, Hash32), CapitalError> {
+    consumed_id_set_commitment(
+        b"NQC-RMC011-D09-DEMAND-CANDIDATE-SET-V1",
+        demand_candidate_ids
+            .into_iter()
+            .map(|candidate_id| *candidate_id.as_bytes()),
     )
 }
 
@@ -2906,6 +2917,22 @@ impl UpstreamConsumptionReceipt {
         let (output_count, output_set_commitment) = source_output_set_commitment(sources)?;
         Self::from_parts(
             UpstreamCensusStage::Rmc008StateAdmission,
+            authority_artifact_sha256,
+            coverage_commitment,
+            output_count,
+            output_set_commitment,
+        )
+    }
+
+    pub fn for_d09_demand_candidates(
+        authority_artifact_sha256: Hash32,
+        coverage_commitment: Hash32,
+        demand_candidate_ids: impl IntoIterator<Item = Hash32>,
+    ) -> Result<Self, CapitalError> {
+        let (output_count, output_set_commitment) =
+            d09_demand_output_set_commitment(demand_candidate_ids)?;
+        Self::from_parts(
+            UpstreamCensusStage::Rmc009PositionUniverse,
             authority_artifact_sha256,
             coverage_commitment,
             output_count,
