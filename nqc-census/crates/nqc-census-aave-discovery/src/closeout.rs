@@ -10,7 +10,7 @@ use std::{
     collections::BTreeMap,
     error::Error,
     fs,
-    path::{Path, PathBuf},
+    path::Path,
 };
 
 const SCHEMA_VERSION: u64 = 1;
