@@ -77,7 +77,11 @@ fn d08_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
             "{{\"bytes\":{},\"path\":\"market-state-manifest.jsonl\",\"sha256\":\"{}\"}},",
             "{{\"bytes\":{},\"path\":\"token-admission.jsonl\",\"sha256\":\"{}\"}},",
             "{{\"bytes\":{},\"path\":\"pool-and-factory-facts.json\",\"sha256\":\"{}\"}}",
-            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"observation_anchor\":{{\"block_hash\":\"{}\",\"block_number\":{},",
+            "\"chain_id\":{},\"fork_lineage\":\"{}\",\"genesis_hash\":\"{}\",",
+            "\"parent_hash\":\"{}\",\"state_root\":\"{}\",\"timestamp\":{}}},",
+            "\"schema_version\":1}}"
         ),
         states.len(),
         sha256_plain(&states),
@@ -87,6 +91,14 @@ fn d08_fixture() -> (Vec<u8>, Vec<u8>, Vec<u8>, Vec<u8>) {
         sha256_plain(&facts),
         D08_CODE_COMMIT,
         D08_CODE_TREE,
+        anchor().block_hash().to_hex(),
+        anchor().block_number(),
+        anchor().chain().chain_id(),
+        anchor().chain().fork_lineage().to_hex(),
+        anchor().chain().genesis_hash().to_hex(),
+        anchor().parent_hash().to_hex(),
+        anchor().state_root().to_hex(),
+        anchor().timestamp(),
     )
     .into_bytes();
     (states, tokens, facts, manifest)
