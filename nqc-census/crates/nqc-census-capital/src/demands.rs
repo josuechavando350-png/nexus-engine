@@ -244,11 +244,9 @@ fn demand_coverage_commitment(
             Some(false) => hasher.update([1]),
             Some(true) => hasher.update([2]),
         }
-        let blocker = borrower
-            .blocker
-            .ok_or(CapitalError::InvalidCanonical(
-                "RMC-009 borrower classification lacks blocker",
-            ))?;
+        let blocker = borrower.blocker.ok_or(CapitalError::InvalidCanonical(
+            "RMC-009 borrower classification lacks blocker",
+        ))?;
         hash_len_prefixed(&mut hasher, blocker.code().as_bytes());
 
         hasher.update(
@@ -310,33 +308,33 @@ pub fn import_d09_borrower_demands(
                 ))
             }
         };
-        let blocker = match below {
-            None => {
-                unavailable_count = unavailable_count
-                    .checked_add(1)
-                    .ok_or(CapitalError::InvalidCanonical(
-                        "unavailable borrower count overflow",
-                    ))?;
-                Some(DemandBlockerReason::AccountDataUnavailable)
-            }
-            Some(true) => {
-                below_one_count =
-                    below_one_count
-                        .checked_add(1)
-                        .ok_or(CapitalError::InvalidCanonical(
-                            "below-one borrower count overflow",
-                        ))?;
-                Some(DemandBlockerReason::LiquidatabilityNotCertifiedByRmc009)
-            }
-            Some(false) => {
-                not_below_one_count = not_below_one_count
-                    .checked_add(1)
-                    .ok_or(CapitalError::InvalidCanonical(
-                        "not-below-one borrower count overflow",
-                    ))?;
-                Some(DemandBlockerReason::HealthFactorNotBelowOne)
-            }
-        };
+        let blocker =
+            match below {
+                None => {
+                    unavailable_count =
+                        unavailable_count
+                            .checked_add(1)
+                            .ok_or(CapitalError::InvalidCanonical(
+                                "unavailable borrower count overflow",
+                            ))?;
+                    Some(DemandBlockerReason::AccountDataUnavailable)
+                }
+                Some(true) => {
+                    below_one_count =
+                        below_one_count
+                            .checked_add(1)
+                            .ok_or(CapitalError::InvalidCanonical(
+                                "below-one borrower count overflow",
+                            ))?;
+                    Some(DemandBlockerReason::LiquidatabilityNotCertifiedByRmc009)
+                }
+                Some(false) => {
+                    not_below_one_count = not_below_one_count.checked_add(1).ok_or(
+                        CapitalError::InvalidCanonical("not-below-one borrower count overflow"),
+                    )?;
+                    Some(DemandBlockerReason::HealthFactorNotBelowOne)
+                }
+            };
         borrowers.push(BorrowerDemandCandidate {
             account,
             supply_positions,

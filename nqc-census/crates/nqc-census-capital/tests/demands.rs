@@ -201,7 +201,6 @@ fn d09_import_rejects_duplicate_accounts_and_noncanonical_amounts() -> TestResul
     Ok(())
 }
 
-
 #[test]
 fn healthy_borrower_is_explicitly_blocked_and_conserved() -> TestResult {
     let account = format!("0x{}", "48".repeat(20));
