@@ -1,14 +1,16 @@
 use nqc_census_chain::{
     abi,
+    acquire::Acquisition,
     bootstrap::run_bootstrap,
     consensus::{agree, ProviderResult},
+    ethereum::ChainProfile,
     evm::CodeScan,
     hex,
     job::{chain_read_semantics, JobSpec},
     json::Json,
     provider::{ProviderSet, ProviderSpec},
     transport::{CurlTransport, RetryPolicy},
-    Acquisition, ChainError, ChainProfile,
+    ChainError,
 };
 use nqc_census_core::{
     Address, CallOutcome, CensusObservation, ContractCallEnvelope, DeploymentKey, Hash32,
