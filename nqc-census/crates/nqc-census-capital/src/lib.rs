@@ -1268,6 +1268,11 @@ impl CapitalSource {
         }
         blockers.sort();
         blockers.dedup();
+        if blockers.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many execution blocker codes",
+            ));
+        }
         self.execution_blockers = blockers;
         self.id = CapitalSourceId(domain_hash(SOURCE_DOMAIN, &self.content_bytes()));
         Ok(self)
@@ -2294,7 +2299,7 @@ fn classify_unmet_leg(
         same_anchor_atomic = true;
         if source.ownership().is_operator_owned() {
             operator_capacity = operator_capacity
-                .checked_add(source.executable_capacity()?)
+                .checked_add(source.effective_capacity()?)
                 .unwrap_or(Amount256::MAX);
         } else if !source.execution_eligible() {
             execution_blocked_capacity = execution_blocked_capacity
@@ -2309,11 +2314,11 @@ fn classify_unmet_leg(
     if !same_anchor_class && foreign_anchor {
         return Ok(FeasibilityRejection::AnchorMismatch);
     }
-    if leg.kind() == RequirementKind::Gas {
-        return Ok(FeasibilityRejection::MissingGasFunding);
-    }
     if execution_blocked_capacity >= unmet {
         return Ok(FeasibilityRejection::ExecutionBlocked);
+    }
+    if leg.kind() == RequirementKind::Gas {
+        return Ok(FeasibilityRejection::MissingGasFunding);
     }
     if same_anchor_class && !same_anchor_atomic {
         return Ok(FeasibilityRejection::AtomicityMismatch);

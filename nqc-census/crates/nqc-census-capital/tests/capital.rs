@@ -255,6 +255,40 @@ fn execution_blocked_liquidity_is_not_misclassified_as_insufficient_capacity() -
 }
 
 #[test]
+fn execution_blocked_gas_is_not_misclassified_as_missing() -> TestResult {
+    let gas = CapitalAsset::NativeGas;
+    let blocked = source(
+        CapitalClass::GasFunding,
+        gas,
+        100,
+        gas,
+        RepaymentSemantics::NoRepayment,
+    )?
+    .with_execution_blockers(vec!["SPONSOR_POLICY_UNPROVEN".to_owned()])?;
+    let gas_leg = CapitalRequirementLeg::new(
+        RequirementKind::Gas,
+        gas,
+        Amount256::from_u128(50),
+        vec![CapitalClass::GasFunding],
+    )?;
+    let required = requirement(
+        vec![gas_leg],
+        RequiredAtomicity::SameTransaction,
+        true,
+    )?;
+
+    assert_eq!(
+        evaluate_capital_feasibility(&required, &[blocked]),
+        CapitalFeasibility::Rejected {
+            requirement_id: required.id(),
+            reason: nqc_census_capital::FeasibilityRejection::ExecutionBlocked,
+            failed_leg: Some(RequirementKind::Gas),
+        }
+    );
+    Ok(())
+}
+
+#[test]
 fn persistent_debt_cannot_hide_missing_risk_terms() -> TestResult {
     let asset = CapitalAsset::Token(address(20));
     let result = source(

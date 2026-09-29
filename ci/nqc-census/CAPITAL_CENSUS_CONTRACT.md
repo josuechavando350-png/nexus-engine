@@ -53,6 +53,8 @@ Every admitted capital source record MUST bind:
 - block-pinned observation anchor
 - maximum_available
 - zero-capacity sources remain explicit census records rather than disappearing; zero means observed-but-unavailable at that anchor
+- observed/effective capacity and executable capacity are distinct: upstream execution blockers MUST NOT erase observed liquidity, but executable capacity MUST be zero while any blocker remains
+- execution blocker codes are preserved exactly; blocker-state changes alter the observation-specific source ID but MUST NOT alter the stable source key
 - fee model
 - repayment semantics
 - collateral_required
@@ -92,7 +94,8 @@ A source may be used only when:
 - the same byte-binding rule applies to RMC-009: its authority artifact digest identifies `evidence-manifest.json`; the manifest and `account-summary.json` must name the exact admitted code commit/tree, and the manifest SHA-256/size entries for `account-manifest.jsonl` and `account-summary.json` must match before borrower demand import
 - deployment/source identity is admitted
 - the observation is pinned to the same canonical block context required by the candidate
-- available capacity is sufficient at the requested size
+- executable capacity, not merely observed capacity, is sufficient at the requested size
+- no execution blocker remains on any allocated source
 - fee/cap semantics are explicit
 - repayment can be satisfied under the candidate's execution semantics
 - atomicity/collateral requirements are compatible
@@ -101,6 +104,7 @@ A source may be used only when:
 Feasibility MUST fail closed on:
 
 - insufficient capacity
+- observed capital blocked from execution by unresolved upstream semantics
 - unsupported asset
 - stale or mismatched observation
 - unknown fee semantics
