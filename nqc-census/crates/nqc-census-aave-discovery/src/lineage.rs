@@ -39,10 +39,7 @@ impl ProxyCreation {
             ("log_index", Json::uint(self.log_index)),
             ("id", Json::string(POOL_CONFIGURATOR_ID)),
             ("proxy", Json::string(self.proxy.to_hex())),
-            (
-                "implementation",
-                Json::string(self.implementation.to_hex()),
-            ),
+            ("implementation", Json::string(self.implementation.to_hex())),
         ])
     }
 }
@@ -185,9 +182,10 @@ fn lineage_body(
         start = end + 1;
     }
     creations.sort_by_key(|event| (event.block, event.transaction_index, event.log_index));
-    if creations.windows(2).any(|pair| {
-        (pair[0].block, pair[0].log_index) == (pair[1].block, pair[1].log_index)
-    }) {
+    if creations
+        .windows(2)
+        .any(|pair| (pair[0].block, pair[0].log_index) == (pair[1].block, pair[1].log_index))
+    {
         return Err(ChainError::Evidence(
             "duplicate PoolConfigurator ProxyCreated coordinates".into(),
         ));
@@ -221,10 +219,7 @@ fn provider_lineage(
                 "topic0",
                 Json::string(hex::encode(&aave_interface().proxy_created_topic)),
             ),
-            (
-                "pool_configurator_id",
-                Json::string(POOL_CONFIGURATOR_ID),
-            ),
+            ("pool_configurator_id", Json::string(POOL_CONFIGURATOR_ID)),
         ]),
     )?;
     let output = acquisition.unanchored(provider, Some(chain.clone()), &spec, |ctx| {
