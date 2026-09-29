@@ -96,9 +96,19 @@ latest attempt.
 ## Offline reconciliation
 
 The stages of one acquisition hold about 20 GB of evidence: 48 stage stores
-from run 36589054151, the largest 1.3 GB compressed. Merging them on one
-runner exhausted its disk; that run's reconcile job failed twice while
-downloading. The stores are therefore never merged.
+from run 36589054151, the largest 1.3 GB compressed. That run's reconcile
+job downloaded all 49 artifacts at once and failed twice with "Artifact
+download failed after 5 retries". The runner had disk to spare (a runner of
+the same image showed 106 GB free), so the failure was the one bulk
+transfer, and one failed download failed the whole reconcile. The stores are
+therefore never gathered or merged: each stage is downloaded and replayed
+alone, and a failed download fails, and re-runs, only its own stage.
+
+Artifact upload drops empty directories. Before a downloaded store is used,
+the workflow recreates the store's documented, always-present directories
+(`tmp/`, which only ever holds staging files, `objects/chunks`,
+`objects/artifacts`, `streams`, and each stream's `checkpoints`). Evidence
+is never created: the store is verified (RMC-004) before replay.
 
 **Replay, one job per stage** (`nqc-rmc007-v2-replay`, no network
 namespace). Each job:

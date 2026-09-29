@@ -499,6 +499,13 @@ jobs:
           echo "RMC007_STAGE_EVIDENCE artifact=$chosen"
           stage="/tmp/nqc-rmc007-stage/$chosen"
           test -f "$stage/record.json"
+          # Artifact upload drops empty directories. Restore the store's
+          # documented, always-present directories (STORE_CONTRACT.md: tmp/
+          # is staging only); the store is then verified before any replay.
+          mkdir -p "$stage/store/tmp" "$stage/store/objects/chunks" "$stage/store/objects/artifacts" "$stage/store/streams"
+          for stream in "$stage"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
           df -h /
           if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
             echo "network reachable inside the offline namespace"
@@ -577,6 +584,12 @@ jobs:
           test "${#surfaces[@]}" = 1
           cp "${surfaces[0]}/v2-current-surface.json" "${surfaces[0]}/v2-factory-boundary.json" "$D07_EVIDENCE/"
           cp -r "${surfaces[0]}/store" "$D07_EVIDENCE/store"
+          # Artifact upload drops empty directories; restore the store's
+          # documented, always-present ones before it is verified.
+          mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
+          for stream in "$D07_EVIDENCE"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
           python3 - "${{ github.event.pull_request.head.sha || github.sha }}" "${{ github.run_id }}" <<'PY2'
           import json, os, re, shutil, sys
           head, run = sys.argv[1:3]
