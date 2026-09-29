@@ -100,8 +100,11 @@ fn borrower_with_unavailable_account_data_is_explicitly_blocked() -> TestResult 
         account,
         position(20, 30, "1")
     );
-    let imported =
-        import_d09_borrower_demands(manifest.as_bytes(), &summary("RMC_009_PASS_CANDIDATE", true), &anchor())?;
+    let imported = import_d09_borrower_demands(
+        manifest.as_bytes(),
+        &summary("RMC_009_PASS_CANDIDATE", true),
+        &anchor(),
+    )?;
     assert_eq!(
         imported.borrowers[0].blocker,
         Some(DemandBlockerReason::AccountDataUnavailable)
@@ -122,8 +125,11 @@ fn non_borrowers_are_not_capital_demand_candidates() -> TestResult {
         account,
         position(21, 31, "900")
     );
-    let imported =
-        import_d09_borrower_demands(manifest.as_bytes(), &summary("RMC_009_PASS_CANDIDATE", true), &anchor())?;
+    let imported = import_d09_borrower_demands(
+        manifest.as_bytes(),
+        &summary("RMC_009_PASS_CANDIDATE", true),
+        &anchor(),
+    )?;
     assert!(imported.borrowers.is_empty());
     Ok(())
 }
