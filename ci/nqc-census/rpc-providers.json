@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "purpose": "DECLARED_JSON_RPC_TRANSPORTS_NOT_AUTHORITY",
+  "measured_by": "design probes on nqc/census-chain-probe-20260929 runs 36503582854, 36504896058, 36505672104",
+  "independence": {
+    "claim": "DISTINCT_DECLARED_OPERATORS_ONLY",
+    "infrastructure_independence": "NOT_PROVEN",
+    "observations": [
+      "blastapi-public reports reth/v2.4.1; its rate-limit errors reference Alchemy throughput documentation",
+      "mevblocker-rpc reports the opaque client string MEVblocker",
+      "nodies reports reth/v2.5.2"
+    ]
+  },
+  "providers": [
+    {
+      "namespace": 257,
+      "label": "blastapi-public",
+      "url": "https://eth-mainnet.public.blastapi.io",
+      "operator": "Bware Labs Blast API public endpoint",
+      "min_interval_ms": 350,
+      "max_batch": 100,
+      "log_window": 10,
+      "pinning": "EIP1898_BLOCK_HASH"
+    },
+    {
+      "namespace": 258,
+      "label": "mevblocker-rpc",
+      "url": "https://rpc.mevblocker.io",
+      "operator": "MEV Blocker public RPC",
+      "min_interval_ms": 1250,
+      "max_batch": 100,
+      "log_window": 1000000,
+      "pinning": "EIP1898_BLOCK_HASH"
+    },
+    {
+      "namespace": 259,
+      "label": "nodies-public",
+      "url": "https://ethereum-public.nodies.app",
+      "operator": "Nodies public endpoint",
+      "min_interval_ms": 600,
+      "max_batch": 10,
+      "log_window": 50,
+      "pinning": "EIP1898_BLOCK_HASH"
+    }
+  ]
+}

@@ -154,8 +154,10 @@ jobs:
           base, head = packages("765dc30fdd178a4960ade1e106669eb0b023fbeb"), packages("HEAD")
           added = head - base
           assert base <= head, f"packages removed or changed: {sorted(base - head)}"
-          assert {p[0] for p in added} == {"nqc-census-store"}, f"unexpected packages {sorted(added)}"
-          assert all(p[2] is None for p in added), "new package with an external source"
+          # RMC-004 added nqc-census-store; later Census nodes may add further
+          # workspace-local crates, but no package with an external source.
+          assert "nqc-census-store" in {p[0] for p in added}, f"store package missing {sorted(added)}"
+          assert all(p[2] is None for p in added), f"new package with an external source {sorted(added)}"
           manifest = tomllib.load(open("nqc-census/crates/nqc-census-store/Cargo.toml", "rb"))
           assert set(manifest["dependencies"]) == {"nqc-census-core", "sha2"}, manifest["dependencies"]
           assert "dev-dependencies" not in manifest and "build-dependencies" not in manifest
