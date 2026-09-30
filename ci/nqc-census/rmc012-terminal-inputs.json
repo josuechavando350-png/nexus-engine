@@ -1,8 +1,7 @@
 {
-  "schema_version": 1,
-  "status": "BLOCKED_AWAITING_CERTIFIED_UPSTREAM",
-  "blocked_reason": "Terminal RMC-012 requires exact-head certified RMC-008 and RMC-009 closeouts plus the canonical external RMC-006..RMC-010 authority lock used by RMC-011. Synthetic actionability evidence is not terminal authority.",
-  "d08": null,
-  "d09": null,
-  "authority_lock_path": null
+  "schema_version": 2,
+  "status": "BLOCKED_AWAITING_CERTIFIED_RMC011",
+  "blocked_reason": "Terminal RMC-012 consumes only an exact successful self-contained RMC-011 real-source certification package. That package must authenticate RMC-006..RMC-010 and the exact D08/D09 bytes before actionability can become terminal authority.",
+  "repository": "josuechavando350-png/nexus-engine",
+  "d11": null
 }
