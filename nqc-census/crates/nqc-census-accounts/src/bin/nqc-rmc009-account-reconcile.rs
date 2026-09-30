@@ -20,7 +20,7 @@ use nqc_census_accounts::closeout::{
 use nqc_census_accounts::inputs::{anchor_from_flags, plan_at};
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::ProviderSet;
-use nqc_census_state::inputs::verify_pins;
+use nqc_census_state::inputs::{verify_pins, verify_upstream};
 use nqc_census_state::replay::manifests;
 use nqc_census_store::{Store, StoreConfig};
 use std::collections::BTreeMap;
@@ -50,10 +50,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let index_providers = providers("--index-providers")?;
     let state_providers = providers("--state-providers")?;
-    let pins = verify_pins(
-        &PathBuf::from(flag("--pins")?),
-        &PathBuf::from(flag("--pin-root")?),
-    )?;
+    let pins_path = PathBuf::from(flag("--pins")?);
+    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
+    let upstream_sources = verify_upstream(&pins_path, &pins)?;
     let plan = plan_at(
         &pins,
         anchor_from_flags(
@@ -154,6 +153,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             code_commit: &flag("--code-commit")?,
             code_tree: &flag("--code-tree")?,
             pins: &pins,
+            upstream_sources,
             store_evidence_root: &store_evidence_root,
             stage_stores,
             record_manifests,

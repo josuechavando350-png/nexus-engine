@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "status": "PINNED",
   "expected_anchor": {
     "block_number": 25437474,
@@ -8,11 +8,14 @@
   "sources": [
     {
       "node": "D06",
+      "pull_request": 521,
+      "code_commit": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
+      "code_tree": "eda36fdc07e82ccdcc9666799fa8fe21aacc7f1d",
       "workflow_run_id": 36627517591,
       "artifact_id": 11062164175,
       "artifact": "nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1",
-      "code_commit": "a33a012591cd6625ddb921d995bb1bd95b4a5406",
-      "artifact_digest": "sha256:5f9a9bbd2182d9d65e22ad9b25f94abd5152baef7d1c2d559bda4e5a77433b03"
+      "artifact_digest": "sha256:5f9a9bbd2182d9d65e22ad9b25f94abd5152baef7d1c2d559bda4e5a77433b03",
+      "evidence_manifest_sha256": "81e53c6f76ff71c47df6186afddef05756dbb4ed1261fa3b694183ecefdce44b"
     }
   ],
   "files": [
@@ -35,6 +38,11 @@
       "role": "d06_history",
       "path": "d06/aave-history.json",
       "sha256": "297f642608eaeaedb7e9c56ed150e18f8036aae3861d611d3fcbf7c21dae7a6f"
+    },
+    {
+      "role": "d06_evidence_manifest",
+      "path": "d06/closeout/evidence-manifest.json",
+      "sha256": "81e53c6f76ff71c47df6186afddef05756dbb4ed1261fa3b694183ecefdce44b"
     }
   ]
 }
