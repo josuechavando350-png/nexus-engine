@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "stage": "RMC-011",
+  "contract": "NQC_RMC011_EXECUTION_PLAN_REQUIREMENT_CATALOG_V1",
+  "status": "DECLARED_EMPTY_NOT_TERMINAL_EVIDENCE",
+  "catalog_scope": "NQC_SUPPORTED_EXECUTION_PLANS_AT_THIS_HEAD",
+  "completeness_basis": "EVERY_EXECUTION_PLAN_ADMITTED_TO_NQC_CAPITAL_FEASIBILITY_MUST_BE_EXPLICITLY_REGISTERED_HERE_BEFORE_TERMINAL_D11",
+  "requirement_families": [
+    {
+      "family": "INVENTORY_REQUIREMENT",
+      "requirement_kind": "INVENTORY",
+      "required_allowed_class": "INVENTORY_REQUIREMENT"
+    },
+    {
+      "family": "BOND_OR_STAKE",
+      "requirement_kind": "BOND_OR_STAKE",
+      "required_allowed_class": "BOND_OR_STAKE"
+    },
+    {
+      "family": "SOLVER_OR_BUILDER_DEPOSIT",
+      "requirement_kind": "BUILDER_OR_SOLVER_DEPOSIT",
+      "required_allowed_class": "SOLVER_OR_BUILDER_DEPOSIT"
+    },
+    {
+      "family": "INTRA_BLOCK_TEMPORARY_LOCK",
+      "requirement_kind": "TEMPORARY_LOCK",
+      "required_allowed_class": "INTRA_BLOCK_TEMPORARY_LOCK"
+    }
+  ],
+  "plan_count": 0,
+  "plans": [],
+  "terminal_semantics": {
+    "empty_catalog_means": "NO_SUPPORTED_NQC_EXECUTION_PLAN_IN_THIS_HEAD_DECLARES_ONE_OF_THE_CATALOGED_REQUIREMENT_FAMILIES",
+    "does_not_mean": "THE_REQUIREMENT_FAMILY_CANNOT_EXIST_IN_FUTURE_OR_EXTERNAL_EXECUTION_PLANS",
+    "terminal_rejection_requires_authenticated_workflow_artifact": true,
+    "new_execution_plan_must_update_catalog_before_admission": true
+  },
+  "non_claims": [
+    "EMPTY_CATALOG_IS_NOT_GLOBAL_REQUIREMENT_NONEXISTENCE",
+    "EMPTY_CATALOG_IS_NOT_TERMINAL_REJECTION_BY_ITSELF",
+    "D11_DOES_NOT_CERTIFY_EXECUTION_ACTIONABILITY",
+    "D11_TERMINAL_NOT_CLOSED"
+  ]
+}
