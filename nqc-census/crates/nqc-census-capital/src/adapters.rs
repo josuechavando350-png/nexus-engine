@@ -181,6 +181,7 @@ pub struct UniswapV3FlashObservation {
     pub pool: Address,
     pub asset: Address,
     pub available_pool_balance: Amount256,
+    pub active_liquidity: Amount256,
     pub fee_pips: u32,
     pub provider_locator_hash: Hash32,
     pub evidence: Vec<CapitalEvidenceRef>,
@@ -191,7 +192,8 @@ impl UniswapV3FlashObservation {
         if self.fee_pips > 1_000_000 {
             return Err(CapitalError::InvalidRatio);
         }
-        CapitalSource::new(CapitalSourceSpec {
+        let has_active_liquidity = !self.active_liquidity.is_zero();
+        let source = CapitalSource::new(CapitalSourceSpec {
             class: CapitalClass::AtomicFlashLiquidity,
             anchor: self.anchor,
             provider_namespace: UNISWAP_V3_PROVIDER_NAMESPACE,
@@ -220,7 +222,14 @@ impl UniswapV3FlashObservation {
                 CapitalFailureMode::CallbackOrHookRevert,
             ],
             evidence: self.evidence,
-        })
+        })?;
+        if has_active_liquidity {
+            Ok(source)
+        } else {
+            source.with_execution_blockers(vec![
+                "UNISWAP_V3_ZERO_ACTIVE_LIQUIDITY".to_owned(),
+            ])
+        }
     }
 }
 
