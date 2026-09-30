@@ -8,6 +8,9 @@ on:
       - "ci/nqc-census/test_plan_rmc013_v2_routes.py"
       - "ci/nqc-census/run_rmc013_anvil_candidate.py"
       - "ci/nqc-census/test_run_rmc013_anvil_candidate.py"
+      - "ci/nqc-census/collect_rmc013_gas_evidence.py"
+      - "ci/nqc-census/reconcile_rmc013_gas_evidence.py"
+      - "ci/nqc-census/test_rmc013_gas_evidence.py"
       - "ci/nqc-census/materialize_effective_source.py"
       - "ci/nqc-census/effective-source-profile.json"
       - ".github/workflows/nqc-census-execution-evidence.yml"
@@ -20,6 +23,9 @@ on:
       - "ci/nqc-census/test_plan_rmc013_v2_routes.py"
       - "ci/nqc-census/run_rmc013_anvil_candidate.py"
       - "ci/nqc-census/test_run_rmc013_anvil_candidate.py"
+      - "ci/nqc-census/collect_rmc013_gas_evidence.py"
+      - "ci/nqc-census/reconcile_rmc013_gas_evidence.py"
+      - "ci/nqc-census/test_rmc013_gas_evidence.py"
       - ".github/workflows/nqc-census-execution-evidence.yml"
 
 permissions:
@@ -66,6 +72,13 @@ jobs:
             .route_policy.max_hops == 3 and
             .route_policy.keep_routes_per_candidate == 0 and
             .route_policy.emission_policy == "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE" and
+            .gas_policy.wrapped_native_asset == "0xC02aaa39b223FE8D0A0e5C4F27eAD9083C756Cc2" and
+            .gas_policy.history_blocks == 128 and
+            .gas_policy.reward_percentiles == [50,90,99] and
+            .gas_policy.admission_priority_percentile == 99 and
+            .gas_policy.base_fee_policy == "NEXT_BLOCK_MAX_EIP1559_CEIL_9_OVER_8" and
+            .gas_policy.provider_reconciliation == "MAX_ADMISSION_PRIORITY_FEE_REQUIRE_EXACT_ANCHOR_AND_NATIVE_PRICE" and
+            .gas_policy.native_price_source == "RMC008_AAVE_ORACLE_MANIFEST" and
             (.providers | map(.provider_id)) == ["blastapi-public","mevblocker-rpc"] and
             (if .status == "BLOCKED_AWAITING_CERTIFIED_RMC012"
              then .d12 == null and (.blocking_reasons | length > 0)
@@ -95,9 +108,12 @@ jobs:
           set -euo pipefail
           python3 ci/nqc-census/test_plan_rmc013_v2_routes.py
           python3 ci/nqc-census/test_run_rmc013_anvil_candidate.py
+          python3 ci/nqc-census/test_rmc013_gas_evidence.py
           python3 -m py_compile \
             ci/nqc-census/plan_rmc013_v2_routes.py \
-            ci/nqc-census/run_rmc013_anvil_candidate.py
+            ci/nqc-census/run_rmc013_anvil_candidate.py \
+            ci/nqc-census/collect_rmc013_gas_evidence.py \
+            ci/nqc-census/reconcile_rmc013_gas_evidence.py
 
       - name: Verify producer has no live signing authority
         shell: bash
@@ -196,14 +212,18 @@ jobs:
           set -euo pipefail
           D11_INPUTS="$WORK/d11/rmc011-real-source-inputs.json"
           D08_REL="$(jq -r '.d08.market_state_manifest' "$D11_INPUTS")"
+          D08_ORACLE_REL="$(jq -r '.d08.oracle_manifest' "$D11_INPUTS")"
           D08_STATE="$WORK/d11/upstream/d08/$D08_REL"
+          D08_ORACLE="$WORK/d11/upstream/d08/$D08_ORACLE_REL"
           test -f "$D08_STATE"
+          test -f "$D08_ORACLE"
           for name in actionability-records.jsonl actionability-summary.json capital-promotions.jsonl; do
             test -f "$WORK/d12/$name"
             cp -- "$WORK/d12/$name" "$WORK/$name"
           done
           test -f "$WORK/d11/d11/capital-sources.jsonl"
           cp -- "$D08_STATE" "$WORK/d08-market-state-manifest.jsonl"
+          cp -- "$D08_ORACLE" "$WORK/d08-oracle-manifest.jsonl"
           cp -- "$WORK/d11/d11/capital-sources.jsonl" "$WORK/capital-sources.jsonl"
 
       - name: Plan every positive exact V2 route
@@ -225,10 +245,46 @@ jobs:
             .emission_policy == "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE"
           ' "$WORK/routes/v2-route-summary.json" >/dev/null
 
-      - name: Fail closed until physical package assembly is enabled
+      - name: Collect independent pre-anchor gas evidence
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORK/gas/providers"
+          WRAPPED_NATIVE="$(jq -r '.gas_policy.wrapped_native_asset' "$INPUTS")"
+          HISTORY_BLOCKS="$(jq -r '.gas_policy.history_blocks' "$INPUTS")"
+          PERCENTILES="$(jq -r '.gas_policy.reward_percentiles | map(tostring) | join(",")' "$INPUTS")"
+          ADMISSION_PERCENTILE="$(jq -r '.gas_policy.admission_priority_percentile' "$INPUTS")"
+          jq -c '.providers[]' "$INPUTS" | while read -r provider; do
+            PROVIDER_ID="$(jq -r '.provider_id' <<<"$provider")"
+            RPC_URL="$(jq -r '.rpc_url' <<<"$provider")"
+            python3 ci/nqc-census/collect_rmc013_gas_evidence.py \
+              --rpc-url "$RPC_URL" \
+              --provider-id "$PROVIDER_ID" \
+              --anchor-summary "$WORK/actionability-summary.json" \
+              --oracle-manifest "$WORK/d08-oracle-manifest.jsonl" \
+              --wrapped-native "$WRAPPED_NATIVE" \
+              --history-blocks "$HISTORY_BLOCKS" \
+              --reward-percentiles "$PERCENTILES" \
+              --admission-priority-percentile "$ADMISSION_PERCENTILE" \
+              --out "$WORK/gas/providers/$PROVIDER_ID.json"
+          done
+
+          python3 ci/nqc-census/reconcile_rmc013_gas_evidence.py \
+            --provider-evidence "$WORK/gas/providers/blastapi-public.json" \
+            --provider-evidence "$WORK/gas/providers/mevblocker-rpc.json" \
+            --out "$WORK/gas/gas-price-evidence.json"
+
+          jq -e '
+            .status == "RMC_013_GAS_PRICE_EVIDENCE_PASS" and
+            .lookahead_used == false and
+            (.provider_evidence | length == 2)
+          ' "$WORK/gas/gas-price-evidence.json" >/dev/null
+
+      - name: Fail closed until fork execution and Rust economics assembly are enabled
         shell: bash
         run: |
           set -euo pipefail
           echo "RMC013_EXECUTION_PRODUCER_ROUTE_STAGE_PASS"
+          echo "RMC013_GAS_PRICE_STAGE_PASS"
           echo "RMC013_EXECUTION_EVIDENCE_NOT_CERTIFIED_YET" >&2
           exit 1
