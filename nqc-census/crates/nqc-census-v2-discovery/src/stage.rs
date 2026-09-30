@@ -47,16 +47,41 @@ pub struct V2Plan {
 
 impl V2Plan {
     pub fn mainnet() -> Result<Self, ChainError> {
+        Self::mainnet_at(
+            25_437_474,
+            "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+        )
+    }
+
+    pub fn mainnet_at(anchor_number: u64, anchor_hash: &str) -> Result<Self, ChainError> {
+        if anchor_number == 0 {
+            return Err(ChainError::Config("zero V2 observation anchor".into()));
+        }
         Ok(Self {
             profile: ChainProfile::mainnet()?,
-            anchor_number: 25_437_474,
-            anchor_hash: Hash32::parse_hex(
-                "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
-            )?,
+            anchor_number,
+            anchor_hash: Hash32::parse_hex(anchor_hash)?,
             factory: Address::parse_hex("0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f")?,
             log_span: 250_000,
             job_size: 10_000,
         })
+    }
+
+    pub fn from_env_or_mainnet() -> Result<Self, ChainError> {
+        let number = std::env::var("NQC_RMC007_ANCHOR_NUMBER").ok();
+        let hash = std::env::var("NQC_RMC007_ANCHOR_HASH").ok();
+        match (number, hash) {
+            (None, None) => Self::mainnet(),
+            (Some(number), Some(hash)) => {
+                let anchor_number = number.parse::<u64>().map_err(|_| {
+                    ChainError::Config("invalid NQC_RMC007_ANCHOR_NUMBER".into())
+                })?;
+                Self::mainnet_at(anchor_number, &hash)
+            }
+            _ => Err(ChainError::Config(
+                "NQC_RMC007_ANCHOR_NUMBER and NQC_RMC007_ANCHOR_HASH must be set together".into(),
+            )),
+        }
     }
 }
 
