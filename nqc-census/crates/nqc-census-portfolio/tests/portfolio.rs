@@ -3,7 +3,7 @@ use nqc_census_capital::{
     CapitalEvidenceRef, CapitalFailureMode, CapitalFeasibility, CapitalOwnership,
     CapitalProviderKind, CapitalRequirement, CapitalRequirementLeg, CapitalSource,
     CapitalSourceSpec, CapitalTargetId, CollateralRequirement, FeeModel, RepaymentSemantics,
-    RequiredAtomicity, RequirementKind, TemporaryLock, UtilizationConstraints,
+    RequiredAtomicity, RequirementKind, SourceAllocation, TemporaryLock, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_portfolio::{
@@ -123,6 +123,34 @@ fn individually_feasible_candidates_cannot_double_spend_one_source() -> TestResu
     assert_eq!(report.conflicts()[0].capacity, Amount256::from_u128(100));
     assert_eq!(report.conflicts()[0].claimed, Amount256::from_u128(140));
     assert_eq!(report.conflicts()[0].claimants.len(), 2);
+    Ok(())
+}
+
+#[test]
+fn forged_capital_feasibility_is_rejected_by_exact_rmc011_recomputation() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let limited = source(anchor.clone(), 30, 50, CapitalOwnership::External)?;
+    let req = requirement(anchor.clone(), 40, 100)?;
+    let candidate = PortfolioCandidate::new(req.id(), anchor, vec![])?;
+    let forged = CapitalFeasibility::Feasible {
+        requirement_id: req.id(),
+        allocations: vec![SourceAllocation {
+            source_id: limited.id(),
+            leg_kind: RequirementKind::ActionPrincipal,
+            amount: Amount256::from_u128(100),
+        }],
+    };
+
+    assert!(matches!(
+        evaluate_portfolio(
+            &[candidate],
+            &[req],
+            &[forged],
+            &[limited],
+            &[],
+        ),
+        Err(PortfolioError::CapitalFeasibilityMismatch)
+    ));
     Ok(())
 }
 
