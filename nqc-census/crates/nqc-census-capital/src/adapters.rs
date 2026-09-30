@@ -36,9 +36,13 @@ impl AaveV3FlashObservation {
             source_contract: Some(self.pool),
             asset: CapitalAsset::Token(self.asset),
             maximum_available: self.available_underlying,
+            // PFT-COMPAT-009 measured the deployed Aave V3 flashLoanSimple
+            // callback and proved positive fractional premiums round upward.
+            // Half-up underquoted real repayment by one unit in the certified
+            // historical witness.
             fee_model: FeeModel::basis_points_with_rounding(
                 self.premium_total_bps,
-                RoundingMode::HalfUp,
+                RoundingMode::Ceil,
             )?,
             repayment_asset: CapitalAsset::Token(self.asset),
             repayment: RepaymentSemantics::AtomicSameTransaction,
