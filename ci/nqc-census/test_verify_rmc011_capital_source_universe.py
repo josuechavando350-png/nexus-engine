@@ -172,5 +172,32 @@ class SourceUniverseTests(unittest.TestCase):
             mod.validate_document(doc)
 
 
+    def test_implemented_family_requires_canonical_existing_source_path(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = next(
+            row
+            for row in doc["families"]
+            if row["id"] == "EXTERNAL_GAS_SPONSOR"
+        )
+        self.assertEqual(row["status"], "SEMANTIC_ADMISSION_IMPLEMENTED")
+        row["real_source_path"] = "fake/path"
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+    def test_implemented_family_cannot_point_at_another_real_importer(self) -> None:
+        doc = copy.deepcopy(BASE)
+        row = next(
+            row
+            for row in doc["families"]
+            if row["id"] == "TRANSIENT_EXTERNAL_CREDIT"
+        )
+        self.assertEqual(row["status"], "SEMANTIC_ADMISSION_IMPLEMENTED")
+        row["real_source_path"] = (
+            "nqc-census/crates/nqc-census-capital/src/gas_sponsor.rs"
+        )
+        with self.assertRaises(mod.UniverseError):
+            mod.validate_document(doc)
+
+
 if __name__ == "__main__":
     unittest.main()
