@@ -7,6 +7,8 @@ on:
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
+      - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/validate-rmc011-terminal-readiness.py"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
@@ -23,6 +25,8 @@ on:
       - ".github/workflows/nqc-census-capital-real-source-certification.yml"
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
+      - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/validate-rmc011-terminal-readiness.py"
       - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - "ci/nqc-census/rmc011-real-source-inputs.json"
       - "ci/nqc-census/rmc011-authority-lock.json"
@@ -67,6 +71,8 @@ jobs:
           grep -F 'rmc011-certification-package' .github/workflows/nqc-census-capital-real-source-certification.yml
           grep -F 'CERTIFICATION-PACKAGE-SHA256SUMS' .github/workflows/nqc-census-capital-real-source-certification.yml
           test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+          python3 ci/nqc-census/validate-rmc011-terminal-readiness.py
+          jq -e '.terminal_claim_allowed == false and .status != "D11_TERMINAL_CLOSED"' ci/nqc-census/rmc011-capital-source-universe.json >/dev/null
 
           INPUTS=ci/nqc-census/rmc011-real-source-inputs.json
           LOCK=ci/nqc-census/rmc011-authority-lock.json
@@ -381,6 +387,7 @@ jobs:
           cp -a "$RUNNER_TEMP/rmc011-real-source/." "$PACKAGE/d11/"
           cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
           cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
+          cp -- ci/nqc-census/rmc011-capital-source-universe.json "$PACKAGE/rmc011-capital-source-universe.json"
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
