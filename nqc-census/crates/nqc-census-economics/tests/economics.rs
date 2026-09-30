@@ -4,9 +4,10 @@ use nqc_census_capital::{
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_economics::{
-    evaluate_scenarios, CapacityCurve, CaptureCalibration, CostComponent, CostKind,
-    EconomicsError, ExecutionCostVector, ExecutionQuote, PnlScenario, ProbabilityWad,
-    QuoteDecision, SignedAmount, ValuationUnitId, WAD,
+    evaluate_scenarios, mul_div_floor, CapacityCurve, CaptureCalibration, CostComponent,
+    CostKind, EconomicsError, ExecutionCostVector, ExecutionQuote, GasValuation, PnlScenario,
+    ProbabilityWad, ProfitBucket, QuoteDecision, SignedAmount, TailRiskBound, ValuationUnitId,
+    WAD,
 };
 use nqc_census_portfolio::PortfolioCandidate;
 
@@ -100,6 +101,32 @@ fn empirical(probability: u64) -> Result<CaptureCalibration, EconomicsError> {
     )
 }
 
+fn interval(
+    lower: u64,
+    point: u64,
+    upper: u64,
+) -> Result<CaptureCalibration, EconomicsError> {
+    CaptureCalibration::shadow_calibrated(
+        ProbabilityWad::new(lower)?,
+        ProbabilityWad::new(point)?,
+        ProbabilityWad::new(upper)?,
+        10_000,
+        hash(90),
+        hash(91),
+        hash(92),
+    )
+}
+
+fn tail(reserve: u128) -> Result<TailRiskBound, EconomicsError> {
+    TailRiskBound::new(
+        ProbabilityWad::new(WAD * 99 / 100)?,
+        Amount256::from_u128(reserve),
+        Amount256::from_u128(reserve.max(1_000)),
+        Amount256::from_u128(reserve),
+        hash(93),
+    )
+}
+
 fn quote(
     candidate: &PortfolioCandidate,
     anchor: &StateAnchor,
@@ -111,11 +138,12 @@ fn quote(
     ExecutionQuote::new(
         candidate.id(),
         anchor.clone(),
-        ValuationUnitId::from_commitment(hash(50)),
+        ValuationUnitId::usd_wad(),
         Amount256::from_u128(trade_size),
         Amount256::from_u128(gross),
         costs,
         capture,
+        tail(0)?,
         vec![hash(51), hash(52)],
     )
 }
@@ -324,21 +352,23 @@ fn quote_commitment_is_independent_of_evidence_input_order() -> TestResult {
     let left = ExecutionQuote::new(
         candidate.id(),
         anchor.clone(),
-        ValuationUnitId::from_commitment(hash(50)),
+        ValuationUnitId::usd_wad(),
         Amount256::from_u128(1_000),
         Amount256::from_u128(100),
         costs.clone(),
         capture.clone(),
+        tail(0)?,
         vec![hash(51), hash(52)],
     )?;
     let right = ExecutionQuote::new(
         candidate.id(),
         anchor,
-        ValuationUnitId::from_commitment(hash(50)),
+        ValuationUnitId::usd_wad(),
         Amount256::from_u128(1_000),
         Amount256::from_u128(100),
         costs,
         capture,
+        tail(0)?,
         vec![hash(52), hash(51)],
     )?;
     assert_eq!(left.commitment(), right.commitment());
@@ -368,5 +398,225 @@ fn anchor_change_changes_quote_commitment() -> TestResult {
         empirical(WAD / 2)?,
     )?;
     assert_ne!(left.commitment(), right.commitment());
+    Ok(())
+}
+
+
+#[test]
+fn capture_interval_admission_uses_worst_endpoint_not_point_estimate() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let quote = ExecutionQuote::new(
+        candidate.id(),
+        anchor,
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(1_000),
+        complete_costs(100, 20, 30)?,
+        interval(WAD * 4 / 10, WAD / 2, WAD * 6 / 10)?,
+        tail(20)?,
+        vec![hash(51), hash(52)],
+    )?;
+    let report = quote.evaluate()?;
+    assert_eq!(
+        report.capture_adjusted_net,
+        Some(SignedAmount::positive(Amount256::from_u128(375)))
+    );
+    assert_eq!(
+        report.interval_worst_case_net,
+        Some(SignedAmount::positive(Amount256::from_u128(274)))
+    );
+    assert_eq!(
+        report.tail_adjusted_net,
+        Some(SignedAmount::positive(Amount256::from_u128(254)))
+    );
+    assert_eq!(report.decision, QuoteDecision::Admitted);
+    Ok(())
+}
+
+#[test]
+fn tail_reserve_can_reject_positive_capture_adjusted_ev() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let quote = ExecutionQuote::new(
+        candidate.id(),
+        anchor,
+        ValuationUnitId::usd_wad(),
+        Amount256::from_u128(1_000),
+        Amount256::from_u128(100),
+        complete_costs(80, 0, 0)?,
+        empirical(WAD)?,
+        tail(25)?,
+        vec![hash(51), hash(52)],
+    )?;
+    let report = quote.evaluate()?;
+    assert_eq!(
+        report.interval_worst_case_net,
+        Some(SignedAmount::positive(Amount256::from_u128(20)))
+    );
+    assert!(matches!(
+        report.tail_adjusted_net,
+        Some(value) if value.is_negative()
+    ));
+    assert_eq!(report.decision, QuoteDecision::NonPositiveTailAdjustedNet);
+    Ok(())
+}
+
+#[test]
+fn expected_cost_rounding_never_understates_one_atomic_unit() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let p = ProbabilityWad::new(WAD / 3)?;
+    let quote = quote(
+        &candidate,
+        &anchor,
+        1_000,
+        4,
+        complete_costs(0, 1, 0)?,
+        CaptureCalibration::empirical(p, 1, hash(90), hash(91), hash(92))?,
+    )?;
+    let report = quote.evaluate()?;
+    // floor(4p)=1 while ceil(1p)=1, so conservative EV is exactly zero.
+    assert_eq!(
+        report.capture_adjusted_net,
+        Some(SignedAmount::ZERO)
+    );
+    assert_eq!(
+        report.decision,
+        QuoteDecision::NonPositiveCaptureAdjustedNet
+    );
+    Ok(())
+}
+
+#[test]
+fn signed_scenario_weighting_rounds_losses_up() -> TestResult {
+    let tiny_loss_probability = ProbabilityWad::new(1)?;
+    let report = evaluate_scenarios(&[
+        PnlScenario {
+            probability: ProbabilityWad::new(WAD - 1)?,
+            pnl: SignedAmount::positive(Amount256::from_u128(1)),
+            evidence: hash(110),
+        },
+        PnlScenario {
+            probability: tiny_loss_probability,
+            pnl: SignedAmount::negative(Amount256::from_u128(1)),
+            evidence: hash(111),
+        },
+    ])?;
+    assert_eq!(report.conservative_expected_pnl, SignedAmount::negative(Amount256::from_u128(1)));
+    Ok(())
+}
+
+#[test]
+fn duplicate_scenario_evidence_is_rejected() -> TestResult {
+    assert!(matches!(
+        evaluate_scenarios(&[
+            PnlScenario {
+                probability: ProbabilityWad::new(WAD / 2)?,
+                pnl: SignedAmount::positive(Amount256::from_u128(1)),
+                evidence: hash(112),
+            },
+            PnlScenario {
+                probability: ProbabilityWad::new(WAD / 2)?,
+                pnl: SignedAmount::negative(Amount256::from_u128(1)),
+                evidence: hash(112),
+            },
+        ]),
+        Err(EconomicsError::DuplicateEvidence)
+    ));
+    Ok(())
+}
+
+#[test]
+fn exact_gas_valuation_uses_full_precision_integer_math() -> TestResult {
+    let gas = GasValuation::new(
+        21_000,
+        Amount256::from_u128(1_000_000_000),
+        Amount256::from_u128(2_000 * u128::from(WAD)),
+        hash(120),
+    )?;
+    assert_eq!(gas.gas_wei(), Amount256::from_u128(21_000_000_000_000));
+    assert_eq!(
+        gas.gas_usd_wad(),
+        Amount256::from_u128(42_000_000_000_000_000)
+    );
+    assert_eq!(gas.price_evidence(), hash(120));
+    Ok(())
+}
+
+#[test]
+fn full_width_mul_div_rejects_result_overflow_instead_of_truncating() -> TestResult {
+    assert_eq!(
+        mul_div_floor(Amount256::MAX, Amount256::from_u128(1), 1)?,
+        Amount256::MAX
+    );
+    assert!(matches!(
+        mul_div_floor(Amount256::MAX, Amount256::from_u128(2), 1),
+        Err(EconomicsError::AmountOverflow)
+    ));
+    Ok(())
+}
+
+#[test]
+fn profit_bucket_requires_canonical_usd_wad_and_uses_exact_boundaries() -> TestResult {
+    let eight_fifty = SignedAmount::positive(Amount256::from_u128(
+        8_500_000_000_000_000_000,
+    ));
+    assert_eq!(
+        ProfitBucket::classify(ValuationUnitId::usd_wad(), eight_fifty)?,
+        Some(ProfitBucket::FiveToTen)
+    );
+    assert!(matches!(
+        ProfitBucket::classify(
+            ValuationUnitId::from_commitment(hash(121)),
+            eight_fifty
+        ),
+        Err(EconomicsError::ProfitBucketRequiresUsdWad)
+    ));
+    Ok(())
+}
+
+#[test]
+fn invalid_capture_interval_is_rejected() -> TestResult {
+    assert!(matches!(
+        interval(WAD * 8 / 10, WAD / 2, WAD * 9 / 10),
+        Err(EconomicsError::InvalidCaptureInterval)
+    ));
+    Ok(())
+}
+
+#[test]
+fn capacity_curve_reports_largest_positive_measured_size() -> TestResult {
+    let anchor = anchor(100, 10);
+    let candidate = candidate_at(&anchor)?;
+    let q1 = quote(
+        &candidate,
+        &anchor,
+        1_000,
+        100,
+        complete_costs(10, 0, 0)?,
+        empirical(WAD)?,
+    )?;
+    let q2 = quote(
+        &candidate,
+        &anchor,
+        5_000,
+        100,
+        complete_costs(99, 0, 0)?,
+        empirical(WAD)?,
+    )?;
+    let q3 = quote(
+        &candidate,
+        &anchor,
+        10_000,
+        100,
+        complete_costs(100, 0, 0)?,
+        empirical(WAD)?,
+    )?;
+    let curve = CapacityCurve::new(vec![q3, q1, q2])?;
+    assert_eq!(
+        curve.largest_positive_size()?,
+        Some(Amount256::from_u128(5_000))
+    );
     Ok(())
 }
