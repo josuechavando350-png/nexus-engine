@@ -1,7 +1,8 @@
 use nqc_census_capital::{
     gas_credit::{
         external_gas_credit_facts_commitment, external_gas_credit_terms_commitment,
-        import_external_gas_credit_observation, EXTERNAL_GAS_CREDIT_FAMILY,
+        import_external_gas_credit_observation, EXTERNAL_GAS_CREDIT_DELIVERY_SEMANTICS,
+        EXTERNAL_GAS_CREDIT_FAMILY, EXTERNAL_GAS_CREDIT_SCHEMA_VERSION,
         EXTERNAL_GAS_CREDIT_STATUS,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalOwnership, CapitalProviderKind,
@@ -60,6 +61,7 @@ fn observation_with_runtime_active_and_transcript(
     let market_cap = Some(amount(700));
     let balance = amount(1_000);
     let limit = amount(900);
+    let delivery_route_commitment = hash(30);
 
     let terms = external_gas_credit_terms_commitment(
         borrower,
@@ -70,6 +72,8 @@ fn observation_with_runtime_active_and_transcript(
         min_remaining,
         protocol_cap,
         market_cap,
+        delivery_route_commitment,
+        false,
         active,
     )?;
     let facts = external_gas_credit_facts_commitment(
@@ -85,7 +89,10 @@ fn observation_with_runtime_active_and_transcript(
     )?;
 
     let row = Json::object([
-        ("schema_version", Json::uint(1)),
+        (
+            "schema_version",
+            Json::uint(EXTERNAL_GAS_CREDIT_SCHEMA_VERSION),
+        ),
         ("status", Json::string(EXTERNAL_GAS_CREDIT_STATUS)),
         ("provider_family", Json::string(EXTERNAL_GAS_CREDIT_FAMILY)),
         ("capital_ownership", Json::string("EXTERNAL")),
@@ -134,6 +141,15 @@ fn observation_with_runtime_active_and_transcript(
         ("min_remaining_native_gas", amount_json(min_remaining)),
         ("protocol_cap", protocol_cap.map_or(Json::Null, amount_json)),
         ("market_cap", market_cap.map_or(Json::Null, amount_json)),
+        (
+            "delivery_semantics",
+            Json::string(EXTERNAL_GAS_CREDIT_DELIVERY_SEMANTICS),
+        ),
+        (
+            "delivery_route_commitment",
+            Json::string(delivery_route_commitment.to_hex()),
+        ),
+        ("operator_prefund_required", Json::Bool(false)),
         ("active", Json::Bool(active)),
         (
             "provider_observations",
@@ -356,6 +372,55 @@ fn forged_terms_commitment_fails_closed() -> TestResult {
     let bytes = observation(&anchor, amount(100), None, Some(hash(89)))?;
     assert!(matches!(
         import_external_gas_credit_observation(&bytes, &anchor),
+        Err(CapitalError::CanonicalDigestMismatch)
+    ));
+    Ok(())
+}
+
+#[test]
+fn gas_credit_requiring_operator_prefund_fails_closed() -> TestResult {
+    let anchor = anchor();
+    let bytes = observation(&anchor, amount(100), None, None)?;
+    let text = String::from_utf8(bytes)?;
+    let tampered = text
+        .replace(
+            "\"operator_prefund_required\":false",
+            "\"operator_prefund_required\":true",
+        )
+        .into_bytes();
+    assert!(matches!(
+        import_external_gas_credit_observation(&tampered, &anchor),
+        Err(CapitalError::InvalidCanonical(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn on_chain_draw_that_requires_borrower_gas_fails_closed() -> TestResult {
+    let anchor = anchor();
+    let bytes = observation(&anchor, amount(100), None, None)?;
+    let text = String::from_utf8(bytes)?;
+    let tampered = text
+        .replace(
+            EXTERNAL_GAS_CREDIT_DELIVERY_SEMANTICS,
+            "ON_CHAIN_DRAW_REQUIRES_BORROWER_GAS",
+        )
+        .into_bytes();
+    assert!(matches!(
+        import_external_gas_credit_observation(&tampered, &anchor),
+        Err(CapitalError::InvalidCanonical(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn delivery_route_change_cannot_reuse_old_terms_commitment() -> TestResult {
+    let anchor = anchor();
+    let bytes = observation(&anchor, amount(100), None, None)?;
+    let text = String::from_utf8(bytes)?;
+    let tampered = text.replace(&hash(30).to_hex(), &hash(31).to_hex()).into_bytes();
+    assert!(matches!(
+        import_external_gas_credit_observation(&tampered, &anchor),
         Err(CapitalError::CanonicalDigestMismatch)
     ));
     Ok(())
