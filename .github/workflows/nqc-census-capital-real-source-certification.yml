@@ -142,6 +142,14 @@ jobs:
           cargo test --locked -p nqc-census-capital
           cargo build --release --locked -p nqc-census-capital
 
+      - name: Verify exact source-universe boundary
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m py_compile ci/nqc-census/verify-rmc011-capital-source-universe.py ci/nqc-census/test_verify_rmc011_capital_source_universe.py
+          python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+
       - name: Require authoritative upstream inputs
         shell: bash
         run: |
