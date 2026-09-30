@@ -8,7 +8,7 @@
 
 use nqc_census_capital::{Amount256, CapitalError};
 use nqc_census_core::{Hash32, StateAnchor};
-use nqc_census_portfolio::PortfolioCandidateId;
+use nqc_census_portfolio::{PortfolioCandidate, PortfolioCandidateId};
 use sha2::{Digest, Sha256};
 use std::{
     cmp::Ordering,
@@ -30,6 +30,8 @@ pub enum EconomicsError {
     MissingEvidence,
     DuplicateEvidence,
     MissingCommitment(&'static str),
+    MissingEvidenceCommitment(&'static str),
+    CandidateAnchorMismatch,
     AmountOverflow,
     ProbabilityArithmeticOverflow,
     CaptureSamplesRequired,
@@ -55,6 +57,12 @@ impl Display for EconomicsError {
             Self::MissingEvidence => f.write_str("economics record requires evidence"),
             Self::DuplicateEvidence => f.write_str("economics record repeats evidence"),
             Self::MissingCommitment(name) => write!(f, "{name} commitment must be non-zero"),
+            Self::MissingEvidenceCommitment(name) => {
+                write!(f, "{name} evidence commitment must be non-zero")
+            }
+            Self::CandidateAnchorMismatch => {
+                f.write_str("execution quote anchor differs from its RMC-012 candidate")
+            }
             Self::AmountOverflow => f.write_str("uint256 economics amount overflow"),
             Self::ProbabilityArithmeticOverflow => {
                 f.write_str("probability-weighted arithmetic overflow")
@@ -414,6 +422,9 @@ impl ExecutionCostVector {
         components.sort_by_key(|component| component.kind);
         let mut seen = BTreeSet::new();
         for component in &components {
+            if is_zero_hash(component.evidence) {
+                return Err(EconomicsError::MissingEvidenceCommitment("cost_component"));
+            }
             if !seen.insert(component.kind) {
                 return Err(EconomicsError::DuplicateCostKind(component.kind));
             }
@@ -504,6 +515,15 @@ impl CaptureCalibration {
         if lower > point || point > upper {
             return Err(EconomicsError::InvalidCaptureInterval);
         }
+        for (name, commitment) in [
+            ("capture_observation_window", observation_window),
+            ("capture_model", model_commitment),
+            ("capture_evidence", evidence_commitment),
+        ] {
+            if is_zero_hash(commitment) {
+                return Err(EconomicsError::MissingEvidenceCommitment(name));
+            }
+        }
         Ok(Self::ShadowCalibrated {
             lower,
             point,
@@ -513,6 +533,44 @@ impl CaptureCalibration {
             model_commitment,
             evidence_commitment,
         })
+    }
+
+    fn validate(&self) -> Result<(), EconomicsError> {
+        match self {
+            Self::Uncalibrated { model_commitment } => {
+                if is_zero_hash(*model_commitment) {
+                    return Err(EconomicsError::MissingEvidenceCommitment(
+                        "capture_model",
+                    ));
+                }
+            }
+            Self::ShadowCalibrated {
+                lower,
+                point,
+                upper,
+                sample_count,
+                observation_window,
+                model_commitment,
+                evidence_commitment,
+            } => {
+                if *sample_count == 0 {
+                    return Err(EconomicsError::CaptureSamplesRequired);
+                }
+                if lower > point || point > upper {
+                    return Err(EconomicsError::InvalidCaptureInterval);
+                }
+                for (name, commitment) in [
+                    ("capture_observation_window", *observation_window),
+                    ("capture_model", *model_commitment),
+                    ("capture_evidence", *evidence_commitment),
+                ] {
+                    if is_zero_hash(commitment) {
+                        return Err(EconomicsError::MissingEvidenceCommitment(name));
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     pub const fn point_probability(&self) -> Option<ProbabilityWad> {
@@ -552,6 +610,9 @@ impl TailRiskBound {
             || reserve > absolute_max_loss
         {
             return Err(EconomicsError::InvalidTailBound);
+        }
+        if is_zero_hash(evidence) {
+            return Err(EconomicsError::MissingEvidenceCommitment("tail_risk"));
         }
         Ok(Self {
             confidence,
@@ -705,7 +766,7 @@ pub struct ExecutionQuote {
 impl ExecutionQuote {
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        candidate_id: PortfolioCandidateId,
+        candidate: &PortfolioCandidate,
         opportunity_id: Hash32,
         execution_plan_commitment: Hash32,
         economic_model_commitment: Hash32,
@@ -718,9 +779,14 @@ impl ExecutionQuote {
         tail: TailRiskBound,
         mut evidence: Vec<Hash32>,
     ) -> Result<Self, EconomicsError> {
+        if candidate.anchor() != &anchor {
+            return Err(EconomicsError::CandidateAnchorMismatch);
+        }
+        let candidate_id = candidate.id();
         if trade_size.is_zero() {
             return Err(EconomicsError::ZeroValue("trade_size"));
         }
+        capture.validate()?;
         for (name, commitment) in [
             ("opportunity", opportunity_id),
             ("execution_plan", execution_plan_commitment),
@@ -732,6 +798,9 @@ impl ExecutionQuote {
         }
         if evidence.is_empty() {
             return Err(EconomicsError::MissingEvidence);
+        }
+        if evidence.iter().copied().any(is_zero_hash) {
+            return Err(EconomicsError::MissingEvidenceCommitment("quote"));
         }
         evidence.sort_unstable();
         if evidence.windows(2).any(|pair| pair[0] == pair[1]) {
@@ -1007,6 +1076,9 @@ pub fn evaluate_scenarios(scenarios: &[PnlScenario]) -> Result<ScenarioRiskRepor
     }
     let mut scenario_evidence = BTreeSet::new();
     for scenario in scenarios {
+        if is_zero_hash(scenario.evidence) {
+            return Err(EconomicsError::MissingEvidenceCommitment("scenario"));
+        }
         if !scenario_evidence.insert(scenario.evidence) {
             return Err(EconomicsError::DuplicateEvidence);
         }
@@ -1184,6 +1256,10 @@ pub fn mul_div_floor(
     let mut out = [0_u8; 32];
     out.copy_from_slice(&quotient[32..]);
     Ok(Amount256::from_be_bytes(out))
+}
+
+fn is_zero_hash(value: Hash32) -> bool {
+    value.as_bytes().iter().all(|byte| *byte == 0)
 }
 
 fn div_mod_u64(amount: Amount256, divisor: u64) -> Result<(Amount256, u64), EconomicsError> {
