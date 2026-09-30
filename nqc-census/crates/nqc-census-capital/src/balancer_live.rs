@@ -10,7 +10,8 @@ use crate::{
     permissionless_atomic::{
         admit_balancer_v2_dual_provider, BalancerV2AuthenticatedObservation,
     },
-    Amount256, CapitalSource,
+    source_authority::D11SourceAuthority,
+    Amount256, CapitalEvidenceRef, CapitalSource,
 };
 use nqc_census_chain::{
     abi,
@@ -594,6 +595,120 @@ pub fn reconcile_balancer_captures(
 
     sources.sort_by_key(|source| source.id());
     Ok(sources)
+}
+
+/// Decode and independently verify the Rust reconciliation artifact, then bind
+/// its exact bytes to a D11-native source authority.
+///
+/// Readable report fields are never trusted over `canonical_record`. Every
+/// source is decoded from its canonical binary form, readable projections must
+/// match that decoded source, and its evidence set must be exactly the two raw
+/// provider-capture SHA-256 digests named by the report.
+pub fn source_authority_from_balancer_reconcile_artifact(
+    bytes: &[u8],
+) -> Result<(D11SourceAuthority, Vec<CapitalSource>), Box<dyn Error>> {
+    let report = Json::parse(bytes)?;
+    if report.canonical()? != bytes {
+        return Err("Balancer reconciliation artifact is not canonical JSON".into());
+    }
+    if u64_field(&report, "schema_version")? != 1
+        || report.str_field("stage")? != "RMC-011"
+        || report.str_field("family")? != "BALANCER_V2_FLASH_LOAN"
+        || report.str_field("status")? != "RMC011_BALANCER_V2_DUAL_PROVIDER_RECONCILED"
+        || u64_field(&report, "provider_count")? != 2
+    {
+        return Err("Balancer reconciliation artifact identity mismatch".into());
+    }
+
+    let first_digest =
+        Hash32::parse_hex(&format!("0x{}", report.str_field("first_capture_sha256")?))?;
+    let second_digest =
+        Hash32::parse_hex(&format!("0x{}", report.str_field("second_capture_sha256")?))?;
+    if first_digest == second_digest {
+        return Err("Balancer reconciliation names duplicate capture digests".into());
+    }
+    let expected_evidence = BTreeSet::from([
+        CapitalEvidenceRef::Artifact(first_digest),
+        CapitalEvidenceRef::Artifact(second_digest),
+    ]);
+
+    let rows = report
+        .get("sources")
+        .and_then(Json::as_array)
+        .ok_or("Balancer reconciliation has no sources array")?;
+    let declared_count = usize::try_from(u64_field(&report, "source_count")?)?;
+    if rows.is_empty() || rows.len() != declared_count {
+        return Err("Balancer reconciliation source count mismatch".into());
+    }
+
+    let mut source_ids = BTreeSet::new();
+    let mut source_key_ids = BTreeSet::new();
+    let mut sources = Vec::with_capacity(rows.len());
+    for row in rows {
+        let canonical_hex = row.str_field("canonical_record")?;
+        let encoded = hex::decode_data(&format!("0x{canonical_hex}"))?;
+        let source = CapitalSource::decode_canonical(&encoded)?;
+
+        if row.str_field("source_id")? != source.id().to_hex()
+            || row.str_field("source_key_id")? != source.key_id().to_hex()
+            || row.str_field("capital_class")? != source.class().code()
+            || row.str_field("asset")? != source.asset().code()
+            || row.str_field("maximum_available")? != source.maximum_available().to_hex()
+            || row.str_field("executable_capacity")? != source.executable_capacity()?.to_hex()
+            || bool_json(row, "execution_eligible")? != source.execution_eligible()
+        {
+            return Err("Balancer readable source projection differs from canonical record".into());
+        }
+
+        let blocker_rows = row
+            .get("execution_blockers")
+            .and_then(Json::as_array)
+            .ok_or("Balancer source projection has no execution_blockers")?;
+        let blockers = blocker_rows
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or("Balancer execution blocker is not text")
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        if blockers != source.execution_blockers() {
+            return Err("Balancer execution blockers differ from canonical record".into());
+        }
+
+        let observed_evidence = source
+            .evidence()
+            .iter()
+            .copied()
+            .collect::<BTreeSet<_>>();
+        if observed_evidence != expected_evidence || source.evidence().len() != 2 {
+            return Err(
+                "Balancer source evidence does not equal the two provider capture digests".into(),
+            );
+        }
+        if !source_ids.insert(source.id()) {
+            return Err("Balancer reconciliation repeats source id".into());
+        }
+        if !source_key_ids.insert(source.key_id()) {
+            return Err("Balancer reconciliation repeats source key".into());
+        }
+        sources.push(source);
+    }
+
+    let anchor = sources
+        .first()
+        .ok_or("Balancer reconciliation decoded no sources")?
+        .anchor()
+        .clone();
+    if sources.iter().any(|source| source.anchor() != &anchor) {
+        return Err("Balancer reconciliation mixes observation anchors".into());
+    }
+
+    let authority =
+        D11SourceAuthority::from_reconciliation_artifact(anchor, bytes, &sources)?;
+    authority.verify(bytes, &sources)?;
+    Ok((authority, sources))
 }
 
 pub fn run_balancer_capture(
