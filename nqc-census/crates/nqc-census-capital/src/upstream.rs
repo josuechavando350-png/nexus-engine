@@ -11,10 +11,10 @@ use crate::{
         UNISWAP_V2_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource, UpstreamCensusStage,
-    UpstreamStageAuthority,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority,
 };
 use nqc_census_chain::{hex, json::Json};
-use nqc_census_core::{Address, Hash32, StateAnchor};
+use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -67,6 +67,7 @@ pub struct D08CapitalImport {
     pub coverage_commitment: Hash32,
     pub sources: Vec<CapitalSource>,
     pub rejections: Vec<CapitalImportRejection>,
+    authority_artifact_sha256: Option<Hash32>,
 }
 
 impl D08CapitalImport {
@@ -74,6 +75,19 @@ impl D08CapitalImport {
         self.candidate_count == self.admitted_count + self.rejected_count
             && self.admitted_count == self.sources.len()
             && self.rejected_count == self.rejections.len()
+    }
+
+    pub fn consumption_receipt(&self) -> Result<UpstreamConsumptionReceipt, CapitalError> {
+        let authority_artifact_sha256 =
+            self.authority_artifact_sha256
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
+                    "D08 import is not bound to an admitted authority artifact",
+                ))?;
+        UpstreamConsumptionReceipt::for_sources(
+            authority_artifact_sha256,
+            self.coverage_commitment,
+            self.sources.iter(),
+        )
     }
 }
 
@@ -123,6 +137,49 @@ fn array<'a>(row: &'a Json, key: &'static str) -> Result<&'a [Json], CapitalErro
         .ok_or(CapitalError::InvalidCanonical("D08 field is not array"))
 }
 
+fn d08_hash(row: &Json, key: &'static str) -> Result<Hash32, CapitalError> {
+    Hash32::parse_hex(text(row, key)?)
+        .map_err(|_| CapitalError::InvalidCanonical("invalid D08 anchor hash"))
+}
+
+fn d08_observation_anchor(row: &Json) -> Result<StateAnchor, CapitalError> {
+    let chain = ChainDomain::new(
+        u64_field(row, "chain_id")?,
+        d08_hash(row, "genesis_hash")?,
+        d08_hash(row, "fork_lineage")?,
+    )
+    .map_err(|_| CapitalError::InvalidCanonical("invalid D08 chain domain"))?;
+    StateAnchor::new(
+        chain,
+        u64_field(row, "block_number")?,
+        d08_hash(row, "block_hash")?,
+        d08_hash(row, "parent_hash")?,
+        u64_field(row, "timestamp")?,
+        d08_hash(row, "state_root")?,
+    )
+    .map_err(|_| CapitalError::InvalidCanonical("invalid D08 observation anchor"))
+}
+
+fn rfc3339(timestamp: u64) -> String {
+    let days = timestamp / 86_400;
+    let seconds = timestamp % 86_400;
+    let z = days + 719_468;
+    let era = z / 146_097;
+    let doe = z % 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + u64::from(month <= 2);
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        seconds / 3_600,
+        (seconds % 3_600) / 60,
+        seconds % 60
+    )
+}
+
 fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     let text = std::str::from_utf8(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("D08 JSONL is not UTF-8"))?;
@@ -139,16 +196,33 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     Ok(rows)
 }
 
-fn token_compatibility(bytes: &[u8]) -> Result<BTreeMap<Address, bool>, CapitalError> {
+fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
     let mut tokens = BTreeMap::new();
     for row in parse_jsonl(bytes)? {
         let token = Address::parse_hex(text(&row, "token")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid D08 token address"))?;
         let execution = field(&row, "execution_compatibility")?;
-        let blockers = array(execution, "blockers")?;
-        let compatible = match text(execution, "status")? {
-            "PROVEN_COMPATIBLE" if blockers.is_empty() => true,
-            "BLOCKED" if !blockers.is_empty() => false,
+        let raw_blockers = array(execution, "blockers")?;
+        let mut blockers = raw_blockers
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "D08 execution blocker is not text",
+                    ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        blockers.sort();
+        if blockers.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate D08 execution blocker",
+            ));
+        }
+        match text(execution, "status")? {
+            "PROVEN_COMPATIBLE" if blockers.is_empty() => {}
+            "BLOCKED" if !blockers.is_empty() => {}
             "PROVEN_COMPATIBLE" | "BLOCKED" => {
                 return Err(CapitalError::InvalidCanonical(
                     "D08 token compatibility status contradicts blockers",
@@ -159,8 +233,8 @@ fn token_compatibility(bytes: &[u8]) -> Result<BTreeMap<Address, bool>, CapitalE
                     "unknown D08 token compatibility status",
                 ))
             }
-        };
-        if tokens.insert(token, compatible).is_some() {
+        }
+        if tokens.insert(token, blockers).is_some() {
             return Err(CapitalError::InvalidCanonical(
                 "duplicate D08 token admission",
             ));
@@ -169,10 +243,13 @@ fn token_compatibility(bytes: &[u8]) -> Result<BTreeMap<Address, bool>, CapitalE
     Ok(tokens)
 }
 
-fn compatible(tokens: &BTreeMap<Address, bool>, token: Address) -> Result<bool, CapitalError> {
+fn execution_blockers(
+    tokens: &BTreeMap<Address, Vec<String>>,
+    token: Address,
+) -> Result<&[String], CapitalError> {
     tokens
         .get(&token)
-        .copied()
+        .map(Vec::as_slice)
         .ok_or(CapitalError::InvalidCanonical(
             "D08 state row references token without admission record",
         ))
@@ -344,6 +421,13 @@ fn verify_d08_artifact_binding(
             "D08 evidence manifest code identity mismatch",
         ));
     }
+    let manifest_anchor = d08_observation_anchor(field(&manifest, "observation_anchor")?)?;
+    if manifest_anchor != authority.observation_anchor
+        || manifest_anchor != context.anchor
+        || text(&manifest, "generated_at")? != rfc3339(context.anchor.timestamp())
+    {
+        return Err(CapitalError::AnchorMismatch);
+    }
 
     let expected: [(&str, &[u8]); 3] = [
         ("market-state-manifest.jsonl", state_manifest_jsonl),
@@ -388,8 +472,10 @@ fn verify_d08_artifact_binding(
     }
 
     let manifest_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256);
-    if !context.evidence.contains(&manifest_evidence) {
-        return Err(CapitalError::UnresolvedEvidenceRef);
+    if context.evidence.as_slice() != [manifest_evidence] {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "D08 import evidence must be exactly its admitted authority artifact",
+        ));
     }
     Ok(())
 }
@@ -410,12 +496,14 @@ pub fn import_d08_capital_sources(
         authority,
         context,
     )?;
-    import_d08_capital_sources_unbound(
+    let mut imported = import_d08_capital_sources_unbound(
         state_manifest_jsonl,
         token_admission_jsonl,
         pool_and_factory_facts_json,
         context,
-    )
+    )?;
+    imported.authority_artifact_sha256 = Some(authority.artifact_sha256);
+    Ok(imported)
 }
 
 fn import_d08_capital_sources_unbound(
@@ -428,7 +516,7 @@ fn import_d08_capital_sources_unbound(
         return Err(CapitalError::MissingEvidence);
     }
     let (aave_pool, aave_premium_total_bps) = d08_aave_flash_terms(pool_and_factory_facts_json)?;
-    let tokens = token_compatibility(token_admission_jsonl)?;
+    let tokens = token_execution_blockers(token_admission_jsonl)?;
     let mut sources = Vec::new();
     let mut rejections = Vec::new();
     let mut outcomes = Vec::new();
@@ -474,17 +562,7 @@ fn import_d08_capital_sources_unbound(
                     );
                     continue;
                 }
-                if !compatible(&tokens, asset_address)? {
-                    push_rejection(
-                        &mut rejections,
-                        &mut outcomes,
-                        protocol,
-                        &market_id,
-                        asset,
-                        CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked,
-                    );
-                    continue;
-                }
+                let token_blockers = execution_blockers(&tokens, asset_address)?.to_vec();
 
                 let facts = field(&row, "protocol_facts")?;
                 if !bool_field(facts, "active")? || bool_field(facts, "paused")? {
@@ -523,7 +601,8 @@ fn import_d08_capital_sources_unbound(
                     )?,
                     evidence: context.evidence.clone(),
                 }
-                .into_capital_source()?;
+                .into_capital_source()?
+                .with_execution_blockers(token_blockers)?;
                 push_source(
                     &mut sources,
                     &mut outcomes,
@@ -617,17 +696,7 @@ fn import_d08_capital_sources_unbound(
                             "duplicate D08 capital source candidate",
                         ));
                     }
-                    if !compatible(&tokens, token)? {
-                        push_rejection(
-                            &mut rejections,
-                            &mut outcomes,
-                            protocol,
-                            &market_id,
-                            asset,
-                            CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked,
-                        );
-                        continue;
-                    }
+                    let token_blockers = execution_blockers(&tokens, token)?.to_vec();
                     let reserve_text = reserve.as_str().ok_or(CapitalError::InvalidCanonical(
                         "V2 reserve amount is not decimal text",
                     ))?;
@@ -643,7 +712,8 @@ fn import_d08_capital_sources_unbound(
                         )?,
                         evidence: context.evidence.clone(),
                     }
-                    .into_capital_source()?;
+                    .into_capital_source()?
+                    .with_execution_blockers(token_blockers)?;
                     push_source(
                         &mut sources,
                         &mut outcomes,
@@ -693,5 +763,6 @@ fn import_d08_capital_sources_unbound(
         coverage_commitment,
         sources,
         rejections,
+        authority_artifact_sha256: None,
     })
 }

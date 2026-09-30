@@ -4,8 +4,8 @@ use nqc_census_capital::{
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind,
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
-    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
-    UpstreamStageAuthoritySpec, UtilizationConstraints,
+    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamConsumptionReceipt,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use std::{
@@ -40,7 +40,9 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
 }
 
-fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
+fn authority_for(
+    ledger: &CapitalCensusLedger,
+) -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
         let ordinal = u64::try_from(index + 1).map_err(|_| {
@@ -70,7 +72,28 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             .iter()
             .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
     );
-    CapitalCertificationContext::new(stages, admitted_evidence)
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-008 authority missing",
+        ))?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-009 authority missing",
+        ))?
+        .artifact_sha256;
+    CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
+        UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+        UpstreamConsumptionReceipt::for_requirements(
+            d09_artifact,
+            hash(81),
+            ledger.requirements(),
+        )?,
+    ])
 }
 
 fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
@@ -133,10 +156,12 @@ fn artifact_dir(suffix: &str) -> PathBuf {
 fn write_bundle(directory: &Path) -> TestResult {
     let _ = fs::remove_dir_all(directory);
     fs::create_dir_all(directory)?;
+    let ledger = ledger()?;
+    let authority = authority_for(&ledger)?;
     let bundle = export_capital_artifacts(
-        &ledger()?,
-        &authority()?,
-        &ArtifactProvenance::new("2026-09-29T00:00:00Z", CODE_COMMIT, CODE_TREE)?,
+        &ledger,
+        &authority,
+        &ArtifactProvenance::new("2023-11-14T22:13:20Z", CODE_COMMIT, CODE_TREE)?,
     )?;
     for file in bundle.files {
         fs::write(directory.join(file.name), file.bytes)?;
@@ -182,6 +207,7 @@ fn offline_verifier_binary_accepts_exact_export() -> TestResult {
     assert!(stdout.contains("RMC_011_OFFLINE_VERIFY=PASS"));
     assert!(stdout.contains("sources=1"));
     assert!(stdout.contains("requirements=1"));
+    assert!(stdout.contains("results=1"));
     assert!(stdout.contains("feasible=1"));
     assert!(stdout.contains("rejected=0"));
     Ok(())

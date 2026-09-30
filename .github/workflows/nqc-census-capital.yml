@@ -9,6 +9,7 @@ on:
       - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-pft-math-bridge/**"
+      - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
       - ".github/workflows/nqc-census-capital.yml"
   push:
     branches:
@@ -65,6 +66,17 @@ jobs:
           set -euo pipefail
           ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction' \
             nqc-census/crates/nqc-census-capital ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+
+      - name: Verify real-source closeout runner
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'git -C "$REPO_ROOT" rev-parse HEAD' ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F "rev-parse 'HEAD^{tree}'" ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'nqc-rmc011-capital-build' ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'nqc-rmc011-upstream-replay-verify' ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'sha256sum -c capital-archive.sha256' ci/nqc-census/run-rmc011-real-source-closeout.sh
 
       - name: Certified PFT math bridge gates
         working-directory: ci/nqc-census/rmc011-pft-math-bridge

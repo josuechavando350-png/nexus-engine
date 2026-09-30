@@ -7,6 +7,7 @@
 pub mod adapters;
 pub mod artifacts;
 pub mod demands;
+pub mod replay;
 pub mod upstream;
 
 use nqc_census_core::{
@@ -19,7 +20,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-pub const CAPITAL_SCHEMA_VERSION: u16 = 2;
+pub const CAPITAL_SCHEMA_VERSION: u16 = 4;
 
 const SOURCE_MAGIC: &[u8] = b"NQC-CAP-SOURCE";
 const REQUIREMENT_MAGIC: &[u8] = b"NQC-CAP-REQUIREMENT";
@@ -43,6 +44,7 @@ pub enum CapitalError {
     GasLegMustUseNativeAsset,
     GasLegMustAllowGasFunding,
     NativeGasRequiredButMissing,
+    NativeGasLegWithoutRequirementFlag,
     PersistentDebtTermsRequired,
     PersistentTermsOnNonPersistentSource,
     CollateralSemanticsRequired,
@@ -102,6 +104,9 @@ impl Display for CapitalError {
             }
             Self::NativeGasRequiredButMissing => {
                 f.write_str("candidate requires native gas but no gas leg exists")
+            }
+            Self::NativeGasLegWithoutRequirementFlag => {
+                f.write_str("candidate declares a native gas leg but requires_native_gas is false")
             }
             Self::PersistentDebtTermsRequired => {
                 f.write_str("persistent debt requires explicit risk semantics")
@@ -955,6 +960,20 @@ impl CapitalFailureMode {
     }
 }
 
+fn validate_execution_blocker_code(code: &str) -> Result<(), CapitalError> {
+    if code.is_empty()
+        || code.len() > 128
+        || !code
+            .bytes()
+            .all(|byte| byte.is_ascii_uppercase() || byte.is_ascii_digit() || byte == b'_')
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "invalid execution blocker code",
+        ));
+    }
+    Ok(())
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CapitalEvidenceRef {
     Observation([u8; 32]),
@@ -1052,6 +1071,7 @@ pub struct CapitalSource {
     caps: CapitalCaps,
     temporary_lock: TemporaryLock,
     failure_modes: Vec<CapitalFailureMode>,
+    execution_blockers: Vec<String>,
     evidence: Vec<CapitalEvidenceRef>,
 }
 
@@ -1087,6 +1107,39 @@ impl CapitalSource {
         {
             return Err(CapitalError::OwnershipProviderMismatch);
         }
+
+        match spec.fee_model {
+            FeeModel::BasisPoints { bps, .. } if bps > 10_000 => {
+                return Err(CapitalError::InvalidBasisPoints(bps))
+            }
+            FeeModel::ExactRatio { denominator: 0, .. } => return Err(CapitalError::InvalidRatio),
+            _ => {}
+        }
+        if matches!(spec.repayment, RepaymentSemantics::DeadlineBlocks(0)) {
+            return Err(CapitalError::ZeroValue("repayment_deadline_blocks"));
+        }
+        if let CollateralRequirement::Required { amount, .. } = spec.collateral {
+            if amount.is_zero() {
+                return Err(CapitalError::ZeroValue("collateral_amount"));
+            }
+        }
+        if spec.utilization.max_utilization_bps > 10_000 {
+            return Err(CapitalError::InvalidBasisPoints(
+                spec.utilization.max_utilization_bps,
+            ));
+        }
+        if let TemporaryLock::Required {
+            amount, release, ..
+        } = spec.temporary_lock
+        {
+            if amount.is_zero() {
+                return Err(CapitalError::ZeroValue("temporary_lock_amount"));
+            }
+            if matches!(release, LockRelease::DeadlineBlocks(0)) {
+                return Err(CapitalError::ZeroValue("lock_deadline_blocks"));
+            }
+        }
+
         if spec.failure_modes.is_empty() {
             return Err(CapitalError::EmptyFailureModes);
         }
@@ -1099,6 +1152,13 @@ impl CapitalSource {
         spec.evidence.dedup();
         if spec.evidence.is_empty() {
             return Err(CapitalError::MissingEvidence);
+        }
+        if spec.evidence.iter().any(
+            |reference| matches!(reference, CapitalEvidenceRef::Observation(digest) if *digest == [0; 32]),
+        ) {
+            return Err(CapitalError::InvalidCanonical(
+                "zero observation evidence digest",
+            ));
         }
 
         match (spec.class, spec.repayment) {
@@ -1147,6 +1207,7 @@ impl CapitalSource {
             caps: spec.caps,
             temporary_lock: spec.temporary_lock,
             failure_modes: spec.failure_modes,
+            execution_blockers: Vec::new(),
             evidence: spec.evidence,
         };
         source.key_id =
@@ -1235,23 +1296,67 @@ impl CapitalSource {
         &self.failure_modes
     }
 
+    pub fn execution_blockers(&self) -> &[String] {
+        &self.execution_blockers
+    }
+
+    pub fn execution_eligible(&self) -> bool {
+        self.execution_blockers.is_empty()
+    }
+
+    pub fn with_execution_blockers(
+        mut self,
+        mut blockers: Vec<String>,
+    ) -> Result<Self, CapitalError> {
+        for blocker in &blockers {
+            validate_execution_blocker_code(blocker)?;
+        }
+        blockers.sort();
+        blockers.dedup();
+        if blockers.len() > usize::from(u16::MAX) {
+            return Err(CapitalError::InvalidCanonical(
+                "too many execution blocker codes",
+            ));
+        }
+        self.execution_blockers = blockers;
+        self.id = CapitalSourceId(domain_hash(SOURCE_DOMAIN, &self.content_bytes()));
+        Ok(self)
+    }
+
+    pub fn executable_capacity(&self) -> Result<Amount256, CapitalError> {
+        if self.execution_eligible() {
+            self.effective_capacity()
+        } else {
+            Ok(Amount256::ZERO)
+        }
+    }
+
     pub fn evidence(&self) -> &[CapitalEvidenceRef] {
         &self.evidence
     }
 
     pub fn effective_capacity(&self) -> Result<Amount256, CapitalError> {
-        let mut capacity = self.maximum_available;
+        // Each field is an independent upper bound on the same executable draw.
+        // Do not apply utilization to an already-capped amount or subtract the
+        // reserve floor after utilization: either would compound independent
+        // constraints and understate capacity.
+        let observed = self.maximum_available;
+        let utilization_capacity =
+            apply_utilization(observed, self.utilization.max_utilization_bps)?;
+        let reserve_capacity = if observed <= self.utilization.min_remaining {
+            Amount256::ZERO
+        } else {
+            observed.checked_sub(self.utilization.min_remaining)?
+        };
+
+        let mut capacity = observed.min(utilization_capacity).min(reserve_capacity);
         if let Some(cap) = self.caps.protocol_cap {
             capacity = capacity.min(cap);
         }
         if let Some(cap) = self.caps.market_cap {
             capacity = capacity.min(cap);
         }
-        capacity = apply_utilization(capacity, self.utilization.max_utilization_bps)?;
-        if capacity <= self.utilization.min_remaining {
-            return Ok(Amount256::ZERO);
-        }
-        capacity.checked_sub(self.utilization.min_remaining)
+        Ok(capacity)
     }
 
     pub fn canonical_encode(&self) -> Vec<u8> {
@@ -1303,6 +1408,32 @@ impl CapitalSource {
         for _ in 0..evidence_count {
             evidence.push(CapitalEvidenceRef::decode(&mut reader)?);
         }
+        let execution_blockers = if reader.remaining() == 0 {
+            Vec::new()
+        } else {
+            if reader.u8()? != 0xe1 {
+                return Err(CapitalError::InvalidCanonical(
+                    "unknown capital source extension",
+                ));
+            }
+            let blocker_count = usize::from(reader.u16()?);
+            let mut blockers = Vec::with_capacity(blocker_count);
+            for _ in 0..blocker_count {
+                let length = usize::from(reader.u16()?);
+                let bytes = reader.take(length)?;
+                let blocker = std::str::from_utf8(bytes)
+                    .map_err(|_| CapitalError::InvalidCanonical("execution blocker is not UTF-8"))?
+                    .to_owned();
+                validate_execution_blocker_code(&blocker)?;
+                blockers.push(blocker);
+            }
+            if blockers.windows(2).any(|pair| pair[0] >= pair[1]) {
+                return Err(CapitalError::InvalidCanonical(
+                    "execution blockers are not strictly sorted",
+                ));
+            }
+            blockers
+        };
         reader.finish()?;
         Self::new(CapitalSourceSpec {
             class,
@@ -1326,7 +1457,8 @@ impl CapitalSource {
             temporary_lock,
             failure_modes,
             evidence,
-        })
+        })?
+        .with_execution_blockers(execution_blockers)
     }
 
     fn key_content_bytes(&self) -> Vec<u8> {
@@ -1381,6 +1513,14 @@ impl CapitalSource {
         writer.u16(u16::try_from(self.evidence.len()).unwrap_or(u16::MAX));
         for evidence in &self.evidence {
             evidence.encode(&mut writer);
+        }
+        if !self.execution_blockers.is_empty() {
+            writer.u8(0xe1);
+            writer.u16(u16::try_from(self.execution_blockers.len()).unwrap_or(u16::MAX));
+            for blocker in &self.execution_blockers {
+                writer.u16(u16::try_from(blocker.len()).unwrap_or(u16::MAX));
+                writer.bytes(blocker.as_bytes());
+            }
         }
         writer.0
     }
@@ -1646,9 +1786,19 @@ impl CapitalRequirement {
         if evidence.is_empty() {
             return Err(CapitalError::MissingEvidence);
         }
+        if evidence.iter().any(
+            |reference| matches!(reference, CapitalEvidenceRef::Observation(digest) if *digest == [0; 32]),
+        ) {
+            return Err(CapitalError::InvalidCanonical(
+                "zero observation evidence digest",
+            ));
+        }
         let gas_present = legs.iter().any(|leg| leg.kind == RequirementKind::Gas);
         if requires_native_gas && !gas_present {
             return Err(CapitalError::NativeGasRequiredButMissing);
+        }
+        if !requires_native_gas && gas_present {
+            return Err(CapitalError::NativeGasLegWithoutRequirementFlag);
         }
 
         let mut requirement = Self {
@@ -1765,6 +1915,8 @@ pub enum FeasibilityRejection {
     CollateralRequirementUnfunded,
     TemporaryLockUnfunded,
     AllocationInvariantViolation,
+    ExecutionBlocked,
+    SettlementRequirementMismatch,
 }
 
 impl FeasibilityRejection {
@@ -1780,6 +1932,8 @@ impl FeasibilityRejection {
             Self::CollateralRequirementUnfunded => "COLLATERAL_REQUIREMENT_UNFUNDED",
             Self::TemporaryLockUnfunded => "TEMPORARY_LOCK_UNFUNDED",
             Self::AllocationInvariantViolation => "ALLOCATION_INVARIANT_VIOLATION",
+            Self::ExecutionBlocked => "EXECUTION_BLOCKED",
+            Self::SettlementRequirementMismatch => "SETTLEMENT_REQUIREMENT_MISMATCH",
         }
     }
 
@@ -1795,6 +1949,8 @@ impl FeasibilityRejection {
             Self::CollateralRequirementUnfunded => 8,
             Self::TemporaryLockUnfunded => 9,
             Self::AllocationInvariantViolation => 10,
+            Self::ExecutionBlocked => 11,
+            Self::SettlementRequirementMismatch => 12,
         }
     }
 }
@@ -1916,7 +2072,146 @@ pub fn validate_settlement_requirements(
     if declared != required {
         return Err(CapitalError::SettlementRequirementMismatch);
     }
+
+    let allocations = match feasibility {
+        CapitalFeasibility::Feasible { allocations, .. } => allocations,
+        CapitalFeasibility::Rejected { .. } => {
+            return Err(CapitalError::RejectedFeasibilityHasNoObligations)
+        }
+    };
+    let by_id = sources
+        .iter()
+        .map(|source| (source.id(), source))
+        .collect::<BTreeMap<_, _>>();
+    let mut drawn_by_source = BTreeMap::<CapitalSourceId, Amount256>::new();
+    for allocation in allocations {
+        let current = drawn_by_source
+            .get(&allocation.source_id)
+            .copied()
+            .unwrap_or(Amount256::ZERO);
+        drawn_by_source.insert(
+            allocation.source_id,
+            current.checked_add(allocation.amount)?,
+        );
+    }
+
+    let mut required_by_class =
+        BTreeMap::<(RequirementKind, CapitalAsset, CapitalClass), Amount256>::new();
+    for (source_id, drawn) in drawn_by_source {
+        let source = by_id
+            .get(&source_id)
+            .copied()
+            .ok_or(CapitalError::MissingSourceForAllocation)?;
+        if !matches!(
+            source.repayment(),
+            RepaymentSemantics::Persistent(_) | RepaymentSemantics::NoRepayment
+        ) {
+            add_class_obligation(
+                &mut required_by_class,
+                RequirementKind::Repayment,
+                source.repayment_asset(),
+                source.class(),
+                drawn,
+            )?;
+        }
+        if let Some(fee) = source.quote_fee(drawn)? {
+            if !fee.amount.is_zero() {
+                add_class_obligation(
+                    &mut required_by_class,
+                    RequirementKind::FundingFee,
+                    fee.asset,
+                    source.class(),
+                    fee.amount,
+                )?;
+            }
+        }
+    }
+    if !settlement_class_amounts_assignable(requirement, &required_by_class)? {
+        return Err(CapitalError::SettlementRequirementMismatch);
+    }
     Ok(())
+}
+
+fn add_class_obligation(
+    totals: &mut BTreeMap<(RequirementKind, CapitalAsset, CapitalClass), Amount256>,
+    kind: RequirementKind,
+    asset: CapitalAsset,
+    class: CapitalClass,
+    amount: Amount256,
+) -> Result<(), CapitalError> {
+    let current = totals
+        .get(&(kind, asset, class))
+        .copied()
+        .unwrap_or(Amount256::ZERO);
+    totals.insert((kind, asset, class), current.checked_add(amount)?);
+    Ok(())
+}
+
+fn settlement_class_amounts_assignable(
+    requirement: &CapitalRequirement,
+    required_by_class: &BTreeMap<(RequirementKind, CapitalAsset, CapitalClass), Amount256>,
+) -> Result<bool, CapitalError> {
+    let groups = required_by_class
+        .keys()
+        .map(|(kind, asset, _)| (*kind, *asset))
+        .collect::<BTreeSet<_>>();
+
+    for (kind, asset) in groups {
+        let class_obligations = required_by_class
+            .iter()
+            .filter_map(|((required_kind, required_asset, class), amount)| {
+                (*required_kind == kind && *required_asset == asset).then_some((*class, *amount))
+            })
+            .collect::<Vec<_>>();
+        let legs = requirement
+            .legs()
+            .iter()
+            .filter(|leg| leg.kind() == kind && leg.asset() == asset)
+            .collect::<Vec<_>>();
+
+        let class_count = class_obligations.len();
+        let leg_count = legs.len();
+        let class_node = |index: usize| 1 + index;
+        let leg_node = |index: usize| 1 + class_count + index;
+        let super_source = 0_usize;
+        let sink = 1 + class_count + leg_count;
+        let mut graph = vec![Vec::<ResidualEdge>::new(); sink + 1];
+        let mut class_source_edges = Vec::with_capacity(class_count);
+
+        for (class_index, (class, amount)) in class_obligations.iter().enumerate() {
+            let edge_index =
+                add_residual_edge(&mut graph, super_source, class_node(class_index), *amount);
+            class_source_edges.push(edge_index);
+            for (leg_index, leg) in legs.iter().enumerate() {
+                if !leg.allowed_classes().contains(class) {
+                    continue;
+                }
+                let capacity = (*amount).min(leg.amount());
+                if capacity.is_zero() {
+                    continue;
+                }
+                add_residual_edge(
+                    &mut graph,
+                    class_node(class_index),
+                    leg_node(leg_index),
+                    capacity,
+                );
+            }
+        }
+        for (leg_index, leg) in legs.iter().enumerate() {
+            add_residual_edge(&mut graph, leg_node(leg_index), sink, leg.amount());
+        }
+
+        run_residual_flow(&mut graph, super_source, sink)?;
+
+        if class_source_edges
+            .iter()
+            .any(|edge| !graph[super_source][*edge].capacity.is_zero())
+        {
+            return Ok(false);
+        }
+    }
+    Ok(true)
 }
 
 fn add_obligation(
@@ -2129,7 +2424,7 @@ fn solve_funding(
         if source.ownership().is_operator_owned() || source.anchor() != requirement.anchor() {
             continue;
         }
-        let capacity = source.effective_capacity()?;
+        let capacity = source.executable_capacity()?;
         if capacity.is_zero() {
             continue;
         }
@@ -2208,6 +2503,7 @@ fn classify_unmet_leg(
     let mut same_anchor_atomic = false;
     let mut foreign_anchor = false;
     let mut operator_capacity = Amount256::ZERO;
+    let mut execution_blocked_capacity = Amount256::ZERO;
 
     for source in sources {
         if !source_can_fund_leg(requirement, source, leg, true, false, false) {
@@ -2226,6 +2522,10 @@ fn classify_unmet_leg(
             operator_capacity = operator_capacity
                 .checked_add(source.effective_capacity()?)
                 .unwrap_or(Amount256::MAX);
+        } else if !source.execution_eligible() {
+            execution_blocked_capacity = execution_blocked_capacity
+                .checked_add(source.effective_capacity()?)
+                .unwrap_or(Amount256::MAX);
         }
     }
 
@@ -2234,6 +2534,9 @@ fn classify_unmet_leg(
     }
     if !same_anchor_class && foreign_anchor {
         return Ok(FeasibilityRejection::AnchorMismatch);
+    }
+    if execution_blocked_capacity >= unmet {
+        return Ok(FeasibilityRejection::ExecutionBlocked);
     }
     if leg.kind() == RequirementKind::Gas {
         return Ok(FeasibilityRejection::MissingGasFunding);
@@ -2269,6 +2572,7 @@ pub fn evaluate_capital_feasibility_checked(
         .map(|allocation| allocation.source_id)
         .collect::<BTreeSet<_>>();
 
+    let mut source_dependencies = BTreeMap::<(RequirementKind, CapitalAsset), Amount256>::new();
     for source_id in used_source_ids {
         let source = sources
             .iter()
@@ -2289,29 +2593,52 @@ pub fn evaluate_capital_feasibility_checked(
             ));
         }
         if let CollateralRequirement::Required { asset, amount, .. } = source.collateral() {
-            if !has_sufficient_leg(requirement, RequirementKind::Collateral, asset, amount) {
-                return Ok(rejected(
-                    requirement,
-                    FeasibilityRejection::CollateralRequirementUnfunded,
-                    Some(RequirementKind::Collateral),
-                ));
-            }
+            add_obligation(
+                &mut source_dependencies,
+                RequirementKind::Collateral,
+                asset,
+                amount,
+            )?;
         }
         if let TemporaryLock::Required { asset, amount, .. } = source.temporary_lock() {
-            if !has_sufficient_leg(requirement, RequirementKind::TemporaryLock, asset, amount) {
-                return Ok(rejected(
-                    requirement,
-                    FeasibilityRejection::TemporaryLockUnfunded,
-                    Some(RequirementKind::TemporaryLock),
-                ));
-            }
+            add_obligation(
+                &mut source_dependencies,
+                RequirementKind::TemporaryLock,
+                asset,
+                amount,
+            )?;
         }
     }
 
-    Ok(CapitalFeasibility::Feasible {
+    for ((kind, asset), required_amount) in source_dependencies {
+        if declared_leg_total(requirement, kind, asset)? >= required_amount {
+            continue;
+        }
+        let reason = match kind {
+            RequirementKind::Collateral => FeasibilityRejection::CollateralRequirementUnfunded,
+            RequirementKind::TemporaryLock => FeasibilityRejection::TemporaryLockUnfunded,
+            _ => {
+                return Err(CapitalError::InvalidCanonical(
+                    "unexpected aggregated source dependency kind",
+                ))
+            }
+        };
+        return Ok(rejected(requirement, reason, Some(kind)));
+    }
+
+    let feasible = CapitalFeasibility::Feasible {
         requirement_id: requirement.id(),
         allocations,
-    })
+    };
+    match validate_settlement_requirements(requirement, &feasible, sources) {
+        Ok(()) => Ok(feasible),
+        Err(CapitalError::SettlementRequirementMismatch) => Ok(rejected(
+            requirement,
+            FeasibilityRejection::SettlementRequirementMismatch,
+            None,
+        )),
+        Err(error) => Err(error),
+    }
 }
 
 pub fn evaluate_capital_feasibility(
@@ -2515,11 +2842,194 @@ impl UpstreamStageAuthority {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct UpstreamConsumptionReceipt {
+    stage: UpstreamCensusStage,
+    authority_artifact_sha256: Hash32,
+    coverage_commitment: Hash32,
+    output_count: u64,
+    output_set_commitment: Hash32,
+}
+
+fn consumed_id_set_commitment(
+    domain: &[u8],
+    ids: impl IntoIterator<Item = [u8; 32]>,
+) -> Result<(u64, Hash32), CapitalError> {
+    let mut ids = ids.into_iter().collect::<Vec<_>>();
+    ids.sort_unstable();
+    if ids.windows(2).any(|pair| pair[0] == pair[1]) {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "consumed output set contains duplicate identifiers",
+        ));
+    }
+    let count = u64::try_from(ids.len())
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("consumed output count exceeds u64"))?;
+    let mut hasher = Sha256::new();
+    hasher.update(domain);
+    hasher.update([0]);
+    hasher.update(count.to_be_bytes());
+    for id in ids {
+        hasher.update(id);
+    }
+    let commitment = Hash32::new(finalize_sha256(hasher)).map_err(|_| {
+        CapitalError::InvalidUpstreamAuthority("zero consumed output set commitment")
+    })?;
+    Ok((count, commitment))
+}
+
+fn source_output_set_commitment<'a>(
+    sources: impl IntoIterator<Item = &'a CapitalSource>,
+) -> Result<(u64, Hash32), CapitalError> {
+    consumed_id_set_commitment(
+        b"NQC-RMC011-D08-SOURCE-SET-V1",
+        sources.into_iter().map(|source| *source.id().as_bytes()),
+    )
+}
+
+fn requirement_output_set_commitment<'a>(
+    requirements: impl IntoIterator<Item = &'a CapitalRequirement>,
+) -> Result<(u64, Hash32), CapitalError> {
+    consumed_id_set_commitment(
+        b"NQC-RMC011-D09-REQUIREMENT-SET-V1",
+        requirements
+            .into_iter()
+            .map(|requirement| *requirement.id().as_bytes()),
+    )
+}
+
+impl UpstreamConsumptionReceipt {
+    pub fn for_sources<'a>(
+        authority_artifact_sha256: Hash32,
+        coverage_commitment: Hash32,
+        sources: impl IntoIterator<Item = &'a CapitalSource>,
+    ) -> Result<Self, CapitalError> {
+        let (output_count, output_set_commitment) = source_output_set_commitment(sources)?;
+        Self::from_parts(
+            UpstreamCensusStage::Rmc008StateAdmission,
+            authority_artifact_sha256,
+            coverage_commitment,
+            output_count,
+            output_set_commitment,
+        )
+    }
+
+    pub fn for_requirements<'a>(
+        authority_artifact_sha256: Hash32,
+        coverage_commitment: Hash32,
+        requirements: impl IntoIterator<Item = &'a CapitalRequirement>,
+    ) -> Result<Self, CapitalError> {
+        let (output_count, output_set_commitment) =
+            requirement_output_set_commitment(requirements)?;
+        Self::from_parts(
+            UpstreamCensusStage::Rmc009PositionUniverse,
+            authority_artifact_sha256,
+            coverage_commitment,
+            output_count,
+            output_set_commitment,
+        )
+    }
+
+    pub(crate) fn from_parts(
+        stage: UpstreamCensusStage,
+        authority_artifact_sha256: Hash32,
+        coverage_commitment: Hash32,
+        output_count: u64,
+        output_set_commitment: Hash32,
+    ) -> Result<Self, CapitalError> {
+        if !matches!(
+            stage,
+            UpstreamCensusStage::Rmc008StateAdmission | UpstreamCensusStage::Rmc009PositionUniverse
+        ) {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "only RMC-008 and RMC-009 may issue capital consumption receipts",
+            ));
+        }
+        Ok(Self {
+            stage,
+            authority_artifact_sha256,
+            coverage_commitment,
+            output_count,
+            output_set_commitment,
+        })
+    }
+
+    pub const fn stage(self) -> UpstreamCensusStage {
+        self.stage
+    }
+
+    pub const fn authority_artifact_sha256(self) -> Hash32 {
+        self.authority_artifact_sha256
+    }
+
+    pub const fn coverage_commitment(self) -> Hash32 {
+        self.coverage_commitment
+    }
+
+    pub const fn output_count(self) -> u64 {
+        self.output_count
+    }
+
+    pub const fn output_set_commitment(self) -> Hash32 {
+        self.output_set_commitment
+    }
+}
+
+fn upstream_authority_commitment(
+    stages: &[UpstreamStageAuthority],
+    admitted_evidence: &BTreeSet<CapitalEvidenceRef>,
+    consumption_receipts: &BTreeMap<UpstreamCensusStage, UpstreamConsumptionReceipt>,
+) -> Result<Hash32, CapitalError> {
+    let mut hasher = Sha256::new();
+    hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V5");
+    hasher.update([0]);
+    for authority in stages {
+        hasher.update([authority.stage.tag()]);
+        hasher.update(authority.code_commit.as_bytes());
+        hasher.update(authority.code_tree.as_bytes());
+        hasher.update(authority.artifact_sha256.as_bytes());
+        encode_anchor_into_hasher(&authority.observation_anchor, &mut hasher);
+        hasher.update(authority.unresolved_mismatch_count.to_be_bytes());
+        hasher.update(authority.unknown_failure_count.to_be_bytes());
+        hasher.update([u8::from(authority.coverage_complete)]);
+        hasher.update([u8::from(authority.admitted)]);
+    }
+    hasher.update(
+        u64::try_from(admitted_evidence.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for evidence in admitted_evidence {
+        let mut writer = Writer::default();
+        evidence.encode(&mut writer);
+        hasher.update(
+            u64::try_from(writer.0.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        hasher.update(&writer.0);
+    }
+    hasher.update(
+        u64::try_from(consumption_receipts.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
+    for receipt in consumption_receipts.values() {
+        hasher.update([receipt.stage.tag()]);
+        hasher.update(receipt.authority_artifact_sha256.as_bytes());
+        hasher.update(receipt.coverage_commitment.as_bytes());
+        hasher.update(receipt.output_count.to_be_bytes());
+        hasher.update(receipt.output_set_commitment.as_bytes());
+    }
+    Hash32::new(finalize_sha256(hasher))
+        .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero authority commitment"))
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CapitalCertificationContext {
     stages: Vec<UpstreamStageAuthority>,
     observation_anchor: StateAnchor,
     admitted_evidence: BTreeSet<CapitalEvidenceRef>,
+    consumption_receipts: BTreeMap<UpstreamCensusStage, UpstreamConsumptionReceipt>,
     commitment: Hash32,
 }
 
@@ -2580,43 +3090,74 @@ impl CapitalCertificationContext {
             }
         }
 
-        let mut hasher = Sha256::new();
-        hasher.update(b"NQC-RMC011-UPSTREAM-AUTHORITY-V3");
-        hasher.update([0]);
-        for authority in &stages {
-            hasher.update([authority.stage.tag()]);
-            hasher.update(authority.code_commit.as_bytes());
-            hasher.update(authority.code_tree.as_bytes());
-            hasher.update(authority.artifact_sha256.as_bytes());
-            encode_anchor_into_hasher(&authority.observation_anchor, &mut hasher);
-            hasher.update(authority.unresolved_mismatch_count.to_be_bytes());
-            hasher.update(authority.unknown_failure_count.to_be_bytes());
-            hasher.update([u8::from(authority.coverage_complete)]);
-            hasher.update([u8::from(authority.admitted)]);
-        }
-        hasher.update(
-            u64::try_from(admitted_evidence.len())
-                .unwrap_or(u64::MAX)
-                .to_be_bytes(),
-        );
-        for evidence in &admitted_evidence {
-            let mut writer = Writer::default();
-            evidence.encode(&mut writer);
-            hasher.update(
-                u64::try_from(writer.0.len())
-                    .unwrap_or(u64::MAX)
-                    .to_be_bytes(),
-            );
-            hasher.update(&writer.0);
-        }
-        let commitment = Hash32::new(finalize_sha256(hasher))
-            .map_err(|_| CapitalError::InvalidUpstreamAuthority("zero authority commitment"))?;
+        let consumption_receipts = BTreeMap::new();
+        let commitment =
+            upstream_authority_commitment(&stages, &admitted_evidence, &consumption_receipts)?;
         Ok(Self {
             stages,
             observation_anchor,
             admitted_evidence,
+            consumption_receipts,
             commitment,
         })
+    }
+
+    pub fn with_consumption_receipts(
+        mut self,
+        receipts: Vec<UpstreamConsumptionReceipt>,
+    ) -> Result<Self, CapitalError> {
+        let mut by_stage = BTreeMap::new();
+        for receipt in receipts {
+            if by_stage.insert(receipt.stage(), receipt).is_some() {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "duplicate upstream consumption receipt",
+                ));
+            }
+        }
+        for required in [
+            UpstreamCensusStage::Rmc008StateAdmission,
+            UpstreamCensusStage::Rmc009PositionUniverse,
+        ] {
+            let receipt = by_stage
+                .get(&required)
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
+                    "RMC-008 and RMC-009 consumption receipts are required",
+                ))?;
+            let authority = self
+                .stages
+                .iter()
+                .find(|authority| authority.stage == required)
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt stage authority is missing",
+                ))?;
+            if receipt.authority_artifact_sha256() != authority.artifact_sha256 {
+                return Err(CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt does not bind the admitted stage artifact",
+                ));
+            }
+        }
+        if by_stage.len() != 2 {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "unexpected upstream consumption receipt",
+            ));
+        }
+        self.consumption_receipts = by_stage;
+        self.commitment = upstream_authority_commitment(
+            &self.stages,
+            &self.admitted_evidence,
+            &self.consumption_receipts,
+        )?;
+        Ok(self)
+    }
+
+    fn has_required_consumption_receipts(&self) -> bool {
+        self.consumption_receipts.len() == 2
+            && self
+                .consumption_receipts
+                .contains_key(&UpstreamCensusStage::Rmc008StateAdmission)
+            && self
+                .consumption_receipts
+                .contains_key(&UpstreamCensusStage::Rmc009PositionUniverse)
     }
 
     pub const fn commitment(&self) -> Hash32 {
@@ -2633,6 +3174,10 @@ impl CapitalCertificationContext {
 
     pub fn admitted_evidence(&self) -> impl Iterator<Item = &CapitalEvidenceRef> {
         self.admitted_evidence.iter()
+    }
+
+    pub fn consumption_receipts(&self) -> impl Iterator<Item = &UpstreamConsumptionReceipt> {
+        self.consumption_receipts.values()
     }
 
     pub fn admits_evidence(&self, reference: &CapitalEvidenceRef) -> bool {
@@ -2814,6 +3359,12 @@ impl CapitalCensusLedger {
         }) {
             return Err(CapitalError::UnresolvedEvidenceRef);
         }
+        if !authority.has_required_consumption_receipts() {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "RMC-008 and RMC-009 consumption receipts are required for certification",
+            ));
+        }
+        self.validate_consumed_output_bindings(authority)?;
         self.validate_settlements()?;
         let summary = self.summary()?;
         if summary.source_count == 0 {
@@ -2825,6 +3376,42 @@ impl CapitalCensusLedger {
             upstream_authority_commitment: authority.commitment(),
             summary,
         })
+    }
+
+    fn validate_consumed_output_bindings(
+        &self,
+        authority: &CapitalCertificationContext,
+    ) -> Result<(), CapitalError> {
+        let d08 = authority
+            .consumption_receipts
+            .get(&UpstreamCensusStage::Rmc008StateAdmission)
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "RMC-008 consumption receipt missing",
+            ))?;
+        let (source_count, source_set_commitment) =
+            source_output_set_commitment(self.sources.values())?;
+        if d08.output_count != source_count || d08.output_set_commitment != source_set_commitment {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "capital source ledger does not equal the consumed RMC-008 source set",
+            ));
+        }
+
+        let d09 = authority
+            .consumption_receipts
+            .get(&UpstreamCensusStage::Rmc009PositionUniverse)
+            .ok_or(CapitalError::InvalidUpstreamAuthority(
+                "RMC-009 consumption receipt missing",
+            ))?;
+        let (requirement_count, requirement_set_commitment) =
+            requirement_output_set_commitment(self.requirements.values())?;
+        if d09.output_count != requirement_count
+            || d09.output_set_commitment != requirement_set_commitment
+        {
+            return Err(CapitalError::InvalidUpstreamAuthority(
+                "capital requirement ledger does not equal the consumed RMC-009 requirement set",
+            ));
+        }
+        Ok(())
     }
 
     pub fn summary(&self) -> Result<CapitalCensusSummary, CapitalError> {
@@ -2957,16 +3544,20 @@ fn has_leg(requirement: &CapitalRequirement, kind: RequirementKind, asset: Capit
         .any(|leg| leg.kind() == kind && leg.asset() == asset)
 }
 
-fn has_sufficient_leg(
+fn declared_leg_total(
     requirement: &CapitalRequirement,
     kind: RequirementKind,
     asset: CapitalAsset,
-    amount: Amount256,
-) -> bool {
-    requirement
+) -> Result<Amount256, CapitalError> {
+    let mut total = Amount256::ZERO;
+    for leg in requirement
         .legs()
         .iter()
-        .any(|leg| leg.kind() == kind && leg.asset() == asset && leg.amount() >= amount)
+        .filter(|leg| leg.kind() == kind && leg.asset() == asset)
+    {
+        total = total.checked_add(leg.amount())?;
+    }
+    Ok(total)
 }
 
 fn rejected(
@@ -3279,6 +3870,10 @@ impl<'a> Reader<'a> {
 
     fn u64(&mut self) -> Result<u64, CapitalError> {
         Ok(u64::from_be_bytes(self.array::<8>()?))
+    }
+
+    fn remaining(&self) -> usize {
+        self.bytes.len().saturating_sub(self.offset)
     }
 
     fn finish(self) -> Result<(), CapitalError> {

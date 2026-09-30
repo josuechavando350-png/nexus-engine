@@ -9,8 +9,8 @@ use nqc_census_capital::{
     CapitalClass, CapitalEvidenceRef, CapitalFailureMode, CapitalOwnership, CapitalProviderKind,
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, RepaymentSemantics, RequiredAtomicity,
-    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamStageAuthority,
-    UpstreamStageAuthoritySpec, UtilizationConstraints,
+    RequirementKind, TemporaryLock, UpstreamCensusStage, UpstreamConsumptionReceipt,
+    UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -40,7 +40,9 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
 }
 
-fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
+fn authority_for(
+    ledger: &CapitalCensusLedger,
+) -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
         let value = u64::try_from(index + 1).map_err(|_| {
@@ -70,7 +72,28 @@ fn authority() -> Result<CapitalCertificationContext, nqc_census_capital::Capita
             .iter()
             .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
     );
-    CapitalCertificationContext::new(stages, admitted_evidence)
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-008 authority missing",
+        ))?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-009 authority missing",
+        ))?
+        .artifact_sha256;
+    CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
+        UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+        UpstreamConsumptionReceipt::for_requirements(
+            d09_artifact,
+            hash(81),
+            ledger.requirements(),
+        )?,
+    ])
 }
 
 fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
@@ -127,11 +150,11 @@ fn ledger() -> Result<CapitalCensusLedger, Box<dyn std::error::Error>> {
 fn capital_artifacts_are_deterministic_and_complete() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let authority = authority()?;
+    let authority = authority_for(&ledger)?;
     let first = export_capital_artifacts(&ledger, &authority, &provenance)?;
     let second = export_capital_artifacts(&ledger, &authority, &provenance)?;
     assert_eq!(first, second);
@@ -167,11 +190,11 @@ fn capital_artifacts_are_deterministic_and_complete() -> TestResult {
 fn jsonl_records_carry_exact_anchor_and_provenance() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
     let text = std::str::from_utf8(&sources.bytes)?;
     assert!(text.contains("\"block_number\":25437474"));
@@ -209,11 +232,12 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
     source_only.evaluate_all()?;
 
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&source_only, &authority()?, &provenance)?;
+    let bundle =
+        export_capital_artifacts(&source_only, &authority_for(&source_only)?, &provenance)?;
     assert!(bundle
         .file(CAPITAL_REQUIREMENTS_FILE)
         .ok_or("missing requirements")?
@@ -234,6 +258,7 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
     assert_eq!(verified.source_count, 1);
     assert_eq!(verified.requirement_count, 0);
     assert_eq!(verified.feasibility_count, 0);
+    assert_eq!(verified.feasible_count, 0);
     assert_eq!(verified.rejection_count, 0);
 
     let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
@@ -243,34 +268,97 @@ fn source_only_bundle_is_offline_verifiable_without_false_feasibility_claim() ->
 }
 
 #[test]
-fn artifact_hashes_change_when_provenance_changes() -> TestResult {
+fn blocked_source_bundle_roundtrips_offline_and_preserves_execution_rejection() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::FlashSwap,
+        anchor: anchor(),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::DexLiquidityPool,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?
+    .with_execution_blockers(vec!["TOKEN_SEMANTICS_UNPROVEN".to_owned()])?;
+    let requirement = CapitalRequirement::new(
+        CapitalTargetId::from_hash(hash(50)),
+        anchor(),
+        RequiredAtomicity::SameTransaction,
+        false,
+        vec![CapitalRequirementLeg::new(
+            RequirementKind::ActionPrincipal,
+            token,
+            Amount256::from_u128(100),
+            vec![CapitalClass::FlashSwap],
+        )?],
+        evidence(),
+    )?;
+
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(source)?;
+    ledger.register_requirement(requirement)?;
+    ledger.evaluate_all()?;
+
+    let provenance = ArtifactProvenance::new(
+        "2023-11-14T22:13:20Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
+    )?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
+    let verified = verify_capital_artifact_bundle(&bundle)?;
+    assert_eq!(verified.source_count, 1);
+    assert_eq!(verified.requirement_count, 1);
+    assert_eq!(verified.feasibility_count, 1);
+    assert_eq!(verified.feasible_count, 0);
+    assert_eq!(verified.rejection_count, 1);
+
+    let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
+    let source_text = std::str::from_utf8(&sources.bytes)?;
+    assert!(source_text.contains("\"execution_eligible\":false"));
+    assert!(source_text.contains("\"TOKEN_SEMANTICS_UNPROVEN\""));
+    assert!(source_text.contains(&format!(
+        "\"executable_capacity\":\"{}\"",
+        Amount256::ZERO.to_hex()
+    )));
+
+    let rejections = bundle
+        .file(CAPITAL_REJECTION_LEDGER_FILE)
+        .ok_or("missing rejection ledger")?;
+    let rejection_text = std::str::from_utf8(&rejections.bytes)?;
+    assert!(rejection_text.contains("\"reason\":\"EXECUTION_BLOCKED\""));
+    Ok(())
+}
+
+#[test]
+fn artifact_export_rejects_wall_clock_or_arbitrary_generation_time() -> TestResult {
     let ledger = ledger()?;
-    let a = export_capital_artifacts(
-        &ledger,
-        &authority()?,
-        &ArtifactProvenance::new(
-            "A",
-            "0123456789abcdef0123456789abcdef01234567",
-            "89abcdef0123456789abcdef0123456789abcdef",
-        )?,
+    let authority = authority_for(&ledger)?;
+    let arbitrary = ArtifactProvenance::new(
+        "2026-09-29T00:00:00Z",
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let b = export_capital_artifacts(
-        &ledger,
-        &authority()?,
-        &ArtifactProvenance::new(
-            "B",
-            "0123456789abcdef0123456789abcdef01234567",
-            "89abcdef0123456789abcdef0123456789abcdef",
-        )?,
+    assert!(export_capital_artifacts(&ledger, &authority, &arbitrary).is_err());
+
+    let anchored = ArtifactProvenance::for_anchor(
+        authority.observation_anchor(),
+        "0123456789abcdef0123456789abcdef01234567",
+        "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    assert_ne!(
-        a.file(CAPITAL_SUMMARY_FILE)
-            .ok_or("missing summary A")?
-            .sha256,
-        b.file(CAPITAL_SUMMARY_FILE)
-            .ok_or("missing summary B")?
-            .sha256
-    );
+    let first = export_capital_artifacts(&ledger, &authority, &anchored)?;
+    let second = export_capital_artifacts(&ledger, &authority, &anchored)?;
+    assert_eq!(first, second);
     Ok(())
 }
 
@@ -278,11 +366,11 @@ fn artifact_hashes_change_when_provenance_changes() -> TestResult {
 fn synthetic_ledger_cannot_export_evidentiary_artifacts() -> TestResult {
     let ledger = CapitalCensusLedger::synthetic_fixture();
     let provenance = ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    assert!(export_capital_artifacts(&ledger, &authority()?, &provenance).is_err());
+    assert!(export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance).is_err());
     Ok(())
 }
 
@@ -290,15 +378,16 @@ fn synthetic_ledger_cannot_export_evidentiary_artifacts() -> TestResult {
 fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let verified = verify_capital_artifact_bundle(&bundle)?;
     assert_eq!(verified.source_count, 1);
     assert_eq!(verified.requirement_count, 1);
     assert_eq!(verified.feasibility_count, 1);
+    assert_eq!(verified.feasible_count, 1);
     assert_eq!(verified.rejection_count, 0);
     assert!(!verified.capital_commitment.is_empty());
     assert!(!verified.upstream_authority_commitment.is_empty());
@@ -309,11 +398,11 @@ fn offline_artifact_verifier_accepts_exact_export() -> TestResult {
 fn offline_artifact_verifier_rejects_tampered_bytes() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let sources = bundle
         .files
         .iter_mut()
@@ -333,11 +422,11 @@ fn offline_artifact_verifier_rejects_tampered_bytes() -> TestResult {
 fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let manifest = bundle
         .files
         .iter_mut()
@@ -361,11 +450,11 @@ fn offline_artifact_verifier_rejects_manifest_digest_substitution() -> TestResul
 fn offline_artifact_verifier_rejects_noncanonical_jsonl() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let sources = bundle
         .files
         .iter_mut()
@@ -434,16 +523,16 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
 
     let bundle = export_capital_artifacts(
         &ledger,
-        &authority()?,
+        &authority_for(&ledger)?,
         &ArtifactProvenance::new(
-            "t",
+            "2023-11-14T22:13:20Z",
             "0123456789abcdef0123456789abcdef01234567",
             "89abcdef0123456789abcdef0123456789abcdef",
         )?,
     )?;
     let summary = bundle.file(CAPITAL_SUMMARY_FILE).ok_or("missing summary")?;
     let text = std::str::from_utf8(&summary.bytes)?;
-    assert!(text.contains("\"schema_version\":4"));
+    assert!(text.contains("\"schema_version\":5"));
     assert!(text.contains("\"feasible_count\":0"));
     assert!(text.contains("\"rejected_count\":1"));
     assert!(text.contains("\"zero_own_capital_proven\":false"));
@@ -453,7 +542,7 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
         .file(CAPITAL_EVIDENCE_MANIFEST_FILE)
         .ok_or("missing evidence manifest")?;
     let manifest_text = std::str::from_utf8(&manifest.bytes)?;
-    assert!(manifest_text.contains("\"schema_version\":2"));
+    assert!(manifest_text.contains("\"schema_version\":3"));
     assert!(manifest_text.contains("REAL_SOURCE_CERTIFICATION_NOT_TESTED"));
     Ok(())
 }
@@ -461,19 +550,19 @@ fn all_rejected_census_does_not_claim_zero_own_capital_proof() -> TestResult {
 #[test]
 fn artifact_provenance_requires_exact_git_object_ids() -> TestResult {
     assert!(ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "not-a-commit",
         "89abcdef0123456789abcdef0123456789abcdef"
     )
     .is_err());
     assert!(ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "not-a-tree"
     )
     .is_err());
     assert!(ArtifactProvenance::new(
-        "t",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef"
     )
@@ -485,17 +574,20 @@ fn artifact_provenance_requires_exact_git_object_ids() -> TestResult {
 fn source_artifact_exposes_full_capital_semantics() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let sources = bundle.file(CAPITAL_SOURCES_FILE).ok_or("missing sources")?;
     let text = std::str::from_utf8(&sources.bytes)?;
     for field in [
         "\"source_contract\"",
         "\"capital_ownership\"",
         "\"effective_capacity\"",
+        "\"executable_capacity\"",
+        "\"execution_eligible\"",
+        "\"execution_blockers\"",
         "\"fee_model\"",
         "\"repayment_asset\"",
         "\"repayment_semantics\"",
@@ -520,11 +612,11 @@ fn source_artifact_exposes_full_capital_semantics() -> TestResult {
 fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
     let upstream = bundle
         .file(CAPITAL_UPSTREAM_AUTHORITY_FILE)
         .ok_or("missing upstream authority artifact")?;
@@ -535,8 +627,12 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
             "missing upstream authority stage {stage}"
         );
     }
-    assert!(text.contains("\"schema_version\":4"));
-    assert!(text.contains("\"generated_at\":\"2026-09-29T00:00:00Z\""));
+    assert!(text.contains("\"schema_version\":7"));
+    assert!(text.contains("\"consumption_receipts\""));
+    assert!(text.contains("\"coverage_commitment\""));
+    assert!(text.contains("\"output_count\""));
+    assert!(text.contains("\"output_set_commitment\""));
+    assert!(text.contains("\"generated_at\":\"2023-11-14T22:13:20Z\""));
     assert!(text.contains("\"code_commit\":\"0123456789abcdef0123456789abcdef01234567\""));
     assert!(text.contains("\"code_tree\":\"89abcdef0123456789abcdef0123456789abcdef\""));
     assert!(text.contains("\"observation_anchor\""));
@@ -552,11 +648,11 @@ fn upstream_authority_artifact_is_exact_and_offline_bound() -> TestResult {
 fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
 
     let authority_index = bundle
         .files
@@ -614,11 +710,11 @@ fn offline_verifier_rejects_rehashed_upstream_authority_substitution() -> TestRe
 fn offline_verifier_rejects_rehashed_feasibility_allocation_substitution() -> TestResult {
     let ledger = ledger()?;
     let provenance = ArtifactProvenance::new(
-        "2026-09-29T00:00:00Z",
+        "2023-11-14T22:13:20Z",
         "0123456789abcdef0123456789abcdef01234567",
         "89abcdef0123456789abcdef0123456789abcdef",
     )?;
-    let mut bundle = export_capital_artifacts(&ledger, &authority()?, &provenance)?;
+    let mut bundle = export_capital_artifacts(&ledger, &authority_for(&ledger)?, &provenance)?;
 
     let feasibility_index = bundle
         .files

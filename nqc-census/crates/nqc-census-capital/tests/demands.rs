@@ -40,13 +40,12 @@ fn summary(status: &str, liquidatability_nonclaim: bool) -> Vec<u8> {
     format!(
         concat!(
             "{{\"all_tokens_conserved\":true,\"anchor\":{{\"hash\":\"{}\",\"number\":25437474}},",
-            "\"blocking_findings\":[],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"anchor_timestamp\":1700000000,\"blocking_findings\":[],",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",",
             "\"non_claims\":{},\"schema_version\":1,\"status\":\"{}\",",
             "\"unexplained_mismatches\":0,\"uniswap_v2\":{{\"reason\":\"Uniswap V2 pairs carry no borrower, debt or collateral positions; no account universe is claimed or fabricated for them\",\"status\":\"NOT_APPLICABLE\"}}}}"
         ),
         anchor().block_hash().to_hex(),
-        D09_CODE_COMMIT,
-        D09_CODE_TREE,
         nonclaims,
         status
     )
@@ -66,7 +65,8 @@ fn d09_evidence_manifest(accounts: &[u8], summary: &[u8]) -> Vec<u8> {
             "{{\"artifacts\":[",
             "{{\"bytes\":{},\"path\":\"account-manifest.jsonl\",\"sha256\":\"{}\"}},",
             "{{\"bytes\":{},\"path\":\"account-summary.json\",\"sha256\":\"{}\"}}",
-            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",\"schema_version\":1}}"
+            "],\"code_commit\":\"{}\",\"code_tree\":\"{}\",",
+            "\"generated_at\":\"2023-11-14T22:13:20Z\",\"schema_version\":1}}"
         ),
         accounts.len(),
         hex::plain(&account_digest),
@@ -92,15 +92,44 @@ fn d09_authority(evidence_manifest: &[u8]) -> Result<UpstreamStageAuthority, Cap
     })
 }
 
+fn exact_account_fixture(account_manifest_jsonl: &[u8]) -> Vec<u8> {
+    let input = String::from_utf8_lossy(account_manifest_jsonl);
+    let mut out = String::new();
+    for line in input.lines() {
+        if line.is_empty() {
+            continue;
+        }
+        if line.contains("\"configuration\":") {
+            out.push_str(line);
+            out.push('\n');
+            continue;
+        }
+        let health = if line.contains("\"health_factor_below_one\":true") {
+            "[\"0\",\"1\",\"0\",\"0\",\"0\",\"999999999999999999\"]"
+        } else if line.contains("\"health_factor_below_one\":false") {
+            "[\"0\",\"1\",\"0\",\"0\",\"0\",\"1000000000000000000\"]"
+        } else {
+            "{\"status\":\"HALTED\"}"
+        };
+        let prefix = line.strip_suffix('}').unwrap_or(line);
+        out.push_str(prefix);
+        out.push_str(&format!(
+            ",\"configuration\":\"0\",\"emode\":\"0\",\"account_data\":{health},\"configuration_divergences\":[]}}\n"
+        ));
+    }
+    out.into_bytes()
+}
+
 fn import_d09_borrower_demands(
     account_manifest_jsonl: &[u8],
     account_summary_json: &[u8],
     anchor: &StateAnchor,
 ) -> Result<D09DemandImport, CapitalError> {
-    let evidence_manifest = d09_evidence_manifest(account_manifest_jsonl, account_summary_json);
+    let account_manifest_jsonl = exact_account_fixture(account_manifest_jsonl);
+    let evidence_manifest = d09_evidence_manifest(&account_manifest_jsonl, account_summary_json);
     let authority = d09_authority(&evidence_manifest)?;
     import_d09_borrower_demands_bound(
-        account_manifest_jsonl,
+        &account_manifest_jsonl,
         account_summary_json,
         &evidence_manifest,
         &authority,
@@ -148,6 +177,7 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
     assert_eq!(imported.unavailable_count, 0);
     assert_eq!(imported.blocked_count, 1);
     assert_eq!(imported.requirements_certified, 0);
+    assert!(imported.requirements.is_empty());
     assert!(imported.is_conserved());
     assert_eq!(
         imported.borrowers[0].blocker,
@@ -162,6 +192,46 @@ fn below_one_borrower_is_imported_but_not_promoted_to_capital_requirement() -> T
         imported.borrowers[0].debt_positions[0].balance,
         Amount256::from_u128(500)
     );
+    assert_eq!(
+        imported.borrowers[0]
+            .account_risk
+            .as_ref()
+            .ok_or("missing exact account risk")?
+            .health_factor_wad,
+        Amount256::from_u128(999_999_999_999_999_999)
+    );
+    assert_eq!(imported.borrowers[0].user_configuration, Amount256::ZERO);
+    Ok(())
+}
+
+#[test]
+fn d09_import_rejects_health_factor_classification_that_contradicts_exact_account_data(
+) -> TestResult {
+    let account = format!("0x{}", "54".repeat(20));
+    let row = format!(
+        concat!(
+            "{{\"account\":\"{}\",\"classification\":\"POSITION_HOLDER\",",
+            "\"debt_positions\":[{}],\"health_factor_below_one\":true,",
+            "\"supply_positions\":[]}}\n"
+        ),
+        account,
+        position(20, 30, "10")
+    );
+    let exact = exact_account_fixture(row.as_bytes());
+    let contradictory =
+        String::from_utf8(exact)?.replace("999999999999999999", "1000000000000000000");
+    let summary = summary("RMC_009_PASS_CANDIDATE", true);
+    let evidence_manifest = d09_evidence_manifest(contradictory.as_bytes(), &summary);
+    let authority = d09_authority(&evidence_manifest)?;
+
+    assert!(import_d09_borrower_demands_bound(
+        contradictory.as_bytes(),
+        &summary,
+        &evidence_manifest,
+        &authority,
+        &anchor(),
+    )
+    .is_err());
     Ok(())
 }
 
@@ -190,6 +260,11 @@ fn borrower_with_unavailable_account_data_is_explicitly_blocked() -> TestResult 
     assert_eq!(imported.blocked_count, 1);
     assert!(imported.is_conserved());
     assert_eq!(imported.requirements_certified, 0);
+    assert!(imported.requirements.is_empty());
+    let receipt = imported.consumption_receipt()?;
+    assert_eq!(receipt.stage(), UpstreamCensusStage::Rmc009PositionUniverse);
+    assert_eq!(receipt.coverage_commitment(), imported.coverage_commitment);
+    assert_eq!(receipt.output_count(), 0);
     Ok(())
 }
 
@@ -369,10 +444,11 @@ fn d09_evidentiary_import_rejects_account_artifact_substitution() -> TestResult 
         account,
         position(20, 30, "10")
     );
+    let accounts = exact_account_fixture(accounts.as_bytes());
     let summary = summary("RMC_009_PASS_CANDIDATE", true);
-    let evidence_manifest = d09_evidence_manifest(accounts.as_bytes(), &summary);
+    let evidence_manifest = d09_evidence_manifest(&accounts, &summary);
     let authority = d09_authority(&evidence_manifest)?;
-    let tampered = accounts.replace("\"10\"", "\"11\"");
+    let tampered = String::from_utf8_lossy(&accounts).replace("\"10\"", "\"11\"");
 
     assert!(import_d09_borrower_demands_bound(
         tampered.as_bytes(),
