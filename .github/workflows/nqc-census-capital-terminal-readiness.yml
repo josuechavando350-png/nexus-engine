@@ -50,13 +50,18 @@ jobs:
           FILE=ci/nqc-census/rmc011-capital-source-universe.json
           if jq -e '.terminal_claim_allowed == true' "$FILE" >/dev/null; then
             jq -e '
-              .status == "D11_TERMINAL_CLOSED" and
+              .claim_scope == "SOURCE_UNIVERSE_READINESS_ONLY" and
+              .status == "CAPITAL_SOURCE_UNIVERSE_COMPLETE" and
+              .d11_terminal_closed == false and
               (.families | all(.terminally_resolved == true)) and
+              .family_universe_discovery.status == "AUTHENTICATED_COMPLETE" and
+              (.family_universe_discovery.evidence.sha256 | type == "string") and
               .unknown_family_count == 0
             ' "$FILE" >/dev/null
-            echo RMC011_TERMINAL_READINESS=PASS
+            echo RMC011_SOURCE_UNIVERSE_READINESS=PASS
           else
-            echo "RMC011_TERMINAL_READINESS=BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" >&2
+            echo "RMC011_SOURCE_UNIVERSE_READINESS=BLOCKED_INCOMPLETE_SOURCE_UNIVERSE" >&2
             jq -r '.families[] | select(.terminally_resolved == false) | "RMC011_UNRESOLVED_FAMILY=" + .id + " status=" + .status' "$FILE" >&2
+            jq -r '"RMC011_FAMILY_UNIVERSE_DISCOVERY=" + .family_universe_discovery.status' "$FILE" >&2
             exit 1
           fi
