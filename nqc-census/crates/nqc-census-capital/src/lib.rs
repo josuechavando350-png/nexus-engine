@@ -11,6 +11,7 @@ pub mod demands;
 pub mod gas_credit;
 pub mod permissionless_atomic;
 pub mod replay;
+pub mod source_authority;
 pub mod upstream;
 
 use nqc_census_core::{
