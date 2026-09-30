@@ -30,6 +30,16 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Negative controls (a wrong declaration must fail)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          python3 ci/nqc-integrated/negative_controls.py ci/nqc-integrated/authority.json /tmp/nqc-integrated-controls \
+            | tee /tmp/nqc-integrated-controls.log
+          rm -rf /tmp/nqc-integrated-controls
+
       - name: Verify the integrated authority chain
         shell: bash
         env:
