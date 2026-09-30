@@ -9,6 +9,9 @@ on:
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
@@ -35,6 +38,9 @@ on:
       - "ci/nqc-census/capital-census-scope.json"
       - "ci/nqc-census/rmc011-capital-source-universe.json"
       - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
+      - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
+      - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
       - "ci/nqc-census/rmc011-uniswap-v3-deployment.json"
       - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
       - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
@@ -91,6 +97,9 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
+          python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
+          python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-balancer-v2-capture.py ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py
           python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
           jq -e '
@@ -175,6 +184,9 @@ jobs:
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
           python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
           python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py
+          python3 ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py -v
+          python3 ci/nqc-census/verify-rmc011-external-capital-provider-registry.py ci/nqc-census/rmc011-external-capital-provider-registry.json /tmp/rmc011-external-provider-registry-report.json
 
       - name: Require authoritative upstream inputs
         shell: bash
@@ -586,6 +598,8 @@ jobs:
           mkdir -p "$PACKAGE/permissionless/uniswap-v3"
           cp -a "$RUNNER_TEMP/rmc011-uniswap-v3/." "$PACKAGE/permissionless/uniswap-v3/"
           cp -- ci/nqc-census/rmc011-uniswap-v3-deployment.json "$PACKAGE/rmc011-uniswap-v3-deployment.json"
+          cp -- ci/nqc-census/rmc011-external-capital-provider-registry.json "$PACKAGE/rmc011-external-capital-provider-registry.json"
+          cp -- /tmp/rmc011-external-provider-registry-report.json "$PACKAGE/external-provider-registry-report.json"
           for stage in d06 d07 d08 d09 d10; do
             test -d "$RUNNER_TEMP/$stage-raw"
             cp -a "$RUNNER_TEMP/$stage-raw" "$PACKAGE/upstream/$stage"
