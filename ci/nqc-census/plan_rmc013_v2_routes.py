@@ -150,8 +150,6 @@ def route_trace(amount: int, route: tuple[Hop, ...], mode: str) -> list[tuple[in
         else:
             raise ValueError(f"unknown route mode {mode}")
         trace.append((amount_in, current))
-        if current == 0:
-            break
     return trace
 
 
