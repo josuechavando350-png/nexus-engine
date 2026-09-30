@@ -348,7 +348,10 @@ fn shared_resource_must_match_candidate_anchor() -> TestResult {
         &[funding],
         &[resource],
     );
-    assert!(matches!(\n        result,\n        Err(PortfolioError::ResourceAnchorMismatch)\n    ));
+    assert!(matches!(
+        result,
+        Err(PortfolioError::ResourceAnchorMismatch)
+    ));
     Ok(())
 }
 
