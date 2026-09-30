@@ -2270,6 +2270,22 @@ fn add_residual_edge(
     forward
 }
 
+fn source_satisfies_leg_atomicity(
+    requirement: &CapitalRequirement,
+    source: &CapitalSource,
+    leg: &CapitalRequirementLeg,
+) -> bool {
+    // Native gas must be available before EVM execution. Its external financing
+    // can legitimately settle after the action transaction (for example a
+    // deadline-bound gas credit facility). The requirement's action atomicity
+    // therefore does not constrain GAS_FUNDING repayment horizon. Settlement
+    // obligations are still derived exactly and must be declared.
+    if leg.kind() == RequirementKind::Gas {
+        return source.class() == CapitalClass::GasFunding;
+    }
+    requirement.atomicity().accepts(source.repayment())
+}
+
 fn source_can_fund_leg(
     requirement: &CapitalRequirement,
     source: &CapitalSource,
@@ -2284,7 +2300,7 @@ fn source_can_fund_leg(
     if require_anchor && source.anchor() != requirement.anchor() {
         return false;
     }
-    if require_atomicity && !requirement.atomicity().accepts(source.repayment()) {
+    if require_atomicity && !source_satisfies_leg_atomicity(requirement, source, leg) {
         return false;
     }
     if !allow_operator_owned && source.ownership().is_operator_owned() {
@@ -2522,7 +2538,7 @@ fn classify_unmet_leg(
             continue;
         }
         same_anchor_class = true;
-        if !requirement.atomicity().accepts(source.repayment()) {
+        if !source_satisfies_leg_atomicity(requirement, source, leg) {
             continue;
         }
         same_anchor_atomic = true;
