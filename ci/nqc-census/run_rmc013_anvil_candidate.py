@@ -235,9 +235,14 @@ def deploy_runtime(
     operator: str,
     pool: str,
 ) -> tuple[str, str]:
+    original_code = rpc.call("eth_getCode", [operator, "latest"])
+    original_nonce = int(rpc.call("eth_getTransactionCount", [operator, "latest"]), 16)
+    original_balance = rpc.call("eth_getBalance", [operator, "latest"])
+    if original_code not in {"0x", "0x0"} or original_nonce != 0:
+        raise RuntimeError("local operator address is occupied at the Census anchor")
+    snapshot = rpc.call("evm_snapshot", [])
     rpc.call("anvil_impersonateAccount", [operator])
     rpc.call("anvil_setBalance", [operator, hex(10**30)])
-    snapshot = rpc.call("evm_snapshot", [])
     creation = append_constructor(creation_bytecode, cast, operator, pool)
     tx = {
         "from": operator,
@@ -254,7 +259,19 @@ def deploy_runtime(
         raise RuntimeError("executor deployment produced no runtime")
     if rpc.call("evm_revert", [snapshot]) is not True:
         raise RuntimeError("failed to revert executor deployment")
+    if rpc.call("eth_getCode", [operator, "latest"]) != original_code:
+        raise RuntimeError("operator code changed across deployment revert")
+    if int(rpc.call("eth_getTransactionCount", [operator, "latest"]), 16) != original_nonce:
+        raise RuntimeError("operator nonce changed across deployment revert")
+    if rpc.call("eth_getBalance", [operator, "latest"]) != original_balance:
+        raise RuntimeError("operator balance changed across deployment revert")
+    preexisting = rpc.call("eth_getCode", [contract, "latest"])
+    if preexisting not in {"0x", "0x0"}:
+        raise RuntimeError("derived executor address already has code at the Census anchor")
     rpc.call("anvil_setCode", [contract, runtime])
+    # eth_estimateGas enforces sender funding; this local override is transport
+    # only and is never accepted as OWN_CAPITAL evidence.
+    rpc.call("anvil_setBalance", [operator, hex(10**30)])
     if rpc.call("eth_getCode", [contract, "latest"]).lower() != runtime.lower():
         raise RuntimeError("anvil_setCode runtime readback mismatch")
     return contract, runtime
@@ -362,6 +379,14 @@ def simulate(
         gas_estimate = int(rpc.call("eth_estimateGas", [call, "latest"]), 16)
         if gas_estimate <= 21_000:
             raise RuntimeError(f"implausible gas estimate {gas_estimate}")
+        trace = rpc.call("debug_traceCall", [call, "latest", {}])
+        if not isinstance(trace, dict) or trace.get("failed") is True:
+            raise RuntimeError("debug_traceCall did not return a successful trace")
+        traced_gas = hex_int(trace.get("gas"), "debug_traceCall.gas")
+        if traced_gas <= 0 or traced_gas > gas_estimate:
+            raise RuntimeError(
+                f"trace/estimate gas invariant failed: trace={traced_gas} estimate={gas_estimate}"
+            )
         code_hash = command([cast, "keccak", runtime])
 
         return {
@@ -380,8 +405,13 @@ def simulate(
                 bytes.fromhex(calldata[2:])
             ).hexdigest(),
             "realized_profit_debt_units_before_gas": str(realized_profit),
+            "simulated_gas_used": traced_gas,
+            "simulated_gas_used_basis": "DEBUG_TRACECALL_EXACT_ANVIL_FORK_ANCHOR",
             "gas_requirement_units": gas_estimate,
             "gas_requirement_basis": "ETH_ESTIMATE_GAS_EXACT_ANVIL_FORK_ANCHOR",
+            "fork_local_executor_code_injected": True,
+            "fork_local_operator_balance_overridden": True,
+            "operator_balance_override_is_capital_evidence": False,
             "live_transaction_sent": False,
             "own_capital_used": False,
         }
