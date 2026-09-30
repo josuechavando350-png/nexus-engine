@@ -217,6 +217,8 @@ jobs:
           set -euo pipefail
           rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
           cargo build --release --locked --bin rmc012-terminal-actionability
+          HEAD_SHA="$(git -C "$GITHUB_WORKSPACE" rev-parse HEAD)"
+          TREE_SHA="$(git -C "$GITHUB_WORKSPACE" show -s --format=%T HEAD)"
           d08="/tmp/rmc012-upstream/d08/$D08_PATH"
           d09="/tmp/rmc012-upstream/d09/$D09_PATH"
           test -f "$d08/evidence-manifest.json"
@@ -227,6 +229,7 @@ jobs:
               --d08 "$d08" \
               --d09 "$d09" \
               --authority-lock "$GITHUB_WORKSPACE/$AUTHORITY_LOCK_PATH" \
+              --code-commit "$HEAD_SHA" --code-tree "$TREE_SHA" \
               --out "$out" | tee "$out.log"
             grep -F RMC012_TERMINAL_ACTIONABILITY_PASS "$out.log"
           done
