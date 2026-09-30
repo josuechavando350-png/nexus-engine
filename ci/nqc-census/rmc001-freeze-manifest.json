@@ -11,7 +11,19 @@
   },
   "base_authority_commit": "cea25577edfcaf89dc8fc8bf60ee04bc01d01a3d",
   "certification": {
-    "status": "PENDING"
+    "head_sha": "5e36103aa53b34060e55971093affbff82364258",
+    "job_id": 109697172270,
+    "manifest_sha256": "8302df9fb514ef9de4718b8cce4da0872f771ab883cda11a0dec2de090ad626f",
+    "passed": [
+      "RMC_001_IDENTITY_BYTES_IMMUTABLE_PASS",
+      "RMC_001_NO_IO_BOUNDARY_PASS",
+      "RMC_001_INDEPENDENT_VECTORS_PASS",
+      "RMC_001_CANONICAL_MARKET_IDENTITY_PASS",
+      "RMC_001_A1_BACKWARD_IDENTITY_STABILITY_PASS"
+    ],
+    "run_id": 36654952078,
+    "status": "CERTIFIED",
+    "workflow": ".github/workflows/nqc-census-identity.yml"
   },
   "contract": "RMC-001 canonical market identity",
   "evidence": {

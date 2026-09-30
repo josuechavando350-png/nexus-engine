@@ -13,12 +13,16 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   chain-evidence:
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     env:
+      # RMC-001 recertified freeze manifest (Amendment 1), pinned by digest.
+      RMC001_FREEZE_MANIFEST_SHA256: a0e5280175cfebadbbb225783873fde5d85364e3985224b20ba797fda0529842
+      GH_TOKEN: ${{ github.token }}
       CHAIN_BASE: b5b5ef5c32203f0eaeb1238c32a0aa160affeb78
       RMC003_TYPED_AUTHORITY: 5e032b2a601a2368334477e6ad9ee5c5b7ba219a
       # RMC-003.2 additively advanced nqc-census-core (log topic words).
@@ -95,12 +99,19 @@ jobs:
             ci/nqc-protocol-fork/PROTOCOL_FORK_TRUTH_CONTRACT.json \
             ci/nqc-protocol-fork/PROTOCOL_FORK_FINAL_CLOSEOUT.json
           git diff --quiet "$RMC001_MERGE" HEAD -- \
-            ci/nqc-census/IDENTITY_CONTRACT.md ci/nqc-census/identity-vectors.json \
+            ci/nqc-census/identity-vectors.json \
             nqc-census/rust-toolchain.toml nqc-census/crates/nqc-census-core/Cargo.toml \
-            nqc-census/crates/nqc-census-core/src/identity.rs nqc-census/crates/nqc-census-core/tests/identity.rs
+            nqc-census/crates/nqc-census-core/tests/identity.rs
+          # IDENTITY_CONTRACT.md and identity.rs changed only through RMC-001
+          # Amendment 1; the recertified freeze manifest pins them by content.
+          echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc001_freeze.py
           git merge-base --is-ancestor "$RMC003_TYPED_AUTHORITY" "$RMC003_2_AUTHORITY"
           git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
-          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- nqc-census/crates/nqc-census-core
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- nqc-census/crates/nqc-census-core \
+            ':(exclude)nqc-census/crates/nqc-census-core/src/identity.rs' \
+            ':(exclude)nqc-census/crates/nqc-census-core/tests/identity_amendment_1.rs' \
+            ':(exclude)nqc-census/crates/nqc-census-core/tests/support/identity_corpus.rs'
           git diff --quiet "$RMC003_TYPED_AUTHORITY" HEAD -- \
             ci/nqc-census/OBSERVATION_PIPELINE_CONTRACT.md ci/nqc-census/TYPED_OBSERVATION_CONTRACT.md \
             ci/nqc-census/typed-observation-vectors.json ci/nqc-census/typed_observation_vectors.py \
