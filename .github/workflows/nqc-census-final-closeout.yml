@@ -87,7 +87,7 @@ jobs:
           from pathlib import Path
           path = Path("ci/nqc-census/final-census-authority-lock.json")
           doc = json.loads(path.read_text())
-          assert doc["schema_version"] == 1
+          assert doc["schema_version"] == 2
           assert doc["real_market_census_closed"] is False
           required = [f"RMC-{n:03d}" for n in range(6, 14)]
           assert doc["required_terminal_stages"] == required
@@ -104,6 +104,10 @@ jobs:
               assert len(stages) == len(required)
               assert [row["stage"] for row in stages] == required
               print("RMC014_AUTHORITY_LOCK=PINNED")
+          if status == "PINNED":
+              assert isinstance(doc.get("pipeline_counts"), dict)
+              assert isinstance(doc.get("economic_boundary"), dict)
+              assert isinstance(doc.get("terminal_evidence"), list) and doc["terminal_evidence"]
           PY
 
   terminal:
@@ -134,7 +138,7 @@ jobs:
                   "artifact_digest", "code_commit", "code_tree",
                   "authority_commitment", "coverage_commitment",
                   "unresolved_mismatch_count", "unknown_failure_count",
-                  "blocker_count", "coverage_complete", "admitted",
+                  "blocker_count", "coverage_complete", "admitted", "evidence",
               ]
               missing=[key for key in required if key not in row]
               assert not missing, (row.get("stage"), missing)
@@ -144,6 +148,8 @@ jobs:
               assert row["blocker_count"] == 0
               assert row["coverage_complete"] is True
               assert row["admitted"] is True
+              assert isinstance(row["evidence"], list) and row["evidence"]
+              assert all(isinstance(value, str) for value in row["evidence"])
               print("\t".join(str(row[key]) for key in [
                   "stage","workflow_run_id","artifact_id","artifact_name",
                   "artifact_digest","code_commit","code_tree",
@@ -180,3 +186,47 @@ jobs:
           )
           print("RMC014_TERMINAL_AUTHORITY_VERIFIED")
           PY
+
+
+      - name: Emit deterministic terminal certificate twice
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUT_A="$RUNNER_TEMP/rmc014-a"
+          OUT_B="$RUNNER_TEMP/rmc014-b"
+          rm -rf "$OUT_A" "$OUT_B"
+          mkdir -p "$OUT_A" "$OUT_B"
+
+          cargo run --release --locked -p nqc-census-closeout --bin nqc-rmc014-closeout -- \
+            ci/nqc-census/final-census-authority-lock.json "$OUT_A"
+          cargo run --release --locked -p nqc-census-closeout --bin nqc-rmc014-closeout -- \
+            ci/nqc-census/final-census-authority-lock.json "$OUT_B"
+
+          diff -ruN "$OUT_A" "$OUT_B"
+          (
+            cd "$OUT_A"
+            sha256sum -c real-market-census-certificate.sha256
+          )
+
+          CERT="$OUT_A/real-market-census-certificate.json"
+          jq -e '
+            .schema_version == 1 and
+            .status == "REAL_MARKET_CENSUS_CLOSED" and
+            .real_market_census_closed == true and
+            .realized_profitability_proven == false and
+            .monthly_target_probability_proven == false and
+            (.stages | length == 8) and
+            (.terminal_evidence | length > 0)
+          ' "$CERT" >/dev/null
+
+          echo "RMC014_CERTIFICATE=$CERT" >> "$GITHUB_ENV"
+          echo "RMC014_TERMINAL_CLOSEOUT=PASS"
+
+      - name: Upload immutable RMC-014 terminal certificate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: rmc014-terminal-census-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc014-a/
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
