@@ -386,7 +386,7 @@ impl ActionableLiquidation {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ActionabilityDisposition {
-    Admitted(ActionableLiquidation),
+    Admitted(Box<ActionableLiquidation>),
     Rejected(ActionabilityRejectionReason),
 }
 
@@ -405,7 +405,7 @@ impl ActionabilityRecord {
         let pair = candidate.pair().clone();
         Self::build(
             pair,
-            ActionabilityDisposition::Admitted(candidate),
+            ActionabilityDisposition::Admitted(Box::new(candidate)),
             evidence,
         )
     }
