@@ -5,7 +5,7 @@ const mesh = JSON.parse(readFileSync("ci/nqc-quant-firm/AGENT_MESH_CONTRACT.json
 const fleet = JSON.parse(readFileSync("ci/nqc-quant-firm/AGENT_FLEET_350.json", "utf8"));
 const registry = readFileSync("ci/nqc-quant-firm/AGENT_REGISTRY_350.jsonl", "utf8")
   .trim()
-  .split("\\n")
+  .split("\n")
   .map((line) => JSON.parse(line));
 
 function fail(message) {
