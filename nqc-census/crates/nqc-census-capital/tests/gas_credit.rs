@@ -40,13 +40,14 @@ fn amount_json(value: Amount256) -> Json {
     Json::string(format!("0x{}", value.to_hex()))
 }
 
-fn observation_with_runtime_active(
+fn observation_with_runtime_active_and_transcript(
     observed_anchor: &StateAnchor,
     outstanding: Amount256,
     provider_b_facts: Option<Hash32>,
     declared_terms_override: Option<Hash32>,
     runtime: Hash32,
     active: bool,
+    provider_b_transcript: Option<Hash32>,
 ) -> Result<Vec<u8>, CapitalError> {
     let facility = address(10);
     let borrower = address(11);
@@ -148,13 +149,35 @@ fn observation_with_runtime_active(
                         "facts_commitment",
                         Json::string(provider_b_facts.unwrap_or(facts).to_hex()),
                     ),
-                    ("transcript_sha256", Json::string(hash(21).to_hex())),
+                    (
+                        "transcript_sha256",
+                        Json::string(provider_b_transcript.unwrap_or(hash(21)).to_hex()),
+                    ),
                 ]),
             ]),
         ),
     ]);
     row.canonical()
         .map_err(|_| CapitalError::InvalidCanonical("test observation canonicalization"))
+}
+
+fn observation_with_runtime_active(
+    observed_anchor: &StateAnchor,
+    outstanding: Amount256,
+    provider_b_facts: Option<Hash32>,
+    declared_terms_override: Option<Hash32>,
+    runtime: Hash32,
+    active: bool,
+) -> Result<Vec<u8>, CapitalError> {
+    observation_with_runtime_active_and_transcript(
+        observed_anchor,
+        outstanding,
+        provider_b_facts,
+        declared_terms_override,
+        runtime,
+        active,
+        None,
+    )
 }
 
 fn observation_with_active(
@@ -304,6 +327,25 @@ fn provider_disagreement_fails_closed() -> TestResult {
     assert!(matches!(
         import_external_gas_credit_observation(&bytes, &anchor),
         Err(CapitalError::CanonicalDigestMismatch)
+    ));
+    Ok(())
+}
+
+#[test]
+fn duplicated_provider_transcript_fails_closed() -> TestResult {
+    let anchor = anchor();
+    let bytes = observation_with_runtime_active_and_transcript(
+        &anchor,
+        amount(100),
+        None,
+        None,
+        hash(13),
+        true,
+        Some(hash(20)),
+    )?;
+    assert!(matches!(
+        import_external_gas_credit_observation(&bytes, &anchor),
+        Err(CapitalError::InvalidCanonical(_))
     ));
     Ok(())
 }
