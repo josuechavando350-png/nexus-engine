@@ -482,6 +482,25 @@ impl ExecutionCostVector {
         }
         Ok(total)
     }
+
+    /// Maximum integer-only downward deviation that can occur inside a
+    /// non-degenerate capture-probability interval relative to the smaller
+    /// discretely evaluated endpoint.
+    ///
+    /// The underlying rational expectation is affine, but conservative
+    /// floor/ceil operations make the integer result a staircase. With N
+    /// probability-dependent rounded terms, every discrete value is strictly
+    /// less than N atomic valuation units below its rational counterpart.
+    /// Since both endpoint and interior reports are integers, N-1 units are a
+    /// sufficient fail-closed reserve.
+    fn interval_rounding_reserve(&self, gross_value: Amount256) -> Amount256 {
+        let mut rounded_terms = usize::from(!gross_value.is_zero());
+        for component in &self.components {
+            rounded_terms += usize::from(!component.on_capture.is_zero());
+            rounded_terms += usize::from(!component.on_failure.is_zero());
+        }
+        Amount256::from_u128(rounded_terms.saturating_sub(1) as u128)
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -931,16 +950,25 @@ impl ExecutionQuote {
             Some(probability) => Some(self.net_at_probability(probability)?),
         };
 
-        // Expected net is affine in capture probability when the cost
-        // incidence vector is fixed. Therefore the minimum over a calibrated
-        // interval is attained at one endpoint; no interpolation or hidden
-        // distributional assumption is needed.
+        // The rational expectation is affine in capture probability, but the
+        // intentionally conservative integer semantics are not: gross uses
+        // floor while conditional costs use ceil. Those staircase jumps can
+        // create a lower interior value even when both rational endpoints are
+        // higher. Bound that discretization effect explicitly instead of
+        // treating endpoint evaluation as exact.
         let interval_worst_case_net = match self.capture.interval() {
             None => None,
             Some((lower, upper)) => {
                 let low = self.net_at_probability(lower)?;
                 let high = self.net_at_probability(upper)?;
-                Some(low.min(high))
+                let endpoint_min = low.min(high);
+                if upper.value().saturating_sub(lower.value()) <= 1 {
+                    Some(endpoint_min)
+                } else {
+                    Some(endpoint_min.subtract_unsigned(
+                        self.costs.interval_rounding_reserve(self.gross_value),
+                    )?)
+                }
             }
         };
         let tail_adjusted_net = match interval_worst_case_net {
@@ -988,7 +1016,9 @@ pub struct EconomicsReport {
     pub success_path_net: SignedAmount,
     /// Point-estimate expected net. This is never the admission authority.
     pub capture_adjusted_net: Option<SignedAmount>,
-    /// Worst expected net across the calibrated capture interval.
+    /// Conservative integer lower bound for expected net across the
+    /// calibrated capture interval. It includes an explicit atomic-unit
+    /// reserve for floor/ceil staircase effects between the endpoints.
     pub interval_worst_case_net: Option<SignedAmount>,
     /// Interval-worst net after explicit tail reserve. Admission requires this
     /// value to remain positive.
