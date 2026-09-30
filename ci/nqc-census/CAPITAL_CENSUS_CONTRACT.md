@@ -53,6 +53,8 @@ Every admitted capital source record MUST bind:
 - block-pinned observation anchor
 - maximum_available
 - zero-capacity sources remain explicit census records rather than disappearing; zero means observed-but-unavailable at that anchor
+- observed/effective capacity and executable capacity are distinct: upstream execution blockers MUST NOT erase observed liquidity, but executable capacity MUST be zero while any blocker remains
+- execution blocker codes are preserved exactly; blocker-state changes alter the observation-specific source ID but MUST NOT alter the stable source key
 - fee model
 - repayment semantics
 - collateral_required
@@ -60,6 +62,7 @@ Every admitted capital source record MUST bind:
 - utilization_constraints
 - protocol_caps
 - market_caps
+- utilization limits, minimum-remaining reserves, protocol caps, market caps, and observed availability are independent upper bounds on the same executable draw; effective capacity is their minimum and MUST NOT compound them by scaling a cap or subtracting a reserve floor after scaling
 - same_block_atomicity
 - temporary_lock semantics
 - failure modes
@@ -69,6 +72,8 @@ Every admitted capital source record MUST bind:
 No floating-point representation is permitted for protocol-governed integer amounts, fees, ratios, or caps.
 
 ## Required candidate requirement fields
+
+The D09 borrower-demand boundary MUST preserve the exact account risk state needed by later liquidation sizing rather than only a boolean health-factor classification: user configuration, eMode category when available, all six `getUserAccountData` integers, configuration divergences, and exact supply/debt positions. For every borrower with a boolean `health_factor_below_one`, D11 MUST recompute that boolean from the preserved health-factor WAD and reject contradictions. These exact fields are included in the D09 demand coverage commitment even while liquidatability remains unclaimed.
 
 Every candidate capital requirement MUST enumerate all required funding legs, including:
 
@@ -90,23 +95,34 @@ A source may be used only when:
 
 - every consumed upstream byte is bound through the upstream stage's admitted evidence manifest; for RMC-008 the authority artifact digest identifies `evidence-manifest.json`, whose exact code commit/tree and per-file SHA-256/size entries MUST match `market-state-manifest.jsonl`, `token-admission.jsonl`, and `pool-and-factory-facts.json` before import
 - the same byte-binding rule applies to RMC-009: its authority artifact digest identifies `evidence-manifest.json`; the manifest and `account-summary.json` must name the exact admitted code commit/tree, and the manifest SHA-256/size entries for `account-manifest.jsonl` and `account-summary.json` must match before borrower demand import
+- the verified RMC-008 source import and RMC-009 borrower-demand import MUST each emit a deterministic consumption receipt binding their coverage commitment to the exact admitted upstream authority artifact
+- each receipt MUST also bind the exact consumed output set: sorted source IDs for RMC-008 and sorted certified requirement IDs for RMC-009, together with an exact output count; final certification MUST recompute those sets from the ledger and reject any missing, extra, substituted, or duplicated output
+- D08 source evidence MUST be deterministic: every source imported from RMC-008 binds exactly the admitted RMC-008 authority artifact, whose evidence manifest transitively binds every consumed D08 file; arbitrary caller-supplied extra evidence MUST NOT change source identity
+- real-source certification requires an external immutable authority lock for every RMC-006..RMC-010 stage (exact code commit, code tree, admitted artifact SHA-256, and the full block-pinned observation anchor including chain domain, block/parent hashes, timestamp, and state root), plus replay of the exact consumed RMC-008 and RMC-009 bytes through the same deterministic importers and exact equality with the committed consumption receipts; self-asserted upstream identities, substituted anchors, or internal consistency of a D11 artifact bundle alone are insufficient proof
+- merely listing an admitted RMC-008 or RMC-009 authority is insufficient: certification MUST fail if either consumed-input receipt is absent, duplicated, references the wrong stage, references a different authority artifact, does not equal the ledger output set, or cannot be reproduced from the consumed upstream bytes
 - deployment/source identity is admitted
 - the observation is pinned to the same canonical block context required by the candidate
-- available capacity is sufficient at the requested size
+- executable capacity, not merely observed capacity, is sufficient at the requested size
+- no execution blocker remains on any allocated source
 - fee/cap semantics are explicit
 - repayment can be satisfied under the candidate's execution semantics
+- exact repayment and funding-fee settlement obligations derived from the actual source allocations equal the declared settlement legs before the candidate may be labeled `FEASIBLE`
+- settlement legs must authorize the actual capital-source classes that generated those obligations, and the declared settlement amounts must be exactly assignable across those authorized classes; matching only aggregate kind, asset, and amount is insufficient
 - atomicity/collateral requirements are compatible
 - no unresolved source mismatch remains
 
 Feasibility MUST fail closed on:
 
 - insufficient capacity
+- observed capital blocked from execution by unresolved upstream semantics
 - unsupported asset
 - stale or mismatched observation
 - unknown fee semantics
 - unknown repayment semantics
+- settlement requirement mismatch, including wrong repayment amount, wrong settlement asset, missing funding fee, an extra settlement leg, or a settlement leg that does not authorize the allocated source class
 - unknown protocol / market cap
-- collateral requirement not funded
+- collateral requirement not funded, including the aggregate collateral required by every distinct source allocated to the candidate
+- temporary-lock requirement not funded, including the aggregate lock amount required by every distinct source allocated to the candidate
 - gas funding absent
 - non-atomic requirement where atomicity is required
 - persistent-debt solvency model absent
@@ -123,8 +139,13 @@ Target deterministic artifacts:
 - `capital-census-summary.json`
 - `capital-upstream-authority.json`
 - `capital-evidence-manifest.json`
+- `capital-upstream-authority-lock.json` (archived canonical copy of the external lock used by the build)
+- `capital-real-source-closeout.json` (only after external authority locking plus exact upstream replay passes)
+- `capital-archive.sha256` (deterministic SHA-256 inventory over the seven D11 artifacts, archived external lock, and real-source closeout)
 
-Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence.
+The real-source build path MUST start from the external authority lock, reconstruct its certification context, replay RMC-008/RMC-009, build the D11 ledger, export the seven canonical D11 artifacts, regenerate the closeout from those exact bytes, and verify the closeout again before writing the archive. The certification runner MUST derive the D11 code commit and tree from the checked-out exact `HEAD`, require a clean tracked working tree, refuse a non-empty output directory, and finish by verifying the archive SHA-256 inventory. A manually assembled D11 bundle is not the certification path.
+
+Every artifact MUST include schema version, exact code commit/tree, observation anchor or block range, source provenance, and SHA-256/content-addressed evidence. `generated_at` is evidence time, not wall-clock time: it MUST equal the exact observation-anchor block timestamp and MUST carry `generated_at_basis=OBSERVATION_ANCHOR_BLOCK_TIMESTAMP`, so identical evidence and code regenerate byte-identical artifacts. The ordinary D11 bundle remains explicitly `real_source_certification=false`; only the separate closeout produced by the external-lock + exact-replay verifier may assert `real_source_certification=true`.
 
 ## Required tests
 
@@ -132,17 +153,19 @@ At minimum:
 
 - source identity is deterministic and collision-resistant across chain/provider/asset/class
 - same bytes under different capital classes do not alias
-- zero and overflow amount/cap edge cases fail correctly
+- zero and overflow amount/cap edge cases fail correctly; public enum/struct construction cannot bypass the same fee, ratio, repayment-deadline, collateral, utilization, temporary-lock, or nonzero-evidence validations enforced by canonical decode
 - atomic source cannot silently become persistent debt
 - persistent debt cannot pass without collateral/solvency semantics
-- gas funding is independently required when execution needs native gas
+- collateral and temporary-lock dependencies are aggregated across all distinct sources used by one candidate; one declared leg cannot be reused to satisfy multiple source dependencies
+- gas funding is independently required when execution needs native gas, and the `requires_native_gas` flag must equal the presence of a native-gas requirement leg in both directions
 - insufficient source capacity fails closed
 - incompatible repayment asset/semantics fails closed
+- exact repayment/funding-fee settlement mismatch, including source-class provenance or per-class amount-assignment mismatch, is classified as a feasibility rejection rather than surviving as a provisional `FEASIBLE` result until certification
 - protocol and market caps bind maximum executable size
 - stale/mismatched anchors fail
 - unknown failure reason cannot pass certification
-- deterministic canonical encode/decode and tamper rejection
-- evidence refs are required for admitted real sources
+- deterministic canonical encode/decode and tamper rejection; offline verification reports total feasibility records, feasible requirements, and rejected requirements as distinct conserved counts; arbitrary or wall-clock artifact generation times and mismatched artifact anchors are rejected
+- evidence refs are required for admitted real sources; substituting even an unconsumed prerequisite authority such as RMC-006, RMC-007, or RMC-010 must fail against the external authority lock
 - synthetic fixtures are explicitly non-evidentiary
 
 ## Certification gate
@@ -152,14 +175,18 @@ Foundation artifacts MUST encode `real_source_certification=false` until every r
 RMC-011 may be certified only when:
 
 - all upstream inputs used by the final run are exact-head admitted artifacts
+- exact RMC-008 and RMC-009 consumption receipts are present and their coverage commitments, output counts, and output-set commitments are bound into `capital-upstream-authority.json` and its commitment
 - every source used for feasibility has reproducible evidence
 - zero unexplained source mismatches remain
 - zero UNKNOWN failure reasons remain
 - full rerun is deterministic
 - offline verifier passes
+- the D11 upstream authority equals the external RMC-006..RMC-010 authority lock exactly, and exact upstream-consumption replay passes for RMC-008 and RMC-009; without the external lock or consumed upstream bytes, the result remains internally consistent only and MUST NOT claim real-source certification
+- a deterministic `capital-real-source-closeout.json` is generated from that combined proof and binds the D11 capital commitment, upstream-authority commitment, external-lock commitment and SHA-256, exact observation anchor, source/requirement counts, zero-own-capital truth, RMC-008 candidate/admitted/rejected conservation counts, RMC-009 borrower/classification/blocker counts, and the exact RMC-008/RMC-009 authority-artifact, coverage, and output-set commitments reproduced by replay; archived closeout bytes MUST be re-verifiable only by regenerating them from the exact capital bundle, external lock, and consumed RMC-008/RMC-009 bytes
+- if no certified requirement is actually `FEASIBLE` (including an empty requirement set or a non-empty set containing only rejections), the real-source closeout MUST keep `zero_own_capital_proven=false` and MUST explicitly refuse any opportunity-level capital-feasibility claim
 - no downstream profitability, Shadow, Canary, or P&L claim is inferred from capital feasibility alone
 
-RMC-009 explicitly does not certify liquidatability. Therefore a fully admitted upstream run may legitimately contain zero actionable capital requirements. In that case RMC-011 MAY certify the observed capital-source census and the conserved D09 demand-import coverage with `requirement_count = 0`, but it MUST report `zero_own_capital_proven = false` and MUST NOT claim opportunity-level capital feasibility. A non-empty source census remains mandatory.
+RMC-009 explicitly does not certify liquidatability. Therefore a fully admitted upstream run may legitimately contain zero actionable capital requirements. In that case RMC-011 MAY certify the observed capital-source census and the conserved D09 demand-import coverage with `requirement_count = 0`, but it MUST report `zero_own_capital_proven = false` and MUST NOT claim opportunity-level capital feasibility. The same non-claim applies whenever `feasible_count = 0`, even if rejected requirements exist. A non-empty source census remains mandatory.
 
 Capital feasibility proves funding availability and constraints for each requirement independently. It does NOT prove that multiple individually feasible requirements can be funded concurrently from shared capital sources.
 

@@ -3,7 +3,8 @@ use crate::{
     CapitalError, CapitalEvidenceRef, CapitalFeasibility, CapitalRequirement, CapitalSource,
     CollateralRequirement, FeasibilityRejection, FeeModel, GitObjectId, LockRelease,
     RepaymentSemantics, RequirementKind, TemporaryLock, UpstreamCensusStage,
-    UpstreamStageAuthority, UpstreamStageAuthoritySpec, CAPITAL_SCHEMA_VERSION,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    CAPITAL_SCHEMA_VERSION,
 };
 use nqc_census_chain::json::Json;
 use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
@@ -18,8 +19,10 @@ pub const CAPITAL_SUMMARY_FILE: &str = "capital-census-summary.json";
 pub const CAPITAL_UPSTREAM_AUTHORITY_FILE: &str = "capital-upstream-authority.json";
 pub const CAPITAL_EVIDENCE_MANIFEST_FILE: &str = "capital-evidence-manifest.json";
 
-const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 4;
-const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 2;
+const CAPITAL_SUMMARY_SCHEMA_VERSION: u64 = 5;
+const CAPITAL_EVIDENCE_MANIFEST_SCHEMA_VERSION: u64 = 3;
+const UPSTREAM_AUTHORITY_SCHEMA_VERSION: u64 = 7;
+const GENERATED_AT_BASIS: &str = "OBSERVATION_ANCHOR_BLOCK_TIMESTAMP";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ArtifactProvenance {
@@ -50,6 +53,43 @@ impl ArtifactProvenance {
             code_tree,
         })
     }
+
+    pub fn for_anchor(
+        anchor: &StateAnchor,
+        code_commit: impl Into<String>,
+        code_tree: impl Into<String>,
+    ) -> Result<Self, CapitalError> {
+        Self::new(rfc3339(anchor.timestamp()), code_commit, code_tree)
+    }
+
+    fn validate_anchor(&self, anchor: &StateAnchor) -> Result<(), CapitalError> {
+        if self.generated_at != rfc3339(anchor.timestamp()) {
+            return Err(CapitalError::InvalidCanonical(
+                "artifact generated_at must equal observation anchor timestamp",
+            ));
+        }
+        Ok(())
+    }
+}
+
+fn rfc3339(timestamp: u64) -> String {
+    let days = timestamp / 86_400;
+    let seconds = timestamp % 86_400;
+    let z = days + 719_468;
+    let era = z / 146_097;
+    let doe = z % 146_097;
+    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
+    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
+    let mp = (5 * doy + 2) / 153;
+    let day = doy - (153 * mp + 2) / 5 + 1;
+    let month = if mp < 10 { mp + 3 } else { mp - 9 };
+    let year = yoe + era * 400 + u64::from(month <= 2);
+    format!(
+        "{year:04}-{month:02}-{day:02}T{:02}:{:02}:{:02}Z",
+        seconds / 3_600,
+        (seconds % 3_600) / 60,
+        seconds % 60
+    )
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -90,9 +130,13 @@ pub struct CapitalArtifactVerification {
     pub source_count: usize,
     pub requirement_count: usize,
     pub feasibility_count: usize,
+    pub feasible_count: usize,
     pub rejection_count: usize,
     pub capital_commitment: String,
     pub upstream_authority_commitment: String,
+    pub generated_at: String,
+    pub observation_anchor: StateAnchor,
+    pub zero_own_capital_proven: bool,
     pub code_commit: String,
     pub code_tree: String,
 }
@@ -223,6 +267,9 @@ pub fn verify_capital_artifact_bundle(
     let (authority, authority_provenance) =
         parse_upstream_authority(authority_file.bytes.as_slice())?;
     let manifest_provenance = provenance_fields(&manifest, "manifest provenance missing")?;
+    require_generated_at_basis(&manifest)?;
+    manifest_provenance.validate_anchor(authority.observation_anchor())?;
+    require_observation_anchor(&manifest, authority.observation_anchor())?;
     if authority_provenance != manifest_provenance {
         return Err(CapitalError::InvalidCanonical(
             "upstream authority/manifest provenance mismatch",
@@ -274,6 +321,7 @@ pub fn verify_capital_artifact_bundle(
         )?;
         let decoded = CapitalSource::decode_canonical(&encoded)?;
         let provenance = record_provenance(record)?;
+        provenance.validate_anchor(decoded.anchor())?;
         if canonical(&source_record(&decoded, &provenance))? != canonical(record)? {
             return Err(CapitalError::InvalidCanonical(
                 "source readable fields differ from canonical record",
@@ -312,6 +360,7 @@ pub fn verify_capital_artifact_bundle(
         })?)?;
         let decoded = CapitalRequirement::decode_canonical(&encoded)?;
         let provenance = record_provenance(record)?;
+        provenance.validate_anchor(decoded.anchor())?;
         if canonical(&requirement_record(&decoded, &provenance))? != canonical(record)? {
             return Err(CapitalError::InvalidCanonical(
                 "requirement readable fields differ from canonical record",
@@ -337,7 +386,9 @@ pub fn verify_capital_artifact_bundle(
     let mut feasibility_ids = BTreeSet::new();
     let mut rejected = BTreeSet::new();
     for record in &feasibility {
-        record_provenance(record)?;
+        let provenance = record_provenance(record)?;
+        provenance.validate_anchor(authority.observation_anchor())?;
+        require_observation_anchor(record, authority.observation_anchor())?;
         let requirement_id = record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("feasibility requirement id missing"))?;
@@ -386,7 +437,9 @@ pub fn verify_capital_artifact_bundle(
 
     let mut rejection_rows = BTreeSet::new();
     for record in &rejections {
-        record_provenance(record)?;
+        let provenance = record_provenance(record)?;
+        provenance.validate_anchor(authority.observation_anchor())?;
+        require_observation_anchor(record, authority.observation_anchor())?;
         let requirement_id = record
             .str_field("requirement_id")
             .map_err(|_| CapitalError::InvalidCanonical("rejection requirement id missing"))?;
@@ -431,6 +484,12 @@ pub fn verify_capital_artifact_bundle(
     if json_u64(&summary, "unexplained_capital_failure_count")? != 0 {
         return Err(CapitalError::UnknownFailureMode);
     }
+    let zero_own_capital_proven = summary
+        .get("zero_own_capital_proven")
+        .and_then(Json::as_bool)
+        .ok_or(CapitalError::InvalidCanonical(
+            "summary zero-own-capital flag missing",
+        ))?;
     if summary
         .get("real_source_certification")
         .and_then(Json::as_bool)
@@ -446,7 +505,16 @@ pub fn verify_capital_artifact_bundle(
         ));
     }
 
-    for key in ["generated_at", "code_commit", "code_tree"] {
+    let summary_provenance_checked = summary_provenance(&summary)?;
+    summary_provenance_checked.validate_anchor(authority.observation_anchor())?;
+    require_observation_anchor(&summary, authority.observation_anchor())?;
+
+    for key in [
+        "generated_at",
+        "generated_at_basis",
+        "code_commit",
+        "code_tree",
+    ] {
         if summary
             .str_field(key)
             .map_err(|_| CapitalError::InvalidCanonical("summary provenance missing"))?
@@ -509,14 +577,23 @@ pub fn verify_capital_artifact_bundle(
     if regenerated_certificate.commitment.to_hex() != capital_commitment {
         return Err(CapitalError::CanonicalDigestMismatch);
     }
+    if regenerated_certificate.summary.proves_zero_own_capital() != zero_own_capital_proven {
+        return Err(CapitalError::InvalidCanonical(
+            "summary zero-own-capital claim differs from regenerated certificate",
+        ));
+    }
 
     Ok(CapitalArtifactVerification {
         source_count,
         requirement_count,
         feasibility_count: feasibility.len(),
+        feasible_count,
         rejection_count: rejected_count,
         capital_commitment,
         upstream_authority_commitment,
+        generated_at: provenance.generated_at,
+        observation_anchor: authority.observation_anchor().clone(),
+        zero_own_capital_proven,
         code_commit: provenance.code_commit,
         code_tree: provenance.code_tree,
     })
@@ -543,6 +620,7 @@ pub fn export_capital_artifacts(
     authority: &CapitalCertificationContext,
     provenance: &ArtifactProvenance,
 ) -> Result<CapitalArtifactBundle, CapitalError> {
+    provenance.validate_anchor(authority.observation_anchor())?;
     let certificate = ledger.certify(authority)?;
 
     let source_records = ledger
@@ -555,12 +633,16 @@ pub fn export_capital_artifacts(
         .collect::<Vec<_>>();
     let feasibility_records = ledger
         .results()
-        .map(|result| feasibility_record(result, provenance))
+        .map(|result| feasibility_record(result, provenance, authority.observation_anchor()))
         .collect::<Vec<_>>();
     let rejection_records = ledger
         .results()
         .filter_map(|result| match result {
-            CapitalFeasibility::Rejected { .. } => Some(rejection_record(result, provenance)),
+            CapitalFeasibility::Rejected { .. } => Some(rejection_record(
+                result,
+                provenance,
+                authority.observation_anchor(),
+            )),
             CapitalFeasibility::Feasible { .. } => None,
         })
         .collect::<Vec<_>>();
@@ -582,6 +664,11 @@ pub fn export_capital_artifacts(
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
+        ),
+        ("generated_at_basis", Json::string(GENERATED_AT_BASIS)),
+        (
+            "observation_anchor",
+            anchor_json(authority.observation_anchor()),
         ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
@@ -661,6 +748,11 @@ pub fn export_capital_artifacts(
             "generated_at",
             Json::string(provenance.generated_at.clone()),
         ),
+        ("generated_at_basis", Json::string(GENERATED_AT_BASIS)),
+        (
+            "observation_anchor",
+            anchor_json(authority.observation_anchor()),
+        ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
         (
@@ -717,10 +809,18 @@ fn upstream_authority_json(
     provenance: &ArtifactProvenance,
 ) -> Json {
     Json::object([
-        ("schema_version", Json::uint(4)),
+        (
+            "schema_version",
+            Json::uint(UPSTREAM_AUTHORITY_SCHEMA_VERSION),
+        ),
         (
             "generated_at",
             Json::string(provenance.generated_at.clone()),
+        ),
+        ("generated_at_basis", Json::string(GENERATED_AT_BASIS)),
+        (
+            "observation_anchor",
+            anchor_json(authority.observation_anchor()),
         ),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
@@ -736,6 +836,27 @@ fn upstream_authority_json(
                     .copied()
                     .map(evidence_ref_json),
             ),
+        ),
+        (
+            "consumption_receipts",
+            Json::array(authority.consumption_receipts().map(|receipt| {
+                Json::object([
+                    ("stage", Json::string(receipt.stage().code())),
+                    (
+                        "authority_artifact_sha256",
+                        Json::string(receipt.authority_artifact_sha256().to_hex()),
+                    ),
+                    (
+                        "coverage_commitment",
+                        Json::string(receipt.coverage_commitment().to_hex()),
+                    ),
+                    ("output_count", Json::uint(receipt.output_count())),
+                    (
+                        "output_set_commitment",
+                        Json::string(receipt.output_set_commitment().to_hex()),
+                    ),
+                ])
+            })),
         ),
         (
             "stages",
@@ -765,13 +886,13 @@ fn upstream_authority_json(
     ])
 }
 
-fn parse_upstream_authority(
+pub(crate) fn parse_upstream_authority(
     bytes: &[u8],
 ) -> Result<(CapitalCertificationContext, ArtifactProvenance), CapitalError> {
     let parsed = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("invalid upstream authority JSON"))?;
     require_canonical_json(bytes, &parsed)?;
-    if json_u64(&parsed, "schema_version")? != 4 {
+    if json_u64(&parsed, "schema_version")? != UPSTREAM_AUTHORITY_SCHEMA_VERSION {
         return Err(CapitalError::InvalidUpstreamAuthority(
             "unsupported upstream authority schema",
         ));
@@ -838,7 +959,65 @@ fn parse_upstream_authority(
         admitted_evidence.push(parse_evidence_ref_json(row)?);
     }
 
-    let authority = CapitalCertificationContext::new(authorities, admitted_evidence)?;
+    let receipt_rows = parsed
+        .get("consumption_receipts")
+        .and_then(Json::as_array)
+        .ok_or(CapitalError::InvalidUpstreamAuthority(
+            "upstream consumption receipts missing",
+        ))?;
+    let mut consumption_receipts = Vec::with_capacity(receipt_rows.len());
+    for row in receipt_rows {
+        let stage = UpstreamCensusStage::parse_code(row.str_field("stage").map_err(|_| {
+            CapitalError::InvalidUpstreamAuthority("consumption receipt stage missing")
+        })?)?;
+        let authority_artifact_sha256 =
+            Hash32::parse_hex(row.str_field("authority_artifact_sha256").map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt authority artifact missing",
+                )
+            })?)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "invalid consumption receipt authority artifact",
+                )
+            })?;
+        let coverage_commitment =
+            Hash32::parse_hex(row.str_field("coverage_commitment").map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt coverage commitment missing",
+                )
+            })?)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "invalid consumption receipt coverage commitment",
+                )
+            })?;
+        let output_count = json_u64(row, "output_count")?;
+        let output_set_commitment =
+            Hash32::parse_hex(row.str_field("output_set_commitment").map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "consumption receipt output-set commitment missing",
+                )
+            })?)
+            .map_err(|_| {
+                CapitalError::InvalidUpstreamAuthority(
+                    "invalid consumption receipt output-set commitment",
+                )
+            })?;
+        consumption_receipts.push(UpstreamConsumptionReceipt::from_parts(
+            stage,
+            authority_artifact_sha256,
+            coverage_commitment,
+            output_count,
+            output_set_commitment,
+        )?);
+    }
+
+    let authority = CapitalCertificationContext::new(authorities, admitted_evidence)?
+        .with_consumption_receipts(consumption_receipts)?;
+    provenance.validate_anchor(authority.observation_anchor())?;
+    require_generated_at_basis(&parsed)?;
+    require_observation_anchor(&parsed, authority.observation_anchor())?;
     let declared_commitment = parsed
         .str_field("upstream_authority_commitment")
         .map_err(|_| {
@@ -868,6 +1047,7 @@ fn metadata(provenance: &ArtifactProvenance) -> Vec<(&'static str, Json)> {
             "generated_at",
             Json::string(provenance.generated_at.clone()),
         ),
+        ("generated_at_basis", Json::string(GENERATED_AT_BASIS)),
         ("code_commit", Json::string(provenance.code_commit.clone())),
         ("code_tree", Json::string(provenance.code_tree.clone())),
     ]
@@ -909,6 +1089,27 @@ fn source_record(source: &CapitalSource, provenance: &ArtifactProvenance) -> Jso
                 .effective_capacity()
                 .map(|amount| Json::string(amount.to_hex()))
                 .unwrap_or(Json::Null),
+        ),
+        (
+            "executable_capacity",
+            source
+                .executable_capacity()
+                .map(|amount| Json::string(amount.to_hex()))
+                .unwrap_or(Json::Null),
+        ),
+        (
+            "execution_eligible",
+            Json::Bool(source.execution_eligible()),
+        ),
+        (
+            "execution_blockers",
+            Json::array(
+                source
+                    .execution_blockers()
+                    .iter()
+                    .cloned()
+                    .map(Json::string),
+            ),
         ),
         ("fee_model", fee_model_json(source.fee_model())),
         (
@@ -1180,8 +1381,13 @@ fn requirement_record(requirement: &CapitalRequirement, provenance: &ArtifactPro
     Json::object(fields)
 }
 
-fn feasibility_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance) -> Json {
+fn feasibility_record(
+    result: &CapitalFeasibility,
+    provenance: &ArtifactProvenance,
+    anchor: &StateAnchor,
+) -> Json {
     let mut fields = metadata(provenance);
+    fields.push(("observation_anchor", anchor_json(anchor)));
     match result {
         CapitalFeasibility::Feasible {
             requirement_id,
@@ -1223,7 +1429,11 @@ fn feasibility_record(result: &CapitalFeasibility, provenance: &ArtifactProvenan
     Json::object(fields)
 }
 
-fn rejection_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance) -> Json {
+fn rejection_record(
+    result: &CapitalFeasibility,
+    provenance: &ArtifactProvenance,
+    anchor: &StateAnchor,
+) -> Json {
     match result {
         CapitalFeasibility::Rejected {
             requirement_id,
@@ -1232,6 +1442,7 @@ fn rejection_record(result: &CapitalFeasibility, provenance: &ArtifactProvenance
         } => {
             let mut fields = metadata(provenance);
             fields.extend([
+                ("observation_anchor", anchor_json(anchor)),
                 ("requirement_id", Json::string(requirement_id.to_hex())),
                 ("reason", Json::string(reason.code())),
                 (
@@ -1356,6 +1567,29 @@ fn _type_fence(
 ) {
 }
 
+fn require_generated_at_basis(record: &Json) -> Result<(), CapitalError> {
+    if record
+        .str_field("generated_at_basis")
+        .map_err(|_| CapitalError::InvalidCanonical("generated_at basis missing"))?
+        != GENERATED_AT_BASIS
+    {
+        return Err(CapitalError::InvalidCanonical(
+            "generated_at basis is not observation anchor timestamp",
+        ));
+    }
+    Ok(())
+}
+
+fn require_observation_anchor(record: &Json, expected: &StateAnchor) -> Result<(), CapitalError> {
+    let observed = parse_anchor_json(record.get("observation_anchor").ok_or(
+        CapitalError::InvalidCanonical("artifact observation anchor missing"),
+    )?)?;
+    if &observed != expected {
+        return Err(CapitalError::AnchorMismatch);
+    }
+    Ok(())
+}
+
 fn provenance_fields(
     record: &Json,
     missing_field_error: &'static str,
@@ -1379,6 +1613,7 @@ fn record_provenance(record: &Json) -> Result<ArtifactProvenance, CapitalError> 
             "unsupported capital record schema",
         ));
     }
+    require_generated_at_basis(record)?;
     provenance_fields(record, "record provenance missing")
 }
 
@@ -1388,6 +1623,7 @@ fn summary_provenance(summary: &Json) -> Result<ArtifactProvenance, CapitalError
             "unsupported capital summary schema",
         ));
     }
+    require_generated_at_basis(summary)?;
     provenance_fields(summary, "summary provenance missing")
 }
 
