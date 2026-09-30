@@ -157,6 +157,33 @@ No chain is assumed economically superior. Chain admission, live state,
 execution cost, MEV, liquidity, and capture evidence decide whether its
 opportunities survive downstream gates.
 
+## Certified PFT actionability bridge
+
+RMC-012 carries an isolated bridge at
+`ci/nqc-census/rmc012-pft-actionability-bridge`. The bridge is outside the
+Census workspace so the immutable recovered Protocol/Fork Truth dependency
+graph is not absorbed into the Census core.
+
+The bridge:
+
+- pins PFT commit `5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf` and tree
+  `ef3498da528f85cdb9fdd82222d64773a557f853`;
+- verifies the recovered `nqc-aave-math` and `nqc-core` paths are byte-identical
+  to that certified commit before testing;
+- calls `max_liquidatable_debt` and
+  `calculate_available_collateral_to_liquidate` from that recovered package
+  directly rather than copying their integer formulas;
+- treats protocol-liquidatable pairs independently of flash availability, gas,
+  routes, MEV, capture probability or profitability;
+- fails closed on zero snapshot commitments and malformed liquidation inputs;
+- preserves rejected pairs explicitly instead of deleting them from coverage.
+
+The pure sizing bridge is necessary but not sufficient for terminal RMC-012
+certification. The terminal bridge must additionally consume the exact admitted
+RMC-008 and RMC-009 closeout bytes, enumerate the complete below-one
+borrower/collateral/debt pair universe and produce the exact
+`ActionabilityCoverage` commitment with zero unexplained omissions.
+
 ## Non-claims
 
 RMC-012 does not prove:
