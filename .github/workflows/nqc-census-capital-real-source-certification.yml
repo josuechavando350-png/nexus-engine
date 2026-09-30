@@ -1,0 +1,179 @@
+name: NQC RMC-011 Real Source Certification
+
+on:
+  pull_request:
+    paths:
+      - ".github/workflows/nqc-census-capital-real-source-certification.yml"
+      - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
+      - "ci/nqc-census/rmc011-real-source-inputs.json"
+      - "ci/nqc-census/rmc011-authority-lock.json"
+      - "nqc-census/crates/nqc-census-capital/**"
+  push:
+    branches:
+      - "nqc/rmc-011-capital-census-foundation-20260929"
+    paths:
+      - ".github/workflows/nqc-census-capital-real-source-certification.yml"
+      - "ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md"
+      - "ci/nqc-census/run-rmc011-real-source-closeout.sh"
+      - "ci/nqc-census/rmc011-real-source-inputs.json"
+      - "ci/nqc-census/rmc011-authority-lock.json"
+      - "nqc-census/crates/nqc-census-capital/**"
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: rmc011-real-source-certification-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  certification-contract-preflight:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Verify certification runner contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'capital-real-source-closeout.json' ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'sha256sum -c capital-archive.sha256' ci/nqc-census/run-rmc011-real-source-closeout.sh
+          test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
+
+          INPUTS=ci/nqc-census/rmc011-real-source-inputs.json
+          LOCK=ci/nqc-census/rmc011-authority-lock.json
+          if [[ -e "$INPUTS" || -e "$LOCK" ]]; then
+            test -f "$INPUTS"
+            test -f "$LOCK"
+            jq -e '.schema_version == 1 and (.repository | type == "string")' "$INPUTS" >/dev/null
+            jq -e '.schema_version == 1 and (.authority_lock_commitment | type == "string") and (.stages | length == 5)' "$LOCK" >/dev/null
+          fi
+
+  authoritative-real-source-certification:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      INPUTS: ci/nqc-census/rmc011-real-source-inputs.json
+      AUTHORITY_LOCK: ci/nqc-census/rmc011-authority-lock.json
+    steps:
+      - name: Checkout exact D11 head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+
+      - name: Require authoritative upstream inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! -f "$INPUTS" || ! -f "$AUTHORITY_LOCK" ]]; then
+            echo "RMC011_BLOCKED_UPSTREAM_REAL_SOURCE: exact D08/D09 transport inputs and external RMC-006..RMC-010 authority lock are required" >&2
+            exit 1
+          fi
+          test "$(jq -r '.repository' "$INPUTS")" = "$REPOSITORY"
+          test "$(jq -r '.schema_version' "$INPUTS")" = "1"
+          jq -e '.schema_version == 1 and (.stages | length == 5)' "$AUTHORITY_LOCK" >/dev/null
+
+      - name: Verify and download exact D08/D09 artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          verify_and_download() {
+            local stage="$1"
+            local out="$2"
+            local run_id head_sha artifact_id artifact_name artifact_digest run_json artifacts_json matched
+
+            run_id="$(jq -r --arg stage "$stage" '.[$stage].run_id' "$INPUTS")"
+            head_sha="$(jq -r --arg stage "$stage" '.[$stage].head_sha' "$INPUTS")"
+            artifact_id="$(jq -r --arg stage "$stage" '.[$stage].artifact_id' "$INPUTS")"
+            artifact_name="$(jq -r --arg stage "$stage" '.[$stage].artifact_name' "$INPUTS")"
+            artifact_digest="$(jq -r --arg stage "$stage" '.[$stage].artifact_digest' "$INPUTS")"
+
+            [[ "$run_id" =~ ^[0-9]+$ ]]
+            [[ "$artifact_id" =~ ^[0-9]+$ ]]
+            [[ "$head_sha" =~ ^[0-9a-f]{40}$ ]]
+            [[ "$artifact_digest" =~ ^sha256:[0-9a-f]{64}$ ]]
+            [[ -n "$artifact_name" && "$artifact_name" != "null" ]]
+
+            run_json="$(gh api "repos/$REPOSITORY/actions/runs/$run_id")"
+            test "$(jq -r '.status' <<<"$run_json")" = "completed"
+            test "$(jq -r '.conclusion' <<<"$run_json")" = "success"
+            test "$(jq -r '.head_sha' <<<"$run_json")" = "$head_sha"
+
+            artifacts_json="$(gh api --paginate "repos/$REPOSITORY/actions/runs/$run_id/artifacts?per_page=100")"
+            matched="$(jq -c --argjson id "$artifact_id" --arg name "$artifact_name" '
+              [.artifacts[] | select(.id == $id and .name == $name and (.expired | not))] |
+              if length == 1 then .[0] else error("artifact identity mismatch") end
+            ' <<<"$artifacts_json")"
+            test "$(jq -r '.digest' <<<"$matched")" = "$artifact_digest"
+
+            mkdir -p "$out"
+            gh run download "$run_id" --repo "$REPOSITORY" --name "$artifact_name" --dir "$out"
+          }
+
+          verify_and_download d08 "$RUNNER_TEMP/d08-raw"
+          verify_and_download d09 "$RUNNER_TEMP/d09-raw"
+
+      - name: Normalize exact consumed upstream bytes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/d08" "$RUNNER_TEMP/d09"
+
+          copy_unique() {
+            local root="$1"
+            local name="$2"
+            local dest="$3"
+            mapfile -t matches < <(find "$root" -type f -name "$name" -print)
+            if [[ "${#matches[@]}" -ne 1 ]]; then
+              echo "expected exactly one $name under $root, found ${#matches[@]}" >&2
+              exit 1
+            fi
+            cp -- "${matches[0]}" "$dest/$name"
+          }
+
+          for name in market-state-manifest.jsonl token-admission.jsonl pool-and-factory-facts.json evidence-manifest.json; do
+            copy_unique "$RUNNER_TEMP/d08-raw" "$name" "$RUNNER_TEMP/d08"
+          done
+
+          for name in account-manifest.jsonl account-summary.json evidence-manifest.json; do
+            copy_unique "$RUNNER_TEMP/d09-raw" "$name" "$RUNNER_TEMP/d09"
+          done
+
+      - name: Run authoritative D11 real-source closeout
+        shell: bash
+        run: |
+          set -euo pipefail
+          OUTPUT="$RUNNER_TEMP/rmc011-real-source"
+          bash ci/nqc-census/run-rmc011-real-source-closeout.sh             "$RUNNER_TEMP/d08"             "$RUNNER_TEMP/d09"             "$AUTHORITY_LOCK"             "$OUTPUT"
+
+          jq -e '.real_source_certification == true' "$OUTPUT/capital-real-source-closeout.json" >/dev/null
+          jq -e '.profitability_claimed == false and .shadow_eligibility_claimed == false and .canary_claimed == false and .real_pnl_claimed == false'             "$OUTPUT/capital-real-source-closeout.json" >/dev/null
+          (
+            cd "$OUTPUT"
+            sha256sum -c capital-archive.sha256
+          )
+
+          echo "RMC011_REAL_SOURCE_CERTIFICATION=PASS"
+          echo "RMC011_EXACT_HEAD=$(git rev-parse HEAD)"
+          echo "RMC011_EXACT_TREE=$(git rev-parse 'HEAD^{tree}')"
+
+      - name: Upload immutable D11 certification archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: rmc011-real-source-certification-${{ github.sha }}
+          path: ${{ runner.temp }}/rmc011-real-source/
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
