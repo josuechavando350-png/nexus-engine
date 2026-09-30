@@ -577,8 +577,38 @@ pub fn evaluate_portfolio(
             .get(requirement_id)
             .copied()
             .ok_or(PortfolioError::MissingRequirement)?;
-        let recomputed = evaluate_capital_feasibility_checked(requirement, sources)
-            .map_err(|_| PortfolioError::CapitalFeasibilityEvaluationFailed)?;
+
+        // A feasible RMC-011 proof may have been produced from a larger
+        // capital census than the other candidates in this portfolio slice.
+        // Recomputing it against the union of every source visible here can
+        // legitimately choose a different equivalent source and would turn
+        // source-set expansion into a false mismatch. Recompute feasible
+        // proofs against exactly the source ids they bind. Rejections still
+        // use the complete source set, because adding any compatible source
+        // could invalidate the rejection.
+        let recomputed = match supplied {
+            CapitalFeasibility::Feasible { allocations, .. } => {
+                let mut selected_ids = BTreeSet::new();
+                let mut selected_sources = Vec::new();
+                for allocation in allocations {
+                    let source = source_by_id
+                        .get(&allocation.source_id)
+                        .copied()
+                        .ok_or(PortfolioError::MissingSource)?;
+                    if source.ownership() == CapitalOwnership::OperatorOwned {
+                        return Err(PortfolioError::OperatorOwnedSource);
+                    }
+                    if selected_ids.insert(source.id()) {
+                        selected_sources.push(source.clone());
+                    }
+                }
+                evaluate_capital_feasibility_checked(requirement, &selected_sources)
+            }
+            CapitalFeasibility::Rejected { .. } => {
+                evaluate_capital_feasibility_checked(requirement, sources)
+            }
+        }
+        .map_err(|_| PortfolioError::CapitalFeasibilityEvaluationFailed)?;
         if &recomputed != *supplied {
             return Err(PortfolioError::CapitalFeasibilityMismatch);
         }
