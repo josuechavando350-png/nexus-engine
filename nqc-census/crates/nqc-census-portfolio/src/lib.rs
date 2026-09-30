@@ -59,7 +59,9 @@ impl Display for PortfolioError {
             Self::ConflictingResourceState => {
                 f.write_str("same shared resource key has conflicting observed state")
             }
-            Self::DuplicateResourceClaim => {\n                f.write_str("candidate repeats a shared resource claim")\n            }
+            Self::DuplicateResourceClaim => {
+                f.write_str("candidate repeats a shared resource claim")
+            }
             Self::DuplicateCandidate => f.write_str("portfolio repeats a candidate"),
             Self::DuplicateRequirement => f.write_str("portfolio repeats a capital requirement"),
             Self::DuplicateFeasibility => f.write_str("portfolio repeats a feasibility result"),
@@ -805,7 +807,11 @@ fn encode_anchor(anchor: &StateAnchor, out: &mut Vec<u8>) {
 }
 
 fn encode_evidence(evidence: &[CapitalEvidenceRef], out: &mut Vec<u8>) {
-    out.extend_from_slice(\n        &u32::try_from(evidence.len())\n            .unwrap_or(u32::MAX)\n            .to_be_bytes(),\n    );
+    out.extend_from_slice(
+        &u32::try_from(evidence.len())
+            .unwrap_or(u32::MAX)
+            .to_be_bytes(),
+    );
     for item in evidence {
         match item {
             CapitalEvidenceRef::Observation(digest) => {
@@ -835,7 +841,11 @@ fn report_commitment(
     // Bind every observed source state, not only sources that happened to
     // conflict. A capacity or fee-state change therefore changes the proof
     // even when the candidate set remains feasible.
-    hasher.update(\n        u64::try_from(sources.len())\n            .unwrap_or(u64::MAX)\n            .to_be_bytes(),\n    );
+    hasher.update(
+        u64::try_from(sources.len())
+            .unwrap_or(u64::MAX)
+            .to_be_bytes(),
+    );
     for (id, source) in sources {
         hasher.update(id.as_bytes());
         hasher.update(source.key_id().as_bytes());
