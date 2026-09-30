@@ -397,9 +397,9 @@ impl CostComponent {
 
     fn expected_cost(self, capture: ProbabilityWad) -> Result<Amount256, EconomicsError> {
         self.unconditional
-            .checked_add(capture.apply_floor(self.on_capture)?)
+            .checked_add(capture.apply_ceil(self.on_capture)?)
             .map_err(|_| EconomicsError::AmountOverflow)?
-            .checked_add(capture.complement().apply_floor(self.on_failure)?)
+            .checked_add(capture.complement().apply_ceil(self.on_failure)?)
             .map_err(|_| EconomicsError::AmountOverflow)
     }
 }
@@ -459,8 +459,10 @@ pub enum CaptureCalibration {
     Uncalibrated {
         model_commitment: Hash32,
     },
-    Empirical {
-        probability: ProbabilityWad,
+    ShadowCalibrated {
+        lower: ProbabilityWad,
+        point: ProbabilityWad,
+        upper: ProbabilityWad,
         sample_count: u64,
         observation_window: Hash32,
         model_commitment: Hash32,
@@ -469,8 +471,31 @@ pub enum CaptureCalibration {
 }
 
 impl CaptureCalibration {
+    /// Backward-compatible exact-point empirical calibration. New Shadow
+    /// evidence should prefer an interval unless the uncertainty truly
+    /// collapses to one point.
     pub fn empirical(
         probability: ProbabilityWad,
+        sample_count: u64,
+        observation_window: Hash32,
+        model_commitment: Hash32,
+        evidence_commitment: Hash32,
+    ) -> Result<Self, EconomicsError> {
+        Self::shadow_calibrated(
+            probability,
+            probability,
+            probability,
+            sample_count,
+            observation_window,
+            model_commitment,
+            evidence_commitment,
+        )
+    }
+
+    pub fn shadow_calibrated(
+        lower: ProbabilityWad,
+        point: ProbabilityWad,
+        upper: ProbabilityWad,
         sample_count: u64,
         observation_window: Hash32,
         model_commitment: Hash32,
@@ -479,8 +504,13 @@ impl CaptureCalibration {
         if sample_count == 0 {
             return Err(EconomicsError::CaptureSamplesRequired);
         }
-        Ok(Self::Empirical {
-            probability,
+        if lower > point || point > upper {
+            return Err(EconomicsError::InvalidCaptureInterval);
+        }
+        Ok(Self::ShadowCalibrated {
+            lower,
+            point,
+            upper,
             sample_count,
             observation_window,
             model_commitment,
@@ -488,11 +518,173 @@ impl CaptureCalibration {
         })
     }
 
-    pub const fn probability(&self) -> Option<ProbabilityWad> {
+    pub const fn point_probability(&self) -> Option<ProbabilityWad> {
         match self {
             Self::Uncalibrated { .. } => None,
-            Self::Empirical { probability, .. } => Some(*probability),
+            Self::ShadowCalibrated { point, .. } => Some(*point),
         }
+    }
+
+    pub const fn interval(&self) -> Option<(ProbabilityWad, ProbabilityWad)> {
+        match self {
+            Self::Uncalibrated { .. } => None,
+            Self::ShadowCalibrated { lower, upper, .. } => Some((*lower, *upper)),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TailRiskBound {
+    confidence: ProbabilityWad,
+    loss_at_confidence: Amount256,
+    absolute_max_loss: Amount256,
+    reserve: Amount256,
+    evidence: Hash32,
+}
+
+impl TailRiskBound {
+    pub fn new(
+        confidence: ProbabilityWad,
+        loss_at_confidence: Amount256,
+        absolute_max_loss: Amount256,
+        reserve: Amount256,
+        evidence: Hash32,
+    ) -> Result<Self, EconomicsError> {
+        if confidence.is_zero()
+            || loss_at_confidence > absolute_max_loss
+            || reserve > absolute_max_loss
+        {
+            return Err(EconomicsError::InvalidTailBound);
+        }
+        Ok(Self {
+            confidence,
+            loss_at_confidence,
+            absolute_max_loss,
+            reserve,
+            evidence,
+        })
+    }
+
+    pub const fn confidence(self) -> ProbabilityWad {
+        self.confidence
+    }
+
+    pub const fn loss_at_confidence(self) -> Amount256 {
+        self.loss_at_confidence
+    }
+
+    pub const fn absolute_max_loss(self) -> Amount256 {
+        self.absolute_max_loss
+    }
+
+    pub const fn reserve(self) -> Amount256 {
+        self.reserve
+    }
+
+    pub const fn evidence(self) -> Hash32 {
+        self.evidence
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GasValuation {
+    gas_used: u64,
+    effective_gas_price_wei: Amount256,
+    native_usd_wad: Amount256,
+    gas_wei: Amount256,
+    gas_usd_wad: Amount256,
+    price_evidence: Hash32,
+}
+
+impl GasValuation {
+    pub fn new(
+        gas_used: u64,
+        effective_gas_price_wei: Amount256,
+        native_usd_wad: Amount256,
+        price_evidence: Hash32,
+    ) -> Result<Self, EconomicsError> {
+        let gas_wei = mul_u64_checked(effective_gas_price_wei, gas_used)?;
+        let gas_usd_wad = mul_div_floor(gas_wei, native_usd_wad, WAD)?;
+        Ok(Self {
+            gas_used,
+            effective_gas_price_wei,
+            native_usd_wad,
+            gas_wei,
+            gas_usd_wad,
+            price_evidence,
+        })
+    }
+
+    pub const fn gas_used(self) -> u64 {
+        self.gas_used
+    }
+
+    pub const fn effective_gas_price_wei(self) -> Amount256 {
+        self.effective_gas_price_wei
+    }
+
+    pub const fn native_usd_wad(self) -> Amount256 {
+        self.native_usd_wad
+    }
+
+    pub const fn gas_wei(self) -> Amount256 {
+        self.gas_wei
+    }
+
+    pub const fn gas_usd_wad(self) -> Amount256 {
+        self.gas_usd_wad
+    }
+
+    pub const fn price_evidence(self) -> Hash32 {
+        self.price_evidence
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ProfitBucket {
+    ZeroToOne,
+    OneToThree,
+    ThreeToFive,
+    FiveToTen,
+    TenToTwenty,
+    TwentyToFifty,
+    FiftyToOneHundred,
+    OneHundredToFiveHundred,
+    FiveHundredPlus,
+}
+
+impl ProfitBucket {
+    pub fn classify(
+        valuation_unit: ValuationUnitId,
+        value: SignedAmount,
+    ) -> Result<Option<Self>, EconomicsError> {
+        if valuation_unit != ValuationUnitId::usd_wad() {
+            return Err(EconomicsError::ProfitBucketRequiresUsdWad);
+        }
+        if !value.is_positive() {
+            return Ok(None);
+        }
+        let amount = value.magnitude();
+        let usd = |dollars: u128| Amount256::from_u128(dollars * u128::from(WAD));
+        Ok(Some(if amount < usd(1) {
+            Self::ZeroToOne
+        } else if amount < usd(3) {
+            Self::OneToThree
+        } else if amount < usd(5) {
+            Self::ThreeToFive
+        } else if amount < usd(10) {
+            Self::FiveToTen
+        } else if amount < usd(20) {
+            Self::TenToTwenty
+        } else if amount < usd(50) {
+            Self::TwentyToFifty
+        } else if amount < usd(100) {
+            Self::FiftyToOneHundred
+        } else if amount < usd(500) {
+            Self::OneHundredToFiveHundred
+        } else {
+            Self::FiveHundredPlus
+        }))
     }
 }
 
