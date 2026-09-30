@@ -10,16 +10,16 @@
     {
       "id": "AAVE_V3_FLASH_LOAN",
       "capital_class": "PROTOCOL_NATIVE_FLASH_LOAN",
-      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "status": "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
       "real_source_path": "RMC008_AAVE_V3",
-      "terminally_resolved": true
+      "terminally_resolved": false
     },
     {
       "id": "UNISWAP_V2_FLASH_SWAP",
       "capital_class": "FLASH_SWAP",
-      "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
+      "status": "SEMANTIC_ADMISSION_READY_NOT_AUTHENTICATED",
       "real_source_path": "RMC008_UNISWAP_V2",
-      "terminally_resolved": true
+      "terminally_resolved": false
     },
     {
       "id": "BALANCER_V2_FLASH_LOAN",
