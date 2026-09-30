@@ -20,7 +20,7 @@ use std::{
     fmt::{Display, Formatter},
 };
 
-pub const CAPITAL_SCHEMA_VERSION: u16 = 4;
+pub const CAPITAL_SCHEMA_VERSION: u16 = 5;
 
 const SOURCE_MAGIC: &[u8] = b"NQC-CAP-SOURCE";
 const REQUIREMENT_MAGIC: &[u8] = b"NQC-CAP-REQUIREMENT";
