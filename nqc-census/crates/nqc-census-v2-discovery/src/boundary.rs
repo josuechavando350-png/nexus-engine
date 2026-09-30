@@ -1,3 +1,4 @@
+use crate::stage::V2Plan;
 use nqc_census_chain::{
     acquire::Acquisition,
     bootstrap::run_bootstrap,
@@ -14,8 +15,6 @@ use nqc_census_core::Address;
 use nqc_census_store::{Store, StoreConfig};
 use std::{error::Error, fs, path::Path};
 
-const ANCHOR_NUMBER: u64 = 25_437_474;
-const FACTORY: &str = "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f";
 const BOUNDARY_NAMESPACE: u16 = 0x0702;
 
 fn provider_boundary(
@@ -23,6 +22,7 @@ fn provider_boundary(
     provider: &ProviderSpec,
     chain: &nqc_census_core::ChainDomain,
     factory: Address,
+    anchor_number: u64,
 ) -> Result<ProviderResult, ChainError> {
     let spec = JobSpec::new(
         "rmc007-v2-factory-boundary",
@@ -31,11 +31,11 @@ fn provider_boundary(
         Json::object([
             ("factory", Json::string(factory.to_hex())),
             ("lo", Json::uint(1)),
-            ("hi", Json::uint(ANCHOR_NUMBER)),
+            ("hi", Json::uint(anchor_number)),
         ]),
     )?;
     let output = acquisition.unanchored(provider, Some(chain.clone()), &spec, |ctx| {
-        earliest_code_body(ctx, factory, 1, ANCHOR_NUMBER)
+        earliest_code_body(ctx, factory, 1, anchor_number)
     })?;
     Ok(ProviderResult {
         provider: provider.label().to_owned(),
@@ -60,13 +60,26 @@ pub fn factory_boundary_with(
     acquisition: &Acquisition<'_>,
     providers: &ProviderSet,
 ) -> Result<Json, ChainError> {
+    let plan = V2Plan::from_env_or_mainnet()?;
     let profile = ChainProfile::mainnet()?;
-    let (bootstrap, chain, _) = run_bootstrap(acquisition, providers, &profile, ANCHOR_NUMBER)?;
-    let factory = Address::parse_hex(FACTORY)?;
+    let (bootstrap, chain, anchor) =
+        run_bootstrap(acquisition, providers, &profile, plan.anchor_number)?;
+    if anchor.block_hash() != plan.anchor_hash {
+        return Err(ChainError::Evidence(
+            "D07 boundary observation anchor hash differs".into(),
+        ));
+    }
+    let factory = plan.factory;
 
     let mut results = Vec::new();
     for provider in providers.iter() {
-        results.push(provider_boundary(acquisition, provider, &chain, factory)?);
+        results.push(provider_boundary(
+            acquisition,
+            provider,
+            &chain,
+            factory,
+            plan.anchor_number,
+        )?);
     }
     let agreement = agree("rmc007-v2-factory-boundary", &results)?
         .map_err(|mismatch| ChainError::Consensus(mismatch.reason))?;
