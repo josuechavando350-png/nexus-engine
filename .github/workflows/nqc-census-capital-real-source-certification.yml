@@ -160,7 +160,7 @@ jobs:
           cargo fmt --all -- --check
           cargo clippy --locked -p nqc-census-capital --all-targets -- -D warnings
           cargo test --locked -p nqc-census-capital
-          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile
+          cargo build --release --locked -p nqc-census-capital --bin nqc-rmc011-balancer-v2-capture --bin nqc-rmc011-balancer-v2-reconcile --bin nqc-rmc011-expanded-ledger-replay
           cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
           cargo build --release --locked -p nqc-census-capital
 
@@ -464,15 +464,64 @@ jobs:
           echo "RMC011_EXACT_HEAD=$(git rev-parse HEAD)"
           echo "RMC011_EXACT_TREE=$(git rev-parse 'HEAD^{tree}')"
 
+      - name: Replay-bind D11-native Balancer sources into expanded ledger
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="$RUNNER_TEMP/rmc011-expanded-ledger"
+          rm -rf "$ROOT"
+          mkdir -p "$ROOT"
+          CODE_TREE="$(git rev-parse 'HEAD^{tree}')"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-expanded-ledger-replay \
+              --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
+              --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
+              --code-commit "$GITHUB_SHA" \
+              --code-tree "$CODE_TREE" \
+              --out "$ROOT/expanded-ledger-replay.json"
+          ) | tee "$ROOT/replay.log"
+          grep -F "RMC011_EXPANDED_LEDGER_REPLAY_PASS" "$ROOT/replay.log"
+
+          (
+            cd nqc-census
+            target/release/nqc-rmc011-expanded-ledger-replay \
+              --legacy-dir "$RUNNER_TEMP/rmc011-real-source" \
+              --balancer-reconcile "$RUNNER_TEMP/rmc011-balancer-v2/reconciled-rust.json" \
+              --code-commit "$GITHUB_SHA" \
+              --code-tree "$CODE_TREE" \
+              --out "$ROOT/expanded-ledger-replay-second.json"
+          ) >/dev/null
+          cmp "$ROOT/expanded-ledger-replay.json" "$ROOT/expanded-ledger-replay-second.json"
+
+          jq -e '
+            .schema_version == 1 and
+            .stage == "RMC-011" and
+            .status == "RMC011_EXPANDED_LEDGER_REPLAY_PASS" and
+            .claim_scope == "D11_NATIVE_SOURCE_REPLAY_BINDING_ONLY" and
+            .terminal_d11_closed == false and
+            .code_commit == env.GITHUB_SHA and
+            .d11_native_source_count > 0 and
+            .d08_source_count == .legacy_source_count and
+            .expanded_source_count == (.legacy_source_count + .d11_native_source_count) and
+            (.non_claims | index("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED") != null) and
+            (.non_claims | index("TERMINAL_D11_NOT_CERTIFIED") != null)
+          ' "$ROOT/expanded-ledger-replay.json" >/dev/null
+
+          echo "RMC011_EXPANDED_LEDGER_REPLAY_BINDING=PASS"
+          echo "RMC011_EXPANDED_LEDGER_RECEIPT_SHA256=$(sha256sum "$ROOT/expanded-ledger-replay.json" | awk '{print $1}')"
+
       - name: Build self-contained certification evidence package
         shell: bash
         run: |
           set -euo pipefail
           PACKAGE="$RUNNER_TEMP/rmc011-certification-package"
           rm -rf "$PACKAGE"
-          mkdir -p "$PACKAGE/d11" "$PACKAGE/upstream"
+          mkdir -p "$PACKAGE/d11" "$PACKAGE/d11-expanded" "$PACKAGE/upstream"
 
           cp -a "$RUNNER_TEMP/rmc011-real-source/." "$PACKAGE/d11/"
+          cp -- "$RUNNER_TEMP/rmc011-expanded-ledger/expanded-ledger-replay.json" "$PACKAGE/d11-expanded/expanded-ledger-replay.json"
           cp -- "$INPUTS" "$PACKAGE/rmc011-real-source-inputs.json"
           cp -- "$AUTHORITY_LOCK" "$PACKAGE/rmc011-authority-lock.json"
           cp -- ci/nqc-census/rmc011-capital-source-universe.json "$PACKAGE/rmc011-capital-source-universe.json"
