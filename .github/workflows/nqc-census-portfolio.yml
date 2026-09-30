@@ -8,6 +8,7 @@ on:
       - "nqc-census/Cargo.toml"
       - "nqc-census/Cargo.lock"
       - "ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md"
+      - "ci/nqc-census/rmc012-pft-actionability-bridge/**"
       - ".github/workflows/nqc-census-portfolio.yml"
   push:
     branches:
@@ -38,12 +39,21 @@ jobs:
           grep -F 'RMC-012 exists because isolated' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
           grep -F 'feasibility is not portfolio feasibility.' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
           grep -F 'Chain identity is part of every shared-resource key' ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          grep -F '"pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf"' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json
+          grep -F '"pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853"' ci/nqc-census/rmc012-pft-actionability-bridge/PFT_BINDING.json
+          test "$(git show -s --format=%T 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf)" = ef3498da528f85cdb9fdd82222d64773a557f853
+          git diff --quiet 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf HEAD -- \
+            ci/nqc-protocol-fork/recovered-source/crates/nqc-aave-math \
+            ci/nqc-protocol-fork/recovered-source/crates/nqc-core
 
       - name: Verify no execution or network authority
         shell: bash
         run: |
           set -euo pipefail
-          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction|reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket'             nqc-census/crates/nqc-census-portfolio ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md
+          ! grep -R -n -E 'send_raw_transaction|eth_sendRawTransaction|private.?key|sign_transaction|broadcast_transaction|reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket' \
+            nqc-census/crates/nqc-census-portfolio \
+            ci/nqc-census/PORTFOLIO_CAPACITY_CONTRACT.md \
+            ci/nqc-census/rmc012-pft-actionability-bridge/src
 
       - name: Exact Rust gates
         working-directory: nqc-census
@@ -58,4 +68,11 @@ jobs:
           cargo test --locked -p nqc-census-capital
           cargo test --locked --workspace
           cargo build --release --locked -p nqc-census-portfolio
+
+          cd ../ci/nqc-census/rmc012-pft-actionability-bridge
+          cargo fmt -- --check
+          cargo clippy --locked --all-targets -- -D warnings
+          cargo test --locked -- --nocapture
+          echo RMC012_PFT_ACTIONABILITY_BRIDGE_PASS
+
           echo RMC012_PORTFOLIO_FOUNDATION_PASS
