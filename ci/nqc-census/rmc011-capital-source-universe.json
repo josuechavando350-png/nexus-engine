@@ -27,7 +27,7 @@
       "id": "BALANCER_V2_FLASH_LOAN",
       "capital_class": "ATOMIC_FLASH_LIQUIDITY",
       "status": "SEMANTIC_ADMISSION_IMPLEMENTED",
-      "real_source_path": "nqc-census/crates/nqc-census-capital/src/permissionless_atomic.rs",
+      "real_source_path": "nqc-census/crates/nqc-census-capital/src/balancer_live.rs",
       "terminally_resolved": false,
       "resolution_evidence": null
     },
