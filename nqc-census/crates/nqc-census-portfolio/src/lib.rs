@@ -530,7 +530,10 @@ pub fn evaluate_portfolio(
 ) -> Result<PortfolioReport, PortfolioError> {
     let mut requirement_map = BTreeMap::new();
     for requirement in requirements {
-        if requirement_map.insert(requirement.id(), requirement).is_some() {
+        if requirement_map
+            .insert(requirement.id(), requirement)
+            .is_some()
+        {
             return Err(PortfolioError::DuplicateRequirement);
         }
     }
@@ -651,8 +654,12 @@ pub fn evaluate_portfolio(
         }
     }
 
-    let components =
-        contention_components(&source_claims, &shared_claims, &capital_rejected, candidates);
+    let components = contention_components(
+        &source_claims,
+        &shared_claims,
+        &capital_rejected,
+        candidates,
+    );
 
     let mut conflicts = Vec::new();
     for (key, aggregate) in &source_claims {
@@ -708,7 +715,6 @@ pub fn evaluate_portfolio(
         commitment,
     })
 }
-
 
 fn contention_components(
     source_claims: &BTreeMap<CapitalSourceKeyId, Aggregate>,
@@ -799,9 +805,7 @@ fn union_claimants(
     parent: &mut [usize],
     rank: &mut [u8],
 ) {
-    let mut positions = claimants
-        .iter()
-        .filter_map(|id| index.get(id).copied());
+    let mut positions = claimants.iter().filter_map(|id| index.get(id).copied());
     let Some(first) = positions.next() else {
         return;
     };
