@@ -189,6 +189,23 @@ RMC-008 and RMC-009 closeout bytes, enumerate the complete below-one
 borrower/collateral/debt pair universe and produce the exact
 `ActionabilityCoverage` commitment with zero unexplained omissions.
 
+Terminal inputs are controlled by
+`ci/nqc-census/rmc012-terminal-inputs.json`. Until that document is
+`PINNED`, the terminal job MUST remain skipped and no terminal RMC-012
+authority may be claimed. A pinned document must name the exact successful
+RMC-008/RMC-009 workflow run, GitHub artifact id/name/digest, producer
+commit/tree, and the exact closeout path inside each artifact. It must also
+name the canonical external RMC-006..RMC-010 authority-lock bytes used by
+RMC-011. The terminal bridge re-hashes the consumed D08/D09 evidence
+manifests, requires their code identity and anchor to equal that authority
+lock, and never resolves a mutable "latest successful" artifact.
+
+The terminal bridge runs twice from the same pinned bytes and the two output
+trees MUST be byte-identical. Its retained certification record binds the
+exact D12 commit/tree, the upstream artifact identities, external authority
+lock commitment/SHA-256, actionability coverage commitment, admitted/rejected
+counts and the SHA-256 of every emitted terminal artifact.
+
 ## Non-claims
 
 RMC-012 does not prove:
