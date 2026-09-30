@@ -466,7 +466,8 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     assert!(closeout_text.contains("\"status\":\"RMC_011_REAL_SOURCE_CLOSEOUT_PASS\""));
     assert!(closeout_text.contains("\"schema_version\":2"));
     assert!(closeout_text.contains("\"real_source_certification\":true"));
-    assert!(closeout_text.contains("\"source_universe_basis\":\"RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY\""));
+    assert!(closeout_text
+        .contains("\"source_universe_basis\":\"RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY\""));
     assert!(closeout_text.contains("\"global_capital_source_completeness_claimed\":false"));
     assert!(closeout_text.contains("\"repayment_cashflow_sufficiency_claimed\":false"));
     assert!(closeout_text.contains("\"zero_own_capital_proven\":false"));
