@@ -977,6 +977,12 @@ pub fn evaluate_scenarios(
     if scenarios.is_empty() {
         return Err(EconomicsError::ScenarioEmpty);
     }
+    let mut scenario_evidence = BTreeSet::new();
+    for scenario in scenarios {
+        if !scenario_evidence.insert(scenario.evidence) {
+            return Err(EconomicsError::DuplicateEvidence);
+        }
+    }
     let probability_sum = scenarios.iter().try_fold(0_u128, |sum, scenario| {
         sum.checked_add(u128::from(scenario.probability.value()))
             .ok_or(EconomicsError::ProbabilityArithmeticOverflow)
@@ -1080,6 +1086,74 @@ fn encode_anchor(anchor: &StateAnchor, hasher: &mut Sha256) {
     hasher.update(anchor.state_root().as_bytes());
 }
 
+/// Compute floor(left * right / denominator) with a full 512-bit
+/// intermediate. This is used for exact cross-asset valuation such as gas
+/// wei times an anchor-pinned native/USD WAD price.
+pub fn mul_div_floor(
+    left: Amount256,
+    right: Amount256,
+    denominator: u64,
+) -> Result<Amount256, EconomicsError> {
+    if denominator == 0 {
+        return Err(EconomicsError::ProbabilityArithmeticOverflow);
+    }
+    if left.is_zero() || right.is_zero() {
+        return Ok(Amount256::ZERO);
+    }
+
+    // Base-256 little-endian product. Each pre-normalization cell receives at
+    // most 32 products of two bytes, far below u64::MAX.
+    let mut product = [0_u64; 64];
+    for left_index in 0..32 {
+        let a = u64::from(left.as_be_bytes()[31 - left_index]);
+        for right_index in 0..32 {
+            let b = u64::from(right.as_be_bytes()[31 - right_index]);
+            let term = a.checked_mul(b).ok_or(EconomicsError::AmountOverflow)?;
+            product[left_index + right_index] = product[left_index + right_index]
+                .checked_add(term)
+                .ok_or(EconomicsError::AmountOverflow)?;
+        }
+    }
+
+    for index in 0..63 {
+        let carry = product[index] >> 8;
+        product[index] &= 0xff;
+        product[index + 1] = product[index + 1]
+            .checked_add(carry)
+            .ok_or(EconomicsError::AmountOverflow)?;
+    }
+    if product[63] > 0xff {
+        return Err(EconomicsError::AmountOverflow);
+    }
+
+    let mut product_be = [0_u8; 64];
+    for (index, cell) in product.iter().enumerate() {
+        product_be[63 - index] =
+            u8::try_from(*cell).map_err(|_| EconomicsError::AmountOverflow)?;
+    }
+
+    let divisor = u128::from(denominator);
+    let mut quotient = [0_u8; 64];
+    let mut remainder = 0_u128;
+    for (index, byte) in product_be.iter().enumerate() {
+        let expanded = remainder
+            .checked_mul(256)
+            .and_then(|value| value.checked_add(u128::from(*byte)))
+            .ok_or(EconomicsError::AmountOverflow)?;
+        let digit = expanded / divisor;
+        quotient[index] =
+            u8::try_from(digit).map_err(|_| EconomicsError::AmountOverflow)?;
+        remainder = expanded % divisor;
+    }
+
+    if quotient[..32].iter().any(|byte| *byte != 0) {
+        return Err(EconomicsError::AmountOverflow);
+    }
+    let mut out = [0_u8; 32];
+    out.copy_from_slice(&quotient[32..]);
+    Ok(Amount256::from_be_bytes(out))
+}
+
 fn div_mod_u64(
     amount: Amount256,
     divisor: u64,
@@ -1115,13 +1189,13 @@ fn mul_u64_checked(amount: Amount256, factor: u64) -> Result<Amount256, Economic
         let product = u128::from(amount.as_be_bytes()[index])
             .checked_mul(u128::from(factor))
             .and_then(|value| value.checked_add(carry))
-            .ok_or(EconomicsError::ProbabilityArithmeticOverflow)?;
-        out[index] = u8::try_from(product & 0xff)
-            .map_err(|_| EconomicsError::ProbabilityArithmeticOverflow)?;
+            .ok_or(EconomicsError::AmountOverflow)?;
+        out[index] =
+            u8::try_from(product & 0xff).map_err(|_| EconomicsError::AmountOverflow)?;
         carry = product >> 8;
     }
     if carry != 0 {
-        return Err(EconomicsError::ProbabilityArithmeticOverflow);
+        return Err(EconomicsError::AmountOverflow);
     }
     Ok(Amount256::from_be_bytes(out))
 }
