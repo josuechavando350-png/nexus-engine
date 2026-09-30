@@ -9,6 +9,7 @@ use nqc_census_capital::{
     source_authority::{
         certify_with_d11_source_authorities, D11SourceAuthoritySet,
     },
+    uniswap_v3_live::source_authority_from_uniswap_v3_reconcile_artifact,
     CapitalCensusLedger, CapitalRequirement, CapitalSource,
 };
 use nqc_census_chain::{hex, json::Json};
@@ -19,6 +20,7 @@ use std::{env, error::Error, fs, path::{Path, PathBuf}};
 struct Args {
     legacy_dir: PathBuf,
     balancer_reconcile: PathBuf,
+    uniswap_v3_reconcile: PathBuf,
     code_commit: String,
     code_tree: String,
     out: PathBuf,
@@ -27,6 +29,7 @@ struct Args {
 fn parse_args() -> Result<Args, Box<dyn Error>> {
     let mut legacy_dir = None;
     let mut balancer_reconcile = None;
+    let mut uniswap_v3_reconcile = None;
     let mut code_commit = None;
     let mut code_tree = None;
     let mut out = None;
@@ -38,6 +41,7 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
         match flag.as_str() {
             "--legacy-dir" => legacy_dir = Some(PathBuf::from(value)),
             "--balancer-reconcile" => balancer_reconcile = Some(PathBuf::from(value)),
+            "--uniswap-v3-reconcile" => uniswap_v3_reconcile = Some(PathBuf::from(value)),
             "--code-commit" => code_commit = Some(value),
             "--code-tree" => code_tree = Some(value),
             "--out" => out = Some(PathBuf::from(value)),
@@ -54,6 +58,8 @@ fn parse_args() -> Result<Args, Box<dyn Error>> {
     Ok(Args {
         legacy_dir: legacy_dir.ok_or("--legacy-dir is required")?,
         balancer_reconcile: balancer_reconcile.ok_or("--balancer-reconcile is required")?,
+        uniswap_v3_reconcile: uniswap_v3_reconcile
+            .ok_or("--uniswap-v3-reconcile is required")?,
         code_commit,
         code_tree,
         out: out.ok_or("--out is required")?,
@@ -148,9 +154,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     for source in balancer_sources {
         ledger.register_source(source)?;
     }
+
+    let uniswap_v3_bytes = fs::read(&args.uniswap_v3_reconcile)?;
+    let (uniswap_v3_authority, uniswap_v3_sources) =
+        source_authority_from_uniswap_v3_reconcile_artifact(&uniswap_v3_bytes)?;
+    for source in uniswap_v3_sources {
+        ledger.register_source(source)?;
+    }
     ledger.evaluate_all()?;
 
-    let native_authorities = D11SourceAuthoritySet::new(vec![balancer_authority])?;
+    let native_authorities =
+        D11SourceAuthoritySet::new(vec![balancer_authority, uniswap_v3_authority])?;
     let certificate =
         certify_with_d11_source_authorities(&ledger, &upstream, &native_authorities)?;
 
@@ -182,6 +196,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         (
             "balancer_reconciliation_sha256",
             Json::string(sha256_plain(&balancer_bytes)),
+        ),
+        (
+            "uniswap_v3_reconciliation_sha256",
+            Json::string(sha256_plain(&uniswap_v3_bytes)),
         ),
         (
             "upstream_authority_commitment",
