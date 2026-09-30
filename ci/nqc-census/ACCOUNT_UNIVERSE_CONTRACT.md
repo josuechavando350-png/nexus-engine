@@ -99,6 +99,40 @@ in RMC-004, and emits a record that the reconciler replays byte for byte.
     retrying an intrinsically oversized request. A failed range is never read
     as empty. Probe run 36590720390 found no other keyless endpoint serving
     these logs over this range.
+  - **Result caps are refusals, not outages.** A fixed window cannot bound a
+    result count, because log density is not bounded by block span. Live run
+    36648778677 and probe run 36656954422 showed both declared windows
+    refused near block 24,911,792:
+    - Tenderly caps a response at 20,000 logs. It refused 24,911,792–24,916,791
+      and 24,916,792–24,921,791 with `-32602 "invalid params"`, the count only
+      in `data`. Every 2,500-block half of those windows was answered.
+    - MEV Blocker caps at 10,000. It refused 2,500 blocks from 24,911,792 with
+      `-32005 "query returned more than 10000 results"`, suggesting 2,350
+      blocks.
+    Each index job therefore runs on a declared log-window ladder: the
+    provider's window, then up to five halvings (MEV Blocker 2,500 → 78,
+    Tenderly 5,000 → 156). The stage record declares the ladder as
+    `log_window_ladder`. Each rung is its own RMC-004 stream, because the
+    provider descriptor, window included, is part of the job's stream kind.
+    - A result-cap refusal descends one rung.
+    - A result-cap refusal is `RangeTooLarge`, `RetryBudgetExhausted` whose
+      last error names a result count, or a `-32602`/`-32005` provider
+      error. The frozen RMC-003.2 transport retries `-32005` as a rate limit,
+      and its typed error drops Tenderly's `data`.
+    - Only a rung whose every sub-range was answered commits. A refused rung
+      commits nothing.
+    - A refusal at the last rung fails the job closed with
+      `RMC009_RESULT_CAP_FLOOR`, and the stage stops at once.
+    - Resume and offline replay find a job's committed rung read-only. Exactly
+      one rung may hold a job; otherwise the job fails.
+    - Rows carry only economic content, so providers that committed on
+      different rungs still reconcile exactly.
+  - **Deterministic refusals stop a stage.** In both stage loops:
+    - `RMC009_RESULT_CAP_FLOOR` ends the stage on its first occurrence.
+    - The same `-32600`/`-32601`/`-32602` error on two consecutive attempts,
+      with no new committed checkpoint, ends it as
+      `RMC009_DETERMINISTIC_PROVIDER_REFUSAL`.
+    - Transport failures and rate limits keep the full retry budget.
 - **Candidates (offline).** Every index record is replayed. Both providers'
   partitions must tile the grid, and both providers must return identical
   logs for every job. Any difference fails closed; there is no union across

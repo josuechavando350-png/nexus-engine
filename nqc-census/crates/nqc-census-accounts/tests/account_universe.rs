@@ -882,3 +882,211 @@ fn a_foreign_or_tampered_account_extract_is_refused() -> TestResult {
     .is_err());
     Ok(())
 }
+
+/// Refuses any log range that returns more than `cap` logs, in the shape the
+/// declared providers use: MEV Blocker (`mev`) answers `-32005` with the
+/// count in the message; Tenderly (every other namespace) answers `-32602
+/// invalid params` with the count only in `data`.
+struct ResultCap<'a> {
+    inner: &'a dyn Transport,
+    cap: usize,
+    mev: u16,
+    refused: std::sync::atomic::AtomicU64,
+}
+
+impl<'a> ResultCap<'a> {
+    fn new(inner: &'a dyn Transport, cap: usize) -> Self {
+        Self {
+            inner,
+            cap,
+            mev: A,
+            refused: std::sync::atomic::AtomicU64::new(0),
+        }
+    }
+
+    fn refused(&self) -> u64 {
+        self.refused.load(std::sync::atomic::Ordering::SeqCst)
+    }
+
+    fn cap_reply(&self, namespace: u16, reply: &Json) -> Json {
+        let Some(logs) = reply.get("result").and_then(Json::as_array) else {
+            return reply.clone();
+        };
+        if logs.len() <= self.cap || !logs.iter().all(|log| log.get("logIndex").is_some()) {
+            return reply.clone();
+        }
+        self.refused
+            .fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        let text = format!("query returned more than {} results", self.cap);
+        let error = if namespace == self.mev {
+            Json::object([("code", Json::int(-32005)), ("message", Json::string(text))])
+        } else {
+            Json::object([
+                ("code", Json::int(-32602)),
+                ("message", Json::string("invalid params")),
+                ("data", Json::string(text)),
+            ])
+        };
+        Json::object([
+            ("jsonrpc", Json::string("2.0")),
+            ("id", reply.get("id").cloned().unwrap_or(Json::Null)),
+            ("error", error),
+        ])
+    }
+}
+
+impl Transport for ResultCap<'_> {
+    fn post(
+        &self,
+        provider: &ProviderSpec,
+        body: &[u8],
+    ) -> Result<nqc_census_chain::transport::HttpReply, nqc_census_chain::ChainError> {
+        let reply = self.inner.post(provider, body)?;
+        let namespace = provider.namespace();
+        let capped = match Json::parse(&reply.body)? {
+            Json::Array(items) => Json::Array(
+                items
+                    .iter()
+                    .map(|item| self.cap_reply(namespace, item))
+                    .collect(),
+            ),
+            single => self.cap_reply(namespace, &single),
+        };
+        Ok(nqc_census_chain::transport::HttpReply {
+            status: reply.status,
+            body: capped.canonical()?,
+        })
+    }
+}
+
+/// Two extra mint pairs per block at BASE+16 and BASE+17 for an existing
+/// (token, account) pair: denser logs, the same candidates and balances.
+fn dense() -> Setup {
+    let mut setup = Setup::clean();
+    let a1 = reserve(1)[1];
+    for world in [&mut setup.world_a, &mut setup.world_b] {
+        for block in [BASE + 16, BASE + 17] {
+            for index in 0..2 {
+                world.logs.push(mint(block, index, a1, user(2)));
+            }
+        }
+    }
+    setup
+}
+
+fn index_records(run: &Run, transport: &dyn Transport) -> Result<Vec<Json>, Box<dyn Error>> {
+    let acquisition = run.acquisition(transport);
+    let mut records = Vec::new();
+    for (spec, partitions) in run.index_specs.iter().zip([2_u64, 3]) {
+        for partition in 0..partitions {
+            records
+                .push(account_index_stage(&acquisition, spec, &run.plan, partition, partitions)?.0);
+        }
+    }
+    Ok(records)
+}
+
+#[test]
+fn result_capped_ranges_descend_the_window_ladder_and_reconcile_exactly() -> TestResult {
+    let reference = prepare(&dense(), "cap-reference")?;
+    let expected = index_records(&reference, &reference.network)?;
+
+    let run = prepare(&dense(), "cap-ladder")?;
+    let capped = ResultCap::new(&run.network, 2);
+    let records = index_records(&run, &capped)?;
+    // Both refusal shapes happened and neither was read as empty or retried
+    // into a pass: each provider descended to a window its cap answers.
+    assert!(capped.refused() >= 2, "{}", capped.refused());
+    assert_eq!(records.len(), expected.len());
+    let mut descended = 0;
+    for (record, reference) in records.iter().zip(&expected) {
+        // Economic content is identical; only provenance (the committed
+        // rung's manifests) differs.
+        assert_eq!(
+            record.str_field("data_sha256")?,
+            reference.str_field("data_sha256")?
+        );
+        if !record.same_as(reference)? {
+            descended += 1;
+        }
+    }
+    assert!(descended >= 2, "{descended}");
+
+    // Resume and offline replay find each job's committed rung read-only.
+    let resumed = index_records(&run, &capped)?;
+    for (left, right) in resumed.iter().zip(&records) {
+        assert!(left.same_as(right)?);
+    }
+    let stages = records
+        .iter()
+        .map(|record| replay_account_stage(&run.store, &run.index_specs, &run.plan, None, record))
+        .collect::<Result<Vec<_>, _>>()?;
+    let (candidates, _) = derive_candidates(&stages, &run.plan)?;
+    assert_eq!(candidates.pair_count(), 6);
+    let mut all = records.clone();
+    all.extend(run.state(&candidates)?);
+    let reconciled = run.reconcile(&all, &candidates)?;
+    assert!(reconciled.outcome.conserved);
+    assert_eq!(reconciled.outcome.mismatches.unexplained(), 0);
+    // The store, with the refused rungs' empty streams, verifies and every
+    // record extracts from it.
+    assert_eq!(extracts(&run, &all, &candidates)?.len(), all.len());
+    Ok(())
+}
+
+#[test]
+fn a_result_cap_below_the_ladder_floor_fails_closed_and_commits_nothing() -> TestResult {
+    let run = prepare(&dense(), "cap-floor")?;
+    // BASE+16 alone holds two logs: no window answers under a cap of one.
+    let capped = ResultCap::new(&run.network, 1);
+    for spec in &run.index_specs {
+        let error = account_index_stage(&run.acquisition(&capped), spec, &run.plan, 0, 1)
+            .err()
+            .ok_or("a capped range was accepted")?;
+        let text = error.to_string();
+        assert!(
+            text.contains("RMC009_RESULT_CAP_FLOOR") && text.contains("window=1"),
+            "{text}"
+        );
+    }
+    // Only fully answered jobs committed. Under a cap of one, the job
+    // BASE+9..=BASE+15 committed on the two-block rung; the job holding
+    // BASE+16 committed on no rung. Without the cap, the same store resumes to
+    // the economic content of an unrefused run. The refused job then runs
+    // live on the declared window, exactly as in the unrefused run.
+    let reference = prepare(&dense(), "cap-floor-reference")?;
+    for spec in 0..run.index_specs.len() {
+        let expected = account_index_stage(
+            &reference.acquisition(&reference.network),
+            &reference.index_specs[spec],
+            &reference.plan,
+            0,
+            1,
+        )?
+        .0;
+        let recovered = account_index_stage(
+            &run.acquisition(&run.network),
+            &run.index_specs[spec],
+            &run.plan,
+            0,
+            1,
+        )?
+        .0;
+        assert_eq!(
+            recovered.str_field("data_sha256")?,
+            expected.str_field("data_sha256")?
+        );
+        let manifests = |record: &Json| -> Result<Vec<Json>, Box<dyn Error>> {
+            Ok(record
+                .get("manifests")
+                .and_then(Json::as_array)
+                .ok_or("record without manifests")?
+                .to_vec())
+        };
+        // Bootstrap, anchor, then one manifest per job: index 4 is the job
+        // holding BASE+16.
+        assert!(manifests(&recovered)?[4].same_as(&manifests(&expected)?[4])?);
+        replay_account_stage(&run.store, &run.index_specs, &run.plan, None, &recovered)?;
+    }
+    Ok(())
+}
