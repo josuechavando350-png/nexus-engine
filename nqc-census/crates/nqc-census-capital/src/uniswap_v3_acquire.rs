@@ -792,7 +792,7 @@ fn provider_capture(
         ),
         (
             "rpc_endpoint_hash",
-            Json::string(sha256_plain(provider.url().as_bytes())),
+            Json::string(provider.locator_hash()?.to_hex()),
         ),
         ("anchor", full_anchor_json(&anchor)),
         (
