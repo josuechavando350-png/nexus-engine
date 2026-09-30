@@ -550,7 +550,6 @@ fn route_variants_share_requirement_but_keep_distinct_candidate_identity() -> Te
     Ok(())
 }
 
-
 #[test]
 fn route_variants_are_implicitly_exclusive_even_without_opportunity_claim() -> TestResult {
     let anchor = anchor_on(chain(1, 1), 100, 10);
@@ -578,13 +577,8 @@ fn route_variants_are_implicitly_exclusive_even_without_opportunity_claim() -> T
             && conflict.claimants == vec![route_a.id(), route_b.id()]
     }));
 
-    let reversed = evaluate_portfolio(
-        &[route_b, route_a],
-        &[req],
-        &[feasibility],
-        &[funding],
-        &[],
-    )?;
+    let reversed =
+        evaluate_portfolio(&[route_b, route_a], &[req], &[feasibility], &[funding], &[])?;
     assert_eq!(report.commitment(), reversed.commitment());
     Ok(())
 }
