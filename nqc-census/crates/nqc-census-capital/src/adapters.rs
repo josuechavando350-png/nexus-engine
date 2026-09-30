@@ -25,10 +25,8 @@ pub struct AaveV3FlashObservation {
 
 impl AaveV3FlashObservation {
     pub fn into_capital_source(self) -> Result<CapitalSource, CapitalError> {
-        if !self.flash_loan_enabled {
-            return Err(CapitalError::NoCompatibleSource);
-        }
-        CapitalSource::new(CapitalSourceSpec {
+        let flash_loan_enabled = self.flash_loan_enabled;
+        let source = CapitalSource::new(CapitalSourceSpec {
             class: CapitalClass::ProtocolNativeFlashLoan,
             anchor: self.anchor,
             provider_namespace: AAVE_V3_PROVIDER_NAMESPACE,
@@ -57,7 +55,12 @@ impl AaveV3FlashObservation {
                 CapitalFailureMode::CallbackOrHookRevert,
             ],
             evidence: self.evidence,
-        })
+        })?;
+        if flash_loan_enabled {
+            Ok(source)
+        } else {
+            source.with_execution_blockers(vec!["FLASH_LOAN_DISABLED".to_owned()])
+        }
     }
 }
 
