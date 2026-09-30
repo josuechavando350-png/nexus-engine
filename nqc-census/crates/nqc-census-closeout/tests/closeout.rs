@@ -15,9 +15,15 @@ fn git(byte: u8) -> Result<GitObjectId, CloseoutError> {
 }
 
 fn proof(stage: RmcStage, byte: u8) -> Result<StageProof, CloseoutError> {
+    let code_commit = git(byte)?;
+    let artifact_name = format!("{}{}", stage.expected_artifact_prefix(), code_commit.to_hex());
     StageProof::new(
         stage,
-        git(byte)?,
+        1_000 + u64::from(byte),
+        2_000 + u64::from(byte),
+        stage.expected_workflow_name().to_owned(),
+        artifact_name,
+        code_commit,
         git(byte.saturating_add(1))?,
         hash(byte.saturating_add(2)),
         hash(byte.saturating_add(3)),
@@ -245,6 +251,58 @@ fn changing_any_stage_artifact_changes_terminal_commitment() -> TestResult {
     target.artifact_sha256 = hash(250);
     let right = CloseoutCertificate::certify(changed, counts(), economics(), vec![hash(200)])?;
     assert_ne!(left.commitment(), right.commitment());
+    Ok(())
+}
+
+#[test]
+fn wrong_stage_workflow_or_artifact_binding_fails_closed() -> TestResult {
+    let stage = RmcStage::Rmc012;
+    let commit = git(12)?;
+    let valid_name = format!("{}{}", stage.expected_artifact_prefix(), commit.to_hex());
+
+    assert!(matches!(
+        StageProof::new(
+            stage,
+            1,
+            2,
+            "NQC RMC-013 Terminal Economics Authority".to_owned(),
+            valid_name.clone(),
+            commit,
+            git(13)?,
+            hash(14),
+            hash(15),
+            hash(16),
+            true,
+            true,
+            0,
+            0,
+            0,
+            vec![hash(17)],
+        ),
+        Err(CloseoutError::InvalidStageArtifactBinding(RmcStage::Rmc012))
+    ));
+
+    assert!(matches!(
+        StageProof::new(
+            stage,
+            1,
+            2,
+            stage.expected_workflow_name().to_owned(),
+            "rmc012-terminal-actionability-wrong-commit".to_owned(),
+            commit,
+            git(13)?,
+            hash(14),
+            hash(15),
+            hash(16),
+            true,
+            true,
+            0,
+            0,
+            0,
+            vec![hash(17)],
+        ),
+        Err(CloseoutError::InvalidStageArtifactBinding(RmcStage::Rmc012))
+    ));
     Ok(())
 }
 
