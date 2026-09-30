@@ -61,6 +61,8 @@ jobs:
           python3 ci/nqc-census/test_verify_rmc011_upstream_authority.py -v
           grep -F 'capital-real-source-closeout.json' ci/nqc-census/run-rmc011-real-source-closeout.sh
           grep -F 'sha256sum -c capital-archive.sha256' ci/nqc-census/run-rmc011-real-source-closeout.sh
+          grep -F 'rmc011-certification-package' .github/workflows/nqc-census-capital-real-source-certification.yml
+          grep -F 'CERTIFICATION-PACKAGE-SHA256SUMS' .github/workflows/nqc-census-capital-real-source-certification.yml
           test -f ci/nqc-census/CAPITAL_CENSUS_CONTRACT.md
 
           INPUTS=ci/nqc-census/rmc011-real-source-inputs.json
