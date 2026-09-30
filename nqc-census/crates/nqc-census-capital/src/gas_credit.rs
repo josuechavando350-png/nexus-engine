@@ -225,6 +225,14 @@ pub fn import_external_gas_credit_observation(
 ) -> Result<CapitalSource, CapitalError> {
     let row = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("gas credit observation JSON parse failed"))?;
+    let canonical = row
+        .canonical()
+        .map_err(|_| CapitalError::InvalidCanonical("gas credit observation canonicalization failed"))?;
+    if canonical.as_slice() != bytes {
+        return Err(CapitalError::InvalidCanonical(
+            "gas credit observation must be canonical JSON",
+        ));
+    }
     if u64_field(&row, "schema_version")? != EXTERNAL_GAS_CREDIT_SCHEMA_VERSION
         || text_field(&row, "status")? != EXTERNAL_GAS_CREDIT_STATUS
         || text_field(&row, "provider_family")? != EXTERNAL_GAS_CREDIT_FAMILY
