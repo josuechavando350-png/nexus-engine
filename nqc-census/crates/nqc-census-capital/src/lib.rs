@@ -3446,12 +3446,11 @@ impl CapitalCensusLedger {
                     allocations,
                 } => {
                     feasible_count += 1;
-                    let requirement = self
-                        .requirements
-                        .get(requirement_id)
-                        .ok_or(CapitalError::InvalidCanonical(
+                    let requirement = self.requirements.get(requirement_id).ok_or(
+                        CapitalError::InvalidCanonical(
                             "feasible result references missing requirement",
-                        ))?;
+                        ),
+                    )?;
                     let required_gas = if requirement.requires_native_gas() {
                         declared_leg_total(
                             requirement,
