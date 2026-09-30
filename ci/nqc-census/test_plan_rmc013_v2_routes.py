@@ -97,7 +97,7 @@ def write_jsonl(path: Path, values):
 
 
 class RoutePlannerTests(unittest.TestCase):
-    def run_plan(self, pairs, action_rows=None, promotions=None, max_hops=3, keep_routes=8):
+    def run_plan(self, pairs, action_rows=None, promotions=None, max_hops=3, keep_routes=0):
         root = Path(tempfile.mkdtemp(prefix="rmc013-route-test-"))
         state = root / "state.jsonl"
         actions = root / "actions.jsonl"
@@ -202,6 +202,30 @@ class RoutePlannerTests(unittest.TestCase):
         self.assertEqual(planned[0]["hops"][1]["amount_in"], "0")
         self.assertEqual(planned[0]["hops"][1]["amount_out"], "0")
         self.assertLess(int(planned[0]["pre_gas_success_net_debt_units"]), 0)
+
+    def test_exhaustive_mode_never_omits_positive_routes(self):
+        pairs = [
+            pair(0, "0x" + "01" * 20, A, B, 10_000, 9_000),
+            pair(1, "0x" + "02" * 20, A, C, 10_000, 20_000),
+            pair(2, "0x" + "03" * 20, C, B, 20_000, 20_000),
+        ]
+        summary, planned, rejected = self.run_plan(pairs, keep_routes=0)
+        self.assertEqual(rejected, [])
+        self.assertTrue(summary["route_execution_coverage_complete"])
+        self.assertEqual(summary["positive_routes_omitted"], 0)
+        self.assertEqual(summary["emission_policy"], "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE")
+        self.assertEqual(len(planned), planned[0]["positive_route_count"])
+
+    def test_capped_mode_exposes_positive_route_omission(self):
+        pairs = [
+            pair(0, "0x" + "01" * 20, A, B, 10_000, 9_000),
+            pair(1, "0x" + "02" * 20, A, C, 10_000, 20_000),
+            pair(2, "0x" + "03" * 20, C, B, 20_000, 20_000),
+        ]
+        summary, planned, _ = self.run_plan(pairs, keep_routes=1)
+        self.assertFalse(summary["route_execution_coverage_complete"])
+        self.assertGreater(summary["positive_routes_omitted"], 0)
+        self.assertEqual(len(planned), 1)
 
     def test_input_order_cannot_change_selected_route_bytes(self):
         pairs = [

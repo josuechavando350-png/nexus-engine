@@ -21,8 +21,9 @@
   "route_policy": {
     "venue_family": "UNISWAP_V2",
     "max_hops": 3,
-    "keep_routes_per_candidate": 8,
-    "discovery": "EXHAUSTIVE_SIMPLE_PATHS_OVER_EXACT_RMC008_STATE"
+    "keep_routes_per_candidate": 0,
+    "discovery": "EXHAUSTIVE_SIMPLE_PATHS_OVER_EXACT_RMC008_STATE",
+    "emission_policy": "ALL_POSITIVE_ELSE_BEST_NONPOSITIVE"
   },
   "blocking_reasons": [
     "RMC012_TERMINAL_ACTIONABILITY_ARTIFACT_NOT_PINNED"
@@ -31,5 +32,18 @@
     "This file may become PINNED only to one successful immutable RMC-012 terminal actionability artifact.",
     "The producer performs fork-local counterfactual transactions only; it has no live signing or broadcast authority.",
     "Capture probability remains UNCALIBRATED and realized live P&L remains false."
-  ]
+  ],
+  "gas_policy": {
+    "wrapped_native_asset": "0xC02aaa39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    "history_blocks": 128,
+    "reward_percentiles": [
+      50,
+      90,
+      99
+    ],
+    "admission_priority_percentile": 99,
+    "base_fee_policy": "NEXT_BLOCK_MAX_EIP1559_CEIL_9_OVER_8",
+    "provider_reconciliation": "MAX_ADMISSION_PRIORITY_FEE_REQUIRE_EXACT_ANCHOR_AND_NATIVE_PRICE",
+    "native_price_source": "RMC008_AAVE_ORACLE_MANIFEST"
+  }
 }

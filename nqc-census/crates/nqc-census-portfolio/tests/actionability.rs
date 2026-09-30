@@ -8,7 +8,8 @@ use nqc_census_capital::{
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_portfolio::actionability::{
     evaluate_protocol_native_flash_promotion, promote_protocol_native_flash_liquidation,
-    ActionabilityCoverage, ActionabilityError, ActionabilityPair, ActionabilityRecord,
+    reconstruct_protocol_native_flash_candidate, ActionabilityCoverage, ActionabilityError,
+    ActionabilityPair, ActionabilityRecord,
     ActionabilityRejectionReason, ActionableLiquidation, LiquidationFundingScope,
 };
 
@@ -296,6 +297,24 @@ fn actionable_liquidation_promotes_to_exact_principal_settlement_requirement() -
         .legs()
         .iter()
         .any(|leg| leg.kind() == RequirementKind::Gas));
+    Ok(())
+}
+
+#[test]
+fn authenticated_promotion_identity_reconstructs_exact_portfolio_candidate() -> TestResult {
+    let liquidation = candidate(pair(anchor(100, 10), 20, 30, 40))?;
+    let promotion = promote_protocol_native_flash_liquidation(&liquidation)?;
+    let requirement_hash = Hash32::new(*promotion.requirement().id().as_bytes())?;
+    let actionable_hash = Hash32::new(*liquidation.id().as_bytes())?;
+    let reconstructed = reconstruct_protocol_native_flash_candidate(
+        nqc_census_capital::CapitalRequirementId::from_hash(requirement_hash),
+        actionable_hash,
+        liquidation.pair().anchor().clone(),
+    )?;
+    assert_eq!(reconstructed.id(), promotion.portfolio_candidate().id());
+    assert_eq!(reconstructed.requirement_id(), promotion.requirement().id());
+    assert_eq!(reconstructed.anchor(), liquidation.pair().anchor());
+    assert!(reconstructed.claims().is_empty());
     Ok(())
 }
 
