@@ -34,7 +34,7 @@ env:
   PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
   RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
   RUST_TOOLCHAIN: "1.98.1"
-  D08_TESTS_EXPECTED_V2: "6"
+  D08_TESTS_EXPECTED_V2: "7"
   D08_TESTS_EXPECTED_AAVE: "6"
   D08_INPUTS: /tmp/nqc-rmc008-inputs
   D08_EVIDENCE: /tmp/nqc-rmc008-evidence
@@ -111,6 +111,14 @@ jobs:
           pins = json.load(open("ci/nqc-census/state-inputs.json"))
           root = os.environ["D08_INPUTS"]
           keep = "/tmp/nqc-rmc008-pinned"
+          # Every downloaded file's digest is printed first, so the evidence of
+          # a pin mismatch is in the log. Only pinned files are then kept.
+          for base, _, names in sorted(os.walk(root)):
+              for name in sorted(names):
+                  path = os.path.join(base, name)
+                  if "/store/" not in path:
+                      print(f"RMC008_INPUT_OBSERVED path={os.path.relpath(path, root)} "
+                            f"sha256={hashlib.sha256(open(path, 'rb').read()).hexdigest()}")
           for entry in pins["files"]:
               source = os.path.join(root, entry["path"])
               digest = hashlib.sha256(open(source, "rb").read()).hexdigest()

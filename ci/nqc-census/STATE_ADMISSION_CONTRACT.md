@@ -109,6 +109,12 @@ manifests of both providers). RMC-008 decides one stage only,
 - V2 pair: advance iff identity, CREATE2, factory and canonical state hold and
   both tokens answer `balanceOf(pair)` ≥ reserve; otherwise
   `STATE_UNRECONSTRUCTABLE` / `UNSUPPORTED_TOKEN_BEHAVIOR`.
+- A V2 pair that names its factory as a token (RMC-001 Amendment 1; mainnet
+  pairs `0x14c3…53ce` and `0x3b66…8446`) is admitted and recorded like any
+  other pair. The factory reverts `balanceOf` and `decimals`, so the pair is
+  `UNSUPPORTED_TOKEN_BEHAVIOR` and its factory token is rejected
+  (`BALANCE_OF_UNAVAILABLE`, decimals `REVERTED`). It is never dropped from the
+  manifest or the ledger.
 
 Economic activity, borrowability and actionability are later
 classifications. RMC-008 records their inputs as exact facts only: Aave
