@@ -2,8 +2,7 @@ use nqc_census_capital::{
     adapters::{
         AaveV3FlashObservation, BalancerV2FlashObservation, ExternalGasCreditObservation,
         ExternalGasSponsorObservation, UniswapV2FlashSwapObservation, UniswapV3FlashObservation,
-        AAVE_V3_PROVIDER_NAMESPACE,
-        BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V2_PROVIDER_NAMESPACE,
+        AAVE_V3_PROVIDER_NAMESPACE, BALANCER_V2_PROVIDER_NAMESPACE, UNISWAP_V2_PROVIDER_NAMESPACE,
         UNISWAP_V3_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalClass, CapitalError, CapitalEvidenceRef, RoundingMode,
@@ -447,7 +446,10 @@ fn external_gas_credit_rejects_zero_deadline_and_foreign_fixed_fee_asset() -> Te
         evidence: evidence(),
     }
     .into_capital_source();
-    assert!(matches!(foreign_fee, Err(CapitalError::InvalidCanonical(_))));
+    assert!(matches!(
+        foreign_fee,
+        Err(CapitalError::InvalidCanonical(_))
+    ));
     Ok(())
 }
 
@@ -473,4 +475,3 @@ fn external_gas_credit_requires_evidence() -> TestResult {
     assert!(matches!(result, Err(CapitalError::MissingEvidence)));
     Ok(())
 }
-
