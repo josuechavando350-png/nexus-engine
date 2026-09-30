@@ -27,19 +27,21 @@ permissions:
 # Every live Census acquisition that loads the shared public RPC endpoints
 # joins one repository-wide group: at most one runs at a time and none is
 # cancelled while running. GitHub keeps at most one pending run per group, so
-# a newer pending run replaces an older one. RMC-007 therefore acquires only
-# from a workflow_dispatch on the exact branch head without stages_run_id,
-# inside the group. Pull requests replay the pinned successful acquisition
-# 36589054151 entirely offline, so every exact head proves reconciliation
-# against the real stage evidence without consuming RPC capacity. Explicit
-# workflow_dispatch with stages_run_id does the same for another acquisition.
+# a newer pending acquisition replaces an older pending one. RMC-007 acquires
+# only from a workflow_dispatch on the exact branch head without stages_run_id.
+#
+# Pull requests and explicit replay dispatches consume no RPC. Their work is
+# exact-head certification only, so a newer head must cancel an obsolete
+# replay instead of spending 48 runners proving a commit that can no longer
+# certify the PR.
 concurrency:
   group: >-
     ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.stages_run_id == ''
         && 'nqc-census-public-rpc'
         || format('nqc-rmc007-{0}-{1}', github.event_name,
                   github.event_name == 'pull_request' && github.ref || github.run_id) }}
-  cancel-in-progress: false
+  cancel-in-progress: >-
+    ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.stages_run_id != '' }}
 
 jobs:
   gate:
