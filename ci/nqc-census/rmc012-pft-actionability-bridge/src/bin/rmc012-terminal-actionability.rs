@@ -6,7 +6,10 @@
 //! per pair. No economic filter is allowed to erase a protocol-actionable pair.
 
 use alloy::primitives::U256;
-use nqc_census_capital::Amount256;
+use nqc_census_capital::{
+    replay::{UpstreamAuthorityLock, UpstreamAuthorityLockEntry},
+    Amount256, UpstreamCensusStage,
+};
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use nqc_census_portfolio::actionability::{
     ActionabilityCoverage, ActionabilityPair, ActionabilityRecord, ActionabilityRejectionReason,
@@ -57,8 +60,16 @@ fn main() -> Result<(), Box<dyn Error>> {
     let flags = flags()?;
     let d08 = PathBuf::from(required(&flags, "--d08")?);
     let d09 = PathBuf::from(required(&flags, "--d09")?);
+    let authority_lock_path = PathBuf::from(required(&flags, "--authority-lock")?);
     let out = PathBuf::from(required(&flags, "--out")?);
     fs::create_dir_all(&out)?;
+
+    let authority_lock_bytes = fs::read(&authority_lock_path)?;
+    let authority_lock = UpstreamAuthorityLock::parse_json(&authority_lock_bytes)?;
+    let authority_lock_sha256 = sha256_hex(&authority_lock_bytes);
+    let anchor = authority_lock.observation_anchor().clone();
+    let d08_authority = locked_stage(&authority_lock, UpstreamCensusStage::Rmc008StateAdmission)?;
+    let d09_authority = locked_stage(&authority_lock, UpstreamCensusStage::Rmc009PositionUniverse)?;
 
     let d08_required = [
         "state-summary.json",
@@ -68,26 +79,30 @@ fn main() -> Result<(), Box<dyn Error>> {
         "pool-and-factory-facts.json",
     ];
     let d09_required = ["account-summary.json", "account-manifest.jsonl"];
-    let d08_digests = verify_closeout_manifest(&d08, &d08_required)?;
-    let d09_digests = verify_closeout_manifest(&d09, &d09_required)?;
+    let d08_digests = verify_closeout_manifest(&d08, &d08_required, d08_authority)?;
+    let d09_digests = verify_closeout_manifest(&d09, &d09_required, d09_authority)?;
 
     let d08_summary = read_json(d08.join("state-summary.json"))?;
     let d09_summary = read_json(d09.join("account-summary.json"))?;
     require_str(&d08_summary, "status", "RMC_008_PASS_CANDIDATE")?;
     require_str(&d09_summary, "status", "RMC_009_PASS_CANDIDATE")?;
 
-    let anchor = parse_anchor(
+    let d08_anchor = parse_anchor(
         d08_summary
             .get("observation_anchor")
             .ok_or("D08 summary has no observation_anchor")?,
     )?;
+    if d08_anchor != anchor {
+        return Err("D08 summary anchor differs from the external authority lock".into());
+    }
     let d09_anchor = d09_summary
         .get("anchor")
         .ok_or("D09 summary has no anchor")?;
     if u64_field(d09_anchor, "number")? != anchor.block_number()
         || str_field(d09_anchor, "hash")? != anchor.block_hash().to_hex()
+        || u64_field(&d09_summary, "anchor_timestamp")? != anchor.timestamp()
     {
-        return Err("D08 and D09 closeouts are pinned to different anchors".into());
+        return Err("D09 summary anchor differs from the external authority lock".into());
     }
 
     let market_snapshot = market_snapshot_commitment(&d08, &d08_required)?;
@@ -334,12 +349,18 @@ fn main() -> Result<(), Box<dyn Error>> {
         "pft_certified_tree": PFT_CERTIFIED_TREE,
         "anchor": {
             "chain_id": anchor.chain().chain_id(),
+            "genesis_hash": anchor.chain().genesis_hash().to_hex(),
+            "fork_lineage": anchor.chain().fork_lineage().to_hex(),
             "block_number": anchor.block_number(),
             "block_hash": anchor.block_hash().to_hex(),
             "parent_hash": anchor.parent_hash().to_hex(),
             "timestamp": anchor.timestamp(),
             "state_root": anchor.state_root().to_hex()
         },
+        "upstream_authority_lock_commitment": authority_lock.commitment().to_hex(),
+        "upstream_authority_lock_sha256": authority_lock_sha256,
+        "d08_authority_artifact_sha256": d08_authority.artifact_sha256.to_hex(),
+        "d09_authority_artifact_sha256": d09_authority.artifact_sha256.to_hex(),
         "below_one_borrowers": coverage.below_one_borrowers(),
         "expected_pairs": coverage.expected_pairs(),
         "admitted": coverage.admitted_count(),
@@ -356,6 +377,10 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let manifest = json!({
         "schema": "nqc-rmc-012-terminal-actionability-evidence-v1",
+        "upstream_authority_lock_commitment": authority_lock.commitment().to_hex(),
+        "upstream_authority_lock_sha256": authority_lock_sha256,
+        "d08_authority_artifact_sha256": d08_authority.artifact_sha256.to_hex(),
+        "d09_authority_artifact_sha256": d09_authority.artifact_sha256.to_hex(),
         "artifacts": [
             {
                 "path": "actionability-records.jsonl",
@@ -418,11 +443,32 @@ fn jsonl(path: impl AsRef<Path>) -> Result<Vec<Value>, Box<dyn Error>> {
         .collect()
 }
 
+fn locked_stage(
+    lock: &UpstreamAuthorityLock,
+    stage: UpstreamCensusStage,
+) -> Result<&UpstreamAuthorityLockEntry, Box<dyn Error>> {
+    lock.entries()
+        .iter()
+        .find(|entry| entry.stage == stage)
+        .ok_or_else(|| format!("external authority lock has no {}", stage.code()).into())
+}
+
 fn verify_closeout_manifest(
     dir: &Path,
     required_files: &[&str],
+    authority: &UpstreamAuthorityLockEntry,
 ) -> Result<BTreeMap<String, String>, Box<dyn Error>> {
-    let manifest = read_json(dir.join("evidence-manifest.json"))?;
+    let manifest_bytes = fs::read(dir.join("evidence-manifest.json"))?;
+    let manifest_digest = Hash32::new(Sha256::digest(&manifest_bytes).into())?;
+    if manifest_digest != authority.artifact_sha256 {
+        return Err("closeout evidence manifest digest differs from external authority lock".into());
+    }
+    let manifest: Value = serde_json::from_slice(&manifest_bytes)?;
+    if str_field(&manifest, "code_commit")? != authority.code_commit.to_hex()
+        || str_field(&manifest, "code_tree")? != authority.code_tree.to_hex()
+    {
+        return Err("closeout code identity differs from external authority lock".into());
+    }
     let artifacts = manifest
         .get("artifacts")
         .and_then(Value::as_array)
@@ -447,7 +493,6 @@ fn verify_closeout_manifest(
         }
         observed.insert((*name).to_owned(), digest);
     }
-    let manifest_bytes = fs::read(dir.join("evidence-manifest.json"))?;
     observed.insert(
         "evidence-manifest.json".to_owned(),
         sha256_hex(&manifest_bytes),
