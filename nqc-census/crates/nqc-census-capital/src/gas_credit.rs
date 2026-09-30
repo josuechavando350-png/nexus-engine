@@ -15,10 +15,12 @@ use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
 
-pub const EXTERNAL_GAS_CREDIT_SCHEMA_VERSION: u64 = 1;
+pub const EXTERNAL_GAS_CREDIT_SCHEMA_VERSION: u64 = 2;
 pub const EXTERNAL_GAS_CREDIT_PROVIDER_NAMESPACE: u16 = 0x2202;
-pub const EXTERNAL_GAS_CREDIT_FAMILY: &str = "NQC_EXTERNAL_GAS_CREDIT_V1";
+pub const EXTERNAL_GAS_CREDIT_FAMILY: &str = "NQC_EXTERNAL_GAS_CREDIT_V2";
 pub const EXTERNAL_GAS_CREDIT_STATUS: &str = "RMC_011_EXTERNAL_GAS_CREDIT_OBSERVED";
+pub const EXTERNAL_GAS_CREDIT_DELIVERY_SEMANTICS: &str =
+    "PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1";
 
 fn field<'a>(row: &'a Json, key: &'static str) -> Result<&'a Json, CapitalError> {
     row.get(key)
@@ -152,10 +154,17 @@ pub fn external_gas_credit_terms_commitment(
     min_remaining: Amount256,
     protocol_cap: Option<Amount256>,
     market_cap: Option<Amount256>,
+    delivery_route_commitment: Hash32,
+    operator_prefund_required: bool,
     active: bool,
 ) -> Result<Hash32, CapitalError> {
+    if operator_prefund_required {
+        return Err(CapitalError::InvalidCanonical(
+            "gas credit delivery requires operator prefunding",
+        ));
+    }
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-EXTERNAL-GAS-CREDIT-TERMS-V1");
+    hasher.update(b"NQC-RMC011-EXTERNAL-GAS-CREDIT-TERMS-V2");
     hasher.update([0]);
     hasher.update(borrower.as_bytes());
     hasher.update(lender.as_bytes());
@@ -165,6 +174,9 @@ pub fn external_gas_credit_terms_commitment(
     hasher.update(min_remaining.as_be_bytes());
     write_optional_amount(&mut hasher, protocol_cap);
     write_optional_amount(&mut hasher, market_cap);
+    hasher.update(EXTERNAL_GAS_CREDIT_DELIVERY_SEMANTICS.as_bytes());
+    hasher.update(delivery_route_commitment.as_bytes());
+    hasher.update([u8::from(operator_prefund_required)]);
     hasher.update([u8::from(active)]);
     let digest: [u8; 32] = hasher.finalize().into();
     Hash32::new(digest)
@@ -183,7 +195,7 @@ pub fn external_gas_credit_facts_commitment(
     outstanding: Amount256,
 ) -> Result<Hash32, CapitalError> {
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-EXTERNAL-GAS-CREDIT-FACTS-V1");
+    hasher.update(b"NQC-RMC011-EXTERNAL-GAS-CREDIT-FACTS-V2");
     hasher.update([0]);
     hasher.update(anchor.chain().chain_id().to_be_bytes());
     hasher.update(anchor.chain().genesis_hash().as_bytes());
@@ -277,8 +289,10 @@ fn provider_evidence(
 /// Convert one reconciled, two-provider facility observation into a canonical D11 source.
 ///
 /// The observation must bind exact contract runtime, borrower/lender identities and
-/// terms at the same StateAnchor as D11. The maximum raw draw is recomputed as
-/// min(facility_balance, credit_limit - outstanding).
+/// terms at the same StateAnchor as D11. It must also prove that native gas can be
+/// delivered to the borrower before the execution transaction without operator
+/// prefunding; an on-chain draw that itself needs borrower gas is not admissible.
+/// The maximum raw draw is recomputed as min(facility_balance, credit_limit - outstanding).
 pub fn import_external_gas_credit_observation(
     bytes: &[u8],
     expected_anchor: &StateAnchor,
@@ -355,6 +369,19 @@ pub fn import_external_gas_credit_observation(
     let min_remaining = amount(&row, "min_remaining_native_gas")?;
     let protocol_cap = optional_amount(&row, "protocol_cap")?;
     let market_cap = optional_amount(&row, "market_cap")?;
+    let delivery_semantics = text_field(&row, "delivery_semantics")?;
+    if delivery_semantics != EXTERNAL_GAS_CREDIT_DELIVERY_SEMANTICS {
+        return Err(CapitalError::InvalidCanonical(
+            "gas credit is not available before execution",
+        ));
+    }
+    let delivery_route_commitment = hash32(&row, "delivery_route_commitment")?;
+    let operator_prefund_required = bool_field(&row, "operator_prefund_required")?;
+    if operator_prefund_required {
+        return Err(CapitalError::InvalidCanonical(
+            "gas credit delivery requires operator prefunding",
+        ));
+    }
     let active = bool_field(&row, "active")?;
 
     let recomputed_terms = external_gas_credit_terms_commitment(
@@ -366,6 +393,8 @@ pub fn import_external_gas_credit_observation(
         min_remaining,
         protocol_cap,
         market_cap,
+        delivery_route_commitment,
+        operator_prefund_required,
         active,
     )?;
     if recomputed_terms != declared_terms {
