@@ -123,10 +123,13 @@ The curve MUST:
 - use strictly increasing trade size;
 - preserve every point, including negative-net points;
 - never extrapolate beyond observed/simulated points;
-- select a best point only from Shadow-calibrated points whose interval-worst,
-  tail-adjusted EV remains positive;
-- report the largest explicitly measured positive size without extrapolating
-  beyond it.
+- expose two distinct selectors:
+  - calibrated admission: best point whose interval-worst, tail-adjusted EV is
+    positive;
+  - pre-capture Shadow handoff: best explicitly measured point whose
+    success-path net remains positive, with no capture probability invented;
+- report the largest explicitly measured calibrated-positive size without
+  extrapolating beyond it.
 
 This prevents linear extrapolation of one profitable size into fictitious
 capacity.
@@ -193,30 +196,42 @@ capture calibration and capacity.
 
 ## Shadow handoff
 
-Every admitted prediction must be serializable into a deterministic commitment
-containing at least:
+RMC-013 MUST be able to hand an opportunity to Shadow without fabricating a
+capture probability. A capacity curve with at least one positive success-path
+net point is Shadow-eligible even when every quote is UNCALIBRATED.
 
-- candidate id;
-- opportunity id;
+For that boundary the engine deterministically selects the explicitly measured
+point with the greatest positive success-path net; ties select the smaller
+trade size. No interpolation or extrapolation is permitted.
+
+Every Shadow prediction commitment binds at least:
+
+- candidate id and opportunity id;
+- exact StateAnchor;
+- capacity-curve commitment and selected quote commitment;
 - execution-plan commitment;
 - economic-model commitment;
-- anchor;
-- trade size;
-- valuation unit;
+- selected trade size;
 - gross value;
-- full cost vector;
-- pre-capture net;
-- capture interval and calibration authority;
-- point capture-adjusted net;
-- interval-worst expected net;
-- explicit tail bound and tail-adjusted net;
-- model/evidence commitments.
+- exact success-path cost and net;
+- an expiry block strictly after the observation anchor;
+- evidence commitments.
+
+A batch commitment binds the complete ordered set of Shadow predictions and
+rejects duplicate candidate identity. Candidates with no positive pre-capture
+point are not silently counted as Shadow-eligible.
+
+Capture interval, capture-adjusted net and tail-adjusted expected net remain
+attached to the underlying quote when empirical calibration exists, but they
+are NOT prerequisites for the initial Census -> Shadow handoff. Requiring them
+would create a circular dependency because Shadow is the authority that
+calibrates capture probability.
 
 The opportunity id, execution-plan commitment and economic-model commitment
 are mandatory, non-zero authority. Two otherwise identical quotes that change
 only one of those commitments MUST produce a different quote commitment.
 
-Shadow compares those ex-ante commitments with later observed outcomes. It may
+Shadow compares these ex-ante commitments with later observed outcomes. It may
 not reconstruct a prediction after seeing the winner.
 
 ## Non-claims
