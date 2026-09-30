@@ -368,6 +368,7 @@ pub fn reconcile_uniswap_v3_captures(
                 pool,
                 asset,
                 available_pool_balance: Amount256::parse_decimal(balance.str_field("balance")?)?,
+                active_liquidity: Amount256::parse_decimal(row.str_field("active_liquidity")?)?,
                 fee_pips,
             };
             sources.push(admit_uniswap_v3_dual_provider(
@@ -765,6 +766,7 @@ mod tests {
                         Json::string("0x2222222222222222222222222222222222222222"),
                     ),
                     ("fee_pips", Json::uint(3_000)),
+                    ("active_liquidity", Json::string("1000000")),
                     ("pool_runtime_sha256", Json::string(digest_hex(0x81))),
                     (
                         "asset_balances",
@@ -794,6 +796,80 @@ mod tests {
         assert_eq!(sources[0].maximum_available(), Amount256::from_u128(123_456));
         assert!(sources[0].execution_eligible());
         Ok(())
+    }
+
+    #[test]
+    fn dual_provider_reconciliation_rejects_active_liquidity_mismatch() {
+        let first =
+            reconciliation_capture("provider-a", "operator-a", &digest_hex(0x91), "123456");
+        let mut second =
+            reconciliation_capture("provider-b", "operator-b", &digest_hex(0x92), "123456");
+        let pools = second
+            .get("pools")
+            .and_then(Json::as_array)
+            .unwrap_or_else(|| unreachable!());
+        let mut pool = pools[0].clone();
+        let replacement = Json::object([
+            ("pool", pool.get("pool").cloned().unwrap_or(Json::Null)),
+            ("token0", pool.get("token0").cloned().unwrap_or(Json::Null)),
+            ("token1", pool.get("token1").cloned().unwrap_or(Json::Null)),
+            ("fee_pips", pool.get("fee_pips").cloned().unwrap_or(Json::Null)),
+            ("active_liquidity", Json::string("999999")),
+            (
+                "pool_runtime_sha256",
+                pool.get("pool_runtime_sha256").cloned().unwrap_or(Json::Null),
+            ),
+            (
+                "asset_balances",
+                pool.get("asset_balances").cloned().unwrap_or(Json::Null),
+            ),
+        ]);
+        second = Json::object([
+            ("schema_version", second.get("schema_version").cloned().unwrap_or(Json::Null)),
+            ("stage", second.get("stage").cloned().unwrap_or(Json::Null)),
+            ("family", second.get("family").cloned().unwrap_or(Json::Null)),
+            ("provider_id", second.get("provider_id").cloned().unwrap_or(Json::Null)),
+            (
+                "provider_operator",
+                second.get("provider_operator").cloned().unwrap_or(Json::Null),
+            ),
+            (
+                "rpc_endpoint_hash",
+                second.get("rpc_endpoint_hash").cloned().unwrap_or(Json::Null),
+            ),
+            ("anchor", second.get("anchor").cloned().unwrap_or(Json::Null)),
+            (
+                "authority_lock_sha256",
+                second.get("authority_lock_sha256").cloned().unwrap_or(Json::Null),
+            ),
+            (
+                "d08_market_state_sha256",
+                second.get("d08_market_state_sha256").cloned().unwrap_or(Json::Null),
+            ),
+            (
+                "d08_token_admission_sha256",
+                second.get("d08_token_admission_sha256").cloned().unwrap_or(Json::Null),
+            ),
+            (
+                "d08_evidence_manifest_sha256",
+                second.get("d08_evidence_manifest_sha256").cloned().unwrap_or(Json::Null),
+            ),
+            (
+                "deployment_sha256",
+                second.get("deployment_sha256").cloned().unwrap_or(Json::Null),
+            ),
+            ("factory", second.get("factory").cloned().unwrap_or(Json::Null)),
+            (
+                "pool_event_history_sha256",
+                second.get("pool_event_history_sha256").cloned().unwrap_or(Json::Null),
+            ),
+            (
+                "pool_universe_sha256",
+                second.get("pool_universe_sha256").cloned().unwrap_or(Json::Null),
+            ),
+            ("pools", Json::array([replacement])),
+        ]);
+        assert!(reconcile_uniswap_v3_captures(&first, &second).is_err());
     }
 
     #[test]
