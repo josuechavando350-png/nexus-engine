@@ -1,6 +1,6 @@
 {
-  "purpose": "RMC-006 certified evidence: file digests to pin into RMC-008 state inputs",
-  "run_id": 36627517591,
-  "artifact": "nqc-rmc006-evidence-25437474-a33a012591cd6625ddb921d995bb1bd95b4a5406-36627517591-1",
-  "artifact_digest": "sha256:5f9a9bbd2182d9d65e22ad9b25f94abd5152baef7d1c2d559bda4e5a77433b03"
+  "purpose": "RMC-006 at A1 (26086171) evidence: file digests to pin into RMC-010 refresh inputs",
+  "run_id": 36642649594,
+  "artifact": "nqc-rmc006-evidence-26086171-a33a012591cd6625ddb921d995bb1bd95b4a5406-36642649594-1",
+  "artifact_digest": "sha256:73811ce951f85849e0ee76a132b81c682900cdba68616b5045cf8f6d11e94b9d"
 }
