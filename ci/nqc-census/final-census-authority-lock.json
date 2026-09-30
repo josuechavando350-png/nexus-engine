@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "status": "BLOCKED",
+  "real_market_census_closed": false,
+  "pft_certified_commit": "5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf",
+  "pft_certified_tree": "ef3498da528f85cdb9fdd82222d64773a557f853",
+  "required_terminal_stages": [
+    "RMC-006",
+    "RMC-007",
+    "RMC-008",
+    "RMC-009",
+    "RMC-010",
+    "RMC-011",
+    "RMC-012",
+    "RMC-013"
+  ],
+  "pinned_stages": [],
+  "blocking_reasons": [
+    "RMC012_REAL_ACTIONABILITY_BRIDGE_NOT_CERTIFIED",
+    "RMC013_REAL_ECONOMICS_COVERAGE_NOT_CERTIFIED",
+    "TERMINAL_STAGE_ARTIFACTS_NOT_ALL_PINNED"
+  ],
+  "notes": [
+    "Synthetic or foundation-only D12/D13 evidence cannot satisfy RMC-014.",
+    "Set status=PINNED only after exact terminal artifacts are independently verified."
+  ]
+}
