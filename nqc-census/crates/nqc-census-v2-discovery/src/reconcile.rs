@@ -482,12 +482,19 @@ pub fn reconcile(
 
     let mut pairs = Vec::with_capacity(by_pair.len());
     for entry in by_pair.into_values() {
-        let market = CanonicalMarketKey::v2_pair(
-            deployment.clone(),
-            entry.pair,
-            entry.token0,
-            entry.token1,
-        )?;
+        // Name the refused pair: a bare identity error after a full replay
+        // cannot be diagnosed from the log alone.
+        let market =
+            CanonicalMarketKey::v2_pair(deployment.clone(), entry.pair, entry.token0, entry.token1)
+                .map_err(|error| {
+                    DiscoveryError::Core(format!(
+                        "{error}: pair={} token0={} token1={} factory={}",
+                        entry.pair.to_hex(),
+                        entry.token0.to_hex(),
+                        entry.token1.to_hex(),
+                        root.to_hex()
+                    ))
+                })?;
         pairs.push(PairManifest {
             market_id: market.id()?,
             pair: entry.pair,
