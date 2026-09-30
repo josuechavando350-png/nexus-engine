@@ -494,7 +494,11 @@ impl ExecutionCostVector {
     /// Since both endpoint and interior reports are integers, N-1 units are a
     /// sufficient fail-closed reserve.
     fn interval_rounding_reserve(&self, gross_value: Amount256) -> Amount256 {
-        let mut rounded_terms = if gross_value.is_zero() { 0_u128 } else { 1_u128 };
+        let mut rounded_terms = if gross_value.is_zero() {
+            0_u128
+        } else {
+            1_u128
+        };
         for component in &self.components {
             if !component.on_capture.is_zero() {
                 rounded_terms += 1;
