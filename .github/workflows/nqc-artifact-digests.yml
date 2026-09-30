@@ -59,6 +59,13 @@ jobs:
           run=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID" --jq '[.head_sha, .conclusion] | @tsv')
           echo "ARTIFACT_RUN run=$RUN_ID head_and_conclusion=$run artifact=$ARTIFACT digest=$DIGEST"
           cd /tmp/artifact
-          find . -type f | LC_ALL=C sort | while read -r file; do
+          # Store objects are content-addressed and verified by RMC-004; they
+          # are summarized (count and a digest over their sorted listing) so
+          # the closeout files stay readable in the log.
+          find . -type f -not -path './store/*' | LC_ALL=C sort | while read -r file; do
             echo "ARTIFACT_FILE sha256=$(sha256sum "$file" | cut -c1-64) bytes=$(stat -c %s "$file") path=${file#./}"
           done
+          if [ -d store ]; then
+            listing=$(find store -type f | LC_ALL=C sort | xargs -r sha256sum)
+            echo "ARTIFACT_STORE files=$(printf '%s\n' "$listing" | grep -c .) listing_sha256=$(printf '%s\n' "$listing" | sha256sum | cut -c1-64)"
+          fi
