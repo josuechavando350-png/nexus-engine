@@ -278,9 +278,7 @@ impl ExternalGasCreditObservation {
         if active {
             Ok(source)
         } else {
-            source.with_execution_blockers(vec![
-                "GAS_CREDIT_FACILITY_INACTIVE".to_owned(),
-            ])
+            source.with_execution_blockers(vec!["GAS_CREDIT_FACILITY_INACTIVE".to_owned()])
         }
     }
 }
