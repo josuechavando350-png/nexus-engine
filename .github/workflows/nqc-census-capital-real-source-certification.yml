@@ -17,6 +17,8 @@ on:
       - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -54,6 +56,8 @@ on:
       - "ci/nqc-census/test_verify_rmc011_permissionless_debt_facility_catalog.py"
       - "ci/nqc-census/verify-rmc011-bounded-family-rejections.py"
       - "ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py"
+      - "ci/nqc-census/verify-rmc011-bounded-family-promotion.py"
+      - "ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py"
       - "ci/nqc-census/rmc011-external-capital-provider-registry.json"
       - "ci/nqc-census/verify-rmc011-external-capital-provider-registry.py"
       - "ci/nqc-census/test_verify_rmc011_external_capital_provider_registry.py"
@@ -125,6 +129,9 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
           python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
           python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
           python3 -m py_compile ci/nqc-census/verify-rmc011-balancer-v2-capture.py ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py
           python3 ci/nqc-census/test_verify_rmc011_balancer_v2_capture.py -v
           jq -e '
@@ -221,6 +228,9 @@ jobs:
           python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-rejections.py ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py
           python3 ci/nqc-census/test_verify_rmc011_bounded_family_rejections.py -v
           python3 ci/nqc-census/verify-rmc011-bounded-family-rejections.py /tmp/rmc011-bounded-family-rejections.json
+          python3 -m py_compile ci/nqc-census/verify-rmc011-bounded-family-promotion.py ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py
+          python3 ci/nqc-census/test_verify_rmc011_bounded_family_promotion.py -v
+          python3 ci/nqc-census/verify-rmc011-bounded-family-promotion.py
 
       - name: Require authoritative upstream inputs
         shell: bash
