@@ -1,0 +1,119 @@
+{
+  "all_pairs_length": 514624,
+  "block_hash": "0x0712ee92e6c2e2359c792e7aadc5bc35b9db392a2a5dc02f4575096437e8bfc8",
+  "block_number": 25437474,
+  "candidates_sha256": "6fd6e8365bc5e6bb771650dbb4e76ea7f0c884ea919e360c5f230fcdc7eb0a34",
+  "chain_id": 1,
+  "claim": "UNISWAP_V2_PAIR_MAY_NAME_ITS_FACTORY_AS_A_TOKEN",
+  "exchanges_sha256": "dd11b675bbe66fbc7490fc6ace8f95d8f70ca79d0f8e404111b19e668cda0cfd",
+  "factory": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+  "factory_code_keccak256": "bab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0",
+  "factory_code_sha256": "3abc53f12a9cb8ae37ebfada9efc261c1ab4c2759d161e341a49bf67df3f8321",
+  "finalized_height_per_provider": {
+    "blastapi-public": 26086841,
+    "mevblocker-rpc": 26086841,
+    "nodies-public": 26086841
+  },
+  "pairs": [
+    {
+      "code_bytes": {
+        "pair": 11293,
+        "token0": 9495,
+        "token1": 13859
+      },
+      "code_keccak256": {
+        "pair": "5b83bdbcc56b2e630f2807bbadd2b0c21619108066b92a58de081261089e9ce5",
+        "token0": "f20ede7680a8980d8d82b27584b1456483622215e795a21a91ca0d45dc818bfd",
+        "token1": "bab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0"
+      },
+      "code_sha256": {
+        "pair": "8b5db55fa9ab3b9527508d4abe0b39eb588bf310270c8e04b3f38214e8ba63b4",
+        "token0": "13e0366a1e4e1bcac531eebd46ecf79dc5848a462f8ec2175df09441fb029b43",
+        "token1": "3abc53f12a9cb8ae37ebfada9efc261c1ab4c2759d161e341a49bf67df3f8321"
+      },
+      "create2_address": "0x14c336ebeb7a78668b5cd8b592d1124456c853ce",
+      "creation": {
+        "block_hash": "0xbc8526e742e9e13853a77fc5594de2023a5a06c563a9c1a0a1840909fdcaa708",
+        "block_number": 14108735,
+        "log_index": 123,
+        "ordinal": 61997,
+        "transaction_hash": "0x1ffef3afd090282fc68a696434ea94891aab5db441f2b3c68ed6fca4c1d0cfc5"
+      },
+      "enumeration_index": 61996,
+      "factory_as_erc20": {
+        "balance_of_pair": "REVERT",
+        "decimals": "REVERT",
+        "symbol": "REVERT",
+        "total_supply": "REVERT"
+      },
+      "factory_is": "token1",
+      "observed_at_anchor": {
+        "factory.allPairs(index)": "0x14c336ebeb7a78668b5cd8b592d1124456c853ce",
+        "factory.getPair(token0,token1)": "0x14c336ebeb7a78668b5cd8b592d1124456c853ce",
+        "factory.getPair(token1,token0)": "0x14c336ebeb7a78668b5cd8b592d1124456c853ce",
+        "pair.factory()": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+        "pair.token0()": "0x5a1912749d2b7c3cdb832b81601c8c3f437a0de8",
+        "pair.token1()": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f"
+      },
+      "pair_address": "0x14c336ebeb7a78668b5cd8b592d1124456c853ce",
+      "reserves_word": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "token0": "0x5a1912749d2b7c3cdb832b81601c8c3f437a0de8",
+      "token1": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f"
+    },
+    {
+      "code_bytes": {
+        "pair": 11293,
+        "token0": 13859,
+        "token1": 3124
+      },
+      "code_keccak256": {
+        "pair": "5b83bdbcc56b2e630f2807bbadd2b0c21619108066b92a58de081261089e9ce5",
+        "token0": "bab145d02e7005f0d84c6c1639d39b799b0ea16df99ebbdaf5a14d9da820b4e0",
+        "token1": "d0a06b12ac47863b5c7be4185c2deaad1c61557033f56c7d4ea74429cbb25e23"
+      },
+      "code_sha256": {
+        "pair": "8b5db55fa9ab3b9527508d4abe0b39eb588bf310270c8e04b3f38214e8ba63b4",
+        "token0": "3abc53f12a9cb8ae37ebfada9efc261c1ab4c2759d161e341a49bf67df3f8321",
+        "token1": "5566bf50796faf93c9b6f6adacd3b32c70bfe16b48ffc59db6cd144cbdc89739"
+      },
+      "create2_address": "0x3b66602f04c64a3201eec700a47be72ee86b8446",
+      "creation": {
+        "block_hash": "0xb3a05f194eb066ad02017321cd7316398dedf10bfcbb61105841d1014d8ac97d",
+        "block_number": 20176626,
+        "log_index": 136,
+        "ordinal": 336739,
+        "transaction_hash": "0x00c30ffc2a86cb64749f504641319359fc49c49a9b92f73084e133f292f0b2c2"
+      },
+      "enumeration_index": 336738,
+      "factory_as_erc20": {
+        "balance_of_pair": "REVERT",
+        "decimals": "REVERT",
+        "symbol": "REVERT",
+        "total_supply": "REVERT"
+      },
+      "factory_is": "token0",
+      "observed_at_anchor": {
+        "factory.allPairs(index)": "0x3b66602f04c64a3201eec700a47be72ee86b8446",
+        "factory.getPair(token0,token1)": "0x3b66602f04c64a3201eec700a47be72ee86b8446",
+        "factory.getPair(token1,token0)": "0x3b66602f04c64a3201eec700a47be72ee86b8446",
+        "pair.factory()": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+        "pair.token0()": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+        "pair.token1()": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+      },
+      "pair_address": "0x3b66602f04c64a3201eec700a47be72ee86b8446",
+      "reserves_word": "0x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "token0": "0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f",
+      "token1": "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2"
+    }
+  ],
+  "parent_hash": "0x033656168ee1dba1934f77171fe572c866282e97738b79434cb8c01b6e6f88f2",
+  "pinning": "EIP1898_BLOCK_HASH_REQUIRE_CANONICAL",
+  "providers": [
+    "blastapi-public",
+    "mevblocker-rpc",
+    "nodies-public"
+  ],
+  "schema": "nqc-rmc001-amendment-1-evidence-v1",
+  "scope_sha256": "4e35ad395cbc6999196c0d8c38a6614e66042f5521553c8690232e80156c8da3",
+  "uniswap_v2_init_code_hash": "0x96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f"
+}
