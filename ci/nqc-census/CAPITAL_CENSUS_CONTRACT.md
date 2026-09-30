@@ -77,6 +77,7 @@ Every admitted capital source record MUST bind:
 - provider locators used by stable source keys MUST contain facility identity only; mutable runtime/configuration, commercial terms, capacity, activity flags, and blocker state belong to observation identity/evidence and MUST NOT rotate the stable source key
 - fee model
 - for external gas sponsors, any fixed fee asset MUST equal the sponsor's explicitly declared fee asset; contradictory fee metadata is non-canonical
+- external gas credit MUST bind an authenticated delivery route proving native gas reaches the borrower before the execution transaction without operator prefunding; a facility that requires the borrower to spend gas to draw the gas credit is circular and is not admissible as `GAS_FUNDING`
 - repayment semantics
 - collateral_required
 - liquidation_conditions
@@ -132,6 +133,7 @@ A source may be used only when:
 - settlement legs must authorize the actual capital-source classes that generated those obligations, and the declared settlement amounts must be exactly assignable across those authorized classes; matching only aggregate kind, asset, and amount is insufficient
 - atomicity/collateral requirements are compatible
 - action atomicity constrains action/principal funding, but a `GAS` leg may use authenticated external `GAS_FUNDING` with later explicit repayment because native gas must be acquired before EVM execution; that exception MUST NOT allow the same delayed source to fund an atomic action-principal leg
+- external gas-credit evidence MUST bind `delivery_semantics = PRE_EXECUTION_NATIVE_GAS_TO_BORROWER_NO_OPERATOR_PREFUND_V1`, a non-zero content-addressed delivery-route commitment, and `operator_prefund_required = false`; credit capacity without this pre-submit delivery proof is not executable gas capacity
 - no unresolved source mismatch remains
 
 Feasibility MUST fail closed on:
@@ -201,6 +203,7 @@ At minimum:
 - collateral and temporary-lock dependencies are aggregated across all distinct sources used by one candidate; one declared leg cannot be reused to satisfy multiple source dependencies
 - gas funding is independently required when execution needs native gas, and the `requires_native_gas` flag must equal the presence of a native-gas requirement leg in both directions
 - a same-transaction action with exact flash principal plus deadline-bound external gas credit must remain feasible when repayment is explicitly declared, while the same deadline-bound source must fail atomicity if used as action principal
+- external gas credit must fail closed when delivery requires operator prefunding, when the draw itself requires borrower gas, or when the authenticated delivery-route commitment is changed without a matching terms commitment
 - insufficient source capacity fails closed
 - Aave V3 flash-premium regression MUST include the exact PFT-COMPAT-009 callback witnesses (`83727306811 @ 5 bps -> 41863654` and `186298226 @ 5 bps -> 93150`)
 - incompatible repayment asset/semantics fails closed
