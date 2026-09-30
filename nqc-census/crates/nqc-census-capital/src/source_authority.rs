@@ -649,6 +649,15 @@ pub fn certify_with_d11_sources(
     upstream: &CapitalCertificationContext,
     d11_sources: &D11SourceAuthority,
 ) -> Result<D11ExpandedCapitalCensusCertificate, CapitalError> {
+    let set = D11SourceAuthoritySet::new(vec![d11_sources.clone()])?;
+    certify_with_d11_source_authorities(ledger, upstream, &set)
+}
+
+pub fn certify_with_d11_source_authorities(
+    ledger: &CapitalCensusLedger,
+    upstream: &CapitalCertificationContext,
+    d11_sources: &D11SourceAuthoritySet,
+) -> Result<D11ExpandedCapitalCensusCertificate, CapitalError> {
     if ledger.mode() != CapitalLedgerMode::Evidentiary {
         return Err(CapitalError::NonEvidentiaryLedger);
     }
@@ -738,7 +747,7 @@ pub fn certify_with_d11_sources(
     let requirement_by_id = ledger
         .requirements()
         .map(|requirement| (requirement.id(), requirement))
-        .collect::<std::collections::BTreeMap<_, _>>();
+        .collect::<BTreeMap<_, _>>();
     for result in ledger.results() {
         if let CapitalFeasibility::Feasible { requirement_id, .. } = result {
             let requirement = requirement_by_id
