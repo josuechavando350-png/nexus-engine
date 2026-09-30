@@ -1,16 +1,16 @@
 name: NQC diagnose a failed census stage
 
-# Read-only diagnosis of RMC-009 run 36648778677, whose index partition 3 on
-# tenderly-public failed ten times with JSON-RPC -32602 "invalid params". The
-# probe rebuilds that partition's exact eth_getLogs requests from the
-# certified D06 history and records every refused window and its full
-# error. Nothing is written anywhere.
+# Read-only diagnosis of RMC-009 live run 36674256094, whose index counted 13
+# Mint/BalanceTransfer logs to the zero address. The probe finds every such log
+# from the exact RMC-009 filter on both providers, requires them to agree,
+# identifies each transaction, and reads the zero address's scaled balance and
+# balance of every token at the census anchor. Nothing is written anywhere.
 on:
   push:
     branches: [claude/handoff-mercados-execution-xmkiwm]
     paths:
       - .github/workflows/nqc-diagnose-artifact.yml
-      - ci/nqc-probe/d09_tenderly_window_probe.py
+      - ci/nqc-probe/d09_zero_account_probe.py
 
 permissions:
   contents: read
@@ -30,9 +30,9 @@ jobs:
           run-id: "36627517591"
           github-token: ${{ github.token }}
           path: /tmp/d06
-      - name: Probe tenderly-public on partition 3
+      - name: Probe the zero-address index logs and holdings
         run: |
           set -euo pipefail
           echo "297f642608eaeaedb7e9c56ed150e18f8036aae3861d611d3fcbf7c21dae7a6f  /tmp/d06/aave-history.json" | sha256sum --check --strict
-          python3 ci/nqc-probe/d09_tenderly_window_probe.py /tmp/d06/aave-history.json | tee /tmp/probe.log
-          grep -E "^(PROBE|TENDERLY_REFUSED|REFUSED_WINDOW|TENDERLY_SPAN|MEVBLOCKER_REFUSED)" /tmp/probe.log
+          python3 ci/nqc-probe/d09_zero_account_probe.py /tmp/d06/aave-history.json | tee /tmp/probe.log
+          grep -E "^(PROBE|ZERO_|PROVIDERS_|REFUSED|NO_ANSWER)" /tmp/probe.log
