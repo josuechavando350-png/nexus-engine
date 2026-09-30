@@ -19,6 +19,8 @@ use std::{
 pub const WAD: u64 = 1_000_000_000_000_000_000;
 const QUOTE_DOMAIN: &[u8] = b"NQC-RMC013-EXECUTION-QUOTE-V2";
 const CURVE_DOMAIN: &[u8] = b"NQC-RMC013-CAPACITY-CURVE-V2";
+const SHADOW_PREDICTION_DOMAIN: &[u8] = b"NQC-RMC013-SHADOW-PREDICTION-V1";
+const SHADOW_BATCH_DOMAIN: &[u8] = b"NQC-RMC013-SHADOW-BATCH-V1";
 const USD_WAD_UNIT_DOMAIN: &[u8] = b"NQC-RMC013-USD-WAD-VALUATION-UNIT-V1";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -45,6 +47,8 @@ pub enum EconomicsError {
     CurveTradeSizeNotStrictlyIncreasing,
     ScenarioEmpty,
     ScenarioProbabilityNotOne,
+    ShadowExpiryNotAfterAnchor,
+    ShadowDuplicateCandidate,
 }
 
 impl Display for EconomicsError {
@@ -89,6 +93,12 @@ impl Display for EconomicsError {
             Self::ScenarioEmpty => f.write_str("scenario distribution is empty"),
             Self::ScenarioProbabilityNotOne => {
                 f.write_str("scenario probabilities must sum to exactly 1e18")
+            }
+            Self::ShadowExpiryNotAfterAnchor => {
+                f.write_str("shadow prediction expiry must be after its observation anchor")
+            }
+            Self::ShadowDuplicateCandidate => {
+                f.write_str("shadow prediction batch repeats a candidate")
             }
         }
     }
@@ -1040,6 +1050,27 @@ impl CapacityCurve {
         Ok(best.map(|(point, _)| point))
     }
 
+    /// Best explicitly measured/simulated point before any capture
+    /// probability is assumed. This is the canonical RMC -> Shadow handoff
+    /// selector and therefore remains usable when capture is UNCALIBRATED.
+    pub fn best_pre_capture_point(&self) -> Result<Option<&ExecutionQuote>, EconomicsError> {
+        let mut best: Option<(&ExecutionQuote, SignedAmount)> = None;
+        for point in &self.points {
+            let net = point.evaluate()?.success_path_net;
+            if !net.is_positive() {
+                continue;
+            }
+            match best {
+                Some((current_point, current_net))
+                    if current_net > net
+                        || (current_net == net
+                            && current_point.trade_size() <= point.trade_size()) => {}
+                _ => best = Some((point, net)),
+            }
+        }
+        Ok(best.map(|(point, _)| point))
+    }
+
     /// Largest explicitly measured/simulated size whose interval-worst,
     /// tail-adjusted EV remains positive. This is a capacity boundary, not a
     /// license to extrapolate beyond the measured curve.
@@ -1051,6 +1082,166 @@ impl CapacityCurve {
             }
         }
         Ok(largest)
+    }
+}
+
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShadowPrediction {
+    candidate_id: PortfolioCandidateId,
+    opportunity_id: Hash32,
+    anchor: StateAnchor,
+    curve_commitment: [u8; 32],
+    quote_commitment: [u8; 32],
+    execution_plan_commitment: Hash32,
+    economic_model_commitment: Hash32,
+    trade_size: Amount256,
+    gross_value: Amount256,
+    success_cost: Amount256,
+    success_path_net: SignedAmount,
+    expires_after_block: u64,
+    evidence: Vec<Hash32>,
+    commitment: [u8; 32],
+}
+
+impl ShadowPrediction {
+    /// Build an ex-ante Shadow handoff from the best explicitly measured
+    /// pre-capture point. Capture probability is intentionally not required:
+    /// Shadow is the empirical authority that will calibrate it.
+    pub fn from_curve(
+        curve: &CapacityCurve,
+        expires_after_block: u64,
+        mut evidence: Vec<Hash32>,
+    ) -> Result<Option<Self>, EconomicsError> {
+        let Some(quote) = curve.best_pre_capture_point()? else {
+            return Ok(None);
+        };
+        if expires_after_block <= quote.anchor().block_number() {
+            return Err(EconomicsError::ShadowExpiryNotAfterAnchor);
+        }
+        if evidence.is_empty() {
+            return Err(EconomicsError::MissingEvidence);
+        }
+        if evidence.iter().copied().any(is_zero_hash) {
+            return Err(EconomicsError::MissingEvidenceCommitment("shadow_prediction"));
+        }
+        evidence.sort_unstable();
+        if evidence.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(EconomicsError::DuplicateEvidence);
+        }
+
+        let report = quote.evaluate()?;
+        let mut hasher = Sha256::new();
+        hasher.update(SHADOW_PREDICTION_DOMAIN);
+        hasher.update([0]);
+        hasher.update(quote.candidate_id().as_bytes());
+        hasher.update(quote.opportunity_id().as_bytes());
+        encode_anchor(quote.anchor(), &mut hasher);
+        hasher.update(curve.commitment());
+        hasher.update(quote.commitment());
+        hasher.update(quote.execution_plan_commitment().as_bytes());
+        hasher.update(quote.economic_model_commitment().as_bytes());
+        hasher.update(quote.trade_size().as_be_bytes());
+        hasher.update(quote.gross_value().as_be_bytes());
+        hasher.update(report.success_cost.as_be_bytes());
+        hasher.update([u8::from(report.success_path_net.is_negative())]);
+        hasher.update(report.success_path_net.magnitude().as_be_bytes());
+        hasher.update(expires_after_block.to_be_bytes());
+        for item in &evidence {
+            hasher.update(item.as_bytes());
+        }
+        let commitment = hasher.finalize().into();
+
+        Ok(Some(Self {
+            candidate_id: quote.candidate_id(),
+            opportunity_id: quote.opportunity_id(),
+            anchor: quote.anchor().clone(),
+            curve_commitment: *curve.commitment(),
+            quote_commitment: *quote.commitment(),
+            execution_plan_commitment: quote.execution_plan_commitment(),
+            economic_model_commitment: quote.economic_model_commitment(),
+            trade_size: quote.trade_size(),
+            gross_value: quote.gross_value(),
+            success_cost: report.success_cost,
+            success_path_net: report.success_path_net,
+            expires_after_block,
+            evidence,
+            commitment,
+        }))
+    }
+
+    pub const fn candidate_id(&self) -> PortfolioCandidateId {
+        self.candidate_id
+    }
+
+    pub const fn anchor(&self) -> &StateAnchor {
+        &self.anchor
+    }
+
+    pub const fn success_path_net(&self) -> SignedAmount {
+        self.success_path_net
+    }
+
+    pub const fn expires_after_block(&self) -> u64 {
+        self.expires_after_block
+    }
+
+    pub const fn commitment(&self) -> &[u8; 32] {
+        &self.commitment
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ShadowPredictionBatch {
+    predictions: Vec<ShadowPrediction>,
+    commitment: [u8; 32],
+}
+
+impl ShadowPredictionBatch {
+    /// Derive one deterministic prediction for every curve that has a positive
+    /// pre-capture net point. Curves with no positive success-path economics
+    /// are not Shadow-eligible and are not silently counted.
+    pub fn from_curves(
+        curves: &[CapacityCurve],
+        expires_after_block: u64,
+        evidence: Vec<Hash32>,
+    ) -> Result<Self, EconomicsError> {
+        let mut predictions = Vec::new();
+        let mut candidates = BTreeSet::new();
+        for curve in curves {
+            if let Some(prediction) =
+                ShadowPrediction::from_curve(curve, expires_after_block, evidence.clone())?
+            {
+                if !candidates.insert(prediction.candidate_id()) {
+                    return Err(EconomicsError::ShadowDuplicateCandidate);
+                }
+                predictions.push(prediction);
+            }
+        }
+        predictions.sort_by_key(ShadowPrediction::candidate_id);
+        let mut hasher = Sha256::new();
+        hasher.update(SHADOW_BATCH_DOMAIN);
+        hasher.update([0]);
+        hasher.update(
+            u64::try_from(predictions.len())
+                .unwrap_or(u64::MAX)
+                .to_be_bytes(),
+        );
+        for prediction in &predictions {
+            hasher.update(prediction.commitment());
+        }
+        Ok(Self {
+            predictions,
+            commitment: hasher.finalize().into(),
+        })
+    }
+
+    pub fn predictions(&self) -> &[ShadowPrediction] {
+        &self.predictions
+    }
+
+    pub const fn commitment(&self) -> &[u8; 32] {
+        &self.commitment
     }
 }
 
