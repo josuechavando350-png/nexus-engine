@@ -76,6 +76,7 @@ Every admitted capital source record MUST bind:
 - execution blocker codes are preserved exactly; blocker-state changes alter the observation-specific source ID but MUST NOT alter the stable source key
 - provider locators used by stable source keys MUST contain facility identity only; mutable runtime/configuration, commercial terms, capacity, activity flags, and blocker state belong to observation identity/evidence and MUST NOT rotate the stable source key
 - fee model
+- for external gas sponsors, any fixed fee asset MUST equal the sponsor's explicitly declared fee asset; contradictory fee metadata is non-canonical
 - repayment semantics
 - collateral_required
 - liquidation_conditions
