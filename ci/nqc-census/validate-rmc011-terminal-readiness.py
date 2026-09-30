@@ -12,6 +12,8 @@ allowed={"SEMANTIC_ADMISSION_IMPLEMENTED","SEMANTIC_ADMISSION_READY_NOT_AUTHENTI
 for row in families:
     assert row["status"] in allowed, row
     assert isinstance(row["terminally_resolved"], bool)
+    if row["terminally_resolved"]:
+        assert row["status"] in {"AUTHENTICATED_REAL_SOURCE","EXHAUSTIVELY_REJECTED"}, row
 unknown=sum(1 for x in families if x["status"]=="UNKNOWN")
 assert unknown==data["unknown_family_count"]==0
 all_resolved=all(x["terminally_resolved"] for x in families)
@@ -20,10 +22,10 @@ if data["terminal_claim_allowed"]:
     assert data["status"]=="D11_TERMINAL_CLOSED"
 else:
     assert data["status"]!="D11_TERMINAL_CLOSED"
-# Gas cannot be terminally resolved by model support alone.
-for row in families:
-    if row["capital_class"]=="GAS_FUNDING" and row["terminally_resolved"]:
-        assert row["status"] in {"AUTHENTICATED_REAL_SOURCE","EXHAUSTIVELY_REJECTED"}
+scope=json.loads(Path("ci/nqc-census/capital-census-scope.json").read_text())
+required=set(scope["required_classes"])
+covered={x["capital_class"] for x in families}
+assert required <= covered, sorted(required-covered)
 print(json.dumps({
     "RMC011_SOURCE_UNIVERSE_CONTRACT":"PASS",
     "families":len(families),
