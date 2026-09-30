@@ -118,9 +118,7 @@ fn import_d08_capital_sources(
     let manifest = d08_manifest(states, tokens, facts);
     let authority = d08_authority(&manifest)?;
     let mut bound_context = context.clone();
-    bound_context
-        .evidence
-        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256));
+    bound_context.evidence = vec![CapitalEvidenceRef::Artifact(authority.artifact_sha256)];
     import_d08_capital_sources_bound(states, tokens, facts, &manifest, &authority, &bound_context)
 }
 
@@ -200,6 +198,9 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
     assert_eq!(imported.admitted_count, 3);
     assert_eq!(imported.rejected_count, 0);
     assert!(imported.is_conserved());
+    let receipt = imported.consumption_receipt()?;
+    assert_eq!(receipt.stage(), UpstreamCensusStage::Rmc008StateAdmission);
+    assert_eq!(receipt.coverage_commitment(), imported.coverage_commitment);
 
     let mut classes = imported
         .sources
@@ -227,7 +228,7 @@ fn d08_import_builds_aave_and_v2_sources_only_for_proven_compatible_tokens() -> 
 }
 
 #[test]
-fn d08_import_fails_closed_on_unproven_token_compatibility() -> TestResult {
+fn d08_import_preserves_unproven_token_capital_but_excludes_it_from_execution() -> TestResult {
     let asset = address(20);
     let tokens = format!("{}\n", token_row(asset, false));
     let states = format!(
@@ -244,12 +245,25 @@ fn d08_import_fails_closed_on_unproven_token_compatibility() -> TestResult {
         &d08_facts(),
         &context(),
     )?;
-    assert!(imported.sources.is_empty());
-    assert_eq!(imported.rejections.len(), 1);
+    assert_eq!(imported.sources.len(), 1);
+    assert!(imported.rejections.is_empty());
+    assert_eq!(imported.admitted_count, 1);
+    assert_eq!(imported.rejected_count, 0);
     assert_eq!(
-        imported.rejections[0].reason,
-        CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked
+        imported.sources[0].maximum_available(),
+        Amount256::from_u128(10_000)
     );
+    assert_eq!(
+        imported.sources[0].effective_capacity()?,
+        Amount256::from_u128(10_000)
+    );
+    assert_eq!(imported.sources[0].executable_capacity()?, Amount256::ZERO);
+    assert!(!imported.sources[0].execution_eligible());
+    assert_eq!(
+        imported.sources[0].execution_blockers(),
+        &["FEE_ON_TRANSFER_UNPROVEN".to_owned()]
+    );
+    assert!(imported.is_conserved());
     Ok(())
 }
 
@@ -385,8 +399,15 @@ fn d08_import_coverage_is_order_independent_and_conserved() -> TestResult {
     assert!(a.is_conserved());
     assert!(b.is_conserved());
     assert_eq!(a.candidate_count, 3);
-    assert_eq!(a.admitted_count, 2);
-    assert_eq!(a.rejected_count, 1);
+    assert_eq!(a.admitted_count, 3);
+    assert_eq!(a.rejected_count, 0);
+    assert_eq!(
+        a.sources
+            .iter()
+            .filter(|source| !source.execution_eligible())
+            .count(),
+        1
+    );
     assert_eq!(a.coverage_commitment, b.coverage_commitment);
     Ok(())
 }
@@ -415,7 +436,7 @@ fn d08_import_rejects_duplicate_capital_candidates() -> TestResult {
 }
 
 #[test]
-fn current_d08_blocked_token_semantics_admit_no_capital_source() -> TestResult {
+fn current_d08_blocked_token_semantics_preserve_observed_capital() -> TestResult {
     let asset = address(20);
     let tokens = format!(
         "{{\"behavior\":{{\"fee_on_transfer\":\"UNPROVEN\",\"rebasing\":\"UNPROVEN\",\"transfer_hooks\":\"UNPROVEN\",\"upgradeable\":\"UNPROVEN\"}},\"execution_compatibility\":{{\"blockers\":[\"FEE_ON_TRANSFER_UNPROVEN\",\"REBASING_UNPROVEN\",\"TRANSFER_HOOKS_UNPROVEN\",\"UPGRADEABLE_UNPROVEN\"],\"status\":\"BLOCKED\"}},\"token\":\"{}\"}}\n",
@@ -431,11 +452,21 @@ fn current_d08_blocked_token_semantics_admit_no_capital_source() -> TestResult {
         &d08_facts(),
         &context(),
     )?;
-    assert!(imported.sources.is_empty());
-    assert_eq!(imported.rejected_count, 1);
+    assert_eq!(imported.sources.len(), 1);
+    assert_eq!(imported.rejected_count, 0);
     assert_eq!(
-        imported.rejections[0].reason,
-        CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked
+        imported.sources[0].effective_capacity()?,
+        Amount256::from_u128(10_000)
+    );
+    assert_eq!(imported.sources[0].executable_capacity()?, Amount256::ZERO);
+    assert_eq!(
+        imported.sources[0].execution_blockers(),
+        &[
+            "FEE_ON_TRANSFER_UNPROVEN".to_owned(),
+            "REBASING_UNPROVEN".to_owned(),
+            "TRANSFER_HOOKS_UNPROVEN".to_owned(),
+            "UPGRADEABLE_UNPROVEN".to_owned(),
+        ]
     );
     assert!(imported.is_conserved());
     Ok(())
@@ -574,9 +605,7 @@ fn d08_evidentiary_import_rejects_consumed_artifact_substitution() -> TestResult
     let manifest = d08_manifest(states.as_bytes(), tokens.as_bytes(), &facts);
     let authority = d08_authority(&manifest)?;
     let mut bound_context = context();
-    bound_context
-        .evidence
-        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256));
+    bound_context.evidence = vec![CapitalEvidenceRef::Artifact(authority.artifact_sha256)];
 
     let tampered_states = states.replace("\"10000\"", "\"10001\"");
     assert!(import_d08_capital_sources_bound(
@@ -604,9 +633,7 @@ fn d08_evidentiary_import_rejects_manifest_not_named_by_authority() -> TestResul
     let mut authority = d08_authority(&manifest)?;
     authority.artifact_sha256 = hash(250);
     let mut bound_context = context();
-    bound_context
-        .evidence
-        .push(CapitalEvidenceRef::Artifact(authority.artifact_sha256));
+    bound_context.evidence = vec![CapitalEvidenceRef::Artifact(authority.artifact_sha256)];
 
     assert!(import_d08_capital_sources_bound(
         states.as_bytes(),

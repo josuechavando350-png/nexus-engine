@@ -5,7 +5,8 @@ use nqc_census_capital::{
     CapitalRequirement, CapitalRequirementLeg, CapitalSource, CapitalSourceSpec, CapitalTargetId,
     CollateralRequirement, FeeModel, GitObjectId, PersistentDebtTerms, RepaymentSemantics,
     RequiredAtomicity, RequirementKind, RoundingMode, TemporaryLock, UpstreamCensusStage,
-    UpstreamStageAuthority, UpstreamStageAuthoritySpec, UtilizationConstraints,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority, UpstreamStageAuthoritySpec,
+    UtilizationConstraints,
 };
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 
@@ -35,8 +36,9 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
     vec![CapitalEvidenceRef::Artifact(hash(99))]
 }
 
-fn certification_context() -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError>
-{
+fn certification_context_for(
+    ledger: &CapitalCensusLedger,
+) -> Result<CapitalCertificationContext, nqc_census_capital::CapitalError> {
     let mut stages = Vec::new();
     for (index, stage) in UpstreamCensusStage::ALL.into_iter().enumerate() {
         let nibble = u8::try_from(index + 1).map_err(|_| {
@@ -60,7 +62,28 @@ fn certification_context() -> Result<CapitalCertificationContext, nqc_census_cap
             .iter()
             .map(|stage| CapitalEvidenceRef::Artifact(stage.artifact_sha256)),
     );
-    CapitalCertificationContext::new(stages, admitted_evidence)
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-008 authority missing",
+        ))?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or(nqc_census_capital::CapitalError::InvalidUpstreamAuthority(
+            "test RMC-009 authority missing",
+        ))?
+        .artifact_sha256;
+    CapitalCertificationContext::new(stages, admitted_evidence)?.with_consumption_receipts(vec![
+        UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+        UpstreamConsumptionReceipt::for_requirements(
+            d09_artifact,
+            hash(81),
+            ledger.requirements(),
+        )?,
+    ])
 }
 
 fn source(
@@ -158,6 +181,137 @@ fn source_id_is_deterministic_and_class_separated() -> TestResult {
 }
 
 #[test]
+fn source_constructor_rejects_public_semantic_bypasses() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let base = CapitalSourceSpec {
+        class: CapitalClass::AtomicFlashLiquidity,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(1_000),
+        fee_model: FeeModel::None,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    };
+
+    let mut invalid = base.clone();
+    invalid.fee_model = FeeModel::BasisPoints {
+        bps: 10_001,
+        rounding: RoundingMode::Floor,
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::InvalidBasisPoints(10_001))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.fee_model = FeeModel::ExactRatio {
+        numerator: 1,
+        denominator: 0,
+        rounding: RoundingMode::Floor,
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::InvalidRatio)
+    ));
+
+    let mut invalid = base.clone();
+    invalid.repayment = RepaymentSemantics::DeadlineBlocks(0);
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::ZeroValue("repayment_deadline_blocks"))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.collateral = CollateralRequirement::Required {
+        asset: token,
+        amount: Amount256::ZERO,
+        liquidation_conditions_hash: hash(31),
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::ZeroValue("collateral_amount"))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.utilization = UtilizationConstraints {
+        max_utilization_bps: 10_001,
+        min_remaining: Amount256::ZERO,
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::InvalidBasisPoints(10_001))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.temporary_lock = TemporaryLock::Required {
+        asset: token,
+        amount: Amount256::ZERO,
+        release: nqc_census_capital::LockRelease::EndOfTransaction,
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::ZeroValue("temporary_lock_amount"))
+    ));
+
+    let mut invalid = base.clone();
+    invalid.temporary_lock = TemporaryLock::Required {
+        asset: token,
+        amount: Amount256::from_u128(1),
+        release: nqc_census_capital::LockRelease::DeadlineBlocks(0),
+    };
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::ZeroValue("lock_deadline_blocks"))
+    ));
+
+    let mut invalid = base;
+    invalid.evidence = vec![CapitalEvidenceRef::Observation([0; 32])];
+    assert!(matches!(
+        CapitalSource::new(invalid),
+        Err(CapitalError::InvalidCanonical(
+            "zero observation evidence digest"
+        ))
+    ));
+    Ok(())
+}
+
+#[test]
+fn requirement_constructor_rejects_zero_observation_evidence() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        token,
+        Amount256::from_u128(1),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    assert!(matches!(
+        CapitalRequirement::new(
+            CapitalTargetId::from_hash(hash(50)),
+            anchor(100),
+            RequiredAtomicity::SameTransaction,
+            false,
+            vec![principal],
+            vec![CapitalEvidenceRef::Observation([0; 32])],
+        ),
+        Err(CapitalError::InvalidCanonical(
+            "zero observation evidence digest"
+        ))
+    ));
+    Ok(())
+}
+
+#[test]
 fn source_canonical_roundtrip_and_tamper_rejection() -> TestResult {
     let asset = CapitalAsset::Token(address(20));
     let source = source(
@@ -175,6 +329,112 @@ fn source_canonical_roundtrip_and_tamper_rejection() -> TestResult {
     let index = tampered.len() / 2;
     tampered[index] ^= 0x01;
     assert!(CapitalSource::decode_canonical(&tampered).is_err());
+    Ok(())
+}
+
+#[test]
+fn execution_blockers_preserve_observed_capacity_and_stable_source_key() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let observed = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let key = observed.key_id();
+    let unblocked_id = observed.id();
+    let blocked = observed.with_execution_blockers(vec![
+        "TRANSFER_HOOKS_UNPROVEN".to_owned(),
+        "FEE_ON_TRANSFER_UNPROVEN".to_owned(),
+    ])?;
+
+    assert_eq!(blocked.key_id(), key);
+    assert_ne!(blocked.id(), unblocked_id);
+    assert_eq!(blocked.maximum_available(), Amount256::from_u128(1_000));
+    assert_eq!(blocked.effective_capacity()?, Amount256::from_u128(1_000));
+    assert_eq!(blocked.executable_capacity()?, Amount256::ZERO);
+    assert!(!blocked.execution_eligible());
+    assert_eq!(
+        blocked.execution_blockers(),
+        &[
+            "FEE_ON_TRANSFER_UNPROVEN".to_owned(),
+            "TRANSFER_HOOKS_UNPROVEN".to_owned(),
+        ]
+    );
+
+    let encoded = blocked.canonical_encode();
+    let decoded = CapitalSource::decode_canonical(&encoded)?;
+    assert_eq!(decoded, blocked);
+    assert!(source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?
+    .with_execution_blockers(vec!["not-canonical".to_owned()])
+    .is_err());
+    Ok(())
+}
+
+#[test]
+fn execution_blocked_liquidity_is_not_misclassified_as_insufficient_capacity() -> TestResult {
+    let asset = CapitalAsset::Token(address(20));
+    let blocked = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        asset,
+        1_000,
+        asset,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?
+    .with_execution_blockers(vec!["FEE_ON_TRANSFER_UNPROVEN".to_owned()])?;
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        asset,
+        Amount256::from_u128(500),
+        vec![CapitalClass::ProtocolNativeFlashLoan],
+    )?;
+    let required = requirement(vec![principal], RequiredAtomicity::SameTransaction, false)?;
+
+    assert_eq!(
+        evaluate_capital_feasibility(&required, &[blocked]),
+        CapitalFeasibility::Rejected {
+            requirement_id: required.id(),
+            reason: nqc_census_capital::FeasibilityRejection::ExecutionBlocked,
+            failed_leg: Some(RequirementKind::ActionPrincipal),
+        }
+    );
+    Ok(())
+}
+
+#[test]
+fn execution_blocked_gas_is_not_misclassified_as_missing() -> TestResult {
+    let gas = CapitalAsset::NativeGas;
+    let blocked = source(
+        CapitalClass::GasFunding,
+        gas,
+        100,
+        gas,
+        RepaymentSemantics::NoRepayment,
+    )?
+    .with_execution_blockers(vec!["SPONSOR_POLICY_UNPROVEN".to_owned()])?;
+    let gas_leg = CapitalRequirementLeg::new(
+        RequirementKind::Gas,
+        gas,
+        Amount256::from_u128(50),
+        vec![CapitalClass::GasFunding],
+    )?;
+    let required = requirement(vec![gas_leg], RequiredAtomicity::SameTransaction, true)?;
+
+    assert_eq!(
+        evaluate_capital_feasibility(&required, &[blocked]),
+        CapitalFeasibility::Rejected {
+            requirement_id: required.id(),
+            reason: nqc_census_capital::FeasibilityRejection::ExecutionBlocked,
+            failed_leg: Some(RequirementKind::Gas),
+        }
+    );
     Ok(())
 }
 
@@ -251,6 +511,33 @@ fn unknown_source_failure_mode_is_never_admitted() -> TestResult {
 }
 
 #[test]
+fn native_gas_flag_and_gas_leg_must_match_exactly() -> TestResult {
+    let gas = CapitalRequirementLeg::new(
+        RequirementKind::Gas,
+        CapitalAsset::NativeGas,
+        Amount256::from_u128(5),
+        vec![CapitalClass::GasFunding],
+    )?;
+
+    assert!(matches!(
+        requirement(vec![gas.clone()], RequiredAtomicity::SameTransaction, false,),
+        Err(CapitalError::NativeGasLegWithoutRequirementFlag)
+    ));
+
+    let principal = CapitalRequirementLeg::new(
+        RequirementKind::ActionPrincipal,
+        CapitalAsset::Token(address(20)),
+        Amount256::from_u128(1),
+        vec![CapitalClass::FlashSwap],
+    )?;
+    assert!(matches!(
+        requirement(vec![principal], RequiredAtomicity::SameTransaction, true,),
+        Err(CapitalError::NativeGasRequiredButMissing)
+    ));
+    Ok(())
+}
+
+#[test]
 fn gas_is_independent_and_required() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
@@ -312,8 +599,18 @@ fn exact_gas_and_flash_sources_can_be_feasible() -> TestResult {
         vec![
             principal,
             gas,
-            repayment_leg(token)?,
-            repayment_leg(CapitalAsset::NativeGas)?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(500),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                CapitalAsset::NativeGas,
+                Amount256::from_u128(5),
+                vec![CapitalClass::GasFunding],
+            )?,
         ],
         RequiredAtomicity::SameTransaction,
         true,
@@ -372,6 +669,57 @@ fn protocol_cap_limits_effective_capacity() -> TestResult {
 }
 
 #[test]
+fn utilization_reserve_and_absolute_caps_are_independent_upper_bounds() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let make = |protocol_cap, utilization_bps, min_remaining| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::AtomicFlashLiquidity,
+            anchor: anchor(100),
+            provider_namespace: 11,
+            provider_locator_hash: hash(12),
+            provider_kind: CapitalProviderKind::ProtocolContract,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(address(13)),
+            asset: token,
+            maximum_available: Amount256::from_u128(1_000),
+            fee_model: FeeModel::None,
+            repayment_asset: token,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(
+                utilization_bps,
+                Amount256::from_u128(min_remaining),
+            )?,
+            caps: CapitalCaps {
+                protocol_cap: Some(Amount256::from_u128(protocol_cap)),
+                market_cap: None,
+            },
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![CapitalFailureMode::CapacityChanged],
+            evidence: evidence(),
+        })
+    };
+
+    // Independent bounds are: observed=1000, utilization=800,
+    // reserve-floor=900, protocol-cap=900. The result is 800, not 620.
+    let utilization_limited = make(900, 8_000, 100)?;
+    assert_eq!(
+        utilization_limited.effective_capacity()?,
+        Amount256::from_u128(800)
+    );
+
+    // An absolute cap of 400 remains 400 even though utilization is 50% of
+    // the observed 1000 and a reserve floor of 100 must remain.
+    let cap_limited = make(400, 5_000, 100)?;
+    assert_eq!(cap_limited.effective_capacity()?, Amount256::from_u128(400));
+
+    // A reserve floor at or above observed liquidity closes the source.
+    let reserve_limited = make(1_000, 10_000, 1_000)?;
+    assert_eq!(reserve_limited.effective_capacity()?, Amount256::ZERO);
+    Ok(())
+}
+
+#[test]
 fn mismatched_anchor_fails_closed() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
@@ -381,7 +729,15 @@ fn mismatched_anchor_fails_closed() -> TestResult {
         vec![CapitalClass::FlashSwap],
     )?;
     let req = requirement(
-        vec![principal, repayment_leg(token)?],
+        vec![
+            principal,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+        ],
         RequiredAtomicity::SameTransaction,
         false,
     )?;
@@ -987,9 +1343,159 @@ fn fee_rounding_matches_protocol_integer_semantics() -> TestResult {
 fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult {
     let ledger = CapitalCensusLedger::synthetic_fixture();
     assert!(matches!(
-        ledger.certify(&certification_context()?),
+        ledger.certify(&certification_context_for(&ledger)?),
         Err(nqc_census_capital::CapitalError::NonEvidentiaryLedger)
     ));
+    Ok(())
+}
+
+#[test]
+fn evidentiary_certification_requires_consumed_d08_and_d09_receipts() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let external = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let mut ledger = CapitalCensusLedger::evidentiary();
+    ledger.register_source(external)?;
+    ledger.evaluate_all()?;
+
+    let context = certification_context_for(&ledger)?;
+    let bare = CapitalCertificationContext::new(
+        context.stages().to_vec(),
+        context.admitted_evidence().copied().collect(),
+    )?;
+    assert!(matches!(
+        ledger.certify(&bare),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn consumption_receipts_fail_closed_on_wrong_authority_or_duplicate_stage() -> TestResult {
+    let ledger = CapitalCensusLedger::evidentiary();
+    let context = certification_context_for(&ledger)?;
+    let stages = context.stages().to_vec();
+    let admitted_evidence = context.admitted_evidence().copied().collect::<Vec<_>>();
+    let d08_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc008StateAdmission)
+        .ok_or("missing RMC-008 authority")?
+        .artifact_sha256;
+    let d09_artifact = stages
+        .iter()
+        .find(|stage| stage.stage == UpstreamCensusStage::Rmc009PositionUniverse)
+        .ok_or("missing RMC-009 authority")?
+        .artifact_sha256;
+
+    let wrong_authority =
+        CapitalCertificationContext::new(stages.clone(), admitted_evidence.clone())?
+            .with_consumption_receipts(vec![
+                UpstreamConsumptionReceipt::for_sources(hash(90), hash(80), ledger.sources())?,
+                UpstreamConsumptionReceipt::for_requirements(
+                    d09_artifact,
+                    hash(81),
+                    ledger.requirements(),
+                )?,
+            ]);
+    assert!(matches!(
+        wrong_authority,
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+
+    let duplicate = CapitalCertificationContext::new(stages, admitted_evidence)?
+        .with_consumption_receipts(vec![
+            UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(80), ledger.sources())?,
+            UpstreamConsumptionReceipt::for_sources(d08_artifact, hash(82), ledger.sources())?,
+        ]);
+    assert!(matches!(
+        duplicate,
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn certification_rejects_source_or_requirement_sets_not_consumed_upstream() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    let mut admitted = CapitalCensusLedger::evidentiary();
+    admitted.register_source(first.clone())?;
+    admitted.evaluate_all()?;
+    let authority = certification_context_for(&admitted)?;
+
+    let second = source(
+        CapitalClass::AtomicFlashLiquidity,
+        token,
+        2_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let mut extra_source = CapitalCensusLedger::evidentiary();
+    extra_source.register_source(first.clone())?;
+    extra_source.register_source(second)?;
+    extra_source.evaluate_all()?;
+    assert!(matches!(
+        extra_source.certify(&authority),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+
+    let req = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            repayment_leg(token)?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let mut extra_requirement = CapitalCensusLedger::evidentiary();
+    extra_requirement.register_source(first)?;
+    extra_requirement.register_requirement(req)?;
+    extra_requirement.evaluate_all()?;
+    assert!(matches!(
+        extra_requirement.certify(&authority),
+        Err(CapitalError::InvalidUpstreamAuthority(_))
+    ));
+    Ok(())
+}
+
+#[test]
+fn consumed_output_set_commitment_is_order_independent() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let first = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let second = source(
+        CapitalClass::AtomicFlashLiquidity,
+        token,
+        2_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let left = UpstreamConsumptionReceipt::for_sources(hash(23), hash(80), [&first, &second])?;
+    let right = UpstreamConsumptionReceipt::for_sources(hash(23), hash(80), [&second, &first])?;
+    assert_eq!(left.output_count(), 2);
+    assert_eq!(left.output_set_commitment(), right.output_set_commitment());
     Ok(())
 }
 
@@ -997,7 +1503,7 @@ fn synthetic_ledger_cannot_be_misreported_as_real_certification() -> TestResult 
 fn evidentiary_ledger_requires_nonempty_source_census() -> TestResult {
     let ledger = CapitalCensusLedger::evidentiary();
     assert!(matches!(
-        ledger.certify(&certification_context()?),
+        ledger.certify(&certification_context_for(&ledger)?),
         Err(nqc_census_capital::CapitalError::EmptyCapitalCensus)
     ));
     Ok(())
@@ -1017,7 +1523,7 @@ fn evidentiary_source_census_can_certify_without_actionable_requirements() -> Te
     let mut ledger = CapitalCensusLedger::evidentiary();
     ledger.register_source(external)?;
     ledger.evaluate_all()?;
-    let certificate = ledger.certify(&certification_context()?)?;
+    let certificate = ledger.certify(&certification_context_for(&ledger)?)?;
 
     assert_eq!(certificate.summary.source_count, 1);
     assert_eq!(certificate.summary.requirement_count, 0);
@@ -1059,11 +1565,11 @@ fn evidentiary_ledger_certifies_only_after_evaluation() -> TestResult {
     ledger.register_source(external)?;
     ledger.register_requirement(req)?;
     assert!(matches!(
-        ledger.certify(&certification_context()?),
+        ledger.certify(&certification_context_for(&ledger)?),
         Err(nqc_census_capital::CapitalError::UnevaluatedRequirement)
     ));
     ledger.evaluate_all()?;
-    let certificate = ledger.certify(&certification_context()?)?;
+    let certificate = ledger.certify(&certification_context_for(&ledger)?)?;
     assert!(certificate.summary.is_conserved());
     assert!(certificate.summary.proves_zero_own_capital());
     assert_eq!(certificate.summary.feasible_count, 1);
@@ -1133,7 +1639,7 @@ fn settlement_obligations_separate_principal_repayment_from_funding_fee() -> Tes
 }
 
 #[test]
-fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
+fn wrong_settlement_amount_is_rejected_during_feasibility_not_certification() -> TestResult {
     let token = CapitalAsset::Token(address(20));
     let principal = CapitalRequirementLeg::new(
         RequirementKind::ActionPrincipal,
@@ -1165,8 +1671,284 @@ fn evidentiary_certificate_rejects_wrong_settlement_amounts() -> TestResult {
     ledger.register_requirement(req)?;
     ledger.evaluate_all()?;
     assert!(matches!(
-        ledger.certify(&certification_context()?),
-        Err(CapitalError::SettlementRequirementMismatch)
+        ledger.results().next(),
+        Some(CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        })
+    ));
+    let certificate = ledger.certify(&certification_context_for(&ledger)?)?;
+    assert_eq!(certificate.summary.feasible_count, 0);
+    assert_eq!(certificate.summary.rejected_count, 1);
+    Ok(())
+}
+
+#[test]
+fn missing_funding_fee_is_rejected_during_feasibility() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(1_000),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(1_000),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::ProtocolNativeFlashLoan,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(10_000),
+        fee_model: FeeModel::basis_points_with_rounding(5, RoundingMode::HalfUp)?,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn repayment_leg_must_allow_the_actual_allocated_source_class() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::GasFunding],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let source = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn funding_fee_leg_must_allow_the_actual_fee_source_class() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(1_000),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(1_000),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::FundingFee,
+                token,
+                Amount256::from_u128(1),
+                vec![CapitalClass::FlashSwap],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let source = CapitalSource::new(CapitalSourceSpec {
+        class: CapitalClass::ProtocolNativeFlashLoan,
+        anchor: anchor(100),
+        provider_namespace: 11,
+        provider_locator_hash: hash(12),
+        provider_kind: CapitalProviderKind::ProtocolContract,
+        ownership: CapitalOwnership::External,
+        source_contract: Some(address(13)),
+        asset: token,
+        maximum_available: Amount256::from_u128(10_000),
+        fee_model: FeeModel::basis_points_with_rounding(5, RoundingMode::HalfUp)?,
+        repayment_asset: token,
+        repayment: RepaymentSemantics::AtomicSameTransaction,
+        collateral: CollateralRequirement::None,
+        utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+        caps: CapitalCaps::none(),
+        temporary_lock: TemporaryLock::None,
+        failure_modes: vec![CapitalFailureMode::CapacityChanged],
+        evidence: evidence(),
+    })?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(&requirement, &[source])?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn settlement_class_amounts_cannot_be_swapped_between_source_classes() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(200),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(200),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let flash_swap = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let flash_loan = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &requirement,
+            &[flash_swap, flash_loan],
+        )?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::SettlementRequirementMismatch,
+            failed_leg: None,
+            ..
+        }
+    ));
+    Ok(())
+}
+
+#[test]
+fn settlement_leg_can_split_exact_amount_across_authorized_source_classes() -> TestResult {
+    let token = CapitalAsset::Token(address(20));
+    let requirement = requirement(
+        vec![
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(100),
+                vec![CapitalClass::FlashSwap],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::ActionPrincipal,
+                token,
+                Amount256::from_u128(200),
+                vec![CapitalClass::ProtocolNativeFlashLoan],
+            )?,
+            CapitalRequirementLeg::new(
+                RequirementKind::Repayment,
+                token,
+                Amount256::from_u128(300),
+                vec![
+                    CapitalClass::FlashSwap,
+                    CapitalClass::ProtocolNativeFlashLoan,
+                ],
+            )?,
+        ],
+        RequiredAtomicity::SameTransaction,
+        false,
+    )?;
+    let flash_swap = source(
+        CapitalClass::FlashSwap,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+    let flash_loan = source(
+        CapitalClass::ProtocolNativeFlashLoan,
+        token,
+        1_000,
+        token,
+        RepaymentSemantics::AtomicSameTransaction,
+    )?;
+
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &requirement,
+            &[flash_swap, flash_loan],
+        )?,
+        CapitalFeasibility::Feasible { .. }
     ));
     Ok(())
 }
@@ -1260,7 +2042,8 @@ fn no_repayment_gas_sponsor_fee_must_still_be_declared() -> TestResult {
 
 #[test]
 fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResult {
-    let context = certification_context()?;
+    let ledger = CapitalCensusLedger::evidentiary();
+    let context = certification_context_for(&ledger)?;
     assert_eq!(context.stages().len(), 5);
 
     let incomplete = CapitalCertificationContext::new(context.stages()[..4].to_vec(), evidence());
@@ -1284,7 +2067,8 @@ fn final_certification_requires_every_upstream_stage_exactly_once() -> TestResul
 
 #[test]
 fn certification_context_requires_every_stage_artifact_in_evidence_catalog() -> TestResult {
-    let context = certification_context()?;
+    let ledger = CapitalCensusLedger::evidentiary();
+    let context = certification_context_for(&ledger)?;
     let stages = context.stages().to_vec();
     let mut admitted_evidence = evidence();
     admitted_evidence.extend(
@@ -1770,6 +2554,200 @@ fn stable_source_key_does_not_alias_different_asset_or_class() -> TestResult {
 
     assert_ne!(base.key_id(), different_asset.key_id());
     assert_ne!(base.key_id(), different_class.key_id());
+    Ok(())
+}
+
+#[test]
+fn collateral_dependencies_are_aggregated_across_all_used_sources() -> TestResult {
+    let principal_asset = CapitalAsset::Token(address(20));
+    let collateral_asset = CapitalAsset::Token(address(21));
+    let make_credit = |namespace: u16, locator: u8| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::TransientCredit,
+            anchor: anchor(100),
+            provider_namespace: namespace,
+            provider_locator_hash: hash(locator),
+            provider_kind: CapitalProviderKind::ExternalCreditFacility,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(address(locator)),
+            asset: principal_asset,
+            maximum_available: Amount256::from_u128(50),
+            fee_model: FeeModel::None,
+            repayment_asset: principal_asset,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::Required {
+                asset: collateral_asset,
+                amount: Amount256::from_u128(75),
+                liquidation_conditions_hash: hash(locator.saturating_add(20)),
+            },
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::None,
+            failure_modes: vec![
+                CapitalFailureMode::CollateralLiquidation,
+                CapitalFailureMode::RepaymentFailure,
+            ],
+            evidence: evidence(),
+        })
+    };
+    let first = make_credit(101, 31)?;
+    let second = make_credit(102, 32)?;
+    let collateral_funder = source(
+        CapitalClass::FlashSwap,
+        collateral_asset,
+        150,
+        collateral_asset,
+        RepaymentSemantics::NoRepayment,
+    )?;
+
+    let make_requirement = |collateral_amount| {
+        CapitalRequirement::new(
+            CapitalTargetId::from_hash(hash(91)),
+            anchor(100),
+            RequiredAtomicity::SameTransaction,
+            false,
+            vec![
+                CapitalRequirementLeg::new(
+                    RequirementKind::ActionPrincipal,
+                    principal_asset,
+                    Amount256::from_u128(100),
+                    vec![CapitalClass::TransientCredit],
+                )?,
+                CapitalRequirementLeg::new(
+                    RequirementKind::Collateral,
+                    collateral_asset,
+                    Amount256::from_u128(collateral_amount),
+                    vec![CapitalClass::FlashSwap],
+                )?,
+                CapitalRequirementLeg::new(
+                    RequirementKind::Repayment,
+                    principal_asset,
+                    Amount256::from_u128(100),
+                    vec![CapitalClass::TransientCredit],
+                )?,
+            ],
+            evidence(),
+        )
+    };
+
+    let underfunded = make_requirement(100)?;
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &underfunded,
+            &[first.clone(), second.clone(), collateral_funder.clone()],
+        )?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::CollateralRequirementUnfunded,
+            failed_leg: Some(RequirementKind::Collateral),
+            ..
+        }
+    ));
+
+    let sufficient = make_requirement(150)?;
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &sufficient,
+            &[first, second, collateral_funder],
+        )?,
+        CapitalFeasibility::Feasible { .. }
+    ));
+    Ok(())
+}
+
+#[test]
+fn temporary_lock_dependencies_are_aggregated_across_all_used_sources() -> TestResult {
+    let principal_asset = CapitalAsset::Token(address(20));
+    let lock_asset = CapitalAsset::Token(address(22));
+    let make_credit = |namespace: u16, locator: u8| {
+        CapitalSource::new(CapitalSourceSpec {
+            class: CapitalClass::TransientCredit,
+            anchor: anchor(100),
+            provider_namespace: namespace,
+            provider_locator_hash: hash(locator),
+            provider_kind: CapitalProviderKind::ExternalCreditFacility,
+            ownership: CapitalOwnership::External,
+            source_contract: Some(address(locator)),
+            asset: principal_asset,
+            maximum_available: Amount256::from_u128(50),
+            fee_model: FeeModel::None,
+            repayment_asset: principal_asset,
+            repayment: RepaymentSemantics::AtomicSameTransaction,
+            collateral: CollateralRequirement::None,
+            utilization: UtilizationConstraints::new(10_000, Amount256::ZERO)?,
+            caps: CapitalCaps::none(),
+            temporary_lock: TemporaryLock::Required {
+                asset: lock_asset,
+                amount: Amount256::from_u128(75),
+                release: nqc_census_capital::LockRelease::EndOfTransaction,
+            },
+            failure_modes: vec![
+                CapitalFailureMode::SourceUnavailable,
+                CapitalFailureMode::RepaymentFailure,
+            ],
+            evidence: evidence(),
+        })
+    };
+    let first = make_credit(111, 41)?;
+    let second = make_credit(112, 42)?;
+    let lock_funder = source(
+        CapitalClass::FlashSwap,
+        lock_asset,
+        150,
+        lock_asset,
+        RepaymentSemantics::NoRepayment,
+    )?;
+
+    let make_requirement = |lock_amount| {
+        CapitalRequirement::new(
+            CapitalTargetId::from_hash(hash(92)),
+            anchor(100),
+            RequiredAtomicity::SameTransaction,
+            false,
+            vec![
+                CapitalRequirementLeg::new(
+                    RequirementKind::ActionPrincipal,
+                    principal_asset,
+                    Amount256::from_u128(100),
+                    vec![CapitalClass::TransientCredit],
+                )?,
+                CapitalRequirementLeg::new(
+                    RequirementKind::TemporaryLock,
+                    lock_asset,
+                    Amount256::from_u128(lock_amount),
+                    vec![CapitalClass::FlashSwap],
+                )?,
+                CapitalRequirementLeg::new(
+                    RequirementKind::Repayment,
+                    principal_asset,
+                    Amount256::from_u128(100),
+                    vec![CapitalClass::TransientCredit],
+                )?,
+            ],
+            evidence(),
+        )
+    };
+
+    let underfunded = make_requirement(100)?;
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &underfunded,
+            &[first.clone(), second.clone(), lock_funder.clone()],
+        )?,
+        CapitalFeasibility::Rejected {
+            reason: nqc_census_capital::FeasibilityRejection::TemporaryLockUnfunded,
+            failed_leg: Some(RequirementKind::TemporaryLock),
+            ..
+        }
+    ));
+
+    let sufficient = make_requirement(150)?;
+    assert!(matches!(
+        nqc_census_capital::evaluate_capital_feasibility_checked(
+            &sufficient,
+            &[first, second, lock_funder],
+        )?,
+        CapitalFeasibility::Feasible { .. }
+    ));
     Ok(())
 }
 

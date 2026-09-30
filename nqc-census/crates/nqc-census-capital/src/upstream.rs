@@ -11,7 +11,7 @@ use crate::{
         UNISWAP_V2_PROVIDER_NAMESPACE,
     },
     Amount256, CapitalAsset, CapitalError, CapitalEvidenceRef, CapitalSource, UpstreamCensusStage,
-    UpstreamStageAuthority,
+    UpstreamConsumptionReceipt, UpstreamStageAuthority,
 };
 use nqc_census_chain::{hex, json::Json};
 use nqc_census_core::{Address, Hash32, StateAnchor};
@@ -67,6 +67,7 @@ pub struct D08CapitalImport {
     pub coverage_commitment: Hash32,
     pub sources: Vec<CapitalSource>,
     pub rejections: Vec<CapitalImportRejection>,
+    authority_artifact_sha256: Option<Hash32>,
 }
 
 impl D08CapitalImport {
@@ -74,6 +75,19 @@ impl D08CapitalImport {
         self.candidate_count == self.admitted_count + self.rejected_count
             && self.admitted_count == self.sources.len()
             && self.rejected_count == self.rejections.len()
+    }
+
+    pub fn consumption_receipt(&self) -> Result<UpstreamConsumptionReceipt, CapitalError> {
+        let authority_artifact_sha256 =
+            self.authority_artifact_sha256
+                .ok_or(CapitalError::InvalidUpstreamAuthority(
+                    "D08 import is not bound to an admitted authority artifact",
+                ))?;
+        UpstreamConsumptionReceipt::for_sources(
+            authority_artifact_sha256,
+            self.coverage_commitment,
+            self.sources.iter(),
+        )
     }
 }
 
@@ -139,16 +153,33 @@ fn parse_jsonl(bytes: &[u8]) -> Result<Vec<Json>, CapitalError> {
     Ok(rows)
 }
 
-fn token_compatibility(bytes: &[u8]) -> Result<BTreeMap<Address, bool>, CapitalError> {
+fn token_execution_blockers(bytes: &[u8]) -> Result<BTreeMap<Address, Vec<String>>, CapitalError> {
     let mut tokens = BTreeMap::new();
     for row in parse_jsonl(bytes)? {
         let token = Address::parse_hex(text(&row, "token")?)
             .map_err(|_| CapitalError::InvalidCanonical("invalid D08 token address"))?;
         let execution = field(&row, "execution_compatibility")?;
-        let blockers = array(execution, "blockers")?;
-        let compatible = match text(execution, "status")? {
-            "PROVEN_COMPATIBLE" if blockers.is_empty() => true,
-            "BLOCKED" if !blockers.is_empty() => false,
+        let raw_blockers = array(execution, "blockers")?;
+        let mut blockers = raw_blockers
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or(CapitalError::InvalidCanonical(
+                        "D08 execution blocker is not text",
+                    ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        blockers.sort();
+        if blockers.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(CapitalError::InvalidCanonical(
+                "duplicate D08 execution blocker",
+            ));
+        }
+        match text(execution, "status")? {
+            "PROVEN_COMPATIBLE" if blockers.is_empty() => {}
+            "BLOCKED" if !blockers.is_empty() => {}
             "PROVEN_COMPATIBLE" | "BLOCKED" => {
                 return Err(CapitalError::InvalidCanonical(
                     "D08 token compatibility status contradicts blockers",
@@ -159,8 +190,8 @@ fn token_compatibility(bytes: &[u8]) -> Result<BTreeMap<Address, bool>, CapitalE
                     "unknown D08 token compatibility status",
                 ))
             }
-        };
-        if tokens.insert(token, compatible).is_some() {
+        }
+        if tokens.insert(token, blockers).is_some() {
             return Err(CapitalError::InvalidCanonical(
                 "duplicate D08 token admission",
             ));
@@ -169,10 +200,13 @@ fn token_compatibility(bytes: &[u8]) -> Result<BTreeMap<Address, bool>, CapitalE
     Ok(tokens)
 }
 
-fn compatible(tokens: &BTreeMap<Address, bool>, token: Address) -> Result<bool, CapitalError> {
+fn execution_blockers(
+    tokens: &BTreeMap<Address, Vec<String>>,
+    token: Address,
+) -> Result<&[String], CapitalError> {
     tokens
         .get(&token)
-        .copied()
+        .map(Vec::as_slice)
         .ok_or(CapitalError::InvalidCanonical(
             "D08 state row references token without admission record",
         ))
@@ -388,8 +422,10 @@ fn verify_d08_artifact_binding(
     }
 
     let manifest_evidence = CapitalEvidenceRef::Artifact(authority.artifact_sha256);
-    if !context.evidence.contains(&manifest_evidence) {
-        return Err(CapitalError::UnresolvedEvidenceRef);
+    if context.evidence.as_slice() != [manifest_evidence] {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "D08 import evidence must be exactly its admitted authority artifact",
+        ));
     }
     Ok(())
 }
@@ -410,12 +446,14 @@ pub fn import_d08_capital_sources(
         authority,
         context,
     )?;
-    import_d08_capital_sources_unbound(
+    let mut imported = import_d08_capital_sources_unbound(
         state_manifest_jsonl,
         token_admission_jsonl,
         pool_and_factory_facts_json,
         context,
-    )
+    )?;
+    imported.authority_artifact_sha256 = Some(authority.artifact_sha256);
+    Ok(imported)
 }
 
 fn import_d08_capital_sources_unbound(
@@ -428,7 +466,7 @@ fn import_d08_capital_sources_unbound(
         return Err(CapitalError::MissingEvidence);
     }
     let (aave_pool, aave_premium_total_bps) = d08_aave_flash_terms(pool_and_factory_facts_json)?;
-    let tokens = token_compatibility(token_admission_jsonl)?;
+    let tokens = token_execution_blockers(token_admission_jsonl)?;
     let mut sources = Vec::new();
     let mut rejections = Vec::new();
     let mut outcomes = Vec::new();
@@ -474,17 +512,7 @@ fn import_d08_capital_sources_unbound(
                     );
                     continue;
                 }
-                if !compatible(&tokens, asset_address)? {
-                    push_rejection(
-                        &mut rejections,
-                        &mut outcomes,
-                        protocol,
-                        &market_id,
-                        asset,
-                        CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked,
-                    );
-                    continue;
-                }
+                let token_blockers = execution_blockers(&tokens, asset_address)?.to_vec();
 
                 let facts = field(&row, "protocol_facts")?;
                 if !bool_field(facts, "active")? || bool_field(facts, "paused")? {
@@ -523,7 +551,8 @@ fn import_d08_capital_sources_unbound(
                     )?,
                     evidence: context.evidence.clone(),
                 }
-                .into_capital_source()?;
+                .into_capital_source()?
+                .with_execution_blockers(token_blockers)?;
                 push_source(
                     &mut sources,
                     &mut outcomes,
@@ -617,17 +646,7 @@ fn import_d08_capital_sources_unbound(
                             "duplicate D08 capital source candidate",
                         ));
                     }
-                    if !compatible(&tokens, token)? {
-                        push_rejection(
-                            &mut rejections,
-                            &mut outcomes,
-                            protocol,
-                            &market_id,
-                            asset,
-                            CapitalImportRejectionReason::TokenExecutionCompatibilityBlocked,
-                        );
-                        continue;
-                    }
+                    let token_blockers = execution_blockers(&tokens, token)?.to_vec();
                     let reserve_text = reserve.as_str().ok_or(CapitalError::InvalidCanonical(
                         "V2 reserve amount is not decimal text",
                     ))?;
@@ -643,7 +662,8 @@ fn import_d08_capital_sources_unbound(
                         )?,
                         evidence: context.evidence.clone(),
                     }
-                    .into_capital_source()?;
+                    .into_capital_source()?
+                    .with_execution_blockers(token_blockers)?;
                     push_source(
                         &mut sources,
                         &mut outcomes,
@@ -693,5 +713,6 @@ fn import_d08_capital_sources_unbound(
         coverage_commitment,
         sources,
         rejections,
+        authority_artifact_sha256: None,
     })
 }
