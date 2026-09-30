@@ -62,8 +62,8 @@ fn aave_v3_adapter_preserves_half_up_fee_semantics() -> TestResult {
 }
 
 #[test]
-fn aave_v3_disabled_flash_source_fails_closed() -> TestResult {
-    let result = AaveV3FlashObservation {
+fn aave_v3_disabled_flash_source_preserves_observed_liquidity_but_blocks_execution() -> TestResult {
+    let source = AaveV3FlashObservation {
         anchor: anchor(),
         pool: address(21),
         asset: address(20),
@@ -73,9 +73,16 @@ fn aave_v3_disabled_flash_source_fails_closed() -> TestResult {
         provider_locator_hash: hash(22),
         evidence: evidence(),
     }
-    .into_capital_source();
+    .into_capital_source()?;
 
-    assert!(matches!(result, Err(CapitalError::NoCompatibleSource)));
+    assert_eq!(source.maximum_available(), Amount256::from_u128(10_000));
+    assert_eq!(source.effective_capacity()?, Amount256::from_u128(10_000));
+    assert_eq!(source.executable_capacity()?, Amount256::ZERO);
+    assert!(!source.execution_eligible());
+    assert_eq!(
+        source.execution_blockers(),
+        &["FLASH_LOAN_DISABLED".to_owned()]
+    );
     Ok(())
 }
 

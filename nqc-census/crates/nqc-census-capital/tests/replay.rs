@@ -464,7 +464,13 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     assert_eq!(first, second);
     let closeout_text = std::str::from_utf8(&first)?;
     assert!(closeout_text.contains("\"status\":\"RMC_011_REAL_SOURCE_CLOSEOUT_PASS\""));
+    assert!(closeout_text.contains("\"schema_version\":3"));
     assert!(closeout_text.contains("\"real_source_certification\":true"));
+    assert!(closeout_text
+        .contains("\"source_universe_basis\":\"RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY\""));
+    assert!(closeout_text.contains("\"global_capital_source_completeness_claimed\":false"));
+    assert!(closeout_text.contains("\"repayment_cashflow_sufficiency_claimed\":false"));
+    assert!(closeout_text.contains("\"feasible_external_gas_count\":0"));
     assert!(closeout_text.contains("\"zero_own_capital_proven\":false"));
     assert!(closeout_text.contains("\"opportunity_level_capital_feasibility_claimed\":false"));
     assert!(closeout_text.contains("\"d08_candidate_count\":1"));
@@ -478,6 +484,8 @@ fn capital_bundle_plus_upstream_bytes_forms_one_offline_replay_proof() -> TestRe
     assert!(closeout_text.contains("\"d09_coverage_commitment\""));
     assert!(closeout_text.contains("\"d09_output_set_commitment\""));
     assert!(closeout_text.contains("\"profitability_claimed\":false"));
+    assert!(closeout_text.contains("GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED"));
+    assert!(closeout_text.contains("REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED"));
 
     verify_real_source_closeout_bytes_for_code(
         &first,
@@ -517,6 +525,7 @@ fn closeout_opportunity_claim_requires_at_least_one_feasible_requirement() {
         source_count: 1,
         requirement_count: 1,
         feasible_count: 0,
+        feasible_external_gas_count: 0,
         rejected_count: 1,
         d08_candidate_count: 1,
         d08_source_count: 1,

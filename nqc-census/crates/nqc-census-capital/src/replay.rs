@@ -522,6 +522,7 @@ pub struct RealSourceCloseout {
     pub source_count: usize,
     pub requirement_count: usize,
     pub feasible_count: usize,
+    pub feasible_external_gas_count: usize,
     pub rejected_count: usize,
     pub d08_candidate_count: usize,
     pub d08_source_count: usize,
@@ -553,8 +554,17 @@ impl RealSourceCloseout {
 
     fn payload_json(&self) -> Result<Json, CapitalError> {
         Ok(Json::object([
-            ("schema_version", Json::uint(1)),
+            ("schema_version", Json::uint(3)),
             ("status", Json::string("RMC_011_REAL_SOURCE_CLOSEOUT_PASS")),
+            (
+                "source_universe_basis",
+                Json::string("RMC008_ADMITTED_MARKETS_AND_CAPITAL_IMPORT_ONLY"),
+            ),
+            (
+                "global_capital_source_completeness_claimed",
+                Json::Bool(false),
+            ),
+            ("repayment_cashflow_sufficiency_claimed", Json::Bool(false)),
             ("generated_at", Json::string(self.generated_at.clone())),
             (
                 "generated_at_basis",
@@ -577,6 +587,10 @@ impl RealSourceCloseout {
             (
                 "feasible_count",
                 Json::uint(closeout_count(self.feasible_count)?),
+            ),
+            (
+                "feasible_external_gas_count",
+                Json::uint(closeout_count(self.feasible_external_gas_count)?),
             ),
             (
                 "rejected_count",
@@ -681,6 +695,8 @@ impl RealSourceCloseout {
                         "SHADOW_NOT_CERTIFIED",
                         "CANARY_NOT_CERTIFIED",
                         "REAL_PNL_NOT_CERTIFIED",
+                        "GLOBAL_CAPITAL_SOURCE_UNIVERSE_NOT_CERTIFIED",
+                        "REPAYMENT_CASHFLOW_SUFFICIENCY_NOT_CERTIFIED",
                     ]
                     .into_iter()
                     .chain(
@@ -735,7 +751,7 @@ fn real_source_closeout_commitment(payload: &Json) -> Result<Hash32, CapitalErro
         .canonical()
         .map_err(|_| CapitalError::InvalidCanonical("real-source closeout payload"))?;
     let mut hasher = Sha256::new();
-    hasher.update(b"NQC-RMC011-REAL-SOURCE-CLOSEOUT-V1");
+    hasher.update(b"NQC-RMC011-REAL-SOURCE-CLOSEOUT-V3");
     hasher.update([0]);
     hasher.update(
         u64::try_from(bytes.len())
@@ -751,6 +767,18 @@ fn real_source_closeout_commitment(payload: &Json) -> Result<Hash32, CapitalErro
 fn sha256_hash32(bytes: &[u8]) -> Result<Hash32, CapitalError> {
     let digest: [u8; 32] = Sha256::digest(bytes).into();
     Hash32::new(digest).map_err(|_| CapitalError::InvalidCanonical("zero SHA-256 digest"))
+}
+
+fn require_nonempty_real_source_census(
+    capital_source_count: usize,
+    replay_source_count: usize,
+) -> Result<(), CapitalError> {
+    if capital_source_count == 0 || replay_source_count == 0 {
+        return Err(CapitalError::InvalidUpstreamAuthority(
+            "real-source closeout requires a non-empty observed capital-source census",
+        ));
+    }
+    Ok(())
 }
 
 pub fn verify_real_source_closeout_for_code(
@@ -776,6 +804,10 @@ pub fn verify_real_source_closeout_for_code(
             "real-source replay counts differ from capital artifacts",
         ));
     }
+    require_nonempty_real_source_census(
+        verified.capital.source_count,
+        verified.upstream.d08_source_count,
+    )?;
     if verified.capital.requirement_count == 0 && verified.capital.zero_own_capital_proven {
         return Err(CapitalError::InvalidCanonical(
             "zero-own-capital cannot be proven without a certified requirement",
@@ -792,6 +824,7 @@ pub fn verify_real_source_closeout_for_code(
         source_count: verified.capital.source_count,
         requirement_count: verified.capital.requirement_count,
         feasible_count: verified.capital.feasible_count,
+        feasible_external_gas_count: verified.capital.feasible_external_gas_count,
         rejected_count: verified.capital.rejection_count,
         d08_candidate_count: verified.upstream.d08_candidate_count,
         d08_source_count: verified.upstream.d08_source_count,
@@ -871,4 +904,17 @@ pub fn verify_capital_bundle_with_upstream_replay_for_code(
         upstream,
         upstream_authority_lock_commitment: authority_lock.commitment(),
     })
+}
+
+#[cfg(test)]
+mod real_source_shape_tests {
+    use super::require_nonempty_real_source_census;
+
+    #[test]
+    fn real_source_closeout_rejects_empty_source_census() {
+        assert!(require_nonempty_real_source_census(0, 0).is_err());
+        assert!(require_nonempty_real_source_census(0, 1).is_err());
+        assert!(require_nonempty_real_source_census(1, 0).is_err());
+        assert!(require_nonempty_real_source_census(1, 1).is_ok());
+    }
 }
