@@ -781,19 +781,6 @@ fn require_nonempty_real_source_census(
     Ok(())
 }
 
-#[cfg(test)]
-mod real_source_shape_tests {
-    use super::require_nonempty_real_source_census;
-
-    #[test]
-    fn real_source_closeout_rejects_empty_source_census() {
-        assert!(require_nonempty_real_source_census(0, 0).is_err());
-        assert!(require_nonempty_real_source_census(0, 1).is_err());
-        assert!(require_nonempty_real_source_census(1, 0).is_err());
-        assert!(require_nonempty_real_source_census(1, 1).is_ok());
-    }
-}
-
 pub fn verify_real_source_closeout_for_code(
     bundle: &CapitalArtifactBundle,
     expected_code_commit: &str,
@@ -917,4 +904,17 @@ pub fn verify_capital_bundle_with_upstream_replay_for_code(
         upstream,
         upstream_authority_lock_commitment: authority_lock.commitment(),
     })
+}
+
+#[cfg(test)]
+mod real_source_shape_tests {
+    use super::require_nonempty_real_source_census;
+
+    #[test]
+    fn real_source_closeout_rejects_empty_source_census() {
+        assert!(require_nonempty_real_source_census(0, 0).is_err());
+        assert!(require_nonempty_real_source_census(0, 1).is_err());
+        assert!(require_nonempty_real_source_census(1, 0).is_err());
+        assert!(require_nonempty_real_source_census(1, 1).is_ok());
+    }
 }
