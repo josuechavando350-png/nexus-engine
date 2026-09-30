@@ -36,13 +36,13 @@ fn evidence() -> Vec<CapitalEvidenceRef> {
 }
 
 #[test]
-fn aave_v3_adapter_preserves_half_up_fee_semantics() -> TestResult {
+fn aave_v3_adapter_matches_pft_compat_009_flash_premium_ceiling() -> TestResult {
     let asset = address(20);
     let source = AaveV3FlashObservation {
         anchor: anchor(),
         pool: address(21),
         asset,
-        available_underlying: Amount256::from_u128(10_000),
+        available_underlying: Amount256::from_u128(100_000_000_000),
         premium_total_bps: 5,
         flash_loan_enabled: true,
         provider_locator_hash: hash(22),
@@ -52,11 +52,18 @@ fn aave_v3_adapter_preserves_half_up_fee_semantics() -> TestResult {
 
     assert_eq!(source.class(), CapitalClass::ProtocolNativeFlashLoan);
     assert_eq!(source.asset(), CapitalAsset::Token(asset));
-    assert_eq!(source.effective_capacity()?, Amount256::from_u128(10_000));
-    let quote = source
-        .quote_fee(Amount256::from_u128(1_000))?
-        .ok_or("missing Aave fee quote")?;
-    assert_eq!(quote.amount, Amount256::from_u128(1));
+
+    // Exact deployed callback witnesses from certified PFT-COMPAT-009.
+    let first = source
+        .quote_fee(Amount256::from_u128(83_727_306_811))?
+        .ok_or("missing first Aave fee quote")?;
+    assert_eq!(first.amount, Amount256::from_u128(41_863_654));
+
+    let second = source
+        .quote_fee(Amount256::from_u128(186_298_226))?
+        .ok_or("missing second Aave fee quote")?;
+    assert_eq!(second.amount, Amount256::from_u128(93_150));
+
     assert_eq!(AAVE_V3_PROVIDER_NAMESPACE, 0x1103);
     Ok(())
 }
