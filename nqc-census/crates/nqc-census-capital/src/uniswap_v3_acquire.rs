@@ -35,7 +35,7 @@ use nqc_census_core::{
 use nqc_census_store::{Store, StoreConfig};
 use sha2::{Digest, Sha256};
 use std::{
-    collections::BTreeSet,
+    collections::{BTreeMap, BTreeSet},
     error::Error,
     fs,
     path::Path,
@@ -233,31 +233,66 @@ fn verify_d08_artifact(
     Ok(actual)
 }
 
-fn actionable_assets(
+fn census_assets(
     market_state: &[u8],
     token_admission: &[u8],
-) -> Result<Vec<Address>, ChainError> {
-    let mut compatible = BTreeSet::new();
+) -> Result<BTreeMap<Address, Vec<String>>, ChainError> {
+    let mut token_blockers = BTreeMap::new();
     let token_text = std::str::from_utf8(token_admission)
         .map_err(|_| ChainError::Evidence("D08 token admission is not UTF-8".into()))?;
     for line in token_text.lines().filter(|line| !line.is_empty()) {
         let row = Json::parse(line.as_bytes())?;
-        let admitted = row
-            .get("state_admission")
-            .and_then(|value| value.get("status"))
-            .and_then(Json::as_str)
-            == Some("ADMITTED");
-        let executable = row
+        let token = Address::parse_hex(row.str_field("token")?)?;
+        let execution = row
             .get("execution_compatibility")
-            .and_then(|value| value.get("status"))
-            .and_then(Json::as_str)
-            == Some("PROVEN_COMPATIBLE");
-        if admitted && executable {
-            compatible.insert(Address::parse_hex(row.str_field("token")?)?);
+            .ok_or_else(|| ChainError::Evidence(
+                "D08 token row has no execution_compatibility".into(),
+            ))?;
+        let blocker_rows = execution
+            .get("blockers")
+            .and_then(Json::as_array)
+            .ok_or_else(|| ChainError::Evidence(
+                "D08 token execution blockers are not an array".into(),
+            ))?;
+        let mut blockers = blocker_rows
+            .iter()
+            .map(|value| {
+                value
+                    .as_str()
+                    .map(ToOwned::to_owned)
+                    .ok_or_else(|| ChainError::Evidence(
+                        "D08 token execution blocker is not text".into(),
+                    ))
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+        blockers.sort();
+        if blockers.windows(2).any(|pair| pair[0] == pair[1]) {
+            return Err(ChainError::Evidence(
+                "D08 token execution blockers contain duplicates".into(),
+            ));
+        }
+        match execution.str_field("status")? {
+            "PROVEN_COMPATIBLE" if blockers.is_empty() => {}
+            "BLOCKED" if !blockers.is_empty() => {}
+            "PROVEN_COMPATIBLE" | "BLOCKED" => {
+                return Err(ChainError::Evidence(
+                    "D08 token compatibility status contradicts blockers".into(),
+                ))
+            }
+            _ => {
+                return Err(ChainError::Evidence(
+                    "D08 token compatibility status is unknown".into(),
+                ))
+            }
+        }
+        if token_blockers.insert(token, blockers).is_some() {
+            return Err(ChainError::Evidence(
+                "D08 token admission repeats token".into(),
+            ));
         }
     }
 
-    let mut assets = BTreeSet::new();
+    let mut assets = BTreeMap::new();
     let state_text = std::str::from_utf8(market_state)
         .map_err(|_| ChainError::Evidence("D08 market state is not UTF-8".into()))?;
     for line in state_text.lines().filter(|line| !line.is_empty()) {
@@ -268,16 +303,26 @@ fn actionable_assets(
             continue;
         }
         let asset = Address::parse_hex(row.str_field("asset")?)?;
-        if compatible.contains(&asset) {
-            assets.insert(asset);
+        let blockers = token_blockers
+            .get(&asset)
+            .ok_or_else(|| ChainError::Evidence(
+                "D08 current Aave asset has no token-admission row".into(),
+            ))?
+            .clone();
+        if let Some(existing) = assets.insert(asset, blockers.clone()) {
+            if existing != blockers {
+                return Err(ChainError::Evidence(
+                    "D08 token blockers disagree across current Aave markets".into(),
+                ));
+            }
         }
     }
     if assets.is_empty() {
         return Err(ChainError::Evidence(
-            "D08 yields no execution-compatible current Aave assets".into(),
+            "D08 yields no current Aave assets for UniV3 capital census".into(),
         ));
     }
-    Ok(assets.into_iter().collect())
+    Ok(assets)
 }
 
 fn verify_deployment_document(bytes: &[u8]) -> Result<(), ChainError> {
@@ -508,7 +553,7 @@ fn provider_capture(
     acquisition: &Acquisition<'_>,
     provider: &ProviderSpec,
     expected_anchor: &StateAnchor,
-    assets: &[Address],
+    assets: &BTreeMap<Address, Vec<String>>,
     authority_lock_sha256: &str,
     d08_market_state_sha256: &str,
     d08_token_admission_sha256: &str,
@@ -595,7 +640,7 @@ fn provider_capture(
     }
 
     let logs = scan.logs()?;
-    let actionable = assets.iter().copied().collect::<BTreeSet<_>>();
+    let actionable = assets.keys().copied().collect::<BTreeSet<_>>();
     let (event_rows, relevant_pools) =
         event_rows_and_relevant_pools(factory, &logs, &actionable)?;
     let event_history_sha256 =
@@ -712,11 +757,20 @@ fn provider_capture(
                 let mut per_pool_balances = vec![Vec::<Json>::new(); chunk.len()];
                 for ((index, asset), response) in balance_keys.iter().zip(&balances) {
                     let amount = returned_amount(response, "balanceOf")?;
+                    let blockers = assets
+                        .get(asset)
+                        .ok_or_else(|| ChainError::Evidence(
+                            "UniV3 balance asset lacks D08 blocker record".into(),
+                        ))?;
                     per_pool_balances[*index].push(Json::object([
                         ("asset", Json::string(asset.to_hex())),
                         (
                             "balance",
                             Json::string(amount_decimal(*amount.as_be_bytes())),
+                        ),
+                        (
+                            "execution_blockers",
+                            Json::array(blockers.iter().cloned().map(Json::string)),
                         ),
                     ]));
                 }
@@ -934,7 +988,7 @@ pub fn run_uniswap_v3_capture(
     if authority_anchor != expected_anchor {
         return Err("D11 authority lock anchor differs from D08 evidence anchor".into());
     }
-    let assets = actionable_assets(&market_state, &token_admission)?;
+    let assets = census_assets(&market_state, &token_admission)?;
 
     let store = Store::create(store_path, StoreConfig::standard())?;
     let transport = CurlTransport::new(60, 10);
