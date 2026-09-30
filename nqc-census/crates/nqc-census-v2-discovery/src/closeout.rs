@@ -772,13 +772,15 @@ fn sha2_digest(bytes: &[u8]) -> [u8; 32] {
 #[cfg(test)]
 mod tests {
     use super::{
-        rfc3339, store_evidence_entry, validate_closeout_pass_candidate, Occurrences,
+        rfc3339, sha2_digest, store_evidence_entry, validate_closeout_pass_candidate, Occurrences,
         SequencedReplay, STORE_ENCODING_SEGMENTED,
     };
     use nqc_census_chain::{
+        json::Json,
         provider::{PinningMode, ProviderSpec},
         transport::Transport,
     };
+    use nqc_census_store::{ArtifactId, Store};
     use sha2::{Digest, Sha256};
     use std::{collections::VecDeque, sync::Mutex};
 
@@ -844,10 +846,7 @@ mod tests {
         let store = Store::create(&root, config)?;
         let bytes = vec![b'x'; 300];
         let entry = store_evidence_entry(&store, "oversized.bin", &bytes)?;
-        assert_eq!(
-            entry.str_field("store_encoding")?,
-            STORE_ENCODING_SEGMENTED
-        );
+        assert_eq!(entry.str_field("store_encoding")?, STORE_ENCODING_SEGMENTED);
         assert_eq!(entry.get("segment_count").and_then(Json::as_i64), Some(3));
 
         let mut reconstructed = Vec::new();
