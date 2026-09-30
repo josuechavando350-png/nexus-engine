@@ -502,3 +502,44 @@ fn contention_graph_decomposes_into_independent_components() -> TestResult {
         .any(|component| component.candidates == vec![candidate_c_id]));
     Ok(())
 }
+
+
+#[test]
+fn route_variants_share_requirement_but_keep_distinct_candidate_identity() -> TestResult {
+    let anchor = anchor_on(chain(1, 1), 100, 10);
+    let funding = source(anchor.clone(), 30, 500, CapitalOwnership::External)?;
+    let req = requirement(anchor.clone(), 40, 50)?;
+    let feasibility = evaluate_capital_feasibility(&req, std::slice::from_ref(&funding));
+    let opportunity = SharedResource::new(
+        anchor.clone(),
+        SharedResourceKind::Opportunity,
+        hash(93),
+        ResourceUnit::Count,
+        ResourceLimit::Exclusive,
+        evidence(),
+    )?;
+    let claim = ResourceClaim::new(opportunity.key_id(), Amount256::from_u128(1))?;
+    let route_a =
+        PortfolioCandidate::new_variant(req.id(), hash(94), anchor.clone(), vec![claim])?;
+    let route_b = PortfolioCandidate::new_variant(req.id(), hash(95), anchor, vec![claim])?;
+    assert_ne!(route_a.id(), route_b.id());
+    assert_eq!(route_a.requirement_id(), route_b.requirement_id());
+
+    let report = evaluate_portfolio(
+        &[route_a.clone(), route_b.clone()],
+        &[req],
+        &[feasibility],
+        &[funding],
+        std::slice::from_ref(&opportunity),
+    )?;
+    assert_eq!(report.candidate_count(), 2);
+    assert_eq!(report.capital_feasible_count(), 2);
+    assert!(report.conflicts().iter().any(|conflict| {
+        matches!(
+            conflict.resource,
+            ConflictResource::Shared(key) if key == opportunity.key_id()
+        ) && conflict.claimants.contains(&route_a.id())
+            && conflict.claimants.contains(&route_b.id())
+    }));
+    Ok(())
+}
