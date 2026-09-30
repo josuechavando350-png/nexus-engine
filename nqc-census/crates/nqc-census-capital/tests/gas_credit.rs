@@ -40,11 +40,12 @@ fn amount_json(value: Amount256) -> Json {
     Json::string(format!("0x{}", value.to_hex()))
 }
 
-fn observation(
+fn observation_with_active(
     observed_anchor: &StateAnchor,
     outstanding: Amount256,
     provider_b_facts: Option<Hash32>,
     declared_terms_override: Option<Hash32>,
+    active: bool,
 ) -> Result<Vec<u8>, CapitalError> {
     let facility = address(10);
     let borrower = address(11);
@@ -56,7 +57,6 @@ fn observation(
     let min_remaining = amount(100);
     let protocol_cap = Some(amount(750));
     let market_cap = Some(amount(700));
-    let active = true;
     let balance = amount(1_000);
     let limit = amount(900);
 
@@ -155,6 +155,41 @@ fn observation(
     ]);
     row.canonical()
         .map_err(|_| CapitalError::InvalidCanonical("test observation canonicalization"))
+}
+
+fn observation(
+    observed_anchor: &StateAnchor,
+    outstanding: Amount256,
+    provider_b_facts: Option<Hash32>,
+    declared_terms_override: Option<Hash32>,
+) -> Result<Vec<u8>, CapitalError> {
+    observation_with_active(
+        observed_anchor,
+        outstanding,
+        provider_b_facts,
+        declared_terms_override,
+        true,
+    )
+}
+
+#[test]
+fn active_state_changes_observation_id_but_not_stable_source_key() -> TestResult {
+    let anchor = anchor();
+    let active = import_external_gas_credit_observation(
+        &observation_with_active(&anchor, amount(100), None, None, true)?,
+        &anchor,
+    )?;
+    let inactive = import_external_gas_credit_observation(
+        &observation_with_active(&anchor, amount(100), None, None, false)?,
+        &anchor,
+    )?;
+
+    assert_eq!(active.key_id(), inactive.key_id());
+    assert_ne!(active.id(), inactive.id());
+    assert!(active.execution_eligible());
+    assert!(!inactive.execution_eligible());
+    assert_eq!(inactive.executable_capacity()?, Amount256::ZERO);
+    Ok(())
 }
 
 #[test]
