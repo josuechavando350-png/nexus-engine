@@ -469,13 +469,16 @@ fn contention_graph_decomposes_into_independent_components() -> TestResult {
     let fb = evaluate_capital_feasibility(&b, std::slice::from_ref(&shared));
     let fc = evaluate_capital_feasibility(&c_req, std::slice::from_ref(&isolated));
 
+    let candidate_a = PortfolioCandidate::new(a.id(), anchor.clone(), vec![])?;
+    let candidate_b = PortfolioCandidate::new(b.id(), anchor.clone(), vec![])?;
+    let candidate_c = PortfolioCandidate::new(c_req.id(), anchor, vec![])?;
+    let candidate_a_id = candidate_a.id();
+    let candidate_b_id = candidate_b.id();
+    let candidate_c_id = candidate_c.id();
+
     let report = evaluate_portfolio(
-        &[
-            PortfolioCandidate::new(a.id(), anchor.clone(), vec![])?,
-            PortfolioCandidate::new(b.id(), anchor.clone(), vec![])?,
-            PortfolioCandidate::new(c_req.id(), anchor, vec![])?,
-        ],
-        &[a.clone(), b.clone(), c_req.clone()],
+        &[candidate_a, candidate_b, candidate_c],
+        &[a, b, c_req],
         &[fa, fb, fc],
         &[shared, isolated],
         &[],
@@ -490,11 +493,12 @@ fn contention_graph_decomposes_into_independent_components() -> TestResult {
         .collect::<Vec<_>>();
     assert_eq!(sizes, vec![2, 1]);
     assert!(report.components().iter().any(|component| {
-        component.candidates.contains(&a.id()) && component.candidates.contains(&b.id())
+        component.candidates.contains(&candidate_a_id)
+            && component.candidates.contains(&candidate_b_id)
     }));
     assert!(report
         .components()
         .iter()
-        .any(|component| component.candidates == vec![c_req.id()]));
+        .any(|component| component.candidates == vec![candidate_c_id]));
     Ok(())
 }
