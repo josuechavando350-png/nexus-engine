@@ -46,7 +46,9 @@ Agents may research, propose, falsify, compare, generate tests and prepare candi
 
 ## Canonical agent topology
 
-NQC defines 48 logical specialist roles arranged as eight desks of six roles. "48" is a responsibility topology, not a requirement to keep exactly 48 model processes alive. Each role may have zero, one or many workers depending on workload. Worker multiplicity must never change authority semantics.
+NQC defines 48 logical specialist roles arranged as eight desks of six roles and an exact operational fleet of 350 agent instances when Quant Firm mode is enabled. The 48 roles define responsibility and authority boundaries; the 350 instances provide parallel research, falsification and independent reproduction. Deterministic batch workers are a separate compute class and do not count toward the 350-agent fleet.
+
+**Fleet invariant:** `REGISTERED_OPERATIONAL_AGENTS == 350`. Starting a 351st agent must fail closed. Running with fewer than 350 is permitted only in an explicitly declared degraded/recovery mode and may not claim full Quant Firm fleet readiness.
 
 ### Desk A — Market Truth & Discovery
 
@@ -192,15 +194,29 @@ Node health, deterministic checkpoints, incident replay, signing isolation, secr
 
 ## Scaling policy
 
-Forty-eight roles are canonical. Concurrency is elastic.
+Forty-eight roles are canonical and the full operational agent fleet is exactly 350 instances. Agent-instance count is therefore bounded; compute concurrency is elastic only through deterministic workers.
+
+The canonical desk allocation is:
+
+| Desk | Operational agents |
+|---|---:|
+| Market Truth & Discovery | 55 |
+| Capital & Funding | 30 |
+| Liquidity, Routing & Monetization | 45 |
+| Execution & Inclusion Research | 45 |
+| Strategy Research | 65 |
+| Quant Risk, Economics & Portfolio | 40 |
+| Independent Verification & Security | 55 |
+| Platform, Reliability & Meta-Research | 15 |
+| **Total** | **350** |
 
 Examples:
-- one Protocol Cartographer role may run hundreds of protocol-scoped workers;
-- one Historical Replay role may fan out across millions of block/market partitions;
-- several independent Reproducer workers may verify the same claim;
+- the 55 Market Truth agents divide by chain/protocol/state responsibility;
+- Historical Replay may fan out across millions of deterministic jobs without creating additional agents;
+- independent Reproducer agents remain distinct members of the 350-agent fleet;
 - hot-path executors remain deterministic services, not agent replicas.
 
-Scale is justified only when it increases validated coverage, reduces time-to-evidence, improves fault isolation or raises measurable executable capacity.
+A 351st agent is not a scaling mechanism. Massive replay, census, simulation and parameter-search workloads scale through deterministic workers, which must remain attributable to a registered agent/task but have no independent agent authority.
 
 ## Economic objective
 
@@ -252,3 +268,18 @@ NQC should behave like a quantitative organization with software-enforced separa
 - certification controls promotion.
 
 The system earns production authority from evidence. It never receives it from architecture, ambition or agent consensus.
+
+
+## Reuse of existing NEXUS agent technology
+
+The Quant Firm agent plane should reuse proven architectural primitives already present in NEXUS rather than creating a parallel framework:
+
+- `runtime/crates/nexus-agents-v4`: typed `AgentSpec`, bounded capabilities/tools and delegation that cannot elevate authority;
+- `runtime/crates/nexus-intelligence`: evidence-grounded cognitive decisions that remain proposals and require a downstream dispatch gate;
+- `runtime/crates/nexus-event`: canonical event/evidence envelopes;
+- `runtime/crates/nexus-observability`: structured telemetry and append-only audit evidence;
+- V6 distributed-runtime contracts: placement, discovery, federation, replication and failure-domain separation without turning placement into authorization.
+
+NQC-specific finance semantics remain outside the generic NEXUS runtime. Integration is through typed adapters/contracts so the generic runtime stays reusable and NQC retains its own market/economic certification boundaries.
+
+The 350-agent fleet must preserve the existing NEXUS rule that text delegation is not authority. Every delegated capability must be a subset of both parent authority and child capability, and model output alone cannot grant execution rights.
