@@ -75,8 +75,14 @@ pair universe, admitted + rejected must equal that same count, and every
 below-one borrower must appear in at least one classified pair. Duplicate
 pairs, duplicate candidate ids or mixed anchors are errors.
 
-The concrete Aave adapter MUST execute the immutable recovered PFT
-liquidation/opportunity implementation, not a convenient reimplementation.
+The concrete Aave adapter MUST execute the immutable recovered PFT liquidation
+math for sizing and collateral accounting; it MUST NOT duplicate that integer
+math. The recovered PFT opportunity implementation is an additional
+equivalence check over the subset where its strategy policy applies. It is not
+allowed to erase protocol-liquidatable pairs merely because that higher layer
+requires flash-loan availability, a positive oracle edge or another economic
+policy condition. Those belong to later capital/economics stages.
+
 Synthetic actionability fixtures are foundation evidence only. Terminal
 RMC-012 authority requires the isolated PFT bridge to consume exact admitted
 RMC-006/RMC-008/RMC-009 bytes and prove its complete coverage commitment.
