@@ -74,9 +74,7 @@ impl Display for EconomicsError {
                 f.write_str("capacity curve mixes execution candidates")
             }
             Self::CurveAnchorMismatch => f.write_str("capacity curve mixes state anchors"),
-            Self::CurveValuationUnitMismatch => {
-                f.write_str("capacity curve mixes valuation units")
-            }
+            Self::CurveValuationUnitMismatch => f.write_str("capacity curve mixes valuation units"),
             Self::CurveTradeSizeNotStrictlyIncreasing => {
                 f.write_str("capacity curve trade sizes are not strictly increasing")
             }
@@ -442,10 +440,7 @@ impl ExecutionCostVector {
         Ok(total)
     }
 
-    pub fn expected_total(
-        &self,
-        capture: ProbabilityWad,
-    ) -> Result<Amount256, EconomicsError> {
+    pub fn expected_total(&self, capture: ProbabilityWad) -> Result<Amount256, EconomicsError> {
         let mut total = Amount256::ZERO;
         for component in &self.components {
             total = total
@@ -1006,9 +1001,7 @@ pub struct ScenarioRiskReport {
     pub loss_probability: ProbabilityWad,
 }
 
-pub fn evaluate_scenarios(
-    scenarios: &[PnlScenario],
-) -> Result<ScenarioRiskReport, EconomicsError> {
+pub fn evaluate_scenarios(scenarios: &[PnlScenario]) -> Result<ScenarioRiskReport, EconomicsError> {
     if scenarios.is_empty() {
         return Err(EconomicsError::ScenarioEmpty);
     }
@@ -1169,8 +1162,7 @@ pub fn mul_div_floor(
 
     let mut product_be = [0_u8; 64];
     for (index, cell) in product.iter().enumerate() {
-        product_be[63 - index] =
-            u8::try_from(*cell).map_err(|_| EconomicsError::AmountOverflow)?;
+        product_be[63 - index] = u8::try_from(*cell).map_err(|_| EconomicsError::AmountOverflow)?;
     }
 
     let divisor = u128::from(denominator);
@@ -1182,8 +1174,7 @@ pub fn mul_div_floor(
             .and_then(|value| value.checked_add(u128::from(*byte)))
             .ok_or(EconomicsError::AmountOverflow)?;
         let digit = expanded / divisor;
-        quotient[index] =
-            u8::try_from(digit).map_err(|_| EconomicsError::AmountOverflow)?;
+        quotient[index] = u8::try_from(digit).map_err(|_| EconomicsError::AmountOverflow)?;
         remainder = expanded % divisor;
     }
 
@@ -1195,10 +1186,7 @@ pub fn mul_div_floor(
     Ok(Amount256::from_be_bytes(out))
 }
 
-fn div_mod_u64(
-    amount: Amount256,
-    divisor: u64,
-) -> Result<(Amount256, u64), EconomicsError> {
+fn div_mod_u64(amount: Amount256, divisor: u64) -> Result<(Amount256, u64), EconomicsError> {
     if divisor == 0 {
         return Err(EconomicsError::ProbabilityArithmeticOverflow);
     }
@@ -1231,8 +1219,7 @@ fn mul_u64_checked(amount: Amount256, factor: u64) -> Result<Amount256, Economic
             .checked_mul(u128::from(factor))
             .and_then(|value| value.checked_add(carry))
             .ok_or(EconomicsError::AmountOverflow)?;
-        out[index] =
-            u8::try_from(product & 0xff).map_err(|_| EconomicsError::AmountOverflow)?;
+        out[index] = u8::try_from(product & 0xff).map_err(|_| EconomicsError::AmountOverflow)?;
         carry = product >> 8;
     }
     if carry != 0 {
