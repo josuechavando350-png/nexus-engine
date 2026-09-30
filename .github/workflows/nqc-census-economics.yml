@@ -19,7 +19,7 @@ permissions:
 
 env:
   RUST_TOOLCHAIN: "1.98.1"
-  D13_TESTS_EXPECTED: "7"
+  D13_TESTS_EXPECTED: "12"
 
 jobs:
   rmc-013-economics:
