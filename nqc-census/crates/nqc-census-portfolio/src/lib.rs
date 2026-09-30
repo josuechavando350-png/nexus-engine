@@ -11,9 +11,8 @@
 
 use nqc_census_capital::{
     evaluate_capital_feasibility_checked, Amount256, CapitalAsset, CapitalEvidenceRef,
-    CapitalFeasibility, CapitalOwnership,
-    CapitalRequirement, CapitalRequirementId, CapitalSource, CapitalSourceId, CapitalSourceKeyId,
-    FeasibilityRejection,
+    CapitalFeasibility, CapitalOwnership, CapitalRequirement, CapitalRequirementId, CapitalSource,
+    CapitalSourceId, CapitalSourceKeyId, FeasibilityRejection,
 };
 use nqc_census_core::{ChainDomain, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
