@@ -27,13 +27,17 @@ fn field<'a>(row: &'a Json, key: &'static str) -> Result<&'a Json, CapitalError>
 fn text_field<'a>(row: &'a Json, key: &'static str) -> Result<&'a str, CapitalError> {
     field(row, key)?
         .as_str()
-        .ok_or(CapitalError::InvalidCanonical("gas credit field is not text"))
+        .ok_or(CapitalError::InvalidCanonical(
+            "gas credit field is not text",
+        ))
 }
 
 fn bool_field(row: &Json, key: &'static str) -> Result<bool, CapitalError> {
     field(row, key)?
         .as_bool()
-        .ok_or(CapitalError::InvalidCanonical("gas credit field is not boolean"))
+        .ok_or(CapitalError::InvalidCanonical(
+            "gas credit field is not boolean",
+        ))
 }
 
 fn u64_field(row: &Json, key: &'static str) -> Result<u64, CapitalError> {
@@ -48,7 +52,9 @@ fn u64_field(row: &Json, key: &'static str) -> Result<u64, CapitalError> {
 fn array<'a>(row: &'a Json, key: &'static str) -> Result<&'a [Json], CapitalError> {
     field(row, key)?
         .as_array()
-        .ok_or(CapitalError::InvalidCanonical("gas credit field is not array"))
+        .ok_or(CapitalError::InvalidCanonical(
+            "gas credit field is not array",
+        ))
 }
 
 fn hash32(row: &Json, key: &'static str) -> Result<Hash32, CapitalError> {
@@ -216,8 +222,7 @@ fn locator_hash(
     hasher.update(runtime_sha256.as_bytes());
     hasher.update(terms.as_bytes());
     let digest: [u8; 32] = hasher.finalize().into();
-    Hash32::new(digest)
-        .map_err(|_| CapitalError::InvalidCanonical("zero gas credit locator hash"))
+    Hash32::new(digest).map_err(|_| CapitalError::InvalidCanonical("zero gas credit locator hash"))
 }
 
 fn provider_evidence(
@@ -267,9 +272,9 @@ pub fn import_external_gas_credit_observation(
 ) -> Result<CapitalSource, CapitalError> {
     let row = Json::parse(bytes)
         .map_err(|_| CapitalError::InvalidCanonical("gas credit observation JSON parse failed"))?;
-    let canonical = row
-        .canonical()
-        .map_err(|_| CapitalError::InvalidCanonical("gas credit observation canonicalization failed"))?;
+    let canonical = row.canonical().map_err(|_| {
+        CapitalError::InvalidCanonical("gas credit observation canonicalization failed")
+    })?;
     if canonical.as_slice() != bytes {
         return Err(CapitalError::InvalidCanonical(
             "gas credit observation must be canonical JSON",
@@ -375,10 +380,7 @@ pub fn import_external_gas_credit_observation(
         provider_locator_hash,
         facility_contract: facility,
         maximum_native_gas,
-        fee_model: crate::FeeModel::basis_points_with_rounding(
-            fee_bps,
-            RoundingMode::Ceil,
-        )?,
+        fee_model: crate::FeeModel::basis_points_with_rounding(fee_bps, RoundingMode::Ceil)?,
         repayment_deadline_blocks,
         max_utilization_bps,
         min_remaining_native_gas: min_remaining,
