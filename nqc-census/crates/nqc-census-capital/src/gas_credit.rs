@@ -13,6 +13,7 @@ use crate::{
 use nqc_census_chain::json::Json;
 use nqc_census_core::{Address, ChainDomain, Hash32, StateAnchor};
 use sha2::{Digest, Sha256};
+use std::collections::BTreeSet;
 
 pub const EXTERNAL_GAS_CREDIT_SCHEMA_VERSION: u64 = 1;
 pub const EXTERNAL_GAS_CREDIT_PROVIDER_NAMESPACE: u16 = 0x2202;
@@ -238,6 +239,7 @@ fn provider_evidence(
     }
 
     let mut previous: Option<&str> = None;
+    let mut transcript_digests = BTreeSet::new();
     // Bind the reconciled semantic facts directly into CapitalSource identity.
     // Provider transcript digests prove transport/provenance, while this digest
     // guarantees that runtime/config/state changes alter the observation-specific
@@ -262,6 +264,11 @@ fn provider_evidence(
             return Err(CapitalError::CanonicalDigestMismatch);
         }
         let digest = hash32(provider, "transcript_sha256")?;
+        if !transcript_digests.insert(digest) {
+            return Err(CapitalError::InvalidCanonical(
+                "gas credit provider transcript digests must be distinct",
+            ));
+        }
         evidence.push(CapitalEvidenceRef::Observation(*digest.as_bytes()));
     }
     Ok(evidence)
