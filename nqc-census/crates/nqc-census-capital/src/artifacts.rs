@@ -703,9 +703,7 @@ pub fn export_capital_artifacts(
         ),
         (
             "feasible_external_gas_count",
-            Json::uint(u64_count(
-                certificate.summary.feasible_external_gas_count,
-            )),
+            Json::uint(u64_count(certificate.summary.feasible_external_gas_count)),
         ),
         (
             "rejected_count",
