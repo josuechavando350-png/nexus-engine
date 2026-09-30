@@ -1,0 +1,65 @@
+name: NQC Census Pin Helper
+
+# Describes one upstream run and artifact so that a downstream census node can
+# pin them by exact identity: the run's head, conclusion and workflow, the
+# artifact's id and digest (GitHub API), and the sha256 of every file in the
+# artifact except store objects. It certifies nothing and consumes nothing:
+# every downstream workflow re-verifies its pinned run, artifact and file
+# digests itself before using any input.
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Upstream workflow run id
+        required: true
+      artifact:
+        description: Exact artifact name in that run
+        required: true
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: nqc-census-pin-helper-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  describe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      RUN_ID: ${{ github.event.inputs.run_id }}
+      ARTIFACT: ${{ github.event.inputs.artifact }}
+    steps:
+      - name: Describe the run and the artifact through the GitHub API
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$RUN_ID" in ''|*[!0-9]*) echo "run_id is not a run id"; exit 1 ;; esac
+          gh api "repos/$REPOSITORY/actions/runs/$RUN_ID" \
+            --jq '"PIN_RUN id=\(.id) head_sha=\(.head_sha) conclusion=\(.conclusion) status=\(.status) event=\(.event) attempt=\(.run_attempt) path=\(.path)"'
+          gh api --paginate "repos/$REPOSITORY/actions/runs/$RUN_ID/artifacts?per_page=100" \
+            --jq '.artifacts[] | select(.name == env.ARTIFACT) | "PIN_ARTIFACT id=\(.id) name=\(.name) digest=\(.digest) bytes=\(.size_in_bytes) expired=\(.expired)"' \
+            | tee /tmp/pin-artifact.txt
+          test "$(wc -l < /tmp/pin-artifact.txt)" = 1
+
+      - name: Fetch the artifact
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: ${{ github.event.inputs.artifact }}
+          run-id: ${{ github.event.inputs.run_id }}
+          github-token: ${{ github.token }}
+          path: /tmp/nqc-census-pin
+
+      - name: sha256 of every file (store objects excluded)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /tmp/nqc-census-pin
+          find . -type f -not -path './store/*' -printf '%P\n' | LC_ALL=C sort | while read -r file; do
+            echo "PIN_FILE $(sha256sum "$file" | cut -d' ' -f1) $(stat -c %s "$file") $file"
+          done

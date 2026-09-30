@@ -11,7 +11,7 @@ use nqc_census_chain::acquire::Acquisition;
 use nqc_census_chain::provider::ProviderSet;
 use nqc_census_chain::transport::{CurlTransport, RetryPolicy};
 use nqc_census_state::aave_stage::aave_state_stage;
-use nqc_census_state::inputs::{pinned, verify_pins, D06Inputs, D07Inputs};
+use nqc_census_state::inputs::{pinned, verify_pins, verify_upstream, D06Inputs, D07Inputs};
 use nqc_census_state::stage::AnchorPlan;
 use nqc_census_state::v2_stage::{factory_samples, v2_factory_stage, v2_state_stage, V2Plan};
 use nqc_census_store::{Store, StoreConfig};
@@ -42,10 +42,9 @@ fn main() -> Result<(), Box<dyn Error>> {
         .find(|provider| provider.label() == label)
         .ok_or_else(|| format!("provider {label} is not declared"))?
         .clone();
-    let pins = verify_pins(
-        &PathBuf::from(flag("--pins")?),
-        &PathBuf::from(flag("--pin-root")?),
-    )?;
+    let pins_path = PathBuf::from(flag("--pins")?);
+    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
+    verify_upstream(&pins_path, &pins)?;
     let store = Store::create(&PathBuf::from(flag("--store")?), StoreConfig::standard())?;
     let transport = CurlTransport::new(120, 15);
     let acquisition = Acquisition::new(&store, &transport, RetryPolicy::standard());

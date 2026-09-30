@@ -1,0 +1,684 @@
+name: NQC RMC-007 V2 Discovery
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/nqc-census-v2-discovery.yml
+      - ci/nqc-census/V2_DISCOVERY_CONTRACT.md
+      - ci/nqc-census/v2-discovery-scope.json
+      - nqc-census/Cargo.toml
+      - nqc-census/Cargo.lock
+      - nqc-census/crates/nqc-census-v2-discovery/**
+      - ci/nqc-census/v2-discovery-providers.json
+  workflow_dispatch:
+    inputs:
+      stages_run_id:
+        description: >-
+          Replay and reconcile the stage evidence of an earlier run of this
+          workflow instead of re-acquiring it (every record is still replayed
+          byte-for-byte from its evidence by the exact-head binaries).
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+  actions: read
+
+# Every live Census acquisition that loads the shared public RPC endpoints
+# joins one repository-wide group: at most one runs at a time and none is
+# cancelled while running. GitHub keeps at most one pending run per group, so
+# a newer pending acquisition replaces an older pending one. RMC-007 acquires
+# only from a workflow_dispatch on the exact branch head without stages_run_id.
+#
+# Pull requests and explicit replay dispatches consume no RPC. Their work is
+# exact-head certification only, so a newer head must cancel an obsolete
+# replay instead of spending 48 runners proving a commit that can no longer
+# certify the PR.
+concurrency:
+  group: >-
+    ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.stages_run_id == ''
+        && 'nqc-census-public-rpc'
+        || format('nqc-rmc007-{0}-{1}', github.event_name,
+                  github.event_name == 'pull_request' && github.ref || github.run_id) }}
+  cancel-in-progress: >-
+    ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.stages_run_id != '' }}
+
+jobs:
+  gate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      # RMC-001 recertified freeze manifest (Amendment 1), pinned by digest.
+      RMC001_FREEZE_MANIFEST_SHA256: a0e5280175cfebadbbb225783873fde5d85364e3985224b20ba797fda0529842
+      GH_TOKEN: ${{ github.token }}
+      D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "10"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify authority and upstream immutability
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git show -s --format=%T "$PFT_CERTIFIED_COMMIT")" = "$PFT_CERTIFIED_TREE"
+          git merge-base --is-ancestor "$D07_BASE" HEAD
+          git merge-base --is-ancestor "$D07_BASE" "$RMC003_2_AUTHORITY"
+          git merge-base --is-ancestor "$RMC003_2_AUTHORITY" HEAD
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            test "$(git rev-parse HEAD)" = "${{ github.event.pull_request.head.sha }}"
+            git diff --check "${{ github.event.pull_request.base.sha }}"...HEAD
+          fi
+          git diff --quiet "$PFT_CERTIFIED_COMMIT" HEAD -- \
+            ci/nqc-protocol-fork/recovered-source ci/nqc-protocol-fork/reimplementation \
+            ci/nqc-protocol-fork/compatibility ci/nqc-protocol-fork/locks
+          git diff --quiet "$RMC003_2_AUTHORITY" HEAD -- \
+            nqc-census/crates/nqc-census-core nqc-census/crates/nqc-census-store \
+            nqc-census/crates/nqc-census-chain \
+            ':(exclude)nqc-census/crates/nqc-census-core/src/identity.rs' \
+            ':(exclude)nqc-census/crates/nqc-census-core/tests/identity_amendment_1.rs' \
+            ':(exclude)nqc-census/crates/nqc-census-core/tests/support/identity_corpus.rs'
+          # IDENTITY_CONTRACT.md and identity.rs changed only through RMC-001
+          # Amendment 1; the recertified freeze manifest pins them by content.
+          echo "$RMC001_FREEZE_MANIFEST_SHA256  ci/nqc-census/rmc001-freeze-manifest.json" | sha256sum --check --strict
+          python3 ci/nqc-census/verify_rmc001_freeze.py
+          echo RMC007_UPSTREAM_IMMUTABLE_PASS
+
+      - name: Verify no authority duplication or transaction path
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import re
+          from pathlib import Path
+          root = Path("nqc-census/crates/nqc-census-v2-discovery")
+          forbidden = re.compile(
+              r"private.?key|mnemonic|eth_send|eth_sign|personal_|sendRawTransaction|"
+              r"reqwest|hyper|tokio|ureq|std::net|TcpStream|UdpSocket|\bunsafe\b")
+          violations = []
+          for path in root.rglob("*.rs"):
+              for number, line in enumerate(path.read_text().splitlines(), 1):
+                  if line.strip().startswith("//"):
+                      continue
+                  if forbidden.search(line):
+                      violations.append(f"{path}:{number}: {line.strip()}")
+          assert not violations, "\n".join(violations)
+          print("RMC007_BOUNDARY_PASS")
+          PY
+
+      - name: Locked Rust gates
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo fmt --all -- --check
+          cargo clippy --workspace --all-targets --locked -- -D warnings
+          count=$(cargo test --locked -p nqc-census-v2-discovery --test v2_discovery -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D07_TESTS_EXPECTED"
+          count=$(cargo test --locked -p nqc-census-v2-discovery --test v2_pipeline -- --list 2>/dev/null | grep -c ': test$')
+          test "$count" = "$D07_PIPELINE_TESTS_EXPECTED"
+          cargo test --locked -p nqc-census-v2-discovery -- --nocapture
+          cargo test --workspace --all-targets --locked
+          cargo build --workspace --all-targets --locked
+          echo RMC007_RECONCILIATION_CORE_PASS
+
+  plan:
+    needs: gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      mode: ${{ steps.mode.outputs.mode }}
+      stages_run: ${{ steps.mode.outputs.stages_run }}
+      stages_head: ${{ steps.mode.outputs.stages_head }}
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+
+      - name: Decide the mode and verify the acquisition run
+        id: mode
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STAGES_RUN_ID: ${{ github.event.inputs.stages_run_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/nqc-rmc007-plan
+          head="$(git rev-parse HEAD)"
+          if [ "${{ github.event_name }}" != workflow_dispatch ]; then
+            STAGES_RUN_ID=36589054151
+            echo "RMC007_PR_OFFLINE_REPLAY acquisition_run=$STAGES_RUN_ID replay_head=$head"
+          fi
+          if [ -z "$STAGES_RUN_ID" ]; then
+            echo "mode=acquire" >> "$GITHUB_OUTPUT"
+            echo "stages_run=${{ github.run_id }}" >> "$GITHUB_OUTPUT"
+            echo "stages_head=$head" >> "$GITHUB_OUTPUT"
+            echo "RMC007_ACQUISITION head=$head run=${{ github.run_id }} group=nqc-census-public-rpc"
+            exit 0
+          fi
+          case "$STAGES_RUN_ID" in *[!0-9]*) echo "stages_run_id is not a run id"; exit 1 ;; esac
+          repo="${{ github.repository }}"
+          gh api "repos/$repo/actions/runs/$STAGES_RUN_ID" > /tmp/nqc-rmc007-plan/acquisition-run.json
+          gh api --paginate "repos/$repo/actions/runs/$STAGES_RUN_ID/jobs?filter=latest&per_page=100" \
+            --jq '.jobs[] | {name, conclusion, run_attempt, id}' > /tmp/nqc-rmc007-plan/acquisition-jobs.jsonl
+          gh api --paginate "repos/$repo/actions/runs/$STAGES_RUN_ID/artifacts?per_page=100" \
+            --jq '.artifacts[] | {id, name, digest, size_in_bytes, expired}' > /tmp/nqc-rmc007-plan/acquisition-artifacts.jsonl
+          stages_head=$(python3 - <<'PY2'
+          import json
+          run = json.load(open("/tmp/nqc-rmc007-plan/acquisition-run.json"))
+          assert run["path"] == ".github/workflows/nqc-census-v2-discovery.yml", run["path"]
+          jobs = [json.loads(line) for line in open("/tmp/nqc-rmc007-plan/acquisition-jobs.jsonl")]
+          def passed(prefix):
+              rows = [job for job in jobs if job["name"] == prefix or job["name"].startswith(prefix + " (")]
+              assert all(job["conclusion"] == "success" for job in rows), [(j["name"], j["conclusion"]) for j in rows]
+              return len(rows)
+          counts = {"surface": passed("surface"), "pair-created": passed("pair-created"), "pairs": passed("pairs")}
+          assert counts == {"surface": 1, "pair-created": 16, "pairs": 32}, counts
+          artifacts = [json.loads(line) for line in open("/tmp/nqc-rmc007-plan/acquisition-artifacts.jsonl")]
+          assert not any(a["expired"] for a in artifacts if a["name"].startswith("d07-")), "expired stage evidence"
+          print(run["head_sha"])
+          PY2
+          )
+          echo "mode=replay" >> "$GITHUB_OUTPUT"
+          echo "stages_run=$STAGES_RUN_ID" >> "$GITHUB_OUTPUT"
+          echo "stages_head=$stages_head" >> "$GITHUB_OUTPUT"
+          echo "RMC007_REPLAY_OF_ACQUISITION run=$STAGES_RUN_ID acquisition_head=$stages_head replay_head=$head"
+
+      - name: Preserve the acquisition-run record
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d07-plan-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-plan
+          if-no-files-found: ignore
+          retention-days: 30
+
+  surface:
+    needs: plan
+    if: ${{ needs.plan.outputs.mode == 'acquire' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "10"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Live exact-anchor factory surface and creation boundary (3 providers)
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D07_EVIDENCE"
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-current --bin nqc-rmc007-v2-boundary
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+          target/release/nqc-rmc007-v2-current \
+            --providers ../ci/nqc-census/rpc-providers.json \
+            --store "$D07_EVIDENCE/store" \
+            --out "$D07_EVIDENCE/v2-current-surface.json" | tee "$D07_EVIDENCE/current.log"
+          grep -F "RMC007_CURRENT_SURFACE_PASS providers=3" "$D07_EVIDENCE/current.log"
+          target/release/nqc-rmc007-v2-boundary \
+            --providers ../ci/nqc-census/rpc-providers.json \
+            --store "$D07_EVIDENCE/store" \
+            --out "$D07_EVIDENCE/v2-factory-boundary.json" | tee "$D07_EVIDENCE/boundary.log"
+          grep -F "RMC007_FACTORY_BOUNDARY_PASS providers=3" "$D07_EVIDENCE/boundary.log"
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" | tee "$D07_EVIDENCE/store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/store-verify.log"
+
+      - name: Preserve surface evidence (also on failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: /tmp/nqc-rmc007-evidence
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  pair-created:
+    needs: [plan, surface]
+    if: ${{ needs.plan.outputs.mode == 'acquire' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      # Public endpoints share capacity across every caller; bounded
+      # parallelism keeps this workflow from exhausting it by itself.
+      max-parallel: 6
+      matrix:
+        partition: [0, 1, 2, 3, 4, 5, 6, 7]
+        provider: [blastapi-public, mevblocker-rpc]
+    env:
+      D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "10"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch surface evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: /tmp/nqc-rmc007-surface
+
+      - name: PairCreated block partition
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D07_EVIDENCE"
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-stage
+          # A public-provider outage longer than the per-request retry budget
+          # aborts a run; the next attempt resumes from committed RMC-004
+          # checkpoints. Everything is re-verified offline in the reconcile job.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if target/release/nqc-rmc007-v2-stage pair-created --providers ../ci/nqc-census/v2-discovery-providers.json --label "${{ matrix.provider }}" --boundary /tmp/nqc-rmc007-surface/v2-factory-boundary.json --partition "${{ matrix.partition }}" --partitions 8 --store "$D07_EVIDENCE/store" --out "$D07_EVIDENCE/record.json" \
+                > "$D07_EVIDENCE/stage.log" 2> "$D07_EVIDENCE/stage-attempt-$attempt.err"; then
+              echo "RMC007_ATTEMPT_PASS stage attempt=$attempt"
+              break
+            fi
+            echo "RMC007_ATTEMPT_FAILED stage attempt=$attempt $(tail -n 1 "$D07_EVIDENCE/stage-attempt-$attempt.err")"
+            if [ "$attempt" = 10 ]; then
+              exit 1
+            fi
+            sleep 240
+          done
+          cat "$D07_EVIDENCE/stage.log"
+          grep -F "RMC007_STAGE_PASS stage=PAIR_CREATED" "$D07_EVIDENCE/stage.log"
+
+      - name: Preserve partition evidence (also on failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d07-stage-pair-created-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-evidence
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  pairs:
+    needs: [plan, surface]
+    if: ${{ needs.plan.outputs.mode == 'acquire' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 350
+    strategy:
+      fail-fast: false
+      max-parallel: 6
+      matrix:
+        partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        provider: [blastapi-public, mevblocker-rpc]
+    env:
+      D07_BASE: 8ebf6860e0a16964f5293df0ef40695b303b286d
+      RMC003_2_AUTHORITY: 519e5f6f7a4d42ff1cab67fef8306cfef9aab120
+      PFT_CERTIFIED_COMMIT: 5b4a0cb778cb4370cd54eb6fcba765dc8d7cecdf
+      PFT_CERTIFIED_TREE: ef3498da528f85cdb9fdd82222d64773a557f853
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_TESTS_EXPECTED: "11"
+      D07_PIPELINE_TESTS_EXPECTED: "10"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal --component clippy,rustfmt
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+
+      - name: Fetch surface evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: d07-surface-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}
+          path: /tmp/nqc-rmc007-surface
+
+      - name: allPairs, pair runtime and getPair index partition
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D07_EVIDENCE"
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-stage
+          # A public-provider outage longer than the per-request retry budget
+          # aborts a run; the next attempt resumes from committed RMC-004
+          # checkpoints. Everything is re-verified offline in the reconcile job.
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if target/release/nqc-rmc007-v2-stage pairs --providers ../ci/nqc-census/v2-discovery-providers.json --label "${{ matrix.provider }}" --current /tmp/nqc-rmc007-surface/v2-current-surface.json --partition "${{ matrix.partition }}" --partitions 16 --store "$D07_EVIDENCE/store" --out "$D07_EVIDENCE/record.json" \
+                > "$D07_EVIDENCE/stage.log" 2> "$D07_EVIDENCE/stage-attempt-$attempt.err"; then
+              echo "RMC007_ATTEMPT_PASS stage attempt=$attempt"
+              break
+            fi
+            echo "RMC007_ATTEMPT_FAILED stage attempt=$attempt $(tail -n 1 "$D07_EVIDENCE/stage-attempt-$attempt.err")"
+            if [ "$attempt" = 10 ]; then
+              exit 1
+            fi
+            sleep 240
+          done
+          cat "$D07_EVIDENCE/stage.log"
+          grep -F "RMC007_STAGE_PASS stage=PAIRS" "$D07_EVIDENCE/stage.log"
+
+      - name: Preserve partition evidence (also on failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d07-stage-pairs-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-evidence
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 30
+
+  replay:
+    needs: [gate, plan, surface, pair-created, pairs]
+    if: >-
+      ${{ always() && needs.gate.result == 'success' && needs.plan.result == 'success' && (
+        needs.plan.outputs.mode == 'replay' ||
+        (needs.plan.outputs.mode == 'acquire' && needs.surface.result == 'success' &&
+         needs.pair-created.result == 'success' && needs.pairs.result == 'success')) }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      # Offline: no RPC. Each job holds one stage store only, so the whole
+      # acquisition (about 20 GB of stage evidence) never meets on one disk.
+      max-parallel: 16
+      matrix:
+        stage: [pair-created, pairs]
+        partition: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        provider: [blastapi-public, mevblocker-rpc]
+        exclude:
+          - {stage: pair-created, partition: 8}
+          - {stage: pair-created, partition: 9}
+          - {stage: pair-created, partition: 10}
+          - {stage: pair-created, partition: 11}
+          - {stage: pair-created, partition: 12}
+          - {stage: pair-created, partition: 13}
+          - {stage: pair-created, partition: 14}
+          - {stage: pair-created, partition: 15}
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_REPLAY: /tmp/nqc-rmc007-replay
+      STAGES_RUN: ${{ needs.plan.outputs.stages_run }}
+      STAGES_HEAD: ${{ needs.plan.outputs.stages_head }}
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Free runner disk
+        shell: bash
+        run: |
+          set -euo pipefail
+          df -h /
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - name: Install exact Rust toolchain and build the replay
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-replay
+
+      - name: Fetch this stage's evidence (every attempt)
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d07-stage-${{ matrix.stage }}-${{ matrix.provider }}-${{ matrix.partition }}-${{ needs.plan.outputs.stages_head }}-${{ needs.plan.outputs.stages_run }}*
+          path: /tmp/nqc-rmc007-stage
+          run-id: ${{ needs.plan.outputs.stages_run }}
+          github-token: ${{ github.token }}
+
+      - name: Offline replay of the stage from its own store (no network)
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D07_REPLAY"
+          prefix="d07-stage-${{ matrix.stage }}-${{ matrix.provider }}-${{ matrix.partition }}-$STAGES_HEAD-$STAGES_RUN"
+          # The latest attempt of this stage: "<prefix>-<attempt>", or the
+          # attempt-less name of acquisitions made before attempts were named.
+          chosen=$(python3 - "$prefix" <<'PY2'
+          import os, re, sys
+          prefix = sys.argv[1]
+          found = []
+          for name in os.listdir("/tmp/nqc-rmc007-stage"):
+              if name == prefix:
+                  found.append((0, name))
+              elif re.fullmatch(re.escape(prefix) + r"-([0-9]+)", name):
+                  found.append((int(name.rsplit("-", 1)[1]), name))
+          assert found, f"no evidence for {prefix}"
+          assert len({attempt for attempt, _ in found}) == len(found), found
+          print(max(found)[1])
+          PY2
+          )
+          echo "RMC007_STAGE_EVIDENCE artifact=$chosen"
+          stage="/tmp/nqc-rmc007-stage/$chosen"
+          test -f "$stage/record.json"
+          # Artifact upload drops empty directories. Restore the store's
+          # documented, always-present directories (STORE_CONTRACT.md: tmp/
+          # is staging only); the store is then verified before any replay.
+          mkdir -p "$stage/store/tmp" "$stage/store/objects/chunks" "$stage/store/objects/artifacts" "$stage/store/streams"
+          for stream in "$stage"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
+          df -h /
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside the offline namespace"
+            exit 1
+          fi
+          sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
+            target/release/nqc-rmc007-v2-replay \
+            --stage-providers ../ci/nqc-census/v2-discovery-providers.json \
+            --record "$stage/record.json" \
+            --store "$stage/store" \
+            --stage-artifact "$chosen" \
+            --out "$D07_REPLAY/extract.json" | tee "$D07_REPLAY/replay.log"
+          grep -F "RMC007_REPLAY_PASS stage=" "$D07_REPLAY/replay.log"
+          cp "$stage/record.json" "$D07_REPLAY/record.json"
+          sha256sum "$D07_REPLAY/extract.json" "$D07_REPLAY/record.json" | tee "$D07_REPLAY/SHA256SUMS"
+
+      - name: Preserve the stage extract (also on failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: d07-extract-${{ matrix.stage }}-${{ matrix.provider }}-${{ matrix.partition }}-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: /tmp/nqc-rmc007-replay
+          if-no-files-found: warn
+          retention-days: 30
+
+  reconcile:
+    needs: [gate, plan, replay]
+    if: ${{ always() && needs.gate.result == 'success' && needs.replay.result == 'success' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    env:
+      RUST_TOOLCHAIN: "1.98.1"
+      D07_EVIDENCE: /tmp/nqc-rmc007-evidence
+      STAGES_RUN: ${{ needs.plan.outputs.stages_run }}
+      STAGES_HEAD: ${{ needs.plan.outputs.stages_head }}
+
+    steps:
+      - name: Checkout exact head
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Install exact Rust toolchain and build the reconciler
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install "$RUST_TOOLCHAIN" --profile minimal
+          rustc -V | grep -F "rustc $RUST_TOOLCHAIN "
+          cargo build --release --locked -p nqc-census-v2-discovery --bin nqc-rmc007-v2-reconcile
+          cargo build --release --locked -p nqc-census-store --bin nqc-census-store-verify
+
+      - name: Fetch the surface evidence
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d07-surface-${{ needs.plan.outputs.stages_head }}-${{ needs.plan.outputs.stages_run }}*
+          path: /tmp/nqc-rmc007-surface
+          run-id: ${{ needs.plan.outputs.stages_run }}
+          github-token: ${{ github.token }}
+
+      - name: Fetch every stage extract of this run
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          pattern: d07-extract-*-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-*
+          path: /tmp/nqc-rmc007-extracts
+          run-id: ${{ github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Select the latest extract of every stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$D07_EVIDENCE/extracts"
+          surfaces=(/tmp/nqc-rmc007-surface/d07-surface-*)
+          test "${#surfaces[@]}" = 1
+          cp "${surfaces[0]}/v2-current-surface.json" "${surfaces[0]}/v2-factory-boundary.json" "$D07_EVIDENCE/"
+          cp -r "${surfaces[0]}/store" "$D07_EVIDENCE/store"
+          # Artifact upload drops empty directories; restore the store's
+          # documented, always-present ones before it is verified.
+          mkdir -p "$D07_EVIDENCE/store/tmp" "$D07_EVIDENCE/store/objects/chunks" "$D07_EVIDENCE/store/objects/artifacts" "$D07_EVIDENCE/store/streams"
+          for stream in "$D07_EVIDENCE"/store/streams/*/; do
+            if [ -d "$stream" ]; then mkdir -p "${stream}checkpoints"; fi
+          done
+          python3 - "${{ github.event.pull_request.head.sha || github.sha }}" "${{ github.run_id }}" <<'PY2'
+          import json, os, re, shutil, sys
+          head, run = sys.argv[1:3]
+          root = "/tmp/nqc-rmc007-extracts"
+          out = os.path.join(os.environ["D07_EVIDENCE"], "extracts")
+          pattern = re.compile(r"d07-extract-(pair-created|pairs)-(.+)-([0-9]+)-" + head + "-" + run + r"-([0-9]+)")
+          latest, attempts = {}, {}
+          for name in sorted(os.listdir(root)):
+              match = pattern.fullmatch(name)
+              assert match, name
+              kind, provider, partition, attempt = match.group(1), match.group(2), int(match.group(3)), int(match.group(4))
+              key = (kind, provider, partition)
+              attempts.setdefault(key, []).append(attempt)
+              if os.path.exists(os.path.join(root, name, "extract.json")) and attempt > latest.get(key, (0, ""))[0]:
+                  latest[key] = (attempt, name)
+          expected = {("pair-created", p, k) for p in ("blastapi-public", "mevblocker-rpc") for k in range(8)}
+          expected |= {("pairs", p, k) for p in ("blastapi-public", "mevblocker-rpc") for k in range(16)}
+          assert set(latest) == expected, sorted(expected - set(latest))
+          for key, (attempt, name) in sorted(latest.items()):
+              assert attempt == max(attempts[key]), f"latest attempt of {key} has no extract"
+              kind, provider, partition = key
+              shutil.copyfile(os.path.join(root, name, "extract.json"), os.path.join(out, f"{kind}-{provider}-{partition:02d}.json"))
+          selection = [{"stage": k[0], "provider": k[1], "partition": k[2], "artifact": latest[k][1],
+                        "attempts": sorted(attempts[k])} for k in sorted(latest)]
+          json.dump({"extracts": selection}, open(os.path.join(os.environ["D07_EVIDENCE"], "extract-selection.json"), "w"), indent=2, sort_keys=True)
+          print(f"RMC007_EXTRACTS_SELECTED count={len(selection)}")
+          PY2
+          echo "RMC007_ACQUISITION_RUN=$STAGES_RUN head=$STAGES_HEAD"
+          echo "RMC007_RECONCILE_RUN=${{ github.run_id }} head=$(git rev-parse HEAD)"
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" > "$D07_EVIDENCE/surface-store-verify.log" 2>&1 || true
+          cat "$D07_EVIDENCE/surface-store-verify.log"
+        working-directory: nqc-census
+
+      - name: Offline reconciliation and closeout from the extracts (no network)
+        working-directory: nqc-census
+        shell: bash
+        run: |
+          set -euo pipefail
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/surface-store-verify.log"
+          if sudo unshare --net -- curl -sS --max-time 5 https://rpc.mevblocker.io -o /dev/null; then
+            echo "network reachable inside the offline namespace"
+            exit 1
+          fi
+          echo RMC007_OFFLINE_NAMESPACE_HAS_NO_NETWORK
+          HEAD_SHA="$(git rev-parse HEAD)"
+          TREE_SHA="$(git show -s --format=%T HEAD)"
+          for out in closeout closeout-rerun; do
+            sudo unshare --net -- sudo -u "$(id -un)" env PATH="$PATH" \
+              target/release/nqc-rmc007-v2-reconcile \
+              --surface-providers ../ci/nqc-census/rpc-providers.json \
+              --stage-providers ../ci/nqc-census/v2-discovery-providers.json \
+              --current "$D07_EVIDENCE/v2-current-surface.json" \
+              --boundary "$D07_EVIDENCE/v2-factory-boundary.json" \
+              --extracts "$D07_EVIDENCE/extracts" \
+              --store "$D07_EVIDENCE/store" \
+              --out-dir "$D07_EVIDENCE/$out" \
+              --code-commit "$HEAD_SHA" \
+              --code-tree "$TREE_SHA" | tee "$D07_EVIDENCE/$out.log"
+          done
+          diff -r "$D07_EVIDENCE/closeout" "$D07_EVIDENCE/closeout-rerun"
+          echo RMC007_DETERMINISTIC_CLOSEOUT_PASS
+          grep -F "RMC007_CLOSEOUT_PASS pairs=514624 unexplained=0 mismatches=0 records=48" "$D07_EVIDENCE/closeout.log"
+          (cd "$D07_EVIDENCE/closeout" && sha256sum * | tee ../closeout-SHA256SUMS)
+          cat "$D07_EVIDENCE/closeout/v2-discovery-summary.json"; echo
+          target/release/nqc-census-store-verify --store "$D07_EVIDENCE/store" > "$D07_EVIDENCE/final-store-verify.log"
+          grep -F "RMC_004_OFFLINE_VERIFY=PASS" "$D07_EVIDENCE/final-store-verify.log"
+          grep -E "^(streams|evidence_root)=" "$D07_EVIDENCE/final-store-verify.log"
+
+      - name: Preserve D07 closeout (also on failure)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: nqc-rmc007-closeout-${{ github.event.pull_request.head.sha || github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            /tmp/nqc-rmc007-evidence/closeout
+            /tmp/nqc-rmc007-evidence/*.log
+            /tmp/nqc-rmc007-evidence/*.json
+            /tmp/nqc-rmc007-evidence/closeout-SHA256SUMS
+          if-no-files-found: warn
+          retention-days: 30

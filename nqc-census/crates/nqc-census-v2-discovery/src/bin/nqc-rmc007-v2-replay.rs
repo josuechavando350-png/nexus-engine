@@ -1,20 +1,17 @@
-//! Offline replay of one RMC-008 stage from its own store. Needs no network.
+//! Offline replay of one RMC-007 stage from its own store. Needs no network.
 //!
-//! `--providers F --pins F --pin-root DIR --record F --store DIR
-//!  --stage-artifact NAME --out F`
+//! `--stage-providers F --record F --store DIR --stage-artifact NAME --out F`
 //!
-//! The store is verified before and after, and the replay must not move its
-//! evidence root.
+//! The store is verified before and after the replay, and the replay must not
+//! move its evidence root. The output extract carries the record, its
+//! replayed rows, the replayed chain domain and anchor and the store summary.
 
 use nqc_census_chain::json::Json;
 use nqc_census_chain::provider::ProviderSet;
-use nqc_census_state::extract::stage_extract;
-use nqc_census_state::inputs::{pinned, verify_pins, verify_upstream, D06Inputs, D07Inputs};
-use nqc_census_state::replay::StagePlans;
-use nqc_census_state::stage::AnchorPlan;
-use nqc_census_state::v2_stage::V2Plan;
 use nqc_census_store::verify::{verify_store, VerifyReport, VerifyRequest};
 use nqc_census_store::Store;
+use nqc_census_v2_discovery::stage::V2Plan;
+use nqc_census_v2_discovery::verify::stage_extract;
 use std::collections::BTreeMap;
 use std::path::Path;
 use std::{env, error::Error, fs, path::PathBuf};
@@ -40,33 +37,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             .cloned()
             .ok_or_else(|| format!("{name} is required"))?)
     };
-    let providers: Vec<_> = ProviderSet::parse(&fs::read(flag("--providers")?)?)?
+    let providers: Vec<_> = ProviderSet::parse(&fs::read(flag("--stage-providers")?)?)?
         .iter()
         .cloned()
         .collect();
-    let pins_path = PathBuf::from(flag("--pins")?);
-    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
-    verify_upstream(&pins_path, &pins)?;
-    let anchor = AnchorPlan::mainnet()?;
-    let d06 = D06Inputs::read(
-        pinned(&pins, "d06_current_surface")?,
-        pinned(&pins, "d06_deployment_manifest")?,
-        pinned(&pins, "d06_reserve_manifest")?,
-        &anchor,
-    )?;
-    let d07 = D07Inputs::read(
-        pinned(&pins, "d07_current_surface")?,
-        pinned(&pins, "d07_deployment_admission")?,
-        pinned(&pins, "d07_pair_manifest")?,
-        &anchor,
-    )?;
-    let aave_plan = d06.plan(anchor.clone());
-    let v2_plan = d07.plan(anchor.clone(), V2Plan::mainnet()?.job_size);
-    let plans = StagePlans {
-        v2: Some(&v2_plan),
-        pairs: &d07.pairs,
-        aave: Some(&aave_plan),
-    };
     let record = Json::parse(&fs::read(flag("--record")?)?)?;
     let root = PathBuf::from(flag("--store")?);
     let before = verified(&root)?;
@@ -81,7 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ]);
     let extract = {
         let store = Store::open_existing(&root)?;
-        stage_extract(&store, &providers, &plans, &record, summary)?
+        stage_extract(&store, &providers, &V2Plan::mainnet()?, &record, summary)?
     };
     let after = verified(&root)?;
     if after.evidence_root != before.evidence_root || after.streams != before.streams {
@@ -89,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }
     fs::write(flag("--out")?, extract.canonical()?)?;
     println!(
-        "RMC008_REPLAY_PASS stage={} provider={} rows={} record_sha256={} data_sha256={} evidence_root={} streams={}",
+        "RMC007_REPLAY_PASS stage={} provider={} rows={} record_sha256={} data_sha256={} evidence_root={} streams={}",
         record.str_field("stage")?,
         record
             .get("provider")

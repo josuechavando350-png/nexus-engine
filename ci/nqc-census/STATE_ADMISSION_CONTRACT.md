@@ -18,15 +18,32 @@ PFT-SRC-002). No core, store or chain code changes in this node.
 ## 1. Inputs
 
 `ci/nqc-census/state-inputs.json` pins each upstream source by exact
-identity — upstream code commit, workflow run id, artifact id, artifact name
-and artifact digest — and every consumed file by sha256: the D06 current
-surface, deployment manifest and reserve manifest, and the D07 current
-surface, admission and pair manifest. Before any file is used the live
-workflow checks, through the GitHub API, that the run's head is the pinned
-commit and concluded `success`, and that the artifact's name and digest are
-the pinned ones; then every file digest. The Rust readers additionally
-require the upstream schemas and that both current surfaces were acquired at
-the declared D08 anchor. "Latest successful artifact" is never consumed.
+identity — PR, upstream code commit and tree, workflow run id, artifact id,
+artifact name, artifact ZIP digest (`sha256:`, GitHub's digest of the
+artifact archive) and the sha256 of the upstream closeout
+`evidence-manifest.json` — and every consumed file by sha256: the D06
+current surface, deployment manifest, reserve manifest and evidence
+manifest, and the D07 current surface, admission, pair manifest and
+evidence manifest. The pinned authorities are the certified runs: D06
+`a33a0125` / run 36627517591 / artifact 11062164175 (PR 521) and D07
+`7e223cc5` / run 36673249129 / artifact 11081537391 (PR 520).
+
+Before any file is used the live workflow checks, through the GitHub API,
+that the run's head is the pinned commit and concluded `success`, that the
+commit's tree is the pinned tree, and that the artifact belongs to that run
+and has the pinned name and digest; then every file digest. Offline, both
+the workflow and the Rust readers (`inputs::verify_upstream`, in every stage,
+replay and reconcile) require that each pinned evidence manifest is the
+declared one, was written by the pinned commit and tree, and lists every
+consumed closeout file with its pinned digest; that every pinned file
+belongs to exactly one declared source; and that identities are well formed.
+Files outside an upstream closeout (the current surfaces) are bound by the
+artifact digest only. The Rust readers additionally require the upstream
+schemas and that both current surfaces were acquired at the declared D08
+anchor. The closeout's `evidence-manifest.json` records the declared
+sources as `upstream_sources` next to the consumed file digests, and the
+independent recount requires both to equal the pins. "Latest successful
+artifact" is never consumed.
 While `status` is not `PINNED` the live workflow stops at its first step
 (`RMC008_BLOCKED`). Every market id is recomputed through D01 from the
 admitted deployment key and must equal the admitted id.
@@ -109,6 +126,12 @@ manifests of both providers). RMC-008 decides one stage only,
 - V2 pair: advance iff identity, CREATE2, factory and canonical state hold and
   both tokens answer `balanceOf(pair)` ≥ reserve; otherwise
   `STATE_UNRECONSTRUCTABLE` / `UNSUPPORTED_TOKEN_BEHAVIOR`.
+- A V2 pair that names its factory as a token (RMC-001 Amendment 1; mainnet
+  pairs `0x14c3…53ce` and `0x3b66…8446`) is admitted and recorded like any
+  other pair. The factory reverts `balanceOf` and `decimals`, so the pair is
+  `UNSUPPORTED_TOKEN_BEHAVIOR` and its factory token is rejected
+  (`BALANCE_OF_UNAVAILABLE`, decimals `REVERTED`). It is never dropped from the
+  manifest or the ledger.
 
 Economic activity, borrowability and actionability are later
 classifications. RMC-008 records their inputs as exact facts only: Aave
@@ -138,11 +161,14 @@ anchor when the source exposes `latestRoundData`, otherwise
 ## 5. Public RPC load
 
 Live acquisition runs only from a `workflow_dispatch` on the exact branch
-head, in the repository-wide concurrency group `nqc-census-public-rpc`
-(`cancel-in-progress: false`): at most one live Census acquisition runs at a
-time and a running one is never cancelled. GitHub keeps one pending run per
-group, and a newer pending run replaces an older one, so a `pull_request` run
-of the live workflow never enters the group: it verifies the pinned inputs
+head, in RMC-008's own concurrency group `nqc-rmc008-live-<ref>`
+(`cancel-in-progress: false`): at most one D08 acquisition runs per ref and a
+running one is never cancelled. GitHub keeps one pending run per group, and a
+newer pending run replaces an older one. The repository-wide group
+`nqc-census-public-rpc` therefore let one Census node's dispatch evict another
+node's pending certification; RMC-009 and RMC-010 left it for the same reason.
+A `pull_request` run of the live workflow never enters the live group: it
+verifies the pinned inputs
 through the GitHub API only (no RPC), stops at `RMC008_BLOCKED` while they
 are not pinned, and certifies nothing. Within an acquisition the stage
 matrix is bounded (`max-parallel: 6`, providers interleaved). Transient provider failures (rate limit, "temporarily

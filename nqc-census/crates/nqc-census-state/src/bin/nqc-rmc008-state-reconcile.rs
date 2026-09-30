@@ -12,7 +12,7 @@ use nqc_census_chain::provider::ProviderSet;
 use nqc_census_state::closeout::{
     reconcile_extracts, reconcile_offline, write_closeout, CloseoutContext,
 };
-use nqc_census_state::inputs::{pinned, verify_pins, D06Inputs, D07Inputs};
+use nqc_census_state::inputs::{pinned, verify_pins, verify_upstream, D06Inputs, D07Inputs};
 use nqc_census_state::replay::manifests;
 use nqc_census_state::stage::AnchorPlan;
 use nqc_census_state::v2_stage::V2Plan;
@@ -38,10 +38,9 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
     let providers = ProviderSet::parse(&fs::read(flag("--providers")?)?)?;
     let providers: Vec<_> = providers.iter().cloned().collect();
-    let pins = verify_pins(
-        &PathBuf::from(flag("--pins")?),
-        &PathBuf::from(flag("--pin-root")?),
-    )?;
+    let pins_path = PathBuf::from(flag("--pins")?);
+    let pins = verify_pins(&pins_path, &PathBuf::from(flag("--pin-root")?))?;
+    let upstream_sources = verify_upstream(&pins_path, &pins)?;
     let anchor = AnchorPlan::mainnet()?;
     let d06 = D06Inputs::read(
         pinned(&pins, "d06_current_surface")?,
@@ -129,6 +128,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             code_commit: &flag("--code-commit")?,
             code_tree: &flag("--code-tree")?,
             pins: &pins,
+            upstream_sources,
             store_evidence_root: &store_evidence_root,
             stage_stores,
             record_manifests,
