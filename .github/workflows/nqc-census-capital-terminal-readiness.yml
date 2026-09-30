@@ -4,6 +4,9 @@ on:
   pull_request:
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/capital-census-scope.json"
@@ -14,6 +17,9 @@ on:
       - "nqc/rmc-011-derived-authority-lock-20260930"
     paths:
       - "ci/nqc-census/rmc011-capital-source-universe.json"
+      - "ci/nqc-census/rmc011-capital-family-discovery.json"
+      - "ci/nqc-census/verify-rmc011-capital-family-discovery.py"
+      - "ci/nqc-census/test_verify_rmc011_capital_family_discovery.py"
       - "ci/nqc-census/verify-rmc011-capital-source-universe.py"
       - "ci/nqc-census/test_verify_rmc011_capital_source_universe.py"
       - "ci/nqc-census/capital-census-scope.json"
@@ -43,6 +49,8 @@ jobs:
         run: |
           python3 ci/nqc-census/test_verify_rmc011_capital_source_universe.py -v
           python3 ci/nqc-census/verify-rmc011-capital-source-universe.py
+          python3 ci/nqc-census/test_verify_rmc011_capital_family_discovery.py -v
+          python3 ci/nqc-census/verify-rmc011-capital-family-discovery.py
       - name: Enforce terminal claim boundary
         shell: bash
         run: |
